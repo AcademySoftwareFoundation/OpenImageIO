@@ -1922,40 +1922,6 @@ TextureSystemImpl::sample_closest (int nsamples, const float *s_,
 
 
 
-// return the greatest integer <= x, for 4 values at once
-OIIO_FORCEINLINE vint4 quick_floor (const vfloat4& x) {
-    // FIXME -- compare to simd::floati -- is this really the fastest?
-#if 0
-    // Even on SSE 4.1, this is actually very slightly slower!
-    // Continue to test on future architectures.
-    return floori(x);
-#else
-    vint4 b (x);  // truncates
-    vint4 isneg = bitcast_to_int (x < vfloat4::Zero());
-    return b + isneg;
-    // Trick here (thanks, Cycles, for letting me spy on your code): the
-    // comparison will return (int)-1 for components that are less than
-    // zero, and adding that is the same as subtracting one!
-#endif
-}
-
-
-// floatfrac for four sets of values at once.
-inline vfloat4 floorfrac (const vfloat4& x, vint4 * i) {
-    // FIXME -- is this really the fastest?
-#if 0
-    vfloat4 thefloor = floor(x);
-    *i = vint4(thefloor);
-    return x-thefloor;
-#else
-    vint4 thefloor = quick_floor (x);
-    *i = thefloor;
-    return x - vfloat4(thefloor);
-#endif
-}
-
-
-
 /// Convert texture coordinates (s,t), which range on 0-1 for the "full"
 /// image boundary, to texel coordinates (i+ifrac,j+jfrac) where (i,j) is
 /// the texel to the immediate upper left of the sample position, and ifrac

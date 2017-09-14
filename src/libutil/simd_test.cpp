@@ -188,6 +188,10 @@ template<> inline vint8 mkvec<vint8> (int a, int b, int c, int d) {
     return vint8(a,b,c,d,a,b,c,d);
 }
 
+template<> inline vint16 mkvec<vint16> (int a, int b, int c, int d) {
+    return vint16(a,b,c,d,a,b,c,d,a,b,c,d,a,b,c,d);
+}
+
 template<> inline vbool8 mkvec<vbool8> (bool a, bool b, bool c, bool d) {
     return vbool8(a,b,c,d,a,b,c,d);
 }
@@ -1338,6 +1342,7 @@ inline float rcp (float f) { return 1.0f / f; }
 template<typename VEC>
 void test_mathfuncs ()
 {
+    typedef typename VEC::vint_t vint_t;
     test_heading ("mathfuncs", VEC::type_name());
 
     VEC A = mkvec<VEC> (-1.0f, 0.0f, 1.0f, 4.5f);
@@ -1363,6 +1368,27 @@ void test_mathfuncs ()
     benchmark2 ("simd operator/", do_div<VEC>, A, A);
     benchmark2 ("simd safe_div", do_safe_div<VEC>, A, A);
     benchmark ("simd rcp_fast", [](VEC& v){ return rcp_fast(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
+
+    OIIO_CHECK_SIMD_EQUAL (ifloor(mkvec<VEC>(0.0f, 0.999f, 1.0f, 1.001f)),
+                           mkvec<vint_t>(0, 0, 1, 1));
+    OIIO_CHECK_SIMD_EQUAL (ifloor(mkvec<VEC>(0.0f, -0.999f, -1.0f, -1.001f)),
+                           mkvec<vint_t>(0, -1, -1, -2));
+    benchmark ("float ifloor", [](float&v){ return ifloor(v); }, 1.1f);
+    benchmark ("simd ifloor", [](VEC&v){ return simd::ifloor(v); }, VEC(1.1f));
+
+    int iscalar;
+    vint_t ival;
+    VEC fval = -1.1;
+    OIIO_CHECK_EQUAL_APPROX (floorfrac(VEC(0.0f),    &ival), 0.0f);   OIIO_CHECK_SIMD_EQUAL (ival, 0);
+    OIIO_CHECK_EQUAL_APPROX (floorfrac(VEC(-0.999f), &ival), 0.001f); OIIO_CHECK_SIMD_EQUAL (ival, -1);
+    OIIO_CHECK_EQUAL_APPROX (floorfrac(VEC(-1.0f),   &ival), 0.0f);   OIIO_CHECK_SIMD_EQUAL (ival, -1);
+    OIIO_CHECK_EQUAL_APPROX (floorfrac(VEC(-1.001f), &ival), 0.999f); OIIO_CHECK_SIMD_EQUAL (ival, -2);
+    OIIO_CHECK_EQUAL_APPROX (floorfrac(VEC(0.999f),  &ival), 0.999f); OIIO_CHECK_SIMD_EQUAL (ival, 0);
+    OIIO_CHECK_EQUAL_APPROX (floorfrac(VEC(1.0f),    &ival), 0.0f);   OIIO_CHECK_SIMD_EQUAL (ival, 1);
+    OIIO_CHECK_EQUAL_APPROX (floorfrac(VEC(1.001f),  &ival), 0.001f); OIIO_CHECK_SIMD_EQUAL (ival, 1);
+    benchmark ("float floorfrac", [&](float x){ return DoNotOptimize(floorfrac(x,&iscalar)); }, 1.1f);
+    benchmark ("simd floorfrac", [&](const VEC& x){ return DoNotOptimize(floorfrac(x,&ival)); }, fval);
+
     benchmark ("float expf", expf, 0.67f);
     benchmark ("float fast_exp", fast_exp_float, 0.67f);
     benchmark ("simd exp", [](VEC& v){ return simd::exp(v); }, VEC(0.67f));

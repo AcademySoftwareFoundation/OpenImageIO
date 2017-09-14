@@ -575,7 +575,8 @@ bool all (const vbool4& v);
 bool any (const vbool4& v);
 bool none (const vbool4& v);
 
-
+// It's handy to have this defined for regular bool as well
+inline bool all (bool v) { return v; }
 
 
 
@@ -2039,7 +2040,8 @@ vfloat4 abs (const vfloat4& a);    ///< absolute value (float)
 vfloat4 sign (const vfloat4& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat4 ceil (const vfloat4& a);
 vfloat4 floor (const vfloat4& a);
-vint4 floori (const vfloat4& a);    ///< (int)floor
+vint4 ifloor (const vfloat4& a);    ///< (int)floor
+inline vint4 floori (const vfloat4& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer (rounding away from 0 in cases
 /// that are exactly half way).
@@ -2621,7 +2623,8 @@ vfloat8 abs (const vfloat8& a);    ///< absolute value (float)
 vfloat8 sign (const vfloat8& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat8 ceil (const vfloat8& a);
 vfloat8 floor (const vfloat8& a);
-vint8 floori (const vfloat8& a);    ///< (int)floor
+vint8 ifloor (const vfloat8& a);    ///< (int)floor
+inline vint8 floori (const vfloat8& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer (rounding away from 0 in cases
 /// that are exactly half way).
@@ -2931,7 +2934,8 @@ vfloat16 abs (const vfloat16& a);    ///< absolute value (float)
 vfloat16 sign (const vfloat16& a);   ///< 1.0 when value >= 0, -1 when negative
 vfloat16 ceil (const vfloat16& a);
 vfloat16 floor (const vfloat16& a);
-vint16 floori (const vfloat16& a);    ///< (int)floor
+vint16 ifloor (const vfloat16& a);    ///< (int)floor
+inline vint16 floori (const vfloat16& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
 /// Per-element round to nearest integer (rounding away from 0 in cases
 /// that are exactly half way).
@@ -7048,18 +7052,11 @@ OIIO_FORCEINLINE vfloat4 round (const vfloat4& a)
 #endif
 }
 
-OIIO_FORCEINLINE vint4 floori (const vfloat4& a)
+OIIO_FORCEINLINE vint4 ifloor (const vfloat4& a)
 {
     // FIXME: look into this, versus the method of quick_floor in texturesys.cpp
 #if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return vint4(floor(a));
-#elif OIIO_SIMD_SSE   /* SSE2/3 */
-    vint4 i (a);  // truncates
-    vint4 isneg = bitcast_to_int (a < vfloat4::Zero());
-    return i + isneg;
-    // The trick here (thanks, Cycles, for letting me spy on your code) is
-    // that the comparison will return (int)-1 for components that are less
-    // than zero, and adding that is the same as subtracting one!
 #else
     SIMD_RETURN (vint4, (int)floorf(a[i]));
 #endif
@@ -8548,18 +8545,13 @@ OIIO_FORCEINLINE vfloat8 round (const vfloat8& a)
 #endif
 }
 
-OIIO_FORCEINLINE vint8 floori (const vfloat8& a)
+OIIO_FORCEINLINE vint8 ifloor (const vfloat8& a)
 {
     // FIXME: look into this, versus the method of quick_floor in texturesys.cpp
 #if OIIO_SIMD_AVX
     return vint8(floor(a));
 #elif OIIO_SIMD_SSE   /* SSE2/3 */
-    vint8 i (a);  // truncates
-    vint8 isneg = bitcast_to_int (a < vfloat8::Zero());
-    return i + isneg;
-    // The trick here (thanks, Cycles, for letting me spy on your code) is
-    // that the comparison will return (int)-1 for components that are less
-    // than zero, and adding that is the same as subtracting one!
+    return vint8 (ifloor(a.lo()), ifloor(a.hi()));
 #else
     SIMD_RETURN (vint8, (int)floorf(a[i]));
 #endif
@@ -9384,7 +9376,7 @@ OIIO_FORCEINLINE vfloat16 round (const vfloat16& a)
 #endif
 }
 
-OIIO_FORCEINLINE vint16 floori (const vfloat16& a)
+OIIO_FORCEINLINE vint16 ifloor (const vfloat16& a)
 {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_cvt_roundps_epi32 (a, (_MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC));

@@ -33,11 +33,20 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <cmath>
+#include <algorithm>
 
 #include <OpenImageIO/sysutil.h>
 
 
 OIIO_NAMESPACE_BEGIN
+
+namespace simd {
+// Force a float-based abs and max to appear in namespace simd
+inline float abs(float x) { return std::abs(x); }
+inline float max(float x, float y) { return std::max(x,y); }
+}
+
 namespace pvt {
 
 class UnitTestFailureCounter {
@@ -59,7 +68,15 @@ private:
     int m_failures = 0;
 };
 
+
+template <typename X, typename Y>
+inline bool equal_approx (const X& x, const Y& y) {
+    using namespace simd;
+    return all(abs((x)-(y)) <= 0.001f * max(abs(x), abs(y)));
 }
+
+}  // end namespace pvt
+
 OIIO_NAMESPACE_END
 
 static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
@@ -95,6 +112,16 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
              << #x << " == " << #y << "\n"                              \
              << "\tvalues were '" << (x) << "' and '" << (y) << "'"     \
              << ", diff was " << std::abs((x)-(y)) << "\n"),            \
+            (void)++unit_test_failures))
+
+#define OIIO_CHECK_EQUAL_APPROX(x,y)                                    \
+    (pvt::equal_approx(x,y) ? ((void)0)                                 \
+         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
+             << __FILE__ << ":" << __LINE__ << ":\n"                    \
+             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
+             << #x << " == " << #y << "\n"                              \
+             << "\tvalues were '" << (x) << "' and '" << (y) << "'"     \
+             << ", diff was " << ((x)-(y)) << "\n"),                    \
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_NE(x,y)                                              \
