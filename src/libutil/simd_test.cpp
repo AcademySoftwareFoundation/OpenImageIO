@@ -1374,9 +1374,7 @@ void test_mathfuncs ()
     OIIO_CHECK_SIMD_EQUAL (ifloor(mkvec<VEC>(0.0f, -0.999f, -1.0f, -1.001f)),
                            mkvec<vint_t>(0, -1, -1, -2));
     benchmark ("float ifloor", [](float&v){ return ifloor(v); }, 1.1f);
-    benchmark ("float fast_ifloor", [](float&v){ return fast_ifloor(v); }, 1.1f);
     benchmark ("simd ifloor", [](VEC&v){ return simd::ifloor(v); }, VEC(1.1f));
-    benchmark ("simd fast_ifloor", [](VEC&v){ return simd::fast_ifloor(v); }, VEC(1.1f));
 
     int iscalar;
     vint_t ival;

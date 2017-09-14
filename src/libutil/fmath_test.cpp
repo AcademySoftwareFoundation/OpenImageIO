@@ -160,17 +160,6 @@ test_math_functions ()
     OIIO_CHECK_EQUAL (ifloor(1.001f), 1);
     float fval = 1.1; clobber(fval);
     bench ("ifloor", [&](){ return DoNotOptimize(ifloor(fval)); });
-    bench ("fast_ifloor", [&](){ return DoNotOptimize(fast_ifloor(fval)); });
-
-    OIIO_CHECK_EQUAL (fast_ifloor(0.0f), 0);
-    OIIO_CHECK_EQUAL (fast_ifloor(-0.999f), -1);
-    OIIO_CHECK_EQUAL (fast_ifloor(-1.0f), -2);   // fast floor compromise!
-    OIIO_CHECK_EQUAL (fast_ifloor(-1.001f), -2);
-    OIIO_CHECK_EQUAL (fast_ifloor(0.999f), 0);
-    OIIO_CHECK_EQUAL (fast_ifloor(1.0f), 1);
-    OIIO_CHECK_EQUAL (fast_ifloor(1.001f), 1);
-    fval = -1.1; clobber(fval);
-    bench ("fast_ifloor neg value", [&](float x){ return DoNotOptimize(fast_ifloor(x)); }, fval);
 
     int ival;
     OIIO_CHECK_EQUAL_APPROX (floorfrac(0.0f,    &ival), 0.0f);   OIIO_CHECK_EQUAL (ival, 0);

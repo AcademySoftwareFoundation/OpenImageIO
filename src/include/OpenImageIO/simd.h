@@ -2042,7 +2042,6 @@ vfloat4 ceil (const vfloat4& a);
 vfloat4 floor (const vfloat4& a);
 vint4 ifloor (const vfloat4& a);    ///< (int)floor
 inline vint4 floori (const vfloat4& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
-vint4 fast_ifloor (const vfloat4& a);  ///< fast ifloor, inaccurate for neg ints
 
 /// Per-element round to nearest integer (rounding away from 0 in cases
 /// that are exactly half way).
@@ -2626,7 +2625,6 @@ vfloat8 ceil (const vfloat8& a);
 vfloat8 floor (const vfloat8& a);
 vint8 ifloor (const vfloat8& a);    ///< (int)floor
 inline vint8 floori (const vfloat8& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
-vint8 fast_ifloor (const vfloat8& a);  ///< fast ifloor, inaccurate for neg ints
 
 /// Per-element round to nearest integer (rounding away from 0 in cases
 /// that are exactly half way).
@@ -2938,7 +2936,6 @@ vfloat16 ceil (const vfloat16& a);
 vfloat16 floor (const vfloat16& a);
 vint16 ifloor (const vfloat16& a);    ///< (int)floor
 inline vint16 floori (const vfloat16& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
-vint16 fast_ifloor (const vfloat16& a);  ///< fast ifloor, inaccurate for neg ints
 
 /// Per-element round to nearest integer (rounding away from 0 in cases
 /// that are exactly half way).
@@ -7066,21 +7063,6 @@ OIIO_FORCEINLINE vint4 ifloor (const vfloat4& a)
 }
 
 
-OIIO_FORCEINLINE vint4 fast_ifloor (const vfloat4& a)
-{
-#if OIIO_SIMD_SSE   /* SSE2/3 */
-    vint4 i (a);  // truncates
-    vint4 isneg = bitcast_to_int (a < vfloat4::Zero());
-    return i + isneg;
-    // The trick here (thanks, Cycles, for letting me spy on your code) is
-    // that the comparison will return (int)-1 for components that are less
-    // than zero, and adding that is the same as subtracting one!
-#else
-    SIMD_RETURN (vint4, (int) a[i] - (a[i] < 0.0f ? 1 : 0));
-#endif
-}
-
-
 OIIO_FORCEINLINE vint4 rint (const vfloat4& a)
 {
     return vint4 (round(a));
@@ -8576,21 +8558,6 @@ OIIO_FORCEINLINE vint8 ifloor (const vfloat8& a)
 }
 
 
-OIIO_FORCEINLINE vint8 fast_ifloor (const vfloat8& a)
-{
-#if OIIO_SIMD_SSE   /* SSE2/3 */
-    vint8 i (a);  // truncates
-    vint8 isneg = bitcast_to_int (a < vfloat8::Zero());
-    return i + isneg;
-    // The trick here (thanks, Cycles, for letting me spy on your code) is
-    // that the comparison will return (int)-1 for components that are less
-    // than zero, and adding that is the same as subtracting one!
-#else
-    SIMD_RETURN (vint8, (int) a[i] - (a[i] < 0.0f ? 1 : 0));
-#endif
-}
-
-
 OIIO_FORCEINLINE vint8 rint (const vfloat8& a)
 {
     return vint8 (round(a));
@@ -9415,18 +9382,6 @@ OIIO_FORCEINLINE vint16 ifloor (const vfloat16& a)
     return _mm512_cvt_roundps_epi32 (a, (_MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC));
 #else
     return vint16(floor(a));
-#endif
-}
-
-
-OIIO_FORCEINLINE vint16 fast_ifloor (const vfloat16& a)
-{
-#if OIIO_SIMD_AVX >= 512
-    return _mm512_cvt_roundps_epi32 (a, (_MM_FROUND_TO_NEG_INF |_MM_FROUND_NO_EXC));
-#elif OIIO_SIMD_SSE   /* SSE2/3 */
-    return vint16 (ifloor(a.lo()), ifloor(a.hi()));
-#else
-    SIMD_RETURN (vint16, (int) a[i] - (a[i] < 0.0f ? 1 : 0));
 #endif
 }
 

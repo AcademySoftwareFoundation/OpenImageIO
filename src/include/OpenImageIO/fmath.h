@@ -453,21 +453,6 @@ ifloor (float x)
 
 
 
-/// Like ifloor(), but ~25% faster and it incorrectly rounds negative
-/// integers down to the NEXT integer. In other words, fast_ifloor(-1) ==
-/// -2, oh my. But it's fine if either (a) you are sure your inputs will not
-/// be negative integers, or (b) for some reason it's ok with you that
-/// negative integer values n are rounded down as if they are (n-epsilon).
-inline int
-fast_ifloor (float x)
-{
-    // Find the greatest whole number <= x.  This cast is faster than
-    // calling floorf.
-    return (int) x - (x < 0.0f ? 1 : 0);
-}
-
-
-
 /// Return (x-floor(x)) and put (int)floor(x) in *xint.  This is similar
 /// to the built-in modf, but returns a true int, always rounds down
 /// (compared to modf which rounds toward 0), and always returns
