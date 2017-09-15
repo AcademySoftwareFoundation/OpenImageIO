@@ -215,7 +215,7 @@ debug (string_view message)
 bool
 attribute (string_view name, TypeDesc type, const void *val)
 {
-    if (name == "threads" && type == TypeDesc::TypeInt) {
+    if (name == "threads" && type == TypeInt) {
         int ot = Imath::clamp (*(const int *)val, 0, maxthreads);
         if (ot == 0)
             ot = threads_default();
@@ -224,23 +224,23 @@ attribute (string_view name, TypeDesc type, const void *val)
         return true;
     }
     spin_lock lock (attrib_mutex);
-    if (name == "read_chunk" && type == TypeDesc::TypeInt) {
+    if (name == "read_chunk" && type == TypeInt) {
         oiio_read_chunk = *(const int *)val;
         return true;
     }
-    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
+    if (name == "plugin_searchpath" && type == TypeString) {
         plugin_searchpath = ustring (*(const char **)val);
         return true;
     }
-    if (name == "exr_threads" && type == TypeDesc::TypeInt) {
+    if (name == "exr_threads" && type == TypeInt) {
         oiio_exr_threads = Imath::clamp (*(const int *)val, -1, maxthreads);
         return true;
     }
-    if (name == "tiff:half" && type == TypeDesc::TypeInt) {
+    if (name == "tiff:half" && type == TypeInt) {
         tiff_half = *(const int *)val;
         return true;
     }
-    if (name == "debug" && type == TypeDesc::TypeInt) {
+    if (name == "debug" && type == TypeInt) {
         print_debug = *(const int *)val;
         return true;
     }
@@ -252,66 +252,66 @@ attribute (string_view name, TypeDesc type, const void *val)
 bool
 getattribute (string_view name, TypeDesc type, void *val)
 {
-    if (name == "threads" && type == TypeDesc::TypeInt) {
+    if (name == "threads" && type == TypeInt) {
         *(int *)val = oiio_threads;
         return true;
     }
     spin_lock lock (attrib_mutex);
-    if (name == "read_chunk" && type == TypeDesc::TypeInt) {
+    if (name == "read_chunk" && type == TypeInt) {
         *(int *)val = oiio_read_chunk;
         return true;
     }
-    if (name == "plugin_searchpath" && type == TypeDesc::TypeString) {
+    if (name == "plugin_searchpath" && type == TypeString) {
         *(ustring *)val = plugin_searchpath;
         return true;
     }
-    if (name == "format_list" && type == TypeDesc::TypeString) {
+    if (name == "format_list" && type == TypeString) {
         if (format_list.empty())
             pvt::catalog_all_plugins (plugin_searchpath.string());
         *(ustring *)val = ustring(format_list);
         return true;
     }
-    if (name == "input_format_list" && type == TypeDesc::TypeString) {
+    if (name == "input_format_list" && type == TypeString) {
         if (input_format_list.empty())
             pvt::catalog_all_plugins (plugin_searchpath.string());
         *(ustring *)val = ustring(input_format_list);
         return true;
     }
-    if (name == "output_format_list" && type == TypeDesc::TypeString) {
+    if (name == "output_format_list" && type == TypeString) {
         if (output_format_list.empty())
             pvt::catalog_all_plugins (plugin_searchpath.string());
         *(ustring *)val = ustring(output_format_list);
         return true;
     }
-    if (name == "extension_list" && type == TypeDesc::TypeString) {
+    if (name == "extension_list" && type == TypeString) {
         if (extension_list.empty())
             pvt::catalog_all_plugins (plugin_searchpath.string());
         *(ustring *)val = ustring(extension_list);
         return true;
     }
-    if (name == "library_list" && type == TypeDesc::TypeString) {
+    if (name == "library_list" && type == TypeString) {
         if (library_list.empty())
             pvt::catalog_all_plugins (plugin_searchpath.string());
         *(ustring *)val = ustring(library_list);
         return true;
     }
-    if (name == "exr_threads" && type == TypeDesc::TypeInt) {
+    if (name == "exr_threads" && type == TypeInt) {
         *(int *)val = oiio_exr_threads;
         return true;
     }
-    if (name == "tiff:half" && type == TypeDesc::TypeInt) {
+    if (name == "tiff:half" && type == TypeInt) {
         *(int *)val = tiff_half;
         return true;
     }
-    if (name == "debug" && type == TypeDesc::TypeInt) {
+    if (name == "debug" && type == TypeInt) {
         *(int *)val = print_debug;
         return true;
     }
-    if (name == "hw:simd" && type == TypeDesc::TypeString) {
+    if (name == "hw:simd" && type == TypeString) {
         *(ustring *)val = ustring(hw_simd_caps());
         return true;
     }
-    if (name == "oiio:simd" && type == TypeDesc::TypeString) {
+    if (name == "oiio:simd" && type == TypeString) {
         *(ustring *)val = ustring(oiio_simd_caps());
         return true;
     }
@@ -568,7 +568,7 @@ convert_types (TypeDesc src_type, const void *src,
         return true;
     }
 
-    if (dst_type == TypeDesc::TypeFloat) {
+    if (dst_type == TypeFloat) {
         // Special case -- converting non-float to float
         pvt::convert_to_float (src, (float *)dst, n, src_type);
         return true;
@@ -578,7 +578,7 @@ convert_types (TypeDesc src_type, const void *src,
 
     std::unique_ptr<float[]> tmp;   // In case we need a lot of temp space
     float *buf = (float *)src;
-    if (src_type != TypeDesc::TypeFloat) {
+    if (src_type != TypeFloat) {
         // If src is also not float, convert through an intermediate buffer
         if (n <= 4096)  // If < 16k, use the stack
             buf = ALLOCA (float, n);

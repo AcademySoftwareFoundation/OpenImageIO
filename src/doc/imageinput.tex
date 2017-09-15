@@ -391,7 +391,7 @@ of a single integer:
         ImageInput *in = ImageInput::open (filename);
         const ImageSpec &spec = in->spec();
         ...
-        ParamValue *p = spec.find_attribute ("Orientation", TypeDesc::TypeInt);
+        ParamValue *p = spec.find_attribute ("Orientation", TypeInt);
         if (p) {
             int orientation = * (int *) p->data();
         } else {
@@ -431,15 +431,15 @@ This can be accomplished using the technique of the following example:
         for (size_t i = 0;  i < spec.extra_attribs.size();  ++i) {
             const ParamValue &p (spec.extra_attribs[i]);
             printf ("    \%s: ", p.name.c_str());
-            if (p.type() == TypeDesc::TypeString)
+            if (p.type() == TypeString)
                 printf ("\"\%s\"", *(const char **)p.data());
-            else if (p.type() == TypeDesc::TypeFloat)
+            else if (p.type() == TypeFloat)
                 printf ("\%g", *(const float *)p.data());
-            else if (p.type() == TypeDesc::TypeInt)
+            else if (p.type() == TypeInt)
                 printf ("\%d", *(const int *)p.data());
             else if (p.type() == TypeDesc::UINT)
                 printf ("\%u", *(const unsigned int *)p.data());
-            else if (p.type() == TypeDesc::TypeMatrix) {
+            else if (p.type() == TypeMatrix) {
                 const float *f = (const float *)p.data();
                 printf ("\%f \%f \%f \%f \%f \%f \%f \%f "
                         "\%f \%f \%f \%f \%f \%f \%f \%f",

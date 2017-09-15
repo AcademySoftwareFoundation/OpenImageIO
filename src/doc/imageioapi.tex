@@ -150,6 +150,31 @@ Of these, the only ones commonly used to store pixel values in image files
 are scalars of {\cf UINT8}, {\cf UINT16}, {\cf FLOAT}, and {\cf HALF}
 (the last only used by OpenEXR, to the best of our knowledge).
 
+A number of {\cf static constexpr TypeDesc} aliases for common types exist
+in the outer {\cf OpenImageIO} scope:
+
+\begin{quote}
+{\cf
+TypeUnknown
+TypeFloat
+TypeColor
+TypePoint
+TypeVector
+TypeNormal \\
+TypeMatrix33
+TypeMatrix44
+TypeMatrix
+TypeHalf
+TypeInt
+TypeUInt \\
+TypeString
+TypeTimeCode
+TypeKeyCode
+TypeFloat4
+TypeRational
+}
+\end{quote}
+
 Note that the \TypeDesc (which is also used for applications other
 than images) can describe many types not used by
 \product.  Please ignore this extra complexity; only the above simple types are understood by
@@ -888,7 +913,7 @@ containing the new value for the attribute.
 If the name is known, valid attribute that matches the type specified,
 the attribute will be set to the new value and {\cf attribute()} will
 return {\cf true}.  If {\cf name} is not recognized, or if the types do
-not match (e.g., {\cf type} is {\cf TypeDesc::TypeFloat} but the named
+not match (e.g., {\cf type} is {\cf TypeFloat} but the named
 attribute is a string), the attribute will not be modified, and {\cf
   attribute()} will return {\cf false}.
 
@@ -1003,7 +1028,7 @@ If the attribute name is valid and matches the type specified, the
 attribute value will be stored at address {\cf val} and {\cf
   attribute()} will return {\cf true}.  If {\cf name} is not recognized
 as a valid attribute name, or if the types do not match (e.g., {\cf
-  type} is {\cf TypeDesc::TypeFloat} but the named attribute is a
+  type} is {\cf TypeFloat} but the named attribute is a
 string), no data will be written to {\cf val}, and {\cf attribute()}
 will return {\cf false}.
 

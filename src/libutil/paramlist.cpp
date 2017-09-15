@@ -214,7 +214,7 @@ ParamValue::get_float (float defaultval) const
         if (Strutil::parse_float(str, val) && str.empty())
             return val;
     }
-    if (type() == TypeDesc::TypeRational) {
+    if (type() == TypeRational) {
         int num = get<int>(0);
         int den = get<int>(1);
         return den ? float(num)/float(den) : 0.0f;

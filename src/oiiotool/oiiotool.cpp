@@ -726,7 +726,7 @@ set_string_attribute (int argc, const char *argv[])
         ot.warning (argv[0], "no current image available to modify");
         return 0;
     }
-    set_attribute (ot.curimg, argv[1], TypeDesc::TypeString, argv[2],
+    set_attribute (ot.curimg, argv[1], TypeString, argv[2],
                    ot.allsubimages);
     // N.B. set_attribute does expression expansion on its args
     return 0;
@@ -1323,7 +1323,7 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         }
         return true;
     }
-    if (type == TypeDesc::TypeTimeCode && value.find(':') != value.npos) {
+    if (type == TypeTimeCode && value.find(':') != value.npos) {
         // Special case: They are specifying a TimeCode as a "HH:MM:SS:FF"
         // string, we need to re-encode as a uint32[2].
         int hour = 0, min = 0, sec = 0, frame = 0;
@@ -1341,7 +1341,7 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         }
         return true;
     }
-    if (type == TypeDesc::TypeRational && value.find('/') != value.npos) {
+    if (type == TypeRational && value.find('/') != value.npos) {
         // Special case: They are specifying a rational as "a/b", so we need
         // to re-encode as a int32[2].
         int v[2];
@@ -4205,7 +4205,7 @@ input_file (int argc, const char *argv[])
             }
         }
         if (! ot.imagecache->get_image_info (ustring(filename), 0, 0,
-                            ustring("exists"), TypeDesc::TypeInt, &exists)
+                            ustring("exists"), TypeInt, &exists)
             || !exists) {
             // Try to get a more precise error message to report
             ImageInput *input = ImageInput::create (filename);

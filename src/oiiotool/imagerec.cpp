@@ -239,7 +239,7 @@ ImageRec::read (ReadPolicy readpolicy, string_view channel_set)
     int subimages = 0;
     ustring uname (name());
     if (! m_imagecache->get_image_info (uname, 0, 0, u_subimages,
-                                        TypeDesc::TypeInt, &subimages)) {
+                                        TypeInt, &subimages)) {
         error ("file not found: \"%s\"", name());
         return false;  // Image not found
     }
@@ -248,7 +248,7 @@ ImageRec::read (ReadPolicy readpolicy, string_view channel_set)
     for (int s = 0;  s < subimages;  ++s) {
         int miplevels = 0;
         m_imagecache->get_image_info (uname, s, 0, u_miplevels,
-                                      TypeDesc::TypeInt, &miplevels);
+                                      TypeInt, &miplevels);
         m_subimages[s].m_miplevels.resize (miplevels);
         m_subimages[s].m_specs.resize (miplevels);
         for (int m = 0;  m < miplevels;  ++m) {

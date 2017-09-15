@@ -397,8 +397,8 @@ ImageSpec::find_attribute (string_view name, ParamValue &tmpparam,
 #define MATCH(n,t) (((!casesensitive && Strutil::iequals(name,n)) || \
                      ( casesensitive && name == n)) && \
                     (searchtype == TypeDesc::UNKNOWN || searchtype == t))
-#define GETINT(n) if (MATCH(#n,TypeDesc::TypeInt)) { \
-                      tmpparam.init (#n, TypeDesc::TypeInt, 1, &this->n); \
+#define GETINT(n) if (MATCH(#n,TypeInt)) { \
+                      tmpparam.init (#n, TypeInt, 1, &this->n); \
                       return &tmpparam; \
                   }
     GETINT(nchannels);
@@ -420,21 +420,21 @@ ImageSpec::find_attribute (string_view name, ParamValue &tmpparam,
     GETINT(alpha_channel);
     GETINT(z_channel);
     // some special cases
-    if (MATCH("geom", TypeDesc::TypeString)) {
+    if (MATCH("geom", TypeString)) {
         ustring s = (depth <= 1 && full_depth <= 1)
                     ? ustring::format ("%dx%d%+d%+d", width, height, x, y)
                     : ustring::format ("%dx%dx%d%+d%+d%+d", width, height, depth, x, y, z);
-        tmpparam.init ("geom", TypeDesc::TypeString, 1, &s);
+        tmpparam.init ("geom", TypeString, 1, &s);
         return &tmpparam;
     }
-    if (MATCH("full_geom", TypeDesc::TypeString)) {
+    if (MATCH("full_geom", TypeString)) {
         ustring s = (depth <= 1 && full_depth <= 1)
                     ? ustring::format ("%dx%d%+d%+d",
                                        full_width, full_height, full_x, full_y)
                     : ustring::format ("%dx%dx%d%+d%+d%+d",
                                        full_width, full_height, full_depth,
                                        full_x, full_y, full_z);
-        tmpparam.init ("full_geom", TypeDesc::TypeString, 1, &s);
+        tmpparam.init ("full_geom", TypeString, 1, &s);
         return &tmpparam;
     }
 #undef GETINT
@@ -746,7 +746,7 @@ ImageSpec::metadata_val (const ParamValue &p, bool human)
 
     // ParamValue::get_string() doesn't escape or double-quote single
     // strings, so we need to correct for that here.
-    if (p.type() == TypeDesc::TypeString && p.nvalues() == 1)
+    if (p.type() == TypeString && p.nvalues() == 1)
         out = Strutil::format ("\"%s\"", Strutil::escape_chars(out));
     if (human) {
         std::string nice;
@@ -757,12 +757,12 @@ ImageSpec::metadata_val (const ParamValue &p, bool human)
                 break;
             }
         }
-        if (p.type() == TypeDesc::TypeRational) {
+        if (p.type() == TypeRational) {
             int num = p.get<int>(0), den = p.get<int>(1);
             if (den)
                 nice = Strutil::format ("%g", float(num)/float(den));
         }
-        if (p.type() == TypeDesc::TypeTimeCode) {
+        if (p.type() == TypeTimeCode) {
             Imf::TimeCode tc = *reinterpret_cast<const Imf::TimeCode *>(p.data());
             nice = Strutil::format ("%02d:%02d:%02d:%02d", tc.hours(),
                                     tc.minutes(), tc.seconds(), tc.frame());
@@ -910,7 +910,7 @@ spec_to_xml (const ImageSpec &spec, ImageSpec::SerialVerbose verbose)
                     break;
                 }
             }
-            if (p.type() == TypeDesc::TypeTimeCode) {
+            if (p.type() == TypeTimeCode) {
                 Imf::TimeCode tc = *reinterpret_cast<const Imf::TimeCode *>(p.data());
                 desc = Strutil::format ("%02d:%02d:%02d:%02d", tc.hours(),
                                         tc.minutes(), tc.seconds(), tc.frame());

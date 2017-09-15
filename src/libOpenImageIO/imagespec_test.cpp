@@ -103,16 +103,16 @@ void test_imagespec_metadata_val ()
     std::string ret;
 
     int imatrix[] = {100, 200, 300, 400};
-    metadata_val_test (&imatrix[0], 1, TypeDesc::TypeInt, ret);
+    metadata_val_test (&imatrix[0], 1, TypeInt, ret);
     OIIO_CHECK_EQUAL (ret, "100");
-    metadata_val_test (imatrix, sizeof (imatrix)/sizeof(int), TypeDesc::TypeInt, ret);
+    metadata_val_test (imatrix, sizeof (imatrix)/sizeof(int), TypeInt, ret);
     OIIO_CHECK_EQUAL (ret, "100, 200, 300, 400");
     OIIO_CHECK_NE (ret, "100, 200, 300, 400,");
 
     float fmatrix[] = {10.12f, 200.34f, 300.11f, 400.9f};
-    metadata_val_test (&fmatrix[0], 1, TypeDesc::TypeFloat, ret);
+    metadata_val_test (&fmatrix[0], 1, TypeFloat, ret);
     OIIO_CHECK_EQUAL (ret, "10.12");
-    metadata_val_test (fmatrix, sizeof (fmatrix) / sizeof (float), TypeDesc::TypeFloat, ret);
+    metadata_val_test (fmatrix, sizeof (fmatrix) / sizeof (float), TypeFloat, ret);
     OIIO_CHECK_EQUAL (ret, "10.12, 200.34, 300.11, 400.9");
     OIIO_CHECK_NE (ret, "10, 200, 300, 400");
     OIIO_CHECK_NE (ret, "10.12, 200.34, 300.11, 400.9,");
@@ -126,19 +126,19 @@ void test_imagespec_metadata_val ()
     OIIO_CHECK_NE (ret, "18446744073709551615, 18446744073709551615,");
 
     const char* smatrix[] = {"this is \"a test\"", "this is another test"};
-    metadata_val_test (smatrix, 1, TypeDesc::TypeString, ret);
+    metadata_val_test (smatrix, 1, TypeString, ret);
     OIIO_CHECK_EQUAL (ret, "\"this is \\\"a test\\\"\"");
     OIIO_CHECK_NE (ret, smatrix[0]);
     OIIO_CHECK_NE (ret, "\"this is \"a test\"\",");
-    metadata_val_test (smatrix, sizeof (smatrix) / sizeof (char *), TypeDesc::TypeString, ret);
+    metadata_val_test (smatrix, sizeof (smatrix) / sizeof (char *), TypeString, ret);
     OIIO_CHECK_EQUAL (ret, "\"this is \\\"a test\\\"\", \"this is another test\"");
 
     float matrix16[2][16] = {{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
                         {10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25}};
-    metadata_val_test (&matrix16[0], 1, TypeDesc::TypeMatrix, ret);
+    metadata_val_test (&matrix16[0], 1, TypeMatrix, ret);
     OIIO_CHECK_EQUAL (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16");
     OIIO_CHECK_NE (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16,");
-    metadata_val_test (matrix16, sizeof (matrix16) / (16 * sizeof (float)), TypeDesc::TypeMatrix, ret);
+    metadata_val_test (matrix16, sizeof (matrix16) / (16 * sizeof (float)), TypeMatrix, ret);
     OIIO_CHECK_EQUAL (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16, 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25");
 }
 
@@ -157,14 +157,14 @@ attribute_test (const std::string &data, TypeDesc type, std::string &ret)
 void test_imagespec_attribute_from_string ()
 {
     std::cout << "test_imagespec_attribute_from_string\n";
-    TypeDesc type = TypeDesc::TypeInt;
+    TypeDesc type = TypeInt;
     std::string ret, data, invalid_data;
 
     data = "142";
     attribute_test (data, type, ret);
     OIIO_CHECK_EQUAL (ret, data);
 
-    type = TypeDesc::TypeFloat;
+    type = TypeFloat;
     data = "1.23";
     attribute_test (data, type, ret);
     OIIO_CHECK_EQUAL (ret, data);
@@ -179,12 +179,12 @@ void test_imagespec_attribute_from_string ()
     attribute_test (data, type, ret);
     OIIO_CHECK_EQUAL (ret, data);
 
-    type = TypeDesc::TypeMatrix;
+    type = TypeMatrix;
     data = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16";
     attribute_test (data, type, ret);
     OIIO_CHECK_EQUAL (ret, data);
 
-    type = TypeDesc::TypeString;
+    type = TypeString;
     data = "foo";
     attribute_test (data, type, ret);
     OIIO_CHECK_EQUAL (ret, "\"foo\"");

@@ -284,11 +284,11 @@ Field3DOutput::put_parameter (const std::string &name, TypeDesc type,
         }
     }
 
-    if (type == TypeDesc::TypeString)
+    if (type == TypeString)
         m_field->metadata().setStrMetadata (name, *(const char **)data);
-    else if (type == TypeDesc::TypeInt)
+    else if (type == TypeInt)
         m_field->metadata().setIntMetadata (name, *(const int *)data);
-    else if (type == TypeDesc::TypeFloat)
+    else if (type == TypeFloat)
         m_field->metadata().setFloatMetadata (name, *(const float *)data);
     else if (type.basetype == TypeDesc::FLOAT && type.aggregate == 3)
         m_field->metadata().setVecFloatMetadata (name, *(const FIELD3D_NS::V3f *)data);
@@ -499,7 +499,7 @@ Field3DOutput::prep_subimage_specialized ()
         mapping->setLocalToWorld (*((FIELD3D_NS::M44d*)mx->data()));
         m_field->setMapping (mapping);
     }
-    else if (ParamValue *mx = m_spec.find_attribute ("worldtocamera", TypeDesc::TypeMatrix)) {
+    else if (ParamValue *mx = m_spec.find_attribute ("worldtocamera", TypeMatrix)) {
         Imath::M44f m = *((Imath::M44f*)mx->data());
         m = m.inverse();
         FIELD3D_NS::M44d md (m[0][0], m[0][1], m[0][1], m[0][3],

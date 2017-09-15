@@ -297,6 +297,12 @@ struct OIIO_API TypeDesc {
     /// containers and algorithms.
     bool operator< (const TypeDesc &x) const;
 
+    // DEPRECATED(1.8): These static const member functions were mildly
+    // problematic because they required external linkage (and possibly
+    // even static initialization order fiasco) and were a memory reference
+    // that incurred some performance penalty and inability to optimize.
+    // Please instead use the out-of-class constexpr versions below.  We
+    // will eventually remove these.
     static const TypeDesc TypeFloat;
     static const TypeDesc TypeColor;
     static const TypeDesc TypeString;
@@ -313,6 +319,30 @@ struct OIIO_API TypeDesc {
     static const TypeDesc TypeFloat4;
     static const TypeDesc TypeRational;
 };
+
+
+
+
+// Static values for commonly used types. Because these are constexpr,
+// they should incur no runtime construction cost and should optimize nicely
+// in various ways.
+static constexpr TypeDesc TypeUnknown (TypeDesc::UNKNOWN);
+static constexpr TypeDesc TypeFloat (TypeDesc::FLOAT);
+static constexpr TypeDesc TypeColor (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::COLOR);
+static constexpr TypeDesc TypePoint (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::POINT);
+static constexpr TypeDesc TypeVector (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::VECTOR);
+static constexpr TypeDesc TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::NORMAL);
+static constexpr TypeDesc TypeMatrix33 (TypeDesc::FLOAT, TypeDesc::MATRIX33);
+static constexpr TypeDesc TypeMatrix44 (TypeDesc::FLOAT, TypeDesc::MATRIX44);
+static constexpr TypeDesc TypeMatrix = TypeMatrix44;
+static constexpr TypeDesc TypeString (TypeDesc::STRING);
+static constexpr TypeDesc TypeInt (TypeDesc::INT);
+static constexpr TypeDesc TypeUInt (TypeDesc::UINT);
+static constexpr TypeDesc TypeHalf (TypeDesc::HALF);
+static constexpr TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
+static constexpr TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
+static constexpr TypeDesc TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
+static constexpr TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
 
 
 

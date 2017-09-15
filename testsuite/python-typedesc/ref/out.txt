@@ -149,4 +149,37 @@ type 'TypeFloat4'
 type 'TypeHalf'
     c_str "half"
 
+type 'TypeFloat'
+    c_str "float"
+type 'TypeColor'
+    c_str "color"
+type 'TypeString'
+    c_str "string"
+type 'TypeInt'
+    c_str "int"
+type 'TypePoint'
+    c_str "point"
+type 'TypeVector'
+    c_str "vector"
+type 'TypeNormal'
+    c_str "normal"
+type 'TypeMatrix'
+    c_str "matrix"
+type 'TypeMatrix33'
+    c_str "matrix33"
+type 'TypeMatrix44'
+    c_str "matrix"
+type 'TypeTimeCode'
+    c_str "timecode"
+type 'TypeKeyCode'
+    c_str "keycode"
+type 'TypeFloat4'
+    c_str "float4"
+type 'TypeHalf'
+    c_str "half"
+type 'TypeRational'
+    c_str "rational2i"
+type 'TypeUInt'
+    c_str "uint"
+
 Done.

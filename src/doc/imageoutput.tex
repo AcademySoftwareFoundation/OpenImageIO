@@ -636,7 +636,7 @@ complex arrangements, you can use the more general form of {\cf
 
         // Attach a 4x4 matrix to describe the camera coordinates
         float mymatrix[16] = { ... };
-        spec.attribute ("worldtocamera", TypeDesc::TypeMatrix, &mymatrix);
+        spec.attribute ("worldtocamera", TypeMatrix, &mymatrix);
 
         // Attach an array of two floats giving the CIE neutral color
         float neutral[2] = { ... };

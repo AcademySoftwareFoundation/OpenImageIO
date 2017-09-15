@@ -202,7 +202,7 @@ GIFInput::read_gif_extension (int ext_code, GifByteType *ext,
         int delay = (ext[3] << 8) | ext[2];
         if (delay) {
             int rat[2] = { 100, delay };
-            newspec.attribute ("FramesPerSecond", TypeDesc::TypeRational, &rat);
+            newspec.attribute ("FramesPerSecond", TypeRational, &rat);
             newspec.attribute ("oiio:Movie", 1);
         }
         

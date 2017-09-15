@@ -902,7 +902,7 @@ ImageBufAlgo::histogram (const ImageBuf &A, int channel,
                          float min, float max, imagesize_t *submin,
                          imagesize_t *supermax, ROI roi)
 {
-    if (A.spec().format != TypeDesc::TypeFloat) {
+    if (A.spec().format != TypeFloat) {
         A.error ("Unsupported pixel data format '%s'", A.spec().format);
         return false;
     }
@@ -953,7 +953,7 @@ ImageBufAlgo::histogram_draw (ImageBuf &R,
 
     // Check R and modify it if needed.
     int height = R.spec().height;
-    if (R.spec().format != TypeDesc::TypeFloat || R.nchannels() != 1 ||
+    if (R.spec().format != TypeFloat || R.nchannels() != 1 ||
         R.spec().width != bins) {
         ImageSpec newspec = ImageSpec (bins, height, 1, TypeDesc::FLOAT);
         R.reset ("dummy", newspec);

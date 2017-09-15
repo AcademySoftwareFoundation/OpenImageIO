@@ -61,6 +61,10 @@ Public API changes:
    * Rational support: new 'semantic' hint RATIONAL and TypeDesc::Rational.
      A rational is an int of aggregate VEC2 and hint RATIONAL, and should
      be interpreted as val[0]/val[1]. #1698 (1.8.5)
+   * Added OIIO-scoped `static constexpr` versions of preconstructed
+     TypeDescs (e.g., `TypeFloat`). We are deprecating the ones that were
+     static data members of TypeDesc (e.g., TypeDesc::TypeFloat), they will
+     be removed in some future release. (1.8.5)
 * ImageSpec:
    * New `ImageSpec::serialize()` returns a string with a serialized version
      of the contents of the ImageSpec. It may be text (human readable, like

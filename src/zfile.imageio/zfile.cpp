@@ -199,9 +199,9 @@ ZfileInput::open (const std::string &name, ImageSpec &newspec)
         m_spec.channelnames[0] = "z";
     m_spec.z_channel = 0;
 
-    m_spec.attribute ("worldtoscreen", TypeDesc::TypeMatrix,
+    m_spec.attribute ("worldtoscreen", TypeMatrix,
                       (float *)&header.worldtoscreen);
-    m_spec.attribute ("worldtocamera", TypeDesc::TypeMatrix,
+    m_spec.attribute ("worldtocamera", TypeMatrix,
                       (float *)&header.worldtocamera);
 
     newspec = spec ();
@@ -294,11 +294,11 @@ ZfileOutput::open (const std::string &name, const ImageSpec &userspec,
 
     ParamValue *p;
     static float ident[16] = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
-    if ((p = m_spec.find_attribute ("worldtocamera", TypeDesc::TypeMatrix)))
+    if ((p = m_spec.find_attribute ("worldtocamera", TypeMatrix)))
         memcpy (header.worldtocamera, p->data(), 16*sizeof(float));
     else
         memcpy (header.worldtocamera, ident, 16*sizeof(float));
-    if ((p = m_spec.find_attribute ("worldtoscreen", TypeDesc::TypeMatrix)))
+    if ((p = m_spec.find_attribute ("worldtoscreen", TypeMatrix)))
         memcpy (header.worldtoscreen, p->data(), 16*sizeof(float));
     else
         memcpy (header.worldtoscreen, ident, 16*sizeof(float));

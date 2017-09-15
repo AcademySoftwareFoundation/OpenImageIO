@@ -357,9 +357,9 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
         configspec.attribute ("fovcot", fovcot);
     configspec.attribute ("planarconfig", separate ? "separate" : "contig");
     if (Mcam != Imath::M44f(0.0f))
-        configspec.attribute ("worldtocamera", TypeDesc::TypeMatrix, &Mcam);
+        configspec.attribute ("worldtocamera", TypeMatrix, &Mcam);
     if (Mscr != Imath::M44f(0.0f))
-        configspec.attribute ("worldtoscreen", TypeDesc::TypeMatrix, &Mscr);
+        configspec.attribute ("worldtoscreen", TypeMatrix, &Mscr);
     std::string wrapmodes = (swrap.size() ? swrap : wrap) + ',' + 
                             (twrap.size() ? twrap : wrap);
     configspec.attribute ("wrapmodes", wrapmodes);

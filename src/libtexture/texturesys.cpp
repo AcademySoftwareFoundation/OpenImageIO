@@ -452,32 +452,32 @@ TextureSystemImpl::attribute (string_view name, TypeDesc type,
     if (name == "options" && type == TypeDesc::STRING) {
         return optparser (*this, *(const char **)val);
     }
-    if (name == "worldtocommon" && (type == TypeDesc::TypeMatrix ||
+    if (name == "worldtocommon" && (type == TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         m_Mw2c = *(const Imath::M44f *)val;
         m_Mc2w = m_Mw2c.inverse();
         return true;
     }
-    if (name == "commontoworld" && (type == TypeDesc::TypeMatrix ||
+    if (name == "commontoworld" && (type == TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         m_Mc2w = *(const Imath::M44f *)val;
         m_Mw2c = m_Mc2w.inverse();
         return true;
     }
     if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
-        (type == TypeDesc::TypeInt)) {
+        (type == TypeInt)) {
         m_gray_to_rgb = *(const int *)val;
         return true;
     }
-    if (name == "flip_t" && type == TypeDesc::TypeInt) {
+    if (name == "flip_t" && type == TypeInt) {
         m_flip_t = *(const int *)val;
         return true;
     }
-    if (name == "m_max_tile_channels" && type == TypeDesc::TypeInt) {
+    if (name == "m_max_tile_channels" && type == TypeInt) {
         m_max_tile_channels = *(const int *)val;
         return true;
     }
-    if (name == "statistics:level" && type == TypeDesc::TypeInt) {
+    if (name == "statistics:level" && type == TypeInt) {
         m_statslevel = *(const int *)val;
         // DO NOT RETURN! pass the same message to the image cache
     }
@@ -492,26 +492,26 @@ bool
 TextureSystemImpl::getattribute (string_view name, TypeDesc type,
                                  void *val) const
 {
-    if (name == "worldtocommon" && (type == TypeDesc::TypeMatrix ||
+    if (name == "worldtocommon" && (type == TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mw2c;
         return true;
     }
-    if (name == "commontoworld" && (type == TypeDesc::TypeMatrix ||
+    if (name == "commontoworld" && (type == TypeMatrix ||
                                     type == TypeDesc(TypeDesc::FLOAT,16))) {
         *(Imath::M44f *)val = m_Mc2w;
         return true;
     }
     if ((name == "gray_to_rgb" || name == "grey_to_rgb") &&
-        (type == TypeDesc::TypeInt)) {
+        (type == TypeInt)) {
         *(int *)val = m_gray_to_rgb;
         return true;
     }
-    if (name == "flip_t" && type == TypeDesc::TypeInt) {
+    if (name == "flip_t" && type == TypeInt) {
         *(int *)val = m_flip_t;
         return true;
     }
-    if (name == "m_max_tile_channels" && type == TypeDesc::TypeInt) {
+    if (name == "m_max_tile_channels" && type == TypeInt) {
         *(int *)val = m_max_tile_channels;
         return true;
     }

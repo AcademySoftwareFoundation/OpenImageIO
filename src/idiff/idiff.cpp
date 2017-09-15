@@ -146,7 +146,7 @@ read_input (const std::string &filename, ImageBuf &img,
         return true;
 
     img.reset (filename, cache);
-    if (img.read (subimage, miplevel, false, TypeDesc::TypeFloat))
+    if (img.read (subimage, miplevel, false, TypeFloat))
         return true;
 
     std::cerr << "idiff ERROR: Could not read " << filename << ":\n\t"
@@ -259,7 +259,7 @@ main (int argc, char *argv[])
             int npels = img0.spec().width * img0.spec().height * img0.spec().depth;
             if (npels == 0)
                 npels = 1;    // Avoid divide by zero for 0x0 images
-            ASSERT (img0.spec().format == TypeDesc::FLOAT);
+            ASSERT (img0.spec().format == TypeFloat);
 
             // Compare the two images.
             //

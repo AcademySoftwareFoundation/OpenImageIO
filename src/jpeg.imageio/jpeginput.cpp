@@ -171,8 +171,7 @@ bool
 JpgInput::open (const std::string &name, ImageSpec &newspec,
                 const ImageSpec &config)
 {
-    const ParamValue *p = config.find_attribute ("_jpeg:raw",
-                                                       TypeDesc::TypeInt);
+    const ParamValue *p = config.find_attribute ("_jpeg:raw", TypeInt);
     m_raw = p && *(int *)p->data();
     return open (name, newspec);
 }
