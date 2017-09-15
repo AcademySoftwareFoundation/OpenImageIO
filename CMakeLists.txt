@@ -185,10 +185,10 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     endforeach ()
 endif ()
 
-if (USE_PYTHON AND boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+if (USE_PYTHON AND Boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
 endif ()
-if (USE_PYTHON3 AND boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+if (USE_PYTHON3 AND Boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     #build the python3 module in a different binary directory since it will
     #have the same name as the python2 module (e.g. OpenImageIO.so)
     add_subdirectory (src/python src/python3)

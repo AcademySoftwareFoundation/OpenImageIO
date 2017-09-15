@@ -8,7 +8,14 @@ else ()
     set (BUILD_PY3 OFF)
 endif ()
 
-if (NOT BOOST_CUSTOM AND NOT BUILD_PY3)
+if (CMAKE_GENTOO_BUILD OR CMAKE_BUILD_TYPE STREQUAL Gentoo)
+    # Gentoo's patches to CMake make sure that we will always find exactly the version of Python required by Gentoo
+    if (BUILD_PY3)
+        find_package (PythonInterp ${PYTHON3_VERSION} REQUIRED)
+        find_package (PythonLibs ${PYTHON3_VERSION} REQUIRED)
+    endif ()
+    find_package (Boost 1.53 REQUIRED COMPONENTS python)
+elseif (NOT BOOST_CUSTOM AND NOT BUILD_PY3)
     #Unset those, otherwise find_package(PythonLibs) will pick up old stuff
     #if it has been run before
     unset(Python_ADDITIONAL_VERSIONS)
