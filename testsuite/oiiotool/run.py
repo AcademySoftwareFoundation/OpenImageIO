@@ -143,6 +143,8 @@ command += info_command ("rgbahalf-zfloat.exr", safematch=1)
 
 # test hole filling
 command += oiiotool ("ref/hole.tif --fillholes -o tahoe-filled.tif")
+# test hole filling for a cropped image
+command += oiiotool ("-pattern checker 64x64+32+32 3 -ch R,G,B,A=1.0 -fullsize 128x128+0+0 --croptofull -fillholes -d uint8 -o growholes.tif")
 
 # test clamping
 command += oiiotool (parent + "/oiio-images/grid.tif --resize 50%"
@@ -263,7 +265,7 @@ outputs = [
             "chsum.tif",
             "colormap-spectrum.tif", "colormap-custom.tif",
             "rgbahalf-zfloat.exr",
-            "tahoe-filled.tif",
+            "tahoe-filled.tif", "growholes.tif",
             "rangecompress.tif", "rangeexpand.tif",
             "rangecompress-luma.tif", "rangeexpand-luma.tif",
             "grid-clamped.tif",
