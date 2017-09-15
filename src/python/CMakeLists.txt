@@ -1,54 +1,30 @@
-#if the CMAKE_CURRENT_BINARY_DIR is python3, then build the python3 module,
-#otherwise the python2 module
-string (REGEX MATCH "python3\$" _py3_subdir ${CMAKE_CURRENT_BINARY_DIR})
+# Attempt to find the desired version, but fall back to other
+# additional versions.
+find_package (PythonInterp ${PYTHON_VERSION} REQUIRED)
 
-if (_py3_subdir)
-    set (BUILD_PY3 ON)
-else ()
-    set (BUILD_PY3 OFF)
+# The version that was found may not be the default or user
+# defined one.
+set (PYTHON_VERSION_FOUND ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
+
+if (NOT ${PYTHON_VERSION} EQUAL ${PYTHON_VERSION_FOUND} )
+    message (WARNING "The requested version ${PYTHON_VERSION} was not found.") 
+    message (WARNING "Using ${PYTHON_VERSION_FOUND} instead.")
 endif ()
 
-if (NOT BOOST_CUSTOM AND NOT BUILD_PY3)
-    #Unset those, otherwise find_package(PythonLibs) will pick up old stuff
-    #if it has been run before
-    unset(Python_ADDITIONAL_VERSIONS)
-    unset(PYTHON_LIBRARY)
-    unset(PYTHON_LIBRARY CACHE)
-    unset(PYTHON_INCLUDE_DIR)
-    unset(PYTHON_INCLUDE_DIR CACHE)
-    unset(PYTHON_INCLUDE_PATH)
-    unset(PYTHON_INCLUDE_PATH CACHE)
-    find_package (PythonLibs ${PYTHON_VERSION} REQUIRED)
-    find_package (Boost 1.53 REQUIRED COMPONENTS python)
-elseif (BOOST_CUSTOM AND NOT BUILD_PY3)
-    find_package (PythonLibs ${PYTHON_VERSION} REQUIRED)
-else ()
-    #BOOST_CUSTOM is ignored for python3
+find_package (PythonLibs ${PYTHON_VERSION_FOUND} REQUIRED)
 
-    #Unset those, otherwise find_package(PythonLibs) will pick up old stuff
-    #if it has been run before
-    unset(PYTHON_LIBRARY)
-    unset(PYTHON_LIBRARY CACHE)
-    unset(PYTHON_INCLUDE_DIR)
-    unset(PYTHON_INCLUDE_DIR CACHE)
-    unset(PYTHON_INCLUDE_PATH)
-    unset(PYTHON_INCLUDE_PATH CACHE)
-
-    #cmake 2.8 does not look for python 3.4
-    set(Python_ADDITIONAL_VERSIONS 3.4)
-    find_package (PythonInterp ${PYTHON3_VERSION} REQUIRED)
-    find_package (PythonLibs ${PYTHON3_VERSION} REQUIRED)
-
-    #Finding the python3 component for boost is a little tricky, since it has
-    #different names on different systems. Try the most common ones
-    #(boost_python3, boost_python-py34, …).
-    foreach (_boost_py3_lib python3 python-py${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
-        find_package (Boost 1.53 QUIET COMPONENTS ${_boost_py3_lib})
-        string (TOUPPER ${_boost_py3_lib} boost_py3_lib_name)
-        if (Boost_${boost_py3_lib_name}_FOUND)
-            #Not the most beautiful thing to do, but that gets them included in
-            #the target_link_libraries(…) call farther down
-            set (Boost_PYTHON_LIBRARIES ${Boost_${boost_py3_lib_name}_LIBRARIES})
+if (NOT BOOST_CUSTOM)
+    # Finding the python component for boost is a little tricky, since it has
+    # different names on different systems. Try the most common ones.
+    foreach (_py_lib python-${PYTHON_VERSION_FOUND} python
+             python${PYTHON_VERSION_MAJOR}
+             python-py${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+        find_package (Boost QUIET COMPONENTS ${_py_lib})
+        string (TOUPPER ${_py_lib} _py_lib_name)
+        if (Boost_${_py_lib_name}_FOUND)
+            # Not the most beautiful thing to do, but that gets them included in
+            # the target_link_libraries(…) call farther down
+            set (Boost_PYTHON_LIBRARIES ${Boost_${_py_lib_name}_LIBRARIES})
             break ()
         endif ()
     endforeach ()
@@ -58,18 +34,19 @@ if (APPLE)
 #    set (PYTHON_LIBRARIES /opt/local/lib)
 endif ()
 
+if (NOT DEFINED PYTHON_SITE_DIR)
+    set (PYTHON_SITE_DIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_FOUND}/site-packages")
+endif ()
+
 # Disable some warnings for Clang, it's a little too picky with boost
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_definitions ("-Wno-array-bounds")
 endif ()
 
-if (BUILD_PY3)
-    set (target_name Py3OpenImageIO)
-else ()
-    set (target_name PyOpenImageIO)
-endif ()
+set (target_name PyOpenImageIO)
 
-if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
+# Test if automatically found or manually set with BOOST_CUSTOM
+if (DEFINED Boost_PYTHON_LIBRARIES)
 
     set (python_srcs py_imageinput.cpp py_imageoutput.cpp
          py_imagecache.cpp py_imagespec.cpp py_roi.cpp
@@ -77,17 +54,16 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
          py_typedesc.cpp py_paramvalue.cpp py_deepdata.cpp
          py_oiio.cpp)
 
-    string (REGEX MATCH "([0-9]+)\.([0-9]+)\.[0-9]+" _version_match ${PYTHONLIBS_VERSION_STRING})
-    set (PYTHONLIBS_VERSION_MAJOR ${CMAKE_MATCH_1})
-    set (PYTHONLIBS_VERSION_MINOR ${CMAKE_MATCH_2})
     if (VERBOSE)
         message (STATUS "Python found ${PYTHONLIBS_FOUND} ")
         message (STATUS "Python include dirs ${PYTHON_INCLUDE_PATH}")
         message (STATUS "Python libraries    ${PYTHON_LIBRARIES}")
+        message (STATUS "Python site packages dir ${PYTHON_SITE_DIR}")
         message (STATUS "Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
         message (STATUS "Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
-        message (STATUS "PYTHONLIBS_VERSION_STRING = ${PYTHONLIBS_VERSION_STRING}")
-        message (STATUS "Python version major: ${PYTHONLIBS_VERSION_MAJOR} minor: ${PYTHONLIBS_VERSION_MINOR}")
+        message (STATUS "Python version ${PYTHON_VERSION_STRING}")
+        message (STATUS "Python version major: ${PYTHON_VERSION_MAJOR} minor: ${PYTHON_VERSION_MINOR}")
+        message (STATUS "Boost python libraries ${Boost_PYTHON_LIBRARIES}")
     endif ()
 
     include_directories (${PYTHON_INCLUDE_PATH} ${Boost_INCLUDE_DIRS})
@@ -128,21 +104,17 @@ if (BOOST_CUSTOM OR Boost_FOUND AND PYTHONLIBS_FOUND)
                                SUFFIX ".pyd")
     endif()
     
-    if (BUILD_PY3)
-        install (TARGETS ${target_name}
-                 RUNTIME DESTINATION ${PYLIB3_INSTALL_DIR} COMPONENT user
-                 LIBRARY DESTINATION ${PYLIB3_INSTALL_DIR} COMPONENT user)
-    else ()
-        install (TARGETS ${target_name}
-                 RUNTIME DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user
-                 LIBRARY DESTINATION ${PYLIB_INSTALL_DIR} COMPONENT user)
-    endif ()
-elseif (BUILD_PY3)
-    if (NOT PYTHONLIBS_FOUND)
-        message (STATUS "Python3 libraries not found")
-    endif ()
-    if (NOT Boost_FOUND)
-        message (STATUS "Boost python3 component not found")
-    endif ()
-    set(USE_PYTHON3 OFF)
+    install (TARGETS ${target_name}
+             RUNTIME DESTINATION ${PYTHON_SITE_DIR} COMPONENT user
+             LIBRARY DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+else ()
+    # If Boost python components were not found, turn off all python support.
+    message (STATUS "Boost python support not found!")
+    if (APPLE AND USE_PYTHON)
+        message (STATUS "   If your Boost is from Macports, you need the +python26 variant to get Python support.")
+     endif ()
+     if (BOOST_CUSTOM)
+        message (STATUS "   Please set the variable Boost_PYTHON_LIBRARIES to the location of the boost python libraries.")
+     endif ()
+     message (FATAL_ERROR "Python module cannot be built. Either disable python support or check your boost installation.")
 endif ()
