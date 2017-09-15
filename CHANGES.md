@@ -1,3 +1,19 @@
+Release 1.9 (in progress) -- compared to 1.8.x
+----------------------------------------------
+New minimum dependencies:
+
+Major new features and improvements:
+
+Public API changes:
+
+Fixes, minor enhancements, and performance improvements:
+
+Build/test system improvements:
+
+Developer goodies / internals:
+
+
+
 Release 1.8 (1.8.5 - beta) -- compared to 1.7.x
 ----------------------------------------------
 New minimum dependencies:
