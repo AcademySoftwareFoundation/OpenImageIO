@@ -62,10 +62,7 @@ using namespace ImageBufAlgo;
 
 ImageRec::ImageRec (const std::string &name, int nsubimages,
                     const int *miplevels, const ImageSpec *specs)
-    : m_name(name), m_elaborated(true),
-      m_metadata_modified(false), m_pixels_modified(true),
-      m_was_output(false),
-      m_imagecache(NULL)
+    : m_name(name), m_elaborated(true)
 {
     int specnum = 0;
     m_subimages.resize (nsubimages);
@@ -88,10 +85,7 @@ ImageRec::ImageRec (const std::string &name, int nsubimages,
 
 ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
                     int miplevel_to_copy, bool writable, bool copy_pixels)
-    : m_name(img.name()), m_elaborated(true),
-      m_metadata_modified(false), m_pixels_modified(false),
-      m_was_output(false),
-      m_imagecache(img.m_imagecache)
+    : m_name(img.name()), m_elaborated(true), m_imagecache(img.m_imagecache)
 {
     img.read ();
     int first_subimage = std::max (0, subimage_to_copy);
@@ -132,10 +126,7 @@ ImageRec::ImageRec (ImageRec &img, int subimage_to_copy,
 ImageRec::ImageRec (ImageRec &A, ImageRec &B, int subimage_to_copy,
                     WinMerge pixwin, WinMerge fullwin,
                     TypeDesc pixeltype)
-    : m_name(A.name()), m_elaborated(true),
-      m_metadata_modified(false), m_pixels_modified(false),
-      m_was_output(false),
-      m_imagecache(A.m_imagecache)
+    : m_name(A.name()), m_elaborated(true), m_imagecache(A.m_imagecache)
 {
     A.read ();
     B.read ();
@@ -191,8 +182,6 @@ ImageRec::ImageRec (ImageRec &A, ImageRec &B, int subimage_to_copy,
 
 ImageRec::ImageRec (ImageBufRef img, bool copy_pixels)
     : m_name(img->name()), m_elaborated(true),
-      m_metadata_modified(false), m_pixels_modified(false),
-      m_was_output(false),
       m_imagecache(img->imagecache())
 {
     m_subimages.resize (1);
@@ -209,9 +198,7 @@ ImageRec::ImageRec (ImageBufRef img, bool copy_pixels)
 
 ImageRec::ImageRec (const std::string &name, const ImageSpec &spec,
                     ImageCache *imagecache)
-    : m_name(name), m_elaborated(true),
-      m_metadata_modified(false), m_pixels_modified(true),
-      m_was_output(false),
+    : m_name(name), m_elaborated(true), m_pixels_modified(true),
       m_imagecache(imagecache)
 {
     int subimages = 1;
@@ -251,6 +238,7 @@ ImageRec::read (ReadPolicy readpolicy, string_view channel_set)
                                       TypeInt, &miplevels);
         m_subimages[s].m_miplevels.resize (miplevels);
         m_subimages[s].m_specs.resize (miplevels);
+        m_subimages[s].m_was_direct_read = true;
         for (int m = 0;  m < miplevels;  ++m) {
             // Force a read now for reasonable-sized first images in the
             // file. This can greatly speed up the multithread case for
@@ -295,6 +283,8 @@ ImageRec::read (ReadPolicy readpolicy, string_view channel_set)
             TypeDesc convert = TypeDesc::FLOAT;
             if (m_input_dataformat != TypeDesc::UNKNOWN) {
                 convert = m_input_dataformat;
+                if (m_input_dataformat != ib->nativespec().format)
+                    m_subimages[s].m_was_direct_read = false;
                 forceread = true;
             }
             else if (readpolicy & ReadNative)

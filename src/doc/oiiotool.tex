@@ -1144,12 +1144,14 @@ current image from the image stack, it merely saves a copy of it.
 {\cf autocrop=}\emph{int} & Enable or disable autocrop for
      this output image. \\
 {\cf autotrim=}\emph{int} & Enable or disable {\cf --autotrim} for
-     this output image. \index{autotrim} \\
+     this output image. \index{autotrim} \\[0.5ex]
 {\cf separate=}\emph{int} & \\
 {\cf contig=}\emph{int} & Set separate or contiguous planar configuration
-    for this output. \\
+    for this output. \\[0.5ex]
 {\cf\small fileformatname=}\emph{string} & Specify the desired output file
-  format, overriding any guess based on file name extension. \\
+  format, overriding any guess based on file name extension. \\[0.5ex]
+{\cf scanline=}{int} & If nonzero, force scanline output. \\
+{\cf tile=}\emph{int}{\cf x}\emph{int} &  Force tiling with given size. \\[0.5ex]
 {\cf all=}\emph{n} & Output all images currently on the stack using a
       pattern. See further explanation below.
 \end{tabular}
