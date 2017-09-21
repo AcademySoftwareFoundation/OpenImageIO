@@ -1441,8 +1441,8 @@ main (int argc, const char *argv[])
         std::cout << "texture cache size = " << cachesize << " MB\n";
         std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
         std::cout << "times are best of " << ntrials << " trials\n\n";
-        std::cout << "threads  time (s) efficiency\n";
-        std::cout << "-------- -------- ----------\n";
+        std::cout << "threads  time (s)   speedup efficiency\n";
+        std::cout << "-------- -------- --------- ----------\n";
 
         if (nthreads == 0)
             nthreads = Sysutil::hardware_concurrency();
@@ -1456,9 +1456,11 @@ main (int argc, const char *argv[])
                                    ntrials, &range);
             if (nt == 1)
                 single_thread_time = (float)t;
-            float efficiency = (single_thread_time /*/nt*/) / (float)t;
-            std::cout << Strutil::format ("%2d      %8.2f %6.1f%%    range %.2f\t(%d iters/thread)\n",
-                                          nt, t, efficiency*100.0f, range, its);
+            float speedup = (single_thread_time /*/nt*/) / (float)t;
+            float efficiency = (single_thread_time / nt) / float(t);
+            std::cout << Strutil::format ("%3d     %8.2f   %6.1fx  %6.1f%%    range %.2f\t(%d iters/thread)\n",
+                                          nt, t, speedup, efficiency*100.0f, range, its);
+            std::cout.flush();
             if (! wedge)
                 break;    // don't loop if we're not wedging
         }
