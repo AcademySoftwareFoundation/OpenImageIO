@@ -29,7 +29,8 @@ if (NOT MSVC)
 endif()
 
 list (APPEND libOpenImageIO_srcs
-                          deepdata.cpp exif.cpp formatspec.cpp imagebuf.cpp
+                          deepdata.cpp exif.cpp exif-canon.cpp
+                          formatspec.cpp imagebuf.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp iptc.cpp xmp.cpp
                           color_ocio.cpp

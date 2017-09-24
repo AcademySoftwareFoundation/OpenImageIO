@@ -4814,6 +4814,7 @@ do_echo (int argc, const char *argv[])
     std::cout << message;
     for (int i = 0; i < newline; ++i)
         std::cout << '\n';
+    std::cout.flush();
     ot.printed_info = true;
     return 0;
 }

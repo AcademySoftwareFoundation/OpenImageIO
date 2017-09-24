@@ -41,74 +41,146 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
 
-extern "C" {
-#include "tiff.h"
-}
-
-// Some EXIF tags that don't seem to be in tiff.h
-#ifndef EXIFTAG_SECURITYCLASSIFICATION
-#define EXIFTAG_SECURITYCLASSIFICATION 37394
-#endif
-#ifndef EXIFTAG_IMAGEHISTORY
-#define EXIFTAG_IMAGEHISTORY 37395
-#endif
-
-#ifdef TIFF_VERSION_BIG
-// In old versions of TIFF, this was defined in tiff.h.  It's gone from
-// "BIG TIFF" (libtiff 4.x), so we just define it here.
-
-struct TIFFHeader {
-    uint16_t tiff_magic;  /* magic number (defines byte order) */
-    uint16_t tiff_version;/* TIFF version number */
-    uint32_t tiff_diroff; /* byte offset to first directory */
-};
-
-struct TIFFDirEntry {
-    uint16_t tdir_tag;    /* tag ID */
-    uint16_t tdir_type;   /* data type -- see TIFFDataType enum */
-    uint32_t tdir_count;  /* number of items; length in spec */
-    uint32_t tdir_offset; /* byte offset to field data */
-};
-#endif
+#include "exif.h"
 
 #include <OpenImageIO/imageio.h>
 
 
-#define DEBUG_EXIF_READ  0
-#define DEBUG_EXIF_WRITE 0
-
 OIIO_NAMESPACE_BEGIN
 
-namespace {
+using namespace pvt;
 
 
-// Sizes of TIFFDataType members
-static size_t tiff_data_sizes[] = {
-    0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8, 4
-};
 
-static int
-tiff_data_size (const TIFFDirEntry &dir)
+int
+pvt::tiff_data_size (const TIFFDirEntry &dir)
 {
-    const int num_data_sizes = sizeof(tiff_data_sizes) / sizeof(*tiff_data_sizes);
+    // Sizes of TIFFDataType members
+    static size_t sizes[] = { 0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8, 4 };
+    const int num_data_sizes = sizeof(sizes) / sizeof(*sizes);
     int dir_index = (int)dir.tdir_type;
     if (dir_index < 0 || dir_index >= num_data_sizes) {
         // Inform caller about corrupted entry.
         return -1;
     }
-    return tiff_data_sizes[dir_index] * dir.tdir_count;
+    return sizes[dir_index] * dir.tdir_count;
 }
 
 
 
-struct EXIF_tag_info {
-    int tifftag;            // TIFF tag used for this info
-    const char *name;       // Attribute name we use
-    TIFFDataType tifftype;  // Data type that TIFF wants
-    int tiffcount;          // Number of items
-};
+TypeDesc
+pvt::tiff_datatype_to_typedesc (int tifftype, int tiffcount)
+{
+    if (tiffcount == 1)
+        tiffcount = 0;    // length 1 == not an array
+    switch (tifftype) {
+    case TIFF_NOTYPE :
+        return TypeUnknown;
+    case TIFF_BYTE :
+        return TypeDesc(TypeDesc::UINT8, tiffcount);
+    case TIFF_ASCII :
+        return TypeString;
+    case TIFF_SHORT :
+        return TypeDesc(TypeDesc::UINT16, tiffcount);
+    case TIFF_LONG :
+        return TypeDesc(TypeDesc::UINT32, tiffcount);
+    case TIFF_RATIONAL :
+        return tiffcount <= 1 ? TypeRational : TypeUnknown;
+    case TIFF_SBYTE :
+        return TypeDesc(TypeDesc::INT8, tiffcount);
+    case TIFF_UNDEFINED :
+        return TypeDesc(TypeDesc::UINT8, tiffcount); // 8-bit untyped data
+    case TIFF_SSHORT :
+        return TypeDesc(TypeDesc::INT16, tiffcount);
+    case TIFF_SLONG :
+        return TypeDesc(TypeDesc::INT32, tiffcount);
+    case TIFF_SRATIONAL :
+        return tiffcount <= 1 ? TypeRational : TypeUnknown;
+    case TIFF_FLOAT :
+        return TypeDesc(TypeDesc::FLOAT, tiffcount);
+    case TIFF_DOUBLE :
+        return TypeDesc(TypeDesc::DOUBLE, tiffcount);
+    case TIFF_IFD :
+        return TypeUnknown;
+    case TIFF_LONG8 :
+        return TypeDesc(TypeDesc::UINT64, tiffcount);
+    case TIFF_SLONG8 :
+        return TypeDesc(TypeDesc::INT64, tiffcount);
+    case TIFF_IFD8 :
+        return TypeUnknown;
+    }
+    ASSERT (0 && "Unknown TIFF type");
+    return TypeUnknown;
+}
 
-static const EXIF_tag_info exif_tag_table[] = {
+
+
+namespace {
+
+void
+version4char_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
+                     string_view buf, ImageSpec& spec)
+{
+    if (tiff_data_size(dir) == 4)   // sanity check
+        spec.attribute (taginfo.name,
+                        string_view((const char*)dataptr(dir,buf), 4));
+}
+
+
+void
+version4uint8_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
+                       string_view buf, ImageSpec& spec)
+{
+    if (tiff_data_size(dir) == 4)  // sanity check
+        spec.attribute (taginfo.name, TypeDesc(TypeDesc::UINT8,4),
+                        dataptr(dir,buf));
+}
+
+
+void
+makernote_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
+                   string_view buf, ImageSpec& spec)
+{
+    // Maker notes are tricky. We'd like to process the maker note here and
+    // now, but we may not yet have come to the metadata that tells us what
+    // kind of camera is it, and thus how to interpret the maker note blob
+    // which is a different layout for each camera brand. So we punt by
+    // shoving the makernote offset into the metadata, and then at the very
+    // end of decode_exif(), we will extract it and parse the maker note.
+    if (tiff_data_size(dir) > 4)   // sanity check
+        spec.attribute ("oiio:MakerNoteOffset", int(dir.tdir_offset));
+}
+
+
+
+// Define EXIFTAG constants that don't seem to be in tiff.h
+#define EXIFTAG_PHOTOGRAPHICSENSITIVITY     34855
+#define EXIFTAG_SENSITIVITYTYPE             34864
+#define EXIFTAG_STANDARDOUTPUTSENSITIVITY   34865
+#define EXIFTAG_RECOMMENDEDEXPOSUREINDEX    34866
+#define EXIFTAG_ISOSPEED                    34867
+#define EXIFTAG_ISOSPEEDLATITUDEYYY         34868
+#define EXIFTAG_ISOSPEEDLATITUDEZZZ         34869
+#define EXIFTAG_OFFSETTIME                  36880
+#define EXIFTAG_OFFSETTIMEORIGINAL          36881
+#define EXIFTAG_OFFSETTIMEDIGITIZED         36882
+#define EXIFTAG_TEMPERATURE                 37888
+#define EXIFTAG_HUMIDITY                    37889
+#define EXIFTAG_PRESSURE                    37890
+#define EXIFTAG_WATERDEPTH                  37891
+#define EXIFTAG_ACCELERATION                37892
+#define EXIFTAG_CAMERAELEVATIONANGLE        37893
+#define EXIFTAG_CAMERAOWNERNAME             42032
+#define EXIFTAG_BODYSERIALNUMBER            42033
+#define EXIFTAG_LENSSPECIFICATION           42034
+#define EXIFTAG_LENSMAKE                    42035
+#define EXIFTAG_LENSMODEL                   42036
+#define EXIFTAG_LENSSERIALNUMBER            42037
+#define EXIFTAG_GAMMA                       42240
+
+
+
+static const TagInfo exif_tag_table[] = {
     // Skip ones handled by the usual JPEG code
     { TIFFTAG_IMAGEWIDTH,	"Exif:ImageWidth",	TIFF_NOTYPE, 1 },
     { TIFFTAG_IMAGELENGTH,	"Exif:ImageLength",	TIFF_NOTYPE, 1 },
@@ -142,9 +214,12 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_SPECTRALSENSITIVITY,"Exif:SpectralSensitivity",	TIFF_ASCII, 0 },
     { EXIFTAG_ISOSPEEDRATINGS,	"Exif:ISOSpeedRatings",	TIFF_SHORT, 1 },
     { EXIFTAG_OECF,	        "Exif:OECF",	TIFF_NOTYPE, 1 },	 // skip it
-    { EXIFTAG_EXIFVERSION,	"Exif:ExifVersion",	TIFF_NOTYPE, 1 },	 // skip it
+    { EXIFTAG_EXIFVERSION,	"Exif:ExifVersion",	TIFF_UNDEFINED, 1, version4char_handler },	 // skip it
     { EXIFTAG_DATETIMEORIGINAL,	"Exif:DateTimeOriginal",	TIFF_ASCII, 0 },
-    { EXIFTAG_DATETIMEDIGITIZED,"Exif:DateTimeDigitized",	TIFF_ASCII, 0 },
+    { EXIFTAG_DATETIMEDIGITIZED,"Exif:DateTimeDigitized",   TIFF_ASCII, 0 },
+    { EXIFTAG_OFFSETTIME,"Exif:OffsetTime",   TIFF_ASCII, 0 },
+    { EXIFTAG_OFFSETTIMEORIGINAL,"Exif:OffsetTimeOriginal",   TIFF_ASCII, 0 },
+    { EXIFTAG_OFFSETTIMEDIGITIZED,"Exif:OffsetTimeDigitized",	TIFF_ASCII, 0 },
     { EXIFTAG_COMPONENTSCONFIGURATION, "Exif:ComponentsConfiguration",	TIFF_UNDEFINED, 1 },
     { EXIFTAG_COMPRESSEDBITSPERPIXEL,  "Exif:CompressedBitsPerPixel",	TIFF_RATIONAL, 1 },
     { EXIFTAG_SHUTTERSPEEDVALUE,"Exif:ShutterSpeedValue",	TIFF_SRATIONAL, 1 }, // APEX units
@@ -159,13 +234,13 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_FOCALLENGTH,	"Exif:FocalLength",	TIFF_RATIONAL, 1 }, // mm
     { EXIFTAG_SECURITYCLASSIFICATION, "Exif:SecurityClassification", TIFF_ASCII, 1 },
     { EXIFTAG_IMAGEHISTORY,     "Exif:ImageHistory",    TIFF_ASCII, 1 },
-    { EXIFTAG_SUBJECTAREA,	"Exif:SubjectArea",	TIFF_NOTYPE, 1 }, // skip
-    { EXIFTAG_MAKERNOTE,	"Exif:MakerNote",	TIFF_NOTYPE, 1 },	 // skip it
-    { EXIFTAG_USERCOMMENT,	"Exif:UserComment",	TIFF_NOTYPE, 1 },	// skip it
+    { EXIFTAG_SUBJECTAREA,	"Exif:SubjectArea",	TIFF_NOTYPE, 1 }, // FIXME
+    { EXIFTAG_MAKERNOTE,	"Exif:MakerNote",	TIFF_BYTE, 0, makernote_handler },
+    { EXIFTAG_USERCOMMENT,	"Exif:UserComment",	TIFF_BYTE, 0 },
     { EXIFTAG_SUBSECTIME,	"Exif:SubsecTime",	        TIFF_ASCII, 0 },
     { EXIFTAG_SUBSECTIMEORIGINAL,"Exif:SubsecTimeOriginal",	TIFF_ASCII, 0 },
     { EXIFTAG_SUBSECTIMEDIGITIZED,"Exif:SubsecTimeDigitized",	TIFF_ASCII, 0 },
-    { EXIFTAG_FLASHPIXVERSION,	"Exif:FlashPixVersion",	TIFF_NOTYPE, 1 },	// skip "Exif:FlashPixVesion",	TIFF_NOTYPE, 1 },
+    { EXIFTAG_FLASHPIXVERSION,	"Exif:FlashPixVersion",	TIFF_UNDEFINED, 1, version4char_handler },	// skip "Exif:FlashPixVesion",	TIFF_NOTYPE, 1 },
     { EXIFTAG_COLORSPACE,	"Exif:ColorSpace",	TIFF_SHORT, 1 },
     { EXIFTAG_PIXELXDIMENSION,	"Exif:PixelXDimension",	TIFF_LONG, 1 },
     { EXIFTAG_PIXELYDIMENSION,	"Exif:PixelYDimension",	TIFF_LONG, 1 },
@@ -175,41 +250,51 @@ static const EXIF_tag_info exif_tag_table[] = {
     { EXIFTAG_FOCALPLANEXRESOLUTION,	"Exif:FocalPlaneXResolution",	TIFF_RATIONAL, 1 },
     { EXIFTAG_FOCALPLANEYRESOLUTION,	"Exif:FocalPlaneYResolution",	TIFF_RATIONAL, 1 },
     { EXIFTAG_FOCALPLANERESOLUTIONUNIT,	"Exif:FocalPlaneResolutionUnit",	TIFF_SHORT, 1 }, // Symbolic?
-    { EXIFTAG_SUBJECTLOCATION,	"Exif:SubjectLocation",	TIFF_SHORT, 1 }, // FIXME: short[2]
+    { EXIFTAG_SUBJECTLOCATION,	"Exif:SubjectLocation",	TIFF_SHORT, 2 },
     { EXIFTAG_EXPOSUREINDEX,	"Exif:ExposureIndex",	TIFF_RATIONAL, 1 },
     { EXIFTAG_SENSINGMETHOD,	"Exif:SensingMethod",	TIFF_SHORT, 1 },
-    { EXIFTAG_FILESOURCE,	"Exif:FileSource",	TIFF_SHORT, 1 },
-    { EXIFTAG_SCENETYPE,	"Exif:SceneType",	TIFF_SHORT, 1 },
-    { EXIFTAG_CFAPATTERN,	"Exif:CFAPattern",	TIFF_NOTYPE, 1 },
+    { EXIFTAG_FILESOURCE,	"Exif:FileSource",	TIFF_UNDEFINED, 1 },
+    { EXIFTAG_SCENETYPE,	"Exif:SceneType",	TIFF_UNDEFINED, 1 },
+    { EXIFTAG_CFAPATTERN,	"Exif:CFAPattern",	TIFF_NOTYPE, 1 }, // FIXME
     { EXIFTAG_CUSTOMRENDERED,	"Exif:CustomRendered",	TIFF_SHORT, 1 },
     { EXIFTAG_EXPOSUREMODE,	"Exif:ExposureMode",	TIFF_SHORT, 1 },
     { EXIFTAG_WHITEBALANCE,	"Exif:WhiteBalance",	TIFF_SHORT, 1 },
-    { EXIFTAG_DIGITALZOOMRATIO,	"Exif:DigitalZoomRatio",TIFF_RATIONAL, 1 },
+    { EXIFTAG_DIGITALZOOMRATIO,	"Exif:DigitalZoomRatio", TIFF_RATIONAL, 1 },
     { EXIFTAG_FOCALLENGTHIN35MMFILM, "Exif:FocalLengthIn35mmFilm",	TIFF_SHORT, 1 },
-    { EXIFTAG_SCENECAPTURETYPE,	"Exif:SceneCaptureType",TIFF_SHORT, 1 },
+    { EXIFTAG_SCENECAPTURETYPE,	"Exif:SceneCaptureType", TIFF_SHORT, 1 },
     { EXIFTAG_GAINCONTROL,	"Exif:GainControl",	TIFF_RATIONAL, 1 },
     { EXIFTAG_CONTRAST,	        "Exif:Contrast",	TIFF_SHORT, 1 },
     { EXIFTAG_SATURATION,	"Exif:Saturation",	TIFF_SHORT, 1 },
     { EXIFTAG_SHARPNESS,	"Exif:Sharpness",	TIFF_SHORT, 1 },
-    { EXIFTAG_DEVICESETTINGDESCRIPTION,	"Exif:DeviceSettingDescription",	TIFF_NOTYPE, 1 },
+    { EXIFTAG_DEVICESETTINGDESCRIPTION,	"Exif:DeviceSettingDescription",	TIFF_NOTYPE, 1 }, // FIXME
     { EXIFTAG_SUBJECTDISTANCERANGE,	"Exif:SubjectDistanceRange",	TIFF_SHORT, 1 },
     { EXIFTAG_IMAGEUNIQUEID,	"Exif:ImageUniqueID",   TIFF_ASCII, 0 },
-    { 34855,                    "Exif:PhotographicSensitivity",  TIFF_SHORT, 1 },
-    { 34864,                    "Exif:SensitivityType",  TIFF_SHORT, 1 },
-    { 34865,                    "Exif:StandardOutputSensitivity", TIFF_LONG, 1 },
-    { 34866,                    "Exif:RecommendedExposureIndex", TIFF_LONG, 1 },
-    { 34867,                    "Exif:ISOSpeed", TIFF_LONG, 1 },
-    { 34868,                    "Exif:ISOSpeedLatitudeyyy", TIFF_LONG, 1 },
-    { 34869,                    "Exif:ISOSpeedLatitudezzz", TIFF_LONG, 1 },
-    { 42032,                    "Exif:CameraOwnerName",  TIFF_ASCII, 0 },
-    { 42033,                    "Exif:BodySerialNumber", TIFF_ASCII, 0 },
-    { 42034,                    "Exif:LensSpecification",TIFF_RATIONAL, 4 },
-    { 42035,                    "Exif:LensMake",         TIFF_ASCII, 0 },
-    { 42036,                    "Exif:LensModel",        TIFF_ASCII, 0 },
-    { 42037,                    "Exif:LensSerialNumber", TIFF_ASCII, 0 },
-    { 42240,                    "Exif:Gamma", TIFF_RATIONAL, 0 },
-    { -1, NULL }  // signal end of table
+    { EXIFTAG_PHOTOGRAPHICSENSITIVITY,  "Exif:PhotographicSensitivity",  TIFF_SHORT, 1 },
+    { EXIFTAG_SENSITIVITYTYPE,  "Exif:SensitivityType",  TIFF_SHORT, 1 },
+    { EXIFTAG_STANDARDOUTPUTSENSITIVITY,  "Exif:StandardOutputSensitivity", TIFF_LONG, 1 },
+    { EXIFTAG_RECOMMENDEDEXPOSUREINDEX,  "Exif:RecommendedExposureIndex", TIFF_LONG, 1 },
+    { EXIFTAG_ISOSPEED,  "Exif:ISOSpeed", TIFF_LONG, 1 },
+    { EXIFTAG_ISOSPEEDLATITUDEYYY,  "Exif:ISOSpeedLatitudeyyy", TIFF_LONG, 1 },
+    { EXIFTAG_ISOSPEEDLATITUDEZZZ,  "Exif:ISOSpeedLatitudezzz", TIFF_LONG, 1 },
+    { EXIFTAG_TEMPERATURE,  "Exif:Temperature", TIFF_SRATIONAL, 1 },
+    { EXIFTAG_HUMIDITY,  "Exif:Humidity", TIFF_RATIONAL, 1 },
+    { EXIFTAG_PRESSURE,  "Exif:Pressure", TIFF_RATIONAL, 1 },
+    { EXIFTAG_WATERDEPTH,  "Exif:WaterDepth", TIFF_SRATIONAL, 1 },
+    { EXIFTAG_ACCELERATION,  "Exif:Acceleration", TIFF_RATIONAL, 1 },
+    { EXIFTAG_CAMERAELEVATIONANGLE,  "Exif:CameraElevationAngle", TIFF_SRATIONAL, 1 },
+    { EXIFTAG_CAMERAOWNERNAME,  "Exif:CameraOwnerName",  TIFF_ASCII, 0 },
+    { EXIFTAG_BODYSERIALNUMBER,  "Exif:BodySerialNumber", TIFF_ASCII, 0 },
+    { EXIFTAG_LENSSPECIFICATION,  "Exif:LensSpecification", TIFF_RATIONAL, 4 },
+    { EXIFTAG_LENSMAKE,  "Exif:LensMake",         TIFF_ASCII, 0 },
+    { EXIFTAG_LENSMODEL,  "Exif:LensModel",        TIFF_ASCII, 0 },
+    { EXIFTAG_LENSSERIALNUMBER,  "Exif:LensSerialNumber", TIFF_ASCII, 0 },
+    { EXIFTAG_GAMMA,  "Exif:Gamma", TIFF_RATIONAL, 0 }
 };
+
+static TagMap& exif_tagmap_ref () {
+    static TagMap T ("EXIF", exif_tag_table);
+    return T;
+}
 
 
 
@@ -238,8 +323,8 @@ enum GPSTag {
     GPSTAG_HPOSITIONINGERROR = 31
 };
 
-static const EXIF_tag_info gps_tag_table[] = {
-    { GPSTAG_VERSIONID,		"GPS:VersionID",	TIFF_BYTE, 4 }, 
+static const TagInfo gps_tag_table[] = {
+    { GPSTAG_VERSIONID,		"GPS:VersionID",	TIFF_BYTE, 4, version4uint8_handler }, 
     { GPSTAG_LATITUDEREF,	"GPS:LatitudeRef",	TIFF_ASCII, 2 },
     { GPSTAG_LATITUDE,		"GPS:Latitude",		TIFF_RATIONAL, 3 },
     { GPSTAG_LONGITUDEREF,	"GPS:LongitudeRef",	TIFF_ASCII, 2 },
@@ -270,77 +355,12 @@ static const EXIF_tag_info gps_tag_table[] = {
     { GPSTAG_AREAINFORMATION,	"GPS:AreaInformation",	TIFF_UNDEFINED, 1 },
     { GPSTAG_DATESTAMP,		"GPS:DateStamp",	TIFF_ASCII, 0 },
     { GPSTAG_DIFFERENTIAL,	"GPS:Differential",	TIFF_SHORT, 1 },
-    { GPSTAG_HPOSITIONINGERROR,	"GPS:HPositioningError",TIFF_RATIONAL, 1 },
-    { -1, NULL }  // signal end of table
+    { GPSTAG_HPOSITIONINGERROR,	"GPS:HPositioningError",TIFF_RATIONAL, 1 }
 };
 
-
-
-
-
-class TagMap {
-    typedef boost::container::flat_map<int, const EXIF_tag_info *> tagmap_t;
-    typedef boost::container::flat_map<std::string, const EXIF_tag_info *> namemap_t;
-    // Name map is lower case so it's effectively case-insensitive
-public:
-    TagMap (const EXIF_tag_info *tag_table) {
-        for (int i = 0;  tag_table[i].tifftag >= 0;  ++i) {
-            const EXIF_tag_info *eti = &tag_table[i];
-            m_tagmap[eti->tifftag] = eti;
-            if (eti->name) {
-                std::string lowername (eti->name);
-                Strutil::to_lower (lowername);
-                m_namemap[lowername] = eti;
-            }
-        }
-    }
-
-    const EXIF_tag_info * find (int tag) const {
-        tagmap_t::const_iterator i = m_tagmap.find (tag);
-        return i == m_tagmap.end() ? NULL : i->second;
-    }
-
-    const EXIF_tag_info * find (string_view name) const {
-        std::string lowername (name);
-        Strutil::to_lower (lowername);
-        namemap_t::const_iterator i = m_namemap.find (lowername);
-        return i == m_namemap.end() ? NULL : i->second;
-    }
-
-    const char * name (int tag) const {
-        tagmap_t::const_iterator i = m_tagmap.find (tag);
-        return i == m_tagmap.end() ? NULL : i->second->name;
-    }
-
-    TIFFDataType tifftype (int tag) const {
-        tagmap_t::const_iterator i = m_tagmap.find (tag);
-        return i == m_tagmap.end() ? TIFF_NOTYPE : i->second->tifftype;
-    }
-
-    int tiffcount (int tag) const {
-        tagmap_t::const_iterator i = m_tagmap.find (tag);
-        return i == m_tagmap.end() ? 0 : i->second->tiffcount;
-    }
-
-    int tag (string_view name) const {
-        std::string lowername (name);
-        Strutil::to_lower (lowername);
-        namemap_t::const_iterator i = m_namemap.find (lowername);
-        return i == m_namemap.end() ? -1 : i->second->tifftag;
-    }
-
-private:
-    tagmap_t m_tagmap;
-    namemap_t m_namemap;
-};
-
-static TagMap& exif_tagmap_ref () {
-    static TagMap T (exif_tag_table);
-    return T;
-}
 
 static TagMap& gps_tagmap_ref () {
-    static TagMap T (gps_tag_table);
+    static TagMap T ("GPS", gps_tag_table);
     return T;
 }
 
@@ -438,13 +458,17 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
         if (swab)
             swap_endian (&d);
         spec.attribute (name, (unsigned int)d);
-    } else if (dirp->tdir_type == TIFF_LONG && dirp->tdir_count == 1) {
+        return;
+    }
+    if (dirp->tdir_type == TIFF_LONG && dirp->tdir_count == 1) {
         unsigned int d;
         d = * (const unsigned int *) &dirp->tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian (&d);
         spec.attribute (name, (unsigned int)d);
-    } else if (dirp->tdir_type == TIFF_RATIONAL) {
+        return;
+    }
+    if (dirp->tdir_type == TIFF_RATIONAL) {
         int n = dirp->tdir_count;  // How many
         float *f = (float *) alloca (n * sizeof(float));
         for (int i = 0;  i < n;  ++i) {
@@ -461,7 +485,9 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
             spec.attribute (name, *f);
         else
             spec.attribute (name, TypeDesc(TypeDesc::FLOAT, n), f);
-    } else if (dirp->tdir_type == TIFF_SRATIONAL) {
+        return;
+    }
+    if (dirp->tdir_type == TIFF_SRATIONAL) {
         int n = dirp->tdir_count;  // How many
         float *f = (float *) alloca (n * sizeof(float));
         for (int i = 0;  i < n;  ++i) {
@@ -478,7 +504,9 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
             spec.attribute (name, *f);
         else
             spec.attribute (name, TypeDesc(TypeDesc::FLOAT, n), f);
-    } else if (dirp->tdir_type == TIFF_ASCII) {
+        return;
+    }
+    if (dirp->tdir_type == TIFF_ASCII) {
         int len = tiff_data_size (*dirp);
         const char *ptr = (len <= 4) ? (const char *)&dirp->tdir_offset 
                                      : (buf.data() + dirp->tdir_offset);
@@ -488,25 +516,30 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
         if (strlen(str.c_str()) < str.length())  // Stray \0 in the middle
             str = std::string (str.c_str());
         spec.attribute (name, str);
-    } else if (dirp->tdir_type == TIFF_BYTE && dirp->tdir_count == 1) {
+        return;
+    }
+    if (dirp->tdir_type == TIFF_BYTE && dirp->tdir_count == 1) {
         // Not sure how to handle "bytes" generally, but certainly for just
         // one, add it as an int.
         unsigned char d;
         d = * (const unsigned char *) &dirp->tdir_offset;  // byte stored in offset itself
         spec.attribute (name, (int)d);
-    } else if (dirp->tdir_type == TIFF_UNDEFINED || dirp->tdir_type == TIFF_BYTE) {
-        // Add it as bytes
+        return;
+    }
+
 #if 0
+    if (dirp->tdir_type == TIFF_UNDEFINED || dirp->tdir_type == TIFF_BYTE) {
+        // Add it as bytes
         const void *addr = dirp->tdir_count <= 4 ? (const void *) &dirp->tdir_offset 
                                                  : (const void *) &buf[dirp->tdir_offset];
-        spec.attribute (name, TypeDesc::UINT8, dirp->tdir_count, addr);
-#endif
-    } else {
-#ifndef NDEBUG
-        std::cerr << "didn't know how to process " << name << ", type " 
-                  << dirp->tdir_type << " x " << dirp->tdir_count << "\n";
-#endif
+        spec.attribute (name, TypeDesc(TypeDesc::UINT8, dirp->tdir_count), addr);
     }
+#endif
+
+#if !defined(NDEBUG) || DEBUG_EXIF_UNHANDLED
+    std::cerr << "add_exif_item_to_spec: didn't know how to process " << name << ", type "
+              << dirp->tdir_type << " x " << dirp->tdir_count << "\n";
+#endif
 }
 
 
@@ -549,7 +582,7 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
     }
 
 #if DEBUG_EXIF_READ
-    std::cerr << "Read ";
+    std::cerr << "Read " << tagmap.mapname() << " ";
     print_dir_entry (tagmap, dir, buf);
 #endif
 
@@ -635,15 +668,18 @@ read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
 #endif
     } else {
         // Everything else -- use our table to handle the general case
-        const char *name = tagmap.name (dir.tdir_tag);
-        if (name) {
-            add_exif_item_to_spec (spec, name, &dir, buf, swab);
+        const TagInfo* taginfo = tagmap.find (dir.tdir_tag);
+        if (taginfo) {
+            if (taginfo->handler)
+                taginfo->handler (*taginfo, dir, buf, spec);
+            else
+                add_exif_item_to_spec (spec, taginfo->name, &dir, buf, swab);
         } else {
-#if DEBUG_EXIF_READ
-            std::cerr << "Dir : tag=" << dir.tdir_tag
-                      << ", type=" << dir.tdir_type
-                      << ", count=" << dir.tdir_count
-                      << ", offset=" << dir.tdir_offset << "\n";
+#if DEBUG_EXIF_READ || DEBUG_EXIF_UNHANDLED
+            Strutil::fprintf (stderr, "read_exif_tag: Unhandled %s tag=%d (0x%x), type=%d count=%d (%s), offset=%d\n",
+                              tagmap.mapname(), dir.tdir_tag, dir.tdir_tag,
+                              dir.tdir_type, dir.tdir_count,
+                              tiff_datatype_to_typedesc(dir), dir.tdir_offset);
 #endif
         }
     }
@@ -661,46 +697,14 @@ public:
 
 
 
-static void
-append_dir_entry (const TagMap &tagmap,
-                  std::vector<TIFFDirEntry> &dirs, std::vector<char> &data,
-                  int tag, TIFFDataType type, size_t count, const void *mydata)
-{
-    TIFFDirEntry dir;
-    dir.tdir_tag = tag;
-    dir.tdir_type = type;
-    dir.tdir_count = count;
-    size_t len = tiff_data_sizes[(int)type] * count;
-    if (len <= 4) {
-        dir.tdir_offset = 0;
-        memcpy (&dir.tdir_offset, mydata, len);
-    } else {
-        dir.tdir_offset = data.size();
-        data.insert (data.end(), (char *)mydata, (char *)mydata + len);
-    }
-#if DEBUG_EXIF_WRITE
-    std::cerr << "Adding ";
-    print_dir_entry (tagmap, dir, string_view((const char *)mydata, len));
-#endif
-    // Don't double-add
-    for (TIFFDirEntry &d : dirs) {
-        if (d.tdir_tag == tag) {
-            d = dir;
-            return;
-        }
-    }
-    dirs.push_back (dir);
-}
-
-
-
-/// Convert to the desired integer type and then append_dir_entry it.
+/// Convert to the desired integer type and then append_tiff_dir_entry it.
 ///
 template <class T>
 bool
-append_dir_entry_integer (const ParamValue &p, const TagMap &tagmap,
-                          std::vector<TIFFDirEntry> &dirs,
-                          std::vector<char> &data, int tag, TIFFDataType type)
+append_tiff_dir_entry_integer (const ParamValue &p,
+                               std::vector<TIFFDirEntry> &dirs,
+                               std::vector<char> &data, int tag,
+                               TIFFDataType type, size_t offset_correction)
 {
     T i;
     switch (p.type().basetype) {
@@ -719,7 +723,7 @@ append_dir_entry_integer (const ParamValue &p, const TagMap &tagmap,
     default:
         return false;
     }
-    append_dir_entry (tagmap, dirs, data, tag, type, 1, &i);
+    append_tiff_dir_entry (dirs, data, tag, type, 1, &i, offset_correction);
     return true;
 }
 
@@ -733,9 +737,11 @@ append_dir_entry_integer (const ParamValue &p, const TagMap &tagmap,
 static void
 encode_exif_entry (const ParamValue &p, int tag,
                    std::vector<TIFFDirEntry> &dirs,
-                   std::vector<char> &data,
-                   const TagMap &tagmap)
+                   std::vector<char> &data, const TagMap &tagmap,
+                   size_t offset_correction)
 {
+    if (tag < 0)
+        return;
     TIFFDataType type = tagmap.tifftype (tag);
     size_t count = (size_t) tagmap.tiffcount (tag);
     TypeDesc element = p.type().elementtype();
@@ -745,7 +751,7 @@ encode_exif_entry (const ParamValue &p, int tag,
         if (p.type() == TypeDesc::STRING) {
             const char *s = *(const char **) p.data();
             int len = strlen(s) + 1;
-            append_dir_entry (tagmap, dirs, data, tag, type, len, s);
+            append_tiff_dir_entry (dirs, data, tag, type, len, s, offset_correction);
             return;
         }
         break;
@@ -755,7 +761,7 @@ encode_exif_entry (const ParamValue &p, int tag,
             const float *f = (const float *)p.data();
             for (size_t i = 0;  i < count;  ++i)
                 float_to_rational (f[i], rat[2*i], rat[2*i+1]);
-            append_dir_entry (tagmap, dirs, data, tag, type, count, rat);
+            append_tiff_dir_entry (dirs, data, tag, type, count, rat, offset_correction);
             return;
         }
         break;
@@ -765,65 +771,28 @@ encode_exif_entry (const ParamValue &p, int tag,
             const float *f = (const float *)p.data();
             for (size_t i = 0;  i < count;  ++i)
                 float_to_rational (f[i], rat[2*i], rat[2*i+1]);
-            append_dir_entry (tagmap, dirs, data, tag, type, count, rat);
+            append_tiff_dir_entry (dirs, data, tag, type, count, rat, offset_correction);
             return;
         }
         break;
     case TIFF_SHORT :
-        if (append_dir_entry_integer<unsigned short> (p, tagmap, dirs, data, tag, type))
+        if (append_tiff_dir_entry_integer<unsigned short> (p, dirs, data, tag, type, offset_correction))
             return;
         break;
     case TIFF_LONG :
-        if (append_dir_entry_integer<unsigned int> (p, tagmap, dirs, data, tag, type))
+        if (append_tiff_dir_entry_integer<unsigned int> (p, dirs, data, tag, type, offset_correction))
             return;
         break;
     case TIFF_BYTE :
-        if (append_dir_entry_integer<unsigned char> (p, tagmap, dirs, data, tag, type))
+        if (append_tiff_dir_entry_integer<unsigned char> (p, dirs, data, tag, type, offset_correction))
             return;
         break;
     default:
         break;
     }
-#if DEBUG_EXIF_WRITE
-    std::cerr << "  Don't know how to add " << p.name() << ", tag " << tag << ", type " << type << ' ' << p.type().c_str() << "\n";
+#if DEBUG_EXIF_WRITE || DEBUG_EXIF_UNHANDLED
+    std::cerr << "encode_exif_entry: Don't know how to add " << p.name() << ", tag " << tag << ", type " << type << ' ' << p.type().c_str() << "\n";
 #endif
-}
-
-
-
-/// Given a list of directory entries, add 'offset' to their tdir_offset
-/// fields (unless, of course, they are less than 4 bytes of data and are
-/// therefore stored locally rather than having an offset at all).
-static void
-reoffset (std::vector<TIFFDirEntry> &dirs, const TagMap &tagmap,
-          size_t offset)
-{
-    for (TIFFDirEntry &dir : dirs) {
-        if (tiff_data_size (dir) <= 4 &&
-            dir.tdir_tag != TIFFTAG_EXIFIFD && dir.tdir_tag != TIFFTAG_GPSIFD) {
-#if DEBUG_EXIF_WRITE
-            const char *name = tagmap.name (dir.tdir_tag);
-            std::cerr << "    NO re-offset of exif entry " << " tag " << dir.tdir_tag << " " << (name ? name : "") << " to " << dir.tdir_offset << '\n';
-#endif
-            continue;
-        }
-        dir.tdir_offset += offset;
-#if DEBUG_EXIF_WRITE
-        const char *name = tagmap.name (dir.tdir_tag);
-        std::cerr << "    re-offsetting entry " << " tag " << dir.tdir_tag << " " << (name ? name : "") << " to " << dir.tdir_offset << '\n';
-#endif
-    }
-}
-
-
-}  // anon namespace
-
-
-// DEPRECATED (1.8)
-bool
-decode_exif (const void *exif, int length, ImageSpec &spec)
-{
-    return decode_exif (string_view ((const char *)exif, length), spec);
 }
 
 
@@ -831,11 +800,67 @@ decode_exif (const void *exif, int length, ImageSpec &spec)
 // Decode a raw Exif data block and save all the metadata in an
 // ImageSpec.  Return true if all is ok, false if the exif block was
 // somehow malformed.
+void
+decode_ifd (const unsigned char *ifd,
+            string_view buf, ImageSpec &spec, const TagMap& tag_map,
+            std::set<size_t>& ifd_offsets_seen, bool swab)
+{
+    // Read the directory that the header pointed to.  It should contain
+    // some number of directory entries containing tags to process.
+    unsigned short ndirs = *(const unsigned short *)ifd;
+    if (swab)
+        swap_endian (&ndirs);
+    for (int d = 0;  d < ndirs;  ++d)
+        read_exif_tag (spec, (const TIFFDirEntry *) (ifd+2+d*sizeof(TIFFDirEntry)),
+                       buf, swab, ifd_offsets_seen, tag_map);
+}
+
+}  // anon namespace
+
+
+
+void
+pvt::append_tiff_dir_entry (std::vector<TIFFDirEntry> &dirs,
+                            std::vector<char> &data,
+                            int tag, TIFFDataType type, size_t count,
+                            const void *mydata, size_t offset_correction,
+                            size_t offset_override)
+{
+    TIFFDirEntry dir;
+    dir.tdir_tag = tag;
+    dir.tdir_type = type;
+    dir.tdir_count = count;
+    size_t len = tiff_data_size (dir);
+    if (len <= 4) {
+        dir.tdir_offset = 0;
+        memcpy (&dir.tdir_offset, mydata, len);
+    } else {
+        if (mydata) {
+            // Add to the data vector and use its offset
+            dir.tdir_offset = data.size() - offset_correction;
+            data.insert (data.end(), (char *)mydata, (char *)mydata + len);
+        } else {
+            // An offset override was given, use that, it means that data
+            // ALREADY contains what we want.
+            dir.tdir_offset = uint32_t(offset_override);
+        }
+    }
+    // Don't double-add
+    for (TIFFDirEntry &d : dirs) {
+        if (d.tdir_tag == tag) {
+            d = dir;
+            return;
+        }
+    }
+    dirs.push_back (dir);
+}
+
+
+
+
 bool
 decode_exif (string_view exif, ImageSpec &spec)
 {
-    TagMap& exif_tagmap (exif_tagmap_ref());
-
 #if DEBUG_EXIF_READ
     std::cerr << "Exif dump:\n";
     for (size_t i = 0;  i < exif.size();  ++i) {
@@ -864,19 +889,11 @@ decode_exif (string_view exif, ImageSpec &spec)
     if (swab)
         swap_endian (&head.tiff_diroff);
 
+    const unsigned char *ifd = ((const unsigned char *)exif.data() + head.tiff_diroff);
     // keep track of IFD offsets we've already seen to avoid infinite
     // recursion if there are circular references.
     std::set<size_t> ifd_offsets_seen;
-
-    // Read the directory that the header pointed to.  It should contain
-    // some number of directory entries containing tags to process.
-    const unsigned char *ifd = ((const unsigned char *)exif.data() + head.tiff_diroff);
-    unsigned short ndirs = *(const unsigned short *)ifd;
-    if (swab)
-        swap_endian (&ndirs);
-    for (int d = 0;  d < ndirs;  ++d)
-        read_exif_tag (spec, (const TIFFDirEntry *) (ifd+2+d*sizeof(TIFFDirEntry)),
-                       exif, swab, ifd_offsets_seen, exif_tagmap);
+    decode_ifd (ifd, exif, spec, exif_tagmap_ref(), ifd_offsets_seen, swab);
 
     // A few tidbits to look for
     ParamValue *p;
@@ -896,7 +913,45 @@ decode_exif (string_view exif, ImageSpec &spec)
         if (cs != 0xffff)
             spec.attribute ("oiio:ColorSpace", "sRGB");
     }
+
+    // Look for a maker note offset, now that we have seen all the metadata
+    // and therefore are sure we know the camera Make. See the comments in
+    // makernote_handler for why this needs to come at the end.
+    int makernote_offset = spec.get_int_attribute ("oiio:MakerNoteOffset");
+    if (makernote_offset > 0) {
+        if (spec.get_string_attribute("Make") == "Canon") {
+            decode_ifd ((unsigned char *)exif.data() + makernote_offset, exif,
+                        spec, pvt::canon_maker_tagmap_ref(), ifd_offsets_seen, swab);
+        }
+        // Now we can erase the attrib we used to pass the message about
+        // the maker note offset.
+        spec.erase_attribute ("oiio:MakerNoteOffset");
+    }
+
     return true;
+}
+
+
+
+// DEPRECATED (1.8)
+bool
+decode_exif (const void *exif, int length, ImageSpec &spec)
+{
+    return decode_exif (string_view ((const char *)exif, length), spec);
+}
+
+
+
+template<class T>
+inline void append (std::vector<char>& blob, const T& v)
+{
+    blob.insert (blob.end(), (const char *)&v, (const char*)&v + sizeof(T));
+}
+
+template<class T>
+inline void appendvec (std::vector<char>& blob, const std::vector<T>& v)
+{
+    blob.insert (blob.end(), (const char *)v.data(), (const char*)(v.data()+v.size()));
 }
 
 
@@ -906,8 +961,9 @@ decode_exif (string_view exif, ImageSpec &spec)
 void
 encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 {
-    TagMap& exif_tagmap (exif_tagmap_ref());
-    TagMap& gps_tagmap (gps_tagmap_ref());
+    const TagMap& exif_tagmap (exif_tagmap_ref());
+    const TagMap& gps_tagmap (gps_tagmap_ref());
+    // const TagMap& canon_tagmap (pvt::canon_maker_tagmap_ref());
 
     // Reserve maximum space that an APP1 can take in a JPEG file, so
     // we can push_back to our heart's content and know that no offsets
@@ -916,172 +972,217 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
     blob.reserve (0xffff);
 
     // Layout:
-    //    (tiffstart)      TIFFHeader
-    //                     number of top dir entries 
-    //                     top dir entry 0
-    //                     ...
-    //                     top dir entry (point to Exif IFD)
-    //                     data for top dir entries (except Exif)
-    //
-    //                     Exif IFD number of dir entries (n)
-    //                     Exif IFD entry 0
-    //                     ...
-    //                     Exif IFD entry n-1
-    //                     ...More Data for Exif entries...
+    //                     .-----------------------------------------
+    //    (tiffstart) ---->|  TIFFHeader
+    //                     |    magic
+    //                     |    version
+    //                  .--+--  diroff
+    //                  |  |-----------------------------------------
+    //            .-----+->|  d
+    //            |     |  |   a
+    //            |  .--+->|    t
+    //            |  |  |  |     a
+    //        .---+--+--+->|  d
+    //        |   |  |  |  |   a
+    //      .-+---+--+--+->|    t
+    //      | |   |  |  |  |     a
+    //      | |   |  |  |  +-----------------------------------------
+    //      | |   |  |  `->|  number of top dir entries
+    //      | |   `--+-----+- top dir entry 0
+    //      | |      |     |  ...
+    //      | |      | .---+- top dir Exif entry (point to Exif IFD)
+    //      | |      | |   |  ...
+    //      | |      | |   +------------------------------------------
+    //      | |      | `-->|  number of Exif IFD dir entries (n)
+    //      | |      `-----+- Exif IFD entry 0
+    //      | |            |  ...
+    //      | |        .---+- Exif entry for maker note
+    //      | |        |   |  ...
+    //      | `--------+---+- Exif IFD entry n-1
+    //      |          |   +------------------------------------------
+    //      |           `->|  number of makernote IFD dir entries
+    //      `--------------+- Makernote IFD entry 0
+    //                     |  ...
+    //                     `------------------------------------------
 
-    // Here is where the TIFF info starts.  All TIFF tag offsets are
-    // relative to this position within the blob.
-    int tiffstart = blob.size();
-
-    // Handy macro -- grow the blob to accommodate a new variable, which
-    // we position at its end.
-#define BLOB_ADD(vartype, varname)                          \
-    blob.resize (blob.size() + sizeof(vartype));            \
-    vartype & varname (* (vartype *) (&blob[0] + blob.size() - sizeof(vartype)));
-    
     // Put a TIFF header
-    BLOB_ADD (TIFFHeader, head);
-    bool host_little = littleendian();
-    head.tiff_magic = host_little ? 0x4949 : 0x4d4d;
+    size_t tiffstart = blob.size();   // store initial size
+    TIFFHeader head;
+    head.tiff_magic = littleendian() ? 0x4949 : 0x4d4d;
     head.tiff_version = 42;
-    head.tiff_diroff = blob.size() - tiffstart;
-
-    // Placeholder for number of directories
-    BLOB_ADD (unsigned short, ndirs);
-    ndirs = 0;
+    // head.tiff_diroff -- fix below, once we know the sizes
+    append (blob, head);
 
     // Accumulate separate tag directories for TIFF, Exif, GPS, and Interop.
-    std::vector<TIFFDirEntry> tiffdirs, exifdirs, gpsdirs, interopdirs;
-    std::vector<char> data;    // Put data here
-    int endmarker = 0;  // 4 bytes of 0's that marks the end of a directory
+    std::vector<TIFFDirEntry> tiffdirs, exifdirs, gpsdirs;
+    std::vector<TIFFDirEntry> makerdirs;
 
     // Go through all spec attribs, add them to the appropriate tag
-    // directory (tiff, gps, or exif).
+    // directory (tiff, gps, or exif), adding their data to the main blob.
     for (const ParamValue &p : spec.extra_attribs) {
         // Which tag domain are we using?
-        if (! strncmp (p.name().c_str(), "GPS:", 4)) {
-            // GPS
-            int tag = gps_tagmap.tag (p.name().string());
-            encode_exif_entry (p, tag, gpsdirs, data, gps_tagmap);
+        if (Strutil::starts_with (p.name(), "GPS:")) {
+            int tag = gps_tagmap.tag (p.name());
+            if (tag >= 0)
+                encode_exif_entry (p, tag, gpsdirs, blob, gps_tagmap, tiffstart);
         } else {
             // Not GPS
-            int tag = exif_tagmap.tag (p.name().string());
+            int tag = exif_tagmap.tag (p.name());
             if (tag < EXIFTAG_EXPOSURETIME || tag > EXIFTAG_IMAGEUNIQUEID) {
-                encode_exif_entry (p, tag, tiffdirs, data, exif_tagmap);
+                // This range of Exif tags go in the main TIFF directories,
+                // not the Exif IFD. Whatever.
+                encode_exif_entry (p, tag, tiffdirs, blob, exif_tagmap, tiffstart);
             } else {
-                encode_exif_entry (p, tag, exifdirs, data, exif_tagmap);
+                encode_exif_entry (p, tag, exifdirs, blob, exif_tagmap, tiffstart);
             }
         }
     }
+
+    // If we're a canon camera, construct the dirs for the Makernote,
+    // with the data adding to the main blob.
+    if (Strutil::iequals (spec.get_string_attribute("Make"), "Canon"))
+        pvt::encode_canon_makernote (blob, makerdirs, spec, tiffstart);
 
 #if DEBUG_EXIF_WRITE
     std::cerr << "Blob header size " << blob.size() << "\n";
     std::cerr << "tiff tags: " << tiffdirs.size() << "\n";
     std::cerr << "exif tags: " << exifdirs.size() << "\n";
     std::cerr << "gps tags: " << gpsdirs.size() << "\n";
+    std::cerr << "canon makernote tags: " << makerdirs.size() << "\n";
 #endif
 
-    // If any legit Exif info was found...
-    if (exifdirs.size()) {
+    // If any legit Exif info was found (including if there's a maker note),
+    // add some extra required Exif fields.
+    if (exifdirs.size() || makerdirs.size()) {
         // Add some required Exif tags that wouldn't be in the spec
-        append_dir_entry (exif_tagmap, exifdirs, data, 
-                          EXIFTAG_EXIFVERSION, TIFF_UNDEFINED, 4, "0220");
-        append_dir_entry (exif_tagmap, exifdirs, data, 
-                          EXIFTAG_FLASHPIXVERSION, TIFF_UNDEFINED, 4, "0100");
-        char componentsconfig[] = { 1, 2, 3, 0 };
-        append_dir_entry (exif_tagmap, exifdirs, data, 
-                          EXIFTAG_COMPONENTSCONFIGURATION, TIFF_UNDEFINED, 4, componentsconfig);
-        // Sort the exif tag directory
-        std::sort (exifdirs.begin(), exifdirs.end(), tagcompare());
-
-        // If we had exif info, add one more main dir entry to point to
-        // the private exif tag directory.
-        unsigned int size = (unsigned int) data.size();
-        append_dir_entry (exif_tagmap, tiffdirs, data, TIFFTAG_EXIFIFD, TIFF_LONG, 1, &size);
-
-        // Create interop directory boilerplate.
-        // In all honesty, I have no idea what this is all about.
-        append_dir_entry (exif_tagmap, interopdirs, data, 1, TIFF_ASCII, 4, "R98");
-        append_dir_entry (exif_tagmap, interopdirs, data, 2, TIFF_UNDEFINED, 4, "0100");
-        std::sort (interopdirs.begin(), interopdirs.end(), tagcompare());
-
-#if 0
-        // FIXME -- is this necessary?  If so, it's not completed.
-        // Add the interop directory IFD entry to the main IFD
-        size = (unsigned int) data.size();
-        append_dir_entry (exif_tagmap, tiffdirs, data,
-                          TIFFTAG_INTEROPERABILITYIFD, TIFF_LONG, 1, &size);
-        std::sort (tiffdirs.begin(), tiffdirs.end(), tagcompare());
-#endif
+        append_tiff_dir_entry (exifdirs, blob,
+                               EXIFTAG_EXIFVERSION, TIFF_UNDEFINED, 4, "0230", tiffstart);
+        append_tiff_dir_entry (exifdirs, blob,
+                               EXIFTAG_FLASHPIXVERSION, TIFF_UNDEFINED, 4, "0100", tiffstart);
+        static char componentsconfig[] = { 1, 2, 3, 0 };
+        append_tiff_dir_entry (exifdirs, blob,
+                          EXIFTAG_COMPONENTSCONFIGURATION, TIFF_UNDEFINED, 4, componentsconfig, tiffstart);
     }
 
-    // If any GPS info was found...
+    // If any GPS info was found, add a version tag to the GPS fields.
     if (gpsdirs.size()) {
         // Add some required Exif tags that wouldn't be in the spec
         static char ver[] = { 2, 2, 0, 0 };
-        append_dir_entry (gps_tagmap, gpsdirs, data,
-                          GPSTAG_VERSIONID, TIFF_BYTE, 4, &ver);
-        // Sort the gps tag directory
-        std::sort (gpsdirs.begin(), gpsdirs.end(), tagcompare());
-
-        // If we had gps info, add one more main dir entry to point to
-        // the private gps tag directory.
-        unsigned int size = (unsigned int) data.size();
-        if (exifdirs.size())
-            size += sizeof(unsigned short) + exifdirs.size()*sizeof(TIFFDirEntry) + 4;
-        append_dir_entry (exif_tagmap, tiffdirs, data, TIFFTAG_GPSIFD, TIFF_LONG, 1, &size);
+        append_tiff_dir_entry (gpsdirs, blob, GPSTAG_VERSIONID, TIFF_BYTE, 4, &ver, tiffstart);
     }
 
-    // Where will the data begin (we need this to adjust the directory
-    // offsets once we append data to the exif blob)?
-    size_t datastart = blob.size() - tiffstart + 
-                       tiffdirs.size() * sizeof(TIFFDirEntry) +
-                       4 /* end marker */;
+    // Compute offsets:
+    // TIFF dirs will start after the data
+    size_t tiffdirs_offset = blob.size() - tiffstart;
+    size_t tiffdirs_size = sizeof(uint16_t)  // ndirs
+                         + sizeof(TIFFDirEntry) * tiffdirs.size()
+                         + (exifdirs.size() ? sizeof(TIFFDirEntry) : 0)
+                         + (gpsdirs.size() ? sizeof(TIFFDirEntry) : 0)
+                         + sizeof(uint32_t);  // zero pad for next IFD offset
+    // Exif dirs will start after the TIFF dirs.
+    size_t exifdirs_offset = tiffdirs_offset + tiffdirs_size;
+    size_t exifdirs_size = exifdirs.empty() ? 0 :
+                           ( sizeof(uint16_t)  // ndirs
+                           + sizeof(TIFFDirEntry) * exifdirs.size()
+                           + (makerdirs.size() ? sizeof(TIFFDirEntry) : 0)
+                           + sizeof(uint32_t));  // zero pad for next IFD offset
+    // GPS dirs will start after Exif
+    size_t gpsdirs_offset = exifdirs_offset + exifdirs_size;
+    size_t gpsdirs_size = gpsdirs.empty() ? 0 :
+                          ( sizeof(uint16_t)  // ndirs
+                          + sizeof(TIFFDirEntry) * gpsdirs.size()
+                          + sizeof(uint32_t));  // zero pad for next IFD offset
+    // MakerNote is after GPS
+    size_t makerdirs_offset = gpsdirs_offset + gpsdirs_size;
+    size_t makerdirs_size = makerdirs.empty() ? 0 :
+                          ( sizeof(uint16_t)  // ndirs
+                          + sizeof(TIFFDirEntry) * makerdirs.size()
+                          + sizeof(uint32_t));  // zero pad for next IFD offset
 
-    // Adjust the TIFF offsets, add the TIFF directory entries to the main
-    // Exif block, followed by 4 bytes of 0's.
-    reoffset (tiffdirs, exif_tagmap, datastart);
-    ndirs = tiffdirs.size();
-    if (ndirs)
-	    blob.insert (blob.end(), (char *)&tiffdirs[0],
-                 (char *)(&tiffdirs[0] + tiffdirs.size()));
-    blob.insert (blob.end(), (char *)&endmarker, (char *)&endmarker + sizeof(int));
+    // If any Maker info was found, add a MakerNote tag to the Exif dirs
+    if (makerdirs.size()) {
+        ASSERT (exifdirs.size());
+        // unsigned int size = (unsigned int) makerdirs_offset;
+        append_tiff_dir_entry (exifdirs, blob, EXIFTAG_MAKERNOTE, TIFF_BYTE,
+                               makerdirs_size, nullptr, 0, makerdirs_offset);
+    }
 
-    // If legit Exif metadata was found, adjust the Exif directory offsets,
-    // append the Exif tag directory entries onto the main data block,
-    // followed by 4 bytes of 0's.
+    // If any Exif info was found, add a Exif IFD tag to the TIFF dirs
     if (exifdirs.size()) {
-        reoffset (exifdirs, exif_tagmap, datastart);
-        unsigned short nd = exifdirs.size();
-        data.insert (data.end(), (char *)&nd, (char *)&nd + sizeof(nd));
-        data.insert (data.end(), (char *)&exifdirs[0], (char *)(&exifdirs[0] + exifdirs.size()));
-        data.insert (data.end(), (char *)&endmarker, (char *)&endmarker + sizeof(int));
+        unsigned int size = (unsigned int) exifdirs_offset;
+        append_tiff_dir_entry (tiffdirs, blob, TIFFTAG_EXIFIFD, TIFF_LONG, 1, &size, tiffstart);
     }
 
-    // If legit GPS metadata was found, adjust the GPS directory offsets,
-    // append the GPS tag directory entries onto the main data block,
-    // followed by 4 bytes of 0's.
+    // If any GPS info was found, add a GPS IFD tag to the TIFF dirs
     if (gpsdirs.size()) {
-        reoffset (gpsdirs, gps_tagmap, datastart);
-        unsigned short nd = gpsdirs.size();
-        data.insert (data.end(), (char *)&nd, (char *)&nd + sizeof(nd));
-        data.insert (data.end(), (char *)&gpsdirs[0], (char *)(&gpsdirs[0] + gpsdirs.size()));
-        data.insert (data.end(), (char *)&endmarker, (char *)&endmarker + sizeof(int));
+        unsigned int size = (unsigned int) gpsdirs_offset;
+        append_tiff_dir_entry (tiffdirs, blob, TIFFTAG_GPSIFD, TIFF_LONG, 1, &size, tiffstart);
     }
 
-    // Now append the data block onto the end of the main exif block that
-    // we're returning to the caller.
-    blob.insert (blob.end(), data.begin(), data.end());
+    // All the tag dirs need to be sorted
+    std::sort (exifdirs.begin(), exifdirs.end(), tagcompare());
+    std::sort (gpsdirs.begin(), gpsdirs.end(), tagcompare());
+    std::sort (makerdirs.begin(), makerdirs.end(), tagcompare());
+
+    // Now mash everything together
+    size_t tiffdirstart = blob.size();
+    append (blob, uint16_t(tiffdirs.size()));      // ndirs for tiff
+    appendvec (blob, tiffdirs);                    // tiff dirs
+    append (blob, uint32_t(0));                    // addr of next IFD (none)
+    if (exifdirs.size()) {
+        ASSERT (blob.size() == exifdirs_offset + tiffstart);
+        append (blob, uint16_t(exifdirs.size()));  // ndirs for exif
+        appendvec (blob, exifdirs);                // exif dirs
+        append (blob, uint32_t(0));                // addr of next IFD (none)
+    }
+    if (gpsdirs.size()) {
+        ASSERT (blob.size() == gpsdirs_offset + tiffstart);
+        append (blob, uint16_t(gpsdirs.size()));   // ndirs for gps
+        appendvec (blob, gpsdirs);                 // gps dirs
+        append (blob, uint32_t(0));                // addr of next IFD (none)
+    }
+    if (makerdirs.size()) {
+        ASSERT (blob.size() == makerdirs_offset + tiffstart);
+        append (blob, uint16_t(makerdirs.size())); // ndirs for canon
+        appendvec (blob, makerdirs);               // canon dirs
+        append (blob, uint32_t(0));                // addr of next IFD (none)
+    }
+
+    // Now go back and patch the header with the offset of the first TIFF
+    // directory.
+    ((TIFFHeader *)(blob.data()+tiffstart))->tiff_diroff = tiffdirstart - tiffstart;
 
 #if DEBUG_EXIF_WRITE
     std::cerr << "resulting exif block is a total of " << blob.size() << "\n";
-#if 0
-    std::cerr << "APP1 dump:\n";
-    for (char c : blob) {
-        if (c >= ' ')
+#if 1
+    std::cerr << "APP1 dump:";
+    for (size_t pos = 0; pos < blob.size(); ++pos) {
+        bool at_ifd = (pos == tiffdirs_offset+tiffstart ||
+                       pos == exifdirs_offset+tiffstart ||
+                       pos == gpsdirs_offset+tiffstart ||
+                       pos == makerdirs_offset+tiffstart);
+        if (pos == 0 || pos == tiffstart || at_ifd || (pos % 10) == 0) {
+            std::cerr << "\n@" << pos << ": ";
+            if (at_ifd) {
+                uint16_t n = *(uint16_t *)&blob[pos];
+                std::cerr << "\nNew IFD: " << n << " tags:\n";
+                TIFFDirEntry *td = (TIFFDirEntry *) &blob[pos+2];
+                for (int i = 0; i < n; ++i, ++td)
+                    std::cerr << "  Tag " << td->tdir_tag
+                              << " type=" << td->tdir_type
+                              << " (" << tiff_datatype_to_typedesc(td->tdir_type) << ")"
+                              << " count=" << td->tdir_count
+                              << " offset=" << td->tdir_offset
+                              << "   post-tiff offset=" << (td->tdir_offset+tiffstart)
+                              << "\n";
+            }
+        }
+        unsigned char c = (unsigned char) blob[pos];
+        if (c >= ' ' && c < 127)
             std::cerr << c << ' ';
         std::cerr << "(" << (int)c << ") ";
     }
+    std::cerr << "\n";
 #endif
 #endif
 }
@@ -1091,7 +1192,7 @@ encode_exif (const ImageSpec &spec, std::vector<char> &blob)
 bool
 exif_tag_lookup (string_view name, int &tag, int &tifftype, int &count)
 {
-    const EXIF_tag_info *e = exif_tagmap_ref().find (name);
+    const TagInfo *e = exif_tagmap_ref().find (name);
     if (! e)
         return false;  // not found
 
