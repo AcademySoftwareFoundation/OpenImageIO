@@ -73,6 +73,8 @@ public:
     using pointer         = T*;
     using const_pointer   = const T*;
     using reference       = T&;
+    using iterator        = T*;
+    using const_iterator  = const T*;
 
     /// Default ctr -- points to nothing
     constexpr array_view () { }
@@ -130,6 +132,12 @@ public:
 
     constexpr T& front() const noexcept { return m_data[0]; }
     constexpr T& back() const noexcept { return m_data[size()-1]; }
+
+    constexpr pointer begin() const noexcept { return m_data; }
+    constexpr pointer end() const noexcept { return m_data + m_size; }
+
+    constexpr const_pointer cbegin() const noexcept { return m_data; }
+    constexpr const_pointer cend() const noexcept { return m_data + m_size; }
 
 private:
     T*     m_data = nullptr;
