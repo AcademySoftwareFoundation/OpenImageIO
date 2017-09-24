@@ -1,3 +1,6 @@
 #!/usr/bin/env python
 
-command = info_command (parent + "/oiio-images/tahoe-gps.jpg")
+filename = (parent + "/oiio-images/tahoe-gps.jpg")
+command += info_command (filename)
+command += oiiotool (filename + " -o ./tahoe-gps.jpg")
+command += info_command ("tahoe-gps.jpg", safematch=True)

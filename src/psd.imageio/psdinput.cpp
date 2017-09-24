@@ -35,6 +35,8 @@
 #include <functional>
 #include <memory>
 
+#include <OpenImageIO/tiffutils.h>
+
 #include "psd_pvt.h"
 #include "jpeg_memory_src.h"
 

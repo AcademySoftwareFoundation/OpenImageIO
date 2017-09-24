@@ -303,7 +303,15 @@ ParamValue::get_string (int maxsize) const
             formatType< int >(*this, n, "%d", out);
         }
     } else if (element.basetype == TypeDesc::UINT) {
-        formatType< unsigned int >(*this, n, "%u", out);
+        if (element.vecsemantics == TypeDesc::RATIONAL && element.aggregate == TypeDesc::VEC2) {
+            const int *val = (const int *)data();
+            for (int i = 0;  i < n;  ++i, val += 2) {
+                if (i) out += ", ";
+                out += Strutil::format ("%d/%d", val[0], val[1]);
+            }
+        } else {
+            formatType< unsigned int >(*this, n, "%u", out);
+        }
     } else if (element.basetype == TypeDesc::UINT16) {
         formatType< unsigned short >(*this, n, "%u", out);
     } else if (element.basetype == TypeDesc::INT16) {
