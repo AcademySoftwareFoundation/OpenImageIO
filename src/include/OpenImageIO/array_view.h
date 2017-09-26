@@ -31,6 +31,7 @@
 
 #pragma once
 
+#include <array>
 #include <vector>
 #include <stdexcept>
 #include <iostream>
@@ -75,6 +76,7 @@ public:
     using reference       = T&;
     using iterator        = T*;
     using const_iterator  = const T*;
+    using nonconst_value_type = typename std::remove_const<value_type>::type;
 
     /// Default ctr -- points to nothing
     constexpr array_view () { }
@@ -86,6 +88,10 @@ public:
     /// Construct from T* and length.
     constexpr array_view (pointer data, size_t size) noexcept
         : m_data(data), m_size(size) { }
+
+    /// Construct from begin and end pointers
+    constexpr array_view (pointer b, pointer e) noexcept
+        : m_data(b), m_size(e-b) { }
 
     /// Construct from a single T&.
     constexpr array_view (T &data) : m_data(&data), m_size(1) { }
@@ -105,6 +111,16 @@ public:
     /// array_view isn't const, but the data it points to will be).
     array_view (const std::vector<typename std::remove_const<T>::type> &v)
         : m_data(v.size() ? &v[0] : nullptr), m_size(v.size()) { }
+
+    /// Construct from mutable element std::array
+    template <size_t N>
+    constexpr array_view (std::array<nonconst_value_type, N> &arr)
+        : m_data(arr.data()), m_size(N) {}
+
+    /// Construct from read-only element std::array
+    template <size_t N>
+    constexpr array_view (const std::array<nonconst_value_type, N>& arr)
+        : m_data(arr.data()), m_size(N) {}
 
     /// Construct an array_view from an initializer_list.
     constexpr array_view (std::initializer_list<T> il)

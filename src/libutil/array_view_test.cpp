@@ -27,7 +27,9 @@
   (This is the Modified BSD License)
 */
 
+#include <array>
 #include <iostream>
+#include <vector>
 
 #include <OpenImageIO/strided_ptr.h>
 #include <OpenImageIO/array_view.h>
@@ -89,6 +91,36 @@ void test_array_view_initlist ()
 {
     // Try the array_view syntax with initializer_list.
     array_view<const float> a { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
+    OIIO_CHECK_EQUAL (a.size(), 12);
+    OIIO_CHECK_EQUAL (a[0], 0.0f);
+    OIIO_CHECK_EQUAL (a[1], 1.0f);
+    OIIO_CHECK_EQUAL (a[2], 0.0f);
+    OIIO_CHECK_EQUAL (a[3], 2.0f);
+}
+
+
+
+void test_array_view_vector ()
+{
+    // Try the array_view syntax with a view of a std::vector
+    std::vector<float> arr { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
+
+    array_view<float> a (arr);
+    OIIO_CHECK_EQUAL (a.size(), 12);
+    OIIO_CHECK_EQUAL (a[0], 0.0f);
+    OIIO_CHECK_EQUAL (a[1], 1.0f);
+    OIIO_CHECK_EQUAL (a[2], 0.0f);
+    OIIO_CHECK_EQUAL (a[3], 2.0f);
+}
+
+
+
+void test_array_view_stdarray ()
+{
+    // Try the array_view syntax with a view of a std::vector
+    std::array<float,12> arr { {0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0} };
+
+    array_view<float> a (arr);
     OIIO_CHECK_EQUAL (a.size(), 12);
     OIIO_CHECK_EQUAL (a[0], 0.0f);
     OIIO_CHECK_EQUAL (a[1], 1.0f);
@@ -254,6 +286,8 @@ int main (int argc, char *argv[])
     test_array_view ();
     test_array_view_mutable ();
     test_array_view_initlist ();
+    test_array_view_vector ();
+    test_array_view_stdarray ();
     test_const_strided_ptr ();
     test_strided_ptr ();
     test_array_view_strided ();
