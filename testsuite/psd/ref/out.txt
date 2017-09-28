@@ -265,17 +265,19 @@ Reading ../../../../../oiio-images/psd_bitmap.psd
     ExposureTime: 0.0166667
     FNumber: 3.5
     Exif:PhotographicSensitivity: 75
+    Exif:ExifVersion: "0220"
     Exif:DateTimeOriginal: "2007:01:18 15:49:21"
     Exif:DateTimeDigitized: "2007:01:18 15:49:21"
     Exif:CompressedBitsPerPixel: 5
     Exif:ShutterSpeedValue: 5.90625 (1/59 s)
-    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ApertureValue: 3.625 (f/3.5)
     Exif:ExposureBiasValue: 0
-    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
     Exif:SubjectDistance: 3.39 (3.39 m)
     Exif:MeteringMode: 5 (pattern)
     Exif:Flash: 16 (no flash, flash supression)
     Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FlashPixVersion: "0100"
     Exif:ColorSpace: 65535
     Exif:PixelXDimension: 320
     Exif:PixelYDimension: 240
@@ -336,17 +338,19 @@ Reading ../../../../../oiio-images/psd_indexed_trans.psd
     ExposureTime: 0.0166667
     FNumber: 3.5
     Exif:PhotographicSensitivity: 75
+    Exif:ExifVersion: "0220"
     Exif:DateTimeOriginal: "2007:01:18 15:49:21"
     Exif:DateTimeDigitized: "2007:01:18 15:49:21"
     Exif:CompressedBitsPerPixel: 5
     Exif:ShutterSpeedValue: 5.90625 (1/59 s)
-    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ApertureValue: 3.625 (f/3.5)
     Exif:ExposureBiasValue: 0
-    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
     Exif:SubjectDistance: 3.39 (3.39 m)
     Exif:MeteringMode: 5 (pattern)
     Exif:Flash: 16 (no flash, flash supression)
     Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FlashPixVersion: "0100"
     Exif:ColorSpace: 1
     Exif:PixelXDimension: 320
     Exif:PixelYDimension: 240
@@ -409,17 +413,19 @@ Reading ../../../../../oiio-images/psd_rgb_8.psd
     ExposureTime: 0.0166667
     FNumber: 3.5
     Exif:PhotographicSensitivity: 75
+    Exif:ExifVersion: "0220"
     Exif:DateTimeOriginal: "2007:01:18 15:49:21"
     Exif:DateTimeDigitized: "2007:01:18 15:49:21"
     Exif:CompressedBitsPerPixel: 5
     Exif:ShutterSpeedValue: 5.90625 (1/59 s)
-    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ApertureValue: 3.625 (f/3.5)
     Exif:ExposureBiasValue: 0
-    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
     Exif:SubjectDistance: 3.39 (3.39 m)
     Exif:MeteringMode: 5 (pattern)
     Exif:Flash: 16 (no flash, flash supression)
     Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FlashPixVersion: "0100"
     Exif:ColorSpace: 1
     Exif:PixelXDimension: 320
     Exif:PixelYDimension: 240
@@ -482,17 +488,19 @@ Reading ../../../../../oiio-images/psd_rgb_16.psd
     ExposureTime: 0.0166667
     FNumber: 3.5
     Exif:PhotographicSensitivity: 75
+    Exif:ExifVersion: "0220"
     Exif:DateTimeOriginal: "2007:01:18 15:49:21"
     Exif:DateTimeDigitized: "2007:01:18 15:49:21"
     Exif:CompressedBitsPerPixel: 5
     Exif:ShutterSpeedValue: 5.90625 (1/59 s)
-    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ApertureValue: 3.625 (f/3.5)
     Exif:ExposureBiasValue: 0
-    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
     Exif:SubjectDistance: 3.39 (3.39 m)
     Exif:MeteringMode: 5 (pattern)
     Exif:Flash: 16 (no flash, flash supression)
     Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FlashPixVersion: "0100"
     Exif:ColorSpace: 1
     Exif:PixelXDimension: 320
     Exif:PixelYDimension: 240
@@ -555,17 +563,19 @@ Reading ../../../../../oiio-images/psd_rgb_32.psd
     ExposureTime: 0.0166667
     FNumber: 3.5
     Exif:PhotographicSensitivity: 75
+    Exif:ExifVersion: "0220"
     Exif:DateTimeOriginal: "2007:01:18 15:49:21"
     Exif:DateTimeDigitized: "2007:01:18 15:49:21"
     Exif:CompressedBitsPerPixel: 5
     Exif:ShutterSpeedValue: 5.90625 (1/59 s)
-    Exif:ApertureValue: 3.625 (f/3.5125)
+    Exif:ApertureValue: 3.625 (f/3.5)
     Exif:ExposureBiasValue: 0
-    Exif:MaxApertureValue: 2.96875 (f/2.79796)
+    Exif:MaxApertureValue: 2.96875 (f/2.8)
     Exif:SubjectDistance: 3.39 (3.39 m)
     Exif:MeteringMode: 5 (pattern)
     Exif:Flash: 16 (no flash, flash supression)
     Exif:FocalLength: 7.3 (7.3 mm)
+    Exif:FlashPixVersion: "0100"
     Exif:ColorSpace: 65535
     Exif:PixelXDimension: 320
     Exif:PixelYDimension: 240

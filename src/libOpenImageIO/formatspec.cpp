@@ -42,6 +42,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include "imageio_pvt.h"
+#include "exif.h"
 
 #if USE_EXTERNAL_PUGIXML
 # include "pugixml.hpp"
@@ -63,6 +64,9 @@
 
 
 OIIO_NAMESPACE_BEGIN
+
+using namespace pvt;
+
 
 // Generate the default quantization parameters, templated on the data
 // type.
@@ -489,21 +493,15 @@ ImageSpec::channelindex (string_view name) const
 
 
 
-namespace {  // make an anon namespace
 
-struct LabelTable {
-    int value;
-    const char *label;
-};
-
-static std::string
-explain_justprint (const ParamValue &p, const void *extradata)
+std::string
+pvt::explain_justprint (const ParamValue &p, const void *extradata)
 {
     return p.get_string() + " " + std::string ((const char *)extradata);
 }
 
-static std::string
-explain_labeltable (const ParamValue &p, const void *extradata)
+std::string
+pvt::explain_labeltable (const ParamValue &p, const void *extradata)
 {
     int val;
     if (p.type() == TypeDesc::INT)
@@ -514,11 +512,15 @@ explain_labeltable (const ParamValue &p, const void *extradata)
         val = (int) **(const char **)p.data();
     else
         return std::string();
-    for (const LabelTable *lt = (const LabelTable *)extradata; lt->label; ++lt)
-        if (val == lt->value)
+    for (const LabelIndex *lt = (const LabelIndex *)extradata; lt->label; ++lt)
+        if (val == lt->value && lt->label)
             return std::string (lt->label);
     return std::string();  // nothing
 }
+
+
+
+namespace {  // make an anon namespace
 
 static std::string
 explain_shutterapex (const ParamValue &p, const void *extradata)
@@ -537,19 +539,14 @@ static std::string
 explain_apertureapex (const ParamValue &p, const void *extradata)
 {
     if (p.type() == TypeDesc::FLOAT)
-        return Strutil::format ("f/%g", powf (2.0f, *(float *)p.data()/2.0f));
+        return Strutil::format ("f/%2.1f", powf (2.0f, *(float *)p.data()/2.0f));
     return std::string();
 }
 
 static std::string
 explain_ExifFlash (const ParamValue &p, const void *extradata)
 {
-    int val = 0;
-    if (p.type() == TypeDesc::INT)
-        val = *(int *)p.data();
-    else if (p.type() == TypeDesc::UINT)
-        val = *(unsigned int *)p.data();
-    else return std::string();
+    int val = p.get_int();
     return Strutil::format ("%s%s%s%s%s%s%s%s",
                                 (val&1) ? "flash fired" : "no flash",
                                 (val&6) == 4 ? ", no strobe return" : "",
@@ -561,7 +558,7 @@ explain_ExifFlash (const ParamValue &p, const void *extradata)
                                 (val&64) ? ", red-eye reduction" : "");
 }
 
-static LabelTable ExifExposureProgram_table[] = {
+static LabelIndex ExifExposureProgram_table[] = {
     { 0, "" }, { 1, "manual" }, { 2, "normal program" },
     { 3, "aperture priority" }, { 4, "shutter priority" },
     { 5, "Creative program, biased toward DOF" },
@@ -572,7 +569,7 @@ static LabelTable ExifExposureProgram_table[] = {
     { -1, NULL }
 };
 
-static LabelTable ExifLightSource_table[] = {
+static LabelIndex ExifLightSource_table[] = {
     { 0, "unknown" }, { 1, "daylight" }, { 2, "tungsten/incandescent" },
     { 4, "flash" }, { 9, "fine weather" }, { 10, "cloudy" }, { 11, "shade" },
     { 12, "daylight fluorescent D 5700-7100K" },
@@ -585,23 +582,23 @@ static LabelTable ExifLightSource_table[] = {
     { 24, "ISO studio tungsten" }, { 255, "other" }, { -1, NULL }
 };
 
-static LabelTable ExifMeteringMode_table[] = {
+static LabelIndex ExifMeteringMode_table[] = {
     { 0, "" }, { 1, "average" }, { 2, "center-weighted average" },
     { 3, "spot" }, { 4, "multi-spot" }, { 5, "pattern" }, { 6, "partial" },
     { -1, NULL }
 };
 
-static LabelTable ExifSubjectDistanceRange_table[] = {
+static LabelIndex ExifSubjectDistanceRange_table[] = {
     { 0, "unknown" }, { 1, "macro" }, { 2, "close" }, { 3, "distant" },
     { -1, NULL }
 };
 
-static LabelTable ExifSceneCaptureType_table[] = {
+static LabelIndex ExifSceneCaptureType_table[] = {
     { 0, "standard" }, { 1, "landscape" }, { 2, "portrait" }, 
     { 3, "night scene" }, { -1, NULL }
 };
 
-static LabelTable orientation_table[] = {
+static LabelIndex orientation_table[] = {
     { 1, "normal" }, 
     { 2, "flipped horizontally" }, 
     { 3, "rotated 180 deg" }, 
@@ -613,88 +610,91 @@ static LabelTable orientation_table[] = {
     { -1, NULL }
 };
 
-static LabelTable resunit_table[] = {
+static LabelIndex resunit_table[] = {
     { 1, "none" }, { 2, "inches" }, { 3, "cm" },
     { 4, "mm" }, { 5, "um" }, { -1, NULL }
 };
 
-static LabelTable ExifSensingMethod_table[] = {
+static LabelIndex ExifSensingMethod_table[] = {
     { 1, "undefined" }, { 2, "1-chip color area" }, 
     { 3, "2-chip color area" }, { 4, "3-chip color area" }, 
     { 5, "color sequential area" }, { 7, "trilinear" }, 
     { 8, "color trilinear" }, { -1, NULL }
 };
 
-static LabelTable ExifFileSource_table[] = {
+static LabelIndex ExifFileSource_table[] = {
     { 1, "film scanner" }, { 2, "reflection print scanner" },
     { 3, "digital camera" }, { -1, NULL }
 };
 
-static LabelTable ExifSceneType_table[] = {
+static LabelIndex ExifSceneType_table[] = {
     { 1, "directly photographed" }, { -1, NULL }
 };
 
-static LabelTable ExifExposureMode_table[] = {
+static LabelIndex ExifExposureMode_table[] = {
     { 0, "auto" }, { 1, "manual" }, { 2, "auto-bracket" }, { -1, NULL }
 };
 
-static LabelTable ExifWhiteBalance_table[] = {
+static LabelIndex ExifWhiteBalance_table[] = {
     { 0, "auto" }, { 1, "manual" }, { -1, NULL }
 };
 
-static LabelTable ExifGainControl_table[] = {
+static LabelIndex ExifGainControl_table[] = {
     { 0, "none" }, { 1, "low gain up" }, { 2, "high gain up" }, 
     { 3, "low gain down" }, { 4, "high gain down" },
     { -1, NULL }
 };
 
-static LabelTable yesno_table[] = {
+static LabelIndex ExifSensitivityType_table[] = {
+    { 0, "unknown" }, { 1, "standard output sensitivity" },
+    { 2, "recommended exposure index" },
+    { 3, "ISO speed" },
+    { 4, "standard output sensitivity and recommended exposure index" },
+    { 5, "standard output sensitivity and ISO speed" },
+    { 6, "recommended exposure index and ISO speed" },
+    { 7, "standard output sensitivity and recommended exposure index and ISO speed" },
+    { -1, NULL }
+};
+
+static LabelIndex yesno_table[] = {
     { 0, "no" }, { 1, "yes" }, { -1, NULL }
 };
 
-static LabelTable softhard_table[] = {
+static LabelIndex softhard_table[] = {
     { 0, "normal" }, { 1, "soft" }, { 2, "hard" }, { -1, NULL }
 };
 
-static LabelTable lowhi_table[] = {
+static LabelIndex lowhi_table[] = {
     { 0, "normal" }, { 1, "low" }, { 2, "high" }, { -1, NULL }
 };
 
-static LabelTable GPSAltitudeRef_table[] = {
+static LabelIndex GPSAltitudeRef_table[] = {
     { 0, "above sea level" }, { 1, "below sea level" }, { -1, NULL }
 };
 
-static LabelTable GPSStatus_table[] = {
+static LabelIndex GPSStatus_table[] = {
     { 'A', "measurement active" }, { 'V', "measurement void" },
     { -1, NULL }
 };
 
-static LabelTable GPSMeasureMode_table[] = {
+static LabelIndex GPSMeasureMode_table[] = {
     { '2', "2-D" }, { '3', "3-D" }, { -1, NULL }
 };
 
-static LabelTable GPSSpeedRef_table[] = {
+static LabelIndex GPSSpeedRef_table[] = {
     { 'K', "km/hour" }, { 'M', "miles/hour" }, { 'N', "knots" }, 
     { -1, NULL }
 };
 
-static LabelTable GPSDestDistanceRef_table[] = {
+static LabelIndex GPSDestDistanceRef_table[] = {
     { 'K', "km" }, { 'M', "miles" }, { 'N', "nautical miles" },
     { -1, NULL }
 };
 
-static LabelTable magnetic_table[] = {
+static LabelIndex magnetic_table[] = {
     { 'T', "true north" }, { 'M', "magnetic north" }, { -1, NULL }
 };
 
-typedef std::string (*ExplainerFunc) (const ParamValue &p, 
-                                      const void *extradata);
-
-struct ExplanationTableEntry {
-    const char    *oiioname;
-    ExplainerFunc  explainer;
-    const void    *extradata;
-};
 
 static ExplanationTableEntry explanation[] = {
     { "ResolutionUnit", explain_labeltable, resunit_table },
@@ -722,6 +722,7 @@ static ExplanationTableEntry explanation[] = {
     { "Exif:Saturation", explain_labeltable, lowhi_table },
     { "Exif:Sharpness", explain_labeltable, softhard_table },
     { "Exif:SubjectDistanceRange", explain_labeltable, ExifSubjectDistanceRange_table },
+    { "Exif:SensitivityType", explain_labeltable, ExifSensitivityType_table },
     { "GPS:AltitudeRef", explain_labeltable, GPSAltitudeRef_table },
     { "GPS:Altitude", explain_justprint, "m" },
     { "GPS:Status", explain_labeltable, GPSStatus_table },
@@ -732,8 +733,8 @@ static ExplanationTableEntry explanation[] = {
     { "GPS:DestBearingRef", explain_labeltable, magnetic_table },
     { "GPS:DestDistanceRef", explain_labeltable, GPSDestDistanceRef_table },
     { "GPS:Differential", explain_labeltable, yesno_table },
-    { NULL, NULL, NULL }
-}; 
+    { nullptr, nullptr, nullptr }
+};
 
 } // end anon namespace
 
@@ -749,14 +750,18 @@ ImageSpec::metadata_val (const ParamValue &p, bool human)
     if (p.type() == TypeString && p.nvalues() == 1)
         out = Strutil::format ("\"%s\"", Strutil::escape_chars(out));
     if (human) {
+        const ExplanationTableEntry *exp = nullptr;
+        for (const auto& e : explanation)
+            if (Strutil::iequals (e.oiioname, p.name()))
+                exp = &e;
         std::string nice;
-        for (int e = 0;  explanation[e].oiioname;  ++e) {
-            if (! strcmp (explanation[e].oiioname, p.name().c_str()) &&
-                explanation[e].explainer) {
-                nice = explanation[e].explainer (p, explanation[e].extradata);
-                break;
-            }
+        if (!exp && Strutil::istarts_with (p.name(), "Canon:")) {
+            for (const auto& e : canon_explanation_table())
+                if (Strutil::iequals (e.oiioname, p.name()))
+                    exp = &e;
         }
+        if (exp)
+            nice = exp->explainer (p, exp->extradata);
         if (p.type() == TypeRational) {
             int num = p.get<int>(0), den = p.get<int>(1);
             if (den)
