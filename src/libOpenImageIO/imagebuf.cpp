@@ -148,8 +148,12 @@ public:
     void clear ();
     void reset (string_view name, int subimage, int miplevel,
                 ImageCache *imagecache, const ImageSpec *config);
-    void reset (string_view name, const ImageSpec &spec);
-    void alloc (const ImageSpec &spec);
+    // Reset the buf to blank, given the spec. If nativespec is also
+    // supplied, use it for the "native" spec, otherwise make the nativespec
+    // just copy the regular spec.
+    void reset (string_view name, const ImageSpec &spec,
+                const ImageSpec *nativespec=nullptr);
+    void alloc (const ImageSpec &spec, const ImageSpec *nativespec=nullptr);
     void realloc ();
     bool init_spec (string_view filename, int subimage, int miplevel);
     bool read (int subimage, int miplevel, int chbegin=0, int chend=-1,
@@ -616,13 +620,16 @@ ImageBuf::reset (string_view filename, ImageCache *imagecache)
 
 
 void
-ImageBufImpl::reset (string_view filename, const ImageSpec &spec)
+ImageBufImpl::reset (string_view filename, const ImageSpec &spec,
+                     const ImageSpec* nativespec)
 {
     clear ();
     m_name = ustring (filename);
     m_current_subimage = 0;
     m_current_miplevel = 0;
     alloc (spec);
+    if (nativespec)
+        m_nativespec = *nativespec;
 }
 
 
@@ -671,7 +678,7 @@ ImageBufImpl::realloc ()
 
 
 void
-ImageBufImpl::alloc (const ImageSpec &spec)
+ImageBufImpl::alloc (const ImageSpec &spec, const ImageSpec *nativespec)
 {
     m_spec = spec;
 
@@ -681,7 +688,7 @@ ImageBufImpl::alloc (const ImageSpec &spec)
     m_spec.depth = std::max (1, m_spec.depth);
     m_spec.nchannels = std::max (1, m_spec.nchannels);
 
-    m_nativespec = spec;
+    m_nativespec = nativespec ? *nativespec : spec;
     realloc ();
     m_spec_valid = true;
 }
@@ -1435,12 +1442,12 @@ ImageBuf::copy (const ImageBuf &src, TypeDesc format)
         return true;
     }
     if (src.deep()) {
-        reset (src.name(), src.spec());
+        impl()->reset (src.name(), src.spec(), &src.nativespec());
         impl()->m_deepdata = src.impl()->m_deepdata;
         return true;
     }
     if (format.basetype == TypeDesc::UNKNOWN || src.deep())
-        reset (src.name(), src.spec());
+        impl()->reset (src.name(), src.spec(), &src.nativespec());
     else {
         ImageSpec newspec (src.spec());
         newspec.set_format (format);

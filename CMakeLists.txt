@@ -228,7 +228,8 @@ add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_BINARY_DIR}/testsuite/runtest
 oiio_add_tests (
                 gpsread misnamed-file nonwhole-tiles
                 oiiotool oiiotool-attribs
-                oiiotool-composite oiiotool-deep oiiotool-fixnan
+                oiiotool-composite oiiotool-copy
+                oiiotool-deep oiiotool-fixnan
                 oiiotool-pattern oiiotool-readerror
                 oiiotool-subimage oiiotool-text oiiotool-xform
                 maketx oiiotool-maketx

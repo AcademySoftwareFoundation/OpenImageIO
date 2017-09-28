@@ -1,0 +1,22 @@
+
+explicit -d uint save result: 
+uint8.tif            :  128 x  128, 3 channel, uint8 tiff
+    tile size: 16 x 16
+
+unmodified copy result: 
+tmp.tif              :  128 x  128, 3 channel, uint8 tiff
+    tile size: 16 x 16
+
+copy with explicit -d uint16 result: 
+copy_uint16.tif      :  128 x  128, 3 channel, uint16 tiff
+    tile size: 16 x 16
+
+siappend result: 
+tmp.tif              :  128 x  128, 3 channel, uint8 tiff
+    tile size: 16 x 16
+ subimage  1:  128 x  128, 3 channel, uint16 tiff
+    tile size: 16 x 16
+
+combining images result: 
+tmp.tif              :  128 x  128, 3 channel, uint8 tiff
+    tile size: 16 x 16
