@@ -189,6 +189,9 @@ Oiiotool::clear_options ()
     m_pending_argc = 0;
     frame_number = 0;
     frame_padding = 0;
+    first_input_dataformat = TypeUnknown;
+    first_input_dataformat_bits = 0;
+    first_input_channelformats.clear();
 }
 
 
@@ -242,16 +245,14 @@ Oiiotool::read (ImageRecRef img, ReadPolicy readpolicy)
         output_tilewidth = nspec.tile_width;
         output_tileheight = nspec.tile_height;
     }
-    // If we do not yet have an expected output format, set it based on
-    // this image (presumably the first one read.
-    if (output_dataformat == TypeDesc::UNKNOWN) {
-        output_dataformat = nspec.format;
-        if (! output_bitspersample)
-            output_bitspersample = nspec.get_int_attribute ("oiio:BitsPerSample");
+    // Remember the first input format we encountered.
+    if (first_input_dataformat == TypeUnknown) {
+        first_input_dataformat = nspec.format;
+        first_input_dataformat_bits = nspec.get_int_attribute ("oiio:BitsPerSample");
         if (nspec.channelformats.size()) {
             for (int c = 0; c < nspec.nchannels; ++c) {
                 std::string chname = nspec.channelnames[c];
-                output_channelformats[chname] = std::string(nspec.channelformat(c).c_str());
+                first_input_channelformats[chname] = std::string(nspec.channelformat(c).c_str());
             }
         }
     }
@@ -303,7 +304,7 @@ Oiiotool::process_pending ()
 
 
 void
-Oiiotool::error (string_view command, string_view explanation)
+Oiiotool::error (string_view command, string_view explanation) const
 {
     std::cerr << "oiiotool ERROR: " << command;
     if (explanation.length())
@@ -318,7 +319,7 @@ Oiiotool::error (string_view command, string_view explanation)
 
 
 void
-Oiiotool::warning (string_view command, string_view explanation)
+Oiiotool::warning (string_view command, string_view explanation) const
 {
     std::cerr << "oiiotool WARNING: " << command;
     if (explanation.length())
@@ -513,32 +514,27 @@ get_value_override (string_view localoption, string_view defaultval)
 
 
 
+// Given a (potentially empty) overall data format, per-channel formats,
+// and bit depth, modify the existing spec.
 static void
-adjust_output_options (string_view filename,
-                       ImageSpec &spec, const Oiiotool &ot,
-                       bool format_supports_tiles,
-                       std::map<std::string,std::string> &fileoptions)
+set_output_dataformat (ImageSpec& spec, TypeDesc format,
+                       const std::map<std::string,std::string>& channelformats,
+                       int bitdepth)
 {
-    if (ot.output_dataformat != TypeDesc::UNKNOWN) {
-        TypeDesc type (fileoptions["datatype"]);
-        if (type == TypeDesc::UNKNOWN)
-            type = ot.output_dataformat;
-        if (type != TypeDesc::UNKNOWN)
-            spec.format = ot.output_dataformat;
-        int bits = get_value_override (fileoptions["bits"], ot.output_bitspersample);
-        if (bits)
-            spec.attribute ("oiio:BitsPerSample", ot.output_bitspersample);
-        else
-            spec.erase_attribute ("oiio:BitsPerSample");
-    }
-    if (ot.output_channelformats.size()) {
+    if (format != TypeUnknown)
+        spec.format = format;
+    if (bitdepth)
+        spec.attribute ("oiio:BitsPerSample", bitdepth);
+    else
+        spec.erase_attribute ("oiio:BitsPerSample");
+    if (channelformats.size()) {
         spec.channelformats.clear ();
         spec.channelformats.resize (spec.nchannels, spec.format);
         for (int c = 0;  c < spec.nchannels;  ++c) {
             if (c >= (int)spec.channelnames.size())
                 break;
-            std::map<std::string,std::string>::const_iterator i = ot.output_channelformats.find (spec.channelnames[c]);
-            if (i != ot.output_channelformats.end()) {
+            auto i = channelformats.find (spec.channelnames[c]);
+            if (i != channelformats.end() && i->second.size()) {
                 int bits = 0;
                 string_to_dataformat (i->second, spec.channelformats[c], bits);
             }
@@ -554,14 +550,91 @@ adjust_output_options (string_view filename,
     } else {
         spec.channelformats.clear ();
     }
+}
 
-    // If we've had tiled input and scanline was not explicitly
-    // requested, we'll try tiled output.
-    if (ot.output_tilewidth && !ot.output_scanline && format_supports_tiles) {
-        spec.tile_width = ot.output_tilewidth;
-        spec.tile_height = ot.output_tileheight;
-        spec.tile_depth = 1;
+
+
+static void
+adjust_output_options (string_view filename,
+                       ImageSpec &spec, const ImageSpec *nativespec,
+                       const Oiiotool &ot,
+                       bool format_supports_tiles,
+                       std::map<std::string,std::string> &fileoptions,
+                       bool was_direct_read = false)
+{
+    // What data format and bit depth should we use for the output? Here's
+    // the logic:
+    // * If a specific request was made on this command (e.g. -o:format=half)
+    //   or globally (e.g., -d half), honor that, with a per-command request
+    //   taking precedence.
+    // * Otherwise, If the buffer is more or less a direct copy from an
+    //   input image (as read, not the result of subsequent operations,
+    //   which will tend to generate float output no matter what the
+    //   inputs), write it out in the same format it was read from.
+    // * Otherwise, output the same type as the FIRST file that was input
+    //   (we are guessing that even if the operations made result buffers
+    //   that were float, the user probably wanted to output it the same
+    //   format as the input, or else she would have said so).
+    // * Otherwise, just write the buffer's format, regardless of how it got
+    //   that way.
+    TypeDesc requested_output_dataformat = ot.output_dataformat;
+    auto requested_output_channelformats = ot.output_channelformats;
+    if (fileoptions["datatype"] != "") {
+        requested_output_dataformat.fromstring (fileoptions["datatype"]);
+        requested_output_channelformats.clear();
+    }
+    int requested_output_bits = get_value_override (fileoptions["bits"], ot.output_bitspersample);
+
+    if (requested_output_dataformat != TypeUnknown) {
+        // Requested an explicit override of datatype
+        set_output_dataformat (spec, requested_output_dataformat,
+                               requested_output_channelformats,
+                               requested_output_bits);
+    }
+    else if (was_direct_read && nativespec) {
+        // Do nothing -- use the file's native data format
+        set_output_dataformat (spec, nativespec->format,
+                               std::map<std::string,std::string>(),
+                               nativespec->get_int_attribute("oiio:BitsPerSample"));
+        spec.channelformats = nativespec->channelformats;
+    }
+    else if (ot.first_input_dataformat != TypeUnknown) {
+        set_output_dataformat (spec, ot.first_input_dataformat,
+                               ot.first_input_channelformats,
+                               ot.first_input_dataformat_bits);
+    }
+
+    // Tiling strategy:
+    // * If a specific request was made for tiled or scanline output, honor
+    //   that (assuming the file format supports it).
+    // * Otherwise, if the buffer is a direct copy from an input image, try
+    //   to write it with the same tile/scanline choices as the input (if
+    //   the file format supports it).
+    // * Otherwise, just default to scanline.
+    int requested_tilewidth = ot.output_tilewidth;
+    int requested_tileheight = ot.output_tileheight;
+    string_view tilesize = fileoptions["tile"];
+    if (tilesize.size()) {
+        int x, y;  // dummy vals for adjust_geometry
+        ot.adjust_geometry ("-o", requested_tilewidth, requested_tileheight,
+                            x, y, tilesize.c_str(), false);
+    }
+    bool requested_scanline = get_value_override (fileoptions["scanline"], ot.output_scanline);
+    if (requested_tilewidth && !requested_scanline && format_supports_tiles) {
+        // Explicit request to tile, honor it.
+        spec.tile_width = requested_tilewidth;
+        spec.tile_height = requested_tileheight ? requested_tileheight : requested_tilewidth;
+        spec.tile_depth = 1;   // FIXME if we ever want volume support
+    } else if (was_direct_read && nativespec &&
+               nativespec->tile_width > 0 && nativespec->tile_height > 0 &&
+               !requested_scanline && format_supports_tiles) {
+        // No explicit request, but a direct read of a tiled input: keep the
+        // input tiling.
+        spec.tile_width = nativespec->tile_width;
+        spec.tile_height = nativespec->tile_height;
+        spec.tile_depth = nativespec->tile_depth;
     } else {
+        // Otherwise, be safe and force scanline output.
         spec.tile_width = spec.tile_height = spec.tile_depth = 0;
     }
 
@@ -806,7 +879,7 @@ Oiiotool::get_position (string_view command, string_view geom,
 bool
 Oiiotool::adjust_geometry (string_view command,
                            int &w, int &h, int &x, int &y, const char *geom,
-                           bool allow_scaling)
+                           bool allow_scaling) const
 {
     float scaleX = 1.0f;
     float scaleY = 1.0f;
@@ -2078,7 +2151,7 @@ action_channels (int argc, const char *argv[])
             if (! ok)
                 ot.error (command, (*R)(s,m).geterror());
             // Tricky subtlety: IBA::channels changed the underlying IB,
-            // we may need to update the IRR's copy of the spec.
+            // we may need to update the IR's copy of the spec.
             R->update_spec_from_imagebuf(s,m);
         }
     }
@@ -2262,10 +2335,14 @@ action_subimage_append_n (int n, string_view command)
                 bool ok = (*R)(sub,m).copy ((*A)(s,m));
                 if (! ok)
                     ot.error (command, (*R)(sub,m).geterror());
-                // Tricky subtlety: IBA::channels changed the underlying IB,
-                // we may need to update the IRR's copy of the spec.
+                // Update the IR's copy of the spec.
                 R->update_spec_from_imagebuf(sub,m);
             }
+            // For subimage append, preserve the notion of whether the
+            // format is exactly as read from disk -- this is one of the few
+            // operations for which it's true, since we are just appending
+            // subimage, not modifying data or data format.
+            (*R)[sub].was_direct_read ((*A)[s].was_direct_read());
         }
     }
 }
@@ -4258,7 +4335,7 @@ input_file (int argc, const char *argv[])
         if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
             pio.verbose = ot.verbose || printinfo > 1 || ot.printinfo_verbose;
-            pio.subimages = ot.allsubimages;
+            pio.subimages = ot.allsubimages || printinfo > 1;
             pio.compute_stats = ot.printstats;
             pio.dumpdata = ot.dumpdata;
             pio.dumpdata_showempty = ot.dumpdata_showempty;
@@ -4599,7 +4676,8 @@ output_file (int argc, const char *argv[])
     bool ok = true;
     if (do_tex || do_latlong) {
         ImageSpec configspec;
-        adjust_output_options (filename, configspec, ot, supports_tiles, fileoptions);
+        adjust_output_options (filename, configspec, nullptr,
+                               ot, supports_tiles, fileoptions);
         prep_texture_config (configspec, fileoptions);
         ImageBufAlgo::MakeTextureMode mode = ImageBufAlgo::MakeTxTexture;
         if (do_shad)
@@ -4618,7 +4696,9 @@ output_file (int argc, const char *argv[])
         std::vector<ImageSpec> subimagespecs (ir->subimages());
         for (int s = 0;  s < ir->subimages();  ++s) {
             ImageSpec spec = *ir->spec(s,0);
-            adjust_output_options (filename, spec, ot, supports_tiles, fileoptions);
+            adjust_output_options (filename, spec, ir->nativespec(s),
+                                   ot, supports_tiles,
+                                   fileoptions, (*ir)[s].was_direct_read());
             // For deep files, must copy the native deep channelformats
             if (spec.deep)
                 spec.channelformats = (*ir)(s,0).nativespec().channelformats;
@@ -4648,7 +4728,9 @@ output_file (int argc, const char *argv[])
         for (int s = 0, send = ir->subimages();  s < send;  ++s) {
             for (int m = 0, mend = ir->miplevels(s);  m < mend && ok;  ++m) {
                 ImageSpec spec = *ir->spec(s,m);
-                adjust_output_options (filename, spec, ot, supports_tiles, fileoptions);
+                adjust_output_options (filename, spec, ir->nativespec(s,m),
+                                       ot, supports_tiles,
+                                       fileoptions, (*ir)[s].was_direct_read());
                 if (s > 0 || m > 0) {  // already opened first subimage/level
                     if (! out->open (filename, spec, mode)) {
                         std::string err = out->geterror();

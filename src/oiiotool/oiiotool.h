@@ -92,7 +92,7 @@ public:
     std::string input_channel_set;    // Optional input channel set
 
     // Output options
-    TypeDesc output_dataformat;
+    TypeDesc output_dataformat;       // Requested output data format
     std::map<std::string,std::string> output_channelformats;
     std::string output_compression;
     std::string output_planarconfig;
@@ -134,6 +134,10 @@ public:
     bool enable_function_timing = true;
     bool input_config_set = false;
     bool printed_info = false;               // printed info at some point
+    // Remember the first input dataformats we encountered
+    TypeDesc first_input_dataformat;
+    int first_input_dataformat_bits = 0;
+    std::map<std::string, std::string> first_input_channelformats;
 
     Oiiotool ();
 
@@ -203,7 +207,7 @@ public:
     // pixels.
     bool adjust_geometry (string_view command,
                           int &w, int &h, int &x, int &y, const char *geom,
-                          bool allow_scaling=false);
+                          bool allow_scaling=false) const;
 
     // Expand substitution expressions in string str. Expressions are
     // enclosed in braces: {...}. An expression consists of:
@@ -220,8 +224,8 @@ public:
     int extract_options (std::map<std::string,std::string> &options,
                          std::string command);
 
-    void error (string_view command, string_view explanation="");
-    void warning (string_view command, string_view explanation="");
+    void error (string_view command, string_view explanation="") const;
+    void warning (string_view command, string_view explanation="") const;
 
     size_t check_peak_memory () {
         size_t mem = Sysutil::memory_used();
@@ -247,6 +251,7 @@ private:
 typedef std::shared_ptr<ImageBuf> ImageBufRef;
 
 
+
 class SubimageRec {
 public:
     int miplevels() const { return (int) m_miplevels.size(); }
@@ -265,20 +270,32 @@ public:
     const ImageSpec * spec (int i) const {
         return i < miplevels() ? &m_specs[i] : NULL;
     }
+
+    // was_direct_read describes whether this subimage has is unomdified in
+    // content and pixel format (i.e. data type) since it was read from a
+    // preexisting file on disk. We set it to true upon first read, and a
+    // handful of operations that should preserve it, but for almost
+    // everything else, we don't propagate the value (letting it lapse to
+    // false for the result of most image operations).
+    bool was_direct_read () const { return m_was_direct_read; }
+    void was_direct_read (bool f) { m_was_direct_read = f; }
+
 private:
     std::vector<ImageBufRef> m_miplevels;
     std::vector<ImageSpec> m_specs;
+    bool m_was_direct_read = false;  ///< Guaranteed pixel data type unmodified since read
     friend class ImageRec;
 };
 
 
 
+/// ImageRec is conceptually similar to an ImageBuf, except that whereas an
+/// IB is truly a single image, an ImageRec encapsulates multiple subimages,
+/// and potentially MIPmap levels for each subimage.
 class ImageRec {
 public:
     ImageRec (const std::string &name, ImageCache *imagecache)
-        : m_name(name), m_elaborated(false),
-          m_metadata_modified(false), m_pixels_modified(false),
-          m_imagecache(imagecache)
+        : m_name(name), m_imagecache(imagecache)
     { }
 
     // Initialize an ImageRec with a collection of prepared ImageSpec's.
@@ -309,6 +326,8 @@ public:
     // Initialize an ImageRec with the given spec.
     ImageRec (const std::string &name, const ImageSpec &spec,
               ImageCache *imagecache);
+
+    ImageRec (const ImageRec &copy) = delete;  // Disallow copy ctr
 
     enum WinMerge { WinMergeUnion, WinMergeIntersection, WinMergeA, WinMergeB };
 
@@ -375,6 +394,10 @@ public:
         return subimg < subimages() ? m_subimages[subimg].spec(mip) : NULL;
     }
 
+    const ImageSpec * nativespec (int subimg=0, int mip=0) const {
+        return subimg < subimages() ? &((*this)(subimg,mip).nativespec()) : nullptr;
+    }
+
     bool was_output () const { return m_was_output; }
     void was_output (bool val) { m_was_output = val; }
     bool metadata_modified () const { return m_metadata_modified; }
@@ -430,14 +453,14 @@ public:
 
 private:
     std::string m_name;
-    bool m_elaborated;
-    bool m_metadata_modified;
-    bool m_pixels_modified;
-    bool m_was_output;
+    bool m_elaborated = false;
+    bool m_metadata_modified = false;
+    bool m_pixels_modified = false;
+    bool m_was_output = false;
     std::vector<SubimageRec> m_subimages;
     std::time_t m_time;  //< Modification time of the input file
     TypeDesc m_input_dataformat;
-    ImageCache *m_imagecache;
+    ImageCache *m_imagecache = nullptr;
     mutable std::string m_err;
     ImageSpec m_configspec;
 

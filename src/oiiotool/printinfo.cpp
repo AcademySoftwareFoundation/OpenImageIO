@@ -622,6 +622,10 @@ print_info_subimage (Oiiotool &ot,
 
     if (! opt.metamatch.empty() || ! opt.nometamatch.empty()) {
         for (size_t i = 0; i < lines.size(); ++i) {
+            if (i == 0 && serformat == ImageSpec::SerialText && printres) {
+                // Special case for first line in serialized text case.
+                continue;
+            }
             std::string s = lines[i].substr (0, lines[i].find(": "));
             if ((! opt.nometamatch.empty() && regex_search (s, field_exclude_re)) ||
                 (! opt.metamatch.empty() && ! regex_search (s, field_re))) {
