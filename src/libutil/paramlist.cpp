@@ -152,26 +152,35 @@ ParamValue::ParamValue (string_view name, TypeDesc type, string_view value)
 int
 ParamValue::get_int (int defaultval) const
 {
-    if (type() == TypeDesc::INT)
-        return get<int>();
-    if (type() == TypeDesc::UINT)
-        return (int) get<unsigned int>();
-    if (type() == TypeDesc::INT16)
-        return get<short>();
-    if (type() == TypeDesc::UINT16)
-        return get<unsigned short>();
-    if (type() == TypeDesc::INT8)
-        return get<char>();
-    if (type() == TypeDesc::UINT8)
-        return get<unsigned char>();
-    if (type() == TypeDesc::INT64)
-        return get<long long>();
-    if (type() == TypeDesc::UINT64)
-        return get<unsigned long long>();
-    if (type() == TypeDesc::STRING) {
+    return get_int_indexed (0, defaultval);
+}
+
+
+
+int
+ParamValue::get_int_indexed (int index, int defaultval) const
+{
+    int base = type().basetype;
+    if (base == TypeDesc::INT)
+        return get<int>(index);
+    if (base == TypeDesc::UINT)
+        return (int) get<unsigned int>(index);
+    if (base == TypeDesc::INT16)
+        return get<short>(index);
+    if (base == TypeDesc::UINT16)
+        return get<unsigned short>(index);
+    if (base == TypeDesc::INT8)
+        return get<char>(index);
+    if (base == TypeDesc::UINT8)
+        return get<unsigned char>(index);
+    if (base == TypeDesc::INT64)
+        return get<long long>(index);
+    if (base == TypeDesc::UINT64)
+        return get<unsigned long long>(index);
+    if (base == TypeDesc::STRING) {
         // Only succeed for a string if it exactly holds something that
         // excatly parses to an int value.
-        string_view str = get<ustring>();
+        string_view str = get<ustring>(index);
         int val = defaultval;
         if (Strutil::parse_int(str, val) && str.empty())
             return val;
@@ -184,40 +193,51 @@ ParamValue::get_int (int defaultval) const
 float
 ParamValue::get_float (float defaultval) const
 {
-    if (type() == TypeDesc::FLOAT)
-        return get<float>();
-    if (type() == TypeDesc::HALF)
-        return get<half>();
-    if (type() == TypeDesc::DOUBLE)
-        return get<double>();
-    if (type() == TypeDesc::INT)
-        return get<int>();
-    if (type() == TypeDesc::UINT)
-        return get<unsigned int>();
-    if (type() == TypeDesc::INT16)
-        return get<short>();
-    if (type() == TypeDesc::UINT16)
-        return get<unsigned short>();
-    if (type() == TypeDesc::INT8)
-        return get<char>();
-    if (type() == TypeDesc::UINT8)
-        return get<unsigned char>();
-    if (type() == TypeDesc::INT64)
-        return get<long long>();
-    if (type() == TypeDesc::UINT64)
-        return get<unsigned long long>();
-    if (type() == TypeDesc::STRING) {
+    return get_float_indexed (0, defaultval);
+}
+
+
+
+float
+ParamValue::get_float_indexed (int index, float defaultval) const
+{
+    int base = type().basetype;
+    if (base == TypeDesc::FLOAT)
+        return get<float>(index);
+    if (base == TypeDesc::HALF)
+        return get<half>(index);
+    if (base == TypeDesc::DOUBLE)
+        return get<double>(index);
+    if (base == TypeDesc::INT) {
+        if (type().aggregate == TypeDesc::VEC2 &&
+            type().vecsemantics == TypeDesc::RATIONAL) {
+            int num = get<int>(2*index+0);
+            int den = get<int>(2*index+1);
+            return den ? float(num)/float(den) : 0.0f;
+        }
+        return get<int>(index);
+    }
+    if (base == TypeDesc::UINT)
+        return get<unsigned int>(index);
+    if (base == TypeDesc::INT16)
+        return get<short>(index);
+    if (base == TypeDesc::UINT16)
+        return get<unsigned short>(index);
+    if (base == TypeDesc::INT8)
+        return get<char>(index);
+    if (base == TypeDesc::UINT8)
+        return get<unsigned char>(index);
+    if (base == TypeDesc::INT64)
+        return get<long long>(index);
+    if (base == TypeDesc::UINT64)
+        return get<unsigned long long>(index);
+    if (base == TypeDesc::STRING) {
         // Only succeed for a string if it exactly holds something
         // that excatly parses to a float value.
-        string_view str = get<ustring>();
+        string_view str = get<ustring>(index);
         float val = defaultval;
         if (Strutil::parse_float(str, val) && str.empty())
             return val;
-    }
-    if (type() == TypeRational) {
-        int num = get<int>(0);
-        int den = get<int>(1);
-        return den ? float(num)/float(den) : 0.0f;
     }
 
     return defaultval;
