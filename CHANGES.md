@@ -1,4 +1,4 @@
-Release 1.8 (1.8.5 RC - release anticipated 1 Oct 2017) -- compared to 1.7.x
+Release 1.8 (1.8.5 - 1 Oct 2017) -- compared to 1.7.x
 ----------------------------------------------
 New minimum dependencies:
  * **C++11** (should also build with C++14 and C++17)
@@ -10,9 +10,9 @@ New minimum dependencies:
  * (optional) **Python >= 2.7** (3.x is also ok)
 
 **Changes to install layout**: fonts now get installed to
-  `prefix/share/fonts/OpenImageIO`, OIIO docs now get installed to
-  `prefix/share/doc/OpenImageIO`, and the Python module gets installed to
-  `prefix/lib/pythonMAJ.MIN/site-packages`. #1747 #1760 (1.8.5)
+  `PREFIX/share/fonts/OpenImageIO`, OIIO docs now get installed to
+  `PREFIX/share/doc/OpenImageIO`, and the Python module gets installed to
+  `PREFIX/lib/pythonMAJ.MIN/site-packages`. #1747 #1760 (1.8.5)
 
 Major new features and improvements:
 * New oiiotool features:
