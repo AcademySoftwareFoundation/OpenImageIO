@@ -28,6 +28,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#include <limits>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/unittest.h>
 
@@ -35,11 +36,25 @@ using namespace OIIO;
 
 
 // Helper: create a single ParamValue, store data in it, make sure we can
-// extract it again (as a string).
+// extract each element again, make sure we can convert to the appropriate
+// int or float, and also return a string representation.
+template<typename T>
 static std::string
-test_one_value (void *data, int num_elements, TypeDesc type)
+test_numeric (T* data, int num_elements, TypeDesc type)
 {
     ParamValue p ("name", type, num_elements, data);
+    int n = type.numelements() * num_elements;
+    for (int i = 0; i < n; ++i)
+        OIIO_CHECK_EQUAL (p.get<T>(i), ((const T *)data)[i]);
+    if (std::numeric_limits<T>::is_integer) {
+        OIIO_CHECK_EQUAL (p.get_int(), int(data[0]));
+        for (int i = 0; i < n; ++i)
+            OIIO_CHECK_EQUAL (p.get_int_indexed(i), int(data[i]));
+    } else {
+        OIIO_CHECK_EQUAL (p.get_float(), float(data[0]));
+        for (int i = 0; i < n; ++i)
+            OIIO_CHECK_EQUAL (p.get_float_indexed(i), float(data[i]));
+    }
     return p.get_string();
 }
 
@@ -54,46 +69,82 @@ void test_value_types ()
 
     {
         int val = 42;
-        ret = test_one_value (&val, 1, TypeDesc::INT);
+        ret = test_numeric (&val, 1, TypeDesc::INT);
+        OIIO_CHECK_EQUAL (ret, "42");
+    }
+
+    {
+        unsigned int val = 42;
+        ret = test_numeric (&val, 1, TypeDesc::UINT);
+        OIIO_CHECK_EQUAL (ret, "42");
+    }
+
+    {
+        short val = 42;
+        ret = test_numeric (&val, 1, TypeDesc::INT16);
+        OIIO_CHECK_EQUAL (ret, "42");
+    }
+
+    {
+        unsigned short val = 42;
+        ret = test_numeric (&val, 1, TypeDesc::UINT16);
+        OIIO_CHECK_EQUAL (ret, "42");
+    }
+
+    {
+        char val = 42;
+        ret = test_numeric (&val, 1, TypeDesc::INT8);
+        OIIO_CHECK_EQUAL (ret, "42");
+    }
+
+    {
+        unsigned char val = 42;
+        ret = test_numeric (&val, 1, TypeDesc::UINT8);
         OIIO_CHECK_EQUAL (ret, "42");
     }
 
     {
         float val = 2.25;
-        ret = test_one_value (&val, 1, TypeDesc::FLOAT);
+        ret = test_numeric (&val, 1, TypeDesc::FLOAT);
         OIIO_CHECK_EQUAL (ret, "2.25");
     }
 
     {
         const char *val = "hello";
-        ret = test_one_value (&val, 1, TypeDesc::STRING);
-        OIIO_CHECK_EQUAL (ret, "hello");
+        ParamValue p ("name", val);
+        OIIO_CHECK_EQUAL (p.get<ustring>(), "hello");
+        OIIO_CHECK_EQUAL (p.get_string(), "hello");
     }
 
     {
         int imatrix[] = {100, 200, 300, 400};
-        ret = test_one_value (&imatrix[0], 1, TypeInt);
+        ret = test_numeric (&imatrix[0], 1, TypeInt);
         OIIO_CHECK_EQUAL (ret, "100");
-        ret = test_one_value (imatrix, sizeof (imatrix)/sizeof(int), TypeInt);
+        ret = test_numeric (imatrix, sizeof (imatrix)/sizeof(int), TypeInt);
         OIIO_CHECK_EQUAL (ret, "100, 200, 300, 400");
         OIIO_CHECK_NE (ret, "100, 200, 300, 400,");
+        // Test it as an array as well
+        ret = test_numeric (&imatrix[0], 1, TypeDesc(TypeDesc::INT,4));
+        OIIO_CHECK_EQUAL (ret, "100, 200, 300, 400");
     }
 
     {
         float fmatrix[] = {10.12f, 200.34f, 300.11f, 400.9f};
-        ret = test_one_value (&fmatrix[0], 1, TypeFloat);
+        ret = test_numeric (&fmatrix[0], 1, TypeFloat);
         OIIO_CHECK_EQUAL (ret, "10.12");
-        ret = test_one_value (fmatrix, sizeof (fmatrix) / sizeof (float), TypeFloat);
+        ret = test_numeric (fmatrix, sizeof (fmatrix) / sizeof (float), TypeFloat);
         OIIO_CHECK_EQUAL (ret, "10.12, 200.34, 300.11, 400.9");
         OIIO_CHECK_NE (ret, "10, 200, 300, 400");
         OIIO_CHECK_NE (ret, "10.12, 200.34, 300.11, 400.9,");
+        ret = test_numeric (&fmatrix[0], 1, TypeDesc(TypeDesc::FLOAT,4));
+        OIIO_CHECK_EQUAL (ret, "10.12, 200.34, 300.11, 400.9");
     }
 
     {
         unsigned long long ullmatrix[] = {0xffffffffffffffffLL, 0xffffffffffffffffLL};
-        ret = test_one_value (&ullmatrix, 1, TypeDesc::UINT64);
+        ret = test_numeric (&ullmatrix[0], 1, TypeDesc::UINT64);
         OIIO_CHECK_EQUAL (ret, "18446744073709551615");
-        ret = test_one_value (&ullmatrix, sizeof (ullmatrix) / sizeof (unsigned long long), TypeDesc::UINT64);
+        ret = test_numeric (ullmatrix, sizeof (ullmatrix) / sizeof (unsigned long long), TypeDesc::UINT64);
         OIIO_CHECK_EQUAL (ret, "18446744073709551615, 18446744073709551615");
         OIIO_CHECK_NE (ret, "-1, -1");
         OIIO_CHECK_NE (ret, "18446744073709551615, 18446744073709551615,");
@@ -101,20 +152,24 @@ void test_value_types ()
 
     {
         const char* smatrix[] = {"this is \"a test\"", "this is another test"};
-        ret = test_one_value (smatrix, 1, TypeString);
-        OIIO_CHECK_EQUAL (ret, "this is \"a test\"");
-        ret = test_one_value (smatrix, sizeof (smatrix) / sizeof (char *), TypeString);
-        OIIO_CHECK_EQUAL (ret, "\"this is \\\"a test\\\"\", \"this is another test\"");
+
+        ParamValue p ("name", smatrix[0]);
+        OIIO_CHECK_EQUAL (p.get<ustring>(), smatrix[0]);
+        OIIO_CHECK_EQUAL (p.get_string(), smatrix[0]);
+
+        ParamValue q ("name", TypeString, sizeof (smatrix) / sizeof (char *), &smatrix);
+        OIIO_CHECK_EQUAL (q.get_string(), "\"this is \\\"a test\\\"\", \"this is another test\"");
     }
 
     {
         float matrix16[2][16] = {{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16},
         {10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25}};
-        ret = test_one_value (&matrix16[0], 1, TypeMatrix);
-        OIIO_CHECK_EQUAL (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16");
-        OIIO_CHECK_NE (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16,");
-        ret = test_one_value (matrix16, sizeof (matrix16) / (16 * sizeof (float)), TypeMatrix);
-        OIIO_CHECK_EQUAL (ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16, 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25");
+        ParamValue p ("name", TypeMatrix, 1, matrix16);
+        std::string s = p.get_string();
+        OIIO_CHECK_EQUAL (s, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16");
+        OIIO_CHECK_NE (s, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16,");
+        ParamValue q ("name", TypeMatrix, sizeof (matrix16) / (16 * sizeof (float)), matrix16);
+        OIIO_CHECK_EQUAL (q.get_string(), "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16, 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25");
     }
 
     // Test rational
