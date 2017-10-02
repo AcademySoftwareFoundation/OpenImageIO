@@ -61,14 +61,35 @@ static std::mutex output_mutex;
 
 
 
+OIIO_NO_SANITIZE_ADDRESS
 const char *
 string_view::c_str() const
 {
     // Usual case: either empty, or null-terminated
     if (m_len == 0)   // empty string
         return "";
-    else if (m_chars[m_len] == 0)  // 0-terminated
+
+    // This clause attempts to find out if there's a string-teriminating
+    // '\0' character just beyond the boundary of the string_view, in which
+    // case, simply returning m_chars (with no ustring creation) is a valid
+    // C string.
+    //
+    // BUG: if the string_view does not simply wrap a null-terminated string
+    // (including a std::string or ustring) or substring thereof, and the
+    // the character past the end of the string is beyond an allocation
+    // boundary, this will be flagged by address sanitizer. And it
+    // misbehaves if the memory just beyond the string_view, which isn't
+    // part of the string, gets changed during the lifetime of the
+    // string_view, and no longer has that terminating null. I think that in
+    // the long run, we can't use this trick. I'm kicking that can down the
+    // road just a bit because it's such a performance win. But we
+    // eventually want to get rid of this method anyway, since it won't be
+    // in C++17 string_view. So maybe we'll find ourselves relying on it a
+    // lot less, and therefore the performance hit of doing it foolproof
+    // won't be as onerous.
+    if (m_chars[m_len] == 0)  // 0-terminated
         return m_chars;
+
     // Rare case: may not be 0-terminated. Bite the bullet and construct a
     // 0-terminated string.  We use ustring as a way to avoid any issues of
     // who cleans up the allocation, though it means that it will stay in
