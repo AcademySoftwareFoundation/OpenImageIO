@@ -180,12 +180,14 @@ public:
     /// from a string, but only if the string is entirely a valid int
     /// format. Unconvertable types return the default value.
     int get_int (int defaultval=0) const;
+    int get_int_indexed (int index, int defaultval=0) const;
 
     /// Retrive a float, with converstions from a wide variety of type
     /// cases, including integers. It will retrive from a string, but only
     /// if the string is entirely a valid float format. Unconvertable types
     /// return the default value.
     float get_float (float defaultval=0) const;
+    float get_float_indexed (int index, float defaultval=0) const;
 
     /// Convert any type to a string value. An optional maximum number of
     /// elements is also passed. In the case of a single string, just the
