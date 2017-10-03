@@ -237,7 +237,7 @@ oiio_add_tests (
                 dither dup-channels
                 dpx ico iff
                 jpeg-corrupt-exif
-                png
+                null png
                 psd psd-colormodes
                 rla sgi
                 rational

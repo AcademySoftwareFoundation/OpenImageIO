@@ -243,6 +243,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (iff);
     PLUGENTRY (jpeg);
     PLUGENTRY (jpeg2000);
+    PLUGENTRY (null);
     PLUGENTRY (openexr);
     PLUGENTRY (png);
     PLUGENTRY (pnm);
@@ -311,6 +312,7 @@ catalog_builtin_plugins ()
 #ifdef USE_OPENJPEG
     DECLAREPLUG (jpeg2000);
 #endif
+    DECLAREPLUG (null);
     DECLAREPLUG (openexr);
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
