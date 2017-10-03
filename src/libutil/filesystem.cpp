@@ -627,6 +627,8 @@ Filesystem::read_bytes (string_view path, void *buffer, size_t n, size_t pos)
 std::time_t
 Filesystem::last_write_time (const std::string& path)
 {
+    if (! exists(path))
+        return 0;
     try {
 #ifdef _WIN32
         std::wstring wpath = Strutil::utf8_to_utf16 (path);
@@ -645,6 +647,8 @@ Filesystem::last_write_time (const std::string& path)
 void
 Filesystem::last_write_time (const std::string& path, std::time_t time)
 {
+    if (! exists(path))
+        return;
     try {
 #ifdef _WIN32
         std::wstring wpath = Strutil::utf8_to_utf16 (path);
@@ -662,6 +666,8 @@ Filesystem::last_write_time (const std::string& path, std::time_t time)
 uint64_t
 Filesystem::file_size (string_view path)
 {
+    if (! exists(path))
+        return 0;
     try {
 #ifdef _WIN32
         std::wstring wpath = Strutil::utf8_to_utf16 (path);
