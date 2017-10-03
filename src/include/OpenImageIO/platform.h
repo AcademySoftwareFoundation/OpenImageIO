@@ -303,6 +303,18 @@
 #endif
 
 
+// OIIO_NO_SANITIZE_ADDRESS can be used to mark a function that you don't
+// want address sanitizer to catch. Only use this if you know there are
+// false positives that you can't easily get rid of.
+// This should work for any clang >= 3.3 and gcc >= 4.8, which are
+// guaranteed by our minimum requirements.
+#if defined(__clang__) || defined (__GNUC__)
+#  define OIIO_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
+#else
+#  define OIIO_NO_SANITIZE_ADDRESS
+#endif
+
+
 // Try to deduce endianness
 #if (defined(_WIN32) || defined(__i386__) || defined(__x86_64__))
 #  ifndef __LITTLE_ENDIAN__
