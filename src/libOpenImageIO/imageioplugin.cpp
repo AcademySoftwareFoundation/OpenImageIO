@@ -472,17 +472,30 @@ ImageInput::create (const std::string &filename,
 
 
 ImageInput *
-ImageInput::create (const std::string &filename, 
+ImageInput::create (const std::string &filename,
                     bool do_open,
                     const std::string &plugin_searchpath)
 {
-    if (filename.empty()) { // Can't even guess if no filename given
+    // In case the 'filename' was really a REST-ful URI with query/config
+    // details tacked on to the end, strip them off so we can correctly
+    // extract the file extension.
+    std::map<std::string,std::string> args;
+    std::string filename_stripped;
+    if (! Strutil::get_rest_arguments (filename, filename_stripped, args)) {
+        pvt::error ("ImageInput::create() called with malformed filename");
+        return nullptr;
+    }
+
+    if (filename_stripped.empty())
+        filename_stripped = filename;
+
+    if (filename_stripped.empty()) { // Can't even guess if no filename given
         pvt::error ("ImageInput::create() called with no filename");
         return NULL;
     }
 
     // Extract the file extension from the filename (without the leading dot)
-    std::string format = Filesystem::extension (filename, false);
+    std::string format = Filesystem::extension (filename_stripped, false);
     if (format.empty()) {
         // If the file had no extension, maybe it was itself the format name
         format = filename;
