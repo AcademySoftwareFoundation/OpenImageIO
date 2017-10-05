@@ -62,6 +62,19 @@ spin_mutex mymutex;
 
 
 
+static void
+time_lock_cycle ()
+{
+    // Find out how long it takes
+    Benchmarker bench;
+    std::cout << "Cost of lock/unlock cycle under no contention:\n";
+    spin_mutex sm;
+    std::mutex m;
+    bench ("spin_mutex", [&](){ sm.lock(); sm.unlock(); });
+    bench ("std::mutex", [&](){ m.lock(); m.unlock(); });
+}
+
+
 
 static void
 do_accum (int iterations)
@@ -87,20 +100,6 @@ do_accum (int iterations)
         faccum = fmod (sinf(faccum+last), 1.0f);
     }
 #endif
-}
-
-
-
-void test_spinlock (int numthreads, int iterations)
-{
-    accum = 0;
-    thread_group threads;
-    for (int i = 0;  i < numthreads;  ++i) {
-        threads.create_thread (do_accum, iterations);
-    }
-    ASSERT ((int)threads.size() == numthreads);
-    threads.join_all ();
-    OIIO_CHECK_EQUAL (accum, ((long long)iterations * (long long)numthreads));
 }
 
 
@@ -141,23 +140,14 @@ int main (int argc, char *argv[])
     getargs (argc, argv);
 
     std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
-    std::cout << "threads\ttime (best of " << ntrials << ")\n";
-    std::cout << "-------\t----------\n";
 
-    static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
-    for (int i = 0; threadcounts[i] <= numthreads; ++i) {
-        int nt = wedge ? threadcounts[i] : numthreads;
-        int its = iterations/nt;
+    time_lock_cycle ();
 
-        double range;
-        double t = time_trial (std::bind(test_spinlock,nt,its),
-                               ntrials, &range);
-
-        std::cout << Strutil::format ("%2d\t%5.1f   range %.2f\t(%d iters/thread)\n",
-                                      nt, t, range, its);
-        if (! wedge)
-            break;    // don't loop if we're not wedging
-    }
+    std::cout << "\nTiming thread contention for spin_mutex...\n";
+    if (wedge)
+        timed_thread_wedge (do_accum, numthreads, iterations, ntrials);
+    else
+        timed_thread_wedge (do_accum, numthreads, iterations, ntrials, numthreads);
 
     return unit_test_failures;
 }
