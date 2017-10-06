@@ -1120,8 +1120,12 @@ do_tex_thread_workout (int iterations, int mythread)
     float *dresultds = test_derivs ? ALLOCA (float, nchannels) : NULL;
     float *dresultdt = test_derivs ? ALLOCA (float, nchannels) : NULL;
     TextureSystem::Perthread *perthread_info = texsys->get_perthread_info ();
-    TextureSystem::TextureHandle *texture_handle = texsys->get_texture_handle (filenames[0]);
     int pixel, whichfile = 0;
+
+    std::vector<TextureSystem::TextureHandle *> texture_handles;
+    for (auto f : filenames)
+        texture_handles.emplace_back (texsys->get_texture_handle(f));
+
     ImageSpec spec0;
     texsys->get_imagespec (filenames[0], 0, spec0);
     // Compute a filter size that's between the first and second MIP levels.
@@ -1139,7 +1143,7 @@ do_tex_thread_workout (int iterations, int mythread)
             // texture coordinates all the time, one file), with handles
             // and per-thread data already queried only once rather than
             // per-call.
-            ok = texsys->texture (texture_handle, perthread_info, opt, s, t,
+            ok = texsys->texture (texture_handles[0], perthread_info, opt, s, t,
                                   dsdx, dtdx, dsdy, dtdy, nchannels,
                                   result, dresultds, dresultdt);
             break;
@@ -1193,9 +1197,15 @@ do_tex_thread_workout (int iterations, int mythread)
         if (! ok) {
             s = (((2*pixel) % spec0.width) + 0.5f) / spec0.width;
             t = (((2*((2*pixel) / spec0.width)) % spec0.height) + 0.5f) / spec0.height;
-            ok = texsys->texture (filenames[whichfile], opt, s, t,
-                                  dsdx, dtdx, dsdy, dtdy, nchannels,
-                                  result, dresultds, dresultdt);
+            if (use_handle)
+                ok = texsys->texture (texture_handles[whichfile],
+                                      perthread_info, opt, s, t,
+                                      dsdx, dtdx, dsdy, dtdy, nchannels,
+                                      result, dresultds, dresultdt);
+            else
+                ok = texsys->texture (filenames[whichfile], opt, s, t,
+                                      dsdx, dtdx, dsdy, dtdy, nchannels,
+                                      result, dresultds, dresultdt);
         }
         if (! ok) {
             lock_guard lock (error_mutex);
