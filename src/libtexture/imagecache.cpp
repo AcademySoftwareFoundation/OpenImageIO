@@ -288,7 +288,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_is_udim(false),
       m_tilesread(0), m_bytesread(0),
       m_redundant_tiles(0), m_redundant_bytesread(0),
-      m_timesopened(0), m_iotime(0),
+      m_timesopened(0), m_iotime(0), m_mutex_wait_time(0),
       m_mipused(false), m_validspec(false), m_errors_issued(0),
       m_imagecache(imagecache), m_duplicate(NULL),
       m_total_imagesize(0),
@@ -707,7 +707,9 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
                            TypeDesc format, void *data)
 {
     ASSERT (chend > chbegin);
+    Timer input_mutex_timer;
     recursive_lock_guard guard (m_input_mutex);
+    m_mutex_wait_time += input_mutex_timer();
 
     if (! m_input && !m_broken) {
         // The file is already in the file cache, but the handle is
@@ -716,10 +718,10 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
         // But wait, it's possible that somebody else is waiting on our
         // m_input_mutex, which we locked above.  To avoid deadlock, we
         // need to release m_input_mutex while we close files.
-        m_input_mutex.unlock ();
+        unlock_input_mutex ();
         imagecache().check_max_files (thread_info);
         // Now we're back, whew!  Grab the lock again.
-        m_input_mutex.lock ();
+        lock_input_mutex ();
     }
 
     bool ok = open (thread_info);
@@ -1035,7 +1037,9 @@ ImageCacheFile::close ()
 void
 ImageCacheFile::release ()
 {
+    Timer input_mutex_timer;
     recursive_lock_guard guard (m_input_mutex);
+    m_mutex_wait_time += input_mutex_timer();
     if (m_used)
         m_used = false;
     else
@@ -1047,7 +1051,9 @@ ImageCacheFile::release ()
 void
 ImageCacheFile::invalidate ()
 {
+    Timer input_mutex_timer;
     recursive_lock_guard guard (m_input_mutex);
+    m_mutex_wait_time += input_mutex_timer();
     close ();
     invalidate_spec ();
     mark_not_broken ();
@@ -1205,7 +1211,9 @@ ImageCacheImpl::verify_file (ImageCacheFile *tf,
         Timer timer;
         if (! thread_info)
             thread_info = get_perthread_info ();
+        Timer input_mutex_timer;
         recursive_lock_guard guard (tf->m_input_mutex);
+        tf->m_mutex_wait_time += input_mutex_timer();
         if (! tf->validspec()) {
             tf->open (thread_info);
             DASSERT (tf->m_broken || tf->validspec());
@@ -1697,6 +1705,7 @@ ImageCacheImpl::getstats (int level) const
     size_t total_untiled = 0, total_unmipped = 0, total_duplicates = 0;
     size_t total_constant = 0;
     double total_iotime = 0;
+    double total_input_mutex_wait_time = 0;
     std::vector<ImageCacheFileRef> files;
     {
         for (FilenameMap::iterator f = m_files.begin(); f != m_files.end(); ++f) {
@@ -1708,6 +1717,7 @@ ImageCacheImpl::getstats (int level) const
             total_redundant_bytes += file->redundant_bytesread();
             total_bytes += file->bytesread();
             total_iotime += file->iotime();
+            total_input_mutex_wait_time += file->m_mutex_wait_time;
             if (file->duplicate()) {
                 ++total_duplicates;
                 continue;
@@ -1788,6 +1798,8 @@ ImageCacheImpl::getstats (int level) const
         }
         if (stats.file_locking_time > 0.001)
             out << "    File mutex locking time : " << Strutil::timeintervalformat (stats.file_locking_time) << "\n";
+        if (total_input_mutex_wait_time > 0.001)
+            out << "    ImageInput mutex locking time : " << Strutil::timeintervalformat (total_input_mutex_wait_time) << "\n";
         if (m_stat_tiles_created > 0) {
             out << "  Tiles: " << m_stat_tiles_created << " created, " << m_stat_tiles_current << " current, " << m_stat_tiles_peak << " peak\n";
             out << "    total tile requests : " << stats.find_tile_calls << "\n";
@@ -3222,7 +3234,9 @@ ImageCacheImpl::invalidate_all (bool force)
              fileit != e;  ++fileit) {
         ImageCacheFileRef &f (fileit->second);
         ustring name = f->filename();
+        Timer input_mutex_timer;
         recursive_lock_guard guard (f->m_input_mutex);
+        f->m_mutex_wait_time += input_mutex_timer();
         // If the file was broken when we opened it, or if it no longer
         // exists, definitely invalidate it.
         if (f->broken() || ! Filesystem::exists(name.string())) {

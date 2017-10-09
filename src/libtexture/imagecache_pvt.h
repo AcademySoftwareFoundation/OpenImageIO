@@ -48,6 +48,7 @@
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/unordered_map_concurrent.h>
+#include <OpenImageIO/timer.h>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -355,6 +356,7 @@ private:
     atomic_ll m_redundant_bytesread;///< Redundant bytes read
     size_t m_timesopened;           ///< Separate times we opened this file
     double m_iotime;                ///< I/O time for this file
+    double m_mutex_wait_time;       ///< Wait time for m_input_mutex
     bool m_mipused;                 ///< MIP level >0 accessed
     volatile bool m_validspec;      ///< If false, reread spec upon open
     mutable int m_errors_issued;    ///< Errors issued for this file
@@ -380,7 +382,9 @@ private:
 
     /// Force the file to open, thread-safe.
     bool forceopen (ImageCachePerThreadInfo *thread_info) {
+        Timer input_mutex_timer;
         recursive_lock_guard guard (m_input_mutex);
+        m_mutex_wait_time += input_mutex_timer();
         return open (thread_info);
     }
 
@@ -403,7 +407,9 @@ private:
                         int chbegin, int chend, TypeDesc format, void *data);
 
     void lock_input_mutex () {
+        Timer input_mutex_timer;
         m_input_mutex.lock ();
+        m_mutex_wait_time += input_mutex_timer();
     }
 
     void unlock_input_mutex () {
