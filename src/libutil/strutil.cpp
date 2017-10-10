@@ -37,6 +37,10 @@
 #include <sstream>
 #include <limits>
 #include <mutex>
+#include <locale.h>
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#include <xlocale.h>
+#endif
 
 #include <boost/algorithm/string.hpp>
 
@@ -716,7 +720,7 @@ Strutil::parse_float (string_view &str, float &val, bool eat)
     if (! p.size())
         return false;
     const char *end = p.begin();
-    float v = (float) strtod (p.begin(), (char**)&end);
+    float v = Strutil::strtof (p.begin(), (char**)&end);
     if (end == p.begin())
         return false;  // no integer found
     if (eat) {
@@ -1031,5 +1035,152 @@ Strutil::base64_encode (string_view str)
     return ret;
 }
 
+
+
+double
+Strutil::strtod (const char *nptr, char **endptr, const std::locale& loc)
+{
+    // Get decimal point in requested locale
+    char pointchar = std::use_facet<std::numpunct<char>>(loc).decimal_point();
+
+    // If the requested locale uses '.' as decimal point, equivalent to C
+    // locale, and this OS has strtod_l, use it.
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    if (pointchar == '.') {
+        // static initialization inside function is thread-safe by C++11 rules!
+        static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+        return strtod_l (nptr, endptr, c_loc);
+    }
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    if (pointchar == '.') {
+        static _locale_t c_loc = _create_locale(LC_ALL, "C");
+        return _strtod_l (nptr, endptr, c_loc);
+    }
+#endif
+
+    std::locale native; // default ctr gets current global locale
+    char nativepoint = std::use_facet<std::numpunct<char>>(native).decimal_point();
+
+    // If the requested and native locales use the same decimal character,
+    // just directly use strtod.
+    if (pointchar == nativepoint)
+        return ::strtod (nptr, endptr);
+
+    // Complex case -- CHEAT by making a copy of the string and replacing
+    // the decimal, then use system strtod!
+    std::string s (nptr);
+    const char* pos = strchr (nptr, pointchar);
+    if (pos) {
+        s[pos-nptr] = nativepoint;
+        auto d = ::strtod (s.c_str(), endptr);
+        if (endptr)
+            *endptr = (char *)nptr + (*endptr - s.c_str());
+        return d;
+    }
+    // No decimal point at all -- use regular strtod
+    return ::strtod (s.c_str(), endptr);
+}
+
+
+
+float
+Strutil::strtof (const char *nptr, char **endptr, const std::locale& loc)
+{
+    // Get decimal point in requested locale
+    char pointchar = std::use_facet<std::numpunct<char>>(loc).decimal_point();
+
+    // If the requested locale uses '.' as decimal point, equivalent to C
+    // locale, and this OS has strtod_l, use it.
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    if (pointchar == '.') {
+        // static initialization inside function is thread-safe by C++11 rules!
+        static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+        return strtof_l (nptr, endptr, c_loc);
+    }
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    if (pointchar == '.') {
+        static _locale_t c_loc = _create_locale(LC_ALL, "C");
+        return (float) _strtod_l (nptr, endptr, c_loc);
+    }
+#endif
+
+    std::locale native; // default ctr gets current global locale
+    char nativepoint = std::use_facet<std::numpunct<char>>(native).decimal_point();
+
+    // If the requested and native locales use the same decimal character,
+    // just directly use strtof.
+    if (pointchar == nativepoint)
+        return ::strtof (nptr, endptr);
+
+    // Complex case -- CHEAT by making a copy of the string and replacing
+    // the decimal, then use system strtod!
+    std::string s (nptr);
+    const char* pos = strchr (nptr, pointchar);
+    if (pos) {
+        s[pos-nptr] = nativepoint;
+        auto d = ::strtof (s.c_str(), endptr);
+        if (endptr)
+            *endptr = (char *)nptr + (*endptr - s.c_str());
+        return d;
+    }
+    // No decimal point at all -- use regular strtod
+    return ::strtof (s.c_str(), endptr);
+}
+
+
+float
+Strutil::strtof (const char *nptr, char **endptr)
+{
+    // Can use strtof_l on platforms that support it
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    // static initialization inside function is thread-safe by C++11 rules!
+    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+    return strtof_l (nptr, endptr, c_loc);
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    static _locale_t c_loc = _create_locale(LC_ALL, "C");
+    return (float) _strtod_l (nptr, endptr, c_loc);
+#else
+    // On platforms without strtof_l, use the classic locale explicitly and
+    // call the locale-based version.
+    return strtof (nptr, endptr, std::locale::classic());
+#endif
+}
+
+
+double
+Strutil::strtod (const char *nptr, char **endptr)
+{
+    // Can use strtod_l on platforms that support it
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    // static initialization inside function is thread-safe by C++11 rules!
+    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+    return strtod_l (nptr, endptr, c_loc);
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    static _locale_t c_loc = _create_locale(LC_ALL, "C");
+    return _strtod_l (nptr, endptr, c_loc);
+#else
+    // On platforms without strtod_l, use the classic locale explicitly and
+    // call the locale-based version.
+    return strtod (nptr, endptr, std::locale::classic());
+#endif
+}
+
+// Notes:
+//
+// FreeBSD's implementation of strtod:
+//   https://svnweb.freebsd.org/base/stable/10/contrib/gdtoa/strtod.c?view=markup
+// Python's implementation  of strtod: (BSD license)
+//   https://hg.python.org/cpython/file/default/Python/pystrtod.c
+// Julia's implementation (combo of strtod_l and Python's impl):
+//   https://github.com/JuliaLang/julia/blob/master/src/support/strtod.c
+// MSDN documentation on Windows _strtod_l and friends:
+//   https://msdn.microsoft.com/en-us/library/kxsfc1ab.aspx   (_strtod_l)
+//   https://msdn.microsoft.com/en-us/library/4zx9aht2.aspx   (_create_locale)
+// cppreference on locale:
+//   http://en.cppreference.com/w/cpp/locale/locale
 
 OIIO_NAMESPACE_END

@@ -1341,7 +1341,7 @@ set_input_attribute (int argc, const char *argv[])
     // Does it seem to be a float, or did the caller explicitly request
     // that it be set as a float?
     p = NULL;
-    float f = (float)strtod (value.c_str(), &p);
+    float f = Strutil::strtof (value.c_str(), &p);
     while (*p && isspace(*p))
         ++p;
     if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::FLOAT) {
@@ -1495,7 +1495,7 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
     // Does it seem to be a float, or did the caller explicitly request
     // that it be set as a float?
     p = NULL;
-    float f = (float)strtod (value.c_str(), &p);
+    float f = Strutil::strtof (value.c_str(), &p);
     while (*p && isspace(*p))
         ++p;
     if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::FLOAT) {
@@ -5419,6 +5419,10 @@ main (int argc, char *argv[])
      // fit Linux way.
     _set_output_format (_TWO_DIGIT_EXPONENT);
 #endif
+
+    // Globally force classic "C" locale, and turn off all formatting
+    // internationalization, for the entire oiiotool application.
+    std::locale::global (std::locale::classic());
 
     ot.imagecache = ImageCache::create (false);
     ASSERT (ot.imagecache);
