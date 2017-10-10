@@ -936,6 +936,7 @@ spec_to_xml (const ImageSpec &spec, ImageSpec::SerialVerbose verbose)
     }
 
     std::ostringstream result;
+    result.imbue (std::locale::classic());  // force "C" locale with '.' decimal
     doc.print (result, "");
     return result.str();
 }

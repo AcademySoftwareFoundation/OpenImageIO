@@ -266,6 +266,7 @@ template<typename T>
 inline void formatTruncated(std::ostream& out, const T& value, int ntrunc)
 {
     std::ostringstream tmp;
+    tmp.imbue (out.getloc());
     tmp << value;
     std::string result = tmp.str();
     out.write(result.c_str(), (std::min)(ntrunc, static_cast<int>(result.size())));
@@ -800,6 +801,7 @@ inline void formatImpl(std::ostream& out, const char* fmt,
             // it crudely by formatting into a temporary string stream and
             // munging the resulting string.
             std::ostringstream tmpStream;
+            tmpStream.imbue (out.getloc());
             tmpStream.copyfmt(out);
             tmpStream.setf(std::ios::showpos);
             arg.format(tmpStream, fmt, fmtEnd, ntrunc);
@@ -931,6 +933,7 @@ TINYFORMAT_FOREACH_ARGNUM(TINYFORMAT_MAKE_MAKEFORMATLIST)
 #endif
 
 /// Format list of arguments to the stream according to the given format string.
+/// This honors the stream's existing locale conventions.
 ///
 /// The name vformat() is chosen for the semantic similarity to vprintf(): the
 /// list of format arguments is held in a single function argument.
@@ -943,6 +946,7 @@ inline void vformat(std::ostream& out, const char* fmt, FormatListRef list)
 #ifdef TINYFORMAT_USE_VARIADIC_TEMPLATES
 
 /// Format list of arguments to the stream according to given format string.
+/// This honors the stream's existing locale conventions.
 template<typename... Args>
 void format(std::ostream& out, const char* fmt, const Args&... args)
 {
@@ -950,16 +954,32 @@ void format(std::ostream& out, const char* fmt, const Args&... args)
 }
 
 /// Format list of arguments according to the given format string and return
-/// the result as a string.
+/// the result as a string, using classic "C" locale conventions (e.g.,
+/// using '.' as decimal mark).
 template<typename... Args>
 std::string format(const char* fmt, const Args&... args)
 {
     std::ostringstream oss;
+    oss.imbue (std::locale::classic());  // force "C" locale with '.' decimal
+    format(oss, fmt, args...);
+    return oss.str();
+}
+
+/// Format list of arguments according to the given format string and return
+/// the result as a string, using an explicit locale. Passing loc as a
+/// default-constructed std::locale will result in adhering to the current
+/// "native" locale set by the OS.
+template<typename... Args>
+std::string format(const std::locale& loc, const char* fmt, const Args&... args)
+{
+    std::ostringstream oss;
+    oss.imbue (loc);
     format(oss, fmt, args...);
     return oss.str();
 }
 
 /// Format list of arguments to std::cout, according to the given format string
+/// This honors std::out's existing locale conventions.
 template<typename... Args>
 void printf(const char* fmt, const Args&... args)
 {
@@ -1011,6 +1031,16 @@ template<TINYFORMAT_ARGTYPES(n)>                                          \
 std::string format(const char* fmt, TINYFORMAT_VARARGS(n))                \
 {                                                                         \
     std::ostringstream oss;                                               \
+    oss.imbue (std::locale::classic());                                   \
+    format(oss, fmt, TINYFORMAT_PASSARGS(n));                             \
+    return oss.str();                                                     \
+}                                                                         \
+                                                                          \
+template<TINYFORMAT_ARGTYPES(n)>                                          \
+std::string format(const std::locale& loc, const char* fmt, TINYFORMAT_VARARGS(n)) \
+{                                                                         \
+    std::ostringstream oss;                                               \
+    oss.imbue (loc);                                                      \
     format(oss, fmt, TINYFORMAT_PASSARGS(n));                             \
     return oss.str();                                                     \
 }                                                                         \

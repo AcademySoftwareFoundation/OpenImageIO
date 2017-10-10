@@ -723,16 +723,16 @@ Filesystem::enumerate_sequence (string_view desc, std::vector<int> &numbers)
         // If 'y' is used, generate the complement.
         std::vector<std::string> range;
         Strutil::split (s, range, "-", 2);
-        int first = Strutil::from_string<int> (range[0]);
+        int first = Strutil::stoi (range[0]);
         int last = first;
         int step = 1;
         bool complement = false;
         if (range.size() > 1) {
-            last = Strutil::from_string<int> (range[1]);
+            last = Strutil::stoi (range[1]);
             if (const char *x = strchr (range[1].c_str(), 'x'))
-                step = (int) strtol (x+1, NULL, 10);
+                step = Strutil::stoi (x+1);
             else if (const char *x = strchr (range[1].c_str(), 'y')) {
-                step = (int) strtol (x+1, NULL, 10);
+                step = Strutil::stoi (x+1);
                 complement = true;
             }
             if (step == 0)
@@ -989,7 +989,7 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
             match_results<std::string::const_iterator> frame_match;
             if (regex_match (f, frame_match, pattern_re)) {
                 std::string thenumber (frame_match[1].first, frame_match[1].second);
-                int frame = (int)strtol (thenumber.c_str(), NULL, 10);
+                int frame = Strutil::stoi (thenumber);
                 matches.push_back (std::make_pair (frame, f));
             }
         }

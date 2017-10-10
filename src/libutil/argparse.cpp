@@ -252,11 +252,11 @@ ArgOption::set_parameter (int i, const char *argv)
 
     case 'f':
     case 'g':
-        *(float *)m_param[i] = (float)atof(argv);
+        *(float *)m_param[i] = Strutil::stof(argv);
         break;
 
     case 'F':
-        *(double *)m_param[i] = atof(argv);
+        *(double *)m_param[i] = Strutil::stod(argv);
         break;
 
     case 's':

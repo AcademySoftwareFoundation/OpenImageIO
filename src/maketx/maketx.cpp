@@ -446,6 +446,10 @@ main (int argc, char *argv[])
 {
     Timer alltimer;
 
+    // Globally force classic "C" locale, and turn off all formatting
+    // internationalization, for the entire maketx application.
+    std::locale::global (std::locale::classic());
+
     ImageSpec configspec;
     Filesystem::convert_native_arguments (argc, (const char **)argv);
     getargs (argc, argv, configspec);
