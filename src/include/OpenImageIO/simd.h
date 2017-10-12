@@ -4051,7 +4051,7 @@ OIIO_FORCEINLINE void vint4::load_mask (const vbool_t& mask, const value_t *valu
 
 OIIO_FORCEINLINE void vint4::store_mask (int mask, value_t *values) const {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    _mm_mask_storeu_epi32 (__mmask8(mask), (const simd_t *)values);
+    _mm_mask_storeu_epi32 (values, __mmask8(mask), m_simd);
 #elif OIIO_SIMD_AVX >= 2
     _mm_maskstore_epi32 (values, _mm_castps_si128(vbool_t::from_bitmask(mask)), m_simd);
 #else
@@ -4062,7 +4062,7 @@ OIIO_FORCEINLINE void vint4::store_mask (int mask, value_t *values) const {
 
 OIIO_FORCEINLINE void vint4::store_mask (const vbool_t& mask, value_t *values) const {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    _mm_mask_storeu_epi32 (__mmask8(mask), (const simd_t *)values);
+    _mm_mask_storeu_epi32 (values, mask.bitmask(), m_simd);
 #elif OIIO_SIMD_AVX >= 2
     _mm_maskstore_epi32 (values, _mm_castps_si128(mask), m_simd);
 #else
@@ -4110,7 +4110,7 @@ vint4::scatter_mask (const bool_t& mask, value_t *baseptr,
                      const vint_t& vindex) const
 {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    _mm_mask_i32scatter_epi32 (baseptr, mask, vindex, m_simd, scale);
+    _mm_mask_i32scatter_epi32 (baseptr, mask.bitmask(), vindex, m_simd, scale);
 #else
     SIMD_DO (if (mask[i]) *(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
 #endif
@@ -4820,7 +4820,7 @@ OIIO_FORCEINLINE void vint8::load_mask (const vbool8& mask, const int *values) {
 
 OIIO_FORCEINLINE void vint8::store_mask (int mask, int *values) const {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    _mm256_mask_storeu_epi32 (__mmask8(mask), (const simd_t *)values);
+    _mm256_mask_storeu_epi32 (values, __mmask8(mask), m_simd);
 #elif OIIO_SIMD_AVX >= 2
     _mm256_maskstore_epi32 (values, _mm256_castps_si256(vbool8::from_bitmask(mask)), m_simd);
 #else
@@ -4831,7 +4831,7 @@ OIIO_FORCEINLINE void vint8::store_mask (int mask, int *values) const {
 
 OIIO_FORCEINLINE void vint8::store_mask (const vbool8& mask, int *values) const {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    _mm256_mask_storeu_epi32 (__mmask8(mask), (const simd_t *)values);
+    _mm256_mask_storeu_epi32 (values, __mmask8(mask.bitmask()), m_simd);
 #elif OIIO_SIMD_AVX >= 2
     _mm256_maskstore_epi32 (values, _mm256_castps_si256(mask), m_simd);
 #else
@@ -4879,7 +4879,7 @@ vint8::scatter_mask (const bool_t& mask, value_t *baseptr,
                      const vint_t& vindex) const
 {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    _mm256_mask_i32scatter_epi32 (baseptr, mask, vindex, m_simd, scale);
+    _mm256_mask_i32scatter_epi32 (baseptr, mask.bitmask(), vindex, m_simd, scale);
 #else
     SIMD_DO (if (mask[i]) *(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
 #endif
@@ -6492,7 +6492,7 @@ OIIO_FORCEINLINE void vfloat4::load_mask (const vbool_t& mask, const float *valu
 
 OIIO_FORCEINLINE void vfloat4::store_mask (int mask, float *values) const {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    m_simd = _mm_mask_storeu_ps (__mmask8(mask), (const simd_t *)values);
+    _mm_mask_storeu_ps (values, __mmask8(mask), m_simd);
 #elif OIIO_SIMD_AVX
     // Concern: is this really faster?
     _mm_maskstore_ps (values, _mm_castps_si128(vbool_t::from_bitmask(mask)), m_simd);
@@ -6504,7 +6504,7 @@ OIIO_FORCEINLINE void vfloat4::store_mask (int mask, float *values) const {
 
 OIIO_FORCEINLINE void vfloat4::store_mask (const vbool_t& mask, float *values) const {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    m_simd = _mm_mask_storeu_ps (__mmask8(mask.bitmask()), (const simd_t *)values);
+    _mm_mask_storeu_ps (values, __mmask8(mask.bitmask()), m_simd);
 #elif OIIO_SIMD_AVX
     // Concern: is this really faster?
     _mm_maskstore_ps (values, _mm_castps_si128(mask.simd()), m_simd);
@@ -6553,7 +6553,7 @@ vfloat4::scatter_mask (const bool_t& mask, value_t *baseptr,
                        const vint_t& vindex) const
 {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    _mm_mask_i32scatter_ps (baseptr, mask, vindex, m_simd, scale);
+    _mm_mask_i32scatter_ps (baseptr, mask.bitmask(), vindex, m_simd, scale);
 #else
     SIMD_DO (if (mask[i]) *(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
 #endif
@@ -8162,7 +8162,7 @@ OIIO_FORCEINLINE void vfloat8::load_mask (const vbool8& mask, const float *value
 
 OIIO_FORCEINLINE void vfloat8::store_mask (int mask, float *values) const {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    m_simd = _mm256_mask_storeu_ps (__mmask8(mask), (const simd_t *)values);
+    _mm256_mask_storeu_ps (values, __mmask8(mask), m_simd);
 #elif OIIO_SIMD_AVX
     // Concern: is this really faster?
     _mm256_maskstore_ps (values, _mm256_castps_si256(vbool8::from_bitmask(mask)), m_simd);
@@ -8174,7 +8174,7 @@ OIIO_FORCEINLINE void vfloat8::store_mask (int mask, float *values) const {
 
 OIIO_FORCEINLINE void vfloat8::store_mask (const vbool8& mask, float *values) const {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    m_simd = _mm256_mask_storeu_ps (__mmask8(mask.bitmask()), (const simd_t *)values);
+    _mm256_mask_storeu_ps (values, __mmask8(mask.bitmask()), m_simd);
 #elif OIIO_SIMD_AVX
     // Concern: is this really faster?
     _mm256_maskstore_ps (values, _mm256_castps_si256(mask.simd()), m_simd);
@@ -8223,7 +8223,7 @@ vfloat8::scatter_mask (const bool_t& mask, value_t *baseptr,
                        const vint_t& vindex) const
 {
 #if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
-    _mm256_mask_i32scatter_ps (baseptr, mask, vindex, m_simd, scale);
+    _mm256_mask_i32scatter_ps (baseptr, mask.bitmask(), vindex, m_simd, scale);
 #else
     SIMD_DO (if (mask[i]) *(value_t *)((char *)baseptr + vindex[i]*scale) = m_val[i]);
 #endif
