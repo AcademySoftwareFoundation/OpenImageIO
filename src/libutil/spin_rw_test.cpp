@@ -153,6 +153,7 @@ int main (int argc, char *argv[])
         std::cout << Strutil::format ("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n",
                                       nt, Strutil::timeintervalformat(t),
                                       t, range, its);
+        std::cout.flush();
         if (! wedge)
             break;    // don't loop if we're not wedging
     }
