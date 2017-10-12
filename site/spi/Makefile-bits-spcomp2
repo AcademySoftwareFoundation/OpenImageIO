@@ -37,7 +37,7 @@ CPPSTDSUFFIX=
 
 ## Detect which SPI platform and set $platform, $COMPILER, $SPCOMP2_COMPILER,
 ## and PYVER. Lots of other decisions are based on these.
-ifeq ($(SP_OS), rhel7)
+ifeq (${SP_OS}, rhel7)
     # Rhel7 (current)
     platform := rhel7
     SPCOMP2_COMPILER ?= gcc48m64
@@ -57,8 +57,8 @@ else ifeq (${platform}, macosx)
     SPCOMP2_COMPILER ?= clang
     PYVER ?= 2.6
 else
-    $(error Unknown SP_OS)
-endif  # endif $(SP_OS)
+    $(error Unknown SP_OS=${SP_OS} platform=${platform})
+endif  # endif ${SP_OS}
 
 PYVER ?= 2.7
 OCIO_SPCOMP_VERSION ?= 2
@@ -67,7 +67,7 @@ OIIO_SPCOMP2_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2
 
 
 ## Rhel7 (current)
-ifeq ($(SP_OS), rhel7)
+ifeq (${SP_OS}, rhel7)
     USE_CPP ?= 11
     USE_SIMD ?= sse4.1
     CMAKE ?= cmake
@@ -172,7 +172,7 @@ ifeq ($(SP_OS), rhel7)
     # end rhel7
 
 ## Official OS X build machines with special conventions
-else ifeq ($(SP_OS), lion)
+else ifeq (${SP_OS}, lion)
     USE_CPP ?= 11
     USE_SIMD ?= sse4.2
     MACPORTS_PREFIX=/opt/local-10.7-2012-08
@@ -219,6 +219,9 @@ else ifeq ($(SP_OS), lion)
 ## Generic OSX machines (including LG's laptop)
 else ifeq (${platform}, macosx)
     USE_SIMD ?= sse4.2
+    MY_CMAKE_FLAGS += \
+        -DCMAKE_BUILD_WITH_INSTALL_RPATH=1 \
+        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
@@ -256,16 +259,16 @@ else ifeq (${platform}, macosx)
     # end generic OSX
 
 else
-    $(error Unknown SP_OS)
-endif  # endif $(SP_OS)
+    $(error Unknown SP_OS=${SP_OS} platform=${platform})
+endif  # endif ${SP_OS}
 
 
-SPARCH=$(SP_OS)-$(SPCOMP2_COMPILER)$(CPPSTDSUFFIX)
+SPARCH=${SP_OS}-$(SPCOMP2_COMPILER)$(CPPSTDSUFFIX)
 BOOSTVERSSP?=${BOOSTVERS}${BOOSTSPSUFFIX}
 
 ifdef SPCOMP2_USE_BOOSTVERS
 	ifneq ($(BOOSTVERS),1.42)
-		SPARCH=$(SP_OS)-$(SPCOMP2_COMPILER)$(CPPSTDSUFFIX)-boost$(subst .,,$(BOOSTVERSSP))
+		SPARCH=${SP_OS}-$(SPCOMP2_COMPILER)$(CPPSTDSUFFIX)-boost$(subst .,,$(BOOSTVERSSP))
 	endif
 endif
 
@@ -283,7 +286,7 @@ comma:= ,
 empty:=
 space:= $(empty) $(empty)
 
-INSTALL_BIN_LOCATION = /shots/spi/home/bin/$(SP_OS)
+INSTALL_BIN_LOCATION = /shots/spi/home/bin/${SP_OS}
 INSTALL_SPCOMP2_CURRENT = $(INSTALL_SPCOMP2_LOCATION)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
 
 SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib
@@ -332,7 +335,7 @@ spcomp2_install_fixup_rhel7: spcomp2 spcomp2_debug
 
 # This goal can't start with 'install' because something elsewhere picks
 # it up and starts doing bad things
-spcomp2_install: spcomp2_install_fixup_$(SP_OS)
+spcomp2_install: spcomp2_install_fixup_${SP_OS}
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
 	--project=OpenImageIO \
 	--version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
