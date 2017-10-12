@@ -49,9 +49,9 @@ using namespace OIIO;
 // and decrementing the crap out of it, and make sure it has the right
 // value at the end.
 
-static int iterations = 20000000;
+static int iterations = 2000000;
 static int numthreads = clamp ((int)Sysutil::physical_concurrency(), 2, 16);
-static int ntrials = 1;
+static int ntrials = 5;
 static bool verbose = false;
 static bool wedge = false;
 
