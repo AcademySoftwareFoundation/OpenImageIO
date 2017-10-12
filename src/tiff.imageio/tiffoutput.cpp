@@ -38,14 +38,6 @@
 
 #include <tiffio.h>
 
-// Some EXIF tags that don't seem to be in tiff.h
-#ifndef EXIFTAG_SECURITYCLASSIFICATION
-#define EXIFTAG_SECURITYCLASSIFICATION 37394
-#endif
-#ifndef EXIFTAG_IMAGEHISTORY
-#define EXIFTAG_IMAGEHISTORY 37395
-#endif
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/filesystem.h>
@@ -53,6 +45,7 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/tiffutils.h>
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -735,9 +728,9 @@ TIFFOutput::write_exif_data ()
         int tag, tifftype, count;
         if (exif_tag_lookup (p.name(), tag, tifftype, count) &&
                 tifftype != TIFF_NOTYPE) {
-            if (tag == EXIFTAG_SECURITYCLASSIFICATION ||
-                tag == EXIFTAG_IMAGEHISTORY ||
-                tag == EXIFTAG_ISOSPEEDRATINGS)
+            if (tag == EXIF_SECURITYCLASSIFICATION ||
+                tag == EXIF_IMAGEHISTORY ||
+                tag == EXIF_PHOTOGRAPHICSENSITIVITY)
                 continue;   // libtiff doesn't understand these
             any_exif = true;
             break;
@@ -769,9 +762,9 @@ TIFFOutput::write_exif_data ()
         int tag, tifftype, count;
         if (exif_tag_lookup (p.name(), tag, tifftype, count) &&
                 tifftype != TIFF_NOTYPE) {
-            if (tag == EXIFTAG_SECURITYCLASSIFICATION ||
-                tag == EXIFTAG_IMAGEHISTORY ||
-                tag == EXIFTAG_ISOSPEEDRATINGS)
+            if (tag == EXIF_SECURITYCLASSIFICATION ||
+                tag == EXIF_IMAGEHISTORY ||
+                tag == EXIF_PHOTOGRAPHICSENSITIVITY)
                 continue;   // libtiff doesn't understand these
             bool ok = false;
             if (tifftype == TIFF_ASCII) {

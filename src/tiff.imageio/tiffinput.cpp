@@ -45,6 +45,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/tiffutils.h>
 #include "imageio_pvt.h"
 
 #ifdef USE_BOOST_REGEX
@@ -295,14 +296,20 @@ private:
         }
     }
 
-    // Search for TIFF tag 'tagid' having type 'tifftype', and if found,
+#ifdef TIFF_VERSION_BIG
+    const TIFFField* find_field (int tifftag, TIFFDataType tifftype) {
+        return TIFFFindField (m_tif, tifftag, tifftype);
+    }
+#else
+    const TIFFFieldInfo* find_field (int tifftag, TIFFDataType tifftype) {
+        return TIFFFindFieldInfo (m_tif, tifftag, tifftype);
+    }
+#endif
+
+    // Search for TIFF tag having type 'tifftype', and if found,
     // add it in the obvious way to m_spec under the name 'oiioname'.
     void find_tag (int tifftag, TIFFDataType tifftype, string_view oiioname) {
-#ifdef TIFF_VERSION_BIG
-        const TIFFField *info = TIFFFindField (m_tif, tifftag, tifftype);
-#else
-        const TIFFFieldInfo *info = TIFFFindFieldInfo (m_tif, tifftag, tifftype);
-#endif
+        auto info = find_field (tifftag, tifftype);
         if (! info) {
             // Something has gone wrong, libtiff doesn't think the field type
             // is the same as we do.
@@ -583,95 +590,6 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
 
 
-// Tags we can handle in a totally automated fasion, just copying
-// straight to an ImageSpec.
-static const TIFF_tag_info tiff_tag_table[] = {
-    { TIFFTAG_IMAGEDESCRIPTION,	"ImageDescription", TIFF_ASCII },
-    { TIFFTAG_ORIENTATION,	"Orientation",	TIFF_SHORT },
-    { TIFFTAG_XRESOLUTION,	"XResolution",	TIFF_RATIONAL },
-    { TIFFTAG_YRESOLUTION,	"YResolution",	TIFF_RATIONAL },
-    { TIFFTAG_RESOLUTIONUNIT,	"ResolutionUnit",TIFF_SHORT },
-    { TIFFTAG_MAKE,	        "Make",	        TIFF_ASCII },
-    { TIFFTAG_MODEL,	        "Model",	TIFF_ASCII },
-    { TIFFTAG_SOFTWARE,	        "Software",	TIFF_ASCII },
-    { TIFFTAG_ARTIST,	        "Artist",	TIFF_ASCII },
-    { TIFFTAG_COPYRIGHT,	"Copyright",	TIFF_ASCII },
-    { TIFFTAG_DATETIME,	        "DateTime",	TIFF_ASCII },
-    { TIFFTAG_DOCUMENTNAME,	"DocumentName",	TIFF_ASCII },
-    { TIFFTAG_PAGENAME,         "tiff:PageName", TIFF_ASCII },
-    { TIFFTAG_PAGENUMBER,       "tiff:PageNumber", TIFF_SHORT },
-    { TIFFTAG_HOSTCOMPUTER,	"HostComputer",	TIFF_ASCII },
-    { TIFFTAG_PIXAR_TEXTUREFORMAT, "textureformat", TIFF_ASCII },
-    { TIFFTAG_PIXAR_WRAPMODES,  "wrapmodes",    TIFF_ASCII },
-    { TIFFTAG_PIXAR_FOVCOT,     "fovcot",       TIFF_FLOAT },
-    { TIFFTAG_JPEGQUALITY,  "CompressionQuality", TIFF_LONG },
-    { TIFFTAG_ZIPQUALITY,   "tiff:zipquality",    TIFF_LONG },
-    { 0, NULL, TIFF_NOTYPE }
-};
-
-
-// Tags we may come across in the EXIF directory.
-static const TIFF_tag_info exif_tag_table[] = {
-    { EXIFTAG_EXPOSURETIME,	"ExposureTime",	TIFF_RATIONAL },
-    { EXIFTAG_FNUMBER,	        "FNumber",	TIFF_RATIONAL },
-    { EXIFTAG_EXPOSUREPROGRAM,	"Exif:ExposureProgram",	TIFF_SHORT }, // ?? translate to ascii names?
-    { EXIFTAG_SPECTRALSENSITIVITY,	"Exif:SpectralSensitivity",	TIFF_ASCII },
-    { EXIFTAG_ISOSPEEDRATINGS,	"Exif:ISOSpeedRatings",	TIFF_SHORT },
-    { EXIFTAG_OECF,	        "Exif:OECF",	TIFF_NOTYPE },	 // skip it
-    { EXIFTAG_EXIFVERSION,	"Exif:ExifVersion",	TIFF_NOTYPE },	 // skip it
-    { EXIFTAG_DATETIMEORIGINAL,	"Exif:DateTimeOriginal",	TIFF_ASCII },
-    { EXIFTAG_DATETIMEDIGITIZED,"Exif:DateTimeDigitized",	TIFF_ASCII },
-    { EXIFTAG_COMPONENTSCONFIGURATION,	"Exif:ComponentsConfiguration",	TIFF_UNDEFINED },
-    { EXIFTAG_COMPRESSEDBITSPERPIXEL,	"Exif:CompressedBitsPerPixel",	TIFF_RATIONAL },
-    { EXIFTAG_SHUTTERSPEEDVALUE,"Exif:ShutterSpeedValue",	TIFF_SRATIONAL }, // APEX units
-    { EXIFTAG_APERTUREVALUE,	"Exif:ApertureValue",	TIFF_RATIONAL },	// APEX units
-    { EXIFTAG_BRIGHTNESSVALUE,	"Exif:BrightnessValue",	TIFF_SRATIONAL },
-    { EXIFTAG_EXPOSUREBIASVALUE,"Exif:ExposureBiasValue",	TIFF_SRATIONAL },
-    { EXIFTAG_MAXAPERTUREVALUE,	"Exif:MaxApertureValue",TIFF_RATIONAL },
-    { EXIFTAG_SUBJECTDISTANCE,	"Exif:SubjectDistance",	TIFF_RATIONAL },
-    { EXIFTAG_METERINGMODE,	"Exif:MeteringMode",	TIFF_SHORT },
-    { EXIFTAG_LIGHTSOURCE,	"Exif:LightSource",	TIFF_SHORT },
-    { EXIFTAG_FLASH,	        "Exif:Flash",	        TIFF_SHORT },
-    { EXIFTAG_FOCALLENGTH,	"Exif:FocalLength",	TIFF_RATIONAL }, // mm
-    { EXIFTAG_SUBJECTAREA,	"Exif:SubjectArea",	TIFF_NOTYPE }, // skip
-    { EXIFTAG_MAKERNOTE,	"Exif:MakerNote",	TIFF_NOTYPE },	 // skip it
-    { EXIFTAG_USERCOMMENT,	"Exif:UserComment",	TIFF_NOTYPE },	// skip it
-    { EXIFTAG_SUBSECTIME,	"Exif:SubsecTime",	        TIFF_ASCII },
-    { EXIFTAG_SUBSECTIMEORIGINAL,"Exif:SubsecTimeOriginal",	TIFF_ASCII },
-    { EXIFTAG_SUBSECTIMEDIGITIZED,"Exif:SubsecTimeDigitized",	TIFF_ASCII },
-    { EXIFTAG_FLASHPIXVERSION,	"Exif:FlashPixVersion",	TIFF_NOTYPE },	// skip "Exif:FlashPixVesion",	TIFF_NOTYPE },
-    { EXIFTAG_COLORSPACE,	"Exif:ColorSpace",	TIFF_SHORT },
-    { EXIFTAG_PIXELXDIMENSION,	"Exif:PixelXDimension",	TIFF_LONG },
-    { EXIFTAG_PIXELYDIMENSION,	"Exif:PixelYDimension",	TIFF_LONG },
-    { EXIFTAG_RELATEDSOUNDFILE,	"Exif:RelatedSoundFile", TIFF_NOTYPE },	// skip
-    { EXIFTAG_FLASHENERGY,	"Exif:FlashEnergy",	TIFF_RATIONAL },
-    { EXIFTAG_SPATIALFREQUENCYRESPONSE,	"Exif:SpatialFrequencyResponse",	TIFF_NOTYPE },
-    { EXIFTAG_FOCALPLANEXRESOLUTION,	"Exif:FocalPlaneXResolution",	TIFF_RATIONAL },
-    { EXIFTAG_FOCALPLANEYRESOLUTION,	"Exif:FocalPlaneYResolution",	TIFF_RATIONAL },
-    { EXIFTAG_FOCALPLANERESOLUTIONUNIT,	"Exif:FocalPlaneResolutionUnit",	TIFF_SHORT }, // Symbolic?
-    { EXIFTAG_SUBJECTLOCATION,	"Exif:SubjectLocation",	TIFF_SHORT }, // FIXME: short[2]
-    { EXIFTAG_EXPOSUREINDEX,	"Exif:ExposureIndex",	TIFF_RATIONAL },
-    { EXIFTAG_SENSINGMETHOD,	"Exif:SensingMethod",	TIFF_SHORT },
-    { EXIFTAG_FILESOURCE,	"Exif:FileSource",	TIFF_NOTYPE },
-    { EXIFTAG_SCENETYPE,	"Exif:SceneType",	TIFF_NOTYPE },
-    { EXIFTAG_CFAPATTERN,	"Exif:CFAPattern",	TIFF_NOTYPE },
-    { EXIFTAG_CUSTOMRENDERED,	"Exif:CustomRendered",	TIFF_SHORT },
-    { EXIFTAG_EXPOSUREMODE,	"Exif:ExposureMode",	TIFF_SHORT },
-    { EXIFTAG_WHITEBALANCE,	"Exif:WhiteBalance",	TIFF_SHORT },
-    { EXIFTAG_DIGITALZOOMRATIO,	"Exif:DigitalZoomRatio",TIFF_RATIONAL },
-    { EXIFTAG_FOCALLENGTHIN35MMFILM,	"Exif:FocalLengthIn35mmFilm",	TIFF_SHORT },
-    { EXIFTAG_SCENECAPTURETYPE,	"Exif:SceneCaptureType",TIFF_SHORT },
-    { EXIFTAG_GAINCONTROL,	"Exif:GainControl",	TIFF_RATIONAL },
-    { EXIFTAG_CONTRAST,	        "Exif:Contrast",	TIFF_SHORT },
-    { EXIFTAG_SATURATION,	"Exif:Saturation",	TIFF_SHORT },
-    { EXIFTAG_SHARPNESS,	"Exif:Sharpness",	TIFF_SHORT },
-    { EXIFTAG_DEVICESETTINGDESCRIPTION,	"Exif:DeviceSettingDescription",	TIFF_NOTYPE },
-    { EXIFTAG_SUBJECTDISTANCERANGE,	"Exif:SubjectDistanceRange",	TIFF_SHORT },
-    { EXIFTAG_IMAGEUNIQUEID,	"Exif:ImageUniqueID",	TIFF_ASCII },
-    { 0, NULL, TIFF_NOTYPE }
-};
-
-
 #define ICC_PROFILE_ATTR "ICCProfile"
 
 
@@ -823,12 +741,10 @@ TIFFInput::readspec (bool read_meta)
     // Use the table for all the obvious things that can be mindlessly
     // shoved into the image spec.
     if (read_meta) {
-        for (int i = 0;  tiff_tag_table[i].name;  ++i)
-            find_tag (tiff_tag_table[i].tifftag,
-                      tiff_tag_table[i].tifftype, tiff_tag_table[i].name);
-        for (int i = 0;  exif_tag_table[i].name;  ++i)
-            find_tag (exif_tag_table[i].tifftag,
-                      exif_tag_table[i].tifftype, exif_tag_table[i].name);
+        for (const auto &tag : tag_table("TIFF"))
+            find_tag (tag.tifftag, tag.tifftype, tag.name);
+        for (const auto &tag : tag_table("Exif"))
+            find_tag (tag.tifftag, tag.tifftype, tag.name);
     }
 
     // Now we need to get fields "by hand" for anything else that is less
@@ -970,9 +886,24 @@ TIFFInput::readspec (bool read_meta)
     toff_t exifoffset = 0;
     if (TIFFGetField (m_tif, TIFFTAG_EXIFIFD, &exifoffset) &&
             TIFFReadEXIFDirectory (m_tif, exifoffset)) {
-        for (int i = 0;  exif_tag_table[i].name;  ++i)
-            find_tag (exif_tag_table[i].tifftag, exif_tag_table[i].tifftype,
-                      exif_tag_table[i].name);
+        for (const auto &tag : tag_table("Exif"))
+            find_tag (tag.tifftag, tag.tifftype, tag.name);
+        // Look for a Makernote
+        auto makerfield = find_field (EXIF_MAKERNOTE, TIFF_UNDEFINED);
+        // std::unique_ptr<uint32_t[]> buf (new uint32_t[]);
+        if (makerfield) {
+            std::cerr << "Found maker note!\n";
+            // bool ok = TIFFGetField (m_tif, tag, dest, &ptr);
+            unsigned int mn_datasize = 0;
+            unsigned char *mn_buf = NULL;
+            TIFFGetField (m_tif, EXIF_MAKERNOTE, &mn_datasize, &mn_buf);
+                std::cerr << "makernote size was " << mn_datasize << "\n";
+            if (mn_datasize && mn_buf) {
+                // m_spec.attribute (ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, mn_datasize), icc_buf);
+            }
+        }
+        else
+            std::cerr << "no maker note\n";
         // I'm not sure what state TIFFReadEXIFDirectory leaves us.
         // So to be safe, close and re-seek.
         TIFFClose (m_tif);

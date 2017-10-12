@@ -47,6 +47,7 @@ Reading ../../../../../libtiffpic/dscf0013.tif
     Software: "Digital Camera MX-2900ZOOM Ver1.00"
     Copyright: "          "
     DateTime: "2004:11:10 00:00:31"
+    Exif:YCbCrPositioning: 2
     tiff:PhotometricInterpretation: 6
     tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1
@@ -60,10 +61,10 @@ Reading ../../../../../libtiffpic/dscf0013.tif
     Exif:DateTimeOriginal: "2004:11:10 00:00:31"
     Exif:DateTimeDigitized: "2004:11:10 00:00:31"
     Exif:ShutterSpeedValue: 6.5 (1/90 s)
-    Exif:ApertureValue: 3.53 (f/3.39874)
+    Exif:ApertureValue: 3.53 (f/3.4)
     Exif:BrightnessValue: -0.4
     Exif:ExposureBiasValue: 0
-    Exif:MaxApertureValue: 3.53 (f/3.39874)
+    Exif:MaxApertureValue: 3.53 (f/3.4)
     Exif:MeteringMode: 1 (average)
     Exif:Flash: 1 (flash fired)
     Exif:FocalLength: 7.4 (7.4 mm)
@@ -81,6 +82,7 @@ Reading ../../../../../libtiffpic/dscf0013.tif
     XResolution: 72
     YResolution: 72
     ResolutionUnit: "in"
+    Exif:YCbCrPositioning: 2
     tiff:PhotometricInterpretation: 6
     tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1
@@ -226,7 +228,7 @@ Reading ../../../../../libtiffpic/pc260001.tif
     Exif:DateTimeOriginal: "2005:12:26 17:09:35"
     Exif:DateTimeDigitized: "2005:12:26 17:09:35"
     Exif:ExposureBiasValue: 0
-    Exif:MaxApertureValue: 3 (f/2.82843)
+    Exif:MaxApertureValue: 3 (f/2.8)
     Exif:MeteringMode: 5 (pattern)
     Exif:LightSource: 0 (unknown)
     Exif:Flash: 89 (flash fired, auto flash, red-eye reduction)
@@ -295,6 +297,7 @@ Reading ../../../../../libtiffpic/ycbcr-cat.tif
     oiio:BitsPerSample: 8
     ImageDescription: "YCbCr conversion of cat.tif"
     Orientation: 1 (normal)
+    Exif:YCbCrPositioning: 1
     tiff:PhotometricInterpretation: 6
     tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1
@@ -313,6 +316,7 @@ Reading ../../../../../libtiffpic/smallliz.tif
     YResolution: 100
     ResolutionUnit: "in"
     Software: "HP IL v1.1"
+    Exif:YCbCrPositioning: 1
     tiff:PhotometricInterpretation: 6
     tiff:ColorSpace: "YCbCr"
     tiff:PlanarConfiguration: 1

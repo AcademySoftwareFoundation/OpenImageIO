@@ -1454,55 +1454,6 @@ OIIO_API bool copy_image (int nchannels, int width, int height, int depth,
                           void *dst, stride_t dst_xstride,
                           stride_t dst_ystride, stride_t dst_zstride);
 
-/// Decode a raw Exif data block and save all the metadata in an
-/// ImageSpec.  Return true if all is ok, false if the exif block was
-/// somehow malformed.  The binary data pointed to by 'exif' should
-/// start with a TIFF directory header.
-OIIO_API bool decode_exif (string_view exif, ImageSpec &spec);
-OIIO_API bool decode_exif (const void *exif, int length, ImageSpec &spec); // DEPRECATED (1.8)
-
-/// Construct an Exif data block from the ImageSpec, appending the Exif 
-/// data as a big blob to the char vector.
-OIIO_API void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
-
-/// Helper: For the given OIIO metadata attribute name, look up the Exif tag
-/// ID, TIFFDataType (expressed as an int), and count. Return true and fill
-/// in the fields if found, return false if not found.
-OIIO_API bool exif_tag_lookup (string_view name, int &tag,
-                               int &tifftype, int &count);
-
-/// Add metadata to spec based on raw IPTC (International Press
-/// Telecommunications Council) metadata in the form of an IIM
-/// (Information Interchange Model).  Return true if all is ok, false if
-/// the iptc block was somehow malformed.  This is a utility function to
-/// make it easy for multiple format plugins to support embedding IPTC
-/// metadata without having to duplicate functionality within each
-/// plugin.  Note that IIM is actually considered obsolete and is
-/// replaced by an XML scheme called XMP.
-OIIO_API bool decode_iptc_iim (const void *iptc, int length, ImageSpec &spec);
-
-/// Find all the IPTC-amenable metadata in spec and assemble it into an
-/// IIM data block in iptc.  This is a utility function to make it easy
-/// for multiple format plugins to support embedding IPTC metadata
-/// without having to duplicate functionality within each plugin.  Note
-/// that IIM is actually considered obsolete and is replaced by an XML
-/// scheme called XMP.
-OIIO_API void encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
-
-/// Add metadata to spec based on XMP data in an XML block.  Return true
-/// if all is ok, false if the xml was somehow malformed.  This is a
-/// utility function to make it easy for multiple format plugins to
-/// support embedding XMP metadata without having to duplicate
-/// functionality within each plugin.
-OIIO_API bool decode_xmp (const std::string &xml, ImageSpec &spec);
-
-/// Find all the relavant metadata (IPTC, Exif, etc.) in spec and
-/// assemble it into an XMP XML string.  This is a utility function to
-/// make it easy for multiple format plugins to support embedding XMP
-/// metadata without having to duplicate functionality within each
-/// plugin.  If 'minimal' is true, then don't encode things that would
-/// be part of ordinary TIFF or exif tags.
-OIIO_API std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 
 // All the wrap_foo functions implement a wrap mode, wherein coord is
 // altered to be origin <= coord < origin+width.  The return value

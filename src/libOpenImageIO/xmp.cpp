@@ -37,6 +37,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/tiffutils.h>
 
 extern "C" {
 #include "tiff.h"
