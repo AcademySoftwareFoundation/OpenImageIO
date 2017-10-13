@@ -33,6 +33,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/container/flat_map.hpp>
+
 #include <OpenEXR/half.h>
 
 #include <OpenImageIO/strutil.h>
@@ -47,6 +49,64 @@ namespace OCIO = OCIO_NAMESPACE;
 
 
 OIIO_NAMESPACE_BEGIN
+
+
+// Class used as the key to index color processors in the cache.
+class ColorProcCacheKey {
+public:
+    ColorProcCacheKey (ustring in, ustring out,
+                       ustring key=ustring(), ustring val=ustring(),
+                       ustring looks=ustring(), ustring display=ustring(),
+                       ustring view=ustring(), ustring file=ustring(),
+                       bool inverse=false)
+        : inputColorSpace(in), outputColorSpace(out),
+          context_key(key), context_value(val), looks(looks), file(file),
+          inverse(inverse)
+    {
+        hash = (inputColorSpace.hash() ^ outputColorSpace.hash() ^
+                context_key.hash() ^ context_value.hash() ^
+                looks.hash() ^ display.hash() ^ view.hash() ^ file.hash())
+             + (inverse?6421:0);
+    }
+
+    friend bool operator< (const ColorProcCacheKey& a, const ColorProcCacheKey& b) {
+        if (a.hash < b.hash) return true;
+        if (b.hash < a.hash) return false;
+        // They hash the same, so now compare for real
+        if (a.inputColorSpace < b.inputColorSpace) return true;
+        else if (b.inputColorSpace < a.inputColorSpace) return false;
+        if (a.outputColorSpace < b.outputColorSpace) return true;
+        else if (b.outputColorSpace < a.outputColorSpace) return false;
+        if (a.context_key < b.context_key) return true;
+        else if (b.context_key < a.context_key) return false;
+        if (a.looks < b.looks) return true;
+        else if (b.looks < a.looks) return false;
+        if (a.display < b.display) return true;
+        else if (b.display < a.display) return false;
+        if (a.view < b.view) return true;
+        else if (b.view < a.view) return false;
+        if (a.file < b.view) return true;
+        else if (b.view < a.view) return false;
+        return int(a.inverse) < int(b.inverse);
+    }
+
+    ustring inputColorSpace;
+    ustring outputColorSpace;
+    ustring context_key;
+    ustring context_value;
+    ustring looks;
+    ustring display;
+    ustring view;
+    ustring file;
+    bool    inverse;
+    size_t  hash;
+};
+
+
+
+typedef boost::container::flat_map<ColorProcCacheKey, ColorProcessorHandle> ColorProcessorMap;
+
+
 
 
 bool
@@ -68,15 +128,87 @@ public:
 #ifdef USE_OCIO
     OCIO::ConstConfigRcPtr config_;
 #endif
-    mutable std::string error_;
     std::vector<std::pair<std::string,int> > colorspaces;
     std::string linear_alias;  // Alias for a scene-linear color space
+private:
+    mutable spin_rw_mutex m_mutex;
+    mutable std::string m_error;
+    ColorProcessorMap colorprocmap;  // cache of ColorProcessors
+    atomic_int colorprocs_requested;
+    atomic_int colorprocs_created;
 
+public:
     Impl() { }
-    ~Impl() { }
+
+    ~Impl() {
+#if 0
+        // Debugging the cache -- make sure we're creating a small number
+        // compared to repeated requests.
+        if (colorprocs_requested)
+            Strutil::printf ("ColorConfig::Impl : color procs requested: %d, created: %d\n",
+                             colorprocs_requested, colorprocs_created);
+#endif
+    }
+
     void inventory ();
     void add (const std::string &name, int index) {
         colorspaces.emplace_back(name, index);
+    }
+
+    // Search for a matching ColorProcessor, return it if found (otherwise
+    // return an empty handle).
+    ColorProcessorHandle findproc (const ColorProcCacheKey &key) {
+        ++colorprocs_requested;
+        spin_rw_read_lock lock (m_mutex);
+        auto found = colorprocmap.find (key);
+        return (found == colorprocmap.end()) ? ColorProcessorHandle()
+                                             : found->second;
+    }
+
+    // Add the given color processor. Be careful -- if a matching one is
+    // already in the table, just return the existing one. If they pass
+    // in an empty handle, just return it.
+    ColorProcessorHandle addproc (const ColorProcCacheKey &key,
+                                  ColorProcessorHandle handle) {
+        if (! handle)
+            return handle;
+        ++colorprocs_created;
+        spin_rw_write_lock lock (m_mutex);
+        auto found = colorprocmap.find (key);
+        if (found == colorprocmap.end()) {
+            // No equivalent item in the map. Add this one.
+            colorprocmap[key] = handle;
+        } else {
+            // There's already an equivalent one. Oops. Discard this one and
+            // return the one already in the map.
+            handle = found->second;
+        }
+        return handle;
+    }
+
+    void error (const std::string& err) {
+        spin_rw_write_lock lock (m_mutex);
+        m_error = err;
+    }
+    std::string geterror (bool clear = true) {
+        std::string err;
+        if (clear) {
+            spin_rw_write_lock lock (m_mutex);
+            err = m_error;
+            m_error.clear();
+        } else {
+            spin_rw_read_lock lock (m_mutex);
+            err = m_error;
+        }
+        return err;
+    }
+    bool haserror () const {
+        spin_rw_read_lock lock (m_mutex);
+        return ! m_error.empty();
+    }
+    void clear_error () {
+        spin_rw_write_lock lock (m_mutex);
+        m_error.clear();
     }
 };
 
@@ -111,6 +243,9 @@ ColorConfig::Impl::inventory ()
     // If there was no configuration, or we didn't compile with OCIO
     // support at all, register a few basic names we know about.
     add ("linear", 0);
+    add ("default", 0);
+    add ("rgb", 0);
+    add ("RGB", 0);
     add ("sRGB", 1);
     add ("Rec709", 2);
 }
@@ -118,7 +253,6 @@ ColorConfig::Impl::inventory ()
 
 
 ColorConfig::ColorConfig (string_view filename)
-    : m_impl (NULL)
 {
     reset (filename);
 }
@@ -127,8 +261,6 @@ ColorConfig::ColorConfig (string_view filename)
 
 ColorConfig::~ColorConfig()
 {
-    delete m_impl;
-    m_impl = NULL;
 }
 
 
@@ -137,9 +269,8 @@ bool
 ColorConfig::reset (string_view filename)
 {
     bool ok = true;
-    delete m_impl;
 
-    m_impl = new ColorConfig::Impl;
+    m_impl.reset (new ColorConfig::Impl);
 #ifdef USE_OCIO
     OCIO::SetLoggingLevel (OCIO::LOGGING_LEVEL_NONE);
     try {
@@ -150,11 +281,11 @@ ColorConfig::reset (string_view filename)
         }
     }
     catch(OCIO::Exception &e) {
-        getImpl()->error_ = e.what();
+        getImpl()->error (e.what());
         ok = false;
     }
     catch(...) {
-        getImpl()->error_ = "An unknown error occurred in OpenColorIO creating the config";
+        getImpl()->error ("An unknown error occurred in OpenColorIO creating the config");
         ok = false;
     }
 #endif
@@ -162,8 +293,8 @@ ColorConfig::reset (string_view filename)
     getImpl()->inventory ();
 
     // If we populated our own, remove any errors.
-    if (getNumColorSpaces() && !getImpl()->error_.empty())
-        getImpl()->error_.clear();
+    if (getNumColorSpaces() && !getImpl()->haserror())
+        getImpl()->clear_error();
 
     return ok;
 }
@@ -173,17 +304,15 @@ ColorConfig::reset (string_view filename)
 bool
 ColorConfig::error () const
 {
-    return (!getImpl()->error_.empty());
+    return (getImpl()->haserror());
 }
 
 
-   
+
 std::string
 ColorConfig::geterror ()
 {
-    std::string olderror = getImpl()->error_;
-    getImpl()->error_ = "";
-    return olderror;
+    return getImpl()->geterror (true /*clear*/);
 }
 
 
@@ -235,6 +364,8 @@ ColorConfig::getColorSpaceNameByRole (string_view role) const
     if (getImpl()->config_) {
         OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace (role.c_str());
         // Catch special case of obvious name synonyms
+        if (!c && (Strutil::iequals(role,"RGB") || Strutil::iequals(role,"default")))
+            role = string_view("linear");
         if (!c && Strutil::iequals(role,"linear"))
             c = getImpl()->config_->getColorSpace ("scene_linear");
         if (!c && Strutil::iequals(role,"scene_linear"))
@@ -350,21 +481,6 @@ ColorConfig::getDefaultViewName(string_view display) const
 
 
 
-// Abstract wrapper class for objects that will apply color transformations.
-class ColorProcessor
-{
-public:
-    ColorProcessor () {};
-    virtual ~ColorProcessor (void) { };
-    virtual bool isNoOp() const { return false; }
-    virtual bool hasChannelCrosstalk() const { return false; }
-    virtual void apply (float *data, int width, int height, int channels,
-                        stride_t chanstride, stride_t xstride,
-                        stride_t ystride) const = 0;
-};
-
-
-
 #ifdef USE_OCIO
 // Custom ColorProcessor that wraps an OpenColorIO Processor.
 class ColorProcessor_OCIO : public ColorProcessor
@@ -411,7 +527,7 @@ public:
                 for (int x = 0;  x < width;  ++x, d += xstride) {
                     simd::vfloat4 r;
                     r.load ((float *)d, 3);
-                    r = sRGB_to_linear (simd::vfloat4((float *)d));
+                    r = sRGB_to_linear (r);
                     r.store ((float *)d, 3);
                 }
             }
@@ -445,7 +561,7 @@ public:
                 for (int x = 0;  x < width;  ++x, d += xstride) {
                     simd::vfloat4 r;
                     r.load ((float *)d, 3);
-                    r = linear_to_sRGB (simd::vfloat4((float *)d));
+                    r = linear_to_sRGB (r);
                     r.store ((float *)d, 3);
                 }
             }
@@ -528,7 +644,7 @@ public:
                 for (int x = 0;  x < width;  ++x, d += xstride) {
                     simd::vfloat4 r;
                     r.load ((float *)d, 3);
-                    r = fast_pow_pos (simd::vfloat4((float *)d), g);
+                    r = fast_pow_pos (r, g);
                     r.store ((float *)d, 3);
                 }
             }
@@ -560,23 +676,37 @@ public:
 
 
 
-ColorProcessor*
-ColorConfig::createColorProcessor (string_view inputColorSpace,
-                                   string_view outputColorSpace) const
-{
-    return createColorProcessor (inputColorSpace, outputColorSpace, "", "");
-}
-
-
-
-ColorProcessor*
+ColorProcessorHandle
 ColorConfig::createColorProcessor (string_view inputColorSpace,
                                    string_view outputColorSpace,
                                    string_view context_key,
                                    string_view context_value) const
 {
-    string_view inputrole, outputrole;
+    return createColorProcessor (ustring(inputColorSpace),
+                                 ustring(outputColorSpace),
+                                 ustring(context_key),
+                                 ustring(context_value));
+}
+
+
+
+ColorProcessorHandle
+ColorConfig::createColorProcessor (ustring inputColorSpace,
+                                   ustring outputColorSpace,
+                                   ustring context_key,
+                                   ustring context_value) const
+{
+    ustring inputrole, outputrole;
     std::string pending_error;
+
+    // First, look up the requested processor in the cache. If it already
+    // exists, just return it.
+    ColorProcCacheKey prockey (inputColorSpace, outputColorSpace,
+                               context_key, context_value);
+    ColorProcessorHandle handle = getImpl()->findproc (prockey);
+    if (handle)
+        return handle;
+
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
@@ -611,6 +741,7 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
             // Get the processor corresponding to this transform.
             p = getImpl()->config_->getProcessor(context, inputColorSpace.c_str(),
                                                  outputColorSpace.c_str());
+            getImpl()->clear_error();
         }
         catch(OCIO::Exception &e) {
             // Don't quit yet, remember the error and see if any of our
@@ -619,80 +750,82 @@ ColorConfig::createColorProcessor (string_view inputColorSpace,
             pending_error = e.what();
         }
         catch(...) {
-            getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
-            return NULL;
+            p.reset();
+            getImpl()->error ("An unknown error occurred in OpenColorIO, getProcessor");
         }
-    
-        getImpl()->error_ = "";
+
         if (p && ! p->isNoOp()) {
             // If we got a valid processor that does something useful,
             // return it now. If it boils down to a no-op, give a second
             // chance below to recognize it as a special case.
-            return new ColorProcessor_OCIO(p);
+            handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
         }
     }
 #endif
 
-    // Either not compiled with OCIO support, or no OCIO configuration
-    // was found at all.  There are a few color conversions we know
-    // about even in such dire conditions.
-    using namespace Strutil;
-    if (iequals(inputColorSpace,outputColorSpace)) {
-        return new ColorProcessor_Ident;
-    }
-    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
-         iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh"))
-        && iequals(outputColorSpace,"sRGB")) {
-        return new ColorProcessor_linear_to_sRGB;
-    }
-    if (iequals(inputColorSpace,"sRGB") &&
-        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
-         iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
-        return new ColorProcessor_sRGB_to_linear;
-    }
-    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
-         iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh")) &&
-        iequals(outputColorSpace,"Rec709")) {
-        return new ColorProcessor_linear_to_Rec709;
-    }
-    if (iequals(inputColorSpace,"Rec709") &&
-        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
-         iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
-        return new ColorProcessor_Rec709_to_linear;
-    }
-    if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
-         iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh")) &&
-        istarts_with(outputColorSpace,"GammaCorrected")) {
-        string_view gamstr = outputColorSpace;
-        Strutil::parse_prefix (gamstr, "GammaCorrected");
-        float g = from_string<float>(gamstr);
-        return new ColorProcessor_gamma(1.0f/g);
-    }
-    if (istarts_with(inputColorSpace,"GammaCorrected") &&
-        (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
-         iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
-        string_view gamstr = inputColorSpace;
-        Strutil::parse_prefix (gamstr, "GammaCorrected");
-        float g = from_string<float>(gamstr);
-        return new ColorProcessor_gamma(g);
+    if (! handle) {
+        // Either not compiled with OCIO support, or no OCIO configuration
+        // was found at all.  There are a few color conversions we know
+        // about even in such dire conditions.
+        using namespace Strutil;
+        if (iequals(inputColorSpace,outputColorSpace)) {
+            handle = ColorProcessorHandle(new ColorProcessor_Ident);
+        }
+        else if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
+             iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh"))
+            && iequals(outputColorSpace,"sRGB")) {
+            handle = ColorProcessorHandle(new ColorProcessor_linear_to_sRGB);
+        }
+        else if (iequals(inputColorSpace,"sRGB") &&
+            (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
+             iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
+            handle = ColorProcessorHandle(new ColorProcessor_sRGB_to_linear);
+        }
+        else if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
+             iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh")) &&
+            iequals(outputColorSpace,"Rec709")) {
+            handle = ColorProcessorHandle(new ColorProcessor_linear_to_Rec709);
+        }
+        else if (iequals(inputColorSpace,"Rec709") &&
+            (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
+             iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
+            handle = ColorProcessorHandle(new ColorProcessor_Rec709_to_linear);
+        }
+        else if ((iequals(inputColorSpace,"linear") || iequals(inputrole,"linear") ||
+             iequals(inputColorSpace,"lnf") || iequals(inputColorSpace,"lnh")) &&
+            istarts_with(outputColorSpace,"GammaCorrected")) {
+            string_view gamstr = outputColorSpace;
+            Strutil::parse_prefix (gamstr, "GammaCorrected");
+            float g = from_string<float>(gamstr);
+            handle = ColorProcessorHandle(new ColorProcessor_gamma(1.0f/g));
+        }
+        else if (istarts_with(inputColorSpace,"GammaCorrected") &&
+            (iequals(outputColorSpace,"linear") || iequals(outputrole,"linear") ||
+             iequals(outputColorSpace,"lnf") || iequals(outputColorSpace,"lnh"))) {
+            string_view gamstr = inputColorSpace;
+            Strutil::parse_prefix (gamstr, "GammaCorrected");
+            float g = from_string<float>(gamstr);
+            handle = ColorProcessorHandle(new ColorProcessor_gamma(g));
+        }
     }
 
 #ifdef USE_OCIO
-    if (p) {
+    if (!handle && p) {
         // If we found a procesor from OCIO, even if it was a NoOp, and we
         // still don't have a better idea, return it.
-        return new ColorProcessor_OCIO(p);
+        handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
     }
 #endif
 
     if (pending_error.size())
-        getImpl()->error_ = pending_error;
-    return NULL;    // if we get this far, we've failed
+        getImpl()->error (pending_error);
+
+    return getImpl()->addproc (prockey, handle);
 }
 
 
 
-ColorProcessor*
+ColorProcessorHandle
 ColorConfig::createLookTransform (string_view looks,
                                   string_view inputColorSpace,
                                   string_view outputColorSpace,
@@ -700,6 +833,31 @@ ColorConfig::createLookTransform (string_view looks,
                                   string_view context_key,
                                   string_view context_value) const
 {
+    return createLookTransform (ustring(looks), ustring(inputColorSpace),
+                                ustring(outputColorSpace), inverse,
+                                ustring(context_key), ustring(context_value));
+}
+
+
+
+ColorProcessorHandle
+ColorConfig::createLookTransform (ustring looks,
+                                  ustring inputColorSpace,
+                                  ustring outputColorSpace,
+                                  bool inverse,
+                                  ustring context_key,
+                                  ustring context_value) const
+{
+    // First, look up the requested processor in the cache. If it already
+    // exists, just return it.
+    ColorProcCacheKey prockey (inputColorSpace, outputColorSpace,
+                               context_key, context_value, looks,
+                               ustring() /*display*/, ustring() /*view*/,
+                               ustring() /*file*/, inverse);
+    ColorProcessorHandle handle = getImpl()->findproc (prockey);
+    if (handle)
+        return handle;
+
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
@@ -737,27 +895,24 @@ ColorConfig::createLookTransform (string_view looks,
         try {
             // Get the processor corresponding to this transform.
             p = getImpl()->config_->getProcessor (context, transform, dir);
+            getImpl()->clear_error();
+            handle = ColorProcessorHandle (new ColorProcessor_OCIO(p));
         }
         catch(OCIO::Exception &e) {
-            getImpl()->error_ = e.what();
-            return NULL;
+            getImpl()->error (e.what());
         }
         catch(...) {
-            getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
-            return NULL;
+            getImpl()->error ("An unknown error occurred in OpenColorIO, getProcessor");
         }
-    
-        getImpl()->error_ = "";
-        return new ColorProcessor_OCIO(p);
     }
 #endif
 
-    return NULL;    // if we get this far, we've failed
+    return getImpl()->addproc (prockey, handle);
 }
 
 
 
-ColorProcessor*
+ColorProcessorHandle
 ColorConfig::createDisplayTransform (string_view display,
                                      string_view view,
                                      string_view inputColorSpace,
@@ -765,6 +920,30 @@ ColorConfig::createDisplayTransform (string_view display,
                                      string_view context_key,
                                      string_view context_value) const
 {
+    return  createDisplayTransform (ustring(display), ustring(view),
+                                    ustring(inputColorSpace), ustring(looks),
+                                    ustring(context_key), ustring(context_value));
+}
+
+
+
+ColorProcessorHandle
+ColorConfig::createDisplayTransform (ustring display,
+                                     ustring view,
+                                     ustring inputColorSpace,
+                                     ustring looks,
+                                     ustring context_key,
+                                     ustring context_value) const
+{
+    // First, look up the requested processor in the cache. If it already
+    // exists, just return it.
+    ColorProcCacheKey prockey (inputColorSpace, ustring() /*outputColorSpace*/,
+                               context_key, context_value, looks,
+                               display, view);
+    ColorProcessorHandle handle = getImpl()->findproc (prockey);
+    if (handle)
+        return handle;
+
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
@@ -796,29 +975,47 @@ ColorConfig::createDisplayTransform (string_view display,
             // Get the processor corresponding to this transform.
             p = getImpl()->config_->getProcessor (context, transform,
                                                   OCIO::TRANSFORM_DIR_FORWARD);
+            getImpl()->clear_error();
+            handle = ColorProcessorHandle (new ColorProcessor_OCIO(p));
         }
         catch(OCIO::Exception &e) {
-            getImpl()->error_ = e.what();
-            return NULL;
+            getImpl()->error (e.what());
         }
         catch(...) {
-            getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
-            return NULL;
+            getImpl()->error ("An unknown error occurred in OpenColorIO, getProcessor");
         }
-    
-        getImpl()->error_ = "";
-        return new ColorProcessor_OCIO(p);
     }
 #endif
 
-    return NULL;    // if we get this far, we've failed
+    return getImpl()->addproc (prockey, handle);
 }
 
 
 
-ColorProcessor*
+ColorProcessorHandle
 ColorConfig::createFileTransform (string_view name, bool inverse) const
 {
+    return createFileTransform (ustring(name), inverse);
+}
+
+
+
+ColorProcessorHandle
+ColorConfig::createFileTransform (ustring name, bool inverse) const
+{
+    // First, look up the requested processor in the cache. If it already
+    // exists, just return it.
+    ColorProcCacheKey prockey (ustring() /*inputColorSpace*/,
+                               ustring() /*outputColorSpace*/,
+                               ustring() /*context_key*/,
+                               ustring() /*context_value*/,
+                               ustring() /*looks*/,
+                               ustring() /*display*/, ustring() /*view*/,
+                               name, inverse);
+    ColorProcessorHandle handle = getImpl()->findproc (prockey);
+    if (handle)
+        return handle;
+
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
@@ -834,22 +1031,19 @@ ColorConfig::createFileTransform (string_view name, bool inverse) const
         try {
             // Get the processor corresponding to this transform.
             p = getImpl()->config_->getProcessor (context, transform, dir);
+            getImpl()->clear_error();
+            handle = ColorProcessorHandle (new ColorProcessor_OCIO(p));
         }
         catch(OCIO::Exception &e) {
-            getImpl()->error_ = e.what();
-            return NULL;
+            getImpl()->error (e.what());
         }
         catch(...) {
-            getImpl()->error_ = "An unknown error occurred in OpenColorIO, getProcessor";
-            return NULL;
+            getImpl()->error ("An unknown error occurred in OpenColorIO, getProcessor");
         }
-    
-        getImpl()->error_ = "";
-        return new ColorProcessor_OCIO(p);
     }
 #endif
 
-    return NULL;    // if we get this far, we've failed
+    return getImpl()->addproc (prockey, handle);
 }
 
 
@@ -863,14 +1057,6 @@ ColorConfig::parseColorSpaceFromString (string_view str) const
     }
 #endif
     return "";
-}
-
-
-
-void
-ColorConfig::deleteColorProcessor (ColorProcessor * processor)
-{
-    delete processor;
 }
 
 
@@ -912,7 +1098,7 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
         dst.error ("Unknown color space name");
         return false;
     }
-    ColorProcessor *processor = NULL;
+    ColorProcessorHandle processor;
     {
         spin_lock lock (colorconfig_mutex);
         if (! colorconfig)
@@ -930,13 +1116,9 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
             return false;
         }
     }
-    bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
+    bool ok = colorconvert (dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
         dst.specmod().attribute ("oiio:ColorSpace", to);
-    {
-        spin_lock lock (colorconfig_mutex);
-        colorconfig->deleteColorProcessor (processor);
-    }
     return ok;
 }
 
@@ -1089,7 +1271,7 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
         dst.error ("Unknown color space name");
         return false;
     }
-    ColorProcessor *processor = NULL;
+    ColorProcessorHandle processor;
     {
         spin_lock lock (colorconfig_mutex);
         if (! colorconfig)
@@ -1106,13 +1288,9 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
             return false;
         }
     }
-    bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
+    bool ok = colorconvert (dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
         dst.specmod().attribute ("oiio:ColorSpace", to);
-    {
-        spin_lock lock (colorconfig_mutex);
-        colorconfig->deleteColorProcessor (processor);
-    }
     return ok;
 }
 
@@ -1134,7 +1312,7 @@ ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
         dst.error ("Unknown color space name");
         return false;
     }
-    ColorProcessor *processor = NULL;
+    ColorProcessorHandle processor;
     {
         spin_lock lock (colorconfig_mutex);
         if (! colorconfig)
@@ -1150,11 +1328,7 @@ ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
             return false;
         }
     }
-    bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
-    {
-        spin_lock lock (colorconfig_mutex);
-        colorconfig->deleteColorProcessor (processor);
-    }
+    bool ok = colorconvert (dst, src, processor.get(), unpremult, roi, nthreads);
     return ok;
 }
 
@@ -1169,7 +1343,7 @@ ImageBufAlgo::ociofiletransform (ImageBuf &dst, const ImageBuf &src,
         dst.error ("Unknown filetransform name");
         return false;
     }
-    ColorProcessor *processor = NULL;
+    ColorProcessorHandle processor;
     {
         spin_lock lock (colorconfig_mutex);
         if (! colorconfig)
@@ -1185,18 +1359,14 @@ ImageBufAlgo::ociofiletransform (ImageBuf &dst, const ImageBuf &src,
             return false;
         }
     }
-    bool ok = colorconvert (dst, src, processor, unpremult, roi, nthreads);
+    bool ok = colorconvert (dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
         dst.specmod().attribute ("oiio:ColorSpace", name);
-    {
-        spin_lock lock (colorconfig_mutex);
-        colorconfig->deleteColorProcessor (processor);
-    }
     return ok;
 }
 
 
-    
+
 bool
 ImageBufAlgo::colorconvert (float * color, int nchannels,
                             const ColorProcessor* processor, bool unpremult)
