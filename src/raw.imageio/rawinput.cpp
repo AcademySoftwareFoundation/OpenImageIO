@@ -193,8 +193,10 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
 
     // Temp spec for exif parser callback to dump into
     ImageSpec exifspec;
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,17,0)
     m_processor.set_exifparser_handler ((exif_parser_callback)exif_parser_cb,
                                         &exifspec);
+#endif
 
     // open the image
     m_filename = name;
