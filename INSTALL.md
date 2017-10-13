@@ -34,6 +34,7 @@ NEW or CHANGED dependencies since the last major release are **bold**.
 ### Optional dependencies
  * **Qt >= 5.6**  (Only needed if you want the `iv` viewer.)
  * Python >= 2.7
+ * libRaw (0.17 or higher is recommended for full functionality)
 
 
 
