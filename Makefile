@@ -36,7 +36,7 @@ CMAKE ?= cmake
 ifndef OPENIMAGEIO_SITE
     OPENIMAGEIO_SITE := ${shell uname -n}
 endif
-ifneq (${shell echo ${OPENIMAGEIO_SITE} | grep imageworks},)
+ifneq (${shell echo ${OPENIMAGEIO_SITE} | grep imageworks.com},)
 include ${working_dir}/site/spi/Makefile-bits
 endif
 
