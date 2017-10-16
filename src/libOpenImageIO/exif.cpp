@@ -230,12 +230,14 @@ tiff_datatype_to_typedesc (TIFFDataType tifftype, size_t tiffcount)
         return TypeDesc(TypeDesc::DOUBLE, tiffcount);
     case TIFF_IFD :
         return TypeUnknown;
+#ifdef TIFF_VERSION_BIG
     case TIFF_LONG8 :
         return TypeDesc(TypeDesc::UINT64, tiffcount);
     case TIFF_SLONG8 :
         return TypeDesc(TypeDesc::INT64, tiffcount);
     case TIFF_IFD8 :
         return TypeUnknown;
+#endif
     }
     return TypeUnknown;
 }
