@@ -23,7 +23,6 @@ addons:
       - g++-7
       - libboost1.55-all-dev
       - libgif-dev
-      - libtiff4-dev
       - libopenjpeg-dev
       - libwebp-dev
       - libfreetype6-dev

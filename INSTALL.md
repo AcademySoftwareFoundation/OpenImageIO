@@ -30,6 +30,7 @@ NEW or CHANGED dependencies since the last major release are **bold**.
  * **Boost >= 1.53** (tested up through 1.65)
  * **CMake >= 3.2.2** (tested up through 3.9)
  * **OpenEXR >= 2.0** (recommended: 2.2)
+ * libTIFF >= 3.9 (recommended: 4.0+)
 
 ### Optional dependencies
  * **Qt >= 5.6**  (Only needed if you want the `iv` viewer.)

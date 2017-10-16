@@ -38,7 +38,7 @@ endif ()
 ###########################################################################
 # TIFF
 if (NOT TIFF_LIBRARIES OR NOT TIFF_INCLUDE_DIR)
-    find_package (TIFF REQUIRED)
+    find_package (TIFF 3.9 REQUIRED)
     include_directories (${TIFF_INCLUDE_DIR})
 else ()
     message (STATUS "Custom TIFF_LIBRARIES ${TIFF_LIBRARIES}")
