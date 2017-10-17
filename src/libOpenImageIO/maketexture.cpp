@@ -1241,8 +1241,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
             return false;
         }
         
-        ColorProcessor * processor = colorconfig.createColorProcessor (
-            incolorspace.c_str(), outcolorspace.c_str());
+        ColorProcessorHandle processor =
+            colorconfig.createColorProcessor (incolorspace, outcolorspace);
         if (!processor || colorconfig.error()) {
             outstream << "Error Creating Color Processor." << std::endl;
             outstream << colorconfig.geterror() << std::endl;
@@ -1253,14 +1253,14 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         if (unpremult && verbose)
             outstream << "  Unpremulting image..." << std::endl;
         
-        if (!ImageBufAlgo::colorconvert (*ccSrc, *src, processor, unpremult)) {
+        if (!ImageBufAlgo::colorconvert (*ccSrc, *src, processor.get(), unpremult)) {
             outstream << "Error applying color conversion to image.\n";
             return false;
         }
         
         if (isConstantColor) {
             if (!ImageBufAlgo::colorconvert (&constantColor[0],
-                static_cast<int>(constantColor.size()), processor, unpremult)) {
+                static_cast<int>(constantColor.size()), processor.get(), unpremult)) {
                 outstream << "Error applying color conversion to constant color.\n";
                 return false;
             }
@@ -1268,14 +1268,11 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
 
         if (compute_average_color) {
             if (!ImageBufAlgo::colorconvert (&pixel_stats.avg[0],
-                static_cast<int>(pixel_stats.avg.size()), processor, unpremult)) {
+                static_cast<int>(pixel_stats.avg.size()), processor.get(), unpremult)) {
                 outstream << "Error applying color conversion to average color.\n";
                 return false;
             }
         }
-
-        ColorConfig::deleteColorProcessor(processor);
-        processor = NULL;
 
         // swap the color-converted buffer and src (making src be the
         // working master that's color converted).
