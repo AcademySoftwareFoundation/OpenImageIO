@@ -63,30 +63,34 @@ public:
           context_key(key), context_value(val), looks(looks), file(file),
           inverse(inverse)
     {
-        hash = (inputColorSpace.hash() ^ outputColorSpace.hash() ^
-                context_key.hash() ^ context_value.hash() ^
-                looks.hash() ^ display.hash() ^ view.hash() ^ file.hash())
+        hash = inputColorSpace.hash() + 14033ul*outputColorSpace.hash()
+             + 823ul*context_key.hash() + 28411ul*context_value.hash()
+             + 1741ul*(looks.hash() + display.hash() + view.hash() + file.hash())
              + (inverse?6421:0);
+        // N.B. no separate multipliers for looks, display, view, file
+        // because they're never used for the same lookup.
     }
 
     friend bool operator< (const ColorProcCacheKey& a, const ColorProcCacheKey& b) {
         if (a.hash < b.hash) return true;
         if (b.hash < a.hash) return false;
-        // They hash the same, so now compare for real
-        if (a.inputColorSpace < b.inputColorSpace) return true;
-        else if (b.inputColorSpace < a.inputColorSpace) return false;
-        if (a.outputColorSpace < b.outputColorSpace) return true;
-        else if (b.outputColorSpace < a.outputColorSpace) return false;
-        if (a.context_key < b.context_key) return true;
-        else if (b.context_key < a.context_key) return false;
-        if (a.looks < b.looks) return true;
-        else if (b.looks < a.looks) return false;
-        if (a.display < b.display) return true;
-        else if (b.display < a.display) return false;
-        if (a.view < b.view) return true;
-        else if (b.view < a.view) return false;
-        if (a.file < b.view) return true;
-        else if (b.view < a.view) return false;
+        // They hash the same, so now compare for real. Note that we just to
+        // impose an order, any order -- does not need to be alphabetical --
+        // so we just compare the pointers.
+        if (a.inputColorSpace.c_str() < b.inputColorSpace.c_str()) return true;
+        if (b.inputColorSpace.c_str() < a.inputColorSpace.c_str()) return false;
+        if (a.outputColorSpace.c_str() < b.outputColorSpace.c_str()) return true;
+        if (b.outputColorSpace.c_str() < a.outputColorSpace.c_str()) return false;
+        if (a.context_key.c_str() < b.context_key.c_str()) return true;
+        if (b.context_key.c_str() < a.context_key.c_str()) return false;
+        if (a.looks.c_str() < b.looks.c_str()) return true;
+        if (b.looks.c_str() < a.looks.c_str()) return false;
+        if (a.display.c_str() < b.display.c_str()) return true;
+        if (b.display.c_str() < a.display.c_str()) return false;
+        if (a.view.c_str() < b.view.c_str()) return true;
+        if (b.view.c_str() < a.view.c_str()) return false;
+        if (a.file.c_str() < b.view.c_str()) return true;
+        if (b.view.c_str() < a.view.c_str()) return false;
         return int(a.inverse) < int(b.inverse);
     }
 
