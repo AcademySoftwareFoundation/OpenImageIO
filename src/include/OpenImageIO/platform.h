@@ -101,7 +101,7 @@
 // packages is compiling against OIIO and using these headers (OIIO may be
 // C++11 but the client package may be older, or vice versa -- use these two
 // symbols to differentiate these cases, when important).
-#if (__cplusplus >= 201700L)
+#if (__cplusplus >= 201703L)
 #  define OIIO_CPLUSPLUS_VERSION  17
 #  define OIIO_CONSTEXPR14        constexpr
 #elif (__cplusplus >= 201402L)
