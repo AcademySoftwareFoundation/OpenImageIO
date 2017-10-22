@@ -164,10 +164,10 @@ pause (int delay)
 // Helper class to deliver ever longer pauses until we yield our timeslice.
 class atomic_backoff {
 public:
-    atomic_backoff () : m_count(1) { }
+    atomic_backoff (int pausemax=16) : m_count(1), m_pausemax(pausemax) { }
 
     void operator() () {
-        if (m_count <= 16) {
+        if (m_count <= m_pausemax) {
             pause (m_count);
             m_count *= 2;
         } else {
@@ -177,6 +177,7 @@ public:
 
 private:
     int m_count;
+    int m_pausemax;
 };
 
 
@@ -283,6 +284,10 @@ private:
 typedef spin_mutex::lock_guard spin_lock;
 
 
+
+#if 0
+
+// OLD CODE vvvvvvvv
 
 
 /// Spinning reader/writer mutex.  This is just like spin_mutex, except
@@ -393,6 +398,117 @@ private:
     atomic_int m_readers;  // number of readers
     char pad2_[OIIO_CACHE_LINE_SIZE-sizeof(atomic_int)];
 };
+
+
+#else
+
+// vvv New spin rw lock Oct 2017
+
+/// Spinning reader/writer mutex.  This is just like spin_mutex, except
+/// that there are separate locking mechanisms for "writers" (exclusive
+/// holders of the lock, presumably because they are modifying whatever
+/// the lock is protecting) and "readers" (non-exclusive, non-modifying
+/// tasks that may access the protectee simultaneously).
+class spin_rw_mutex {
+public:
+    /// Default constructor -- initialize to unlocked.
+    ///
+    spin_rw_mutex () { }
+
+    ~spin_rw_mutex () { }
+
+    // Do not allow copy or assignment.
+    spin_rw_mutex (const spin_rw_mutex &) = delete;
+    const spin_rw_mutex& operator= (const spin_rw_mutex&) = delete;
+
+    /// Acquire the reader lock.
+    ///
+    void read_lock () {
+        // first increase the readers, and if it turned out nobody was
+        // writing, we're done. This means that acquiring a read when nobody
+        // is writing is a single atomic operation.
+        int oldval = m_bits.fetch_add (1, std::memory_order_acquire);
+        if (! (oldval & WRITER))
+            return;
+        // Oops, we incremented readers but somebody was writing. Backtrack
+        // by subtracting, and do things the hard way.
+        int expected = (--m_bits) & NOTWRITER;
+
+        // Do compare-and-exchange until we can increase the number of
+        // readers by one and have no writers.
+        if (m_bits.compare_exchange_weak(expected, expected+1, std::memory_order_acquire))
+            return;
+        atomic_backoff backoff;
+        do {
+            backoff();
+            expected = m_bits.load() & NOTWRITER;
+        } while (! m_bits.compare_exchange_weak(expected, expected+1, std::memory_order_acquire));
+    }
+
+    /// Release the reader lock.
+    ///
+    void read_unlock () {
+        // Atomically reduce the number of readers.  It's at least 1,
+        // and the WRITER bit should definitely not be set, so this just
+        // boils down to an atomic decrement of m_bits.
+        m_bits.fetch_sub (1, std::memory_order_release);
+    }
+
+    /// Acquire the writer lock.
+    ///
+    void write_lock () {
+        // Do compare-and-exchange until we have just ourselves as writer
+        int expected = 0;
+        if (m_bits.compare_exchange_weak(expected, WRITER, std::memory_order_acquire))
+            return;
+        atomic_backoff backoff;
+        do {
+            backoff();
+            expected = 0;
+        } while (! m_bits.compare_exchange_weak(expected, WRITER, std::memory_order_acquire));
+    }
+
+    /// Release the writer lock.
+    ///
+    void write_unlock () {
+        // Remove the writer bit
+        m_bits.fetch_sub (WRITER, std::memory_order_release);
+    }
+
+    /// Helper class: scoped read lock for a spin_rw_mutex -- grabs the
+    /// read lock upon construction, releases the lock when it exits scope.
+    class read_lock_guard {
+    public:
+        read_lock_guard (spin_rw_mutex &fm) : m_fm(fm) { m_fm.read_lock(); }
+        ~read_lock_guard () { m_fm.read_unlock(); }
+    private:
+        read_lock_guard(const read_lock_guard& other) = delete;
+        read_lock_guard& operator = (const read_lock_guard& other) = delete;
+        spin_rw_mutex & m_fm;
+    };
+
+    /// Helper class: scoped write lock for a spin_rw_mutex -- grabs the
+    /// read lock upon construction, releases the lock when it exits scope.
+    class write_lock_guard {
+    public:
+        write_lock_guard (spin_rw_mutex &fm) : m_fm(fm) { m_fm.write_lock(); }
+        ~write_lock_guard () { m_fm.write_unlock(); }
+    private:
+        write_lock_guard(const write_lock_guard& other) = delete;
+        write_lock_guard& operator = (const write_lock_guard& other) = delete;
+        spin_rw_mutex & m_fm;
+    };
+
+private:
+    // Use one word to hold the reader count, with a high bit indicating
+    // that it's locked for writing.  This will only work if we have
+    // fewer than 2^30 simultaneous readers.  I think that should hold
+    // us for some time.
+    enum { WRITER = 1<<30, NOTWRITER = WRITER-1 };
+    std::atomic<int> m_bits { 0 };
+};
+
+#endif
 
 
 typedef spin_rw_mutex::read_lock_guard spin_rw_read_lock;
