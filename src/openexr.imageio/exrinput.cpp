@@ -673,13 +673,11 @@ OpenEXRInput::PartInfo::parse_header (const Imf::Header *header)
                 int r[2];
                 r[0] = n;
                 r[1] = static_cast<int>(d);
-                OIIO::debug ("adding rational with numerator %d and denominator %u (easy case)", n, d);
                 spec.attribute (oname, TypeRational, r);    
             } else if (int f = static_cast<int>(boost::math::gcd<long int>(rational[0], rational[1])) > 1) {
                 int r[2];
                 r[0] = n / f;
                 r[1] = static_cast<int>(d / f);
-                OIIO::debug ("adding rational with numerator %d and denominator %u (hard case)", n, d);
                spec.attribute (oname, TypeRational, r);
             } else {
                 // TODO: find a way to allow the client to accept "close" rational values
