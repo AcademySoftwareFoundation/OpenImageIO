@@ -147,6 +147,9 @@ if (GDCM_FOUND)
 endif ()
 
 
+if (MSVC)
+    set_property (SOURCE imagebufalgo_pixelmath.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
+endif ()
 
 if (WIN32)
     target_link_libraries (OpenImageIO psapi.lib)
