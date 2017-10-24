@@ -283,7 +283,7 @@ MY_CMAKE_FLAGS += -G Ninja
 BUILDSENTINEL := build.ninja
 endif
 
-ifneq (${CODECOV},)
+ifeq (${CODECOV},1)
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug -DCODECOV:BOOL=${CODECOV}
 endif
 
