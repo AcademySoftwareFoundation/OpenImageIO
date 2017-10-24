@@ -49,6 +49,7 @@
 
 
 #pragma once
+#define OIIO_FMATH_H 1
 
 #include <cmath>
 #include <limits>
