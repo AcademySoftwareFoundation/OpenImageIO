@@ -1,5 +1,24 @@
-Release 1.8.6 (?? 1 Oct 2017) -- compared to 1.8.5
+Release 1.8.6 (1 Nov 2017) -- compared to 1.8.5
 -------------------------------------------------
+* oiiotool: Improved logic for propagating the pixel data format through
+  multiple operations, especially for files with multiple subimages.
+  #1769
+* ImageCache/TextureSystem: improved stats on how long we wait for
+  ImageInput mutexes. #1779
+* Build: Fix build bug where if the makefile wrapper got CODECOV=0, it would
+  force a "Debug" build (required for code coverage tests) even though code
+  coverage is instructed to be off. (It would be fine if you didn't specify
+  CODECOV at all.) #1792
+* Build: minor fixes for Windows build. #1793, #1794
+* Developers: The ParamValue class has added get_int_indexed() and
+  get_float_indexed() methods. #1773
+* Developers: array_view added begin(), end(), cbegin(), cend() methods,
+  and new constructors from pointer pairs and from std::array.
+* Developers: Fixed build break in simd.h when AVX512VL is enabled. #1781
+* Developers: fmath.h now defined OIIO_FMATH_H so other files can easily
+  detect if it has been included.
+* Build: Fix broken build when Freetype was not found or disabled. #1800
+* Python: fixed missing exposure of RATIONAL enum value. #1799
 
 
 Release 1.8 (1.8.5 - 1 Oct 2017) -- compared to 1.7.x

@@ -74,6 +74,7 @@ Other contributors (alphabetically):
 * John Haddon
 * Brian Hall
 * Jep Hill
+* Patrick Hodoul
 * Changlin Hsieh
 * Justin Israel
 * Thiago Ize
@@ -119,6 +120,7 @@ Other contributors (alphabetically):
 * Jonathan Scruggs
 * Alex Schworer
 * Aman Shah
+* Arkady Shapkin
 * Sergey Sharybin
 * Richard Shaw
 * Tim D. Smith
