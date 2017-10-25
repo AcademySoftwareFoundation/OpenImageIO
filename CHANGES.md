@@ -3,15 +3,88 @@ Release 1.9 (in progress) -- compared to 1.8.x
 New minimum dependencies:
 
 Major new features and improvements:
+* Major refactor of Exif metadata handling, including much more complete
+  metadata support for RAW formats and support of camera "maker notes"
+  for Canon cameras. #1774 (1.9.0)
+* New "null" I/O plugin -- null reader just returns black (or constant
+  colored) pixels, null writer just returns. This can be used for
+  benchmarking (to eliminate all actual file I/O time), "dry run" where you
+  want to test without creating output files. #1778 (1.9.0)
 
 Public API changes:
+* ColorConfig changes: ColorConfig methods now return shared pointers to
+  `ColorProcessor`s rather than raw pointers. It is therefore no longer
+  required to make an explicit delete call. Created ColorProcessor objects
+  are now internally cached, so asking for the same color transformation
+  multiple times is no longer expensive. The ColorProcessor interface is
+  now in `color.h` and can be directly used to perform transformations on
+  individual colors (previously it was just an opaque pointer and could
+  only be used to pass into certain IBA functions). The color space names
+  "rgb" and "default" are now understood to be synonyms for the default
+  "linear" color space. #1788 (1.9.0)
 
 Fixes, minor enhancements, and performance improvements:
+* oiiotool
+    * Improved logic for propagating the pixel data format through
+      multiple operations, especially for files with multiple subimages.
+      #1769 (1.9.0/1.8.6)
+* ImageCache/TextureSystem:
+    * Improved stats on how long we wait for ImageInput mutexes.
+      #1779 (1.9.0/1.8.6)
+    * Improved performance of IC/TS tile and file caches under heavy
+      contention from many threads. #1780 (1.9.0)
+* All string->numeric parsing and numeric->string formatting is now
+  locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
 
 Build/test system improvements:
+* testtex: make the "thread workout" cases all honor `--handle`. #1778 (1.9.0)
+* Fixes for Windows build. #1793, #1794 (1.9.0/1.8.6)
+* Fix build bug where if the makefile wrapper got `CODECOV=0`, it would
+  force a "Debug" build (required for code coverage tests) even though code
+  coverage is instructed to be off. (It would be fine if you didn't specify
+  `CODECOV` at all.) #1792 (1.9.0/1.8.6)
 
 Developer goodies / internals:
+* array_view.h: added begin(), end(), cbegin(), cend() methods, and new
+  constructors from pointer pairs and from std::array. (1.9.0/1.8.6)
+* fmath.h: Now defines preprocessor symbol `OIIO_FMATH_H` so other files can
+  easily detect if it has been included. (1.9.0/1.8.6)
+* paramlist.h: The ParamValue class has added get_int_indexed() and
+  get_float_indexed() methods. #1773 (1.9.0/1.8.6)
+* simd.h: Fixed build break when AVX512VL is enabled. #1781 (1.9.0/1.8.6)
+* string.h:
+    * All string->numeric parsing and numeric->string formatting is now
+      locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
+    * New `Strutil::stof()`, `stoi()`, `stoui()`, `stod()` functions for
+      easy parsing of strings to numbers. Also tests `Strutil::string_is_int()`
+      and `string_is_float()`. #1796 (1.9.0)
+* thread.h: Reimplementaiton of `spin_rw_mutex` has much better performance
+  when many threads are accessing at once, especially if most of them are
+  reader threads. #1787 (1.9.0)
+* unittest.h: Made references to Strutil fully qualified in OIIO namespace,
+  so that `unittest.h` can be more easily used outside of the OIIO codebase.
+  #1791 (1.9.0)
 
+
+Release 1.8.6 (1 Nov 2017) -- compared to 1.8.5
+-------------------------------------------------
+* oiiotool: Improved logic for propagating the pixel data format through
+  multiple operations, especially for files with multiple subimages.
+  #1769
+* ImageCache/TextureSystem: improved stats on how long we wait for
+  ImageInput mutexes. #1779
+* Build: Fix build bug where if the makefile wrapper got CODECOV=0, it would
+  force a "Debug" build (required for code coverage tests) even though code
+  coverage is instructed to be off. (It would be fine if you didn't specify
+  CODECOV at all.) #1792
+* Build: minor fixes for Windows build. #1793, #1794
+* Developers: The ParamValue class has added get_int_indexed() and
+  get_float_indexed() methods. #1773
+* Developers: array_view added begin(), end(), cbegin(), cend() methods,
+  and new constructors from pointer pairs and from std::array.
+* Developers: Fixed build break in simd.h when AVX512VL is enabled. #1781
+* Developers: fmath.h now defined OIIO_FMATH_H so other files can easily
+  detect if it has been included.
 
 
 Release 1.8 (1.8.5 - beta) -- compared to 1.7.x

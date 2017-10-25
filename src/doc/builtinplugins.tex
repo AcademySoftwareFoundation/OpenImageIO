@@ -129,7 +129,7 @@ DPX files use the file extension {\cf .dpx}.
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
-\noindent\begin{tabular}{p{1.8in}|p{0.65in}|p{2.75in}}
+\noindent\begin{longtable}{p{1.8in}|p{0.65in}|p{2.75in}}
 OIIO Attribute & Type & DPX header data or explanation \\
 \hline
 \qkw{ImageDescription} & string & Description of image element \\
@@ -148,12 +148,6 @@ OIIO Attribute & Type & DPX header data or explanation \\
                                 marked as TIMECODE) \\
 \qkw{smpte:KeyCode} & int[7] & SMPTE key code (vecsemantics will be
                                 marked as KEYCODE) \\
-
-\end{tabular} 
-
-\noindent\begin{tabular}{p{1.8in}|p{0.65in}|p{2.75in}}
-OIIO Attribute & Type & DPX header data or explanation \\
-\hline
 \qkw{dpx:Transfer} & string & Transfer characteristic \\
 \qkw{dpx:Colorimetric} & string & Colorimetric specification \\
 \qkw{dpx:ImageDescriptor} & string & ImageDescriptor \\
@@ -201,7 +195,7 @@ pixel (ms) \\
 \qkw{dpx:IntegrationTimes} & float & integration time (s) \\
 \qkw{dpx:EndOfLinePadding} & int & Padded bytes at the end of each line \\
 \qkw{dpx:EndOfImagePadding} & int & Padded bytes at the end of each image \\
-\end{tabular}
+\end{longtable}
 
 %\subsubsection*{Limitations}
 %\begin{itemize}
@@ -572,6 +566,54 @@ OIIO Attribute & Type & Explanation \\
 
 \vspace{.25in}
 
+\section{Null format}
+\label{sec:bundledplugins:null}
+\index{null format}
+
+The {\cf null} reader/writer is a mock-up that does not perform any actual
+I/O. The reader just returns constant-colored pixels, and the writer just
+returns directly without saving any data. This has several uses:
+
+\begin{itemize}
+\item Benchmarking, if you want to have OIIO's input or output truly take
+as close to no time whatsoever.
+
+\item ``Dry run'' of applications where you don't want it to produce any real
+output (akin to a Unix command that you redirect output to /dev/null).
+
+\item Make ``fake'' input that looks like a file, but the file doesn't exist
+(if you are happy with constant-colored pixels).
+\end{itemize}
+
+The filename allows a REST-ful syntax, where you can append modifiers
+that specify things like resolution (of the non-existent file), etc.
+For example,
+
+\begin{code}
+      foo.null?RES=640x480&CHANNELS=3
+\end{code}
+
+\noindent would specify a null file with resolution 640x480 and 3 channels.
+Token/value pairs accepted are:
+
+\medskip
+\begin{tabular}{p{1.4in} p{4in}}
+{\cf RES=1024x1024}        & Set resolution (3D example: 256x256x100) \\
+{\cf CHANNELS=4}           & Set number of channels \\
+{\cf TILES=64x64}          & Makes it look like a tiled image with tile size \\
+{\cf TYPE=uint8}           & Set the pixel data type \\
+{\cf PIXEL=r,g,b,...}      & Set pixel values (comma separates channel values) \\
+{\cf TEX=1}                & Make it look like a full MIP-mapped texture \\
+{\cf attrib=value}         & Anything else will set metadata \\
+\end{tabular}
+
+\medskip
+
+
+
+
+\vspace{.25in}
+
 \section{OpenEXR}
 \label{sec:bundledplugins:openexr}
 \index{OpenEXR}
@@ -587,7 +629,7 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
-\noindent\begin{tabular}{p{1.95in}|p{0.5in}|p{2.8in}}
+\noindent\begin{longtable}{p{1.95in}|p{0.5in}|p{2.8in}}
 \ImageSpec Attribute & Type & OpenEXR header data or explanation \\
 \hline
 {\cf width}, {\cf height}, {\cf x}, {\cf y} & & {\cf dataWindow} \\[0.5ex]
@@ -637,7 +679,7 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
    dwaa or dwab compression (default: 45.0). \\[1ex]
 \emph{other} & & All other attributes will be added to the \ImageSpec by their
   name and apparent type.
-\end{tabular}
+\end{longtable}
 
 \subsubsection*{A note on channel names}
 
@@ -1203,7 +1245,7 @@ aware of:
 \newpage 
 \subsubsection*{TIFF Attributes}
 
-\noindent\begin{tabular}{p{2.0in}|p{0.5in}|p{2.75in}}
+\noindent\begin{longtable}{p{2.0in}|p{0.5in}|p{2.75in}}
 \ImageSpec Attribute & Type & TIFF header data or explanation \\
 \hline
 {\cf ImageSpec::x} & int & XPosition \\
@@ -1247,7 +1289,7 @@ aware of:
   differ from {\cf ImageSpec::format}).\\
 \qkw{oiio:UnassociatedAlpha} & int & Nonzero if the alpha channel
   contained ``unassociated'' alpha. \\
-\end{tabular}
+\end{longtable}
 
 \vspace{.25in}
 
