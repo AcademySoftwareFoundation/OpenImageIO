@@ -31,12 +31,17 @@
 
 #include <string>
 #include <cstdarg>
+#include <cstdlib>
 #include <vector>
 #include <iostream>
 #include <cmath>
 #include <sstream>
 #include <limits>
 #include <mutex>
+#include <locale.h>
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#include <xlocale.h>
+#endif
 
 #include <boost/algorithm/string.hpp>
 
@@ -694,14 +699,12 @@ Strutil::parse_int (string_view &str, int &val, bool eat)
     skip_whitespace (p);
     if (! p.size())
         return false;
-    const char *end = p.begin();
-    int v = strtol (p.begin(), (char**)&end, 10);
-    if (end == p.begin())
+    size_t endpos = 0;
+    int v = Strutil::stoi (p, &endpos);
+    if (endpos == 0)
         return false;  // no integer found
-    if (eat) {
-        p.remove_prefix (end-p.begin());
-        str = p;
-    }
+    if (eat)
+        str = p.substr (endpos);
     val = v;
     return true;
 }
@@ -715,14 +718,12 @@ Strutil::parse_float (string_view &str, float &val, bool eat)
     skip_whitespace (p);
     if (! p.size())
         return false;
-    const char *end = p.begin();
-    float v = (float) strtod (p.begin(), (char**)&end);
-    if (end == p.begin())
+    size_t endpos = 0;
+    float v = Strutil::stof (p, &endpos);
+    if (endpos == 0)
         return false;  // no integer found
-    if (eat) {
-        p.remove_prefix (end-p.begin());
-        str = p;
-    }
+    if (eat)
+        str = p.substr (endpos);
     val = v;
     return true;
 }
@@ -1031,5 +1032,296 @@ Strutil::base64_encode (string_view str)
     return ret;
 }
 
+
+
+double
+Strutil::strtod (const char *nptr, char **endptr, const std::locale& loc)
+{
+    // Get decimal point in requested locale
+    char pointchar = std::use_facet<std::numpunct<char>>(loc).decimal_point();
+
+    // If the requested locale uses '.' as decimal point, equivalent to C
+    // locale, and this OS has strtod_l, use it.
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    if (pointchar == '.') {
+        // static initialization inside function is thread-safe by C++11 rules!
+        static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+        return strtod_l (nptr, endptr, c_loc);
+    }
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    if (pointchar == '.') {
+        static _locale_t c_loc = _create_locale(LC_ALL, "C");
+        return _strtod_l (nptr, endptr, c_loc);
+    }
+#endif
+
+    std::locale native; // default ctr gets current global locale
+    char nativepoint = std::use_facet<std::numpunct<char>>(native).decimal_point();
+
+    // If the requested and native locales use the same decimal character,
+    // just directly use strtod.
+    if (pointchar == nativepoint)
+        return ::strtod (nptr, endptr);
+
+    // Complex case -- CHEAT by making a copy of the string and replacing
+    // the decimal, then use system strtod!
+    std::string s (nptr);
+    const char* pos = strchr (nptr, pointchar);
+    if (pos) {
+        s[pos-nptr] = nativepoint;
+        auto d = ::strtod (s.c_str(), endptr);
+        if (endptr)
+            *endptr = (char *)nptr + (*endptr - s.c_str());
+        return d;
+    }
+    // No decimal point at all -- use regular strtod
+    return ::strtod (s.c_str(), endptr);
+}
+
+
+
+float
+Strutil::strtof (const char *nptr, char **endptr, const std::locale& loc)
+{
+    // Get decimal point in requested locale
+    char pointchar = std::use_facet<std::numpunct<char>>(loc).decimal_point();
+
+    // If the requested locale uses '.' as decimal point, equivalent to C
+    // locale, and this OS has strtod_l, use it.
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    if (pointchar == '.') {
+        // static initialization inside function is thread-safe by C++11 rules!
+        static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+        return strtof_l (nptr, endptr, c_loc);
+    }
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    if (pointchar == '.') {
+        static _locale_t c_loc = _create_locale(LC_ALL, "C");
+        return (float) _strtod_l (nptr, endptr, c_loc);
+    }
+#endif
+
+    std::locale native; // default ctr gets current global locale
+    char nativepoint = std::use_facet<std::numpunct<char>>(native).decimal_point();
+
+    // If the requested and native locales use the same decimal character,
+    // just directly use strtof.
+    if (pointchar == nativepoint)
+        return ::strtof (nptr, endptr);
+
+    // Complex case -- CHEAT by making a copy of the string and replacing
+    // the decimal, then use system strtod!
+    std::string s (nptr);
+    const char* pos = strchr (nptr, pointchar);
+    if (pos) {
+        s[pos-nptr] = nativepoint;
+        auto d = ::strtof (s.c_str(), endptr);
+        if (endptr)
+            *endptr = (char *)nptr + (*endptr - s.c_str());
+        return d;
+    }
+    // No decimal point at all -- use regular strtod
+    return ::strtof (s.c_str(), endptr);
+}
+
+
+float
+Strutil::strtof (const char *nptr, char **endptr)
+{
+    // Can use strtof_l on platforms that support it
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    // static initialization inside function is thread-safe by C++11 rules!
+    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+    return strtof_l (nptr, endptr, c_loc);
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    static _locale_t c_loc = _create_locale(LC_ALL, "C");
+    return (float) _strtod_l (nptr, endptr, c_loc);
+#else
+    // On platforms without strtof_l, use the classic locale explicitly and
+    // call the locale-based version.
+    return strtof (nptr, endptr, std::locale::classic());
+#endif
+}
+
+
+double
+Strutil::strtod (const char *nptr, char **endptr)
+{
+    // Can use strtod_l on platforms that support it
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    // static initialization inside function is thread-safe by C++11 rules!
+    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+    return strtod_l (nptr, endptr, c_loc);
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    static _locale_t c_loc = _create_locale(LC_ALL, "C");
+    return _strtod_l (nptr, endptr, c_loc);
+#else
+    // On platforms without strtod_l, use the classic locale explicitly and
+    // call the locale-based version.
+    return strtod (nptr, endptr, std::locale::classic());
+#endif
+}
+
+// Notes:
+//
+// FreeBSD's implementation of strtod:
+//   https://svnweb.freebsd.org/base/stable/10/contrib/gdtoa/strtod.c?view=markup
+// Python's implementation  of strtod: (BSD license)
+//   https://hg.python.org/cpython/file/default/Python/pystrtod.c
+// Julia's implementation (combo of strtod_l and Python's impl):
+//   https://github.com/JuliaLang/julia/blob/master/src/support/strtod.c
+// MSDN documentation on Windows _strtod_l and friends:
+//   https://msdn.microsoft.com/en-us/library/kxsfc1ab.aspx   (_strtod_l)
+//   https://msdn.microsoft.com/en-us/library/4zx9aht2.aspx   (_create_locale)
+// cppreference on locale:
+//   http://en.cppreference.com/w/cpp/locale/locale
+
+
+
+int
+Strutil::stoi (const char* s, size_t* pos, int base)
+{
+    if (s) {
+        char* endptr;
+        int r = strtol (s, &endptr, base);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+int
+Strutil::stoi (const std::string& s, size_t* pos, int base)
+{
+    return Strutil::stoi(s.c_str(), pos, base);
+}
+
+
+int
+Strutil::stoi (string_view s, size_t* pos, int base)
+{
+    // string_view may not be ended with a terminating null, so for safety,
+    // create a temporary string.
+    return Strutil::stoi (std::string(s), pos, base);
+}
+
+
+
+unsigned int
+Strutil::stoul (const char* s, size_t* pos, int base)
+{
+    if (s) {
+        char* endptr;
+        unsigned int r = strtoul (s, &endptr, base);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+unsigned int
+Strutil::stoul (const std::string& s, size_t* pos, int base)
+{
+    return Strutil::stoul(s.c_str(), pos, base);
+}
+
+
+unsigned int
+Strutil::stoul (string_view s, size_t* pos, int base)
+{
+    // string_view may not be ended with a terminating null, so for safety,
+    // create a temporary string.
+    return Strutil::stoul (std::string(s), pos, base);
+}
+
+
+
+float
+Strutil::stof (const char* s, size_t* pos)
+{
+    if (s) {
+        char* endptr;
+        float r = Strutil::strtof (s, &endptr);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+float
+Strutil::stof (const std::string& s, size_t* pos)
+{
+    return Strutil::stof(s.c_str(), pos);
+}
+
+
+float
+Strutil::stof (string_view s, size_t* pos)
+{
+    // string_view may not be ended with a terminating null, so for safety,
+    // create a temporary string.
+    return Strutil::stof (std::string(s), pos);
+}
+
+
+
+float
+Strutil::stof (const char* s, const std::locale& loc, size_t* pos)
+{
+    if (s) {
+        char* endptr;
+        float r = Strutil::strtof (s, &endptr, loc);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+float
+Strutil::stof (const std::string& s, const std::locale& loc, size_t* pos)
+{
+    return Strutil::stof(s.c_str(), loc, pos);
+}
+
+
+float
+Strutil::stof (string_view s, const std::locale& loc, size_t* pos)
+{
+    // string_view may not be ended with a terminating null, so for safety,
+    // create a temporary string.
+    return Strutil::stof (std::string(s), loc, pos);
+}
 
 OIIO_NAMESPACE_END

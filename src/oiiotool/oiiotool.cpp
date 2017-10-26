@@ -1325,34 +1325,20 @@ set_input_attribute (int argc, const char *argv[])
         return 0;
     }
 
-    // Does it seem to be an int, or did the caller explicitly request
-    // that it be set as an int?
-    char *p = NULL;
-    int i = strtol (value.c_str(), &p, 10);
-    while (*p && isspace(*p))
-        ++p;
-    if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::INT) {
-        // int conversion succeeded and accounted for the whole string --
-        // so set an int attribute.
-        ot.input_config.attribute (attribname, i);
-        return 0;
+    if (type == TypeInt ||
+        (type == TypeUnknown && Strutil::string_is_int(value))) {
+        // Does it seem to be an int, or did the caller explicitly request
+        // that it be set as an int?
+        ot.input_config.attribute (attribname, Strutil::stoi(value));
+    } else if (type == TypeFloat ||
+        (type == TypeUnknown && Strutil::string_is_float(value))) {
+        // Does it seem to be a float, or did the caller explicitly request
+        // that it be set as a float?
+        ot.input_config.attribute (attribname, Strutil::stof(value));
+    } else {
+        // Otherwise, set it as a string attribute
+        ot.input_config.attribute (attribname, value);
     }
-
-    // Does it seem to be a float, or did the caller explicitly request
-    // that it be set as a float?
-    p = NULL;
-    float f = (float)strtod (value.c_str(), &p);
-    while (*p && isspace(*p))
-        ++p;
-    if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::FLOAT) {
-        // float conversion succeeded and accounted for the whole string --
-        // so set a float attribute.
-        ot.input_config.attribute (attribname, f);
-        return 0;
-    }
-
-    // Otherwise, set it as a string attribute
-    ot.input_config.attribute (attribname, value);
     return 0;
 }
 
@@ -1478,38 +1464,28 @@ OiioTool::set_attribute (ImageRecRef img, string_view attribname,
         return true;
     }
 
-    // Does it seem to be an int, or did the caller explicitly request
-    // that it be set as an int?
-    char *p = NULL;
-    int i = strtol (value.c_str(), &p, 10);
-    while (*p && isspace(*p))
-        ++p;
-    if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::INT) {
-        // int conversion succeeded and accounted for the whole string --
-        // so set an int attribute.
+    if (type == TypeInt ||
+        (type == TypeUnknown && Strutil::string_is_int(value))) {
+        // Does it seem to be an int, or did the caller explicitly request
+        // that it be set as an int?
+        int v = Strutil::stoi(value);
         return apply_spec_mod (*img, do_set_any_attribute<int>,
-                               std::pair<std::string,int>(attribname,i),
+                               std::pair<std::string,int>(attribname,v),
                                allsubimages);
-    }
-
-    // Does it seem to be a float, or did the caller explicitly request
-    // that it be set as a float?
-    p = NULL;
-    float f = (float)strtod (value.c_str(), &p);
-    while (*p && isspace(*p))
-        ++p;
-    if ((! *p && type == TypeDesc::UNKNOWN) || type == TypeDesc::FLOAT) {
-        // float conversion succeeded and accounted for the whole string --
-        // so set a float attribute.
+    } else if (type == TypeFloat ||
+        (type == TypeUnknown && Strutil::string_is_float(value))) {
+        // Does it seem to be a float, or did the caller explicitly request
+        // that it be set as a float?
+        float v = Strutil::stof(value);
         return apply_spec_mod (*img, do_set_any_attribute<float>,
-                               std::pair<std::string,float>(attribname,f),
+                               std::pair<std::string,float>(attribname,v),
+                               allsubimages);
+    } else {
+        // Otherwise, set it as a string attribute
+        return apply_spec_mod (*img, do_set_any_attribute<std::string>,
+                               std::pair<std::string,std::string>(attribname,value),
                                allsubimages);
     }
-
-    // Otherwise, set it as a string attribute
-    return apply_spec_mod (*img, do_set_any_attribute<std::string>,
-                           std::pair<std::string,std::string>(attribname,value),
-                           allsubimages);
 }
 
 
@@ -3789,7 +3765,7 @@ action_mosaic (int argc, const char *argv[])
     std::map<std::string,std::string> options;
     options["pad"] = "0";
     ot.extract_options (options, command);
-    int pad = strtol (options["pad"].c_str(), NULL, 10);
+    int pad = Strutil::stoi (options["pad"]);
 
     ImageSpec Rspec (ximages*widest + (ximages-1)*pad,
                      yimages*highest + (yimages-1)*pad,
@@ -4016,7 +3992,7 @@ action_clamp (int argc, const char *argv[])
         ot.extract_options (options, command);
         Strutil::extract_from_list_string (min, options["min"]);
         Strutil::extract_from_list_string (max, options["max"]);
-        bool clampalpha01 = strtol (options["clampalpha"].c_str(), NULL, 10) != 0;
+        bool clampalpha01 = Strutil::stoi (options["clampalpha"]);
 
         for (int m = 0, miplevels=R->miplevels(s);  m < miplevels;  ++m) {
             ImageBuf &Rib ((*R)(s,m));
@@ -5419,6 +5395,10 @@ main (int argc, char *argv[])
      // fit Linux way.
     _set_output_format (_TWO_DIGIT_EXPONENT);
 #endif
+
+    // Globally force classic "C" locale, and turn off all formatting
+    // internationalization, for the entire oiiotool application.
+    std::locale::global (std::locale::classic());
 
     ot.imagecache = ImageCache::create (false);
     ASSERT (ot.imagecache);

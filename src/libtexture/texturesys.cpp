@@ -379,6 +379,7 @@ TextureSystemImpl::getstats (int level, bool icstats) const
     m_imagecache->mergestats (stats);
 
     std::ostringstream out;
+    out.imbue (std::locale::classic());  // Force "C" locale with '.' decimal
     bool anytexture = (stats.texture_queries + stats.texture3d_queries +
                        stats.shadow_queries + stats.environment_queries);
     if (level > 0 && anytexture) {

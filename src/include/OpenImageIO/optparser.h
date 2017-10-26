@@ -40,6 +40,7 @@
 #define OPENIMAGEIO_OPTPARSER_H
 
 #include <string>
+#include <OpenImageIO/strutil.h>
 
 OIIO_NAMESPACE_BEGIN
 
@@ -67,9 +68,9 @@ optparse1 (C &system, const std::string &opt)
     char v = value.size() ? value[0] : ' ';
     if ((v >= '0' && v <= '9') || v == '+' || v == '-') {  // numeric
         if (strchr (value.c_str(), '.'))  // float
-            return system.attribute (name.c_str(), (float)atof(value.c_str()));
+            return system.attribute (name, Strutil::stof(value));
         else  // int
-            return system.attribute (name.c_str(), (int)atoi(value.c_str()));
+            return system.attribute (name, Strutil::stoi(value));
     }
     // otherwise treat it as a string
 

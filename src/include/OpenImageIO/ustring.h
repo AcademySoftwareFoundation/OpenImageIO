@@ -626,10 +626,20 @@ public:
     /// something like:
     ///    ustring s = ustring::format ("blah %d %g", (int)foo, (float)bar);
     /// The argument list is fully typesafe.
+    /// The formatting of the string will always use the classic "C" locale
+    /// conventions (in particular, '.' as decimal separator for float values).
     template<typename... Args>
     static ustring format (string_view fmt, const Args&... args)
     {
         return ustring (Strutil::format (fmt, args...));
+    }
+
+    /// ustring formatting with an explicit locale.
+    template<typename... Args>
+    static ustring format (const std::locale& loc, string_view fmt,
+                           const Args&... args)
+    {
+        return ustring (Strutil::format (loc, fmt, args...));
     }
 
     /// Generic stream output of a ustring.
@@ -750,6 +760,16 @@ inline bool iequals (const std::string &a, ustring b) {
     return Strutil::iequals(a, b.string());
 }
 
+
+
+// add ustring variants of stoi and stof from OpenImageIO/strutil.h
+namespace Strutil {
+inline int stoi (ustring s) { return Strutil::stoi (s.c_str()); }
+inline int stof (ustring s) { return Strutil::stof (s.c_str()); }
+inline int stof (ustring s, const std::locale& loc) {
+    return Strutil::stof (s.c_str(), loc);
+}
+} // end namespace Strutil
 
 OIIO_NAMESPACE_END
 
