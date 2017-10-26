@@ -765,9 +765,9 @@ inline bool iequals (const std::string &a, ustring b) {
 // add ustring variants of stoi and stof from OpenImageIO/strutil.h
 namespace Strutil {
 inline int stoi (ustring s) { return Strutil::stoi (s.c_str()); }
-inline int stof (ustring s) { return Strutil::strtof (s.c_str()); }
+inline int stof (ustring s) { return Strutil::stof (s.c_str()); }
 inline int stof (ustring s, const std::locale& loc) {
-    return Strutil::strtof (s.c_str(), nullptr, loc);
+    return Strutil::stof (s.c_str(), loc);
 }
 } // end namespace Strutil
 

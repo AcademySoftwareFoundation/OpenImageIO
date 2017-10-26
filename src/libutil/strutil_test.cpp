@@ -354,6 +354,27 @@ void test_replace ()
 void test_conversion ()
 {
     std::cout << "Testing string_is, string_from conversions\n";
+    size_t pos;
+
+    OIIO_CHECK_EQUAL (Strutil::string_is_int("142"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is_int("142.0"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is_int(""), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is_int("  "), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is_int("foo"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is_int("142x"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is_int(" 142"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is_int("x142"), false);
+
+    OIIO_CHECK_EQUAL (Strutil::string_is_float("142"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is_float("142.0"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is_float(""), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is_float("  "), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is_float("foo"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is_float("142x"), false);
+    OIIO_CHECK_EQUAL (Strutil::string_is_float(" 142"), true);
+    OIIO_CHECK_EQUAL (Strutil::string_is_float("x142"), false);
+
+    // Note that string_is<> is DEPREATED as of OIIO 1.9.
     OIIO_CHECK_EQUAL (Strutil::string_is<int>("142"), true);
     OIIO_CHECK_EQUAL (Strutil::string_is<int>("142.0"), false);
     OIIO_CHECK_EQUAL (Strutil::string_is<int>(""), false);
@@ -361,7 +382,6 @@ void test_conversion ()
     OIIO_CHECK_EQUAL (Strutil::string_is<int>("142x"), false);
     OIIO_CHECK_EQUAL (Strutil::string_is<int>(" 142"), true);
     OIIO_CHECK_EQUAL (Strutil::string_is<int>("x142"), false);
-
     OIIO_CHECK_EQUAL (Strutil::string_is<float>("142"), true);
     OIIO_CHECK_EQUAL (Strutil::string_is<float>("142.0"), true);
     OIIO_CHECK_EQUAL (Strutil::string_is<float>(""), false);
@@ -371,39 +391,74 @@ void test_conversion ()
     OIIO_CHECK_EQUAL (Strutil::string_is<float>("x142"), false);
 
     OIIO_CHECK_EQUAL (Strutil::stoi("hi"), 0);
+    OIIO_CHECK_EQUAL (Strutil::stoi("  "), 0);
     OIIO_CHECK_EQUAL (Strutil::stoi("123"), 123);
     OIIO_CHECK_EQUAL (Strutil::stoi("-123"), -123);
     OIIO_CHECK_EQUAL (Strutil::stoi(" 123 "), 123);
     OIIO_CHECK_EQUAL (Strutil::stoi("123.45"), 123);
 
+    OIIO_CHECK_EQUAL (Strutil::stoi("hi", &pos), 0);
+    OIIO_CHECK_EQUAL (pos, 0);
+    OIIO_CHECK_EQUAL (Strutil::stoi("  ", &pos), 0);
+    OIIO_CHECK_EQUAL (pos, 0);
+    OIIO_CHECK_EQUAL (Strutil::stoi("123", &pos), 123);
+    OIIO_CHECK_EQUAL (pos, 3);
+    OIIO_CHECK_EQUAL (Strutil::stoi("-123", &pos), -123);
+    OIIO_CHECK_EQUAL (pos, 4);
+    OIIO_CHECK_EQUAL (Strutil::stoi(" 123 ", &pos), 123);
+    OIIO_CHECK_EQUAL (pos, 4);
+    OIIO_CHECK_EQUAL (Strutil::stoi("123.45", &pos), 123);
+    OIIO_CHECK_EQUAL (pos, 3);
+
     OIIO_CHECK_EQUAL (Strutil::stoul("hi"), unsigned(0));
+    OIIO_CHECK_EQUAL (Strutil::stoul("  "), unsigned(0));
     OIIO_CHECK_EQUAL (Strutil::stoul("123"), unsigned(123));
     OIIO_CHECK_EQUAL (Strutil::stoul("-123"), unsigned(-123));
     OIIO_CHECK_EQUAL (Strutil::stoul(" 123 "), unsigned(123));
     OIIO_CHECK_EQUAL (Strutil::stoul("123.45"), unsigned(123));
 
     OIIO_CHECK_EQUAL (Strutil::stof("hi"), 0.0f);
+    OIIO_CHECK_EQUAL (Strutil::stof("  "), 0.0f);
     OIIO_CHECK_EQUAL (Strutil::stof("123"), 123.0f);
     OIIO_CHECK_EQUAL (Strutil::stof("-123"), -123.0f);
     OIIO_CHECK_EQUAL (Strutil::stof("123.45"), 123.45f);
+    OIIO_CHECK_EQUAL (Strutil::stof("123.45xyz"), 123.45f);
     OIIO_CHECK_EQUAL (Strutil::stof(" 123.45 "), 123.45f);
     OIIO_CHECK_EQUAL (Strutil::stof("123.45+12"), 123.45f);
     OIIO_CHECK_EQUAL (Strutil::stof("1.2345e+2"), 123.45f);
+
+    OIIO_CHECK_EQUAL (Strutil::stof("hi", &pos), 0.0f);
+    OIIO_CHECK_EQUAL (pos, 0);
+    OIIO_CHECK_EQUAL (Strutil::stof("  ", &pos), 0.0f);
+    OIIO_CHECK_EQUAL (pos, 0);
+    OIIO_CHECK_EQUAL (Strutil::stof("123", &pos), 123.0f);
+    OIIO_CHECK_EQUAL (pos, 3);
+    OIIO_CHECK_EQUAL (Strutil::stof("-123", &pos), -123.0f);
+    OIIO_CHECK_EQUAL (pos, 4);
+    OIIO_CHECK_EQUAL (Strutil::stof("123.45", &pos), 123.45f);
+    OIIO_CHECK_EQUAL (pos, 6);
+    OIIO_CHECK_EQUAL (Strutil::stof("123.45xyz", &pos), 123.45f);
+    OIIO_CHECK_EQUAL (pos, 6);
+    OIIO_CHECK_EQUAL (Strutil::stof(" 123.45 ", &pos), 123.45f);
+    OIIO_CHECK_EQUAL (pos, 7);
+    OIIO_CHECK_EQUAL (Strutil::stof("123.45+12", &pos), 123.45f);
+    OIIO_CHECK_EQUAL (pos, 6);
+    OIIO_CHECK_EQUAL (Strutil::stof("1.2345e2", &pos), 123.45f);
+    OIIO_CHECK_EQUAL (pos, 8);
     // stress case!
     OIIO_CHECK_EQUAL (Strutil::stof("100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001E-200"), 1.0f);
 
+    // Note that from_string<> is DEPREATED as of OIIO 1.9.
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("hi"), 0);
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("123"), 123);
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("-123"), -123);
     OIIO_CHECK_EQUAL (Strutil::from_string<int>(" 123 "), 123);
     OIIO_CHECK_EQUAL (Strutil::from_string<int>("123.45"), 123);
-
     OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>("hi"), unsigned(0));
     OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>("123"), unsigned(123));
     OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>("-123"), unsigned(-123));
     OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>(" 123 "), unsigned(123));
     OIIO_CHECK_EQUAL (Strutil::from_string<unsigned int>("123.45"), unsigned(123));
-
     OIIO_CHECK_EQUAL (Strutil::from_string<float>("hi"), 0.0f);
     OIIO_CHECK_EQUAL (Strutil::from_string<float>("123"), 123.0f);
     OIIO_CHECK_EQUAL (Strutil::from_string<float>("-123"), -123.0f);

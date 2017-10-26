@@ -31,6 +31,7 @@
 
 #include <string>
 #include <cstdarg>
+#include <cstdlib>
 #include <vector>
 #include <iostream>
 #include <cmath>
@@ -698,14 +699,12 @@ Strutil::parse_int (string_view &str, int &val, bool eat)
     skip_whitespace (p);
     if (! p.size())
         return false;
-    const char *end = p.begin();
-    int v = strtol (p.begin(), (char**)&end, 10);
-    if (end == p.begin())
+    size_t endpos = 0;
+    int v = Strutil::stoi (p, &endpos);
+    if (endpos == 0)
         return false;  // no integer found
-    if (eat) {
-        p.remove_prefix (end-p.begin());
-        str = p;
-    }
+    if (eat)
+        str = p.substr (endpos);
     val = v;
     return true;
 }
@@ -719,14 +718,12 @@ Strutil::parse_float (string_view &str, float &val, bool eat)
     skip_whitespace (p);
     if (! p.size())
         return false;
-    const char *end = p.begin();
-    float v = Strutil::strtof (p.begin(), (char**)&end);
-    if (end == p.begin())
+    size_t endpos = 0;
+    float v = Strutil::stof (p, &endpos);
+    if (endpos == 0)
         return false;  // no integer found
-    if (eat) {
-        p.remove_prefix (end-p.begin());
-        str = p;
-    }
+    if (eat)
+        str = p.substr (endpos);
     val = v;
     return true;
 }
@@ -1182,5 +1179,149 @@ Strutil::strtod (const char *nptr, char **endptr)
 //   https://msdn.microsoft.com/en-us/library/4zx9aht2.aspx   (_create_locale)
 // cppreference on locale:
 //   http://en.cppreference.com/w/cpp/locale/locale
+
+
+
+int
+Strutil::stoi (const char* s, size_t* pos, int base)
+{
+    if (s) {
+        char* endptr;
+        int r = strtol (s, &endptr, base);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+int
+Strutil::stoi (const std::string& s, size_t* pos, int base)
+{
+    return Strutil::stoi(s.c_str(), pos, base);
+}
+
+
+int
+Strutil::stoi (string_view s, size_t* pos, int base)
+{
+    // string_view may not be ended with a terminating null, so for safety,
+    // create a temporary string.
+    return Strutil::stoi (std::string(s), pos, base);
+}
+
+
+
+unsigned int
+Strutil::stoul (const char* s, size_t* pos, int base)
+{
+    if (s) {
+        char* endptr;
+        unsigned int r = strtoul (s, &endptr, base);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+unsigned int
+Strutil::stoul (const std::string& s, size_t* pos, int base)
+{
+    return Strutil::stoul(s.c_str(), pos, base);
+}
+
+
+unsigned int
+Strutil::stoul (string_view s, size_t* pos, int base)
+{
+    // string_view may not be ended with a terminating null, so for safety,
+    // create a temporary string.
+    return Strutil::stoul (std::string(s), pos, base);
+}
+
+
+
+float
+Strutil::stof (const char* s, size_t* pos)
+{
+    if (s) {
+        char* endptr;
+        float r = Strutil::strtof (s, &endptr);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+float
+Strutil::stof (const std::string& s, size_t* pos)
+{
+    return Strutil::stof(s.c_str(), pos);
+}
+
+
+float
+Strutil::stof (string_view s, size_t* pos)
+{
+    // string_view may not be ended with a terminating null, so for safety,
+    // create a temporary string.
+    return Strutil::stof (std::string(s), pos);
+}
+
+
+
+float
+Strutil::stof (const char* s, const std::locale& loc, size_t* pos)
+{
+    if (s) {
+        char* endptr;
+        float r = Strutil::strtof (s, &endptr, loc);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+float
+Strutil::stof (const std::string& s, const std::locale& loc, size_t* pos)
+{
+    return Strutil::stof(s.c_str(), loc, pos);
+}
+
+
+float
+Strutil::stof (string_view s, const std::locale& loc, size_t* pos)
+{
+    // string_view may not be ended with a terminating null, so for safety,
+    // create a temporary string.
+    return Strutil::stof (std::string(s), loc, pos);
+}
 
 OIIO_NAMESPACE_END

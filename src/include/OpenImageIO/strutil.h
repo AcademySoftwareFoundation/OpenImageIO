@@ -290,99 +290,105 @@ float OIIO_API strtof (const char *nptr, char **endptr, const std::locale& loc);
 
 
 
-// Helper template to test if a string is a generic type
-template<typename T>
-inline bool string_is (string_view /*s*/) {
-    return false; // Generic: assume there is an explicit specialization
-}
-// Special case for int
-template <> inline bool string_is<int> (string_view s) {
-    if (s.empty())
-        return false;
-    char *endptr = 0;
-    strtol (s.data(), &endptr, 10);
-    return (s.data() + s.size() == endptr);
-}
-// Special case for float. Note that by using Strutil::strtof, this always
-// treats '.' as the decimal character.
-template <> inline bool string_is<float> (string_view s) {
-    if (s.empty())
-        return false;
-    char *endptr = 0;
-    Strutil::strtof (s.data(), &endptr);
-    return (s.data() + s.size() == endptr);
-}
-
-
-
 // stoi() returns the int conversion of text from several string types.
 // No exceptions or errors -- parsing errors just return 0.
-inline int stoi (const char* s) {
-    return s && s[0] ? strtol (s, nullptr, 10) : 0;
-}
-inline int stoi (const std::string& s) { return Strutil::stoi(s.c_str()); }
-inline int stoi (string_view s) { return Strutil::stoi (std::string(s)); }
-
+OIIO_API int stoi (const char* s, size_t* pos=0, int base=10);
+OIIO_API int stoi (const std::string& s, size_t* pos=0, int base=10);
+OIIO_API int stoi (string_view s, size_t* pos=0, int base=10);
+// N.B. For users of ustring, there's a stoi(ustring) defined in ustring.h.
 
 
 // stoul() returns the unsigned int conversion of text from several string
 // types. No exceptions or errors -- parsing errors just return 0.
-inline unsigned int stoul (const char* s) {
-    return s && s[0] ? strtoul (s, nullptr, 10) : 0;
-}
-inline unsigned int stoul (const std::string& s) { return Strutil::stoul(s.c_str()); }
-inline unsigned int stoul (string_view s) { return Strutil::stoul (std::string(s)); }
-
+OIIO_API unsigned int stoul (const char* s, size_t* pos=0, int base=10);
+OIIO_API unsigned int stoul (const std::string& s, size_t* pos=0, int base=10);
+OIIO_API unsigned int stoul (string_view s, size_t* pos=0, int base=10);
+// N.B. For users of ustring, there's a stoi(ustring) defined in ustring.h.
 
 
 /// stof() returns the float conversion of text from several string types.
 /// No exceptions or errors -- parsing errors just return 0.0. These always
 /// use '.' for the decimal mark (versus atof and std::strtof, which are
 /// locale-dependent).
-inline float stof (const std::string& s) {
-    return s.size() ? Strutil::strtof (s.c_str(), nullptr) : 0.0f;
-}
-inline float stof (const char* s) {
-    return Strutil::strtof (s, nullptr);
-}
-inline float stof (string_view s) {
-    return Strutil::strtof (std::string(s).c_str(), nullptr);
-}
+OIIO_API float stof (const std::string& s, size_t* pos=0);
+OIIO_API float stof (const char* s, size_t* pos=0);
+OIIO_API float stof (string_view s, size_t* pos=0);
+// N.B. For users of ustring, there's a stof(ustring) defined in ustring.h.
 
 // stof() version that takes an explicit locale (for example, if you pass a
 // default-constructed std::locale, it will use the current native locale's
 // decimal conventions).
-inline float stof (const std::string& s, const std::locale& loc) {
-    return s.size() ? Strutil::strtof (s.c_str(), nullptr, loc) : 0.0f;
+OIIO_API float stof (const std::string& s, const std::locale& loc, size_t* pos=0);
+OIIO_API float stof (const char* s, const std::locale& loc, size_t* pos=0);
+OIIO_API float stof (string_view s, const std::locale& loc, size_t* pos=0);
+
+
+
+/// Return true if the string is exactly (other than leading whitespace)
+/// a valid int.
+inline bool string_is_int (string_view s) {
+    size_t pos;
+    Strutil::stoi (s, &pos);
+    return pos && pos >= s.size();   // consumed the whole string
 }
-inline float stof (const char* s, const std::locale& loc) {
-    return Strutil::strtof (s, nullptr, loc);
+
+/// Return true if the string is exactly (other than leading whitespace)
+/// a valid float. This operations in a locale-independent manner, i.e.,
+/// it assumes '.' as the decimal mark.
+inline bool string_is_float (string_view s) {
+    size_t pos;
+    Strutil::stof (s, &pos);
+    return pos && pos >= s.size();   // consumed the whole string
 }
-inline float stof (string_view s, const std::locale& loc) {
-    return Strutil::strtof (std::string(s).c_str(), nullptr, loc);
+
+/// Return true if the string is exactly (other than leading whitespace)
+/// a valid float. This operations uses an explicit locale.
+inline bool string_is_float (string_view s, const std::locale& loc) {
+    size_t pos;
+    Strutil::stof (s, loc, &pos);
+    return pos && pos >= s.size();   // consumed the whole string
 }
 
 
 
 // Helper template to convert from generic type to string (using default
-// locale).
+// locale). Used when you want stoX but you're in a template.
 template<typename T>
 inline T from_string (string_view s) {
     return T(s); // Generic: assume there is an explicit converter
 }
 // Special case for int
 template<> inline int from_string<int> (string_view s) {
-    return s.size() ? strtol (s.c_str(), nullptr, 10) : 0;
+    return Strutil::stoi(s);
 }
 // Special case for uint
 template<> inline unsigned int from_string<unsigned int> (string_view s) {
-    return s.size() ? strtoul (s.c_str(), nullptr, 10) : (unsigned int)0;
+    return Strutil::stoul(s);
 }
 // Special case for float -- note that by using Strutil::strtof, this
 // always treats '.' as the decimal mark.
 template<> inline float from_string<float> (string_view s) {
-    return s.size() ? Strutil::strtof (s.c_str(), nullptr) : 0.0f;
+    return Strutil::stof(s);
 }
+
+
+
+// Helper template to test if a string is a generic type. Used instead of
+// string_is_X, but when you're inside templated code.
+template<typename T>
+inline bool string_is (string_view /*s*/) {
+    return false; // Generic: assume there is an explicit specialization
+}
+// Special case for int
+template <> inline bool string_is<int> (string_view s) {
+    return string_is_int (s);
+}
+// Special case for float. Note that by using Strutil::stof, this always
+// treats '.' as the decimal character.
+template <> inline bool string_is<float> (string_view s) {
+    return string_is_float (s);
+}
+
 
 
 
