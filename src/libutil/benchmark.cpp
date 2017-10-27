@@ -144,6 +144,12 @@ std::ostream& operator<< (std::ostream& out, const Benchmarker &bench)
     }
     const char* unitname = unitnames[unit];
     double scale = unitscales[unit];
+    char rateunit = 'M';
+    double ratescale = 1.0e6;
+    if (bench.avg() >= 1.0e-6) {
+        rateunit = 'k';
+        ratescale = 1.0e3;
+    }
 
     avg *= scale;
     stddev *= scale;
@@ -163,12 +169,12 @@ std::ostream& operator<< (std::ostream& out, const Benchmarker &bench)
         return out;
     }
     if (bench.work() == 1)
-        out << Strutil::format ("%6.1f M/s",
-                                (1.0f/1.0e6)/bench.avg());
+        out << Strutil::format ("%6.1f %c/s",
+                                (1.0f/ratescale)/bench.avg(), rateunit);
     else
-        out << Strutil::format ("%6.1f Mvals/s, %.1f Mcalls/s",
-                                (bench.work()/1.0e6)/bench.avg(),
-                                (1.0f/1.0e6)/bench.avg());
+        out << Strutil::format ("%6.1f %cvals/s, %.1f %ccalls/s",
+                                (bench.work()/ratescale)/bench.avg(), rateunit,
+                                (1.0f/ratescale)/bench.avg(), rateunit);
     if (bench.verbose() >= 2)
         out << Strutil::format (" (%dx%d, rng=%.1f%%, med=%.1f)",
                                 bench.trials(), bench.iterations(), unitname,

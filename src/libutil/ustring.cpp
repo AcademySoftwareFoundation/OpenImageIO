@@ -406,6 +406,7 @@ ustring::getstats (bool verbose)
 {
     UstringTable &table (ustring_table());
     std::ostringstream out;
+    out.imbue (std::locale::classic());  // Force "C" locale with '.' decimal
     size_t n_l = table.get_num_lookups();
     size_t n_e = table.get_num_entries();
     size_t mem = table.get_memory_usage();

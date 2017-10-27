@@ -1610,6 +1610,7 @@ ImageCacheImpl::onefile_stat_line (const ImageCacheFileRef &file,
 {
     // FIXME -- make meaningful stat printouts for multi-image textures
     std::ostringstream out;
+    out.imbue (std::locale::classic());  // Force "C" locale with '.' decimal
     const ImageSpec &spec (file->spec(0,0));
     const char *formatcode = "u8";
     switch (spec.format.basetype) {
@@ -1737,6 +1738,7 @@ ImageCacheImpl::getstats (int level) const
     }
 
     std::ostringstream out;
+    out.imbue (std::locale::classic());  // Force "C" locale with '.' decimal
     if (level > 0) {
         out << "OpenImageIO ImageCache statistics (";
         {

@@ -392,7 +392,7 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         }
     }
 
-    float aspect = atof (m_rla.AspectRatio);
+    float aspect = Strutil::stof (m_rla.AspectRatio);
     if (aspect > 0.f)
         m_spec.attribute ("PixelAspectRatio", aspect);
 

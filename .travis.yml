@@ -32,6 +32,7 @@ addons:
       - libavformat-dev
       - libswscale-dev
       - libavutil-dev
+      - locales
       # - qtbase5-dev   # FIXME: enable Qt5 on Linux
       # - bzip2
       # - libtinyxml-dev

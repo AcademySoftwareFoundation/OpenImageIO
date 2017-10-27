@@ -31,12 +31,17 @@
 
 #include <string>
 #include <cstdarg>
+#include <cstdlib>
 #include <vector>
 #include <iostream>
 #include <cmath>
 #include <sstream>
 #include <limits>
 #include <mutex>
+#include <locale.h>
+#if defined(__APPLE__) || defined(__FreeBSD__)
+#include <xlocale.h>
+#endif
 
 #include <boost/algorithm/string.hpp>
 
@@ -58,6 +63,16 @@ OIIO_NAMESPACE_BEGIN
 namespace {
 static std::mutex output_mutex;
 };
+
+
+
+// Locale-independent quickie ASCII digit and alphanum tests, good enough
+// for our parsing.
+inline int isupper (char c) { return c >= 'A' && c <= 'Z'; }
+inline int islower (char c) { return c >= 'a' && c <= 'z'; }
+inline int isalpha (char c) { return isupper(c) || islower(c); }
+inline int isdigit (char c) { return c >= '0' && c <= '9'; }
+
 
 
 
@@ -694,14 +709,12 @@ Strutil::parse_int (string_view &str, int &val, bool eat)
     skip_whitespace (p);
     if (! p.size())
         return false;
-    const char *end = p.begin();
-    int v = strtol (p.begin(), (char**)&end, 10);
-    if (end == p.begin())
+    size_t endpos = 0;
+    int v = Strutil::stoi (p, &endpos);
+    if (endpos == 0)
         return false;  // no integer found
-    if (eat) {
-        p.remove_prefix (end-p.begin());
-        str = p;
-    }
+    if (eat)
+        str = p.substr (endpos);
     val = v;
     return true;
 }
@@ -715,14 +728,12 @@ Strutil::parse_float (string_view &str, float &val, bool eat)
     skip_whitespace (p);
     if (! p.size())
         return false;
-    const char *end = p.begin();
-    float v = (float) strtod (p.begin(), (char**)&end);
-    if (end == p.begin())
+    size_t endpos = 0;
+    float v = Strutil::stof (p, &endpos);
+    if (endpos == 0)
         return false;  // no integer found
-    if (eat) {
-        p.remove_prefix (end-p.begin());
-        str = p;
-    }
+    if (eat)
+        str = p.substr (endpos);
     val = v;
     return true;
 }
@@ -1029,6 +1040,279 @@ Strutil::base64_encode (string_view str)
             ret += '=';
     }
     return ret;
+}
+
+
+
+// Helper: Eat the given number of chars from str, then return the next
+// char, or 0 if no more chars are in str.
+inline unsigned char cnext (string_view& str, int eat=1)
+{
+    str.remove_prefix (eat);
+    return OIIO_LIKELY(str.size()) ? str.front() : 0;
+}
+
+
+
+int
+Strutil::stoi (string_view str, size_t *pos, int base)
+{
+    // We roll our own stoi so that we can directly use it with a
+    // string_view and also hardcode it without any locale dependence. The
+    // system stoi/atoi/strtol/etc. needs to be null-terminated.
+    string_view str_orig = str;
+    Strutil::skip_whitespace (str);
+
+    // c is always the next char to parse, or 0 if there's no more
+    unsigned char c = cnext (str, 0);  // don't eat the char
+
+    // Handle leading - or +
+    bool neg = (c == '-');
+    if (c == '-' || c == '+')
+        c = cnext (str);
+
+    // Allow "0x" to start hex number if base is 16 or 0 (any)
+    if ((base == 0 || base == 16) &&
+        c == '0' && str.size() >= 1 && (str[1] == 'x' || str[1] == 'X')) {
+        base = 16;
+        c = cnext (str, 2);
+    }
+    // For "any" base, collapse to base 10 unless leading 0 means it's octal
+    if (base == 0)
+        base = c == '0' ? 8 : 10;
+
+    // Accumulate into a 64 bit int to make overflow handling simple.
+    // If we ever need a str-to-int64 conversion, we'll need to be more
+    // careful with figuring out overflow. But the 32 bit case is easy.
+    int64_t acc = 0;
+    bool overflow = false;   // Set if we overflow
+    bool anydigits = false;  // Have we parsed any digits at all?
+    int64_t maxval = neg ? -int64_t(std::numeric_limits<int>::min()) : std::numeric_limits<int>::max();
+    for ( ; OIIO_LIKELY(c); c = cnext(str)) {
+        if (OIIO_LIKELY(isdigit(c)))
+            c -= '0';
+        else if (isalpha(c))
+            c -= isupper(c) ? 'A' - 10 : 'a' - 10;
+        else {
+            break;  // done
+        }
+        if (c >= base)
+            break;
+        acc = acc * base + c;
+        anydigits = true;
+        if (OIIO_UNLIKELY(acc > maxval))
+            overflow = true;
+    }
+    if (OIIO_UNLIKELY(!anydigits)) {
+        str = str_orig;
+    } else if (OIIO_UNLIKELY(overflow)) {
+        acc = neg ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+    } else {
+        if (neg)
+            acc = -acc;
+    }
+    if (pos)
+        *pos = size_t (str.data() - str_orig.data());
+    return static_cast<int>(acc);
+}
+
+
+
+float
+Strutil::strtof (const char *nptr, char **endptr)
+{
+    // Can use strtod_l on platforms that support it
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    // static initialization inside function is thread-safe by C++11 rules!
+    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+# ifdef __APPLE__
+    // On OSX, strtod_l is for some reason drastically faster than strtof_l.
+    return static_cast<float>(strtod_l (nptr, endptr, c_loc));
+# else
+    return strtof_l (nptr, endptr, c_loc);
+# endif
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    static _locale_t c_loc = _create_locale(LC_ALL, "C");
+    return static_cast<float>(_strtod_l (nptr, endptr, c_loc));
+#else
+    // On platforms without strtof_l...
+    std::locale native; // default ctr gets current global locale
+    char nativepoint = std::use_facet<std::numpunct<char>>(native).decimal_point();
+    // If the native locale uses decimal, just directly use strtof.
+    if (nativepoint = '.')
+        return strtof (nptr, endptr);
+    // Complex case -- CHEAT by making a copy of the string and replacing
+    // the decimal, then use system strtof!
+    std::string s (nptr);
+    const char* pos = strchr (nptr, pointchar);
+    if (pos) {
+        s[pos-nptr] = nativepoint;
+        auto d = strtof (s.c_str(), endptr);
+        if (endptr)
+            *endptr = (char *)nptr + (*endptr - s.c_str());
+        return d;
+    }
+    // No decimal point at all -- use regular strtof
+    return strtof (s.c_str(), endptr);
+#endif
+}
+
+
+double
+Strutil::strtod (const char *nptr, char **endptr)
+{
+    // Can use strtod_l on platforms that support it
+#if defined (__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+    // static initialization inside function is thread-safe by C++11 rules!
+    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+    return strtod_l (nptr, endptr, c_loc);
+#elif defined (_WIN32)
+    // Windows has _strtod_l
+    static _locale_t c_loc = _create_locale(LC_ALL, "C");
+    return _strtod_l (nptr, endptr, c_loc);
+#else
+    // On platforms without strtod_l...
+    std::locale native; // default ctr gets current global locale
+    char nativepoint = std::use_facet<std::numpunct<char>>(native).decimal_point();
+    // If the native locale uses decimal, just directly use strtod.
+    if (nativepoint = '.')
+        return strtod (nptr, endptr);
+    // Complex case -- CHEAT by making a copy of the string and replacing
+    // the decimal, then use system strtod!
+    std::string s (nptr);
+    const char* pos = strchr (nptr, pointchar);
+    if (pos) {
+        s[pos-nptr] = nativepoint;
+        auto d = ::strtod (s.c_str(), endptr);
+        if (endptr)
+            *endptr = (char *)nptr + (*endptr - s.c_str());
+        return d;
+    }
+    // No decimal point at all -- use regular strtod
+    return strtod (s.c_str(), endptr);
+#endif
+}
+
+// Notes:
+//
+// FreeBSD's implementation of strtod:
+//   https://svnweb.freebsd.org/base/stable/10/contrib/gdtoa/strtod.c?view=markup
+// Python's implementation  of strtod: (BSD license)
+//   https://hg.python.org/cpython/file/default/Python/pystrtod.c
+// Julia's implementation (combo of strtod_l and Python's impl):
+//   https://github.com/JuliaLang/julia/blob/master/src/support/strtod.c
+// MSDN documentation on Windows _strtod_l and friends:
+//   https://msdn.microsoft.com/en-us/library/kxsfc1ab.aspx   (_strtod_l)
+//   https://msdn.microsoft.com/en-us/library/4zx9aht2.aspx   (_create_locale)
+// cppreference on locale:
+//   http://en.cppreference.com/w/cpp/locale/locale
+
+
+
+float
+Strutil::stof (const char* s, size_t* pos)
+{
+    if (s) {
+        char* endptr;
+        float r = Strutil::strtof (s, &endptr);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+float
+Strutil::stof (const std::string& s, size_t* pos)
+{
+    return Strutil::stof(s.c_str(), pos);
+}
+
+
+float
+Strutil::stof (string_view s, size_t* pos)
+{
+    // string_view can't be counted on to end with a terminating null, so
+    // for safety, create a temporary string. This looks wasteful, but it's
+    // not as bad as you think -- fully compliant C++ >= 11 implementations
+    // will use the "short string optimization", meaning that this string
+    // creation will NOT need an allocation/free for most strings we expect
+    // to hold a text representation of a float.
+    return Strutil::stof (std::string(s).c_str(), pos);
+}
+
+
+
+double
+Strutil::stod (const char* s, size_t* pos)
+{
+    if (s) {
+        char* endptr;
+        double r = Strutil::strtod (s, &endptr);
+        if (endptr != s) {
+            if (pos)
+                *pos = size_t (endptr - s);
+            return r;
+        }
+    }
+    // invalid
+    if (pos)
+        *pos = 0;
+    return 0;
+}
+
+
+double
+Strutil::stod (const std::string& s, size_t* pos)
+{
+    return Strutil::stod(s.c_str(), pos);
+}
+
+
+double
+Strutil::stod (string_view s, size_t* pos)
+{
+    // string_view can't be counted on to end with a terminating null, so
+    // for safety, create a temporary string. This looks wasteful, but it's
+    // not as bad as you think -- fully compliant C++ >= 11 implementations
+    // will use the "short string optimization", meaning that this string
+    // creation will NOT need an allocation/free for most strings we expect
+    // to hold a text representation of a float.
+    return Strutil::stod (std::string(s).c_str(), pos);
+}
+
+
+
+bool
+Strutil::string_is_int (string_view s)
+{
+    size_t pos;
+    Strutil::stoi (s, &pos);
+    if (pos) {  // skip remaining whitespace
+        s.remove_prefix (pos);
+        Strutil::skip_whitespace (s);
+    }
+    return pos && s.empty();   // consumed the whole string
+}
+
+
+bool
+Strutil::string_is_float (string_view s)
+{
+    size_t pos;
+    Strutil::stof (s, &pos);
+    if (pos) {  // skip remaining whitespace
+        s.remove_prefix (pos);
+        Strutil::skip_whitespace (s);
+    }
+    return pos && s.empty();   // consumed the whole string
 }
 
 
