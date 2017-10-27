@@ -18,12 +18,15 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
   ResolutionUnit = "none"
   Software = "title;va"
   Exif:YCbCrPositioning = 1
+  Exif:ExifVersion = "0220"
   Exif:DateTimeOriginal = "2009:02:21 08:32:04"
   Exif:DateTimeDigitized = "2009:02:21 08:32:04"
+  Exif:FlashPixVersion = "0100"
   Exif:ColorSpace = 1
   Exif:PixelXDimension = 2048
   Exif:PixelYDimension = 1536
   Exif:WhiteBalance = 0
+  GPS:VersionID = 2
   GPS:LatitudeRef = "N"
   GPS:Latitude = 39.0
   GPS:LongitudeRef = "W"
