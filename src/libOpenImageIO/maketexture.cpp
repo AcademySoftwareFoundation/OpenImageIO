@@ -1389,6 +1389,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // (such as filtering information) needs to be manually added into the
     // hash.
     std::ostringstream addlHashData;
+    addlHashData.imbue (std::locale::classic()); // Force "C" locale with '.' decimal
     addlHashData << filtername << " ";
     float sharpen = configspec.get_float_attribute ("maketx:sharpen", 0.0f);
     if (sharpen != 0.0f) {
@@ -1420,6 +1421,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
   
     if (isConstantColor) {
         std::ostringstream os; // Emulate a JSON array
+        os.imbue (std::locale::classic());  // Force "C" locale with '.' decimal
         for (int i = 0; i < dstspec.nchannels; ++i) {
             if (i!=0) os << ",";
             os << (i<(int)constantColor.size() ? constantColor[i] : 0.0f);
@@ -1439,6 +1441,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     
     if (compute_average_color) {
         std::ostringstream os; // Emulate a JSON array
+        os.imbue (std::locale::classic());  // Force "C" locale with '.' decimal
         for (int i = 0; i < dstspec.nchannels; ++i) {
             if (i!=0) os << ",";
             os << (i<(int)pixel_stats.avg.size() ? pixel_stats.avg[i] : 0.0f);

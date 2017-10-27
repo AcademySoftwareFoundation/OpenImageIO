@@ -626,6 +626,8 @@ public:
     /// something like:
     ///    ustring s = ustring::format ("blah %d %g", (int)foo, (float)bar);
     /// The argument list is fully typesafe.
+    /// The formatting of the string will always use the classic "C" locale
+    /// conventions (in particular, '.' as decimal separator for float values).
     template<typename... Args>
     static ustring format (string_view fmt, const Args&... args)
     {
@@ -750,6 +752,12 @@ inline bool iequals (const std::string &a, ustring b) {
     return Strutil::iequals(a, b.string());
 }
 
+
+
+// ustring variant stof from OpenImageIO/strutil.h
+namespace Strutil {
+inline int stof (ustring s) { return Strutil::stof (s.string()); }
+} // end namespace Strutil
 
 OIIO_NAMESPACE_END
 

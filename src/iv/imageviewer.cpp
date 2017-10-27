@@ -117,12 +117,9 @@ ImageViewer::ImageViewer ()
 {
     readSettings (false);
 
-    const char *gamenv = getenv ("GAMMA");
-    if (gamenv) {
-        float g = atof (gamenv);
-        if (g >= 0.1 && g <= 5)
-            m_default_gamma = g;
-    }
+    float gam = Strutil::stof (Sysutil::getenv ("GAMMA"));
+    if (gam >= 0.1 && gam <= 5)
+        m_default_gamma = gam;
     // FIXME -- would be nice to have a more nuanced approach to display
     // color space, in particular knowing whether the display is sRGB.
     // Also, some time in the future we may want a real 3D LUT for 
