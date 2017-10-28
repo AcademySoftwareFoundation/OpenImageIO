@@ -655,9 +655,10 @@ resolve_font (int fontsize, string_view font_, std::string &result)
         font_search_dirs.emplace_back ("/opt/local/share/fonts/OpenImageIO");
         // Try $OPENIMAGEIOHOME/fonts
         string_view oiiohomedir = Sysutil::getenv ("OPENIMAGEIOHOME");
-        if (oiiohomedir.size())
+        if (oiiohomedir.size()) {
             font_search_dirs.push_back (std::string(oiiohomedir) + "/fonts");
             font_search_dirs.push_back (std::string(oiiohomedir) + "/share/fonts/OpenImageIO");
+        }
         // Try ../fonts relative to where this executing binary came from
         std::string this_program = OIIO::Sysutil::this_program_path ();
         if (this_program.size()) {
