@@ -1,3 +1,7 @@
+Release 1.8.7 (1 Dec 2017) -- compared to 1.8.6
+-------------------------------------------------
+
+
 Release 1.8.6 (1 Nov 2017) -- compared to 1.8.5
 -------------------------------------------------
 * oiiotool: Improved logic for propagating the pixel data format through
