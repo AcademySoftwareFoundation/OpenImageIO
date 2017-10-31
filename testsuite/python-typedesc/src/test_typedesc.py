@@ -45,8 +45,6 @@ def aggregate_enum_test():
         oiio.VEC4
         oiio.MATRIX33
         oiio.MATRIX44
-        oiio.TIMECODE
-        oiio.KEYCODE
         print "Passed AGGREGATE"
     except:
         print "Failed AGGREGATE"
@@ -60,6 +58,9 @@ def vecsemantics_enum_test():
         oiio.POINT
         oiio.VECTOR
         oiio.NORMAL
+        oiio.TIMECODE
+        oiio.KEYCODE
+        oiio.RATIONAL
         print "Passed VECSEMANTICS"
     except:
         print "Failed VECSEMANTICS"
@@ -141,6 +142,7 @@ try:
     breakdown_test (oiio.TypeDesc.TypeMatrix44, "TypeMatrix44", verbose=False)
     breakdown_test (oiio.TypeDesc.TypeTimeCode, "TypeTimeCode", verbose=False)
     breakdown_test (oiio.TypeDesc.TypeKeyCode,  "TypeKeyCode",  verbose=False)
+    breakdown_test (oiio.TypeDesc.TypeRational, "TypeRational", verbose=False)
     breakdown_test (oiio.TypeDesc.TypeFloat4,   "TypeFloat4",   verbose=False)
     breakdown_test (oiio.TypeDesc.TypeHalf,     "TypeHalf",     verbose=False)
     print

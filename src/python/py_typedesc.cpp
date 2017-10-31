@@ -113,6 +113,7 @@ void declare_typedesc() {
         .value("NORMAL",   TypeDesc::NORMAL)
         .value("TIMECODE", TypeDesc::TIMECODE)
         .value("KEYCODE",  TypeDesc::KEYCODE)
+        .value("RATIONAL", TypeDesc::RATIONAL)
         .export_values()
     ;
 
