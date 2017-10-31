@@ -4498,7 +4498,7 @@ output_file (int argc, const char *argv[])
     string_view formatname = fileoptions["fileformatname"];
     if (formatname.empty())
         formatname = filename;
-    ImageOutput *out = ImageOutput::create (formatname);
+    std::unique_ptr<ImageOutput> out (ImageOutput::create (formatname));
     if (! out) {
         std::string err = OIIO::geterror();
         ot.error (command, err.size() ? err.c_str() : "unknown error creating an ImageOutput");
@@ -4666,7 +4666,9 @@ output_file (int argc, const char *argv[])
                                          configspec, &std::cout);
         if (!ok)
             ot.error (command, "Could not make texture");
-
+        // N.B. make_texture already internally writes to a temp file and
+        // then atomically moves it to the final destination, so we don't
+        // need to explicitly do that here.
     } else {
         // Non-texture case
         std::vector<ImageSpec> subimagespecs (ir->subimages());
@@ -4684,16 +4686,29 @@ output_file (int argc, const char *argv[])
             subimagespecs[s] = spec;
         }
 
+        // Write the output to a temp file first, then rename it to the
+        // final destination (same directory). This improves robustness.
+        // There is less chance a crash during execution will leave behind a
+        // partially formed file, and it also protects us against corrupting
+        // an input if they are "oiiotooling in place" (especially
+        // problematic for large files that are ImageCache-based and so only
+        // partially read at the point that we open the file. We also force
+        // a unique filename to protect against multiple processes running
+        // at the same time on the same file.
+        std::string extension = Filesystem::extension(filename);
+        std::string tmpfilename = Filesystem::replace_extension (filename, ".%%%%%%%%.temp"+extension);
+        tmpfilename = Filesystem::unique_path(tmpfilename);
+
         // Do the initial open
         ImageOutput::OpenMode mode = ImageOutput::Create;
         if (ir->subimages() > 1 && out->supports("multiimage")) {
-            if (! out->open (filename, ir->subimages(), &subimagespecs[0])) {
+            if (! out->open (tmpfilename, ir->subimages(), &subimagespecs[0])) {
                 std::string err = out->geterror();
                 ot.error (command, err.size() ? err.c_str() : "unknown error");
                 return 0;
             }
         } else {
-            if (! out->open (filename, subimagespecs[0], mode)) {
+            if (! out->open (tmpfilename, subimagespecs[0], mode)) {
                 std::string err = out->geterror();
                 ot.error (command, err.size() ? err.c_str() : "unknown error");
                 return 0;
@@ -4708,14 +4723,14 @@ output_file (int argc, const char *argv[])
                                        ot, supports_tiles,
                                        fileoptions, (*ir)[s].was_direct_read());
                 if (s > 0 || m > 0) {  // already opened first subimage/level
-                    if (! out->open (filename, spec, mode)) {
+                    if (! out->open (tmpfilename, spec, mode)) {
                         std::string err = out->geterror();
                         ot.error (command, err.size() ? err.c_str() : "unknown error");
                         ok = false;
                         break;
                     }
                 }
-                if (! (*ir)(s,m).write (out)) {
+                if (! (*ir)(s,m).write (out.get())) {
                     ot.error (command, (*ir)(s,m).geterror());
                     ok = false;
                     break;
@@ -4742,9 +4757,24 @@ output_file (int argc, const char *argv[])
         }
 
         out->close ();
+        out.reset ();    // make extra sure it's cleaned up
+
+        // We wrote to a temporary file, so now atomically move it to the
+        // original desired location.
+        if (ok) {
+            std::string err;
+            ok = Filesystem::rename (tmpfilename, filename, err);
+            if (! ok)
+                ot.error (command, Strutil::format("oiiotool ERROR: could not move temp file %s to %s: %s",
+                                                   tmpfilename, filename, err));
+        }
+        if (! ok)
+            Filesystem::remove (tmpfilename);
     }
 
-    delete out;
+    // Make sure to invalidate any IC entries that think they are the
+    // file we just wrote.
+    ot.imagecache->invalidate (ustring(filename));
 
     if (ot.output_adjust_time && ok) {
         std::string metadatatime = ir->spec(0,0)->get_string_attribute ("DateTime");
