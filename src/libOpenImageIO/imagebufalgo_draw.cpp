@@ -604,8 +604,6 @@ text_size_from_unicode (std::vector<uint32_t> &utext, FT_Face face)
     return size;   // Font rendering not supported
 }
 
-} // anon namespace
-#endif
 
 
 // Given font name, resolve it to an existing font filename.
@@ -616,7 +614,7 @@ static bool
 resolve_font (int fontsize, string_view font_, std::string &result)
 {
     result.clear ();
-#ifdef USE_FREETYPE
+
     // If we know FT is broken, don't bother trying again
     if (ft_broken)
         return false;
@@ -708,10 +706,10 @@ resolve_font (int fontsize, string_view font_, std::string &result)
     // Success
     result = font;
     return true;
-#else
-    return false;
-#endif
 }
+
+} // anon namespace
+#endif
 
 
 
