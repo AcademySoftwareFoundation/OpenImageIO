@@ -234,7 +234,6 @@ the {\cf ImageCache} (specifically, {\cf FLOAT} and {\cf UINT8});
 (c) if the \ImageBuf already has local pixel memory allocated, or
 ``wraps'' an application buffer.
 
-\NEW % 1.8
 The variety of {\cf read()} that takes {\cf chbegin} and {\cf chend}
 parameters allows you to populate the \ImageBuf with a (contiguous) subset
 of channels from the file. This can be useful if you are only interested
@@ -715,7 +714,6 @@ return -1 for an invalid coordinate that is not within the data window.
 \apiend
 
 \apiitem{static WrapMode {\ce WrapMode_from_string} (string_view name)}
-\NEW % 1.7/1.8
 Return the {\cf WrapMode} corresponding to the name (\qkw{default},
 \qkw{black}, \qkw{clamp}, \qkw{periodic}, \qkw{mirror}). For an unknown
 name, this will return {\cf WrapDefault}.

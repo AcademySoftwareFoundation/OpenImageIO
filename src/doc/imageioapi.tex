@@ -513,7 +513,6 @@ it exists) is assumed to be alpha, and values are assumed to be linear.
 \apiend
 
 \apiitem{{\ce ImageSpec} (const ROI \&roi, TypeDesc fmt = TypeDesc::UINT8)}
-\NEW % 1.8
 Constructs an \ImageSpec whose dimensions (both data and ``full'') and
 number of channels are given by the \ROI (\ref{sec:ROI}), pixel data type
 by {\cf fmt}, and other fields are set to their default values.
@@ -608,7 +607,6 @@ storage!
 \apiend
 
 \apiitem{int {\ce channelindex} (string_view name) const}
-\NEW % 1.8
 Returns the index of the channel with the given name, or -1 if no such
 channel is present in {\cf channelnames}.
 \apiend
@@ -704,7 +702,6 @@ values) for certain known metadata.
 
 
 \apiitem{std::string {\ce serialize} (SerialFormat format, SerialVerbose verbose) const}
-\NEW % 1.8
 Returns, as a string, a serialized version of the \ImageSpec.
 The {\cf format} may be either {\cf ImageSpec::SerialText} or
 {\cf ImageSpec::SerialXML}.
@@ -864,7 +861,6 @@ Eliminate any samples beyond an opaque sample.
 \apiend
 
 \apiitem{float {\ce opaque_z} (int pixel)}
-\NEW % 1.8
 For the given pixel index. return the $z$ value at which the pixel reaches
 full opacity.
 \apiend

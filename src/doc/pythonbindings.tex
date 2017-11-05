@@ -384,7 +384,6 @@ the {\cf nchannels} field.
 \apiend
 
 \apiitem{int ImageSpec.{\ce channelindex} (name)}
-\NEW % 1.8
 Return (as an int) the index of the channel with the given name, or -1
 if it does not exist.
 \apiend
@@ -637,7 +636,6 @@ int DeepData.{\ce AG_channel} \\
 int DeepData.{\ce AB_channel} \\
 int DeepData.{\ce Z_channel} \\
 int DeepData.{\ce Zback_channel}}
-\NEW % 1.8
 The channel index of certain named channels, or -1 if they don't exist. For
 {\cf AR_channel}, {\cf AG_channel}, {\cf AB_channel}, if they don't exist,
 they will contain the value of {\cf A_channel}, and {\cf Zback_channel} will
@@ -717,7 +715,6 @@ Eliminate any samples beyond an opaque sample.
 \apiend
 
 \apiitem{float DeepData.{\ce opaque_z} (pixel)}
-\NEW % 1.8
 For the given pixel index. return the $z$ value at which the pixel reaches
 full opacity.
 \apiend
@@ -1882,7 +1879,6 @@ is a tuple giving the per-channel colors. Choices for {\cf alignx} are
 \apiitem{ROI ImageBufAlgo.{\ce text_size} (text, fontsize=16, fontname="")}
 \index{ImageBufAlgo!text_size} \indexapi{text_size}
 
-\NEW % 1.8
 Compute the size that will be needed for the text as an ROI and return it.
 The size will not be {\cf defined} if an error occurred (such as not being a
 valid font name).
@@ -2389,7 +2385,6 @@ channel (if not supplied, all channels will have weight 1.0).
 bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
         mapname, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!color_map} \indexapi{color_map}
-\NEW % 1.8
 Set pixels of {\cf dst} by applying the color map to the values of {\cf
 src}, using either the channel specified by {\cf srcchannel}, or the
 luminance of {\cf src}'s RGB if {\cf srcchannel} is -1.

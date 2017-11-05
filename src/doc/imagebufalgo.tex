@@ -360,7 +360,6 @@ alpha channel of the composite (makes a black halo around the characters).
 \bigspc\bigspc string_view fontname="")}
 \index{ImageBufAlgo!text_size} \indexapi{text_size}
 
-\NEW % 1.8
 The helper function {\cf text_size()} merely computes the dimensions of the
 text, returning it as an {\cf ROI}  relative to the left side of the
 baseline of the first character. Only the $x$ and $y$ dimensions of the ROI
@@ -1158,7 +1157,6 @@ bool {\ce color_map} (ImageBuf \&dst, const ImageBuf \&src, \\
         \bigspc\spc int srcchannel, string_view mapname, \\
         \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!color_map} \indexapi{color_map}
-\NEW % 1.8
 
 Set pixels of {\cf dst} to colors with values determined by looking up a
 color map using values of the {\cf src} image, using either the channel
@@ -2621,7 +2619,6 @@ the first opaque sample will be discarded, otherwise they will be kept.
 \apiitem{bool {\ce deep_holdout} (ImageBuf \&dst, const ImageBuf \&src, \\
 \bigspc\spc  const ImageBuf \&holdout, ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!deep_holdout} \indexapi{deep_holdout} \index{deep images}
-\NEW % 1.8
 Set the pixels of {\cf dst} to the pixels of {\cf src}, but only copying the
 samples that are closer than the opaque frontier of image {\cf holdout}.
 That is, {\cf holdout} will serve as a depth holdout mask, but no samples
@@ -2701,7 +2698,6 @@ Repair nonfinite ({\cf NaN} or {\cf Inf}) values, setting them to 0.0.
         \bigspc bool interpolate = true, \\
         \bigspc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!resample} \indexapi{resample}
-\NEW % 1.8
 Set {\cf dst}, over the region of interest, to be a resized version of the
 corresponding portion of {\cf src} (mapping such that the ``full'' image
 window of each correspond to each other, regardless of resolution), for each
