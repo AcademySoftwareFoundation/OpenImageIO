@@ -22,6 +22,7 @@ environment:
 
 install:
   - cinstall: python
+  - git submodule update --init --recursive
   - set CMAKE_PREFIX_PATH=C:/Sys;%APPVEYOR_BUILD_FOLDER%/deps
   - set CMAKE_LIBRARY_PATH=C:/Sys/lib;%APPVEYOR_BUILD_FOLDER%/deps/lib
   - set CMAKE_INCLUDE_PATH=C:/Sys/include;%APPVEYOR_BUILD_FOLDER%/deps/include
@@ -119,7 +120,7 @@ build_script:
   - mkdir build
   - mkdir build\windows64
   - cd build\windows64
-  - cmake -G "%CMAKE_PLATFORM%" -DPYTHON_INCLUDE_DIR:PATH=%PYTHON_DIR%/include -DPYTHON_LIBRARY:FILEPATH=%PYTHON_DIR%/libs/python27.lib -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe -DCMAKE_LIBRARY_PATH=%CMAKE_LIBRARY_PATH% -DCMAKE_INCLUDE_PATH=%CMAKE_INCLUDE_PATH%  -DCMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH% -DOPENEXR_HOME=C:\projects\oiio\deps -DVERBOSE=1 ../..
+  - cmake -G "%CMAKE_PLATFORM%" -DPYTHON_INCLUDE_DIR:PATH=%PYTHON_DIR%/include -DPYTHON_LIBRARY:FILEPATH=%PYTHON_DIR%/libs/python27.lib -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe -DCMAKE_LIBRARY_PATH=%CMAKE_LIBRARY_PATH% -DCMAKE_INCLUDE_PATH=%CMAKE_INCLUDE_PATH%  -DCMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH% -DOPENEXR_HOME=C:\projects\oiio\deps -DVERBOSE=1 -DBUILD_MISSING_DEPS=1 ../..
   - dir c:\projects\oiio
   - dir c:\projects\oiio\build
   - dir c:\projects\oiio\build\windows64

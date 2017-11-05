@@ -18,19 +18,22 @@ Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
   ResolutionUnit = "none"
   Software = "title;va"
   Exif:YCbCrPositioning = 1
+  Exif:ExifVersion = "0220"
   Exif:DateTimeOriginal = "2009:02:21 08:32:04"
   Exif:DateTimeDigitized = "2009:02:21 08:32:04"
+  Exif:FlashPixVersion = "0100"
   Exif:ColorSpace = 1
   Exif:PixelXDimension = 2048
   Exif:PixelYDimension = 1536
   Exif:WhiteBalance = 0
+  GPS:VersionID = None
   GPS:LatitudeRef = "N"
-  GPS:Latitude = 39.0
+  GPS:Latitude = (39.0, 18.0, 24.399999618530273)
   GPS:LongitudeRef = "W"
-  GPS:Longitude = 120.0
+  GPS:Longitude = (120.0, 20.0, 6.25)
   GPS:AltitudeRef = 0
   GPS:Altitude = 0.0
-  GPS:TimeStamp = 17.0
+  GPS:TimeStamp = (17.0, 56.0, 33.0)
   GPS:MapDatum = "WGS-84"
   GPS:DateStamp = "1915:08:08"
 
@@ -94,60 +97,60 @@ Subimage 0 MIP level 10 :
 
 Testing read_image:
 Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
-@ (0, 0) = array('B', [40, 35, 57])
-@ (2047, 1535) = array('B', [37, 56, 89])
-@ (1024, 768) = array('B', [137, 183, 233])
+@ (0L, 0L) = [40 35 57]
+@ (2047L, 1535L) = [37 56 89]
+@ (1024L, 768L) = [137 183 233]
 
 Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
-@ (0, 0) = array('f', [0.15686275064945221, 0.13725490868091583, 0.22352942824363708])
-@ (2047, 1535) = array('f', [0.14509804546833038, 0.21960785984992981, 0.3490196168422699])
-@ (1024, 768) = array('f', [0.5372549295425415, 0.71764707565307617, 0.91372555494308472])
+@ (0L, 0L) = [ 0.15686275  0.13725491  0.22352943]
+@ (2047L, 1535L) = [ 0.14509805  0.21960786  0.34901962]
+@ (1024L, 768L) = [ 0.53725493  0.71764708  0.91372555]
 
 Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
-@ (0, 0) = array('B', [40])
-@ (2047, 1535) = array('B', [37])
-@ (1024, 768) = array('B', [137])
+@ (0L, 0L) = [40]
+@ (2047L, 1535L) = [37]
+@ (1024L, 768L) = [137]
 
 Testing read_scanline:
 Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
-@ (0, 0) = array('B', [40, 35, 57])
-@ (0, 1535) = array('B', [82, 94, 136])
+@ (0L, 0L) = [40 35 57]
+@ (0L, 1535L) = [ 82  94 136]
 
 Testing read_tile:
 Opened "grid.tx" as a tiff
-@ (32, 32) = array('B', [1, 1, 1, 255])
-@ (160, 160) = array('B', [255, 127, 127, 255])
+@ (32L, 32L) = [  1   1   1 255]
+@ (32L, 32L) = [255 127 127 255]
 
 Testing read_scanlines:
 Opened "../../../../../oiio-images/tahoe-gps.jpg" as a jpeg
-@ (0, 0) = array('B', [40, 35, 57])
-@ (2047, 1535) = array('B', [37, 56, 89])
-@ (1024, 768) = array('B', [137, 183, 233])
+@ (0L, 0L) = [40 35 57]
+@ (2047L, 1535L) = [37 56 89]
+@ (1024L, 768L) = [137 183 233]
 
 Testing read_tiles:
 Opened "grid.tx" as a tiff
-@ (0, 0) = array('B', [0, 0, 0, 255])
-@ (1023, 1023) = array('B', [0, 0, 0, 255])
-@ (512, 512) = array('B', [0, 0, 0, 255])
+@ (0L, 0L) = [  0   0   0 255]
+@ (1023L, 1023L) = [  0   0   0 255]
+@ (512L, 512L) = [  0   0   0 255]
 
 Test read_image native u16:
 Opened "testu16.tif" as a tiff
-Read array typecode B  [ 24576 ]
+Read array typecode uint16  [ 12288 ]
 
 Test read_scanlines native u16:
 Opened "testu16.tif" as a tiff
-Read array typecode B  [ 24576 ]
+Read array typecode uint16  [ 12288 ]
 
 Test read_tiles native half:
 Opened "testf16.exr" as a openexr
-Read array typecode B  [ 24576 ]
+Read array typecode uint16  [ 12288 ]
 
 Test read_image into half:
 Opened "testu16.tif" as a tiff
-Read array typecode H  [ 12288 ]
+Read array typecode uint16  [ 12288 ]
 
 Test read_image into FLOAT:
 Opened "testu16.tif" as a tiff
-Read array typecode f  [ 12288 ]
+Read array typecode float32  [ 12288 ]
 
 Done.

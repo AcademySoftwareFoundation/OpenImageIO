@@ -84,7 +84,7 @@ def test_readimage (filename, sub=0, mip=0, type=oiio.UNKNOWN,
     spec = input.spec ()
     if nchannels == 0 or method == "image" :
         nchannels = spec.nchannels
-    if type == oiio.UNKNOWN and not keep_unknown :
+    if str(type) == "unknown" and not keep_unknown :
         type = spec.format.basetype
     if method == "image" :
         data = input.read_image (type)
@@ -105,16 +105,13 @@ def test_readimage (filename, sub=0, mip=0, type=oiio.UNKNOWN,
     if print_pixels :
         # print the first, last, and middle pixel values
         (x,y) = (spec.x, spec.y)
-        i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
-        print "@", (x,y), "=", data[i:i+nchannels]
+        print "@", (x,y), "=", data[y,x]
         (x,y) = (spec.x+spec.width-1, spec.y+spec.height-1)
-        i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
-        print "@", (x,y), "=", data[i:i+nchannels]
+        print "@", (x,y), "=", data[y,x]
         (x,y) = (spec.x+spec.width/2, spec.y+spec.height/2)
-        i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
-        print "@", (x,y), "=", data[i:i+nchannels]
+        print "@", (x,y), "=", data[y,x]
     else :
-        print "Read array typecode", data.typecode, " [", len(data), "]"
+        print "Read array typecode", data.dtype, " [", data.size, "]"
     input.close ()
     print
 
@@ -175,13 +172,10 @@ def test_readtile (filename, sub=0, mip=0, type=oiio.UNKNOWN) :
         print "read returned None"
         return
     (x,y) = (tx+spec.tile_width/2, ty+spec.tile_height/2)
-    i = ((y-ty)*spec.tile_width + (x-tx)) * spec.nchannels
-    print "@", (x,y), "=", data[i:i+spec.nchannels]
+    print "@", (x,y), "=", data[y,x]
     (tx,ty) = (spec.x+2*spec.tile_width, spec.y+2*spec.tile_height)
     data = input.read_tile (tx+spec.x, ty+spec.y, spec.z, type)
-    (x,y) = (tx+spec.tile_width/2, ty+spec.tile_height/2)
-    i = ((y-ty)*spec.tile_width + (x-tx)) * spec.nchannels
-    print "@", (x,y), "=", data[i:i+spec.nchannels]
+    print "@", (x,y), "=", data[y,x]
     input.close ()
     print
 
@@ -251,7 +245,7 @@ try:
     test_readimage ("testu16.tif", method="image", type=oiio.HALF,
                     keep_unknown=True, print_pixels=False)
     print "Test read_image into FLOAT:"
-    test_readimage ("testu16.tif", method="image", type=oiio.FLOAT,
+    test_readimage ("testu16.tif", method="image", type="float",
                     keep_unknown=True, print_pixels=False)
 
     print "Done."

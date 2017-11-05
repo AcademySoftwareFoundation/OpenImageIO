@@ -73,8 +73,8 @@ option (USE_QT "Include Qt support" ON)
 option (FORCE_OPENGL_1 "Force iv to use OpenGL's fixed pipeline")
 option (USE_PYTHON "Build the Python bindings" ON)
 set (PYTHON_VERSION "2.7" CACHE STRING "Target version of python to find")
-option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library")
-option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'")
+option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
+option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
 option (USE_FIELD3D "Use Field3D if found" ON)
 option (USE_FFMPEG "Use FFmpeg if found" ON)
 set (JPEG_PATH "" CACHE STRING "Custom JPEG path")
@@ -184,6 +184,7 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
 endif ()
 
 if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
+    find_or_download_pybind11 ()
     add_subdirectory (src/python)
 endif ()
 
@@ -262,7 +263,7 @@ oiio_add_tests (
 # We also exclude these tests if this is a sanitizer build on Linux,
 # because the Python interpreter itself won't be linked with the right asan
 # libraries to run correctly.
-if (USE_PYTHON AND boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
     if (NOT SANITIZE_ON_LINUX)
         oiio_add_tests (
                 python-typedesc python-imagespec python-roi python-deep

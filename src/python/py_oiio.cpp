@@ -32,8 +32,6 @@
 
 namespace PyOpenImageIO
 {
-using namespace boost::python;
-
 
 
 const char *
@@ -48,7 +46,7 @@ python_array_code (TypeDesc format)
     case TypeDesc::INT32 :  return "i";
     case TypeDesc::FLOAT :  return "f";
     case TypeDesc::DOUBLE : return "d";
-    case TypeDesc::HALF :   return "H";  // Return half in uint16
+    case TypeDesc::HALF :   return "e";
     default :
         // For any other type, including UNKNOWN, pack it into an
         // unsigned byte array.
@@ -69,10 +67,11 @@ typedesc_from_python_array_code (char code)
     case 'H' : return TypeDesc::UINT16;
     case 'i' : return TypeDesc::INT;
     case 'I' : return TypeDesc::UINT;
-    case 'l' : return TypeDesc::INT;
-    case 'L' : return TypeDesc::UINT;
+    case 'l' : return TypeDesc::INT64;
+    case 'L' : return TypeDesc::UINT64;
     case 'f' : return TypeDesc::FLOAT;
     case 'd' : return TypeDesc::DOUBLE;
+    case 'e' : return TypeDesc::HALF;
     }
     return TypeDesc::UNKNOWN;
 }
@@ -80,107 +79,104 @@ typedesc_from_python_array_code (char code)
 
 
 std::string
-object_classname (const object& obj)
+object_classname (const py::object& obj)
 {
-    return extract<std::string>(obj.attr("__class__").attr("__name__"));
+    return obj.attr("__class__").attr("__name__").cast<py::str>();
 }
 
 
-
-object
-C_array_to_Python_array (const char *data, TypeDesc type, size_t size)
+oiio_bufinfo::oiio_bufinfo (const py::buffer_info &pybuf, int nchans,
+                            int width, int height, int depth, int pixeldims)
 {
-    // Figure out what kind of array to return and create it
-    object arr_module(handle<>(PyImport_ImportModule("array")));
-    object array = arr_module.attr("array")(python_array_code(type));
-
-    // Create a Python byte array (or string for Python2) to hold the
-    // data.
-#if PY_MAJOR_VERSION >= 3
-    object string_py(handle<>(PyBytes_FromStringAndSize(data, size)));
-#else
-    object string_py(handle<>(PyString_FromStringAndSize(data, size)));
-#endif
-
-    // Copy the data from the string to the array, then return the array.
-#if (PY_MAJOR_VERSION < 3) || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION < 2)
-    array.attr("fromstring")(string_py);
-#else
-    array.attr("frombytes")(string_py);
-#endif
-    return array;
-}
-
-
-
-struct ustring_to_python_str {
-    static PyObject* convert(ustring const& s) {
-        return boost::python::incref(boost::python::object(s.string()).ptr());
+    if (pybuf.format.size())
+        format = typedesc_from_python_array_code (pybuf.format[0]);
+    if (size_t(pybuf.itemsize) != format.size() ||
+          pybuf.size != int64_t(width)*int64_t(height)*int64_t(depth*nchans)) {
+        format = TypeUnknown;   // Something went wrong
+        throw std::length_error (Strutil::format("buffer is wrong size (expected %dx%dx%dx%d, got total %d)",
+                                                 depth, height, width, nchans, pybuf.size));
     }
-};
-
-struct ustring_from_python_str
-{
-    ustring_from_python_str() {
-        boost::python::converter::registry::push_back(
-                &convertible,
-                &construct,
-                boost::python::type_id<ustring>());
+    size = pybuf.size;
+    if (pixeldims == 3) {
+        // Reading a 3D volumetric cube
+        if (pybuf.ndim == 4 && pybuf.shape[0] == depth &&
+              pybuf.shape[1] == height &&
+              pybuf.shape[2] == width && pybuf.shape[3] == nchans) {
+            // passed from python as [z][y][x][c]
+            xstride = pybuf.strides[2];
+            ystride = pybuf.strides[1];
+            zstride = pybuf.strides[0];
+        }
+        else if (pybuf.ndim == 3 && pybuf.shape[0] == depth &&
+              pybuf.shape[1] == height &&
+              pybuf.shape[2] == width*nchans) {
+            // passed from python as [z][y][xpixel] -- chans mushed together
+            xstride = pybuf.strides[2];
+            ystride = pybuf.strides[1];
+            zstride = pybuf.strides[0];
+        } else {
+            format = TypeUnknown;  // No idea what's going on -- error
+            throw std::invalid_argument ("Bad pixeldims in oiio_bufinfo ctr");
+        }
+    } else if (pixeldims == 2) {
+        // Reading an 2D image rectangle
+        if (pybuf.ndim == 3 && pybuf.shape[0] == height &&
+            pybuf.shape[1] == width && pybuf.shape[2] == nchans) {
+            // passed from python as [y][x][c]
+            xstride = pybuf.strides[1];
+            ystride = pybuf.strides[0];
+        } else if (pybuf.ndim == 2) {
+            // Somebody collapsed a dimsision. Is it [pixel][c] with x&y
+            // combined, or is it [y][xpixel] with channels mushed together?
+            if (pybuf.shape[0] == width*height && pybuf.shape[1] == nchans)
+                xstride = pybuf.strides[0];
+            else if (pybuf.shape[0] == height && pybuf.shape[1] == width*nchans) {
+                ystride = pybuf.strides[0];
+                xstride = pybuf.strides[0]*nchans;
+            } else {
+                format = TypeUnknown; // error
+                throw std::invalid_argument (Strutil::format("Can't figure out array shape (pixeldims=%d, pydim=%d)",
+                                                             pixeldims, pybuf.ndim));
+            }
+        } else if (pybuf.ndim == 1 && pybuf.shape[0] == height*width*nchans) {
+            // all pixels & channels smushed together
+            // just rely on autostride
+        } else {
+            format = TypeUnknown;  // No idea what's going on -- error
+            throw std::invalid_argument (Strutil::format("Can't figure out array shape (pixeldims=%d, pydim=%d)",
+                                                         pixeldims, pybuf.ndim));
+        }
+    } else if (pixeldims == 1) {
+        // Reading a 1D scanline span
+        if (pybuf.ndim == 2 && pybuf.shape[0] == width && pybuf.shape[1] == nchans) {
+            // passed from python as [x][c]
+            xstride = pybuf.strides[0];
+        } else if (pybuf.ndim == 1 && pybuf.shape[0] == width*nchans) {
+            // all pixels & channels smushed together
+            xstride = pybuf.strides[0] * nchans;
+        } else {
+            format = TypeUnknown; // No idea what's going on -- error
+            throw std::invalid_argument (Strutil::format("Can't figure out array shape (pixeldims=%d, pydim=%d)",
+                                                         pixeldims, pybuf.ndim));
+        }
+    } else {
+        throw std::invalid_argument (Strutil::format("Can't figure out array shape (pixeldims=%d, pydim=%d)",
+                                                     pixeldims, pybuf.ndim));
     }
 
-    static void* convertible(PyObject* obj_ptr) {
-#if PY_MAJOR_VERSION >= 3
-        if (!PyUnicode_Check(obj_ptr)) return 0;
-#else
-        if (!PyString_Check(obj_ptr)) return 0;
-#endif
-        return obj_ptr;
+    if (nchans > 1 && size_t(pybuf.strides.back()) != format.size()) {
+        format = TypeUnknown;  // can't handle noncontig channels
+        throw std::invalid_argument ("Can't handle numpy array with noncontiguous channels");
     }
-
-    static void construct(
-            PyObject* obj_ptr,
-            boost::python::converter::rvalue_from_python_stage1_data* data) {
-#if PY_MAJOR_VERSION >= 3
-        PyObject* pyStr = PyUnicode_AsUTF8String(obj_ptr);
-        const char* value = PyBytes_AsString(pyStr);
-#else
-        const char* value = PyString_AsString(obj_ptr);
-#endif
-        if (value == 0) boost::python::throw_error_already_set();
-        void* storage = (
-                (boost::python::converter::rvalue_from_python_storage<ustring>*)
-                data)->storage.bytes;
-        new (storage) ustring(value);
-        data->convertible = storage;
-    }
-};
-
-
-
-bool
-oiio_attribute_int (const std::string &name, int val)
-{
-    return OIIO::attribute (name, val);
-}
-
-
-bool
-oiio_attribute_float (const std::string &name, float val)
-{
-    return OIIO::attribute (name, val);
-}
-
-
-bool
-oiio_attribute_string (const std::string &name, const std::string &val)
-{
-    return OIIO::attribute (name, val);
+    if (format != TypeUnknown)
+        data = pybuf.ptr;
 }
 
 
 
 bool
-oiio_attribute_typed (const std::string &name, TypeDesc type, object &obj)
+oiio_attribute_typed (const std::string &name, TypeDesc type,
+                      const py::tuple &obj)
 {
     if (type.basetype == TypeDesc::INT) {
         std::vector<int> vals;
@@ -212,150 +208,23 @@ oiio_attribute_typed (const std::string &name, TypeDesc type, object &obj)
 
 
 
-bool
-oiio_attribute_tuple_typed (const std::string &name,
-                            TypeDesc type, tuple &obj)
-{
-    if (type.basetype == TypeDesc::INT) {
-        std::vector<int> vals;
-        py_to_stdvector (vals, obj);
-        if (vals.size() == type.numelements()*type.aggregate)
-            return OIIO::attribute (name, type, &vals[0]);
-        return false;
-    }
-    if (type.basetype == TypeDesc::FLOAT) {
-        std::vector<float> vals;
-        py_to_stdvector (vals, obj);
-        if (vals.size() == type.numelements()*type.aggregate)
-            return OIIO::attribute (name, type, &vals[0]);
-        return false;
-    }
-    if (type.basetype == TypeDesc::STRING) {
-        std::vector<std::string> vals;
-        py_to_stdvector (vals, obj);
-        if (vals.size() == type.numelements()*type.aggregate) {
-            std::vector<ustring> u;
-            for (auto& val : vals)
-                u.emplace_back(val);
-            return OIIO::attribute (name, type, &u[0]);
-        }
-        return false;
-    }
-    return false;
-}
-
-
-
-static object
-oiio_getattribute_typed (const std::string &name, TypeDesc type)
+static py::object
+oiio_getattribute_typed (const std::string &name, TypeDesc type=TypeUnknown)
 {
     if (type == TypeDesc::UNKNOWN)
-        return object();
+        return py::none();
     char *data = OIIO_ALLOCA(char, type.size());
-    if (OIIO::getattribute (name, type, data)) {
-        if (type.basetype == TypeDesc::INT) {
-#if PY_MAJOR_VERSION >= 3
-            return C_to_val_or_tuple ((const int *)data, type, PyLong_FromLong);
-#else
-            return C_to_val_or_tuple ((const int *)data, type, PyInt_FromLong);
-#endif
-        }
-        if (type.basetype == TypeDesc::FLOAT) {
-            return C_to_val_or_tuple ((const float *)data, type, PyFloat_FromDouble);
-        }
-        if (type.basetype == TypeDesc::STRING) {
-#if PY_MAJOR_VERSION >= 3
-            return C_to_val_or_tuple ((const char **)data, type, PyUnicode_FromString);
-#else
-            return C_to_val_or_tuple ((const char **)data, type, PyString_FromString);
-#endif
-        }
-    }
-    return object();
+    if (! OIIO::getattribute (name, type, data))
+        return py::none();
+    if (type.basetype == TypeDesc::INT)
+        return C_to_val_or_tuple ((const int *)data, type);
+    if (type.basetype == TypeDesc::FLOAT)
+        return C_to_val_or_tuple ((const float *)data, type);
+    if (type.basetype == TypeDesc::STRING)
+        return C_to_val_or_tuple ((const char **)data, type);
+    return py::none();
 }
 
-
-static int
-oiio_get_int_attribute (const char *name)
-{
-    return OIIO::get_int_attribute (name);
-}
-
-
-static int
-oiio_get_int_attribute_d (const char *name, int defaultval)
-{
-    return OIIO::get_int_attribute (name, defaultval);
-}
-
-
-static float
-oiio_get_float_attribute (const char *name)
-{
-    return OIIO::get_float_attribute (name);
-}
-
-
-static float
-oiio_get_float_attribute_d (const char *name, float defaultval)
-{
-    return OIIO::get_float_attribute (name, defaultval);
-}
-
-
-static std::string
-oiio_get_string_attribute (const char *name)
-{
-    return OIIO::get_string_attribute (name);
-}
-
-
-static std::string
-oiio_get_string_attribute_d (const char *name, const char *defaultval)
-{
-    return OIIO::get_string_attribute (name, defaultval);
-}
-
-
-
-
-
-const void *
-python_array_address (const object &data, TypeDesc &elementtype,
-                      size_t &numelements)
-{
-    // Figure out the type of the array
-    object tcobj;
-    try {
-        tcobj = data.attr("typecode");
-    } catch(...) {
-        return NULL;
-    }
-    if (! tcobj)
-        return NULL;
-    extract<char> tce (tcobj);
-    char typecode = tce.check() ? (char)tce : 0;
-    elementtype = typedesc_from_python_array_code (typecode);
-    if (elementtype == TypeDesc::UNKNOWN)
-        return NULL;
-
-    // TODO: The PyObject_AsReadBuffer is a deprecated API dating from
-    // Python 1.6 (see https://docs.python.org/2/c-api/objbuffer.html). It
-    // still works in 2.x, but for future-proofing, we should switch to the
-    // memory buffer interface:
-    // https://docs.python.org/2/c-api/buffer.html#bufferobjects
-    // https://docs.python.org/3/c-api/buffer.html
-    const void *addr = NULL;
-    Py_ssize_t pylen = 0;
-    int success = PyObject_AsReadBuffer(data.ptr(), &addr, &pylen);
-    if (success != 0) {
-        throw_error_already_set();
-        return NULL;
-    }
-
-    numelements = size_t(pylen) / elementtype.size();
-    return addr;
-}
 
 
 
@@ -363,56 +232,58 @@ python_array_address (const object &data, TypeDesc &elementtype,
 // MODULE name as a #define. Google for Argument-Prescan for additional
 // info on why this is necessary
 
-#define OIIO_DECLARE_PYMODULE(x) BOOST_PYTHON_MODULE(x) 
+#define OIIO_DECLARE_PYMODULE(x) PYBIND11_MODULE(x,m)
 
 OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME) {
-    // Conversion back and forth to ustring
-    boost::python::to_python_converter<
-        ustring,
-        ustring_to_python_str>();
-    ustring_from_python_str();
 
     // Basic helper classes
-    declare_typedesc();
-    declare_paramvalue();
-    declare_imagespec();
-    declare_roi();
-    declare_deepdata();
+    declare_typedesc (m);
+    declare_paramvalue (m);
+    declare_imagespec (m);
+    declare_roi (m);
+    declare_deepdata (m);
 
     // Main OIIO I/O classes
-    declare_imageinput();
-    declare_imageoutput();
-    declare_imagebuf();
-    declare_imagecache();
+    declare_imageinput (m);
+    declare_imageoutput (m);
+    declare_imagebuf (m);
+    declare_imagecache (m);
 
-    declare_imagebufalgo();
-    
+    declare_imagebufalgo (m);
+
     // Global (OpenImageIO scope) functions and symbols
-    def("geterror",     &OIIO::geterror);
-    def("attribute",    &oiio_attribute_float);
-    def("attribute",    &oiio_attribute_int);
-    def("attribute",    &oiio_attribute_string);
-    def("attribute",    &oiio_attribute_typed);
-    def("attribute",    &oiio_attribute_tuple_typed);
-    def("get_int_attribute",    &oiio_get_int_attribute);
-    def("get_int_attribute",    &oiio_get_int_attribute_d);
-    def("get_float_attribute",  &oiio_get_float_attribute);
-    def("get_float_attribute",  &oiio_get_float_attribute_d);
-    def("get_string_attribute", &oiio_get_string_attribute);
-    def("get_string_attribute", &oiio_get_string_attribute_d);
-    def("getattribute",         &oiio_getattribute_typed);
-    scope().attr("AutoStride") = AutoStride;
-    scope().attr("openimageio_version") = OIIO_VERSION;
-    scope().attr("VERSION") = OIIO_VERSION;
-    scope().attr("VERSION_STRING") = OIIO_VERSION_STRING;
-    scope().attr("VERSION_MAJOR") = OIIO_VERSION_MAJOR;
-    scope().attr("VERSION_MINOR") = OIIO_VERSION_MINOR;
-    scope().attr("VERSION_PATCH") = OIIO_VERSION_PATCH;
-    scope().attr("INTRO_STRING") = OIIO_INTRO_STRING;
+    m.def("geterror",     &OIIO::geterror);
+    m.def("attribute", [](const std::string &name, float val){
+            OIIO::attribute(name,val);
+        });
+    m.def("attribute", [](const std::string &name, int val){
+            OIIO::attribute(name,val);
+        });
+    m.def("attribute", [](const std::string &name, const std::string &val){
+            OIIO::attribute(name,val);
+        });
+    m.def("attribute", [](const std::string &name, TypeDesc type, const py::tuple &obj) {
+            oiio_attribute_typed (name, type, obj);
+        });
 
-#if BOOST_VERSION < 106500
-    boost::python::numeric::array::set_module_and_type("array", "array");
-#endif
+    m.def("get_int_attribute", [](const std::string& name, int def) {
+            return OIIO::get_int_attribute (name, def); },
+          py::arg("name"), py::arg("defaultval")=0);
+    m.def("get_float_attribute", [](const std::string& name, float def) {
+            return OIIO::get_float_attribute (name, def); },
+         py::arg("name"), py::arg("defaultval")=0.0f);
+    m.def("get_string_attribute", [](const std::string& name, const std::string& def) {
+            return std::string(OIIO::get_string_attribute (name, def)); },
+         py::arg("name"), py::arg("defaultval")="");
+    m.def("getattribute",         &oiio_getattribute_typed);
+    m.attr("AutoStride") = AutoStride;
+    m.attr("openimageio_version") = OIIO_VERSION;
+    m.attr("VERSION") = OIIO_VERSION;
+    m.attr("VERSION_STRING") = OIIO_VERSION_STRING;
+    m.attr("VERSION_MAJOR") = OIIO_VERSION_MAJOR;
+    m.attr("VERSION_MINOR") = OIIO_VERSION_MINOR;
+    m.attr("VERSION_PATCH") = OIIO_VERSION_PATCH;
+    m.attr("INTRO_STRING") = OIIO_INTRO_STRING;
 }
 
 } // namespace PyOpenImageIO

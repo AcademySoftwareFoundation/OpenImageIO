@@ -251,7 +251,7 @@ def test_iba_deep_holdout () :
     print "\nTesting ImageBufAlgo.deep_holdout..."
     spec = oiio.ImageSpec (6, 1, 6, oiio.FLOAT)
     spec.deep = True
-    spec.channeltypes = (oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
+    spec.channelformats = (oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
                   oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
                   oiio.TypeDesc.TypeFloat, oiio.TypeDesc.TypeFloat)
     spec.channelnames = ("R", "G", "B", "A", "Z", "Zback")
@@ -298,7 +298,7 @@ try:
     spec.channelformats = test_chantypes
     spec.deep = True
     output = oiio.ImageOutput.create ("deeptest.exr")
-    output.open ("deeptest.exr", spec, oiio.Create)
+    output.open ("deeptest.exr", spec, "create")
     output.write_deep_image (dd)
     output.close ()
 

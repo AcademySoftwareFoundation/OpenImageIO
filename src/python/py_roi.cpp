@@ -32,20 +32,17 @@
 
 namespace PyOpenImageIO
 {
-using namespace boost::python;
-using self_ns::str;
-
 
 
 static ROI ROI_All;
 
 
-
 // Declare the OIIO ROI class to Python
-void declare_roi()
+void declare_roi(py::module& m)
 {
+    using namespace py;
 
-    class_<ROI>("ROI")
+    py::class_<ROI>(m, "ROI")
         .def_readwrite("xbegin",   &ROI::xbegin)
         .def_readwrite("xend",     &ROI::xend)
         .def_readwrite("ybegin",   &ROI::ybegin)
@@ -55,38 +52,41 @@ void declare_roi()
         .def_readwrite("chbegin",  &ROI::chbegin)
         .def_readwrite("chend",    &ROI::chend)
 
-        .def(init<int,int,int,int>())
-        .def(init<int,int,int,int,int,int>())
-        .def(init<int,int,int,int,int,int,int,int>())
-        .def(init<const ROI&>())
+        .def(py::init<>())
+        .def(py::init<int,int,int,int>())
+        .def(py::init<int,int,int,int,int,int>())
+        .def(py::init<int,int,int,int,int,int,int,int>())
+        .def(py::init<const ROI&>())
 
-        .add_property("defined",   &ROI::defined)
-        .add_property("width",     &ROI::width)
-        .add_property("height",    &ROI::height)
-        .add_property("depth",     &ROI::depth)
-        .add_property("nchannels", &ROI::nchannels)
-        .add_property("npixels",   &ROI::npixels)
+        // .def("defined",   [](const ROI& roi) { return (int)roi.defined(); })
+        .def_property_readonly("defined",   &ROI::defined)
+        .def_property_readonly("width",     &ROI::width)
+        .def_property_readonly("height",    &ROI::height)
+        .def_property_readonly("depth",     &ROI::depth)
+        .def_property_readonly("nchannels", &ROI::nchannels)
+        .def_property_readonly("npixels",   &ROI::npixels)
 
-        .def_readonly("All",                &ROI_All)
+        .def_readonly_static("All",                &ROI_All)
 
-        // Define Python str(ROI), it automatically uses '<<'
-        .def(str(self))    // __str__
+        // Conversion to string
+        .def("__str__", [](const ROI& roi){ return Strutil::format("%s", roi); })
 
         // roi_union, roi_intersection, get_roi(spec), get_roi_full(spec)
         // set_roi(spec,newroi), set_roi_full(newroi)
 
         // overloaded operators
-        .def(self == other<ROI>())    // operator==
-        .def(self != other<ROI>())    // operator!=
+       .def(py::self == py::self)    // operator==
+       .def(py::self != py::self)    // operator!=
     ;
 
-    def("union",        &roi_union);
-    def("intersection", &roi_intersection);
-    def("get_roi",      &get_roi);
-    def("get_roi_full", &get_roi_full);
-    def("set_roi",      &set_roi);
-    def("set_roi_full", &set_roi_full);
+    m.def("union",        &roi_union, "union of two ROI");
+    m.def("intersection", &roi_intersection);
+    m.def("get_roi",      &get_roi);
+    m.def("get_roi_full", &get_roi_full);
+    m.def("set_roi",      &set_roi);
+    m.def("set_roi_full", &set_roi_full);
 }
+
 
 } // namespace PyOpenImageIO
 

@@ -50,18 +50,38 @@ These names are also exported to the {\cf OpenImageIO} namespace.
 \apiitem{VECSEMANTICS}
 The {\cf VECSEMANTICS} enum corresponds to the C++ {\cf TypeDesc::VECSEMANTICS} and
 contains the following values: \\
-{\cf NOSEMANTICS COLOR POINT VECTOR NORMAL TIMECODE KEYCODE} \\
+{\cf NOSEMANTICS COLOR POINT VECTOR NORMAL TIMECODE KEYCODE RATIONAL} \\
 These names are also exported to the {\cf OpenImageIO} namespace.
 \apiend
 
-\apiitem{TypeDesc () \\
-TypeDesc (basetype) \\
-TypeDesc (basetype, aggregate) \\
-TypeDesc (basetype, aggregate, vecsemantics) \\
-TypeDesc (basetype, aggregate, vecsemantics, arraylen) \\
-TypeDesc (str)}
+\apiitem{TypeDesc.{\ce TypeDesc} (typename='unknown')}
 
-Construct a {\cf TypeDesc} object.  
+Construct a {\cf TypeDesc} object the easy way: from a string description.
+If the type name is omitted, it will default to {\cf UNKNOWN}.
+
+\noindent Examples:
+\begin{code}
+    import OpenImageIO as oiio
+
+    # make a default (UNKNOWN) TypeDesc
+    t = TypeDesc()
+
+    # make a TypeDesc describing an unsigned 8 bit int
+    t = TypeDesc("uint8")
+
+    # make a TypeDesc describing an array of 14 'float' values
+    t = TypeDesc("float[14]")
+
+    # make a TypeDesc describing 3-vector with point semantics
+    t = TypeDesc("point")
+\end{code}
+\apiend
+
+\apiitem{TypeDesc.{\ce TypeDesc} (basetype=oiio.UNKNOWN, aggregate=oiio.SCALAR, \\
+\bigspc\spc\spc vecsemantics=NOSEMANTICS, arraylen=0)}
+
+Construct a {\cf TypeDesc} object the hard way: from individual enum tokens
+describing the base type, aggregate class, semantic hints, and array length.
 
 \noindent Examples:
 \begin{code}
@@ -73,33 +93,20 @@ Construct a {\cf TypeDesc} object.
     # make a TypeDesc describing an unsigned 8 bit int
     t = TypeDesc(oiio.UINT8)
 
-    # make a TypeDesc describing an array of 14 'half' values
-    t = TypeDesc(oiio.HALF, oiio.SCALAR, oiio.NOSEMANTICS, 14)
+    # make a TypeDesc describing an array of 14 'float' values
+    t = TypeDesc(oiio.FLOAT, oiio.SCALAR, oiio.NOSEMANTICS, 14)
 
     # make a TypeDesc describing a float point
     t = TypeDesc(oiio.FLOAT, oiio.VEC3, oiio.POINT)
-
-    # Some constructors from a string description
-    t = TypeDesc("uint8")
-    t = TypeDesc("half[14]")
-    t = TypeDesc("point")     # equiv to FLOAT, VEC3, POINT
 \end{code}
 \apiend
 
-\apiitem{TypeFloat \\
-TypeInt \\
-TypeUInt \\
-TypeString \\
-TypeHalf \\
-TypeColor \\
-TypePoint \\
-TypeVector \\
-TypeNormal \\
-TypeMatrix \\
-TypeMatrix33 \\
-TypeTimeCode \\
-TypeKeyCode \\
-TypeFloat4 \\
+\apiitem{TypeUnknown TypeString \\
+TypeFloat TypeHalf \\
+TypeInt TypeUInt TypeInt16 TypeUInt16 \\
+TypeColor TypePoint TypeVector TypeNormal TypeFloat4 \\
+TypeMatrix TypeMatrix33 \\
+TypeTimeCode TypeKeyCode \\
 TypeRational \\
 }
 Pre-constructed \TypeDesc objects for some common types, available in the
@@ -276,12 +283,9 @@ The \ImageSpec class that describes an image, explained in deail in
 Section~\ref{sec:ImageSpec}, is replicated for Python.
 
 \apiitem{{\ce ImageSpec} ()\\
-{\ce ImageSpec} (basetype) \\
 {\ce ImageSpec} (typedesc) \\
-{\ce ImageSpec} (xres, yres, nchannels, basetype) \\
-{\ce ImageSpec} (xres, yres, nchannels, typespec) \\
-{\ce ImageSpec} (roi, basetype) \\
-{\ce ImageSpec} (roi, typespec)}
+{\ce ImageSpec} (xres, yres, nchannels, typedesc) \\
+{\ce ImageSpec} (roi, typedesc)}
 Constructors of an \ImageSpec. These correspond directly to the constructors
 in the C++ bindings.
 
@@ -297,10 +301,10 @@ in the C++ bindings.
     s = ImageSpec(oiio.UINT8)
 
     # construct with known resolution, channels, pixel data type
-    s = ImageSpec(640, 480, 4, oiio.HALF)
+    s = ImageSpec(640, 480, 4, "half")
 
     # construct from an ROI
-    s = ImageSpec (ROI(0,640,0,480,0,1,0,3), oiio.FLOAT)
+    s = ImageSpec (ROI(0,640,0,480,0,1,0,3), TypeFloat)
 \end{code}
 \apiend
 
@@ -342,7 +346,7 @@ A tuple of strings containing the names of each color channel.
 If all color channels have the same format, that will be {\cf ImageSpec.format},
 and {\cf channelformats} will be {\cf None}.  However, if there are different
 formats per channel, they will be stored in {\cf channelformats} as a tuple
-of BASETYPE values, and {\cf format} will contain the ``widest'' of them.
+of {\cf TypeDesc} objects.
 
 \noindent Example:
 \begin{code}
@@ -350,8 +354,8 @@ of BASETYPE values, and {\cf format} will contain the ``widest'' of them.
         print "All color channels are", str(spec.format)
     else:
         print "Channel formats: "
-        for i in range(len(spec.channelformats)):
-            print "\t", str(TypeDesc(spec.channelformats[i]))
+        for t in spec.channelformats:
+            print "\t", t
 \end{code}
 \apiend
 
@@ -366,15 +370,52 @@ Hold {\cf True} if the image is a \emph{deep} (multiple samples per pixel)
 image, of {\cf False} if it is an ordinary image.
 \apiend
 
-\apiitem{ImageSpec.{\ce set_format} (basetype) \\
-ImageSpec.{\ce set_format} (typedesc)}
-Given a {\cf BASETYPE} or a \TypeDesc, sets the {\cf format} field and
+\apiitem{ImageSpec.{\ce extra_attribs}}
+Direct access to the {\cf extra_attribs} named metadata, appropriate for
+iterating over the entire list rather than searching for a particular named
+value.
+
+\vspace{-10pt}
+\apiitem{len(extra_attribs)}
+\vspace{10pt}
+Returns the number of extra attributes.
+\apiend
+\vspace{-24pt}
+\apiitem{extra_attribs[i].name}
+\vspace{10pt}
+The name of the indexed attribute.
+\apiend
+\vspace{-24pt}
+\apiitem{extra_attribs[i].type}
+\vspace{10pt}
+The type of the indexed attribute, as a \TypeDesc.
+\apiend
+\vspace{-24pt}
+\apiitem{extra_attribs[i].value}
+\vspace{10pt}
+The value of the indexed attribute.
+\apiend
+
+\noindent Example:
+\begin{code}
+    s = ImageSpec(...)
+    ...
+    print "extra_attribs size is", len(s.extra_attribs)
+    for i in range(len(s.extra_attribs)) :
+        print i, s.extra_attribs[i].name, str(s.extra_attribs[i].type), " :"
+        print "\t", s.extra_attribs[i].value
+    print
+\end{code}
+\apiend
+
+\apiitem{ImageSpec.{\ce set_format} (typedesc)}
+Given a \TypeDesc, sets the {\cf format} field and
 clear any per-channel formats in {\cf channelformats}.
 
 \noindent Example:
 \begin{code}
     s = ImageSpec ()
-    s.set_format (oiio.UINT8)
+    s.set_format (TypeDesc("uint8"))
 \end{code}
 \apiend
 
@@ -397,8 +438,7 @@ Section~\ref{sec:ImageSpecMemberFuncs} for details.)
 \apiend
 
 \apiitem{ImageSpec.{\ce pixel_bytes} () \\
-ImageSpec.{\ce pixel_bytes} (native) \\
-ImageSpec.{\ce pixel_bytes} (chbegin, chend) \\
+ImageSpec.{\ce pixel_bytes} (native=False) \\
 ImageSpec.{\ce pixel_bytes} (chbegin, chend, native=False)}
 Returns the size of a pixel, in bytes (as an {\cf int}).
 (Analogous to the C++ member functions, see 
@@ -420,7 +460,7 @@ Returns the number of pixels in a tile or the full image, respectively
 Section~\ref{sec:ImageSpecMemberFuncs} for details.)
 \apiend
 
-\apiitem{ImageSpec.{\ce erase_attribute} (name, searchtype=TypeDesc(TypeDesc.UNKNOWN),\\
+\apiitem{ImageSpec.{\ce erase_attribute} (name, searchtype=TypeUnknown,\\
 \bigspc\bigspc\spc casesensitive=False)}
 Remove any specified attributes matching the regular expression {\cf name}
 from the list of extra_attribs.
@@ -478,42 +518,53 @@ value) if not found.
 \end{code}
 \apiend
 
-\apiitem{ImageSpec.{\ce extra_attribs}}
-Direct access to the {\cf extra_attribs} named metadata, appropriate for
-iterating over the entire list rather than searching for a particular named
-value.
+%\apiitem{static ImageSpec.{\ce metadata_val} (paramval, human=False)}
+%For a \ParamValue, format its value as a string.
+%\apiend
 
-\vspace{-10pt}
-\apiitem{len(extra_attribs)}
-\vspace{10pt}
-Returns the number of extra attributes.
-\apiend
-\vspace{-24pt}
-\apiitem{extra_attribs[i].name}
-\vspace{10pt}
-The name of the indexed attribute.
-\apiend
-\vspace{-24pt}
-\apiitem{extra_attribs[i].type}
-\vspace{10pt}
-The type of the indexed attribute, as a \TypeDesc.
-\apiend
-\vspace{-24pt}
-\apiitem{extra_attribs[i].value}
-\vspace{10pt}
-The value of the indexed attribute.
+\apiitem{ImageSpec.{\ce serialize} (format="text", verbose="Detailed")}
+\NEW % 1.9
+Return a string containing the serialization of the \ImageSpec. The {\cf format}
+may be either \qkw{text} or \qkw{XML}. The {\cf verbose} may be one of
+\qkw{brief}, \qkw{detailed}, or \qkw{detailedhuman}.
 \apiend
 
-\noindent Example:
-\begin{code}
-    s = ImageSpec(...)
-    ...
-    print "extra_attribs size is", len(s.extra_attribs)
-    for i in range(len(s.extra_attribs)) :
-        print i, s.extra_attribs[i].name, s.extra_attribs[i].type, " :"
-        print "\t", s.extra_attribs[i].value
-    print
-\end{code}
+\apiitem{ImageSpec.{\ce to_xml} ()}
+\NEW % 1.9
+Equivalent to {\cf serialize ("xml", "detailedhuman")}.
+\apiend
+
+\apiitem{ImageSpec.{\ce from_xml} (xml)}
+\NEW % 1.9
+Initializes the \ImageSpec from the information in the string {\cf xml}
+containing an XML-serialized \ImageSpec.
+\apiend
+
+\apiitem{ImageSpec.{\ce channel_name} (chan)}
+\NEW % 1.9
+Returns a string containing the name of the channel with index {\cf chan}.
+\apiend
+
+\apiitem{ImageSpec.{\ce channelindex} (name)}
+\NEW % 1.9
+Return the integer index of the channel with the given {\cf name}, or
+-1 if the name is not a name of one of the channels.
+\apiend
+
+\apiitem{ImageSpec.{\ce channelformat} (chan)}
+\NEW % 1.9
+Returns a \TypeDesc of the channel with index {\cf chan}.
+\apiend
+
+\apiitem{ImageSpec.{\ce get_channelformats} ()}
+\NEW % 1.9
+Returns a tuple containing all the channel formats.
+\apiend
+
+\apiitem{ImageSpec.{\ce valid_tile_range} (xbegin, xend, ybegin, yend, zbegin, zend)}
+\NEW % 1.9
+Returns {\cf True} if the given tile range exactly covers a set of tiles, or
+{\cf False} if it isn't (or if the image is not tiled).
 \apiend
 
 
@@ -553,16 +604,16 @@ def print_imagespec (spec, subimage=0, mip=0) :
         return
     print "  " + str(spec.nchannels), "channels:", spec.channelnames
     print "  format = ", str(spec.format)
-    if spec.channelformats :
+    if len(spec.channelformats) > 0 :
         print "  channelformats = ", spec.channelformats
     print "  alpha channel = ", spec.alpha_channel
     print "  z channel = ", spec.z_channel
     print "  deep = ", spec.deep
-    for i in range(len(spec.extra_attribs)) :
-        if type(spec.extra_attribs[i].value) == str :
-            print " ", spec.extra_attribs[i].name, "= \"" + spec.extra_attribs[i].value + "\""
+    for i in spec.extra_attribs) :
+        if type(i.value) == str :
+            print " ", i.name, "= \"" + i.value + "\""
         else :
-            print " ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value
+            print " ", i.name, "=", i.value
 
 
 def poor_mans_iinfo (filename) :
@@ -812,35 +863,39 @@ specified subimage or MIP level).
 \end{code}
 \apiend
 
-\apiitem{array ImageInput.{\ce read_image} (type=OpenImageIO.FLOAT) \\
-array ImageInput.{\ce read_image} (chbegin, chend, type=OpenImageIO.FLOAT)}
-Read the entire image and return the pixels as an array of
-$\mathit{width} \times \mathit{height} \times \mathit{depth} \times \mathit{nchannels}$
-values (or {\cf None} if an error occurred). The array will be of the type
-specified by the {\cf TypeDesc} or {\cf BASETYPE} argument (by default,
-{\cf FLOAT}). If {\cf type} is {\cf OpenImageIO.UNKNOWN}, an
-array of {\cf unsigned char} will be returned containing the raw data in
-its native format. The call may optionally specify a subset of channels.
+\apiitem{ImageInput.{\ce read_image} (type="float") \\
+ImageInput.{\ce read_image} (chbegin, chend, type="float")}
+
+Read the entire image and return the pixels as a NumPy array of values of
+the given {\cf type} (described by a \TypeDesc or a string, float by
+default). If the {\cf type} is {\cf TypeUnknown}, the pixels will be
+returned in the native format of the file. If an error occurs, {\cf None}
+will be returned.
+
+For a normal (2D) image, the array returned will be 3D indexed as
+{\cf [y][x][channel]}. For 3D volumetric images, the array returned will be
+4D with shape indexed as {\cf [z][y][x][channel]}.
 
 \noindent Example:
 \begin{code}
     input = ImageInput.open (filename)
     spec = input.spec ()
-    pixels = input.read_image (oiio.FLOAT)
-    print "The first pixel is", pixels[0:spec.nchannels]
-    print "The second pixel is", pixels[spec.nchannels:(2*spec.nchannels)]
+    pixels = input.read_image ()
+    print "The first pixel is", pixels[0][0]
+    print "The second pixel is", pixels[0][1]
     input.close ()
 \end{code}
 \apiend
 
-\apiitem{array ImageInput.{\ce read_scanline} (y, z, type=OpenImageIO.FLOAT)}
+\apiitem{ndarray ImageInput.{\ce read_scanline} (y, z, type="float")}
 Read scanline number {\cf y} from depth plane {\cf z} from the open file,
-returning it as an array of $\mathit{width} \times \mathit{nchannels}$
-values (or {\cf None} if an error occurred). The array will be of the type
-specified by the {\cf TypeDesc} or {\cf BASETYPE} argument (by default,
-{\cf FLOAT}). If {\cf type} is {\cf OpenImageIO.UNKNOWN}, an
-array of {\cf unsigned char} will be returned containing the raw data in
-its native format.
+returning the pixels as a NumPy array of values of
+the given {\cf type} (described by a \TypeDesc or a string, float by
+default). If the {\cf type} is {\cf TypeUnknown}, the pixels will be
+returned in the native format of the file. If an error occurs, {\cf None}
+will be returned.
+
+The pixel array returned be 2D, indexed as {\cf [x][channel]}.
 
 \noindent Example:
 \begin{code}
@@ -848,7 +903,7 @@ its native format.
     spec = input.spec ()
     if spec.tile_width == 0 :
         for y in range(spec.y, spec.y+spec.height) :
-            pixels = input.read_scanline (y, spec.z, oiio.FLOAT)
+            pixels = input.read_scanline (y, spec.z, "float")
             # process the scanline
     else :
         print "It's a tiled file"
@@ -856,15 +911,17 @@ its native format.
 \end{code}
 \apiend
 
-\apiitem{array ImageInput.{\ce read_tile} (x, y, z, type=OpenImageIO.FLOAT)}
+\apiitem{ndarray ImageInput.{\ce read_tile} (x, y, z, type="float")}
 Read the tile whose upper left corner is pixel {\cf (x,y,z)} from the open
-file, returning it as an array of
-$\mathit{width} \times \mathit{height} \times \mathit{depth} \times \mathit{nchannels}$
-values (or {\cf None} if an error occurred). The array will be of the type
-specified by the {\cf TypeDesc} or {\cf BASETYPE} argument (by default,
-{\cf FLOAT}). If {\cf type} is {\cf OpenImageIO.UNKNOWN}, an
-array of {\cf unsigned char} will be returned containing the raw data in
-its native format.
+file, returning the pixels as a NumPy array of values of
+the given {\cf type} (described by a \TypeDesc or a string, float by
+default). If the {\cf type} is {\cf TypeUnknown}, the pixels will be
+returned in the native format of the file. If an error occurs, {\cf None}
+will be returned.
+
+For a normal (2D) image, the array of tile pixels returned will be 3D
+indexed as {\cf [y][x][channel]}. For 3D volumetric images, the array
+returned will be 4D with shape indexed as {\cf [z][y][x][channel]}.
 
 \noindent Example:
 \begin{code}
@@ -882,14 +939,21 @@ its native format.
 \end{code}
 \apiend
 
-\apiitem{array ImageInput.{\ce read_scanlines} (ybegin, yend, z, chbegin, chend, \\
-\bigspc\bigspc\spc type=OpenImageIO.FLOAT) \\
+\apiitem{ndarray ImageInput.{\ce read_scanlines} (ybegin, yend, z, chbegin, chend, \\
+\bigspc\bigspc\spc type="float") \\
 array ImageInput.{\ce read_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, \\
-    \bigspc\bigspc\spc chbegin, chend, type=OpenImageIO.FLOAT)}
-Similar to the C++ routines, these functions read multiple scanlines or 
+    \bigspc\bigspc\spc chbegin, chend, type="float")}
+Similar to the C++ routines, these functions read multiple scanlines or
 tiles at once, which in some cases may be more efficient than reading
 each scanline or tile separately.  Additionally, they allow you to read only
 a subset of channels.
+
+For normal 2D images, both {\cf read_scanlines} and {\cf read_tiles} will
+return a 3D array indexed as {\cf [z][y][x][channel]}.
+
+For 3D volumetric images, both {\cf read_scanlines} will return a 3D array
+indexed as {\cf [y][x][channel]}, and {\cf read_tiles} will return a 4D
+array indexed as {\cf [z][y][x][channel]},
 
 \noindent Example:
 \begin{code}
@@ -901,12 +965,12 @@ a subset of channels.
     # but do it using read_scanlines or read_tiles:
     if spec.tile_width == 0 :
         pixels = input.read_scanlines (spec.y, spec.y+spec.height, 0,
-                                       0, spec.nchannels, oiio.FLOAT)
+                                       0, spec.nchannels)
     else :
         pixels = input.read_tiles (spec.x, spec.x+spec.width,
                                    spec.y, spec.y+spec.height,
                                    spec.z, spec.z+spec.depth,
-                                   0, spec.nchannels, oiio.FLOAT)
+                                   0, spec.nchannels)
 \end{code}
 \apiend
 
@@ -955,23 +1019,21 @@ def find_min_max (filename) :
         return
     spec = input.spec()
     nchans = spec.nchannels
-    pixels = input.read_image(oiio.FLOAT)
+    pixels = input.read_image()
     if not pixels :
         print "Could not read:", input.geterror()
         return
     input.close()    # we're done with the file at this point
-    minval = pixels[0:nchans]   # initialize to the first pixel value
-    maxval = pixels[0:nchans]
-    i = 0    # absolute index
-    for z in range(spec.depth) :
-        for y in range(spec.height) :
-            for x in range(spec.width) :
-                for c in range(nchans) :
-                    if pixels[i+c] < minval[c] :
-                        minval[c] = pixels[i+c]
-                    if pixels[i+c] > maxval[c] :
-                        maxval[c] = pixels[i+c]
-                i = i + nchans   # advance the index
+    minval = pixels[0][0]   # initialize to the first pixel value
+    maxval = pixels[0][0]
+    for y in range(spec.height) :
+        for x in range(spec.width) :
+            p = pixels[y][x]
+            for c in range(nchans) :
+                if p[c] < minval[c] :
+                    minval[c] = p[c]
+                if p[c] > maxval[c] :
+                    maxval[c] = p[c]
     print "Min values per channel were", minval
     print "Max values per channel were", maxval
 \end{code}
@@ -1031,10 +1093,10 @@ if this file format does not support the feature.
 \end{code}
 \apiend
 
-\apiitem{bool ImageOutput.{\ce open} (filename, imagespec, mode)}
+\apiitem{bool ImageOutput.{\ce open} (filename, spec, mode="Create")}
 Opens the named output file, with an \ImageSpec describing the image to
-be output.  The {\cf mode} may be one of {\cf OpenImageIO.Create},
-{\cf OpenImageIO.AppendSubimage}, or {\cf OpenImageIO.AppendMIPLevel}.
+be output.  The {\cf mode} may be one of \qkw{create}, \qkw{AppendSubimage},
+or \qkw{AppendMIPLevel}.
 See Section~\ref{sec:imageoutputopen} for details.  Returns {\cf True}
 upon success, {\cf False} upon failure (error messages retrieved via
 {\cf ImageOutput.geterror()}.)
@@ -1044,8 +1106,8 @@ upon success, {\cf False} upon failure (error messages retrieved via
     output = ImageOutput.create (filename)
     if not output :
         print "Error:", oiio.geterror()
-    spec = ImageSpec (640, 480, 3, oiio.UINT8)
-    ok = output.open (filename, spec, oiio.Create)
+    spec = ImageSpec (640, 480, 3, "uint8")
+    ok = output.open (filename, spec)
     if not ok :
         print "Could not open", filename, ":", output.geterror()
 \end{code}
@@ -1067,11 +1129,15 @@ Closes an open output.
 Retrieves the \ImageSpec of the currently-open output image.
 \apiend
 
-\apiitem{bool ImageOutput.{\ce write_image} (typedesc, pixels)}
+\apiitem{bool ImageOutput.{\ce write_image} (pixels)}
 Write the currently opened image all at once.  The {\cf pixels} parameter
-should be an {\cf array} containing data elements. The data type is
-deduced from the contents of the array itself.
-Returns {\cf True} upon success, {\cf False} upon failure.
+should be a Numpy {\cf ndarray} containing data elements indexed as
+{\cf [y][x][channel]} for normal 2D images, or for 3D volumetric images,
+as {\cf [z][y][x][channel]}, in other words, exactly matching the shape of
+array returned by {\cf ImageInput.read_image}. (It will also work fine if
+the array is 1D ``flattened'' version, as long as it contains the correct
+total number of values.) The data type is deduced from the contents of the
+array itself. Returns {\cf True} upon success, {\cf False} upon failure.
 
 \noindent Example:
 \begin{code}
@@ -1080,14 +1146,14 @@ Returns {\cf True} upon success, {\cf False} upon failure.
 
     input = ImageInput.open (filename)
     spec = input.spec ()
-    pixels = input.read_image (oiio.FLOAT)
+    pixels = input.read_image ()
     input.close ()
 
     output = ImageOutput.create (filename)
     if output.supports("tiles") :
         spec.tile_width = 64
         spec.tile_height = 64
-        output.open (filename, spec, oiio.Create)
+        output.open (filename, spec)
         output.write_image (pixels)
         output.close ()
 \end{code}
@@ -1097,6 +1163,15 @@ Returns {\cf True} upon success, {\cf False} upon failure.
 bool ImageOutput.{\ce write_scanlines} (ybegin, yend, z, pixels)}
 
 Write one or many scanlines to the currently open file.
+Returns {\cf True} upon success, {\cf False} upon failure.
+
+The {\cf pixels} parameter
+should be a Numpy {\cf ndarray} containing data elements indexed as
+{\cf [x][channel]} for {\cf write_scanline} or as {\cf [y][x][channels}
+for {\cf write_scanlines}, exactly matching the shape returned by
+{\cf ImageInput.read_scanline} or {\cf ImageInput.read_scanlines}.
+(It will also work fine if the array is 1D ``flattened'' version, as long
+as it contains the correct total number of values.)
 
 \noindent Example:
 \begin{code}
@@ -1104,10 +1179,10 @@ Write one or many scanlines to the currently open file.
     input = ImageInput.open ("in.tif")
     spec = input.spec ()
     output = ImageOutput.create ("out.jpg")
-    output.open (filename, spec, oiio.Create)
+    output.open (filename, spec)
     for z in range(spec.z, spec.z+spec.depth) :
         for y in range(spec.y, spec.y+spec.height) :
-            pixels = input.read_scanline (y, z, oiio.FLOAT)
+            pixels = input.read_scanline (y, z)
             output.write_scanline (y, z, pixels)
     output.close ()
     input.close ()
@@ -1115,28 +1190,36 @@ Write one or many scanlines to the currently open file.
     # The same example, but copying a whole "plane" of scanlines at a time:
     ...
     for z in range(spec.z, spec.z+spec.depth) :
-        pixels = input.read_scanlines (spec.y, spec.y+spec.height,
-                                       z, oiio.FLOAT)
+        pixels = input.read_scanlines (spec.y, spec.y+spec.height, z)
         output.write_scanlines (spec.y, spec.y+spec.height, z, pixels)
     ...
 \end{code}
 \apiend
 
 \apiitem{bool ImageOutput.{\ce write_tile} (x, y, z, pixels) \\
-bool ImageOutput.{\ce write_tiles} (xbegin, xend, ybegin, yend, zbegin, zend)}
+bool ImageOutput.{\ce write_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, pixels)}
 
 Write one or many tiles to the currently open file.
+Returns {\cf True} upon success, {\cf False} upon failure.
+
+The {\cf pixels} parameter
+should be a Numpy {\cf ndarray} containing data elements indexed as
+{\cf [y][x][channel]} for normal 2D images, or as {\cf [z][y][x][channels}
+3D volumetric images, exactly matching the shape returned by
+{\cf ImageInput.read_tile} or {\cf ImageInput.read_tiles}.
+(It will also work fine if the array is 1D ``flattened'' version, as long
+as it contains the correct total number of values.)
 
 \noindent Example:
 \begin{code}
     input = ImageInput.open (in_filename)
     spec = input.spec ()
     output = ImageOutput.create (out_filename)
-    output.open (out_filename, spec, oiio.Create)
+    output.open (out_filename, spec)
     for z in range(spec.z, spec.z+spec.depth, spec.tile_depth) :
         for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
             for x in range(spec.x, spec.x+spec.width, spec.tile_width) :
-                pixels = input.read_tile (x, y, z, oiio.FLOAT)
+                pixels = input.read_tile (x, y, z)
                 output.write_tile (x, y, z, pixels)
     output.close ()
     input.close ()
@@ -1146,8 +1229,7 @@ Write one or many tiles to the currently open file.
     for z in range(spec.z, spec.z+spec.depth, spec.tile_depth) :
         for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
             pixels = input.read_tiles (spec.x, spec.x+spec.width,
-                                       y, y+tile_width,
-                                       z, z+tile_width, oiio.FLOAT)
+                                       y, y+tile_width, z, z+tile_width)
             output.write_tiles (spec.x, spec.x+spec.width,
                                 y, y+tile_width, z, z+tile_width, pixels)
     ...
@@ -1176,7 +1258,7 @@ decompression/recompression round trip.)
     input = ImageInput.open (in_filename)
     spec = input.spec ()
     output = ImageOutput.create (out_filename)
-    output.open (filename, spec, oiio.Create)
+    output.open (filename, spec)
     output.copy_image (input)
     output.close ()
     input.close ()
@@ -1195,7 +1277,7 @@ file.
         # N.B. error on create must be retrieved with the global geterror(),
         # since there is no ImageOutput object!
     else :
-        ok = output.open (filename, spec, oiio.Create)
+        ok = output.open (filename, spec)
         if not ok :
             print "Open error:", output.geterror()
         ok = output.write_image (pixels)
@@ -1240,7 +1322,7 @@ by an \ImageSpec.
 
 \noindent Example:
 \begin{code}
-    spec = ImageSpec (640, 480, 3, oiio.FLOAT)
+    spec = ImageSpec (640, 480, 3, "float")
     buf = ImageBuf (spec)
 \end{code}
 \apiend
@@ -1333,9 +1415,9 @@ Override the data format or tile size in a subsequent call to {\cf write()}.
 
 \noindent Example:
 \begin{code}
-    # Conversion to a tiled float file
+    # Conversion to a tiled unsigned 16 bit integer file
     buf = ImageBuf ("in.tif")
-    buf.set_write_format (oiio.FLOAT)
+    buf.set_write_format ("uint16")
     buf.set_write_tiles (64, 64)
     buf.write ("out.tif")
 \end{code}
@@ -1485,7 +1567,7 @@ data type rather than using the same pixel format as the source \ImageBuf.
 
     # Make another copy of A, but converting to float pixels
     C = ImageBuf()
-    C.copy (A, OIIO.FLOAT)
+    C.copy (A, oiio.FLOAT)
 \end{code}
 \apiend
 
@@ -1501,12 +1583,12 @@ Swaps the content of this \ImageBuf and the other \ImageBuf.
 \end{code}
 \apiend
 
-\apiitem{tuple ImageBuf.{\ce getpixel} (x, y, z=0, wrap=oiio.WrapBlack)}
+\apiitem{tuple ImageBuf.{\ce getpixel} (x, y, z=0, wrap="black")}
 Retrieves pixel $(x,y,z)$ from the buffer and return it as a tuple of
 {\cf float} values, one for each color channel.  The {\cf x, y, z} values
 are {\cf int} pixel coordinates.  The optional {\cf wrap} parameter
 describes what should happen if the coordinates are outside the pixel data
-window (and may be: {\cf WrapBlack, WrapClamp, WrapPeriodic, WrapMirror}).
+window (and may be: \qkw{black}, \qkw{clamp}, \qkw{periodic}, \qkw{mirror}).
 
 \noindent Example:
 \begin{code}
@@ -1518,11 +1600,11 @@ window (and may be: {\cf WrapBlack, WrapClamp, WrapPeriodic, WrapMirror}).
 \end{code}
 \apiend
 
-\apiitem{float ImageBuf.{\ce getchannel} (x, y, z, channel, wrap=oiio.WrapBlack)}
+\apiitem{float ImageBuf.{\ce getchannel} (x, y, z, channel, wrap="black")}
 Retrieves just a single channel value from pixel $(x,y,z)$ from the buffer
 and returns it as a {\cf float} value.  The optional {\cf wrap} parameter
 describes what should happen if the coordinates are outside the pixel data
-window (and may be: {\cf WrapBlack, WrapClamp, WrapPeriodic, WrapMirror}).
+window (and may be: \qkw{black}, \qkw{clamp}, \qkw{periodic}, \qkw{mirror}).
 
 \noindent Example:
 \begin{code}
@@ -1531,15 +1613,15 @@ window (and may be: {\cf WrapBlack, WrapClamp, WrapPeriodic, WrapMirror}).
 \end{code}
 \apiend
 
-\apiitem{tuple ImageBuf.{\ce interppixel} (x, y, wrap=oiio.WrapBlack) \\
-tuple ImageBuf.{\ce interppixel_bicubic} (x, y, wrap=oiio.WrapBlack)}
+\apiitem{tuple ImageBuf.{\ce interppixel} (x, y, wrap="black") \\
+tuple ImageBuf.{\ce interppixel_bicubic} (x, y, wrap="black")}
 Interpolates the image value (bilinearly or bicubically)
 at coordinates $(x,y)$ and return it as a tuple
 of {\cf float} values, one for each color channel.  The {\cf x, y} values
 are continuous {\cf float} coordinates in ``pixel space.''   The optional
 {\cf wrap} parameter describes what should happen if the coordinates are
-outside the pixel data window (and may be: {\cf WrapBlack, WrapClamp,
-WrapPeriodic, WrapMirror}).
+outside the pixel data window (and may be: 
+\qkw{black}, \qkw{clamp}, \qkw{periodic}, \qkw{mirror}).
 
 \noindent Example:
 \begin{code}
@@ -1552,8 +1634,8 @@ WrapPeriodic, WrapMirror}).
 \end{code}
 \apiend
 
-\apiitem{tuple ImageBuf.{\ce interppixel_NDC} (x, y, wrap=oiio.WrapBlack) \\
-tuple ImageBuf.{\ce interppixel_bicubic_NDC} (x, y, wrap=oiio.WrapBlack)}
+\apiitem{tuple ImageBuf.{\ce interppixel_NDC} (x, y, wrap="black") \\
+tuple ImageBuf.{\ce interppixel_bicubic_NDC} (x, y, wrap="black")}
 
 Interpolates the image value (bilinearly or bicubically)
 at coordinates $(x,y)$ and return it as a tuple
@@ -1562,8 +1644,8 @@ are continuous, normalized {\cf float} coordinates in ``NDC space,'' where
 {\cf (0,0)} is the upper left corner of the full (a.k.a.\ ``display'')
 window, and {\cf (1,1)} is the lower right corner of the full/display
 window. The  {\cf wrap} parameter describes what should happen if the
-coordinates are outside the pixel data window (and may be: {\cf WrapBlack,
-WrapClamp, WrapPeriodic, WrapMirror}).
+coordinates are outside the pixel data window (and may be: 
+\qkw{black}, \qkw{clamp}, \qkw{periodic}, \qkw{mirror}).
 
 \noindent Example:
 \begin{code}
@@ -1590,11 +1672,17 @@ Sets pixel $(x,y,z)$ to be the {\cf pixel_value}, expressed as a tuple of
 \end{code}
 \apiend
 
-\apiitem{array ImageBuf.{\ce get_pixels} (format=OpenImageIO.UNKNOWN, roi=ROI.All)}
+\apiitem{array ImageBuf.{\ce get_pixels} (format=TypeFloat, roi=ROI.All)}
 
 Retrieves the rectangle of pixels (and channels) specified by {\cf roi} from
 the image and returns them as an array of values with type specified by
 {\cf format}.
+
+As with the {\cf ImageInput} read functions, the return value is a NumPy
+{\cf ndarray} containing data elements indexed as
+{\cf [y][x][channel]} for normal 2D images, or for 3D volumetric images,
+as {\cf [z][y][x][channel]}).
+Returns {\cf True} upon success, {\cf False} upon failure.
 
 \noindent Example:
 \begin{code}
@@ -1606,9 +1694,12 @@ the image and returns them as an array of values with type specified by
 \apiitem{ImageBuf.{\ce set_pixels} (roi, data)}
 
 Sets the rectangle of pixels (and channels) specified by {\cf roi} with
-values in the {\cf data}, which may be either a tuple of floats or an array
-(if it's an array, the type of array --- float, unsigned char, etc. ---
-will be correctly discerned).
+values in the {\cf data}, which is a NumPy {\cf ndarray} of values
+indexed as {\cf [y][x][channel]} for normal 2D images, or for 3D volumetric images,
+as {\cf [z][y][x][channel]}. (It will also work fine if
+the array is 1D ``flattened'' version, as long as it contains the correct
+total number of values.) The data type is deduced from the contents of the
+array itself.
 
 \noindent Example:
 \begin{code}
@@ -2139,7 +2230,7 @@ specified, an appropriate default will be chosen.
 
 
 \apiitem{bool ImageBufAlgo.{\ce warp} (dst, src, M, filtername="", filtersize=0.0, \\
-        \bigspc\bigspc wrap=oiio.WrapDefault, recompute_roi=False, \\
+        \bigspc\bigspc wrap="default", recompute_roi=False, \\
         \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!warp} \indexapi{warp}
 

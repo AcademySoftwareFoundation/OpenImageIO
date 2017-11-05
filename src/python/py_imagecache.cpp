@@ -28,193 +28,131 @@
   (This is the Modified BSD License)
 */
 
-#include <memory>
 #include "py_oiio.h"
 
 namespace PyOpenImageIO
 {
-using namespace boost::python;
 
-ImageCacheWrap* ImageCacheWrap::create (bool shared=true)
-{
-    ImageCacheWrap *icw = new ImageCacheWrap;
-    icw->m_cache = ImageCache::create(shared);
-    return icw;
-}    
+// Make a special wrapper to help with the weirdo way we use create/destroy.
+class ImageCacheWrap {
+public:
+    struct ICDeleter {
+        void operator()(ImageCache* p) const { ImageCache::destroy(p); }
+    };
+    std::unique_ptr<ImageCache,ICDeleter> m_cache;
 
-void ImageCacheWrap::destroy (ImageCacheWrap *x)
-{
-    ImageCache::destroy(x->m_cache);
-}
-
-std::string ImageCacheWrap::resolve_filename (const std::string &val)
-{
-    ScopedGILRelease gil;
-    return m_cache->resolve_filename(val);
-}
-
-
-#if 0
-object ImageCacheWrap::get_image_info (ustring filename, int subimage,
-                                       int miplevel, ustring dataname,
-                                       TypeDesc datatype)
-{
-    ScopedGILRelease gil;
-    return m_cache->get_image_info(filename, subimage, miplevel,
-                                   dataname, datatype, data);
-}
-
-object ImageCacheWrap::get_imagespec(ustring filename, int subimage=0)
-{
-    ScopedGILRelease gil;
-    return m_cache->get_imagespec(filename, spec, subimage);
-}    
-#endif
+    ImageCacheWrap (bool shared=true) : m_cache(ImageCache::create(shared)) {}
+    ImageCacheWrap(const ImageCacheWrap&) = delete;
+    ImageCacheWrap(ImageCacheWrap&&) = delete;
+    ~ImageCacheWrap () { }  // will call the deleter on the IC
+    static void destroy (ImageCacheWrap *x, bool teardown=false) {
+        ImageCache::destroy (x->m_cache.release(), teardown);
+    }
+    py::object get_pixels (const std::string &filename,
+                       int subimage, int miplevel, int xbegin, int xend,
+                       int ybegin, int yend, int zbegin, int zend,
+                       TypeDesc datatype);
+};
 
 
-object ImageCacheWrap::get_pixels (const std::string &filename_,
+
+py::object ImageCacheWrap::get_pixels (const std::string &filename_,
                        int subimage, int miplevel, int xbegin, int xend,
                        int ybegin, int yend, int zbegin, int zend,
                        TypeDesc datatype)
-{ 
-    ScopedGILRelease gil;
+{
     ustring filename (filename_);
+    if (datatype == TypeUnknown)
+        datatype = TypeFloat;
     int chbegin = 0, chend = 0;
     if (! m_cache->get_image_info (filename, subimage, miplevel,
                                    ustring("channels"), TypeDesc::INT, &chend))
-        return object(handle<>(Py_None));  // couldn't open file
+        return py::none();  // couldn't open file
 
     size_t size = size_t ((xend-xbegin) * (yend-ybegin) * (zend-zbegin) *
                           (chend-chbegin) * datatype.size());
     std::unique_ptr<char[]> data (new char [size]);
-    if (! m_cache->get_pixels (filename, subimage, miplevel, xbegin, xend,
-                               ybegin, yend, zbegin, zend, datatype, &data[0]))
-        return object(handle<>(Py_None));   // get_pixels failed;
-
-    return C_array_to_Python_array (data.get(), datatype, size);
+    bool ok;
+    {
+        py::gil_scoped_release gil;
+        ok = m_cache->get_pixels (filename, subimage, miplevel, xbegin, xend,
+                                  ybegin, yend, zbegin, zend, datatype, data.get());
+    }
+    if (ok)
+        return make_numpy_array (datatype, data.release(),
+                                 (zend-zbegin)>1 ? 4 : 3, chend-chbegin,
+                                 xend-xbegin, yend-ybegin, zend-zbegin);
+    else
+        return py::none();
 }
 
 
-//Not sure how to expose this to Python. 
-/*
-Tile *get_tile (ImageCache &ic, ustring filename, int subimage,
-                int x, int y, int z) {
-    return ic.get_tile(filename, subimage, x, y, z);
-}
-void release_tile (ImageCache &ic, Tile *tile) const {
-    ic.release-tile(tile);
-}
-const void *tile_pixels (ImageCache &ic, Tile *tile, TypeDesc &format) const {
-    ic.tile_pixels(tile, format);
-}        
-*/
 
-std::string ImageCacheWrap::geterror () const
+
+
+void declare_imagecache (py::module &m)
 {
-    return m_cache->geterror();
-}
+    using namespace pybind11::literals;
 
-std::string ImageCacheWrap::getstats (int level=1) const
-{
-    ScopedGILRelease gil;
-    return m_cache->getstats(level);
-}
+    py::class_<ImageCacheWrap>(m, "ImageCache")
+        .def(py::init<bool>(),
+            "shared"_a=true)
+        // .def_static("create", &ImageCacheWrap::create,
+        //     "shared"_a=true)
+        .def_static("destroy", &ImageCacheWrap::destroy,
+            "cache"_a, "teardown"_a=false)
 
-void ImageCacheWrap::invalidate (ustring filename)
-{
-    ScopedGILRelease gil;
-    return m_cache->invalidate(filename);
-}
-
-void ImageCacheWrap::invalidate_all (bool force=false)
-{
-    ScopedGILRelease gil;
-    return m_cache->invalidate_all(force);
-}           
-
-
-
-void
-ImageCacheWrap::attribute_int (const std::string &name, int val)
-{
-    m_cache->attribute (name, val);
-}
-
-
-void
-ImageCacheWrap::attribute_float (const std::string &name, float val)
-{
-    m_cache->attribute (name, val);
-}
-
-
-void
-ImageCacheWrap::attribute_string (const std::string &name,
-                                  const std::string &val)
-{
-    m_cache->attribute (name, val);
-}
-
-
-void
-ImageCacheWrap::attribute_typed (const std::string &name,
-                                 TypeDesc type, object &obj)
-{
-    ::PyOpenImageIO::attribute_typed (*m_cache, name, type, obj);
-}
-
-
-void
-ImageCacheWrap::attribute_tuple_typed (const std::string &name,
-                                       TypeDesc type, tuple &obj)
-{
-    ::PyOpenImageIO::attribute_tuple_typed (*m_cache, name, type, obj);
-}
-
-
-
-object
-ImageCacheWrap::getattribute_typed (const std::string &name, TypeDesc type)
-{
-    return ::PyOpenImageIO::getattribute_typed (*m_cache, name, type);
-}
-
-
-
-
-void declare_imagecache()
-{
-    class_<ImageCacheWrap, boost::noncopyable>("ImageCache", no_init)
-        .def("create", &ImageCacheWrap::create,
-                 (arg("shared")),
-                 return_value_policy<manage_new_object>())
-        .staticmethod("create")
-        .def("destroy", &ImageCacheWrap::destroy)
-        .staticmethod("destroy")
-        .def("attribute", &ImageCacheWrap::attribute_float)
-        .def("attribute", &ImageCacheWrap::attribute_int)
-        .def("attribute", &ImageCacheWrap::attribute_string)
-        .def("attribute", &ImageCacheWrap::attribute_typed)
-        .def("attribute", &ImageCacheWrap::attribute_tuple_typed)
-        .def("getattribute",  &ImageCacheWrap::getattribute_typed)
-        // .def("getattribute",  &ImageCacheWrap::get_attribute_untyped)
-
-        .def("resolve_filename", &ImageCacheWrap::resolve_filename)
+        .def("attribute", [](ImageCacheWrap &ic, const std::string &name, float val){
+                if (ic.m_cache)
+                    ic.m_cache->attribute(name,val);
+            })
+        .def("attribute", [](ImageCacheWrap &ic, const std::string &name, int val){
+                if (ic.m_cache)
+                    ic.m_cache->attribute(name,val);
+            })
+        .def("attribute", [](ImageCacheWrap &ic, const std::string &name, const std::string &val){
+                if (ic.m_cache)
+                    ic.m_cache->attribute(name,val);
+            })
+        .def("attribute", [](ImageCacheWrap &ic, const std::string &name, TypeDesc type, const py::object &obj) {
+                if (ic.m_cache)
+                    attribute_typed (*ic.m_cache, name, type, obj);
+            })
+        .def("getattribute",  [](const ImageCacheWrap &ic, const std::string &name, TypeDesc type){
+                return getattribute_typed (*ic.m_cache, name, type);
+            },
+            "name"_a, "type"_a=TypeUnknown)
+        .def("resolve_filename", [](ImageCacheWrap &ic, const std::string &filename){
+                py::gil_scoped_release gil;
+                return PY_STR(ic.m_cache->resolve_filename(filename));
+            })
         // .def("get_image_info", &ImageCacheWrap::get_image_info)
         // .def("get_imagespec", &ImageCacheWrap::get_imagespec,
-        //      (arg("subimage")=0)),
+        //      "subimage"_a=0),
         .def("get_pixels", &ImageCacheWrap::get_pixels)
-//      .def("get_tile", &ImageCacheWrap::get_tile)
-//      .def("release_tile", &ImageCacheWrap::release_tile)
-//      .def("tile_pixels", &ImageCacheWrap::tile_pixels)
+        // .def("get_tile", &ImageCacheWrap::get_tile)
+        // .def("release_tile", &ImageCacheWrap::release_tile)
+        // .def("tile_pixels", &ImageCacheWrap::tile_pixels)
 
-//added _ to the method names for consistency
-        .def("geterror",       &ImageCacheWrap::geterror)
-        .def("getstats",       &ImageCacheWrap::getstats)
-        .def("invalidate",     &ImageCacheWrap::invalidate)
-        .def("invalidate_all", &ImageCacheWrap::invalidate_all)
+        .def("geterror", [](ImageCacheWrap &ic){
+                return PY_STR(ic.m_cache->geterror());
+            })
+        .def("getstats", [](ImageCacheWrap &ic, int level){
+                py::gil_scoped_release gil;
+                return PY_STR(ic.m_cache->getstats(level));
+            },
+            "level"_a=1)
+        .def("invalidate", [](ImageCacheWrap &ic, const std::string &filename){
+                py::gil_scoped_release gil;
+                ic.m_cache->invalidate(ustring(filename));
+            },
+            "filename"_a)
+        .def("invalidate_all", [](ImageCacheWrap &ic, bool force){
+                py::gil_scoped_release gil;
+                ic.m_cache->invalidate_all(force);
+            },
+            "force"_a=false)
     ;
-
 }
 
 } // namespace PyOpenImageIO

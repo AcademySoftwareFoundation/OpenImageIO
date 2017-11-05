@@ -8,17 +8,17 @@ import OpenImageIO as oiio
 # depending on the 'method' argument).  (Just copy one subimage, one MIP
 # level.)
 def copy_subimage (input, output, method="image",
-                   memformat=oiio.FLOAT) :
+                   memformat=oiio.TypeFloat) :
     spec = input.spec ()
     if method == "image" :
         pixels = input.read_image (memformat)
-        if not pixels :
+        if pixels == None :
             print "Error reading input pixels in", in_filename
             return False
         output.write_image (pixels)
     elif method == "scanlines" and spec.tile_width == 0 :
         pixels = input.read_image (memformat)
-        if not pixels :
+        if pixels == None :
             print "Error reading input pixels in", in_filename
             return False
         output.write_scanlines (spec.y, spec.y+spec.height, spec.z,
@@ -27,13 +27,13 @@ def copy_subimage (input, output, method="image",
         for z in range(spec.z, spec.z+spec.depth) :
             for y in range(spec.y, spec.y+spec.height) :
                 pixels = input.read_scanline (y, z, memformat)
-                if not pixels :
+                if pixels == None :
                     print "Error reading input pixels in", in_filename
                     return False
                 output.write_scanline (y, z, pixels)
     elif method == "tiles" and spec.tile_width != 0 :
         pixels = input.read_image (memformat)
-        if not pixels :
+        if pixels == None :
             print "Error reading input pixels in", in_filename
             return False
         output.write_tiles (spec.x, spec.x+spec.width,
@@ -45,7 +45,7 @@ def copy_subimage (input, output, method="image",
             for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
                 for x in range(spec.x, spec.x+spec.width, spec.tile_width) :
                     pixels = input.read_tile (x, y, z, memformat)
-                    if not pixels :
+                    if pixels == None :
                         print "Error reading input pixels in", in_filename
                         return False
                     output.write_tile (x, y, z, pixels)
@@ -59,21 +59,21 @@ def copy_subimage (input, output, method="image",
 # write_scanline, write_tile, or write_tiles, depending on the 'method'
 # argument).  (Just copy one subimage, one MIP level.)
 def copy_image (in_filename, out_filename, method="image",
-                memformat=oiio.FLOAT, outformat=oiio.UNKNOWN) :
+                memformat=oiio.TypeFloat, outformat=oiio.TypeUnknown) :
     input = oiio.ImageInput.open (in_filename)
     if not input :
         print 'Could not open "' + filename + '"'
         print "\tError: ", oiio.geterror()
         print
         return
-    outspec = input.spec ()
-    if (outformat != oiio.UNKNOWN) :
-        outspec.format = oiio.TypeDesc(outformat)
+    outspec = input.spec()
+    if outformat != oiio.TypeUnknown :
+        outspec.format = outformat
     output = oiio.ImageOutput.create (out_filename)
     if not output :
         print "Could not create ImageOutput for", out_filename
         return
-    ok = output.open (out_filename, outspec, oiio.Create)
+    ok = output.open (out_filename, outspec)
     if not ok :
         print "Could not open", out_filename
         return
@@ -98,7 +98,7 @@ try:
 
     # Regression test for crash when changing formats
     copy_image ("scanline.tif", "grid-image.tif",
-                memformat=oiio.UINT8, outformat=oiio.UINT16)
+                memformat=oiio.TypeUInt8, outformat=oiio.TypeUInt16)
 
     print "Done."
 except Exception as detail:

@@ -310,6 +310,10 @@ ifneq (${USE_FREETYPE},)
 MY_CMAKE_FLAGS += -DUSE_FREETYPE:BOOL=${USE_FREETYPE}
 endif
 
+ifneq (${BUILD_MISSING_DEPS},)
+MY_CMAKE_FLAGS += -DBUILD_MISSING_DEPS:BOOL=${BUILD_MISSING_DEPS}
+endif
+
 
 #$(info MY_CMAKE_FLAGS = ${MY_CMAKE_FLAGS})
 #$(info MY_MAKE_FLAGS = ${MY_MAKE_FLAGS})
@@ -397,7 +401,6 @@ TEST_FLAGS += --force-new-ctest-process --output-on-failure
 # 'make test' does a full build and then runs all tests
 test: cmake
 	@ ${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
-	@ # if [ "${CODECOV}" == "1" ] ; then lcov -b ${build_dir} -d ${build_dir} -z ; rm -rf ${build_dir}/cov ; fi
 	@ ( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest -E broken ${TEST_FLAGS} )
 	@ ( if [ "${CODECOV}" == "1" ] ; then \
 	      cd ${build_dir} ; \
@@ -507,6 +510,7 @@ help:
 	@echo "                                  0, sse2, sse3, ssse3, sse4.1, sse4.2, f16c,"
 	@echo "                                  avx, avx2, avx512f)"
 	@echo "      TEX_BATCH_SIZE=16        Override TextureSystem SIMD batch size"
+	@echo "      BUILD_MISSING_DEPS=1     Try to download/build missing dependencies"
 	@echo "  make test, extra options:"
 	@echo "      TEST=regex               Run only tests matching the regex"
 	@echo ""

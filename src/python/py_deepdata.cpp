@@ -32,20 +32,17 @@
 
 namespace PyOpenImageIO
 {
-using namespace boost::python;
-using self_ns::str;
-
 
 
 void
-DeepData_init (DeepData &dd, int npix, int nchan, tuple tuple_channeltypes,
-               tuple tuple_channelnames)
+DeepData_init (DeepData &dd, int npix, int nchan, py::object py_channeltypes,
+               py::object py_channelnames)
 {
     std::vector<TypeDesc> chantypes;
-    py_to_stdvector (chantypes, tuple_channeltypes);
+    py_to_stdvector (chantypes, py_channeltypes);
     std::vector<std::string> channames;
-    py_to_stdvector (channames, tuple_channelnames);
-    ScopedGILRelease gil;
+    py_to_stdvector (channames, py_channelnames);
+    py::gil_scoped_release gil;
     dd.init (npix, nchan, chantypes, channames);
 }
 
@@ -54,24 +51,10 @@ DeepData_init (DeepData &dd, int npix, int nchan, tuple tuple_channeltypes,
 void
 DeepData_init_spec (DeepData &dd, const ImageSpec &spec)
 {
-    ScopedGILRelease gil;
+    py::gil_scoped_release gil;
     dd.init (spec);
 }
 
-
-
-int
-DeepData_get_capacity (const DeepData &dd, int pixel)
-{
-    return int (dd.capacity(pixel));
-}
-
-
-int
-DeepData_get_samples (const DeepData &dd, int pixel)
-{
-    return int (dd.samples(pixel));
-}
 
 
 void
@@ -100,83 +83,80 @@ DeepData_set_deep_value_uint (DeepData &dd, int pixel,
 
 
 
-std::string
-DeepData_channelname (const DeepData &dd, int c)
-{
-    // std::cout << "channelname(" << c << ")\n";
-    return dd.channelname (c);
-}
-
-
-
-int
-DeepData_channelsize (const DeepData &dd, int c)
-{
-    return int (dd.channelsize (c));
-}
-
 
 
 // Declare the OIIO DeepData class to Python
-void declare_deepdata()
+void
+declare_deepdata (py::module& m)
 {
-    class_<DeepData>("DeepData")
-        .def_readonly ("npixels",    &DeepData::pixels)   //DEPRECATED(1.7)
-        .def_readonly ("nchannels",  &DeepData::channels) //DEPRECATED(1.7)
-        .def_readonly ("pixels",     &DeepData::pixels)
-        .def_readonly ("channels",   &DeepData::channels)
-        .def_readonly ("A_channel",  &DeepData::A_channel)
-        .def_readonly ("AR_channel", &DeepData::AR_channel)
-        .def_readonly ("AG_channel", &DeepData::AG_channel)
-        .def_readonly ("AB_channel", &DeepData::AB_channel)
-        .def_readonly ("Z_channel",  &DeepData::Z_channel)
-        .def_readonly ("Zback_channel", &DeepData::Zback_channel)
+    using namespace pybind11::literals;
 
+    py::class_<DeepData>(m, "DeepData")
+        .def_property_readonly("pixels",
+                      [](const DeepData& d) { return d.pixels(); })
+        .def_property_readonly("channels",
+                      [](const DeepData& d) { return d.channels(); })
+        .def_property_readonly("A_channel",
+                      [](const DeepData& d) { return d.A_channel(); })
+        .def_property_readonly("AR_channel",
+                      [](const DeepData& d) { return d.AR_channel(); })
+        .def_property_readonly("AG_channel",
+                      [](const DeepData& d) { return d.AG_channel(); })
+        .def_property_readonly("AB_channel",
+                      [](const DeepData& d) { return d.AB_channel(); })
+        .def_property_readonly("Z_channel",
+                      [](const DeepData& d) { return d.Z_channel(); })
+        .def_property_readonly("Zback_channel",
+                      [](const DeepData& d) { return d.Zback_channel(); })
+
+        .def(py::init<>())
         .def("init",  &DeepData_init,
-             (arg("npixels"), arg("nchannels"),
-              arg("channeltypes"), arg("channelnames")))
+             "npixels"_a, "nchannels"_a, "channeltypes"_a, "channelnames"_a)
         .def("init",  &DeepData_init_spec)
         .def("clear", &DeepData::clear)
         .def("free",  &DeepData::free)
         .def("initialized",     &DeepData::initialized)
         .def("allocated",       &DeepData::allocated)
 
-        .def("samples",         &DeepData_get_samples,
-             (arg("pixel")))
+        .def("samples", [](const DeepData& dd, int pixel){
+                return (int)dd.samples(pixel); },
+                "pixel"_a)
         .def("set_samples",     &DeepData::set_samples,
-             (arg("pixel"), arg("nsamples")))
-        .def("capacity",        &DeepData_get_capacity,
-             (arg("pixel")))
+             "pixel"_a, "nsamples"_a)
+        .def("capacity", [](const DeepData& dd, int pixel){
+                return (int)dd.capacity(pixel); },
+                "pixel"_a)
         .def("set_capacity",    &DeepData::set_capacity,
-             (arg("pixel"), arg("nsamples")))
+             "pixel"_a, "nsamples"_a)
         .def("insert_samples",  &DeepData::insert_samples,
-             (arg("pixel"), arg("samplepos"), arg("nsamples")=1))
+             "pixel"_a, "samplepos"_a, "nsamples"_a=1)
         .def("erase_samples",   &DeepData::erase_samples,
-             (arg("pixel"), arg("samplepos"), arg("nsamples")=1))
-        .def("channelname",     &DeepData_channelname)
+             "pixel"_a, "samplepos"_a, "nsamples"_a=1)
+        .def("channelname", [](const DeepData& dd, int c){
+                return (std::string)dd.channelname(c); })
         .def("channeltype",     &DeepData::channeltype)
-        .def("channelsize",     &DeepData_channelsize)
+        .def("channelsize", [](const DeepData& dd, int c){
+                return (int)dd.channelsize(c); })
         .def("samplesize",      &DeepData::samplesize)
         .def("deep_value",      &DeepData::deep_value,
-             (arg("pixel"), arg("channel"), arg("sample")))
+             "pixel"_a, "channel"_a, "sample"_a)
         .def("deep_value_uint", &DeepData::deep_value_uint,
-             (arg("pixel"), arg("channel"), arg("sample")))
+             "pixel"_a, "channel"_a, "sample"_a)
         .def("set_deep_value",  &DeepData_set_deep_value_float,
-             (arg("pixel"), arg("channel"), arg("sample"), arg("value")))
+             "pixel"_a, "channel"_a, "sample"_a, "value"_a)
         .def("set_deep_value_uint", &DeepData_set_deep_value_uint,
-             (arg("pixel"), arg("channel"), arg("sample"), arg("value")))
+             "pixel"_a, "channel"_a, "sample"_a, "value"_a)
         .def("copy_deep_sample", &DeepData::copy_deep_sample,
-             (arg("pixel"), arg("sample"),
-              arg("src"), arg("srcpixel"), arg("srcsample")))
+             "pixel"_a, "sample"_a, "src"_a, "srcpixel"_a, "srcsample"_a)
         .def("copy_deep_pixel", &DeepData::copy_deep_pixel,
-             (arg("pixel"), arg("src"), arg("srcpixel")))
-        .def("split", &DeepData::split, (arg("pixel"), arg("depth")))
-        .def("sort", &DeepData::sort, (arg("pixel")))
-        .def("merge_overlaps", &DeepData::merge_overlaps, (arg("pixel")))
+             "pixel"_a, "src"_a, "srcpixel"_a)
+        .def("split", &DeepData::split, "pixel"_a, "depth"_a)
+        .def("sort", &DeepData::sort, "pixel"_a)
+        .def("merge_overlaps", &DeepData::merge_overlaps, "pixel"_a)
         .def("merge_deep_pixels", &DeepData::merge_deep_pixels,
-             (arg("pixel"), arg("src"), arg("srcpixel")))
-        .def("occlusion_cull", &DeepData::occlusion_cull, (arg("pixel")))
-        .def("opaque_z", &DeepData::opaque_z, (arg("pixel")))
+             "pixel"_a, "src"_a, "srcpixel"_a)
+        .def("occlusion_cull", &DeepData::occlusion_cull, "pixel"_a)
+        .def("opaque_z", &DeepData::opaque_z, "pixel"_a)
     ;
 }
 

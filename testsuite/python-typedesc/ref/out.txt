@@ -4,9 +4,9 @@ Passed VECSEMANTICS
 
 type '(default)'
     c_str "unknown"
-    basetype UNKNOWN
-    aggregate SCALAR
-    vecsemantics NOSEMANTICS
+    basetype BASETYPE.UNKNOWN
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
     arraylen 0
     str(t) = "unknown"
     size = 0
@@ -17,9 +17,9 @@ type '(default)'
     basesize = 0
 type 'UINT8'
     c_str "uint8"
-    basetype UINT8
-    aggregate SCALAR
-    vecsemantics NOSEMANTICS
+    basetype BASETYPE.UCHAR
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
     arraylen 0
     str(t) = "uint8"
     size = 1
@@ -30,9 +30,9 @@ type 'UINT8'
     basesize = 1
 type 'HALF, VEC3, COLOR'
     c_str "colorh"
-    basetype HALF
-    aggregate VEC3
-    vecsemantics COLOR
+    basetype BASETYPE.HALF
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.COLOR
     arraylen 0
     str(t) = "colorh"
     size = 6
@@ -43,9 +43,9 @@ type 'HALF, VEC3, COLOR'
     basesize = 2
 type 'FLOAT, SCALAR, NOXFORM, array of 6'
     c_str "float[6]"
-    basetype FLOAT
-    aggregate SCALAR
-    vecsemantics NOSEMANTICS
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
     arraylen 6
     str(t) = "float[6]"
     size = 24
@@ -56,9 +56,9 @@ type 'FLOAT, SCALAR, NOXFORM, array of 6'
     basesize = 4
 type 'FLOAT, VEC3, POINT, array of 2'
     c_str "point[2]"
-    basetype FLOAT
-    aggregate VEC3
-    vecsemantics POINT
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.POINT
     arraylen 2
     str(t) = "point[2]"
     size = 24
@@ -70,9 +70,9 @@ type 'FLOAT, VEC3, POINT, array of 2'
 
 type 'float[2]'
     c_str "float[2]"
-    basetype FLOAT
-    aggregate SCALAR
-    vecsemantics NOSEMANTICS
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
     arraylen 2
     str(t) = "float[2]"
     size = 8
@@ -83,9 +83,9 @@ type 'float[2]'
     basesize = 4
 type 'normal'
     c_str "normal"
-    basetype FLOAT
-    aggregate VEC3
-    vecsemantics NORMAL
+    basetype BASETYPE.FLOAT
+    aggregate AGGREGATE.VEC3
+    vecsemantics VECSEMANTICS.NORMAL
     arraylen 0
     str(t) = "normal"
     size = 12
@@ -96,9 +96,9 @@ type 'normal'
     basesize = 4
 type 'uint16'
     c_str "uint16"
-    basetype UINT16
-    aggregate SCALAR
-    vecsemantics NOSEMANTICS
+    basetype BASETYPE.UINT16
+    aggregate AGGREGATE.SCALAR
+    vecsemantics VECSEMANTICS.NOXFORM
     arraylen 0
     str(t) = "uint16"
     size = 2
@@ -144,6 +144,8 @@ type 'TypeTimeCode'
     c_str "timecode"
 type 'TypeKeyCode'
     c_str "keycode"
+type 'TypeRational'
+    c_str "rational2i"
 type 'TypeFloat4'
     c_str "float4"
 type 'TypeHalf'
@@ -157,6 +159,20 @@ type 'TypeString'
     c_str "string"
 type 'TypeInt'
     c_str "int"
+type 'TypeUInt'
+    c_str "uint"
+type 'TypeInt32'
+    c_str "int"
+type 'TypeUInt32'
+    c_str "uint"
+type 'TypeInt16'
+    c_str "int16"
+type 'TypeUInt16'
+    c_str "uint16"
+type 'TypeInt8'
+    c_str "int8"
+type 'TypeUInt8'
+    c_str "uint8"
 type 'TypePoint'
     c_str "point"
 type 'TypeVector'
