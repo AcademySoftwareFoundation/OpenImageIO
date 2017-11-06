@@ -312,11 +312,6 @@ public:
     virtual bool get_texture_info (TextureHandle *texture_handle,
                            Perthread *thread_info, int subimage,
                            ustring dataname, TypeDesc datatype, void *data);
-    virtual bool get_texture_info (TextureHandle *texture_handle, int subimage,
-                           ustring dataname, TypeDesc datatype, void *data) {
-        return get_texture_info (texture_handle, NULL, subimage,
-                                 dataname, datatype, data);
-    }
 
     virtual bool get_imagespec (ustring filename, int subimage,
                                 ImageSpec &spec);

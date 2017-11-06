@@ -439,9 +439,6 @@ public:
     TextureSystem (void) { }
     virtual ~TextureSystem () { }
 
-    OIIO_DEPRECATED("clear() was never implemented. Don't bother calling it. [1.7]")
-    virtual void clear () { }
-
     /// Set an attribute controlling the texture system.  Return true
     /// if the name and type were recognized and the attrib was set.
     /// Documented attributes:
@@ -795,10 +792,6 @@ public:
                           ustring dataname, TypeDesc datatype, void *data) = 0;
     virtual bool get_texture_info (TextureHandle *texture_handle,
                           Perthread *thread_info, int subimage,
-                          ustring dataname, TypeDesc datatype, void *data) = 0;
-
-    OIIO_DEPRECATED("Use get_texture_info variety that is passed a Perthread*. [1.6.2]")
-    virtual bool get_texture_info (TextureHandle *texture_handle, int subimage,
                           ustring dataname, TypeDesc datatype, void *data) = 0;
 
     /// Get the ImageSpec associated with the named texture

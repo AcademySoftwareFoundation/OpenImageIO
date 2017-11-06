@@ -973,13 +973,6 @@ bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
                             ColorConfig *colorconfig=NULL,
                             ROI roi=ROI::All(), int nthreads=0);
 
-OIIO_DEPRECATED("Use the other version. [1.7]")
-bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
-                            string_view from, string_view to,
-                            bool unpremult,
-                            ColorConfig *colorconfig,
-                            ROI roi=ROI::All(), int nthreads=0);
-
 /// Copy pixels within the ROI from src to dst, applying a color transform.
 /// In-place operations (dst == src) are supported.
 ///

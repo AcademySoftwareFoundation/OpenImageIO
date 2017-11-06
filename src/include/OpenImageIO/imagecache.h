@@ -78,9 +78,6 @@ public:
     ImageCache (void) { }
     virtual ~ImageCache () { }
 
-    OIIO_DEPRECATED("clear() was never implemented. Don't bother calling it. [1.7]")
-    virtual void clear () { }
-
     /// Set an attribute controlling the image cache.  Return true
     /// if the name and type were recognized and the attrib was set.
     /// Documented attributes:
@@ -358,15 +355,6 @@ public:
                      TypeDesc format, const void *buffer,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride) = 0;
-
-    OIIO_DEPRECATED("Use the version of add_tile with channel range. [1.6]")
-    virtual bool add_tile (ustring filename, int subimage, int miplevel,
-                     int x, int y, int z, TypeDesc format, const void *buffer,
-                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride) {
-        return add_tile (filename, subimage, miplevel, x, y, z, 0, -1,
-                         format, buffer, xstride, ystride, zstride);
-    }
 
     /// If any of the API routines returned false indicating an error,
     /// this routine will return the error string (and clear any error

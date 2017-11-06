@@ -1078,18 +1078,6 @@ static spin_mutex colorconfig_mutex;
 bool
 ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             string_view from, string_view to,
-                            bool unpremult, ColorConfig *colorconfig,
-                            ROI roi, int nthreads)
-{
-    return colorconvert (dst, src, from, to, unpremult, "", "",
-                         colorconfig, roi, nthreads);
-}
-
-
-
-bool
-ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
-                            string_view from, string_view to,
                             bool unpremult, string_view context_key,
                             string_view context_value,
                             ColorConfig *colorconfig,

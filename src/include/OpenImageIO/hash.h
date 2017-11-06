@@ -480,11 +480,6 @@ public:
         append (v.data(), v.size()*sizeof(T));
     }
 
-    template<class T> OIIO_DEPRECATED("Use append(). [1.6]")
-    void appendvec (array_view<T> v) {
-        append (v.data(), v.size()*sizeof(T));
-    }
-
     /// Type for storing the raw bits of the hash
     struct Hash {
         unsigned char hash[20];
