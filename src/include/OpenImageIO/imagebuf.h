@@ -520,53 +520,6 @@ public:
                      stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride);
 
-    OIIO_DEPRECATED("Use get_pixels(ROI, ...) instead. [1.6]")
-    bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend, int chbegin, int chend,
-                             TypeDesc format, void *result,
-                             stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride) const;
-
-    OIIO_DEPRECATED("Use get_pixels(ROI, ...) instead. [1.6]")
-    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend,
-                     TypeDesc format, void *result,
-                     stride_t xstride=AutoStride,
-                     stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride) const;
-
-    template<typename T>
-    OIIO_DEPRECATED("Use get_pixels(ROI, ...) instead. [1.6]")
-    bool get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend, int chbegin, int chend,
-                             T *result, stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride) const;
-
-    template<typename T>
-    OIIO_DEPRECATED("Use get_pixels(ROI, ...) instead. [1.6]")
-    bool get_pixels (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, T *result,
-                     stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride) const
-    {
-        return get_pixel_channels (xbegin, xend, ybegin, yend, zbegin, zend,
-                                   0, nchannels(), result,
-                                   xstride, ystride, zstride);
-    }
-
-    template<typename T>
-    OIIO_DEPRECATED("Use get_pixels(ROI, ...) instead. [1.6]")
-    bool get_pixels (int xbegin_, int xend_, int ybegin_, int yend_,
-                      int zbegin_, int zend_,
-                      std::vector<T> &result) const
-    {
-        result.resize (nchannels() * ((zend_-zbegin_)*(yend_-ybegin_)*(xend_-xbegin_)));
-        return get_pixels (xbegin_, xend_, ybegin_, yend_, zbegin_, zend_,
-                           &result[0]);
-    }
-
 
     int orientation () const;
     void set_orientation (int orient);
@@ -706,14 +659,6 @@ public:
     void set_deep_value (int x, int y, int z, int c, int s, float value);
     /// Set deep sample value within a pixel, as a uint32.
     void set_deep_value (int x, int y, int z, int c, int s, uint32_t value);
-
-    OIIO_DEPRECATED("Use set_deep_value() [1.7]")
-    void set_deep_value_uint (int x, int y, int z, int c, int s, uint32_t value);
-
-    /// Allocate all the deep samples, called after deepdata()->nsamples
-    /// is set.
-    OIIO_DEPRECATED("No longer necessary to call deep_alloc [1.7]")
-    void deep_alloc ();
 
     /// Retrieve the "deep" data.
     DeepData *deepdata ();

@@ -735,9 +735,6 @@ public:
     }
 };
 
-OIIO_DEPRECATED("Use ustringPtrIsLess [1.6]")
-typedef ustringPtrIsLess ustringHashIsLess;
-
 
 
 /// Case-insensitive comparison of ustrings.  For speed, this always

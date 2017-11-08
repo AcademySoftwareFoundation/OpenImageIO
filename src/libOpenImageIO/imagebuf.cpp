@@ -1741,54 +1741,6 @@ ImageBuf::get_pixels (ROI roi, TypeDesc format, void *result,
 
 
 
-// DEPRECATED
-template<typename D>
-bool
-ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
-                              int zbegin, int zend,
-                              int chbegin, int chend, D *r,
-                              stride_t xstride, stride_t ystride,
-                              stride_t zstride) const
-{
-    ROI roi (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend);
-    ImageSpec::auto_stride (xstride, ystride, zstride, sizeof(D),
-                            roi.nchannels(), roi.width(), roi.height());
-    bool ok;
-    OIIO_DISPATCH_TYPES2_HELP (ok, "get_pixel_channels", get_pixels_,
-                               D, spec().format, *this, roi, roi,
-                               r, xstride, ystride, zstride);
-    return ok;
-}
-
-
-
-// DEPRECATED
-bool
-ImageBuf::get_pixel_channels (int xbegin, int xend, int ybegin, int yend,
-                              int zbegin, int zend, int chbegin, int chend,
-                              TypeDesc format, void *result,
-                              stride_t xstride, stride_t ystride,
-                              stride_t zstride) const
-{
-    ROI roi (xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend);
-    return get_pixels (roi, format, result, xstride, ystride, zstride);
-}
-
-
-
-// DEPRECATED
-bool
-ImageBuf::get_pixels (int xbegin, int xend, int ybegin, int yend,
-                      int zbegin, int zend, TypeDesc format, void *result,
-                      stride_t xstride, stride_t ystride,
-                      stride_t zstride) const
-{
-    ROI roi (xbegin, xend, ybegin, yend, zbegin, zend, 0, nchannels());
-    return get_pixels (roi, format, result, xstride, ystride, zstride);
-}
-
-
-
 template<typename D, typename S>
 static bool
 set_pixels_ (ImageBuf &buf, ROI roi, const void *data_,
@@ -1935,24 +1887,6 @@ ImageBuf::set_deep_value (int x, int y, int z, int c, int s, uint32_t value)
         return;
     int p = impl()->pixelindex (x, y, z);
     return impl()->m_deepdata.set_deep_value (p, c, s, value);
-}
-
-
-
-// DEPRECATED (1.7): old name
-void
-ImageBuf::set_deep_value_uint (int x, int y, int z, int c, int s, uint32_t value)
-{
-    return set_deep_value (x, y, z, c, s, value);
-}
-
-
-
-// DEPRECATED (1.7)
-void
-ImageBuf::deep_alloc ()
-{
-    ASSERT (m_impl->m_storage == ImageBuf::LOCALBUFFER);
 }
 
 
