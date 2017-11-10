@@ -15,13 +15,14 @@ addons:
       - george-edison55-precise-backports
       - sourceline: 'ppa:jonathonf/ffmpeg-3'
    packages:
-      - cmake
-      - cmake-data
-      - g++-4.8
       - g++-5
       - g++-6
       - g++-7
-      - libboost1.55-all-dev
+      - libboost-filesystem1.55
+      - libboost-python1.55
+      - libboost-regex1.55
+      - libboost-system1.55
+      - libboost-thread1.55
       - libgif-dev
       - libopenjpeg-dev
       - libwebp-dev
