@@ -344,7 +344,7 @@ TextureSystemImpl::init ()
     m_Mw2c.makeIdentity();
     m_gray_to_rgb = false;
     m_flip_t = false;
-    m_max_tile_channels = 5;
+    m_max_tile_channels = 6;
     delete hq_filter;
     hq_filter = Filter1D::create ("b-spline", 4);
     m_statslevel = 0;
