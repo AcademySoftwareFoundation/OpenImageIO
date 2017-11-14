@@ -12,6 +12,24 @@ Major new features and improvements:
   want to test without creating output files. #1778 (1.9.0)
 
 Public API changes:
+* **Python binding overhaul**
+  The Python bindings have been reimplemented with `pybind11`
+  (https://github.com/pybind/pybind11), no longer with Boost.Python.
+  #1801 (1.9.1)
+  In the process (partly due to what's easy or hard in pybind11, but partly
+  just because it caused us to revisit the python APIs), there are some minor
+  API changes, some of which are breaking! To wit:
+    * All of the functions that are passed or return blocks of pixels
+      (such as `ImageInput.read_image()`) now use Numpy `ndarray` objects
+      indexed as `[y][x][channel]` (no longer using old-style Python
+      `array.array` and flattened to 1D).
+    * Specilized enum type `ImageInput.OpenMode` has been replaced by string
+      parameters, so for example, old `ImageInput.open (filename, ImageInput.Create)`
+      is now `ImageInput.open (filename, "Create")`
+    * Any function that previously took a parameter of type `TypeDesc`
+      or `TypeDesc.BASETYPE` now will accept a string that signifies the
+      type. For example, `ImageBuf.set_write_format("float")` is now a
+      synonym for `ImageBuf.set_write_format(oiio.TypeDesc(oiio.FLOAT))`.
 * ColorConfig changes: ColorConfig methods now return shared pointers to
   `ColorProcessor`s rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects
@@ -22,17 +40,31 @@ Public API changes:
   only be used to pass into certain IBA functions). The color space names
   "rgb" and "default" are now understood to be synonyms for the default
   "linear" color space. #1788 (1.9.0)
+* Remove long-deprecated API calls:
+    * ImageBuf::get_pixels/get_pixel_channels varieties deprecated since 1.6.
+    * ImageBuf::set_deep_value_uint, deprecated since 1.7.
+    * ImageBuf::deep_alloc, deprecated since 1.7.
+    * ImageBufAlgo::colorconvert variety deprecated since 1.7.
+    * ImageCache::clear, deprecated since 1.7.
+    * ImageCache::add_tile variety deprecated since 1.6.
 
 Fixes, minor enhancements, and performance improvements:
 * oiiotool
     * Improved logic for propagating the pixel data format through
       multiple operations, especially for files with multiple subimages.
       #1769 (1.9.0/1.8.6)
+    * Outputs are now written to temporary files, then atomically moved
+      to the specified filename at the end. This makes it safe for oiiotool
+      to "overwrite" a file (i.e. `oiiotool in.tif ... -o out.tif`) without
+      problematic situations where the file is truncated or overwritten
+      before the reading is complete. #1797 (1.8.7/1.9.1)
 * ImageCache/TextureSystem:
     * Improved stats on how long we wait for ImageInput mutexes.
       #1779 (1.9.0/1.8.6)
     * Improved performance of IC/TS tile and file caches under heavy
       contention from many threads. #1780 (1.9.0)
+    * Increased the default `max_tile_channels` limit from 5 to 6.
+      #1803 (1.9.1)
 * All string->numeric parsing and numeric->string formatting is now
   locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
 
@@ -43,6 +75,10 @@ Build/test system improvements:
   force a "Debug" build (required for code coverage tests) even though code
   coverage is instructed to be off. (It would be fine if you didn't specify
   `CODECOV` at all.) #1792 (1.9.0/1.8.6)
+* Build: Fix broken build when Freetype was not found or disabled. #1800
+  (1.8.6/1.9.1)
+* Build: Boost.Python is no longer a dependency, but `pybind11` is. If
+  not found on the system, it will be automatically downloaded. #1801 (1.9.1)
 
 Developer goodies / internals:
 * array_view.h: added begin(), end(), cbegin(), cend() methods, and new
@@ -85,6 +121,8 @@ Release 1.8.6 (1 Nov 2017) -- compared to 1.8.5
 * Developers: Fixed build break in simd.h when AVX512VL is enabled. #1781
 * Developers: fmath.h now defined OIIO_FMATH_H so other files can easily
   detect if it has been included.
+* Build: Fix broken build when Freetype was not found or disabled. #1800
+* Python: fixed missing exposure of RATIONAL enum value. #1799
 
 
 Release 1.8 (1.8.5 - beta) -- compared to 1.7.x
