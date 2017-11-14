@@ -1,6 +1,7 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 import array
+import numpy
 import OpenImageIO as oiio
 
 
@@ -109,18 +110,19 @@ try:
     b.write ("out.tif")
 
     # test set_pixels, too
-    b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3), (0.1,0.0,0.9, 0.2,0.0,0.7,
-                                                     0.3,0.0,0.8, 0.4,0.0,0.6))
+    b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3),
+                  numpy.array([[[0.1,0.0,0.9], [0.2,0.0,0.7]],
+                               [[0.3,0.0,0.8], [0.4,0.0,0.6]]], dtype="f"))
     b.write ("outtuple.tif")
     b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3),
-                  array.array('f',[0.1,0.5,0.9, 0.2,0.5,0.7, 0.3,0.5,0.8, 0.4,0.5,0.6]))
+                  numpy.array([0.1,0.5,0.9, 0.2,0.5,0.7, 0.3,0.5,0.8, 0.4,0.5,0.6], dtype='f'))
     b.write ("outarray.tif")
     b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3),
-                  array.array('B',[26,128,230, 51,128,178, 76,128,204, 102,128,153]))
+                  numpy.array([26,128,230, 51,128,178, 76,128,204, 102,128,153], dtype='B'))
     write (b, "outarrayB.tif", oiio.UINT8)
     b.set_pixels (oiio.ROI(0, 2, 0, 2, 0, 1, 0, 3),
-                  array.array('H',[6554,32767,58982, 13107,32767,45874,
-                                   19660,32767,52428, 26214,32767,39321]))
+                  numpy.array([6554,32767,58982, 13107,32767,45874,
+                                   19660,32767,52428, 26214,32767,39321], dtype='H'))
     write (b, "outarrayH.tif", oiio.UINT16)
 
     # Test write and read of deep data

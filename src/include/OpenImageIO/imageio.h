@@ -359,8 +359,7 @@ public:
     /// For a given parameter p, format the value nicely as a string.  If
     /// 'human' is true, use especially human-readable explanations (units,
     /// or decoding of values) for certain known metadata.
-    static std::string metadata_val (const ParamValue &p,
-                              bool human=false);
+    static std::string metadata_val (const ParamValue &p, bool human=false);
 
     enum SerialFormat  { SerialText, SerialXML };
     enum SerialVerbose { SerialBrief, SerialDetailed, SerialDetailedHuman };
@@ -1017,7 +1016,6 @@ public:
     /// the distance (in bytes) between successive pixels, scanlines,
     /// and volumetric slices, respectively.  Strides set to AutoStride
     /// imply 'contiguous' data in the shape of a full tile, i.e.,
-
     ///     xstride == spec.nchannels*format.size()
     ///     ystride == xstride*spec.tile_width
     ///     zstride == ystride*spec.tile_height

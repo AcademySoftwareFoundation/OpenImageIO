@@ -36,242 +36,76 @@
 
 namespace PyOpenImageIO
 {
-using namespace boost::python;
 
 
 
-std::string
-ImageBuf_name (const ImageBuf &buf)
-{
-    return buf.name();
-}
-
-
-std::string
-ImageBuf_file_format_name (const ImageBuf &buf)
-{
-    return buf.file_format_name();
-}
-
-
-void
-ImageBuf_reset_name (ImageBuf &buf, const std::string &name)
-{
-    buf.reset (name);
-}
-
-void
-ImageBuf_reset_name2 (ImageBuf &buf, const std::string &name,
-                      int subimage, int miplevel)
-{
-    buf.reset (name, subimage, miplevel);
-}
-
-void
-ImageBuf_reset_name_config (ImageBuf &buf, const std::string &name,
-                      int subimage, int miplevel, const ImageSpec &config)
-{
-    buf.reset (name, subimage, miplevel, NULL, &config);
-}
-
-void
-ImageBuf_reset_spec (ImageBuf &buf, const ImageSpec &spec)
-{
-    buf.reset (spec);
-}
-
-
-
-bool
-ImageBuf_read (ImageBuf &buf, int subimage=0, int miplevel=0,
-               bool force=false, TypeDesc convert=TypeUnknown)
-{
-    ScopedGILRelease gil;
-    return buf.read (subimage, miplevel, force, convert);
-}
-
-
-bool
-ImageBuf_read2 (ImageBuf &buf, int subimage=0, int miplevel=0,
-                bool force=false,
-                TypeDesc::BASETYPE convert=TypeDesc::UNKNOWN)
-{
-    ScopedGILRelease gil;
-    return buf.read (subimage, miplevel, force, convert);
-}
-
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_read_overloads,
-                                ImageBuf_read, 1, 5)
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_read2_overloads,
-                                ImageBuf_read2, 1, 5)
-
-
-bool
-ImageBuf_write (const ImageBuf &buf, const std::string &filename,
-                const std::string &fileformat="")
-{
-    ScopedGILRelease gil;
-    return buf.write (filename, fileformat);
-}
-
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_write_overloads,
-                                ImageBuf_write, 2, 3)
-
-
-bool
-ImageBuf_make_writeable (ImageBuf &buf, bool keep_cache_type)
-{
-    ScopedGILRelease gil;
-    return buf.make_writeable (keep_cache_type);
-}
-
-
-
-void
-ImageBuf_set_write_format (ImageBuf &buf, TypeDesc::BASETYPE format)
-{
-    buf.set_write_format (format);
-}
-
-
-
-bool
-ImageBuf_copy (ImageBuf &buf, const ImageBuf &src,
-               TypeDesc format = TypeUnknown)
-{
-    ScopedGILRelease gil;
-    return buf.copy (src, format);
-}
-
-
-bool
-ImageBuf_copy2 (ImageBuf &buf, const ImageBuf &src,
-                TypeDesc::BASETYPE format = TypeDesc::UNKNOWN)
-{
-    ScopedGILRelease gil;
-    return buf.copy (src, format);
-}
-
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_copy_overloads,
-                                ImageBuf_copy, 2, 3)
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_copy2_overloads,
-                                ImageBuf_copy2, 2, 3)
-
-
-
-void
-ImageBuf_set_full (ImageBuf &buf, int xbegin, int xend, int ybegin, int yend,
-                   int zbegin, int zend)
-{
-    buf.set_full (xbegin, xend, ybegin, yend, zbegin, zend);
-}
-
-
-
-float
-ImageBuf_getchannel (const ImageBuf &buf, int x, int y, int z, int c,
-                     ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
-{
-    return buf.getchannel(x, y, z, c, wrap);
-}
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_getchannel_overloads,
-                                ImageBuf_getchannel, 5, 6)
-
-
-
-object
+py::tuple
 ImageBuf_getpixel (const ImageBuf &buf, int x, int y, int z=0,
-                   ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+                   const std::string &wrapname="black")
 {
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string (wrapname);
     int nchans = buf.nchannels();
     float *pixel = ALLOCA (float, nchans);
     buf.getpixel (x, y, z, pixel, nchans, wrap);
-    PyObject *result = PyTuple_New (nchans);
-    for (int i = 0;  i < nchans;  ++i)
-        PyTuple_SetItem (result, i, PyFloat_FromDouble(pixel[i]));
-    return object(handle<>(result));
+    return C_to_tuple (pixel, nchans);
 }
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_getpixel_overloads,
-                                ImageBuf_getpixel, 3, 5)
 
 
-
-object
+py::tuple
 ImageBuf_interppixel (const ImageBuf &buf, float x, float y,
-                      ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+                      const std::string &wrapname="black")
 {
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string (wrapname);
     int nchans = buf.nchannels();
     float *pixel = ALLOCA (float, nchans);
     buf.interppixel (x, y, pixel, wrap);
-    PyObject *result = PyTuple_New (nchans);
-    for (int i = 0;  i < nchans;  ++i)
-        PyTuple_SetItem (result, i, PyFloat_FromDouble(pixel[i]));
-    return object(handle<>(result));
+    return C_to_tuple (pixel, nchans);
 }
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_interppixel_overloads,
-                                ImageBuf_interppixel, 3, 4)
 
 
-
-object
+py::tuple
 ImageBuf_interppixel_NDC (const ImageBuf &buf, float x, float y,
-                          ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+                          const std::string &wrapname="black")
 {
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string (wrapname);
     int nchans = buf.nchannels();
     float *pixel = ALLOCA (float, nchans);
     buf.interppixel_NDC (x, y, pixel, wrap);
-    return C_to_val_or_tuple (pixel, TypeDesc(TypeDesc::FLOAT,nchans),
-                              PyFloat_FromDouble);
+    return C_to_tuple (pixel, nchans);
 }
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_interppixel_NDC_overloads,
-                                ImageBuf_interppixel_NDC, 3, 4)
 
 
-
-object
+py::tuple
 ImageBuf_interppixel_bicubic (const ImageBuf &buf, float x, float y,
-                              ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+                              const std::string &wrapname="black")
 {
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string (wrapname);
     int nchans = buf.nchannels();
     float *pixel = ALLOCA (float, nchans);
     buf.interppixel_bicubic (x, y, pixel, wrap);
-    PyObject *result = PyTuple_New (nchans);
-    for (int i = 0;  i < nchans;  ++i)
-        PyTuple_SetItem (result, i, PyFloat_FromDouble(pixel[i]));
-    return object(handle<>(result));
+    return C_to_tuple (pixel, nchans);
 }
 
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_interppixel_bicubic_overloads,
-                                ImageBuf_interppixel_bicubic, 3, 4)
 
 
-object
+py::tuple
 ImageBuf_interppixel_bicubic_NDC (const ImageBuf &buf, float x, float y,
-                              ImageBuf::WrapMode wrap = ImageBuf::WrapBlack)
+                                  const std::string &wrapname="black")
 {
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string (wrapname);
     int nchans = buf.nchannels();
     float *pixel = ALLOCA (float, nchans);
     buf.interppixel_bicubic_NDC (x, y, pixel, wrap);
-    PyObject *result = PyTuple_New (nchans);
-    for (int i = 0;  i < nchans;  ++i)
-        PyTuple_SetItem (result, i, PyFloat_FromDouble(pixel[i]));
-    return object(handle<>(result));
+    return C_to_tuple (pixel, nchans);
 }
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_interppixel_bicubic_NDC_overloads,
-                                ImageBuf_interppixel_bicubic_NDC, 3, 4)
 
 
 
 void
-ImageBuf_setpixel (ImageBuf &buf, int x, int y, int z, tuple p)
+ImageBuf_setpixel (ImageBuf &buf, int x, int y, int z, py::object p)
 {
     std::vector<float> pixel;
     py_to_stdvector (pixel, p);
@@ -280,13 +114,14 @@ ImageBuf_setpixel (ImageBuf &buf, int x, int y, int z, tuple p)
 }
 
 void
-ImageBuf_setpixel2 (ImageBuf &buf, int x, int y, tuple p)
+ImageBuf_setpixel2 (ImageBuf &buf, int x, int y, py::object p)
 {
     ImageBuf_setpixel (buf, x, y, 0, p);
 }
 
+
 void
-ImageBuf_setpixel1 (ImageBuf &buf, int i, tuple p)
+ImageBuf_setpixel1 (ImageBuf &buf, int i, py::object p)
 {
     std::vector<float> pixel;
     py_to_stdvector (pixel, p);
@@ -296,7 +131,7 @@ ImageBuf_setpixel1 (ImageBuf &buf, int i, tuple p)
 
 
 
-object
+py::object
 ImageBuf_get_pixels (const ImageBuf &buf, TypeDesc format, ROI roi=ROI::All())
 {
     // Allocate our own temp buffer and try to read the image into it.
@@ -307,25 +142,14 @@ ImageBuf_get_pixels (const ImageBuf &buf, TypeDesc format, ROI roi=ROI::All())
 
     size_t size = (size_t) roi.npixels() * roi.nchannels() * format.size();
     std::unique_ptr<char[]> data (new char [size]);
-    if (! buf.get_pixels (roi, format, &data[0])) {
-        return object(handle<>(Py_None));
-    }
-
-    return C_array_to_Python_array (data.get(), format, size);
+    if (buf.get_pixels (roi, format, &data[0]))
+        return make_numpy_array (format, data.release(),
+                                 buf.spec().depth > 1 ? 4 : 3,
+                                 roi.nchannels(), roi.width(),
+                                 roi.height(), roi.depth());
+    else
+        return py::none();
 }
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_get_pixels_overloads,
-                                ImageBuf_get_pixels, 2, 3)
-
-object
-ImageBuf_get_pixels_bt (const ImageBuf &buf, TypeDesc::BASETYPE format,
-                        ROI roi=ROI::All())
-{
-    return ImageBuf_get_pixels (buf, TypeDesc(format), roi);
-}
-
-BOOST_PYTHON_FUNCTION_OVERLOADS(ImageBuf_get_pixels_bt_overloads,
-                                ImageBuf_get_pixels_bt, 2, 3)
 
 
 
@@ -346,205 +170,192 @@ ImageBuf_set_deep_value_uint (ImageBuf &buf, int x, int y, int z,
 
 
 bool
-ImageBuf_set_pixels_tuple (ImageBuf &buf, ROI roi, const tuple& data)
+ImageBuf_set_pixels_buffer (ImageBuf &self, ROI roi, py::buffer &buffer)
 {
     if (! roi.defined())
-        roi = buf.roi();
-    roi.chend = std::min (roi.chend, buf.nchannels()+1);
+        roi = self.roi();
+    roi.chend = std::min (roi.chend, self.nchannels()+1);
     size_t size = (size_t) roi.npixels() * roi.nchannels();
-    if (size == 0)
+    if (size == 0) {
         return true;   // done
-    std::vector<float> vals;
-    py_to_stdvector (vals, data);
-    if (size > vals.size())
-        return false;   // Not enough data to fill our ROI
-    buf.set_pixels (roi, TypeFloat, &vals[0]);
-    return true;
-}
+    }
+    const ImageSpec& spec (self.spec());
+    oiio_bufinfo buf (buffer.request(), spec.nchannels, spec.width,
+                      spec.height, spec.depth, self.spec().depth > 1 ? 3 : 2);
+    if (! buf.data) {
+        return false;  // failed sanity checks
+    }
+    if (! buf.data || buf.size != size) {
+        return false;  // failed sanity checks
+    }
 
-
-bool
-ImageBuf_set_pixels_array (ImageBuf &buf, ROI roi, const object& data)
-{
-    // If it's a tuple, we handle that with the other function
-    extract<tuple> tup (data);
-    if (tup.check())
-        return ImageBuf_set_pixels_tuple (buf, roi, tup());
-
-    if (! roi.defined())
-        roi = buf.roi();
-    roi.chend = std::min (roi.chend, buf.nchannels()+1);
-    size_t size = (size_t) roi.npixels() * roi.nchannels();
-    if (size == 0)
-        return true;   // done
-
-    TypeDesc elementtype;
-    size_t numelements;
-    const void* addr = python_array_address (data, elementtype, numelements);
-    if (!addr || size > numelements)
-        return false;   // Not enough data to fill our ROI
-    std::vector<float> vals (numelements);
-    convert_types (elementtype, addr, TypeFloat, vals.data(),
-                   int(numelements));
-    buf.set_pixels (roi, TypeFloat, &vals[0]);
-    return true;
+    py::gil_scoped_release gil;
+    return self.set_pixels (roi, buf.format, buf.data,
+                            buf.xstride, buf.ystride, buf.zstride);
 }
 
 
 
-DeepData&
-ImageBuf_deepdataref (ImageBuf *ib)
+
+void declare_imagebuf(py::module &m)
 {
-    return *ib->deepdata();
-}
+    using namespace pybind11::literals;
 
-
-
-static void
-ImageBuf_deep_alloc_dummy ()
-{
-}
-
-
-
-void declare_imagebuf()
-{
-    enum_<ImageBuf::WrapMode>("WrapMode")
-        .value("WrapDefault",  ImageBuf::WrapDefault )
-        .value("WrapBlack",    ImageBuf::WrapBlack )
-        .value("WrapClamp",    ImageBuf::WrapClamp )
-        .value("WrapPeriodic", ImageBuf::WrapPeriodic )
-        .value("WrapMirror",   ImageBuf::WrapMirror )
-        .export_values();
-
-    class_<ImageBuf, boost::noncopyable> ("ImageBuf")
-        .def(init<const std::string&>())
-        .def(init<const std::string&, int, int>())
-        .def(init<const ImageSpec&>())
-
+    py::class_<ImageBuf> (m,"ImageBuf")
+        .def(py::init<>())
+        .def(py::init<const std::string&>())
+        .def(py::init<const std::string&, int, int>())
+        .def(py::init<const ImageSpec&>())
         .def("clear", &ImageBuf::clear)
-        .def("reset", &ImageBuf_reset_name,
-             (arg("name")))
-        .def("reset", &ImageBuf_reset_name2,
-             (arg("name"), arg("subimage")=0, arg("miplevel")=0))
-        .def("reset", &ImageBuf_reset_name_config,
-             (arg("name"), arg("subimage")=0, arg("miplevel")=0,
-              arg("config")=ImageSpec()))
-        .def("reset", &ImageBuf_reset_spec)
-        .add_property ("initialized", &ImageBuf::initialized)
-        .def("init_spec", &ImageBuf::init_spec)
-        .def("read",  &ImageBuf_read,
-             ImageBuf_read_overloads())
-        .def("read",  &ImageBuf_read2,
-             ImageBuf_read2_overloads())
-        .def("write", &ImageBuf_write,
-             ImageBuf_write_overloads())
+        .def("reset", [](ImageBuf &self, const std::string& name,
+                         int subimage, int miplevel){
+                self.reset (name, subimage, miplevel);
+            },
+            "name"_a, "subimage"_a=0, "miplevel"_a=0)
+        .def("reset", [](ImageBuf &self, const std::string& name,
+                         int subimage, int miplevel, const ImageSpec &config){
+                self.reset (name, subimage, miplevel, nullptr, &config);
+            },
+            "name"_a, "subimage"_a=0, "miplevel"_a=0, "config"_a=ImageSpec())
+        .def("reset", [](ImageBuf &self, const ImageSpec &spec){
+                self.reset (spec);
+            },
+            "spec"_a)
+        .def_property_readonly ("initialized", [](const ImageBuf& self){
+                return self.initialized();
+            })
+        .def("init_spec", [](ImageBuf& self, std::string filename, int subimage, int miplevel){
+                py::gil_scoped_release gil;
+                self.init_spec (filename, subimage, miplevel);
+            },
+            "filename"_a, "subimage"_a=0, "miplevel"_a=0)
+        .def("read", [](ImageBuf& self, int subimage, int miplevel,
+                        int chbegin, int chend, bool force, TypeDesc convert){
+                py::gil_scoped_release gil;
+                return self.read (subimage, miplevel, chbegin, chend, force, convert);
+            },
+            "subimage"_a=0, "miplevel"_a=0, "chbegin"_a=0, "chend"_a=-1,
+            "force"_a=false, "convert"_a=TypeUnknown)
+
+        .def("write", [](ImageBuf& self, const std::string &filename,
+                         const std::string &fileformat){
+                py::gil_scoped_release gil;
+                return self.write (filename, fileformat);
+            },
+            "filename"_a, "fileformat"_a="")
+        .def("make_writeable", [](ImageBuf& self, bool keep_cache_type){
+                py::gil_scoped_release gil;
+                return self.make_writeable (keep_cache_type);
+            },
+            "keep_cache_type"_a=false)
+        .def("set_write_format", &ImageBuf::set_write_format)
         // FIXME -- write(ImageOut&)
-        .def("make_writeable", &ImageBuf_make_writeable,
-             (arg("keep_cache_type")=false))
-        .def("set_write_format", &ImageBuf_set_write_format)
         .def("set_write_tiles", &ImageBuf::set_write_tiles,
-             (arg("width")=0, arg("height")=0, arg("depth")=0))
-
+             "width"_a=0, "height"_a=0, "depth"_a=0)
         .def("spec", &ImageBuf::spec,
-                return_value_policy<copy_const_reference>())
+             py::return_value_policy::reference_internal)
         .def("nativespec", &ImageBuf::nativespec,
-                return_value_policy<copy_const_reference>())
+             py::return_value_policy::reference_internal)
         .def("specmod", &ImageBuf::specmod,
-             return_value_policy<reference_existing_object>())
-        .add_property("name", &ImageBuf_name)
-        .add_property("file_format_name", &ImageBuf_file_format_name)
-        .add_property("subimage", &ImageBuf::subimage)
-        .add_property("nsubimages", &ImageBuf::nsubimages)
-        .add_property("miplevel", &ImageBuf::miplevel)
-        .add_property("nmiplevels", &ImageBuf::nmiplevels)
-        .add_property("nchannels", &ImageBuf::nchannels)
-        .add_property("orientation", &ImageBuf::orientation,
-                      &ImageBuf::set_orientation)
-        .add_property("oriented_width", &ImageBuf::oriented_width)
-        .add_property("oriented_height", &ImageBuf::oriented_height)
-        .add_property("oriented_x", &ImageBuf::oriented_x)
-        .add_property("oriented_y", &ImageBuf::oriented_y)
-        .add_property("oriented_full_width", &ImageBuf::oriented_full_width)
-        .add_property("oriented_full_height", &ImageBuf::oriented_full_height)
-        .add_property("oriented_full_x", &ImageBuf::oriented_full_x)
-        .add_property("oriented_full_y", &ImageBuf::oriented_full_y)
-        .add_property("xbegin", &ImageBuf::xbegin)
-        .add_property("xend", &ImageBuf::xend)
-        .add_property("ybegin", &ImageBuf::ybegin)
-        .add_property("yend", &ImageBuf::yend)
-        .add_property("zbegin", &ImageBuf::zbegin)
-        .add_property("zend", &ImageBuf::zend)
-        .add_property("xmin", &ImageBuf::xmin)
-        .add_property("xmax", &ImageBuf::xmax)
-        .add_property("ymin", &ImageBuf::ymin)
-        .add_property("ymax", &ImageBuf::ymax)
-        .add_property("zmin", &ImageBuf::zmin)
-        .add_property("zmax", &ImageBuf::zmax)
-        .add_property("roi", &ImageBuf::roi)
-        .add_property("roi_full",
+             py::return_value_policy::reference_internal)
+        .def_property_readonly("name", [](const ImageBuf& self){
+                return PY_STR(self.name());
+            })
+        .def_property_readonly("file_format_name", [](const ImageBuf& self){
+                return PY_STR(self.file_format_name());
+            })
+        .def_property_readonly("subimage", &ImageBuf::subimage)
+        .def_property_readonly("nsubimages", &ImageBuf::nsubimages)
+        .def_property_readonly("miplevel", &ImageBuf::miplevel)
+        .def_property_readonly("nmiplevels", &ImageBuf::nmiplevels)
+        .def_property_readonly("nchannels", &ImageBuf::nchannels)
+        .def_property("orientation", &ImageBuf::orientation, &ImageBuf::set_orientation)
+        .def_property_readonly("oriented_width", &ImageBuf::oriented_width)
+        .def_property_readonly("oriented_height", &ImageBuf::oriented_height)
+        .def_property_readonly("oriented_x", &ImageBuf::oriented_x)
+        .def_property_readonly("oriented_y", &ImageBuf::oriented_y)
+        .def_property_readonly("oriented_full_width", &ImageBuf::oriented_full_width)
+        .def_property_readonly("oriented_full_height", &ImageBuf::oriented_full_height)
+        .def_property_readonly("oriented_full_x", &ImageBuf::oriented_full_x)
+        .def_property_readonly("oriented_full_y", &ImageBuf::oriented_full_y)
+        .def_property_readonly("xbegin", &ImageBuf::xbegin)
+        .def_property_readonly("xend", &ImageBuf::xend)
+        .def_property_readonly("ybegin", &ImageBuf::ybegin)
+        .def_property_readonly("yend", &ImageBuf::yend)
+        .def_property_readonly("zbegin", &ImageBuf::zbegin)
+        .def_property_readonly("zend", &ImageBuf::zend)
+        .def_property_readonly("xmin", &ImageBuf::xmin)
+        .def_property_readonly("xmax", &ImageBuf::xmax)
+        .def_property_readonly("ymin", &ImageBuf::ymin)
+        .def_property_readonly("ymax", &ImageBuf::ymax)
+        .def_property_readonly("zmin", &ImageBuf::zmin)
+        .def_property_readonly("zmax", &ImageBuf::zmax)
+        .def_property_readonly("roi", &ImageBuf::roi)
+        .def_property("roi_full",
                       &ImageBuf::roi_full, &ImageBuf::set_roi_full)
-        .def("set_full", &ImageBuf_set_full)
-
-        .add_property("pixels_valid", &ImageBuf::pixels_valid)
-        .add_property("pixeltype", &ImageBuf::pixeltype)
-        .add_property("has_error",   &ImageBuf::has_error)
+        .def("set_full", &ImageBuf::set_full)
+        .def_property_readonly("pixels_valid", &ImageBuf::pixels_valid)
+        .def_property_readonly("pixeltype", &ImageBuf::pixeltype)
+        .def_property_readonly("has_error",   &ImageBuf::has_error)
         .def("geterror",    &ImageBuf::geterror)
 
         .def("pixelindex", &ImageBuf::pixelindex,
-             (arg("x"), arg("y"), arg("z"), arg("check_range")=false))
+             "x"_a, "y"_a, "z"_a, "check_range"_a=false)
         .def("copy_metadata", &ImageBuf::copy_metadata)
         .def("copy_pixels", &ImageBuf::copy_pixels)
-        .def("copy",  &ImageBuf_copy,
-             ImageBuf_copy_overloads())
-        .def("copy",  &ImageBuf_copy2,
-             ImageBuf_copy2_overloads())
+        .def("copy", [](ImageBuf &self, const ImageBuf &src, TypeDesc format){
+                py::gil_scoped_release gil;
+                return self.copy (src, format);
+            },
+            "src"_a, "format"_a=TypeUnknown)
         .def("swap", &ImageBuf::swap)
-
-        .def("getchannel", &ImageBuf_getchannel,
-             ImageBuf_getchannel_overloads())
+        .def("getchannel", &ImageBuf::getchannel,
+             "x"_a, "y"_a, "z"_a, "c"_a, "wrap"_a="black")
         .def("getpixel", &ImageBuf_getpixel,
-             ImageBuf_getpixel_overloads())
-        .def("interppixel", &ImageBuf_interppixel,
-             ImageBuf_interppixel_overloads())
-        .def("interppixel_NDC", &ImageBuf_interppixel_NDC,
-             ImageBuf_interppixel_NDC_overloads())
-        .def("interppixel_NDC_full", &ImageBuf_interppixel_NDC,
-             ImageBuf_interppixel_NDC_overloads())
-        .def("interppixel_bicubic", &ImageBuf_interppixel_bicubic,
-             ImageBuf_interppixel_bicubic_overloads())
-        .def("interppixel_bicubic_NDC", &ImageBuf_interppixel_bicubic_NDC,
-             ImageBuf_interppixel_bicubic_NDC_overloads())
-        .def("setpixel", &ImageBuf_setpixel)
-        .def("setpixel", &ImageBuf_setpixel2)
-        .def("setpixel", &ImageBuf_setpixel1)
-        .def("get_pixels", &ImageBuf_get_pixels, ImageBuf_get_pixels_overloads())
-        .def("get_pixels", &ImageBuf_get_pixels_bt, ImageBuf_get_pixels_bt_overloads())
-        .def("set_pixels", &ImageBuf_set_pixels_tuple)
-        .def("set_pixels", &ImageBuf_set_pixels_array)
+             "x"_a, "y"_a, "z"_a=0, "wrap"_a="black")
 
-        .add_property("deep", &ImageBuf::deep)
+        .def("interppixel", &ImageBuf_interppixel,
+             "x"_a, "y"_a, "wrap"_a="black")
+        .def("interppixel_NDC", &ImageBuf_interppixel_NDC,
+             "x"_a, "y"_a, "wrap"_a="black")
+        .def("interppixel_NDC_full", &ImageBuf_interppixel_NDC,
+             "x"_a, "y"_a, "wrap"_a="black")
+        .def("interppixel_bicubic", &ImageBuf_interppixel_bicubic,
+             "x"_a, "y"_a, "wrap"_a="black")
+        .def("interppixel_bicubic_NDC", &ImageBuf_interppixel_bicubic_NDC,
+             "x"_a, "y"_a, "wrap"_a="black")
+        .def("setpixel", &ImageBuf_setpixel,
+            "x"_a, "y"_a, "z"_a, "pixel"_a)
+        .def("setpixel", &ImageBuf_setpixel2,
+            "x"_a, "y"_a, "pixel"_a)
+        .def("setpixel", &ImageBuf_setpixel1,
+            "i"_a, "pixel"_a)
+        .def("get_pixels", &ImageBuf_get_pixels,
+             "format"_a=TypeFloat, "roi"_a=ROI::All())
+        .def("set_pixels", &ImageBuf_set_pixels_buffer,
+             "roi"_a, "pixels"_a)
+
+        .def_property_readonly("deep", &ImageBuf::deep)
         .def("deep_samples", &ImageBuf::deep_samples,
-             (arg("x"), arg("y"), arg("z")=0))
+             "x"_a, "y"_a, "z"_a=0)
         .def("set_deep_samples", &ImageBuf::set_deep_samples,
-             (arg("x"), arg("y"), arg("z")=0, arg("nsamples")=1))
+             "x"_a, "y"_a, "z"_a=0, "nsamples"_a=1)
         .def("deep_insert_samples", &ImageBuf::deep_insert_samples,
-             (arg("x"), arg("y"), arg("z")=0, arg("samplepos"), arg("nsamples")=1))
+             "x"_a, "y"_a, "z"_a=0, "samplepos"_a, "nsamples"_a=1)
         .def("deep_erase_samples", &ImageBuf::deep_erase_samples,
-             (arg("x"), arg("y"), arg("z")=0, arg("samplepos"), arg("nsamples")=1))
+             "x"_a, "y"_a, "z"_a=0, "samplepos"_a, "nsamples"_a=1)
         .def("deep_value", &ImageBuf::deep_value,
-             (arg("x"), arg("y"), arg("z")=0, arg("channel"), arg("sample")))
+             "x"_a, "y"_a, "z"_a, "channel"_a, "sample"_a)
         .def("deep_value_uint", &ImageBuf::deep_value_uint,
-             (arg("x"), arg("y"), arg("z")=0, arg("channel"), arg("sample")))
+             "x"_a, "y"_a, "z"_a, "channel"_a, "sample"_a)
         .def("set_deep_value", &ImageBuf_set_deep_value,
-             (arg("x"), arg("y"), arg("z")=0, arg("channel"),
-              arg("sample"), arg("value")=0.0f))
+             "x"_a, "y"_a, "z"_a, "channel"_a,
+             "sample"_a, "value"_a=0.0f)
         .def("set_deep_value_uint", &ImageBuf_set_deep_value_uint,
-             (arg("x"), arg("y"), arg("z")=0, arg("channel"),
-              arg("sample"), arg("value")=0))
-        .def("deep_alloc", &ImageBuf_deep_alloc_dummy)  // DEPRECATED(1.7)
-        .def("deepdata", &ImageBuf_deepdataref,
-             return_value_policy<reference_existing_object>())
+             "x"_a, "y"_a, "z"_a, "channel"_a,
+             "sample"_a, "value"_a=0)
+        .def("deepdata", [](ImageBuf &self){ return *self.deepdata(); },
+             py::return_value_policy::reference_internal)
 
         // FIXME -- do we want to provide pixel iterators?
     ;

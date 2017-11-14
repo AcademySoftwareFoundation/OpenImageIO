@@ -23,7 +23,7 @@ Dependencies
 
 NEW or CHANGED dependencies since the last major release are **bold**.
 
-### Required dependencies
+### Required dependencies -- OIIO will not build at all without these
 
  * C++11 (should also build with C++14 and C++17)
  * Compilers: gcc 4.8.2 - gcc 7, clang 3.3 - 5.0, MSVS 2013 - 2017, icc version 13 or higher
@@ -32,10 +32,17 @@ NEW or CHANGED dependencies since the last major release are **bold**.
  * OpenEXR >= 2.0 (recommended: 2.2)
  * libTIFF >= 3.9 (recommended: 4.0+)
 
-### Optional dependencies
- * Qt >= 5.6  (Only needed if you want the `iv` viewer.)
- * Python >= 2.7
- * libRaw (0.17 or higher is recommended for full functionality)
+### Optional dependencies -- features may be disabled if not found
+ * If you are building the `iv` viewer (which will be disabled if any of
+   these are not found):
+     * Qt >= 5.6
+     * OpenGL
+     * GLEW
+ * If you are building the Python bindings:
+     * Python >= 2.7
+     * **NumPy**
+     * **pybind11** (but OIIO will auto-download it if not found)
+ * libRaw >= 0.17 ("RAW" image reading will be disabled if not found)
 
 
 

@@ -34,6 +34,7 @@ addons:
       - libswscale-dev
       - libavutil-dev
       - locales
+      - python-numpy
       # - qtbase5-dev   # FIXME: enable Qt5 on Linux
       # - bzip2
       # - libtinyxml-dev
@@ -85,7 +86,7 @@ install:
 # before_script:
 
 script:
-    - make VERBOSE=1 $BUILD_FLAGS cmakesetup
+    - make VERBOSE=1 $BUILD_FLAGS BUILD_MISSING_DEPS=1 cmakesetup
     - make -j2 $BUILD_FLAGS
     - export OPENIMAGEIOHOME=$PWD/dist/$PLATFORM
     - export DYLD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$DYLD_LIBRARY_PATH 

@@ -76,6 +76,10 @@ try:
     print "tile pixels =", s.tile_pixels()
     print "image_pixels =", s.image_pixels()
     print "size_t_safe =", s.size_t_safe()
+    print "get_channelformats:", s.get_channelformats()
+    print "channelindex('G') =", s.channelindex('G')
+    print "channel_name(1) =", s.channel_name(1)
+    print "channelformat(1) =", s.channelformat(1)
     print
 
     s.attribute ("foo_str", "blah")
@@ -107,6 +111,8 @@ try:
         print i, s.extra_attribs[i].name, s.extra_attribs[i].type, s.extra_attribs[i].value
         print s.metadata_val (s.extra_attribs[i], True)
     print
+    print "seralize(xml):\n", s.serialize("xml")
+    print "serialize(text, human):\n", s.serialize("text", "detailedhuman")
 
     # test initialization from ROI
     print ("Testing construction from ROI:")

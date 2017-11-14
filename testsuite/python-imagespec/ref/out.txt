@@ -48,7 +48,7 @@ lots of fields
   tile size =  32 64 16
   format =  float
   nchannels =  5
-  channelformats =  (2, 2, 2, 2, 11)
+  channelformats =  (<TypeDesc 'uint8'>, <TypeDesc 'uint8'>, <TypeDesc 'uint8'>, <TypeDesc 'uint8'>, <TypeDesc 'float'>)
   channel names =  ('R', 'G', 'B', 'A', 'channel4')
   alpha channel =  3
   z channel =  -1
@@ -66,6 +66,10 @@ image bytes = 6144000 native 2457600
 tile pixels = 32768
 image_pixels = 307200
 size_t_safe = True
+get_channelformats: (<TypeDesc 'uint8'>, <TypeDesc 'uint8'>, <TypeDesc 'uint8'>, <TypeDesc 'uint8'>, <TypeDesc 'float'>)
+channelindex('G') = 1
+channel_name(1) = G
+channelformat(1) = uint8
 
 get_int_attribute('foo_int') retrieves 14
 get_int_attribute('foo_int',21) with default retrieves 14
@@ -95,6 +99,55 @@ extra_attribs size is 5
 1 0 11
 4 foo_matrix matrix (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
 1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
+
+seralize(xml):
+<ImageSpec version="20">
+<x>1</x>
+<y>2</y>
+<z>3</z>
+<width>640</width>
+<height>480</height>
+<depth>1</depth>
+<full_x>4</full_x>
+<full_y>5</full_y>
+<full_z>6</full_z>
+<full_width>1280</full_width>
+<full_height>960</full_height>
+<full_depth>7</full_depth>
+<tile_width>32</tile_width>
+<tile_height>64</tile_height>
+<tile_depth>16</tile_depth>
+<format>float</format>
+<nchannels>5</nchannels>
+<channelnames>
+<channelname>R</channelname>
+<channelname>G</channelname>
+<channelname>B</channelname>
+<channelname>A</channelname>
+<channelname>channel4</channelname>
+</channelnames>
+<alpha_channel>3</alpha_channel>
+<z_channel>-1</z_channel>
+<deep>0</deep>
+<attrib name="foo_str" type="string">blah</attrib>
+<attrib name="foo_int" type="int">14</attrib>
+<attrib name="foo_float" type="float">3.14</attrib>
+<attrib name="foo_vector" type="vector">1 0 11</attrib>
+<attrib name="foo_matrix" type="matrix">1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1</attrib>
+</ImageSpec>
+
+serialize(text, human):
+ 640 x  480, 5 channel, uint8/uint8/uint8/uint8/float
+    channel list: R (uint8), G (uint8), B (uint8), A (uint8), channel4 (float)
+    pixel data origin: x=1, y=2
+    full/display size: 1280 x 960
+    full/display origin: 4, 5
+    tile size: 32 x 64
+    foo_str: "blah"
+    foo_int: 14
+    foo_float: 3.14
+    foo_vector: 1 0 11
+    foo_matrix: 1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
 
 Testing construction from ROI:
   resolution (width,height,depth) =  640 480 1

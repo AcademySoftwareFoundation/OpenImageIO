@@ -102,9 +102,8 @@ ifeq (${SP_OS}, rhel7)
 	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
 	-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERSSP} \
 	-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERSSP} \
-	-Dboost_PYTHON_FOUND=1 -DPYTHONLIBS_FOUND=1 \
+	-DPYTHONLIBS_FOUND=1 \
 	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
-	-DBoost_PYTHON_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/libspboost_${BOOSTVERS_PREFIX}_python-gcc48-mt${BOOSTVERS_SUFFIX}.so" \
 	-DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
     # FIXME: Force use of libtiff 3.9.4 because libtiff symbols are not
     # namespaced, and if we compile OIIO against the system default of

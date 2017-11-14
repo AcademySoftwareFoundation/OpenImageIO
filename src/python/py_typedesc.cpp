@@ -30,43 +30,14 @@
 
 #include "py_oiio.h"
 
-namespace PyOpenImageIO
-{
-using namespace boost::python;
-using self_ns::str;
-
-
-
-static TypeDesc::BASETYPE TypeDesc_get_basetype (const TypeDesc &t) {
-    return (TypeDesc::BASETYPE)t.basetype;
-}
-static TypeDesc::AGGREGATE TypeDesc_get_aggregate (const TypeDesc &t) {
-    return (TypeDesc::AGGREGATE)t.aggregate;
-}
-static TypeDesc::VECSEMANTICS TypeDesc_get_vecsemantics (const TypeDesc &t) {
-    return (TypeDesc::VECSEMANTICS)t.vecsemantics;
-}
-static void TypeDesc_set_basetype (TypeDesc &t, TypeDesc::BASETYPE val) {
-    t.basetype = val;
-}
-static void TypeDesc_set_aggregate (TypeDesc &t, TypeDesc::AGGREGATE val) {
-    t.aggregate = val;
-}
-static void TypeDesc_set_vecsemantics (TypeDesc &t, TypeDesc::VECSEMANTICS val) {
-    t.vecsemantics = val;
-}
-
-static void TypeDesc_fromstring (TypeDesc &t, const char* typestring)
-{
-    t.fromstring (typestring);
-}
+namespace PyOpenImageIO {
 
 
 
 // Declare the OIIO TypeDesc type to Python
-void declare_typedesc() {
+void declare_typedesc(py::module& m) {
 
-    enum_<TypeDesc::BASETYPE>("BASETYPE")
+    py::enum_<TypeDesc::BASETYPE>(m, "BASETYPE")
         .value("UNKNOWN",   TypeDesc::UNKNOWN)
         .value("NONE",      TypeDesc::NONE)
         .value("UCHAR",     TypeDesc::UCHAR)
@@ -94,7 +65,7 @@ void declare_typedesc() {
         .export_values()
     ;
 
-    enum_<TypeDesc::AGGREGATE>("AGGREGATE")
+    py::enum_<TypeDesc::AGGREGATE>(m, "AGGREGATE")
         .value("SCALAR",    TypeDesc::SCALAR)
         .value("VEC2",      TypeDesc::VEC2)
         .value("VEC3",      TypeDesc::VEC3)
@@ -103,8 +74,8 @@ void declare_typedesc() {
         .value("MATRIX44",  TypeDesc::MATRIX44)
         .export_values()
     ;
-    
-    enum_<TypeDesc::VECSEMANTICS>("VECSEMANTICS")
+
+    py::enum_<TypeDesc::VECSEMANTICS>(m, "VECSEMANTICS")
         .value("NOXFORM",  TypeDesc::NOXFORM)
         .value("NOSEMANTICS", TypeDesc::NOSEMANTICS)
         .value("COLOR",    TypeDesc::COLOR)
@@ -117,23 +88,31 @@ void declare_typedesc() {
         .export_values()
     ;
 
-    class_<TypeDesc>("TypeDesc")
+    py::class_<TypeDesc>(m, "TypeDesc")
         // basetype, aggregate, and vecsemantics should look like BASETYPE,
         // AGGREGATE, VECSEMANTICS, but since they are stored as unsigned
         // char, def_readwrite() doesn't do the right thing. Instead, we
         // use set_foo/get_foo wrappers, but from Python it looks like
         // regular member access.
-        .add_property("basetype", &TypeDesc_get_basetype, &TypeDesc_set_basetype)
-        .add_property("aggregate", &TypeDesc_get_aggregate, &TypeDesc_set_aggregate)
-        .add_property("vecsemantics", &TypeDesc_get_vecsemantics, &TypeDesc_set_vecsemantics)
+        .def_property("basetype",
+            [](TypeDesc t){ return TypeDesc::BASETYPE(t.basetype); },
+            [](TypeDesc &t, TypeDesc::BASETYPE b){ return t.basetype = b; })
+        .def_property("aggregate",
+            [](TypeDesc t){ return TypeDesc::AGGREGATE(t.aggregate); },
+            [](TypeDesc &t, TypeDesc::AGGREGATE b){ return t.aggregate = b; })
+        .def_property("vecsemantics",
+            [](TypeDesc t){ return TypeDesc::VECSEMANTICS(t.vecsemantics); },
+            [](TypeDesc &t, TypeDesc::VECSEMANTICS b){ return t.vecsemantics = b; })
         .def_readwrite("arraylen",      &TypeDesc::arraylen)
-        // Constructors: () [defined implicitly], (base), (base, agg), 
+        // Constructors: () [defined implicitly], (base), (base, agg),
         // (base,agg,vecsem), (base,agg,vecsem,arraylen), string.
-        .def(init<TypeDesc::BASETYPE>())
-        .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE>())
-        .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, TypeDesc::VECSEMANTICS>())
-        .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, TypeDesc::VECSEMANTICS, int>())
-        .def(init<const char *>())
+        .def(py::init<>())
+        .def(py::init<const TypeDesc&>())
+        .def(py::init<TypeDesc::BASETYPE>())
+        .def(py::init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE>())
+        .def(py::init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, TypeDesc::VECSEMANTICS>())
+        .def(py::init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, TypeDesc::VECSEMANTICS, int>())
+        .def(py::init<const char *>())
         // Unfortunately, overloading the int varieties, as we do in C++,
         // doesn't seem to work properly, it can't distinguish between an
         // int and an AGGREGATE, for example. Maybe in C++11 with strong
@@ -141,6 +120,7 @@ void declare_typedesc() {
         // variants of the constructors:
         //   .def(init<TypeDesc::BASETYPE, int>())
         //   .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, int>())
+        // FIXME -- I bet this works with Pybind11
         .def("c_str",            &TypeDesc::c_str)
         .def("numelements",      &TypeDesc::numelements)
         .def("basevalues",       &TypeDesc::basevalues)
@@ -148,56 +128,78 @@ void declare_typedesc() {
         .def("elementtype",      &TypeDesc::elementtype)
         .def("elementsize",      &TypeDesc::elementsize)
         .def("basesize",         &TypeDesc::basesize)
-        .def("fromstring",       &TypeDesc_fromstring)
+        .def("fromstring",       [](TypeDesc &t, const char* typestring){
+            t.fromstring (typestring); })
         .def("equivalent",       &TypeDesc::equivalent)
         .def("unarray",          &TypeDesc::unarray)
         .def("is_vec3",          &TypeDesc::is_vec3)
         .def("is_vec4",          &TypeDesc::is_vec4)
 
         // overloaded operators
-        .def(self == other<TypeDesc>())    // operator==
-        .def(self != other<TypeDesc>())    // operator!=
+        .def(py::self == py::self)    // operator==
+        .def(py::self != py::self)    // operator!=
 
-        // Define Python str(TypeDesc), it automatically uses '<<'
-        .def(str(self))    // __str__
+        // Conversion to string
+        .def("__str__", [](TypeDesc t){ return PY_STR(t.c_str()); })
+        .def("__repr__", [](TypeDesc t){
+                return PY_STR("<TypeDesc '" + std::string(t.c_str()) + "'>");
+            })
 
         // Static members of pre-constructed types
         // DEPRECATED(1.8)
-        .def_readonly("TypeFloat",    &TypeFloat)
-        .def_readonly("TypeColor",    &TypeColor)
-        .def_readonly("TypeString",   &TypeString)
-        .def_readonly("TypeInt",      &TypeInt)
-        .def_readonly("TypeHalf",     &TypeHalf)
-        .def_readonly("TypePoint",    &TypePoint)
-        .def_readonly("TypeVector",   &TypeVector)
-        .def_readonly("TypeNormal",   &TypeNormal)
-        .def_readonly("TypeMatrix",   &TypeMatrix)
-        .def_readonly("TypeMatrix33", &TypeMatrix33)
-        .def_readonly("TypeMatrix44", &TypeMatrix44)
-        .def_readonly("TypeTimeCode", &TypeTimeCode)
-        .def_readonly("TypeKeyCode",  &TypeKeyCode)
-        .def_readonly("TypeFloat4",   &TypeFloat4)
+        .def_readonly_static ("TypeFloat",    &TypeFloat)
+        .def_readonly_static ("TypeColor",    &TypeColor)
+        .def_readonly_static ("TypeString",   &TypeString)
+        .def_readonly_static ("TypeInt",      &TypeInt)
+        .def_readonly_static ("TypeHalf",     &TypeHalf)
+        .def_readonly_static ("TypePoint",    &TypePoint)
+        .def_readonly_static ("TypeVector",   &TypeVector)
+        .def_readonly_static ("TypeNormal",   &TypeNormal)
+        .def_readonly_static ("TypeMatrix",   &TypeMatrix)
+        .def_readonly_static ("TypeMatrix33", &TypeMatrix33)
+        .def_readonly_static ("TypeMatrix44", &TypeMatrix44)
+        .def_readonly_static ("TypeTimeCode", &TypeTimeCode)
+        .def_readonly_static ("TypeKeyCode",  &TypeKeyCode)
+        .def_readonly_static ("TypeRational", &TypeRational)
+        .def_readonly_static ("TypeFloat4",   &TypeFloat4)
     ;
 
-    // Global constants of common TypeDescs
-    scope().attr("TypeUnknown")  = TypeUnknown;
-    scope().attr("TypeFloat")    = TypeFloat;
-    scope().attr("TypeColor")    = TypeColor;
-    scope().attr("TypePoint")    = TypePoint;
-    scope().attr("TypeVector")   = TypeVector;
-    scope().attr("TypeNormal")   = TypeNormal;
-    scope().attr("TypeString")   = TypeString;
-    scope().attr("TypeInt")      = TypeInt;
-    scope().attr("TypeUInt")     = TypeUInt;
-    scope().attr("TypeHalf")     = TypeHalf;
-    scope().attr("TypeMatrix")   = TypeMatrix;
-    scope().attr("TypeMatrix33") = TypeMatrix33;
-    scope().attr("TypeMatrix44") = TypeMatrix44;
-    scope().attr("TypeTimeCode") = TypeTimeCode;
-    scope().attr("TypeKeyCode")  = TypeKeyCode;
-    scope().attr("TypeFloat4")   = TypeFloat4;
-    scope().attr("TypeRational") = TypeRational;
+    // Declare that a BASETYPE is implicitly convertible to a TypeDesc.
+    // This keeps us from having to separately declare func(TypeDesc)
+    // and func(TypeDesc::BASETYPE) everywhere.
+    py::implicitly_convertible<TypeDesc::BASETYPE, TypeDesc>();
 
+    // Declare that a Python str is implicitly convertible to a TypeDesc.
+    // This let you call foo("uint8") anyplace it would normally expect
+    // foo(TypeUInt8).
+    py::implicitly_convertible<py::str, TypeDesc>();
+
+#if 1
+    // Global constants of common TypeDescs
+    m.attr("TypeUnknown")  = TypeUnknown;
+    m.attr("TypeFloat")    = TypeFloat;
+    m.attr("TypeColor")    = TypeColor;
+    m.attr("TypePoint")    = TypePoint;
+    m.attr("TypeVector")   = TypeVector;
+    m.attr("TypeNormal")   = TypeNormal;
+    m.attr("TypeString")   = TypeString;
+    m.attr("TypeInt")      = TypeInt;
+    m.attr("TypeUInt")     = TypeUInt;
+    m.attr("TypeInt32")    = TypeInt32;
+    m.attr("TypeUInt32")   = TypeUInt32;
+    m.attr("TypeInt16")    = TypeInt16;
+    m.attr("TypeUInt16")   = TypeUInt16;
+    m.attr("TypeInt8")     = TypeInt8;
+    m.attr("TypeUInt8")    = TypeUInt8;
+    m.attr("TypeHalf")     = TypeHalf;
+    m.attr("TypeMatrix")   = TypeMatrix;
+    m.attr("TypeMatrix33") = TypeMatrix33;
+    m.attr("TypeMatrix44") = TypeMatrix44;
+    m.attr("TypeTimeCode") = TypeTimeCode;
+    m.attr("TypeKeyCode")  = TypeKeyCode;
+    m.attr("TypeFloat4")   = TypeFloat4;
+    m.attr("TypeRational") = TypeRational;
+#endif
 }
 
 } // namespace PyOpenImageIO

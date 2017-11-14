@@ -33,6 +33,9 @@ if (NOT VERBOSE)
     set (ZLIB_FIND_QUIETLY true)
 endif ()
 
+include (ExternalProject)
+
+option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" OFF)
 
 
 ###########################################################################
@@ -532,5 +535,62 @@ if (USE_DICOM)
     endif ()
 endif()
 # end DCMTK setup
+###########################################################################
+
+
+###########################################################################
+# pybind11
+
+option (BUILD_PYBIND11_FORCE "Force local download/build of Pybind11 even if installed" OFF)
+option (BUILD_MISSING_PYBIND11 "Local download/build of Pybind11 if not installed" ON)
+set (BUILD_PYBIND11_VERSION "v2.2.1" CACHE STRING "Preferred pybind11 version, of downloading/building our own")
+set (PYBIND11_HOME "" CACHE STRING "Installed pybind11 location hint")
+
+macro (find_or_download_pybind11)
+    # If we weren't told to force our own download/build of pybind11, look
+    # for an installed version. Still prefer a copy that seems to be
+    # locally installed in this tree.
+    if (NOT BUILD_PYBIND11_FORCE)
+        find_path (PYBIND11_INCLUDE_DIR pybind11/pybind11.h
+               "${PROJECT_SOURCE_DIR}/ext/pybind11/include"
+               "${PYBIND11_HOME}"
+               "$ENV{PYBIND11_HOME}"
+               )
+    endif ()
+    # If an external copy wasn't found and we requested that missing
+    # packages be built, or we we are forcing a local copy to be built, then
+    # download and build it.
+    if ((BUILD_MISSING_PYBIND11 AND NOT PYBIND11_INCLUDE_DIR) OR BUILD_PYBIND11_FORCE)
+        message (STATUS "Building local Pybind11")
+        set (PYBIND11_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/pybind11")
+        set (PYBIND11_GIT_REPOSITORY "https://github.com/pybind/pybind11")
+        set (PYBIND11_GIT_TAG "https://github.com/pybind/pybind11")
+        if (NOT IS_DIRECTORY ${PYBIND11_INSTALL_DIR}/include)
+            find_package (Git REQUIRED)
+            execute_process(COMMAND
+                            ${GIT_EXECUTABLE} clone ${PYBIND11_GIT_REPOSITORY}
+                            --branch ${BUILD_PYBIND11_VERSION}
+                            ${PYBIND11_INSTALL_DIR}
+                            )
+            if (IS_DIRECTORY ${PYBIND11_INSTALL_DIR}/include)
+                message (STATUS "DOWNLOADED pybind11 to ${PYBIND11_INSTALL_DIR}.\n"
+                         "Remove that dir to get rid of it.")
+            else ()
+                message (FATAL_ERROR "Could not download pybind11")
+            endif ()
+        endif ()
+        set (PYBIND11_INCLUDE_DIR "${PYBIND11_INSTALL_DIR}/include")
+    endif ()
+
+    if (PYBIND11_INCLUDE_DIR)
+        message (STATUS "pybind11 include dir: ${PYBIND11_INCLUDE_DIR}")
+    else ()
+        message (FATAL_ERROR "pybind11 is missing! If it's not on your "
+                 "system, you need to install it, or build with either "
+                 "-DBUILD_MISSING_DEPS=ON or -DBUILD_PYBIND11_FORCE=ON. "
+                 "Or build with -DUSE_PYTHON=OFF.")
+    endif ()
+endmacro()
+
 ###########################################################################
 
