@@ -133,6 +133,7 @@ Strutil::sync_output (std::ostream& file, string_view str)
     if (str.size()) {
         std::unique_lock<std::mutex> lock (output_mutex);
         file << str;
+        file.flush ();
     }
 }
 
