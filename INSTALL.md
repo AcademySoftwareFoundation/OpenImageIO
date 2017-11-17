@@ -100,8 +100,8 @@ Make targets you should know about:
 
 Additionally, a few helpful modifiers alter some build-time options:
 
-|  Target             |  Command                                           |
-| :------------------ | -------------------------------------------------- |
+|  Target                   |  Command                                           |
+| :------------------------ | -------------------------------------------------- |
 | make VERBOSE=1 ...        |  Show all compilation commands
 | make STOP_ON_WARNING=0    |  Do not stop building if compiler warns
 | make EMBEDPLUGINS=0 ...   |  Don't compile the plugins into libOpenImageIO
@@ -113,7 +113,7 @@ Additionally, a few helpful modifiers alter some build-time options:
 | make BUILDSTATIC=1 ...    |  Build static library instead of shared
 | make LINKSTATIC=1 ...     |  Link with static external libraries when possible
 | make SOVERSION=nn ...     |  Include the specifed major version number in the shared object metadata
-|  make NAMESPACE=name      |   Wrap everything in another namespace
+| make NAMESPACE=name       |   Wrap everything in another namespace
 
 The command 'make help' will list all possible options.
 
