@@ -35,10 +35,13 @@ list (APPEND libOpenImageIO_srcs
                           imageoutput.cpp iptc.cpp xmp.cpp
                           color_ocio.cpp
                           imagebufalgo.cpp
+                          imagebufalgo_channels.cpp
                           imagebufalgo_compare.cpp
                           imagebufalgo_copy.cpp
                           imagebufalgo_deep.cpp
                           imagebufalgo_draw.cpp
+                          imagebufalgo_mathops.cpp
+                          imagebufalgo_orient.cpp
                           imagebufalgo_pixelmath.cpp
                           imagebufalgo_xform.cpp
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp

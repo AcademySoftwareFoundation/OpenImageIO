@@ -356,7 +356,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
     }
 
 // Macro to call a type-specialzed version func<Rtype,Atype>(R,A,...) for
-// the most common types, will auto-convert the rest to float.
+// the most common types. It will auto-convert other cases to/from float.
 #define OIIO_DISPATCH_COMMON_TYPES2(ret,name,func,Rtype,Atype,R,A,...)  \
     switch (Rtype.basetype) {                                           \
     case TypeDesc::FLOAT :                                              \
@@ -382,6 +382,65 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         else                                                            \
             (R).error ("%s", Rtmp.geterror());                          \
         }                                                               \
+    }
+
+
+// Macro to call a type-specialzed version func<Rtype,Atype>(R,A,...) for
+// the most common types. It will auto-convert other cases to/from float.
+// This is the case for when we don't actually write to the read-only R image.
+#define OIIO_DISPATCH_COMMON_TYPES2_CONST(ret,name,func,Rtype,Atype,R,A,...)  \
+    switch (Rtype.basetype) {                                           \
+    case TypeDesc::FLOAT :                                              \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,float,Atype,R,A,__VA_ARGS__); \
+        break;                                                          \
+    case TypeDesc::UINT8 :                                              \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,unsigned char,Atype,R,A,__VA_ARGS__); \
+        break;                                                          \
+    case TypeDesc::HALF  :                                              \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,half,Atype,R,A,__VA_ARGS__); \
+        break;                                                          \
+    case TypeDesc::UINT16:                                              \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,unsigned short,Atype,R,A,__VA_ARGS__); \
+        break;                                                          \
+    default: {                                                          \
+        /* other types: punt and convert to float, then copy back */    \
+        ImageBuf Rtmp;                                                  \
+        if ((R).initialized())                                          \
+            Rtmp.copy (R, TypeDesc::FLOAT);                             \
+        OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,float,Atype,Rtmp,A,__VA_ARGS__); \
+    } }
+
+
+// Macro to call a type-specialzed version func<Rtype,Atype>(R,A,...) for
+// the most common types, and even for uncommon types when src and dst types
+// are identical. It will auto-convert other cases to float.
+#define OIIO_DISPATCH_COMMON_OR_SAME_TYPES2(ret,name,func,Rtype,Atype,R,A,...)  \
+    if (Rtype == Atype) {                                               \
+        switch (Atype.basetype) {                                       \
+        case TypeDesc::FLOAT :                                          \
+            ret = func<float,float> (R, A, __VA_ARGS__); break;         \
+        case TypeDesc::UINT8 :                                          \
+            ret = func<unsigned char,unsigned char> (R, A, __VA_ARGS__); break; \
+        case TypeDesc::HALF  :                                          \
+            ret = func<half,half> (R, A, __VA_ARGS__); break;           \
+        case TypeDesc::UINT16:                                          \
+            ret = func<unsigned short,unsigned short> (R, A, __VA_ARGS__); break; \
+        case TypeDesc::INT8 :                                           \
+            ret = func<char,char> (R, A, __VA_ARGS__); break;           \
+        case TypeDesc::INT16 :                                          \
+            ret = func<short,short> (R, A, __VA_ARGS__); break;         \
+        case TypeDesc::UINT :                                           \
+            ret = func<unsigned int,unsigned int> (R, A, __VA_ARGS__); break; \
+        case TypeDesc::INT :                                            \
+            ret = func<int,int> (R, A, __VA_ARGS__); break;             \
+        case TypeDesc::DOUBLE :                                         \
+            ret = func<double,double> (R, A, __VA_ARGS__); break;       \
+        default:                                                        \
+            (R).error ("%s: Unsupported pixel data format '%s'", name, Atype); \
+            ret = false;                                                \
+        }                                                               \
+    } else {                                                            \
+        OIIO_DISPATCH_COMMON_TYPES2(ret,name,func,Rtype,Atype,R,A,__VA_ARGS__); \
     }
 
 

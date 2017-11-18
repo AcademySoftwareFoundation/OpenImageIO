@@ -326,7 +326,7 @@ ImageBufAlgo::render_line (ImageBuf &dst, int x1, int y1, int x2, int y2,
         alpha = color[roi.chend];
 
     bool ok;
-    OIIO_DISPATCH_TYPES (ok, "render_line", render_line_, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES (ok, "render_line", render_line_, dst.spec().format,
                          dst, x1, y1, x2, y2, color, alpha, skip_first_point,
                          roi, nthreads);
     return ok;
@@ -382,7 +382,7 @@ ImageBufAlgo::render_box (ImageBuf &dst, int x1, int y1, int x2, int y2,
     if (fill) {
         roi = roi_intersection (roi, ROI(x1, x2+1, y1, y2+1, 0, 1, 0, roi.chend));
         bool ok;
-        OIIO_DISPATCH_TYPES (ok, "render_box", render_box_, dst.spec().format,
+        OIIO_DISPATCH_COMMON_TYPES (ok, "render_box", render_box_, dst.spec().format,
                              dst, color, roi, nthreads);
         return ok;
     }
@@ -439,7 +439,7 @@ ImageBufAlgo::checker (ImageBuf &dst, int width, int height, int depth,
     if (! IBAprep (roi, &dst))
         return false;
     bool ok;
-    OIIO_DISPATCH_TYPES (ok, "checker", checker_, dst.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES (ok, "checker", checker_, dst.spec().format,
                          dst, Dim3(width, height, depth), color1, color2,
                          Dim3(xoffset, yoffset, zoffset), roi, nthreads);
     return ok;
@@ -553,13 +553,13 @@ ImageBufAlgo::noise (ImageBuf &dst, string_view noisetype,
         return false;
     bool ok;
     if (noisetype == "gaussian" || noisetype == "normal") {
-        OIIO_DISPATCH_TYPES (ok, "noise_gaussian", noise_gaussian_, dst.spec().format,
+        OIIO_DISPATCH_COMMON_TYPES (ok, "noise_gaussian", noise_gaussian_, dst.spec().format,
                              dst, A, B, mono, seed, roi, nthreads);
     } else if (noisetype == "uniform") {
-        OIIO_DISPATCH_TYPES (ok, "noise_uniform", noise_uniform_, dst.spec().format,
+        OIIO_DISPATCH_COMMON_TYPES (ok, "noise_uniform", noise_uniform_, dst.spec().format,
                              dst, A, B, mono, seed, roi, nthreads);
     } else if (noisetype == "salt") {
-        OIIO_DISPATCH_TYPES (ok, "noise_salt", noise_salt_, dst.spec().format,
+        OIIO_DISPATCH_COMMON_TYPES (ok, "noise_salt", noise_salt_, dst.spec().format,
                              dst, A, B, mono, seed, roi, nthreads);
     } else {
         ok = false;

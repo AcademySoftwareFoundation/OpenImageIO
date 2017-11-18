@@ -346,7 +346,7 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
         return false;
 
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "compare", compare_,
+    OIIO_DISPATCH_COMMON_TYPES2_CONST (ok, "compare", compare_,
                           A.spec().format, B.spec().format,
                           A, B, failthresh, warnthresh, result,
                           roi, nthreads);
