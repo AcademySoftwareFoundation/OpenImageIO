@@ -1424,7 +1424,7 @@ ImageBuf::copy_pixels (const ImageBuf &src)
         ImageBufAlgo::zero (*this);
 
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "copy_pixels", copy_pixels_impl,
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "copy_pixels", copy_pixels_impl,
                           spec().format, src.spec().format, *this, src, roi);
     return ok;
 }
@@ -1701,7 +1701,8 @@ ImageBuf::setpixel (int i, const float *pixel, int maxchannels)
 
 template<typename D, typename S>
 static bool
-get_pixels_ (const ImageBuf &buf, ROI whole_roi, ROI roi, void *r_,
+get_pixels_ (const ImageBuf &buf, const ImageBuf &dummyarg,
+             ROI whole_roi, ROI roi, void *r_,
              stride_t xstride, stride_t ystride, stride_t zstride,
              int nthreads=0)
 {
@@ -1733,8 +1734,8 @@ ImageBuf::get_pixels (ROI roi, TypeDesc format, void *result,
     ImageSpec::auto_stride (xstride, ystride, zstride, format.size(),
                             roi.nchannels(), roi.width(), roi.height());
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "get_pixels", get_pixels_,
-                          format, spec().format, *this, roi, roi,
+    OIIO_DISPATCH_COMMON_TYPES2_CONST (ok, "get_pixels", get_pixels_,
+                          format, spec().format, *this, *this, roi, roi,
                           result, xstride, ystride, zstride, threads());
     return ok;
 }
