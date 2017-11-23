@@ -379,3 +379,75 @@ whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
       Constant: Yes
       Constant Color: 1.000000 1.000000 1.000000 (float)
       Monochrome: Yes
+bumpslope.exr        :   64 x   64, 6 channel, half openexr (+mipmap)
+    MIP 0 of 7 (64 x 64):
+      Stats Min: 0.131714 -9.882812 -9.468750 0.000000 0.000000 -53.593750 (float)
+      Stats Max: 0.823730 10.078125 10.609375 101.500000 112.562500 47.031250 (float)
+      Stats Avg: 0.499779 -0.029305 -0.002668 8.073893 7.327511 0.141631 (float)
+      Stats StdDev: 0.099583 2.841299 2.706928 11.169512 10.638643 7.398137 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 4096 4096 4096 4096 4096 4096 
+      Constant: No
+      Monochrome: No
+    MIP 1 of 7 (32 x 32):
+      Stats Min: 0.353027 -5.378906 -7.136719 0.065491 0.088745 -24.593750 (float)
+      Stats Max: 0.648438 5.746094 5.726562 49.593750 52.312500 18.546875 (float)
+      Stats Avg: 0.499778 -0.029305 -0.002658 8.073977 7.327510 0.141653 (float)
+      Stats StdDev: 0.051041 1.782274 1.793243 6.860120 6.770573 4.035535 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 1024 1024 1024 1024 1024 1024 
+      Constant: No
+      Monochrome: No
+    MIP 2 of 7 (16 x 16):
+      Stats Min: 0.408203 -2.318359 -2.291016 1.525391 0.869629 -6.511719 (float)
+      Stats Max: 0.571777 1.604492 2.441406 24.937500 29.703125 7.585938 (float)
+      Stats Avg: 0.499782 -0.029325 -0.002681 8.074070 7.327562 0.141667 (float)
+      Stats StdDev: 0.025250 0.747315 0.821157 4.219419 4.267972 2.138862 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 256 256 256 256 256 256 
+      Constant: No
+      Monochrome: No
+    MIP 3 of 7 (8 x 8):
+      Stats Min: 0.476562 -0.568359 -0.545898 3.021484 3.214844 -2.289062 (float)
+      Stats Max: 0.521973 0.496338 0.542969 16.359375 11.960938 3.521484 (float)
+      Stats Avg: 0.499767 -0.029307 -0.002679 8.073853 7.327240 0.141658 (float)
+      Stats StdDev: 0.011861 0.241849 0.270719 2.677819 1.987326 1.185046 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 64 64 64 64 64 64 
+      Constant: No
+      Monochrome: No
+    MIP 4 of 7 (4 x 4):
+      Stats Min: 0.493896 -0.224976 -0.245972 6.308594 5.472656 -1.125977 (float)
+      Stats Max: 0.506836 0.211792 0.241699 9.656250 9.757812 1.217773 (float)
+      Stats Avg: 0.499771 -0.029306 -0.002665 8.072998 7.327881 0.141689 (float)
+      Stats StdDev: 0.003707 0.108191 0.148444 1.073994 1.155472 0.615748 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 16 16 16 16 16 16 
+      Constant: No
+      Monochrome: No
+    MIP 5 of 7 (2 x 2):
+      Stats Min: 0.497070 -0.084290 -0.061310 7.578125 6.847656 -0.067810 (float)
+      Stats Max: 0.501953 0.052460 0.029831 8.906250 7.773438 0.638672 (float)
+      Stats Avg: 0.499756 -0.029305 -0.002676 8.074219 7.327148 0.141563 (float)
+      Stats StdDev: 0.002028 0.050268 0.036886 0.503088 0.345856 0.290336 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 4 4 4 4 4 4 
+      Constant: No
+      Monochrome: No
+    MIP 6 of 7 (1 x 1):
+      Stats Min: 0.499756 -0.029312 -0.002670 8.070312 7.328125 0.141602 (float)
+      Stats Max: 0.499756 -0.029312 -0.002670 8.070312 7.328125 0.141602 (float)
+      Stats Avg: 0.499756 -0.029312 -0.002670 8.070312 7.328125 0.141602 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 0 0 0 
+      Stats InfCount: 0 0 0 0 0 0 
+      Stats FiniteCount: 1 1 1 1 1 1 
+      Constant: Yes
+      Constant Color: 0.499756 -0.029312 -0.002670 8.070312 7.328125 0.141602 (float)
+      Monochrome: No

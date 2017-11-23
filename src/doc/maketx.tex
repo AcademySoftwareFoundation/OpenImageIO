@@ -422,11 +422,43 @@ as a \emph{light probe} image\footnote{See
 of the geometric layout.}.
 \apiend
 
+\apiitem{--bumpslopes}
+\index{bump mapping} \index{bump to roughness}
+\NEW % 1.9
+For a single channel input image representing height (that you would
+ordinarily use for a bump or displacement), this produces a 6-channel
+texture that contains the first and second moments of bump slope, which
+can be used to implement certain bump-to-roughness techniques.
+The channel layout is as follows:
+
+\begin{tabular}{cll}
+index & channel name & data at MIP level 0 \\
+\hline
+0 & \qkw{b0_h} & $h$   ~~~ (height)\\
+1 & \qkw{b1_dhds} & $\partial h / \partial s$ \\
+2 & \qkw{b2_dhdt} & $\partial h / \partial t$ \\
+3 & \qkw{b3_dhds2} & $(\partial h / \partial s)^2$ \\
+4 & \qkw{b4_dhdt2} & $(\partial h / \partial t)^2$ \\
+5 & \qkw{b5_dhdsdt} & $(\partial h / \partial s) \cdot (\partial h / \partial t)$ \\
+\end{tabular}
+
+(The strange channel names are to guarantee they are in alphabetical order,
+to prevent reordering by OpenEXR. And also note that the simple
+relationships between channels 1 \& 2, and 3--6, is only for the highest-
+resolution level of the MIP-map, and will differ for the lower-res filtered
+versions, and those differences is what gives us the slope momets that we
+need.)
+
+A reference for explaining how this can be used is here: \\
+Christophe Hery, Michael Kass, and Junhi Ling. "Geometry into Shading."
+Technical Memo 14-04, Pixar Animation Studios, 2014.
+\url{https://graphics.pixar.com/library/BumpRoughness}
+\apiend
+
 
 % --shadow --shadcube
-% --volshad --envlatl --envcube --lightprobe --latl2envcube --vertcross
+% --volshad --envcube --latl2envcube --vertcross
 % --fov
-% --opaquewidth
 
 
 \begin{comment}
@@ -450,7 +482,7 @@ file extension. The following example converts a PNG image to JPEG:
 
 \end{comment}
 
-
+\newpage
 \section{\oiiotool}
 \label{sec:oiiotooltex}
 

@@ -2323,12 +2323,16 @@ filename}) into a tiled, MIP-mapped, texture file and write to the
 file named by ({\cf outputfilename}).  The {\cf mode} describes what type of texture file we
 are creating and may be one of the following:
 
-\noindent \begin{tabular}{p{2in}p{3in}}
+\noindent \begin{tabular}{p{2in}p{3.1in}}
 {\cf MakeTxTexture} & Ordinary 2D texture\\
 %MakeTxShadow & \\
 {\cf MakeTxEnvLatl} & Latitude-longitude environment map\\
 {\cf \small MakeTxEnvLatlFromLightProbe} & Latitude-longitude environment map
        constructed from a ``light probe'' image.\\
+{\cf MakeTxBumpWithSlopes} & Bump/displacement map with extra slope
+    data channels (6 channels total, containing both the height and 1st and
+    2nd moments of slope distributions) for bump-to-roughness conversion in
+    shaders. \\
 \end{tabular}
 
 If the {\cf outstream} pointer is not \NULL, it should point

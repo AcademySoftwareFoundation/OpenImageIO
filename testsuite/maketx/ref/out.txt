@@ -379,3 +379,20 @@ whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
       Constant: Yes
       Constant Color: 1.000000 1.000000 1.000000 (float)
       Monochrome: Yes
+Reading bumpslope.exr
+bumpslope.exr        :   64 x   64, 6 channel, half openexr
+    MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: A36E88E8144C7FFE4DEE79682175EEFFF3666876
+    channel list: b0_h, b1_dhds, b2_dhdt, b3_dhds2, b4_dhdt2, b5_dh2dsdt
+    tile size: 64 x 64
+    oiio:ColorSpace: "Linear"
+    openexr:roundingmode: 0
+    textureformat: "Plain Texture"
+    compression: "zip"
+    fovcot: 1
+    oiio:AverageColor: "0.499779,-0.0293083,-0.00267029,8.07388,7.3275,0.141625"
+    oiio:SHA-1: "F7C2558A51D7333FFE1908ADAD42C401A9563273"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0 0
+    screenWindowWidth: 1
+    wrapmodes: "black,black"
