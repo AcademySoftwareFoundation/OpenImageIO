@@ -2008,6 +2008,7 @@ bool OIIO_API histogram_draw (ImageBuf &dst,
 enum OIIO_API MakeTextureMode {
     MakeTxTexture, MakeTxShadow, MakeTxEnvLatl,
     MakeTxEnvLatlFromLightProbe,
+    MakeTxBumpWithSlopes,
     _MakeTxLast
 };
 

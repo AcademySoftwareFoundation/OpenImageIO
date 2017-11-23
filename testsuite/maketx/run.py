@@ -113,6 +113,11 @@ command += maketx_command ("white.exr", "whiteenv.exr",
                            "--envlatl")
 command += oiiotool ("--stats whiteenv.exr")
 
+#Test --bumpslopes to export a 6 channels height map with gradients
+command += oiiotool (" --pattern noise 128x128 1 -d float -o bump.exr")
+command += maketx_command ("bump.exr", "bumpslope.tx",
+                           "--bumpslopes", showinfo=True)
+
 outputs = [ "out.txt" ]
 
 

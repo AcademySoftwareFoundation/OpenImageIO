@@ -379,3 +379,21 @@ whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
       Constant: Yes
       Constant Color: 1.000000 1.000000 1.000000 (float)
       Monochrome: Yes
+Reading bumpslope.tx
+bumpslope.tx         :  128 x  128, 6 channel, float tiff
+    MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: B8D4914DFA0AC46BE87C128D2604BAA2E1421B9F
+    channel list: R, G, B, channel3, channel4, channel5
+    tile size: 64 x 64
+    oiio:BitsPerSample: 32
+    Orientation: 1 (normal)
+    textureformat: "Bumpslopes"
+    wrapmodes: "black,black"
+    fovcot: 1
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 1
+    planarconfig: "contig"
+    tiff:Compression: 8
+    compression: "zip"
+    oiio:AverageColor: "0.500448,0.000816924,0.00636381,30.6937,30.3719,0.203795"
+    oiio:SHA-1: "AC4F9A217A7C4297D07A832C441476B744A758FB"

@@ -428,7 +428,110 @@ lightprobe_to_envlatl (ImageBuf &dst, const ImageBuf &src, bool y_is_up,
     return true;
 }
 
+// compute image gradient in s,t space using a Sobel filter
+static void 
+sobel_gradient(const ImageBuf &src, int x, int y, int width, int height, float *h, float* dh_ds, float *dh_dt ){
+            
+    ASSERT (src.spec().nchannels==1);
 
+    // 3x3 pixels block
+    const float* pix[3];
+
+    pix[1] = static_cast<const float*>(src.pixeladdr(x, y));
+
+    *h = *pix[1];
+    
+    // border handling
+    
+    if( x > 0 )  // we can safely shift to x-1 address
+        pix[1]-=1;
+    
+    // replicate border 
+    if( y == 0) {
+        pix[0] = pix[1];
+        pix[2] = static_cast<const float*>(src.pixeladdr(x, y+1));
+    }
+
+    else if( y == (width-1) ){
+        pix[0] = static_cast<const float*>(src.pixeladdr(x, y-1));
+        pix[2] = pix[1];
+    }
+    else {
+        pix[0] = static_cast<const float*>(src.pixeladdr(x, y-1));
+        pix[2] = static_cast<const float*>(src.pixeladdr(x, y+1));
+    }
+
+    // right border test
+    int r = ( x == (width-1) ) ? 1: 2 ;
+
+    *dh_ds =   -1.0f * pix[0][0] + 1.0f * pix[0][r]  
+               -2.0f * pix[1][0] + 2.0f * pix[1][r]
+               -1.0f * pix[2][0] + 1.0f * pix[2][r];
+
+    *dh_dt =  -1.0f * pix[0][0] - 2.0f * pix[0][1] -1.0f * pix[0][r] 
+              +1.0f * pix[2][0] + 2.0f * pix[2][1] +1.0f * pix[2][r];
+    
+    *dh_ds = *dh_ds * width  / 8.0f ; // sobel normalization
+    *dh_dt = *dh_dt * height / 8.0f ;
+}
+
+
+static void 
+normal_gradient(const ImageBuf &src, int x, int y, int width, int height, float *h, float* dh_ds, float *dh_dt ){
+    
+    ASSERT (src.nchannels()>2);
+    
+    // assume a normal defined in the tangent space
+    const float* n = static_cast<const float*>(src.pixeladdr(x, y));
+    
+    *h = -1.0f;    
+    *dh_ds = - n[0] / n[2]; 
+    *dh_dt = - n[1] / n[2];
+}
+
+static bool 
+bump_to_bumpslopes (ImageBuf &dst, const ImageBuf &src, ROI roi=ROI::All(), int nthreads=0)
+{
+    ASSERT ( dst.initialized() && dst.nchannels() == 6 );
+    
+    void (*bump_filter)(const ImageBuf&, int, int, int, int, float*, float*, float*);
+    
+    // detect bump input format according to channel count
+    if(src.spec().nchannels==1) // assume it is an height map
+        bump_filter = &sobel_gradient;
+    else if(src.spec().nchannels==3) // assume it is a normal map
+            bump_filter= &normal_gradient;
+    
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        
+        const ImageSpec &dstspec (dst.spec());
+        
+        ASSERT (dstspec.format == TypeDesc::FLOAT);
+
+        float dw = dstspec.width, dh = dstspec.height;
+        
+        float h;
+        float dhds;
+        float dhdt;
+        
+        for (ImageBuf::Iterator<float> d (dst, roi);  ! d.done();  ++d) {
+            
+            bump_filter(src, d.x(), d.y(), dw, dh, &h, &dhds, &dhdt);
+            
+            // height 
+            d[0] = h;
+            // first moments
+            d[1] = dhds; 
+            d[2] = dhdt;
+            // second moments
+            d[3] = dhds * dhds;
+            d[4] = dhdt * dhdt;
+            d[5] = dhds * dhdt;                        
+        }
+    });
+
+    return true;
+}
 
 static void
 fix_latl_edges (ImageBuf &buf)
@@ -864,6 +967,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     bool shadowmode = (mode == ImageBufAlgo::MakeTxShadow);
     bool envlatlmode = (mode == ImageBufAlgo::MakeTxEnvLatl || 
                         mode == ImageBufAlgo::MakeTxEnvLatlFromLightProbe);
+    bool bumpslopesmode = (mode == ImageBufAlgo::MakeTxBumpWithSlopes);
 
     // Find an ImageIO plugin that can open the output file, and open it
     std::string outformat = configspec.get_string_attribute ("maketx:fileformatname",
@@ -931,7 +1035,20 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         mode = ImageBufAlgo::MakeTxEnvLatl;
         src = latlong;
     }
-
+    
+    if (mode == ImageBufAlgo::MakeTxBumpWithSlopes ){
+        ImageSpec newspec = src->spec();
+        newspec.width = newspec.full_width = src->spec().width;
+        newspec.height = newspec.full_height = src->spec().height;
+        newspec.tile_width = newspec.tile_height = 0;
+        newspec.format = TypeDesc::FLOAT;
+        newspec.nchannels = 6;        
+        std::shared_ptr<ImageBuf> bumpslopes (new ImageBuf(newspec));
+        bump_to_bumpslopes(*bumpslopes, *src);
+        mode = ImageBufAlgo::MakeTxTexture;
+        src = bumpslopes;        
+    }
+        
     // Some things require knowing a bunch about the pixel statistics.
     bool constant_color_detect = configspec.get_int_attribute("maketx:constant_color_detect");
     bool opaque_detect = configspec.get_int_attribute("maketx:opaque_detect");
@@ -1152,7 +1269,12 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         configspec.attribute ("wrapmodes", "periodic,clamp");
         if (prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "LatLong Environment");
-    } else {
+    } else if (bumpslopesmode){
+        dstspec.attribute ("textureformat", "Bumpslopes");
+        if (prman_metadata)
+            dstspec.attribute ("PixarTextureFormat", "Bumpslopes");
+    }
+    else {
         dstspec.attribute ("textureformat", "Plain Texture");
         if (prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "Plain Texture");
