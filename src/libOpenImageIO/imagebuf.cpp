@@ -1769,6 +1769,10 @@ bool
 ImageBuf::set_pixels (ROI roi, TypeDesc format, const void *data,
                       stride_t xstride, stride_t ystride, stride_t zstride)
 {
+    if (! initialized()) {
+        error ("Cannot set_pixels() on an uninitialized ImageBuf");
+        return false;
+    }
     bool ok;
     if (! roi.defined())
         roi = this->roi();

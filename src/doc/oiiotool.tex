@@ -29,7 +29,7 @@ the new \emph{current image}.
 Most other commands either alter the current image (replacing it with
 the alteration), or in some cases will pull more than one image off the
 stack (such as the current image and the next item on the stack) and
-then push a new image.
+then push a new result image onto the stack.
 
 \subsubsection*{Argument order matters!}
 
@@ -41,8 +41,9 @@ on the command line is extremely important. For example,
 \end{code}
 
 \noindent has the effect of reading \qkw{in.tif} (thus making it the
-\emph{current image}), resizing it (as the current image, and making the
-resized version the new current image), and then writing the new current
+\emph{current image}), resizing it (taking the original off the stack,
+and placing the resized result back on the stack),
+and then writing the new current
 image to the file \qkw{out.tif}.  Contrast that with the following
 subtly-incorrect command:
 
@@ -69,12 +70,18 @@ take one or more arguments (like {\cf --resize} or {\cf -o}):
 A few commands take optional modifiers for options that are so
 rarely-used or confusing that they should not be required arguments.
 In these cases, they are appended to the command name, after a colon
-(``{\cf :}''), and with a \emph{name}{\cf =}\emph{value} format.  As
+(``{\cf :}''), and with a \emph{name}{\cf =}\emph{value} format.  Multiple
+optional modifiers can be chained together, with colon separators. As
 an example:
 
-\smallskip
-\hspace{0.25in} {\cf oiiotool --capture:camera=1 -o out.tif}
-\smallskip
+\begin{code}
+       oiiotool in.tif --text:x=400:y=600:color=1,0,0 "Hello" -o out.tif
+                       \____/\____/\____/\__________/ \____/
+                         |     |     |        |         |
+          command -------+     |     |        |         +----- required argument
+                               |     |        |
+   optional modifiers ---------+-----+--------+
+\end{code}
 
 \subsubsection*{Frame sequences}
 \index{frame sequences}\index{wildcard}

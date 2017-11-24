@@ -179,14 +179,17 @@ ImageBuf_set_pixels_buffer (ImageBuf &self, ROI roi, py::buffer &buffer)
     if (size == 0) {
         return true;   // done
     }
-    const ImageSpec& spec (self.spec());
-    oiio_bufinfo buf (buffer.request(), spec.nchannels, spec.width,
-                      spec.height, spec.depth, self.spec().depth > 1 ? 3 : 2);
+    oiio_bufinfo buf (buffer.request(), roi.nchannels(), roi.width(),
+                      roi.height(), roi.depth(), self.spec().depth > 1 ? 3 : 2);
     if (! buf.data) {
+        self.error ("set_pixels unspecified error decoding the Python buffer");
         return false;  // failed sanity checks
     }
     if (! buf.data || buf.size != size) {
-        return false;  // failed sanity checks
+        self.error ("ImageBuf.set_pixels: array size (%d) did not match ROI size w=%d h=%d d=%d ch=%d (total %d)",
+                    buf.size, roi.width(), roi.height(), roi.depth(),
+                    roi.nchannels(), size);
+        return false;
     }
 
     py::gil_scoped_release gil;

@@ -44,6 +44,7 @@
 #endif
 
 #include <vector>
+#include <functional>
 
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>

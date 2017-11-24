@@ -4879,14 +4879,54 @@ formatted_format_list (string_view format_typename, string_view attr)
 
 
 static void
-print_help (ArgParse &ap)
+print_usage_tips (const ArgParse &ap, std::ostream &out)
 {
-    ap.usage ();
-    std::cout << "\n";
     int columns = Sysutil::terminal_columns() - 2;
 
-    std::cout << formatted_format_list ("Input", "input_format_list") << "\n";
-    std::cout << formatted_format_list ("Output", "output_format_list") << "\n";
+    out <<
+      "Important usage tips:\n"
+      << Strutil::wordwrap(
+          "  * The oiiotool command line is processed in order, LEFT to RIGHT.\n",
+          columns, 4)
+      << Strutil::wordwrap(
+          "  * The command line consists of image NAMES ('image.tif') and "
+          "COMMANDS ('--over'). Commands start with dashes (one or two dashes "
+          "are equivalent). Some commands have required arguments which "
+          "must follow on the command line. For example, the '-o' command is "
+          "followed by a filename.\n",
+          columns, 4)
+      << Strutil::wordwrap(
+          "  * oiiotool is STACK-based: naming an image pushes it on the stack, and "
+          "most commands pop the top image (or sometimes more than one image), "
+          "perform a calculation, and push the result image back on the stack. "
+          "For example, the '--over' command pops the top two images off the "
+          "stack, composites them, then pushes the result back onto the stack.\n",
+          columns, 4)
+      << Strutil::wordwrap(
+          "  * Some commands allow one or more optional MODIFIERS in the form "
+          "'name=value', which are appended directly to the command itself "
+          "(no spaces), separated by colons ':'. For example,\n",
+          columns, 4)
+      <<  "       oiiotool in.tif --text:x=100:y=200:color=1,0,0 \"Hello\" -o out.tif\n"
+      << Strutil::wordwrap(
+          "  * Using numerical wildcards will run the whole command line on each of "
+          "several sequentially-named files, for example:\n",
+          columns, 4)
+      << "       oiiotool fg.#.tif bg.#.tif -over -o comp.#.tif\n"
+      << "   See the manual for info about subranges, number of digits, etc.\n"
+      << "\n";
+}
+
+
+
+static void
+print_help_end (const ArgParse &ap, std::ostream &out)
+{
+    out << "\n";
+    int columns = Sysutil::terminal_columns() - 2;
+
+    out << formatted_format_list ("Input", "input_format_list") << "\n";
+    out << formatted_format_list ("Output", "output_format_list") << "\n";
 
     // debugging color space names
     std::stringstream s;
@@ -4901,7 +4941,7 @@ print_help (ArgParse &ap)
         if (i < e-1)
             s << ", ";
     }
-    std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+    out << Strutil::wordwrap(s.str(), columns, 4) << "\n";
 
     int nlooks = ot.colorconfig.getNumLooks();
     if (nlooks) {
@@ -4913,7 +4953,7 @@ print_help (ArgParse &ap)
             if (i < nlooks-1)
                 s << ", ";
         }
-        std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+        out << Strutil::wordwrap(s.str(), columns, 4) << "\n";
     }
 
     const char *default_display = ot.colorconfig.getDefaultDisplayName();
@@ -4944,10 +4984,10 @@ print_help (ArgParse &ap)
                 s << ", ";
         }
         s << " (* = default)";
-        std::cout << Strutil::wordwrap(s.str(), columns, 4) << "\n";
+        out << Strutil::wordwrap(s.str(), columns, 4) << "\n";
     }
     if (! ot.colorconfig.supportsOpenColorIO())
-        std::cout << "No OpenColorIO support was enabled at build time.\n";
+        out << "No OpenColorIO support was enabled at build time.\n";
     std::string libs = OIIO::get_string_attribute("library_list");
     if (libs.size()) {
         std::vector<string_view> libvec;
@@ -4956,10 +4996,42 @@ print_help (ArgParse &ap)
             size_t pos = lib.find(':');
             lib.remove_prefix (pos+1);
         }
-        std::cout << "Dependent libraries:\n    "
-                  << Strutil::wordwrap(Strutil::join (libvec, ", "), columns, 4)
-                  << std::endl;
+        out << "Dependent libraries:\n    "
+            << Strutil::wordwrap(Strutil::join (libvec, ", "), columns, 4)
+            << std::endl;
     }
+
+    // Print the path to the docs. If found, use the one installed in the
+    // same area is this executable, otherwise just point to the copy on
+    // GitHub corresponding to our version of the softare.
+    out << "Full OIIO documentation can be found at\n";
+    std::string path = Sysutil::this_program_path();
+    path = Filesystem::parent_path (path);
+    path = Filesystem::parent_path (path);
+    path += "/share/doc/OpenImageIO/openimageio.pdf";
+    if (Filesystem::exists(path))
+        out << "    " << path << "\n";
+    else {
+        std::string branch;
+        if (Strutil::ends_with (OIIO_VERSION_STRING, "dev"))
+            branch = "master";
+        else
+            branch = Strutil::format ("RB-%d.%d", OIIO_VERSION_MAJOR, OIIO_VERSION_MINOR);
+        std::string docsurl = Strutil::format("https://github.com/OpenImageIO/oiio/blob/%s/src/doc/openimageio.pdf",
+                                              branch);
+        out << "    " << docsurl << "\n";
+    }
+}
+
+
+
+static void
+print_help (ArgParse &ap)
+{
+    ap.set_preoption_help (print_usage_tips);
+    ap.set_postoption_help (print_help_end);
+
+    ap.usage ();
 }
 
 
@@ -4978,7 +5050,7 @@ getargs (int argc, char *argv[])
     ArgParse ap (argc, (const char **)argv);
     ap.options ("oiiotool -- simple image processing operations\n"
                 OIIO_INTRO_STRING "\n"
-                "Usage:  oiiotool [filename,option,action]...\n",
+                "Usage:  oiiotool [filename|command]...\n",
                 "%*", input_file, "",
                 "<SEPARATOR>", "Options (general):",
                 "--help", &help, "Print help message",
