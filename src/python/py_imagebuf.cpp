@@ -138,7 +138,7 @@ ImageBuf_get_pixels (const ImageBuf &buf, TypeDesc format, ROI roi=ROI::All())
     // If the read fails, return None.
     if (! roi.defined())
         roi = buf.roi();
-    roi.chend = std::min (roi.chend, buf.nchannels()+1);
+    roi.chend = std::min (roi.chend, buf.nchannels());
 
     size_t size = (size_t) roi.npixels() * roi.nchannels() * format.size();
     std::unique_ptr<char[]> data (new char [size]);
@@ -174,7 +174,7 @@ ImageBuf_set_pixels_buffer (ImageBuf &self, ROI roi, py::buffer &buffer)
 {
     if (! roi.defined())
         roi = self.roi();
-    roi.chend = std::min (roi.chend, self.nchannels()+1);
+    roi.chend = std::min (roi.chend, self.nchannels());
     size_t size = (size_t) roi.npixels() * roi.nchannels();
     if (size == 0) {
         return true;   // done
