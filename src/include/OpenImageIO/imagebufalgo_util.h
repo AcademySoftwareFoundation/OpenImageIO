@@ -192,7 +192,7 @@ enum IBAprep_flags {
     IBAprep_NO_SUPPORT_VOLUME = 1<<4,   // Don't know how to do volumes
     IBAprep_NO_COPY_METADATA = 1<<8,    // N.B. default copies all metadata
     IBAprep_COPY_ALL_METADATA = 1<<9,   // Even unsafe things
-    IBAprep_CLAMP_MUTUAL_NCHANNELS = 1<<10, // Clamp roi.chend to max of inputs
+    IBAprep_CLAMP_MUTUAL_NCHANNELS = 1<<10, // Clamp roi.chend to min of inputs
     IBAprep_SUPPORT_DEEP = 1<<11,       // Operation allows deep images
     IBAprep_DEEP_MIXED = 1<<12,         // Allow deep & non-deep combinations
     IBAprep_DST_FLOAT_PIXELS = 1<<13,   // If dst is uninit, make it float
