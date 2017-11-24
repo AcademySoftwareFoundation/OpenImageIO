@@ -164,7 +164,7 @@ public:
     /// (and clear any error flags).  If no error has occurred since the
     /// last time geterror() was called, it will return an empty string.
     std::string geterror () const;
-    
+
     /// Print the usage message to stdout.  The usage message is
     /// generated and formatted automatically based on the command and
     /// description arguments passed to parse().
@@ -179,6 +179,18 @@ public:
     ///
     std::string command_line () const;
 
+    // Type for a callback that writes something to the output stream.
+    typedef std::function<void(const ArgParse& ap, std::ostream&)> callback_t;
+
+    // Set callbacks to run that will print any matter you want as part
+    // of the verbose usage, before and after the options are detailed.
+    void set_preoption_help (callback_t callback) {
+        m_preoption_help = callback;
+    }
+    void set_postoption_help (callback_t callback) {
+        m_postoption_help = callback;
+    }
+
 private:
     int m_argc;                           // a copy of the command line argc
     const char **m_argv;                  // a copy of the command line argv
@@ -186,6 +198,8 @@ private:
     ArgOption *m_global;                  // option for extra cmd line arguments
     std::string m_intro;
     std::vector<ArgOption *> m_option;
+    callback_t m_preoption_help = [](const ArgParse& ap, std::ostream&){};
+    callback_t m_postoption_help = [](const ArgParse& ap, std::ostream&){};
 
     ArgOption *find_option(const char *name);
 

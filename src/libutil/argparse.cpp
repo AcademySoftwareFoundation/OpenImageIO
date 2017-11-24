@@ -500,6 +500,7 @@ ArgParse::usage () const
 {
     const size_t longline = 35;
     std::cout << m_intro << '\n';
+    m_preoption_help (*this, std::cout);
     size_t maxlen = 0;
     
     for (auto&& opt : m_option) {
@@ -527,6 +528,7 @@ ArgParse::usage () const
             }
         }
     }
+    m_postoption_help (*this, std::cout);
 }
 
 
