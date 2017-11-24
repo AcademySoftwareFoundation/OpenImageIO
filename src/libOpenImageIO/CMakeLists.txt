@@ -28,23 +28,25 @@ if (NOT MSVC)
                              PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
 endif()
 
-list (APPEND libOpenImageIO_srcs
-                          deepdata.cpp exif.cpp exif-canon.cpp
-                          formatspec.cpp imagebuf.cpp
-                          imageinput.cpp imageio.cpp imageioplugin.cpp
-                          imageoutput.cpp iptc.cpp xmp.cpp
-                          color_ocio.cpp
+set (libOpenImageIO_srcs
                           imagebufalgo.cpp
+                          imagebufalgo_pixelmath.cpp
                           imagebufalgo_channels.cpp
                           imagebufalgo_compare.cpp
                           imagebufalgo_copy.cpp
                           imagebufalgo_deep.cpp
                           imagebufalgo_draw.cpp
-                          imagebufalgo_mathops.cpp
+                          imagebufalgo_addsub.cpp
+                          imagebufalgo_muldiv.cpp
+                          imagebufalgo_mad.cpp
                           imagebufalgo_orient.cpp
-                          imagebufalgo_pixelmath.cpp
                           imagebufalgo_xform.cpp
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp
+                          deepdata.cpp exif.cpp exif-canon.cpp
+                          formatspec.cpp imagebuf.cpp
+                          imageinput.cpp imageio.cpp imageioplugin.cpp
+                          imageoutput.cpp iptc.cpp xmp.cpp
+                          color_ocio.cpp
                           maketexture.cpp
                           ../libutil/argparse.cpp
                           ../libutil/benchmark.cpp
@@ -68,6 +70,7 @@ list (APPEND libOpenImageIO_srcs
                           ../libtexture/environment.cpp 
                           ../libtexture/texoptions.cpp 
                           ../libtexture/imagecache.cpp
+                          ${libOpenImageIO_srcs}
                           ${libOpenImageIO_hdrs}
                          )
 
