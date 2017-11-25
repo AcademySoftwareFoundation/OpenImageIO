@@ -184,6 +184,17 @@ void test_value_types ()
         // make sure we can retrieve rational as nicely formatted string
         OIIO_CHECK_EQUAL (p.get_string(), "1/2");
     }
+
+    // Double check that short data are "local", long data are allocated
+    ParamValue pvint ("", TypeInt, 1, nullptr);
+    OIIO_CHECK_ASSERT (pvint.datasize() == 4);
+    OIIO_CHECK_ASSERT (! pvint.is_nonlocal());
+    ParamValue pvcolor ("", TypeColor, 1, nullptr);
+    OIIO_CHECK_ASSERT (pvcolor.datasize() == 12);
+    OIIO_CHECK_ASSERT (! pvcolor.is_nonlocal());
+    ParamValue pvmatrix ("", TypeMatrix, 1, nullptr);
+    OIIO_CHECK_ASSERT (pvmatrix.datasize() == 64);
+    OIIO_CHECK_ASSERT (pvmatrix.is_nonlocal());
 }
 
 
@@ -256,6 +267,7 @@ test_paramlist ()
 
 int main (int argc, char *argv[])
 {
+    std::cout << "ParamValue size = " << sizeof(ParamValue) << "\n";
     test_value_types ();
     test_from_string ();
     test_paramlist ();

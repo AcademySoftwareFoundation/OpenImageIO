@@ -67,7 +67,7 @@ ParamValue::init_noclear (ustring _name, TypeDesc _type, int _nvalues,
             if (_value)
                 memcpy (&m_data, _value, size);
             else
-                m_data.localval = 0;
+                memset (&m_data, 0, sizeof(m_data));
             m_copy = false;
             m_nonlocal = false;
         } else {
