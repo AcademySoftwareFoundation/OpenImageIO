@@ -264,6 +264,19 @@ public:
                          string_view defaultval = string_view(),
                          bool casesensitive=false, bool convert=true) const;
 
+    /// Remove the named parameter, if it is in the list.
+    void remove (string_view name, TypeDesc type=TypeDesc::UNKNOWN,
+                bool casesensitive=true);
+
+    /// Does the list contain the named attribute?
+    bool contains (string_view name, TypeDesc type=TypeDesc::UNKNOWN,
+                   bool casesensitive=true);
+
+    // Add the param to the list, replacing in-place any existing one with
+    // the same name.
+    void add_or_replace (const ParamValue& pv, bool casesensitive=true);
+    void add_or_replace (ParamValue&& pv, bool casesensitive=true);
+
     /// Even more radical than clear, free ALL memory associated with the
     /// list itself.
     void free () { clear(); shrink_to_fit(); }
