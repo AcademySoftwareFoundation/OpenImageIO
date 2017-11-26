@@ -754,6 +754,7 @@ inline bool iequals (const std::string &a, ustring b) {
 // ustring variant stof from OpenImageIO/strutil.h
 namespace Strutil {
 inline int stof (ustring s) { return Strutil::stof (s.string()); }
+template<> inline std::string to_string (const ustring& value) { return value.string(); }
 } // end namespace Strutil
 
 OIIO_NAMESPACE_END
