@@ -967,8 +967,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     bool shadowmode = (mode == ImageBufAlgo::MakeTxShadow);
     bool envlatlmode = (mode == ImageBufAlgo::MakeTxEnvLatl || 
                         mode == ImageBufAlgo::MakeTxEnvLatlFromLightProbe);
-    bool bumpslopesmode = (mode == ImageBufAlgo::MakeTxBumpWithSlopes);
-
+    
     // Find an ImageIO plugin that can open the output file, and open it
     std::string outformat = configspec.get_string_attribute ("maketx:fileformatname",
                                                              outputfilename);
@@ -1269,11 +1268,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         configspec.attribute ("wrapmodes", "periodic,clamp");
         if (prman_metadata)
             dstspec.attribute ("PixarTextureFormat", "LatLong Environment");
-    } else if (bumpslopesmode){
-        dstspec.attribute ("textureformat", "Bumpslopes");
-        if (prman_metadata)
-            dstspec.attribute ("PixarTextureFormat", "Bumpslopes");
-    }
+    } 
     else {
         dstspec.attribute ("textureformat", "Plain Texture");
         if (prman_metadata)

@@ -403,7 +403,7 @@ bumpslope.tx         :  128 x  128, 6 channel, float tiff
     tile size: 64 x 64
     oiio:BitsPerSample: 32
     Orientation: 1 (normal)
-    textureformat: "Bumpslopes"
+    textureformat: "Plain Texture"
     wrapmodes: "black,black"
     fovcot: 1
     tiff:PhotometricInterpretation: 2
