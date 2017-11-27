@@ -303,7 +303,7 @@ ImageBuf_get_pixels (const ImageBuf &buf, TypeDesc format, ROI roi=ROI::All())
     // If the read fails, return None.
     if (! roi.defined())
         roi = buf.roi();
-    roi.chend = std::min (roi.chend, buf.nchannels()+1);
+    roi.chend = std::min (roi.chend, buf.nchannels());
 
     size_t size = (size_t) roi.npixels() * roi.nchannels() * format.size();
     std::unique_ptr<char[]> data (new char [size]);
@@ -350,7 +350,7 @@ ImageBuf_set_pixels_tuple (ImageBuf &buf, ROI roi, const tuple& data)
 {
     if (! roi.defined())
         roi = buf.roi();
-    roi.chend = std::min (roi.chend, buf.nchannels()+1);
+    roi.chend = std::min (roi.chend, buf.nchannels());
     size_t size = (size_t) roi.npixels() * roi.nchannels();
     if (size == 0)
         return true;   // done
@@ -373,7 +373,7 @@ ImageBuf_set_pixels_array (ImageBuf &buf, ROI roi, const object& data)
 
     if (! roi.defined())
         roi = buf.roi();
-    roi.chend = std::min (roi.chend, buf.nchannels()+1);
+    roi.chend = std::min (roi.chend, buf.nchannels());
     size_t size = (size_t) roi.npixels() * roi.nchannels();
     if (size == 0)
         return true;   // done
