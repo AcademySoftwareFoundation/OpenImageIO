@@ -332,6 +332,20 @@ template<> inline float from_string<float> (string_view s) {
 
 
 
+// Template function to convert any type to a string. The default
+// implementation is just to use Strutil::format. The template can be
+// overloaded if there is a better method for particular types.
+template<typename T>
+inline std::string to_string (const T& value) {
+    return Strutil::format ("%s", value);
+}
+
+template<> inline std::string to_string (const std::string& value) { return value; }
+template<> inline std::string to_string (const string_view& value) { return value; }
+inline std::string to_string (const char* value) { return value; }
+
+
+
 // Helper template to test if a string is a generic type. Used instead of
 // string_is_X, but when you're inside templated code.
 template<typename T>
