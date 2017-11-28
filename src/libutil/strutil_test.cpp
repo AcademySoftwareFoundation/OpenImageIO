@@ -32,6 +32,7 @@
 
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/ustring.h>
 #include <OpenImageIO/unittest.h>
 
 using namespace OIIO;
@@ -351,7 +352,7 @@ void test_replace ()
 
 
 
-void test_conversion ()
+void test_numeric_conversion ()
 {
     std::cout << "Testing string_is, string_from conversions\n";
     size_t pos;
@@ -471,6 +472,19 @@ void test_conversion ()
     bench ("Strutil::stof(char*) - locale-independent", [&](){ return DoNotOptimize(Strutil::stof(numcstr)); });
     bench ("Strutil::stof(string_view) - locale-independent", [&](){ return DoNotOptimize(Strutil::stof(string_view(numstring))); });
     bench ("locale switch (to classic)", [&](){ std::locale::global (std::locale::classic()); });
+}
+
+
+
+void test_to_string ()
+{
+    std::cout << "Testing to_string\n";
+    OIIO_CHECK_EQUAL (Strutil::to_string(3.14f), "3.14");
+    OIIO_CHECK_EQUAL (Strutil::to_string(42), "42");
+    OIIO_CHECK_EQUAL (Strutil::to_string("hi"), "hi");
+    OIIO_CHECK_EQUAL (Strutil::to_string(std::string("hello")), "hello");
+    OIIO_CHECK_EQUAL (Strutil::to_string(string_view("hey")), "hey");
+    OIIO_CHECK_EQUAL (Strutil::to_string(ustring("yo")), "yo");
 }
 
 
@@ -765,7 +779,8 @@ main (int argc, char *argv[])
     test_join ();
     test_repeat ();
     test_replace ();
-    test_conversion ();
+    test_numeric_conversion ();
+    test_to_string ();
     test_extract ();
     test_safe_strcpy ();
     test_string_view ();
