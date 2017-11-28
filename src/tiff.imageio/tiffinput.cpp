@@ -892,18 +892,11 @@ TIFFInput::readspec (bool read_meta)
         auto makerfield = find_field (EXIF_MAKERNOTE, TIFF_UNDEFINED);
         // std::unique_ptr<uint32_t[]> buf (new uint32_t[]);
         if (makerfield) {
-            std::cerr << "Found maker note!\n";
             // bool ok = TIFFGetField (m_tif, tag, dest, &ptr);
             unsigned int mn_datasize = 0;
             unsigned char *mn_buf = NULL;
             TIFFGetField (m_tif, EXIF_MAKERNOTE, &mn_datasize, &mn_buf);
-                std::cerr << "makernote size was " << mn_datasize << "\n";
-            if (mn_datasize && mn_buf) {
-                // m_spec.attribute (ICC_PROFILE_ATTR, TypeDesc(TypeDesc::UINT8, mn_datasize), icc_buf);
-            }
         }
-        else
-            std::cerr << "no maker note\n";
         // I'm not sure what state TIFFReadEXIFDirectory leaves us.
         // So to be safe, close and re-seek.
         TIFFClose (m_tif);
