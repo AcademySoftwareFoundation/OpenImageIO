@@ -261,6 +261,12 @@ test_paramlist ()
     OIIO_CHECK_ASSERT(pl.find("Foo", TypeDesc::UNKNOWN, true) == pl.cend());
     OIIO_CHECK_ASSERT(pl.find("foo", TypeDesc::INT) != pl.cend());
     OIIO_CHECK_ASSERT(pl.find("foo", TypeDesc::FLOAT) == pl.cend());
+
+    OIIO_CHECK_ASSERT (pl.contains("foo"));
+    OIIO_CHECK_ASSERT (! pl.contains("nonono"));
+    pl.remove ("foo");
+    OIIO_CHECK_ASSERT (! pl.contains("foo"));
+    OIIO_CHECK_ASSERT (pl.contains("bar"));
 }
 
 

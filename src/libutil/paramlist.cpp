@@ -480,4 +480,46 @@ ParamValueList::get_ustring (string_view name, string_view defaultval,
 }
 
 
+
+void
+ParamValueList::remove (string_view name, TypeDesc type, bool casesensitive)
+{
+    auto p = find (name, type, casesensitive);
+    if (p != end())
+        erase (p);
+}
+
+
+
+bool
+ParamValueList::contains (string_view name, TypeDesc type, bool casesensitive)
+{
+    auto p = find (name, type, casesensitive);
+    return (p != end());
+}
+
+
+
+void
+ParamValueList::add_or_replace (const ParamValue& pv, bool casesensitive)
+{
+    iterator p = find (pv.name(), pv.type(), casesensitive);
+    if (p != end())
+        *p = pv;
+    else
+        emplace_back (pv);
+}
+
+
+void
+ParamValueList::add_or_replace (ParamValue&& pv, bool casesensitive)
+{
+    iterator p = find (pv.name(), pv.type(), casesensitive);
+    if (p != end())
+        *p = pv;
+    else
+        emplace_back (pv);
+}
+
+
 OIIO_NAMESPACE_END

@@ -75,6 +75,7 @@ ParamValue_getitem (const ParamValue& self, int n)
 void
 declare_paramvalue (py::module& m)
 {
+    using namespace pybind11::literals;
 
     py::enum_<ParamValue::Interp>(m, "Interp")
         .value("INTERP_CONSTANT", ParamValue::INTERP_CONSTANT)
@@ -110,6 +111,21 @@ declare_paramvalue (py::module& m)
         .def("clear",       &ParamValueList::clear)
         .def("free",        &ParamValueList::free)
         .def("resize", [](ParamValueList& p, size_t s){ return p.resize(s); })
+        .def("remove", [](ParamValueList& p, const std::string& name,
+                          TypeDesc type, bool casesensitive) {
+                p.remove (name, type, casesensitive);
+            },
+            "name"_a, "type"_a=TypeUnknown, "casesensitive"_a=true)
+        .def("contains", [](ParamValueList& p, const std::string& name,
+                          TypeDesc type, bool casesensitive) {
+                return p.contains (name, type, casesensitive);
+            },
+            "name"_a, "type"_a=TypeUnknown, "casesensitive"_a=true)
+        .def("add_or_replace", [](ParamValueList& p, const ParamValue& pv,
+                                  bool casesensitive) {
+                return p.add_or_replace (pv, casesensitive);
+            },
+            "value"_a, "casesensitive"_a=true)
     ;
 }
 
