@@ -51,10 +51,12 @@
 
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/thread.h>
+#include <OpenImageIO/parallel.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/strutil.h>
 
 #include <boost/thread/tss.hpp>
+#include <boost/container/flat_map.hpp>
 
 #if 0
 
@@ -220,7 +222,7 @@ public:
         auto pck = std::make_shared<std::packaged_task<decltype(f(0, rest...))(int)>>(
             std::bind(std::forward<F>(f), std::placeholders::_1, std::forward<Rest>(rest)...)
         );
-        if (size() < 1) {
+        if (size() < 1 || is_worker(std::this_thread::get_id())) {
             (*pck)(-1); // No worker threads, run it with the calling thread
         } else {
             auto _f = new std::function<void(int id)>([pck](int id) {
@@ -238,7 +240,7 @@ public:
     template<typename F>
     auto push(F && f) ->std::future<decltype(f(0))> {
         auto pck = std::make_shared<std::packaged_task<decltype(f(0))(int)>>(std::forward<F>(f));
-        if (size() < 1) {
+        if (size() < 1 || is_worker(std::this_thread::get_id())) {
             (*pck)(-1); // No worker threads, run it with the calling thread
         } else {
             auto _f = new std::function<void(int id)>([pck](int id) {
@@ -259,12 +261,17 @@ public:
 
     // If any tasks are on the queue, pop and run one with the calling
     // thread.
-    bool run_one_task () {
-        std::function<void(int id)> * f;
+    bool run_one_task (std::thread::id id) {
+        std::function<void(int)> * f = nullptr;
         bool isPop = this->q.pop(f);
         if (isPop) {
+            DASSERT (f);
             std::unique_ptr<std::function<void(int id)>> func(f);  // at return, delete the function even if an exception occurred
+            register_worker (id);
             (*f)(-1);
+            deregister_worker (id);
+        } else {
+            DASSERT (f == nullptr);
         }
         return isPop;
     }
@@ -272,6 +279,19 @@ public:
     bool this_thread_is_in_pool () const {
         int *p = m_pool_members.get();
         return p && (*p);
+    }
+
+    void register_worker (std::thread::id id) {
+        spin_lock lock (m_worker_threadids_mutex);
+        m_worker_threadids[id] += 1;
+    }
+    void deregister_worker (std::thread::id id) {
+        spin_lock lock (m_worker_threadids_mutex);
+        m_worker_threadids[id] -= 1;
+    }
+    bool is_worker (std::thread::id id) {
+        spin_lock lock (m_worker_threadids_mutex);
+        return m_worker_threadids[id] != 0;
     }
 
 private:
@@ -284,6 +304,7 @@ private:
         std::shared_ptr<std::atomic<bool>> flag(this->flags[i]);  // a copy of the shared ptr to the flag
         auto f = [this, i, flag/* a copy of the shared ptr to the flag */]() {
             this->m_pool_members.reset (new int (1)); // I'm in the pool
+            register_worker (std::this_thread::get_id());
             std::atomic<bool> & _flag = *flag;
             std::function<void(int id)> * _f;
             bool isPop = this->q.pop(_f);
@@ -308,6 +329,7 @@ private:
                     break;  // if the queue is empty and this->isDone == true or *flag then return
             }
             this->m_pool_members.reset (); // I'm no longer in the pool
+            deregister_worker (std::this_thread::get_id());
         };
         this->threads[i].reset(new std::thread(f));  // compiler may not support std::make_unique()
     }
@@ -323,6 +345,8 @@ private:
     std::mutex mutex;
     std::condition_variable cv;
     boost::thread_specific_ptr<int> m_pool_members; // Who's in the pool
+    boost::container::flat_map<std::thread::id,int> m_worker_threadids;
+    spin_mutex m_worker_threadids_mutex;
 };
 
 
@@ -369,9 +393,9 @@ thread_pool::idle () const
 
 
 bool
-thread_pool::run_one_task ()
+thread_pool::run_one_task (std::thread::id id)
 {
-    return m_impl->run_one_task ();
+    return m_impl->run_one_task (id);
 }
 
 
@@ -387,6 +411,26 @@ bool
 thread_pool::this_thread_is_in_pool () const
 {
     return m_impl->this_thread_is_in_pool ();
+}
+
+
+
+void
+thread_pool::register_worker (std::thread::id id)
+{
+    m_impl->register_worker (id);
+}
+
+void
+thread_pool::deregister_worker (std::thread::id id)
+{
+    m_impl->deregister_worker (id);
+}
+
+bool
+thread_pool::is_worker (std::thread::id id)
+{
+    return m_impl->is_worker (id);
 }
 
 
