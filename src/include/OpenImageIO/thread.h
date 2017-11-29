@@ -704,13 +704,25 @@ public:
     /// this calling thread) and return true. Otherwise (there are no
     /// pending jobs), return false immediately. This utility is what makes
     /// it possible for non-pool threads to also run tasks from the queue
-    /// when they would ordinarily be idle.
-    bool run_one_task ();
+    /// when they would ordinarily be idle. The thread id of the caller
+    /// should be passed.
+    bool run_one_task (std::thread::id id);
 
     /// Return true if the calling thread is part of the thread pool. This
     /// can be used to limit a pool thread from inadvisedly adding its own
     /// subtasks to clog up the pool.
     bool this_thread_is_in_pool () const;
+
+    /// Register a thread (not already in the thread pool itself) as working
+    /// on tasks in the pool. This is used to avoid recursion.
+    void register_worker (std::thread::id id);
+    /// De-register a thread, saying it is no longer in the process of
+    /// taking work from the thread pool.
+    void deregister_worker (std::thread::id id);
+    /// Is the thread in the pool or currently engaged in taking tasks from
+    /// the pool?
+    bool is_worker (std::thread::id id);
+    bool is_worker () { return is_worker (std::this_thread::get_id()); }
 
 private:
     // Disallow copy construction and assignment
@@ -759,30 +771,74 @@ OIIO_API thread_pool* default_thread_pool ();
 template<typename T=void>
 class task_set {
 public:
-    task_set (thread_pool *pool) { m_pool = pool; }
+    task_set (thread_pool *pool)
+        : m_pool (pool ? pool : default_thread_pool()),
+          m_submitter_thread (std::this_thread::get_id())
+        {}
     ~task_set () { wait(); }
-    void push (std::future<T> &&f) { m_futures.emplace_back (std::move(f)); }
-    void wait (bool block = false) {
+
+    // Return the thread id of the thread that set up this task_set and
+    // submitted its tasks to the thread pool.
+    std::thread::id submitter () const { return m_submitter_thread; }
+
+    // Save a future (presumably returned by a threadpool::push() as part
+    // of this task set.
+    void push (std::future<void> &&f) {
+        DASSERT (std::this_thread::get_id() == submitter() &&
+                 "All tasks in a tast_set should be added by the same thread");
+        m_futures.emplace_back (std::move(f));
+    }
+
+    // Wait for all tasks in the set to finish. If block == true, fully
+    // block while waiting for the pool threads to all finish. If block is
+    // false, then busy wait, and opportunistically run queue tasks yourself
+    // while you are waiting for other tasks to finish.
+    void wait (bool block = false)
+    {
+        DASSERT (submitter() == std::this_thread::get_id());
         const std::chrono::milliseconds wait_time (0);
+        if (m_pool->is_worker (m_submitter_thread))
+            block = true;   // don't get into recursive work stealing
         if (block == false) {
             int tries = 0;
             while (1) {
                 bool all_finished = true;
+                int nfutures = 0, finished = 0;
                 for (auto&& f : m_futures) {
                     // Asking future.wait_for for 0 time just checks the status.
+                    ++nfutures;
                     auto status = f.wait_for (wait_time);
                     if (status != std::future_status::ready)
                         all_finished = false;
+                    else ++finished;
                 }
                 if (all_finished)   // All futures are ready? We're done.
                     break;
                 // We're still waiting on some tasks to complete. What next?
-                if (++tries < 4)    // First few times,
-                    continue;       //   just busy-wait, check status again
+                if (++tries < 4) {   // First few times,
+                    pause(4);        //   just busy-wait, check status again
+                    continue;
+                }
                 // Since we're waiting, try to run a task ourselves to help
                 // with the load. If none is available, just yield schedule.
-                if (! m_pool->run_one_task())
-                    yield();
+                if (! m_pool->run_one_task(m_submitter_thread)) {
+                    // We tried to do a task ourselves, but there weren't any
+                    // left, so just wait for the rest to finish.
+#if 1
+                    yield ();
+#else
+                    // FIXME -- as currently written, if we see an empty queue
+                    // but we're still waiting for the tasks in our set to end,
+                    // we will keep looping and potentially ourselves do work
+                    // that was part of another task set. If there a benefit to,
+                    // once we see an empty queue, only waiting for the existing
+                    // tasks to finish and not altruistically executing any more
+                    // tasks?  This is how we would take the exit now:
+                    for (auto&& f : m_futures)
+                        f.wait ();
+                    break;
+#endif
+                }
             }
         } else {
             // If block is true, just block on completion of all the tasks
@@ -791,13 +847,22 @@ public:
                 f.wait ();
         }
 #ifndef NDEBUG
-        for (auto&& f : m_futures)
-            ASSERT (f.wait_for(wait_time) == std::future_status::ready);
+        check_done ();
 #endif
     }
+
+    // Debugging sanity check, called after wait(), to ensure that all the
+    // tasks were completed.
+    void check_done () {
+        const std::chrono::milliseconds wait_time (0);
+        for (auto&& f : m_futures)
+            ASSERT (f.wait_for(wait_time) == std::future_status::ready);
+    }
+
 private:
     thread_pool *m_pool;
-    std::vector<std::future<T>> m_futures;
+    std::thread::id m_submitter_thread;
+    std::vector<std::future<void>> m_futures;
 };
 
 

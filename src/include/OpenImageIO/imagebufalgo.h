@@ -43,6 +43,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/array_view.h>
+#include <OpenImageIO/parallel.h>
 
 #include <OpenEXR/ImathMatrix.h>       /* because we need M33f */
 
@@ -90,6 +91,10 @@ class Filter2D;  // forward declaration
 
 
 namespace ImageBufAlgo {
+
+// old name (DEPRECATED 1.9)
+typedef parallel_options parallel_image_options;
+
 
 /// Zero out (set to 0, black) the image region.
 ///

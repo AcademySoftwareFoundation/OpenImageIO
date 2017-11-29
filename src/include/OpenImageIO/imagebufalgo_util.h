@@ -52,24 +52,6 @@ using std::placeholders::_1;
 namespace ImageBufAlgo {
 
 
-/// Split strategies used by parallel_image();
-enum SplitDir { Split_X, Split_Y, Split_Z, Split_Biggest, Split_Tile };
-
-
-/// Encapsulation of options that control parallel_image().
-struct parallel_image_options {
-    parallel_image_options () {}
-    parallel_image_options (int maxthreads) : maxthreads(maxthreads) { }
-    parallel_image_options (int maxthreads, SplitDir splitdir)
-        : maxthreads(maxthreads), splitdir(splitdir) { }
-
-    int maxthreads = 0;           // Max threads (0 = use all)
-    SplitDir splitdir = Split_Y;  // Primary split direction
-    size_t minpixels = 16384;     // Min pixels per task
-    thread_pool *pool = nullptr;  // If non-NULL, custom thread pool
-};
-
-
 
 /// Helper template for generalized multithreading for image processing
 /// functions.  Some function/functor f is applied to every pixel the
@@ -97,36 +79,34 @@ inline void
 parallel_image (ROI roi, parallel_image_options opt,
                 std::function<void(ROI)> f)
 {
-    thread_pool *pool = opt.pool ? opt.pool : default_thread_pool();
-    // Special case: threads <= 0 means to use the pool size
-    int nthreads = (opt.maxthreads > 0) ? opt.maxthreads : pool->size();
+    opt.resolve ();
     // Try not to assign a thread less than 16k pixels, or it's not worth
     // the thread startup/teardown cost.
-    nthreads = std::min (nthreads, 1 + int(roi.npixels() / opt.minpixels));
-    if (nthreads <= 1 || pool->this_thread_is_in_pool()) {
-        // Just one thread, or a small image region, or recursive use of
-        // parallel_image: use this thread only
+    opt.maxthreads = std::min (opt.maxthreads, 1 + int(roi.npixels() / opt.minitems));
+    if (opt.singlethread()) {
+        // Just one thread, or a small image region, or if recursive use of
+        // parallel_image is disallowed: use this thread only
         f (roi);
         return;
     }
 
     // If splitdir was not explicit, find the longest edge.
     SplitDir splitdir = opt.splitdir;
-    if (splitdir >= Split_Biggest)
+    if (splitdir == Split_Biggest)
         splitdir = roi.width() > roi.height() ? Split_X : Split_Y;
 
     int64_t xchunk = 0, ychunk = 0;
     if (splitdir == Split_Y) {
         xchunk = roi.width();
-        // ychunk = std::max (64, minpixels/xchunk);
+        // ychunk = std::max (64, minitems/xchunk);
     } else if (splitdir == Split_X) {
         ychunk = roi.height();
-        // ychunk = std::max (64, minpixels/xchunk);
+        // ychunk = std::max (64, minitems/xchunk);
     } else if (splitdir == Split_Tile) {
-        int64_t n = std::max<imagesize_t>(opt.minpixels, roi.npixels());
+        int64_t n = std::min<imagesize_t>(opt.minitems, roi.npixels());
         xchunk = ychunk = std::max (1, int(sqrt(n))/4);
     } else {
-        xchunk = ychunk = std::max (int64_t(1), int64_t(sqrt(nthreads))/2);
+        xchunk = ychunk = std::max (int64_t(1), int64_t(sqrt(opt.maxthreads))/2);
     }
 
     auto task = [&](int id, int64_t xbegin, int64_t xend,
@@ -135,7 +115,7 @@ parallel_image (ROI roi, parallel_image_options opt,
                 roi.chbegin, roi.chend));
     };
     parallel_for_chunked_2D (roi.xbegin, roi.xend, xchunk,
-                             roi.ybegin, roi.yend, ychunk, task);
+                             roi.ybegin, roi.yend, ychunk, task, opt);
 }
 
 
@@ -147,9 +127,9 @@ parallel_image (ROI roi, std::function<void(ROI)> f)
 
 
 
-// DEPRECATED -- eventually enable the OIIO_DEPRECATION
+// DEPRECATED(1.8) -- eventually enable the OIIO_DEPRECATION
 template <class Func>
-// OIIO_DEPRECATED("switch to new parallel_image")
+// OIIO_DEPRECATED("switch to new parallel_image (1.8)")
 void
 parallel_image (Func f, ROI roi, int nthreads=0, SplitDir splitdir=Split_Y)
 {

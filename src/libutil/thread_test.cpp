@@ -150,6 +150,16 @@ time_thread_pool ()
         if (! wedge)
             break;    // don't loop if we're not wedging
     }
+
+    Benchmarker bench;
+    bench ("std::this_thread::get_id()", [=](){
+        DoNotOptimize (std::this_thread::get_id());
+    });
+    std::thread::id threadid = std::this_thread::get_id();
+    bench ("register/deregister pool worker", [=](){
+        pool->register_worker (threadid);
+        pool->deregister_worker (threadid);
+    });
 }
 
 
