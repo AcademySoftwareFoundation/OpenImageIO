@@ -313,6 +313,8 @@ ImageSpec::image_bytes (bool native) const
 void
 ImageSpec::attribute (string_view name, TypeDesc type, const void *value)
 {
+    if (name.empty())   // Guard against bogus empty names
+        return;
     // Don't allow duplicates
     ParamValue *f = find_attribute (name);
     if (! f) {
@@ -327,6 +329,8 @@ ImageSpec::attribute (string_view name, TypeDesc type, const void *value)
 void
 ImageSpec::attribute (string_view name, TypeDesc type, string_view value)
 {
+    if (name.empty())   // Guard against bogus empty names
+        return;
     // Don't allow duplicates
     ParamValue *f = find_attribute (name);
     if (f) {

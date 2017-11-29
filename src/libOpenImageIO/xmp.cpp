@@ -114,6 +114,8 @@ static XMPtag xmptag [] = {
     { "tiff:Software", "Software", TypeDesc::STRING, TiffRedundant },
 
     { "exif:ColorSpace", "Exif:ColorSpace", TypeDesc::INT, ExifRedundant },
+    { "exif:PixelXDimension", "", TypeDesc::INT, ExifRedundant|TiffRedundant},
+    { "exif:PixelYDimension", "", TypeDesc::INT, ExifRedundant|TiffRedundant },
     { "exifEX:PhotographicSensitivity", "Exif:ISOSpeedRatings", TypeDesc::INT, ExifRedundant },
 
     { "xmp:CreateDate", "DateTime", TypeDesc::STRING, DateConversion|TiffRedundant },
@@ -275,7 +277,7 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
 #if DEBUG_XMP_READ
     std::cerr << "add_attrib " << xmlname << ": '" << xmlvalue << "'\n";
 #endif
-    std::string oiioname;
+    std::string oiioname = xmlname;
     TypeDesc oiiotype;
     int special = NothingSpecial;
 
