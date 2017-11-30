@@ -133,6 +133,13 @@ command += omaketx_command ("white.exr", "whiteenv.exr",
                             output_cmd="-oenv", showinfo=False)
 command += oiiotool ("--stats whiteenv.exr")
 
+command += oiiotool (" --pattern noise 128x128 1"
+            + " -d float -o " + oiio_relpath("bump.exr"))
+command += omaketx_command ("bump.exr", "bumpslope.tx",
+                           output_cmd="-obump", showinfo=False)
+command += oiiotool ("--stats bump.exr")
+
+
 outputs = [ "out.txt" ]
 
 

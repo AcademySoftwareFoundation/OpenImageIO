@@ -62,6 +62,7 @@
   using boost::regex_replace;
 #else
 # include <regex>
+#include <vector>
   using std::regex;
   using std::regex_replace;
 #endif
@@ -428,61 +429,43 @@ lightprobe_to_envlatl (ImageBuf &dst, const ImageBuf &src, bool y_is_up,
     return true;
 }
 
-// compute image gradient in s,t space using a Sobel filter
+// compute slopes in s,t space using a Sobel gradient filter
 static void 
-sobel_gradient(const ImageBuf &src, int x, int y, int width, int height, float *h, float* dh_ds, float *dh_dt ){
+sobel_gradient(const ImageBuf &src, const ImageBuf::Iterator<float> &dstpix,  float *h, float* dh_ds, float *dh_dt ){
             
-    ASSERT (src.spec().nchannels==1);
-
-    // 3x3 pixels block
-    const float* pix[3];
-
-    pix[1] = static_cast<const float*>(src.pixeladdr(x, y));
-
-    *h = *pix[1];
+    ImageBuf::ConstIterator<float> srcpix (src, dstpix.x()-1, dstpix.x()+2, dstpix.y()-1, dstpix.y()+2, 0, 1,  ImageBuf::WrapClamp);
     
-    // border handling
+    static const float sobelweight_ds[9] = { -1.0f, 0.0f, 1.0f, 
+                                             -2.0f, 0.0f, 2.0f, 
+                                             -1.0f, 0.0f, 1.0f };
     
-    if( x > 0 )  // we can safely shift to x-1 address
-        pix[1]-=1;
+    static const float sobelweight_dt[9] = { -1.0f, -2.0f, -1.0f, 
+                                              0.0f,  0.0f,  0.0f, 
+                                              1.0f,  2.0f,  1.0f };
+        
+    *dh_ds = *dh_dt = 0.0f;
     
-    // replicate border 
-    if( y == 0) {
-        pix[0] = pix[1];
-        pix[2] = static_cast<const float*>(src.pixeladdr(x, y+1));
+    for (int i = 0; !srcpix.done(); ++srcpix, ++i) {
+        // accumulate to dh_ds and dh_dt using corresponding sobel 3x3 weights
+        *dh_ds += sobelweight_ds[i] * srcpix[0];
+        *dh_dt += sobelweight_dt[i] * srcpix[0];
+        
+        if(i==4)
+            *h = srcpix[0];        
     }
-
-    else if( y == (width-1) ){
-        pix[0] = static_cast<const float*>(src.pixeladdr(x, y-1));
-        pix[2] = pix[1];
-    }
-    else {
-        pix[0] = static_cast<const float*>(src.pixeladdr(x, y-1));
-        pix[2] = static_cast<const float*>(src.pixeladdr(x, y+1));
-    }
-
-    // right border test
-    int r = ( x == (width-1) ) ? 1: 2 ;
-
-    *dh_ds =   -1.0f * pix[0][0] + 1.0f * pix[0][r]  
-               -2.0f * pix[1][0] + 2.0f * pix[1][r]
-               -1.0f * pix[2][0] + 1.0f * pix[2][r];
-
-    *dh_dt =  -1.0f * pix[0][0] - 2.0f * pix[0][1] -1.0f * pix[0][r] 
-              +1.0f * pix[2][0] + 2.0f * pix[2][1] +1.0f * pix[2][r];
     
-    *dh_ds = *dh_ds * width  / 8.0f ; // sobel normalization
-    *dh_dt = *dh_dt * height / 8.0f ;
+    *dh_ds = *dh_ds * src.spec().width  / 8.0f ; // sobel normalization
+    *dh_dt = *dh_dt * src.spec().height / 8.0f ;
 }
 
-
+// compute slopes from normal in s,t space
 static void 
-normal_gradient(const ImageBuf &src, int x, int y, int width, int height, float *h, float* dh_ds, float *dh_dt ){
-    
-    ASSERT (src.nchannels()>2);
+normal_gradient(const ImageBuf &src, const ImageBuf::Iterator<float> &dstpix, float *h, float* dh_ds, float *dh_dt ){
     
     // assume a normal defined in the tangent space
-    const float* n = static_cast<const float*>(src.pixeladdr(x, y));
+    float n[3];
+    
+    src.getpixel(dstpix.x(), dstpix.y(), n, 3);
     
     *h = -1.0f;    
     *dh_ds = - n[0] / n[2]; 
@@ -494,31 +477,30 @@ bump_to_bumpslopes (ImageBuf &dst, const ImageBuf &src, ROI roi=ROI::All(), int 
 {
     ASSERT ( dst.initialized() && dst.nchannels() == 6 );
     
-    void (*bump_filter)(const ImageBuf&, int, int, int, int, float*, float*, float*);
+    void (*bump_filter)(const ImageBuf&, const ImageBuf::Iterator<float>&, float*, float*, float*);
     
     // detect bump input format according to channel count
-    if(src.spec().nchannels==1) // assume it is an height map
-        bump_filter = &sobel_gradient;
-    else if(src.spec().nchannels==3) // assume it is a normal map
-            bump_filter= &normal_gradient;
+    if(src.spec().nchannels==3) // assume it is a normal map
+        bump_filter = &normal_gradient;
+    else        
+        bump_filter = &sobel_gradient; // default one considering height value in channel 0 
     
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
         
         const ImageSpec &dstspec (dst.spec());
         
         ASSERT (dstspec.format == TypeDesc::FLOAT);
-
-        float dw = dstspec.width, dh = dstspec.height;
         
         float h;
         float dhds;
         float dhdt;
         
-        for (ImageBuf::Iterator<float> d (dst, roi);  ! d.done();  ++d) {
+        // iterate on destination image
+        for (ImageBuf::Iterator<float> d(dst, roi);  ! d.done();  ++d) {
             
-            bump_filter(src, d.x(), d.y(), dw, dh, &h, &dhds, &dhdt);
+            bump_filter(src, d, &h, &dhds, &dhdt);
             
-            // height 
+            // h = height or h = -1.0f if a normal map
             d[0] = h;
             // first moments
             d[1] = dhds; 
@@ -1041,7 +1023,14 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         newspec.height = newspec.full_height = src->spec().height;
         newspec.tile_width = newspec.tile_height = 0;
         newspec.format = TypeDesc::FLOAT;
-        newspec.nchannels = 6;        
+        newspec.nchannels = 6;  
+        newspec.channelnames.resize(0);
+        newspec.channelnames.push_back("b0_h") ;
+        newspec.channelnames.push_back("b1_dhds") ;
+        newspec.channelnames.push_back("b2_dhdt") ;
+        newspec.channelnames.push_back("b3_dhds2");
+        newspec.channelnames.push_back("b4_dhdt2");
+        newspec.channelnames.push_back("b5_dh2dsdt");
         std::shared_ptr<ImageBuf> bumpslopes (new ImageBuf(newspec));
         bump_to_bumpslopes(*bumpslopes, *src);
         mode = ImageBufAlgo::MakeTxTexture;
