@@ -62,7 +62,6 @@
   using boost::regex_replace;
 #else
 # include <regex>
-#include <vector>
   using std::regex;
   using std::regex_replace;
 #endif

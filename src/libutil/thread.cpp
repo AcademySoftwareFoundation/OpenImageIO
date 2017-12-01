@@ -138,8 +138,7 @@ public:
     // nThreads must be >= 0
     void resize(int nThreads) {
         if (nThreads < 0)
-            nThreads = std::max (1, int(threads_default()) - 1);
-        nThreads = 0;
+            nThreads = std::max (1, int(threads_default()) - 1);        
         if (!this->isStop && !this->isDone) {
             int oldNThreads = static_cast<int>(this->threads.size());
             if (oldNThreads <= nThreads) {  // if the number of threads is increased
