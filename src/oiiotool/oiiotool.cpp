@@ -4451,11 +4451,12 @@ output_file (int argc, const char *argv[])
 
     string_view stripped_command = command;
     Strutil::parse_char (stripped_command, '-');
-    Strutil::parse_char (stripped_command, '-');
+    Strutil::parse_char (stripped_command, '-');    
     bool do_tex = Strutil::starts_with (stripped_command, "otex");
     bool do_latlong = Strutil::starts_with (stripped_command, "oenv") ||
                       Strutil::starts_with (stripped_command, "olatlong");
     bool do_shad = Strutil::starts_with (stripped_command, "oshad");
+    bool do_bumpslopes = Strutil::starts_with (stripped_command, "obump");
 
     if (ot.debug)
         std::cout << "Output: " << filename << "\n";
@@ -4650,7 +4651,7 @@ output_file (int argc, const char *argv[])
     // MIPmaps or subimages with full generality.
 
     bool ok = true;
-    if (do_tex || do_latlong) {
+    if (do_tex || do_latlong || do_bumpslopes) {
         ImageSpec configspec;
         adjust_output_options (filename, configspec, nullptr,
                                ot, supports_tiles, fileoptions);
@@ -4660,6 +4661,8 @@ output_file (int argc, const char *argv[])
             mode = ImageBufAlgo::MakeTxShadow;
         if (do_latlong)
             mode = ImageBufAlgo::MakeTxEnvLatl;
+        if(do_bumpslopes)
+            mode = ImageBufAlgo::MakeTxBumpWithSlopes;
         // if (lightprobemode)
         //     mode = ImageBufAlgo::MakeTxEnvLatlFromLightProbe;
         ok = ImageBufAlgo::make_texture (mode, (*ir)(0,0), filename,
@@ -5098,6 +5101,7 @@ getargs (int argc, char *argv[])
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "-otex %@ %s", output_file, NULL, "Output the current image as a texture",
                 "-oenv %@ %s", output_file, NULL, "Output the current image as a latlong env map",
+                "-obump %@ %s", output_file, NULL, "Output the current normal or height texture map as a 6 channels bump texture including the first and second moment of slopes",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
                 "-d %@ %s", set_dataformat, NULL,
                     "'-d TYPE' sets the output data format of all channels, "

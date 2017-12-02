@@ -379,3 +379,13 @@ whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
       Constant: Yes
       Constant Color: 1.000000 1.000000 1.000000 (float)
       Monochrome: Yes
+bump.exr             :  128 x  128, 1 channel, float openexr
+    Stats Min: 0.045040 (float)
+    Stats Max: 0.885789 (float)
+    Stats Avg: 0.500448 (float)
+    Stats StdDev: 0.099608 (float)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 16384 
+    Constant: No
+    Monochrome: Yes

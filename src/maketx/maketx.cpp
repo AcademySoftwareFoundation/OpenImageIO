@@ -69,6 +69,7 @@ static bool shadowmode = false;
 static bool envlatlmode = false;
 static bool envcubemode = false;
 static bool lightprobemode = false;
+static bool bumpslopesmode = false;
 
 
 
@@ -275,6 +276,8 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
                   "--shadow", &shadowmode, "Create shadow map",
                   "--envlatl", &envlatlmode, "Create lat/long environment map",
                   "--lightprobe", &lightprobemode, "Create lat/long environment map from a light probe",
+                  "--bumpslopes", &bumpslopesmode, "Create a 6 channels bump-map with height, derivatives and square derivatives from an height or a normal map",
+            
 //                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
                   "<SEPARATOR>", colortitle_help_string().c_str(),
                   "--colorconfig %s", &colorconfigname, "Explicitly specify an OCIO configuration file",
@@ -303,7 +306,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     }
 
     int optionsum = ((int)shadowmode + (int)envlatlmode + (int)envcubemode +
-                     (int)lightprobemode);
+                     (int)lightprobemode) + (int)bumpslopesmode;
     if (optionsum > 1) {
         std::cerr << "maketx ERROR: At most one of the following options may be set:\n"
                   << "\t--shadow --envlatl --envcube --lightprobe\n";
@@ -468,6 +471,9 @@ main (int argc, char *argv[])
         mode = ImageBufAlgo::MakeTxEnvLatl;
     if (lightprobemode)
         mode = ImageBufAlgo::MakeTxEnvLatlFromLightProbe;
+    if (bumpslopesmode)
+        mode = ImageBufAlgo::MakeTxBumpWithSlopes;
+    
     bool ok = ImageBufAlgo::make_texture (mode, filenames[0],
                                           outputfilename, configspec,
                                           &std::cout);
