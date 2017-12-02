@@ -85,18 +85,6 @@ getargs (int argc, char *argv[])
 
 
 
-void time_filter (Filter1D *f, const FilterDesc *filtdesc, size_t n)
-{
-    float ninv = (filtdesc->width/2.0f) / n;
-    for (size_t i = 0; i < n; ++i) {
-        float x = i*ninv;
-        float y = (*f) (x);
-        DoNotOptimize (y);
-    }
-}
-
-
-
 int
 main (int argc, char *argv[])
 {
@@ -109,6 +97,11 @@ main (int argc, char *argv[])
 #endif
 
     getargs (argc, argv);
+
+    Benchmarker bench;
+    bench.iterations (iterations);
+    bench.trials (ntrials);
+    // bench.units (Benchmarker::Unit::ms);
 
     ImageBuf graph (ImageSpec (graphxres, graphyres, 3, TypeDesc::UINT8));
     float white[3] = { 1, 1, 1 };
@@ -138,11 +131,13 @@ main (int argc, char *argv[])
         }
 
         // Time it
-        size_t ncalls = 1000000;
-        float time = time_trial (bind (time_filter, f, &filtdesc, ncalls),
-                                 ntrials, iterations) / iterations;
-        std::cout << Strutil::format ("%-15s %7.1f Mcalls/sec",
-                                      filtdesc.name, (ncalls/1.0e6)/time) << std::endl;
+        const size_t ncalls = 100000;
+        bench.work (ncalls);
+        float ninv = (filtdesc.width/2.0f) / ncalls;
+        bench (filtdesc.name, [=](){
+            for (size_t i = 0; i < ncalls; ++i)
+                DoNotOptimize ((*f)(i*ninv));
+        });
 
         Filter1D::destroy (f);
     }
