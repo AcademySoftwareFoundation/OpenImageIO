@@ -19,9 +19,8 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     tiff:Compression: 8
     compression: "zip"
     PixelAspectRatio: 1
-    IPTC:Caption: "oiio:SHA-1=9CA964417213269190944948273FB1F00A4A8393 oiio:AverageColor=0.608983,0.608434,0.608728,1"
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
-    oiio:SHA-1: "9CA964417213269190944948273FB1F00A4A8393"
+    oiio:SHA-1: "9B24D4CC05313A43973AC384718D81D19183B691"
 Reading grid-resize.tx
 grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -43,9 +42,8 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     tiff:Compression: 8
     compression: "zip"
     PixelAspectRatio: 1
-    IPTC:Caption: "oiio:SHA-1=C4BE40DC3B3534F30ACB906602F2FF80A246C01E oiio:AverageColor=0.608983,0.608434,0.608728,1"
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
-    oiio:SHA-1: "C4BE40DC3B3534F30ACB906602F2FF80A246C01E"
+    oiio:SHA-1: "2E23E9B4C6E707427A73B5433B23104D4183724E"
 Reading checker-uint16.tx
 checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -62,7 +60,6 @@ checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-1chan.tx
@@ -81,7 +78,6 @@ checker-1chan.tx     :  128 x  128, 1 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=1D0A2254373A69C054C08672041FC7DE3BAE5179 oiio:AverageColor=0.5"
     oiio:AverageColor: "0.5"
     oiio:SHA-1: "1D0A2254373A69C054C08672041FC7DE3BAE5179"
 Reading checker-16x32tile.tx
@@ -100,7 +96,6 @@ checker-16x32tile.tx :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-seplzw.tx
@@ -119,7 +114,6 @@ checker-seplzw.tx    :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "separate"
     tiff:Compression: 5
     compression: "lzw"
-    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-clamp.tx
@@ -138,7 +132,6 @@ checker-clamp.tx     :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-permir.tx
@@ -157,7 +150,6 @@ checker-permir.tx    :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-nomip.tx
@@ -175,7 +167,6 @@ checker-nomip.tx     :  128 x  128, 4 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-camera.tx
@@ -196,7 +187,6 @@ checker-camera.tx    :  128 x  128, 4 channel, uint8 tiff
     compression: "zip"
     worldtocamera: 1 0 0 0 0 2 0 0 0 0 1 0 0 0 0 1
     worldtoscreen: 3 0 0 0 0 3 0 0 0 0 3 0 1 2 3 1
-    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading checker-opaque.tx
@@ -215,7 +205,6 @@ checker-opaque.tx    :  128 x  128, 3 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=2BE3743A64D4309645F94CA7B37D0CD08AF0B38E oiio:AverageColor=0.5,0.5,0.5"
     oiio:AverageColor: "0.5,0.5,0.5"
     oiio:SHA-1: "2BE3743A64D4309645F94CA7B37D0CD08AF0B38E"
 Reading gray-mono.tx
@@ -234,7 +223,6 @@ gray-mono.tx         :  256 x  256, 1 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=24049CDF337F17E162291C7B626E0588A9D71160 oiio:ConstantColor=0.25098 oiio:AverageColor=0.25098"
     oiio:ConstantColor: "0.25098"
     oiio:AverageColor: "0.25098"
     oiio:SHA-1: "24049CDF337F17E162291C7B626E0588A9D71160"
@@ -254,10 +242,9 @@ pink-mono.tx         :  256 x  256, 3 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=D5F1500992EFBDA77B89E946A9F53F89D332B6F4 oiio:ConstantColor=0.25098,0.2,0.14902 oiio:AverageColor=0.25098,0.2,0.14902"
     oiio:ConstantColor: "0.25098,0.2,0.14902"
     oiio:AverageColor: "0.25098,0.2,0.14902"
-    oiio:SHA-1: "D5F1500992EFBDA77B89E946A9F53F89D332B6F4"
+    oiio:SHA-1: "41B1A0D1C1EBB4CEEBC7BCEE2CAB2AAAB4139724"
 Reading checker-prman.tx
 checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -274,7 +261,6 @@ checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     planarconfig: "separate"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "oiio:SHA-1=D924CA144A02479D1507F5910F5FC8F51EF78765 oiio:AverageColor=0.5,0.5,0.5,1"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
 Reading nan.exr
@@ -333,7 +319,6 @@ small.tif            :   64 x   64, 3 channel, uint8 tiff
     tiff:Compression: 8
     compression: "zip"
     tiff:RowsPerStrip: 32
-    IPTC:Caption: "foo SHA-1=1234abcd ConstantColor=[0.0,0,-0.0] bar"
 Reading small.tx
 small.tx             :   64 x   64, 3 channel, uint8 tiff
     MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
@@ -351,7 +336,6 @@ small.tx             :   64 x   64, 3 channel, uint8 tiff
     planarconfig: "contig"
     tiff:Compression: 8
     compression: "zip"
-    IPTC:Caption: "foo bar oiio:SHA-1=1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB oiio:ConstantColor=1,0,0 oiio:AverageColor=1,0,0"
     oiio:ConstantColor: "1,0,0"
     oiio:AverageColor: "1,0,0"
     oiio:SHA-1: "1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB"

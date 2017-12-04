@@ -44,15 +44,6 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/SHA1.h>
 
-#ifdef USE_OPENSSL
-#ifdef __APPLE__
-// Newer OSX releaes mark OpenSSL functions as deprecated, in favor of
-// CDSA.  Make the warnings stop.
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations" 
-#endif
-#include <openssl/sha.h>
-#endif
-
 
 
 OIIO_NAMESPACE_BEGIN
@@ -716,43 +707,9 @@ simplePixelHashSHA1 (const ImageBuf &src,
     if (! localpixels)
         tmp.resize (chunk*scanline_bytes);
 
-#ifdef USE_OPENSSL
-    // If OpenSSL was available at build time, use its SHA-1
-    // implementation, which is about 20% faster than CSHA1.
-    SHA_CTX sha;
-    SHA1_Init (&sha);
-
-    for (int z = roi.zbegin, zend=roi.zend;  z < zend;  ++z) {
-        for (int y = roi.ybegin, yend=roi.yend;  y < yend;  y += chunk) {
-            int y1 = std::min (y+chunk, yend);
-            if (localpixels) {
-                SHA1_Update (&sha, src.pixeladdr (roi.xbegin, y, z),
-                            (unsigned int) scanline_bytes*(y1-y));
-            } else {
-                src.get_pixels (ROI (roi.xbegin, roi.xend, y, y1, z, z+1),
-                                src.spec().format, &tmp[0]);
-                SHA1_Update (&sha, &tmp[0], (unsigned int) scanline_bytes*(y1-y));
-            }
-        }
-    }
-    
-    // If extra info is specified, also include it in the sha computation
-    if (!extrainfo.empty())
-        SHA1_Update (&sha, extrainfo.data(), extrainfo.size());
-
-    unsigned char md[SHA_DIGEST_LENGTH];
-    char hash_digest[2*SHA_DIGEST_LENGTH+1];
-    SHA1_Final (md, &sha);
-    for (int i = 0;  i < SHA_DIGEST_LENGTH;  ++i)
-        sprintf (hash_digest+2*i, "%02X", (int)md[i]);
-    hash_digest[2*SHA_DIGEST_LENGTH] = 0;
-    return std::string (hash_digest);
-    
-#else
-    // Fall back on CSHA1 if OpenSSL was not available or if 
     CSHA1 sha;
     sha.Reset ();
-    
+
     for (int z = roi.zbegin, zend=roi.zend;  z < zend;  ++z) {
         for (int y = roi.ybegin, yend=roi.yend;  y < yend;  y += chunk) {
             int y1 = std::min (y+chunk, yend);
@@ -766,18 +723,17 @@ simplePixelHashSHA1 (const ImageBuf &src,
             }
         }
     }
-    
+
     // If extra info is specified, also include it in the sha computation
     if (!extrainfo.empty()) {
         sha.Update ((const unsigned char*) extrainfo.data(), extrainfo.size());
     }
-    
+
     sha.Final ();
     std::string hash_digest;
     sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
 
     return hash_digest;
-#endif
 }
 
 } // anon namespace
@@ -792,11 +748,11 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
     if (! roi.defined())
         roi = get_roi (src.spec());
 
-    // Fall back to whole-image hash for only one block
     if (blocksize <= 0 || blocksize >= roi.height())
         return simplePixelHashSHA1 (src, extrainfo, roi);
 
     int nblocks = (roi.height()+blocksize-1) / blocksize;
+    ASSERT (nblocks > 1);
     std::vector<std::string> results (nblocks);
     parallel_for_chunked (roi.ybegin, roi.yend, blocksize,
                           [&](int64_t ybegin, int64_t yend){
@@ -807,24 +763,9 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
         results[b] = simplePixelHashSHA1 (src, "", broi);
     });
 
-#ifdef USE_OPENSSL
-    // If OpenSSL was available at build time, use its SHA-1
-    // implementation, which is about 20% faster than CSHA1.
-    SHA_CTX sha;
-    SHA1_Init (&sha);
-    for (int b = 0;  b < nblocks;  ++b)
-        SHA1_Update (&sha, results[b].c_str(), results[b].size());
-    if (extrainfo.size())
-        SHA1_Update (&sha, extrainfo.c_str(), extrainfo.size());
-    unsigned char md[SHA_DIGEST_LENGTH];
-    char hash_digest[2*SHA_DIGEST_LENGTH+1];
-    SHA1_Final (md, &sha);
-    for (int i = 0;  i < SHA_DIGEST_LENGTH;  ++i)
-        sprintf (hash_digest+2*i, "%02X", (int)md[i]);
-    hash_digest[2*SHA_DIGEST_LENGTH] = 0;
-    return std::string (hash_digest);
-#else
-    // Fall back on CSHA1 if OpenSSL was not available or if 
+    // If there are multiple blocks, hash the block digests to get a final
+    // hash. (This makes the parallel loop safe, because the order that the
+    // blocks computed doesn't matter.)
     CSHA1 sha;
     sha.Reset ();
     for (int b = 0;  b < nblocks;  ++b)
@@ -835,7 +776,6 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
     std::string hash_digest;
     sha.ReportHashStl (hash_digest, CSHA1::REPORT_HEX_SHORT);
     return hash_digest;
-#endif
 }
 
 

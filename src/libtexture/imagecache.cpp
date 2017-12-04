@@ -1233,11 +1233,20 @@ ImageCacheImpl::verify_file (ImageCacheFile *tf,
                     // Already in fingerprints -- mark this one as a
                     // duplicate, but ONLY if we don't have other
                     // reasons not to consider them true duplicates (the
-                    // fingerprint only considers source image pixel values.
+                    // fingerprint only considers source image pixel values,
+                    // and of course only if they are the same "shape".
                     // FIXME -- be sure to add extra tests
                     // here if more metadata have significance later!
                     bool match = (tf->subimages() == dup->subimages());
-                    match &= (tf->m_swrap == dup->m_swrap &&
+                    const ImageSpec& tfspec (tf->nativespec(0,0));
+                    const ImageSpec& dupspec (dup->nativespec(0,0));
+                    match &= (tfspec.width == dupspec.width &&
+                              tfspec.height == dupspec.height &&
+                              tfspec.depth == dupspec.depth &&
+                              tfspec.nchannels == dupspec.nchannels &&
+                              tf->subimages() == dup->subimages() &&
+                              tf->miplevels(0) == dup->miplevels(0) &&
+                              tf->m_swrap == dup->m_swrap &&
                               tf->m_twrap == dup->m_twrap &&
                               tf->m_rwrap == dup->m_rwrap &&
                               tf->m_envlayout == dup->m_envlayout &&

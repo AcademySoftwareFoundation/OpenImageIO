@@ -481,29 +481,6 @@ endif ()
 
 
 ###########################################################################
-# OpenSSL Setup
-
-if (USE_OPENSSL)
-    find_package (OpenSSL)
-    if (OPENSSL_FOUND)
-        if (NOT OpenSSL_FIND_QUIETLY)
-            message (STATUS "OpenSSL enabled")
-            message(STATUS "OPENSSL_INCLUDES: ${OPENSSL_INCLUDE_DIR}")
-        endif ()
-        include_directories (${OPENSSL_INCLUDE_DIR})
-        add_definitions ("-DUSE_OPENSSL=1")
-    else ()
-        message (STATUS "Skipping OpenSSL support")
-    endif ()
-else ()
-    message (STATUS "OpenSSL disabled")
-endif ()
-
-# end OpenSSL setup
-###########################################################################
-
-
-###########################################################################
 # GIF
 if (USE_GIF)
     find_package (GIF)
