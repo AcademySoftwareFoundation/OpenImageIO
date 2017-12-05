@@ -123,7 +123,7 @@ Comparing "absdiffc.exr" and "ref/absdiffc.exr"
 PASS
 Comparing "chsum.tif" and "ref/chsum.tif"
 PASS
-Comparing "colormap-spectrum.tif" and "ref/colormap-spectrum.tif"
+Comparing "colormap-inferno.tif" and "ref/colormap-inferno.tif"
 PASS
 Comparing "colormap-custom.tif" and "ref/colormap-custom.tif"
 PASS

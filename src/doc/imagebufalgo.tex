@@ -1171,8 +1171,13 @@ An input value of 0.0 corresponds to {\cf knots[0..channels-1]}, an input
 value of 1.0 corresponds to {\cf knots[(nknots-1)*channels..knots.size()-1]}.
 
 In the second variant, just the name of a color map is specified. Recognized
-map names include: \qkw{blue-red}, \qkw{spectrum}, and \qkw{heat}. In all
-cases, the implied {\cf channels} is 3.
+map names include: \qkw{inferno}, \qkw{viridis},\qkw{magma}, \qkw{plasma},
+all of which are perceptually uniform, strictly increasing in luminance,
+look good when converted to grayscale, and work for people with all types of
+colorblindness. Also supported are the following color maps that do not have
+those desirable qualities (and are this not recommended): \qkw{blue-red},
+\qkw{spectrum}, and \qkw{heat}. In all cases, the implied {\cf channels} is
+3.
 
 \smallskip
 \noindent Examples:
@@ -1181,7 +1186,7 @@ cases, the implied {\cf channels} is 3.
     // scale) and map to a color spectrum:
     ImageBuf A ("a.exr");
     ImageBuf B;
-    ImageBufAlgo::color_map (B, A, -1, "spectrum");
+    ImageBufAlgo::color_map (B, A, -1, "inferno");
 
     float mymap[] = { 0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0 };
     ImageBufAlgo::color_map (B, A, -1 /* use luminance */,
@@ -1191,11 +1196,11 @@ cases, the implied {\cf channels} is 3.
 
 \noindent \begin{tabular}{lllll}
 \includegraphics[width=0.9in]{figures/tahoe-small.jpg} &
-\includegraphics[width=0.9in]{figures/colormap-blue-red.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-inferno.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-viridis.jpg} &
 \includegraphics[width=0.9in]{figures/colormap-spectrum.jpg} &
-\includegraphics[width=0.9in]{figures/colormap-heat.jpg} &
 \includegraphics[width=0.9in]{figures/colormap-custom.jpg} \\
-original & red-blue & spectrum & heat & custom values \\
+original & inferno & viridis & spectrum & custom values \\
 \end{tabular}
 \apiend
 

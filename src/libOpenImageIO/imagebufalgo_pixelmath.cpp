@@ -44,6 +44,7 @@
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/simd.h>
+#include <OpenImageIO/color.h>
 
 
 
@@ -689,6 +690,63 @@ ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
 
 
 
+// The color maps for magma, inferno, plasma, and viridis are from
+// Matplotlib, written by Nathaniel Smith & Stefan van der Walt, and are
+// public domain (http://creativecommons.org/publicdomain/zero/1.0/) The
+// originals can be found here: https://github.com/bids/colormap
+// These color maps were specially designed to be (a) perceptually uniform,
+// (b) strictly increasing in luminance, (c) looking good when converted
+// to grayscale for printing, (d) useful even for people with various forms
+// of color blindness. They are therefore superior to most of the ad-hoc
+// visualization color maps used elsewhere, including the original ones used
+// in OIIO.
+//
+// LG has altered the original maps by converting from sRGB to a linear
+// response (since that's how OIIO wants to operate), and also decimated the
+// arrays from 256 entries to 17 entries (fine, since we interpolate).
+static const float magma_data[] = {
+    0.000113, 0.000036, 0.001073,  0.003066, 0.002406, 0.016033,
+    0.012176, 0.005476, 0.062265,  0.036874, 0.005102, 0.146314,
+    0.081757, 0.006177, 0.200758,  0.143411, 0.011719, 0.218382,
+    0.226110, 0.019191, 0.221188,  0.334672, 0.027718, 0.212689,
+    0.471680, 0.037966, 0.191879,  0.632894, 0.053268, 0.159870,
+    0.795910, 0.083327, 0.124705,  0.913454, 0.146074, 0.106311,
+    0.970011, 0.248466, 0.120740,  0.991142, 0.384808, 0.167590,
+    0.992958, 0.553563, 0.247770,  0.982888, 0.756759, 0.367372,
+    0.970800, 0.980633, 0.521749 };
+static const float inferno_data[] = {
+    0.000113, 0.000036, 0.001073,  0.003275, 0.002178, 0.017634,
+    0.015183, 0.003697, 0.068760,  0.046307, 0.002834, 0.130327,
+    0.095494, 0.005137, 0.154432,  0.163601, 0.009920, 0.156097,
+    0.253890, 0.016282, 0.143715,  0.367418, 0.024893, 0.119982,
+    0.500495, 0.038279, 0.089117,  0.642469, 0.061553, 0.057555,
+    0.776190, 0.102517, 0.031141,  0.883568, 0.169990, 0.012559,
+    0.951614, 0.271639, 0.002704,  0.972636, 0.413571, 0.005451,
+    0.943272, 0.599923, 0.035112,  0.884900, 0.822282, 0.140466,
+    0.973729, 0.996282, 0.373522, };
+static const float plasma_data[] = {
+    0.003970, 0.002307, 0.240854,  0.031078, 0.001421, 0.307376,
+    0.073167, 0.000740, 0.356714,  0.132456, 0.000066, 0.388040,
+    0.209330, 0.000928, 0.390312,  0.300631, 0.005819, 0.358197,
+    0.399925, 0.017084, 0.301977,  0.501006, 0.036122, 0.240788,
+    0.600808, 0.063814, 0.186921,  0.698178, 0.101409, 0.142698,
+    0.790993, 0.151134, 0.106347,  0.874354, 0.216492, 0.076152,
+    0.940588, 0.302179, 0.051495,  0.980469, 0.413691, 0.032625,
+    0.984224, 0.556999, 0.020728,  0.942844, 0.738124, 0.018271,
+    0.868931, 0.944416, 0.015590, };
+static const float viridis_data[] = {
+    0.057951, 0.000377, 0.088657,  0.064791, 0.009258, 0.145340,
+    0.063189, 0.025975, 0.198994,  0.054539, 0.051494, 0.237655,
+    0.043139, 0.084803, 0.258811,  0.032927, 0.124348, 0.268148,
+    0.025232, 0.169666, 0.271584,  0.019387, 0.221569, 0.270909,
+    0.014846, 0.281323, 0.263855,  0.013529, 0.349530, 0.246357,
+    0.021457, 0.425216, 0.215605,  0.049317, 0.505412, 0.172291,
+    0.112305, 0.585164, 0.121207,  0.229143, 0.657992, 0.070438,
+    0.417964, 0.717561, 0.029928,  0.683952, 0.762557, 0.009977,
+    0.984709, 0.799651, 0.018243, };
+
+
+
 bool
 ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
                          int srcchannel, string_view mapname,
@@ -699,7 +757,15 @@ ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
         return false;
     }
     array_view<const float> knots;
-    if (mapname == "blue-red" || mapname == "red-blue" ||
+    if (mapname == "magma") {
+        knots = array_view<const float> (magma_data);
+    } else if (mapname == "inferno") {
+        knots = array_view<const float> (inferno_data);
+    } else if (mapname == "plasma") {
+        knots = array_view<const float> (plasma_data);
+    } else if (mapname == "viridis") {
+        knots = array_view<const float> (viridis_data);
+    } else if (mapname == "blue-red" || mapname == "red-blue" ||
           mapname == "bluered" || mapname == "redblue") {
         static const float k[] = { 0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f };
         knots = array_view<const float> (k);

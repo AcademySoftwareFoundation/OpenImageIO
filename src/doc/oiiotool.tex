@@ -1978,25 +1978,35 @@ weight of each channel in the sum.
 
 \apiitem{\ce --colormap {\rm \emph{mapname}}}
 Creates an RGB color map based on the luminance of the input image. The
-{\cf mapname} may be one of:  \qkw{blue-red}, \qkw{spectrum}, and \qkw{heat}.
+{\cf mapname} may be one of: \qkw{magma}, \qkw{inferno}, \qkw{plasma},
+\qkw{viridis}, \qkw{blue-red}, \qkw{spectrum}, and \qkw{heat}.
 Or, {\cf mapname} may also be a comma-separated list of RGB triples, to form
 a custom color map curve.
 
+\NEW % 1.9
+Note that \qkw{magma}, \qkw{inferno}, \qkw{plasma}, \qkw{viridis} are
+perceptually uniform, strictly increasing in luminance, look good when
+converted to grayscale, and work for people with all types of
+colorblindness. These are all desirable qualities that are lacking in the
+other, older, crappier maps (blue-red, spectrum, and heat). Don't be fooled
+by the flashy \qkw{spectrum} colors --- it is an empirically bad color map
+compared to the preferred ones.
+
 \noindent Example:
 \begin{code}
-    oiiotool tahoe.jpg --colormap blue-red -o blue-red.jpg
+    oiiotool tahoe.jpg --colormap inferno -o inferno.jpg
+    oiiotool tahoe.jpg --colormap viridis -o viridis.jpg
     oiiotool tahoe.jpg --colormap spectrum -o spectrum.jpg
-    oiiotool tahoe.jpg --colormap heat -o heat.jpg
     oiiotool tahoe.jpg --colormap .25,.25,.25,0,.5,0,1,0,0 -o custom.jpg
 \end{code}
 
 \noindent \begin{tabular}{lllll}
 \includegraphics[width=0.9in]{figures/tahoe-small.jpg} &
-\includegraphics[width=0.9in]{figures/colormap-blue-red.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-inferno.jpg} &
+\includegraphics[width=0.9in]{figures/colormap-viridis.jpg} &
 \includegraphics[width=0.9in]{figures/colormap-spectrum.jpg} &
-\includegraphics[width=0.9in]{figures/colormap-heat.jpg} &
 \includegraphics[width=0.9in]{figures/colormap-custom.jpg} \\
-original & red-blue & spectrum & heat & custom values \\
+original & inferno & viridis & spectrum & custom values \\
 \end{tabular}
 \apiend
 

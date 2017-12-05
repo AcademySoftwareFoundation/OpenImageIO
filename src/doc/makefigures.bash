@@ -72,9 +72,9 @@ ${OIIOTOOL} --autocc dilate.jpg erode.jpg -sub -d uint8 -o morphgradient.jpg
 ${OIIOTOOL} --autocc morphsource.jpg morphopen.jpg -sub -d uint8 -o tophat.jpg
 ${OIIOTOOL} --autocc morphclose.jpg morphsource.jpg -sub -d uint8 -o bottomhat.jpg
 
-${OIIOTOOL} -autocc tahoe-small.jpg --colormap blue-red -o colormap-blue-red.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --colormap inferno -o colormap-inferno.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --colormap viridis -o colormap-viridis.jpg
 ${OIIOTOOL} -autocc tahoe-small.jpg --colormap spectrum -o colormap-spectrum.jpg
-${OIIOTOOL} -autocc tahoe-small.jpg --colormap heat -o colormap-heat.jpg
 ${OIIOTOOL} -autocc tahoe-small.jpg --colormap ".25,.25,.25,0,.5,0,1,0,0" -o colormap-custom.jpg
 
 #${OIIOTOOL} ../../../testsuite/oiiotool/tahoe-small.tif

@@ -106,7 +106,7 @@ Comparing "invert.tif" and "../../../../testsuite/oiiotool/ref/invert.tif"
 PASS
 Comparing "chsum.tif" and "../../../../testsuite/oiiotool/ref/chsum.tif"
 PASS
-Comparing "colormap-spectrum.tif" and "../../../../testsuite/oiiotool/ref/colormap-spectrum.tif"
+Comparing "colormap-inferno.tif" and "../../../../testsuite/oiiotool/ref/colormap-inferno.tif"
 PASS
 Comparing "colormap-custom.tif" and "../../../../testsuite/oiiotool/ref/colormap-custom.tif"
 PASS
