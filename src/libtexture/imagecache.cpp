@@ -3514,7 +3514,7 @@ ImageCache::create (bool shared)
         // exists, just return it, otherwise record the new cache.
         spin_lock guard (shared_image_cache_mutex);
         if (! shared_image_cache.get())
-            shared_image_cache.reset (new ImageCacheImpl);
+            shared_image_cache.reset(aligned_new<ImageCacheImpl>(), aligned_delete<ImageCacheImpl>);
 
 #if 0
         std::cerr << " shared ImageCache is "
@@ -3524,7 +3524,7 @@ ImageCache::create (bool shared)
     }
 
     // Doesn't need a shared cache
-    ImageCacheImpl *ic = new ImageCacheImpl;
+    ImageCacheImpl* ic = aligned_new<ImageCacheImpl>();
 #if 0
     std::cerr << "creating new ImageCache " << (void *)ic << "\n";
 #endif
@@ -3541,7 +3541,7 @@ ImageCache::destroy (ImageCache *x, bool teardown)
     spin_lock guard (shared_image_cache_mutex);
     if (x == shared_image_cache.get()) {
         // This is the shared cache, so don't really delete it. Invalidate
-        // it fully, closing the files and throwing out any tiles that 
+        // it fully, closing the files and throwing out any tiles that
         // nobody is currently holding references to.  But only delete the
         // IC fully if 'teardown' is true, and even then, it won't destroy
         // until nobody else is still holding a shared_ptr to it.
@@ -3550,7 +3550,7 @@ ImageCache::destroy (ImageCache *x, bool teardown)
             shared_image_cache.reset ();
     } else {
         // Not a shared cache, we are the only owner, so truly destroy it.
-        delete (ImageCacheImpl *) x;
+        aligned_delete(x);
     }
 }
 

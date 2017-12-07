@@ -68,6 +68,7 @@
 # include <Psapi.h>
 # include <cstdio>
 # include <io.h>
+# include <malloc.h>
 #else
 # include <sys/resource.h>
 #endif
@@ -581,5 +582,23 @@ Sysutil::max_open_files ()
 #endif
     return size_t(-1); // Couldn't figure out, so return effectively infinity
 }
+
+void* aligned_malloc(std::size_t size, std::size_t align) {
+#if defined(_WIN32)
+    return _aligned_malloc(size, align);
+#else
+    void* ptr;
+    return posix_memalign(&ptr, align, size) == 0 ? ptr : nullptr;
+#endif
+}
+
+void aligned_free(void* ptr) {
+#if defined(_WIN32)
+    _aligned_free(ptr);
+#else
+    free(ptr);
+#endif
+}
+
 
 OIIO_NAMESPACE_END

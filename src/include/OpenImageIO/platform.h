@@ -38,6 +38,8 @@
 
 #pragma once
 
+#include <utility> // std::forward
+
 // Make sure all platforms have the explicit sized integer types
 #if defined(_MSC_VER) && _MSC_VER < 1600
    typedef __int8  int8_t;
@@ -395,6 +397,26 @@ inline bool cpu_has_avx512er() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<27)) 
 inline bool cpu_has_avx512cd() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<28)) != 0; }
 inline bool cpu_has_avx512bw() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<30)) != 0; }
 inline bool cpu_has_avx512vl() {int i[4]; cpuid(i,7,0); return (i[1] & (0x80000000 /*1<<31*/)) != 0; }
+
+// portable aligned malloc
+void* aligned_malloc(std::size_t size, std::size_t align);
+void  aligned_free(void* ptr);
+
+// basic wrappers to new/delete over-aligned types since this isn't guaranteed to be supported until C++17
+template <typename T, class... Args>
+inline T* aligned_new(Args&&... args) {
+    static_assert(alignof(T) > alignof(void*), "Type doesn't seem to be over-aligned, aligned_new is not required");
+    void* ptr = aligned_malloc(sizeof(T), alignof(T));
+    return ptr ? new (ptr) T(std::forward<Args>(args)...) : nullptr;
+}
+
+template <typename T>
+inline void aligned_delete(T* t) {
+    if (t) {
+        t->~T();
+        aligned_free(t);
+    }
+}
 
 
 OIIO_NAMESPACE_END
