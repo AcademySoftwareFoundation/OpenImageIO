@@ -1287,15 +1287,8 @@ ImageCacheFile *
 ImageCacheImpl::find_fingerprint (ustring finger, ImageCacheFile *file)
 {
     spin_lock lock (m_fingerprints_mutex);
-    FingerprintMap::iterator found = m_fingerprints.find (finger);
-    if (found == m_fingerprints.end()) {
-        // Not already in the fingerprint list -- add it
-        m_fingerprints[finger] = file;
-    } else {
-        // In the list -- return its mapping
-        file = found->second.get();
-    }
-    return file;
+    // Insert if missing, otherwise return old value
+    return m_fingerprints.emplace(finger, file).first->second.get();
 }
 
 
@@ -3200,9 +3193,7 @@ ImageCacheImpl::invalidate (ustring filename)
     // Remove the fingerprint corresponding to this file
     {
         spin_lock lock (m_fingerprints_mutex);
-        FingerprintMap::iterator f = m_fingerprints.find (filename);
-        if (f != m_fingerprints.end())
-            m_fingerprints.erase (f);
+        m_fingerprints.erase (filename);
     }
 
     purge_perthread_microcaches ();
