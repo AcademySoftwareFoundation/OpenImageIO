@@ -410,11 +410,28 @@ private:
     atomic_int m_size;   // total entries in all bins
     Bin m_bins[BINS];    // the bins
 
+    static constexpr int log2(unsigned n) {
+        return n < 2 ? 0 : 1 + log2(n / 2);
+    }
+
     // Which bin will this key always appear in?
     size_t whichbin (const KEY &key) {
-        size_t h = m_hash(key);
-        h = (size_t) murmur::fmix (uint64_t(h));  // scramble again
-        return h % BINS;
+        constexpr int LOG2_BINS = log2(BINS);
+        constexpr int BIN_SHIFT = 32 - LOG2_BINS;
+
+        static_assert(1 << LOG2_BINS == BINS, "Number of bins must be a power of two");
+        static_assert(~uint32_t(0) >> BIN_SHIFT == (BINS - 1), "Hash overflow");
+
+        // Use the high order bits of the hash to index the bin. We assume that the
+        // low-order bits of the hash will directly be used to index the hash table,
+        // so using those would lead to collisions.
+        // To avoid mixups between size_t among platforms, we always cast to a 32-bit
+        // integer first. Its quite possible the hash function only gave us a uint32_t
+        // even though the API technically wants a size_t.
+        size_t hash = m_hash(key);
+        unsigned bin = uint32_t(hash) >> BIN_SHIFT;
+        DASSERT(bin < BINS);
+        return bin;
     }
 
 };
