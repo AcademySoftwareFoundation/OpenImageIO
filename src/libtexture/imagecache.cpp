@@ -1793,7 +1793,7 @@ ImageCacheImpl::getstats (int level) const
                 if (nthreads > 1) {
                     double perthreadtime = stats.fileio_time / (float)nthreads;
                     out << " (" << Strutil::timeintervalformat (perthreadtime)
-                        << " average per thread)";
+                        << " average per thread, for " << nthreads << " threads)";
                 }
             }
             out << "\n";
