@@ -100,7 +100,7 @@ ifeq (${SP_OS}, rhel7)
 
     ## If not overridden, here is our preferred LLVM installation
     ## (may be changed as new versions are rolled out to the facility)
-    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_5.0.0
+    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_5.0.1_rc2
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
@@ -108,7 +108,7 @@ ifeq (${SP_OS}, rhel7)
 	LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_4.0_final
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     else ifeq (${COMPILER},clang5)
-	LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_5.0.0
+	LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_5.0.1_rc2
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
