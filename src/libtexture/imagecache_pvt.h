@@ -518,7 +518,7 @@ public:
     size_t hash () const {
 #if 0
         // original -- turned out not to fill hash buckets evenly
-        return m_x * 53 + m_y * 97 + m_z * 193 + 
+        return m_x * 53 + m_y * 97 + m_z * 193 +
                m_subimage * 389 + m_miplevel * 1543 +
                m_file->filename().hash() * 769;
 #else
@@ -560,11 +560,8 @@ private:
 ///
 class ImageCacheTile : public RefCnt {
 public:
-    /// Construct a new tile, read the pixels from disk if read_now is true.
-    /// Requires a pointer to the thread-specific IC data including
-    /// microcache and statistics.
-    ImageCacheTile (const TileID &id, ImageCachePerThreadInfo *thread_info,
-                    bool read_now=true);
+    /// Construct a new tile, pixels will be read when calling read()
+    ImageCacheTile (const TileID &id);
 
     /// Construct a new tile out of the pixels supplied.
     ///
@@ -1086,7 +1083,6 @@ private:
     bool m_forcefloat;           ///< force all cache tiles to be float
     bool m_accept_untiled;       ///< Accept untiled images?
     bool m_accept_unmipped;      ///< Accept unmipped images?
-    bool m_read_before_insert;   ///< Read tiles before adding to cache?
     bool m_deduplicate;          ///< Detect duplicate files?
     bool m_unassociatedalpha;    ///< Keep unassociated alpha files as they are?
     int m_failure_retries;       ///< Times to re-try disk failures

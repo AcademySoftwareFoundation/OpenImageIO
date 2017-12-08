@@ -1390,17 +1390,12 @@ ImageCacheImpl::set_min_cache_size (long long newsize)
 
 
 
-ImageCacheTile::ImageCacheTile (const TileID &id,
-                                ImageCachePerThreadInfo *thread_info,
-                                bool read_now)
+ImageCacheTile::ImageCacheTile (const TileID &id)
     : m_id (id), m_valid(true) // , m_used(true)
 {
     m_used = true;
     m_pixels_ready = false;
     m_pixels_size = 0;
-    if (read_now) {
-        read (thread_info);
-    }
     id.file().imagecache().incr_tiles (0);  // mem counted separately in read
 }
 
@@ -1563,7 +1558,6 @@ ImageCacheImpl::init ()
     m_forcefloat = false;
     m_accept_untiled = true;
     m_accept_unmipped = true;
-    m_read_before_insert = false;
     m_deduplicate = true;
     m_unassociatedalpha = false;
     m_failure_retries = 0;
@@ -1764,7 +1758,6 @@ ImageCacheImpl::getstats (int level) const
         INTOPT(forcefloat);
         INTOPT(accept_untiled);
         INTOPT(accept_unmipped);
-        INTOPT(read_before_insert);
         INTOPT(deduplicate);
         INTOPT(unassociatedalpha);
         INTOPT(failure_retries);
@@ -2088,13 +2081,6 @@ ImageCacheImpl::attribute (string_view name, TypeDesc type,
             do_invalidate = true;
         }
     }
-    else if (name == "read_before_insert" && type == TypeDesc::INT) {
-        bool r = (*(const int *)val != 0);
-        if (r != m_read_before_insert) {
-            m_read_before_insert = r;
-            do_invalidate = true;
-        }
-    }
     else if (name == "deduplicate" && type == TypeDesc::INT) {
         bool r = (*(const int *)val != 0);
         if (r != m_deduplicate) {
@@ -2154,7 +2140,6 @@ ImageCacheImpl::getattribute (string_view name, TypeDesc type,
     ATTR_DECODE ("forcefloat", int, m_forcefloat);
     ATTR_DECODE ("accept_untiled", int, m_accept_untiled);
     ATTR_DECODE ("accept_unmipped", int, m_accept_unmipped);
-    ATTR_DECODE ("read_before_insert", int, m_read_before_insert);
     ATTR_DECODE ("deduplicate", int, m_deduplicate);
     ATTR_DECODE ("unassociatedalpha", int, m_unassociatedalpha);
     ATTR_DECODE ("failure_retries", int, m_failure_retries);
@@ -2275,14 +2260,10 @@ ImageCacheImpl::find_tile_main_cache (const TileID &id, ImageCacheTileRef &tile,
     // expensive disk read.  We believe this is safe, since underneath
     // the ImageCacheFile will lock itself for the read_tile and there are
     // no other non-threadsafe side effects.
-    Timer timer;
-    tile = new ImageCacheTile (id, thread_info, m_read_before_insert);
+    tile = new ImageCacheTile (id);
     // N.B. the ImageCacheTile ctr starts the tile out as 'used'
     DASSERT (tile);
     DASSERT (id == tile->id());
-    double readtime = timer();
-    stats.fileio_time += readtime;
-    id.file().iotime() += readtime;
 
     add_tile_to_cache (tile, thread_info);
     DASSERT (id == tile->id());
