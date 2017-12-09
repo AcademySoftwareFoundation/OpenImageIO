@@ -135,6 +135,9 @@ include (CTest)
 # Tell CMake to process the sub-directories
 add_subdirectory (src/libutil)
 
+find_or_download_robin_map ()
+
+
 # Add IO plugin directories -- if we are embedding plugins, we need to visit
 # these directories BEFORE the OpenImageIO target is established (in
 # src/libOpenImageIO). For each plugin, we append to the lists of source

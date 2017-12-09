@@ -117,6 +117,7 @@ target_link_libraries (OpenImageIO
                        ${format_plugin_libs} # Add all the target link libraries from the plugins
                        ${Boost_LIBRARIES})
 
+include_directories (${ROBINMAP_INCLUDE_DIR})
 
 # Include OpenColorIO if using it
 if (USE_OCIO AND OCIO_FOUND)

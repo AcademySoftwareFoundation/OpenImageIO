@@ -127,13 +127,13 @@ public:
 
         // Dereferencing returns a reference to the hash table entry the
         // iterator refers to.
-        typename BinMap_t::value_type & operator* () {
+        const typename BinMap_t::value_type & operator* () const {
             return *m_biniterator;
         }
 
         /// Dereferencing returns a reference to the hash table entry the
         /// iterator refers to.
-        typename BinMap_t::value_type * operator-> () {
+        const typename BinMap_t::value_type * operator-> () const {
             return &(*m_biniterator);
         }
 
@@ -322,15 +322,14 @@ public:
         Bin &bin (m_bins[b]);
         if (do_lock)
             bin.lock ();
-        bool add = (bin.map.find (key) == bin.map.end());
-        if (add) {
-            // not found -- add it!
-            bin.map[key] = value;
+        auto result = bin.map.emplace(key, value);
+        if (result.second) {
+            // the insert was succesful!
             ++m_size;
         }
         if (do_lock)
             bin.unlock();
-        return add;
+        return result.second;
     }
 
     /// If the key is in the map, safely erase it.
@@ -342,10 +341,7 @@ public:
         Bin &bin (m_bins[b]);
         if (do_lock)
             bin.lock ();
-        typename BinMap_t::iterator it = bin.map.find (key);
-        if (it != bin.map.end()) {
-            bin.map.erase (it);
-        }
+        bin.map.erase (key);
         if (do_lock)
             bin.unlock();
     }

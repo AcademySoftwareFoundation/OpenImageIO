@@ -3211,7 +3211,7 @@ ImageCacheImpl::invalidate_all (bool force)
     std::vector<ustring> all_files;
     for (FilenameMap::iterator fileit = m_files.begin(), e = m_files.end();
              fileit != e;  ++fileit) {
-        ImageCacheFileRef &f (fileit->second);
+        const ImageCacheFileRef &f (fileit->second);
         ustring name = f->filename();
         Timer input_mutex_timer;
         recursive_lock_guard guard (f->m_input_mutex);

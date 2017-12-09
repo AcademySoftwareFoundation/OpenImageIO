@@ -36,6 +36,8 @@
 #ifndef OPENIMAGEIO_IMAGECACHE_PVT_H
 #define OPENIMAGEIO_IMAGECACHE_PVT_H
 
+#include <tsl/robin_map.h>
+
 #include <boost/version.hpp>
 #include <boost/thread/tss.hpp>
 #include <boost/container/flat_map.hpp>
@@ -436,7 +438,18 @@ typedef intrusive_ptr<ImageCacheFile> ImageCacheFileRef;
 
 
 /// Map file names to file references
-typedef unordered_map_concurrent<ustring,ImageCacheFileRef,ustringHash,std::equal_to<ustring>, FILE_CACHE_SHARDS> FilenameMap;
+typedef unordered_map_concurrent<
+            ustring,
+            ImageCacheFileRef,
+            ustringHash,
+            std::equal_to<ustring>,
+            FILE_CACHE_SHARDS,
+            tsl::robin_map<
+                ustring,
+                ImageCacheFileRef,
+                ustringHash
+            >
+        > FilenameMap;
 typedef std::unordered_map<ustring,ImageCacheFileRef,ustringHash> FingerprintMap;
 
 
@@ -673,7 +686,18 @@ typedef intrusive_ptr<ImageCacheTile> ImageCacheTileRef;
 
 /// Hash table that maps TileID to ImageCacheTileRef -- this is the type of the
 /// main tile cache.
-typedef unordered_map_concurrent<TileID, ImageCacheTileRef, TileID::Hasher, std::equal_to<TileID>, TILE_CACHE_SHARDS> TileCache;
+typedef unordered_map_concurrent<
+            TileID,
+            ImageCacheTileRef,
+            TileID::Hasher,
+            std::equal_to<TileID>,
+            TILE_CACHE_SHARDS,
+            tsl::robin_map<
+                TileID,
+                ImageCacheTileRef,
+                TileID::Hasher
+            >
+        > TileCache;
 
 
 /// A very small amount of per-thread data that saves us from locking

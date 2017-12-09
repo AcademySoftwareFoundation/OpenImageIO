@@ -541,7 +541,6 @@ macro (find_or_download_pybind11)
         message (STATUS "Building local Pybind11")
         set (PYBIND11_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/pybind11")
         set (PYBIND11_GIT_REPOSITORY "https://github.com/pybind/pybind11")
-        set (PYBIND11_GIT_TAG "https://github.com/pybind/pybind11")
         if (NOT IS_DIRECTORY ${PYBIND11_INSTALL_DIR}/include)
             find_package (Git REQUIRED)
             execute_process(COMMAND
@@ -568,6 +567,38 @@ macro (find_or_download_pybind11)
                  "Or build with -DUSE_PYTHON=OFF.")
     endif ()
 endmacro()
+
+###########################################################################
+# Tessil/robin-map
+
+set (BUILD_ROBINMAP_VERSION "1e59f1993c7b6eace15032f38b5acb0bc34f530b" CACHE STRING "Preferred Tessil/robin-map version, of downloading/building our own")
+
+macro (find_or_download_robin_map)
+    # Download the headers from github
+    message (STATUS "Downloading local Tessil/robin-map")
+    set (ROBINMAP_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/robin-map")
+    set (ROBINMAP_GIT_REPOSITORY "https://github.com/Tessil/robin-map")
+    if (NOT IS_DIRECTORY ${ROBINMAP_INSTALL_DIR}/tsl)
+        find_package (Git REQUIRED)
+        execute_process(COMMAND             ${GIT_EXECUTABLE} clone    ${ROBINMAP_GIT_REPOSITORY} -n ${ROBINMAP_INSTALL_DIR})
+        execute_process(COMMAND             ${GIT_EXECUTABLE} checkout ${BUILD_ROBINMAP_VERSION}
+                        WORKING_DIRECTORY   ${ROBINMAP_INSTALL_DIR})
+
+        if (IS_DIRECTORY ${ROBINMAP_INSTALL_DIR}/tsl)
+            message (STATUS "DOWNLOADED Tessil/robin-map to ${ROBINMAP_INSTALL_DIR}.\n"
+                     "Remove that dir to get rid of it.")
+        else ()
+            message (FATAL_ERROR "Could not download Tessil/robin-map")
+        endif ()
+    endif ()
+    set (ROBINMAP_INCLUDE_DIR "${ROBINMAP_INSTALL_DIR}")
+    if (ROBINMAP_INCLUDE_DIR)
+        message (STATUS "Tessil/robin-map include dir: ${ROBINMAP_INCLUDE_DIR}")
+    else ()
+        message (FATAL_ERROR "Tessil/robin-map is missing!")
+    endif ()
+endmacro()
+
 
 ###########################################################################
 
