@@ -1331,40 +1331,41 @@ ImageCacheImpl::check_max_files (ImageCachePerThreadInfo *thread_info)
     // we used it), we just remember the filename of the next file to
     // check, then look it up fresh.  That is m_file_sweep_name.
 
-    // If we don't have a valid file_sweep_name, establish it by just
-    // looking up the filename of the first entry in the file cache.
-    if (! m_file_sweep_name) {
-        FilenameMap::iterator sweep = m_files.begin();
-        if (sweep == m_files.end()) {
-            m_file_sweep_mutex.unlock();
-            return;
-        }
-        m_file_sweep_name = sweep->first;
+    // Get a (locked) iterator for the next tile to be examined.
+    FilenameMap::iterator sweep;
+    if (m_file_sweep_name) {
+        // We saved the sweep_id. Find the iterator corresponding to it.
+        sweep = m_files.find (m_file_sweep_name);
+        // Note: if the sweep_id is no longer in the table, sweep will be an
+        // empty iterator. That's ok, it will be fixed early in the main
+        // loop below.
     }
 
-    // Get a (locked) iterator for the next file to be examined.
-    FilenameMap::iterator sweep = m_files.find (m_file_sweep_name);
 
     // Loop while we still have too many files open.  Also, be careful
     // of looping for too long, exit the loop if we just keep spinning
     // uncontrollably.
     int full_loops = 0;
-    FilenameMap::iterator end = m_files.end();
     while (m_stat_open_files_current >= m_max_open_files
            && full_loops <= 100) {
         // If we have fallen off the end of the cache, loop back to the
         // beginning and increment our full_loops count.
-        if (sweep == end) {
+        if (! sweep) {
             sweep = m_files.begin();
             ++full_loops;
         }
         // If we're STILL at the end, it must be that somehow the entire
         // cache is empty.  So just declare ourselves done.
-        if (sweep == end)
+        if (! sweep)
             break;
         DASSERT (sweep->second);
         sweep->second->release ();  // May reduce open files
         ++sweep;
+        // Note: This loop is a lot less complicated than the one in
+        // ImageCacheImpl::check_max_mem. That's because for the file
+        // cache, we just need to release old ones, we don't actually
+        // erase entries from the cache, so there is no tricky lock/unlock,
+        // erasure, or invalidation of iterators.
     }
 
     // OK, by this point we have either closed enough files to be below
@@ -1373,7 +1374,7 @@ ImageCacheImpl::check_max_files (ImageCachePerThreadInfo *thread_info)
 
     // Now we must save the filename for next time.  Just set it to an
     // empty string if we don't have a valid iterator at this point.
-    m_file_sweep_name = (sweep == end ? ustring() : sweep->first);
+    m_file_sweep_name = (sweep ? sweep->first : ustring());
     m_file_sweep_mutex.unlock ();
 
     // N.B. As we exit, the iterators will go out of scope and we will
@@ -2346,36 +2347,31 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
     // we used it), we just remember the tileID of the next tile to
     // check, then look it up fresh.  That is m_tile_sweep_id.
 
-    // If we don't have a valid tile_sweep_id, establish it by just
-    // looking up the first entry in the tile cache.
-    if (m_tile_sweep_id.empty()) {
-        TileCache::iterator sweep = m_tilecache.begin();
-        if (sweep == m_tilecache.end()) {
-            m_tile_sweep_mutex.unlock();
-            return;
-        }
-        m_tile_sweep_id = (*sweep).first;
-    }
-
     // Get a (locked) iterator for the next tile to be examined.
-    TileCache::iterator sweep = m_tilecache.find (m_tile_sweep_id);
+    TileCache::iterator sweep;
+    if (m_tile_sweep_id) {
+        // We saved the sweep_id. Find the iterator corresponding to it.
+        sweep = m_tilecache.find (m_tile_sweep_id);
+        // Note: if the sweep_id is no longer in the table, sweep will be an
+        // empty iterator. That's ok, it will be fixed early in the main
+        // loop below.
+    }
 
     // Loop while we still use too much tile memory.  Also, be careful
     // of looping for too long, exit the loop if we just keep spinning
     // uncontrollably.
     int full_loops = 0;
-    TileCache::iterator end = m_tilecache.end();
     while (m_mem_used >= (long long)m_max_memory_bytes
            && full_loops < 100) {
         // If we have fallen off the end of the cache, loop back to the
         // beginning and increment our full_loops count.
-        if (sweep == end) {
+        if (! sweep) {
             sweep = m_tilecache.begin();
             ++full_loops;
         }
         // If we're STILL at the end, it must be that somehow the entire
         // cache is empty.  So just declare ourselves done.
-        if (sweep == end)
+        if (! sweep)
             break;
         DASSERT (sweep->second);
 
@@ -2386,17 +2382,17 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
             TileID todelete = sweep->first;
             size_t size = sweep->second->memsize();
             ASSERT (m_mem_used >= (long long)size);
-            // 2. Increment the iterator to the next item to be visited
-            // in the cache and then unlock it (since it can't be locked
-            // for the subsequent erase() call).
+            // 2. Find the TileID of the NEXT item. We do this by
+            // incrementing the sweep iterator and grabbing its id.
             ++sweep;
+            m_tile_sweep_id = (sweep ? sweep->first : TileID());
+            // 3. Release the bin lock and erase the tile we wish to delete.
             sweep.unlock ();
-            // 3. Erase the tile we wish to delete
             m_tilecache.erase (todelete);
-                // std::cerr << "  Freed tile, recovering " << size << "\n";
-            // 4. Re-lock the iterator, which now points to the next
-            // item the from the cache to examine.
-            sweep.lock ();
+            // 4. Re-establish a locked iterator for the next item, since
+            // the old iterator may have been invalidated by the erasure.
+            if (m_tile_sweep_id)
+                sweep = m_tilecache.find (m_tile_sweep_id);
         } else {
             ++sweep;
         }
@@ -2408,7 +2404,7 @@ ImageCacheImpl::check_max_mem (ImageCachePerThreadInfo *thread_info)
 
     // Now we must save the tileid for next time.  Just set it to an
     // empty ID if we don't have a valid iterator at this point.
-    m_tile_sweep_id = (sweep == end ? TileID() : sweep->first);
+    m_tile_sweep_id = (sweep ? sweep->first : TileID());
     m_tile_sweep_mutex.unlock ();
 
     // N.B. As we exit, the iterators will go out of scope and we will

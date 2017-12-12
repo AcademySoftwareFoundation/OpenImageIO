@@ -485,7 +485,10 @@ public:
     void xyz (int x, int y, int z) { m_x = x; m_y = y; m_z = z; }
 
     /// Is this an uninitialized tileID?
-    bool empty () const { return m_file == NULL; }
+    bool empty () const { return m_file == nullptr; }
+
+    /// Treating it like a bool says whether it's non-empty.
+    operator bool () const { return m_file != nullptr; }
 
     /// Do the two ID's refer to the same tile?  
     ///
