@@ -1129,7 +1129,12 @@ bool OIIO_API color_map (ImageBuf &dst, const ImageBuf &src,
 /// and if dst is not already initialized, it will be initialized to the ROI
 /// and with 3 color channels.
 ///
-/// The mapname may be one of: "blue-red", "spectrum", "heat".
+/// The mapname may be one of: "inferno", "viridis", "magma", or "plasma",
+/// all of which are perceptually uniform, strictly increasing in luminance,
+/// look good when converted to grayscale, and work for people with all
+/// types of colorblindness. Also supported are the following color maps
+/// that do not having those desirable qualities (and are thus not
+/// recommended): "blue-red", "spectrum", "heat".
 ///
 /// Return true on successs, false on error (with an appropriate error
 /// message set in dst).

@@ -250,8 +250,8 @@ try:
     # color_map
     b = ImageBuf()
     ImageBufAlgo.color_map (b, ImageBuf("../oiiotool/src/tahoe-tiny.tif"),
-                           -1, "spectrum")
-    write (b, "colormap-spectrum.tif", oiio.UINT8)
+                           -1, "inferno")
+    write (b, "colormap-inferno.tif", oiio.UINT8)
     b = ImageBuf()
     ImageBufAlgo.color_map (b, ImageBuf("../oiiotool/src/tahoe-tiny.tif"),
                            -1, 3, 3, (.25,.25,.25,0,.5,0,1,0,0))

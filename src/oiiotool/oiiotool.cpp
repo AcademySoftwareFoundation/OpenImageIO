@@ -5183,7 +5183,7 @@ getargs (int argc, char *argv[])
                 "--noise %@", action_noise, NULL, "Add noise to an image (options: type=gaussian:mean=0:stddev=0.1, type=uniform:min=0:max=0.1, type=salt:value=0:portion=0.1, seed=0",
                 "--chsum %@", action_chsum, NULL,
                     "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
-                "--colormap %s %@", action_colormap, NULL, "Color map based on channel 0 (arg: \"blue-red\", \"spectrum\", \"heat\", or comma-separated list of RGB triples)",
+                "--colormap %s %@", action_colormap, NULL, "Color map based on channel 0 (arg: \"inferno\", \"viridis\", \"magma\", \"plasma\", \"blue-red\", \"spectrum\", \"heat\", or comma-separated list of RGB triples)",
                 "--crop %@ %s", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--trim %@", action_trim, NULL, "Crop to the minimal ROI containing nonzero pixel values",

@@ -2472,9 +2472,9 @@ channel (if not supplied, all channels will have weight 1.0).
 
 
 \apiitem{bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
-        nknots, channels, knots, roi=ROI.All, nthreads=0) \\
+\bigspc\bigspc        nknots, channels, knots, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
-        mapname, roi=ROI.All, nthreads=0)}
+\bigspc\bigspc        mapname, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!color_map} \indexapi{color_map}
 Set pixels of {\cf dst} by applying the color map to the values of {\cf
 src}, using either the channel specified by {\cf srcchannel}, or the
@@ -2484,8 +2484,13 @@ In the first variant, the values linearly-interpolated color map are
 given by the tuple {\cf knots[nknots*channels]}.
 
 In the second variant, just the name of a color map is specified. Recognized
-map names include: \qkw{blue-red}, \qkw{spectrum}, and \qkw{heat}. In all
-cases, the implied {\cf channels} is 3.
+map names include: \qkw{inferno}, \qkw{viridis},\qkw{magma}, \qkw{plasma},
+all of which are perceptually uniform, strictly increasing in luminance,
+look good when converted to grayscale, and work for people with all types of
+colorblindness. Also supported are the following color maps that do not have
+those desirable qualities (and are this not recommended): \qkw{blue-red},
+\qkw{spectrum}, and \qkw{heat}. In all cases, the implied {\cf channels} is
+3.
 
 \smallskip
 \noindent Examples:

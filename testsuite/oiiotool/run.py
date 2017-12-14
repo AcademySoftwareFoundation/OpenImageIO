@@ -80,8 +80,8 @@ command += oiiotool ("src/tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
             + "-d uint8 -o chsum.tif")
 
 # test --colormap
-command += oiiotool ("--autocc src/tahoe-tiny.tif --colormap spectrum "
-            + "-d uint8 -o colormap-spectrum.tif")
+command += oiiotool ("--autocc src/tahoe-tiny.tif --colormap inferno "
+            + "-d uint8 -o colormap-inferno.tif")
 command += oiiotool ("--autocc src/tahoe-tiny.tif --colormap .25,.25,.25,0,.5,0,1,0,0 "
             + "-d uint8 -o colormap-custom.tif")
 
@@ -263,7 +263,7 @@ outputs = [
             "cpow1.exr", "cpow2.exr",
             "abs.exr", "absdiff.exr", "absdiffc.exr",
             "chsum.tif",
-            "colormap-spectrum.tif", "colormap-custom.tif",
+            "colormap-inferno.tif", "colormap-custom.tif",
             "rgbahalf-zfloat.exr",
             "tahoe-filled.tif", "growholes.tif",
             "rangecompress.tif", "rangeexpand.tif",
