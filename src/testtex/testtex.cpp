@@ -106,6 +106,7 @@ static int ntrials = 1;
 static int testicwrite = 0;
 static bool test_derivs = false;
 static bool test_statquery = false;
+static bool invalidate_before_iter = true;
 static Imath::M33f xform;
 static mutex error_mutex;
 void *dummyptr;
@@ -197,6 +198,7 @@ getargs (int argc, const char *argv[])
                   "--threadtimes %d", &threadtimes, "Do thread timings (arg = workload profile)",
                   "--trials %d", &ntrials, "Number of trials for timings",
                   "--wedge", &wedge, "Wedge test",
+                  "--noinvalidate %!", &invalidate_before_iter, "Don't invalidate the cache before each --threadtimes trial",
                   "--testicwrite %d", &testicwrite, "Test ImageCache write ability (1=seeded, 2=generated)",
                   "--teststatquery", &test_statquery, "Test queries of statistics",
                   NULL);
@@ -1232,7 +1234,8 @@ do_tex_thread_workout (int iterations, int mythread)
 void
 launch_tex_threads (int numthreads, int iterations)
 {
-    texsys->invalidate_all (true);
+    if (invalidate_before_iter)
+        texsys->invalidate_all (true);
     OIIO::thread_group threads;
     for (int i = 0;  i < numthreads;  ++i) {
         threads.create_thread (std::bind(do_tex_thread_workout,iterations,i));
@@ -1366,7 +1369,7 @@ main (int argc, const char *argv[])
 
     texsys = TextureSystem::create ();
     std::cout << "Created texture system\n";
-    texsys->attribute ("statistics:level", 2);
+    texsys->attribute ("statistics:level", verbose ? 2 : 0);
     texsys->attribute ("autotile", autotile);
     texsys->attribute ("automip", (int)automip);
     texsys->attribute ("deduplicate", (int)dedup);
@@ -1554,6 +1557,7 @@ main (int argc, const char *argv[])
               << Strutil::memformat (Sysutil::memory_used(true)) << "\n";
     TextureSystem::destroy (texsys);
 
-    std::cout << "\nustrings: " << ustring::getstats(false) << "\n\n";
+    if (verbose)
+        std::cout << "\nustrings: " << ustring::getstats(false) << "\n\n";
     return 0;
 }
