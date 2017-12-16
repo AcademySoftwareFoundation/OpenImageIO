@@ -3320,13 +3320,7 @@ ImageCacheImpl::resolve_udim (ImageCacheFile *udimfile, float &s, float &t)
         // been added by another thread during the brief time when we
         // weren't holding any lock.
         spin_rw_mutex::write_lock_guard rlock (udim_lookup_mutex);
-        UdimLookupMap::iterator f = udimfile->m_udim_lookup.find (id);
-        if (f == udimfile->m_udim_lookup.end()) {
-            // Not yet in the lookup table, so create one so we don't have
-            // to do that lookup again.
-            udimfile->m_udim_lookup[id] = realfile;
-            // std::cout << "Associate " << id << " with " << (void*)realfile << "\n";
-        }
+        udimfile->m_udim_lookup.emplace(id, realfile);
     }
     return realfile;
 }
