@@ -1424,8 +1424,13 @@ ImageBuf::copy_pixels (const ImageBuf &src)
         ImageBufAlgo::zero (*this);
 
     bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "copy_pixels", copy_pixels_impl,
+    OIIO_DISPATCH_TYPES2 (ok, "copy_pixels", copy_pixels_impl,
                           spec().format, src.spec().format, *this, src, roi);
+    // N.B.: it's tempting to change this to OIIO_DISPATCH_COMMON_TYPES2,
+    // but don't! Because the DISPATCH_COMMON macros themselves depend
+    // on copy() to convert from rare types to common types, eventually
+    // we need to bottom out with something that handles all types, and
+    // this is the place where that happens.
     return ok;
 }
 
