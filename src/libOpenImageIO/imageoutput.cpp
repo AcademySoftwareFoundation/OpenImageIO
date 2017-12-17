@@ -466,7 +466,7 @@ ImageOutput::write_image (TypeDesc format, const void *data,
         }
     } else {
         // Scanline image
-        const int chunk = 256;
+        int chunk = std::max (1, (1<<26)/int(m_spec.scanline_bytes(true)));
         for (int z = 0;  z < m_spec.depth;  ++z)
             for (int y = 0;  y < m_spec.height && ok;  y += chunk) {
                 int yend = std::min (y+m_spec.y+chunk, m_spec.y+m_spec.height);

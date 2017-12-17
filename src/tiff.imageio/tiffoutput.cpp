@@ -72,6 +72,9 @@ public:
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);
+    virtual bool write_scanlines (int ybegin, int yend, int z,
+                                  TypeDesc format, const void *data,
+                                  stride_t xstride, stride_t ystride);
     virtual bool write_tile (int x, int y, int z,
                              TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride);
@@ -95,6 +98,7 @@ private:
     void init (void) {
         m_tif = NULL;
         m_checkpointItems = 0;
+        m_checkpointTimer.stop ();
         m_compression = COMPRESSION_ADOBE_DEFLATE;
         m_photometric = PHOTOMETRIC_RGB;
         m_outputchans = 0;
@@ -586,6 +590,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         TIFFSetField (m_tif, TIFFTAG_XMLPACKET, xmp.size(), xmp.c_str());
     
     TIFFCheckpointDirectory (m_tif);  // Ensure the header is written early
+    m_checkpointTimer.reset();
     m_checkpointTimer.start(); // Initialize the to the fileopen time
     m_checkpointItems = 0; // Number of tiles or scanlines we've written
 
@@ -1004,6 +1009,35 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
     }
     
     return true;
+}
+
+
+
+bool
+TIFFOutput::write_scanlines (int ybegin, int yend, int z,
+                             TypeDesc format, const void *data,
+                             stride_t xstride, stride_t ystride)
+{
+    // First, do the native data type conversion and contiguization. By
+    // doing the whole chunk, it will be parallelized.
+    std::vector<unsigned char> nativebuf;
+    data = to_native_rectangle (m_spec.x, m_spec.x+m_spec.width,
+                                ybegin, yend, z, z+1,
+                                format, data, xstride, ystride, AutoStride,
+                                nativebuf, m_dither, m_spec.x, m_spec.y, m_spec.z);
+    format = TypeUnknown;  // native
+    xstride = (stride_t) m_spec.pixel_bytes (true);
+    ystride = xstride * m_spec.width;
+
+    // Now write the individual scanlines. They're already contiguous and in
+    // native format, so even though write_scanline contains that logic
+    // again, the work will be skipped.
+    bool ok = true;
+    for (int y = ybegin;  ok && y < yend;  ++y) {
+        ok &= write_scanline (y, z, format, data, xstride);
+        data = (char *)data + ystride;
+    }
+    return ok;
 }
 
 

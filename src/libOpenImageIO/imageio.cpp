@@ -535,9 +535,7 @@ pvt::parallel_convert_from_float (const float *src, void *dst, size_t nvals,
     if (format.basetype == TypeDesc::FLOAT)
         return src;
 
-    const int64_t blocksize = 100000;   // good choice?
-
-    parallel_for_chunked (0, int64_t(nvals), blocksize, [=](int64_t b, int64_t e){
+    parallel_for_chunked (0, int64_t(nvals), 0, [=](int64_t b, int64_t e){
         convert_from_float (src+b, (char *)dst+b*format.size(), e-b, format);
     });
     return dst;
