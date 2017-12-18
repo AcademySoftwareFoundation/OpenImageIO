@@ -241,6 +241,12 @@ command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig!
 command += oiiotool ("--pattern fill:color=.6,.5,.4,.3,.2 64x64 5 -d uint8 -o const5.tif")
 command += oiiotool ("-i:ch=R,G,B const5.tif -o const5-rgb.tif")
 
+# Test that combining two images, if the first has no alpha but the second
+# does, gets the right channel names instead of just copying from the first.
+command += oiiotool ("-pattern constant:color=1,0,0 64x64 3 -pattern constant:color=0,1,0,1 64x64 4 -add -o add_rgb_rgba.exr")
+command += info_command ("add_rgb_rgba.exr", safematch=True)
+
+
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
 # below.

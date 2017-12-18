@@ -55,6 +55,15 @@ copyA.0009.jpg       :  128 x   96, 3 channel, uint8 jpeg
 copyA.0010.jpg       :  128 x   96, 3 channel, uint8 jpeg
 Reading black.tif
     oiio:DebugOpenConfig!: 42
+Reading add_rgb_rgba.exr
+add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
+    SHA-1: 9CCAC57A0A0D45F40EF14337A95207094D008E02
+    channel list: R, G, B, A
+    oiio:ColorSpace: "Linear"
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0 0
+    screenWindowWidth: 1
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "autotrim.tif" and "ref/autotrim.tif"

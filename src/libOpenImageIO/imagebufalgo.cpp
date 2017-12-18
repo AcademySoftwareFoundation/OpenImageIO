@@ -178,6 +178,33 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
                     spec.nchannels = minchans;
                 else
                     spec.nchannels = maxchans;
+                // Fix channel names and designations
+                spec.default_channel_names();
+                spec.alpha_channel = -1;
+                spec.z_channel = -1;
+                for (int c = 0; c < spec.nchannels; ++c) {
+                    if (A && A->spec().channel_name(c) != "") {
+                        spec.channelnames[c] = A->spec().channel_name(c);
+                        if (spec.alpha_channel < 0 && A->spec().alpha_channel == c)
+                            spec.alpha_channel = c;
+                        if (spec.z_channel < 0 && A->spec().z_channel == c)
+                            spec.z_channel = c;
+                    }
+                    else if (B && B->spec().channel_name(c) != "") {
+                        spec.channelnames[c] = B->spec().channel_name(c);
+                        if (spec.alpha_channel < 0 && B->spec().alpha_channel == c)
+                            spec.alpha_channel = c;
+                        if (spec.z_channel < 0 && B->spec().z_channel == c)
+                            spec.z_channel = c;
+                    }
+                    else if (C && C->spec().channel_name(c) != "") {
+                        spec.channelnames[c] = C->spec().channel_name(c);
+                        if (spec.alpha_channel < 0 && C->spec().alpha_channel == c)
+                            spec.alpha_channel = c;
+                        if (spec.z_channel < 0 && C->spec().z_channel == c)
+                            spec.z_channel = c;
+                    }
+                }
             }
             // For multiple inputs, if they aren't the same data type, punt and
             // allocate a float buffer. If the user wanted something else,
