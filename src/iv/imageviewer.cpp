@@ -1022,8 +1022,7 @@ ImageViewer::displayCurrentImage (bool update)
         }
     } else {
         m_current_image = m_last_image = -1;
-        repaint(); // add repaint event to Qt queue
-        glwin->trigger_redraw(); // then make sure GL canvas is cleared
+        ((QOpenGLWidget*)(glwin))->update ();
     }
 
     if (update) {
@@ -1792,8 +1791,10 @@ void ImageViewer::zoomIn()
         float z = Imath::lerp (oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
         view (xm + xoffset/zoomratio, ym + yoffset/zoomratio, z, false);
-        if (i != nsteps)
+        if (i != nsteps) {
+            QApplication::processEvents();
             Sysutil::usleep (1000000 / 4 / nsteps);
+        }
     }
 
     fitImageToWindowAct->setChecked (false);
@@ -1824,8 +1825,10 @@ void ImageViewer::zoomOut()
         float z = Imath::lerp (oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
         view (xmpel + xoffset/zoomratio, ympel + yoffset/zoomratio, z, false);
-        if (i != nsteps)
+        if (i != nsteps) {
+            QApplication::processEvents();
             Sysutil::usleep (1000000 / 4 / nsteps);
+        }
     }
 
     fitImageToWindowAct->setChecked (false);
@@ -2034,8 +2037,10 @@ ImageViewer::view (float xcenter, float ycenter, float newzoom, bool smooth, boo
         m_zoom = Imath::lerp (oldzoom, newzoom, a);
 
         glwin->view (xc, yc, m_zoom, redraw);  // Triggers redraw automatically
-        if (i != nsteps)
+        if (i != nsteps) {
+            QApplication::processEvents();
             Sysutil::usleep (1000000 / 4 / nsteps);
+        }
     }
 
     if (img->auto_subimage ()) {
@@ -2087,7 +2092,7 @@ ImageViewer::showInfoWindow ()
 void
 ImageViewer::showPixelviewWindow ()
 {
-    glwin->trigger_redraw ();
+    ((QOpenGLWidget*)(glwin))->update ();
 }
 
 

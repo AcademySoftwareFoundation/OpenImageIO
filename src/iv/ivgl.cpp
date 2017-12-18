@@ -40,7 +40,6 @@
 #include <QLabel>
 #include <QMouseEvent>
 #include <QProgressBar>
-#include <QGLFormat>
 
 #include "ivutils.h"
 #include <OpenImageIO/strutil.h>
@@ -71,12 +70,12 @@ gl_err_to_string (GLenum err)
 
 
 IvGL::IvGL (QWidget *parent, ImageViewer &viewer)
-    : QGLWidget(parent), m_viewer(viewer), 
+    : QOpenGLWidget(parent), m_viewer(viewer),
       m_shaders_created(false), m_tex_created(false),
       m_zoom(1.0), m_centerx(0), m_centery(0), m_dragging(false),
-      m_use_shaders(false), m_shaders_using_extensions(false), 
+      m_use_shaders(false),
       m_use_halffloat(false), m_use_float(false),
-      m_use_srgb(false), m_use_pbo(false), 
+      m_use_srgb(false),
       m_texture_width(1), m_texture_height(1), m_last_pbo_used(0), 
       m_current_image(NULL), m_pixelview_left_corner(true),
       m_last_texbuf_used(0)
@@ -106,20 +105,13 @@ IvGL::~IvGL ()
 void
 IvGL::initializeGL ()
 {
-    GLenum glew_error = glewInit ();
-    if (glew_error != GLEW_OK) {
-        std::cerr << "GLEW init error " << glewGetErrorString (glew_error) << "\n";
-    }
+    initializeOpenGLFunctions();
 
     glClearColor (0.05f, 0.05f, 0.05f, 1.0f);
-    glShadeModel (GL_FLAT);
-    glEnable (GL_DEPTH_TEST);
-    glDisable (GL_CULL_FACE);
     glEnable (GL_BLEND);
     glEnable (GL_TEXTURE_2D);
     // glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     // Make sure initial matrix is identity (returning to this stack level loads
     // back this matrix).
     glLoadIdentity();
@@ -202,12 +194,10 @@ IvGL::create_textures (void)
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    if (m_use_pbo) {
-        glGenBuffersARB(2, m_pbo_objects);
-        glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_pbo_objects[0]);
-        glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, m_pbo_objects[1]);
-        glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-    }
+    glGenBuffers (2, m_pbo_objects);
+    glBindBuffer (GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[0]);
+    glBindBuffer (GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[1]);
+    glBindBuffer (GL_PIXEL_UNPACK_BUFFER, 0);
 
     m_tex_created = true;
 }
@@ -349,90 +339,50 @@ IvGL::create_shaders (void)
     // entry points (which is actually done by GLEW) and then call them. So
     // we have to get the functions through the right symbols otherwise
     // extension-based shaders won't work.
-    if (m_shaders_using_extensions) {
-        m_shader_program = glCreateProgramObjectARB ();
-    }
-    else {
-        m_shader_program = glCreateProgram ();
-    }
+    m_shader_program = glCreateProgram ();
+
     GLERRPRINT ("create progam");
 
     // This holds the compilation status
     GLint status;
 
-    if (m_shaders_using_extensions) {
-        m_vertex_shader = glCreateShaderObjectARB (GL_VERTEX_SHADER_ARB);
-        glShaderSourceARB (m_vertex_shader, 1, &vertex_source, NULL);
-        glCompileShaderARB (m_vertex_shader);
-        glGetObjectParameterivARB (m_vertex_shader,
-                GL_OBJECT_COMPILE_STATUS_ARB, &status);
-    } else {
-        m_vertex_shader = glCreateShader (GL_VERTEX_SHADER);
-        glShaderSource (m_vertex_shader, 1, &vertex_source, NULL);
-        glCompileShader (m_vertex_shader);
-        glGetShaderiv (m_vertex_shader, GL_COMPILE_STATUS, &status);
-    }
+    m_vertex_shader = glCreateShader (GL_VERTEX_SHADER);
+    glShaderSource (m_vertex_shader, 1, &vertex_source, NULL);
+    glCompileShader (m_vertex_shader);
+    glGetShaderiv (m_vertex_shader, GL_COMPILE_STATUS, &status);
+
     if (! status) {
         std::cerr << "vertex shader compile status: " << status << "\n";
         print_shader_log (std::cerr, m_vertex_shader);
         create_shaders_abort ();
         return;
     }
-    if (m_shaders_using_extensions) {
-        glAttachObjectARB (m_shader_program, m_vertex_shader);
-    } else {
-        glAttachShader (m_shader_program, m_vertex_shader);
-    }
+    glAttachShader (m_shader_program, m_vertex_shader);
     GLERRPRINT ("After attach vertex shader.");
 
-    if (m_shaders_using_extensions) {
-        m_fragment_shader = glCreateShaderObjectARB (GL_FRAGMENT_SHADER_ARB);
-        glShaderSourceARB (m_fragment_shader, 1, &fragment_source, NULL);
-        glCompileShaderARB (m_fragment_shader);
-        glGetObjectParameterivARB (m_fragment_shader,
-                GL_OBJECT_COMPILE_STATUS_ARB, &status);
-    } else {
-        m_fragment_shader = glCreateShader (GL_FRAGMENT_SHADER);
-        glShaderSource (m_fragment_shader, 1, &fragment_source, NULL);
-        glCompileShader (m_fragment_shader);
-        glGetShaderiv (m_fragment_shader, GL_COMPILE_STATUS, &status);
-    }
+    m_fragment_shader = glCreateShader (GL_FRAGMENT_SHADER);
+    glShaderSource (m_fragment_shader, 1, &fragment_source, NULL);
+    glCompileShader (m_fragment_shader);
+    glGetShaderiv (m_fragment_shader, GL_COMPILE_STATUS, &status);
     if (! status) {
         std::cerr << "fragment shader compile status: " << status << "\n";
         print_shader_log(std::cerr, m_fragment_shader);
         create_shaders_abort ();
         return;
     }
-    if (m_shaders_using_extensions) {
-        glAttachObjectARB (m_shader_program, m_fragment_shader);
-    } else {
-        glAttachShader (m_shader_program, m_fragment_shader);
-    }
+    glAttachShader (m_shader_program, m_fragment_shader);
     GLERRPRINT ("After attach fragment shader");
 
-    if (m_shaders_using_extensions) {
-        glLinkProgramARB (m_shader_program);
-    } else {
-        glLinkProgram (m_shader_program);
-    }
+    glLinkProgram (m_shader_program);
     GLERRPRINT ("link");
     GLint linked;
-    if (m_shaders_using_extensions) {
-        glGetObjectParameterivARB (m_shader_program,
-                GL_OBJECT_LINK_STATUS_ARB, &linked);
-    } else {
-        glGetProgramiv (m_shader_program, GL_LINK_STATUS, &linked);
-    }
+    glGetProgramiv (m_shader_program, GL_LINK_STATUS, &linked);
     if (! linked) {
         std::cerr << "NOT LINKED\n";
         char buf[10000];
         buf[0] = 0;
         GLsizei len;
-        if (m_shaders_using_extensions) {
-            glGetInfoLogARB (m_shader_program, sizeof(buf), &len, buf);
-        } else {
-            glGetProgramInfoLog (m_shader_program, sizeof(buf), &len, buf);
-        }
+        glGetProgramInfoLog (m_shader_program, sizeof(buf), &len, buf);
         std::cerr << "link log:\n" << buf << "---\n";
         create_shaders_abort ();
         return;
@@ -446,25 +396,13 @@ IvGL::create_shaders (void)
 void
 IvGL::create_shaders_abort (void)
 {
-    if (m_shaders_using_extensions) {
-        glUseProgramObjectARB (0);
-        if (m_shader_program)
-            //this will also detach related shaders
-            glDeleteObjectARB (m_shader_program);
-        if (m_vertex_shader)
-            glDeleteObjectARB (m_vertex_shader);
-        if (m_fragment_shader)
-            glDeleteObjectARB (m_fragment_shader);
-    }
-    else {
-        glUseProgram (0);        
-        if (m_shader_program)
-            glDeleteProgram (m_shader_program);
-        if (m_vertex_shader)
-            glDeleteShader (m_vertex_shader);
-        if (m_fragment_shader)
-            glDeleteShader (m_fragment_shader);
-    }
+    glUseProgram (0);
+    if (m_shader_program)
+        glDeleteProgram (m_shader_program);
+    if (m_vertex_shader)
+        glDeleteShader (m_vertex_shader);
+    if (m_fragment_shader)
+        glDeleteShader (m_fragment_shader);
     
     GLERRPRINT ("After delete shaders");    
     m_use_shaders = false;
@@ -697,16 +635,23 @@ void
 IvGL::shadowed_text (float x, float y, float z, const std::string &s,
                      const QFont &font)
 {
-    QString q (s.c_str());
-#if 0
-    glColor4f (0, 0, 0, 1);
-    const int b = 2;  // blur size
-    for (int i = -b;  i <= b;  ++i)
-        for (int j = -b;  j <= b;  ++j)
-            renderText (x+i, y+j, q, font);
-#endif
-    glColor4f (1, 1, 1, 1);
-    renderText (x, y, z, q, font);
+    /*
+     * Paint on intermediate QImage, AA text on QOpenGLWidget based
+     * QPaintDevice requires MSAA
+     */
+    QImage t(size(), QImage::Format_ARGB32_Premultiplied);
+    t.fill(qRgba(0, 0, 0, 0));
+    {
+        QPainter painter(&t);
+        painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+        painter.setFont(font);
+
+        painter.setPen(QPen(Qt::white, 1.0));
+        painter.drawText(QPointF(x, y), QString(s.c_str()));
+    }
+    QPainter painter(this);
+    painter.drawImage(rect(), t);
 }
 
 
@@ -837,9 +782,7 @@ IvGL::paint_pixelview ()
         GLenum glformat, gltype, glinternalformat;
         typespec_to_opengl (spec, nchannels, gltype, glformat, glinternalformat);
         // Use pixelview's own texture, and upload the corresponding image patch.
-        if (m_use_pbo) {
-            glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-        }
+        glBindBuffer (GL_PIXEL_UNPACK_BUFFER, 0);
         glBindTexture (GL_TEXTURE_2D, m_pixelview_tex);
         glTexSubImage2D (GL_TEXTURE_2D, 0, 0, 0, 
                          xend-xbegin, yend-ybegin,
@@ -880,7 +823,7 @@ IvGL::paint_pixelview ()
     glDisable (GL_TEXTURE_2D);
     if (m_use_shaders) {
         // Disable shaders for this.
-        gl_use_program (0);
+        glUseProgram (0);
     }
     float extraspace = yspacing * (1 + spec.nchannels) + 4;
     glColor4f (0.1f, 0.1f, 0.1f, 0.5f);
@@ -893,11 +836,11 @@ IvGL::paint_pixelview ()
         QFont font;
         font.setFixedPitch (true);
         float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
-        int textx = - closeupsize/2 + 4;
-        int texty = - closeupsize/2 - yspacing;
+        int textx = xw - closeupsize/2 + 4;
+        int texty = yw + closeupsize/2 + yspacing;
         std::string s = Strutil::format ("(%d, %d)", (int) real_xp+spec.x, (int) real_yp+spec.y);
         shadowed_text (textx, texty, 0.0f, s, font);
-        texty -= yspacing;
+        texty += yspacing;
         img->getpixel ((int) real_xp+spec.x, (int) real_yp+spec.y, fpixel);
         for (int i = 0;  i < spec.nchannels;  ++i) {
             switch (spec.format.basetype) {
@@ -920,7 +863,7 @@ IvGL::paint_pixelview ()
                                      spec.channelnames[i].c_str(), fpixel[i]);
             }
             shadowed_text (textx, texty, 0.0f, s, font);
-            texty -= yspacing;
+            texty += yspacing;
         }
     }
 
@@ -955,47 +898,47 @@ IvGL::useshader (int tex_width, int tex_height, bool pixelview)
 
     const ImageSpec &spec (img->spec());
 
-    gl_use_program (m_shader_program);
+    glUseProgram (m_shader_program);
     GLERRPRINT ("After use program");
 
     GLint loc;
 
-    loc = gl_get_uniform_location ("startchannel");
+    loc = glGetUniformLocation (m_shader_program, "startchannel");
     if (m_viewer.current_channel()>=spec.nchannels) {
-        gl_uniform (loc, -1);
+        glUniform1i (loc, -1);
         return;
     }
-    gl_uniform (loc, 0);
+    glUniform1i (loc, 0);
 
-    loc = gl_get_uniform_location ("imgtex");
+    loc = glGetUniformLocation (m_shader_program, "imgtex");
     // This is the texture unit, not the texture object
-    gl_uniform (loc, 0);
+    glUniform1i (loc, 0);
 
-    loc = gl_get_uniform_location ("gain");
+    loc = glGetUniformLocation (m_shader_program, "gain");
 
     float gain = powf (2.0, img->exposure ());
-    gl_uniform (loc, gain);
+    glUniform1f (loc, gain);
 
-    loc = gl_get_uniform_location ("gamma");
-    gl_uniform (loc, img->gamma ());
+    loc = glGetUniformLocation (m_shader_program, "gamma");
+    glUniform1f (loc, img->gamma ());
 
-    loc = gl_get_uniform_location ("colormode");
-    gl_uniform (loc, m_viewer.current_color_mode());
+    loc = glGetUniformLocation (m_shader_program, "colormode");
+    glUniform1i (loc, m_viewer.current_color_mode());
 
-    loc = gl_get_uniform_location ("imgchannels");
-    gl_uniform (loc, spec.nchannels);
+    loc = glGetUniformLocation (m_shader_program, "imgchannels");
+    glUniform1i (loc, spec.nchannels);
 
-    loc = gl_get_uniform_location ("pixelview");
-    gl_uniform (loc, pixelview);
+    loc = glGetUniformLocation (m_shader_program, "pixelview");
+    glUniform1i (loc, pixelview);
 
-    loc = gl_get_uniform_location ("linearinterp");
-    gl_uniform (loc, m_viewer.linearInterpolation ());
+    loc = glGetUniformLocation (m_shader_program, "linearinterp");
+    glUniform1i (loc, m_viewer.linearInterpolation ());
 
-    loc = gl_get_uniform_location ("width");
-    gl_uniform (loc, tex_width);
+    loc = glGetUniformLocation (m_shader_program, "width");
+    glUniform1i (loc, tex_width);
 
-    loc = gl_get_uniform_location ("height");
-    gl_uniform (loc, tex_height);
+    loc = glGetUniformLocation (m_shader_program, "height");
+    glUniform1i (loc, tex_height);
     GLERRPRINT ("After settting uniforms");
 }
 
@@ -1032,11 +975,7 @@ IvGL::update ()
     m_texture_width = clamp (pow2roundup(spec.width), 1, m_max_texture_size);
     m_texture_height= clamp (pow2roundup(spec.height), 1, m_max_texture_size);
 
-    if (m_use_pbo) {
-        // Otherwise OpenGL will confuse the NULL with an index into one of
-        // the PBOs.
-        glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 0);
-    }
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
     for (auto&& tb : m_texbufs) {
         tb.width = 0;
@@ -1073,7 +1012,7 @@ IvGL::view (float xcenter, float ycenter, float zoom, bool redraw)
     m_zoom = zoom;
 
     if (redraw)
-        trigger_redraw ();
+        parent_t::update();
 }
 
 
@@ -1256,7 +1195,7 @@ IvGL::mouseMoveEvent (QMouseEvent *event)
     }
     remember_mouse (pos);
     if (m_viewer.pixelviewOn())
-        trigger_redraw ();
+        parent_t::update();
     parent_t::mouseMoveEvent (event);
 }
 
@@ -1332,63 +1271,14 @@ IvGL::get_focus_image_pixel (int &x, int &y)
 }
 
 
-
-inline void
-IvGL::gl_use_program (int program)
-{
-    if (m_shaders_using_extensions) 
-        glUseProgramObjectARB (program);
-    else
-        glUseProgram (program);
-}
-
-
-
-inline GLint
-IvGL::gl_get_uniform_location (const char *uniform)
-{
-    if (m_shaders_using_extensions)
-        return glGetUniformLocationARB (m_shader_program, uniform);
-    else
-        return glGetUniformLocation (m_shader_program, uniform);
-}
-
-
-
-inline void
-IvGL::gl_uniform (GLint location, float value)
-{
-    if (m_shaders_using_extensions)
-        glUniform1fARB (location, value);
-    else
-        glUniform1f (location, value);
-}
-
-
-
-inline void
-IvGL::gl_uniform (GLint location, int value)
-{
-    if (m_shaders_using_extensions)
-        glUniform1iARB (location, value);
-    else
-        glUniform1i (location, value);
-}
-
-
-
 void
-IvGL::print_shader_log (std::ostream& out, const GLuint shader_id) const
+IvGL::print_shader_log (std::ostream& out, const GLuint shader_id)
 {
     GLint size = 0;
     glGetShaderiv (shader_id, GL_INFO_LOG_LENGTH, &size);
     if (size > 0) {    
         GLchar* log = new GLchar[size];
-        if (m_shaders_using_extensions) {
-            glGetInfoLogARB (shader_id, size, NULL, log);
-        } else {
-            glGetShaderInfoLog (shader_id, size, NULL, log);
-        }
+        glGetShaderInfoLog (shader_id, size, NULL, log);
         out << "compile log:\n" << log << "---\n";
         delete[] log;
     }
@@ -1399,32 +1289,26 @@ IvGL::print_shader_log (std::ostream& out, const GLuint shader_id) const
 void
 IvGL::check_gl_extensions (void)
 {
-#ifndef FORCE_OPENGL_1
-    m_use_shaders = glewIsSupported("GL_VERSION_2_0");
+    m_use_shaders = hasOpenGLFeature(QOpenGLFunctions::Shaders);
 
-    if (!m_use_shaders && glewIsSupported("GL_ARB_shader_objects "
-                                          "GL_ARB_vertex_shader "
-                                          "GL_ARB_fragment_shader")) {
-        m_use_shaders = true;
-        m_shaders_using_extensions = true;
-    }
+    QOpenGLContext* context = QOpenGLContext::currentContext();
+    QSurfaceFormat format = context->format();
+    bool isGLES = format.renderableType() == QSurfaceFormat::OpenGLES;
 
-    m_use_srgb = glewIsSupported("GL_VERSION_2_1") ||
-                 glewIsSupported("GL_EXT_texture_sRGB");
+    m_use_srgb = (isGLES && format.majorVersion() >= 3) ||
+                 (!isGLES && format.version() >= qMakePair(2, 1)) ||
+                 context->hasExtension("GL_EXT_texture_sRGB") ||
+                 context->hasExtension("GL_EXT_sRGB");
 
-    m_use_halffloat = glewIsSupported("GL_VERSION_3_0") ||
-                      glewIsSupported("GL_ARB_half_float_pixel") ||
-                      glewIsSupported("GL_NV_half_float_pixel");
+    m_use_halffloat = (!isGLES && format.version() >= qMakePair(3, 0)) ||
+                      context->hasExtension("GL_ARB_half_float_pixel") ||
+                      context->hasExtension("GL_NV_half_float_pixel") ||
+                      context->hasExtension("GL_OES_texture_half_float");
 
-    m_use_float = glewIsSupported("GL_VERSION_3_0") ||
-                  glewIsSupported("GL_ARB_texture_float") ||
-                  glewIsSupported("GL_ATI_texture_float");
-
-    m_use_pbo = glewIsSupported("GL_VERSION_1_5") ||
-                glewIsSupported("GL_ARB_pixel_buffer_object");
-#else
-    std::cerr << "Not checking GL extensions\n";
-#endif
+    m_use_float = (!isGLES && format.version() >= qMakePair(3, 0)) ||
+                  context->hasExtension("GL_ARB_texture_float") ||
+                  context->hasExtension("GL_ATI_texture_float") ||
+                  context->hasExtension("GL_OES_texture_float");
 
     m_max_texture_size = 0;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &m_max_texture_size);
@@ -1436,13 +1320,9 @@ IvGL::check_gl_extensions (void)
 #ifndef NDEBUG
     // Report back...
     std::cerr << "OpenGL Shading Language supported: " << m_use_shaders << "\n";
-    if (m_shaders_using_extensions) {
-        std::cerr << "\t(with extensions)\n";
-    }
     std::cerr << "OpenGL sRGB color space textures supported: " << m_use_srgb << "\n";
     std::cerr << "OpenGL half-float pixels supported: " << m_use_halffloat << "\n";
     std::cerr << "OpenGL float texture storage supported: " << m_use_float << "\n";
-    std::cerr << "OpenGL pixel buffer object supported: " << m_use_pbo << "\n";
     std::cerr << "OpenGL max texture dimension: " << m_max_texture_size << "\n";
 #endif
 }
@@ -1603,21 +1483,18 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
                                           m_viewer.current_channel() + nchannels),
                                      spec.format, &m_tex_buffer[0]);
     }
-    if (m_use_pbo) {
-        glBindBufferARB (GL_PIXEL_UNPACK_BUFFER_ARB, 
-                         m_pbo_objects[m_last_pbo_used]);
-        glBufferDataARB (GL_PIXEL_UNPACK_BUFFER_ARB, 
-                         width * height * spec.pixel_bytes(),
-                         &m_tex_buffer[0],
-                         GL_STREAM_DRAW_ARB);
-        GLERRPRINT ("After buffer data");
-        m_last_pbo_used = (m_last_pbo_used + 1) & 1;
-    }
+
+    glBindBuffer (GL_PIXEL_UNPACK_BUFFER,
+                     m_pbo_objects[m_last_pbo_used]);
+    glBufferData (GL_PIXEL_UNPACK_BUFFER,
+                     width * height * spec.pixel_bytes(),
+                     &m_tex_buffer[0],
+                     GL_STREAM_DRAW);
+    GLERRPRINT ("After buffer data");
+    m_last_pbo_used = (m_last_pbo_used + 1) & 1;
 
     // When using PBO this is the offset within the buffer.
     void *data = 0;
-    if (! m_use_pbo)
-        data = &m_tex_buffer[0];
 
     glBindTexture (GL_TEXTURE_2D, tb.tex_object);
     GLERRPRINT ("After bind texture");
@@ -1628,6 +1505,7 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
                      data);
     GLERRPRINT ("After loading sub image");
     m_last_texbuf_used = (m_last_texbuf_used + 1) % m_texbufs.size();
+    glBindBuffer (GL_PIXEL_UNPACK_BUFFER, 0);
 }
 
 

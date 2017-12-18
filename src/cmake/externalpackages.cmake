@@ -9,7 +9,6 @@ if (NOT VERBOSE)
     set (Field3D_FIND_QUIETLY true)
     set (Freetype_FIND_QUIETLY true)
     set (GIF_FIND_QUIETLY true)
-    set (GLEW_FIND_QUIETLY true)
     set (HDF5_FIND_QUIETLY true)
     set (IlmBase_FIND_QUIETLY true)
     set (JPEG_FIND_QUIETLY true)
@@ -210,32 +209,6 @@ else ()
 endif ()
 
 # end Qt setup
-###########################################################################
-
-###########################################################################
-# GL Extension Wrangler library setup
-
-if (USE_OPENGL)
-    set (GLEW_VERSION 1.5.1)
-    find_library (GLEW_LIBRARIES
-                  NAMES GLEW glew32)
-    find_path (GLEW_INCLUDES
-               NAMES glew.h
-               PATH_SUFFIXES GL)
-    if (GLEW_INCLUDES AND GLEW_LIBRARIES)
-        set (GLEW_FOUND TRUE)
-        if (NOT GLEW_FIND_QUIETLY)
-            message (STATUS "GLEW includes = ${GLEW_INCLUDES}")
-            message (STATUS "GLEW library = ${GLEW_LIBRARIES}")
-        endif ()
-    else ()
-        message (STATUS "GLEW not found")
-    endif ()
-else ()
-    message (STATUS "USE_OPENGL=0, skipping components that need OpenGL")
-endif (USE_OPENGL)
-
-# end GL Extension Wrangler library setup
 ###########################################################################
 
 
