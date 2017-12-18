@@ -96,9 +96,8 @@ const float *convert_to_float (const void *src, float *dst, int nvals,
 /// Turn contiguous float data into any format.  Return a pointer to the
 /// converted data (which may still point to src if no conversion was
 /// necessary).
-const void *convert_from_float (const float *src, void *dst, size_t nvals,
-                                long long quant_min, long long quant_max,
-                                TypeDesc format);
+const void *convert_from_float (const float *src, void *dst,
+                                size_t nvals, TypeDesc format);
 
 /// A version of convert_from_float that will break up big jobs with
 /// multiple threads.
