@@ -6,7 +6,7 @@ message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 
 set (USE_CPP 11 CACHE STRING "C++ standard to prefer (11, 14, etc.)")
 option (USE_LIBCPLUSPLUS "Compile with clang libc++")
-set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c)")
+set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
 option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
 option (HIDE_SYMBOLS "Hide symbols not in the public API" OFF)
 option (USE_CCACHE "Use ccache if found" ON)
