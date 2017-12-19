@@ -42,7 +42,7 @@ OCIO_SPCOMP_VERSION ?= 2
 ## Rhel7 (current)
 ifeq (${SP_OS}, rhel7)
     USE_CPP ?= 11
-    USE_SIMD ?= sse4.1
+    USE_SIMD ?= sse4.1,aes
     CMAKE ?= cmake
     USE_NINJA ?= 1
     NINJA ?= ninja
