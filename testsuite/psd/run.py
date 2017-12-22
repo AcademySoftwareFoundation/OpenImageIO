@@ -8,3 +8,4 @@ for f in files:
     command += info_command (imagedir + f)
 
 command += info_command ("src/different-mask-size.psd")
+command += info_command ("src/layer-mask.psd")

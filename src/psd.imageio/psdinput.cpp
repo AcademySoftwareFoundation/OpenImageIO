@@ -1467,36 +1467,26 @@ PSDInput::load_layer (Layer &layer)
     if (!check_io ())
         return false;
 
-    switch (lmd_length) {
-        case 0:
-            break;
-        case 20:
+    if (lmd_length > 0) {
+        std::streampos lmd_start = m_file.tellg ();
+        std::streampos lmd_end = lmd_start + (std::streampos)lmd_length;
+
+        if (lmd_length >= 4 * 4 + 1 * 2) {
             read_bige<uint32_t> (layer.mask_data.top);
             read_bige<uint32_t> (layer.mask_data.left);
             read_bige<uint32_t> (layer.mask_data.bottom);
             read_bige<uint32_t> (layer.mask_data.right);
             read_bige<uint8_t> (layer.mask_data.default_color);
             read_bige<uint8_t> (layer.mask_data.flags);
-            // skip padding
-            m_file.seekg(2, std::ios::cur);
-            break;
-        case 36:
-            // In this case, we skip the above (lmd_length == 20) fields
-            // to read the "real" fields.
-            m_file.seekg (18, std::ios::cur);
-            read_bige<uint8_t> (layer.mask_data.flags);
-            read_bige<uint8_t> (layer.mask_data.default_color);
-            read_bige<uint32_t> (layer.mask_data.top);
-            read_bige<uint32_t> (layer.mask_data.left);
-            read_bige<uint32_t> (layer.mask_data.bottom);
-            read_bige<uint32_t> (layer.mask_data.right);
-            break;
-        default:
-            // The size should always be 0,20, or 36
-            error ("[Layer Mask Data] invalid size");
+        }
+
+        // skip mask parameters
+        // skip "real" fields
+
+        m_file.seekg (lmd_end);
+        if (!check_io ())
             return false;
-            break;
-    };
+    }
     extra_remaining -= (lmd_length + 4);
 
     // layer blending ranges length

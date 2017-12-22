@@ -770,3 +770,81 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     PixelAspectRatio: 1
+Reading src/layer-mask.psd
+src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
+    3 subimages: 10x10 [u8,u8,u8,u8], 8x8 [u8,u8,u8,u8], 9x9 [u8,u8,u8,u8]
+ subimage  0:   10 x   10, 4 channel, uint8 psd
+    SHA-1: 9C9176DD4E1E7E1DF656D39DB7E1506E1E1260F3
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CC 2017 (Windows)"
+    DateTime: "2017-07-13T10:26:10+09:00"
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 10
+    Exif:PixelYDimension: 10
+    IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
+    IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
+    IPTC:InstanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    IPTC:DocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved"
+    stEvt:instanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    stEvt:when: "2017-07-13T11:42:54+09:00"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
+    stEvt:changed: "/"
+    photoshop:ColorMode: "3"
+    PixelAspectRatio: 1
+ subimage  1:    8 x    8, 4 channel, uint8 psd
+    SHA-1: D1803D25687AA8C80C50AC74CCD47B1C59865B2F
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CC 2017 (Windows)"
+    DateTime: "2017-07-13T10:26:10+09:00"
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 10
+    Exif:PixelYDimension: 10
+    IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
+    IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
+    IPTC:InstanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    IPTC:DocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved"
+    stEvt:instanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    stEvt:when: "2017-07-13T11:42:54+09:00"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
+    stEvt:changed: "/"
+    photoshop:ColorMode: "3"
+    PixelAspectRatio: 1
+ subimage  2:    9 x    9, 4 channel, uint8 psd
+    SHA-1: 6BEB9ABA4756704D8A330EA3B8F79640F3D88088
+    channel list: R, G, B, A
+    XResolution: 72
+    YResolution: 72
+    ResolutionUnit: 2 (inches)
+    Orientation: 1 (normal)
+    Software: "Adobe Photoshop CC 2017 (Windows)"
+    DateTime: "2017-07-13T10:26:10+09:00"
+    Exif:ColorSpace: 65535
+    Exif:PixelXDimension: 10
+    Exif:PixelYDimension: 10
+    IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
+    IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
+    IPTC:InstanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    IPTC:DocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    rdf:parseType: "Resource"
+    stEvt:action: "saved"
+    stEvt:instanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    stEvt:when: "2017-07-13T11:42:54+09:00"
+    stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
+    stEvt:changed: "/"
+    photoshop:ColorMode: "3"
+    PixelAspectRatio: 1
