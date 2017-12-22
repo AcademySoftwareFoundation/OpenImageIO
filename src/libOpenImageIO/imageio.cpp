@@ -66,6 +66,7 @@ atomic_int oiio_threads (threads_default());
 atomic_int oiio_exr_threads (threads_default());
 atomic_int oiio_read_chunk (256);
 int tiff_half (0);
+int tiff_multithread (1);
 ustring plugin_searchpath (OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;   // comma-separated list of all formats
 std::string input_format_list;   // comma-separated list of readable formats
@@ -298,6 +299,10 @@ attribute (string_view name, TypeDesc type, const void *val)
         tiff_half = *(const int *)val;
         return true;
     }
+    if (name == "tiff:multithread" && type == TypeInt) {
+        tiff_multithread = *(const int *)val;
+        return true;
+    }
     if (name == "debug" && type == TypeInt) {
         print_debug = *(const int *)val;
         return true;
@@ -363,6 +368,10 @@ getattribute (string_view name, TypeDesc type, void *val)
     }
     if (name == "tiff:half" && type == TypeInt) {
         *(int *)val = tiff_half;
+        return true;
+    }
+    if (name == "tiff:multithread" && type == TypeInt) {
+        *(int *)val = tiff_multithread;
         return true;
     }
     if (name == "debug" && type == TypeInt) {

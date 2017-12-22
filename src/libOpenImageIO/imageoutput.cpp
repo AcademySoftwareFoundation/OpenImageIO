@@ -454,8 +454,11 @@ ImageOutput::write_image (TypeDesc format, const void *data,
     bool ok = true;
     if (progress_callback && progress_callback (progress_callback_data, 0.0f))
         return ok;
-    if (m_spec.tile_width && supports ("tiles")) {
-        // Tiled image
+    if (m_spec.tile_width && supports ("tiles")) {   // Tiled image
+        // Write chunks of a whole row of tiles at once. If tiles are
+        // 64x64, a 2k image has 32 tiles across. That's fine for now (for
+        // parallelization purposes), but as typical core counts increase,
+        // we may someday want to revisit this to batch multiple rows.
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth) {
             int zend = std::min (z+m_spec.z+m_spec.tile_depth,
                                  m_spec.z+m_spec.depth);
@@ -472,9 +475,12 @@ ImageOutput::write_image (TypeDesc format, const void *data,
                     return ok;
             }
         }
-    } else {
-        // Scanline image
+    } else {   // Scanline image
+        // Split into reasonable chunks -- try to use around 64 MB, but
+        // round up to a multiple of the TIFF rows per strip (or 64).
+        int rps = m_spec.get_int_attribute ("tiff:RowsPerStrip", 64);
         int chunk = std::max (1, (1<<26)/int(m_spec.scanline_bytes(true)));
+        chunk = round_to_multiple (chunk, rps);
         for (int z = 0;  z < m_spec.depth;  ++z)
             for (int y = 0;  y < m_spec.height && ok;  y += chunk) {
                 int yend = std::min (y+m_spec.y+chunk, m_spec.y+m_spec.height);

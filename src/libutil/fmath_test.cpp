@@ -118,6 +118,7 @@ test_int_helpers ()
     OIIO_CHECK_EQUAL (pow2rounddown(8), 8);
 
     // round_to_multiple
+    OIIO_CHECK_EQUAL (round_to_multiple(0, 5), 0);
     OIIO_CHECK_EQUAL (round_to_multiple(1, 5), 5);
     OIIO_CHECK_EQUAL (round_to_multiple(2, 5), 5);
     OIIO_CHECK_EQUAL (round_to_multiple(3, 5), 5);

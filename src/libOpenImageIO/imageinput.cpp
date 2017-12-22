@@ -40,6 +40,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/parallel.h>
 #include "imageio_pvt.h"
 
 
@@ -212,8 +213,11 @@ ImageInput::read_scanlines (int ybegin, int yend, int z,
 
     // No such luck.  Read scanlines in chunks.
 
-    const imagesize_t limit = 16*1024*1024;   // Allocate 16 MB, or 1 scanline
-    int chunk = std::max (1, int(limit / native_scanline_bytes));
+    // Split into reasonable chunks -- try to use around 64 MB, but
+    // round up to a multiple of the TIFF rows per strip (or 64).
+    int rps = m_spec.get_int_attribute ("tiff:RowsPerStrip", 64);
+    int chunk = std::max (1, (1<<26)/int(m_spec.scanline_bytes(true)));
+    chunk = round_to_multiple (chunk, rps);
     std::unique_ptr<char[]> buf (new char [chunk * native_scanline_bytes]);
 
     bool ok = true;
@@ -302,19 +306,25 @@ ImageInput::read_native_scanlines (int ybegin, int yend, int z,
     size_t subset_bytes = m_spec.pixel_bytes (chbegin,chend,true);
     size_t subset_ystride = m_spec.width * subset_bytes;
 
+    // Read all channels of the scanlines into a temp buffer.
     size_t native_pixel_bytes = m_spec.pixel_bytes (true);
     size_t native_ystride = m_spec.width * native_pixel_bytes;
-    std::unique_ptr<char[]> buf (new char [native_ystride]);
+    std::unique_ptr<char[]> buf (new char [native_ystride*(yend-ybegin)]);
     yend = std::min (yend, spec().y+spec().height);
-    for (int y = ybegin;  y < yend;  ++y) {
-        bool ok = read_native_scanline (y, z, &buf[0]);
-        if (! ok)
-            return false;
+    bool ok = read_native_scanlines (ybegin, yend, z, buf.get());
+    if (! ok)
+        return false;
+
+    // Now copy out the subset of channels we want. We can do this in
+    // parallel.
+    parallel_for (0, yend-ybegin,
+                  [&,subset_bytes,prefix_bytes,native_pixel_bytes](int64_t y){
+        char *b = buf.get() + native_ystride * y;
+        char *d = (char *)data + subset_ystride * y;
         for (int x = 0;  x < m_spec.width;  ++x)
-            memcpy ((char *)data + subset_bytes*x,
-                    &buf[prefix_bytes+native_pixel_bytes*x], subset_bytes);
-        data = (char *)data + subset_ystride;
-    }
+            memcpy (d + subset_bytes*x,
+                    &b[prefix_bytes+native_pixel_bytes*x], subset_bytes);
+    });
     return true;
 }
 
@@ -458,29 +468,57 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
     bool ok = true;
     stride_t pixelsize = native_data ? native_pixel_bytes 
                                      : (format.size() * nchans);
-    stride_t full_pixelsize = native_data ? m_spec.pixel_bytes(true)
+    stride_t native_pixelsize = m_spec.pixel_bytes(true);
+    stride_t full_pixelsize = native_data ? native_pixelsize
                                           : (format.size() * m_spec.nchannels);
     stride_t full_tilewidthbytes = full_pixelsize * m_spec.tile_width;
     stride_t full_tilewhbytes = full_tilewidthbytes * m_spec.tile_height;
     stride_t full_tilebytes = full_tilewhbytes * m_spec.tile_depth;
+    stride_t full_native_tilebytes = m_spec.tile_bytes(true);
     size_t prefix_bytes = native_data ? m_spec.pixel_bytes (0,chbegin,true)
                                       : format.size() * chbegin;
+    bool allchans = (chbegin == 0 && chend == m_spec.nchannels);
     std::vector<char> buf;
     for (int z = zbegin;  z < zend;  z += std::max(1,m_spec.tile_depth)) {
         int zd = std::min (zend-z, m_spec.tile_depth);
-        for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
+        bool full_z = (zd == m_spec.tile_depth);
+        for (int y = ybegin;  ok && y < yend;  y += m_spec.tile_height) {
             char *tilestart = ((char *)data + (z-zbegin)*zstride
                                + (y-ybegin)*ystride);
             int yh = std::min (yend-y, m_spec.tile_height);
-            for (int x = xbegin;  ok && x < xend;  x += m_spec.tile_width) {
+            bool full_y = (yh == m_spec.tile_height);
+            int x = xbegin;
+            // If we're reading full y and z tiles and not doing any funny
+            // business with channels, try to read as many complete x tiles
+            // as we can in this row.
+            int x_full_tiles = (xend-xbegin)/m_spec.tile_width;
+            if (full_z && full_y && allchans && !perchanfile && x_full_tiles > 1) {
+                int x_full_tile_end = xbegin + x_full_tiles*m_spec.tile_width;
+                if (buf.size() < size_t(full_native_tilebytes*x_full_tiles))
+                    buf.resize (full_native_tilebytes*x_full_tiles);
+                ok &= read_native_tiles (xbegin, x_full_tile_end, y, y+yh, z, z+zd,
+                                         chbegin, chend, &buf[0]);
+                if (ok)
+                    convert_image (nchans, x_full_tiles*m_spec.tile_width, yh, zd,
+                                   &buf[0], m_spec.format, native_pixelsize,
+                                   native_pixelsize*x_full_tiles*m_spec.tile_width,
+                                   native_pixelsize*x_full_tiles*m_spec.tile_width*m_spec.tile_height,
+                                   tilestart, format,
+                                   xstride, ystride, zstride);
+                tilestart += x_full_tiles * m_spec.tile_width * xstride;
+                x += x_full_tiles * m_spec.tile_width;
+            }
+
+            // Now get the rest in the row, anything that is only a
+            // partial tile, which needs extra care.
+            for ( ;  ok && x < xend;  x += m_spec.tile_width) {
                 int xw = std::min (xend-x, m_spec.tile_width);
+                bool full_x = (xw == m_spec.tile_width);
                 // Full tiles are read directly into the user buffer,
                 // but partial tiles (such as at the image edge) or
                 // partial channel subsets are read into a buffer and
                 // then copied.
-                if (xw == m_spec.tile_width && yh == m_spec.tile_height &&
-                      zd == m_spec.tile_depth && !perchanfile &&
-                      chbegin == 0 && chend == m_spec.nchannels) {
+                if (full_x && full_y && full_z && allchans && !perchanfile) {
                     // Full tile, either native data or not needing
                     // per-tile data format conversion.
                     ok &= read_tile (x, y, z, format, tilestart,
@@ -488,7 +526,8 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
                     if (! ok)
                         return false;
                 } else {
-                    buf.resize (full_tilebytes);
+                    if (buf.size() < size_t(full_tilebytes))
+                        buf.resize (full_tilebytes);
                     ok &= read_tile (x, y, z, format,
                                      &buf[0], full_pixelsize,
                                      full_tilewidthbytes, full_tilewhbytes);
@@ -644,8 +683,11 @@ ImageInput::read_image (int chbegin, int chend, TypeDesc format, void *data,
     if (progress_callback)
         if (progress_callback (progress_callback_data, 0.0f))
             return ok;
-    if (m_spec.tile_width) {
-        // Tiled image
+    if (m_spec.tile_width) {  // Tiled image -- rely on read_tiles
+        // Read in chunks of a whole row of tiles at once. If tiles are
+        // 64x64, a 2k image has 32 tiles across. That's fine for now (for
+        // parallelization purposes), but as typical core counts increase,
+        // we may someday want to revisit this to batch multiple rows.
         for (int z = 0;  z < m_spec.depth;  z += m_spec.tile_depth) {
             for (int y = 0;  y < m_spec.height && ok;  y += m_spec.tile_height) {
                 ok &= read_tiles (m_spec.x, m_spec.x+m_spec.width,
@@ -659,15 +701,17 @@ ImageInput::read_image (int chbegin, int chend, TypeDesc format, void *data,
                     return ok;
             }
         }
-    } else {
-        // Scanline image -- rely on read_scanlines, in chunks of oiio_read_chunk
-        int read_chunk = oiio_read_chunk;
-        if (!read_chunk) {
-            read_chunk = m_spec.height;
-        }
-        for (int z = 0;  z < m_spec.depth;  ++z)
-            for (int y = 0;  y < m_spec.height && ok;  y += read_chunk) {
-                int yend = std::min (y+m_spec.y+read_chunk, m_spec.y+m_spec.height);
+    } else {  // Scanline image -- rely on read_scanlines.
+        // Split into reasonable chunks -- try to use around 64 MB or the
+        // oiio_read_chunk value, which ever is bigger, but also round up to
+        // a multiple of the TIFF rows per strip (or 64).
+        int rps = m_spec.get_int_attribute ("tiff:RowsPerStrip", 64);
+        int chunk = std::max (1, (1<<26)/int(m_spec.scanline_bytes(true)));
+        chunk = std::max (chunk, int(oiio_read_chunk));
+        chunk = round_to_multiple (chunk, rps);
+        for (int z = 0;  z < m_spec.depth;  ++z) {
+            for (int y = 0;  y < m_spec.height && ok;  y += chunk) {
+                int yend = std::min (y+m_spec.y+chunk, m_spec.y+m_spec.height);
                 ok &= read_scanlines (y+m_spec.y, yend, z+m_spec.z,
                                       chbegin, chend, format,
                                       (char *)data + z*zstride + y*ystride,
@@ -676,6 +720,7 @@ ImageInput::read_image (int chbegin, int chend, TypeDesc format, void *data,
                     if (progress_callback (progress_callback_data, (float)y/m_spec.height))
                         return ok;
             }
+        }
     }
     if (progress_callback)
         progress_callback (progress_callback_data, 1.0f);
