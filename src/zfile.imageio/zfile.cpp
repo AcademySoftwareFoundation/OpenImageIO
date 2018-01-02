@@ -143,13 +143,14 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 ZfileInput::valid_file (const std::string &filename) const
 {
-    FILE *fd = Filesystem::fopen (filename, "rb");
-    gzFile gz = (fd) ? gzdopen (fileno (fd), "rb") : NULL;
-    if (! gz) {
-        if (fd)
-            fclose (fd);
+#ifdef _WIN32
+    std::wstring wpath = Strutil::utf8_to_utf16(filename);
+    gzFile gz = gzopen_w (wpath.c_str(), "rb");
+#else
+    gzFile gz = gzopen (filename.c_str(), "rb");
+#endif
+    if (! gz)
         return false;
-    }
 
     ZfileHeader header;
     gzread (gz, &header, sizeof(header));
