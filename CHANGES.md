@@ -1,3 +1,7 @@
+Release 1.8.8 (1 Feb 2018) -- compared to 1.8.7
+-------------------------------------------------
+
+
 Release 1.8.7 (1 Jan 2018) -- compared to 1.8.6
 -------------------------------------------------
 * All string->numeric parsing and numeric->string formatting is now
