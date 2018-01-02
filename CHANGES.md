@@ -1,5 +1,16 @@
-Release 1.8.7 (1 Dec 2017) -- compared to 1.8.6
+Release 1.8.7 (1 Jan 2018) -- compared to 1.8.6
 -------------------------------------------------
+* All string->numeric parsing and numeric->string formatting is now
+  locale-independent and always uses '.' as decimal marker. #1796
+* oiiotool outputs are now written to temporary files, then atomically moved
+  to the specified filename at the end. This makes it safe for oiiotool
+  to "overwrite" a file (i.e. `oiiotool in.tif ... -o out.tif`) without
+  problematic situations where the file is truncated or overwritten
+  before the reading is complete. #1797
+* Python bindings for ImageBuf.get_pixels and set_pixels fixed some bugs
+  when passed an ROI without a channel range specified. #1802
+* More robust parsing of XMP metadata for unknown metadata names. #1816
+* strutil.h now includes a to_string<> utility template. #1814
 
 
 Release 1.8.6 (1 Nov 2017) -- compared to 1.8.5
