@@ -79,10 +79,6 @@ ifneq (${USE_QT},)
 MY_CMAKE_FLAGS += -DUSE_QT:BOOL=${USE_QT}
 endif
 
-ifneq (${FORCE_OPENGL_1},)
-MY_CMAKE_FLAGS += -DFORCE_OPENGL_1:BOOL=${FORCE_OPENGL_1}
-endif
-
 ifneq (${OIIO_THREAD_ALLOW_DCLP},)
 MY_CMAKE_FLAGS += -DOIIO_THREAD_ALLOW_DCLP:BOOL=${OIIO_THREAD_ALLOW_DCLP}
 endif
@@ -472,7 +468,6 @@ help:
 	@echo "      USE_EXTERNAL_PUGIXML=1   Use the system PugiXML, not the one in OIIO"
 	@echo "      USE_QT=0                 Skip anything that needs Qt"
 	@echo "      USE_OPENGL=0             Skip anything that needs OpenGL"
-	@echo "      FORCE_OPENGL_1=1         Force iv to use OpenGL's fixed pipeline"
 	@echo "      USE_PYTHON=0             Don't build the Python binding"
 	@echo "      USE_PYTHON3=1            If 1, try to build against Python3, not 2.x"
 	@echo "      PYTHON_VERSION=2.6       Specify the Python version"

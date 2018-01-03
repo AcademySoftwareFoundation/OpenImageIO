@@ -37,7 +37,6 @@ NEW or CHANGED dependencies since the last major release are **bold**.
    these are not found):
      * Qt >= 5.6
      * OpenGL
-     * GLEW
  * If you are building the Python bindings:
      * Python >= 2.7
      * **NumPy**
@@ -52,8 +51,7 @@ Building OpenImageIO on Linux or OS X
 The following dependencies must be installed to build the core of
 OpenImageIO: Boost, libjpeg, libtiff, libpng and OpenEXR.  These can be
 installed using the standard package managers on your system.
-Optionally, to build the image viewing tools, you will need Qt, OpenGL,
-and GLEW.
+Optionally, to build the image viewing tools, you will need Qt and OpenGL.
 
 On OS X, these dependencies can be installed using Fink, MacPorts or
 Homebrew.  After installation of any of these package installers, use
@@ -108,7 +106,6 @@ Additionally, a few helpful modifiers alter some build-time options:
 | make USE_OPENGL=0 ...     |  Skip anything that needs OpenGL
 | make USE_QT=0 ...         |  Skip anything that needs Qt
 | make MYCC=xx MYCXX=yy ... |  Use custom compilers
-| make FORCE_OPENGL_1=1 ... |  Force iv to use OpenGL's fixed pipeline
 | make USE_PYTHON=0 ...     |  Don't build the Python binding
 | make BUILDSTATIC=1 ...    |  Build static library instead of shared
 | make LINKSTATIC=1 ...     |  Link with static external libraries when possible
@@ -226,9 +223,6 @@ can't find ZLIB, add to CMAKE_PREFIX_PATH the
 D:\OIIO\external\dist\windows\zlib-1.2.3 directory. If it can't find
 ZLIB and PNG, add
 D:\OIIO\external\dist\windows\zlib-1.2.3;D:\OIIO\external\dist\windows\libpng-1.2.3.
-
-Also, if cmake won't find GLEW set up GLEW_INCLUDES and GLEW_LIBRARIES
-in cmake-gui. Don't add them (they are already added), just set them.
 
 
 Test Images
