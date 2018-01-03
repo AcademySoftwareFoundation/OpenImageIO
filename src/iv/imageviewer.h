@@ -46,7 +46,6 @@
 
 #include <vector>
 
-#include <glew.h>
 #include <QGLWidget>
 #include <QAction>
 #include <QCheckBox>

@@ -46,7 +46,8 @@
 
 #include <vector>
 
-#include <QGLWidget>
+#include <QOpenGLWidget>
+#include <QOpenGLFunctions>
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
@@ -58,7 +59,7 @@ class ImageViewer;
 
 
 
-class IvGL : public QGLWidget
+class IvGL : public QOpenGLWidget, protected QOpenGLFunctions
 {
 Q_OBJECT
 public:
@@ -103,8 +104,6 @@ public:
     /// widget boundaries)
     void get_focus_window_pixel (int &x, int &y);
 
-    void trigger_redraw (void) { glDraw(); }
-
     /// Returns true if OpenGL is capable of loading textures in the sRGB color
     /// space.
     bool is_srgb_capable (void) const { return m_use_srgb; }
@@ -137,12 +136,10 @@ protected:
     int m_mousex, m_mousey;           ///< Last mouse position
     Qt::MouseButton m_drag_button;    ///< Button on when dragging
     bool m_use_shaders;               ///< Are shaders supported?
-    bool m_shaders_using_extensions;  ///< Are we using ARB_*_shader?
     bool m_use_halffloat;             ///< Are half-float textures supported?
     bool m_use_float;                 ///< Are float textures supported?
     bool m_use_srgb;                  ///< Are sRGB-space textures supported?
     bool m_use_npot_texture;          ///< Can we handle NPOT textures?
-    bool m_use_pbo;                   ///< Can we use PBO to upload the texture?
     GLint m_max_texture_size;         ///< Maximum allowed texture dimension.
     GLsizei m_texture_width;
     GLsizei m_texture_height;
@@ -190,7 +187,7 @@ protected:
                         const QFont &font);
 
 private:
-    typedef QGLWidget parent_t;
+    typedef QOpenGLWidget parent_t;
     /// ncloseuppixels is the number of big pixels (in each direction)
     /// visible in our closeup window.
     const static int ncloseuppixels = 9;
@@ -207,19 +204,13 @@ private:
 
     void clamp_view_to_window ();
 
-    // Small wrappers to handle ARB shaders.
-    void gl_use_program (int program);
-    GLint gl_get_uniform_location (const char*);
-    void gl_uniform (GLint location, float value);
-    void gl_uniform (GLint location, int value);
-
     /// checks what OpenGL extensions we have
     ///
     void check_gl_extensions (void);
 
     /// print shader info to out stream
     ///
-    void print_shader_log (std::ostream& out, const GLuint shader_id) const;
+    void print_shader_log (std::ostream& out, const GLuint shader_id);
 
     /// Loads the given patch of the image, but first figures if it's already
     /// been loaded.
