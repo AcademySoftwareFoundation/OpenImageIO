@@ -71,8 +71,9 @@ static std::string dataformatname = "half";
 static float sscale = 1, tscale = 1;
 static float sblur = 0, tblur = -1;
 static float width = 1;
+static float anisoaspect = 1.0;  // anisotropic aspect ratio
 static std::string wrapmodes ("periodic");
-static int anisotropic = -1;
+static int anisomax = TextureOpt().anisotropic;
 static int iters = 1;
 static int autotile = 0;
 static bool automip = false;
@@ -108,7 +109,6 @@ static bool test_derivs = false;
 static bool test_statquery = false;
 static bool invalidate_before_iter = true;
 static Imath::M33f xform;
-static mutex error_mutex;
 void *dummyptr;
 
 typedef void (*Mapping2D)(const int&,const int&,float&,float&,float&,float&,float&,float&);
@@ -139,9 +139,6 @@ parse_files (int argc, const char *argv[])
 static void
 getargs (int argc, const char *argv[])
 {
-    TextureOpt opt;  // to figure out defaults
-    anisotropic = opt.anisotropic;
-
     bool help = false;
     ArgParse ap;
     ap.options ("Usage:  testtex [options] inputfile",
@@ -164,8 +161,9 @@ getargs (int argc, const char *argv[])
                   "--width %f", &width, "Multiply filter width of texture lookup",
                   "--fill %f", &fill, "Set fill value for missing channels",
                   "--wrap %s", &wrapmodes, "Set wrap mode (default, black, clamp, periodic, mirror, overscan)",
-                  "--aniso %d", &anisotropic,
-                      Strutil::format("Set max anisotropy (default: %d)", anisotropic).c_str(),
+                  "--anisoaspect %f", &anisoaspect, "Set anisotropic ellipse aspect ratio for threadtimes tests (default: 2.0)",
+                  "--anisomax %d", &anisomax,
+                      Strutil::format("Set max anisotropy (default: %d)", anisomax).c_str(),
                   "--mipmode %d", &mipmode, "Set mip mode (default: 0 = aniso)",
                   "--interpmode %d", &interpmode, "Set interp mode (default: 3 = smart bicubic)",
                   "--missing %f %f %f", &missing[0], &missing[1], &missing[2],
@@ -237,7 +235,7 @@ initialize_opt (TextureOpt &opt, int nchannels)
         opt.missingcolor = (float *)&missing;
     TextureOpt::parse_wrapmodes (wrapmodes.c_str(), opt.swrap, opt.twrap);
     opt.rwrap = opt.swrap;
-    opt.anisotropic = anisotropic;
+    opt.anisotropic = anisomax;
     opt.mipmode = (TextureOpt::MipMode) mipmode;
     opt.interpmode = (TextureOpt::InterpMode) interpmode;
 }
@@ -260,7 +258,7 @@ initialize_opt (TextureOptBatch &opt, int nchannels)
         opt.missingcolor = (float *)&missing;
     Tex::parse_wrapmodes (wrapmodes.c_str(), opt.swrap, opt.twrap);
     opt.rwrap = opt.swrap;
-    opt.anisotropic = anisotropic;
+    opt.anisotropic = anisomax;
     opt.mipmode = MipMode(mipmode);
     opt.interpmode = InterpMode(interpmode);
 }
@@ -568,10 +566,8 @@ plain_tex_region (ImageBuf &image, ustring filename, Mapping2D mapping,
                                   nchannels, result, dresultds, dresultdt);
         if (! ok) {
             std::string e = texsys->geterror ();
-            if (! e.empty()) {
-                lock_guard lock (error_mutex);
-                std::cerr << "ERROR: " << e << "\n";
-            }
+            if (! e.empty())
+                Strutil::fprintf (std::cerr, "ERROR: %s\n", e);
         }
 
         // Save filtered pixels back to the image.
@@ -628,16 +624,16 @@ test_plain_texture (Mapping2D mapping)
         }
     }
 
-    if (! image.write (output_filename)) 
-        std::cerr << "Error writing " << output_filename 
-                  << " : " << image.geterror() << "\n";
+    if (! image.write (output_filename))
+        Strutil::fprintf (std::cerr, "Error writing %s : %s\n",
+                          output_filename, image.geterror());
     if (test_derivs) {
-        if (! image_ds.write (output_filename+"-ds.exr")) 
-            std::cerr << "Error writing " << (output_filename+"-ds.exr")
-                      << " : " << image_ds.geterror() << "\n";
-        if (! image_dt.write (output_filename+"-dt.exr")) 
-            std::cerr << "Error writing " << (output_filename+"-dt.exr")
-                      << " : " << image_dt.geterror() << "\n";
+        if (! image_ds.write (output_filename+"-ds.exr"))
+            Strutil::fprintf (std::cerr, "Error writing %s : %s\n",
+                              (output_filename+"-ds.exr"), image_ds.geterror());
+        if (! image_dt.write (output_filename+"-dt.exr"))
+            Strutil::fprintf (std::cerr, "Error writing %s : %s\n",
+                              (output_filename+"-dt.exr"), image_dt.geterror());
     }
 }
 
@@ -687,10 +683,8 @@ plain_tex_region_batch (ImageBuf &image, ustring filename, Mapping2DWide mapping
                                       (float *)dresultds, (float *)dresultdt);
             if (! ok) {
                 std::string e = texsys->geterror ();
-                if (! e.empty()) {
-                    lock_guard lock (error_mutex);
-                    std::cerr << "ERROR: " << e << "\n";
-                }
+                if (! e.empty())
+                    Strutil::fprintf (std::cerr, "ERROR: %s\n", e);
             }
             // Save filtered pixels back to the image.
             for (int c = 0;  c < nchannels;  ++c)
@@ -759,15 +753,15 @@ test_plain_texture_batch (Mapping2DWide mapping)
     }
 
     if (! image.write (output_filename))
-        std::cerr << "Error writing " << output_filename
-                  << " : " << image.geterror() << "\n";
+        Strutil::fprintf (std::cerr, "Error writing %s : %s\n",
+                          output_filename, image.geterror());
     if (test_derivs) {
         if (! image_ds->write (output_filename+"-ds.exr"))
-            std::cerr << "Error writing " << (output_filename+"-ds.exr")
-                      << " : " << image_ds->geterror() << "\n";
+            Strutil::fprintf (std::cerr, "Error writing %s : %s\n",
+                              (output_filename+"-ds.exr"), image_ds->geterror());
         if (! image_dt->write (output_filename+"-dt.exr"))
-            std::cerr << "Error writing " << (output_filename+"-dt.exr")
-                      << " : " << image_dt->geterror() << "\n";
+            Strutil::fprintf (std::cerr, "Error writing %s : %s\n",
+                              (output_filename+"-dt.exr"), image_dt->geterror());
     }
 }
 
@@ -800,10 +794,8 @@ tex3d_region (ImageBuf &image, ustring filename, Mapping3D mapping,
                                      result, dresultds, dresultdt, dresultdr);
         if (! ok) {
             std::string e = texsys->geterror ();
-            if (! e.empty()) {
-                lock_guard lock (error_mutex);
-                std::cerr << "ERROR: " << e << "\n";
-            }
+            if (! e.empty())
+                Strutil::fprintf (std::cerr, "ERROR: %s\n", e);
         }
 
         // Save filtered pixels back to the image.
@@ -849,10 +841,8 @@ tex3d_region_batch (ImageBuf &image, ustring filename, Mapping3DWide mapping, RO
                                          (float *)dresultdt, (float *)dresultdr);
             if (! ok) {
                 std::string e = texsys->geterror ();
-                if (! e.empty()) {
-                    lock_guard lock (error_mutex);
-                    std::cerr << "ERROR: " << e << "\n";
-                }
+                if (! e.empty())
+                    Strutil::fprintf (std::cerr, "ERROR: %s\n", e);
             }
 
             // Save filtered pixels back to the image.
@@ -890,8 +880,8 @@ test_texture3d (ustring filename, Mapping3D mapping)
     }
 
     if (! image.write (output_filename)) 
-        std::cerr << "Error writing " << output_filename 
-                  << " : " << image.geterror() << "\n";
+        Strutil::fprintf (std::cerr, "Error writing %s : %s\n",
+                          output_filename, image.geterror());
 }
 
 
@@ -919,8 +909,8 @@ test_texture3d_batch (ustring filename, Mapping3DWide mapping)
     }
 
     if (! image.write (output_filename)) 
-        std::cerr << "Error writing " << output_filename 
-                  << " : " << image.geterror() << "\n";
+        Strutil::fprintf (std::cerr, "Error writing %s : %s\n",
+                          output_filename, image.geterror());
 }
 
 
@@ -945,12 +935,10 @@ test_getimagespec_gettexels (ustring filename)
     ImageSpec spec;
     int miplevel = 0;
     if (! texsys->get_imagespec (filename, 0, spec)) {
-        std::cerr << "Could not get spec for " << filename << "\n";
+        Strutil::fprintf (std::cerr, "Could not get spec for %s\n", filename);
         std::string e = texsys->geterror ();
-        if (! e.empty()) {
-            lock_guard lock (error_mutex);
-            std::cerr << "ERROR: " << e << "\n";
-        }
+        if (! e.empty())
+            Strutil::fprintf (std::cerr, "ERROR: %s\n", e);
         return;
     }
 
@@ -972,7 +960,7 @@ test_getimagespec_gettexels (ustring filename)
                                       x, x+w, y, y+h, 0, 1, 0, nchannels,
                                       postagespec.format, &tmp[0]);
         if (! ok)
-            std::cerr << texsys->geterror() << "\n";
+            Strutil::fprintf (std::cerr, "ERROR: %s\n", texsys->geterror());
     }
     for (int y = 0;  y < h;  ++y)
         for (int x = 0;  x < w;  ++x) {
@@ -1129,11 +1117,23 @@ do_tex_thread_workout (int iterations, int mythread)
         texture_handles.emplace_back (texsys->get_texture_handle(f));
 
     ImageSpec spec0;
-    texsys->get_imagespec (filenames[0], 0, spec0);
-    // Compute a filter size that's between the first and second MIP levels.
-    float fw = (1.0f / spec0.width) * 1.5f;
-    float fh = (1.0f / spec0.height) * 1.5f;
+    bool ok = texsys->get_imagespec (filenames[0], 0, spec0);
+    if (!ok) {
+        Strutil::fprintf (std::cerr, "Unexpected error: %s\n", texsys->geterror());
+        return;
+    }
+    // Compute a filter size that's between the second and third MIP levels.
+    float fw = (1.0f / spec0.width) * 1.5f * 2.0;
+    float fh = (1.0f / spec0.height) * 1.5f * 2.0;
     float dsdx = fw, dtdx = 0.0f, dsdy = 0.0f, dtdy = fh;
+    if (anisoaspect > 1.001f) {
+        // Make an ellipse 30 degrees off horizontal, with given aspect
+        float xs = sqrtf(3.0)/2.0, ys = 0.5f;
+        dsdx = fw * xs * anisoaspect;
+        dtdx = fh * ys * anisoaspect;
+        dsdy = fw * ys;
+        dtdy = -fh * xs;
+    }
 
     for (int i = 0;  i < iterations;  ++i) {
         pixel = i;
@@ -1196,7 +1196,7 @@ do_tex_thread_workout (int iterations, int mythread)
         default:
             ASSERT_MSG (0, "Unkonwn thread work pattern %d", threadtimes);
         }
-        if (! ok) {
+        if (! ok && spec0.width && spec0.height) {
             s = (((2*pixel) % spec0.width) + 0.5f) / spec0.width;
             t = (((2*((2*pixel) / spec0.width)) % spec0.height) + 0.5f) / spec0.height;
             if (use_handle)
@@ -1210,8 +1210,7 @@ do_tex_thread_workout (int iterations, int mythread)
                                       result, dresultds, dresultdt);
         }
         if (! ok) {
-            lock_guard lock (error_mutex);
-            std::cerr << "Unexpected error: " << texsys->geterror() << "\n";
+            Strutil::fprintf (std::cerr, "Unexpected error: %s\n", texsys->geterror());
             return;
         }
         // Do some pointless work, to simulate that in a real app, there
@@ -1343,8 +1342,8 @@ test_icwrite (int testicwrite)
                 bool ok = ic->add_tile (filename, 0, 0, tx, ty, 0, 0, -1,
                                         TypeDesc::FLOAT, &tile[0]);
                 if (! ok) {
-                    lock_guard lock (error_mutex);
-                    std::cout << "ic->add_tile error: " << ic->geterror() << "\n";
+                    Strutil::fprintf (std::cerr, "ic->add_tile error: %s\n", ic->geterror());
+                    return;
                 }
                 ASSERT (ok);
             }
@@ -1369,7 +1368,6 @@ main (int argc, const char *argv[])
 
     texsys = TextureSystem::create ();
     std::cout << "Created texture system\n";
-    texsys->attribute ("statistics:level", verbose ? 2 : 0);
     texsys->attribute ("autotile", autotile);
     texsys->attribute ("automip", (int)automip);
     texsys->attribute ("deduplicate", (int)dedup);
@@ -1555,6 +1553,7 @@ main (int argc, const char *argv[])
 
     std::cout << "Memory use: "
               << Strutil::memformat (Sysutil::memory_used(true)) << "\n";
+    std::cout << texsys->getstats (verbose ? 2 : 0) << "\n";
     TextureSystem::destroy (texsys);
 
     if (verbose)
