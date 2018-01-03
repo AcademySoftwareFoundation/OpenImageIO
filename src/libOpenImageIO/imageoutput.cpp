@@ -388,6 +388,14 @@ ImageOutput::to_native_rectangle (int xbegin, int xend, int ybegin, int yend,
                            (void *)&scratch[0], width, height, depth, format);
     }
 
+    // If the only reason we got this far was because the data was not
+    // contiguous, but it was in the correct native data format all along,
+    // we can return the contiguized data without needing unnecessary
+    // conversion into float and back.
+    if (native_data) {
+        return data;
+    }
+
     // Rather than implement the entire cross-product of possible
     // conversions, use float as an intermediate format, which generally
     // will always preserve enough precision.
