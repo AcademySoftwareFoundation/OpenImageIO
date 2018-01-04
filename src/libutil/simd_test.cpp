@@ -917,6 +917,12 @@ void test_bitwise_bool ()
     OIIO_CHECK_EQUAL (reduce_or(onebit), true);
     OIIO_CHECK_EQUAL (reduce_and(VEC::True()), true);
     OIIO_CHECK_EQUAL (reduce_and(onebit), false);
+    OIIO_CHECK_EQUAL (all(VEC::True()), true);
+    OIIO_CHECK_EQUAL (any(VEC::True()), true);
+    OIIO_CHECK_EQUAL (none(VEC::True()), false);
+    OIIO_CHECK_EQUAL (all(VEC::False()), false);
+    OIIO_CHECK_EQUAL (any(VEC::False()), false);
+    OIIO_CHECK_EQUAL (none(VEC::False()), true);
 
     benchmark2 ("operator&", do_and<VEC>, a, b);
     benchmark2 ("operator|", do_or<VEC>, a, b);
