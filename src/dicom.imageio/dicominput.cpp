@@ -297,13 +297,13 @@ DICOMInput::read_metadata ()
                     m_spec.attribute (name, (float)val);
                 // N.B. we cast to float. Will anybody care?
             } else if (evr == EVR_SL || evr == EVR_IS) {
-                int val;
+                Sint32 val;
                 if (dataset->findAndGetSint32 (tag, val).good())
-                    m_spec.attribute (name, val);
+                    m_spec.attribute (name, static_cast<int>(val));
             } else if (evr == EVR_UL) {
-                unsigned int val;
+                Uint32 val;
                 if (dataset->findAndGetUint32 (tag, val).good())
-                    m_spec.attribute (name, TypeDesc::UINT32, &val);
+                    m_spec.attribute (name, static_cast<unsigned int>(val));
             } else if (evr == EVR_US) {
                 unsigned short val;
                 if (dataset->findAndGetUint16 (tag, val).good())
