@@ -478,7 +478,7 @@ endif()
 ###########################################################################
 # DCMTK
 if (USE_DICOM)
-    find_package (DCMTK)
+    find_package (DCMTK 3.6.1)
     if (NOT DCMTK_FOUND)
         set (DCMTK_INCLUDE_DIR "")
         set (DCMTK_LIBRARIES "")
