@@ -789,6 +789,45 @@ public:
         m_futures.emplace_back (std::move(f));
     }
 
+    // Wait for the given taskindex (0..n-1, where n is the number of tasks
+    // submitted as part of this task_set). If block == true, fully block
+    // while waiting for that task to finish. If block is false, then busy
+    // wait, and opportunistically run queue tasks yourself while you are
+    // waiting for the task to finish.
+    void wait_for_task (size_t taskindex, bool block=false) {
+        DASSERT (submitter() == std::this_thread::get_id());
+        if (taskindex >= m_futures.size())
+            return;  // nothing to wait for
+        auto &f (m_futures[taskindex]);
+        if (block || m_pool->is_worker (m_submitter_thread)) {
+            // Block on completion of all the task and don't try to do any
+            // of the work with the calling thread.
+            f.wait ();
+            return;
+        }
+        // If we made it here, we want to allow the calling thread to help
+        // do pool work if it's waiting around for a while.
+        const std::chrono::milliseconds wait_time (0);
+        int tries = 0;
+        while (1) {
+            // Asking future.wait_for for 0 time just checks the status.
+            if (f.wait_for (wait_time) == std::future_status::ready)
+                return;  // task has completed
+            // We're still waiting for the task to complete. What next?
+            if (++tries < 4) {   // First few times,
+                pause(4);        //   just busy-wait, check status again
+                continue;
+            }
+            // Since we're waiting, try to run a task ourselves to help
+            // with the load. If none is available, just yield schedule.
+            if (! m_pool->run_one_task(m_submitter_thread)) {
+                // We tried to do a task ourselves, but there weren't any
+                // left, so just wait for the rest to finish.
+                yield ();
+            }
+        }
+    }
+
     // Wait for all tasks in the set to finish. If block == true, fully
     // block while waiting for the pool threads to all finish. If block is
     // false, then busy wait, and opportunistically run queue tasks yourself
