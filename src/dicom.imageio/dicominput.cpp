@@ -288,7 +288,7 @@ DICOMInput::read_metadata ()
                 if (dataset->findAndGetFloat32 (tag, val).good())
                     m_spec.attribute (name, val);
             } else if (evr == EVR_FD
-#if PACKAGE_VERSION_NUMBER >= 361
+#if PACKAGE_VERSION_NUMBER >= 362
                        || evr == EVR_OD
 #endif
                        ) {
@@ -312,7 +312,7 @@ DICOMInput::read_metadata ()
                        evr == EVR_DT || evr == EVR_LT || evr == EVR_PN ||
                        evr == EVR_ST || evr == EVR_TM || evr == EVR_UI ||
                        evr == EVR_UT || evr == EVR_LO || evr == EVR_SH
-#if PACKAGE_VERSION_NUMBER >= 361
+#if PACKAGE_VERSION_NUMBER >= 362
                        || evr == EVR_UC ||evr == EVR_UR
 #endif
                        ) {
