@@ -288,7 +288,7 @@ DICOMInput::read_metadata ()
                 if (dataset->findAndGetFloat32 (tag, val).good())
                     m_spec.attribute (name, val);
             } else if (evr == EVR_FD
-#if PACKAGE_VERSION_NUMBER >= 361
+#if PACKAGE_VERSION_NUMBER >= 362
                        || evr == EVR_OD
 #endif
                        ) {
@@ -297,13 +297,13 @@ DICOMInput::read_metadata ()
                     m_spec.attribute (name, (float)val);
                 // N.B. we cast to float. Will anybody care?
             } else if (evr == EVR_SL || evr == EVR_IS) {
-                int val;
+                Sint32 val;
                 if (dataset->findAndGetSint32 (tag, val).good())
-                    m_spec.attribute (name, val);
+                    m_spec.attribute (name, static_cast<int>(val));
             } else if (evr == EVR_UL) {
-                unsigned int val;
+                Uint32 val;
                 if (dataset->findAndGetUint32 (tag, val).good())
-                    m_spec.attribute (name, TypeDesc::UINT32, &val);
+                    m_spec.attribute (name, static_cast<unsigned int>(val));
             } else if (evr == EVR_US) {
                 unsigned short val;
                 if (dataset->findAndGetUint16 (tag, val).good())
@@ -312,7 +312,7 @@ DICOMInput::read_metadata ()
                        evr == EVR_DT || evr == EVR_LT || evr == EVR_PN ||
                        evr == EVR_ST || evr == EVR_TM || evr == EVR_UI ||
                        evr == EVR_UT || evr == EVR_LO || evr == EVR_SH
-#if PACKAGE_VERSION_NUMBER >= 361
+#if PACKAGE_VERSION_NUMBER >= 362
                        || evr == EVR_UC ||evr == EVR_UR
 #endif
                        ) {
