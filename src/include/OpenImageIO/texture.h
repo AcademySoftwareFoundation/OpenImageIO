@@ -123,6 +123,7 @@ enum class InterpMode {
 #endif
 
 static constexpr int BatchWidth = OIIO_TEXTURE_SIMD_BATCH_WIDTH;
+static constexpr int BatchAlign = BatchWidth * sizeof(float);
 
 typedef simd::VecType<float,OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type FloatWide;
 typedef simd::VecType<int,OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type IntWide;
@@ -276,6 +277,15 @@ public:
     /// defaults.
     TextureOptBatch () {}   // use inline initializers
 
+    // Options that may be different for each point we're texturing
+    alignas(Tex::BatchAlign) float sblur[Tex::BatchWidth];    ///< Blur amount
+    alignas(Tex::BatchAlign) float tblur[Tex::BatchWidth];
+    alignas(Tex::BatchAlign) float rblur[Tex::BatchWidth];
+    alignas(Tex::BatchAlign) float swidth[Tex::BatchWidth];   ///< Multiplier for derivatives
+    alignas(Tex::BatchAlign) float twidth[Tex::BatchWidth];
+    alignas(Tex::BatchAlign) float rwidth[Tex::BatchWidth];
+    // Note: rblur,rwidth only used for volumetric lookups
+
     // Options that must be the same for all points we're texturing at once
     int firstchannel = 0;                 ///< First channel of the lookup
     int subimage = 0;                     ///< Subimage or face ID
@@ -286,24 +296,15 @@ public:
     Tex::MipMode mipmode = Tex::MipMode::Default;  ///< Mip mode
     Tex::InterpMode interpmode = Tex::InterpMode::SmartBicubic;  ///< Interpolation mode
     int anisotropic = 32;                 ///< Maximum anisotropic ratio
-    bool conservative_filter = true;      ///< True: over-blur rather than alias
+    int conservative_filter = 1;          ///< True: over-blur rather than alias
     float fill = 0.0f;                    ///< Fill value for missing channels
     const float *missingcolor = nullptr;  ///< Color for missing texture
-
-    // Options that may be different for each point we're texturing
-    float sblur[Tex::BatchWidth];    ///< Blur amount
-    float tblur[Tex::BatchWidth];
-    float swidth[Tex::BatchWidth];   ///< Multiplier for derivatives
-    float twidth[Tex::BatchWidth];
-
-    // For 3D volume texture lookups only:
-    float rblur[Tex::BatchWidth];
-    float rwidth[Tex::BatchWidth];
 
 private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
     int envlayout = 0;               // Layout for environment wrap
+
     friend class pvt::TextureSystemImpl;
 };
 
