@@ -194,8 +194,8 @@
 
 
 // Define a macro that can be used for memory alignment.
-// I think that in a future world of C++1x compatibility, all these can
-// be replaced with [[ align(size) ]].
+// This macro is mostly obsolete and C++11 alignas() should be preferred
+// for new code.
 #if defined (__GNUC__) || __has_attribute(aligned)
 #  define OIIO_ALIGN(size) __attribute__((aligned(size)))
 #elif defined (_MSC_VER)

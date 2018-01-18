@@ -123,6 +123,7 @@ enum class InterpMode {
 #endif
 
 static constexpr int BatchWidth = OIIO_TEXTURE_SIMD_BATCH_WIDTH;
+static constexpr int BatchAlign = BatchWidth * sizeof(float);
 
 typedef simd::VecType<float,OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type FloatWide;
 typedef simd::VecType<int,OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type IntWide;
@@ -291,6 +292,7 @@ public:
     const float *missingcolor = nullptr;  ///< Color for missing texture
 
     // Options that may be different for each point we're texturing
+    alignas(Tex::BatchAlign)  // align the subsequent fields properly
     float sblur[Tex::BatchWidth];    ///< Blur amount
     float tblur[Tex::BatchWidth];
     float swidth[Tex::BatchWidth];   ///< Multiplier for derivatives
