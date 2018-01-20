@@ -689,8 +689,8 @@ main (int argc, const char *argv[])
         if (! in) {
             std::string err = geterror();
             if (err.empty())
-                err = Strutil::format ("Could not open \"%s\"", s.c_str());
-            std::cerr << "iinfo: " << err << "\n";
+                err = Strutil::format ("Could not open \"%s\"", s);
+            std::cerr << "iinfo ERROR: " << err << "\n";
             continue;
         }
         ImageSpec spec = in->spec();
