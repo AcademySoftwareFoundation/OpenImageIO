@@ -1146,7 +1146,7 @@ Strutil::strtof (const char *nptr, char **endptr)
     // Complex case -- CHEAT by making a copy of the string and replacing
     // the decimal, then use system strtof!
     std::string s (nptr);
-    const char* pos = strchr (nptr, pointchar);
+    const char* pos = strchr (nptr, nativepoint);
     if (pos) {
         s[pos-nptr] = nativepoint;
         auto d = strtof (s.c_str(), endptr);
@@ -1182,7 +1182,7 @@ Strutil::strtod (const char *nptr, char **endptr)
     // Complex case -- CHEAT by making a copy of the string and replacing
     // the decimal, then use system strtod!
     std::string s (nptr);
-    const char* pos = strchr (nptr, pointchar);
+    const char* pos = strchr (nptr, nativepoint);
     if (pos) {
         s[pos-nptr] = nativepoint;
         auto d = ::strtod (s.c_str(), endptr);
