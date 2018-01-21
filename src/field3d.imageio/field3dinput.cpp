@@ -342,6 +342,12 @@ Field3DInput::valid_file (const std::string &filename) const
     if (! Filesystem::is_regular (filename))
         return false;
 
+    // The f3d is flaky when opening some non-f3d files. It should just fail
+    // gracefully, but it doesn't always. So to keep my sanity, don't even
+    // bother trying for filenames that don't end in .f3d.
+    if (! Strutil::iends_with (filename, ".f3d"))
+        return false;
+
     oiio_field3d_initialize ();
 
     bool ok = false;
@@ -369,6 +375,12 @@ Field3DInput::open (const std::string &name, ImageSpec &newspec)
         close();
 
     if (! Filesystem::is_regular (name))
+        return false;
+
+    // The f3d is flaky when opening some non-f3d files. It should just fail
+    // gracefully, but it doesn't always. So to keep my sanity, don't even
+    // bother trying for filenames that don't end in .f3d.
+    if (! Strutil::iends_with (name, ".f3d"))
         return false;
 
     oiio_field3d_initialize ();
