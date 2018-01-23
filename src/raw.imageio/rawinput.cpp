@@ -311,6 +311,18 @@ RawInput::open (const std::string &name, ImageSpec &newspec,
         m_spec.attribute ("raw:Exposure", exposure);
     }
 
+    // Highlight adjustment
+    int highlight_mode = config.get_int_attribute("raw:HighlightMode", 0);
+    if (highlight_mode != 0)
+    {
+        if (highlight_mode < 0 || highlight_mode > 9) {
+            error("raw:HighlightMode invalid value. range 0-9");
+            return false;
+        }
+        m_processor.imgdata.params.highlight = highlight_mode;
+        m_spec.attribute ("raw:HighlightMode", highlight_mode);
+    }
+
     // Interpolation quality
     // note: LibRaw must be compiled with demosaic pack GPL2 to use demosaic
     // algorithms 5-9. It must be compiled with demosaic pack GPL3 for
