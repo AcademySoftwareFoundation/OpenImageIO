@@ -1,2 +1,6 @@
 leak:Imf_2_2
 leak:libIlmImf
+leak:boost::detail::make_external_thread_data
+leak:boost::detail::add_new_tss_node
+leak:g_malloc0
+leak:ArgParse::options
