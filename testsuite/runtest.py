@@ -83,6 +83,14 @@ else :
         os.symlink ("../../../testsuite/common", "../common")
 
 
+# Disable this test on Travis when using leak sanitizer, because the error
+# condition makes a leak we can't stop, but that's ok.
+import os
+if (os.getenv("TRAVIS") and (os.getenv("SANITIZE") in ["leak","address"])
+    and os.path.exists(os.path.join (test_source_dir,"TRAVIS_SKIP_LSAN"))) :
+    sys.exit (0)
+
+
 ###########################################################################
 
 # Handy functions...
