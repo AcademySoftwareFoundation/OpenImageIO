@@ -156,7 +156,11 @@ Oiiotool::clear_options ()
     autocc = false;
     nativeread = false;
     cachesize = 4096;
-    autotile = 4096;
+    autotile = 0;   // was: 4096
+    // FIXME: Turned off autotile by default Jan 2018 after thinking that
+    // it was possible to deadlock when doing certain parallel IBA functions
+    // in combination with autotile. When the deadlock possibility is fixed,
+    // maybe we'll turn it back to on by default.
     frame_padding = 0;
     full_command_line.clear ();
     printinfo_metamatch.clear ();
