@@ -1,4 +1,4 @@
-set (libOpenImageIO_Util_srcs argparse.cpp benchmark.cpp
+set (libOpenImageIO_Util_srcs benchmark.cpp
                   errorhandler.cpp filesystem.cpp
                   farmhash.cpp filter.cpp hashes.cpp paramlist.cpp
                   plugin.cpp SHA1.cpp
