@@ -1,3 +1,6 @@
+Release 1.8.9 (1 Mar 2018) -- compared to 1.8.8
+-------------------------------------------------
+
 Release 1.8.8 (1 Feb 2018) -- compared to 1.8.7
 -------------------------------------------------
 * OpenEXR: gracefully detect and reject files with subsampled channels,
