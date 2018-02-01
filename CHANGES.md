@@ -1,5 +1,21 @@
 Release 1.8.8 (1 Feb 2018) -- compared to 1.8.7
 -------------------------------------------------
+* OpenEXR: gracefully detect and reject files with subsampled channels,
+  which is a rarely-to-never-used OpenEXR feature that we don't support
+  properly. #1849
+* Field3d: Prevent crashes when open fails. #1848
+* RAW: Add "raw:HighlightMode" configuration hint to control libraw's
+  handling of highlight mode processing. #1851
+* zfile: more careful gzopen on Windows that could crash when given bogus
+  filename. #1839
+* DICOM: Fix dcmtk build errors on some platforms. Also, the minimum dcmtk
+  version we suport is 3.6.1. #1843
+* simd.h: Minor fixes especially for avx512. #1846
+* iv: Drop GLEW and obsolete GL stuff from iv in favor of QOpenGLFunctions,
+  and fix broken pixelview text rendering. #1834
+* On Unix/Linux, add explicit DL library dependency to libOpenImageIO.so
+  itself instead of only to the binaries and test utilities. #1860
+* Build fixes for Hurd OS. #1850
 
 
 Release 1.8.7 (1 Jan 2018) -- compared to 1.8.6
@@ -15,7 +31,6 @@ Release 1.8.7 (1 Jan 2018) -- compared to 1.8.6
   when passed an ROI without a channel range specified. #1802
 * More robust parsing of XMP metadata for unknown metadata names. #1816
 * strutil.h now includes a to_string<> utility template. #1814
-
 
 Release 1.8.6 (1 Nov 2017) -- compared to 1.8.5
 -------------------------------------------------
