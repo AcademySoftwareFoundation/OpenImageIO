@@ -43,6 +43,7 @@ Other contributors (alphabetically):
 * Dominik Bartkiewicz
 * Heiko Becker
 * Solomon Boulos
+* Stefan Bruens
 * John Burnett
 * Nicolas Burtnyk
 * Kevin Brightwell
@@ -57,7 +58,9 @@ Other contributors (alphabetically):
 * Frédéric Devernay
 * Thomas Dinges
 * Chad Dombrova
+* Daniel Dresser
 * Seifeddine Dridi
+* Eloi Du Bois
 * Nandan Dubey
 * Sebastian Elsner
 * Julien Enche
@@ -87,6 +90,7 @@ Other contributors (alphabetically):
 * Nixon Kwok
 * Pete Larabell
 * LazyDodo
+* Pascal Lecocq
 * Michel Lerenard
 * Manuel Leonhardt
 * Matthew E. Levine
@@ -94,6 +98,7 @@ Other contributors (alphabetically):
 * Elvic Liang
 * Max Liani
 * Hugh Macdonald
+* Thomas Mansencal
 * Lukasz Maliszewski
 * Justina Mikonyte
 * Ray Molenkamp

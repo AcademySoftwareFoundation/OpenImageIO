@@ -10,6 +10,9 @@ Major new features and improvements:
   colored) pixels, null writer just returns. This can be used for
   benchmarking (to eliminate all actual file I/O time), "dry run" where you
   want to test without creating output files. #1778 (1.9.0)
+* New `maketx` option `--bumpslopes` specifically for converting bump maps,
+  saves additional channels containing slope distribution moments that can
+  be used in shaders for "bump to roughness" calculations. #1810 (1.9.2)
 
 Public API changes:
 * **Python binding overhaul**
@@ -58,18 +61,53 @@ Fixes, minor enhancements, and performance improvements:
       to "overwrite" a file (i.e. `oiiotool in.tif ... -o out.tif`) without
       problematic situations where the file is truncated or overwritten
       before the reading is complete. #1797 (1.8.7/1.9.1)
-* ImageCache/TextureSystem:
+    * `--help` prints important usage tips that explain command parsing,
+      syntax of optional modifiers, and the path to PDF docs. #1811 (1.9.2)
+    * `--colormap` has new  maps "inferno", "magma", "plasma", "viridis",
+       which are perceptually uniform, monotonically increasing luminance,
+       look good converted to greyscale, and usable by people with color
+       blindness. #1820 (1.9.2)
+    * oiiotool no longer enables autotile by default. #1856 (1.9.2)
+* ImageBufAlgo:
+    * `color_map()` new  maps "inferno", "magma", "plasma", "viridis".
+       #1820 (1.9.2)
+    * Across many functions, improve channel logic when combining an image
+      with alpha with another image without alpha. #1827 (1.9.2)
+* ImageBuf:
+    * Bug fixed in IB::copy() of rare types. #1829 (1.9.2)
+* ImageCache/TextureSystem/maketx:
     * Improved stats on how long we wait for ImageInput mutexes.
       #1779 (1.9.0/1.8.6)
     * Improved performance of IC/TS tile and file caches under heavy
       contention from many threads. #1780 (1.9.0)
     * Increased the default `max_tile_channels` limit from 5 to 6.
       #1803 (1.9.1)
+    * maketx: improved image hashing to avoid some (extremely rare) possible
+      hash collisions. #1819 (1.9.2)
+    * IC/TS performance improvements by changing the underlying hash table
+      implementation. #1823,1824,1825,1826,1830 (1.9.2)
 * All string->numeric parsing and numeric->string formatting is now
   locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
+* Python Imagebuf.get_pixels and set_pixels bugs fixed, in the varieties
+  that take an ROI to describe the region. #1802 (1.9.2)
+* More robust parsing of XMP metadata for unknown metadata names.
+  #1816 (1.9.2/1.8.7)
+* All string->numeric parsing and numeric->string formatting is now
+  locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
+* Field3d: Prevent crashes when open fails. #1848 (1.9.2/1.8.8)
+* OpenEXR: gracefully detect and reject files with subsampled channels,
+  which is a rarely-to-never-used OpenEXR feature that we don't support
+  properly. #1849 (1.9.2/1.8.8)
+* PSD:
+    * Fix parse issue of layer mask data. #1777 (1.9.2)
+* RAW: Add "raw:HighlightMode" configuration hint to control libraw's
+  handling of highlight mode processing. #1851
+* TIFF:
+    * Improve performance of TIFF scanline output. #1833 (1.9.2)
+* zfile: more careful gzopen on Windows that could crash when given bogus
+  filename. #1839 (1.9.2/1.8.8)
 
 Build/test system improvements:
-* testtex: make the "thread workout" cases all honor `--handle`. #1778 (1.9.0)
 * Fixes for Windows build. #1793, #1794 (1.9.0/1.8.6)
 * Fix build bug where if the makefile wrapper got `CODECOV=0`, it would
   force a "Debug" build (required for code coverage tests) even though code
@@ -79,28 +117,97 @@ Build/test system improvements:
   (1.8.6/1.9.1)
 * Build: Boost.Python is no longer a dependency, but `pybind11` is. If
   not found on the system, it will be automatically downloaded. #1801 (1.9.1)
+* Time for a multi-core build of OIIO is reduced by ~40% by refactoring some
+  extra big modules into more bite-sized pieces. #1806 (1.9.2)
+* testtex:
+    * Make the "thread workout" cases all honor `--handle`. #1778 (1.9.0)
+    * Only prints detailed stats if `-v` is used, and new option
+      `--invalidate` will invalidate the cache when starting each
+      threadtimes trial. #1828 (1.9.2)
+    * New `--anisoratio` lets you choose anisotropic shape for thread
+      working tests, and make thread_workout samples twice as big to be more
+      typical by interpolating mip levels. #1840 (1.9.2)
+    * TextureSystem stats are printed as well as ImageCache. #1840 (1.9.2)
+* iv no longer requires GLEW, using QOpenGLFunctions instead. #1840 (1.9.2)
+* DICOM: Fix dcmtk build errors on some platforms. Also, the minimum dcmtk
+  version we suport is 3.6.1. #1843 (1.9.2/1.8.8)
+* Build fixes for Hurd OS. #1850 (1.9.2/1.8.8)
+* Clean up leak sanitizer errors. #1855 (1.9.2)
+* On Unix/Linux, add explicit DL library dependency to libOpenImageIO.so
+  itself instead of only to the binaries and test utilities.
+  #1860 (1.9.2/1.8.8)
 
 Developer goodies / internals:
+* argparse.h: Add pre- and post-option help printing callbacks. #1811 (1.9.2)
 * array_view.h: added begin(), end(), cbegin(), cend() methods, and new
   constructors from pointer pairs and from std::array. (1.9.0/1.8.6)
 * fmath.h: Now defines preprocessor symbol `OIIO_FMATH_H` so other files can
   easily detect if it has been included. (1.9.0/1.8.6)
-* paramlist.h: The ParamValue class has added get_int_indexed() and
-  get_float_indexed() methods. #1773 (1.9.0/1.8.6)
-* simd.h: Fixed build break when AVX512VL is enabled. #1781 (1.9.0/1.8.6)
+* parallel.h:
+    * `parallel_options` passed to many functions. #1807 (1.9.2)
+    * More careful avoidance of threads not recursively using the thread
+      pool (which could lead to deadlocks). #1807 (1.9.2)
+* paramlist.h:
+    * ParamValue class has added get_int_indexed() and get_float_indexed()
+      methods. #1773 (1.9.0/1.8.6)
+    * ParamValue restructured to allow additional common data types to store
+      internally rather than requre an allocation. #1812 (1.9.2)
+    * New ParamList convenience methods: remove(), constains(),
+      add_or_replace(). #1813 (1.9.2)
+* simd.h:
+    * Fixed build break when AVX512VL is enabled. #1781 (1.9.0/1.8.6)
+    * Minor fixes especially for avx512. #1846 (1.9.2/1.8.8)
 * string.h:
     * All string->numeric parsing and numeric->string formatting is now
       locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
     * New `Strutil::stof()`, `stoi()`, `stoui()`, `stod()` functions for
       easy parsing of strings to numbers. Also tests `Strutil::string_is_int()`
       and `string_is_float()`. #1796 (1.9.0)
-* thread.h: Reimplementaiton of `spin_rw_mutex` has much better performance
-  when many threads are accessing at once, especially if most of them are
-  reader threads. #1787 (1.9.0)
+    * New `to_string<>` utility template. #1814 (1.9.2)
+* thread.h:
+    * Reimplementaiton of `spin_rw_mutex` has much better performance when
+      many threads are accessing at once, especially if most of them are
+      reader threads. #1787 (1.9.0)
+    * task_set: add wait_for_task() method that waits for just one task in
+      the set to finish (versus wait() that waits for all). #1847 (1.9.2)
 * unittest.h: Made references to Strutil fully qualified in OIIO namespace,
   so that `unittest.h` can be more easily used outside of the OIIO codebase.
   #1791 (1.9.0)
 
+
+
+Release 1.8.8 (1 Feb 2018) -- compared to 1.8.7
+-------------------------------------------------
+* OpenEXR: gracefully detect and reject files with subsampled channels,
+  which is a rarely-to-never-used OpenEXR feature that we don't support
+  properly. #1849
+* Field3d: Prevent crashes when open fails. #1848
+* RAW: Add "raw:HighlightMode" configuration hint to control libraw's
+  handling of highlight mode processing. #1851
+* zfile: more careful gzopen on Windows that could crash when given bogus
+  filename. #1839
+* DICOM: Fix dcmtk build errors on some platforms. Also, the minimum dcmtk
+  version we suport is 3.6.1. #1843
+* simd.h: Minor fixes especially for avx512. #1846
+* iv: Drop GLEW and obsolete GL stuff from iv in favor of QOpenGLFunctions,
+  and fix broken pixelview text rendering. #1834
+* On Unix/Linux, add explicit DL library dependency to libOpenImageIO.so
+  itself instead of only to the binaries and test utilities. #1860
+* Build fixes for Hurd OS. #1850
+
+Release 1.8.7 (1 Jan 2018) -- compared to 1.8.6
+-------------------------------------------------
+* All string->numeric parsing and numeric->string formatting is now
+  locale-independent and always uses '.' as decimal marker. #1796
+* oiiotool outputs are now written to temporary files, then atomically moved
+  to the specified filename at the end. This makes it safe for oiiotool
+  to "overwrite" a file (i.e. `oiiotool in.tif ... -o out.tif`) without
+  problematic situations where the file is truncated or overwritten
+  before the reading is complete. #1797
+* Python bindings for ImageBuf.get_pixels and set_pixels fixed some bugs
+  when passed an ROI without a channel range specified. #1802
+* More robust parsing of XMP metadata for unknown metadata names. #1816
+* strutil.h now includes a to_string<> utility template. #1814
 
 Release 1.8.6 (1 Nov 2017) -- compared to 1.8.5
 -------------------------------------------------
