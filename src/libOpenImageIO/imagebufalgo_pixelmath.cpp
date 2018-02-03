@@ -562,7 +562,11 @@ ImageBufAlgo::unpremult (ImageBuf &dst, const ImageBuf &src,
 {
     if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
-    if (src.spec().alpha_channel < 0) {
+    if (src.spec().alpha_channel < 0 
+        // Wise?  || src.spec().get_int_attribute("oiio:UnassociatedAlpha") != 0
+        ) {
+        // If there is no alpha channel, just *copy* instead of dividing
+        // by alpha.
         if (&dst != &src)
             return paste (dst, src.spec().x, src.spec().y, src.spec().z,
                           roi.chbegin, src, roi, nthreads);
@@ -571,6 +575,8 @@ ImageBufAlgo::unpremult (ImageBuf &dst, const ImageBuf &src,
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "unpremult", unpremult_, dst.spec().format,
                           src.spec().format, dst, src, roi, nthreads);
+    // Mark the output as having unassociated alpha
+    dst.specmod().attribute ("oiio:UnassociatedAlpha", 1);
     return ok;
 }
 
@@ -624,6 +630,8 @@ ImageBufAlgo::premult (ImageBuf &dst, const ImageBuf &src,
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "premult", premult_, dst.spec().format,
                           src.spec().format, dst, src, roi, nthreads);
+    // Clear the output of any prior marking of associated alpha
+    dst.specmod().erase_attribute ("oiio:UnassociatedAlpha");
     return ok;
 }
 

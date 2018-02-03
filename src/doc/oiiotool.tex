@@ -1019,7 +1019,7 @@ orientations.
 \apiend
 
 \apiitem{\ce --autocc}
-Turns on automatic color conversion: Every input image file will be
+Turns on automatic color space conversion: Every input image file will be
 immediately converted to a scene-referred linear color space, and every file
 written will be first transformed to an appropriate output color space based
 on the filename or type.   Additionally, if the name of an output file
@@ -2903,6 +2903,11 @@ arguments include:
  & {\cf value=}\emph{str} & Adds a key/value pair to the ``context'' that
   OpenColorIO will used when applying the look. Multiple key/value pairs
   may be specified by making each one a comma-separated list. \\
+ & {\cf unpremult=}\emph{val} & If the numeric \emph{val} is nonzero, the
+     pixel values will be ``un-premultipled'' (divided by alpha) prior to
+     the actual color conversion, and then re-multipled by alpha afterwards.
+     The default is 0, meaning the color transformation not will be
+     automatically bracketed by divide-by-alpha / mult-by-alpha operations. \\
  & {\cf strict=}\emph{val} & When nonzero (the default), an
      inability to perform the color transform will be a hard error. If
      strict is 0, inability to find the transformation will just print a
@@ -2936,6 +2941,11 @@ arguments include:
  & {\cf value=}\emph{str} & Adds a key/value pair to the ``context'' that
   OpenColorIO will used when applying the look. Multiple key/value pairs
   may be specified by making each one a comma-separated list. \\
+ & {\cf unpremult=}\emph{val} & If the numeric \emph{val} is nonzero, the
+     pixel values will be ``un-premultipled'' (divided by alpha) prior to
+     the actual color conversion, and then re-multipled by alpha afterwards.
+     The default is 0, meaning the color transformation not will be
+     automatically bracketed by divide-by-alpha / mult-by-alpha operations. \\
 \end{tabular}
 
 This command is only meaningful if OIIO was compiled with OCIO support
@@ -2966,6 +2976,11 @@ arguments include:
  & {\cf value=}\emph{str} & Adds a key/value pair to the ``context'' that
   OpenColorIO will used when applying the display transform. Multiple key/value pairs
   may be specified by making each one a comma-separated list. \\
+ & {\cf unpremult=}\emph{val} & If the numeric \emph{val} is nonzero, the
+     pixel values will be ``un-premultipled'' (divided by alpha) prior to
+     the actual color conversion, and then re-multipled by alpha afterwards.
+     The default is 0, meaning the color transformation not will be
+     automatically bracketed by divide-by-alpha / mult-by-alpha operations. \\
 \end{tabular}
 
 This command is only meaningful if OIIO was compiled with OCIO support
@@ -2989,6 +3004,11 @@ arguments include:
 \begin{tabular}{p{10pt} p{1in} p{3.75in}}
  & {\cf inverse=}\emph{val} & If \emph{val} is nonzero, inverts the 
   color transformation. \\
+ & {\cf unpremult=}\emph{val} & If the numeric \emph{val} is nonzero, the
+     pixel values will be ``un-premultipled'' (divided by alpha) prior to
+     the actual color conversion, and then re-multipled by alpha afterwards.
+     The default is 0, meaning the color transformation not will be
+     automatically bracketed by divide-by-alpha / mult-by-alpha operations. \\
 \end{tabular}
 
 This command is only meaningful if OIIO was compiled with OCIO support

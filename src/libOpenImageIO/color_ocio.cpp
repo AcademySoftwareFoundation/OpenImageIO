@@ -1236,6 +1236,13 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                                     roi.chbegin, src, roi, nthreads);
     }
 
+    if (unpremult && src.spec().alpha_channel >= 0 &&
+        src.spec().get_int_attribute("oiio:UnassociatedAlpha") != 0) {
+        // If we appear to be operating on an image that already has
+        // unassociated alpha, don't do a redundant unpremult step.
+        unpremult = false;
+    }
+
     bool ok = true;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "colorconvert", colorconvert_impl,
                                  dst.spec().format, src.spec().format,
