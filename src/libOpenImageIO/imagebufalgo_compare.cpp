@@ -42,6 +42,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/thread.h>
 #include <OpenImageIO/SHA1.h>
 
 
@@ -49,36 +50,39 @@
 OIIO_NAMESPACE_BEGIN
 
 
-inline void
-reset (ImageBufAlgo::PixelStats &p, int nchannels)
+void
+ImageBufAlgo::PixelStats::reset (int nchannels)
 {
     const float inf = std::numeric_limits<float>::infinity();
-    p.min.clear ();          p.min.resize (nchannels, inf);
-    p.max.clear ();          p.max.resize (nchannels, -inf);
-    p.avg.clear ();          p.avg.resize (nchannels);
-    p.stddev.clear ();       p.stddev.resize (nchannels);
-    p.nancount.clear ();     p.nancount.resize (nchannels, 0);
-    p.infcount.clear ();     p.infcount.resize (nchannels, 0);
-    p.finitecount.clear ();  p.finitecount.resize (nchannels, 0);
-    p.sum.clear ();          p.sum.resize (nchannels, 0.0);
-    p.sum2.clear ();         p.sum2.resize (nchannels, 0.0);
+    min.clear ();          min.resize (nchannels, inf);
+    max.clear ();          max.resize (nchannels, -inf);
+    avg.clear ();          avg.resize (nchannels);
+    stddev.clear ();       stddev.resize (nchannels);
+    nancount.clear ();     nancount.resize (nchannels, 0);
+    infcount.clear ();     infcount.resize (nchannels, 0);
+    finitecount.clear ();  finitecount.resize (nchannels, 0);
+    sum.clear ();          sum.resize (nchannels, 0.0);
+    sum2.clear ();         sum2.resize (nchannels, 0.0);
 }
 
 
-inline void
-merge (ImageBufAlgo::PixelStats &sum, const ImageBufAlgo::PixelStats &p)
+
+void
+ImageBufAlgo::PixelStats::merge (const ImageBufAlgo::PixelStats &p)
 {
-    ASSERT (sum.min.size() == p.min.size());
-    for (size_t c = 0, e = sum.min.size(); c < e;  ++c) {
-        sum.min[c] = std::min (sum.min[c], p.min[c]);
-        sum.max[c] = std::max (sum.max[c], p.max[c]);
-        sum.nancount[c] += p.nancount[c];
-        sum.infcount[c] += p.infcount[c];
-        sum.finitecount[c] += p.finitecount[c];
-        sum.sum[c] += p.sum[c];
-        sum.sum2[c] += p.sum2[c];
+    std::lock_guard<OIIO::spin_mutex> lock (mutex);
+    ASSERT (min.size() == p.min.size());
+    for (size_t c = 0, e = min.size(); c < e;  ++c) {
+        min[c] = std::min (min[c], p.min[c]);
+        max[c] = std::max (max[c], p.max[c]);
+        nancount[c] += p.nancount[c];
+        infcount[c] += p.infcount[c];
+        finitecount[c] += p.finitecount[c];
+        sum[c] += p.sum[c];
+        sum2[c] += p.sum2[c];
     }
 }
+
 
 
 inline void
@@ -133,55 +137,43 @@ computePixelStats_ (const ImageBuf &src, ImageBufAlgo::PixelStats &stats,
 
     int nchannels = src.spec().nchannels;
 
-    // Use local storage for smaller batches, then merge the batches
-    // into the final results.  This preserves precision for large
-    // images, where the running total may be too big to incorporate the
-    // contributions of individual pixel values without losing
-    // precision.
-    //
-    // This approach works best when the batch size is the sqrt of
-    // numpixels, which makes the num batches roughly equal to the
-    // number of pixels / batch.
-    ImageBufAlgo::PixelStats tmp;
-    reset (tmp, nchannels);
-    reset (stats, nchannels);
-    
-    int PIXELS_PER_BATCH = std::max (1024,
-            static_cast<int>(sqrt((double)src.spec().image_pixels())));
-    
+    stats.reset (nchannels);
+
     if (src.deep()) {
-        // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<T> s(src, roi); ! s.done();  ++s) {
-            int samples = s.deep_samples();
-            if (! samples)
-                continue;
-            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-                for (int i = 0;  i < samples;  ++i) {
-                    float value = s.deep_value (c, i);
-                    val (tmp, c, value);
-                    if ((tmp.finitecount[c] % PIXELS_PER_BATCH) == 0) {
-                        merge (stats, tmp);
-                        reset (tmp, nchannels);
+        parallel_for_chunked (roi.ybegin, roi.yend, 64,
+                              [&](int id, int64_t ybegin, int64_t yend) {
+            ROI subroi (roi.xbegin, roi.xend, ybegin, yend, roi.zbegin, roi.zend,
+                        roi.chbegin, roi.chend);
+            ImageBufAlgo::PixelStats tmp (nchannels);
+            for (ImageBuf::ConstIterator<T> s(src, subroi); ! s.done();  ++s) {
+                int samples = s.deep_samples();
+                if (! samples)
+                    continue;
+                for (int c = subroi.chbegin;  c < subroi.chend;  ++c) {
+                    for (int i = 0;  i < samples;  ++i) {
+                        float value = s.deep_value (c, i);
+                        val (tmp, c, value);
                     }
                 }
             }
-        }
+            stats.merge (tmp);
+        });
+
     } else {  // Non-deep case
-        // Loop over all pixels ...
-        for (ImageBuf::ConstIterator<T> s(src, roi); ! s.done();  ++s) {
-            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-                float value = s[c];
-                val (tmp, c, value);
-                if ((tmp.finitecount[c] % PIXELS_PER_BATCH) == 0) {
-                    merge (stats, tmp);
-                    reset (tmp, nchannels);
+        parallel_for_chunked (roi.ybegin, roi.yend, 64,
+                              [&](int id, int64_t ybegin, int64_t yend) {
+            ROI subroi (roi.xbegin, roi.xend, ybegin, yend, roi.zbegin, roi.zend,
+                        roi.chbegin, roi.chend);
+            ImageBufAlgo::PixelStats tmp (nchannels);
+            for (ImageBuf::ConstIterator<T> s(src, subroi); ! s.done();  ++s) {
+                for (int c = subroi.chbegin;  c < subroi.chend;  ++c) {
+                    float value = s[c];
+                    val (tmp, c, value);
                 }
             }
-        }
+            stats.merge (tmp);
+        });
     }
-
-    // Merge anything left over
-    merge (stats, tmp);
 
     // Compute final results
     finalize (stats);

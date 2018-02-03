@@ -1154,6 +1154,12 @@ struct OIIO_API PixelStats {
     std::vector<imagesize_t> infcount;
     std::vector<imagesize_t> finitecount;
     std::vector<double> sum, sum2;  // for intermediate calculation
+    OIIO::spin_mutex mutex;   // in case you need to lock it
+
+    PixelStats () {}
+    PixelStats (int nchannels) { reset(nchannels); }
+    void reset (int nchannels);
+    void merge (const PixelStats &p);
 };
 
 
