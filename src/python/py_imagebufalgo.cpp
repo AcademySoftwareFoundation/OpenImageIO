@@ -572,6 +572,47 @@ IBA_mad_float (ImageBuf &dst, const ImageBuf &A, float B, float C,
 }
 
 bool
+IBA_mad_ici (ImageBuf &dst, const ImageBuf &A,
+             py::object Bvalues_tuple, const ImageBuf &C,
+             ROI roi=ROI::All(), int nthreads=0)
+{
+    std::vector<float> Bvalues, Cvalues;
+    py_to_stdvector (Bvalues, Bvalues_tuple);
+    if (roi.defined())
+        Bvalues.resize (roi.nchannels(), 0.0f);
+    else if (A.initialized())
+        Bvalues.resize (A.nchannels(), 0.0f);
+    else return false;
+    ASSERT (Bvalues.size() > 0);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::mad (dst, A, &Bvalues[0], C, roi, nthreads);
+}
+
+bool
+IBA_mad_cii (ImageBuf &dst, py::object Avalues_tuple,
+             const ImageBuf &B, const ImageBuf &C,
+             ROI roi=ROI::All(), int nthreads=0)
+{
+    return IBA_mad_ici (dst, B, Avalues_tuple, C, roi, nthreads);
+}
+
+bool
+IBA_mad_ifi (ImageBuf &dst, const ImageBuf &A, float B, const ImageBuf &C,
+             ROI roi=ROI::All(), int nthreads=0)
+{
+    py::gil_scoped_release gil;
+    std::vector<float> Bvalues (A.nchannels(), B);
+    return ImageBufAlgo::mad (dst, A, &Bvalues[0], C, roi, nthreads);
+}
+
+bool
+IBA_mad_fii (ImageBuf &dst, float A, const ImageBuf &B, const ImageBuf &C,
+             ROI roi=ROI::All(), int nthreads=0)
+{
+    return IBA_mad_ifi (dst, B, A, C, roi, nthreads);
+}
+
+bool
 IBA_mad_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                 const ImageBuf &C, ROI roi=ROI::All(), int nthreads=0)
 {
@@ -1488,6 +1529,14 @@ void declare_imagebufalgo (py::module &m)
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("mad", &IBA_mad_images,
+            "dst"_a, "A"_a, "B"_a, "C"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("mad", &IBA_mad_ifi,
+            "dst"_a, "A"_a, "B"_a, "C"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("mad", &IBA_mad_fii,
+            "dst"_a, "A"_a, "B"_a, "C"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("mad", &IBA_mad_ici,
+            "dst"_a, "A"_a, "B"_a, "C"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("mad", &IBA_mad_cii,
             "dst"_a, "A"_a, "B"_a, "C"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
         .def_static("mad", &IBA_mad_float,
             "dst"_a, "A"_a, "B"_a, "C"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
