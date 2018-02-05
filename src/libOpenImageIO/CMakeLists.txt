@@ -48,7 +48,6 @@ set (libOpenImageIO_srcs
                           imageoutput.cpp iptc.cpp xmp.cpp
                           color_ocio.cpp
                           maketexture.cpp
-                          ../libutil/argparse.cpp
                           ../libutil/benchmark.cpp
                           ../libutil/errorhandler.cpp 
                           ../libutil/filesystem.cpp 
