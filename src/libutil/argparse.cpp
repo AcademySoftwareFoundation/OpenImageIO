@@ -94,13 +94,41 @@ private:
     std::string m_flag;                           // just the -flag_foo part
     std::string m_code;                           // paramter types, eg "df"
     std::string m_descript;
-    OptionType m_type;                    
-    int m_count;                                  // number of parameters
+    OptionType m_type = None;
+    int m_count = 0;                              // number of parameters
     std::vector<void *> m_param;                  // pointers to app data vars
-    callback_t m_callback;
-    int m_repetitions;                            // number of times on cmd line
-    bool m_has_callback;                          // needs a callback?
+    callback_t m_callback = nullptr;
+    int m_repetitions = 0;                        // number of times on cmd line
+    bool m_has_callback = false;                  // needs a callback?
     std::vector<std::string> m_argv;
+};
+
+
+
+class ArgParse::Impl {
+public:
+    int m_argc;                           // a copy of the command line argc
+    const char **m_argv;                  // a copy of the command line argv
+    mutable std::string m_errmessage;     // error message
+    ArgOption *m_global;                  // option for extra cmd line arguments
+    std::string m_intro;
+    std::vector<std::unique_ptr<ArgOption>> m_option;
+    callback_t m_preoption_help = [](const ArgParse& ap, std::ostream&){};
+    callback_t m_postoption_help = [](const ArgParse& ap, std::ostream&){};
+
+    Impl (int argc, const char **argv)
+        : m_argc(argc), m_argv(argv)
+        {}
+
+    int parse (int argc, const char **argv);
+
+    ArgOption *find_option(const char *name);
+    int found (const char *option);      // number of times option was parsed
+
+    template<typename... Args>
+    void error (string_view fmt, const Args&... args) const {
+        m_errmessage = Strutil::format (fmt, args...);
+    }
 };
 
 
@@ -108,8 +136,7 @@ private:
 // Constructor.  Does not do any parsing or error checking.
 // Make sure to call initialize() right after construction.
 ArgOption::ArgOption (const char *str) 
-    : m_format(str), m_type(None), m_count(0),
-      m_callback(NULL), m_repetitions(0), m_has_callback(false)
+    : m_format(str)
 {
 }
 
@@ -317,7 +344,7 @@ ArgOption::add_argument (const char *argv)
 
 
 ArgParse::ArgParse (int argc, const char **argv)
-    : m_argc(argc), m_argv(argv), m_global(NULL)
+    : m_impl(new Impl(argc, argv))
 {
 }
 
@@ -325,9 +352,6 @@ ArgParse::ArgParse (int argc, const char **argv)
 
 ArgParse::~ArgParse()
 {
-    for (auto&& opt : m_option) {
-        delete opt;
-    }
 }
 
 
@@ -341,6 +365,13 @@ ArgParse::~ArgParse()
 // that option are parsed and the associated variables are set.
 int
 ArgParse::parse (int xargc, const char **xargv)
+{
+    return m_impl->parse (xargc, xargv);
+}
+
+
+int
+ArgParse::Impl::parse (int xargc, const char **xargv)
 {
     m_argc = xargc;
     m_argv = xargv;
@@ -410,16 +441,16 @@ ArgParse::options (const char *intro, ...)
     va_list ap;
     va_start (ap, intro);
 
-    m_intro += intro;
+    m_impl->m_intro += intro;
     for (const char *cur = va_arg(ap, char *); cur; cur = va_arg(ap, char *)) {
-        if (find_option (cur) &&
+        if (m_impl->find_option (cur) &&
                 strcmp(cur, "<SEPARATOR>")) {
-            error ("Option \"%s\" is multiply defined", cur);
+            m_impl->error ("Option \"%s\" is multiply defined", cur);
             return -1;
         }
         
         // Build a new option and then parse the values
-        ArgOption *option = new ArgOption (cur);
+        std::unique_ptr<ArgOption> option (new ArgOption (cur));
         if (option->initialize() < 0) {
             return -1;
         }
@@ -427,7 +458,7 @@ ArgParse::options (const char *intro, ...)
         if (cur[0] == '\0' ||
             (cur[0] == '%' && cur[1] == '*' && cur[2] == '\0')) {
             // set default global option
-            m_global = option;
+            m_impl->m_global = option.get();
         }
 
         if (option->has_callback())
@@ -437,13 +468,13 @@ ArgParse::options (const char *intro, ...)
         for (int i = 0; i < option->parameter_count(); i++) {
             void *p = va_arg (ap, void *);
             option->add_parameter (i, p);
-            if (option == m_global)
+            if (option.get() == m_impl->m_global)
                 option->set_callback ((ArgOption::callback_t)p);
         }
 
         // Last argument is description
         option->description ((const char *) va_arg (ap, const char *));
-        m_option.push_back(option);
+        m_impl->m_option.emplace_back (std::move(option));
     }
 
     va_end (ap);
@@ -454,20 +485,19 @@ ArgParse::options (const char *intro, ...)
 
 // Find an option by name in the option vector
 ArgOption *
-ArgParse::find_option (const char *name)
+ArgParse::Impl::find_option (const char *name)
 {
-    for (std::vector<ArgOption *>::const_iterator i = m_option.begin();
-         i != m_option.end(); i++) {
-        const char *opt = (*i)->name().c_str();
-        if (! strcmp(name, opt))
-            return *i;
+    for (auto&& opt : m_option) {
+        const char *optname = opt->name().c_str();
+        if (! strcmp(name, optname))
+            return opt.get();
         // Match even if the user mixes up one dash or two
-        if (name[0] == '-' && name[1] == '-' && opt[0] == '-' && opt[1] != '-')
-            if (! strcmp (name+1, opt))
-                return *i;
-        if (name[0] == '-' && name[1] != '-' && opt[0] == '-' && opt[1] == '-')
-            if (! strcmp (name, opt+1))
-                return *i;
+        if (name[0] == '-' && name[1] == '-' && optname[0] == '-' && optname[1] != '-')
+            if (! strcmp (name+1, optname))
+                return opt.get();
+        if (name[0] == '-' && name[1] != '-' && optname[0] == '-' && optname[1] == '-')
+            if (! strcmp (name, optname+1))
+                return opt.get();
     }
 
     return NULL;
@@ -476,11 +506,10 @@ ArgParse::find_option (const char *name)
 
 
 int
-ArgParse::found (const char *option_name)
+ArgParse::Impl::found (const char *option_name)
 {
     ArgOption *option = find_option(option_name);
-    if (option == NULL) return 0;
-    return option->parsed_count();
+    return option ? 0 : option->parsed_count();
 }
 
 
@@ -488,8 +517,8 @@ ArgParse::found (const char *option_name)
 std::string
 ArgParse::geterror () const
 {
-    std::string e = m_errmessage;
-    m_errmessage.clear ();
+    std::string e = m_impl->m_errmessage;
+    m_impl->m_errmessage.clear ();
     return e;
 }
 
@@ -499,11 +528,11 @@ void
 ArgParse::usage () const
 {
     const size_t longline = 35;
-    std::cout << m_intro << '\n';
-    m_preoption_help (*this, std::cout);
+    std::cout << m_impl->m_intro << '\n';
+    m_impl->m_preoption_help (*this, std::cout);
     size_t maxlen = 0;
     
-    for (auto&& opt : m_option) {
+    for (auto&& opt : m_impl->m_option) {
         size_t fmtlen = opt->fmt().length();
         // Option lists > 40 chars will be split into multiple lines
         if (fmtlen < longline)
@@ -513,7 +542,7 @@ ArgParse::usage () const
     // Try to figure out how wide the terminal is, so we can word wrap.
     int columns = Sysutil::terminal_columns ();
 
-    for (auto&& opt : m_option) {
+    for (auto&& opt : m_impl->m_option) {
         if (opt->description().length()) {
             size_t fmtlen = opt->fmt().length();
             if (opt->is_separator()) {
@@ -528,7 +557,7 @@ ArgParse::usage () const
             }
         }
     }
-    m_postoption_help (*this, std::cout);
+    m_impl->m_postoption_help (*this, std::cout);
 }
 
 
@@ -536,12 +565,12 @@ ArgParse::usage () const
 void
 ArgParse::briefusage () const
 {
-    std::cout << m_intro << '\n';
+    std::cout << m_impl->m_intro << '\n';
     // Try to figure out how wide the terminal is, so we can word wrap.
     int columns = Sysutil::terminal_columns ();
 
     std::string pending;
-    for (auto&& opt : m_option) {
+    for (auto&& opt : m_impl->m_option) {
         if (opt->description().length()) {
             if (opt->is_separator()) {
                 if (pending.size())
@@ -563,18 +592,34 @@ std::string
 ArgParse::command_line () const
 {
     std::string s;
-    for (int i = 0;  i < m_argc;  ++i) {
-        if (strchr (m_argv[i], ' ')) {
+    for (int i = 0;  i < m_impl->m_argc;  ++i) {
+        if (strchr (m_impl->m_argv[i], ' ')) {
             s += '\"';
-            s += m_argv[i];
+            s += m_impl->m_argv[i];
             s += '\"';
         } else {
-            s += m_argv[i];
+            s += m_impl->m_argv[i];
         }
-        if (i < m_argc-1)
+        if (i < m_impl->m_argc-1)
             s += ' ';
     }
     return s;
+}
+
+
+
+void
+ArgParse::set_preoption_help (callback_t callback)
+{
+    m_impl->m_preoption_help = callback;
+}
+
+
+
+void
+ArgParse::set_postoption_help (callback_t callback)
+{
+    m_impl->m_postoption_help = callback;
 }
 
 
