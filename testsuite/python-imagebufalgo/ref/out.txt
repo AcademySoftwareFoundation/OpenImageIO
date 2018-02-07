@@ -92,6 +92,10 @@ Comparing "cmul2.exr" and "../../../../testsuite/oiiotool/ref/cmul2.exr"
 PASS
 Comparing "mad.exr" and "../../../../testsuite/oiiotool/ref/mad.exr"
 PASS
+Comparing "mad2.exr" and "ref/mad2.exr"
+PASS
+Comparing "mad3.exr" and "ref/mad3.exr"
+PASS
 Comparing "cpow1.exr" and "../../../../testsuite/oiiotool/ref/cpow1.exr"
 PASS
 Comparing "cpow2.exr" and "../../../../testsuite/oiiotool/ref/cpow2.exr"

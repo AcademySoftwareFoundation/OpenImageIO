@@ -832,9 +832,9 @@ bool OIIO_API div (ImageBuf &dst, const ImageBuf &A, float B,
 /// more efficient and not require a temporary ImageBuf.
 /// It is permitted for any of dst, A, B, or C to be the same image.
 ///
-/// A is always an ImageBuf. B and C may either both be ImageBuf or both be
-/// arrays of floats (one per channel, for each channel of A),
-/// or both be a single float (same value for all channels).
+/// A is always an ImageBuf. B and C may either be ImageBuf or arrays of
+/// floats (one per channel, for each channel of A), or both be a single
+/// float (same value for all channels).
 ///
 /// If roi is not initialized, it will be set to the union of the pixel
 /// regions of A and B.  If dst is not initialized, it will be sized based
@@ -850,6 +850,12 @@ bool OIIO_API div (ImageBuf &dst, const ImageBuf &A, float B,
 /// message set in dst).
 bool OIIO_API mad (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    const ImageBuf &C, ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API mad (ImageBuf &dst, const ImageBuf &A, const float *B,
+                   const ImageBuf &C, ROI roi=ROI::All(), int nthreads=0);
+inline bool OIIO_API mad (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+                   const float *C, ROI roi=ROI::All(), int nthreads=0) {
+    return mad (dst, A, C, B, roi, nthreads);
+}
 bool OIIO_API mad (ImageBuf &dst, const ImageBuf &A, const float *B,
                    const float *C, ROI roi=ROI::All(), int nthreads=0);
 bool OIIO_API mad (ImageBuf &dst, const ImageBuf &A, float B,
