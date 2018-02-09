@@ -2,7 +2,7 @@
 
 imagedir = parent + "spi-oiio-tests/"
 refdir = imagedir + "ref/"
-refdirlist = [ refdir ]
+refdirlist = [ "ref/", refdir ]
 outputs = [ ]
 
 
@@ -23,7 +23,7 @@ command += oiiotool_and_test ("testFullFrame_2kfa_lg10.0006.dpx",
 # Conversion of linear half exr to vd16 uint16 TIFF
 # at very high resolution used for marketing stills.
 command += oiiotool_and_test ("mkt019_comp_wayn_fullres_s3d_lf_v51_misc_lnh.1001.exr",
-                              "--croptofull --unpremult --colorconvert lnh vd16 --premult --ch R,G,B,A -d uint16",
+                              "--croptofull --colorconvert:unpremult=1 lnh vd16 --ch R,G,B,A -d uint16",
                               "mkt019_comp_wayn_fullres_s3d_lf_v51_alpha_misc_vd16.1001.tif",
                               precommand = "--colorconfig " + imagedir + "ht2.ocio/config.ocio")
 
@@ -58,3 +58,4 @@ command += info_command ("iff_vd8.1001.iff")
 #                              "--iscolorspace lg16 --crop -2,0,2401,911 --fullpixels",
 #                              "dpxoverscan_lg16.dpx")
 
+outputs += [ "out.txt" ]

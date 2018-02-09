@@ -970,15 +970,17 @@ bool OIIO_API rangeexpand (ImageBuf &dst, const ImageBuf &src,
 /// size as specified by roi.  If roi is not defined it will be all
 /// of dst, if dst is defined, or all of src, if dst is not yet defined.
 ///
-/// If unpremult is true, unpremultiply before color conversion, then
-/// premultiply after the color conversion.  You may want to use this
-/// flag if your image contains an alpha channel.
+/// If unpremult is true, divide the RGB channels by alpha (if it exists and
+/// is nonzero) before color conversion, then re-multiply by alpha after the
+/// after the color conversion. Passing unpremult=false skips this step,
+/// which may be desirable if you know that the image is "unassociated alpha"
+/// (a.k.a. "not pre-multiplied colors").
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
                             string_view from, string_view to,
-                            bool unpremult=false,
+                            bool unpremult=true,
                             string_view context_key="",
                             string_view context_value="",
                             ColorConfig *colorconfig=NULL,
@@ -991,9 +993,11 @@ bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
 /// size as specified by roi.  If roi is not defined it will be all
 /// of dst, if dst is defined, or all of src, if dst is not yet defined.
 ///
-/// If unpremult is true, unpremultiply before color conversion, then
-/// premultiply after the color conversion.  You may want to use this
-/// flag if your image contains an alpha channel.
+/// If unpremult is true, divide the RGB channels by alpha (if it exists and
+/// is nonzero) before color conversion, then re-multiply by alpha after the
+/// after the color conversion. Passing unpremult=false skips this step,
+/// which may be desirable if you know that the image is "unassociated alpha"
+/// (a.k.a. "not pre-multiplied colors").
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
@@ -1029,7 +1033,7 @@ bool OIIO_API colorconvert (float *color, int nchannels,
 /// message set in dst).
 bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
                         string_view looks, string_view from, string_view to,
-                        bool unpremult=false, bool inverse=false,
+                        bool unpremult=true, bool inverse=false,
                         string_view key="", string_view value="",
                         ColorConfig *colorconfig=NULL,
                         ROI roi=ROI::All(), int nthreads=0);
@@ -1038,23 +1042,25 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src,
 /// "display" transform.  If from or looks are NULL, it will not
 /// override the look or source color space (subtly different than
 /// passing "", the empty string, which means to use no look or source
-/// space).
+/// space). If inverse is true, it will reverse the color transformation.
 ///
 /// If dst is not yet initialized, it will be allocated to the same
 /// size as specified by roi.  If roi is not defined it will be all
 /// of dst, if dst is defined, or all of src, if dst is not yet defined.
 /// In-place operations (dst == src) are supported.
 ///
-/// If unpremult is true, unpremultiply before color conversion, then
-/// premultiply after the color conversion.  You may want to use this
-/// flag if your image contains an alpha channel.
+/// If unpremult is true, divide the RGB channels by alpha (if it exists and
+/// is nonzero) before color conversion, then re-multiply by alpha after the
+/// after the color conversion. Passing unpremult=false skips this step,
+/// which may be desirable if you know that the image is "unassociated alpha"
+/// (a.k.a. "not pre-multiplied colors").
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
                         string_view display, string_view view,
                         string_view from="", string_view looks="",
-                        bool unpremult=false,
+                        bool unpremult=true,
                         string_view key="", string_view value="",
                         ColorConfig *colorconfig=NULL,
                         ROI roi=ROI::All(), int nthreads=0);
@@ -1067,15 +1073,17 @@ bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
 /// size as specified by roi.  If roi is not defined it will be all
 /// of dst, if dst is defined, or all of src, if dst is not yet defined.
 ///
-/// If unpremult is true, unpremultiply before color conversion, then
-/// premultiply after the color conversion.  You may want to use this
-/// flag if your image contains an alpha channel. 
+/// If unpremult is true, divide the RGB channels by alpha (if it exists and
+/// is nonzero) before color conversion, then re-multiply by alpha after the
+/// after the color conversion. Passing unpremult=false skips this step,
+/// which may be desirable if you know that the image is "unassociated alpha"
+/// (a.k.a. "not pre-multiplied colors").
 ///
 /// Return true on success, false on error (with an appropriate error
 /// message set in dst).
 bool OIIO_API ociofiletransform (ImageBuf &dst, const ImageBuf &src,
                                  string_view name,
-                                 bool unpremult=false, bool inverse=false,
+                                 bool unpremult=true, bool inverse=false,
                                  ColorConfig *colorconfig=NULL,
                                  ROI roi=ROI::All(), int nthreads=0);
 

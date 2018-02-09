@@ -43,6 +43,12 @@ Public API changes:
   only be used to pass into certain IBA functions). The color space names
   "rgb" and "default" are now understood to be synonyms for the default
   "linear" color space. #1788 (1.9.0)
+* `ImageBufAlgo::colorconvert` and various `ocio` transformations have
+  changed the default value of their `unpremult` parameter from `false` to
+  `true`, reflecting the fact that we believe this is almost always the more
+  correct choice. Also, if their input image is clearly marked as having
+  unasociated alpha already, they will not bracket the color conversion with
+  the requested unpremult/premult. #1864 (1.9.2)
 * Remove long-deprecated API calls:
     * ImageBuf::get_pixels/get_pixel_channels varieties deprecated since 1.6.
     * ImageBuf::set_deep_value_uint, deprecated since 1.7.
@@ -68,6 +74,16 @@ Fixes, minor enhancements, and performance improvements:
        look good converted to greyscale, and usable by people with color
        blindness. #1820 (1.9.2)
     * oiiotool no longer enables autotile by default. #1856 (1.9.2)
+    * `--colorconvert`, `--tocolorspace`, and all of the `--ocio` commands
+      now take an optional modifier `:unpremult=1` which causes the color
+      conversion to be internally bracketed by unpremult/premult steps (if
+      the image has alpha and is not already marked as having unassociated
+      alpha). You should therefore prefer `--colorconvert:unpremult=1 from to`
+      rather than the more complex `--unpremult --colorconvert from to -premult`.
+      #1864 (1.9.2)
+    * `--autocc` will also cause unpremult/premult to bracket any color
+      transformations it does automatically for read and write (if the image
+      has alpha and does not appear to already be unassociated). #1864 (1.9.2)
 * ImageBufAlgo:
     * `color_map()` new  maps "inferno", "magma", "plasma", "viridis".
        #1820 (1.9.2)
