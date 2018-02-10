@@ -1,0 +1,18 @@
+Comparing "colormap-inferno.tif" and "ref/colormap-inferno.tif"
+PASS
+Comparing "colormap-custom.tif" and "ref/colormap-custom.tif"
+PASS
+Comparing "unpremult.exr" and "ref/unpremult.exr"
+PASS
+Comparing "premult.exr" and "ref/premult.exr"
+PASS
+Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
+PASS
+Comparing "greyalpha_sRGB.tif" and "ref/greyalpha_sRGB.tif"
+PASS
+Comparing "greyalpha_Cineon.tif" and "ref/greyalpha_Cineon.tif"
+PASS
+Comparing "greyalpha_sRGB_un.tif" and "ref/greyalpha_sRGB_un.tif"
+PASS
+Comparing "greyalpha_Cineon_un.tif" and "ref/greyalpha_Cineon_un.tif"
+PASS

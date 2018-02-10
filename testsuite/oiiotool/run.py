@@ -79,12 +79,6 @@ command += oiiotool ("negpos.exr -absdiffc 0.2,0.2,0.2 -d half -o absdiffc.exr")
 command += oiiotool ("src/tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
             + "-d uint8 -o chsum.tif")
 
-# test --colormap
-command += oiiotool ("--autocc src/tahoe-tiny.tif --colormap inferno "
-            + "-d uint8 -o colormap-inferno.tif")
-command += oiiotool ("--autocc src/tahoe-tiny.tif --colormap .25,.25,.25,0,.5,0,1,0,0 "
-            + "-d uint8 -o colormap-custom.tif")
-
 # test histogram generation
 command += oiiotool ("ref/histogram_input.png --histogram 256x256 0 "
             + "-o histogram_regular.tif")
@@ -149,13 +143,6 @@ command += oiiotool ("-pattern checker 64x64+32+32 3 -ch R,G,B,A=1.0 -fullsize 1
 # test clamping
 command += oiiotool (parent + "/oiio-images/grid.tif --resize 50%"
             + " --clamp:min=0.2:max=,,0.5,1 -o grid-clamped.tif")
-
-# test unpremult/premult
-command += oiiotool ("--pattern constant:color=.1,.1,.1,1 100x100 4 " 
-            + " --fill:color=.2,.2,.2,.5 30x30+50+50 "
-            + " -d half -o premulttarget.exr")
-command += oiiotool ("premulttarget.exr --unpremult -o unpremult.exr")
-command += oiiotool ("unpremult.exr --premult -o premult.exr")
 
 # test kernel
 command += oiiotool ("--kernel bspline 15x15 -o bsplinekernel.exr")
@@ -231,9 +218,6 @@ command += oiiotool ("src/tahoe-small.tif -cut '{TOP.width-20* 2}x{TOP.height-40
 command += oiiotool ("src/tahoe-small.tif -o exprstrcat{TOP.compression}.tif")
 command += oiiotool ("src/tahoe-tiny.tif -subc '{TOP.MINCOLOR}' -divc '{TOP.MAXCOLOR}' -o tahoe-contraststretch.tif")
 
-# test --no-autopremult on a TGA file thet needs it.
-command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png")
-
 # test --iconfig
 command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig! 1 black.tif")
 
@@ -269,13 +253,11 @@ outputs = [
             "cpow1.exr", "cpow2.exr",
             "abs.exr", "absdiff.exr", "absdiffc.exr",
             "chsum.tif",
-            "colormap-inferno.tif", "colormap-custom.tif",
             "rgbahalf-zfloat.exr",
             "tahoe-filled.tif", "growholes.tif",
             "rangecompress.tif", "rangeexpand.tif",
             "rangecompress-luma.tif", "rangeexpand-luma.tif",
             "grid-clamped.tif",
-            "unpremult.exr", "premult.exr",
             "bsplinekernel.exr", "bspline-blur.tif",
             "gauss5x5-blur.tif", "tahoe-median.tif",
             "dilate.tif", "erode.tif",
@@ -285,7 +267,6 @@ outputs = [
             "labeladd.exr",
             "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
             "tahoe-contraststretch.tif",
-            "rgbfromtga.png",
             "const5-rgb.tif",
             "out.txt" ]
 

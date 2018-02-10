@@ -45,6 +45,7 @@ refdir = "ref/"
 refdirlist = [ refdir ]
 parent = "../../../../../"
 test_source_dir = "../../../../testsuite/" + os.path.basename(os.path.abspath(srcdir))
+colorconfig_file = "../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio"
 
 command = ""
 outputs = [ "out.txt" ]    # default
@@ -241,7 +242,9 @@ def testtex_command (file, extraargs="") :
 
 # Construct a command that will run oiiotool and append its output to out.txt
 def oiiotool (args, silent=False, concat=True) :
-    cmd = (oiio_app("oiiotool") + " " + args)
+    cmd = (oiio_app("oiiotool") + " "
+           + "-colorconfig " + colorconfig_file + " "
+           + args)
     if not silent :
         cmd += " >> out.txt"
     if concat:

@@ -6,6 +6,7 @@ imagedir = parent + "oiio-images"
 
 refdirlist = [
     "../../../../testsuite/oiiotool/ref/",
+    "../../../../testsuite/oiiotool-color/ref/",
     "../../../../testsuite/oiiotool-composite/ref/",
     "../../../../testsuite/oiiotool-fixnan/ref/",
     "../../../../testsuite/oiiotool-deep/ref/",

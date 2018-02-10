@@ -229,8 +229,7 @@ add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_BINARY_DIR}/testsuite/runtest
 # Basic tests that apply even to continuous integration tests:
 oiio_add_tests (
                 gpsread misnamed-file nonwhole-tiles
-                oiiotool oiiotool-attribs
-                oiiotool-composite oiiotool-copy
+                oiiotool oiiotool-attribs oiiotool-composite oiiotool-copy
                 oiiotool-deep oiiotool-fixnan
                 oiiotool-pattern oiiotool-readerror
                 oiiotool-subimage oiiotool-text oiiotool-xform
@@ -274,6 +273,10 @@ if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
     endif ()
 endif ()
 
+# Add tests that require OCIO
+if (USE_OCIO AND OCIO_FOUND)
+    oiio_add_tests (oiiotool-color)
+endif ()
 
 # Advanced tests that are done by hand and for releases:
 # FIXME -- at some point, try to fix these or provide new ref images

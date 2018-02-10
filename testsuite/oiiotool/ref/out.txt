@@ -132,10 +132,6 @@ Comparing "absdiffc.exr" and "ref/absdiffc.exr"
 PASS
 Comparing "chsum.tif" and "ref/chsum.tif"
 PASS
-Comparing "colormap-inferno.tif" and "ref/colormap-inferno.tif"
-PASS
-Comparing "colormap-custom.tif" and "ref/colormap-custom.tif"
-PASS
 Comparing "rgbahalf-zfloat.exr" and "ref/rgbahalf-zfloat.exr"
 PASS
 Comparing "tahoe-filled.tif" and "ref/tahoe-filled.tif"
@@ -151,10 +147,6 @@ PASS
 Comparing "rangeexpand-luma.tif" and "ref/rangeexpand-luma.tif"
 PASS
 Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
-PASS
-Comparing "unpremult.exr" and "ref/unpremult.exr"
-PASS
-Comparing "premult.exr" and "ref/premult.exr"
 PASS
 Comparing "bsplinekernel.exr" and "ref/bsplinekernel.exr"
 PASS
@@ -191,8 +183,6 @@ PASS
 Comparing "exprstrcatlzw.tif" and "ref/exprstrcatlzw.tif"
 PASS
 Comparing "tahoe-contraststretch.tif" and "ref/tahoe-contraststretch.tif"
-PASS
-Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
 PASS
 Comparing "const5-rgb.tif" and "ref/const5-rgb.tif"
 PASS
