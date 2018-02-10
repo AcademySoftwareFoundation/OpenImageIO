@@ -262,6 +262,9 @@ public:
     /// ColorConfig::parseColorSpaceFromString.)
     string_view parseColorSpaceFromString (string_view str) const;
 
+    /// Return a filename or other identifier for the config we're using.
+    std::string configname () const;
+
     // DEPRECATED(1.9) -- no longer necessary, because it's a shared ptr
     static void deleteColorProcessor(const ColorProcessorHandle& processor) {}
 

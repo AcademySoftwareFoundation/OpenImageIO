@@ -4974,6 +4974,7 @@ print_help_end (const ArgParse &ap, std::ostream &out)
 
     // debugging color space names
     std::stringstream s;
+    s << "Color configuration: " << ot.colorconfig.configname() << "\n";
     s << "Known color spaces: ";
     const char *linear = ot.colorconfig.getColorSpaceNameByRole("linear");
     for (int i = 0, e = ot.colorconfig.getNumColorSpaces();  i < e;  ++i) {
