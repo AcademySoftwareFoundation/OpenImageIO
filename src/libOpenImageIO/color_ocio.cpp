@@ -1144,84 +1144,115 @@ colorconvert_impl (ImageBuf &R, const ImageBuf &A,
                    ROI roi, int nthreads)
 {
     using namespace ImageBufAlgo;
-    parallel_image (roi, parallel_image_options(nthreads), [&](ROI roi){
+    using namespace simd;
+    // Only process up to, and including, the first 4 channels.  This
+    // does let us process images with fewer than 4 channels, which is
+    // the intent.
+    int channelsToCopy = std::min (4, roi.nchannels());
+    if (channelsToCopy < 4)
+        unpremult = false;
+    parallel_image (roi, parallel_image_options(nthreads),
+                    [&,unpremult,channelsToCopy,processor](ROI roi){
         int width = roi.width();
         // Temporary space to hold one RGBA scanline
-        std::vector<float> scanline(width*4, 0.0f);
-
-        // Only process up to, and including, the first 4 channels.  This
-        // does let us process images with fewer than 4 channels, which is
-        // the intent.
-        // FIXME: Instead of loading the first 4 channels, obey
-        //        Rspec.alpha_channel index (but first validate that the
-        //        index is set properly for normal formats)
-
-        int channelsToCopy = std::min (4, roi.nchannels());
-
-        // Walk through all data in our buffer. (i.e., crop or overscan)
-        // FIXME: What about the display window?  Should this actually promote
-        // the datawindow to be union of data + display? This is useful if
-        // the color of black moves.  (In which case non-zero sections should
-        // now be promoted).  Consider the lin->log of a roto element, where
-        // black now moves to non-black.
-        float * dstPtr = NULL;
+        vfloat4 *scanline = OIIO_ALLOCA (vfloat4, width);
+        vfloat4 *alpha = OIIO_ALLOCA (vfloat4, width);
         const float fltmin = std::numeric_limits<float>::min();
-
-        // If the processor has crosstalk, and we'll be using it, we should
-        // reset the channels to 0 before loading each scanline.
-        bool clearScanline = (channelsToCopy<4 &&
-                              (processor->hasChannelCrosstalk() || unpremult));
-
         ImageBuf::ConstIterator<Atype> a (A, roi);
         ImageBuf::Iterator<Rtype> r (R, roi);
         for (int k = roi.zbegin; k < roi.zend; ++k) {
             for (int j = roi.ybegin; j < roi.yend; ++j) {
-                // Clear the scanline
-                if (clearScanline)
-                    memset (&scanline[0], 0, sizeof(float)*scanline.size());
-
                 // Load the scanline
-                dstPtr = &scanline[0];
                 a.rerange (roi.xbegin, roi.xend, j, j+1, k, k+1);
-                for ( ; !a.done(); ++a, dstPtr += 4)
+                for (int i = 0; !a.done(); ++a, ++i) {
+                    vfloat4 v (0.0f);
                     for (int c = 0; c < channelsToCopy; ++c)
-                        dstPtr[c] = a[c];
+                        v[c] = a[c];
+                    scanline[i] = v;
+                }
 
                 // Optionally unpremult
-                if ((channelsToCopy >= 4) && unpremult) {
+                if (unpremult) {
                     for (int i = 0; i < width; ++i) {
-                        float alpha = scanline[4*i+3];
-                        if (alpha > fltmin) {
-                            scanline[4*i+0] /= alpha;
-                            scanline[4*i+1] /= alpha;
-                            scanline[4*i+2] /= alpha;
-                        }
+                        // float alpha = scanline[i][3];
+                        vfloat4 a = shuffle<3>(scanline[i]);
+                        a = select (a >= fltmin, a, vfloat4::One());
+                        alpha[i] = a;
+                        scanline[i] *= rcp_fast(a);
                     }
                 }
 
                 // Apply the color transformation in place
-                processor->apply (&scanline[0], width, 1, 4,
+                processor->apply ((float *)&scanline[0], width, 1, 4,
                                   sizeof(float), 4*sizeof(float),
                                   width*4*sizeof(float));
 
-                // Optionally premult
-                if ((channelsToCopy >= 4) && unpremult) {
-                    for (int i = 0; i < width; ++i) {
-                        float alpha = scanline[4*i+3];
-                        if (alpha > fltmin) {
-                            scanline[4*i+0] *= alpha;
-                            scanline[4*i+1] *= alpha;
-                            scanline[4*i+2] *= alpha;
-                        }
-                    }
+                // Optionally re-premult
+                if (unpremult) {
+                    for (int i = 0; i < width; ++i)
+                        scanline[i] *= alpha[i];
                 }
 
                 // Store the scanline
-                dstPtr = &scanline[0];
+                float *dstPtr = (float *)&scanline[0];
                 r.rerange (roi.xbegin, roi.xend, j, j+1, k, k+1);
                 for ( ; !r.done(); ++r, dstPtr += 4)
                     for (int c = 0; c < channelsToCopy; ++c)
                         r[c] = dstPtr[c];
+            }
+        }
+    });
+    return true;
+}
+
+
+
+// Specialized version where both buffers are in memory (not cache based),
+// float data, and we are dealing with 4 channels.
+static bool
+colorconvert_impl_float_rgba (ImageBuf &R, const ImageBuf &A,
+                   const ColorProcessor* processor, bool unpremult,
+                   ROI roi, int nthreads)
+{
+    using namespace ImageBufAlgo;
+    using namespace simd;
+    ASSERT (R.localpixels() && A.localpixels() &&
+            R.spec().format == TypeFloat && A.spec().format == TypeFloat &&
+            R.nchannels() == 4 && A.nchannels() == 4);
+    parallel_image (roi, parallel_image_options(nthreads), [&](ROI roi){
+        // int Rchans = R.nchannels();
+        // int Achans = A.nchannels();
+        int width = roi.width();
+        // Temporary space to hold one RGBA scanline
+        vfloat4 *scanline = OIIO_ALLOCA (vfloat4, width);
+        vfloat4 *alpha = OIIO_ALLOCA (vfloat4, width);
+        const float fltmin = std::numeric_limits<float>::min();
+        for (int k = roi.zbegin; k < roi.zend; ++k) {
+            for (int j = roi.ybegin; j < roi.yend; ++j) {
+                // Load the scanline
+                memcpy (scanline, A.pixeladdr (roi.xbegin, j, k), width*4*sizeof(float));
+                // Optionally unpremult
+                if (unpremult) {
+                    for (int i = 0; i < width; ++i) {
+                        vfloat4 p (scanline[i]);
+                        vfloat4 a = shuffle<3>(p);
+                        a = select (a >= fltmin, a, vfloat4::One());
+                        alpha[i] = a;
+                        scanline[i] = p * rcp_fast(a);
+                    }
+                }
+
+                // Apply the color transformation in place
+                processor->apply ((float *)&scanline[0], width, 1, 4,
+                                  sizeof(float), 4*sizeof(float),
+                                  width*4*sizeof(float));
+
+                // Optionally premult
+                if (unpremult) {
+                    for (int i = 0; i < width; ++i)
+                        scanline[i] *= alpha[i];
+                }
+                memcpy (R.pixeladdr (roi.xbegin, j, k), scanline, width*4*sizeof(float));
             }
         }
     });
@@ -1262,6 +1293,13 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
         // If we appear to be operating on an image that already has
         // unassociated alpha, don't do a redundant unpremult step.
         unpremult = false;
+    }
+
+    if (dst.localpixels() && src.localpixels() &&
+          dst.spec().format == TypeFloat && src.spec().format == TypeFloat &&
+          dst.nchannels() == 4 && src.nchannels() == 4) {
+        return colorconvert_impl_float_rgba (dst, src, processor,
+                                             unpremult, roi, nthreads);
     }
 
     bool ok = true;
