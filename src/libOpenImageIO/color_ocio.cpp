@@ -38,6 +38,7 @@
 #include <OpenEXR/half.h>
 
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -140,6 +141,7 @@ private:
     ColorProcessorMap colorprocmap;  // cache of ColorProcessors
     atomic_int colorprocs_requested;
     atomic_int colorprocs_created;
+    std::string m_configname;
 
 public:
     Impl() { }
@@ -214,6 +216,9 @@ public:
         spin_rw_write_lock lock (m_mutex);
         m_error.clear();
     }
+
+    const std::string& configname () const { return m_configname; }
+    void configname (string_view name) { m_configname = name; }
 };
 
 
@@ -280,8 +285,12 @@ ColorConfig::reset (string_view filename)
     try {
         if (filename.empty()) {
             getImpl()->config_ = OCIO::GetCurrentConfig();
+            string_view ocioenv = Sysutil::getenv ("OCIO");
+            if (ocioenv.size())
+                getImpl()->configname (ocioenv);
         } else {
             getImpl()->config_ = OCIO::Config::CreateFromFile (filename.c_str());
+            getImpl()->configname (filename);
         }
     }
     catch(OCIO::Exception &e) {
@@ -481,6 +490,18 @@ ColorConfig::getDefaultViewName(string_view display) const
         return getImpl()->config_->getDefaultView(display.c_str());
 #endif
     return NULL;
+}
+
+
+
+std::string
+ColorConfig::configname () const
+{
+#ifdef USE_OCIO
+    if (getImpl()->config_)
+        return getImpl()->configname();
+#endif
+    return "built-in";
 }
 
 

@@ -89,6 +89,7 @@ Fixes and feature enhancements:
     * `--autocc` will also cause unpremult/premult to bracket any color
       transformations it does automatically for read and write (if the image
       has alpha and does not appear to already be unassociated). #1864 (1.9.2)
+    * `--help` prints the name of the OCIO color config file. #1869 (1.9.2)
 * ImageBufAlgo:
     * `color_map()` new  maps "inferno", "magma", "plasma", "viridis".
       #1820 (1.9.2)
