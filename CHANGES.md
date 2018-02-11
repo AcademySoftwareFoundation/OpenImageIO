@@ -57,7 +57,12 @@ Public API changes:
     * ImageCache::clear, deprecated since 1.7.
     * ImageCache::add_tile variety deprecated since 1.6.
 
-Fixes, minor enhancements, and performance improvements:
+Performance improvements:
+* ImageBufAlgo::computePixelStats is now multithreaded and should improve by
+  a large factor when running on a machine with many cores. This is
+  particularly noticable for maketx. #1852 (1.9.2)
+
+Fixes and feature enhancements:
 * oiiotool
     * Improved logic for propagating the pixel data format through
       multiple operations, especially for files with multiple subimages.
@@ -70,9 +75,9 @@ Fixes, minor enhancements, and performance improvements:
     * `--help` prints important usage tips that explain command parsing,
       syntax of optional modifiers, and the path to PDF docs. #1811 (1.9.2)
     * `--colormap` has new  maps "inferno", "magma", "plasma", "viridis",
-       which are perceptually uniform, monotonically increasing luminance,
-       look good converted to greyscale, and usable by people with color
-       blindness. #1820 (1.9.2)
+      which are perceptually uniform, monotonically increasing luminance,
+      look good converted to greyscale, and usable by people with color
+      blindness. #1820 (1.9.2)
     * oiiotool no longer enables autotile by default. #1856 (1.9.2)
     * `--colorconvert`, `--tocolorspace`, and all of the `--ocio` commands
       now take an optional modifier `:unpremult=1` which causes the color
@@ -86,9 +91,11 @@ Fixes, minor enhancements, and performance improvements:
       has alpha and does not appear to already be unassociated). #1864 (1.9.2)
 * ImageBufAlgo:
     * `color_map()` new  maps "inferno", "magma", "plasma", "viridis".
-       #1820 (1.9.2)
+      #1820 (1.9.2)
     * Across many functions, improve channel logic when combining an image
       with alpha with another image without alpha. #1827 (1.9.2)
+    * `mad()` now takes an `img*color+img` variety. (Previously it
+       supported `img*img+img` and `img*color+color`.) #1866 (1.9.2)
 * ImageBuf:
     * Bug fixed in IB::copy() of rare types. #1829 (1.9.2)
 * ImageCache/TextureSystem/maketx:
@@ -108,8 +115,6 @@ Fixes, minor enhancements, and performance improvements:
   that take an ROI to describe the region. #1802 (1.9.2)
 * More robust parsing of XMP metadata for unknown metadata names.
   #1816 (1.9.2/1.8.7)
-* All string->numeric parsing and numeric->string formatting is now
-  locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
 * Field3d: Prevent crashes when open fails. #1848 (1.9.2/1.8.8)
 * OpenEXR: gracefully detect and reject files with subsampled channels,
   which is a rarely-to-never-used OpenEXR feature that we don't support
@@ -154,7 +159,10 @@ Build/test system improvements:
   #1860 (1.9.2/1.8.8)
 
 Developer goodies / internals:
-* argparse.h: Add pre- and post-option help printing callbacks. #1811 (1.9.2)
+* argparse.h:
+    * Add pre- and post-option help printing callbacks. #1811 (1.9.2)
+    * Changed to PIMPL to hide implementation from the public headers.
+      Also modernized internals, no raw new/delete. #1858 (1.9.2)
 * array_view.h: added begin(), end(), cbegin(), cend() methods, and new
   constructors from pointer pairs and from std::array. (1.9.0/1.8.6)
 * fmath.h: Now defines preprocessor symbol `OIIO_FMATH_H` so other files can
