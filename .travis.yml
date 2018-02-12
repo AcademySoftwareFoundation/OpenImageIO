@@ -80,6 +80,9 @@ install:
           export ILMBASE_HOME=$PWD/openexr-install ;
           export OPENEXR_HOME=$PWD/openexr-install ;
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENEXR_HOME/lib ;
+          CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_ocio.bash ;
+          export OCIO_PATH=$PWD/ext/OpenColorIO/dist ;
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OCIO_PATH/lib ;
       fi
     - src/build-scripts/install_test_images.bash
 
