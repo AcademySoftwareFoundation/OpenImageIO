@@ -134,12 +134,6 @@ if (OpenCV_FOUND)
     target_link_libraries (OpenImageIO ${OpenCV_LIBS})
 endif ()
 
-# Include OpenSSL if using it
-if (OPENSSL_FOUND)
-    include_directories (${OPENSSL_INCLUDE_DIR})
-    target_link_libraries (OpenImageIO ${OPENSSL_LIBRARIES})
-endif ()
-
 # Include Freetype if using it
 if (FREETYPE_FOUND)
     include_directories (${FREETYPE_INCLUDE_DIRS})
