@@ -69,6 +69,9 @@ ifeq (${SP_OS}, rhel7)
     else ifeq (${COMPILER},clang5)
 	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_5.0.1_rc2
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
+    else ifeq (${COMPILER},clang6)
+	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_6.0.0_rc2
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER}, gcc490)
