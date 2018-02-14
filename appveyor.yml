@@ -59,7 +59,7 @@ install:
   - cd IlmBase
   - mkdir build
   - cd build
-  - cmake -G "%CMAKE_PLATFORM%" --config Release -DCMAKE_CXX_FLAGS=/W0 -DCMAKE_INSTALL_PREFIX=C:/Sys ..
+  - cmake -G "%CMAKE_PLATFORM%" --config Release -DCMAKE_CXX_FLAGS="/W0 /EHsc" -DCMAKE_INSTALL_PREFIX=C:/Sys ..
   - cmake --build . --config Release
   - cmake --build . --config Release --target install
   - dir C:\Sys
@@ -76,7 +76,7 @@ install:
   - 7z x -oIlmImf "%APPVEYOR_BUILD_FOLDER%/src/build-scripts/b44ExpLogTable.h.zip"
   - 7z x -oIlmImf "%APPVEYOR_BUILD_FOLDER%/src/build-scripts/dwaLookups.h.zip"
   - dir IlmImf
-  - cmake -G "%CMAKE_PLATFORM%" --config Release -DCMAKE_CXX_FLAGS=/W0 -DCMAKE_INSTALL_PREFIX=C:/Sys -DCMAKE_PREFIX_PATH=c:/sys -DILMBASE_PACKAGE_PREFIX=c:/sys -DBUILD_UTILS=0 -DBUILD_TESTS=0 ..
+  - cmake -G "%CMAKE_PLATFORM%" --config Release -DCMAKE_CXX_FLAGS="/W0 /EHsc" -DCMAKE_INSTALL_PREFIX=C:/Sys -DCMAKE_PREFIX_PATH=c:/sys -DILMBASE_PACKAGE_PREFIX=c:/sys -DBUILD_UTILS=0 -DBUILD_TESTS=0 ..
   - cmake --build . --config Release
   - cmake --build . --config Release --target install
   - cd ../../..
