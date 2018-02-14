@@ -180,7 +180,7 @@ OIIO_API size_t tiff_data_size (const TIFFDirEntry &dir);
 /// could include a nonsensical situation where the TIFFDirEntry seems to
 /// point outside the data arena.
 OIIO_API array_view<const uint8_t>
-OIIO_API tiff_dir_data (const TIFFDirEntry &td, array_view<const uint8_t> data);
+tiff_dir_data (const TIFFDirEntry &td, array_view<const uint8_t> data);
 
 /// Decode a raw Exif data block and save all the metadata in an
 /// ImageSpec.  Return true if all is ok, false if the exif block was
