@@ -59,11 +59,13 @@ endmacro ()
 
 # Generic search paths
 set (OpenJpeg_include_paths
+     /usr/local/include/openjpeg-2.3
      /usr/local/include/openjpeg-2.2
      /usr/local/include/openjpeg-2.1
      /usr/local/include/openjpeg-2.0
      /usr/local/include/openjpeg
      /usr/local/include
+     /usr/include/openjpeg-2.3
      /usr/include/openjpeg-2.2
      /usr/include/openjpeg-2.1
      /usr/include/openjpeg-1.5
@@ -87,6 +89,7 @@ if (OPENJPEG_HOME)
        ${OpenJpeg_library_paths}
       )
   set (OpenJpeg_include_paths
+       ${OPENJPEG_HOME}/include/openjpeg-2.3
        ${OPENJPEG_HOME}/include/openjpeg-2.2
        ${OPENJPEG_HOME}/include/openjpeg-2.1
        ${OPENJPEG_HOME}/include/openjpeg-2.0
