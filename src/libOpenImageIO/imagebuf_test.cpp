@@ -34,6 +34,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/unittest.h>
+#include <OpenImageIO/benchmark.h>
 
 #include <iostream>
 
@@ -290,6 +291,40 @@ test_set_get_pixels ()
 
 
 void
+time_get_pixels ()
+{
+    std::cout << "\nTesting set_pixels, get_pixels:\n";
+    Benchmarker bench;
+    const int nchans = 4;
+    const int xres = 2000, yres = 1000;
+    ImageBuf A (ImageSpec (xres, yres, nchans, TypeDesc::FLOAT));
+    ImageBufAlgo::zero (A);
+
+    // bench.work (size_t(xres*yres*nchans));
+    std::unique_ptr<float[]> fbuf (new float[xres*yres*nchans]);
+    bench ("get_pixels 1Mpelx4 float[4]->float[4] ", [&](){
+              A.get_pixels (A.roi(), TypeFloat, fbuf.get());
+           });
+    bench ("get_pixels 1Mpelx4 float[4]->float[3] ", [&](){
+              ROI roi3 = A.roi();
+              roi3.chend = 3;
+              A.get_pixels (roi3, TypeFloat, fbuf.get());
+           });
+
+    std::unique_ptr<uint8_t[]> ucbuf (new uint8_t[xres*yres*nchans]);
+    bench ("get_pixels 1Mpelx4 float[4]->uint8[4] ", [&](){
+              A.get_pixels (A.roi(), TypeUInt8, ucbuf.get());
+           });
+
+    std::unique_ptr<uint16_t[]> usbuf (new uint16_t[xres*yres*nchans]);
+    bench ("get_pixels 1Mpelx4 float[4]->uint16[4] ", [&](){
+              A.get_pixels (A.roi(), TypeUInt8, usbuf.get());
+           });
+}
+
+
+
+void
 test_read_channel_subset ()
 {
     std::cout << "\nTesting reading a channel subset\n";
@@ -343,6 +378,7 @@ main (int argc, char **argv)
     test_read_channel_subset ();
 
     test_set_get_pixels ();
+    time_get_pixels ();
 
     Filesystem::remove ("A_imagebuf_test.tif");
     return unit_test_failures;
