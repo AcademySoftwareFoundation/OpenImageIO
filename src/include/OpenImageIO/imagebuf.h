@@ -598,6 +598,13 @@ public:
     void *localpixels ();
     const void *localpixels () const;
 
+    /// Pixel-to-pixel stride within the localpixels memory.
+    stride_t pixel_stride () const;
+    /// Scanline-to-scanline stride within the localpixels memory.
+    stride_t scanline_stride () const;
+    /// Z plane stride within the localpixels memory.
+    stride_t z_stride () const;
+
     /// Are the pixels backed by an ImageCache, rather than the whole
     /// image being in RAM somewhere?
     bool cachedpixels () const;

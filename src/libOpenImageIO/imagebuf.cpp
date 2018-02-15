@@ -1293,6 +1293,42 @@ ImageBuf::localpixels () const
 
 
 
+stride_t
+ImageBuf::pixel_stride () const
+{
+    // FIXME -- we should cache this value
+    if (impl()->m_localpixels)
+        return impl()->m_spec.pixel_bytes();
+    else
+        return 0;
+}
+
+
+
+stride_t
+ImageBuf::scanline_stride () const
+{
+    // FIXME -- we should cache this value
+    if (impl()->m_localpixels)
+        return impl()->m_spec.scanline_bytes();
+    else
+        return 0;
+}
+
+
+
+stride_t
+ImageBuf::z_stride () const
+{
+    // FIXME -- we should cache this value
+    if (impl()->m_localpixels)
+        return impl()->m_spec.scanline_bytes() * impl()->m_spec.height;
+    else
+        return 0;
+}
+
+
+
 bool
 ImageBuf::cachedpixels () const
 {
@@ -1738,6 +1774,20 @@ ImageBuf::get_pixels (ROI roi, TypeDesc format, void *result,
     roi.chend = std::min (roi.chend, nchannels());
     ImageSpec::auto_stride (xstride, ystride, zstride, format.size(),
                             roi.nchannels(), roi.width(), roi.height());
+    if (storage() == LOCALBUFFER || storage() == APPBUFFER) {
+        // Easy case -- if the buffer is already fully in memory, this
+        // reduces to a parallel_convert_image, which is both threaded and
+        // already handles many special cases.
+        return parallel_convert_image (roi.nchannels(), roi.width(), roi.height(), roi.depth(),
+                                     pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin),
+                                     spec().format,
+                                     pixel_stride(), scanline_stride(), z_stride(),
+                                     result, format,
+                                     roi.nchannels()*format.size(), AutoStride, AutoStride,
+                                     -1, -1, threads());
+    }
+
+    // General case -- can handle IC-backed images.
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2_CONST (ok, "get_pixels", get_pixels_,
                           format, spec().format, *this, *this, roi, roi,
