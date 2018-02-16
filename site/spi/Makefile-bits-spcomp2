@@ -21,7 +21,7 @@ endif
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=43
+OPENIMAGEIO_SPCOMP2_VERSION=44
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
