@@ -391,6 +391,8 @@ void test_conversion_loadstore_float ()
     benchmark ("load from unsigned char[]", [](const unsigned char *d){ return VEC(d); }, uc1234);
     benchmark ("load from char[]", [](const char *d){ return VEC(d); }, c1234);
     benchmark ("load from half[]", [](const half *d){ return VEC(d); }, h1234);
+
+    benchmark ("store to half[]", [=](half *d){ C1234.store(d); return 0; }, h1234, VEC::elements);
 }
 
 
@@ -422,6 +424,9 @@ void test_conversion_loadstore_int ()
     benchmark ("load from short[]", [](const short *d){ return VEC(d); }, s1234);
     benchmark ("load from unsigned char[]", [](const unsigned char *d){ return VEC(d); }, uc1234);
     benchmark ("load from char[]", [](const char *d){ return VEC(d); }, c1234);
+
+    benchmark ("store to unsigned short[]", [=](unsigned short *d){ C1234.store(d); return 0; }, us1234, VEC::elements);
+    benchmark ("store to unsigned char[]", [=](unsigned char *d){ C1234.store(d); return 0; }, uc1234, VEC::elements);
 }
 
 
