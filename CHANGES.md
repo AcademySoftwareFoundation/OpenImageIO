@@ -61,6 +61,11 @@ Performance improvements:
 * ImageBufAlgo::computePixelStats is now multithreaded and should improve by
   a large factor when running on a machine with many cores. This is
   particularly noticable for maketx. #1852 (1.9.2)
+* Color conversions are sped up by 50% for 4 channel float images, about
+  30% for other combinations of channels or data formats. #1868 (1.9.2)
+* ImageBuf::get_pixels() sped up by around 3x for the common case of the
+  image being fully in memory (the slower path is now only used for
+  ImageCache-based images). #1872 (1.9.2)
 
 Fixes and feature enhancements:
 * oiiotool
@@ -158,6 +163,9 @@ Build/test system improvements:
 * On Unix/Linux, add explicit DL library dependency to libOpenImageIO.so
   itself instead of only to the binaries and test utilities.
   #1860 (1.9.2/1.8.8)
+* The build now bundles a sample OCIO config in testsuite/common so that we
+  can do OCIO-based unit tests. #1870 (1.9.2)
+* Properly find newer openjpeg 2.3. #1871 (1.9.2)
 
 Developer goodies / internals:
 * argparse.h:
