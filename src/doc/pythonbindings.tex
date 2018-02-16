@@ -3063,7 +3063,7 @@ corresponding region of {\cf src} using the ``unsharp mask'' technique.
 \label{sec:iba:py:color}
 
 \apiitem{bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to,
-  unpremult=False, \\
+  unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", \\
   \bigspc\bigspc  colorconfig="", roi=ROI.All, nthreads=0) \\
 }
@@ -3078,13 +3078,13 @@ are supported.
 \begin{code}
     Src = ImageBuf ("tahoe.jpg")
     Dst = ImageBuf ()
-    ImageBufAlgo.colorconvert (Dst, Src, "vd8", "lnf")
+    ImageBufAlgo.colorconvert (Dst, Src, "sRGB", "linear")
 \end{code}
 \apiend
 
 
 \apiitem{bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to,  \\
-  \bigspc\bigspc  inverse=False, unpremult=False, \\
+  \bigspc\bigspc  inverse=False, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociolook} \indexapi{ociolook}
@@ -3098,14 +3098,14 @@ are supported.
 \begin{code}
     Src = ImageBuf ("tahoe.jpg")
     Dst = ImageBuf ()
-    ImageBufAlgo.ociolook (Dst, Src, "look", "vd8", "lnf", False, False,
+    ImageBufAlgo.ociolook (Dst, Src, "look", "vd8", "lnf",
                             context_key="SHOT", context_value="pe0012")
 \end{code}
 \apiend
 
 
 \apiitem{bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
-  \bigspc\bigspc from=None, looks=None, unpremult=False, \\
+  \bigspc\bigspc from=None, looks=None, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociodisplay} \indexapi{ociodisplay}
@@ -3119,8 +3119,27 @@ are supported.
 \begin{code}
     Src = ImageBuf ("tahoe.exr")
     Dst = ImageBuf ()
-    ImageBufAlgo.ociodisplay (Dst, Src, "sRGB", "Film", "lnf", False,
+    ImageBufAlgo.ociodisplay (Dst, Src, "sRGB", "Film", "lnf",
                               context_key="SHOT", context_value="pe0012")
+\end{code}
+\apiend
+
+
+\apiitem{bool ImageBufAlgo.{\ce ociofiletransform} (dst, src, name, \\
+  \bigspc\bigspc unpremult=True, invert=False, colorconfig="", \\
+  \bigspc\bigspc roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!ociofiletransform} \indexapi{ociofiletransform}
+Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
+applying an OpenColorIO ``file'' transform to the pixel values.
+In-place operations ({\cf dst} and {\cf src} being the same image)
+are supported.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Src = ImageBuf ("tahoe.exr")
+    Dst = ImageBuf ()
+    ImageBufAlgo.ociofiletransform (Dst, Src, "foottransform.csp")
 \end{code}
 \apiend
 

@@ -2104,12 +2104,12 @@ higher-contrast edges.
 \label{sec:iba:color}
 
 \apiitem{bool {\ce colorconvert} (ImageBuf \&dst, const ImageBuf \&src, \\
-  \bigspc\spc string_view from, string_view to, bool unpremult=false, \\
+  \bigspc\spc string_view from, string_view to, bool unpremult=true, \\
   \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0) \\
 bool {\ce colorconvert} (ImageBuf \&dst, const ImageBuf \&src, \\
-  \bigspc\spc const ColorProcessor *processor, bool unpremult=false, \\
+  \bigspc\spc const ColorProcessor *processor, bool unpremult=true, \\
   \bigspc\spc  ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!colorconvert} \indexapi{colorconvert}
 Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
@@ -2117,9 +2117,9 @@ applying a color transform to the pixel values.
 In-place operations ({\cf dst} and {\cf src} being the same image)
 are supported.
 
-If {\cf unpremult} is {\cf true}, unpremultiply before color conversion,
-then premultiply again after the color conversion.  You may want to use
-this flag if your image contains an alpha channel.
+If {\cf unpremult} is {\cf true} and the image has an alpha channel,
+unpremultiply (divide color channels by alpha) before color conversion, then
+premultiply again after the color conversion.
 
 The first form of this function specifies the ``from'' and ``to'' color
 spaces by name. An optional {\cf ColorConfig} is specified, but {\cf NULL}
@@ -2164,7 +2164,7 @@ to \qkw{linear} and vice versa.
 
 \apiitem{bool {\ce ociolook} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc string_view looks, string_view from, string_view to, \\
-  \bigspc\spc bool inverse=false, bool unpremult=false, \\
+  \bigspc\spc bool inverse=false, bool unpremult=true, \\
   \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
@@ -2178,9 +2178,9 @@ to establish a context (for example, a shot-specific transform).
 If {\cf inverse} is {\cf true}, it will reverse the color transformation
 and look application.
 
-If {\cf unpremult} is {\cf true}, unpremultiply before color conversion,
-then premultiply again after the color conversion.  You may want to use
-this flag if your image contains an alpha channel.
+If {\cf unpremult} is {\cf true} and the image has an alpha channel,
+unpremultiply (divide color channels by alpha) before color conversion, then
+premultiply again after the color conversion.
 
 An optional {\cf ColorConfig} is specified, but {\cf NULL} is passed, the
 default OCIO color configuration found by examining the {\cf \$OCIO}
@@ -2191,7 +2191,7 @@ environment variable will be used instead.
 \begin{code}
     ImageBuf Src ("tahoe.jpg");
     ImageBuf Dst;
-    ImageBufAlgo::ociolook (Dst, Src, "look", "vd8", "lnf", false, false,
+    ImageBufAlgo::ociolook (Dst, Src, "look", "vd8", "lnf", true, false,
                             "SHOT", "pe0012");
 \end{code}
 \apiend
@@ -2200,7 +2200,7 @@ environment variable will be used instead.
 \apiitem{bool {\ce ociodisplay} (ImageBuf \&dst, const ImageBuf \&src, \\
   \bigspc\spc string_view display, string_view view, \\
   \bigspc\spc string_view from="", string_view looks="",\\
-  \bigspc\spc bool unpremult=false, \\
+  \bigspc\spc bool unpremult=true, \\
   \bigspc\spc string_view key="", string_view value="", \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
@@ -2217,9 +2217,9 @@ to establish a context (for example, a shot-specific transform).
 If {\cf inverse} is {\cf true}, it will reverse the color transformation
 and look application.
 
-If {\cf unpremult} is {\cf true}, unpremultiply before color conversion,
-then premultiply again after the color conversion.  You may want to use
-this flag if your image contains an alpha channel.
+If {\cf unpremult} is {\cf true} and the image has an alpha channel,
+unpremultiply (divide color channels by alpha) before color conversion, then
+premultiply again after the color conversion.
 
 An optional {\cf ColorConfig} is specified, but {\cf NULL} is passed, the
 default OCIO color configuration found by examining the {\cf \$OCIO}
@@ -2230,14 +2230,14 @@ environment variable will be used instead.
 \begin{code}
     ImageBuf Src ("tahoe.exr");
     ImageBuf Dst;
-    ImageBufAlgo::ociodisplay (Dst, Src, "sRGB", "Film", "lnf", NULL,
-                               false, "SHOT", "pe0012");
+    ImageBufAlgo::ociodisplay (Dst, Src, "sRGB", "Film", "lnf", "",
+                               true, "SHOT", "pe0012");
 \end{code}
 \apiend
 
 
 \apiitem{bool {\ce ociofiletransform} (ImageBuf \&dst, const ImageBuf \&src, \\
-  \bigspc\spc string_view name, bool inverse=false, bool unpremult=false, \\
+  \bigspc\spc string_view name, bool inverse=false, bool unpremult=true, \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=ROI::All(), int nthreads=0)}
 \index{ImageBufAlgo!ociofiletransform} \indexapi{ociofiletransform}
@@ -2247,9 +2247,9 @@ true}, it will reverse the color transformation and look application. In-
 place operations ({\cf dst} and {\cf src} being the same image) are
 supported.
 
-If {\cf unpremult} is {\cf true}, unpremultiply before color conversion,
-then premultiply again after the color conversion.  You may want to use
-this flag if your image contains an alpha channel.
+If {\cf unpremult} is {\cf true} and the image has an alpha channel,
+unpremultiply (divide color channels by alpha) before color conversion, then
+premultiply again after the color conversion.
 
 An optional {\cf ColorConfig} is specified, but {\cf NULL} is passed, the
 default OCIO color configuration found by examining the {\cf \$OCIO}

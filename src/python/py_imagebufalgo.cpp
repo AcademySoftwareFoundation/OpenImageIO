@@ -1060,7 +1060,7 @@ IBA_zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 bool
 IBA_colorconvert (ImageBuf &dst, const ImageBuf &src,
                   const std::string &from, const std::string &to,
-                  bool unpremult = false,
+                  bool unpremult = true,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     py::gil_scoped_release gil;
@@ -1073,7 +1073,7 @@ IBA_colorconvert (ImageBuf &dst, const ImageBuf &src,
 bool
 IBA_colorconvert_colorconfig (ImageBuf &dst, const ImageBuf &src,
                   const std::string &from, const std::string &to,
-                  bool unpremult = false,
+                  bool unpremult = true,
                   const std::string &context_key="",
                   const std::string &context_value="",
                   const std::string &colorconfig="",
@@ -1591,41 +1591,41 @@ void declare_imagebufalgo (py::module &m)
             "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("colorconvert", &IBA_colorconvert,
-            "dst"_a, "src"_a, "from"_a, "to"_a, "unpremult"_a=false,
+            "dst"_a, "src"_a, "from"_a, "to"_a, "unpremult"_a=true,
             "roi"_a=ROI::All(), "nthreads"_a=0)
         .def_static("colorconvert", &IBA_colorconvert_colorconfig,
-            "dst"_a, "src"_a, "from"_a, "to"_a, "unpremult"_a=false,
+            "dst"_a, "src"_a, "from"_a, "to"_a, "unpremult"_a=true,
             "context_key"_a="", "context_value"_a="", "colorconfig"_a="",
             "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("ociolook", &IBA_ociolook,
             "dst"_a, "src"_a, "looks"_a, "from"_a, "to"_a,
-            "unpremult"_a=false, "invert"_a=false,
+            "unpremult"_a=true, "invert"_a=false,
             "context_key"_a="", "context_value"_a="",
             "roi"_a=ROI::All(), "nthreads"_a=0)
         .def_static("ociolook", &IBA_ociolook_colorconfig,
             "dst"_a, "src"_a, "looks"_a, "from"_a, "to"_a,
-            "unpremult"_a=false, "invert"_a=false,
+            "unpremult"_a=true, "invert"_a=false,
             "context_key"_a="", "context_value"_a="", "colorconfig"_a="",
             "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("ociodisplay", &IBA_ociodisplay,
             "dst"_a, "src"_a, "display"_a, "view"_a,
-            "from"_a="", "looks"_a="", "unpremult"_a=false,
+            "from"_a="", "looks"_a="", "unpremult"_a=true,
             "context_key"_a="", "context_value"_a="",
             "roi"_a=ROI::All(), "nthreads"_a=0)
         .def_static("ociodisplay", &IBA_ociodisplay_colorconfig,
             "dst"_a, "src"_a, "display"_a, "view"_a,
-            "from"_a="", "looks"_a="", "unpremult"_a=false,
+            "from"_a="", "looks"_a="", "unpremult"_a=true,
             "context_key"_a="", "context_value"_a="", "colorconfig"_a="",
             "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("ociofiletransform", &IBA_ociofiletransform,
-            "dst"_a, "src"_a, "name"_a, "unpremult"_a=false, "invert"_a=false,
+            "dst"_a, "src"_a, "name"_a, "unpremult"_a=true, "invert"_a=false,
             "roi"_a=ROI::All(), "nthreads"_a=0)
         .def_static("ociofiletransform", &IBA_ociofiletransform_colorconfig,
             "dst"_a, "src"_a, "name"_a,
-            "unpremult"_a=false, "invert"_a=false, "colorconfig"_a="",
+            "unpremult"_a=true, "invert"_a=false, "colorconfig"_a="",
             "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("computePixelStats", &IBA_computePixelStats,
