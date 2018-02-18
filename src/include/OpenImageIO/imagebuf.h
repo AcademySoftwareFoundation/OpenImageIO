@@ -122,6 +122,12 @@ struct ROI {
                 a.chbegin != b.chbegin || a.chend != b.chend);
     }
 
+    /// Test if the coordinate is within the ROI.
+    bool contains (int x, int y, int z=0, int ch=0) const {
+        return x >= xbegin && x < xend && y >= ybegin && y < yend
+            && z >= zbegin && z < zend && ch >= chbegin && ch < chend;
+    }
+
     /// Stream output of the range
     friend std::ostream & operator<< (std::ostream &out, const ROI &roi) {
         out << roi.xbegin << ' ' << roi.xend << ' ' << roi.ybegin << ' '

@@ -101,6 +101,11 @@ For an \ROI that is {\cf defined()}, returns the number of channels
 in the channel range.
 \apiend
 
+\apiitem{bool ROI::{\ce contains} (int x, int y, int z=0, int ch=0) const}
+\NEW % 1.9
+Returns {\cf true} if the ROI contains the coordinate.
+\apiend
+
 \apiitem{ROI {\ce roi_union} (const ROI \&A, const ROI \&B) \\
 ROI {\ce roi_intersection} (const ROI \&A, const ROI \&B)}
 Returns the union of two \ROI's (an \ROI that is exactly big enough
