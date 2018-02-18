@@ -1774,10 +1774,13 @@ ImageBuf::get_pixels (ROI roi, TypeDesc format, void *result,
     roi.chend = std::min (roi.chend, nchannels());
     ImageSpec::auto_stride (xstride, ystride, zstride, format.size(),
                             roi.nchannels(), roi.width(), roi.height());
-    if (storage() == LOCALBUFFER || storage() == APPBUFFER) {
-        // Easy case -- if the buffer is already fully in memory, this
-        // reduces to a parallel_convert_image, which is both threaded and
-        // already handles many special cases.
+    if (localpixels() && roi.xbegin >= xbegin() && roi.xend <= xend() &&
+                         roi.ybegin >= ybegin() && roi.yend <= yend() &&
+                         roi.zbegin >= zbegin() && roi.zend <= zend()) {
+        // Easy case -- if the buffer is already fully in memory and the roi
+        // is completely contained in the pixel window, this reduces to a
+        // parallel_convert_image, which is both threaded and already
+        // handles many special cases.
         return parallel_convert_image (roi.nchannels(), roi.width(), roi.height(), roi.depth(),
                                      pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin),
                                      spec().format,
