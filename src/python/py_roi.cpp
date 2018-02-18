@@ -65,6 +65,8 @@ void declare_roi(py::module& m)
         .def_property_readonly("depth",     &ROI::depth)
         .def_property_readonly("nchannels", &ROI::nchannels)
         .def_property_readonly("npixels",   &ROI::npixels)
+        .def("contains", &ROI::contains,
+             "x"_a, "y"_a, "z"_a=0, "ch"_a=0)
 
         .def_readonly_static("All",                &ROI_All)
 
