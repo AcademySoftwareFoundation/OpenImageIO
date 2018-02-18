@@ -182,6 +182,78 @@ void test_zero_fill ()
 
 
 
+// Test ImageBuf::copy
+void test_copy ()
+{
+    std::cout << "test copy\n";
+
+    // Make image A red, image B green, copy part of B to A and check result
+    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    // copy region we'll work with
+    ROI roi (2, 4, 1, 3);
+    ImageBuf A(spec), B(spec);
+    float red[4] = { 1, 0, 0, 1  };
+    float green[4] = { 0, 0, 0.5, 0.5  };
+    ImageBufAlgo::fill (A, red);
+    ImageBufAlgo::fill (B, green);
+    ImageBufAlgo::copy (A, B, TypeUnknown, roi);
+    for (ImageBuf::ConstIterator<float> r(A); ! r.done(); ++r) {
+        if (roi.contains (r.x(), r.y())) {
+            for (int c = 0; c < CHANNELS; ++c)
+                OIIO_CHECK_EQUAL (r[c], green[c]);
+        } else {
+            for (int c = 0; c < CHANNELS; ++c)
+                OIIO_CHECK_EQUAL (r[c], red[c]);
+        }
+    }
+
+    // Test copying into a blank image
+    A.clear ();
+    ImageBufAlgo::copy (A, B, TypeUnknown, roi);
+    for (ImageBuf::ConstIterator<float> r(A); ! r.done(); ++r) {
+        if (roi.contains (r.x(), r.y())) {
+            for (int c = 0; c < CHANNELS; ++c)
+                OIIO_CHECK_EQUAL (r[c], green[c]);
+        } else {
+            for (int c = 0; c < CHANNELS; ++c)
+                OIIO_CHECK_EQUAL (r[c], 0.0f);
+        }
+    }
+
+    // Timing
+    Benchmarker bench;
+    ImageSpec spec_rgba_float (1000, 1000, 4, TypeFloat);
+    ImageSpec spec_rgba_uint8 (1000, 1000, 4, TypeUInt8);
+    ImageSpec spec_rgba_half (1000, 1000, 4, TypeHalf);
+    ImageSpec spec_rgba_int16 (1000, 1000, 4, TypeDesc::INT16);
+    ImageBuf buf_rgba_uint8 (spec_rgba_uint8);
+    ImageBuf buf_rgba_float (spec_rgba_float);
+    ImageBuf buf_rgba_float2 (spec_rgba_float);
+    ImageBuf buf_rgba_half (spec_rgba_half);
+    ImageBuf buf_rgba_half2 (spec_rgba_half);
+    ImageBuf empty;
+    bench ("IBA::copy float[4] -> float[4] ", [&](){
+            ImageBufAlgo::copy (buf_rgba_float, buf_rgba_float2);
+        });
+    bench ("IBA::copy float[4] -> empty ", [&](){
+            empty.clear();
+            ImageBufAlgo::copy (empty, buf_rgba_float2);
+        });
+    bench ("IBA::copy float[4] -> uint8[4] ", [&](){
+            ImageBufAlgo::copy (buf_rgba_uint8, buf_rgba_float2);
+        });
+    bench ("IBA::copy half[4] -> half[4] ", [&](){
+            ImageBufAlgo::copy (buf_rgba_half, buf_rgba_half2);
+        });
+    bench ("IBA::copy half[4] -> empty ", [&](){
+            empty.clear();
+            ImageBufAlgo::copy (empty, buf_rgba_half2);
+        });
+}
+
+
+
 // Test ImageBuf::crop
 void test_crop ()
 {
@@ -276,7 +348,7 @@ void test_channel_append ()
     ImageBufAlgo::fill (A, &Acolor);
     ImageBufAlgo::fill (B, &Bcolor);
 
-    ImageBuf R ("R");
+    ImageBuf R;
     ImageBufAlgo::channel_append (R, A, B);
     OIIO_CHECK_EQUAL (R.spec().width, spec.width);
     OIIO_CHECK_EQUAL (R.spec().height, spec.height);
@@ -798,6 +870,7 @@ main (int argc, char **argv)
 
     test_type_merge ();
     test_zero_fill ();
+    test_copy ();
     test_crop ();
     test_paste ();
     test_channel_append ();
