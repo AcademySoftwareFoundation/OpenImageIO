@@ -160,6 +160,8 @@ ImageBufAlgo::copy (ImageBuf &dst, const ImageBuf &src, TypeDesc convert,
     roi.chend = std::min (roi.chend, src.nchannels());
     if (! dst.initialized()) {
         ImageSpec newspec = src.spec();
+        if (! roi.defined())
+            roi = src.roi();
         set_roi (newspec, roi);
         newspec.nchannels = roi.chend;
         if (convert != TypeUnknown)
