@@ -251,7 +251,13 @@ The total number of pixels in the region described by the \ROI.
 
 \apiitem{int ROI.{\ce contains} (x, y, z=0, ch=0)}
 \NEW % 1.9
-Returns {\cf true} if the ROI contains the coordinate.
+Returns {\cf True} if the ROI contains the coordinate.
+\apiend
+
+\apiitem{int ROI.{\ce contains} (other)}
+\NEW % 1.9
+Returns {\cf True} if the ROI {\cf other} is entirel contained within
+this ROI.
 \apiend
 
 

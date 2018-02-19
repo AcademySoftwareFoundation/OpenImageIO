@@ -128,6 +128,14 @@ struct ROI {
             && z >= zbegin && z < zend && ch >= chbegin && ch < chend;
     }
 
+    /// Test if another ROI is entirely within our ROI.
+    bool contains (const ROI& other) const {
+        return (other.xbegin >= xbegin && other.xend <= xend &&
+                other.ybegin >= ybegin && other.yend <= yend &&
+                other.zbegin >= zbegin && other.zend <= zend &&
+                other.chbegin >= chbegin && other.chend <= chend);
+    }
+
     /// Stream output of the range
     friend std::ostream & operator<< (std::ostream &out, const ROI &roi) {
         out << roi.xbegin << ' ' << roi.xend << ' ' << roi.ybegin << ' '

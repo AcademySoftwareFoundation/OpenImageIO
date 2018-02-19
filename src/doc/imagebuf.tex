@@ -106,6 +106,12 @@ in the channel range.
 Returns {\cf true} if the ROI contains the coordinate.
 \apiend
 
+\apiitem{bool ROI::{\ce contains} (const ROI \&other) const}
+\NEW % 1.9
+Returns {\cf true} if the ROI {\cf other} is entirel contained within
+this ROI.
+\apiend
+
 \apiitem{ROI {\ce roi_union} (const ROI \&A, const ROI \&B) \\
 ROI {\ce roi_intersection} (const ROI \&A, const ROI \&B)}
 Returns the union of two \ROI's (an \ROI that is exactly big enough
