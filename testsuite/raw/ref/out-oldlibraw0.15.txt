@@ -1,0 +1,40 @@
+../../../../../oiio-images/raw/RAW_CANON_EOS_7D.CR2 : 5202 x 3465, 3 channel, uint16 raw
+    channel list: R, G, B
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
+    PixelAspectRatio: 1
+    Make: "Canon"
+    Model: "EOS 7D"
+    Exif:Flash: 0 (no flash)
+    Software: "Firmware Version 1.0.7"
+    Exif:ISOSpeedRatings: 100
+    ExposureTime: 0.00301213
+    Exif:ShutterSpeedValue: 8.375 (1/331 s)
+    FNumber: 2.82843
+    Exif:ApertureValue: 3 (f/2.8)
+    Exif:FocalLength: 200 (200 mm)
+    DateTime: "2009-10-09 14:18:45"
+    Orientation: 1 (normal)
+../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
+    channel list: R, G, B
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
+    PixelAspectRatio: 1
+    Make: "NIKON"
+    Model: "D3X"
+    Exif:Flash: 0 (no flash)
+    Exif:ISOSpeedRatings: 100
+    ExposureTime: 0.02
+    Exif:ShutterSpeedValue: 5.64386 (1/49 s)
+    FNumber: 5.6
+    Exif:ApertureValue: 4.97085 (f/5.6)
+    Exif:FocalLength: 70 (70 mm)
+    DateTime: "2008-12-01 14:52:13"
+    Artist: "                                    "
+    Orientation: 1 (normal)
+Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
+PASS
+Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
+PASS
