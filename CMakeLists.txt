@@ -318,6 +318,11 @@ oiio_add_tests (pnm
     IMAGEDIR oiio-images/pnm
     URL "Recent checkout of oiio-images")
 
+oiio_add_tests (raw
+    FOUNDVAR LIBRAW_FOUND
+    IMAGEDIR oiio-images/raw
+    URL "Recent checkout of oiio-images")
+
 oiio_add_tests (targa-tgautils
     IMAGEDIR TGAUTILS
     URL http://tgautils.inequation.org/)
