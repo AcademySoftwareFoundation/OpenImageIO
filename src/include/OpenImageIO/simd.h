@@ -4397,14 +4397,17 @@ OIIO_FORCEINLINE void vint4::store (int *values, int n) const {
         values[i] = m_val[i];
 #endif
 }
-
 // FIXME(SSE,AVX): is there a faster way to do a partial store? 512!
 
+
+
 OIIO_FORCEINLINE void vint4::store (unsigned short *values) const {
-#if OIIO_SIMD_SSE
+#if OIIO_AVX512VL_ENABLED
+    _mm_mask_cvtepi32_storeu_epi16 (values, __mmask8(0xf), m_simd);
+#elif OIIO_SIMD_SSE
     // Expressed as half-words and considering little endianness, we
-    // currently have xAxBxCxD (the 'x' means don't care).
-    vint4 clamped = m_val & vint4(0xffff);   // A0B0C0D0
+    // currently have AxBxCxDx (the 'x' means don't care).
+    vint4 clamped = m_simd & vint4(0xffff);   // A0B0C0D0
     vint4 low = _mm_shufflelo_epi16 (clamped, (0<<0) | (2<<2) | (1<<4) | (1<<6));
                     // low = AB00xxxx
     vint4 high = _mm_shufflehi_epi16 (clamped, (1<<0) | (1<<2) | (0<<4) | (2<<6));
@@ -4421,10 +4424,12 @@ OIIO_FORCEINLINE void vint4::store (unsigned short *values) const {
 
 
 OIIO_FORCEINLINE void vint4::store (unsigned char *values) const {
-#if OIIO_SIMD_SSE
+#if OIIO_AVX512VL_ENABLED
+    _mm_mask_cvtepi32_storeu_epi8 (values, __mmask8(0xf), m_simd);
+#elif OIIO_SIMD_SSE
     // Expressed as bytes and considering little endianness, we
-    // currently have xAxBxCxD (the 'x' means don't care).
-    vint4 clamped = m_val & vint4(0xff);            // A000 B000 C000 D000
+    // currently have AxBxCxDx (the 'x' means don't care).
+    vint4 clamped = m_simd & vint4(0xff);          // A000 B000 C000 D000
     vint4 swapped = shuffle_sse<1,0,3,2>(clamped); // B000 A000 D000 C000
     vint4 shifted = swapped << 8;                  // 0B00 0A00 0D00 0C00
     vint4 merged = clamped | shifted;              // AB00 xxxx CD00 xxxx
@@ -4753,11 +4758,21 @@ OIIO_FORCEINLINE void vint8::load (const unsigned short *values) {
 
 
 OIIO_FORCEINLINE void vint8::load (const char *values) {
+#if OIIO_SIMD_AVX >= 2
+    __m128i bytes = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
+    m_simd = _mm256_cvtepi8_epi32 (bytes);
+#else
     SIMD_CONSTRUCT (values[i]);
+#endif
 }
 
 OIIO_FORCEINLINE void vint8::load (const unsigned char *values) {
+#if OIIO_SIMD_AVX >= 2
+    __m128i bytes = _mm_castpd_si128 (_mm_load_sd ((const double *)values));
+    m_simd = _mm256_cvtepu8_epi32 (bytes);
+#else
     SIMD_CONSTRUCT (values[i]);
+#endif
 }
 
 
@@ -5179,8 +5194,9 @@ OIIO_FORCEINLINE void vint8::store (int *values, int n) const {
 // FIXME(AVX): fast vint8 store to unsigned short, unsigned char
 
 OIIO_FORCEINLINE void vint8::store (unsigned short *values) const {
-#if 0 && OIIO_SIMD_AVX >= 2
-    // FIXME -- try to determine if this is faster:
+#if OIIO_AVX512VL_ENABLED
+    _mm256_mask_cvtepi32_storeu_epi16 (values, __mmask8(0xff), m_simd);
+#elif OIIO_SIMD_SSE
     lo().store (values);
     hi().store (values+4);
 #else
@@ -5190,7 +5206,9 @@ OIIO_FORCEINLINE void vint8::store (unsigned short *values) const {
 
 
 OIIO_FORCEINLINE void vint8::store (unsigned char *values) const {
-#if OIIO_SIMD_SSE
+#if OIIO_AVX512VL_ENABLED
+    _mm256_mask_cvtepi32_storeu_epi8 (values, __mmask8(0xff), m_simd);
+#elif OIIO_SIMD_SSE
     lo().store (values);
     hi().store (values+4);
 #else
@@ -5937,8 +5955,11 @@ OIIO_FORCEINLINE void vint16::store (int *values, int n) const {
 
 
 OIIO_FORCEINLINE void vint16::store (unsigned short *values) const {
-#if 0 && OIIO_SIMD_AVX >= 512
-    // FIXME(AVX-512) Is there a fast way?
+#if OIIO_SIMD_AVX512
+    _mm512_mask_cvtepi32_storeu_epi16 (values, __mmask16(0xff), m_simd);
+#elif OIIO_SIMD_AVX >= 2
+    lo().store (values);
+    hi().store (values+8);
 #else
     SIMD_DO (values[i] = m_val[i]);
 #endif
@@ -5946,8 +5967,11 @@ OIIO_FORCEINLINE void vint16::store (unsigned short *values) const {
 
 
 OIIO_FORCEINLINE void vint16::store (unsigned char *values) const {
-#if 0 && OIIO_SIMD_AVX >= 512
-    // FIXME(AVX-512) Is there a fast way?
+#if OIIO_SIMD_AVX512
+    _mm512_mask_cvtepi32_storeu_epi8 (values, __mmask16(0xff), m_simd);
+#elif OIIO_SIMD_AVX >= 2
+    lo().store (values);
+    hi().store (values+8);
 #else
     SIMD_DO (values[i] = m_val[i]);
 #endif
