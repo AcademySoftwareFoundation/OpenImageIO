@@ -37,6 +37,19 @@ namespace PyOpenImageIO
 static ROI ROI_All;
 
 
+static bool roi_contains_coord (const ROI& roi, int x, int y, int z, int ch)
+{
+    return roi.contains (x, y, z, ch);
+}
+
+
+static bool roi_contains_roi (const ROI& roi, const ROI& other)
+{
+    return roi.contains (other);
+}
+
+
+
 // Declare the OIIO ROI class to Python
 void declare_roi(py::module& m)
 {
@@ -65,8 +78,10 @@ void declare_roi(py::module& m)
         .def_property_readonly("depth",     &ROI::depth)
         .def_property_readonly("nchannels", &ROI::nchannels)
         .def_property_readonly("npixels",   &ROI::npixels)
-        .def("contains", &ROI::contains,
+        .def("contains", &roi_contains_coord,
              "x"_a, "y"_a, "z"_a=0, "ch"_a=0)
+        .def("contains", &roi_contains_roi,
+             "other"_a)
 
         .def_readonly_static("All",                &ROI_All)
 

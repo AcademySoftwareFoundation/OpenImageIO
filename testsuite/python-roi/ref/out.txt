@@ -24,6 +24,10 @@ r != r2 (expect no):  False
 r == r3 (expect no):  False
 r != r3 (expect yes):  True
 
+r contains (10,10) (expect yes):  True
+r contains (1000,10) (expect no):  False
+r contains roi(10,20,10,20,0,1,0,1) (expect yes):  True
+r contains roi(1010,1020,10,20,0,1,0,1) (expect no):  False
 A = 0 10 0 8 0 1 0 4
 B = 5 15 -1 10 0 1 0 4
 ROI.union(A,B) = 0 15 -1 10 0 1 0 4
