@@ -233,20 +233,20 @@ void test_copy ()
     ImageBuf buf_rgba_half (spec_rgba_half);
     ImageBuf buf_rgba_half2 (spec_rgba_half);
     ImageBuf empty;
-    bench ("IBA::copy float[4] -> float[4] ", [&](){
+    bench ("  IBA::copy float[4] -> float[4] ", [&](){
             ImageBufAlgo::copy (buf_rgba_float, buf_rgba_float2);
         });
-    bench ("IBA::copy float[4] -> empty ", [&](){
+    bench ("  IBA::copy float[4] -> empty ", [&](){
             empty.clear();
             ImageBufAlgo::copy (empty, buf_rgba_float2);
         });
-    bench ("IBA::copy float[4] -> uint8[4] ", [&](){
+    bench ("  IBA::copy float[4] -> uint8[4] ", [&](){
             ImageBufAlgo::copy (buf_rgba_uint8, buf_rgba_float2);
         });
-    bench ("IBA::copy half[4] -> half[4] ", [&](){
+    bench ("  IBA::copy half[4] -> half[4] ", [&](){
             ImageBufAlgo::copy (buf_rgba_half, buf_rgba_half2);
         });
-    bench ("IBA::copy half[4] -> empty ", [&](){
+    bench ("  IBA::copy half[4] -> empty ", [&](){
             empty.clear();
             ImageBufAlgo::copy (empty, buf_rgba_half2);
         });
@@ -493,6 +493,56 @@ void test_mad ()
     ImageBufAlgo::CompareResults comp;
     ImageBufAlgo::compare (R, D, 1e-6, 1e-6, comp);
     OIIO_CHECK_EQUAL (comp.maxerror, 0.0);
+}
+
+
+
+// Test ImageBuf::over
+void test_over ()
+{
+    std::cout << "test over\n";
+
+    const int WIDTH = 4, HEIGHT = 4, CHANNELS = 4;
+    ImageSpec spec (WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
+    ROI roi (2, 4, 1, 3);  // region with fg
+
+    // Create buffers
+    ImageBuf BG (spec);
+    const float BGval[CHANNELS] = { 0.5, 0, 0, 0.5 };
+    ImageBufAlgo::fill (BG, BGval);
+
+    ImageBuf FG (spec);
+    ImageBufAlgo::zero (FG);
+    const float FGval[CHANNELS] = { 0, 0.5, 0, 0.5 };
+    ImageBufAlgo::fill (FG, FGval, roi);
+
+    // value it should be where composited
+    const float comp_val[CHANNELS] = { 0.25, 0.5, 0, 0.75 };
+
+    // Test over
+    ImageBuf R (spec);
+    ImageBufAlgo::over (R, FG, BG);
+    for (ImageBuf::ConstIterator<float> r(R); ! r.done(); ++r) {
+        if (roi.contains (r.x(), r.y()))
+            for (int c = 0; c < CHANNELS; ++c)
+                OIIO_CHECK_EQUAL (r[c], comp_val[c]);
+        else
+            for (int c = 0; c < CHANNELS; ++c)
+                OIIO_CHECK_EQUAL (r[c], BGval[c]);
+    }
+
+    // Timing
+    Benchmarker bench;
+    ImageSpec onekfloat (1000, 1000, 4, TypeFloat);
+    BG.reset (onekfloat);
+    ImageBufAlgo::fill (BG, BGval);
+    FG.reset (onekfloat);
+    ImageBufAlgo::zero (FG);
+    ImageBufAlgo::fill (FG, FGval, ROI(250, 750, 100, 900));
+    R.reset (onekfloat);
+    bench ("  IBA::over ", [&](){
+            ImageBufAlgo::over (R, FG, BG);
+        });
 }
 
 
@@ -878,6 +928,7 @@ main (int argc, char **argv)
     test_sub ();
     test_mul ();
     test_mad ();
+    test_over ();
     test_compare ();
     test_isConstantColor ();
     test_isConstantChannel ();
