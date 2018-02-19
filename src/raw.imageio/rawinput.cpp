@@ -453,6 +453,12 @@ RawInput::open_raw (bool unpack, const std::string &name,
     if (other.artist[0])
         m_spec.attribute ("Artist", other.artist);
 
+    // libraw reoriented the image for us, so squash any orientation
+    // metadata we may have found in the Exif. Preserve the original as
+    // "raw:Orientation".
+    m_spec.attribute ("Orientation", m_spec.get_int_attribute("Orientation", 1));
+    m_spec.attribute ("Orientation", 1);
+
     // FIXME -- thumbnail possibly in m_processor->imgdata.thumbnail
 
     return true;

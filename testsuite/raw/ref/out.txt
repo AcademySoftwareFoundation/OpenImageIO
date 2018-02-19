@@ -126,38 +126,41 @@
     PixelAspectRatio: 1
     Software: "Firmware Version 1.0.7"
     Exif:ISOSpeedRatings: 100
-../../../../../oiio-images/raw/RAW_NIKON_D5000.NEF : 4310 x 2868, 3 channel, uint16 raw
+../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Make: "Nikon"
-    Model: "D5000"
+    Model: "D3X"
     Orientation: 1 (normal)
-    XResolution: 1207959552/16777216 (72)
-    YResolution: 1207959552/16777216 (72)
+    XResolution: 738263040/16777216 (44.0039)
+    YResolution: 738263040/16777216 (44.0039)
     ResolutionUnit: 2 (inches)
-    Software: "Nikon Transfer 1.4 W"
-    DateTime: "2009-05-23 13:32:40"
-    ExposureTime: 0.0025
-    FNumber: 10
-    Exif:ExposureProgram: 0
-    Exif:PhotographicSensitivity: 200
-    Exif:DateTimeOriginal: "2009:05:23 13:32:40"
-    Exif:DateTimeDigitized: "2009:05:23 13:32:40"
+    Software: "Ver.1.00 "
+    DateTime: "2008-12-01 14:52:13"
+    Artist: "                                    "
+    Exif:YCbCrPositioning: 2
+    Copyright: "                                                      "
+    ExposureTime: 0.02
+    FNumber: 5.6
+    Exif:ExposureProgram: 3 (aperture priority)
+    Exif:PhotographicSensitivity: 100
+    Exif:DateTimeOriginal: "2008:12:01 14:52:13"
+    Exif:DateTimeDigitized: "2008:12:01 14:52:13"
     Exif:ExposureBiasValue: 0/100663296 (0)
-    Exif:MaxApertureValue: 620756992/167772160 (3.7)
+    Exif:MaxApertureValue: 503316480/167772160 (3)
     Exif:MeteringMode: 5 (pattern)
     Exif:LightSource: 0 (unknown)
-    Exif:Flash: 24 (no flash, auto flash)
-    Exif:FocalLength: 18 (18 mm)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 70 (70 mm)
     oiio:MakerNoteOffset: 0
-    Exif:SubsecTime: "50"
-    Exif:SubsecTimeOriginal: "50"
-    Exif:SubsecTimeDigitized: "50"
+    Exif:SubsecTime: "00"
+    Exif:SubsecTimeOriginal: "00"
+    Exif:SubsecTimeDigitized: "00"
     Exif:SensingMethod: 2 (1-chip color area)
     Exif:CustomRendered: 0 (no)
     Exif:ExposureMode: 0 (auto)
-    Exif:WhiteBalance: 0 (auto)
+    Exif:WhiteBalance: 1 (manual)
     Exif:DigitalZoomRatio: 16777216/16777216 (1)
-    Exif:FocalLengthIn35mmFilm: 27
+    Exif:FocalLengthIn35mmFilm: 70
     Exif:SceneCaptureType: 0 (standard)
     Exif:GainControl: 0 (none)
     Exif:Contrast: 0 (normal)
@@ -168,6 +171,10 @@
     raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
     PixelAspectRatio: 1
-    Exif:ISOSpeedRatings: 200
-    Exif:ShutterSpeedValue: 8.64386 (1/399 s)
-    Exif:ApertureValue: 6.64386 (f/10.0)
+    Exif:ISOSpeedRatings: 100
+    Exif:ShutterSpeedValue: 5.64386 (1/49 s)
+    Exif:ApertureValue: 4.97085 (f/5.6)
+Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
+PASS
+Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
+PASS
