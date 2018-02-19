@@ -35,6 +35,7 @@ addons:
       - libavutil-dev
       - locales
       - python-numpy
+      - libraw-dev
       # - qtbase5-dev   # FIXME: enable Qt5 on Linux
       # - bzip2
       # - libtinyxml-dev

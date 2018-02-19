@@ -338,19 +338,7 @@ if (USE_LIBRAW)
     if (NOT LibRaw_FIND_QUIETLY)
         message (STATUS "Looking for LibRaw with ${LIBRAW_PATH}")
     endif ()
-    if (LIBRAW_PATH)
-        # Customized path requested, don't use find_package
-        FIND_PATH(LibRaw_INCLUDE_DIR libraw/libraw.h
-                  PATHS "${LIBRAW_PATH}/include"
-                  NO_DEFAULT_PATH
-                 )
-        FIND_LIBRARY(LibRaw_r_LIBRARIES NAMES raw_r
-                     PATHS "${LIBRAW_PATH}/lib"
-                     NO_DEFAULT_PATH
-                    )
-    else ()
-    	find_package (LibRaw)
-    endif ()
+    find_package (LibRaw)
     if (LibRaw_r_LIBRARIES AND LibRaw_INCLUDE_DIR)
         set (LIBRAW_FOUND TRUE)
         include_directories (${LibRaw_INCLUDE_DIR})

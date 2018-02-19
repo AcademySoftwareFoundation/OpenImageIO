@@ -1,0 +1,180 @@
+../../../../../oiio-images/raw/RAW_CANON_EOS_7D.CR2 : 5202 x 3465, 3 channel, uint16 raw
+    channel list: R, G, B
+    Make: "Canon"
+    Model: "EOS 7D"
+    Orientation: 1 (normal)
+    XResolution: 72/1 (72)
+    YResolution: 72/1 (72)
+    ResolutionUnit: 2 (inches)
+    DateTime: "2009-10-09 14:18:45"
+    Artist: ""
+    Copyright: ""
+    ExposureTime: 0.003125
+    FNumber: 2.8
+    Exif:ExposureProgram: 3 (aperture priority)
+    Exif:PhotographicSensitivity: 100
+    Exif:ExifVersion: ""
+    Exif:DateTimeOriginal: "2009:10:09 14:18:45"
+    Exif:DateTimeDigitized: "2009:10:09 14:18:45"
+    Exif:ShutterSpeedValue: 8.32193 (1/319 s)
+    Exif:ApertureValue: 2.97085 (f/2.8)
+    Exif:ExposureBiasValue: 0/1 (0)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:Flash: 16 (no flash, flash supression)
+    Exif:FocalLength: 200 (200 mm)
+    Canon:MacroMode: 2 (normal)
+    Canon:SelfTimer: 0
+    Canon:Quality: 4 (RAW)
+    Canon:FlashMode: 0 (off)
+    Canon:ContinuousDrive: 0 (single)
+    Canon:FocusMode: 0 (one-shot AF)
+    Canon:RecordMode: 6 (CR2)
+    Canon:EasyMode: 1 (Manual)
+    Canon:DigitalZoom: 0 (none)
+    Canon:Contrast: 0
+    Canon:Saturation: 0
+    Canon:Sharpness: 32767
+    Canon:CameraISO: 32767
+    Canon:MeteringMode: 3 (evaluative)
+    Canon:FocusRange: 2 (not known)
+    Canon:AFPoint: 0
+    Canon:ExposureMode: 3 (Aperture-priority AE)
+    Canon:LensType: 224
+    Canon:MaxFocalLength: 200
+    Canon:MinFocalLength: 70
+    Canon:FocalUnits: 1
+    Canon:MaxAperture: 96
+    Canon:MinAperture: 320
+    Canon:FlashActivity: 0
+    Canon:FlashBits: 0 (none)
+    Canon:DisplayAperture: 0
+    Canon:ZoomSourceWidth: 0
+    Canon:ZoomTargetWidth: 0
+    Canon:ManualFlashOutput: 0 (n/a)
+    Canon:ColorTone: 0
+    Canon:SRAWQuality: 0 (n/a)
+    Canon:FocalType: 0
+    Canon:FocalLength: 200
+    Canon:FocalPlaneXSize: 11675
+    Canon:FocalPlaneYSize: 19690
+    Canon:AutoISO: 0
+    Canon:BaseISO: 160
+    Canon:MeasuredEV: 204
+    Canon:TargetAperture: 96
+    Canon:TargetExposureTime: 268
+    Canon:ExposureCompensation: 0
+    Canon:WhiteBalance: 0 (Auto)
+    Canon:SlowShutter: 3 (none)
+    Canon:SequenceNumber: 0
+    Canon:OpticalZoomCode: 8
+    Canon:CameraTemperature: 155
+    Canon:FlashGuideNumber: 0
+    Canon:AFPointsInFocus: 0
+    Canon:ExposureComp: 0
+    Canon:FlashExposureComp: 0
+    Canon:AutoExposureBracketing: 0
+    Canon:AEBBracketValue: 1
+    Canon:ControlMode: 0 (n/a)
+    Canon:FocusDistanceUpper: 0
+    Canon:FocusDistanceLower: 96
+    Canon:FNumber: 268
+    Canon:ExposureTime: 133
+    Canon:MeasuredEV2: 0
+    Canon:BulbDuration: 0
+    Canon:CameraType: 248 (EOS High-end)
+    Canon:AutoRotate: -1 (n/a)
+    Canon:NDFilter: -1 (n/a)
+    Canon:SelfTimer2: -1
+    Canon:FlashOutput: 0
+    Canon:ImageType: "Canon EOS 7D"
+    Canon:FirmwareVersion: "Firmware Version 1.0.7"
+    Canon:OwnerName: ""
+    Canon:SerialNumber: 230101900
+    Canon:ModelID: 2147484240 (OS 7D)
+    Canon:ThumbnailImageValidArea: 0, 159, 7, 112
+    Canon:SerialNumberFormat: 2684354560
+    Canon:LensModel: "EF70-200mm f/2.8L IS USM"
+    Canon:CropInfo: 0, 0, 0, 0
+    Canon:SensorWidth: 5360
+    Canon:SensorHeight: 3516
+    Canon:SensorLeftBorder: 168
+    Canon:SensorTopBorder: 56
+    Canon:SensorRightBorder: 5351
+    Canon:SensorBottomBorder: 3511
+    Canon:BlackMaskLeftBorder: 0
+    Canon:BlackMaskTopBorder: 0
+    Canon:BlackMaskRightBorder: 0
+    Canon:BlackMaskBottomBorder: 0
+    Canon:CustomPictureStyleFileName: ""
+    Exif:SubsecTime: "00"
+    Exif:SubsecTimeOriginal: "00"
+    Exif:SubsecTimeDigitized: "00"
+    Exif:FlashPixVersion: ""
+    Exif:ColorSpace: 1
+    Exif:PixelXDimension: 5184
+    Exif:PixelYDimension: 3456
+    Exif:FocalPlaneXResolution: 5184000/907 (5715.55)
+    Exif:FocalPlaneYResolution: 3456000/595 (5808.4)
+    Exif:FocalPlaneResolutionUnit: 2 (inches)
+    Exif:CustomRendered: 0 (no)
+    Exif:ExposureMode: 0 (auto)
+    Exif:WhiteBalance: 0 (auto)
+    Exif:SceneCaptureType: 0 (standard)
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
+    PixelAspectRatio: 1
+    Software: "Firmware Version 1.0.7"
+    Exif:ISOSpeedRatings: 100
+../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
+    channel list: R, G, B
+    Make: "Nikon"
+    Model: "D3X"
+    Orientation: 1 (normal)
+    XResolution: 738263040/16777216 (44.0039)
+    YResolution: 738263040/16777216 (44.0039)
+    ResolutionUnit: 2 (inches)
+    Software: "Ver.1.00 "
+    DateTime: "2008-12-01 14:52:13"
+    Artist: "                                    "
+    Exif:YCbCrPositioning: 2
+    Copyright: "                                                      "
+    ExposureTime: 0.02
+    FNumber: 5.6
+    Exif:ExposureProgram: 3 (aperture priority)
+    Exif:PhotographicSensitivity: 100
+    Exif:DateTimeOriginal: "2008:12:01 14:52:13"
+    Exif:DateTimeDigitized: "2008:12:01 14:52:13"
+    Exif:ExposureBiasValue: 0/100663296 (0)
+    Exif:MaxApertureValue: 503316480/167772160 (3)
+    Exif:MeteringMode: 5 (pattern)
+    Exif:LightSource: 0 (unknown)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 70 (70 mm)
+    oiio:MakerNoteOffset: 0
+    Exif:SubsecTime: "00"
+    Exif:SubsecTimeOriginal: "00"
+    Exif:SubsecTimeDigitized: "00"
+    Exif:SensingMethod: 2 (1-chip color area)
+    Exif:CustomRendered: 0 (no)
+    Exif:ExposureMode: 0 (auto)
+    Exif:WhiteBalance: 1 (manual)
+    Exif:DigitalZoomRatio: 16777216/16777216 (1)
+    Exif:FocalLengthIn35mmFilm: 70
+    Exif:SceneCaptureType: 0 (standard)
+    Exif:GainControl: 0 (none)
+    Exif:Contrast: 0 (normal)
+    Exif:Saturation: 0 (normal)
+    Exif:Sharpness: 0 (normal)
+    Exif:SubjectDistanceRange: 0 (unknown)
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
+    PixelAspectRatio: 1
+    Exif:ISOSpeedRatings: 100
+    Exif:ShutterSpeedValue: 5.64386 (1/49 s)
+    Exif:ApertureValue: 4.97085 (f/5.6)
+Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
+PASS
+Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
+PASS
