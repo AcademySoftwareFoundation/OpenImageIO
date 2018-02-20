@@ -1021,14 +1021,14 @@ static bool
 over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
            bool zcomp, bool z_zeroisinf, ROI roi, int nthreads)
 {
-    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
-        // It's already guaranteed that R, A, and B have matching channel
-        // ordering, and have an alpha channel.  So just decode one.
-        int nchannels = 0, alpha_channel = 0, z_channel = 0, ncolor_channels = 0;
-        decode_over_channels (R, nchannels, alpha_channel,
-                              z_channel, ncolor_channels);
-        bool has_z = (z_channel >= 0);
+    // It's already guaranteed that R, A, and B have matching channel
+    // ordering, and have an alpha channel.  So just decode one.
+    int nchannels = 0, alpha_channel = 0, z_channel = 0, ncolor_channels = 0;
+    decode_over_channels (R, nchannels, alpha_channel,
+                          z_channel, ncolor_channels);
+    bool has_z = (z_channel >= 0);
 
+    ImageBufAlgo::parallel_image (roi, nthreads, [=,&R,&A,&B](ROI roi){
         ImageBuf::ConstIterator<Atype> a (A, roi);
         ImageBuf::ConstIterator<Btype> b (B, roi);
         ImageBuf::Iterator<Rtype> r (R, roi);
@@ -1068,6 +1068,44 @@ over_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 
 
+// Special case -- 4 channel RGBA float, in-memory buffer, no wrapping.
+// Use loops and SIMD.
+static bool
+over_impl_rgbafloat (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+                     ROI roi, int nthreads)
+{
+    using namespace simd;
+    ASSERT (A.localpixels() && B.localpixels() &&
+            A.spec().format == TypeFloat && A.nchannels() == 4 &&
+            B.spec().format == TypeFloat && B.nchannels() == 4 &&
+            A.spec().alpha_channel == 3 && A.spec().z_channel < 0 &&
+            B.spec().alpha_channel == 3 && B.spec().z_channel < 0);
+    // const int nchannels = 4, alpha_channel = 3;
+    ImageBufAlgo::parallel_image (roi, nthreads, [=,&R,&A,&B](ROI roi){
+        vfloat4 zero = vfloat4::Zero();
+        vfloat4 one  = vfloat4::One();
+        int w = roi.width();
+        for (int z = roi.zbegin; z < roi.zend; ++z) {
+            for (int y = roi.ybegin; y < roi.yend; ++y) {
+                float *r = (float *) R.pixeladdr (roi.xbegin, y, z);
+                const float *a = (const float *) A.pixeladdr (roi.xbegin, y, z);
+                const float *b = (const float *) B.pixeladdr (roi.xbegin, y, z);
+                for (int x = 0; x < w; ++x, r += 4, a += 4, b += 4) {
+                    vfloat4 a_simd (a);
+                    vfloat4 b_simd (b);
+                    vfloat4 alpha = shuffle<3>(a_simd);
+                    vfloat4 one_minus_alpha = one - clamp (alpha, zero, one);
+                    vfloat4 result = a_simd + one_minus_alpha * b_simd;
+                    result.store (r);
+                }
+            }
+        }
+    });
+    return true;
+}
+
+
+
 bool
 ImageBufAlgo::over (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                     ROI roi, int nthreads)
@@ -1075,6 +1113,21 @@ ImageBufAlgo::over (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     if (! IBAprep (roi, &dst, &A, &B, NULL,
                    IBAprep_REQUIRE_ALPHA | IBAprep_REQUIRE_SAME_NCHANNELS))
         return false;
+
+    if (A.localpixels() && B.localpixels() &&
+        A.spec().format == TypeFloat && A.nchannels() == 4 &&
+        B.spec().format == TypeFloat && B.nchannels() == 4 &&
+        A.spec().alpha_channel == 3 && A.spec().z_channel < 0 &&
+        B.spec().alpha_channel == 3 && B.spec().z_channel < 0 &&
+        A.roi().contains(roi) && B.roi().contains(roi) &&
+        roi.chbegin == 0 && roi.chend == 4) {
+        // Easy case -- both buffers are float, 4 channels, alpha is
+        // channel[3], no special z channel, and pixel data windows
+        // completely cover the roi. This reduces to a simpler case we can
+        // handle without iterators and taking advantage of SIMD.
+        return over_impl_rgbafloat (dst, A, B, roi, nthreads);
+    }
+
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES3 (ok, "over", over_impl, dst.spec().format,
                                  A.spec().format, B.spec().format,
