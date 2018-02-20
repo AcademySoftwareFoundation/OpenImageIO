@@ -222,6 +222,10 @@ void ImageBuf_test_appbuffer ()
     // same application buffer.
     ImageBuf C (A);
     OIIO_CHECK_EQUAL ((void *)A.pixeladdr(0,0,0), (void*)C.pixeladdr(0,0,0));
+
+    // Test that channel and pixel strides work
+    OIIO_CHECK_EQUAL ((float *)A.pixeladdr(0,0,0,1), (float *)A.pixeladdr(0,0,0)+1);
+    OIIO_CHECK_EQUAL (A.pixel_stride(), (stride_t)sizeof(float)*CHANNELS);
 }
 
 

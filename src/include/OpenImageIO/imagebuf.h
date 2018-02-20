@@ -607,7 +607,7 @@ public:
     TypeDesc pixeltype () const;
 
     /// A raw pointer to "local" pixel memory, if they are fully in RAM
-    /// and not backed by an ImageCache, or NULL otherwise.  You can
+    /// and not backed by an ImageCache, or nullptr otherwise.  You can
     /// also test it like a bool to find out if pixels are local.
     void *localpixels ();
     const void *localpixels () const;
@@ -625,20 +625,15 @@ public:
 
     ImageCache *imagecache () const;
 
-    /// Return the address where pixel (x,y,z) is stored in the image buffer.
-    /// Use with extreme caution!  Will return NULL if the pixel values
-    /// aren't local.
-    const void *pixeladdr (int x, int y, int z=0) const;
+    /// Return the address where pixel (x,y,z), channel ch, is stored in the
+    /// image buffer.  Use with extreme caution!  Will return nullptr if the
+    /// pixel values aren't local.
+    const void *pixeladdr (int x, int y, int z=0, int ch=0) const;
 
-    /// Return the address where pixel (x,y) is stored in the image buffer.
-    /// Use with extreme caution!  Will return NULL if the pixel values
-    /// aren't local.
-    void *pixeladdr (int x, int y) { return pixeladdr (x, y, 0); }
-
-    /// Return the address where pixel (x,y,z) is stored in the image buffer.
-    /// Use with extreme caution!  Will return NULL if the pixel values
-    /// aren't local.
-    void *pixeladdr (int x, int y, int z);
+    /// Return the address where pixel (x,y,z), channel ch, is stored in the
+    /// image buffer.  Use with extreme caution!  Will return nullptr if the
+    /// pixel values aren't local.
+    void *pixeladdr (int x, int y, int z=0, int ch=0);
 
     /// Return the index of pixel (x,y,z). If check_range is true, return
     /// -1 for an invalid coordinate that is not within the data window.

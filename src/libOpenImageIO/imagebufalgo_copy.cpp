@@ -188,16 +188,16 @@ ImageBufAlgo::copy (ImageBuf &dst, const ImageBuf &src, TypeDesc convert,
         return copy_deep (dst, src, roi, nthreads);
     }
 
-    if (src.localpixels() && src.roi().contains(roi) && roi.chbegin == 0) {
+    if (src.localpixels() && src.roi().contains(roi)) {
         // Easy case -- if the buffer is already fully in memory and the roi
         // is completely contained in the pixel window, this reduces to a
         // parallel_convert_image, which is both threaded and already
         // handles many special cases.
         return parallel_convert_image (roi.nchannels(), roi.width(), roi.height(), roi.depth(),
-                                       src.pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin),
+                                       src.pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
                                        src.spec().format, src.pixel_stride(),
                                        src.scanline_stride(), src.z_stride(),
-                                       dst.pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin),
+                                       dst.pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
                                        dst.spec().format, dst.pixel_stride(),
                                        dst.scanline_stride(), dst.z_stride(),
                                        -1, -1, nthreads);
@@ -230,16 +230,16 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
         return copy_deep (dst, src, roi, nthreads);
     }
 
-    if (src.localpixels() && src.roi().contains(roi) && roi.chbegin == 0) {
+    if (src.localpixels() && src.roi().contains(roi)) {
         // Easy case -- if the buffer is already fully in memory and the roi
         // is completely contained in the pixel window, this reduces to a
         // parallel_convert_image, which is both threaded and already
         // handles many special cases.
         return parallel_convert_image (roi.nchannels(), roi.width(), roi.height(), roi.depth(),
-                                       src.pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin),
+                                       src.pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
                                        src.spec().format, src.pixel_stride(),
                                        src.scanline_stride(), src.z_stride(),
-                                       dst.pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin),
+                                       dst.pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
                                        dst.spec().format, dst.pixel_stride(),
                                        dst.scanline_stride(), dst.z_stride(),
                                        -1, -1, nthreads);

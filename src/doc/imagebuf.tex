@@ -707,15 +707,16 @@ clears the error message for next time.
 \apiitem{void *{\ce localpixels} (); \\
     const void *{\ce localpixels} () const;}
 Returns a raw pointer to the ``local'' pixel memory, if they are fully
-in RAM and not backed by an \ImageCache (in which case, {\cf NULL} will
+in RAM and not backed by an \ImageCache (in which case, {\cf nullptr} will
 be returned).  You can also test it like a {\cf bool} to find out if
 pixels are local.
 \apiend
 
-\apiitem{const void *{\ce pixeladdr} (int x, int y, int z=0) const \\
-void *{\ce pixeladdr} (int x, int y, int z)}
-Return the address where pixel (x,y,z) is stored in the image buffer.
-Use with extreme caution!  Will return NULL if the pixel values
+\apiitem{const void *{\ce pixeladdr} (int x, int y, int z=0, int ch=0) const \\
+void *{\ce pixeladdr} (int x, int y, int z=0, int ch=0)}
+Return the address where pixel {\cf (x,y,z)}, channel {\cf ch} is stored in
+the local image buffer memory.
+Use with extreme caution!  Will return {\cf nullptr} if the pixel values
 aren't local (for example, if backed by an \ImageCache).
 \apiend
 

@@ -191,8 +191,8 @@ public:
     }
     bool cachedpixels () const { return m_storage == ImageBuf::IMAGECACHE; }
 
-    const void *pixeladdr (int x, int y, int z) const;
-    void *pixeladdr (int x, int y, int z);
+    const void *pixeladdr (int x, int y, int z, int ch) const;
+    void *pixeladdr (int x, int y, int z, int ch);
 
     const void *retile (int x, int y, int z, ImageCache::Tile* &tile,
                     int &tilexbegin, int &tileybegin, int &tilezbegin,
@@ -292,6 +292,7 @@ private:
     size_t m_pixel_bytes;
     size_t m_scanline_bytes;
     size_t m_plane_bytes;
+    size_t m_channel_bytes;
     ImageCache *m_imagecache;    ///< ImageCache to use
     TypeDesc m_cachedpixeltype;  ///< Data type stored in the cache
     DeepData m_deepdata;         ///< Deep data
@@ -323,7 +324,8 @@ ImageBufImpl::ImageBufImpl (string_view filename,
       m_localpixels(NULL),
       m_spec_valid(false), m_pixels_valid(false),
       m_badfile(false), m_pixelaspect(1),
-      m_pixel_bytes(0), m_scanline_bytes(0), m_plane_bytes(0),
+      m_pixel_bytes(0), m_scanline_bytes(0),
+      m_plane_bytes(0), m_channel_bytes(0),
       m_imagecache(imagecache), m_allocated_size(0),
       m_write_format(TypeDesc::UNKNOWN), m_write_tile_width(0),
       m_write_tile_height(0), m_write_tile_depth(1)
@@ -331,6 +333,7 @@ ImageBufImpl::ImageBufImpl (string_view filename,
     if (spec) {
         m_spec = *spec;
         m_nativespec = *spec;
+        m_channel_bytes = spec->format.size();
         m_pixel_bytes = spec->pixel_bytes();
         m_scanline_bytes = spec->scanline_bytes();
         m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
@@ -372,6 +375,7 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_pixel_bytes(src.m_pixel_bytes),
       m_scanline_bytes(src.m_scanline_bytes),
       m_plane_bytes(src.m_plane_bytes),
+      m_channel_bytes(src.m_channel_bytes),
       m_imagecache(src.m_imagecache),
       m_cachedpixeltype(src.m_cachedpixeltype),
       m_deepdata(src.m_deepdata),
@@ -558,6 +562,7 @@ ImageBufImpl::clear ()
     m_pixel_bytes = 0;
     m_scanline_bytes = 0;
     m_plane_bytes = 0;
+    m_channel_bytes = 0;
     m_imagecache = NULL;
     m_deepdata.free ();
     m_blackpixel.clear ();
@@ -662,6 +667,7 @@ ImageBufImpl::realloc ()
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+    m_channel_bytes = m_spec.format.size();
     m_blackpixel.resize (round_to_multiple (m_pixel_bytes, OIIO_SIMD_MAX_SIZE_BYTES), 0);
     // NB make it big enough for SSE
     if (m_allocated_size)
@@ -729,6 +735,7 @@ ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
+    m_channel_bytes = m_spec.format.size();
     m_blackpixel.resize (round_to_multiple (m_pixel_bytes, OIIO_SIMD_MAX_SIZE_BYTES), 0);
     // NB make it big enough for SSE
 
@@ -1296,11 +1303,7 @@ ImageBuf::localpixels () const
 stride_t
 ImageBuf::pixel_stride () const
 {
-    // FIXME -- we should cache this value
-    if (impl()->m_localpixels)
-        return impl()->m_spec.pixel_bytes();
-    else
-        return 0;
+    return (stride_t)m_impl->m_pixel_bytes;
 }
 
 
@@ -1308,11 +1311,7 @@ ImageBuf::pixel_stride () const
 stride_t
 ImageBuf::scanline_stride () const
 {
-    // FIXME -- we should cache this value
-    if (impl()->m_localpixels)
-        return impl()->m_spec.scanline_bytes();
-    else
-        return 0;
+    return (stride_t)m_impl->m_scanline_bytes;
 }
 
 
@@ -1320,11 +1319,7 @@ ImageBuf::scanline_stride () const
 stride_t
 ImageBuf::z_stride () const
 {
-    // FIXME -- we should cache this value
-    if (impl()->m_localpixels)
-        return impl()->m_spec.scanline_bytes() * impl()->m_spec.height;
-    else
-        return 0;
+    return (stride_t)m_impl->m_plane_bytes;
 }
 
 
@@ -2178,49 +2173,49 @@ ImageBuf::contains_roi (ROI roi) const
 
 
 const void *
-ImageBufImpl::pixeladdr (int x, int y, int z) const
+ImageBufImpl::pixeladdr (int x, int y, int z, int ch) const
 {
     if (cachedpixels())
-        return NULL;
+        return nullptr;
     validate_pixels ();
     x -= m_spec.x;
     y -= m_spec.y;
     z -= m_spec.z;
     size_t p = y * m_scanline_bytes + x * m_pixel_bytes
-             + z * m_plane_bytes;
+             + z * m_plane_bytes + ch * m_channel_bytes;
     return &(m_localpixels[p]);
 }
 
 
 
 void *
-ImageBufImpl::pixeladdr (int x, int y, int z)
+ImageBufImpl::pixeladdr (int x, int y, int z, int ch)
 {
     validate_pixels ();
     if (cachedpixels())
-        return NULL;
+        return nullptr;
     x -= m_spec.x;
     y -= m_spec.y;
     z -= m_spec.z;
     size_t p = y * m_scanline_bytes + x * m_pixel_bytes
-             + z * m_plane_bytes;
+             + z * m_plane_bytes + ch * m_channel_bytes;
     return &(m_localpixels[p]);
 }
 
 
 
 const void *
-ImageBuf::pixeladdr (int x, int y, int z) const
+ImageBuf::pixeladdr (int x, int y, int z, int ch) const
 {
-    return impl()->pixeladdr (x, y, z);
+    return impl()->pixeladdr (x, y, z, ch);
 }
 
 
 
 void *
-ImageBuf::pixeladdr (int x, int y, int z)
+ImageBuf::pixeladdr (int x, int y, int z, int ch)
 {
-    return impl()->pixeladdr (x, y, z);
+    return impl()->pixeladdr (x, y, z, ch);
 }
 
 
