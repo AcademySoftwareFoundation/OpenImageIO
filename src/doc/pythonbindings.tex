@@ -1362,9 +1362,10 @@ Restore the \ImageBuf to the newly-constructed state of a blank, writeable
 \ImageBuf specified by an \ImageSpec.
 \apiend
 
-\apiitem{bool ImageBuf.{\ce read} (subimage=0, miplevel=0, force=False, convert=oiio.UNKNOWN)}
+\apiitem{bool ImageBuf.{\ce read} (subimage=0, miplevel=0, force=False, convert=oiio.UNKNOWN) \\
+bool ImageBuf.{\ce read} (subimage, miplevel, chbegin, chend, force, convert)}
 Explicitly read the image from the file (of a file-reading \ImageBuf), optionally
-specifying a particular subimage and MIP level.  If {\cf force} is {\cf True},
+specifying a particular subimage, MIP level, and channel range.  If {\cf force} is {\cf True},
 will force an allocation of memory and a full read (versus the default of
 relying on an underlying \ImageCache).  If {\cf convert} is not
 the default of {\cf UNKNOWN}, it will force the \ImageBuf to convert the
@@ -1373,7 +1374,8 @@ format or relying on the \ImageCache to make a data formatting decision).
 
 Note that a call to {\cf read()} is not necessary --- any \ImageBuf API call
 that accesses pixel values will trigger a file read if it has not yet been
-done.
+done. An explicit {\cf read()} is generally only needed to change the
+subimage or miplevel, or to force an in-buffer read or format conversion.
 
 The {\cf read()} method will return {\cf True} for success, or {\cf False}
 if the read could not be performed (in which case, a {\cf geterror()} call
