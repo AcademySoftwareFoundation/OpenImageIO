@@ -185,7 +185,7 @@ test_empty_thread_pool ()
     OIIO_CHECK_EQUAL (pool->size(), 0);
     atomic_int count (0);
     const int ntasks = 100;
-    task_set<void> ts (pool);
+    task_set ts (pool);
     for (int i = 0; i < ntasks; ++i)
         ts.push (pool->push ([&](int id){
             ASSERT (id == -1 && "Must be run by calling thread");

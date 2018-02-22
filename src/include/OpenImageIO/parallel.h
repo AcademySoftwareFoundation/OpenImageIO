@@ -118,7 +118,7 @@ parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
     }
     // N.B. If chunksize was specified, honor it, even for the single
     // threaded case.
-    for (task_set<void> ts (opt.pool); start < end; start += chunksize) {
+    for (task_set ts (opt.pool); start < end; start += chunksize) {
         int64_t e = std::min (end, start+chunksize);
         if (e == end || opt.singlethread()) {
             // For the last (or only) subtask, or if we are using just one
@@ -203,7 +203,7 @@ parallel_for_each (InputIt first, InputIt last, UnaryFunction f,
         for ( ; first != last; ++first)
             f (*first);
     } else {
-        for (task_set<void> ts (opt.pool); first != last; ++first)
+        for (task_set ts (opt.pool); first != last; ++first)
             ts.push (opt.pool->push ([&](int id){ f(*first); }));
     }
     return std::move(f);
@@ -245,7 +245,7 @@ parallel_for_chunked_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
         int64_t nx = std::max (int64_t(1), opt.maxthreads / ny);
         xchunksize = std::max (int64_t(1), (xend-xstart) / nx);
     }
-    task_set<void> ts (opt.pool);
+    task_set ts (opt.pool);
     for (auto y = ystart; y < yend; y += ychunksize) {
         int64_t ychunkend = std::min (yend, y+ychunksize);
         for (auto x = xstart; x < xend; x += xchunksize) {
