@@ -237,7 +237,14 @@ void declare_imagebuf(py::module &m)
                 py::gil_scoped_release gil;
                 return self.read (subimage, miplevel, chbegin, chend, force, convert);
             },
-            "subimage"_a=0, "miplevel"_a=0, "chbegin"_a=0, "chend"_a=-1,
+            "subimage"_a, "miplevel"_a, "chbegin"_a, "chend"_a,
+            "force"_a, "convert"_a)
+        .def("read", [](ImageBuf& self, int subimage, int miplevel,
+                        bool force, TypeDesc convert){
+                py::gil_scoped_release gil;
+                return self.read (subimage, miplevel, force, convert);
+            },
+            "subimage"_a=0, "miplevel"_a=0,
             "force"_a=false, "convert"_a=TypeUnknown)
 
         .def("write", [](ImageBuf& self, const std::string &filename,
