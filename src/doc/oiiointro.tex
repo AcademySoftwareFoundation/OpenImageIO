@@ -95,7 +95,7 @@ making simplifying assumptions.  Among them:
     with audio or synchronization).
 
   \item Pixel data are presented as 8- 16- or 32-bit int (signed or unsigned), 16-
-    32- or 64-bit float.  NOTHING ELSE.  No $<8$ bit images, or pixels
+    32- or 64-bit float.  NOTHING ELSE.  No $<8$ bit images, or pixel value
     boundaries that aren't byte boundaries.  Files with $<8$ bits will
     appear to the client application as 8-bit unsigned grayscale images.
 
@@ -136,7 +136,7 @@ within the \product plugin and are not exposed through the main \product
 APIs.
 
 
-\subsection*{Historical Origins}
+\section{Historical Origins}
 
 \product is the evolution of concepts and tools I've been working on 
 for two decades.
@@ -193,7 +193,7 @@ implementation from scratch anyway.  I think the additional changes are
 all improvements.  This is the software you have in your hands today.
 
 
-\subsection*{Acknowledgments}
+\section{Acknowledgments}
 
 \begin{comment}
 The direct precursor to \product was Gelato's ImageIO, which was
@@ -223,27 +223,28 @@ Dominik Reichl \\ \url{http://www.dominik-reichl.de/}
 \item Squish \copyright\ 2006 Simon Brown, MIT license.
 \url{http://sjbrown.co.uk/?code=squish}
 \item PugiXML \copyright\ 2006-2009 by Arseny Kapoulkine (based on work
-\copyright\ 2003 Kristen Wegner). \url{http://pugixml.org/}
-\item DPX reader/writer \copyright\ 2009 Patrick A.\ Palmer.
-\url{http://code.google.com/p/dpx}
-\item {\cf tinyformat.h} \copyright\ 2011 Chris Foster, Boost
-    license. \url{http://github.com/c42f/tinyformat}
-\item {\cf lookup3} code by Bob Jenkins, Public Domain.
+\copyright\ 2003 Kristen Wegner), MIT license. \url{http://pugixml.org/}
+\item DPX reader/writer \copyright\ 2009 Patrick A.\ Palmer, BSD 3-clause license.
+  \\ \url{http://code.google.com/p/dpx}
+\item {\cf tinyformat.h} \copyright\ 2011 Chris Foster, Boost license. \\
+  \url{http://github.com/c42f/tinyformat}
+\item {\cf lookup3} code by Bob Jenkins, Public Domain. \\
 \url{http://burtleburtle.net/bob/c/lookup3.c}
-\item {\cf xxhash} \copyright\ 2014 Yann Collet, BSD license.
+\item {\cf xxhash} \copyright\ 2014 Yann Collet, BSD 2-clause license. \\
 \url{http://code.google.com/p/xxhash/}
 \item {\cf farmhash} \copyright\ 2014 Google, Inc., MIT license.
 \url{http://code.google.com/p/farmhash/}
-\item {\cf KissFFT} \copyright\ 2003--2010 Mark Borgerding.
-\url{http://sourceforge.net/projects/kissfft}
+\item {\cf KissFFT} \copyright\ 2003--2010 Mark Borgerding, 3-clause BSD license.
+  \\ \url{http://sourceforge.net/projects/kissfft}
 \item {\cf CTPL} thread pool \copyright\ 2014 Vitaliy Vitsentiy, Apache License.
-\url{https://github.com/vit-vit/CTPL}
+  \\ \url{https://github.com/vit-vit/CTPL}
 \item Droid fonts from the Android SDK are distributed under the
     Apache license. \\ \url{http://www.droidfonts.com}
 \end{itemize}
 
-\noindent \product Has the following build-time dependencies (either using
-system installs or referencing as git submodules), or link-time dependencies
+\noindent \product Has the following build-time dependencies (using
+system installs, referencing as git submodules, or downloading as part of
+the build), including link-time dependencies
 against dynamic libraries:
 
 \begin{itemize}
