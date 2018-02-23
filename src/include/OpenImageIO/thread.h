@@ -724,6 +724,18 @@ public:
     bool is_worker (std::thread::id id);
     bool is_worker () { return is_worker (std::this_thread::get_id()); }
 
+    /// How many jobs are waiting to run?  (Use with caution! Can be out of
+    /// date by the time you look at it.)
+    size_t jobs_in_queue () const;
+
+    /// Is the pool very busy? Meaning that there are significantly more
+    /// tasks in the queue waiting to run than there are threads in the
+    /// pool. It may be wise for a caller to check this before submitting
+    /// tasks -- if the queue is very busy, it's probably more expedient to
+    /// execute the code directly rather than add it to an oversubscribed
+    /// queue.
+    bool very_busy () const;
+
 private:
     // Disallow copy construction and assignment
     thread_pool (const thread_pool&) = delete;
