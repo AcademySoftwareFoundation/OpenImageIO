@@ -770,11 +770,14 @@ OIIO_API thread_pool* default_thread_pool ();
 ///
 class OIIO_API task_set {
 public:
-    task_set (thread_pool *pool)
+    task_set (thread_pool *pool=nullptr)
         : m_pool (pool ? pool : default_thread_pool()),
           m_submitter_thread (std::this_thread::get_id())
         {}
     ~task_set () { wait(); }
+
+    task_set (const task_set&) = delete;
+    const task_set& operator= (const task_set&) = delete;
 
     // Return the thread id of the thread that set up this task_set and
     // submitted its tasks to the thread pool.
