@@ -623,7 +623,7 @@ private:
 /// A common idiom is to fire a bunch of sub-tasks at the queue, and then
 /// wait for them to all complete. We provide a helper class, task_set,
 /// to make this easy:
-///     task_set<decltype(myfunc())> tasks (pool);
+///     task_set tasks (pool);
 ///     for (int i = 0; i < n_subtasks; ++i)
 ///         tasks.push (pool->push (myfunc));
 ///     tasks.wait ();
@@ -749,7 +749,7 @@ OIIO_API thread_pool* default_thread_pool ();
 
 
 
-/// task_set<T> is a group of future<T>'s from a thread_queue that you can
+/// task_set is a group of future<void>'s from a thread_queue that you can
 /// add to, and when you either call wait() or just leave the task_set's
 /// scope, it will wait for all the tasks in the set to be done before
 /// proceeding.
@@ -760,7 +760,7 @@ OIIO_API thread_pool* default_thread_pool ();
 ///
 ///    thread_pool* pool (default_thread_pool());
 ///    {
-///        task_set<decltype(myfunc())> tasks (pool);
+///        task_set tasks (pool);
 ///        // Launch a bunch of tasks into the thread pool
 ///        for (int i = 0; i < ntasks; ++i)
 ///            tasks.push (pool->push (myfunc));
@@ -768,14 +768,16 @@ OIIO_API thread_pool* default_thread_pool ();
 ///        // wait for all those queue tasks to finish.
 ///    }
 ///
-template<typename T=void>
-class task_set {
+class OIIO_API task_set {
 public:
-    task_set (thread_pool *pool)
+    task_set (thread_pool *pool=nullptr)
         : m_pool (pool ? pool : default_thread_pool()),
           m_submitter_thread (std::this_thread::get_id())
         {}
     ~task_set () { wait(); }
+
+    task_set (const task_set&) = delete;
+    const task_set& operator= (const task_set&) = delete;
 
     // Return the thread id of the thread that set up this task_set and
     // submitted its tasks to the thread pool.
@@ -794,101 +796,13 @@ public:
     // while waiting for that task to finish. If block is false, then busy
     // wait, and opportunistically run queue tasks yourself while you are
     // waiting for the task to finish.
-    void wait_for_task (size_t taskindex, bool block=false) {
-        DASSERT (submitter() == std::this_thread::get_id());
-        if (taskindex >= m_futures.size())
-            return;  // nothing to wait for
-        auto &f (m_futures[taskindex]);
-        if (block || m_pool->is_worker (m_submitter_thread)) {
-            // Block on completion of all the task and don't try to do any
-            // of the work with the calling thread.
-            f.wait ();
-            return;
-        }
-        // If we made it here, we want to allow the calling thread to help
-        // do pool work if it's waiting around for a while.
-        const std::chrono::milliseconds wait_time (0);
-        int tries = 0;
-        while (1) {
-            // Asking future.wait_for for 0 time just checks the status.
-            if (f.wait_for (wait_time) == std::future_status::ready)
-                return;  // task has completed
-            // We're still waiting for the task to complete. What next?
-            if (++tries < 4) {   // First few times,
-                pause(4);        //   just busy-wait, check status again
-                continue;
-            }
-            // Since we're waiting, try to run a task ourselves to help
-            // with the load. If none is available, just yield schedule.
-            if (! m_pool->run_one_task(m_submitter_thread)) {
-                // We tried to do a task ourselves, but there weren't any
-                // left, so just wait for the rest to finish.
-                yield ();
-            }
-        }
-    }
+    void wait_for_task (size_t taskindex, bool block=false);
 
     // Wait for all tasks in the set to finish. If block == true, fully
     // block while waiting for the pool threads to all finish. If block is
     // false, then busy wait, and opportunistically run queue tasks yourself
     // while you are waiting for other tasks to finish.
-    void wait (bool block = false)
-    {
-        DASSERT (submitter() == std::this_thread::get_id());
-        const std::chrono::milliseconds wait_time (0);
-        if (m_pool->is_worker (m_submitter_thread))
-            block = true;   // don't get into recursive work stealing
-        if (block == false) {
-            int tries = 0;
-            while (1) {
-                bool all_finished = true;
-                int nfutures = 0, finished = 0;
-                for (auto&& f : m_futures) {
-                    // Asking future.wait_for for 0 time just checks the status.
-                    ++nfutures;
-                    auto status = f.wait_for (wait_time);
-                    if (status != std::future_status::ready)
-                        all_finished = false;
-                    else ++finished;
-                }
-                if (all_finished)   // All futures are ready? We're done.
-                    break;
-                // We're still waiting on some tasks to complete. What next?
-                if (++tries < 4) {   // First few times,
-                    pause(4);        //   just busy-wait, check status again
-                    continue;
-                }
-                // Since we're waiting, try to run a task ourselves to help
-                // with the load. If none is available, just yield schedule.
-                if (! m_pool->run_one_task(m_submitter_thread)) {
-                    // We tried to do a task ourselves, but there weren't any
-                    // left, so just wait for the rest to finish.
-#if 1
-                    yield ();
-#else
-                    // FIXME -- as currently written, if we see an empty queue
-                    // but we're still waiting for the tasks in our set to end,
-                    // we will keep looping and potentially ourselves do work
-                    // that was part of another task set. If there a benefit to,
-                    // once we see an empty queue, only waiting for the existing
-                    // tasks to finish and not altruistically executing any more
-                    // tasks?  This is how we would take the exit now:
-                    for (auto&& f : m_futures)
-                        f.wait ();
-                    break;
-#endif
-                }
-            }
-        } else {
-            // If block is true, just block on completion of all the tasks
-            // and don't try to do any of the work with the calling thread.
-            for (auto&& f : m_futures)
-                f.wait ();
-        }
-#ifndef NDEBUG
-        check_done ();
-#endif
-    }
+    void wait (bool block = false);
 
     // Debugging sanity check, called after wait(), to ensure that all the
     // tasks were completed.

@@ -217,42 +217,6 @@ public:
         this->flags.clear();
     }
 
-    template<typename F, typename... Rest>
-    auto push(F && f, Rest&&... rest) ->std::future<decltype(f(0, rest...))> {
-        auto pck = std::make_shared<std::packaged_task<decltype(f(0, rest...))(int)>>(
-            std::bind(std::forward<F>(f), std::placeholders::_1, std::forward<Rest>(rest)...)
-        );
-        if (size() < 1 || is_worker(std::this_thread::get_id())) {
-            (*pck)(-1); // No worker threads, run it with the calling thread
-        } else {
-            auto _f = new std::function<void(int id)>([pck](int id) {
-                (*pck)(id);
-            });
-            this->q.push(_f);
-            std::unique_lock<std::mutex> lock(this->mutex);
-            this->cv.notify_one();
-        }
-        return pck->get_future();
-    }
-
-    // run the user's function that excepts argument int - id of the running thread. returned value is templatized
-    // operator returns std::future, where the user can get the result and rethrow the catched exceptins
-    template<typename F>
-    auto push(F && f) ->std::future<decltype(f(0))> {
-        auto pck = std::make_shared<std::packaged_task<decltype(f(0))(int)>>(std::forward<F>(f));
-        if (size() < 1 || is_worker(std::this_thread::get_id())) {
-            (*pck)(-1); // No worker threads, run it with the calling thread
-        } else {
-            auto _f = new std::function<void(int id)>([pck](int id) {
-                (*pck)(id);
-            });
-            this->q.push(_f);
-            std::unique_lock<std::mutex> lock(this->mutex);
-            this->cv.notify_one();
-        }
-        return pck->get_future();
-    }
-
     void push_queue_and_notify (std::function<void(int id)> *f) {
         this->q.push(f);
         std::unique_lock<std::mutex> lock(this->mutex);
@@ -440,6 +404,105 @@ default_thread_pool ()
 {
     static std::unique_ptr<thread_pool> shared_pool (new thread_pool);
     return shared_pool.get();
+}
+
+
+
+void
+task_set::wait_for_task (size_t taskindex, bool block)
+{
+    DASSERT (submitter() == std::this_thread::get_id());
+    if (taskindex >= m_futures.size())
+        return;  // nothing to wait for
+    auto &f (m_futures[taskindex]);
+    if (block || m_pool->is_worker (m_submitter_thread)) {
+        // Block on completion of all the task and don't try to do any
+        // of the work with the calling thread.
+        f.wait ();
+        return;
+    }
+    // If we made it here, we want to allow the calling thread to help
+    // do pool work if it's waiting around for a while.
+    const std::chrono::milliseconds wait_time (0);
+    int tries = 0;
+    while (1) {
+        // Asking future.wait_for for 0 time just checks the status.
+        if (f.wait_for (wait_time) == std::future_status::ready)
+            return;  // task has completed
+        // We're still waiting for the task to complete. What next?
+        if (++tries < 4) {   // First few times,
+            pause(4);        //   just busy-wait, check status again
+            continue;
+        }
+        // Since we're waiting, try to run a task ourselves to help
+        // with the load. If none is available, just yield schedule.
+        if (! m_pool->run_one_task(m_submitter_thread)) {
+            // We tried to do a task ourselves, but there weren't any
+            // left, so just wait for the rest to finish.
+            yield ();
+        }
+    }
+}
+
+
+
+void
+task_set::wait (bool block)
+{
+    DASSERT (submitter() == std::this_thread::get_id());
+    const std::chrono::milliseconds wait_time (0);
+    if (m_pool->is_worker (m_submitter_thread))
+        block = true;   // don't get into recursive work stealing
+    if (block == false) {
+        int tries = 0;
+        while (1) {
+            bool all_finished = true;
+            int nfutures = 0, finished = 0;
+            for (auto&& f : m_futures) {
+                // Asking future.wait_for for 0 time just checks the status.
+                ++nfutures;
+                auto status = f.wait_for (wait_time);
+                if (status != std::future_status::ready)
+                    all_finished = false;
+                else ++finished;
+            }
+            if (all_finished)   // All futures are ready? We're done.
+                break;
+            // We're still waiting on some tasks to complete. What next?
+            if (++tries < 4) {   // First few times,
+                pause(4);        //   just busy-wait, check status again
+                continue;
+            }
+            // Since we're waiting, try to run a task ourselves to help
+            // with the load. If none is available, just yield schedule.
+            if (! m_pool->run_one_task(m_submitter_thread)) {
+                // We tried to do a task ourselves, but there weren't any
+                // left, so just wait for the rest to finish.
+#if 1
+                yield ();
+#else
+                // FIXME -- as currently written, if we see an empty queue
+                // but we're still waiting for the tasks in our set to end,
+                // we will keep looping and potentially ourselves do work
+                // that was part of another task set. If there a benefit to,
+                // once we see an empty queue, only waiting for the existing
+                // tasks to finish and not altruistically executing any more
+                // tasks?  This is how we would take the exit now:
+                for (auto&& f : m_futures)
+                    f.wait ();
+                break;
+#endif
+            }
+        }
+    } else {
+        // If block is true, just block on completion of all the tasks
+        // and don't try to do any of the work with the calling thread.
+        for (auto&& f : m_futures)
+            f.wait ();
+    }
+#ifndef NDEBUG
+    check_done ();
+#endif
 }
 
 
