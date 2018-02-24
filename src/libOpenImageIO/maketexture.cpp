@@ -55,6 +55,7 @@
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/filter.h>
+#include "imageio_pvt.h"
 
 #ifdef USE_BOOST_REGEX
 # include <boost/regex.hpp>
@@ -1641,6 +1642,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
                             const ImageSpec &configspec,
                             std::ostream *outstream)
 {
+    pvt::LoggedTimer logtime("IBA::make_texture");
     return make_texture_impl (mode, NULL, filename, outputfilename,
                               configspec, outstream);
 }
@@ -1654,6 +1656,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
                             const ImageSpec &configspec,
                             std::ostream *outstream_ptr)
 {
+    pvt::LoggedTimer logtime("IBA::make_texture");
     return make_texture_impl (mode, NULL, filenames[0], outputfilename,
                               configspec, outstream_ptr);
 }
@@ -1667,6 +1670,7 @@ ImageBufAlgo::make_texture (ImageBufAlgo::MakeTextureMode mode,
                             const ImageSpec &configspec,
                             std::ostream *outstream)
 {
+    pvt::LoggedTimer logtime("IBA::make_texture");
     return make_texture_impl (mode, &input, "", outputfilename,
                               configspec, outstream);
 }

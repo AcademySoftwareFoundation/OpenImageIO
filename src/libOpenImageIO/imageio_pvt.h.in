@@ -38,6 +38,7 @@
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/thread.h>
+#include <OpenImageIO/timer.h>
 
 
 
@@ -56,6 +57,7 @@ extern std::string input_format_list;
 extern std::string output_format_list;
 extern std::string extension_list;
 extern std::string library_list;
+extern int oiio_log_times;
 
 
 // For internal use - use error() below for a nicer interface.
@@ -110,6 +112,33 @@ const void *parallel_convert_from_float (const float *src, void *dst,
 /// wrong and delete them. Return true if we think it's one of these
 /// incorrect files and it was fixed.
 bool check_texture_metadata_sanity (ImageSpec &spec);
+
+/// Internal function to log time recorded by an OIIO::timer(). It will only
+/// trigger a read of the time if the "log_times" attribute is set or the
+/// OPENIMAGEIO_LOG_TIMES env variable is set.
+OIIO_API void log_time (string_view key, const Timer& timer);
+
+/// Get the timing report from log_time entries.
+OIIO_API std::string timing_report ();
+
+/// An object that, if oiio_log_times is nonzero, logs time until its
+/// destruction. If oiio_log_times is 0, it does nothing.
+class LoggedTimer {
+public:
+    LoggedTimer (string_view name) : m_timer(oiio_log_times) {
+        if (oiio_log_times)
+            m_name = name;
+    }
+    ~LoggedTimer () {
+        if (oiio_log_times)
+            log_time (m_name, m_timer);
+    }
+    void stop () { m_timer.stop(); }
+    void rename (string_view name) { m_name = name; }
+private:
+    Timer m_timer;
+    std::string m_name;
+};
 
 }  // namespace pvt
 

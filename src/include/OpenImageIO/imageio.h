@@ -1278,6 +1278,12 @@ OIIO_API std::string geterror ();
 ///             The default is 0 for release builds, 1 for DEBUG builds,
 ///             but also may be overridden by the OPENIMAGEIO_DEBUG env
 ///             variable.
+///     int log_times
+///             When nonzero, various internals will record how much total
+///             time they spend in execution. If the value is >= 2, these
+///             times will be printed upon exit. Thd default is 0, but will
+///             be initialized to the value of the OPENIMAGEIO_LOG_TIMES
+///             environment variable, if it exists.
 ///     int tiff:half
 ///             When nonzero, allows TIFF to write 'half' pixel data.
 ///             N.B. Most apps may not read these correctly, but OIIO will.
@@ -1326,6 +1332,8 @@ inline bool attribute (string_view name, string_view val) {
 ///             the library. Semicolons separate the lists for formats. For
 ///             example,
 ///              "jpeg:jpeg-turbo 1.5.1;png:libpng 1.6.29;gif:gif_lib 5.1.4"
+///     string "timing_report"
+///             A string containing the report of all the log_times.
 ///     string "oiio:simd"
 ///             Comma-separated list of the SIMD-related capabilities
 ///             enabled when the OIIO library was built. For example,

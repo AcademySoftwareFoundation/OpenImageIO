@@ -45,6 +45,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/thread.h>
+#include "imageio_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -412,6 +413,7 @@ bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       Filter2D *filter, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::resize");
     if (! IBAprep (roi, &dst, &src,
             IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME |
             IBAprep_NO_COPY_ROI_FULL))
@@ -447,6 +449,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       string_view filtername_, float fwidth,
                       ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::resize");
     if (! IBAprep (roi, &dst, &src,
             IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME |
             IBAprep_NO_COPY_ROI_FULL))
@@ -569,6 +572,7 @@ bool
 ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
                         bool interpolate, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::resample");
     if (! IBAprep (roi, &dst, &src,
             IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME |
             IBAprep_NO_COPY_ROI_FULL | IBAprep_SUPPORT_DEEP))
@@ -666,6 +670,7 @@ ImageBufAlgo::warp (ImageBuf &dst, const ImageBuf &src,
                     bool recompute_roi, ImageBuf::WrapMode wrap,
                     ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::warp");
     ROI src_roi_full = src.roi_full();
     ROI dst_roi, dst_roi_full;
     if (dst.initialized()) {

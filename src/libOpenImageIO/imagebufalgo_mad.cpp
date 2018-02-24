@@ -42,7 +42,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/dassert.h>
-
+#include "imageio_pvt.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -148,6 +148,7 @@ bool
 ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A_, const ImageBuf &B_,
                    const ImageBuf &C_, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::mad");
     const ImageBuf *A = &A_, *B = &B_, *C = &C_;
     if (!A->initialized() || !B->initialized() || !C->initialized()) {
         dst.error ("Uninitialized input image");
@@ -188,6 +189,7 @@ bool
 ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A_, const float *B,
                    const ImageBuf &C_, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::mad");
     const ImageBuf *A = &A_, *C = &C_;
     if (!A->initialized() || !C->initialized()) {
         dst.error ("Uninitialized input image");
@@ -222,6 +224,7 @@ bool
 ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A, const float *B,
                    const float *C, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::mad");
     if (!A.initialized()) {
         dst.error ("Uninitialized input image");
         return false;
@@ -241,6 +244,7 @@ bool
 ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A, float b,
                    float c, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::mad");
     if (!A.initialized()) {
         dst.error ("Uninitialized input image");
         return false;

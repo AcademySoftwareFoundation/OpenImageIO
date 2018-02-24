@@ -44,7 +44,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/SHA1.h>
-
+#include "imageio_pvt.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -187,6 +187,7 @@ bool
 ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
                                  ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtimer("IBA::computePixelStats");
     if (! roi.defined())
         roi = get_roi (src.spec());
     else
@@ -318,6 +319,7 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
                        ImageBufAlgo::CompareResults &result,
                        ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtimer("IBA::compare");
     // If no ROI is defined, use the union of the data windows of the two
     // images.
     if (! roi.defined())
@@ -378,6 +380,7 @@ bool
 ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color,
                                ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtimer("IBA::isConstantColor");
     // If no ROI is defined, use the data window of src.
     if (! roi.defined())
         roi = get_roi(src.spec());
@@ -415,6 +418,7 @@ bool
 ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val,
                                  ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtimer("IBA::isConstantChannel");
     // If no ROI is defined, use the data window of src.
     if (! roi.defined())
         roi = get_roi(src.spec());
@@ -455,6 +459,7 @@ isMonochrome_ (const ImageBuf &src, ROI roi, int nthreads)
 bool
 ImageBufAlgo::isMonochrome (const ImageBuf &src, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtimer("IBA::isMonochrome");
     // If no ROI is defined, use the data window of src.
     if (! roi.defined())
         roi = get_roi(src.spec());
@@ -511,6 +516,7 @@ ImageBufAlgo::color_count (const ImageBuf &src, imagesize_t *count,
                            const float *eps,
                            ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtimer("IBA::color_count");
     // If no ROI is defined, use the data window of src.
     if (! roi.defined())
         roi = get_roi(src.spec());
@@ -577,6 +583,7 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
                                  const float *low, const float *high,
                                  ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtimer("IBA::color_range_check");
     // If no ROI is defined, use the data window of src.
     if (! roi.defined())
         roi = get_roi(src.spec());
@@ -628,6 +635,7 @@ deep_nonempty_region (const ImageBuf &src, ROI roi)
 ROI
 ImageBufAlgo::nonzero_region (const ImageBuf &src, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtimer("IBA::nonzero_region");
     roi = roi_intersection (roi, src.roi());
 
     if (src.deep()) {
@@ -737,6 +745,7 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
                                     string_view extrainfo,
                                     ROI roi, int blocksize, int nthreads)
 {
+    pvt::LoggedTimer logtimer("IBA::computePixelHashSHA1");
     if (! roi.defined())
         roi = get_roi (src.spec());
 
@@ -834,6 +843,7 @@ ImageBufAlgo::histogram (const ImageBuf &A, int channel,
                          float min, float max, imagesize_t *submin,
                          imagesize_t *supermax, ROI roi)
 {
+    pvt::LoggedTimer logtimer("IBA::histogram");
     if (A.spec().format != TypeFloat) {
         A.error ("Unsupported pixel data format '%s'", A.spec().format);
         return false;
@@ -876,6 +886,7 @@ bool
 ImageBufAlgo::histogram_draw (ImageBuf &R,
                               const std::vector<imagesize_t> &histogram)
 {
+    pvt::LoggedTimer logtimer("IBA::histogram_draw");
     // Fail if there are no bins to draw.
     int bins = histogram.size();
     if (bins == 0) {

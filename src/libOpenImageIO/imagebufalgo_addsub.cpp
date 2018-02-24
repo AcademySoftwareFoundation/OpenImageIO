@@ -43,6 +43,7 @@
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/dassert.h>
+#include "imageio_pvt.h"
 
 
 
@@ -113,6 +114,7 @@ bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::add");
     if (! IBAprep (roi, &dst, &A, &B))
         return false;
     ROI origroi = roi;
@@ -145,6 +147,7 @@ bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::add");
     if (! IBAprep (roi, &dst, &A,
                    IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
@@ -167,6 +170,7 @@ bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::add");
     if (! IBAprep (roi, &dst, &A,
                    IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
@@ -202,6 +206,7 @@ bool
 ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::sub");
     if (! IBAprep (roi, &dst, &A, &B))
         return false;
     ROI origroi = roi;
@@ -234,6 +239,7 @@ bool
 ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::sub");
     if (! IBAprep (roi, &dst, &A,
                    IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
@@ -261,6 +267,7 @@ bool
 ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::sub");
     if (! IBAprep (roi, &dst, &A,
                    IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;

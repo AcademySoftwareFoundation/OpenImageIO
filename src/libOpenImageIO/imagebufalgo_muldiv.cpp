@@ -44,6 +44,7 @@
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/simd.h>
+#include "imageio_pvt.h"
 
 
 
@@ -72,6 +73,7 @@ bool
 ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::mul");
     if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
@@ -131,6 +133,7 @@ bool
 ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::mul");
     if (! IBAprep (roi, &dst, &A,
                    IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
@@ -153,6 +156,7 @@ bool
 ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::mul");
     if (! IBAprep (roi, &dst, &A,
                    IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
@@ -191,6 +195,7 @@ bool
 ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::div");
     if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
@@ -206,6 +211,7 @@ bool
 ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::div");
     if (! IBAprep (roi, &dst, &A,
                    IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
@@ -233,6 +239,7 @@ bool
 ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::div");
     if (! IBAprep (roi, &dst, &A,
                    IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;

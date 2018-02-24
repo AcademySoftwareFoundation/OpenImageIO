@@ -56,6 +56,13 @@ Public API changes:
     * ImageBufAlgo::colorconvert variety deprecated since 1.7.
     * ImageCache::clear, deprecated since 1.7.
     * ImageCache::add_tile variety deprecated since 1.6.
+* Global OIIO attribute "log_times" (which defaults to 0 but can be overridden
+  by setting the `OPENIMAGEIO_LOG_TIMES` environment variable), when nonzero,
+  instruments ImageBufAlgo functions to record the number of times they are
+  called and how much time they take to execute. A report of these times
+  can be retrieved as a string as the "timing_report" attribute, or it will
+  be printed to stdout automatically if the value of log_times is 2 or more
+  at the time that the application exits. #1885 (1.9.2)
 
 Performance improvements:
 * ImageBufAlgo::computePixelStats is now multithreaded and should improve by

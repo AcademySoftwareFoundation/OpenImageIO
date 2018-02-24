@@ -42,6 +42,7 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
+#include "imageio_pvt.h"
 
 #ifdef USE_OCIO
 #include <OpenColorIO/OpenColorIO.h>
@@ -1104,6 +1105,7 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             ColorConfig *colorconfig,
                             ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::colorconvert");
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
     }
@@ -1266,6 +1268,7 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
                             const ColorProcessor* processor, bool unpremult,
                             ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::colorconvert");
     // If the processor is NULL, return false (error)
     if (!processor) {
         dst.error ("Passed NULL ColorProcessor to colorconvert() [probable application bug]");
@@ -1281,11 +1284,11 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
         return false;
 
     // If the processor is a no-op (and it's not an in-place conversion),
-    // use paste() to simplify the operation.
+    // use copy() to simplify the operation.
     if (processor->isNoOp()) {
         roi.chend = std::max (roi.chbegin+4, roi.chend);
-        return ImageBufAlgo::paste (dst, roi.xbegin, roi.ybegin, roi.zbegin,
-                                    roi.chbegin, src, roi, nthreads);
+        logtime.stop();  // transition to copy
+        return ImageBufAlgo::copy (dst, src, TypeUnknown, roi, nthreads);
     }
 
     if (unpremult && src.spec().alpha_channel >= 0 &&
@@ -1319,6 +1322,7 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
                         ColorConfig *colorconfig,
                         ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::ociolook");
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
     }
@@ -1363,6 +1367,7 @@ ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
                            ColorConfig *colorconfig,
                            ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::ociodisplay");
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute ("oiio:Colorspace", "Linear");
     }
@@ -1397,6 +1402,7 @@ ImageBufAlgo::ociofiletransform (ImageBuf &dst, const ImageBuf &src,
                         string_view name, bool inverse, bool unpremult,
                         ColorConfig *colorconfig, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::ociofiletransform");
     if (name.empty()) {
         dst.error ("Unknown filetransform name");
         return false;

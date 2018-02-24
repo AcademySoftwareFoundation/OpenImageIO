@@ -45,6 +45,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/color.h>
+#include "imageio_pvt.h"
 
 
 
@@ -79,6 +80,7 @@ ImageBufAlgo::clamp (ImageBuf &dst, const ImageBuf &src,
                      const float *min, const float *max,
                      bool clampalpha01, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::clamp");
     if (! IBAprep (roi, &dst, &src))
         return false;
     std::vector<float> minvec, maxvec;
@@ -150,6 +152,7 @@ bool
 ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                        ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::absdiff");
     if (! IBAprep (roi, &dst, &A, &B))
         return false;
     ROI origroi = roi;
@@ -182,6 +185,7 @@ bool
 ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const float *b,
                        ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::absdiff");
     if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
@@ -196,6 +200,7 @@ bool
 ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, float b,
                        ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::absdiff");
     if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     int nc = dst.nchannels();
@@ -239,6 +244,7 @@ bool
 ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, const float *b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::pow");
     if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
@@ -253,6 +259,7 @@ bool
 ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::pow");
     if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     int nc = A.nchannels();
@@ -293,6 +300,7 @@ bool
 ImageBufAlgo::channel_sum (ImageBuf &dst, const ImageBuf &src,
                            const float *weights, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::channel_sum");
     if (! roi.defined())
         roi = get_roi(src.spec());
     roi.chend = std::min (roi.chend, src.nchannels());
@@ -492,6 +500,7 @@ bool
 ImageBufAlgo::rangecompress (ImageBuf &dst, const ImageBuf &src,
                              bool useluma, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::rangecompress");
     if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
@@ -507,6 +516,7 @@ bool
 ImageBufAlgo::rangeexpand (ImageBuf &dst, const ImageBuf &src,
                            bool useluma, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::rangeexpand");
     if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
@@ -560,6 +570,7 @@ bool
 ImageBufAlgo::unpremult (ImageBuf &dst, const ImageBuf &src,
                          ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::unpremult");
     if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (src.spec().alpha_channel < 0 
@@ -619,6 +630,7 @@ bool
 ImageBufAlgo::premult (ImageBuf &dst, const ImageBuf &src,
                        ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::premult");
     if (! IBAprep (roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (src.spec().alpha_channel < 0) {
@@ -670,6 +682,7 @@ ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
                          array_view<const float> knots,
                          ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::color_map");
     if (srcchannel >= src.nchannels()) {
         dst.error ("invalid source channel selected");
         return false;
@@ -760,6 +773,7 @@ ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
                          int srcchannel, string_view mapname,
                          ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::color_map");
     if (srcchannel >= src.nchannels()) {
         dst.error ("invalid source channel selected");
         return false;
@@ -940,6 +954,7 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
                             NonFiniteFixMode mode, int *pixelsFixed,
                             ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::fixNonFinite");
     if (mode != ImageBufAlgo::NONFINITE_NONE &&
         mode != ImageBufAlgo::NONFINITE_BLACK &&
         mode != ImageBufAlgo::NONFINITE_BOX3 &&
@@ -1110,6 +1125,7 @@ bool
 ImageBufAlgo::over (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                     ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::over");
     if (! IBAprep (roi, &dst, &A, &B, NULL,
                    IBAprep_REQUIRE_ALPHA | IBAprep_REQUIRE_SAME_NCHANNELS))
         return false;
@@ -1141,6 +1157,7 @@ bool
 ImageBufAlgo::zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                      bool z_zeroisinf, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::zover");
     if (! IBAprep (roi, &dst, &A, &B, NULL,
                    IBAprep_REQUIRE_ALPHA | IBAprep_REQUIRE_Z |
                    IBAprep_REQUIRE_SAME_NCHANNELS))

@@ -49,7 +49,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/sysutil.h>
-
+#include "imageio_pvt.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -60,6 +60,7 @@ bool
 ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
                              TypeDesc convert)
 {
+    pvt::LoggedTimer logtime("IBA::from_IplImage");
     if (! ipl) {
         DASSERT (0 && "ImageBufAlgo::fromIplImage called with NULL ipl");
         dst.error ("Passed NULL source IplImage");
@@ -138,6 +139,7 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
 IplImage *
 ImageBufAlgo::to_IplImage (const ImageBuf &src)
 {
+    pvt::LoggedTimer logtime("IBA::to_IplImage");
 #ifdef USE_OPENCV
     ImageBuf tmp = src;
     ImageSpec spec = tmp.spec();
@@ -250,6 +252,7 @@ static CameraHolder cameras;
 bool
 ImageBufAlgo::capture_image (ImageBuf &dst, int cameranum, TypeDesc convert)
 {
+    pvt::LoggedTimer logtime("IBA::capture_image");
 #ifdef USE_OPENCV
     IplImage *frame = NULL;
     {
