@@ -178,6 +178,18 @@ void test_zero_fill ()
             }
         }
     }
+
+    // Timing
+    Benchmarker bench;
+    ImageBuf buf_rgba_float (ImageSpec (1000, 1000, 4, TypeFloat));
+    ImageBuf buf_rgba_uint8 (ImageSpec (1000, 1000, 4, TypeUInt8));
+    ImageBuf buf_rgba_half (ImageSpec (1000, 1000, 4, TypeHalf));
+    ImageBuf buf_rgba_uint16 (ImageSpec (1000, 1000, 4, TypeDesc::UINT16));
+    float vals[] = { 0, 0, 0, 0 };
+    bench ("  IBA::fill float[4] ",  [&](){ ImageBufAlgo::fill (buf_rgba_float, vals); });
+    bench ("  IBA::fill uint8[4] ",  [&](){ ImageBufAlgo::fill (buf_rgba_uint8, vals); });
+    bench ("  IBA::fill uint16[4] ", [&](){ ImageBufAlgo::fill (buf_rgba_uint16, vals); });
+    bench ("  IBA::fill half[4] ",   [&](){ ImageBufAlgo::fill (buf_rgba_half, vals); });
 }
 
 
