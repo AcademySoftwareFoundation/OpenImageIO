@@ -126,12 +126,9 @@ public:
             size_t ncalls = item.second.second;
             double time = item.second.first;
             double percall = time/ncalls;
-            bool use_ms = (item.second.first < 0.1);
             bool use_ms_percall = (percall < 0.1);
-            out << Strutil::format ("%-25s%6d %6.2f%s  (avg %6.2f%s)\n", item.first,
-                                    ncalls,
-                                    time * (use_ms ? 1000.0 : 1.0),
-                                    use_ms ? "ms" : "s ",
+            out << Strutil::format ("%-25s%6d %7.3fs  (avg %6.2f%s)\n", item.first,
+                                    ncalls, time,
                                     percall * (use_ms_percall ? 1000.0 : 1.0),
                                     use_ms_percall ? "ms" : "s");
         }
