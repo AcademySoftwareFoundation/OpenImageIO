@@ -41,25 +41,10 @@
 #include <utility> // std::forward
 
 // Make sure all platforms have the explicit sized integer types
-#if defined(_MSC_VER) && _MSC_VER < 1600
-   typedef __int8  int8_t;
-   typedef __int16 int16_t;
-   typedef __int32 int32_t;
-   typedef __int64 int64_t;
-   typedef unsigned __int8  uint8_t;
-   typedef unsigned __int16 uint16_t;
-# ifndef _UINT64_T
-   typedef unsigned __int32 uint32_t;
-   typedef unsigned __int64 uint64_t;
-#  define _UINT32_T
-#  define _UINT64_T
-# endif
-#else
-#  ifndef __STDC_LIMIT_MACROS
-#    define __STDC_LIMIT_MACROS  /* needed for some defs in stdint.h */
-#  endif
-#  include <cstdint>
+#ifndef __STDC_LIMIT_MACROS
+#  define __STDC_LIMIT_MACROS  /* needed for some defs in stdint.h */
 #endif
+#include <cstdint>
 
 #if defined(__FreeBSD__)
 #include <sys/param.h>
@@ -174,15 +159,22 @@
 
 // Tests for MSVS versions, always 0 if not MSVS at all.
 #if defined(_MSC_VER)
+#  if _MSC_VER < 1800
+#    error "This version of OIIO is meant to work only with Visual Studio 2013 or later"
+#  endif
 #  define OIIO_MSVS_AT_LEAST_2013 (_MSC_VER >= 1800)
 #  define OIIO_MSVS_BEFORE_2013   (_MSC_VER <  1800)
 #  define OIIO_MSVS_AT_LEAST_2015 (_MSC_VER >= 1900)
 #  define OIIO_MSVS_BEFORE_2015   (_MSC_VER <  1900)
+#  define OIIO_MSVS_AT_LEAST_2017 (_MSC_VER >= 1910)
+#  define OIIO_MSVS_BEFORE_2017   (_MSC_VER <  1910)
 #else
 #  define OIIO_MSVS_AT_LEAST_2013 0
 #  define OIIO_MSVS_BEFORE_2013   0
 #  define OIIO_MSVS_AT_LEAST_2015 0
 #  define OIIO_MSVS_BEFORE_2015   0
+#  define OIIO_MSVS_AT_LEAST_2017 0
+#  define OIIO_MSVS_BEFORE_2017   0
 #endif
 
 
