@@ -1131,6 +1131,8 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
             return false;
         }
     }
+
+    logtime.stop();   // transition to other colorconvert
     bool ok = colorconvert (dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
         dst.specmod().attribute ("oiio:ColorSpace", to);
@@ -1350,6 +1352,8 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
             return false;
         }
     }
+
+    logtime.stop();   // transition to colorconvert
     bool ok = colorconvert (dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
         dst.specmod().attribute ("oiio:ColorSpace", to);
@@ -1391,6 +1395,8 @@ ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
             return false;
         }
     }
+
+    logtime.stop();   // transition to colorconvert
     bool ok = colorconvert (dst, src, processor.get(), unpremult, roi, nthreads);
     return ok;
 }
@@ -1423,6 +1429,8 @@ ImageBufAlgo::ociofiletransform (ImageBuf &dst, const ImageBuf &src,
             return false;
         }
     }
+
+    logtime.stop();   // transition to colorconvert
     bool ok = colorconvert (dst, src, processor.get(), unpremult, roi, nthreads);
     if (ok)
         dst.specmod().attribute ("oiio:ColorSpace", name);
