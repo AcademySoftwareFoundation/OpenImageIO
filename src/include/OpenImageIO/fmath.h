@@ -62,7 +62,9 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/missing_math.h>
+#ifndef __CUDACC__
 #include <OpenImageIO/simd.h>
+#endif
 #include <OpenImageIO/array_view.h>
 
 
@@ -224,6 +226,7 @@ clamp (const T& a, const T& low, const T& high)
 }
 
 
+#ifndef __CUDACC__
 // Specialization of clamp for vfloat4
 template<> inline simd::vfloat4
 clamp (const simd::vfloat4& a, const simd::vfloat4& low, const simd::vfloat4& high)
@@ -236,6 +239,7 @@ clamp (const simd::vfloat8& a, const simd::vfloat8& low, const simd::vfloat8& hi
 {
     return simd::min (high, simd::max (low, a));
 }
+#endif
 
 
 
@@ -473,6 +477,7 @@ floorfrac (float x, int *xint)
 }
 
 
+#ifndef __CUDACC__
 inline simd::vfloat4 floorfrac (const simd::vfloat4& x, simd::vint4 *xint) {
     simd::vfloat4 f = simd::floor(x);
     *xint = simd::vint4(f);
@@ -490,6 +495,7 @@ inline simd::vfloat16 floorfrac (const simd::vfloat16& x, simd::vint16 *xint) {
     *xint = simd::vint16(f);
     return x - f;
 }
+#endif
 
 
 
@@ -687,7 +693,7 @@ void convert_type (const S *src, D *dst, size_t n, D _min, D _max)
 }
 
 
-
+#ifndef __CUDACC__
 template<>
 inline void convert_type<uint8_t,float> (const uint8_t *src,
                                          float *dst, size_t n,
@@ -797,6 +803,7 @@ convert_type<float,half> (const float *src, half *dst, size_t n,
     while (n--)
         *dst++ = *src++;
 }
+#endif
 #endif
 
 
@@ -1141,11 +1148,13 @@ inline int fast_rint (float x) {
 #endif
 }
 
+#ifndef __CUDACC__
 inline simd::vint4 fast_rint (const simd::vfloat4& x) {
     return simd::rint (x);
 }
+#endif
 
-
+#ifndef __CUDACC__
 inline float fast_sin (float x) {
     // very accurate argument reduction from SLEEF
     // starts failing around x=262000
@@ -1347,6 +1356,7 @@ inline float fast_atan2 (float y, float x) {
         r = float(M_PI) - r;
     return copysignf(r, y);
 }
+
 
 template<typename T>
 inline T fast_log2 (const T& xval) {
@@ -1650,6 +1660,7 @@ inline float fast_ierf (float x)
     }
     return p * x;
 }
+#endif
 
 // (end of fast* functions)
 ////////////////////////////////////////////////////////////////////////////
@@ -1738,6 +1749,183 @@ interpolate_linear (float x, array_view_strided<const float> y)
 }
 
 // (end miscellaneous numerical methods)
+////////////////////////////////////////////////////////////////////////////
+
+
+
+
+////////////////////////////////////////////////////////////////////////////
+// CUDA device functions & intrinsics
+//
+// For now, the selection of 'fast' instrinsics is controlled via compiler
+// flags.
+
+#ifdef __CUDACC__
+__device__ inline float fast_sin (float x) {
+    return __sinf(x);
+}
+
+__device__ inline float fast_cos (float x) {
+    return __cosf(x);
+}
+
+__device__ inline void fast_sincos (float x, float* sine, float* cosine) {
+    __sincosf(x, sine, cosine);
+}
+
+__device__ inline float fast_tan (float x) {
+    return __tanf(x);
+}
+
+__device__ inline float fast_sinpi (float x) {
+    return __sinf(float(M_PI)) * x;
+}
+
+__device__ inline float fast_cospi (float x) {
+    return __cosf(float(M_PI)) * x;
+}
+
+__device__ inline float fast_acos (float x) {
+    return acosf(x);
+}
+
+__device__ inline float fast_asin (float x) {
+    return asinf(x);
+}
+
+__device__ inline float fast_atan (float x) {
+    return atanf(x);
+}
+
+__device__ inline float fast_atan2 (float y, float x) {
+    return atan2f( y, x );
+}
+
+__device__ inline float fast_log2 (float xval) {
+    return __log2f( xval );
+}
+
+__device__ inline float fast_log (float x) {
+    return __logf(x);
+}
+
+__device__ inline float fast_log10 (float x) {
+    return __log10f(x);
+}
+
+__device__ inline float fast_logb (float x) {
+    return logbf(x);
+}
+
+__device__ inline float fast_log1p (float x) {
+    return log1pf(x);
+}
+
+__device__ inline float fast_exp (float x) {
+    return __expf(x);
+}
+
+__device__ inline float fast_exp2 (float x) {
+    return exp2f(x);
+}
+
+__device__ inline float fast_exp10 (float x) {
+    return __exp10f(x);
+}
+
+__device__ inline float fast_expm1 (float x) {
+    return expm1f(x);
+}
+
+__device__ inline float fast_erf (float x) {
+    return erff(x);
+}
+
+__device__ inline float fast_erfc (float x) {
+    return erfcf(x);
+}
+
+__device__ inline float fast_sinh (float x) {
+    return sinhf(x);
+}
+
+__device__ inline float fast_cosh (float x) {
+    return coshf(x);
+}
+
+__device__ inline float fast_tanh (float x) {
+    return tanhf(x);
+}
+
+__device__ inline float fast_sqrt (float x) {
+    return __fsqrt_rn(x);
+}
+
+__device__ inline float fast_inversesqrt (float x) {
+    return __frsqrt_rn(x);
+}
+
+__device__ inline float safe_sqrt (float x) {
+    return x >= 0.0f ? __fsqrt_rn(x) : 0.0f;
+}
+
+__device__ inline float safe_inversesqrt (float x) {
+    return x > 0.0f ? __frsqrt_rn(x) : 0.0f;
+}
+
+// (end CUDA intrinsics)
+////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////
+// 'Safe' device functions & helpers
+
+template <typename IN_TYPE, typename OUT_TYPE> __device__
+inline OUT_TYPE device_bit_cast (const IN_TYPE in) {
+    // NOTE: this is the only standards compliant way of doing this type of casting,
+    // luckily the compilers we care about know how to optimize away this idiom.
+    OUT_TYPE out;
+    memcpy (&out, &in, sizeof(IN_TYPE));
+    return out;
+}
+
+__device__ inline float safe_acos (float x) {
+    if (x <= -1.0f) return float(M_PI);
+    if (x >=  1.0f) return 0.0f;
+    return acosf(x);
+}
+
+__device__ inline float fast_safe_pow (float x, float y) {
+    if (y == 0) return 1.0f; // x^0=1
+    if (x == 0) return 0.0f; // 0^y=0
+    // be cheap & exact for special case of squaring and identity
+    if (y == 1.0f)
+        return x;
+    if (y == 2.0f)
+        return std::min (x*x, std::numeric_limits<float>::max());
+    float sign = 1.0f;
+    if (x < 0) {
+        // if x is negative, only deal with integer powers
+        // powf returns NaN for non-integers, we will return 0 instead
+        int ybits = device_bit_cast<float, int>(y) & 0x7fffffff;
+        if (ybits >= 0x4b800000) {
+            // always even int, keep positive
+        } else if (ybits >= 0x3f800000) {
+            // bigger than 1, check
+            int k = (ybits >> 23) - 127;  // get exponent
+            int j =  ybits >> (23 - k);   // shift out possible fractional bits
+            if ((j << (23 - k)) == ybits) // rebuild number and check for a match
+                sign = device_bit_cast<int, float>(0x3f800000 | (j << 31)); // +1 for even, -1 for odd
+            else
+                return 0.0f; // not integer
+        } else {
+            return 0.0f; // not integer
+        }
+    }
+    return sign * fast_exp2(y * fast_log2(fabsf(x)));
+}
+#endif
+
+// (end safe functions)
 ////////////////////////////////////////////////////////////////////////////
 
 
