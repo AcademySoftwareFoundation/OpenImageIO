@@ -57,10 +57,14 @@ template<typename T>
 static bool
 fill_const_ (ImageBuf &dst, const float *values, ROI roi=ROI(), int nthreads=1)
 {
-    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
-        for (ImageBuf::Iterator<T> p (dst, roi);  !p.done();  ++p)
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                p[c] = values[c];
+    ImageBufAlgo::parallel_image (roi, nthreads, [=,&dst](ROI roi){
+        // Do the data conversion just once, store locally.
+        T *tvalues = ALLOCA (T, roi.chend);
+        for (int i = roi.chbegin; i < roi.chend; ++i)
+            tvalues[i] = convert_type<float,T>(values[i]);
+        int nchannels = roi.nchannels();
+        for (ImageBuf::Iterator<T,T> p (dst, roi);  !p.done();  ++p)
+            memcpy ((T*)p.rawptr()+roi.chbegin, tvalues+roi.chbegin, nchannels*sizeof(T));
     });
     return true;
 }
@@ -155,7 +159,10 @@ ImageBufAlgo::zero (ImageBuf &dst, ROI roi, int nthreads)
         return false;
     float *zero = ALLOCA(float,roi.chend);
     memset (zero, 0, roi.chend*sizeof(float));
-    return fill (dst, zero, roi, nthreads);
+    bool ok;
+    OIIO_DISPATCH_TYPES (ok, "zero", fill_const_, dst.spec().format,
+                         dst, zero, roi, nthreads);
+    return ok;
 }
 
 
