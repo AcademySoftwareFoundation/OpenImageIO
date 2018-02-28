@@ -43,6 +43,7 @@
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/thread.h>
+#include "imageio_pvt.h"
 
 
 
@@ -84,6 +85,7 @@ ImageBufAlgo::paste (ImageBuf &dst, int xbegin, int ybegin,
                      int zbegin, int chbegin,
                      const ImageBuf &src, ROI srcroi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::paste");
     if (! srcroi.defined())
         srcroi = get_roi(src.spec());
 
@@ -163,6 +165,7 @@ bool
 ImageBufAlgo::copy (ImageBuf &dst, const ImageBuf &src, TypeDesc convert,
                     ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::copy");
     if (&dst == &src)   // trivial copy to self
         return true;
 
@@ -215,6 +218,7 @@ bool
 ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
                     ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::crop");
     dst.clear ();
     roi.chend = std::min (roi.chend, src.nchannels());
     if (! IBAprep (roi, &dst, &src, IBAprep_SUPPORT_DEEP))
@@ -257,6 +261,7 @@ bool
 ImageBufAlgo::cut (ImageBuf &dst, const ImageBuf &src,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::cut");
     bool ok = crop (dst, src, roi, nthreads);
     ASSERT(ok);
     if (! ok)
@@ -304,6 +309,7 @@ ImageBufAlgo::circular_shift (ImageBuf &dst, const ImageBuf &src,
                               int xshift, int yshift, int zshift,
                               ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::circular_shift");
     if (! IBAprep (roi, &dst, &src))
         return false;
     bool ok;

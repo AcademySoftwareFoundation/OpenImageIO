@@ -45,6 +45,7 @@
 #include <OpenImageIO/parallel.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/timer.h>
 #include "imageio_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
@@ -71,6 +72,7 @@ std::string input_format_list;   // comma-separated list of readable formats
 std::string output_format_list;  // comma-separated list of writeable formats
 std::string extension_list;   // list of all extensions for all formats
 std::string library_list;   // list of all libraries for all formats
+int oiio_log_times = Strutil::from_string<int>(Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
 }
 
 using namespace pvt;
@@ -87,7 +89,55 @@ int print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 0);
 #else
 int print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 1);
 #endif
+
+class TimingLog {
+public:
+    spin_mutex mutex;
+    std::map<std::string, std::pair<double,size_t>> timing_map;
+
+    TimingLog () {}
+
+    // Destructor prints the timing report if oiio_log_times >= 2
+    ~TimingLog () {
+        if (oiio_log_times >= 2)
+            std::cout << report ();
+    }
+
+    // Call like a function to record times (but only if oiio_log_times > 0)
+    void operator() (string_view key, const Timer& timer) {
+        if (oiio_log_times) {
+            auto t = timer();
+            spin_lock lock (mutex);
+            auto entry = timing_map.find(key);
+            if (entry == timing_map.end())
+                timing_map[key] = std::make_pair(t,size_t(1));
+            else {
+                entry->second.first += t;
+                entry->second.second += 1;
+            }
+        }
+    }
+
+    // Retrieve the report as a big string
+    std::string report () {
+        std::stringstream out;
+        spin_lock lock (mutex);
+        for (const auto& item : timing_map) {
+            size_t ncalls = item.second.second;
+            double time = item.second.first;
+            double percall = time/ncalls;
+            bool use_ms_percall = (percall < 0.1);
+            out << Strutil::format ("%-25s%6d %7.3fs  (avg %6.2f%s)\n", item.first,
+                                    ncalls, time,
+                                    percall * (use_ms_percall ? 1000.0 : 1.0),
+                                    use_ms_percall ? "ms" : "s");
+        }
+        return out.str();
+    }
 };
+static TimingLog timing_log;
+
+}   // end anon namespace
 
 
 
@@ -212,6 +262,14 @@ debug (string_view message)
 
 
 
+void
+pvt::log_time (string_view key, const Timer& timer)
+{
+    timing_log (key, timer);
+}
+
+
+
 bool
 attribute (string_view name, TypeDesc type, const void *val)
 {
@@ -242,6 +300,10 @@ attribute (string_view name, TypeDesc type, const void *val)
     }
     if (name == "debug" && type == TypeInt) {
         print_debug = *(const int *)val;
+        return true;
+    }
+    if (name == "log_times" && type == TypeInt) {
+        oiio_log_times = *(const int *)val;
         return true;
     }
     return false;
@@ -305,6 +367,14 @@ getattribute (string_view name, TypeDesc type, void *val)
     }
     if (name == "debug" && type == TypeInt) {
         *(int *)val = print_debug;
+        return true;
+    }
+    if (name == "log_times" && type == TypeInt) {
+        *(int *)val = oiio_log_times;
+        return true;
+    }
+    if (name == "timing_report" && type == TypeString) {
+        *(ustring *)val = ustring(timing_log.report());
         return true;
     }
     if (name == "hw:simd" && type == TypeString) {

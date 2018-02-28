@@ -42,6 +42,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/timer.h>
+#include "imageio_pvt.h"
 
 
 OIIO_NAMESPACE_BEGIN
@@ -114,6 +115,7 @@ bool
 ImageBufAlgo::flatten (ImageBuf &dst, const ImageBuf &src,
                        ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::flatten");
     if (! src.deep()) {
         // For some reason, we were asked to flatten an already-flat image.
         // So just copy it.
@@ -151,6 +153,7 @@ bool
 ImageBufAlgo::deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
                       ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::deepen");
     if (src.deep()) {
         // For some reason, we were asked to deepen an already-deep image.
         // So just copy it.
@@ -243,6 +246,7 @@ ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
                           const ImageBuf &B, bool occlusion_cull,
                           ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::deep_merge");
     if (! A.deep() || ! B.deep()) {
         // For some reason, we were asked to merge a flat image.
         dst.error ("deep_merge can only be performed on deep images");
@@ -351,6 +355,7 @@ ImageBufAlgo::deep_holdout (ImageBuf &dst, const ImageBuf &src,
                             const ImageBuf &thresh,
                             ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::deep_holdout");
     if (! src.deep() || ! thresh.deep()) {
         dst.error ("deep_holdout can only be performed on deep images");
         return false;

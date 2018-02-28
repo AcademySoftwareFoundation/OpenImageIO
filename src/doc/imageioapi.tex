@@ -999,7 +999,52 @@ and decoding multiple scanlines).  The default is 256.  The special value
 of 0 indicates that it should try to read the whole image if possible.
 \apiend
 
+\apiitem{int debug}
+\vspace{10pt}
+\index{debug}
+When nonzero, various debug messages may be printed. The default is 0 for
+release builds, 1 for {\cf DEBUG} builds, but also may be overridden by the
+{\cf OPENIMAGEIO\_DEBUG} env variable.
 \apiend
+
+\apiitem{int log_times \\
+string timing_report}
+\vspace{10pt}
+\index{log_times} \index{timing_report}
+\NEW % 1.9
+
+When the \qkw{log_times} attribute is nonzero, {\cf ImageBufAlgo} functions
+are instrumented to record the number of times they were called and the
+total amount of time spent executing them. When enabled, there is a slight
+runtime performance cost due to checking the time at the start and end of
+each of those function calls, and the locking and recording of the data
+structure that holds the log information. When the {\cf log_times} attribute
+is disabled, there is no additional performance cost.
+
+The {\cf log_times} attribute is initialized to 0, but may be overridden by
+environment variable {\cf OPENIMAGEIO_LOG_TIMES}.
+\index{OPENIMAGEIO_LOG_TIMES}
+
+The report of totals can be retrieved as the value of the
+\qkw{timing_report} attribute, which is a string and is read-only. The
+report is sorted alphabetically and for each named instrumentation region,
+prints the number of times it executed, the total runtime, and the average
+per call, like this:
+\begin{code}
+    IBA::computePixelStats        2   2.69ms  (avg   1.34ms)
+    IBA::make_texture             1  74.05ms  (avg  74.05ms)
+    IBA::mul                      8   2.42ms  (avg   0.30ms)
+    IBA::over                    10  23.82ms  (avg   2.38ms)
+    IBA::resize                  20   0.24s   (avg  12.18ms)
+    IBA::zero                     8   0.66ms  (avg   0.08ms)
+\end{code}
+
+If the value of {\cf log_times} is 2 or more when the application terminates,
+the timing report will be printed to {\cf stdout} upon exit.
+\apiend
+
+\apiend
+
 
 \apiitem{bool {\ce attribute} (string_view name, int val) \\
 bool {\ce attribute} (string_view name, float val) \\

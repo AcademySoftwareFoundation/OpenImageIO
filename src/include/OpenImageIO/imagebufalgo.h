@@ -1979,7 +1979,7 @@ bool OIIO_API render_text (ImageBuf &dst, int x, int y, string_view text,
                            int shadow = 0,
                            ROI roi = ROI::All(), int nthreads = 0);
 
-// Old style (pre-1.8) -- will eventually be deprecated.
+// DEPRECATED: Old style (pre-1.8) -- will eventually be deprecated.
 bool OIIO_API render_text (ImageBuf &dst, int x, int y, string_view text,
                            int fontsize, string_view fontname,
                            const float *textcolor);

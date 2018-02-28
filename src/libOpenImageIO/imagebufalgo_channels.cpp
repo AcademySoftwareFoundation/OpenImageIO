@@ -43,6 +43,7 @@
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/thread.h>
+#include "imageio_pvt.h"
 
 
 
@@ -81,6 +82,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                         const std::string *newchannelnames,
                         bool shuffle_channel_names, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::channels");
     // Not intended to create 0-channel images.
     if (nchannels <= 0) {
         dst.error ("%d-channel images not supported", nchannels);
@@ -229,6 +231,7 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
                               const ImageBuf &B, ROI roi,
                               int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::channel_append");
     // If the region is not defined, set it to the union of the valid
     // regions of the two source images.
     if (! roi.defined())
