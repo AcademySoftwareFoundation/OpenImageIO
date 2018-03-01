@@ -56,6 +56,9 @@ Public API changes:
     * ImageBufAlgo::colorconvert variety deprecated since 1.7.
     * ImageCache::clear, deprecated since 1.7.
     * ImageCache::add_tile variety deprecated since 1.6.
+* ROI new methods: contains()  #1874, #1878 (1.9.2)
+* `ImageBufAlgo::pixeladdr()` now takes an additional optional parameter,
+  the channel number. #1880 (1.9.2)
 * Global OIIO attribute "log_times" (which defaults to 0 but can be overridden
   by setting the `OPENIMAGEIO_LOG_TIMES` environment variable), when nonzero,
   instruments ImageBufAlgo functions to record the number of times they are
@@ -73,6 +76,13 @@ Performance improvements:
 * ImageBuf::get_pixels() sped up by around 3x for the common case of the
   image being fully in memory (the slower path is now only used for
   ImageCache-based images). #1872 (1.9.2)
+* ImageBufAlgo::copy() and crop() sped up for in-memory buffers, by about
+  35-45% when copying between buffers of the same type, 2-4x when copying
+  between buffers of different data types. #1877 (1.9.2)
+* ImageBufAlgo::over() when both buffers are in-memory, float, 4-channels,
+  sped up by about 2x. #1879 (1.9.2).
+* ImageBufAlgo::fill() of a constant color sped up by 1.5-2.5x (depending
+  on the data type involved). #1886 (1.9.2)
 
 Fixes and feature enhancements:
 * oiiotool
@@ -134,8 +144,13 @@ Fixes and feature enhancements:
   properly. #1849 (1.9.2/1.8.8)
 * PSD:
     * Fix parse issue of layer mask data. #1777 (1.9.2)
-* RAW: Add "raw:HighlightMode" configuration hint to control libraw's
-  handling of highlight mode processing. #1851
+* RAW:
+    * Add "raw:HighlightMode" configuration hint to control libraw's
+      handling of highlight mode processing. #1851
+    * Important bug fix when dealing with rotated (and vertical) images,
+      which were not being re-oriented properly and could get strangely
+      scrambled. #1854 (1.9.2/1.8.9)
+
 * TIFF:
     * Improve performance of TIFF scanline output. #1833 (1.9.2)
 * zfile: more careful gzopen on Windows that could crash when given bogus
@@ -187,6 +202,7 @@ Developer goodies / internals:
     * `parallel_options` passed to many functions. #1807 (1.9.2)
     * More careful avoidance of threads not recursively using the thread
       pool (which could lead to deadlocks). #1807 (1.9.2)
+    * Internals refactor of task_set #1883 (1.9.2).
 * paramlist.h:
     * ParamValue class has added get_int_indexed() and get_float_indexed()
       methods. #1773 (1.9.0/1.8.6)
@@ -196,7 +212,7 @@ Developer goodies / internals:
       add_or_replace(). #1813 (1.9.2)
 * simd.h:
     * Fixed build break when AVX512VL is enabled. #1781 (1.9.0/1.8.6)
-    * Minor fixes especially for avx512. #1846 (1.9.2/1.8.8)
+    * Minor fixes especially for avx512. #1846 (1.9.2/1.8.8) #1873 (1.9.2)
 * string.h:
     * All string->numeric parsing and numeric->string formatting is now
       locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
