@@ -1,3 +1,7 @@
+Release 1.8.10 (1 Apr? 2018) -- compared to 1.8.9
+-------------------------------------------------
+
+
 Release 1.8.9 (1 Mar 2018) -- compared to 1.8.8
 -------------------------------------------------
 * Properly find newer openjpeg 2.3. #1871
@@ -5,7 +9,6 @@ Release 1.8.9 (1 Mar 2018) -- compared to 1.8.8
 * RAW: Important bug fix when dealing with rotated (and vertical) images,
   which were not being re-oriented properly and could get strangely
   scrambled. #1854
-
 
 Release 1.8.8 (1 Feb 2018) -- compared to 1.8.7
 -------------------------------------------------
@@ -25,7 +28,6 @@ Release 1.8.8 (1 Feb 2018) -- compared to 1.8.7
 * On Unix/Linux, add explicit DL library dependency to libOpenImageIO.so
   itself instead of only to the binaries and test utilities. #1860
 * Build fixes for Hurd OS. #1850
-
 
 Release 1.8.7 (1 Jan 2018) -- compared to 1.8.6
 -------------------------------------------------
