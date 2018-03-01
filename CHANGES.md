@@ -1,5 +1,11 @@
 Release 1.8.9 (1 Mar 2018) -- compared to 1.8.8
 -------------------------------------------------
+* Properly find newer openjpeg 2.3. #1871
+* Bug fix in IBA::copy where uninitialized dst image botched its ROI. #1876
+* RAW: Important bug fix when dealing with rotated (and vertical) images,
+  which were not being re-oriented properly and could get strangely
+  scrambled. #1854
+
 
 Release 1.8.8 (1 Feb 2018) -- compared to 1.8.7
 -------------------------------------------------
