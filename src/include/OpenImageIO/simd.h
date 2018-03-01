@@ -118,7 +118,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  endif
 #  define OIIO_SIMD 4
 #  define OIIO_SIMD_MAX_SIZE_BYTES 16
-#  define OIIO_SIMD_ALIGN OIIO_ALIGN(16)
 #  define OIIO_SIMD4_ALIGN OIIO_ALIGN(16)
 #  define OIIO_SSE_ALIGN OIIO_ALIGN(16)
 #else
@@ -212,7 +211,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  define OIIO_SIMD 4
 #  define OIIO_SIMD_NEON 1
 #  define OIIO_SIMD_MAX_SIZE_BYTES 16
-#  define OIIO_SIMD_ALIGN OIIO_ALIGN(16)
 #  define OIIO_SIMD4_ALIGN OIIO_ALIGN(16)
 #  define OIIO_SSE_ALIGN OIIO_ALIGN(16)
 #else
@@ -222,11 +220,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef OIIO_SIMD
    // No SIMD available
 #  define OIIO_SIMD 0
-#  define OIIO_SIMD_ALIGN
 #  define OIIO_SIMD4_ALIGN
-#  define OIIO_SIMD8_ALIGN
 #  define OIIO_SIMD_MAX_SIZE_BYTES 16
 #endif
+
+#ifndef OIIO_SIMD8_ALIGN
+#  define OIIO_SIMD8_ALIGN OIIO_SIMD4_ALIGN
+#endif
+#ifndef OIIO_SIMD16_ALIGN
+#  define OIIO_SIMD16_ALIGN OIIO_SIMD8_ALIGN
+#endif
+
 
 // General features that client apps may want to test for, for conditional
 // compilation. Will add to this over time as needed. Note that just
@@ -3912,7 +3916,9 @@ OIIO_FORCEINLINE void vint4::load (const int *values) {
 OIIO_FORCEINLINE void vint4::load (const int *values, int n)
 {
     DASSERT (n >= 0 && n <= elements);
-#if OIIO_SIMD_SSE
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    m_simd = _mm_maskz_loadu_epi32 (__mmask8(~(0xf << n)), values);
+#elif OIIO_SIMD_SSE
     switch (n) {
     case 1:
         m_simd = _mm_castps_si128 (_mm_load_ss ((const float *)values));
@@ -4383,7 +4389,10 @@ inline std::ostream& operator<< (std::ostream& cout, const vint4& val) {
 
 OIIO_FORCEINLINE void vint4::store (int *values, int n) const {
     DASSERT (n >= 0 && n <= elements);
-#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+#if 0 && OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    // This SHOULD be fast, but in my benchmarks, it is slower!
+    // (At least on the AVX512 hardware I have, Xeon Silver 4110.)
+    // Re-test this periodically with new Intel hardware.
     _mm_mask_storeu_epi32 (values, __mmask8(~(0xf << n)), m_simd);
 #elif OIIO_SIMD
     // For full SIMD, there is a speed advantage to storing all components.
@@ -4397,7 +4406,6 @@ OIIO_FORCEINLINE void vint4::store (int *values, int n) const {
         values[i] = m_val[i];
 #endif
 }
-// FIXME(SSE,AVX): is there a faster way to do a partial store? 512!
 
 
 
@@ -5175,14 +5183,19 @@ inline std::ostream& operator<< (std::ostream& cout, const vint8& val) {
 
 OIIO_FORCEINLINE void vint8::store (int *values, int n) const {
     DASSERT (n >= 0 && n <= elements);
-#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+#if 0 && OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    // This SHOULD be fast, but in my benchmarks, it is slower!
+    // (At least on the AVX512 hardware I have, Xeon Silver 4110.)
+    // Re-test this periodically with new Intel hardware.
     _mm256_mask_storeu_epi32 (values, __mmask8(~(0xff << n)), m_simd);
 #elif OIIO_SIMD_SSE
     if (n <= 4) {
         lo().store (values, n);
-    } else if (n <= 8) {
+    } else if (n < 8) {
         lo().store (values);
         hi().store (values+4, n-4);
+    } else {
+        store (values);
     }
 #else
     for (int i = 0; i < n; ++i)
@@ -5941,7 +5954,10 @@ inline std::ostream& operator<< (std::ostream& cout, const vint16& val) {
 
 OIIO_FORCEINLINE void vint16::store (int *values, int n) const {
     DASSERT (n >= 0 && n <= elements);
-#if OIIO_SIMD_AVX >= 512
+#if 0 && OIIO_SIMD_AVX >= 512
+    // This SHOULD be fast, but in my benchmarks, it is slower!
+    // (At least on the AVX512 hardware I have, Xeon Silver 4110.)
+    // Re-test this periodically with new Intel hardware.
     _mm512_mask_storeu_epi32 (values, __mmask16(~(0xffff << n)), m_simd);
 #else
     if (n > 8) {
@@ -6290,7 +6306,9 @@ OIIO_FORCEINLINE void vfloat4::load (const float *values) {
 
 OIIO_FORCEINLINE void vfloat4::load (const float *values, int n) {
     DASSERT (n >= 0 && n <= elements);
-#if OIIO_SIMD_SSE
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    m_simd = _mm_maskz_loadu_ps (__mmask8(~(0xf << n)), values);
+#elif OIIO_SIMD_SSE
     switch (n) {
     case 1:
         m_simd = _mm_load_ss (values);
@@ -6422,7 +6440,12 @@ OIIO_FORCEINLINE void vfloat4::store (float *values) const {
 
 OIIO_FORCEINLINE void vfloat4::store (float *values, int n) const {
     DASSERT (n >= 0 && n <= 4);
-#if OIIO_SIMD_SSE
+#if 0 && OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    // This SHOULD be fast, but in my benchmarks, it is slower!
+    // (At least on the AVX512 hardware I have, Xeon Silver 4110.)
+    // Re-test this periodically with new Intel hardware.
+    _mm_mask_storeu_ps (values, __mmask8(~(0xf << n)), m_simd);
+#elif OIIO_SIMD_SSE
     switch (n) {
         case 1:
         _mm_store_ss (values, m_simd);
@@ -8045,7 +8068,10 @@ OIIO_FORCEINLINE void vfloat8::load (const float *values) {
 
 OIIO_FORCEINLINE void vfloat8::load (const float *values, int n) {
     DASSERT (n >= 0 && n <= elements);
-#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+#if 0 && OIIO_AVX512VL_ENABLED
+    // This SHOULD be fast, but in my benchmarks, it is slower!
+    // (At least on the AVX512 hardware I have, Xeon Silver 4110.)
+    // Re-test this periodically with new Intel hardware.
     m_simd = _mm256_maskz_loadu_ps ((~(0xff << n)), values);
 #elif OIIO_SIMD_SSE
     if (n > 4) {
@@ -8137,8 +8163,12 @@ OIIO_FORCEINLINE void vfloat8::store (float *values) const {
 
 OIIO_FORCEINLINE void vfloat8::store (float *values, int n) const {
     DASSERT (n >= 0 && n <= elements);
-    // FIXME: is this faster with AVX masked stores?
-#if OIIO_SIMD_SSE
+#if 0 && OIIO_AVX512VL_ENABLED
+    // This SHOULD be fast, but in my benchmarks, it is slower!
+    // (At least on the AVX512 hardware I have, Xeon Silver 4110.)
+    // Re-test this periodically with new Intel hardware.
+    _mm256_mask_storeu_ps (values,  __mmask8(~(0xff << n)), m_simd);
+#elif OIIO_SIMD_SSE
     if (n <= 4) {
         lo().store (values, n);
     } else if (n <= 8) {
@@ -8767,7 +8797,7 @@ OIIO_FORCEINLINE vfloat8 vfloat16::lo () const {
 }
 
 OIIO_FORCEINLINE vfloat8 vfloat16::hi () const {
-#if OIIO_SIMD_AVX >= 512
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512DQ_ENABLED
     return _mm512_extractf32x8_ps (simd(), 1);
 #else
     return m_8[1];
@@ -8982,14 +9012,19 @@ OIIO_FORCEINLINE void vfloat16::store (float *values) const {
 OIIO_FORCEINLINE void vfloat16::store (float *values, int n) const {
     DASSERT (n >= 0 && n <= elements);
     // FIXME: is this faster with AVX masked stores?
-#if OIIO_SIMD_AVX >= 512
+#if 0 && OIIO_SIMD_AVX >= 512
+    // This SHOULD be fast, but in my benchmarks, it is slower!
+    // (At least on the AVX512 hardware I have, Xeon Silver 4110.)
+    // Re-test this periodically with new Intel hardware.
     _mm512_mask_storeu_ps (values, __mmask16(~(0xffff << n)), m_simd);
 #else
     if (n <= 8) {
         lo().store (values, n);
-    } else {
+    } else if (n < 16) {
         lo().store (values);
         hi().store (values+8, n-8);
+    } else {
+        store (values);
     }
 #endif
 }
