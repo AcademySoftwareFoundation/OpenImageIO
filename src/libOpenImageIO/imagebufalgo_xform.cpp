@@ -502,10 +502,9 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
            ROI roi, int nthreads)
 {
     ASSERT (!src.deep() && !dst.deep());
-    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+    ImageBufAlgo::parallel_image (roi, nthreads, [&,interpolate](ROI roi){
         const ImageSpec &srcspec (src.spec());
         const ImageSpec &dstspec (dst.spec());
-        int nchannels = src.nchannels();
 
         // Local copies of the source image window, converted to float
         float srcfx = srcspec.full_x;
@@ -519,27 +518,40 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
         float dstfh = dstspec.full_height;
         float dstpixelwidth = 1.0f / dstfw;
         float dstpixelheight = 1.0f / dstfh;
-        float *pel = ALLOCA (float, nchannels);
 
-        ImageBuf::Iterator<DSTTYPE> out (dst, roi);
-        ImageBuf::ConstIterator<SRCTYPE> srcpel (src);
-        for (int y = roi.ybegin;  y < roi.yend;  ++y) {
-            // s,t are NDC space
-            float t = (y-dstfy+0.5f)*dstpixelheight;
-            // src_xf, src_xf are image space float coordinates
-            float src_yf = srcfy + t * srcfh;
-            // src_x, src_y are image space integer coordinates of the floor
-            int src_y = ifloor (src_yf);
-            for (int x = roi.xbegin;  x < roi.xend;  ++x, ++out) {
-                float s = (x-dstfx+0.5f)*dstpixelwidth;
-                float src_xf = srcfx + s * srcfw;
-                int src_x = ifloor (src_xf);
-                if (interpolate) {
+        if (interpolate) {
+            int nchannels = src.nchannels();
+            float *pel = ALLOCA (float, nchannels);
+            ImageBuf::Iterator<DSTTYPE> out (dst, roi);
+            for (int y = roi.ybegin;  y < roi.yend;  ++y) {
+                // s,t are NDC space
+                float t = (y-dstfy+0.5f)*dstpixelheight;
+                // src_xf, src_xf are image space float coordinates
+                float src_yf = srcfy + t * srcfh;
+                for (int x = roi.xbegin;  x < roi.xend;  ++x, ++out) {
+                    float s = (x-dstfx+0.5f)*dstpixelwidth;
+                    float src_xf = srcfx + s * srcfw;
                     // Non-deep image, bilinearly interpolate
                     src.interppixel (src_xf, src_yf, pel);
                     for (int c = roi.chbegin; c < roi.chend; ++c)
                         out[c] = pel[c];
-                } else {
+                }
+            }
+
+        } else {  // vvv NO interpolate case
+            ImageBuf::Iterator<DSTTYPE,DSTTYPE> out (dst, roi);
+            ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> srcpel (src);
+            for (int y = roi.ybegin;  y < roi.yend;  ++y) {
+                // s,t are NDC space
+                float t = (y-dstfy+0.5f)*dstpixelheight;
+                // src_xf, src_xf are image space float coordinates
+                float src_yf = srcfy + t * srcfh;
+                // src_x, src_y are image space integer coordinates of the floor
+                int src_y = ifloor (src_yf);
+                for (int x = roi.xbegin;  x < roi.xend;  ++x, ++out) {
+                    float s = (x-dstfx+0.5f)*dstpixelwidth;
+                    float src_xf = srcfx + s * srcfw;
+                    int src_x = ifloor (src_xf);
                     // Non-deep image, just copy closest pixel
                     srcpel.pos (src_x, src_y, 0);
                     for (int c = roi.chbegin; c < roi.chend; ++c)
