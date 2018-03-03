@@ -522,17 +522,34 @@ resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
         if (interpolate) {
             int nchannels = src.nchannels();
             float *pel = ALLOCA (float, nchannels);
+            float *localpixel = ALLOCA (float, nchannels*4);
+            float *p[4] = { localpixel, localpixel+nchannels, localpixel+2*nchannels, localpixel+3*nchannels };
             ImageBuf::Iterator<DSTTYPE> out (dst, roi);
+            ImageBuf::ConstIterator<SRCTYPE> it (src);
             for (int y = roi.ybegin;  y < roi.yend;  ++y) {
                 // s,t are NDC space
                 float t = (y-dstfy+0.5f)*dstpixelheight;
                 // src_xf, src_xf are image space float coordinates
                 float src_yf = srcfy + t * srcfh;
+                float yy = src_yf - 0.5f;
+                int ytexel;
+                float yfrac = floorfrac (yy, &ytexel);
                 for (int x = roi.xbegin;  x < roi.xend;  ++x, ++out) {
                     float s = (x-dstfx+0.5f)*dstpixelwidth;
                     float src_xf = srcfx + s * srcfw;
                     // Non-deep image, bilinearly interpolate
-                    src.interppixel (src_xf, src_yf, pel);
+
+                    // src.interppixel (src_xf, src_yf, pel);
+
+                    float xx = src_xf - 0.5f;
+                    int xtexel;
+                    float xfrac = floorfrac (xx, &xtexel);
+                    it.rerange (xtexel, xtexel+2, ytexel, ytexel+2, 0, 1);
+                    for (int i = 0;  i < 4;  ++i, ++it)
+                        for (int c = 0; c < nchannels; ++c)
+                            p[i][c] = it[c];
+                    bilerp (p[0], p[1], p[2], p[3], xfrac, yfrac, nchannels, pel);
+
                     for (int c = roi.chbegin; c < roi.chend; ++c)
                         out[c] = pel[c];
                 }
