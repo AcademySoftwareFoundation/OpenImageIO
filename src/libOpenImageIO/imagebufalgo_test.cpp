@@ -55,6 +55,51 @@ static bool verbose = false;
 static bool wedge = false;
 static int threadcounts[] = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1<<30 };
 
+namespace {
+
+// Some pre-made specs and buffers -- make these once to unclutter the
+// test functions themselves.
+ImageSpec spec_2x2_f       (2, 2, 1, TypeFloat);
+ImageSpec spec_2x2_rgb_f   (2, 2, 3, TypeFloat);
+ImageSpec spec_1k_rgb_f    (1024, 1024, 3, TypeFloat);
+ImageSpec spec_1k_rgb_u8   (1024, 1024, 3, TypeUInt8);
+ImageSpec spec_1k_rgb_u16  (1024, 1024, 3, TypeUInt16);
+ImageSpec spec_1k_rgba_f   (1024, 1024, 4, TypeFloat);
+ImageSpec spec_1k_rgba_h   (1024, 1024, 4, TypeHalf);
+ImageSpec spec_1k_rgba_u8  (1024, 1024, 4, TypeUInt8);
+ImageSpec spec_1k_rgba_u16 (1024, 1024, 4, TypeUInt16);
+ImageSpec spec_hd_rgb_f    (1920, 1080, 3, TypeFloat);
+ImageSpec spec_hd_rgb_h    (1920, 1080, 3, TypeHalf);
+ImageSpec spec_hd_rgb_u8   (1920, 1080, 3, TypeUInt8);
+ImageSpec spec_hd_rgb_u16  (1920, 1080, 3, TypeUInt16);
+ImageSpec spec_hd_rgba_f   (1920, 1080, 4, TypeFloat);
+ImageSpec spec_hd_rgba_h   (1920, 1080, 4, TypeHalf);
+ImageSpec spec_hd_rgba_u8  (1920, 1080, 4, TypeUInt8);
+ImageSpec spec_hd_rgba_u16 (1920, 1080, 4, TypeUInt16);
+
+ImageBuf buf_2x2_f      (spec_2x2_f);
+ImageBuf buf_2x2_rgb    (spec_2x2_rgb_f);
+ImageBuf buf_1k_rgb_f   (spec_1k_rgb_f);
+ImageBuf buf_1k_rgb_u8  (spec_1k_rgb_u8);
+ImageBuf buf_1k_rgb_u16 (spec_1k_rgb_u16);
+ImageBuf buf_1k_rgba_f  (spec_1k_rgba_f);
+ImageBuf buf_1k_rgba_h  (spec_1k_rgba_h);
+ImageBuf buf_1k_rgba_u8 (spec_1k_rgba_u8);
+ImageBuf buf_1k_rgba_u16(spec_1k_rgba_u16);
+ImageBuf buf_hd_rgb_f   (spec_hd_rgb_f);
+ImageBuf buf_hd_rgb_h   (spec_hd_rgb_h);
+ImageBuf buf_hd_rgb_u8  (spec_hd_rgb_u8);
+ImageBuf buf_hd_rgb_u16 (spec_hd_rgb_u16);
+ImageBuf buf_hd_rgba_f  (spec_hd_rgba_f);
+ImageBuf buf_hd_rgba_h  (spec_hd_rgba_h);
+ImageBuf buf_hd_rgba_u8 (spec_hd_rgba_u8);
+ImageBuf buf_hd_rgba_u16(spec_hd_rgba_u16);
+
+// Some colors
+float red_rgba[] = { 1.0, 0.0, 0.0, 1.0 };
+}
+
+
 
 static void
 getargs (int argc, char *argv[])
@@ -559,6 +604,39 @@ void test_over ()
 
 
 
+// Test ImageBuf::resample
+void test_resample ()
+{
+    std::cout << "test resample\n";
+
+    // Timing
+    Benchmarker bench;
+    ImageBufAlgo::fill (buf_hd_rgba_f, red_rgba);
+    ImageBufAlgo::fill (buf_hd_rgba_u8, red_rgba);
+    ImageBuf smallf (ImageSpec (1024, 512, 4, TypeFloat));
+    ImageBuf smallu8 (ImageSpec (1024, 512, 4, TypeUInt8));
+    bench ("  IBA::resize 2k->1k rgba f->f    interp   ", [&](){
+            ImageBufAlgo::resample (smallf, buf_hd_rgba_f, true);
+        });
+    bench ("  IBA::resize 2k->1k rgba f->u8   interp   ", [&](){
+            ImageBufAlgo::resample (smallu8, buf_hd_rgba_f, true);
+        });
+    bench ("  IBA::resize 2k->1k rgba u8->u8  interp   ", [&](){
+            ImageBufAlgo::resample (smallu8, buf_hd_rgba_u8, true);
+        });
+    bench ("  IBA::resize 2k->1k rgba f->f   no interp ", [&](){
+            ImageBufAlgo::resample (smallf, buf_hd_rgba_f, false);
+        });
+    bench ("  IBA::resize 2k->1k rgba f->u8  no interp ", [&](){
+            ImageBufAlgo::resample (smallu8, buf_hd_rgba_f, false);
+        });
+    bench ("  IBA::resize 2k->1k rgba u8->u8 no interp ", [&](){
+            ImageBufAlgo::resample (smallu8, buf_hd_rgba_u8, false);
+        });
+}
+
+
+
 // Tests ImageBufAlgo::compare
 void test_compare ()
 {
@@ -941,6 +1019,7 @@ main (int argc, char **argv)
     test_mul ();
     test_mad ();
     test_over ();
+    test_resample ();
     test_compare ();
     test_isConstantColor ();
     test_isConstantChannel ();
