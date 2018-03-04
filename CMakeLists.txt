@@ -99,6 +99,9 @@ set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 1
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
 option (BUILD_OIIOUTIL_ONLY "If ON, will build *only* libOpenImageIO_Util")
+option (BUILD_DOCS "If ON, build documentation and man pages.")
+option (INSTALL_DOCS "If ON, install documentation and man pages.")
+
 
 if (NOT OIIO_THREAD_ALLOW_DCLP)
     add_definitions ("-DOIIO_THREAD_ALLOW_DCLP=0")
@@ -190,7 +193,7 @@ if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
 endif ()
 
 add_subdirectory (src/include)
-if (INSTALL_DOCS)
+if (BUILD_DOCS)
     add_subdirectory (src/doc)
 endif ()
 add_subdirectory (src/fonts)
