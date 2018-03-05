@@ -464,11 +464,7 @@ inline OIIO_HOSTDEVICE float
 floorfrac (float x, int *xint)
 {
 #if 1
-#ifndef __CUDACC__
     float f = std::floor(x);
-#else
-    float f = floor(x);
-#endif
     *xint = int(f);
     return x - f;
 #else /* vvv This idiom is slower */
@@ -518,7 +514,8 @@ sincos (float x, float* sine, float* cosine)
 #if defined(__GNUC__) && defined(__linux__) && !defined(__clang__)
     __builtin_sincosf(x, sine, cosine);
 #elif defined(__CUDACC__)
-    ::sincos(x, sine, cosine);
+    // Explicitly select the single-precision CUDA library function
+    sincosf(x, sine, cosine);
 #else
     *sine = std::sin(x);
     *cosine = std::cos(x);
@@ -531,6 +528,8 @@ sincos (double x, double* sine, double* cosine)
 #if defined(__GNUC__) && defined(__linux__) && !defined(__clang__)
     __builtin_sincos(x, sine, cosine);
 #elif defined(__CUDACC__)
+    // Use of anonymous namespace resolves to the CUDA library function and
+    // avoids infinite recursion
     ::sincos(x, sine, cosine);
 #else
     *sine = std::sin(x);
@@ -1043,21 +1042,13 @@ float_to_rational (float f, int &num, int &den)
 /// Safe (clamping) sqrt: safe_sqrt(x<0) returns 0, not NaN.
 template <typename T>
 inline OIIO_HOSTDEVICE T safe_sqrt (T x) {
-#ifndef __CUDACC__
     return x >= T(0) ? std::sqrt(x) : T(0);
-#else
-    return x >= T(0) ? sqrt(x) : T(0);
-#endif
 }
 
 /// Safe (clamping) inverse sqrt: safe_inversesqrt(x<=0) returns 0.
 template <typename T>
 inline OIIO_HOSTDEVICE T safe_inversesqrt (T x) {
-#ifndef __CUDACC__
     return x > T(0) ? T(1) / std::sqrt(x) : T(0);
-#else
-    return x > T(0) ? rsqrt(x) : T(0);
-#endif
 }
 
 
@@ -1066,11 +1057,7 @@ template <typename T>
 inline OIIO_HOSTDEVICE T safe_asin (T x) {
     if (x <= T(-1)) return T(-M_PI_2);
     if (x >= T(+1)) return T(+M_PI_2);
-#ifndef __CUDACC__
     return std::asin(x);
-#else
-    return asin(x);
-#endif
 }
 
 /// Safe (clamping) arccosine: clamp to the valid domain.
@@ -1078,11 +1065,7 @@ template <typename T>
 inline OIIO_HOSTDEVICE T safe_acos (T x) {
     if (x <= T(-1)) return T(M_PI);
     if (x >= T(+1)) return T(0);
-#ifndef __CUDACC__
     return std::acos(x);
-#else
-    return acos(x);
-#endif
 }
 
 
@@ -1092,11 +1075,7 @@ inline OIIO_HOSTDEVICE T safe_log2 (T x) {
     // match clamping from fast version
     if (x < std::numeric_limits<T>::min()) x = std::numeric_limits<T>::min();
     if (x > std::numeric_limits<T>::max()) x = std::numeric_limits<T>::max();
-#ifndef __CUDACC__
     return std::log2(x);
-#else
-    return log2(x);
-#endif
 }
 
 /// Safe log: clamp to valid domain.
@@ -1105,11 +1084,7 @@ inline OIIO_HOSTDEVICE T safe_log (T x) {
     // slightly different than fast version since clamping happens before scaling
     if (x < std::numeric_limits<T>::min()) x = std::numeric_limits<T>::min();
     if (x > std::numeric_limits<T>::max()) x = std::numeric_limits<T>::max();
-#ifndef __CUDACC__
     return std::log(x);
-#else
-    return log(x);
-#endif
 }
 
 /// Safe log10: clamp to valid domain.
@@ -1124,11 +1099,7 @@ inline OIIO_HOSTDEVICE T safe_log10 (T x) {
 /// Safe logb: clamp to valid domain.
 template <typename T>
 inline OIIO_HOSTDEVICE T safe_logb (T x) {
-#ifndef __CUDACC__
     return (x != T(0)) ? std::logb(x) : -std::numeric_limits<T>::max();
-#else
-    return (x != T(0)) ? logb(x) : -std::numeric_limits<T>::max();
-#endif
 }
 
 /// Safe pow: clamp the domain so it never returns Inf or NaN or has divide
@@ -1140,11 +1111,7 @@ inline OIIO_HOSTDEVICE T safe_pow (T x, T y) {
     // if x is negative, only deal with integer powers
     if ((x < T(0)) && (y != floor(y))) return T(0);
     // FIXME: this does not match "fast" variant because clamping limits are different
-#ifndef __CUDACC__
     T r = std::pow(x, y);
-#else
-    T r = pow(x, y);
-#endif
     // Clamp to avoid returning Inf.
     const T big = std::numeric_limits<T>::max();
     return clamp (r, -big, big);
@@ -1360,7 +1327,7 @@ inline OIIO_HOSTDEVICE float fast_sinpi (float x)
      * mults in many cases and guarantees exact values at integer periods.
      */
 #else
-    return __sinf(float(M_PI)) * x;
+    return sinpif(x);
 #endif
 }
 
@@ -1371,7 +1338,7 @@ inline OIIO_HOSTDEVICE float fast_cospi (float x)
 #ifndef __CUDACC__
     return fast_sinpi (x+0.5f);
 #else
-    return __cosf(float(M_PI)) * x;
+    return cospif(x);
 #endif
 }
 
@@ -1492,6 +1459,7 @@ inline OIIO_HOSTDEVICE float fast_log2 (const float& xval) {
     return __log2f(xval);
 #endif
 }
+
 
 
 template<typename T>
@@ -1637,7 +1605,7 @@ inline OIIO_HOSTDEVICE float fast_correct_exp (float x)
     // much slower than the double version.  This was fixed in glibc 2.16.
     return static_cast<float>(std::exp(static_cast<double>(x)));
 #elif defined(__CUDACC__)
-    return static_cast<float>(exp(static_cast<double>(x)));
+    return static_cast<float>(std::exp(static_cast<double>(x)));
 #else
     return std::exp(x);
 #endif
@@ -1654,7 +1622,7 @@ inline OIIO_HOSTDEVICE float fast_exp10 (float x) {
 }
 
 inline OIIO_HOSTDEVICE float fast_expm1 (float x) {
-#ifdef __CUDACC__
+#ifndef __CUDACC__
     if (fabsf(x) < 0.03f) {
         float y = 1.0f - (1.0f - x); // crush denormals
         return copysignf(madd(0.5f, y * y, y), x);
@@ -1666,7 +1634,7 @@ inline OIIO_HOSTDEVICE float fast_expm1 (float x) {
 }
 
 inline OIIO_HOSTDEVICE float fast_sinh (float x) {
-#ifdef __CUDACC__
+#ifndef __CUDACC__
     float a = fabsf(x);
     if (a > 1.0f) {
         // Examined 53389559 values of sinh on [1,87.3300018]: 33.6886442 avg ulp diff, 178 max ulp
@@ -1715,12 +1683,13 @@ inline OIIO_HOSTDEVICE float fast_safe_pow (float x, float y) {
     // be cheap & exact for special case of squaring and identity
     if (y == 1.0f)
         return x;
-    if (y == 2.0f)
+    if (y == 2.0f) {
 #ifndef __CUDACC__
         return std::min (x*x, std::numeric_limits<float>::max());
 #else
-        return min (x*x, std::numeric_limits<float>::max());
+        return fminf (x*x, std::numeric_limits<float>::max());
 #endif
+    }
     float sign = 1.0f;
     if (x < 0) {
         // if x is negative, only deal with integer powers
@@ -1898,7 +1867,9 @@ T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
 inline OIIO_HOSTDEVICE float
 interpolate_linear (float x, array_view_strided<const float> y)
 {
+#ifndef __CUDACC__
     DASSERT_MSG (y.size() >= 2, "interpolate_linear needs at least 2 knot values (%zd)", y.size());
+#endif
     x = clamp (x, float(0.0), float(1.0));
     int nsegs = int(y.size()) - 1;
     int segnum;
@@ -1906,7 +1877,7 @@ interpolate_linear (float x, array_view_strided<const float> y)
 #ifndef __CUDACC__
     int nextseg = std::min (segnum+1, nsegs);
 #else
-    int nextseg = fminf (segnum+1, nsegs);
+    int nextseg = min (segnum+1, nsegs);
 #endif
     return lerp (y[segnum], y[nextseg], x);
 }
