@@ -1,5 +1,6 @@
 #!/usr/bin/env python 
 
+from __future__ import print_function
 import array
 import OpenImageIO as oiio
 
@@ -7,7 +8,7 @@ import OpenImageIO as oiio
 # Print the contents of an ImageSpec
 def print_imagespec (spec, subimage=0, mip=0, msg="") :
     if msg != "" :
-        print str(msg)
+        print (str(msg))
     if spec.depth <= 1 :
         print ("  resolution %dx%d%+d%+d" % (spec.width, spec.height, spec.x, spec.y))
     else :
@@ -21,21 +22,21 @@ def print_imagespec (spec, subimage=0, mip=0, msg="") :
     if spec.tile_width :
         print ("  tile size  %dx%dx%d" % (spec.tile_width, spec.tile_height, spec.tile_depth))
     else :
-        print "  untiled"
+        print ("  untiled")
     if mip >= 1 :
         return
-    print "  " + str(spec.nchannels), "channels:", spec.channelnames
-    print "  format = ", str(spec.format)
+    print ("  " + str(spec.nchannels), "channels:", spec.channelnames)
+    print ("  format = ", str(spec.format))
     if spec.channelformats :
-        print "  channelformats = ", spec.channelformats
-    print "  alpha channel = ", spec.alpha_channel
-    print "  z channel = ", spec.z_channel
-    print "  deep = ", spec.deep
+        print ("  channelformats = ", spec.channelformats)
+    print ("  alpha channel = ", spec.alpha_channel)
+    print ("  z channel = ", spec.z_channel)
+    print ("  deep = ", spec.deep)
     for i in range(len(spec.extra_attribs)) :
         if type(spec.extra_attribs[i].value) == str :
-            print " ", spec.extra_attribs[i].name, "= \"" + spec.extra_attribs[i].value + "\""
+            print (" ", spec.extra_attribs[i].name, "= \"" + spec.extra_attribs[i].value + "\"")
         else :
-            print " ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value
+            print (" ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value)
 
 
 def write (image, filename, format=oiio.UNKNOWN) :
@@ -43,7 +44,7 @@ def write (image, filename, format=oiio.UNKNOWN) :
         image.set_write_format (format)
         image.write (filename)
     if image.has_error :
-        print "Error writing", filename, ":", image.geterror()
+        print ("Error writing", filename, ":", image.geterror())
 
 
 
@@ -52,60 +53,60 @@ def write (image, filename, format=oiio.UNKNOWN) :
 
 try:
 
-    print "Constructing to be a writeable 320x240,4 UINT16:"
+    print ("Constructing to be a writeable 320x240,4 UINT16:")
     b = oiio.ImageBuf (oiio.ImageSpec(320,240,4,oiio.UINT16))
     print_imagespec (b.spec())
-    print "Resetting to be a writeable 640x480,3 Float:"
+    print ("Resetting to be a writeable 640x480,3 Float:")
     b.reset (oiio.ImageSpec(640,480,3,oiio.FLOAT))
     print_imagespec (b.spec())
-    print ""
+    print ("")
 
     # Test reading from disk
-    print "Testing read of ../common/textures/grid.tx:"
+    print ("Testing read of ../common/textures/grid.tx:")
     b = oiio.ImageBuf ("../common/textures/grid.tx")
-    print "subimage:", b.subimage, " / ", b.nsubimages
-    print "miplevel:", b.miplevel, " / ", b.nmiplevels
-    print "channels:", b.nchannels
-    print "name:", b.name
-    print "file_format_name:", b.file_format_name
-    print "deep:", b.deep
-    print "orientation:", b.orientation
-    print "oriented x,y,width,height:", b.oriented_x, b.oriented_y, b.oriented_width, b.oriented_height
-    print "oriented full x,y,width,height:", b.oriented_full_x, b.oriented_full_y, b.oriented_full_width, b.oriented_full_height
-    print "xyz beg/end:", b.xbegin, b.xend, b.ybegin, b.yend, b.zbegin, b.zend
-    print "xyz min/max:", b.xmin, b.xmax, b.ymin, b.ymax, b.zmin, b.zmax
-    print "setting full res..."
+    print ("subimage:", b.subimage, " / ", b.nsubimages)
+    print ("miplevel:", b.miplevel, " / ", b.nmiplevels)
+    print ("channels:", b.nchannels)
+    print ("name:", b.name)
+    print ("file_format_name:", b.file_format_name)
+    print ("deep:", b.deep)
+    print ("orientation:", b.orientation)
+    print ("oriented x,y,width,height:", b.oriented_x, b.oriented_y, b.oriented_width, b.oriented_height)
+    print ("oriented full x,y,width,height:", b.oriented_full_x, b.oriented_full_y, b.oriented_full_width, b.oriented_full_height)
+    print ("xyz beg/end:", b.xbegin, b.xend, b.ybegin, b.yend, b.zbegin, b.zend)
+    print ("xyz min/max:", b.xmin, b.xmax, b.ymin, b.ymax, b.zmin, b.zmax)
+    print ("setting full res...")
     b.set_full (0, 2048, 0, 2048, 0, 1)
-    print "roi =", b.roi
-    print "full roi =", b.roi_full
-    print "setting full roi again, as ROI..."
+    print ("roi =", b.roi)
+    print ("full roi =", b.roi_full)
+    print ("setting full roi again, as ROI...")
     b.roi_full = oiio.ROI(0, 1024, 0, 1024, 0, 1, 0, b.nchannels)
-    print "Printing the whole spec to be sure:"
+    print ("Printing the whole spec to be sure:")
     print_imagespec (b.spec())
-    print ""
-    print "Resetting to a different MIP level:"
+    print ("")
+    print ("Resetting to a different MIP level:")
     b.reset ("../common/textures/grid.tx", 0, 2)
     print_imagespec (b.spec())
-    print ""
+    print ("")
 
     # Create a small buffer, do various pixel reads and writes
-    print "Making 2x2 RGB image:"
+    print ("Making 2x2 RGB image:")
     b = oiio.ImageBuf (oiio.ImageSpec(2,2,3,oiio.UINT8))
     print_imagespec (b.spec())
     b.setpixel (0, 0, 0, (1.0, 0.0, 0.0))
     b.setpixel (1, 0, 0, (0.0, 1.0, 0.0))
     b.setpixel (0, 1, 0, (0.0, 0.0, 1.0))
     b.setpixel (1, 1, 0, (0.0, 0.0, 0.0))
-    print "Pixel 0,0 is", b.getpixel(0,0,0)
-    print "Pixel 1,0 is", b.getpixel(1,0)   # test 2D lookup
-    print "Pixel 0,1 is", b.getpixel(0,1)
-    print "Interpolating 1,0.5 ->", b.interppixel(1,0.5)
-    print "Interpolating NDC 0.25,0.5 ->", b.interppixel_NDC(0.25,0.5)
-    print "Interpolating bicubic 0.25,0.5 ->", b.interppixel_bicubic(1.0,0.5)
-    print "Interpolating NDC bicubic 0.25,0.5 ->", b.interppixel_bicubic_NDC(0.25,0.5)
-    print "The whole image is: ", b.get_pixels(oiio.TypeDesc.TypeFloat)
-    print ""
-    print "Saving file..."
+    print ("Pixel 0,0 is", b.getpixel(0,0,0))
+    print ("Pixel 1,0 is", b.getpixel(1,0))   # test 2D lookup
+    print ("Pixel 0,1 is", b.getpixel(0,1))
+    print ("Interpolating 1,0.5 ->", b.interppixel(1,0.5))
+    print ("Interpolating NDC 0.25,0.5 ->", b.interppixel_NDC(0.25,0.5))
+    print ("Interpolating bicubic 0.25,0.5 ->", b.interppixel_bicubic(1.0,0.5))
+    print ("Interpolating NDC bicubic 0.25,0.5 ->", b.interppixel_bicubic_NDC(0.25,0.5))
+    print ("The whole image is: ", b.get_pixels(oiio.TypeDesc.TypeFloat))
+    print ("")
+    print ("Saving file...")
     b.write ("out.tif")
 
     # test set_pixels, too
@@ -125,7 +126,7 @@ try:
 
     # Test write and read of deep data
     # Let's try writing one
-    print "\nWriting deep buffer..."
+    print ("\nWriting deep buffer...")
     deepbufout_spec = oiio.ImageSpec (2, 2, 5, oiio.FLOAT)
     deepbufout_spec.channelnames = ("R", "G", "B", "A", "Z")
     deepbufout_spec.deep = True
@@ -152,20 +153,20 @@ try:
     # Save
     deepbufout.write ("deepbuf.exr")
     # And read it back
-    print "\nReading back deep buffer:"
+    print ("\nReading back deep buffer:")
     deepbufin = oiio.ImageBuf ("deepbuf.exr")
     deepbufin_spec = deepbufin.spec()
     dd = deepbufin.deepdata()
     for p in range(dd.pixels) :
         ns = dd.samples(p)
         if ns > 1 :
-            print "Pixel", p/deepbufin_spec.width, p%deepbufin_spec.width, "had", ns, "samples"
+            print ("Pixel", p//deepbufin_spec.width, p%deepbufin_spec.width, "had", ns, "samples")
             for s in range(ns) :
-                print "Sample", s
+                print ("Sample", s)
                 for c in range(dd.channels) :
-                    print "\tc {0} : {1:.3f}".format(c, dd.deep_value(p,c,s))
+                    print ("\tc {0} : {1:.3f}".format(c, dd.deep_value(p,c,s)))
 
-    print "\nDone."
+    print ("\nDone.")
 except Exception as detail:
-    print "Unknown exception:", detail
+    print ("Unknown exception:", detail)
 

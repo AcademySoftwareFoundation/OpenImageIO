@@ -261,7 +261,7 @@ oiio_add_tests (
 # We also exclude these tests if this is a sanitizer build on Linux,
 # because the Python interpreter itself won't be linked with the right asan
 # libraries to run correctly.
-if (USE_PYTHON AND boost_PYTHON_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
+if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
     if (NOT SANITIZE_ON_LINUX)
         oiio_add_tests (
                 python-typedesc python-imagespec python-roi python-deep

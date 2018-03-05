@@ -177,6 +177,7 @@ void declare_typedesc() {
         .def_readonly("TypeTimeCode", &TypeTimeCode)
         .def_readonly("TypeKeyCode",  &TypeKeyCode)
         .def_readonly("TypeFloat4",   &TypeFloat4)
+        .def_readonly("TypeRational", &TypeRational)
     ;
 
     // Global constants of common TypeDescs

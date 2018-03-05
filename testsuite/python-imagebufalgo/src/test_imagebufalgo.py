@@ -1,5 +1,6 @@
 #!/usr/bin/env python 
 
+from __future__ import print_function
 import math
 import OpenImageIO as oiio
 from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo
@@ -21,7 +22,7 @@ def write (image, filename, format=oiio.UNKNOWN) :
         image.set_write_format (format)
         image.write (filename)
     if image.has_error :
-        print "Error writing", filename, ":", image.geterror()
+        print ("Error writing", filename, ":", image.geterror())
 
 
 
@@ -278,24 +279,24 @@ try:
     stats = oiio.PixelStats()
     ImageBufAlgo.computePixelStats (b, stats)
     print ("Stats for tahoe-small.tif:")
-    print "  min         = ", stats.min
-    print "  max         = ", stats.max
-    print "  avg         = ", stats.avg
-    print "  stddev      = ", stats.stddev
-    print "  nancount    = ", stats.nancount
-    print "  infcount    = ", stats.infcount
-    print "  finitecount = ", stats.finitecount
+    print ("  min         = ", stats.min)
+    print ("  max         = ", stats.max)
+    print ("  avg         = ", stats.avg)
+    print ("  stddev      = ", stats.stddev)
+    print ("  nancount    = ", stats.nancount)
+    print ("  infcount    = ", stats.infcount)
+    print ("  finitecount = ", stats.finitecount)
 
     compresults = oiio.CompareResults()
     ImageBufAlgo.compare (ImageBuf("flip.tif"), ImageBuf("flop.tif"),
                           1.0e-6, 1.0e-6, compresults)
-    print "Comparison: of flip.tif and flop.tif"
-    print "  mean = %.5g" % compresults.meanerror
-    print "  rms  = %.5g" % compresults.rms_error
-    print "  PSNR = %.5g" % compresults.PSNR
-    print "  max  = %.5g" % compresults.maxerror
-    print "  max @", (compresults.maxx, compresults.maxy, compresults.maxz, compresults.maxc)
-    print "  warns", compresults.nwarn, "fails", compresults.nfail
+    print ("Comparison: of flip.tif and flop.tif")
+    print ("  mean = %.5g" % compresults.meanerror)
+    print ("  rms  = %.5g" % compresults.rms_error)
+    print ("  PSNR = %.5g" % compresults.PSNR)
+    print ("  max  = %.5g" % compresults.maxerror)
+    print ("  max @", (compresults.maxx, compresults.maxy, compresults.maxz, compresults.maxc))
+    print ("  warns", compresults.nwarn, "fails", compresults.nfail)
 
     # compare_Yee,
     # isConstantColor, isConstantChannel
@@ -303,14 +304,14 @@ try:
     b = ImageBuf (ImageSpec(256,256,3,oiio.UINT8));
     ImageBufAlgo.fill (b, (1,0.5,0.5))
     r = ImageBufAlgo.isConstantColor (b)
-    print "isConstantColor on pink image is (%.5g %.5g %.5g)" % r
+    print ("isConstantColor on pink image is (%.5g %.5g %.5g)" % r)
     r = ImageBufAlgo.isConstantColor (checker)
-    print "isConstantColor on checker is ", r
+    print ("isConstantColor on checker is ", r)
 
     b = ImageBuf("cmul1.exr")
-    print "Is", b.name, "monochrome? ", ImageBufAlgo.isMonochrome(b)
+    print ("Is", b.name, "monochrome? ", ImageBufAlgo.isMonochrome(b))
     b = ImageBuf("cmul2.exr")
-    print "Is", b.name, "monochrome? ", ImageBufAlgo.isMonochrome(b)
+    print ("Is", b.name, "monochrome? ", ImageBufAlgo.isMonochrome(b))
 
 
     # color_count, color_range_check
@@ -319,7 +320,7 @@ try:
     b = make_constimage (256,256,3,oiio.UINT8,(0,0,0))
     ImageBufAlgo.fill (b, (0,0,0))
     ImageBufAlgo.fill (b, (0,1,0), oiio.ROI(100,180,100,180))
-    print "Nonzero region is: ", ImageBufAlgo.nonzero_region(b)
+    print ("Nonzero region is: ", ImageBufAlgo.nonzero_region(b))
 
     # resize
     b = ImageBuf()
@@ -449,8 +450,8 @@ try:
     broi = b.roi
     textsize = ImageBufAlgo.text_size ("Centered", 40)
     if textsize.defined :
-        x = broi.xbegin + broi.width/2  - (textsize.xbegin + textsize.width/2)
-        y = broi.ybegin + broi.height/2 - (textsize.ybegin + textsize.height/2)
+        x = broi.xbegin + broi.width//2  - (textsize.xbegin + textsize.width//2)
+        y = broi.ybegin + broi.height//2 - (textsize.ybegin + textsize.height//2)
         ImageBufAlgo.render_text (b, x, y, "Centered", 40)
     write (b, "textcentered.tif", oiio.UINT8)
 
@@ -463,7 +464,7 @@ try:
 
     # capture_image - no test
 
-    print "Done."
+    print ("Done.")
 except Exception as detail:
-    print "Unknown exception:", detail
+    print ("Unknown exception:", detail)
 

@@ -1,12 +1,13 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
+from __future__ import print_function
 import OpenImageIO as oiio
 
 
 # Print the contents of an ImageSpec
 def print_imagespec (spec, subimage=0, mip=0, msg="") :
     if msg != "" :
-        print str(msg)
+        print (str(msg))
     if spec.depth <= 1 :
         print ("  resolution %dx%d%+d%+d" % (spec.width, spec.height, spec.x, spec.y))
     else :
@@ -20,36 +21,36 @@ def print_imagespec (spec, subimage=0, mip=0, msg="") :
     if spec.tile_width :
         print ("  tile size  %dx%dx%d" % (spec.tile_width, spec.tile_height, spec.tile_depth))
     else :
-        print "  untiled"
+        print ("  untiled")
     if mip >= 1 :
         return
-    print "  " + str(spec.nchannels), "channels:", spec.channelnames
-    print "  format = ", str(spec.format)
+    print ("  " + str(spec.nchannels), "channels:", spec.channelnames)
+    print ("  format = ", str(spec.format))
     if spec.channelformats :
-        print "  channelformats = ", spec.channelformats
-    print "  alpha channel = ", spec.alpha_channel
-    print "  z channel = ", spec.z_channel
-    print "  deep = ", spec.deep
+        print ("  channelformats = ", spec.channelformats)
+    print ("  alpha channel = ", spec.alpha_channel)
+    print ("  z channel = ", spec.z_channel)
+    print ("  deep = ", spec.deep)
     for i in range(len(spec.extra_attribs)) :
         if type(spec.extra_attribs[i].value) == str :
-            print " ", spec.extra_attribs[i].name, "= \"" + spec.extra_attribs[i].value + "\""
+            print (" ", spec.extra_attribs[i].name, "= \"" + spec.extra_attribs[i].value + "\"")
         else :
-            print " ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value
+            print (" ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value)
 
 
 
 def poor_mans_iinfo (filename) :
     input = oiio.ImageInput.open (filename)
     if not input :
-        print 'Could not open "' + filename + '"'
-        print "\tError: ", oiio.geterror()
+        print ('Could not open "' + filename + '"')
+        print ("\tError: ", oiio.geterror())
         return
-    print 'Opened "' + filename + '" as a ' + input.format_name()
+    print ('Opened "' + filename + '" as a ' + input.format_name())
     sub = 0
     mip = 0
     while True :
         if sub > 0 or mip > 0 :
-            print "Subimage", sub, "MIP level", mip, ":"
+            print ("Subimage", sub, "MIP level", mip, ":")
         print_imagespec (input.spec(), mip=mip)
         mip = mip + 1
         if input.seek_subimage (sub, mip) :
@@ -61,7 +62,7 @@ def poor_mans_iinfo (filename) :
                 continue    # proceed to next subimage
         break  # no more MIP levels or subimages
     input.close ()
-    print
+    print ()
 
 
 
@@ -75,11 +76,11 @@ def test_readimage (filename, sub=0, mip=0, type=oiio.UNKNOWN,
                     print_pixels = True, keep_unknown=False) :
     input = oiio.ImageInput.open (filename)
     if not input :
-        print 'Could not open "' + filename + '"'
-        print "\tError: ", oiio.geterror()
-        print
+        print ('Could not open "' + filename + '"')
+        print ("\tError: ", oiio.geterror())
+        print ()
         return
-    print 'Opened "' + filename + '" as a ' + input.format_name()
+    print ('Opened "' + filename + '" as a ' + input.format_name())
     input.seek_subimage (sub, mip)
     spec = input.spec ()
     if nchannels == 0 or method == "image" :
@@ -97,26 +98,26 @@ def test_readimage (filename, sub=0, mip=0, type=oiio.UNKNOWN,
                                  spec.z, spec.z+spec.depth,
                                  0, nchannels, type)
     else :
-        print "Unknown method:", method
+        print ("Unknown method:", method)
         return
-    if data == None :
-        print "read returned None"
+    if data is None :
+        print ("read returned None")
         return
     if print_pixels :
         # print the first, last, and middle pixel values
         (x,y) = (spec.x, spec.y)
         i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
-        print "@", (x,y), "=", data[i:i+nchannels]
+        print ("@", (x,y), "=", data[i:i+nchannels])
         (x,y) = (spec.x+spec.width-1, spec.y+spec.height-1)
         i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
-        print "@", (x,y), "=", data[i:i+nchannels]
-        (x,y) = (spec.x+spec.width/2, spec.y+spec.height/2)
+        print ("@", (x,y), "=", data[i:i+nchannels])
+        (x,y) = (spec.x+spec.width//2, spec.y+spec.height//2)
         i = ((y-spec.y)*spec.width + (x-spec.x)) * nchannels
-        print "@", (x,y), "=", data[i:i+nchannels]
+        print ("@", (x,y), "=", data[i:i+nchannels])
     else :
-        print "Read array typecode", data.typecode, " [", len(data), "]"
+        print ("Read array typecode", data.typecode, " [", len(data), "]")
     input.close ()
-    print
+    print ()
 
 
 
@@ -125,29 +126,29 @@ def test_readimage (filename, sub=0, mip=0, type=oiio.UNKNOWN,
 def test_readscanline (filename, sub=0, mip=0, type=oiio.UNKNOWN) :
     input = oiio.ImageInput.open (filename)
     if not input :
-        print 'Could not open "' + filename + '"'
-        print "\tError: ", oiio.geterror()
-        print
+        print ('Could not open "' + filename + '"')
+        print ("\tError: ", oiio.geterror())
+        print ()
         return
-    print 'Opened "' + filename + '" as a ' + input.format_name()
+    print ('Opened "' + filename + '" as a ' + input.format_name())
     input.seek_subimage (sub, mip)
     spec = input.spec ()
     if spec.tile_width != 0 :
-        print "Error: tiled"
+        print ("Error: tiled")
         return
     if type == oiio.UNKNOWN :
         type = spec.format.basetype
     for y in range(spec.height) :
         data = input.read_scanline (y+spec.y, spec.z, type)
-        if data == None :
-            print "read returned None"
+        if data is None :
+            print ("read returned None")
             return
         # print the first pixel of the first and last scanline
         if y == 0 or y == (spec.height-1) :
             i = 0 * spec.nchannels
-            print "@", (spec.x,y+spec.y), "=", data[i:i+spec.nchannels]
+            print ("@", (spec.x,y+spec.y), "=", data[i:i+spec.nchannels])
     input.close ()
-    print
+    print ()
 
 
 
@@ -156,34 +157,34 @@ def test_readscanline (filename, sub=0, mip=0, type=oiio.UNKNOWN) :
 def test_readtile (filename, sub=0, mip=0, type=oiio.UNKNOWN) :
     input = oiio.ImageInput.open (filename)
     if not input :
-        print 'Could not open "' + filename + '"'
-        print "\tError: ", oiio.geterror()
-        print
+        print ('Could not open "' + filename + '"')
+        print ("\tError: ", oiio.geterror())
+        print ()
         return
-    print 'Opened "' + filename + '" as a ' + input.format_name()
+    print ('Opened "' + filename + '" as a ' + input.format_name())
     input.seek_subimage (sub, mip)
     spec = input.spec ()
     if spec.tile_width == 0 :
-        print "Error: not tiled"
+        print ("Error: not tiled")
         return
     if type == oiio.UNKNOWN :
         type = spec.format.basetype
     # Randomly read a couple of tiles, print a pixel from within it
     (tx,ty) = (spec.x, spec.y)
     data = input.read_tile (tx+spec.x, ty+spec.y, spec.z, type)
-    if data == None :
-        print "read returned None"
+    if data is None :
+        print ("read returned None")
         return
-    (x,y) = (tx+spec.tile_width/2, ty+spec.tile_height/2)
+    (x,y) = (tx+spec.tile_width//2, ty+spec.tile_height//2)
     i = ((y-ty)*spec.tile_width + (x-tx)) * spec.nchannels
-    print "@", (x,y), "=", data[i:i+spec.nchannels]
+    print ("@", (x,y), "=", data[i:i+spec.nchannels])
     (tx,ty) = (spec.x+2*spec.tile_width, spec.y+2*spec.tile_height)
     data = input.read_tile (tx+spec.x, ty+spec.y, spec.z, type)
-    (x,y) = (tx+spec.tile_width/2, ty+spec.tile_height/2)
+    (x,y) = (tx+spec.tile_width//2, ty+spec.tile_height//2)
     i = ((y-ty)*spec.tile_width + (x-tx)) * spec.nchannels
-    print "@", (x,y), "=", data[i:i+spec.nchannels]
+    print ("@", (x,y), "=", data[i:i+spec.nchannels])
     input.close ()
-    print
+    print ()
 
 
 def write (image, filename, format=oiio.UNKNOWN) :
@@ -191,7 +192,7 @@ def write (image, filename, format=oiio.UNKNOWN) :
         image.set_write_format (format)
         image.write (filename)
     if image.has_error :
-        print "Error writing", filename, ":", image.geterror()
+        print ("Error writing", filename, ":", image.geterror())
 
 
 ######################################################################
@@ -204,7 +205,7 @@ try:
     poor_mans_iinfo ("grid.tx")
 
     # test readimage
-    print "Testing read_image:"
+    print ("Testing read_image:")
     test_readimage ("../../../../../oiio-images/tahoe-gps.jpg")
     # again, force a float buffer
     test_readimage ("../../../../../oiio-images/tahoe-gps.jpg",
@@ -214,20 +215,20 @@ try:
                     method="scanlines", nchannels=1)
 
     # test readscanline
-    print "Testing read_scanline:"
+    print ("Testing read_scanline:")
     test_readscanline ("../../../../../oiio-images/tahoe-gps.jpg")
 
     # test readtile
-    print "Testing read_tile:"
+    print ("Testing read_tile:")
     test_readtile ("grid.tx")
 
     # test readscanlines
-    print "Testing read_scanlines:"
+    print ("Testing read_scanlines:")
     test_readimage ("../../../../../oiio-images/tahoe-gps.jpg",
                     method="scanlines")
 
     # test readtiles
-    print "Testing read_tiles:"
+    print ("Testing read_tiles:")
     test_readimage ("grid.tx",
                     method="tiles")
 
@@ -238,23 +239,23 @@ try:
     write (b, "testu16.tif", oiio.UINT16)
     b.set_write_tiles (32, 32)
     write (b, "testf16.exr", oiio.HALF)
-    print "Test read_image native u16:"
+    print ("Test read_image native u16:")
     test_readimage ("testu16.tif", method="image", type=oiio.UNKNOWN,
                     keep_unknown=True, print_pixels=False)
-    print "Test read_scanlines native u16:"
+    print ("Test read_scanlines native u16:")
     test_readimage ("testu16.tif", method="scanlines", type=oiio.UNKNOWN,
                     keep_unknown=True, print_pixels=False)
-    print "Test read_tiles native half:"
+    print ("Test read_tiles native half:")
     test_readimage ("testf16.exr", method="tiles", type=oiio.UNKNOWN,
                     keep_unknown=True, print_pixels=False)
-    print "Test read_image into half:"
+    print ("Test read_image into half:")
     test_readimage ("testu16.tif", method="image", type=oiio.HALF,
                     keep_unknown=True, print_pixels=False)
-    print "Test read_image into FLOAT:"
+    print ("Test read_image into FLOAT:")
     test_readimage ("testu16.tif", method="image", type=oiio.FLOAT,
                     keep_unknown=True, print_pixels=False)
 
-    print "Done."
+    print ("Done.")
 except Exception as detail:
-    print "Unknown exception:", detail
+    print ("Unknown exception:", detail)
 

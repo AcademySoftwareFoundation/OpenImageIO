@@ -1,5 +1,6 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
+from __future__ import print_function
 import OpenImageIO as oiio
 
 
@@ -12,14 +13,14 @@ def copy_subimage (input, output, method="image",
     spec = input.spec ()
     if method == "image" :
         pixels = input.read_image (memformat)
-        if not pixels :
-            print "Error reading input pixels in", in_filename
+        if pixels is None :
+            print ("Error reading input pixels in", in_filename)
             return False
         output.write_image (pixels)
     elif method == "scanlines" and spec.tile_width == 0 :
         pixels = input.read_image (memformat)
-        if not pixels :
-            print "Error reading input pixels in", in_filename
+        if pixels is None :
+            print ("Error reading input pixels in", in_filename)
             return False
         output.write_scanlines (spec.y, spec.y+spec.height, spec.z,
                                 pixels)
@@ -27,14 +28,14 @@ def copy_subimage (input, output, method="image",
         for z in range(spec.z, spec.z+spec.depth) :
             for y in range(spec.y, spec.y+spec.height) :
                 pixels = input.read_scanline (y, z, memformat)
-                if not pixels :
-                    print "Error reading input pixels in", in_filename
+                if pixels is None :
+                    print ("Error reading input pixels in", in_filename)
                     return False
                 output.write_scanline (y, z, pixels)
     elif method == "tiles" and spec.tile_width != 0 :
         pixels = input.read_image (memformat)
-        if not pixels :
-            print "Error reading input pixels in", in_filename
+        if pixels is None :
+            print ("Error reading input pixels in", in_filename)
             return False
         output.write_tiles (spec.x, spec.x+spec.width,
                             spec.y, spec.y+spec.height,
@@ -45,12 +46,12 @@ def copy_subimage (input, output, method="image",
             for y in range(spec.y, spec.y+spec.height, spec.tile_height) :
                 for x in range(spec.x, spec.x+spec.width, spec.tile_width) :
                     pixels = input.read_tile (x, y, z, memformat)
-                    if not pixels :
-                        print "Error reading input pixels in", in_filename
+                    if pixels is None :
+                        print ("Error reading input pixels in", in_filename)
                         return False
                     output.write_tile (x, y, z, pixels)
     else :
-        print "Unknown method:", method
+        print ("Unknown method:", method)
         return False
     return True
 
@@ -62,26 +63,26 @@ def copy_image (in_filename, out_filename, method="image",
                 memformat=oiio.FLOAT, outformat=oiio.UNKNOWN) :
     input = oiio.ImageInput.open (in_filename)
     if not input :
-        print 'Could not open "' + filename + '"'
-        print "\tError: ", oiio.geterror()
-        print
+        print ('Could not open "' + filename + '"')
+        print ("\tError: ", oiio.geterror())
+        print ()
         return
     outspec = input.spec ()
     if (outformat != oiio.UNKNOWN) :
         outspec.format = oiio.TypeDesc(outformat)
     output = oiio.ImageOutput.create (out_filename)
     if not output :
-        print "Could not create ImageOutput for", out_filename
+        print ("Could not create ImageOutput for", out_filename)
         return
     ok = output.open (out_filename, outspec, oiio.Create)
     if not ok :
-        print "Could not open", out_filename
+        print ("Could not open", out_filename)
         return
     ok = copy_subimage (input, output, method, memformat)
     input.close ()
     output.close ()
     if ok :
-        print "Copied", in_filename, "to", out_filename, "as", method
+        print ("Copied", in_filename, "to", out_filename, "as", method)
 
 
 ######################################################################
@@ -100,7 +101,7 @@ try:
     copy_image ("scanline.tif", "grid-image.tif",
                 memformat=oiio.UINT8, outformat=oiio.UINT16)
 
-    print "Done."
+    print ("Done.")
 except Exception as detail:
-    print "Unknown exception:", detail
+    print ("Unknown exception:", detail)
 

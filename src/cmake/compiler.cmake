@@ -310,7 +310,6 @@ if (BUILDSTATIC)
         # On Linux, the lack of -fPIC when building static libraries seems
         # incompatible with the dynamic library needed for the Python bindings.
         set (USE_PYTHON OFF)
-        set (USE_PYTHON3 OFF)
     endif ()
 else ()
     set (LIBRARY_BUILD_TYPE SHARED)

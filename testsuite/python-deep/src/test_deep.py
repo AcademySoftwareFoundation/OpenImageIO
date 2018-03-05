@@ -1,5 +1,6 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
+from __future__ import print_function
 import OpenImageIO as oiio
 
 test_xres = 3
@@ -9,7 +10,7 @@ test_chantypes = (oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
                   oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
                   oiio.TypeDesc.TypeFloat, oiio.TypeDesc.TypeFloat)
 test_channames = ("R", "G", "B", "A", "Z", "Zback")
-print "test_chantypes ", str(test_chantypes[0]), str(test_chantypes[1]), str(test_chantypes[2]), str(test_chantypes[3]), str(test_chantypes[4]), str(test_chantypes[5])
+print ("test_chantypes ", str(test_chantypes[0]), str(test_chantypes[1]), str(test_chantypes[2]), str(test_chantypes[3]), str(test_chantypes[4]), str(test_chantypes[5]))
 
 def set_dd_sample (dd, pixel, sample, vals) :
     if dd.samples(pixel) <= sample :
@@ -51,17 +52,17 @@ def make_test_deep_image () :
 
 
 def print_deep_image (dd, prefix="After init,") :
-    print prefix, "dd has", dd.pixels, "pixels,", dd.channels, "channels."
-    print "  Channel indices: Z=", dd.Z_channel, "Zback=", dd.Zback_channel, "A=", dd.A_channel, "AR=", dd.AR_channel, "AG=", dd.AG_channel, "AB=", dd.AB_channel
+    print (prefix, "dd has", dd.pixels, "pixels,", dd.channels, "channels.")
+    print ("  Channel indices: Z=", dd.Z_channel, "Zback=", dd.Zback_channel, "A=", dd.A_channel, "AR=", dd.AR_channel, "AG=", dd.AG_channel, "AB=", dd.AB_channel)
     for p in range(dd.pixels) :
         ns = dd.samples(p)
         if ns > 0 or dd.capacity(p) > 0 :
-            print "  Nsamples[", p, "] =", ns, " (capacity=", dd.capacity(p), ")", "samples:"
+            print ("  Nsamples[", p, "] =", ns, " (capacity=", dd.capacity(p), ")", "samples:")
             for s in range(ns) :
-                print "  sample", s, ": ",
+                print ("  sample", s, ": ", end='')
                 for c in range(dd.channels) :
-                    print "[%d %s] %.2f / " % (c, dd.channelname(c), dd.deep_value (p, c, s)),
-                print
+                    print (" [%d %s] %.2f / " % (c, dd.channelname(c), dd.deep_value (p, c, s)), end='')
+                print ()
 
 
 def print_deep_imagebuf (buf, prefix) :
@@ -69,7 +70,7 @@ def print_deep_imagebuf (buf, prefix) :
 
 
 def test_insert_erase () :
-    print "\nTesting insert and erase..."
+    print ("\nTesting insert and erase...")
     dd = oiio.DeepData ()
     dd.init (3, test_nchannels, test_chantypes, test_channames)
     dd.set_samples (1, 1)
@@ -85,7 +86,7 @@ def test_insert_erase () :
 
 
 def test_deep_copy () :
-    print "\nTesting copy_deep_pixel..."
+    print ("\nTesting copy_deep_pixel...")
     # Set up an image
     src = make_test_deep_image ()
     dst = make_test_deep_image ()
@@ -95,7 +96,7 @@ def test_deep_copy () :
 
 
 def test_sample_split () :
-    print "\nTesting split..."
+    print ("\nTesting split...")
     # Set up a simple 3-pixel image
     dd = oiio.DeepData ()
     dd.init (2, test_nchannels, test_chantypes, test_channames)
@@ -125,7 +126,7 @@ def test_sample_split () :
 
 
 def test_sample_sort () :
-    print "\nTesting sort..."
+    print ("\nTesting sort...")
     # Set up a simple 2-pixel image with 4 samples
     dd = oiio.DeepData ()
     dd.init (2, test_nchannels, test_chantypes, test_channames)
@@ -144,7 +145,7 @@ def test_sample_sort () :
 
 
 def test_merge_overlaps () :
-    print "\nTesting merge_overlaps..."
+    print ("\nTesting merge_overlaps...")
     # Set up a simple 2-pixel image with 4 samples
     dd = oiio.DeepData ()
     dd.init (2, test_nchannels, test_chantypes, test_channames)
@@ -164,7 +165,7 @@ def test_merge_overlaps () :
 
 
 def test_merge_deep_pixels () :
-    print "\nTesting merge_deep_pixels..."
+    print ("\nTesting merge_deep_pixels...")
     # Set up two simple 1-pixel images with overlapping samples
     Add = oiio.DeepData ()
     Add.init (1, test_nchannels, test_chantypes, test_channames)
@@ -191,7 +192,7 @@ def test_merge_deep_pixels () :
 
 
 def test_occlusion_cull () :
-    print "\nTesting occlusion_cull..."
+    print ("\nTesting occlusion_cull...")
     dd = oiio.DeepData ()
     dd.init (1, test_nchannels, test_chantypes, test_channames)
     dd.set_samples (0, 3)
@@ -207,7 +208,7 @@ def test_occlusion_cull () :
     print_deep_image (dd, "After occlusion_cull,")
 
 def test_opaque_z () :
-    print "\nTesting opaque_z..."
+    print ("\nTesting opaque_z...")
     dd = oiio.DeepData ()
     # 3 test pixels
     dd.init (3, test_nchannels, test_chantypes, test_channames)
@@ -231,10 +232,10 @@ def test_opaque_z () :
         dd.set_deep_value (1, 5, s, 10.5+s) # Zback
     # Third pixel is empty
     print_deep_image (dd, "Values")
-    print "Opaque z: ",
+    print ("Opaque z: ", end='')
     for p in range(dd.pixels) :
-        print dd.opaque_z(p),
-    print
+        print (' %.6g' % dd.opaque_z(p), end='')
+    print ()
 
 
 def set_ib_sample (ib, x, y, sample, vals) :
@@ -248,7 +249,7 @@ def add_ib_sample (ib, x, y, vals) :
 
 
 def test_iba_deep_holdout () :
-    print "\nTesting ImageBufAlgo.deep_holdout..."
+    print ("\nTesting ImageBufAlgo.deep_holdout...")
     spec = oiio.ImageSpec (6, 1, 6, oiio.FLOAT)
     spec.deep = True
     spec.channeltypes = (oiio.TypeDesc.TypeHalf, oiio.TypeDesc.TypeHalf,
@@ -292,7 +293,7 @@ try:
     print_deep_image (dd)
 
     # Try to write the test image to an exr file
-    print "\nWriting image..."
+    print ("\nWriting image...")
     spec = oiio.ImageSpec (test_xres, test_yres, test_nchannels, oiio.TypeDesc.TypeFloat)
     spec.channelnames = test_channames
     spec.channelformats = test_chantypes
@@ -303,7 +304,7 @@ try:
     output.close ()
 
     # read the exr file and double check it
-    print "\nReading image..."
+    print ("\nReading image...")
     input = oiio.ImageInput.open ("deeptest.exr")
     ddr = input.read_native_deep_image ()
     if ddr != None :
@@ -320,8 +321,8 @@ try:
 
     test_iba_deep_holdout ();
 
-    print "\nDone."
+    print ("\nDone.")
 
 except Exception as detail:
-    print "Unknown exception:", detail
+    print ("Unknown exception:", detail)
 
