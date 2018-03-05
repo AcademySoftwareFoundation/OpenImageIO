@@ -190,7 +190,7 @@ Values dd has 3 pixels, 6 channels.
   sample 0 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 10.00 /  [5 Zback] 10.50 / 
   sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 11.00 /  [5 Zback] 11.50 / 
   sample 2 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 12.00 /  [5 Zback] 12.50 / 
-Opaque z:  11.5 3.40282346639e+38 3.40282346639e+38
+Opaque z:  11.5 3.40282e+38 3.40282e+38
 
 Testing ImageBufAlgo.deep_holdout...
 Input image dd has 6 pixels, 6 channels.

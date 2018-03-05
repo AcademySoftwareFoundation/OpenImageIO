@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import os
 import glob
 import sys
@@ -357,8 +358,10 @@ def runtest (command, outputs, failureok=0) :
                 os.system (diff_command (out, testfile, silent=False))
             if os.path.isfile("debug.log") and os.path.getsize("debug.log") :
                 print ("---   DEBUG LOG   ---\n")
+                #flog = open("debug.log", "r")
+                # print (flog.read())
                 with open("debug.log", "r") as flog :
-                    print flog.read()
+                    print (flog.read())
                 print ("--- END DEBUG LOG ---\n")
     return (err)
 
