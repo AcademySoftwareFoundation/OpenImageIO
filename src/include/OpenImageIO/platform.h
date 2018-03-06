@@ -236,7 +236,9 @@
 // always inline. On many compilers regular 'inline' is only advisory. Put
 // this attribute before the function return type, just like you would use
 // 'inline'.
-#if defined(__GNUC__) || defined(__clang__) || __has_attribute(always_inline)
+#if defined(__CUDACC__)
+#  define OIIO_FORCEINLINE __inline__
+#elif defined(__GNUC__) || defined(__clang__) || __has_attribute(always_inline)
 #  define OIIO_FORCEINLINE inline __attribute__((always_inline))
 #elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #  define OIIO_FORCEINLINE __forceinline
@@ -321,6 +323,15 @@
 #    define __LITTLE_ENDIAN__ 1
 #    undef __BIG_ENDIAN__
 #  endif
+#endif
+
+
+// OIIO_HOSTDEVICE is used to supply the function decorators needed when
+// compiling for CUDA devices.
+#ifdef __CUDACC__
+#  define OIIO_HOSTDEVICE __host__ __device__
+#else
+#  define OIIO_HOSTDEVICE
 #endif
 
 
