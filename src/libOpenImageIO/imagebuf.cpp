@@ -1394,7 +1394,7 @@ template<class D, class S>
 static bool
 copy_pixels_impl (ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads=0)
 {
-    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+    ImageBufAlgo::parallel_image (roi, {"copy_pixels",nthreads}, [&](ROI roi){
         int nchannels = roi.nchannels();
         if (is_same<D,S>::value) {
             // If both bufs are the same type, just directly copy the values
@@ -1742,7 +1742,7 @@ get_pixels_ (const ImageBuf &buf, const ImageBuf &dummyarg,
              stride_t xstride, stride_t ystride, stride_t zstride,
              int nthreads=0)
 {
-    ImageBufAlgo::parallel_image (roi, nthreads, [=,&buf](ROI roi){
+    ImageBufAlgo::parallel_image (roi, {"get_pixels",nthreads}, [=,&buf](ROI roi){
         D *r = (D *)r_;
         int nchans = roi.nchannels();
         for (ImageBuf::ConstIterator<S,D> p (buf, roi); !p.done(); ++p) {
@@ -1769,13 +1769,13 @@ ImageBuf::get_pixels (ROI roi, TypeDesc format, void *result,
     roi.chend = std::min (roi.chend, nchannels());
     ImageSpec::auto_stride (xstride, ystride, zstride, format.size(),
                             roi.nchannels(), roi.width(), roi.height());
-    if (localpixels() && this->roi().contains(roi) && roi.chbegin == 0) {
+    if (localpixels() && this->roi().contains(roi)) {
         // Easy case -- if the buffer is already fully in memory and the roi
         // is completely contained in the pixel window, this reduces to a
         // parallel_convert_image, which is both threaded and already
         // handles many special cases.
         return parallel_convert_image (roi.nchannels(), roi.width(), roi.height(), roi.depth(),
-                                     pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin),
+                                     pixeladdr (roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
                                      spec().format,
                                      pixel_stride(), scanline_stride(), z_stride(),
                                      result, format,

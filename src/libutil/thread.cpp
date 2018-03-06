@@ -92,6 +92,10 @@ public:
         std::unique_lock<Mutex> lock(this->mutex);
         return this->q.empty();
     }
+    size_t size() {
+        std::unique_lock<Mutex> lock(this->mutex);
+        return q.size();
+    }
 private:
     typedef OIIO::spin_mutex Mutex;
     std::queue<T> q;
@@ -126,7 +130,10 @@ public:
     }
 
     // get the number of running threads in the pool
-    int size() const { return static_cast<int>(this->threads.size()); }
+    int size() const {
+        DASSERT (m_size == static_cast<int>(this->threads.size()));
+        return m_size;
+    }
 
     // number of idle threads
     int n_idle() const { return this->nWaiting; }
@@ -140,7 +147,7 @@ public:
         if (nThreads < 0)
             nThreads = std::max (1, int(threads_default()) - 1);
         if (!this->isStop && !this->isDone) {
-            int oldNThreads = static_cast<int>(this->threads.size());
+            int oldNThreads = size();
             if (oldNThreads <= nThreads) {  // if the number of threads is increased
                 this->threads.resize(nThreads);
                 this->flags.resize(nThreads);
@@ -163,6 +170,7 @@ public:
                 this->flags.resize(nThreads);  // safe to delete because the threads have copies of shared_ptr of the flags, not originals
             }
         }
+        m_size = nThreads;
     }
 
     // empty the queue
@@ -258,6 +266,14 @@ public:
         return m_worker_threadids[id] != 0;
     }
 
+    size_t jobs_in_queue () const {
+        return q.size();
+    }
+
+    bool very_busy () const {
+        return jobs_in_queue() > size_t(4*m_size);
+    }
+
 private:
     Impl (const Impl  &) = delete;
     Impl (Impl  &&) = delete;
@@ -306,6 +322,7 @@ private:
     std::atomic<bool> isDone;
     std::atomic<bool> isStop;
     std::atomic<int> nWaiting;  // how many threads are waiting
+    int m_size {0};             // Number of threads in the queue
     std::mutex mutex;
     std::condition_variable cv;
     boost::thread_specific_ptr<int> m_pool_members; // Who's in the pool
@@ -356,6 +373,14 @@ thread_pool::idle () const
 
 
 
+size_t
+thread_pool::jobs_in_queue () const
+{
+    return m_impl->jobs_in_queue();
+}
+
+
+
 bool
 thread_pool::run_one_task (std::thread::id id)
 {
@@ -395,6 +420,13 @@ bool
 thread_pool::is_worker (std::thread::id id)
 {
     return m_impl->is_worker (id);
+}
+
+
+bool
+thread_pool::very_busy () const
+{
+    return m_impl->very_busy();
 }
 
 
@@ -503,6 +535,72 @@ task_set::wait (bool block)
 #ifndef NDEBUG
     check_done ();
 #endif
+}
+
+
+
+void
+parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
+                      std::function<void(int id, int64_t b, int64_t e)>&& task,
+                      parallel_options opt)
+{
+    opt.resolve ();
+    chunksize = std::min (chunksize, end-start);
+    if (chunksize < 1) {   // If caller left chunk size to us...
+        if (opt.singlethread()) {  // Single thread: do it all in one shot
+            chunksize = end-start;
+        } else {   // Multithread: choose a good chunk size
+            int p = std::max (1, 2*opt.maxthreads);
+            chunksize = std::max (int64_t(opt.minitems), (end-start) / p);
+        }
+    }
+    // N.B. If chunksize was specified, honor it, even for the single
+    // threaded case.
+    for (task_set ts (opt.pool); start < end; start += chunksize) {
+        int64_t e = std::min (end, start+chunksize);
+        if (e == end || opt.singlethread() || opt.pool->very_busy()) {
+            // For the last (or only) subtask, or if we are using just one
+            // thread, or if the pool is already oversubscribed, do it
+            // ourselves and avoid messing with the queue or handing off
+            // between threads.
+            task (-1, start, e);
+        } else {
+            ts.push (opt.pool->push (task, start, e));
+        }
+    }
+}
+
+
+
+void
+parallel_for_chunked_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
+                         int64_t ystart, int64_t yend, int64_t ychunksize,
+                         std::function<void(int id, int64_t, int64_t,
+                                            int64_t, int64_t)>&& task,
+                         parallel_options opt)
+{
+    opt.resolve ();
+    if (opt.singlethread()
+          || (xchunksize >= (xend-xstart) && ychunksize >= (yend-ystart))
+          || opt.pool->very_busy()) {
+        task (-1, xstart, xend, ystart, yend);
+        return;
+    }
+    if (ychunksize < 1)
+        ychunksize = std::max (int64_t(1), (yend-ystart) / (2*opt.maxthreads));
+    if (xchunksize < 1) {
+        int64_t ny = std::max (int64_t(1), (yend-ystart) / ychunksize);
+        int64_t nx = std::max (int64_t(1), opt.maxthreads / ny);
+        xchunksize = std::max (int64_t(1), (xend-xstart) / nx);
+    }
+    task_set ts (opt.pool);
+    for (auto y = ystart; y < yend; y += ychunksize) {
+        int64_t ychunkend = std::min (yend, y+ychunksize);
+        for (auto x = xstart; x < xend; x += xchunksize) {
+            int64_t xchunkend = std::min (xend, x+xchunksize);
+            ts.push (opt.pool->push (task, x, xchunkend, y, ychunkend));
+        }
+    }
 }
 
 
