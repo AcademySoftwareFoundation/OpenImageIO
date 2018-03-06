@@ -1604,8 +1604,6 @@ inline OIIO_HOSTDEVICE float fast_correct_exp (float x)
     // On x86_64, versions of glibc < 2.16 have an issue where expf is
     // much slower than the double version.  This was fixed in glibc 2.16.
     return static_cast<float>(std::exp(static_cast<double>(x)));
-#elif defined(__CUDACC__)
-    return static_cast<float>(std::exp(static_cast<double>(x)));
 #else
     return std::exp(x);
 #endif
@@ -1713,13 +1711,11 @@ inline OIIO_HOSTDEVICE float fast_safe_pow (float x, float y) {
 }
 
 
-#ifndef __CUDACC__
 // Fast simd pow that only needs to work for positive x
 template<typename T, typename U>
 inline OIIO_HOSTDEVICE T fast_pow_pos (const T& x, const U& y) {
     return fast_exp2(y * fast_log2(x));
 }
-#endif
 
 
 inline OIIO_HOSTDEVICE float fast_erf (float x)
