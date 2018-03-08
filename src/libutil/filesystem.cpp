@@ -41,6 +41,7 @@
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/refcnt.h>
+#include <OpenImageIO/strutil.h>
 
 #ifdef _WIN32
 // # include <windows.h>   // Already done by platform.h
@@ -716,23 +717,24 @@ Filesystem::enumerate_sequence (string_view desc, std::vector<int> &numbers)
     std::vector<string_view> ranges;
     Strutil::split (desc, ranges, ",");
 
+    bool ok = true;
+
     // For each subrange...
-    for (auto s : ranges) {
+    for (string_view s : ranges) {
         // It's START, START-FINISH, or START-FINISHxSTEP, or START-FINISHySTEP
         // If START>FINISH or if STEP<0, then count down.
         // If 'y' is used, generate the complement.
-        std::vector<std::string> range;
-        Strutil::split (s, range, "-", 2);
-        int first = Strutil::stoi (range[0]);
+        int first = 1;
+        ok &= Strutil::parse_int (s, first);
         int last = first;
         int step = 1;
         bool complement = false;
-        if (range.size() > 1) {
-            last = Strutil::stoi (range[1]);
-            if (const char *x = strchr (range[1].c_str(), 'x'))
-                step = Strutil::stoi (x+1);
-            else if (const char *x = strchr (range[1].c_str(), 'y')) {
-                step = Strutil::stoi (x+1);
+        if (Strutil::parse_char (s, '-')) {  // it's a range
+            ok &= Strutil::parse_int (s, last);
+            if (Strutil::parse_char (s, 'x')) {
+                ok &= Strutil::parse_int (s, step);
+            } else if (Strutil::parse_char (s, 'y')) {
+                ok &= Strutil::parse_int (s, step);
                 complement = true;
             }
             if (step == 0)
@@ -749,7 +751,7 @@ Filesystem::enumerate_sequence (string_view desc, std::vector<int> &numbers)
                 numbers.push_back (i);
         }
     }
-    return true;
+    return ok;
 }
 
 
