@@ -56,9 +56,9 @@ static int iterations = 1000000;
 static int ntrials = 5;
 static bool verbose = false;
 static Sysutil::Term term(std::cout);
-float dummy_float[16];
-float dummy_float2[16];
-float dummy_int[16];
+OIIO_SIMD16_ALIGN float dummy_float[16];
+OIIO_SIMD16_ALIGN float dummy_float2[16];
+OIIO_SIMD16_ALIGN float dummy_int[16];
 
 
 
@@ -252,19 +252,44 @@ inline int loadstore_vec (int dummy) {
     ELEM B[VEC::elements];
     VEC v;
     v.load ((ELEM *)dummy_float);
+    DoNotOptimize (v);
+    clobber_all_memory ();
     v.store ((ELEM *)B);
+    DoNotOptimize (B[0]);
+    return 0;
+}
+
+template<typename VEC>
+inline VEC load_vec (int dummy) {
+    typedef typename VEC::value_t ELEM;
+    VEC v;
+    v.load ((ELEM *)dummy_float);
+    return v;
+}
+
+template<typename VEC>
+inline int store_vec (const VEC& v) {
+    typedef typename VEC::value_t ELEM;
+    v.store ((ELEM *)dummy_float);
     return 0;
 }
 
 template<typename VEC, int N>
-inline int loadstore_vec_N (int dummy) {
+inline VEC load_vec_N (typename VEC::value_t *B) {
     typedef typename VEC::value_t ELEM;
-    ELEM B[VEC::elements];
     VEC v;
     v.load ((ELEM *)dummy_float, N);
-    v.store ((ELEM *)B, N);
+    return v;
+}
+
+template<typename VEC, int N>
+inline int store_vec_N (const VEC& v) {
+    typedef typename VEC::value_t ELEM;
+    v.store ((ELEM *)dummy_float, N);
+    DoNotOptimize (dummy_float[0]);
     return 0;
 }
+
 
 
 inline float dot_imath (const Imath::V3f &v) {
@@ -322,8 +347,8 @@ void test_partial_loadstore ()
 {
     typedef typename VEC::value_t ELEM;
     test_heading ("partial loadstore ", VEC::type_name());
-    VEC C1234 = VEC::Iota(1);
-    ELEM partial[] = { 101, 102, 103, 104, 105, 106, 107, 108,
+    OIIO_SIMD16_ALIGN VEC C1234 = VEC::Iota(1);
+    OIIO_SIMD16_ALIGN ELEM partial[] = { 101, 102, 103, 104, 105, 106, 107, 108,
                        109, 110, 111, 112, 113, 114, 115, 116 };
     OIIO_CHECK_SIMD_EQUAL (VEC(partial), VEC::Iota(101));
     for (int i = 1; i <= VEC::elements; ++i) {
@@ -343,24 +368,44 @@ void test_partial_loadstore ()
         std::cout << std::endl;
     }
 
-    benchmark ("load/store", loadstore_vec<VEC>, 0, VEC::elements);
+    benchmark ("load", load_vec<VEC>, 0, VEC::elements);
+    benchmark ("store", store_vec<VEC>, 0, VEC::elements);
+    OIIO_SIMD16_ALIGN ELEM tmp[VEC::elements];
     if (VEC::elements == 16) {
-        benchmark ("load/store, 16 comps", loadstore_vec_N<VEC, 16>, 0, 16);
-        benchmark ("load/store, 13 comps", loadstore_vec_N<VEC, 13>, 0, 13);
-        benchmark ("load/store, 9 comps", loadstore_vec_N<VEC, 9>, 0, 9);
+        benchmark ("load 16 comps", load_vec_N<VEC, 16>, tmp, 16);
+        benchmark ("load 13 comps", load_vec_N<VEC, 13>, tmp, 13);
+        benchmark ("load 9 comps", load_vec_N<VEC, 9>, tmp, 9);
     }
     if (VEC::elements > 4) {
-        benchmark ("load/store, 8 comps", loadstore_vec_N<VEC, 8>, 0, 8);
-        benchmark ("load/store, 7 comps", loadstore_vec_N<VEC, 7>, 0, 7);
-        benchmark ("load/store, 6 comps", loadstore_vec_N<VEC, 6>, 0, 6);
-        benchmark ("load/store, 5 comps", loadstore_vec_N<VEC, 5>, 0, 5);
+        benchmark ("load 8 comps", load_vec_N<VEC, 8>, tmp, 8);
+        benchmark ("load 7 comps", load_vec_N<VEC, 7>, tmp, 7);
+        benchmark ("load 6 comps", load_vec_N<VEC, 6>, tmp, 6);
+        benchmark ("load 5 comps", load_vec_N<VEC, 5>, tmp, 5);
     }
     if (VEC::elements >= 4) {
-        benchmark ("load/store, 4 comps", loadstore_vec_N<VEC, 4>, 0, 4);
+        benchmark ("load 4 comps", load_vec_N<VEC, 4>, tmp, 4);
     }
-    benchmark ("load/store, 3 comps", loadstore_vec_N<VEC, 3>, 0, 3);
-    benchmark ("load/store, 2 comps", loadstore_vec_N<VEC, 2>, 0, 2);
-    benchmark ("load/store, 1 comps", loadstore_vec_N<VEC, 1>, 0, 1);
+    benchmark ("load 3 comps", load_vec_N<VEC, 3>, tmp, 3);
+    benchmark ("load 2 comps", load_vec_N<VEC, 2>, tmp, 2);
+    benchmark ("load 1 comps", load_vec_N<VEC, 1>, tmp, 1);
+
+    if (VEC::elements == 16) {
+        benchmark ("store 16 comps", store_vec_N<VEC, 16>, C1234, 16);
+        benchmark ("store 13 comps", store_vec_N<VEC, 13>, C1234, 13);
+        benchmark ("store 9 comps", store_vec_N<VEC, 9>, C1234, 9);
+    }
+    if (VEC::elements > 4) {
+        benchmark ("store 8 comps", store_vec_N<VEC, 8>, C1234, 8);
+        benchmark ("store 7 comps", store_vec_N<VEC, 7>, C1234, 7);
+        benchmark ("store 6 comps", store_vec_N<VEC, 6>, C1234, 6);
+        benchmark ("store 5 comps", store_vec_N<VEC, 5>, C1234, 5);
+    }
+    if (VEC::elements >= 4) {
+        benchmark ("store 4 comps", store_vec_N<VEC, 4>, C1234, 4);
+    }
+    benchmark ("store 3 comps", store_vec_N<VEC, 3>, C1234, 3);
+    benchmark ("store 2 comps", store_vec_N<VEC, 2>, C1234, 2);
+    benchmark ("store 1 comps", store_vec_N<VEC, 1>, C1234, 1);
 }
 
 
