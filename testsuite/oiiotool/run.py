@@ -221,8 +221,11 @@ command += oiiotool ("subimages-2.exr --sisplit -o subimage2.exr " +
                      "--pop -o subimage1.exr")
 
 # test sequences
-command += oiiotool ("src/tahoe-tiny.tif -o copyA.1-10#.jpg");
+command += oiiotool ("src/tahoe-tiny.tif -o copyA.1-10#.jpg")
 command += oiiotool (" --info  " +  " ".join(["copyA.{0:04}.jpg".format(x) for x in range(1,11)]))
+command += oiiotool ("--frames 1-5 --echo \"Sequence 1-5:  {FRAME_NUMBER}\"")
+command += oiiotool ("--frames -5-5 --echo \"Sequence -5-5:  {FRAME_NUMBER}\"")
+command += oiiotool ("--frames -5--2 --echo \"Sequence -5--2:  {FRAME_NUMBER}\"")
 
 # test expression substitution
 command += oiiotool ("src/tahoe-small.tif --pattern fill:top=0,0,0,0:bottom=0,0,1,1 " +

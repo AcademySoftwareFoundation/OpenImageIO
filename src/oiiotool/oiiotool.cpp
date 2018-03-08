@@ -5252,7 +5252,7 @@ handle_sequence (int argc, const char **argv)
     // '%v' or '%V' characters.  Any found indicate that there are numeric
     // range or wildcards to deal with.  Also look for --frames,
     // --framepadding and --views options.
-#define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
+#define ONERANGE_SPEC "-?[0-9]+(--?[0-9]+((x|y)-?[0-9]+)?)?"
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
 #define VIEW_SPEC "%[Vv]"
 #define SEQUENCE_SPEC "((" MANYRANGE_SPEC ")?" "((#|@)+|(%[0-9]*d)))" "|" "(" VIEW_SPEC ")"
@@ -5286,6 +5286,8 @@ handle_sequence (int argc, const char **argv)
             ot.debug = true;
         else if ((strarg == "--frames" || strarg == "-frames") && a < argc-1) {
             framespec = argv[++a];
+            is_sequence = true;
+            // std::cout << "Frame range " << framespec << "\n";
         }
         else if ((strarg == "--framepadding" || strarg == "-framepadding")
                  && a < argc-1) {
@@ -5377,6 +5379,16 @@ handle_sequence (int argc, const char **argv)
         }
     }
 
+    if (! nfilenames && !framespec.empty()) {
+        // Frame sequence specified, but no wildcards used
+        Filesystem::enumerate_sequence (framespec, frame_numbers[0]);
+        nfilenames = frame_numbers[0].size();
+    }
+
+    // Make sure frame_numbers[0] has the canonical frame number list
+    if (sequence_args.size() && frame_numbers[0].empty())
+        frame_numbers[0] = frame_numbers[sequence_args[0]];
+
     // OK, now we just call getargs once for each item in the sequences,
     // substituting the i-th sequence entry for its respective argument
     // every time.
@@ -5392,7 +5404,7 @@ handle_sequence (int argc, const char **argv)
         }
 
         ot.clear_options (); // Careful to reset all command line options!
-        ot.frame_number = frame_numbers[sequence_args[0]][i];
+        ot.frame_number = frame_numbers[0][i];
         getargs (argc, (char **)&seq_argv[0]);
 
         ot.process_pending ();

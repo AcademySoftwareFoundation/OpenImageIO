@@ -53,6 +53,26 @@ copyA.0007.jpg       :  128 x   96, 3 channel, uint8 jpeg
 copyA.0008.jpg       :  128 x   96, 3 channel, uint8 jpeg
 copyA.0009.jpg       :  128 x   96, 3 channel, uint8 jpeg
 copyA.0010.jpg       :  128 x   96, 3 channel, uint8 jpeg
+Sequence 1-5:  1
+Sequence 1-5:  2
+Sequence 1-5:  3
+Sequence 1-5:  4
+Sequence 1-5:  5
+Sequence -5-5:  -5
+Sequence -5-5:  -4
+Sequence -5-5:  -3
+Sequence -5-5:  -2
+Sequence -5-5:  -1
+Sequence -5-5:  0
+Sequence -5-5:  1
+Sequence -5-5:  2
+Sequence -5-5:  3
+Sequence -5-5:  4
+Sequence -5-5:  5
+Sequence -5--2:  -5
+Sequence -5--2:  -4
+Sequence -5--2:  -3
+Sequence -5--2:  -2
 Reading black.tif
     oiio:DebugOpenConfig!: 42
 Comparing "filled.tif" and "ref/filled.tif"
