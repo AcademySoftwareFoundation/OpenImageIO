@@ -50,6 +50,8 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/simd.h>
+#include "imageio_pvt.h"
+
 
 OIIO_NAMESPACE_BEGIN
 
@@ -143,6 +145,7 @@ public:
     void append_error (const std::string& message) const;
 
     ImageBuf::IBStorage storage () const { return m_storage; }
+    bool cuda_storage () const { return m_cuda_storage; }
 
     TypeDesc pixeltype () const {
         validate_spec ();
@@ -193,6 +196,7 @@ public:
                               m_current_subimage, m_current_miplevel);
     }
 
+    // Make sure the pixels are ready to read with an iterator.
     bool validate_pixels () const {
         if (m_pixels_valid)
             return true;
@@ -242,6 +246,21 @@ public:
         return (z * m_spec.height + y) * m_spec.width + x;
     }
 
+    void release_pixels () {
+        IB_local_mem_current -= m_allocated_size;
+#if OIIO_USE_CUDA
+        if (m_cuda_storage) {
+            OIIO::debug ("IB Cuda free %p\n", (void*)m_pixels.get());
+            OIIO::pvt::cuda_free (m_pixels.release());
+            m_cuda_storage = false;
+        }
+#endif
+        m_pixels.reset();
+        m_localpixels = nullptr;
+        m_pixels_valid = false;
+        m_allocated_size = 0;
+    }
+
 private:
     ImageBuf::IBStorage m_storage; ///< Pixel storage class
     ustring m_name;              ///< Filename of the image
@@ -258,6 +277,7 @@ private:
     mutable spin_mutex m_valid_mutex;
     mutable bool m_spec_valid;   ///< Is the spec valid
     mutable bool m_pixels_valid; ///< Image is valid
+    mutable bool m_cuda_storage = false; ///< Is the pixel memory visible to Cuda?
     bool m_badfile;              ///< File not found
     float m_pixelaspect;         ///< Pixel aspect ratio of the image
     size_t m_pixel_bytes;
@@ -358,23 +378,23 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
 {
     m_spec_valid = src.m_spec_valid;
     m_pixels_valid = src.m_pixels_valid;
-    m_allocated_size = src.m_localpixels ? src.spec().image_bytes() : 0;
+    m_allocated_size = 0;
     IB_local_mem_current += m_allocated_size;
     if (src.m_localpixels) {
         // Source had the image fully in memory (no cache)
         if (m_storage == ImageBuf::APPBUFFER) {
             // Source just wrapped the client app's pixels, we do the same
+            m_allocated_size = src.m_localpixels ? src.spec().image_bytes() : 0;
             m_localpixels = src.m_localpixels;
         } else {
             // We own our pixels -- copy from source
-            m_pixels.reset (new char [src.m_spec.image_bytes()]);
+            realloc ();
             memcpy (m_pixels.get(), src.m_pixels.get(), m_spec.image_bytes());
-            m_localpixels = m_pixels.get();
         }
     } else {
         // Source was cache-based or deep
         // nothing else to do
-        m_localpixels = NULL;
+        m_localpixels = nullptr;
     }
     if (src.m_configspec)
         m_configspec.reset (new ImageSpec(*src.m_configspec));
@@ -388,7 +408,7 @@ ImageBufImpl::~ImageBufImpl ()
     // externally and passed to the ImageBuf ctr or reset() method, or
     // else init_spec requested the system-wide shared cache, which
     // does not need to be destroyed.
-    IB_local_mem_current -= m_allocated_size;
+    release_pixels ();
 }
 
 
@@ -513,6 +533,14 @@ ImageBuf::storage () const
 
 
 
+bool
+ImageBuf::cuda_storage () const
+{
+    return impl()->cuda_storage ();
+}
+
+
+
 void
 ImageBufImpl::clear ()
 {
@@ -524,10 +552,8 @@ ImageBufImpl::clear ()
     m_current_miplevel = -1;
     m_spec = ImageSpec ();
     m_nativespec = ImageSpec ();
-    m_pixels.reset ();
-    m_localpixels = NULL;
+    release_pixels ();
     m_spec_valid = false;
-    m_pixels_valid = false;
     m_badfile = false;
     m_pixelaspect = 1;
     m_pixel_bytes = 0;
@@ -629,20 +655,41 @@ ImageBuf::reset (const ImageSpec &spec)
 void
 ImageBufImpl::realloc ()
 {
-    IB_local_mem_current -= m_allocated_size;
+    release_pixels ();
     m_allocated_size = m_spec.deep ? size_t(0) : m_spec.image_bytes ();
     IB_local_mem_current += m_allocated_size;
-    m_pixels.reset (m_allocated_size ? new char [m_allocated_size] : NULL);
-    m_localpixels = m_pixels.get();
-    m_storage = m_allocated_size ? ImageBuf::LOCALBUFFER : ImageBuf::UNINITIALIZED;
+    m_cuda_storage = false;
+    if (m_allocated_size) {
+#ifdef OIIO_USE_CUDA
+        if (OIIO::get_int_attribute("cuda") && m_spec.format == TypeFloat) {
+            char *cudaptr = (char *)OIIO::pvt::cuda_malloc (m_allocated_size);
+            if (cudaptr) {
+                OIIO::debug ("IB Cuda allocated %p\n", (void*)cudaptr);
+                m_pixels.reset (cudaptr);
+                m_cuda_storage = true;
+            }
+            else {
+                OIIO::debug ("Requested cudaMallocManaged of %s FAILED\n",
+                             m_allocated_size);
+            }
+        }
+#endif
+        if (! m_pixels)   // no cuda, or cuda failed
+            m_pixels.reset (new char [m_allocated_size]);
+        m_pixels_valid = true;
+        m_storage = ImageBuf::LOCALBUFFER;
+        m_localpixels = m_pixels.get();
+    } else {
+        m_pixels_valid = false;
+        m_storage = ImageBuf::UNINITIALIZED;
+        m_localpixels = nullptr;
+    }
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
     m_channel_bytes = m_spec.format.size();
     m_blackpixel.resize (round_to_multiple (m_pixel_bytes, OIIO_SIMD_MAX_SIZE_BYTES), 0);
     // NB make it big enough for SSE
-    if (m_allocated_size)
-        m_pixels_valid = true;
     if (m_spec.deep) {
         m_deepdata.init (m_spec);
         m_storage = ImageBuf::LOCALBUFFER;
@@ -2370,7 +2417,6 @@ ImageBuf::retile (int x, int y, int z, ImageCache::Tile* &tile,
     return impl()->retile (x, y, z, tile, tilexbegin, tileybegin, tilezbegin,
                            tilexend, exists, wrap);
 }
-
 
 
 OIIO_NAMESPACE_END

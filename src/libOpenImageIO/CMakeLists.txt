@@ -5,6 +5,12 @@ file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
 configure_file (imageio_pvt.h.in "${CMAKE_CURRENT_BINARY_DIR}/imageio_pvt.h" @ONLY)
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
+if (BUILDSTATIC)
+    set (OIIO_LIB_TYPE "STATIC")
+else ()
+    set (OIIO_LIB_TYPE "SHARED")
+endif ()
+
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
 if (NOT USE_EXTERNAL_PUGIXML)
@@ -48,6 +54,7 @@ set (libOpenImageIO_srcs
                           imageoutput.cpp iptc.cpp xmp.cpp
                           color_ocio.cpp
                           maketexture.cpp
+                          imageio_cuda.cpp
                           ../libutil/argparse.cpp
                           ../libutil/benchmark.cpp
                           ../libutil/errorhandler.cpp 
@@ -74,6 +81,13 @@ set (libOpenImageIO_srcs
                           ${libOpenImageIO_hdrs}
                          )
 
+#set (cuda_using_srcs imagebufalgo_addsub.cpp)
+
+if (USE_CUDA)
+    file (GLOB gpu_source_files "*.cu")
+    message (STATUS "Extra cuda files: ${gpu_source_files}")
+    list (APPEND libOpenImageIO_srcs ${gpu_source_files})
+endif ()
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
@@ -101,10 +115,12 @@ endif ()
 source_group ("libutil"    REGULAR_EXPRESSION ".+/libutil/.+")
 source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
 
-if (BUILDSTATIC)
-    add_library (OpenImageIO STATIC ${libOpenImageIO_srcs})
+if (USE_CUDA)
+    add_definitions ("-DOIIO_USE_CUDA=1")
+    cuda_add_library (OpenImageIO ${OIIO_LIB_TYPE} ${libOpenImageIO_srcs}
+                      OPTIONS -arch ${CUDA_TARGET_ARCH})
 else ()
-    add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
+    add_library (OpenImageIO ${OIIO_LIB_TYPE} ${libOpenImageIO_srcs})
 endif ()
 
 # if (SANITIZE AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -207,7 +223,9 @@ if (EXTRA_DSO_LINK_ARGS)
     set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${EXTRA_DSO_LINK_ARGS})
 endif()
 
-oiio_install_targets (OpenImageIO)
+oiio_install_targets (OpenImageIO 
+#${OIIO_CUDA_LIB}
+)
 
 
 # Testing

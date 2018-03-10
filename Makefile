@@ -223,6 +223,10 @@ ifneq (${BUILD_OIIOUTIL_ONLY},)
 MY_CMAKE_FLAGS += -DBUILD_OIIOUTIL_ONLY:BOOL=${BUILD_OIIOUTIL_ONLY}
 endif
 
+ifneq (${USE_CUDA},)
+MY_CMAKE_FLAGS += -DUSE_CUDA:BOOL=${USE_CUDA}
+endif
+
 ifdef DEBUG
 MY_CMAKE_FLAGS += -DCMAKE_BUILD_TYPE:STRING=Debug
 endif
@@ -484,6 +488,7 @@ help:
 	@echo "      USE_OPENCV=0             Skip anything that needs OpenCV"
 	@echo "      USE_PTEX=0               Skip anything that needs PTex"
 	@echo "      USE_FREETYPE=0           Skip anything that needs Freetype"
+	@echo "      USE_CUDA=1               Build NVIDIA CUDA support (if found)"
 	@echo "  OIIO build-time options:"
 	@echo "      INSTALL_PREFIX=path      Set installation prefix (default: ./${INSTALL_PREFIX_BRIEF})"
 	@echo "      NAMESPACE=name           Override namespace base name (default: OpenImageIO)"
