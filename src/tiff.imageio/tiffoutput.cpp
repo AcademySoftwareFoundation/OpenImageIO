@@ -37,6 +37,7 @@
 #include <memory>
 
 #include <tiffio.h>
+#include <zlib.h>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/imageio.h>
@@ -46,6 +47,7 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/tiffutils.h>
+#include <OpenImageIO/parallel.h>
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -78,7 +80,11 @@ public:
     virtual bool write_tile (int x, int y, int z,
                              TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride);
-
+    virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend, TypeDesc format,
+                              const void *data, stride_t xstride=AutoStride,
+                              stride_t ystride=AutoStride,
+                              stride_t zstride=AutoStride);
 private:
     TIFF *m_tif;
     std::vector<unsigned char> m_scratch;
@@ -89,7 +95,9 @@ private:
     // not what's in the client's view of the buffer.
     int m_planarconfig;
     int m_compression;
+    int m_predictor;
     int m_photometric;
+    int m_rowsperstrip;
     unsigned int m_bitspersample;  ///< Of the *file*, not the client's view
     int m_outputchans;   // Number of channels for the output
     bool m_convert_rgb_to_cmyk;
@@ -98,17 +106,25 @@ private:
     void init (void) {
         m_tif = NULL;
         m_checkpointItems = 0;
-        m_checkpointTimer.stop ();
         m_compression = COMPRESSION_ADOBE_DEFLATE;
+        m_predictor = PREDICTOR_NONE;
         m_photometric = PHOTOMETRIC_RGB;
+        m_rowsperstrip = 32;
         m_outputchans = 0;
         m_convert_rgb_to_cmyk = false;
     }
 
     // Convert planar contiguous to planar separate data format
-    void contig_to_separate (int n, const char *contig, char *separate);
-    // Convert RGB to CMYK
-    void* convert_to_cmyk (int npixels, const void* data);
+    void contig_to_separate (int n, int nchans,
+                             const char *contig, char *separate);
+
+    // Convert RGB to CMYK.
+    void* convert_to_cmyk (int npixels, const void* data,
+                           std::vector<unsigned char> &cmyk);
+
+    // Fix unusual bit depths
+    void fix_bitdepth (void *data, int nvals);
+
     // Add a parameter to the output
     bool put_parameter (const std::string &name, TypeDesc type,
                         const void *data);
@@ -119,6 +135,43 @@ private:
     bool source_is_cmyk (const ImageSpec &spec);
     // Are we fairly certain that the spec is describing RGB values?
     bool source_is_rgb (const ImageSpec &spec);
+
+    // If we're at scanline y, where does the next strip start?
+    int next_strip_boundary (int y) {
+        return round_to_multiple (y-m_spec.y, m_rowsperstrip) + m_spec.y;
+    }
+
+    bool is_strip_boundary (int y) {
+        return y == next_strip_boundary(y) || y == m_spec.height;
+    }
+
+    // Copy a height x width x chans region of src to dst, applying a
+    // horizontal predictor to each row. It is permitted for src and dst to
+    // be the same.
+    template<typename T>
+    void horizontal_predictor (T* dst, const T* src,
+                               int chans, int width, int height) {
+        for (int y = 0; y < height; ++y, src += chans*width, dst += chans*width)
+            for (int c = 0; c < chans; ++c) {
+                for (int x = width-1; x >= 1; --x)
+                    dst[x*chans+c] = src[x*chans+c] - src[(x-1)*chans+c];
+                dst[c] = src[c]; // element 0
+            }
+    }
+
+    void compress_one_strip (void *uncompressed_buf, size_t strip_bytes,
+                             void *compressed_buf, unsigned long cbound,
+                             int channels, int width, int height,
+                             unsigned long *compressed_size, bool *ok);
+
+    int tile_index (int x, int y, int z) {
+        int xtile = (x - m_spec.x) / m_spec.tile_width;
+        int ytile = (y - m_spec.y) / m_spec.tile_height;
+        int ztile = (z - m_spec.z) / m_spec.tile_depth;
+        int nxtiles = (m_spec.width  + m_spec.tile_width-1)  / m_spec.tile_width;
+        int nytiles = (m_spec.height + m_spec.tile_height-1) / m_spec.tile_height;
+        return xtile + ytile*nxtiles + ztile*nxtiles*nytiles;
+    }
 };
 
 
@@ -314,7 +367,8 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         TIFFSetField (m_tif, TIFFTAG_TILELENGTH, m_spec.tile_height);
     } else {
         // Scanline images must set rowsperstrip
-        TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, 32);
+        m_rowsperstrip = 32;
+        TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, m_rowsperstrip);
     }
     TIFFSetField (m_tif, TIFFTAG_SAMPLESPERPIXEL, m_spec.nchannels);
     int orientation = m_spec.get_int_attribute("Orientation", 1);
@@ -396,9 +450,10 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     TIFFSetField (m_tif, TIFFTAG_COMPRESSION, m_compression);
 
     // Use predictor when using compression
+    m_predictor = PREDICTOR_NONE;
     if (m_compression == COMPRESSION_LZW || m_compression == COMPRESSION_ADOBE_DEFLATE) {
         if (m_spec.format == TypeDesc::FLOAT || m_spec.format == TypeDesc::DOUBLE || m_spec.format == TypeDesc::HALF) {
-            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_FLOATINGPOINT);
+            m_predictor = PREDICTOR_FLOATINGPOINT;
             // N.B. Very old versions of libtiff did not support this
             // predictor.  It's possible that certain apps can't read
             // floating point TIFFs with this set.  But since it's been
@@ -407,8 +462,10 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         }
         else if (m_bitspersample == 8 || m_bitspersample == 16) {
             // predictors not supported for unusual bit depths (e.g. 10)
-            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, PREDICTOR_HORIZONTAL);
+            m_predictor = PREDICTOR_HORIZONTAL;
         }
+        if (m_predictor != PREDICTOR_NONE)
+            TIFFSetField (m_tif, TIFFTAG_PREDICTOR, m_predictor);
         if (m_compression == COMPRESSION_ADOBE_DEFLATE) {
             int q = m_spec.get_int_attribute ("tiff:zipquality", -1);
             if (q >= 0)
@@ -417,8 +474,9 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
     } else if (m_compression == COMPRESSION_JPEG) {
         TIFFSetField (m_tif, TIFFTAG_JPEGQUALITY,
                       m_spec.get_int_attribute("CompressionQuality", 95));
-        TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, 64);
-        m_spec.attribute ("tiff:RowsPerStrip", 64);
+        m_rowsperstrip = 64;
+        m_spec.attribute ("tiff:RowsPerStrip", m_rowsperstrip);
+        TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, m_rowsperstrip);
         if (m_photometric == PHOTOMETRIC_RGB) {
             // Compression works so much better when we ask the library to
             // auto-convert RGB to YCbCr.
@@ -509,6 +567,7 @@ TIFFOutput::open (const std::string &name, const ImageSpec &userspec,
         if (! m_spec.tile_width) {
             // I can only seem to make separate planarconfig work when
             // rowsperstrip is 1.
+            m_rowsperstrip = 1;
             TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, 1);
         }
     }
@@ -637,7 +696,8 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
         return true;
     }
     if (Strutil::iequals(name, "tiff:Predictor") && type == TypeDesc::INT) {
-        TIFFSetField (m_tif, TIFFTAG_PREDICTOR, *(int *)data);
+        m_predictor = *(int *)data;
+        TIFFSetField (m_tif, TIFFTAG_PREDICTOR, m_predictor);
         return true;
     }
     if (Strutil::iequals(name, "ResolutionUnit") && type == TypeDesc::STRING) {
@@ -656,15 +716,16 @@ TIFFOutput::put_parameter (const std::string &name, TypeDesc type,
           && ! m_spec.tile_width /* don't set rps for tiled files */
           && m_planarconfig == PLANARCONFIG_CONTIG /* only for contig */) {
         if (type == TypeDesc::INT) {
-            TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP,
-                          std::min (*(int*)data, m_spec.height));
-            return true;
+            m_rowsperstrip = *(int*)data;
         } else if (type == TypeDesc::STRING) {
             // Back-compatibility with Entropy and PRMan
-            TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP,
-                          std::min (atoi(*(char **)data), m_spec.height));
-            return true;
+            m_rowsperstrip = Strutil::stoi (*(char **)data);
+        } else {
+            return false;
         }
+        m_rowsperstrip = clamp (m_rowsperstrip, 1, m_spec.height);
+        TIFFSetField (m_tif, TIFFTAG_ROWSPERSTRIP, m_rowsperstrip);
+        return true;
     }
     if (Strutil::iequals(name, "Make") && type == TypeDesc::STRING) {
         TIFFSetField (m_tif, TIFFTAG_MAKE, *(char**)data);
@@ -826,14 +887,15 @@ TIFFOutput::close ()
 /// Helper: Convert n pixels from contiguous (RGBRGBRGB) to separate
 /// (RRRGGGBBB) planarconfig.
 void
-TIFFOutput::contig_to_separate (int n, const char *contig, char *separate)
+TIFFOutput::contig_to_separate (int n, int nchans,
+                                const char *contig, char *separate)
 {
     int channelbytes = m_spec.channel_bytes();
     for (int p = 0;  p < n;  ++p)                     // loop over pixels
-        for (int c = 0;  c < m_spec.nchannels;  ++c)    // loop over channels
+        for (int c = 0;  c < nchans;  ++c)            // loop over channels
             for (int i = 0;  i < channelbytes;  ++i)  // loop over data bytes
                 separate[(c*n+p)*channelbytes+i] =
-                    contig[(p*m_spec.nchannels+c)*channelbytes+i];
+                    contig[(p*nchans+c)*channelbytes+i];
 }
 
 
@@ -909,9 +971,10 @@ rgb_to_cmyk (int n, const T *rgb, size_t rgb_stride,
 
 
 void*
-TIFFOutput::convert_to_cmyk (int npixels, const void* data)
+TIFFOutput::convert_to_cmyk (int npixels, const void* data,
+                             std::vector<unsigned char> &cmyk)
 {
-    std::vector<unsigned char> cmyk (m_outputchans * spec().format.size() * npixels);
+    cmyk.resize (m_outputchans * spec().format.size() * npixels);
     if (spec().format == TypeDesc::UINT8) {
         rgb_to_cmyk (npixels, (unsigned char *)data, m_spec.nchannels,
                      (unsigned char *)&cmyk[0], m_outputchans);
@@ -921,9 +984,9 @@ TIFFOutput::convert_to_cmyk (int npixels, const void* data)
     } else {
         ASSERT (0 && "CMYK should be forced to UINT8 or UINT16");
     }
-    m_scratch.swap (cmyk);
-    return &m_scratch[0];
+    return cmyk.data();
 }
+
 
 
 
@@ -937,8 +1000,9 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
                                m_dither, y, z);
 
     // Handle weird photometric/color spaces
+    std::vector<unsigned char> cmyk;
     if (m_photometric == PHOTOMETRIC_SEPARATED && m_convert_rgb_to_cmyk)
-        data = convert_to_cmyk (spec().width, data);
+        data = convert_to_cmyk (spec().width, data, cmyk);
 
     // Handle weird bit depths
     if (spec().format.size()*8 != m_bitspersample) {
@@ -948,31 +1012,29 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
         if (data == origdata) {
             m_scratch.assign ((unsigned char *)data,
                               (unsigned char *)data+nbytes);
-            data = &m_scratch[0];
+            data = m_scratch.data();
         }
-        if (spec().format == TypeDesc::UINT16 && m_bitspersample == 10) {
-            convert_pack_bits<unsigned short, 10> ((unsigned short *)data, nvals);
-        } else if (spec().format == TypeDesc::UINT16 && m_bitspersample == 12) {
-            convert_pack_bits<unsigned short, 12> ((unsigned short *)data, nvals);
-        } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 4) {
-            convert_pack_bits<unsigned char, 4> ((unsigned char *)data, nvals);
-        } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 2) {
-            convert_pack_bits<unsigned char, 2> ((unsigned char *)data, nvals);
-        } else {
-            ASSERT (0 && "unsupported bit conversion -- shouldn't reach here");
-        }
+        fix_bitdepth (m_scratch.data(), nvals);
     }
 
     y -= m_spec.y;
-    if (m_planarconfig == PLANARCONFIG_SEPARATE) {
+    if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
         int plane_bytes = m_spec.width * m_spec.format.size();
-        std::vector<unsigned char> scratch2 (m_spec.scanline_bytes());
-        std::swap (m_scratch, scratch2);
-        m_scratch.resize (m_spec.scanline_bytes());
-        contig_to_separate (m_spec.width, (const char *)data, (char *)&m_scratch[0]);
-        for (int c = 0;  c < m_spec.nchannels;  ++c) {
-            if (TIFFWriteScanline (m_tif, (tdata_t)&m_scratch[plane_bytes*c], y, c) < 0) {
+
+        std::unique_ptr<char[]> separate_heap;
+        char *separate = nullptr;
+        imagesize_t separate_size = plane_bytes * m_outputchans;
+        if (separate_size <= (1<<16))
+            separate = ALLOCA (char, separate_size);  // <=64k ? stack
+        else {                                        // >64k ? heap
+            separate_heap.reset (new char [separate_size]); // will auto-free
+            separate = separate_heap.get();
+        }
+
+        contig_to_separate (m_spec.width, m_outputchans, (const char *)data, separate);
+        for (int c = 0;  c < m_outputchans;  ++c) {
+            if (TIFFWriteScanline (m_tif, (tdata_t)&separate[plane_bytes*c], y, c) < 0) {
                 std::string err = oiio_tiff_last_error();
                 error ("TIFFWriteScanline failed writing line y=%d,z=%d (%s)",
                        y, z, err.size() ? err.c_str() : "unknown error");
@@ -984,9 +1046,10 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
         // space since TIFFWriteScanline is destructive when
         // TIFFTAG_PREDICTOR is used.
         if (data == origdata) {
+            imagesize_t scanline_bytes = m_spec.width * m_spec.format.size() * m_outputchans;
             m_scratch.assign ((unsigned char *)data,
-                              (unsigned char *)data+m_spec.scanline_bytes());
-            data = &m_scratch[0];
+                              (unsigned char *)data+scanline_bytes);
+            data = m_scratch.data();
         }
         if (TIFFWriteScanline (m_tif, (tdata_t)data, y) < 0) {
             std::string err = oiio_tiff_last_error();
@@ -1013,11 +1076,74 @@ TIFFOutput::write_scanline (int y, int z, TypeDesc format,
 
 
 
+void
+TIFFOutput::compress_one_strip (void *uncompressed_buf, size_t strip_bytes,
+                                void *compressed_buf, unsigned long cbound,
+                                int channels, int width, int height,
+                                unsigned long *compressed_size, bool *ok)
+{
+    if (m_spec.format == TypeUInt8)
+        horizontal_predictor ((unsigned char *)uncompressed_buf,
+                              (unsigned char *)uncompressed_buf,
+                              channels, width, height);
+    else if (m_spec.format == TypeUInt16)
+        horizontal_predictor ((unsigned short *)uncompressed_buf,
+                              (unsigned short *)uncompressed_buf,
+                              channels, width, height);
+    *compressed_size = cbound;
+    auto zok = compress ((Bytef*)compressed_buf, compressed_size,
+                         (const Bytef*)uncompressed_buf, (unsigned long)strip_bytes);
+    if (zok != Z_OK)
+        *ok = false;
+}
+
+
+
 bool
 TIFFOutput::write_scanlines (int ybegin, int yend, int z,
                              TypeDesc format, const void *data,
                              stride_t xstride, stride_t ystride)
 {
+    // If the stars all align properly, try to write strips, and use the
+    // thread pool to parallelize the compression. This can give a large
+    // speedup (5x or more!) because the zip compression dwarfs the
+    // actual raw I/O. But libtiff is totally serialized, so we can only
+    // parallelize by making calls to zlib ourselves and then writing
+    // "raw" (compressed) strips. Don't bother trying to handle any of
+    // the uncommon cases with strips. This covers most real-world cases.
+    thread_pool *pool = default_thread_pool();
+    int nstrips = (yend-ybegin+m_rowsperstrip-1) / m_rowsperstrip;
+    bool parallelize =
+        // scanline range must be complete strips
+        is_strip_boundary(ybegin) && is_strip_boundary(yend)
+        // and more than one, or no point parallelizing
+        && nstrips > 1
+        // and not palette or cmyk color separated conversions
+        && (m_photometric != PHOTOMETRIC_SEPARATED && m_photometric != PHOTOMETRIC_PALETTE)
+        // no non-multiple-of-8 bits per sample
+        && (spec().format.size()*8 == m_bitspersample)
+        // contig planarconfig only
+        && m_planarconfig == PLANARCONFIG_CONTIG
+        // only deflate/zip compression with horizontal predictor
+        && m_compression == COMPRESSION_ADOBE_DEFLATE
+        && m_predictor == PREDICTOR_HORIZONTAL
+        // only uint8, uint16
+        && (m_spec.format == TypeUInt8 || m_spec.format == TypeUInt16)
+        // only if we're threading and don't enter the thread pool recursively!
+        && pool->size() > 1 && !pool->this_thread_is_in_pool()
+        // and not if the feature is turned off
+        && m_spec.get_int_attribute("tiff:multithread", OIIO::get_int_attribute("tiff:multithread"));
+
+    // If we're not parallelizing, just call the parent class default
+    // implementaiton of write_scanlines, which will loop over the scanlines
+    // and write each one individually.
+    if (! parallelize) {
+        return ImageOutput::write_scanlines (ybegin, yend, z, format,
+                                             data, xstride, ystride);
+    }
+
+    // From here on, we're only dealing with the parallelizeable case...
+
     // First, do the native data type conversion and contiguization. By
     // doing the whole chunk, it will be parallelized.
     std::vector<unsigned char> nativebuf;
@@ -1029,14 +1155,82 @@ TIFFOutput::write_scanlines (int ybegin, int yend, int z,
     xstride = (stride_t) m_spec.pixel_bytes (true);
     ystride = xstride * m_spec.width;
 
-    // Now write the individual scanlines. They're already contiguous and in
-    // native format, so even though write_scanline contains that logic
-    // again, the work will be skipped.
-    bool ok = true;
-    for (int y = ybegin;  ok && y < yend;  ++y) {
+    // Allocate various temporary space we need
+    const void *origdata = data;
+    imagesize_t scratch_bytes = m_spec.scanline_bytes() * (yend-ybegin);
+    // Because the predictor is destructive, we need to copy to temp space
+    std::unique_ptr<char[]> scratch (new char [scratch_bytes]);
+    memcpy (scratch.get(), data, scratch_bytes);
+    data = scratch.get();
+    imagesize_t strip_bytes = m_spec.scanline_bytes(true) * m_rowsperstrip;
+    size_t cbound = compressBound ((uLong)strip_bytes);
+    std::unique_ptr<char[]> compressed_scratch (new char [cbound * nstrips]);
+    unsigned long *compressed_len = OIIO_ALLOCA (unsigned long, nstrips);
+    int y = ybegin;
+    int y_at_stripstart = y;
+
+    // Compress all the strips in parallel using the thread pool.
+    task_set tasks (pool);
+    bool ok = true;   // failed compression will stash a false here
+    for (size_t stripidx = 0;  y+m_rowsperstrip <= yend;  y += m_rowsperstrip, ++stripidx) {
+        char *cbuf = compressed_scratch.get()+stripidx*cbound;
+        tasks.push (pool->push ([=,&ok](int id){
+            memcpy ((void *)data, origdata, strip_bytes);
+            this->compress_one_strip ((void *)data, strip_bytes, cbuf, cbound,
+                                      this->m_spec.nchannels, this->m_spec.width,
+                                      m_rowsperstrip, compressed_len+stripidx, &ok);
+        }));
+        data = (char *)data + strip_bytes;
+        origdata = (char *)origdata + strip_bytes;
+    }
+    // tasks.wait(); DON'T WAIT -- start writing as strips are done!
+
+    // Now write those compressed strips as they come out of the queue.
+    y = y_at_stripstart;
+    for (size_t stripidx = 0;  ok && y+m_rowsperstrip <= yend;  y += m_rowsperstrip, ++stripidx) {
+        char *cbuf = compressed_scratch.get()+stripidx*cbound;
+        tstrip_t stripnum = (y-m_spec.y) / m_rowsperstrip;
+        // Wait for THIS strip to be done before writing. But ok if
+        // others are still being compressed. And this is a non-blocking
+        // wait, it will steal tasks from the queue if the next strip
+        // it needs is not yet done.
+        tasks.wait_for_task (stripidx);
+        if (! ok) {
+            error ("Compression error");
+            return false;
+        }
+        if (TIFFWriteRawStrip (m_tif, stripnum, (tdata_t)cbuf,
+                               tmsize_t(compressed_len[stripidx])) < 0) {
+            std::string err = oiio_tiff_last_error();
+            error ("TIFFWriteRawStrip failed writing line y=%d,z=%d: %s",
+                   y, z, err.size() ? err.c_str() : "unknown error");
+            return false;
+        }
+    }
+
+    // Should we checkpoint? Only if we have enough scanlines and enough
+    // time has passed (or if using JPEG compression, for which it seems
+    // necessary).
+    m_checkpointItems += m_rowsperstrip;
+    if ((m_checkpointTimer() > DEFAULT_CHECKPOINT_INTERVAL_SECONDS ||
+         m_compression == COMPRESSION_JPEG)
+        && m_checkpointItems >= MIN_SCANLINES_OR_TILES_PER_CHECKPOINT) {
+        TIFFCheckpointDirectory (m_tif);
+        m_checkpointTimer.lap();
+        m_checkpointItems = 0;
+    }
+
+
+    if (y < yend && origdata != data)
+        memcpy ((void *)data, origdata, (yend-y)*m_spec.scanline_bytes(true));
+
+    // Write the stray scanlines at the end that can't make a full strip.
+    // Or all the scanlines if we weren't trying to write strips.
+    for ( ;  ok && y < yend;  ++y) {
         ok &= write_scanline (y, z, format, data, xstride);
         data = (char *)data + ystride;
     }
+
     return ok;
 }
 
@@ -1059,30 +1253,21 @@ TIFFOutput::write_tile (int x, int y, int z,
                            m_scratch, m_dither, x, y, z);
 
     // Handle weird photometric/color spaces
+    std::vector<unsigned char> cmyk;
     if (m_photometric == PHOTOMETRIC_SEPARATED && m_convert_rgb_to_cmyk)
-        data = convert_to_cmyk (spec().tile_pixels(), data);
+        data = convert_to_cmyk (spec().tile_pixels(), data, cmyk);
 
     // Handle weird bit depths
     if (spec().format.size()*8 != m_bitspersample) {
         // Move to scratch area if not already there
         imagesize_t nbytes = spec().scanline_bytes();
-        int nvals = int (spec().tile_pixels()) * spec().nchannels;
+        int nvals = int (spec().tile_pixels()) * m_outputchans;
         if (data == origdata) {
             m_scratch.assign ((unsigned char *)data,
                               (unsigned char *)data+nbytes);
-            data = &m_scratch[0];
+            data = m_scratch.data();
         }
-        if (spec().format == TypeDesc::UINT16 && m_bitspersample == 10) {
-            convert_pack_bits<unsigned short, 10> ((unsigned short *)data, nvals);
-        } else if (spec().format == TypeDesc::UINT16 && m_bitspersample == 12) {
-            convert_pack_bits<unsigned short, 12> ((unsigned short *)data, nvals);
-        } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 4) {
-            convert_pack_bits<unsigned char, 4> ((unsigned char *)data, nvals);
-        } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 2) {
-            convert_pack_bits<unsigned char, 2> ((unsigned char *)data, nvals);
-        } else {
-            ASSERT (0 && "unsupported bit conversion -- shouldn't reach here");
-        }
+        fix_bitdepth (m_scratch.data(), nvals);
     }
 
     if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
@@ -1093,15 +1278,15 @@ TIFFOutput::write_tile (int x, int y, int z,
 
         std::unique_ptr<char[]> separate_heap;
         char *separate = NULL;
-        imagesize_t separate_size = plane_bytes * m_spec.nchannels;
+        imagesize_t separate_size = plane_bytes * m_outputchans;
         if (separate_size <= (1<<16))
             separate = ALLOCA (char, separate_size);  // <=64k ? stack
         else {                                        // >64k ? heap
             separate_heap.reset (new char [separate_size]); // will auto-free
             separate = separate_heap.get();
         }
-        contig_to_separate (tile_pixels, (const char *)data, separate);
-        for (int c = 0;  c < m_spec.nchannels;  ++c) {
+        contig_to_separate (tile_pixels, m_outputchans, (const char *)data, separate);
+        for (int c = 0;  c < m_outputchans;  ++c) {
             if (TIFFWriteTile (m_tif, (tdata_t)&separate[plane_bytes*c], x, y, z, c) < 0) {
                 std::string err = oiio_tiff_last_error();
                 error ("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
@@ -1115,9 +1300,10 @@ TIFFOutput::write_tile (int x, int y, int z,
         // space since TIFFWriteTile is destructive when
         // TIFFTAG_PREDICTOR is used.
         if (data == origdata) {
+            imagesize_t tile_bytes = m_spec.tile_pixels() * m_spec.format.size() * m_outputchans;
             m_scratch.assign ((unsigned char *)data,
-                              (unsigned char *)data + m_spec.tile_bytes());
-            data = &m_scratch[0];
+                              (unsigned char *)data + tile_bytes);
+            data = m_scratch.data();
         }
         if (TIFFWriteTile (m_tif, (tdata_t)data, x, y, z, 0) < 0) {
             std::string err = oiio_tiff_last_error();
@@ -1141,6 +1327,153 @@ TIFFOutput::write_tile (int x, int y, int z,
     }
     
     return true;
+}
+
+
+
+bool
+TIFFOutput::write_tiles (int xbegin, int xend, int ybegin, int yend,
+                         int zbegin, int zend, TypeDesc format,
+                         const void *data, stride_t xstride,
+                         stride_t ystride, stride_t zstride)
+{
+    if (! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
+        return false;
+
+    // If the stars all align properly, try to use the thread pool to
+    // parallelize the compression of the tiles. This can give a large
+    // speedup (5x or more!) because the zip compression dwarfs the actual
+    // raw I/O. But libtiff is totally serialized, so we can only
+    // parallelize by making calls to zlib ourselves and then writing "raw"
+    // (compressed) strips. Don't bother trying to handle any of the
+    // uncommon cases with strips. This covers most real-world cases.
+    thread_pool *pool = default_thread_pool();
+    ASSERT (m_spec.tile_depth >= 1);
+    size_t ntiles = size_t ((xend-xbegin+m_spec.tile_width-1)/m_spec.tile_width *
+                           (yend-ybegin+m_spec.tile_height-1)/m_spec.tile_height *
+                           (zend-zbegin+m_spec.tile_depth-1)/m_spec.tile_depth);
+    bool parallelize =
+        // more than one tile, or no point parallelizing
+        ntiles > 1
+        // and not palette or cmyk color separated conversions
+        && (m_photometric != PHOTOMETRIC_SEPARATED && m_photometric != PHOTOMETRIC_PALETTE)
+        // no non-multiple-of-8 bits per sample
+        && (spec().format.size()*8 == m_bitspersample)
+        // contig planarconfig only
+        && m_planarconfig == PLANARCONFIG_CONTIG
+        // only deflate/zip compression with horizontal predictor
+        && m_compression == COMPRESSION_ADOBE_DEFLATE
+        && m_predictor == PREDICTOR_HORIZONTAL
+        // only uint8, uint16
+        && (m_spec.format == TypeUInt8 || m_spec.format == TypeUInt16)
+        // only if we're threading and don't enter the thread pool recursively!
+        && pool->size() > 1 && !pool->this_thread_is_in_pool()
+        // and not if the feature is turned off
+        && m_spec.get_int_attribute("tiff:multithread", OIIO::get_int_attribute("tiff:multithread"));
+
+    // If we're not parallelizing, just call the parent class default
+    // implementaiton of write_tiles, which will loop over the tiles and
+    // write each one individually.
+    if (! parallelize) {
+        return ImageOutput::write_tiles (xbegin, xend, ybegin, yend,
+                                         zbegin, zend, format, data,
+                                         xstride, ystride, zstride);
+    }
+
+    // From here on, we're only dealing with the parallelizeable case...
+
+    // Allocate various temporary space we need
+    stride_t tile_bytes = (stride_t) m_spec.tile_bytes (true);
+    std::vector<std::vector<unsigned char>> tilebuf (ntiles);
+    size_t cbound = compressBound ((uLong)tile_bytes);
+    std::unique_ptr<char[]> compressed_scratch (new char [ntiles*cbound]);
+    unsigned long *compressed_len = OIIO_ALLOCA (unsigned long, ntiles);
+
+    if (format == TypeDesc::UNKNOWN && xstride == AutoStride)
+        xstride = m_spec.pixel_bytes (true);
+    m_spec.auto_stride (xstride, ystride, zstride, format, m_spec.nchannels,
+                        xend-xbegin, yend-ybegin);
+
+    // Compress all the tiles in parallel using the thread pool.
+    task_set tasks (pool);
+    bool ok = true;   // failed compression will stash a false here
+    for (int z = zbegin, tileno = 0;  z < zend;  z += m_spec.tile_depth) {
+        for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
+            for (int x = xbegin;  ok && x < xend;  x += m_spec.tile_width, ++tileno) {
+                tasks.push (pool->push ([&,x,y,z,tileno](int id){
+                    const unsigned char *tilestart = ((unsigned char *)data
+                                                      + (x-xbegin)*xstride
+                                                      + (z-zbegin)*zstride
+                                                      + (y-ybegin)*ystride);
+                    int xw = std::min (xend-x, m_spec.tile_width);
+                    int yh = std::min (yend-y, m_spec.tile_height);
+                    int zd = std::min (zend-z, m_spec.tile_depth);
+                    stride_t tile_xstride = xstride;
+                    stride_t tile_ystride = ystride;
+                    stride_t tile_zstride = zstride;
+                    // Partial tiles at the edge need to be padded to the
+                    // full tile size.
+                    std::unique_ptr<unsigned char[]> padded_tile;
+                    if (xw < m_spec.tile_width || yh < m_spec.tile_height ||
+                          zd < m_spec.tile_depth) {
+                        stride_t pixelsize = format.size() * m_spec.nchannels;
+                        padded_tile.reset (new unsigned char [pixelsize * m_spec.tile_pixels()]);
+                        OIIO::copy_image (m_spec.nchannels, xw, yh, zd,
+                                    tilestart, pixelsize, xstride, ystride, zstride,
+                                    padded_tile.get(), pixelsize, pixelsize*m_spec.tile_width,
+                                    pixelsize*m_spec.tile_pixels());
+                        tilestart = padded_tile.get();
+                        tile_xstride = pixelsize;
+                        tile_ystride = tile_xstride * m_spec.tile_width;
+                        tile_zstride = tile_ystride * m_spec.tile_height;
+                    }
+                    const void *buf =
+                        to_native_tile (format, tilestart,
+                                        tile_xstride, tile_ystride, tile_zstride,
+                                        tilebuf[tileno], m_dither, x, y, z);
+                    if (buf == (const void*)tilestart) {
+                        // Ugly detail: if to_native_rectangle did not allocate
+                        // scratch space and copy to it, we need to do it now,
+                        // because the horizontal predictor is destructive.
+                        tilebuf[tileno].assign ((char *)buf, ((char *)buf)+m_spec.tile_bytes(true));
+                        buf = tilebuf[tileno].data();
+                    }
+                    char *cbuf = compressed_scratch.get() + tileno * cbound;
+                    compress_one_strip ((void *)buf, tile_bytes, cbuf, cbound,
+                                        m_spec.nchannels, m_spec.tile_width,
+                                        m_spec.tile_height*m_spec.tile_depth,
+                                        compressed_len+tileno, &ok);
+                }));
+            }
+        }
+    }
+    // tasks.wait(); DON'T WAIT -- start writing as tiles are done!
+
+    for (int z = zbegin, tileno = 0;  z < zend;  z += m_spec.tile_depth) {
+        for (int y = ybegin;  y < yend;  y += m_spec.tile_height) {
+            for (int x = xbegin;  ok && x < xend;  x += m_spec.tile_width, ++tileno) {
+                // Wait for THIS tile to be done before writing. But ok if
+                // others are still being compressed. And this is a non-
+                // blocking wait, it will steal tasks from the queue if the
+                // next tile it needs is not yet done.
+                tasks.wait_for_task (tileno);
+                char *cbuf = compressed_scratch.get() + tileno * cbound;
+                if (! ok) {
+                    error ("Compression error");
+                    return false;
+                }
+                if (TIFFWriteRawTile (m_tif, uint32_t(tile_index(x,y,z)),
+                                      cbuf, compressed_len[tileno]) < 0) {
+                    std::string err = oiio_tiff_last_error();
+                    error ("TIFFWriteRawTile failed writing tile %d (x=%d,y=%d,z=%d): %s",
+                           tile_index(x,y,z), x, y, z,
+                           err.size() ? err.c_str() : "unknown error");
+                    return false;
+                }
+            }
+        }
+    }
+    return ok;
 }
 
 
@@ -1188,6 +1521,27 @@ TIFFOutput::source_is_rgb (const ImageSpec &spec)
         return true;
     return false;
 }
+
+
+
+void
+TIFFOutput::fix_bitdepth (void *data, int nvals)
+{
+    ASSERT (spec().format.size()*8 != m_bitspersample);
+
+    if (spec().format == TypeDesc::UINT16 && m_bitspersample == 10) {
+        convert_pack_bits<unsigned short, 10> ((unsigned short *)data, nvals);
+    } else if (spec().format == TypeDesc::UINT16 && m_bitspersample == 12) {
+        convert_pack_bits<unsigned short, 12> ((unsigned short *)data, nvals);
+    } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 4) {
+        convert_pack_bits<unsigned char, 4> ((unsigned char *)data, nvals);
+    } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 2) {
+        convert_pack_bits<unsigned char, 2> ((unsigned char *)data, nvals);
+    } else {
+        ASSERT (0 && "unsupported bit conversion -- shouldn't reach here");
+    }
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
 
