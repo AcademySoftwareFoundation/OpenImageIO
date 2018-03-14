@@ -149,6 +149,9 @@ endif ()
 
 if (MSVC)
     set_property (SOURCE imagebufalgo_pixelmath.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
+    set_property (SOURCE imagebufalgo_addsub.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
+    set_property (SOURCE imagebufalgo_muldiv.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
+    set_property (SOURCE imagebuf.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif ()
 
 if (WIN32)
