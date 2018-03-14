@@ -828,8 +828,8 @@ TIFFInput::readspec (bool read_meta)
     m_spec.attribute ("tiff:Compression", (int)m_compression);
     if (const char *compressname = tiff_compression_name(m_compression))
         m_spec.attribute ("compression", compressname);
-    m_predictor = 0;
-    TIFFGetFieldDefaulted (m_tif, TIFFTAG_PREDICTOR, &m_predictor);
+    m_predictor = PREDICTOR_NONE;
+    TIFFGetField (m_tif, TIFFTAG_PREDICTOR, &m_predictor);
 
     m_rowsperstrip = -1;
     if (! m_spec.tile_width) {
