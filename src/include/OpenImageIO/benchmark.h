@@ -443,7 +443,7 @@ OIIO_FORCEINLINE T const & DoNotOptimize (T const &val) {
 // If __optnone__ attribute is available: make a null function with no
 // optimization, that's all we need.
 template <class T>
-OIIO_FORCEINLINE T const & __attribute__((__optnone__))
+inline T const & __attribute__((__optnone__))
 DoNotOptimize (T const &val) {
     return val;
 }
