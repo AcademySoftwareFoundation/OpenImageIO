@@ -148,8 +148,15 @@ endif ()
 
 
 if (MSVC)
-    set_property (SOURCE imagebufalgo_pixelmath.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
-    set_property (SOURCE imagebuf.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
+    # In some MSVC setups, the IBA functions with huge template expansions
+    # can run into trouble if the /bigobj flag is not used. Turn it on for
+    # these files most likely to use it.
+    # FIXME: Does anybody know if there is an advantage to limiting it to
+    # just the files that most need it? Or is it better to make it totally
+    # foolproof by using /bigobj for all our modules on Windows?
+    file (GLOB iba_sources "imagebufalgo_*.cpp")
+    set_property (SOURCE imagebuf.cpp ${iba_sources}
+                  APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif ()
 
 if (WIN32)
