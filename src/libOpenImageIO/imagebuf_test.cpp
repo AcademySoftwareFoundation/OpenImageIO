@@ -362,6 +362,53 @@ test_read_channel_subset ()
 
 
 
+void
+test_write_to_memory ()
+{
+    std::cout << "\nTesting writing a file to a memory buffer\n";
+
+    // Make a 2x2 red image
+    ImageSpec spec (2, 2, 3, TypeUInt8);
+    ImageBuf buf (spec);
+    float red[3] = { 1, 0, 0 };
+    ImageBufAlgo::fill (buf, red);
+
+    // Set up special attributes that communicate where we want the pointer
+    // to the bytes, and the size, saved.
+    unsigned char *file_buffer = nullptr;  // will get ptr to the memory
+    uint64_t file_buffer_size = 0;         // will get the size
+    void *ptr = &file_buffer;
+    buf.specmod().attribute ("oiio:write_memory", TypeDesc::PTR, &ptr);
+    ptr = &file_buffer_size;
+    buf.specmod().attribute ("oiio:write_memory_size", TypeDesc::PTR, &ptr);
+
+    // Write the image. The attributes should do their magic.
+    buf.write ("test.png");
+
+    // Check the results against the output of `hexdump test.png` when we
+    // saved the same image to disk. It should be byte-by-byte identical.
+    OIIO_CHECK_ASSERT (file_buffer != nullptr);
+    OIIO_CHECK_EQUAL (file_buffer_size, 106ul);
+    static const unsigned char reference[] = {
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x08, 0x02, 0x00, 0x00, 0x00, 0xfd, 0xd4, 0x9a,
+        0x73, 0x00, 0x00, 0x00, 0x09, 0x6f, 0x46, 0x46, 0x73, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0xda, 0x2a, 0xb6, 0xce, 0x00, 0x00, 0x00, 0x10, 0x49, 0x44, 0x41, 0x54, 0x08, 0x99,
+        0x63, 0xfc, 0xcf, 0x00, 0x02, 0x4c, 0x60, 0x92, 0x01, 0x00, 0x0d, 0x1d, 0x01, 0x03, 0x6e, 0x28,
+        0x7c, 0x6d, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82, 0x00, 0x00,
+        0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
+    };
+    OIIO_CHECK_ASSERT (! memcmp (file_buffer, reference, file_buffer_size));
+    // for (size_t i = 0; i < file_buffer_size; ++i)
+    //     Strutil::printf ("%c%02x", i%16 ? ' ' : '\n', file_buffer[i]);
+    // Strutil::printf ("\n");
+
+    // We own file_buffer's memory now, it's up to us to free it.
+    delete [] file_buffer;
+}
+
+
+
 int
 main (int argc, char **argv)
 {
@@ -383,6 +430,8 @@ main (int argc, char **argv)
 
     test_set_get_pixels ();
     time_get_pixels ();
+
+    test_write_to_memory ();
 
     Filesystem::remove ("A_imagebuf_test.tif");
     return unit_test_failures;

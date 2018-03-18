@@ -732,6 +732,10 @@ PNG files use the file extension {\cf .png}.
 \qkw{ICCProfile} & uint8[] & The ICC color profile \\
 \end{tabular}
 
+PNG output supports the ``write to memory'' feature via the special
+\qkw{oiio:write_memory} and \qkw{oiio:write_memory_size} attributes
+(see Section~\ref{sec:imageoutput:writefiletomemory}).
+
 \subsubsection*{Limitations}
 
 \begin{itemize}

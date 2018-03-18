@@ -200,6 +200,28 @@ plugins and compression methods that allow a variable amount of
 compression, with higher numbers indicating higher image fidelity.
 \apiend
 
+\section{Writing the file image to a memory buffer}
+\index{writing an image file to memory buffer}
+
+Format writers that respond positively to {\cf supports("write_memory")}
+have the ability to write the file to a memory buffer rather than saving
+to disk. (Currently, only PNG has the ability to do this.) This behavior is
+controlled by two special attributes:
+
+\apiitem{"oiio:write_memory" : pointer}
+Pointer to a {\cf unsigned char *} in which will be stored the pointer to
+the allocated buffer.
+\apiend
+
+\apiitem{"oiio:write_memory_size" : pointer}
+Pointer to a {\cf uint64_t} in which will be stored the size of the
+buffer.
+\apiend
+
+An explanation of how this feature is used may be found in
+Section~\ref{sec:imageoutput:writefiletomemory}.
+
+
 \section{Photographs or scanned images}
 
 The following metadata items are specific to photos or captured images.
