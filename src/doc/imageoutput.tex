@@ -275,18 +275,18 @@ data (use of strides is explained in
 Section~\ref{sec:imageoutput:strides}).
 
 
-\subsection{Converting data formats}
-\label{sec:imageoutput:convertingformats}
+\subsection{Converting pixel data types}
+\label{sec:imageoutput:convertingtypes}
 
 The code examples of the previous sections all assumed that your
 internal pixel data is stored as unsigned 8-bit integers (i.e., 0-255
 range).  But \product is significantly more flexible.  
 
-You may request that the output image be stored in any of several
-formats.  This is done by setting the {\kw format} field of the
+You may request that the output image pixels be stored in any of several
+data types.  This is done by setting the {\kw format} field of the
 \ImageSpec prior to calling {\kw open}.  You can do this upon
 construction of the \ImageSpec, as in the following example
-that requests a spec that stores data as 16-bit unsigned integers:
+that requests a spec that stores pixel values as 16-bit unsigned integers:
 \begin{code}
         ImageSpec spec (xres, yres, channels, TypeDesc::UINT16);
 \end{code}
@@ -300,21 +300,57 @@ method.
         spec.set_format (TypeDesc::UINT16);
 \end{code}
 
-Note that resetting the format must be done \emph{before} passing the
-spec to {\kw open()}, or it will have no effect on the file.
+Note that resetting the pixel data type must be done \emph{before} passing
+the spec to {\kw open()}, or it will have no effect on the file.
 
 Individual file formats, and therefore \ImageOutput implementations, may
-only support a subset of the formats understood by the \product library.
+only support a subset of the pixel data types understood by the \product library.
 Each \ImageOutput plugin implementation should document which data
-formats it supports.  An individual \ImageOutput implementation may
-choose to simply fail to {\kw open()}, though the recommended behavior
-is for {\kw open()} to succeed but in fact choose a data format
-supported by the file format that best preserves the precision and range
-of the originally-requested data format.
+formats it supports.  An individual \ImageOutput implementation is expected
+to always succeed, but if the file format does not support the requested
+pixel data type, it is expected to choose a data type that is supported,
+usually the data type that best preserves the precision and range
+of the originally-requested data type.
+
+
+The conversion from floating-point formats to integer formats (or from
+higher to lower integer, which is done by first converting to float) is
+always done by rescaling the value so that $0.0$ maps to integer $0$ and
+$1.0$ to the maximum value representable by the integer type, then rounded
+to an integer value for final output.  Here is the code that implements this
+transformation ({\cf T} is the final output integer type):
+
+\begin{code}
+        float value = quant_max * input;
+        T output = (T) clamp ((int)(value + 0.5), quant_min, quant_max);
+\end{code}
+
+\noindent Quantization limits for each integer type is as follows:\\
+
+\smallskip
+\begin{tabular}{|l|r|r|}
+\hline
+{\bf Data Format} & {\bf min} & {\bf max} \\
+\hline
+{\cf UINT8}  &           0 &        255 \\
+{\cf INT8}   &        -128 &        127 \\
+{\cf UINT16} &           0 &      65535 \\
+{\cf INT16}  &      -32768 &      32767 \\
+{\cf UINT}   &           0 & 4294967295 \\
+{\cf INT}    & -2147483648 & 2147483647 \\
+\hline
+\end{tabular} \\
+\smallskip
+
+\noindent Note that the default is to use the entire positive range
+of each integer type to represent the floating-point ($0.0 -- 1.0$) range.
+Floating-point types do not attempt to remap values,
+and do not clamp (except to their full floating-point range).
+
 
 It is not required that the pixel data passed to \writeimage,
 \writescanline, \writetile, or {\kw write_rectangle()} actually be in
-the same data format as that requested as the native format of the file.
+the same data type as that requested as the native pixel data type of the file.
 You can fully mix and match data you pass to the various {\kw write}
 routines and \product will automatically convert from the internal
 format to the native file format.  For example, the following code will
@@ -699,74 +735,6 @@ transformed, since the plugin can't be sure that it's not in the correct
 space to begin with.
 
 
-
-\subsection{Controlling quantization}
-\label{sec:imageoutput:quantization}
-
-It is possible that your internal data format (that in which you compute
-pixel values that you pass to the {\cf write} functions) is of greater
-precision or range than the native data format of the output file.  This
-can occur either because you specified a lower-precision data format in
-the \ImageSpec that you passed to {\cf open()}, or else that the
-image file format dictates a particular data format that does not match
-your internal format.  For example, you may compute {\cf float} pixels
-and pass those to {\cf write_image()}, but if you are writing a
-JPEG/JFIF file, the values must be stored in the file as 8-bit unsigned
-integers.
-
-The conversion from floating-point formats to integer formats (or from
-higher to lower integer, which is done by first converting to float) is
-always done by rescaling the value so that $0.0$ maps to integer $0$ and $1.0$ to
-the maximum value representable by the integer type, then rounded to
-an integer value for final output.  Here is
-the code that implements this transformation ({\cf T} is the final
-output integer type):
-
-\begin{code}
-        float value = quant_max * input;
-        T output = (T) clamp ((int)(value + 0.5), quant_min, quant_max);
-\end{code}
-
-The values of the quantization parameters are set in one of three ways:
-(1) upon construction of the \ImageSpec, they are set to the
-default quantization values for the given data format; (2) upon call to
-{\cf ImageSpec::set_format()}, the quantization values are set
-to the defaults for the given data format; (3) or, after being first set
-up in this manner, you may manually change the quantization parameters
-in the \ImageSpec, if you want something other than the default
-quantization.
-
-\noindent Default quantization for each integer type is as follows:\\
-
-\smallskip
-\begin{tabular}{|l|r|r|}
-\hline
-{\bf Data Format} & {\bf min} & {\bf max} \\
-\hline
-{\cf UINT8}  &           0 &        255 \\
-{\cf INT8}   &        -128 &        127 \\
-{\cf UINT16} &           0 &      65535 \\
-{\cf INT16}  &      -32768 &      32767 \\
-{\cf UINT}   &           0 & 4294967295 \\
-{\cf INT}    & -2147483648 & 2147483647 \\
-\hline
-\end{tabular} \\
-\smallskip
-
-\noindent Note that the default is to use the entire positive range
-of each integer type to represent the floating-point (0..1) range.
-Floating-point types do not attempt to remap values,
-and do not clamp (except to their full floating-point range).
-
-The \qkw{oiio:dither} attribute in the \ImageSpec is used to signal  the
-desire for dithering when writing {\cf float} data to a {\cf uint8} file.
-Dithering can reduce visible banding when converting continuous float data
-to low bit depth integer images. The attribute is an integer, and if 0 (the
-default), it means not to dither. If nonzero, it requests that the results
-are dithered prior to quantization, and the specific nonzero value acts as a
-``seed'' to the hash function that determines the per-pixel dither values
-(two images using the same seed will have the same dither pattern, different
-seeds will yield different dither patterns).
 
 \subsection{Random access and repeated transmission of pixels}
 \label{sec:imageoutput:randomrewrite}
