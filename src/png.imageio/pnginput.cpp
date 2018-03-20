@@ -43,14 +43,14 @@ class PNGInput final : public ImageInput {
 public:
     PNGInput () { init(); }
     virtual ~PNGInput () { close(); }
-    virtual const char * format_name (void) const { return "png"; }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual const char * format_name (void) const override { return "png"; }
+    virtual bool valid_file (const std::string &filename) const override;
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config);
-    virtual bool close ();
-    virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool read_native_scanline (int y, int z, void *data);
+                       const ImageSpec &config) override;
+    virtual bool close () override;
+    virtual int current_subimage (void) const override { return m_subimage; }
+    virtual bool read_native_scanline (int y, int z, void *data) override;
 
 private:
     std::string m_filename;           ///< Stash the filename

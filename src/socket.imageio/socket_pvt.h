@@ -63,17 +63,17 @@ class SocketOutput final : public ImageOutput {
  public:
     SocketOutput ();
     virtual ~SocketOutput () { close(); }
-    virtual const char * format_name (void) const { return "socket"; }
-    virtual int supports (string_view property) const;
+    virtual const char * format_name (void) const override { return "socket"; }
+    virtual int supports (string_view property) const override;
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       OpenMode mode=Create);
+                       OpenMode mode=Create) override;
     virtual bool write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride);
+                                 const void *data, stride_t xstride) override;
     virtual bool write_tile (int x, int y, int z,
                              TypeDesc format, const void *data,
-                             stride_t xstride, stride_t ystride, stride_t zstride);
-    virtual bool close ();
-    virtual bool copy_image (ImageInput *in);
+                             stride_t xstride, stride_t ystride, stride_t zstride) override;
+    virtual bool close () override;
+    virtual bool copy_image (ImageInput *in) override;
 
  private:
     int m_next_scanline;             // Which scanline is the next to write?
@@ -91,14 +91,14 @@ class SocketInput final : public ImageInput {
  public:
     SocketInput ();
     virtual ~SocketInput () { close(); }
-    virtual const char * format_name (void) const { return "socket"; }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual bool open (const std::string &name, ImageSpec &spec);
+    virtual const char * format_name (void) const override { return "socket"; }
+    virtual bool valid_file (const std::string &filename) const override;
+    virtual bool open (const std::string &name, ImageSpec &spec) override;
     virtual bool open (const std::string &name, ImageSpec &spec,
-                       const ImageSpec &config);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool read_native_tile (int x, int y, int z, void *data);
-    virtual bool close ();
+                       const ImageSpec &config) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_tile (int x, int y, int z, void *data) override;
+    virtual bool close () override;
 
  private:
     int m_next_scanline;      // Which scanline is the next to read?

@@ -48,12 +48,12 @@ public:
     virtual ~SoftimageInput() {
         close();
     }
-    virtual const char *format_name (void) const {
+    virtual const char *format_name (void) const override {
         return "softimage";
     }
-    virtual bool open (const std::string &name, ImageSpec &spec);
-    virtual bool close();
-    virtual bool read_native_scanline (int y, int z, void *data);
+    virtual bool open (const std::string &name, ImageSpec &spec) override;
+    virtual bool close() override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
 
 private:
     /// Resets the core data members to defaults.

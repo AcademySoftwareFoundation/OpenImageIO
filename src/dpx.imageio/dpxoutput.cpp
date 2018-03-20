@@ -52,8 +52,8 @@ class DPXOutput final : public ImageOutput {
 public:
     DPXOutput ();
     virtual ~DPXOutput ();
-    virtual const char * format_name (void) const { return "dpx"; }
-    virtual int supports (string_view feature) const {
+    virtual const char * format_name (void) const override { return "dpx"; }
+    virtual int supports (string_view feature) const override {
         if (feature == "multiimage"
             || feature == "alpha"
             || feature == "nchannels"
@@ -65,15 +65,15 @@ public:
         return false;
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       OpenMode mode=Create);
+                       OpenMode mode=Create) override;
     virtual bool open (const std::string &name, int subimages,
-                       const ImageSpec *specs);
-    virtual bool close ();
+                       const ImageSpec *specs) override;
+    virtual bool close () override;
     virtual bool write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride);
+                                 const void *data, stride_t xstride) override;
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride,
-                             stride_t ystride, stride_t zstride);
+                             stride_t ystride, stride_t zstride) override;
 
 private:
     OutStream *m_stream;

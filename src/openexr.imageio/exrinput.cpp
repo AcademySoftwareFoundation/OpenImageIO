@@ -146,36 +146,36 @@ class OpenEXRInput final : public ImageInput {
 public:
     OpenEXRInput ();
     virtual ~OpenEXRInput () { close(); }
-    virtual const char * format_name (void) const { return "openexr"; }
-    virtual int supports (string_view feature) const {
+    virtual const char * format_name (void) const override { return "openexr"; }
+    virtual int supports (string_view feature) const override {
         return (feature == "arbitrary_metadata"
              || feature == "exif"   // Because of arbitrary_metadata
              || feature == "iptc"); // Because of arbitrary_metadata
     }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual bool open (const std::string &name, ImageSpec &newspec);
-    virtual bool close ();
-    virtual int current_subimage (void) const { return m_subimage; }
-    virtual int current_miplevel (void) const { return m_miplevel; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool read_native_scanlines (int ybegin, int yend, int z, void *data);
+    virtual bool valid_file (const std::string &filename) const override;
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
+    virtual bool close () override;
+    virtual int current_subimage (void) const override { return m_subimage; }
+    virtual int current_miplevel (void) const override { return m_miplevel; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanlines (int ybegin, int yend, int z, void *data) override;
     virtual bool read_native_scanlines (int ybegin, int yend, int z,
-                                        int chbegin, int chend, void *data);
-    virtual bool read_native_tile (int x, int y, int z, void *data);
+                                        int chbegin, int chend, void *data) override;
+    virtual bool read_native_tile (int x, int y, int z, void *data) override;
     virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
-                                    int zbegin, int zend, void *data);
+                                    int zbegin, int zend, void *data) override;
     virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
-                                    int chbegin, int chend, void *data);
+                                    int chbegin, int chend, void *data) override;
     virtual bool read_native_deep_scanlines (int ybegin, int yend, int z,
                                              int chbegin, int chend,
-                                             DeepData &deepdata);
+                                             DeepData &deepdata) override;
     virtual bool read_native_deep_tiles (int xbegin, int xend,
                                          int ybegin, int yend,
                                          int zbegin, int zend,
                                          int chbegin, int chend,
-                                         DeepData &deepdata);
+                                         DeepData &deepdata) override;
 
 private:
     struct PartInfo {

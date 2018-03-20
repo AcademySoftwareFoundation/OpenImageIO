@@ -110,43 +110,43 @@ class TIFFInput final : public ImageInput {
 public:
     TIFFInput ();
     virtual ~TIFFInput ();
-    virtual const char * format_name (void) const { return "tiff"; }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual int supports (string_view feature) const {
+    virtual const char * format_name (void) const override { return "tiff"; }
+    virtual bool valid_file (const std::string &filename) const override;
+    virtual int supports (string_view feature) const override {
         return (feature == "exif"
              || feature == "iptc");
         // N.B. No support for arbitrary metadata.
     }
-    virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config);
-    virtual bool close ();
-    virtual int current_subimage (void) const {
+                       const ImageSpec &config) override;
+    virtual bool close () override;
+    virtual int current_subimage (void) const override {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
         return m_emulate_mipmap ? 0 : m_subimage;
     }
-    virtual int current_miplevel (void) const {
+    virtual int current_miplevel (void) const override {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
         return m_emulate_mipmap ? m_subimage : 0;
     }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool read_native_scanlines (int ybegin, int yend, int z, void *data);
-    virtual bool read_native_tile (int x, int y, int z, void *data);
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanlines (int ybegin, int yend, int z, void *data) override;
+    virtual bool read_native_tile (int x, int y, int z, void *data) override;
     virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
-                                    int zbegin, int zend, void *data);
+                                    int zbegin, int zend, void *data) override;
     virtual bool read_scanline (int y, int z, TypeDesc format, void *data,
-                                stride_t xstride);
+                                stride_t xstride) override;
     virtual bool read_scanlines (int ybegin, int yend, int z,
                                  int chbegin, int chend,
                                  TypeDesc format, void *data,
-                                 stride_t xstride, stride_t ystride);
+                                 stride_t xstride, stride_t ystride) override;
     virtual bool read_tile (int x, int y, int z, TypeDesc format, void *data,
-                            stride_t xstride, stride_t ystride, stride_t zstride);
+                            stride_t xstride, stride_t ystride, stride_t zstride) override;
     virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                              int zbegin, int zend, int chbegin, int chend,
                              TypeDesc format, void *data,
-                             stride_t xstride, stride_t ystride, stride_t zstride);
+                             stride_t xstride, stride_t ystride, stride_t zstride) override;
 
 private:
     TIFF *m_tif;                     ///< libtiff handle

@@ -54,26 +54,26 @@ f3dpvt::field3d_mutex ()
 
 
 
-class Field3DInput : public Field3DInput_Interface {
+class Field3DInput final : public Field3DInput_Interface {
 public:
     Field3DInput () { init(); }
     virtual ~Field3DInput () { close(); }
-    virtual const char * format_name (void) const { return "field3d"; }
-    virtual int supports (string_view feature) const {
+    virtual const char * format_name (void) const override { return "field3d"; }
+    virtual int supports (string_view feature) const override {
         return (feature == "arbitrary_metadata");
     }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual bool open (const std::string &name, ImageSpec &newspec);
-    virtual bool close ();
-    virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool read_native_tile (int x, int y, int z, void *data);
+    virtual bool valid_file (const std::string &filename) const override;
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
+    virtual bool close () override;
+    virtual int current_subimage (void) const override { return m_subimage; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_tile (int x, int y, int z, void *data) override;
 
     /// Transform a world space position to local coordinates, using the
     /// mapping of the current subimage.
     virtual void worldToLocal (const Imath::V3f &wsP, Imath::V3f &lsP,
-                               float time) const;
+                               float time) const override;
 
 private:
     std::string m_name;

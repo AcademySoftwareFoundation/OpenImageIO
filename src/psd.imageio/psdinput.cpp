@@ -49,18 +49,18 @@ class PSDInput final : public ImageInput {
 public:
     PSDInput ();
     virtual ~PSDInput () { close(); }
-    virtual const char * format_name (void) const { return "psd"; }
-    virtual int supports (string_view feature) const {
+    virtual const char * format_name (void) const override { return "psd"; }
+    virtual int supports (string_view feature) const override {
         return (feature == "exif"
              || feature == "iptc");
     }
-    virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config);
-    virtual bool close ();
-    virtual int current_subimage () const { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
-    virtual bool read_native_scanline (int y, int z, void *data);
+                       const ImageSpec &config) override;
+    virtual bool close () override;
+    virtual int current_subimage () const override { return m_subimage; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
 
 private:
     enum ColorMode {

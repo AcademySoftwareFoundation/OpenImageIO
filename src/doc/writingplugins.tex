@@ -161,9 +161,9 @@ real-world example of writing a JPEG/JFIF plug-in.
      public:
         JpgInput () { init(); }
         virtual ~JpgInput () { close(); }
-        virtual const char * format_name (void) const { return "jpeg"; }
-        virtual bool open (const std::string &name, ImageSpec &spec);
-        virtual bool read_native_scanline (int y, int z, void *data);
+        virtual const char * format_name (void) const override { return "jpeg"; }
+        virtual bool open (const std::string &name, ImageSpec &spec) override;
+        virtual bool read_native_scanline (int y, int z, void *data) override;
         virtual bool close ();
      private:
         FILE *m_fd;
@@ -318,7 +318,7 @@ real-world example of writing a JPEG/JFIF plug-in.
      public:
         JpgOutput () { init(); }
         virtual ~JpgOutput () { close(); }
-        virtual const char * format_name (void) const { return "jpeg"; }
+        virtual const char * format_name (void) const override { return "jpeg"; }
         virtual int supports (string_view property) const { return false; }
         virtual bool open (const std::string &name, const ImageSpec &spec,
                            bool append=false);

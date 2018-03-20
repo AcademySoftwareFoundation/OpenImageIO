@@ -1,4 +1,4 @@
-/*
+ /*
   Copyright 2008 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
   Based on BSD-licensed software Copyright 2004 NVIDIA Corp.
@@ -56,20 +56,20 @@ class JpgOutput final : public ImageOutput {
  public:
     JpgOutput () { init(); }
     virtual ~JpgOutput () { close(); }
-    virtual const char * format_name (void) const { return "jpeg"; }
-    virtual int supports (string_view feature) const {
+    virtual const char * format_name (void) const override { return "jpeg"; }
+    virtual int supports (string_view feature) const override {
         return (feature == "exif"
              || feature == "iptc");
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       OpenMode mode=Create);
+                       OpenMode mode=Create) override;
     virtual bool write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride);
+                                 const void *data, stride_t xstride) override;
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride,
-                             stride_t ystride, stride_t zstride);
-    virtual bool close ();
-    virtual bool copy_image (ImageInput *in);
+                             stride_t ystride, stride_t zstride) override;
+    virtual bool close () override;
+    virtual bool copy_image (ImageInput *in) override;
 
  private:
     FILE *m_fd;
