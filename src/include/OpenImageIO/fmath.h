@@ -191,7 +191,11 @@ clamped_mult64 (uint64_t a, uint64_t b)
 
 /// Bitwise circular rotation left by k bits (for 32 bit unsigned integers)
 OIIO_FORCEINLINE OIIO_HOSTDEVICE uint32_t rotl32 (uint32_t x, int k) {
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 320
+    return __funnelshift_lc(x, x,  k);
+#else
     return (x<<k) | (x>>(32-k));
+#endif
 }
 
 /// Bitwise circular rotation left by k bits (for 64 bit unsigned integers)
