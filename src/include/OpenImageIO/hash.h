@@ -92,7 +92,7 @@ namespace bjhash {
 // It's in the public domain.
 
 // Mix up the bits of a, b, and c (changing their values in place).
-inline void bjmix (uint32_t &a, uint32_t &b, uint32_t &c)
+inline OIIO_HOSTDEVICE void bjmix (uint32_t &a, uint32_t &b, uint32_t &c)
 {
     a -= c;  a ^= rotl32(c, 4);  c += b;
     b -= a;  b ^= rotl32(a, 6);  a += c;
@@ -104,7 +104,7 @@ inline void bjmix (uint32_t &a, uint32_t &b, uint32_t &c)
 
 // Mix up and combine the bits of a, b, and c (doesn't change them, but
 // returns a hash of those three original values).  21 ops
-inline uint32_t bjfinal (uint32_t a, uint32_t b, uint32_t c=0xdeadbeef)
+inline OIIO_HOSTDEVICE uint32_t bjfinal (uint32_t a, uint32_t b, uint32_t c=0xdeadbeef)
 {
     c ^= b; c -= rotl32(b,14);
     a ^= c; a -= rotl32(c,11);
@@ -279,7 +279,7 @@ uint64_t OIIO_API Hash64WithSeed(const char* s, size_t len, uint64_t seed);
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 uint64_t OIIO_API Hash64WithSeeds(const char* s, size_t len,
-                       uint64_t seed0, uint64_t seed1);
+                                  uint64_t seed0, uint64_t seed1);
 
 // Hash function for a byte array.
 // May change from time to time, may differ on different platforms, may differ

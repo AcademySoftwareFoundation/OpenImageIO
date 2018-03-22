@@ -251,11 +251,14 @@ inline float sRGB_to_linear (float x)
                            : powf ((x + 0.055f) * (1.0f / 1.055f), 2.4f);
 }
 
+
+#ifndef __CUDA_ARCH__
 inline simd::vfloat4 sRGB_to_linear (const simd::vfloat4& x)
 {
     return simd::select (x <= 0.04045f, x * (1.0f/12.92f),
                          fast_pow_pos (madd (x, (1.0f / 1.055f), 0.055f*(1.0f/1.055f)), 2.4f));
 }
+#endif
 
 /// Utility -- convert linear value to sRGB
 inline float linear_to_sRGB (float x)
@@ -265,6 +268,7 @@ inline float linear_to_sRGB (float x)
 }
 
 
+#ifndef __CUDA_ARCH__
 /// Utility -- convert linear value to sRGB
 inline simd::vfloat4 linear_to_sRGB (const simd::vfloat4& x)
 {
@@ -272,6 +276,7 @@ inline simd::vfloat4 linear_to_sRGB (const simd::vfloat4& x)
     return simd::select (x <= 0.0031308f, 12.92f * x,
                          madd (1.055f, fast_pow_pos (x, 1.f/2.4f),  -0.055f));
 }
+#endif
 
 
 /// Utility -- convert Rec709 value to linear
