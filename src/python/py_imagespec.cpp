@@ -130,6 +130,9 @@ void declare_imagespec (py::module& m)
         .def_readwrite("deep",          &ImageSpec::deep)
         .def_readwrite("extra_attribs", &ImageSpec::extra_attribs)
 
+        .def_property ("roi", &ImageSpec::roi, &ImageSpec::set_roi)
+        .def_property ("roi_full", &ImageSpec::roi_full, &ImageSpec::set_roi_full)
+
         .def(py::init<>())
         .def(py::init<int, int, int, TypeDesc>())
         .def(py::init<const ROI&, TypeDesc>())

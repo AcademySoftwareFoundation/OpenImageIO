@@ -96,7 +96,7 @@ void declare_roi(py::module& m)
        .def(py::self != py::self)    // operator!=
     ;
 
-    m.def("union",        &roi_union, "union of two ROI");
+    m.def("union",        &roi_union);
     m.def("intersection", &roi_intersection);
     m.def("get_roi",      &get_roi);
     m.def("get_roi_full", &get_roi_full);

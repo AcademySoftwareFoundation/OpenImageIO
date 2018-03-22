@@ -106,35 +106,6 @@ set_roi_full (ImageSpec &spec, const ROI &newroi)
 
 
 
-ROI
-roi_union (const ROI &A, const ROI &B)
-{
-    ROI R (A.defined() ? A : B);
-    if (A.defined() && B.defined())
-        R = ROI (std::min (R.xbegin,  B.xbegin),  std::max (R.xend,  B.xend),
-                 std::min (R.ybegin,  B.ybegin),  std::max (R.yend,  B.yend),
-                 std::min (R.zbegin,  B.zbegin),  std::max (R.zend,  B.zend),
-                 std::min (R.chbegin, B.chbegin), std::max (R.chend, B.chend));
-    return R;
-}
-
-
-
-ROI
-roi_intersection (const ROI &A, const ROI &B)
-{
-    ROI R (A.defined() ? A : B);
-    if (A.defined() && B.defined())
-        R = ROI (std::max (R.xbegin,  B.xbegin),  std::min (R.xend,  B.xend),
-                 std::max (R.ybegin,  B.ybegin),  std::min (R.yend,  B.yend),
-                 std::max (R.zbegin,  B.zbegin),  std::min (R.zend,  B.zend),
-                 std::max (R.chbegin, B.chbegin), std::min (R.chend, B.chend));
-    return R;
-}
-
-
-
-
 // Expansion of the opaque type that hides all the ImageBuf implementation
 // detail.
 class ImageBufImpl {

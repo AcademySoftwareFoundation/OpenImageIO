@@ -107,6 +107,119 @@ typedef ParamValueList ImageIOParameterList;
 
 
 
+/// Helper struct describing a region of interest in an image.
+/// The region is [xbegin,xend) x [begin,yend) x [zbegin,zend),
+/// with the "end" designators signifying one past the last pixel,
+/// a la STL style.
+struct ROI {
+    int xbegin, xend, ybegin, yend, zbegin, zend;
+    int chbegin, chend;
+
+    /// Default constructor is an undefined region.
+    ///
+    constexpr ROI () : xbegin(std::numeric_limits<int>::min()), xend(0),
+             ybegin(0), yend(0), zbegin(0), zend(0), chbegin(0), chend(0)
+    { }
+
+    /// Constructor with an explicitly defined region.
+    ///
+    constexpr ROI (int xbegin, int xend, int ybegin, int yend,
+         int zbegin=0, int zend=1, int chbegin=0, int chend=10000)
+        : xbegin(xbegin), xend(xend), ybegin(ybegin), yend(yend),
+          zbegin(zbegin), zend(zend), chbegin(chbegin), chend(chend)
+    { }
+
+    /// Is a region defined?
+    constexpr bool defined () const { return (xbegin != std::numeric_limits<int>::min()); }
+
+    // Region dimensions.
+    constexpr int width () const { return xend - xbegin; }
+    constexpr int height () const { return yend - ybegin; }
+    constexpr int depth () const { return zend - zbegin; }
+
+    /// Number of channels in the region.  Beware -- this defaults to a
+    /// huge number, and to be meaningful you must consider
+    /// std::min (imagebuf.nchannels(), roi.nchannels()).
+    constexpr int nchannels () const { return chend - chbegin; }
+
+    /// Total number of pixels in the region.
+    constexpr imagesize_t npixels () const {
+        return defined()
+            ? imagesize_t(width()) * imagesize_t(height()) * imagesize_t(depth())
+            : 0;
+    }
+
+    /// Documentary sugar -- although the static ROI::All() function
+    /// simply returns the results of the default ROI constructor, it
+    /// makes it very clear when using as a default function argument
+    /// that it means "all" of the image.  For example,
+    ///     float myfunc (ImageBuf &buf, ROI roi = ROI::All());
+    /// Doesn't that make it abundantly clear?
+    static constexpr ROI All () { return ROI(); }
+
+    /// Test equality of two ROIs
+    friend constexpr bool operator== (const ROI &a, const ROI &b) {
+        return (a.xbegin == b.xbegin && a.xend == b.xend &&
+                a.ybegin == b.ybegin && a.yend == b.yend &&
+                a.zbegin == b.zbegin && a.zend == b.zend &&
+                a.chbegin == b.chbegin && a.chend == b.chend);
+    }
+    /// Test inequality of two ROIs
+    friend constexpr bool operator!= (const ROI &a, const ROI &b) {
+        return (a.xbegin != b.xbegin || a.xend != b.xend ||
+                a.ybegin != b.ybegin || a.yend != b.yend ||
+                a.zbegin != b.zbegin || a.zend != b.zend ||
+                a.chbegin != b.chbegin || a.chend != b.chend);
+    }
+
+    /// Test if the coordinate is within the ROI.
+    constexpr bool contains (int x, int y, int z=0, int ch=0) const {
+        return x >= xbegin && x < xend && y >= ybegin && y < yend
+            && z >= zbegin && z < zend && ch >= chbegin && ch < chend;
+    }
+
+    /// Test if another ROI is entirely within our ROI.
+    constexpr bool contains (const ROI& other) const {
+        return (other.xbegin >= xbegin && other.xend <= xend &&
+                other.ybegin >= ybegin && other.yend <= yend &&
+                other.zbegin >= zbegin && other.zend <= zend &&
+                other.chbegin >= chbegin && other.chend <= chend);
+    }
+
+    /// Stream output of the range
+    friend std::ostream & operator<< (std::ostream &out, const ROI &roi) {
+        out << roi.xbegin << ' ' << roi.xend << ' ' << roi.ybegin << ' '
+            << roi.yend << ' ' << roi.zbegin << ' ' << roi.zend << ' '
+            << roi.chbegin << ' ' << roi.chend;
+        return out;
+    }
+};
+
+
+
+/// Union of two regions, the smallest region containing both.
+inline constexpr ROI roi_union (const ROI &A, const ROI &B) {
+    return (A.defined() && B.defined())
+        ? ROI (std::min (A.xbegin,  B.xbegin),  std::max (A.xend,  B.xend),
+               std::min (A.ybegin,  B.ybegin),  std::max (A.yend,  B.yend),
+               std::min (A.zbegin,  B.zbegin),  std::max (A.zend,  B.zend),
+               std::min (A.chbegin, B.chbegin), std::max (A.chend, B.chend))
+        : (A.defined() ? A : B);
+}
+
+/// Intersection of two regions.
+inline constexpr ROI roi_intersection (const ROI &A, const ROI &B) {
+    return (A.defined() && B.defined())
+        ? ROI (std::max (A.xbegin,  B.xbegin),  std::min (A.xend,  B.xend),
+               std::max (A.ybegin,  B.ybegin),  std::min (A.yend,  B.yend),
+               std::max (A.zbegin,  B.zbegin),  std::min (A.zend,  B.zend),
+               std::max (A.chbegin, B.chbegin), std::min (A.chend, B.chend))
+        : (A.defined() ? A : B);
+}
+
+
+
+
 /// ImageSpec describes the data format of an image --
 /// dimensions, layout, number and meanings of image channels.
 class OIIO_API ImageSpec {
@@ -416,7 +529,44 @@ public:
 
     /// Return the index of the named channel, or -1 if not found.
     int channelindex (string_view name) const;
+
+    /// Return pixel data window for this ImageSpec as a ROI.
+    ROI roi () const {
+        return ROI (x, x+width, y, y+height, z, z+depth, 0, nchannels);
+    }
+
+    /// Return full/display window for this ImageSpec as a ROI.
+    ROI roi_full () const {
+        return ROI (full_x, full_x+full_width, full_y, full_y+full_height,
+                    full_z, full_z+full_depth, 0, nchannels);
+    }
+
+    /// Set pixel data window parameters (x, y, z, width, height, depth)
+    /// for this ImageSpec from an ROI.
+    /// Does NOT change the channels of the spec, regardless of r.
+    void set_roi (const ROI &r) {
+        x = r.xbegin;
+        y = r.ybegin;
+        z = r.zbegin;
+        width = r.width();
+        height = r.height();
+        depth = r.depth();
+    }
+
+    /// Set full/display window parameters (full_x, full_y, full_z,
+    /// full_width, full_height, full_depth) for this ImageSpec from an ROI.
+    /// Does NOT change the channels of the spec, regardless of r.
+    void set_roi_full (const ROI &r) {
+        full_x = r.xbegin;
+        full_y = r.ybegin;
+        full_z = r.zbegin;
+        full_width = r.width();
+        full_height = r.height();
+        full_depth = r.depth();
+    }
+
 };
+
 
 
 
