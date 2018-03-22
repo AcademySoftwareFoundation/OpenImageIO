@@ -101,16 +101,16 @@ class Jpeg2000Input final : public ImageInput {
  public:
     Jpeg2000Input () { init (); }
     virtual ~Jpeg2000Input () { close (); }
-    virtual const char *format_name (void) const { return "jpeg2000"; }
-    virtual int supports (string_view feature) const {
+    virtual const char *format_name (void) const override { return "jpeg2000"; }
+    virtual int supports (string_view feature) const override {
         return false;
         // FIXME: we should support Exif/IPTC, but currently don't.
     }
-    virtual bool open (const std::string &name, ImageSpec &spec);
+    virtual bool open (const std::string &name, ImageSpec &spec) override;
     virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config);
-    virtual bool close (void);
-    virtual bool read_native_scanline (int y, int z, void *data);
+                       const ImageSpec &config) override;
+    virtual bool close (void) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
 
  private:
 

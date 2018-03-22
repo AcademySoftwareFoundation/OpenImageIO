@@ -43,10 +43,10 @@ class WebpInput final : public ImageInput
  public:
     WebpInput() { init(); }
     virtual ~WebpInput() { close(); }
-    virtual const char* format_name() const { return "webp"; }
-    virtual bool open (const std::string &name, ImageSpec &spec);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool close ();
+    virtual const char* format_name() const override { return "webp"; }
+    virtual bool open (const std::string &name, ImageSpec &spec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool close () override;
 
  private:
     std::string m_filename;

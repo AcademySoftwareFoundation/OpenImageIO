@@ -91,11 +91,11 @@ class SgiInput final : public ImageInput {
  public:
     SgiInput () { init(); }
     virtual ~SgiInput () { close(); }
-    virtual const char *format_name (void) const { return "sgi"; }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual bool open (const std::string &name, ImageSpec &spec);
-    virtual bool close (void);
-    virtual bool read_native_scanline (int y, int z, void *data);
+    virtual const char *format_name (void) const override { return "sgi"; }
+    virtual bool valid_file (const std::string &filename) const override;
+    virtual bool open (const std::string &name, ImageSpec &spec) override;
+    virtual bool close (void) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
  private:
     FILE *m_fd;
     std::string m_filename;
@@ -140,16 +140,16 @@ class SgiOutput final : public ImageOutput {
  public:
     SgiOutput () : m_fd(NULL) { }
     virtual ~SgiOutput () { close(); }
-    virtual const char *format_name (void) const { return "sgi"; }
-    virtual int supports (string_view feature) const;
+    virtual const char *format_name (void) const override { return "sgi"; }
+    virtual int supports (string_view feature) const override;
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       OpenMode mode=Create);
-    virtual bool close (void);
+                       OpenMode mode=Create) override;
+    virtual bool close (void) override;
     virtual bool write_scanline (int y, int z, TypeDesc format, const void *data,
-                                 stride_t xstride);
+                                 stride_t xstride) override;
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride,
-                             stride_t ystride, stride_t zstride);
+                             stride_t ystride, stride_t zstride) override;
  private:
     FILE *m_fd;
     std::string m_filename;

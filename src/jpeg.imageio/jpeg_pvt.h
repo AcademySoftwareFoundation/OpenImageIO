@@ -73,17 +73,17 @@ class JpgInput final : public ImageInput {
  public:
     JpgInput () { init(); }
     virtual ~JpgInput () { close(); }
-    virtual const char * format_name (void) const { return "jpeg"; }
-    virtual int supports (string_view feature) const {
+    virtual const char * format_name (void) const override { return "jpeg"; }
+    virtual int supports (string_view feature) const override {
         return (feature == "exif"
              || feature == "iptc");
     }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual bool open (const std::string &name, ImageSpec &spec);
+    virtual bool valid_file (const std::string &filename) const override;
+    virtual bool open (const std::string &name, ImageSpec &spec) override;
     virtual bool open (const std::string &name, ImageSpec &spec,
-                       const ImageSpec &config);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool close ();
+                       const ImageSpec &config) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool close () override;
     const std::string &filename () const { return m_filename; }
     void * coeffs () const { return m_coeffs; }
     struct my_error_mgr {

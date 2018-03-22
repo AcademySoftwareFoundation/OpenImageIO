@@ -45,10 +45,10 @@ class CineonInput final : public ImageInput {
 public:
     CineonInput () : m_stream(NULL) { init(); }
     virtual ~CineonInput () { close(); }
-    virtual const char * format_name (void) const { return "cineon"; }
-    virtual bool open (const std::string &name, ImageSpec &newspec);
-    virtual bool close ();
-    virtual bool read_native_scanline (int y, int z, void *data);
+    virtual const char * format_name (void) const override { return "cineon"; }
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
+    virtual bool close () override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
 
 private:
     InStream *m_stream;

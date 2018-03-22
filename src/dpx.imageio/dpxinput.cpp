@@ -45,13 +45,13 @@ class DPXInput final : public ImageInput {
 public:
     DPXInput () : m_stream(NULL), m_dataPtr(NULL) { init(); }
     virtual ~DPXInput () { close(); }
-    virtual const char * format_name (void) const { return "dpx"; }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual bool open (const std::string &name, ImageSpec &newspec);
-    virtual bool close ();
-    virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
-    virtual bool read_native_scanline (int y, int z, void *data);
+    virtual const char * format_name (void) const override { return "dpx"; }
+    virtual bool valid_file (const std::string &filename) const override;
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
+    virtual bool close () override;
+    virtual int current_subimage (void) const override { return m_subimage; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
 
 private:
     int m_subimage;

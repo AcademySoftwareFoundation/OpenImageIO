@@ -62,14 +62,14 @@ class DICOMInput final : public ImageInput {
 public:
     DICOMInput () {}
     virtual ~DICOMInput() { close(); }
-    virtual const char * format_name (void) const { return "dicom"; }
-    virtual int supports (string_view feature) const { return false; }
-    virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual const char * format_name (void) const override { return "dicom"; }
+    virtual int supports (string_view feature) const override { return false; }
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config);
-    virtual bool close();
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
-    virtual bool read_native_scanline (int y, int z, void *data);
+                       const ImageSpec &config) override;
+    virtual bool close() override;
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
 
 private:
     std::unique_ptr<DicomImage> m_img;

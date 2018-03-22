@@ -48,21 +48,21 @@ class NullOutput final : public ImageOutput {
 public:
     NullOutput () { }
     virtual ~NullOutput () { }
-    virtual const char * format_name (void) const { return "null"; }
-    virtual int supports (string_view feature) const { return true; }
+    virtual const char * format_name (void) const override { return "null"; }
+    virtual int supports (string_view feature) const override { return true; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       OpenMode mode=Create) {
+                       OpenMode mode=Create) override {
         m_spec = spec;
         return true;
     }
-    virtual bool close () { return true; }
+    virtual bool close () override { return true; }
     virtual bool write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride) {
+                                 const void *data, stride_t xstride) override {
         return true;
     }
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride,
-                             stride_t ystride, stride_t zstride) {
+                             stride_t ystride, stride_t zstride) override {
         return true;
     }
 };
@@ -77,18 +77,18 @@ class NullInput final : public ImageInput {
 public:
     NullInput () { init(); }
     virtual ~NullInput () { }
-    virtual const char * format_name (void) const { return "null"; }
-    virtual bool valid_file (const std::string &filename) const;
-    virtual int supports (string_view feature) const { return true; }
-    virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual const char * format_name (void) const override { return "null"; }
+    virtual bool valid_file (const std::string &filename) const override;
+    virtual int supports (string_view feature) const override { return true; }
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config);
-    virtual bool close () { return true; }
-    virtual int current_subimage (void) const { return m_subimage; }
-    virtual int current_miplevel (void) const { return m_miplevel; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool read_native_tile (int x, int y, int z, void *data);
+                       const ImageSpec &config) override;
+    virtual bool close () override { return true; }
+    virtual int current_subimage (void) const override { return m_subimage; }
+    virtual int current_miplevel (void) const override { return m_miplevel; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_tile (int x, int y, int z, void *data) override;
 
 private:
     std::string m_filename;          ///< Stash the filename

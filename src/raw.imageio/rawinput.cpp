@@ -55,16 +55,16 @@ class RawInput final : public ImageInput {
 public:
     RawInput () {}
     virtual ~RawInput() { close(); }
-    virtual const char * format_name (void) const { return "raw"; }
-    virtual int supports (string_view feature) const {
+    virtual const char * format_name (void) const override { return "raw"; }
+    virtual int supports (string_view feature) const override {
         return (feature == "exif"
              /* not yet? || feature == "iptc"*/);
     }
-    virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config);
-    virtual bool close();
-    virtual bool read_native_scanline (int y, int z, void *data);
+                       const ImageSpec &config) override;
+    virtual bool close() override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
 
 private:
     bool process();

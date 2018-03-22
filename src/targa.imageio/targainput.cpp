@@ -50,12 +50,12 @@ class TGAInput final : public ImageInput {
 public:
     TGAInput () { init(); }
     virtual ~TGAInput () { close(); }
-    virtual const char * format_name (void) const { return "targa"; }
-    virtual bool open (const std::string &name, ImageSpec &newspec);
+    virtual const char * format_name (void) const override { return "targa"; }
+    virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec &config);
-    virtual bool close ();
-    virtual bool read_native_scanline (int y, int z, void *data);
+                       const ImageSpec &config) override;
+    virtual bool close () override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
 
 private:
     std::string m_filename;           ///< Stash the filename

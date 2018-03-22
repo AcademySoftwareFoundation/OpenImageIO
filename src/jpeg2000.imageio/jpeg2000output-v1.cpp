@@ -48,7 +48,7 @@ class Jpeg2000Output final : public ImageOutput {
         // FIXME: we should support Exif/IPTC, but currently don't.
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       OpenMode mode=Create);
+                       OpenMode mode=Create) override;
     virtual bool close ();
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride);

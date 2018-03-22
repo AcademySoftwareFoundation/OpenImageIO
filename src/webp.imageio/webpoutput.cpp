@@ -42,16 +42,16 @@ class WebpOutput final : public ImageOutput
  public:
     WebpOutput(){ init(); }
     virtual ~WebpOutput(){ close(); }
-    virtual const char* format_name () const { return "webp"; }
+    virtual const char* format_name () const override { return "webp"; }
     virtual bool open (const std::string &name, const ImageSpec &spec,
-                       OpenMode mode=Create);
-    virtual int supports (string_view feature) const;
+                       OpenMode mode=Create) override;
+    virtual int supports (string_view feature) const override;
     virtual bool write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride);
+                                 const void *data, stride_t xstride) override;
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride,
-                             stride_t ystride, stride_t zstride);
-    virtual bool close();
+                             stride_t ystride, stride_t zstride) override;
+    virtual bool close() override;
 
  private:
     WebPPicture m_webp_picture;

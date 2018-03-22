@@ -59,12 +59,12 @@ class HdrInput final : public ImageInput {
 public:
     HdrInput () { init(); }
     virtual ~HdrInput () { close(); }
-    virtual const char * format_name (void) const { return "hdr"; }
-    virtual bool open (const std::string &name, ImageSpec &spec);
-    virtual bool read_native_scanline (int y, int z, void *data);
-    virtual bool close ();
-    virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
+    virtual const char * format_name (void) const override { return "hdr"; }
+    virtual bool open (const std::string &name, ImageSpec &spec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool close () override;
+    virtual int current_subimage (void) const override { return m_subimage; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
 
 private:
     std::string m_filename;       ///< File name

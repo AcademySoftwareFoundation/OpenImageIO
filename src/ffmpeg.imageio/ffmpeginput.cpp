@@ -136,12 +136,12 @@ class FFmpegInput final : public ImageInput {
 public:
     FFmpegInput ();
     virtual ~FFmpegInput();
-    virtual const char *format_name (void) const { return "FFmpeg movie"; }
-    virtual bool open (const std::string &name, ImageSpec &spec);
-    virtual bool close (void);
-    virtual int current_subimage (void) const { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec);
-    virtual bool read_native_scanline (int y, int z, void *data);
+    virtual const char *format_name (void) const override { return "FFmpeg movie"; }
+    virtual bool open (const std::string &name, ImageSpec &spec) override;
+    virtual bool close (void) override;
+    virtual int current_subimage (void) const override { return m_subimage; }
+    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool read_native_scanline (int y, int z, void *data) override;
     void read_frame(int pos);
 #if 0
     const char *metadata (const char * key);
