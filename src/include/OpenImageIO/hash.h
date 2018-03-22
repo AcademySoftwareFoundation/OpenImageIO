@@ -84,14 +84,14 @@ namespace fasthash {
 
 // Compression function for Merkle-Damgard construction.
 // This function is generated using the framework provided.
-static inline OIIO_HOSTDEVICE uint64_t mix(uint64_t h) {
+static inline uint64_t mix(uint64_t h) {
 	h ^= h >> 23;
 	h *= 0x2127599bf4325c37ULL;
 	h ^= h >> 47;
 	return h;
 }
 
-inline OIIO_HOSTDEVICE uint64_t fasthash64(const void *buf, size_t len, uint64_t seed)
+inline uint64_t fasthash64(const void *buf, size_t len, uint64_t seed)
 {
 	const uint64_t    m = 0x880355f21e6d1965ULL;
 	const uint64_t *pos = (const uint64_t *)buf;
@@ -125,7 +125,7 @@ inline OIIO_HOSTDEVICE uint64_t fasthash64(const void *buf, size_t len, uint64_t
 }
 
 // simplified version for hashing just a few ints
-inline OIIO_HOSTDEVICE uint64_t fasthash64(const std::initializer_list<uint64_t> buf) {
+inline uint64_t fasthash64(const std::initializer_list<uint64_t> buf) {
 	const uint64_t    m = 0x880355f21e6d1965ULL;
 	uint64_t h = (buf.size() * sizeof(uint64_t)) * m;
 	for (const uint64_t v : buf) {
@@ -143,18 +143,18 @@ namespace xxhash {
 // xxhash:  http://code.google.com/p/xxhash/
 // It's BSD licensed.
 
-OIIO_HOSTDEVICE unsigned int       OIIO_API XXH32 (const void* input, size_t length,
+unsigned int       OIIO_API XXH32 (const void* input, size_t length,
                                    unsigned seed=1771);
-OIIO_HOSTDEVICE unsigned long long OIIO_API XXH64 (const void* input, size_t length,
+unsigned long long OIIO_API XXH64 (const void* input, size_t length,
                                    unsigned long long seed=1771);
 
-inline OIIO_HOSTDEVICE size_t xxhash (const void* input, size_t length, size_t seed=1771)
+inline size_t xxhash (const void* input, size_t length, size_t seed=1771)
 {
     return size_t (XXH64 (input, length, (unsigned long long)seed));
 }
 
 template <typename Str>
-inline OIIO_HOSTDEVICE size_t xxhash (const Str& s, size_t seed=1771) {
+inline size_t xxhash (const Str& s, size_t seed=1771) {
     assert(sizeof(s[0]) == 1);
     return xxhash (s.data(), s.length(), seed);
 }
@@ -196,7 +196,7 @@ inline OIIO_HOSTDEVICE uint32_t bjfinal (uint32_t a, uint32_t b, uint32_t c=0xde
 
 // Mix up 4 64-bit inputs (non-destructively), and return a 64 bit hash.
 // Adapted from http://burtleburtle.net/bob/c/SpookyV2.h  33 ops
-inline OIIO_HOSTDEVICE uint64_t bjfinal64 (uint64_t h0, uint64_t h1, uint64_t h2, uint64_t h3)
+inline uint64_t bjfinal64 (uint64_t h0, uint64_t h1, uint64_t h2, uint64_t h3)
 {
     h3 ^= h2;  h2 = rotl64(h2,15);  h3 += h2;
     h0 ^= h3;  h3 = rotl64(h3,52);  h0 += h3;
@@ -213,18 +213,18 @@ inline OIIO_HOSTDEVICE uint64_t bjfinal64 (uint64_t h0, uint64_t h1, uint64_t h2
 }
 
 // Standard "lookup3" hash, arbitrary length in bytes.
-OIIO_HOSTDEVICE uint32_t OIIO_API hashlittle (const void *key, size_t length,
-                                             uint32_t seed=1771);
+uint32_t OIIO_API hashlittle (const void *key, size_t length,
+                              uint32_t seed=1771);
 
 // Hash an array of 32 bit words -- faster than hashlittle if you know
 // it's a whole number of 4-byte words.
-OIIO_HOSTDEVICE uint32_t OIIO_API hashword (const uint32_t *key, size_t nwords,
-                                           uint32_t seed=1771);
+uint32_t OIIO_API hashword (const uint32_t *key, size_t nwords,
+                            uint32_t seed=1771);
 
 // Hash a string without pre-known length.  We use the Jenkins
 // one-at-a-time hash (http://en.wikipedia.org/wiki/Jenkins_hash_function),
 // which seems to be a good speed/quality/requirements compromise.
-inline OIIO_HOSTDEVICE size_t
+inline size_t
 strhash (const char *s)
 {
     if (! s) return 0;
@@ -273,7 +273,7 @@ namespace murmur {
 // functions are useful for scrambling the bits of a single 32 or 64 bit
 // value.
 
-inline OIIO_HOSTDEVICE uint32_t fmix (uint32_t h)
+inline uint32_t fmix (uint32_t h)
 {
     h ^= h >> 16;
     h *= 0x85ebca6b;
@@ -283,7 +283,7 @@ inline OIIO_HOSTDEVICE uint32_t fmix (uint32_t h)
     return h;
 }
 
-inline OIIO_HOSTDEVICE uint64_t fmix (uint64_t k)
+inline uint64_t fmix (uint64_t k)
 {
     k ^= k >> 33;
     k *= 0xff51afd7ed558ccdULL;
@@ -305,20 +305,20 @@ namespace farmhash {
 
 
 #if defined(FARMHASH_UINT128_T_DEFINED)
-inline OIIO_HOSTDEVICE uint64_t Uint128Low64(const uint128_t x) {
+inline uint64_t Uint128Low64(const uint128_t x) {
   return static_cast<uint64_t>(x);
 }
-inline OIIO_HOSTDEVICE uint64_t Uint128High64(const uint128_t x) {
+inline uint64_t Uint128High64(const uint128_t x) {
   return static_cast<uint64_t>(x >> 64);
 }
-inline OIIO_HOSTDEVICE uint128_t Uint128(uint64_t lo, uint64_t hi) {
+inline uint128_t Uint128(uint64_t lo, uint64_t hi) {
   return lo + (((uint128_t)hi) << 64);
 }
 #else
 typedef std::pair<uint64_t, uint64_t> uint128_t;
-inline OIIO_HOSTDEVICE uint64_t Uint128Low64(const uint128_t x) { return x.first; }
-inline OIIO_HOSTDEVICE uint64_t Uint128High64(const uint128_t x) { return x.second; }
-inline OIIO_HOSTDEVICE uint128_t Uint128(uint64_t lo, uint64_t hi) { return uint128_t(lo, hi); }
+inline uint64_t Uint128Low64(const uint128_t x) { return x.first; }
+inline uint64_t Uint128High64(const uint128_t x) { return x.second; }
+inline uint128_t Uint128(uint64_t lo, uint64_t hi) { return uint128_t(lo, hi); }
 #endif
 
 
@@ -327,55 +327,55 @@ inline OIIO_HOSTDEVICE uint128_t Uint128(uint64_t lo, uint64_t hi) { return uint
 // Hash function for a byte array.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-OIIO_HOSTDEVICE size_t OIIO_API Hash(const char* s, size_t len);
+size_t OIIO_API Hash(const char* s, size_t len);
 
 // Hash function for a byte array.  Most useful in 32-bit binaries.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-OIIO_HOSTDEVICE uint32_t OIIO_API Hash32(const char* s, size_t len);
+uint32_t OIIO_API Hash32(const char* s, size_t len);
 
 // Hash function for a byte array.  For convenience, a 32-bit seed is also
 // hashed into the result.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-OIIO_HOSTDEVICE uint32_t OIIO_API Hash32WithSeed(const char* s, size_t len, uint32_t seed);
+uint32_t OIIO_API Hash32WithSeed(const char* s, size_t len, uint32_t seed);
 
 // Hash 128 input bits down to 64 bits of output.
 // Hash function for a byte array.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-OIIO_HOSTDEVICE uint64_t OIIO_API Hash64(const char* s, size_t len);
+uint64_t OIIO_API Hash64(const char* s, size_t len);
 
 // Hash function for a byte array.  For convenience, a 64-bit seed is also
 // hashed into the result.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-OIIO_HOSTDEVICE uint64_t OIIO_API Hash64WithSeed(const char* s, size_t len, uint64_t seed);
+uint64_t OIIO_API Hash64WithSeed(const char* s, size_t len, uint64_t seed);
 
 // Hash function for a byte array.  For convenience, two seeds are also
 // hashed into the result.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-OIIO_HOSTDEVICE uint64_t OIIO_API Hash64WithSeeds(const char* s, size_t len,
-                                                 uint64_t seed0, uint64_t seed1);
+uint64_t OIIO_API Hash64WithSeeds(const char* s, size_t len,
+                                  uint64_t seed0, uint64_t seed1);
 
 // Hash function for a byte array.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-OIIO_HOSTDEVICE uint128_t OIIO_API Hash128(const char* s, size_t len);
+uint128_t OIIO_API Hash128(const char* s, size_t len);
 
 // Hash function for a byte array.  For convenience, a 128-bit seed is also
 // hashed into the result.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-OIIO_HOSTDEVICE uint128_t OIIO_API Hash128WithSeed(const char* s, size_t len, uint128_t seed);
+uint128_t OIIO_API Hash128WithSeed(const char* s, size_t len, uint128_t seed);
 
 // BASIC NON-STRING HASHING
 
 // This is intended to be a reasonably good hash function.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
-inline OIIO_HOSTDEVICE uint64_t Hash128to64(uint128_t x) {
+inline uint64_t Hash128to64(uint128_t x) {
   // Murmur-inspired hashing.
   const uint64_t kMul = 0x9ddfea08eb382d69ULL;
   uint64_t a = (Uint128Low64(x) ^ Uint128High64(x)) * kMul;
@@ -389,17 +389,17 @@ inline OIIO_HOSTDEVICE uint64_t Hash128to64(uint128_t x) {
 // FINGERPRINTING (i.e., good, portable, forever-fixed hash functions)
 
 // Fingerprint function for a byte array.  Most useful in 32-bit binaries.
-OIIO_HOSTDEVICE uint32_t OIIO_API Fingerprint32(const char* s, size_t len);
+uint32_t OIIO_API Fingerprint32(const char* s, size_t len);
 
 // Fingerprint function for a byte array.
-OIIO_HOSTDEVICE uint64_t OIIO_API Fingerprint64(const char* s, size_t len);
+uint64_t OIIO_API Fingerprint64(const char* s, size_t len);
 
 // Fingerprint function for a byte array.
-OIIO_HOSTDEVICE uint128_t OIIO_API Fingerprint128(const char* s, size_t len);
+uint128_t OIIO_API Fingerprint128(const char* s, size_t len);
 
 // This is intended to be a good fingerprinting primitive.
 // See below for more overloads.
-inline OIIO_HOSTDEVICE uint64_t Fingerprint(uint128_t x) {
+inline uint64_t Fingerprint(uint128_t x) {
   // Murmur-inspired hashing.
   const uint64_t kMul = 0x9ddfea08eb382d69ULL;
   uint64_t a = (Uint128Low64(x) ^ Uint128High64(x)) * kMul;
@@ -413,7 +413,7 @@ inline OIIO_HOSTDEVICE uint64_t Fingerprint(uint128_t x) {
 }
 
 // This is intended to be a good fingerprinting primitive.
-inline OIIO_HOSTDEVICE uint64_t Fingerprint(uint64_t x) {
+inline uint64_t Fingerprint(uint64_t x) {
   // Murmur-inspired hashing.
   const uint64_t kMul = 0x9ddfea08eb382d69ULL;
   uint64_t b = x * kMul;
@@ -444,7 +444,7 @@ inline size_t Hash(const Str& s) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint32_t Hash32(const Str& s) {
+inline uint32_t Hash32(const Str& s) {
   assert(sizeof(s[0]) == 1);
   return Hash32(s.data(), s.length());
 }
@@ -454,7 +454,7 @@ inline OIIO_HOSTDEVICE uint32_t Hash32(const Str& s) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint32_t Hash32WithSeed(const Str& s, uint32_t seed) {
+inline uint32_t Hash32WithSeed(const Str& s, uint32_t seed) {
   assert(sizeof(s[0]) == 1);
   return Hash32WithSeed(s.data(), s.length(), seed);
 }
@@ -464,7 +464,7 @@ inline OIIO_HOSTDEVICE uint32_t Hash32WithSeed(const Str& s, uint32_t seed) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint64_t Hash64(const Str& s) {
+inline uint64_t Hash64(const Str& s) {
   assert(sizeof(s[0]) == 1);
   return Hash64(s.data(), s.length());
 }
@@ -474,7 +474,7 @@ inline OIIO_HOSTDEVICE uint64_t Hash64(const Str& s) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint64_t Hash64WithSeed(const Str& s, uint64_t seed) {
+inline uint64_t Hash64WithSeed(const Str& s, uint64_t seed) {
   assert(sizeof(s[0]) == 1);
   return Hash64WithSeed(s.data(), s.length(), seed);
 }
@@ -484,7 +484,7 @@ inline OIIO_HOSTDEVICE uint64_t Hash64WithSeed(const Str& s, uint64_t seed) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint64_t Hash64WithSeeds(const Str& s, uint64_t seed0, uint64_t seed1) {
+inline uint64_t Hash64WithSeeds(const Str& s, uint64_t seed0, uint64_t seed1) {
   assert(sizeof(s[0]) == 1);
   return Hash64WithSeeds(s.data(), s.length(), seed0, seed1);
 }
@@ -493,7 +493,7 @@ inline OIIO_HOSTDEVICE uint64_t Hash64WithSeeds(const Str& s, uint64_t seed0, ui
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint128_t Hash128(const Str& s) {
+inline uint128_t Hash128(const Str& s) {
   assert(sizeof(s[0]) == 1);
   return Hash128(s.data(), s.length());
 }
@@ -503,7 +503,7 @@ inline OIIO_HOSTDEVICE uint128_t Hash128(const Str& s) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint128_t Hash128WithSeed(const Str& s, uint128_t seed) {
+inline uint128_t Hash128WithSeed(const Str& s, uint128_t seed) {
   assert(sizeof(s[0]) == 1);
   return Hash128(s.data(), s.length(), seed);
 }
@@ -512,7 +512,7 @@ inline OIIO_HOSTDEVICE uint128_t Hash128WithSeed(const Str& s, uint128_t seed) {
 
 // Fingerprint function for a byte array.  Most useful in 32-bit binaries.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint32_t Fingerprint32(const Str& s) {
+inline uint32_t Fingerprint32(const Str& s) {
   assert(sizeof(s[0]) == 1);
   return Fingerprint32(s.data(), s.length());
 }
@@ -520,14 +520,14 @@ inline OIIO_HOSTDEVICE uint32_t Fingerprint32(const Str& s) {
 // Fingerprint 128 input bits down to 64 bits of output.
 // Fingerprint function for a byte array.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint64_t Fingerprint64(const Str& s) {
+inline uint64_t Fingerprint64(const Str& s) {
   assert(sizeof(s[0]) == 1);
   return Fingerprint64(s.data(), s.length());
 }
 
 // Fingerprint function for a byte array.
 template <typename Str>
-inline OIIO_HOSTDEVICE uint128_t Fingerprint128(const Str& s) {
+inline uint128_t Fingerprint128(const Str& s) {
   assert(sizeof(s[0]) == 1);
   return Fingerprint128(s.data(), s.length());
 }
@@ -548,13 +548,13 @@ class CSHA1;  // opaque forward declaration
 class OIIO_API SHA1 {
 public:
     /// Create SHA1, optionally read data
-    OIIO_HOSTDEVICE SHA1 (const void *data=NULL, size_t size=0);
-    OIIO_HOSTDEVICE ~SHA1 ();
+    SHA1 (const void *data=NULL, size_t size=0);
+    ~SHA1 ();
 
     /// Append more data
-    OIIO_HOSTDEVICE void append (const void *data, size_t size);
+    void append (const void *data, size_t size);
     /// Append more data from an array_view, without thinking about sizes.
-    template<class T> OIIO_HOSTDEVICE void append (array_view<T> v) {
+    template<class T> void append (array_view<T> v) {
         append (v.data(), v.size()*sizeof(T));
     }
 
@@ -564,17 +564,17 @@ public:
     };
 
     /// Get the digest and store it in Hash h.
-    OIIO_HOSTDEVICE void gethash (Hash &h);
+    void gethash (Hash &h);
 
     /// Get the digest and store it in h (must point to enough storage
     /// to accommodate 20 bytes).
-    OIIO_HOSTDEVICE void gethash (void *h) { gethash (*(Hash *)h); }
+    void gethash (void *h) { gethash (*(Hash *)h); }
 
     /// Return the digest as a hex string
-    OIIO_HOSTDEVICE std::string digest ();
+    std::string digest ();
 
     /// Roll the whole thing into one functor, return the string digest.
-    OIIO_HOSTDEVICE static std::string digest (const void *data, size_t size) {
+    static std::string digest (const void *data, size_t size) {
         SHA1 s (data, size);  return s.digest();
     }
 
