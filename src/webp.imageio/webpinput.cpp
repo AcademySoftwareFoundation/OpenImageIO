@@ -45,7 +45,8 @@ class WebpInput final : public ImageInput
     virtual ~WebpInput() { close(); }
     virtual const char* format_name() const override { return "webp"; }
     virtual bool open (const std::string &name, ImageSpec &spec) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
     virtual bool close () override;
 
  private:
@@ -145,12 +146,20 @@ WebpInput::open (const std::string &name, ImageSpec &spec)
 
 
 bool
-WebpInput::read_native_scanline (int y, int z, void *data)
+WebpInput::read_native_scanline (int subimage, int miplevel,
+                                 int y, int z, void *data)
 {
+    // Not necessary to lock and seek -- no subimages in Webp, and since
+    // the only thing we're doing here is a memcpy, it's already threadsafe.
+    //
+    // lock_guard lock (m_mutex);
+    // if (! seek_subimage (subimage, miplevel))
+    //     return false;
+
     if (y < 0 || y >= m_spec.width)   // out of range scanline
         return false;
     memcpy(data, &m_decoded_image[y*m_scanline_size], m_scanline_size);
-    return true;    
+    return true;
 }
 
 

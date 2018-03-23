@@ -760,14 +760,11 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
                              x, y, z, chbegin, chend, format, data);
 
     // Ordinary tiled
-    ImageSpec tmp;
-    if (m_input->current_subimage() != subimage ||
-        m_input->current_miplevel() != miplevel)
-        ok = m_input->seek_subimage (subimage, miplevel, tmp);
     if (ok) {
+        const ImageSpec &spec (this->spec(subimage, miplevel));
         for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
-            const ImageSpec &spec (m_input->spec());
-            ok = m_input->read_tiles (x, x+spec.tile_width,
+            ok = m_input->read_tiles (subimage, miplevel,
+                                      x, x+spec.tile_width,
                                       y, y+spec.tile_height,
                                       z, z+spec.tile_depth,
                                       chbegin, chend, format, data);
@@ -907,8 +904,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
 
     if (m_input->current_subimage() != subimage ||
         m_input->current_miplevel() != miplevel) {
-        ImageSpec tmp;
-        if (! m_input->seek_subimage (subimage, miplevel, tmp)) {
+        if (! m_input->seek_subimage (subimage, miplevel)) {
             std::string err = m_input->geterror();
             if (!err.empty() && errors_should_issue())
                 imagecache().error ("%s", err);
@@ -917,7 +913,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
     }
 
     // Strides for a single tile
-    ImageSpec &spec (this->spec(subimage,miplevel));
+    const ImageSpec &spec (this->spec(subimage,miplevel));
     int tw = spec.tile_width;
     int th = spec.tile_height;
     ASSERT (chend > chbegin);
@@ -947,7 +943,8 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         y0 += spec.y;
         y1 += spec.y;
         // Read the whole tile-row worth of scanlines
-        ok = m_input->read_scanlines (y0, y1+1, z, chbegin, chend,
+        ok = m_input->read_scanlines (subimage, miplevel,
+                                      y0, y1+1, z, chbegin, chend,
                                       format, (void *)&buf[0],
                                       pixelsize, scanlinesize);
         if (! ok) {

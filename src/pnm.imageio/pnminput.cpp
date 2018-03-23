@@ -46,7 +46,8 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool close () override;
     virtual int current_subimage (void) const override { return 0; }
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
 
 private:
     enum PNMType {
@@ -474,8 +475,13 @@ PNMInput::close ()
 
 
 bool
-PNMInput::read_native_scanline (int y, int z, void *data)
+PNMInput::read_native_scanline (int subimage, int miplevel,
+                                int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     if (z)
         return false;
     if (!read_file_scanline (data, y))

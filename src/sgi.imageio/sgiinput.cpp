@@ -129,8 +129,13 @@ SgiInput::open (const std::string &name, ImageSpec &spec)
 
 
 bool
-SgiInput::read_native_scanline (int y, int z, void *data)
+SgiInput::read_native_scanline (int subimage, int miplevel,
+                                int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     if (y < 0 || y > m_spec.height)
         return false;
 

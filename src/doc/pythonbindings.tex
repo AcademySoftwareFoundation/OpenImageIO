@@ -588,6 +588,11 @@ Returns {\cf True} if the given tile range exactly covers a set of tiles, or
 {\cf False} if it isn't (or if the image is not tiled).
 \apiend
 
+\apiitem{ImageSpec.{\ce copy_dimensions} (other)}
+\NEW % 1.9
+Copies from \ImageSpec {\cf other} only the fields describing the size
+and data types, but not the arbitrary named metadata or channel names.
+\apiend
 
 \newpage
 \subsection*{Example: Header info}
@@ -884,8 +889,9 @@ specified subimage or MIP level).
 \end{code}
 \apiend
 
-\apiitem{ImageInput.{\ce read_image} (type="float") \\
-ImageInput.{\ce read_image} (chbegin, chend, type="float")}
+\apiitem{ImageInput.{\ce read_image} (format="float") \\
+ImageInput.{\ce read_image} (chbegin, chend, format="float") \\
+ImageInput.{\ce read_image} (subimage, miplevel, chbegin, chend, format="float")}
 
 Read the entire image and return the pixels as a NumPy array of values of
 the given {\cf type} (described by a \TypeDesc or a string, float by
@@ -908,7 +914,7 @@ For a normal (2D) image, the array returned will be 3D indexed as
 \end{code}
 \apiend
 
-\apiitem{ndarray ImageInput.{\ce read_scanline} (y, z, type="float")}
+\apiitem{ndarray ImageInput.{\ce read_scanline} (y, z, format="float")}
 Read scanline number {\cf y} from depth plane {\cf z} from the open file,
 returning the pixels as a NumPy array of values of
 the given {\cf type} (described by a \TypeDesc or a string, float by
@@ -932,7 +938,7 @@ The pixel array returned be 2D, indexed as {\cf [x][channel]}.
 \end{code}
 \apiend
 
-\apiitem{ndarray ImageInput.{\ce read_tile} (x, y, z, type="float")}
+\apiitem{ndarray ImageInput.{\ce read_tile} (x, y, z, format="float")}
 Read the tile whose upper left corner is pixel {\cf (x,y,z)} from the open
 file, returning the pixels as a NumPy array of values of
 the given {\cf type} (described by a \TypeDesc or a string, float by
@@ -960,10 +966,14 @@ returned will be 4D with shape indexed as {\cf [z][y][x][channel]}.
 \end{code}
 \apiend
 
-\apiitem{ndarray ImageInput.{\ce read_scanlines} (ybegin, yend, z, chbegin, chend, \\
-\bigspc\bigspc\spc type="float") \\
-array ImageInput.{\ce read_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, \\
-    \bigspc\bigspc\spc chbegin, chend, type="float")}
+\apiitem{ndarray ImageInput.{\ce read_scanlines} (subimage, miplevel, \\
+\bigspc\bigspc\spc ybegin, yend, z, chbegin, chend, format="float") \\
+ndarray ImageInput.{\ce read_scanlines} (ybegin, yend, z, chbegin, chend, \\
+\bigspc\bigspc\spc format="float") \\
+ndarray ImageInput.{\ce read_tiles} (xbegin, xend, ybegin, yend, zbegin, zend, \\
+    \bigspc\bigspc\spc chbegin, chend, format="float") \\
+ndarray ImageInput.{\ce read_tiles} (subimage, miplevel, \\
+    \bigspc\bigspc\spc xbegin, xend, ybegin, yend, zbegin, zend, format="float")}
 Similar to the C++ routines, these functions read multiple scanlines or
 tiles at once, which in some cases may be more efficient than reading
 each scanline or tile separately.  Additionally, they allow you to read only
@@ -995,15 +1005,20 @@ array indexed as {\cf [z][y][x][channel]},
 \end{code}
 \apiend
 
-\apiitem{DeepData ImageInput.{\ce read_native_deep_scanlines} (ybegin, yend, z,\\
-\bigspc\bigspc chbegin, chend) \\
-DeepData ImageInput.{\ce read_native_deep_tiles} (xbegin, xend, ybegin, yend,\\
-\bigspc\bigspc zbegin, zend, chbegin, chend) \\
-DeepData ImageInput.{\ce read_native_deep_image} (chbegin, chend)}
-
+\apiitem{DeepData ImageInput.{\ce read_native_deep_scanlines} (subimage, miplevel, \\
+\bigspc\bigspc ybegin, yend, z, chbegin, chend) \\
+DeepData ImageInput.{\ce read_native_deep_tiles} (subimage, miplevel, \\
+\bigspc\bigspc xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend) \\
+DeepData ImageInput.{\ce read_native_deep_image} (subimage=0, miplevel=0)}
+\NEW % 1.9
 Read a collection of scanlines, tiles, or an entire image of ``deep'' pixel
-data. The begin/end coordinates are all integer values. The value returned
-will be a \DeepData if the read succeeds, or {\cf None} if the read fails.
+data from the specified subimage and MIP level. The begin/end coordinates
+are all integer values. The value returned will be a \DeepData if the read
+succeeds, or {\cf None} if the read fails.
+
+These methods are guaranteed to be thread-safe against simultaneous calls to
+any of the other other {\cf read_native} calls that take an explicit
+subimage/miplevel.
 \apiend
 
 \apiitem{str ImageInput.{\ce geterror} ()}

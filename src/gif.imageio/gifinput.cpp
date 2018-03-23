@@ -62,11 +62,14 @@ public:
     virtual const char *format_name (void) const override { return "gif"; }
     virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool close (void) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
 
-    virtual int current_subimage (void) const override { return m_subimage; }
-    
+    virtual int current_subimage (void) const override {
+        lock_guard lock (m_mutex);
+        return m_subimage;
+    }
     virtual int current_miplevel (void) const override {
         // No mipmap support
         return 0;
@@ -149,8 +152,10 @@ GIFInput::open (const std::string &name, ImageSpec &newspec)
     m_filename = name;
     m_subimage = -1;
     m_canvas.clear ();
-    
-    return seek_subimage (0, 0, newspec);
+
+    bool ok = seek_subimage (0, 0);
+    newspec = spec();
+    return ok;
 }
 
 
@@ -172,8 +177,13 @@ GIFInput::decode_line_number (int line_number, int height)
 
 
 bool
-GIFInput::read_native_scanline (int y, int z, void *data)
+GIFInput::read_native_scanline (int subimage, int miplevel,
+                                int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     if (y < 0 || y > m_spec.height || ! m_canvas.size())
         return false;
 
@@ -349,14 +359,13 @@ GIFInput::read_subimage_data()
 
 
 bool
-GIFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+GIFInput::seek_subimage (int subimage, int miplevel)
 {
     if (subimage < 0 || miplevel != 0)
         return false;
     
     if (m_subimage == subimage) {
         // We're already pointing to the right subimage
-        newspec = m_spec;
         return true;
     }
 
@@ -391,7 +400,7 @@ GIFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     // skip subimages preceding the requested one
     if (m_subimage < subimage) {
         for (m_subimage += 1; m_subimage < subimage; m_subimage ++) {
-            if (! read_subimage_metadata (newspec) ||
+            if (! read_subimage_metadata (m_spec) ||
                 ! read_subimage_data ()) {
                 return false;
             }
@@ -399,18 +408,17 @@ GIFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
 
     // read metadata of current subimage
-    if (! read_subimage_metadata (newspec)) {
+    if (! read_subimage_metadata (m_spec)) {
         return false;
     }
 
-    newspec.width = m_gif_file->SWidth;
-    newspec.height = m_gif_file->SHeight;
-    newspec.depth = 1;
-    newspec.full_height = newspec.height;
-    newspec.full_width = newspec.width;
-    newspec.full_depth = newspec.depth;
+    m_spec.width = m_gif_file->SWidth;
+    m_spec.height = m_gif_file->SHeight;
+    m_spec.depth = 1;
+    m_spec.full_height = m_spec.height;
+    m_spec.full_width = m_spec.width;
+    m_spec.full_depth = m_spec.depth;
 
-    m_spec = newspec;
     m_subimage = subimage;
 
     // draw subimage on canvas

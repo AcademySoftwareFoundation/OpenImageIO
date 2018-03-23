@@ -49,8 +49,12 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec,
                        const ImageSpec &config) override;
     virtual bool close () override;
-    virtual int current_subimage (void) const override { return m_subimage; }
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual int current_subimage (void) const override {
+        lock_guard lock (m_mutex);
+        return m_subimage;
+    }
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
 
 private:
     std::string m_filename;           ///< Stash the filename
@@ -248,8 +252,13 @@ associateAlpha (T * data, int size, int channels, int alpha_channel, float gamma
 
 
 bool
-PNGInput::read_native_scanline (int y, int z, void *data)
+PNGInput::read_native_scanline (int subimage, int miplevel,
+                                int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     y -= m_spec.y;
     if (y < 0 || y >= m_spec.height)   // out of range scanline
         return false;
@@ -269,7 +278,7 @@ PNGInput::read_native_scanline (int y, int z, void *data)
             int subimage = current_subimage();
             if (! close ()  ||
                 ! open (m_filename, dummyspec)  ||
-                ! seek_subimage (subimage, dummyspec))
+                ! seek_subimage (subimage, miplevel))
                 return false;    // Somehow, the re-open failed
             assert (m_next_scanline == 0 && current_subimage() == subimage);
         }

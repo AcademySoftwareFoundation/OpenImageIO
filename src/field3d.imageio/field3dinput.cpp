@@ -65,10 +65,15 @@ public:
     virtual bool valid_file (const std::string &filename) const override;
     virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool close () override;
-    virtual int current_subimage (void) const override { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
-    virtual bool read_native_tile (int x, int y, int z, void *data) override;
+    virtual int current_subimage (void) const override {
+        lock_guard lock (m_mutex);
+        return m_subimage;
+    }
+    virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
+    virtual bool read_native_tile (int subimage, int miplevel,
+                                   int x, int y, int z, void *data) override;
 
     /// Transform a world space position to local coordinates, using the
     /// mapping of the current subimage.
@@ -415,13 +420,16 @@ Field3DInput::open (const std::string &name, ImageSpec &newspec)
     }
 
     m_nsubimages = (int) m_layers.size();
-    return seek_subimage (0, 0, newspec);
+
+    bool ok = seek_subimage (0, 0);
+    newspec = spec();
+    return ok;
 }
 
 
 
 bool
-Field3DInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+Field3DInput::seek_subimage (int subimage, int miplevel)
 {
     if (subimage < 0 || subimage >= m_nsubimages)   // out of range
         return false;
@@ -430,7 +438,6 @@ Field3DInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     m_subimage = subimage;
     m_spec = m_layers[subimage].spec;
-    newspec = m_spec;
     return true;
 }
 
@@ -454,7 +461,8 @@ Field3DInput::close ()
 
 
 bool
-Field3DInput::read_native_scanline (int y, int z, void *data)
+Field3DInput::read_native_scanline (int subimage, int miplevel,
+                                    int y, int z, void *data)
 {
     // scanlines not supported
     return false;
@@ -509,9 +517,12 @@ bool Field3DInput::readtile (int x, int y, int z, T *data)
 
 
 bool
-Field3DInput::read_native_tile (int x, int y, int z, void *data)
+Field3DInput::read_native_tile (int subimage, int miplevel,
+                                int x, int y, int z, void *data)
 {
     spin_lock lock (field3d_mutex());
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     layerrecord &lay (m_layers[m_subimage]);
     if (lay.datatype == TypeDesc::FLOAT) {
         if (lay.vecfield)

@@ -307,7 +307,7 @@ try:
     print ("\nReading image...")
     input = oiio.ImageInput.open ("deeptest.exr")
     ddr = input.read_native_deep_image ()
-    if ddr != None :
+    if ddr :
         print_deep_image (ddr)
 
     test_insert_erase ()

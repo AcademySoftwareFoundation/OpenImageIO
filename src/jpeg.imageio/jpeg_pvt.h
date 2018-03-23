@@ -82,7 +82,8 @@ class JpgInput final : public ImageInput {
     virtual bool open (const std::string &name, ImageSpec &spec) override;
     virtual bool open (const std::string &name, ImageSpec &spec,
                        const ImageSpec &config) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
     virtual bool close () override;
     const std::string &filename () const { return m_filename; }
     void * coeffs () const { return m_coeffs; }

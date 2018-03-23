@@ -111,8 +111,13 @@ FitsInput::open (const std::string &name, ImageSpec &spec)
 
 
 bool
-FitsInput::read_native_scanline (int y, int z, void *data)
+FitsInput::read_native_scanline (int subimage, int miplevel,
+                                 int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     // we return true just to support 0x0 images
     if (!m_naxes)
         return true;
@@ -156,7 +161,7 @@ FitsInput::read_native_scanline (int y, int z, void *data)
 
 
 bool
-FitsInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+FitsInput::seek_subimage (int subimage, int miplevel)
 {
     if (miplevel != 0)
         return false;
@@ -164,7 +169,6 @@ FitsInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         return false;
 
     if (subimage == m_cur_subimage) {
-        newspec = m_spec;
         return true;
     }
 
@@ -175,7 +179,6 @@ FitsInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     if (! set_spec_info ())
         return false;
 
-    newspec = m_spec;
     return true;
 }
 

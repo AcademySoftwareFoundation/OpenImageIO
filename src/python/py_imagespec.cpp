@@ -241,6 +241,8 @@ void declare_imagespec (py::module& m)
         .def("from_xml",    &ImageSpec::from_xml)
         .def("valid_tile_range",    &ImageSpec::valid_tile_range,
              "xbegin"_a, "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a)
+        .def("copy_dimensions", &ImageSpec::copy_dimensions,
+             "other"_a)
     ;
 }
 

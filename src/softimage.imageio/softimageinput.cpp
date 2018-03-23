@@ -53,7 +53,8 @@ public:
     }
     virtual bool open (const std::string &name, ImageSpec &spec) override;
     virtual bool close() override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
 
 private:
     /// Resets the core data members to defaults.
@@ -180,8 +181,13 @@ SoftimageInput::open (const std::string& name, ImageSpec& spec)
 
 
 bool
-SoftimageInput::read_native_scanline (int y, int z, void* data)
+SoftimageInput::read_native_scanline (int subimage, int miplevel,
+                                      int y, int z, void* data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     bool result = false;
     if (y == (int)m_scanline_markers.size() - 1) {
         // we're up to this scanline

@@ -96,8 +96,10 @@ class SocketInput final : public ImageInput {
     virtual bool open (const std::string &name, ImageSpec &spec) override;
     virtual bool open (const std::string &name, ImageSpec &spec,
                        const ImageSpec &config) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
-    virtual bool read_native_tile (int x, int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
+    virtual bool read_native_tile (int subimage, int miplevel,
+                                   int x, int y, int z, void *data) override;
     virtual bool close () override;
 
  private:

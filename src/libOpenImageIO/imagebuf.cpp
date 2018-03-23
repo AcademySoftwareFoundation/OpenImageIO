@@ -786,12 +786,7 @@ ImageBufImpl::read (int subimage, int miplevel, int chbegin, int chend,
             return false;
         }
         input->threads (threads());  // Pass on our thread policy
-        ImageSpec dummyspec;
-        if (! input->seek_subimage (subimage, miplevel, dummyspec)) {
-            error ("%s", input->geterror());
-            return false;
-        }
-        if (! input->read_native_deep_image (m_deepdata)) {
+        if (! input->read_native_deep_image (subimage, miplevel, m_deepdata)) {
             error ("%s", input->geterror());
             return false;
         }

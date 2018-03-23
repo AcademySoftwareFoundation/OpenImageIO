@@ -1249,14 +1249,16 @@ class GridImageInput final : public ImageInput {
 public:
     GridImageInput () : m_miplevel(-1) { }
     virtual ~GridImageInput () { close(); }
-    virtual const char * format_name (void) const { return "grid"; }
-    virtual bool valid_file (const std::string &filename) const { return true; }
-    virtual bool open (const std::string &name, ImageSpec &newspec) {
-        return seek_subimage (0, 0, newspec);
+    virtual const char * format_name (void) const final { return "grid"; }
+    virtual bool valid_file (const std::string &filename) const final { return true; }
+    virtual bool open (const std::string &name, ImageSpec &newspec) final {
+        bool ok = seek_subimage (0, 0);
+        newspec = spec();
+        return ok;
     }
     virtual bool close () { return true; }
-    virtual int current_miplevel (void) const { return m_miplevel; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) {
+    virtual int current_miplevel (void) const final { return m_miplevel; }
+    virtual bool seek_subimage (int subimage, int miplevel) final {
         if (subimage > 0)
             return false;
         if (miplevel > 0 && automip /* if automip is on, don't generate MIP */)
@@ -1271,12 +1273,19 @@ public:
         m_spec.tile_width = std::min (64, res);
         m_spec.tile_height = std::min (64, res);
         m_spec.tile_depth = 1;
-        newspec = m_spec;
         m_miplevel = miplevel;
         return true;
     }
-    virtual bool read_native_scanline (int y, int z, void *data) { return false; }
-    virtual bool read_native_tile (int xbegin, int ybegin, int zbegin, void *data) {
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) final {
+        return false;
+    }
+    virtual bool read_native_tile (int subimage, int miplevel,
+                                   int xbegin, int ybegin,
+                                   int zbegin, void *data) final {
+        lock_guard lock (m_mutex);
+        if (! seek_subimage (subimage, miplevel))
+            return false;
         float *tile = (float *)data;
         for (int z = zbegin, zend = z+m_spec.tile_depth; z < zend; ++z)
             for (int y = ybegin, yend = y+m_spec.tile_height; y < yend; ++y)

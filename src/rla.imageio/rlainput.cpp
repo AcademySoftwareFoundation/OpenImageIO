@@ -52,10 +52,14 @@ public:
     virtual ~RLAInput () { close(); }
     virtual const char * format_name (void) const override { return "rla"; }
     virtual bool open (const std::string &name, ImageSpec &newspec) override;
-    virtual int current_subimage (void) const override { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual int current_subimage (void) const override {
+        lock_guard lock (m_mutex);
+        return m_subimage;
+    }
+    virtual bool seek_subimage (int subimage, int miplevel) override;
     virtual bool close () override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
 
 private:
     std::string m_filename;           ///< Stash the filename
@@ -178,7 +182,10 @@ RLAInput::open (const std::string &name, ImageSpec &newspec)
     
     // set a bogus subimage index so that seek_subimage actually seeks
     m_subimage = 1;
-    return seek_subimage (0, 0, newspec);
+
+    bool ok = seek_subimage (0, 0);
+    newspec = spec();
+    return ok;
 }
 
 
@@ -218,7 +225,7 @@ RLAInput::read_header ()
 
 
 bool
-RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+RLAInput::seek_subimage (int subimage, int miplevel)
 {
     if (miplevel != 0 || subimage < 0)
         return false;
@@ -427,9 +434,8 @@ RLAInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
                               TypeDesc::POINT), f);
     }
 
-    newspec = spec ();    
     m_subimage = subimage;
-    
+
     // N.B. the file pointer is now immediately after the scanline
     // offset table for this subimage.
     return true;
@@ -605,8 +611,13 @@ RLAInput::decode_channel_group (int first_channel, short num_channels,
 
 
 bool
-RLAInput::read_native_scanline (int y, int z, void *data)
+RLAInput::read_native_scanline (int subimage, int miplevel,
+                                int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     // By convention, RLA images store their images bottom-to-top.
     y = m_spec.height - (y - m_spec.y) - 1;
 

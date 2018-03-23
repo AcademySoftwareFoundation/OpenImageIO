@@ -157,25 +157,31 @@ public:
     virtual bool close () override;
     virtual int current_subimage (void) const override { return m_subimage; }
     virtual int current_miplevel (void) const override { return m_miplevel; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
-    virtual bool read_native_scanlines (int ybegin, int yend, int z, void *data) override;
-    virtual bool read_native_scanlines (int ybegin, int yend, int z,
+    virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
+    virtual bool read_native_scanlines (int subimage, int miplevel,
+                                        int ybegin, int yend, int z, void *data) override;
+    virtual bool read_native_scanlines (int subimage, int miplevel,
+                                        int ybegin, int yend, int z,
                                         int chbegin, int chend, void *data) override;
-    virtual bool read_native_tile (int x, int y, int z, void *data) override;
-    virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
+    virtual bool read_native_tile (int subimage, int miplevel,
+                                   int x, int y, int z, void *data) override;
+    virtual bool read_native_tiles (int subimage, int miplevel,
+                                    int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend, void *data) override;
-    virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
+    virtual bool read_native_tiles (int subimage, int miplevel,
+                                    int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
                                     int chbegin, int chend, void *data) override;
-    virtual bool read_native_deep_scanlines (int ybegin, int yend, int z,
-                                             int chbegin, int chend,
-                                             DeepData &deepdata) override;
-    virtual bool read_native_deep_tiles (int xbegin, int xend,
-                                         int ybegin, int yend,
-                                         int zbegin, int zend,
-                                         int chbegin, int chend,
-                                         DeepData &deepdata) override;
+    virtual bool read_native_deep_scanlines (int subimage, int miplevel,
+                                 int ybegin, int yend, int z,
+                                 int chbegin, int chend,
+                                 DeepData &deepdata) override;
+    virtual bool read_native_deep_tiles (int subimage, int miplevel,
+                                 int xbegin, int xend, int ybegin, int yend,
+                                 int zbegin, int zend, int chbegin, int chend,
+                                 DeepData &deepdata) override;
 
 private:
     struct PartInfo {
@@ -395,8 +401,11 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
     m_parts.resize (m_nsubimages);
     m_subimage = -1;
     m_miplevel = -1;
-    bool ok = seek_subimage (0, 0, newspec);
-    if (! ok)
+
+    bool ok = seek_subimage (0, 0);
+    if (ok)
+        newspec = spec();
+    else
         close ();
     return ok;
 }
@@ -836,13 +845,12 @@ OpenEXRInput::PartInfo::query_channels (OpenEXRInput *in,
 
 
 bool
-OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+OpenEXRInput::seek_subimage (int subimage, int miplevel)
 {
     if (subimage < 0 || subimage >= m_nsubimages)   // out of range
         return false;
 
     if (subimage == m_subimage && miplevel == m_miplevel) {  // no change
-        newspec = m_spec;
         return true;
     }
 
@@ -899,7 +907,6 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     m_spec = part.spec;
 
     if (miplevel == 0 && part.levelmode == Imf::ONE_LEVEL) {
-        newspec = m_spec;
         return true;
     }
 
@@ -946,7 +953,6 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         m_spec.full_width = w;
         m_spec.full_height = w;
     }
-    newspec = m_spec;
 
     return true;
 }
@@ -971,25 +977,33 @@ OpenEXRInput::close ()
 
 
 bool
-OpenEXRInput::read_native_scanline (int y, int z, void *data)
+OpenEXRInput::read_native_scanline (int subimage, int miplevel,
+                                    int y, int z, void *data)
 {
-    return read_native_scanlines (y, y+1, z, 0, m_spec.nchannels, data);
+    return read_native_scanlines (subimage, miplevel,
+                                  y, y+1, z, 0, m_spec.nchannels, data);
 }
 
 
 
 bool
-OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
+OpenEXRInput::read_native_scanlines (int subimage, int miplevel,
+                                     int ybegin, int yend, int z, void *data)
 {
-    return read_native_scanlines (ybegin, yend, z, 0, m_spec.nchannels, data);
+    return read_native_scanlines (subimage, miplevel,
+                                  ybegin, yend, z, 0, m_spec.nchannels, data);
 }
 
 
 
 bool
-OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
+OpenEXRInput::read_native_scanlines (int subimage, int miplevel,
+                                     int ybegin, int yend, int z,
                                      int chbegin, int chend, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     chend = clamp (chend, chbegin+1, m_spec.nchannels);
 //    std::cerr << "openexr rns " << ybegin << ' ' << yend << ", channels "
 //              << chbegin << "-" << (chend-1) << "\n";
@@ -1044,9 +1058,14 @@ OpenEXRInput::read_native_scanlines (int ybegin, int yend, int z,
 
 
 bool
-OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
+OpenEXRInput::read_native_tile (int subimage, int miplevel,
+                                int x, int y, int z, void *data)
 {
-    return read_native_tiles (x, x+m_spec.tile_width, y, y+m_spec.tile_height,
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+    return read_native_tiles (subimage, miplevel,
+                              x, x+m_spec.tile_width, y, y+m_spec.tile_height,
                               z, z+m_spec.tile_depth,
                               0, m_spec.nchannels, data);
 }
@@ -1054,20 +1073,28 @@ OpenEXRInput::read_native_tile (int x, int y, int z, void *data)
 
 
 bool
-OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
+OpenEXRInput::read_native_tiles (int subimage, int miplevel,
+                                 int xbegin, int xend, int ybegin, int yend,
                                  int zbegin, int zend, void *data)
 {
-    return read_native_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
-                              0, m_spec.nchannels, data);
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+    return read_native_tiles (subimage, miplevel, xbegin, xend, ybegin, yend,
+                              zbegin, zend, 0, m_spec.nchannels, data);
 }
 
 
 
 bool
-OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
-                                 int zbegin, int zend, 
+OpenEXRInput::read_native_tiles (int subimage, int miplevel,
+                                 int xbegin, int xend, int ybegin, int yend,
+                                 int zbegin, int zend,
                                  int chbegin, int chend, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     chend = clamp (chend, chbegin+1, m_spec.nchannels);
 #if 0
     std::cerr << "openexr rnt " << xbegin << ' ' << xend << ' ' << ybegin 
@@ -1158,10 +1185,14 @@ OpenEXRInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
 
 
 bool
-OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
+OpenEXRInput::read_native_deep_scanlines (int subimage, int miplevel,
+                                          int ybegin, int yend, int z,
                                           int chbegin, int chend,
                                           DeepData &deepdata)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     if (m_deep_scanline_input_part == NULL) {
         error ("called OpenEXRInput::read_native_deep_scanlines without an open file");
         return false;
@@ -1177,7 +1208,7 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
         deepdata.init (npixels, nchans,
-                       array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin),
+                       array_view<const TypeDesc>(&channeltypes[chbegin], nchans),
                        spec().channelnames);
         std::vector<unsigned int> all_samples (npixels);
         std::vector<void*> pointerbuf (npixels*nchans);
@@ -1225,12 +1256,16 @@ OpenEXRInput::read_native_deep_scanlines (int ybegin, int yend, int z,
 
 
 bool
-OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
+OpenEXRInput::read_native_deep_tiles (int subimage, int miplevel,
+                                      int xbegin, int xend,
                                       int ybegin, int yend,
                                       int zbegin, int zend,
                                       int chbegin, int chend,
                                       DeepData &deepdata)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     if (m_deep_tiled_input_part == NULL) {
         error ("called OpenEXRInput::read_native_deep_tiles without an open file");
         return false;
@@ -1238,8 +1273,9 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
 
     try {
         const PartInfo &part (m_parts[m_subimage]);
-        size_t width = (xend - xbegin);
-        size_t npixels = width * (yend - ybegin) * (zend - zbegin);
+        size_t width = xend - xbegin;
+        size_t height = yend - ybegin;
+        size_t npixels = width * height;
         chend = clamp (chend, chbegin+1, m_spec.nchannels);
         int nchans = chend - chbegin;
 
@@ -1247,7 +1283,7 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
         deepdata.init (npixels, nchans,
-                       array_view<const TypeDesc>(&channeltypes[chbegin], chend-chbegin),
+                       array_view<const TypeDesc>(&channeltypes[chbegin], nchans),
                        spec().channelnames);
         std::vector<unsigned int> all_samples (npixels);
         std::vector<void*> pointerbuf (npixels * nchans);
@@ -1271,8 +1307,8 @@ OpenEXRInput::read_native_deep_tiles (int xbegin, int xend,
         }
         m_deep_tiled_input_part->setFrameBuffer (frameBuffer);
 
-        int xtiles = round_to_multiple (xend-xbegin, m_spec.tile_width) / m_spec.tile_width;
-        int ytiles = round_to_multiple (yend-ybegin, m_spec.tile_height) / m_spec.tile_height;
+        int xtiles = round_to_multiple (width, m_spec.tile_width) / m_spec.tile_width;
+        int ytiles = round_to_multiple (height, m_spec.tile_height) / m_spec.tile_height;
 
         int firstxtile = (xbegin - m_spec.x) / m_spec.tile_width;
         int firstytile = (ybegin - m_spec.y) / m_spec.tile_height;

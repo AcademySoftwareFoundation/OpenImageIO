@@ -110,7 +110,8 @@ class Jpeg2000Input final : public ImageInput {
     virtual bool open (const std::string &name, ImageSpec &newspec,
                        const ImageSpec &config) override;
     virtual bool close (void) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
 
  private:
 
@@ -324,8 +325,13 @@ Jpeg2000Input::open (const std::string &name, ImageSpec &newspec,
 
 
 bool
-Jpeg2000Input::read_native_scanline (int y, int z, void *data)
+Jpeg2000Input::read_native_scanline (int subimage, int miplevel,
+                                     int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     if (m_spec.format == TypeDesc::UINT8)
         read_scanline<uint8_t>(y, z, data);
     else

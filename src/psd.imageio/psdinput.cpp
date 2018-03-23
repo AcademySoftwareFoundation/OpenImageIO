@@ -59,8 +59,9 @@ public:
                        const ImageSpec &config) override;
     virtual bool close () override;
     virtual int current_subimage () const override { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
 
 private:
     enum ColorMode {
@@ -622,10 +623,12 @@ PSDInput::open (const std::string &name, ImageSpec &newspec)
     // Setup ImageSpecs and m_channels
     setup ();
 
-    if (!seek_subimage (0, 0, newspec))
-        return false;
-
-    return true;
+    bool ok = seek_subimage (0, 0);
+    if (ok)
+        newspec = spec();
+    else
+        close ();
+    return ok;
 }
 
 
@@ -655,7 +658,7 @@ PSDInput::close ()
 
 
 bool
-PSDInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+PSDInput::seek_subimage (int subimage, int miplevel)
 {
     if (miplevel != 0)
         return false;
@@ -664,7 +667,7 @@ PSDInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         return false;
 
     m_subimage = subimage;
-    newspec = m_spec = m_specs[subimage];
+    m_spec = m_specs[subimage];
     return true;
 }
 
@@ -740,8 +743,13 @@ PSDInput::unassalpha_to_assocalpha (int n, void *data)
 
 
 bool
-PSDInput::read_native_scanline (int y, int z, void *data)
+PSDInput::read_native_scanline (int subimage, int miplevel,
+                                int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     if (y < 0 || y > m_spec.height)
         return false;
 

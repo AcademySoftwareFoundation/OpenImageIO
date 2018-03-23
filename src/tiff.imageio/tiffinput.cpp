@@ -123,29 +123,36 @@ public:
     virtual bool close () override;
     virtual int current_subimage (void) const override {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
+        lock_guard lock (m_mutex);
         return m_emulate_mipmap ? 0 : m_subimage;
     }
     virtual int current_miplevel (void) const override {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
+        lock_guard lock (m_mutex);
         return m_emulate_mipmap ? m_subimage : 0;
     }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
-    virtual bool read_native_scanlines (int ybegin, int yend, int z, void *data) override;
-    virtual bool read_native_tile (int x, int y, int z, void *data) override;
-    virtual bool read_native_tiles (int xbegin, int xend, int ybegin, int yend,
+    virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
+    virtual bool read_native_scanlines (int subimage, int miplevel,
+                                        int ybegin, int yend, int z, void *data) override;
+    virtual bool read_native_tile (int subimage, int miplevel,
+                                   int x, int y, int z, void *data) override;
+    virtual bool read_native_tiles (int subimage, int miplevel,
+                                    int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend, void *data) override;
     virtual bool read_scanline (int y, int z, TypeDesc format, void *data,
                                 stride_t xstride) override;
-    virtual bool read_scanlines (int ybegin, int yend, int z,
+    virtual bool read_scanlines (int subimage, int miplevel,
+                                 int ybegin, int yend, int z,
                                  int chbegin, int chend,
                                  TypeDesc format, void *data,
                                  stride_t xstride, stride_t ystride) override;
     virtual bool read_tile (int x, int y, int z, TypeDesc format, void *data,
                             stride_t xstride, stride_t ystride, stride_t zstride) override;
-    virtual bool read_tiles (int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend, int chbegin, int chend,
-                             TypeDesc format, void *data,
+    virtual bool read_tiles (int subimage, int miplevel, int xbegin, int xend,
+                             int ybegin, int yend, int zbegin, int zend,
+                             int chbegin, int chend, TypeDesc format, void *data,
                              stride_t xstride, stride_t ystride, stride_t zstride) override;
 
 private:
@@ -561,7 +568,10 @@ TIFFInput::open (const std::string &name, ImageSpec &newspec)
     oiio_tiff_set_error_handler ();
     m_filename = name;
     m_subimage = -1;
-    return seek_subimage (0, 0, newspec);
+
+    bool ok = seek_subimage (0, 0);
+    newspec = spec();
+    return ok;
 }
 
 
@@ -586,7 +596,7 @@ TIFFInput::open (const std::string &name, ImageSpec &newspec,
 
 
 bool
-TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+TIFFInput::seek_subimage (int subimage, int miplevel)
 {
     if (subimage < 0)       // Illegal
         return false;
@@ -603,7 +613,6 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     if (subimage == m_subimage) {
         // We're already pointing to the right subimage
-        newspec = m_spec;
         return true;
     }
 
@@ -652,9 +661,8 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
             m_spec.channelformats.clear ();
             m_photometric = PHOTOMETRIC_RGB;
         }
-        newspec = m_spec;
-        if (newspec.format == TypeDesc::UNKNOWN) {
-            error ("No support for data format of \"%s\"", m_filename.c_str());
+        if (m_spec.format == TypeDesc::UNKNOWN) {
+            error ("No support for data format of \"%s\"", m_filename);
             return false;
         }
         return true;
@@ -1345,8 +1353,12 @@ cmyk_to_rgb (int n, const T *cmyk, size_t cmyk_stride,
 
 
 bool
-TIFFInput::read_native_scanline (int y, int z, void *data)
+TIFFInput::read_native_scanline (int subimage, int miplevel,
+                                 int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     y -= m_spec.y;
 
     if (m_use_rgba_interface) {
@@ -1385,7 +1397,7 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
             int old_miplevel = current_miplevel();
             if (! close ()  ||
                 ! open (m_filename, dummyspec)  ||
-                ! seek_subimage (old_subimage, old_miplevel, dummyspec)) {
+                ! seek_subimage (old_subimage, old_miplevel)) {
                 return false;    // Somehow, the re-open failed
             }
             ASSERT (m_next_scanline == 0 &&
@@ -1497,7 +1509,8 @@ TIFFInput::read_native_scanline (int y, int z, void *data)
 
 
 bool
-TIFFInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
+TIFFInput::read_native_scanlines (int subimage, int miplevel,
+                                  int ybegin, int yend, int z, void *data)
 {
     // If the stars all align properly, try to read strips, and use the
     // thread pool to parallelize the decompression. This can give a large
@@ -1506,7 +1519,9 @@ TIFFInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
     // parallelize by reading raw (compressed) strips then making calls to
     // zlib ourselves to decompress. Don't bother trying to handle any of
     // the uncommon cases with strips. This covers most real-world cases.
-
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     yend = std::min (yend, spec().y+spec().height);
     int nstrips = (yend-ybegin+m_rowsperstrip-1) / m_rowsperstrip;
 
@@ -1528,7 +1543,8 @@ TIFFInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
         && !m_use_rgba_interface;
     if (! read_as_strips) {
         // Punt and call the base class, which loops over scanlines.
-        return ImageInput::read_native_scanlines (ybegin, yend, z, data);
+        return ImageInput::read_native_scanlines (subimage, miplevel,
+                                                  ybegin, yend, z, data);
     }
 
     // Are we reading raw (compressed) strips and doing the decompression
@@ -1548,7 +1564,6 @@ TIFFInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
     // decompression ourselves, which we can feed to the thread pool to
     // perform in parallel.
     thread_pool *pool = default_thread_pool();
-    task_set tasks (pool);
     bool parallelize =
         // and more than one, or no point parallelizing
         nstrips > 1
@@ -1559,6 +1574,10 @@ TIFFInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
         // and not if the feature is turned off
         && m_spec.get_int_attribute("tiff:multithread", OIIO::get_int_attribute("tiff:multithread"));
 
+    // Make room for, and read the raw (still compressed) strips. As each
+    // one is read, kick off the decompress and any other extras, to execute
+    // in parallel.
+    task_set tasks (pool);
     bool ok = true;   // failed compression will stash a false here
     int y = ybegin;
     size_t ystride = m_spec.scanline_bytes (true);
@@ -1644,7 +1663,7 @@ TIFFInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
     // If we have left over scanlines, read them serially
     m_next_scanline = y;
     for ( ;  y < yend;  ++y) {
-        bool ok = read_native_scanline (y, z, data);
+        bool ok = read_native_scanline (subimage, miplevel, y, z, data);
         if (! ok)
             return false;
         data = (char *)data + ystride;
@@ -1656,8 +1675,12 @@ TIFFInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
 
 
 bool
-TIFFInput::read_native_tile (int x, int y, int z, void *data)
+TIFFInput::read_native_tile (int subimage, int miplevel,
+                             int x, int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     x -= m_spec.x;
     y -= m_spec.y;
 
@@ -1741,9 +1764,13 @@ TIFFInput::read_native_tile (int x, int y, int z, void *data)
 
 
 bool
-TIFFInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
+TIFFInput::read_native_tiles (int subimage, int miplevel,
+                              int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     if (! m_spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
 
@@ -1784,7 +1811,8 @@ TIFFInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
     // implementaiton of read_native_tiles, which will loop over the tiles
     // and read each one individually.
     if (! parallelize) {
-        return ImageInput::read_native_tiles (xbegin, xend, ybegin, yend,
+        return ImageInput::read_native_tiles (subimage, miplevel,
+                                              xbegin, xend, ybegin, yend,
                                               zbegin, zend, data);
     }
 
@@ -1866,12 +1894,14 @@ bool TIFFInput::read_scanline (int y, int z, TypeDesc format, void *data,
 
 
 
-bool TIFFInput::read_scanlines (int ybegin, int yend, int z,
+bool TIFFInput::read_scanlines (int subimage, int miplevel,
+                                int ybegin, int yend, int z,
                                 int chbegin, int chend,
                                 TypeDesc format, void *data,
                                 stride_t xstride, stride_t ystride)
 {
-    bool ok = ImageInput::read_scanlines (ybegin, yend, z, chbegin, chend,
+    bool ok = ImageInput::read_scanlines (subimage, miplevel,
+                                          ybegin, yend, z, chbegin, chend,
                                           format, data, xstride, ystride);
     if (ok && m_convert_alpha) {
         // If alpha is unassociated and we aren't requested to keep it that
@@ -1913,13 +1943,13 @@ bool TIFFInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
 
 
 
-bool TIFFInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
-                            int zbegin, int zend,
-                            int chbegin, int chend,
-                            TypeDesc format, void *data,
+bool TIFFInput::read_tiles (int subimage, int miplevel, int xbegin, int xend,
+                            int ybegin, int yend, int zbegin, int zend,
+                            int chbegin, int chend, TypeDesc format, void *data,
                             stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    bool ok = ImageInput::read_tiles (xbegin, xend, ybegin, yend, zbegin, zend,
+    bool ok = ImageInput::read_tiles (subimage, miplevel, xbegin, xend,
+                                      ybegin, yend, zbegin, zend,
                                       chbegin, chend, format, data,
                                       xstride, ystride, zstride);
     if (ok && m_convert_alpha) {
@@ -1929,17 +1959,20 @@ bool TIFFInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
         // by alpha should happen after we've already done data format
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
-        OIIO::premult (m_spec.nchannels, xend-xbegin, yend-ybegin, zend-zbegin,
+        int nchannels, alpha_channel, z_channel;
+        {
+            lock_guard lock (m_mutex);
+            seek_subimage (subimage, miplevel);
+            nchannels = m_spec.nchannels;
+            alpha_channel = m_spec.alpha_channel;
+            z_channel = m_spec.z_channel;
+        }
+        OIIO::premult (nchannels, xend-xbegin, yend-ybegin, zend-zbegin,
                        chbegin, chend, format, data,
-                       xstride, ystride, zstride,
-                       m_spec.alpha_channel, m_spec.z_channel);
+                       xstride, ystride, zstride, alpha_channel, z_channel);
     }
     return ok;
 }
-
-
-
-
 
 OIIO_PLUGIN_NAMESPACE_END
 

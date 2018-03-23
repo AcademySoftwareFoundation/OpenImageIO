@@ -50,11 +50,19 @@ public:
     }
     virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool close () override;
-    virtual int current_subimage (void) const override { return m_subimage; }
-    virtual int current_miplevel (void) const override { return m_miplevel; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
-    virtual bool read_native_tile (int x, int y, int z, void *data) override;
+    virtual int current_subimage (void) const override {
+        lock_guard lock (m_mutex);
+        return m_subimage;
+    }
+    virtual int current_miplevel (void) const override {
+        lock_guard lock (m_mutex);
+        return m_miplevel;
+    }
+    virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
+    virtual bool read_native_tile (int subimage, int miplevel,
+                                   int x, int y, int z, void *data) override;
 
 private:
     PtexTexture *m_ptex;
@@ -118,7 +126,7 @@ PtexInput::open (const std::string &name, ImageSpec &newspec)
     m_numFaces = m_ptex->numFaces();
     m_hasMipMaps = m_ptex->hasMipMaps();
 
-    bool ok = seek_subimage (0, 0, newspec);
+    bool ok = seek_subimage (0, 0);
     newspec = spec ();
     return ok;
 }
@@ -126,7 +134,7 @@ PtexInput::open (const std::string &name, ImageSpec &newspec)
 
 
 bool
-PtexInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+PtexInput::seek_subimage (int subimage, int miplevel)
 {
     if (m_subimage == subimage && m_miplevel == miplevel)
         return true;   // Already fine
@@ -248,7 +256,6 @@ PtexInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
 
     facedata->release();
-    newspec = m_spec;
     return true;
 }
 
@@ -264,7 +271,8 @@ PtexInput::close ()
 
 
 bool
-PtexInput::read_native_scanline (int y, int z, void *data)
+PtexInput::read_native_scanline (int subimage, int miplevel,
+                                 int y, int z, void *data)
 {
     return false;   // Not scanline oriented
 }
@@ -272,8 +280,13 @@ PtexInput::read_native_scanline (int y, int z, void *data)
 
 
 bool
-PtexInput::read_native_tile (int x, int y, int z, void *data)
+PtexInput::read_native_tile (int subimage, int miplevel,
+                             int x, int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     PtexFaceData *facedata = m_ptex->getData (m_subimage, m_mipfaceres);
 
     PtexFaceData *f = facedata;

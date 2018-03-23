@@ -621,15 +621,18 @@ pixel.  Instead, \ImageInput has three special member functions used
 only for reading deep data:
 
 \begin{code}
-    bool read_native_deep_scanlines (int ybegin, int yend, int z,
+    bool read_native_deep_scanlines (int subimage, int miplevel,
+                                     int ybegin, int yend, int z,
                                      int chbegin, int chend,
                                      DeepData &deepdata);
 
-    bool read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+    bool read_native_deep_tiles (int subimage, int miplevel,
+                                 int xbegin, int xend, int ybegin int yend,
                                  int zbegin, int zend,
                                  int chbegin, int chend, DeepData &deepdata);
 
-    bool read_native_deep_image (DeepData &deepdata);
+    bool read_native_deep_image (int subimage, int miplevel,
+                                 DeepData &deepdata);
 \end{code}
 
 It is only possible to read ``native'' data types from deep files; that
@@ -648,7 +651,7 @@ a file and print all its values:
     const ImageSpec &spec = in->spec();
     if (spec.deep) {
         DeepData deepdata;
-        in->read_native_deep_image (deepdata);
+        in->read_native_deep_image (0, 0, deepdata);
         int p = 0;  // absolute pixel number
         for (int y = 0; y < spec.height;  ++y) {
             for (int x = 0;  x < spec.width;  ++x, ++p) {
@@ -923,21 +926,39 @@ This simplified version of {\kw read_scanline()} reads to contiguous
 float pixels.
 \apiend
 
-\apiitem{bool {\ce read_scanlines} (int ybegin, int yend, int z,\\
-  \bigspc TypeDesc format, void *data,\\
-  \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride) \\
-bool {\ce read_scanlines} (int ybegin, int yend, int z,\\
+\apiitem{bool {\ce read_scanlines} (int subimage, int miplevel \\
+  \bigspc int ybegin, int yend, int z,\\
   \bigspc int chbegin, int chend, TypeDesc format, void *data,\\
   \bigspc                      stride_t xstride=AutoStride, stride_t ystride=AutoStride)}
 
-Read all the scanlines that include pixels $(*,y,z)$, where
-$\mathit{ybegin} \le y < \mathit{yend}$, into {\kw data}.  This is 
-essentially identical to \readscanline, except that can read more than
-one scanline at a time, which may be more efficient for certain image
-format readers.
+Read from the specified subimage and MIP level all the scanlines that
+include pixels $(*,y,z)$, where $\mathit{ybegin} \le y < \mathit{yend}$, and
+the given channel subset {\kw chbegin} $\le c <$ {\kw chend}, into
+{\kw data}, converting if necessary from the file's native data format to
+the specified buffer {\kw format}.
+If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data will be preserved
+in its native format (including per-channel formats, if applicable).
+The stride values
+give the data spacing of adjacent pixels and scanlines,
+respectively (measured in bytes).  Strides set to the special
+value of {\kw AutoStride} imply contiguous data in the shape of
+the region specified, i.e., \\
+\spc {\kw xstride} $=$ {\kw spec.pixel_size() * (chend - chbegin)} \\
+\spc {\kw ystride} $=$ {\kw xstride * (xend - xbegin)} \\
 
-The version that specifies a channel range will read only
-channels $[${\cf chbegin},{\cf chend}$)$ into the buffer.
+This function returns {\cf true} if it successfully reads the scanlines,
+otherwise {\cf false} for a failure.
+
+This function is guaranteed to be thread-safe against other concurrent calls
+to the {\cf read_tiles()} or {\cf read_scanlines()} varieties that takes
+explicit subimage and miplevel (but not necessarily against any other
+\ImageInput methods).
+
+\NEW % 1.9
+This call was changed for \OpenImageIO 1.9 to include the explicit subimage
+and miplevel parameters. The previous versions, which lacked subimage and
+miplevel parameters (thus were dependent on a prior call to
+{\cf seek_subimage}) are considered deprecated.
 \apiend
 
 
@@ -978,19 +999,16 @@ Simple version of {\kw read_tile} that reads to contiguous float pixels.
 \apiend
 
 
-\apiitem{bool {\ce read_tiles} (int xbegin, int xend, int ybegin, int
-  yend, \\ \bigspc int zbegin, int zend, TypeDesc format,
-                            void *data, \\ \bigspc stride_t xstride=AutoStride,
-                            stride_t ystride=AutoStride, \\ \bigspc stride_t
-                            zstride=AutoStride) \\
-bool {\ce read_tiles} (int xbegin, int xend, int ybegin, int yend, \\
- \bigspc int zbegin, int zend, int chbegin, int chend,\\
- \bigspc TypeDesc format, void *data, \\ 
- \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
- \bigspc stride_t zstride=AutoStride)}
+\apiitem{bool {\ce read_tiles} (int subimage, int miplevel, \\
+         \bigspc int xbegin, int xend, int ybegin, int yend, \\
+         \bigspc int zbegin, int zend, int chbegin, int chend,\\
+         \bigspc TypeDesc format, void *data, \\
+         \bigspc stride_t xstride=AutoStride, stride_t ystride=AutoStride, \\
+         \bigspc stride_t zstride=AutoStride)}
 Read the tiles bounded by {\kw xbegin} $\le x <$ {\kw xend},
-{\kw ybegin} $\le y <$ {\kw yend}, {\kw zbegin} $\le z <$ {\kw zend}
-into {\kw data}
+{\kw ybegin} $\le y <$ {\kw yend}, {\kw zbegin} $\le z <$ {\kw zend},
+and the given channel subset {\kw chbegin} $\le c <$ {\kw chend},
+into {\kw data},
 converting if necessary from the file's native data format into
 the specified buffer {\kw format}.
 If {\cf format} is {\cf TypeDesc::UNKNOWN}, the data will be preserved 
@@ -1000,7 +1018,7 @@ give the data spacing of adjacent pixels, scanlines, and volumetric
 slices, respectively (measured in bytes).  Strides set to the special
 value of {\kw AutoStride} imply contiguous data in the shape of
 the region specified, i.e., \\
-\spc {\kw xstride} $=$ {\kw spec.nchannels * spec.pixel_size()} \\
+\spc {\kw xstride} $=$ {\kw spec.pixel_size() * (chend - chbegin)} \\
 \spc {\kw ystride} $=$ {\kw xstride * (xend - xbegin)} \\
 \spc {\kw zstride} $=$ {\kw ystride * (yend - ybegin)} \\
 The \ImageInput is expected to give the appearance of random access
@@ -1016,8 +1034,16 @@ The call will fail if the image is not tiled, or if the pixel ranges
 do not fall along tile (or image) boundaries, or if it is not a valid
 tile range.
 
-The version that specifies a channel range will read only
-channels $[${\cf chbegin},{\cf chend}$)$ into the buffer.
+This function is guaranteed to be thread-safe against other concurrent calls
+to the {\cf read_tiles()} or {\cf read_scanlines()} varieties that takes
+explicit subimage and miplevel (but not necessarily against any other
+\ImageInput methods).
+
+\NEW % 1.9
+This call was changed for \OpenImageIO 1.9 to include the explicit subimage
+and miplevel parameters. The previous versions, which lacked subimage and
+miplevel parameters (thus were dependent on a prior call to
+{\cf seek_subimage}) are considered deprecated.
 \apiend
 
 
@@ -1027,7 +1053,7 @@ channels $[${\cf chbegin},{\cf chend}$)$ into the buffer.
                              \bigspc stride_t zstride=AutoStride, \\
                              \bigspc ProgressCallback progress_callback=NULL,\\
                              \bigspc void *progress_callback_data=NULL) \\
-bool {\ce read_image} (int chbegin, int chend, \\
+bool {\ce read_image} (int subimage, int miplevel, int chbegin, int chend, \\
                              \bigspc TypeDesc format, void *data, \\
                              \bigspc stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride, \\
@@ -1063,13 +1089,22 @@ Periodically, it will be called as follows:\\
 \end{code}
 \noindent where \emph{done} gives the portion of the image 
 (between 0.0 and 1.0) that has been read thus far.
+
+\NEW % 1.9
+The version of {\cf read_image} that takes explicit subimage and
+miplevel parameters is guaranteed to be thread-safe against other concurrent
+calls to the {\cf read_scanlines()}, {\cf read_tiles()}, or
+{\cf read_image()} varieties that take an explicit
+subimage and miplevel (but not necessarily against any other \ImageInput
+methods).
 \apiend
 
 \apiitem{bool {\ce read_image} (float *data)}
 Simple version of {\kw read_image()} reads to contiguous float pixels.
 \apiend
 
-\apiitem{bool {\ce read_native_scanline} (int y, int z, void *data)}
+\apiitem{bool {\ce read_native_scanline} (int subimage, int miplevel,\\
+    \bigspc int y, int z, void *data)}
 The {\kw read_native_scanline()} function is just like {\kw
   read_scanline()}, except that it keeps the data in the native format
 of the disk file and always reads into contiguous memory (no strides).
@@ -1078,7 +1113,8 @@ with the data.  IT IS EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE
 THIS METHOD.
 \apiend
 
-\apiitem{bool {\ce read_native_scanlines} (int ybegin, int yend, int z, void *data)}
+\apiitem{bool {\ce read_native_scanlines} (int subimage, int miplevel,\\
+    \bigspc int ybegin, int yend, int z, void *data)}
 The {\kw read_native_scanlines()} function is just like 
 {\cf read_native_scanline}, except that it reads
 a range of scanlines rather than only one scanline.  It is not necessary
@@ -1089,8 +1125,8 @@ override this method if there is a way to achieve higher performance by
 reading multiple scanlines at once.
 \apiend
 
-\apiitem{bool {\ce read_native_scanlines} (int ybegin, int yend, int z,
-\\ \bigspc  int chbegin, int chend, void *data)}
+\apiitem{bool {\ce read_native_scanlines} (int subimage, int miplevel,\\
+    \bigspc int ybegin, int yend, int z, int chbegin, int chend, void *data)}
 A variant of {\cf read_native_scanlines} that reads only a subset of 
 channels \\ $[${\cf chbegin},{\cf chend}$)$.  
 If a format reader subclass does
@@ -1099,7 +1135,8 @@ call the all-channel version of {\cf read_native_scanlines} into a
 temporary buffer and copy the subset of channels.
 \apiend
 
-\apiitem{bool {\ce read_native_tile} (int x, int y, int z, void *data)}
+\apiitem{bool {\ce read_native_tile} (int subimage, int miplevel,\\
+    \bigspc int x, int y, int z, void *data)}
 The {\kw read_native_tile()} function is just like {\kw read_tile()}, 
 except that it keeps the data in the native format of the disk file and
 always read into contiguous memory (no strides).  It's up to the user to
@@ -1108,7 +1145,8 @@ EXPECTED THAT EACH FORMAT PLUGIN WILL OVERRIDE THIS METHOD IF IT
 SUPPORTS TILED IMAGES.
 \apiend
 
-\apiitem{bool {\ce read_native_tiles} (int xbegin, int xend, int ybegin,
+\apiitem{bool {\ce read_native_tiles} (int subimage, int miplevel,\\
+    \bigspc int xbegin, int xend, int ybegin,
   int yend, \\ \bigspc int zbegin, int zend, void *data)}
 The {\kw read_native_tiles()} function is just like {\kw read_tiles()}, 
 except that it keeps the data in the native format of the disk file and
@@ -1118,8 +1156,9 @@ implementation it will simply be a loop calling read_native_tile
 for each tile in the block.
 \apiend
 
-\apiitem{bool {\ce read_native_tiles} (int xbegin, int xend, int ybegin,
-  int yend, \\ \bigspc int zbegin, int zend, int chbegin, int chend, void *data)}
+\apiitem{bool {\ce read_native_tiles} (int subimage, int miplevel,\\
+    \bigspc int xbegin, int xend, int ybegin, int yend, \\
+    \bigspc int zbegin, int zend, int chbegin, int chend, void *data)}
 A variant of {\kw read_native_tiles()} that reads only a subset of 
 channels \\ $[${\cf chbegin},{\cf chend}$)$.  
 If a format reader subclass does
@@ -1128,20 +1167,20 @@ call the all-channel version of {\cf read_native_tiles} into a
 temporary buffer and copy the subset of channels.
 \apiend
 
-\apiitem{bool {\ce read_native_deep_scanlines} (int ybegin, int yend, int z,
- \\ \bigspc   int chbegin, int chend, DeepData \&deepdata) \\
-bool {\ce read_native_deep_tiles} (int xbegin, int xend,
-                                         int ybegin, int yend, \\ \bigspc
-                                         int zbegin, int zend,
-                                         int chbegin, int chend,
-                                         DeepData \&deepdata) \\
-bool {\ce read_native_deep_image} (DeepData \&deepdata)}
+\apiitem{bool {\ce read_native_deep_scanlines} (int subimage, int miplevel,
+ \\ \bigspc   int ybegin, int yend, int z, int chbegin, int chend, \\
+ \\ bigspc     DeepData \&deepdata) \\
+bool {\ce read_native_deep_tiles} (int subimage, int miplevel, \\
+    \bigspc int xbegin, int xend, int ybegin, int yend, \\
+    \bigspc int zbegin, int zend, int chbegin, int chend, DeepData \&deepdata) \\
+bool {\ce read_native_deep_image} (int subimage, int miplevel, DeepData \&deepdata)}
 Read native deep data from scanlines, tiles, or an entire image, 
 storing the results in {\cf deepdata} (analogously to the usual
-{\cf read_scanlines}, {\cf read_tiles},
-and {\cf read_image}, but with deep data).
-Only channels $[${\cf chbegin},{\cf chend}$)$
-will be read.
+{\cf read_scanlines}, {\cf read_tiles}, and {\cf read_image}, but with deep data).
+Only channels $[${\cf chbegin},{\cf chend}$)$ will be read.
+Note that for the scanline variety, the {\cf roi}'s $x$ range must specify
+the complete width of the image, and the $z$ range must be a single plane.
+For the tile variety, the {\cf roi} must specify a whole number of tiles.
 \apiend
 
 \apiitem{int {\ce send_to_input} (const char *format, ...)}

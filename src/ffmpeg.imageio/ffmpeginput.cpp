@@ -148,9 +148,13 @@ public:
     virtual const char *format_name (void) const override { return "FFmpeg movie"; }
     virtual bool open (const std::string &name, ImageSpec &spec) override;
     virtual bool close (void) override;
-    virtual int current_subimage (void) const override { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual int current_subimage (void) const override {
+        lock_guard lock (m_mutex);
+        return m_subimage;
+    }
+    virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
     void read_frame(int pos);
 #if 0
     const char *metadata (const char * key);
@@ -452,16 +456,14 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
 
 
 bool
-FFmpegInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+FFmpegInput::seek_subimage (int subimage, int miplevel)
 {
     if (subimage < 0 || subimage >= m_nsubimages || miplevel > 0) {
         return false;
     }
     if (subimage == m_subimage) {
-        newspec = m_spec;
         return true;
     }
-    newspec = m_spec;
     m_subimage = subimage;
     m_read_frame = false;
     return true;
@@ -470,8 +472,12 @@ FFmpegInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
 
 bool
-FFmpegInput::read_native_scanline (int y, int z, void *data)
+FFmpegInput::read_native_scanline (int subimage, int miplevel,
+                                   int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     if (!m_read_frame) {
         read_frame (m_subimage);
     }

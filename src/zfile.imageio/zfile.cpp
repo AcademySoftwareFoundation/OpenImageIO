@@ -70,7 +70,8 @@ public:
     virtual bool valid_file (const std::string &filename) const override;
     virtual bool open (const std::string &name, ImageSpec &newspec) override;
     virtual bool close () override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
 
 private:
     std::string m_filename;       ///< Stash the filename
@@ -226,8 +227,13 @@ ZfileInput::close ()
 
 
 bool
-ZfileInput::read_native_scanline (int y, int z, void *data)
+ZfileInput::read_native_scanline (int subimage, int miplevel,
+                                  int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     if (m_next_scanline > y) {
         // User is trying to read an earlier scanline than the one we're
         // up to.  Easy fix: close the file and re-open.
@@ -235,7 +241,7 @@ ZfileInput::read_native_scanline (int y, int z, void *data)
         int subimage = current_subimage();
         if (! close ()  ||
             ! open (m_filename, dummyspec)  ||
-            ! seek_subimage (subimage, dummyspec))
+            ! seek_subimage (subimage, miplevel))
             return false;    // Somehow, the re-open failed
         ASSERT (m_next_scanline == 0 && current_subimage() == subimage);
     }

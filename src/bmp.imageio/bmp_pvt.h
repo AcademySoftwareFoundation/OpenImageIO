@@ -149,7 +149,8 @@ class BmpInput final : public ImageInput {
     virtual bool valid_file (const std::string &filename) const override;
     virtual bool open (const std::string &name, ImageSpec &spec) override;
     virtual bool close (void) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
  private:
     int m_padded_scanline_size;
     int m_pad_size;

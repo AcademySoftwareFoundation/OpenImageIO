@@ -86,9 +86,11 @@ public:
     virtual bool close () override { return true; }
     virtual int current_subimage (void) const override { return m_subimage; }
     virtual int current_miplevel (void) const override { return m_miplevel; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
-    virtual bool read_native_tile (int x, int y, int z, void *data) override;
+    virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
+    virtual bool read_native_tile (int subimage, int miplevel,
+                                   int x, int y, int z, void *data) override;
 
 private:
     std::string m_filename;          ///< Stash the filename
@@ -322,16 +324,17 @@ NullInput::open (const std::string &name, ImageSpec &newspec,
                        m_topspec.nchannels);
     }
 
-    return seek_subimage (0, 0, newspec);
+    bool ok = seek_subimage (0, 0);
+    newspec = spec();
+    return ok;
 }
 
 
 
 bool
-NullInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+NullInput::seek_subimage (int subimage, int miplevel)
 {
     if (subimage == current_subimage() && miplevel == current_miplevel()) {
-        newspec = spec();
         return true;
     }
 
@@ -353,14 +356,14 @@ NullInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
         m_spec.full_height = m_spec.height;
         m_spec.full_depth = m_spec.depth;
     }
-    newspec = spec();
     return true;
 }
 
 
 
 bool
-NullInput::read_native_scanline (int y, int z, void *data)
+NullInput::read_native_scanline (int subimage, int miplevel,
+                                 int y, int z, void *data)
 {
     if (m_value.size()) {
         size_t s = m_spec.pixel_bytes();
@@ -375,7 +378,8 @@ NullInput::read_native_scanline (int y, int z, void *data)
 
 
 bool
-NullInput::read_native_tile (int x, int y, int z, void *data)
+NullInput::read_native_tile (int subimage, int miplevel,
+                             int x, int y, int z, void *data)
 {
     if (m_value.size()) {
         size_t s = m_spec.pixel_bytes();

@@ -406,8 +406,11 @@ cmyk_to_rgb (int n, const unsigned char *cmyk, size_t cmyk_stride,
 
 
 bool
-JpgInput::read_native_scanline (int y, int z, void *data)
+JpgInput::read_native_scanline (int subimage, int miplevel,
+                                int y, int z, void *data)
 {
+    if (! seek_subimage (subimage, miplevel))
+        return false;
     if (m_raw)
         return false;
     if (y < 0 || y >= (int)m_cinfo.output_height)   // out of range scanline
@@ -419,7 +422,7 @@ JpgInput::read_native_scanline (int y, int z, void *data)
         int subimage = current_subimage();
         if (! close ()  ||
             ! open (m_filename, dummyspec)  ||
-            ! seek_subimage (subimage, 0, dummyspec))
+            ! seek_subimage (subimage, 0))
             return false;    // Somehow, the re-open failed
         assert (m_next_scanline == 0 && current_subimage() == subimage);
     }

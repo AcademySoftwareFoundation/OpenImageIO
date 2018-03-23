@@ -94,8 +94,12 @@ namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
 /// Version 18 changed to add an m_threads member to ImageInput/Output.
 /// Version 19 changed the definition of DeepData.
 /// Version 20 added FMT_imageio_library_version() to plugins. (OIIO 1.7)
+/// Version 21 changed the signatures of ImageInput methods: added
+///     subimage,miplevel params to many read_*() methods; changed thread
+///     safety expectations; removed newspec param from seek_subimage.
+///     (OIIO 1.9)
 
-#define OIIO_PLUGIN_VERSION 20
+#define OIIO_PLUGIN_VERSION 21
 
 #define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_BEGIN
 #define OIIO_PLUGIN_NAMESPACE_END OIIO_NAMESPACE_END

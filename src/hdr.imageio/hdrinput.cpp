@@ -61,10 +61,11 @@ public:
     virtual ~HdrInput () { close(); }
     virtual const char * format_name (void) const override { return "hdr"; }
     virtual bool open (const std::string &name, ImageSpec &spec) override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
     virtual bool close () override;
     virtual int current_subimage (void) const override { return m_subimage; }
-    virtual bool seek_subimage (int subimage, int miplevel, ImageSpec &newspec) override;
+    virtual bool seek_subimage (int subimage, int miplevel) override;
 
 private:
     std::string m_filename;       ///< File name
@@ -103,13 +104,16 @@ bool
 HdrInput::open (const std::string &name, ImageSpec &newspec)
 {
     m_filename = name;
-    return seek_subimage (0, 0, newspec);
+
+    bool ok = seek_subimage (0, 0);
+    newspec = spec();
+    return ok;
 }
 
 
 
 bool
-HdrInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
+HdrInput::seek_subimage (int subimage, int miplevel)
 {
     // HDR doesn't support multiple subimages or mipmaps
     if (subimage != 0 || miplevel != 0)
@@ -117,7 +121,6 @@ HdrInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     // Skip the hard work if we're already on the requested subimage
     if (subimage == current_subimage()) {
-        newspec = spec();
         return true;
     }
 
@@ -166,15 +169,19 @@ HdrInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
 
     m_subimage = subimage;
     m_next_scanline = 0;
-    newspec = m_spec;
     return true;
 }
 
 
 
 bool
-HdrInput::read_native_scanline (int y, int z, void *data)
+HdrInput::read_native_scanline (int subimage, int miplevel,
+                                int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     if (m_next_scanline > y) {
         // User is trying to read an earlier scanline than the one we're
         // up to.  Easy fix: close the file and re-open.
@@ -183,7 +190,7 @@ HdrInput::read_native_scanline (int y, int z, void *data)
         int miplevel = current_miplevel();
         if (! close ()  ||
             ! open (m_filename, dummyspec)  ||
-            ! seek_subimage (subimage, miplevel, dummyspec))
+            ! seek_subimage (subimage, miplevel))
             return false;    // Somehow, the re-open failed
         assert (m_next_scanline == 0 && current_subimage() == subimage &&
                 current_miplevel() == miplevel);

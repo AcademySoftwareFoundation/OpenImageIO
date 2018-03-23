@@ -530,7 +530,8 @@ ImageOutput::copy_image (ImageInput *in)
     if (spec().deep) {
         // Special case for ''deep'' images
         DeepData deepdata;
-        bool ok = in->read_native_deep_image (deepdata);
+        bool ok = in->read_native_deep_image (in->current_subimage(),
+                                              in->current_miplevel(), deepdata);
         if (ok)
             ok = write_deep_image (deepdata);
         else

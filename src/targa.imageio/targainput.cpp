@@ -55,7 +55,8 @@ public:
     virtual bool open (const std::string &name, ImageSpec &newspec,
                        const ImageSpec &config) override;
     virtual bool close () override;
-    virtual bool read_native_scanline (int y, int z, void *data) override;
+    virtual bool read_native_scanline (int subimage, int miplevel,
+                                       int y, int z, void *data) override;
 
 private:
     std::string m_filename;           ///< Stash the filename
@@ -788,8 +789,13 @@ TGAInput::close ()
 
 
 bool
-TGAInput::read_native_scanline (int y, int z, void *data)
+TGAInput::read_native_scanline (int subimage, int miplevel,
+                                int y, int z, void *data)
 {
+    lock_guard lock (m_mutex);
+    if (! seek_subimage (subimage, miplevel))
+        return false;
+
     if (m_buf.empty ())
         readimg ();
 
