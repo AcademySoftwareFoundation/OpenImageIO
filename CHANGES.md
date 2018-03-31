@@ -13,6 +13,11 @@ Major new features and improvements:
 * New `maketx` option `--bumpslopes` specifically for converting bump maps,
   saves additional channels containing slope distribution moments that can
   be used in shaders for "bump to roughness" calculations. #1810 (1.9.2)
+* TIFF I/O of multiple scanlines or tiles at once (or whole images, as is
+  typical use case for oiiotool and maketx) is sped up by a large factor
+  on modern multicore systems. We've seen 10x or more faster oiiotool
+  performance for uint8 and uint16 TIFF files using "zip" (deflate)
+  compression, on modern 12-16 core machines. #1853 (1.9.2)
 
 Public API changes:
 * **Python binding overhaul**
@@ -66,6 +71,8 @@ Public API changes:
   can be retrieved as a string as the "timing_report" attribute, or it will
   be printed to stdout automatically if the value of log_times is 2 or more
   at the time that the application exits. #1885 (1.9.2)
+* Moved the definition of `ROI` from `imagebuf.h` to `imageio.h` and make
+  most of the methods `constexpr`. #1906 (1.9.2)
 
 Performance improvements:
 * ImageBufAlgo::computePixelStats is now multithreaded and should improve by
@@ -112,6 +119,10 @@ Fixes and feature enhancements:
       transformations it does automatically for read and write (if the image
       has alpha and does not appear to already be unassociated). #1864 (1.9.2)
     * `--help` prints the name of the OCIO color config file. #1869 (1.9.2)
+    * Frame sequence wildcard improvements: fix handling of negative frame
+      numbers and ranges, also the `--frames` command line option is not
+      enough to trigger a loop over those frame numbers, even if no other
+      arguments appear to have wildcard structure. #1894 (1.8.10/1.9.2)
 * ImageBufAlgo:
     * `color_map()` new  maps "inferno", "magma", "plasma", "viridis".
       #1820 (1.9.2)
@@ -150,9 +161,10 @@ Fixes and feature enhancements:
     * Important bug fix when dealing with rotated (and vertical) images,
       which were not being re-oriented properly and could get strangely
       scrambled. #1854 (1.9.2/1.8.9)
-
 * TIFF:
     * Improve performance of TIFF scanline output. #1833 (1.9.2)
+    * Bug fix: read_tile() and read_tiles() input of un-premultiplied tiles
+      botched the "shape" of the tile data array. #1907 (1.9.2/1.8.10)
 * zfile: more careful gzopen on Windows that could crash when given bogus
   filename. #1839 (1.9.2/1.8.8)
 
@@ -188,6 +200,12 @@ Build/test system improvements:
 * The build now bundles a sample OCIO config in testsuite/common so that we
   can do OCIO-based unit tests. #1870 (1.9.2)
 * Properly find newer openjpeg 2.3. #1871 (1.9.2)
+* Fix testsuite to be Python 2/3 agnostic. #1891 (1.9.2)
+* Removed `USE_PYTHON3` build flag, which didn't do anything. #1891 (1.9.2)
+* Remove some lingering support for MSVS < 2013 (which we haven't advertised
+  as working anyway). #1887 (1.9.2)
+* Windows/MSVC build fix: use the `/bigobj` option on some large modules
+  that need it. #1900, #1902 (1.8.10/1.9.2)
 
 Developer goodies / internals:
 * argparse.h:
@@ -196,13 +214,24 @@ Developer goodies / internals:
       Also modernized internals, no raw new/delete. #1858 (1.9.2)
 * array_view.h: added begin(), end(), cbegin(), cend() methods, and new
   constructors from pointer pairs and from std::array. (1.9.0/1.8.6)
-* fmath.h: Now defines preprocessor symbol `OIIO_FMATH_H` so other files can
-  easily detect if it has been included. (1.9.0/1.8.6)
+* color.h: add guards to make this header safe for Cuda compilation.
+  #1905 (1.9.2/1.8.10)
+* fmath.h:
+    * Now defines preprocessor symbol `OIIO_FMATH_H` so other files can
+      easily detect if it has been included. (1.9.0/1.8.6)
+    * Modify to allow Cuda compilation/use of this header. #1888,#1896
+     (1.9.2/1.8.10)
+* hash.h: add guards to make this header safe for Cuda compilation.
+  #1905 (1.9.2/1.8.10)
 * parallel.h:
     * `parallel_options` passed to many functions. #1807 (1.9.2)
     * More careful avoidance of threads not recursively using the thread
       pool (which could lead to deadlocks). #1807 (1.9.2)
     * Internals refactor of task_set #1883 (1.9.2).
+    * Make the thread pool better behaved in times if pool congestion -- if
+      there are already way too many items in the task queue, the caller may
+      do the work itself rather than add to the end and have to wait too
+      long to get results. #1884 (1.9.2)
 * paramlist.h:
     * ParamValue class has added get_int_indexed() and get_float_indexed()
       methods. #1773 (1.9.0/1.8.6)
@@ -212,7 +241,8 @@ Developer goodies / internals:
       add_or_replace(). #1813 (1.9.2)
 * simd.h:
     * Fixed build break when AVX512VL is enabled. #1781 (1.9.0/1.8.6)
-    * Minor fixes especially for avx512. #1846 (1.9.2/1.8.8) #1873 (1.9.2)
+    * Minor fixes especially for avx512. #1846 (1.9.2/1.8.8) #1873,#1893
+      (1.9.2)
 * string.h:
     * All string->numeric parsing and numeric->string formatting is now
       locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
@@ -229,8 +259,35 @@ Developer goodies / internals:
 * unittest.h: Made references to Strutil fully qualified in OIIO namespace,
   so that `unittest.h` can be more easily used outside of the OIIO codebase.
   #1791 (1.9.0)
+* Extensive use of C++11 `final` and `override` decorators of virtual
+  methods in our internals, especially ImageInput and ImageOutput.
+  #1904 (1.9.2)
 
 
+
+
+Release 1.8.10 (1 Apr 2018) -- compared to 1.8.9
+-------------------------------------------------
+* oiiotool frame sequence wildcard improvements: fix handling of negative
+  frame numbers and ranges, also the `--frames` command line option is not
+  enough to trigger a loop over those frame numbers, even if no other
+  arguments appear to have wildcard structure. #1894
+* TIFF bug fix: read_tile() and read_tiles() input of un-premultiplied tiles
+  botched the "shape" of the tile data array. #1907
+* Windows/MSVC build fix: use the `/bigobj` option on some large modules
+  that need it. #1900, #1902
+* fmath.h, hash.h, color.h: changes to make it friendly to Cuda compilation
+  (#1888, #1896, #1905).
+* fmath.h avx-512 improvements. #1893
+* testsuite is not Python 2/3 agnostic.
+
+Release 1.8.9 (1 Mar 2018) -- compared to 1.8.8
+-------------------------------------------------
+* Properly find newer openjpeg 2.3. #1871
+* Bug fix in IBA::copy where uninitialized dst image botched its ROI. #1876
+* RAW: Important bug fix when dealing with rotated (and vertical) images,
+  which were not being re-oriented properly and could get strangely
+  scrambled. #1854
 
 Release 1.8.8 (1 Feb 2018) -- compared to 1.8.7
 -------------------------------------------------
