@@ -1,6 +1,17 @@
-Release 1.8.10 (1 Apr? 2018) -- compared to 1.8.9
+Release 1.8.10 (1 Apr 2018) -- compared to 1.8.9
 -------------------------------------------------
-
+* oiiotool frame sequence wildcard improvements: fix handling of negative
+  frame numbers and ranges, also the `--frames` command line option is not
+  enough to trigger a loop over those frame numbers, even if no other
+  arguments appear to have wildcard structure. #1894
+* TIFF bug fix: read_tile() and read_tiles() input of un-premultiplied tiles
+  botched the "shape" of the tile data array. #1907
+* Windows/MSVC build fix: use the `/bigobj` option on some large modules
+  that need it. #1900, #1902
+* fmath.h, hash.h, color.h: changes to make it friendly to Cuda compilation
+  (#1888, #1896, #1905).
+* fmath.h avx-512 improvements. #1893
+* testsuite is not Python 2/3 agnostic.
 
 Release 1.8.9 (1 Mar 2018) -- compared to 1.8.8
 -------------------------------------------------
