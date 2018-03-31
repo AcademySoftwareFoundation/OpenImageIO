@@ -1,13 +1,13 @@
 cmake_minimum_required (VERSION 3.2.2)
 cmake_policy (SET CMP0048 NEW)  # Allow VERSION specifier in project()
 project (OpenImageIO
-         VERSION 1.8.9
+         VERSION 1.8.10
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
 string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
 set (PROJECT_VERSION_RELEASE_TYPE "")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
-set (PROJECT_COPYRIGHTYEARS "2008-2017")
+set (PROJECT_COPYRIGHTYEARS "2008-2018")
 set (PROJECT_AUTHORS "Larry Gritz, et al")
 set (PROJECT_URL "http://openimageio.org")
 
