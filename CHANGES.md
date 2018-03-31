@@ -1,3 +1,7 @@
+Release 1.8.11 (1 May 2018) -- compared to 1.8.10
+-------------------------------------------------
+
+
 Release 1.8.10 (1 Apr 2018) -- compared to 1.8.9
 -------------------------------------------------
 * oiiotool frame sequence wildcard improvements: fix handling of negative
