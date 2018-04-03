@@ -211,9 +211,9 @@ PNGOutput::close ()
         std::vector<unsigned char>().swap (m_tilebuffer);
     }
 
-    if (m_png)
-        PNG_pvt::finish_image (m_png);
-    PNG_pvt::destroy_write_struct (m_png, m_info);
+    if (m_png) {
+        PNG_pvt::finish_image (m_png, m_info);
+    }
 
     fclose (m_file);
     m_file = NULL;
