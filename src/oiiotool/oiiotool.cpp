@@ -5078,7 +5078,7 @@ getargs (int argc, char *argv[])
                 "--create %@ %s %d", action_create, NULL, NULL,
                         "Create a blank image (args: geom, channels)",
                 "--pattern %@ %s %s %d", action_pattern, NULL, NULL, NULL,
-                        "Create a patterned image (args: pattern, geom, channels). Patterns: black, fill, checker, noise",
+                        "Create a patterned image (args: pattern, geom, channels). Patterns: black, constant, fill, checker, noise",
                 "--kernel %@ %s %s", action_kernel, NULL, NULL,
                         "Create a centered convolution kernel (args: name, geom)",
                 "--capture %@", action_capture, NULL,
