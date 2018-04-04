@@ -4995,8 +4995,8 @@ print_help_end (const ArgParse &ap, std::ostream &out)
     out << formatted_format_list ("Output", "output_format_list") << "\n";
 
     // debugging color space names
+    out << "Color configuration: " << ot.colorconfig.configname() << "\n";
     std::stringstream s;
-    s << "Color configuration: " << ot.colorconfig.configname() << "\n";
     s << "Known color spaces: ";
     const char *linear = ot.colorconfig.getColorSpaceNameByRole("linear");
     for (int i = 0, e = ot.colorconfig.getNumColorSpaces();  i < e;  ++i) {
@@ -5063,8 +5063,8 @@ print_help_end (const ArgParse &ap, std::ostream &out)
             size_t pos = lib.find(':');
             lib.remove_prefix (pos+1);
         }
-        out << "Dependent libraries:\n    "
-            << Strutil::wordwrap(Strutil::join (libvec, ", "), columns, 4)
+        out << Strutil::wordwrap("Dependent libraries: " +
+                                 Strutil::join (libvec, ", "), columns, 4)
             << std::endl;
     }
 
