@@ -184,7 +184,7 @@ public:
     TextureOpt::Wrap rwrap () const { return m_rwrap; }
     TypeDesc datatype (int subimage) const { return m_subimages[subimage].datatype; }
     ImageCacheImpl &imagecache () const { return m_imagecache; }
-    ImageInput *imageinput () const { return m_input.get(); }
+//    ImageInput *imageinput () const { return m_input.get(); }
     ImageInput::Creator creator () const { return m_inputcreator; }
 
     /// Load new data tile
@@ -338,6 +338,10 @@ private:
     bool m_broken;                  ///< has errors; can't be used properly
     std::string m_broken_message;   ///< Error message for why it's broken
     std::shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
+       // Note that m_input, the shared pointer itself, is NOT safe to
+       // access directly. ALWAYS retrieve its value with get_imageinput
+       // (it's thread-safe to use that result) and set its value with
+       // get_imageinput -- those are guaranteed thread-safe.
     std::vector<SubimageInfo> m_subimages;  ///< Info on each subimage
     TexFormat m_texformat;          ///< Which texture format
     TextureOpt::Wrap m_swrap;       ///< Default wrap modes
@@ -377,29 +381,34 @@ private:
     UdimLookupMap m_udim_lookup;    ///< Used for decoding udim tiles
                                     // protected by mutex elsewhere!
 
+    /// Thread-safe retrieve a shared pointer to the ImageInput. The one
+    /// returned is safe to use as long as the caller is holding the
+    /// shared_ptr.
+    std::shared_ptr<ImageInput> get_imageinput (ImageCachePerThreadInfo *thread_info);
 
-    /// We will need to read pixels from the file, so be sure it's
-    /// currently opened.  Return true if ok, false if error.
-    bool open (ImageCachePerThreadInfo *thread_info);
+    // Safely replace the existing ImageInput shared pointer with the one in
+    // newval. Ensure that the cache still knows how many open ImageInputs
+    // there are in total.
+    void set_imageinput (std::shared_ptr<ImageInput> newval);
 
-    bool opened () const { return m_input.get() != NULL; }
+    /// Retrieve a shared pointer to the file's open ImageInput (opening if
+    /// necessary, and maintaining the limit on number of open files). For a
+    /// broken file, return an empty shared ptr. This is thread-safe and
+    /// requires no external lock.
+    std::shared_ptr<ImageInput> open (ImageCachePerThreadInfo *thread_info);
 
-    /// Force the file to open, thread-safe.
-    bool forceopen (ImageCachePerThreadInfo *thread_info) {
-        Timer input_mutex_timer;
-        recursive_lock_guard guard (m_input_mutex);
-        m_mutex_wait_time += input_mutex_timer();
-        return open (thread_info);
-    }
-
-    /// Close and delete the ImageInput, if currently open
-    ///
+    /// Release the ImageInput, if currently open. It will close and destroy
+    /// when the last thread holding it is done with its shared ptr. This
+    /// is thread-safe, no need to hold a lock to call it. It will close the
+    /// open file, but it doesn't change the fact that this ImageCacheFile
+    /// is a valid descriptor of the image file.
     void close (void);
 
     /// Load the requested tile, from a file that's not really tiled.
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage and MIP level.
     bool read_untiled (ImageCachePerThreadInfo *thread_info,
+                       ImageInput *inp,
                        int subimage, int miplevel, int x, int y, int z,
                        int chbegin, int chend, TypeDesc format, void *data);
 
@@ -407,18 +416,9 @@ private:
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage.
     bool read_unmipped (ImageCachePerThreadInfo *thread_info,
+                        ImageInput *inp,
                         int subimage, int miplevel, int x, int y, int z,
                         int chbegin, int chend, TypeDesc format, void *data);
-
-    void lock_input_mutex () {
-        Timer input_mutex_timer;
-        m_input_mutex.lock ();
-        m_mutex_wait_time += input_mutex_timer();
-    }
-
-    void unlock_input_mutex () {
-        m_input_mutex.unlock ();
-    }
 
     // Initialize a bunch of fields based on the ImageSpec.
     // FIXME -- this is actually deeply flawed, many of these things only

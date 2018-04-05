@@ -465,7 +465,6 @@ ImageInput::read_tiles (int xbegin, int xend, int ybegin, int yend,
         miplevel = current_miplevel();
         chend = spec().nchannels;
     }
-    ROI roi (xbegin, xend, ybegin, yend, zbegin, zend, 0, chend);
     return read_tiles (subimage, miplevel,
                        xbegin, xend, ybegin, yend, zbegin, zend, 0, chend,
                        format, data, xstride, ystride, zstride);
@@ -513,15 +512,6 @@ ImageInput::read_tiles (int subimage, int miplevel,
     }
 
     chend = clamp (chend, chbegin+1, spec.nchannels);
-    // roi.chend = clamp (roi.chend, roi.chbegin+1, spec.nchannels);
-    // int xbegin = roi.xbegin;
-    // int xend = roi.xend;
-    // int ybegin = roi.ybegin;
-    // int yend = roi.yend;
-    // int zbegin = roi.zbegin;
-    // int zend = roi.zend;
-    // int chbegin = roi.chbegin;
-    // int chend = roi.chend;
     int nchans = chend - chbegin;
     if (! spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
@@ -755,20 +745,19 @@ ImageInput::read_native_tiles (int subimage, int miplevel,
         lock_guard lock (m_mutex);
         if (! seek_subimage (subimage, miplevel))
             return false;
-        chend = clamp (chend, chbegin+1, spec.nchannels);
-
-        // All-channel case just reduces to the simpler version of
-        // read_native_tiles.
-        if (chbegin == 0 && chend >= spec.nchannels)
-            return read_native_tiles (subimage, miplevel, xbegin, xend,
-                                      ybegin, yend, zbegin, zend, data);
-        // More complicated cases follow.
-
         // Copying the dimensions of the designated subimage/miplevel to a
         // local `spec` means that we can release the lock!  (Calls to
         // read_native_* will internally lock again if necessary.)
         spec.copy_dimensions (m_spec);
     }
+
+    chend = clamp (chend, chbegin+1, spec.nchannels);
+    // All-channel case just reduces to the simpler version of
+    // read_native_tiles.
+    if (chbegin == 0 && chend >= spec.nchannels)
+        return read_native_tiles (subimage, miplevel, xbegin, xend,
+                                  ybegin, yend, zbegin, zend, data);
+    // More complicated cases follow.
 
     if (! spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
         return false;

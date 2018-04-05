@@ -327,6 +327,48 @@ ImageCacheFile::~ImageCacheFile ()
 
 
 
+std::shared_ptr<ImageInput>
+ImageCacheFile::get_imageinput (ImageCachePerThreadInfo *thread_info)
+{
+#if defined(__GLIBCXX__) && __GLIBCXX__ < 20160427
+    // Older gcc libstdc++ does not properly support std::atomic
+    // operations on std::shared_ptr, despite it being a C++11
+    // feature. No choice but to lock.
+    recursive_lock_guard guard (m_input_mutex);
+    return m_input;
+#else
+    // True C++11: can atomically load a shared_ptr safely.
+    return std::atomic_load (&m_input);
+#endif
+}
+
+
+
+void
+ImageCacheFile::set_imageinput (std::shared_ptr<ImageInput> newval)
+{
+    if (newval)
+        imagecache().incr_open_files ();
+#if defined(__GLIBCXX__) && __GLIBCXX__ < 20160427
+    // Older gcc libstdc++ does not properly support std::atomic
+    // operations on std::shared_ptr, despite it being a C++11
+    // feature. No choice but to lock.
+    std::shared_ptr<ImageInput> oldval;
+    {
+        recursive_lock_guard guard (m_input_mutex);
+        oldval = m_input;
+        m_input = newval;
+    }
+#else
+    // True C++11: can atomically exchange a shared_ptr safely.
+    auto oldval = std::atomic_exchange (&m_input, newval);
+#endif
+    if (oldval)
+        imagecache().decr_open_files ();
+}
+
+
+
 void
 ImageCacheFile::SubimageInfo::init (const ImageSpec &spec, bool forcefloat)
 {
@@ -399,27 +441,51 @@ ImageCacheFile::SubimageInfo::init (const ImageSpec &spec, bool forcefloat)
 
 
 
-bool
+std::shared_ptr<ImageInput>
 ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
 {
-    // N.B. open() does not need to lock the m_input_mutex, because open()
-    // itself is only called by routines that hold the lock.
-    // recursive_lock_guard_t guard (m_input_mutex);
+    // Simple case -- no lock needed: atomically retrieve a shared pointer
+    // to the ImageInput. If it exists, return it. Unless the file is
+    // marked as broken, in which case return an empty pointer.
+    std::shared_ptr<ImageInput> inp = get_imageinput (thread_info);
+    if (m_broken)
+        return {};
+    if (inp)
+        return inp;
 
-    if (m_input)         // Already opened
-        return !m_broken;
-    if (m_broken)        // Already failed an open -- it's broken
-        return false;
+    // The file wasn't already opened and in a good state.
+
+    // Enforce limits on maximum number of open files.
+    imagecache().check_max_files (thread_info);
+
+    // Now we do a lock and open it for real, to keep anybody else from
+    // going through the whole opening process simultaneously.
+    Timer input_mutex_timer;
+    recursive_lock_guard guard (m_input_mutex);
+    m_mutex_wait_time += input_mutex_timer();
+
+    // JUST IN CASE somebody else opened the file we want, between when we
+    // checked and when we acquired the lock, check again.
+    //
+    // FIXME: do we care? Is it better to block, or is it better to
+    // redundantly open the file and one will get quickly closed and
+    // discarded?
+    inp = get_imageinput (thread_info);
+    if (m_broken)
+        return {};
+    if (inp)
+        return inp;
+    ASSERT (inp.get() == nullptr);
 
     if (m_inputcreator)
-        m_input.reset (m_inputcreator());
+        inp.reset (m_inputcreator());
     else
-        m_input.reset (ImageInput::create (m_filename.string(),
-                                           m_imagecache.plugin_searchpath()));
-    if (! m_input) {
+        inp.reset (ImageInput::create (m_filename.string(),
+                                       m_imagecache.plugin_searchpath()));
+    if (! inp) {
         mark_broken (OIIO::geterror());
         invalidate_spec ();
-        return false;
+        return {};
     }
 
     ImageSpec configspec;
@@ -432,12 +498,12 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     mark_not_broken ();
     bool ok = true;
     for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
-        ok = m_input->open (m_filename.c_str(), nativespec, configspec);
+        ok = inp->open (m_filename.c_str(), nativespec, configspec);
         if (ok) {
             tempspec = nativespec;
             if (tries)   // succeeded, but only after a failure!
                 ++thread_info->m_stats.file_retry_success;
-            (void) m_input->geterror ();  // Eat the errors
+            (void) inp->geterror ();  // Eat the errors
             break;
         }
         if (tries < imagecache().failure_retries()) {
@@ -446,19 +512,20 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         }
     }
     if (! ok) {
-        mark_broken (m_input->geterror());
-        m_input.reset ();
-        return false;
+        mark_broken (inp->geterror());
+        inp.reset ();
+        return {};
     }
-    m_fileformat = ustring (m_input->format_name());
+    m_fileformat = ustring (inp->format_name());
     ++m_timesopened;
-    m_imagecache.incr_open_files ();
     use ();
 
     // If we are simply re-opening a closed file, and the spec is still
     // valid, we're done, no need to reread the subimage and mip headers.
-    if (validspec())
-        return true;
+    if (validspec()) {
+        set_imageinput (inp);
+        return inp;
+    }
 
     // From here on, we know that we've opened this file for the very
     // first time.  So read all the subimages, fill out all the fields
@@ -509,17 +576,17 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             if (nmip > 0 && tempspec.nchannels != spec(nsubimages,0).nchannels) {
                 // No idea what to do with a subimage that doesn't have the
                 // same number of channels as the others, so just skip it.
-                close ();
+                inp.reset();
                 mark_broken ("Subimages don't all have the same number of channels");
                 invalidate_spec ();
-                return false;
+                return {};
             }
             // ImageCache can't store differing formats per channel
             tempspec.channelformats.clear();
             LevelInfo levelinfo (tempspec, nativespec);
             si.levels.push_back (levelinfo);
             ++nmip;
-        } while (m_input->seek_subimage (nsubimages, nmip, nativespec));
+        } while (inp->seek_subimage (nsubimages, nmip, nativespec));
 
         // Special work for non-MIPmapped images -- but only if "automip"
         // is on, it's a non-mipmapped image, and it doesn't have a
@@ -566,18 +633,18 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         if (si.untiled && ! imagecache().accept_untiled()) {
             mark_broken ("image was untiled");
             invalidate_spec ();
-            m_input.reset ();
-            return false;
+            inp.reset ();
+            return {};
         }
         if (si.unmipped && ! imagecache().accept_unmipped()) {
             mark_broken ("image was not MIP-mapped");
             invalidate_spec ();
-            m_input.reset ();
-            return false;
+            inp.reset ();
+            return {};
         }
 
         ++nsubimages;
-    } while (m_input->seek_subimage (nsubimages, 0, nativespec));
+    } while (inp->seek_subimage (nsubimages, 0, nativespec));
     ASSERT ((size_t)nsubimages == m_subimages.size());
 
     if (Filesystem::exists(m_filename.string()))
@@ -591,7 +658,8 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
     thread_info->m_stats.files_totalsize_ondisk += m_total_imagesize_ondisk;
 
     init_from_spec ();  // Fill in the rest of the fields
-    return true;
+    set_imageinput (inp);
+    return inp;
 }
 
 
@@ -707,25 +775,8 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
                            TypeDesc format, void *data)
 {
     ASSERT (chend > chbegin);
-    Timer input_mutex_timer;
-    recursive_lock_guard guard (m_input_mutex);
-    m_mutex_wait_time += input_mutex_timer();
-
-    if (! m_input && !m_broken) {
-        // The file is already in the file cache, but the handle is
-        // closed.  We will need to re-open, so we must make sure there
-        // will be enough file handles.
-        // But wait, it's possible that somebody else is waiting on our
-        // m_input_mutex, which we locked above.  To avoid deadlock, we
-        // need to release m_input_mutex while we close files.
-        unlock_input_mutex ();
-        imagecache().check_max_files (thread_info);
-        // Now we're back, whew!  Grab the lock again.
-        lock_input_mutex ();
-    }
-
-    bool ok = open (thread_info);
-    if (! ok)
+    std::shared_ptr<ImageInput> inp = open (thread_info);
+    if (! inp)
         return false;
 
     // Mark if we ever use a mip level that's not the first
@@ -738,56 +789,42 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
     SubimageInfo &subinfo (subimageinfo(subimage));
 
     // Special case for un-MIP-mapped
-    if (subinfo.unmipped && miplevel != 0) {
-        // For a non-base mip level of an unmipped file, release the
-        // mutex on the ImageInput since upper levels don't need to
-        // directly perform I/O.  This prevents the deadlock that could
-        // occur if another thread has one of the lower-level tiles and
-        // itself blocks on the mutex (it's waiting for our mutex, we're
-        // waiting on its tile to get filled with pixels).
-        unlock_input_mutex ();
-        bool ok = read_unmipped (thread_info, subimage, miplevel,
-                                 x, y, z, chbegin, chend, format, data);
-        // The lock_guard at the very top will try to unlock upon
-        // destruction, to to make things right, we need to re-lock.
-        lock_input_mutex ();
-        return ok;
-    }
+    if (subinfo.unmipped && miplevel != 0)
+        return read_unmipped (thread_info, inp.get(), subimage, miplevel,
+                              x, y, z, chbegin, chend, format, data);
 
     // Special case for untiled images -- need to do tile emulation
     if (subinfo.untiled)
-        return read_untiled (thread_info, subimage, miplevel,
+        return read_untiled (thread_info, inp.get(), subimage, miplevel,
                              x, y, z, chbegin, chend, format, data);
 
     // Ordinary tiled
-    if (ok) {
-        const ImageSpec &spec (this->spec(subimage, miplevel));
-        for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
-            ok = m_input->read_tiles (subimage, miplevel,
-                                      x, x+spec.tile_width,
-                                      y, y+spec.tile_height,
-                                      z, z+spec.tile_depth,
-                                      chbegin, chend, format, data);
-            if (ok) {
-                if (tries)   // succeeded, but only after a failure!
-                    ++thread_info->m_stats.tile_retry_success;
-                (void) m_input->geterror ();  // Eat the errors
-                break;
-            }
-            if (tries < imagecache().failure_retries()) {
-                // We failed, but will wait a bit and try again.
-                Sysutil::usleep (1000 * 100);  // 100 ms
-                // TODO: should we attempt to close and re-open the file?
-            }
+    bool ok = true;
+    const ImageSpec &spec (this->spec(subimage, miplevel));
+    for (int tries = 0; tries <= imagecache().failure_retries(); ++tries) {
+        ok = inp->read_tiles (subimage, miplevel, x, x+spec.tile_width,
+                              y, y+spec.tile_height, z, z+spec.tile_depth,
+                              chbegin, chend, format, data);
+        if (ok) {
+            if (tries)   // succeeded, but only after a failure!
+                ++thread_info->m_stats.tile_retry_success;
+            (void) inp->geterror ();  // Eat the errors
+            break;
         }
-        if (! ok) {
-            std::string err = m_input->geterror();
-            if (!err.empty() && errors_should_issue())
-                imagecache().error ("%s", err);
+        if (tries < imagecache().failure_retries()) {
+            // We failed, but will wait a bit and try again.
+            Sysutil::usleep (1000 * 100);  // 100 ms
+            // TODO: should we attempt to close and re-open the file?
         }
     }
+    if (! ok) {
+        std::string err = inp->geterror();
+        if (!err.empty() && errors_should_issue())
+            imagecache().error ("%s", err);
+    }
+
     if (ok) {
-        size_t b = spec(subimage,miplevel).tile_bytes();
+        size_t b = spec.tile_bytes();
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
         ++m_tilesread;
@@ -799,6 +836,7 @@ ImageCacheFile::read_tile (ImageCachePerThreadInfo *thread_info,
 
 bool
 ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
+                               ImageInput *inp,
                                int subimage, int miplevel,
                                int x, int y, int z, int chbegin, int chend,
                                TypeDesc format, void *data)
@@ -895,23 +933,11 @@ ImageCacheFile::read_unmipped (ImageCachePerThreadInfo *thread_info,
 // of reading a "tile" from a file that's scanline-oriented.
 bool
 ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
+                              ImageInput *inp,
                               int subimage, int miplevel,
                               int x, int y, int z, int chbegin, int chend,
                               TypeDesc format, void *data)
 {
-    // N.B. No need to lock the input mutex, since this is only called
-    // from read_tile, which already holds the lock.
-
-    if (m_input->current_subimage() != subimage ||
-        m_input->current_miplevel() != miplevel) {
-        if (! m_input->seek_subimage (subimage, miplevel)) {
-            std::string err = m_input->geterror();
-            if (!err.empty() && errors_should_issue())
-                imagecache().error ("%s", err);
-            return false;
-        }
-    }
-
     // Strides for a single tile
     const ImageSpec &spec (this->spec(subimage,miplevel));
     int tw = spec.tile_width;
@@ -943,12 +969,12 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         y0 += spec.y;
         y1 += spec.y;
         // Read the whole tile-row worth of scanlines
-        ok = m_input->read_scanlines (subimage, miplevel,
-                                      y0, y1+1, z, chbegin, chend,
-                                      format, (void *)&buf[0],
-                                      pixelsize, scanlinesize);
+        ok = inp->read_scanlines (subimage, miplevel,
+                                  y0, y1+1, z, chbegin, chend,
+                                  format, (void *)&buf[0],
+                                  pixelsize, scanlinesize);
         if (! ok) {
-            std::string err = m_input->geterror();
+            std::string err = inp->geterror();
             if (!err.empty() && errors_should_issue())
                 imagecache().error ("%s", err);
         }
@@ -956,12 +982,6 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
         ++m_tilesread;
-        // At this point, we aren't reading from the file any longer,
-        // and to avoid deadlock, we MUST release the input lock prior
-        // to any attempt to add_tile_to_cache, lest another thread add
-        // the same tile to the cache before us but need the input mutex
-        // to actually read the texels before marking it as pixels_ready.
-        unlock_input_mutex ();
 
         // For all tiles in the tile-row, enter them into the cache if not
         // already there.  Special case for the tile we're actually being
@@ -990,16 +1010,12 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
                 }
             }
         }
-        // The lock_guard inside the calling function, read_tile, passed
-        // us the input_mutex locked, and expects to get it back the
-        // same way, so we need to re-lock.
-        lock_input_mutex ();
     } else {
         // No auto-tile -- the tile is the whole image
-        ok = m_input->read_image (chbegin, chend, format, data,
-                                  xstride, ystride, zstride);
+        ok = inp->read_image (subimage, miplevel, chbegin, chend,
+                              format, data, xstride, ystride, zstride);
         if (! ok) {
-            std::string err = m_input->geterror();
+            std::string err = inp->geterror();
             if (!err.empty() && errors_should_issue())
                 imagecache().error ("%s", err);
         }
@@ -1010,6 +1026,7 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
         // If we read the whole image, presumably we're done, so release
         // the file handle.
         close ();
+        // FIXME: ^^^ is that a good idea or not?
     }
 
     return ok;
@@ -1020,13 +1037,10 @@ ImageCacheFile::read_untiled (ImageCachePerThreadInfo *thread_info,
 void
 ImageCacheFile::close ()
 {
-    // N.B. close() does not need to lock the m_input_mutex, because close()
-    // itself is only called by routines that hold the lock.
-    if (opened()) {
-        m_input->close ();
-        m_input.reset ();
-        m_imagecache.decr_open_files ();
-    }
+    // Clearing the m_input will close and free it when no other threads
+    // are still hanging onto it.
+    std::shared_ptr<ImageInput> empty;
+    set_imageinput (empty);
 }
 
 
