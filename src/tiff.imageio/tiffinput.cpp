@@ -132,6 +132,9 @@ public:
         return m_emulate_mipmap ? m_subimage : 0;
     }
     virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual ImageSpec spec (int subimage, int miplevel) override;
+    virtual ImageSpec spec_dimensions (int subimage, int miplevel) override;
+    const ImageSpec &spec (void) const override { return m_spec; }
     virtual bool read_native_scanline (int subimage, int miplevel,
                                        int y, int z, void *data) override;
     virtual bool read_native_scanlines (int subimage, int miplevel,
@@ -182,6 +185,7 @@ private:
     unsigned short m_inputchannels;  ///< Channels in the file (careful with CMYK)
     std::vector<unsigned short> m_colormap;  ///< Color map for palette images
     std::vector<uint32_t> m_rgbadata; ///< Sometimes we punt
+    std::vector<ImageSpec> m_subimage_specs; ///< Cached subimage specs
 
     // Reset everything to initial state
     void init () {
@@ -196,6 +200,7 @@ private:
         m_testopenconfig = false;
         m_colormap.clear();
         m_use_rgba_interface = false;
+        m_subimage_specs.clear();
     }
 
     void close_tif () {
@@ -661,6 +666,10 @@ TIFFInput::seek_subimage (int subimage, int miplevel)
             m_spec.channelformats.clear ();
             m_photometric = PHOTOMETRIC_RGB;
         }
+        if (size_t(subimage) >= m_subimage_specs.size()) // make room
+            m_subimage_specs.resize (subimage > 0 ? round_to_multiple(subimage+1, 4) :1);
+        if (m_subimage_specs[subimage].undefined()) // haven't cached this spec yet
+            m_subimage_specs[subimage] = m_spec;
         if (m_spec.format == TypeDesc::UNKNOWN) {
             error ("No support for data format of \"%s\"", m_filename);
             return false;
@@ -672,6 +681,44 @@ TIFFInput::seek_subimage (int subimage, int miplevel)
         m_subimage = -1;
         return false;
     }
+}
+
+
+
+ImageSpec
+TIFFInput::spec (int subimage, int miplevel)
+{
+    ImageSpec ret;
+    int s = m_emulate_mipmap ? miplevel : subimage;
+    lock_guard lock (m_mutex);
+    if (s >= 0 && s < int(m_subimage_specs.size()) &&
+        ! m_subimage_specs[s].undefined()) {
+        // If we've cached this spec, we don't need to seek and read
+        ret = m_subimage_specs[s];
+    } else {
+        if (seek_subimage (subimage, miplevel))
+            ret = m_spec;
+    }
+    return ret;
+}
+
+
+
+ImageSpec
+TIFFInput::spec_dimensions (int subimage, int miplevel)
+{
+    ImageSpec ret;
+    int s = m_emulate_mipmap ? miplevel : subimage;
+    lock_guard lock (m_mutex);
+    if (s >= 0 && s < int(m_subimage_specs.size()) &&
+        ! m_subimage_specs[s].undefined()) {
+        // If we've cached this spec, we don't need to seek and read
+        ret.copy_dimensions (m_subimage_specs[s]);
+    } else {
+        if (seek_subimage (subimage, miplevel))
+            ret.copy_dimensions (m_spec);
+    }
+    return ret;
 }
 
 

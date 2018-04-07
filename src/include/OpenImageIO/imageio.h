@@ -592,6 +592,14 @@ public:
         z_channel = other.z_channel;
         deep = other.deep;
     }
+
+    /// Is this ImageSpec undefined? (Designated by no channels and
+    /// undefined data type -- true of the uninitialized state of an
+    /// ImageSpec, and presumably not for any ImageSpec that is useful or
+    /// purposefully made.)
+    bool undefined () const {
+        return nchannels == 0 && format == TypeUnknown;
+    }
 };
 
 
@@ -700,8 +708,29 @@ public:
     /// Return a reference to the image format specification of the
     /// current subimage/MIPlevel.  Note that the contents of the spec
     /// are invalid before open() or after close(), and may change with
-    /// a call to seek_subimage().
+    /// a call to seek_subimage(). It is thus not thread-safe, since the
+    /// spec may change if another thread calls seek_subimage, or any of
+    /// the read_*() functions that take explicit subimage/miplevel.
     virtual const ImageSpec &spec (void) const { return m_spec; }
+
+    /// Return a full copy of the ImageSpec of the designated subimage and
+    /// MIPlevel. This method is thread-safe, but it is potentially
+    /// expensive, due to the work that needs to be done to fully copy an
+    /// ImageSpec if there is lots of named metadata to allocate and copy.
+    /// See also the less expensive spec_dimensions(). Errors (such as
+    /// having requested a nonexistant subimage) are indicated by returning
+    /// an ImageSpec with format==TypeUnknown.
+    virtual ImageSpec spec (int subimage, int miplevel=0);
+
+    /// Return a copy of the ImageSpec of the designated subimage and
+    /// miplevel, but only the dimension and type fields. Just as with a
+    /// call to ImageSpec::copy_dimensions(), neither the channel names nor
+    /// any of the arbitrary named metadata will be copied, thus this is a
+    /// relatively inexpensive operation if you don't need that information.
+    /// It is guaranteed to be thread-safe. Errors (such as having requested
+    /// a nonexistant subimage) are indicated by returning an ImageSpec with
+    /// format==TypeUnknown.
+    virtual ImageSpec spec_dimensions (int subimage, int miplevel=0);
 
     /// Close an image that we are totally done with. The call to close() is
     /// not strictly necessary if the ImageInput is destroyed immediately
@@ -731,6 +760,8 @@ public:
     /// transparently close, reopen, and sequentially read through prior
     /// subimages and levels.
     virtual bool seek_subimage (int subimage, int miplevel) {
+        // Default implementation assumes no support for subimages or
+        // mipmaps, so there is no work to do.
         return subimage == current_subimage() && miplevel == current_miplevel();
     }
 
@@ -1096,6 +1127,7 @@ public:
 protected:
     mutable mutex m_mutex;   // lock of the thread-safe methods
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
+                       // BEWARE using m_spec directly -- not thread-safe
 
 private:
     mutable std::string m_errmessage;  // private storage of error message

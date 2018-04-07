@@ -728,6 +728,12 @@ for an \ImageSpec with lots of metadata, it is much less expensive than
 copying the whole thing with {\cf operator=()}).
 \apiend
 
+\apiitem{bool {\ce undefined} () const}
+\NEW % 1.9
+Returns {\cf true} for a newly initialized (undefined) \ImageSpec.
+\apiend
+
+
 % FIXME - document auto_stride() ?
 
 \apiitem{void {\ce attribute} (string_view name, TypeDesc type, \\

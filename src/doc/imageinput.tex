@@ -871,20 +871,30 @@ current subimage.  Note that the contents of the spec are
 invalid before {\kw open()} or after {\kw close()}.
 \apiend
 
+\apiitem {ImageSpec {\ce spec} (int subimage, int miplevel=0) \\
+\apiitem {ImageSpec {\ce spec_dimensions} (int subimage, int miplevel=0)}
+\NEW % 1.9
+Both of these thread-safe methods return a copy of the \ImageSpec of the
+designated subimage/miplevel.
+
+The {\cf spec()} method returns a full copy of the \ImageSpec, including all
+metadata (which may be expensive).  The {\cf spec_dimensions()} method only
+copies the dimension fields but none of the arbitrary named metadata (just
+as with a call to {\cf ImageSpec::copy_dimensions()}), and thus is
+relatively inexpensive.
+\apiend
+
 \apiitem{bool {\ce close} ()}
 Closes an open image.
 \apiend
 
-
-\apiitem{int {\ce current_subimage} (void) const}
-Returns the index of the subimage that is currently being read.
-The first subimage (or the only subimage, if there is just one) is
-number 0.
+\apiitem{int {\ce current_subimage} (void) const \\
+int {\ce current_miplevel} (void) const}
+Returns the index of the subimage and MIP level, respectively, that is
+currently being read. Subimage and MIP level index numbers begin with 0.
 \apiend
 
-
 \apiitem{bool {\ce seek_subimage} (int subimage, int miplevel, ImageSpec \&newspec)}
-
 Seek to the given subimage and MIP-map level within the open image file.
 The first subimage in the file has index 0, and for each subimage, the
 highest-resolution MIP level has index 0.  Return {\kw true} on success,
@@ -896,7 +906,6 @@ appearance of random access to subimages and MIP levels --- in other
 words, if it can't randomly seek to the given subimage or MIP level, it
 should transparently close, reopen, and sequentially read through prior
 subimages and levels.
-
 \apiend
 
 \apiitem{bool {\ce read_scanline} (int y, int z, TypeDesc format, void *data,\\

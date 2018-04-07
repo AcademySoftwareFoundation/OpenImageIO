@@ -96,7 +96,8 @@ namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
 /// Version 20 added FMT_imageio_library_version() to plugins. (OIIO 1.7)
 /// Version 21 changed the signatures of ImageInput methods: added
 ///     subimage,miplevel params to many read_*() methods; changed thread
-///     safety expectations; removed newspec param from seek_subimage.
+///     safety expectations; removed newspec param from seek_subimage;
+///     added spec(subimage,miplevel) and spec_dimensions(subimage,miplevel).
 ///     (OIIO 1.9)
 
 #define OIIO_PLUGIN_VERSION 21

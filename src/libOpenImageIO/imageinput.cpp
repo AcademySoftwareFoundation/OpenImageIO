@@ -107,7 +107,43 @@ ImageInput::open (const std::string &filename,
 
 
 
-bool 
+ImageSpec
+ImageInput::spec (int subimage, int miplevel)
+{
+    // This default base class implementation just locks, calls
+    // seek_subimage, then copies the spec. But ImageInput subclass
+    // implementations are free to do something more efficient, e.g. if they
+    // already internally cache all of the subimage specs and thus don't
+    // need a seek.
+    ImageSpec ret;
+    lock_guard lock (m_mutex);
+    if (seek_subimage (subimage, miplevel))
+        ret = m_spec;
+    return ret;
+    // N.B. single return of named value should guaranteed copy elision.
+}
+
+
+
+ImageSpec
+ImageInput::spec_dimensions (int subimage, int miplevel)
+{
+    // This default base class implementation just locks, calls
+    // seek_subimage, then copies the spec. But ImageInput subclass
+    // implementations are free to do something more efficient, e.g. if they
+    // already internally cache all of the subimage specs and thus don't
+    // need a seek.
+    ImageSpec ret;
+    lock_guard lock (m_mutex);
+    if (seek_subimage (subimage, miplevel))
+        ret.copy_dimensions (m_spec);
+    return ret;
+    // N.B. single return of named value should guaranteed copy elision.
+}
+
+
+
+bool
 ImageInput::read_scanline (int y, int z, TypeDesc format, void *data,
                            stride_t xstride)
 {
@@ -206,16 +242,9 @@ ImageInput::read_scanlines (int subimage, int miplevel,
                             TypeDesc format, void *data,
                             stride_t xstride, stride_t ystride)
 {
-    ImageSpec spec;
-    {
-        lock_guard lock (m_mutex);
-        if (! seek_subimage (subimage, miplevel))
-            return false;
-        // Copying the dimensions of the designated subimage/miplevel to a
-        // local `spec` means that we can release the lock!  (Calls to
-        // read_native_* will internally lock again if necessary.)
-        spec.copy_dimensions (m_spec);
-    }
+    ImageSpec spec = spec_dimensions (subimage, miplevel);  // thread-safe
+    if (spec.undefined())
+        return false;
 
     chend = clamp (chend, chbegin+1, spec.nchannels);
     int nchans = chend - chbegin;
@@ -238,10 +267,10 @@ ImageInput::read_scanlines (int subimage, int miplevel,
         (format == spec.format && spec.channelformats.empty());
     if (rightformat && contiguous) {
         if (chbegin == 0 && chend == spec.nchannels)
-            return read_native_scanlines (current_subimage(), current_miplevel(),
+            return read_native_scanlines (subimage, miplevel,
                                           ybegin, yend, z, data);
         else
-            return read_native_scanlines (current_subimage(), current_miplevel(),
+            return read_native_scanlines (subimage, miplevel,
                                           ybegin, yend, z, chbegin, chend, data);
     }
 
@@ -258,7 +287,7 @@ ImageInput::read_scanlines (int subimage, int miplevel,
     int scanline_values = spec.width * nchans;
     for (;  ok && ybegin < yend;  ybegin += chunk) {
         int y1 = std::min (ybegin+chunk, yend);
-        ok &= read_native_scanlines (current_subimage(), current_miplevel(),
+        ok &= read_native_scanlines (subimage, miplevel,
                                      ybegin, y1, z, chbegin, chend, &buf[0]);
         if (! ok)
             break;
@@ -333,16 +362,9 @@ ImageInput::read_native_scanlines (int subimage, int miplevel,
                                    int ybegin, int yend, int z,
                                    int chbegin, int chend, void *data)
 {
-    ImageSpec spec;
-    {
-        lock_guard lock (m_mutex);
-        if (! seek_subimage (subimage, miplevel))
-            return false;
-        // Copying the dimensions of the designated subimage/miplevel to a
-        // local `spec` means that we can release the lock!  (Calls to
-        // read_native_* will internally lock again if necessary.)
-        spec.copy_dimensions (m_spec);
-    }
+    ImageSpec spec = spec_dimensions (subimage, miplevel);  // thread-safe
+    if (spec.undefined())
+        return false;
 
     // All-channel case just reduces to the simpler read_native_scanlines.
     if (chbegin == 0 && chend >= spec.nchannels)
@@ -500,16 +522,9 @@ ImageInput::read_tiles (int subimage, int miplevel,
                         TypeDesc format, void *data,
                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    ImageSpec spec;
-    {
-        lock_guard lock (m_mutex);
-        if (! seek_subimage (subimage, miplevel))
-            return false;
-        // Copying the dimensions of the designated subimage/miplevel to a
-        // local `spec` means that we can release the lock!  (Calls to
-        // read_native_* will internally lock again if necessary.)
-        spec.copy_dimensions (m_spec);
-    }
+    ImageSpec spec = spec_dimensions (subimage, miplevel);  // thread-safe
+    if (spec.undefined())
+        return false;
 
     chend = clamp (chend, chbegin+1, spec.nchannels);
     int nchans = chend - chbegin;
@@ -684,16 +699,9 @@ ImageInput::read_native_tiles (int subimage, int miplevel,
     // If an ImageInput subclass does not overload this, the default
     // implementation here is simply to loop over the tiles, calling the
     // single-tile read_native_tile() for each one.
-    ImageSpec spec;
-    {
-        lock_guard lock (m_mutex);
-        if (! seek_subimage (subimage, miplevel))
-            return false;
-        // Copying the dimensions of the designated subimage/miplevel to a
-        // local `spec` means that we can release the lock!  (Calls to
-        // read_native_* will internally lock again if necessary.)
-        spec.copy_dimensions (m_spec);
-    }
+    ImageSpec spec = spec_dimensions (subimage, miplevel);  // thread-safe
+    if (spec.undefined())
+        return false;
     if (! spec.valid_tile_range (xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
 
@@ -740,16 +748,9 @@ ImageInput::read_native_tiles (int subimage, int miplevel,
     // overload this, the default implementation here is simply to loop over
     // the tiles, calling the single-tile read_native_tile() for each one
     // (and copying carefully to handle the channel subset issues).
-    ImageSpec spec;
-    {
-        lock_guard lock (m_mutex);
-        if (! seek_subimage (subimage, miplevel))
-            return false;
-        // Copying the dimensions of the designated subimage/miplevel to a
-        // local `spec` means that we can release the lock!  (Calls to
-        // read_native_* will internally lock again if necessary.)
-        spec.copy_dimensions (m_spec);
-    }
+    ImageSpec spec = spec_dimensions (subimage, miplevel);  // thread-safe
+    if (spec.undefined())
+        return false;
 
     chend = clamp (chend, chbegin+1, spec.nchannels);
     // All-channel case just reduces to the simpler version of
@@ -942,28 +943,29 @@ bool
 ImageInput::read_native_deep_image (int subimage, int miplevel,
                                     DeepData &deepdata)
 {
-    lock_guard lock (m_mutex);
-    if (! seek_subimage (subimage, miplevel))
+    ImageSpec spec = spec_dimensions (subimage, miplevel);  // thread-safe
+    if (spec.undefined())
         return false;
-    if (m_spec.depth > 1) {
+
+    if (spec.depth > 1) {
         error ("read_native_deep_image is not supported for volume (3D) images.");
         return false;
         // FIXME? - not implementing 3D deep images for now.  The only
         // format that supports deep images at this time is OpenEXR, and
         // it doesn't support volumes.
     }
-    if (m_spec.tile_width) {
+    if (spec.tile_width) {
         // Tiled image
         return read_native_deep_tiles (subimage, miplevel,
-                                       m_spec.x, m_spec.x+m_spec.width,
-                                       m_spec.y, m_spec.y+m_spec.height,
-                                       m_spec.z, m_spec.z+m_spec.depth,
-                                       0, m_spec.nchannels, deepdata);
+                                       spec.x, spec.x+spec.width,
+                                       spec.y, spec.y+spec.height,
+                                       spec.z, spec.z+spec.depth,
+                                       0, spec.nchannels, deepdata);
     } else {
         // Scanline image
         return read_native_deep_scanlines (subimage, miplevel,
-                                           m_spec.y, m_spec.y+m_spec.height, 0,
-                                           0, m_spec.nchannels, deepdata);
+                                           spec.y, spec.y+spec.height, 0,
+                                           0, spec.nchannels, deepdata);
     }
 }
 

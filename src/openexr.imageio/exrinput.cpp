@@ -158,6 +158,8 @@ public:
     virtual int current_subimage (void) const override { return m_subimage; }
     virtual int current_miplevel (void) const override { return m_miplevel; }
     virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual ImageSpec spec (int subimage, int miplevel) override;
+    virtual ImageSpec spec_dimensions (int subimage, int miplevel) override;
     virtual bool read_native_scanline (int subimage, int miplevel,
                                        int y, int z, void *data) override;
     virtual bool read_native_scanlines (int subimage, int miplevel,
@@ -185,7 +187,7 @@ public:
 
 private:
     struct PartInfo {
-        bool initialized;
+        std::atomic_bool initialized;
         ImageSpec spec;
         int topwidth;                     ///< Width of top mip level
         int topheight;                    ///< Height of top mip level
@@ -199,10 +201,21 @@ private:
         std::vector<int> chanbytes;       ///< Size (in bytes) of each channel
 
         PartInfo () : initialized(false) { }
+        PartInfo (const PartInfo &p)
+            : initialized((bool)p.initialized), spec(p.spec),
+              topwidth(p.topwidth), topheight(p.topheight),
+              levelmode(p.levelmode), roundingmode(p.roundingmode),
+              cubeface(p.cubeface), nmiplevels(p.nmiplevels),
+              top_datawindow(p.top_datawindow),
+              top_displaywindow(p.top_displaywindow),
+              pixeltype(p.pixeltype), chanbytes(p.chanbytes)
+              {}
         ~PartInfo () { }
         bool parse_header (OpenEXRInput *in, const Imf::Header *header);
         bool query_channels (OpenEXRInput *in, const Imf::Header *header);
+        void compute_mipres (int miplevel, ImageSpec &spec) const;
     };
+    friend struct PartInfo;
 
     std::vector<PartInfo> m_parts;        ///< Image parts
     OpenEXRInputStream *m_input_stream;   ///< Stream for input file
@@ -404,7 +417,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
 
     bool ok = seek_subimage (0, 0);
     if (ok)
-        newspec = spec();
+        newspec = m_spec;
     else
         close ();
     return ok;
@@ -436,6 +449,7 @@ OpenEXRInput::PartInfo::parse_header (OpenEXRInput *in,
     if (initialized)
         return ok;
 
+    ImageInput::lock_guard lock (in->m_mutex);
     ASSERT (header);
     spec = ImageSpec();
 
@@ -844,6 +858,62 @@ OpenEXRInput::PartInfo::query_channels (OpenEXRInput *in,
 
 
 
+void
+OpenEXRInput::PartInfo::compute_mipres (int miplevel, ImageSpec &spec) const
+{
+    // Compute the resolution of the requested mip level, and also adjust
+    // the "full" size appropriately (based on the exr display window).
+
+    if (levelmode == Imf::ONE_LEVEL)
+        return;  // spec is already correct
+
+    int w = topwidth;
+    int h = topheight;
+    if (levelmode == Imf::MIPMAP_LEVELS) {
+        for (int m = miplevel; m; --m) {
+            if (roundingmode == Imf::ROUND_DOWN) {
+                w = w / 2;
+                h = h / 2;
+            } else {
+                w = (w + 1) / 2;
+                h = (h + 1) / 2;
+            }
+            w = std::max (1, w);
+            h = std::max (1, h);
+        }
+    } else if (levelmode == Imf::RIPMAP_LEVELS) {
+        // FIXME
+    } else {
+        ASSERT_MSG (0, "Unknown levelmode %d", int(levelmode));
+    }
+
+    spec.width = w;
+    spec.height = h;
+    // N.B. OpenEXR doesn't support data and display windows per MIPmap
+    // level.  So always take from the top level.
+    Imath::Box2i datawindow = top_datawindow;
+    Imath::Box2i displaywindow = top_displaywindow;
+    spec.x = datawindow.min.x;
+    spec.y = datawindow.min.y;
+    if (miplevel == 0) {
+        spec.full_x = displaywindow.min.x;
+        spec.full_y = displaywindow.min.y;
+        spec.full_width = displaywindow.max.x - displaywindow.min.x + 1;
+        spec.full_height = displaywindow.max.y - displaywindow.min.y + 1;
+    } else {
+        spec.full_x = spec.x;
+        spec.full_y = spec.y;
+        spec.full_width = spec.width;
+        spec.full_height = spec.height;
+    }
+    if (cubeface) {
+        spec.full_width = w;
+        spec.full_height = w;
+    }
+}
+
+
+
 bool
 OpenEXRInput::seek_subimage (int subimage, int miplevel)
 {
@@ -910,51 +980,59 @@ OpenEXRInput::seek_subimage (int subimage, int miplevel)
         return true;
     }
 
-    // Compute the resolution of the requested mip level.
-    int w = part.topwidth, h = part.topheight;
-    if (part.levelmode == Imf::MIPMAP_LEVELS) {
-        while (miplevel--) {
-            if (part.roundingmode == Imf::ROUND_DOWN) {
-                w = w / 2;
-                h = h / 2;
-            } else {
-                w = (w + 1) / 2;
-                h = (h + 1) / 2;
-            }
-            w = std::max (1, w);
-            h = std::max (1, h);
-        }
-    } else if (part.levelmode == Imf::RIPMAP_LEVELS) {
-        // FIXME
-    } else {
-        ASSERT_MSG (0, "Unknown levelmode %d", int(part.levelmode));
-    }
-
-    m_spec.width = w;
-    m_spec.height = h;
-    // N.B. OpenEXR doesn't support data and display windows per MIPmap
-    // level.  So always take from the top level.
-    Imath::Box2i datawindow = part.top_datawindow;
-    Imath::Box2i displaywindow = part.top_displaywindow;
-    m_spec.x = datawindow.min.x;
-    m_spec.y = datawindow.min.y;
-    if (m_miplevel == 0) {
-        m_spec.full_x = displaywindow.min.x;
-        m_spec.full_y = displaywindow.min.y;
-        m_spec.full_width = displaywindow.max.x - displaywindow.min.x + 1;
-        m_spec.full_height = displaywindow.max.y - displaywindow.min.y + 1;
-    } else {
-        m_spec.full_x = m_spec.x;
-        m_spec.full_y = m_spec.y;
-        m_spec.full_width = m_spec.width;
-        m_spec.full_height = m_spec.height;
-    }
-    if (part.cubeface) {
-        m_spec.full_width = w;
-        m_spec.full_height = w;
-    }
+    // Compute the resolution of the requested mip level and adjust the
+    // full size fields.
+    part.compute_mipres (miplevel, m_spec);
 
     return true;
+}
+
+
+
+ImageSpec
+OpenEXRInput::spec (int subimage, int miplevel)
+{
+    ImageSpec ret;
+    if (subimage < 0 || subimage >= m_nsubimages)
+        return ret;  // invalid
+    const PartInfo& part (m_parts[subimage]);
+    if (! part.initialized) {
+        // Only if this subimage hasn't yet been inventoried do we need
+        // to lock and seek.
+        lock_guard lock (m_mutex);
+        if (! part.initialized) {
+            if (! seek_subimage (subimage, miplevel))
+                return ret;
+        }
+    }
+    if (miplevel < 0 || miplevel >= part.nmiplevels)
+        return ret;  // invalid
+    ret = part.spec;
+    part.compute_mipres (miplevel, ret);
+    return ret;
+}
+
+
+
+ImageSpec
+OpenEXRInput::spec_dimensions (int subimage, int miplevel)
+{
+    ImageSpec ret;
+    if (subimage < 0 || subimage >= m_nsubimages)
+        return ret;  // invalid
+    const PartInfo& part (m_parts[subimage]);
+    if (! part.initialized) {
+        // Only if this subimage hasn't yet been inventoried do we need
+        // to lock and seek.
+        lock_guard lock (m_mutex);
+        if (! seek_subimage (subimage, miplevel))
+            return ret;
+    }
+    if (miplevel < 0 || miplevel >= part.nmiplevels)
+        return ret;  // invalid
+    ret.copy_dimensions (part.spec);
+    part.compute_mipres (miplevel, ret);
+    return ret;
 }
 
 
@@ -1209,7 +1287,7 @@ OpenEXRInput::read_native_deep_scanlines (int subimage, int miplevel,
         m_spec.get_channelformats (channeltypes);
         deepdata.init (npixels, nchans,
                        array_view<const TypeDesc>(&channeltypes[chbegin], nchans),
-                       spec().channelnames);
+                       m_spec.channelnames);
         std::vector<unsigned int> all_samples (npixels);
         std::vector<void*> pointerbuf (npixels*nchans);
         Imf::DeepFrameBuffer frameBuffer;
@@ -1284,7 +1362,7 @@ OpenEXRInput::read_native_deep_tiles (int subimage, int miplevel,
         m_spec.get_channelformats (channeltypes);
         deepdata.init (npixels, nchans,
                        array_view<const TypeDesc>(&channeltypes[chbegin], nchans),
-                       spec().channelnames);
+                       m_spec.channelnames);
         std::vector<unsigned int> all_samples (npixels);
         std::vector<void*> pointerbuf (npixels * nchans);
         Imf::DeepFrameBuffer frameBuffer;

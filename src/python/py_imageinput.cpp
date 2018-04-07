@@ -237,7 +237,17 @@ void declare_imageinput (py::module &m)
             "filename"_a, "config"_a)
         .def("format_name",      &ImageInput::format_name)
         .def("valid_file",       &ImageInput::valid_file)
-        .def("spec",             &ImageInput::spec)
+        .def("spec", [](ImageInput &self){
+                return self.spec();
+            })
+        .def("spec", [](ImageInput &self, int subimage, int miplevel){
+                return self.spec(subimage, miplevel);
+            },
+            "subimage"_a, "miplevel"_a=0)
+        .def("spec_dimensions", [](ImageInput &self, int subimage, int miplevel){
+                return self.spec_dimensions(subimage, miplevel);
+            },
+            "subimage"_a, "miplevel"_a=0)
         .def("supports",    [](const ImageInput &self, const std::string& feature){
                 return self.supports(feature); })
         .def("close",            &ImageInput::close)

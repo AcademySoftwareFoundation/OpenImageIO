@@ -592,6 +592,10 @@ Returns {\cf True} if the given tile range exactly covers a set of tiles, or
 \NEW % 1.9
 Copies from \ImageSpec {\cf other} only the fields describing the size
 and data types, but not the arbitrary named metadata or channel names.
+
+\apiitem{ImageSpec.{\ce undefined}()}
+\NEW % 1.9
+Returns {\cf True} for a newly initialized (undefined) \ImageSpec.
 \apiend
 
 \newpage
@@ -863,6 +867,16 @@ MIP level of the file.
     spec = input.spec()
     print "resolution ", spec.width, "x", spec.height
 \end{code}
+\apiend
+
+\apiitem{ImageSpec ImageInput.{\ce spec} (subimage, miplevel=0) \\
+ImageSpec ImageInput.{\ce spec_dimensions} (subimage, miplevel=0)}
+\NEW % 1.9
+Returns a copy of the \ImageSpec corresponding to the designated subimage
+and MIP level. Note that {\cf spec()} copies the entire \ImageSpec including
+all metadata, whereas {\cf spec_dimensions()} only copies the dimension
+fields and not any of the arbitrary named metadata (and is thus much less
+expensive).
 \apiend
 
 \apiitem{int ImageInput.{\ce current_subimage} () \\

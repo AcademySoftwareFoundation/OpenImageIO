@@ -113,6 +113,13 @@ def test_readimage (filename, sub=0, mip=0, type=oiio.UNKNOWN,
         print ("@", (x,y), "=", data[y,x])
     else :
         print ("Read array typecode", data.dtype, " [", data.size, "]")
+    # Test the spec and spec_dimensions methods
+    spec = input.spec_dimensions (0, 0)
+    if len(spec.extra_attribs) > 0 :
+        print ("wrong spec_dimensions(s,m) metadata items: ", len(spec.extra_attribs))
+    spec = input.spec (0, 0)
+    if len(spec.extra_attribs) == 0 :
+        print ("wrong spec(s,m) metadata items: ", len(spec.extra_attribs))
     input.close ()
     print ()
 
