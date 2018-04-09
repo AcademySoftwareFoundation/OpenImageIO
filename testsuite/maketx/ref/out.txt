@@ -382,7 +382,7 @@ whiteenv.exr         :    4 x    2, 3 channel, half openexr (+mipmap)
 Reading bumpslope.exr
 bumpslope.exr        :   64 x   64, 6 channel, half openexr
     MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
-    SHA-1: A36E88E8144C7FFE4DEE79682175EEFFF3666876
+    SHA-1: 8A309ED5DD4C7ADC8B752735651BAEE9FA326B82
     channel list: b0_h, b1_dhds, b2_dhdt, b3_dhds2, b4_dhdt2, b5_dh2dsdt
     tile size: 64 x 64
     oiio:ColorSpace: "Linear"
@@ -390,8 +390,8 @@ bumpslope.exr        :   64 x   64, 6 channel, half openexr
     textureformat: "Plain Texture"
     compression: "zip"
     fovcot: 1
-    oiio:AverageColor: "0.499779,-0.0293083,-0.00267029,8.07388,7.3275,0.141625"
-    oiio:SHA-1: "F7C2558A51D7333FFE1908ADAD42C401A9563273"
+    oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
+    oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
     PixelAspectRatio: 1
     screenWindowCenter: 0 0
     screenWindowWidth: 1
