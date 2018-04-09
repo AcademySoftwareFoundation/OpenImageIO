@@ -82,7 +82,7 @@ public:
 
 private:
     std::string m_name;
-    Field3DInputFile *m_input;
+    std::unique_ptr<Field3DInputFile> m_input;
     int m_subimage;                 ///< What subimage/field are we looking at?
     int m_nsubimages;               ///< How many fields in the file?
     std::vector<layerrecord> m_layers;
@@ -97,7 +97,7 @@ private:
 
     void init () {
         m_name.clear ();
-        m_input = NULL;
+        ASSERT (! m_input);
         m_subimage = -1;
         m_nsubimages = 0;
         m_layers.clear ();
@@ -355,20 +355,17 @@ Field3DInput::valid_file (const std::string &filename) const
 
     oiio_field3d_initialize ();
 
+    spin_lock lock (field3d_mutex());
+    auto in = new Field3DInputFile;
+    std::unique_ptr<Field3DInputFile> input (in /*new Field3DInputFile*/);
     bool ok = false;
-    Field3DInputFile *input = NULL;
-    {
-        spin_lock lock (field3d_mutex());
-        input = new Field3DInputFile;
-        try {
-            ok = input->open (filename);
-        } catch (...) {
-            ok = false;
-        }
-        delete input;
+    try {
+        ok = input->open (filename);
+    } catch (...) {
+        // must have been a Field3D error
     }
-
     return ok;
+    // Note: the Field3DInputFile will delete upon scope exit
 }
 
 
@@ -392,7 +389,7 @@ Field3DInput::open (const std::string &name, ImageSpec &newspec)
 
     {
         spin_lock lock (field3d_mutex());
-        m_input = new Field3DInputFile;
+        m_input.reset (new Field3DInputFile);
         bool ok = false;
         try {
             ok = m_input->open (name);
@@ -400,8 +397,7 @@ Field3DInput::open (const std::string &name, ImageSpec &newspec)
             ok = false;
         }
         if (! ok) {
-            delete m_input;
-            m_input = NULL;
+            m_input.reset ();
             m_name.clear ();
             return false;
         }
@@ -435,7 +431,10 @@ Field3DInput::seek_subimage (int subimage, int miplevel)
         return false;
     if (miplevel != 0)
         return false;
+    if (subimage == m_subimage)
+        return true;
 
+    spin_lock lock (field3d_mutex());
     m_subimage = subimage;
     m_spec = m_layers[subimage].spec;
     return true;
@@ -449,8 +448,7 @@ Field3DInput::close ()
     spin_lock lock (field3d_mutex());
     if (m_input) {
         m_input->close ();
-        delete m_input;   // implicity closes
-        m_input = NULL;
+        m_input.reset ();
         m_name.clear ();
     }
 
