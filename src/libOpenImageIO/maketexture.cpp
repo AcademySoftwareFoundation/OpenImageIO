@@ -431,7 +431,7 @@ lightprobe_to_envlatl (ImageBuf &dst, const ImageBuf &src, bool y_is_up,
 
 
 
-// compute slopes in s,t space using a Sobel gradient filter
+// compute slopes in pixel space using a Sobel gradient filter
 template<class SRCTYPE>
 static void
 sobel_gradient (const ImageBuf &src, const ImageBuf::Iterator<float> &dstpix,
@@ -456,8 +456,8 @@ sobel_gradient (const ImageBuf &src, const ImageBuf::Iterator<float> &dstpix,
             *h = srcval;
     }
 
-    *dh_ds = *dh_ds * src.spec().width  / 8.0f ; // sobel normalization
-    *dh_dt = *dh_dt * src.spec().height / 8.0f ;
+    *dh_ds = *dh_ds  / 8.0f ; // sobel normalization
+    *dh_dt = *dh_dt  / 8.0f ;
 }
 
 
