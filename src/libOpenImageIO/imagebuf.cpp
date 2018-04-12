@@ -1051,6 +1051,32 @@ ImageBuf::write (string_view _filename, string_view _fileformat,
         return false;
     }
     impl()->validate_pixels ();
+
+    // Two complications related to our reliance on ImageCache, as we are
+    // writing this image:
+    // First, if we are writing over the file "in place" and this is an IC-
+    // backed IB, be sure we have completely read the file into memory so we
+    // don't clobber the file before we've fully read it.
+    if (filename == name() && storage() == IMAGECACHE) {
+        m_impl->read (subimage(), miplevel(), 0, -1,
+                      true /*force*/, spec().format, nullptr, nullptr);
+        if (storage() != LOCALBUFFER) {
+            error ("ImageBuf overwriting %s but could not force read", name());
+            return false;
+        }
+    }
+    // Second, be sure to tell the ImageCache to invalidate the file we're
+    // about to write. This is because (a) since we're overwriting it, any
+    // pixels in the cache will then be likely wrong; (b) on Windows, if the
+    // cache holds an open file handle for reading, we will not be able to
+    // open the same file for writing.
+    ImageCache *shared_imagecache = ImageCache::create(true);
+    ASSERT (shared_imagecache);
+    ustring ufilename (filename);
+    shared_imagecache->invalidate (ufilename);  // the shared IC
+    if (imagecache() && imagecache() != shared_imagecache)
+        imagecache()->invalidate (ufilename);   // *our* IC
+
     std::unique_ptr<ImageOutput> out (ImageOutput::create (fileformat.c_str(), "" /* searchpath */));
     if (! out) {
         error ("%s", geterror());
