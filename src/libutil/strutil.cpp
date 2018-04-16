@@ -1140,7 +1140,7 @@ Strutil::strtof (const char *nptr, char **endptr)
     std::locale native; // default ctr gets current global locale
     char nativepoint = std::use_facet<std::numpunct<char>>(native).decimal_point();
     // If the native locale uses decimal, just directly use strtof.
-    if (nativepoint = '.')
+    if (nativepoint == '.')
         return strtof (nptr, endptr);
     // Complex case -- CHEAT by making a copy of the string and replacing
     // the decimal, then use system strtof!
@@ -1176,7 +1176,7 @@ Strutil::strtod (const char *nptr, char **endptr)
     std::locale native; // default ctr gets current global locale
     char nativepoint = std::use_facet<std::numpunct<char>>(native).decimal_point();
     // If the native locale uses decimal, just directly use strtod.
-    if (nativepoint = '.')
+    if (nativepoint == '.')
         return strtod (nptr, endptr);
     // Complex case -- CHEAT by making a copy of the string and replacing
     // the decimal, then use system strtod!
