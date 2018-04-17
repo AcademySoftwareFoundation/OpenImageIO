@@ -31,7 +31,7 @@
 #    6.3v1 6.3v2 6.3v3 6.3v4 6.3v5 6.3v6 6.3v7 6.3v8 6.3v9
 #    7.0v1 7.0v2 7.0v3 7.0v4)
 
-set(_nuke_KNOWN_VERSIONS 5.0 5.1 5.2 6.0 6.1 6.2 6.3 7.0 8.0 9.0)
+set(_nuke_KNOWN_VERSIONS 5.0 5.1 5.2 6.0 6.1 6.2 6.3 7.0 8.0 9.0 10.0 10.5 11.0 11.1)
 set(_nuke_TEST_VERSIONS) # List of Nuke-style strings (e.g. "7.0v4")
 
 
