@@ -612,7 +612,7 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
     }
     
     m_next_scanline = 0;   // next scanline we'll read
-    if (TIFFSetDirectory (m_tif, subimage)) {
+    if (subimage == m_subimage || TIFFSetDirectory (m_tif, subimage)) {
         m_subimage = subimage;
         readspec (read_meta);
         // OK, some edge cases we just don't handle. For those, fall back on
@@ -969,7 +969,8 @@ TIFFInput::readspec (bool read_meta)
 #else
         m_tif = TIFFOpen (m_filename.c_str(), "rm");
 #endif
-        TIFFSetDirectory (m_tif, m_subimage);
+        if (m_subimage)
+            TIFFSetDirectory (m_tif, m_subimage);
 
         // A few tidbits to look for
         ParamValue *p;
