@@ -992,7 +992,8 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
         if (s < 0) {
             error ("Unknown subimage \"%s\" in texture \"%s\"",
                    options.subimagename, texturefile->filename());
-            return false;
+            return missing_texture (options, nchannels, result,
+                                    dresultds, dresultdt);
         }
         options.subimage = s;
         options.subimagename.clear();
