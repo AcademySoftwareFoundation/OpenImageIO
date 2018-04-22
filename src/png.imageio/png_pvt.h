@@ -605,32 +605,20 @@ write_row (png_structp& sp, png_byte *data)
 
 
 
-/// Helper function - finalizes writing the image.
-///
+/// Helper function - finalizes writing the image and destroy the write
+/// struct.
 inline void
-finish_image (png_structp& sp)
+finish_image (png_structp& sp, png_infop& ip)
 {
     // Must call this setjmp in every function that does PNG writes
     if (setjmp (png_jmpbuf(sp))) {
         //error ("PNG library error");
         return;
     }
-    png_write_end (sp, NULL);
-}
-
-
-
-/// Destroys a PNG write struct.
-///
-inline void
-destroy_write_struct (png_structp& sp, png_infop& ip)
-{
-    if (sp && ip) {
-        finish_image (sp);
-        png_destroy_write_struct (&sp, &ip);
-        sp = NULL;
-        ip = NULL;
-    }
+    png_write_end (sp, ip);
+    png_destroy_write_struct (&sp, &ip);
+    sp = nullptr;
+    ip = nullptr;
 }
 
 
