@@ -292,7 +292,7 @@ oiio_add_tests (bmp
 
 oiio_add_tests (tiff-suite tiff-depths tiff-misc
     IMAGEDIR libtiffpic
-    URL http://www.remotesensing.org/libtiff/images.html)
+    URL http://www.simplesystems.org/libtiff/images.html)
 
 oiio_add_tests (openexr-suite openexr-multires openexr-chroma openexr-v2 perchannel
     IMAGEDIR openexr-images
