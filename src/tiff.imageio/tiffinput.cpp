@@ -368,6 +368,9 @@ private:
             *ok = false;
             return;
         }
+        if (TIFFIsByteSwapped(m_tif) && m_spec.format == TypeUInt16)
+            TIFFSwabArrayOfShort ((unsigned short *)uncompressed_buf,
+                                  width*height*channels);
         if (m_spec.format == TypeUInt8)
             undo_horizontal_predictor ((unsigned char *)uncompressed_buf,
                                        (unsigned char *)uncompressed_buf,
