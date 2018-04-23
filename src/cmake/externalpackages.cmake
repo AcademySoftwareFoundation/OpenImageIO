@@ -88,11 +88,6 @@ if (NOT Boost_FIND_QUIETLY)
     message (STATUS "BOOST_ROOT ${BOOST_ROOT}")
 endif ()
 
-if (NOT DEFINED Boost_ADDITIONAL_VERSIONS)
-  set (Boost_ADDITIONAL_VERSIONS "1.64" "1.63" "1.62" "1.61" "1.60"
-                                 "1.59" "1.58" "1.57" "1.56" "1.55"
-                                 "1.54" "1.53")
-endif ()
 if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS   ON)
 endif ()

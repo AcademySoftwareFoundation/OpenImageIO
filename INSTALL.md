@@ -27,8 +27,8 @@ NEW or CHANGED dependencies since the last major release are **bold**.
 
  * C++11 (should also build with C++14 and C++17)
  * Compilers: gcc 4.8.2 - gcc 7, clang 3.3 - 6.0, MSVS 2013 - 2017, icc version 13 or higher
- * Boost >= 1.53 (tested up through 1.66)
- * CMake >= 3.2.2 (tested up through 3.10)
+ * Boost >= 1.53 (tested up through 1.67)
+ * CMake >= 3.2.2 (tested up through 3.11)
  * OpenEXR >= 2.0 (recommended: 2.2)
  * libTIFF >= 3.9 (recommended: 4.0+)
 
@@ -42,6 +42,7 @@ NEW or CHANGED dependencies since the last major release are **bold**.
      * **NumPy**
      * **pybind11** (but OIIO will auto-download it if not found)
  * libRaw >= 0.17 ("RAW" image reading will be disabled if not found)
+ * ffmpeg >= 3.0 (tested through 4.0)
 
 
 
@@ -239,7 +240,7 @@ Also, there are collections of images for some of the file formats we
 support, and make test expects them to also be present. To run full tests,
 you will need to download and unpack the test image collections from:
 
-* http://www.remotesensing.org/libtiff/images.html
+* http://www.simplesystems.org/libtiff/images.html
 * http://www.openexr.com/downloads.html
 * http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803
 * http://www.cv.nrao.edu/fits/data/tests/
