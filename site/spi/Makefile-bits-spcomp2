@@ -136,13 +136,14 @@ ifeq (${SP_OS}, rhel7)
 	-DHDF5_CUSTOM=1 \
 	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
 	-DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION}
+    PYTHONLIB ?= /usr/lib64/libpython${PYVER}.so
     MY_CMAKE_FLAGS += \
 	-DBOOST_CUSTOM=1 \
 	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
 	-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERSSP} \
 	-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERSSP} \
 	-DPYTHONLIBS_FOUND=1 \
-	-DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
+	-DPYTHON_LIBRARIES:STRING="${PYTHONLIB}"
     ifeq (${BOOSTSPSUFFIX}, sp)
       MY_CMAKE_FLAGS += \
 	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so"
