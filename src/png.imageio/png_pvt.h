@@ -329,6 +329,13 @@ destroy_read_struct (png_structp& sp, png_infop& ip)
 }
 
 
+inline void
+null_png_errhandler (png_structp png, png_const_charp message)
+{
+    // ignore
+}
+
+
 
 /// Initializes a PNG write struct.
 /// \return empty string on success, C-string error message on failure.
@@ -371,7 +378,8 @@ create_write_struct (png_structp& sp, png_infop& ip, int& color_type,
     // N.B. PNG is very rigid about the meaning of the channels, so enforce
     // which channel is alpha, that's the only way PNG can do it.
 
-    sp = png_create_write_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    sp = png_create_write_struct (PNG_LIBPNG_VER_STRING,
+                                  nullptr, null_png_errhandler, nullptr);
     if (! sp)
         return "Could not create PNG write structure";
 

@@ -46,7 +46,8 @@ public:
     virtual ~PNGOutput ();
     virtual const char * format_name (void) const override { return "png"; }
     virtual int supports (string_view feature) const override {
-        return (feature == "alpha");
+        return (feature == "alpha" ||
+                feature == "write_memory");
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create) override;
@@ -69,6 +70,9 @@ private:
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
     std::vector<unsigned char> m_tilebuffer;
+    unsigned char** m_write_memory = nullptr;  // user requested write to mem buffer
+    uint64_t* m_write_memory_size = 0;
+    std::vector<unsigned char> m_file_image_buffer;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -77,6 +81,9 @@ private:
         m_info = NULL;
         m_convert_alpha = true;
         m_gamma = 1.0;
+        m_write_memory = nullptr;
+        m_write_memory_size = 0;
+        m_file_image_buffer.clear();
         m_pngtext.clear ();
     }
 
@@ -84,7 +91,17 @@ private:
     bool put_parameter (const std::string &name, TypeDesc type,
                         const void *data);
 
-    void finish_image ();
+    // Callback for PNG that appends to in-memory buffer instead of writing
+    // to a file.
+    static void PngWriteCallback (png_structp  png_ptr, png_bytep data, png_size_t length) {
+        PNGOutput *p = (PNGOutput *)png_get_io_ptr(png_ptr);
+        p->m_file_image_buffer.insert (p->m_file_image_buffer.end(),
+                                       data, data + length);
+    }
+
+    static void PngFlushCallback (png_structp png_ptr) {
+    }
+
 };
 
 
@@ -136,21 +153,37 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
         m_spec.set_format (TypeDesc::UINT8);
 
-    m_file = Filesystem::fopen (name, "wb");
-    if (! m_file) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
+    // See if we were requested to write to a memory buffer, and if so,
+    // extract the pointer.
+    const ParamValue* param;
+    param = m_spec.find_attribute ("oiio:write_memory", TypeDesc::PTR);
+    m_write_memory = param ? param->get<unsigned char**>() : nullptr;
+    param = m_spec.find_attribute ("oiio:write_memory_size", TypeDesc::PTR);
+    m_write_memory_size = param ? param->get<uint64_t*>() : nullptr;
+    if (m_write_memory) {
+        m_file = nullptr;
+    } else {
+        // otherwise, we're writing to a file, so open it.
+        m_file = Filesystem::fopen (name, "wb");
+        if (! m_file) {
+            error ("Could not open file \"%s\"", name);
+            return false;
+        }
     }
 
     std::string s = PNG_pvt::create_write_struct (m_png, m_info,
                                                   m_color_type, m_spec);
     if (s.length ()) {
         close ();
-        error ("%s", s.c_str ());
+        error ("%s", s);
         return false;
     }
 
-    png_init_io (m_png, m_file);
+    if (m_file)
+        png_init_io (m_png, m_file);
+    else
+        png_set_write_fn (m_png, this, PngWriteCallback, PngFlushCallback);
+
     png_set_compression_level (m_png, std::max (std::min (m_spec.get_int_attribute ("png:compressionLevel", 6/* medium speed vs size tradeoff */), Z_BEST_COMPRESSION), Z_NO_COMPRESSION));
     std::string compression = m_spec.get_string_attribute ("compression");
     if (compression.empty ()) {
@@ -197,7 +230,7 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 PNGOutput::close ()
 {
-    if (! m_file) {   // already closed
+    if (! m_file && !m_write_memory) {   // already closed
         init ();
         return true;
     }
@@ -215,8 +248,26 @@ PNGOutput::close ()
         PNG_pvt::finish_image (m_png, m_info);
     }
 
-    fclose (m_file);
-    m_file = NULL;
+    if (m_file) {
+        // We were writing to a file, so close it.
+        ASSERT (m_write_memory == nullptr);
+        fclose (m_file);
+        m_file = nullptr;
+    }
+    if (m_write_memory) {
+        // We were writing to a memory buffer, so copy the buffer to the
+        // user's designated pointer.
+        ASSERT (m_file == nullptr);
+        unsigned char* mem = new unsigned char [m_file_image_buffer.size()];
+        memcpy (mem, m_file_image_buffer.data(), m_file_image_buffer.size());
+        *m_write_memory = mem;
+        if (m_write_memory_size)
+            *m_write_memory_size = m_file_image_buffer.size();
+        m_file_image_buffer.clear();
+        m_file_image_buffer.shrink_to_fit();
+        m_write_memory = nullptr;
+        m_write_memory_size = 0;
+    }
 
     init ();      // re-initialize
     return ok;

@@ -1135,6 +1135,96 @@ without alteration while modifying the image description metadata:
 \end{code}
 
 
+\subsection{Writing the file to a memory buffer}
+\label{sec:imageoutput:writefiletomemory}
+\index{writing an image file to memory buffer}
+\NEW   % 1.9
+
+Some file format writers allow you to write the output to an in-memory
+buffer rather than a stored file on disk. The buffer is not merely the pixel
+array, but is a byte-for-byte representation of the correctly formatted file
+that would have been written.
+
+This is very incompletely implemented -- currently, only PNG supports this
+feature, though others may be supported in the future (based on demand
+and volunteers).
+
+To find out if a particular file format supports this feature, you can create
+an \ImageOutput of the right type, and check if it supports the feature
+name \qkw{write_memory}:
+
+\begin{code}
+    ImageOutput *out = ImageOutput::create (filename);
+    if (! out  ||  ! out->supports ("write_memory")) {
+        ImageOutput::destroy (out);
+        out = nullptr;
+        return;
+    }
+\end{code}
+
+\ImageOutput writers that support \qkw{write_memory} will respond to two
+special attributes: (1) \qkw{oiio:write_memory}, which passes a pointer to a
+{\cf unsigned char*} that will be modified to contain the address of the
+allocated memory block that will contain the file image bytes; (2)
+\qkw{oiio:write_memory_size}, which passes a pointer to a {\cf uint64_t}
+that will hold the size (in bytes) of the block.
+
+You just add these two attributes to the \ImageSpec that you pass when you
+open the file. Note that you aren't passing the \emph{values} of your
+variables, you are passing their \emph{addresses}, and this extra level of
+indirection requires an unusual idiom in setting up the attributes:
+
+\begin{code}
+    // ImageSpec describing the image we want to write.
+    ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+
+    unsigned char *file_buffer = nullptr;  // will get ptr to the memory
+    uint64_t file_buffer_size = 0;         // will get the size
+    void *ptr = &file_buffer;
+    spec.attribute ("oiio:write_memory", TypeDesc::PTR, &ptr);
+    ptr = &file_buffer_size;
+    spec.attribute ("oiio:write_memory_size", TypeDesc::PTR, &ptr);
+\end{code}
+
+Extra explanation, because this idiom is confusing: If you were passing the
+value of a {\cf uint64_t}, you could say
+
+\begin{code}
+    uint64_t value;
+    attribute("myvalue", TypeDesc::UINT64, &value);
+\end{code}
+
+\noindent but to pass a \emph{pointer} to the value, you need
+
+\begin{code}
+    uint64_t value;
+    uint64_t * pointer = &value;
+    attribute("myvalue", TypeDesc::PTR, &pointer);
+\end{code}
+
+Okay, now that you have set up the two magic variables, just write the image
+as you always did. It is the presence of a nonzero value in the metadata
+{\cf oiio:write_memory} that will trigger the behavior of writing to a
+memory buffer rather than saving a file.
+
+\begin{code}
+    // open and write the image
+    out->open (filename, spec);
+    out->write_image (TypeDesc::UINT8, pixels);
+    out->close ();
+    ImageOutput::destroy (out);
+\end{code}
+
+At this point, {\cf file_buffer} should contain a pointer to allocated
+memory containing an in-memory representation of the file. The length of the
+buffer is stored in {\cf file_buffer_size}. We now own the memory that was
+allocated, so when we're all done with it, we must:
+
+\begin{code}
+    delete [] file_buffer;
+\end{code}
+
+
 \subsection{Custom search paths for plugins}
 \label{sec:imageoutput:searchpaths}
 
@@ -1331,6 +1421,9 @@ as such). The following features are recognized by this query:
   (either specifically, or via arbitrary named metadata)?
 \item[\rm \qkw{iptc}] Does the image file format support IPTC data
   (either specifically, or via arbitrary named metadata)?
+\item[\rm \qkw{write_memory}] Does the image file format support writing
+  a byte-for-byte representaton of the image file to a memory buffer, rather
+  than writing it to a file?
 \end{description}
 
 \noindent This list of queries may be extended in future releases.
