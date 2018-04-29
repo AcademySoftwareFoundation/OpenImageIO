@@ -47,6 +47,7 @@
 // # include <windows.h>   // Already done by platform.h
 # include <shellapi.h>
 # include <direct.h>
+# include <io.h>
 #else
 # include <unistd.h>
 #endif
@@ -1012,5 +1013,194 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
 
     return true;
 }
+
+
+
+Filesystem::IOFile::IOFile (string_view filename, Mode mode)
+    : IOProxy(filename,mode)
+{
+    // Call Filesystem::fopen since it handles UTF-8 file paths on Windows,
+    // which std fopen does not.
+    m_file = Filesystem::fopen (m_filename.c_str(), mode == Write ? "wb" : "rb");
+    if (! m_file)
+        mode = Closed;
+    m_auto_close = true;
+    if (mode == Read)
+        m_size = Filesystem::file_size (filename);
+}
+
+Filesystem::IOFile::IOFile (FILE *file, Mode mode)
+    : IOProxy("",mode), m_file(file)
+{
+    if (mode == Read) {
+        m_pos = ftell (m_file);             // save old position
+        fseek (m_file, 0, SEEK_END);        // seek to end
+        m_size = size_t(ftell (m_file));    // size is end position
+        fseek (m_file, m_pos, SEEK_SET);    // restore old position
+    }
+}
+
+Filesystem::IOFile::~IOFile ()
+{
+    if (m_auto_close)
+        close();
+}
+
+void
+Filesystem::IOFile::close ()
+{
+    if (m_file) {
+        fclose (m_file);
+        m_file = nullptr;
+    }
+    m_mode = Closed;
+}
+
+bool
+Filesystem::IOFile::seek (int64_t offset)
+{
+    if (! m_file)
+        return false;
+    m_pos = offset;
+#ifdef _MSC_VER
+    return _fseeki64 (m_file, __int64(offset), SEEK_SET) == 0;
+#else
+    return fseeko (m_file, offset, SEEK_SET) == 0;
+#endif
+}
+
+size_t
+Filesystem::IOFile::read (void *buf, size_t size)
+{
+    if (! m_file || ! size || m_mode != Read)
+        return 0;
+    size_t r = fread (buf, 1, size, m_file);
+    m_pos += r;
+    return r;
+}
+
+size_t
+Filesystem::IOFile::pread (void *buf, size_t size, int64_t offset)
+{
+    if (! m_file || ! size || offset < 0 || m_mode != Read)
+        return 0;
+#ifdef _WIN32
+    // See MSDN ReadFile docs:
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365467(v=vs.85).aspx
+    HANDLE h = HANDLE(_get_osfhandle(_fileno(m_file)));
+    OVERLAPPED overlapped;
+    memset (&overlapped, 0, sizeof(overlapped));
+    overlapped.Offset = DWORD(offset);
+    overlapped.OffsetHigh = DWORD(offset >> 32);
+    DWORD bytesread = 0;
+    size_t r = ReadFile (h, buf, DWORD(size), &bytesread, &overlapped) ? bytesread : 0;
+#else /* Non-Windows: assume POSIX pwrite is available */
+    int fd = fileno (m_file);
+    return ::pread (fd, buf, size, offset);
+#endif
+}
+
+size_t
+Filesystem::IOFile::write (const void *buf, size_t size)
+{
+    if (! m_file || ! size || m_mode != Write)
+        return 0;
+    size_t r = fwrite (buf, 1, size, m_file);
+    m_pos += r;
+    if (m_pos > int64_t(m_size))
+        m_size = m_pos;
+    return r;
+}
+
+size_t
+Filesystem::IOFile::pwrite (const void *buf, size_t size, int64_t offset)
+{
+    if (! m_file || ! size || offset < 0 || m_mode != Write)
+        return 0;
+#ifdef _WIN32
+    // See MSDN WriteFile docs:
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365747(v=vs.85).aspx
+    HANDLE h = HANDLE(_get_osfhandle(_fileno(m_file)));
+    OVERLAPPED overlapped;
+    memset (&overlapped, 0, sizeof(overlapped));
+    overlapped.Offset = DWORD(offset);
+    overlapped.OffsetHigh = DWORD(offset >> 32);
+    DWORD byteswritten = 0;
+    size_t r = WriteFile (h, buf, DWORD(size), &byteswritten, &overlapped) ? byteswritten : 0;
+#else /* Non-Windows: assume POSIX pwrite is available */
+    int fd = fileno (m_file);
+    size_t r = ::pwrite (fd, buf, size, offset);
+#endif
+    offset += r;
+    size -= r;
+    if (m_pos > int64_t(m_size))
+        m_size = offset;
+    return r;
+}
+
+size_t
+Filesystem::IOFile::size () const
+{
+    return m_size;
+}
+
+void
+Filesystem::IOFile::flush () const
+{
+    if (m_file)
+        fflush (m_file);
+}
+
+
+
+size_t
+Filesystem::IOVecOutput::write (const void *buf, size_t size)
+{
+    size = pwrite (buf, size, m_pos);
+    m_pos += size;
+    return size;
+}
+
+
+
+size_t
+Filesystem::IOVecOutput::pwrite (const void *buf, size_t size, int64_t offset)
+{
+    std::lock_guard<std::mutex> lock (m_mutex);
+    if (size_t(offset) == m_buf.size()) {   // appending
+        if (size == 1)
+            m_buf.push_back (*(const unsigned char *)buf);
+        else
+            m_buf.insert (m_buf.end(), (const char*)buf, (const char*)buf+size);
+    } else {
+        size_t end = offset + size;
+        if (end > m_buf.size())
+            m_buf.resize (end);
+        memcpy (&m_buf[offset], buf, size);
+    }
+    return size;
+}
+
+
+
+size_t
+Filesystem::IOMemReader::read (void *buf, size_t size)
+{
+    size = pread (buf, size, m_pos);
+    m_pos += size;
+    return size;
+}
+
+
+size_t
+Filesystem::IOMemReader::pread (void *buf, size_t size, int64_t offset)
+{
+    // N.B. No lock necessary
+    if (size+size_t(offset) > m_buf.size())
+        size = m_buf.size()-size_t(offset);
+    memcpy (buf, m_buf.data()+offset, size);
+    return size;
+}
+
 
 OIIO_NAMESPACE_END

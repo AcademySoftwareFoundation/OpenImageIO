@@ -440,6 +440,30 @@ void test_scan_sequences ()
 
 
 
+void test_mem_proxies ()
+{
+    std::cout << "Testing memory file proxies:\n";
+    std::vector<unsigned char> input_buf { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 };
+    std::vector<unsigned char> output_buf;
+
+    Filesystem::IOMemReader in (input_buf);
+    Filesystem::IOVecOutput out (output_buf);
+    char b[4];
+    size_t len = 0;
+    while ((len = in.read(b,4)))  // read up to 4 bytes at a time
+        out.write(b, len);
+    OIIO_CHECK_ASSERT (input_buf == output_buf);
+    // Now test seeking
+    in.seek (3);
+    out.seek (1);
+    in.read (b, 2);
+    out.write (b, 2);
+    std::vector<unsigned char> ref_buf { 10, 13, 14, 13, 14, 15, 16, 17, 18, 19 };
+    OIIO_CHECK_ASSERT (output_buf == ref_buf);
+}
+
+
+
 int main (int argc, char *argv[])
 {
     test_filename_decomposition ();
@@ -447,6 +471,7 @@ int main (int argc, char *argv[])
     test_file_status ();
     test_frame_sequences ();
     test_scan_sequences ();
+    test_mem_proxies ();
 
     return unit_test_failures;
 }
