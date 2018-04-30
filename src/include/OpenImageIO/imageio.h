@@ -627,18 +627,23 @@ public:
     static ImageInput *open (const std::string &filename,
                              const ImageSpec *config = NULL);
 
-    /// Create and return an ImageInput implementation that is willing
-    /// to read the given file.  The plugin_searchpath parameter is a
+    /// Create and return an ImageInput implementation that is able
+    /// to read the given file.  If do_open is true, fully open it if
+    /// possible (using the optional configuration spec, if supplied),
+    /// otherwise just create the ImageInput but don't open it.
+    /// The plugin_searchpath parameter is an override of the searchpath.
     /// colon-separated list of directories to search for ImageIO plugin
     /// DSO/DLL's (not a searchpath for the image itself!).  This will
     /// actually just try every imageio plugin it can locate, until it
-    /// finds one that's able to open the file without error.  This just
-    /// creates the ImageInput, it does not open the file.
+    /// finds one that's able to open the file without error.
     ///
     /// If the caller intends to immediately open the file, then it is
-    /// simpler to call static ImageInput::open().
+    /// often simpler to call static ImageInput::open().
+    static ImageInput *create (const std::string &filename, bool do_open=false,
+                               const ImageSpec *config=nullptr,
+                               string_view plugin_searchpath="");
     static ImageInput *create (const std::string &filename,
-                               const std::string &plugin_searchpath="");
+                               const std::string &plugin_searchpath);
 
     /// Destroy an ImageInput that was created using ImageInput::create() or
     /// the static open(). For some systems (Windows, I'm looking at you),
@@ -673,6 +678,7 @@ public:
     ///    "iptc"           Can this format store IPTC data?
     ///    "procedural"     Can this format create images without reading
     ///                        from a disk file?
+    ///    "ioproxy"        Does this format reader support IOProxy?
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows
@@ -1133,9 +1139,9 @@ private:
     mutable std::string m_errmessage;  // private storage of error message
     int m_threads;    // Thread policy
     void append_error (const std::string& message) const; // add to m_errmessage
+    // Deprecated:
     static ImageInput *create (const std::string &filename, bool do_open,
                                const std::string &plugin_searchpath);
-
 };
 
 
@@ -1217,6 +1223,7 @@ public:
     ///                        arbitrary names and types?
     ///    "exif"           Can this format store Exif camera data?
     ///    "iptc"           Can this format store IPTC data?
+    ///    "ioproxy"        Does this format writer support IOProxy?
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows

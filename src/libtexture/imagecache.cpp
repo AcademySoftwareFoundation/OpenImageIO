@@ -477,22 +477,23 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         return inp;
     ASSERT (inp.get() == nullptr);
 
+    ImageSpec configspec;
+    if (m_configspec)
+        configspec = *m_configspec;
+    if (imagecache().unassociatedalpha())
+        configspec.attribute ("oiio:UnassociatedAlpha", 1);
+
     if (m_inputcreator)
         inp.reset (m_inputcreator());
     else
-        inp.reset (ImageInput::create (m_filename.string(),
+        inp.reset (ImageInput::create (m_filename.string(), false,
+                                       &configspec,
                                        m_imagecache.plugin_searchpath()));
     if (! inp) {
         mark_broken (OIIO::geterror());
         invalidate_spec ();
         return {};
     }
-
-    ImageSpec configspec;
-    if (m_configspec)
-        configspec = *m_configspec;
-    if (imagecache().unassociatedalpha())
-        configspec.attribute ("oiio:UnassociatedAlpha", 1);
 
     ImageSpec nativespec, tempspec;
     mark_not_broken ();

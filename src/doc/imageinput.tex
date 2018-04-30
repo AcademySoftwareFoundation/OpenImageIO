@@ -680,6 +680,58 @@ a file and print all its values:
 \end{code}
 
 
+\subsection{Custom I/O proxies (and reading the file from a memory buffer)}
+\label{sec:imageinput:ioproxy}
+\index{reading an image file from memory buffer}
+\NEW   % 1.9
+
+Some file format readers allow you to supply a custom I/O proxy object that
+can allow bypassing the usual file I/O with custom behavior, including the
+ability to read the file form an in-memory buffer rather than reading from
+disk.
+
+Only some input format readers support this feature. To find out if a
+particular file format supports this feature, you can create an \ImageInput
+of the right type, and check if it supports the feature name \qkw{ioproxy}:
+
+\begin{code}
+    ImageInput *in = ImageInput::create (filename);
+    if (! in  ||  ! in->supports ("ioproxy")) {
+        ImageInput::destroy (in);
+        in = nullptr;
+        return;
+    }
+\end{code}
+
+\ImageInput readers that support \qkw{ioproxy} will respond to a special
+attribute, \qkw{oiio:ioproxy}, which passes a pointer to a {\cf
+Filesystem::IOProxy*} (see \product's {\cf filesystem.h} for this type and
+its subclasses). {\cf IOProxy} is an abstract type, and concrete subclasses
+include {\cf IOFile} (which wraps I/O to an open {\cf FILE*}) and {\cf
+IOMemReader} (which reads input from a block of memory).
+
+Here is an example of using a proxy that reads the ``file'' from a memory
+buffer:
+
+\begin{code}
+    const void *buf = ...;   // pointer to memory block
+    size_t size = ...;       // length of memory block
+
+    ImageSpec config; // ImageSpec describing input configuration options
+    Filesystem::IOMemReader memreader (buf, size);  // I/O proxy object
+    void *ptr = &memreader;
+    config.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
+
+    ImageSpec spec;
+    ImageInput *in = ImageInput::open ("in.exr", spec, &config);
+    in->read_image (...);
+    ImageInput::destroy (in);
+
+    // That will have read the "file" from the memory buffer
+\end{code}
+
+
+
 \subsection{Custom search paths for plugins}
 \label{sec:imageinput:searchpaths}
 
@@ -781,10 +833,14 @@ will be tried until one is found that will open the file.
 \apiend
 
 \apiitem{ImageInput * {\ce create} (const std::string \&filename, \\
-\bigspc\bigspc   const std::string \&plugin_searchpath="")}
+\bigspc\bigspc   bool do_open=false, const ImageSpec *config=nullptr,\\
+\bitspc\bigspc   string_view plugin_searchpath="")}
 
 Create and return an \ImageInput implementation that is able
-to read the given file.  The {\kw plugin_searchpath} parameter is a
+to read the given file.  If {\cf do_open} is {\cf true}, fully open it if
+possible (using the optional configuration spec, if supplied),
+otherwise just create the \ImageInput but don't open it.
+The {\kw plugin_searchpath} parameter is an override of the searchpath,
 colon-separated list of directories to search for \product plugin
 DSO/DLL's (not a searchpath for the image itself!).  This will
 actually just try every ImageIO plugin it can locate, until it
@@ -827,6 +883,8 @@ as such). The following features are recognized by this query:
 \item[\rm \qkw{procedural}] Might the image ``file format'' generate pixels
   procedurally, without the need for any disk file to be present?
   \end{description}
+\item[\rm \qkw{ioproxy}] Does the image file format support reading
+  from an {\cf IOProxy}?
 \apiend
 
 \apiitem{bool {\ce valid_file} (const std::string \&filename) const}

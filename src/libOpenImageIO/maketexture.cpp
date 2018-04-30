@@ -694,7 +694,7 @@ write_mipmap (ImageBufAlgo::MakeTextureMode mode,
             if (mipimages.size()) {
                 // Special case -- the user specified a custom MIP level
                 small->reset (mipimages[0]);
-                small->read (0, 0, true, TypeDesc::FLOAT);
+                small->read (0, 0, true, TypeFloat);
                 smallspec = small->spec();
                 if (smallspec.nchannels != outspec.nchannels) {
                     outstream << "WARNING: Custom mip level \"" << mipimages[0]

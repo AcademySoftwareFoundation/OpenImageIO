@@ -468,7 +468,16 @@ ImageInput *
 ImageInput::create (const std::string &filename, 
                     const std::string &plugin_searchpath)
 {
-    return create (filename, false, plugin_searchpath);
+    return create (filename, false, nullptr, plugin_searchpath);
+}
+
+
+
+ImageInput *
+ImageInput::create (const std::string &filename, bool do_open,
+                    const std::string &plugin_searchpath)
+{
+    return create (filename, do_open, nullptr, plugin_searchpath);
 }
 
 
@@ -476,7 +485,8 @@ ImageInput::create (const std::string &filename,
 ImageInput *
 ImageInput::create (const std::string &filename,
                     bool do_open,
-                    const std::string &plugin_searchpath)
+                    const ImageSpec *config,
+                    string_view plugin_searchpath)
 {
     // In case the 'filename' was really a REST-ful URI with query/config
     // details tacked on to the end, strip them off so we can correctly
@@ -512,8 +522,9 @@ ImageInput::create (const std::string &filename,
         Strutil::to_lower (format);
         InputPluginMap::const_iterator found = input_formats.find (format);
         if (found == input_formats.end()) {
-            catalog_all_plugins (plugin_searchpath.size() ? plugin_searchpath
-                                 : pvt::plugin_searchpath.string());
+            if (plugin_searchpath.empty())
+                plugin_searchpath = pvt::plugin_searchpath;
+            catalog_all_plugins (plugin_searchpath);
             found = input_formats.find (format);
         }
         if (found != input_formats.end())
@@ -539,7 +550,11 @@ ImageInput::create (const std::string &filename,
                 return in;
             }
             ImageSpec tmpspec;
-            bool ok = in && in->open (filename, tmpspec);
+            bool ok = false;
+            if (in && config)
+                ok = in->open (filename, tmpspec, *config);
+            else if (in)
+                ok = in->open (filename, tmpspec);
             if (ok) {
                 // It worked
                 if (! do_open)
@@ -560,12 +575,14 @@ ImageInput::create (const std::string &filename,
     if (! create_function) {
         // If a plugin can't be found that was explicitly designated for
         // this extension, then just try every one we find and see if
-        // any will open the file.  Pass it a configuration request that
+        // any will open the file.  Add a configuration request that
         // includes a "nowait" option so that it returns immediately if
         // it's a plugin that might wait for an event, like a socket that
         // doesn't yet exist).
-        ImageSpec config;
-        config.attribute ("nowait", (int)1);
+        ImageSpec myconfig;
+        if (config)
+            myconfig = *config;
+        myconfig.attribute ("nowait", (int)1);
         recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
         for (InputPluginMap::const_iterator plugin = input_formats.begin();
              plugin != input_formats.end(); ++plugin)
@@ -593,7 +610,7 @@ ImageInput::create (const std::string &filename,
             }
             // We either need to open it, or we already know it appears
             // to be a file of the right type.
-            bool ok = in->open(filename, tmpspec, config);
+            bool ok = in->open(filename, tmpspec, myconfig);
             if (ok) {
                 if (! do_open)
                     in->close ();

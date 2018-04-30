@@ -101,43 +101,29 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class OpenEXRInputStream : public Imf::IStream
 {
 public:
-    OpenEXRInputStream (const char *filename) : Imf::IStream (filename) {
-        // The reason we have this class is for this line, so that we
-        // can correctly handle UTF-8 file paths on Windows
-        Filesystem::open (ifs, filename, std::ios_base::binary);
-        if (!ifs) 
-            Iex::throwErrnoExc ();
+    OpenEXRInputStream (const char *filename, Filesystem::IOProxy *io)
+        : Imf::IStream (filename), m_io(io) {
+        if (!io || io->mode() != Filesystem::IOProxy::Read)
+            throw Iex::IoExc ("File intput failed.");
     }
     virtual bool read (char c[], int n) {
-        if (!ifs) 
-            throw Iex::InputExc ("Unexpected end of file.");
-		
-        errno = 0;
-        ifs.read (c, n);
-        return check_error ();
+        ASSERT (m_io);
+        if (m_io->read (c, n) != size_t(n))
+            throw Iex::IoExc ("Unexpected end of file.");
+        return n;
     }
     virtual Imath::Int64 tellg () {
-        return std::streamoff (ifs.tellg ());
+        return m_io->tell();
     }
     virtual void seekg (Imath::Int64 pos) {
-        ifs.seekg (pos);
-        check_error ();
+        if (! m_io->seek(pos))
+            throw Iex::IoExc ("File input failed.");
     }
     virtual void clear () {
-        ifs.clear ();
     }
 
 private:
-    bool check_error () {
-        if (!ifs) {
-            if (errno) 
-                Iex::throwErrnoExc ();
-			
-            return false;
-        }
-        return true;
-    }
-    OIIO::ifstream ifs;
+    Filesystem::IOProxy *m_io = nullptr;
 };
 
 
@@ -153,7 +139,11 @@ public:
              || feature == "iptc"); // Because of arbitrary_metadata
     }
     virtual bool valid_file (const std::string &filename) const override;
-    virtual bool open (const std::string &name, ImageSpec &newspec) override;
+    virtual bool open (const std::string &name, ImageSpec &newspec,
+                       const ImageSpec &config) override;
+    virtual bool open (const std::string &name, ImageSpec &newspec) override {
+        return open (name, newspec, ImageSpec());
+    }
     virtual bool close () override;
     virtual int current_subimage (void) const override { return m_subimage; }
     virtual int current_miplevel (void) const override { return m_miplevel; }
@@ -226,6 +216,8 @@ private:
     Imf::DeepTiledInputPart *m_deep_tiled_input_part;
     Imf::InputFile *m_input_scanline;     ///< Input for scanline files
     Imf::TiledInputFile *m_input_tiled;   ///< Input for tiled files
+    Filesystem::IOProxy *m_io = nullptr;
+    std::unique_ptr<Filesystem::IOProxy> m_local_io;
     int m_subimage;                       ///< What subimage are we looking at?
     int m_nsubimages;                     ///< How many subimages are there?
     int m_miplevel;                       ///< What MIP level are we looking at?
@@ -241,6 +233,8 @@ private:
         m_input_tiled = NULL;
         m_subimage = -1;
         m_miplevel = -1;
+        m_io = nullptr;
+        m_local_io.reset ();
     }
 };
 
@@ -368,25 +362,33 @@ OpenEXRInput::valid_file (const std::string &filename) const
 
 
 bool
-OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
+OpenEXRInput::open (const std::string &name, ImageSpec &newspec,
+                    const ImageSpec &config)
 {
-    // Quick check to reject non-exr files
-    if (! Filesystem::is_regular (name)) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
-    }
-    bool tiled;
-    if (! Imf::isOpenExrFile (name.c_str(), tiled)) {
-        error ("\"%s\" is not an OpenEXR file", name.c_str());
-        return false;
-    }
+    const ParamValue* param = config.find_attribute ("oiio:ioproxy", TypeDesc::PTR);
+    m_io = param ? param->get<Filesystem::IOProxy *>() : nullptr;
 
+    // Quick check to reject non-exr files. Don't perform these tests for
+    // the IOProxy case.
+    if (!m_io && ! Filesystem::is_regular (name)) {
+        error ("Could not open file \"%s\"", name);
+        return false;
+    }
+    if (!m_io && ! valid_file(name)) {
+        error ("\"%s\" is not an OpenEXR file", name);
+        return false;
+    }
     pvt::set_exr_threads ();
 
     m_spec = ImageSpec(); // Clear everything with default constructor
-    
+
     try {
-        m_input_stream = new OpenEXRInputStream (name.c_str());
+        if (! m_io) {
+            m_io = new Filesystem::IOFile (name, Filesystem::IOProxy::Read);
+            m_local_io.reset (m_io);
+        }
+        m_io->seek(0);
+        m_input_stream = new OpenEXRInputStream (name.c_str(), m_io);
     } catch (const std::exception &e) {
         m_input_stream = NULL;
         error ("OpenEXR exception: %s", e.what());

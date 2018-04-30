@@ -129,8 +129,8 @@ public:
     bool init_spec (string_view filename, int subimage, int miplevel);
     bool read (int subimage, int miplevel, int chbegin=0, int chend=-1,
                bool force=false, TypeDesc convert=TypeDesc::UNKNOWN,
-               ProgressCallback progress_callback=NULL,
-               void *progress_callback_data=NULL);
+               ProgressCallback progress_callback=nullptr,
+               void *progress_callback_data=nullptr);
     void copy_metadata (const ImageBufImpl &src);
 
     // Error reporting for ImageBuf: call this with printf-like
@@ -323,8 +323,11 @@ ImageBufImpl::ImageBufImpl (string_view filename,
         // If a filename was given, read the spec and set it up as an
         // ImageCache-backed image.  Reallocate later if an explicit read()
         // is called to force read into a local buffer.
-        m_configspec.reset (config ? new ImageSpec (*config) : NULL);
+        if (config)
+            m_configspec.reset (new ImageSpec (*config));
         read (subimage, miplevel);
+        // FIXME: investigate if the above read is really necessary, or if
+        // it can be eliminated and done fully lazily.
     } else {
         ASSERT (buffer == NULL);
     }
@@ -541,7 +544,7 @@ ImageBufImpl::clear ()
     m_write_tile_width = 0;
     m_write_tile_height = 0;
     m_write_tile_depth = 0;
-    m_configspec.reset (NULL);
+    m_configspec.reset ();
 }
 
 
@@ -708,8 +711,7 @@ ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);
     m_channel_bytes = m_spec.format.size();
     m_blackpixel.resize (round_to_multiple (m_pixel_bytes, OIIO_SIMD_MAX_SIZE_BYTES), 0);
-    // NB make it big enough for SSE
-
+        // ^^^ NB make it big enough for SIMD
     // Subtlety: m_nativespec will have the true formats of the file, but
     // we rig m_spec to reflect what it will look like in the cache.
     // This may make m_spec appear to change if there's a subsequent read()
@@ -779,8 +781,7 @@ ImageBufImpl::read (int subimage, int miplevel, int chbegin, int chend,
     bool use_channel_subset = (chbegin != 0 || chend != nativespec().nchannels);
 
     if (m_spec.deep) {
-        std::unique_ptr<ImageInput> input (
-                    ImageInput::open (m_name.string(), m_configspec.get()));
+        std::unique_ptr<ImageInput> input (ImageInput::open (m_name.string(), m_configspec.get()));
         if (! input) {
             error ("%s", OIIO::geterror());
             return false;
@@ -856,7 +857,8 @@ ImageBufImpl::read (int subimage, int miplevel, int chbegin, int chend,
         // type and whose bit depth is as much or more than the cached type.
         // Bypass the cache and read directly so that there is no possible
         // loss of range or precision resulting from going through the
-        // cache.
+        // cache. Or the caller requested a forced read, for that case we
+        // also do a direct read now.
         int unassoc = 0;
         if (m_imagecache->getattribute ("unassociatedalpha", unassoc)) {
             // Since IB needs to act as if it's backed by an ImageCache,
@@ -865,7 +867,7 @@ ImageBufImpl::read (int subimage, int miplevel, int chbegin, int chend,
             add_configspec ();
             m_configspec->attribute ("oiio:UnassociatedAlpha", unassoc);
         }
-        ImageInput *in = ImageInput::open (m_name.string(), m_configspec.get());
+        std::unique_ptr<ImageInput> in (ImageInput::open (m_name.string(), m_configspec.get()));
         bool ok = true;
         if (in) {
             in->threads (threads());  // Pass on our thread policy
@@ -882,7 +884,6 @@ ImageBufImpl::read (int subimage, int miplevel, int chbegin, int chend,
                 m_pixels_valid = false;
                 error ("%s", in->geterror());
             }
-            delete in;
         } else {
             m_pixels_valid = false;
             error ("%s", OIIO::geterror());

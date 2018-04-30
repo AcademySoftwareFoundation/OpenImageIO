@@ -1135,6 +1135,57 @@ without alteration while modifying the image description metadata:
 \end{code}
 
 
+\subsection{Custom I/O proxies (and writing the file to a memory buffer)}
+\label{sec:imageoutput:ioproxy}
+\index{writing an image file to memory buffer}
+\NEW   % 1.9
+
+Some file format writers allow you to supply a custom I/O proxy object that
+can allow bypassing the usual file I/O with custom behavior, including the
+ability to fill an in-memory buffer with a byte-for-byte representation of
+the correctly formatted file that would have been written to disk.
+
+Only some output format writers support this feature. To find out if a
+particular file format supports this feature, you can create an \ImageOutput
+of the right type, and check if it supports the feature name \qkw{ioproxy}:
+
+\begin{code}
+    ImageOutput *out = ImageOutput::create (filename);
+    if (! out  ||  ! out->supports ("ioproxy")) {
+        ImageOutput::destroy (out);
+        out = nullptr;
+        return;
+    }
+\end{code}
+
+\ImageOutput writers that support \qkw{ioproxy} will respond to a special
+attribute, \qkw{oiio:ioproxy}, which passes a pointer to a {\cf
+Filesystem::IOProxy*} (see \product's {\cf filesystem.h} for this type and
+its subclasses). {\cf IOProxy} is an abstract type, and concrete subclasses
+include {\cf IOFile} (which wraps I/O to an open {\cf FILE*}) and {\cf
+IOVecOutput} (which sends output to a {\cf std::vector<unsigned char>}).
+
+Here is an example of using a proxy that writes the ``file'' to a
+{\cf std::vector<unsigned char>}:
+
+\begin{code}
+    // ImageSpec describing the image we want to write.
+    ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
+
+    std::vector<unsigned char> file_buffer;  // bytes will go here
+    Filesystem::IOVecOutput vecout (file_buffer);  // I/O proxy object
+    void *ptr = &file_buffer;
+    spec.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
+
+    ImageOutput *out = ImageOutput::open ("out.exr", spec);
+    out->write_image (...);
+    ImageOutput::destroy (out);
+
+    // At this point, file_buffer will contain the "file"
+\end{code}
+
+
+
 \subsection{Custom search paths for plugins}
 \label{sec:imageoutput:searchpaths}
 
@@ -1331,6 +1382,8 @@ as such). The following features are recognized by this query:
   (either specifically, or via arbitrary named metadata)?
 \item[\rm \qkw{iptc}] Does the image file format support IPTC data
   (either specifically, or via arbitrary named metadata)?
+\item[\rm \qkw{ioproxy}] Does the image file format support writing
+  to an {\cf IOProxy}?
 \end{description}
 
 \noindent This list of queries may be extended in future releases.

@@ -6,10 +6,6 @@ Major new features and improvements:
 * Major refactor of Exif metadata handling, including much more complete
   metadata support for RAW formats and support of camera "maker notes"
   for Canon cameras. #1774 (1.9.0)
-* New "null" I/O plugin -- null reader just returns black (or constant
-  colored) pixels, null writer just returns. This can be used for
-  benchmarking (to eliminate all actual file I/O time), "dry run" where you
-  want to test without creating output files. #1778 (1.9.0)
 * New `maketx` option `--bumpslopes` specifically for converting bump maps,
   saves additional channels containing slope distribution moments that can
   be used in shaders for "bump to roughness" calculations. #1810,#1913 (1.9.2)
@@ -18,6 +14,16 @@ Major new features and improvements:
   on modern multicore systems. We've seen 10x or more faster oiiotool
   performance for uint8 and uint16 TIFF files using "zip" (deflate)
   compression, on modern 12-16 core machines. #1853 (1.9.2)
+* For some readers and writers, an "IOProxy" can be passed that customizes
+  the I/O methods. An important use of this is to write an image "file"
+  to memory or to read an image "file" from a memory, rather than disk.
+  Currently, OpenEXR supports this for both reading and writing, and PNG
+  supports it for writing. You specify a pointer to the proxy via the
+  configuration option "oiio:ioproxy". #1931 (1.9.3)
+* New "null" I/O plugin -- null reader just returns black (or constant
+  colored) pixels, null writer just returns. This can be used for
+  benchmarking (to eliminate all actual file I/O time), "dry run" where you
+  want to test without creating output files. #1778 (1.9.0)
 
 Public API changes:
 * **Python binding overhaul**
@@ -257,6 +263,9 @@ Developer goodies / internals:
   constructors from pointer pairs and from std::array. (1.9.0/1.8.6)
 * color.h: add guards to make this header safe for Cuda compilation.
   #1905 (1.9.2/1.8.10)
+* filesystem.h:
+    * IOProxy classes that can abstract file operations for custom I/O
+      substitutions. #1931 (1.9.3)
 * fmath.h:
     * Now defines preprocessor symbol `OIIO_FMATH_H` so other files can
       easily detect if it has been included. (1.9.0/1.8.6)

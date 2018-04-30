@@ -46,7 +46,8 @@ public:
     virtual ~PNGOutput ();
     virtual const char * format_name (void) const override { return "png"; }
     virtual int supports (string_view feature) const override {
-        return (feature == "alpha");
+        return (feature == "alpha" ||
+                feature == "ioproxy");
     }
     virtual bool open (const std::string &name, const ImageSpec &spec,
                        OpenMode mode=Create) override;
@@ -69,6 +70,7 @@ private:
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
     std::vector<unsigned char> m_tilebuffer;
+    Filesystem::IOProxy *m_io = nullptr;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -78,13 +80,27 @@ private:
         m_convert_alpha = true;
         m_gamma = 1.0;
         m_pngtext.clear ();
+        m_io = nullptr;
     }
 
     // Add a parameter to the output
     bool put_parameter (const std::string &name, TypeDesc type,
                         const void *data);
 
-    void finish_image ();
+    // Callback for PNG that appends to in-memory buffer instead of writing
+    // to a file.
+    static void PngWriteCallback (png_structp  png_ptr, png_bytep data, png_size_t length) {
+        Filesystem::IOProxy *p = (Filesystem::IOProxy *)png_get_io_ptr(png_ptr);
+        DASSERT (p);
+        p->write (data, length);
+    }
+
+    static void PngFlushCallback (png_structp png_ptr) {
+        Filesystem::IOProxy *p = (Filesystem::IOProxy *)png_get_io_ptr(png_ptr);
+        DASSERT (p);
+        p->flush ();
+    }
+
 };
 
 
@@ -136,21 +152,34 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
         m_spec.set_format (TypeDesc::UINT8);
 
-    m_file = Filesystem::fopen (name, "wb");
-    if (! m_file) {
-        error ("Could not open file \"%s\"", name.c_str());
-        return false;
+    // See if we were requested to write to a memory buffer, and if so,
+    // extract the pointer.
+    const ParamValue* param = m_spec.find_attribute ("oiio:ioproxy", TypeDesc::PTR);
+    m_io = param ? param->get<Filesystem::IOProxy *>() : nullptr;
+    if (m_io) {
+        m_file = nullptr;
+    } else {
+        // otherwise, we're writing to a file, so open it.
+        m_file = Filesystem::fopen (name, "wb");
+        if (! m_file) {
+            error ("Could not open file \"%s\"", name);
+            return false;
+        }
     }
 
     std::string s = PNG_pvt::create_write_struct (m_png, m_info,
                                                   m_color_type, m_spec);
     if (s.length ()) {
         close ();
-        error ("%s", s.c_str ());
+        error ("%s", s);
         return false;
     }
 
-    png_init_io (m_png, m_file);
+    if (m_file)
+        png_init_io (m_png, m_file);
+    else
+        png_set_write_fn (m_png, m_io, PngWriteCallback, PngFlushCallback);
+
     png_set_compression_level (m_png, std::max (std::min (m_spec.get_int_attribute ("png:compressionLevel", 6/* medium speed vs size tradeoff */), Z_BEST_COMPRESSION), Z_NO_COMPRESSION));
     std::string compression = m_spec.get_string_attribute ("compression");
     if (compression.empty ()) {
@@ -197,7 +226,7 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
 bool
 PNGOutput::close ()
 {
-    if (! m_file) {   // already closed
+    if (! m_file && !m_io) {   // already closed
         init ();
         return true;
     }
@@ -215,8 +244,16 @@ PNGOutput::close ()
         PNG_pvt::finish_image (m_png, m_info);
     }
 
-    fclose (m_file);
-    m_file = NULL;
+    if (m_file) {
+        // We were writing to a file, so close it.
+        ASSERT (m_io == nullptr);
+        fclose (m_file);
+        m_file = nullptr;
+    }
+    if (m_io) {
+        ASSERT (m_file == nullptr);
+        m_io->close();
+    }
 
     init ();      // re-initialize
     return ok;

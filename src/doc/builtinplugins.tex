@@ -681,6 +681,10 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
   name and apparent type.
 \end{longtable}
 
+OpenEXR input and output both support the ``custom I/O'' feature via the
+special \qkw{oiio:ioproxy} attributes (see
+Sections~\ref{sec:imageoutput:ioproxy} and \ref{sec:imageinput:ioproxy}).
+
 \subsubsection*{A note on channel names}
 
 The underlying OpenEXR library (libIlmImf) always saves channels
@@ -731,6 +735,9 @@ PNG files use the file extension {\cf .png}.
 \qkw{oiio:Gamma} & float & the gamma correction value (if specified). \\
 \qkw{ICCProfile} & uint8[] & The ICC color profile \\
 \end{tabular}
+
+PNG output supports the ``custom I/O'' feature via the special
+\qkw{oiio:ioproxy} attributes (see Section~\ref{sec:imageoutput:ioproxy}).
 
 \subsubsection*{Limitations}
 

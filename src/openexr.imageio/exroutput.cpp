@@ -61,7 +61,6 @@
 #include <OpenEXR/ImfRationalAttribute.h>
 #include <OpenEXR/ImfCRgbaFile.h>  // JUST to get symbols to figure out version!
 #include <OpenEXR/IexBaseExc.h>
-#include <OpenEXR/IexThrowErrnoExc.h>
 
 #ifdef __GNUC__
 #pragma GCC visibility pop
@@ -88,42 +87,29 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
-// Custom file output stream, copying code from the class StdOFStream in
-// OpenEXR, which would have been used if we just provided a
-// filename. The difference is that this can handle UTF-8 file paths on
-// all platforms.
+// Custom file output stream that uses IOProxy for output.
 class OpenEXROutputStream : public Imf::OStream
 {
 public:
-    OpenEXROutputStream (const char *filename) : Imf::OStream(filename) {
-        // The reason we have this class is for this line, so that we
-        // can correctly handle UTF-8 file paths on Windows
-        Filesystem::open (ofs, filename, std::ios_base::binary);
-        if (!ofs) 	
-            Iex::throwErrnoExc ();
+    OpenEXROutputStream (const char *filename, Filesystem::IOProxy *io)
+        : Imf::OStream(filename), m_io(io) {
+        if (!io || io->mode() != Filesystem::IOProxy::Write)
+            throw Iex::IoExc ("File output failed.");
     }
     virtual void write (const char c[], int n) {
-        errno = 0;
-        ofs.write (c, n);
-        check_error ();
+        if (m_io->write (c, n) != size_t(n))
+            throw Iex::IoExc ("File output failed.");
     }
     virtual Imath::Int64 tellp () {
-        return std::streamoff (ofs.tellp ());
+        return m_io->tell();
     }
     virtual void seekp (Imath::Int64 pos) {
-        ofs.seekp (pos);
-        check_error ();
+        if (! m_io->seek(pos))
+            throw Iex::IoExc ("File output failed.");
     }
 
 private:
-    void check_error () {
-        if (!ofs) {
-            if (errno)
-                Iex::throwErrnoExc ();
-            throw Iex::ErrnoExc ("File output failed.");
-        }
-    }
-    OIIO::ofstream ofs;
+    Filesystem::IOProxy *m_io = nullptr;
 };
 
 
@@ -177,6 +163,8 @@ private:
     std::vector<unsigned char> m_scratch; ///< Scratch space for us to use
     std::vector<ImageSpec> m_subimagespecs; ///< Saved subimage specs
     std::vector<Imf::Header> m_headers;
+    Filesystem::IOProxy *m_io = nullptr;
+    std::unique_ptr<Filesystem::IOProxy> m_local_io;
 
     // Initialize private members to pre-opened state
     void init (void) {
@@ -190,8 +178,12 @@ private:
         m_deep_tiled_output_part.reset();
         m_subimage = -1;
         m_miplevel = -1;
-        std::vector<ImageSpec>().swap (m_subimagespecs);  // clear and free
-        std::vector<Imf::Header>().swap (m_headers);
+        m_subimagespecs.clear();
+        m_subimagespecs.shrink_to_fit();
+        m_headers.clear();
+        m_headers.shrink_to_fit();
+        m_io = nullptr;
+        m_local_io.reset ();
     }
 
     // Set up the header based on the given spec.  Also may doctor the 
@@ -313,6 +305,8 @@ OpenEXROutput::supports (string_view feature) const
         return true;  // N.B. But OpenEXR does not support "appendsubimage"
     if (feature == "deepdata")
         return true;
+    if (feature == "ioproxy")
+        return true;
 
     // EXR supports random write order iff lineOrder is set to 'random Y'
     // and it's a tiled file.
@@ -344,12 +338,18 @@ OpenEXROutput::open (const std::string &name, const ImageSpec &userspec,
         m_headers.resize (1);
         m_spec = userspec;  // Stash the spec
         sanity_check_channelnames ();
+        const ParamValue* param = m_spec.find_attribute ("oiio:ioproxy", TypeDesc::PTR);
+        m_io = param ? param->get<Filesystem::IOProxy *>() : nullptr;
 
         if (! spec_to_header (m_spec, m_subimage, m_headers[m_subimage]))
             return false;
 
         try {
-            m_output_stream.reset (new OpenEXROutputStream (name.c_str()));
+            if (! m_io) {
+                m_io = new Filesystem::IOFile (name, Filesystem::IOProxy::Write);
+                m_local_io.reset (m_io);
+            }
+            m_output_stream.reset (new OpenEXROutputStream (name.c_str(), m_io));
             if (m_spec.tile_width) {
                 m_output_tiled.reset (new Imf::TiledOutputFile (*m_output_stream,
                                                            m_headers[m_subimage]));

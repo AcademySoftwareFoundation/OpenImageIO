@@ -200,6 +200,27 @@ plugins and compression methods that allow a variable amount of
 compression, with higher numbers indicating higher image fidelity.
 \apiend
 
+\section{Substituting an {\cf IOPRoxy} for custom I/O overrides}
+\index{writing an image file to memory buffer}
+\index{reading an image file to memory buffer}
+
+\NEW % 1.9
+Format readers and writers that respond positively to {\cf
+supports("ioproxy")} have the ability to read or write using an \emph{I/O
+proxy} object. Among other things, this lets an \ImageOutput write the file
+to a memory buffer rather than saving to disk, and for an \ImageInput to
+read the file from a memory buffer. (Currently, only PNG and OpenEXR have
+the ability to do this.) This behavior is controlled by a special attributes
+
+\apiitem{"oiio:ioproxy" : pointer}
+Pointer to a {\cf Filesystem::IOProxy} that will handle the I/O.
+\apiend
+
+An explanation of how this feature is used may be found in
+Sections~\ref{sec:imageoutput:writefiletomemory} and
+\ref{sec:imageoutput:writefiletomemory}.
+
+
 \section{Photographs or scanned images}
 
 The following metadata items are specific to photos or captured images.

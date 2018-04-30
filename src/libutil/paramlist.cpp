@@ -324,6 +324,9 @@ ParamValue::get_string (int maxsize) const
         formatType< unsigned char >(*this, n, "%d", out);
     } else if (element.basetype == TypeDesc::INT8) {
         formatType< char >(*this, n, "%d", out);
+    } else if (element.basetype == TypeDesc::PTR) {
+        out += "ptr ";
+        formatType< void* >(*this, n, "%p", out);
     } else {
         out += Strutil::format ("<unknown data type> (base %d, agg %d vec %d)",
                 type().basetype, type().aggregate,

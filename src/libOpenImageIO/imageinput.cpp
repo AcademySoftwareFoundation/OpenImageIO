@@ -85,11 +85,11 @@ ImageInput::open (const std::string &filename,
 {
     if (config == NULL) {
         // Without config, this is really just a call to create-with-open.
-        return ImageInput::create (filename, true, std::string());
+        return ImageInput::create (filename, true, nullptr, std::string());
     }
 
     // With config, create without open, then try to open with config.
-    ImageInput *in = ImageInput::create (filename, false, std::string());
+    ImageInput *in = ImageInput::create (filename, false, config, std::string());
     if (! in)
         return NULL;  // create() failed
     ImageSpec newspec;
