@@ -12,7 +12,7 @@ Major new features and improvements:
   want to test without creating output files. #1778 (1.9.0)
 * New `maketx` option `--bumpslopes` specifically for converting bump maps,
   saves additional channels containing slope distribution moments that can
-  be used in shaders for "bump to roughness" calculations. #1810 (1.9.2)
+  be used in shaders for "bump to roughness" calculations. #1810,#1913 (1.9.2)
 * TIFF I/O of multiple scanlines or tiles at once (or whole images, as is
   typical use case for oiiotool and maketx) is sped up by a large factor
   on modern multicore systems. We've seen 10x or more faster oiiotool
@@ -132,6 +132,9 @@ Fixes and feature enhancements:
        supported `img*img+img` and `img*color+color`.) #1866 (1.9.2)
 * ImageBuf:
     * Bug fixed in IB::copy() of rare types. #1829 (1.9.2)
+    * write() automatically tells the ImageCache to 'invalidate' the file
+      being written, so cached images will not retain the prior version of
+      the files. #1916 (1.9.2)
 * ImageCache/TextureSystem/maketx:
     * Improved stats on how long we wait for ImageInput mutexes.
       #1779 (1.9.0/1.8.6)
@@ -143,6 +146,10 @@ Fixes and feature enhancements:
       hash collisions. #1819 (1.9.2)
     * IC/TS performance improvements by changing the underlying hash table
       implementation. #1823,1824,1825,1826,1830 (1.9.2)
+    * texture()/texture3d(): when requesting a nonexistant "subimage",
+      return the fill color, like we do when requesting nonexistant channels
+      (rather than nondeterministically simply not filling in the result).
+      #1917 (1.9.2)
 * All string->numeric parsing and numeric->string formatting is now
   locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
 * Python Imagebuf.get_pixels and set_pixels bugs fixed, in the varieties
@@ -153,6 +160,8 @@ Fixes and feature enhancements:
 * OpenEXR: gracefully detect and reject files with subsampled channels,
   which is a rarely-to-never-used OpenEXR feature that we don't support
   properly. #1849 (1.9.2/1.8.8)
+* PNG:
+    * Fix redundant png_write_end call. #1910 (1.9.2)
 * PSD:
     * Fix parse issue of layer mask data. #1777 (1.9.2)
 * RAW:
@@ -165,6 +174,8 @@ Fixes and feature enhancements:
     * Improve performance of TIFF scanline output. #1833 (1.9.2)
     * Bug fix: read_tile() and read_tiles() input of un-premultiplied tiles
       botched the "shape" of the tile data array. #1907 (1.9.2/1.8.10)
+    * Improvement in speed of reading headers (by removing redundant call
+      to TIFFSetDirectory). #1922 (1.9.2)
 * zfile: more careful gzopen on Windows that could crash when given bogus
   filename. #1839 (1.9.2/1.8.8)
 
@@ -206,6 +217,8 @@ Build/test system improvements:
   as working anyway). #1887 (1.9.2)
 * Windows/MSVC build fix: use the `/bigobj` option on some large modules
   that need it. #1900, #1902 (1.8.10/1.9.2)
+* Add up-to-date Nuke versions to FindNuke.cmake. #1920 (1.8.11, 1.9.2)
+* Allow building against ffmpeg 4.0. #1926 (1.8.11, 1.9.2)
 
 Developer goodies / internals:
 * argparse.h:
@@ -250,6 +263,7 @@ Developer goodies / internals:
       easy parsing of strings to numbers. Also tests `Strutil::string_is_int()`
       and `string_is_float()`. #1796 (1.9.0)
     * New `to_string<>` utility template. #1814 (1.9.2)
+    * Fix to strtof, strtod for non-C locales. #1918 (1.8.11, 1.9.2)
 * thread.h:
     * Reimplementaiton of `spin_rw_mutex` has much better performance when
       many threads are accessing at once, especially if most of them are
@@ -265,6 +279,12 @@ Developer goodies / internals:
 
 
 
+
+Release 1.8.11 (1 May 2018) -- compared to 1.8.10
+-------------------------------------------------
+* Fix to strtof, strtod for non-C locales. #1918
+* Add up-to-date Nuke versions to FindNuke.cmake. #1920
+* Allow building against ffmpeg 4.0. #1926
 
 Release 1.8.10 (1 Apr 2018) -- compared to 1.8.9
 -------------------------------------------------
