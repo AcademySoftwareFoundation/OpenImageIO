@@ -1,6 +1,8 @@
 Release 1.8.11 (1 May 2018) -- compared to 1.8.10
 -------------------------------------------------
-
+* Fix to strtof, strtod for non-C locales. #1918
+* Add up-to-date Nuke versions to FindNuke.cmake. #1920
+* Allow building against ffmpeg 4.0. #1926
 
 Release 1.8.10 (1 Apr 2018) -- compared to 1.8.9
 -------------------------------------------------
