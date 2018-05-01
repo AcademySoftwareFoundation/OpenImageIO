@@ -1,5 +1,6 @@
-Release 1.7.18 (?? Sep 2017) -- compared to 1.7.17
+Release 1.7.18 (1 May 2018) -- compared to 1.7.17
 -------------------------------------------------
+* Update to build against ffmpeg 4.0
 
 Release 1.7.17 (1 Sep 2017) -- compared to 1.7.16
 -------------------------------------------------
