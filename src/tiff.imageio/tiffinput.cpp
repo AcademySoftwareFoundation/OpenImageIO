@@ -165,6 +165,7 @@ private:
     bool m_separate;                 ///< Separate planarconfig?
     bool m_testopenconfig;           ///< Debug aid to test open-with-config
     bool m_use_rgba_interface;       ///< Sometimes we punt
+    bool m_is_byte_swapped;          ///< Is the file opposite our endian?
     int  m_rowsperstrip;             ///< For scanline imgs, rows per strip
     unsigned short m_planarconfig;   ///< Planar config of the file
     unsigned short m_bitspersample;  ///< Of the *file*, not the client's view
@@ -359,8 +360,18 @@ private:
     void uncompress_one_strip (void *compressed_buf, unsigned long csize,
                                void *uncompressed_buf, size_t strip_bytes,
                                int channels, int width, int height,
-                               bool *ok)
+                               int compression, bool *ok)
     {
+        ASSERT (compression == COMPRESSION_ADOBE_DEFLATE /*||
+                compression == COMPRESSION_NONE*/);
+        if (compression == COMPRESSION_NONE) {
+            // just copy if there's no compression
+            memcpy (uncompressed_buf, compressed_buf, csize);
+            if (m_is_byte_swapped && m_spec.format == TypeUInt16)
+                TIFFSwabArrayOfShort ((unsigned short *)uncompressed_buf,
+                                      width*height*channels);
+            return;
+        }
         uLong uncompressed_size = (uLong)strip_bytes;
         auto zok = uncompress ((Bytef *)uncompressed_buf, &uncompressed_size,
                                (const Bytef *)compressed_buf, csize);
@@ -368,17 +379,19 @@ private:
             *ok = false;
             return;
         }
-        if (TIFFIsByteSwapped(m_tif) && m_spec.format == TypeUInt16)
+        if (m_is_byte_swapped && m_spec.format == TypeUInt16)
             TIFFSwabArrayOfShort ((unsigned short *)uncompressed_buf,
                                   width*height*channels);
-        if (m_spec.format == TypeUInt8)
-            undo_horizontal_predictor ((unsigned char *)uncompressed_buf,
-                                       (unsigned char *)uncompressed_buf,
-                                       channels, width, height);
-        else if (m_spec.format == TypeUInt16)
-            undo_horizontal_predictor ((unsigned short *)uncompressed_buf,
-                                       (unsigned short *)uncompressed_buf,
-                                       channels, width, height);
+        if (m_predictor == PREDICTOR_HORIZONTAL) {
+            if (m_spec.format == TypeUInt8)
+                undo_horizontal_predictor ((unsigned char *)uncompressed_buf,
+                                           (unsigned char *)uncompressed_buf,
+                                           channels, width, height);
+            else if (m_spec.format == TypeUInt16)
+                undo_horizontal_predictor ((unsigned short *)uncompressed_buf,
+                                           (unsigned short *)uncompressed_buf,
+                                           channels, width, height);
+        }
     }
 
     int tile_index (int x, int y, int z) {
@@ -611,6 +624,7 @@ TIFFInput::seek_subimage (int subimage, int miplevel, ImageSpec &newspec)
             error ("Could not open file: %s", e.length() ? e : m_filename);
             return false;
         }
+        m_is_byte_swapped = TIFFIsByteSwapped (m_tif);
         m_subimage = 0;
     }
     
@@ -1492,85 +1506,150 @@ TIFFInput::read_native_scanlines (int ybegin, int yend, int z, void *data)
     // parallelize by reading raw (compressed) strips then making calls to
     // zlib ourselves to decompress. Don't bother trying to handle any of
     // the uncommon cases with strips. This covers most real-world cases.
-    thread_pool *pool = default_thread_pool();
+
     yend = std::min (yend, spec().y+spec().height);
     int nstrips = (yend-ybegin+m_rowsperstrip-1) / m_rowsperstrip;
-    bool parallelize =
+
+    // See if it's easy to read this scanline range as strips. For edge
+    // cases we don't with to deal with here, we just call the base class
+    // read_native_scanlines, which in turn will loop over each scanline in
+    // the range to call our read_native_scanline, which does handle the
+    // full range of cases.
+    bool read_as_strips =
+        // we're reading more than one scanline
+        (yend-ybegin) > 1   // no advantage to strips for single scanlines
         // scanline range must be complete strips
-        is_strip_boundary(ybegin) && is_strip_boundary(yend)
-        // and more than one, or no point parallelizing
-        && nstrips > 1
+        && is_strip_boundary(ybegin) && is_strip_boundary(yend)
         // and not palette or cmyk color separated conversions
         && (m_photometric != PHOTOMETRIC_SEPARATED && m_photometric != PHOTOMETRIC_PALETTE)
         // no non-multiple-of-8 bits per sample
         && (spec().format.size()*8 == m_bitspersample)
+        // No other unusual cases
+        && !m_use_rgba_interface;
+    if (! read_as_strips) {
+        // Punt and call the base class, which loops over scanlines.
+        return ImageInput::read_native_scanlines (ybegin, yend, z, data);
+    }
+
+    // Are we reading raw (compressed) strips and doing the decompression
+    // ourselves?
+    bool read_raw_strips =
+        // only deflate/zip compression
+        (m_compression == COMPRESSION_ADOBE_DEFLATE /*|| m_compression == COMPRESSION_NONE*/)
+        // only horizontal predictor (or none)
+        && (m_predictor == PREDICTOR_HORIZONTAL || m_predictor == PREDICTOR_NONE)
         // contig planarconfig only (for now?)
         && !m_separate
-        // only deflate/zip compression with horizontal predictor
-        && m_compression == COMPRESSION_ADOBE_DEFLATE
-        && m_predictor == PREDICTOR_HORIZONTAL
         // only uint8, uint16
-        && (m_spec.format == TypeUInt8 || m_spec.format == TypeUInt16)
+        && (m_spec.format == TypeUInt8 || m_spec.format == TypeUInt16);
+
+    // We know we wish to read as strips. But additionally, there are some
+    // circumstances in which we want to read RAW strips, and do the
+    // decompression ourselves, which we can feed to the thread pool to
+    // perform in parallel.
+    thread_pool *pool = default_thread_pool();
+    task_set tasks (pool);
+    bool parallelize =
+        // and more than one, or no point parallelizing
+        nstrips > 1
         // only if we are reading scanlines in order
         && ybegin == m_next_scanline
-        // No other unusual cases
-        && !m_use_rgba_interface
         // only if we're threading and don't enter the thread pool recursively!
         && pool->size() > 1 && !pool->this_thread_is_in_pool()
         // and not if the feature is turned off
         && m_spec.get_int_attribute("tiff:multithread", OIIO::get_int_attribute("tiff:multithread"));
 
-    // If we're not parallelizing, just call the parent class default
-    // implementaiton of read_nateive_scanlines, which will loop over the
-    // scanlines and read each one individually.
-    if (! parallelize) {
-        return ImageInput::read_native_scanlines (ybegin, yend, z, data);
-    }
-
-    // Make room for, and read the raw (still compressed) strips. As each
-    // one is read, kick off the decompress and any other extras, to execute
-    // in parallel.
-    int stripvals = m_spec.width * m_spec.nchannels * m_rowsperstrip;
-    size_t ystride = m_spec.scanline_bytes (true);
-    imagesize_t strip_bytes = ystride * m_rowsperstrip;
-    size_t cbound = compressBound ((uLong)strip_bytes);
-    std::unique_ptr<char[]> compressed_scratch (new char [cbound * nstrips]);
-    task_set tasks (pool);
     bool ok = true;   // failed compression will stash a false here
     int y = ybegin;
-    for (size_t stripidx = 0;  y+m_rowsperstrip <= yend;  y += m_rowsperstrip, ++stripidx) {
-        char *cbuf = compressed_scratch.get()+stripidx*cbound;
-        tstrip_t stripnum = (y-m_spec.y) / m_rowsperstrip;
-        auto csize = TIFFReadRawStrip (m_tif, stripnum, cbuf, tmsize_t(cbound));
-        if (csize < 0) {
-            std::string err = oiio_tiff_last_error();
-            error ("TIFFReadRawStrip failed reading line y=%d,z=%d: %s",
-                   y, z, err.size() ? err.c_str() : "unknown error");
-            return false;
+    size_t ystride = m_spec.scanline_bytes (true);
+    int stripchans = m_separate ? 1 : m_spec.nchannels; // chans in each strip
+    int planes = m_separate ? m_spec.nchannels : 1; // color planes
+      // N.B. "separate" planarconfig stores only one channel in a strip
+    int stripvals = m_spec.width * stripchans * m_rowsperstrip;  // values in a strip
+    imagesize_t strip_bytes = stripvals * m_spec.format.size();
+    size_t cbound = compressBound ((uLong)strip_bytes);
+    std::unique_ptr<char[]> compressed_scratch;
+    std::unique_ptr<char[]> separate_tmp (m_separate ? new char[strip_bytes * nstrips * planes] : nullptr);
+
+    if (read_raw_strips) {
+        // Make room for, and read the raw (still compressed) strips. As each
+        // one is read, kick off the decompress and any other extras, to execute
+        // in parallel.
+        compressed_scratch.reset (new char [cbound * nstrips * planes]);
+        for (size_t stripidx = 0;  y+m_rowsperstrip <= yend;  y += m_rowsperstrip, ++stripidx) {
+            char *cbuf = compressed_scratch.get()+stripidx*cbound;
+            tstrip_t stripnum = (y-m_spec.y) / m_rowsperstrip;
+            tsize_t csize;
+            if (read_raw_strips) {
+                csize = TIFFReadRawStrip (m_tif, stripnum, cbuf, tmsize_t(cbound));
+            } else {
+                csize = TIFFReadEncodedStrip (m_tif, stripnum, data, tmsize_t(strip_bytes));
+            }
+            if (csize < 0) {
+                std::string err = oiio_tiff_last_error();
+                error ("TIFFRead%sStrip failed reading line y=%d,z=%d: %s",
+                       read_raw_strips ? "Raw" : "Encoded",
+                       y, z, err.size() ? err.c_str() : "unknown error");
+                ok = false;
+            }
+            auto uncompress_etc = [=,&ok](int id){
+                if (read_raw_strips)
+                    uncompress_one_strip (cbuf, (unsigned long)csize,
+                                          data, strip_bytes,
+                                          this->m_spec.nchannels, this->m_spec.width,
+                                          m_rowsperstrip, m_compression, &ok);
+                if (m_photometric == PHOTOMETRIC_MINISWHITE)
+                    invert_photometric (stripvals*stripchans, data);
+            };
+            if (parallelize) {
+                // Push the rest of the work onto the thread pool queue
+                tasks.push (pool->push (uncompress_etc));
+            } else {
+                uncompress_etc (0);
+            }
+            data = (char *)data + strip_bytes*planes;
         }
-        // Push the rest of the work onto the thread pool queue
-        tasks.push (pool->push ([=,&ok](int id){
-            uncompress_one_strip (cbuf, (unsigned long)csize,
-                                  data, strip_bytes,
-                                  this->m_spec.nchannels, this->m_spec.width,
-                                  m_rowsperstrip, &ok);
+
+    } else {
+        // One of the cases where we don't bother reading raw, we read
+        // encoded strips. Still can be a lot more efficient than reading
+        // individual scanlines. This is the clause that has to handle
+        // "separate" planarconfig.
+        int strips_in_file = (m_spec.height + m_rowsperstrip-1) / m_rowsperstrip;
+        for (size_t stripidx = 0;  y+m_rowsperstrip <= yend;  y += m_rowsperstrip, ++stripidx) {
+            for (int c = 0; c < planes; ++c) {
+                tstrip_t stripnum = ((y-m_spec.y) / m_rowsperstrip) + c*strips_in_file;
+                tsize_t csize = TIFFReadEncodedStrip (m_tif, stripnum, (char *)data+c*strip_bytes, tmsize_t(strip_bytes));
+                if (csize < 0) {
+                    std::string err = oiio_tiff_last_error();
+                    error ("TIFFReadEncodedStrip failed reading line y=%d,z=%d: %s",
+                           y, z, err.size() ? err.c_str() : "unknown error");
+                    ok = false;
+                }
+            }
             if (m_photometric == PHOTOMETRIC_MINISWHITE)
-                invert_photometric (stripvals, data);
-        }));
-        data = (char *)data + strip_bytes;
-        // origdata = (char *)origdata + strip_bytes;
+                invert_photometric (stripvals*planes, data);
+            if (m_separate) {
+                // handle "separate" planarconfig: copy to temp area, then
+                // separate_to_contig it back.
+                char *sepbuf = separate_tmp.get() + stripidx*strip_bytes*planes;
+                memcpy (sepbuf, data, strip_bytes*planes);
+                separate_to_contig (planes, m_spec.width*m_rowsperstrip,
+                                    (unsigned char *)sepbuf, (unsigned char *)data);
+            }
+            data = (char *)data + strip_bytes*planes;
+        }
     }
-    m_next_scanline = y;
 
     // If we have left over scanlines, read them serially
+    m_next_scanline = y;
     for ( ;  y < yend;  ++y) {
         bool ok = read_native_scanline (y, z, data);
         if (! ok)
             return false;
         data = (char *)data + ystride;
     }
-    // Leaving the scope of `tasks` here will block until all the remaining
-    // sub-tasks are finished.
+    tasks.wait ();
     return true;
 }
 
@@ -1746,7 +1825,8 @@ TIFFInput::read_native_tiles (int xbegin, int xend, int ybegin, int yend,
                     uncompress_one_strip (cbuf, (unsigned long)csize,
                                           ubuf, tile_bytes,
                                           this->m_spec.nchannels, this->m_spec.tile_width,
-                                          this->m_spec.tile_height*this->m_spec.tile_depth, &ok);
+                                          this->m_spec.tile_height*this->m_spec.tile_depth,
+                                          m_compression, &ok);
                     if (m_photometric == PHOTOMETRIC_MINISWHITE)
                         invert_photometric (tilevals, ubuf);
                     copy_image (this->m_spec.nchannels, this->m_spec.tile_width,
