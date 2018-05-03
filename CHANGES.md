@@ -38,6 +38,30 @@ Public API changes:
       or `TypeDesc.BASETYPE` now will accept a string that signifies the
       type. For example, `ImageBuf.set_write_format("float")` is now a
       synonym for `ImageBuf.set_write_format(oiio.TypeDesc(oiio.FLOAT))`.
+* **ImageInput API changes** #1927 (1.9.2)
+    * `seek_subimage()` no longer takes an `ImageSpec&`, to avoid the obligatory
+       copy. (If the copy is desired, just call `spec()` to get it afterwards.)
+    * All of the `read_*()` methods now have varieties that take arguments
+      specifying the subimage and mip level. The `read_native_*()` methods
+      supplied by ImageInput subclass implementations now ONLY come in the
+      variety that takes a subimage and miplevel.
+    * All of the `read_*()` calls that take subimage/miplevel explicitly are
+      guaranteed to be stateless and thread-safe against each other (it's not
+      necessary to call `seek_subimage` first, nor to have to lock a mutex to
+      ensure that another thread doesn't change the subimage before you get a
+      chance to call read). For back-compatibility, there are still versions
+      that don't take subimage/miplevel, require a prior call to seek_subimge,
+      and are thus not considered thread-safe.
+    * New methods `spec(subimage,miplevel)` and `spec_dimensions(s,m)`
+      let you retrieve a copy of the ImageSpec for a given subimage and
+      MIP level (thread-safe, and without needing a prior `seek_subimage`)
+      call. Note that to be stateless and thread-safe, these return a COPY
+      of the spec, rather than the reference returned by the stateful
+      `spec()` call that has no arguments and requires a prior `seek_subimage`.
+      However, `spec_dimensions` does not copy the channel names or the
+      arbitrary metadata, and is thus very inexpensive if the only thing
+      you need from the spec copy is the image dimensions and channel
+      formats.
 * ColorConfig changes: ColorConfig methods now return shared pointers to
   `ColorProcessor`s rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects
@@ -150,6 +174,10 @@ Fixes and feature enhancements:
       return the fill color, like we do when requesting nonexistant channels
       (rather than nondeterministically simply not filling in the result).
       #1917 (1.9.2)
+    * Relying on some changes to the ImageInput API, there is now much less
+      thread locking to protect the underlying ImageInputs, and this should
+      improve texture and image cache performance when many threads need
+      to read tiles from the same file. #1927 (1.9.2)
 * All string->numeric parsing and numeric->string formatting is now
   locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
 * Python Imagebuf.get_pixels and set_pixels bugs fixed, in the varieties
