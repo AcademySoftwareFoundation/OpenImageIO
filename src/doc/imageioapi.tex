@@ -720,7 +720,7 @@ window, respectively. Note that the channel range of the \ROI is ignored,
 i.e., these methods do not modify the {\cf nchannels} field of the \ImageSpec.
 \apiend
 
-\apiitem{void {\ce copy_dimensions} (const ImageSpec &other)}
+\apiitem{void {\ce copy_dimensions} (const ImageSpec \&other)}
 \NEW % 1.9
 Copies from {\cf other} only the fields describing the dimensions and
 data types, and \emph{not} arbitrary named metadata or channel names (thus,
