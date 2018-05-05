@@ -34,14 +34,23 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
-    OIIO_EXPORT int sgi_imageio_version = OIIO_PLUGIN_VERSION;
-    OIIO_EXPORT const char* sgi_imageio_library_version () { return NULL; }
-    OIIO_EXPORT ImageInput *sgi_input_imageio_create () {
-        return new SgiInput;
-    }
-    OIIO_EXPORT const char *sgi_input_extensions[] = {
-        "sgi", "rgb", "rgba", "bw", "int", "inta", NULL
-    };
+
+OIIO_EXPORT int sgi_imageio_version = OIIO_PLUGIN_VERSION;
+
+OIIO_EXPORT const char* sgi_imageio_library_version () { return nullptr; }
+
+OIIO_EXPORT ImageInput *sgi_input_imageio_create () {
+    return new SgiInput;
+}
+
+OIIO_EXPORT void sgi_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *sgi_input_extensions[] = {
+    "sgi", "rgb", "rgba", "bw", "int", "inta", nullptr
+};
+
 OIIO_PLUGIN_EXPORTS_END
 
 

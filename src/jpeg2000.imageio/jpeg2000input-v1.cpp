@@ -168,16 +168,19 @@ class Jpeg2000Input final : public ImageInput {
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT int jpeg2000_imageio_version = OIIO_PLUGIN_VERSION;
-    OIIO_EXPORT const char* jpeg2000_imageio_library_version () {
-        return ustring::format("OpenJpeg %s", opj_version()).c_str();
-    }
-    OIIO_EXPORT ImageInput *jpeg2000_input_imageio_create () {
-        return new Jpeg2000Input;
-    }
-    OIIO_EXPORT const char *jpeg2000_input_extensions[] = {
-        "jp2", "j2k", "j2c", NULL
-    };
+OIIO_EXPORT int jpeg2000_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT const char* jpeg2000_imageio_library_version () {
+    return ustring::format("OpenJpeg %s", opj_version()).c_str();
+}
+OIIO_EXPORT ImageInput *jpeg2000_input_imageio_create () {
+    return { new Jpeg2000Input };
+}
+OIIO_EXPORT void jpeg2000_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
+OIIO_EXPORT const char *jpeg2000_input_extensions[] = {
+    "jp2", "j2k", "j2c", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

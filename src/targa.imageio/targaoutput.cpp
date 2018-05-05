@@ -137,12 +137,18 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageOutput *targa_output_imageio_create () { return new TGAOutput; }
+OIIO_EXPORT ImageOutput *targa_output_imageio_create () {
+    return new TGAOutput;
+}
+
+OIIO_EXPORT void targa_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
 
 // OIIO_EXPORT int tga_imageio_version = OIIO_PLUGIN_VERSION;   // it's in tgainput.cpp
 
 OIIO_EXPORT const char * targa_output_extensions[] = {
-    "tga", "tpic", NULL
+    "tga", "tpic", nullptr
 };
 
 OIIO_PLUGIN_EXPORTS_END

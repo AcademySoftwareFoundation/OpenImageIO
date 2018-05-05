@@ -41,14 +41,17 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT int fits_imageio_version = OIIO_PLUGIN_VERSION;
-    OIIO_EXPORT const char* fits_imageio_library_version () { return NULL; }
-    OIIO_EXPORT ImageInput *fits_input_imageio_create () {
-        return new FitsInput;
-    }
-    OIIO_EXPORT const char *fits_input_extensions[] = {
-        "fits", NULL
-    };
+OIIO_EXPORT int fits_imageio_version = OIIO_PLUGIN_VERSION;
+OIIO_EXPORT const char* fits_imageio_library_version () { return nullptr; }
+OIIO_EXPORT ImageInput *fits_input_imageio_create () {
+    return new FitsInput;
+}
+OIIO_EXPORT void fits_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
+OIIO_EXPORT const char *fits_input_extensions[] = {
+    "fits", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

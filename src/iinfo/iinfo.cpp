@@ -685,7 +685,7 @@ main (int argc, const char *argv[])
 
     long long totalsize = 0;
     for (auto&& s : filenames) {
-        ImageInput *in = ImageInput::open (s.c_str());
+        auto in = ImageInput::open (s);
         if (! in) {
             std::string err = geterror();
             if (err.empty())
@@ -694,9 +694,7 @@ main (int argc, const char *argv[])
             continue;
         }
         ImageSpec spec = in->spec();
-        print_info (s, longestname, in, spec, verbose, sum, totalsize);
-        in->close ();
-        delete in;
+        print_info (s, longestname, in.get(), spec, verbose, sum, totalsize);
     }
 
     if (sum) {

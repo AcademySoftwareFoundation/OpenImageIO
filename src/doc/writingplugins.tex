@@ -50,16 +50,18 @@ real-world example of writing a JPEG/JFIF plug-in.
       that was compiled against an incompatible version of \product.
     \item An function named \emph{name}{\cf _imageio_library_version} that identifies
       the underlying dependent library that is responsible for reading or
-      writing the format (it may return {\cf NULL} to indicate that there is
+      writing the format (it may return {\cf nullptr} to indicate that there is
       no dependent library being used for this format).
     \item A function named \emph{name}{\cf _input_imageio_create} that
-      takes no arguments and returns a new instance of your \ImageInput
-      subclass.  (Note that \emph{name} is the name of your format,
+      takes no arguments and returns an {\cf ImageInput *}
+      constructed from a new instance of your \ImageInput subclass and a
+      deleter. (Note that \emph{name} is the name of your format,
       and must match the name of the plugin itself.)
+    \item A void function named \emph{name}{\cf _input_imageio_delete} that
+      takes an {\cf ImageInput *} and destroys it.
     \item An array of {\cf char *} called \emph{name}{\cf _input_extensions}
       that contains the list of file extensions that are likely to indicate
-      a file of the right format.  The list is terminated by a {\cf NULL}
-      pointer.
+      a file of the right format.  The list is terminated by a {\cf nullptr}.
   \end{enumerate}
 
   All of these items must be inside an `{\cf extern "C"}' block in order
@@ -75,11 +77,14 @@ real-world example of writing a JPEG/JFIF plug-in.
   \begin{code}
     OIIO_PLUGIN_EXPORTS_BEGIN
         OIIO_EXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
-        OIIO_EXPORT JpgInput *jpeg_input_imageio_create () {
+        OIIO_EXPORT ImageInput *jpeg_input_imageio_create () {
             return new JpgInput;
         }
+        OIIO_EXPORT void jpeg_input_imageio_delete (ImageInput *p) {
+            delete p;
+        }
         OIIO_EXPORT const char *jpeg_input_extensions[] = {
-            "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", NULL
+            "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", nullptr
         };
         OIIO_EXPORT const char* jpeg_imageio_library_version () {
           #define STRINGIZE2(a) #a
@@ -203,7 +208,7 @@ real-world example of writing a JPEG/JFIF plug-in.
 \item Read the base class definition from {\fn imageio.h}, just as
   with an image reader (see Section~\ref{sec:pluginreaders}).
 
-\item Declare three public items:
+\item Declare four public items:
 
   \begin{enumerate}
     \item An integer called \emph{name}{\cf _imageio_version} that identifies
@@ -215,9 +220,12 @@ real-world example of writing a JPEG/JFIF plug-in.
       are compiled as separate modules (C++ source files), you don't
       want to declare this in \emph{both} modules; either one is fine.
     \item A function named \emph{name}{\cf _output_imageio_create} that
-      takes no arguments and returns a new instance of your \ImageOutput
-      subclass.  (Note that \emph{name} is the name of your format,
+      takes no arguments and returns an {\cf ImageOutput *}
+      constructed from a new instance of your \ImageOutput subclass and a
+      deleter.  (Note that \emph{name} is the name of your format,
       and must match the name of the plugin itself.)
+    \item A void function named \emph{name}{\cf _output_imageio_delete} that
+      takes an {\cf ImageOutput *} and destroys it.
     \item An array of {\cf char *} called \emph{name}{\cf _output_extensions}
       that contains the list of file extensions that are likely to indicate
       a file of the right format.  The list is terminated by a {\cf NULL}
@@ -237,11 +245,14 @@ real-world example of writing a JPEG/JFIF plug-in.
   \begin{code}
     OIIO_PLUGIN_EXPORTS_BEGIN
         OIIO_EXPORT int jpeg_imageio_version = OIIO_PLUGIN_VERSION;
-        OIIO_EXPORT JpgOutput *jpeg_output_imageio_create () {
+        OIIO_EXPORT ImageOutput *jpeg_output_imageio_create () {
             return new JpgOutput;
         }
+        OIIO_EXPORT void jpeg_output_imageio_delete (ImageOutput *p) {
+            delete p;
+        }
         OIIO_EXPORT const char *jpeg_input_extensions[] = {
-            "jpg", "jpe", "jpeg", NULL
+            "jpg", "jpe", "jpeg", nullptr
         };
     OIIO_PLUGIN_EXPORTS_END
   \end{code}

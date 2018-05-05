@@ -89,16 +89,23 @@ private:
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT int dicom_imageio_version = OIIO_PLUGIN_VERSION;
-    OIIO_EXPORT const char* dicom_imageio_library_version () {
-        return PACKAGE_NAME " " PACKAGE_VERSION;
-    }
-    OIIO_EXPORT ImageInput *dicom_input_imageio_create () {
-        return new DICOMInput;
-    }
-    OIIO_EXPORT const char *dicom_input_extensions[] = {
-        "dcm", NULL
-    };
+OIIO_EXPORT int dicom_imageio_version = OIIO_PLUGIN_VERSION;
+
+OIIO_EXPORT const char* dicom_imageio_library_version () {
+    return PACKAGE_NAME " " PACKAGE_VERSION;
+}
+
+OIIO_EXPORT ImageInput *dicom_input_imageio_create () {
+    return new DICOMInput;
+}
+
+OIIO_EXPORT void dicom_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *dicom_input_extensions[] = {
+    "dcm", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

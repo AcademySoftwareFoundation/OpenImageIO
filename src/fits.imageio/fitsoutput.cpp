@@ -39,12 +39,17 @@ using namespace fits_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT ImageOutput *fits_output_imageio_create () {
-        return new FitsOutput;
-    }
-    OIIO_EXPORT const char *fits_output_extensions[] = {
-        "fits", NULL
-    };
+OIIO_EXPORT ImageOutput *fits_output_imageio_create () {
+    return new FitsOutput;
+}
+
+OIIO_EXPORT void fits_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *fits_output_extensions[] = {
+    "fits", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

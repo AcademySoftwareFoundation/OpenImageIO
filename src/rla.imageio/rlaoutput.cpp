@@ -124,12 +124,18 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageOutput *rla_output_imageio_create () { return new RLAOutput; }
+OIIO_EXPORT ImageOutput *rla_output_imageio_create () {
+    return new RLAOutput;
+}
+
+OIIO_EXPORT void rla_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
 
 // OIIO_EXPORT int rla_imageio_version = OIIO_PLUGIN_VERSION;   // it's in rlainput.cpp
 
 OIIO_EXPORT const char * rla_output_extensions[] = {
-    "rla", NULL
+    "rla", nullptr
 };
 
 OIIO_PLUGIN_EXPORTS_END

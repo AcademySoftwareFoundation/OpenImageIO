@@ -121,12 +121,18 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageOutput *ico_output_imageio_create () { return new ICOOutput; }
+OIIO_EXPORT ImageOutput *ico_output_imageio_create () {
+    return new ICOOutput;
+}
+
+OIIO_EXPORT void ico_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
 
 // OIIO_EXPORT int ico_imageio_version = OIIO_PLUGIN_VERSION;   // it's in icoinput.cpp
 
 OIIO_EXPORT const char * ico_output_extensions[] = {
-    "ico", NULL
+    "ico", nullptr
 };
 
 OIIO_PLUGIN_EXPORTS_END

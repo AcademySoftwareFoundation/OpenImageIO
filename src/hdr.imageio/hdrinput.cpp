@@ -87,14 +87,21 @@ private:
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT int hdr_imageio_version = OIIO_PLUGIN_VERSION;
-    OIIO_EXPORT const char* hdr_imageio_library_version () { return NULL; }
-    OIIO_EXPORT ImageInput *hdr_input_imageio_create () {
-        return new HdrInput;
-    }
-    OIIO_EXPORT const char *hdr_input_extensions[] = {
-        "hdr", "rgbe", NULL
-    };
+OIIO_EXPORT int hdr_imageio_version = OIIO_PLUGIN_VERSION;
+
+OIIO_EXPORT const char* hdr_imageio_library_version () { return nullptr; }
+
+OIIO_EXPORT ImageInput *hdr_input_imageio_create () {
+    return new HdrInput;
+}
+
+OIIO_EXPORT void hdr_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *hdr_input_extensions[] = {
+    "hdr", "rgbe", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

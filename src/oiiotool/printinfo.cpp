@@ -679,7 +679,7 @@ OiioTool::print_info (Oiiotool &ot,
     using Strutil::format;
     error.clear();
     ImageSpec *config = ot.input_config_set ? &ot.input_config : NULL;
-    ImageInput *input = ImageInput::open (filename.c_str(), config);
+    auto input = ImageInput::open (filename.c_str(), config);
     if (! input) {
         error = geterror();
         if (error.empty())
@@ -741,7 +741,7 @@ OiioTool::print_info (Oiiotool &ot,
             break;
         print_info_subimage (ot, current_subimage, num_of_subimages,
                              num_of_miplevels[current_subimage],
-                             spec, input, filename, opt,
+                             spec, input.get(), filename, opt,
                              field_re, field_exclude_re, serformat, verbose);
         // if the '-a' flag is not set we print info
         // about first subimage only
@@ -749,7 +749,5 @@ OiioTool::print_info (Oiiotool &ot,
             break;
     }
 
-    input->close ();
-    delete input;
     return true;
 }

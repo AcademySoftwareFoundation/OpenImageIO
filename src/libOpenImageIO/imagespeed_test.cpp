@@ -116,11 +116,10 @@ static void
 time_read_image ()
 {
     for (ustring filename : input_filename) {
-        ImageInput *in = ImageInput::open (filename.c_str());
+        auto in = ImageInput::open (filename.c_str());
         ASSERT (in);
         in->read_image (conversion, &buffer[0]);
         in->close ();
-        delete in;
     }
 }
 
@@ -130,7 +129,7 @@ static void
 time_read_scanline_at_a_time ()
 {
     for (ustring filename : input_filename) {
-        ImageInput *in = ImageInput::open (filename.c_str());
+        auto in = ImageInput::open (filename.c_str());
         ASSERT (in);
         const ImageSpec &spec (in->spec());
         size_t pixelsize = spec.nchannels * conversion.size();
@@ -142,7 +141,6 @@ time_read_scanline_at_a_time ()
                                &buffer[scanlinesize*y]);
         }
         in->close ();
-        delete in;
     }
 }
 
@@ -152,7 +150,7 @@ static void
 time_read_64_scanlines_at_a_time ()
 {
     for (ustring filename : input_filename) {
-        ImageInput *in = ImageInput::open (filename.c_str());
+        auto in = ImageInput::open (filename.c_str());
         ASSERT (in);
         const ImageSpec &spec (in->spec());
         size_t pixelsize = spec.nchannels * conversion.size();
@@ -164,7 +162,6 @@ time_read_64_scanlines_at_a_time ()
                                 0, conversion, &buffer[scanlinesize*y]);
         }
         in->close ();
-        delete in;
     }
 }
 
@@ -217,13 +214,11 @@ test_read (const std::string &explanation,
 static void
 time_write_image ()
 {
-    ImageOutput *out = ImageOutput::create (output_filename);
+    auto out = ImageOutput::create (output_filename);
     ASSERT (out);
     bool ok = out->open (output_filename, outspec);
     ASSERT (ok);
     out->write_image (bufspec.format, &buffer[0]);
-    out->close ();
-    delete out;
 }
 
 
@@ -231,7 +226,7 @@ time_write_image ()
 static void
 time_write_scanline_at_a_time ()
 {
-    ImageOutput *out = ImageOutput::create (output_filename);
+    auto out = ImageOutput::create (output_filename);
     ASSERT (out);
     bool ok = out->open (output_filename, outspec);
     ASSERT (ok);
@@ -242,8 +237,6 @@ time_write_scanline_at_a_time ()
         out->write_scanline (y+outspec.y, outspec.z, bufspec.format,
                              &buffer[scanlinesize*y]);
     }
-    out->close ();
-    delete out;
 }
 
 
@@ -251,7 +244,7 @@ time_write_scanline_at_a_time ()
 static void
 time_write_64_scanlines_at_a_time ()
 {
-    ImageOutput *out = ImageOutput::create (output_filename);
+    auto out = ImageOutput::create (output_filename);
     ASSERT (out);
     bool ok = out->open (output_filename, outspec);
     ASSERT (ok);
@@ -263,8 +256,6 @@ time_write_64_scanlines_at_a_time ()
                               std::min(y+outspec.y+64, outspec.y+outspec.height),
                               outspec.z, bufspec.format, &buffer[scanlinesize*y]);
     }
-    out->close ();
-    delete out;
 }
 
 
@@ -272,7 +263,7 @@ time_write_64_scanlines_at_a_time ()
 static void
 time_write_tile_at_a_time ()
 {
-    ImageOutput *out = ImageOutput::create (output_filename);
+    auto out = ImageOutput::create (output_filename);
     ASSERT (out);
     bool ok = out->open (output_filename, outspec);
     ASSERT (ok);
@@ -290,8 +281,6 @@ time_write_tile_at_a_time ()
             }
         }
     }
-    out->close ();
-    delete out;
 }
 
 
@@ -299,7 +288,7 @@ time_write_tile_at_a_time ()
 static void
 time_write_tiles_row_at_a_time ()
 {
-    ImageOutput *out = ImageOutput::create (output_filename);
+    auto out = ImageOutput::create (output_filename);
     ASSERT (out);
     bool ok = out->open (output_filename, outspec);
     ASSERT (ok);
@@ -315,8 +304,6 @@ time_write_tiles_row_at_a_time ()
                               pixelsize /*xstride*/, scanlinesize /*ystride*/);
         }
     }
-    out->close ();
-    delete out;
 }
 
 
@@ -325,16 +312,11 @@ static void
 time_write_imagebuf ()
 {
     ImageBuf ib (output_filename, bufspec, &buffer[0]);  // wrap the buffer
-
-    ImageOutput *out = ImageOutput::create (output_filename);
+    auto out = ImageOutput::create (output_filename);
     ASSERT (out);
     bool ok = out->open (output_filename, outspec);
     ASSERT (ok);
-
-    ib.write (out);
-
-    out->close ();
-    delete out;
+    ib.write (out.get());
 }
 
 
@@ -596,18 +578,18 @@ main (int argc, char **argv)
 
     if (output_filename.size()) {
         // Use the first image
-        ImageInput *in = ImageInput::open (input_filename[0].c_str());
+        auto in = ImageInput::open (input_filename[0].c_str());
         ASSERT (in);
         bufspec = in->spec ();
         in->read_image (conversion, &buffer[0]);
         in->close ();
-        delete in;
+        in.reset ();
         std::cout << "Timing ways of writing images:\n";
         // imagecache->get_imagespec (input_filename[0], bufspec, 0, 0, true);
-        ImageOutput *out = ImageOutput::create (output_filename);
+        auto out = ImageOutput::create (output_filename);
         ASSERT (out);
         bool supports_tiles = out->supports("tiles");
-        delete out;
+        out.reset ();
         outspec = bufspec;
         set_dataformat (output_format, outspec);
         std::cout << "    writing as format " << outspec.format << "\n";

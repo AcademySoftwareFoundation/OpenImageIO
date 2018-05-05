@@ -38,14 +38,21 @@ using namespace iff_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT int iff_imageio_version = OIIO_PLUGIN_VERSION;
-    OIIO_EXPORT const char* iff_imageio_library_version () { return NULL; }
-    OIIO_EXPORT ImageInput *iff_input_imageio_create () {
-        return new IffInput;
-    }
-    OIIO_EXPORT const char *iff_input_extensions[] = {
-        "iff", "z", NULL
-    };
+OIIO_EXPORT int iff_imageio_version = OIIO_PLUGIN_VERSION;
+
+OIIO_EXPORT const char* iff_imageio_library_version () { return nullptr; }
+
+OIIO_EXPORT ImageInput *iff_input_imageio_create () {
+    return new IffInput;
+}
+
+OIIO_EXPORT void iff_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *iff_input_extensions[] = {
+    "iff", "z", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

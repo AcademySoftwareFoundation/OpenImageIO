@@ -279,6 +279,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
                                 ImageCachePerThreadInfo *thread_info,
                                 ustring filename,
                                 ImageInput::Creator creator,
+                                ImageInput::Deleter deleter,
                                 const ImageSpec *config)
     : m_filename(filename), m_used(true), m_broken(false),
       m_texformat(TexFormatTexture),
@@ -294,6 +295,7 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
       m_total_imagesize(0),
       m_total_imagesize_ondisk(0),
       m_inputcreator(creator),
+      m_inputdeleter(deleter ? deleter : ImageInput::destroy),
       m_configspec(config ? new ImageSpec(*config) : NULL)
 {
     m_filename_original = m_filename;
@@ -484,11 +486,10 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
         configspec.attribute ("oiio:UnassociatedAlpha", 1);
 
     if (m_inputcreator)
-        inp.reset (m_inputcreator());
+        inp = ImageInput::unique_ptr (m_inputcreator(), m_inputdeleter);
     else
-        inp.reset (ImageInput::create (m_filename.string(), false,
-                                       &configspec,
-                                       m_imagecache.plugin_searchpath()));
+        inp = ImageInput::create (m_filename.string(), false, &configspec,
+                                  m_imagecache.plugin_searchpath());
     if (! inp) {
         mark_broken (OIIO::geterror());
         invalidate_spec ();
@@ -1154,6 +1155,7 @@ ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename,
                            ImageCachePerThreadInfo *thread_info,
                            ImageInput::Creator creator,
+                           ImageInput::Deleter deleter,
                            bool header_only, const ImageSpec *config)
 {
     // Debugging aid: attribute "substitute_image" forces all image
@@ -1178,8 +1180,8 @@ ImageCacheImpl::find_file (ustring filename,
             tf = found->second.get();
         } else {
             // No such entry in the file cache.  Add it, but don't open yet.
-            tf = new ImageCacheFile (*this, thread_info, filename, creator,
-                                     config);
+            tf = new ImageCacheFile (*this, thread_info, filename,
+                                     creator, deleter, config);
             m_files.insert (filename, tf, false);
             newfile = true;
         }
@@ -2430,9 +2432,8 @@ ImageCacheImpl::resolve_filename (const std::string &filename) const
 {
     // Ask if the format can generate imagery procedurally. If so, don't
     // go looking for a file.
-    ImageInput *input = ImageInput::create (filename);
+    auto input = ImageInput::create (filename);
     bool procedural = input ? input->supports ("procedural") : false;
-    ImageInput::destroy (input);
     if (procedural)
         return filename;
 
@@ -2448,7 +2449,8 @@ ImageCacheImpl::get_image_info (ustring filename, int subimage, int miplevel,
                                 TypeDesc datatype, void *data)
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
-    ImageCacheFile *file = find_file (filename, thread_info, NULL, true);
+    ImageCacheFile *file = find_file (filename, thread_info,
+                                      nullptr, nullptr, true);
     if (!file && dataname != s_exists) {
         error ("Invalid image file \"%s\"", filename);
         return false;
@@ -2731,7 +2733,8 @@ ImageCacheImpl::imagespec (ustring filename, int subimage, int miplevel,
                            bool native)
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
-    ImageCacheFile *file = find_file (filename, thread_info, NULL, true);
+    ImageCacheFile *file = find_file (filename, thread_info,
+                                      nullptr, nullptr, true);
     if (! file) {
         error ("Image file \"%s\" not found", filename);
         return NULL;
@@ -3103,11 +3106,12 @@ ImageCacheImpl::tile_pixels (ImageCache::Tile *tile, TypeDesc &format) const
 
 bool
 ImageCacheImpl::add_file (ustring filename, ImageInput::Creator creator,
+                          ImageInput::Deleter deleter,
                           const ImageSpec *config)
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
-    ImageCacheFile *file = find_file (filename, thread_info, creator,
-                                      false, config);
+    ImageCacheFile *file = find_file (filename, thread_info,
+                                      creator, deleter, false, config);
     file = verify_file (file, thread_info);
     if (!file || file->broken() || file->is_udim())
         return false;

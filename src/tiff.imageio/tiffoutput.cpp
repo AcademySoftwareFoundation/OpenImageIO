@@ -180,7 +180,13 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageOutput *tiff_output_imageio_create () { return new TIFFOutput; }
+OIIO_EXPORT ImageOutput *tiff_output_imageio_create () {
+    return new TIFFOutput;
+}
+
+OIIO_EXPORT void tiff_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
 
 OIIO_EXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION;
 
@@ -191,7 +197,7 @@ OIIO_EXPORT const char* tiff_imageio_library_version () {
 }
 
 OIIO_EXPORT const char * tiff_output_extensions[] = {
-    "tiff", "tif", "tx", "env", "sm", "vsm", NULL
+    "tiff", "tif", "tx", "env", "sm", "vsm", nullptr
 };
 
 OIIO_PLUGIN_EXPORTS_END

@@ -100,14 +100,20 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageInput *dpx_input_imageio_create () { return new DPXInput; }
+OIIO_EXPORT ImageInput *dpx_input_imageio_create () {
+    return new DPXInput;
+}
+
+OIIO_EXPORT void dpx_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
 
 OIIO_EXPORT int dpx_imageio_version = OIIO_PLUGIN_VERSION;
 
-OIIO_EXPORT const char* dpx_imageio_library_version () { return NULL; }
+OIIO_EXPORT const char* dpx_imageio_library_version () { return nullptr; }
 
 OIIO_EXPORT const char * dpx_input_extensions[] = {
-    "dpx", NULL
+    "dpx", nullptr
 };
 
 OIIO_PLUGIN_EXPORTS_END

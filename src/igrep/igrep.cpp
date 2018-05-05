@@ -94,7 +94,7 @@ grep_file (const std::string &filename, regex &re,
         return r;
     }
 
-    std::unique_ptr<ImageInput> in (ImageInput::open (filename.c_str()));
+    auto in = ImageInput::open (filename);
     if (! in.get()) {
         if (! ignore_nonimage_files)
             std::cerr << geterror() << "\n";

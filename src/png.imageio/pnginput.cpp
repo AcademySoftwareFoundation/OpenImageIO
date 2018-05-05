@@ -96,7 +96,13 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageInput *png_input_imageio_create () { return new PNGInput; }
+OIIO_EXPORT ImageInput *png_input_imageio_create () {
+    return new PNGInput;
+}
+
+OIIO_EXPORT void png_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
 
 OIIO_EXPORT int png_imageio_version = OIIO_PLUGIN_VERSION;
 
@@ -105,7 +111,7 @@ OIIO_EXPORT const char* png_imageio_library_version () {
 }
 
 OIIO_EXPORT const char * png_input_extensions[] = {
-    "png", NULL
+    "png", nullptr
 };
 
 OIIO_PLUGIN_EXPORTS_END

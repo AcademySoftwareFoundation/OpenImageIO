@@ -47,14 +47,18 @@ OIIO_NAMESPACE_BEGIN
 
 typedef std::map <std::string, ImageInput::Creator> InputPluginMap;
 typedef std::map <std::string, ImageOutput::Creator> OutputPluginMap;
+typedef std::map <std::string, ImageInput::Deleter> InputPluginDeleterMap;
+typedef std::map <std::string, ImageOutput::Deleter> OutputPluginDeleterMap;
 typedef const char* (*PluginLibVersionFunc) ();
 
 namespace {
 
 // Map format name to ImageInput creation
 static InputPluginMap input_formats;
+static InputPluginDeleterMap input_format_deleters;
 // Map format name to ImageOutput creation
 static OutputPluginMap output_formats;
+static OutputPluginDeleterMap output_format_deleters;
 // Map file extension to ImageInput creation
 static InputPluginMap input_extensions;
 // Map file extension to ImageOutput creation
@@ -88,22 +92,27 @@ add_if_missing (std::vector<std::string> &vec, const std::string &val)
 void
 declare_imageio_format (const std::string &format_name,
                         ImageInput::Creator input_creator,
+                        ImageInput::Deleter input_deleter,
                         const char **input_extensions,
                         ImageOutput::Creator output_creator,
+                        ImageOutput::Deleter output_deleter,
                         const char **output_extensions,
                         const char *lib_version)
 {
     std::vector<std::string> all_extensions;
     // Look for input creator and list of supported extensions
     if (input_creator) {
-        if (input_formats.find(format_name) != input_formats.end())
+        if (input_formats.find(format_name) != input_formats.end()) {
             input_formats[format_name] = input_creator;
+            input_format_deleters[format_name] = input_deleter;
+        }
         std::string extsym = format_name + "_input_extensions";
         for (const char **e = input_extensions; e && *e; ++e) {
             std::string ext (*e);
             Strutil::to_lower (ext);
             if (input_formats.find(ext) == input_formats.end()) {
                 input_formats[ext] = input_creator;
+                input_format_deleters[ext] = input_deleter;
                 add_if_missing (all_extensions, ext);
             }
         }
@@ -111,13 +120,16 @@ declare_imageio_format (const std::string &format_name,
 
     // Look for output creator and list of supported extensions
     if (output_creator) {
-        if (output_formats.find(format_name) != output_formats.end())
+        if (output_formats.find(format_name) != output_formats.end()) {
             output_formats[format_name] = output_creator;
+            output_format_deleters[format_name] = output_deleter;
+        }
         for (const char **e = output_extensions; e && *e; ++e) {
             std::string ext (*e);
             Strutil::to_lower (ext);
             if (output_formats.find(ext) == output_formats.end()) {
                 output_formats[ext] = output_creator;
+                output_format_deleters[ext] = output_deleter;
                 add_if_missing (all_extensions, ext);
             }
         }
@@ -195,16 +207,20 @@ catalog_plugin (const std::string &format_name,
 
     ImageInput::Creator input_creator =
         (ImageInput::Creator) Plugin::getsym (handle, format_name+"_input_imageio_create");
+    ImageInput::Deleter input_deleter =
+        (ImageInput::Deleter) Plugin::getsym (handle, format_name+"_input_imageio_delete");
     const char **input_extensions =
         (const char **) Plugin::getsym (handle, format_name+"_input_extensions");
     ImageOutput::Creator output_creator =
         (ImageOutput::Creator) Plugin::getsym (handle, format_name+"_output_imageio_create");
+    ImageOutput::Deleter output_deleter =
+        (ImageOutput::Deleter) Plugin::getsym (handle, format_name+"_output_imageio_delete");
     const char **output_extensions =
         (const char **) Plugin::getsym (handle, format_name+"_output_extensions");
 
     if (input_creator || output_creator)
-        declare_imageio_format (format_name, input_creator, input_extensions,
-                                output_creator, output_extensions,
+        declare_imageio_format (format_name, input_creator, input_deleter, input_extensions,
+                                output_creator, output_deleter, output_extensions,
                                 plugin_lib_version ? plugin_lib_version() : NULL);
     else
         Plugin::close (handle);   // not useful
@@ -218,15 +234,18 @@ catalog_plugin (const std::string &format_name,
 // list of file extensions, for the standard plugins that come with OIIO.
 // These won't be used unless EMBED_PLUGINS is defined.  Use the PLUGENTRY
 // macro to make the declaration compact and easy to read.
-#define PLUGENTRY(name)                                 \
-    ImageInput *name ## _input_imageio_create ();       \
-    ImageOutput *name ## _output_imageio_create ();     \
-    extern const char *name ## _output_extensions[];    \
-    extern const char *name ## _input_extensions[];     \
+#define PLUGENTRY(name)                                         \
+    ImageInput * name ## _input_imageio_create ();              \
+    void name ## _input_imageio_delete (ImageInput *);          \
+    ImageOutput * name ## _output_imageio_create ();            \
+    void name ## _output_imageio_delete (ImageOutput *);        \
+    extern const char *name ## _output_extensions[];            \
+    extern const char *name ## _input_extensions[];             \
     extern const char *name ## _imageio_library_version();
-#define PLUGENTRY_RO(name)                               \
-    ImageInput *name ## _input_imageio_create ();       \
-    extern const char *name ## _input_extensions[];     \
+#define PLUGENTRY_RO(name)                                      \
+    ImageInput * name ## _input_imageio_create ();              \
+    void name ## _input_imageio_delete (ImageInput *);          \
+    extern const char *name ## _input_extensions[];             \
     extern const char *name ## _imageio_library_version();
 
     PLUGENTRY (bmp);
@@ -277,15 +296,18 @@ catalog_builtin_plugins ()
 #define DECLAREPLUG(name)                                                 \
     declare_imageio_format (#name,                                        \
                    (ImageInput::Creator) name ## _input_imageio_create,   \
+                   (ImageInput::Deleter) name ## _input_imageio_delete,   \
                    name ## _input_extensions,                             \
                    (ImageOutput::Creator) name ## _output_imageio_create, \
+                   (ImageOutput::Deleter) name ## _output_imageio_delete, \
                    name ## _output_extensions,                            \
                    name ## _imageio_library_version())
 #define DECLAREPLUG_RO(name)                                              \
     declare_imageio_format (#name,                                        \
                    (ImageInput::Creator) name ## _input_imageio_create,   \
+                   (ImageInput::Deleter) name ## _input_imageio_delete,   \
                    name ## _input_extensions,                             \
-                   NULL, NULL,                                            \
+                   nullptr, nullptr, nullptr,                             \
                    name ## _imageio_library_version())
 
     DECLAREPLUG (bmp);
@@ -397,13 +419,14 @@ pvt::catalog_all_plugins (std::string searchpath)
 
 
 
-ImageOutput *
+ImageOutput::unique_ptr
 ImageOutput::create (const std::string &filename,
                      const std::string &plugin_searchpath)
 {
+    ImageOutput::unique_ptr out = ImageOutput::empty_ptr();
     if (filename.empty()) { // Can't even guess if no filename given
         pvt::error ("ImageOutput::create() called with no filename");
-        return NULL;
+        return out;
     }
 
     // Extract the file extension from the filename (without the leading dot)
@@ -413,7 +436,8 @@ ImageOutput::create (const std::string &filename,
         format = filename;
     }
 
-    ImageOutput::Creator create_function = NULL;
+    ImageOutput::Creator create_function = nullptr;
+    ImageOutput::Deleter delete_function = nullptr;
     {  // scope the lock:
         recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
 
@@ -428,6 +452,9 @@ ImageOutput::create (const std::string &filename,
         }
         if (found != output_formats.end()) {
             create_function = found->second;
+            delete_function = output_format_deleters[format];
+            if (! delete_function)
+                delete_function = ImageOutput::destroy;
         } else {
             if (output_formats.empty()) {
                 // This error is so fundamental, we echo it to stderr in
@@ -439,17 +466,17 @@ ImageOutput::create (const std::string &filename,
             else
                 pvt::error ("OpenImageIO could not find a format writer for \"%s\". "
                             "Is it a file format that OpenImageIO doesn't know about?\n",
-                            filename.c_str());
-            return NULL;
+                            filename);
+            return out;
         }
     }
 
-    ASSERT (create_function != NULL);
-    ImageOutput *out = NULL;
+    ASSERT (create_function != nullptr && delete_function != nullptr);
     try {
-        out = (ImageOutput *) create_function();
+        out = ImageOutput::unique_ptr (create_function(), delete_function);
     } catch (...) {
         // Safety in case the ctr throws an exception
+        out.reset();
     }
     return out;
 }
@@ -464,7 +491,7 @@ ImageOutput::destroy (ImageOutput *x)
 
 
 
-ImageInput *
+ImageInput::unique_ptr
 ImageInput::create (const std::string &filename, 
                     const std::string &plugin_searchpath)
 {
@@ -473,7 +500,7 @@ ImageInput::create (const std::string &filename,
 
 
 
-ImageInput *
+ImageInput::unique_ptr
 ImageInput::create (const std::string &filename, bool do_open,
                     const std::string &plugin_searchpath)
 {
@@ -482,7 +509,7 @@ ImageInput::create (const std::string &filename, bool do_open,
 
 
 
-ImageInput *
+ImageInput::unique_ptr
 ImageInput::create (const std::string &filename,
                     bool do_open,
                     const ImageSpec *config,
@@ -491,11 +518,12 @@ ImageInput::create (const std::string &filename,
     // In case the 'filename' was really a REST-ful URI with query/config
     // details tacked on to the end, strip them off so we can correctly
     // extract the file extension.
+    ImageInput::unique_ptr in = ImageInput::empty_ptr();
     std::map<std::string,std::string> args;
     std::string filename_stripped;
     if (! Strutil::get_rest_arguments (filename, filename_stripped, args)) {
         pvt::error ("ImageInput::create() called with malformed filename");
-        return nullptr;
+        return in;
     }
 
     if (filename_stripped.empty())
@@ -503,7 +531,7 @@ ImageInput::create (const std::string &filename,
 
     if (filename_stripped.empty()) { // Can't even guess if no filename given
         pvt::error ("ImageInput::create() called with no filename");
-        return NULL;
+        return in;
     }
 
     // Extract the file extension from the filename (without the leading dot)
@@ -513,7 +541,8 @@ ImageInput::create (const std::string &filename,
         format = filename;
     }
 
-    ImageInput::Creator create_function = NULL;
+    ImageInput::Creator create_function = nullptr;
+    ImageInput::Deleter delete_function = nullptr;
     { // scope the lock:
         recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
 
@@ -527,49 +556,51 @@ ImageInput::create (const std::string &filename,
             catalog_all_plugins (plugin_searchpath);
             found = input_formats.find (format);
         }
-        if (found != input_formats.end())
+        if (found != input_formats.end()) {
             create_function = found->second;
+            delete_function = input_format_deleters[format];
+            if (! delete_function)
+                delete_function = ImageInput::destroy;
+        }
     }
 
     // Remember which prototypes we've already tried, so we don't double dip.
     std::vector<ImageInput::Creator> formats_tried;
 
     std::string specific_error;
-    if (create_function) {
-        if (filename != format) {
-            // If given a full filename, double-check that our guess
-            // based on the extension actually works.  You never know
-            // when somebody will have an incorrectly-named file, let's
-            // deal with it robustly.
-            formats_tried.push_back (create_function);
-            ImageInput *in = (ImageInput *)create_function();
-            if (! do_open && in && in->valid_file(filename)) {
-                // Special case: we don't need to return the file
-                // already opened, and this ImageInput says that the
-                // file is the right type.
-                return in;
-            }
-            ImageSpec tmpspec;
-            bool ok = false;
-            if (in && config)
-                ok = in->open (filename, tmpspec, *config);
-            else if (in)
-                ok = in->open (filename, tmpspec);
-            if (ok) {
-                // It worked
-                if (! do_open)
-                    in->close ();
-                return in;
-            } else {
-                // Oops, it failed.  Apparently, this file can't be
-                // opened with this II.  Clear create_function to force
-                // the code below to check every plugin we know.
-                create_function = NULL;
-                if (in)
-                    specific_error = in->geterror();
-            }
-            delete in;
+    if (create_function && filename != format) {
+        // If given a full filename, double-check that our guess
+        // based on the extension actually works.  You never know
+        // when somebody will have an incorrectly-named file, let's
+        // deal with it robustly.
+        formats_tried.push_back (create_function);
+        in = ImageInput::unique_ptr (create_function(), delete_function);
+        if (! do_open && in && in->valid_file(filename)) {
+            // Special case: we don't need to return the file
+            // already opened, and this ImageInput says that the
+            // file is the right type.
+            return in;
         }
+        ImageSpec tmpspec;
+        bool ok = false;
+        if (in && config)
+            ok = in->open (filename, tmpspec, *config);
+        else if (in)
+            ok = in->open (filename, tmpspec);
+        if (ok) {
+            // It worked
+            if (! do_open)
+                in->close ();
+            return in;
+        } else {
+            // Oops, it failed.  Apparently, this file can't be
+            // opened with this II.  Clear create_function to force
+            // the code below to check every plugin we know.
+            create_function = nullptr;
+            if (in)
+                specific_error = in->geterror();
+        }
+        in.reset();
     }
 
     if (! create_function) {
@@ -584,19 +615,20 @@ ImageInput::create (const std::string &filename,
             myconfig = *config;
         myconfig.attribute ("nowait", (int)1);
         recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
-        for (InputPluginMap::const_iterator plugin = input_formats.begin();
-             plugin != input_formats.end(); ++plugin)
-        {
+        for (auto&& plugin : input_formats) {
             // If we already tried this create function, don't do it again
             if (std::find (formats_tried.begin(), formats_tried.end(),
-                           plugin->second) != formats_tried.end())
+                           plugin.second) != formats_tried.end())
                 continue;
-            formats_tried.push_back (plugin->second);  // remember
+            formats_tried.push_back (plugin.second);  // remember
 
             ImageSpec tmpspec;
-            ImageInput *in = NULL;
             try {
-                in = plugin->second();
+                ImageInput::Creator create_function = plugin.second;
+                ImageInput::Deleter delete_function = input_format_deleters[plugin.first];
+                if (! delete_function)
+                    delete_function = ImageInput::destroy;
+                in = ImageInput::unique_ptr (create_function(), delete_function);
             } catch (...) {
                 // Safety in case the ctr throws an exception
             }
@@ -605,7 +637,7 @@ ImageInput::create (const std::string &filename,
             if (! do_open && ! in->valid_file(filename)) {
                 // Since we didn't need to open it, we just checked whether
                 // it was a valid file, and it's not.  Try the next one.
-                delete in;
+                in.reset ();
                 continue;
             }
             // We either need to open it, or we already know it appears
@@ -616,11 +648,11 @@ ImageInput::create (const std::string &filename,
                     in->close ();
                 return in;
             }
-            delete in;
+            in.reset ();
         }
     }
 
-    if (create_function == NULL) {
+    if (! create_function) {
         recursive_lock_guard lock (imageio_mutex);  // Ensure thread safety
         if (input_formats.empty()) {
             // This error is so fundamental, we echo it to stderr in
@@ -638,14 +670,15 @@ ImageInput::create (const std::string &filename,
         else if (Filesystem::exists (filename))
             pvt::error ("OpenImageIO could not find a format reader for \"%s\". "
                         "Is it a file format that OpenImageIO doesn't know about?\n",
-                         filename.c_str());
+                         filename);
         else
             pvt::error ("Image \"%s\" does not exist. Also, it is not the name of an image format that OpenImageIO recognizes.\n",
-                         filename.c_str());
-        return NULL;
+                         filename);
+        DASSERT (!in);
+        return in;
     }
 
-    return (ImageInput *) create_function();
+    return ImageInput::unique_ptr (create_function(), delete_function);
 }
 
 

@@ -695,7 +695,7 @@ ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
     static ustring s_subimages("subimages"), s_miplevels("miplevels");
     static ustring s_fileformat("fileformat");
     if (m_configspec)  // Pass configuration options to cache
-        m_imagecache->add_file (m_name, NULL, m_configspec.get());
+        m_imagecache->add_file (m_name, nullptr, nullptr, m_configspec.get());
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_subimages,
                                   TypeInt, &m_nsubimages);
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_miplevels,
@@ -781,7 +781,7 @@ ImageBufImpl::read (int subimage, int miplevel, int chbegin, int chend,
     bool use_channel_subset = (chbegin != 0 || chend != nativespec().nchannels);
 
     if (m_spec.deep) {
-        std::unique_ptr<ImageInput> input (ImageInput::open (m_name.string(), m_configspec.get()));
+        auto input = ImageInput::open (m_name.string(), m_configspec.get());
         if (! input) {
             error ("%s", OIIO::geterror());
             return false;
@@ -867,7 +867,7 @@ ImageBufImpl::read (int subimage, int miplevel, int chbegin, int chend,
             add_configspec ();
             m_configspec->attribute ("oiio:UnassociatedAlpha", unassoc);
         }
-        std::unique_ptr<ImageInput> in (ImageInput::open (m_name.string(), m_configspec.get()));
+        auto in = ImageInput::open (m_name.string(), m_configspec.get());
         bool ok = true;
         if (in) {
             in->threads (threads());  // Pass on our thread policy
@@ -1073,7 +1073,7 @@ ImageBuf::write (string_view _filename, string_view _fileformat,
     if (imagecache() && imagecache() != shared_imagecache)
         imagecache()->invalidate (ufilename);   // *our* IC
 
-    std::unique_ptr<ImageOutput> out (ImageOutput::create (fileformat.c_str(), "" /* searchpath */));
+    ImageOutput::unique_ptr out = ImageOutput::create (fileformat.c_str(), "" /* searchpath */);
     if (! out) {
         error ("%s", geterror());
         return false;
@@ -2284,7 +2284,7 @@ ImageBuf::WrapMode
 ImageBuf::WrapMode_from_string (string_view name)
 {
     static const char* names[] = {
-        "default", "black", "clamp", "periodic", "mirror", NULL
+        "default", "black", "clamp", "periodic", "mirror", nullptr
     };
     for (int i = 0; names[i]; ++i)
         if (name == names[i])

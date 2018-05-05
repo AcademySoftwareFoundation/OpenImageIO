@@ -1239,12 +1239,14 @@ general (pointer) form of {\cf getattribute()}:
 
 \apiitem{void {\ce declare_imageio_format} (const std::string \&format_name,\\
 \bigspc\bigspc\spc                    ImageInput::Creator input_creator, \\
+\bigspc\bigspc\spc                    ImageInput::Deleter input_deleter, \\
 \bigspc\bigspc\spc                    const char **input_extensions,\\
 \bigspc\bigspc\spc                    ImageOutput::Creator output_creator, \\
+\bigspc\bigspc\spc                    ImageOutput::Deleter output_deleter, \\
 \bigspc\bigspc\spc                    const char **output_extensions, \\
 \bigspc\bigspc\spc                    const char *lib_version)}
-Register the input and output `create' routines and list of file
-extensions for a particular format.
+Register the input and output `create' and `delete' functions and list of
+file extensions for a particular format.
 \apiend
 
 

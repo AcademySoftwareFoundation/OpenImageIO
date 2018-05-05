@@ -104,12 +104,17 @@ class JpgOutput final : public ImageOutput {
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT ImageOutput *jpeg_output_imageio_create () {
-        return new JpgOutput;
-    }
-    OIIO_EXPORT const char *jpeg_output_extensions[] = {
-        "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", NULL
-    };
+OIIO_EXPORT ImageOutput *jpeg_output_imageio_create () {
+    return new JpgOutput;
+}
+
+OIIO_EXPORT void jpeg_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *jpeg_output_extensions[] = {
+    "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

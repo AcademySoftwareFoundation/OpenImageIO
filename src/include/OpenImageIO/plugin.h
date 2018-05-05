@@ -76,12 +76,14 @@ open (const std::string &plugin_filename, bool global=true)
 OIIO_API bool close (Handle plugin_handle);
 
 /// Get the address of the named symbol from the open plugin handle.  If
-/// some error occurred, return NULL and the next call to
-/// geterror() will contain an explanatory message.
-OIIO_API void * getsym (Handle plugin_handle, const char *symbol_name);
+/// some error occurred, return nullptr and the next call to
+/// geterror() will contain an explanatory message (unless report_error
+/// is false, in which case the error message will be suppressed).
+OIIO_API void * getsym (Handle plugin_handle, const char *symbol_name,
+                        bool report_error=true);
 
-inline void *
-getsym (Handle plugin_handle, const std::string &symbol_name)
+inline void * getsym (Handle plugin_handle, const std::string &symbol_name,
+                      bool report_error=true)
 {
     return getsym (plugin_handle, symbol_name.c_str());
 }

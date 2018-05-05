@@ -194,8 +194,8 @@ void declare_imageoutput (py::module &m)
 
     py::class_<ImageOutput>(m, "ImageOutput")
         .def_static("create", [](const std::string& filename, const std::string& searchpath) ->py::object {
-                ImageOutput *out (ImageOutput::create(filename, searchpath));
-                return out ? py::cast(out) : py::none();
+                auto out (ImageOutput::create(filename, searchpath));
+                return out ? py::cast(out.release()) : py::none();
             },
             "filename"_a, "plugin_searchpath"_a="")
         .def("format_name",     &ImageOutput::format_name)

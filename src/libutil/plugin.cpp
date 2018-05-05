@@ -143,12 +143,13 @@ Plugin::close (Handle plugin_handle)
 
 
 void *
-Plugin::getsym (Handle plugin_handle, const char *symbol_name)
+Plugin::getsym (Handle plugin_handle, const char *symbol_name,
+                bool report_error)
 {
     lock_guard guard (plugin_mutex);
     last_error.clear ();
     void *s = dlsym (plugin_handle, symbol_name);
-    if (!s)
+    if (!s && report_error)
         last_error = dlerror();
     return s;
 }
