@@ -299,7 +299,7 @@ inline float dot_imath_simd (const Imath::V3f &v_) {
     vfloat3 v (v_);
     return simd::dot(v,v);
 }
-inline float dot_simd (const simd::vfloat3 v) {
+inline float dot_simd (const simd::vfloat3 &v) {
     return dot(v,v);
 }
 
@@ -309,22 +309,22 @@ norm_imath (const Imath::V3f &a) {
 }
 
 inline Imath::V3f
-norm_imath_simd (vfloat3 a) {
+norm_imath_simd (const vfloat3 &a) {
     return a.normalized().V3f();
 }
 
 inline Imath::V3f
-norm_imath_simd_fast (vfloat3 a) {
+norm_imath_simd_fast (const vfloat3 &a) {
     return a.normalized_fast().V3f();
 }
 
 inline vfloat3
-norm_simd_fast (vfloat3 a) {
+norm_simd_fast (const vfloat3 &a) {
     return a.normalized_fast();
 }
 
 inline vfloat3
-norm_simd (vfloat3 a) {
+norm_simd (const vfloat3 &a) {
     return a.normalized();
 }
 
@@ -487,7 +487,7 @@ void test_vint_to_uint16s ()
         OIIO_CHECK_EQUAL (int(buf[i]), i);
 
     benchmark2 ("load from uint16", [](VEC& a, unsigned short *s){ a.load(s); return 1; }, ival, buf, VEC::elements);
-    benchmark2 ("convert to uint16", [](VEC& a, unsigned short *s){ a.store(s); return 1; }, ival, buf, VEC::elements);
+    benchmark2 ("convert to uint16", [](const VEC& a, unsigned short *s){ a.store(s); return 1; }, ival, buf, VEC::elements);
 }
 
 
@@ -503,7 +503,7 @@ void test_vint_to_uint8s ()
         OIIO_CHECK_EQUAL (int(buf[i]), i);
 
     benchmark2 ("load from uint8", [](VEC& a, unsigned char *s){ a.load(s); return 1; }, ival, buf, VEC::elements);
-    benchmark2 ("convert to uint16", [](VEC& a, unsigned char *s){ a.store(s); return 1; }, ival, buf, VEC::elements);
+    benchmark2 ("convert to uint16", [](const VEC& a, unsigned char *s){ a.store(s); return 1; }, ival, buf, VEC::elements);
 }
 
 
@@ -859,7 +859,7 @@ void test_arithmetic ()
     benchmark2 ("operator-", do_sub<VEC>, a, b);
     benchmark2 ("operator*", do_mul<VEC>, a, b);
     benchmark2 ("operator/", do_div<VEC>, a, b);
-    benchmark  ("reduce_add", [](VEC& a){ return vreduce_add(a); }, a);
+    benchmark  ("reduce_add", [](const VEC& a){ return vreduce_add(a); }, a);
     if (is_same<VEC,vfloat3>::value) {  // For vfloat3, compare to Imath
         Imath::V3f a(2.51f,1.0f,1.0f), b(3.1f,1.0f,1.0f);
         benchmark2 ("add Imath::V3f", do_add<Imath::V3f>, a, b, 3 /*work*/);
@@ -888,14 +888,14 @@ void test_fused ()
     OIIO_CHECK_SIMD_EQUAL (nmadd (a, b, c), -(a*b)+c);
     OIIO_CHECK_SIMD_EQUAL (nmsub (a, b, c), -(a*b)-c);
 
-    benchmark2 ("madd old *+", [&](VEC&a, VEC&b){ return a*b+c; }, a, b);
-    benchmark2 ("madd fused", [&](VEC&a, VEC&b){ return madd(a,b,c); }, a, b);
-    benchmark2 ("msub old *-", [&](VEC&a, VEC&b){ return a*b-c; }, a, b);
-    benchmark2 ("msub fused", [&](VEC&a, VEC&b){ return msub(a,b,c); }, a, b);
-    benchmark2 ("nmadd old (-*)+", [&](VEC&a, VEC&b){ return c-(a*b); }, a, b);
-    benchmark2 ("nmadd fused", [&](VEC&a, VEC&b){ return nmadd(a,b,c); }, a, b);
-    benchmark2 ("nmsub old -(*+)", [&](VEC&a, VEC&b){ return -(a*b)-c; }, a, b);
-    benchmark2 ("nmsub fused", [&](VEC&a, VEC&b){ return nmsub(a,b,c); }, a, b);
+    benchmark2 ("madd old *+", [&](const VEC& a, const VEC& b){ return a*b+c; }, a, b);
+    benchmark2 ("madd fused", [&](const VEC& a, const VEC& b){ return madd(a,b,c); }, a, b);
+    benchmark2 ("msub old *-", [&](const VEC& a, const VEC& b){ return a*b-c; }, a, b);
+    benchmark2 ("msub fused", [&](const VEC& a, const VEC& b){ return msub(a,b,c); }, a, b);
+    benchmark2 ("nmadd old (-*)+", [&](const VEC& a, const VEC& b){ return c-(a*b); }, a, b);
+    benchmark2 ("nmadd fused", [&](const VEC& a, const VEC& b){ return nmadd(a,b,c); }, a, b);
+    benchmark2 ("nmsub old -(*+)", [&](const VEC& a, const VEC& b){ return -(a*b)-c; }, a, b);
+    benchmark2 ("nmsub fused", [&](const VEC& a, const VEC& b){ return nmsub(a,b,c); }, a, b);
 }
 
 
@@ -933,8 +933,8 @@ void test_bitwise_int ()
     benchmark2 ("operator^", do_xor<VEC>, a, b);
     benchmark  ("operator!", do_compl<VEC>, a);
     benchmark2 ("andnot",    do_andnot<VEC>, a, b);
-    benchmark  ("reduce_and", [](VEC& a){ return reduce_and(a); }, a);
-    benchmark  ("reduce_or ", [](VEC& a){ return reduce_or(a); }, a);
+    benchmark  ("reduce_and", [](const VEC& a){ return reduce_and(a); }, a);
+    benchmark  ("reduce_or ", [](const VEC& a){ return reduce_or(a); }, a);
 }
 
 
@@ -978,8 +978,8 @@ void test_bitwise_bool ()
     benchmark2 ("operator|", do_or<VEC>, a, b);
     benchmark2 ("operator^", do_xor<VEC>, a, b);
     benchmark  ("operator!", do_compl<VEC>, a);
-    benchmark  ("reduce_and", [](VEC& a){ return reduce_and(a); }, a);
-    benchmark  ("reduce_or ", [](VEC& a){ return reduce_or(a); }, a);
+    benchmark  ("reduce_and", [](const VEC& a){ return reduce_and(a); }, a);
+    benchmark  ("reduce_or ", [](const VEC& a){ return reduce_or(a); }, a);
 }
 
 
@@ -1043,11 +1043,11 @@ void test_shuffle4 ()
     OIIO_CHECK_SIMD_EQUAL ((shuffle<0,1,0,1>(a)), VEC(0,1,0,1));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<2>(a)), VEC(2));
 
-    benchmark ("shuffle<...> ", [&](VEC& v){ return shuffle<3,2,1,0>(v); }, a);
-    benchmark ("shuffle<0> ", [&](VEC& v){ return shuffle<0>(v); }, a);
-    benchmark ("shuffle<1> ", [&](VEC& v){ return shuffle<1>(v); }, a);
-    benchmark ("shuffle<2> ", [&](VEC& v){ return shuffle<2>(v); }, a);
-    benchmark ("shuffle<3> ", [&](VEC& v){ return shuffle<3>(v); }, a);
+    benchmark ("shuffle<...> ", [&](const VEC& v){ return shuffle<3,2,1,0>(v); }, a);
+    benchmark ("shuffle<0> ", [&](const VEC& v){ return shuffle<0>(v); }, a);
+    benchmark ("shuffle<1> ", [&](const VEC& v){ return shuffle<1>(v); }, a);
+    benchmark ("shuffle<2> ", [&](const VEC& v){ return shuffle<2>(v); }, a);
+    benchmark ("shuffle<3> ", [&](const VEC& v){ return shuffle<3>(v); }, a);
 }
 
 
@@ -1063,15 +1063,15 @@ void test_shuffle8 ()
     OIIO_CHECK_SIMD_EQUAL ((shuffle<0,1,0,1,0,1,0,1>(a)), VEC(0,1,0,1,0,1,0,1));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<2>(a)), VEC(2));
 
-    benchmark ("shuffle<...> ", [&](VEC& v){ return shuffle<7,6,5,4,3,2,1,0>(v); }, a);
-    benchmark ("shuffle<0> ", [&](VEC& v){ return shuffle<0>(v); }, a);
-    benchmark ("shuffle<1> ", [&](VEC& v){ return shuffle<1>(v); }, a);
-    benchmark ("shuffle<2> ", [&](VEC& v){ return shuffle<2>(v); }, a);
-    benchmark ("shuffle<3> ", [&](VEC& v){ return shuffle<3>(v); }, a);
-    benchmark ("shuffle<4> ", [&](VEC& v){ return shuffle<4>(v); }, a);
-    benchmark ("shuffle<5> ", [&](VEC& v){ return shuffle<5>(v); }, a);
-    benchmark ("shuffle<6> ", [&](VEC& v){ return shuffle<6>(v); }, a);
-    benchmark ("shuffle<7> ", [&](VEC& v){ return shuffle<7>(v); }, a);
+    benchmark ("shuffle<...> ", [&](const VEC& v){ return shuffle<7,6,5,4,3,2,1,0>(v); }, a);
+    benchmark ("shuffle<0> ", [&](const VEC& v){ return shuffle<0>(v); }, a);
+    benchmark ("shuffle<1> ", [&](const VEC& v){ return shuffle<1>(v); }, a);
+    benchmark ("shuffle<2> ", [&](const VEC& v){ return shuffle<2>(v); }, a);
+    benchmark ("shuffle<3> ", [&](const VEC& v){ return shuffle<3>(v); }, a);
+    benchmark ("shuffle<4> ", [&](const VEC& v){ return shuffle<4>(v); }, a);
+    benchmark ("shuffle<5> ", [&](const VEC& v){ return shuffle<5>(v); }, a);
+    benchmark ("shuffle<6> ", [&](const VEC& v){ return shuffle<6>(v); }, a);
+    benchmark ("shuffle<7> ", [&](const VEC& v){ return shuffle<7>(v); }, a);
 }
 
 
@@ -1094,8 +1094,8 @@ void test_shuffle16 ()
     OIIO_CHECK_SIMD_EQUAL ((shuffle<3>(a)),
                            VEC(3,3,3,3,7,7,7,7,11,11,11,11,15,15,15,15));
 
-    benchmark ("shuffle4<> ", [&](VEC& v){ return shuffle<3,2,1,0>(v); }, a);
-    benchmark ("shuffle<> ",  [&](VEC& v){ return shuffle<3,2,1,0>(v); }, a);
+    benchmark ("shuffle4<> ", [&](const VEC& v){ return shuffle<3,2,1,0>(v); }, a);
+    benchmark ("shuffle<> ",  [&](const VEC& v){ return shuffle<3,2,1,0>(v); }, a);
 }
 
 
@@ -1145,9 +1145,9 @@ void test_blend ()
     ELEM r3[] = { 0, 2, 0, 4, 0, 6, 0, 8,  0, 10, 0, 12, 0, 14, 0, 16 };
     OIIO_CHECK_SIMD_EQUAL (blend0not (a, tf), VEC(r3));
 
-    benchmark2 ("blend", [&](VEC& a, VEC& b){ return blend(a,b,tf); }, a, b);
-    benchmark2 ("blend0", [](VEC& a, bool_t& b){ return blend0(a,b); }, a, tf);
-    benchmark2 ("blend0not", [](VEC& a, bool_t& b){ return blend0not(a,b); }, a, tf);
+    benchmark2 ("blend", [&](const VEC& a, const VEC& b){ return blend(a,b,tf); }, a, b);
+    benchmark2 ("blend0", [](const VEC& a, const bool_t& b){ return blend0(a,b); }, a, tf);
+    benchmark2 ("blend0not", [](const VEC& a, const bool_t& b){ return blend0not(a,b); }, a, tf);
 }
 
 
@@ -1239,10 +1239,10 @@ void test_vectorops_vfloat4 ()
     OIIO_CHECK_SIMD_EQUAL (vdot3(a,b), VEC(10+22+36));
     OIIO_CHECK_SIMD_EQUAL (hdiv(vfloat4(1.0f,2.0f,3.0f,2.0f)), vfloat3(0.5f,1.0f,1.5f));
 
-    benchmark2 ("vdot", [](VEC& a, VEC& b){ return vdot(a,b); }, a, b);
-    benchmark2 ("dot", [](VEC& a, VEC& b){ return dot(a,b); }, a, b);
-    benchmark2 ("vdot3", [](VEC& a, VEC& b){ return vdot3(a,b); }, a, b);
-    benchmark2 ("dot3", [](VEC& a, VEC& b){ return dot3(a,b); }, a, b);
+    benchmark2 ("vdot", [](const VEC& a, const VEC& b){ return vdot(a,b); }, a, b);
+    benchmark2 ("dot", [](const VEC& a, const VEC& b){ return dot(a,b); }, a, b);
+    benchmark2 ("vdot3", [](const VEC& a, const VEC& b){ return vdot3(a,b); }, a, b);
+    benchmark2 ("dot3", [](const VEC& a, const VEC& b){ return dot3(a,b); }, a, b);
 }
 
 
@@ -1264,8 +1264,8 @@ void test_vectorops_vfloat3 ()
     OIIO_CHECK_SIMD_EQUAL_THRESH (vfloat3(1.0f,2.0f,3.0f).normalized_fast(),
                                   vfloat3(norm_imath(Imath::V3f(1.0f,2.0f,3.0f))), 0.0005);
 
-    benchmark2 ("vdot", [](VEC& a, VEC& b){ return vdot(a,b); }, a, b);
-    benchmark2 ("dot", [](VEC& a, VEC& b){ return dot(a,b); }, a, b);
+    benchmark2 ("vdot", [](const VEC& a, const VEC& b){ return vdot(a,b); }, a, b);
+    benchmark2 ("dot", [](const VEC& a, const VEC& b){ return dot(a,b); }, a, b);
     benchmark ("dot vfloat3", dot_simd, vfloat3(2.0f,1.0f,0.0f), 1);
     // benchmark2 ("dot Imath::V3f", [](Imath::V3f& a, Imath::V3f& b){ return a.dot(b); }, a.V3f(), b.V3f());
     benchmark ("dot Imath::V3f", dot_imath, Imath::V3f(2.0f,1.0f,0.0f), 1);
@@ -1423,14 +1423,14 @@ void test_mathfuncs ()
 
     benchmark2 ("simd operator/", do_div<VEC>, A, A);
     benchmark2 ("simd safe_div", do_safe_div<VEC>, A, A);
-    benchmark ("simd rcp_fast", [](VEC& v){ return rcp_fast(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
+    benchmark ("simd rcp_fast", [](const VEC& v){ return rcp_fast(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
 
     OIIO_CHECK_SIMD_EQUAL (ifloor(mkvec<VEC>(0.0f, 0.999f, 1.0f, 1.001f)),
                            mkvec<vint_t>(0, 0, 1, 1));
     OIIO_CHECK_SIMD_EQUAL (ifloor(mkvec<VEC>(0.0f, -0.999f, -1.0f, -1.001f)),
                            mkvec<vint_t>(0, -1, -1, -2));
     benchmark ("float ifloor", [](float&v){ return ifloor(v); }, 1.1f);
-    benchmark ("simd ifloor", [](VEC&v){ return simd::ifloor(v); }, VEC(1.1f));
+    benchmark ("simd ifloor", [](const VEC&v){ return simd::ifloor(v); }, VEC(1.1f));
 
     int iscalar;
     vint_t ival;
@@ -1447,20 +1447,20 @@ void test_mathfuncs ()
 
     benchmark ("float expf", expf, 0.67f);
     benchmark ("float fast_exp", fast_exp_float, 0.67f);
-    benchmark ("simd exp", [](VEC& v){ return simd::exp(v); }, VEC(0.67f));
-    benchmark ("simd fast_exp", [](VEC& v){ return fast_exp(v); }, VEC(0.67f));
+    benchmark ("simd exp", [](const VEC& v){ return simd::exp(v); }, VEC(0.67f));
+    benchmark ("simd fast_exp", [](const VEC& v){ return fast_exp(v); }, VEC(0.67f));
 
     benchmark ("float logf", logf, 0.67f);
     benchmark ("fast_log", fast_log_float, 0.67f);
-    benchmark ("simd log", [](VEC& v){ return simd::log(v); }, VEC(0.67f));
+    benchmark ("simd log", [](const VEC& v){ return simd::log(v); }, VEC(0.67f));
     benchmark ("simd fast_log", fast_log<VEC>, VEC(0.67f));
     benchmark2 ("float powf", powf, 0.67f, 0.67f);
-    benchmark2 ("simd fast_pow_pos", [](VEC& x,VEC& y){ return fast_pow_pos(x,y); }, VEC(0.67f), VEC(0.67f));
+    benchmark2 ("simd fast_pow_pos", [](const VEC& x,const VEC& y){ return fast_pow_pos(x,y); }, VEC(0.67f), VEC(0.67f));
     benchmark ("float sqrt", sqrtf, 4.0f);
-    benchmark ("simd sqrt", [](VEC& v){ return sqrt(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
+    benchmark ("simd sqrt", [](const VEC& v){ return sqrt(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
     benchmark ("float rsqrt", rsqrtf, 4.0f);
-    benchmark ("simd rsqrt", [](VEC& v){ return rsqrt(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
-    benchmark ("simd rsqrt_fast", [](VEC& v){ return rsqrt_fast(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
+    benchmark ("simd rsqrt", [](const VEC& v){ return rsqrt(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
+    benchmark ("simd rsqrt_fast", [](const VEC& v){ return rsqrt_fast(v); }, mkvec<VEC>(1.0f,4.0f,9.0f,16.0f));
 }
 
 
