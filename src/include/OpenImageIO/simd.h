@@ -86,6 +86,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // OIIO_SIMD_HAS_MATRIX4 : nonzero if matrix44 is defined
 // OIIO_SIMD_HAS_FLOAT8 : nonzero if float8, int8, bool8 are defined
 
+// Disable SSE for 32 bit Windows patforms, it's unreliable and hard for us
+// to test thoroughly. We presume that anybody needing high performance
+// badly enough to want SIMD also is on a 64 bit CPU.
+#if defined(_WIN32) && defined(__i386__) && !defined(__x86_64__) && !defined(OIIO_NO_SSE)
+#  define OIIO_NO_SSE 1
+#endif
+
 #if (defined(__SSE2__) || (_MSC_VER >= 1300 && !_M_CEE_PURE)) && !defined(OIIO_NO_SSE)
 #  include <immintrin.h>
 #  if (defined(__i386__) || defined(__x86_64__)) && (OIIO_GNUC_VERSION > 40400 || __clang__)
