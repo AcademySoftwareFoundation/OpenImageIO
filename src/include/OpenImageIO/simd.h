@@ -96,6 +96,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  include <arm_neon.h>
 #endif
 
+// Disable SSE for 32 bit Windows patforms, it's unreliable and hard for us
+// to test thoroughly. We presume that anybody needing high performance
+// badly enough to want SIMD also is on a 64 bit CPU.
+#if defined(_WIN32) && defined(__i386__) && !defined(__x86_64__) && !defined(OIIO_NO_SSE)
+#define OIIO_NO_SSE 1
+#endif
+
 #if (defined(__SSE2__) || (_MSC_VER >= 1300 && !_M_CEE_PURE)) && !defined(OIIO_NO_SSE)
 #  if (defined(__SSE4_1__) || defined(__SSE4_2__))
 #    define OIIO_SIMD_SSE 4
