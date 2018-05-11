@@ -330,7 +330,7 @@ ImageCacheFile::~ImageCacheFile ()
 std::shared_ptr<ImageInput>
 ImageCacheFile::get_imageinput (ImageCachePerThreadInfo *thread_info)
 {
-#if defined(__GLIBCXX__) && __GLIBCXX__ < 20160427
+#if defined(__GLIBCXX__) && __GLIBCXX__ < 20160822
     // Older gcc libstdc++ does not properly support std::atomic
     // operations on std::shared_ptr, despite it being a C++11
     // feature. No choice but to lock.
@@ -349,7 +349,7 @@ ImageCacheFile::set_imageinput (std::shared_ptr<ImageInput> newval)
 {
     if (newval)
         imagecache().incr_open_files ();
-#if defined(__GLIBCXX__) && __GLIBCXX__ < 20160427
+#if defined(__GLIBCXX__) && __GLIBCXX__ < 20160822
     // Older gcc libstdc++ does not properly support std::atomic
     // operations on std::shared_ptr, despite it being a C++11
     // feature. No choice but to lock.
