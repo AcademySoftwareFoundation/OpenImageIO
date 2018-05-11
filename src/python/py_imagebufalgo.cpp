@@ -27,9 +27,10 @@
 
   (This is the Modified BSD License)
 */
+
+#include "py_oiio.h"
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebufalgo.h>
-#include "py_oiio.h"
 
 
 namespace PyOpenImageIO

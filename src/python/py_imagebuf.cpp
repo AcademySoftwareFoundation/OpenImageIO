@@ -28,9 +28,10 @@
   (This is the Modified BSD License)
 */
 
+#include "py_oiio.h"
+
 #include <memory>
 
-#include "py_oiio.h"
 #include <OpenImageIO/platform.h>
 
 

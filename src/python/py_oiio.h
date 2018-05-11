@@ -31,6 +31,9 @@
 #ifndef PYOPENIMAGEIO_PY_OIIO_H
 #define PYOPENIMAGEIO_PY_OIIO_H
 
+// Must include Python.h first to avoid certain warnings
+#include <Python.h>
+
 #include <memory>
 
 // Avoid a compiler warning from a duplication in tiffconf.h/pyconfig.h
