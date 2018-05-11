@@ -128,7 +128,7 @@ inline int receive_frame(AVCodecContext *avctx, AVFrame *picture,
 // Changes for ffmpeg 4.0
 #define USE_FFMPEG_4_0 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 18, 100))
 
-#if USE_FFMPEG_4_0
+#if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(56, 56, 100))
 #  define CODEC_CAP_DELAY AV_CODEC_CAP_DELAY
 #endif
 
