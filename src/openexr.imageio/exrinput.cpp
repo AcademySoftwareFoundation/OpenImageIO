@@ -236,6 +236,8 @@ private:
         m_io = nullptr;
         m_local_io.reset ();
     }
+
+    bool valid_file (const std::string &filename, Filesystem::IOProxy *io) const;
 };
 
 
@@ -356,7 +358,26 @@ OpenEXRInput::OpenEXRInput ()
 bool
 OpenEXRInput::valid_file (const std::string &filename) const
 {
-    return Imf::isOpenExrFile (filename.c_str());
+    return valid_file (filename, nullptr);
+}
+
+
+
+bool
+OpenEXRInput::valid_file (const std::string &filename,
+                          Filesystem::IOProxy *io) const
+{
+    try {
+        std::unique_ptr<Filesystem::IOProxy> local_io;
+        if (! io) {
+            io = new Filesystem::IOFile (filename, Filesystem::IOProxy::Read);
+            local_io.reset (io);
+        }
+        OpenEXRInputStream IStream (filename.c_str(), io);
+        return Imf::isOpenExrFile (IStream);
+    } catch (const std::exception &e) {
+        return false;
+    }
 }
 
 
@@ -374,7 +395,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec,
         error ("Could not open file \"%s\"", name);
         return false;
     }
-    if (!m_io && ! valid_file(name)) {
+    if (! valid_file(name, m_io)) {
         error ("\"%s\" is not an OpenEXR file", name);
         return false;
     }
