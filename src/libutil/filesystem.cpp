@@ -73,6 +73,41 @@ namespace filesystem = boost::filesystem;
 
 OIIO_NAMESPACE_BEGIN
 
+
+// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+// to convert char* to wchar_t* because they do not know the encoding
+// See boost/filesystem/path.hpp
+// The only correct way to do this is to do the conversion ourselves.
+
+inline filesystem::path u8path (string_view name)
+{
+#ifdef _WIN32
+    return filesystem::path (Strutil::utf8_to_utf16 (name));
+#else
+    return filesystem::path (name.str());
+#endif
+}
+
+inline filesystem::path u8path (const std::string &name)
+{
+#ifdef _WIN32
+    return filesystem::path (Strutil::utf8_to_utf16 (name));
+#else
+    return filesystem::path (name);
+#endif
+}
+
+inline std::string pathstr (const filesystem::path &p)
+{
+#ifdef _WIN32
+    return Strutil::utf16_to_utf8 (p.native());
+#else
+    return p.string();
+#endif
+}
+
+
+
 #ifdef _MSC_VER
     // fix for https://svn.boost.org/trac/boost/ticket/6320
     const std::string dummy_path = "../dummy_path.txt";
@@ -84,7 +119,7 @@ Filesystem::filename (const std::string &filepath)
 {
     // To simplify dealing with platform-specific separators and whatnot,
     // just use the Boost routines:
-    return filesystem::path(filepath).filename().string();
+    return pathstr (u8path(filepath).filename());
 }
 
 
@@ -92,7 +127,7 @@ Filesystem::filename (const std::string &filepath)
 std::string
 Filesystem::extension (const std::string &filepath, bool include_dot)
 {
-    std::string s = filesystem::path(filepath).extension().string();
+    std::string s = pathstr (u8path(filepath).extension());
     if (! include_dot && !s.empty() && s[0] == '.')
         s.erase (0, 1);  // erase the first character
     return s;
@@ -103,7 +138,7 @@ Filesystem::extension (const std::string &filepath, bool include_dot)
 std::string
 Filesystem::parent_path (const std::string &filepath)
 {
-    return filesystem::path(filepath).parent_path().string();
+    return pathstr (u8path(filepath).parent_path());
 }
 
 
@@ -112,7 +147,7 @@ std::string
 Filesystem::replace_extension (const std::string &filepath,
                                const std::string &new_extension)
 {
-    return filesystem::path(filepath).replace_extension(new_extension).string();
+    return pathstr (u8path(filepath).replace_extension(new_extension));
 }
 
 
@@ -169,49 +204,31 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
                              const std::vector<std::string> &dirs,
                              bool testcwd, bool recursive)
 {
-#ifdef _WIN32
-    const filesystem::path filename (Strutil::utf8_to_utf16 (filename_utf8));
-#else
-    const filesystem::path filename (filename_utf8);
-#endif
+    const filesystem::path filename (u8path (filename_utf8));
     bool abs = filename.is_absolute();
 
     // If it's an absolute filename, or if we want to check "." first,
     // then start by checking filename outright.
     if (testcwd || abs) {
-        if (is_regular (filename.string()))
+        if (is_regular (filename_utf8))
             return filename_utf8;
     }
 
     // Relative filename, not yet found -- try each directory in turn
     for (auto&& d_utf8 : dirs) {
         // std::cerr << "\tPath = '" << d << "'\n";
-#ifdef _WIN32
-        const filesystem::path d(Strutil::utf8_to_utf16 (d_utf8));
-#else
-        const filesystem::path d(d_utf8);
-#endif
+        const filesystem::path d (u8path (d_utf8));
         filesystem::path f = d / filename;
-        // std::cerr << "\tTesting '" << f.string() << "'\n";
-        if (is_regular (f.string())) {
-            // std::cerr << "Found '" << f.string() << "'\n";
-#ifdef _WIN32
-            return Strutil::utf16_to_utf8 (f.native());
-#else
-            return f.string();
-#endif
+        if (is_regular (pathstr(f))) {
+            return pathstr (f);
         }
 
-        if (recursive && is_directory (d.string())) {
+        if (recursive && is_directory (pathstr(d))) {
             std::vector<std::string> subdirs;
             filesystem::directory_iterator end_iter;
             for (filesystem::directory_iterator s(d); s != end_iter; ++s) {
                 if (filesystem::is_directory (s->status())) {
-#ifdef _WIN32
-                    subdirs.push_back (Strutil::utf16_to_utf8 (s->path().native()));
-#else
-                    subdirs.push_back (s->path().string());
-#endif
+                    subdirs.push_back (pathstr (s->path()));
                 }
             }
             std::string found = searchpath_find (filename_utf8, subdirs, false, true);
@@ -233,7 +250,7 @@ Filesystem::get_directory_entries (const std::string &dirname,
     filenames.clear ();
     if (dirname.size() && ! is_directory(dirname))
         return false;
-    filesystem::path dirpath (dirname.size() ? dirname : std::string("."));
+    filesystem::path dirpath (dirname.size() ? u8path(dirname) : filesystem::path("."));
     regex re;
     try {
         re = regex(filter_regex);
@@ -242,36 +259,18 @@ Filesystem::get_directory_entries (const std::string &dirname,
     }
 
     if (recursive) {
-#ifdef _WIN32
-        std::wstring wdirpath = Strutil::utf8_to_utf16 (dirpath.string());
-        for (filesystem::recursive_directory_iterator s (wdirpath);
-#else
         for (filesystem::recursive_directory_iterator s (dirpath);
-#endif
              s != filesystem::recursive_directory_iterator();  ++s) {
-            std::string file = s->path().string();
+            std::string file = pathstr (s->path());
             if (!filter_regex.size() || regex_search (file, re))
-#ifdef _WIN32
-                filenames.push_back (Strutil::utf16_to_utf8(s->path().native()));
-#else
                 filenames.push_back (file);
-#endif
         }
     } else {
-#ifdef _WIN32
-        std::wstring wdirpath = Strutil::utf8_to_utf16 (dirpath.string());
-        for (filesystem::directory_iterator s (wdirpath);
-#else
         for (filesystem::directory_iterator s (dirpath);
-#endif
              s != filesystem::directory_iterator();  ++s) {
-            std::string file = s->path().string();
+            std::string file = pathstr (s->path());
             if (!filter_regex.size() || regex_search (file, re))
-#ifdef _WIN32
-                filenames.push_back (Strutil::utf16_to_utf8(s->path().native()));
-#else
                 filenames.push_back (file);
-#endif
         }
     }
     return true;
@@ -306,16 +305,7 @@ Filesystem::exists (const std::string &path)
 {
     bool r = false;
     try {
-#if defined(_WIN32)
-        // boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
-        // to convert char* to wchar_t* because they do not know the encoding
-        // See boost/filesystem/path.hpp
-        // The only correct way to do this is to do the conversion ourselves
-        std::wstring wpath = Strutil::utf8_to_utf16(path);
-        r = filesystem::exists (wpath);
-#else
-        r = filesystem::exists (path);
-#endif
+        r = filesystem::exists (u8path (path));
     } catch (...) {
         r = false;
     }
@@ -329,16 +319,7 @@ Filesystem::is_directory (const std::string &path)
 {
     bool r = false;
     try {
-#if defined(_WIN32)
-        // boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
-        // to convert char* to wchar_t* because they do not know the encoding
-        // See boost/filesystem/path.hpp
-        // The only correct way to do this is to do the conversion ourselves
-        std::wstring wpath = Strutil::utf8_to_utf16(path);
-        r = filesystem::is_directory (wpath);
-#else
-        r = filesystem::is_directory (path);
-#endif
+        r = filesystem::is_directory (u8path (path));
     } catch (...) {
         r = false;
     }
@@ -352,16 +333,7 @@ Filesystem::is_regular (const std::string &path)
 {
     bool r = false;
     try {
-#if defined(_WIN32)
-        // boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
-        // to convert char* to wchar_t* because they do not know the encoding
-        // See boost/filesystem/path.hpp
-        // The only correct way to do this is to do the conversion ourselves
-        std::wstring wpath = Strutil::utf8_to_utf16(path);
-        r = filesystem::is_regular_file (wpath);
-#else
-        r = filesystem::is_regular_file (path);
-#endif
+        r = filesystem::is_regular_file (u8path (path));
     } catch (...) {
         r = false;
     }
@@ -373,19 +345,8 @@ Filesystem::is_regular (const std::string &path)
 bool
 Filesystem::create_directory (string_view path, std::string &err)
 {
-
-#if defined(_WIN32)
-	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
-	// to convert char* to wchar_t* because they do not know the encoding
-	// See boost/filesystem/path.hpp
-	// The only correct way to do this is to do the conversion ourselves
-	std::wstring pathStr = Strutil::utf8_to_utf16(path);
-#else
-	std::string pathStr = path.str();
-#endif
-
     boost::system::error_code ec;
-	bool ok = filesystem::create_directory (pathStr, ec);
+	bool ok = filesystem::create_directory (u8path(path), ec);
     if (ok)
         err.clear();
     else
@@ -397,20 +358,8 @@ Filesystem::create_directory (string_view path, std::string &err)
 bool
 Filesystem::copy (string_view from, string_view to, std::string &err)
 {
-#if defined(_WIN32)
-	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
-	// to convert char* to wchar_t* because they do not know the encoding
-	// See boost/filesystem/path.hpp
-	// The only correct way to do this is to do the conversion ourselves
-	std::wstring fromStr = Strutil::utf8_to_utf16(from);
-	std::wstring toStr = Strutil::utf8_to_utf16(to);
-#else
-	std::string fromStr = from.str();
-	std::string toStr = to.str();
-#endif
-
     boost::system::error_code ec;
-    filesystem::copy (fromStr, toStr, ec);
+    filesystem::copy (u8path(from), u8path(to), ec);
     if (! ec) {
         err.clear();
         return true;
@@ -425,19 +374,8 @@ Filesystem::copy (string_view from, string_view to, std::string &err)
 bool
 Filesystem::rename (string_view from, string_view to, std::string &err)
 {
-#if defined(_WIN32)
-	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
-	// to convert char* to wchar_t* because they do not know the encoding
-	// See boost/filesystem/path.hpp
-	// The only correct way to do this is to do the conversion ourselves
-	std::wstring fromStr = Strutil::utf8_to_utf16(from);
-	std::wstring toStr = Strutil::utf8_to_utf16(to);
-#else
-	std::string fromStr = from.str();
-	std::string toStr = to.str();
-#endif
     boost::system::error_code ec;
-    filesystem::rename (fromStr, toStr, ec);
+    filesystem::rename (u8path(from), u8path(to), ec);
     if (! ec) {
         err.clear();
         return true;
@@ -452,17 +390,8 @@ Filesystem::rename (string_view from, string_view to, std::string &err)
 bool
 Filesystem::remove (string_view path, std::string &err)
 {
-#if defined(_WIN32)
-	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
-	// to convert char* to wchar_t* because they do not know the encoding
-	// See boost/filesystem/path.hpp
-	// The only correct way to do this is to do the conversion ourselves
-	std::wstring pathStr = Strutil::utf8_to_utf16(path);
-#else
-	std::string pathStr = path.str();
-#endif
     boost::system::error_code ec;
-    bool ok = filesystem::remove (pathStr, ec);
+    bool ok = filesystem::remove (u8path(path), ec);
     if (ok)
         err.clear();
     else
@@ -475,17 +404,8 @@ Filesystem::remove (string_view path, std::string &err)
 unsigned long long
 Filesystem::remove_all (string_view path, std::string &err)
 {
-#if defined(_WIN32)
-	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
-	// to convert char* to wchar_t* because they do not know the encoding
-	// See boost/filesystem/path.hpp
-	// The only correct way to do this is to do the conversion ourselves
-	std::wstring pathStr = Strutil::utf8_to_utf16(path);
-#else
-	std::string pathStr = path.str();
-#endif
     boost::system::error_code ec;
-    unsigned long long n = filesystem::remove_all (pathStr, ec);
+    unsigned long long n = filesystem::remove_all (u8path(path), ec);
     if (!ec)
         err.clear();
     else
@@ -500,7 +420,7 @@ Filesystem::temp_directory_path()
 {
     boost::system::error_code ec;
     filesystem::path p = filesystem::temp_directory_path (ec);
-    return ec ? std::string() : p.string();
+    return ec ? std::string() : pathstr(p);
 }
 
 
@@ -508,18 +428,9 @@ Filesystem::temp_directory_path()
 std::string
 Filesystem::unique_path (string_view model)
 {
-#if defined(_WIN32)
-	// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
-	// to convert char* to wchar_t* because they do not know the encoding
-	// See boost/filesystem/path.hpp
-	// The only correct way to do this is to do the conversion ourselves
-	std::wstring modelStr = Strutil::utf8_to_utf16(model);
-#else
-	std::string modelStr = model.str();
-#endif
     boost::system::error_code ec;
-    filesystem::path p = filesystem::unique_path (modelStr, ec);
-    return ec ? std::string() : p.string();
+    filesystem::path p = filesystem::unique_path (u8path(model), ec);
+    return ec ? std::string() : pathstr(p);
 }
 
 
@@ -529,7 +440,7 @@ Filesystem::current_path()
 {
     boost::system::error_code ec;
     filesystem::path p = filesystem::current_path (ec);
-    return ec ? std::string() : p.string();
+    return ec ? std::string() : pathstr(p);
 }
 
 
@@ -631,12 +542,7 @@ Filesystem::last_write_time (const std::string& path)
     if (! exists(path))
         return 0;
     try {
-#ifdef _WIN32
-        std::wstring wpath = Strutil::utf8_to_utf16 (path);
-        return filesystem::last_write_time (wpath);
-#else
-        return filesystem::last_write_time (path);
-#endif
+        return filesystem::last_write_time (u8path(path));
     } catch (...) {
         // File doesn't exist
         return 0;
@@ -651,12 +557,7 @@ Filesystem::last_write_time (const std::string& path, std::time_t time)
     if (! exists(path))
         return;
     try {
-#ifdef _WIN32
-        std::wstring wpath = Strutil::utf8_to_utf16 (path);
-        filesystem::last_write_time (wpath, time);
-#else
-        filesystem::last_write_time (path, time);
-#endif
+        filesystem::last_write_time (u8path(path), time);
     } catch (...) {
         // File doesn't exist
     }
@@ -670,12 +571,7 @@ Filesystem::file_size (string_view path)
     if (! exists(path))
         return 0;
     try {
-#ifdef _WIN32
-        std::wstring wpath = Strutil::utf8_to_utf16 (path);
-        return filesystem::file_size (wpath);
-#else
-        return filesystem::file_size (path.str());
-#endif
+        return filesystem::file_size (u8path(path));
     } catch (...) {
         // File doesn't exist
         return 0;
@@ -980,14 +876,9 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
     regex pattern_re (pattern_re_str);
 
     filesystem::directory_iterator end_it;
-#ifdef _WIN32
-    std::wstring wdirectory = Strutil::utf8_to_utf16 (directory);
-    for (filesystem::directory_iterator it(wdirectory); it != end_it; ++it) {
-#else
-    for (filesystem::directory_iterator it(directory); it != end_it; ++it) {
-#endif
-        if (is_regular(it->path().string())) {
-            const std::string f = it->path().string();
+    for (filesystem::directory_iterator it(u8path(directory)); it != end_it; ++it) {
+        const std::string f = pathstr(it->path());
+        if (is_regular(f)) {
             match_results<std::string::const_iterator> frame_match;
             if (regex_match (f, frame_match, pattern_re)) {
                 std::string thenumber (frame_match[1].first, frame_match[1].second);
