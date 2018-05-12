@@ -343,7 +343,12 @@ OpenEXRInput::OpenEXRInput ()
 bool
 OpenEXRInput::valid_file (const std::string &filename) const
 {
-    return Imf::isOpenExrFile (filename.c_str());
+    try {
+        OpenEXRInputStream IStream (filename.c_str());
+        return Imf::isOpenExrFile (IStream);
+    } catch (const std::exception &e) {
+        return false;
+    }
 }
 
 
@@ -356,8 +361,7 @@ OpenEXRInput::open (const std::string &name, ImageSpec &newspec)
         error ("Could not open file \"%s\"", name.c_str());
         return false;
     }
-    bool tiled;
-    if (! Imf::isOpenExrFile (name.c_str(), tiled)) {
+    if (! valid_file(name)) {
         error ("\"%s\" is not an OpenEXR file", name.c_str());
         return false;
     }
