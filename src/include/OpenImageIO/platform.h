@@ -175,10 +175,17 @@
 #endif
 
 // Tests for MSVS versions, always 0 if not MSVS at all.
-#define OIIO_MSVS_AT_LEAST_2013 (defined(_MSC_VER) && _MSC_VER >= 1800)
-#define OIIO_MSVS_BEFORE_2013   (defined(_MSC_VER) && _MSC_VER <  1800)
-#define OIIO_MSVS_AT_LEAST_2015 (defined(_MSC_VER) && _MSC_VER >= 1900)
-#define OIIO_MSVS_BEFORE_2015   (defined(_MSC_VER) && _MSC_VER <  1900)
+#ifdef _MSC_VER
+#  define OIIO_MSVS_AT_LEAST_2013 (_MSC_VER >= 1800)
+#  define OIIO_MSVS_BEFORE_2013   (_MSC_VER <  1800)
+#  define OIIO_MSVS_AT_LEAST_2015 (_MSC_VER >= 1900)
+#  define OIIO_MSVS_BEFORE_2015   (_MSC_VER <  1900)
+#else
+#  define OIIO_MSVS_AT_LEAST_2013 0
+#  define OIIO_MSVS_BEFORE_2013   0
+#  define OIIO_MSVS_AT_LEAST_2015 0
+#  define OIIO_MSVS_BEFORE_2015   0
+#endif
 
 
 
