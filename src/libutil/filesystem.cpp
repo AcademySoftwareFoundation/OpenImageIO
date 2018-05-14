@@ -54,8 +54,53 @@
 # include <unistd.h>
 #endif
 
+#include <boost/filesystem.hpp>
+namespace filesystem = boost::filesystem;
+// FIXME: use std::filesystem when available
+
+
 
 OIIO_NAMESPACE_BEGIN
+
+
+// boost internally doesn't use MultiByteToWideChar (CP_UTF8,...
+// to convert char* to wchar_t* because they do not know the encoding
+// See boost/filesystem/path.hpp
+// The only correct way to do this is to do the conversion ourselves.
+
+inline filesystem::path u8path (string_view name)
+{
+#ifdef _WIN32
+    return filesystem::path (Strutil::utf8_to_utf16 (name));
+#else
+    return filesystem::path (name.str());
+#endif
+}
+
+inline filesystem::path u8path (const std::string &name)
+{
+#ifdef _WIN32
+    return filesystem::path (Strutil::utf8_to_utf16 (name));
+#else
+    return filesystem::path (name);
+#endif
+}
+
+inline std::string pathstr (const filesystem::path &p)
+{
+#ifdef _WIN32
+    return Strutil::utf16_to_utf8 (p.native());
+#else
+    return p.string();
+#endif
+}
+
+inline std::string pathstr (const std::string &p)
+{
+    return p;
+}
+
+
 
 #ifdef _MSC_VER
     // fix for https://svn.boost.org/trac/boost/ticket/6320
@@ -538,7 +583,7 @@ Filesystem::temp_directory_path()
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
     boost::filesystem::path p = boost::filesystem::temp_directory_path (ec);
-    return ec ? std::string() : p.string();
+    return ec ? std::string() : pathstr(p);
 #else
     const char *tmpdir = getenv("TMPDIR");
     if (! tmpdir)
@@ -569,7 +614,7 @@ Filesystem::unique_path (string_view model)
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
     boost::filesystem::path p = boost::filesystem::unique_path (modelStr, ec);
-    return ec ? std::string() : p.string();
+    return ec ? std::string() : pathstr(p);
 #elif _MSC_VER
     char buf[TMP_MAX];
     char *result = tmpnam (buf);
@@ -589,7 +634,7 @@ Filesystem::current_path()
 #if BOOST_FILESYSTEM_VERSION >= 3
     boost::system::error_code ec;
     boost::filesystem::path p = boost::filesystem::current_path (ec);
-    return ec ? std::string() : p.string();
+    return ec ? std::string() : pathstr(p);
 #else
     // Fallback if we don't have recent Boost
     char path[FILENAME_MAX];
