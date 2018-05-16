@@ -163,12 +163,13 @@ matrix:
         compiler: gcc
         env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
     # One more, just for the heck of it, turn all SIMD off, and also make
-    # sure we're falling back on libjpeg, not jpeg-turbo.  I guess this
+    # sure we're falling back on libjpeg, not jpeg-turbo, and don't embed
+    # the plugins (to make sure that doesn't rust away).  I guess this
     # should/could be both platforms, but in the interest of making the
     # tests go faster, don't bother doing it on OSX.
       - os: linux
         compiler: gcc
-        env: USE_SIMD=0 USE_JPEGTURBO=0
+        env: USE_SIMD=0 USE_JPEGTURBO=0 EMBEDPLUGINS=0
     # build for AVX2, don't run the tests (ensure against build breaks)
       - os: linux
         compiler: gcc
