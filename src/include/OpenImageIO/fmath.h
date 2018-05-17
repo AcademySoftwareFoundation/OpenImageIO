@@ -1381,9 +1381,11 @@ inline OIIO_HOSTDEVICE float fast_atan (float x) {
     const float s = 1.0f - (1.0f - k); // crush denormals
     const float t = s * s;
     // http://mathforum.org/library/drmath/view/62672.html
-    // Examined 4278190080 values of atan: 2.36864877 avg ulp diff, 302 max ulp, 6.55651e-06 max error      // (with  denormals)
-    // Examined 4278190080 values of atan: 171160502 avg ulp diff, 855638016 max ulp, 6.55651e-06 max error // (crush denormals)
-    float r = s * madd(0.43157974f, t, 1.0f) / madd(madd(0.05831938f, t, 0.76443945f), t, 1.0f);
+    // the coefficients were tuned in mathematica with the assumption that we want atan(1)=pi/4
+    // (slightly higher error but no discontinuities)
+    // Examined 4278190080 values of atan: 2.53989068 avg ulp diff, 315 max ulp, 9.17912e-06 max error      // (with  denormals)
+    // Examined 4278190080 values of atan: 171160502 avg ulp diff, 855638016 max ulp, 9.17912e-06 max error // (crush denormals)
+    float r = s * madd(0.430165678f, t, 1.0f) / madd(madd(0.0579354987f, t, 0.763007998f), t, 1.0f);
     if (a > 1.0f) r = 1.570796326794896557998982f - r;
     return copysignf(r, x);
 #else
@@ -1403,7 +1405,7 @@ inline OIIO_HOSTDEVICE float fast_atan2 (float y, float x) {
     const float s = 1.0f - (1.0f - k); // crush denormals
     const float t = s * s;
 
-    float r = s * madd(0.43157974f, t, 1.0f) / madd(madd(0.05831938f, t, 0.76443945f), t, 1.0f);
+    float r = s * madd(0.430165678f, t, 1.0f) / madd(madd(0.0579354987f, t, 0.763007998f), t, 1.0f);
 
     if (b > a) r = 1.570796326794896557998982f - r; // account for arg reduction
     if (bit_cast<float, unsigned>(x) & 0x80000000u) // test sign bit of x
