@@ -75,10 +75,6 @@ OIIO_EXPORT ImageInput *pnm_input_imageio_create () {
     return new PNMInput;
 }
 
-OIIO_EXPORT void pnm_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT int pnm_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char* pnm_imageio_library_version() { return nullptr; }

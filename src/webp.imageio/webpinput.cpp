@@ -195,10 +195,6 @@ OIIO_EXPORT ImageInput *webp_input_imageio_create () {
     return new webp_pvt::WebpInput;
 }
 
-OIIO_EXPORT void webp_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *webp_input_extensions[] = {
     "webp", nullptr
 };

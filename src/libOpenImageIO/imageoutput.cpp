@@ -51,6 +51,24 @@ OIIO_NAMESPACE_BEGIN
 
 
 
+void*
+ImageOutput::operator new (size_t size)
+{
+    void *ptr = ::operator new (size);
+    return ptr;
+}
+
+
+
+void
+ImageOutput::operator delete (void *ptr)
+{
+    ImageOutput *in = (ImageOutput *)ptr;
+    ::operator delete (in);
+}
+
+
+
 ImageOutput::ImageOutput ()
     : m_threads(0)
 {

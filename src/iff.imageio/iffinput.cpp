@@ -46,10 +46,6 @@ OIIO_EXPORT ImageInput *iff_input_imageio_create () {
     return new IffInput;
 }
 
-OIIO_EXPORT void iff_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *iff_input_extensions[] = {
     "iff", "z", nullptr
 };

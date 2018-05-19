@@ -98,10 +98,6 @@ OIIO_EXPORT ImageOutput *jpeg2000_output_imageio_create () {
     return new Jpeg2000Output;
 }
 
-OIIO_EXPORT void jpeg2000_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *jpeg2000_output_extensions[] = {
     "jp2", "j2k", nullptr
 };

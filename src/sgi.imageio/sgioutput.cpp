@@ -38,9 +38,6 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 OIIO_EXPORT ImageOutput *sgi_output_imageio_create () {
     return new SgiOutput;
 }
-OIIO_EXPORT void sgi_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
 OIIO_EXPORT const char *sgi_output_extensions[] = {
     "sgi", "rgb", "rgba", "bw", "int", "inta", nullptr
 };

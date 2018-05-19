@@ -695,7 +695,7 @@ ImageBufImpl::init_spec (string_view filename, int subimage, int miplevel)
     static ustring s_subimages("subimages"), s_miplevels("miplevels");
     static ustring s_fileformat("fileformat");
     if (m_configspec)  // Pass configuration options to cache
-        m_imagecache->add_file (m_name, nullptr, nullptr, m_configspec.get());
+        m_imagecache->add_file (m_name, nullptr, m_configspec.get());
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_subimages,
                                   TypeInt, &m_nsubimages);
     m_imagecache->get_image_info (m_name, subimage, miplevel, s_miplevels,
@@ -1073,7 +1073,7 @@ ImageBuf::write (string_view _filename, string_view _fileformat,
     if (imagecache() && imagecache() != shared_imagecache)
         imagecache()->invalidate (ufilename);   // *our* IC
 
-    ImageOutput::unique_ptr out = ImageOutput::create (fileformat.c_str(), "" /* searchpath */);
+    auto out = ImageOutput::create (fileformat.c_str(), "" /* searchpath */);
     if (! out) {
         error ("%s", geterror());
         return false;

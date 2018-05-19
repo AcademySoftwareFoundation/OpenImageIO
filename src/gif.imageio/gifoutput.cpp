@@ -99,10 +99,6 @@ OIIO_EXPORT ImageOutput *gif_output_imageio_create () {
     return new GIFOutput;
 }
 
-OIIO_EXPORT void gif_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *gif_output_extensions[] = { "gif", NULL };
 
 OIIO_PLUGIN_EXPORTS_END

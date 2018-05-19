@@ -67,10 +67,6 @@ OIIO_EXPORT ImageOutput *pnm_output_imageio_create () {
     return new PNMOutput;
 }
 
-OIIO_EXPORT void pnm_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char * pnm_output_extensions[] = {
     "ppm","pgm","pbm","pnm", nullptr
 };

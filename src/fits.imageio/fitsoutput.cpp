@@ -43,10 +43,6 @@ OIIO_EXPORT ImageOutput *fits_output_imageio_create () {
     return new FitsOutput;
 }
 
-OIIO_EXPORT void fits_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *fits_output_extensions[] = {
     "fits", nullptr
 };

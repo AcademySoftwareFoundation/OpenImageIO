@@ -545,10 +545,6 @@ OIIO_EXPORT ImageInput *psd_input_imageio_create () {
     return new PSDInput;
 }
 
-OIIO_EXPORT void psd_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT int psd_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char* psd_imageio_library_version () { return nullptr; }

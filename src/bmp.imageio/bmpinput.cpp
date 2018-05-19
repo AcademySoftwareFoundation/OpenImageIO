@@ -44,10 +44,6 @@ OIIO_EXPORT ImageInput *bmp_input_imageio_create () {
     return new BmpInput;
 }
 
-OIIO_EXPORT void bmp_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *bmp_input_extensions[] = {
     "bmp", nullptr
 };

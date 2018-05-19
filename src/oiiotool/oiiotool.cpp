@@ -4291,7 +4291,7 @@ input_file (int argc, const char *argv[])
             // that information.
             ustring fn (filename);
             ot.imagecache->invalidate (fn);
-            bool ok = ot.imagecache->add_file (fn, nullptr, nullptr, &ot.input_config);
+            bool ok = ot.imagecache->add_file (fn, nullptr, &ot.input_config);
             if (!ok) {
                 std::string err = ot.imagecache->geterror();
                 ot.error ("read", err.size() ? err : "(unknown error)");
@@ -4538,7 +4538,7 @@ output_file (int argc, const char *argv[])
     string_view formatname = fileoptions["fileformatname"];
     if (formatname.empty())
         formatname = filename;
-    ImageOutput::unique_ptr out (ImageOutput::create (formatname));
+    auto out = ImageOutput::create (formatname);
     if (! out) {
         std::string err = OIIO::geterror();
         ot.error (command, err.size() ? err.c_str() : "unknown error creating an ImageOutput");

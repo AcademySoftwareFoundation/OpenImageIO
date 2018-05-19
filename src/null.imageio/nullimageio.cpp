@@ -118,10 +118,6 @@ OIIO_EXPORT ImageOutput *null_output_imageio_create () {
     return new NullOutput;
 }
 
-OIIO_EXPORT void null_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT int null_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char* null_imageio_library_version () {
@@ -134,10 +130,6 @@ OIIO_EXPORT const char * null_output_extensions[] = {
 
 OIIO_EXPORT ImageInput *null_input_imageio_create () {
     return new NullInput;
-}
-
-OIIO_EXPORT void null_input_imageio_delete (ImageInput *p) {
-    delete p;
 }
 
 OIIO_EXPORT const char * null_input_extensions[] = {

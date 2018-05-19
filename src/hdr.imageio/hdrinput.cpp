@@ -95,10 +95,6 @@ OIIO_EXPORT ImageInput *hdr_input_imageio_create () {
     return new HdrInput;
 }
 
-OIIO_EXPORT void hdr_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *hdr_input_extensions[] = {
     "hdr", "rgbe", nullptr
 };

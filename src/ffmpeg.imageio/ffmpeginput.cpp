@@ -223,9 +223,6 @@ OIIO_PLUGIN_EXPORTS_BEGIN
     OIIO_EXPORT ImageInput *ffmpeg_input_imageio_create () {
         return new FFmpegInput;
     }
-    OIIO_EXPORT void ffmpeg_input_imageio_delete (ImageInput *p) {
-        delete p;
-    }
     // FFmpeg hints:
     // AVI (Audio Video Interleaved)
     // QuickTime / MOV

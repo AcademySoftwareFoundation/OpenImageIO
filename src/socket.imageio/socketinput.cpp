@@ -45,10 +45,6 @@ OIIO_EXPORT ImageInput *socket_input_imageio_create () {
     return new SocketInput;
 }
 
-OIIO_EXPORT void socket_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *socket_input_extensions[] = {
     "socket", nullptr
 };

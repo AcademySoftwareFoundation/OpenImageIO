@@ -131,20 +131,12 @@ OIIO_EXPORT ImageInput *zfile_input_imageio_create () {
     return new ZfileInput;
 }
 
-OIIO_EXPORT void zfile_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char * zfile_input_extensions[] = {
     "zfile", nullptr
 };
 
 OIIO_EXPORT ImageOutput *zfile_output_imageio_create () {
     return new ZfileOutput;
-}
-
-OIIO_EXPORT void zfile_output_imageio_delete (ImageOutput *p) {
-    delete p;
 }
 
 OIIO_EXPORT const char * zfile_output_extensions[] = {

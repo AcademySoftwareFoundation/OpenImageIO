@@ -609,14 +609,8 @@ public:
 /// format-agnostic manner.
 class OIIO_API ImageInput {
 public:
-    /// Call signature of a function that creates and returns an ImageInput*
-    typedef ImageInput* (*Creator)();
-    /// Call signature of an ImageInput deleter.
-    typedef void (*Deleter)(ImageInput*);
-    /// unique_ptr to an ImageInput, with custom deleter.
-    using unique_ptr = std::unique_ptr<ImageInput,Deleter>;
-    /// Return an empty unique_ptr (no default ctr of unique_ptr with deleter)
-    static unique_ptr empty_ptr() { return unique_ptr(nullptr, destroy); }
+    /// unique_ptr to an ImageInput
+    using unique_ptr = std::unique_ptr<ImageInput>;
 
     /// Create an ImageInput subclass instance that is able to read the
     /// given file and open it, returning a unique_ptr to the ImageInput if
@@ -1131,6 +1125,14 @@ public:
     bool try_lock () { return m_mutex.try_lock(); }
     void unlock () { m_mutex.unlock(); }
 
+    // Custom new and delete to ensure that allocations & frees happen in
+    // the OpenImageIO library, not in the app or plugins (because Windows).
+    void* operator new (size_t size);
+    void operator delete (void *ptr);
+
+    /// Call signature of a function that creates and returns an ImageInput*
+    typedef ImageInput* (*Creator)();
+
 protected:
     mutable mutex m_mutex;   // lock of the thread-safe methods
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
@@ -1152,14 +1154,8 @@ private:
 /// format-agnostic manner.
 class OIIO_API ImageOutput {
 public:
-    /// Call signature of a function that creates and returns an ImageOutput*
-    typedef ImageOutput* (*Creator)();
-    /// Call signature of an ImageOutput deleter.
-    typedef void (*Deleter)(ImageOutput*);
     /// unique_ptr to an ImageOutput, with custom deleter.
-    using unique_ptr = std::unique_ptr<ImageOutput,Deleter>;
-    /// Return an empty unique_ptr (no default ctr of unique_ptr with deleter)
-    static unique_ptr empty_ptr() { return unique_ptr(nullptr, destroy); }
+    using unique_ptr = std::unique_ptr<ImageOutput>;
 
     /// Create an ImageOutput that will write to a file, with the format
     /// inferred from the extension of the name.  The plugin_searchpath
@@ -1468,6 +1464,14 @@ public:
     /// Retrieve the current thread-spawning policy.
     int threads () const { return m_threads; }
 
+    // Custom new and delete to ensure that allocations & frees happen in
+    // the OpenImageIO library, not in the app or plugins (because Windows).
+    void* operator new (size_t size);
+    void operator delete (void *ptr);
+
+    /// Call signature of a function that creates and returns an ImageOutput*
+    typedef ImageOutput* (*Creator)();
+
 protected:
     /// Helper routines used by write_* implementations: convert data (in
     /// the given format and stride) to the "native" format of the file
@@ -1675,10 +1679,8 @@ inline string_view get_string_attribute (string_view name,
 /// extensions for a particular format.
 OIIO_API void declare_imageio_format (const std::string &format_name,
                                       ImageInput::Creator input_creator,
-                                      ImageInput::Deleter input_deleter,
                                       const char **input_extensions,
                                       ImageOutput::Creator output_creator,
-                                      ImageOutput::Deleter output_deleter,
                                       const char **output_extensions,
                                       const char *lib_version);
 

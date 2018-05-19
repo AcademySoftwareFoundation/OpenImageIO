@@ -113,10 +113,6 @@ OIIO_EXPORT ImageOutput *png_output_imageio_create () {
     return new PNGOutput;
 }
 
-OIIO_EXPORT void png_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 // OIIO_EXPORT int png_imageio_version = OIIO_PLUGIN_VERSION;   // it's in pnginput.cpp
 
 OIIO_EXPORT const char * png_output_extensions[] = {

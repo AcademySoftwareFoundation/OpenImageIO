@@ -184,10 +184,6 @@ OIIO_EXPORT ImageOutput *tiff_output_imageio_create () {
     return new TIFFOutput;
 }
 
-OIIO_EXPORT void tiff_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char* tiff_imageio_library_version () {

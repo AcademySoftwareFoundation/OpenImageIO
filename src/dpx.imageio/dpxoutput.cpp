@@ -140,10 +140,6 @@ OIIO_EXPORT ImageOutput *dpx_output_imageio_create () {
     return new DPXOutput;
 }
 
-OIIO_EXPORT void dpx_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 // OIIO_EXPORT int dpx_imageio_version = OIIO_PLUGIN_VERSION;   // it's in dpxinput.cpp
 
 OIIO_EXPORT const char * dpx_output_extensions[] = {

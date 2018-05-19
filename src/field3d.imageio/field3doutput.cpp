@@ -110,10 +110,6 @@ OIIO_EXPORT ImageOutput *field3d_output_imageio_create () {
     return new Field3DOutput;
 }
 
-OIIO_EXPORT void field3d_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT int field3d_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char* field3d_imageio_library_version () {

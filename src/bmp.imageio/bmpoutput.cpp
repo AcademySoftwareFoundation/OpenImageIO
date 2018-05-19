@@ -43,10 +43,6 @@ OIIO_EXPORT ImageOutput *bmp_output_imageio_create () {
     return new BmpOutput;
 }
 
-OIIO_EXPORT void bmp_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *bmp_output_extensions[] = {
     "bmp", nullptr
 };

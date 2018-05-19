@@ -20,7 +20,7 @@ to a file:
         const int channels = 3;  // RGB
         unsigned char pixels[xres*yres*channels];
 
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
         if (! out)
             return;
         ImageSpec spec (xres, yres, channels, TypeDesc::UINT8);
@@ -37,7 +37,7 @@ to a file:
   finds such a plugin, it creates a subclass instance of \ImageOutput
   that writes the right kind of file format.
   \begin{code}
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
   \end{code}
 \item Open the file, write the correct headers, and in all other
   important ways prepare a file with the given dimensions ($640 \times
@@ -163,7 +163,7 @@ of writing a tiled image by using the {\kw supports("tiles")} query:
 
 \begin{code}
         ...
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
         if (! out->supports ("tiles")) {
             // Tiles are not supported
         }
@@ -236,7 +236,7 @@ supports("rectangles")} query:
 
 \begin{code}
         ...
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
         if (! out->supports ("rectangles")) {
             // Rectangles are not supported
         }
@@ -356,7 +356,7 @@ floating-point values, with \writeimage performing the conversion
 automatically:
 
 \begin{code}
-        ImageOutput::unique_ptr out = ImageOutput::create ("myfile.tif");
+        std::unique_ptr<ImageOutput> out = ImageOutput::create ("myfile.tif");
         ImageSpec spec (xres, yres, channels, TypeDesc::UINT16);
         out->open (filename, spec);
         ...
@@ -441,7 +441,7 @@ flexible functionality.  A few representative examples follow:
     unsigned char pixels[xres*yres*channels];
 
     // File representation is 1 channel
-    ImageOutput::unique_ptr out = ImageOutput::create (filename);
+    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
     ImageSpec spec (xres, yres, 1, TypeDesc::UINT8);
     out->open (filename, spec);
 
@@ -513,7 +513,7 @@ the full data, if it was all present).
         int xorigin = 32, yorigin = 128;      // Crop window position
         unsigned char pixels [cropwidth * croplength * channels]; // Crop size!
         ...
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
         ImageSpec spec (cropwidth, croplength, channels, TypeDesc::UINT8);
         spec.full_x = 0;
         spec.full_y = 0;
@@ -743,7 +743,7 @@ the plugin specifically advertises that it supports random access or
 rewrites, which may be queried using:
 
 \begin{code}
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
         if (out->supports ("random_access"))
             ...
 \end{code}
@@ -767,7 +767,7 @@ file.  Given a created \ImageOutput, you can query whether multiple
 images may be stored in the file:
 
 \begin{code}
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
         if (out->supports ("multiimage"))
             ...
 \end{code}
@@ -795,7 +795,7 @@ completed.  Here is an example:
         unsigned char *pixels[]; // assume a buffer for each subimage
 
         // Create the ImageOutput
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
 
         // Be sure we can support subimages
         if (subimages > 1 &&  (! out->supports("multiimage") ||
@@ -837,7 +837,7 @@ specification of the subimages at the time you first open the file.
         unsigned char *pixels[]; // assume a buffer for each subimage
 
         // Create the ImageOutput
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
 
         // Be sure we can support subimages
         if (subimages > 1 && ! out->supports ("multiimage")) {
@@ -871,7 +871,7 @@ created \ImageOutput, you can query whether MIP-maps may be
 stored in the file:
 
 \begin{code}
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
         if (out->supports ("mipmap"))
             ...
 \end{code}
@@ -897,7 +897,7 @@ used for texture mapping):
         unsigned char *pixels = new unsigned char [xres*yres*channels];
 
         // Create the ImageOutput
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
 
         // Be sure we can support either mipmaps or subimages
         if (! out->supports ("mipmap") && ! out->supports ("multiimage")) {
@@ -965,7 +965,7 @@ a Z channel in {\cf float}:
         struct Pixel { half r,g,b,a; float z; };
         Pixel pixels[xres*yres];
 
-        ImageOutput::unique_ptr out = ImageOutput::create ("foo.exr");
+        std::unique_ptr<ImageOutput> out = ImageOutput::create ("foo.exr");
 
         // Double check that this format accepts per-channel formats
         if (! out->supports("channelformats")) {
@@ -1054,7 +1054,7 @@ detail in Section~\ref{sec:deepdata}.
 
 
     // Create the output
-    ImageOutput::unique_ptr out = ImageOutput::create (filename);
+    std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
     if (! out)
         return;
     // Make sure the format can handle deep data and per-channel formats
@@ -1101,7 +1101,7 @@ without alteration while modifying the image description metadata:
 \begin{code}
     // Open the input file
     const char *input = "input.jpg";
-    ImageInput::unique_ptr in = ImageInput::open (input);
+    std::unique_ptr<ImageInput> in = ImageInput::open (input);
 
     // Make an output spec, identical to the input except for metadata
     ImageSpec out_spec = in->spec();
@@ -1109,7 +1109,7 @@ without alteration while modifying the image description metadata:
 
     // Create the output file and copy the image
     const char *output = "output.jpg";
-    ImageOutput::unique_ptr out = ImageOutput::create (output);
+    std::unique_ptr<ImageOutput> out = ImageOutput::create (output);
     out->open (output, out_spec);
     out->copy_image (in);
 
@@ -1201,7 +1201,7 @@ the order that the directories are listed.  Here is an example:
 
 \begin{code} 
         char *mysearch = "/usr/myapp/lib:${HOME}/plugins";
-        ImageOutput::unique_ptr out = ImageOutput::create (filename, mysearch);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename, mysearch);
         ...
 \end{code} % $
 
@@ -1238,7 +1238,7 @@ elaborated with error checking and reporting:
         const int channels = 3;  // RGB
         unsigned char pixels[xres*yres*channels];
 
-        ImageOutput::unique_ptr out = ImageOutput::create (filename);
+        std::unique_ptr<ImageOutput> out = ImageOutput::create (filename);
         if (! out) {
             std::cerr << "Could not create an ImageOutput for " 
                       << filename << ", error = " 
@@ -1271,7 +1271,7 @@ elaborated with error checking and reporting:
 \section{\ImageOutput Class Reference}
 \label{sec:imageoutput:reference}
 
-\apiitem{static ImageOutput::unique_ptr {\ce create} (const std::string \&filename, \\
+\apiitem{static std::unique_ptr<ImageOutput> {\ce create} (const std::string \&filename, \\
 \bigspc\bigspc\spc const std::string \&plugin_searchpath="")}
 
 Create an \ImageOutput that can be used to write an image file.  The

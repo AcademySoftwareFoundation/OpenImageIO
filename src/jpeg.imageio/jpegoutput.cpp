@@ -108,10 +108,6 @@ OIIO_EXPORT ImageOutput *jpeg_output_imageio_create () {
     return new JpgOutput;
 }
 
-OIIO_EXPORT void jpeg_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *jpeg_output_extensions[] = {
     "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", nullptr
 };

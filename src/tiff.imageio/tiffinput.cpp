@@ -425,10 +425,6 @@ OIIO_EXPORT ImageInput *tiff_input_imageio_create () {
     return new TIFFInput;
 }
 
-OIIO_EXPORT void tiff_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 // OIIO_EXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION; // it's in tiffoutput.cpp
 
 OIIO_EXPORT const char * tiff_input_extensions[] = {
