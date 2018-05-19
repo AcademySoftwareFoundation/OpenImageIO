@@ -121,7 +121,12 @@ public:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int gif_imageio_version = OIIO_PLUGIN_VERSION;
-OIIO_EXPORT ImageInput *gif_input_imageio_create () { return new GIFInput; }
+OIIO_EXPORT ImageInput *gif_input_imageio_create () {
+    return new GIFInput;
+}
+OIIO_EXPORT void gif_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
 OIIO_EXPORT const char *gif_input_extensions[] = { "gif", NULL };
 
 OIIO_EXPORT const char* gif_imageio_library_version () {

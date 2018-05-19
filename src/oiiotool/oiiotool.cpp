@@ -4291,7 +4291,7 @@ input_file (int argc, const char *argv[])
             // that information.
             ustring fn (filename);
             ot.imagecache->invalidate (fn);
-            bool ok = ot.imagecache->add_file (fn, NULL, &ot.input_config);
+            bool ok = ot.imagecache->add_file (fn, nullptr, nullptr, &ot.input_config);
             if (!ok) {
                 std::string err = ot.imagecache->geterror();
                 ot.error ("read", err.size() ? err : "(unknown error)");
@@ -4302,18 +4302,16 @@ input_file (int argc, const char *argv[])
                             ustring("exists"), TypeInt, &exists)
             || !exists) {
             // Try to get a more precise error message to report
-            ImageInput *input = ImageInput::create (filename);
+            auto input = ImageInput::create (filename);
             bool procedural = input ? input->supports ("procedural") : false;
-            ImageInput::destroy (input);
+            input.reset ();
             if (! Filesystem::exists(filename) && !procedural)
                 ot.error ("read", Strutil::format ("File does not exist: \"%s\"", filename));
             else {
                 std::string err;
-                ImageInput *in = ImageInput::open (filename);
+                auto in = ImageInput::open (filename);
                 if (in) {
                     err = in->geterror();
-                    in->close ();
-                    delete in;
                 } else {
                     err = OIIO::geterror();
                 }
@@ -4540,7 +4538,7 @@ output_file (int argc, const char *argv[])
     string_view formatname = fileoptions["fileformatname"];
     if (formatname.empty())
         formatname = filename;
-    std::unique_ptr<ImageOutput> out (ImageOutput::create (formatname));
+    ImageOutput::unique_ptr out (ImageOutput::create (formatname));
     if (! out) {
         std::string err = OIIO::geterror();
         ot.error (command, err.size() ? err.c_str() : "unknown error creating an ImageOutput");

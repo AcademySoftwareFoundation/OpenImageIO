@@ -595,7 +595,7 @@ static FT_Library ft_library = NULL;
 static bool ft_broken = false;
 static std::vector<std::string> font_search_dirs;
 static const char * default_font_name[] = {
-        "DroidSans", "cour", "Courier New", "FreeMono", NULL
+        "DroidSans", "cour", "Courier New", "FreeMono", nullptr
      };
 
 // Helper: given unicode and a font face, compute its size

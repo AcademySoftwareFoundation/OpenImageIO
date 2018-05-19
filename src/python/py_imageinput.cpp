@@ -221,18 +221,18 @@ void declare_imageinput (py::module &m)
 
     py::class_<ImageInput>(m, "ImageInput")
         .def_static("create", [](const std::string& filename, const std::string& searchpath) ->py::object {
-                ImageInput *in (ImageInput::create(filename, searchpath));
-                return in ? py::cast(in) : py::none();
+                auto in = ImageInput::create(filename, searchpath);
+                return in ? py::cast(in.release()) : py::none();
             },
             "filename"_a, "plugin_searchpath"_a="")
         .def_static("open", [](const std::string& filename) ->py::object {
-                ImageInput *in (ImageInput::open(filename));
-                return in ? py::cast(in) : py::none();
+                auto in = ImageInput::open(filename);
+                return in ? py::cast(in.release()) : py::none();
                 },
             "filename"_a)
         .def_static("open", [](const std::string& filename, const ImageSpec& config) ->py::object {
-                ImageInput *in (ImageInput::open(filename, &config));
-                return in ? py::cast(in) : py::none();
+                auto in = ImageInput::open(filename, &config);
+                return in ? py::cast(in.release()) : py::none();
             },
             "filename"_a, "config"_a)
         .def("format_name",      &ImageInput::format_name)

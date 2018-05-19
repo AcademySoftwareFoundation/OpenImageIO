@@ -44,7 +44,7 @@ Public API changes:
       or `TypeDesc.BASETYPE` now will accept a string that signifies the
       type. For example, `ImageBuf.set_write_format("float")` is now a
       synonym for `ImageBuf.set_write_format(oiio.TypeDesc(oiio.FLOAT))`.
-* **ImageInput API changes** #1927 (1.9.2)
+* **ImageInput API changes for thread safety and statelessness** #1927 (1.9.2)
     * `seek_subimage()` no longer takes an `ImageSpec&`, to avoid the obligatory
        copy. (If the copy is desired, just call `spec()` to get it afterwards.)
     * All of the `read_*()` methods now have varieties that take arguments
@@ -68,6 +68,15 @@ Public API changes:
       arbitrary metadata, and is thus very inexpensive if the only thing
       you need from the spec copy is the image dimensions and channel
       formats.
+* **ImageInput and ImageOutput create/open changes** (1.9.3)
+    * The static `create()` and `open()` methods used to return a rew
+      pointer to an ImageInput or ImageOutput, but now they return a
+      `unique_ptr` holding a managed pointer and safe deleter. The object
+      will be fully released when the `unique_ptr` exits scope or is reset,
+      and the caller is no longer responsible for calling `destroy()` or
+      deleting it.
+    * Every individual reader/writer plugin must supply a "delete" function
+      in addition to a "create" function.
 * ColorConfig changes: ColorConfig methods now return shared pointers to
   `ColorProcessor`s rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects

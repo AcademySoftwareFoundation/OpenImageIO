@@ -15,7 +15,7 @@ out its resolution, and read the pixels (converting them into
         using namespace OIIO;
         ...
 
-        ImageInput *in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
         if (! in)
             return;
         const ImageSpec &spec = in->spec();
@@ -25,7 +25,6 @@ out its resolution, and read the pixels (converting them into
         std::vector<unsigned char> pixels (xres*yres*channels);
         in->read_image (TypeDesc::UINT8, &pixels[0]);
         in->close ();
-        ImageInput::destroy (in);
 \end{code}
 
 \noindent Here is a breakdown of what work this code is doing:
@@ -37,8 +36,10 @@ out its resolution, and read the pixels (converting them into
   can find until one will open the file without error.  When it finds
   the right plugin, it creates a subclass instance of \ImageInput that
   reads the right kind of file format, and tries to fully open the file.
+  The {\cf open()} method returns a {\cf ImageInput::unique_ptr} that will
+  be automatically freed when it exits scope.
   \begin{code}
-        ImageInput *in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
   \end{code}
 \item The specification, accessible as {\cf in->spec()}, contains 
   vital information such as the
@@ -64,13 +65,12 @@ out its resolution, and read the pixels (converting them into
   \begin{code}
         in->read_image (TypeDesc::UINT8, &pixels[0]);
   \end{code}
-\item Close the file, destroy and free the \ImageInput we had created,
-  and perform all other cleanup and release of any resources used by
-  the plugin.
+\item Close the file.
   \begin{code}
         in->close ();
-        ImageInput::destroy (in);
   \end{code}
+\item When {\cf in} exits its scope, the \ImageInput will automatically be
+  destroyed and any resources used by the plugin will be released.
 \end{itemize}
 
 
@@ -105,7 +105,7 @@ call:
 
 \begin{code}
         ...
-        in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
         const ImageSpec &spec = in->spec();
         if (spec.tile_width == 0) {
             std::vector<unsigned char> scanline (spec.width*spec.channels);
@@ -156,7 +156,7 @@ using \readscanline, not \readtile.
 
 \begin{code}
         ...
-        in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
         const ImageSpec &spec = in->spec();
         if (spec.tile_width == 0) {
             ... read by scanline ...
@@ -226,7 +226,7 @@ regardless of whether the TIFF file itself is using 8-bit, 16-bit, or
 float values.
 
 \begin{code}
-        ImageInput *in = ImageInput::open ("myfile.tif");
+        ImageInput::unique_ptr in = ImageInput::open ("myfile.tif");
         const ImageSpec &spec = in->spec();
         ...
         int numpixels = spec.width * spec.height;
@@ -537,7 +537,7 @@ multi-resolution image used for texture mapping) that shows how to read
 multi-image files:
 
 \begin{code}
-        ImageInput *in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
         const ImageSpec &spec = in->spec();
 
         int num_miplevels = 0;
@@ -557,7 +557,6 @@ multi-image files:
         // to find a next MIP level.
 
         in->close ();
-        ImageInput::destroy (in);
 \end{code}
 
 In this example, we have used \readimage, but of course \readscanline
@@ -645,7 +644,7 @@ Here is an example of using these methods to read a deep image from
 a file and print all its values:
 
 \begin{code}
-    ImageInput *in = ImageInput::open (filename);
+    auto in = ImageInput::open (filename);
     if (! in)
         return;
     const ImageSpec &spec = in->spec();
@@ -676,7 +675,6 @@ a file and print all its values:
         }
     }
     in->close ();
-    ImageInput::destroy (in);
 \end{code}
 
 
@@ -760,7 +758,7 @@ error message is accessible using the \ImageInput method
 
 The exceptions to this rule are static methods such as the static
 {\cf ImageInput::open} and {\cf ImageInput::create}, which return
-{\cf NULL} if it could not create an appropriate \ImageInput (and open
+an empty pointer if it could not create an appropriate \ImageInput (and open
 it, in the case of {\cf open()}.  In such a case,
 since no \ImageInput is returned for which you can call its {\cf
   geterror()} function, there exists a global {\cf geterror()}
@@ -780,7 +778,7 @@ elaborated with error checking and reporting:
         int xres, yres, channels;
         std::vector<unsigned char> pixels;
 
-        ImageInput *in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
         if (! in) {
             std::cerr << "Could not open " << filename 
                       << ", error = " << OpenImageIO::geterror() << "\n";
@@ -795,17 +793,14 @@ elaborated with error checking and reporting:
         if (! in->read_image (TypeDesc::UINT8, &pixels[0])) {
             std::cerr << "Could not read pixels from " << filename 
                       << ", error = " << in->geterror() << "\n";
-            ImageInput::destroy (in);
             return;
         }
 
         if (! in->close ()) {
             std::cerr << "Error closing " << filename 
                       << ", error = " << in->geterror() << "\n";
-            ImageInput::destroy (in);
             return;
         }
-        ImageInput::destroy (in);
 \end{code}
 
 
@@ -813,18 +808,20 @@ elaborated with error checking and reporting:
 \section{\ImageInput Class Reference}
 \label{sec:imageinput:reference}
 
-\apiitem{ImageInput * {\ce open} (const std::string \&filename, \\
-\bigspc\bigspc const ImageSpec *config=NULL)}
+\apiitem{ImageInput::unique_ptr {\ce open} (const std::string \&filename, \\
+\bigspc\bigspc\spc const ImageSpec *config=nullptr)}
 Create an \ImageInput subclass instance that is able to read
-the given file and open it, returning the opened \ImageInput if
-successful.  If it fails, return {\cf NULL} and set an error that can
+the given file and open it. The return value is a managed unique pointer,
+with an included deleter that will properly dispose the \ImageInput when
+it exists its scope.  If the open fails, return an empty pointer and
+set an error that can
 be retrieved by {\cf OpenImageIO::geterror()}.
-    
-The {\cf config}, if not {\cf NULL}, points to an \ImageSpec giving
+
+The {\cf config}, if not {\cf nullptr}, points to an \ImageSpec giving
 requests or special instructions.  \ImageInput implementations
 are free to not respond to any such requests, so the default
 implementation is just to ignore config.
-    
+
 The {\cf open()} function will first try to make an \ImageInput
 corresponding to the format implied by the file extension (for example,
 \qkw{foo.tif} will try the TIFF plugin), but if one is not found or if
@@ -832,10 +829,9 @@ the inferred one does not open the file, every known \ImageInput type
 will be tried until one is found that will open the file.
 \apiend
 
-\apiitem{ImageInput * {\ce create} (const std::string \&filename, \\
+\apiitem{ImageInput::unique_ptr {\ce create} (const std::string \&filename, \\
 \bigspc\bigspc   bool do_open=false, const ImageSpec *config=nullptr,\\
-\bitspc\bigspc   string_view plugin_searchpath="")}
-
+\bigspc\bigspc   string_view plugin_searchpath="")}
 Create and return an \ImageInput implementation that is able
 to read the given file.  If {\cf do_open} is {\cf true}, fully open it if
 possible (using the optional configuration spec, if supplied),
@@ -848,15 +844,14 @@ finds one that's able to open the file without error.  This just
 creates the \ImageInput, it does not open the file.
 \apiend
 
-\apiitem{void {\ce destroy} (ImageInput *input)}
-
-Destroy an \ImageInput that was created by {\cf create()} or {\cf open()}.
-The {\cf destroy()} method is just a wrapper around operator {\cf delete},
-but by being implemented within the \product DLL, it can ensure that the
-memory deallocation is done in the same DLL arena as where it was originally
-allocated. This is considered safer than a bare {\cf delete} when
-used inside ``plug-ins,'' especially on Windows systems.
-\apiend
+% \apiitem{void {\ce destroy} (ImageInput *input)}
+% Destroy an \ImageInput that was created by {\cf create()} or {\cf open()}.
+% The {\cf destroy()} method is just a wrapper around operator {\cf delete},
+% but by being implemented within the \product DLL, it can ensure that the
+% memory deallocation is done in the same DLL arena as where it was originally
+% allocated. This is considered safer than a bare {\cf delete} when
+% used inside ``plug-ins,'' especially on Windows systems.
+% \apiend
 
 \apiitem{const char * {\ce format_name} (void) const}
 Return the name of the format implemented by this class.

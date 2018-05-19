@@ -63,11 +63,17 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT ImageOutput *pnm_output_imageio_create () { return new PNMOutput; }
+OIIO_EXPORT ImageOutput *pnm_output_imageio_create () {
+    return new PNMOutput;
+}
 
-    OIIO_EXPORT const char * pnm_output_extensions[] = {
-        "ppm","pgm","pbm","pnm", NULL
-    };
+OIIO_EXPORT void pnm_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char * pnm_output_extensions[] = {
+    "ppm","pgm","pbm","pnm", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

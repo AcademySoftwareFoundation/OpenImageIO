@@ -93,7 +93,13 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageInput *ptex_input_imageio_create () { return new PtexInput; }
+OIIO_EXPORT ImageInput *ptex_input_imageio_create () {
+    return new PtexInput;
+}
+
+OIIO_EXPORT void ptex_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
 
 OIIO_EXPORT int ptex_imageio_version = OIIO_PLUGIN_VERSION;
 
@@ -102,7 +108,7 @@ OIIO_EXPORT const char* ptex_imageio_library_version () {
 }
 
 OIIO_EXPORT const char * ptex_input_extensions[] = {
-    "ptex", "ptx", NULL
+    "ptex", "ptx", nullptr
 };
 
 OIIO_PLUGIN_EXPORTS_END

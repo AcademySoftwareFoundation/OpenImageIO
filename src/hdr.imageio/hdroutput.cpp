@@ -66,12 +66,17 @@ class HdrOutput final : public ImageOutput {
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT ImageOutput *hdr_output_imageio_create () {
-        return new HdrOutput;
-    }
-    OIIO_EXPORT const char *hdr_output_extensions[] = {
-        "hdr", "rgbe", NULL
-    };
+OIIO_EXPORT ImageOutput *hdr_output_imageio_create () {
+    return new HdrOutput;
+}
+
+OIIO_EXPORT void hdr_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *hdr_output_extensions[] = {
+    "hdr", "rgbe", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

@@ -245,16 +245,18 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageInput *
-openexr_input_imageio_create ()
-{
+OIIO_EXPORT ImageInput *openexr_input_imageio_create () {
     return new OpenEXRInput;
+}
+
+OIIO_EXPORT void openexr_input_imageio_delete (ImageInput *p) {
+    delete p;
 }
 
 // OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION; // it's in exroutput.cpp
 
 OIIO_EXPORT const char * openexr_input_extensions[] = {
-    "exr", "sxr", "mxr", NULL
+    "exr", "sxr", "mxr", nullptr
 };
 
 OIIO_PLUGIN_EXPORTS_END
@@ -803,7 +805,7 @@ struct ChanNameHolder {
         static const char * special[] = {
             "R", "Red", "G", "Green", "B", "Blue", "Y", "real", "imag",
             "A", "Alpha", "AR", "RA", "AG", "GA", "AB", "BA",
-            "Z", "Depth", "Zback", NULL
+            "Z", "Depth", "Zback", nullptr
         };
         special_index = 10000;
         for (int i = 0; special[i]; ++i)

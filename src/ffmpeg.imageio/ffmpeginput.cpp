@@ -223,13 +223,16 @@ OIIO_PLUGIN_EXPORTS_BEGIN
     OIIO_EXPORT ImageInput *ffmpeg_input_imageio_create () {
         return new FFmpegInput;
     }
+    OIIO_EXPORT void ffmpeg_input_imageio_delete (ImageInput *p) {
+        delete p;
+    }
     // FFmpeg hints:
     // AVI (Audio Video Interleaved)
     // QuickTime / MOV
     // raw MPEG-4 video
     // MPEG-1 Systems / MPEG program stream
     OIIO_EXPORT const char *ffmpeg_input_extensions[] = {
-        "avi", "mov", "qt", "mp4", "m4a", "3gp", "3g2", "mj2", "m4v", "mpg", NULL
+        "avi", "mov", "qt", "mp4", "m4a", "3gp", "3g2", "mj2", "m4v", "mpg", nullptr
     };
 
 

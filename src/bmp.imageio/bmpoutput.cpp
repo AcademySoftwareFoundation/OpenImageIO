@@ -39,12 +39,17 @@ using namespace bmp_pvt;
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT ImageOutput *bmp_output_imageio_create () {
-        return new BmpOutput;
-    }
-    OIIO_EXPORT const char *bmp_output_extensions[] = {
-        "bmp", NULL
-    };
+OIIO_EXPORT ImageOutput *bmp_output_imageio_create () {
+    return new BmpOutput;
+}
+
+OIIO_EXPORT void bmp_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *bmp_output_extensions[] = {
+    "bmp", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

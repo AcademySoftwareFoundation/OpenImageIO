@@ -935,9 +935,8 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     if (updatemode && from_filename && Filesystem::exists(outputfilename) &&
         in_time == Filesystem::last_write_time (outputfilename)) {
         std::string lastcmdline;
-        if (ImageInput *in = ImageInput::open (outputfilename)) {
+        if (auto in = ImageInput::open (outputfilename)) {
             lastcmdline = in->spec().get_string_attribute ("Software");
-            ImageInput::destroy (in);
         }
         std::string newcmdline = configspec.get_string_attribute("maketx:full_command_line");
         if (lastcmdline.size() && lastcmdline == newcmdline) {
@@ -954,7 +953,7 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // Find an ImageIO plugin that can open the output file, and open it
     std::string outformat = configspec.get_string_attribute ("maketx:fileformatname",
                                                              outputfilename);
-    ImageOutput *out = ImageOutput::create (outformat.c_str());
+    auto out = ImageOutput::create (outformat.c_str());
     if (! out) {
         outstream 
             << "maketx ERROR: Could not find an ImageIO plugin to write " 
@@ -1589,10 +1588,10 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
     // Write out, and compute, the mipmap levels for the speicifed image
     bool nomipmap = configspec.get_int_attribute ("maketx:nomipmap") != 0;
     bool ok = write_mipmap (mode, toplevel, dstspec, tmpfilename,
-                            out, out_dataformat, !shadowmode && !nomipmap,
+                            out.get(), out_dataformat, !shadowmode && !nomipmap,
                             filtername, configspec, outstream,
                             stat_writetime, stat_miptime, peak_mem);
-    delete out;  // don't need it any more
+    out.reset ();  // don't need it any more
 
     // If using update mode, stamp the output file with a modification time
     // matching that of the input file.

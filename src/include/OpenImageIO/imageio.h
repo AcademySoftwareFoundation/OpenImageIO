@@ -609,12 +609,23 @@ public:
 /// format-agnostic manner.
 class OIIO_API ImageInput {
 public:
-    /// Create an ImageInput subclass instance that is able to read
-    /// the given file and open it, returning the opened ImageInput if
-    /// successful.  If it fails, return NULL and set an error that can
-    /// be retrieved by OpenImageIO::geterror().
+    /// Call signature of a function that creates and returns an ImageInput*
+    typedef ImageInput* (*Creator)();
+    /// Call signature of an ImageInput deleter.
+    typedef void (*Deleter)(ImageInput*);
+    /// unique_ptr to an ImageInput, with custom deleter.
+    using unique_ptr = std::unique_ptr<ImageInput,Deleter>;
+    /// Return an empty unique_ptr (no default ctr of unique_ptr with deleter)
+    static unique_ptr empty_ptr() { return unique_ptr(nullptr, destroy); }
+
+    /// Create an ImageInput subclass instance that is able to read the
+    /// given file and open it, returning a unique_ptr to the ImageInput if
+    /// successful.  The unique_ptr is set up with an appropriate deleter so
+    /// the ImageInput will be properly deleted when the unique_ptr goes out
+    /// of scope or is reset. If the open fails, return an empty unique_ptr
+    /// and set an error that can be retrieved by OpenImageIO::geterror().
     ///
-    /// The 'config', if not NULL, points to an ImageSpec giving
+    /// The 'config', if not nullptr, points to an ImageSpec giving
     /// requests or special instructions.  ImageInput implementations
     /// are free to not respond to any such requests, so the default
     /// implementation is just to ignore config.
@@ -624,8 +635,8 @@ public:
     /// will try the TIFF plugin), but if one is not found or if the
     /// inferred one does not open the file, every known ImageInput type
     /// will be tried until one is found that will open the file.
-    static ImageInput *open (const std::string &filename,
-                             const ImageSpec *config = NULL);
+    static unique_ptr open (const std::string &filename,
+                            const ImageSpec *config = nullptr);
 
     /// Create and return an ImageInput implementation that is able
     /// to read the given file.  If do_open is true, fully open it if
@@ -639,18 +650,13 @@ public:
     ///
     /// If the caller intends to immediately open the file, then it is
     /// often simpler to call static ImageInput::open().
-    static ImageInput *create (const std::string &filename, bool do_open=false,
-                               const ImageSpec *config=nullptr,
-                               string_view plugin_searchpath="");
-    static ImageInput *create (const std::string &filename,
-                               const std::string &plugin_searchpath);
+    static unique_ptr create (const std::string &filename, bool do_open=false,
+                              const ImageSpec *config=nullptr,
+                              string_view plugin_searchpath="");
+    static unique_ptr create (const std::string &filename,
+                              const std::string &plugin_searchpath);
 
-    /// Destroy an ImageInput that was created using ImageInput::create() or
-    /// the static open(). For some systems (Windows, I'm looking at you),
-    /// it is not necessarily safe to allocate memory in one DLL and free it
-    /// in another, so directly calling 'delete' on an ImageInput allocated
-    /// by create() or open() may be unusafe, but passing it to destroy()
-    /// should be safe.
+    // Destructor for a raw ImageInput.
     static void destroy (ImageInput *x);
 
     ImageInput ();
@@ -1104,11 +1110,6 @@ public:
         return e;
     }
 
-    /// An ImageInput::Creator is a function that creates and returns an
-    /// ImageInput.  Once invoked, the resulting ImageInput is owned by
-    /// the caller, who is responsible for deleting it when done with it.
-    typedef ImageInput* (*Creator)();
-
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.  Note however that this is fully typesafe!
     template<typename... Args>
@@ -1140,8 +1141,8 @@ private:
     int m_threads;    // Thread policy
     void append_error (const std::string& message) const; // add to m_errmessage
     // Deprecated:
-    static ImageInput *create (const std::string &filename, bool do_open,
-                               const std::string &plugin_searchpath);
+    static unique_ptr create (const std::string &filename, bool do_open,
+                              const std::string &plugin_searchpath);
 };
 
 
@@ -1151,19 +1152,27 @@ private:
 /// format-agnostic manner.
 class OIIO_API ImageOutput {
 public:
+    /// Call signature of a function that creates and returns an ImageOutput*
+    typedef ImageOutput* (*Creator)();
+    /// Call signature of an ImageOutput deleter.
+    typedef void (*Deleter)(ImageOutput*);
+    /// unique_ptr to an ImageOutput, with custom deleter.
+    using unique_ptr = std::unique_ptr<ImageOutput,Deleter>;
+    /// Return an empty unique_ptr (no default ctr of unique_ptr with deleter)
+    static unique_ptr empty_ptr() { return unique_ptr(nullptr, destroy); }
+
     /// Create an ImageOutput that will write to a file, with the format
     /// inferred from the extension of the name.  The plugin_searchpath
     /// parameter is a colon-separated list of directories to search for
     /// ImageIO plugin DSO/DLL's.  This just creates the ImageOutput, it
-    /// does not open the file.
-    static ImageOutput *create (const std::string &filename,
-                                const std::string &plugin_searchpath="");
+    /// does not open the file.  If the writer could be created, a
+    /// unique_ptr to it will be returned, otherwise an empty pointer will
+    /// be returned and an appropriate error message will be set that can be
+    /// retrieved with OIIO::geterror().
+    static unique_ptr create (const std::string &filename,
+                              const std::string &plugin_searchpath="");
 
-    /// Destroy an ImageOutput that was created using ImageOutput::create().
-    /// For some systems (Windows, I'm looking at you), it is not
-    /// necessarily safe to allocate memory in one DLL and free it in
-    /// another, so directly calling 'delete' on an ImageOutput allocated by
-    /// create() may be unusafe, but passing it to destroy() should be safe.
+    // Destructor for a raw ImageOutput.
     static void destroy (ImageOutput *x);
 
     ImageOutput ();
@@ -1443,11 +1452,6 @@ public:
         return e;
     }
 
-    /// An ImageOutput::Creator is a function that creates and returns an
-    /// ImageOutput.  Once invoked, the resulting ImageOutput is owned by
-    /// the caller, who is responsible for deleting it when done with it.
-    typedef ImageOutput* (*Creator)();
-
     /// Error reporting for the plugin implementation: call this with
     /// printf-like arguments.  Note however that this is fully typesafe!
     template<typename... Args>
@@ -1671,11 +1675,12 @@ inline string_view get_string_attribute (string_view name,
 /// extensions for a particular format.
 OIIO_API void declare_imageio_format (const std::string &format_name,
                                       ImageInput::Creator input_creator,
+                                      ImageInput::Deleter input_deleter,
                                       const char **input_extensions,
                                       ImageOutput::Creator output_creator,
+                                      ImageOutput::Deleter output_deleter,
                                       const char **output_extensions,
                                       const char *lib_version);
-
 
 /// Helper function: convert contiguous arbitrary data between two
 /// arbitrary types (specified by TypeDesc's)

@@ -88,21 +88,28 @@ private:
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT int raw_imageio_version = OIIO_PLUGIN_VERSION;
-    OIIO_EXPORT const char* raw_imageio_library_version () {
-        return ustring::format("libraw %s", libraw_version()).c_str();
-    }
-    OIIO_EXPORT ImageInput *raw_input_imageio_create () {
-        return new RawInput;
-    }
-    OIIO_EXPORT const char *raw_input_extensions[] = {
-        "bay", "bmq", "cr2", "crw", "cs1", "dc2", "dcr", "dng",
-        "erf", "fff", "hdr", "k25", "kdc", "mdc", "mos", "mrw",
-        "nef", "orf", "pef", "pxn", "raf", "raw", "rdc", "sr2",
-        "srf", "x3f", "arw", "3fr", "cine", "ia", "kc2", "mef",
-        "nrw", "qtk", "rw2", "sti", "rwl", "srw", "drf", "dsc",
-        "ptx", "cap", "iiq", "rwz", NULL
-    };
+OIIO_EXPORT int raw_imageio_version = OIIO_PLUGIN_VERSION;
+
+OIIO_EXPORT const char* raw_imageio_library_version () {
+    return ustring::format("libraw %s", libraw_version()).c_str();
+}
+
+OIIO_EXPORT ImageInput *raw_input_imageio_create () {
+    return new RawInput;
+}
+
+OIIO_EXPORT void raw_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *raw_input_extensions[] = {
+    "bay", "bmq", "cr2", "crw", "cs1", "dc2", "dcr", "dng",
+    "erf", "fff", "hdr", "k25", "kdc", "mdc", "mos", "mrw",
+    "nef", "orf", "pef", "pxn", "raf", "raw", "rdc", "sr2",
+    "srf", "x3f", "arw", "3fr", "cine", "ia", "kc2", "mef",
+    "nrw", "qtk", "rw2", "sti", "rwl", "srw", "drf", "dsc",
+    "ptx", "cap", "iiq", "rwz", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

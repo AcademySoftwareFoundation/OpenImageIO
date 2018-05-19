@@ -79,30 +79,30 @@ ImageInput::valid_file (const std::string &filename) const
 
 
 
-ImageInput *
+ImageInput::unique_ptr
 ImageInput::open (const std::string &filename,
                   const ImageSpec *config)
 {
-    if (config == NULL) {
+    if (! config) {
         // Without config, this is really just a call to create-with-open.
         return ImageInput::create (filename, true, nullptr, std::string());
     }
 
     // With config, create without open, then try to open with config.
-    ImageInput *in = ImageInput::create (filename, false, config, std::string());
+    auto in = ImageInput::create (filename, false, config, std::string());
     if (! in)
-        return NULL;  // create() failed
+        return in;  // create() failed, return the empty ptr
     ImageSpec newspec;
-    if (in->open (filename, newspec, *config))
-        return in;   // creted fine, opened fine, return it
+    if (! in->open (filename, newspec, *config)) {
+        // The open failed.  Transfer the error from 'in' to the global OIIO
+        // error, delete the ImageInput we allocated, and return NULL.
+        std::string err = in->geterror();
+        if (err.size())
+            pvt::error ("%s", err);
+        in.reset();
+    }
 
-    // The open failed.  Transfer the error from 'in' to the global OIIO
-    // error, delete the ImageInput we allocated, and return NULL.
-    std::string err = in->geterror();
-    if (err.size())
-        pvt::error ("%s", err.c_str());
-    delete in;
-    return NULL;
+    return in;
 }
 
 

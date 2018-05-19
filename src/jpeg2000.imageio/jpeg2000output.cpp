@@ -129,12 +129,17 @@ class Jpeg2000Output final : public ImageOutput {
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT ImageOutput *jpeg2000_output_imageio_create () {
-        return new Jpeg2000Output;
-    }
-    OIIO_EXPORT const char *jpeg2000_output_extensions[] = {
-        "jp2", "j2k", NULL
-    };
+OIIO_EXPORT ImageOutput *jpeg2000_output_imageio_create () {
+    return new Jpeg2000Output;
+}
+
+OIIO_EXPORT void jpeg2000_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *jpeg2000_output_extensions[] = {
+    "jp2", "j2k", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

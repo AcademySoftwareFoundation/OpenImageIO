@@ -88,7 +88,7 @@ public:
 
 
 class txReader : public Reader {
-    ImageInput* oiioInput_;
+    ImageInput::unique_ptr oiioInput_;
     TxReaderFormat* txFmt_;
 
     int chanCount_, lastMipLevel_;
@@ -194,6 +194,7 @@ class txReader : public Reader {
 
 public:
     txReader(Read* iop) : Reader(iop),
+            oiioInput_(ImageInput::open(filename())),
             chanCount_(0),
             lastMipLevel_(-1),
             haveImage_(false),
@@ -203,7 +204,6 @@ public:
 
         OIIO::attribute("threads", (int)Thread::numThreads / 2);
 
-        oiioInput_ = ImageInput::open(filename());
         if (!oiioInput_) {
             iop->internalError("OIIO: Failed to open file %s: %s", filename(),
                                geterror().c_str());
@@ -267,8 +267,6 @@ public:
     virtual ~txReader() {
         if (oiioInput_)
             oiioInput_->close();
-        delete oiioInput_;
-        oiioInput_ = NULL;
     }
 
     void open() {

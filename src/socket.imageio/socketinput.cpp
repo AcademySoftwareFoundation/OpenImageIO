@@ -37,14 +37,21 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Export version number and create function symbols
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT int socket_imageio_version = OIIO_PLUGIN_VERSION;
-    OIIO_EXPORT const char* socket_imageio_library_version() { return NULL; }
-    OIIO_EXPORT ImageInput *socket_input_imageio_create () {
-        return new SocketInput;
-    }
-    OIIO_EXPORT const char *socket_input_extensions[] = {
-        "socket", NULL
-    };
+OIIO_EXPORT int socket_imageio_version = OIIO_PLUGIN_VERSION;
+
+OIIO_EXPORT const char* socket_imageio_library_version() { return nullptr; }
+
+OIIO_EXPORT ImageInput *socket_input_imageio_create () {
+    return new SocketInput;
+}
+
+OIIO_EXPORT void socket_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *socket_input_extensions[] = {
+    "socket", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

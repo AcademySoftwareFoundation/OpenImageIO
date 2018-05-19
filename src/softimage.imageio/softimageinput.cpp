@@ -88,12 +88,17 @@ private:
 // symbols required for OpenImageIO plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT ImageInput *softimage_input_imageio_create() {
-        return new SoftimageInput;
-    }
-    OIIO_EXPORT const char *softimage_input_extensions[] = {
-        "pic", NULL
-    };
+OIIO_EXPORT ImageInput *softimage_input_imageio_create () {
+    return new SoftimageInput;
+}
+
+OIIO_EXPORT void softimage_input_imageio_delete (ImageInput *p) {
+    delete p;
+}
+
+OIIO_EXPORT const char *softimage_input_extensions[] = {
+    "pic", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

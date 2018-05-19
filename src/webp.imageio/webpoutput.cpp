@@ -237,12 +237,15 @@ WebpOutput::close()
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-    OIIO_EXPORT ImageOutput *webp_output_imageio_create () {
-        return new webp_pvt::WebpOutput;
-    }
-    OIIO_EXPORT const char *webp_output_extensions[] = {
-        "webp", NULL
-    };
+OIIO_EXPORT ImageOutput *webp_output_imageio_create () {
+    return new webp_pvt::WebpOutput;
+}
+OIIO_EXPORT void webp_output_imageio_delete (ImageOutput *p) {
+    delete p;
+}
+OIIO_EXPORT const char *webp_output_extensions[] = {
+    "webp", nullptr
+};
 
 OIIO_PLUGIN_EXPORTS_END
 

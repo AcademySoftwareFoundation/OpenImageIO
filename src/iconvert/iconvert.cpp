@@ -338,25 +338,23 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     }
 
     // Find an ImageIO plugin that can open the input file, and open it.
-    ImageInput *in = ImageInput::open (in_filename.c_str());
+    auto in = ImageInput::open (in_filename);
     if (! in) {
         std::string err = geterror();
         std::cerr << "iconvert ERROR: " 
                   << (err.length() ? err : Strutil::format("Could not open \"%s\"", in_filename))
                   << "\n";
-        delete in;
         return false;
     }
     ImageSpec inspec = in->spec();
     std::string metadatatime = inspec.get_string_attribute ("DateTime");
 
     // Find an ImageIO plugin that can open the output file, and open it
-    ImageOutput *out = ImageOutput::create (tempname.c_str());
+    auto out = ImageOutput::create (tempname);
     if (! out) {
         std::cerr 
             << "iconvert ERROR: Could not find an ImageIO plugin to write \"" 
             << out_filename << "\" :" << geterror() << "\n";
-        delete in;
         return false;
     }
 
@@ -375,7 +373,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
                 ImageSpec inspec = *imagecache->imagespec (ufilename, i, 0,
                                                            true /*native*/);
                 subimagespecs[i] = inspec;
-                adjust_spec (in, out, inspec, subimagespecs[i]);
+                adjust_spec (in.get(), out.get(), inspec, subimagespecs[i]);
             }
         }
         ImageCache::destroy (imagecache);
@@ -383,10 +381,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
 
     bool ok = true;
     bool mip_to_subimage_warning = false;
-    for (int subimage = 0;
-           ok && in->seek_subimage(subimage,0,inspec);
-           ++subimage) {
-
+    for (int subimage = 0; ok && in->seek_subimage(subimage,0,inspec); ++subimage) {
         if (subimage > 0 &&  !out->supports ("multiimage")) {
             std::cerr << "iconvert WARNING: " << out->format_name()
                       << " does not support multiple subimages.\n";
@@ -398,8 +393,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
         do {
             // Copy the spec, with possible change in format
             ImageSpec outspec = inspec;
-            bool nocopy = adjust_spec (in, out, inspec, outspec);
-        
+            bool nocopy = adjust_spec (in.get(), out.get(), inspec, outspec);
             if (miplevel > 0) {
                 // Moving to next MIP level
                 ImageOutput::OpenMode mode;
@@ -444,7 +438,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
             }
 
             if (! nocopy) {
-                ok = out->copy_image (in);
+                ok = out->copy_image (in.get());
                 if (! ok)
                     std::cerr << "iconvert ERROR copying \"" << in_filename 
                               << "\" to \"" << out_filename << "\" :\n\t" 
@@ -470,9 +464,7 @@ convert_file (const std::string &in_filename, const std::string &out_filename)
     }
 
     out->close ();
-    delete out;
     in->close ();
-    delete in;
 
     // Figure out a time for the input file -- either one supplied by
     // the metadata, or the actual time stamp of the input file.

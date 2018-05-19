@@ -158,8 +158,9 @@ class OIIO_API ImageCacheFile : public RefCnt {
 public:
     ImageCacheFile (ImageCacheImpl &imagecache,
                     ImageCachePerThreadInfo *thread_info, ustring filename,
-                    ImageInput::Creator creator=NULL,
-                    const ImageSpec *config=NULL);
+                    ImageInput::Creator creator=nullptr,
+                    ImageInput::Deleter deleter=ImageInput::destroy,
+                    const ImageSpec *config=nullptr);
     ~ImageCacheFile ();
 
     bool broken () const { return m_broken; }
@@ -184,8 +185,8 @@ public:
     TextureOpt::Wrap rwrap () const { return m_rwrap; }
     TypeDesc datatype (int subimage) const { return m_subimages[subimage].datatype; }
     ImageCacheImpl &imagecache () const { return m_imagecache; }
-//    ImageInput *imageinput () const { return m_input.get(); }
     ImageInput::Creator creator () const { return m_inputcreator; }
+    ImageInput::Deleter deleter () const { return m_inputdeleter; }
 
     /// Load new data tile
     ///
@@ -337,7 +338,7 @@ private:
     bool m_used;                    ///< Recently used (in the LRU sense)
     bool m_broken;                  ///< has errors; can't be used properly
     std::string m_broken_message;   ///< Error message for why it's broken
-    std::shared_ptr<ImageInput> m_input; ///< Open ImageInput, NULL if closed
+    std::shared_ptr<ImageInput> m_input;  ///< Open ImageInput, NULL if closed
        // Note that m_input, the shared pointer itself, is NOT safe to
        // access directly. ALWAYS retrieve its value with get_imageinput
        // (it's thread-safe to use that result) and set its value with
@@ -377,6 +378,7 @@ private:
     imagesize_t m_total_imagesize;  ///< Total size, uncompressed
     imagesize_t m_total_imagesize_ondisk;  ///< Total size, compressed on disk
     ImageInput::Creator m_inputcreator; ///< Custom ImageInput-creator
+    ImageInput::Deleter m_inputdeleter; ///< Custom ImageInput-deleter
     std::unique_ptr<ImageSpec> m_configspec; // Optional configuration hints
     UdimLookupMap m_udim_lookup;    ///< Used for decoding udim tiles
                                     // protected by mutex elsewhere!
@@ -890,9 +892,10 @@ public:
     /// A call to verify_file() is still needed after find_file().
     ImageCacheFile *find_file (ustring filename,
                                ImageCachePerThreadInfo *thread_info,
-                               ImageInput::Creator creator=NULL,
+                               ImageInput::Creator creator=nullptr,
+                               ImageInput::Deleter deleter=ImageInput::destroy,
                                bool header_only=false,
-                               const ImageSpec *config=NULL);
+                               const ImageSpec *config=nullptr);
 
     /// Verify & prep the ImageCacheFile record for the named image,
     /// return the pointer (which may have changed for deduplication),
@@ -965,6 +968,7 @@ public:
     virtual ROI tile_roi (const Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
     virtual bool add_file (ustring filename, ImageInput::Creator creator,
+                           ImageInput::Deleter deleter,
                            const ImageSpec *config);
     virtual bool add_tile (ustring filename, int subimage, int miplevel,
                            int x, int y, int z,  int chbegin, int chend,

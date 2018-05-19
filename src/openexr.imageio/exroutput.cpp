@@ -212,10 +212,12 @@ private:
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageOutput *
-openexr_output_imageio_create ()
-{
+OIIO_EXPORT ImageOutput *openexr_output_imageio_create () {
     return new OpenEXROutput;
+}
+
+OIIO_EXPORT void openexr_output_imageio_delete (ImageOutput *p) {
+    delete p;
 }
 
 OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
@@ -229,7 +231,7 @@ OIIO_EXPORT const char* openexr_imageio_library_version () {
 }
 
 OIIO_EXPORT const char * openexr_output_extensions[] = {
-    "exr", "sxr", "mxr", NULL
+    "exr", "sxr", "mxr", nullptr
 };
 
 OIIO_PLUGIN_EXPORTS_END
