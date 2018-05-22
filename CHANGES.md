@@ -24,6 +24,10 @@ Major new features and improvements:
   colored) pixels, null writer just returns. This can be used for
   benchmarking (to eliminate all actual file I/O time), "dry run" where you
   want to test without creating output files. #1778 (1.9.0)
+* ImageInput and ImageOutput static create() and open() methods now return
+  `unique_ptr` rather than raw pointers. #1934, #1945 (1.9.3).
+* ImageInput improvements to thread safety and concurrency, including some
+  new API calls (see below).
 
 Public API changes:
 * **Python binding overhaul**
@@ -69,12 +73,15 @@ Public API changes:
       you need from the spec copy is the image dimensions and channel
       formats.
 * **ImageInput and ImageOutput create/open changes** (1.9.3)
-    * The static `create()` and `open()` methods used to return a rew
-      pointer to an ImageInput or ImageOutput, but now they return a
-      `unique_ptr` holding a managed pointer and safe deleter. The object
-      will be fully released when the `unique_ptr` exits scope or is reset,
-      and the caller is no longer responsible for calling `destroy()` or
-      deleting it.
+    * The static `create()` and `open()` methods have been changed so that
+      instead of returning an `ImageInput *` (or `ImageOutput *`) and
+      requiring the caller to correctly manage that resource and eventually
+      destroy it, now they return a `unique_ptr` that automatically deletes
+      when it leaves scope. In the process we also clean up some edge cases
+      on Windows where it was possible for ImageInput/ImageOutput to have
+      been allocated in one DLL's heap but freed in a different DLL's heap,
+      which could cause subtle heap corruption problems. #1934,#1945 (1.9.3).
+
 * ColorConfig changes: ColorConfig methods now return shared pointers to
   `ColorProcessor`s rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects
@@ -198,9 +205,12 @@ Fixes and feature enhancements:
 * More robust parsing of XMP metadata for unknown metadata names.
   #1816 (1.9.2/1.8.7)
 * Field3d: Prevent crashes when open fails. #1848 (1.9.2/1.8.8)
-* OpenEXR: gracefully detect and reject files with subsampled channels,
-  which is a rarely-to-never-used OpenEXR feature that we don't support
-  properly. #1849 (1.9.2/1.8.8)
+* OpenEXR:
+    * Gracefully detect and reject files with subsampled channels,
+      which is a rarely-to-never-used OpenEXR feature that we don't support
+      properly. #1849 (1.9.2/1.8.8)
+    * Improved handling of UTF-8 filenames on Windows. #1941 (1.9.3, 1.8.12,
+      1.7.19)
 * PNG:
     * Fix redundant png_write_end call. #1910 (1.9.2)
 * PSD:
@@ -259,7 +269,11 @@ Build/test system improvements:
 * Windows/MSVC build fix: use the `/bigobj` option on some large modules
   that need it. #1900, #1902 (1.8.10/1.9.2)
 * Add up-to-date Nuke versions to FindNuke.cmake. #1920 (1.8.11, 1.9.2)
-* Allow building against ffmpeg 4.0. #1926 (1.8.11, 1.9.2)
+* Allow building against ffmpeg 4.0. #1926,#1936 (1.8.11, 1.9.2)
+* Disable SSE for 32 bit Windows -- problematic build issues.
+  #1933 (1.9.3, 1.8.12, 1.7.19)
+* Fixes to the `EMBEDPLUGINS=0` build case, which had at some point stopped
+  working properly. #1942 (1.9.3)
 
 Developer goodies / internals:
 * argparse.h:
@@ -273,11 +287,15 @@ Developer goodies / internals:
 * filesystem.h:
     * IOProxy classes that can abstract file operations for custom I/O
       substitutions. #1931 (1.9.3)
+    * Proper UTF-8 filenames for unique_path() and temp_directory(), and
+      general UTF-8 cleanup/simplification. #1940 (1.9.3, 1.8.12, 1.7.19)
 * fmath.h:
     * Now defines preprocessor symbol `OIIO_FMATH_H` so other files can
       easily detect if it has been included. (1.9.0/1.8.6)
     * Modify to allow Cuda compilation/use of this header. #1888,#1896
-     (1.9.2/1.8.10)
+      (1.9.2/1.8.10)
+    * Improve numeric approximation of fast_atan() and fast_atan2().
+      #1943 (1.9.3)
 * hash.h: add guards to make this header safe for Cuda compilation.
   #1905 (1.9.2/1.8.10)
 * parallel.h:
