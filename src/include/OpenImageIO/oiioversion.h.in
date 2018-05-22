@@ -99,9 +99,8 @@ namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
 ///     safety expectations; removed newspec param from seek_subimage;
 ///     added spec(subimage,miplevel) and spec_dimensions(subimage,miplevel).
 ///     (OIIO 1.9)
-/// Version 22 changed the signatures of ImageInput/ImageOutput creators
-///     to return an ImageInput::unique_ptr or ImageOutput::unique_ptr.
-///     (OIIO 1.9)
+/// Version 22 changed the signatures of ImageInput/ImageOutput create()
+///     to return unique_ptr. (OIIO 1.9)
 
 #define OIIO_PLUGIN_VERSION 22
 

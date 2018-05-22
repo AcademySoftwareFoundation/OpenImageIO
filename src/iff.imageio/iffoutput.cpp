@@ -42,10 +42,6 @@ OIIO_EXPORT ImageOutput *iff_output_imageio_create () {
     return new IffOutput;
 }
 
-OIIO_EXPORT void iff_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *iff_output_extensions[] = {
     "iff", "z", nullptr
 };

@@ -159,10 +159,6 @@ OIIO_EXPORT ImageInput *rla_input_imageio_create () {
     return new RLAInput;
 }
 
-OIIO_EXPORT void rla_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT int rla_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char* rla_imageio_library_version () { return nullptr; }

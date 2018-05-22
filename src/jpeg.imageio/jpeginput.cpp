@@ -62,9 +62,6 @@ OIIO_PLUGIN_EXPORTS_BEGIN
     OIIO_EXPORT ImageInput *jpeg_input_imageio_create () {
         return new JpgInput;
     }
-    OIIO_EXPORT void jpeg_input_imageio_delete (ImageInput *p) {
-        delete p;
-    }
     OIIO_EXPORT const char *jpeg_input_extensions[] = {
         "jpg", "jpe", "jpeg", "jif", "jfif", "jfi", nullptr
     };

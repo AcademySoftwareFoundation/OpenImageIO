@@ -141,10 +141,6 @@ OIIO_EXPORT ImageOutput *targa_output_imageio_create () {
     return new TGAOutput;
 }
 
-OIIO_EXPORT void targa_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 // OIIO_EXPORT int tga_imageio_version = OIIO_PLUGIN_VERSION;   // it's in tgainput.cpp
 
 OIIO_EXPORT const char * targa_output_extensions[] = {

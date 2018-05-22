@@ -249,10 +249,6 @@ OIIO_EXPORT ImageInput *openexr_input_imageio_create () {
     return new OpenEXRInput;
 }
 
-OIIO_EXPORT void openexr_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 // OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION; // it's in exroutput.cpp
 
 OIIO_EXPORT const char * openexr_input_extensions[] = {

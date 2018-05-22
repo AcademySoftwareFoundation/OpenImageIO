@@ -186,9 +186,6 @@ OIIO_EXPORT const char* jpeg2000_imageio_library_version () {
 OIIO_EXPORT ImageInput *jpeg2000_input_imageio_create () {
     return new Jpeg2000Input;
 }
-OIIO_EXPORT void jpeg2000_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
 OIIO_EXPORT const char *jpeg2000_input_extensions[] = {
     "jp2", "j2k", "j2c", nullptr
 };

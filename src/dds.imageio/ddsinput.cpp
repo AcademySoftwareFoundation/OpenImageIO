@@ -133,10 +133,6 @@ OIIO_EXPORT ImageInput *dds_input_imageio_create () {
     return new DDSInput;
 }
 
-OIIO_EXPORT void dds_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT int dds_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char* dds_imageio_library_version () { return nullptr; }

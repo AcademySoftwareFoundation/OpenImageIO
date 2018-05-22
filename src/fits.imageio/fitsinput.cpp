@@ -46,9 +46,6 @@ OIIO_EXPORT const char* fits_imageio_library_version () { return nullptr; }
 OIIO_EXPORT ImageInput *fits_input_imageio_create () {
     return new FitsInput;
 }
-OIIO_EXPORT void fits_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
 OIIO_EXPORT const char *fits_input_extensions[] = {
     "fits", nullptr
 };

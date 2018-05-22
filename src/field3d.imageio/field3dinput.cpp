@@ -113,10 +113,6 @@ OIIO_EXPORT ImageInput *field3d_input_imageio_create () {
     return new Field3DInput;
 }
 
-OIIO_EXPORT void field3d_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 // OIIO_EXPORT int field3d_imageio_version = OIIO_PLUGIN_VERSION; // it's in field3doutput.cpp
 
 OIIO_EXPORT const char * field3d_input_extensions[] = {

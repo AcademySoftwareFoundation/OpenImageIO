@@ -43,10 +43,6 @@ OIIO_EXPORT ImageOutput *socket_output_imageio_create () {
     return new SocketOutput;
 }
 
-OIIO_EXPORT void socket_output_imageio_delete (ImageOutput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *socket_output_extensions[] = {
     "socket", nullptr
 };

@@ -99,10 +99,6 @@ OIIO_EXPORT ImageInput *dicom_input_imageio_create () {
     return new DICOMInput;
 }
 
-OIIO_EXPORT void dicom_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *dicom_input_extensions[] = {
     "dcm", nullptr
 };

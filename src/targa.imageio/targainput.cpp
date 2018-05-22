@@ -106,10 +106,6 @@ OIIO_EXPORT ImageInput *targa_input_imageio_create () {
     return new TGAInput;
 }
 
-OIIO_EXPORT void targa_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT int targa_imageio_version = OIIO_PLUGIN_VERSION;
 
 OIIO_EXPORT const char * targa_input_extensions[] = {

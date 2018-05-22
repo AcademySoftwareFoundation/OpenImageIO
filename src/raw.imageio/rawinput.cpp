@@ -98,10 +98,6 @@ OIIO_EXPORT ImageInput *raw_input_imageio_create () {
     return new RawInput;
 }
 
-OIIO_EXPORT void raw_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *raw_input_extensions[] = {
     "bay", "bmq", "cr2", "crw", "cs1", "dc2", "dcr", "dng",
     "erf", "fff", "hdr", "k25", "kdc", "mdc", "mos", "mrw",

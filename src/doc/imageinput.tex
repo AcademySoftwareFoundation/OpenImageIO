@@ -36,7 +36,7 @@ out its resolution, and read the pixels (converting them into
   can find until one will open the file without error.  When it finds
   the right plugin, it creates a subclass instance of \ImageInput that
   reads the right kind of file format, and tries to fully open the file.
-  The {\cf open()} method returns a {\cf ImageInput::unique_ptr} that will
+  The {\cf open()} method returns a {\cf std::unique_ptr<ImageInput>} that will
   be automatically freed when it exits scope.
   \begin{code}
         auto in = ImageInput::open (filename);
@@ -226,7 +226,7 @@ regardless of whether the TIFF file itself is using 8-bit, 16-bit, or
 float values.
 
 \begin{code}
-        ImageInput::unique_ptr in = ImageInput::open ("myfile.tif");
+        std::unique_ptr<ImageInput> in = ImageInput::open ("myfile.tif");
         const ImageSpec &spec = in->spec();
         ...
         int numpixels = spec.width * spec.height;
@@ -808,7 +808,7 @@ elaborated with error checking and reporting:
 \section{\ImageInput Class Reference}
 \label{sec:imageinput:reference}
 
-\apiitem{ImageInput::unique_ptr {\ce open} (const std::string \&filename, \\
+\apiitem{std::unique_ptr<ImageInput> {\ce open} (const std::string \&filename, \\
 \bigspc\bigspc\spc const ImageSpec *config=nullptr)}
 Create an \ImageInput subclass instance that is able to read
 the given file and open it. The return value is a managed unique pointer,
@@ -829,7 +829,7 @@ the inferred one does not open the file, every known \ImageInput type
 will be tried until one is found that will open the file.
 \apiend
 
-\apiitem{ImageInput::unique_ptr {\ce create} (const std::string \&filename, \\
+\apiitem{std::unique_ptr<ImageInput> {\ce create} (const std::string \&filename, \\
 \bigspc\bigspc   bool do_open=false, const ImageSpec *config=nullptr,\\
 \bigspc\bigspc   string_view plugin_searchpath="")}
 Create and return an \ImageInput implementation that is able

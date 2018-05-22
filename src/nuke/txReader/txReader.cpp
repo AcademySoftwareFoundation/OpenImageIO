@@ -88,7 +88,7 @@ public:
 
 
 class txReader : public Reader {
-    ImageInput::unique_ptr oiioInput_;
+    std::unique_ptr<ImageInput> oiioInput_;
     TxReaderFormat* txFmt_;
 
     int chanCount_, lastMipLevel_;

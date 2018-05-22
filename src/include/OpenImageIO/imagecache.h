@@ -316,14 +316,14 @@ public:
 
     /// The add_file() call causes a file to be opened or added to the
     /// cache. There is no reason to use this method unless you are
-    /// supplying a custom creator/deleter, or configuration, or both.
+    /// supplying a custom creator, or configuration, or both.
     /// 
     /// If creator is not NULL, it points to an ImageInput::Creator that
     /// will be used rather than the default ImageInput::create(), thus
     /// instead of reading from disk, creates and uses a custom ImageInput
     /// to generate the image. The 'creator' is a factory that creates the
     /// custom ImageInput and will be called like this:
-    ///      ImageInput::unique_ptr in (creator(), deleter);
+    ///      std::unique_ptr<ImageInput> in (creator());
     /// Once created, the ImageCache owns the ImageInput and is responsible
     /// for destroying it when done. Custom ImageInputs allow "procedural"
     /// images, among other things.  Also, this is the method you use to set
@@ -341,7 +341,6 @@ public:
     /// a particular filename is referenced in the lifetime of the
     /// ImageCache.
     virtual bool add_file (ustring filename, ImageInput::Creator creator=nullptr,
-                           ImageInput::Deleter deleter=ImageInput::destroy,
                            const ImageSpec *config=nullptr) = 0;
 
     /// Preemptively add a tile corresponding to the named image, at the

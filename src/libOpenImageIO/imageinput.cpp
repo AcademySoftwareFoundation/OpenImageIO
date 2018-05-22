@@ -49,6 +49,27 @@ OIIO_NAMESPACE_BEGIN
 
 
 
+void*
+ImageInput::operator new (size_t size)
+{
+    return ::operator new (size);
+    // Note: if we ever need to guarantee alignment, we can change to:
+    // return aligned_malloc (size, alignment);
+}
+
+
+
+void
+ImageInput::operator delete (void *ptr)
+{
+    ImageInput *in = (ImageInput *)ptr;
+    ::operator delete (in);
+    // Note: if we ever need to guarantee alignment, we can change to:
+    // aligned_free (ptr);
+}
+
+
+
 ImageInput::ImageInput ()
     : m_threads(0)
 {
@@ -79,7 +100,7 @@ ImageInput::valid_file (const std::string &filename) const
 
 
 
-ImageInput::unique_ptr
+std::unique_ptr<ImageInput>
 ImageInput::open (const std::string &filename,
                   const ImageSpec *config)
 {

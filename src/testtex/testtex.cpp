@@ -1307,10 +1307,6 @@ ImageInput *make_grid_input () {
     return new GridImageInput;
 }
 
-void delete_grid_input (ImageInput *p) {
-    delete p;
-}
-
 
 
 void
@@ -1331,7 +1327,7 @@ test_icwrite (int testicwrite)
     spec.tile_height = th;
     spec.tile_depth = 1;
     ustring filename (filenames[0]);
-    bool ok = ic->add_file (filename, make_grid_input, delete_grid_input);
+    bool ok = ic->add_file (filename, make_grid_input);
     if (! ok)
         std::cout << "ic->add_file error: " << ic->geterror() << "\n";
     ASSERT (ok);

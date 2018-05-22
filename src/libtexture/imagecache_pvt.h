@@ -159,7 +159,6 @@ public:
     ImageCacheFile (ImageCacheImpl &imagecache,
                     ImageCachePerThreadInfo *thread_info, ustring filename,
                     ImageInput::Creator creator=nullptr,
-                    ImageInput::Deleter deleter=ImageInput::destroy,
                     const ImageSpec *config=nullptr);
     ~ImageCacheFile ();
 
@@ -186,7 +185,6 @@ public:
     TypeDesc datatype (int subimage) const { return m_subimages[subimage].datatype; }
     ImageCacheImpl &imagecache () const { return m_imagecache; }
     ImageInput::Creator creator () const { return m_inputcreator; }
-    ImageInput::Deleter deleter () const { return m_inputdeleter; }
 
     /// Load new data tile
     ///
@@ -378,7 +376,6 @@ private:
     imagesize_t m_total_imagesize;  ///< Total size, uncompressed
     imagesize_t m_total_imagesize_ondisk;  ///< Total size, compressed on disk
     ImageInput::Creator m_inputcreator; ///< Custom ImageInput-creator
-    ImageInput::Deleter m_inputdeleter; ///< Custom ImageInput-deleter
     std::unique_ptr<ImageSpec> m_configspec; // Optional configuration hints
     UdimLookupMap m_udim_lookup;    ///< Used for decoding udim tiles
                                     // protected by mutex elsewhere!
@@ -893,7 +890,6 @@ public:
     ImageCacheFile *find_file (ustring filename,
                                ImageCachePerThreadInfo *thread_info,
                                ImageInput::Creator creator=nullptr,
-                               ImageInput::Deleter deleter=ImageInput::destroy,
                                bool header_only=false,
                                const ImageSpec *config=nullptr);
 
@@ -968,7 +964,6 @@ public:
     virtual ROI tile_roi (const Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
     virtual bool add_file (ustring filename, ImageInput::Creator creator,
-                           ImageInput::Deleter deleter,
                            const ImageSpec *config);
     virtual bool add_tile (ustring filename, int subimage, int miplevel,
                            int x, int y, int z,  int chbegin, int chend,

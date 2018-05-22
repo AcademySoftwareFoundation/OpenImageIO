@@ -75,8 +75,6 @@ Public API changes:
       will be fully released when the `unique_ptr` exits scope or is reset,
       and the caller is no longer responsible for calling `destroy()` or
       deleting it.
-    * Every individual reader/writer plugin must supply a "delete" function
-      in addition to a "create" function.
 * ColorConfig changes: ColorConfig methods now return shared pointers to
   `ColorProcessor`s rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects

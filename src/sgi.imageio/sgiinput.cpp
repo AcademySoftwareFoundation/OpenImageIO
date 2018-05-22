@@ -43,10 +43,6 @@ OIIO_EXPORT ImageInput *sgi_input_imageio_create () {
     return new SgiInput;
 }
 
-OIIO_EXPORT void sgi_input_imageio_delete (ImageInput *p) {
-    delete p;
-}
-
 OIIO_EXPORT const char *sgi_input_extensions[] = {
     "sgi", "rgb", "rgba", "bw", "int", "inta", nullptr
 };
