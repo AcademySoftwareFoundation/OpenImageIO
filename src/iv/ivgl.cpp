@@ -536,6 +536,7 @@ IvGL::paintGL ()
     float z = m_zoom;
 
     glPushMatrix ();
+    glLoadIdentity ();
     // Transform is now same as the main GL viewport -- window pixels as
     // units, with (0,0) at the center of the visible unit.
     glTranslatef (0, 0, -5);
@@ -1454,7 +1455,9 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
     m_viewer.statusProgress->setValue ((int)(percent*100));
     // FIXME: Check whether this works ok (ie, no 'recursive repaint' messages)
     // on all platforms.
-    m_viewer.statusProgress->repaint ();
+    // UPDATE: switching to updata() since repaint() does something nasty on
+    // OS X. It meshes with the GL matrix stack as if a glPopMatrix happened
+    m_viewer.statusProgress->update ();
     setCursor (Qt::WaitCursor);
 
     int nchannels = spec.nchannels;
