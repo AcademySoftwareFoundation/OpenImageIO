@@ -1450,14 +1450,11 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
         }
     }
 
-    // Make it somewhat obvious to the user that some progress is happening
-    // here.
-    m_viewer.statusProgress->setValue ((int)(percent*100));
-    // FIXME: Check whether this works ok (ie, no 'recursive repaint' messages)
-    // on all platforms.
-    // UPDATE: switching to updata() since repaint() does something nasty on
-    // OS X. It meshes with the GL matrix stack as if a glPopMatrix happened
-    m_viewer.statusProgress->update ();
+    // Disabling progress report. Seems clear after some research that we cannot
+    // update the bar (not even with a signal) within a paint function without
+    // messing up the openGL context
+    //m_viewer.statusProgress->setValue ((int)(percent*100));
+    //m_viewer.statusProgress->update ();
     setCursor (Qt::WaitCursor);
 
     int nchannels = spec.nchannels;
