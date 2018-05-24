@@ -692,6 +692,7 @@ IvGL::paint_pixelview ()
     get_focus_image_pixel (xp, yp);
 
     glPushMatrix ();
+    glLoadIdentity ();
     // Transform is now same as the main GL viewport -- window pixels as
     // units, with (0,0) at the center of the visible window.
 
@@ -702,7 +703,8 @@ IvGL::paint_pixelview ()
     if (m_viewer.pixelviewFollowsMouse()) {
         // Display closeup overtop mouse -- translate the coordinate system
         // so that it is centered at the mouse position.
-        glTranslatef (xw - width()/2, -yw + height()/2, 0);
+        glTranslatef ( xw - width()/2  + closeupsize/2 + 4,
+                      -yw + height()/2 - closeupsize/2 - 4, 0);
     } else {
         // Display closeup in corner -- translate the coordinate system so that
         // it is centered near the corner of the window.
@@ -715,7 +717,7 @@ IvGL::paint_pixelview ()
                 m_pixelview_left_corner = false;
         } else {
             glTranslatef (-closeupsize * 0.5f - 5 + width () / 2,
-                          -closeupsize * 0.5f + 5 + height () / 2, 0);
+                          -closeupsize * 0.5f - 5 + height () / 2, 0);
             // If the mouse cursor is over the pixelview closeup when it's on
             // the upper right, switch to the upper left
             if (xw > (width() - closeupsize - 5)  &&  yw < (closeupsize + 5))
@@ -837,8 +839,19 @@ IvGL::paint_pixelview ()
         QFont font;
         font.setFixedPitch (true);
         float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
-        int textx = xw - closeupsize/2 + 4;
-        int texty = yw + closeupsize/2 + yspacing;
+        int textx, texty;
+        if (m_viewer.pixelviewFollowsMouse()) {
+            textx = xw + 8;
+            texty = yw + closeupsize + yspacing;
+        } else {
+            if (m_pixelview_left_corner) {
+                textx = 9;
+                texty = closeupsize + yspacing;
+            } else {
+                textx = width () - closeupsize - 1;
+                texty = closeupsize + yspacing;
+            }
+        }
         std::string s = Strutil::format ("(%d, %d)", (int) real_xp+spec.x, (int) real_yp+spec.y);
         shadowed_text (textx, texty, 0.0f, s, font);
         texty += yspacing;
