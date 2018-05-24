@@ -536,6 +536,7 @@ IvGL::paintGL ()
     float z = m_zoom;
 
     glPushMatrix ();
+    glLoadIdentity ();
     // Transform is now same as the main GL viewport -- window pixels as
     // units, with (0,0) at the center of the visible unit.
     glTranslatef (0, 0, -5);
@@ -691,6 +692,7 @@ IvGL::paint_pixelview ()
     get_focus_image_pixel (xp, yp);
 
     glPushMatrix ();
+    glLoadIdentity ();
     // Transform is now same as the main GL viewport -- window pixels as
     // units, with (0,0) at the center of the visible window.
 
@@ -701,7 +703,8 @@ IvGL::paint_pixelview ()
     if (m_viewer.pixelviewFollowsMouse()) {
         // Display closeup overtop mouse -- translate the coordinate system
         // so that it is centered at the mouse position.
-        glTranslatef (xw - width()/2, -yw + height()/2, 0);
+        glTranslatef ( xw - width()/2  + closeupsize/2 + 4,
+                      -yw + height()/2 - closeupsize/2 - 4, 0);
     } else {
         // Display closeup in corner -- translate the coordinate system so that
         // it is centered near the corner of the window.
@@ -714,7 +717,7 @@ IvGL::paint_pixelview ()
                 m_pixelview_left_corner = false;
         } else {
             glTranslatef (-closeupsize * 0.5f - 5 + width () / 2,
-                          -closeupsize * 0.5f + 5 + height () / 2, 0);
+                          -closeupsize * 0.5f - 5 + height () / 2, 0);
             // If the mouse cursor is over the pixelview closeup when it's on
             // the upper right, switch to the upper left
             if (xw > (width() - closeupsize - 5)  &&  yw < (closeupsize + 5))
@@ -836,8 +839,19 @@ IvGL::paint_pixelview ()
         QFont font;
         font.setFixedPitch (true);
         float *fpixel = (float *) alloca (spec.nchannels*sizeof(float));
-        int textx = xw - closeupsize/2 + 4;
-        int texty = yw + closeupsize/2 + yspacing;
+        int textx, texty;
+        if (m_viewer.pixelviewFollowsMouse()) {
+            textx = xw + 8;
+            texty = yw + closeupsize + yspacing;
+        } else {
+            if (m_pixelview_left_corner) {
+                textx = 9;
+                texty = closeupsize + yspacing;
+            } else {
+                textx = width () - closeupsize - 1;
+                texty = closeupsize + yspacing;
+            }
+        }
         std::string s = Strutil::format ("(%d, %d)", (int) real_xp+spec.x, (int) real_yp+spec.y);
         shadowed_text (textx, texty, 0.0f, s, font);
         texty += yspacing;
@@ -1449,12 +1463,11 @@ IvGL::load_texture (int x, int y, int width, int height, float percent)
         }
     }
 
-    // Make it somewhat obvious to the user that some progress is happening
-    // here.
-    m_viewer.statusProgress->setValue ((int)(percent*100));
-    // FIXME: Check whether this works ok (ie, no 'recursive repaint' messages)
-    // on all platforms.
-    m_viewer.statusProgress->repaint ();
+    // Disabling progress report. Seems clear after some research that we cannot
+    // update the bar (not even with a signal) within a paint function without
+    // messing up the openGL context
+    //m_viewer.statusProgress->setValue ((int)(percent*100));
+    //m_viewer.statusProgress->update ();
     setCursor (Qt::WaitCursor);
 
     int nchannels = spec.nchannels;
