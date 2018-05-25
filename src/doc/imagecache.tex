@@ -868,6 +868,16 @@ force is false, in actuality files will only be invalidated if their
 modification times have been changed since they were first opened.
 \apiend
 
+\apiitem{void {\ce close} (ustring filename) \\
+void {\ce close_all} ()}
+\NEW % 1.9
+Close any open file handles associated with a named file, or for all
+files, but do not invalidate any image spec information or pixels
+associated with the files.  A client might do this in order to
+release OS file handle resources, or to make it safe for other
+processes to modify cached files.
+\apiend
+
 \subsection{Seeding the cache}
 \label{sec:imagecache:api:seeding}
 \apiitem{bool {\ce add_file} (ustring filename, \\

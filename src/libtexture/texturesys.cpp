@@ -804,6 +804,22 @@ TextureSystemImpl::invalidate_all (bool force)
 
 
 
+void
+TextureSystemImpl::close (ustring filename)
+{
+    m_imagecache->close (filename);
+}
+
+
+
+void
+TextureSystemImpl::close_all ()
+{
+    m_imagecache->close_all ();
+}
+
+
+
 bool
 TextureSystemImpl::missing_texture (TextureOpt &options, int nchannels,
                                     float *result, float *dresultds,
