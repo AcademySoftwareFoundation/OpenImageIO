@@ -2116,6 +2116,17 @@ ImageBuf::oriented_full_y () const
 
 
 void
+ImageBuf::set_origin (int x, int y, int z)
+{
+    ImageSpec &spec (impl()->specmod());
+    spec.x = x;
+    spec.y = y;
+    spec.z = z;
+}
+
+
+
+void
 ImageBuf::set_full (int xbegin, int xend, int ybegin, int yend,
                     int zbegin, int zend)
 {

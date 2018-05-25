@@ -31,8 +31,9 @@ setting full res...
 roi = 0 1024 0 1024 0 1 0 4
 full roi = 0 2048 0 2048 0 1 0 4
 setting full roi again, as ROI...
+Changing origin...
 Printing the whole spec to be sure:
-  resolution 1024x1024+0+0
+  resolution 1024x1024+15+20
   tile size  64x64x1
   4 channels: ('R', 'G', 'B', 'A')
   format =  uint8

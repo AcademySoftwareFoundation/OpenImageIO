@@ -82,6 +82,8 @@ try:
     print ("full roi =", b.roi_full)
     print ("setting full roi again, as ROI...")
     b.roi_full = oiio.ROI(0, 1024, 0, 1024, 0, 1, 0, b.nchannels)
+    print ("Changing origin...")
+    b.set_origin (15, 20);
     print ("Printing the whole spec to be sure:")
     print_imagespec (b.spec())
     print ("")

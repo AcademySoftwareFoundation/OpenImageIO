@@ -348,8 +348,16 @@ The data type of the pixels stored in the buffer (equivalent to
 {\cf spec().format}).
 \apiend
 
+\apiitem{void {\ce set_origin} (int x, int y, int z=0)}
+\NEW % 1.9
+Alters the metadata of the spec in the \ImageBuf to reset the ``origin''
+of the pixel data window to be the specified coordinates.  This does not
+affect the size of the pixel data window, only its position.
+\apiend
+
 \apiitem{void {\ce set_full} (int xbegin, int xend, int ybegin, int yend, \\
-  \bigspc\spc       int zbegin, int zend)}
+  \bigspc\spc       int zbegin, int zend) \\
+  void {\ce set_roi_full} (const ROI \&newroi)}
 Alters the metadata of the spec in the \ImageBuf to reset the ``full''
 image size (a.k.a.\ ``display window'').  This does not affect the size
 of the pixel data window.
