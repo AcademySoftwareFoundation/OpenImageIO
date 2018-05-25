@@ -304,6 +304,8 @@ void declare_imagebuf(py::module &m)
         .def_property_readonly("roi", &ImageBuf::roi)
         .def_property("roi_full",
                       &ImageBuf::roi_full, &ImageBuf::set_roi_full)
+        .def("set_origin", &ImageBuf::set_origin,
+             "x"_a, "y"_a, "z"_a=0)
         .def("set_full", &ImageBuf::set_full)
         .def_property_readonly("pixels_valid", &ImageBuf::pixels_valid)
         .def_property_readonly("pixeltype", &ImageBuf::pixeltype)

@@ -487,6 +487,9 @@ public:
     /// Return the maximum z coordinate of the defined image.
     int zmax () const;
 
+    /// Set a new origin position for the pixel data.
+    void set_origin (int x, int y, int z=0);
+
     /// Set the "full" (a.k.a. display) window to [xbegin,xend) x
     /// [ybegin,yend) x [zbegin,zend).
     void set_full (int xbegin, int xend, int ybegin, int yend,

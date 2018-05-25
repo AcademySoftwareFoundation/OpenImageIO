@@ -1645,10 +1645,7 @@ set_origin (int argc, const char *argv[])
             spec.z = z;
             // That updated the private spec of the ImageRec. In this case
             // we really need to update the underlying IB as well.
-            ImageSpec &ibspec = ib.specmod();
-            ibspec.x = x;
-            ibspec.y = y;
-            ibspec.z = z;
+            ib.set_origin (x, y, z);
             A->metadata_modified (true);
         }
     }

@@ -1571,6 +1571,18 @@ These fields return an \ROI description of the pixel data window
 \end{code}
 \apiend
 
+\apiitem{ImageBuf.{\ce set_origin} (x, y, z=0)}
+\NEW % 1.9
+Changes the ``origin'' of the data pixel data window to the specified
+coordinates.
+
+\noindent Example:
+\begin{code}
+    # Shift the pixel data so the upper left is at pixel (10, 10)
+    buf.set_origin (10, 10)
+\end{code}
+\apiend
+
 \apiitem{ImageBuf.{\ce set_full} (roi)}
 Changes the ``full'' (a.k.a. ``display'') window to the specified ROI.
 
