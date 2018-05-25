@@ -72,7 +72,11 @@ set (OpenJpeg_include_paths
      /usr/include/openjpeg
      /usr/local/include/openjpeg-1.5
      /usr/include
-     /opt/local/include)
+     /opt/local/include
+     /opt/local/include/openjpeg-2.3
+     /opt/local/include/openjpeg-2.2
+     /opt/local/include/openjpeg-2.1
+     /opt/local/include/openjpeg-2.0)
 
 set (OpenJpeg_library_paths
   /usr/lib
