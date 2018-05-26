@@ -457,9 +457,33 @@ ImageBuf::ImageBuf (const ImageBuf &src)
 
 
 
+ImageBuf::ImageBuf (ImageBuf &&src)
+    : m_impl (std::move (src.m_impl))
+{
+}
+
+
+
 ImageBuf::~ImageBuf ()
 {
-    delete m_impl; m_impl = NULL;
+}
+
+
+
+const ImageBuf&
+ImageBuf::operator= (const ImageBuf &src)
+{
+    copy (src);
+    return *this;
+}
+
+
+
+const ImageBuf&
+ImageBuf::operator= (ImageBuf &&src)
+{
+    m_impl = std::move(src.m_impl);
+    return *this;
 }
 
 
@@ -1488,10 +1512,12 @@ ImageBuf::copy (const ImageBuf &src, TypeDesc format)
 
 
 
-bool
-ImageBuf::copy (const ImageBuf &src)
+ImageBuf
+ImageBuf::copy (TypeDesc format) const
 {
-    return copy (src, TypeDesc::UNKNOWN);
+    ImageBuf result;
+    result.copy (*this, format);
+    return result;
 }
 
 

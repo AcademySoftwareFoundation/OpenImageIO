@@ -390,8 +390,19 @@ has already spawned multiple worker threads.
 
 \section{Copying \ImageBuf's and blocks of pixels}
 
-\apiitem{bool {\ce copy} (const ImageBuf \&src) \\
-bool {\ce copy} (const ImageBuf \&src, TypeDesc format)}
+\apiitem{const ImageBuf\& operator= (const ImageBuf \&src) \\
+const ImageBuf\& operator= (ImageBuf \&\&src)}
+\NEW % 1.9
+Copy and move assignment.
+\apiend
+
+\apiitem{ImageBuf {\ce copy} (TypeDesc format=TypeUnknown) const}
+\NEW % 1.9
+Returns a full copy of {\cf this} (pixels and metadata), with optional data
+format conversion.
+\apiend
+
+\apiitem{bool {\ce copy} (const ImageBuf \&src, TypeDesc format=TypeUnknown)}
 Copies {\cf src} to {\cf this} -- both pixel values and all metadata.
 If a {\cf format} is provided, {\cf this} will get the specified pixel
 data type rather than using the same pixel format as {\cf src}.
