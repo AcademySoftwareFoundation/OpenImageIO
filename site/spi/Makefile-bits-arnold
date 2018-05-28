@@ -87,6 +87,11 @@ ifeq (${SP_OS}, rhel7)
            -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     endif
 
+    # CUDA customizations
+    MY_CMAKE_FLAGS += \
+	-DCUDA_TOOLKIT_ROOT_DIR=/net/soft_scratch/apps/arnold/tools/nvidia/cuda9.1 \
+	-DCUDA_HOST_COMPILER=/shots/spi/home/lib/arnold/rhel7/llvm_4.0_final/bin/clang++
+
     MY_CMAKE_FLAGS += \
 	-DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
 	-DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
