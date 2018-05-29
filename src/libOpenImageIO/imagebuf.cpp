@@ -1036,7 +1036,8 @@ ImageBuf::write (ImageOutput *out,
 
 
 bool
-ImageBuf::write (string_view _filename, string_view _fileformat,
+ImageBuf::write (string_view _filename, TypeDesc dtype,
+                 string_view _fileformat,
                  ProgressCallback progress_callback,
                  void *progress_callback_data) const
 {
@@ -1094,8 +1095,10 @@ ImageBuf::write (string_view _filename, string_view _fileformat,
         newspec.tile_depth  = 0;
     }
     // Allow for format override via ImageBuf::set_write_format()
-    if (impl()->m_write_format != TypeDesc::UNKNOWN) {
-        newspec.set_format (impl()->m_write_format);
+    if (dtype == TypeUnknown)
+        dtype = impl()->m_write_format;
+    if (dtype != TypeUnknown) {
+        newspec.set_format (dtype);
         newspec.channelformats.clear();
     } else {
         newspec.set_format (nativespec().format);

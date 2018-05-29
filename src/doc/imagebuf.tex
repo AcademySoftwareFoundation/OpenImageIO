@@ -213,13 +213,15 @@ resolution or data type.  Optionally, it names the \ImageBuf.
 \subsection*{Writing an \ImageBuf to a file}
 
 \apiitem{bool {\ce write} (string_view filename, \\
+  \bigspc               TypeDesc dtype = TypeUnknown, \\
   \bigspc               string_view fileformat = "", \\
   \bigspc               ProgressCallback progress_callback=NULL, \\
   \bigspc               void *progress_callback_data=NULL) const}
-Write the image to the named file in the named format
-(an empty format means to infer the type from the filename
-extension).  Return {\cf true} if all went ok, {\cf false} if there were
-errors writing.
+Write the image to the named file, converted to the specified pixel data
+type {\cf dtype} ({\cf TypeUnknown} signifies to use the data type of the
+buffer), in the named file format (an empty {\cf fileformat} means to infer
+the type from the filename extension).  Return {\cf true} if all went ok,
+{\cf false} if there were errors writing.
 
 By default, it will always write a scanline-oriented file, unless the
 {\cf set_write_tiles()} method has been used to override this.
