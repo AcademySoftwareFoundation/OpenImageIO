@@ -347,6 +347,8 @@ public:
 
     virtual void invalidate (ustring filename);
     virtual void invalidate_all (bool force=false);
+    virtual void close (ustring filename);
+    virtual void close_all ();
 
     void operator delete (void *todel) { ::delete ((char *)todel); }
 

@@ -106,6 +106,8 @@ static int ntrials = 1;
 static int testicwrite = 0;
 static bool test_derivs = false;
 static bool test_statquery = false;
+static bool invalidate_before_iter = true;
+static bool close_before_iter = false;
 static Imath::M33f xform;
 static mutex error_mutex;
 void *dummyptr;
@@ -197,6 +199,8 @@ getargs (int argc, const char *argv[])
                   "--threadtimes %d", &threadtimes, "Do thread timings (arg = workload profile)",
                   "--trials %d", &ntrials, "Number of trials for timings",
                   "--wedge", &wedge, "Wedge test",
+                  "--noinvalidate %!", &invalidate_before_iter, "Don't invalidate the cache before each --threadtimes trial",
+                  "--closebeforeiter", &close_before_iter, "Close all handles before each --iter",
                   "--testicwrite %d", &testicwrite, "Test ImageCache write ability (1=seeded, 2=generated)",
                   "--teststatquery", &test_statquery, "Test queries of statistics",
                   NULL);
@@ -611,10 +615,12 @@ test_plain_texture (Mapping2D mapping)
     for (int iter = 0;  iter < iters;  ++iter) {
         if (iters > 1 && filenames.size() > 1) {
             // Use a different filename for each iteration
-            int texid = std::min (iter, (int)filenames.size()-1);
+            int texid = iter % (int)filenames.size();
             filename = (filenames[texid]);
             std::cout << "iter " << iter << " file " << filename << "\n";
         }
+        if (close_before_iter)
+            texsys->close_all ();
 
         ImageBufAlgo::parallel_image (get_roi(image.spec()), nthreads,
                 std::bind(plain_tex_region, std::ref(image), filename, mapping,
@@ -740,10 +746,12 @@ test_plain_texture_batch (Mapping2DWide mapping)
     for (int iter = 0;  iter < iters;  ++iter) {
         if (iters > 1 && filenames.size() > 1) {
             // Use a different filename for each iteration
-            int texid = std::min (iter, (int)filenames.size()-1);
+            int texid = iter % (int)filenames.size();
             filename = (filenames[texid]);
             std::cout << "iter " << iter << " file " << filename << "\n";
         }
+        if (close_before_iter)
+            texsys->close_all ();
 
         ImageBufAlgo::parallel_image (get_roi(image.spec()), nthreads,
                 [&](ROI roi){
@@ -883,6 +891,8 @@ test_texture3d (ustring filename, Mapping3D mapping)
         // Trick: switch to second texture, if given, for second iteration
         if (iter && filenames.size() > 1)
             filename = filenames[1];
+        if (close_before_iter)
+            texsys->close_all ();
         ImageBufAlgo::parallel_image (get_roi(image.spec()), nthreads,
                 std::bind(tex3d_region, std::ref(image), filename, mapping, _1));
     }
@@ -910,6 +920,8 @@ test_texture3d_batch (ustring filename, Mapping3DWide mapping)
         // Trick: switch to second texture, if given, for second iteration
         if (iter && filenames.size() > 1)
             filename = filenames[1];
+        if (close_before_iter)
+            texsys->close_all ();
         ImageBufAlgo::parallel_image (get_roi(image.spec()), nthreads,
                 [&](ROI roi){
                     tex3d_region_batch (image, filename, mapping, roi);

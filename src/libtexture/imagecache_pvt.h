@@ -956,6 +956,8 @@ public:
     virtual void reset_stats ();
     virtual void invalidate (ustring filename);
     virtual void invalidate_all (bool force=false);
+    virtual void close (ustring filename);
+    virtual void close_all ();
 
     /// Merge all the per-thread statistics into one set of stats.
     ///

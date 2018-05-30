@@ -41,6 +41,12 @@
 #include <OpenImageIO/imageio.h>
 
 
+// Define symbols that let client applications determine if newly added
+// features are supported.
+#define OIIO_IMAGECACHE_SUPPORTS_CLOSE 1
+
+
+
 OIIO_NAMESPACE_BEGIN
 
 struct ROI;
@@ -407,6 +413,14 @@ public:
     /// modification times have been changed since they were first
     /// opened.
     virtual void invalidate_all (bool force=false) = 0;
+
+    /// Close any open file handles associated with a named file, or for all
+    /// files, but do not invalidate any image spec information or pixels
+    /// associated with the files.  A client might do this in order to
+    /// release OS file handle resources, or to make it safe for other
+    /// processes to modify cached files.
+    virtual void close (ustring filename) = 0;
+    virtual void close_all () = 0;
 
 private:
     // Make delete private and unimplemented in order to prevent apps
