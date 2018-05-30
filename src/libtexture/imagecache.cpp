@@ -3265,6 +3265,26 @@ ImageCacheImpl::invalidate_all (bool force)
 
 
 
+void
+ImageCacheImpl::close (ustring filename)
+{
+    FilenameMap::iterator f = m_files.find (filename);
+    if (f != m_files.end())
+        f->second->close ();
+}
+
+
+
+void
+ImageCacheImpl::close_all ()
+{
+    for (FilenameMap::iterator f = m_files.begin(), e = m_files.end(); f != e;  ++f) {
+        f->second->close ();
+    }
+}
+
+
+
 namespace {
 // Mutex to protect all the UDIM table access.
 static mutex_pool<spin_rw_mutex,ustring,ustringHash,8> udim_lookup_mutex_pool;
