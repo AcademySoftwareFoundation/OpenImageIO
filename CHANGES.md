@@ -1,3 +1,18 @@
+Release 1.7.19 (1 Jun 2018) -- compared to 1.7.18
+-------------------------------------------------
+* Build fix for 32 bit Windows -- disable SSE that was making trouble. #1933
+* Improved UTF-8 filename support for OpenEXR filenames. #1941
+* filesystem.h: Improve UTF-8 handling for unique_path and temp_directory
+  functions. #1940
+* Clean up some warnings on modern Clang versions.
+* Improvements in finding the location of OpenJPEG with Macports. #1948
+* ImageCache and TextureSystem now have close(filename) and close_all()
+  methods, which for one file or all files will close the files and release
+  any open file handles (also unlocking write access to those files on
+  Windows), but without invalidating anything it knows about the ImageSpec
+  or any pixel tiles already read from the files, as would happen with a
+  call to the much more drastic invalidate() or invalidate_all(). #1950
+
 Release 1.7.18 (1 May 2018) -- compared to 1.7.17
 -------------------------------------------------
 * Update to build against ffmpeg 4.0
