@@ -1724,6 +1724,24 @@ inline OIIO_HOSTDEVICE T fast_pow_pos (const T& x, const U& y) {
 }
 
 
+// Fast cube root (performs better that using fast_pow's above with y=1/3)
+inline OIIO_HOSTDEVICE float fast_cbrt (float x) {
+#ifndef __CUDA_ARCH__
+    float x0 = fabsf(x);
+    // from hacker's delight
+    float a = bit_cast<int, float>(0x2a5137a0 + bit_cast<float, int>(x0) / 3); // Initial guess.
+    // Examined 14272478 values of cbrt on [-9.99999935e-39,9.99999935e-39]: 8.14687e-14 max error
+    // Examined 2131958802 values of cbrt on [9.99999935e-39,3.40282347e+38]: 2.46930719 avg ulp diff, 12 max ulp
+    a = 0.333333333f * (2.0f * a + x0 / (a * a));  // Newton step.
+    a = 0.333333333f * (2.0f * a + x0 / (a * a));  // Newton step again.
+    a = (x0 == 0) ? 0 : a; // Fix 0 case
+    return copysignf(a, x);
+#else
+    return cbrtf(x);
+#endif
+}
+
+
 inline OIIO_HOSTDEVICE float fast_erf (float x)
 {
 #ifndef __CUDA_ARCH__
