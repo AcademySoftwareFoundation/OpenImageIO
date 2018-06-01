@@ -33,6 +33,7 @@
 
 #include <OpenImageIO/strided_ptr.h>
 #include <OpenImageIO/array_view.h>
+#include <OpenImageIO/span.h>
 #include <OpenImageIO/image_view.h>
 #include <OpenImageIO/unittest.h>
 
@@ -294,6 +295,10 @@ int main (int argc, char *argv[])
     test_array_view_strided_mutable ();
     test_image_view ();
     test_image_view_mutable ();
+
+    // array_view and span should be synonyms
+    OIIO_CHECK_ASSERT ((std::is_same<OIIO::array_view<const float>,
+                                     OIIO::span<const float>>::value));
 
     return unit_test_failures;
 }
