@@ -1,3 +1,7 @@
+Release 1.8.13 (1 Jul? 2018) -- compared to 1.8.12
+-------------------------------------------------
+
+
 Release 1.8.12 (1 Jun 2018) -- compared to 1.8.11
 -------------------------------------------------
 * Build fix for 32 bit Windows -- disable SSE that was making trouble. #1933
