@@ -216,13 +216,24 @@ public:
     bool init_spec (string_view filename,
                     int subimage, int miplevel);
 
-    /// Write the image to the named file and file format ("" means to infer
-    /// the type from the filename extension). Return true if all went ok,
-    /// false if there were errors writing.
+    /// Write the image to the named file, converted to the specified pixel
+    /// data type `dtype` (TypeUnknown signifies to use the data type of the
+    /// buffer), and file format ("" means to infer the type from the
+    /// filename extension). Return true if all went ok, false if there were
+    /// errors writing.
     bool write (string_view filename,
+                TypeDesc dtype = TypeUnknown,
                 string_view fileformat = string_view(),
-                ProgressCallback progress_callback=NULL,
-                void *progress_callback_data=NULL) const;
+                ProgressCallback progress_callback=nullptr,
+                void *progress_callback_data=nullptr) const;
+    // DEPRECATED(1.9): old version did not have the data type
+    bool write (string_view filename,
+                string_view fileformat,
+                ProgressCallback progress_callback=nullptr,
+                void *progress_callback_data=nullptr) const {
+        return write (filename, TypeUnknown, fileformat,
+                      progress_callback, progress_callback_data);
+    }
 
     /// Inform the ImageBuf what data format you'd like for any subsequent
     /// write().

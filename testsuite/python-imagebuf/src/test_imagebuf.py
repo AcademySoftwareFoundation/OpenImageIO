@@ -42,8 +42,7 @@ def print_imagespec (spec, subimage=0, mip=0, msg="") :
 
 def write (image, filename, format=oiio.UNKNOWN) :
     if not image.has_error :
-        image.set_write_format (format)
-        image.write (filename)
+        image.write (filename, format)
     if image.has_error :
         print ("Error writing", filename, ":", image.geterror())
 

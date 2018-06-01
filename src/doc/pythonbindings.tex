@@ -1442,16 +1442,22 @@ call that accesses the spec will read it automatically it has not yet been
 done.
 \apiend
 
-\apiitem{bool ImageBuf.{\ce write} (filename, fileformat="")}
-Write the contents of the \ImageBuf to the named file.  Optionally, {\cf
-fileformat} can specify a particular file format to use (by default, it
-will infer it from the extension of the file name).
+\apiitem{bool ImageBuf.{\ce write} (filename, dtype="", fileformat="")}
+Write the contents of the \ImageBuf to the named file.  Optionally,
+{\cf dtype} can override the pixel data type (by default, the pixel data
+type of the buffer), and {\cf fileformat} can specify a particular file
+format to use (by default, it will infer it from the extension of the file
+name).
 
 \noindent Example:
 \begin{code}
     # No-frills conversion of a TIFF file to JPEG
     buf = ImageBuf ("in.tif")
     buf.write ("out.jpg")
+
+    # Convert to uint16 TIFF
+    buf = ImageBuf ("in.exr")
+    buf.write ("out.tif", "uint16")
 \end{code}
 \apiend
 
