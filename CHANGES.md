@@ -81,9 +81,19 @@ Public API changes:
       on Windows where it was possible for ImageInput/ImageOutput to have
       been allocated in one DLL's heap but freed in a different DLL's heap,
       which could cause subtle heap corruption problems. #1934,#1945 (1.9.3).
-
+* **ImageBuf**
+    * New method `set_origin()` changes the pixel data window origin.
+      #1949 (1.9.4)
+    * Assignment (`operator=`) is now enabled for ImageBuf, both the copying
+      and moving variety. Also, an explicit copy() method has been added
+      that returns a full copy of the ImageBuf. #1952 (1.9.4)
+    * write() method has had its arguments changed and now takes an optional
+      TypeDesc that lets you specify a requested data type when writing the
+      output file, rather than requiring a previous and separate call to
+      set_write_format(). The old call signature of write() still exists,
+      but it will be considered deprecated in the future. #1953 (1.9.4)
 * ColorConfig changes: ColorConfig methods now return shared pointers to
-  `ColorProcessor`s rather than raw pointers. It is therefore no longer
+  `ColorProcessor` rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects
   are now internally cached, so asking for the same color transformation
   multiple times is no longer expensive. The ColorProcessor interface is
@@ -117,6 +127,13 @@ Public API changes:
   at the time that the application exits. #1885 (1.9.2)
 * Moved the definition of `ROI` from `imagebuf.h` to `imageio.h` and make
   most of the methods `constexpr`. #1906 (1.9.2)
+* ImageCache and TextureSystem now have `close(filename)` and `close_all()`
+  methods, which for one file or all files will close the files and release
+  any open file handles (also unlocking write access to those files on
+  Windows), but without invalidating anything it knows about the ImageSpec
+  or any pixel tiles already read from the files, as would happen with a
+  call to the much more drastic invalidate() or invalidate_all().
+  #1950 (1.9.4)
 
 Performance improvements:
 * ImageBufAlgo::computePixelStats is now multithreaded and should improve by
@@ -198,6 +215,8 @@ Fixes and feature enhancements:
       thread locking to protect the underlying ImageInputs, and this should
       improve texture and image cache performance when many threads need
       to read tiles from the same file. #1927 (1.9.2)
+* iv: Fix (especially on OSX) for various ways it has been broken since the
+  shift to Qt5. #1946 (1.8.12, 1.9.4)
 * All string->numeric parsing and numeric->string formatting is now
   locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
 * Python Imagebuf.get_pixels and set_pixels bugs fixed, in the varieties
@@ -240,7 +259,7 @@ Build/test system improvements:
   (1.8.6/1.9.1)
 * Build: Boost.Python is no longer a dependency, but `pybind11` is. If
   not found on the system, it will be automatically downloaded. #1801 (1.9.1)
-* Time for a multi-core build of OIIO is reduced by ~40% by refactoring some
+* Time for a multi-core build of OIIO is reduced by 40% by refactoring some
   extra big modules into more bite-sized pieces. #1806 (1.9.2)
 * testtex:
     * Make the "thread workout" cases all honor `--handle`. #1778 (1.9.0)
@@ -274,6 +293,8 @@ Build/test system improvements:
   #1933 (1.9.3, 1.8.12, 1.7.19)
 * Fixes to the `EMBEDPLUGINS=0` build case, which had at some point stopped
   working properly. #1942 (1.9.3)
+* Improvements in finding the location of OpenJPEG with Macports.
+  #1948 (1.8.12, 1.9.4)
 
 Developer goodies / internals:
 * argparse.h:
@@ -296,6 +317,8 @@ Developer goodies / internals:
       (1.9.2/1.8.10)
     * Improve numeric approximation of fast_atan() and fast_atan2().
       #1943 (1.9.3)
+    * fast_cbrt() is a fast approximate cube root (maximum error 8e-14,
+      about 3 times faster than pow computes cube roots). #1955 (1.9.4)
 * hash.h: add guards to make this header safe for Cuda compilation.
   #1905 (1.9.2/1.8.10)
 * parallel.h:
@@ -341,6 +364,23 @@ Developer goodies / internals:
 
 
 
+
+Release 1.8.12 (1 Jun 2018) -- compared to 1.8.11
+-------------------------------------------------
+* Build fix for 32 bit Windows -- disable SSE that was making trouble. #1933
+* Improved UTF-8 filename support for OpenEXR filenames. #1941
+* filesystem.h: Improve UTF-8 handling for unique_path and temp_directory
+  functions. #1940
+* Fixes to un-break the build when EMBEDPLUGINS=0. #1942
+* Fix iv (especially on OSX) for various ways it has been broken since the
+  shift to Qt5. #1946
+* Improvements in finding the location of OpenJPEG with Macports. #1948
+* ImageCache and TextureSystem now have close(filename) and close_all()
+  methods, which for one file or all files will close the files and release
+  any open file handles (also unlocking write access to those files on
+  Windows), but without invalidating anything it knows about the ImageSpec
+  or any pixel tiles already read from the files, as would happen with a
+  call to the much more drastic invalidate() or invalidate_all(). #1950
 
 Release 1.8.11 (1 May 2018) -- compared to 1.8.10
 -------------------------------------------------
@@ -427,7 +467,7 @@ Release 1.8.6 (1 Nov 2017) -- compared to 1.8.5
 * Python: fixed missing exposure of RATIONAL enum value. #1799
 
 
-Release 1.8 (1.8.5 - beta) -- compared to 1.7.x
+Release 1.8 (1.8.5 - 1 Oct 2017) -- compared to 1.7.x
 ----------------------------------------------
 New minimum dependencies:
  * **C++11** (should also build with C++14 and C++17)
@@ -966,6 +1006,25 @@ Docs:
 
 
 
+Release 1.7.19 (1 Jun 2018) -- compared to 1.7.18
+-------------------------------------------------
+* Build fix for 32 bit Windows -- disable SSE that was making trouble. #1933
+* Improved UTF-8 filename support for OpenEXR filenames. #1941
+* filesystem.h: Improve UTF-8 handling for unique_path and temp_directory
+  functions. #1940
+* Clean up some warnings on modern Clang versions.
+* Improvements in finding the location of OpenJPEG with Macports. #1948
+* ImageCache and TextureSystem now have close(filename) and close_all()
+  methods, which for one file or all files will close the files and release
+  any open file handles (also unlocking write access to those files on
+  Windows), but without invalidating anything it knows about the ImageSpec
+  or any pixel tiles already read from the files, as would happen with a
+  call to the much more drastic invalidate() or invalidate_all(). #1950
+
+Release 1.7.18 (1 May 2018) -- compared to 1.7.17
+-------------------------------------------------
+* Update to build against ffmpeg 4.0
+
 Release 1.7.17 (1 Sep 2017) -- compared to 1.7.16
 -------------------------------------------------
 * Repair build breaks against Boost 1.65. #1753
@@ -1497,10 +1556,10 @@ Developer goodies / internals:
    pool. #1303 (1.7.0)
  * timer.h: DoNotOptimize() and clobber_all_memory() help to disable certain
    optimizations that would interfere with micro-benchmarks. #1305 (1.7.0)
- * simd.h improvements: select(); round(); float4::store(half*),
-   int4::store(unsigned short*), int4::store(unsigned char*). #1305 (1.7.0)
-   Define insert, extract, and ^ (xor), and ~ (bit complement) for mask4,
-   and add ~ for int4. #1331 (1.7.2); madd, msub, nmadd, nmsub, rint,
+ * simd.h improvements: select(); round(); `float4::store(half*)`,
+   `int4::store(unsigned short*)`, `int4::store(unsigned char*)`. #1305 (1.7.0)
+   Define insert, extract, and ^ (xor), and `~` (bit complement) for mask4,
+   and add `~` for int4. #1331 (1.7.2); madd, msub, nmadd, nmsub, rint,
    andnot #1377 (1.7.2); exp, log #1384 (1.7.2); simd::float3 is like float4,
    but only loads and stores 3 components, it's a good Vec3f replacement (but
    padded) #1473 (1.7.5); matrix44 4x4 matrix class #1473 (1.7.5);
@@ -1770,7 +1829,7 @@ Major new features and improvements:
    your system. DroidSans is now the default font. #1132 (1.6.3)
  * GIF output support (including writing animated GIF images, just write it
    as a multi-subimage file). For example, this works:
-      oiiotool foo*.jpg -siappendall -attrib FramesPerSecond 10.0 -o anim.gif
+      `oiiotool foo*.jpg -siappendall -attrib FramesPerSecond 10.0 -o anim.gif`
    #1193 (1.6.4)
 
 Public API changes:
@@ -2299,7 +2358,7 @@ Release 1.5.16 (11 Jun 2015) -- compared to 1.5.15)
 * New ImageInput query: "procedural" -- returns 1 if the ImageInput may
   not correspond to an actual file. #1154
 * TypeDesc has a new constructor and fromstring of a string_view, in
-  addition to the old versions that took char*. #1159
+  addition to the old versions that took `char*`. #1159
 * Eliminate spurious ImageCache invalidation just because the shared
   cache is requested again. #1157
 * Fixed trilinear MIPmap texture lookups that gave invalid alpha fill. #1163
@@ -2479,11 +2538,11 @@ Public API changes:
   sample an image with B-spline bicubic interpolation. (1.5.8)
 * Clarified in the docs that TextureSystem::get_texture_info and
   ImageCache::get_image_info "exists" queries should return true, and
-  place in *data the value 1 or 0 depending on whether the image exists
+  place in `*data` the value 1 or 0 depending on whether the image exists
   and can be read. (1.5.10)
 * Clarified in the docs that TextureSystem::get_texture_info and
   ImageCache::get_image_info "exists" queries should return true, and
-  place in *data the value 1 or 0 depending on whether the image exists
+  place in `*data` the value 1 or 0 depending on whether the image exists
   and can be read. (1.5.10)
 
 Fixes, minor enhancements, and performance improvements:
@@ -2649,7 +2708,7 @@ Fixes, minor enhancements, and performance improvements:
   #902 (1.5.1/1.4.11)
 * Python: ImageBuf.get_pixels() is now implemented, was previously omitted.
   (1.5.2)
-* TextureSystem: anisotropic texture lookups are slightly sped up (~7%)
+* TextureSystem: anisotropic texture lookups are slightly sped up (7%)
   by using some approximate math (but not visibly different) #953. (1.5.5)
 * Better exception safety in Filesystem::exists() and similar functions.
   #1026 (1.5.8/1.4.16)
@@ -3265,7 +3324,7 @@ Fixes, minor enhancements, and performance improvements:
   * New nonzero_region() returns the shrink-wrapped nonzero pixel data window.
     (1.3.2)
   * resize() has a new variety that lets you specify the filter by name
-    (rather than allocating ans passing a Filter2D*).
+    (rather than allocating ans passing a `Filter2D*`).
   * resize() and resample() fixed to more robustly handle overscan
     images. (1.3.5)
   * over()/zover() are no longer restricted to float images. (1.3.7)
@@ -3309,7 +3368,7 @@ Fixes, minor enhancements, and performance improvements:
 * PNG: More correct handling of unassociated alpha.
 * TIFF: More correct handling of unassociated alpha.
 * PSD: fix handling of associated vs unassociated alpha. (1.2.3)
-* maketx fixed to handle inputs that are a mixture of cropped and 
+* maketx fixed to handle inputs that are a mixture of cropped and
   overscanned. (1.3.5)
 * Fix segfault if OCIO is set to a non-existant file. (1.3.6)
 * Slight performance increase when writing images to disk (1.3.6)
@@ -3426,7 +3485,7 @@ Release 1.2.1 (5 Aug 2013)
 * Many fixes for compiler warnings on various platforms: fmath_test.cpp,
   field3dinput.cpp, sysutil.cpp, argparse.cpp, oiiotool.cpp.
 * Fixes problems on little-endian architecture with texture3d.cpp.
-* Fix compilation problems on architectures with gcc, but no 'pause' 
+* Fix compilation problems on architectures with gcc, but no 'pause'
   instruction.
 * Fix build search path for correctly finding libopenjpeg 1.5.
 * Work around bug in older MSVC versions wherein Filesystem::open needed
