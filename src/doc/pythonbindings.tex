@@ -1616,8 +1616,23 @@ Replace the pixels in this \ImageBuf with the values from the other
 \ImageBuf.
 \apiend
 
-\apiitem{ImageBuf.{\ce copy} (other_imagebuf) \\
-ImageBuf.{\ce copy} (other_imagebuf, format)}
+\apiitem{ImageBuf ImageBuf.{\ce copy} (format=TypeUnknown)}
+Return a full copy of this \ImageBuf (with optional data format conversion,
+if {\cf format} is supplied).
+
+\noindent Example:
+\begin{code}
+    A = ImageBuf("A.tif")
+
+    # Make a separate, duplicate copy of A
+    B = A.copy()
+
+    # Make another copy of A, but converting to float pixels
+    C = A.copy ("float")
+\end{code}
+\apiend
+
+\apiitem{ImageBuf.{\ce copy} (other_imagebuf, format=TypeUnknown)}
 Make this \ImageBuf a complete copy of the other \ImageBuf.
 If a {\cf format} is provided, {\cf this} will get the specified pixel
 data type rather than using the same pixel format as the source \ImageBuf.

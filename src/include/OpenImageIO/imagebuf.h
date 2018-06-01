@@ -49,6 +49,7 @@
 #include <OpenImageIO/dassert.h>
 
 #include <limits>
+#include <memory>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -133,6 +134,10 @@ public:
     ///
     ImageBuf (const ImageBuf &src);
 
+    /// Move a copy of an ImageBuf.
+    ///
+    ImageBuf (ImageBuf &&src);
+
     /// Destructor for an ImageBuf.
     ///
     ~ImageBuf ();
@@ -168,6 +173,12 @@ public:
     /// Forget all previous info, reset this ImageBuf to a blank
     /// image of the given name and dimensions.
     void reset (string_view name, const ImageSpec &spec);
+
+    // Copy assignment
+    const ImageBuf& operator= (const ImageBuf &src);
+
+    /// Move assignment
+    const ImageBuf& operator= (ImageBuf &&src);
 
     /// Which type of storage is being used for the pixels?
     IBStorage storage () const;
@@ -252,9 +263,10 @@ public:
     /// in src that do not exist in *this will not be copied.
     bool copy_pixels (const ImageBuf &src);
 
-    /// Try to copy the pixels and metadata from src to *this, returning
-    /// true upon success and false upon error/failure.
-    /// 
+    /// Try to copy the pixels and metadata from src to *this (optionally
+    /// with an explicit data format conversion), returning true upon
+    /// success and false upon error/failure.
+    ///
     /// If the previous state of *this was uninitialized, owning its own
     /// local pixel memory, or referring to a read-only image backed by
     /// ImageCache, then local pixel memory will be allocated to hold
@@ -266,10 +278,11 @@ public:
     /// the app-owned buffer is already the correct resolution and
     /// number of channels.  The data type of the pixels will be
     /// converted automatically to the data type of the app buffer.
-    bool copy (const ImageBuf &src);
+    bool copy (const ImageBuf &src, TypeDesc format=TypeUnknown);
 
-    /// copy(src), but with optional override of pixel data type
-    bool copy (const ImageBuf &src, TypeDesc format /*= TypeDesc::UNKNOWN*/);
+    /// Return a full copy of `this` ImageBuf (optionally with an explicit
+    /// data format conversion).
+    ImageBuf copy (TypeDesc format /*= TypeDesc::UNKNOWN*/) const;
 
     /// Swap with another ImageBuf
     void swap (ImageBuf &other) { std::swap (m_impl, other.m_impl); }
@@ -1146,10 +1159,10 @@ public:
 
 
 protected:
-    ImageBufImpl *m_impl;    //< PIMPL idiom
+    std::unique_ptr<ImageBufImpl> m_impl;    //< PIMPL idiom
 
-    ImageBufImpl * impl () { return m_impl; }
-    const ImageBufImpl * impl () const { return m_impl; }
+    ImageBufImpl * impl () { return m_impl.get(); }
+    const ImageBufImpl * impl () const { return m_impl.get(); }
 
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
@@ -1167,9 +1180,6 @@ protected:
     // x,y,z is within the valid pixel data window, false if it still is
     // not.
     bool do_wrap (int &x, int &y, int &z, WrapMode wrap) const;
-
-    /// Private and unimplemented.
-    const ImageBuf& operator= (const ImageBuf &src);
 
     /// Add to the error message list for this IB.
     void append_error (const std::string& message) const;

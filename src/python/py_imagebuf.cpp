@@ -321,6 +321,11 @@ void declare_imagebuf(py::module &m)
                 return self.copy (src, format);
             },
             "src"_a, "format"_a=TypeUnknown)
+        .def("copy", [](const ImageBuf &src, TypeDesc format){
+                py::gil_scoped_release gil;
+                return src.copy(format);
+            },
+            "format"_a=TypeUnknown)
         .def("swap", &ImageBuf::swap)
         .def("getchannel", &ImageBuf::getchannel,
              "x"_a, "y"_a, "z"_a, "c"_a, "wrap"_a="black")
