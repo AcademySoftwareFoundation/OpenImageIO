@@ -203,7 +203,7 @@ timed_thread_wedge (function_view<void(int)> task,
     std::vector<double> times (threadcounts.size(), 0.0f);
     if (out)
         (*out) << "threads    time   speedup  efficient  its/thread   range (best of " << ntrials << ")\n";
-    for (size_t i = 0; i < threadcounts.size(); ++i) {
+    for (size_t i = 0; i < (size_t)threadcounts.size(); ++i) {
         int nthreads = threadcounts[i];
         if (nthreads > maxthreads)
             continue;

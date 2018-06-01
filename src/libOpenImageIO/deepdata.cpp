@@ -527,7 +527,7 @@ DeepData::set_samples (int pixel, int samps)
 void
 DeepData::set_all_samples (array_view<const unsigned int> samples)
 {
-    if (samples.size() != size_t(m_npixels))
+    if (samples.size() != m_npixels)
         return;
     ASSERT (m_impl);
     if (m_impl->m_allocated) {

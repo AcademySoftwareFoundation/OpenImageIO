@@ -307,52 +307,67 @@ header file for full details, if you wish to use \stringview in your own
 code.
 
 
-\section{Non-owning array views: {\cf array_view}}
-\label{sec:arrayview}
-\indexapi{array_view}
+\section{Non-owning array views: {\cf span} a.k.a. {\cf array\_view}}
+\label{sec:span} \label{sec:arrayview}
+\indexapi{span} \indexapi{array_view}
 
-A {\cf template array\_view<typename T>} is a non-owning, non-copying, non-
-allocating reference to an array.  It encapsulates both a pointer and a
-length, and thus is a safer way of passing pointers around (because the
-function called knows how long the array is). A function that might
-ordinarily take a {\cf T*} and a length could instead just take an {\cf
-array\_view<T>}.
+{\bf Note:} {\cf span} and \arrayview are synonyms. The new preferred name is
+{\cf span}, in keeping with the equivalent template that has been accepted into
+future C++ standards. But the old name \arrayview is still accepted. Over
+time, we will eventually update the documentation to reflect the change.
 
-An \arrayview may be initialized explicitly from a pointer and length, by
+A {\cf template span<typename T>} is a non-owning, non-copying,
+non-allocating reference to an array of contiguous {\cf T} objects.  It
+encapsulates both a pointer and a length, and thus is a safer way of passing
+pointers around (because the function called knows how long the array is). A
+function that might ordinarily take a {\cf T*} and a length could instead
+just take a {\cf span<T>}.
+
+A non-mutable (i.e., read-only) reference would be {\cf span<const T>}.
+Thus, a function that might ordinarily take a {\cf const T*} and a length
+could instead take a {\cf span<const T>}. As a shorthand, {\cf cspan<T>} is
+defined as a synonym to {\cf span<const T>}, they are equivalent.
+
+For historical reasons, the deprecated name \arrayview is accepted as a
+synonym for {\cf span}.
+
+A {\cf span} may be initialized explicitly from a pointer and length, by
 initializing with a {\cf std::vector<T>}, or by initalizing with a constant
 (treated as an array of length 1). For all of these cases, no extra
 allocations are performed, and no extra copies of the array contents are
 made.
 
-Important caveat: The \arrayview merely refers to items owned by another
-array, so the \arrayview should not be used outside the lifetime of the
-array it refers to. Thus, \arrayview is great for parameter passing, but
-it's not a good idea to use a \arrayview to store strings in a data
+Important caveat: The {\cf span} merely refers to items owned by another
+array, so the {\cf span} should not be used outside the lifetime of the
+array it refers to. Thus, {\cf span} is great for parameter passing, but
+it's not a good idea to use a {\cf span} to store strings in a data
 structure (unless you are really sure you know what you're doing).
 
-\noindent Commonly used \arrayview methods include:
+\noindent Commonly used {\cf span} methods include:
 
-\apiitem{{\ce array_view<T>} (T *data, size_t len) \\
-{\ce array_view<T>} (T \&data) \\
-{\ce array_view<T>} (T *begin, T *end) \\
-{\ce array_view<T>} (std::vector<T> \&vec)}
-Constructs a \arrayview.  The \arrayview doesn't have its own copy of the
-array elements, so don't use the \arrayview after the original array has been
+\apiitem{{\ce span<T>} (T *data, ptrdiff_t len) \\
+{\ce span<T>} (T \&data) \\
+{\ce span<T>} (T *begin, T *end) \\
+{\ce span<T>} (std::vector<T> \&vec) \\
+{\ce span<T>} (std::array<T,N> \&vec) \\
+{\ce span<T>} (T[N]) }
+Constructs a {\cf span}.  The {\cf span} doesn't have its own copy of the
+array elements, so don't use the {\cf span} after the original array has been
 destroyed or altered.
 \apiend
 
-\apiitem{T* array_view<T>::{\ce data} () \\
-size_t array_view<T>::{\ce size} ()}
+\apiitem{T* span<T>::{\ce data} () \\
+ptrdiff_t span<T>::{\ce size} ()}
 The raw pointer to the array, and its length.
 \apiend
 
-\apiitem{T\& array_view<T>::operator{\ce []} (size_t pos)}
-References a single element of the \arrayview.
+\apiitem{T\& span<T>::operator{\ce []} (ptrdiff_t pos)}
+References a single element of the {\cf span}.
 \apiend
 
 \smallskip
-\noindent Please consult the public {\cf array_view.h}
-header file for full details, if you wish to use \arrayview in your own
+\noindent Please consult the public {\cf span.h}
+header file for full details, if you wish to use {\cf span} in your own
 code.
 
 
