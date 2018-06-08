@@ -1087,7 +1087,7 @@ size_t
 Filesystem::IOMemReader::pread (void *buf, size_t size, int64_t offset)
 {
     // N.B. No lock necessary
-    if (size+size_t(offset) > m_buf.size())
+    if (size+size_t(offset) > size_t(m_buf.size()))
         size = m_buf.size()-size_t(offset);
     memcpy (buf, m_buf.data()+offset, size);
     return size;

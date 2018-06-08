@@ -254,7 +254,7 @@ tiff_dir_data (const TIFFDirEntry &td, array_view<const uint8_t> data)
     }
     // Long data
     size_t begin = td.tdir_offset;
-    if (begin+len > data.size()) {
+    if (begin+len > size_t(data.size())) {
         // Invalid span -- it is not entirely contained in the data window.
         // Signal error by returning an empty array_view.
         return array_view<const uint8_t>();

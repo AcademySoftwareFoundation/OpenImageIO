@@ -842,10 +842,10 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
     }
 
     FT_GlyphSlot slot = face->glyph;  // a small shortcut
-    size_t nchannels (R.spec().nchannels);
+    int nchannels (R.spec().nchannels);
     if (textcolor.size() <= nchannels) {
         float *localtextcolor = ALLOCA (float, nchannels);
-        for (size_t c = 0;  c < nchannels;  ++c)
+        for (int c = 0;  c < nchannels;  ++c)
             localtextcolor[c] = c < textcolor.size() ? textcolor[c] : 1.0f;
         textcolor = array_view<const float>(localtextcolor, nchannels);
     }
@@ -921,7 +921,7 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
         float val = t[0];
         float alpha = a[0];
         R.getpixel (r.x(), r.y(), pixelcolor);
-        for (size_t c = 0;  c < nchannels;  ++c)
+        for (int c = 0;  c < nchannels;  ++c)
             pixelcolor[c] = val*textcolor[c] + (1.0f-alpha) * pixelcolor[c];
         R.setpixel (r.x(), r.y(), pixelcolor);
     }
