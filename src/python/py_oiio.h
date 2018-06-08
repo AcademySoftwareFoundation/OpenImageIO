@@ -353,7 +353,7 @@ make_numpy_array (T *data, int dims, size_t chans, size_t width,
         shape.assign ({ height, width, chans });
         strides.assign ({ width*chans*sizeof(T), chans*sizeof(T), sizeof(T) });
     }
-    else if (depth == 2 && depth == 1 && height == 1) { // 1D (scanline) + channels
+    else if (dims == 2 && depth == 1 && height == 1) { // 1D (scanline) + channels
         shape.assign ({ width, chans });
         strides.assign ({ chans*sizeof(T), sizeof(T) });
     }

@@ -149,8 +149,7 @@ def test_readscanline (filename, sub=0, mip=0, type=oiio.UNKNOWN) :
             return
         # print the first pixel of the first and last scanline
         if y == 0 or y == (spec.height-1) :
-            i = 0 * spec.nchannels
-            print ("@", (spec.x,y+spec.y), "=", data[i:i+spec.nchannels])
+            print ("@", (spec.x,y+spec.y), "=", data[0])
     input.close ()
     print ()
 
