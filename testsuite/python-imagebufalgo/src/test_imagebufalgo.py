@@ -174,15 +174,13 @@ try:
     b = ImageBuf()
     ImageBufAlgo.add (b, gray128, (0, 0.25, -0.25))
     write (b, "cadd2.exr")
-    b = ImageBuf()
-    ImageBufAlgo.add (b, make_constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
-                      make_constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
+    b = ImageBufAlgo.add (make_constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
+                          make_constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
     write (b, "add.exr")
 
     # sub
-    b = ImageBuf()
-    ImageBufAlgo.sub (b, make_constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
-                      make_constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
+    b = ImageBufAlgo.sub (make_constimage(64,64,3,oiio.HALF,(.1,.2,.3)),
+                          make_constimage(64,64,3,oiio.HALF,(.1,.1,.1),20,20))
     write (b, "sub.exr")
 
     # Test --absdiff and --abs
@@ -190,11 +188,9 @@ try:
     a = ImageBuf (ImageSpec(128,128,3,oiio.HALF))
     ImageBufAlgo.fill (a, (0.5,0.5,0.5))
     ImageBufAlgo.fill (a, (-0.25,-0.25,-0.25), oiio.ROI(0,64,0,128))
-    b = ImageBuf()
-    ImageBufAlgo.abs (b, a)
+    b = ImageBufAlgo.abs (a)
     write (b, "abs.exr", oiio.HALF)
-    b = ImageBuf()
-    ImageBufAlgo.absdiff (b, a, (0.2,0.2,0.2))
+    b = ImageBufAlgo.absdiff (a, (0.2,0.2,0.2))
     write (b, "absdiff.exr", oiio.HALF)
     a = ImageBuf()
 

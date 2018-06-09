@@ -68,6 +68,24 @@ class Filter2D;  // forward declaration
 /// alter all the pixels in dst.  Exceptions will be noted, including 
 /// functions that do not honor their channel range.
 ///
+/// IBA functions tend to come in two varieties:
+/// 1. They return an ImageBuf containing the result.
+///    In this case, an entirely new image will be created to hold the
+///    result. In case of error, the result image returned can have any
+///    error conditions checked with has_error() and geterror().
+/// 2. They take a first parameter that is an ImageBuf& for the destination,
+///    and return a bool indicating whether an error occurred (the message
+///    can be retrieved with dst.geterror()).
+///
+/// The first option (return an ImageBuf) is a more compact and intuitive
+/// notation that is natural for most simple uses. But the second option
+/// (pass an ImageBuf& referring to an existing destination) offers
+/// additional flexibility, including more careful control over allocations,
+/// the ability to partially overwrite regions of an existing image, and the
+/// ability for the destination image to also be one of the input images
+/// (for example, add(A,A,B) adds B into existing image A, with no third
+/// image allocated at all).
+///
 /// In general, IBA functions that are passed an initialized 'dst' or
 /// 'result' image do not reallocate it or alter its existing pixels
 /// that lie outside the ROI (exceptions will be noted). If passed an
@@ -601,151 +619,108 @@ bool OIIO_API clamp (ImageBuf &dst, const ImageBuf &src,
                      ROI roi = ROI::All(), int nthreads = 0);
 
 
-/// For all pixels within the designated region, set dst = A + B.
-/// It is permitted for any of dst, A, or B to be the same image.
+/// Compute per-pixel sum A + B, returing the result image or storing the
+/// result into existing image dst. It is permitted for any of dst, A, or B
+/// to be the same image.
+///
+/// If B is an array_view rather than an image, it consists of per-channel
+/// constant values used for all pixels. If the number of elements of B is
+/// fewer than the number of channels of A, the last value will be
+/// implicitly repeated for the remaining channels. Note that passing a
+/// single float constant for B is permitted, and just means to replicate
+/// that value in all channels.
 ///
 /// If roi is not initialized, it will be set to the union of the pixel
-/// regions of A and B.  If dst is not initialized, it will be sized
-/// based on roi.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
+/// regions of A and B (if B is an image).  If dst is supplied but not
+/// initialized, it will be sized based on roi.
+ImageBuf OIIO_API add (const ImageBuf &A, const ImageBuf &B,
+                       ROI roi=ROI::All(), int nthreads=0);
+ImageBuf OIIO_API add (const ImageBuf &A, array_view<const float> B,
+                       ROI roi=ROI::All(), int nthreads=0);
 bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi=ROI::All(), int nthreads=0);
-
-/// For all pixels and channels of dst within the designated region, set
-/// dst = A + B.  (B must point to nchannels floats.) It is permitted for
-/// dst and A to be the same image.
-///
-/// If roi is not initialized, it will be set to the pixel region of A.
-/// If dst is not initialized, it will be sized based on roi.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
-bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const float *B,
+bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, array_view<const float> B,
                    ROI roi=ROI::All(), int nthreads=0);
 
-/// For all pixels and channels of dst within the designated region, set 
-/// dst = A + B.  (B is a single float that is added to all channels.)
-/// It is permitted for dst and A to be the same image.
-///
-/// If roi is not initialized, it will be set to the pixel region of A.
-/// If dst is not initialized, it will be sized based on roi.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
+// DEPRECATED(1.9): we recommend using the array_view versions rather than
+// passing raw pointers or lone floats.
+bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, const float *B,
+                   ROI roi=ROI::All(), int nthreads=0);
 bool OIIO_API add (ImageBuf &dst, const ImageBuf &A, float B,
                    ROI roi=ROI::All(), int nthreads=0);
 
 
-/// For all pixels within the designated ROI, compute dst = A - B.
-/// It is permitted for any of dst, A, or B to be the same image.
+/// Compute per-pixel difference A - B, returing the result image or storing
+/// the result into existing image dst. It is permitted for any of dst, A,
+/// or B to be the same image.
+///
+/// If B is an array_view rather than an image, it consists of per-channel
+/// constant values used for all pixels. If the number of elements of B is
+/// fewer than the number of channels of A, the last value will be
+/// implicitly repeated for the remaining channels. Note that passing a
+/// single float constant for B is permitted, and just means to replicate
+/// that value in all channels.
 ///
 /// If roi is not initialized, it will be set to the union of the pixel
-/// regions of A and B.  If dst is not initialized, it will be sized
-/// based on roi.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
+/// regions of A and B (if B is an image).  If dst is supplied but not
+/// initialized, it will be sized based on roi.
+ImageBuf OIIO_API sub (const ImageBuf &A, const ImageBuf &B,
+                       ROI roi=ROI::All(), int nthreads=0);
+ImageBuf OIIO_API sub (const ImageBuf &A, array_view<const float> B,
+                       ROI roi=ROI::All(), int nthreads=0);
 bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                    ROI roi=ROI::All(), int nthreads=0);
-
-/// For all pixels and channels of dst within the designated region, set 
-/// dst = A - B.  (B must point to nchannels floats.)
-/// It is permitted for dst and A to be the same image.
-///
-/// If roi is not initialized, it will be set to the pixel region of A.
-/// If dst is not initialized, it will be sized based on roi.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
-bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, const float *B,
+bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, array_view<const float> B,
                    ROI roi=ROI::All(), int nthreads=0);
 
-/// For all pixels and channels of dst within the designated region, set 
-/// dst = A - B.  (B is a single float that is added to all channels.)
-/// It is permitted for dst and A to be the same image.
-///
-/// If roi is not initialized, it will be set to the pixel region of A.
-/// If dst is not initialized, it will be sized based on roi.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
+// DEPRECATED(1.9): we recommend using the array_view versions rather than
+// passing raw pointers or lone floats.
+bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, const float *B,
+                   ROI roi=ROI::All(), int nthreads=0);
 bool OIIO_API sub (ImageBuf &dst, const ImageBuf &A, float B,
                    ROI roi=ROI::All(), int nthreads=0);
 
 
-/// For all pixels within the designated ROI, compute dst = abs(A - B).
-/// It is permitted for any of dst, A, or B to be the same image.
+/// Compute per-pixel absolute difference abs(A - B), returing the result
+/// image or storing the result into existing image dst. It is permitted for
+/// any of dst, A, or B to be the same image.
 ///
-/// A is an ImageBuf. B may be an ImageBuf (with the same number of channels
-/// as A), or an array of floats (one per channel, for each channel of A),
-/// or a single float (same value for all channels).
+/// If B is an array_view rather than an image, it consists of per-channel
+/// constant values used for all pixels. If the number of elements of B is
+/// fewer than the number of channels of A, the last value will be
+/// implicitly repeated for the remaining channels. Note that passing a
+/// single float constant for B is permitted, and just means to replicate
+/// that value in all channels.
 ///
 /// If roi is not initialized, it will be set to the union of the pixel
-/// regions of A and B.  If dst is not initialized, it will be sized based
-/// on roi. If dst is initialized, it also must have the same number of
-/// channels as A.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
+/// regions of A and B (if B is an image).  If dst is supplied but not
+/// initialized, it will be sized based on roi.
+ImageBuf OIIO_API absdiff (const ImageBuf &A, const ImageBuf &B,
+                           ROI roi=ROI::All(), int nthreads=0);
+ImageBuf OIIO_API absdiff (const ImageBuf &A, array_view<const float> B,
+                           ROI roi=ROI::All(), int nthreads=0);
 bool OIIO_API absdiff (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                        ROI roi=ROI::All(), int nthreads=0);
+bool OIIO_API absdiff (ImageBuf &dst, const ImageBuf &A, array_view<const float> B,
+                       ROI roi=ROI::All(), int nthreads=0);
+
+// DEPRECATED(1.9): we recommend using the array_view versions rather than
+// passing raw pointers or lone floats.
 bool OIIO_API absdiff (ImageBuf &dst, const ImageBuf &A, const float *B,
                        ROI roi=ROI::All(), int nthreads=0);
 bool OIIO_API absdiff (ImageBuf &dst, const ImageBuf &A, float B,
                        ROI roi=ROI::All(), int nthreads=0);
 
 
-/// For all pixels within the designated ROI, compute dst = abs(A).
-/// It is permitted for dst and A to be the same image.
+/// Compute per-pixel absolute value abs(A), returing the result image or
+/// storing the result into existing image dst. It is permitted for dst and
+/// A to be the same image.
 ///
 /// If roi is not initialized, it will be set to the pixel data region of A.
 /// If dst is not initialized, it will be sized based on roi. If dst is
 /// initialized, it must have the same number of channels as A.
-///
-/// The nthreads parameter specifies how many threads (potentially) may
-/// be used, but it's not a guarantee.  If nthreads == 0, it will use
-/// the global OIIO attribute "nthreads".  If nthreads == 1, it
-/// guarantees that it will not launch any new threads.
-///
-/// Return true on success, false on error (with an appropriate error
-/// message set in dst).
+ImageBuf OIIO_API abs (const ImageBuf &A,
+                       ROI roi=ROI::All(), int nthreads=0);
 bool OIIO_API abs (ImageBuf &dst, const ImageBuf &A,
                    ROI roi=ROI::All(), int nthreads=0);
 

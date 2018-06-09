@@ -132,7 +132,7 @@ absdiff_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 template<class Rtype, class Atype>
 static bool
-absdiff_impl (ImageBuf &R, const ImageBuf &A, const float *b,
+absdiff_impl (ImageBuf &R, const ImageBuf &A, array_view<const float> b,
               ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -182,12 +182,22 @@ ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
-ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const float *b,
+ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, array_view<const float> b,
                        ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::absdiff");
     if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
+
+    // Fill out b, if not long enough
+    if (int(b.size()) < A.nchannels()) {
+        int nc = A.nchannels();
+        float *vals = ALLOCA (float, nc);
+        for (int c = 0;  c < nc;  ++c)
+            vals[c] = c < int(b.size()) ? b[c] : (b.size() ? b.back() : 0.0f);
+        b = array_view<const float>(vals, nc);
+    }
+
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
                           A.spec().format, dst, A, b, roi, nthreads);
@@ -196,21 +206,46 @@ ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const float *b,
 
 
 
+ImageBuf
+ImageBufAlgo::absdiff (const ImageBuf &A, const ImageBuf &B,
+                       ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = absdiff (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("absdiff error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::absdiff (const ImageBuf &A, array_view<const float> B,
+                       ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = absdiff (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("absdiff error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const float *b,
+                       ROI roi, int nthreads)
+{
+    return absdiff (dst, A, array_view<const float>(b,A.nchannels()), roi, nthreads);
+}
+
+
+
 bool
 ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, float b,
                        ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::absdiff");
-    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
-        return false;
-    int nc = dst.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = b;
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
-                          A.spec().format, dst, A, vals, roi, nthreads);
-    return ok;
+    return absdiff (dst, A, array_view<const float>(&b,1), roi, nthreads);
 }
 
 
@@ -220,6 +255,18 @@ ImageBufAlgo::abs (ImageBuf &dst, const ImageBuf &A, ROI roi, int nthreads)
 {
     // Define abs in terms of absdiff(A,0.0)
     return absdiff (dst, A, 0.0f, roi, nthreads);
+}
+
+
+
+ImageBuf
+ImageBufAlgo::abs (const ImageBuf &A, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = abs (result, A, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("abs error");
+    return result;
 }
 
 

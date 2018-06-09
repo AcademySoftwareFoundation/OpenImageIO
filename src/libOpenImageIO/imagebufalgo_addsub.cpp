@@ -70,7 +70,7 @@ add_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 template<class Rtype, class Atype>
 static bool
-add_impl (ImageBuf &R, const ImageBuf &A, const float *b,
+add_impl (ImageBuf &R, const ImageBuf &A, array_view<const float> b,
           ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -86,7 +86,7 @@ add_impl (ImageBuf &R, const ImageBuf &A, const float *b,
 
 
 static bool
-add_impl_deep (ImageBuf &R, const ImageBuf &A, const float *b,
+add_impl_deep (ImageBuf &R, const ImageBuf &A, array_view<const float> b,
                ROI roi, int nthreads)
 {
     ASSERT (R.deep());
@@ -142,15 +142,23 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 }
 
 
-
 bool
-ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const float *b,
+ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, array_view<const float> b,
                    ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::add");
     if (! IBAprep (roi, &dst, &A,
                    IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
         return false;
+
+    // Fill out b, if not long enough
+    if (int(b.size()) < A.nchannels()) {
+        int nc = A.nchannels();
+        float *vals = ALLOCA (float, nc);
+        for (int c = 0;  c < nc;  ++c)
+            vals[c] = c < int(b.size()) ? b[c] : (b.size() ? b.back() : 0.0f);
+        b = array_view<const float>(vals, nc);
+    }
 
     if (dst.deep()) {
         // While still serial, set up all the sample counts
@@ -166,20 +174,46 @@ ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const float *b,
 
 
 
+ImageBuf
+ImageBufAlgo::add (const ImageBuf &A, const ImageBuf &B,
+                   ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = add (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("add error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::add (const ImageBuf &A, array_view<const float> B,
+                   ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = add (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("add error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const float *b,
+                   ROI roi, int nthreads)
+{
+    return add (dst, A, array_view<const float>(b,A.nchannels()), roi, nthreads);
+}
+
+
+
 bool
 ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::add");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    int nc = A.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = b;
-    return add (dst, A, vals, roi, nthreads);
+    return add (dst, A, array_view<const float>(&b,1), roi, nthreads);
 }
 
 
@@ -236,7 +270,7 @@ ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
-ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const float *b,
+ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, array_view<const float> b,
                    ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::sub");
@@ -247,18 +281,54 @@ ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const float *b,
     int nc = A.nchannels();
     float *vals = ALLOCA (float, nc);
     for (int c = 0;  c < nc;  ++c)
-        vals[c] = -b[c];
+        vals[c] = c < int(b.size()) ? -b[c] : (b.size() ? -b.back() : 0.0f);
+    b = array_view<const float>(vals, nc);
 
     if (dst.deep()) {
         // While still serial, set up all the sample counts
         dst.deepdata()->set_all_samples (A.deepdata()->all_samples());
-        return add_impl_deep (dst, A, vals, roi, nthreads);
+        return add_impl_deep (dst, A, b, roi, nthreads);
     }
 
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "sub", add_impl, dst.spec().format,
-                          A.spec().format, dst, A, vals, roi, nthreads);
+                          A.spec().format, dst, A, b, roi, nthreads);
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::sub (const ImageBuf &A, array_view<const float> B,
+                   ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = sub (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("sub error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::sub (const ImageBuf &A, const ImageBuf &B,
+                   ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = sub (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("sub error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const float *b,
+                   ROI roi, int nthreads)
+{
+    return sub (dst, A, array_view<const float>(b,A.nchannels()), roi, nthreads);
 }
 
 
@@ -267,16 +337,7 @@ bool
 ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, float b,
                    ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::sub");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    int nc = A.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = b;
-    return sub (dst, A, vals, roi, nthreads);
+    return sub (dst, A, array_view<const float>(&b,1), roi, nthreads);
 }
 
 

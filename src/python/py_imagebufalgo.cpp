@@ -393,6 +393,42 @@ IBA_add_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     return ImageBufAlgo::add (dst, A, B, roi, nthreads);
 }
 
+ImageBuf
+IBA_add_color_ret (const ImageBuf &A, py::object values_tuple,
+                   ROI roi=ROI::All(), int nthreads=0)
+{
+    ImageBuf result;
+    std::vector<float> values;
+    py_to_stdvector (values, values_tuple);
+    if (roi.defined())
+        values.resize (roi.nchannels(), 0.0f);
+    else if (A.initialized())
+        values.resize (A.nchannels(), 0.0f);
+    else return result;
+    ASSERT (values.size() > 0);
+    py::gil_scoped_release gil;
+    result = ImageBufAlgo::add (A, values, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_add_float_ret (const ImageBuf &A, float val,
+                   ROI roi=ROI::All(), int nthreads=0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::add (A, val, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_add_images_ret (const ImageBuf &A, const ImageBuf &B,
+                    ROI roi=ROI::All(), int nthreads=0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::add (A, B, roi, nthreads);
+    return result;
+}
+
 
 
 bool
@@ -425,6 +461,42 @@ IBA_sub_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::sub (dst, A, B, roi, nthreads);
+}
+
+ImageBuf
+IBA_sub_color_ret (const ImageBuf &A, py::object values_tuple,
+                   ROI roi=ROI::All(), int nthreads=0)
+{
+    ImageBuf result;
+    std::vector<float> values;
+    py_to_stdvector (values, values_tuple);
+    if (roi.defined())
+        values.resize (roi.nchannels(), 0.0f);
+    else if (A.initialized())
+        values.resize (A.nchannels(), 0.0f);
+    else return result;
+    ASSERT (values.size() > 0);
+    py::gil_scoped_release gil;
+    result = ImageBufAlgo::sub (A, values, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_sub_float_ret (const ImageBuf &A, float val,
+                   ROI roi=ROI::All(), int nthreads=0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::sub (A, val, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_sub_images_ret (const ImageBuf &A, const ImageBuf &B,
+                    ROI roi=ROI::All(), int nthreads=0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::sub (A, B, roi, nthreads);
+    return result;
 }
 
 
@@ -461,6 +533,42 @@ IBA_absdiff_images (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     return ImageBufAlgo::absdiff (dst, A, B, roi, nthreads);
 }
 
+ImageBuf
+IBA_absdiff_color_ref (const ImageBuf &A, py::object values_tuple,
+                       ROI roi=ROI::All(), int nthreads=0)
+{
+    ImageBuf result;
+    std::vector<float> values;
+    py_to_stdvector (values, values_tuple);
+    if (roi.defined())
+        values.resize (roi.nchannels(), 0.0f);
+    else if (A.initialized())
+        values.resize (A.nchannels(), 0.0f);
+    else return result;
+    ASSERT (values.size() > 0);
+    py::gil_scoped_release gil;
+    result = ImageBufAlgo::absdiff (A, values, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_absdiff_float_ref (const ImageBuf &A, float val,
+                       ROI roi=ROI::All(), int nthreads=0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::absdiff (A, val, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_absdiff_images_ret (const ImageBuf &A, const ImageBuf &B,
+                        ROI roi=ROI::All(), int nthreads=0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::absdiff (A, B, roi, nthreads);
+    return result;
+}
+
 
 
 bool
@@ -469,6 +577,14 @@ IBA_abs (ImageBuf &dst, const ImageBuf &A,
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::abs (dst, A, roi, nthreads);
+}
+
+ImageBuf
+IBA_abs_ret (const ImageBuf &A, ROI roi=ROI::All(), int nthreads=0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::abs (A, roi, nthreads);
+    return result;
 }
 
 
@@ -1497,6 +1613,12 @@ void declare_imagebufalgo (py::module &m)
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
         .def_static("add", IBA_add_color,
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("add", &IBA_add_images_ret,
+            "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("add", IBA_add_color_ret,
+            "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("add", &IBA_add_float_ret,
+            "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("sub", &IBA_sub_images,
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
@@ -1504,6 +1626,12 @@ void declare_imagebufalgo (py::module &m)
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
         .def_static("sub", IBA_sub_color,
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("sub", &IBA_sub_images_ret,
+            "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("sub", &IBA_sub_float_ret,
+            "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("sub", IBA_sub_color_ret,
+            "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("absdiff", &IBA_absdiff_images,
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
@@ -1511,9 +1639,17 @@ void declare_imagebufalgo (py::module &m)
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
         .def_static("absdiff", IBA_absdiff_color,
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("absdiff", &IBA_absdiff_images_ret,
+            "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("absdiff", &IBA_absdiff_float_ref,
+            "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("absdiff", IBA_absdiff_color_ref,
+            "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("abs", &IBA_abs,
             "dst"_a, "A"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("abs", &IBA_abs_ret,
+            "A"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("mul", &IBA_mul_images,
             "dst"_a, "A"_a, "B"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
