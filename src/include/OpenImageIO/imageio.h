@@ -116,8 +116,8 @@ struct ROI {
     int xbegin, xend, ybegin, yend, zbegin, zend;
     int chbegin, chend;
 
-    /// Default constructor is an undefined region.
-    ///
+    /// Default constructor is an undefined region. Note that this is also
+    /// interpreted as All().
     constexpr ROI () : xbegin(std::numeric_limits<int>::min()), xend(0),
              ybegin(0), yend(0), zbegin(0), zend(0), chbegin(0), chend(0)
     { }
@@ -150,12 +150,11 @@ struct ROI {
             : 0;
     }
 
-    /// Documentary sugar -- although the static ROI::All() function
-    /// simply returns the results of the default ROI constructor, it
-    /// makes it very clear when using as a default function argument
-    /// that it means "all" of the image.  For example,
+    /// All() is an alias for the default constructor, which indicates that
+    /// it means "all" of the image, or no region restruction.  For example,
     ///     float myfunc (ImageBuf &buf, ROI roi = ROI::All());
-    /// Doesn't that make it abundantly clear?
+    /// Note that this is equivalent to:
+    ///     float myfunc (ImageBuf &buf, ROI roi = {});
     static constexpr ROI All () { return ROI(); }
 
     /// Test equality of two ROIs

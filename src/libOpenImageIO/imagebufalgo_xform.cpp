@@ -496,6 +496,32 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::resize (const ImageBuf &src,
+                      Filter2D *filter, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = resize (result, src, filter, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::resize() error");
+    return result;
+}
+
+
+ImageBuf
+ImageBufAlgo::resize (const ImageBuf &src,
+                      string_view filtername, float filterwidth,
+                      ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = resize (result, src, filtername, filterwidth, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::resize() error");
+    return result;
+}
+
+
+
 template<typename DSTTYPE, typename SRCTYPE>
 static bool
 resample_ (ImageBuf &dst, const ImageBuf &src, bool interpolate,
@@ -608,6 +634,20 @@ ImageBufAlgo::resample (ImageBuf &dst, const ImageBuf &src,
                           dst, src, interpolate, roi, nthreads);
     return ok;
 }
+
+
+
+ImageBuf
+ImageBufAlgo::resample (const ImageBuf &src, bool interpolate,
+                        ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = resample (result, src, interpolate, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::resample() error");
+    return result;
+}
+
 
 
 
@@ -735,6 +775,37 @@ ImageBufAlgo::warp (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::warp (const ImageBuf &src,
+                    const Imath::M33f &M, const Filter2D *filter,
+                    bool recompute_roi, ImageBuf::WrapMode wrap,
+                    ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = warp (result, src, M, filter, recompute_roi, wrap, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::warp() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::warp (const ImageBuf &src, const Imath::M33f &M,
+                    string_view filtername, float filterwidth,
+                    bool recompute_roi, ImageBuf::WrapMode wrap,
+                    ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = warp (result, src, M, filtername, filterwidth,
+                    recompute_roi, wrap, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::warp() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::rotate (ImageBuf &dst, const ImageBuf &src,
                       float angle, float center_x, float center_y,
@@ -797,6 +868,68 @@ ImageBufAlgo::rotate (ImageBuf &dst, const ImageBuf &src, float angle,
     return ImageBufAlgo::rotate (dst, src, angle, center_x, center_y,
                                  filtername, filterwidth, recompute_roi,
                                  roi, nthreads);
+}
+
+
+
+ImageBuf
+ImageBufAlgo::rotate (const ImageBuf &src,
+                      float angle, float center_x, float center_y,
+                      Filter2D *filter, bool recompute_roi,
+                      ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = rotate (result, src, angle, center_x, center_y,
+                      filter, recompute_roi, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::rotate() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::rotate (const ImageBuf &src,
+                      float angle, float center_x, float center_y,
+                      string_view filtername, float filterwidth,
+                      bool recompute_roi, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = rotate (result, src, angle, center_x, center_y,
+                      filtername, filterwidth, recompute_roi, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::rotate() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::rotate (const ImageBuf &src, float angle,
+                      Filter2D *filter,
+                      bool recompute_roi, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = rotate (result, src, angle, filter, recompute_roi, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::rotate() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::rotate (const ImageBuf &src, float angle,
+                      string_view filtername, float filterwidth,
+                      bool recompute_roi,
+                      ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = rotate (result, src, angle, filtername, filterwidth,
+                      recompute_roi, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::rotate() error");
+    return result;
 }
 
 

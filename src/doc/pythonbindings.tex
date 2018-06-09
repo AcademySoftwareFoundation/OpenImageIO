@@ -1894,7 +1894,8 @@ images).
 \subsection{Pattern generation}
 \label{sec:iba:py:patterns}
 
-\apiitem{bool ImageBufAlgo.{\ce zero} (dst, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce zero} (roi, nthreads=0) \\
+bool ImageBufAlgo.{\ce zero} (dst, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!zero} \indexapi{zero}
 
 Zero out the destination buffer (or a specific region of it).
@@ -1902,22 +1903,27 @@ Zero out the destination buffer (or a specific region of it).
 \smallskip
 \noindent Example:
 \begin{code}
-    # Initialize buf to a 640x480 3-channel FLOAT buffer, zero it out
-    buf = ImageBuf (ImageSpec (640, 480, 3, oiio.FLOAT))
-    ImageBufAlgo.zero (buf)
+    # Initialize buf to a 640x480 3-channel FLOAT buffer of 0 values
+    buf = ImageBufAlgo.zero (ROI(0, 640, 0, 480, 0, 1, 0, 3))
 \end{code}
 \apiend
 
-\apiitem{bool ImageBufAlgo.{\ce fill} (dst, values, roi=ROI.All, nthreads=0) \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce fill} (values, roi=ROI.All, nthreads=0) \\
+ImageBuf ImageBufAlgo.{\ce fill} (top, bottom, roi=ROI.All, nthreads=0) \\
+ImageBuf ImageBufAlgo.{\ce fill} (topleft, topright, \\
+\bigspc bottomleft, bottomright, roi=ROI.All, nthreads=0) \\[0.5ex]
+bool ImageBufAlgo.{\ce fill} (dst, values, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce fill} (dst, top, bottom, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce fill} (dst, topleft, topright, \\
 \bigspc bottomleft, bottomright, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!fill} \indexapi{fill}
 
-Sets the the pixels in {\cf dst} within the ROI to a color or gradient.
-Three options are available: (a) if one color tuple is supplied, the whole
-ROI will be filled with that constant value, (b) if two color tuples are
-supplied, a linear gradient will be applied from top to bottom, (c) if
+Return a filled float image of size ROI, or set the the pixels of image
+{\cf dst} within the ROI to a color or gradient.
+
+Three fill optins are available: (a) if one color tuple is supplied, the
+whole ROI will be filled with that constant value, (b) if two color tuples
+are supplied, a linear gradient will be applied from top to bottom, (c) if
 four color cuples are supplied, the ROI will be be filled with values
 bilinearly interpolated from the four corner colors supplied.
 
@@ -1931,12 +1937,15 @@ bilinearly interpolated from the four corner colors supplied.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce checker} (dst, width, height, depth, 
+\apiitem{ImageBuf ImageBufAlgo.{\ce checker} (width, height, depth, 
+ color1, color2, \\ \bigspc xoffset=0, yoffset=0, zoffset=0, 
+ roi=ROI.All, nthreads=0) \\
+ bool ImageBufAlgo.{\ce checker} (dst, width, height, depth, 
  color1, color2, \\ \bigspc xoffset=0, yoffset=0, zoffset=0, 
  roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!checker} \indexapi{checker}
 
-Fill {\cf dst} with a checkerboard pattern. The colors are specified as
+Return (or copy into {\cf dst}) a checkerboard pattern. The colors are specified as
 tuples giving the values for each color channel.
 
 \smallskip
@@ -1948,37 +1957,34 @@ tuples giving the values for each color channel.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce noise_uniform} (dst, min=0.0, max=1.0, \\
-\bigspc\bigspc seed=0, roi=ROI.All, nthreads=0)}
-\index{ImageBufAlgo!noise_uniform} \indexapi{noise_uniform}
+\apiitem{ImageBuf ImageBufAlgo.{\ce noise} (noisetype, A=0.0, B=0.1, \\
+\bigspc\bigspc mono=False, seed=0, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce noise} (dst, noisetype, A=0.0, B=0.1,\\
+\bigspc\bigspc mono=False, seed=0, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!noise} \indexapi{noise}
 
-Add noise to {\cf dst} that is uniformly-distributed over the range
-{\cf [min,max)}.  Choosing different seed values will result in a different pattern.
+Return an image of pseudorandom noise, or add pseudorandom noise
+to the specified region of existing region {\cf dst}.
 
-\smallskip
-\noindent Examples:
-\begin{code}
-    buf = ImageBuf(ImageSpec(640, 480, 3, oiio.UINT8))
-    ImageBufAlgo.noise_uniform (buf, 0.25, 0.75)
-\end{code}
-\apiend
-
-
-\apiitem{bool ImageBufAlgo.{\ce noise_gaussian} (dst, mean=0.0, stddev=0.1, \\
-\bigspc\bigspc  seed=0, roi=ROI.All, nthreads=0)}
-\index{ImageBufAlgo!noise_gaussian} \indexapi{noise_gaussian}
-
-Fill {\cf dst} with Gaussian noise (normal distribution) with given mean
-and standard deviation.
-Choosing different seed values will result in a different pattern.
+For noise type \qkw{uniform}, the noise is uniformly distributed on the
+range {\cf [A,B)}. For noise \qkw{gaussian}, the noise will have a normal
+distribution with mean A and standard deviation B. For noise \qkw{salt}, the
+value A will be stored in a random set of pixels whose proportion (of the
+overall image) is B. For all noise types, choosing different {\cf seed}
+values will result in a different pattern. If the {\cf mono} flag is {\cf
+true}, a single noise value will be applied to all channels specified by
+{\cf roi}, but if {\cf mono} is {\cf false}, a separate noise value will be
+computed for each channel in the region.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     buf = ImageBuf(ImageSpec(640, 480, 3, oiio.UINT8))
-    ImageBufAlgo.noise_gaussian (buf, (0.5,0.5,0.5), (0.1,0.1,0.1))
+    ImageBufAlgo.zero (buf)
+    ImageBufAlgo.noise (buf, 'uniform', 0.25, 0.75)
 \end{code}
 \apiend
+
 
 
 \apiitem{bool ImageBufAlgo.{\ce render_point} (dst, x, y, color=(1,1,1,1))}
@@ -2082,11 +2088,13 @@ valid font name).
 \subsection{Image transformations and data movement}
 \label{sec:iba:py:transforms}
 
-\apiitem{bool ImageBufAlgo.{\ce channels} (dst, src, channelorder, newchannelnames=(), \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce channels} (src, channelorder, newchannelnames=(), \\
+        \bigspc\bigspc shuffle_channel_names=False, nthreads=0) \\
+bool ImageBufAlgo.{\ce channels} (dst, src, channelorder, newchannelnames=(), \\
         \bigspc\bigspc shuffle_channel_names=False, nthreads=0)}
 \index{ImageBufAlgo!channels} \indexapi{channels}
 
-Copy {\cf src} to {\cf dst}, but with channels in
+Return (or store in {\cf dst}) shuffled channels of {\cf src}, with channels in
 the order specified by the tuple {\cf channelorder}. 
 The length of {\cf channelorder} specifies the number of channels to copy.
 Each element in the tuple {\cf channelorder} may be one of the following:
@@ -2098,9 +2106,6 @@ Each element in the tuple {\cf channelorder} may be one of the following:
 \item {\cf float} : specifies a constant value to use for that channel.
 \end{itemize}
 
-Does not support in-place operation -- that is, {\cf dst} and {\cf src} must
-be different \ImageBuf's.
-
 If {\cf newchannelnames} is supplied, it is a tuple of new channel
 names. (See the C++ version for more full explanation.)
 
@@ -2109,59 +2114,56 @@ names. (See the C++ version for more full explanation.)
 \begin{code}
     # Copy the first 3 channels of an RGBA, drop the alpha
     RGBA = ImageBuf("rgba.tif")
-    RGB = ImageBuf()
-    ImageBufAlgo.channels (RGB, RGBA, (0,1,2))
+    RGB = ImageBufAlgo.channels (RGBA, (0,1,2))
 
     # Copy just the alpha channel, making a 1-channel image
-    Alpha = ImageBuf()
-    ImageBufAlgo.channels (Alpha, RGBA, ("A",))
+    Alpha = ImageBufAlgo.channels (RGBA, ("A",))
 
     # Swap the R and B channels
-    BGRA = ImageBuf()
-    ImageBufAlgo.channels (BRGA, RGBA, (2, 1, 0, 3))
+    BGRA = ImageBufAlgo.channels (RGBA, (2, 1, 0, 3))
 
     # Add an alpha channel with value 1.0 everywhere to an RGB image
-    ImageBufAlgo.channels (RGBA, RGB, ("R", "G", "B", 1.0),
-                            ("R", "G", "B", "A"))
+    RGBA = ImageBufAlgo.channels (RGB, ("R", "G", "B", 1.0),
+                                  ("R", "G", "B", "A"))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce channel_append} (dst, A, B, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce channel_append} (A, B, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce channel_append} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!channel_append} \indexapi{channel_append}
-Append the channels of images {\cf A} and {\cf B} together into {\cf dst} over
-the region of interest.
+Append the channels of images {\cf A} and {\cf B} together into one image.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     RGBA = ImageBuf ("rgba.exr")
     Z = ImageBuf ("z.exr")
-    RGBAZ = ImageBuf()
-    ImageBufAlgo.channel_append (RGBAZ, RGBA, Z)
+    RGBAZ = ImageBufAlgo.channel_append (RGBA, Z)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce copy} (dst, src, convert=TypeDesc.UNKNOWN, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce copy} (src, convert=TypeDesc.UNKNOWN, \\
+        \bigspc roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce copy} (dst, src, convert=TypeDesc.UNKNOWN, \\
         \bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!copy} \indexapi{copy}
-Copy the specified region of pixels of {\cf src} into {\cf dst} at the same
-locations, without changing any existing pixels of {\cf dst} outside the
-region.  If {\cf dst} is not already initialized, it will be set to the same
-size as {\cf roi} (defaulting to all of {\cf src}), optionally with the pixel
+Copy the specified region of pixels of {\cf src} at the same
+locations, optionally with the pixel
 type overridden by {\cf convert} (if it is not {\cf UNKNOWN}).
 
 \smallskip
 \noindent Examples:
 \begin{code}
     # Copy A's upper left 200x100 region into B
-    ImageBufAlgo.copy (B, A, ROI(0,200,0,100))
+    B = ImageBufAlgo.copy (A, ROI(0,200,0,100))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce crop} (dst, src, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce crop} (src, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce crop} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!crop} \indexapi{crop}
 Reset {\cf dst} to be the specified region of {\cf src}.
 
@@ -2170,13 +2172,13 @@ Reset {\cf dst} to be the specified region of {\cf src}.
 \begin{code}
     # Set B to be the upper left 200x100 region of A
     A = ImageBuf ("a.tif")
-    B = ImageBuf()
-    ImageBufAlgo.crop (B, A, ROI(0,200,0,100))
+    B = ImageBufAlgo.crop (A, ROI(0,200,0,100))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce cut} (dst, src, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce cut} (src, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce cut} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!cut} \indexapi{cut}
 Reset {\cf dst} to be the specified region of {\cf src}, but moved so
 that the resulting new image has its pixel data at the image plane origin.
@@ -2186,14 +2188,12 @@ that the resulting new image has its pixel data at the image plane origin.
 \begin{code}
     # Set B to be the lower left 200x100 region of A, moved to the origin
     A = ImageBuf ("a.tif")
-    B = ImageBuf()
-    ImageBufAlgo.cut (B, A, ROI(0,200,380,480))
+    B = ImageBufAlgo.cut (A, ROI(0,200,380,480))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce paste} (dst, xbegin, ybegin, zbegin,
-  chbegin, \\
+\apiitem{bool ImageBufAlgo.{\ce paste} (dst, xbegin, ybegin, zbegin, chbegin, \\
   \bigspc\bigspc src, ROI srcroi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!paste} \indexapi{paste}
 Copy the specified region of {\cf src} into {\cf dst} beginning at 
@@ -2210,7 +2210,10 @@ offset {\cf (xbegin, ybegin, zbegin)}.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce rotate90} (dst, src, roi=ROI.All, nthreads=0) \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce rotate90} (src, roi=ROI.All, nthreads=0) \\
+ImageBuf ImageBufAlgo.{\ce rotate180} (src, roi=ROI.All, nthreads=0) \\
+ImageBuf ImageBufAlgo.{\ce rotate270} (src, roi=ROI.All, nthreads=0) \\[1.0ex]
+bool ImageBufAlgo.{\ce rotate90} (dst, src, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce rotate180} (dst, src, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce rotate270} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!roate90} \indexapi{roate90}
@@ -2222,33 +2225,38 @@ Copy while rotating the image by a multiple of 90 degrees.
 \noindent Examples:
 \begin{code}
     A = ImageBuf ("tahoe.exr")
-    B = ImageBuf()
-    ImageBufAlgo.rotate90 (B, A)
+    B = ImageBufAlgo.rotate90 (A)
 \end{code}
 \apiend
 
 
 
-\apiitem{bool ImageBufAlgo.{\ce flip} (dst, src, roi=ROI.All, nthreads=0) \\
-bool ImageBufAlgo.{\ce flop} (dst, src, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce flip} (src, roi=ROI.All, nthreads=0) \\
+ImageBuf ImageBufAlgo.{\ce flop} (src, roi=ROI.All, nthreads=0) \\
+ImageBuf ImageBufAlgo.{\ce transpose} (src, roi=ROI.All, nthreads=0) \\[1.0ex]
+bool ImageBufAlgo.{\ce flip} (dst, src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce flop} (dst, src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce transpose} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!flip} \indexapi{flip}
 \index{ImageBufAlgo!flop} \indexapi{flop}
-Copy while reversing orientation vertically (flip) or horizontally (flop).
+\index{ImageBufAlgo!transpose} \indexapi{transpose}
+Copy while reversing orientation vertically (flip) or horizontally (flop),
+or diagonally (transpose).
 
 \smallskip
 \noindent Examples:
 \begin{code}
     A = ImageBuf ("tahoe.exr")
-    B = ImageBuf()
-    ImageBufAlgo.flip (B, A)
+    B = ImageBufAlgo.flip (A)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce reorient} (dst, src, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce reorient} (src, nthreads=0) \\
+bool ImageBufAlgo.{\ce reorient} (dst, src, nthreads=0)}
 \index{ImageBufAlgo!reorient} \indexapi{reorient}
 
-Copy {\cf src} to {\cf dst}, but with whatever seties of rotations, flips,
+Copy {\cf src}, applying whatever seties of rotations, flips,
 or flops are necessary to transform the pixels into the configuration
 suggested by the \qkw{Orientation} metadata of the image (and the
 \qkw{Orientation} metadata is then set to 1, ordinary orientation).
@@ -2262,21 +2270,10 @@ suggested by the \qkw{Orientation} metadata of the image (and the
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce transpose} (dst, src, roi=ROI.All, nthreads=0)}
-\index{ImageBufAlgo!transpose} \indexapi{transpose}
-Copy while transposing ($x \leftrightarrow y$) pixels.
 
-\smallskip
-\noindent Examples:
-\begin{code}
-    A = ImageBuf ("tahoe.exr")
-    B = ImageBuf()
-    ImageBufAlgo.transpose (B, A)
-\end{code}
-\apiend
-
-
-\apiitem{bool ImageBufAlgo.{\ce circular_shift} (dst, src, xshift, yshift, zshift=0, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce circular_shift} (src, xshift, yshift, zshift=0, \\
+        \bigspc  roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce circular_shift} (dst, src, xshift, yshift, zshift=0, \\
         \bigspc  roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!circular_shift} \indexapi{circular_shift}
 
@@ -2286,21 +2283,24 @@ Copy while circularly shifting by the given amount.
 \noindent Examples:
 \begin{code}
     A = ImageBuf ("tahoe.exr")
-    B = ImageBuf()
-    ImageBufAlgo.circular_shift (B, A, 200, 100)
+    B = ImageBufAlgo.circular_shift (A, 200, 100)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce rotate} (dst, src, angle, \\
-        \bigspc\bigspc filtername="", filtersize=0.0, recompute_roi=False, \\
-        \bigspc\bigspc  roi=ROI.All, nthreads=0) \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce rotate} (src, angle, filtername="", filtersize=0.0, \\
+        \bigspc\bigspc recompute_roi=False, roi=ROI.All, nthreads=0) \\
+ImageBuf ImageBufAlgo.{\ce rotate} (src, angle, \\
+        \bigspc\bigspc center_x, center_y, filtername="", filtersize=0.0, \\
+        \bigspc\bigspc  recompute_roi=False, roi=ROI.All, nthreads=0) \\[1.0ex]
+bool ImageBufAlgo.{\ce rotate} (dst, src, angle, filtername="", filtersize=0.0, \\
+        \bigspc\bigspc recompute_roi=False, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce rotate} (dst, src, angle, \\
         \bigspc\bigspc center_x, center_y, filtername="", filtersize=0.0, \\
         \bigspc\bigspc  recompute_roi=False, roi=ROI.All, nthreads=0) }
 \index{ImageBufAlgo!rotate} \indexapi{rotate}
 
-Set {\cf dst}, over the ROI, to be a rotated version of the
+Copy arotated version of the
 corresponding portion of {\cf src}.  The angle is in radians, with positive
 values indicating clockwise rotation. If the filter and size are not
 specified, an appropriate default will be chosen.
@@ -2309,18 +2309,20 @@ specified, an appropriate default will be chosen.
 \noindent Examples:
 \begin{code}
     Src = ImageBuf ("tahoe.exr")
-    Dst = ImageBuf ()
-    ImageBufAlgo.rotate (Dst, Src, math.radians(45.0))
+    Dst = ImageBufAlgo.rotate (Src, math.radians(45.0))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce warp} (dst, src, M, filtername="", filtersize=0.0, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce warp} (src, M, filtername="", filtersize=0.0, \\
+        \bigspc\bigspc wrap="default", recompute_roi=False, \\
+        \bigspc\bigspc roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce warp} (dst, src, M, filtername="", filtersize=0.0, \\
         \bigspc\bigspc wrap="default", recompute_roi=False, \\
         \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!warp} \indexapi{warp}
 
-Set {\cf dst}, over the ROI, to be a warped (transformed) copy of {\cf src},
+Compute a warped (transformed) copy of {\cf src},
 with the warp specified by {\cf M} consisting of 9 floating-point numbers
 representing a $3 \times 3$ transformation matrix.  If the filter and size
 are not specified, an appropriate default will be chosen.
@@ -2330,16 +2332,17 @@ are not specified, an appropriate default will be chosen.
 \begin{code}
     M = (0.7071068, 0.7071068, 0, -0.7071068, 0.7071068, 0, 20, -8.284271, 1)
     Src = ImageBuf ("tahoe.exr")
-    Dst = ImageBuf ()
-    ImageBufAlgo.warp (Dst, Src, M)
+    Dst = ImageBufAlgo.warp (Src, M)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce resize} (dst, src, filtername="", filtersize=0.0, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce resize} (src, filtername="", filtersize=0.0, \\
+        \bigspc\bigspc  roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce resize} (dst, src, filtername="", filtersize=0.0, \\
         \bigspc\bigspc  roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!resize} \indexapi{resize}
-Set {\cf dst}, over the ROI, to be a high-quality resized version of the
+Compute a high-quality resized version of the
 corresponding portion of {\cf src}.  If the filter and size are not
 specified, an appropriate default will be chosen.
 
@@ -2348,13 +2351,14 @@ specified, an appropriate default will be chosen.
 \begin{code}
     # Resize the image to 640x480, using the default filter
     Src = ImageBuf ("tahoe.exr")
-    Dst = ImageBuf (ImageSpec (640, 480, 3, OpenImageIO.FLOAT))
-    ImageBufAlgo.resize (Dst, Src)
+    Dst = ImageBufAlgo.resize (Src, ROI(0,640,0,480,0,1,0,3))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce resample} (dst, src, interpolate=True, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce resample} (src, interpolate=True, \\
+        \bigspc\bigspc roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce resample} (dst, src, interpolate=True, \\
         \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!resample} \indexapi{resample}
 Set {\cf dst}, over the ROI, to be a low-quality (but fast) resized version
@@ -2367,8 +2371,7 @@ interpolate}).
 \begin{code}
     # Resample quickly to 320x240 to make a low-quality thumbnail
     Src = ImageBuf ("tahoe.exr")
-    Dst = ImageBuf (ImageSpec (320, 240, 3, OpenImageIO.UINT8))
-    ImageBufAlgo.resample (Dst, Src)
+    Dst = ImageBufAlgo.resample (Src, ROI(0,640,0,480,0,1,0,3))
 \end{code}
 \apiend
 
@@ -2377,19 +2380,19 @@ interpolate}).
 \subsection{Image arithmetic}
 \label{sec:iba:py:arith}
 
-\apiitem{bool ImageBufAlgo.{\ce add} (dst, A, B, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce add} (A, B, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce add} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!add} \indexapi{add}
 
-Compute {\cf dst = A + B}.  {\cf A} is an \ImageBuf, and {\cf B}  may
-be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
+Compute {\cf A + B}.  {\cf A} and {\cf B} each may
+be an \ImageBuf, a {\cf float} value (for all channels) or a tuple giving a
 {\cf float} for each color channel.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     # Add two images
-    buf = ImageBuf ()
-    ImageBufAlgo.add (buf, ImageBuf("a.exr"), ImageBuf("b.exr"))
+    buf = ImageBufAlgo.add (ImageBuf("a.exr"), ImageBuf("b.exr"))
 
     # Add 0.2 to channels 0-2 
     ImageBufAlgo.add (buf, buf, (0.2,0.2,0.2,0))
@@ -2397,65 +2400,65 @@ be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce sub} (dst, A, B, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce sub} (A, B, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce sub} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!sub} \indexapi{sub}
 
-Compute {\cf dst = A - B}.  {\cf A} is an \ImageBuf, and {\cf B}  may
-be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
+Compute {\cf A - B}.  {\cf A} and {\cf B} each may
+be an \ImageBuf, a {\cf float} value (for all channels) or a tuple giving a
 {\cf float} for each color channel.
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    buf = ImageBuf ()
-    ImageBufAlgo.sub (buf, ImageBuf("a.exr"), ImageBuf("b.exr"))
+    buf = ImageBufAlgo.sub (ImageBuf("a.exr"), ImageBuf("b.exr"))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce absdiff} (dst, A, B, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce absdiff} (A, B, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce absdiff} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!absdiff} \indexapi{absdiff}
 
-Compute {\cf dst = abs(A - B)}.  {\cf A} is an \ImageBuf, and {\cf B}  may
-be an \ImageBuf, a {\cf float} (added to all channels) or a tuple giving a
+Compute {\cf abs(A - B)}.  {\cf A} and {\cf B} each may
+be an \ImageBuf, a {\cf float} value (for all channels) or a tuple giving a
 {\cf float} for each color channel.
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    buf = ImageBuf ()
-    ImageBufAlgo.absdiff (buf, ImageBuf("a.exr"), ImageBuf("b.exr"))
+    buf = ImageBufAlgo.absdiff (ImageBuf("a.exr"), ImageBuf("b.exr"))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce abs} (dst, A, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce abs} (A, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce abs} (dst, A, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!abs} \indexapi{abs}
 
-Compute {\cf dst = abs(A)}.  {\cf A} is an \ImageBuf.
+Compute {\cf abs(A)}.  {\cf A} is an \ImageBuf.
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    buf = ImageBuf ()
-    ImageBufAlgo.abs (buf, ImageBuf("a.exr"))
+    buf = ImageBufAlgo.abs (ImageBuf("a.exr"))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce mul} (dst, A, B, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce mul} (A, B, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce mul} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!mul} \indexapi{mul}
 
-Compute {\cf dst} = {\cf A * B} (channel-by-channel multiplication).  {\cf A}
-is an \ImageBuf, and {\cf B}  may be an \ImageBuf, a {\cf float} (scaling
-all channels) or a tuple giving a {\cf float} for each color channel.
+Compute {\cf A * B} (channel-by-channel multiplication). {\cf A} and {\cf B}
+each may be an \ImageBuf, a {\cf float} value (for all channels) or a tuple
+giving a {\cf float} for each color channel.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     # Multiply the two images
-    buf = ImageBuf ()
-    ImageBufAlgo.mul (buf, ImageBuf("a.exr"), ImageBuf("b.exr"))
+    buf = ImageBufAlgo.mul (ImageBuf("a.exr"), ImageBuf("b.exr"))
 
     # Reduce intensity of buf's channels 0-2 by 50%, in place
     ImageBufAlgo.mul (buf, buf, (0.5, 0.5, 0.5, 1.0))
@@ -2463,20 +2466,20 @@ all channels) or a tuple giving a {\cf float} for each color channel.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce div} (dst, A, B, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce div} (A, B, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce div} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!div} \indexapi{div}
 
-Compute {\cf dst} = {\cf A / B} (channel-by-channel division), where $x/0$
-is defined to be $0$.  {\cf A} is an \ImageBuf, and {\cf B}  may be an
-\ImageBuf, a {\cf float} (scaling all channels) or a tuple giving a {\cf
-float} for each color channel.
+Compute {\cf A / B} (channel-by-channel division), where $x/0$
+is defined to be $0$.  {\cf A} and {\cf B} each may
+be an \ImageBuf, a {\cf float} value (for all channels) or a tuple giving a
+{\cf float} for each color channel.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     # Divide a.exr by b.exr
-    buf = ImageBuf ()
-    ImageBufAlgo.div (buf, ImageBuf("a.exr"), ImageBuf("b.exr"))
+    buf = ImageBufAlgo.div (ImageBuf("a.exr"), ImageBuf("b.exr"))
 
     # Reduce intensity of buf's channels 0-2 by 50%, in place
     ImageBufAlgo.div (buf, buf, (2.0, 2.0, 2.0, 1.0))
@@ -2484,46 +2487,46 @@ float} for each color channel.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce mad} (dst, A, B, C, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce mad} (A, B, C, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce mad} (dst, A, B, C, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!mad} \indexapi{mad}
 
-Compute {\cf dst} = {\cf A * B + C} (channel-by-channel multiplication
-and addition). {\cf A}
-is an \ImageBuf, and {\cf B} and {\cf C} may each be \ImageBuf,
-{\cf float} (scaling all channels) or a tuple giving a {\cf float} for
-each color channel.
+Compute {\cf A * B + C} (channel-by-channel multiplication
+and addition).  {\cf A}, {\cf B}, and {\cf C} each may
+be an \ImageBuf, a {\cf float} value (for all channels) or a tuple giving a
+{\cf float} for each color channel.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     # Multiply a and b, then add c
-    buf = ImageBuf ()
-    ImageBufAlgo.mad (buf, ImageBuf("a.exr"),
-                      ImageBuf("b.exr"), ImageBuf("c.exr"))
+    buf = ImageBufAlgo.mad (ImageBuf("a.exr"),
+                            (1.0f, 0.5f, 0.25f), ImageBuf("c.exr"))
 \end{code}
 \apiend
 
 
 
-\apiitem{bool ImageBufAlgo.{\ce invert} (dst, A, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce invert} (A, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce invert} (dst, A, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!invert} \indexapi{invert}
 
-Compute {\cf dst = 1-A} (channel by channel color inverse).
+Compute {\cf 1-A} (channel by channel color inverse).
 {\cf A} is an \ImageBuf.
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    buf = ImageBuf ()
-    ImageBufAlgo.invert (buf, ImageBuf("a.exr"))
+    buf = ImageBufAlgo.invert (ImageBuf("a.exr"))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce pow} (dst, A, B, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce pow} (A, B, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce pow} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!pow} \indexapi{pow}
 
-Compute {\cf dst} = {\cf pow (A, B} (channel-by-channel exponentiation).
+Compute {\cf pow (A, B} (channel-by-channel exponentiation).
 {\cf A} is an \ImageBuf, and {\cf B} may be a {\cf float} (a single power
 for all channels) or a tuple giving a {\cf float} for each color channel.
 
@@ -2532,14 +2535,13 @@ for all channels) or a tuple giving a {\cf float} for each color channel.
 \begin{code}
     # Linearize a 2.2 gamma-corrected image (channels 0-2 only)
     img = ImageBuf ("a.exr")
-    buf = ImageBuf ()
-    ImageBufAlgo.pow (buf, img, (2.2, 2.2, 2.2, 1.0))
+    buf = ImageBufAlgo.pow (img, (2.2, 2.2, 2.2, 1.0))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce channel_sum} (dst, src, 
-        weights=(), \\ \bigspc\bigspc roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce channel_sum} (src, weights=(), roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce channel_sum} (dst, src, weights=(), roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!channel_sum} \indexapi{channel_sum}
 Converts a multi-channel image into a 1-channel image via a weighted sum
 of channels. The {\cf weights} is a tuple providing the weight for each 
@@ -2550,21 +2552,26 @@ channel (if not supplied, all channels will have weight 1.0).
 \begin{code}
     # Compute luminance via a weighted sum of R,G,B
     # (assuming Rec709 primaries and a linear scale)
-    luma = ImageBuf()
-    luma_weights = (.2126, .7152, .0722)
-    ImageBufAlgo.channel_sum (luma, ImageBuf("a.exr"), luma_weights)
+    ImageBuf()
+    weights = (.2126, .7152, .0722)
+    luma = ImageBufAlgo.channel_sum (ImageBuf("a.exr"), weights)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce color_map} (src, srcchannel, \\
+\bigspc\bigspc        nknots, channels, knots, roi=ROI.All, nthreads=0) \\
+ImageBuf ImageBufAlgo.{\ce color_map} (src, srcchannel, \\
+\bigspc\bigspc        mapname, roi=ROI.All, nthreads=0) \\[1.0ex]
+bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
 \bigspc\bigspc        nknots, channels, knots, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce color_map} (dst, src, srcchannel, \\
 \bigspc\bigspc        mapname, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!color_map} \indexapi{color_map}
-Set pixels of {\cf dst} by applying the color map to the values of {\cf
-src}, using either the channel specified by {\cf srcchannel}, or the
-luminance of {\cf src}'s RGB if {\cf srcchannel} is -1.
+Return an image (or copy into {\cf dst}) pixel values determined by applying
+the color map to the values of {\cf src}, using either the channel specified
+by {\cf srcchannel}, or the luminance of {\cf src}'s RGB if {\cf srcchannel}
+is -1.
 
 In the first variant, the values linearly-interpolated color map are
 given by the tuple {\cf knots[nknots*channels]}.
@@ -2581,15 +2588,17 @@ those desirable qualities (and are this not recommended): \qkw{blue-red},
 \smallskip
 \noindent Examples:
 \begin{code}
-    heatmap = ImageBuf()
-    ImageBufAlgo.color_map (heatmap, ImageBuf("a.jpg"), -1, "heat")
-    ImageBufAlgo.color_map (heatmap, ImageBuf("a.jpg"), -1, 3, 3,
+    heatmap = ImageBufAlgo.color_map (ImageBuf("a.jpg"), -1, "inferno")
+
+    heatmap = ImageBufAlgo.color_map (ImageBuf("a.jpg"), -1, 3, 3,
                             (0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce clamp} (dst, src, min, max,
+\apiitem{ImageBuf ImageBufAlgo.{\ce clamp} (src, min, max,
+  bool clampalpha01=False, \\ \bigspc\bigspc roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce clamp} (dst, src, min, max,
   bool clampalpha01=False, \\ \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!clamp} \indexapi{clamp}
 
@@ -2609,14 +2618,18 @@ channel is clamped to the 0--1 range.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce rangecompress} (dst, src, useluma=False, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce rangecompress} (src, useluma=False, \\
    \bigspc\bigspc     roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce rangecompress} (dst, src, useluma=False, \\
+   \bigspc\bigspc     roi=ROI.All, nthreads=0) \\[1.0ex]
+ImageBuf ImageBufAlgo.{\ce rangeexpand} (src, useluma=False, \\
+    \bigspc\bigspc    roi=ROI.All, nthreads=0)\\
 bool ImageBufAlgo.{\ce rangeexpand} (dst, src, useluma=False, \\
     \bigspc\bigspc    roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!rangecompress} \indexapi{rangecompress}
 \index{ImageBufAlgo!rangeexpand} \indexapi{rangeexpand}
 
-Copy from {\cf src} to {\cf dst}, compressing (logarithmically) or expanding
+Copy from {\cf src}, compressing (logarithmically) or expanding
 (by the inverse of the compressive transformation) the range of pixel
 values.  Alpha and z channels are copied but not transformed.
 
@@ -2638,13 +2651,11 @@ and {\cf rangeexpand}).
     Src = ImageBuf ("tahoeHDR.exr")
 
     # 2. Range compress to a logarithmic scale
-    Compressed = ImageBuf ()
-    ImageBufAlgo.rangecompress (Compressed, Src)
+    Compressed = ImageBufAlgo.rangecompress (Src)
 
     # 3. Now do the resize
-    Dst = ImageBuf ()
     roi = ROI (0, 640, 0, 480, 0, 1, 0, Compressed.nchannels)
-    ImageBufAlgo.resize (Dst, Compressed, "lanczos3", 6.0, roi)
+    Dst = ImageBufAlgo.resize (Compressed, "lanczos3", 6.0, roi)
 
     # 4. Expand range to be linear again (operate in-place)
     ImageBufAlgo.rangeexpand (Dst, Dst)
@@ -2652,7 +2663,8 @@ and {\cf rangeexpand}).
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce over} (dst, A, B, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce over} (A, B, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce over} (dst, A, B, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!over} \indexapi{over}
 
 Composite \ImageBuf\ {\cf A} \emph{over} \ImageBuf\ {\cf B}.
@@ -2660,13 +2672,14 @@ Composite \ImageBuf\ {\cf A} \emph{over} \ImageBuf\ {\cf B}.
 \smallskip
 \noindent Examples:
 \begin{code}
-    Composite = ImageBuf()
-    ImageBufAlgo.over (Composite, ImageBuf("fg.exr"), ImageBuf("bg.exr"))
+    Comp = ImageBufAlgo.over (ImageBuf("fg.exr"), ImageBuf("bg.exr"))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce zover} (dst, A, B, bool z_zeroisinf=False,\\
+\apiitem{ImageBuf ImageBufAlgo.{\ce zover} (A, B, bool z_zeroisinf=False,\\
+        \bigspc\bigspc roi=ROI.All, nthreads=0\\
+bool ImageBufAlgo.{\ce zover} (dst, A, B, bool z_zeroisinf=False,\\
         \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!zover} \indexapi{zover}
 
@@ -2676,8 +2689,7 @@ $Z$ channels to decide which is in front on a pixel-by-pixel basis.
 \smallskip
 \noindent Examples:
 \begin{code}
-    Composite = ImageBuf()
-    ImageBufAlgo.zover (Composite, ImageBuf("fg.exr"), ImageBuf("bg.exr"))
+    Comp = ImageBufAlgo.zover (ImageBuf("fg.exr"), ImageBuf("bg.exr"))
 \end{code}
 \apiend
 
@@ -2687,14 +2699,10 @@ $Z$ channels to decide which is in front on a pixel-by-pixel basis.
 \label{sec:iba:py:stats}
 
 
-\apiitem{bool ImageBufAlgo.{\ce computePixelStats} (src, stats, \\
-   \bigspc\bigspc  roi=ROI.All, nthreads=0)}
+\apiitem{PixelStats ImageBufAlgo.{\ce computePixelStats} (src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!computePixelStats} \indexapi{computePixelStats}
 
-Compute statistics about the ROI of the image {\cf src}, storing results
-in {\cf stats} (which must refer to an {\cf PixelStats} object).  A return
-value of {\cf True} indicates success, {\cf False} indicates that it was
-not possible to complete the operation.
+Compute statistics about the ROI of the image {\cf src}.
 The {\cf PixelStats} structure is defined as contining the following
 data fields: {\cf min}, {\cf max}, {\cf avg}, {\cf stddev},
 {\cf nancount}, {\cf infcount}, {\cf finitecount}, {\cf sum}, {\cf sum2},
@@ -2704,8 +2712,7 @@ each of which is a \emph{tuple} with one value for each channel of the image.
 \noindent Examples:
 \begin{code}
     A = ImageBuf("a.exr")
-    stats = OpenImageIO.PixelStats()
-    computePixelStats (A, stats)
+    stats = ImageBufAlgo.computePixelStats (A)
     print "   min = ", stats.min
     print "   max = ", stats.max
     print "   average = ", stats.avg
@@ -2717,18 +2724,19 @@ each of which is a \emph{tuple} with one value for each channel of the image.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce compare} (A, B, failthresh, warnthresh, 
-  result, \\ \bigspc\bigspc roi=ROI.All, nthreads=0)}
+\apiitem{CompareResults ImageBufAlgo.{\ce compare} (A, B, failthresh, warnthresh, 
+   \\ \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!compare} \indexapi{compare}
 
 Numerically compare two \ImageBuf's, {\cf A} and {\cf B}. The {\cf failthresh}
 and {\cf warnthresh} supply failure and warning difference thresholds.
-The {\cf result} parameter must refer to a {\cf CompareResults} object,
+The return value is a {\cf CompareResults} object,
 which is defined as a class having the following members:
 \begin{code}
     meanerror, rms_error, PSNR, maxerror  # error statistics
     maxx, maxy, maxz, maxc                # pixel of biggest difference
     nwarn, nfail                          # number of warnings and failures
+    error                                 # True if there was an error
 \end{code}
 
 \smallskip
@@ -2736,8 +2744,7 @@ which is defined as a class having the following members:
 \begin{code}
     A = ImageBuf ("a.exr")
     B = ImageBuf ("b.exr")
-    comp = OpenImageIO.CompareResults()
-    ImageBufAlgo.compare (A, B, 1.0/255.0, 0.0, comp)
+    comp = ImageBufAlgo.compare (A, B, 1.0/255.0, 0.0)
     if comp.nwarn == 0 and comp.nfail == 0 :
         print "Images match within tolerance"
     else :
@@ -2917,24 +2924,26 @@ Compute the SHA-1 byte hash for all the pixels in the ROI of {\cf src}.
 \apiend
 
 
-\begin{comment}
-\apiitem{bool {\ce histogram} (src, int channel, \\
-  \bigspc std::vector<imagesize_t> \&histogram, int bins=256, \\
-  \bigspc float min=0, float max=1, imagesize_t *submin=NULL, \\
-  \bigspc imagesize_t *supermax=NULL, roi=ROI.All)}
+\apiitem{tuple {\ce histogram} (src, channel=0, bins=256, min=0.0, max=1.0, \\
+\bigspc ignore_empty=False, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!histogram} \indexapi{histogram}
 \apiend
-\end{comment}
+
+Computes a histogram of the given {\cf channel} of image {\cf src}, within
+the ROI, returning a tuple of length {\cf bins} containing count of pixels
+whose value was in each of the equally-sized range bins between {\cf min}
+and {\cf max}. If {\cf ignore_empty} is {\cf True}, pixels that are empty
+(all channels 0 including alpha) will not be counted in the total.
 
 
 
 \subsection{Convolutions}
 \label{sec:iba:py:convolutions}
 
-\apiitem{bool ImageBufAlgo.{\ce make_kernel} (dst, name, width, height, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce make_kernel} (name, width, height, \\
   \bigspc\bigspc depth=1.0, normalize=True)}
 \index{ImageBufAlgo!make_kernel} \indexapi{make_kernel}
-Initialize {\cf dst} to be a 1-channel {\cf float} image of the named kernel
+Create a 1-channel {\cf float} image of the named kernel
 and dimensions.  If {\cf normalize} is {\cf True}, the values will be
 normalized so that they sum to $1.0$.
 
@@ -2952,13 +2961,14 @@ cases.
 \smallskip
 \noindent Examples:
 \begin{code}
-    K = ImageBuf()
-    ImageBufAlgo.make_kernel (K, "gaussian", 5.0, 5.0)
+    K = ImageBufAlgo.make_kernel ("gaussian", 5.0, 5.0)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce convolve} (dst, src, kernel, normalize=True, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce convolve} (src, kernel, normalize=True, \\
+  \bigspc\bigspc  roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce convolve} (dst, src, kernel, normalize=True, \\
   \bigspc\bigspc  roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!convolve} \indexapi{convolve}
 Replace the given ROI of {\cf dst} with the convolution of {\cf src} and
@@ -2969,15 +2979,14 @@ a kernel (also an \ImageBuf).
 \begin{code}
     # Blur an image with a 5x5 Gaussian kernel
     Src = ImageBuf ("tahoe.exr")
-    K = ImageBuf ()
-    ImageBufAlgo.make_kernel (K, "gaussian", 5.0, 5.0)
-    Blurred = ImageBuf ()
-    ImageBufAlgo.convolve (Blurred, Src, K)
+    K = ImageBufAlgo.make_kernel (K, "gaussian", 5.0, 5.0)
+    Blurred = ImageBufAlgo.convolve (Src, K)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce laplacian} (dst, src, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce laplacian} (src, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce laplacian} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!laplacian} \indexapi{laplacian}
 Replace the given ROI of {\cf dst} with the Laplacian of the corresponding
 part of {\cf src}.
@@ -2986,14 +2995,15 @@ part of {\cf src}.
 \noindent Examples:
 \begin{code}
     Src = ImageBuf ("tahoe.exr")
-    L = ImageBuf ()
-    ImageBufAlgo.laplacian (L, Src)
+    L = ImageBufAlgo.laplacian (Src)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce fft} (dst, src, roi=ROI.All, nthreads=0) \\
-        bool ImageBufAlgo.{\ce ifft} (dst, src, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce fft} (src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce fft} (dst, src, roi=ROI.All, nthreads=0) \\[1.0ex]
+ImageBuf ImageBufAlgo.{\ce ifft} (src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce ifft} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!fft} \indexapi{fft}
 \index{ImageBufAlgo!ifft} \indexapi{ifft}
 
@@ -3005,19 +3015,19 @@ Compute the forward or inverse discrete Fourier Transform.
     Src = ImageBuf ("tahoe.exr")
 
     # Take the DFT of the first channel of Src
-    Freq = ImageBuf ()
-    ImageBufAlgo.fft (Freq, Src)
+    Freq = ImageBufAlgo.fft (Src)
 
     # At this point, Freq is a 2-channel float image (real, imag)
     # Convert it back from frequency domain to a spatial iamge
-    Spatial = ImageBuf ()
-    ImageBufAlgo.ifft (Spatial, Freq)
+    Spatial = ImageBufAlgo.ifft (Freq)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce complex_to_polar} (dst, src, roi=ROI.All, nthreads=0) \\
-        bool ImageBufAlgo.{\ce polar_to_complex} (dst, src, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce complex_to_polar} (src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce complex_to_polar} (dst, src, roi=ROI.All, nthreads=0) \\[1.0ex]
+ImageBuf ImageBufAlgo.{\ce polar_to_complex} (src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce polar_to_complex} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!polar_to_complex} \indexapi{polar_to_complex}
 \index{ImageBufAlgo!complex_to_polar} \indexapi{complex_to_polar}
 
@@ -3029,13 +3039,11 @@ to polar (amplitude, phase), or vice versa.
 \begin{code}
     Polar = ImageBuf ("polar.exr")
 
-    Complex = ImageBuf ()
-    ImageBufAlgo.polar_to_complex (Complex, Polar)
+    Complex = ImageBufAlgo.polar_to_complex (Polar)
 
     # At this point, Complex is a 2-channel complex image (real, imag)
     # Convert it back from frequency domain to a spatial iamge
-    Spatial = ImageBuf ()
-    ImageBufAlgo.ifft (Spatial, Complex)
+    Spatial = ImageBufAlgo.ifft (Complex)
 \end{code}
 \apiend
 
@@ -3044,12 +3052,13 @@ to polar (amplitude, phase), or vice versa.
 \subsection{Image Enhancement / Restoration}
 \label{sec:iba:py:enhance}
 
-\apiitem{bool ImageBufAlgo.{\ce fixNonFinite} (dst, src,
-  mode=NONFINITE_BOX3, \\ \bigspc\spc roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce fixNonFinite} (src,
+  mode=NONFINITE_BOX3, \\ \bigspc\bigspc\spc roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce fixNonFinite} (dst, src,
+  mode=NONFINITE_BOX3, \\ \bigspc\bigspc\spc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!fixNonFinite} \indexapi{fixNonFinite}
 
-Copy pixel values from {\cf src} to {\cf dst} (within the pixel and channel
-range designated by {\cf roi}), and repair any non-finite ({\cf NaN} or {\cf
+Copy pixel values from {\cf src} and repair any non-finite ({\cf NaN} or {\cf
 Inf}) pixels.
 
 How the non-finite values are repaired is specified by one of the
@@ -3067,12 +3076,14 @@ following modes: \\
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce fillholes_pushpull} (dst, src, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce fillholes_pushpull} (src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce fillholes_pushpull} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!fillholes_pushpull} \indexapi{fillholes_pushpull}
-Copy the specified ROI of {\cf src} to {\cf dst} and fill any 
+
+Copy the specified ROI of {\cf src} and fill any 
 holes (pixels where alpha $< 1$) with plausible values using a push-pull
 technique.  The {\cf src} image must have
-an alpha channel.  The dst image will end up with a copy of src, but
+an alpha channel.  The {\cf dst} image will end up with a copy of src, but
 will have an alpha of 1.0 everywhere, and any place where the alpha
 of src was < 1, dst will have a pixel color that is a plausible
 ``filling'' of the original alpha hole.
@@ -3081,8 +3092,7 @@ of src was < 1, dst will have a pixel color that is a plausible
 \noindent Examples:
 \begin{code}
     Src = ImageBuf ("holes.exr")
-    Filled = ImageBuf ()
-    ImageBufAlgo.fillholes_pushpull (Filled, Src)
+    Filled = ImageBufAlgo.fillholes_pushpull (Src)
 \end{code}
 \apiend
 
@@ -3106,40 +3116,38 @@ region of {\cf src} using the ``unsharp mask'' technique.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce dilate} (dst, src, width=3, height=-1, \\
-  \bigspc\spc  roi=ROI.All, nthreads=0) \\
-bool ImageBufAlgo.{\ce erode} (dst, src, width=3, height=-1, \\
-  \bigspc\spc  roi=ROI.All, nthreads=0) }
+\apiitem{ImageBuf ImageBufAlgo.{\ce dilate} (src, width=3, height=-1, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce dilate} (dst, src, width=3, height=-1, roi=ROI.All, nthreads=0) \\[1.0ex]
+ImageBuf ImageBufAlgo.{\ce erode} (src, width=3, height=-1, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce erode} (dst, src, width=3, height=-1, roi=ROI.All, nthreads=0) }
 \index{ImageBufAlgo!dilate} \indexapi{dilate}
 \index{ImageBufAlgo!erode} \indexapi{erode}
 
-Replace the given ROI of {\cf dst} with a dilated or eroded version of the
-corresponding region of {\cf src}.
+Compute a dilated or eroded version of the corresponding region of {\cf src}.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     Source = ImageBuf ("source.tif")
-    Dilated = ImageBuf ()
-    ImageBufAlgo.dilate (Dilated, Source, 3, 3)
+    Dilated = ImageBufAlgo.dilate (Source, 3, 3)
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce unsharp_mask} (dst, src, kernel="gaussian", \\
-  \bigspc\spc width=3.0, contrast=1.0, threshold=0.0, \\
-  \bigspc\spc  roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce unsharp_mask} (src, kernel="gaussian", width=3.0, \\
+  \bigspc\spc contrast=1.0, threshold=0.0, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce unsharp_mask} (dst, src, kernel="gaussian", width=3.0, \\
+  \bigspc\spc contrast=1.0, threshold=0.0, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!unsharp_mask} \indexapi{unsharp_mask}
 
-Replace the given ROI of {\cf dst} with a sharpened version of the
-corresponding region of {\cf src} using the ``unsharp mask'' technique.
+Compute a sharpened version of the corresponding region of {\cf src} using
+the ``unsharp mask'' technique.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     Blurry = ImageBuf ("tahoe.exr")
-    Sharp = ImageBuf ()
-    ImageBufAlgo.unsharp_mask (Sharp, Blurry, "gaussian", 5.0)
+    Sharp = ImageBufAlgo.unsharp_mask (Blurry, "gaussian", 5.0)
 \end{code}
 \apiend
 
@@ -3148,75 +3156,75 @@ corresponding region of {\cf src} using the ``unsharp mask'' technique.
 \subsection{Color manipulation}
 \label{sec:iba:py:color}
 
-\apiitem{bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to,
-  unpremult=True, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce colorconvert} (src, from, to, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", \\
   \bigspc\bigspc  colorconfig="", roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to, unpremult=True, \\
+  \bigspc\bigspc context_key="", context_value="", \\
+  \bigspc\bigspc  colorconfig="", roi=ROI.All, nthreads=0)
 }
 \index{ImageBufAlgo!colorconvert} \indexapi{colorconvert}
-Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
-applying a color transform to the pixel values.
-In-place operations ({\cf dst} and {\cf src} being the same image)
-are supported.
+Apply a color transform to the pixel values.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     Src = ImageBuf ("tahoe.jpg")
-    Dst = ImageBuf ()
-    ImageBufAlgo.colorconvert (Dst, Src, "sRGB", "linear")
+    Dst = ImageBufAlgo.colorconvert (Src, "sRGB", "linear")
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to,  \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce ociolook} (src, looks, from, to,  \\
+  \bigspc\bigspc  inverse=False, unpremult=True, \\
+  \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
+  \bigspc\bigspc roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to,  \\
   \bigspc\bigspc  inverse=False, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociolook} \indexapi{ociolook}
-Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
-applying an OpenColorIO ``look'' transform to the pixel values.
-In-place operations ({\cf dst} and {\cf src} being the same image)
-are supported.
+Apply an OpenColorIO ``look'' transform to the pixel values.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     Src = ImageBuf ("tahoe.jpg")
-    Dst = ImageBuf ()
-    ImageBufAlgo.ociolook (Dst, Src, "look", "vd8", "lnf",
+    Dst = ImageBufAlgo.ociolook (Src, "look", "vd8", "lnf",
                             context_key="SHOT", context_value="pe0012")
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce ociodisplay} (src, display, view, \\
+  \bigspc\bigspc from=None, looks=None, unpremult=True, \\
+  \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
+  \bigspc\bigspc roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
   \bigspc\bigspc from=None, looks=None, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociodisplay} \indexapi{ociodisplay}
-Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
-applying an OpenColorIO ``display'' transform to the pixel values.
-In-place operations ({\cf dst} and {\cf src} being the same image)
-are supported.
+Apply an OpenColorIO ``display'' transform to the pixel values.
 
 \smallskip
 \noindent Examples:
 \begin{code}
     Src = ImageBuf ("tahoe.exr")
-    Dst = ImageBuf ()
-    ImageBufAlgo.ociodisplay (Dst, Src, "sRGB", "Film", "lnf",
+    Dst = ImageBufAlgo.ociodisplay (Src, "sRGB", "Film", "lnf",
                               context_key="SHOT", context_value="pe0012")
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce ociofiletransform} (dst, src, name, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce ociofiletransform} (src, name, \\
+  \bigspc\bigspc unpremult=True, invert=False, colorconfig="", \\
+  \bigspc\bigspc roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce ociofiletransform} (dst, src, name, \\
   \bigspc\bigspc unpremult=True, invert=False, colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociofiletransform} \indexapi{ociofiletransform}
-Copy pixels from {\cf src} to {\cf dst} (within the ROI), while
-applying an OpenColorIO ``file'' transform to the pixel values.
+Apply an OpenColorIO ``file'' transform to the pixel values.
 In-place operations ({\cf dst} and {\cf src} being the same image)
 are supported.
 
@@ -3224,13 +3232,14 @@ are supported.
 \noindent Examples:
 \begin{code}
     Src = ImageBuf ("tahoe.exr")
-    Dst = ImageBuf ()
-    ImageBufAlgo.ociofiletransform (Dst, Src, "foottransform.csp")
+    Dst = ImageBufAlgo.ociofiletransform (Src, "foottransform.csp")
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce unpremult} (dst, src, roi=ROI.All, nthreads=0) \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce unpremult} (src, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce unpremult} (dst, src, roi=ROI.All, nthreads=0) \\[1.0ex]
+ImageBuf ImageBufAlgo.{\ce premult} (src, roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce premult} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!unpremult} \indexapi{unpremult}
 \index{ImageBufAlgo!premult} \indexapi{premult}
@@ -3290,24 +3299,23 @@ Section~\ref{sec:iba:importexport}.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo::{\ce capture_image} (dst, cameranum, \\
-        \bigspc\bigspc  convert = OpenImageIO.UNKNOWN)}
+\apiitem{ImageBuf ImageBufAlgo::{\ce capture_image} (cameranum, convert = OpenImageIO.UNKNOWN)}
 \index{ImageBufAlgo!capture_image} \indexapi{capture_image}
 Capture a still image from a designated camera. 
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    WebcamImage = ImageBuf()
-    ImageBufAlgo.capture_image (WebcamImage, 0, OpenImageIO.UINT8)
-    WebcamImage.save ("webcam.jpg")
+    WebcamImage = ImageBufAlgo.capture_image (0, OpenImageIO.UINT8)
+    WebcamImage.write ("webcam.jpg")
 \end{code}
 \apiend
 
 
 \subsection{Functions specific to deep images}
 
-\apiitem{bool ImageBufAlgo.{\ce deepen} (dst, src, zvalue=1.0, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce deepen} (src, zvalue=1.0, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce deepen} (dst, src, zvalue=1.0, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!deepen} \indexapi{deepen} \index{deep images}
 
 Convert a flat image to a deep one that has one depth sample per pixel
@@ -3318,32 +3326,31 @@ image that have infinite \qkw{Z} or that had 0 for all color channels and no
 \smallskip
 \noindent Examples:
 \begin{code}
-    Deep = ImageBuf()
-    ImageBufAlgo.deepen (Deep, ImageBuf("az.exr"))
+    Deep = ImageBufAlgo.deepen (ImageBuf("az.exr"))
 \end{code}
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce flatten} (dst, src, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce flatten} (src, roi=ROI.All, nthreads=0)\\
+bool ImageBufAlgo.{\ce flatten} (dst, src, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!flatten} \indexapi{flatten} \index{deep images}
 
 Composite the depth samples within each pixel of ``deep'' \ImageBuf\ {\cf
-src} and store the single  resulting value per pixel in ``flat'' \ImageBuf
-{\cf dst}.
+src} to produce a ``flat'' \ImageBuf.
 
 \smallskip
 \noindent Examples:
 \begin{code}
-    Flat = ImageBuf()
-    ImageBufAlgo.flatten (Flat, ImageBuf("deepalpha.exr"))
+    Flat = ImageBufAlgo.flatten (ImageBuf("deepalpha.exr"))
 \end{code}
 \apiend
 
-\apiitem{bool ImageBufAlgo.{\ce deep_merge} (dst, A, B, occlusion_cull, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce deep_merge} (A, B, occlusion_cull, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce deep_merge} (dst, A, B, occlusion_cull, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!deep_merge} \indexapi{deep_merge} \index{deep images}
 
-Merge the samples of two \emph{deep} images {\cf A} and {\cf B} into deep
-result {\cf dst}. If {\cf occlusion_cull} is {\cf True}, samples beyond
+Merge the samples of two \emph{deep} images {\cf A} and {\cf B} into a deep
+result. If {\cf occlusion_cull} is {\cf True}, samples beyond
 the first opaque sample will be discarded, otherwise they will be kept.
 
 \smallskip
@@ -3351,15 +3358,15 @@ the first opaque sample will be discarded, otherwise they will be kept.
 \begin{code}
     DeepA = ImageBuf("hardsurf.exr")
     DeepB = ImageBuf("volume.exr")
-    Merged = ImageBuf()
-    ImageBufAlgo.deep_merge (Merged, DeepA, DeepB)
+    Merged = ImageBufAlgo.deep_merge (DeepA, DeepB)
 \end{code}
 \apiend
 
-\apiitem{bool ImageBufAlgo.{\ce deep_holdout} (dst, src, holdout, roi=ROI.All, nthreads=0)}
+\apiitem{ImageBuf ImageBufAlgo.{\ce deep_holdout} (src, holdout, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce deep_holdout} (dst, src, holdout, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!deep_holdout} \indexapi{deep_holdout} \index{deep images}
 
-Set the pixels of {\cf dst} to the pixels of {\cf src}, but only copying the
+Return the pixels of {\cf src}, but only copying the
 samples that are closer than the opaque frontier of image {\cf holdout}.
 That is, {\cf holdout} will serve as a depth holdout mask, but no samples
 from {\cf holdout} will actually be copied to {\cf dst}.
@@ -3369,8 +3376,7 @@ from {\cf holdout} will actually be copied to {\cf dst}.
 \begin{code}
     Img = ImageBuf("image.exr")
     Mask = ImageBuf("mask.exr")
-    Thresholded = ImageBuf()
-    ImageBufAlgo.deep_holdout (Thresholded, Img, Mask)
+    Thresholded = ImageBufAlgo.deep_holdout (Img, Mask)
 \end{code}
 \apiend
 
@@ -3488,8 +3494,7 @@ what to do with it next.
     # and error handling.
     def write_image (image, filename, format=oiio.UNKNOWN) :
         if not image.has_error :
-            image.set_write_format (format)
-            image.write (filename)
+            image.write (filename, format)
         if image.has_error :
             print "Error writing", filename, ":", image.geterror()
 \end{code}
@@ -3508,8 +3513,7 @@ what to do with it next.
 \begin{code}
     A = ImageBuf ("A.tif")
     B = ImageBuf ("B.tif")
-    compresults = oiio.CompareResults()
-    ImageBufAlgo.compare (A, B, 1.0e-6, 1.0e-6, compresults)
+    compresults = ImageBufAlgo.compare (A, B, 1.0e-6, 1.0e-6)
     if compresults.nfail > 0 :
         print "Images did not match, writing difference image diff.tif"
         diff = ImageBuf()
@@ -3580,8 +3584,7 @@ compression quality of 50 (pretty severe compression):
 \noindent Change the origin of the pixel data window:
 \begin{code}
     img = ImageBuf ("in.exr")
-    img.specmod().x = 256
-    img.specmod().y = 80
+    img.set_origin (256, 80)
     write_image (img, "offset.exr")
 \end{code}
 
@@ -3604,8 +3607,7 @@ is at location (900,300), moving the result to the origin (0,0) of the image
 plane and setting the display window to the new pixel data window:
 \begin{code}
     img = ImageBuf ("in.exr")
-    b = ImageBuf ()
-    ImageBufAlgo.cut (b, img, oiio.ROI(900,1028,300,428))
+    b = ImageBufAlgo.cut (img, oiio.ROI(900,1028,300,428))
     write_image (b, "out.exr")
 \end{code}
 
@@ -3614,8 +3616,7 @@ plane and setting the display window to the new pixel data window:
 image, and add an alpha channel that is 1 everywhere}
 \begin{code}
     img = ImageBuf ("allmyaovs.exr")
-    b = ImageBuf ()
-    ImageBufAlgo.channels (b, img, ("spec.R", "spec.G", "spec.B", 1.0))
+    b = ImageBufAlgo.channels (img, ("spec.R", "spec.G", "spec.B", 1.0))
     write_image (b, "spec.tif")
 \end{code}
 
@@ -3623,12 +3624,9 @@ image, and add an alpha channel that is 1 everywhere}
 \subsubsection*{Fade 30\% of the way between two images}
 
 \begin{code}
-    a = ImageBuf ()
-    ImageBufAlgo.mul (a, ImageBuf("A.exr"), 0.7)
-    b = ImageBuf ()
-    ImageBufAlgo.mul (b, ImageBuf("B.exr"), 0.3)
-    fade = ImageBuf ()
-    ImageBufAlgo.add (fade, a, b)
+    a = ImageBufAlgo.mul (ImageBuf("A.exr"), 0.7)
+    b = ImageBufAlgo.mul (ImageBuf("B.exr"), 0.3)
+    fade = ImageBufAlgo.add (a, b)
     write_image (fade, "fade.exr")
 \end{code}
 
@@ -3637,12 +3635,10 @@ image, and add an alpha channel that is 1 everywhere}
 
 \begin{code}
     fg = ImageBuf ("fg.exr")
-    fg.specmod().x = 512
-    fg.specmod().y = 89
+    fg.set_origin (512, 89)
     bg = ImageBuf ("bg.exr")
-    comp = ImageBuf ()
-    ImageBufAlgo.over (comp, fg, bg)
-    write_image (fade, "composite.exr")
+    comp = ImageBufAlgo.over (fg, bg)
+    write_image (comp, "composite.exr")
 \end{code}
 
 

@@ -53,7 +53,7 @@ OIIO_NAMESPACE_BEGIN
 template<typename DSTTYPE>
 static bool
 channels_ (ImageBuf &dst, const ImageBuf &src,
-           const int *channelorder, const float *channelvalues,
+           cspan<int> channelorder, cspan<float> channelvalues,
            ROI roi, int nthreads=0)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -65,7 +65,7 @@ channels_ (ImageBuf &dst, const ImageBuf &src,
                 int cc = channelorder[c];
                 if (cc >= 0 && cc < nchannels)
                     d[c] = s[cc];
-                else if (channelvalues)
+                else if (channelvalues.size() > c)
                     d[c] = channelvalues[c];
             }
         }
@@ -77,11 +77,18 @@ channels_ (ImageBuf &dst, const ImageBuf &src,
 
 bool
 ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
-                        int nchannels, const int *channelorder,
-                        const float *channelvalues,
-                        const std::string *newchannelnames,
+                        int nchannels, cspan<int> channelorder,
+                        cspan<float> channelvalues,
+                        cspan<std::string> newchannelnames,
                         bool shuffle_channel_names, int nthreads)
 {
+    // Handle in-place case
+    if (&dst == &src) {
+        ImageBuf tmp = src;
+        return channels (dst, tmp, nchannels, channelorder, channelvalues,
+                         newchannelnames, shuffle_channel_names, nthreads);
+    }
+
     pvt::LoggedTimer logtime("IBA::channels");
     // Not intended to create 0-channel images.
     if (nchannels <= 0) {
@@ -98,18 +105,18 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
     // If channelorder is NULL, it will be interpreted as
     // {0, 1, ..., nchannels-1}.
     int *local_channelorder = NULL;
-    if (! channelorder) {
+    if (channelorder.empty()) {
         local_channelorder = ALLOCA (int, nchannels);
         for (int c = 0;  c < nchannels;  ++c)
             local_channelorder[c] = c;
-        channelorder = local_channelorder;
+        channelorder = cspan<int>(local_channelorder, nchannels);
     }
 
     // If this is the identity transformation, just do a simple copy
     bool inorder = true;
     for (int c = 0;  c < nchannels;  ++c) {
         inorder &= (channelorder[c] == c);
-        if (newchannelnames && newchannelnames[c].size() &&
+        if (newchannelnames.size() > c && newchannelnames[c].size() &&
                 c < int(src.spec().channelnames.size()))
             inorder &= (newchannelnames[c] == src.spec().channelnames[c]);
     }
@@ -128,7 +135,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
     for (int c = 0; c < nchannels;  ++c) {
         int csrc = channelorder[c];
         // If the user gave an explicit name for this channel, use it...
-        if (newchannelnames && newchannelnames[c].size())
+        if (newchannelnames.size() > c && newchannelnames[c].size())
             newspec.channelnames[c] = newchannelnames[c];
         // otherwise, if shuffle_channel_names, use the channel name of
         // the src channel we're using (otherwise stick to the default name)
@@ -174,7 +181,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                 int csrc = channelorder[c];
                 if (csrc < 0) {
                     // Replacing the channel with a new value
-                    float val = channelvalues ? channelvalues[c] : 0.0f;
+                    float val = channelvalues.size() > c ? channelvalues[c] : 0.0f;
                     for (int s = 0, ns = dstdata.samples(p); s < ns; ++s)
                         dstdata.set_deep_value (p, c, s, val);
                 } else {
@@ -198,6 +205,22 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
                          dst.spec().format, dst, src,
                          channelorder, channelvalues, dst.roi(), nthreads);
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::channels (const ImageBuf &src, int nchannels,
+                        cspan<int> channelorder, cspan<float> channelvalues,
+                        cspan<std::string> newchannelnames,
+                        bool shuffle_channel_names, int nthreads)
+{
+    ImageBuf result;
+    bool ok = channels (result, src, nchannels, channelorder, channelvalues,
+                        newchannelnames, shuffle_channel_names, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::channels() error");
+    return result;
 }
 
 
@@ -228,8 +251,7 @@ channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 bool
 ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
-                              const ImageBuf &B, ROI roi,
-                              int nthreads)
+                              const ImageBuf &B, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::channel_append");
     // If the region is not defined, set it to the union of the valid
@@ -284,6 +306,17 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
     return ok;
 }
 
+
+ImageBuf
+ImageBufAlgo::channel_append (const ImageBuf &A, const ImageBuf &B,
+                              ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = channel_append (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("channel_append error");
+    return result;
+}
 
 
 OIIO_NAMESPACE_END

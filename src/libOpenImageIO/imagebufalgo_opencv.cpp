@@ -56,15 +56,14 @@ OIIO_NAMESPACE_BEGIN
 
 
 
-bool
-ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
-                             TypeDesc convert)
+ImageBuf
+ImageBufAlgo::from_IplImage (const IplImage *ipl, TypeDesc convert)
 {
     pvt::LoggedTimer logtime("IBA::from_IplImage");
+    ImageBuf dst;
     if (! ipl) {
-        DASSERT (0 && "ImageBufAlgo::fromIplImage called with NULL ipl");
         dst.error ("Passed NULL source IplImage");
-        return false;
+        return dst;
     }
 #ifdef USE_OPENCV
     TypeDesc srcformat;
@@ -82,9 +81,8 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
     case int(IPL_DEPTH_64F) :
         srcformat = TypeDesc::DOUBLE;  break;
     default:
-        DASSERT (0 && "unknown IplImage type");
         dst.error ("Unsupported IplImage depth %d", (int)ipl->depth);
-        return false;
+        return dst;
     }
 
     TypeDesc dstformat = (convert != TypeDesc::UNKNOWN) ? convert : srcformat;
@@ -95,7 +93,7 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
     if (ipl->dataOrder != IPL_DATA_ORDER_PIXEL) {
         // We don't handle separate color channels, and OpenCV doesn't either
         dst.error ("Unsupported IplImage data order %d", (int)ipl->dataOrder);
-        return false;
+        return dst;
     }
 
     dst.reset (dst.name(), spec);
@@ -127,11 +125,11 @@ ImageBufAlgo::from_IplImage (ImageBuf &dst, const IplImage *ipl,
     // FIXME -- the copy and channel swap should happen all as one loop,
     // probably templated by type.
 
-    return true;
 #else
     dst.error ("fromIplImage not supported -- no OpenCV support at compile time");
-    return false;
 #endif
+
+    return dst;
 }
 
 
@@ -249,46 +247,47 @@ static CameraHolder cameras;
 }
 
 
-bool
-ImageBufAlgo::capture_image (ImageBuf &dst, int cameranum, TypeDesc convert)
+
+ImageBuf
+ImageBufAlgo::capture_image (int cameranum, TypeDesc convert)
 {
     pvt::LoggedTimer logtime("IBA::capture_image");
+    ImageBuf dst;
 #ifdef USE_OPENCV
-    IplImage *frame = NULL;
+    IplImage *frame = nullptr;
     {
         // This block is mutex-protected
         lock_guard lock (opencv_mutex);
         CvCapture *cvcam = cameras[cameranum];
         if (! cvcam) {
             dst.error ("Could not create a capture camera (OpenCV error)");
-            return false;  // failed somehow
+            return dst;  // failed somehow
         }
         frame = cvQueryFrame (cvcam);
         if (! frame) {
             dst.error ("Could not cvQueryFrame (OpenCV error)");
-            return false;  // failed somehow
+            return dst;  // failed somehow
         }
     }
 
-    time_t now;
-    time (&now);
-    struct tm tmtime;
-    Sysutil::get_local_time (&now, &tmtime);
-    std::string datetime = Strutil::format ("%4d:%02d:%02d %02d:%02d:%02d",
-                                   tmtime.tm_year+1900, tmtime.tm_mon+1,
-                                   tmtime.tm_mday, tmtime.tm_hour,
-                                   tmtime.tm_min, tmtime.tm_sec);
-
-    bool ok = ImageBufAlgo::from_IplImage (dst, frame, convert);
+    dst = from_IplImage (frame, convert);
     // cvReleaseImage (&frame);   // unnecessary?
-    if (ok)
+    if (! dst.has_error()) {
+        time_t now;
+        time (&now);
+        struct tm tmtime;
+        Sysutil::get_local_time (&now, &tmtime);
+        std::string datetime = Strutil::format ("%4d:%02d:%02d %02d:%02d:%02d",
+                                       tmtime.tm_year+1900, tmtime.tm_mon+1,
+                                       tmtime.tm_mday, tmtime.tm_hour,
+                                       tmtime.tm_min, tmtime.tm_sec);
         dst.specmod().attribute ("DateTime", datetime);
-
-    return ok;
+    }
 #else
     dst.error ("capture_image not supported -- no OpenCV support at compile time");
-    return false;
 #endif
+
+    return dst;
 }
 
 

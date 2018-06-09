@@ -1141,6 +1141,24 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::colorconvert (const ImageBuf &src,
+                            string_view from, string_view to,
+                            bool unpremult, string_view context_key,
+                            string_view context_value,
+                            ColorConfig *colorconfig,
+                            ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = colorconvert (result, src, from, to, unpremult, context_key,
+                            context_value, colorconfig, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::colorconvert() error");
+    return result;
+}
+
+
+
 template<class Rtype, class Atype>
 static bool
 colorconvert_impl (ImageBuf &R, const ImageBuf &A,
@@ -1316,6 +1334,21 @@ ImageBufAlgo::colorconvert (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::colorconvert (const ImageBuf &src,
+                            const ColorProcessor* processor, bool unpremult,
+                            ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = colorconvert (result, src, processor, unpremult, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::colorconvert() error");
+    return result;
+}
+
+
+
+
 bool
 ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
                         string_view looks, string_view from, string_view to,
@@ -1362,6 +1395,24 @@ ImageBufAlgo::ociolook (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::ociolook (const ImageBuf &src,
+                        string_view looks, string_view from, string_view to,
+                        bool inverse, bool unpremult,
+                        string_view key, string_view value,
+                        ColorConfig *colorconfig,
+                        ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = ociolook (result, src, looks, from, to, inverse, unpremult,
+                        key, value, colorconfig, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::ociolook() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
                            string_view display, string_view view,
@@ -1403,6 +1454,26 @@ ImageBufAlgo::ociodisplay (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::ociodisplay (const ImageBuf &src,
+                           string_view display, string_view view,
+                           string_view from, string_view looks,
+                           bool unpremult,
+                           string_view key, string_view value,
+                           ColorConfig *colorconfig,
+                           ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = ociodisplay (result, src, display, view, from, looks, unpremult,
+                           key, value, colorconfig, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::ociodisplay() error");
+    return result;
+}
+
+
+
+
 bool
 ImageBufAlgo::ociofiletransform (ImageBuf &dst, const ImageBuf &src,
                         string_view name, bool inverse, bool unpremult,
@@ -1439,8 +1510,25 @@ ImageBufAlgo::ociofiletransform (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::ociofiletransform (const ImageBuf &src, string_view name,
+                                 bool inverse, bool unpremult,
+                                 ColorConfig *colorconfig,
+                                 ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = ociofiletransform (result, src, name, inverse, unpremult,
+                                 colorconfig, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::ociofiletransform() error");
+    return result;
+}
+
+
+
+
 bool
-ImageBufAlgo::colorconvert (float * color, int nchannels,
+ImageBufAlgo::colorconvert (span<float> color,
                             const ColorProcessor* processor, bool unpremult)
 {
     // If the processor is NULL, return false (error)
@@ -1454,8 +1542,8 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
     
     // Load the pixel
     float rgba[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    int channelsToCopy = std::min (4, nchannels);
-    memcpy(rgba, color, channelsToCopy*sizeof (float));
+    int channelsToCopy = std::min (4, (int)color.size());
+    memcpy(rgba, color.data(), channelsToCopy*sizeof (float));
     
     const float fltmin = std::numeric_limits<float>::min();
     
@@ -1484,7 +1572,7 @@ ImageBufAlgo::colorconvert (float * color, int nchannels,
     }
     
     // Store the scanline
-    memcpy(color, rgba, channelsToCopy*sizeof(float));
+    memcpy(color.data(), rgba, channelsToCopy*sizeof(float));
     
     return true;
 }

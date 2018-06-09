@@ -115,6 +115,18 @@ static Oiiotool ot;
     }
 
 
+#define BINARY_IMAGE2_OP(name,impl)                                     \
+    static int action_##name (int argc, const char *argv[]) {          \
+        const int nargs = 1, ninputs = 2;                              \
+        if (ot.postpone_callback (ninputs, action_##name, argc, argv)) \
+            return 0;                                                  \
+        ASSERT (argc == nargs);                                        \
+        OiiotoolSimpleBinaryOp<IBAbinary_> op (impl, ot, #name,         \
+                                              argc, argv, ninputs);    \
+        return op();                                                   \
+    }
+
+
 #define BINARY_IMAGE_COLOR_OP(name,impl,defaultval)                    \
     static int action_##name (int argc, const char *argv[]) {          \
         const int nargs = 2, ninputs = 1;                              \
@@ -2499,11 +2511,11 @@ action_pdiff (int argc, const char *argv[])
 
 
 
-BINARY_IMAGE_OP (add, ImageBufAlgo::add);
-BINARY_IMAGE_OP (sub, ImageBufAlgo::sub);
-BINARY_IMAGE_OP (mul, ImageBufAlgo::mul);
-BINARY_IMAGE_OP (div, ImageBufAlgo::div);
-BINARY_IMAGE_OP (absdiff, ImageBufAlgo::absdiff);
+BINARY_IMAGE2_OP (add, ImageBufAlgo::add);
+BINARY_IMAGE2_OP (sub, ImageBufAlgo::sub);
+BINARY_IMAGE2_OP (mul, ImageBufAlgo::mul);
+BINARY_IMAGE2_OP (div, ImageBufAlgo::div);
+BINARY_IMAGE2_OP (absdiff, ImageBufAlgo::absdiff);
 
 BINARY_IMAGE_COLOR_OP (addc, ImageBufAlgo::add, 0);
 BINARY_IMAGE_COLOR_OP (subc, ImageBufAlgo::sub, 0);

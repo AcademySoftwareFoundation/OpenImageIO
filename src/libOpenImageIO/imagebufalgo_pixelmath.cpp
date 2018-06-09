@@ -77,38 +77,33 @@ clamp_ (ImageBuf &dst, const ImageBuf &src,
 
 bool
 ImageBufAlgo::clamp (ImageBuf &dst, const ImageBuf &src,
-                     const float *min, const float *max,
+                     cspan<float> min, cspan<float> max,
                      bool clampalpha01, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::clamp");
     if (! IBAprep (roi, &dst, &src))
         return false;
-    std::vector<float> minvec, maxvec;
-    if (! min) {
-        minvec.resize (dst.nchannels(), -std::numeric_limits<float>::max());
-        min = &minvec[0];
-    }
-    if (! max) {
-        maxvec.resize (dst.nchannels(), std::numeric_limits<float>::max());
-        max = &maxvec[0];
-    }
+    const float big = std::numeric_limits<float>::max();
+    IBA_FIX_PERCHAN_LEN (min, dst.nchannels(), min.size() ? min.back() : -big, -big);
+    IBA_FIX_PERCHAN_LEN (max, dst.nchannels(), max.size() ? max.back() :  big,  big);
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "clamp", clamp_, dst.spec().format,
                           src.spec().format, dst, src,
-                          min, max, clampalpha01, roi, nthreads);
+                          min.data(), max.data(), clampalpha01, roi, nthreads);
     return ok;
 }
 
 
 
-bool
-ImageBufAlgo::clamp (ImageBuf &dst, const ImageBuf &src,
-                     float min, float max,
+ImageBuf
+ImageBufAlgo::clamp (const ImageBuf &src, cspan<float> min, cspan<float> max,
                      bool clampalpha01, ROI roi, int nthreads)
 {
-    std::vector<float> minvec (src.nchannels(), min);
-    std::vector<float> maxvec (src.nchannels(), max);
-    return clamp (dst, src, &minvec[0], &maxvec[0], clampalpha01, roi, nthreads);
+    ImageBuf result;
+    bool ok = clamp (result, src, min, max, clampalpha01, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::clamp error");
+    return result;
 }
 
 
@@ -132,7 +127,7 @@ absdiff_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 template<class Rtype, class Atype>
 static bool
-absdiff_impl (ImageBuf &R, const ImageBuf &A, const float *b,
+absdiff_impl (ImageBuf &R, const ImageBuf &A, cspan<float> b,
               ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -148,6 +143,70 @@ absdiff_impl (ImageBuf &R, const ImageBuf &A, const float *b,
 
 
 
+bool
+ImageBufAlgo::absdiff (ImageBuf &dst, Image_or_Const A_, Image_or_Const B_,
+                       ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::absdiff");
+    if (! IBAprep (roi, &dst, A_.imgptr(), B_.imgptr(), nullptr,
+                   IBAprep_CLAMP_MUTUAL_NCHANNELS))
+        return false;
+    if (A_.is_img() && B_.is_img()) {
+        const ImageBuf &A(A_.img()), &B(B_.img());
+        ROI origroi = roi;
+        roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES3 (ok, "absdiff", absdiff_impl, dst.spec().format,
+                                     A.spec().format, B.spec().format,
+                                     dst, A, B, roi, nthreads);
+        if (roi.chend < origroi.chend && A.nchannels() != B.nchannels()) {
+            // Edge case: A and B differed in nchannels, we allocated dst to be
+            // the bigger of them, but adjusted roi to be the lesser. Now handle
+            // the channels that got left out because they were not common to
+            // all the inputs.
+            ASSERT (roi.chend <= dst.nchannels());
+            roi.chbegin = roi.chend;
+            roi.chend = origroi.chend;
+            if (A.nchannels() > B.nchannels()) { // A exists
+                copy (dst, A, dst.spec().format, roi, nthreads);
+            } else { // B exists
+                copy (dst, B, dst.spec().format, roi, nthreads);
+            }
+        }
+        return ok;
+    }
+    if (A_.is_val() && B_.is_img())  // canonicalize to A_img, B_val
+        A_.swap (B_);
+    if (A_.is_img() && B_.is_val()) {
+        const ImageBuf &A (A_.img());
+        cspan<float> b = B_.val();
+        IBA_FIX_PERCHAN_LEN_DEF (b, A.nchannels());
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
+                              A.spec().format, dst, A, b, roi, nthreads);
+        return ok;
+    }
+    // Remaining cases: error
+    dst.error ("ImageBufAlgo::absdiff(): at least one argument must be an image");
+    return false;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::absdiff (Image_or_Const A, Image_or_Const B,
+                       ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = absdiff (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::absdiff() error");
+    return result;
+}
+
+
+
+#if 0
 bool
 ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                        ROI roi, int nthreads)
@@ -182,12 +241,15 @@ ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
-ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const float *b,
+ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, cspan<float> b,
                        ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::absdiff");
     if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
+
+    IBA_FIX_PERCHAN_LEN_DEF (b, dst.nchannels());
+
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
                           A.spec().format, dst, A, b, roi, nthreads);
@@ -196,22 +258,30 @@ ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const float *b,
 
 
 
-bool
-ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, float b,
+ImageBuf
+ImageBufAlgo::absdiff (const ImageBuf &A, const ImageBuf &B,
                        ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::absdiff");
-    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
-        return false;
-    int nc = dst.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = b;
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
-                          A.spec().format, dst, A, vals, roi, nthreads);
-    return ok;
+    ImageBuf result;
+    bool ok = absdiff (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("absdiff error");
+    return result;
 }
+
+
+
+ImageBuf
+ImageBufAlgo::absdiff (const ImageBuf &A, cspan<float> B,
+                       ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = absdiff (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("absdiff error");
+    return result;
+}
+#endif
 
 
 
@@ -224,10 +294,22 @@ ImageBufAlgo::abs (ImageBuf &dst, const ImageBuf &A, ROI roi, int nthreads)
 
 
 
+ImageBuf
+ImageBufAlgo::abs (const ImageBuf &A, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = abs (result, A, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("abs error");
+    return result;
+}
+
+
+
 
 template<class Rtype, class Atype>
 static bool
-pow_impl (ImageBuf &R, const ImageBuf &A, const float *b,
+pow_impl (ImageBuf &R, const ImageBuf &A, cspan<float> b,
           ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -241,12 +323,13 @@ pow_impl (ImageBuf &R, const ImageBuf &A, const float *b,
 
 
 bool
-ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, const float *b,
+ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, cspan<float> b,
                    ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::pow");
     if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
+    IBA_FIX_PERCHAN_LEN_DEF (b, dst.nchannels());
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "pow", pow_impl, dst.spec().format,
                           A.spec().format, dst, A, b, roi, nthreads);
@@ -254,24 +337,16 @@ ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, const float *b,
 }
 
 
-
-bool
-ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, float b,
+ImageBuf
+ImageBufAlgo::pow (const ImageBuf &A, cspan<float> b,
                    ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::pow");
-    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
-        return false;
-    int nc = A.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = b;
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "pow", pow_impl, dst.spec().format,
-                          A.spec().format, dst, A, vals, roi, nthreads);
-    return ok;
+    ImageBuf result;
+    bool ok = pow (result, A, b, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("pow error");
+    return result;
 }
-
 
 
 
@@ -279,7 +354,7 @@ ImageBufAlgo::pow (ImageBuf &dst, const ImageBuf &A, float b,
 template<class D, class S>
 static bool
 channel_sum_ (ImageBuf &dst, const ImageBuf &src,
-              const float *weights, ROI roi, int nthreads)
+              cspan<float> weights, ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
         ImageBuf::Iterator<D> d (dst, roi);
@@ -298,7 +373,8 @@ channel_sum_ (ImageBuf &dst, const ImageBuf &src,
 
 bool
 ImageBufAlgo::channel_sum (ImageBuf &dst, const ImageBuf &src,
-                           const float *weights, ROI roi, int nthreads)
+                           cspan<float> weights,
+                           ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::channel_sum");
     if (! roi.defined())
@@ -310,18 +386,26 @@ ImageBufAlgo::channel_sum (ImageBuf &dst, const ImageBuf &src,
     if (! IBAprep (dstroi, &dst))
         return false;
 
-    if (! weights) {
-        float *local_weights = ALLOCA (float, roi.chend);
-        for (int c = 0; c < roi.chend; ++c)
-            local_weights[c] = 1.0f;
-        weights = &local_weights[0];
-    }
+    IBA_FIX_PERCHAN_LEN (weights, dst.nchannels(), 0.0f, 1.0f);
 
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2 (ok, "channel_sum", channel_sum_,
                           dst.spec().format, src.spec().format,
                           dst, src, weights, roi, nthreads);
     return ok;
+}
+
+
+ImageBuf
+ImageBufAlgo::channel_sum (const ImageBuf &src,
+                           cspan<float> weights,
+                           ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = channel_sum (result, src, weights, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("channel_sum error");
+    return result;
 }
 
 
@@ -528,6 +612,32 @@ ImageBufAlgo::rangeexpand (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::rangecompress (const ImageBuf &src, bool useluma,
+                             ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = rangecompress (result, src, useluma, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::rangecompress() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::rangeexpand (const ImageBuf &src, bool useluma,
+                           ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = rangeexpand (result, src, useluma, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::rangeexpand() error");
+    return result;
+}
+
+
+
 template<class Rtype, class Atype>
 static bool
 unpremult_ (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
@@ -593,6 +703,19 @@ ImageBufAlgo::unpremult (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::unpremult (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = unpremult (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::unpremult() error");
+    return result;
+}
+
+
+
+
 template<class Rtype, class Atype>
 static bool
 premult_ (ImageBuf &R, const ImageBuf &A, ROI roi, int nthreads)
@@ -649,11 +772,23 @@ ImageBufAlgo::premult (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::premult (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = premult (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::premult() error");
+    return result;
+}
+
+
+
 template<class D, class S>
 static bool
 color_map_ (ImageBuf &dst, const ImageBuf &src,
             int srcchannel, int nknots, int channels,
-            array_view<const float> knots,
+            cspan<float> knots,
             ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -679,7 +814,7 @@ color_map_ (ImageBuf &dst, const ImageBuf &src,
 bool
 ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
                          int srcchannel, int nknots, int channels,
-                         array_view<const float> knots,
+                         cspan<float> knots,
                          ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::color_map");
@@ -708,6 +843,23 @@ ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
                           dstroi, nthreads);
     return ok;
 }
+
+
+
+ImageBuf
+ImageBufAlgo::color_map (const ImageBuf &src,
+                         int srcchannel, int nknots, int channels,
+                         cspan<float> knots,
+                         ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = color_map (result, src, srcchannel, nknots, channels,
+                         knots, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::color_map() error");
+    return result;
+}
+
 
 
 
@@ -778,27 +930,27 @@ ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
         dst.error ("invalid source channel selected");
         return false;
     }
-    array_view<const float> knots;
+    cspan<float> knots;
     if (mapname == "magma") {
-        knots = array_view<const float> (magma_data);
+        knots = cspan<float> (magma_data);
     } else if (mapname == "inferno") {
-        knots = array_view<const float> (inferno_data);
+        knots = cspan<float> (inferno_data);
     } else if (mapname == "plasma") {
-        knots = array_view<const float> (plasma_data);
+        knots = cspan<float> (plasma_data);
     } else if (mapname == "viridis") {
-        knots = array_view<const float> (viridis_data);
+        knots = cspan<float> (viridis_data);
     } else if (mapname == "blue-red" || mapname == "red-blue" ||
           mapname == "bluered" || mapname == "redblue") {
         static const float k[] = { 0.0f, 0.0f, 1.0f,   1.0f, 0.0f, 0.0f };
-        knots = array_view<const float> (k);
+        knots = cspan<float> (k);
     } else if (mapname == "spectrum") {
         static const float k[] = { 0, 0, 0.05,     0, 0, 0.75,   0, 0.5, 0,
                                    0.5, 0.5, 0,   1, 0, 0 };
-        knots = array_view<const float> (k);
+        knots = cspan<float> (k);
     } else if (mapname == "heat") {
         static const float k[] = { 0, 0, 0,  0.05, 0, 0,  0.25, 0, 0,
                                    0.75, 0.75, 0,  1,1,1 };
-        knots = array_view<const float> (k);
+        knots = cspan<float> (k);
     } else {
         dst.error ("Unknown map name \"%s\"", mapname);
         return false;
@@ -808,6 +960,17 @@ ImageBufAlgo::color_map (ImageBuf &dst, const ImageBuf &src,
 }
 
 
+ImageBuf
+ImageBufAlgo::color_map (const ImageBuf &src,
+                         int srcchannel, string_view mapname,
+                         ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = color_map (result, src, srcchannel, mapname, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::color_map() error");
+    return result;
+}
 
 
 
@@ -998,6 +1161,19 @@ ImageBufAlgo::fixNonFinite (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::fixNonFinite (const ImageBuf &src,
+                            NonFiniteFixMode mode, int *pixelsFixed,
+                            ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = fixNonFinite (result, src, mode, pixelsFixed, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::fixNonFinite() error");
+    return result;
+}
+
+
 
 static bool
 decode_over_channels (const ImageBuf &R, int &nchannels, 
@@ -1153,6 +1329,19 @@ ImageBufAlgo::over (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
 
 
 
+ImageBuf
+ImageBufAlgo::over (const ImageBuf &A, const ImageBuf &B,
+                    ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = over (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::over() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                      bool z_zeroisinf, ROI roi, int nthreads)
@@ -1169,6 +1358,18 @@ ImageBufAlgo::zover (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
     return ok && ! dst.has_error();
 }
 
+
+
+ImageBuf
+ImageBufAlgo::zover (const ImageBuf &A, const ImageBuf &B,
+                     bool z_zeroisinf, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = zover (result, A, B, z_zeroisinf, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::zover() error");
+    return result;
+}
 
 
 OIIO_NAMESPACE_END

@@ -712,6 +712,8 @@ typedef bool (*IBAbinary) (ImageBuf &dst, const ImageBuf &A,
                            const ImageBuf &B, ROI roi, int nthreads);
 typedef bool (*IBAbinary_img_col) (ImageBuf &dst, const ImageBuf &A,
                                    const float *B, ROI roi, int nthreads);
+typedef bool (*IBAbinary_) (ImageBuf &dst, Image_or_Const A,
+                           Image_or_Const B, ROI roi, int nthreads);
 
 template<typename IBLIMPL=IBAunary>
 class OiiotoolSimpleUnaryOp : public OiiotoolOp {

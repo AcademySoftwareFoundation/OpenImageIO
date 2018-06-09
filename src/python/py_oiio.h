@@ -179,21 +179,72 @@ inline bool py_indexable_pod_to_stdvector (std::vector<TypeDesc> &vals, const PY
 }
 
 
-// Suck up a tuple of presumed T values into a vector<T>. Works for T any of
-// int, float, string, and works if the Python container is any of tuple,
-// list.
+
+template<typename T>
+inline bool py_scalar_pod_to_stdvector (std::vector<T> &vals, const py::object &obj)
+{
+    using pytype = typename PyTypeForCType<T>::type;
+    vals.clear ();
+    if (py::isinstance<pytype>(obj)) {
+        vals.emplace_back (obj.template cast<pytype>());
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// float specialization -- accept ints, too
+template<>
+inline bool py_scalar_pod_to_stdvector (std::vector<float> &vals, const py::object &obj)
+{
+    vals.clear ();
+    if (py::isinstance<py::float_>(obj)) {
+        vals.emplace_back (obj.template cast<py::float_>());
+        return true;
+    } else if (py::isinstance<py::int_>(obj)) {
+        int i = obj.template cast<py::int_>();
+        vals.emplace_back ((float)i);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// TypeDesc specialization
+template<>
+inline bool py_scalar_pod_to_stdvector (std::vector<TypeDesc> &vals, const py::object &obj)
+{
+    vals.clear ();
+    if (py::isinstance<TypeDesc>(obj)) {
+        vals.emplace_back (*(obj.template cast<TypeDesc *>()));
+        return true;
+    } else if (py::isinstance<TypeDesc::BASETYPE>(obj)) {
+        vals.emplace_back (*(obj.template cast<TypeDesc::BASETYPE *>()));
+        return true;
+    } else if (py::isinstance<py::str>(obj)) {
+        vals.emplace_back (TypeDesc(std::string(obj.template cast<py::str>())));
+        return true;
+    } else {
+        return false;
+    }
+}
+
+
+
+// Suck up a tuple (or list, or single instance) of presumed T values into a
+// vector<T>. Works for T any of int, float, string, and works if the Python
+// container is any of tuple, list.
 template<typename T>
 inline bool py_to_stdvector (std::vector<T> &vals, const py::object &obj)
 {
-    bool ok = true;
-    if (py::isinstance<py::tuple>(obj)) {
+    if (py::isinstance<py::tuple>(obj)) { // if it's a Python tuple
         return py_indexable_pod_to_stdvector (vals, obj.cast<py::tuple>());
     }
-    if (py::isinstance<py::list>(obj)) {
+    if (py::isinstance<py::list>(obj)) { // if it's a Python list
         return py_indexable_pod_to_stdvector (vals, obj.cast<py::list>());
     }
-    ok = false;
-    return ok;
+    // handle scalar case or bust
+    return py_scalar_pod_to_stdvector (vals, obj);
 }
 
 
@@ -329,6 +380,8 @@ struct oiio_bufinfo {
 
 
 // TRANSFERS ownership of the data pointer!
+// N.B. There is some evidence that this doesn't work properly with
+// non-float arrays. Maybe a limitation of pybind11?
 template<class T>
 inline py::array_t<T>
 make_numpy_array (T *data, int dims, size_t chans, size_t width,
