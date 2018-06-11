@@ -10,7 +10,7 @@ ifeq (${OIIOTOOL},)
 endif
 
 
-PDFLATEX := pdflatex -halt-on-error -interaction=errorstopmode 
+PDFLATEX := pdflatex -file-line-error --halt-on-error -interaction=errorstopmode
 
 # by default, just make the document
 all: openimageio.pdf
