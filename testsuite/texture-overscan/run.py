@@ -22,6 +22,10 @@ command += testtex_command ("grid-overscan.exr --res 256 256 " +
                             "--wrap black --nowarp " +
                             "--offset -0.5 -0.5 0 --scalest 2 2 " +
                             "-o out-over.exr ;\n")
+command += testtex_command ("grid-overscan.exr --res 256 256 " +
+                            "--wrap clamp --nowarp " +
+                            "--offset -0.5 -0.5 0 --scalest 2 2 " +
+                            "-o out-overclamp.exr ;\n")
 
-outputs = [ "out-exact.exr", "out-over.exr" ]
+outputs = [ "out-exact.exr", "out-over.exr", "out-overclamp.exr" ]
 
