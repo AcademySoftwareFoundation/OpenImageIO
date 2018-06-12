@@ -219,7 +219,7 @@ endif ()
 # FFmpeg
 
 if (USE_FFMPEG)
-    find_package (FFmpeg)
+    find_package (FFmpeg 2.6)
     if (FFMPEG_INCLUDE_DIR AND FFMPEG_LIBRARIES)
         set (FFMPEG_FOUND TRUE)
         if (NOT FFmpeg_FIND_QUIETLY)

@@ -42,7 +42,7 @@ NEW or CHANGED dependencies since the last major release are **bold**.
      * **NumPy**
      * **pybind11** (but OIIO will auto-download it if not found)
  * libRaw >= 0.17 ("RAW" image reading will be disabled if not found)
- * ffmpeg >= 3.0 (tested through 4.0)
+ * ffmpeg >= 2.6 (tested through 4.0)
 
 
 
