@@ -530,28 +530,24 @@ endmacro()
 set (BUILD_ROBINMAP_VERSION "1e59f1993c7b6eace15032f38b5acb0bc34f530b" CACHE STRING "Preferred Tessil/robin-map version, of downloading/building our own")
 
 macro (find_or_download_robin_map)
-    # Download the headers from github
-    message (STATUS "Downloading local Tessil/robin-map")
-    set (ROBINMAP_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/robin-map")
-    set (ROBINMAP_GIT_REPOSITORY "https://github.com/Tessil/robin-map")
-    if (NOT IS_DIRECTORY ${ROBINMAP_INSTALL_DIR}/tsl)
-        find_package (Git REQUIRED)
-        execute_process(COMMAND             ${GIT_EXECUTABLE} clone    ${ROBINMAP_GIT_REPOSITORY} -n ${ROBINMAP_INSTALL_DIR})
-        execute_process(COMMAND             ${GIT_EXECUTABLE} checkout ${BUILD_ROBINMAP_VERSION}
-                        WORKING_DIRECTORY   ${ROBINMAP_INSTALL_DIR})
-
-        if (IS_DIRECTORY ${ROBINMAP_INSTALL_DIR}/tsl)
-            message (STATUS "DOWNLOADED Tessil/robin-map to ${ROBINMAP_INSTALL_DIR}.\n"
-                     "Remove that dir to get rid of it.")
-        else ()
-            message (FATAL_ERROR "Could not download Tessil/robin-map")
-        endif ()
-    endif ()
-    set (ROBINMAP_INCLUDE_DIR "${ROBINMAP_INSTALL_DIR}")
-    if (ROBINMAP_INCLUDE_DIR)
+    find_path(ROBINMAP_INCLUDE_DIR NAMES tsl/robin_map.h)
+    if(ROBINMAP_INCLUDE_DIR)
         message (STATUS "Tessil/robin-map include dir: ${ROBINMAP_INCLUDE_DIR}")
-    else ()
-        message (FATAL_ERROR "Tessil/robin-map is missing!")
+        include_directories(${ROBINMAP_INCLUDE_DIR})
+    else()
+        # Download the headers from github
+        message (STATUS "Tessil/robin-map not found, will try using local download...")
+        set (ROBINMAP_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/robin-map")
+        set (ROBINMAP_GIT_REPOSITORY "https://github.com/Tessil/robin-map")
+        include(ExternalProject)
+        ExternalProject_Add(robin-map
+            GIT_REPOSITORY ${ROBINMAP_GIT_REPOSITORY}
+            GIT_TAG ${BUILD_ROBINMAP_VERSION}
+            BUILD_COMMAND ""
+            INSTALL_COMMAND ""
+        )
+        set(ROBINMAP_INCLUDE_DIR ${CMAKE_BINARY_DIR}/robin-map-prefix/src/robin-map)
+        include_directories(${ROBINMAP_INCLUDE_DIR})
     endif ()
 endmacro()
 
