@@ -984,7 +984,7 @@ Filesystem::IOFile::pread (void *buf, size_t size, int64_t offset)
     overlapped.Offset = DWORD(offset);
     overlapped.OffsetHigh = DWORD(offset >> 32);
     DWORD bytesread = 0;
-    size_t r = ReadFile (h, buf, DWORD(size), &bytesread, &overlapped) ? bytesread : 0;
+    return ReadFile (h, buf, DWORD(size), &bytesread, &overlapped) ? bytesread : 0;
 #else /* Non-Windows: assume POSIX pwrite is available */
     int fd = fileno (m_file);
     return ::pread (fd, buf, size, offset);
