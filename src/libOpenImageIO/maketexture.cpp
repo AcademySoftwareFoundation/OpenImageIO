@@ -1198,7 +1198,12 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
 
     bool orig_was_overscan = (roi != roi_full);
     if (orig_was_overscan) {
-        configspec.attribute ("wrapmodes", "black,black");
+        // overscan requires either clamp or black, default to black for
+        // anything else
+        std::string wrap = configspec.get_string_attribute ("wrapmodes");
+        if (wrap != "clamp" && wrap != "clamp,clamp" &&
+              wrap != "clamp,black" && wrap != "black,clamp")
+            configspec.attribute ("wrapmodes", "black,black");
     }
 
     if ((dstspec.x < 0 || dstspec.y < 0 || dstspec.z < 0) &&
