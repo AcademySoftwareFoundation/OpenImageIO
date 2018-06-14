@@ -2669,17 +2669,17 @@ ImageCacheImpl::get_image_info (ImageCacheFile *file,
 
     // general case -- handle anything else that's able to be found by
     // spec.find_attribute().
-    const ParamValue *p = spec.find_attribute (dataname.string());
-    if (p && p->type().arraylen == datatype.arraylen) {
-        // First test for exact type match
-        if (p->type() == datatype) {
+    const ParamValue *p = spec.find_attribute (dataname);
+    if (p && p->type().basevalues() == datatype.basevalues()) {
+        // First test for exact base type match
+        if (p->type().basetype == datatype.basetype) {
             memcpy (data, p->data(), datatype.size());
             return true;
         }
         // If the real data is int but user asks for float, translate it
         if (p->type().basetype == TypeDesc::FLOAT &&
                 datatype.basetype == TypeDesc::INT) {
-            for (int i = 0;  i < p->type().arraylen;  ++i)
+            for (int i = 0;  i < int(p->type().basevalues());  ++i)
                 ((float *)data)[i] = ((int *)p->data())[i];
             return true;
         }
