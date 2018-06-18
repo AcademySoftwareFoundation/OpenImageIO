@@ -69,28 +69,9 @@ mul_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 
 
-bool
-ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
-                   ROI roi, int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::mul");
-    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
-        return false;
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES3 (ok, "mul", mul_impl, dst.spec().format,
-                                 A.spec().format, B.spec().format,
-                                 dst, A, B, roi, nthreads);
-    // N.B. No need to consider the case where A and B have differing number
-    // of channels. Missing channels are assumed 0, multiplication by 0 is
-    // 0, so it all just works through the magic of IBAprep.
-    return ok;
-}
-
-
-
 template<class Rtype, class Atype>
 static bool
-mul_impl (ImageBuf &R, const ImageBuf &A, const float *b,
+mul_impl (ImageBuf &R, const ImageBuf &A, cspan<float> b,
           ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -105,7 +86,7 @@ mul_impl (ImageBuf &R, const ImageBuf &A, const float *b,
 
 
 static bool
-mul_impl_deep (ImageBuf &R, const ImageBuf &A, const float *b,
+mul_impl_deep (ImageBuf &R, const ImageBuf &A, cspan<float> b,
                ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -130,42 +111,54 @@ mul_impl_deep (ImageBuf &R, const ImageBuf &A, const float *b,
 
 
 bool
-ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, const float *b,
+ImageBufAlgo::mul (ImageBuf &dst, Image_or_Const A_, Image_or_Const B_,
                    ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::mul");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    if (dst.deep()) {
-        // While still serial, set up all the sample counts
-        dst.deepdata()->set_all_samples (A.deepdata()->all_samples());
-        return mul_impl_deep (dst, A, b, roi, nthreads);
+    if (A_.is_img() && B_.is_img()) {
+        const ImageBuf &A(A_.img()), &B(B_.img());
+        if (! IBAprep (roi, &dst, &A, &B, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+            return false;
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES3 (ok, "mul", mul_impl, dst.spec().format,
+                                     A.spec().format, B.spec().format,
+                                     dst, A, B, roi, nthreads);
+        return ok;
     }
-
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "mul", mul_impl, dst.spec().format,
-                          A.spec().format, dst, A, b, roi, nthreads);
-    return ok;
+    if (A_.is_val() && B_.is_img())  // canonicalize to A_img, B_val
+        A_.swap (B_);
+    if (A_.is_img() && B_.is_val()) {
+        const ImageBuf &A (A_.img());
+        cspan<float> b = B_.val();
+        if (! IBAprep (roi, &dst, &A,
+                       IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
+            return false;
+        IBA_FIX_PERCHAN_LEN_DEF (b, A.nchannels());
+        if (dst.deep()) {
+            // While still serial, set up all the sample counts
+            dst.deepdata()->set_all_samples (A.deepdata()->all_samples());
+            return mul_impl_deep (dst, A, b, roi, nthreads);
+        }
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES2 (ok, "mul", mul_impl, dst.spec().format,
+                              A.spec().format, dst, A, b, roi, nthreads);
+        return ok;
+    }
+    // Remaining cases: error
+    dst.error ("ImageBufAlgo::mul(): at least one argument must be an image");
+    return false;
 }
 
 
 
-bool
-ImageBufAlgo::mul (ImageBuf &dst, const ImageBuf &A, float b,
-                   ROI roi, int nthreads)
+ImageBuf
+ImageBufAlgo::mul (Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::mul");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    int nc = A.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = b;
-    return mul (dst, A, vals, roi, nthreads);
+    ImageBuf result;
+    bool ok = mul (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::mul() error");
+    return result;
 }
 
 
@@ -192,63 +185,61 @@ div_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
-ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+ImageBufAlgo::div (ImageBuf &dst, Image_or_Const A_, Image_or_Const B_,
                    ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::div");
-    if (! IBAprep (roi, &dst, &A, &B, NULL, IBAprep_CLAMP_MUTUAL_NCHANNELS))
-        return false;
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES3 (ok, "div", div_impl, dst.spec().format,
-                                 A.spec().format, B.spec().format,
-                                 dst, A, B, roi, nthreads);
-    return ok;
-}
-
-
-
-bool
-ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, const float *b,
-                   ROI roi, int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::div");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    int nc = dst.nchannels();
-    float *binv = OIIO_ALLOCA (float, nc);
-    for (int c = 0; c < nc; ++c)
-        binv[c] = (b[c] == 0.0f) ? 0.0f : 1.0f/b[c];
-
-    if (dst.deep()) {
-        // While still serial, set up all the sample counts
-        dst.deepdata()->set_all_samples (A.deepdata()->all_samples());
-        return mul_impl_deep (dst, A, binv, roi, nthreads);
+    if (A_.is_img() && B_.is_img()) {
+        const ImageBuf &A(A_.img()), &B(B_.img());
+        if (! IBAprep (roi, &dst, &A, &B, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+            return false;
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES3 (ok, "div", div_impl, dst.spec().format,
+                                     A.spec().format, B.spec().format,
+                                     dst, A, B, roi, nthreads);
+        return ok;
     }
+    if (A_.is_val() && B_.is_img())  // canonicalize to A_img, B_val
+        A_.swap (B_);
+    if (A_.is_img() && B_.is_val()) {
+        const ImageBuf &A (A_.img());
+        cspan<float> b = B_.val();
+        if (! IBAprep (roi, &dst, &A,
+                       IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
+            return false;
 
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "div", mul_impl, dst.spec().format,
-                          A.spec().format, dst, A, binv, roi, nthreads);
-    return ok;
+        IBA_FIX_PERCHAN_LEN_DEF (b, dst.nchannels());
+        int nc = dst.nchannels();
+        float *binv = OIIO_ALLOCA (float, nc);
+        for (int c = 0; c < nc; ++c)
+            binv[c] = (b[c] == 0.0f) ? 0.0f : 1.0f/b[c];
+        b = cspan<float>(binv, nc);  // re-wrap
+
+        if (dst.deep()) {
+            // While still serial, set up all the sample counts
+            dst.deepdata()->set_all_samples (A.deepdata()->all_samples());
+            return mul_impl_deep (dst, A, b, roi, nthreads);
+        }
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES2 (ok, "div", mul_impl, dst.spec().format,
+                              A.spec().format, dst, A, b, roi, nthreads);
+        return ok;
+    }
+    // Remaining cases: error
+    dst.error ("ImageBufAlgo::div(): at least one argument must be an image");
+    return false;
 }
 
 
 
-bool
-ImageBufAlgo::div (ImageBuf &dst, const ImageBuf &A, float b,
-                   ROI roi, int nthreads)
+ImageBuf
+ImageBufAlgo::div (Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::div");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    int nc = dst.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = b;
-    return div (dst, A, vals, roi, nthreads);
+    ImageBuf result;
+    bool ok = div (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::div() error");
+    return result;
 }
 
 

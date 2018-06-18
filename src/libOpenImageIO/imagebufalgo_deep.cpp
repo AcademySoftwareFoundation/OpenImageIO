@@ -149,6 +149,18 @@ ImageBufAlgo::flatten (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::flatten (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = flatten (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::flatten error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
                       ROI roi, int nthreads)
@@ -237,6 +249,19 @@ ImageBufAlgo::deepen (ImageBuf &dst, const ImageBuf &src, float zvalue,
     //                              dst.spec().format, srcspec.format,
     //                              dst, src, add_z_channel, z, roi, nthreads);
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::deepen (const ImageBuf &src, float zvalue,
+                      ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = deepen (result, src, zvalue, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::deepen error");
+    return result;
 }
 
 
@@ -350,6 +375,19 @@ ImageBufAlgo::deep_merge (ImageBuf &dst, const ImageBuf &A,
 
 
 
+ImageBuf
+ImageBufAlgo::deep_merge (const ImageBuf &A, const ImageBuf &B,
+                          bool occlusion_cull, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = deep_merge (result, A, B, occlusion_cull, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::deep_merge error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::deep_holdout (ImageBuf &dst, const ImageBuf &src,
                             const ImageBuf &thresh,
@@ -417,6 +455,19 @@ ImageBufAlgo::deep_holdout (ImageBuf &dst, const ImageBuf &src,
         }
     }
     return true;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::deep_holdout (const ImageBuf &src, const ImageBuf &thresh,
+                            ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = deep_holdout (result, src, thresh, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::deep_holdout error");
+    return result;
 }
 
 

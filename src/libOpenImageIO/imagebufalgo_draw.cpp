@@ -110,49 +110,95 @@ fill_corners_ (ImageBuf &dst, const float *topleft, const float *topright,
 
 
 bool
-ImageBufAlgo::fill (ImageBuf &dst, const float *pixel, ROI roi, int nthreads)
+ImageBufAlgo::fill (ImageBuf &dst, cspan<float> pixel,
+                    ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::fill");
-    ASSERT (pixel && "fill must have a non-NULL pixel value pointer");
     if (! IBAprep (roi, &dst))
         return false;
     bool ok;
+    IBA_FIX_PERCHAN_LEN_DEF (pixel, dst.nchannels());
     OIIO_DISPATCH_TYPES (ok, "fill", fill_const_, dst.spec().format,
-                         dst, pixel, roi, nthreads);
+                         dst, pixel.data(), roi, nthreads);
     return ok;
 }
 
 
 bool
-ImageBufAlgo::fill (ImageBuf &dst, const float *top, const float *bottom,
+ImageBufAlgo::fill (ImageBuf &dst, cspan<float> top,
+                    cspan<float> bottom,
                     ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::fill");
-    ASSERT (top && bottom && "fill must have a non-NULL pixel value pointers");
     if (! IBAprep (roi, &dst))
         return false;
     bool ok;
+    IBA_FIX_PERCHAN_LEN_DEF (top, dst.nchannels());
+    IBA_FIX_PERCHAN_LEN_DEF (bottom, dst.nchannels());
     OIIO_DISPATCH_TYPES (ok, "fill", fill_tb_, dst.spec().format,
-                         dst, top, bottom, roi, roi, nthreads);
+                         dst, top.data(), bottom.data(), roi, roi, nthreads);
     return ok;
 }
 
 
 bool
-ImageBufAlgo::fill (ImageBuf &dst, const float *topleft, const float *topright,
-                    const float *bottomleft, const float *bottomright,
+ImageBufAlgo::fill (ImageBuf &dst, cspan<float> topleft,
+                    cspan<float> topright,
+                    cspan<float> bottomleft,
+                    cspan<float> bottomright,
                     ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::fill");
-    ASSERT (topleft && topright && bottomleft && bottomright &&
-            "fill must have a non-NULL pixel value pointers");
     if (! IBAprep (roi, &dst))
         return false;
     bool ok;
+    IBA_FIX_PERCHAN_LEN_DEF (topleft, dst.nchannels());
+    IBA_FIX_PERCHAN_LEN_DEF (topright, dst.nchannels());
+    IBA_FIX_PERCHAN_LEN_DEF (bottomleft, dst.nchannels());
+    IBA_FIX_PERCHAN_LEN_DEF (bottomright, dst.nchannels());
     OIIO_DISPATCH_TYPES (ok, "fill", fill_corners_, dst.spec().format,
-                         dst, topleft, topright, bottomleft, bottomright,
+                         dst, topleft.data(), topright.data(),
+                         bottomleft.data(), bottomright.data(),
                          roi, roi, nthreads);
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::fill (cspan<float> pixel, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = fill (result, pixel, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("fill error");
+    return result;
+}
+
+
+ImageBuf
+ImageBufAlgo::fill (cspan<float> top, cspan<float> bottom,
+                    ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = fill (result, top, bottom, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("fill error");
+    return result;
+}
+
+
+ImageBuf
+ImageBufAlgo::fill (cspan<float> topleft, cspan<float> topright,
+                    cspan<float> bottomleft, cspan<float> bottomright,
+                    ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = fill (result, topleft, topright, bottomleft, bottomright,
+                    roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("fill error");
+    return result;
 }
 
 
@@ -172,10 +218,22 @@ ImageBufAlgo::zero (ImageBuf &dst, ROI roi, int nthreads)
 
 
 
+ImageBuf
+ImageBufAlgo::zero (ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = zero (result, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("zero error");
+    return result;
+}
+
+
+
 template<typename T>
 static bool
 render_point_ (ImageBuf &dst, int x, int y,
-               array_view<const float> color, float alpha,
+               const float *color, float alpha,
                ROI roi, int nthreads)
 {
     ImageBuf::Iterator<T> r (dst, x, y);
@@ -187,18 +245,13 @@ render_point_ (ImageBuf &dst, int x, int y,
 
 
 bool
-ImageBufAlgo::render_point (ImageBuf &dst, int x, int y,
-                            array_view<const float> color,
+ImageBufAlgo::render_point (ImageBuf &dst, int x, int y, cspan<float> color,
                             ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::render_point");
     if (! IBAprep (roi, &dst))
         return false;
-
-    if (int(color.size()) < roi.chend) {
-        dst.error ("Not enough channels for the color (needed %d)", roi.chend);
-        return false;   // Not enough color channels specified
-    }
+    IBA_FIX_PERCHAN_LEN_DEF (color, dst.nchannels());
     if (x < roi.xbegin || x >= roi.xend || y < roi.ybegin || y >= roi.yend)
         return true;   // outside of bounds
     const ImageSpec &spec (dst.spec());
@@ -216,7 +269,7 @@ ImageBufAlgo::render_point (ImageBuf &dst, int x, int y,
 
     bool ok;
     OIIO_DISPATCH_TYPES (ok, "render_point", render_point_, dst.spec().format,
-                         dst, x, y, color, alpha, roi, nthreads);
+                         dst, x, y, color.data(), alpha, roi, nthreads);
     return ok;
 }
 
@@ -280,7 +333,7 @@ bresenham2d (FUNC func, int x1, int y1, int x2, int y2,
 template<typename T>
 struct IB_drawer {
     IB_drawer (ImageBuf::Iterator<T,float> &r_,
-               array_view<const float> color_, float alpha_, ROI roi_)
+               cspan<float> color_, float alpha_, ROI roi_)
         : r(r_), color(color_), alpha(alpha_), roi(roi_) {}
 
     void operator() (int x, int y) {
@@ -291,7 +344,7 @@ struct IB_drawer {
     }
 
     ImageBuf::Iterator<T,float> &r;
-    array_view<const float> color;
+    cspan<float> color;
     float alpha;
     ROI roi;
 };
@@ -301,7 +354,7 @@ struct IB_drawer {
 template<typename T>
 static bool
 render_line_ (ImageBuf &dst, int x1, int y1, int x2, int y2,
-              array_view<const float> color, float alpha, bool skip_first,
+              cspan<float> color, float alpha, bool skip_first,
               ROI roi, int nthreads)
 {
     ImageBuf::Iterator<T> r (dst, roi);
@@ -314,18 +367,13 @@ render_line_ (ImageBuf &dst, int x1, int y1, int x2, int y2,
 
 bool
 ImageBufAlgo::render_line (ImageBuf &dst, int x1, int y1, int x2, int y2,
-                           array_view<const float> color,
-                           bool skip_first_point,
+                           cspan<float> color, bool skip_first_point,
                            ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::render_line");
     if (! IBAprep (roi, &dst))
         return false;
-
-    if (int(color.size()) < roi.chend) {
-        dst.error ("Not enough channels for the color (needed %d)", roi.chend);
-        return false;   // Not enough color channels specified
-    }
+    IBA_FIX_PERCHAN_LEN_DEF (color, dst.nchannels());
     const ImageSpec &spec (dst.spec());
 
     // Alpha: if the image's spec designates an alpha channel, use it if
@@ -350,7 +398,7 @@ ImageBufAlgo::render_line (ImageBuf &dst, int x1, int y1, int x2, int y2,
 
 template<typename T>
 static bool
-render_box_ (ImageBuf &dst, array_view<const float> color,
+render_box_ (ImageBuf &dst, cspan<float> color,
              ROI roi=ROI(), int nthreads=1)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -377,16 +425,13 @@ render_box_ (ImageBuf &dst, array_view<const float> color,
 
 bool
 ImageBufAlgo::render_box (ImageBuf &dst, int x1, int y1, int x2, int y2,
-                          array_view<const float> color, bool fill,
+                          cspan<float> color, bool fill,
                           ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::render_box");
     if (! IBAprep (roi, &dst))
         return false;
-    if (int(color.size()) < roi.chend) {
-        dst.error ("Not enough channels for the color (needed %d)", roi.chend);
-        return false;   // Not enough color channels specified
-    }
+    IBA_FIX_PERCHAN_LEN_DEF (color, dst.nchannels());
 
     if (x1 == x2 && y1 == y2) {
         // degenerate 1-point rectangle
@@ -447,18 +492,36 @@ checker_ (ImageBuf &dst, Dim3 size,
 
 bool
 ImageBufAlgo::checker (ImageBuf &dst, int width, int height, int depth,
-                       const float *color1, const float *color2,
+                       cspan<float> color1, cspan<float> color2,
                        int xoffset, int yoffset, int zoffset,
                        ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::checker");
     if (! IBAprep (roi, &dst))
         return false;
+    IBA_FIX_PERCHAN_LEN_DEF (color1, dst.nchannels());
+    IBA_FIX_PERCHAN_LEN_DEF (color2, dst.nchannels());
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES (ok, "checker", checker_, dst.spec().format,
-                         dst, Dim3(width, height, depth), color1, color2,
+                         dst, Dim3(width, height, depth),
+                         color1.data(), color2.data(),
                          Dim3(xoffset, yoffset, zoffset), roi, nthreads);
     return ok;
+}
+
+
+ImageBuf
+ImageBufAlgo::checker (int width, int height, int depth,
+                       cspan<float> color1, cspan<float> color2,
+                       int xoffset, int yoffset, int zoffset,
+                       ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = checker (result, width, height, depth, color1, color2,
+                       xoffset, yoffset, zoffset, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("checker error");
+    return result;
 }
 
 
@@ -583,6 +646,21 @@ ImageBufAlgo::noise (ImageBuf &dst, string_view noisetype,
         dst.error ("noise", "unknown noise type \"%s\"", noisetype);
     }
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::noise (string_view noisetype,
+                     float A, float B, bool mono, int seed,
+                     ROI roi, int nthreads)
+{
+    ImageBuf result = ImageBufAlgo::zero (roi, nthreads);
+    bool ok = true;
+    ok = noise (result, noisetype, A, B, mono, seed, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("noise error");
+    return result;
 }
 
 
@@ -787,24 +865,10 @@ ImageBufAlgo::text_size (string_view text, int fontsize, string_view font_)
 
 
 
-// Deprecated version
 bool
 ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
                            int fontsize, string_view font_,
-                           const float *textcolor)
-{
-    array_view<const float> color;
-    if (textcolor)
-        color = array_view<const float>(textcolor,R.nchannels());
-    return render_text (R, x, y, text, fontsize, font_, color);
-}
-
-
-
-bool
-ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
-                           int fontsize, string_view font_,
-                           array_view<const float> textcolor,
+                           cspan<float> textcolor,
                            TextAlignX alignx, TextAlignY aligny,
                            int shadow, ROI roi, int nthreads)
 {
@@ -842,13 +906,8 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, string_view text,
     }
 
     FT_GlyphSlot slot = face->glyph;  // a small shortcut
-    int nchannels (R.spec().nchannels);
-    if (textcolor.size() <= nchannels) {
-        float *localtextcolor = ALLOCA (float, nchannels);
-        for (int c = 0;  c < nchannels;  ++c)
-            localtextcolor[c] = c < textcolor.size() ? textcolor[c] : 1.0f;
-        textcolor = array_view<const float>(localtextcolor, nchannels);
-    }
+    int nchannels (R.nchannels());
+    IBA_FIX_PERCHAN_LEN_DEF (textcolor, nchannels);
 
     // Convert the UTF to 32 bit unicode
     std::vector<uint32_t> utext;

@@ -70,7 +70,7 @@ add_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 template<class Rtype, class Atype>
 static bool
-add_impl (ImageBuf &R, const ImageBuf &A, const float *b,
+add_impl (ImageBuf &R, const ImageBuf &A, cspan<float> b,
           ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
@@ -86,12 +86,12 @@ add_impl (ImageBuf &R, const ImageBuf &A, const float *b,
 
 
 static bool
-add_impl_deep (ImageBuf &R, const ImageBuf &A, const float *b,
+add_impl_deep (ImageBuf &R, const ImageBuf &A, cspan<float> b,
                ROI roi, int nthreads)
 {
     ASSERT (R.deep());
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
-        array_view<const TypeDesc> channeltypes (R.deepdata()->all_channeltypes());
+        cspan<TypeDesc> channeltypes (R.deepdata()->all_channeltypes());
         ImageBuf::Iterator<float> r (R, roi);
         ImageBuf::ConstIterator<float> a (A, roi);
         for ( ;  !r.done();  ++r, ++a) {
@@ -111,76 +111,72 @@ add_impl_deep (ImageBuf &R, const ImageBuf &A, const float *b,
 
 
 bool
-ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+ImageBufAlgo::add (ImageBuf &dst, Image_or_Const A_, Image_or_Const B_,
                    ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::add");
-    if (! IBAprep (roi, &dst, &A, &B))
-        return false;
-    ROI origroi = roi;
-    roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES3 (ok, "add", add_impl, dst.spec().format,
-                                 A.spec().format, B.spec().format,
-                                 dst, A, B, roi, nthreads);
-
-    if (roi.chend < origroi.chend && A.nchannels() != B.nchannels()) {
-        // Edge case: A and B differed in nchannels, we allocated dst to be
-        // the bigger of them, but adjusted roi to be the lesser. Now handle
-        // the channels that got left out because they were not common to
-        // all the inputs.
-        ASSERT (roi.chend <= dst.nchannels());
-        roi.chbegin = roi.chend;
-        roi.chend = origroi.chend;
-        if (A.nchannels() > B.nchannels()) { // A exists
-            copy (dst, A, dst.spec().format, roi, nthreads);
-        } else { // B exists
-            copy (dst, B, dst.spec().format, roi, nthreads);
+    if (A_.is_img() && B_.is_img()) {
+        const ImageBuf &A(A_.img()), &B(B_.img());
+        if (! IBAprep (roi, &dst, &A, &B))
+            return false;
+        ROI origroi = roi;
+        roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES3 (ok, "add", add_impl, dst.spec().format,
+                                     A.spec().format, B.spec().format,
+                                     dst, A, B, roi, nthreads);
+        if (roi.chend < origroi.chend && A.nchannels() != B.nchannels()) {
+            // Edge case: A and B differed in nchannels, we allocated dst to be
+            // the bigger of them, but adjusted roi to be the lesser. Now handle
+            // the channels that got left out because they were not common to
+            // all the inputs.
+            ASSERT (roi.chend <= dst.nchannels());
+            roi.chbegin = roi.chend;
+            roi.chend = origroi.chend;
+            if (A.nchannels() > B.nchannels()) { // A exists
+                copy (dst, A, dst.spec().format, roi, nthreads);
+            } else { // B exists
+                copy (dst, B, dst.spec().format, roi, nthreads);
+            }
         }
+        return ok;
     }
-    return ok;
-}
-
-
-
-bool
-ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, const float *b,
-                   ROI roi, int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::add");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    if (dst.deep()) {
-        // While still serial, set up all the sample counts
-        dst.deepdata()->set_all_samples (A.deepdata()->all_samples());
-        return add_impl_deep (dst, A, b, roi, nthreads);
+    if (A_.is_val() && B_.is_img())  // canonicalize to A_img, B_val
+        A_.swap (B_);
+    if (A_.is_img() && B_.is_val()) {
+        const ImageBuf &A (A_.img());
+        cspan<float> b = B_.val();
+        if (! IBAprep (roi, &dst, &A,
+                       IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
+            return false;
+        IBA_FIX_PERCHAN_LEN_DEF (b, A.nchannels());
+        if (dst.deep()) {
+            // While still serial, set up all the sample counts
+            dst.deepdata()->set_all_samples (A.deepdata()->all_samples());
+            return add_impl_deep (dst, A, b, roi, nthreads);
+        }
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES2 (ok, "add", add_impl, dst.spec().format,
+                              A.spec().format, dst, A, b, roi, nthreads);
+        return ok;
     }
-
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "add", add_impl, dst.spec().format,
-                          A.spec().format, dst, A, b, roi, nthreads);
-    return ok;
+    // Remaining cases: error
+    dst.error ("ImageBufAlgo::add(): at least one argument must be an image");
+    return false;
 }
 
 
 
-bool
-ImageBufAlgo::add (ImageBuf &dst, const ImageBuf &A, float b,
-                   ROI roi, int nthreads)
+ImageBuf
+ImageBufAlgo::add (Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::add");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    int nc = A.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = b;
-    return add (dst, A, vals, roi, nthreads);
+    ImageBuf result;
+    bool ok = add (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::add() error");
+    return result;
 }
+
 
 
 
@@ -203,80 +199,76 @@ sub_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
 
 
 bool
-ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
+ImageBufAlgo::sub (ImageBuf &dst, Image_or_Const A_, Image_or_Const B_,
                    ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::sub");
-    if (! IBAprep (roi, &dst, &A, &B))
-        return false;
-    ROI origroi = roi;
-    roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES3 (ok, "sub", sub_impl, dst.spec().format,
-                                 A.spec().format, B.spec().format,
-                                 dst, A, B, roi, nthreads);
-
-    if (roi.chend < origroi.chend && A.nchannels() != B.nchannels()) {
-        // Edge case: A and B differed in nchannels, we allocated dst to be
-        // the bigger of them, but adjusted roi to be the lesser. Now handle
-        // the channels that got left out because they were not common to
-        // all the inputs.
-        ASSERT (roi.chend <= dst.nchannels());
-        roi.chbegin = roi.chend;
-        roi.chend = origroi.chend;
-        if (A.nchannels() > B.nchannels()) { // A exists
-            copy (dst, A, dst.spec().format, roi, nthreads);
-        } else { // B exists
-            sub (dst, dst, B, roi, nthreads);
+    if (A_.is_img() && B_.is_img()) {
+        const ImageBuf &A(A_.img()), &B(B_.img());
+        if (! IBAprep (roi, &dst, &A, &B))
+            return false;
+        ROI origroi = roi;
+        roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES3 (ok, "sub", sub_impl, dst.spec().format,
+                                     A.spec().format, B.spec().format,
+                                     dst, A, B, roi, nthreads);
+        if (roi.chend < origroi.chend && A.nchannels() != B.nchannels()) {
+            // Edge case: A and B differed in nchannels, we allocated dst to be
+            // the bigger of them, but adjusted roi to be the lesser. Now handle
+            // the channels that got left out because they were not common to
+            // all the inputs.
+            ASSERT (roi.chend <= dst.nchannels());
+            roi.chbegin = roi.chend;
+            roi.chend = origroi.chend;
+            if (A.nchannels() > B.nchannels()) { // A exists
+                copy (dst, A, dst.spec().format, roi, nthreads);
+            } else { // B exists
+                copy (dst, B, dst.spec().format, roi, nthreads);
+            }
         }
+        return ok;
     }
-    return ok;
+    if (A_.is_val() && B_.is_img())  // canonicalize to A_img, B_val
+        A_.swap (B_);
+    if (A_.is_img() && B_.is_val()) {
+        const ImageBuf &A (A_.img());
+        cspan<float> b = B_.val();
+        if (! IBAprep (roi, &dst, &A,
+                       IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
+            return false;
+        IBA_FIX_PERCHAN_LEN_DEF (b, A.nchannels());
+        // Negate b (into a copy)
+        int nc = A.nchannels();
+        float *vals = ALLOCA (float, nc);
+        for (int c = 0;  c < nc;  ++c)
+            vals[c] = -b[c];
+        b = cspan<float>(vals, nc);
+        if (dst.deep()) {
+            // While still serial, set up all the sample counts
+            dst.deepdata()->set_all_samples (A.deepdata()->all_samples());
+            return add_impl_deep (dst, A, b, roi, nthreads);
+        }
+        bool ok;
+        OIIO_DISPATCH_COMMON_TYPES2 (ok, "sub", add_impl, dst.spec().format,
+                              A.spec().format, dst, A, b, roi, nthreads);
+        return ok;
+    }
+    // Remaining cases: error
+    dst.error ("ImageBufAlgo::sub(): at least one argument must be an image");
+    return false;
 }
 
 
 
-bool
-ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, const float *b,
-                   ROI roi, int nthreads)
+ImageBuf
+ImageBufAlgo::sub (Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::sub");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    int nc = A.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = -b[c];
-
-    if (dst.deep()) {
-        // While still serial, set up all the sample counts
-        dst.deepdata()->set_all_samples (A.deepdata()->all_samples());
-        return add_impl_deep (dst, A, vals, roi, nthreads);
-    }
-
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "sub", add_impl, dst.spec().format,
-                          A.spec().format, dst, A, vals, roi, nthreads);
-    return ok;
-}
-
-
-
-bool
-ImageBufAlgo::sub (ImageBuf &dst, const ImageBuf &A, float b,
-                   ROI roi, int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::sub");
-    if (! IBAprep (roi, &dst, &A,
-                   IBAprep_CLAMP_MUTUAL_NCHANNELS | IBAprep_SUPPORT_DEEP))
-        return false;
-
-    int nc = A.nchannels();
-    float *vals = ALLOCA (float, nc);
-    for (int c = 0;  c < nc;  ++c)
-        vals[c] = b;
-    return sub (dst, A, vals, roi, nthreads);
+    ImageBuf result;
+    bool ok = sub (result, A, B, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::sub() error");
+    return result;
 }
 
 

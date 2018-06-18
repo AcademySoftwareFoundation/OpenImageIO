@@ -54,24 +54,27 @@
 // Guidelines for ImageBufAlgo functions:
 //
 // * Signature will always be:
-//       bool function (ImageBuf &R /* result */, 
-//                      const ImageBuf &A, ...other input images...,
-//                      ...other parameters...
+//       bool function (ImageBuf &dst /* result */,
+//                      const ImageBuf &A, ...other inputs...,
 //                      ROI roi = ROI::All(),
 //                      int nthreads = 0);
+//   or
+//       ImageBuf function (const ImageBuf &A, ...other inputs...,
+//                          ROI roi = ROI::All(),
+//                          int nthreads = 0);
 // * The ROI should restrict the operation to those pixels (and channels)
 //   specified. Default ROI::All() means perform the operation on all
-//   pixel in R's data window.
+//   pixel in dst's data window.
 // * It's ok to omit ROI and threads from the few functions that
 //   (a) can't possibly be parallelized, and (b) do not make sense to
 //   apply to anything less than the entire image.
 // * Be sure to clamp the channel range to those actually used.
-// * If R is initialized, do not change any pixels outside the ROI.
-//   If R is uninitialized, redefine ROI to be the union of the input
-//   images' data windows and allocate R to be that size.
+// * If dst is initialized, do not change any pixels outside the ROI.
+//   If dst is uninitialized, redefine ROI to be the union of the input
+//   images' data windows and allocate dst to be that size.
 // * Try to always do the "reasonable thing" rather than be too brittle.
-// * For errors (where there is no "reasonable thing"), set R's error
-//   condition using R.error() with R.error() and return false.
+// * For errors (where there is no "reasonable thing"), set dst's error
+//   condition using dst.error() with dst.error() and return false.
 // * Always use IB::Iterators/ConstIterator, NEVER use getpixel/setpixel.
 // * Use the iterator Black or Clamp wrap modes to avoid lots of special
 //   cases inside the pixel loops.
@@ -118,6 +121,12 @@ ImageBufAlgo::IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
             minchans = std::min (minchans, C->spec().nchannels);
             maxchans = std::max (maxchans, C->spec().nchannels);
         }
+        if (minchans == 10000 && roi.defined()) {
+            // no images, oops, hope roi makes sense
+            minchans = maxchans = roi.nchannels();
+        }
+    } else if (roi.defined()) {
+        minchans = maxchans = roi.nchannels();
     } else {
         minchans = maxchans = 1;
     }
@@ -450,6 +459,20 @@ ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::convolve (const ImageBuf &src,
+                        const ImageBuf &kernel, bool normalize,
+                        ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = convolve (result, src, kernel, normalize, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::convolve() error");
+    return result;
+}
+
+
+
 inline float binomial (int n, int k)
 {
     float p = 1;
@@ -459,10 +482,9 @@ inline float binomial (int n, int k)
 }
 
 
-bool
-ImageBufAlgo::make_kernel (ImageBuf &dst, string_view name,
-                           float width, float height, float depth,
-                           bool normalize)
+ImageBuf
+ImageBufAlgo::make_kernel (string_view name, float width, float height,
+                           float depth, bool normalize)
 {
     int w = std::max (1, (int)ceilf(width));
     int h = std::max (1, (int)ceilf(height));
@@ -482,13 +504,13 @@ ImageBufAlgo::make_kernel (ImageBuf &dst, string_view name,
     spec.full_width = spec.width;
     spec.full_height = spec.height;
     spec.full_depth = spec.depth;
-    dst.reset (spec);
+    ImageBuf dst (spec);
 
-    if (Filter2D *filter = Filter2D::create (name, width, height)) {
+    std::unique_ptr<Filter2D> filter (Filter2D::create (name, width, height));
+    if (filter) {
         // Named continuous filter from filter.h
         for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
             p[0] = (*filter)((float)p.x(), (float)p.y());
-        delete filter;
     } else if (name == "binomial") {
         // Binomial filter
         float *wfilter = ALLOCA (float, width);
@@ -519,7 +541,7 @@ ImageBufAlgo::make_kernel (ImageBuf &dst, string_view name,
         for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
             p[0] = val;
         dst.error ("Unknown kernel \"%s\" %gx%g", name, width, height);
-        return false;
+        return dst;
     }
     if (normalize) {
         float sum = 0;
@@ -529,7 +551,7 @@ ImageBufAlgo::make_kernel (ImageBuf &dst, string_view name,
             for (ImageBuf::Iterator<float> p (dst);  ! p.done();  ++p)
                 p[0] = p[0] / sum;
     }
-    return true;
+    return dst;
 }
 
 
@@ -606,6 +628,22 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::unsharp_mask (const ImageBuf &src,
+                            string_view kernel, float width,
+                            float contrast, float threshold,
+                            ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = unsharp_mask (result, src, kernel, width, contrast, threshold,
+                            roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::unsharp_mask() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::laplacian (ImageBuf &dst, const ImageBuf &src,
                          ROI roi, int nthreads)
@@ -622,6 +660,18 @@ ImageBufAlgo::laplacian (ImageBuf &dst, const ImageBuf &src,
     // K.write ("K.exr");
     bool ok = convolve (dst, src, K, false, roi, nthreads);
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::laplacian (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = laplacian (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::laplacian() error");
+    return result;
 }
 
 
@@ -689,6 +739,19 @@ ImageBufAlgo::median_filter (ImageBuf &dst, const ImageBuf &src,
                                  src.spec().format, dst, src,
                                  width, height, roi, nthreads);
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::median_filter (const ImageBuf &src, int width, int height,
+                            ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = median_filter (result, src, width, height, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::median_filter() error");
+    return result;
 }
 
 
@@ -762,6 +825,19 @@ ImageBufAlgo::dilate (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::dilate (const ImageBuf &src, int width, int height,
+                      ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = dilate (result, src, width, height, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::dilate() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::erode (ImageBuf &dst, const ImageBuf &src,
                       int width, int height, ROI roi, int nthreads)
@@ -776,6 +852,19 @@ ImageBufAlgo::erode (ImageBuf &dst, const ImageBuf &src,
                                  src.spec().format, dst, src,
                                  width, height, MorphErode, roi, nthreads);
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::erode (const ImageBuf &src, int width, int height,
+                     ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = erode (result, src, width, height, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::erode() error");
+    return result;
 }
 
 
@@ -945,6 +1034,29 @@ ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
 }
 
 
+ImageBuf
+ImageBufAlgo::fft (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = fft (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::fft() error");
+    return result;
+}
+
+
+ImageBuf
+ImageBufAlgo::ifft (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = ifft (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::ifft() error");
+    return result;
+}
+
+
+
 
 template<class Rtype, class Atype>
 static bool
@@ -1011,6 +1123,17 @@ ImageBufAlgo::polar_to_complex (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::polar_to_complex (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = polar_to_complex (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::polar_to_complex() error");
+    return result;
+}
+
+
 
 bool
 ImageBufAlgo::complex_to_polar (ImageBuf &dst, const ImageBuf &src,
@@ -1032,6 +1155,18 @@ ImageBufAlgo::complex_to_polar (ImageBuf &dst, const ImageBuf &src,
                                  complex_to_polar_impl, dst.spec().format,
                                  src.spec().format, dst, src, roi, nthreads);
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::complex_to_polar (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = complex_to_polar (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::complex_to_polar() error");
+    return result;
 }
 
 
@@ -1114,6 +1249,18 @@ ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
     paste (dst, src.spec().x, src.spec().y, src.spec().z, 0, *pyramid[0]);
 
     return true;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::fillholes_pushpull (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = fillholes_pushpull (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::fillholes_pushpull() error");
+    return result;
 }
 
 

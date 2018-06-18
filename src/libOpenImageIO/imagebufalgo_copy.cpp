@@ -214,6 +214,19 @@ ImageBufAlgo::copy (ImageBuf &dst, const ImageBuf &src, TypeDesc convert,
 
 
 
+ImageBuf
+ImageBufAlgo::copy (const ImageBuf &src, TypeDesc convert,
+                    ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = copy (result, src, convert, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::copy() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
                     ROI roi, int nthreads)
@@ -257,6 +270,18 @@ ImageBufAlgo::crop (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::crop (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = crop (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::crop() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::cut (ImageBuf &dst, const ImageBuf &src,
                    ROI roi, int nthreads)
@@ -274,6 +299,18 @@ ImageBufAlgo::cut (ImageBuf &dst, const ImageBuf &src,
     dst.specmod().z = 0;
     dst.set_roi_full (dst.roi());
     return true;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::cut (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = cut (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::cut() error");
+    return result;
 }
 
 
@@ -318,6 +355,22 @@ ImageBufAlgo::circular_shift (ImageBuf &dst, const ImageBuf &src,
                           xshift, yshift, zshift, roi, roi, nthreads);
     return ok;
 }
+
+
+
+ImageBuf
+ImageBufAlgo::circular_shift (const ImageBuf &src,
+                              int xshift, int yshift, int zshift,
+                              ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = circular_shift (result, src, xshift, yshift, zshift,
+                              roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::circular_shift() error");
+    return result;
+}
+
 
 
 OIIO_NAMESPACE_END

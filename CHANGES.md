@@ -28,6 +28,11 @@ Major new features and improvements:
   `unique_ptr` rather than raw pointers. #1934, #1945 (1.9.3).
 * ImageInput improvements to thread safety and concurrency, including some
   new API calls (see below).
+* ImageBufAlgo overhaul (both C++ and Python): Add IBA functions that
+  return image results directly rather than passing ImageBuf references
+  as parameters for output (the old kind of calls still exist, too, and
+  have their uses). Also in C++, change all IBA functions that took raw
+  pointers to per-channel colors into span<> for safety. #1961 (1.9.4)
 
 Public API changes:
 * **Python binding overhaul**
@@ -92,6 +97,26 @@ Public API changes:
       output file, rather than requiring a previous and separate call to
       set_write_format(). The old call signature of write() still exists,
       but it will be considered deprecated in the future. #1953 (1.9.4)
+* **ImageBufAlgo**
+    * In C++, functions that take raw pointers for per-channel constant
+      values or results are deprecated, in favor of new versions that
+      heavily rely on span<> to safely pass array references and their
+      lengths. #1961 (1.9.4)
+    * In both C++ and Python, every IBA function that takes a parameter
+      giving an ImageBuf destination reference for results have an additional
+      variant that directly returns an ImageBuf result. This makes much
+      cleaner, more readable code, in cases where it's not necessary to
+      write partial results into an existing IB. #1961 (1.9.4)
+    * In C++, many IBA functions that came in multiple versions for whether
+      certain parameters could be an image, a per-channel constant, or a
+      single constant, have been replaced by a single version that takes
+      a new parameter-passing helper class, `Image_or_Const` that will match
+      against any of those choices. (No changes are necessary for calling
+      programs, but it makes the header and documentation a lot simpler.)
+      #1961 (1.9.4)
+    * IBA compare(), computePixelStats(), and histogram() now directly
+      return their result structures, intead of requiring the passing of
+      a destination reference. #1961 (1.9.4)
 * ColorConfig changes: ColorConfig methods now return shared pointers to
   `ColorProcessor` rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects

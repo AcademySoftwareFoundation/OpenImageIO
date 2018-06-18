@@ -360,8 +360,7 @@ void test_channel_append ()
     ImageBufAlgo::fill (A, &Acolor);
     ImageBufAlgo::fill (B, &Bcolor);
 
-    ImageBuf R;
-    ImageBufAlgo::channel_append (R, A, B);
+    ImageBuf R = ImageBufAlgo::channel_append (A, B);
     OIIO_CHECK_EQUAL (R.spec().width, spec.width);
     OIIO_CHECK_EQUAL (R.spec().height, spec.height);
     OIIO_CHECK_EQUAL (R.nchannels(), 2);
@@ -739,8 +738,8 @@ void histogram_computation_test ()
     ImageBufAlgo::fill (A, value, ROI(0, INPUT_WIDTH, 24, 64));
 
     // Compute A's histogram.
-    std::vector<imagesize_t> hist;
-    ImageBufAlgo::histogram (A, INPUT_CHANNEL, hist, HISTOGRAM_BINS);
+    std::vector<imagesize_t> hist =
+        ImageBufAlgo::histogram (A, INPUT_CHANNEL, HISTOGRAM_BINS);
 
     // Does the histogram size equal the number of bins?
     OIIO_CHECK_EQUAL (hist.size(), (imagesize_t)HISTOGRAM_BINS);

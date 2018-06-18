@@ -70,7 +70,6 @@ ImageBufAlgo::PixelStats::reset (int nchannels)
 void
 ImageBufAlgo::PixelStats::merge (const ImageBufAlgo::PixelStats &p)
 {
-    std::lock_guard<OIIO::spin_mutex> lock (mutex);
     ASSERT (min.size() == p.min.size());
     for (size_t c = 0, e = min.size(); c < e;  ++c) {
         min[c] = std::min (min[c], p.min[c]);
@@ -81,6 +80,23 @@ ImageBufAlgo::PixelStats::merge (const ImageBufAlgo::PixelStats &p)
         sum[c] += p.sum[c];
         sum2[c] += p.sum2[c];
     }
+}
+
+
+
+const ImageBufAlgo::PixelStats&
+ImageBufAlgo::PixelStats::operator= (PixelStats&& other)
+{
+    min = std::move (other.min);
+    max = std::move (other.max);
+    avg = std::move (other.avg);
+    stddev = std::move (other.stddev);
+    nancount = std::move (other.nancount);
+    infcount = std::move (other.infcount);
+    finitecount = std::move (other.finitecount);
+    sum = std::move (other.sum);
+    sum2 = std::move (other.sum2);
+    return *this;
 }
 
 
@@ -138,6 +154,7 @@ computePixelStats_ (const ImageBuf &src, ImageBufAlgo::PixelStats &stats,
     int nchannels = src.spec().nchannels;
 
     stats.reset (nchannels);
+    OIIO::spin_mutex mutex;   // protect the shared stats when merging
 
     if (src.deep()) {
         parallel_for_chunked (roi.ybegin, roi.yend, 64,
@@ -156,6 +173,7 @@ computePixelStats_ (const ImageBuf &src, ImageBufAlgo::PixelStats &stats,
                     }
                 }
             }
+            std::lock_guard<OIIO::spin_mutex> lock (mutex);
             stats.merge (tmp);
         });
 
@@ -171,6 +189,7 @@ computePixelStats_ (const ImageBuf &src, ImageBufAlgo::PixelStats &stats,
                     val (tmp, c, value);
                 }
             }
+            std::lock_guard<OIIO::spin_mutex> lock (mutex);
             stats.merge (tmp);
         });
     }
@@ -183,11 +202,11 @@ computePixelStats_ (const ImageBuf &src, ImageBufAlgo::PixelStats &stats,
 
 
 
-bool
-ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
-                                 ROI roi, int nthreads)
+ImageBufAlgo::PixelStats
+ImageBufAlgo::computePixelStats (const ImageBuf &src, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::computePixelStats");
+    ImageBufAlgo::PixelStats stats;
     if (! roi.defined())
         roi = get_roi (src.spec());
     else
@@ -195,13 +214,26 @@ ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
     int nchannels = src.spec().nchannels;
     if (nchannels == 0) {
         src.error ("%d-channel images not supported", nchannels);
-        return false;
+        return stats;
     }
 
-    bool ok;
+    bool ok = true;
     OIIO_DISPATCH_TYPES (ok, "computePixelStats", computePixelStats_,
                          src.spec().format, src, stats, roi, nthreads);
-    return ok;
+    if (!ok)
+        stats.reset(0);
+    return stats;
+}
+
+
+
+// Deprecated:
+bool
+ImageBufAlgo::computePixelStats (PixelStats &stats, const ImageBuf &src,
+                                 ROI roi, int nthreads)
+{
+    stats = computePixelStats (src, roi, nthreads);
+    return stats.min.size() == (size_t)src.nchannels();
 }
 
 
@@ -313,13 +345,15 @@ compare_ (const ImageBuf &A, const ImageBuf &B,
 
 
 
-bool
+ImageBufAlgo::CompareResults
 ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
                        float failthresh, float warnthresh,
-                       ImageBufAlgo::CompareResults &result,
                        ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::compare");
+    ImageBufAlgo::CompareResults result;
+    result.error = true;
+
     // If no ROI is defined, use the union of the data windows of the two
     // images.
     if (! roi.defined())
@@ -327,8 +361,10 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
     roi.chend = std::min (roi.chend, std::max(A.nchannels(), B.nchannels()));
 
     // Deep and non-deep images cannot be compared
-    if (B.deep() != A.deep())
-        return false;
+    if (B.deep() != A.deep()) {
+        A.error ("deep and non-deep images cannot be compared");
+        return result;
+    }
 
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2_CONST (ok, "compare", compare_,
@@ -338,14 +374,27 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
     // FIXME - The nthreads argument is for symmetry with the rest of
     // ImageBufAlgo and for future expansion. But for right now, we
     // don't actually split by threads.  Maybe later.
-    return ok;
+    result.error = !ok;
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
+                       float failthresh, float warnthresh,
+                       ImageBufAlgo::CompareResults &result,
+                       ROI roi, int nthreads)
+{
+    result = compare (A, B, failthresh, warnthresh, roi, nthreads);
+    return result.error == false;
 }
 
 
 
 template<typename T>
 static inline bool
-isConstantColor_ (const ImageBuf &src, float *color,
+isConstantColor_ (const ImageBuf &src, span<float> color,
                   ROI roi, int nthreads)
 {
     // Iterate using the native typing (for speed).
@@ -360,14 +409,14 @@ isConstantColor_ (const ImageBuf &src, float *color,
             if (constval[c] != s[c])
                 return false;
     }
-    
-    if (color) {
+
+    if (color.size()) {
         ImageBuf::ConstIterator<T,float> s (src, roi);
-        for (int c = 0;  c < roi.chbegin; ++c)
+        for (int c = 0;  c < roi.chbegin && c < color.size(); ++c)
             color[c] = 0.0f;
-        for (int c = roi.chbegin; c < roi.chend; ++c)
+        for (int c = roi.chbegin; c < roi.chend && c < color.size(); ++c)
             color[c] = s[c];
-        for (int c = roi.chend;  c < src.nchannels(); ++c)
+        for (int c = roi.chend;  c < src.nchannels() && c < color.size(); ++c)
             color[c] = 0.0f;
     }
 
@@ -377,7 +426,7 @@ isConstantColor_ (const ImageBuf &src, float *color,
 
 
 bool
-ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color,
+ImageBufAlgo::isConstantColor (const ImageBuf &src, span<float> color,
                                ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::isConstantColor");
@@ -388,7 +437,7 @@ ImageBufAlgo::isConstantColor (const ImageBuf &src, float *color,
 
     if (roi.nchannels() == 0)
         return true;
-    
+
     bool ok;
     OIIO_DISPATCH_TYPES (ok, "isConstantColor", isConstantColor_,
                          src.spec().format, src, color, roi, nthreads);
@@ -512,8 +561,8 @@ color_count_ (const ImageBuf &src, atomic_ll *count,
 
 bool
 ImageBufAlgo::color_count (const ImageBuf &src, imagesize_t *count,
-                           int ncolors, const float *color,
-                           const float *eps,
+                           int ncolors, cspan<float> color,
+                           cspan<float> eps,
                            ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::color_count");
@@ -522,19 +571,18 @@ ImageBufAlgo::color_count (const ImageBuf &src, imagesize_t *count,
         roi = get_roi(src.spec());
     roi.chend = std::min (roi.chend, src.nchannels());
 
-    if (! eps) {
-        float *localeps = ALLOCA (float, roi.chend);
-        for (int c = 0;  c < roi.chend;  ++c)
-            localeps[c] = 0.001f;
-        eps = localeps;
+    if (color.size() < ncolors*src.nchannels()) {
+        src.error ("ImageBufAlgo::color_count: not enough room in 'color' array");
+        return false;
     }
+    IBA_FIX_PERCHAN_LEN (eps, src.nchannels(), eps.size() ? eps.back() : 0.001f, 0.001f);
 
     for (int col = 0;  col < ncolors;  ++col)
         count[col] = 0;
     bool ok;
     OIIO_DISPATCH_TYPES (ok, "color_count", color_count_, src.spec().format,
-                         src, (atomic_ll *)count, ncolors, color, eps,
-                         roi, nthreads);
+                         src, (atomic_ll *)count, ncolors,
+                         color.data(), eps.data(), roi, nthreads);
     return ok;
 }
 
@@ -580,7 +628,7 @@ bool
 ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
                                  imagesize_t *highcount,
                                  imagesize_t *inrangecount,
-                                 const float *low, const float *high,
+                                 cspan<float> low, cspan<float> high,
                                  ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::color_range_check");
@@ -588,6 +636,9 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
     if (! roi.defined())
         roi = get_roi(src.spec());
     roi.chend = std::min (roi.chend, src.nchannels());
+    const float big = std::numeric_limits<float>::max();
+    IBA_FIX_PERCHAN_LEN (low, src.nchannels(), -big, -big);
+    IBA_FIX_PERCHAN_LEN (high, src.nchannels(), big, big);
 
     if (lowcount)
         *lowcount = 0;
@@ -598,9 +649,9 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
     bool ok;
     OIIO_DISPATCH_TYPES (ok, "color_range_check", color_range_check_,
                          src.spec().format,
-                         src, (atomic_ll *)lowcount, 
+                         src, (atomic_ll *)lowcount,
                          (atomic_ll *)highcount, (atomic_ll *)inrangecount,
-                         low, high, roi, nthreads);
+                         low.data(), high.data(), roi, nthreads);
     return ok;
 }
 
@@ -782,6 +833,93 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
 
 
 
+template<class Atype>
+static bool
+histogram_impl (const ImageBuf &src, int channel, std::vector<imagesize_t> &hist,
+                int bins, float min, float max, bool ignore_empty,
+                ROI roi, int nthreads)
+{
+    // Double check A's type.
+    if (src.spec().format != BaseTypeFromC<Atype>::value) {
+        src.error ("Unsupported pixel data format '%s'", src.spec().format);
+        return false;
+    }
+
+    std::mutex mutex;  // thread safety for the histogram result
+
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        float ratio = bins / (max-min);
+        int bins_minus_1 = bins-1;
+
+        // Compute histogram to thread-local h.
+        std::vector<imagesize_t> h (bins, 0);
+        for (ImageBuf::ConstIterator<Atype> a (src, roi); ! a.done(); a++) {
+            if (ignore_empty) {
+                bool allblack = true;
+                for (int c = roi.chbegin; c < roi.chend; ++c)
+                    allblack &= (a[c] == 0.0f);
+                if (allblack)
+                    continue;
+            }
+            float val = a[channel];
+            val = clamp (val, min, max);
+            int i = clamp (int ((val-min) * ratio), 0, bins_minus_1);
+            h[i] += 1;
+        }
+
+        // Safely update the master histogram
+        lock_guard lock (mutex);
+        for (int i = 0; i < bins; ++i)
+            hist[i] += h[i];
+    });
+    return true;
+}
+
+
+
+std::vector<imagesize_t>
+ImageBufAlgo::histogram (const ImageBuf &src, int channel, int bins,
+                         float min, float max, bool ignore_empty,
+                         ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtimer("IBA::histogram");
+    std::vector<imagesize_t> h (bins);
+
+    // Sanity checks
+    if (src.nchannels() == 0) {
+        src.error ("Input image must have at least 1 channel");
+        return h;
+    }
+    if (channel < 0 || channel >= src.nchannels()) {
+        src.error ("Invalid channel %d for input image with channels 0 to %d",
+                  channel, src.nchannels()-1);
+        return h;
+    }
+    if (bins < 1) {
+        src.error ("The number of bins must be at least 1");
+        return h;
+    }
+    if (max <= min) {
+        src.error ("Invalid range, min must be strictly smaller than max");
+        return h;
+    }
+
+    // Specified ROI -> use it. Unspecified ROI -> initialize from src.
+    if (! roi.defined())
+        roi = get_roi (src.spec());
+
+    bool ok = true;
+    OIIO_DISPATCH_TYPES (ok, "histogram", histogram_impl, src.spec().format,
+                         src, channel, h, bins, min, max, ignore_empty,
+                         roi, nthreads);
+
+    if (!ok && src.has_error())
+        h.clear();
+    return h;
+}
+
+
+
 /// histogram_impl -----------------------------------------------------------
 /// Fully type-specialized version of histogram.
 ///
@@ -794,7 +932,7 @@ ImageBufAlgo::computePixelHashSHA1 (const ImageBuf &src,
 /// --------------------------------------------------------------------------
 template<class Atype>
 static bool
-histogram_impl (const ImageBuf &A, int channel,
+histogram_impl_old (const ImageBuf &A, int channel,
                 std::vector<imagesize_t> &histogram, int bins,
                 float min, float max, imagesize_t *submin,
                 imagesize_t *supermax, ROI roi)
@@ -874,7 +1012,7 @@ ImageBufAlgo::histogram (const ImageBuf &A, int channel,
     if (! roi.defined())
         roi = get_roi (A.spec());
 
-    histogram_impl<float> (A, channel, histogram, bins, min, max,
+    histogram_impl_old<float> (A, channel, histogram, bins, min, max,
                                   submin, supermax, roi);
 
     return ! A.has_error();

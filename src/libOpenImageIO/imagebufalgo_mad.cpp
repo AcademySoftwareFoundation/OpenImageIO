@@ -110,8 +110,8 @@ mad_impl (ImageBuf &R, const ImageBuf &A, const ImageBuf &B, const ImageBuf &C,
 
 template<class Rtype, class ABCtype>
 static bool
-mad_impl_ici (ImageBuf &R, const ImageBuf &A, const float *b, const ImageBuf &C,
-          ROI roi, int nthreads)
+mad_impl_ici (ImageBuf &R, const ImageBuf &A, cspan<float> b,
+              const ImageBuf &C, ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
         ImageBuf::Iterator<Rtype> r (R, roi);
@@ -129,8 +129,8 @@ mad_impl_ici (ImageBuf &R, const ImageBuf &A, const float *b, const ImageBuf &C,
 
 template<class Rtype, class Atype>
 static bool
-mad_implf (ImageBuf &R, const ImageBuf &A, const float *b, const float *c,
-          ROI roi, int nthreads)
+mad_impl_icc (ImageBuf &R, const ImageBuf &A, cspan<float> b,
+           cspan<float> c, ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
         ImageBuf::Iterator<Rtype> r (R, roi);
@@ -144,117 +144,110 @@ mad_implf (ImageBuf &R, const ImageBuf &A, const float *b, const float *c,
 
 
 
+template<class Rtype, class Atype>
+static bool
+mad_impl_iic (ImageBuf &R, const ImageBuf &A, const ImageBuf &B,
+           cspan<float> c, ROI roi, int nthreads)
+{
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        ImageBuf::Iterator<Rtype> r (R, roi);
+        ImageBuf::ConstIterator<Atype> a (A, roi);
+        ImageBuf::ConstIterator<Atype> b (B, roi);
+        for ( ;  !r.done();  ++r, ++a, ++b)
+            for (int ch = roi.chbegin;  ch < roi.chend;  ++ch)
+                r[ch] = a[ch] * b[ch] + c[ch];
+    });
+    return true;
+}
+
+
+
 bool
-ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A_, const ImageBuf &B_,
-                   const ImageBuf &C_, ROI roi, int nthreads)
+ImageBufAlgo::mad (ImageBuf &dst, Image_or_Const A_, Image_or_Const B_,
+                   Image_or_Const C_, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::mad");
-    const ImageBuf *A = &A_, *B = &B_, *C = &C_;
-    if (!A->initialized() || !B->initialized() || !C->initialized()) {
+
+    // Canonicalize so that if one of A,B is a constant, A is an image.
+    if (A_.is_val() && B_.is_img())  // canonicalize to A_img, B_val
+        A_.swap (B_);
+    // Get pointers to any image. At least one of A or B must be an image.
+    const ImageBuf *A = A_.imgptr(), *B = B_.imgptr(), *C = C_.imgptr();
+    if (!A && !B) {
+        dst.error ("ImageBufAlgo::mad(): at least one of the first two arguments must be an image");
+        return false;
+    }
+    // All of the arguments that are images need to be initialized
+    if ((A && !A->initialized()) || (B && !B->initialized())
+                                 || (C && !C->initialized())) {
         dst.error ("Uninitialized input image");
         return false;
     }
 
-    // To avoid the full cross-product of dst/A/B/C types, force A,B,C to
-    // all be the same data type, copying if we have to.
-    TypeDesc abc_type = type_merge (A->spec().format, B->spec().format,
-                                    C->spec().format);
+    // To avoid the full cross-product of dst/A/B/C types, force any of
+    // A,B,C that are images to all be the same data type, copying if we
+    // have to.
+    TypeDesc abc_type = type_merge (A ? A->spec().format : TypeUnknown,
+                                    B ? B->spec().format : TypeUnknown,
+                                    C ? C->spec().format : TypeUnknown);
     ImageBuf Anew, Bnew, Cnew;
-    if (A->spec().format != abc_type) {
+    if (A && A->spec().format != abc_type) {
         Anew.copy (*A, abc_type);
         A = &Anew;
     }
-    if (B->spec().format != abc_type) {
+    if (B && B->spec().format != abc_type) {
         Bnew.copy (*B, abc_type);
         B = &Bnew;
     }
-    if (C->spec().format != abc_type) {
+    if (C && C->spec().format != abc_type) {
         Cnew.copy (*C, abc_type);
         C = &Cnew;
     }
-    ASSERT (A->spec().format == B->spec().format &&
-            A->spec().format == C->spec().format);
 
-    if (! IBAprep (roi, &dst, A, B, C))
+    if (! IBAprep (roi, &dst, A, B?B:C, C))
         return false;
+
+    // Note: A is always an image. That leaves 4 cases to deal with.
     bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_impl, dst.spec().format,
-                                 abc_type, dst, *A, *B, *C, roi, nthreads);
+    if (B) {
+        if (C) {
+            OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_impl, dst.spec().format,
+                                         abc_type, dst, *A, *B, *C, roi, nthreads);
+        } else {  // C not an image
+            cspan<float> c (C_.val());
+            IBA_FIX_PERCHAN_LEN_DEF (c, dst.nchannels());
+            OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_impl_iic, dst.spec().format,
+                                         abc_type, dst, *A, *B, c, roi, nthreads);
+        }
+    } else { // B is not an image
+        cspan<float> b (B_.val());
+        IBA_FIX_PERCHAN_LEN_DEF (b, dst.nchannels());
+        if (C) {
+            OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_impl_ici, dst.spec().format,
+                                         abc_type, dst, *A, b, *C, roi, nthreads);
+        } else {  // C not an image
+            cspan<float> c (C_.val());
+            IBA_FIX_PERCHAN_LEN_DEF (c, dst.nchannels());
+            OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_impl_icc, dst.spec().format,
+                                         abc_type, dst, *A, b, c, roi, nthreads);
+        }
+    }
     return ok;
 }
 
 
 
-bool
-ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A_, const float *B,
-                   const ImageBuf &C_, ROI roi, int nthreads)
+ImageBuf
+ImageBufAlgo::mad (Image_or_Const A, Image_or_Const B,
+                   Image_or_Const C, ROI roi, int nthreads)
 {
-    pvt::LoggedTimer logtime("IBA::mad");
-    const ImageBuf *A = &A_, *C = &C_;
-    if (!A->initialized() || !C->initialized()) {
-        dst.error ("Uninitialized input image");
-        return false;
-    }
-
-    // To avoid the full cross-product of dst/A/B/C types, force A,B,C to
-    // all be the same data type, copying if we have to.
-    TypeDesc abc_type = type_merge (A->spec().format, C->spec().format);
-    ImageBuf Anew, Cnew;
-    if (A->spec().format != abc_type) {
-        Anew.copy (*A, abc_type);
-        A = &Anew;
-    }
-    if (C->spec().format != abc_type) {
-        Cnew.copy (*C, abc_type);
-        C = &Cnew;
-    }
-    ASSERT (A->spec().format == C->spec().format);
-
-    if (! IBAprep (roi, &dst, A, C))
-        return false;
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_impl_ici, dst.spec().format,
-                                 abc_type, dst, *A, B, *C, roi, nthreads);
-    return ok;
+    ImageBuf result;
+    bool ok = mad (result, A, B, C, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::mad() error");
+    return result;
 }
 
-
-
-bool
-ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A, const float *B,
-                   const float *C, ROI roi, int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::mad");
-    if (!A.initialized()) {
-        dst.error ("Uninitialized input image");
-        return false;
-    }
-    if (! IBAprep (roi, &dst, &A))
-        return false;
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "mad", mad_implf, dst.spec().format,
-                                 A.spec().format, dst, A, B, C,
-                                 roi, nthreads);
-    return ok;
-}
-
-
-
-bool
-ImageBufAlgo::mad (ImageBuf &dst, const ImageBuf &A, float b,
-                   float c, ROI roi, int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::mad");
-    if (!A.initialized()) {
-        dst.error ("Uninitialized input image");
-        return false;
-    }
-    if (! IBAprep (roi, &dst, &A))
-        return false;
-    std::vector<float> B (roi.chend, b);
-    std::vector<float> C (roi.chend, c);
-    return mad (dst, A, B.data(), C.data(), roi, nthreads);
-}
 
 
 
@@ -264,6 +257,17 @@ ImageBufAlgo::invert (ImageBuf &dst, const ImageBuf &A,
 {
     // Calculate invert as simply 1-A == A*(-1)+1
     return mad (dst, A, -1.0, 1.0, roi, nthreads);
+}
+
+
+ImageBuf
+ImageBufAlgo::invert (const ImageBuf &A, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = invert (result, A, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("invert error");
+    return result;
 }
 
 

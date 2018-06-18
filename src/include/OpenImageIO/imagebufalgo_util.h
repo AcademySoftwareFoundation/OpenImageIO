@@ -159,6 +159,10 @@ inline bool IBAprep (ROI &roi, ImageBuf *dst, const ImageBuf *A,
     return IBAprep (roi, dst, A, B, NULL, force_spec, prepflags);
 }
 inline bool IBAprep (ROI &roi, ImageBuf *dst,
+                     const ImageBuf *A, const ImageBuf *B, int prepflags) {
+    return IBAprep (roi, dst, A, B, NULL, NULL, prepflags);
+}
+inline bool IBAprep (ROI &roi, ImageBuf *dst,
                      const ImageBuf *A, int prepflags) {
     return IBAprep (roi, dst, A, NULL, NULL, NULL, prepflags);
 }
@@ -494,6 +498,25 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         OIIO_DISPATCH_COMMON_TYPES3_HELP(ret,name,func,Rtype,float,Btype,R,Atmp,B,__VA_ARGS__); \
     }
 
+
+// Utility: for span av, if it had fewer elements than len, alloca a new
+// copy that's the right length. Use the `missing` value for missing entries
+// (one or more supplied, but not all), and `zdef` default to use if there
+// were no entries at all. This is used in many IBA functions that take
+// constant per-channel values.
+#define IBA_FIX_PERCHAN_LEN(av,len,missing,zdef)                        \
+    if (av.size() < len) {                                              \
+        int nc = len;                                                   \
+        float *vals = ALLOCA (float, nc);                               \
+        for (int i = 0;  i < nc;  ++i)                                  \
+            vals[i] = i < av.size() ? av[i] : (i ? vals[i-1] : zdef);   \
+        av = cspan<float>(vals, nc);                                    \
+    }
+
+// Default IBA_FIX_PERCHAN_LEN, with zdef=0.0 and missing = the last value
+// that was supplied.
+#define IBA_FIX_PERCHAN_LEN_DEF(av,len)                                 \
+    IBA_FIX_PERCHAN_LEN (av, len, 0.0f, av.size() ? av.back() : 0.0f);
 
 
 }  // end namespace ImageBufAlgo

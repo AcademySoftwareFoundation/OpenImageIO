@@ -23,8 +23,8 @@ ${OIIOTOOL} grid-small.jpg --rotate270 -o rotate270.jpg
 ${OIIOTOOL} grid-small.jpg --transpose -o transpose.jpg
 ${OIIOTOOL} grid-small.jpg --rotate 45 -o rotate45.jpg
 ${OIIOTOOL} grid-small.jpg --cshift +70+30 -o cshift.jpg
-${OIIOTOOL} --pattern constant:color=1,0.7,0.7 320x240 3 --fill:color=1,0,0 50x100+50+75 --tocolorspace sRGB -o fill.jpg
-${OIIOTOOL} --create 320x240 3 -fill:bottom=1,0.7,0.7:top=1,0,0 320x240 --tocolorspace sRGB -o fill.jpg
+${OIIOTOOL} --pattern fill:bottom=1,0.7,0.7:top=1,0,0  320x240 3 --fill:color=1,0,0 50x100+50+75 --tocolorspace sRGB -o fill.jpg
+#${OIIOTOOL} --create 320x240 3 -fill:bottom=1,0.7,0.7:top=1,0,0 320x240 --tocolorspace sRGB -o fill2.jpg
 ${OIIOTOOL} --pattern checker:color1=0.1,0.1,0.1:color2=0.4,0.4,0.4:width=32:height=32 320x240 3 --tocolorspace sRGB -o checker.jpg
 ${OIIOTOOL} --pattern fill:top=0.1,0.1,0.1:bottom=0,0,0.75 320x240 3 --tocolorspace sRGB -o gradient.jpg
 ${OIIOTOOL} --pattern fill:left=0.1,0.1,0.1:right=0,0.75,0 320x240 3 --tocolorspace sRGB -o gradienth.jpg

@@ -154,6 +154,30 @@ ImageBufAlgo::flop(ImageBuf &dst, const ImageBuf &src, ROI roi, int nthreads)
 
 
 
+ImageBuf
+ImageBufAlgo::flip (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = flip (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::flip() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::flop (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = flop (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::flop() error");
+    return result;
+}
+
+
+
 template<class D, class S=D>
 static bool
 rotate90_ (ImageBuf &dst, const ImageBuf &src, ROI dst_roi, int nthreads)
@@ -337,6 +361,42 @@ ImageBufAlgo::rotate270 (ImageBuf &dst, const ImageBuf &src,
 
 
 
+ImageBuf
+ImageBufAlgo::rotate90 (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = rotate90 (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::rotate90() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::rotate180 (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = rotate180 (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::rotate180() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::rotate270 (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = rotate270 (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::rotate270() error");
+    return result;
+}
+
+
+
 bool
 ImageBufAlgo::reorient (ImageBuf &dst, const ImageBuf &src, int nthreads)
 {
@@ -378,6 +438,18 @@ ImageBufAlgo::reorient (ImageBuf &dst, const ImageBuf &src, int nthreads)
     }
     dst.set_orientation (1);
     return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::reorient (const ImageBuf &src, int nthreads)
+{
+    ImageBuf result;
+    bool ok = reorient (result, src, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::reorient() error");
+    return result;
 }
 
 
@@ -433,5 +505,15 @@ ImageBufAlgo::transpose (ImageBuf &dst, const ImageBuf &src,
     return ok;
 }
 
+
+ImageBuf
+ImageBufAlgo::transpose (const ImageBuf &src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = transpose (result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::transpose() error");
+    return result;
+}
 
 OIIO_NAMESPACE_END
