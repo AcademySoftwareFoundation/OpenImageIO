@@ -1027,7 +1027,8 @@ pvt::append_tiff_dir_entry (std::vector<TIFFDirEntry> &dirs,
     size_t len = tiff_data_size (dir);
     if (len <= 4) {
         dir.tdir_offset = 0;
-        memcpy (&dir.tdir_offset, mydata, len);
+        if (mydata)
+            memcpy (&dir.tdir_offset, mydata, len);
     } else {
         if (mydata) {
             // Add to the data vector and use its offset
