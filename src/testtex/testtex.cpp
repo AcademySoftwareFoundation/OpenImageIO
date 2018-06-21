@@ -1408,10 +1408,10 @@ main (int argc, const char *argv[])
         t.reset();
         t.start();
         for (int i = 0;  i < 1000000000;  ++i) {
-            memcpy (&copy, &canonical, sizeof(TextureOpt));
+            copy = canonical;
             dummyptr = &copy;  // This forces the optimizer to keep the loop
         }
-        std::cout << "TextureOpt memcpy: " << t() << " ns\n";
+        std::cout << "TextureOpt copy: " << t() << " ns\n";
     }
 
     if (testicwrite && filenames.size()) {
