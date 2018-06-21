@@ -86,7 +86,7 @@ public:
 
 // Return a reference to the mutex that allows us to use f3d with multiple
 // threads.
-spin_mutex &field3d_mutex ();
+recursive_mutex &field3d_mutex ();
 
 void oiio_field3d_initialize ();
 
