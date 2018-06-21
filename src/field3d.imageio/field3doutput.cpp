@@ -217,7 +217,7 @@ Field3DOutput::open (const std::string &name, int subimages,
     m_subimage = 0;
 
     {
-        spin_lock lock (field3d_mutex());
+        recursive_lock_guard lock (field3d_mutex());
         m_output = new Field3DOutputFile;
         bool ok = false;
         try {
@@ -303,7 +303,7 @@ Field3DOutput::put_parameter (const std::string &name, TypeDesc type,
 bool
 Field3DOutput::close ()
 {
-    spin_lock lock (field3d_mutex());
+    recursive_lock_guard lock (field3d_mutex());
     if (m_output) {
         write_current_subimage ();
         m_output->close ();
