@@ -379,8 +379,7 @@ ustring::TableRep::~TableRep ()
         // This is one of those cases where we've carefully doctored the
         // string to point to our allocated characters.  To make a safe
         // string destroy, now force it to look like an empty string.
-        std::string empty;
-        memcpy (&str, &empty, sizeof(std::string));
+        new (&str) std::string();   // "placement new"
     }
 }
 

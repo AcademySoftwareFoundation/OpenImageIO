@@ -1252,7 +1252,7 @@ colorconvert_impl_float_rgba (ImageBuf &R, const ImageBuf &A,
         for (int k = roi.zbegin; k < roi.zend; ++k) {
             for (int j = roi.ybegin; j < roi.yend; ++j) {
                 // Load the scanline
-                memcpy (scanline, A.pixeladdr (roi.xbegin, j, k), width*4*sizeof(float));
+                memcpy ((void *)scanline, A.pixeladdr (roi.xbegin, j, k), width*4*sizeof(float));
                 // Optionally unpremult
                 if (unpremult) {
                     for (int i = 0; i < width; ++i) {
