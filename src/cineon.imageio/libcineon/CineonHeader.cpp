@@ -33,7 +33,6 @@
  */
 
 
-
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -551,8 +550,8 @@ void cineon::GenericHeader::SetCreationTimeDate(const long sec)
 	const time_t t = time_t(sec);
 	tm_time = ::localtime(&t);
 	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
-	::strncpy(this->creationDate, str, 10);
-	::strncpy(this->creationTime, str + 11, 12);
+	OIIO::Strutil::safe_strcpy(this->creationDate, str, 11);
+	OIIO::Strutil::safe_strcpy(this->creationTime, str + 11, 12);
 }
 
 
@@ -568,8 +567,8 @@ void cineon::GenericHeader::SetSourceTimeDate(const long sec)
 	const time_t t = time_t(sec);
 	tm_time = ::localtime(&t);
 	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
-	::strncpy(this->sourceDate, str, 10);
-	::strncpy(this->sourceTime, str + 11, 12);
+	OIIO::Strutil::safe_strcpy(this->sourceDate, str, 11);
+	OIIO::Strutil::safe_strcpy(this->sourceTime, str + 11, 12);
 }
 
 

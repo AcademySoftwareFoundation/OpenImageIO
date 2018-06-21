@@ -1583,57 +1583,52 @@ namespace dpx
 	
 	inline void GenericHeader::FileName(char *fn) const
 	{
-		::strncpy(fn, this->fileName, sizeof(this->fileName));
-		fn[100] = '\0';
+		OIIO::Strutil::safe_strcpy(fn, this->fileName, sizeof(this->fileName));
 	}
 	
 	inline void GenericHeader::SetFileName(const char *fn)
 	{
-		::strncpy(this->fileName, fn, sizeof(this->fileName));
+		OIIO::Strutil::safe_strcpy(this->fileName, fn, sizeof(this->fileName));
 	}
 	
 	inline void GenericHeader::CreationTimeDate(char *ct) const
 	{
-		::strncpy(ct, this->creationTimeDate, sizeof(this->creationTimeDate));
-		ct[24] = '\0';
+		OIIO::Strutil::safe_strcpy(ct, this->creationTimeDate, sizeof(this->creationTimeDate));
 	}
 	
 	inline void GenericHeader::SetCreationTimeDate(const char *ct)
 	{
-		::strncpy(this->creationTimeDate, ct, sizeof(this->creationTimeDate));
+		OIIO::Strutil::safe_strcpy(this->creationTimeDate, ct, sizeof(this->creationTimeDate));
 	}
 	
 	inline void GenericHeader::Creator(char *creat) const
 	{
-		::strncpy(creat, this->creator, sizeof(this->creator));
-		creat[200] = '\0';		
+		OIIO::Strutil::safe_strcpy(creat, this->creator, sizeof(this->creator));
 	}
 	
 	inline void GenericHeader::SetCreator(const char *creat)
 	{
-		::strncpy(this->creator, creat, sizeof(this->creator));
+		OIIO::Strutil::safe_strcpy(this->creator, creat, sizeof(this->creator));
 	}
 	
 	inline void GenericHeader::Project(char *prj) const
 	{
-		::strncpy(prj, this->project, sizeof(this->project));
-		prj[200] = '\0';
+		OIIO::Strutil::safe_strcpy(prj, this->project, sizeof(this->project));
 	}
 	
 	inline void GenericHeader::SetProject(const char *prj)
 	{
-		::strncpy(this->project, prj, sizeof(this->project));
+		OIIO::Strutil::safe_strcpy(this->project, prj, sizeof(this->project));
 	}
 	
 	inline void GenericHeader::Copyright(char *copy) const
 	{
-		::strncpy(copy, this->copyright, sizeof(this->copyright));
-		copy[200] = '\0';
+		OIIO::Strutil::safe_strcpy(copy, this->copyright, sizeof(this->copyright));
 	}
 	
 	inline void GenericHeader::SetCopyright(const char *copy)
 	{
-		::strncpy(this->copyright, copy, sizeof(this->copyright));
+		OIIO::Strutil::safe_strcpy(this->copyright, copy, sizeof(this->copyright));
 	}
 	
 	inline U32 GenericHeader::EncryptKey() const
@@ -1898,14 +1893,14 @@ namespace dpx
 	{
 		if (i < 0 || i >= MAX_ELEMENTS)
 			return;
-		strncpy(desc, this->chan[i].description, 32);
+		OIIO::Strutil::safe_strcpy(desc, this->chan[i].description, 32);
 	}
 
 	inline void GenericHeader::SetDescription(const int i, const char *desc)
 	{
 		if (i < 0 || i >= MAX_ELEMENTS)
 			return;
-		::strncpy(this->chan[i].description, desc, 32);
+		OIIO::Strutil::safe_strcpy(this->chan[i].description, desc, 32);
 	}
 	
 	
@@ -1971,46 +1966,42 @@ namespace dpx
 	
 	inline void GenericHeader::SourceImageFileName(char *fn) const
 	{
-		::strncpy(fn, this->sourceImageFileName, sizeof(this->sourceImageFileName));
-		fn[100] = '\0';
+		OIIO::Strutil::safe_strcpy(fn, this->sourceImageFileName, sizeof(this->sourceImageFileName));
 	}
 	
 	inline void GenericHeader::SetSourceImageFileName(const char *fn)
 	{
-		::strncpy(this->sourceImageFileName, fn, sizeof(this->sourceImageFileName));
+		OIIO::Strutil::safe_strcpy(this->sourceImageFileName, fn, sizeof(this->sourceImageFileName));
 	}
 	
 	inline void GenericHeader::SourceTimeDate(char *td) const
 	{
-		::strncpy(td, this->sourceTimeDate, sizeof(this->sourceTimeDate));
-		td[24] = '\0';
+		OIIO::Strutil::safe_strcpy(td, this->sourceTimeDate, sizeof(this->sourceTimeDate));
 	}
 	
 	inline void GenericHeader::SetSourceTimeDate(const char *td)
 	{
-		::strncpy(this->sourceTimeDate, td, sizeof(this->sourceTimeDate));
+		OIIO::Strutil::safe_strcpy(this->sourceTimeDate, td, sizeof(this->sourceTimeDate));
 	}
 	
 	inline void GenericHeader::InputDevice(char *dev) const
 	{
-		::strncpy(dev, this->inputDevice, sizeof(this->inputDevice));
-		dev[32] = '\0';
+		OIIO::Strutil::safe_strcpy(dev, this->inputDevice, sizeof(this->inputDevice));
 	}
 	
 	inline void  GenericHeader::SetInputDevice(const char *dev)
 	{
-		::strncpy(this->inputDevice, dev, sizeof(this->inputDevice));
+		OIIO::Strutil::safe_strcpy(this->inputDevice, dev, sizeof(this->inputDevice));
 	}
 	
 	inline void GenericHeader::InputDeviceSerialNumber(char *sn) const
 	{
-		::strncpy(sn, this->inputDeviceSerialNumber, sizeof(this->inputDeviceSerialNumber));
-		sn[32] = '\0';
+		OIIO::Strutil::safe_strcpy(sn, this->inputDeviceSerialNumber, sizeof(this->inputDeviceSerialNumber));
 	}
 	
 	inline void GenericHeader::SetInputDeviceSerialNumber(const char *sn)
 	{
-		::strncpy(this->inputDeviceSerialNumber, sn, sizeof(this->inputDeviceSerialNumber));
+		OIIO::Strutil::safe_strcpy(this->inputDeviceSerialNumber, sn, sizeof(this->inputDeviceSerialNumber));
 	}
 	
 	inline U16 GenericHeader::Border(const int i) const
@@ -2066,13 +2057,12 @@ namespace dpx
 	
 	inline void IndustryHeader::Format(char *fmt) const
 	{
-		::strncpy(fmt, this->format, sizeof(this->format));
-		fmt[32] = '\0';
+		OIIO::Strutil::safe_strcpy(fmt, this->format, sizeof(this->format));
 	}
 
 	inline void IndustryHeader::SetFormat(const char *fmt)
 	{
-		::strncpy(this->format, fmt, sizeof(this->format));
+		OIIO::Strutil::safe_strcpy(this->format, fmt, sizeof(this->format));
 	}
 
 	inline U32 IndustryHeader::FramePosition() const
@@ -2127,24 +2117,22 @@ namespace dpx
 
 	inline void IndustryHeader::FrameId(char *id) const
 	{
-		::strncpy(id, this->frameId, sizeof(this->frameId));
-		id[32] = '\0';
+		OIIO::Strutil::safe_strcpy(id, this->frameId, sizeof(this->frameId));
 	}
 
 	inline void IndustryHeader::SetFrameId(const char *id)
 	{
-		::strncpy(this->frameId, id, sizeof(this->frameId));
+		OIIO::Strutil::safe_strcpy(this->frameId, id, sizeof(this->frameId));
 	}
 
 	inline void IndustryHeader::SlateInfo(char *slate) const
 	{
-		::strncpy(slate, this->slateInfo, sizeof(this->slateInfo));
-		slate[100] = '\0';
+		OIIO::Strutil::safe_strcpy(slate, this->slateInfo, sizeof(this->slateInfo));
 	}
 
 	inline void IndustryHeader::SetSlateInfo(const char *slate)
 	{
-		::strncpy(this->slateInfo, slate, sizeof(this->slateInfo));
+		OIIO::Strutil::safe_strcpy(this->slateInfo, slate, sizeof(this->slateInfo));
 	}
 
 

@@ -43,6 +43,7 @@
 
 #include <cstring>
 #include <limits>
+#include <OpenImageIO/strutil.h>
 
 #if defined(_MSC_VER) && _MSC_VER < 1600
    typedef __int32 int32_t;
@@ -1151,13 +1152,12 @@ namespace cineon
 
 	inline void GenericHeader::Version(char *v) const
 	{
-		::strncpy(v, this->version, 8);
-		v[8] = '\0';
+		OIIO::Strutil::safe_strcpy(v, this->version, 8);
 	}
 
 	inline void GenericHeader::SetVersion(const char * v)
 	{
-		::strncpy(this->version, v, 8);
+		OIIO::Strutil::safe_strcpy(this->version, v, 8);
 	}
 
 	inline U32 GenericHeader::FileSize() const
@@ -1192,35 +1192,32 @@ namespace cineon
 
 	inline void GenericHeader::FileName(char *fn) const
 	{
-		::strncpy(fn, this->fileName, 100);
-		fn[100] = '\0';
+		OIIO::Strutil::safe_strcpy(fn, this->fileName, 100);
 	}
 
 	inline void GenericHeader::SetFileName(const char *fn)
 	{
-		::strncpy(this->fileName, fn, 100);
+		OIIO::Strutil::safe_strcpy(this->fileName, fn, 100);
 	}
 
 	inline void GenericHeader::CreationDate(char *ct) const
 	{
-		::strncpy(ct, this->creationDate, 12);
-		ct[24] = '\0';
+		OIIO::Strutil::safe_strcpy(ct, this->creationDate, 12);
 	}
 
 	inline void GenericHeader::SetCreationDate(const char *ct)
 	{
-		::strncpy(this->creationDate, ct, 12);
+		OIIO::Strutil::safe_strcpy(this->creationDate, ct, 12);
 	}
 
 	inline void GenericHeader::CreationTime(char *ct) const
 	{
-		::strncpy(ct, this->creationTime, 12);
-		ct[24] = '\0';
+		OIIO::Strutil::safe_strcpy(ct, this->creationTime, 12);
 	}
 
 	inline void GenericHeader::SetCreationTime(const char *ct)
 	{
-		::strncpy(this->creationTime, ct, 12);
+		OIIO::Strutil::safe_strcpy(this->creationTime, ct, 12);
 	}
 
 	inline Orientation GenericHeader::ImageOrientation() const
@@ -1425,12 +1422,12 @@ namespace cineon
 
 	inline void GenericHeader::LabelText(char *desc) const
 	{
-		strncpy(desc, this->labelText, 200);
+		OIIO::Strutil::safe_strcpy(desc, this->labelText, 200);
 	}
 
 	inline void GenericHeader::SetLabelText(const char *desc)
 	{
-		::strncpy(this->labelText, desc, 200);
+		OIIO::Strutil::safe_strcpy(this->labelText, desc, 200);
 	}
 
 
@@ -1496,68 +1493,62 @@ namespace cineon
 
 	inline void GenericHeader::SourceImageFileName(char *fn) const
 	{
-		::strncpy(fn, this->sourceImageFileName, 100);
-		fn[100] = '\0';
+		OIIO::Strutil::safe_strcpy(fn, this->sourceImageFileName, 100);
 	}
 
 	inline void GenericHeader::SetSourceImageFileName(const char *fn)
 	{
-		::strncpy(this->sourceImageFileName, fn, 100);
+		OIIO::Strutil::safe_strcpy(this->sourceImageFileName, fn, 100);
 	}
 
 	inline void GenericHeader::SourceDate(char *td) const
 	{
-		::strncpy(td, this->sourceDate, 12);
-		td[12] = '\0';
+		OIIO::Strutil::safe_strcpy(td, this->sourceDate, 12);
 	}
 
 	inline void GenericHeader::SetSourceDate(const char *td)
 	{
-		::strncpy(this->sourceDate, td, 12);
+		OIIO::Strutil::safe_strcpy(this->sourceDate, td, 12);
 	}
 
 	inline void GenericHeader::SourceTime(char *td) const
 	{
-		::strncpy(td, this->sourceTime, 12);
-		td[12] = '\0';
+		OIIO::Strutil::safe_strcpy(td, this->sourceTime, 12);
 	}
 
 	inline void GenericHeader::SetSourceTime(const char *td)
 	{
-		::strncpy(this->sourceTime, td, 12);
+		OIIO::Strutil::safe_strcpy(this->sourceTime, td, 12);
 	}
 
 	inline void GenericHeader::InputDevice(char *dev) const
 	{
-		::strncpy(dev, this->inputDevice, 32);
-		dev[32] = '\0';
+		OIIO::Strutil::safe_strcpy(dev, this->inputDevice, 32);
 	}
 
 	inline void  GenericHeader::SetInputDevice(const char *dev)
 	{
-		::strncpy(this->inputDevice, dev, 32);
+		OIIO::Strutil::safe_strcpy(this->inputDevice, dev, 32);
 	}
 
 	inline void GenericHeader::InputDeviceModelNumber(char *sn) const
 	{
-		::strncpy(sn, this->inputDeviceModelNumber, 32);
-		sn[32] = '\0';
+		OIIO::Strutil::safe_strcpy(sn, this->inputDeviceModelNumber, 32);
 	}
 
 	inline void GenericHeader::SetInputDeviceModelNumber(const char *sn)
 	{
-		::strncpy(this->inputDeviceModelNumber, sn, 32);
+		OIIO::Strutil::safe_strcpy(this->inputDeviceModelNumber, sn, 32);
 	}
 
 	inline void GenericHeader::InputDeviceSerialNumber(char *sn) const
 	{
-		::strncpy(sn, this->inputDeviceSerialNumber, 32);
-		sn[32] = '\0';
+		OIIO::Strutil::safe_strcpy(sn, this->inputDeviceSerialNumber, 32);
 	}
 
 	inline void GenericHeader::SetInputDeviceSerialNumber(const char *sn)
 	{
-		::strncpy(this->inputDeviceSerialNumber, sn, 32);
+		OIIO::Strutil::safe_strcpy(this->inputDeviceSerialNumber, sn, 32);
 	}
 
 	inline R32 GenericHeader::XDevicePitch() const
@@ -1582,13 +1573,12 @@ namespace cineon
 
 	inline void IndustryHeader::Format(char *fmt) const
 	{
-		::strncpy(fmt, this->format, 32);
-		fmt[32] = '\0';
+		OIIO::Strutil::safe_strcpy(fmt, this->format, 32);
 	}
 
 	inline void IndustryHeader::SetFormat(const char *fmt)
 	{
-		::strncpy(this->format, fmt, 32);
+		OIIO::Strutil::safe_strcpy(this->format, fmt, 32);
 	}
 
 	inline U32 IndustryHeader::FramePosition() const
@@ -1613,24 +1603,22 @@ namespace cineon
 
 	inline void IndustryHeader::FrameId(char *id) const
 	{
-		::strncpy(id, this->frameId, 32);
-		id[32] = '\0';
+		OIIO::Strutil::safe_strcpy(id, this->frameId, 32);
 	}
 
 	inline void IndustryHeader::SetFrameId(const char *id)
 	{
-		::strncpy(this->frameId, id, 32);
+		OIIO::Strutil::safe_strcpy(this->frameId, id, 32);
 	}
 
 	inline void IndustryHeader::SlateInfo(char *slate) const
 	{
-		::strncpy(slate, this->slateInfo, 100);
-		slate[100] = '\0';
+		OIIO::Strutil::safe_strcpy(slate, this->slateInfo, 100);
 	}
 
 	inline void IndustryHeader::SetSlateInfo(const char *slate)
 	{
-		::strncpy(this->slateInfo, slate, 100);
+		OIIO::Strutil::safe_strcpy(this->slateInfo, slate, 100);
 	}
 
 	inline R32 GenericHeader::Gamma() const
