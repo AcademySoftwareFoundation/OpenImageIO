@@ -66,10 +66,8 @@ public:
         INTERP_VERTEX = 3    ///< Interpolated like vertices
     };
 
-    ParamValue () : m_type(TypeDesc::UNKNOWN), m_nvalues(0), 
-                    m_interp(INTERP_CONSTANT), m_copy(false), m_nonlocal(false)
-    {
-        m_data.ptr = NULL;
+    ParamValue () {
+        m_data.ptr = nullptr;
     }
     ParamValue (const ustring &_name, TypeDesc _type,
                 int _nvalues, const void *_value, bool _copy=true) {
@@ -112,10 +110,12 @@ public:
         init_noclear (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), _copy);
     }
 
-    // Rvalue ref -- "move constructor"
+    // Rvalue (move) constructor
     ParamValue (ParamValue&& p) {
-        memcpy (this, &p, sizeof(ParamValue));  // nothing that won't memcpy
-        p.m_data.ptr = nullptr;   // but make sure the old one won't free
+        init_noclear (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
+        m_copy = p.m_copy;
+        m_nonlocal = p.m_nonlocal;
+        p.m_data.ptr = nullptr;   // make sure the old one won't free
     }
 
     ~ParamValue () { clear_value(); }
@@ -137,8 +137,17 @@ public:
                Interp _interp, const void *_value, bool _copy=true) {
         init (ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
+
+    // Assignment
     const ParamValue& operator= (const ParamValue &p) {
         init (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), p.m_copy);
+        return *this;
+    }
+    const ParamValue& operator= (ParamValue &&p) {
+        init (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
+        m_copy = p.m_copy;
+        m_nonlocal = p.m_nonlocal;
+        p.m_data.ptr = nullptr;
         return *this;
     }
 
@@ -156,10 +165,9 @@ public:
     bool is_nonlocal () const { return m_nonlocal; }
 
     friend void swap (ParamValue &a, ParamValue &b) {
-        char tmp[sizeof(ParamValue)];
-        memcpy (tmp, &a, sizeof(ParamValue));
-        memcpy (&a, &b, sizeof(ParamValue));
-        memcpy (&b, tmp, sizeof(ParamValue));
+        ParamValue tmp = std::move(a);
+        a = std::move(b);
+        b = std::move(tmp);
     }
 
     // Use with extreme caution! This is just doing a cast. You'd better
@@ -201,9 +209,10 @@ private:
         char localval[16];
         const void *ptr;
     } m_data;             ///< Our data, either a pointer or small local value
-    int m_nvalues;            ///< number of values of the given type
-    unsigned char m_interp;   ///< Interpolation type
-    bool m_copy, m_nonlocal;
+    int m_nvalues = 0;    ///< number of values of the given type
+    unsigned char m_interp = INTERP_CONSTANT;   ///< Interpolation type
+    bool m_copy = false;
+    bool m_nonlocal = false;
 
     void init_noclear (ustring _name, TypeDesc _type,
                        int _nvalues, const void *_value, bool _copy=true);
