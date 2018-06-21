@@ -774,7 +774,7 @@ void dpx::GenericHeader::SetCreationTimeDate(const long sec)
 	const time_t t = time_t(sec);
 	tm_time = ::localtime(&t);
 	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
-	::strncpy(this->creationTimeDate, str, 24);
+	OIIO::Strutil::safe_strcpy(this->creationTimeDate, str, 24);
 }
 
 
@@ -790,7 +790,7 @@ void dpx::GenericHeader::SetSourceTimeDate(const long sec)
 	const time_t t = time_t(sec);
 	tm_time = ::localtime(&t);
 	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
-	::strncpy(this->sourceTimeDate, str, 24);
+	OIIO::Strutil::safe_strcpy(this->sourceTimeDate, str, 24);
 }
 
 
