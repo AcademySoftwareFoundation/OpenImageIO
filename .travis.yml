@@ -17,6 +17,7 @@ addons:
    packages:
       - g++-6
       - g++-7
+      - g++-8
       - libboost-filesystem1.55
       - libboost-regex1.55
       - libboost-system1.55
@@ -173,6 +174,10 @@ matrix:
       - os: linux
         compiler: gcc
         env: USE_SIMD=0 USE_JPEGTURBO=0 EMBEDPLUGINS=0
+    # test with C++14, gcc 8, latest SIMD flags supported by TravisCI VMs
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=8 USE_CPP=14 USE_SIMD=avx,f16c
     # build for AVX2, don't run the tests (ensure against build breaks)
       - os: linux
         compiler: gcc

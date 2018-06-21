@@ -26,7 +26,7 @@ NEW or CHANGED dependencies since the last major release are **bold**.
 ### Required dependencies -- OIIO will not build at all without these
 
  * C++11 (should also build with C++14 and C++17)
- * Compilers: gcc 4.8.2 - gcc 7, clang 3.3 - 6.0, MSVS 2013 - 2017, icc version 13 or higher
+ * Compilers: gcc 4.8.2 - gcc 8, clang 3.3 - 6.0, MSVS 2013 - 2017, icc version 13 or higher
  * Boost >= 1.53 (tested up through 1.67)
  * CMake >= 3.2.2 (tested up through 3.11)
  * OpenEXR >= 2.0 (recommended: 2.2)
@@ -42,7 +42,7 @@ NEW or CHANGED dependencies since the last major release are **bold**.
      * **NumPy**
      * **pybind11** (but OIIO will auto-download it if not found)
  * libRaw >= 0.17 ("RAW" image reading will be disabled if not found)
- * ffmpeg >= 3.0 (tested through 4.0)
+ * ffmpeg >= 2.6 (tested through 4.0)
 
 
 
