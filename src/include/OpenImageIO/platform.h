@@ -311,15 +311,6 @@
 #endif
 
 
-// Try to deduce endianness
-#if (defined(_WIN32) || defined(__i386__) || defined(__x86_64__))
-#  ifndef __LITTLE_ENDIAN__
-#    define __LITTLE_ENDIAN__ 1
-#    undef __BIG_ENDIAN__
-#  endif
-#endif
-
-
 // OIIO_HOSTDEVICE is used to supply the function decorators needed when
 // compiling for CUDA devices.
 #ifdef __CUDACC__
@@ -331,25 +322,35 @@
 
 OIIO_NAMESPACE_BEGIN
 
-/// Return true if the architecture we are running on is little endian
-OIIO_FORCEINLINE bool littleendian (void)
+/// Class for describing endianness. Test for endianness as
+/// `if (endian::native == endian::little)` or
+/// `if (endian::native == endian::big)`.
+/// This uses the same semantics as C++20's std::endian.
+enum class endian
 {
-#if defined(__BIG_ENDIAN__)
-    return false;
-#elif defined(__LITTLE_ENDIAN__)
-    return true;
-#else
-    // Otherwise, do something quick to compute it
-    int i = 1;
-    return *((char *) &i);
+#ifdef _WIN32 /* All Windows platforms are little endian */
+    little = 0,
+    big    = 1,
+    native = little
+#else  /* gcc, clang, icc all define these macros */
+    little = __ORDER_LITTLE_ENDIAN__,
+    big    = __ORDER_BIG_ENDIAN__,
+    native = __BYTE_ORDER__
 #endif
+};
+
+
+/// Return true if the architecture we are running on is little endian
+OIIO_FORCEINLINE constexpr bool littleendian (void)
+{
+    return endian::native == endian::little;
 }
 
 
 /// Return true if the architecture we are running on is big endian
-OIIO_FORCEINLINE bool bigendian (void)
+OIIO_FORCEINLINE constexpr bool bigendian (void)
 {
-    return ! littleendian();
+    return endian::native == endian::big;
 }
 
 
