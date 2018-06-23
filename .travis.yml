@@ -178,6 +178,10 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=8 USE_CPP=14 USE_SIMD=avx,f16c
+    # test with C++17, gcc 8, latest SIMD flags supported by TravisCI VMs
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=8 USE_CPP=17 USE_SIMD=avx,f16c
     # build for AVX2, don't run the tests (ensure against build breaks)
       - os: linux
         compiler: gcc
