@@ -31,6 +31,12 @@
 #ifndef PYOPENIMAGEIO_PY_OIIO_H
 #define PYOPENIMAGEIO_PY_OIIO_H
 
+// Python.h uses the 'register' keyword, don't warn about it being
+// deprecated in C++17.
+#if (__cplusplus >= 201703L && defined(__GNUC__))
+#pragma GCC diagnostic ignored "-Wregister"
+#endif
+
 // Must include Python.h first to avoid certain warnings
 #include <Python.h>
 
