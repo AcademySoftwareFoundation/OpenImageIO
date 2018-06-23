@@ -28,11 +28,39 @@
   (This is the Modified BSD License)
 */
 
-// Portions of the code in this file related to is_invocable and
-// function_view are licensed under the AFL 3.0:
-// Copyright (c) 2013-2016 Vittorio Romeo
-// AFL License page: http://opensource.org/licenses/AFL-3.0
-// https://github.com/SuperV1234/vittorioromeo.info
+// Portions of the code in this file is a derived work based on the
+// FunctionRef class in LLVM:
+//
+// University of Illinois/NCSA Open Source License
+//
+// Copyright (c) 2003-2018 University of Illinois at Urbana-Champaign.
+// All rights reserved.
+//
+// Developed by:
+//   LLVM Team, University of Illinois at Urbana-Champaign, http://llvm.org
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal with
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+// of the Software, and to permit persons to whom the Software is furnished to do
+// so, subject to the following conditions:
+//     * Redistributions of source code must retain the above copyright notice,
+//       this list of conditions and the following disclaimers.
+//     * Redistributions in binary form must reproduce the above copyright notice,
+//       this list of conditions and the following disclaimers in the
+//       documentation and/or other materials provided with the distribution.
+//     * Neither the names of the LLVM Team, University of Illinois at
+//       Urbana-Champaign, nor the names of its contributors may be used to
+//       endorse or promote products derived from this Software without specific
+//       prior written permission.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
+// SOFTWARE.
 
 
 #pragma once
@@ -46,54 +74,6 @@
 
 
 OIIO_NAMESPACE_BEGIN
-
-
-#if OIIO_CPLUSPLUS_VERSION >= 14
-
-using std::add_pointer_t;
-using std::decay_t;
-using std::result_of_t;
-using std::enable_if_t;
-
-#else
-
-template<class T> using add_pointer_t = typename std::add_pointer<T>::type;
-template<class T> using decay_t = typename std::decay<T>::type;
-template<class T> using result_of_t = typename std::result_of<T>::type;
-template<bool B, class T=void>
-   using enable_if_t = typename std::enable_if<B,T>::type;
-
-#endif
-
-
-
-#if OIIO_CPLUSPLUS_VERSION >= 17
-
-using std::is_invocable;
-
-#else
-
-template <typename...>
-using void_t = void;
-
-template <class T, class R = void, class = void>
-struct is_invocable : std::false_type
-{
-};
-
-template <class T>
-struct is_invocable<T, void, void_t<result_of_t<T>>> : std::true_type
-{
-};
-
-template <class T, class R>
-struct is_invocable<T, R, void_t<result_of_t<T>>>
-    : std::is_convertible<result_of_t<T>, R>
-{
-};
-
-#endif
-
 
 
 /// function_view<R(T...)> is a lightweight non-owning generic callable
@@ -111,52 +91,38 @@ struct is_invocable<T, R, void_t<result_of_t<T>>>
 /// lifetimes, but the call overhead is quite high. So use a function_view
 /// when you can.
 ///
-/// This implementation comes from the following blog article:
-/// https://vittorioromeo.info/index/blog/passing_functions_to_functions.html
-/// https://github.com/SuperV1234/vittorioromeo.info/blob/master/extra/passing_functions_to_functions/function_view.hpp
-/// The code is licensed under the AFL 3.0:
-/// Copyright (c) 2013-2016 Vittorio Romeo
-/// AFL License page: http://opensource.org/licenses/AFL-3.0
-///
-/// There are other implementations floating around, for example this one
-/// https://chromium.googlesource.com/external/webrtc/+/master/webrtc/base/function_view.h
-/// There are also proposals to add it to C++ std at some point.
-/// But I think this will serve our purposes for now.
+/// This implementation comes from LLVM:
+/// https://github.com/llvm-mirror/llvm/blob/master/include/llvm/ADT/STLExtras.h
 
-template <typename TSignature>
-class function_view;
+template<typename Fn> class function_view;
 
-template <typename TReturn, typename... TArgs>
-class function_view<TReturn(TArgs...)> final
-{
-private:
-    using signature_type = TReturn(void*, TArgs...);
+template<typename Ret, typename ...Params>
+class function_view<Ret(Params...)> {
+    Ret (*callback)(intptr_t callable, Params ...params) = nullptr;
+    intptr_t callable;
 
-    void* _ptr;
-    TReturn (*_erased_fn)(void*, TArgs...);
+    template<typename Callable>
+    static Ret callback_fn(intptr_t callable, Params ...params) {
+        return (*reinterpret_cast<Callable*>(callable))(std::forward<Params>(params)...);
+    }
 
 public:
-    template <typename T, typename = enable_if_t<
-                              is_invocable<T&(TArgs...)>{} &&
-                              !std::is_same<decay_t<T>, function_view>{}>>
-    function_view(T&& x) noexcept : _ptr{(void*)std::addressof(x)}
-    {
-        _erased_fn = [](void* ptr, TArgs... xs) -> TReturn {
-            return (*reinterpret_cast<add_pointer_t<T>>(ptr))(
-                std::forward<TArgs>(xs)...);
-        };
+    function_view() = default;
+    function_view(std::nullptr_t) {}
+
+    template <typename Callable>
+    function_view(Callable &&callable,
+                 typename std::enable_if<
+                     !std::is_same<typename std::remove_reference<Callable>::type,
+                                   function_view>::value>::type * = nullptr)
+        : callback(callback_fn<typename std::remove_reference<Callable>::type>),
+          callable(reinterpret_cast<intptr_t>(&callable)) {}
+
+    Ret operator()(Params ...params) const {
+        return callback(callable, std::forward<Params>(params)...);
     }
 
-#if OIIO_CPLUSPLUS_VERSION >= 14
-    decltype(auto)
-#else
-    TReturn
-#endif
-    operator()(TArgs... xs) const
-        noexcept(noexcept(_erased_fn(_ptr, std::forward<TArgs>(xs)...)))
-    {
-        return _erased_fn(_ptr, std::forward<TArgs>(xs)...);
-    }
+    operator bool() const { return callback; }
 };
 
 
