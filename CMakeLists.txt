@@ -342,13 +342,8 @@ oiio_add_tests (webp
 oiio_add_tests (ptex
     FOUNDVAR PTEX_FOUND)
 
-
-if (NOT DEFINED ENV{TRAVIS})
-
 oiio_add_tests (texture-field3d field3d
     FOUNDVAR FIELD3D_FOUND)
-
-endif ()
 
 
 if (SPI_TESTS)

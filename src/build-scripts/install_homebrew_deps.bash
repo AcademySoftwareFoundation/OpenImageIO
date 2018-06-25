@@ -27,6 +27,9 @@ brew install libraw libpng webp jpeg-turbo
 brew install openjpeg
 brew install dcmtk
 brew install qt
+brew install field3d
+brew install ffmpeg
+brew install opencv
 brew upgrade python
 brew install pybind11 numpy
 brew link --overwrite numpy
@@ -35,8 +38,6 @@ if [ "$LINKSTATIC" == "1" ] ; then
     brew install homebrew/dupes/bzip2
     brew install yaml-cpp --with-static-lib
 fi
-#brew install homebrew/science/hdf5 --with-threadsafe
-#brew install field3d webp ffmpeg openjpeg opencv
 echo ""
 echo "After brew installs:"
 brew list --versions
