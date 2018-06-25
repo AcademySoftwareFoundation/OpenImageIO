@@ -45,10 +45,10 @@ using namespace OIIO_NAMESPACE::f3dpvt;
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-recursive_mutex &
+spin_mutex &
 f3dpvt::field3d_mutex ()
 {
-    static recursive_mutex m;
+    static spin_mutex m;
     return m;
 }
 
@@ -129,7 +129,7 @@ f3dpvt::oiio_field3d_initialize ()
     static volatile bool initialized = false;
 
     if (! initialized) {
-        recursive_lock_guard lock (field3d_mutex());
+        spin_lock lock (field3d_mutex());
         if (! initialized) {
             initIO ();
             // Minimize Field3D's own internal caching
@@ -353,7 +353,7 @@ Field3DInput::valid_file (const std::string &filename) const
 
     oiio_field3d_initialize ();
 
-    recursive_lock_guard lock (field3d_mutex());
+    spin_lock lock (field3d_mutex());
     auto in = new Field3DInputFile;
     std::unique_ptr<Field3DInputFile> input (in /*new Field3DInputFile*/);
     bool ok = false;
@@ -386,7 +386,7 @@ Field3DInput::open (const std::string &name, ImageSpec &newspec)
     oiio_field3d_initialize ();
 
     {
-        recursive_lock_guard lock (field3d_mutex());
+        spin_lock lock (field3d_mutex());
         m_input.reset (new Field3DInputFile);
         bool ok = false;
         try {
@@ -432,7 +432,7 @@ Field3DInput::seek_subimage (int subimage, int miplevel)
     if (subimage == m_subimage)
         return true;
 
-    recursive_lock_guard lock (field3d_mutex());
+    spin_lock lock (field3d_mutex());
     m_subimage = subimage;
     m_spec = m_layers[subimage].spec;
     return true;
@@ -443,7 +443,7 @@ Field3DInput::seek_subimage (int subimage, int miplevel)
 bool
 Field3DInput::close ()
 {
-    recursive_lock_guard lock (field3d_mutex());
+    spin_lock lock (field3d_mutex());
     if (m_input) {
         m_input->close ();
         m_input.reset ();
@@ -516,7 +516,7 @@ bool
 Field3DInput::read_native_tile (int subimage, int miplevel,
                                 int x, int y, int z, void *data)
 {
-    recursive_lock_guard lock (field3d_mutex());
+    spin_lock lock (field3d_mutex());
     if (! seek_subimage (subimage, miplevel))
         return false;
     layerrecord &lay (m_layers[m_subimage]);
@@ -546,7 +546,7 @@ void
 Field3DInput::worldToLocal (const Imath::V3f &wsP, Imath::V3f &lsP,
                             float time) const
 {
-    recursive_lock_guard lock (field3d_mutex());
+    spin_lock lock (field3d_mutex());
     const layerrecord &lay (m_layers[m_subimage]);
     V3d Pw (wsP[0], wsP[1], wsP[2]);
     V3d Pl;
