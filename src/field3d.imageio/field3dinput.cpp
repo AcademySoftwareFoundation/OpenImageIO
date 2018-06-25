@@ -70,6 +70,7 @@ public:
         return m_subimage;
     }
     virtual bool seek_subimage (int subimage, int miplevel) override;
+    virtual bool seek_subimage_nolock (int subimage, int miplevel);
     virtual bool read_native_scanline (int subimage, int miplevel,
                                        int y, int z, void *data) override;
     virtual bool read_native_tile (int subimage, int miplevel,
@@ -353,7 +354,7 @@ Field3DInput::valid_file (const std::string &filename) const
 
     oiio_field3d_initialize ();
 
-    spin_lock lock (field3d_mutex());
+    // spin_lock lock (field3d_mutex());
     auto in = new Field3DInputFile;
     std::unique_ptr<Field3DInputFile> input (in /*new Field3DInputFile*/);
     bool ok = false;
@@ -423,7 +424,7 @@ Field3DInput::open (const std::string &name, ImageSpec &newspec)
 
 
 bool
-Field3DInput::seek_subimage (int subimage, int miplevel)
+Field3DInput::seek_subimage_nolock (int subimage, int miplevel)
 {
     if (subimage < 0 || subimage >= m_nsubimages)   // out of range
         return false;
@@ -432,10 +433,18 @@ Field3DInput::seek_subimage (int subimage, int miplevel)
     if (subimage == m_subimage)
         return true;
 
-    spin_lock lock (field3d_mutex());
     m_subimage = subimage;
     m_spec = m_layers[subimage].spec;
     return true;
+}
+
+
+
+bool
+Field3DInput::seek_subimage (int subimage, int miplevel)
+{
+    spin_lock lock (field3d_mutex());
+    return seek_subimage_nolock (subimage, miplevel);
 }
 
 
@@ -517,7 +526,7 @@ Field3DInput::read_native_tile (int subimage, int miplevel,
                                 int x, int y, int z, void *data)
 {
     spin_lock lock (field3d_mutex());
-    if (! seek_subimage (subimage, miplevel))
+    if (! seek_subimage_nolock (subimage, miplevel))
         return false;
     layerrecord &lay (m_layers[m_subimage]);
     if (lay.datatype == TypeDesc::FLOAT) {
