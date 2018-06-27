@@ -566,7 +566,7 @@ inline OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE in) {
     // NOTE: this is the only standards compliant way of doing this type of casting,
     // luckily the compilers we care about know how to optimize away this idiom.
     OUT_TYPE out;
-    memcpy (&out, &in, sizeof(IN_TYPE));
+    memcpy ((void *)&out, &in, sizeof(IN_TYPE));
     return out;
 }
 
