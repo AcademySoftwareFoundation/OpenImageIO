@@ -63,8 +63,11 @@ endif ()
 # turn on more detailed warnings and consider warnings as errors
 if (NOT MSVC)
     add_definitions ("-Wall")
-    if (STOP_ON_WARNING)
+    if (STOP_ON_WARNING OR DEFINED ENV{CI})
         add_definitions ("-Werror")
+        # N.B. Force CI builds (Travis defines $CI) to use -Werror, even if
+        # STOP_ON_WARNING has been switched off by default, which we may do
+        # in release branches.
     endif ()
 endif ()
 
