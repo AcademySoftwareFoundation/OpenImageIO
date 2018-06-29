@@ -122,7 +122,7 @@ preceded by the {\cf dicom:} prefix. \\
 \index{DPX}
 
 
-DPX (Digital Picture Exchange) is an image file format used for 
+DPX (Digital Picture Exchange) is an image file format used for
 motion picture film scanning, output, and digital intermediates.
 DPX files use the file extension {\cf .dpx}.
 
@@ -258,7 +258,7 @@ exceptions: (1) if the partition and attribute names are identical, just
 one is used rather than it being pointlessly concatenated (e.g.,
 \qkw{density}, not \qkw{density:density}); (2) if there are mutiple
 partitions + attribute combinations with identical names in the same
-file, ``.\emph{number}'' will be added after the partition name for 
+file, ``.\emph{number}'' will be added after the partition name for
 subsequent layers (e.g., \qkw{default:density}, \qkw{default.2:density},
 \qkw{default.3:density}).
 
@@ -272,7 +272,7 @@ FITS (Flexible Image Transport System) is an image file format used
 for scientific applications, particularly professional astronomy.
 FITS files use the file extension {\cf .fits}.
 Official FITS specs and other info may be found at:
-\url{http://fits.gsfc.nasa.gov/} 
+\url{http://fits.gsfc.nasa.gov/}
 
 \product supports multiple images in FITS files, and supports the
 following pixel data types: UINT8, UINT16, UINT32, FLOAT, DOUBLE.
@@ -307,7 +307,7 @@ storage.  Currently, \product only supports 2D FITS data (images), not
 \label{sec:bundledplugins:gif}
 \index{GIF}
 
-GIF (Graphics Interchange Format) is an image file format developed by 
+GIF (Graphics Interchange Format) is an image file format developed by
 CompuServe in 1987.  Nowadays it is widely used to display basic animations
 despite its technical limitations.
 
@@ -320,7 +320,7 @@ despite its technical limitations.
 \qkw{gif:Interlacing} & int & Specifies if image is interlaced (0 or 1). \\
 \qkw{FramesPerSecond} & int[2] (rational) & Frames per second \\
 \qkw{oiio:Movie} & int & If nonzero, indicates that it's an animated GIF. \\
-\qkw{gif:LoopCount} & int & Number of times the animation should be played 
+\qkw{gif:LoopCount} & int & Number of times the animation should be played
 (0--65535, 0 stands for infinity). \\
 \qkw{ImageDescription} & string & The GIF comment field.
 \end{tabular}
@@ -328,10 +328,10 @@ despite its technical limitations.
 \subsubsection*{Limitations}
 
 \begin{itemize}
-\item GIF only supports 3-channel (RGB) images and at most 8 bits per 
+\item GIF only supports 3-channel (RGB) images and at most 8 bits per
 channel.
 \item Each subimage can include its own palette or use global palette.
-Palettes contain up to 256 colors of which one can be used as background 
+Palettes contain up to 256 colors of which one can be used as background
 color. It is then emulated with additional Alpha channel by \product's reader.
 \end{itemize}
 
@@ -423,7 +423,7 @@ OIIO Attribute & Type & DPX header data or explanation \\
 \qkw{DateTime} & string & Creation date/time \\
 \qkw{compression} & string & The compression type \\
 \qkw{oiio:BitsPerSample} & int & the true bits per sample of the IFF file. \\
-\end{tabular} 
+\end{tabular}
 
 
 
@@ -508,7 +508,7 @@ JPEG-2000 files use the file extensions {\cf .jp2} or {\cf .j2k}.
 The official JPEG-2000 format specification and other helpful info
 may be found at \url{http://www.jpeg.org/JPEG2000.htm}.
 
-JPEG-2000 is not yet widely used, so \product's support of it is 
+JPEG-2000 is not yet widely used, so \product's support of it is
 preliminary.  In particular, we are not yet very good at handling
 the metadata robustly.
 
@@ -591,7 +591,7 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 \ImageSpec Attribute & Type & OpenEXR header data or explanation \\
 \hline
 {\cf width}, {\cf height}, {\cf x}, {\cf y} & & {\cf dataWindow} \\[0.5ex]
-{\cf\small full_width}, {\cf\small full_height}, {\cf\small full_x}, 
+{\cf\small full_width}, {\cf\small full_height}, {\cf\small full_x},
   {\cf\small full_y} & & {\cf displayWindow}.  \\[4ex]
 \qkw{worldtocamera} & matrix & worldToCamera \\
 \qkw{worldtoscreen} & matrix & worldToNDC \\
@@ -602,7 +602,7 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 \qkw{ExposureTime} & float & expTime \\
 \qkw{FNumber} & float & aperture \\
 \qkw{compression} & string & one of: \qkw{none}, \qkw{rle},
-  \qkw{zip}, \qkw{piz}, \qkw{pxr24}, \qkw{b44}, \qkw{b44a},
+  \qkw{zip}, \qkw{zips}, \qkw{piz}, \qkw{pxr24}, \qkw{b44}, \qkw{b44a},
   \qkw{dwaa}, or \qkw{dwab}.  If the
   writer receives a request for a compression type it does not
   recognize or is not supported by the version of OpenEXR on the system,
@@ -717,7 +717,7 @@ PNG files use the file extension {\cf .png}.
 The Netpbm project, a.k.a.\ PNM (portable ``any'' map) defines PBM, PGM,
 and PPM (portable bitmap, portable graymap, portable pixmap) files.
 Without loss of generality, we will refer to these all collectively as
-``PNM.''  These files have extensions {\cf .pbm}, {\cf .pgm}, and 
+``PNM.''  These files have extensions {\cf .pbm}, {\cf .pgm}, and
 {\cf .ppm} and customarily correspond to bi-level bitmaps, 1-channel
 grayscale, and 3-channel RGB files, respectively, or {\cf .pnm} for
 those who reject the nonsense about naming the files depending on the
@@ -897,7 +897,7 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 \hline
 {\cf width}, {\cf height}, {\cf x}, {\cf y} & {\kw int} & RLA ``active/viewable'' window. \\
 & & \\
-{\cf\small full_width}, {\cf\small full_height}, {\cf\small full_x}, 
+{\cf\small full_width}, {\cf\small full_height}, {\cf\small full_x},
   {\cf\small full_y} & {\kw int} & RLA ``full'' window.  \\
 & & \\
 \qkws{rla:FrameNumber} & int & frame sequence number. \\
@@ -950,7 +950,7 @@ developed at Wavefront.  RLA files commonly use the file extension {\cf .rla}.
 \index{SGI files}
 
 The SGI image format was a simple raster format used long ago on SGI
-machines.  SGI files use the file extensions {\cf sgi}, {\cf rgb}, 
+machines.  SGI files use the file extensions {\cf sgi}, {\cf rgb},
 {\cf rgba}, \qkw{bw}, \qkw{int}, and \qkw{inta}.
 
 The SGI format is sometimes used for legacy apps, but has little merit
@@ -1031,7 +1031,7 @@ The official Targa format specification may be found at\\
     Section~\ref{metadata:colorspace}). \\
 \qkw{oiio:Gamma} & float & the gamma correction value (if specified).
 \end{tabular}
-\\ 
+\\
 \vspace{.25in}
 
 If the TGA file contains a thumbnail, its dimensions will be
@@ -1045,7 +1045,7 @@ If the TGA file contains a thumbnail, its dimensions will be
 
 \begin{itemize}
 \item The Targa reader reserves enough memory for the entire image.
-  Therefore it is not a good choice for high-performance image use such 
+  Therefore it is not a good choice for high-performance image use such
   as would be used for \ImageCache or \TextureSystem.
 \item Targa files only support 8- and 16-bit unsigned integers (no
   signed, floating point, or HDR capabilities); the \product TGA writer
@@ -1072,9 +1072,9 @@ Additionally, \product associates the following extensions with TIFF
 files by default: {\cf .tx}, {\cf .env}, {\cf .sm}, {\cf .vsm}.
 
 The official TIFF format specification may be found here:
-\url{http://partners.adobe.com/public/developer/tiff/index.html} 
+\url{http://partners.adobe.com/public/developer/tiff/index.html}
 ~ The most popular library for reading TIFF directly is {\cf libtiff},
-available here: 
+available here:
 \url{http://www.remotesensing.org/libtiff/} ~ \product uses {\cf libtiff}
 for its TIFF reading/writing.
 
@@ -1086,7 +1086,7 @@ format), and a rich set of metadata.
 
 \product supports the vast majority of TIFF features, including: tiled
 images (\qkw{tiled}) as well as scanline images; multiple subimages per
-file (\qkw{multiimage}); MIPmapping (using multi-subimage; that means 
+file (\qkw{multiimage}); MIPmapping (using multi-subimage; that means
 you can't use multiimage and MIPmaps simultaneously); data formats
 8- 16, and 32 bit integer (both signed and unsigned), and 32- and 64-bit
 floating point; palette images (will convert to RGB); ``miniswhite''
@@ -1203,7 +1203,7 @@ aware of:
 \end{itemize}
 
 
-\newpage 
+\newpage
 \subsubsection*{TIFF Attributes}
 
 \noindent\begin{tabular}{p{2.0in}|p{0.5in}|p{2.75in}}
