@@ -5,7 +5,7 @@ message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
 message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
 
 set (USE_CPP 11 CACHE STRING "C++ standard to prefer (11, 14, 17, etc.)")
-option (USE_LIBCPLUSPLUS "Compile with clang libc++")
+option (USE_LIBCPLUSPLUS "Compile with clang libc++" OFF)
 set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
 option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
 option (HIDE_SYMBOLS "Hide symbols not in the public API" OFF)
@@ -21,6 +21,7 @@ option (CLANG_TIDY "Enable clang-tidy" OFF)
 set (CLANG_TIDY_CHECKS "-*" CACHE STRING "clang-tidy checks to perform")
 set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
 option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
+set (GLIBCXX_USE_CXX11_ABI "" CACHE STRING "For gcc, use the new C++11 library ABI (0|1)")
 
 # Figure out which compiler we're using
 if (CMAKE_COMPILER_IS_GNUCC)
@@ -192,6 +193,18 @@ if (USE_LIBCPLUSPLUS AND CMAKE_COMPILER_IS_CLANG)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif ()
 
+# GCC 5+: honor build-time option for whether or not to use new string ABI.
+# FIXME: In theory, this should also be needed for clang, if compiling with
+# the gcc libstdc++ toolchain. In practice, I could not get things to build
+# with clang properly when using this option, and I haven't yet seen a case
+# where it's needed. We can return to this and fix for clang if it becomes a
+# legit problem later.
+if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 5.0)
+    if (NOT ${GLIBCXX_USE_CXX11_ABI} STREQUAL "")
+        add_definitions ("-D_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI}")
+    endif ()
+endif ()
+
 
 # SIMD and machine architecture options
 set (SIMD_COMPILE_FLAGS "")
@@ -283,6 +296,10 @@ if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
         set (SANITIZE_LIBRARIES "asan;pthread")
         # set (SANITIZE_LIBRARIES "asan" "ubsan")
     endif()
+    if (CMAKE_COMPILER_IS_GNUCC)
+        # turn on glibcxx extra annotations to find vector writes past end
+        add_definitions ("-D_GLIBCXX_SANITIZE_VECTOR=1")
+    endif ()
     add_definitions ("-D${PROJECT_NAME}_SANITIZE=1")
 endif ()
 
