@@ -23,7 +23,8 @@ brew install ccache cmake
 brew install ilmbase openexr
 brew install opencolorio
 brew install freetype
-brew install libraw libpng webp jpeg-turbo
+#brew install libraw
+brew install libpng webp jpeg-turbo
 brew install openjpeg
 brew install dcmtk
 brew install qt
