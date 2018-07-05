@@ -66,18 +66,26 @@ ifeq (${SP_OS}, rhel7)
     ifeq (${COMPILER},clang4)
 	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_4.0_final
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
+	MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER},clang5)
 	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_5.0.1
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
+	MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER},clang6)
 	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_6.0.0_rc2
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
+	MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+	MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER}, gcc490)
       MY_CMAKE_FLAGS += \
          -DCMAKE_C_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/gcc \
          -DCMAKE_CXX_COMPILER=/net/soft_scratch/apps/arnold/tools/gcc-4.9-20130512-test/bin/g++
+    else ifeq (${COMPILER}, gcc6)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=/opt/rh/devtoolset-6/root/usr/bin/gcc \
+           -DCMAKE_CXX_COMPILER=/opt/rh/devtoolset-6/root/usr/bin/g++
     else ifeq (${COMPILER},gcc)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
     else ifeq (${COMPILER},)
@@ -85,9 +93,8 @@ ifeq (${SP_OS}, rhel7)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
            -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
+	MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     endif
-
-    MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
 
     MY_CMAKE_FLAGS += \
 	-DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
