@@ -2,36 +2,36 @@ Reading ../../../../../bmpsuite/g01bg.bmp
 ../../../../../bmpsuite/g01bg.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 3A3A9A7D3A25907693A33D4403B3FB5BFCC9E5B1
     channel list: R, G, B
+    ResolutionUnit: "m"
     XResolution: 0
     YResolution: 0
-    ResolutionUnit: "m"
 Comparing "../../../../../bmpsuite/g01bg.bmp" and "g01bg.bmp"
 PASS
 Reading ../../../../../bmpsuite/g04.bmp
 ../../../../../bmpsuite/g04.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 83CE69952523E32894E14052E6B497E9D2C8867C
     channel list: R, G, B
+    ResolutionUnit: "m"
     XResolution: 0
     YResolution: 0
-    ResolutionUnit: "m"
 Comparing "../../../../../bmpsuite/g04.bmp" and "g04.bmp"
 PASS
 Reading ../../../../../bmpsuite/g08.bmp
 ../../../../../bmpsuite/g08.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
+    ResolutionUnit: "m"
     XResolution: 0
     YResolution: 0
-    ResolutionUnit: "m"
 Comparing "../../../../../bmpsuite/g08.bmp" and "g08.bmp"
 PASS
 Reading ../../../../../bmpsuite/g16bf555.bmp
 ../../../../../bmpsuite/g16bf555.bmp :  127 x   64, 3 channel, uint4 bmp
     SHA-1: 630022A1DFE41AA6AE07F272E3D441205F612240
     channel list: R, G, B
+    ResolutionUnit: "m"
     XResolution: 0
     YResolution: 0
-    ResolutionUnit: "m"
     oiio:BitsPerSample: 4
 Comparing "../../../../../bmpsuite/g16bf555.bmp" and "g16bf555.bmp"
 PASS
@@ -39,26 +39,26 @@ Reading ../../../../../bmpsuite/g24.bmp
 ../../../../../bmpsuite/g24.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: B1FB63649469F31D02D7AD065D3128EE04CC662E
     channel list: R, G, B
+    ResolutionUnit: "m"
     XResolution: 0
     YResolution: 0
-    ResolutionUnit: "m"
 Comparing "../../../../../bmpsuite/g24.bmp" and "g24.bmp"
 PASS
 Reading ../../../../../bmpsuite/g32bf.bmp
 ../../../../../bmpsuite/g32bf.bmp :  127 x   64, 4 channel, uint8 bmp
     SHA-1: AB315E7E66DBE94299A2E0F2749C5947D924B48B
     channel list: R, G, B, A
+    ResolutionUnit: "m"
     XResolution: 0
     YResolution: 0
-    ResolutionUnit: "m"
 Comparing "../../../../../bmpsuite/g32bf.bmp" and "g32bf.bmp"
 PASS
 Reading src/g01bg2-v5.bmp
 src/g01bg2-v5.bmp    :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 3A3A9A7D3A25907693A33D4403B3FB5BFCC9E5B1
     channel list: R, G, B
+    ResolutionUnit: "m"
     XResolution: 2835
     YResolution: 2835
-    ResolutionUnit: "m"
 Comparing "src/g01bg2-v5.bmp" and "g01bg2-v5.bmp"
 PASS

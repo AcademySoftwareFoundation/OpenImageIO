@@ -3,16 +3,16 @@ Reading ../texture-field3d/src/dense_float.f3d
     SHA-1: 776F6CFF0B2C6834785A6EABA740C0DC7F1C78A2
     channel list: density
     tile size: 64 x 64 x 64
-    ImageDescription: "sphere:density"
-    oiio:subimagename: "sphere:density"
-    field3d:partition: "sphere"
-    field3d:layer: "density"
-    field3d:fieldtype: "DenseField"
-    field3d:mapping: "MatrixFieldMapping"
-    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
-    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
     field_type: 0
+    ImageDescription: "sphere:density"
     storage_type: 2
+    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
+    field3d:fieldtype: "DenseField"
+    field3d:layer: "density"
+    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
+    field3d:mapping: "MatrixFieldMapping"
+    field3d:partition: "sphere"
+    oiio:subimagename: "sphere:density"
 Comparing "../texture-field3d/src/dense_float.f3d" and "dense_float.f3d"
 PASS
 Reading ../texture-field3d/src/sparse_float.f3d
@@ -20,16 +20,16 @@ Reading ../texture-field3d/src/sparse_float.f3d
     SHA-1: 776F6CFF0B2C6834785A6EABA740C0DC7F1C78A2
     channel list: density
     tile size: 16 x 16 x 16
-    ImageDescription: "sphere:density"
-    oiio:subimagename: "sphere:density"
-    field3d:partition: "sphere"
-    field3d:layer: "density"
-    field3d:fieldtype: "SparseField"
-    field3d:mapping: "MatrixFieldMapping"
-    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
-    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
     field_type: 1
+    ImageDescription: "sphere:density"
     storage_type: 2
+    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
+    field3d:fieldtype: "SparseField"
+    field3d:layer: "density"
+    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
+    field3d:mapping: "MatrixFieldMapping"
+    field3d:partition: "sphere"
+    oiio:subimagename: "sphere:density"
 Comparing "../texture-field3d/src/sparse_float.f3d" and "sparse_float.f3d"
 PASS
 Reading ../texture-field3d/src/dense_half.f3d
@@ -37,16 +37,16 @@ Reading ../texture-field3d/src/dense_half.f3d
     SHA-1: E5F0EC2FDFB1C6D093F3FDDA6E72EE77B86514D5
     channel list: density
     tile size: 64 x 64 x 64
-    ImageDescription: "sphere:density"
-    oiio:subimagename: "sphere:density"
-    field3d:partition: "sphere"
-    field3d:layer: "density"
-    field3d:fieldtype: "DenseField"
-    field3d:mapping: "MatrixFieldMapping"
-    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
-    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
     field_type: 0
+    ImageDescription: "sphere:density"
     storage_type: 1
+    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
+    field3d:fieldtype: "DenseField"
+    field3d:layer: "density"
+    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
+    field3d:mapping: "MatrixFieldMapping"
+    field3d:partition: "sphere"
+    oiio:subimagename: "sphere:density"
 Comparing "../texture-field3d/src/dense_half.f3d" and "dense_half.f3d"
 PASS
 Reading ../texture-field3d/src/sparse_half.f3d
@@ -54,15 +54,15 @@ Reading ../texture-field3d/src/sparse_half.f3d
     SHA-1: E5F0EC2FDFB1C6D093F3FDDA6E72EE77B86514D5
     channel list: density
     tile size: 16 x 16 x 16
-    ImageDescription: "sphere:density"
-    oiio:subimagename: "sphere:density"
-    field3d:partition: "sphere"
-    field3d:layer: "density"
-    field3d:fieldtype: "SparseField"
-    field3d:mapping: "MatrixFieldMapping"
-    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
-    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
     field_type: 1
+    ImageDescription: "sphere:density"
     storage_type: 1
+    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
+    field3d:fieldtype: "SparseField"
+    field3d:layer: "density"
+    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
+    field3d:mapping: "MatrixFieldMapping"
+    field3d:partition: "sphere"
+    oiio:subimagename: "sphere:density"
 Comparing "../texture-field3d/src/sparse_half.f3d" and "sparse_half.f3d"
 PASS

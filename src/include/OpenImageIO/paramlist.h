@@ -286,6 +286,12 @@ public:
     void add_or_replace (const ParamValue& pv, bool casesensitive=true);
     void add_or_replace (ParamValue&& pv, bool casesensitive=true);
 
+    // Sort alphabetically, optionally case-insensitively, locale-
+    // independently, and with all the "un-namespaced" items appearing
+    // first, followed by items with "prefixed namespaces" (e.g. "z" comes
+    // before "foo:a").
+    void sort (bool casesensitive=true);
+
     /// Even more radical than clear, free ALL memory associated with the
     /// list itself.
     void free () { clear(); shrink_to_fit(); }

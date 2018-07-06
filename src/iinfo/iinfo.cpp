@@ -385,7 +385,12 @@ print_metadata (const ImageSpec &spec, const std::string &filename)
         }
     }
 
-    for (auto&& p : spec.extra_attribs) {
+    // Sort the metadata alphabetically, case-insensitive, but making
+    // sure that all non-namespaced attribs appear before namespaced
+    // attribs.
+    ParamValueList attribs = spec.extra_attribs;
+    attribs.sort (false /* sort case-insensitively */);
+    for (auto&& p : attribs) {
         if (! metamatch.empty() &&
             ! regex_search (p.name().c_str(), field_re))
             continue;

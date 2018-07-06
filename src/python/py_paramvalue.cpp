@@ -126,6 +126,8 @@ declare_paramvalue (py::module& m)
                 return p.add_or_replace (pv, casesensitive);
             },
             "value"_a, "casesensitive"_a=true)
+        .def("sort", &ParamValueList::sort,
+             "casesensitive"_a=true)
     ;
 }
 

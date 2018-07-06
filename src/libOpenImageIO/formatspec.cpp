@@ -1005,7 +1005,13 @@ ImageSpec::serialize (SerialFormat fmt, SerialVerbose verbose) const
                 << format_res (*this, tile_width, tile_height, tile_depth) << '\n';
         }
 
-        for (auto&& p : extra_attribs) {
+        // Sort the metadata alphabetically, case-insensitive, but making
+        // sure that all non-namespaced attribs appear before namespaced
+        // attribs.
+        ParamValueList attribs = extra_attribs;
+        attribs.sort (false /* sort case-insensitively */);
+
+        for (auto&& p : attribs) {
             out << format ("    %s: ", p.name());
             std::string s = metadata_val (p, verbose == SerialDetailedHuman);
             if (s == "1.#INF")

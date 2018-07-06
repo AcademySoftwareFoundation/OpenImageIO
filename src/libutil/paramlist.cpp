@@ -28,6 +28,7 @@
   (This is the Modified BSD License)
 */
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 
@@ -525,5 +526,25 @@ ParamValueList::add_or_replace (ParamValue&& pv, bool casesensitive)
         emplace_back (pv);
 }
 
+
+
+void
+ParamValueList::sort (bool casesensitive)
+{
+    if (casesensitive)
+        std::sort (begin(), end(),
+                   [&](const ParamValue &a, const ParamValue &b) -> bool {
+                        bool aprefix = a.name().find(':') != ustring::npos;
+                        bool bprefix = b.name().find(':') != ustring::npos;
+                        return (aprefix != bprefix) ? bprefix : a.name() < b.name();
+                    });
+    else
+        std::sort (begin(), end(),
+                   [&](const ParamValue &a, const ParamValue &b) -> bool {
+                        bool aprefix = a.name().find(':') != ustring::npos;
+                        bool bprefix = b.name().find(':') != ustring::npos;
+                        return (aprefix != bprefix) ? bprefix : Strutil::iless(a.name(), b.name());
+                    });
+}
 
 OIIO_NAMESPACE_END

@@ -143,11 +143,11 @@ serialize(text, human):
     full/display size: 1280 x 960
     full/display origin: 4, 5
     tile size: 32 x 64
-    foo_str: "blah"
-    foo_int: 14
     foo_float: 3.14
-    foo_vector: 1 0 11
+    foo_int: 14
     foo_matrix: 1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
+    foo_str: "blah"
+    foo_vector: 1 0 11
 
 Testing construction from ROI:
   resolution (width,height,depth) =  640 480 1

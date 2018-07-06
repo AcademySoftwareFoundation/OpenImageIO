@@ -3,8 +3,8 @@ iff_vd8.1001.iff     : 1998 x 1080, 4 channel, uint8 iff
     SHA-1: 8DCC7F60EEA962A70ACE8E443BFA73D899123332
     channel list: R, G, B, A
     tile size: 64 x 64
-    compression: "rle"
     Artist: "arturo on duck7105.spimageworks.com, Linux 3.10.0-327.22.2.el7.x86_64 x86_64"
+    compression: "rle"
     DateTime: "Tue Oct 11 09:21:35 2016"
 Comparing "fit_lg10.dpx" and "../../../../../spi-oiio-tests/ref/fit_lg10.dpx"
 PASS

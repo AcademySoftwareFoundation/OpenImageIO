@@ -3,8 +3,8 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file1.jp2
     SHA-1: 746B1B44D0E5EE3999B1350B2A4245D679A617F7
     channel list: R, G, B
     oiio:BitsPerSample: 8
-    oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
+    oiio:Orientation: 1
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file1.jp2" and "file1.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file2.jp2
@@ -12,8 +12,8 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file2.jp2
     SHA-1: FB4746F0C4909CE8FED60C0179B70B2EEA0C0BA9
     channel list: R, G, B
     oiio:BitsPerSample: 8
-    oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
+    oiio:Orientation: 1
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file2.jp2" and "file2.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file3.jp2
@@ -21,8 +21,8 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file3.jp2
     SHA-1: B8A8FBF015263C072B051839F6BE645E7F27C671
     channel list: R, G, B
     oiio:BitsPerSample: 8
-    oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
+    oiio:Orientation: 1
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file3.jp2" and "file3.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file4.jp2
@@ -30,8 +30,8 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file4.jp2
     SHA-1: A45171430806BA3E74705675C855A781FC04BE44
     channel list: Y
     oiio:BitsPerSample: 8
-    oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
+    oiio:Orientation: 1
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file4.jp2" and "file4.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file5.jp2
@@ -39,8 +39,8 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file5.jp2
     SHA-1: FEF67669AB05A25F8A42455206B64C789CFCA38F
     channel list: R, G, B
     oiio:BitsPerSample: 8
-    oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
+    oiio:Orientation: 1
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file5.jp2" and "file5.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file6.jp2
@@ -48,8 +48,8 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file6.jp2
     SHA-1: 3A29DFAD0AA3F910AA2D37007989A4CC6E7BDE2A
     channel list: Y
     oiio:BitsPerSample: 12
-    oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
+    oiio:Orientation: 1
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file6.jp2" and "file6.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file7.jp2
@@ -57,8 +57,8 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file7.jp2
     SHA-1: C1110501C2784B4AB29B98B2C6EC05C0C6C16F77
     channel list: R, G, B
     oiio:BitsPerSample: 16
-    oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
+    oiio:Orientation: 1
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file7.jp2" and "file7.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2
@@ -66,8 +66,8 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2
     SHA-1: 593D82DE9935FC3F7963CABAAD5ACB7F8134E39A
     channel list: Y
     oiio:BitsPerSample: 8
-    oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
+    oiio:Orientation: 1
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file8.jp2" and "file8.jp2"
 PASS
 Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2
@@ -75,7 +75,7 @@ Reading ../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2
     SHA-1: 501807547A6F9B8FA61EF7A4FD9AB7B369E7800C
     channel list: R, G, B
     oiio:BitsPerSample: 8
-    oiio:Orientation: 1
     oiio:ColorSpace: "sRGB"
+    oiio:Orientation: 1
 Comparing "../../../../../j2kp4files_v1_5/testfiles_jp2/file9.jp2" and "file9.jp2"
 PASS
