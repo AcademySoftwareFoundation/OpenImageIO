@@ -201,6 +201,10 @@ strhash (string_view s)
 /// a static locale that doesn't require a mutex.
 bool OIIO_API iequals (string_view a, string_view b);
 
+/// Case-insensitive ordered comparison of strings.  For speed, this always
+/// uses a static locale that doesn't require a mutex.
+bool OIIO_API iless (string_view a, string_view b);
+
 /// Does 'a' start with the string 'b', with a case-sensitive comparison?
 bool OIIO_API starts_with (string_view a, string_view b);
 
@@ -424,17 +428,35 @@ public:
 
 
 
-/// C++ functor class for comparing two char*'s or std::string's for
-/// equality of their strings.
-class StringEqual {
-public:
-    bool operator() (const char *a, const char *b) const {
-        return strcmp (a, b) == 0;
-    }
-    bool operator() (string_view a, string_view b) const {
-        return a == b;
-    }
+/// C++ functor for comparing two strings for equality of their characters.
+struct OIIO_API StringEqual {
+    bool operator() (const char *a, const char *b) const { return strcmp (a, b) == 0; }
+    bool operator() (string_view a, string_view b) const { return a == b; }
 };
+
+
+/// C++ functor for comparing two strings for equality of their characters
+/// in a case-insensitive and locale-insensitive way.
+struct OIIO_API StringIEqual {
+    bool operator() (const char *a, const char *b) const;
+    bool operator() (string_view a, string_view b) const { return iequals (a, b); }
+};
+
+
+/// C++ functor for comparing the ordering of two strings.
+struct OIIO_API StringLess {
+    bool operator() (const char *a, const char *b) const { return strcmp (a, b) < 0; }
+    bool operator() (string_view a, string_view b) const { return a < b; }
+};
+
+
+/// C++ functor for comparing the ordering of two strings in a
+/// case-insensitive and locale-insensitive way.
+struct OIIO_API StringILess {
+    bool operator() (const char *a, const char *b) const;
+    bool operator() (string_view a, string_view b) const { return a < b; }
+};
+
 
 
 #ifdef _WIN32

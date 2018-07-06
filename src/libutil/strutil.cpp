@@ -368,29 +368,17 @@ Strutil::wordwrap (string_view src, int columns, int prefix)
 
 
 
-static std::locale& loc ()
-{
-    // Rather than have a file-level static locale which could suffer from
-    // the static initialization order fiasco, make it a static pointer
-    // inside the function that is allocated the first time it's needed. It
-    // will "leak" in the sense that this one locale is never deleted, but
-    // so what?
-#if OIIO_MSVS_BEFORE_2015
-    // MSVS prior to 2015 could not be trusted to make in-function static
-    // initialization thread-safe, as required by C++11.
-    static spin_mutex mutex;
-    spin_lock lock (mutex);
-#endif
-    static std::locale *loc = new std::locale (std::locale::classic());
-    return *loc;
-}
-
-
-
 bool
 Strutil::iequals (string_view a, string_view b)
 {
-    return boost::algorithm::iequals (a, b, loc());
+    return boost::algorithm::iequals (a, b, std::locale::classic());
+}
+
+
+bool
+Strutil::iless (string_view a, string_view b)
+{
+    return boost::algorithm::ilexicographical_compare (a, b, std::locale::classic());
 }
 
 
@@ -404,7 +392,7 @@ Strutil::starts_with (string_view a, string_view b)
 bool
 Strutil::istarts_with (string_view a, string_view b)
 {
-    return boost::algorithm::istarts_with (a, b, loc());
+    return boost::algorithm::istarts_with (a, b, std::locale::classic());
 }
 
 
@@ -418,7 +406,7 @@ Strutil::ends_with (string_view a, string_view b)
 bool
 Strutil::iends_with (string_view a, string_view b)
 {
-    return boost::algorithm::iends_with (a, b, loc());
+    return boost::algorithm::iends_with (a, b, std::locale::classic());
 }
 
 
@@ -432,21 +420,36 @@ Strutil::contains (string_view a, string_view b)
 bool
 Strutil::icontains (string_view a, string_view b)
 {
-    return boost::algorithm::icontains (a, b, loc());
+    return boost::algorithm::icontains (a, b, std::locale::classic());
 }
 
 
 void
 Strutil::to_lower (std::string &a)
 {
-    boost::algorithm::to_lower (a, loc());
+    boost::algorithm::to_lower (a, std::locale::classic());
 }
 
 
 void
 Strutil::to_upper (std::string &a)
 {
-    boost::algorithm::to_upper (a, loc());
+    boost::algorithm::to_upper (a, std::locale::classic());
+}
+
+
+
+bool
+Strutil::StringIEqual::operator () (const char *a, const char *b) const
+{
+    return boost::algorithm::iequals (a, b, std::locale::classic());
+}
+
+
+bool
+Strutil::StringILess::operator () (const char *a, const char *b) const
+{
+    return boost::algorithm::ilexicographical_compare (a, b, std::locale::classic());
 }
 
 
