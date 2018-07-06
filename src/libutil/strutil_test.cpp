@@ -238,6 +238,23 @@ void test_comparisons ()
     OIIO_CHECK_EQUAL (Strutil::icontains ("abcde", ""), true);
     OIIO_CHECK_EQUAL (Strutil::icontains ("", ""), true);
     OIIO_CHECK_EQUAL (Strutil::icontains ("", "x"), false);
+
+    StringEqual  eq;
+    StringIEqual ieq;
+    StringLess   less;
+    StringILess  iless;
+    OIIO_CHECK_ASSERT (eq ("abc", "abc"));
+    OIIO_CHECK_ASSERT (! eq ("abc", "ABC"));
+    OIIO_CHECK_ASSERT (! eq ("abc", "axc"));
+    OIIO_CHECK_ASSERT (ieq ("abc", "abc"));
+    OIIO_CHECK_ASSERT (ieq ("abc", "ABC"));
+    OIIO_CHECK_ASSERT (! ieq ("abc", "axc"));
+    OIIO_CHECK_ASSERT (less ("abc", "abd"));
+    OIIO_CHECK_ASSERT (! less ("xbc", "abd"));
+    OIIO_CHECK_ASSERT (! less ("abc", "ABD"));
+    OIIO_CHECK_ASSERT (iless ("abc", "abd"));
+    OIIO_CHECK_ASSERT (! iless ("xbc", "abd"));
+    OIIO_CHECK_ASSERT (iless ("abc", "ABD"));
 }
 
 
