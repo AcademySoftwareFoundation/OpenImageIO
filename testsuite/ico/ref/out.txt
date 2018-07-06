@@ -28,8 +28,8 @@ Reading ../../../../../oiio-images/oiio.ico
  subimage  6:  256 x  256, 4 channel, uint2 ico
     SHA-1: F44C9B94AB7D612F62A4DC29FD9C56FD173F2614
     channel list: R, G, B, A
-    oiio:UnassociatedAlpha: 1
     oiio:BitsPerSample: 2
+    oiio:UnassociatedAlpha: 1
  subimage  7:   48 x   48, 4 channel, uint8 ico
     SHA-1: 127700A3DACBF25FCD800642D78F8EE91EDE24B9
     channel list: R, G, B, A

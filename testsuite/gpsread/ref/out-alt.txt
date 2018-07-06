@@ -2,60 +2,60 @@ Reading ../../../../../oiio-images/tahoe-gps.jpg
 ../../../../../oiio-images/tahoe-gps.jpg : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: 71EBEC73B8E8B3533780B15147E61D895C80E8B1
     channel list: R, G, B
-    oiio:ColorSpace: "sRGB"
-    jpeg:subsampling: "4:2:0"
     Make: "HTC"
     Model: "T-Mobile G1"
     Orientation: 1 (normal)
-    XResolution: 72
-    YResolution: 72
     ResolutionUnit: "none"
     Software: "title;va"
-    Exif:YCbCrPositioning: 1
-    Exif:ExifVersion: "0220"
-    Exif:DateTimeOriginal: "2009:02:21 08:32:04"
-    Exif:DateTimeDigitized: "2009:02:21 08:32:04"
-    Exif:FlashPixVersion: "0100"
+    XResolution: 72
+    YResolution: 72
     Exif:ColorSpace: 1
+    Exif:DateTimeDigitized: "2009:02:21 08:32:04"
+    Exif:DateTimeOriginal: "2009:02:21 08:32:04"
+    Exif:ExifVersion: "0220"
+    Exif:FlashPixVersion: "0100"
     Exif:PixelXDimension: 2048
     Exif:PixelYDimension: 1536
     Exif:WhiteBalance: 0 (auto)
-    GPS:VersionID: 2, 2, 0, 0
-    GPS:LatitudeRef: "N"
-    GPS:Latitude: 39, 18, 24.4
-    GPS:LongitudeRef: "W"
-    GPS:Longitude: 120, 20, 6.25
-    GPS:AltitudeRef: 0 (above sea level)
+    Exif:YCbCrPositioning: 1
     GPS:Altitude: 0 (0 m)
-    GPS:TimeStamp: 17, 56, 33
-    GPS:MapDatum: "WGS-84"
+    GPS:AltitudeRef: 0 (above sea level)
     GPS:DateStamp: "1915:08:08"
+    GPS:Latitude: 39, 18, 24.4
+    GPS:LatitudeRef: "N"
+    GPS:Longitude: 120, 20, 6.25
+    GPS:LongitudeRef: "W"
+    GPS:MapDatum: "WGS-84"
+    GPS:TimeStamp: 17, 56, 33
+    GPS:VersionID: 2, 2, 0, 0
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"
 Reading tahoe-gps.jpg
 tahoe-gps.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     SHA-1: 2623446988E34395C6B0A4AA4FC75107C708BF18
     channel list: R, G, B
-    oiio:ColorSpace: "sRGB"
-    jpeg:subsampling: "4:2:0"
     Make: "HTC"
     Model: "T-Mobile G1"
     Orientation: 1 (normal)
+    ResolutionUnit: "none"
     XResolution: 72
     YResolution: 72
-    Exif:YCbCrPositioning: 1
+    Exif:ColorSpace: 1
     Exif:ExifVersion: "0230"
     Exif:FlashPixVersion: "0100"
-    Exif:ColorSpace: 1
     Exif:PixelXDimension: 2048
     Exif:PixelYDimension: 1536
     Exif:WhiteBalance: 0 (auto)
-    GPS:VersionID: 2, 2, 0, 0
-    GPS:LatitudeRef: "N"
-    GPS:Latitude: 39, 18, 24.4
-    GPS:LongitudeRef: "W"
-    GPS:Longitude: 120, 20, 6.25
-    GPS:AltitudeRef: 0 (above sea level)
+    Exif:YCbCrPositioning: 1
     GPS:Altitude: 0 (0 m)
-    GPS:TimeStamp: 17, 56, 33
-    GPS:MapDatum: "WGS-84"
+    GPS:AltitudeRef: 0 (above sea level)
     GPS:DateStamp: "1915:08:08"
-    ResolutionUnit: "none"
+    GPS:Latitude: 39, 18, 24.4
+    GPS:LatitudeRef: "N"
+    GPS:Longitude: 120, 20, 6.25
+    GPS:LongitudeRef: "W"
+    GPS:MapDatum: "WGS-84"
+    GPS:TimeStamp: 17, 56, 33
+    GPS:VersionID: 2, 2, 0, 0
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "sRGB"

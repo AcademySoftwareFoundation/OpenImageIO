@@ -2,82 +2,82 @@ Reading ../../../../../oiio-images/dpx_nuke_10bits_rgb.dpx
 ../../../../../oiio-images/dpx_nuke_10bits_rgb.dpx :  512 x  512, 3 channel, uint10 dpx
     SHA-1: D63D2EC8C60AB41B1C0F72A65AE8FF27DA8A620E
     channel list: R, G, B
-    oiio:BitsPerSample: 10
-    Orientation: 1 (normal)
-    dpx:Transfer: "User defined"
-    dpx:Colorimetric: "User defined"
-    Software: "Nuke"
     DateTime: "2011:03:08 14:47:25"
+    Orientation: 1 (normal)
     PixelAspectRatio: 1
-    dpx:ImageDescriptor: "RGB"
+    Software: "Nuke"
+    dpx:BlackGain: 0
+    dpx:BlackLevel: 0
+    dpx:BreakPoint: 0
+    dpx:Colorimetric: "User defined"
     dpx:DittoKey: 1
-    dpx:LowQuantity: 2.1391e+09
-    dpx:HighQuantity: 2.1391e+09
-    dpx:EndOfLinePadding: 0
     dpx:EndOfImagePadding: 0
-    dpx:XScannedSize: 0
-    dpx:YScannedSize: 0
+    dpx:EndOfLinePadding: 0
+    dpx:FieldNumber: 0
     dpx:FramePosition: 32895
     dpx:FrameRate: 0
-    dpx:ShutterAngle: 0
-    dpx:Version: "V1.0"
-    dpx:Interlace: 0
-    dpx:FieldNumber: 0
+    dpx:HighQuantity: 2.1391e+09
     dpx:HorizontalSampleRate: 0
-    dpx:VerticalSampleRate: 0
-    dpx:TemporalFrameRate: 0
-    dpx:TimeOffset: 0
-    dpx:BlackLevel: 0
-    dpx:BlackGain: 0
-    dpx:BreakPoint: 0
-    dpx:WhiteLevel: 0
+    dpx:ImageDescriptor: "RGB"
     dpx:IntegrationTimes: 0
+    dpx:Interlace: 0
+    dpx:LowQuantity: 2.1391e+09
     dpx:Packing: "Filled, method A"
-    smpte:TimeCode: 0, 0 (00:00:00:00)
-    dpx:TimeCode: "00:00:00:00"
-    dpx:UserBits: 0
+    dpx:ShutterAngle: 0
     dpx:Signal: "Undefined"
+    dpx:TemporalFrameRate: 0
+    dpx:TimeCode: "00:00:00:00"
+    dpx:TimeOffset: 0
+    dpx:Transfer: "User defined"
+    dpx:UserBits: 0
+    dpx:Version: "V1.0"
+    dpx:VerticalSampleRate: 0
+    dpx:WhiteLevel: 0
+    dpx:XScannedSize: 0
+    dpx:YScannedSize: 0
+    oiio:BitsPerSample: 10
+    smpte:TimeCode: 0, 0 (00:00:00:00)
 Comparing "../../../../../oiio-images/dpx_nuke_10bits_rgb.dpx" and "dpx_nuke_10bits_rgb.dpx"
 PASS
 Reading ../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx
 ../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx :  512 x  512, 4 channel, uint10 dpx
     SHA-1: E9FECE70CD875C5654F58DA9EC576399F089D855
     channel list: R, G, B, A
-    oiio:BitsPerSample: 10
-    Orientation: 1 (normal)
-    dpx:Transfer: "User defined"
-    dpx:Colorimetric: "User defined"
-    Software: "Nuke"
     DateTime: "2011:03:08 14:47:01"
+    Orientation: 1 (normal)
     PixelAspectRatio: 1
-    dpx:ImageDescriptor: "RGBA"
+    Software: "Nuke"
+    dpx:BlackGain: 0
+    dpx:BlackLevel: 0
+    dpx:BreakPoint: 0
+    dpx:Colorimetric: "User defined"
     dpx:DittoKey: 1
-    dpx:LowQuantity: 2.1391e+09
-    dpx:HighQuantity: 2.1391e+09
-    dpx:EndOfLinePadding: 0
     dpx:EndOfImagePadding: 0
-    dpx:XScannedSize: 0
-    dpx:YScannedSize: 0
+    dpx:EndOfLinePadding: 0
+    dpx:FieldNumber: 0
     dpx:FramePosition: 32895
     dpx:FrameRate: 0
-    dpx:ShutterAngle: 0
-    dpx:Version: "V1.0"
-    dpx:Interlace: 0
-    dpx:FieldNumber: 0
+    dpx:HighQuantity: 2.1391e+09
     dpx:HorizontalSampleRate: 0
-    dpx:VerticalSampleRate: 0
-    dpx:TemporalFrameRate: 0
-    dpx:TimeOffset: 0
-    dpx:BlackLevel: 0
-    dpx:BlackGain: 0
-    dpx:BreakPoint: 0
-    dpx:WhiteLevel: 0
+    dpx:ImageDescriptor: "RGBA"
     dpx:IntegrationTimes: 0
+    dpx:Interlace: 0
+    dpx:LowQuantity: 2.1391e+09
     dpx:Packing: "Filled, method A"
-    smpte:TimeCode: 0, 0 (00:00:00:00)
-    dpx:TimeCode: "00:00:00:00"
-    dpx:UserBits: 0
+    dpx:ShutterAngle: 0
     dpx:Signal: "Undefined"
+    dpx:TemporalFrameRate: 0
+    dpx:TimeCode: "00:00:00:00"
+    dpx:TimeOffset: 0
+    dpx:Transfer: "User defined"
+    dpx:UserBits: 0
+    dpx:Version: "V1.0"
+    dpx:VerticalSampleRate: 0
+    dpx:WhiteLevel: 0
+    dpx:XScannedSize: 0
+    dpx:YScannedSize: 0
+    oiio:BitsPerSample: 10
+    smpte:TimeCode: 0, 0 (00:00:00:00)
 Comparing "../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16bits_rgba.dpx"
 PASS
 Comparing "src/input_rgb_mattes.tif" and "output_rgb_mattes.dpx"
@@ -87,19 +87,19 @@ stereo.dpx           :   80 x   60, 3 channel, uint10 dpx
     2 subimages: 80x60 [u10,u10,u10], 80x60 [u10,u10,u10]
  subimage  0:   80 x   60, 3 channel, uint10 dpx
     channel list: R, G, B
-    oiio:BitsPerSample: 10
-    Orientation: 1 (normal)
-    dpx:Transfer: "Undefined"
-    dpx:Colorimetric: "User defined"
     ImageDescription: "view angle: left"
+    Orientation: 1 (normal)
     PixelAspectRatio: 1
-    dpx:ImageDescriptor: "RGB"
+    dpx:Colorimetric: "User defined"
     dpx:DittoKey: 1
-    dpx:EndOfLinePadding: 0
     dpx:EndOfImagePadding: 0
-    dpx:Version: "V2.0"
+    dpx:EndOfLinePadding: 0
+    dpx:ImageDescriptor: "RGB"
     dpx:Packing: "Filled, method A"
     dpx:Signal: "Undefined"
+    dpx:Transfer: "Undefined"
+    dpx:Version: "V2.0"
+    oiio:BitsPerSample: 10
     Stats Min: 0 0 0 (of 1023)
     Stats Max: 1023 1023 1023 (of 1023)
     Stats Avg: 18.64 18.64 18.64 (of 1023)
@@ -111,19 +111,19 @@ stereo.dpx           :   80 x   60, 3 channel, uint10 dpx
     Monochrome: Yes
  subimage  1:   80 x   60, 3 channel, uint10 dpx
     channel list: R, G, B
-    oiio:BitsPerSample: 10
-    Orientation: 1 (normal)
-    dpx:Transfer: "Undefined"
-    dpx:Colorimetric: "User defined"
     ImageDescription: "view angle: right"
+    Orientation: 1 (normal)
     PixelAspectRatio: 1
-    dpx:ImageDescriptor: "RGB"
+    dpx:Colorimetric: "User defined"
     dpx:DittoKey: 1
-    dpx:EndOfLinePadding: 0
     dpx:EndOfImagePadding: 0
-    dpx:Version: "V2.0"
+    dpx:EndOfLinePadding: 0
+    dpx:ImageDescriptor: "RGB"
     dpx:Packing: "Filled, method A"
     dpx:Signal: "Undefined"
+    dpx:Transfer: "Undefined"
+    dpx:Version: "V2.0"
+    oiio:BitsPerSample: 10
     Stats Min: 0 0 0 (of 1023)
     Stats Max: 1023 1023 1023 (of 1023)
     Stats Avg: 24.44 24.44 24.44 (of 1023)

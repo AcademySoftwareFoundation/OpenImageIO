@@ -2,21 +2,21 @@ Reading ../../../../../fits-images/pg93/tst0001.fits
 ../../../../../fits-images/pg93/tst0001.fits :  123 x  321, 1 channel, uint8 fits
     SHA-1: FC4F635D410B219477B709E4D6F993E9AA42C7B3
     channel list: Y
-    Extend: "T"
     Blocked: "T"
     Cdelt1: -2.3
-    Crval1: -73.3
-    Crpix1: 12
-    Ctype1: "PIXEL"
     Cdelt2: 7.1
-    Crval2: 300.1
-    Crpix2: -11
-    Ctype2: "PIXEL"
-    Object: "Ramp 8-bit"
-    Origin: "ESO"
-    DateTime: "1992:08:19 00:00:00"
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
 Simple 8-bit ramp pattern for testing of FITS readers"
+    Crpix1: 12
+    Crpix2: -11
+    Crval1: -73.3
+    Crval2: 300.1
+    Ctype1: "PIXEL"
+    Ctype2: "PIXEL"
+    DateTime: "1992:08:19 00:00:00"
+    Extend: "T"
+    Object: "Ramp 8-bit"
+    Origin: "ESO"
 Comparing "../../../../../fits-images/pg93/tst0001.fits" and "tst0001.fits"
 PASS
 Reading ../../../../../fits-images/pg93/tst0002.fits
@@ -24,91 +24,88 @@ Reading ../../../../../fits-images/pg93/tst0002.fits
     SHA-1: 4FCD0E343956DEA4E792786138651F9D8C81F615
     channel list: Y
     Cdelt1: -2.3
-    Crval1: -73.5
-    Crpix1: 12.1
     Cdelt2: 7.1
-    Crval2: 300.9
-    Crpix2: -11.3
     Cdelt3: 0.003
-    Crval3: 21.1
-    Crpix3: 199
-    Ctype3: "VELO"
-    Cunit3: "M/SEC"
-    Object: "Ramp 16-bit"
-    Origin: "ESO"
-    DateTime: "1992:08:20 00:00:00"
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
 Simple 16-bit ramp pattern for testing of FITS readers"
+    Crpix1: 12.1
+    Crpix2: -11.3
+    Crpix3: 199
+    Crval1: -73.5
+    Crval2: 300.9
+    Crval3: 21.1
+    Ctype3: "VELO"
+    Cunit3: "M/SEC"
+    DateTime: "1992:08:20 00:00:00"
+    Object: "Ramp 16-bit"
+    Origin: "ESO"
 Comparing "../../../../../fits-images/pg93/tst0002.fits" and "tst0002.fits"
 PASS
 Reading ../../../../../fits-images/pg93/tst0003.fits
 ../../../../../fits-images/pg93/tst0003.fits :  137 x  271, 1 channel, uint fits
     SHA-1: 9D2DEE3C1411AB38B5DBAD0532F3679B797B2374
     channel list: Y
-    Extend: "T"
     Blocked: "T"
     Cdelt1: -0.12321
-    Crval1: 15.231
-    Crpix1: 12
-    Ctype1: "RA"
-    Cunit1: "DEGREES"
     Cdelt2: 0.001231
-    Crval2: -10.123
-    Crpix2: -11.1
-    Ctype2: "DEC"
-    Cunit2: "DEGREES"
-    Object: "Ramp 32-bit"
-    Origin: "ESO"
-    DateTime: "1992:08:20 00:00:00"
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
 Simple 32-bit ramp pattern for testing of FITS readers"
+    Crpix1: 12
+    Crpix2: -11.1
+    Crval1: 15.231
+    Crval2: -10.123
+    Ctype1: "RA"
+    Ctype2: "DEC"
+    Cunit1: "DEGREES"
+    Cunit2: "DEGREES"
+    DateTime: "1992:08:20 00:00:00"
+    Extend: "T"
+    Object: "Ramp 32-bit"
+    Origin: "ESO"
 Comparing "../../../../../fits-images/pg93/tst0003.fits" and "tst0003.fits"
 PASS
 Reading ../../../../../fits-images/pg93/tst0005.fits
 ../../../../../fits-images/pg93/tst0005.fits :  102 x  109, 1 channel, float fits
     SHA-1: 763996BCEADB93234A73AD0D714C3E9D874014CE
     channel list: Y
-    Extend: "T"
     Blocked: "T"
     Cdelt1: 3.1
-    Crval1: 1299.1
-    Crpix1: 12.3
     Cdelt2: -0.17
-    Crval2: -102.4
-    Crpix2: -2031.8
-    Object: "Wave 32-bit FP"
-    Origin: "ESO"
-    DateTime: "1992:08:20 00:00:00"
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
 Simple 32-bit FP sine wave pattern for testing of FITS readers"
+    Crpix1: 12.3
+    Crpix2: -2031.8
+    Crval1: 1299.1
+    Crval2: -102.4
+    DateTime: "1992:08:20 00:00:00"
+    Extend: "T"
+    Object: "Wave 32-bit FP"
+    Origin: "ESO"
 Comparing "../../../../../fits-images/pg93/tst0005.fits" and "tst0005.fits"
 PASS
 Reading ../../../../../fits-images/pg93/tst0006.fits
 ../../../../../fits-images/pg93/tst0006.fits :   77 x  173, 1 channel, double fits
     SHA-1: B043726D3F76840AAC84713C1A6C323D85CADC74
     channel list: Y
-    Extend: "T"
     Blocked: "T"
     Cdelt1: -0.25
-    Crval1: 1.5
-    Crpix1: 12.5
     Cdelt2: 1.1
-    Crval2: -3.7
-    Crpix2: 19.3
-    Object: "Wave 64-bit fp"
-    Origin: "ESO"
-    DateTime: "1992:08:20 00:00:00"
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
 Simple 64-bit FP sine wave pattern for testing of FITS readers"
+    Crpix1: 12.5
+    Crpix2: 19.3
+    Crval1: 1.5
+    Crval2: -3.7
+    DateTime: "1992:08:20 00:00:00"
+    Extend: "T"
+    Object: "Wave 64-bit fp"
+    Origin: "ESO"
 Comparing "../../../../../fits-images/pg93/tst0006.fits" and "tst0006.fits"
 PASS
 Reading ../../../../../fits-images/pg93/tst0007.fits
 ../../../../../fits-images/pg93/tst0007.fits :   38 x    1, 1 channel, float fits
     SHA-1: 32FB2E046F09E6DC814A6040B03706174EAE7229
     channel list: Y
-    Object: "IEEE 32-bit test"
-    Origin: "ESO"
-    DateTime: "1992:08:20 00:00:00"
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
 This is a test file containing special 32-bit IEEE FP values
 such as:
@@ -156,15 +153,15 @@ bfffffff      !  -1.9999999e+00
 80800000      !  -1.1754944e-38
 ff7fffff      !  -3.4028235e+38
 So best of luck with the decoding"
+    DateTime: "1992:08:20 00:00:00"
+    Object: "IEEE 32-bit test"
+    Origin: "ESO"
 Comparing "../../../../../fits-images/pg93/tst0007.fits" and "tst0007.fits"
 PASS
 Reading ../../../../../fits-images/pg93/tst0008.fits
 ../../../../../fits-images/pg93/tst0008.fits :   38 x    1, 1 channel, double fits
     SHA-1: 5C21742E65AF385B106DE98BE7004190C6F2E2BC
     channel list: Y
-    Object: "IEEE 64-bit test"
-    Origin: "ESO"
-    DateTime: "1992:08:20 00:00:00"
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
 This is a test file containing special 64-bit IEEE FP values
 such as:
@@ -211,35 +208,30 @@ bfffffff ffffffff   ! -1.99999999999999978e+00
 80100000 00000000   ! -2.22507385850720138e-308
 ff7fffff ffffffff   ! -1.40444776161118415e+306
 So best of luck with the decoding"
+    DateTime: "1992:08:20 00:00:00"
+    Object: "IEEE 64-bit test"
+    Origin: "ESO"
 Comparing "../../../../../fits-images/pg93/tst0008.fits" and "tst0008.fits"
 PASS
 Reading ../../../../../fits-images/pg93/tst0013.fits
 ../../../../../fits-images/pg93/tst0013.fits :  128 x  128, 1 channel, float fits
     SHA-1: 2DAE86283E1BCB155774A83F88C75B045FB9B28C
     channel list: Y
-    Blocked: "T"
-    Origin: "BASIC-UX-LA SILLA"
-    Object: "Test data"
-    DateTime: "1993:05:13 00:00:00"
-    Date-obs: 13
-    Tm-start: 69932
-    Tm-end: 70121
-    Time-sid: 36564
-    Ra: 187.372
-    Dec: -21.2211
     Airmass: 1.019
-    Instrume: "IRAC-2a"
-    Crval1: 1
-    Crpix1: 1
+    Blocked: "T"
     Cdelt1: 1
-    Ctype1: "PIXEL"
-    Crval2: 1
-    Crpix2: 1
     Cdelt2: 1
-    Ctype2: "PIXEL"
-    Exptime: 2
-    Observer: "P.Grosbol"
     Comment: "May 13           ,           /"
+    Crpix1: 1
+    Crpix2: 1
+    Crval1: 1
+    Crval2: 1
+    Ctype1: "PIXEL"
+    Ctype2: "PIXEL"
+    Date-obs: 13
+    DateTime: "1993:05:13 00:00:00"
+    Dec: -21.2211
+    Exptime: 2
     Hierarch: "ESO GEN ID = 'Unknown '
 ESO GEN NO = 12371
 ESO GEN TYPE = 'SCI '
@@ -268,68 +260,71 @@ ESO DET NDIT = 90
 ESO DET NINT = 1
 ESO DET DUMDIT = 0
 ESO DET NCORRS = 'Double '"
+    Instrume: "IRAC-2a"
+    Object: "Test data"
+    Observer: "P.Grosbol"
+    Origin: "BASIC-UX-LA SILLA"
+    Ra: 187.372
+    Time-sid: 36564
+    Tm-end: 70121
+    Tm-start: 69932
 Comparing "../../../../../fits-images/pg93/tst0013.fits" and "tst0013.fits"
 PASS
 Reading ../../../../../fits-images/ftt4b/file001.fits
 ../../../../../fits-images/ftt4b/file001.fits :    0 x    0, 1 channel, uint8 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
     channel list: Y
-    Extend: "T"
-    Origin: "ESO"
-    Object: "SNG - CAT."
     DateTime: "1984:05:27 00:00:00"
+    Extend: "T"
+    Object: "SNG - CAT."
+    Origin: "ESO"
 Comparing "../../../../../fits-images/ftt4b/file001.fits" and "file001.fits"
 PASS
 Reading ../../../../../fits-images/ftt4b/file002.fits
 ../../../../../fits-images/ftt4b/file002.fits :    0 x    0, 1 channel, uint8 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
     channel list: Y
-    Extend: "T"
-    Origin: "ESO"
-    Object: "PGSNC - SN.CAT."
     DateTime: "1984:05:27 00:00:00"
+    Extend: "T"
+    Object: "PGSNC - SN.CAT."
+    Origin: "ESO"
 Comparing "../../../../../fits-images/ftt4b/file002.fits" and "file002.fits"
 PASS
 Reading ../../../../../fits-images/ftt4b/file003.fits
 ../../../../../fits-images/ftt4b/file003.fits :  512 x  512, 1 channel, uint16 fits
     SHA-1: 5CC4340F5D8AB2B776D2E12BFE946CA5CAFA38C6
     channel list: Y
-    Extend: "T"
-    Object: 3
-    Observer: "LISZ"
-    Date-obs: 29
-    Date-map: 26
-    Bscale: 2.59397e-05
-    Bzero: 0.710747
-    Bunit: "JY/BEAM"
-    Epoch: 1950
     Blank: -32768
-    Obsra: 252.167
-    Obsdec: 5.07648
+    Bscale: 2.59397e-05
+    Bunit: "JY/BEAM"
+    Bzero: 0.710747
+    Cdelt1: -0.000305556
+    Cdelt2: 0.000305556
+    Cdelt3: 293000
+    Cdelt4: 1
+    Crota1: 0
+    Crota2: 0
+    Crota3: 0
+    Crota4: 0
+    Crpix1: 256
+    Crpix2: 257
+    Crpix3: 1
+    Crpix4: 1
+    Crval1: 252.167
+    Crval2: 5.07648
+    Crval3: 1420584192
+    Crval4: -1
+    Ctype1: "RA---SIN"
+    Ctype2: "DEC--SIN"
+    Ctype3: "FREQ"
+    Ctype4: "STOKES"
     Datamax: 1.56066
     Datamin: -0.139115
-    Ctype1: "RA---SIN"
-    Crval1: 252.167
-    Cdelt1: -0.000305556
-    Crpix1: 256
-    Crota1: 0
-    Ctype2: "DEC--SIN"
-    Crval2: 5.07648
-    Cdelt2: 0.000305556
-    Crpix2: 257
-    Crota2: 0
-    Ctype3: "FREQ"
-    Crval3: 1420584192
-    Cdelt3: 293000
-    Crpix3: 1
-    Crota3: 0
-    Ctype4: "STOKES"
-    Crval4: -1
-    Cdelt4: 1
-    Crpix4: 1
-    Crota4: 0
-    Origin: "AIPSNRAO node CVAX       15JUL84"
+    Date-map: 26
+    Date-obs: 29
     DateTime: "1984:05:24 00:00:00"
+    Epoch: 1950
+    Extend: "T"
     History: "/--------------------------------------------------------------------
 /BEGIN "HISTORY" INFORMATION FOUND IN FITS TAPE HEADER BY IMLOD
 /---------------------------------------------------------------HISTORY
@@ -501,62 +496,26 @@ AIPS   IMNAME='3C348-CONT  ' IMCLASS='RCLN  ' IMSEQ=   1
 AIPS   USERNO=  545
 AIPS   CLEAN BMAJ=  1.2767E-03 BMIN=  1.2206E-03 BPA= -34.71
 AIPS   CLEAN NITER= 12000 PRODUCT=1"
+    Object: 3
+    Obsdec: 5.07648
+    Observer: "LISZ"
+    Obsra: 252.167
+    Origin: "AIPSNRAO node CVAX       15JUL84"
 Comparing "../../../../../fits-images/ftt4b/file003.fits" and "file003.fits"
 PASS
 Reading ../../../../../fits-images/ftt4b/file009.fits
 ../../../../../fits-images/ftt4b/file009.fits :    0 x    0, 1 channel, uint16 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
     channel list: Y
-    Groups: "T"
-    Pcount: 5
-    Gcount: 631
-    Bscale: 0.000244141
-    Bzero: 0
-    Bunit: "JY"
     Blank: -32768
-    Object: 742
-    Instrume: "VLA"
-    Telescop: "VLA"
-    Epoch: 1950
-    Observer: "BRID"
-    Date-obs: 5
-    DateTime: "1980:04:12 00:00:00"
-    Origin: "NRAO(CV) PGM=DUV2FITS(V1)"
-    Ctype2: "COMPLEX"
-    Crpix2: 1
-    Crval2: 1
+    Bscale: 0.000244141
+    Bunit: "JY"
+    Bzero: 0
     Cdelt2: 1
-    Ctype3: "STOKES"
-    Crpix3: 1
-    Crval3: 1
     Cdelt3: 1
-    Ctype4: "FREQ"
-    Crpix4: 1
-    Crval4: 4.8851e+09
     Cdelt4: 0
-    Ctype5: "RA"
-    Crpix5: 1
-    Crval5: 115.702
     Cdelt5: 0
-    Ctype6: "DEC"
-    Crpix6: 1
-    Crval6: 10.3091
     Cdelt6: 0
-    Ptype1: "BASELINE"
-    Pscal1: 1
-    Pzero1: 0
-    Ptype2: "HA"
-    Pscal2: 0.00549316
-    Pzero2: 0
-    Ptype3: "UU"
-    Pscal3: 4e-09
-    Pzero3: 0
-    Ptype4: "VV"
-    Pscal4: 4e-09
-    Pzero4: 0
-    Ptype5: "WW"
-    Pscal5: 4e-09
-    Pzero5: 0
     Comment: "FORMULA FOR BASELINE # FROM ANTENNA PAIR I < J
 B = (256 * I)  +  J
 ANTENNA LOCATIONS IN NANOSECONDS:
@@ -566,6 +525,26 @@ FORMULAE FOR UU, VV, WW :
 UU = BX * SIN(HA)  +  BY * COS(HA)
 VV = BZ * COS(DEC)  +  SIN(DEC) * (BY * SIN(HA) - BX * COS(HA))
 WW = BZ * SIN(DEC)  +  COS(DEC) * (BX * COS(HA) - BY * SIN(HA))"
+    Crpix2: 1
+    Crpix3: 1
+    Crpix4: 1
+    Crpix5: 1
+    Crpix6: 1
+    Crval2: 1
+    Crval3: 1
+    Crval4: 4.8851e+09
+    Crval5: 115.702
+    Crval6: 10.3091
+    Ctype2: "COMPLEX"
+    Ctype3: "STOKES"
+    Ctype4: "FREQ"
+    Ctype5: "RA"
+    Ctype6: "DEC"
+    Date-obs: 5
+    DateTime: "1980:04:12 00:00:00"
+    Epoch: 1950
+    Gcount: 631
+    Groups: "T"
     History: "VLACV SORT   ORDER='BH'
 VLACV ANT   N= 2 X=  5470.525 Y=-14443.176 Z= -8061.210 ST='AW4'
 VLACV ANT   N= 4 X=  1667.280 Y= -4396.334 Z= -2452.399 ST='CW8'
@@ -583,45 +562,62 @@ VLACV ANT   N=18 X=  2552.452 Y=  9638.185 Z= -3698.873 ST='BE6'
 VLACV ANT   N=20 X=  -100.221 Y=   -15.904 Z=   152.474 ST='DW2'
 VLACV ANT   N=21 X=  -812.570 Y=  -126.899 Z=  1200.964 ST='DN8'
 VLACV ANT   N=22 X=  1021.275 Y= -2683.726 Z= -1494.627 ST='CW6'"
+    Instrume: "VLA"
+    Object: 742
+    Observer: "BRID"
+    Origin: "NRAO(CV) PGM=DUV2FITS(V1)"
+    Pcount: 5
+    Pscal1: 1
+    Pscal2: 0.00549316
+    Pscal3: 4e-09
+    Pscal4: 4e-09
+    Pscal5: 4e-09
+    Ptype1: "BASELINE"
+    Ptype2: "HA"
+    Ptype3: "UU"
+    Ptype4: "VV"
+    Ptype5: "WW"
+    Pzero1: 0
+    Pzero2: 0
+    Pzero3: 0
+    Pzero4: 0
+    Pzero5: 0
+    Telescop: "VLA"
 Comparing "../../../../../fits-images/ftt4b/file009.fits" and "file009.fits"
 PASS
 Reading ../../../../../fits-images/ftt4b/file012.fits
 ../../../../../fits-images/ftt4b/file012.fits :  513 x  513, 1 channel, uint16 fits
     SHA-1: 844CE9474D5C9E91154E41D7ED417173DE57286D
     channel list: Y
-    Tables: 1
-    Object: "M84"
-    Observer: "LAIN"
-    Date-obs: 16
-    Date-map: 9
     Bscale: 2.85522e-06
-    Bzero: 0.0889426
     Bunit: "JY/BEAM"
-    Ctype1: "LL"
-    Ctype2: "MM"
-    Ctype3: "FREQ"
-    Ctype4: "STOKES"
-    Crval1: 185.631
-    Crval2: 13.1638
-    Crval3: 4.8851e+09
-    Crval4: 1
+    Bzero: 0.0889426
     Cdelt1: -0.000277778
     Cdelt2: 0.000277778
     Cdelt3: 50000000
     Cdelt4: 0
-    Crpix1: 257
-    Crpix2: 258
-    Crpix3: 1
-    Crpix4: 1
     Crota1: 0
     Crota2: 0
     Crota3: 0
     Crota4: 0
-    Epoch: 1950
+    Crpix1: 257
+    Crpix2: 258
+    Crpix3: 1
+    Crpix4: 1
+    Crval1: 185.631
+    Crval2: 13.1638
+    Crval3: 4.8851e+09
+    Crval4: 1
+    Ctype1: "LL"
+    Ctype2: "MM"
+    Ctype3: "FREQ"
+    Ctype4: "STOKES"
     Datamax: 0.18248
     Datamin: -0.00459448
-    Origin: "AIPS"
+    Date-map: 9
+    Date-obs: 16
     DateTime: "1982:09:02 00:00:00"
+    Epoch: 1950
     History: "UVLOD
 UVLOD OUTNAME='M84 6 EC    '   OUTCLASS='UVTB  '
 UVLOD OUTSEQ=    1   OUTDISK=  3
@@ -720,5 +716,9 @@ AIPS   IMNAME='M84 6C SC2  ' IMCLASS='ICLN  ' IMSEQ=   1
 AIPS   USERNO=  504
 AIPS   CLEAN BMAJ=  0.1078E-02 BMIN=  0.1067E-02 BPA= -34.45
 AIPS   CLEAN NITER= 12000 PRODUCT=1"
+    Object: "M84"
+    Observer: "LAIN"
+    Origin: "AIPS"
+    Tables: 1
 Comparing "../../../../../fits-images/ftt4b/file012.fits" and "file012.fits"
 PASS
