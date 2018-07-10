@@ -134,7 +134,7 @@ matrix:
         compiler: gcc
       - os: osx
         compiler: clang
-    # test debug build
+    # test debug build with default compiler
       - os: linux
         compiler: gcc
         env: DEBUG=1
@@ -163,33 +163,60 @@ matrix:
       ##  compiler: clang
       ##  env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0
     # Build with sanitizers
+    # Because this test takes so long to run, only build for PRs, direct
+    # pushes to master or RB branches, or if the branch name includes
+    # "sanitize". Other ordinary work branch pushes don't need to run this
+    # every time.
       - os: linux
         compiler: gcc
         env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
+        if: branch =~ /(master|RB|san)/ OR type = pull_request
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo, and don't embed
     # the plugins (to make sure that doesn't rust away).  I guess this
     # should/could be both platforms, but in the interest of making the
     # tests go faster, don't bother doing it on OSX.
+    # Only build this case for PRs, direct pushes to master or RB branches,
+    # or if the branch name includes "simd". Other ordinary work branch
+    # pushes don't need to run this.
       - os: linux
         compiler: gcc
         env: USE_SIMD=0 USE_JPEGTURBO=0 EMBEDPLUGINS=0
+        if: branch =~ /(master|RB|simd)/ OR type = pull_request
     # test with C++14, gcc 8, latest SIMD flags supported by TravisCI VMs
+    # Since VFXPlatform doesn't bless gcc8 yet, only build this
+    # case for PRs, direct pushes to master or RB branches, or if the branch
+    # name includes "gcc". Other ordinary work branch pushes don't
+    # need to run this.
       - os: linux
         compiler: gcc
         env: WHICHGCC=8 USE_CPP=14 USE_SIMD=avx,f16c
-    # test with C++17, gcc 8, latest SIMD flags supported by TravisCI VMs
+        if: branch =~ /(master|RB|gcc)/ OR type = pull_request
+    # test with C++17, gcc 8, latest SIMD flags supported by TravisCI VMs.
+    # Since VFXPlatform doesn't bless C++17 or gcc8 yet, only build this
+    # case for PRs, direct pushes to master or RB branches, or if the branch
+    # name includes "17" or "gcc". Other ordinary work branch pushes don't
+    # need to run this.
       - os: linux
         compiler: gcc
         env: WHICHGCC=8 USE_CPP=17 USE_SIMD=avx,f16c
+        if: branch =~ /(master|RB|gcc|17)/ OR type = pull_request
     # build for AVX2, don't run the tests (ensure against build breaks)
+    # Only build this case for PRs, direct pushes to master or RB branches,
+    # or if the branch name includes "simd". Other ordinary work branch
+    # pushes don't need to run this.
       - os: linux
         compiler: gcc
         env: WHICHGCC=6 USE_SIMD=avx2 SKIP_TESTS=1
+        if: branch =~ /(master|RB|simd)/ OR type = pull_request
     # build for AVX512, don't run the tests (ensure against build breaks)
+    # Only build this case for PRs, direct pushes to master or RB branches,
+    # or if the branch name includes "simd". Other ordinary work branch
+    # pushes don't need to run this.
       - os: linux
         compiler: gcc
         env: WHICHGCC=7 USE_SIMD=avx2,avx512f,f16c SKIP_TESTS=1
+        if: branch =~ /(master|RB|simd)/ OR type = pull_request
     # Build with EMBEDPLUGINS=0, both platforms.
       # FIXME: doesn't work yet on Travis
       # - os: linux
