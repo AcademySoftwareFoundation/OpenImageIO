@@ -966,6 +966,8 @@ TIFFInput::readspec (bool read_meta)
                 m_spec.channelnames[0] = "Y";
         }
     }
+    if (alpha_is_unassociated)
+        m_spec.attribute ("tiff:UnassociatedAlpha", 1);
     // Will we need to do alpha conversions?
     m_convert_alpha = (m_spec.alpha_channel >= 0 && alpha_is_unassociated &&
                        ! m_keep_unassociated_alpha);

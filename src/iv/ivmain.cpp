@@ -59,6 +59,7 @@ using namespace OIIO;
 
 static bool verbose = false;
 static bool foreground_mode = false;
+static bool autopremult = true;
 static std::vector<std::string> filenames;
 
 
@@ -85,6 +86,7 @@ getargs (int argc, char *argv[])
                   "--help", &help, "Print help message",
                   "-v", &verbose, "Verbose status messages",
                   "-F", &foreground_mode, "Foreground mode",
+                  "--no-autopremult %!", &autopremult, "Turn off automatic premultiplication of images with unassociated alpha",
                   NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
@@ -127,6 +129,8 @@ main (int argc, char *argv[])
     ImageCache *imagecache = ImageCache::create (true);
     imagecache->attribute ("autotile", 256);
     imagecache->attribute ("deduplicate", (int)0);
+    if (! autopremult)
+        imagecache->attribute ("unassociatedalpha", 1);
 
     // Make sure we are the top window with the focus.
     mainWin->raise ();

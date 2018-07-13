@@ -517,7 +517,7 @@ brief_format_name (TypeDesc type, int bits=0)
 static void
 print_info_subimage (Oiiotool &ot,
                      int current_subimage, int num_of_subimages, int nmip,
-                     ImageSpec &spec,
+                     const ImageSpec &spec,
                      ImageInput *input, const std::string &filename,
                      const print_info_options &opt,
                      regex &field_re, regex &field_exclude_re,
@@ -530,10 +530,6 @@ print_info_subimage (Oiiotool &ot,
     std::string padding (padlen, ' ');
     bool printres = opt.verbose && (opt.metamatch.empty() ||
                                 regex_search ("resolution, width, height, depth, channels", field_re));
-
-    // int nmip = num_of_miplevels[current_subimage];
-
-    std::string ser = spec.serialize (serformat, verbose);
 
     std::vector<std::string> lines;
     Strutil::split (spec.serialize(serformat, verbose), lines, "\n");
@@ -601,6 +597,7 @@ print_info_subimage (Oiiotool &ot,
         int movie = spec.get_int_attribute ("oiio:Movie");
         std::string s = format ("    %d subimages: ", num_of_subimages);
         for (int i = 0; i < num_of_subimages; ++i) {
+            ImageSpec spec;
             input->seek_subimage (i, 0, spec);
             int bits = spec.get_int_attribute ("oiio:BitsPerSample",
                                                spec.format.size()*8);
@@ -640,7 +637,7 @@ print_info_subimage (Oiiotool &ot,
         lines[i] = Strutil::unescape_chars (lines[i]);
     }
 
-    ser = Strutil::join (lines, "\n");
+    std::string ser = Strutil::join (lines, "\n");
     if (ser[ser.size()-1] != '\n')
         ser += '\n';
     std::cout << ser;
@@ -678,15 +675,13 @@ OiioTool::print_info (Oiiotool &ot,
 {
     using Strutil::format;
     error.clear();
-    ImageSpec *config = ot.input_config_set ? &ot.input_config : NULL;
-    auto input = ImageInput::open (filename.c_str(), config);
+    auto input = ImageInput::open (filename, &ot.input_config);
     if (! input) {
         error = geterror();
         if (error.empty())
             error = Strutil::format ("Could not open \"%s\"", filename);
         return false;
     }
-    ImageSpec spec = input->spec();
 
     ImageSpec::SerialFormat serformat = ImageSpec::SerialText;
     if (Strutil::iequals (opt.infoformat, "xml"))
@@ -729,19 +724,19 @@ OiioTool::print_info (Oiiotool &ot,
     // checking how many subimages and mipmap levels are stored in the file
     std::vector<int> num_of_miplevels;
     int num_of_subimages;
-    for (num_of_subimages = 0; input->seek_subimage (num_of_subimages, 0, spec); ++num_of_subimages) {
+    for (num_of_subimages = 0; input->seek_subimage (num_of_subimages, 0); ++num_of_subimages) {
         int nmip = 1;
-        while (input->seek_subimage (num_of_subimages, nmip, spec))
+        while (input->seek_subimage (num_of_subimages, nmip))
             ++nmip;
         num_of_miplevels.push_back (nmip);
     }
 
     for (int current_subimage = 0; current_subimage < num_of_subimages; ++current_subimage) {
-        if ( ! input->seek_subimage (current_subimage, 0, spec) )
+        if ( ! input->seek_subimage (current_subimage, 0))
             break;
         print_info_subimage (ot, current_subimage, num_of_subimages,
                              num_of_miplevels[current_subimage],
-                             spec, input.get(), filename, opt,
+                             input->spec(), input.get(), filename, opt,
                              field_re, field_exclude_re, serformat, verbose);
         // if the '-a' flag is not set we print info
         // about first subimage only
