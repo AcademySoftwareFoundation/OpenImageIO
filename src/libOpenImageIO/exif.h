@@ -125,7 +125,7 @@ const TagMap& exif_tagmap_ref ();
 const TagMap& gps_tagmap_ref ();
 const TagMap& canon_maker_tagmap_ref ();
 
-array_view<const ExplanationTableEntry> canon_explanation_table ();
+cspan<ExplanationTableEntry> canon_explanation_table ();
 
 
 void append_tiff_dir_entry (std::vector<TIFFDirEntry> &dirs,

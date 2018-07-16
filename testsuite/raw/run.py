@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 
 imagedir = parent + "oiio-images/raw"
-files = [ "RAW_CANON_EOS_7D.CR2", "RAW_NIKON_D3X.NEF" ]
+files = [ "RAW_CANON_EOS_7D.CR2",
+          "RAW_NIKON_D3X.NEF",
+          "RAW_FUJI_F700.RAF",
+          "RAW_NIKON_D3X.NEF",
+          "RAW_OLYMPUS_E3.ORF",
+          "RAW_PANASONIC_G1.RW2",
+          "RAW_PENTAX_K200D.PEF",
+          "RAW_SONY_A300.ARW" ]
 outputs = []
 
 # For each test image, read it and print all metadata, resize it (to make

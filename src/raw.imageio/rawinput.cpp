@@ -37,6 +37,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/tiffutils.h>
 
 #if OIIO_GNUC_VERSION >= 80000
@@ -90,12 +91,118 @@ private:
     libraw_processed_image_t *m_image = nullptr;
     std::string m_filename;
     ImageSpec m_config;  // save config requests
+    std::string m_make;
 
     bool do_unpack();
 
     // Do the actual open. It expects m_filename and m_config to be set.
     bool open_raw (bool unpack, const std::string &name,
                    const ImageSpec &config);
+    void get_makernotes ();
+    void get_makernotes_canon ();
+    void get_makernotes_nikon ();
+    void get_makernotes_olympus ();
+    void get_makernotes_fuji ();
+    void get_makernotes_kodak ();
+    void get_makernotes_pentax ();
+    void get_makernotes_panasonic ();
+    void get_makernotes_sony ();
+    void get_lensinfo ();
+    void get_shootinginfo ();
+
+    template<typename T>
+    static bool allval (cspan<T> d, T v=T(0)) {
+        return std::all_of (d.begin(), d.end(), [&](const T& a){ return a == v; });
+    }
+
+    static std::string prefixedname (string_view prefix, std::string& name) {
+        return prefix.size() ? (std::string(prefix) + ':' + name) : name;
+    }
+
+    void add (string_view prefix, std::string name, int data,
+              bool force=true, int ignval=0) {
+        if (force || data != ignval)
+            m_spec.attribute (prefixedname(prefix,name), data);
+    }
+    void add (string_view prefix, std::string name, float data,
+              bool force=true, float ignval=0) {
+        if (force || data != ignval)
+            m_spec.attribute (prefixedname(prefix,name), data);
+    }
+    void add (string_view prefix, std::string name, string_view data,
+              bool force=true, int ignval=0) {
+        if (force || (data.size() && data[0]))
+            m_spec.attribute (prefixedname(prefix,name), data);
+    }
+    void add (string_view prefix, std::string name, unsigned long long data,
+              bool force=true, unsigned long long ignval=0) {
+        if (force || data != ignval)
+            m_spec.attribute (prefixedname(prefix,name), TypeDesc::UINT64, &data);
+    }
+    void add (string_view prefix, std::string name, unsigned int data,
+              bool force=true, int ignval=0) {
+        add (prefix, name, (int)data, force, ignval);
+    }
+    void add (string_view prefix, std::string name, unsigned short data,
+              bool force=true, int ignval=0) {
+        add (prefix, name, (int)data, force, ignval);
+    }
+    void add (string_view prefix, std::string name, unsigned char data,
+              bool force=true, int ignval=0) {
+        add (prefix, name, (int)data, force, ignval);
+    }
+    void add (string_view prefix, std::string name, double data,
+              bool force=true, float ignval=0) {
+        add (prefix, name, float(data), force, ignval);
+    }
+
+    void add (string_view prefix, std::string name, cspan<int> data,
+              bool force=true, int ignval=0) {
+        if (force || !allval(data,ignval)) {
+            int size = data.size() > 1 ? data.size() : 0;
+            m_spec.attribute (prefixedname(prefix,name),
+                              TypeDesc(TypeDesc::INT,size), data.data());
+        }
+    }
+    void add (string_view prefix, std::string name, cspan<short> data,
+              bool force=true, short ignval=0) {
+        if (force || !allval(data,ignval)) {
+            int size = data.size() > 1 ? data.size() : 0;
+            m_spec.attribute (prefixedname(prefix,name),
+                              TypeDesc(TypeDesc::INT16,size), data.data());
+        }
+    }
+    void add (string_view prefix, std::string name, cspan<unsigned short> data,
+              bool force=true, unsigned short ignval=0) {
+        if (force || !allval(data,ignval)) {
+            int size = data.size() > 1 ? data.size() : 0;
+            m_spec.attribute (prefixedname(prefix,name),
+                              TypeDesc(TypeDesc::UINT16,size), data.data());
+        }
+    }
+    void add (string_view prefix, std::string name, cspan<unsigned char> data,
+              bool force=true, unsigned char ignval=0) {
+        if (force || !allval(data,ignval)) {
+            int size = data.size() > 1 ? data.size() : 0;
+            m_spec.attribute (prefixedname(prefix,name),
+                              TypeDesc(TypeDesc::UINT8,size), data.data());
+        }
+    }
+    void add (string_view prefix, std::string name, cspan<float> data,
+              bool force=true, float ignval=0) {
+        if (force || !allval(data,ignval)) {
+            int size = data.size() > 1 ? data.size() : 0;
+            m_spec.attribute (prefixedname(prefix,name),
+                              TypeDesc(TypeDesc::FLOAT,size), data.data());
+        }
+    }
+    void add (string_view prefix, std::string name, cspan<double> data,
+              bool force=true, float ignval=0) {
+        float *d = OIIO_ALLOCA (float, data.size());
+        for (auto i = 0; i < data.size(); ++i)
+            d[i] = data[i];
+        add (prefix, name, cspan<float>(d,data.size()), force, ignval);
+    }
 };
 
 
@@ -441,16 +548,27 @@ RawInput::open_raw (bool unpack, const std::string &name,
     // FIXME: sizes. top_margin, left_margin, raw_pitch, mask?
 
     const libraw_iparams_t &idata (m_processor->imgdata.idata);
-    if (idata.make[0])
+    const libraw_colordata_t &color (m_processor->imgdata.color);
+
+    if (idata.make[0]) {
+        m_make = std::string(idata.make);
         m_spec.attribute ("Make", idata.make);
+    } else {
+        m_make.clear();
+    }
     if (idata.model[0])
         m_spec.attribute ("Model", idata.model);
-    // FIXME: idata. dng_version, is_foveon, colors, filters, cdesc
-
-    const libraw_colordata_t &color (m_processor->imgdata.color);
-    m_spec.attribute("Exif:Flash", (int) color.flash_used);
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,17,0)
+    if (idata.software[0])
+        m_spec.attribute ("Software", idata.software);
+    else
+#endif
     if (color.model2[0])
         m_spec.attribute ("Software", color.model2);
+
+    // FIXME: idata. dng_version, is_foveon, colors, filters, cdesc
+
+    m_spec.attribute("Exif:Flash", (int) color.flash_used);
 
     // FIXME -- all sorts of things in this struct
 
@@ -461,26 +579,462 @@ RawInput::open_raw (bool unpack, const std::string &name,
     m_spec.attribute ("FNumber", other.aperture);
     m_spec.attribute ("Exif:ApertureValue", 2.0f * log2f(other.aperture));
     m_spec.attribute ("Exif:FocalLength", other.focal_len);
-    struct tm * m_tm = localtime(&m_processor->imgdata.other.timestamp);
+    struct tm m_tm;
+    Sysutil::get_local_time(&m_processor->imgdata.other.timestamp, &m_tm);
     char datetime[20];
-    strftime (datetime, 20, "%Y-%m-%d %H:%M:%S", m_tm);
+    strftime (datetime, 20, "%Y-%m-%d %H:%M:%S", &m_tm);
     m_spec.attribute ("DateTime", datetime);
+    add ("raw", "ShotOrder", other.shot_order, false);
     // FIXME: other.shot_order
-    // FIXME: other.gpsdata
     if (other.desc[0])
         m_spec.attribute ("ImageDescription", other.desc);
     if (other.artist[0])
         m_spec.attribute ("Artist", other.artist);
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,17,0)
+    if (other.parsed_gps.gpsparsed) {
+        add ("GPS", "Latitude", other.parsed_gps.latitude, false, 0.0f);
+        add ("GPS", "Longitude", other.parsed_gps.longtitude, false, 0.0f); // N.B. wrong spelling!
+        add ("GPS", "TimeTtamp", other.parsed_gps.gpstimestamp, false, 0.0f);
+        add ("GPS", "Altitude", other.parsed_gps.altitude, false, 0.0f);
+        add ("GPS", "LatitudeRef", string_view(&other.parsed_gps.latref, 1), false);
+        add ("GPS", "LongitudeRef", string_view(&other.parsed_gps.longref, 1), false);
+        add ("GPS", "AltitudeRef", string_view(&other.parsed_gps.altref, 1), false);
+        add ("GPS", "Status", string_view(&other.parsed_gps.gpsstatus, 1), false);
+    }
+#endif
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+    // float FlashEC;
+    // float FlashGN;
+    // float CameraTemperature;
+    // float SensorTemperature;
+    // float SensorTemperature2;
+    // float LensTemperature;
+    // float AmbientTemperature;
+    // float BatteryTemperature;
+    // float exifAmbientTemperature;
+    add ("Exif", "Humidity", other.exifHumidity, false, 0.0f);
+    add ("Exif", "Pressure", other.exifPressure, false, 0.0f);
+    add ("Exif", "WaterDepth", other.exifWaterDepth, false, 0.0f);
+    add ("Exif", "Acceleration", other.exifAcceleration, false, 0.0f);
+    add ("Exif", "CameraElevactionAngle", other.exifCameraElevationAngle, false, 0.0f);
+    // float real_ISO;
+#endif
 
     // libraw reoriented the image for us, so squash any orientation
     // metadata we may have found in the Exif. Preserve the original as
     // "raw:Orientation".
-    m_spec.attribute ("Orientation", m_spec.get_int_attribute("Orientation", 1));
+    int ori = m_spec.get_int_attribute("Orientation", 1);
+    if (ori > 1)
+        m_spec.attribute ("raw:Orientation", ori);
     m_spec.attribute ("Orientation", 1);
 
     // FIXME -- thumbnail possibly in m_processor->imgdata.thumbnail
 
+    get_lensinfo ();
+    get_shootinginfo ();
+    get_makernotes ();
+
     return true;
+}
+
+
+
+// Helper macro: add metadata with the same name as mn.name, but don't
+// force it if it's the `ignore` value.
+#define MAKER(name,ignore) add (m_make, #name, mn.name, false, ignore)
+
+// Helper: add metadata, no matter what the value.
+#define MAKERF(name) add (m_make, #name, mn.name, true)
+
+
+
+void
+RawInput::get_makernotes ()
+{
+    if (Strutil::istarts_with (m_make, "Canon"))
+        get_makernotes_canon();
+    else if (Strutil::istarts_with (m_make, "Nikon"))
+        get_makernotes_nikon();
+    else if (Strutil::istarts_with (m_make, "Olympus"))
+        get_makernotes_olympus();
+    else if (Strutil::istarts_with (m_make, "Fuji"))
+        get_makernotes_fuji();
+    else if (Strutil::istarts_with (m_make, "Kodak"))
+        get_makernotes_kodak();
+    else if (Strutil::istarts_with (m_make, "Panasonic"))
+        get_makernotes_panasonic();
+    else if (Strutil::istarts_with (m_make, "Pentax"))
+        get_makernotes_pentax();
+    else if (Strutil::istarts_with (m_make, "Sony"))
+        get_makernotes_sony();
+}
+
+
+
+void
+RawInput::get_makernotes_canon ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
+    auto const &mn (m_processor->imgdata.makernotes.canon);
+    // MAKER (CanonColorDataVer, 0);
+    // MAKER (CanonColorDataSubVer, 0);
+    MAKERF (SpecularWhiteLevel);
+    MAKERF (ChannelBlackLevel);
+    MAKERF (AverageBlackLevel);
+    MAKERF (MeteringMode);
+    MAKERF (SpotMeteringMode);
+    MAKERF (FlashMeteringMode);
+    MAKERF (FlashExposureLock);
+    MAKERF (ExposureMode);
+    MAKERF (AESetting);
+    MAKERF (HighlightTonePriority);
+    MAKERF (ImageStabilization);
+    MAKERF (FocusMode);
+    MAKER (AFPoint, 0);
+    MAKERF (FocusContinuous);
+    //  short        AFPointsInFocus30D;
+    //  uchar        AFPointsInFocus1D[8];
+    //  ushort       AFPointsInFocus5D;        /* bytes in reverse*/
+    MAKERF (AFAreaMode);
+    if (mn.AFAreaMode) {
+        MAKERF (NumAFPoints);
+        MAKERF (ValidAFPoints);
+        MAKERF (AFImageWidth);
+        MAKERF (AFImageHeight);
+        //  short        AFAreaWidths[61];
+        //  short        AFAreaHeights[61];
+        //  short        AFAreaXPositions[61];
+        //  short        AFAreaYPositions[61];
+        //  short        AFPointsInFocus[4]
+        //  short        AFPointsSelected[4];
+        //  ushort       PrimaryAFPoint;
+    }
+    MAKERF (FlashMode);
+    MAKERF (FlashActivity);
+    MAKER (FlashBits, 0);
+    MAKER (ManualFlashOutput, 0);
+    MAKER (FlashOutput, 0);
+    MAKER (FlashGuideNumber, 0);
+    MAKERF (ContinuousDrive);
+    MAKER (SensorWidth, 0);
+    MAKER (SensorHeight, 0);
+    MAKER (SensorLeftBorder, 0);
+    MAKER (SensorTopBorder, 0);
+    MAKER (SensorRightBorder, 0);
+    MAKER (SensorBottomBorder, 0);
+    MAKER (BlackMaskLeftBorder, 0);
+    MAKER (BlackMaskTopBorder, 0);
+    MAKER (BlackMaskRightBorder, 0);
+    MAKER (BlackMaskBottomBorder, 0);
+#endif
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+    // Extra added with libraw 0.19:
+    // unsigned int mn.multishot[4]
+    MAKER (AFMicroAdjMode, 0);
+    MAKER (AFMicroAdjValue, 0.0f);
+#endif
+}
+
+
+
+void
+RawInput::get_makernotes_nikon ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+    auto const &mn (m_processor->imgdata.makernotes.nikon);
+    MAKER (ExposureBracketValue, 0.0f);
+    MAKERF (ActiveDLighting);
+    MAKERF (ShootingMode);
+    MAKERF (ImageStabilization);
+    MAKER (VibrationReduction, 0);
+    MAKERF (VRMode);
+    MAKER (FocusMode, 0);
+    MAKERF (AFPoint);
+    MAKER (AFPointsInFocus, 0);
+    MAKERF (ContrastDetectAF);
+    MAKERF (AFAreaMode);
+    MAKERF (PhaseDetectAF);
+    if (mn.PhaseDetectAF) {
+        MAKER (PrimaryAFPoint, 0);
+        // uchar AFPointsUsed[29];
+    }
+    if (mn.ContrastDetectAF) {
+        MAKER (AFImageWidth, 0);
+        MAKER (AFImageHeight, 0);
+        MAKER (AFAreaXPposition, 0);
+        MAKER (AFAreaYPosition, 0);
+        MAKER (AFAreaWidth, 0);
+        MAKER (AFAreaHeight, 0);
+        MAKER (ContrastDetectAFInFocus, 0);
+    }
+    MAKER (FlashSetting, 0);
+    MAKER (FlashType, 0);
+    MAKERF (FlashExposureCompensation);
+    MAKERF (ExternalFlashExposureComp);
+    MAKERF (FlashExposureBracketValue);
+    MAKERF (FlashMode);
+    // signed char FlashExposureCompensation2;
+    // signed char FlashExposureCompensation3;
+    // signed char FlashExposureCompensation4;
+    MAKERF (FlashSource);
+    MAKERF (FlashFirmware);
+    MAKERF (ExternalFlashFlags);
+    MAKERF (FlashControlCommanderMode);
+    MAKER (FlashOutputAndCompensation, 0);
+    MAKER (FlashFocalLength, 0);
+    MAKER (FlashGNDistance, 0);
+    MAKERF (FlashGroupControlMode);
+    MAKERF (FlashGroupOutputAndCompensation);
+    MAKER (FlashColorFilter, 0);
+
+    MAKER (NEFCompression, 0);
+    MAKER (ExposureMode, -1);
+    MAKER (nMEshots, 0);
+    MAKER (MEgainOn, 0);
+    MAKERF (ME_WB);
+    MAKERF (AFFineTune);
+    MAKERF (AFFineTuneIndex);
+    MAKERF (AFFineTuneAdj);
+#endif
+}
+
+
+
+void
+RawInput::get_makernotes_olympus ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
+    auto const &mn (m_processor->imgdata.makernotes.olympus);
+    MAKERF (OlympusCropID);
+    MAKERF (OlympusFrame); /* upper left XY, lower right XY */
+    MAKERF (OlympusSensorCalibration);
+    MAKERF (FocusMode);
+    MAKERF (AutoFocus);
+    MAKERF (AFPoint);
+    // unsigned     AFAreas[64];
+    MAKERF (AFPointSelected);
+    MAKERF (AFResult);
+    MAKERF (ImageStabilization);
+    MAKERF (ColorSpace);
+#endif
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+    MAKERF (AFFineTune);
+    if (mn.AFFineTune)
+        MAKERF (AFFineTuneAdj);
+#endif
+}
+
+
+
+void
+RawInput::get_makernotes_panasonic ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+    auto const &mn (m_processor->imgdata.makernotes.panasonic);
+    MAKERF (Compression);
+    MAKER (BlackLevelDim, 0);
+    MAKERF (BlackLevel);
+#endif
+}
+
+
+
+void
+RawInput::get_makernotes_pentax ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+    auto const &mn (m_processor->imgdata.makernotes.pentax);
+    MAKERF (FocusMode);
+    MAKERF (AFPointsInFocus);
+    MAKERF (DriveMode);
+    MAKERF (AFPointSelected);
+    MAKERF (FocusPosition);
+    MAKERF (AFAdjustment);
+#endif
+}
+
+
+
+void
+RawInput::get_makernotes_kodak ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+    auto const &mn (m_processor->imgdata.makernotes.kodak);
+    MAKERF (BlackLevelTop);
+    MAKERF (BlackLevelBottom);
+    MAKERF (offset_left);
+    MAKERF (offset_top);
+    MAKERF (clipBlack);
+    MAKERF (clipWhite);
+    // float romm_camDaylight[3][3];
+    // float romm_camTungsten[3][3];
+    // float romm_camFluorescent[3][3];
+    // float romm_camFlash[3][3];
+    // float romm_camCustom[3][3];
+    // float romm_camAuto[3][3];
+#endif
+}
+
+
+
+void
+RawInput::get_makernotes_fuji ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
+    auto const &mn (m_processor->imgdata.makernotes.fuji);
+    add (m_make, "ExpoMidPointShift", mn.FujiExpoMidPointShift);
+    add (m_make, "DynamicRange", mn.FujiDynamicRange);
+    add (m_make, "FilmMode", mn.FujiFilmMode);
+    add (m_make, "DynamicRangeSetting", mn.FujiDynamicRangeSetting);
+    add (m_make, "DevelopmentDynamicRange", mn.FujiDevelopmentDynamicRange);
+    add (m_make, "AutoDynamicRange", mn.FujiAutoDynamicRange);
+    MAKERF (FocusMode);
+    MAKERF (AFMode);
+    MAKERF (FocusPixel);
+    MAKERF (ImageStabilization);
+    MAKERF (FlashMode);
+    MAKERF (WB_Preset);
+    MAKERF (ShutterType);
+    MAKERF (ExrMode);
+    MAKERF (Macro);
+    MAKERF (Rating);
+    MAKERF (FrameRate);
+    MAKERF (FrameWidth);
+    MAKERF (FrameHeight);
+#endif
+}
+
+
+
+void
+RawInput::get_makernotes_sony ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
+    auto const &mn (m_processor->imgdata.makernotes.sony);
+    MAKERF (SonyCameraType);
+#endif
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,19,0)
+    // uchar Sony0x9400_version; /* 0 if not found/deciphered, 0xa, 0xb, 0xc following exiftool convention */
+    // uchar Sony0x9400_ReleaseMode2;
+    // unsigned Sony0x9400_SequenceImageNumber;
+    // uchar Sony0x9400_SequenceLength1;
+    // unsigned Sony0x9400_SequenceFileNumber;
+    // uchar Sony0x9400_SequenceLength2;
+    if (mn.raw_crop.cwidth || mn.raw_crop.cheight) {
+        add (m_make, "cropleft", mn.raw_crop.cleft, true);
+        add (m_make, "croptop", mn.raw_crop.ctop, true);
+        add (m_make, "cropwidth", mn.raw_crop.cwidth, true);
+        add (m_make, "cropheight", mn.raw_crop.cheight, true);
+    }
+    MAKERF (AFMicroAdjValue);
+    MAKERF (AFMicroAdjOn);
+    MAKER (AFMicroAdjRegisteredLenses, 0);
+    MAKERF (group2010);
+    if (mn.real_iso_offset != 0xffff)
+        MAKERF (real_iso_offset);
+    MAKERF (firmware);
+    MAKERF (ImageCount3_offset);
+    MAKER (ImageCount3, 0);
+    if (mn.ElectronicFrontCurtainShutter == 0 || mn.ElectronicFrontCurtainShutter == 1)
+        MAKERF (ElectronicFrontCurtainShutter);
+    MAKER (MeteringMode2, 0);
+    add (m_make, "DateTime", mn.SonyDateTime);
+    MAKERF (TimeStamp);
+    MAKER (ShotNumberSincePowerUp, 0);
+#endif
+}
+
+
+
+void
+RawInput::get_lensinfo ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
+    {
+        auto const &mn (m_processor->imgdata.lens);
+        MAKER (MinFocal, 0.0f);
+        MAKER (MaxFocal, 0.0f);
+        MAKER (MaxAp4MinFocal, 0.0f);
+        MAKER (MaxAp4MaxFocal, 0.0f);
+        MAKER (EXIF_MaxAp, 0.0f);
+        MAKER (LensMake, 0);
+        MAKER (Lens, 0);
+        MAKER (LensSerial, 0);
+        MAKER (InternalLensSerial, 0);
+        MAKER (FocalLengthIn35mmFormat, 0);
+    }
+    {
+        auto const &mn (m_processor->imgdata.lens.makernotes);
+        MAKER (LensID, 0ULL);
+        MAKER (Lens, 0);
+        MAKER (LensFormat, 0);
+        MAKER (LensMount, 0);
+        MAKER (CamID, 0ULL);
+        MAKER (CameraFormat, 0);
+        MAKER (CameraMount, 0);
+        MAKER (body, 0);
+        MAKER (FocalType, 0);
+        MAKER (LensFeatures_pre, 0);
+        MAKER (LensFeatures_suf, 0);
+        MAKER (MinFocal, 0.0f);
+        MAKER (MaxFocal, 0.0f);
+        MAKER (MaxAp4MinFocal, 0.0f);
+        MAKER (MaxAp4MaxFocal, 0.0f);
+        MAKER (MinAp4MinFocal, 0.0f);
+        MAKER (MinAp4MaxFocal, 0.0f);
+        MAKER (MaxAp, 0.0f);
+        MAKER (MinAp, 0.0f);
+        MAKER (CurFocal, 0.0f);
+        MAKER (CurAp, 0.0f);
+        MAKER (MaxAp4CurFocal, 0.0f);
+        MAKER (MinAp4CurFocal, 0.0f);
+        MAKER (MinFocusDistance, 0.0f);
+        MAKER (FocusRangeIndex, 0.0f);
+        MAKER (LensFStops, 0.0f);
+        MAKER (TeleconverterID, 0ULL);
+        MAKER (Teleconverter, 0);
+        MAKER (AdapterID, 0ULL);
+        MAKER (Adapter, 0);
+        MAKER (AttachmentID, 0ULL);
+        MAKER (Attachment, 0);
+        MAKER (CanonFocalUnits, 0);
+        MAKER (FocalLengthIn35mmFormat, 0.0f);
+    }
+
+    if (Strutil::iequals (m_make, "Nikon")) {
+        auto const &mn (m_processor->imgdata.lens.nikon);
+        add (m_make, "EffectiveMaxAp", mn.NikonEffectiveMaxAp);
+        add (m_make, "LensIDNumber", mn.NikonLensIDNumber);
+        add (m_make, "LensFStops", mn.NikonLensFStops);
+        add (m_make, "MCUVersion", mn.NikonMCUVersion);
+        add (m_make, "LensType", mn.NikonLensType);
+    }
+    if (Strutil::iequals (m_make, "DNG")) {
+        auto const &mn (m_processor->imgdata.lens.dng);
+        MAKER (MaxAp4MaxFocal, 0.0f);
+        MAKER (MaxAp4MinFocal, 0.0f);
+        MAKER (MaxFocal, 0.0f);
+        MAKER (MinFocal, 0.0f);
+    }
+#endif
+}
+
+
+
+void
+RawInput::get_shootinginfo ()
+{
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0,18,0)
+    auto const &mn (m_processor->imgdata.shootinginfo);
+    MAKER (DriveMode, -1);
+    MAKER (FocusMode, -1);
+    MAKER (MeteringMode, -1);
+    MAKERF (AFPoint);
+    MAKER (ExposureMode, -1);
+    MAKERF (ImageStabilization);
+    MAKER (BodySerial, 0);
+    MAKER (InternalBodySerial, 0);
+#endif
 }
 
 

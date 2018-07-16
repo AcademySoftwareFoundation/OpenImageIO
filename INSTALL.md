@@ -41,10 +41,11 @@ NEW or CHANGED dependencies since the last major release are **bold**.
      * Python >= 2.7 (or 3.x)
      * **NumPy**
      * **pybind11** (but OIIO will auto-download it if not found)
- * libRaw >= 0.15 ("RAW" image reading will be disabled if not found,
-   note that 0.18+ is necessary for ACES support, and 0.19 has some known
-   problems for OIIO)
- * ffmpeg >= 2.6 (tested through 4.0)
+ * If you want support for camera "RAW" formats:
+     * libRaw >= 0.15 (tested 0.15 - 0.19; libRaw >= 0.18 is necessary for
+       ACES support and much better recognition of camera metadata)
+ * If you want support for a wide variety of video formats:
+     * ffmpeg >= 2.6 (tested through 4.0)
 
 
 

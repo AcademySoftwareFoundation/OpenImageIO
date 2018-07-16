@@ -1121,7 +1121,7 @@ decode_exif (array_view<const uint8_t> exif, ImageSpec &spec)
     // makernote_handler for why this needs to come at the end.
     int makernote_offset = spec.get_int_attribute ("oiio:MakerNoteOffset");
     if (makernote_offset > 0) {
-        if (spec.get_string_attribute("Make") == "Canon") {
+        if (Strutil::iequals (spec.get_string_attribute("Make"), "Canon")) {
             decode_ifd ((unsigned char *)exif.data() + makernote_offset, exif,
                         spec, pvt::canon_maker_tagmap_ref(), ifd_offsets_seen, swab);
         }
