@@ -105,6 +105,19 @@ public:
         }
     }
 
+    /// Release the reference-counted pointer but DON'T free. Return the raw
+    /// pointer. Use with caution! This can cause a memory leak if the
+    /// caller doesn't eventually reassign the returned pointer to another
+    /// intrusive_ptr!
+    T* release () {
+        T* p = m_ptr;
+        if (p) {
+            intrusive_ptr_release_no_free (m_ptr);
+            m_ptr = nullptr;
+        }
+        return p;
+    }
+
     /// Swap intrusive pointers
     void swap (intrusive_ptr &r) noexcept {
         T *tmp = m_ptr; m_ptr = r.m_ptr; r.m_ptr = tmp;
@@ -181,6 +194,17 @@ inline void intrusive_ptr_release (T *x)
         delete x;
 }
 
+/// Implementation of intrusive_ptr_release_no_free, which is needed for any
+/// class that you use with intrusive_ptr.  This decrements the reference
+/// count, *returns* the pointer, but does not free the object even if the
+/// ref count becomes 0. Use with caution!
+template <class T>
+inline T* intrusive_ptr_release_no_free (T *x)
+{
+    x->_decref ();
+    return x;
+}
+
 // Note that intrusive_ptr_add_ref and intrusive_ptr_release MUST be a
 // templated on the full type, so that they pass the right address to
 // 'delete' and destroy the right type.  If you try to just 
@@ -188,6 +212,11 @@ inline void intrusive_ptr_release (T *x)
 // clever, but it will end up getting the address of (and destroying)
 // just the inherited RefCnt sub-object, not the full subclass you
 // meant to delete and destroy.
+
+
+
+// Preprocessor flags for some capabilities added incrementally.
+#define OIIO_REFCNT_HAS_RELEASE 1   /* intrusive_ptr::release() */
 
 
 OIIO_NAMESPACE_END
