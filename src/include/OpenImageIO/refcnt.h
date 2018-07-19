@@ -105,14 +105,20 @@ public:
         }
     }
 
-    /// Release the reference-counted pointer but DON'T free. Return the raw
-    /// pointer. Use with caution! This can cause a memory leak if the
-    /// caller doesn't eventually reassign the returned pointer to another
-    /// intrusive_ptr!
+    /// Set this smart pointer to null, decrement the object's reference
+    /// count, return the original raw pointer, but do NOT delete the object
+    /// even if the ref count goes to zero. The only safe use case is to
+    /// convert the sole managed pointer to an object into a raw pointer.
+    /// DANGER -- use with caution! This is only safe to do if no other
+    /// intrusive_ptr refers to the object (such a pointer may subsequently
+    /// reset, decrementing the count to 0, and incorrectly free the
+    /// object), and it can cause a memory leak if the caller isn't careful
+    /// to either reassign the returned pointer to another managed pointer
+    /// or delete it manually.
     T* release () {
         T* p = m_ptr;
         if (p) {
-            intrusive_ptr_release_no_free (m_ptr);
+            p->_decref ();
             m_ptr = nullptr;
         }
         return p;
@@ -192,17 +198,6 @@ inline void intrusive_ptr_release (T *x)
 {
     if (x->_decref ())
         delete x;
-}
-
-/// Implementation of intrusive_ptr_release_no_free, which is needed for any
-/// class that you use with intrusive_ptr.  This decrements the reference
-/// count, *returns* the pointer, but does not free the object even if the
-/// ref count becomes 0. Use with caution!
-template <class T>
-inline T* intrusive_ptr_release_no_free (T *x)
-{
-    x->_decref ();
-    return x;
 }
 
 // Note that intrusive_ptr_add_ref and intrusive_ptr_release MUST be a
