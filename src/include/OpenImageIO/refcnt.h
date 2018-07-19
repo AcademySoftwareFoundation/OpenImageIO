@@ -118,7 +118,8 @@ public:
     T* release () {
         T* p = m_ptr;
         if (p) {
-            p->_decref ();
+            if (! p->_decref ())
+                DASSERT (0 && "release() when you aren't the sole owner");
             m_ptr = nullptr;
         }
         return p;
