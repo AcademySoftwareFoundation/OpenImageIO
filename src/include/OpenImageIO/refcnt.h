@@ -105,6 +105,26 @@ public:
         }
     }
 
+    /// Set this smart pointer to null, decrement the object's reference
+    /// count, return the original raw pointer, but do NOT delete the object
+    /// even if the ref count goes to zero. The only safe use case is to
+    /// convert the sole managed pointer to an object into a raw pointer.
+    /// DANGER -- use with caution! This is only safe to do if no other
+    /// intrusive_ptr refers to the object (such a pointer may subsequently
+    /// reset, decrementing the count to 0, and incorrectly free the
+    /// object), and it can cause a memory leak if the caller isn't careful
+    /// to either reassign the returned pointer to another managed pointer
+    /// or delete it manually.
+    T* release () {
+        T* p = m_ptr;
+        if (p) {
+            if (! p->_decref ())
+                DASSERT (0 && "release() when you aren't the sole owner");
+            m_ptr = nullptr;
+        }
+        return p;
+    }
+
     /// Swap intrusive pointers
     void swap (intrusive_ptr &r) noexcept {
         T *tmp = m_ptr; m_ptr = r.m_ptr; r.m_ptr = tmp;
@@ -188,6 +208,11 @@ inline void intrusive_ptr_release (T *x)
 // clever, but it will end up getting the address of (and destroying)
 // just the inherited RefCnt sub-object, not the full subclass you
 // meant to delete and destroy.
+
+
+
+// Preprocessor flags for some capabilities added incrementally.
+#define OIIO_REFCNT_HAS_RELEASE 1   /* intrusive_ptr::release() */
 
 
 OIIO_NAMESPACE_END
