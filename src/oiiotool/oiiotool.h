@@ -79,6 +79,7 @@ public:
     bool updatemode;
     bool autoorient;
     bool autocc;                      // automatically color correct
+    bool autopremult;                 // auto premult unassociated alpha input
     bool nativeread;                  // force native data type reads
     bool printinfo_verbose;
     int cachesize;
@@ -142,6 +143,7 @@ public:
     Oiiotool ();
 
     void clear_options ();
+    void clear_input_config ();
 
     /// Force img to be read at this point.  Use this wrapper, don't directly
     /// call img->read(), because there's extra work done here specific to

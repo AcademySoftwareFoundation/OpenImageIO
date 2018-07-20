@@ -166,6 +166,7 @@ Oiiotool::clear_options ()
     updatemode = false;
     autoorient = false;
     autocc = false;
+    autopremult = true;
     nativeread = false;
     cachesize = 4096;
     autotile = 0;   // was: 4096
@@ -178,8 +179,7 @@ Oiiotool::clear_options ()
     printinfo_metamatch.clear ();
     printinfo_nometamatch.clear ();
     printinfo_verbose = false;
-    input_config = ImageSpec();
-    input_config_set = false;
+    clear_input_config ();
     output_dataformat = TypeDesc::UNKNOWN;
     output_channelformats.clear ();
     output_bitspersample = 0;
@@ -208,6 +208,19 @@ Oiiotool::clear_options ()
     first_input_dataformat = TypeUnknown;
     first_input_dataformat_bits = 0;
     first_input_channelformats.clear();
+}
+
+
+
+void
+Oiiotool::clear_input_config ()
+{
+    input_config = ImageSpec();
+    input_config_set = false;
+    if (! autopremult) {
+        input_config.attribute ("oiio:UnassociatedAlpha", 1);
+        input_config_set = true;
+    }
 }
 
 
@@ -449,7 +462,9 @@ static int
 set_autopremult (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
+    ot.autopremult = true;
     ot.imagecache->attribute ("unassociatedalpha", 0);
+    ot.input_config.erase_attribute ("oiio:UnassociatedAlpha");
     return 0;
 }
 
@@ -459,7 +474,10 @@ static int
 unset_autopremult (int argc, const char *argv[])
 {
     ASSERT (argc == 1);
+    ot.autopremult = false;
     ot.imagecache->attribute ("unassociatedalpha", 1);
+    ot.input_config.attribute ("oiio:UnassociatedAlpha", 1);
+    ot.input_config_set = true;
     return 0;
 }
 
@@ -4410,10 +4428,7 @@ input_file (int argc, const char *argv[])
         ot.process_pending ();
     }
 
-    if (ot.input_config_set) {
-        ot.input_config = ImageSpec();
-        ot.input_config_set = false;
-    }
+    ot.clear_input_config ();
     ot.input_channel_set.clear ();
     ot.check_peak_memory ();
     ot.total_readtime.stop();
