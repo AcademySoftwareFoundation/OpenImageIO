@@ -604,15 +604,15 @@ static const ExplanationTableEntry canon_explanations[] = {
     { "Canon:ExposureMode", explain_labeltable, canon_exposuremode_table },
     { "Canon:FlashBits", explain_canon_flashbits, nullptr },
     { "Canon:FocusContinuous", explain_labeltable, canon_focuscontinuous_table },
-    { "CanonAESetting:", explain_labeltable, canon_aesetting_table },
+    { "Canon:AESetting", explain_labeltable, canon_aesetting_table },
     { "Canon:ImageStabilization", explain_labeltable, canon_imagestabilization_table },
-    { "CanonSpotMeteringMode:", explain_labeltable, canon_spotmeteringmode_table },
+    { "Canon:SpotMeteringMode", explain_labeltable, canon_spotmeteringmode_table },
     { "Canon:PhotoEffect", explain_labeltable, canon_photoeffect_table },
     { "Canon:ManualFlashOutput", explain_labeltable, canon_manualflashoutput_table },
     { "Canon:SRAWQuality", explain_labeltable, canon_srawquality_table },
     { "Canon:SlowShutter", explain_labeltable, canon_slowshutter_table },
     { "Canon:AFPointsInFocus", explain_labeltable, canon_afpointsinfocus_table },
-    { "CanonAutoExposureBracketing:", explain_labeltable, canon_autoexposurebracketing_table },
+    { "Canon:AutoExposureBracketing", explain_labeltable, canon_autoexposurebracketing_table },
     { "Canon:ControlMode", explain_labeltable, canon_controlmode_table },
     { "Canon:CameraType", explain_labeltable, canon_cameratype_table },
     { "Canon:AutoRotate", explain_labeltable, canon_autorotate_table },
@@ -624,10 +624,10 @@ static const ExplanationTableEntry canon_explanations[] = {
 
 
 
-array_view<const ExplanationTableEntry>
+cspan<ExplanationTableEntry>
 canon_explanation_table ()
 {
-    return array_view<const ExplanationTableEntry>(canon_explanations);
+    return cspan<ExplanationTableEntry>(canon_explanations);
 }
 
 

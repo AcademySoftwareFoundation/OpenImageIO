@@ -34,7 +34,124 @@
     oiio:ColorSpace: "Linear"
     raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
+../../../../../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
+    channel list: R, G, B
+    DateTime: "2007-01-06 14:20:22"
+    ExposureTime: 0.00120229
+    FNumber: 3.605
+    Make: "FUJIFILM"
+    Model: "F700"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    Exif:ApertureValue: 3.7 (f/3.6)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 8.5 (8.5 mm)
+    Exif:ISOSpeedRatings: 200
+    Exif:ShutterSpeedValue: 9.7 (1/831 s)
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
+../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
+    channel list: R, G, B
+    Artist: "                                    "
+    DateTime: "2008-12-01 14:52:13"
+    ExposureTime: 0.02
+    FNumber: 5.6
+    Make: "NIKON"
+    Model: "D3X"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    Exif:ApertureValue: 4.97085 (f/5.6)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 70 (70 mm)
+    Exif:ISOSpeedRatings: 100
+    Exif:ShutterSpeedValue: 5.64386 (1/49 s)
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
+../../../../../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
+    channel list: R, G, B
+    DateTime: "2008-12-19 12:29:40"
+    ExposureTime: 0.003125
+    FNumber: 2
+    ImageDescription: "OLYMPUS DIGITAL CAMERA         "
+    Make: "OLYMPUS"
+    Model: "E-3"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    Exif:ApertureValue: 2 (f/2.0)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 50 (50 mm)
+    Exif:ISOSpeedRatings: 200
+    Exif:ShutterSpeedValue: 8.32193 (1/319 s)
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
+../../../../../oiio-images/raw/RAW_PANASONIC_G1.RW2 : 4016 x 3016, 3 channel, uint16 raw
+    channel list: R, G, B
+    DateTime: "2008-12-10 15:06:33"
+    ExposureTime: 0.0025
+    FNumber: 6.3
+    Make: "Panasonic"
+    Model: "DMC-G1"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    Exif:ApertureValue: 5.3107 (f/6.3)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 14 (14 mm)
+    Exif:ISOSpeedRatings: 100
+    Exif:ShutterSpeedValue: 8.64386 (1/399 s)
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
+../../../../../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
+    channel list: R, G, B
+    DateTime: "2008-08-02 16:46:42"
+    ExposureTime: 0.004
+    FNumber: 8
+    Make: "PENTAX"
+    Model: "K200D"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    Exif:ApertureValue: 6 (f/8.0)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 42.5 (42.5 mm)
+    Exif:ISOSpeedRatings: 100
+    Exif:ShutterSpeedValue: 7.96578 (1/249 s)
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
+../../../../../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
+    channel list: R, G, B
+    DateTime: "2008-08-10 23:16:11"
+    ExposureTime: 0.0166667
+    FNumber: 5.6
+    ImageDescription: "SONY DSC"
+    Make: "SONY"
+    Model: "DSLR-A300"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    Exif:ApertureValue: 4.97085 (f/5.6)
+    Exif:Flash: 0 (no flash)
+    Exif:FocalLength: 35 (35 mm)
+    Exif:ISOSpeedRatings: 400
+    Exif:ShutterSpeedValue: 5.90689 (1/59 s)
+    oiio:ColorSpace: "Linear"
+    raw:ColorSpace: "sRGB"
+    raw:Demosaic: "AHD"
 Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
 PASS
 Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
+PASS
+Comparing "RAW_FUJI_F700.RAF.tif" and "ref/RAW_FUJI_F700.RAF.tif"
+PASS
+Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
+PASS
+Comparing "RAW_OLYMPUS_E3.ORF.tif" and "ref/RAW_OLYMPUS_E3.ORF.tif"
+PASS
+Comparing "RAW_PANASONIC_G1.RW2.tif" and "ref/RAW_PANASONIC_G1.RW2.tif"
+PASS
+Comparing "RAW_PENTAX_K200D.PEF.tif" and "ref/RAW_PENTAX_K200D.PEF.tif"
+PASS
+Comparing "RAW_SONY_A300.ARW.tif" and "ref/RAW_SONY_A300.ARW.tif"
 PASS
