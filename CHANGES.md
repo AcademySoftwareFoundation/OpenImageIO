@@ -159,6 +159,9 @@ Public API changes:
   or any pixel tiles already read from the files, as would happen with a
   call to the much more drastic invalidate() or invalidate_all().
   #1950 (1.9.4)
+* Rename/move of `array_view` to `span`. Deprecated `array_view` and moved
+  array_view.h contents to span.h. You should change `array_view<T>`
+  to `span<T>` and `array_view<const T>` to `cspan<T>`. #1956 (1.9.4)
 
 Performance improvements:
 * ImageBufAlgo::computePixelStats is now multithreaded and should improve by
@@ -209,6 +212,10 @@ Fixes and feature enhancements:
       numbers and ranges, also the `--frames` command line option is not
       enough to trigger a loop over those frame numbers, even if no other
       arguments appear to have wildcard structure. #1894 (1.8.10/1.9.2)
+    * `--info -v` now prints metadata in sorted order, making it easier to
+      spot the existance of particular metadata. #1982 (1.9.4)
+    * `--no-autopremult` fixed, it wasn't working properly for cases that
+      were read directly rather than backed by ImageCache. #1984 (1.9.4)
 * ImageBufAlgo:
     * `color_map()` new  maps "inferno", "magma", "plasma", "viridis".
       #1820 (1.9.2)
@@ -240,15 +247,24 @@ Fixes and feature enhancements:
       thread locking to protect the underlying ImageInputs, and this should
       improve texture and image cache performance when many threads need
       to read tiles from the same file. #1927 (1.9.2)
-* iv: Fix (especially on OSX) for various ways it has been broken since the
-  shift to Qt5. #1946 (1.8.12, 1.9.4)
+    * `get_image_info()`/`get_texture_info()` is now more flexible about
+      retrieving arrays vs aggregates, in cases where the total number of
+      elements is correct. #1968 (1.9.4)
+* iv:
+    * Fix (especially on OSX) for various ways it has been broken since the
+      shift to Qt5. #1946 (1.8.12, 1.9.4)
+    * New optin `--no-autopremult` works like oiiotool, causes images with
+      unassociated alpha to not be automatically premultiplied by alpha
+      as they are read in. #1984 (1.9.4)
 * All string->numeric parsing and numeric->string formatting is now
   locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
 * Python Imagebuf.get_pixels and set_pixels bugs fixed, in the varieties
   that take an ROI to describe the region. #1802 (1.9.2)
 * More robust parsing of XMP metadata for unknown metadata names.
   #1816 (1.9.2/1.8.7)
-* Field3d: Prevent crashes when open fails. #1848 (1.9.2/1.8.8)
+* Field3d:
+    * Prevent crashes when open fails. #1848 (1.9.2/1.8.8)
+    * Fix potential mutex deadlock. #1972 (1.9.4)
 * OpenEXR:
     * Gracefully detect and reject files with subsampled channels,
       which is a rarely-to-never-used OpenEXR feature that we don't support
@@ -265,12 +281,20 @@ Fixes and feature enhancements:
     * Important bug fix when dealing with rotated (and vertical) images,
       which were not being re-oriented properly and could get strangely
       scrambled. #1854 (1.9.2/1.8.9)
+    * Major rewrite of the way makernotes and camera-specific metadata are
+      handled, resulting in much more (and more accurate) reporting of
+      camera metadata. #1985 (1.9.4)
 * TIFF:
     * Improve performance of TIFF scanline output. #1833 (1.9.2)
     * Bug fix: read_tile() and read_tiles() input of un-premultiplied tiles
       botched the "shape" of the tile data array. #1907 (1.9.2/1.8.10)
     * Improvement in speed of reading headers (by removing redundant call
       to TIFFSetDirectory). #1922 (1.9.2)
+    * When config option "oiio:UnassociatedAlpha" is nonzero (or not set
+      -- which is the default), therefore enabling automatic premultiplication
+      by alpha for any unassociated alpha files, it will set the metadata
+      "tiff:UnassociatedAlpha" to indicate that the original file was
+      unassociated. #1984 (1.9.4)
 * zfile: more careful gzopen on Windows that could crash when given bogus
   filename. #1839 (1.9.2/1.8.8)
 
@@ -320,14 +344,29 @@ Build/test system improvements:
   working properly. #1942 (1.9.3)
 * Improvements in finding the location of OpenJPEG with Macports.
   #1948 (1.8.12, 1.9.4)
+* Improvement finding libraw properly on Windows. #1959 (1.9.4)
+* Fix warnings to allow clean gcc8 builds. #1974 (1.9.4)
+* Make sure we build properly for C++17. (1.9.4)
+* Check properly for minimal FFMpeg version (2.6). #1981 (1.9.4)
+* New build option GLIBCXX_USE_CXX11_ABI, when set to 0 will force the old
+  gcc string ABI (even gcc 7+ where the new ABI is the default), and if set
+  to 1 will force the new gcc string ABI (on gcc 5-6, where old ABI is the
+  default). If not set at all, it will respect the default choice for that
+  compiler. #1980 (1.9.4)
+* TravisCI builds now use an abbreviated test matrix for most ordinary
+  pushes of working branches, but the full test matrix for PRs or pushes
+  to "master" or "RB" branches. #1983 (1.9.4)
 
 Developer goodies / internals:
 * argparse.h:
     * Add pre- and post-option help printing callbacks. #1811 (1.9.2)
     * Changed to PIMPL to hide implementation from the public headers.
       Also modernized internals, no raw new/delete. #1858 (1.9.2)
-* array_view.h: added begin(), end(), cbegin(), cend() methods, and new
-  constructors from pointer pairs and from std::array. (1.9.0/1.8.6)
+* array_view.h:
+    * Added begin(), end(), cbegin(), cend() methods, and new
+      constructors from pointer pairs and from std::array. (1.9.0/1.8.6)
+    * Deprecated, moved contents to span.h. You should change `array_view<T>`
+      to `span<T>` and `array_view<const T>` to `cspan<T>`. #1956 (1.9.4)
 * color.h: add guards to make this header safe for Cuda compilation.
   #1905 (1.9.2/1.8.10)
 * filesystem.h:
@@ -344,6 +383,8 @@ Developer goodies / internals:
       #1943 (1.9.3)
     * fast_cbrt() is a fast approximate cube root (maximum error 8e-14,
       about 3 times faster than pow computes cube roots). #1955 (1.9.4)
+* function_view.h: Overhauled fixed with an alternate implementation
+  borrowed from LLVM. (1.9.4)
 * hash.h: add guards to make this header safe for Cuda compilation.
   #1905 (1.9.2/1.8.10)
 * parallel.h:
@@ -366,7 +407,7 @@ Developer goodies / internals:
     * Fixed build break when AVX512VL is enabled. #1781 (1.9.0/1.8.6)
     * Minor fixes especially for avx512. #1846 (1.9.2/1.8.8) #1873,#1893
       (1.9.2)
-* string.h:
+* strutil.h:
     * All string->numeric parsing and numeric->string formatting is now
       locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
     * New `Strutil::stof()`, `stoi()`, `stoui()`, `stod()` functions for
@@ -374,6 +415,9 @@ Developer goodies / internals:
       and `string_is_float()`. #1796 (1.9.0)
     * New `to_string<>` utility template. #1814 (1.9.2)
     * Fix to strtof, strtod for non-C locales. #1918 (1.8.11, 1.9.2)
+    * New `iless()` is case-insensitive locale-independent string_view
+      ordering comparison. Also added StringIEqual, StringLess, StringILess
+      functors. (1.9.4)
 * thread.h:
     * Reimplementaiton of `spin_rw_mutex` has much better performance when
       many threads are accessing at once, especially if most of them are
