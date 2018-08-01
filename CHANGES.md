@@ -1,6 +1,9 @@
-Release 1.8.13 (1 Jul? 2018) -- compared to 1.8.12
+Release 1.8.13 (1 Aug 2018) -- compared to 1.8.12
 -------------------------------------------------
-
+* Improved finding LibRaw on Windows #1959
+* Ensure FFMPEG (if found) is the minimum supported version 2.6.  #1963
+* Developer goodies: `intrusive_ptr<>` given a dangerous `release()`
+  method (use with caution). #1986
 
 Release 1.8.12 (1 Jun 2018) -- compared to 1.8.11
 -------------------------------------------------
