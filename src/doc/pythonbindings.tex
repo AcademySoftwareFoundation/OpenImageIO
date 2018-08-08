@@ -2351,7 +2351,7 @@ specified, an appropriate default will be chosen.
 \begin{code}
     # Resize the image to 640x480, using the default filter
     Src = ImageBuf ("tahoe.exr")
-    Dst = ImageBufAlgo.resize (Src, ROI(0,640,0,480,0,1,0,3))
+    Dst = ImageBufAlgo.resize (Src, roi=ROI(0,640,0,480,0,1,0,3))
 \end{code}
 \apiend
 
@@ -2371,7 +2371,27 @@ interpolate}).
 \begin{code}
     # Resample quickly to 320x240 to make a low-quality thumbnail
     Src = ImageBuf ("tahoe.exr")
-    Dst = ImageBufAlgo.resample (Src, ROI(0,640,0,480,0,1,0,3))
+    Dst = ImageBufAlgo.resample (Src, roi=ROI(0,640,0,480,0,1,0,3))
+\end{code}
+\apiend
+
+
+\apiitem{ImageBuf ImageBufAlgo.{\ce fit} (src, filtername="", filtersize=0.0, \\
+        \bigspc\bigspc  exact=false, roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce fit} (dst, src, filtername="", filtersize=0.0, \\
+        \bigspc\bigspc  exact=false, roi=ROI.All, nthreads=0)}
+\index{ImageBufAlgo!fit} \indexapi{fit}
+\NEW % 1.9
+Fit {\cf src} into the {\cf roi} while preserving the
+original aspect ratio, without stretching.  If the filter and size are not
+specified, an appropriate default will be chosen.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    # Resize to fit into a max of 640x480, preserving the aspect ratio
+    Src = ImageBuf ("tahoe.exr")
+    Dst = ImageBufAlgo.fit (Src, roi=ROI(0,640,0,480,0,1,0,3))
 \end{code}
 \apiend
 

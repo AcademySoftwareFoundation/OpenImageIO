@@ -409,6 +409,38 @@ resize_ (ImageBuf &dst, const ImageBuf &src,
 
 
 
+static std::shared_ptr<Filter2D>
+get_resize_filter (string_view filtername, float fwidth,
+                   ImageBuf& dst, float wratio, float hratio)
+{
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    std::shared_ptr<Filter2D> filter ((Filter2D*)nullptr, Filter2D::destroy);
+    if (filtername.empty()) {
+        // No filter name supplied -- pick a good default
+        if (wratio > 1.0f || hratio > 1.0f)
+            filtername = "blackman-harris";
+        else
+            filtername = "lanczos3";
+    }
+    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
+        FilterDesc fd;
+        Filter2D::get_filterdesc (i, &fd);
+        if (fd.name == filtername) {
+            float w = fwidth > 0.0f ? fwidth : fd.width * std::max (1.0f, wratio);
+            float h = fwidth > 0.0f ? fwidth : fd.width * std::max (1.0f, hratio);
+            filter.reset (Filter2D::create (filtername, w, h));
+            break;
+        }
+    }
+    if (! filter) {
+        dst.error ("Filter \"%s\" not recognized", filtername);
+    }
+    return filter;
+}
+
+
+
 bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
                       Filter2D *filter, ROI roi, int nthreads)
@@ -422,8 +454,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
     std::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
-    bool allocfilter = (filter == NULL);
-    if (allocfilter) {
+    if (! filter) {
         // If no filter was provided, punt and just linearly interpolate.
         const ImageSpec &srcspec (src.spec());
         const ImageSpec &dstspec (dst.spec());
@@ -446,7 +477,7 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
 bool
 ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
-                      string_view filtername_, float fwidth,
+                      string_view filtername, float fwidth,
                       ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::resize");
@@ -463,35 +494,12 @@ ImageBufAlgo::resize (ImageBuf &dst, const ImageBuf &src,
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
-    std::shared_ptr<Filter2D> filter ((Filter2D*)NULL, Filter2D::destroy);
-    std::string filtername = filtername_;
-    if (filtername.empty()) {
-        // No filter name supplied -- pick a good default
-        if (wratio > 1.0f || hratio > 1.0f)
-            filtername = "blackman-harris";
-        else
-            filtername = "lanczos3";
-    }
-    for (int i = 0, e = Filter2D::num_filters();  i < e;  ++i) {
-        FilterDesc fd;
-        Filter2D::get_filterdesc (i, &fd);
-        if (fd.name == filtername) {
-            float w = fwidth > 0.0f ? fwidth : fd.width * std::max (1.0f, wratio);
-            float h = fwidth > 0.0f ? fwidth : fd.width * std::max (1.0f, hratio);
-            filter.reset (Filter2D::create (filtername, w, h));
-            break;
-        }
-    }
-    if (! filter) {
-        dst.error ("Filter \"%s\" not recognized", filtername);
-        return false;
-    }
+    auto filter = get_resize_filter (filtername, fwidth, dst, wratio, hratio);
+    if (! filter)
+        return false;  // error issued in get_resize_filter
 
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "resize", resize_,
-                          dstspec.format, srcspec.format,
-                          dst, src, filter.get(), roi, nthreads);
-    return ok;
+    logtime.stop(); // it will be picked up again by the next call...
+    return resize (dst, src, filter.get(), roi, nthreads);
 }
 
 
@@ -517,6 +525,164 @@ ImageBufAlgo::resize (const ImageBuf &src,
     bool ok = resize (result, src, filtername, filterwidth, roi, nthreads);
     if (!ok && !result.has_error())
         result.error ("ImageBufAlgo::resize() error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::fit (ImageBuf &dst, const ImageBuf &src,
+                   Filter2D *filter, bool exact,
+                   ROI roi, int nthreads)
+{
+    // No time logging, it will be accounted in the underlying warp/resize
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME |
+            IBAprep_NO_COPY_ROI_FULL))
+        return false;
+
+    const ImageSpec &srcspec (src.spec());
+
+    // Compute scaling factors and use action_resize to do the heavy lifting
+    int fit_full_width = roi.width();
+    int fit_full_height = roi.height();
+    int fit_full_x = roi.xbegin;
+    int fit_full_y = roi.ybegin;
+    float oldaspect = float(srcspec.full_width) / srcspec.full_height;
+    float newaspect = float(fit_full_width) / fit_full_height;
+    int resize_full_width = fit_full_width;
+    int resize_full_height = fit_full_height;
+    int xoffset = 0, yoffset = 0;
+    float xoff = 0.0f, yoff = 0.0f;
+    float scale = 1.0f;
+
+    if (newaspect >= oldaspect) {  // same or wider than original
+        resize_full_width = int(resize_full_height * oldaspect + 0.5f);
+        xoffset = (fit_full_width - resize_full_width) / 2;
+        scale = float(fit_full_height) / float(srcspec.full_height);
+        xoff = float(fit_full_width - scale * srcspec.full_width) / 2.0f;
+    } else {  // narrower than original
+        resize_full_height = int(resize_full_width / oldaspect + 0.5f);
+        yoffset = (fit_full_height - resize_full_height) / 2;
+        scale = float(fit_full_width) / float(srcspec.full_width);
+        yoff = float(fit_full_height - scale * srcspec.full_height) / 2.0f;
+    }
+
+    ROI newroi (fit_full_x, fit_full_x+fit_full_width,
+                fit_full_y, fit_full_y+fit_full_height,
+                0, 1, 0, srcspec.nchannels);
+    // std::cout << "  Fitting " << srcspec.roi()
+    //           << " into " << newroi << "\n";
+    // std::cout << "  Fit scale factor " << scale << "\n";
+
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    std::shared_ptr<Filter2D> filterptr ((Filter2D*)NULL, Filter2D::destroy);
+    if (! filter) {
+        // If no filter was provided, punt and just linearly interpolate.
+        float wratio = float(resize_full_width) / float(srcspec.full_width);
+        float hratio = float(resize_full_height) / float(srcspec.full_height);
+        float w = 2.0f * std::max (1.0f, wratio);
+        float h = 2.0f * std::max (1.0f, hratio);
+        filter = Filter2D::create ("triangle", w, h);
+        filterptr.reset (filter);
+    }
+
+    bool ok = true;
+    if (exact) {
+        // Full partial-pixel filtered resize -- exactly preserves aspect
+        // ratio and exactly centers the padded image, but might make the
+        // edges of the resized area blurry because it's not a whole number
+        // of pixels.
+        Imath::M33f M (scale, 0.0f,  0.0f,
+                       0.0f,  scale, 0.0f,
+                       xoff,  yoff,  1.0f);
+        // std::cout << "   Fit performing warp with " << M << "\n";
+        ImageSpec newspec = srcspec;
+        newspec.set_roi (newroi);
+        newspec.set_roi_full (newroi);
+        dst.reset (newspec);
+        ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string ("black");
+        ok &= ImageBufAlgo::warp (dst, src, M, filter, false, wrap, {}, nthreads);
+    } else {
+        // Full pixel resize -- gives the sharpest result, but for odd-sized
+        // destination resolution, may not be exactly centered and will only
+        // preserve the aspect ratio to the nearest integer pixel size.
+        if (resize_full_width != srcspec.full_width ||
+              resize_full_height != srcspec.full_height ||
+              fit_full_x != srcspec.full_x || fit_full_y != srcspec.full_y) {
+            ROI resizeroi (fit_full_x, fit_full_x+resize_full_width,
+                           fit_full_y, fit_full_y+resize_full_height,
+                           0, 1, 0, srcspec.nchannels);
+            ImageSpec newspec = srcspec;
+            newspec.set_roi (resizeroi);
+            newspec.set_roi_full (resizeroi);
+            dst.reset (newspec);
+            ok &= ImageBufAlgo::resize (dst, src, filter, resizeroi, nthreads);
+        } else {
+            ok &= dst.copy (src);   // no resize is necessary
+        }
+        dst.specmod().full_width = fit_full_width;
+        dst.specmod().full_height = fit_full_height;
+        dst.specmod().full_x = fit_full_x;
+        dst.specmod().full_y = fit_full_y;
+        dst.specmod().x = xoffset;
+        dst.specmod().y = yoffset;
+    }
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::fit (ImageBuf &dst, const ImageBuf &src,
+                   string_view filtername, float fwidth, bool exact,
+                   ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::fit");
+    if (! IBAprep (roi, &dst, &src,
+            IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME |
+            IBAprep_NO_COPY_ROI_FULL))
+        return false;
+    const ImageSpec &srcspec (src.spec());
+    const ImageSpec &dstspec (dst.spec());
+    // Resize ratios
+    float wratio = float(dstspec.full_width) / float(srcspec.full_width);
+    float hratio = float(dstspec.full_height) / float(srcspec.full_height);
+
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    auto filter = get_resize_filter (filtername, fwidth, dst, wratio, hratio);
+    if (! filter)
+        return false;  // error issued in get_resize_filter
+
+    logtime.stop(); // it will be picked up again by the next call...
+    return fit (dst, src, filter.get(), exact, roi, nthreads);
+}
+
+
+
+ImageBuf
+ImageBufAlgo::fit (const ImageBuf &src, Filter2D *filter, bool exact,
+                   ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = fit (result, src, filter, exact, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::fit() error");
+    return result;
+}
+
+
+ImageBuf
+ImageBufAlgo::fit (const ImageBuf &src,
+                   string_view filtername, float filterwidth, bool exact,
+                   ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = fit (result, src, filtername, filterwidth, exact, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::fit() error");
     return result;
 }
 

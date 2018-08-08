@@ -40,6 +40,7 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/thread.h>
+#include "imageio_pvt.h"
 #include "kissfft.hh"
 
 #ifdef USE_BOOST_REGEX
@@ -441,6 +442,7 @@ ImageBufAlgo::convolve (ImageBuf &dst, const ImageBuf &src,
                         const ImageBuf &kernel, bool normalize,
                         ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::convolve");
     if (! IBAprep (roi, &dst, &src, IBAprep_REQUIRE_SAME_NCHANNELS))
         return false;
     bool ok;
@@ -580,6 +582,7 @@ ImageBufAlgo::unsharp_mask (ImageBuf &dst, const ImageBuf &src,
                             float contrast, float threshold,
                             ROI roi, int nthreads)
 {
+    // N.B. Don't log time, it will get caught by the constituent parts
     if (! IBAprep (roi, &dst, &src,
             IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
@@ -648,6 +651,7 @@ bool
 ImageBufAlgo::laplacian (ImageBuf &dst, const ImageBuf &src,
                          ROI roi, int nthreads)
 {
+    // N.B.: Don't log time, convolve will catch it
     if (! IBAprep (roi, &dst, &src,
             IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
@@ -729,6 +733,7 @@ ImageBufAlgo::median_filter (ImageBuf &dst, const ImageBuf &src,
                              int width, int height,
                              ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::median_filter");
     if (! IBAprep (roi, &dst, &src,
             IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
@@ -811,6 +816,7 @@ bool
 ImageBufAlgo::dilate (ImageBuf &dst, const ImageBuf &src,
                       int width, int height, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::dilate");
     if (! IBAprep (roi, &dst, &src,
             IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
@@ -842,6 +848,7 @@ bool
 ImageBufAlgo::erode (ImageBuf &dst, const ImageBuf &src,
                       int width, int height, ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::erode");
     if (! IBAprep (roi, &dst, &src,
             IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME))
         return false;
@@ -907,6 +914,7 @@ bool
 ImageBufAlgo::fft (ImageBuf &dst, const ImageBuf &src,
                    ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::fft");
     if (src.spec().depth > 1) {
         dst.error ("ImageBufAlgo::fft does not support volume images");
         return false;
@@ -977,6 +985,7 @@ bool
 ImageBufAlgo::ifft (ImageBuf &dst, const ImageBuf &src,
                     ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::ifft");
     if (src.nchannels() != 2 || src.spec().format != TypeDesc::FLOAT) {
         dst.error ("ifft can only be done on 2-channel float images");
         return false;
@@ -1103,6 +1112,7 @@ bool
 ImageBufAlgo::polar_to_complex (ImageBuf &dst, const ImageBuf &src,
                              ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::polar_to_complex");
     if (src.nchannels() != 2) {
         dst.error ("polar_to_complex can only be done on 2-channel");
         return false;
@@ -1139,6 +1149,7 @@ bool
 ImageBufAlgo::complex_to_polar (ImageBuf &dst, const ImageBuf &src,
                              ROI roi, int nthreads)
 {
+    pvt::LoggedTimer logtime("IBA::complex_to_polar");
     if (src.nchannels() != 2) {
         dst.error ("complex_to_polar can only be done on 2-channel");
         return false;
@@ -1199,6 +1210,7 @@ bool
 ImageBufAlgo::fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
                                   ROI roi, int nthreads)
 {
+    // N.B. Don't log time, it will be caught by the constituent parts
     const int req = (IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_REQUIRE_ALPHA |
                      IBAprep_NO_SUPPORT_VOLUME);
     if (! IBAprep (roi, &dst, &src, req))

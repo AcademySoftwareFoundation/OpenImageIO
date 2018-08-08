@@ -291,6 +291,10 @@ try:
     b = ImageBufAlgo.resample (grid, roi=oiio.ROI(0,128,0,128))
     write (b, "resample.tif")
 
+    # fit
+    b = ImageBufAlgo.fit (grid, roi=oiio.ROI(0,360,0,240))
+    write (b, "fit.tif")
+
     # warp
     Mwarp = (0.7071068, 0.7071068, 0, -0.7071068, 0.7071068, 0, 128, -53.01933, 1)
     b = ImageBufAlgo.warp (ImageBuf("resize.tif"), Mwarp)

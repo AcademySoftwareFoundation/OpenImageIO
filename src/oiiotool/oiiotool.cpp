@@ -3359,8 +3359,32 @@ action_fit (int argc, const char *argv[])
     bool pad = Strutil::from_string<int>(options["pad"]);
     string_view filtername = options["filter"];
     bool exact = Strutil::from_string<int>(options["exact"]);
-    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string (options["wrap"]);
     bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
+#if 1
+    // New version: use IBA::fit() for the heavy lifting
+    int subimages = allsubimages ? A->subimages() : 1;
+    ImageRecRef R (new ImageRec (A->name(), subimages));
+    for (int s = 0; s < subimages; ++s) {
+        ImageSpec newspec = (*A)(s,0).spec();
+        newspec.width = newspec.full_width = fit_full_width;
+        newspec.height = newspec.full_height = fit_full_height;
+        newspec.x = newspec.full_x = fit_full_x;
+        newspec.y = newspec.full_y = fit_full_y;
+        (*R)(s,0).reset (newspec);
+        ImageBufAlgo::fit ((*R)(s,0), (*A)(s,0), filtername, 0.0f, exact);
+        R->update_spec_from_imagebuf (s, 0);
+    }
+    ot.pop();
+    ot.push (R);
+    A = ot.top ();
+    Aspec = A->spec(0,0);
+
+#else
+    // Old version: do all the fit logic here. Eventually delete this.
+    // Leave for now because it makes it easy to check that we got the
+    // same results.
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string (options["wrap"]);
 
     // Compute scaling factors and use action_resize to do the heavy lifting
     float oldaspect = float(Aspec->full_width) / Aspec->full_height;
@@ -3452,6 +3476,7 @@ action_fit (int argc, const char *argv[])
         A->spec(0,0)->x = (*A)(0,0).specmod().x = xoffset;
         A->spec(0,0)->y = (*A)(0,0).specmod().y = yoffset;
     }
+#endif
 
     if (pad && (fit_full_width != Aspec->width ||
                 fit_full_height != Aspec->height)) {

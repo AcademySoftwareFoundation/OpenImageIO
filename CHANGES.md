@@ -117,6 +117,10 @@ Public API changes:
     * IBA compare(), computePixelStats(), and histogram() now directly
       return their result structures, intead of requiring the passing of
       a destination reference. #1961 (1.9.4)
+    * New IBA::fit() resizes and image to just fit in the given size, but
+      preserve its aspect ratio (padding with black as necessary). It's just
+      like what `oiiotool --fit` has always done, but now you can call it
+      directly from C++ or Python. #1993 (1.9.4)
 * ColorConfig changes: ColorConfig methods now return shared pointers to
   `ColorProcessor` rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects
@@ -223,6 +227,7 @@ Fixes and feature enhancements:
       with alpha with another image without alpha. #1827 (1.9.2)
     * `mad()` now takes an `img*color+img` variety. (Previously it
        supported `img*img+img` and `img*color+color`.) #1866 (1.9.2)
+    * New functions: fit() #1993.
 * ImageBuf:
     * Bug fixed in IB::copy() of rare types. #1829 (1.9.2)
     * write() automatically tells the ImageCache to 'invalidate' the file
