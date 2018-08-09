@@ -1063,11 +1063,12 @@ bool OIIO_API rotate (ImageBuf &dst, const ImageBuf &src,
 /// window of each correspond to each other, regardless of resolution).
 ///
 /// The filter is used to weight the src pixels falling underneath it for
-/// each dst pixel.  The caller may specify a reconstruction filter by name
-/// and width (expressed  in pixels unts of the dst image), or resize() will
-/// choose a reasonable default high-quality default filter (blackman-harris
-/// when upsizing, lanczos3 when downsizing) if the empty string is passed
-/// or if filterwidth is 0.
+/// each dst pixel.  The caller may specify a reconstruction filter
+/// explicitly by passing a `Filter2D*`, or by name and width (expressed in
+/// pixels unts of the dst image), or resize() will choose a reasonable
+/// default high-quality default filter (blackman-harris when upsizing,
+/// lanczos3 when downsizing) if the empty string is passed or if
+/// filterwidth is 0.
 ///
 ImageBuf OIIO_API resize (const ImageBuf &src,
                           string_view filtername = "", float filterwidth=0.0f,
@@ -1075,17 +1076,6 @@ ImageBuf OIIO_API resize (const ImageBuf &src,
 bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src,
                       string_view filtername = "", float filterwidth=0.0f,
                       ROI roi={}, int nthreads=0);
-
-/// Set dst, over the region of interest, to be a resized version of the
-/// corresponding portion of src (mapping such that the "full" image
-/// window of each correspond to each other, regardless of resolution).
-///
-/// The caller may explicitly pass a reconstruction filter, or resize()
-/// will choose a reasonable default if NULL is passed.  The filter is
-/// used to weight the src pixels falling underneath it for each dst
-/// pixel; the filter's size is expressed in pixel units of the dst
-/// image.  If no filter is supplied, a default medium-quality
-/// (triangle) filter will be used.
 ImageBuf OIIO_API resize (const ImageBuf &src, Filter2D *filter,
                           ROI roi={}, int nthreads=0);
 bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
@@ -1107,6 +1097,36 @@ ImageBuf OIIO_API resample (const ImageBuf &src, bool interpolate = true,
 bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
                         bool interpolate = true, ROI roi={}, int nthreads=0);
 
+
+/// Fit src into dst (to a size specified by roi, if dst is not
+/// initialized), resizing but preserving its original aspect ratio. Thus,
+/// it will resize so be the largest size with the same aspect ratio that
+/// can fix inside the region, but will not stretch to completely fill it in
+/// both dimensions.
+///
+/// If `exact` is true, will result in an exact match on aspect ratio and
+/// centering (partial pixel shift if necessary), whereas exact=false
+/// will only preserve aspect ratio and centering to the precision of a
+/// whole pixel.
+///
+/// The filter is used to weight the src pixels falling underneath it for
+/// each dst pixel.  The caller may specify a reconstruction filter
+/// explicitly by passing a `Filter2D*`, or by name and width (expressed in
+/// pixels unts of the dst image), or resize() will choose a reasonable
+/// default high-quality default filter (blackman-harris when upsizing,
+/// lanczos3 when downsizing) if the empty string is passed or if
+/// filterwidth is 0.
+///
+ImageBuf OIIO_API fit (const ImageBuf &src,
+                       string_view filtername = "", float filterwidth=0.0f,
+                       bool exact=false, ROI roi={}, int nthreads=0);
+bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
+                   string_view filtername = "", float filterwidth=0.0f,
+                   bool exact=false, ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API fit (const ImageBuf &src, Filter2D *filter,
+                       bool exact=false, ROI roi={}, int nthreads=0);
+bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
+                   bool exact=false, ROI roi={}, int nthreads=0);
 
 /// Return (or store into the ROI of dst) the convolution of src and a
 /// kernel. If roi is not defined, it defaults to the full size of dst (or

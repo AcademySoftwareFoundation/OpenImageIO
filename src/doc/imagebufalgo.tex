@@ -900,6 +900,46 @@ value of {\cf interpolate}).
 \apiend
 
 
+\apiitem{ImageBuf {\ce fit} (const ImageBuf \&src, string_view filtername="", \\
+        \bigspc  float filtersize=0, bool exact=false, ROI roi=\{\}, int nthreads=0) \\
+ImageBuf {\ce fit} (const ImageBuf \&src, Filter2D *filter, \\
+        \bigspc  bool exact=false, ROI roi=\{\}, int nthreads=0) \\[1.0ex]
+bool {\ce fit} (ImageBuf \&dst, const ImageBuf \&src, string_view filtername="", \\
+        \bigspc  float filtersize=0, bool exact=false, ROI roi=\{\}, int nthreads=0) \\
+bool {\ce fit} (ImageBuf \&dst, const ImageBuf \&src, Filter2D *filter, \\
+        \bigspc  bool exact=false, ROI roi=\{\}, int nthreads=0)}
+\index{ImageBufAlgo!fit} \indexapi{fit}
+\NEW % 1.9
+
+Fit {\cf src} into {\cf dst} (to a size specified by {\cf roi}, if {\cf dst}
+is not initialized), resizing but preserving its original aspect ratio.
+Thus, it will resize so be the largest size with the same aspect ratio that
+can fix inside the region, but will not stretch to completely fill it in
+both dimensions.
+
+If {\cf exact} is true, will result in an exact match on aspect ratio and
+centering (partial pixel shift if necessary), whereas if {\cf exact} is
+false, it will only preserve aspect ratio and centering to the precision of
+a whole pixel.
+
+The caller may explicitly pass a reconstruction filter, or specify one by
+name and size, or if the name is the empty string {\cf fit()} will choose
+a reasonable high-quality default if \NULL is passed.  The filter is used to
+weight the {\cf src} pixels falling underneath it for each {\cf dst} pixel;
+the filter's size is expressed in pixel units of the {\cf dst} image.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    // Resize to fit into a max of 640x480, preserving the aspect ratio
+    ImageBuf Src ("tahoe.exr");
+    ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
+    ImageBuf Dst = ImageBufAlgo::fit (Src, "", 0, true, roi);
+\end{code}
+\apiend
+
+
+
 
 \section{Image arithmetic}
 \label{sec:iba:arith}

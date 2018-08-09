@@ -127,6 +127,8 @@ Comparing "resize.tif" and "../../../../testsuite/oiiotool-xform/ref/resize.tif"
 PASS
 Comparing "resample.tif" and "../../../../testsuite/oiiotool-xform/ref/resample.tif"
 PASS
+Comparing "fit.tif" and "../../../../testsuite/oiiotool-xform/ref/fit.tif"
+PASS
 Comparing "bsplinekernel.exr" and "../../../../testsuite/oiiotool/ref/bsplinekernel.exr"
 PASS
 Comparing "bspline-blur.tif" and "../../../../testsuite/oiiotool/ref/bspline-blur.tif"
