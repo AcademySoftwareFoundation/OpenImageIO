@@ -34,6 +34,7 @@
 #include <string>
 #include <iostream>
 #include <ctime>
+#include <thread>
 
 #ifdef __linux__
 # include <sys/sysinfo.h>
@@ -81,8 +82,11 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/strutil.h>
 
-#include <boost/version.hpp>
+// clang 7.0 (rc2) has errors when including boost thread!
+// The only thin we're using there is boost::physical_concurrency.
+#if !(OIIO_CLANG_VERSION >= 7)
 #include <boost/thread.hpp>
+#endif
 
 
 OIIO_NAMESPACE_BEGIN
@@ -552,7 +556,7 @@ Sysutil::put_in_background (int, char* [])
 unsigned int
 Sysutil::hardware_concurrency ()
 {
-    return boost::thread::hardware_concurrency();
+    return std::thread::hardware_concurrency();
 }
 
 
@@ -560,10 +564,11 @@ Sysutil::hardware_concurrency ()
 unsigned int
 Sysutil::physical_concurrency ()
 {
-#if BOOST_VERSION >= 105600
+    // clang 7.0.0rc2 has trouble compiling boost thread
+#if BOOST_VERSION >= 105600 && !(OIIO_CLANG_VERSION >= 7)
     return boost::thread::physical_concurrency();
 #else
-    return boost::thread::hardware_concurrency();
+    return std::thread::hardware_concurrency();
 #endif
 }
 

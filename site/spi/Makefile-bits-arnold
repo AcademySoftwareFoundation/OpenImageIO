@@ -184,10 +184,16 @@ else ifeq (${platform}, macosx)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=gcc-6 -DCMAKE_CXX_COMPILER=g++-6
         USE_LIBCPLUSPLUS := 0
+    else ifeq (${COMPILER}, gcc8)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=gcc-8 -DCMAKE_CXX_COMPILER=g++-8
+        USE_LIBCPLUSPLUS := 0
     else ifeq (${COMPILER},clang35)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang-3.5 -DCMAKE_CXX_COMPILER=clang++-3.5
     else ifeq (${COMPILER},clang38)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang-3.8 -DCMAKE_CXX_COMPILER=clang++-3.8
+    else ifeq (${COMPILER},clang7)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm/7.0.0rc1/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm/7.0.0rc1/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER},gcc)

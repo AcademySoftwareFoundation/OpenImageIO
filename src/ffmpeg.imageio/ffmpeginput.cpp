@@ -133,10 +133,9 @@ inline int receive_frame(AVCodecContext *avctx, AVFrame *picture,
 #endif
 
 
-#include <boost/thread/once.hpp>
-
 #include <OpenImageIO/imageio.h>
 #include <iostream>
+#include <mutex>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -269,8 +268,8 @@ FFmpegInput::open (const std::string &name, ImageSpec &spec)
         return false;
     }
 
-    static boost::once_flag init_flag = BOOST_ONCE_INIT;
-    boost::call_once (&av_register_all, init_flag);
+    static std::once_flag init_flag;
+    std::call_once (init_flag, av_register_all);
     const char *file_name = name.c_str();
     av_log_set_level (AV_LOG_FATAL);
     if (avformat_open_input (&m_format_context, file_name, NULL, NULL) != 0) // avformat_open_input allocs format_context
