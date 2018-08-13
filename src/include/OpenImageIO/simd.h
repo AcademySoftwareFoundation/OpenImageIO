@@ -324,6 +324,7 @@ template<typename T,int elements> struct VecType {};
 template<> struct VecType<int,1>   { typedef int type; };
 template<> struct VecType<float,1> { typedef float type; };
 template<> struct VecType<int,4>   { typedef vint4 type; };
+template<> struct VecType<float,4>   { typedef vfloat4 type; };
 template<> struct VecType<float,3> { typedef vfloat3 type; };
 template<> struct VecType<bool,4>  { typedef vbool4 type; };
 template<> struct VecType<int,8>   { typedef vint8 type; };
