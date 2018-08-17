@@ -578,6 +578,82 @@ void test_gatherscatter ()
 
 
 
+template<typename T>
+void test_extract3 ()
+{
+    const T vals[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    using VEC = typename VecType<T,3>::type;
+    VEC b (vals);
+    for (int i = 0; i < VEC::elements; ++i)
+        OIIO_CHECK_EQUAL (b[i], vals[i]);
+    OIIO_CHECK_EQUAL (extract<0>(b), 0);
+    OIIO_CHECK_EQUAL (extract<1>(b), 1);
+    OIIO_CHECK_EQUAL (extract<2>(b), 2);
+}
+
+template<typename T>
+void test_extract4 ()
+{
+    const T vals[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    using VEC = typename VecType<T,4>::type;
+    VEC b (vals);
+    for (int i = 0; i < VEC::elements; ++i)
+        OIIO_CHECK_EQUAL (b[i], vals[i]);
+    OIIO_CHECK_EQUAL (extract<0>(b), 0);
+    OIIO_CHECK_EQUAL (extract<1>(b), 1);
+    OIIO_CHECK_EQUAL (extract<2>(b), 2);
+    OIIO_CHECK_EQUAL (extract<3>(b), 3);
+}
+
+template<typename T>
+void test_extract8 ()
+{
+    test_extract4<T>();
+
+    const T vals[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    using VEC = typename VecType<T,8>::type;
+    VEC b (vals);
+    for (int i = 0; i < VEC::elements; ++i)
+        OIIO_CHECK_EQUAL (b[i], vals[i]);
+    OIIO_CHECK_EQUAL (extract<4>(b), 4);
+    OIIO_CHECK_EQUAL (extract<5>(b), 5);
+    OIIO_CHECK_EQUAL (extract<6>(b), 6);
+    OIIO_CHECK_EQUAL (extract<7>(b), 7);
+}
+
+template<typename T>
+void test_extract16 ()
+{
+    test_extract8<T>();
+
+    const T vals[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+    using VEC = typename VecType<T,16>::type;
+    VEC b (vals);
+    for (int i = 0; i < VEC::elements; ++i)
+        OIIO_CHECK_EQUAL (b[i], vals[i]);
+    OIIO_CHECK_EQUAL (extract<8>(b), 8);
+    OIIO_CHECK_EQUAL (extract<9>(b), 9);
+    OIIO_CHECK_EQUAL (extract<10>(b), 10);
+    OIIO_CHECK_EQUAL (extract<11>(b), 11);
+    OIIO_CHECK_EQUAL (extract<12>(b), 12);
+    OIIO_CHECK_EQUAL (extract<13>(b), 13);
+    OIIO_CHECK_EQUAL (extract<14>(b), 14);
+    OIIO_CHECK_EQUAL (extract<15>(b), 15);
+}
+
+
+
+template<typename T, int SIZE> void test_extract ();
+template<> void test_extract<float,16> () { test_extract16<float>(); }
+template<> void test_extract<int,16> () { test_extract16<int>(); }
+template<> void test_extract<float,8> () { test_extract8<float>(); }
+template<> void test_extract<int,8> () { test_extract8<int>(); }
+template<> void test_extract<float,4> () { test_extract4<float>(); }
+template<> void test_extract<int,4> () { test_extract4<int>(); }
+template<> void test_extract<float,3> () { test_extract3<float>(); }
+
+
+
 template<typename VEC>
 void test_component_access ()
 {
@@ -616,6 +692,9 @@ void test_component_access ()
         OIIO_CHECK_SIMD_EQUAL (insert<3>(a, ELEM(42)), mkvec<VEC>(0,1,2,42,4,5,6,7));
 
     VEC b (vals);
+#if 1
+    test_extract<ELEM,VEC::elements>();
+#else
     for (int i = 0; i < VEC::elements; ++i)
         OIIO_CHECK_EQUAL (b[i], vals[i]);
     OIIO_CHECK_EQUAL (extract<0>(b), 0);
@@ -639,6 +718,7 @@ void test_component_access ()
         OIIO_CHECK_EQUAL (extract<14>(b), 14);
         OIIO_CHECK_EQUAL (extract<15>(b), 15);
     }
+#endif
 
     benchmark2 ("operator[i]", [&](const VEC& v, int i){ return v[i]; },  b, 2, 1 /*work*/);
     benchmark2 ("operator[2]", [&](const VEC& v, int i){ return v[2]; },  b, 2, 1 /*work*/);

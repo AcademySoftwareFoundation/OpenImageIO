@@ -361,6 +361,7 @@ Build/test system improvements:
 * TravisCI builds now use an abbreviated test matrix for most ordinary
   pushes of working branches, but the full test matrix for PRs or pushes
   to "master" or "RB" branches. #1983 (1.9.4)
+* Support compilation by clang 7.0. #1995 (1.9.4)
 
 Developer goodies / internals:
 * argparse.h:
