@@ -2172,7 +2172,7 @@ ImageBuf::set_roi_full (const ROI &newroi)
 bool
 ImageBuf::contains_roi (ROI roi) const
 {
-    ROI myroi = roi;
+    ROI myroi = this->roi();
     return (roi.defined() && myroi.defined() &&
             roi.xbegin >= myroi.xbegin && roi.xend <= myroi.xend &&
             roi.ybegin >= myroi.ybegin && roi.yend <= myroi.yend &&
