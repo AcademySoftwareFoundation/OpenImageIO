@@ -453,10 +453,45 @@ test_write_exr_to_memory ()
 
 
 
+void
+test_roi ()
+{
+    std::cout << "Testing ROI functions for ImageSpec and ImageBuf\n";
+    ROI datawin (10, 640, 20, 480, 0, 1, 0, 3);
+    ROI displaywin (0, 512, 30, 100, 0, 1, 0, 3);
+    ROI initroi (0, 256, 0, 300, 0, 1, 0, 3);
+
+    // Test roi set and retrieve on an ImageSpec
+    ImageSpec spec (256, 300, 3);
+    OIIO_CHECK_EQUAL (spec.roi(), initroi);
+    OIIO_CHECK_EQUAL (spec.roi_full(), initroi);
+    spec.set_roi (datawin);
+    spec.set_roi_full (displaywin);
+    OIIO_CHECK_EQUAL (spec.roi(), datawin);
+    OIIO_CHECK_EQUAL (spec.roi_full(), displaywin);
+
+    // Test roi set and retrieve on an ImageSBuf
+    ImageBuf buf ((ImageSpec (datawin)));
+    OIIO_CHECK_EQUAL (buf.roi(), datawin);
+    OIIO_CHECK_EQUAL (buf.roi_full(), datawin);
+    buf.set_roi_full (displaywin);
+    OIIO_CHECK_EQUAL (buf.roi(), datawin);
+    OIIO_CHECK_EQUAL (buf.roi_full(), displaywin);
+
+    OIIO_CHECK_ASSERT (buf.contains_roi (datawin));
+    OIIO_CHECK_ASSERT (buf.contains_roi (ROI (100, 110, 100, 110, 0, 1, 0, 2)));
+    OIIO_CHECK_ASSERT (! buf.contains_roi (ROI (0, 640, 0, 480, 0, 1, 0, 3))); // outside xy
+    OIIO_CHECK_ASSERT (! buf.contains_roi (ROI (10, 640, 20, 480, 1, 2, 0, 3))); // outside z
+    OIIO_CHECK_ASSERT (! buf.contains_roi (ROI (10, 640, 20, 480, 0, 1, 0, 4))); // outside ch
+}
+
+
+
 int
 main (int argc, char **argv)
 {
     test_wrapmodes ();
+    test_roi ();
 
     // Lots of tests related to ImageBuf::Iterator
     test_empty_iterator ();
