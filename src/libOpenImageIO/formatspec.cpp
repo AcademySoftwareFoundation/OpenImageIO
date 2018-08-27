@@ -156,7 +156,7 @@ ImageSpec::ImageSpec (int xres, int yres, int nchans, TypeDesc format)
 ImageSpec::ImageSpec (const ROI &roi, TypeDesc format)
     : x(roi.xbegin), y(roi.ybegin), z(roi.zbegin),
       width(roi.width()), height(roi.height()), depth(roi.depth()),
-      full_x(0), full_y(0), full_z(0),
+      full_x(roi.xbegin), full_y(roi.ybegin), full_z(roi.zbegin),
       full_width(width), full_height(height), full_depth(1),
       tile_width(0), tile_height(0), tile_depth(1),
       nchannels(roi.nchannels()), format(format),
