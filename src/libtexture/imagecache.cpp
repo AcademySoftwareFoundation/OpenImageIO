@@ -252,7 +252,10 @@ ImageCacheFile::LevelInfo::LevelInfo (const ImageSpec &spec_,
     }
     int total_tiles = nxtiles * nytiles * nztiles;
     ASSERT (total_tiles >= 1);
-    tiles_read = new atomic_ll [round_to_multiple (total_tiles, 64) / 64];
+    const int sz = round_to_multiple (total_tiles, 64) / 64;
+    tiles_read = new atomic_ll [sz];
+    for (int i = 0; i < sz; i++)
+        tiles_read[i] = 0;
 }
 
 
