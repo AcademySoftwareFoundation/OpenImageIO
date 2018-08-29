@@ -36,6 +36,7 @@
 #include <cmath>
 #include <algorithm>
 
+#include <OpenImageIO/simd.h>
 #include <OpenImageIO/sysutil.h>
 
 
@@ -115,7 +116,7 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_EQUAL_APPROX(x,y)                                        \
-    (pvt::equal_approx(x,y) ? ((void)0)                                     \
+    (OIIO::pvt::equal_approx(x,y) ? ((void)0)                               \
          : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")   \
              << __FILE__ << ":" << __LINE__ << ":\n"                        \
              << "FAILED: " << OIIO::Sysutil::Term(std::cout).ansi("normal") \
