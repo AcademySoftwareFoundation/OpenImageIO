@@ -36,7 +36,6 @@
 #include <cmath>
 #include <algorithm>
 
-#include <OpenImageIO/simd.h>
 #include <OpenImageIO/sysutil.h>
 
 
