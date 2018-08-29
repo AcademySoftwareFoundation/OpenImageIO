@@ -114,14 +114,14 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
              << ", diff was " << std::abs((x)-(y)) << "\n"),            \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_EQUAL_APPROX(x,y)                                    \
-    (pvt::equal_approx(x,y) ? ((void)0)                                 \
-         : ((std::cout << Sysutil::Term(std::cout).ansi("red,bold")     \
-             << __FILE__ << ":" << __LINE__ << ":\n"                    \
-             << "FAILED: " << Sysutil::Term(std::cout).ansi("normal")   \
-             << #x << " == " << #y << "\n"                              \
-             << "\tvalues were '" << (x) << "' and '" << (y) << "'"     \
-             << ", diff was " << ((x)-(y)) << "\n"),                    \
+#define OIIO_CHECK_EQUAL_APPROX(x,y)                                        \
+    (OIIO::pvt::equal_approx(x,y) ? ((void)0)                               \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")   \
+             << __FILE__ << ":" << __LINE__ << ":\n"                        \
+             << "FAILED: " << OIIO::Sysutil::Term(std::cout).ansi("normal") \
+             << #x << " == " << #y << "\n"                                  \
+             << "\tvalues were '" << (x) << "' and '" << (y) << "'"         \
+             << ", diff was " << ((x)-(y)) << "\n"),                        \
             (void)++unit_test_failures))
 
 #define OIIO_CHECK_NE(x,y)                                              \
