@@ -261,7 +261,9 @@ GIFInput::read_subimage_metadata (ImageSpec &newspec)
                 report_last_error ();
                 return false;
             }
-            read_gif_extension (ext_code, ext, newspec);
+            if (ext != NULL) {
+                read_gif_extension (ext_code, ext, newspec);
+            }
             
             while (ext != NULL)
             {
