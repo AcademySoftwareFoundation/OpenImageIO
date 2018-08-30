@@ -97,6 +97,10 @@ class JpgOutput final : public ImageOutput {
         m_cinfo.comp_info[2].h_samp_factor = components[4];
         m_cinfo.comp_info[2].v_samp_factor = components[5];
     }
+
+    // Read the XResolution/YResolution and PixelAspectRatio metadata, store
+    // in density fields m_cinfo.X_density,Y_density.
+    void resmeta_to_density ();
 };
 
 
@@ -175,27 +179,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
     else
         m_cinfo.density_unit = 0;
 
-    m_cinfo.X_density = int (m_spec.get_float_attribute ("XResolution"));
-    m_cinfo.Y_density = int (m_spec.get_float_attribute ("YResolution"));
-    const float aspect = m_spec.get_float_attribute ("PixelAspectRatio", 1.0f);
-    if (aspect != 1.0f && m_cinfo.X_density <= 1 && m_cinfo.Y_density <= 1) {
-        // No useful [XY]Resolution, but there is an aspect ratio requested.
-        // Arbitrarily pick 72 dots per undefined unit, and jigger it to
-        // honor it as best as we can.
-        //
-        // Here's where things get tricky. By logic and reason, as well as
-        // the JFIF spec and ITU T.871, the pixel aspect ratio is clearly
-        // ydensity/xdensity (because aspect is xlength/ylength, and density
-        // is 1/length). BUT... for reasons lost to history, a number of
-        // apps get this exactly backwards, and these include PhotoShop,
-        // Nuke, and RV. So, alas, we must replicate the mistake, or else
-        // all these common applications will misunderstand the JPEG files
-        // written by OIIO and vice versa.
-        m_cinfo.Y_density = 72;
-        m_cinfo.X_density = int (m_cinfo.Y_density * aspect + 0.5f);
-        m_spec.attribute ("XResolution", float(m_cinfo.Y_density * aspect + 0.5f));
-        m_spec.attribute ("YResolution", float(m_cinfo.Y_density));
-    }
+    resmeta_to_density ();
 
     m_cinfo.write_JFIF_header = TRUE;
 
@@ -209,8 +193,7 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         // normal write of scanlines
         jpeg_set_defaults (&m_cinfo);                 // default compression
         // Careful -- jpeg_set_defaults overwrites density
-        m_cinfo.X_density = int (m_spec.get_float_attribute ("XResolution"));
-        m_cinfo.Y_density = int (m_spec.get_float_attribute ("YResolution", m_cinfo.X_density));
+        resmeta_to_density ();
         DBG std::cout << "out open: set_defaults\n";
         int quality = newspec.get_int_attribute ("CompressionQuality", 98);
         jpeg_set_quality (&m_cinfo, quality, TRUE);   // baseline values
@@ -325,6 +308,42 @@ JpgOutput::open (const std::string &name, const ImageSpec &newspec,
         m_tilebuffer.resize (m_spec.image_bytes());
 
     return true;
+}
+
+
+
+void
+JpgOutput::resmeta_to_density ()
+{
+    int X_density = int (m_spec.get_float_attribute ("XResolution"));
+    int Y_density = int (m_spec.get_float_attribute ("YResolution", X_density));
+    const float aspect = m_spec.get_float_attribute ("PixelAspectRatio", 1.0f);
+    if (aspect != 1.0f && X_density <= 1 && Y_density <= 1) {
+        // No useful [XY]Resolution, but there is an aspect ratio requested.
+        // Arbitrarily pick 72 dots per undefined unit, and jigger it to
+        // honor it as best as we can.
+        //
+        // Here's where things get tricky. By logic and reason, as well as
+        // the JFIF spec and ITU T.871, the pixel aspect ratio is clearly
+        // ydensity/xdensity (because aspect is xlength/ylength, and density
+        // is 1/length). BUT... for reasons lost to history, a number of
+        // apps get this exactly backwards, and these include PhotoShop,
+        // Nuke, and RV. So, alas, we must replicate the mistake, or else
+        // all these common applications will misunderstand the JPEG files
+        // written by OIIO and vice versa.
+        Y_density = 72;
+        X_density = int (Y_density * aspect + 0.5f);
+        m_spec.attribute ("XResolution", float(Y_density * aspect + 0.5f));
+        m_spec.attribute ("YResolution", float(Y_density));
+    }
+    while (X_density > 65535 || Y_density > 65535) {
+        // JPEG header can store only UINT16 density values. If we
+        // overflow that limit, punt and knock it down to <= 16 bits.
+        X_density /= 2;
+        Y_density /= 2;
+    }
+    m_cinfo.X_density = X_density;
+    m_cinfo.Y_density = Y_density;
 }
 
 
