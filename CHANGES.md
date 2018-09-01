@@ -1,6 +1,16 @@
-Release 1.8.14 (?? 2018) -- compared to 1.8.13
+Release 1.8.14 (1 Sep 2018) -- compared to 1.8.13
 -------------------------------------------------
 * Support compilation by clang 7.0. #1995
+* Bug fix to ImageBuf::roi_cointains(). #1997
+* Fix ImageSpec constructor from an ROI, display/"full" window did not get
+  the right default origin. #1996
+* GIF read: fix crash when reading GIF with comment extension but no
+  comment data. #2001
+* JPEG write: robust to accidentally setting the "density" metadata to
+  values larger than JPEG's 16 bit integer field will accommodate. #2002
+* ImageSpec::erase_attribute() fix bug where it got case-sensitivity of the
+  search backwards when built using std::regex rather than boost::regex.
+  #2003
 
 Release 1.8.13 (1 Aug 2018) -- compared to 1.8.12
 -------------------------------------------------
