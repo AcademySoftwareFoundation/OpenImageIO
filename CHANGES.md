@@ -233,6 +233,8 @@ Fixes and feature enhancements:
     * write() automatically tells the ImageCache to 'invalidate' the file
       being written, so cached images will not retain the prior version of
       the files. #1916 (1.9.2)
+    * Bug fix to ImageBuf::contains_roi() method -- it erroneously always
+      returned `true`. #1997 (1.8.14/1.9.4)
 * ImageCache/TextureSystem/maketx:
     * Improved stats on how long we wait for ImageInput mutexes.
       #1779 (1.9.0/1.8.6)
@@ -255,6 +257,8 @@ Fixes and feature enhancements:
     * `get_image_info()`/`get_texture_info()` is now more flexible about
       retrieving arrays vs aggregates, in cases where the total number of
       elements is correct. #1968 (1.9.4)
+    * Fix uninitialized read within the texture system (only affected
+      statistics, never gave wrong texture results). #2000 (1.9.4)
 * iv:
     * Fix (especially on OSX) for various ways it has been broken since the
       shift to Qt5. #1946 (1.8.12, 1.9.4)
@@ -267,9 +271,21 @@ Fixes and feature enhancements:
   that take an ROI to describe the region. #1802 (1.9.2)
 * More robust parsing of XMP metadata for unknown metadata names.
   #1816 (1.9.2/1.8.7)
+* Fix ImageSpec constructor from an ROI, display/"full" window did not get
+  the right default origin. #1997 (1.8.14/1.9.4)
+* ImageSpec::erase_attribute() fix bug where it got case-sensitivity of the
+  search backwards when built using std::regex rather than boost::regex.
+  #2003 (1.8.14/1.9.4)
 * Field3d:
     * Prevent crashes when open fails. #1848 (1.9.2/1.8.8)
     * Fix potential mutex deadlock. #1972 (1.9.4)
+* GIF:
+    * Fix crash when reading GIF with comment extension but no comment data.
+      #2001 (1.8.14/1.9.4)
+* JPEG:
+    * When writing, be robust to accidentally setting the "density" metadata
+      to values larger than JPEG's 16 bit integer field will accommodate.
+      #2002 (1.8.14/1.9.4)
 * OpenEXR:
     * Gracefully detect and reject files with subsampled channels,
       which is a rarely-to-never-used OpenEXR feature that we don't support
@@ -430,15 +446,38 @@ Developer goodies / internals:
       reader threads. #1787 (1.9.0)
     * task_set: add wait_for_task() method that waits for just one task in
       the set to finish (versus wait() that waits for all). #1847 (1.9.2)
-* unittest.h: Made references to Strutil fully qualified in OIIO namespace,
-  so that `unittest.h` can be more easily used outside of the OIIO codebase.
-  #1791 (1.9.0)
+* unittest.h:
+    * Made references to Strutil fully qualified in OIIO namespace, so that
+      `unittest.h` can be more easily used outside of the OIIO codebase.
+      #1791 (1.9.0)
+    * `OIIO_CHECK_EQUAL_APPROX` - fix namespace ambiguity. #1998 (1.9.4)
 * Extensive use of C++11 `final` and `override` decorators of virtual
   methods in our internals, especially ImageInput and ImageOutput.
   #1904 (1.9.2)
 
 
 
+
+Release 1.8.14 (1 Sep 2018) -- compared to 1.8.13
+-------------------------------------------------
+* Support compilation by clang 7.0. #1995
+* Bug fix to ImageBuf::contains_roi(). #1996
+* Fix ImageSpec constructor from an ROI, display/"full" window did not get
+  the right default origin. #1997
+* GIF read: fix crash when reading GIF with comment extension but no
+  comment data. #2001
+* JPEG write: robust to accidentally setting the "density" metadata to
+  values larger than JPEG's 16 bit integer field will accommodate. #2002
+* ImageSpec::erase_attribute() fix bug where it got case-sensitivity of the
+  search backwards when built using std::regex rather than boost::regex.
+  #2003
+
+Release 1.8.13 (1 Aug 2018) -- compared to 1.8.12
+-------------------------------------------------
+* Improved finding LibRaw on Windows #1959
+* Ensure FFMPEG (if found) is the minimum supported version 2.6.  #1963
+* Developer goodies: `intrusive_ptr<>` given a dangerous `release()`
+  method (use with caution). #1986
 
 Release 1.8.12 (1 Jun 2018) -- compared to 1.8.11
 -------------------------------------------------

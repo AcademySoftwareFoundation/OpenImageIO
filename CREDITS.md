@@ -42,6 +42,7 @@ Other contributors (alphabetically):
 * Cassian Andrei
 * Dominik Bartkiewicz
 * Heiko Becker
+* Simon Boorer
 * Solomon Boulos
 * Stefan Bruens
 * John Burnett
@@ -70,12 +71,14 @@ Other contributors (alphabetically):
 * Henri Fousse
 * Vitor Franchi
 * Manuel Gamito
+* Gonzalo Garramuño
 * Ananth Garre
 * Alexandre Gauthier
 * Joesph Goldstone
 * Deepak Gopinath
 * John Haddon
 * Brian Hall
+* Daniel Flehner Heen
 * Jep Hill
 * Patrick Hodoul
 * Changlin Hsieh
@@ -152,5 +155,5 @@ Other contributors (alphabetically):
 * Roman Zulak
 
 
-If you know of somebody that I missed, please let me know: 
+If you know of somebody that I missed, please let me know:
 lg (at) openimageio.org
