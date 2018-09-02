@@ -351,7 +351,7 @@ ImageSpec::erase_attribute (string_view name, TypeDesc searchtype,
             flag |= boost::regex_constants::icase;
 #else
         std::regex_constants::syntax_option_type flag = std::regex_constants::basic;
-        if (casesensitive)
+        if (! casesensitive)
             flag |= std::regex_constants::icase;
 #endif
         regex re = regex(name.str(), flag);
