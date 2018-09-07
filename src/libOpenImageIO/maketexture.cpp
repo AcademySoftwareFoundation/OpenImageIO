@@ -488,10 +488,11 @@ bump_to_bumpslopes (ImageBuf &dst, const ImageBuf &src, ROI roi=ROI::All(),
 
     // detect bump input format according to channel count
     void (*bump_filter)(const ImageBuf&, const ImageBuf::Iterator<float>&, float*, float*, float*);
-    if (src.spec().nchannels == 3) // assume it is a normal map
-        bump_filter = &normal_gradient;
-    else
-        bump_filter = &sobel_gradient<SRCTYPE>; // default one considering height value in channel 0 
+    
+    bump_filter = &sobel_gradient<SRCTYPE>; // default one considering height value in channel 0 
+    
+    if (src.spec().nchannels > 2 && !ImageBufAlgo::isMonochrome(src)) // maybe it's a normal map?
+            bump_filter = &normal_gradient;
 
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
         // iterate on destination image
