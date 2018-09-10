@@ -19,6 +19,7 @@ if (NOT VERBOSE)
     set (OpenEXR_FIND_QUIETLY true)
     set (OpenGL_FIND_QUIETLY true)
     set (OpenJpeg_FIND_QUIETLY true)
+    set (OpenVDB_FIND_QUIETLY true)
     set (PkgConfig_FIND_QUIETLY true)
     set (PNG_FIND_QUIETLY TRUE)
     set (PTex_FIND_QUIETLY TRUE)
@@ -26,6 +27,7 @@ if (NOT VERBOSE)
     set (PythonInterp_FIND_QUIETLY true)
     set (PythonLibs_FIND_QUIETLY true)
     set (Qt5_FIND_QUIETLY true)
+    set (TBB_FIND_QUIETLY true)
     set (Threads_FIND_QUIETLY true)
     set (TIFF_FIND_QUIETLY true)
     set (WEBP_FIND_QUIETLY true)
@@ -301,6 +303,70 @@ endif ()
 
 
 ###########################################################################
+# Intel TBB
+if (USE_TBB OR USE_OPENVDB)
+    if (NOT TBB_FIND_QUIETLY OR NOT OpenVDB_FIND_QUIETLY)
+        set(oiio_tbb_verbose true)
+    endif ()
+
+    if (oiio_tbb_verbose)
+        message (STATUS "TBB_LOCATION=${TBB_LOCATION}")
+    endif ()
+    find_package (TBB)
+
+    if (TBB_INCLUDE_DIR AND Tbb_TBB_LIBRARY)
+        set (TBB_FOUND TRUE)
+        if (oiio_tbb_verbose)
+            message (STATUS "Intel TBB includes = ${TBB_INCLUDE_DIR}")
+            message (STATUS "Intel TBB library = ${Tbb_TBB_LIBRARY}")
+        endif ()
+        add_definitions ("-DUSE_TBB=1")
+        include_directories ("${TBB_INCLUDE_DIR}")
+    else ()
+        set (TBB_FOUND FALSE)
+        add_definitions ("-UUSE_TBB")
+        message (STATUS "Intel TBB not found")
+    endif ()
+endif ()
+
+# end Intel TBB setup
+###########################################################################
+
+
+###########################################################################
+# OpenVDB
+if (USE_OPENVDB AND TBB_FOUND)
+    if (NOT OpenVDB_FIND_QUIETLY)
+        message (STATUS "OPENVDB_LOCATION=${OPENVDB_LOCATION}")
+    endif ()
+    find_package (OpenVDB)
+
+    if (OpenVDB_INCLUDE_DIR AND OpenVDB_LIBRARY_DIR)
+        set (OPENVDB_FOUND TRUE)
+        if (NOT OpenVDB_FIND_QUIETLY)
+            message (STATUS "OpenVDB includes = ${OpenVDB_INCLUDE_DIR}")
+            message (STATUS "OpenVDB libraries = ${OpenVDB_LIBRARY_DIR}")
+        endif ()
+        add_definitions ("-DUSE_OPENVDB=1")
+        include_directories ("${OpenVDB_INCLUDE_DIR}")
+    else ()
+        message (STATUS "OpenVDB not found")
+        add_definitions ("-UUSE_OPENVDB")
+        set (OPENVDB_FOUND FALSE)
+    endif ()
+else ()
+    add_definitions ("-UUSE_OPENVDB")
+    if (USE_OPENVDB AND NOT TBB_FOUND)
+        set (oiio_vdb_why ", could not find Intel TBB")
+    endif ()
+    message (STATUS "OpenVDB will not be used${oiio_vdb_why}")
+endif ()
+
+# end OpenVDB setup
+###########################################################################
+
+
+
 # JPEG
 
 if (USE_JPEGTURBO)
