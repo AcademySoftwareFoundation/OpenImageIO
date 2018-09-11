@@ -129,9 +129,15 @@ ifeq (${SP_OS}, rhel7)
            -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     endif
 
+    # Set our preferred OpenEXR path, but allow env variable to override
+    # with custom/test version.
+    ifeq (${OPENEXR_HOME},)
+	MY_CMAKE_FLAGS += \
+	    -DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
+	    -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2
+    endif
+
     MY_CMAKE_FLAGS += \
-	-DOPENEXR_CUSTOM_INCLUDE_DIR=/usr/include/OpenEXR2 \
-	-DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2 \
 	-DOCIO_PATH=${OCIO_PATH} \
 	-DFIELD3D_HOME=${FIELD3D_HOME} \
 	-DHDF5_CUSTOM=1 \
