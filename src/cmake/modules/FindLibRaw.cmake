@@ -26,6 +26,7 @@ ENDIF()
 
 FIND_PATH(LibRaw_INCLUDE_DIR libraw/libraw.h
           HINTS
+          ${LIBRAW_INCLUDEDIR_HINT}
           ${LIBRAW_PATH}
           ${PC_LIBRAW_INCLUDEDIR}
           ${PC_LibRaw_INCLUDE_DIRS}
@@ -34,6 +35,7 @@ FIND_PATH(LibRaw_INCLUDE_DIR libraw/libraw.h
 
 FIND_LIBRARY(LibRaw_LIBRARIES NAMES raw libraw
              HINTS
+             ${LIBRAW_LIBDIR_HINT}
              ${LIBRAW_PATH}
              ${PC_LIBRAW_LIBDIR}
              ${PC_LIBRAW_LIBRARY_DIRS}
@@ -41,6 +43,7 @@ FIND_LIBRARY(LibRaw_LIBRARIES NAMES raw libraw
 
 FIND_LIBRARY(LibRaw_r_LIBRARIES NAMES raw_r
              HINTS
+             ${LIBRAW_LIBDIR_HINT}
              ${LIBRAW_PATH}
              ${PC_LIBRAW_R_LIBDIR}
              ${PC_LIBRAW_R_LIBRARY_DIRS}

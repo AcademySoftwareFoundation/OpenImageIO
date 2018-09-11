@@ -21,7 +21,7 @@ endif
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=44
+OPENIMAGEIO_SPCOMP2_VERSION=45
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
@@ -61,6 +61,7 @@ else
 endif  # endif ${SP_OS}
 
 PYVER ?= 2.7
+PYTHONLIB ?= /usr/lib64/libpython${PYVER}.so
 OCIO_SPCOMP_VERSION ?= 2
 OIIO_SPCOMP2_PATH ?= ${SPCOMP2_SHOTTREE_LOCATION}/OpenImageIO/${SP_OS}-${SPCOMP2_COMPILER}$(CPPSTDSUFFIX)/v${OPENIMAGEIO_SPCOMP2_VERSION}
 
@@ -135,14 +136,16 @@ ifeq (${SP_OS}, rhel7)
 	-DFIELD3D_HOME=${FIELD3D_HOME} \
 	-DHDF5_CUSTOM=1 \
 	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
-	-DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION}
+	-DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION} \
+	-DLIBRAW_INCLUDEDIR_HINT=/usr/include/libraw-0.18.11 \
+	-DLIBRAW_LIBDIR_HINT=/usr/lib64/libraw-0.18.11
     MY_CMAKE_FLAGS += \
 	-DBOOST_CUSTOM=1 \
 	-DBoost_VERSION=${CONSTRUCTED_BOOSTVERS} \
 	-DBoost_INCLUDE_DIRS=/usr/include/boost_${BOOSTVERSSP} \
 	-DBoost_LIBRARY_DIRS=/usr/lib64/boost_${BOOSTVERSSP} \
 	-DPYTHONLIBS_FOUND=1 \
-	-DPYTHON_LIBRARIES:STRING="/usr/lib64/libpython${PYVER}.so"
+	-DPYTHON_LIBRARIES:STRING=${PYTHONLIB}
     ifeq (${BOOSTSPSUFFIX}, sp)
       MY_CMAKE_FLAGS += \
 	-DBoost_LIBRARIES:STRING="/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_filesystem-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_regex-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_system-gcc48-mt${BOOSTVERS_SUFFIX}.so;/usr/lib64/boost_${BOOSTVERSSP}/lib${BOOSTSPSUFFIX}boost_${BOOSTVERS_PREFIX}_thread-gcc48-mt${BOOSTVERS_SUFFIX}.so"
