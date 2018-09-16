@@ -99,6 +99,8 @@ set (GENERIC_LIBRARY_PATHS
     ${GENERIC_LIBRARY_PATHS}
     ${OPENEXR_INCLUDE_PATH}/../lib
     ${ILMBASE_INCLUDE_PATH}/../lib
+    ${_ILMBASE_LIBDIR}
+    ${_OPENEXR_LIBDIR}
     /usr/local/lib
     /usr/local/lib/${CMAKE_LIBRARY_ARCHITECTURE}
     /usr/lib
