@@ -27,6 +27,13 @@ if (CMAKE_USE_PTHREADS_INIT)
     set (ILMBASE_PTHREADS ${CMAKE_THREAD_LIBS_INIT})
 endif ()
 
+# Attempt to find OpenEXR with pkgconfig
+find_package(PkgConfig)
+if (PKG_CONFIG_FOUND)
+    pkg_check_modules(_ILMBASE QUIET IlmBase)
+    pkg_check_modules(_OPENEXR QUIET OpenEXR>=2.0.0)
+endif (PKG_CONFIG_FOUND)
+
 # List of likely places to find the headers -- note priority override of
 # OPENEXR_CUSTOM_INCLUDE_DIR and ${OPENEXR_HOME}/include.
 # ILMBASE is needed in case ilmbase an openexr are installed in separate
@@ -35,6 +42,8 @@ set (GENERIC_INCLUDE_PATHS
     ${OPENEXR_CUSTOM_INCLUDE_DIR}
     ${OPENEXR_HOME}/include
     ${ILMBASE_HOME}/include
+    ${_ILMBASE_INCLUDEDIR}
+    ${_OPENEXR_INCLUDEDIR}
     /usr/local/include
     /usr/include
     /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}
@@ -90,6 +99,8 @@ set (GENERIC_LIBRARY_PATHS
     ${GENERIC_LIBRARY_PATHS}
     ${OPENEXR_INCLUDE_PATH}/../lib
     ${ILMBASE_INCLUDE_PATH}/../lib
+    ${_ILMBASE_LIBDIR}
+    ${_OPENEXR_LIBDIR}
     /usr/local/lib
     /usr/local/lib/${CMAKE_LIBRARY_ARCHITECTURE}
     /usr/lib
