@@ -303,12 +303,6 @@ ImageCacheFile::ImageCacheFile (ImageCacheImpl &imagecache,
     m_filename = imagecache.resolve_filename (m_filename_original.string());
     // N.B. the file is not opened, the ImageInput is NULL.  This is
     // reflected by the fact that m_validspec is false.
-#if USE_SHADOW_MATRICES
-    m_Mlocal.makeIdentity();
-    m_Mproj.makeIdentity();
-    m_Mtex.makeIdentity();
-    m_Mras.makeIdentity();
-#endif
 
     // Figure out if it's a UDIM-like virtual texture
     if (! Filesystem::exists(m_filename.string())
@@ -373,7 +367,8 @@ ImageCacheFile::set_imageinput (std::shared_ptr<ImageInput> newval)
 
 
 void
-ImageCacheFile::SubimageInfo::init (const ImageSpec &spec, bool forcefloat)
+ImageCacheFile::SubimageInfo::init (ImageCacheFile &icfile,
+                                    const ImageSpec &spec, bool forcefloat)
 {
     volume = (spec.depth > 1 || spec.full_depth > 1);
     full_pixel_range = (spec.x == spec.full_x &&
@@ -439,6 +434,19 @@ ImageCacheFile::SubimageInfo::init (const ImageSpec &spec, bool forcefloat)
         }
         if (average_color.size() == size_t(spec.nchannels))
             has_average_color = true;
+    }
+
+    if (icfile.m_texformat == TexFormatTexture3d ||
+            icfile.m_texformat == TexFormatShadow ||
+            icfile.m_texformat == TexFormatCubeFaceShadow ||
+            icfile.m_texformat == TexFormatVolumeShadow) {
+        const ParamValue *p = spec.find_attribute ("worldtolocal", TypeMatrix);
+        if (p) {
+            Imath::M44f c2w;
+            icfile.m_imagecache.get_commontoworld (c2w);
+            const Imath::M44f *m = (const Imath::M44f *)p->data();
+            Mlocal.reset (new Imath::M44f (c2w * (*m)));
+        }
     }
 }
 
@@ -549,7 +557,7 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             tempspec = nativespec;
             if (nmip == 0) {
                 // Things to do on MIP level 0, i.e. once per subimage
-                si.init (tempspec, imagecache().forcefloat());
+                si.init (*this, tempspec, imagecache().forcefloat());
             }
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled = true;
@@ -733,20 +741,6 @@ ImageCacheFile::init_from_spec ()
         else
             m_envlayout = LayoutTexture;
     }
-
-#if USE_SHADOW_MATRICES
-    Imath::M44f c2w;
-    m_imagecache.get_commontoworld (c2w);
-    if ((p = spec.find_attribute ("worldtocamera", TypeMatrix))) {
-        const Imath::M44f *m = (const Imath::M44f *)p->data();
-        m_Mlocal = c2w * (*m);
-    }
-    if ((p = spec.find_attribute ("worldtoscreen", TypeMatrix))) {
-        const Imath::M44f *m = (const Imath::M44f *)p->data();
-        m_Mproj = c2w * (*m);
-    }
-    // FIXME -- compute Mtex, Mras
-#endif
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity (spec);
