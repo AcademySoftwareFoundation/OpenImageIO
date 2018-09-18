@@ -436,17 +436,12 @@ ImageCacheFile::SubimageInfo::init (ImageCacheFile &icfile,
             has_average_color = true;
     }
 
-    if (icfile.m_texformat == TexFormatTexture3d ||
-            icfile.m_texformat == TexFormatShadow ||
-            icfile.m_texformat == TexFormatCubeFaceShadow ||
-            icfile.m_texformat == TexFormatVolumeShadow) {
-        const ParamValue *p = spec.find_attribute ("worldtolocal", TypeMatrix);
-        if (p) {
-            Imath::M44f c2w;
-            icfile.m_imagecache.get_commontoworld (c2w);
-            const Imath::M44f *m = (const Imath::M44f *)p->data();
-            Mlocal.reset (new Imath::M44f (c2w * (*m)));
-        }
+    const ParamValue *p = spec.find_attribute ("worldtolocal", TypeMatrix);
+    if (p) {
+        Imath::M44f c2w;
+        icfile.m_imagecache.get_commontoworld (c2w);
+        const Imath::M44f *m = (const Imath::M44f *)p->data();
+        Mlocal.reset (new Imath::M44f (c2w * (*m)));
     }
 }
 
