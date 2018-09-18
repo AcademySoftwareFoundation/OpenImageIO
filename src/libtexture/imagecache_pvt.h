@@ -67,10 +67,6 @@ namespace pvt {
 
 #define IMAGECACHE_USE_RW_MUTEX 1
 
-// Should we compute and store shadow matrices? Not if we don't support
-// shadow maps!
-#define USE_SHADOW_MATRICES 0
-
 #define FILE_CACHE_SHARDS 64
 #define TILE_CACHE_SHARDS 128
 
@@ -254,31 +250,27 @@ public:
     struct SubimageInfo {
         std::vector<LevelInfo> levels;  ///< Extra per-level info
         TypeDesc datatype;              ///< Type of pixels we store internally
-        unsigned int channelsize;       ///< Channel size, in bytes
-        unsigned int pixelsize;         ///< Pixel size, in bytes
-        bool untiled;                   ///< Not tiled
-        bool unmipped;                  ///< Not really MIP-mapped
-        bool volume;                    ///< It's a volume image
-        bool full_pixel_range;          ///< pixel data window matches image window
-        bool is_constant_image;         ///< Is the image a constant color?
-        bool has_average_color;         ///< We have an average color
+        unsigned int channelsize = 0;   ///< Channel size, in bytes
+        unsigned int pixelsize = 0;     ///< Pixel size, in bytes
+        bool untiled = false;           ///< Not tiled
+        bool unmipped = false;          ///< Not really MIP-mapped
+        bool volume = false;            ///< It's a volume image
+        bool full_pixel_range = false;  ///< pixel data window matches image window
+        bool is_constant_image = false; ///< Is the image a constant color?
+        bool has_average_color = false; ///< We have an average color
         std::vector<float> average_color; ///< Average color
         spin_mutex average_color_mutex; ///< protect average_color
-
+        std::unique_ptr<Imath::M44f> Mlocal; ///< shadows/volumes: world-to-local
         // The scale/offset accounts for crops or overscans, converting
         // 0-1 texture space relative to the "display/full window" into 
         // 0-1 relative to the "pixel window".
-        float sscale, soffset, tscale, toffset;
+        float sscale = 1.0f, soffset = 0.0f;
+        float tscale = 1.0f, toffset = 0.0f;
         ustring subimagename;
 
-        SubimageInfo () : datatype(TypeDesc::UNKNOWN),
-                          channelsize(0), pixelsize(0),
-                          untiled(false), unmipped(false), volume(false),
-                          full_pixel_range(false),
-                          is_constant_image(false), has_average_color(false),
-                          sscale(1.0f), soffset(0.0f),
-                          tscale(1.0f), toffset(0.0f) { }
-        void init (const ImageSpec &spec, bool forcefloat);
+        SubimageInfo () { }
+        void init (ImageCacheFile &icfile,
+                   const ImageSpec &spec, bool forcefloat);
         ImageSpec &spec (int m) { return levels[m].spec; }
         const ImageSpec &spec (int m) const { return levels[m].spec; }
         const ImageSpec &nativespec (int m) const { return levels[m].nativespec; }
@@ -346,12 +338,6 @@ private:
     TextureOpt::Wrap m_swrap;       ///< Default wrap modes
     TextureOpt::Wrap m_twrap;       ///< Default wrap modes
     TextureOpt::Wrap m_rwrap;       ///< Default wrap modes
-#if USE_SHADOW_MATRICES
-    Imath::M44f m_Mlocal;           ///< shadows: world-to-local (light) matrix
-    Imath::M44f m_Mproj;            ///< shadows: world-to-pseudo-NDC
-    Imath::M44f m_Mtex;             ///< shadows: world-to-pNDC with camera z
-    Imath::M44f m_Mras;             ///< shadows: world-to-raster with camera z
-#endif
     EnvLayout m_envlayout;          ///< env map: which layout?
     bool m_y_up;                    ///< latlong: is y "up"? (else z is up)
     bool m_sample_border;           ///< are edge samples exactly on the border?
@@ -427,6 +413,7 @@ private:
 
     friend class ImageCacheImpl;
     friend class TextureSystemImpl;
+    friend struct SubimageInfo;
 };
 
 

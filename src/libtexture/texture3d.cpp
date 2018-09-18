@@ -171,6 +171,12 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
         options.subimage = s;
         options.subimagename.clear();
     }
+    if (options.subimage < 0 || options.subimage >= texturefile->subimages()) {
+        error ("Unknown subimage \"%s\" in texture \"%s\"",
+               options.subimagename, texturefile->filename());
+        return missing_texture (options, nchannels, result,
+                                dresultds, dresultdt, dresultdr);
+    }
 
     const ImageSpec &spec (texturefile->spec(options.subimage, 0));
 
@@ -191,16 +197,23 @@ TextureSystemImpl::texture3d (TextureHandle *texture_handle_,
     int actualchannels = Imath::clamp (spec.nchannels - options.firstchannel,
                                        0, nchannels);
 
-    // Do the volume lookup in local space.  There's not actually a way
-    // to ask for point transforms via the ImageInput interface, so use
-    // knowledge of the few volume reader internals to the back doors.
+    // Do the volume lookup in local space.
     Imath::V3f Plocal;
-    if (texturefile->fileformat() == s_field3d) {
+    const auto &si (texturefile->subimageinfo(options.subimage));
+    if (si.Mlocal) {
+        // See if there is a world-to-local transform stored in the cache
+        // entry. If so, use it to transform the input point.
+        si.Mlocal->multVecMatrix (P, Plocal);
+    } else if (texturefile->fileformat() == s_field3d) {
+        // Field3d is special -- it allows nonlinear or time-varying
+        // transforms procedurally, but we have to use a back door.
         auto input = texturefile->open (thread_info);
         Field3DInput_Interface *f3di = (Field3DInput_Interface *)input.get();
         ASSERT (f3di);
         f3di->worldToLocal (P, Plocal, options.time);
     } else {
+        // If no world-to-local matrix could be discerned, just use the
+        // input point directly.
         Plocal = P;
     }
 
