@@ -195,7 +195,9 @@ struct VDBReader {
 
     static bool readTile(const GridType& grid, int x, int y, int z,
                          ValueType *values) {
-        const openvdb::Coord xyz(x, y, z);
+        // Probe for a cell-centered voxel
+        enum { kOffset = LeafType::DIM / 2 };
+        const openvdb::Coord xyz(x+kOffset, y+kOffset, z+kOffset);
         const RootType& root = grid.tree().root();
         // Use the GridType::ConstAccessor so only one query needs to be done.
         // From that query, check the node type from 'most interesting' to least
@@ -210,13 +212,8 @@ struct VDBReader {
             // Have OpenVDB fill the dense block, into the values pointer
             DenseT dense(bbox, values);
             leaf->copyToDense(bbox, dense);
-        } else if (auto* i2Node = cache.template getNode<Int2Type>()) {
-            setTile(values, i2Node->getValue(xyz));
-        } else if (auto* i1Node = cache.template getNode<Int1Type>()) {
-            setTile(values, i1Node->getValue(xyz));
-        } else {
-            setTile(values, root.background());
-        }
+        } else
+            setTile(values, cache.getValue(xyz));
         return true;
     }
 
