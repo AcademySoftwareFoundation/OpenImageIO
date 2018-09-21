@@ -1395,37 +1395,41 @@ ImageCacheImpl::set_min_cache_size (long long newsize)
 
 
 ImageCacheTile::ImageCacheTile (const TileID &id)
-    : m_id (id), m_valid(true) // , m_used(true)
+    : m_id (id), m_valid(true)
 {
-    m_used = true;
-    m_pixels_ready = false;
-    m_pixels_size = 0;
     id.file().imagecache().incr_tiles (0);  // mem counted separately in read
 }
 
 
 
 ImageCacheTile::ImageCacheTile (const TileID &id, const void *pels,
-                    TypeDesc format,
-                    stride_t xstride, stride_t ystride, stride_t zstride)
-    : m_id (id) // , m_used(true)
+                                TypeDesc format, stride_t xstride,
+                                stride_t ystride, stride_t zstride,
+                                bool copy)
+    : m_id (id)
 {
-    m_used = true;
-    m_pixels_size = 0;
     ImageCacheFile &file (m_id.file ());
     const ImageSpec &spec (file.spec(id.subimage(), id.miplevel()));
     m_channelsize = file.datatype(id.subimage()).size();
     m_pixelsize = id.nchannels() * m_channelsize;
-    size_t size = memsize_needed ();
-    ASSERT_MSG (size > 0 && memsize() == 0, "size was %llu, memsize = %llu",
-                (unsigned long long)size, (unsigned long long)memsize());
-    m_pixels.reset (new char [m_pixels_size = size]);
-    m_valid = convert_image (id.nchannels(), spec.tile_width, spec.tile_height,
-                             spec.tile_depth, pels, format, xstride, ystride,
-                             zstride, &m_pixels[0], file.datatype(id.subimage()),
-                             m_pixelsize, m_pixelsize * spec.tile_width,
-                             m_pixelsize * spec.tile_width * spec.tile_height);
-    id.file().imagecache().incr_tiles (size);
+    if (copy) {
+        size_t size = memsize_needed ();
+        ASSERT_MSG (size > 0 && memsize() == 0, "size was %llu, memsize = %llu",
+                    (unsigned long long)size, (unsigned long long)memsize());
+        m_pixels_size = size;
+        m_pixels.reset (new char [m_pixels_size]);
+        m_valid = convert_image (id.nchannels(), spec.tile_width, spec.tile_height,
+                                 spec.tile_depth, pels, format, xstride, ystride,
+                                 zstride, &m_pixels[0], file.datatype(id.subimage()),
+                                 m_pixelsize, m_pixelsize * spec.tile_width,
+                                 m_pixelsize * spec.tile_width * spec.tile_height);
+    } else {
+        m_nofree = true;  // Don't free the pointer!
+        m_pixels_size = 0;
+        m_pixels.reset ((char *)pels);
+        m_valid = true;
+    }
+    id.file().imagecache().incr_tiles (m_pixels_size);
     m_pixels_ready = true;  // Caller sent us the pixels, no read necessary
     // FIXME -- for shadow, fill in mindepth, maxdepth
 }
@@ -1435,6 +1439,8 @@ ImageCacheTile::ImageCacheTile (const TileID &id, const void *pels,
 ImageCacheTile::~ImageCacheTile ()
 {
     m_id.file().imagecache().decr_tiles (memsize ());
+    if (m_nofree)
+        m_pixels.release ();    // release without freeing
 }
 
 
@@ -3110,7 +3116,8 @@ bool
 ImageCacheImpl::add_tile (ustring filename, int subimage, int miplevel,
                           int x, int y, int z, int chbegin, int chend,
                           TypeDesc format, const void *buffer,
-                          stride_t xstride, stride_t ystride, stride_t zstride)
+                          stride_t xstride, stride_t ystride,
+                          stride_t zstride, bool copy)
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info);
@@ -3127,8 +3134,9 @@ ImageCacheImpl::add_tile (ustring filename, int subimage, int miplevel,
     if (chend < chbegin)
         chend = file->spec(subimage,miplevel).nchannels;
     TileID tileid (*file, subimage, miplevel, x, y, z, chbegin, chend);
-    ImageCacheTileRef tile = new ImageCacheTile (tileid, buffer, format,
-                                                 xstride, ystride, zstride);
+    ImageCacheTileRef tile =
+        new ImageCacheTile (tileid, buffer, format,
+                            xstride, ystride, zstride, copy);
     if (! tile || ! tile->valid()) {
         if (file->errors_should_issue())
             error ("Could not construct the tile; unknown reasons.");

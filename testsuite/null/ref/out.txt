@@ -1,5 +1,5 @@
-Reading foo.null?RES=640x480&CHANNELS=3&PIXEL=0.25,0.5,1
-foo.null?RES=640x480&CHANNELS=3&PIXEL=0.25,0.5,1 :  640 x  480, 3 channel, uint8 null
+Reading foo.null?RES=640x480&CHANNELS=3&TYPE=uint8&PIXEL=0.25,0.5,1
+foo.null?RES=640x480&CHANNELS=3&TYPE=uint8&PIXEL=0.25,0.5,1 :  640 x  480, 3 channel, uint8 null
     channel list: R, G, B
     Stats Min: 64 128 255 (of 255)
     Stats Max: 64 128 255 (of 255)
