@@ -350,6 +350,9 @@ oiio_add_tests (texture-field3d field3d
     FOUNDVAR FIELD3D_FOUND)
 
 
+oiio_add_tests (openvdb
+    FOUNDVAR OPENVDB_FOUND)
+
 if (SPI_TESTS)
   oiio_add_tests (oiiotool-spi
     FOUNDVAR SPI_TESTS
