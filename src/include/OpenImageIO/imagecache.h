@@ -355,12 +355,15 @@ public:
     /// given format, with supplied strides) which will be copied and
     /// inserted into the cache and made available for future lookups.
     /// If chend < chbegin, it will add a tile containing the full set of
-    /// channels for the image.
+    /// channels for the image. Note that if the 'copy' flag is false, the
+    /// data is assumed to be in some kind of persistent storage and will
+    /// not be copied, nor will its pixels take up additional memory in the
+    /// cache.
     virtual bool add_tile (ustring filename, int subimage, int miplevel,
                      int x, int y, int z, int chbegin, int chend,
                      TypeDesc format, const void *buffer,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
-                     stride_t zstride=AutoStride) = 0;
+                     stride_t zstride=AutoStride, bool copy = true) = 0;
 
     /// If any of the API routines returned false indicating an error,
     /// this routine will return the error string (and clear any error

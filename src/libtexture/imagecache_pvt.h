@@ -568,7 +568,8 @@ public:
     /// Construct a new tile out of the pixels supplied.
     ///
     ImageCacheTile (const TileID &id, const void *pels, TypeDesc format,
-                    stride_t xstride, stride_t ystride, stride_t zstride);
+                    stride_t xstride, stride_t ystride, stride_t zstride,
+                    bool copy = true);
 
     ~ImageCacheTile ();
 
@@ -654,12 +655,13 @@ public:
 private:
     TileID m_id;                  ///< ID of this tile
     std::unique_ptr<char[]> m_pixels;  ///< The pixel data
-    size_t m_pixels_size;         ///< How much m_pixels has allocated
-    int m_channelsize;            ///< How big is each channel (bytes)
-    int m_pixelsize;              ///< How big is each pixel (bytes)
-    bool m_valid;                 ///< Valid pixels
-    volatile bool m_pixels_ready; ///< The pixels have been read from disk
-    atomic_int m_used;            ///< Used recently
+    size_t m_pixels_size {0};     ///< How much m_pixels has allocated
+    int m_channelsize {0};        ///< How big is each channel (bytes)
+    int m_pixelsize {0};          ///< How big is each pixel (bytes)
+    bool m_valid {false};         ///< Valid pixels
+    bool m_nofree {false};        ///< We do NOT own the pixels, do not free!
+    volatile bool m_pixels_ready {false}; ///< The pixels have been read from disk
+    atomic_int m_used {1};        ///< Used recently
 };
 
 
@@ -956,7 +958,7 @@ public:
                            int x, int y, int z,  int chbegin, int chend,
                            TypeDesc format, const void *buffer,
                            stride_t xstride, stride_t ystride,
-                           stride_t zstride);
+                           stride_t zstride, bool copy);
 
     /// Return the numerical subimage index for the given subimage name,
     /// as stored in the "oiio:subimagename" metadata.  Return -1 if no

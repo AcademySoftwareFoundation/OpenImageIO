@@ -157,7 +157,7 @@ NullInput::valid_file (const std::string &name) const
 bool
 NullInput::open (const std::string &name, ImageSpec &newspec)
 {
-    ImageSpec config (1024, 1024, 3, TypeDesc::UINT8);
+    ImageSpec config;
     return open (name, newspec, config);
 }
 
@@ -268,12 +268,29 @@ NullInput::open (const std::string &name, ImageSpec &newspec,
         return false;
     if (filename.empty())
         return false;
+
+    // To keep the "null" input reader from reading from ANY name, only
+    // succeed if it ends in ".null" or ".nul" --OR-- if the config has a
+    // special override "null:force" set to nonzero (that lets the caller
+    // guarantee a null input even if the name has no extension, say).
     if (! Strutil::ends_with (filename, ".null") &&
-        ! Strutil::ends_with (filename, ".nul"))
+        ! Strutil::ends_with (filename, ".nul") &&
+        config.get_int_attribute("null:force") == 0)
         return false;
 
+    // Override the config with default resolution if it was not set
+    if (m_topspec.width <= 0)
+        m_topspec.width = 1024;
+    if (m_topspec.height <= 0)
+        m_topspec.height = 1024;
+    if (m_topspec.depth <= 0)
+        m_topspec.depth = 1;
+    if (m_topspec.nchannels <= 0)
+        m_topspec.nchannels = 4;
+    if (m_topspec.format == TypeUnknown)
+        m_topspec.format = TypeFloat;
+
     m_filename = filename;
-    m_topspec = ImageSpec (1024, 1024, 4, TypeDesc::UINT8);
     std::vector<float> fvalue;
 
     for (const auto& a : args) {
