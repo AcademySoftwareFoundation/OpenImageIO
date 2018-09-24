@@ -150,7 +150,8 @@ public:
             else {  // the number of threads is decreased
                 for (int i = oldNThreads - 1; i >= nThreads; --i) {
                     *this->flags[i] = true;  // this thread will finish
-                    this->threads[i]->detach();
+                    this->terminating_threads.push_back(std::move(this->threads[i]));
+                    this->threads.erase(this->threads.begin() + i);
                 }
                 {
                     // stop the detached threads that were waiting
@@ -208,10 +209,15 @@ public:
             if (thread->joinable())
                 thread->join();
         }
+        for (auto& thread : this->terminating_threads) {  // wait for the terminated threads to finish
+            if (thread->joinable())
+                thread->join();
+        }
         // if there were no threads in the pool but some functors in the queue, the functors are not deleted by the threads
         // therefore delete them here
         this->clear_queue();
         this->threads.clear();
+        this->terminating_threads.clear();
         this->flags.clear();
     }
 
@@ -315,6 +321,7 @@ private:
     void init() { this->nWaiting = 0; this->isStop = false; this->isDone = false; }
 
     std::vector<std::unique_ptr<std::thread>> threads;
+    std::vector<std::unique_ptr<std::thread>> terminating_threads;
     std::vector<std::shared_ptr<std::atomic<bool>>> flags;
     mutable Queue<std::function<void(int id)> *> q;
     std::atomic<bool> isDone;
