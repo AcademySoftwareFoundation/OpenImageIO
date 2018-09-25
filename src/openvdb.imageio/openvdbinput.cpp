@@ -1,5 +1,5 @@
 /*
-  Copyright 2010 Larry Gritz and the other authors and contributors.
+  Copyright 2018 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,8 @@ struct layerrecord {
       grid(std::move(grd)) {}
 };
 
+
+
 class OpenVDBInput final : public ImageInput {
     std::string m_name;
     std::unique_ptr<openvdb::io::File> m_input;
@@ -103,7 +105,11 @@ public:
     ImageSpec spec_dimensions (int subimage, int miplevel) override;
 };
 
+
+
 using namespace openvdb;
+
+
 
 bool
 OpenVDBInput::close ()
@@ -117,6 +123,8 @@ OpenVDBInput::close ()
     return true;
 }
 
+
+
 ImageSpec
 OpenVDBInput::spec (int subimage, int miplevel) {
     if (subimage < 0 || subimage >= m_nsubimages)   // out of range
@@ -125,6 +133,8 @@ OpenVDBInput::spec (int subimage, int miplevel) {
         return ImageSpec();
     return m_layers[subimage].spec;
 }
+
+
 
 ImageSpec
 OpenVDBInput::spec_dimensions (int subimage, int miplevel) {
@@ -137,11 +147,15 @@ OpenVDBInput::spec_dimensions (int subimage, int miplevel) {
     return spec;
 }
 
+
+
 int
 OpenVDBInput::current_subimage (void) const {
     lock_guard lock (m_mutex);
     return m_subimage;
 }
+
+
 
 bool
 OpenVDBInput::seek_subimage (int subimage, int miplevel)
@@ -149,6 +163,8 @@ OpenVDBInput::seek_subimage (int subimage, int miplevel)
     lock_guard lock (vdbMutex());
     return seek_subimage_nolock (subimage, miplevel);
 }
+
+
 
 bool
 OpenVDBInput::seek_subimage_nolock (int subimage, int miplevel)
@@ -165,9 +181,12 @@ OpenVDBInput::seek_subimage_nolock (int subimage, int miplevel)
     return true;
 }
 
+
+
 namespace {
 
-CoordBBox getBoundingBox(const GridBase& grid) {
+CoordBBox
+getBoundingBox(const GridBase& grid) {
     auto bbMin = grid.getMetadata<TypedMetadata<Vec3i>>(GridBase::META_FILE_BBOX_MIN);
     if (bbMin) {
         auto bbMax = grid.getMetadata<TypedMetadata<Vec3i>>(GridBase::META_FILE_BBOX_MAX);
@@ -176,6 +195,8 @@ CoordBBox getBoundingBox(const GridBase& grid) {
     }
     return grid.evalActiveVoxelBoundingBox();
 }
+
+
 
 template <typename GridType>
 struct VDBReader {
@@ -249,6 +270,8 @@ struct VDBReader {
     }
 };
 
+
+
 // openvdb::io::File seems to not autoclose on destruct?
 class VDBFile {
     std::unique_ptr<openvdb::io::File> m_file;
@@ -261,7 +284,11 @@ public:
     void reset() { m_file.reset(); }
 };
 
-VDBFile openVDB (const std::string& filename, const ImageInput* errReport) {
+
+
+VDBFile
+openVDB (const std::string& filename, const ImageInput* errReport)
+{
     if (! Filesystem::is_regular (filename))
         return nullptr;
 
@@ -293,6 +320,8 @@ OpenVDBInput::valid_file (const std::string &filename) const
 {
     return openVDB(filename, this);
 }
+
+
 
 void
 OpenVDBInput::readMetaData (const openvdb::GridBase& grid,
@@ -413,6 +442,8 @@ OpenVDBInput::readMetaData (const openvdb::GridBase& grid,
     }
 }
 
+
+
 bool
 OpenVDBInput::open (const std::string &filename, ImageSpec &newspec)
 {
@@ -420,10 +451,9 @@ OpenVDBInput::open (const std::string &filename, ImageSpec &newspec)
         close();
 
     auto file = openVDB(filename, this);
-    if (!file)
+    if (!file || !file->isOpen())
         return false;
 
-    ASSERT(file->isOpen());
     try {
         for (io::File::NameIterator name = file->beginName(), end = file->endName();
              name != end; ++name) {
@@ -482,6 +512,8 @@ OpenVDBInput::open (const std::string &filename, ImageSpec &newspec)
     return ok;
 }
 
+
+
 bool
 OpenVDBInput::read_native_scanline (int subimage, int miplevel,
                                     int y, int z, void *data)
@@ -489,6 +521,8 @@ OpenVDBInput::read_native_scanline (int subimage, int miplevel,
     // scanlines not supported
     return false;
 }
+
+
 
 bool
 OpenVDBInput::read_native_tile (int subimage, int miplevel,
@@ -513,6 +547,8 @@ OpenVDBInput::read_native_tile (int subimage, int miplevel,
     }
     return false;
 }
+
+
 
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN

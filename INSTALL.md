@@ -30,7 +30,7 @@ NEW or CHANGED dependencies since the last major release are **bold**.
    icc version 13 or higher
  * Boost >= 1.53 (tested up through 1.67)
  * CMake >= 3.2.2 (tested up through 3.12)
- * OpenEXR >= 2.0 (recommended: 2.2)
+ * OpenEXR >= 2.0 (recommended: 2.2, tested through 2.3)
  * libTIFF >= 3.9 (recommended: 4.0+)
 
 ### Optional dependencies -- features may be disabled if not found
@@ -49,6 +49,10 @@ NEW or CHANGED dependencies since the last major release are **bold**.
      * ffmpeg >= 2.6 (tested through 4.0)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 1.5
+ * If you want support for Field3D files:
+     * Field3D
+ * If you want support for OpenVDB files:
+     * OpenVDB >= 5.0 and Intel TBB >= 2018
 
 
 Building OpenImageIO on Linux or OS X

@@ -13,7 +13,6 @@ NAMESPACE ?= 'OpenImageIO_Arnold'
 MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=SPI
 SPCOMP2_SHOTTREE_LOCATION = /shots/spi/home/lib/SpComp2
 INSTALL_SPCOMP2_LOCATION = /shots/spi/home/lib/SpComp2
-SPI_TBB_ROOT_DIR = /net/apps/rhel7/intel/tbb
 NUKE_VERSION ?= 10.0v4
 
 ## Detect which SPI platform and set $platform, $COMPILER, $SPCOMP2_COMPILER,
@@ -58,8 +57,8 @@ ifeq (${SP_OS}, rhel7)
     SPCOMP2_USE_BOOSTVERS ?= 1
     OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
     FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost155sp/v408"
-    OPENVDB_LOCATION ?= "${INSTALL_SPCOMP2_LOCATION}/openvdb/${SP_OS}-${SPCOMP2_COMPILER}-boost155sp/v5010000"
-    TBB_ROOT_DIR ?= "${SPI_TBB_ROOT_DIR}"
+    OPENVDB_ROOT_DIR ?= "${INSTALL_SPCOMP2_LOCATION}/openvdb/${SP_OS}-${SPCOMP2_COMPILER}-boost155sp/v5010000"
+    TBB_ROOT_DIR ?= /net/apps/rhel7/intel/tbb
 
     ## If not overridden, here is our preferred LLVM installation
     ## (may be changed as new versions are rolled out to the facility)
@@ -115,7 +114,7 @@ ifeq (${SP_OS}, rhel7)
     MY_CMAKE_FLAGS += \
 	-DOCIO_PATH=${OCIO_PATH} \
 	-DFIELD3D_HOME=${FIELD3D_HOME} \
-    -DOPENVDB_LOCATION=${OPENVDB_LOCATION} \
+    -DOPENVDB_ROOT_DIR=${OPENVDB_ROOT_DIR} \
     -DTBB_ROOT_DIR=${TBB_ROOT_DIR} \
 	-DHDF5_CUSTOM=1 \
 	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
@@ -160,8 +159,7 @@ else ifeq (${SP_OS}, lion)
     MACPORTS_PREFIX=/opt/local-10.7-2012-08
     OCIO_PATH ?= "${SPCOMP2_SHOTTREE_LOCATION}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}"
     FIELD3D_HOME ?= "${INSTALL_SPCOMP2_LOCATION}/Field3D/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v306"
-    OPENVDB_LOCATION ?= "${INSTALL_SPCOMP2_LOCATION}/openvdb/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v3010000"
-    TBB_ROOT_DIR ?= "${SPI_TBB_ROOT_DIR}"
+    OPENVDB_ROOT_DIR ?= "${INSTALL_SPCOMP2_LOCATION}/openvdb/${SP_OS}-${SPCOMP2_COMPILER}-boost151/v3010000"
     # CMAKE_CXX_COMPILER:
     #   otherwise g++ is used and SPI standardized on clang.
     # OVERRIDE_SHARED_LIBRARY_SUFFIX:
@@ -176,8 +174,7 @@ else ifeq (${SP_OS}, lion)
     MY_CMAKE_FLAGS += \
       -DOCIO_PATH="${OCIO_PATH}" \
       -DFIELD3D_HOME=${FIELD3D_HOME} \
-      -DOPENVDB_LOCATION=${OPENVDB_LOCATION} \
-      -DTBB_ROOT_DIR=${TBB_ROOT_DIR} \
+      -DOPENVDB_ROOT_DIR=${OPENVDB_ROOT_DIR} \
       -DOPENJPEG_HOME=${MACPORTS_PREFIX} \
       -DOVERRIDE_SHARED_LIBRARY_SUFFIX=.so \
       -DPYTHON_EXECUTABLE=${MACPORTS_PREFIX}/bin/python${PYVER} \

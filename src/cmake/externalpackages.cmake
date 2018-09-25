@@ -304,27 +304,16 @@ endif ()
 
 ###########################################################################
 # Intel TBB
-if (USE_TBB OR USE_OPENVDB)
-    if (USE_OPENVDB AND NOT OpenVDB_FIND_QUIETLY)
-        set(TBB_FIND_QUIETLY false)
-    endif ()
-
-    if (NOT TBB_FIND_QUIETLY)
-        message (STATUS "TBB_ROOT_DIR=${TBB_ROOT_DIR}")
-    endif ()
-    find_package (TBB)
-
-    if (TBB_INCLUDE_DIRS AND TBB_tbb_LIBRARY)
-        set (TBB_FOUND TRUE)
+if (USE_TBB)
+    find_package (TBB 2017)     # 2017 min for VFX Platform 2018
+    if (TBB_FOUND)
         if (NOT TBB_FIND_QUIETLY)
             message (STATUS "Intel TBB includes = ${TBB_INCLUDE_DIRS}")
-            message (STATUS "Intel TBB library = ${TBB_tbb_LIBRARY}")
+            message (STATUS "Intel TBB library = ${TBB_LIBRARIES}")
         endif ()
         add_definitions ("-DUSE_TBB=1")
     else ()
-        set (TBB_FOUND FALSE)
-        add_definitions ("-UUSE_TBB")
-        message (STATUS "Intel TBB not found")
+        message (STATUS "Intel TBB not found, TBB_ROOT_DIR='${TBB_ROOT_DIR}'")
     endif ()
 endif ()
 
@@ -335,11 +324,7 @@ endif ()
 ###########################################################################
 # OpenVDB
 if (USE_OPENVDB AND TBB_FOUND)
-    if (NOT OpenVDB_FIND_QUIETLY)
-        message (STATUS "OPENVDB_LOCATION=${OPENVDB_LOCATION}")
-    endif ()
-    find_package (OpenVDB)
-
+    find_package (OpenVDB 5.0)   # 5.0 min for VFX Platform 2017
     if (OPENVDB_FOUND)
         if (NOT OpenVDB_FIND_QUIETLY)
             message (STATUS "OpenVDB includes = ${OPENVDB_INCLUDE_DIR}")
@@ -347,16 +332,10 @@ if (USE_OPENVDB AND TBB_FOUND)
         endif ()
         add_definitions ("-DUSE_OPENVDB=1")
     else ()
-        message (STATUS "OpenVDB not found")
-        add_definitions ("-UUSE_OPENVDB")
-        set (OPENVDB_FOUND FALSE)
+        message (STATUS "OpenVDB not found, OPENVDB_ROOT_DIR='${OPENVDB_ROOT_DIR}'")
     endif ()
 else ()
-    add_definitions ("-UUSE_OPENVDB")
-    if (USE_OPENVDB AND NOT TBB_FOUND)
-        set (oiio_vdb_why ", could not find Intel TBB")
-    endif ()
-    message (STATUS "OpenVDB will not be used${oiio_vdb_why}")
+    message (STATUS "OpenVDB will not be used, could not find Intel TBB")
 endif ()
 
 # end OpenVDB setup
@@ -364,6 +343,7 @@ endif ()
 
 
 
+###########################################################################
 # JPEG
 
 if (USE_JPEGTURBO)

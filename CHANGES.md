@@ -33,6 +33,8 @@ Major new features and improvements:
   as parameters for output (the old kind of calls still exist, too, and
   have their uses). Also in C++, change all IBA functions that took raw
   pointers to per-channel colors into span<> for safety. #1961 (1.9.4)
+* Support for OpenVDB volume files (reading only, no write support
+  currently). #2010
 
 Public API changes:
 * **Python binding overhaul**
