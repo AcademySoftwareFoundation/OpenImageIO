@@ -335,7 +335,10 @@ if (USE_OPENVDB AND TBB_FOUND)
         message (STATUS "OpenVDB not found, OPENVDB_ROOT_DIR='${OPENVDB_ROOT_DIR}'")
     endif ()
 else ()
-    message (STATUS "OpenVDB will not be used, could not find Intel TBB")
+    if (USE_OPENVDB AND NOT TBB_FOUND)
+        set (oiio_vdb_why ", could not find Intel TBB")
+    endif ()
+    message (STATUS "OpenVDB will not be used${oiio_vdb_why}")
 endif ()
 
 # end OpenVDB setup
