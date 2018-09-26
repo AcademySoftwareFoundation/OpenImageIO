@@ -281,7 +281,8 @@ Field3DInput::read_one_layer (FieldRes::Ptr field, layerrecord &lay,
                        (float)md[2][0], (float)md[2][1], (float)md[2][2], (float)md[2][3],
                        (float)md[3][0], (float)md[3][1], (float)md[3][2], (float)md[3][3]);
         m = m.inverse();
-        lay.spec.attribute ("worldtocamera", TypeMatrix, &m);
+        lay.spec.attribute ("worldtocamera", TypeMatrix, &m); // DEPRECATED
+        lay.spec.attribute ("worldtolocal", TypeMatrix, &m);
     }
 
     // Other metadata

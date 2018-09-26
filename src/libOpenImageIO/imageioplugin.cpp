@@ -247,6 +247,7 @@ catalog_plugin (const std::string &format_name,
     PLUGENTRY (jpeg2000);
     PLUGENTRY (null);
     PLUGENTRY (openexr);
+    PLUGENTRY (openvdb);
     PLUGENTRY (png);
     PLUGENTRY (pnm);
     PLUGENTRY_RO (psd);
@@ -316,6 +317,9 @@ catalog_builtin_plugins ()
 #endif
     DECLAREPLUG (null);
     DECLAREPLUG (openexr);
+#ifdef USE_OPENVDB
+    DECLAREPLUG_RO (openvdb);
+#endif
     DECLAREPLUG (png);
     DECLAREPLUG (pnm);
     DECLAREPLUG_RO (psd);

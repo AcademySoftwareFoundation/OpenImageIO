@@ -119,6 +119,22 @@ ifneq (${FIELD3D_HOME},)
 MY_CMAKE_FLAGS += -DFIELD3D_HOME:STRING=${FIELD3D_HOME}
 endif
 
+ifneq (${USE_TBB},)
+MY_CMAKE_FLAGS += -DUSE_TBB:BOOL=${USE_TBB}
+endif
+
+ifneq (${TBB_ROOT_DIR},)
+MY_CMAKE_FLAGS += -DTBB_ROOT_DIR:STRING=${TBB_ROOT_DIR}
+endif
+
+ifneq (${USE_OPENVDB},)
+MY_CMAKE_FLAGS += -DUSE_OPENVDB:BOOL=${USE_OPENVDB}
+endif
+
+ifneq (${OPENVDB_LOCATION},)
+MY_CMAKE_FLAGS += -DOPENVDB_LOCATION:STRING=${OPENVDB_LOCATION}
+endif
+
 ifneq (${USE_OPENJPEG},)
 MY_CMAKE_FLAGS += -DUSE_OPENJPEG:BOOL=${USE_OPENJPEG}
 endif
@@ -473,6 +489,11 @@ help:
 	@echo "      PYTHON_VERSION=2.6       Specify the Python version"
 	@echo "      USE_FIELD3D=0            Don't build the Field3D plugin"
 	@echo "      FIELD3D_HOME=path        Custom Field3D installation"
+	@echo "      USE_OPENVDB=0            Don't build the OpenVDB plugin"
+	@echo "      OPENVDB_LOCATION=path    Custom OpenVDB installation"
+	@echo "      USE_TBB=0                Don't use Intel TBB, though known"
+	@echo "                                  dependencies (USE_OPENVDB=1) will override this"
+	@echo "      TBB_ROOT_DIR=path        Custom Intel TBB installation"
 	@echo "      USE_FFMPEG=0             Don't build the FFmpeg plugin"
 	@echo "      USE_JPEGTURBO=0          Don't build the JPEG-Turbo even if found"
 	@echo "      JPEGTURBO_PATH=path      Custom path for JPEG-Turbo"

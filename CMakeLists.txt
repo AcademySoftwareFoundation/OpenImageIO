@@ -75,6 +75,10 @@ set (PYTHON_VERSION "2.7" CACHE STRING "Target version of python to find")
 option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
 option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
 option (USE_FIELD3D "Use Field3D if found" ON)
+option (USE_OPENVDB "Use OpenVDB if found" ON)
+set (OPENVDB_ROOT_DIR "" CACHE STRING "Custom OpenVDB path")
+option (USE_TBB "Use Intel TBB if found" ON)
+set (TBB_ROOT_DIR "" CACHE STRING "Custom Intel TBB path")
 option (USE_FFMPEG "Use FFmpeg if found" ON)
 set (JPEG_PATH "" CACHE STRING "Custom JPEG path")
 option (USE_JPEGTURBO "Use JPEG-Turbo if found" ON)
@@ -345,6 +349,9 @@ oiio_add_tests (ptex
 oiio_add_tests (texture-field3d field3d
     FOUNDVAR FIELD3D_FOUND)
 
+
+oiio_add_tests (openvdb
+    FOUNDVAR OPENVDB_FOUND)
 
 if (SPI_TESTS)
   oiio_add_tests (oiiotool-spi

@@ -19,6 +19,7 @@ if (NOT VERBOSE)
     set (OpenEXR_FIND_QUIETLY true)
     set (OpenGL_FIND_QUIETLY true)
     set (OpenJpeg_FIND_QUIETLY true)
+    set (OpenVDB_FIND_QUIETLY true)
     set (PkgConfig_FIND_QUIETLY true)
     set (PNG_FIND_QUIETLY TRUE)
     set (PTex_FIND_QUIETLY TRUE)
@@ -26,6 +27,7 @@ if (NOT VERBOSE)
     set (PythonInterp_FIND_QUIETLY true)
     set (PythonLibs_FIND_QUIETLY true)
     set (Qt5_FIND_QUIETLY true)
+    set (TBB_FIND_QUIETLY true)
     set (Threads_FIND_QUIETLY true)
     set (TIFF_FIND_QUIETLY true)
     set (WEBP_FIND_QUIETLY true)
@@ -298,6 +300,50 @@ endif ()
 
 # end Field3d setup
 ###########################################################################
+
+
+###########################################################################
+# Intel TBB
+if (USE_TBB)
+    find_package (TBB 2017)     # 2017 min for VFX Platform 2018
+    if (TBB_FOUND)
+        if (NOT TBB_FIND_QUIETLY)
+            message (STATUS "Intel TBB includes = ${TBB_INCLUDE_DIRS}")
+            message (STATUS "Intel TBB library = ${TBB_LIBRARIES}")
+        endif ()
+        add_definitions ("-DUSE_TBB=1")
+    else ()
+        message (STATUS "Intel TBB not found, TBB_ROOT_DIR='${TBB_ROOT_DIR}'")
+    endif ()
+endif ()
+
+# end Intel TBB setup
+###########################################################################
+
+
+###########################################################################
+# OpenVDB
+if (USE_OPENVDB AND TBB_FOUND)
+    find_package (OpenVDB 5.0)   # 5.0 min for VFX Platform 2017
+    if (OPENVDB_FOUND)
+        if (NOT OpenVDB_FIND_QUIETLY)
+            message (STATUS "OpenVDB includes = ${OPENVDB_INCLUDE_DIR}")
+            message (STATUS "OpenVDB libraries = ${OPENVDB_LIBRARY}")
+        endif ()
+        add_definitions ("-DUSE_OPENVDB=1")
+    else ()
+        message (STATUS "OpenVDB not found, OPENVDB_ROOT_DIR='${OPENVDB_ROOT_DIR}'")
+    endif ()
+else ()
+    if (USE_OPENVDB AND NOT TBB_FOUND)
+        set (oiio_vdb_why ", could not find Intel TBB")
+    endif ()
+    message (STATUS "OpenVDB will not be used${oiio_vdb_why}")
+endif ()
+
+# end OpenVDB setup
+###########################################################################
+
 
 
 ###########################################################################

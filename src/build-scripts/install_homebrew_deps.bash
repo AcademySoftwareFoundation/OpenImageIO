@@ -31,6 +31,8 @@ brew install qt
 brew install field3d
 brew install ffmpeg
 brew install opencv
+brew install tbb
+brew install openvdb
 brew upgrade python
 brew install pybind11 numpy
 brew link --overwrite numpy
