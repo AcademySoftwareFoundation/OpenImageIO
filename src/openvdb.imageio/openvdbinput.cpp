@@ -451,8 +451,9 @@ OpenVDBInput::open (const std::string &filename, ImageSpec &newspec)
         close();
 
     auto file = openVDB(filename, this);
-    if (!file || !file->isOpen())
+    if (!file)
         return false;
+    ASSERT(file->isOpen());
 
     try {
         for (io::File::NameIterator name = file->beginName(), end = file->endName();
