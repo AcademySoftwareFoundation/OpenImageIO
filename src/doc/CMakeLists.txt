@@ -15,7 +15,9 @@ endif()
 # generate man pages using txt2man and a tiny python script to munge the
 # result of "$tool --help"
 find_program(TXT2MAN txt2man)
+if (NOT PYTHONINTERP_FOUND)
 find_package(PythonInterp)
+endif ()
 if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
     message (STATUS "Unix man page documentation will be generated")
     set (cli_tools oiiotool iinfo maketx idiff igrep iconvert)

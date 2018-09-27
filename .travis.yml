@@ -51,6 +51,7 @@ cache:
 
 before_install:
     - if [ "$WHICHGCC" == "" ]; then export WHICHGCC="4.8" ; fi
+    - if [ "$PYTHON_VERSION" == "" ]; then export PYTHON_VERSION="2.7" ; fi
     - if [ $TRAVIS_OS_NAME == osx ] ; then
           uname -n ;
           export PLATFORM=macosx ;
@@ -70,7 +71,6 @@ install:
     - if [ $TRAVIS_OS_NAME == osx ] ; then
           src/build-scripts/install_homebrew_deps.bash ;
           export PATH=/usr/local/opt/qt5/bin:$PATH ;
-          export PYTHON_VERSION=3.6 ;
           export PATH=/usr/local/opt/python/libexec/bin:$PATH ;
           export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
@@ -129,6 +129,13 @@ matrix:
         compiler: gcc
       - os: osx
         compiler: clang
+        env: PYTHON_VERSION=3.7
+    # Make sure Python 2.7 still works on OSX, but only for PRs, master/RB
+    # pushes, or if the branch name includes "python".
+      - os: osx
+        compiler: clang
+        env: PYTHON_VERSION=2.7
+        if: branch =~ /(master|RB|python)/ OR type = pull_request
     # test debug build with default compiler
       - os: linux
         compiler: gcc

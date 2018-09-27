@@ -18,7 +18,7 @@ refdirlist = [
 
 
 # Run the script
-command += "python src/test_imagebufalgo.py > out.txt ;"
+command += pythonbin + " src/test_imagebufalgo.py > out.txt ;"
 
 # Checkout outputs -- some of the refs are in the oiiotool test dir
 outputs = ["black.tif", "filled.tif", "checker.tif",

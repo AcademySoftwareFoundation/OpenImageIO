@@ -2,5 +2,5 @@
 
 shutil.copyfile ("../common/textures/grid.tx", "grid.tx")
 
-command += "python src/test_imageinput.py > out.txt"
+command += pythonbin + " src/test_imageinput.py > out.txt"
 
