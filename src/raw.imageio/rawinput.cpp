@@ -383,7 +383,6 @@ RawInput::open_raw (bool unpack, const std::string &name,
     m_processor->imgdata.params.output_bps = 16;
 
     // Set the gamma curve to Linear
-    m_spec.attribute("oiio:ColorSpace","Linear");
     m_processor->imgdata.params.gamm[0] = 1.0;
     m_processor->imgdata.params.gamm[1] = 1.0;
 
@@ -410,7 +409,8 @@ RawInput::open_raw (bool unpack, const std::string &name,
         config.get_int_attribute("raw:use_camera_matrix", 1);
 
 
-    // Check to see if the user has explicitly set the output colorspace primaries
+    // Check to see if the user has explicitly set the output colorspace primaries.
+    // The default is to ask it to convert to sRGB space.
     std::string cs = config.get_string_attribute ("raw:ColorSpace", "sRGB");
     if (cs.size()) {
         static const char *colorspaces[] = { "raw",
@@ -442,12 +442,11 @@ RawInput::open_raw (bool unpack, const std::string &name,
             error("raw:ColorSpace set to unknown value");
             return false;
         }
-        // Set the attribute in the output spec
-        m_spec.attribute("raw:ColorSpace", cs);
+        m_spec.attribute ("oiio:ColorSpace", cs);
     } else {
         // By default we use sRGB primaries for simplicity
         m_processor->imgdata.params.output_color = 1;
-        m_spec.attribute("raw:ColorSpace", "sRGB");
+        m_spec.attribute ("oiio:ColorSpace", "sRGB");
     }
 
     // Exposure adjustment
