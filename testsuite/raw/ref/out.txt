@@ -74,9 +74,8 @@
     Exif:SubsecTimeDigitized: "00"
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "sRGB"
     oiio:MakerNoteOffset: 0
-    raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
@@ -160,9 +159,8 @@
     Nikon:PhaseDetectAF: 0
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "sRGB"
     oiio:MakerNoteOffset: 0
-    raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
     channel list: R, G, B
@@ -227,9 +225,8 @@
     Fujifilm:Rating: 0
     Fujifilm:ShutterType: 0
     Fujifilm:WB_Preset: 0
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "sRGB"
     oiio:MakerNoteOffset: 0
-    raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
@@ -313,9 +310,8 @@
     Nikon:PhaseDetectAF: 0
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "sRGB"
     oiio:MakerNoteOffset: 0
-    raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
     channel list: R, G, B
@@ -353,7 +349,7 @@
     Exif:Sharpness: 1 (soft)
     Exif:ShutterSpeedValue: 8.32193 (1/319 s)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "sRGB"
     oiio:MakerNoteOffset: 0
     Olympus:AFFineTune: 0
     Olympus:AFPoint: 0
@@ -382,7 +378,6 @@
     Olympus:OlympusCropID: -1
     Olympus:OlympusFrame: 0, 0, 0, 0
     Olympus:OlympusSensorCalibration: 0, 0
-    raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_PANASONIC_G1.RW2 : 4016 x 3016, 3 channel, uint16 raw
     channel list: R, G, B
@@ -405,7 +400,7 @@
     Exif:MaxApertureValue: 925/256 (3.61328)
     Exif:MeteringMode: 5 (pattern)
     Exif:ShutterSpeedValue: 8.64386 (1/399 s)
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "sRGB"
     Panasonic:AFPoint: -1
     Panasonic:BlackLevel: 0, 0, 0, 0, 0, 0, 0, 0
     Panasonic:CanonFocalUnits: 1
@@ -413,7 +408,6 @@
     Panasonic:EXIF_MaxAp: 3.49827
     Panasonic:ImageStabilization: -1
     Panasonic:LensID: 18446744073709551615
-    raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
     channel list: R, G, B
@@ -446,7 +440,7 @@
     Exif:ShutterSpeedValue: 7.96578 (1/249 s)
     Exif:SubjectDistanceRange: 3 (distant)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "sRGB"
     oiio:MakerNoteOffset: 0
     Pentax:AFAdjustment: 0
     Pentax:AFPoint: -1
@@ -473,7 +467,6 @@
     Pentax:MinAp4CurFocal: 32
     Pentax:MinAp4MinFocal: 32
     Pentax:MinFocusDistance: 16
-    raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
     channel list: R, G, B
@@ -514,9 +507,8 @@
     Exif:Sharpness: 0 (normal)
     Exif:ShutterSpeedValue: 5.90689 (1/59 s)
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "Linear"
+    oiio:ColorSpace: "sRGB"
     oiio:MakerNoteOffset: 0
-    raw:ColorSpace: "sRGB"
     raw:Demosaic: "AHD"
     Sony:AFMicroAdjOn: 0
     Sony:AFMicroAdjValue: 0
