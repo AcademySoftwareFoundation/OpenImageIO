@@ -128,7 +128,7 @@ if(NOT TBB_FOUND)
     #       <arch>/gcc4.1. For now, assume that the compiler is more recent than
     #       gcc 4.4.x or later.
     if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
-      set(TBB_LIB_PATH_SUFFIX "lib/intel64/gcc4.4")
+      set(TBB_LIB_PATH_SUFFIX "lib/intel64/gcc4.7")
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^i.86$")
       set(TBB_LIB_PATH_SUFFIX "lib/ia32/gcc4.4")
     endif()

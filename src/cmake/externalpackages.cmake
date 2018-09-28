@@ -305,6 +305,9 @@ endif ()
 ###########################################################################
 # Intel TBB
 if (USE_TBB)
+    if (DEBUGMODE)
+        set(TBB_USE_DEBUG_BUILD ON)
+    endif ()
     find_package (TBB 2017)     # 2017 min for VFX Platform 2018
     if (TBB_FOUND)
         if (NOT TBB_FIND_QUIETLY)
