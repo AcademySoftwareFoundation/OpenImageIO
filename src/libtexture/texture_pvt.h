@@ -349,6 +349,10 @@ public:
 
     typedef bool (*wrap_impl) (int &coord, int origin, int width);
 
+    /// Return an opaque, non-owning pointer to the underlying ImageCache
+    /// (if there is one).
+    virtual ImageCache *imagecache () const { return m_imagecache; }
+
 private:
     typedef ImageCacheTileRef TileRef;
     typedef ImageCachePerThreadInfo PerThreadInfo;
@@ -573,7 +577,8 @@ private:
     void visualize_ellipse (const std::string &name, float dsdx, float dtdx,
                             float dsdy, float dtdy, float sblur, float tblur);
 
-    ImageCacheImpl *m_imagecache;
+    ImageCacheImpl *m_imagecache = nullptr;
+    bool m_imagecache_owner = false; ///< True if we own the ImageCache
     Imath::M44f m_Mw2c;          ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;          ///< common-to-world matrix
     bool m_gray_to_rgb;          ///< automatically copy gray to rgb channels?

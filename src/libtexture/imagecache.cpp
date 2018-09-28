@@ -3555,11 +3555,4 @@ ImageCache::destroy (ImageCache *x, bool teardown)
 }
 
 
-
-void
-ImageCache::destroy (ImageCache *x)
-{
-    destroy (x, false);
-}
-
 OIIO_NAMESPACE_END
