@@ -45,13 +45,17 @@ FIND_PATH(OPENVDB_INCLUDE_DIR
     include
 )
 
+IF (DEBUGMODE)
+  LIST(INSERT oiio_vdblib_search 0 lib/debug)
+ENDIF ()
+
 FIND_LIBRARY(OPENVDB_LIBRARY
   NAMES
     openvdb
   HINTS
     ${_openvdb_SEARCH_DIRS}
   PATH_SUFFIXES
-    lib64 lib
+    ${oiio_vdblib_search}
 )
 
 # handle the QUIETLY and REQUIRED arguments and set OPENVDB_FOUND to TRUE if
