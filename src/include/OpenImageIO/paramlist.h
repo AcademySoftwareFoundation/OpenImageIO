@@ -140,14 +140,17 @@ public:
 
     // Assignment
     const ParamValue& operator= (const ParamValue &p) {
-        init (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), p.m_copy);
+        if (this != &p)
+            init (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), p.m_copy);
         return *this;
     }
     const ParamValue& operator= (ParamValue &&p) {
-        init (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
-        m_copy = p.m_copy;
-        m_nonlocal = p.m_nonlocal;
-        p.m_data.ptr = nullptr;
+        if (this != &p) {
+            init (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
+            m_copy = p.m_copy;
+            m_nonlocal = p.m_nonlocal;
+            p.m_data.ptr = nullptr;
+        }
         return *this;
     }
 
