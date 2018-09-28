@@ -1,6 +1,8 @@
 # Attempt to find the desired version, but fall back to other
 # additional versions.
+if (NOT PYTHONINTERP_FOUND)
 find_package (PythonInterp ${PYTHON_VERSION} REQUIRED)
+endif ()
 
 # The version that was found may not be the default or user
 # defined one.
@@ -31,6 +33,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set_property (SOURCE ${python_srcs} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-macro-redefined ")
 endif ()
 
+message (STATUS "Python version ${PYTHON_VERSION_STRING}")
 if (VERBOSE)
     message (STATUS "Python found ${PYTHONLIBS_FOUND} ")
     message (STATUS "Python include dirs ${PYTHON_INCLUDE_PATH}")
@@ -38,7 +41,6 @@ if (VERBOSE)
     message (STATUS "Python site packages dir ${PYTHON_SITE_DIR}")
     message (STATUS "Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
     message (STATUS "Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
-    message (STATUS "Python version ${PYTHON_VERSION_STRING}")
     message (STATUS "Python version major: ${PYTHON_VERSION_MAJOR} minor: ${PYTHON_VERSION_MINOR}")
     message (STATUS "pybind11 headers ${PYBIND11_INCLUDE_DIR}")
 endif ()
@@ -53,14 +55,13 @@ else ()
    target_link_libraries (${target_name} OpenImageIO ${SANITIZE_LIBRARIES} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
 endif ()
 
-    # Exclude the 'lib' prefix from the name
 if(NOT PYLIB_LIB_PREFIX)
-    add_definitions("-DOIIO_PYMODULE_NAME=OpenImageIO")
+    add_definitions("-DOIIO_PYMODULE_NAME=OpenImageIO${PYMODULE_SUFFIX}")
     set_target_properties (${target_name} PROPERTIES
                              OUTPUT_NAME OpenImageIO
                              PREFIX "")
 else()
-    add_definitions("-DOIIO_PYMODULE_NAME=PyOpenImageIO")
+    add_definitions("-DOIIO_PYMODULE_NAME=PyOpenImageIO${PYMODULE_SUFFIX}")
     set_target_properties (${target_name} PROPERTIES
                              OUTPUT_NAME PyOpenImageIO
                              PREFIX lib)

@@ -1,4 +1,4 @@
 #!/usr/bin/env python 
 
-command += "python src/test_imagespec.py > out.txt"
+command += pythonbin + " src/test_imagespec.py > out.txt"
 

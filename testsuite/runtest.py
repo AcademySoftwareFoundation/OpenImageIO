@@ -92,6 +92,11 @@ if (os.getenv("TRAVIS") and (os.getenv("SANITIZE") in ["leak","address"])
     and os.path.exists(os.path.join (test_source_dir,"TRAVIS_SKIP_LSAN"))) :
     sys.exit (0)
 
+pythonbin = 'python'
+if os.getenv("PYTHON_VERSION") :
+    pythonbin += os.getenv("PYTHON_VERSION")
+#print ("pythonbin = ", pythonbin)
+
 
 ###########################################################################
 
@@ -106,8 +111,8 @@ def text_diff (fromfile, tofile, diff_file=None):
     try:
         fromdate = time.ctime (os.stat (fromfile).st_mtime)
         todate = time.ctime (os.stat (tofile).st_mtime)
-        fromlines = open (fromfile, 'rU').readlines()
-        tolines   = open (tofile, 'rU').readlines()
+        fromlines = open (fromfile, 'r').readlines()
+        tolines   = open (tofile, 'r').readlines()
     except:
         print ("Unexpected error:", sys.exc_info()[0])
         return -1
@@ -351,7 +356,7 @@ def runtest (command, outputs, failureok=0) :
                 print (open(testfile,'r').read() + "<----------")
                 os.system ("ls -al " +out+" "+testfile)
                 print ("Diff was:\n-------")
-                print (open (out+".diff", 'rU').read())
+                print (open (out+".diff", 'r').read())
             if extension in image_extensions :
                 # If we failed to get a match for an image, send the idiff
                 # results to the console
