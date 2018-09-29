@@ -1,3 +1,7 @@
+Release 1.8.16 (1 Nov? 2018) -- compared to 1.8.15
+-------------------------------------------------
+
+
 Release 1.8.15 (1 Oct 2018) -- compared to 1.8.14
 -------------------------------------------------
 * Change to internal thread pool to fix rare crash when lowering number of
