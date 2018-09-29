@@ -36,7 +36,6 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
-#include <OpenImageIO/tiffutils.h>
 
 #if OIIO_GNUC_VERSION >= 80000
 // fix gcc8 warnings in libraw headers: use of auto_ptr
