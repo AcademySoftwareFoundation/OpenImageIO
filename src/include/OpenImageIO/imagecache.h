@@ -75,11 +75,12 @@ public:
     /// false, a private image cache will be created.
     static ImageCache *create (bool shared=true);
 
-    /// Destroy a ImageCache that was created using ImageCache::create().
-    /// The variety that takes a 'teardown' parameter, when set to true,
-    /// will fully destroy even a "shared" ImageCache.
-    static void destroy (ImageCache * x);
-    static void destroy (ImageCache * x, bool teardown);
+    /// Destroy an ImageCache that was created using ImageCache::create(),
+    /// unless it's recognized that this is the global "shared" ImageCache,
+    /// in which case it will stay active.
+    /// However, if 'teardown' is true, it will fully destroy the IC even
+    /// if it's the shared one (use with caution).
+    static void destroy (ImageCache * x, bool teardown = false);
 
     ImageCache (void) { }
     virtual ~ImageCache () { }

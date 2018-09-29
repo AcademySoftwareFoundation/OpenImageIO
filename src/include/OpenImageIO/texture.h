@@ -52,7 +52,11 @@
 
 OIIO_NAMESPACE_BEGIN
 
-// Forward declaration
+// Forward declarations
+
+class ImageCache;
+
+
 namespace pvt {
 
 class TextureSystemImpl;
@@ -431,18 +435,26 @@ public:
     /// Create a TextureSystem and return a pointer.  This should only be
     /// freed by passing it to TextureSystem::destroy()!
     ///
-    /// If shared==true, it's intended to be shared with other like-minded
-    /// owners in the same process who also ask for a shared texture system.
-    /// If false, a private texture system and cache will be created.
-    static TextureSystem *create (bool shared=true);
+    /// If shared==true, the TextureSystem is intended to be shared with
+    /// other like-minded owners in the same process who also ask for a
+    /// shared texture system. The shared TS also has a globally shared
+    /// ImageCache.
+    ///
+    /// If shared==false, a private texture system will be created. In that
+    /// case, the `imagecache` pointer optionally supplies an existing
+    /// ImageCache, which is owned by the caller (responsible for keeping it
+    /// alive for the lifetime of the TextureSystem, and destroying it when
+    /// no longer needed). If shared==false and imagecache==nullptr, then
+    /// a custom ImageCache will be created, owned by the TextureSystem, and
+    /// automatically freed when the TS destroys.
+    static TextureSystem *create (bool shared=true,
+                                  ImageCache *imagecache=nullptr);
 
     /// Destroy a TextureSystem that was created using
-    /// TextureSystem::create().  For the variety that takes a
-    /// teardown_imagecache parameter, if set to true it will cause the
-    /// underlying ImageCache to be fully destroyed, even if it's the
-    /// "shared" ImageCache.
-    static void destroy (TextureSystem *x);
-    static void destroy (TextureSystem *x, bool teardown_imagecache);
+    /// TextureSystem::create().  If teardown_imagecache parameter is true,
+    /// it will cause the underlying ImageCache to be fully destroyed even
+    /// if it's the "shared" ImageCache (use with caution)
+    static void destroy (TextureSystem *x, bool teardown_imagecache=false);
 
     TextureSystem (void) { }
     virtual ~TextureSystem () { }
@@ -893,6 +905,10 @@ public:
     /// processes to modify cached files.
     virtual void close (ustring filename) = 0;
     virtual void close_all () = 0;
+
+    /// Return an opaque, non-owning pointer to the underlying ImageCache
+    /// (if there is one).
+    virtual ImageCache *imagecache () const = 0;
 
 private:
     // Make delete private and unimplemented in order to prevent apps

@@ -107,11 +107,12 @@ static const OIIO_SIMD4_ALIGN vbool4 channel_masks[5] = {
 
 
 TextureSystem *
-TextureSystem::create (bool shared)
+TextureSystem::create (bool shared, ImageCache *imagecache)
 {
     if (shared) {
         // They requested a shared texture system.  If a shared one already
-        // exists, just return it, otherwise record the new texture system.
+        // exists, just return it, otherwise record the new texture system
+        // as the shared one.
         spin_lock guard (shared_texturesys_mutex);
         if (! shared_texturesys)
             shared_texturesys = new TextureSystemImpl(ImageCache::create(true));
@@ -123,7 +124,13 @@ TextureSystem::create (bool shared)
     }
 
     // Doesn't need a shared cache
-    TextureSystemImpl *ts = new TextureSystemImpl (ImageCache::create(false));
+    bool own_ic = false; // presume the caller owns the IC it passes
+    if (! imagecache) {  // If no IC supplied, make one and we own it
+        imagecache = ImageCache::create(false);
+        own_ic = true;
+    }
+    TextureSystemImpl *ts = new TextureSystemImpl (imagecache);
+    ts->m_imagecache_owner = own_ic;
 #if 0
     std::cerr << "creating new ImageCache " << (void *)ts << "\n";
 #endif
@@ -140,8 +147,9 @@ TextureSystem::destroy (TextureSystem *x, bool teardown_imagecache)
         return;
     TextureSystemImpl *impl = (TextureSystemImpl *) x;
     if (teardown_imagecache) {
-        ImageCache::destroy (impl->m_imagecache, true);
-        impl->m_imagecache = NULL;
+        if (impl->m_imagecache_owner)
+            ImageCache::destroy (impl->m_imagecache, true);
+        impl->m_imagecache = nullptr;
     }
 
     spin_lock guard (shared_texturesys_mutex);
@@ -153,13 +161,6 @@ TextureSystem::destroy (TextureSystem *x, bool teardown_imagecache)
     }
 }
 
-
-
-void
-TextureSystem::destroy (TextureSystem *x)
-{
-    destroy (x, false);
-}
 
 
 
