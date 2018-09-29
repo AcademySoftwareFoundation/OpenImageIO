@@ -1,5 +1,10 @@
-Release 1.8.15 (1 Oct? 2018) -- compared to 1.8.14
+Release 1.8.15 (1 Oct 2018) -- compared to 1.8.14
 -------------------------------------------------
+* Change to internal thread pool to fix rare crash when lowering number of
+  threads. #2013
+* Build: Use pkgconfig in FindOpenEXR.cmake if available. #2008
+* ImageBufAlgo::channel_append now will work with mixed input data types.
+  #2022
 
 Release 1.8.14 (1 Sep 2018) -- compared to 1.8.13
 -------------------------------------------------
