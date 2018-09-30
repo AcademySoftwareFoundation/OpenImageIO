@@ -158,6 +158,7 @@ public:
                     const ImageSpec *config=nullptr);
     ~ImageCacheFile ();
 
+    void reset (ImageInput::Creator creator, const ImageSpec *config);
     bool broken () const { return m_broken; }
     int subimages () const { return (int)m_subimages.size(); }
     int miplevels (int subimage) const {
@@ -880,7 +881,8 @@ public:
                                ImageCachePerThreadInfo *thread_info,
                                ImageInput::Creator creator=nullptr,
                                bool header_only=false,
-                               const ImageSpec *config=nullptr);
+                               const ImageSpec *config=nullptr,
+                               bool replace=false);
 
     /// Verify & prep the ImageCacheFile record for the named image,
     /// return the pointer (which may have changed for deduplication),
@@ -953,7 +955,7 @@ public:
     virtual ROI tile_roi (const Tile *tile) const;
     virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const;
     virtual bool add_file (ustring filename, ImageInput::Creator creator,
-                           const ImageSpec *config);
+                           const ImageSpec *config, bool replace);
     virtual bool add_tile (ustring filename, int subimage, int miplevel,
                            int x, int y, int z,  int chbegin, int chend,
                            TypeDesc format, const void *buffer,

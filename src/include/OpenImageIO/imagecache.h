@@ -346,9 +346,12 @@ public:
     /// have no effect if there's already an image by the same name in the
     /// cache. Custom creators or configurations only "work" the FIRST time
     /// a particular filename is referenced in the lifetime of the
-    /// ImageCache.
+    /// ImageCache. But if replace is true, any existing entry will be
+    /// invalidated, closed and overwritten. So any subsequent access will see
+    /// the new file. Existing texture handles will still be valid.
     virtual bool add_file (ustring filename, ImageInput::Creator creator=nullptr,
-                           const ImageSpec *config=nullptr) = 0;
+                           const ImageSpec *config=nullptr,
+                           bool replace = false) = 0;
 
     /// Preemptively add a tile corresponding to the named image, at the
     /// given subimage, MIP level, and channel range.  The tile added is the
