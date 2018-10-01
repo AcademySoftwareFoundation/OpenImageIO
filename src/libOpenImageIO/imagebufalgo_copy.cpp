@@ -797,7 +797,7 @@ ImageBufAlgo::channels (ImageBuf &dst, const ImageBuf &src,
 
 
 
-template<class Rtype, class ABtype>
+template<class Rtype, class Atype, class Btype>
 static bool
 channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
                      ROI roi, int nthreads)
@@ -806,8 +806,8 @@ channel_append_impl (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
         int na = A.nchannels(), nb = B.nchannels();
         int n = std::min (dst.nchannels(), na+nb);
         ImageBuf::Iterator<Rtype> r (dst, roi);
-        ImageBuf::ConstIterator<ABtype> a (A, roi);
-        ImageBuf::ConstIterator<ABtype> b (B, roi);
+        ImageBuf::ConstIterator<Atype> a (A, roi);
+        ImageBuf::ConstIterator<Btype> b (B, roi);
         for (;  !r.done();  ++r, ++a, ++b) {
             for (int c = 0; c < n; ++c) {
                 if (c < na)
@@ -864,16 +864,9 @@ ImageBufAlgo::channel_append (ImageBuf &dst, const ImageBuf &A,
         dst.reset (dstspec);
     }
 
-    // For now, only support A and B having the same type.
-    if (A.spec().format != B.spec().format) {
-        dst.error ("Unable to perform channel_append of %s, %s -> %s",
-                   A.spec().format, B.spec().format, dst.spec().format);
-        return false;
-    }
-
     bool ok;
-    OIIO_DISPATCH_TYPES2 (ok, "channel_append", channel_append_impl,
-                          dst.spec().format, A.spec().format,
+    OIIO_DISPATCH_COMMON_TYPES3 (ok, "channel_append", channel_append_impl,
+                          dst.spec().format, A.spec().format, B.spec().format,
                           dst, A, B, roi, nthreads);
     return ok;
 }
