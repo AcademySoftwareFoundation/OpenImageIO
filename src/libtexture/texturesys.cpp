@@ -365,8 +365,6 @@ TextureSystemImpl::init ()
 TextureSystemImpl::~TextureSystemImpl ()
 {
     printstats ();
-    ImageCache::destroy (m_imagecache);
-    m_imagecache = NULL;
     delete hq_filter;
 }
 

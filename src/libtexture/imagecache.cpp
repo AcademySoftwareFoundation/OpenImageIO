@@ -324,6 +324,15 @@ ImageCacheFile::~ImageCacheFile ()
 
 
 
+void ImageCacheFile::reset (ImageInput::Creator creator,
+                            const ImageSpec *config)
+{
+    m_inputcreator = creator;
+    m_configspec.reset(config ? new ImageSpec(*config) : nullptr);
+}
+
+
+
 std::shared_ptr<ImageInput>
 ImageCacheFile::get_imageinput (ImageCachePerThreadInfo *thread_info)
 {
@@ -642,7 +651,9 @@ ImageCacheFile::open (ImageCachePerThreadInfo *thread_info)
             inp.reset ();
             return {};
         }
-        if (si.unmipped && ! imagecache().accept_unmipped()) {
+        if (si.unmipped && ! imagecache().accept_unmipped() &&
+            // Allow unmip-mapped for null inputs (user buffers)
+            strcmp(inp->format_name(), "null")) {
             mark_broken ("image was not MIP-mapped");
             invalidate_spec ();
             inp.reset ();
@@ -1145,7 +1156,8 @@ ImageCacheFile *
 ImageCacheImpl::find_file (ustring filename,
                            ImageCachePerThreadInfo *thread_info,
                            ImageInput::Creator creator,
-                           bool header_only, const ImageSpec *config)
+                           bool header_only, const ImageSpec *config,
+                           bool replace)
 {
     // Debugging aid: attribute "substitute_image" forces all image
     // references to be to one named file.
@@ -1154,7 +1166,7 @@ ImageCacheImpl::find_file (ustring filename,
 
     // Shortcut - check the per-thread microcache before grabbing a more
     // expensive lock on the shared file cache.
-    ImageCacheFile *tf = thread_info->find_file (filename);
+    ImageCacheFile *tf = replace ? nullptr : thread_info->find_file (filename);
 
     // Make sure the ImageCacheFile entry exists and is in the
     // file cache.  For this part, we need to lock the file cache.
@@ -1175,6 +1187,11 @@ ImageCacheImpl::find_file (ustring filename,
             newfile = true;
         }
         m_files.unlock_bin (bin);
+        if (replace && found)
+        {
+            invalidate (filename);
+            tf->reset(creator, config);
+        }
 
         if (newfile) {
             check_max_files (thread_info);
@@ -3099,11 +3116,11 @@ ImageCacheImpl::tile_pixels (ImageCache::Tile *tile, TypeDesc &format) const
 
 bool
 ImageCacheImpl::add_file (ustring filename, ImageInput::Creator creator,
-                          const ImageSpec *config)
+                          const ImageSpec *config, bool replace)
 {
     ImageCachePerThreadInfo *thread_info = get_perthread_info ();
     ImageCacheFile *file = find_file (filename, thread_info,
-                                      creator, false, config);
+                                      creator, false, config, replace);
     file = verify_file (file, thread_info);
     if (!file || file->broken() || file->is_udim())
         return false;
