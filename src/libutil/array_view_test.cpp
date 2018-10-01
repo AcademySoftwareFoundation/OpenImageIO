@@ -88,15 +88,21 @@ void test_array_view_mutable ()
 
 
 
-void test_array_view_initlist ()
+void test_array_view_initlist_called (array_view<const float> a)
 {
-    // Try the array_view syntax with initializer_list.
-    array_view<const float> a { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
     OIIO_CHECK_EQUAL (a.size(), 12);
     OIIO_CHECK_EQUAL (a[0], 0.0f);
     OIIO_CHECK_EQUAL (a[1], 1.0f);
     OIIO_CHECK_EQUAL (a[2], 0.0f);
     OIIO_CHECK_EQUAL (a[3], 2.0f);
+}
+
+
+
+void test_array_view_initlist ()
+{
+    // Exercise the array_view syntax with initializer_list.
+    test_array_view_initlist_called ({ 0.0f, 1.0f, 0.0f, 2.0f, 0.0f, 3.0f, 0.0f, 4.0f, 0.0f, 5.0f, 0.0f, 0.0f });
 }
 
 

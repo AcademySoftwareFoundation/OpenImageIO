@@ -49,6 +49,12 @@
 #include FT_FREETYPE_H
 #endif
 
+#if OIIO_GNUC_VERSION >= 80000  /* gcc 8+ */
+// gcc8 complains about memcpy (in fill_const_) of half values because it
+// has no trivial copy assignment.
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
+
 
 OIIO_NAMESPACE_BEGIN
 

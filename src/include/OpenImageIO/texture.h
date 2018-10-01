@@ -215,7 +215,7 @@ public:
         sblur(0.0f), tblur(0.0f), swidth(1.0f), twidth(1.0f),
         fill(0.0f), missingcolor(NULL),
         // dresultds(NULL), dresultdt(NULL),
-        time(0.0f), // bias(0.0f), samples(1),
+        time(0.0f), bias(0.0f), samples(1),
         rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f), // dresultdr(NULL),
         // actualchannels(0),
         envlayout(0)

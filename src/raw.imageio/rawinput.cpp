@@ -28,11 +28,20 @@
   (This is the Modified BSD License)
 */
 
+#include <algorithm>
+#include <iostream>
+#include <ctime>       /* time_t, struct tm, gmtime */
+
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
-#include <iostream>
-#include <ctime>       /* time_t, struct tm, gmtime */
+
+#if OIIO_GNUC_VERSION >= 80000
+// fix gcc8 warnings in libraw headers: use of auto_ptr
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <libraw/libraw.h>
 #include <libraw/libraw_version.h>
 

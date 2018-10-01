@@ -21,6 +21,7 @@ addons:
       - g++-5
       - g++-6
       - g++-7
+      - g++-8
       - libboost-filesystem1.55
       - libboost-python1.55
       - libboost-regex1.55
@@ -147,6 +148,10 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=7 USE_CPP=14 USE_SIMD=avx,f16c
+    # test with C++14, gcc 8, latest SIMD flags supported by TravisCI VMs
+      - os: linux
+        compiler: gcc
+        env: WHICHGCC=8 USE_CPP=14 USE_SIMD=avx,f16c
     # Test LINKSTATIC on both platforms. This is incomplete and to make it
     # work we still need to disable a bunch of specific plugins.
       # FIXME: Don't have LINKSTATIC working on Travis for Linux, it's
