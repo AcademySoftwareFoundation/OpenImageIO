@@ -8,7 +8,8 @@ Major new features and improvements:
   for Canon cameras. #1774 (1.9.0)
 * New `maketx` option `--bumpslopes` specifically for converting bump maps,
   saves additional channels containing slope distribution moments that can
-  be used in shaders for "bump to roughness" calculations. #1810,#1913 (1.9.2)
+  be used in shaders for "bump to roughness" calculations. #1810,#1913,2005
+  (1.9.2)
 * TIFF I/O of multiple scanlines or tiles at once (or whole images, as is
   typical use case for oiiotool and maketx) is sped up by a large factor
   on modern multicore systems. We've seen 10x or more faster oiiotool
@@ -20,10 +21,13 @@ Major new features and improvements:
   Currently, OpenEXR supports this for both reading and writing, and PNG
   supports it for writing. You specify a pointer to the proxy via the
   configuration option "oiio:ioproxy". #1931 (1.9.3)
-* New "null" I/O plugin -- null reader just returns black (or constant
-  colored) pixels, null writer just returns. This can be used for
-  benchmarking (to eliminate all actual file I/O time), "dry run" where you
-  want to test without creating output files. #1778 (1.9.0)
+* New Image Format support:
+    * OpenVDB file reads (as volume images or accessing via texture3d()).
+      #2010,2018 (1.9.4)
+    * "null" images -- null reader just returns black (or constant colored)
+      pixels, null writer just returns. This can be used for benchmarking
+      (to eliminate all actual file I/O time), "dry run" where you want to
+      test without creating output files. #1778 (1.9.0)
 * ImageInput and ImageOutput static create() and open() methods now return
   `unique_ptr` rather than raw pointers. #1934, #1945 (1.9.3).
 * ImageInput improvements to thread safety and concurrency, including some
@@ -49,7 +53,7 @@ Public API changes:
       indexed as `[y][x][channel]` (no longer using old-style Python
       `array.array` and flattened to 1D).
     * Specilized enum type `ImageInput.OpenMode` has been replaced by string
-      parameters, so for example, old `ImageInput.open (filename, ImageInput.Create)`
+      parameters, so for example, old `ImageInput.open(filename, ImageInput.Create)`
       is now `ImageInput.open (filename, "Create")`
     * Any function that previously took a parameter of type `TypeDesc`
       or `TypeDesc.BASETYPE` now will accept a string that signifies the
@@ -123,6 +127,27 @@ Public API changes:
       preserve its aspect ratio (padding with black as necessary). It's just
       like what `oiiotool --fit` has always done, but now you can call it
       directly from C++ or Python. #1993 (1.9.4)
+* ImageCache/TextureSystem:
+    * ImageCache and TextureSystem now have `close(filename)` and
+      `close_all()` methods, which for one file or all files will close the
+      files and release any open file handles (also unlocking write access
+      to those files on Windows), but without invalidating anything it knows
+      about the ImageSpec or any pixel tiles already read from the files, as
+      would happen with a call to the much more drastic `invalidate()` or
+      `invalidate_all()`. #1950 (1.9.4)
+    * `TextureSystem::create()` has an additional optional argument that
+      allows the caller to pass an existing app-owned custom ImageCache.
+      #2019 (1.9.4)
+    * New `TextureSystem::imagecache()` method returns a blind, non-owning
+      pointer to the underlying ImageCache of that TS. #2019 (1.9.4)
+    * ImageCache: extended add_tile() with an optional `copy` parameter
+      (which defaults to `true`), which when set to `false` will make a tile
+      that references an app buffer without allocating, copying, and owning
+      the memory. In short, this makes it possible to reference existing
+      memory holding an image array, as if it were a texture. #2012 (1.9.4)
+    * `ImageCache::add_file()` extended with an optional `replace` parameter
+      (default: false), that if true, will replace the tile and invalidate
+      the old one. #2021 (1.9.4)
 * ColorConfig changes: ColorConfig methods now return shared pointers to
   `ColorProcessor` rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects
@@ -158,13 +183,6 @@ Public API changes:
   at the time that the application exits. #1885 (1.9.2)
 * Moved the definition of `ROI` from `imagebuf.h` to `imageio.h` and make
   most of the methods `constexpr`. #1906 (1.9.2)
-* ImageCache and TextureSystem now have `close(filename)` and `close_all()`
-  methods, which for one file or all files will close the files and release
-  any open file handles (also unlocking write access to those files on
-  Windows), but without invalidating anything it knows about the ImageSpec
-  or any pixel tiles already read from the files, as would happen with a
-  call to the much more drastic invalidate() or invalidate_all().
-  #1950 (1.9.4)
 * Rename/move of `array_view` to `span`. Deprecated `array_view` and moved
   array_view.h contents to span.h. You should change `array_view<T>`
   to `span<T>` and `array_view<const T>` to `cspan<T>`. #1956 (1.9.4)
@@ -230,6 +248,8 @@ Fixes and feature enhancements:
     * `mad()` now takes an `img*color+img` variety. (Previously it
        supported `img*img+img` and `img*color+color`.) #1866 (1.9.2)
     * New functions: fit() #1993.
+    * `channel_append()` is no longer limited to requiring the two input
+      images to have the same pixel data type. #2022 (1.9.4)
 * ImageBuf:
     * Bug fixed in IB::copy() of rare types. #1829 (1.9.2)
     * write() automatically tells the ImageCache to 'invalidate' the file
@@ -261,6 +281,9 @@ Fixes and feature enhancements:
       elements is correct. #1968 (1.9.4)
     * Fix uninitialized read within the texture system (only affected
       statistics, never gave wrong texture results). #2000 (1.9.4)
+    * texture3d() transforms lookup points from world into local space
+      if the file has a "worldtolocal" metadata giving a 4x4 matrix. #2009
+      (1.9.4)
 * iv:
     * Fix (especially on OSX) for various ways it has been broken since the
       shift to Qt5. #1946 (1.8.12, 1.9.4)
@@ -307,6 +330,9 @@ Fixes and feature enhancements:
     * Major rewrite of the way makernotes and camera-specific metadata are
       handled, resulting in much more (and more accurate) reporting of
       camera metadata. #1985 (1.9.4)
+    * The "oiio:ColorSpace" metadata is now set correctly when reading
+      raw DSLR images. And we deprecate the old "raw:ColorSpace" metadata,
+      which is useless. #2016 (1.9.4)
 * TIFF:
     * Improve performance of TIFF scanline output. #1833 (1.9.2)
     * Bug fix: read_tile() and read_tiles() input of un-premultiplied tiles
@@ -355,6 +381,9 @@ Build/test system improvements:
 * Properly find newer openjpeg 2.3. #1871 (1.9.2)
 * Fix testsuite to be Python 2/3 agnostic. #1891 (1.9.2)
 * Removed `USE_PYTHON3` build flag, which didn't do anything. #1891 (1.9.2)
+* The `PYTHON_VERSION` build variable is now better at selecting among
+  several installed versions of Python, and all the tests should work fine
+  with Python 3.x now. #2015 (1.9.4)
 * Remove some lingering support for MSVS < 2013 (which we haven't advertised
   as working anyway). #1887 (1.9.2)
 * Windows/MSVC build fix: use the `/bigobj` option on some large modules
@@ -380,6 +409,8 @@ Build/test system improvements:
   pushes of working branches, but the full test matrix for PRs or pushes
   to "master" or "RB" branches. #1983 (1.9.4)
 * Support compilation by clang 7.0. #1995 (1.9.4)
+* Support for building against OpenEXR 2.3. #2007 (1.9.4)
+* Use OpenEXR pkgconfig if available. #2008 (1.9.4)
 
 Developer goodies / internals:
 * argparse.h:
@@ -448,6 +479,8 @@ Developer goodies / internals:
       reader threads. #1787 (1.9.0)
     * task_set: add wait_for_task() method that waits for just one task in
       the set to finish (versus wait() that waits for all). #1847 (1.9.2)
+    * Fix rare crash in thread pool when lowering the number of threads.
+      #2013 (1.9.4/1.8.15)
 * unittest.h:
     * Made references to Strutil fully qualified in OIIO namespace, so that
       `unittest.h` can be more easily used outside of the OIIO codebase.
@@ -459,6 +492,14 @@ Developer goodies / internals:
 
 
 
+
+Release 1.8.15 (1 Oct 2018) -- compared to 1.8.14
+-------------------------------------------------
+* Change to internal thread pool to fix rare crash when lowering number of
+  threads. #2013
+* Build: Use pkgconfig in FindOpenEXR.cmake if available. #2008
+* ImageBufAlgo::channel_append now will work with mixed input data types.
+  #2022
 
 Release 1.8.14 (1 Sep 2018) -- compared to 1.8.13
 -------------------------------------------------

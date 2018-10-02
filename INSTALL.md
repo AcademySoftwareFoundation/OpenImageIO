@@ -30,7 +30,7 @@ NEW or CHANGED dependencies since the last major release are **bold**.
    icc version 13 or higher
  * Boost >= 1.53 (tested up through 1.67)
  * CMake >= 3.2.2 (tested up through 3.12)
- * OpenEXR >= 2.0 (recommended: 2.2, tested through 2.3)
+ * OpenEXR >= 2.0 (recommended: 2.2 or 2.3)
  * libTIFF >= 3.9 (recommended: 4.0+)
 
 ### Optional dependencies -- features may be disabled if not found
@@ -39,7 +39,7 @@ NEW or CHANGED dependencies since the last major release are **bold**.
      * Qt >= 5.6
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 2.7 (or 3.x)
+     * Python >= 2.7 (tested against 2.7, 3.6, 3.7)
      * **NumPy**
      * **pybind11** (but OIIO will auto-download it if not found)
  * If you want support for camera "RAW" formats:
