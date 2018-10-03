@@ -110,7 +110,7 @@ const void *parallel_convert_from_float (const float *src, void *dst,
 /// written by maketx or `oiiotool -otex`, then assume these metadata are
 /// wrong and delete them. Return true if we think it's one of these
 /// incorrect files and it was fixed.
-bool check_texture_metadata_sanity (ImageSpec &spec);
+OIIO_API bool check_texture_metadata_sanity (ImageSpec &spec);
 
 }  // namespace pvt
 
