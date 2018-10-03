@@ -53,7 +53,7 @@ endif ()
 
 include (GNUInstallDirs)
 
-set (CMAKE_MODULE_PATH
+list(APPEND CMAKE_MODULE_PATH
      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
      "${PROJECT_SOURCE_DIR}/src/cmake")
 
