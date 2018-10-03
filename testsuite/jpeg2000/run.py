@@ -6,7 +6,7 @@ failthresh = 0.02
 failpercent = 0.02
 
 # ../j2kp4files_v1_5/testfiles_jp2
-imagedir = parent + "/j2kp4files_v1_5/testfiles_jp2"
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/testfiles_jp2"
 files = [ "file1.jp2", "file2.jp2", "file3.jp2","file4.jp2",
           "file5.jp2", "file6.jp2", "file7.jp2","file8.jp2",
           "file9.jp2" ]
@@ -14,7 +14,7 @@ for f in files:
     command += rw_command (imagedir, f)
 
 # ../j2kp4files_v1_5/codestreams_profile0:
-imagedir = parent + "/j2kp4files_v1_5/codestreams_profile0"
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/codestreams_profile0"
 files = [ "p0_01.j2k", "p0_02.j2k",
           #"p0_03.j2k",
           "p0_04.j2k",
@@ -30,7 +30,7 @@ files = [ "p0_01.j2k", "p0_02.j2k",
 # later if we speed up the jpeg2000 reader.
 
 # ../j2kp4files_v1_5/codestreams_profile1:
-imagedir = parent + "/j2kp4files_v1_5/codestreams_profile1"
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/codestreams_profile1"
 files = [ "p1_01.j2k", "p1_02.j2k", "p1_03.j2k", "p1_04.j2k",
           "p1_05.j2k", "p1_06.j2k", "p1_07.j2k" ]
 # for f in files:

@@ -107,6 +107,8 @@ option (BUILD_OIIOUTIL_ONLY "If ON, will build *only* libOpenImageIO_Util" OFF)
 option (BUILD_DOCS "If ON, build documentation and man pages." ON)
 option (INSTALL_DOCS "If ON, install documentation and man pages." ON)
 
+set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_SOURCE_DIR}/.." CACHE STRING
+    "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
 if (NOT OIIO_THREAD_ALLOW_DCLP)
     add_definitions ("-DOIIO_THREAD_ALLOW_DCLP=0")
@@ -235,21 +237,13 @@ add_custom_command (OUTPUT "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
 add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_BINARY_DIR}/testsuite/runtest.py" )
 
 # Basic tests that apply even to continuous integration tests:
-oiio_add_tests (
-                gpsread misnamed-file nonwhole-tiles
-                oiiotool oiiotool-attribs oiiotool-composite oiiotool-copy
-                oiiotool-deep oiiotool-fixnan
-                oiiotool-pattern oiiotool-readerror
-                oiiotool-subimage oiiotool-text oiiotool-xform
+#   Tests that require oiio-images:
+oiio_add_tests (gpsread
+                oiiotool oiiotool-attribs oiiotool-readerror oiiotool-xform
+                oiiotool-fixnan ## maketx & oiiotool-maketx depend on this
                 maketx oiiotool-maketx
-                diff
-                dither dup-channels
-                dpx ico iff
-                jpeg-corrupt-exif
-                null png
-                psd psd-colormodes
-                rla sgi
-                rational
+                misnamed-file
+                dpx ico iff png psd rla sgi
                 texture-interp-bicubic
                 texture-blurtube
                 texture-crop texture-cropover
@@ -261,7 +255,26 @@ oiio_add_tests (
                 texture-width0blur
                 texture-fat texture-skinny texture-wrapfill
                 texture-missing texture-res texture-udim texture-udim2
+                IMAGEDIR oiio-images
               )
+
+#   Tests that require openexr-images:
+oiio_add_tests (oiiotool-deep
+                IMAGEDIR openexr-images
+              )
+
+#   Remaining freestanding tests:
+oiio_add_tests (nonwhole-tiles
+                oiiotool-composite oiiotool-copy
+                oiiotool-pattern
+                oiiotool-subimage oiiotool-text
+                diff
+                dither dup-channels
+                jpeg-corrupt-exif
+                null psd-colormodes
+                rational
+              )
+
 
 # Add tests that require the Python bindings if we built the Python
 # bindings. This is mostly the test that are specifically about testing
@@ -277,6 +290,7 @@ if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
                 python-typedesc python-imagespec python-roi python-deep
                 python-imageinput python-imageoutput
                 python-imagebuf python-imagebufalgo
+                IMAGEDIR oiio-images
             )
     endif ()
 endif ()

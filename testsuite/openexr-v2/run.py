@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-imagedir = parent + "/openexr-images/v2/Stereo"
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/v2/Stereo"
 
 # Multi-part, not deep
 command += rw_command (imagedir, "composited.exr", use_oiiotool=1,

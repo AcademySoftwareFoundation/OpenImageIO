@@ -6,7 +6,7 @@
 # Kapaa.exr               OrientationLatLong.exr  WavyLinesCube.exr
 # KernerEnvCube.exr       PeriodicPattern.exr     WavyLinesLatLong.exr
 # KernerEnvLatLong.exr    README                  WavyLinesSphere.exr
-imagedir = parent + "/openexr-images/MultiResolution"
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/MultiResolution"
 files = [ "Bonita.exr", "ColorCodedLevels.exr",
           # FIXME -- we don't know how to deal with RIP-maps -- Kapaa, 
           "KernerEnvCube.exr", "KernerEnvLatLong.exr", "MirrorPattern.exr",

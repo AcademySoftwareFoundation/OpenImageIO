@@ -4,12 +4,12 @@
 # README   t03.exr  t06.exr  t09.exr  t12.exr  t15.exr
 # t01.exr  t04.exr  t07.exr  t10.exr  t13.exr  t16.exr
 # t02.exr  t05.exr  t08.exr  t11.exr  t14.exr
-imagedir = parent + "/openexr-images/DisplayWindow"
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/DisplayWindow"
 
 # ../openexr-images/ScanLines:
 # Blobbies.exr   Desk.exr       StillLife.exr
 # Cannon.exr     MtTamWest.exr  Tree.exr
-imagedir = parent + "/openexr-images/ScanLines"
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/ScanLines"
 files = [ "Desk.exr", "MtTamWest.exr" ]
 for f in files:
     command += rw_command (imagedir, f)
@@ -25,7 +25,7 @@ for f in files:
 # BrightRings.exr          GrayRampsHorizontal.exr  WideColorGamut.exr
 # BrightRingsNanInf.exr    README                   WideFloatRange.exr
 # GammaChart.exr           RgbRampsDiagonal.exr
-imagedir = parent + "/openexr-images/TestImages"
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/TestImages"
 files = [ "AllHalfValues.exr", "BrightRings.exr", "BrightRingsNanInf.exr",
           "GammaChart.exr", "GrayRampsDiagonal.exr",
           "GrayRampsHorizontal.exr", "RgbRampsDiagonal.exr",
@@ -35,7 +35,7 @@ for f in files:
 
 # ../openexr-images/Tiles:
 # GoldenGate.exr  Ocean.exr       Spirals.exr
-imagedir = parent + "/openexr-images/Tiles"
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/Tiles"
 files = [ "GoldenGate.exr", "Ocean.exr", "Spirals.exr" ]
 for f in files:
     command += rw_command (imagedir, f)

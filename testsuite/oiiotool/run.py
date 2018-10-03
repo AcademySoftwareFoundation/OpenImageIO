@@ -86,13 +86,13 @@ command += oiiotool ("ref/histogram_input.png --histogram:cumulative=1 256x256 0
             + "-o histogram_cumulative.tif")
 
 # test --crop
-command += oiiotool (parent + "/oiio-images/grid.tif --crop 100x400+50+200 -o crop.tif")
+command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --crop 100x400+50+200 -o crop.tif")
 
 # test --cut
-command += oiiotool (parent + "/oiio-images/grid.tif --cut 100x400+50+200 -o cut.tif")
+command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --cut 100x400+50+200 -o cut.tif")
 
 # test paste
-command += oiiotool (parent + "/oiio-images/grid.tif "
+command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif "
             + "--pattern checker 256x256 3 --paste +150+75 -o pasted.tif")
 
 # test --trim
@@ -112,7 +112,7 @@ command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
             + "--mosaic:pad=10 2x2 -d uint8 -o mosaic.tif")
 
 # test channel shuffling
-command += oiiotool (parent + "/oiio-images/grid.tif"
+command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif"
             + " --ch =0.25,B,G -o chanshuffle.tif")
 
 # test --ch to separate RGBA from an RGBAZ file
@@ -141,7 +141,7 @@ command += oiiotool ("ref/hole.tif --fillholes -o tahoe-filled.tif")
 command += oiiotool ("-pattern checker 64x64+32+32 3 -ch R,G,B,A=1.0 -fullsize 128x128+0+0 --croptofull -fillholes -d uint8 -o growholes.tif")
 
 # test clamping
-command += oiiotool (parent + "/oiio-images/grid.tif --resize 50%"
+command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --resize 50%"
             + " --clamp:min=0.2:max=,,0.5,1 -o grid-clamped.tif")
 
 # test kernel

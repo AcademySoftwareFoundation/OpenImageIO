@@ -6,12 +6,12 @@
 
 # Make an RGB grid for our test
 command += (oiio_app("oiiotool")
-            + parent + "/oiio-images/grid.tif"
+            + OIIO_TESTSUITE_IMAGEDIR + "/grid.tif"
             + " -ch R,G,B -o grid3.tif >> out.txt ;\n")
 
 # And a 1-channel grid for our test
 command += (oiio_app("oiiotool")
-            + parent + "/oiio-images/grid.tif"
+            + OIIO_TESTSUITE_IMAGEDIR + "/grid.tif"
             + " -ch R -o grid1.tif >> out.txt ;\n")
 
 command += testtex_command ("grid3.tif",

@@ -42,11 +42,45 @@ path = os.path.normpath (path)
 tmpdir = "."
 tmpdir = os.path.abspath (tmpdir)
 
+def oiio_relpath (path, start=os.curdir):
+    "Wrapper around os.path.relpath which always uses '/' as the separator."
+    p = os.path.relpath (path, start)
+    return p if sys.platform != "win32" else p.replace ('\\', '/')
+
+OIIO_TESTSUITE_ROOT = oiio_relpath(os.environ['OIIO_TESTSUITE_ROOT'])
+OIIO_TESTSUITE_IMAGEDIR = os.environ.get('OIIO_TESTSUITE_IMAGEDIR', None)
+if OIIO_TESTSUITE_IMAGEDIR:
+    OIIO_TESTSUITE_IMAGEDIR = oiio_relpath(OIIO_TESTSUITE_IMAGEDIR)
+    # Set it back so test's can use it (python-imagebufalgo)
+    os.environ['OIIO_TESTSUITE_IMAGEDIR'] = OIIO_TESTSUITE_IMAGEDIR
+
 refdir = "ref/"
 refdirlist = [ refdir ]
-parent = "../../../../../"
-test_source_dir = "../../../../testsuite/" + os.path.basename(os.path.abspath(srcdir))
-colorconfig_file = "../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio"
+test_source_dir = os.environ['OIIO_TESTSUITE_SRC']
+colorconfig_file = os.path.join(OIIO_TESTSUITE_ROOT,
+                                "common", "OpenColorIO", "nuke-default", "config.ocio")
+
+
+# Swap the relative diff lines if the test suite is not being run via Makefile
+if OIIO_TESTSUITE_ROOT != "../../../../testsuite":
+    def replace_relative(lines):
+        imgdir = None
+        if OIIO_TESTSUITE_IMAGEDIR:
+            imgdir = os.path.basename(OIIO_TESTSUITE_IMAGEDIR)
+            if imgdir != "oiio-images":
+                oiioimgs = os.path.basename(os.path.dirname(OIIO_TESTSUITE_IMAGEDIR))
+                if oiioimgs == "oiio-images":
+                    imgdir = "oiio-images/" + imgdir
+                imgdir = "../../../../../" + imgdir
+
+        for i in xrange(len(lines)):
+            lines[i] = lines[i].replace("../../../../testsuite", OIIO_TESTSUITE_ROOT)
+            if imgdir:
+                lines[i] = lines[i].replace(imgdir, OIIO_TESTSUITE_IMAGEDIR)
+        return lines
+else:
+    replace_relative = None
+
 
 command = ""
 outputs = [ "out.txt" ]    # default
@@ -75,14 +109,21 @@ if platform.system() == 'Windows' :
     # if not os.path.exists("../common") :
     #     shutil.copytree ("../../../testsuite/common", "..")
 else :
+    def newsymlink(src, dst):
+        print("newsymlink", src, dst)
+        # os.path.exists returns False for broken symlinks, so remove if thats the case
+        if os.path.islink(dst):
+            os.remove(dst)
+        os.symlink (src, dst)
     if not os.path.exists("./ref") :
-        os.symlink (os.path.join (test_source_dir, "ref"), "./ref")
+        newsymlink (os.path.join (test_source_dir, "ref"), "./ref")
     if os.path.exists (os.path.join (test_source_dir, "src")) and not os.path.exists("./src") :
-        os.symlink (os.path.join (test_source_dir, "src"), "./src")
+        newsymlink (os.path.join (test_source_dir, "src"), "./src")
     if not os.path.exists("./data") :
-        os.symlink (test_source_dir, "./data")
+        newsymlink (test_source_dir, "./data")
     if not os.path.exists("../common") :
-        os.symlink ("../../../testsuite/common", "../common")
+        newsymlink (os.path.join(os.environ['OIIO_TESTSUITE_ROOT'], "common"),
+                    "../common")
 
 
 # Disable this test on Travis when using leak sanitizer, because the error
@@ -113,6 +154,8 @@ def text_diff (fromfile, tofile, diff_file=None):
         todate = time.ctime (os.stat (tofile).st_mtime)
         fromlines = open (fromfile, 'r').readlines()
         tolines   = open (tofile, 'r').readlines()
+        if replace_relative:
+            tolines = replace_relative(tolines)
     except:
         print ("Unexpected error:", sys.exc_info()[0])
         return -1
@@ -134,13 +177,6 @@ def text_diff (fromfile, tofile, diff_file=None):
         except:
             print ("Unexpected error:", sys.exc_info()[0])
     return 1
-
-
-
-def oiio_relpath (path, start=os.curdir):
-    "Wrapper around os.path.relpath which always uses '/' as the separator."
-    p = os.path.relpath (path, start)
-    return p if sys.platform != "win32" else p.replace ('\\', '/')
 
 
 def oiio_app (app):

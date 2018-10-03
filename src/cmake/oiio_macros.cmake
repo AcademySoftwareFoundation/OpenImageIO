@@ -67,6 +67,27 @@ macro (add_oiio_plugin)
 endmacro ()
 
 
+# oiio_set_testenv() - add environment variables to a test
+#
+# Usage:
+#   oiio_set_testenv ( testname
+#                      testsuite  - The root of all tests ${CMAKE_SOURCE_DIR}/testsuite
+#                      testsrcdir - Current test directory in ${CMAKE_SOURCE_DIR}
+#                      testdir    - Current test sandbox in ${CMAKE_BINARY_DIR}
+#                      IMAGEDIR   - Optional path to image reference/compare directory)
+#
+macro (oiio_set_testenv testname testsuite testsrcdir testdir IMAGEDIR)
+    set_property(TEST ${testname} PROPERTY ENVIRONMENT
+                "OIIO_TESTSUITE_ROOT=${testsuite}"
+                ";OIIO_TESTSUITE_SRC=${testsrcdir}"
+                ";OIIO_TESTSUITE_CUR=${testdir}")
+    if (NOT ${IMAGEDIR} STREQUAL "")
+        set_property(TEST ${testname} APPEND PROPERTY ENVIRONMENT
+                     "OIIO_TESTSUITE_IMAGEDIR=${IMAGEDIR}")
+    endif()
+endmacro ()
+
+
 # oiio_add_tests() - add a set of test cases.
 #
 # Usage:
@@ -82,7 +103,7 @@ endmacro ()
 macro (oiio_add_tests)
     cmake_parse_arguments (_ats "" "" "URL;IMAGEDIR;LABEL;FOUNDVAR;TESTNAME" ${ARGN})
        # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
-    set (_ats_testdir "${PROJECT_SOURCE_DIR}/../${_ats_IMAGEDIR}")
+    set (_ats_testdir "${OIIO_TESTSUITE_IMAGEDIR}/${_ats_IMAGEDIR}")
     # If there was a FOUNDVAR param specified and that variable name is
     # not defined, mark the test as broken.
     if (_ats_FOUNDVAR AND NOT ${_ats_FOUNDVAR})
@@ -98,7 +119,8 @@ macro (oiio_add_tests)
         # Add the tests if all is well.
         set (_has_generator_expr TRUE)
         foreach (_testname ${_ats_UNPARSED_ARGUMENTS})
-            set (_testsrcdir "${CMAKE_SOURCE_DIR}/testsuite/${_testname}")
+            set (_testsuite "${CMAKE_SOURCE_DIR}/testsuite")
+            set (_testsrcdir "${_testsuite}/${_testname}")
             set (_testdir "${CMAKE_BINARY_DIR}/testsuite/${_testname}")
             if (_ats_TESTNAME)
                 set (_testname "${_ats_TESTNAME}")
@@ -118,10 +140,16 @@ macro (oiio_add_tests)
             add_test ( NAME ${_testname}
                        COMMAND ${_runtest} )
 
+            oiio_set_testenv("${_testname}" "${_testsuite}"
+                             "${_testsrcdir}" "${_testdir}" "${_ats_testdir}")
+
             # For texture tests, add a second test using batch mode as well.
             if (_testname MATCHES "texture")
                 add_test ( NAME "${_testname}.batch"
                            COMMAND env TESTTEX_BATCH=1 ${_runtest} )
+
+                oiio_set_testenv("${_testname}.batch" "${_testsuite}"
+                                 "${_testsrcdir}" "${_testdir}" "${_ats_testdir}")
             endif ()
 
             #if (VERBOSE)
