@@ -1141,7 +1141,8 @@ of 0 indicates that it should try to read the whole image if possible.
 \index{debug}
 When nonzero, various debug messages may be printed. The default is 0 for
 release builds, 1 for {\cf DEBUG} builds, but also may be overridden by the
-{\cf OPENIMAGEIO\_DEBUG} env variable.
+{\cf OPENIMAGEIO\_DEBUG} env variable. Values $> 1$ are for OIIO developers
+to print even more debugging information.
 \apiend
 
 \apiitem{int log_times \\
@@ -1178,6 +1179,25 @@ per call, like this:
 
 If the value of {\cf log_times} is 2 or more when the application terminates,
 the timing report will be printed to {\cf stdout} upon exit.
+\apiend
+
+\apiitem{string hw:simd \\
+string oiio:simd}
+\vspace{10pt}
+\index{hw:simd} \index{oiio:simd}
+% added in 1.8
+The \qkw{hw:simd} read-only attribute is a comma-separated list of
+hardware CPU features for SIMD (and some other things). The \qkw{oiio:simd}
+is similarly a list of which features this build of OIIO was compiled
+to support.
+\apiend
+
+\apiitem{float resident_memory_used_MB}
+\vspace{10pt}
+\index{resident_memory_used_MB}
+\NEW % 1.9
+This read-only attribute can be used for debugging purposes to report
+the approximate process memory used (resident) by the application, in MB.
 \apiend
 
 \apiend

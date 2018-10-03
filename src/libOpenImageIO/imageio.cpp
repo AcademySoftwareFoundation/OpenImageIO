@@ -73,6 +73,12 @@ std::string input_format_list;   // comma-separated list of readable formats
 std::string output_format_list;  // comma-separated list of writeable formats
 std::string extension_list;   // list of all extensions for all formats
 std::string library_list;   // list of all libraries for all formats
+static const char *oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
+#ifdef NDEBUG
+int oiio_print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 0);
+#else
+int oiio_print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 1);
+#endif
 int oiio_log_times = Strutil::from_string<int>(Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
 }
 
@@ -83,13 +89,7 @@ namespace {
 // Hidden global OIIO data.
 static spin_mutex attrib_mutex;
 static const int maxthreads = 256;   // reasonable maximum for sanity check
-static const char *oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
 static FILE *oiio_debug_file = NULL;
-#ifdef NDEBUG
-int print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 0);
-#else
-int print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 1);
-#endif
 
 class TimingLog {
 public:
@@ -251,7 +251,7 @@ void
 debug (string_view message)
 {
     recursive_lock_guard lock (pvt::imageio_mutex);
-    if (print_debug) {
+    if (oiio_print_debug) {
         if (! oiio_debug_file) {
             const char *filename = getenv("OPENIMAGEIO_DEBUG_FILE");
             oiio_debug_file = filename && filename[0] ? fopen(filename,"a") : stderr;
@@ -304,7 +304,7 @@ attribute (string_view name, TypeDesc type, const void *val)
         return true;
     }
     if (name == "debug" && type == TypeInt) {
-        print_debug = *(const int *)val;
+        oiio_print_debug = *(const int *)val;
         return true;
     }
     if (name == "log_times" && type == TypeInt) {
@@ -375,7 +375,7 @@ getattribute (string_view name, TypeDesc type, void *val)
         return true;
     }
     if (name == "debug" && type == TypeInt) {
-        *(int *)val = print_debug;
+        *(int *)val = oiio_print_debug;
         return true;
     }
     if (name == "log_times" && type == TypeInt) {
@@ -392,6 +392,10 @@ getattribute (string_view name, TypeDesc type, void *val)
     }
     if (name == "oiio:simd" && type == TypeString) {
         *(ustring *)val = ustring(oiio_simd_caps());
+        return true;
+    }
+    if (name == "resident_memory_used_MB" && type == TypeInt) {
+        *(int *)val = int (Sysutil::memory_used(true) >> 20);
         return true;
     }
     return false;
