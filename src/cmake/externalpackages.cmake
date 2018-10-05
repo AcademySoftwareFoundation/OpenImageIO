@@ -70,9 +70,6 @@ find_package (OpenEXR 2.0 REQUIRED)
 include_directories ("${OPENEXR_INCLUDE_DIR}"
                      "${ILMBASE_INCLUDE_DIR}"
                      "${ILMBASE_INCLUDE_DIR}/OpenEXR")
-if (${OPENEXR_VERSION} VERSION_LESS 2.0.0)
-    message (FATAL_ERROR "OpenEXR/Ilmbase is too old")
-endif ()
 if (NOT OpenEXR_FIND_QUIETLY)
     message (STATUS "OPENEXR_INCLUDE_DIR = ${OPENEXR_INCLUDE_DIR}")
     message (STATUS "OPENEXR_LIBRARIES = ${OPENEXR_LIBRARIES}")

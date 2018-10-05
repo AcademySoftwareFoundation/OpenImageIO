@@ -75,9 +75,9 @@ install:
           export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
           CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_openexr.bash ;
-          export ILMBASE_HOME=$PWD/ext/openexr-install ;
-          export OPENEXR_HOME=$PWD/ext/openexr-install ;
-          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENEXR_HOME/lib ;
+          export ILMBASE_ROOT_DIR=$PWD/ext/openexr-install ;
+          export OPENEXR_ROOT_DIR=$PWD/ext/openexr-install ;
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENEXR_ROOT_DIR/lib ;
           CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_ocio.bash ;
           export OCIO_PATH=$PWD/ext/OpenColorIO/dist ;
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OCIO_PATH/lib ;
@@ -89,14 +89,14 @@ install:
 script:
     - make VERBOSE=1 $BUILD_FLAGS BUILD_MISSING_DEPS=1 cmakesetup
     - make -j2 $BUILD_FLAGS
-    - export OPENIMAGEIOHOME=$PWD/dist/$PLATFORM
-    - export DYLD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$DYLD_LIBRARY_PATH 
-    - export LD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$LD_LIBRARY_PATH
-    - export OIIO_LIBRARY_PATH=$OPENIMAGEIOHOME/lib
+    - export OPENIMAGEIO_ROOT_DIR=$PWD/dist/$PLATFORM
+    - export DYLD_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib:$DYLD_LIBRARY_PATH 
+    - export LD_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib:$LD_LIBRARY_PATH
+    - export OIIO_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib
     - echo "OIIO_LIBRARY_PATH is ${OIIO_LIBRARY_PATH}"
     # - echo "list of library path:"
     # - ls -R $OIIO_LIBRARY_PATH
-    - export PYTHONPATH=$OPENIMAGEIOHOME/python:$PYTHONPATH
+    - export PYTHONPATH=$OPENIMAGEIO_ROOT_DIR/python:$PYTHONPATH
     - export LSAN_OPTIONS=suppressions=$PWD/src/build-scripts/nosanitize.txt
     - if [ "$SKIP_TESTS" == "" ] ; then
           make $BUILD_FLAGS test ;
