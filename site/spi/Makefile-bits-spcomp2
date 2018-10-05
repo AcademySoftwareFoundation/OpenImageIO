@@ -150,14 +150,14 @@ ifeq (${SP_OS}, rhel7)
 
     # Special sauce for Python 3.6
     ifeq (${PYTHON_VERSION},3.6)
-        PYTHON_LIBRARY_DIR := /opt/rh/rh-python36/root/lib64
-        PYTHON_LIBRARY := ${PYTHON_LIBRARY_DIR}/libpython3.6m.so.rh-python36-1.0
+	PYTHON_INCLUDE_DIR := /usr/include/python${PYTHON_VERSION}m
+        PYTHON_LIBRARY := ${PYTHON_LIBRARY_DIR}/libpython${PYTHON_VERSION}m.so
         MY_CMAKE_FLAGS += \
             -DPYTHONINTERP_FOUND=1 \
-            -DPYTHON_VERSION_STRING=3.6.5 \
+            -DPYTHON_VERSION_STRING=3.6.3 \
             -DPYTHON_VERSION_MAJOR=3 \
             -DPYTHON_VERSION_MINOR=6 \
-            -DPYTHON_VERSION_PATCH=5 \
+            -DPYTHON_VERSION_PATCH=3 \
             -DPython_ADDITIONAL_VERSIONS="${PYTHON_VERSION}"
     endif
 
