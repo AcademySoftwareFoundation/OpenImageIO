@@ -752,7 +752,13 @@ resolve_font (int fontsize, string_view font_, std::string &result)
         font_search_dirs.emplace_back ("/usr/local/share/fonts/OpenImageIO");
         font_search_dirs.emplace_back ("/opt/local/share/fonts");
         font_search_dirs.emplace_back ("/opt/local/share/fonts/OpenImageIO");
-        // Try $OPENIMAGEIOHOME/fonts
+        // Try $OPENIMAGEIO_ROOT_DIR/fonts
+        string_view oiiorootdir = Sysutil::getenv ("OPENIMAGEIO_ROOT_DIR");
+        if (oiiorootdir.size()) {
+            font_search_dirs.push_back (std::string(oiiorootdir) + "/fonts");
+            font_search_dirs.push_back (std::string(oiiorootdir) + "/share/fonts/OpenImageIO");
+        }
+        // Try $OPENIMAGEIOHOME/fonts -- deprecated (1.9)
         string_view oiiohomedir = Sysutil::getenv ("OPENIMAGEIOHOME");
         if (oiiohomedir.size()) {
             font_search_dirs.push_back (std::string(oiiohomedir) + "/fonts");

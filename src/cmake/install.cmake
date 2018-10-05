@@ -1,13 +1,4 @@
 ###########################################################################
-# Set default install options
-
-set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
-
-set (INSTALL_DOCS ON CACHE BOOL "Install documentation")
-set (INSTALL_FONTS ON CACHE BOOL "Install default fonts")
-
-
-###########################################################################
 # Rpath handling at the install step
 set (MACOSX_RPATH ON)
 if (CMAKE_SKIP_RPATH)
