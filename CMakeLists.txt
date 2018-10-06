@@ -106,6 +106,9 @@ set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
 option (BUILD_OIIOUTIL_ONLY "If ON, will build *only* libOpenImageIO_Util" OFF)
 option (BUILD_DOCS "If ON, build documentation and man pages." ON)
 option (INSTALL_DOCS "If ON, install documentation and man pages." ON)
+option (INSTALL_FONTS "If ON, install default fonts" ON)
+option (INSTALL_CMAKE_HELPER "If On, install FindOpenImageIO.cmake" ON)
+set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
 
 
 if (NOT OIIO_THREAD_ALLOW_DCLP)
@@ -203,6 +206,12 @@ if (BUILD_DOCS)
 endif ()
 add_subdirectory (src/fonts)
 add_subdirectory (src/nuke)
+
+# Oddball: install the FindOpenImageIO.cmake file
+install (FILES src/cmake/modules/FindOpenImageIO.cmake
+         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/cmake/Modules
+         COMPONENT cmake)
+
 
 
 #########################################################################
