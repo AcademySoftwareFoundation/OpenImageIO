@@ -945,6 +945,12 @@ Configuration attribute & Type & Meaning \\
 \qkws{raw:user_sat} & int & If nonzero, sets the camera maximum value that
                             will be normalized to appear saturated.
                             (Default: 0) \\
+\qwks{raw:aber} & float[2] & Red and blue scale factors for chromatic
+                                aberration correction when decoding the raw
+                                image. The default (1,1) means to perform
+                                no correction. This is an overall spatial
+                                scale, sensible values will be very close
+                                to 1.0. \\
 \qkws{raw:ColorSpace} & string & Which color primaries to use: \qkw{raw},
                                 \qkw{sRGB}, \qkw{Adobe}, \qkw{Wide},
                                 \qkw{ProPhoto}, \qkw{ACES}, \qkw{XYZ}.
