@@ -525,7 +525,7 @@ endif()
 
 option (BUILD_PYBIND11_FORCE "Force local download/build of Pybind11 even if installed" OFF)
 option (BUILD_MISSING_PYBIND11 "Local download/build of Pybind11 if not installed" ON)
-set (BUILD_PYBIND11_VERSION "v2.2.1" CACHE STRING "Preferred pybind11 version, of downloading/building our own")
+set (BUILD_PYBIND11_VERSION "v2.2.4" CACHE STRING "Preferred pybind11 version, of downloading/building our own")
 set (PYBIND11_HOME "" CACHE STRING "Installed pybind11 location hint")
 
 macro (find_or_download_pybind11)
