@@ -1,7 +1,7 @@
 #!/usr/bin/env python 
 
 # Copy the grid to both a tiled and scanline version
-imagedir = parent + "oiio-images"
+imagedir = OIIO_TESTSUITE_IMAGEDIR
 command += oiio_app("iconvert") + imagedir + "/grid.tif --scanline scanline.tif > out.txt ;" 
 command += oiio_app("iconvert") + imagedir + "/grid.tif --tile 64 64 tiled.tif > out.txt ;" 
 

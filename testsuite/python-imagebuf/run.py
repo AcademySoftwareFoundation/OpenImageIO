@@ -1,7 +1,5 @@
 #!/usr/bin/env python 
 
-imagedir = parent + "oiio-images"
-
 # Run the script 
 command += pythonbin + " src/test_imagebuf.py > out.txt ;"
 

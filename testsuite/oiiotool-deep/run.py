@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-exrdir = parent+"/openexr-images/v2/LowResLeftView"
+exrdir = OIIO_TESTSUITE_IMAGEDIR + "/v2/LowResLeftView"
 
 # test --flatten : turn deep into composited non-deep
 command += oiiotool("src/deepalpha.exr --flatten -o flat.exr")

@@ -36,6 +36,6 @@
 
 
 
-command = testtex_command (parent + "/oiio-images/miplevels.tx",
+command = testtex_command (OIIO_TESTSUITE_IMAGEDIR + "/miplevels.tx",
                            " --filtertest -res 256 256 -d uint8 -o out.tif")
 outputs = [ "out.tif" ]

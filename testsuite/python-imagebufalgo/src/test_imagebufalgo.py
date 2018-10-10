@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-import math
+import math, os
 import OpenImageIO as oiio
 from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo, ROI
 
 
+OIIO_TESTSUITE_IMAGEDIR = os.environ['OIIO_TESTSUITE_IMAGEDIR']
 
 def make_constimage (xres, yres, chans=3, format=oiio.UINT8, value=(0,0,0),
                 xoffset=0, yoffset=0) :
@@ -30,7 +31,7 @@ def write (image, filename, format=oiio.UNKNOWN) :
 
 try:
     # Some handy images to work with
-    gridname = "../../../../../oiio-images/grid.tif"
+    gridname = os.path.join(OIIO_TESTSUITE_IMAGEDIR, "grid.tif")
     grid = ImageBuf (gridname)
     checker = ImageBuf(ImageSpec(256, 256, 3, oiio.UINT8))
     ImageBufAlgo.checker (checker, 8, 8, 8, (0,0,0), (1,1,1))

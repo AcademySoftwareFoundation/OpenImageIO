@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-imagedir = parent + "oiio-images/raw"
 files = [ "RAW_CANON_EOS_7D.CR2",
           "RAW_NIKON_D3X.NEF",
           "RAW_FUJI_F700.RAF",
@@ -15,7 +14,7 @@ outputs = []
 # the ref images small) and compared to the reference.
 for f in files:
     outputname = f+".tif"
-    command += oiiotool ("-i:info=2 " + imagedir+"/"+f
+    command += oiiotool ("-i:info=2 " + OIIO_TESTSUITE_IMAGEDIR + "/" + f
                          + " -resample '5%' -d uint8 "
                          + "-o " + outputname)
     outputs += [ outputname ]

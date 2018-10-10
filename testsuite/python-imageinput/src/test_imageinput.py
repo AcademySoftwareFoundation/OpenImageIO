@@ -2,7 +2,9 @@
 
 from __future__ import print_function
 import OpenImageIO as oiio
+import os
 
+OIIO_TESTSUITE_IMAGEDIR = os.environ['OIIO_TESTSUITE_IMAGEDIR']
 
 # Print the contents of an ImageSpec
 def print_imagespec (spec, subimage=0, mip=0, msg="") :
@@ -201,22 +203,22 @@ def write (image, filename, format=oiio.UNKNOWN) :
 try:
     # test basic opening and being able to read the spec
     poor_mans_iinfo ("badname.tif")
-    poor_mans_iinfo ("../../../../../oiio-images/tahoe-gps.jpg")
+    poor_mans_iinfo (OIIO_TESTSUITE_IMAGEDIR + "/tahoe-gps.jpg")
     poor_mans_iinfo ("grid.tx")
 
     # test readimage
     print ("Testing read_image:")
-    test_readimage ("../../../../../oiio-images/tahoe-gps.jpg")
+    test_readimage (OIIO_TESTSUITE_IMAGEDIR + "/tahoe-gps.jpg")
     # again, force a float buffer
-    test_readimage ("../../../../../oiio-images/tahoe-gps.jpg",
+    test_readimage (OIIO_TESTSUITE_IMAGEDIR + "/tahoe-gps.jpg",
                     type=oiio.FLOAT)
     # Test read of partial channels
-    test_readimage ("../../../../../oiio-images/tahoe-gps.jpg",
+    test_readimage (OIIO_TESTSUITE_IMAGEDIR + "/tahoe-gps.jpg",
                     method="scanlines", nchannels=1)
 
     # test readscanline
     print ("Testing read_scanline:")
-    test_readscanline ("../../../../../oiio-images/tahoe-gps.jpg")
+    test_readscanline (OIIO_TESTSUITE_IMAGEDIR + "/tahoe-gps.jpg")
 
     # test readtile
     print ("Testing read_tile:")
@@ -224,7 +226,7 @@ try:
 
     # test readscanlines
     print ("Testing read_scanlines:")
-    test_readimage ("../../../../../oiio-images/tahoe-gps.jpg",
+    test_readimage (OIIO_TESTSUITE_IMAGEDIR + "/tahoe-gps.jpg",
                     method="scanlines")
 
     # test readtiles

@@ -1,21 +1,16 @@
 #!/usr/bin/env python
 
-import os.path
-
-imagedir = parent + "oiio-images"
-
 refdirlist = [
-    "../../../../testsuite/oiiotool/ref/",
-    "../../../../testsuite/oiiotool-color/ref/",
-    "../../../../testsuite/oiiotool-composite/ref/",
-    "../../../../testsuite/oiiotool-fixnan/ref/",
-    "../../../../testsuite/oiiotool-deep/ref/",
-    "../../../../testsuite/oiiotool-pattern/ref/",
-    "../../../../testsuite/oiiotool-text/ref/",
-    "../../../../testsuite/oiiotool-xform/ref/",
+    OIIO_TESTSUITE_ROOT + "/oiiotool/ref/",
+    OIIO_TESTSUITE_ROOT + "/oiiotool-color/ref/",
+    OIIO_TESTSUITE_ROOT + "/oiiotool-composite/ref/",
+    OIIO_TESTSUITE_ROOT + "/oiiotool-fixnan/ref/",
+    OIIO_TESTSUITE_ROOT + "/oiiotool-deep/ref/",
+    OIIO_TESTSUITE_ROOT + "/oiiotool-pattern/ref/",
+    OIIO_TESTSUITE_ROOT + "/oiiotool-text/ref/",
+    OIIO_TESTSUITE_ROOT + "/oiiotool-xform/ref/",
     refdir
 ]
-
 
 # Run the script
 command += pythonbin + " src/test_imagebufalgo.py > out.txt ;"
