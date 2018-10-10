@@ -50,6 +50,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/simd.h>
+#include "imageio_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -276,6 +277,12 @@ private:
     std::unique_ptr<ImageSpec> m_configspec; // Configuration spec
     mutable std::string m_err;   ///< Last error message
 
+    // Private reset m_pixels to new allocation of new size, copy if
+    // data is not nullptr.
+    char *new_pixels (size_t size, const void *data = nullptr);
+    // Private release of m_pixels.
+    void free_pixels ();
+
     const ImageBufImpl operator= (const ImageBufImpl &src); // unimplemented
     friend class ImageBuf;
 };
@@ -353,6 +360,7 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
       m_imagecache(src.m_imagecache),
       m_cachedpixeltype(src.m_cachedpixeltype),
       m_deepdata(src.m_deepdata),
+      m_allocated_size(0),   // gets fixed up in the body vvv
       m_blackpixel(src.m_blackpixel),
       m_write_format(src.m_write_format),
       m_write_tile_width(src.m_write_tile_width),
@@ -361,8 +369,6 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
 {
     m_spec_valid = src.m_spec_valid;
     m_pixels_valid = src.m_pixels_valid;
-    m_allocated_size = src.m_localpixels ? src.spec().image_bytes() : 0;
-    IB_local_mem_current += m_allocated_size;
     if (src.m_localpixels) {
         // Source had the image fully in memory (no cache)
         if (m_storage == ImageBuf::APPBUFFER) {
@@ -370,14 +376,12 @@ ImageBufImpl::ImageBufImpl (const ImageBufImpl &src)
             m_localpixels = src.m_localpixels;
         } else {
             // We own our pixels -- copy from source
-            m_pixels.reset (new char [src.m_spec.image_bytes()]);
-            memcpy (m_pixels.get(), src.m_pixels.get(), m_spec.image_bytes());
-            m_localpixels = m_pixels.get();
+            new_pixels (src.m_spec.image_bytes(), src.m_pixels.get());
         }
     } else {
         // Source was cache-based or deep
         // nothing else to do
-        m_localpixels = NULL;
+        m_localpixels = nullptr;
     }
     if (src.m_configspec)
         m_configspec.reset (new ImageSpec(*src.m_configspec));
@@ -391,7 +395,7 @@ ImageBufImpl::~ImageBufImpl ()
     // externally and passed to the ImageBuf ctr or reset() method, or
     // else init_spec requested the system-wide shared cache, which
     // does not need to be destroyed.
-    IB_local_mem_current -= m_allocated_size;
+    free_pixels ();
 }
 
 
@@ -484,6 +488,39 @@ ImageBuf::operator= (ImageBuf &&src)
 {
     m_impl = std::move(src.m_impl);
     return *this;
+}
+
+
+
+char *
+ImageBufImpl::new_pixels (size_t size, const void *data)
+{
+    if (m_allocated_size)
+        free_pixels();
+    m_allocated_size = size;
+    m_pixels.reset (size ? new char [size] : nullptr);
+    IB_local_mem_current += m_allocated_size;
+    if (data && size)
+        memcpy (m_pixels.get(), data, size);
+    m_localpixels = m_pixels.get();
+    m_storage = size ? ImageBuf::LOCALBUFFER : ImageBuf::UNINITIALIZED;
+    if (pvt::oiio_print_debug > 1)
+        OIIO::debug ("IB allocated %d MB, global IB memory now %d MB\n",
+                     size>>20, IB_local_mem_current>>20);
+    return m_localpixels;
+}
+
+
+void
+ImageBufImpl::free_pixels ()
+{
+    IB_local_mem_current -= m_allocated_size;
+    m_pixels.reset ();
+    if (m_allocated_size && pvt::oiio_print_debug > 1)
+        OIIO::debug ("IB freed %d MB, global IB memory now %d MB\n",
+                     m_allocated_size>>20, IB_local_mem_current>>20);
+    m_allocated_size = 0;
+    m_storage = ImageBuf::UNINITIALIZED;
 }
 
 
@@ -656,12 +693,7 @@ ImageBuf::reset (const ImageSpec &spec)
 void
 ImageBufImpl::realloc ()
 {
-    IB_local_mem_current -= m_allocated_size;
-    m_allocated_size = m_spec.deep ? size_t(0) : m_spec.image_bytes ();
-    IB_local_mem_current += m_allocated_size;
-    m_pixels.reset (m_allocated_size ? new char [m_allocated_size] : NULL);
-    m_localpixels = m_pixels.get();
-    m_storage = m_allocated_size ? ImageBuf::LOCALBUFFER : ImageBuf::UNINITIALIZED;
+    new_pixels (m_spec.deep ? size_t(0) : m_spec.image_bytes ());
     m_pixel_bytes = m_spec.pixel_bytes();
     m_scanline_bytes = m_spec.scanline_bytes();
     m_plane_bytes = clamped_mult64 (m_scanline_bytes, (imagesize_t)m_spec.height);

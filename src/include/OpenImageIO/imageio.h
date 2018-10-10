@@ -1574,7 +1574,7 @@ OIIO_API std::string geterror ();
 ///             once for read_image calls (default: 256).
 ///     int debug
 ///             When nonzero, various debug messages may be printed.
-///             The default is 0 for release builds, 1 for DEBUG builds,
+///             The default is 0 for release builds, >=1 for DEBUG builds,
 ///             but also may be overridden by the OPENIMAGEIO_DEBUG env
 ///             variable.
 ///     int log_times
@@ -1641,6 +1641,9 @@ inline bool attribute (string_view name, string_view val) {
 ///             Comma-separated list of the SIMD-related capabilities
 ///             detected at runtime at the time of the query (which may not
 ///             match the support compiled into the library).
+///     int "resident_memory_used_MB"
+///             Approximate process memory used (resident) by the application,
+///             in MB. This might be helpful in debugging.
 OIIO_API bool getattribute (string_view name, TypeDesc type, void *val);
 // Shortcuts for common types
 inline bool getattribute (string_view name, int &val) {

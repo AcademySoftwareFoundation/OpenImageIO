@@ -57,6 +57,7 @@ extern std::string input_format_list;
 extern std::string output_format_list;
 extern std::string extension_list;
 extern std::string library_list;
+extern int oiio_print_debug;
 extern int oiio_log_times;
 
 
