@@ -194,6 +194,17 @@ RawInput::open_raw (bool unpack, const std::string &name,
     // Set camera maximum value if "raw:user_sat" is not 0
     m_processor->imgdata.params.user_sat =
         config.get_int_attribute("raw:user_sat", 0);
+    {
+        auto p = config.find_attribute ("raw:aber");
+        if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 2)) {
+            m_processor->imgdata.params.aber[0] = p->get<float>(0);
+            m_processor->imgdata.params.aber[2] = p->get<float>(1);
+        }
+        if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 2)) {
+            m_processor->imgdata.params.aber[0] = p->get<double>(0);
+            m_processor->imgdata.params.aber[2] = p->get<double>(1);
+        }
+    }
 
     // Use embedded color profile. Values mean:
     // 0: do not use embedded color profile
