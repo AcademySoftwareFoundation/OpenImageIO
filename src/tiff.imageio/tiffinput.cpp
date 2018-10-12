@@ -1935,6 +1935,11 @@ bool TIFFInput::read_scanline (int y, int z, TypeDesc format, void *data,
         // by alpha should happen after we've already done data format
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
+        {
+            lock_guard lock (m_mutex);
+            if (format == TypeUnknown) // unknown means retrieve the native type
+                format = m_spec.format;
+        }
         OIIO::premult (m_spec.nchannels, m_spec.width, 1, 1,
                        0 /*chbegin*/, m_spec.nchannels /*chend*/,
                        format, data, xstride, AutoStride, AutoStride,
@@ -1961,6 +1966,11 @@ bool TIFFInput::read_scanlines (int subimage, int miplevel,
         // by alpha should happen after we've already done data format
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
+        {
+            lock_guard lock (m_mutex);
+            if (format == TypeUnknown) // unknown means retrieve the native type
+                format = m_spec.format;
+        }
         OIIO::premult (m_spec.nchannels, m_spec.width, yend-ybegin, 1,
                        chbegin, chend, format, data,
                        xstride, ystride, AutoStride,
@@ -1983,6 +1993,11 @@ bool TIFFInput::read_tile (int x, int y, int z, TypeDesc format, void *data,
         // by alpha should happen after we've already done data format
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
+        {
+            lock_guard lock (m_mutex);
+            if (format == TypeUnknown) // unknown means retrieve the native type
+                format = m_spec.format;
+        }
         OIIO::premult (m_spec.nchannels, m_spec.tile_width, m_spec.tile_height,
                        std::max (1, m_spec.tile_depth),
                        0, m_spec.nchannels, format, data,
@@ -2017,6 +2032,8 @@ bool TIFFInput::read_tiles (int subimage, int miplevel, int xbegin, int xend,
             nchannels = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;
             z_channel = m_spec.z_channel;
+            if (format == TypeUnknown) // unknown means retrieve the native type
+                format = m_spec.format;
         }
         OIIO::premult (nchannels, xend-xbegin, yend-ybegin, zend-zbegin,
                        chbegin, chend, format, data,

@@ -934,7 +934,9 @@ premult (int nchannels, int width, int height, int depth,
                       (double*)data, xstride, ystride, zstride,
                       alpha_channel, z_channel);
         break;
-    default: break;
+    default:
+        ASSERT (0 && "OIIO::premult() of an unsupported type");
+    break;
     }
 }
 
