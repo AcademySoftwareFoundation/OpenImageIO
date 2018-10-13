@@ -8,11 +8,6 @@
 #   OPENEXR_VERSION        OpenEXR version (accurate for >= 2.0.0,
 #                              otherwise will just guess 1.6.1)
 #
-# Special inputs:
-#   OPENEXR_CUSTOM_INCLUDE_DIR - custom location of headers
-#   OPENEXR_CUSTOM_LIB_DIR - custom location of libraries
-#   OPENEXR_CUSTOM_LIB_PREFIX - special snowflake library prefix
-#   OPENEXR_CUSTOM_LIB_SUFFIX - special snowflake library suffix
 #
 
 # Other standard issue macros
@@ -30,18 +25,19 @@ endif ()
 # Attempt to find OpenEXR with pkgconfig
 find_package(PkgConfig)
 if (PKG_CONFIG_FOUND)
-    pkg_check_modules(_ILMBASE QUIET IlmBase)
+    pkg_check_modules(_ILMBASE QUIET IlmBase>=2.0.0)
     pkg_check_modules(_OPENEXR QUIET OpenEXR>=2.0.0)
 endif (PKG_CONFIG_FOUND)
 
 # List of likely places to find the headers -- note priority override of
-# OPENEXR_CUSTOM_INCLUDE_DIR and ${OPENEXR_HOME}/include.
+# ${OPENEXR_ROOT_DIR}/include.
 # ILMBASE is needed in case ilmbase an openexr are installed in separate
 # directories, like NixOS does
 set (GENERIC_INCLUDE_PATHS
-    ${OPENEXR_CUSTOM_INCLUDE_DIR}
-    ${OPENEXR_HOME}/include
-    ${ILMBASE_HOME}/include
+    ${OPENEXR_ROOT_DIR}/include
+    $ENV{OPENEXR_ROOT_DIR}/include
+    ${ILMBASE_ROOT_DIR}/include
+    $ENV{ILMBASE_ROOT_DIR}/include
     ${_ILMBASE_INCLUDEDIR}
     ${_OPENEXR_INCLUDEDIR}
     /usr/local/include
@@ -55,10 +51,12 @@ set (GENERIC_INCLUDE_PATHS
 # This seems to be the most robust way I can find to not get confused when
 # both system and custom libraries are present.
 find_path (ILMBASE_INCLUDE_PATH OpenEXR/IlmBaseConfig.h
-           PATHS ${GENERIC_INCLUDE_PATHS} NO_DEFAULT_PATH)
+           PATHS ${ILMBASE_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR}
+                 ${GENERIC_INCLUDE_PATHS} NO_DEFAULT_PATH)
 find_path (ILMBASE_INCLUDE_PATH OpenEXR/IlmBaseConfig.h)
 find_path (OPENEXR_INCLUDE_PATH OpenEXR/OpenEXRConfig.h
-           PATHS ${GENERIC_INCLUDE_PATHS} NO_DEFAULT_PATH)
+           PATHS ${OPENEXR_INCLUDE_DIR}
+                 ${GENERIC_INCLUDE_PATHS} NO_DEFAULT_PATH)
 find_path (OPENEXR_INCLUDE_PATH OpenEXR/OpenEXRConfig.h)
 
 # Try to figure out version number
@@ -79,24 +77,10 @@ endif ()
 
 
 # List of likely places to find the libraries -- note priority override of
-# OPENEXR_CUSTOM_LIB_DIR and ${OPENEXR_HOME}/lib.
-
-# If there's no OPENEXR_HOME or ILMBASE_HOME, then the path will point to
-# "/lib", which may not always be wanted/expected.
-if (OPENEXR_CUSTOM_LIB_DIR)
-  set (GENERIC_LIBRARY_PATHS ${GENERIC_LIBRARY_PATHS} ${OPENEXR_CUSTOM_LIB_DIR})
-endif()
-
-if (OPENEXR_HOME)
-  set (GENERIC_LIBRARY_PATHS ${GENERIC_LIBRARY_PATHS} ${OPENEXR_HOME})
-endif()
-
-if (ILMBASE_HOME)
-  set (GENERIC_LIBRARY_PATHS ${GENERIC_LIBRARY_PATHS} ${ILMBASE_HOME})
-endif()
-
+# ${OPENEXR_ROOT_DIR}/lib.
 set (GENERIC_LIBRARY_PATHS
-    ${GENERIC_LIBRARY_PATHS}
+    ${OPENEXR_ROOT_DIR}/lib
+    ${ILMBASE_ROOT_DIR}/lib
     ${OPENEXR_INCLUDE_PATH}/../lib
     ${ILMBASE_INCLUDE_PATH}/../lib
     ${_ILMBASE_LIBDIR}
@@ -128,22 +112,20 @@ set (_openexr_components IlmThread IlmImf Imath Iex Half)
 foreach (COMPONENT ${_openexr_components})
     string (TOUPPER ${COMPONENT} UPPERCOMPONENT)
     # First try with the version embedded
-    set (FULL_COMPONENT_NAME ${OPENEXR_CUSTOM_LIB_PREFIX}${COMPONENT}-${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR}${OPENEXR_CUSTOM_LIB_SUFFIX})
+    set (FULL_COMPONENT_NAME ${COMPONENT}-${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR})
     find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME}
-                  PATHS ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
+                  PATHS ${OPENEXR_LIBRARY_DIR}
+                        ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
     # Again, with no directory restrictions
     find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME})
     # Try again without the version
-    set (FULL_COMPONENT_NAME ${OPENEXR_CUSTOM_LIB_PREFIX}${COMPONENT}${OPENEXR_CUSTOM_LIB_SUFFIX})
+    set (FULL_COMPONENT_NAME ${COMPONENT})
     find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME}
-                  PATHS ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
+                  PATHS ${OPENEXR_LIBRARY_DIR}
+                        ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
     # One more time, with no restrictions
     find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME})
 endforeach ()
-#Half usually has no suffix
-find_library (OPENEXR_HALF_LIBRARY ${OPENEXR_CUSTOM_LIB_PREFIX}Half
-              PATHS ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
-find_library (OPENEXR_HALF_LIBRARY ${OPENEXR_CUSTOM_LIB_PREFIX}Half)
 
 # Set the FOUND, INCLUDE_DIR, and LIBRARIES variables.
 if (ILMBASE_INCLUDE_PATH AND OPENEXR_INCLUDE_PATH AND
