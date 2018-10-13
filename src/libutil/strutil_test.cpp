@@ -324,13 +324,20 @@ void test_split ()
 
 void test_join ()
 {
-    std::vector<std::string> seq;
-    seq.emplace_back("Now");
-    seq.emplace_back("is");
-    seq.emplace_back("the");
-    seq.emplace_back("time");
-    OIIO_CHECK_EQUAL (Strutil::join (seq, ". "),
+    std::vector<std::string> strvec { "Now", "is", "the", "time" };
+    OIIO_CHECK_EQUAL (Strutil::join (strvec, ". "),
                       "Now. is. the. time");
+
+    std::vector<string_view> svvec { "Now", "is", "the", "time" };
+    OIIO_CHECK_EQUAL (Strutil::join (svvec, "/"),
+                      "Now/is/the/time");
+
+    std::vector<int> intvec { 3, 2, 1 };
+    OIIO_CHECK_EQUAL (Strutil::join (intvec, " "),
+                      "3 2 1");
+
+    int intarr[] = { 4, 2 };
+    OIIO_CHECK_EQUAL (Strutil::join (intarr, ","), "4,2");
 }
 
 
@@ -513,51 +520,49 @@ void test_extract ()
 
     vals.clear(); vals.resize (3, -1);
     n = Strutil::extract_from_list_string (vals, "1");
-    OIIO_CHECK_EQUAL (vals.size(), 3);
-    OIIO_CHECK_EQUAL (vals[0], 1);
-    OIIO_CHECK_EQUAL (vals[1], 1);
-    OIIO_CHECK_EQUAL (vals[2], 1);
+    OIIO_CHECK_EQUAL (vals, std::vector<int>({1, 1, 1}));
     OIIO_CHECK_EQUAL (n, 1);
 
     vals.clear(); vals.resize (3, -1);
     n = Strutil::extract_from_list_string (vals, "1,3,5");
-    OIIO_CHECK_EQUAL (vals.size(), 3);
-    OIIO_CHECK_EQUAL (vals[0], 1);
-    OIIO_CHECK_EQUAL (vals[1], 3);
-    OIIO_CHECK_EQUAL (vals[2], 5);
+    OIIO_CHECK_EQUAL (vals, std::vector<int>({1, 3, 5}));
     OIIO_CHECK_EQUAL (n, 3);
 
     vals.clear(); vals.resize (3, -1);
     n = Strutil::extract_from_list_string (vals, "1,,5");
-    OIIO_CHECK_EQUAL (vals.size(), 3);
-    OIIO_CHECK_EQUAL (vals[0], 1);
-    OIIO_CHECK_EQUAL (vals[1], -1);
-    OIIO_CHECK_EQUAL (vals[2], 5);
+    OIIO_CHECK_EQUAL (vals, std::vector<int>({1, -1, 5}));
     OIIO_CHECK_EQUAL (n, 3);
 
     vals.clear(); vals.resize (3, -1);
     n = Strutil::extract_from_list_string (vals, "abc");
-    OIIO_CHECK_EQUAL (vals.size(), 3);
-    OIIO_CHECK_EQUAL (vals[0], 0);
-    OIIO_CHECK_EQUAL (vals[1], 0);
-    OIIO_CHECK_EQUAL (vals[2], 0);
+    OIIO_CHECK_EQUAL (vals, std::vector<int>({0, 0, 0}));
     OIIO_CHECK_EQUAL (n, 1);
 
     vals.clear(); vals.resize (3, -1);
     n = Strutil::extract_from_list_string (vals, "");
-    OIIO_CHECK_EQUAL (vals.size(), 3);
-    OIIO_CHECK_EQUAL (vals[0], -1);
-    OIIO_CHECK_EQUAL (vals[1], -1);
-    OIIO_CHECK_EQUAL (vals[2], -1);
+    OIIO_CHECK_EQUAL (vals, std::vector<int>({-1, -1, -1}));
     OIIO_CHECK_EQUAL (n, 0);
 
     vals.clear();
     n = Strutil::extract_from_list_string (vals, "1,3,5");
-    OIIO_CHECK_EQUAL (vals.size(), 3);
-    OIIO_CHECK_EQUAL (vals[0], 1);
-    OIIO_CHECK_EQUAL (vals[1], 3);
-    OIIO_CHECK_EQUAL (vals[2], 5);
+    OIIO_CHECK_EQUAL (vals, std::vector<int>({1, 3, 5}));
     OIIO_CHECK_EQUAL (n, 3);
+
+    // Make sure that the vector-returning version works
+    OIIO_CHECK_EQUAL (Strutil::extract_from_list_string<float> ("1", 3, -1.0f),
+                      std::vector<float>({1, 1, 1}));
+    OIIO_CHECK_EQUAL (Strutil::extract_from_list_string<float> ("1,3,5", 3, -1.0f),
+                      std::vector<float>({1, 3, 5}));
+    OIIO_CHECK_EQUAL (Strutil::extract_from_list_string<float> ("1,,5", 3, -1.0f),
+                      std::vector<float>({1, -1, 5}));
+    OIIO_CHECK_EQUAL (Strutil::extract_from_list_string<float> ("abc", 3, -1.0f),
+                      std::vector<float>({0, 0, 0}));
+    OIIO_CHECK_EQUAL (Strutil::extract_from_list_string<float> ("", 3, -1.0f),
+                      std::vector<float>({-1, -1, -1}));
+    OIIO_CHECK_EQUAL (Strutil::extract_from_list_string<float> ("1,3,5"),
+                      std::vector<float>({1, 3, 5}));
+    OIIO_CHECK_EQUAL (Strutil::extract_from_list_string<float> ("1,3,5,7"),
+                      std::vector<float>({1, 3, 5, 7}));
 }
 
 

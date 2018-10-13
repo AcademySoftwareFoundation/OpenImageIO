@@ -234,6 +234,8 @@ void OIIO_API to_lower (std::string &a);
 /// a static locale that doesn't require a mutex lock.
 void OIIO_API to_upper (std::string &a);
 
+
+
 /// Return a reference to the section of str that has all consecutive
 /// characters in chars removed from the beginning and ending.  If chars is
 /// empty, it will be interpreted as " \t\n\r\f\v" (whitespace).
@@ -247,12 +249,34 @@ void OIIO_API split (string_view str, std::vector<string_view> &result,
 void OIIO_API split (string_view str, std::vector<std::string> &result,
                      string_view sep = string_view(), int maxsplit = -1);
 
+/// Split the contents of `str` using `sep` as the delimiter string (if
+/// `sep` is "", any whitespace string is a separator). If `maxsplit > -1`,
+/// at most `maxsplit` splits are performed. The result is returned as a
+/// vector of std::string (for `splits()`) or a vector of string_view (for
+/// `splitsv()`).
+OIIO_API std::vector<std::string>
+splits (string_view str, string_view sep = "", int maxsplit = -1);
+OIIO_API std::vector<string_view>
+splitsv (string_view str, string_view sep = "", int maxsplit = -1);
+
 /// Join all the strings in 'seq' into one big string, separated by the
-/// 'sep' string.
-std::string OIIO_API join (const std::vector<string_view> &seq,
-                           string_view sep = string_view());
-std::string OIIO_API join (const std::vector<std::string> &seq,
-                           string_view sep = string_view());
+/// 'sep' string. The Sequence can be any iterable collection of items that
+/// are able to convert to string via stream output. Examples include:
+/// std::vector<string_view>, std::vector<std::string>, std::set<ustring>,
+/// std::vector<int>, etc.
+template<class Sequence>
+std::string join (const Sequence& seq, string_view sep="")
+{
+    std::ostringstream out;
+    bool first = true;
+    for (auto&& s : seq) {
+        if (! first && sep.size())
+            out << sep;
+        out << s;
+        first = false;
+    }
+    return out.str();
+}
 
 /// Repeat a string formed by concatenating str n times.
 std::string OIIO_API repeat (string_view str, int n);
@@ -407,6 +431,38 @@ int extract_from_list_string (std::vector<T> &vals,
         vals.resize (nvals, vals[0]);
     }
     return list.size() ? (int) valuestrings.size() : 0;
+}
+
+
+/// Given a string containing values separated by a comma (or optionally
+/// another separator), extract the individual values, returning them as a
+/// std::vector<T>. The vector will be initialized with `nvals` elements
+/// with default value `val`. If only a single value was in the list,
+/// replace all elements of vals[] with the value. Otherwise, replace them
+/// in the same order.  A missing value will simply not be replaced and
+/// will retain the initialized default value. If the string contains more
+/// then `nvals` values, they will append to grow the vector.
+///
+/// For example, if T=float,
+///   extract_from_list_string ("", 3, 42.0f)
+///       --> {42.0, 42.0, 42.0}
+///   extract_from_list_string ("3.14", 3, 42.0f)
+///       --> {3.14, 3.14, 3.14}
+///   extract_from_list_string ("3.14,,-2.0", 3, 42.0f)
+///       --> {3.14, 42.0, -2.0}
+///   extract_from_list_string ("1,2,3,4", 3, 42.0f)
+///       --> {1.0, 2.0, 3.0, 4.0}
+///
+/// This can work for type T = int, float, or any type for that has
+/// an explicit constructor from a std::string.
+template<class T>
+std::vector<T>
+extract_from_list_string (string_view list, size_t nvals=0, T val=T(),
+                          string_view sep = ",")
+{
+    std::vector<T> vals (nvals, val);
+    extract_from_list_string (vals, list, sep);
+    return vals;
 }
 
 

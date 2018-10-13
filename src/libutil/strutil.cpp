@@ -496,31 +496,39 @@ split_whitespace (string_view str, std::vector<string_view> &result,
 
 
 
-void
-Strutil::split (string_view str, std::vector<std::string> &result,
-                string_view sep, int maxsplit)
+std::vector<std::string>
+Strutil::splits (string_view str, string_view sep, int maxsplit)
 {
-    std::vector<string_view> sr_result;
-    split (str, sr_result, sep, maxsplit);
-    result.clear ();
+    auto sr_result = splitsv (str, sep, maxsplit);
+    std::vector<std::string> result;
     result.reserve (sr_result.size());
     for (size_t i = 0, e = sr_result.size(); i != e; ++i)
         result.push_back (sr_result[i]);
+    return result;
 }
 
 
 
 void
-Strutil::split (string_view str, std::vector<string_view> &result,
+Strutil::split (string_view str, std::vector<std::string> &result,
                 string_view sep, int maxsplit)
 {
+    result = splits (str, sep, maxsplit);
+}
+
+
+
+std::vector<string_view>
+Strutil::splitsv (string_view str, string_view sep, int maxsplit)
+{
+    std::vector<string_view> result;
+
     // Implementation inspired by Pystring
-    result.clear();
     if (maxsplit < 0)
         maxsplit = std::numeric_limits<int>::max();
     if (sep.size() == 0) {
         split_whitespace (str, result, maxsplit);
-        return;
+        return result;
     }
     size_t i = 0, j = 0, len = str.size(), n = sep.size();
     while (i+n <= len) {
@@ -534,34 +542,16 @@ Strutil::split (string_view str, std::vector<string_view> &result,
         }
     }
     result.push_back (str.substr(j, len-j));
-}
-
-
-
-std::string
-Strutil::join (const std::vector<string_view> &seq, string_view str)
-{
-    // Implementation inspired by Pystring
-    size_t seqlen = seq.size();
-    if (seqlen == 0)
-        return std::string();
-    std::string result (seq[0]);
-    for (size_t i = 1; i < seqlen; ++i) {
-        result += str;
-        result += seq[i];
-    }
     return result;
 }
 
 
 
-std::string
-Strutil::join (const std::vector<std::string> &seq, string_view str)
+void
+Strutil::split (string_view str, std::vector<string_view> &result,
+                string_view sep, int maxsplit)
 {
-    std::vector<string_view> seq_sr (seq.size());
-    for (size_t i = 0, e = seq.size(); i != e; ++i)
-        seq_sr[i] = seq[i];
-    return join (seq_sr, str);
+    result = splitsv (str, sep, maxsplit);
 }
 
 

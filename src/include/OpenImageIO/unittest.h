@@ -37,6 +37,7 @@
 #include <algorithm>
 
 #include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/strutil.h>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -75,9 +76,18 @@ inline bool equal_approx (const X& x, const Y& y) {
     return all(abs((x)-(y)) <= 0.001f * max(abs(x), abs(y)));
 }
 
+
 }  // end namespace pvt
 
 OIIO_NAMESPACE_END
+
+// Helper: print entire vectors. This makes the OIIO_CHECK_EQUAL macro
+// work for std::vector!
+template<typename T>
+inline std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
+    out << '{' << OIIO::Strutil::join (v, ",") << '}';
+    return out;
+}
 
 static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
 
