@@ -183,6 +183,9 @@ public:
     /// Which type of storage is being used for the pixels?
     IBStorage storage () const;
 
+    /// Is the pixel memory of this ImageBuf visible to Cuda?
+    bool cuda_storage () const;
+
     /// Is this ImageBuf object initialized?
     bool initialized () const;
 

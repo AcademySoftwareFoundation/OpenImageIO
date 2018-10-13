@@ -482,6 +482,27 @@ unset_autopremult (int argc, const char *argv[])
 }
 
 
+static int
+enable_cuda (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    OIIO::attribute ("cuda", 1);
+    int r = OIIO::get_int_attribute ("cuda");   // force initialization
+    if (ot.debug)
+        std::cout << "Enable_cuda: " << r << "\n";
+    return 0;
+}
+
+
+static int
+disable_cuda (int argc, const char *argv[])
+{
+    ASSERT (argc == 1);
+    OIIO::attribute ("cuda", 0);
+    return 0;
+}
+
+
 
 static int
 action_label (int argc, const char *argv[])
@@ -5152,6 +5173,8 @@ getargs (int argc, char *argv[])
                 "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
                 "--debug", &ot.debug, "Debug mode",
                 "--runstats", &ot.runstats, "Print runtime statistics",
+                "--cuda %@", &enable_cuda, NULL, "Use Cuda if available",
+                "--nocuda %@", &disable_cuda, NULL, "Don't use Cuda, even if available",
                 "--info %@", set_printinfo, NULL, "Print resolution and basic info on all inputs, detailed metadata if -v is also used (options: format=xml:verbose=1)",
                 "--echo %@ %s", do_echo, NULL, "Echo message to console (options: newline=0)",
                 "--metamatch %s", &ot.printinfo_metamatch,

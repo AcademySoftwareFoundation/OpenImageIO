@@ -80,6 +80,7 @@ int oiio_print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 0);
 int oiio_print_debug (oiio_debug_env ? atoi(oiio_debug_env) : 1);
 #endif
 int oiio_log_times = Strutil::from_string<int>(Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
+atomic_int use_cuda (Strutil::from_string<int>(Sysutil::getenv("OPENIMAGEIO_CUDA")));
 }
 
 using namespace pvt;
@@ -282,6 +283,11 @@ attribute (string_view name, TypeDesc type, const void *val)
         default_thread_pool()->resize (ot-1);
         return true;
     }
+    if (name == "cuda" && type == TypeDesc::TypeInt) {
+        use_cuda = (*(const int *)val);
+        return true;
+    }
+
     spin_lock lock (attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         oiio_read_chunk = *(const int *)val;
@@ -323,6 +329,11 @@ getattribute (string_view name, TypeDesc type, void *val)
         *(int *)val = oiio_threads;
         return true;
     }
+    if (name == "cuda" && type == TypeDesc::TypeInt) {
+        *(int *)val = openimageio_cuda();
+        return true;
+    }
+
     spin_lock lock (attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         *(int *)val = oiio_read_chunk;

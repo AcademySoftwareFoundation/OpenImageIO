@@ -4,6 +4,7 @@
 # When not in VERBOSE mode, try to make things as quiet as possible
 if (NOT VERBOSE)
     set (Boost_FIND_QUIETLY true)
+    set (CUDA_FIND_QUIETLY true)
     set (DCMTK_FIND_QUIETLY true)
     set (FFmpeg_FIND_QUIETLY true)
     set (Field3D_FIND_QUIETLY true)
@@ -623,5 +624,28 @@ macro (find_or_download_robin_map)
 endmacro()
 
 
+###########################################################################
+if (USE_CUDA)
+    if (NOT CUDA_TOOLKIT_ROOT_DIR AND NOT $ENV{CUDA_TOOLKIT_ROOT_DIR} STREQUAL "")
+        set (CUDA_TOOLKIT_ROOT_DIR $ENV{CUDA_TOOLKIT_ROOT_DIR})
+    endif ()
+    if (NOT CUDA_FIND_QUIETLY)
+        message (STATUS "CUDA_TOOLKIT_ROOT_DIR = ${CUDA_TOOLKIT_ROOT_DIR}")
+    endif ()
+    set (CUDA_PROPAGATE_HOST_FLAGS ON)
+    set (CUDA_VERBOSE_BUILD ${VERBOSE})
+    find_package (CUDA 7.0 REQUIRED)
+    list (APPEND CUDA_NVCC_FLAGS ${CSTD_FLAGS} -expt-relaxed-constexpr)
+    set (CUDA_INCLUDE_DIR ${CUDA_TOOLKIT_ROOT_DIR}/include)
+    message (STATUS "CUDA version = ${CUDA_VERSION}")
+    if (NOT CUDA_FIND_QUIETLY)
+        message (STATUS "CUDA includes  = ${CUDA_INCLUDE_DIR}")
+        message (STATUS "CUDA libraries = ${CUDA_LIBRARIES}")
+        message (STATUS "CUDA host compiler = ${CUDA_HOST_COMPILER}")
+        message (STATUS "CUDA nvcc flags = ${CUDA_NVCC_FLAGS}")
+    endif ()
+endif ()
+
+# end Cuda
 ###########################################################################
 

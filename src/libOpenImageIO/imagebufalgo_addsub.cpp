@@ -44,6 +44,7 @@
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/dassert.h>
 #include "imageio_pvt.h"
+#include "imagebufalgo_cuda.h"
 
 
 
@@ -121,6 +122,15 @@ ImageBufAlgo::add (ImageBuf &dst, Image_or_Const A_, Image_or_Const B_,
             return false;
         ROI origroi = roi;
         roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
+
+#ifdef OIIO_USE_CUDA
+        if (dst.cuda_storage() && A.cuda_storage() && B.cuda_storage() &&
+                dst.roi() == roi && A.roi() == roi && B.roi() == roi) {
+            return pvt::add_impl_cuda (dst, A, B, dst.roi());
+        }
+// make >/dev/null && OPENIMAGEIO_LOG_TIMES=2 oiiotool -cuda -frames 1-1 -pattern fill:topleft=0,0,0:topright=0.5,0,0:bottomleft=0,0.5,0:bottomright=0.5,0.5,0.5 1920x1080 3 -pattern fill:topleft=0.5,0,0:topright=0,0.5,0:bottomleft=0.5,0.5,0.5:bottomright=0,.5,.5 1920x1080 3 -add -o out.exr
+#endif
+
         bool ok;
         OIIO_DISPATCH_COMMON_TYPES3 (ok, "add", add_impl, dst.spec().format,
                                      A.spec().format, B.spec().format,
@@ -209,6 +219,14 @@ ImageBufAlgo::sub (ImageBuf &dst, Image_or_Const A_, Image_or_Const B_,
             return false;
         ROI origroi = roi;
         roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
+
+#ifdef OIIO_USE_CUDA
+        if (dst.cuda_storage() && A.cuda_storage() && B.cuda_storage() &&
+                dst.roi() == roi && A.roi() == roi && B.roi() == roi) {
+            return pvt::sub_impl_cuda (dst, A, B, dst.roi());
+        }
+#endif
+
         bool ok;
         OIIO_DISPATCH_COMMON_TYPES3 (ok, "sub", sub_impl, dst.spec().format,
                                      A.spec().format, B.spec().format,

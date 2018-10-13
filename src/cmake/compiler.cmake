@@ -22,6 +22,8 @@ set (CLANG_TIDY_CHECKS "-*" CACHE STRING "clang-tidy checks to perform")
 set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
 option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
 set (GLIBCXX_USE_CXX11_ABI "" CACHE STRING "For gcc, use the new C++11 library ABI (0|1)")
+option (USE_CUDA "Use CUDA if found" OFF)
+set (CUDA_TARGET_ARCH "sm_30" CACHE STRING "CUDA GPU architecture (e.g. sm_35)")
 
 # Figure out which compiler we're using
 if (CMAKE_COMPILER_IS_GNUCC)

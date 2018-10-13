@@ -120,6 +120,11 @@ ifeq (${SP_OS}, rhel7)
 	    -DOPENEXR_CUSTOM_LIB_DIR=/usr/lib64/OpenEXR2
     endif
 
+    # CUDA customizations
+    MY_CMAKE_FLAGS += \
+	-DCUDA_TOOLKIT_ROOT_DIR=/net/soft_scratch/apps/arnold/tools/nvidia/cuda9.1 \
+	-DCUDA_HOST_COMPILER=/shots/spi/home/lib/arnold/rhel7/llvm_4.0_final/bin/clang++
+
     MY_CMAKE_FLAGS += \
 	-DOCIO_PATH=${OCIO_PATH} \
 	-DFIELD3D_HOME=${FIELD3D_HOME} \

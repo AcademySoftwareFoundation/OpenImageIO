@@ -60,6 +60,14 @@ extern std::string library_list;
 extern int oiio_print_debug;
 extern int oiio_log_times;
 
+extern atomic_int use_cuda;
+extern bool cuda_supported;
+extern std::string cuda_device_name;
+extern int cuda_driver_version;
+extern int cuda_runtime_version;
+extern int cuda_compatibility;
+extern size_t cuda_total_memory;
+
 
 // For internal use - use error() below for a nicer interface.
 void seterror (string_view message);
@@ -74,6 +82,13 @@ inline void error (string_view fmt, const Args&... args) {
 // Make sure all plugins are inventoried.  Should only be called while
 // imageio_mutex is held.  For internal use only.
 void catalog_all_plugins (std::string searchpath);
+
+// Is Cuda available to OpenImageIO?
+bool openimageio_cuda ();
+
+/// Allocate unified Cuda/CPU memory
+void* cuda_malloc (size_t size);
+void cuda_free (void *mem);
 
 /// Given the format, set the default quantization range.
 void get_default_quantize (TypeDesc format,
@@ -136,6 +151,7 @@ public:
     }
     void stop () { m_timer.stop(); }
     void rename (string_view name) { m_name = name; }
+    Timer& timer () { return m_timer; }
 private:
     Timer m_timer;
     std::string m_name;
