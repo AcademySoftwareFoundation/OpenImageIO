@@ -84,6 +84,8 @@ add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
     screenWindowCenter: 0 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+old range:       -0 ->      100
+old range:       -0 ->      100
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "autotrim.tif" and "ref/autotrim.tif"
@@ -205,4 +207,8 @@ PASS
 Comparing "tahoe-contraststretch.tif" and "ref/tahoe-contraststretch.tif"
 PASS
 Comparing "const5-rgb.tif" and "ref/const5-rgb.tif"
+PASS
+Comparing "fit_range_01.exr" and "ref/fit_range_01.exr"
+PASS
+Comparing "fit_range_25.exr" and "ref/fit_range_25.exr"
 PASS

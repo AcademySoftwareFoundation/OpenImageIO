@@ -580,6 +580,17 @@ bool OIIO_API channel_sum (ImageBuf &dst, const ImageBuf &src,
                            ROI roi={}, int nthreads=0);
 
 
+/// Remap all pixels from the range [oldmin, oldmax] to [newmin, newmax]
+ImageBuf OIIO_API fit_range (const ImageBuf &src,
+                             float oldmin, float oldmax,
+                             float newmin = 0.f, float newmax = 1.f,
+                             ROI roi={}, int nthreads=0);
+bool OIIO_API fit_range (ImageBuf &dst, const ImageBuf &src,
+                         float oldmin, float oldmax,
+                         float newmin = 0.f, float newmax = 1.f,
+                         ROI roi={}, int nthreads=0);
+
+
 
 /// rangecompress() returns (or copy into dst) all pixels and color channels
 /// of src within region roi (defaulting to all the defined pixels of dst),
@@ -939,7 +950,31 @@ bool OIIO_API color_range_check (const ImageBuf &src,
                                  imagesize_t *highcount,
                                  imagesize_t *inrangecount,
                                  cspan<float> low, cspan<float> high,
+                                 span<float>* outlow, span<float>* outhigh,
                                  ROI roi={}, int nthreads=0);
+
+/// Remap the the pixels in the ROI to fit in the given low/high.
+/// When aspercent is true, the low and high parameters represent
+/// a percentage of the images original min and max values.
+///
+/// So when called with the default arguments: fit_range(img), the operation
+/// will normalize all pixel into 0-1 space.
+///
+/// values that fall above the upper bound will be stored in *highcount,
+/// and the number of pixels for which all channels fell within the
+/// bounds will be stored in *inrangecount. Any of these may be NULL,
+/// which simply means that the counts need not be collected or stored.
+///
+/// Return true if the operation can be performed, false if there is
+/// some sort of error (and sets an appropriate error message in src).
+bool OIIO_API fit_range (ImageBuf &src,
+                         float newlow = 0.f, float newhigh = 1.f,
+                         bool aspercent = true,
+                         float *oldlow = nullptr, float *oldhigh = nullptr,
+                         imagesize_t *lowcount = nullptr,
+                         imagesize_t *highcount = nullptr,
+                         imagesize_t *inrangecount = nullptr,
+                         ROI roi={}, int nthreads=0);
 
 /// Find the minimal rectangular region within roi (which defaults to
 /// the entire pixel data window of src) that consists of nonzero pixel
@@ -1868,11 +1903,19 @@ inline bool color_count (const ImageBuf &src, imagesize_t *count,
 
 inline bool color_range_check (const ImageBuf &src, imagesize_t *lowcount,
                                imagesize_t *highcount, imagesize_t *inrangecount,
+                               cspan<float> low, cspan<float> high,
+                               ROI roi={}, int nthreads=0) {
+    return color_range_check (src, lowcount, highcount, inrangecount,
+                              low, high, nullptr, nullptr, roi, nthreads);
+}
+
+inline bool color_range_check (const ImageBuf &src, imagesize_t *lowcount,
+                               imagesize_t *highcount, imagesize_t *inrangecount,
                                const float *low, const float *high,
                                ROI roi={}, int nthreads=0) {
     return color_range_check (src, lowcount, highcount, inrangecount,
                               {low,src.nchannels()}, {high,src.nchannels()},
-                              roi, nthreads);
+                              nullptr, nullptr, roi, nthreads);
 }
 
 inline bool render_text (ImageBuf &dst, int x, int y, string_view text,

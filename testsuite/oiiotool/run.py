@@ -233,6 +233,9 @@ command += oiiotool ("-i:ch=R,G,B const5.tif -o const5-rgb.tif")
 command += oiiotool ("-pattern constant:color=1,0,0 64x64 3 -pattern constant:color=0,1,0,1 64x64 4 -add -o add_rgb_rgba.exr")
 command += info_command ("add_rgb_rgba.exr", safematch=True)
 
+# test --fit_range both as a 'normalizer' and absolute range
+command += oiiotool ("ref/fit_range.exr --fitrange  0 1 1 -o fit_range_01.exr")
+command += oiiotool ("ref/fit_range.exr --fitrange -2 5 0 -o fit_range_25.exr")
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
@@ -271,6 +274,7 @@ outputs = [
             "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
             "tahoe-contraststretch.tif",
             "const5-rgb.tif",
+            "fit_range_01.exr", "fit_range_25.exr",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"

@@ -593,6 +593,7 @@ static bool
 color_range_check_ (const ImageBuf &src, atomic_ll *lowcount,
                     atomic_ll *highcount, atomic_ll *inrangecount,
                     const float *low, const float *high,
+                    float *outlow, float *outhigh,
                     ROI roi, int nthreads)
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [=,&src](ROI roi){
@@ -601,8 +602,16 @@ color_range_check_ (const ImageBuf &src, atomic_ll *lowcount,
             bool lowval = false, highval = false;
             for (int c = roi.chbegin;  c < roi.chend;  ++c) {
                 float f = p[c];
-                lowval |= (f < low[c]);
-                highval |= (f > high[c]);
+                if (f < low[c]) {
+                    lowval |= 1;
+                    if (outlow)
+                        outlow[c] = std::min(outlow[c], f);
+                }
+                if (f > high[c]) {
+                    highval |= 1;
+                    if (outhigh)
+                        outhigh[c] = std::max(outhigh[c], f);
+                }
             }
             if (lowval)
                 ++lc;
@@ -629,6 +638,7 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
                                  imagesize_t *highcount,
                                  imagesize_t *inrangecount,
                                  cspan<float> low, cspan<float> high,
+                                 span<float> *outlow, span<float> *outhigh,
                                  ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::color_range_check");
@@ -639,6 +649,10 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
     const float big = std::numeric_limits<float>::max();
     IBA_FIX_PERCHAN_LEN (low, src.nchannels(), -big, -big);
     IBA_FIX_PERCHAN_LEN (high, src.nchannels(), big, big);
+    if (outlow)
+        ASSERT(outlow->size() >= src.nchannels());
+    if (outhigh)
+        ASSERT(outhigh->size() >= src.nchannels());
 
     if (lowcount)
         *lowcount = 0;
@@ -646,13 +660,137 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
         *highcount = 0;
     if (inrangecount)
         *inrangecount = 0;
+
     bool ok;
     OIIO_DISPATCH_TYPES (ok, "color_range_check", color_range_check_,
                          src.spec().format,
                          src, (atomic_ll *)lowcount,
                          (atomic_ll *)highcount, (atomic_ll *)inrangecount,
-                         low.data(), high.data(), roi, nthreads);
+                         low.data(), high.data(),
+                         outlow ? outlow->data() : nullptr,
+                         outhigh ? outhigh->data() : nullptr,
+                         roi, nthreads);
     return ok;
+}
+
+
+
+template <typename Rtype, typename Atype>
+static bool
+fit_range_impl (ImageBuf &R, const ImageBuf &A,
+           float oldmin, float oldmax,
+           float newmin, float newmax,
+           ROI roi, int nthreads)
+{
+    // Early out an operation that does nothing but test float precision
+    if (oldmin == newmin && oldmax == newmax)
+        return true;
+
+    const float slope = (newmin - newmax) / (oldmin - oldmax);
+    const float offset = newmin - (slope * oldmin);
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        ImageBuf::ConstIterator<Atype> a (A, roi);
+        for (ImageBuf::Iterator<Rtype> r (R, roi);  !r.done();  ++r, ++a)
+            for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                r[c] = offset + (slope * a[c]);
+            }
+    });
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::fit_range (ImageBuf &dst, const ImageBuf &src,
+                         float oldmin, float oldmax,
+                         float newmin, float newmax,
+                         ROI roi, int nthreads)
+{
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "fit_range", fit_range_impl,
+                                 dst.spec().format, src.spec().format, dst, src,
+                                 oldmin, oldmax, newmin, newmax,
+                                 roi, nthreads);
+    return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::fit_range (const ImageBuf &src,
+                         float oldmin, float oldmax,
+                         float newmin, float newmax,
+                         ROI roi, int nthreads)
+{
+    ImageBuf result(src);
+    bool ok = fit_range (result, src, oldmin, oldmax, newmin, newmax,
+                         roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("fit_range error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::fit_range (ImageBuf &img,
+                         float newlow, float newhigh,
+                         bool aspercent,
+                         float *oldlowout, float *oldhighout,
+                         imagesize_t *outlowcount,
+                         imagesize_t *outhighcount,
+                         imagesize_t *outinrangecount,
+                         ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtimer("IBA::fit_range");
+    // If no ROI is defined, use the data window of img.
+    if (! roi.defined())
+        roi = get_roi(img.spec());
+    roi.chend = std::min (roi.chend, img.nchannels());
+
+    const float fbig = std::numeric_limits<float>::max();
+    imagesize_t lowcount, highcount;
+    std::vector<float> lowcompare(img.nchannels(), fbig),
+                       highcompare(img.nchannels(), -fbig);
+    std::vector<float> lowvals(img.nchannels(), fbig),
+                       highvals(img.nchannels(), -fbig);
+
+    span<float> lspan(lowvals), hspan(highvals);
+    bool ok = color_range_check(img, &lowcount, &highcount, outinrangecount,
+                                lowcompare, highcompare,
+                                &lspan, &hspan,
+                                roi, nthreads);
+    if (!ok)
+        return false;
+
+    float oldlow = fbig;
+    for (float f : lowvals)
+        oldlow = std::min(oldlow, f);
+
+    float oldhigh = -fbig;
+    for (float f : highvals)
+        oldhigh = std::max(oldhigh, f);
+
+    if (outlowcount)
+        *outlowcount = lowcount;
+    if (outhighcount)
+        *outhighcount = highcount;
+
+    if (oldlowout)
+        *oldlowout = oldlow;
+    if (oldhighout)
+        *oldhighout = oldhigh;
+
+    if (!lowcount && !highcount)
+        return true;
+
+    if (aspercent) {
+        newlow = newlow ? (1.f / newlow) : oldlow;
+        newhigh = newhigh ? (1.f / newhigh) : oldhigh;
+    }
+
+    return fit_range (img, img, oldlow, oldhigh,
+                      newlow, newhigh, roi, nthreads);
 }
 
 

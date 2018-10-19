@@ -2487,6 +2487,40 @@ action_rangecheck (int argc, const char *argv[])
 
 
 static int
+action_fitrange (int argc, const char *argv[])
+{
+    if (ot.postpone_callback (1, action_fitrange, argc, argv))
+        return 0;
+    Timer timer (ot.enable_function_timing);
+    string_view command  = ot.express (argv[0]);
+    string_view lowarg   = ot.express (argv[1]);
+    string_view higharg  = ot.express (argv[2]);
+    string_view percarg  = ot.express (argv[3]);
+
+    ot.read ();
+
+    float newlow = Strutil::from_string<float> (lowarg);
+    float newhigh = Strutil::from_string<float> (higharg);
+    bool aspercent = Strutil::from_string<int> (percarg);
+
+    float oldlow, oldhigh;
+    imagesize_t lowcount = 0, highcount = 0, inrangecount = 0;
+    bool ok = ImageBufAlgo::fit_range ((*ot.curimg)(0,0), newlow, newhigh,
+                                       aspercent, &oldlow, &oldhigh,
+                                       &lowcount, &highcount, &inrangecount);
+    if (ok) {
+        std::cout << Strutil::format("old range: %8d -> %8d\n", oldlow, oldhigh);
+    } else {
+        ot.error (command, (*ot.curimg)(0,0).geterror());
+    }
+
+    ot.function_times[command] += timer();
+    return 0;
+}
+
+
+
+static int
 action_diff (int argc, const char *argv[])
 {
     if (ot.postpone_callback (2, action_diff, argc, argv))
@@ -5165,6 +5199,8 @@ getargs (int argc, char *argv[])
                     "Count of how many pixels have the given color (argument: color;color;...) (options: eps=color)",
                 "--rangecheck %@ %s %s", action_rangecheck, NULL, NULL,
                     "Count of how many pixels are outside the low and high color arguments (each is a comma-separated color value list)",
+                "--fitrange %@ %f %f %d", action_fitrange, NULL, NULL, NULL,
+                    "Fit the image to the given range, supplied as a values or a percentage of the old min/max",
 //                "-u", &ot.updatemode, "Update mode: skip outputs when the file exists and is newer than all inputs",
                 "--no-clobber", &ot.noclobber, "Do not overwrite existing files",
                 "--noclobber", &ot.noclobber, "", // synonym
