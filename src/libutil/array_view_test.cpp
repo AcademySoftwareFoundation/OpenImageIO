@@ -62,6 +62,16 @@ void test_array_view ()
     array_view<float>::const_iterator i = a.begin();
     OIIO_CHECK_EQUAL (*i, 0.0f);
     ++i;  OIIO_CHECK_EQUAL (*i, 1.0f);
+
+    // Test == and !=
+    float v12[] = { 1, 2 };
+    float v123[] = { 1, 2, 3 };
+    float v124[] = { 1, 2, 4 };
+    OIIO_CHECK_ASSERT (cspan<float>(v123) == cspan<float>(v123));
+    OIIO_CHECK_ASSERT (false == (cspan<float>(v123) != cspan<float>(v123)));
+    OIIO_CHECK_ASSERT (cspan<float>(v123) != cspan<float>(v12));
+    OIIO_CHECK_ASSERT (false == (cspan<float>(v123) == cspan<float>(v12)));
+    OIIO_CHECK_ASSERT (cspan<float>(v123) != cspan<float>(v124));
 }
 
 
