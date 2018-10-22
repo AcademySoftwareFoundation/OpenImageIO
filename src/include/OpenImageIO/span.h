@@ -186,6 +186,28 @@ using cspan = span<const T>;
 
 
 
+/// Compare all elements of two spans for equality
+template <class T, ptrdiff_t X, class U, ptrdiff_t Y>
+OIIO_CONSTEXPR14 bool operator== (span<T,X> l, span<U,Y> r) {
+#if OIIO_CPLUSPLUS_VERSION >= 20
+    return std::equal (l.begin(), l.end(), r.begin(), r.end());
+#else
+    auto lsize = l.size();
+    bool same = (lsize == r.size());
+    for (ptrdiff_t i = 0; same && i < lsize; ++i)
+        same &= (l[i] == r[i]);
+    return same;
+#endif
+}
+
+/// Compare all elements of two spans for inequality
+template <class T, ptrdiff_t X, class U, ptrdiff_t Y>
+OIIO_CONSTEXPR14 bool operator!= (span<T,X> l, span<U,Y> r) {
+    return !(l == r);
+}
+
+
+
 /// span_strided<T> : a non-owning, mutable reference to a contiguous
 /// array with known length and optionally non-default strides through the
 /// data.  An span_strided<T> is mutable (the values in the array may
@@ -282,6 +304,26 @@ private:
 /// cspan_strided<T> is a synonym for a non-mutable span_strided<const T>.
 template <typename T>
 using cspan_strided = span_strided<const T>;
+
+
+
+/// Compare all elements of two spans for equality
+template <class T, ptrdiff_t X, class U, ptrdiff_t Y>
+OIIO_CONSTEXPR14 bool operator== (span_strided<T,X> l, span_strided<U,Y> r) {
+    auto lsize = l.size();
+    if (lsize != r.size())
+        return false;
+    for (ptrdiff_t i = 0; i < lsize; ++i)
+        if (l[i] != r[i])
+            return false;
+    return true;
+}
+
+/// Compare all elements of two spans for inequality
+template <class T, ptrdiff_t X, class U, ptrdiff_t Y>
+OIIO_CONSTEXPR14 bool operator!= (span_strided<T,X> l, span_strided<U,Y> r) {
+    return !(l == r);
+}
 
 
 OIIO_NAMESPACE_END
