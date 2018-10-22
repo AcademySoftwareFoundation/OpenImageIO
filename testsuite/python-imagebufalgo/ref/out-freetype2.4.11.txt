@@ -123,6 +123,12 @@ Comparing "rangecompress.tif" and "../../../../testsuite/oiiotool/ref/rangecompr
 PASS
 Comparing "rangeexpand.tif" and "../../../../testsuite/oiiotool/ref/rangeexpand.tif"
 PASS
+Comparing "contrast-stretch.tif" and "../../../../testsuite/oiiotool-color/ref/contrast-stretch.tif"
+PASS
+Comparing "contrast-shrink.tif" and "../../../../testsuite/oiiotool-color/ref/contrast-shrink.tif"
+PASS
+Comparing "contrast-sigmoid5.tif" and "../../../../testsuite/oiiotool-color/ref/contrast-sigmoid5.tif"
+PASS
 Comparing "resize.tif" and "../../../../testsuite/oiiotool-xform/ref/resize.tif"
 PASS
 Comparing "resample.tif" and "../../../../testsuite/oiiotool-xform/ref/resample.tif"

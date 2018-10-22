@@ -940,27 +940,6 @@ line arguments. This can be useful in selectively disabling numeric wildcard
 expansion for a subset of the command line.
 \apiend
 
-\begin{comment}
-\apiitem{\ce --inplace}
-Causes the output to \emph{replace} the input file, rather than create a
-new file with a different name.
-
-Without this flag, \oiiotool expects two file names, which will
-be used to specify the input and output files, respectively.
-
-But when {\cf --inplace} option is used, any number of file names $\ge 1$ may
-be specified, and the image conversion commands are applied to each file
-in turn, with the output being saved under the original file name.  This
-is useful for applying the same conversion to many files.  
-
-For example, the following example will add the caption ``Hawaii
-vacation'' to all JPEG files in the current directory:
-
-\begin{code}
-        oiiotool --inplace --adjust-time --caption "Hawaii vacation" *.jpg
-\end{code}
-\apiend
-\end{comment}
 
 
 \section{\oiiotool commands: reading and writing images}
@@ -1975,6 +1954,45 @@ weight of each channel in the sum.
 \raisebox{40pt}{\large $\rightarrow$}
 \includegraphics[width=1.5in]{figures/luma.jpg} \\
 \apiend
+
+\apiitem{\ce --contrast}
+\NEW % 1.9
+Remap pixel values from [black, white] to [min, max], with an optional
+smooth sigmoidal contrast stretch as well.
+
+Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf black=}\emph{vals} & Specify black value(s), default 0.0. \\
+ & {\cf white=}\emph{vals} & Specify white value(s), default 1.0. \\
+ & {\cf min=}\emph{vals} & Specify the minimum range value(s), default 0.0. \\
+ & {\cf max=}\emph{vals} & Specify the maximum range value(s), default 1.0. \\
+ & {\cf scontrast=}\emph{vals} & Specify sigmoidal contrast slope value(s), default 1.0. \\
+ & {\cf sthresh=}\emph{vals} & Specify sigmoidal threshold value(s) giving
+        the position of maximum slope, default 0.5. \\
+ & {\cf clamp=}\emph{on} & If \emph{on} is nonzero, will optionally clamp
+                                    all result channels to [min,max].
+\end{tabular}
+
+\noindent Each \emph{vals} may be either a single floating point value
+for all channels, or a comma-separated list of per-channel values.
+
+\noindent Examples:
+\begin{code}
+    oiiotool tahoe.tif --contrast:black=0.1:white=0.75 -o linstretch.tif
+    oiiotool tahoe.tif --contrast:black=1.0:white=0.0:clamp=0 -o inverse.tif
+    oiiotool tahoe.tif --contrast:scontrast=5 -o sigmoid.tif
+\end{code}
+
+\noindent \begin{tabular}{cccc}
+\includegraphics[width=1.1in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.1in]{figures/tahoe-lincontrast.jpg} &
+\includegraphics[width=1.1in]{figures/tahoe-inverse.jpg} &
+\includegraphics[width=1.1in]{figures/tahoe-sigmoid.jpg} \\
+original & linstretch & inverse & sigmoid \\
+\end{tabular}
+\apiend
+
 
 \apiitem{\ce --colormap {\rm \emph{mapname}}}
 Creates an RGB color map based on the luminance of the input image. The

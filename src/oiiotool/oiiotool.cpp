@@ -4130,6 +4130,40 @@ OP_CUSTOMCLASS (rangeexpand, OpRangeExpand, 1);
 
 
 
+class OpContrast : public OiiotoolOp {
+public:
+    OpContrast (Oiiotool &ot, string_view opname, int argc, const char *argv[])
+        : OiiotoolOp (ot, opname, argc, argv, 1) {}
+    virtual void option_defaults () {
+        options["black"] = "0";
+        options["white"] = "1";
+        options["min"] = "0";
+        options["max"] = "1";
+        options["scontrast"] = "1";
+        options["sthresh"] = "0.5";
+        options["clamp"] = "0";
+    }
+    virtual int impl (ImageBuf **img) {
+        size_t n = size_t ((*img[0]).nchannels());
+        auto black = Strutil::extract_from_list_string (options["black"], n, 0.0f);
+        auto white = Strutil::extract_from_list_string (options["white"], n, 1.0f);
+        auto min = Strutil::extract_from_list_string (options["min"], n, 0.0f);
+        auto max = Strutil::extract_from_list_string (options["max"], n, 1.0f);
+        auto scontrast = Strutil::extract_from_list_string (options["scontrast"], n, 1.0f);
+        auto sthresh = Strutil::extract_from_list_string (options["sthresh"], n, 0.50f);
+        bool clamp = Strutil::from_string<int> (options["clamp"]);
+        bool ok = ImageBufAlgo::contrast_remap (*img[0], *img[1], black, white,
+                                                min, max, scontrast, sthresh);
+        if (clamp && ok)
+            ok &= ImageBufAlgo::clamp (*img[0], *img[0], min, max);
+        return ok;
+    }
+};
+
+OP_CUSTOMCLASS (contrast, OpContrast, 1);
+
+
+
 
 class OpBox : public OiiotoolOp {
 public:
@@ -5326,6 +5360,7 @@ getargs (int argc, char *argv[])
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",
                 "--clamp %@", action_clamp, NULL, "Clamp values (options: min=..., max=..., clampalpha=0)",
+                "--contrast %@", action_contrast, NULL, "Remap values (options: black=0..., white=1..., sthresh=0.5..., scontrast=1.0..., gamma=1, clamp=0|1)",
                 "--rangecompress %@", action_rangecompress, NULL,
                     "Compress the range of pixel values with a log scale (options: luma=0|1)",
                 "--rangeexpand %@", action_rangeexpand, NULL,

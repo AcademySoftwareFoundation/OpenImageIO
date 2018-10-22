@@ -795,6 +795,46 @@ bool OIIO_API color_map (ImageBuf &dst, const ImageBuf &src, int srcchannel,
 
 
 
+/// Remap contrast by transforming values [black, white] to new range
+/// [min, max], either linearly or with optional application of a smooth
+/// sigmoidal remapping (if scontrast != 1.0).
+///
+/// The following steps are performed, in order:
+/// 1. Linearly rescale values [black, white] to [0, 1].
+/// 2. If scontrast != 1, apply a sigmoidal remapping where a larger
+///    scontrast value makes a steeper slope, and the steepest part is at
+///    value sthresh (relative to the new remapped value after steps 1 & 2;
+///    the default is 0.5).
+/// 3. Rescale the range of that result: 0.0 -> min and 1.0 -> max.
+///
+/// Values outside of the [black,white] range will be extrapolated to
+/// outside [min,max], so it may be prudent to apply a clamp() to the
+/// results.
+///
+/// The black, white, min, max, scontrast, sthresh parameters may each
+/// either be a single float value for all channels, or a span giving
+/// per-channel values.
+///
+/// You can use this function for a simple linear contrast remapping of
+/// [black, white] to [min, max] if you use the default values for sthresh.
+/// Or just a simple sigmoidal contrast stretch within the [0,1] range if
+/// you leave all other parameters at their defaults, or a combination of
+/// these effects. Note that if black == white, the result will be a simple
+/// binary thresholding where values < black map to min and values >= bkack
+/// map to max.
+OIIO_API ImageBuf contrast_remap (const ImageBuf &src,
+                    cspan<float> black=0.0f, cspan<float> white=1.0f,
+                    cspan<float> min=0.0f, cspan<float> max=1.0f,
+                    cspan<float> scontrast=1.0f, cspan<float> sthresh=0.5f,
+                    ROI={}, int nthreads=0);
+OIIO_API bool contrast_remap (ImageBuf &dst, const ImageBuf &src,
+                    cspan<float> black=0.0f, cspan<float> white=1.0f,
+                    cspan<float> min=0.0f, cspan<float> max=1.0f,
+                    cspan<float> scontrast=1.0f, cspan<float> sthresh=0.5f,
+                    ROI={}, int nthreads=0);
+
+
+
 
 struct OIIO_API PixelStats {
     std::vector<float> min;

@@ -72,6 +72,10 @@ ${OIIOTOOL} --autocc dilate.jpg erode.jpg -sub -d uint8 -o morphgradient.jpg
 ${OIIOTOOL} --autocc morphsource.jpg morphopen.jpg -sub -d uint8 -o tophat.jpg
 ${OIIOTOOL} --autocc morphclose.jpg morphsource.jpg -sub -d uint8 -o bottomhat.jpg
 
+${OIIOTOOL} -autocc tahoe-small.jpg --contrast:black=0.1:white=0.75 -o tahoe-lincontrast.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --contrast:black=1:white=0 -o tahoe-inverse.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --contrast:scontrast=5 -o tahoe-sigmoid.jpg
+
 ${OIIOTOOL} -autocc tahoe-small.jpg --colormap inferno -o colormap-inferno.jpg
 ${OIIOTOOL} -autocc tahoe-small.jpg --colormap viridis -o colormap-viridis.jpg
 ${OIIOTOOL} -autocc tahoe-small.jpg --colormap spectrum -o colormap-spectrum.jpg
