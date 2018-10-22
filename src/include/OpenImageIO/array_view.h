@@ -162,6 +162,28 @@ private:
 
 
 
+/// Compare all elements of two spans for equality
+template <class T, class U>
+OIIO_CONSTEXPR14 bool operator== (array_view<T> l, array_view<U> r) {
+#if OIIO_CPLUSPLUS_VERSION >= 20
+    return std::equal (l.begin(), l.end(), r.begin(), r.end());
+#else
+    auto lsize = l.size();
+    bool same = (lsize == r.size());
+    for (ptrdiff_t i = 0; same && i < lsize; ++i)
+        same &= (l[i] == r[i]);
+    return same;
+#endif
+}
+
+/// Compare all elements of two spans for inequality
+template <class T, class U>
+OIIO_CONSTEXPR14 bool operator!= (array_view<T> l, array_view<U> r) {
+    return !(l == r);
+}
+
+
+
 
 /// array_view_strided<T> : a non-owning, mutable reference to a contiguous
 /// array with known length and optionally non-default strides through the
