@@ -19,6 +19,8 @@ brew update >/dev/null
 echo ""
 echo "Before my brew installs:"
 brew list --versions
+brew install gcc
+brew link --overwrite gcc
 brew install ccache cmake
 brew install ilmbase openexr
 brew install opencolorio
@@ -33,9 +35,7 @@ brew install ffmpeg
 brew install opencv
 brew install tbb
 brew install openvdb
-brew upgrade python
-brew install pybind11 numpy
-brew link --overwrite numpy
+brew install pybind11
 if [ "$LINKSTATIC" == "1" ] ; then
     brew install little-cms2 tinyxml szip
     brew install homebrew/dupes/bzip2

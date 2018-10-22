@@ -1,8 +1,7 @@
 # .travis.yml for OIIO
 
 language: cpp
-sudo: false
-osx_image: xcode8.3
+osx_image: xcode10
 dist: trusty
 
 
@@ -135,7 +134,7 @@ matrix:
       - os: osx
         compiler: clang
         env: PYTHON_VERSION=2.7
-        if: branch =~ /(master|RB|python)/ OR type = pull_request
+        if: branch =~ /(master|RB|travis|python)/ OR type = pull_request
     # test debug build with default compiler
       - os: linux
         compiler: gcc
@@ -172,7 +171,7 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
-        if: branch =~ /(master|RB|san)/ OR type = pull_request
+        if: branch =~ /(master|RB|travis|san)/ OR type = pull_request
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo, and don't embed
     # the plugins (to make sure that doesn't rust away).  I guess this
@@ -184,7 +183,7 @@ matrix:
       - os: linux
         compiler: gcc
         env: USE_SIMD=0 USE_JPEGTURBO=0 EMBEDPLUGINS=0
-        if: branch =~ /(master|RB|simd)/ OR type = pull_request
+        if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
     # test with C++14, gcc 8, latest SIMD flags supported by TravisCI VMs
     # Since VFXPlatform doesn't bless gcc8 yet, only build this
     # case for PRs, direct pushes to master or RB branches, or if the branch
@@ -193,7 +192,7 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=8 USE_CPP=14 USE_SIMD=avx,f16c
-        if: branch =~ /(master|RB|gcc)/ OR type = pull_request
+        if: branch =~ /(master|RB|travis|gcc)/ OR type = pull_request
     # test with C++17, gcc 8, latest SIMD flags supported by TravisCI VMs.
     # Since VFXPlatform doesn't bless C++17 or gcc8 yet, only build this
     # case for PRs, direct pushes to master or RB branches, or if the branch
@@ -202,7 +201,7 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=8 USE_CPP=17 USE_SIMD=avx,f16c
-        if: branch =~ /(master|RB|gcc|17)/ OR type = pull_request
+        if: branch =~ /(master|RB|travis|gcc|17)/ OR type = pull_request
     # build for AVX2, don't run the tests (ensure against build breaks)
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
@@ -210,7 +209,7 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=6 USE_SIMD=avx2 SKIP_TESTS=1
-        if: branch =~ /(master|RB|simd)/ OR type = pull_request
+        if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
     # build for AVX512, don't run the tests (ensure against build breaks)
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
@@ -218,7 +217,7 @@ matrix:
       - os: linux
         compiler: gcc
         env: WHICHGCC=7 USE_SIMD=avx2,avx512f,f16c SKIP_TESTS=1
-        if: branch =~ /(master|RB|simd)/ OR type = pull_request
+        if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
     # Build with EMBEDPLUGINS=0, both platforms.
       # FIXME: doesn't work yet on Travis
       # - os: linux
