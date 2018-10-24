@@ -621,22 +621,26 @@ color_range_check_ (const ImageBuf &src, imagesize_t *lowcount,
         imagesize_t &tinrangecount = inrangecount ? tinrangecounts[tid] : idummy;
 
         for (ImageBuf::ConstIterator<T> p (src, roi);  !p.done();  ++p) {
+            bool lowval = false, highval = false;
             for (int c = roi.chbegin;  c < roi.chend;  ++c) {
                 float f = p[c];
-                bool wasless = f < low[c];
-                if (wasless) {
-                    ++tlowcount;
+                if (f < low[c]) {
+                    lowval |= 1;
                     if (toutlow)
                         (*toutlow)[c] = std::min((*toutlow)[c], f);
                 }
                 if (f > high[c]) {
-                    ++thighcount;
+                    highval |= 1;
                     if (touthigh)
                         (*touthigh)[c] = std::max((*touthigh)[c], f);
                 }
-                else if (!wasless)
-                    ++tinrangecount;
             }
+            if (lowval)
+                ++tlowcount;
+            if (highval)
+                ++thighcount;
+            if (!lowval && !highval)
+                ++tinrangecount;
         }
     });
 
