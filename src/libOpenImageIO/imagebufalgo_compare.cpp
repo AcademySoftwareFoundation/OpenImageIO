@@ -590,44 +590,80 @@ ImageBufAlgo::color_count (const ImageBuf &src, imagesize_t *count,
 
 template<typename T>
 static bool
-color_range_check_ (const ImageBuf &src, atomic_ll *lowcount,
-                    atomic_ll *highcount, atomic_ll *inrangecount,
+color_range_check_ (const ImageBuf &src, imagesize_t *lowcount,
+                    imagesize_t *highcount, imagesize_t *inrangecount,
                     const float *low, const float *high,
                     float *outlow, float *outhigh,
-                    ROI roi, int nthreads)
+                    ROI roi, int nthreadsin)
 {
-    ImageBufAlgo::parallel_image (roi, nthreads, [=,&src](ROI roi){
-        long long lc = 0, hc = 0, inrange = 0;
+    ImageBufAlgo::parallel_image_options popts(nthreadsin);
+    popts.resolve ();
+
+    const int nthreads = popts.maxthreads;
+    const float big = std::numeric_limits<float>::max();
+
+    std::vector<imagesize_t> tlowcounts, thighcounts, tinrangecounts;
+    std::vector<std::vector<float>> tlows, thighs;
+    if (lowcount) tlowcounts.resize(nthreads);
+    if (highcount) thighcounts.resize(nthreads);
+    if (inrangecount) tinrangecounts.resize(nthreads);
+    if (outlow) tlows.resize(nthreads, std::vector<float>(roi.nchannels(), big));
+    if (outhigh) thighs.resize(nthreads, std::vector<float>(roi.nchannels(), -big));
+
+    std::atomic<size_t> threadId(0);
+    ImageBufAlgo::parallel_image (roi, popts, [&](ROI roi) {
+        const size_t tid = threadId++;
+        imagesize_t idummy;
+        std::vector<float> *toutlow = outlow ? &tlows[tid] : nullptr;
+        std::vector<float> *touthigh = outhigh ? &thighs[tid] : nullptr;
+        imagesize_t &tlowcount = lowcount ? tlowcounts[tid] : idummy;
+        imagesize_t &thighcount = highcount ? thighcounts[tid] : idummy;
+        imagesize_t &tinrangecount = inrangecount ? tinrangecounts[tid] : idummy;
+
         for (ImageBuf::ConstIterator<T> p (src, roi);  !p.done();  ++p) {
-            bool lowval = false, highval = false;
             for (int c = roi.chbegin;  c < roi.chend;  ++c) {
                 float f = p[c];
-                if (f < low[c]) {
-                    lowval |= 1;
-                    if (outlow)
-                        outlow[c] = std::min(outlow[c], f);
+                bool wasless = f < low[c];
+                if (wasless) {
+                    ++tlowcount;
+                    if (toutlow)
+                        (*toutlow)[c] = std::min((*toutlow)[c], f);
                 }
                 if (f > high[c]) {
-                    highval |= 1;
-                    if (outhigh)
-                        outhigh[c] = std::max(outhigh[c], f);
+                    ++thighcount;
+                    if (touthigh)
+                        (*touthigh)[c] = std::max((*touthigh)[c], f);
                 }
+                else if (!wasless)
+                    ++tinrangecount;
             }
-            if (lowval)
-                ++lc;
-            if (highval)
-                ++hc;
-            if (!lowval && !highval)
-                ++inrange;
         }
-
-        if (lowcount)
-            *lowcount += lc;
-        if (highcount)
-            *highcount += hc;
-        if (inrangecount)
-            *inrangecount += inrange;
     });
+
+    if (lowcount)
+        *lowcount = 0;
+    if (highcount)
+        *highcount = 0;
+    if (inrangecount)
+        *inrangecount = 0;
+
+    for (int i = 0; i < nthreads; ++i) {
+        if (lowcount)
+            *lowcount += tlowcounts[i];
+        if (highcount)
+            *highcount += thighcounts[i];
+        if (inrangecount)
+            *inrangecount += tinrangecounts[i];
+        if (!outlow && !outhigh)
+            continue;
+        for (int c = 0, nc = roi.nchannels(); c < nc; ++c) {
+            if (outlow)
+                outlow[c] = std::min(outlow[c], tlows[i][c]);
+            if (outhigh)
+                outhigh[c] = std::max(outhigh[c], thighs[i][c]);
+
+        }
+    }
     return true;
 }
 
@@ -654,18 +690,10 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
     if (outhigh)
         ASSERT(outhigh->size() >= roi.nchannels());
 
-    if (lowcount)
-        *lowcount = 0;
-    if (highcount)
-        *highcount = 0;
-    if (inrangecount)
-        *inrangecount = 0;
-
     bool ok;
     OIIO_DISPATCH_TYPES (ok, "color_range_check", color_range_check_,
                          src.spec().format,
-                         src, (atomic_ll *)lowcount,
-                         (atomic_ll *)highcount, (atomic_ll *)inrangecount,
+                         src, lowcount, highcount, inrangecount,
                          low.data(), high.data(),
                          outlow ? outlow->data() : nullptr,
                          outhigh ? outhigh->data() : nullptr,
