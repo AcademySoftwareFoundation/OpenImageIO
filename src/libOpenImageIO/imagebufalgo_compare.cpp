@@ -647,12 +647,12 @@ ImageBufAlgo::color_range_check (const ImageBuf &src, imagesize_t *lowcount,
         roi = get_roi(src.spec());
     roi.chend = std::min (roi.chend, src.nchannels());
     const float big = std::numeric_limits<float>::max();
-    IBA_FIX_PERCHAN_LEN (low, src.nchannels(), -big, -big);
-    IBA_FIX_PERCHAN_LEN (high, src.nchannels(), big, big);
+    IBA_FIX_PERCHAN_LEN (low, roi.nchannels(), -big, -big);
+    IBA_FIX_PERCHAN_LEN (high, roi.nchannels(), big, big);
     if (outlow)
-        ASSERT(outlow->size() >= src.nchannels());
+        ASSERT(outlow->size() >= roi.nchannels());
     if (outhigh)
-        ASSERT(outhigh->size() >= src.nchannels());
+        ASSERT(outhigh->size() >= roi.nchannels());
 
     if (lowcount)
         *lowcount = 0;
@@ -750,10 +750,10 @@ ImageBufAlgo::fit_range (ImageBuf &img,
 
     const float fbig = std::numeric_limits<float>::max();
     imagesize_t lowcount, highcount;
-    std::vector<float> lowcompare(img.nchannels(), fbig),
-                       highcompare(img.nchannels(), -fbig);
-    std::vector<float> lowvals(img.nchannels(), fbig),
-                       highvals(img.nchannels(), -fbig);
+    std::vector<float> lowcompare(roi.nchannels(), fbig),
+                       highcompare(roi.nchannels(), -fbig);
+    std::vector<float> lowvals(roi.nchannels(), fbig),
+                       highvals(roi.nchannels(), -fbig);
 
     span<float> lspan(lowvals), hspan(highvals);
     bool ok = color_range_check(img, &lowcount, &highcount, outinrangecount,
