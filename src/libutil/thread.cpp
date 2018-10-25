@@ -44,6 +44,10 @@
 #define _ENABLE_ATOMIC_ALIGNMENT_FIX /* Avoid MSVS error, ugh */
 #endif
 
+#if defined(WIN32)
+#include <windows.h>
+#endif
+
 #include <exception>
 #include <functional>
 #include <future>
@@ -201,6 +205,22 @@ public:
                 return;
             this->isDone = true;  // give the waiting threads a command to finish
         }
+
+#if defined(WIN32)
+        // When the static variable in default_thread_pool() is destroyed during DLL unloading,
+        // the thread_pool destructor is called but the threads are already terminated.
+        // So it is illegal to communicate with those other threads at this point.
+        // Checking Windows native thread status allows to detect this specific scenario and avoid an unnecessary call
+        // to this->cv.notify_all() which creates a deadlock (noticed only on Windows 7 but still unsafe in other versions).
+        bool hasTerminatedThread = std::any_of (this->threads.begin(), this->threads.end(),
+                [](std::unique_ptr<std::thread>& t){
+                    DWORD rcode;
+                    GetExitCodeThread(t->native_handle(), &rcode);
+                    return rcode != STILL_ACTIVE;
+            });
+
+        if (!hasTerminatedThread)
+#endif
         {
             std::unique_lock<std::mutex> lock(this->mutex);
             this->cv.notify_all();  // stop all waiting threads
