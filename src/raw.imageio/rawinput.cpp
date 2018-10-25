@@ -604,7 +604,7 @@ RawInput::open_raw (bool unpack, const std::string &name,
     if (other.parsed_gps.gpsparsed) {
         add ("GPS", "Latitude", other.parsed_gps.latitude, false, 0.0f);
         add ("GPS", "Longitude", other.parsed_gps.longtitude, false, 0.0f); // N.B. wrong spelling!
-        add ("GPS", "TimeTtamp", other.parsed_gps.gpstimestamp, false, 0.0f);
+        add ("GPS", "TimeStamp", other.parsed_gps.gpstimestamp, false, 0.0f);
         add ("GPS", "Altitude", other.parsed_gps.altitude, false, 0.0f);
         add ("GPS", "LatitudeRef", string_view(&other.parsed_gps.latref, 1), false);
         add ("GPS", "LongitudeRef", string_view(&other.parsed_gps.longref, 1), false);
