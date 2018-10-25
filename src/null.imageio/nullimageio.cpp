@@ -285,6 +285,12 @@ NullInput::open (const std::string &name, ImageSpec &newspec,
         m_topspec.height = 1024;
     if (m_topspec.depth <= 0)
         m_topspec.depth = 1;
+    if (m_topspec.full_width <= 0)
+        m_topspec.full_width = m_topspec.width;
+    if (m_topspec.full_height <= 0)
+        m_topspec.full_height = m_topspec.height;
+    if (m_topspec.full_depth <= 0)
+        m_topspec.full_depth = m_topspec.depth;
     if (m_topspec.nchannels <= 0)
         m_topspec.nchannels = 4;
     if (m_topspec.format == TypeUnknown)
@@ -296,11 +302,18 @@ NullInput::open (const std::string &name, ImageSpec &newspec,
     for (const auto& a : args) {
         if (a.first == "RES") {
             parse_res (a.second, m_topspec.width, m_topspec.height, m_topspec.depth);
+            m_topspec.full_x = m_topspec.x;
+            m_topspec.full_y = m_topspec.y;
+            m_topspec.full_z = m_topspec.z;
+            m_topspec.full_width = m_topspec.width;
+            m_topspec.full_height = m_topspec.height;
+            m_topspec.full_depth = m_topspec.depth;
         } else if (a.first == "TILE" || a.first == "TILES") {
             parse_res (a.second, m_topspec.tile_width, m_topspec.tile_height,
                        m_topspec.tile_depth);
         } else if (a.first == "CHANNELS") {
             m_topspec.nchannels = Strutil::from_string<int>(a.second);
+            m_topspec.default_channel_names ();
         } else if (a.first == "MIP") {
             m_mip = Strutil::from_string<int>(a.second);
         } else if (a.first == "TEX") {
@@ -323,14 +336,6 @@ NullInput::open (const std::string &name, ImageSpec &newspec,
             parse_param (a.first, a.second, m_topspec);
         }
     }
-
-    m_topspec.default_channel_names ();
-    m_topspec.full_x = m_topspec.x;
-    m_topspec.full_y = m_topspec.y;
-    m_topspec.full_z = m_topspec.z;
-    m_topspec.full_width = m_topspec.width;
-    m_topspec.full_height = m_topspec.height;
-    m_topspec.full_depth = m_topspec.depth;
 
     if (fvalue.size()) {
         // Convert float to the native type
