@@ -488,7 +488,9 @@ bump_to_bumpslopes (ImageBuf &dst, const ImageBuf &src, const std::string &bumpf
 
     // detect bump input format according to channel count
     void (*bump_filter)(const ImageBuf&, const ImageBuf::Iterator<float>&, float*, float*, float*);
-             
+    
+    bump_filter = &sobel_gradient<SRCTYPE>;
+    
     if(Strutil::iequals(bumpformat, "height"))
          bump_filter = &sobel_gradient<SRCTYPE>; // default one considering height value in channel 0 
     else
