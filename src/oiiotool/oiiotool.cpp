@@ -4515,7 +4515,9 @@ prep_texture_config (ImageSpec &configspec,
                                              get_value_override(fileoptions["oiio"])));
     configspec.attribute ("maketx:prman_options",
                           get_value_override(fileoptions["prman_options"],
-                                             get_value_override(fileoptions["prman"])));
+                                             get_value_override(fileoptions["prman"])));    
+    configspec.attribute ("maketx:bumpformat",
+                          get_value_override(fileoptions["bumpformat"], "auto"));
     // if (mipimages.size())
     //     configspec.attribute ("maketx:mipimages", Strutil::join(mipimages,";"));
 
@@ -4545,6 +4547,7 @@ output_file (int argc, const char *argv[])
                       Strutil::starts_with (stripped_command, "olatlong");
     bool do_shad = Strutil::starts_with (stripped_command, "oshad");
     bool do_bumpslopes = Strutil::starts_with (stripped_command, "obump");
+    
 
     if (ot.debug)
         std::cout << "Output: " << filename << "\n";
@@ -5190,7 +5193,7 @@ getargs (int argc, char *argv[])
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "-otex %@ %s", output_file, NULL, "Output the current image as a texture",
                 "-oenv %@ %s", output_file, NULL, "Output the current image as a latlong env map",
-                "-obump %@ %s", output_file, NULL, "Output the current normal or height texture map as a 6 channels bump texture including the first and second moment of slopes",
+                "-obump %@ %s", output_file, NULL, "Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height, normal, default=auto)",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
                 "-d %@ %s", set_dataformat, NULL,
                     "'-d TYPE' sets the output data format of all channels, "

@@ -480,7 +480,7 @@ normal_gradient (const ImageBuf &src, const ImageBuf::Iterator<float> &dstpix,
 
 template<class SRCTYPE>
 static bool
-bump_to_bumpslopes (ImageBuf &dst, const ImageBuf &src, ROI roi=ROI::All(),
+bump_to_bumpslopes (ImageBuf &dst, const ImageBuf &src, const std::string &bumpformat, std::ostream &outstream, ROI roi=ROI::All(),
                     int nthreads=0)
 {
     ASSERT (dst.initialized() && dst.nchannels() == 6);
@@ -488,12 +488,26 @@ bump_to_bumpslopes (ImageBuf &dst, const ImageBuf &src, ROI roi=ROI::All(),
 
     // detect bump input format according to channel count
     void (*bump_filter)(const ImageBuf&, const ImageBuf::Iterator<float>&, float*, float*, float*);
-    
-    bump_filter = &sobel_gradient<SRCTYPE>; // default one considering height value in channel 0 
-    
-    if (src.spec().nchannels > 2 && !ImageBufAlgo::isMonochrome(src)) // maybe it's a normal map?
+             
+    if(Strutil::iequals(bumpformat, "height"))
+         bump_filter = &sobel_gradient<SRCTYPE>; // default one considering height value in channel 0 
+    else
+    if( Strutil::iequals(bumpformat, "normal") ) {
+        if(src.spec().nchannels < 3) {
+            outstream << "maketx ERROR: normal map requires 3 channels input map.\n";
+            return false;
+        }
+        bump_filter = &normal_gradient;
+    }
+    else if( Strutil::iequals(bumpformat, "auto") ) { // guess input bump format by analyzing channel count and component
+        if (src.spec().nchannels > 2 && !ImageBufAlgo::isMonochrome(src)) // maybe it's a normal map?
             bump_filter = &normal_gradient;
-
+    }
+    else {
+        outstream << "maketx ERROR: Unknow input bump format " << bumpformat <<". Valid formats are height, normal or auto\n";
+        return false;
+    }
+        
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
         // iterate on destination image
         for (ImageBuf::Iterator<float> d(dst, roi);  ! d.done();  ++d) {
@@ -1030,11 +1044,11 @@ make_texture_impl (ImageBufAlgo::MakeTextureMode mode,
         newspec.channelnames.push_back("b3_dhds2");
         newspec.channelnames.push_back("b4_dhdt2");
         newspec.channelnames.push_back("b5_dh2dsdt");
-        std::shared_ptr<ImageBuf> bumpslopes (new ImageBuf(newspec));
+        std::shared_ptr<ImageBuf> bumpslopes (new ImageBuf(newspec));        
         bool ok;
         OIIO_DISPATCH_COMMON_TYPES (ok, "bump_to_bumpslopes",
                                     bump_to_bumpslopes, src->spec().format,
-                                    *bumpslopes, *src);
+                                    *bumpslopes, *src, configspec.get_string_attribute("maketx:bumpformat"), outstream);
         // bump_to_bumpslopes(*bumpslopes, *src);
         mode = ImageBufAlgo::MakeTxTexture;
         src = bumpslopes;
