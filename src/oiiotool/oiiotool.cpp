@@ -4547,7 +4547,6 @@ output_file (int argc, const char *argv[])
                       Strutil::starts_with (stripped_command, "olatlong");
     bool do_shad = Strutil::starts_with (stripped_command, "oshad");
     bool do_bumpslopes = Strutil::starts_with (stripped_command, "obump");
-    
 
     if (ot.debug)
         std::cout << "Output: " << filename << "\n";
@@ -4752,7 +4751,7 @@ output_file (int argc, const char *argv[])
             mode = ImageBufAlgo::MakeTxShadow;
         if (do_latlong)
             mode = ImageBufAlgo::MakeTxEnvLatl;
-        if(do_bumpslopes)
+        if (do_bumpslopes)
             mode = ImageBufAlgo::MakeTxBumpWithSlopes;
         // if (lightprobemode)
         //     mode = ImageBufAlgo::MakeTxEnvLatlFromLightProbe;
@@ -5193,7 +5192,7 @@ getargs (int argc, char *argv[])
                 "-o %@ %s", output_file, NULL, "Output the current image to the named file",
                 "-otex %@ %s", output_file, NULL, "Output the current image as a texture",
                 "-oenv %@ %s", output_file, NULL, "Output the current image as a latlong env map",
-                "-obump %@ %s", output_file, NULL, "Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height, normal, default=auto)",
+                "-obump %@ %s", output_file, NULL, "Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto)",
                 "<SEPARATOR>", "Options that affect subsequent image output:",
                 "-d %@ %s", set_dataformat, NULL,
                     "'-d TYPE' sets the output data format of all channels, "

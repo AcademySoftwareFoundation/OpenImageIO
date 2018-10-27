@@ -1179,7 +1179,8 @@ subimages and save them as separate files,
 \apiend
 
 \apiitem{\ce -otex \rm \emph{filename} \\
-\ce -oenv \rm \emph{filename} }
+\ce -oenv \rm \emph{filename} \\
+\ce -obump \rm \emph{filename} }
 \index{Texture System!making textures with oiiotool}
 \label{sec:oiiotool:otex}
 
@@ -1226,6 +1227,11 @@ appended arguments for {\cf -otex} and {\cf -oenv} also include:
   sizes, formats, options, and metadata). (default: 0) \\
 & {\cf\small prman_options=}\emph{int} & Include the metadata that PRMan's
   texture system wants. (default: 0) \\
+& {\cf bumpformat=}\emph{string} &
+  For {\cf -obump} only, specifies the interpretation of 3-channel source
+  images as one of: {\cf height, normal, auto} (default)). \\
+\apiend
+
 \end{longtable}
 
 \noindent Examples:
