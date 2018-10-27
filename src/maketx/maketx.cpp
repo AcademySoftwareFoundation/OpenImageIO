@@ -72,7 +72,6 @@ static bool lightprobemode = false;
 static bool bumpslopesmode = false;
 
 
-
 static std::string
 filter_help_string ()
 {
@@ -212,6 +211,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     std::string outcolorspace;
     std::string colorconfigname;
     std::string channelnames;
+    std::string bumpformat = "auto";
     std::vector<std::string> string_attrib_names, string_attrib_values;
     std::vector<std::string> any_attrib_names, any_attrib_values;
     filenames.clear();
@@ -277,6 +277,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
                   "--envlatl", &envlatlmode, "Create lat/long environment map",
                   "--lightprobe", &lightprobemode, "Create lat/long environment map from a light probe",
                   "--bumpslopes", &bumpslopesmode, "Create a 6 channels bump-map with height, derivatives and square derivatives from an height or a normal map",
+                  "--bumpformat %s", &bumpformat, "Specify the input bump format for the --bumpslopes option: height, normal or auto:default.",
             
 //                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
                   "<SEPARATOR>", colortitle_help_string().c_str(),
@@ -396,7 +397,9 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
     configspec.attribute ("maketx:prman_options", prman);
     if (mipimages.size())
         configspec.attribute ("maketx:mipimages", Strutil::join(mipimages,";"));
-
+    if(bumpslopesmode)
+        configspec.attribute ("maketx:bumpformat", bumpformat);
+    
     std::string cmdline = Strutil::format ("OpenImageIO %s : %s",
                                      OIIO_VERSION_STRING,
                                      command_line_string (argc, argv, sansattrib));
