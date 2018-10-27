@@ -455,6 +455,19 @@ Technical Memo 14-04, Pixar Animation Studios, 2014.
 \url{https://graphics.pixar.com/library/BumpRoughness}
 \apiend
 
+\apiitem{--bumpformat {\rm \emph{bformat}}}
+\index{bump mapping} \index{bump to roughness}
+\NEW % 1.9
+In conjunction with {\cf --bumpslopes}, this option can specify the strategy
+for determining whether a 3-channel source image specifies a height map or a
+normal map. The value \qkw{height} indicates it is a height map (only the
+first channel will be used). The value \qkw{normal} indicates it is a normal
+map (all three channels will be used for $x, y, z$). The default value,
+\qkw{auto}, indicates that it should be interpreted as a height map if and
+only if the R, G, B channel values are identical in all pixels, otherwise
+it will be interpreted as a 3-channel normal map.
+\apiend
+
 
 % --shadow --shadcube
 % --volshad --envcube --latl2envcube --vertcross

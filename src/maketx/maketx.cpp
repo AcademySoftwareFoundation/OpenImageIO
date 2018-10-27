@@ -277,8 +277,7 @@ getargs (int argc, char *argv[], ImageSpec &configspec)
                   "--envlatl", &envlatlmode, "Create lat/long environment map",
                   "--lightprobe", &lightprobemode, "Create lat/long environment map from a light probe",
                   "--bumpslopes", &bumpslopesmode, "Create a 6 channels bump-map with height, derivatives and square derivatives from an height or a normal map",
-                  "--bumpformat %s", &bumpformat, "Specify the input bump format for the --bumpslopes option: height, normal or auto:default.",
-            
+                  "--bumpformat %s", &bumpformat, "Specify the interpretation of a 3-channel input image for --bumpslopes: \"height\", \"normal\"" or \"auto\" (default).",
 //                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
                   "<SEPARATOR>", colortitle_help_string().c_str(),
                   "--colorconfig %s", &colorconfigname, "Explicitly specify an OCIO configuration file",

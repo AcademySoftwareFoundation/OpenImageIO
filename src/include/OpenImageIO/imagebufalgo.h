@@ -1728,6 +1728,12 @@ enum OIIO_API MakeTextureMode {
 ///                               The fastest path may result in a slight shift
 ///                               in the image, accumulated for each mip level
 ///                               with an odd resolution. (0)
+///    maketx:bumpformat (string)
+///                           For the MakeTxBumpWithSlopes mode, chooses
+///                               whether to assume the map is a height map
+///                               ("height"), a normal map ("normal"), or
+///                               automatically determine it from the number
+///                               of channels ("auto", the default).
 ///
 bool OIIO_API make_texture (MakeTextureMode mode,
                             const ImageBuf &input,
