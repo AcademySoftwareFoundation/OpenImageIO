@@ -55,10 +55,10 @@ public:
     UnitTestFailureCounter () : m_failures(0) { }
     ~UnitTestFailureCounter () {
         if (m_failures) {
-            std::cout << Sysutil::Term().ansi ("red", "ERRORS!\n");
+            std::cout << Sysutil::Term(std::cout).ansi ("red", "ERRORS!\n");
             std::exit (m_failures != 0);
         } else {
-            std::cout << Sysutil::Term().ansi ("green", "OK\n");
+            std::cout << Sysutil::Term(std::cout).ansi ("green", "OK\n");
         }
     }
     const UnitTestFailureCounter& operator++ () { ++m_failures; return *this; } // prefix
