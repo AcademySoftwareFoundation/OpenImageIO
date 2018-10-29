@@ -1161,7 +1161,7 @@ ImageCacheImpl::find_file (ustring filename,
 {
     // Debugging aid: attribute "substitute_image" forces all image
     // references to be to one named file.
-    if (m_substitute_image)
+    if (! m_substitute_image.empty())
         filename = m_substitute_image;
 
     // Shortcut - check the per-thread microcache before grabbing a more
@@ -1246,7 +1246,7 @@ ImageCacheImpl::verify_file (ImageCacheFile *tf,
             // What if we've opened another file, with a different name,
             // but the SAME pixels?  It can happen!  Bad user, bad!  But
             // let's save them from their own foolishness.
-            if (tf->fingerprint() && m_deduplicate) {
+            if (!tf->fingerprint().empty() && m_deduplicate) {
                 // std::cerr << filename << " hash=" << tf->fingerprint() << "\n";
                 ImageCacheFile *dup = find_fingerprint (tf->fingerprint(), tf);
                 if (dup != tf) {
@@ -1353,7 +1353,7 @@ ImageCacheImpl::check_max_files (ImageCachePerThreadInfo *thread_info)
 
     // Get a (locked) iterator for the next tile to be examined.
     FilenameMap::iterator sweep;
-    if (m_file_sweep_name) {
+    if (! m_file_sweep_name.empty()) {
         // We saved the sweep_id. Find the iterator corresponding to it.
         sweep = m_files.find (m_file_sweep_name);
         // Note: if the sweep_id is no longer in the table, sweep will be an

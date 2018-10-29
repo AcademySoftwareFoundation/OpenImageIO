@@ -1001,7 +1001,7 @@ TextureSystemImpl::texture (TextureHandle *texture_handle_,
     if (! texturefile  ||  texturefile->broken())
         return missing_texture (options, nchannels, result, dresultds, dresultdt);
 
-    if (options.subimagename) {
+    if (! options.subimagename.empty()) {
         // If subimage was specified by name, figure out its index.
         int s = m_imagecache->subimage_from_name (texturefile, options.subimagename);
         if (s < 0) {
