@@ -104,12 +104,18 @@
 #if (__cplusplus >= 201700L)
 #  define OIIO_CPLUSPLUS_VERSION  17
 #  define OIIO_CONSTEXPR14        constexpr
+#  define OIIO_CONSTEXPR17        constexpr
+#  define OIIO_CONSTEXPR20        /* not constexpr before C++20 */
 #elif (__cplusplus >= 201402L)
 #  define OIIO_CPLUSPLUS_VERSION  14
 #  define OIIO_CONSTEXPR14        constexpr
+#  define OIIO_CONSTEXPR17        /* not constexpr before C++17 */
+#  define OIIO_CONSTEXPR20        /* not constexpr before C++20 */
 #elif (__cplusplus >= 201103L) || _MSC_VER >= 1900
 #  define OIIO_CPLUSPLUS_VERSION  11
 #  define OIIO_CONSTEXPR14        /* not constexpr before C++14 */
+#  define OIIO_CONSTEXPR17        /* not constexpr before C++17 */
+#  define OIIO_CONSTEXPR20        /* not constexpr before C++20 */
 #else
 #  error "This version of OIIO is meant to work only with C++11 and above"
 #endif
@@ -274,13 +280,18 @@
 #  define OIIO_CONST_FUNC
 #endif
 
-// OIIO_UNUSED_OK is a function or variable attribute that assures tells the
+// OIIO_MAYBE_UNUSED is a function or variable attribute that assures the
 // compiler that it's fine for the item to appear to be unused.
-#if defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER) || __has_attribute(unused)
-#  define OIIO_UNUSED_OK __attribute__((unused))
+#if OIIO_CPLUSPLUS_VERSION >= 17
+#  define OIIO_MAYBE_UNUSED [[maybe_unused]]
+#elif defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER) || __has_attribute(unused)
+#  define OIIO_MAYBE_UNUSED __attribute__((unused))
 #else
-#  define OIIO_UNUSED_OK
+#  define OIIO_MAYBE_UNUSED
 #endif
+
+// DEPRECATED(1.9) name:
+#define OIIO_UNUSED_OK OIIO_MAYBE_UNUSED
 
 // OIIO_RESTRICT is a parameter attribute that indicates a promise that the
 // parameter definitely will not alias any other parameters in such a way
@@ -302,6 +313,23 @@
 #  define OIIO_DEPRECATED(msg) __declspec(deprecated(msg))
 #else
 #  define OIIO_DEPRECATED(msg)
+#endif
+
+
+// OIIO_FALLTHROUGH documents that switch statement fallthrough case.
+#if OIIO_CPLUSPLUS_VERSION >= 17
+#  define OIIO_FALLTHROUGH [[fallthrough]]
+#else
+#  define OIIO_FALLTHROUGH
+#endif
+
+
+// OIIO_NODISCARD documents functions whose return values should never be
+// ignored.
+#if OIIO_CPLUSPLUS_VERSION >= 17
+#  define OIIO_NODISCARD [[nodiscard]]
+#else
+#  define OIIO_NODISCARD
 #endif
 
 
