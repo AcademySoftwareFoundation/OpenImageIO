@@ -186,6 +186,16 @@ Public API changes:
 * Rename/move of `array_view` to `span`. Deprecated `array_view` and moved
   array_view.h contents to span.h. You should change `array_view<T>`
   to `span<T>` and `array_view<const T>` to `cspan<T>`. #1956 (1.9.4)
+* ustring: removed `operator int()` that allowed simple int casting such as:
+  ```
+      ustring u, v;
+      if (u || !v) { ... }
+  ```
+  This was error-prone, neither std::string nor std::string_view had the
+  equivalent, so we are removing it. The preferred idiom is:
+  ```
+      if (!u.empty() || v.empty()) { ... }
+  ```
 
 Performance improvements:
 * ImageBufAlgo::computePixelStats is now multithreaded and should improve by

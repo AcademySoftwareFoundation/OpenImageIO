@@ -340,11 +340,6 @@ public:
     /// point to an empty string?
     bool empty (void) const { return (size() == 0); }
 
-    /// Cast to int, which is interpreted as testing whether it's not an
-    /// empty string.  This allows you to write "if (t)" with the same
-    /// semantics as if it were a char*.
-    operator int (void) const { return !empty(); }
-
     /// Return a const_iterator that references the first character of
     /// the string.
     const_iterator begin () const { return string().begin(); }
