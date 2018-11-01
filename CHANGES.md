@@ -9,7 +9,7 @@ Major new features and improvements:
 * New `maketx` option `--bumpslopes` specifically for converting bump maps,
   saves additional channels containing slope distribution moments that can
   be used in shaders for "bump to roughness" calculations. #1810,#1913,2005
-  (1.9.2)
+  (1.9.2), #2044 (1.9.4)
 * TIFF I/O of multiple scanlines or tiles at once (or whole images, as is
   typical use case for oiiotool and maketx) is sped up by a large factor
   on modern multicore systems. We've seen 10x or more faster oiiotool
@@ -27,7 +27,7 @@ Major new features and improvements:
     * "null" images -- null reader just returns black (or constant colored)
       pixels, null writer just returns. This can be used for benchmarking
       (to eliminate all actual file I/O time), "dry run" where you want to
-      test without creating output files. #1778 (1.9.0)
+      test without creating output files. #1778 (1.9.0), #2042 (1.9.4)
 * ImageInput and ImageOutput static create() and open() methods now return
   `unique_ptr` rather than raw pointers. #1934, #1945 (1.9.3).
 * ImageInput improvements to thread safety and concurrency, including some
@@ -39,6 +39,8 @@ Major new features and improvements:
   pointers to per-channel colors into span<> for safety. #1961 (1.9.4)
 * Support for OpenVDB volume files (reading only, no write support
   currently). #2010
+* An official FindOpenImageIO.cmake that we invite you to use in other
+  cmake-based projects that needs to find OIIO. #2027 (1.9.4)
 
 Public API changes:
 * **Python binding overhaul**
@@ -127,6 +129,8 @@ Public API changes:
       preserve its aspect ratio (padding with black as necessary). It's just
       like what `oiiotool --fit` has always done, but now you can call it
       directly from C++ or Python. #1993 (1.9.4)
+    * New `contrast_remap()` allows flexible linear or sigmoidal contrast
+      remapping. #2043 (1.9.4)
 * ImageCache/TextureSystem:
     * ImageCache and TextureSystem now have `close(filename)` and
       `close_all()` methods, which for one file or all files will close the
@@ -250,6 +254,8 @@ Fixes and feature enhancements:
       spot the existance of particular metadata. #1982 (1.9.4)
     * `--no-autopremult` fixed, it wasn't working properly for cases that
       were read directly rather than backed by ImageCache. #1984 (1.9.4)
+    * New `--contrast` allows for contrast remapping (linear or sigmoidal).
+      #2043 (1.9.4)
 * ImageBufAlgo:
     * `color_map()` new  maps "inferno", "magma", "plasma", "viridis".
       #1820 (1.9.2)
@@ -260,6 +266,8 @@ Fixes and feature enhancements:
     * New functions: fit() #1993.
     * `channel_append()` is no longer limited to requiring the two input
       images to have the same pixel data type. #2022 (1.9.4)
+    * New `contrast_remap()` allows flexible linear or sigmoidal contrast
+      remapping. #2043 (1.9.4)
 * ImageBuf:
     * Bug fixed in IB::copy() of rare types. #1829 (1.9.2)
     * write() automatically tells the ImageCache to 'invalidate' the file
@@ -343,6 +351,10 @@ Fixes and feature enhancements:
     * The "oiio:ColorSpace" metadata is now set correctly when reading
       raw DSLR images. And we deprecate the old "raw:ColorSpace" metadata,
       which is useless. #2016 (1.9.4)
+    * Add "raw:aber" configuration hint to control libraw's adjustments for
+      chromatic aberration. This data is of type "float[2]", the first value
+      is the scale factor for red, the second for blue, and both should be
+      very close to 1.0. #2030 (1.9.4)
 * TIFF:
     * Improve performance of TIFF scanline output. #1833 (1.9.2)
     * Bug fix: read_tile() and read_tiles() input of un-premultiplied tiles
@@ -354,11 +366,15 @@ Fixes and feature enhancements:
       by alpha for any unassociated alpha files, it will set the metadata
       "tiff:UnassociatedAlpha" to indicate that the original file was
       unassociated. #1984 (1.9.4)
+    * Bug fixes for TIFF reads of images with unassociated alpha -- there
+      were some edge cases where they pixels failed to automatically
+      premultiply upon read. #2032 (1.9.4)
 * zfile: more careful gzopen on Windows that could crash when given bogus
   filename. #1839 (1.9.2/1.8.8)
+* Windows fix: Safer thread pool destruction on. #2038 (1.9.4)
 
 Build/test system improvements:
-* Fixes for Windows build. #1793, #1794 (1.9.0/1.8.6)
+* Fixes for Windows build. #1793, #1794 (1.9.0/1.8.6), #2025 (1.9.4)
 * Fix build bug where if the makefile wrapper got `CODECOV=0`, it would
   force a "Debug" build (required for code coverage tests) even though code
   coverage is instructed to be off. (It would be fine if you didn't specify
@@ -366,7 +382,8 @@ Build/test system improvements:
 * Build: Fix broken build when Freetype was not found or disabled. #1800
   (1.8.6/1.9.1)
 * Build: Boost.Python is no longer a dependency, but `pybind11` is. If
-  not found on the system, it will be automatically downloaded. #1801 (1.9.1)
+  not found on the system, it will be automatically downloaded. #1801, #2031
+  (1.9.1)
 * Time for a multi-core build of OIIO is reduced by 40% by refactoring some
   extra big modules into more bite-sized pieces. #1806 (1.9.2)
 * testtex:
@@ -421,6 +438,14 @@ Build/test system improvements:
 * Support compilation by clang 7.0. #1995 (1.9.4)
 * Support for building against OpenEXR 2.3. #2007 (1.9.4)
 * Use OpenEXR pkgconfig if available. #2008 (1.9.4)
+* Allow builds outside the source tree to pass testsuite. Defaults to
+  finding test image directories such as oiio-images, openexr-images, and
+  libtiffpic in the usual ".." from the main OIIO source directory, but now
+  it can be overridden with the CMake variable `OIIO_TESTSUITE_IMAGEDIR`.
+  #2026 (1.9.4)
+* Remove stale python examples from `src/python`. They were untested,
+  undocumented, and probably no longer worked against the current APIs.
+  #2036 (1.9.4)
 
 Developer goodies / internals:
 * argparse.h:
@@ -468,10 +493,19 @@ Developer goodies / internals:
       internally rather than requre an allocation. #1812 (1.9.2)
     * New ParamList convenience methods: remove(), constains(),
       add_or_replace(). #1813 (1.9.2)
+* platform.h:
+    * New OIIO_FALLTHROUGH and OIIO_NODISCARD macros, and renamed
+      OIIO_UNUSED_OK to OIIO_MAYBE_UNUSED (to match C++17 naming). #2041
 * simd.h:
     * Fixed build break when AVX512VL is enabled. #1781 (1.9.0/1.8.6)
     * Minor fixes especially for avx512. #1846 (1.9.2/1.8.8) #1873,#1893
       (1.9.2)
+* span.h:
+    * Used to be array_view. Now it's `span<>` and `span_strided`. Also,
+      `cspan<T>` is a handy alias for `span<const T>`. #1956 (1.9.4)
+    * Added begin(), end(), cbegin(), cend() methods, and new
+      constructors from pointer pairs and from std::array. (1.9.0/1.8.6)
+    * Added `==` and `!=` to span and span_strided. #2037 (1.9.4)
 * strutil.h:
     * All string->numeric parsing and numeric->string formatting is now
       locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
@@ -483,6 +517,12 @@ Developer goodies / internals:
     * New `iless()` is case-insensitive locale-independent string_view
       ordering comparison. Also added StringIEqual, StringLess, StringILess
       functors. (1.9.4)
+    * `join()` is now a template that can act on any iterable container of
+      objects that allow stream output. #2033 (1.9.4)
+    * New `splits()`/`splitsv()` that direction returns a vector of
+      std::string or string_view, respectively. #2033 (1.9.4)
+    * A second version of `extract_from_list_string` that directly returns
+      a std::vector (instead of being passed as a param). #2033 (1.9.4)
 * thread.h:
     * Reimplementaiton of `spin_rw_mutex` has much better performance when
       many threads are accessing at once, especially if most of them are
@@ -496,12 +536,23 @@ Developer goodies / internals:
       `unittest.h` can be more easily used outside of the OIIO codebase.
       #1791 (1.9.0)
     * `OIIO_CHECK_EQUAL_APPROX` - fix namespace ambiguity. #1998 (1.9.4)
+    * `OIIO_CHECK_EQUAL` now can compare two `std::vector`s. #2033 (1.9.4)
+    * Make unit test errors respect whether stdout is a terminal when
+      deciding whether to print in color. #2045
 * Extensive use of C++11 `final` and `override` decorators of virtual
   methods in our internals, especially ImageInput and ImageOutput.
   #1904 (1.9.2)
 
 
 
+
+Release 1.8.16 (1 Nov 2018) -- compared to 1.8.15
+-------------------------------------------------
+* Fix Windows build that was missing an exported symbol. #2024
+* RAW: Added config hint "raw:aber" (float[2]) to control libraw's
+  correction of chromatic aberration. #2030
+* Removed stale python examples that probably didn't work anyway. #2036
+* Windows fix: Safer thread pool destruction on. #2038
 
 Release 1.8.15 (1 Oct 2018) -- compared to 1.8.14
 -------------------------------------------------
