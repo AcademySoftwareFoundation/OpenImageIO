@@ -37,6 +37,7 @@ try:
     ImageBufAlgo.checker (checker, 8, 8, 8, (0,0,0), (1,1,1))
     gray128 = make_constimage (128, 128, 3, oiio.HALF, (0.5,0.5,0.5))
     gray64 = make_constimage (64, 64, 3, oiio.HALF, (0.5,0.5,0.5))
+    tahoetiny = ImageBuf("../oiiotool/src/tahoe-tiny.tif")
 
     # black
     # b = ImageBuf (ImageSpec(320,240,3,oiio.UINT8))
@@ -215,11 +216,9 @@ try:
     write (b, "chsum.tif", oiio.UINT8)
 
     # color_map
-    b = ImageBufAlgo.color_map (ImageBuf("../oiiotool/src/tahoe-tiny.tif"),
-                                -1, "inferno")
+    b = ImageBufAlgo.color_map (tahoetiny, -1, "inferno")
     write (b, "colormap-inferno.tif", oiio.UINT8)
-    b = ImageBufAlgo.color_map (ImageBuf("../oiiotool/src/tahoe-tiny.tif"),
-                                -1, 3, 3, (.25,.25,.25,0,.5,0,1,0,0))
+    b = ImageBufAlgo.color_map (tahoetiny, -1, 3, 3, (.25,.25,.25,0,.5,0,1,0,0))
     write (b, "colormap-custom.tif", oiio.UINT8)
 
     # premult/unpremult
@@ -229,6 +228,13 @@ try:
     write (b, "unpremult.tif")
     b = ImageBufAlgo.premult (b)
     write (b, "premult.tif")
+
+    b = ImageBufAlgo.contrast_remap (tahoetiny, black=0.1, white=0.75)
+    write (b, "contrast-stretch.tif")
+    b = ImageBufAlgo.contrast_remap (tahoetiny, min=0.1, max=0.75)
+    write (b, "contrast-shrink.tif")
+    b = ImageBufAlgo.contrast_remap (tahoetiny, scontrast=5.0)
+    write (b, "contrast-sigmoid5.tif")
 
     b = ImageBuf ("../oiiotool/src/tahoe-small.tif")
     b = ImageBufAlgo.rangecompress (b)

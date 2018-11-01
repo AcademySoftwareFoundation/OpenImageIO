@@ -1240,6 +1240,48 @@ ImageBuf IBA_unpremult_ret (const ImageBuf &src,
 
 
 
+bool
+IBA_contrast_remap (ImageBuf &dst, const ImageBuf &src,
+                    py::object black_, py::object white_,
+                    py::object min_, py::object max_,
+                    py::object scontrast_, py::object sthresh_,
+                    ROI roi = ROI::All(), int nthreads=0)
+{
+    if (! src.initialized())
+        return false;
+    std::vector<float> black, white, sthresh, scontrast, min, max;
+    py_to_stdvector (black, black_);
+    py_to_stdvector (white, white_);
+    py_to_stdvector (min, min_);
+    py_to_stdvector (max, max_);
+    py_to_stdvector (sthresh, sthresh_);
+    py_to_stdvector (scontrast, scontrast_);
+    // black.resize (src.nchannels(), black.size() ? black.back() : 0.0f);
+    // white.resize (src.nchannels(), white.size() ? white.back() : 1.0f);
+    // min.resize (src.nchannels(), min.size() ? min.back() : 0.0f);
+    // max.resize (src.nchannels(), max.size() ? max.back() : 1.0f);
+    // sthresh.resize (src.nchannels(), sthresh.size() ? sthresh.back() : 0.5f);
+    // scontrast.resize (src.nchannels(), scontrast.size() ? scontrast.back() : 1.0f);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::contrast_remap (dst, src, black, white, min, max,
+                                         scontrast, sthresh, roi, nthreads);
+}
+
+ImageBuf
+IBA_contrast_remap_ret (const ImageBuf &src,
+                        py::object black_, py::object white_,
+                        py::object min_, py::object max_,
+                        py::object scontrast_, py::object sthresh_,
+                        ROI roi = ROI::All(), int nthreads=0)
+{
+    ImageBuf dst;
+    IBA_contrast_remap (dst, src, black_, white_, min_, max_,
+                        scontrast_, sthresh_, roi, nthreads);
+    return dst;
+}
+
+
+
 ImageBufAlgo::PixelStats
 IBA_computePixelStats_ret (const ImageBuf &src, ROI roi, int nthreads)
 {
@@ -2472,6 +2514,17 @@ void declare_imagebufalgo (py::module &m)
         .def_static("clamp", &IBA_clamp_ret,
             "src"_a, "min"_a, "max"_a,
             "clampalpha01"_a=false,
+            "roi"_a=ROI::All(), "nthreads"_a=0)
+
+        .def_static("contrast_remap", &IBA_contrast_remap,
+            "dst"_a, "src"_a, "black"_a=0.0f, "white"_a=1.0f,
+            "min"_a=0.0f, "max"_a=1.0f,
+            "scontrast"_a=1.0f, "sthresh"_a=0.5f,
+            "roi"_a=ROI::All(), "nthreads"_a=0)
+        .def_static("contrast_remap", &IBA_contrast_remap_ret,
+            "src"_a, "black"_a=0.0f, "white"_a=1.0f,
+            "min"_a=0.0f, "max"_a=1.0f,
+            "scontrast"_a=1.0f, "sthresh"_a=0.5f,
             "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("colorconvert", &IBA_colorconvert,

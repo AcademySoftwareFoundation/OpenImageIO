@@ -1197,6 +1197,80 @@ The {\cf weights}, if not supplied, default to 1.0 for each channel.
 \apiend
 
 
+\apiitem{ImageBuf {\ce contrast_remap} (const ImageBuf \&src, \\
+        \bigspc\spc cspan<float> black=0.0f, cspan<float> white=1.0f, \\
+        \bigspc\spc cspan<float> min=0.0f, cspan<float> max=1.0f, \\
+        \bigspc\spc cspan<float> scontrast=1.0f, cspan<float> sthresh=0.5f, \\
+        \bigspc\spc ROI roi=\{\}, int nthreads=0) \\
+bool {\ce contrast_remap} (ImageBuf \&dst, const ImageBuf \&src,\\
+        \bigspc\spc cspan<float> black=0.0f, cspan<float> white=1.0f, \\
+        \bigspc\spc cspan<float> min=0.0f, cspan<float> max=1.0f, \\
+        \bigspc\spc cspan<float> scontrast=1.0f, cspan<float> sthresh=0.5f, \\
+        \bigspc\spc ROI roi=\{\}, int nthreads=0)}
+\index{ImageBufAlgo!contrast_remap} \indexapi{contrast_remap}
+\NEW % 1.9
+
+Return (or copy into {\cf dst}) pixel values that are a contrast-remap
+of the corresponding values of the {\cf src} image, transforming pixel
+value domain [black, white] to range [min, max], either linearly or with
+optional application of a smooth sigmoidal remapping (if scontrast != 1.0).
+
+\noindent The following steps are performed, in order:
+
+\begin{enumerate}
+\item Linearly rescale {\cf black} to 0.0 and {\cf white} to 1.0.
+\item Optionally raise to power 1/gamma (only if {\cf gamma} is not 1.0).
+\item Apply a sigmoidal remapping (only if {\cf scontrast} $> 1$) where a larger
+   {\cf scontrast} value makes a steeper slope, and the steepest part is at
+   value {\cf sthresh} (relative to the new remapped value after steps 1 \& 2;
+   the default is 0.5).
+\item Rescale the range of that result: 0.0 to min and 1.0 to max.
+\end{enumerate}
+
+Values outside of the [black,white] range will be extrapolated to
+outside [min,max], so it may be prudent to apply a clamp() to the
+results.
+
+The black, white, min, max, scontrast, sthresh parameters may each
+either be a single float value for all channels, or a span giving
+per-channel values.
+
+You can use this function for a simple linear contrast remapping of
+[black, white] to [min, max] if you use the default values for sthresh.
+Or just a simple sigmoidal contrast stretch within the [0,1] range if
+you leave all other parameters at their defaults, or a combination of
+these effects. Note that if black == white, the result will be a simple
+binary thresholding where values < black map to min and values >= bkack
+map to max.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    ImageBuf A ("tahoe.tif");
+
+    // Simple linear remap that stretches input 0.1 to black, and input
+    // 0.75 to white.
+    ImageBuf linstretch = ImageBufAlgo::contrast_remap (A, 0.1f, 0.75f);
+
+    // Remapping 0->1 and 1->0 inverts the colors of the image,
+    // equivalent to ImageBufAlgo::invert().
+    ImageBuf inverse = ImageBufAlgo::contrast_remap (A, 1.0f, 0.0f);
+
+    // Use a sigmoid curve to add contrast but without any hard cutoffs.
+    // Use a contrast parameter of 5.0.
+    ImageBuf sigmoid = ImageBufAlgo::contrast_remap (a, 0.0f, 1.0f,
+                                                     0.0f, 1.0f, 5.0f);
+\end{code}
+
+\noindent \begin{tabular}{cccc}
+\includegraphics[width=1.1in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.1in]{figures/tahoe-lincontrast.jpg} &
+\includegraphics[width=1.1in]{figures/tahoe-inverse.jpg} &
+\includegraphics[width=1.1in]{figures/tahoe-sigmoid.jpg} \\
+original & linstretch & inverse & sigmoid \\
+\end{tabular}
+\apiend
+
 
 \apiitem{ImageBuf {\ce color_map} (const ImageBuf \&src, int srcchannel, \\
         \bigspc\spc int nknots, int channels, cspan<float> knots, \\
@@ -1237,7 +1311,7 @@ those desirable qualities (and are this not recommended): \qkw{blue-red},
     // Use luminance of a.exr (assuming Rec709 primaries and a linear
     // scale) and map to a color spectrum:
     ImageBuf A ("a.exr");
-    ImageBuf B = ImageBufAlgo::color_map (B, A, -1, "inferno");
+    ImageBuf B = ImageBufAlgo::color_map (A, -1, "inferno");
 
     float mymap[] = { 0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0 };
     B = ImageBufAlgo::color_map (A, -1 /* use luminance */,

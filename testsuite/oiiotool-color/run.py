@@ -23,6 +23,19 @@ command += oiiotool ("unpremult.exr --premult -o premult.exr")
 # test --no-autopremult on a TGA file thet needs it.
 command += oiiotool ("--no-autopremult src/rgba.tga --ch R,G,B -o rgbfromtga.png")
 
+# test --contrast
+command += oiiotool ("--autocc ../oiiotool/src/tahoe-tiny.tif "
+                     + "-contrast:black=0.1:white=0.75 -d uint8 -o contrast-stretch.tif")
+command += oiiotool ("--autocc ../oiiotool/src/tahoe-tiny.tif "
+                     + "-contrast:min=0.1:max=0.75 -d uint8 -o contrast-shrink.tif")
+command += oiiotool ("--autocc ../oiiotool/src/tahoe-tiny.tif "
+                     + "-contrast:black=1:white=0 -d uint8 -o contrast-inverse.tif")
+command += oiiotool ("--autocc ../oiiotool/src/tahoe-tiny.tif "
+                     + "-contrast:black=1,1,.25:white=1,1,0.25 -d uint8 -o contrast-threshold.tif")
+command += oiiotool ("--autocc ../oiiotool/src/tahoe-tiny.tif "
+                     + "-contrast:scontrast=5 -d uint8 -o contrast-sigmoid5.tif")
+
+
 
 #
 # Test basic color transformation / OCIO functionality
@@ -46,6 +59,11 @@ command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=1 linear Cin
 outputs = [
             "colormap-inferno.tif", "colormap-custom.tif",
             "unpremult.exr", "premult.exr",
+            "contrast-stretch.tif",
+            "contrast-shrink.tif",
+            "contrast-inverse.tif",
+            "contrast-threshold.tif",
+            "contrast-sigmoid5.tif",
             "rgbfromtga.png",
             "greyalpha_sRGB.tif",
             "greyalpha_Cineon.tif",

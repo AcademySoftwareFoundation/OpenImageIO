@@ -6,6 +6,16 @@ Comparing "unpremult.exr" and "ref/unpremult.exr"
 PASS
 Comparing "premult.exr" and "ref/premult.exr"
 PASS
+Comparing "contrast-stretch.tif" and "ref/contrast-stretch.tif"
+PASS
+Comparing "contrast-shrink.tif" and "ref/contrast-shrink.tif"
+PASS
+Comparing "contrast-inverse.tif" and "ref/contrast-inverse.tif"
+PASS
+Comparing "contrast-threshold.tif" and "ref/contrast-threshold.tif"
+PASS
+Comparing "contrast-sigmoid5.tif" and "ref/contrast-sigmoid5.tif"
+PASS
 Comparing "rgbfromtga.png" and "ref/rgbfromtga.png"
 PASS
 Comparing "greyalpha_sRGB.tif" and "ref/greyalpha_sRGB.tif"

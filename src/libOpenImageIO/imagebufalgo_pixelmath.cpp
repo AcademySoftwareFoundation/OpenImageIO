@@ -206,85 +206,6 @@ ImageBufAlgo::absdiff (Image_or_Const A, Image_or_Const B,
 
 
 
-#if 0
-bool
-ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, const ImageBuf &B,
-                       ROI roi, int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::absdiff");
-    if (! IBAprep (roi, &dst, &A, &B))
-        return false;
-    ROI origroi = roi;
-    roi.chend = std::min (roi.chend, std::min (A.nchannels(), B.nchannels()));
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES3 (ok, "absdiff", absdiff_impl, dst.spec().format,
-                                 A.spec().format, B.spec().format,
-                                 dst, A, B, roi, nthreads);
-
-    if (roi.chend < origroi.chend && A.nchannels() != B.nchannels()) {
-        // Edge case: A and B differed in nchannels, we allocated dst to be
-        // the bigger of them, but adjusted roi to be the lesser. Now handle
-        // the channels that got left out because they were not common to
-        // all the inputs.
-        ASSERT (roi.chend <= dst.nchannels());
-        roi.chbegin = roi.chend;
-        roi.chend = origroi.chend;
-        if (A.nchannels() > B.nchannels()) { // A exists
-            abs (dst, A, roi, nthreads);
-        } else { // B exists
-            abs (dst, B, roi, nthreads);
-        }
-    }
-    return ok;
-}
-
-
-
-bool
-ImageBufAlgo::absdiff (ImageBuf &dst, const ImageBuf &A, cspan<float> b,
-                       ROI roi, int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::absdiff");
-    if (! IBAprep (roi, &dst, &A, IBAprep_CLAMP_MUTUAL_NCHANNELS))
-        return false;
-
-    IBA_FIX_PERCHAN_LEN_DEF (b, dst.nchannels());
-
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2 (ok, "absdiff", absdiff_impl, dst.spec().format,
-                          A.spec().format, dst, A, b, roi, nthreads);
-    return ok;
-}
-
-
-
-ImageBuf
-ImageBufAlgo::absdiff (const ImageBuf &A, const ImageBuf &B,
-                       ROI roi, int nthreads)
-{
-    ImageBuf result;
-    bool ok = absdiff (result, A, B, roi, nthreads);
-    if (!ok && !result.has_error())
-        result.error ("absdiff error");
-    return result;
-}
-
-
-
-ImageBuf
-ImageBufAlgo::absdiff (const ImageBuf &A, cspan<float> B,
-                       ROI roi, int nthreads)
-{
-    ImageBuf result;
-    bool ok = absdiff (result, A, B, roi, nthreads);
-    if (!ok && !result.has_error())
-        result.error ("absdiff error");
-    return result;
-}
-#endif
-
-
-
 bool
 ImageBufAlgo::abs (ImageBuf &dst, const ImageBuf &A, ROI roi, int nthreads)
 {
@@ -779,6 +700,127 @@ ImageBufAlgo::premult (const ImageBuf &src, ROI roi, int nthreads)
     bool ok = premult (result, src, roi, nthreads);
     if (!ok && !result.has_error())
         result.error ("ImageBufAlgo::premult() error");
+    return result;
+}
+
+
+
+// Helper: Are all elements of span s holding value v?
+template<typename T>
+inline bool allspan (cspan<T> s, const T& v)
+{
+    return s.size()
+        && std::all_of (s.cbegin(), s.cend(), [&](const T& e){ return e == v; });
+}
+
+
+
+template<class D, class S>
+static bool
+contrast_remap_ (ImageBuf &dst, const ImageBuf &src,
+                 cspan<float> black, cspan<float> white,
+                 cspan<float> min, cspan<float> max,
+                 cspan<float> scontrast, cspan<float> sthresh,
+                 ROI roi, int nthreads)
+{
+    bool same_black_white = (black == white);
+    float *bwdiffinv = ALLOCA (float, roi.chend);
+    for (int c = roi.chbegin; c < roi.chend; ++c)
+        bwdiffinv[c] = 1.0f / (white[c] - black[c]);
+    bool use_sigmoid = ! allspan(scontrast, 1.0f);
+    bool do_minmax = ! (allspan(min,0.0f) && allspan(max,1.0f));
+
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        if (same_black_white) {
+            // Special case -- black & white are the same value, which is
+            // just a binary threshold.
+            ImageBuf::ConstIterator<S> s (src, roi);
+            for (ImageBuf::Iterator<D> d (dst, roi);  ! d.done();  ++d, ++s) {
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    d[c] = (s[c] < black[c] ? min[c] : max[c]);
+            }
+            return;
+        }
+
+        // First do the linear stretch
+        float *r = ALLOCA (float, roi.chend);  // temp result
+        ImageBuf::ConstIterator<S> s (src, roi);
+        for (ImageBuf::Iterator<D> d (dst, roi);  ! d.done();  ++d, ++s) {
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                r[c] = (s[c] - black[c]) * bwdiffinv[c];
+
+            // Apply the sigmoid if needed
+            // See http://www.imagemagick.org/Usage/color_mods/#sigmoidal
+            // for a description of the shaping function.
+            if (use_sigmoid) {
+                // Sorry about the lack of clarity, we're working hard to
+                // minimize computation.
+                float *y = ALLOCA (float, roi.chend);
+                float *denom = ALLOCA (float, roi.chend);
+                for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                    y[c] = 1.0f/(1.0f+expf(scontrast[c]*sthresh[c]));
+                    denom[c] = 1.0f/(1.0f+expf(scontrast[c]*(sthresh[c]-1.0f))) - y[c];
+                }
+                for (int c = roi.chbegin;  c < roi.chend;  ++c) {
+                    float x = 1.0f/(1.0f+expf(scontrast[c]*(sthresh[c]-r[c])));
+                    r[c] = ( x - y[c] ) / denom[c];
+                }
+            }
+
+            // remap output range if needed
+            if (do_minmax) {
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    r[c] = lerp (min[c], max[c], r[c]);
+            }
+            for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                d[c] = r[c];
+        }
+    });
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::contrast_remap (ImageBuf &dst, const ImageBuf &src,
+                              cspan<float> black, cspan<float> white,
+                              cspan<float> min, cspan<float> max,
+                              cspan<float> scontrast, cspan<float> sthresh,
+                              ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::contrast_remap");
+    if (! IBAprep (roi, &dst, &src))
+        return false;
+    // Force all the input spans to have values for all channels.
+    int n = dst.nchannels();
+    IBA_FIX_PERCHAN_LEN (black, n, black.size() ? black.back() : 0.0f, 0.0f);
+    IBA_FIX_PERCHAN_LEN (white, n, white.size() ? white.back() : 1.0f, 1.0f);
+    IBA_FIX_PERCHAN_LEN (min, n, min.size() ? min.back() : 0.0f, 0.0f);
+    IBA_FIX_PERCHAN_LEN (max, n, max.size() ? max.back() : 1.0f, 1.0f);
+    IBA_FIX_PERCHAN_LEN (scontrast, n, scontrast.size() ? scontrast.back() : 1.0f, 1.0f);
+    IBA_FIX_PERCHAN_LEN (sthresh, n, sthresh.size() ? sthresh.back() : 0.5f, 0.5f);
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2 (ok, "contrast_remap", contrast_remap_,
+                                 dst.spec().format, src.spec().format,
+                                 dst, src, black, white, min, max,
+                                 scontrast, sthresh, roi, nthreads);
+    return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::contrast_remap (const ImageBuf &src,
+                              cspan<float> black, cspan<float> white,
+                              cspan<float> min, cspan<float> max,
+                              cspan<float> scontrast, cspan<float> sthresh,
+                              ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = contrast_remap (result, src, black, white, min, max,
+                              scontrast, sthresh, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error ("ImageBufAlgo::contrast_remap error");
     return result;
 }
 

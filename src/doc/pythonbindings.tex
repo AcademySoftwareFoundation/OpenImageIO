@@ -2579,6 +2579,41 @@ channel (if not supplied, all channels will have weight 1.0).
 \apiend
 
 
+\apiitem{ImageBuf ImageBufAlgo.{\ce contrast_remap} (src, \\
+        \bigspc\spc black=0.0, white=1.0, min=0.0, max=1.0, \\
+        \bigspc\spc sthresh=0.0, scontrast=1.0, \\
+        \bigspc\spc ROI roi=\{\}, int nthreads=0) \\
+bool ImageBufAlgo.{\ce contrast_remap} (ImageBuf \&dst, src,\\
+        \bigspc\spc black=0.0, white=1.0, min=0.0, max=1.0, \\
+        \bigspc\spc sthresh=0.0, scontrast=1.0, \\
+        \bigspc\spc ROI roi=\{\}, int nthreads=0)}
+\index{ImageBufAlgo!contrast_remap} \indexapi{contrast_remap}
+\NEW % 1.9
+
+Return (or copy into {\cf dst}) pixel values that are a contrast-remap
+of the corresponding values of the {\cf src} image, transforming pixel
+value domain [black, white] to range [min, max], either linearly or with
+optional application of a smooth sigmoidal remapping (if scontrast != 1.0).
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    A = ImageBuf('tahoe.tif');
+
+    # Simple linear remap that stretches input 0.1 to black, and input
+    # 0.75 to white.
+    linstretch = ImageBufAlgo.contrast_remap (A, black=0.1, white=0.75)
+
+    // Remapping 0->1 and 1->0 inverts the colors of the image,
+    // equivalent to ImageBufAlgo.invert().
+    inverse = ImageBufAlgo.contrast_remap (A, black=1.0, white=0.0)
+
+    // Use a sigmoid curve to add contrast but without any hard cutoffs.
+    // Use a contrast parameter of 5.0.
+    sigmoid = ImageBufAlgo.contrast_remap (a, contrast=5.0)
+\end{code}
+\apiend
+
 \apiitem{ImageBuf ImageBufAlgo.{\ce color_map} (src, srcchannel, \\
 \bigspc\bigspc        nknots, channels, knots, roi=ROI.All, nthreads=0) \\
 ImageBuf ImageBufAlgo.{\ce color_map} (src, srcchannel, \\
