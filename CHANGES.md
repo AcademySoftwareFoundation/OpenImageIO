@@ -1,3 +1,6 @@
+Release 1.8.17 (1 Dec 2018) -- compared to 1.8.16
+-------------------------------------------------
+
 Release 1.8.16 (1 Nov 2018) -- compared to 1.8.15
 -------------------------------------------------
 * Fix Windows build that was missing an exported symbol. #2024
