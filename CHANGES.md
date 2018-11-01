@@ -1,6 +1,10 @@
-Release 1.8.16 (1 Nov? 2018) -- compared to 1.8.15
+Release 1.8.16 (1 Nov 2018) -- compared to 1.8.15
 -------------------------------------------------
-
+* Fix Windows build that was missing an exported symbol. #2024
+* RAW: Added config hint "raw:aber" (float[2]) to control libraw's
+  correction of chromatic aberration. #2030
+* Removed stale python examples that probably didn't work anyway. #2036
+* Windows fix: Safer thread pool destruction on. #2038
 
 Release 1.8.15 (1 Oct 2018) -- compared to 1.8.14
 -------------------------------------------------
