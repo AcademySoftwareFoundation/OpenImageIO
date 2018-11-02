@@ -32,6 +32,7 @@
 #include <iostream>
 
 #include <OpenEXR/half.h>
+#include <OpenEXR/ImathFun.h>
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
@@ -64,7 +65,7 @@ getargs (int argc, char *argv[])
                 // "--threads %d", &numthreads,
                 //     ustring::format("Number of threads (default: %d)", numthreads).c_str(),
                 "--iterations %d", &iterations,
-                    ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+                    ustring::format("Number of values to convert for benchmarks (default: %d)", iterations).c_str(),
                 "--trials %d", &ntrials, "Number of trials",
                 NULL);
     if (ap.parse (argc, (const char**)argv) < 0) {
@@ -220,8 +221,8 @@ void do_convert_type (const std::vector<S> &svec, std::vector<D> &dvec)
 template<typename S, typename D>
 void benchmark_convert_type ()
 {
-    const size_t iterations = 10;
-    const size_t size = 10000000;
+    const size_t repeats = 10;
+    const size_t size = iterations;
     const S testval(1.0);
     std::vector<S> svec (size, testval);
     std::vector<D> dvec (size);
@@ -229,7 +230,7 @@ void benchmark_convert_type ()
                                  TypeDesc(BaseTypeFromC<S>::value),
                                  TypeDesc(BaseTypeFromC<D>::value));
     float time = time_trial (bind (do_convert_type<S,D>, std::cref(svec), std::ref(dvec)),
-                             ntrials, iterations) / iterations;
+                             ntrials, repeats) / repeats;
     std::cout << Strutil::format ("%7.1f Mvals/sec", (size/1.0e6)/time) << std::endl;
     D r = convert_type<S,D>(testval);
     OIIO_CHECK_EQUAL (dvec[size-1], r);
@@ -300,6 +301,64 @@ static void test_interpolate_linear ()
 
 
 
+inline std::string
+bin16 (int i)
+{
+    std::string out;
+    for (int b = 15; b >= 0; --b) {
+        out += (1<<b) & i ? '1' : '0';
+        if (b == 15 || b == 10)
+            out += '\'';
+    }
+    return out;
+}
+
+
+
+void
+test_half_convert_accuracy ()
+{
+    // Enumerate every half value
+    const int nhalfs = 1<<16;
+    std::vector<half> H (nhalfs, 0.0f);
+    for (auto i = 0; i < nhalfs; ++i)
+        H[i] = bit_cast<unsigned short,half>((unsigned short)i);
+
+    // Convert the whole array to float equivalents in one shot (which will
+    // use SIMD ops if available).
+    std::vector<float> F (nhalfs);
+    convert_type (H.data(), F.data(), nhalfs);
+    // And convert back in a batch as well (using SIMD if available)
+    std::vector<float> H2 (nhalfs);
+    convert_type (F.data(), H2.data(), nhalfs);
+
+    // Compare the round trip as well as all the values to the result we get
+    // if we convert individually, which will use the table-based method
+    // from Imath. They should match!
+    int nwrong = 0;
+    for (auto i = 0; i < nhalfs; ++i) {
+        float f = H[i];   // single assignment uses table from Imath
+        half h = (half)f;
+        if ((f != F[i] || f != H2[i] || f != h || H[i] != H2[i]
+            || bit_cast<half,unsigned short>(h) != bit_cast<half,unsigned short>(H[i])
+            || bit_cast<half,unsigned short>(h) != i)
+            && Imath::finitef(H[i])) {
+            ++nwrong;
+            Strutil::printf ("wrong %d 0b%s  h=%g, f=%g %s\n",
+                             i, bin16(i), H[i], F[i], isnan(f)?"(nan)":"");
+        }
+    }
+
+    Sysutil::Term term(std::cout);
+    if (nwrong)
+        std::cout << term.ansi("red");
+    std::cout << "test_half_convert_accuracy: " << nwrong << " mismatches\n";
+    std::cout << term.ansi("default");
+    OIIO_CHECK_ASSERT (nwrong == 0);
+}
+
+
+
 int main (int argc, char *argv[])
 {
 #if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
@@ -334,6 +393,8 @@ int main (int argc, char *argv[])
     test_convert_type<double,long> ();
     std::cout << "round trip convert float/unsigned int/float\n";
     test_convert_type<float, unsigned int> ();
+
+    test_half_convert_accuracy ();
 
     benchmark_convert_type<unsigned char, float> ();
     benchmark_convert_type<float, unsigned char> ();

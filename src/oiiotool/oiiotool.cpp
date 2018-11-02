@@ -42,6 +42,7 @@
 #include <cctype>
 #include <map>
 
+#include <OpenEXR/half.h>
 #include <OpenEXR/ImfTimeCode.h>
 
 #include <OpenImageIO/argparse.h>
@@ -54,6 +55,7 @@
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/timer.h>
+#include <OpenImageIO/simd.h>
 
 #include "oiiotool.h"
 
@@ -5129,6 +5131,17 @@ print_help_end (const ArgParse &ap, std::ostream &out)
             << std::endl;
     }
 
+    // Print the HW info
+    std::string buildsimd = OIIO::get_string_attribute("oiio:simd");
+    if (! buildsimd.size())
+        buildsimd = "no SIMD";
+    auto hwinfo = Strutil::format ("OIIO %s built %s, running on %d cores %.1fGB %s",
+                      OIIO_VERSION_STRING, buildsimd,
+                      Sysutil::hardware_concurrency(),
+                      Sysutil::physical_memory()/float(1<<30),
+                      OIIO::get_string_attribute("hw:simd"));
+    out << Strutil::wordwrap (hwinfo, columns, 4) << std::endl;
+
     // Print the path to the docs. If found, use the one installed in the
     // same area is this executable, otherwise just point to the copy on
     // GitHub corresponding to our version of the softare.
@@ -5639,6 +5652,35 @@ main (int argc, char *argv[])
      // fit Linux way.
     _set_output_format (_TWO_DIGIT_EXPONENT);
 #endif
+
+#if OIIO_SIMD_SSE && !OIIO_F16C_ENABLED
+    // We've found old versions of libopenjpeg (either by itself, or
+    // pulled in by ffmpeg libraries that link against it) that upon its
+    // dso load will turn on the cpu mode that causes floating point
+    // denormals get crushed to 0.0 in certain ops, and leave it that
+    // way! This can give us the wrong results for the particular
+    // sequence of SSE intrinsics we use to convert half->float for exr
+    // files containing pixels with denorm values. Can't fix everywhere,
+    // but at least for oiiotool we know it's safe to just fix the flag
+    // for our app. We only need to do this if using sse instructions and
+    // the f16c hardware half<->float ops are not enabled. This does not
+    // seem to be a problem in libopenjpeg > 1.5.
+    // And, oy, just to mess with us, this doesn't work in gcc 4.8.
+    simd::set_denorms_zero_mode (false);
+#endif
+    {
+        // DEBUG -- this checks some problematic half->float values if the
+        // denorms zero mode is not set correctly. Leave this fragment in
+        // case we ever need to check it again.
+        // using namespace OIIO::simd;
+        const unsigned short bad[] = { 59, 12928, 2146, 32805 };
+        const half *h = (half *)bad;
+        simd::vfloat4 vf (h);
+        if (vf[0] == 0.0f || *h != vf[0])
+            Strutil::fprintf (stderr, "Bad half conversion, code %s %f -> %f "
+                              "(suspect badly set DENORMS_ZERO_MODE)\n",
+                              bad[0], h[0], vf[0]);
+    }
 
     // Globally force classic "C" locale, and turn off all formatting
     // internationalization, for the entire oiiotool application.
