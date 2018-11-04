@@ -2814,7 +2814,7 @@ which is defined as a class having the following members:
 \apiend
 
 
-\apiitem{tuple ImageBufAlgo.{\ce isConstantColor} (src, roi=ROI.All, nthreads=0)}
+\apiitem{tuple ImageBufAlgo.{\ce isConstantColor} (src, threshold=0.0, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!isConstantColor} \indexapi{isConstantColor}
 
 If all pixels of {\cf src} within the ROI have the same values (for the
@@ -2835,7 +2835,7 @@ color (one {\cf float} for each channel), otherwise return {\cf None}.
 
 
 \apiitem{bool ImageBufAlgo.{\ce isConstantChannel} (src, channel, val, \\
- \bigspc\bigspc         roi=ROI.All, nthreads=0)}
+ \bigspc\bigspc         threshold=0.0, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!isConstantChannel} \indexapi{isConstantChannel}
 
 Returns {\cf True} if all pixels of {\cf src} within the ROI have the
@@ -2856,7 +2856,7 @@ given {\cf channel} value {\cf val}.
 \apiend
 
 
-\apiitem{bool ImageBufAlgo.{\ce isMonochrome} (src, 
+\apiitem{bool ImageBufAlgo.{\ce isMonochrome} (src, threshold=0.0,
           roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!isMonochrome} \indexapi{isMonochrome}
 

@@ -1563,11 +1563,12 @@ struct CompareResults {
 
 
 \apiitem{bool {\ce isConstantColor} (const ImageBuf \&src, span<float> color=\{\}, \\
- \bigspc\bigspc         ROI roi=\{\}, int nthreads=0)}
+ \bigspc\bigspc         float threshold=0.0f, ROI roi=\{\}, int nthreads=0)}
 \index{ImageBufAlgo!isConstantColor} \indexapi{isConstantColor}
 
-If all pixels of {\cf src} within the ROI have the same values (for the
-subset of channels described by {\cf roi}), return {\cf true} and store
+If all pixels of {\cf src} within the ROI have the same values, (for the
+subset of channels described by {\cf roi}), within
+tolerance of {\cf threshold}, return {\cf true} and store
 the values in {\cf color[roi.chbegin...roi.chend-1]}.  Otherwise, return
 {\cf false}.
 
@@ -1589,11 +1590,11 @@ the values in {\cf color[roi.chbegin...roi.chend-1]}.  Otherwise, return
 
 
 \apiitem{bool {\ce isConstantChannel} (const ImageBuf \&src, int channel, float val, \\
- \bigspc\bigspc         ROI roi=\{\}, int nthreads=0)}
+ \bigspc\bigspc         float threshold=0.0f, ROI roi=\{\}, int nthreads=0)}
 \index{ImageBufAlgo!isConstantChannel} \indexapi{isConstantChannel}
 
 Returns {\cf true} if all pixels of {\cf src} within the ROI have the
-given {\cf channel} value {\cf val}.
+given {\cf channel} value {\cf val} (within {\cf threshold}).
 
 \smallskip
 \noindent Examples:
@@ -1609,13 +1610,15 @@ given {\cf channel} value {\cf val}.
 \end{code}
 \apiend
 
-\apiitem{bool {\ce isMonochrome} (const ImageBuf \&src, ROI roi=\{\}, int nthreads=0)}
+\apiitem{bool {\ce isMonochrome} (const ImageBuf \&src, float threshold=0.0f, \\
+\bigspc\bigspc ROI roi=\{\}, int nthreads=0)}
 \index{ImageBufAlgo!isMonochrome} \indexapi{isMonochrome}
 
-Returns {\cf true} if the image is monochrome within the ROI, that is,
-for all pixels within the region, do all channels {\cf [roi.chbegin, roi.chend)}
-have the same value?  If roi is not defined (the default), it will be
-understood to be all of the defined pixels and channels of source.
+Returns {\cf true} if the image is monochrome within the ROI, that is, for
+all pixels within the region, do all channels {\cf [roi.chbegin, roi.chend)}
+have the same value (within tolerance {\cf threshold}?  If roi is not
+defined (the default), it will be understood to be all of the defined pixels
+and channels of source.
 
 \smallskip
 \noindent Examples:

@@ -920,26 +920,42 @@ int OIIO_API compare_Yee (const ImageBuf &A, const ImageBuf &B,
 
 
 /// Do all pixels within the ROI have the same values for channels
-/// [roi.chbegin..roi.chend-1]?  If so, return true and store that color
-/// in color[chbegin...chend-1] (if color is not empty); otherwise return
-/// false.  If roi is not defined (the default), it will be understood
-/// to be all of the defined pixels and channels of source.
-bool OIIO_API isConstantColor (const ImageBuf &src, span<float> color = {},
+/// [roi.chbegin..roi.chend-1], within a tolerance of +/- threshold?  If so,
+/// return true and store that color in color[chbegin...chend-1] (if color
+/// is not empty); otherwise return false.  If roi is not defined (the
+/// default), it will be understood to be all of the defined pixels and
+/// channels of source.
+OIIO_API bool isConstantColor (const ImageBuf &src, float threshold=0.0f,
+                               span<float> color = {},
                                ROI roi={}, int nthreads=0);
+inline bool isConstantColor (const ImageBuf &src, span<float> color,
+                             ROI roi={}, int nthreads=0) {
+    return isConstantColor (src, 0.0f, color, roi, nthreads);
+}
 
-/// Does the requested channel have a given value over the ROI?  (For
-/// this function, the ROI's chbegin/chend are ignored.)  Return true if
-/// so, otherwise return false.  If roi is not defined (the default), it
-/// will be understood to be all of the defined pixels and channels of
-/// source.
-bool OIIO_API isConstantChannel (const ImageBuf &src, int channel, float val,
+/// Does the requested channel have a given value (within a tolerance of +/-
+/// threshold) for every channel within the ROI?  (For this function, the
+/// ROI's chbegin/chend are ignored.)  Return true if so, otherwise return
+/// false.  If roi is not defined (the default), it will be understood to be
+/// all of the defined pixels and channels of source.
+OIIO_API bool isConstantChannel (const ImageBuf &src, int channel,
+                                 float val, float threshold=0.0f,
                                  ROI roi={}, int nthreads=0);
+inline bool isConstantChannel (const ImageBuf &src, int channel, float val,
+                               ROI roi, int nthreads=0) {
+    return isConstantChannel (src, channel, val, 0.0f, roi, nthreads);
+}
 
-/// Is the image monochrome within the ROI, i.e., for all pixels within
-/// the region, do all channels [roi.chbegin, roi.chend) have the same
-/// value?  If roi is not defined (the default), it will be understood
-/// to be all of the defined pixels and channels of source.
-bool OIIO_API isMonochrome (const ImageBuf &src, ROI roi={}, int nthreads=0);
+/// Is the image monochrome within the ROI, i.e., for every pixel within the
+/// region, do all channels [roi.chbegin, roi.chend) have the same value
+/// (within a tolerance of +/- threshold)?  If roi is not defined (the
+/// default), it will be understood to be all of the defined pixels and
+/// channels of source.
+OIIO_API bool isMonochrome (const ImageBuf &src, float threshold=0.0f,
+                            ROI roi={}, int nthreads=0);
+inline bool isMonochrome (const ImageBuf &src, ROI roi, int nthreads=0) {
+    return isMonochrome (src, 0.0f, roi, nthreads);
+}
 
 /// Count how many pixels in the ROI match a list of colors.
 ///

@@ -393,21 +393,46 @@ ImageBufAlgo::compare (const ImageBuf &A, const ImageBuf &B,
 
 
 template<typename T>
-static inline bool
-isConstantColor_ (const ImageBuf &src, span<float> color,
+static bool
+isConstantColor_ (const ImageBuf &src, float threshold, span<float> color,
                   ROI roi, int nthreads)
 {
-    // Iterate using the native typing (for speed).
-    std::vector<T> constval (roi.nchannels());
-    ImageBuf::ConstIterator<T,T> s (src, roi);
-    for (int c = roi.chbegin;  c < roi.chend;  ++c)
-        constval[c] = s[c];
-
-    // Loop over all pixels ...
-    for ( ; ! s.done();  ++s) {
+    atomic_int result (true);
+    if (threshold == 0.0f) {
+        // For 0.0 threshold, use shortcut of avoiding the conversion
+        // to float, juse compare original type values.
+        std::vector<T> constval (roi.nchannels());
+        ImageBuf::ConstIterator<T,T> s (src, roi);
         for (int c = roi.chbegin;  c < roi.chend;  ++c)
-            if (constval[c] != s[c])
-                return false;
+            constval[c] = s[c];
+        ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+            if (! result)
+                return;  // another parallel bucket already failed, don't bother
+            for (ImageBuf::ConstIterator<T,T> s (src, roi); ! s.done();  ++s) {
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    if (s[c] != constval[c]) {
+                        result = false;
+                        return;
+                    }
+            }
+        });
+    } else {
+        // Nonzero threshold case
+        std::vector<T> constval (roi.nchannels());
+        ImageBuf::ConstIterator<T> s (src, roi);
+        for (int c = roi.chbegin;  c < roi.chend;  ++c)
+            constval[c] = s[c];
+        ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+            if (! result)
+                return;  // another parallel bucket already failed, don't bother
+            for (ImageBuf::ConstIterator<T> s (src, roi); ! s.done();  ++s) {
+                for (int c = roi.chbegin;  c < roi.chend;  ++c)
+                    if (std::abs(s[c] - constval[c]) > threshold) {
+                        result = false;
+                        return;
+                    }
+            }
+        });
     }
 
     if (color.size()) {
@@ -419,15 +444,14 @@ isConstantColor_ (const ImageBuf &src, span<float> color,
         for (int c = roi.chend;  c < src.nchannels() && c < color.size(); ++c)
             color[c] = 0.0f;
     }
-
-    return true;
+    return result ? true : false;
 }
 
 
 
 bool
-ImageBufAlgo::isConstantColor (const ImageBuf &src, span<float> color,
-                               ROI roi, int nthreads)
+ImageBufAlgo::isConstantColor (const ImageBuf &src, float threshold,
+                               span<float> color, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::isConstantColor");
     // If no ROI is defined, use the data window of src.
@@ -440,31 +464,50 @@ ImageBufAlgo::isConstantColor (const ImageBuf &src, span<float> color,
 
     bool ok;
     OIIO_DISPATCH_TYPES (ok, "isConstantColor", isConstantColor_,
-                         src.spec().format, src, color, roi, nthreads);
+                         src.spec().format, src, threshold, color,
+                         roi, nthreads);
     return ok;
-    // FIXME -  The nthreads argument is for symmetry with the rest of
-    // ImageBufAlgo and for future expansion. But for right now, we
-    // don't actually split by threads.  Maybe later.
 };
 
 
 
 template<typename T>
-static inline bool
+static bool
 isConstantChannel_ (const ImageBuf &src, int channel, float val,
-                    ROI roi, int nthreads)
+                    float threshold, ROI roi, int nthreads)
 {
-
-    T v = convert_type<float,T> (val);
-    for (ImageBuf::ConstIterator<T,T> s(src, roi);  !s.done();  ++s)
-        if (s[channel] != v)
-            return false;
-    return true;
+    atomic_int result (true);
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        if (! result)
+            return;  // another parallel bucket already failed, don't bother
+        if (threshold == 0.0f) {
+            // For 0.0 threshold, use shortcut of avoiding the conversion
+            // to float, juse compare original type values.
+            T constvalue = convert_type<float,T> (val);
+            for (ImageBuf::ConstIterator<T,T> s(src, roi);  ! s.done();  ++s) {
+                if (s[channel] != constvalue) {
+                    result = false;
+                    return;
+                }
+            }
+        } else {
+            // Nonzero threshold case
+            for (ImageBuf::ConstIterator<T> s(src, roi);  ! s.done();  ++s) {
+                float constvalue = val;
+                if (std::abs(s[channel] - constvalue) > threshold) {
+                    result = false;
+                    return;
+                }
+            }
+        }
+    });
+    return result ? true : false;
 }
 
 
 bool
-ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val,
+ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel,
+                                 float val, float threshold,
                                  ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::isConstantChannel");
@@ -477,36 +520,55 @@ ImageBufAlgo::isConstantChannel (const ImageBuf &src, int channel, float val,
 
     bool ok;
     OIIO_DISPATCH_TYPES (ok, "isConstantChannel", isConstantChannel_,
-                         src.spec().format, src, channel, val, roi, nthreads);
+                         src.spec().format, src, channel, val, threshold,
+                         roi, nthreads);
     return ok;
-    // FIXME -  The nthreads argument is for symmetry with the rest of
-    // ImageBufAlgo and for future expansion. But for right now, we
-    // don't actually split by threads.  Maybe later.
 };
 
 
 
 template<typename T>
-static inline bool
-isMonochrome_ (const ImageBuf &src, ROI roi, int nthreads)
+static bool
+isMonochrome_ (const ImageBuf &src, float threshold, ROI roi, int nthreads)
 {
     int nchannels = src.nchannels();
     if (nchannels < 2) return true;
-    
-    // Loop over all pixels ...
-    for (ImageBuf::ConstIterator<T,T> s(src, roi);  ! s.done();  ++s) {
-        T constvalue = s[roi.chbegin];
-        for (int c = roi.chbegin+1;  c < roi.chend;  ++c)
-            if (s[c] != constvalue)
-                return false;
-    }
-    return true;
+
+    atomic_int result (true);
+    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
+        if (! result)
+            return;  // another parallel bucket already failed, don't bother
+        if (threshold == 0.0f) {
+            // For 0.0 threshold, use shortcut of avoiding the conversion
+            // to float, juse compare original type values.
+            for (ImageBuf::ConstIterator<T,T> s(src, roi);  ! s.done();  ++s) {
+                T constvalue = s[roi.chbegin];
+                for (int c = roi.chbegin+1;  c < roi.chend;  ++c)
+                    if (s[c] != constvalue) {
+                        result = false;
+                        return;
+                    }
+            }
+        } else {
+            // Nonzero threshold case
+            for (ImageBuf::ConstIterator<T> s(src, roi);  ! s.done();  ++s) {
+                float constvalue = s[roi.chbegin];
+                for (int c = roi.chbegin+1;  c < roi.chend;  ++c)
+                    if (std::abs(s[c] - constvalue) > threshold) {
+                        result = false;
+                        return;
+                    }
+            }
+        }
+    });
+    return result ? true : false;
 }
 
 
 
 bool
-ImageBufAlgo::isMonochrome (const ImageBuf &src, ROI roi, int nthreads)
+ImageBufAlgo::isMonochrome (const ImageBuf &src, float threshold,
+                            ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::isMonochrome");
     // If no ROI is defined, use the data window of src.
@@ -518,11 +580,8 @@ ImageBufAlgo::isMonochrome (const ImageBuf &src, ROI roi, int nthreads)
 
     bool ok;
     OIIO_DISPATCH_TYPES (ok, "isMonochrome", isMonochrome_, src.spec().format,
-                         src, roi, nthreads);
+                         src, threshold, roi, nthreads);
     return ok;
-    // FIXME -  The nthreads argument is for symmetry with the rest of
-    // ImageBufAlgo and for future expansion. But for right now, we
-    // don't actually split by threads.  Maybe later.
 };
 
 
