@@ -292,6 +292,20 @@ openVDB (const std::string& filename, const ImageInput* errReport)
     if (! Filesystem::is_regular (filename))
         return nullptr;
 
+    FILE* f = fopen(filename.c_str(), "r");
+    if (!f)
+        return nullptr;
+
+    // Endianess of OPENVDB_MAGIC isn't clear, so just leave as is
+    int32_t magic;
+    static_assert(sizeof(magic)==sizeof(OPENVDB_MAGIC), "Magic type not the same size");
+
+    if (fread(&magic, sizeof(magic), 1, f) != 1)
+        magic = 0;
+    fclose(f);
+    if (magic != OPENVDB_MAGIC)
+        return nullptr;
+
     static struct OpenVDBLib {
         OpenVDBLib()  { openvdb::initialize(); }
         ~OpenVDBLib() { openvdb::uninitialize(); }

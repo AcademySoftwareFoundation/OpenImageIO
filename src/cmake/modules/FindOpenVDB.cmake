@@ -45,6 +45,7 @@ FIND_PATH(OPENVDB_INCLUDE_DIR
     include
 )
 
+LIST(INSERT oiio_vdblib_search 0 lib)
 IF (DEBUGMODE)
   LIST(INSERT oiio_vdblib_search 0 lib/debug)
 ENDIF ()
