@@ -110,6 +110,105 @@ compute_sha1 (Oiiotool &ot, ImageInput *input)
 
 
 
+template<typename T>
+static void
+print_nums (int n, const T* val, string_view sep=" ")
+{
+    if (std::is_floating_point<T>::value) {
+        // Ensure uniform printing of NaN and Inf on all platforms
+        for (int i = 0; i < n; ++i) {
+            if (i)
+                Strutil::printf ("%s", sep);
+            float v = float(val[i]);
+            if (isnan(v))
+                Strutil::printf ("nan");
+            else if (isinf(v))
+                Strutil::printf ("inf");
+            else
+                Strutil::printf ("%.9f",v);
+        }
+    } else {
+        // not floating point -- print the int values, then float equivalents
+        for (int i = 0; i < n; ++i) {
+            Strutil::printf ("%s%g", i ? sep : "", val[i]);
+        }
+        Strutil::printf (" (");
+        for (int i = 0; i < n; ++i) {
+            if (i)
+                Strutil::printf ("%s", sep);
+            float v = convert_type<T,float>(val[i]);
+            Strutil::printf ("%g", v);
+        }
+        Strutil::printf (")");
+    }
+}
+
+
+
+template<typename T>
+static bool
+dump_flat_data (ImageInput *input, const print_info_options &opt)
+{
+    const ImageSpec &spec (input->spec());
+    std::vector<T> buf(spec.image_pixels() * spec.nchannels);
+    if (! input->read_image (BaseTypeFromC<T>::value, &buf[0])) {
+        printf ("    dump data: could not read image\n");
+        return false;
+    }
+    const T *ptr = &buf[0];
+    for (int z = 0;  z < spec.depth;  ++z) {
+        for (int y = 0;  y < spec.height;  ++y) {
+            for (int x = 0;  x < spec.width;  ++x, ptr += spec.nchannels) {
+                if (! opt.dumpdata_showempty) {
+                    bool allzero = true;
+                    for (int c = 0; c < spec.nchannels && allzero; ++c)
+                        allzero &= (ptr[c] == T(0));
+                    if (allzero)
+                        continue;
+                }
+                if (spec.depth > 1 || spec.z != 0)
+                    Strutil::printf("    Pixel (%d, %d, %d): ",
+                                    x+spec.x, y+spec.y, z+spec.z);
+                else
+                    Strutil::printf("    Pixel (%d, %d): ",
+                                    x+spec.x, y+spec.y);
+                print_nums (spec.nchannels, ptr);
+                Strutil::printf ("\n");
+            }
+        }
+    }
+    return true;
+}
+
+
+
+// Macro to call a type-specialzed version func<type>(R,...)
+#define OIIO_DISPATCH_TYPES(ret,name,func,type,R,...)                   \
+    switch (type.basetype) {                                            \
+    case TypeDesc::FLOAT :                                              \
+        ret = func<float> (R, __VA_ARGS__); break;                      \
+    case TypeDesc::UINT8 :                                              \
+        ret = func<unsigned char> (R, __VA_ARGS__); break;              \
+    case TypeDesc::HALF  :                                              \
+        ret = func<half> (R, __VA_ARGS__); break;                       \
+    case TypeDesc::UINT16:                                              \
+        ret = func<unsigned short> (R, __VA_ARGS__); break;             \
+    case TypeDesc::INT8  :                                              \
+        ret = func<char> (R, __VA_ARGS__); break;                       \
+    case TypeDesc::INT16 :                                              \
+        ret = func<short> (R, __VA_ARGS__); break;                      \
+    case TypeDesc::UINT  :                                              \
+        ret = func<unsigned int> (R, __VA_ARGS__); break;               \
+    case TypeDesc::INT   :                                              \
+        ret = func<int> (R, __VA_ARGS__); break;                        \
+    case TypeDesc::DOUBLE:                                              \
+        ret = func<double> (R, __VA_ARGS__); break;                     \
+    default:                                                            \
+        ret = false;                                                    \
+    }
+
+
+
 static void
 dump_data (ImageInput *input, const print_info_options &opt)
 {
@@ -154,37 +253,9 @@ dump_data (ImageInput *input, const print_info_options &opt)
         }
 
     } else {
-        std::vector<float> buf(spec.image_pixels() * spec.nchannels);
-        if (! input->read_image (TypeDesc::FLOAT, &buf[0])) {
-            printf ("    dump data: could not read image\n");
-            return;
-        }
-        const float *ptr = &buf[0];
-        for (int z = 0;  z < spec.depth;  ++z) {
-            for (int y = 0;  y < spec.height;  ++y) {
-                for (int x = 0;  x < spec.width;  ++x) {
-                    if (! opt.dumpdata_showempty) {
-                        bool allzero = true;
-                        for (int c = 0; c < spec.nchannels && allzero; ++c)
-                            allzero &= (ptr[c] == 0.0f);
-                        if (allzero) {
-                            ptr += spec.nchannels;
-                            continue;
-                        }
-                    }
-                    if (spec.depth > 1 || spec.z != 0)
-                        std::cout << Strutil::format("    Pixel (%d, %d, %d):",
-                                             x+spec.x, y+spec.y, z+spec.z);
-                    else
-                        std::cout << Strutil::format("    Pixel (%d, %d):",
-                                             x+spec.x, y+spec.y);
-                    for (int c = 0;  c < spec.nchannels;  ++c, ++ptr) {
-                        std::cout << ' ' << (*ptr);
-                    }
-                    std::cout << "\n";
-                }
-            }
-        }
+        OIIO_UNUSED_OK bool ok = true;
+        OIIO_DISPATCH_TYPES (ok, "dump_flat_data", dump_flat_data,
+                             spec.format, input, opt);
     }
 }
 
@@ -209,7 +280,7 @@ read_input (const std::string &filename, ImageBuf &img,
         // hold a 4k RGBA float image.  Larger things will 
         // simply fall back on ImageCache.
         bool forceread = (img.spec().image_bytes() < 200*1024*1024);
-        return img.read (subimage, miplevel, forceread, TypeDesc::FLOAT);
+        return img.read (subimage, miplevel, forceread);
     }
 
     return false;

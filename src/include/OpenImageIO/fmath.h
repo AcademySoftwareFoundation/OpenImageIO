@@ -744,10 +744,19 @@ inline void convert_type<half,float> (const half *src,
                                       float *dst, size_t n,
                                       float _min, float _max)
 {
+#if OIIO_SIMD >= 8 && OIIO_F16C_ENABLED
+    // If f16c ops are enabled, it's worth doing this by 8's
+    for ( ; n >= 8; n -= 8, src += 8, dst += 8) {
+        simd::vfloat8 s_simd (src);
+        s_simd.store (dst);
+    }
+#endif
+#if OIIO_SIMD >= 4
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
         simd::vfloat4 s_simd (src);
         s_simd.store (dst);
     }
+#endif
     while (n--)
         *dst++ = (*src++);
 }
@@ -764,7 +773,6 @@ convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
     float max = std::numeric_limits<uint16_t>::max();
     float scale = max;
     simd::vfloat4 max_simd (max);
-    simd::vfloat4 one_half_simd (0.5f);
     simd::vfloat4 zero_simd (0.0f);
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
         simd::vfloat4 scaled = simd::round (simd::vfloat4(src) * max_simd);
@@ -786,7 +794,6 @@ convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
     float max = std::numeric_limits<uint8_t>::max();
     float scale = max;
     simd::vfloat4 max_simd (max);
-    simd::vfloat4 one_half_simd (0.5f);
     simd::vfloat4 zero_simd (0.0f);
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
         simd::vfloat4 scaled = simd::round (simd::vfloat4(src) * max_simd);
@@ -805,10 +812,19 @@ inline void
 convert_type<float,half> (const float *src, half *dst, size_t n,
                           half _min, half _max)
 {
+#if OIIO_SIMD >= 8 && OIIO_F16C_ENABLED
+    // If f16c ops are enabled, it's worth doing this by 8's
+    for ( ; n >= 8; n -= 8, src += 8, dst += 8) {
+        simd::vfloat8 s (src);
+        s.store (dst);
+    }
+#endif
+#if OIIO_SIMD >= 4
     for ( ; n >= 4; n -= 4, src += 4, dst += 4) {
         simd::vfloat4 s (src);
         s.store (dst);
     }
+#endif
     while (n--)
         *dst++ = *src++;
 }
