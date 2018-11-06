@@ -322,6 +322,13 @@ ifneq (${CLANG_TIDY_FIX},)
   # N.B. when fixing, you don't want parallel jobs!
 endif
 
+ifneq (${CLANG_FORMAT_INCLUDES},)
+  MY_CMAKE_FLAGS += -DCLANG_FORMAT_INCLUDES:STRING=${CLANG_FORMAT_INCLUDES}
+endif
+ifneq (${CLANG_FORMAT_EXCLUDES},)
+  MY_CMAKE_FLAGS += -DCLANG_FORMAT_EXCLUDES:STRING=${CLANG_FORMAT_EXCLUDES}
+endif
+
 ifneq (${USE_FREETYPE},)
 MY_CMAKE_FLAGS += -DUSE_FREETYPE:BOOL=${USE_FREETYPE}
 endif
@@ -386,6 +393,10 @@ package: cmakeinstall
 package_source: cmakeinstall
 	@ ( cd ${build_dir} ; ${NINJA} ${MY_NINJA_FLAGS} package_source )
 
+# 'make clang-format' runs clang-format on all source files (if it's installed)
+clang-format: cmakesetup
+	@ ( cd ${build_dir} ; ${NINJA} ${MY_NINJA_FLAGS} clang-format )
+
 else
 
 # 'make cmake' does a basic build (after first setting it up)
@@ -406,6 +417,10 @@ package: cmakeinstall
 # (platform dependent -- may be .tar.gz, .sh, .dmg, .rpm, .deb. .exe)
 package_source: cmakeinstall
 	@ ( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} package_source )
+
+# 'make clang-format' runs clang-format on all source files (if it's installed)
+clang-format: cmakesetup
+	@ ( cd ${build_dir} ; ${MAKE} ${MY_MAKE_FLAGS} clang-format )
 
 endif
 
@@ -462,6 +477,7 @@ help:
 	@echo "  make nuke         Remove ALL of build and dist (not just ${platform})"
 	@echo "  make test         Run tests"
 	@echo "  make testall      Run all tests, even broken ones"
+	@echo "  make clang-format Run clang-format on all the source files"
 	@echo "  make doxygen      Build the Doxygen docs in ${top_build_dir}/doxygen"
 	@echo ""
 	@echo "Helpful modifiers:"
@@ -480,6 +496,8 @@ help:
 	@echo "      SANITIZE=name1,...       Enable sanitizers (address, leak, thread)"
 	@echo "      CLANG_TIDY=1             Run clang-tidy on all source (can be modified"
 	@echo "                                  by CLANG_TIDY_ARGS=... and CLANG_TIDY_FIX=1"
+	@echo "      CLANG_FORMAT_INCLUDES=... CLANG_FORMAT_EXCLUDES=..."
+	@echo "                               Customize files for 'make clang-format'"
 	@echo "  Linking and libraries:"
 	@echo "      HIDE_SYMBOLS=1           Hide symbols not in the public API"
 	@echo "      SOVERSION=nn             Include the specifed major version number "

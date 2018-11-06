@@ -21,6 +21,8 @@ option (CLANG_TIDY "Enable clang-tidy" OFF)
 set (CLANG_TIDY_CHECKS "-*" CACHE STRING "clang-tidy checks to perform")
 set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
 option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
+set (CLANG_FORMAT_INCLUDES "src/*.h;src/*.cpp" CACHE STRING "Glob patterns to include for clang-format")
+set (CLANG_FORMAT_EXCLUDES "src/include/*.h;*pugixml*" CACHE STRING "Glob patterns to exclude for clang-format")
 set (GLIBCXX_USE_CXX11_ABI "" CACHE STRING "For gcc, use the new C++11 library ABI (0|1)")
 
 # Figure out which compiler we're using
@@ -248,6 +250,7 @@ endif ()
 include (CMakePushCheckState)
 include (CheckCXXSourceRuns)
 
+# Find out if it's safe for us to use std::regex or if we need boost.regex
 cmake_push_check_state ()
 set (CMAKE_REQUIRED_DEFINITIONS ${CSTD_FLAGS})
 check_cxx_source_runs("
@@ -315,6 +318,29 @@ if (CLANG_TIDY)
     set (CMAKE_CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};-checks=${CLANG_TIDY_CHECKS}")
     message (STATUS "clang-tidy command line is: ${CMAKE_CXX_CLANG_TIDY}")
 endif ()
+
+# clang-format
+find_program (CLANG_FORMAT_EXE
+              NAMES "clang-format"
+              DOC "Path to clang-format executable")
+if (CLANG_FORMAT_EXE)
+    message (STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
+    # Start with the list of files to include when formatting...
+    file (GLOB_RECURSE FILES_TO_FORMAT ${CLANG_FORMAT_INCLUDES})
+    # ... then process any list of excludes we are given
+    foreach (_pat ${CLANG_FORMAT_EXCLUDES})
+        file (GLOB_RECURSE _excl ${_pat})
+        list (REMOVE_ITEM FILES_TO_FORMAT ${_excl})
+    endforeach ()
+    #message (STATUS "clang-format file list: ${FILES_TO_FORMAT}")
+    file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
+          DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    add_custom_target (clang-format
+        COMMAND "${CLANG_FORMAT_EXE}" -i -style=file ${FILES_TO_FORMAT} )
+else ()
+    message (STATUS "clang-format not found.")
+endif ()
+
 
 if (EXTRA_CPP_ARGS)
     message (STATUS "Extra C++ args: ${EXTRA_CPP_ARGS}")
