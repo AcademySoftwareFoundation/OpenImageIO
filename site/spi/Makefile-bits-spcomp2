@@ -70,7 +70,7 @@ ifeq (${SP_OS}, rhel7)
     MY_CMAKE_FLAGS += -DPYTHON_SITE_DIR="${INSTALL_PREFIX}/python"
     BOOSTVERS ?= 1.55
     SPCOMP2_USE_BOOSTVERS ?= 1
-    BOOSTSPSUFFIX ?= sp
+    BOOSTSPSUFFIX ?=
     BOOSTVERSSP=${BOOSTVERS}${BOOSTSPSUFFIX}
     BOOSTVERS_SUFFIX = -${shell echo ${BOOSTVERS} | sed "s/\\./_/"}
     BOOSTVERS_PREFIX = ${shell echo ${BOOSTVERS} | sed "s/\\./_/"}_0
@@ -295,6 +295,8 @@ spcomp2_install_fixup_rhel7: spcomp2 spcomp2_debug
 	echo $(SPCOMP2_LOCATION)
 	patchelf --set-rpath ${SPCOMP2_RPATH_OPT} ${dist_dir}/lib/libOpenImageIO.so
 	patchelf --set-rpath ${SPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/lib/libOpenImageIO.so
+	patchelf --set-rpath ${SPCOMP2_RPATH_OPT} ${dist_dir}/lib/libOpenImageIO_Util.so
+	patchelf --set-rpath ${SPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/lib/libOpenImageIO_Util.so
 	patchelf --set-rpath ${PYSPCOMP2_RPATH_OPT} ${dist_dir}/python/libPyOpenImageIO.so
 	patchelf --set-rpath ${PYSPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/python/libPyOpenImageIO.so
 
@@ -302,24 +304,35 @@ spcomp2_install_fixup_rhel7: spcomp2 spcomp2_debug
 # it up and starts doing bad things
 spcomp2_install: spcomp2_install_fixup_${SP_OS}
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
-	--project=OpenImageIO \
-	--version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
-	--root=$(SPCOMP2_LOCATION) \
-	--arch=$(SPARCH) \
-	--headers=$(subst $(space),$(comma),$(wildcard ${dist_dir}/include/OpenImageIO/*)) \
-	--cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread" \
-	--namespace=${NAMESPACE} \
-	--srcdir=${dist_dir}/lib \
-	--builddir_o=${dist_dir}/lib \
-	--builddir_d=${dist_dir}.debug/lib
+	  --project=OpenImageIO \
+	  --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
+	  --root=$(SPCOMP2_LOCATION) \
+	  --arch=$(SPARCH) \
+	  --headers=$(subst $(space),$(comma),$(wildcard ${dist_dir}/include/OpenImageIO/*)) \
+	  --cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread" \
+	  --namespace=${NAMESPACE} \
+	  --srcdir=${dist_dir}/lib \
+	  --builddir_o=${dist_dir}/lib \
+	  --builddir_d=${dist_dir}.debug/lib
 	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
-	--project=PyOpenImageIO \
-	--version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
-	--root=$(SPCOMP2_LOCATION) \
-	--arch=$(SPPYARCH) \
-	--cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread"\
-	--namespace=${NAMESPACE} \
-	--srcdir=${dist_dir}/python \
-	--builddir_o=${dist_dir}/python \
-	--builddir_d=${dist_dir}.debug/python
+	  --project=OpenImageIO_Util \
+	  --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
+	  --root=$(SPCOMP2_LOCATION) \
+	  --arch=$(SPARCH) \
+	  --headers=$(subst $(space),$(comma),$(wildcard ${dist_dir}/include/OpenImageIO/*)) \
+	  --cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread" \
+	  --namespace=${NAMESPACE} \
+	  --srcdir=${dist_dir}/lib \
+	  --builddir_o=${dist_dir}/lib \
+	  --builddir_d=${dist_dir}.debug/lib
+	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
+	  --project=PyOpenImageIO \
+	  --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
+	  --root=$(SPCOMP2_LOCATION) \
+	  --arch=$(SPPYARCH) \
+	  --cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread"\
+	  --namespace=${NAMESPACE} \
+	  --srcdir=${dist_dir}/python \
+	  --builddir_o=${dist_dir}/python \
+	  --builddir_d=${dist_dir}.debug/python
 
