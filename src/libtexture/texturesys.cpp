@@ -75,6 +75,8 @@ namespace {  // anonymous
 // contains a few hundred bytes).
 static TextureSystemImpl *shared_texturesys = NULL;
 static spin_mutex shared_texturesys_mutex;
+static bool do_unit_test_texture = false;
+static float unit_test_texture_blur = 0.0f;
 
 static EightBitConverter<float> uchar2float;
 static vfloat4 u8scale (1.0f/255.0f);
@@ -355,9 +357,8 @@ TextureSystemImpl::init ()
     if (options)
         attribute ("options", options);
 
-#if 0
-    unit_test_texture ();
-#endif
+    if (do_unit_test_texture)
+        unit_test_texture ();
 }
 
 
@@ -480,6 +481,14 @@ TextureSystemImpl::attribute (string_view name, TypeDesc type,
     if (name == "statistics:level" && type == TypeInt) {
         m_statslevel = *(const int *)val;
         // DO NOT RETURN! pass the same message to the image cache
+    }
+    if (name == "unit_test" && type == TypeInt) {
+        do_unit_test_texture = *(const int *)val;
+        return true;
+    }
+    if (name == "unit_test_blur" && type == TypeFloat) {
+        unit_test_texture_blur = *(const float *)val;
+        return true;
     }
 
     // Maybe it's meant for the cache?
@@ -1239,17 +1248,30 @@ TextureSystemImpl::texture_lookup_nomip (TextureFile &texturefile,
 
 
 
-// Scale the derivs as dictated by 'width' and 'blur', and also make sure
+// Scale the derivs as dictated by 'width', and also make sure
 // they are all some minimum value to make the subsequent math clean.
 inline void
 adjust_width (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
-              float swidth, float twidth)
+              float swidth, float twidth /*, float sblur=0, float tblur=0*/)
 {
     // Trust user not to use nonsensical width<0
     dsdx *= swidth;
     dtdx *= twidth;
     dsdy *= swidth;
     dtdy *= twidth;
+#if 0
+    // You might think that blur should be added to the original derivs and
+    // then just carry on. And sometimes it looks fine, but for some
+    // situations the results are absurdly wrong, as revealed by the unit
+    // test visualizations. I'm leaving this code here but disabled as a
+    // reminder to myself not to try it again. It's wrong.
+    if (sblur+tblur != 0.0f /* avoid the work when blur is zero */) {
+        dsdx += std::copysign (sblur, dsdx);
+        dsdy += std::copysign (sblur, dsdy);
+        dtdx += std::copysign (tblur, dtdx);
+        dtdy += std::copysign (tblur, dtdy);
+    }
+#endif
 
     // Clamp degenerate derivatives so they don't cause mathematical problems
     static const float eps = 1.0e-8f, eps2 = eps*eps;
@@ -1284,16 +1306,20 @@ adjust_width (float &dsdx, float &dtdx, float &dsdy, float &dtdy,
 
 // Adjust the ellipse major and minor axes based on the blur, if nonzero.
 // Trust user not to use nonsensical blur<0
+//
+// FIXME: This is not "correct," but it's probably good enough. There is
+// probably a more principled way to deal with blur (including anisotropic)
+// by figuring out how to transform/scale the ellipse or consider the blur
+// to be like a convolution of gaussians. Some day, somebody ought to come
+// back to this and solve it better.
 inline void
-adjust_blur (float &majorlength, float &minorlength, float theta,
+adjust_blur (float &majorlength, float &minorlength, float &theta,
              float sblur, float tblur)
 {
     if (sblur+tblur != 0.0f /* avoid the work when blur is zero */) {
         // Carefully add blur to the right derivative components in the
         // right proportions -- merely adding the same amount of blur
         // to all four derivatives blurs too much at some angles.
-        // FIXME -- we should benchmark whether a fast approximate rsqrt
-        // here could have any detectable performance improvement.
         DASSERT (majorlength > 0.0f && minorlength > 0.0f);
         float sintheta, costheta;
 #ifdef TEX_FAST_MATH
@@ -1305,6 +1331,26 @@ adjust_blur (float &majorlength, float &minorlength, float theta,
         costheta = fabsf(costheta);
         majorlength += sblur * costheta + tblur * sintheta;
         minorlength += sblur * sintheta + tblur * costheta;
+#if 1
+        if (minorlength > majorlength) {
+            // Wildly uneven sblur and tblur values might swap which axis is
+            // thicker. For example, if the major axis is vertical (thin
+            // ellipse) but you have so much horizontal blur that it turns
+            // into a wide ellipse. My hacky solution is to notice when this
+            // happens and just swap the major and minor axes. I'm actually
+            // not convinced this is the best solution -- in the unit test
+            // visualizations, it looks great (and better than not doing it)
+            // for most ordinary situations, but when the derivs indicate
+            // extreme diagonal sheer (like when the dx and dy are almost
+            // parallel, rather than the expected almost perpendicular),
+            // it's less than fully satisfactory. But I don't know a better
+            // solution. And, I dunno, maybe it's even right; it's very hard
+            // to reason about what the right thing to do is for that case,
+            // for very stretched blur.
+            std::swap (minorlength, majorlength);
+            theta += M_PI_2;
+        }
+#endif
     }
 }
 
@@ -2641,7 +2687,7 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
                                       float sblur, float tblur)
 {
     std::cout << name << " derivs dx " << dsdx << ' ' << dtdx << ", dt " << dtdx << ' ' << dtdy << "\n";
-    adjust_width (dsdx, dtdx, dsdy, dtdy, 1.0f, 1.0f);
+    adjust_width (dsdx, dtdx, dsdy, dtdy, 1.0f, 1.0f /*, sblur, tblur */);
     float majorlength, minorlength, theta;
     float ABCF[4];
     ellipse_axes (dsdx, dtdx, dsdy, dtdy, majorlength, minorlength, theta, ABCF);
@@ -2672,7 +2718,7 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
     static float green[3] = { 0, 1, 0 };
     ImageBufAlgo::fill (ib, grey);
 
-    // scan all the pixels, darken the ellipse interior
+    // scan all the pixels, darken the ellipse interior (no blur considered)
     for (int j = 0;  j < h;  ++j) {
         float y = (j-h/2)/scale;
         for (int i = 0;  i < w;  ++i) {
@@ -2684,23 +2730,31 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
     }
 
     // Draw red and green axes for the dx and dy derivatives, respectively
-    for (int i = 0, e = std::max(fabsf(dsdx),fabsf(dtdx))*scale;  i < e;  ++i)
-        ib.setpixel (w/2+int(float(i)/e*dsdx*scale), h/2-int(float(i)/e*dtdx*scale), red);
-    for (int i = 0, e = std::max(fabsf(dsdy),fabsf(dtdy))*scale;  i < e;  ++i)
-        ib.setpixel (w/2+int(float(i)/e*dsdy*scale), h/2-int(float(i)/e*dtdy*scale), green);
+    ImageBufAlgo::render_line (ib, w/2, h/2, w/2+int(dsdx*scale),
+                               h/2-int(dtdx*scale), red);
+    ImageBufAlgo::render_line (ib, w/2, h/2, w/2+int(dsdy*scale),
+                               h/2-int(dtdy*scale), green);
+
+    // Draw yellow and blue axes for the ellipse axes, with blur
+    ImageBufAlgo::render_line (ib, w/2, h/2, w/2+int(scale*majorlength*cosf(theta)),
+                               h/2-int(scale*majorlength*sinf(theta)), {1.0f,1.0f,0.0f});
+    ImageBufAlgo::render_line (ib, w/2, h/2, w/2+int(scale*minorlength*-sinf(theta)),
+                               h/2-int(scale*minorlength*cosf(theta)), {0.0f,0.0f,1.0f});
 
     float bigweight = 0;
     for (int i = 0;  i < nsamples;  ++i)
         bigweight = std::max(lineweight[i],bigweight);
 
     // Plop white dots at the sample positions
+    int rad = int (scale * minorlength);
     for (int sample = 0;  sample < nsamples;  ++sample) {
         float pos = 1.0f * (sample + 0.5f) * invsamples - 0.5f;
         float x = pos*smajor, y = pos*tmajor;
         int xx = w/2+int(x*scale), yy = h/2-int(y*scale);
         int size = int (5 * lineweight[sample]/bigweight);
-        ImageBufAlgo::fill (ib, white, ROI(xx-size/2, xx+size/2+1, 
-                                           yy-size/2, yy+size/2+1));
+        ImageBufAlgo::render_box (ib, xx-rad, yy-rad, xx+rad, yy+rad, {0.65f,0.65f,0.65f});
+        ImageBufAlgo::render_box (ib, xx-size/2, yy-size/2, xx+size/2, yy+size/2,
+                                  white, true);
     }
 
     ib.write (name);
@@ -2711,23 +2765,30 @@ TextureSystemImpl::visualize_ellipse (const std::string &name,
 void
 TextureSystemImpl::unit_test_texture ()
 {
-    float blur = 0;
+    // Just blur in s, it is a harder case
+    float sblur = unit_test_texture_blur, tblur = 0.0f;
     float dsdx, dtdx, dsdy, dtdy;
 
     dsdx = 0.4; dtdx = 0.0; dsdy = 0.0; dtdy = 0.2;
-    visualize_ellipse ("0.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+    visualize_ellipse ("0.tif", dsdx, dtdx, dsdy, dtdy, sblur, tblur);
 
     dsdx = 0.2; dtdx = 0.0; dsdy = 0.0; dtdy = 0.4;
-    visualize_ellipse ("1.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+    visualize_ellipse ("1.tif", dsdx, dtdx, dsdy, dtdy, sblur, tblur);
 
     dsdx = 0.2; dtdx = 0.2; dsdy = -0.2; dtdy = 0.2;
-    visualize_ellipse ("2.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+    visualize_ellipse ("2.tif", dsdx, dtdx, dsdy, dtdy, sblur, tblur);
 
     dsdx = 0.35; dtdx = 0.27; dsdy = 0.1; dtdy = 0.35;
-    visualize_ellipse ("3.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+    visualize_ellipse ("3.tif", dsdx, dtdx, dsdy, dtdy, sblur, tblur);
 
     dsdx = 0.35; dtdx = 0.27; dsdy = 0.1; dtdy = -0.35;
-    visualize_ellipse ("4.tif", dsdx, dtdx, dsdy, dtdy, blur, blur);
+    visualize_ellipse ("4.tif", dsdx, dtdx, dsdy, dtdy, sblur, tblur);
+
+    // Major axis starts vertical, but blur make it minor?
+    dsdx = 0.2; dtdx = 0.0; dsdy = 0.0; dtdy = 0.3;
+    visualize_ellipse ("5.tif", dsdx, dtdx, dsdy, dtdy, 0.5, 0.0);
+    dsdx = 0.3; dtdx = 0.0; dsdy = 0.0; dtdy = 0.2;
+    visualize_ellipse ("6.tif", dsdx, dtdx, dsdy, dtdy, 0.0, 0.5);
 
     boost::mt19937 rndgen;
     boost::uniform_01<boost::mt19937, float> rnd(rndgen);
@@ -2736,8 +2797,8 @@ TextureSystemImpl::unit_test_texture ()
         dtdx = 1.5f*(rnd() - 0.5f);
         dsdy = 1.5f*(rnd() - 0.5f);
         dtdy = 1.5f*(rnd() - 0.5f);
-        visualize_ellipse (Strutil::format("%d.tif", 100+i),
-                           dsdx, dtdx, dsdy, dtdy, blur, blur);
+        visualize_ellipse (Strutil::format("%04d.tif", 100+i),
+                           dsdx, dtdx, dsdy, dtdy, sblur, tblur);
     }
 }
 
