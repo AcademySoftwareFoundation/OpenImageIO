@@ -1992,14 +1992,15 @@ IBA_ociofiletransform_colorconfig_ret (const ImageBuf &src,
 
 
 py::object
-IBA_isConstantColor (const ImageBuf &src,
+IBA_isConstantColor (const ImageBuf &src, float threshold,
                      ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> constcolor (src.nchannels());
     bool r;
     {
         py::gil_scoped_release gil;
-        r = ImageBufAlgo::isConstantColor (src, &constcolor[0], roi, nthreads);
+        r = ImageBufAlgo::isConstantColor (src, threshold, constcolor,
+                                           roi, nthreads);
     }
     if (r) {
         return C_to_tuple (&constcolor[0], (int)constcolor.size());
@@ -2011,18 +2012,20 @@ IBA_isConstantColor (const ImageBuf &src,
 
 
 bool IBA_isConstantChannel (const ImageBuf &src, int channel, float val,
-                            ROI roi, int nthreads)
+                            float threshold, ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::isConstantChannel (src, channel, val, roi, nthreads);
+    return ImageBufAlgo::isConstantChannel (src, channel, val, threshold,
+                                            roi, nthreads);
 }
 
 
 
-bool IBA_isMonochrome (const ImageBuf &src, ROI roi, int nthreads)
+bool IBA_isMonochrome (const ImageBuf &src, float threshold,
+                       ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::isMonochrome (src, roi, nthreads);
+    return ImageBufAlgo::isMonochrome (src, threshold, roi, nthreads);
 }
 
 
@@ -2617,14 +2620,14 @@ void declare_imagebufalgo (py::module &m)
             "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("isConstantColor", &IBA_isConstantColor,
-             "src"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+             "src"_a, "threshold"_a=0.0f, "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("isConstantChannel", &IBA_isConstantChannel,
-            "src"_a, "channel"_a, "val"_a,
+            "src"_a, "channel"_a, "val"_a, "threshold"_a=0.0f,
             "roi"_a=ROI::All(), "nthreads"_a=0)
 
         .def_static("isMonochrome", &IBA_isMonochrome,
-             "src"_a, "roi"_a=ROI::All(), "nthreads"_a=0)
+             "src"_a, "threshold"_a=0.0f, "roi"_a=ROI::All(), "nthreads"_a=0)
 
         // color_count, color_range_check
 

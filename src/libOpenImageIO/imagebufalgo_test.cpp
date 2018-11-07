@@ -622,14 +622,16 @@ void test_isConstantColor ()
     OIIO_CHECK_EQUAL (col[2], thecolor[2]);
 
     // Now introduce a difference
-    const float another[CHANNELS] = { 0, 1, 1 };
+    const float another[CHANNELS] = { 0.25, 0.51, 0.75 };
     A.setpixel (2, 2, 0, another, 3);
     OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A), false);
     OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A, thecolor), false);
+    // But not with lower threshold
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A, 0.015), true);
 
     // Make sure ROI works
     ROI roi (0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
-    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A, NULL, roi), true);
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantColor (A, 0.0f, {}, roi), true);
 }
 
 
@@ -647,13 +649,18 @@ void test_isConstantChannel ()
     OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantChannel (A, 1, 0.5f), true);
 
     // Now introduce a difference
-    const float another[CHANNELS] = { 0, 1, 1 };
+    const float another[CHANNELS] = { 0.25, 0.51, 0.75 };
     A.setpixel (2, 2, 0, another, 3);
+    // It should still pass if within the threshold
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantChannel (A, 1, 0.5f, 0.015f), true);
+    // But not with lower threshold
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantChannel (A, 1, 0.5f, 0.005), false);
+    // And certainly not with zero threshold
     OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantChannel (A, 1, 0.5f), false);
 
     // Make sure ROI works
     ROI roi (0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
-    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantChannel (A, 1, 0.5f, roi), true);
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isConstantChannel (A, 1, 0.5f, roi=roi), true);
 }
 
 
@@ -670,10 +677,16 @@ void test_isMonochrome ()
 
     OIIO_CHECK_EQUAL (ImageBufAlgo::isMonochrome (A), true);
 
-    // Now introduce a difference
-    const float another[CHANNELS] = { 0.25, 0.25, 1 };
+    // Now introduce a tiny difference
+    const float another[CHANNELS] = { 0.25, 0.25, 0.26 };
     A.setpixel (2, 2, 0, another, 3);
+    // It should still pass if within the threshold
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isMonochrome (A, 0.015f), true);
+    // But not with lower threshold
+    OIIO_CHECK_EQUAL (ImageBufAlgo::isMonochrome (A, 0.005f), false);
+    // And certainly not with zero threshold
     OIIO_CHECK_EQUAL (ImageBufAlgo::isMonochrome (A), false);
+
 
     // Make sure ROI works
     ROI roi (0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
