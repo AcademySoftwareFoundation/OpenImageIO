@@ -635,8 +635,10 @@ print_info_subimage (Oiiotool &ot,
         }
     }
 
-    // Unescape the strings if we're printing for human consumption
-    for (size_t i = 0; i < lines.size(); ++i) {
+    // Unescape the strings if we're printing for human consumption, except for
+    // the first line which corresponds to the filename and on windows might
+    // contain backslashes as path separators.
+    for (size_t i = 1; i < lines.size(); ++i) {
         lines[i] = Strutil::unescape_chars (lines[i]);
     }
 
