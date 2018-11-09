@@ -30,7 +30,9 @@ brew install libpng webp jpeg-turbo
 brew install openjpeg
 brew install dcmtk
 brew install qt
-brew install field3d
+brew install -s field3d
+# Note: field3d must be build from source to fix boost mismatch as of
+# Nov 2018. Maybe it will be fixed soon? Check later.
 brew install ffmpeg
 brew install opencv
 brew install tbb
