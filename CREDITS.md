@@ -1,159 +1,149 @@
-This is a list of all the authors of OpenImageIO.  Any such list is very
-inexact, and can't convey everybody's precise level of contribution (which
-is constantly shifting, anyway).  However, I've made two tiers: (1) major
-developers who have contributed at least several hundred lines of code and
-noting their main contributions, if easily identifiable; (2) everybody else
-who has contributed any code at all. In both cases, I never remove anybody
-from the list, even if over the years all their code is altered or removed.
+This is a list of all the contributors to OpenImageIO, sorted alphabetically
+by first name.
 
+If you know of somebody that I missed or have corrections, please email:
+lg@openimageio.org
 
-Major contributors (roughly in order of joining the project):
-
-* Larry Gritz          : core classes & API, ImageCache/TextureSystem, iv,
-  TIFF, JPEG, OpenEXR, HDR, PNG, zfile, Field3D, docs
-* Philip Nemec         : original unit testing framework
-* Dan Wexler           : Windows port
-* Chris Kulla          : texture system improvements
-* Chris Foster         : lots of odds and ends, tinyformat, best code reviewer!
-* Leszek Godlewski     : ICO, Targa, DDS, DPX, Cineon, RLA
-* David Gordon         : build issues, Python bindings
-* Robert Matusewicz    : Windows port, BMP, JPEG-2000, FITS, SGI, WebP
-* Ismael Cortes        : iv improvements
-* Dinko Galetik        : Python bindings
-* Malcolm Humphreys    : color transfer methods
-* Alan Jones           : Softimage PIC
-* Krzysztof Blicharski : sockets
-* Nuno Cardoso         : PNM
-* Mikael Sundell       : IFF, FFmpeg-based movie formats
-* Jeremy Selan         : Color space issues, maketx improvements, OpenColorIO
-  integration
-* Daniel Wyatt         : PSD
-* Mariusz Szczepanczyk : GIF
-* Mark Boorer          : RAW
-* Nathan Rusch         : Nuke plugins
-
-Other contributors (alphabetically):
-
-* Vishal Agrawal
-* David Aguilar
-* Jeph Alapat
-* Shane Ambler
+* Akihiro Yamasaki
+* Alan Jones
+* Alejandro Conty
+* Alex Schworer
+* Alexander Kuleshov
+* Alexander Murashko
+* Alexandre Gauthier
+* Alexis Oblet
+* Aman Shah
+* Ananth Garre
+* Arkady Shapkin
 * Basileios Anastasatos
+* Bastien Montagne
+* Ben De Luca
+* Blair Tennessy
+* Brecht Van Lommel
+* Brent Davis
+* Brian Hall
+* Carl Rand
 * Cassian Andrei
+* Chad Dombrova
+* Changlin Hsieh
+* Chris Foster
+* Chris Kulla
+* Christoph Willing
+* Cliff Stein
+* Clément Champetier
+* Dan Wexler
+* Daniel Dresser
+* Daniel Flehner Heen
+* Daniel Wyatt
+* David Aguilar
+* David Gordon
+* Deepak Gopinath
+* Delai Felinto
+* Dennis Schridde
+* Dinko Galetik
 * Dominik Bartkiewicz
+* Duncan Chan
+* Edgar Velazquez-Armendariz
+* Eloi Du Bois
+* Elvic Liang
+* Fabien Castan
+* Frédéric Devernay
+* Ghislain Antony Vaillant
+* Gonzalo Garramuño
+* Grégoire De Lillo
+* Gregor Mueckl
+* Guillaume Chatelet
+* Hanspeter Niederstrasser
 * Heiko Becker
+* Henri Fousse
+* Hugh Macdonald
+* Irena Damsky
+* Ismael Cortes
+* Jep Hill
+* Jeph Alapat
+* Jeremy Rose
+* Jeremy Selan
+* Joesph Goldstone
+* John Burnett
+* John Haddon
+* Jonathan Scruggs
+* Julien Enche
+* Justin Israel
+* Justina Mikonyte
+* Kazuki Takahashi
+* Kevin Brightwell
+* Konrad Kleine
+* Krzysztof Blicharski
+* Larry Gritz (project leader)
+* LazyDodo
+* Leonid Onokhov
+* Leszek Godlewski
+* Lucas Panian
+* Lucille Caillaud
+* Lukas Schrangl
+* Lukasz Maliszewski
+* M Joonas Pihlaja
+* Malcolm Humphreys
+* Manuel Gamito
+* Manuel Leonhardt
+* Marcos Fajardo
+* Marie Fetiveau
+* Mariusz Szczepanczyk
+* Mark Boorer
+* Mark Visser
+* Matteo F. Vescovi
+* Matthew E. Levine
+* Max Liani
+* Michel Lerenard
+* Michel Normand
+* Mikael Sundell
+* Mike Root
+* Morteza Ramezanali
+* Nandan Dubey
+* Nathan Rusch
+* Nicholas Yue
+* Nicolas Burtnyk
+* Nixon Kwok
+* Nuno Cardoso
+* Ott Tinn
+* Pascal Lecocq
+* Patrick Hodoul
+* Paul Molodowitch
+* Pavel Karneliuk
+* Pete Larabell
+* Philip Nemec
+* Pino Toscano
+* Puneet Jain
+* Ramon Montoya
+* Ray Molenkamp
+* Richard Shaw
+* Robert Matusewicz
+* Roman Zulak
+* Rui Li
+* Ryen
+* Saket Jalan
+* Sam Richards
+* Samuel Nicholas
+* Scott Wilson
+* Sebastian Elsner
+* Seifeddine Dridi
+* Sergey Sharybin
+* Shane Ambler
 * Simon Boorer
 * Solomon Boulos
 * Stefan Bruens
-* John Burnett
-* Nicolas Burtnyk
-* Kevin Brightwell
-* Fabien Castan
-* Lucille Caillaud
-* Clément Champetier
-* Duncan Chan
-* Guillaume Chatelet
-* Irena Damsky
-* Brent Davis
-* Ben De Luca
-* Frédéric Devernay
-* Thomas Dinges
-* Chad Dombrova
-* Daniel Dresser
-* Seifeddine Dridi
-* Eloi Du Bois
-* Nandan Dubey
-* Sebastian Elsner
-* Julien Enche
-* Marcos Fajardo
-* Delai Felinto
-* Marie Fetiveau
-* Henri Fousse
-* Vitor Franchi
-* Manuel Gamito
-* Gonzalo Garramuño
-* Ananth Garre
-* Alexandre Gauthier
-* Joesph Goldstone
-* Deepak Gopinath
-* John Haddon
-* Brian Hall
-* Daniel Flehner Heen
-* Jep Hill
-* Patrick Hodoul
-* Changlin Hsieh
-* Justin Israel
-* Thiago Ize
-* Puneet Jain
-* Saket Jalan
-* Pavel Karneliuk
-* Vinod Khare
-* Konrad Kleine
-* Alexander Kuleshov
-* Nixon Kwok
-* Pete Larabell
-* LazyDodo
-* Pascal Lecocq
-* Michel Lerenard
-* Manuel Leonhardt
-* Matthew E. Levine
-* Rui Li
-* Elvic Liang
-* Max Liani
-* Hugh Macdonald
-* Thomas Mansencal
-* Lukasz Maliszewski
-* Justina Mikonyte
-* Ray Molenkamp
-* Paul Molodowitch
-* Bastien Montagne
-* Ramon Montoya
-* Gregor Mueckl
-* Alexander Murashko
-* Hanspeter Niederstrasser
-* Samuel Nicholas
-* Michel Normand
-* Alexis Oblet
-* Leonid Onokhov
-* Lucas Panian
-* M Joonas Pihlaja
-* Morteza Ramezanali
-* Carl Rand
-* Sam Richards
-* Mike Root
-* Jeremy Rose
-* Will Rosecrans
-* Ryen
-* Lukas Schrangl
-* Jonathan Scruggs
-* Alex Schworer
-* Aman Shah
-* Arkady Shapkin
-* Sergey Sharybin
-* Richard Shaw
-* Tim D. Smith
-* Troy James Sobotka
 * Stefan Stavrev
-* Cliff Stein
-* Mariusz Szczepanczyk
-* Kazuki Takahashi
-* Blair Tennessy
-* Ott Tinn
-* Pino Toscano
-* Edgar Velazquez-Armendariz
-* Ghislain Antony Vaillant
-* Matteo F. Vescovi
-* Mark Visser
-* Brecht Van Lommel
+* Thiago Ize
+* Thomas Dinges
+* Thomas Mansencal
+* Tim D. Smith
+* Tim Grant
+* Troy James Sobotka
+* Vinod Khare
+* Vishal Agrawal
+* Vitor Franchi
+* Will Rosecrans
 * Wormszer
 * Xo Wang
-* Christoph Willing
-* Scott Wilson
-* Akihiro Yamasaki
 * Yang Yang
-* Nicholas Yue
-* Roman Zulak
-
-
-If you know of somebody that I missed, please let me know:
-lg (at) openimageio.org
+* Yann Lanthony

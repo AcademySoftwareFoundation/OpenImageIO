@@ -20,7 +20,7 @@
 //
 // FarmHash, by Geoff Pike
 
-// http://code.google.com/p/farmhash/
+// https://github.com/google/farmhash
 
 //#include "farmhash.h"
 #include <OpenImageIO/hash.h>

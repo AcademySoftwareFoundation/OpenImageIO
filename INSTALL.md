@@ -21,7 +21,7 @@ not be able to find the plugins.
 Dependencies
 ------------
 
-NEW or CHANGED dependencies since the last major release are **bold**.
+NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 
 ### Required dependencies -- OIIO will not build at all without these
 
@@ -46,9 +46,9 @@ NEW or CHANGED dependencies since the last major release are **bold**.
      * libRaw >= 0.15 (tested 0.15 - 0.19; libRaw >= 0.18 is necessary for
        ACES support and much better recognition of camera metadata)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 2.6 (tested through 4.0)
+     * ffmpeg >= 2.6 (tested through 4.1)
  * If you want support for jpeg 2000 images:
-     * OpenJpeg >= 1.5
+     * OpenJpeg >= 1.5 (tested through 2.3; version 1.5 is strongly discouraged)
  * If you want support for Field3D files:
      * Field3D
  * If you want support for OpenVDB files:

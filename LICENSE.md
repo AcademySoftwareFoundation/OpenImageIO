@@ -28,3 +28,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 (This is the Modified BSD License)
+
+See [LICENSE-THIRD-PARTY.md](LICENSE-THIRD-PARTY.md) for license information
+about portions that have been imported from other projects.

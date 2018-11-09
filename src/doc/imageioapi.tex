@@ -126,8 +126,9 @@ be {\cf SEMANTICS}.}
 
 \noindent These can be combined to fully describe a complex type:
 
-\apiitem{{\ce TypeDesc} (BASETYPE btype, AGGREGATE agg, VECSEMANTICS
+\apiitem{{\ce TypeDesc} (BASETYPE btype, AGGREGATE agg=SCALAR, VECSEMANTICS
 xform=NOSEMANTICS)  \\
+{\ce TypeDesc} (BASETYPE btype, int arraylen) \\
 {\ce TypeDesc} (BASETYPE btype, AGGREGATE agg, int arraylen) \\
 {\ce TypeDesc} (BASETYPE btype, AGGREGATE agg, VECSEMANTICS xform, int arraylen)
 }
@@ -144,11 +145,19 @@ floats, and {\cf TypeDesc(FLOAT,3,COLOR)} is an array of 3 color values,
 each of which is comprised of 3 floats.
 \apiend
 
-\bigskip
+\apiitem{{\ce TypeDesc} (string_view typestring)}
+Construct a type description based on a string. For example,
 
-Of these, the only ones commonly used to store pixel values in image files
-are scalars of {\cf UINT8}, {\cf UINT16}, {\cf FLOAT}, and {\cf HALF}
-(the last only used by OpenEXR, to the best of our knowledge).
+\begin{code}
+    TypeDesc("int") == TypeDesc(TypeDesc::INT)       // C++ int32_t
+    TypeDesc("float") == TypeDesc(TypeDesc::FLOAT)   // C++ float
+    TypeDesc("float[4]") == TypeDesc(TypeDesc::FLOAT, 4)  // array
+    TypeDesc("point") == TypeDesc(TypeDesc::FLOAT, TypeDesc::POINT)
+    TypeDesc("uint16") == TypeDesc(TypeDesc::UINT16)   // C++ uint16_t
+\end{code}
+\apiend
+
+\bigskip
 
 A number of {\cf static constexpr TypeDesc} aliases for common types exist
 in the outer {\cf OpenImageIO} scope:
@@ -164,9 +173,13 @@ TypeNormal \\
 TypeMatrix33
 TypeMatrix44
 TypeMatrix
-TypeHalf
+TypeHalf \\
 TypeInt
-TypeUInt \\
+TypeUInt
+TypeInt16
+TypeUInt16
+TypeInt8
+TypeUInt8 \\
 TypeString
 TypeTimeCode
 TypeKeyCode
@@ -174,6 +187,10 @@ TypeFloat4
 TypeRational
 }
 \end{quote}
+
+The only types commonly used to store \emph{pixel values} in image files
+are scalars of {\cf UINT8}, {\cf UINT16}, {\cf FLOAT}, and {\cf HALF}
+(the last only used by OpenEXR, to the best of our knowledge).
 
 Note that the \TypeDesc (which is also used for applications other
 than images) can describe many types not used by
@@ -185,46 +202,7 @@ Sections~\ref{sec:imageoutput:metadata}, \ref{sec:imageinput:metadata},
 and the documentation of individual ImageIO plugins for details).
 
 
-\section{Efficient unique strings: {\cf ustring}}
-\label{sec:ustring}
-\indexapi{ustring}
-
-A \ustring is an alternative to {\cf char*} or {\cf std::string} for storing
-strings, in which the character sequence is stored uniquely.  If there are
-many copies of the same \ustring, they all point to the same canonical
-characters, which themselves are stored only once. This allows \ustring's to
-be assigned to one another with only the copy of a pointer assignment (not
-allocation or copying of characters), and for {\cf ==} and {\cf !=}
-comparisons of two \ustring values for only the cost of comparing the
-pointers (not examining the characters).
-
-\OpenImageIO uses \ustring in a few select places, where string
-assignment/copy and equality/inequality are the dominant string operation
-and we want them to be the same low cost as a simple pointer assignment or
-comparison.  (This primarily comes into play for the \ImageCache and
-\TextureSystem, where we refer to images by their filenames and want
-very fast lookups.)
-
-Please consult the public header {\cf ustring.h} for details, especially if
-you want to use \ustring extensively in your own code. But here are the most
-important details to know if you are calling the \OpenImageIO functions that
-take \ustring parameters:
-
-\apiitem{{\ce ustring} (const char *chars) \\
-{\ce ustring} (const char *chars, size_t length) \\
-{\ce ustring} (const std::string \&str) \\
-{\ce ustring} (string\_view sref)}
-Constructs a \ustring from a C string ({\cf char*}), C++ {\cf std::string},
-or a \stringview.
-\apiend
-
-\apiitem{const char* ustring::{\ce c_str} () \\
-const std::string\& ustring::{\ce string()} \\
-string\_view ustring::{\ce operator string\_view}()}
-Convert a \ustring to a 0-terminated C string, a C++ {\cf std::string}, or
-a {\cf string_view}.  All of these are extremely inexpensive.
-\apiend
-
+\newpage
 
 \section{Non-owning string views: {\cf string_view}}
 \label{sec:stringview}
@@ -307,14 +285,15 @@ header file for full details, if you wish to use \stringview in your own
 code.
 
 
-\section{Non-owning array views: {\cf span} a.k.a. {\cf array\_view}}
+\section{Non-owning array views: {\cf span} / {\cf cspan}}
 \label{sec:span} \label{sec:arrayview}
-\indexapi{span} \indexapi{array_view}
+\indexapi{span} \index{cspan} \indexapi{array_view}
 
 {\bf Note:} {\cf span} and \arrayview are synonyms. The new preferred name is
 {\cf span}, in keeping with the equivalent template that has been accepted into
 future C++ standards. But the old name \arrayview is still accepted. Over
 time, we will eventually update the documentation to reflect the change.
+% DEPRECATED 2.0
 
 A {\cf template span<typename T>} is a non-owning, non-copying,
 non-allocating reference to an array of contiguous {\cf T} objects.  It
@@ -329,7 +308,7 @@ could instead take a {\cf span<const T>}. As a shorthand, {\cf cspan<T>} is
 defined as a synonym to {\cf span<const T>}, they are equivalent.
 
 For historical reasons, the deprecated name \arrayview is accepted as a
-synonym for {\cf span}.
+synonym for {\cf span}. (But will eventually be removed.)
 
 A {\cf span} may be initialized explicitly from a pointer and length, by
 initializing with a {\cf std::vector<T>}, or by initalizing with a constant
@@ -369,6 +348,48 @@ References a single element of the {\cf span}.
 \noindent Please consult the public {\cf span.h}
 header file for full details, if you wish to use {\cf span} in your own
 code.
+
+
+\section{Efficient unique strings: {\cf ustring}}
+\label{sec:ustring}
+\indexapi{ustring}
+
+A \ustring is an alternative to {\cf char*} or {\cf std::string} for storing
+strings, in which the character sequence is stored uniquely.  If there are
+many copies of the same \ustring, they all point to the same canonical
+characters, which themselves are stored only once. This allows \ustring's to
+be assigned to one another with only the copy of a pointer assignment (not
+allocation or copying of characters), and for {\cf ==} and {\cf !=}
+comparisons of two \ustring values for only the cost of comparing the
+pointers (not examining the characters).
+
+\OpenImageIO uses \ustring in a few select places, where string
+assignment/copy and equality/inequality are the dominant string operation
+and we want them to be the same low cost as a simple pointer assignment or
+comparison.  (This primarily comes into play for the \ImageCache and
+\TextureSystem, where we refer to images by their filenames and want
+very fast lookups.)
+
+Please consult the public header {\cf ustring.h} for details, especially if
+you want to use \ustring extensively in your own code. But here are the most
+important details to know if you are calling the \OpenImageIO functions that
+take \ustring parameters:
+
+\apiitem{{\ce ustring} (const char *chars) \\
+{\ce ustring} (const char *chars, size_t length) \\
+{\ce ustring} (const std::string \&str) \\
+{\ce ustring} (string\_view sref)}
+Constructs a \ustring from a C string ({\cf char*}), C++ {\cf std::string},
+or a \stringview.
+\apiend
+
+\apiitem{const char* ustring::{\ce c_str} () \\
+const std::string\& ustring::{\ce string()} \\
+string\_view ustring::{\ce operator string\_view}()}
+Convert a \ustring to a 0-terminated C string, a C++ {\cf std::string}, or
+a {\cf string_view}.  All of these are extremely inexpensive.
+\apiend
+
 
 
 \section{Helper: \ROI}
@@ -465,6 +486,8 @@ Alters the {\cf spec} so to make its pixel data window
 or the full (display) window match {\cf newroi}.
 \apiend
 
+
+\newpage
 
 \section{Image Specification: {\cf ImageSpec}}
 \label{sec:ImageSpec}
@@ -887,8 +910,8 @@ have 0 samples, and no sample data is allocated.
 \apiend
 
 \apiitem {void {\ce init} (int npix, int nchan,\\
-    \bigspc array_view<const TypeDesc> channeltypes),\\
-    \bigspc array_view<const std::string> channelnames)}
+    \bigspc cspan<TypeDesc> channeltypes),\\
+    \bigspc cspan<std::string> channelnames)}
 Initialize the \DeepData with a number of pixels, channels, channel
 types, and channel names.
 \apiend

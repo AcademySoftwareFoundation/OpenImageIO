@@ -25,29 +25,27 @@ popular formats.  Any user may create conforming plugins that implement
 reading and writing capabilities for other image formats, and any
 application that uses \product would be able to use those plugins.
 
-The library also implements the helper class {\kw ImageBuf}, which is a
-handy way to store and manipulate images in memory.  {\kw ImageBuf} itself
-uses \ImageInput and \ImageOutput for its file I/O, and therefore is also
-agnostic as to image file formats. A variety of functions in the {\cf
-ImageBufAlgo} namespace are available to perform image processing operations
-on {\cf ImageBuf}'s.
+The library also implements the helper class \ImageBuf, which is a handy way
+to store and manipulate images in memory.  \ImageBuf itself uses \ImageInput
+and \ImageOutput for its file I/O, and therefore is also agnostic as to
+image file formats. A variety of functions in the \ImageBufAlgo namespace
+are available to perform common image processing operations on \ImageBuf's.
 
-The {\kw ImageCache} class transparently manages a cache so that it can
-access truly vast amounts of image data (thousands of image files
-totaling hundreds of GB) very efficiently using only a tiny amount (tens of
-megabytes at most) of runtime memory.  Additionally, a {\kw
-  TextureSystem} class provides filtered MIP-map texture lookups, atop
-the nice caching behavior of {\kw ImageCache}.
+The \ImageCache class transparently manages a cache so that it can
+access truly vast amounts of image data (thousands of image files totaling
+hundreds of GB to several TBs) very efficiently using only a tiny amount
+(tens of megabytes to a few GB at most) of runtime memory.  Additionally, a
+\TextureSystem class provides filtered MIP-map texture lookups, atop
+the nice caching behavior of \ImageCache.
 
-Finally, the \product distribution contains several utility programs
-that operate on images, each of which is built atop \ImageInput and
-\ImageOutput, and therefore may read or write any image file type for
-which an appropriate plugin is found at runtime.  Paramount among these
-utilities {\cf oiiotool}, a command-line image processing engine, and
-{\fn iv}, an image viewing
-application.  Additionally, there are programs for converting images
-among different formats, comparing image data between two images, 
-and examining image metadata.
+Finally, the \product distribution contains several utility programs that
+operate on images, each of which is built atop this functionality, and
+therefore may read or write any image file type for which an appropriate
+plugin is found at runtime.  Paramount among these utilities {\cf oiiotool},
+a command-line image processing engine, and {\fn iv}, an image viewing
+application.  Additionally, there are programs for converting images among
+different formats, comparing image data between two images, and examining
+image metadata.
 
 All of this is released as ``open source'' software using the very
 permissive ``New BSD'' license.  So you should feel free to use any or all of
@@ -188,9 +186,17 @@ After I left NVIDIA, I was determined to recreate this work once
 again -- and ONLY once more -- and release it as open source from the
 start.  Thus, \product was born.  I started with the existing Gelato
 ImageIO specification and headers (which were BSD licensed all along),
-and made some more refinements since I had to rewrite the entire
+and made further refinements since I had to rewrite the entire
 implementation from scratch anyway.  I think the additional changes are
-all improvements.  This is the software you have in your hands today.
+all improvements.
+
+Over the years and with the help of dozens of open source contributors,
+\product has expanded beyond the original simple image format input/output
+to encompass a wide range of image-related functionality. It has grown into
+a foundational technology in many products and tools, particularly for the
+production of animation and visual effects for motion pictures (but also
+many other uses and fields). This is the software you have in your hands
+today.
 
 
 \section{Acknowledgments}
@@ -225,17 +231,17 @@ Dominik Reichl \\ \url{http://www.dominik-reichl.de/}
 \item PugiXML \copyright\ 2006-2009 by Arseny Kapoulkine (based on work
 \copyright\ 2003 Kristen Wegner), MIT license. \url{http://pugixml.org/}
 \item DPX reader/writer \copyright\ 2009 Patrick A.\ Palmer, BSD 3-clause license.
-  \\ \url{http://code.google.com/p/dpx}
+  \\ \url{https://github.com/patrickpalmer/dpx}
 \item {\cf tinyformat.h} \copyright\ 2011 Chris Foster, Boost license. \\
   \url{http://github.com/c42f/tinyformat}
 \item {\cf lookup3} code by Bob Jenkins, Public Domain. \\
 \url{http://burtleburtle.net/bob/c/lookup3.c}
 \item {\cf xxhash} \copyright\ 2014 Yann Collet, BSD 2-clause license. \\
-\url{http://code.google.com/p/xxhash/}
+\url{https://github.com/Cyan4973/xxHash}
 \item {\cf farmhash} \copyright\ 2014 Google, Inc., MIT license.
-\url{http://code.google.com/p/farmhash/}
+\url{https://github.com/google/farmhash}
 \item {\cf KissFFT} \copyright\ 2003--2010 Mark Borgerding, 3-clause BSD license.
-  \\ \url{http://sourceforge.net/projects/kissfft}
+  \\ \url{https://github.com/mborgerding/kissfft}
 \item {\cf CTPL} thread pool \copyright\ 2014 Vitaliy Vitsentiy, Apache License.
   \\ \url{https://github.com/vit-vit/CTPL}
 \item Droid fonts from the Android SDK are distributed under the

@@ -2,8 +2,11 @@ project(documentation)
 
 set (public_docs
      openimageio.pdf
-     "${OpenImageIO_SOURCE_DIR}/LICENSE"
+     "${OpenImageIO_SOURCE_DIR}/LICENSE.md"
+     "${OpenImageIO_SOURCE_DIR}/LICENSE-THIRD-PARTY.md"
      "${OpenImageIO_SOURCE_DIR}/CHANGES.md"
+     CHANGES-0.x.md
+     CHANGES-1.x.md
 )
 
 if (INSTALL_DOCS)
@@ -39,9 +42,9 @@ if (UNIX AND TXT2MAN AND PYTHONINTERP_FOUND)
     # force man page build before install
     add_custom_target (man_pages ALL DEPENDS ${manpage_files})
 
-if (INSTALL_DOCS)
-    install (FILES ${manpage_files}
-             DESTINATION ${CMAKE_INSTALL_MANDIR}
-             COMPONENT documentation)
-endif()
+    if (INSTALL_DOCS)
+        install (FILES ${manpage_files}
+                 DESTINATION ${CMAKE_INSTALL_MANDIR}
+                 COMPONENT documentation)
+    endif()
 endif()

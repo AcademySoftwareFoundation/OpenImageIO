@@ -3571,9 +3571,7 @@ what to do with it next.
     compresults = ImageBufAlgo.compare (A, B, 1.0e-6, 1.0e-6)
     if compresults.nfail > 0 :
         print "Images did not match, writing difference image diff.tif"
-        diff = ImageBuf()
-        ImageBufAlgo.sub (diff, A, B)
-        ImageBufAlgo.abs (diff, diff)
+        diff = ImageBufAlgo.absdiff (A, B)
         image_write (diff, "diff.tif")
 \end{code}
 
