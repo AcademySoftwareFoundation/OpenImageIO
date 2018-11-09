@@ -15,6 +15,14 @@ if [ `which brew` == "" ] ; then
     exit 1
 fi
 
+
+if [ "$OIIOTARGET" == "clang-format" ] ; then
+    # If we are running for the sake of clang-format only, just install the
+    # bare minimum packages and return.
+    brew install ilmbase openexr clang-format
+    exit 0
+fi
+
 brew update >/dev/null
 echo ""
 echo "Before my brew installs:"
