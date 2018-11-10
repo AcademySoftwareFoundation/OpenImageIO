@@ -28,10 +28,9 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
 
 #pragma once
-#ifndef OPENIMAGEIO_IMAGEBUFALGO_UTIL_H
-#define OPENIMAGEIO_IMAGEBUFALGO_UTIL_H
 
 #include <functional>
 
@@ -523,5 +522,3 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 
 
 OIIO_NAMESPACE_END
-
-#endif // OPENIMAGEIO_IMAGEBUFALGO_UTIL_H

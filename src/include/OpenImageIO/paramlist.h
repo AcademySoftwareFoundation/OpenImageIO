@@ -36,8 +36,7 @@
 /// parameter lists, attributes, geometric primitive data, etc.
 
 
-#ifndef OPENIMAGEIO_PARAMLIST_H
-#define OPENIMAGEIO_PARAMLIST_H
+#pragma once
 
 #include <vector>
 
@@ -60,95 +59,114 @@ public:
     /// Interpolation types
     ///
     enum Interp {
-        INTERP_CONSTANT = 0, ///< Constant for all pieces/faces
-        INTERP_PERPIECE = 1, ///< Piecewise constant per piece/face
-        INTERP_LINEAR = 2,   ///< Linearly interpolated across each piece/face
-        INTERP_VERTEX = 3    ///< Interpolated like vertices
+        INTERP_CONSTANT = 0,  ///< Constant for all pieces/faces
+        INTERP_PERPIECE = 1,  ///< Piecewise constant per piece/face
+        INTERP_LINEAR   = 2,  ///< Linearly interpolated across each piece/face
+        INTERP_VERTEX   = 3   ///< Interpolated like vertices
     };
 
-    ParamValue () {
-        m_data.ptr = nullptr;
+    ParamValue() { m_data.ptr = nullptr; }
+    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
+               const void* _value, bool _copy = true)
+    {
+        init_noclear(_name, _type, _nvalues, _value, _copy);
     }
-    ParamValue (const ustring &_name, TypeDesc _type,
-                int _nvalues, const void *_value, bool _copy=true) {
-        init_noclear (_name, _type, _nvalues, _value, _copy);
+    ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
+               Interp _interp, const void* _value, bool _copy = true)
+    {
+        init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
     }
-    ParamValue (const ustring &_name, TypeDesc _type, int _nvalues,
-                Interp _interp, const void *_value, bool _copy=true) {
-        init_noclear (_name, _type, _nvalues, _interp, _value, _copy);
+    ParamValue(string_view _name, TypeDesc _type, int _nvalues,
+               const void* _value, bool _copy = true)
+    {
+        init_noclear(ustring(_name), _type, _nvalues, _value, _copy);
     }
-    ParamValue (string_view _name, TypeDesc _type,
-                int _nvalues, const void *_value, bool _copy=true) {
-        init_noclear (ustring(_name), _type, _nvalues, _value, _copy);
+    ParamValue(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
+               const void* _value, bool _copy = true)
+    {
+        init_noclear(ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
-    ParamValue (string_view _name, TypeDesc _type, int _nvalues,
-                Interp _interp, const void *_value, bool _copy=true) {
-        init_noclear (ustring(_name), _type, _nvalues, _interp, _value, _copy);
+    ParamValue(string_view _name, int value)
+    {
+        init_noclear(ustring(_name), TypeDesc::INT, 1, &value);
     }
-    ParamValue (string_view _name, int value) {
-        init_noclear (ustring(_name), TypeDesc::INT, 1, &value);
+    ParamValue(string_view _name, float value)
+    {
+        init_noclear(ustring(_name), TypeDesc::FLOAT, 1, &value);
     }
-    ParamValue (string_view _name, float value) {
-        init_noclear (ustring(_name), TypeDesc::FLOAT, 1, &value);
+    ParamValue(string_view _name, ustring value)
+    {
+        init_noclear(ustring(_name), TypeDesc::STRING, 1, &value);
     }
-    ParamValue (string_view _name, ustring value) {
-        init_noclear (ustring(_name), TypeDesc::STRING, 1, &value);
-    }
-    ParamValue (string_view _name, string_view value) {
-        ustring u (value);
-        init_noclear (ustring(_name), TypeDesc::STRING, 1, &u);
+    ParamValue(string_view _name, string_view value)
+    {
+        ustring u(value);
+        init_noclear(ustring(_name), TypeDesc::STRING, 1, &u);
     }
 
     // Set from string -- parse
-    ParamValue (string_view _name, TypeDesc type, string_view value);
+    ParamValue(string_view _name, TypeDesc type, string_view value);
 
     // Copy constructor
-    ParamValue (const ParamValue &p) {
-        init_noclear (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), true);
+    ParamValue(const ParamValue& p)
+    {
+        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+                     true);
     }
-    ParamValue (const ParamValue &p, bool _copy) {
-        init_noclear (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), _copy);
+    ParamValue(const ParamValue& p, bool _copy)
+    {
+        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+                     _copy);
     }
 
     // Rvalue (move) constructor
-    ParamValue (ParamValue&& p) {
-        init_noclear (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
-        m_copy = p.m_copy;
-        m_nonlocal = p.m_nonlocal;
-        p.m_data.ptr = nullptr;   // make sure the old one won't free
+    ParamValue(ParamValue&& p)
+    {
+        init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+                     false);
+        m_copy       = p.m_copy;
+        m_nonlocal   = p.m_nonlocal;
+        p.m_data.ptr = nullptr;  // make sure the old one won't free
     }
 
-    ~ParamValue () { clear_value(); }
+    ~ParamValue() { clear_value(); }
 
-    void init (ustring _name, TypeDesc _type, int _nvalues,
-               Interp _interp, const void *_value, bool _copy=true) {
-        clear_value ();
-        init_noclear (_name, _type, _nvalues, _interp, _value, _copy);
+    void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
+              const void* _value, bool _copy = true)
+    {
+        clear_value();
+        init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
     }
-    void init (ustring _name, TypeDesc _type,
-               int _nvalues, const void *_value, bool _copy=true) {
-        init (_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
+    void init(ustring _name, TypeDesc _type, int _nvalues, const void* _value,
+              bool _copy = true)
+    {
+        init(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
     }
-    void init (string_view _name, TypeDesc _type,
-               int _nvalues, const void *_value, bool _copy=true) {
-        init (ustring(_name), _type, _nvalues, _value, _copy);
+    void init(string_view _name, TypeDesc _type, int _nvalues,
+              const void* _value, bool _copy = true)
+    {
+        init(ustring(_name), _type, _nvalues, _value, _copy);
     }
-    void init (string_view _name, TypeDesc _type, int _nvalues,
-               Interp _interp, const void *_value, bool _copy=true) {
-        init (ustring(_name), _type, _nvalues, _interp, _value, _copy);
+    void init(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
+              const void* _value, bool _copy = true)
+    {
+        init(ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
 
     // Assignment
-    const ParamValue& operator= (const ParamValue &p) {
+    const ParamValue& operator=(const ParamValue& p)
+    {
         if (this != &p)
-            init (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), p.m_copy);
+            init(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
+                 p.m_copy);
         return *this;
     }
-    const ParamValue& operator= (ParamValue &&p) {
+    const ParamValue& operator=(ParamValue&& p)
+    {
         if (this != &p) {
-            init (p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
-            m_copy = p.m_copy;
-            m_nonlocal = p.m_nonlocal;
+            init(p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
+            m_copy       = p.m_copy;
+            m_nonlocal   = p.m_nonlocal;
             p.m_data.ptr = nullptr;
         }
         return *this;
@@ -157,71 +175,73 @@ public:
     // FIXME -- some time in the future (after more cleanup), we should make
     // name() return a string_view, and use uname() for the rare time when
     // the caller truly requires the ustring.
-    const ustring &name () const { return m_name; }
-    const ustring &uname () const { return m_name; }
-    TypeDesc type () const { return m_type; }
-    int nvalues () const { return m_nvalues; }
-    const void *data () const { return m_nonlocal ? m_data.ptr : &m_data; }
-    int datasize () const { return m_nvalues * static_cast<int>(m_type.size()); }
-    Interp interp () const { return (Interp)m_interp; }
-    void interp (Interp i) { m_interp = (unsigned char )i; }
-    bool is_nonlocal () const { return m_nonlocal; }
+    const ustring& name() const { return m_name; }
+    const ustring& uname() const { return m_name; }
+    TypeDesc type() const { return m_type; }
+    int nvalues() const { return m_nvalues; }
+    const void* data() const { return m_nonlocal ? m_data.ptr : &m_data; }
+    int datasize() const { return m_nvalues * static_cast<int>(m_type.size()); }
+    Interp interp() const { return (Interp)m_interp; }
+    void interp(Interp i) { m_interp = (unsigned char)i; }
+    bool is_nonlocal() const { return m_nonlocal; }
 
-    friend void swap (ParamValue &a, ParamValue &b) {
-        ParamValue tmp = std::move(a);
-        a = std::move(b);
-        b = std::move(tmp);
+    friend void swap(ParamValue& a, ParamValue& b)
+    {
+        auto tmp = std::move(a);
+        a        = std::move(b);
+        b        = std::move(tmp);
     }
 
     // Use with extreme caution! This is just doing a cast. You'd better
     // be really sure you are asking for the right type. Note that for
     // "string" data, you can get<ustring> or get<char*>, but it's not
     // a std::string.
-    template<typename T>
-    const T& get (int i=0) const { return (reinterpret_cast<const T*>(data()))[i]; }
+    template<typename T> const T& get(int i = 0) const
+    {
+        return (reinterpret_cast<const T*>(data()))[i];
+    }
 
     /// Retrive an integer, with converstions from a wide variety of type
     /// cases, including unsigned, short, byte. Not float. It will retrive
     /// from a string, but only if the string is entirely a valid int
     /// format. Unconvertable types return the default value.
-    int get_int (int defaultval=0) const;
-    int get_int_indexed (int index, int defaultval=0) const;
+    int get_int(int defaultval = 0) const;
+    int get_int_indexed(int index, int defaultval = 0) const;
 
     /// Retrive a float, with converstions from a wide variety of type
     /// cases, including integers. It will retrive from a string, but only
     /// if the string is entirely a valid float format. Unconvertable types
     /// return the default value.
-    float get_float (float defaultval=0) const;
-    float get_float_indexed (int index, float defaultval=0) const;
+    float get_float(float defaultval = 0) const;
+    float get_float_indexed(int index, float defaultval = 0) const;
 
     /// Convert any type to a string value. An optional maximum number of
     /// elements is also passed. In the case of a single string, just the
     /// string directly is returned. But for an array of strings, the array
     /// is returned as one string that's a comma-separated list of double-
     /// quoted, escaped strings.
-    std::string get_string (int maxsize = 64) const;
+    std::string get_string(int maxsize = 64) const;
     /// Convert any type to a ustring value. An optional maximum number of
     /// elements is also passed. Same behavior as get_string, but returning
     /// a ustring.
-    ustring get_ustring (int maxsize = 64) const;
+    ustring get_ustring(int maxsize = 64) const;
 
 private:
-    ustring m_name;           ///< data name
-    TypeDesc m_type;          ///< data type, which may itself be an array
+    ustring m_name;   ///< data name
+    TypeDesc m_type;  ///< data type, which may itself be an array
     union {
         char localval[16];
-        const void *ptr;
-    } m_data;             ///< Our data, either a pointer or small local value
-    int m_nvalues = 0;    ///< number of values of the given type
-    unsigned char m_interp = INTERP_CONSTANT;   ///< Interpolation type
-    bool m_copy = false;
-    bool m_nonlocal = false;
+        const void* ptr;
+    } m_data;  ///< Our data, either a pointer or small local value
+    int m_nvalues          = 0;  ///< number of values of the given type
+    unsigned char m_interp = INTERP_CONSTANT;  ///< Interpolation type
+    bool m_copy            = false;
+    bool m_nonlocal        = false;
 
-    void init_noclear (ustring _name, TypeDesc _type,
-                       int _nvalues, const void *_value, bool _copy=true);
-    void init_noclear (ustring _name, TypeDesc _type,int _nvalues,
-                       Interp _interp, const void *_value,
-                       bool _copy=true);
+    void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
+                      const void* _value, bool _copy = true);
+    void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
+                      Interp _interp, const void* _value, bool _copy = true);
     void clear_value();
 };
 
@@ -232,75 +252,79 @@ private:
 /// methods.
 class OIIO_API ParamValueList : public std::vector<ParamValue> {
 public:
-    ParamValueList () { }
+    ParamValueList() {}
 
     /// Add space for one more ParamValue to the list, and return a
     /// reference to its slot.
-    reference grow () {
-        resize (size()+1);
-        return back ();
+    reference grow()
+    {
+        resize(size() + 1);
+        return back();
     }
 
     /// Find the first entry with matching name, and if type != UNKNOWN,
     /// then also with matching type. The name search is case sensitive if
     /// casesensitive == true.
-    iterator find (string_view name, TypeDesc type = TypeDesc::UNKNOWN,
-                   bool casesensitive = true);
-    iterator find (ustring name, TypeDesc type = TypeDesc::UNKNOWN,
-                   bool casesensitive = true);
-    const_iterator find (string_view name, TypeDesc type = TypeDesc::UNKNOWN,
-                         bool casesensitive = true) const;
-    const_iterator find (ustring name, TypeDesc type = TypeDesc::UNKNOWN,
-                         bool casesensitive = true) const;
+    iterator find(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+                  bool casesensitive = true);
+    iterator find(ustring name, TypeDesc type = TypeDesc::UNKNOWN,
+                  bool casesensitive = true);
+    const_iterator find(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+                        bool casesensitive = true) const;
+    const_iterator find(ustring name, TypeDesc type = TypeDesc::UNKNOWN,
+                        bool casesensitive = true) const;
 
     /// Case insensitive search for an integer, with default if not found.
     /// Automatically will return an int even if the data is really
     /// unsigned, short, or byte, but not float. It will retrive from a
     /// string, but only if the string is entirely a valid int format.
-    int get_int (string_view name, int defaultval=0,
-                 bool casesensitive=false, bool convert=true) const;
+    int get_int(string_view name, int defaultval = 0,
+                bool casesensitive = false, bool convert = true) const;
 
     /// Case insensitive search for a float, with default if not found.
     /// Automatically will return a float even if the data is really double
     /// or half. It will retrive from a string, but only if the string is
     /// entirely a valid float format.
-    float get_float (string_view name, float defaultval=0,
-                     bool casesensitive=false, bool convert=true) const;
+    float get_float(string_view name, float defaultval = 0,
+                    bool casesensitive = false, bool convert = true) const;
 
     /// Simple way to get a string attribute, with default provided.
     /// If the value is another type, it will be turned into a string.
-    string_view get_string (string_view name,
-                            string_view defaultval = string_view(),
-                            bool casesensitive=false, bool convert=true) const;
-    ustring get_ustring (string_view name,
-                         string_view defaultval = string_view(),
-                         bool casesensitive=false, bool convert=true) const;
+    string_view get_string(string_view name,
+                           string_view defaultval = string_view(),
+                           bool casesensitive     = false,
+                           bool convert           = true) const;
+    ustring get_ustring(string_view name,
+                        string_view defaultval = string_view(),
+                        bool casesensitive = false, bool convert = true) const;
 
     /// Remove the named parameter, if it is in the list.
-    void remove (string_view name, TypeDesc type=TypeDesc::UNKNOWN,
-                bool casesensitive=true);
+    void remove(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+                bool casesensitive = true);
 
     /// Does the list contain the named attribute?
-    bool contains (string_view name, TypeDesc type=TypeDesc::UNKNOWN,
-                   bool casesensitive=true);
+    bool contains(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+                  bool casesensitive = true);
 
     // Add the param to the list, replacing in-place any existing one with
     // the same name.
-    void add_or_replace (const ParamValue& pv, bool casesensitive=true);
-    void add_or_replace (ParamValue&& pv, bool casesensitive=true);
+    void add_or_replace(const ParamValue& pv, bool casesensitive = true);
+    void add_or_replace(ParamValue&& pv, bool casesensitive = true);
 
     // Sort alphabetically, optionally case-insensitively, locale-
     // independently, and with all the "un-namespaced" items appearing
     // first, followed by items with "prefixed namespaces" (e.g. "z" comes
     // before "foo:a").
-    void sort (bool casesensitive=true);
+    void sort(bool casesensitive = true);
 
     /// Even more radical than clear, free ALL memory associated with the
     /// list itself.
-    void free () { clear(); shrink_to_fit(); }
+    void free()
+    {
+        clear();
+        shrink_to_fit();
+    }
 };
 
 
 OIIO_NAMESPACE_END
-
-#endif /* !defined(OPENIMAGEIO_PARAMLIST_H) */

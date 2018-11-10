@@ -35,9 +35,7 @@
 /// @brief  Wrappers and utilities for atomics.
 /////////////////////////////////////////////////////////////////////////
 
-
-#ifndef OPENIMAGEIO_ATOMIC_H
-#define OPENIMAGEIO_ATOMIC_H
+#pragma once
 
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
@@ -58,11 +56,11 @@ typedef atomic<long long> atomic_ll;
 /// Atomically set avar to the minimum of its current value and bval.
 template<typename T>
 OIIO_FORCEINLINE void
-atomic_min (atomic<T> &avar, const T &bval)
+atomic_min(atomic<T>& avar, const T& bval)
 {
     do {
         T a = avar.load();
-        if (a <= bval || avar.compare_exchange_weak (a,bval))
+        if (a <= bval || avar.compare_exchange_weak(a, bval))
             break;
     } while (true);
 }
@@ -71,11 +69,11 @@ atomic_min (atomic<T> &avar, const T &bval)
 /// Atomically set avar to the maximum of its current value and bval.
 template<typename T>
 OIIO_FORCEINLINE void
-atomic_max (atomic<T> &avar, const T &bval)
+atomic_max(atomic<T>& avar, const T& bval)
 {
     do {
         T a = avar.load();
-        if (a >= bval || avar.compare_exchange_weak (a,bval))
+        if (a >= bval || avar.compare_exchange_weak(a, bval))
             break;
     } while (true);
 }
@@ -84,12 +82,12 @@ atomic_max (atomic<T> &avar, const T &bval)
 
 // Add atomically to a float and return the original value.
 OIIO_FORCEINLINE float
-atomic_fetch_add (atomic<float> &a, float f)
+atomic_fetch_add(atomic<float>& a, float f)
 {
     do {
         float oldval = a.load();
         float newval = oldval + f;
-        if (a.compare_exchange_weak (oldval, newval))
+        if (a.compare_exchange_weak(oldval, newval))
             return oldval;
     } while (true);
 }
@@ -97,18 +95,15 @@ atomic_fetch_add (atomic<float> &a, float f)
 
 // Add atomically to a double and return the original value.
 OIIO_FORCEINLINE double
-atomic_fetch_add (atomic<double> &a, double f)
+atomic_fetch_add(atomic<double>& a, double f)
 {
     do {
         double oldval = a.load();
         double newval = oldval + f;
-        if (a.compare_exchange_weak (oldval, newval))
+        if (a.compare_exchange_weak(oldval, newval))
             return oldval;
     } while (true);
 }
 
 
 OIIO_NAMESPACE_END
-
-
-#endif // OPENIMAGEIO_ATOMIC_H

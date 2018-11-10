@@ -28,6 +28,7 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
 
 /////////////////////////////////////////////////////////////////////////
 /// @file  strutil.h
@@ -38,21 +39,19 @@
 
 
 #pragma once
-#ifndef OPENIMAGEIO_STRUTIL_H
-#define OPENIMAGEIO_STRUTIL_H
 
-#include <string>
 #include <cstdio>
-#include <vector>
 #include <map>
+#include <string>
+#include <vector>
 
 #include <OpenImageIO/export.h>
+#include <OpenImageIO/hash.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/string_view.h>
-#include <OpenImageIO/hash.h>
 
 #ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
-# define TINYFORMAT_USE_VARIADIC_TEMPLATES
+#    define TINYFORMAT_USE_VARIADIC_TEMPLATES
 #endif
 #include <OpenImageIO/tinyformat.h>
 
@@ -682,6 +681,3 @@ std::string OIIO_API base64_encode (string_view str);
 }  // namespace Strutil
 
 OIIO_NAMESPACE_END
-
-
-#endif // OPENIMAGEIO_STRUTIL_H

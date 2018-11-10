@@ -28,18 +28,19 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
 
 #pragma once
 
-#include <cstddef>
-#include <string>
-#include <cstring>
-#include <stdexcept>
 #include <algorithm>
+#include <cstddef>
+#include <cstring>
 #include <ostream>
+#include <stdexcept>
+#include <string>
 
-#include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -102,22 +103,19 @@ public:
     static const size_type npos = ~size_type(0);
 
     /// Default ctr
-    string_view () { init(NULL,0); }
+    string_view() { init(NULL, 0); }
     /// Copy ctr
-    string_view (const string_view &copy) {
-        init (copy.m_chars, copy.m_len);
-    }
+    string_view(const string_view& copy) { init(copy.m_chars, copy.m_len); }
     /// Construct from char* and length.
-    string_view (const charT *chars, size_t len) { init (chars, len); }
+    string_view(const charT* chars, size_t len) { init(chars, len); }
     /// Construct from char*, use strlen to determine length.
-    string_view (const charT *chars) {
-        init (chars, chars ? strlen(chars) : 0);
-    }
+    string_view(const charT* chars) { init(chars, chars ? strlen(chars) : 0); }
     /// Construct from std::string.
-    string_view (const std::string &str) { init (str.data(), str.size()); }
+    string_view(const std::string& str) { init(str.data(), str.size()); }
 
-    std::string str() const {
-        return (m_chars ? std::string(m_chars,m_len) : std::string());
+    std::string str() const
+    {
+        return (m_chars ? std::string(m_chars, m_len) : std::string());
     }
 
     /// Explicitly request a 0-terminated string. USUALLY, this turns out to
@@ -138,11 +136,12 @@ public:
     ///    return its address?), if there's any chance that the subsequent
     ///    char could change from 0 to non-zero during the use of the result
     ///    of c_str(), and thus break the assumption that it's a valid C str.
-    const char * c_str() const;
+    const char* c_str() const;
 
     // assignments
-    string_view& operator= (const string_view &copy) {
-        init (copy.data(), copy.length());
+    string_view& operator=(const string_view& copy)
+    {
+        init(copy.data(), copy.length());
         return *this;
     }
 
@@ -165,36 +164,40 @@ public:
     bool empty() const { return m_len == 0; }
 
     // element access
-    const charT& operator[] (size_type pos) const { return m_chars[pos]; }
-    const charT& at (size_t pos) const {
+    const charT& operator[](size_type pos) const { return m_chars[pos]; }
+    const charT& at(size_t pos) const
+    {
         if (pos >= m_len)
-            throw (std::out_of_range ("OpenImageIO::string_view::at"));
+            throw(std::out_of_range("OpenImageIO::string_view::at"));
         return m_chars[pos];
     }
     const charT& front() const { return m_chars[0]; }
-    const charT& back() const { return m_chars[m_len-1]; }
+    const charT& back() const { return m_chars[m_len - 1]; }
     const charT* data() const { return m_chars; }
 
     // modifiers
-    void clear() { init(NULL,0); }
-    void remove_prefix(size_type n) {
+    void clear() { init(NULL, 0); }
+    void remove_prefix(size_type n)
+    {
         if (n > m_len)
             n = m_len;
         m_chars += n;
         m_len -= n;
     }
-    void remove_suffix(size_type n) {
+    void remove_suffix(size_type n)
+    {
         if (n > m_len)
             n = m_len;
         m_len -= n;
     }
 
-    string_view substr (size_type pos, size_type n=npos) const {
+    string_view substr(size_type pos, size_type n = npos) const
+    {
         if (pos > size())
             return string_view();  // start past end -> return empty
         if (n == npos || pos + n > size())
             n = size() - pos;
-        return string_view (data() + pos, n);
+        return string_view(data() + pos, n);
     }
 
     int compare (string_view x) const {
@@ -212,12 +215,13 @@ public:
 
     /// Find the first occurrence of substring s in *this, starting at
     /// position pos.
-    size_type find (string_view s, size_t pos=0) const {
+    size_type find(string_view s, size_t pos = 0) const
+    {
         if (pos > size())
             pos = size();
-        const_iterator i = std::search (this->cbegin()+pos, this->cend(),
-                                        s.cbegin(), s.cend(), traits::eq);
-        return i == this->cend() ? npos : std::distance (this->cbegin(), i);
+        const_iterator i = std::search(this->cbegin() + pos, this->cend(),
+                                       s.cbegin(), s.cend(), traits::eq);
+        return i == this->cend() ? npos : std::distance(this->cbegin(), i);
     }
 
     /// Find the first occurrence of character c in *this, starting at
@@ -293,23 +297,26 @@ public:
     }
 
 private:
-    const charT * m_chars;
+    const charT* m_chars;
     size_t m_len;
 
-    void init (const charT *chars, size_t len) {
+    void init(const charT* chars, size_t len)
+    {
         m_chars = chars;
-        m_len = len;
+        m_len   = len;
     }
 
-    template <typename r_iter>
-    size_type reverse_distance (r_iter first, r_iter last) const {
-        return m_len - 1 - std::distance (first, last);
+    template<typename r_iter>
+    size_type reverse_distance(r_iter first, r_iter last) const
+    {
+        return m_len - 1 - std::distance(first, last);
     }
 
-    template <typename iter>
-    iter find_not_of (iter first, iter last, string_view s) const {
-        for ( ; first != last ; ++first)
-            if (! traits::find (s.data(), s.length(), *first))
+    template<typename iter>
+    iter find_not_of(iter first, iter last, string_view s) const
+    {
+        for (; first != last; ++first)
+            if (!traits::find(s.data(), s.length(), *first))
                 return first;
         return last;
     }
@@ -320,41 +327,54 @@ private:
         bool operator () (charT val) const { return traits::eq (ch, val); }
         charT ch;
     };
-
 };
 
 
 
-inline bool operator== (string_view x, string_view y) {
-    return x.size() == y.size() ? (x.compare (y) == 0) : false;
+inline bool
+operator==(string_view x, string_view y)
+{
+    return x.size() == y.size() ? (x.compare(y) == 0) : false;
 }
 
-inline bool operator!= (string_view x, string_view y) {
-    return x.size() == y.size() ? (x.compare (y) != 0) : true;
+inline bool
+operator!=(string_view x, string_view y)
+{
+    return x.size() == y.size() ? (x.compare(y) != 0) : true;
 }
 
-inline bool operator< (string_view x, string_view y) {
+inline bool
+operator<(string_view x, string_view y)
+{
     return x.compare(y) < 0;
 }
 
-inline bool operator> (string_view x, string_view y) {
+inline bool
+operator>(string_view x, string_view y)
+{
     return x.compare(y) > 0;
 }
 
-inline bool operator<= (string_view x, string_view y) {
+inline bool
+operator<=(string_view x, string_view y)
+{
     return x.compare(y) <= 0;
 }
 
-inline bool operator>= (string_view x, string_view y) {
+inline bool
+operator>=(string_view x, string_view y)
+{
     return x.compare(y) >= 0;
 }
 
 
 
 // Inserter
-inline std::ostream& operator<< (std::ostream& out, const string_view& str) {
+inline std::ostream&
+operator<<(std::ostream& out, const string_view& str)
+{
     if (out.good())
-        out.write (str.data(), str.size());
+        out.write(str.data(), str.size());
     return out;
 }
 

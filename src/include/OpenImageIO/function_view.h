@@ -65,11 +65,11 @@
 
 #pragma once
 
-#include <type_traits>
 #include <functional>
+#include <type_traits>
 
-#include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
 
 
@@ -96,29 +96,34 @@ OIIO_NAMESPACE_BEGIN
 
 template<typename Fn> class function_view;
 
-template<typename Ret, typename ...Params>
-class function_view<Ret(Params...)> {
-    Ret (*callback)(intptr_t callable, Params ...params) = nullptr;
+template<typename Ret, typename... Params> class function_view<Ret(Params...)> {
+    Ret (*callback)(intptr_t callable, Params... params) = nullptr;
     intptr_t callable;
 
     template<typename Callable>
-    static Ret callback_fn(intptr_t callable, Params ...params) {
-        return (*reinterpret_cast<Callable*>(callable))(std::forward<Params>(params)...);
+    static Ret callback_fn(intptr_t callable, Params... params)
+    {
+        return (*reinterpret_cast<Callable*>(callable))(
+            std::forward<Params>(params)...);
     }
 
 public:
     function_view() = default;
     function_view(std::nullptr_t) {}
 
-    template <typename Callable>
-    function_view(Callable &&callable,
-                 typename std::enable_if<
-                     !std::is_same<typename std::remove_reference<Callable>::type,
-                                   function_view>::value>::type * = nullptr)
-        : callback(callback_fn<typename std::remove_reference<Callable>::type>),
-          callable(reinterpret_cast<intptr_t>(&callable)) {}
+    template<typename Callable>
+    function_view(
+        Callable&& callable,
+        typename std::enable_if<
+            !std::is_same<typename std::remove_reference<Callable>::type,
+                          function_view>::value>::type* = nullptr)
+        : callback(callback_fn<typename std::remove_reference<Callable>::type>)
+        , callable(reinterpret_cast<intptr_t>(&callable))
+    {
+    }
 
-    Ret operator()(Params ...params) const {
+    Ret operator()(Params... params) const
+    {
         return callback(callable, std::forward<Params>(params)...);
     }
 

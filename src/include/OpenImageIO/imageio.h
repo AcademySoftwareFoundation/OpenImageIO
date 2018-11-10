@@ -39,29 +39,30 @@
 ///
 /////////////////////////////////////////////////////////////////////////////
 
+// clang-format off
 
-#ifndef OPENIMAGEIO_IMAGEIO_H
+#pragma once
 #define OPENIMAGEIO_IMAGEIO_H
 
 #if defined(_MSC_VER)
 // Ignore warnings about DLL exported classes with member variables that are template classes.
 // This happens with the std::vector<T> and std::string members of the classes below.
-#  pragma warning (disable : 4251)
+#    pragma warning(disable : 4251)
 #endif
 
-#include <vector>
-#include <string>
-#include <limits>
 #include <cmath>
+#include <limits>
+#include <string>
+#include <vector>
 
+#include <OpenImageIO/array_view.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
-#include <OpenImageIO/platform.h>
-#include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/paramlist.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/strutil.h>
-#include <OpenImageIO/array_view.h>
 #include <OpenImageIO/thread.h>
+#include <OpenImageIO/typedesc.h>
 
 OIIO_NAMESPACE_BEGIN
 
@@ -1794,5 +1795,3 @@ void debug (string_view fmt, const T1& v1, const Args&... args)
 OIIO_API void _ImageIO_force_link ();
 
 OIIO_NAMESPACE_END
-
-#endif  // OPENIMAGEIO_IMAGEIO_H

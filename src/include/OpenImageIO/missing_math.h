@@ -45,62 +45,62 @@
 
 #ifndef M_PI
 /// PI
-#  define M_PI 3.14159265358979323846264338327950288 
+#    define M_PI 3.14159265358979323846264338327950288
 #endif
 
 #ifndef M_PI_2
 /// PI / 2
-#  define M_PI_2 1.57079632679489661923132169163975144
+#    define M_PI_2 1.57079632679489661923132169163975144
 #endif
 
 #ifndef M_PI_4
 /// PI / 4
-#  define M_PI_4 0.785398163397448309615660845819875721
+#    define M_PI_4 0.785398163397448309615660845819875721
 #endif
 
 #ifndef M_TWO_PI
 /// PI * 2
-#  define M_TWO_PI (M_PI * 2.0)
+#    define M_TWO_PI (M_PI * 2.0)
 #endif
 
 #ifndef M_1_PI
 /// 1/PI
-#  define M_1_PI 0.318309886183790671537767526745028724
+#    define M_1_PI 0.318309886183790671537767526745028724
 #endif
 
 #ifndef M_2_PI
 /// 2/PI
-#  define M_2_PI 0.636619772367581343075535053490057448
+#    define M_2_PI 0.636619772367581343075535053490057448
 #endif
 
 #ifndef M_SQRT2
 /// sqrt(2)
-#  define M_SQRT2 1.41421356237309504880168872420969808
+#    define M_SQRT2 1.41421356237309504880168872420969808
 #endif
 
 #ifndef M_SQRT1_2
 /// 1/sqrt(2)
-#  define M_SQRT1_2 0.707106781186547524400844362104849039
+#    define M_SQRT1_2 0.707106781186547524400844362104849039
 #endif
 
 #ifndef M_LN2
 /// ln(2)
-#  define M_LN2 0.69314718055994530941723212145817656
+#    define M_LN2 0.69314718055994530941723212145817656
 #endif
 
 #ifndef M_LN10
 /// ln(10)
-#  define M_LN10 2.30258509299404568401799145468436421
+#    define M_LN10 2.30258509299404568401799145468436421
 #endif
 
 #ifndef M_E
 /// e, Euler's number
-#  define M_E 2.71828182845904523536028747135266250
+#    define M_E 2.71828182845904523536028747135266250
 #endif
 
 #ifndef M_LOG2E
 /// log2(e)
-#  define M_LOG2E 1.44269504088896340735992468100189214 
+#    define M_LOG2E 1.44269504088896340735992468100189214
 #endif
 
 
@@ -108,40 +108,40 @@ OIIO_NAMESPACE_BEGIN
 
 #ifdef _WIN32
 // Windows doesn't define these functions from math.h
-#define hypotf _hypotf
-#define copysign(x,y) _copysign(x,y)
-#define copysignf(x,y) float(copysign(x,y))
+#    define hypotf _hypotf
+#    define copysign(x, y) _copysign(x, y)
+#    define copysignf(x, y) float(copysign(x, y))
 
 
 inline float
-truncf (float val)
+truncf(float val)
 {
     return (float)(int)val;
 }
 
 
 inline float
-exp2f (float val) {
-   // 2^val = e^(val*ln(2))
-   return (float) exp( val * M_LN2 );
+exp2f(float val)
+{
+    // 2^val = e^(val*ln(2))
+    return (float)exp(val * M_LN2);
 }
 
 
-#endif  /* _WIN32 */
+#endif /* _WIN32 */
 
 
 #if OIIO_MSVS_AT_LEAST_2013 && __cplusplus <= 201103L
-  // Prior to c++11, these were implementation defined, and on msvc, were
-  // not in the std namespace.
-  using ::isnan;
-  using ::isinf;
-  using ::isfinite;
+// Prior to c++11, these were implementation defined, and on msvc, were
+// not in the std namespace.
+using ::isfinite;
+using ::isinf;
+using ::isnan;
 #else
-  using std::isnan;
-  using std::isinf;
-  using std::isfinite;
+using std::isfinite;
+using std::isinf;
+using std::isnan;
 #endif
-
 
 
 
@@ -149,13 +149,12 @@ exp2f (float val) {
 #if (defined(__FreeBSD__) && (__FreeBSD_version < 803000))
 
 inline float
-log2f (float val) {
-    return logf (val)/static_cast<float>(M_LN2);
+log2f(float val)
+{
+    return logf(val) / static_cast<float>(M_LN2);
 }
 
 #endif
 
 
 OIIO_NAMESPACE_END
-
-

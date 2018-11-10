@@ -28,29 +28,29 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
 
 /// \file
 /// The TypeDesc class is used to describe simple data types.
 
 
-#ifndef OPENIMAGEIO_TYPEDESC_H
-#define OPENIMAGEIO_TYPEDESC_H
+#pragma once
 
 #if defined(_MSC_VER)
 // Ignore warnings about conditional expressions that always evaluate true
 // on a given platform but may evaluate differently on another. There's
 // nothing wrong with such conditionals.
-#  pragma warning (disable : 4127)
+#    pragma warning(disable : 4127)
 #endif
 
-#include <limits>
 #include <cmath>
 #include <cstddef>
 #include <iostream>
+#include <limits>
 
+#include <OpenImageIO/dassert.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
-#include <OpenImageIO/dassert.h>
 #include <OpenImageIO/string_view.h>
 
 
@@ -81,25 +81,34 @@ struct OIIO_API TypeDesc {
                     HALF, FLOAT, DOUBLE, STRING, PTR, LASTBASE };
     /// AGGREGATE describes whether our type is a simple scalar of
     /// one of the BASETYPE's, or one of several simple aggregates.
-    enum AGGREGATE { SCALAR=1, VEC2=2, VEC3=3, VEC4=4, MATRIX33=9, MATRIX44=16 };
+    enum AGGREGATE {
+        SCALAR   = 1,
+        VEC2     = 2,
+        VEC3     = 3,
+        VEC4     = 4,
+        MATRIX33 = 9,
+        MATRIX44 = 16
+    };
     /// VECSEMANTICS gives hints about what the data represent (for
     /// example, if a spatial vector, whether it should transform as
     /// a point, direction vector, or surface normal).
-    enum VECSEMANTICS { NOXFORM=0, NOSEMANTICS=0,  // no semantic hints
-                        COLOR,    // color
-                        POINT,    // spatial location
-                        VECTOR,   // spatial direction
-                        NORMAL,   // surface normal
-                        TIMECODE, // SMPTE timecode (should be int[2])
-                        KEYCODE,  // SMPTE keycode (should be int[7])
-                        RATIONAL  // paired numerator and denominator
-                      };
+    enum VECSEMANTICS {
+        NOXFORM     = 0,
+        NOSEMANTICS = 0,  // no semantic hints
+        COLOR,            // color
+        POINT,            // spatial location
+        VECTOR,           // spatial direction
+        NORMAL,           // surface normal
+        TIMECODE,         // SMPTE timecode (should be int[2])
+        KEYCODE,          // SMPTE keycode (should be int[7])
+        RATIONAL          // paired numerator and denominator
+    };
 
-    unsigned char basetype;     ///< C data type at the heart of our type
-    unsigned char aggregate;    ///< What kind of AGGREGATE is it?
-    unsigned char vecsemantics; ///< What does the vec represent?
-    unsigned char reserved;     ///< Reserved for future expansion
-    int arraylen;               ///< Array length, 0 = not array, -1 = unsized
+    unsigned char basetype;      ///< C data type at the heart of our type
+    unsigned char aggregate;     ///< What kind of AGGREGATE is it?
+    unsigned char vecsemantics;  ///< What does the vec represent?
+    unsigned char reserved;      ///< Reserved for future expansion
+    int arraylen;                ///< Array length, 0 = not array, -1 = unsized
 
     /// Construct from a BASETYPE and optional aggregateness and
     /// transformation rules.
@@ -402,5 +411,3 @@ template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
 
 
 OIIO_NAMESPACE_END
-
-#endif /* !defined(OPENIMAGEIO_TYPEDESC_H) */
