@@ -62,7 +62,11 @@ find_path (OPENEXR_INCLUDE_PATH OpenEXR/OpenEXRConfig.h
 find_path (OPENEXR_INCLUDE_PATH OpenEXR/OpenEXRConfig.h)
 
 # Try to figure out version number
-if (EXISTS "${OPENEXR_INCLUDE_PATH}/OpenEXR/ImfMultiPartInputFile.h")
+if (DEFINED _OPENEXR_VERSION AND NOT "${_OPENEXR_VERSION}" STREQUAL "")
+    set (OPENEXR_VERSION "${_OPENEXR_VERSION}")
+    string (REGEX REPLACE "([0-9]+)\\.[0-9]+" "\\1" OPENEXR_VERSION_MAJOR "${_OPENEXR_VERSION}")
+    string (REGEX REPLACE "[0-9]+\\.([0-9]+)" "\\1" OPENEXR_VERSION_MINOR "${_OPENEXR_VERSION}")
+elseif (EXISTS "${OPENEXR_INCLUDE_PATH}/OpenEXR/ImfMultiPartInputFile.h")
     # Must be at least 2.0
     file(STRINGS "${OPENEXR_INCLUDE_PATH}/OpenEXR/OpenEXRConfig.h" TMP REGEX "^#define OPENEXR_VERSION_STRING .*$")
     string (REGEX MATCHALL "[0-9]+[.0-9]+" OPENEXR_VERSION ${TMP})
