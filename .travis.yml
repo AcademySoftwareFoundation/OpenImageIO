@@ -51,6 +51,7 @@ cache:
 before_install:
     - if [ "$WHICHGCC" == "" ]; then export WHICHGCC="4.8" ; fi
     - if [ "$PYTHON_VERSION" == "" ]; then export PYTHON_VERSION="2.7" ; fi
+    - if [ "$BUILD_MISSING_DEPS" == "" ] ; then export BUILD_MISSING_DEPS=1 ; fi
     - if [ $TRAVIS_OS_NAME == osx ] ; then
           uname -n ;
           export PLATFORM=macosx ;
@@ -87,18 +88,21 @@ install:
 
 script:
     - make VERBOSE=1 $BUILD_FLAGS BUILD_MISSING_DEPS=1 cmakesetup
-    - make -j2 $BUILD_FLAGS
+    - make -j2 $BUILD_FLAGS $OIIOTARGET
     - export OPENIMAGEIO_ROOT_DIR=$PWD/dist/$PLATFORM
-    - export DYLD_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib:$DYLD_LIBRARY_PATH 
+    - export DYLD_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib:$DYLD_LIBRARY_PATH
     - export LD_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib:$LD_LIBRARY_PATH
     - export OIIO_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib
-    - echo "OIIO_LIBRARY_PATH is ${OIIO_LIBRARY_PATH}"
-    # - echo "list of library path:"
-    # - ls -R $OIIO_LIBRARY_PATH
     - export PYTHONPATH=$OPENIMAGEIO_ROOT_DIR/python:$PYTHONPATH
     - export LSAN_OPTIONS=suppressions=$PWD/src/build-scripts/nosanitize.txt
     - if [ "$SKIP_TESTS" == "" ] ; then
           make $BUILD_FLAGS test ;
+      fi
+    - git diff --color ;
+      THEDIFF=`git diff` ;
+      if [ "$THEDIFF" != "" ] ; then
+          echo "git diff was not empty. Failing clang-format check." ;
+          exit 1 ;
       fi
 
 
@@ -124,30 +128,36 @@ matrix:
 
     include:
     # test default compile: C++11, optimized, default compilers, SSE2
-      - os: linux
+      - name: "Linux Standard (gcc48, py27)"
+        os: linux
         compiler: gcc
-      - os: osx
+      - name: "Mac (latest clang, py37)"
+        os: osx
         compiler: clang
         env: PYTHON_VERSION=3.7
     # Make sure Python 2.7 still works on OSX, but only for PRs, master/RB
     # pushes, or if the branch name includes "python".
-      - os: osx
+      - name: "Mac py27 (latest clang)"
+        os: osx
         compiler: clang
         env: PYTHON_VERSION=2.7
         if: branch =~ /(master|RB|travis|python)/ OR type = pull_request
     # test debug build with default compiler
-      - os: linux
+      - name: "Linux DEBUG Standard"
+        os: linux
         compiler: gcc
         env: DEBUG=1
       # - os: osx
       #   compiler: clang
       #   env: DEBUG=1
     # test with C++14, gcc 6, SSE 4.2
-      - os: linux
+      - name: "VFX Platform 2018 (gcc6, cpp14), sse4.2"
+        os: linux
         compiler: gcc
         env: WHICHGCC=6 USE_CPP=14 USE_SIMD=sse4.2
     # test with C++14, gcc 7, latest SIMD flags supported by TravisCI VMs
-      - os: linux
+      - name: "gcc7, cpp14, avx"
+        os: linux
         compiler: gcc
         env: WHICHGCC=7 USE_CPP=14 USE_SIMD=avx,f16c
     # Test LINKSTATIC on both platforms. This is incomplete and to make it
@@ -168,7 +178,8 @@ matrix:
     # pushes to master or RB branches, or if the branch name includes
     # "sanitize". Other ordinary work branch pushes don't need to run this
     # every time.
-      - os: linux
+      - name: "Sanitizers"
+        os: linux
         compiler: gcc
         env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
         if: branch =~ /(master|RB|travis|san)/ OR type = pull_request
@@ -180,7 +191,8 @@ matrix:
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
     # pushes don't need to run this.
-      - os: linux
+      - name: "Test no simd, no jpegturbo, dso plugins"
+        os: linux
         compiler: gcc
         env: USE_SIMD=0 USE_JPEGTURBO=0 EMBEDPLUGINS=0
         if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
@@ -189,7 +201,8 @@ matrix:
     # case for PRs, direct pushes to master or RB branches, or if the branch
     # name includes "gcc". Other ordinary work branch pushes don't
     # need to run this.
-      - os: linux
+      - name: "Linux gcc8 cpp14 avx"
+        os: linux
         compiler: gcc
         env: WHICHGCC=8 USE_CPP=14 USE_SIMD=avx,f16c
         if: branch =~ /(master|RB|travis|gcc)/ OR type = pull_request
@@ -198,7 +211,8 @@ matrix:
     # case for PRs, direct pushes to master or RB branches, or if the branch
     # name includes "17" or "gcc". Other ordinary work branch pushes don't
     # need to run this.
-      - os: linux
+      - name: "Linux most advanced (gcc8, cpp17, avx/f16c)"
+        os: linux
         compiler: gcc
         env: WHICHGCC=8 USE_CPP=17 USE_SIMD=avx,f16c
         if: branch =~ /(master|RB|travis|gcc|17)/ OR type = pull_request
@@ -206,7 +220,8 @@ matrix:
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
     # pushes don't need to run this.
-      - os: linux
+      - name: "Build clean AVX2"
+        os: linux
         compiler: gcc
         env: WHICHGCC=6 USE_SIMD=avx2 SKIP_TESTS=1
         if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
@@ -214,10 +229,17 @@ matrix:
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
     # pushes don't need to run this.
-      - os: linux
+      - name: "Build clean vs AVX512"
+        os: linux
         compiler: gcc
         env: WHICHGCC=7 USE_SIMD=avx2,avx512f,f16c SKIP_TESTS=1
         if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
+    # Just run clang-format, this test only checks formatting rule conformance
+      - name: "clang-format format verification"
+        os: osx
+        compiler: clang
+        env: OIIOTARGET=clang-format SKIP_TESTS=1 BUILD_MISSING_DEPS=0
+        #if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
     # Build with EMBEDPLUGINS=0, both platforms.
       # FIXME: doesn't work yet on Travis
       # - os: linux
