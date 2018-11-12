@@ -566,25 +566,25 @@ set_output_dataformat (ImageSpec& spec, TypeDesc format,
     if (channelformats.size()) {
         spec.channelformats.clear ();
         spec.channelformats.resize (spec.nchannels, spec.format);
-        for (int c = 0;  c < spec.nchannels;  ++c) {
-            if (c >= (int)spec.channelnames.size())
-                break;
-            auto i = channelformats.find (spec.channelnames[c]);
-            if (i != channelformats.end() && i->second.size()) {
-                int bits = 0;
-                string_to_dataformat (i->second, spec.channelformats[c], bits);
-            }
+        for (auto& cr : channelformats) {
+            int c = spec.channelindex (cr.first);
+            TypeDesc t (cr.second);
+            if (c >= 0 && c < spec.nchannels && t != TypeUnknown)
+                spec.channelformats[c] = t;
         }
+    } else {
+        spec.channelformats.clear ();
+    }
+
+    // Eliminate the per-channel formats if they are all the same.
+    if (spec.channelformats.size()) {
         bool allsame = true;
-        if (spec.channelnames.size())
-            for (int c = 1;  c < spec.nchannels;  ++c)
-                allsame &= (spec.channelformats[c] == spec.channelformats[0]);
+        for (auto& c : spec.channelformats)
+            allsame &= (c == spec.channelformats[0]);
         if (allsame) {
             spec.format = spec.channelformats[0];
             spec.channelformats.clear();
         }
-    } else {
-        spec.channelformats.clear ();
     }
 }
 
@@ -629,14 +629,16 @@ adjust_output_options (string_view filename,
     }
     else if (was_direct_read && nativespec) {
         // Do nothing -- use the file's native data format
-        set_output_dataformat (spec, nativespec->format,
-                               std::map<std::string,std::string>(),
-                               nativespec->get_int_attribute("oiio:BitsPerSample"));
         spec.channelformats = nativespec->channelformats;
+        set_output_dataformat (spec, nativespec->format,
+                               requested_output_channelformats,
+                               nativespec->get_int_attribute("oiio:BitsPerSample"));
     }
     else if (ot.first_input_dataformat != TypeUnknown) {
-        set_output_dataformat (spec, ot.first_input_dataformat,
-                               ot.first_input_channelformats,
+        auto mergedlist = ot.first_input_channelformats;
+        for (auto& c : requested_output_channelformats)
+            mergedlist[c.first] = c.second;
+        set_output_dataformat (spec, ot.first_input_dataformat, mergedlist,
                                ot.first_input_dataformat_bits);
     }
 
