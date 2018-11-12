@@ -38,11 +38,11 @@
 #include <functional>
 #include <iostream>
 
-#include <OpenImageIO/array_view.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/function_view.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
+#include <OpenImageIO/span.h>
 
 #ifdef _WIN32
 //# include <windows.h>  // Already done by platform.h

@@ -52,7 +52,7 @@
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/fmath.h>
-#include <OpenImageIO/array_view.h>
+#include <OpenImageIO/span.h>
 #include "oiiotool.h"
 
 #ifdef USE_BOOST_REGEX

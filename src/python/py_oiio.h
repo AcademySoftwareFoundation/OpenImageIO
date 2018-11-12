@@ -52,7 +52,7 @@
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/deepdata.h>
-#include <OpenImageIO/array_view.h>
+#include <OpenImageIO/span.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -256,7 +256,7 @@ inline bool py_to_stdvector (std::vector<T> &vals, const py::object &obj)
 
 
 template<typename T>
-inline py::tuple C_to_tuple (array_view<const T> vals)
+inline py::tuple C_to_tuple (cspan<T> vals)
 {
     size_t size = vals.size();
     py::tuple result (size);
@@ -278,7 +278,7 @@ inline py::tuple C_to_tuple (const T* vals, size_t size)
 
 // Special case for TypeDesc
 template<>
-inline py::tuple C_to_tuple<TypeDesc> (array_view<const TypeDesc> vals)
+inline py::tuple C_to_tuple<TypeDesc> (cspan<TypeDesc> vals)
 {
     size_t size = vals.size();
     py::tuple result (size);
@@ -299,7 +299,7 @@ inline py::object C_to_val_or_tuple (const T *vals, TypeDesc type)
     if (n == 1 && !type.arraylen)
         return typename PyTypeForCType<T>::type (vals[0]);
     else
-        return C_to_tuple (array_view<const T>(vals, n));
+        return C_to_tuple (cspan<T>(vals, n));
 }
 
 

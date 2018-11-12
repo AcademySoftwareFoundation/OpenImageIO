@@ -50,7 +50,7 @@
 #include <string>
 #include <vector>
 
-#include <OpenImageIO/array_view.h>
+#include <OpenImageIO/span.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/string_view.h>
@@ -359,10 +359,10 @@ public:
 
     Mode mode () const { return m_mode; }
     const std::string& filename () const { return m_filename; }
-    template<class T> size_t read (array_view<T> buf) {
+    template<class T> size_t read (span<T> buf) {
         return read (buf.data(), buf.size()*sizeof(T));
     }
-    template<class T> size_t write (array_view<T> buf) {
+    template<class T> size_t write (span<T> buf) {
         return write (buf.data(), buf.size()*sizeof(T));
     }
     size_t write (string_view buf) {
@@ -442,7 +442,7 @@ protected:
 
 
 
-/// IOProxy subclass for reading that wraps an array_view<const char>.
+/// IOProxy subclass for reading that wraps an cspan<char>.
 class OIIO_API IOMemReader : public IOProxy {
 public:
     IOMemReader(void* buf, size_t size)
@@ -450,7 +450,7 @@ public:
         , m_buf((const unsigned char*)buf, size)
     {
     }
-    IOMemReader(array_view<const unsigned char> buf)
+    IOMemReader(cspan<unsigned char> buf)
         : IOProxy("", Read)
         , m_buf(buf.data(), buf.size())
     {
@@ -466,7 +466,7 @@ public:
     virtual size_t size() const { return m_buf.size(); }
 
 protected:
-    array_view<const unsigned char> m_buf;
+    cspan<unsigned char> m_buf;
 };
 
 };  // namespace Filesystem

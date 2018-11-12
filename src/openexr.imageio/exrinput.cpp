@@ -1307,7 +1307,7 @@ OpenEXRInput::read_native_deep_scanlines (int subimage, int miplevel,
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
         deepdata.init (npixels, nchans,
-                       array_view<const TypeDesc>(&channeltypes[chbegin], nchans),
+                       cspan<TypeDesc>(&channeltypes[chbegin], nchans),
                        m_spec.channelnames);
         std::vector<unsigned int> all_samples (npixels);
         std::vector<void*> pointerbuf (npixels*nchans);
@@ -1382,7 +1382,7 @@ OpenEXRInput::read_native_deep_tiles (int subimage, int miplevel,
         std::vector<TypeDesc> channeltypes;
         m_spec.get_channelformats (channeltypes);
         deepdata.init (npixels, nchans,
-                       array_view<const TypeDesc>(&channeltypes[chbegin], nchans),
+                       cspan<TypeDesc>(&channeltypes[chbegin], nchans),
                        m_spec.channelnames);
         std::vector<unsigned int> all_samples (npixels);
         std::vector<void*> pointerbuf (npixels * nchans);

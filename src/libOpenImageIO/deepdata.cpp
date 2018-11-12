@@ -314,8 +314,8 @@ is_or_endswithdot (string_view name, string_view suffix)
 
 void
 DeepData::init (int npix, int nchan,
-                array_view<const TypeDesc> channeltypes,
-                array_view<const std::string> channelnames)
+                cspan<TypeDesc> channeltypes,
+                cspan<std::string> channelnames)
 {
     clear ();
     m_npixels = npix;
@@ -525,7 +525,7 @@ DeepData::set_samples (int pixel, int samps)
 
 
 void
-DeepData::set_all_samples (array_view<const unsigned int> samples)
+DeepData::set_all_samples (cspan<unsigned int> samples)
 {
     if (samples.size() != m_npixels)
         return;
@@ -758,7 +758,7 @@ DeepData::set_deep_value (int pixel, int channel, int sample, uint32_t value)
 
 
 
-array_view<const TypeDesc>
+cspan<TypeDesc>
 DeepData::all_channeltypes () const
 {
     ASSERT (m_impl);
@@ -767,7 +767,7 @@ DeepData::all_channeltypes () const
 
 
 
-array_view<const unsigned int>
+cspan<unsigned int>
 DeepData::all_samples () const
 {
     ASSERT (m_impl);
@@ -776,7 +776,7 @@ DeepData::all_samples () const
 
 
 
-array_view<const char>
+cspan<char>
 DeepData::all_data () const
 {
     ASSERT (m_impl);

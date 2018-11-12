@@ -41,10 +41,10 @@ using namespace OIIO;
 
 
 
-void test_array_view ()
+void test_span ()
 {
     static float A[] = { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
-    array_view<const float> a (A);
+    cspan<float> a (A);
     OIIO_CHECK_EQUAL (a.size(), 12);
     OIIO_CHECK_EQUAL (a[0], 0.0f);
     OIIO_CHECK_EQUAL (a[1], 1.0f);
@@ -59,7 +59,7 @@ void test_array_view ()
     OIIO_CHECK_EQUAL (a.cbegin(), &a[0]);
     OIIO_CHECK_EQUAL (a.cend(), &a[a.size()]);
 
-    array_view<float>::const_iterator i = a.begin();
+    span<float>::const_iterator i = a.begin();
     OIIO_CHECK_EQUAL (*i, 0.0f);
     ++i;  OIIO_CHECK_EQUAL (*i, 1.0f);
 
@@ -76,10 +76,10 @@ void test_array_view ()
 
 
 
-void test_array_view_mutable ()
+void test_span_mutable ()
 {
     float A[] = { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
-    array_view<float> a (A);
+    span<float> a (A);
     OIIO_CHECK_EQUAL (a.size(), 12);
     OIIO_CHECK_EQUAL (a[0], 0.0f);
     OIIO_CHECK_EQUAL (a[1], 1.0f);
@@ -91,14 +91,14 @@ void test_array_view_mutable ()
 
     a[2] = 42.0f;
     OIIO_CHECK_EQUAL (a[2], 42.0f);
-    // array_view<float>::const_iterator i = a.begin();
+    // span<float>::const_iterator i = a.begin();
     // OIIO_CHECK_EQUAL (*i, 0.0f);
     // ++i;  OIIO_CHECK_EQUAL (*i, 1.0f);
 }
 
 
 
-void test_array_view_initlist_called (array_view<const float> a)
+void test_span_initlist_called (cspan<float> a)
 {
     OIIO_CHECK_EQUAL (a.size(), 12);
     OIIO_CHECK_EQUAL (a[0], 0.0f);
@@ -109,20 +109,20 @@ void test_array_view_initlist_called (array_view<const float> a)
 
 
 
-void test_array_view_initlist ()
+void test_span_initlist ()
 {
-    // Exercise the array_view syntax with initializer_list.
-    test_array_view_initlist_called ({ 0.0f, 1.0f, 0.0f, 2.0f, 0.0f, 3.0f, 0.0f, 4.0f, 0.0f, 5.0f, 0.0f, 0.0f });
+    // Exercise the span syntax with initializer_list.
+    test_span_initlist_called ({ 0.0f, 1.0f, 0.0f, 2.0f, 0.0f, 3.0f, 0.0f, 4.0f, 0.0f, 5.0f, 0.0f, 0.0f });
 }
 
 
 
-void test_array_view_vector ()
+void test_span_vector ()
 {
-    // Try the array_view syntax with a view of a std::vector
+    // Try the span syntax with a view of a std::vector
     std::vector<float> arr { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0 };
 
-    array_view<float> a (arr);
+    span<float> a (arr);
     OIIO_CHECK_EQUAL (a.size(), 12);
     OIIO_CHECK_EQUAL (a[0], 0.0f);
     OIIO_CHECK_EQUAL (a[1], 1.0f);
@@ -132,12 +132,12 @@ void test_array_view_vector ()
 
 
 
-void test_array_view_stdarray ()
+void test_span_stdarray ()
 {
-    // Try the array_view syntax with a view of a std::vector
+    // Try the span syntax with a view of a std::vector
     std::array<float,12> arr { {0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 0} };
 
-    array_view<float> a (arr);
+    span<float> a (arr);
     OIIO_CHECK_EQUAL (a.size(), 12);
     OIIO_CHECK_EQUAL (a[0], 0.0f);
     OIIO_CHECK_EQUAL (a[1], 1.0f);
@@ -216,32 +216,32 @@ void test_strided_ptr ()
 
 
 
-void test_array_view_strided ()
+void test_span_strided ()
 {
     static const float A[] = { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5 };
-    array_view_strided<const float> a (&A[1], 5, 2);
+    span_strided<const float> a (&A[1], 5, 2);
     OIIO_CHECK_EQUAL (a.size(), 5);
     OIIO_CHECK_EQUAL (a[0], 1.0f);
     OIIO_CHECK_EQUAL (a[1], 2.0f);
     OIIO_CHECK_EQUAL (a[2], 3.0f);
     OIIO_CHECK_EQUAL (a[3], 4.0f);
-    // array_view_strided<const float>::const_iterator i = a.begin();
+    // span_strided<const float>::const_iterator i = a.begin();
     // OIIO_CHECK_EQUAL (*i, 1.0f);
     // ++i;  OIIO_CHECK_EQUAL (*i, 2.0f);
 }
 
 
 
-void test_array_view_strided_mutable ()
+void test_span_strided_mutable ()
 {
     static float A[] = { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5 };
-    array_view_strided<float> a (&A[1], 5, 2);
+    span_strided<float> a (&A[1], 5, 2);
     OIIO_CHECK_EQUAL (a.size(), 5);
     OIIO_CHECK_EQUAL (a[0], 1.0f);
     OIIO_CHECK_EQUAL (a[1], 2.0f);
     OIIO_CHECK_EQUAL (a[2], 3.0f);
     OIIO_CHECK_EQUAL (a[3], 4.0f);
-    // array_view_strided<float>::iterator i = a.begin();
+    // span_strided<float>::iterator i = a.begin();
     // OIIO_CHECK_EQUAL (*i, 1.0f);
     // ++i;  OIIO_CHECK_EQUAL (*i, 2.0f);
 }
@@ -300,21 +300,21 @@ void test_image_view_mutable ()
 
 int main (int argc, char *argv[])
 {
-    test_array_view ();
-    test_array_view_mutable ();
-    test_array_view_initlist ();
-    test_array_view_vector ();
-    test_array_view_stdarray ();
+    test_span ();
+    test_span_mutable ();
+    test_span_initlist ();
+    test_span_vector ();
+    test_span_stdarray ();
     test_const_strided_ptr ();
     test_strided_ptr ();
-    test_array_view_strided ();
-    test_array_view_strided_mutable ();
+    test_span_strided ();
+    test_span_strided_mutable ();
     test_image_view ();
     test_image_view_mutable ();
 
     // array_view and span should be synonyms
-    OIIO_CHECK_ASSERT ((std::is_same<OIIO::array_view<const float>,
-                                     OIIO::span<const float>>::value));
+    OIIO_CHECK_ASSERT ((std::is_same<OIIO::cspan<float>,
+                                     OIIO::array_view<const float>>::value));
 
     return unit_test_failures;
 }

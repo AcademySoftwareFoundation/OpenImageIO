@@ -91,7 +91,7 @@ mul_impl_deep (ImageBuf &R, const ImageBuf &A, cspan<float> b,
 {
     ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
         // Deep case
-        array_view<const TypeDesc> channeltypes (R.deepdata()->all_channeltypes());
+        cspan<TypeDesc> channeltypes (R.deepdata()->all_channeltypes());
         ImageBuf::Iterator<float> r (R, roi);
         ImageBuf::ConstIterator<float> a (A, roi);
         for ( ;  !r.done();  ++r, ++a) {
