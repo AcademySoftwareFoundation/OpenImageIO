@@ -40,6 +40,7 @@
 #include <thread>
 #include <vector>
 
+#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
 
 

@@ -20,7 +20,7 @@
 //
 // FarmHash, by Geoff Pike
 
-// clang-format off      (imported file)
+// clang-format off
 
 // https://github.com/google/farmhash
 

@@ -36,18 +36,21 @@
 #include <OpenEXR/half.h>
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/ustring.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
+#include <OpenImageIO/ustring.h>
 
 
 OIIO_NAMESPACE_BEGIN
 
-TypeDesc::TypeDesc (string_view typestring)
-    : basetype(UNKNOWN), aggregate(SCALAR), vecsemantics(NOXFORM),
-      reserved(0), arraylen(0)
+TypeDesc::TypeDesc(string_view typestring)
+    : basetype(UNKNOWN)
+    , aggregate(SCALAR)
+    , vecsemantics(NOXFORM)
+    , reserved(0)
+    , arraylen(0)
 {
-    fromstring (typestring);
+    fromstring(typestring);
 }
 
 
@@ -55,81 +58,81 @@ TypeDesc::TypeDesc (string_view typestring)
 namespace {
 
 static int basetype_size[TypeDesc::LASTBASE] = {
-    0, // UNKNOWN
-    0, // VOID
-    sizeof(unsigned char),   // UCHAR
-    sizeof(char),            // CHAR
-    sizeof(unsigned short),  // USHORT
-    sizeof(short),           // SHORT
-    sizeof(unsigned int),    // UINT
-    sizeof(int),             // INT
-    sizeof(unsigned long long), // ULONGLONG
-    sizeof(long long),       // LONGLONG
-    sizeof(float)/2,         // HALF
-    sizeof(float),           // FLOAT
-    sizeof(double),          // DOUBLE
-    sizeof(char *),          // STRING
-    sizeof(void *)           // PTR
+    0,                           // UNKNOWN
+    0,                           // VOID
+    sizeof(unsigned char),       // UCHAR
+    sizeof(char),                // CHAR
+    sizeof(unsigned short),      // USHORT
+    sizeof(short),               // SHORT
+    sizeof(unsigned int),        // UINT
+    sizeof(int),                 // INT
+    sizeof(unsigned long long),  // ULONGLONG
+    sizeof(long long),           // LONGLONG
+    sizeof(float) / 2,           // HALF
+    sizeof(float),               // FLOAT
+    sizeof(double),              // DOUBLE
+    sizeof(char*),               // STRING
+    sizeof(void*)                // PTR
 };
 
 }
 
 size_t
-TypeDesc::basesize () const
+TypeDesc::basesize() const
 {
-    DASSERT (basetype < TypeDesc::LASTBASE);
+    DASSERT(basetype < TypeDesc::LASTBASE);
     return basetype_size[basetype];
 }
 
 
 
 bool
-TypeDesc::is_floating_point () const
+TypeDesc::is_floating_point() const
 {
     static bool isfloat[TypeDesc::LASTBASE] = {
-        0, // UNKNOWN
-        0, // VOID
-        0, // UCHAR
-        0, // CHAR
-        0, // USHORT
-        0, // SHORT
-        0, // UINT
-        0, // INT
-        0, // ULONGLONG
-        0, // LONGLONG
-        1, // HALF
-        1, // FLOAT
-        1, // DOUBLE
-        0, // STRING
-        0  // PTR
+        0,  // UNKNOWN
+        0,  // VOID
+        0,  // UCHAR
+        0,  // CHAR
+        0,  // USHORT
+        0,  // SHORT
+        0,  // UINT
+        0,  // INT
+        0,  // ULONGLONG
+        0,  // LONGLONG
+        1,  // HALF
+        1,  // FLOAT
+        1,  // DOUBLE
+        0,  // STRING
+        0   // PTR
     };
-    DASSERT (basetype < TypeDesc::LASTBASE);
+    DASSERT(basetype < TypeDesc::LASTBASE);
     return isfloat[basetype];
 }
 
 
 
 bool
-TypeDesc::is_signed () const
+TypeDesc::is_signed() const
 {
     static bool issigned[TypeDesc::LASTBASE] = {
-        0, // UNKNOWN
-        0, // VOID
-        0, // UCHAR
-        1, // CHAR
-        0, // USHORT
-        1, // SHORT
-        0, // UINT
-        1, // INT
-        0, // ULONGLONG
-        1, // LONGLONG
-        1, // HALF
-        1, // FLOAT
-        1, // DOUBLE
-        0, // STRING
-        0  // PTR
+        0,  // UNKNOWN
+        0,  // VOID
+        0,  // UCHAR
+        1,  // CHAR
+        0,  // USHORT
+        1,  // SHORT
+        0,  // UINT
+        1,  // INT
+        0,  // ULONGLONG
+        1,  // LONGLONG
+        1,  // HALF
+        1,  // FLOAT
+        1,  // DOUBLE
+        0,  // STRING
+        0   // PTR
     };
-    DASSERT (basetype < TypeDesc::LASTBASE);
+    DASSERT(basetype < TypeDesc::LASTBASE);
     return issigned[basetype];
 }
 
@@ -137,46 +140,46 @@ TypeDesc::is_signed () const
 
 namespace {
 
-static const char * basetype_name[] = {
-    "unknown",         // UNKNOWN
-    "void",            // VOID/NONE
-    "uint8",           // UCHAR
-    "int8",            // CHAR
-    "uint16",          // USHORT
-    "int16",           // SHORT
-    "uint",            // UINT
-    "int",             // INT
-    "uint64",          // ULONGLONG
-    "int64",           // LONGLONG
-    "half",            // HALF
-    "float",           // FLOAT
-    "double",          // DOUBLE
-    "string",          // STRING
-    "pointer"          // PTR
+static const char* basetype_name[] = {
+    "unknown",  // UNKNOWN
+    "void",     // VOID/NONE
+    "uint8",    // UCHAR
+    "int8",     // CHAR
+    "uint16",   // USHORT
+    "int16",    // SHORT
+    "uint",     // UINT
+    "int",      // INT
+    "uint64",   // ULONGLONG
+    "int64",    // LONGLONG
+    "half",     // HALF
+    "float",    // FLOAT
+    "double",   // DOUBLE
+    "string",   // STRING
+    "pointer"   // PTR
 };
 
-static const char * basetype_code[] = {
-    "unknown",      // UNKNOWN
-    "void",         // VOID/NONE
-    "uc",           // UCHAR
-    "c",            // CHAR
-    "us",           // USHORT
-    "s",            // SHORT
-    "ui",           // UINT
-    "i",            // INT
-    "ull",          // ULONGLONG
-    "ll",           // LONGLONG
-    "h",            // HALF
-    "f",            // FLOAT
-    "d",            // DOUBLE
-    "str",          // STRING
-    "ptr"           // PTR
+static const char* basetype_code[] = {
+    "unknown",  // UNKNOWN
+    "void",     // VOID/NONE
+    "uc",       // UCHAR
+    "c",        // CHAR
+    "us",       // USHORT
+    "s",        // SHORT
+    "ui",       // UINT
+    "i",        // INT
+    "ull",      // ULONGLONG
+    "ll",       // LONGLONG
+    "h",        // HALF
+    "f",        // FLOAT
+    "d",        // DOUBLE
+    "str",      // STRING
+    "ptr"       // PTR
 };
 
-}
+}  // namespace
 
-const char *
-TypeDesc::c_str () const
+const char*
+TypeDesc::c_str() const
 {
     // FIXME : how about a per-thread cache of the last one or two, so
     // we don't have to re-assemble strings all the time?
@@ -197,39 +200,39 @@ TypeDesc::c_str () const
     else if (aggregate == VEC4 && basetype == FLOAT && vecsemantics == NOXFORM)
         result = "float4";
     else if (vecsemantics == NOXFORM) {
-        const char *agg = "";
+        const char* agg = "";
         switch (aggregate) {
-        case VEC2 : agg = "vec2"; break;
-        case VEC3 : agg = "vec3"; break;
-        case VEC4 : agg = "vec4"; break;
-        case MATRIX33 : agg = "matrix33"; break;
-        case MATRIX44 : agg = "matrix"; break;
+        case VEC2: agg = "vec2"; break;
+        case VEC3: agg = "vec3"; break;
+        case VEC4: agg = "vec4"; break;
+        case MATRIX33: agg = "matrix33"; break;
+        case MATRIX44: agg = "matrix"; break;
         }
-        result = std::string (agg) + basetype_code[basetype];
+        result = std::string(agg) + basetype_code[basetype];
     } else {
         // Special names for vector semantics
-        const char *vec = "";
+        const char* vec = "";
         switch (vecsemantics) {
-        case COLOR  : vec = "color"; break;
-        case POINT  : vec = "point"; break;
-        case VECTOR : vec = "vector"; break;
-        case NORMAL : vec = "normal"; break;
-        case RATIONAL  : vec = "rational"; break;
-        default: ASSERT (0 && "Invalid vector semantics");
+        case COLOR: vec = "color"; break;
+        case POINT: vec = "point"; break;
+        case VECTOR: vec = "vector"; break;
+        case NORMAL: vec = "normal"; break;
+        case RATIONAL: vec = "rational"; break;
+        default: ASSERT(0 && "Invalid vector semantics");
         }
-        const char *agg = "";
+        const char* agg = "";
         switch (aggregate) {
-        case VEC2 : agg = "2"; break;
-        case VEC4 : agg = "4"; break;
-        case MATRIX33 : agg = "matrix33"; break;
-        case MATRIX44 : agg = "matrix44"; break;
+        case VEC2: agg = "2"; break;
+        case VEC4: agg = "4"; break;
+        case MATRIX33: agg = "matrix33"; break;
+        case MATRIX44: agg = "matrix44"; break;
         }
-        result = std::string (vec) + std::string (agg);
+        result = std::string(vec) + std::string(agg);
         if (basetype != FLOAT)
             result += basetype_code[basetype];
     }
     if (arraylen > 0)
-        result += Strutil::format ("[%d]", arraylen);
+        result += Strutil::format("[%d]", arraylen);
     else if (arraylen < 0)
         result += "[]";
     return ustring(result).c_str();
@@ -238,15 +241,15 @@ TypeDesc::c_str () const
 
 
 // Copy src into dst until you hit the end, find a delimiter charcter,
-// or have copied maxlen-1 characters, whichever comes first.  Add a 
+// or have copied maxlen-1 characters, whichever comes first.  Add a
 // terminating null charcter.  Return the number of characters copied.
 inline size_t
-copy_until (const char *src, const char *delim, char *dst, size_t maxlen)
+copy_until(const char* src, const char* delim, char* dst, size_t maxlen)
 {
     size_t i = 0;
-    while (src[i] && i < maxlen-1) {
+    while (src[i] && i < maxlen - 1) {
         bool found_delim = false;
-        for (int d = 0;  delim[d];  ++d)
+        for (int d = 0; delim[d]; ++d)
             if (src[i] == delim[d])
                 found_delim = true;
         if (found_delim)
@@ -261,20 +264,20 @@ copy_until (const char *src, const char *delim, char *dst, size_t maxlen)
 
 
 size_t
-TypeDesc::fromstring (string_view typestring)
+TypeDesc::fromstring(string_view typestring)
 {
-    *this = TypeDesc::UNKNOWN;
+    *this            = TypeDesc::UNKNOWN;
     string_view orig = typestring;
     if (typestring.empty()) {
         return 0;
     }
 
     // The first "word" should be a type name.
-    string_view type = Strutil::parse_identifier (typestring);
+    string_view type = Strutil::parse_identifier(typestring);
 
     // Check the scalar types in our table above
     TypeDesc t;
-    for (int i = 0;  i < LASTBASE;  ++i) {
+    for (int i = 0; i < LASTBASE; ++i) {
         if (type == basetype_name[i]) {
             t.basetype = i;
             break;
@@ -284,8 +287,7 @@ TypeDesc::fromstring (string_view typestring)
     // Some special case names for aggregates
     if (t.basetype != UNKNOWN) {
         // already solved
-    }
-    else if (type == "color")
+    } else if (type == "color")
         t = TypeColor;
     else if (type == "point")
         t = TypePoint;
@@ -306,11 +308,11 @@ TypeDesc::fromstring (string_view typestring)
     }
 
     // Is there an array length following the type name?
-    if (Strutil::parse_char (typestring, '[')) {
+    if (Strutil::parse_char(typestring, '[')) {
         int arraylen = -1;
-        Strutil::parse_int (typestring, arraylen);
-        if (! Strutil::parse_char (typestring, ']'))
-            return 0;   // malformed
+        Strutil::parse_int(typestring, arraylen);
+        if (!Strutil::parse_char(typestring, ']'))
+            return 0;  // malformed
         t.arraylen = arraylen;
     }
 
@@ -318,12 +320,14 @@ TypeDesc::fromstring (string_view typestring)
     return orig.length() - typestring.length();
 }
 
-    
-    
-template <class T> inline std::string
-sprintt (TypeDesc type, const char *format, const char *aggregate_delim,
-         const char *aggregate_sep, const char *array_delim,
-         const char *array_sep, T *v) {
+
+
+template<class T>
+inline std::string
+sprintt(TypeDesc type, const char* format, const char* aggregate_delim,
+        const char* aggregate_sep, const char* array_delim,
+        const char* array_sep, T* v)
+{
     std::string val;
     if (type.arraylen)
         val += array_delim[0];
@@ -332,7 +336,7 @@ sprintt (TypeDesc type, const char *format, const char *aggregate_delim,
         if (type.aggregate > 1)
             val += aggregate_delim[0];
         for (int j = 0; j < (int)type.aggregate; ++j, ++v) {
-            val += Strutil::format (format, *v);
+            val += Strutil::format(format, *v);
             if (type.aggregate > 1 && j < type.aggregate - 1)
                 val += aggregate_sep;
         }
@@ -348,66 +352,67 @@ sprintt (TypeDesc type, const char *format, const char *aggregate_delim,
 
 
 
-std::string tostring (TypeDesc type, const void *data,
-                      const char *float_fmt, const char *string_fmt,
-                      const char *aggregate_delim, const char *aggregate_sep,
-                      const char *array_delim, const char *array_sep) {
+std::string
+tostring(TypeDesc type, const void* data, const char* float_fmt,
+         const char* string_fmt, const char* aggregate_delim,
+         const char* aggregate_sep, const char* array_delim,
+         const char* array_sep)
+{
     // Perhaps there is a way to use CType<> with a dynamic argument?
     switch (type.basetype) {
-        case TypeDesc::UNKNOWN:
-            return sprintt (type, "%p", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (void **)data);
-        case TypeDesc::NONE:
-            return sprintt (type, "None", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (void **)data);
-        case TypeDesc::UCHAR:
-            return sprintt (type, "%uhh", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (unsigned char *)data);
-        case TypeDesc::CHAR:
-            return sprintt (type, "%dhh", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (char *)data);
-        case TypeDesc::USHORT:
-            return sprintt (type, "%uh", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (unsigned short *)data);
-        case TypeDesc::SHORT:
-            return sprintt (type, "%dh", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (short *)data);
-        case TypeDesc::UINT:
-            return sprintt (type, "%u", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (unsigned int *)data);
-        case TypeDesc::INT:
-            return sprintt (type, "%d", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (int *)data);
-        case TypeDesc::ULONGLONG:
-            return sprintt (type, "%ull", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (unsigned long long *)data);
-        case TypeDesc::LONGLONG:
-            return sprintt (type, "%dll", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (long long *)data);
-        case TypeDesc::HALF:
-            return sprintt (type, float_fmt, aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (half *) data);
-        case TypeDesc::FLOAT:
-            return sprintt (type, float_fmt, aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (float *)data);
-        case TypeDesc::DOUBLE:
-            return sprintt (type, float_fmt, aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (double *)data);
-        case TypeDesc::STRING:
-            return sprintt (type, string_fmt, aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (char **)data);
-        case TypeDesc::PTR:
-            return sprintt (type, "%p", aggregate_delim, aggregate_sep,
-                            array_delim, array_sep, (void **)data);
-        default:
-            return "";
+    case TypeDesc::UNKNOWN:
+        return sprintt(type, "%p", aggregate_delim, aggregate_sep, array_delim,
+                       array_sep, (void**)data);
+    case TypeDesc::NONE:
+        return sprintt(type, "None", aggregate_delim, aggregate_sep,
+                       array_delim, array_sep, (void**)data);
+    case TypeDesc::UCHAR:
+        return sprintt(type, "%uhh", aggregate_delim, aggregate_sep,
+                       array_delim, array_sep, (unsigned char*)data);
+    case TypeDesc::CHAR:
+        return sprintt(type, "%dhh", aggregate_delim, aggregate_sep,
+                       array_delim, array_sep, (char*)data);
+    case TypeDesc::USHORT:
+        return sprintt(type, "%uh", aggregate_delim, aggregate_sep, array_delim,
+                       array_sep, (unsigned short*)data);
+    case TypeDesc::SHORT:
+        return sprintt(type, "%dh", aggregate_delim, aggregate_sep, array_delim,
+                       array_sep, (short*)data);
+    case TypeDesc::UINT:
+        return sprintt(type, "%u", aggregate_delim, aggregate_sep, array_delim,
+                       array_sep, (unsigned int*)data);
+    case TypeDesc::INT:
+        return sprintt(type, "%d", aggregate_delim, aggregate_sep, array_delim,
+                       array_sep, (int*)data);
+    case TypeDesc::ULONGLONG:
+        return sprintt(type, "%ull", aggregate_delim, aggregate_sep,
+                       array_delim, array_sep, (unsigned long long*)data);
+    case TypeDesc::LONGLONG:
+        return sprintt(type, "%dll", aggregate_delim, aggregate_sep,
+                       array_delim, array_sep, (long long*)data);
+    case TypeDesc::HALF:
+        return sprintt(type, float_fmt, aggregate_delim, aggregate_sep,
+                       array_delim, array_sep, (half*)data);
+    case TypeDesc::FLOAT:
+        return sprintt(type, float_fmt, aggregate_delim, aggregate_sep,
+                       array_delim, array_sep, (float*)data);
+    case TypeDesc::DOUBLE:
+        return sprintt(type, float_fmt, aggregate_delim, aggregate_sep,
+                       array_delim, array_sep, (double*)data);
+    case TypeDesc::STRING:
+        return sprintt(type, string_fmt, aggregate_delim, aggregate_sep,
+                       array_delim, array_sep, (char**)data);
+    case TypeDesc::PTR:
+        return sprintt(type, "%p", aggregate_delim, aggregate_sep, array_delim,
+                       array_sep, (void**)data);
+    default: return "";
     }
 }
 
 
 
 bool
-TypeDesc::operator< (const TypeDesc &x) const
+TypeDesc::operator<(const TypeDesc& x) const
 {
     if (basetype != x.basetype)
         return basetype < x.basetype;
@@ -422,21 +427,28 @@ TypeDesc::operator< (const TypeDesc &x) const
 
 
 
-const TypeDesc TypeDesc::TypeFloat (TypeDesc::FLOAT);
-const TypeDesc TypeDesc::TypeColor (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::COLOR);
-const TypeDesc TypeDesc::TypePoint (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::POINT);
-const TypeDesc TypeDesc::TypeVector (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::VECTOR);
-const TypeDesc TypeDesc::TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::NORMAL);
-const TypeDesc TypeDesc::TypeMatrix33 (TypeDesc::FLOAT,TypeDesc::MATRIX33);
-const TypeDesc TypeDesc::TypeMatrix44 (TypeDesc::FLOAT,TypeDesc::MATRIX44);
+const TypeDesc TypeDesc::TypeFloat(TypeDesc::FLOAT);
+const TypeDesc TypeDesc::TypeColor(TypeDesc::FLOAT, TypeDesc::VEC3,
+                                   TypeDesc::COLOR);
+const TypeDesc TypeDesc::TypePoint(TypeDesc::FLOAT, TypeDesc::VEC3,
+                                   TypeDesc::POINT);
+const TypeDesc TypeDesc::TypeVector(TypeDesc::FLOAT, TypeDesc::VEC3,
+                                    TypeDesc::VECTOR);
+const TypeDesc TypeDesc::TypeNormal(TypeDesc::FLOAT, TypeDesc::VEC3,
+                                    TypeDesc::NORMAL);
+const TypeDesc TypeDesc::TypeMatrix33(TypeDesc::FLOAT, TypeDesc::MATRIX33);
+const TypeDesc TypeDesc::TypeMatrix44(TypeDesc::FLOAT, TypeDesc::MATRIX44);
 const TypeDesc TypeDesc::TypeMatrix = TypeDesc::TypeMatrix44;
-const TypeDesc TypeDesc::TypeString (TypeDesc::STRING);
-const TypeDesc TypeDesc::TypeInt (TypeDesc::INT);
-const TypeDesc TypeDesc::TypeHalf (TypeDesc::HALF);
-const TypeDesc TypeDesc::TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
-const TypeDesc TypeDesc::TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
-const TypeDesc TypeDesc::TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
-const TypeDesc TypeDesc::TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
+const TypeDesc TypeDesc::TypeString(TypeDesc::STRING);
+const TypeDesc TypeDesc::TypeInt(TypeDesc::INT);
+const TypeDesc TypeDesc::TypeHalf(TypeDesc::HALF);
+const TypeDesc TypeDesc::TypeTimeCode(TypeDesc::UINT, TypeDesc::SCALAR,
+                                      TypeDesc::TIMECODE, 2);
+const TypeDesc TypeDesc::TypeKeyCode(TypeDesc::INT, TypeDesc::SCALAR,
+                                     TypeDesc::KEYCODE, 7);
+const TypeDesc TypeDesc::TypeFloat4(TypeDesc::FLOAT, TypeDesc::VEC4);
+const TypeDesc TypeDesc::TypeRational(TypeDesc::INT, TypeDesc::VEC2,
+                                      TypeDesc::RATIONAL);
 
 
 OIIO_NAMESPACE_END

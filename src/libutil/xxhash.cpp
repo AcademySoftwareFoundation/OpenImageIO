@@ -1,3 +1,4 @@
+// clang-format off
 /*
 xxHash - Fast Hash algorithm
 Copyright (C) 2012-2014, Yann Collet.
@@ -30,7 +31,6 @@ You can contact the author at :
 - xxHash source repository : https://github.com/Cyan4973/xxHash
 - public discussion board : https://groups.google.com/forum/#!forum/lz4c
 */
-
 
 //**************************************
 // Tuning parameters

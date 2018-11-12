@@ -1,15 +1,17 @@
-#include <cstdio>      /* defines printf for tests */
-#include <ctime>       /* defines time_t for timings in the test */
+// clang-format off
+
+#include <cstdio> /* defines printf for tests */
+#include <ctime>  /* defines time_t for timings in the test */
 #if defined(__linux__) || defined(__APPLE__)
-# include <sys/param.h>  /* attempt to define endianness */
+#    include <sys/param.h> /* attempt to define endianness */
 #endif
 #ifdef __linux__
-# include <endian.h>    /* attempt to define endianness */
+#    include <endian.h> /* attempt to define endianness */
 #endif
 
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
+#include <OpenImageIO/platform.h>
 
 OIIO_NAMESPACE_BEGIN
 

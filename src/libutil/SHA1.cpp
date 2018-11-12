@@ -7,7 +7,7 @@
 */
 
 // If compiling with MFC, you might want to add #include "StdAfx.h"
-// clang-format off      (imported file)
+// clang-format off
 
 #include <OpenImageIO/SHA1.h>
 #include <OpenImageIO/hash.h>
