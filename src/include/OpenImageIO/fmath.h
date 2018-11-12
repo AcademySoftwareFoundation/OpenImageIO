@@ -41,6 +41,8 @@
 */
 
 
+// clang-format off
+
 /// \file
 ///
 /// A variety of floating-point math helper routines (and, slight
@@ -51,19 +53,18 @@
 #pragma once
 #define OIIO_FMATH_H 1
 
+#include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <typeinfo>
-#include <algorithm>
-#include <cstring>
-#include <cmath>
 
-#include <OpenImageIO/oiioversion.h>
-#include <OpenImageIO/platform.h>
+#include <OpenImageIO/array_view.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/missing_math.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/simd.h>
-#include <OpenImageIO/array_view.h>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -88,12 +89,12 @@ template<typename T> struct is_same<T,T> { static const bool value = true; };
 ///
 template<typename T>
 inline OIIO_HOSTDEVICE bool
-ispow2 (T x)
+ispow2(T x)
 {
     // Numerous references for this bit trick are on the web.  The
     // principle is that x is a power of 2 <=> x == 1<<b <=> x-1 is
     // all 1 bits for bits < b.
-    return (x & (x-1)) == 0 && (x >= 0);
+    return (x & (x - 1)) == 0 && (x >= 0);
 }
 
 
@@ -101,7 +102,7 @@ ispow2 (T x)
 /// Round up to next higher power of 2 (return x if it's already a power
 /// of 2).
 inline OIIO_HOSTDEVICE int
-pow2roundup (int x)
+pow2roundup(int x)
 {
     // Here's a version with no loops.
     if (x < 0)
@@ -116,7 +117,7 @@ pow2roundup (int x)
     x |= x >> 8;
     x |= x >> 16;
     // Now we have 2^n-1, by adding 1, we make it a power of 2 again
-    return x+1;
+    return x + 1;
 }
 
 
@@ -124,7 +125,7 @@ pow2roundup (int x)
 /// Round down to next lower power of 2 (return x if it's already a power
 /// of 2).
 inline OIIO_HOSTDEVICE int
-pow2rounddown (int x)
+pow2rounddown(int x)
 {
     // Make all bits past the first 1 also be 1, i.e. 0001xxxx -> 00011111
     x |= x >> 1;
@@ -155,10 +156,10 @@ inline OIIO_HOSTDEVICE V round_to_multiple (V value, M multiple)
 // integer type.
 template<typename T>
 inline OIIO_HOSTDEVICE T
-round_to_multiple_of_pow2 (T x, T m)
+round_to_multiple_of_pow2(T x, T m)
 {
-    DASSERT (ispow2 (m));
-    return (x + m - 1) & (~(m-1));
+    DASSERT(ispow2(m));
+    return (x + m - 1) & (~(m - 1));
 }
 
 
@@ -166,10 +167,10 @@ round_to_multiple_of_pow2 (T x, T m)
 /// Multiply two unsigned 32-bit ints safely, carefully checking for
 /// overflow, and clamping to uint32_t's maximum value.
 inline OIIO_HOSTDEVICE uint32_t
-clamped_mult32 (uint32_t a, uint32_t b)
+clamped_mult32(uint32_t a, uint32_t b)
 {
     const uint32_t Err = std::numeric_limits<uint32_t>::max();
-    uint64_t r = (uint64_t)a * (uint64_t)b;   // Multiply into a bigger int
+    uint64_t r = (uint64_t)a * (uint64_t)b;  // Multiply into a bigger int
     return r < Err ? (uint32_t)r : Err;
 }
 
@@ -178,10 +179,10 @@ clamped_mult32 (uint32_t a, uint32_t b)
 /// Multiply two unsigned 64-bit ints safely, carefully checking for
 /// overflow, and clamping to uint64_t's maximum value.
 inline OIIO_HOSTDEVICE uint64_t
-clamped_mult64 (uint64_t a, uint64_t b)
+clamped_mult64(uint64_t a, uint64_t b)
 {
-    uint64_t ab = a*b;
-    if (b && ab/b != a)
+    uint64_t ab = a * b;
+    if (b && ab / b != a)
         return std::numeric_limits<uint64_t>::max();
     else
         return ab;
@@ -190,23 +191,26 @@ clamped_mult64 (uint64_t a, uint64_t b)
 
 
 /// Bitwise circular rotation left by k bits (for 32 bit unsigned integers)
-OIIO_FORCEINLINE OIIO_HOSTDEVICE uint32_t rotl32 (uint32_t x, int k) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE uint32_t
+rotl32(uint32_t x, int k)
+{
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 320
-    return __funnelshift_lc(x, x,  k);
+    return __funnelshift_lc(x, x, k);
 #else
-    return (x<<k) | (x>>(32-k));
+    return (x << k) | (x >> (32 - k));
 #endif
 }
 
 /// Bitwise circular rotation left by k bits (for 64 bit unsigned integers)
-OIIO_FORCEINLINE OIIO_HOSTDEVICE uint64_t rotl64 (uint64_t x, int k) {
-    return (x<<k) | (x>>(64-k));
+OIIO_FORCEINLINE OIIO_HOSTDEVICE uint64_t
+rotl64(uint64_t x, int k)
+{
+    return (x << k) | (x >> (64 - k));
 }
 
 
 // (end of integer helper functions)
 ////////////////////////////////////////////////////////////////////////////
-
 
 
 
@@ -615,14 +619,14 @@ template<> struct big_enough_float<double>       { typedef double float_t; };
 /// templates, it probably has no other use.
 template<typename S, typename D, typename F>
 inline OIIO_HOSTDEVICE D
-scaled_conversion (const S &src, F scale, F min, F max)
+scaled_conversion(const S& src, F scale, F min, F max)
 {
     if (std::numeric_limits<S>::is_signed) {
         F s = src * scale;
         s += (s < 0 ? (F)-0.5 : (F)0.5);
-        return (D) clamp (s, min, max);
+        return (D)clamp(s, min, max);
     } else {
-        return (D) clamp ((F)src * scale + (F)0.5, min, max);
+        return (D)clamp((F)src * scale + (F)0.5, min, max);
     }
 }
 

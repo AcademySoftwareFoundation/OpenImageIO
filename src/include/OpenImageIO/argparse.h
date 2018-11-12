@@ -33,14 +33,12 @@
 /// \file
 /// \brief Simple parsing of program command-line arguments.
 
-
-#ifndef OPENIMAGEIO_ARGPARSE_H
-#define OPENIMAGEIO_ARGPARSE_H
+#pragma once
 
 #if defined(_MSC_VER)
 // Ignore warnings about DLL exported classes with member variables that are template classes.
 // This happens with the std::string m_errmessage member of ArgParse below.
-#  pragma warning (disable : 4251)
+#    pragma warning(disable : 4251)
 #endif
 
 #include <functional>
@@ -55,7 +53,7 @@
 OIIO_NAMESPACE_BEGIN
 
 
-class ArgOption;   // Forward declaration
+class ArgOption;  // Forward declaration
 
 
 
@@ -81,7 +79,7 @@ class ArgOption;   // Forward declaration
 ///        std::cout << "blah argument was " << argv[1] << "\n";
 ///        return 0;
 ///    }
-/// 
+///
 ///    ...
 ///
 ///    ArgParse ap;
@@ -121,7 +119,7 @@ class ArgOption;   // Forward declaration
 ///    - \%@ - a function pointer for a callback function will be invoked
 ///            immediately.  The prototype for the callback is
 ///                  int callback (int argc, char *argv[])
-///    - \%* - catch all non-options and pass individually as an (argc,argv) 
+///    - \%* - catch all non-options and pass individually as an (argc,argv)
 ///            sublist to a callback, each immediately after it's found
 ///
 /// There are several special format tokens:
@@ -145,8 +143,8 @@ class ArgOption;   // Forward declaration
 
 class OIIO_API ArgParse {
 public:
-    ArgParse (int argc=0, const char **argv=NULL);
-    ~ArgParse ();
+    ArgParse(int argc = 0, const char** argv = NULL);
+    ~ArgParse();
 
     /// Declare the command line options.  After the introductory
     /// message, parameters are a set of format strings and variable
@@ -156,42 +154,42 @@ public:
     /// list of pointers to the argument variables, just like scanf.  A
     /// NULL terminates the list.  Multiple calls to options() will
     /// append additional options.
-    int options (const char *intro, ...);
+    int options(const char* intro, ...);
 
     /// With the options already set up, parse the command line.
     /// Return 0 if ok, -1 if it's a malformed command line.
-    int parse (int argc, const char **argv);
+    int parse(int argc, const char** argv);
 
     /// Return any error messages generated during the course of parse()
     /// (and clear any error flags).  If no error has occurred since the
     /// last time geterror() was called, it will return an empty string.
-    std::string geterror () const;
+    std::string geterror() const;
 
     /// Print the usage message to stdout.  The usage message is
     /// generated and formatted automatically based on the command and
     /// description arguments passed to parse().
-    void usage () const;
+    void usage() const;
 
     /// Print a brief usage message to stdout.  The usage message is
     /// generated and formatted automatically based on the command and
     /// description arguments passed to parse().
-    void briefusage () const;
+    void briefusage() const;
 
     /// Return the entire command-line as one string.
     ///
-    std::string command_line () const;
+    std::string command_line() const;
 
     // Type for a callback that writes something to the output stream.
     typedef std::function<void(const ArgParse& ap, std::ostream&)> callback_t;
 
     // Set callbacks to run that will print any matter you want as part
     // of the verbose usage, before and after the options are detailed.
-    void set_preoption_help (callback_t callback);
-    void set_postoption_help (callback_t callback);
+    void set_preoption_help(callback_t callback);
+    void set_postoption_help(callback_t callback);
 
 private:
     class Impl;
-    std::unique_ptr<Impl> m_impl;   // PIMPL pattern
+    std::unique_ptr<Impl> m_impl;  // PIMPL pattern
 };
 
 
@@ -202,6 +200,3 @@ private:
 
 
 OIIO_NAMESPACE_END
-
-
-#endif // OPENIMAGEIO_ARGPARSE_H

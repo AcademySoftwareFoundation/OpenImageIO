@@ -28,17 +28,17 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
 
 /// \file
 /// An API for accessing images via a system that
 /// automatically manages a cache of resident image data.
 
 
-#ifndef OPENIMAGEIO_IMAGECACHE_H
-#define OPENIMAGEIO_IMAGECACHE_H
+#pragma once
 
-#include <OpenImageIO/ustring.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/ustring.h>
 
 
 // Define symbols that let client applications determine if newly added
@@ -56,8 +56,7 @@ namespace pvt {
 class ImageCacheImpl;
 class ImageCacheFile;
 class ImageCachePerThreadInfo;
-};
-
+};  // namespace pvt
 
 
 
@@ -73,17 +72,17 @@ public:
     /// If shared==true, it's intended to be shared with other like-minded
     /// owners in the same process who also ask for a shared cache.  If
     /// false, a private image cache will be created.
-    static ImageCache *create (bool shared=true);
+    static ImageCache* create(bool shared = true);
 
     /// Destroy an ImageCache that was created using ImageCache::create(),
     /// unless it's recognized that this is the global "shared" ImageCache,
     /// in which case it will stay active.
     /// However, if 'teardown' is true, it will fully destroy the IC even
     /// if it's the shared one (use with caution).
-    static void destroy (ImageCache * x, bool teardown = false);
+    static void destroy(ImageCache* x, bool teardown = false);
 
-    ImageCache (void) { }
-    virtual ~ImageCache () { }
+    ImageCache(void) {}
+    virtual ~ImageCache() {}
 
     /// Set an attribute controlling the image cache.  Return true
     /// if the name and type were recognized and the attrib was set.
@@ -154,14 +153,14 @@ public:
     /// but passing in their managed pointer. If the passed-in thread_info
     /// is not NULL, it won't create a new one or retrieve a TSP, but it
     /// will do other necessary housekeeping on the Perthread information.
-    virtual Perthread * get_perthread_info (Perthread *thread_info = NULL) = 0;
+    virtual Perthread* get_perthread_info(Perthread* thread_info = NULL) = 0;
 
     /// Create a new Perthread. It is the caller's responsibility to
     /// eventually destroy it using destroy_thread_info().
-    virtual Perthread * create_thread_info () = 0;
+    virtual Perthread* create_thread_info() = 0;
 
     /// Destroy a Perthread that was allocated by create_thread_info().
-    virtual void destroy_thread_info (Perthread *thread_info) = 0;
+    virtual void destroy_thread_info(Perthread* thread_info) = 0;
 
     /// Define an opaque data type that allows us to have a handle to an
     /// image (already having its name resolved) but without exposing
@@ -177,11 +176,11 @@ public:
 
     /// Return true if the image handle (previously returned by
     /// get_image_handle()) is a valid image that can be subsequently read.
-    virtual bool good (ImageHandle *file) = 0;
+    virtual bool good(ImageHandle* file) = 0;
 
     /// Given possibly-relative 'filename', resolve it using the search
     /// path rules and return the full resolved filename.
-    virtual std::string resolve_filename (const std::string &filename) const=0;
+    virtual std::string resolve_filename(const std::string& filename) const = 0;
 
     /// Get information about the named image.  Return true if found
     /// and the data has been put in *data.  Return false if the image
@@ -305,26 +304,26 @@ public:
 
     /// After finishing with a tile, release_tile will allow it to
     /// once again be purged from the tile cache if required.
-    virtual void release_tile (Tile *tile) const = 0;
+    virtual void release_tile(Tile* tile) const = 0;
 
     /// Retrieve the data type of the pixels stored in the tile, which may
     /// be different than the type of the pixels in the disk file.
-    virtual TypeDesc tile_format (const Tile *tile) const = 0;
+    virtual TypeDesc tile_format(const Tile* tile) const = 0;
 
     /// Retrieve the ROI describing the pixels and channels stored in the
     /// tile.
-    virtual ROI tile_roi (const Tile *tile) const = 0;
+    virtual ROI tile_roi(const Tile* tile) const = 0;
 
     /// For a tile retrived by get_tile(), return a pointer to the
     /// pixel data itself, and also store in 'format' the data type that
     /// the pixels are internally stored in (which may be different than
     /// the data type of the pixels in the disk file).
-    virtual const void * tile_pixels (Tile *tile, TypeDesc &format) const = 0;
+    virtual const void* tile_pixels(Tile* tile, TypeDesc& format) const = 0;
 
     /// The add_file() call causes a file to be opened or added to the
     /// cache. There is no reason to use this method unless you are
     /// supplying a custom creator, or configuration, or both.
-    /// 
+    ///
     /// If creator is not NULL, it points to an ImageInput::Creator that
     /// will be used rather than the default ImageInput::create(), thus
     /// instead of reading from disk, creates and uses a custom ImageInput
@@ -336,12 +335,12 @@ public:
     /// images, among other things.  Also, this is the method you use to set
     /// up a "writeable" ImageCache images (perhaps with a type of
     /// ImageInput that's just a stub that does as little as possible).
-    /// 
+    ///
     /// If config is not NULL, it points to an ImageSpec with configuration
     /// options/hints that will be passed to the underlying
     /// ImageInput::open() call. Thus, this can be used to ensure that the
     /// ImageCache opens a call with special configuration options.
-    /// 
+    ///
     /// This call (including any custom creator or configuration hints) will
     /// have no effect if there's already an image by the same name in the
     /// cache. Custom creators or configurations only "work" the FIRST time
@@ -373,18 +372,18 @@ public:
     /// this routine will return the error string (and clear any error
     /// flags).  If no error has occurred since the last time geterror()
     /// was called, it will return an empty string.
-    virtual std::string geterror () const = 0;
+    virtual std::string geterror() const = 0;
 
     /// Return the statistics output as a huge string.
     ///
-    virtual std::string getstats (int level=1) const = 0;
+    virtual std::string getstats(int level = 1) const = 0;
 
     /// Reset most statistics to be as they were with a fresh
     /// ImageCache.  Caveat emptor: this does not flush the cache itelf,
     /// so the resulting statistics from the next set of texture
     /// requests will not match the number of tile reads, etc., that
     /// would have resulted from a new ImageCache.
-    virtual void reset_stats () = 0;
+    virtual void reset_stats() = 0;
 
     /// Invalidate any loaded tiles or open file handles associated with
     /// the filename, so that any subsequent queries will be forced to
@@ -396,7 +395,7 @@ public:
     /// reference-counted tile pointers from the named image, but those
     /// procedures will not get updated pixels until they release the
     /// tiles they are holding.
-    virtual void invalidate (ustring filename) = 0;
+    virtual void invalidate(ustring filename) = 0;
 
     /// Invalidate all loaded tiles and open file handles.  This is safe
     /// to do even if other procedures are currently holding
@@ -407,7 +406,7 @@ public:
     /// false, in actuality files will only be invalidated if their
     /// modification times have been changed since they were first
     /// opened.
-    virtual void invalidate_all (bool force=false) = 0;
+    virtual void invalidate_all(bool force = false) = 0;
 
     /// Close any open file handles associated with a named file, or for all
     /// files, but do not invalidate any image spec information or pixels
@@ -420,10 +419,8 @@ public:
 private:
     // Make delete private and unimplemented in order to prevent apps
     // from calling it.  Instead, they should call ImageCache::destroy().
-    void operator delete (void * /*todel*/) { }
+    void operator delete(void* /*todel*/) {}
 };
 
 
 OIIO_NAMESPACE_END
-
-#endif // OPENIMAGEIO_IMAGECACHE_H

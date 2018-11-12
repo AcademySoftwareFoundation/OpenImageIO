@@ -3,20 +3,21 @@
 // BSD 3-clause license:
 //  https://github.com/OpenImageIO/oiio/blob/master/LICENSE
 
+// clang-format off
 
 #pragma once
 
 #include <array>
-#include <vector>
-#include <stdexcept>
-#include <iostream>
 #include <cstddef>
 #include <initializer_list>
+#include <iostream>
+#include <stdexcept>
 #include <type_traits>
+#include <vector>
 
+#include <OpenImageIO/dassert.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
-#include <OpenImageIO/dassert.h>
 
 OIIO_NAMESPACE_BEGIN
 

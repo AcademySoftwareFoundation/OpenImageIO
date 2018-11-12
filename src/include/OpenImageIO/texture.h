@@ -28,20 +28,19 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
 
 /// \file
 /// An API for accessing filtered texture lookups via a system that
 /// automatically manages a cache of resident texture.
 
+#pragma once
 
-#ifndef OPENIMAGEIO_TEXTURE_H
-#define OPENIMAGEIO_TEXTURE_H
-
-#include <OpenImageIO/varyingref.h>
-#include <OpenImageIO/ustring.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/ustring.h>
+#include <OpenImageIO/varyingref.h>
 
-#include <OpenEXR/ImathVec.h>       /* because we need V3f */
+#include <OpenEXR/ImathVec.h> /* because we need V3f */
 
 
 // Define symbols that let client applications determine if newly added
@@ -64,19 +63,26 @@ class TextureSystemImpl;
 // Used internally by TextureSystem.  Unfortunately, this is the only
 // clean place to store it.  Sorry, users, this isn't really for you.
 enum TexFormat {
-    TexFormatUnknown, TexFormatTexture, TexFormatTexture3d,
-    TexFormatShadow, TexFormatCubeFaceShadow, TexFormatVolumeShadow,
-    TexFormatLatLongEnv, TexFormatCubeFaceEnv,
+    TexFormatUnknown,
+    TexFormatTexture,
+    TexFormatTexture3d,
+    TexFormatShadow,
+    TexFormatCubeFaceShadow,
+    TexFormatVolumeShadow,
+    TexFormatLatLongEnv,
+    TexFormatCubeFaceEnv,
     TexFormatLast
 };
 
 enum EnvLayout {
-    LayoutTexture=0 /* ordinary texture - no special env wrap */,
-    LayoutLatLong, LayoutCubeThreeByTwo, LayoutCubeOneBySix, EnvLayoutLast
+    LayoutTexture = 0 /* ordinary texture - no special env wrap */,
+    LayoutLatLong,
+    LayoutCubeThreeByTwo,
+    LayoutCubeOneBySix,
+    EnvLayoutLast
 };
 
-} // pvt namespace
-
+}  // namespace pvt
 
 
 
@@ -85,14 +91,14 @@ namespace Tex {
 /// Wrap mode describes what happens when texture coordinates describe
 /// a value outside the usual [0,1] range where a texture is defined.
 enum class Wrap {
-    Default,        ///< Use the default found in the file
-    Black,          ///< Black outside [0..1]
-    Clamp,          ///< Clamp to [0..1]
-    Periodic,       ///< Periodic mod 1
-    Mirror,         ///< Mirror the image
-    PeriodicPow2,   ///< Periodic, but only for powers of 2!!!
+    Default,               ///< Use the default found in the file
+    Black,                 ///< Black outside [0..1]
+    Clamp,                 ///< Clamp to [0..1]
+    Periodic,              ///< Periodic mod 1
+    Mirror,                ///< Mirror the image
+    PeriodicPow2,          ///< Periodic, but only for powers of 2!!!
     PeriodicSharedBorder,  ///< Periodic with shared border (env)
-    Last            ///< Mark the end -- don't use this!
+    Last                   ///< Mark the end -- don't use this!
 };
 
 /// Utility: Return the Wrap enum corresponding to a wrap name:
@@ -110,11 +116,11 @@ OIIO_API void parse_wrapmodes (const char *wrapmodes,
 /// Mip mode determines if/how we use mipmaps
 ///
 enum class MipMode {
-    Default,      ///< Default high-quality lookup
-    NoMIP,        ///< Just use highest-res image, no MIP mapping
-    OneLevel,     ///< Use just one mipmap level
-    Trilinear,    ///< Use two MIPmap levels (trilinear)
-    Aniso         ///< Use two MIPmap levels w/ anisotropic
+    Default,    ///< Default high-quality lookup
+    NoMIP,      ///< Just use highest-res image, no MIP mapping
+    OneLevel,   ///< Use just one mipmap level
+    Trilinear,  ///< Use two MIPmap levels (trilinear)
+    Aniso       ///< Use two MIPmap levels w/ anisotropic
 };
 
 /// Interp mode determines how we sample within a mipmap level
@@ -130,14 +136,14 @@ enum class InterpMode {
 /// Fixed width for SIMD batching texture lookups.
 /// May be changed for experimentation or future expansion.
 #ifndef OIIO_TEXTURE_SIMD_BATCH_WIDTH
-#define OIIO_TEXTURE_SIMD_BATCH_WIDTH 16
+#    define OIIO_TEXTURE_SIMD_BATCH_WIDTH 16
 #endif
 
 static constexpr int BatchWidth = OIIO_TEXTURE_SIMD_BATCH_WIDTH;
 static constexpr int BatchAlign = BatchWidth * sizeof(float);
 
-typedef simd::VecType<float,OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type FloatWide;
-typedef simd::VecType<int,OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type IntWide;
+typedef simd::VecType<float, OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type FloatWide;
+typedef simd::VecType<int, OIIO_TEXTURE_SIMD_BATCH_WIDTH>::type IntWide;
 typedef uint64_t RunMask;
 
 #if OIIO_TEXTURE_SIMD_BATCH_WIDTH == 4
@@ -151,7 +157,7 @@ static constexpr RunMask RunMaskOn = 0xffffffff;
 #elif OIIO_TEXTURE_SIMD_BATCH_WIDTH == 64
 static constexpr RunMask RunMaskOn = 0xffffffffffffffffULL;
 #else
-# error "Not a valid OIIO_TEXTURE_SIMD_BATCH_WIDTH choice"
+#    error "Not a valid OIIO_TEXTURE_SIMD_BATCH_WIDTH choice"
 #endif
 
 }  // namespace Tex
@@ -180,24 +186,24 @@ public:
     /// Wrap mode describes what happens when texture coordinates describe
     /// a value outside the usual [0,1] range where a texture is defined.
     enum Wrap {
-        WrapDefault,        ///< Use the default found in the file
-        WrapBlack,          ///< Black outside [0..1]
-        WrapClamp,          ///< Clamp to [0..1]
-        WrapPeriodic,       ///< Periodic mod 1
-        WrapMirror,         ///< Mirror the image
-        WrapPeriodicPow2,   ///< Periodic, but only for powers of 2!!!
+        WrapDefault,               ///< Use the default found in the file
+        WrapBlack,                 ///< Black outside [0..1]
+        WrapClamp,                 ///< Clamp to [0..1]
+        WrapPeriodic,              ///< Periodic mod 1
+        WrapMirror,                ///< Mirror the image
+        WrapPeriodicPow2,          ///< Periodic, but only for powers of 2!!!
         WrapPeriodicSharedBorder,  ///< Periodic with shared border (env)
-        WrapLast            ///< Mark the end -- don't use this!
+        WrapLast                   ///< Mark the end -- don't use this!
     };
 
     /// Mip mode determines if/how we use mipmaps
     ///
     enum MipMode {
-        MipModeDefault,      ///< Default high-quality lookup
-        MipModeNoMIP,        ///< Just use highest-res image, no MIP mapping
-        MipModeOneLevel,     ///< Use just one mipmap level
-        MipModeTrilinear,    ///< Use two MIPmap levels (trilinear)
-        MipModeAniso         ///< Use two MIPmap levels w/ anisotropic
+        MipModeDefault,    ///< Default high-quality lookup
+        MipModeNoMIP,      ///< Just use highest-res image, no MIP mapping
+        MipModeOneLevel,   ///< Use just one mipmap level
+        MipModeTrilinear,  ///< Use two MIPmap levels (trilinear)
+        MipModeAniso       ///< Use two MIPmap levels w/ anisotropic
     };
 
     /// Interp mode determines how we sample within a mipmap level
@@ -228,54 +234,56 @@ public:
 
     /// Convert a TextureOptions for one index into a TextureOpt.
     ///
-    TextureOpt (const TextureOptions &opt, int index);
+    TextureOpt(const TextureOptions& opt, int index);
 
-    int firstchannel;         ///< First channel of the lookup
-    int subimage;             ///< Subimage or face ID
-    ustring subimagename;     ///< Subimage name
-    Wrap swrap;               ///< Wrap mode in the s direction
-    Wrap twrap;               ///< Wrap mode in the t direction
-    MipMode mipmode;          ///< Mip mode
-    InterpMode interpmode;    ///< Interpolation mode
-    int anisotropic;          ///< Maximum anisotropic ratio
-    bool conservative_filter; ///< True == over-blur rather than alias
-    float sblur, tblur;       ///< Blur amount
-    float swidth, twidth;     ///< Multiplier for derivatives
-    float fill;               ///< Fill value for missing channels
-    const float *missingcolor;///< Color for missing texture
-    float time;               ///< Time (for time-dependent texture lookups)
-    float bias;               ///< Bias for shadows
-    int   samples;            ///< Number of samples for shadows
+    int firstchannel;           ///< First channel of the lookup
+    int subimage;               ///< Subimage or face ID
+    ustring subimagename;       ///< Subimage name
+    Wrap swrap;                 ///< Wrap mode in the s direction
+    Wrap twrap;                 ///< Wrap mode in the t direction
+    MipMode mipmode;            ///< Mip mode
+    InterpMode interpmode;      ///< Interpolation mode
+    int anisotropic;            ///< Maximum anisotropic ratio
+    bool conservative_filter;   ///< True == over-blur rather than alias
+    float sblur, tblur;         ///< Blur amount
+    float swidth, twidth;       ///< Multiplier for derivatives
+    float fill;                 ///< Fill value for missing channels
+    const float* missingcolor;  ///< Color for missing texture
+    float time;                 ///< Time (for time-dependent texture lookups)
+    float bias;                 ///< Bias for shadows
+    int samples;                ///< Number of samples for shadows
 
     // For 3D volume texture lookups only:
-    Wrap rwrap;               ///< Wrap mode in the r direction
-    float rblur;              ///< Blur amount in the r direction
-    float rwidth;             ///< Multiplier for derivatives in r direction
+    Wrap rwrap;    ///< Wrap mode in the r direction
+    float rblur;   ///< Blur amount in the r direction
+    float rwidth;  ///< Multiplier for derivatives in r direction
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
-    static Wrap decode_wrapmode (const char *name) {
-        return (Wrap) Tex::decode_wrapmode(name);
+    static Wrap decode_wrapmode(const char* name)
+    {
+        return (Wrap)Tex::decode_wrapmode(name);
     }
-    static Wrap decode_wrapmode (ustring name) {
-        return (Wrap) Tex::decode_wrapmode(name);
+    static Wrap decode_wrapmode(ustring name)
+    {
+        return (Wrap)Tex::decode_wrapmode(name);
     }
 
     /// Utility: Parse a single wrap mode (e.g., "periodic") or a
     /// comma-separated wrap modes string (e.g., "black,clamp") into
     /// separate Wrap enums for s and t.
-    static void parse_wrapmodes (const char *wrapmodes,
-                                 TextureOpt::Wrap &swrapcode,
-                                 TextureOpt::Wrap &twrapcode) {
-        Tex::parse_wrapmodes (wrapmodes,
-                              *(Tex::Wrap *)&swrapcode,
-                              *(Tex::Wrap *)&twrapcode);
+    static void parse_wrapmodes(const char* wrapmodes,
+                                TextureOpt::Wrap& swrapcode,
+                                TextureOpt::Wrap& twrapcode)
+    {
+        Tex::parse_wrapmodes(wrapmodes, *(Tex::Wrap*)&swrapcode,
+                             *(Tex::Wrap*)&twrapcode);
     }
 
 private:
     // Options set INTERNALLY by libtexture after the options are passed
     // by the user.  Users should not attempt to alter these!
-    int envlayout;    // Layout for environment wrap
+    int envlayout;  // Layout for environment wrap
     friend class pvt::TextureSystemImpl;
 };
 
@@ -333,24 +341,24 @@ public:
     /// Wrap mode describes what happens when texture coordinates describe
     /// a value outside the usual [0,1] range where a texture is defined.
     enum Wrap {
-        WrapDefault,        ///< Use the default found in the file
-        WrapBlack,          ///< Black outside [0..1]
-        WrapClamp,          ///< Clamp to [0..1]
-        WrapPeriodic,       ///< Periodic mod 1
-        WrapMirror,         ///< Mirror the image
-        WrapPeriodicPow2,   ///< Periodic, but only for powers of 2!!!
+        WrapDefault,               ///< Use the default found in the file
+        WrapBlack,                 ///< Black outside [0..1]
+        WrapClamp,                 ///< Clamp to [0..1]
+        WrapPeriodic,              ///< Periodic mod 1
+        WrapMirror,                ///< Mirror the image
+        WrapPeriodicPow2,          ///< Periodic, but only for powers of 2!!!
         WrapPeriodicSharedBorder,  ///< Periodic with shared border (env)
-        WrapLast            ///< Mark the end -- don't use this!
+        WrapLast                   ///< Mark the end -- don't use this!
     };
 
     /// Mip mode determines if/how we use mipmaps
     ///
     enum MipMode {
-        MipModeDefault,      ///< Default high-quality lookup
-        MipModeNoMIP,        ///< Just use highest-res image, no MIP mapping
-        MipModeOneLevel,     ///< Use just one mipmap level
-        MipModeTrilinear,    ///< Use two MIPmap levels (trilinear)
-        MipModeAniso         ///< Use two MIPmap levels w/ anisotropic
+        MipModeDefault,    ///< Default high-quality lookup
+        MipModeNoMIP,      ///< Just use highest-res image, no MIP mapping
+        MipModeOneLevel,   ///< Use just one mipmap level
+        MipModeTrilinear,  ///< Use two MIPmap levels (trilinear)
+        MipModeAniso       ///< Use two MIPmap levels w/ anisotropic
     };
 
     /// Interp mode determines how we sample within a mipmap level
@@ -364,31 +372,31 @@ public:
 
     /// Create a TextureOptions with all fields initialized to reasonable
     /// defaults.
-    TextureOptions ();
+    TextureOptions();
 
     /// Convert a TextureOpt for one point into a TextureOptions with
     /// uninform values.
-    TextureOptions (const TextureOpt &opt);
+    TextureOptions(const TextureOpt& opt);
 
     // Options that must be the same for all points we're texturing at once
-    int firstchannel;         ///< First channel of the lookup
-    int subimage;             ///< Subimage or face ID
-    ustring subimagename;     ///< Subimage name
-    Wrap swrap;               ///< Wrap mode in the s direction
-    Wrap twrap;               ///< Wrap mode in the t direction
-    MipMode mipmode;          ///< Mip mode
-    InterpMode interpmode;    ///< Interpolation mode
-    int anisotropic;          ///< Maximum anisotropic ratio
-    bool conservative_filter; ///< True == over-blur rather than alias
+    int firstchannel;          ///< First channel of the lookup
+    int subimage;              ///< Subimage or face ID
+    ustring subimagename;      ///< Subimage name
+    Wrap swrap;                ///< Wrap mode in the s direction
+    Wrap twrap;                ///< Wrap mode in the t direction
+    MipMode mipmode;           ///< Mip mode
+    InterpMode interpmode;     ///< Interpolation mode
+    int anisotropic;           ///< Maximum anisotropic ratio
+    bool conservative_filter;  ///< True == over-blur rather than alias
 
     // Options that may be different for each point we're texturing
-    VaryingRef<float> sblur, tblur;   ///< Blur amount
-    VaryingRef<float> swidth, twidth; ///< Multiplier for derivatives
-    VaryingRef<float> time;           ///< Time
-    VaryingRef<float> bias;           ///< Bias
-    VaryingRef<float> fill;           ///< Fill value for missing channels
-    VaryingRef<float> missingcolor;   ///< Color for missing texture
-    VaryingRef<int>   samples;        ///< Number of samples
+    VaryingRef<float> sblur, tblur;    ///< Blur amount
+    VaryingRef<float> swidth, twidth;  ///< Multiplier for derivatives
+    VaryingRef<float> time;            ///< Time
+    VaryingRef<float> bias;            ///< Bias
+    VaryingRef<float> fill;            ///< Fill value for missing channels
+    VaryingRef<float> missingcolor;    ///< Color for missing texture
+    VaryingRef<int> samples;           ///< Number of samples
 
     // For 3D volume texture lookups only:
     Wrap rwrap;                ///< Wrap mode in the r direction
@@ -397,22 +405,24 @@ public:
 
     /// Utility: Return the Wrap enum corresponding to a wrap name:
     /// "default", "black", "clamp", "periodic", "mirror".
-    static Wrap decode_wrapmode (const char *name) {
-        return (Wrap)Tex::decode_wrapmode (name);
+    static Wrap decode_wrapmode(const char* name)
+    {
+        return (Wrap)Tex::decode_wrapmode(name);
     }
-    static Wrap decode_wrapmode (ustring name) {
-        return (Wrap)Tex::decode_wrapmode (name);
+    static Wrap decode_wrapmode(ustring name)
+    {
+        return (Wrap)Tex::decode_wrapmode(name);
     }
 
     /// Utility: Parse a single wrap mode (e.g., "periodic") or a
     /// comma-separated wrap modes string (e.g., "black,clamp") into
     /// separate Wrap enums for s and t.
-    static void parse_wrapmodes (const char *wrapmodes,
-                                 TextureOptions::Wrap &swrapcode,
-                                 TextureOptions::Wrap &twrapcode) {
-        Tex::parse_wrapmodes (wrapmodes,
-                              *(Tex::Wrap *)&swrapcode,
-                              *(Tex::Wrap *)&twrapcode);
+    static void parse_wrapmodes(const char* wrapmodes,
+                                TextureOptions::Wrap& swrapcode,
+                                TextureOptions::Wrap& twrapcode)
+    {
+        Tex::parse_wrapmodes(wrapmodes, *(Tex::Wrap*)&swrapcode,
+                             *(Tex::Wrap*)&twrapcode);
     }
 
 private:
@@ -493,11 +503,11 @@ public:
     virtual bool getattribute (string_view name,
                                TypeDesc type, void *val) const = 0;
     // Shortcuts for common types
-    virtual bool getattribute (string_view name, int &val) const = 0;
-    virtual bool getattribute (string_view name, float &val) const = 0;
-    virtual bool getattribute (string_view name, double &val) const = 0;
-    virtual bool getattribute (string_view name, char **val) const = 0;
-    virtual bool getattribute (string_view name, std::string &val) const = 0;
+    virtual bool getattribute(string_view name, int& val) const = 0;
+    virtual bool getattribute(string_view name, float& val) const = 0;
+    virtual bool getattribute(string_view name, double& val) const = 0;
+    virtual bool getattribute(string_view name, char** val) const = 0;
+    virtual bool getattribute(string_view name, std::string& val) const = 0;
 
     /// Define an opaque data type that allows us to have a pointer
     /// to certain per-thread information that the TextureSystem maintains.
@@ -515,14 +525,14 @@ public:
     /// but passing in their managed pointer. If the passed-in threadinfo is
     /// not NULL, it won't create a new one or retrieve a TSP, but it will
     /// do other necessary housekeeping on the Perthread information.
-    virtual Perthread * get_perthread_info (Perthread *thread_info=NULL) = 0;
+    virtual Perthread* get_perthread_info(Perthread* thread_info = NULL) = 0;
 
     /// Create a new Perthread. It is the caller's responsibility to
     /// eventually destroy it using destroy_thread_info().
-    virtual Perthread * create_thread_info () = 0;
+    virtual Perthread* create_thread_info() = 0;
 
     /// Destroy a Perthread that was allocated by create_thread_info().
-    virtual void destroy_thread_info (Perthread *threadinfo) = 0;
+    virtual void destroy_thread_info(Perthread* threadinfo) = 0;
 
     /// Define an opaque data type that allows us to have a handle to a
     /// texture (already having its name resolved) but without exposing
@@ -539,7 +549,7 @@ public:
     /// Return true if the texture handle (previously returned by
     /// get_texture_handle()) is a valid texture that can be subsequently
     /// read or sampled.
-    virtual bool good (TextureHandle *texture_handle) = 0;
+    virtual bool good(TextureHandle* texture_handle) = 0;
 
     /// Filtered 2D texture lookup for a single point.
     ///
@@ -913,11 +923,8 @@ public:
 private:
     // Make delete private and unimplemented in order to prevent apps
     // from calling it.  Instead, they should call TextureSystem::destroy().
-    void operator delete (void * /*todel*/) { }
-
+    void operator delete(void* /*todel*/) {}
 };
 
 
 OIIO_NAMESPACE_END
-
-#endif // OPENIMAGEIO_TEXTURE_H

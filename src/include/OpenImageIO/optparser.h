@@ -36,11 +36,10 @@
 /////////////////////////////////////////////////////////////////////////
 
 
-#ifndef OPENIMAGEIO_OPTPARSER_H
-#define OPENIMAGEIO_OPTPARSER_H
+#pragma once
 
-#include <string>
 #include <OpenImageIO/strutil.h>
+#include <string>
 
 OIIO_NAMESPACE_BEGIN
 
@@ -49,37 +48,37 @@ OIIO_NAMESPACE_BEGIN
 /// system.attribute (name, value), with appropriate type conversions.
 template<class C>
 inline bool
-optparse1 (C &system, const std::string &opt)
+optparse1(C& system, const std::string& opt)
 {
-    std::string::size_type eq_pos = opt.find_first_of ("=");
+    std::string::size_type eq_pos = opt.find_first_of("=");
     if (eq_pos == std::string::npos) {
         // malformed option
         return false;
     }
-    std::string name (opt, 0, eq_pos);
+    std::string name(opt, 0, eq_pos);
     // trim the name
     while (name.size() && name[0] == ' ')
-        name.erase (0);
-    while (name.size() && name[name.size()-1] == ' ')
-        name.erase (name.size()-1);
-    std::string value (opt, eq_pos+1, std::string::npos);
+        name.erase(0);
+    while (name.size() && name[name.size() - 1] == ' ')
+        name.erase(name.size() - 1);
+    std::string value(opt, eq_pos + 1, std::string::npos);
     if (name.empty())
         return false;
     char v = value.size() ? value[0] : ' ';
     if ((v >= '0' && v <= '9') || v == '+' || v == '-') {  // numeric
-        if (strchr (value.c_str(), '.'))  // float
-            return system.attribute (name, Strutil::stof(value));
-        else  // int
-            return system.attribute (name, Strutil::stoi(value));
+        if (strchr(value.c_str(), '.'))
+            return system.attribute(name, Strutil::stof(value));  // float
+        else
+            return system.attribute(name, Strutil::stoi(value));  // int
     }
     // otherwise treat it as a string
 
     // trim surrounding double quotes
-    if (value.size() >= 2 &&
-            value[0] == '\"' && value[value.size()-1] == '\"')
-        value = std::string (value, 1, value.size()-2);
+    if (value.size() >= 2 && value[0] == '\"'
+        && value[value.size() - 1] == '\"')
+        value = std::string(value, 1, value.size() - 2);
 
-    return system.attribute (name.c_str(), value.c_str());
+    return system.attribute(name.c_str(), value.c_str());
 }
 
 
@@ -92,9 +91,9 @@ optparse1 (C &system, const std::string &opt)
 ///    optparser(texturesystem, "a=1,b=2,c=3.14,d=\"a string\"");
 template<class C>
 inline bool
-optparser (C &system, const std::string &optstring)
+optparser(C& system, const std::string& optstring)
 {
-    bool ok = true;
+    bool ok    = true;
     size_t len = optstring.length();
     size_t pos = 0;
     while (pos < len) {
@@ -118,12 +117,10 @@ optparser (C &system, const std::string &optstring)
             }
         }
         // At this point, opt holds an option
-        ok &= optparse1 (system, opt);
+        ok &= optparse1(system, opt);
     }
     return ok;
 }
 
 
 OIIO_NAMESPACE_END
-
-#endif // OPENIMAGEIO_OPTPARSER_H

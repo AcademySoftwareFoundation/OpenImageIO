@@ -111,6 +111,8 @@
 // User defined types: Uses operator<< for user defined types by default.
 // Overload formatValue() for more control.
 
+// clang-format off      (imported file)
+
 
 #ifndef TINYFORMAT_H_INCLUDED
 #define TINYFORMAT_H_INCLUDED

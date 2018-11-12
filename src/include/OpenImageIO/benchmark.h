@@ -27,6 +27,8 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
+
 #pragma once
 
 #include <iostream>
@@ -139,16 +141,17 @@ OIIO_FORCEINLINE T& clobber (T& p) { clobber(&p); return p; }
 
 class OIIO_API Benchmarker {
 public:
-    Benchmarker () {}
+    Benchmarker() {}
 
     // Calling Benchmarker like a function (operator()) executes the
     // benchmark. This process runs func(args...), several trials, each
     // trial with many iterations. The value returned is the best estimate
     // of the average time per iteration that it takes to run func.
-    template <typename FUNC, typename... ARGS>
-    double operator() (string_view name, FUNC func, ARGS&&... args) {
+    template<typename FUNC, typename... ARGS>
+    double operator()(string_view name, FUNC func, ARGS&&... args)
+    {
         m_name = name;
-        run (func, args...);
+        run(func, args...);
         if (verbose())
             std::cout << (*this) << std::endl;
         return avg();
@@ -156,20 +159,28 @@ public:
 
     // Return the average, sample standard deviation, median, and range
     // of per-iteration time.
-    double avg () const { return m_avg; }
-    double stddev () const { return m_stddev; }
-    double range () const { return m_range; }
-    double median () const { return m_median; }
+    double avg() const { return m_avg; }
+    double stddev() const { return m_stddev; }
+    double range() const { return m_range; }
+    double median() const { return m_median; }
 
     // Control the number of iterations per trial. The special value 0 means
     // to determine automatically a reasonable number of iterations. That is
     // also the default behavior.
-    Benchmarker& iterations (size_t val) { m_user_iterations = val; return *this; }
-    size_t iterations () const { return m_iterations; }
+    Benchmarker& iterations(size_t val)
+    {
+        m_user_iterations = val;
+        return *this;
+    }
+    size_t iterations() const { return m_iterations; }
 
     // Control the number of trials to perform.
-    Benchmarker& trials (size_t val) { m_trials = val; return *this; }
-    size_t trials () const { return m_trials; }
+    Benchmarker& trials(size_t val)
+    {
+        m_trials = val;
+        return *this;
+    }
+    size_t trials() const { return m_trials; }
 
     // Control the number of values of work that each iteration represents.
     // Usually you will leave this at the default of 1, but for some cases,
@@ -179,27 +190,43 @@ public:
     // 4 (or 8, etc.) times as many values. You can use the 'work' size to
     // make the calls report Mvals/s, showing more accurately than the SIMD
     // call is faster than the scalar call.
-    Benchmarker& work (size_t val) { m_work = val; return *this; }
-    size_t work () const { return m_work; }
+    Benchmarker& work(size_t val)
+    {
+        m_work = val;
+        return *this;
+    }
+    size_t work() const { return m_work; }
 
     // Control the exclusion of outliers. This number (default 1) of fastest
     // and slowest trials will be excluded from the statistics, to remove
     // the effects of spurious things happening on the system. Setting
     // outliers to 0 will compute statistics on all trials, without any
     // outlier exclusion.
-    Benchmarker& exclude_outliers (int e) { m_exclude_outliers = e; return *this; }
-    int exclude_outliers () const { return m_exclude_outliers; }
+    Benchmarker& exclude_outliers(int e)
+    {
+        m_exclude_outliers = e;
+        return *this;
+    }
+    int exclude_outliers() const { return m_exclude_outliers; }
 
     // Control the verbosity of the printing for each benchmark. The default
     // is 1, which prints basic statistics. Verbosity 0 is silent and leaves
     // it up to the app to retrieve results.
-    Benchmarker& verbose (int v) { m_verbose = v; return *this; }
-    int verbose () const { return m_verbose; }
+    Benchmarker& verbose(int v)
+    {
+        m_verbose = v;
+        return *this;
+    }
+    int verbose() const { return m_verbose; }
 
     // Control indentation in the printout -- this number of spaces will
     // be printed before the statistics.
-    Benchmarker& indent (int spaces) { m_indent = spaces; return *this; }
-    int indent () const { return m_indent; }
+    Benchmarker& indent(int spaces)
+    {
+        m_indent = spaces;
+        return *this;
+    }
+    int indent() const { return m_indent; }
 
     // Choices of unit to report results.
     enum class Unit : int { autounit, ns, us, ms, s };
@@ -208,63 +235,70 @@ public:
     // unit will be chosen for nice printing of each benchmark individually.
     // But the user may also wish to request specific units like ns or ux in
     // order to ensure that all benchmark resutls are using the same units.
-    Benchmarker& units (Unit s) { m_units = s; return *this; }
-    Unit units () const { return m_units; }
+    Benchmarker& units(Unit s)
+    {
+        m_units = s;
+        return *this;
+    }
+    Unit units() const { return m_units; }
 
-    const std::string& name () const { return m_name; }
+    const std::string& name() const { return m_name; }
 
 private:
-    size_t m_iterations = 0;
+    size_t m_iterations      = 0;
     size_t m_user_iterations = 0;
-    size_t m_trials = 10;
-    size_t m_work = 1;
+    size_t m_trials          = 10;
+    size_t m_work            = 1;
     std::string m_name;
     std::vector<double> m_times;  // times for each trial
-    double m_avg;     // average time per iteration
-    double m_stddev;  // standard deviation per iteration
-    double m_range;   // range per iteration
-    double m_median;  // median per-iteration time
+    double m_avg;                 // average time per iteration
+    double m_stddev;              // standard deviation per iteration
+    double m_range;               // range per iteration
+    double m_median;              // median per-iteration time
     int m_exclude_outliers = 1;
-    int m_verbose = 1;
-    int m_indent = 0;
-    Unit m_units = Unit::autounit;
+    int m_verbose          = 1;
+    int m_indent           = 0;
+    Unit m_units           = Unit::autounit;
 
-    template <typename FUNC, typename... ARGS>
-    double run (FUNC func, ARGS&&... args) {
+    template<typename FUNC, typename... ARGS>
+    double run(FUNC func, ARGS&&... args)
+    {
         if (m_user_iterations)
             m_iterations = m_user_iterations;
         else
             m_iterations = determine_iterations(func, args...);
-        m_times.resize (m_trials);
+        m_times.resize(m_trials);
 
         double overhead = iteration_overhead() * iterations();
         for (auto& t : m_times)
-            t = std::max (0.0, do_trial (m_iterations, func, args...) - overhead);
-        compute_stats ();
+            t = std::max(0.0, do_trial(m_iterations, func, args...) - overhead);
+        compute_stats();
         return avg();
     }
 
-    template <typename FUNC, typename... ARGS>
-    size_t determine_iterations (FUNC func, ARGS&&... args) {
+    template<typename FUNC, typename... ARGS>
+    size_t determine_iterations(FUNC func, ARGS&&... args)
+    {
         // We're shooting for a trial around 1/100s
         const double target_time = 0.01;
         size_t i = 1;
         while (1) {
             double t = do_trial (i, func, args...);
             // std::cout << "Trying " << i << " iters = " << t << "\n";
-            if (t > target_time*1.5 && i > 2)
-                return i/2;
-            if (t > target_time*0.75 || i > (size_t(1)<<30))
+            if (t > target_time * 1.5 && i > 2)
+                return i / 2;
+            if (t > target_time * 0.75 || i > (size_t(1) << 30))
                 return i;
-            if (t < target_time/16)
+            if (t < target_time / 16)
                 i *= 8;
             else
                 i *= 2;
         }
     }
 
-    template <typename FUNC, typename... ARGS>
-    double do_trial (size_t iterations, FUNC func, ARGS&&... args) {
+    template<typename FUNC, typename... ARGS>
+    double do_trial(size_t iterations, FUNC func, ARGS&&... args)
+    {
         Timer timer;
         while (iterations--) {
             clobber_all_memory();
@@ -273,13 +307,13 @@ private:
         return timer();
     }
 
-    void compute_stats () { compute_stats (m_times, m_iterations); }
-    void compute_stats (std::vector<double>& times, size_t iterations);
+    void compute_stats() { compute_stats(m_times, m_iterations); }
+    void compute_stats(std::vector<double>& times, size_t iterations);
     double iteration_overhead();
 
-    friend OIIO_API std::ostream& operator<< (std::ostream& out, const Benchmarker &bench);
+    friend OIIO_API std::ostream& operator<<(std::ostream& out,
+                                             const Benchmarker& bench);
 };
-
 
 
 
@@ -292,7 +326,7 @@ private:
 /// Benchmarker class is a better solution.
 template<typename FUNC>
 double
-time_trial (FUNC func, int ntrials=1, int nrepeats = 1, double *range=NULL)
+time_trial(FUNC func, int ntrials = 1, int nrepeats = 1, double* range = NULL)
 {
     double mintime = 1.0e30, maxtime = 0.0;
     while (ntrials-- > 0) {
@@ -300,7 +334,7 @@ time_trial (FUNC func, int ntrials=1, int nrepeats = 1, double *range=NULL)
         for (int i = 0; i < nrepeats; ++i) {
             // Be sure that the repeated calls to func aren't optimzed away:
             clobber_all_memory();
-            func ();
+            func();
         }
         double t = timer();
         if (t < mintime)
@@ -309,14 +343,16 @@ time_trial (FUNC func, int ntrials=1, int nrepeats = 1, double *range=NULL)
             maxtime = t;
     }
     if (range)
-        *range = maxtime-mintime;
+        *range = maxtime - mintime;
     return mintime;
 }
 
 /// Version without repeats.
 template<typename FUNC>
-double time_trial (FUNC func, int ntrials, double *range) {
-    return time_trial (func, ntrials, 1, range);
+double
+time_trial(FUNC func, int ntrials, double* range)
+{
+    return time_trial(func, ntrials, 1, range);
 }
 
 
@@ -447,6 +483,4 @@ OIIO_FORCEINLINE void clobber_all_memory() { }
 
 
 
-
 OIIO_NAMESPACE_END
-

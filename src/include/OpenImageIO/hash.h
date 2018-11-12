@@ -28,6 +28,7 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
 
 /// \file
 ///
@@ -35,29 +36,28 @@
 /// of the compiler.
 ///
 
-#ifndef OPENIMAGEIO_HASH_H
-#define OPENIMAGEIO_HASH_H
+#pragma once
 
-#include <vector>
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <utility>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
-#include <OpenImageIO/export.h>
-#include <OpenImageIO/oiioversion.h>
-#include <OpenImageIO/fmath.h>
-#include <OpenImageIO/string_view.h>
 #include <OpenImageIO/array_view.h>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/string_view.h>
 
 
 
 OIIO_NAMESPACE_BEGIN
 
-using std::unordered_map;
 using std::hash;
+using std::unordered_map;
 
 namespace fasthash {
 
@@ -585,5 +585,3 @@ private:
 
 
 OIIO_NAMESPACE_END
-
-#endif // OPENIMAGEIO_HASH_H

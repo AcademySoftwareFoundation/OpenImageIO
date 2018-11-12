@@ -21,9 +21,12 @@ option (CLANG_TIDY "Enable clang-tidy" OFF)
 set (CLANG_TIDY_CHECKS "-*" CACHE STRING "clang-tidy checks to perform")
 set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
 option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
-set (CLANG_FORMAT_INCLUDES "" CACHE STRING "Glob patterns to include for clang-format")
+set (CLANG_FORMAT_INCLUDES "src/include/*.h" CACHE STRING "Glob patterns to include for clang-format")
     # Eventually: want this to be: "src/*.h;src/*.cpp"
-set (CLANG_FORMAT_EXCLUDES "src/include/*.h;*pugixml*" CACHE STRING "Glob patterns to exclude for clang-format")
+set (CLANG_FORMAT_EXCLUDES "*pugixml*" "*SHA1*" "*/farmhash.cpp" "*/tinyformat.h"
+                           "src/dpx.imageio/libdpx/*"
+                           "src/cineon.imageio/libcineon/*"
+     CACHE STRING "Glob patterns to exclude for clang-format")
 set (GLIBCXX_USE_CXX11_ABI "" CACHE STRING "For gcc, use the new C++11 library ABI (0|1)")
 
 # Figure out which compiler we're using

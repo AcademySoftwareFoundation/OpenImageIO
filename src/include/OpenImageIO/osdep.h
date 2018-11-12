@@ -27,14 +27,12 @@
 
   (This is the Modified BSD License)
 */
-#ifndef OPENIMAGEIO_OSDEP_H
-#define OPENIMAGEIO_OSDEP_H
+
+#pragma once
 
 #ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# define VC_EXTRALEAN
-# define NOMINMAX
-# include <windows.h>
+#    define WIN32_LEAN_AND_MEAN
+#    define VC_EXTRALEAN
+#    define NOMINMAX
+#    include <windows.h>
 #endif
-
-#endif // OPENIMAGEIO_OSDEP_H

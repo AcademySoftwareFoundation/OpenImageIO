@@ -28,9 +28,8 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
 
-#ifndef OPENIMAGEIO_PARALLEL_H
-#define OPENIMAGEIO_PARALLEL_H
 #pragma once
 
 #include <algorithm>
@@ -53,35 +52,44 @@ enum SplitDir { Split_X, Split_Y, Split_Z, Split_Biggest, Split_Tile };
 /// Encapsulation of options that control parallel_image().
 class parallel_options {
 public:
-    parallel_options (int maxthreads=0, SplitDir splitdir=Split_Y,
-                      size_t minitems=16384)
-        : maxthreads(maxthreads), splitdir(splitdir), minitems(minitems) { }
-    parallel_options (string_view name, int maxthreads=0, SplitDir splitdir=Split_Y,
-                      size_t minitems=16384)
-        : maxthreads(maxthreads), splitdir(splitdir),
-          minitems(minitems), name(name) { }
+    parallel_options(int maxthreads = 0, SplitDir splitdir = Split_Y,
+                     size_t minitems = 16384)
+        : maxthreads(maxthreads)
+        , splitdir(splitdir)
+        , minitems(minitems)
+    {
+    }
+    parallel_options(string_view name, int maxthreads = 0,
+                     SplitDir splitdir = Split_Y, size_t minitems = 16384)
+        : maxthreads(maxthreads)
+        , splitdir(splitdir)
+        , minitems(minitems)
+        , name(name)
+    {
+    }
 
     // Fix up all the TBD parameters:
     // * If no pool was specified, use the default pool.
     // * If no max thread count was specified, use the pool size.
     // * If the calling thread is itself in the pool and the recursive flag
     //   was not turned on, just use one thread.
-    void resolve () {
+    void resolve()
+    {
         if (pool == nullptr)
             pool = default_thread_pool();
         if (maxthreads <= 0)
-            maxthreads = pool->size()+1;  // pool size + caller
+            maxthreads = pool->size() + 1;  // pool size + caller
         if (!recursive && pool->is_worker())
             maxthreads = 1;
     }
 
-    bool singlethread () const { return maxthreads == 1; }
+    bool singlethread() const { return maxthreads == 1; }
 
-    int maxthreads = 0;           // Max threads (0 = use all)
+    int maxthreads    = 0;        // Max threads (0 = use all)
     SplitDir splitdir = Split_Y;  // Primary split direction
-    bool recursive = false;       // Allow thread pool recursion
-    size_t minitems = 16384;      // Min items per task
-    thread_pool *pool = nullptr;  // If non-NULL, custom thread pool
+    bool recursive    = false;    // Allow thread pool recursion
+    size_t minitems   = 16384;    // Min items per task
+    thread_pool* pool = nullptr;  // If non-NULL, custom thread pool
     string_view name;             // For debugging
 };
 
@@ -102,26 +110,27 @@ public:
 /// a number of chunks equal to the twice number of threads in the queue.
 /// (We do this to offer better load balancing than if we used exactly the
 /// thread count.)
-/// 
+///
 /// Note that the thread_id may be -1, indicating that it's being executed
 /// by the calling thread itself, or perhaps some other helpful thread that
 /// is stealing work from the pool.
 OIIO_API void
-parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
-                      std::function<void(int id, int64_t b, int64_t e)>&& task,
-                      parallel_options opt=parallel_options(0,Split_Y,1));
+parallel_for_chunked(int64_t start, int64_t end, int64_t chunksize,
+                     std::function<void(int id, int64_t b, int64_t e)>&& task,
+                     parallel_options opt = parallel_options(0, Split_Y, 1));
 // Implementation is in thread.cpp
 
 
 
 /// Parallel "for" loop, chunked: for a task that takes a [begin,end) range
 /// (but not a thread ID).
-inline void parallel_for_chunked (int64_t start, int64_t end, int64_t chunksize,
-                                  std::function<void(int64_t, int64_t)>&& task,
-                                  parallel_options opt=parallel_options(0,Split_Y,1))
+inline void
+parallel_for_chunked(int64_t start, int64_t end, int64_t chunksize,
+                     std::function<void(int64_t, int64_t)>&& task,
+                     parallel_options opt = parallel_options(0, Split_Y, 1))
 {
-    auto wrapper = [&](int id, int64_t b, int64_t e) { task(b,e); };
-    parallel_for_chunked (start, end, chunksize, wrapper, opt);
+    auto wrapper = [&](int id, int64_t b, int64_t e) { task(b, e); };
+    parallel_for_chunked(start, end, chunksize, wrapper, opt);
 }
 
 
@@ -299,5 +308,3 @@ parallel_for_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
 }
 
 OIIO_NAMESPACE_END
-
-#endif // OPENIMAGEIO_PARALLEL_H

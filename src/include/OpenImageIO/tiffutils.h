@@ -27,6 +27,8 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
+
 /////////////////////////////////////////////////////////////////////////////
 /// \file
 ///
@@ -38,9 +40,6 @@
 
 
 #pragma once
-
-#ifndef OIIO_TIFFUTILS_H
-#define OIIO_TIFFUTILS_H
 
 extern "C" {
 #include "tiff.h"
@@ -66,7 +65,6 @@ struct TIFFDirEntry {
     uint32_t tdir_offset; /* byte offset to field data */
 };
 #endif
-
 
 
 
@@ -266,5 +264,3 @@ OIIO_API const TagInfo* tag_lookup (string_view domain, string_view tagname);
 
 
 OIIO_NAMESPACE_END
-
-#endif  // OIIO_TIFFUTILS_H

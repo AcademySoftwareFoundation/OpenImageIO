@@ -63,30 +63,30 @@
 ///               OpenImageIO_EXPORT is defined (as is done by CMake
 ///               when compiling the library itself), change the
 ///               declaration to 'exported'.
-/// OIIO_EXPORT - explicitly exports a symbol that isn't part of the 
+/// OIIO_EXPORT - explicitly exports a symbol that isn't part of the
 ///               public API but still needs to be visible.
 /// OIIO_LOCAL -  explicitly hides a symbol that might otherwise be
 ///               exported
 ///
-/// 
+///
 
 #if defined(_MSC_VER) || defined(__CYGWIN__)
-  #ifndef OIIO_STATIC_BUILD
-    #define OIIO_IMPORT __declspec(dllimport)
-    #define OIIO_EXPORT __declspec(dllexport)
-  #else
-    #define OIIO_IMPORT
-    #define OIIO_EXPORT
-  #endif
-  #define OIIO_LOCAL
+#    ifndef OIIO_STATIC_BUILD
+#        define OIIO_IMPORT __declspec(dllimport)
+#        define OIIO_EXPORT __declspec(dllexport)
+#    else
+#        define OIIO_IMPORT
+#        define OIIO_EXPORT
+#    endif
+#    define OIIO_LOCAL
 #else
-  #define OIIO_IMPORT __attribute__ ((visibility ("default")))
-  #define OIIO_EXPORT __attribute__ ((visibility ("default")))
-  #define OIIO_LOCAL  __attribute__ ((visibility ("hidden")))
+#    define OIIO_IMPORT __attribute__((visibility("default")))
+#    define OIIO_EXPORT __attribute__((visibility("default")))
+#    define OIIO_LOCAL __attribute__((visibility("hidden")))
 #endif
 
 #if defined(OpenImageIO_EXPORTS) || defined(OpenImageIO_Util_EXPORTS)
-#  define OIIO_API OIIO_EXPORT
+#    define OIIO_API OIIO_EXPORT
 #else
-#  define OIIO_API OIIO_IMPORT
+#    define OIIO_API OIIO_IMPORT
 #endif

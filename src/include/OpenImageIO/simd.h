@@ -45,10 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /// Additional web resources:
 ///   http://www.codersnotes.com/notes/maths-lib-2016/
 
+// clang-format off
 
 #pragma once
-#ifndef OIIO_SIMD_H
-#define OIIO_SIMD_H 1
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/missing_math.h>
@@ -9643,5 +9642,3 @@ OIIO_NAMESPACE_END
 #undef SIMD_CONSTRUCT_PAD
 #undef SIMD_RETURN
 #undef SIMD_RETURN_REDUCE
-
-#endif /* OIIO_SIMD_H */

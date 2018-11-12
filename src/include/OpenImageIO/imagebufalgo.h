@@ -29,7 +29,9 @@
 */
 
 
-#ifndef OPENIMAGEIO_IMAGEBUFALGO_H
+// clang-format off
+
+#pragma once
 #define OPENIMAGEIO_IMAGEBUFALGO_H
 
 #if defined(_MSC_VER)
@@ -1949,5 +1951,3 @@ inline bool render_text (ImageBuf &dst, int x, int y, string_view text,
 }  // end namespace ImageBufAlgo
 
 OIIO_NAMESPACE_END
-
-#endif // OPENIMAGEIO_IMAGEBUFALGO_H

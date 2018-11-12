@@ -32,8 +32,7 @@
 /// @file varyingref.h
 /// @Brief Define the VaryingRef class.
 
-#ifndef OPENIMAGEIO_VARYINGREF_H
-#define OPENIMAGEIO_VARYINGREF_H
+#pragma once
 
 #include <OpenImageIO/oiioversion.h>
 
@@ -125,37 +124,41 @@ OIIO_NAMESPACE_BEGIN
 /// This is the basis for handling uniform and varying values efficiently
 /// inside a SIMD shading system.
 
-template<class T>
-class VaryingRef {
+template<class T> class VaryingRef {
 public:
-    VaryingRef () { init (0, 0); }
+    VaryingRef() { init(0, 0); }
 
     /// Construct a VaryingRef either of a single value pointed to by ptr
     /// (if step == 0 or no step is provided), or of a varying set of
     /// values beginning with ptr and with successive values every 'step'
     /// bytes.
-    VaryingRef (void *ptr_, int step_=0) { init ((T *)ptr_,step_); }
+    VaryingRef(void* ptr_, int step_ = 0) { init((T*)ptr_, step_); }
 
     /// Construct a uniform VaryingRef from a single value.
     ///
-    VaryingRef (T &ptr_) { init (&ptr_, 0); }
+    VaryingRef(T& ptr_) { init(&ptr_, 0); }
 
     /// Initialize this VaryingRef to either of a single value pointed
     /// to by ptr (if step == 0 or no step is provided), or of a varying
     /// set of values beginning with ptr and with successive values
     /// every 'step' bytes.
-    void init (T *ptr_, int step_=0) {
-        m_ptr = ptr_;
+    void init(T* ptr_, int step_ = 0)
+    {
+        m_ptr  = ptr_;
         m_step = step_;
     }
 
     /// Initialize this VaryingRef to be uniform and point to a particular
     /// value reference.
-    const VaryingRef & operator= (T &ptr_) { init (&ptr_); return *this; }
+    const VaryingRef& operator=(T& ptr_)
+    {
+        init(&ptr_);
+        return *this;
+    }
 
     /// Is this reference pointing nowhere?
     ///
-    bool is_null () const { return (m_ptr == 0); }
+    bool is_null() const { return (m_ptr == 0); }
 
     /// Cast to void* returns the pointer, but the real purpose is so
     /// you can use a VaryingRef as if it were a 'bool' value in a test.
@@ -163,54 +166,56 @@ public:
 
     /// Is this VaryingRef referring to a varying value, signified by
     /// having a nonzero step size between elements?
-    bool is_varying () const { return (m_step != 0); }
+    bool is_varying() const { return (m_step != 0); }
 
     /// Is this VaryingRef referring to a uniform value, signified by
     /// having a step size of zero between elements?
-    bool is_uniform () const { return (m_step == 0); }
+    bool is_uniform() const { return (m_step == 0); }
 
     /// Pre-increment: If this VaryingRef is varying, increment its
     /// pointer to the next element in the series, but don't change
     /// anything if it's uniform.  In either case, return a reference to
     /// its new state.
-    VaryingRef & operator++ () {  // Prefix form ++i
-        char *p = (char *)m_ptr;
+    VaryingRef& operator++()
+    {  // Prefix form ++i
+        char* p = (char*)m_ptr;
         p += m_step;
-        m_ptr = (T *) p;
+        m_ptr = (T*)p;
         return *this;
     }
     /// Post-increment: If this VaryingRef is varying, increment its
     /// pointer to the next element in the series, but don't change
     /// anything if it's uniform.  No value is returned, so it's not
     /// legal to do 'bar = foo++' if foo and bar are VaryingRef's.
-    void operator++ (int) {  // Postfix form i++ : return nothing to avoid copy
+    void operator++(int)
+    {  // Postfix form i++ : return nothing to avoid copy
         // VaryingRef<T> tmp = *this;
-        char *p = (char *)m_ptr;
+        char* p = (char*)m_ptr;
         p += m_step;
-        m_ptr = (T *) p;
+        m_ptr = (T*)p;
         // return tmp;
     }
 
     /// Pointer indirection will return the first value currently
     /// pointed to by this VaryingRef.
-    T & operator* () const { return *m_ptr; }
+    T& operator*() const { return *m_ptr; }
 
     /// Array indexing operator will return a reference to the single
     /// element if *this is uniform, or to the i-th element of the
     /// series if *this is varying.
-    T & operator[] (int i) const { return *(T *) ((char *)m_ptr + i*m_step); }
+    T& operator[](int i) const { return *(T*)((char*)m_ptr + i * m_step); }
 
     /// Return the raw pointer underneath.
     ///
-    T * ptr () const { return m_ptr; }
+    T* ptr() const { return m_ptr; }
 
     /// Return the raw step underneath.
     ///
-    int step () const { return m_step; }
+    int step() const { return m_step; }
 
 private:
-    T  *m_ptr;    ///< Pointer to value
-    int m_step;   ///< Distance between successive values -- in BYTES!
+    T* m_ptr;    ///< Pointer to value
+    int m_step;  ///< Distance between successive values -- in BYTES!
 };
 
 
@@ -218,19 +223,29 @@ private:
 /// Helper function wraps a varying reference with default step size.
 ///
 template<class T>
-VaryingRef<T> Varying (T *x) { return VaryingRef<T> (x, sizeof(T)); }
+VaryingRef<T>
+Varying(T* x)
+{
+    return VaryingRef<T>(x, sizeof(T));
+}
 
 /// Helper function wraps a uniform reference.
 ///
 template<class T>
-VaryingRef<T> Uniform (T *x) { return VaryingRef<T> (x, 0); }
+VaryingRef<T>
+Uniform(T* x)
+{
+    return VaryingRef<T>(x, 0);
+}
 
 /// Helper function wraps a uniform reference.
 ///
 template<class T>
-VaryingRef<T> Uniform (T &x) { return VaryingRef<T> (&x, 0); }
+VaryingRef<T>
+Uniform(T& x)
+{
+    return VaryingRef<T>(&x, 0);
+}
 
 
 OIIO_NAMESPACE_END
-
-#endif // OPENIMAGEIO_VARYINGREF_H
