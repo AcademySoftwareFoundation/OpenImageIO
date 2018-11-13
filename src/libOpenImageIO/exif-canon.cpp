@@ -640,8 +640,8 @@ template<typename T>
 inline void
 array_to_spec (ImageSpec& spec,                 // spec to put attribs into
                const TIFFDirEntry& dir,         // TIFF dir entry
-               array_view<const uint8_t> buf,   // raw buffer blob
-               array_view<const LabelIndex> indices, // LabelIndex table
+               cspan<uint8_t> buf,              // raw buffer blob
+               cspan<LabelIndex> indices,       // LabelIndex table
                int offset_adjustment,
                int na_value = std::numeric_limits<int>::max())
 {
@@ -710,7 +710,7 @@ static LabelIndex canon_camerasettings_indices[] = {
 
 static void
 canon_camerasettings_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
-                              array_view<const uint8_t> buf, ImageSpec& spec,
+                              cspan<uint8_t> buf, ImageSpec& spec,
                               bool swapendian, int offset_adjustment)
 {
     array_to_spec<int16_t> (spec, dir, buf, canon_camerasettings_indices,
@@ -728,7 +728,7 @@ static LabelIndex canon_focallength_indices[] = {
 
 static void
 canon_focallength_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
-                           array_view<const uint8_t> buf, ImageSpec& spec,
+                           cspan<uint8_t> buf, ImageSpec& spec,
                            bool swapendian, int offset_adjustment)
 {
     array_to_spec<uint16_t> (spec, dir, buf, canon_focallength_indices, offset_adjustment);
@@ -769,7 +769,7 @@ static LabelIndex canon_shotinfo_indices[] = {
 
 static void
 canon_shotinfo_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
-                        array_view<const uint8_t> buf, ImageSpec& spec,
+                        cspan<uint8_t> buf, ImageSpec& spec,
                         bool swapendian, int offset_adjustment)
 {
     array_to_spec<int16_t> (spec, dir, buf, canon_shotinfo_indices, offset_adjustment);
@@ -783,7 +783,7 @@ static LabelIndex canon_panorama_indices[] = {
 
 static void
 canon_panorama_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
-                        array_view<const uint8_t> buf, ImageSpec& spec,
+                        cspan<uint8_t> buf, ImageSpec& spec,
                         bool swapendian, int offset_adjustment)
 {
     array_to_spec<int16_t> (spec, dir, buf, canon_panorama_indices, offset_adjustment);
@@ -804,8 +804,8 @@ static LabelIndex canon_sensorinfo_indices[] = {
 
 static void
 canon_sensorinfo_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
-                        array_view<const uint8_t> buf, ImageSpec& spec,
-                        bool swapendian, int offset_adjustment)
+                          cspan<uint8_t> buf, ImageSpec& spec,
+                          bool swapendian, int offset_adjustment)
 {
     array_to_spec<uint16_t> (spec, dir, buf, canon_sensorinfo_indices, offset_adjustment);
 }
@@ -985,11 +985,11 @@ const TagMap& canon_maker_tagmap_ref () {
 template<typename T>
 static void
 encode_indexed_tag (int tifftag, TIFFDataType tifftype, // TIFF tag and type
-                    array_view<const LabelIndex> indices, // LabelIndex table
-                    std::vector<char>& data,   // data blob to add to
+                    cspan<LabelIndex> indices,        // LabelIndex table
+                    std::vector<char>& data,          // data blob to add to
                     std::vector<TIFFDirEntry> &dirs,  // TIFF dirs to add to
-                    const ImageSpec& spec,          // spec to get attribs from
-                    size_t offset_correction) // offset correction
+                    const ImageSpec& spec,            // spec to get attribs from
+                    size_t offset_correction)         // offset correction
 {
     // array length is determined by highest index value
     std::vector<T> array (indices.back().value + 1, T(0));

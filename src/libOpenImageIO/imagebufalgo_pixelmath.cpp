@@ -843,7 +843,7 @@ color_map_ (ImageBuf &dst, const ImageBuf &src,
             float x = srcchannel < 0 ? 0.2126f*s[0] + 0.7152f*s[1] + 0.0722f*s[2]
                                      : s[srcchannel];
             for (int c = roi.chbegin;  c < roi.chend;  ++c) {
-                array_view_strided<const float> k (knots.data()+c, nknots, channels);
+                span_strided<const float> k (knots.data()+c, nknots, channels);
                 d[c] = interpolate_linear (x, k);
             }
         }

@@ -289,7 +289,7 @@ static void test_interpolate_linear ()
 
     // Make sure it all works for strided arrays, too
     float knots4_strided[] = { 1.0f, 0.0f, 2.0f, 0.0f, 4.0f, 0.0f, 6.0f, 0.0f };
-    array_view_strided<const float> a (knots4_strided, 4, 2);
+    span_strided<const float> a (knots4_strided, 4, 2);
     OIIO_CHECK_EQUAL (interpolate_linear (-0.1f, a), 1.0f);
     OIIO_CHECK_EQUAL (interpolate_linear (0.0f, a), 1.0f);
     OIIO_CHECK_EQUAL (interpolate_linear (1.0f/3.0f, a), 2.0f);

@@ -59,7 +59,7 @@
 #include <limits>
 #include <typeinfo>
 
-#include <OpenImageIO/array_view.h>
+#include <OpenImageIO/span.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/missing_math.h>
 #include <OpenImageIO/oiioversion.h>
@@ -1905,7 +1905,7 @@ T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
 /// y[0] corresponding to the value at x==0.0 and y[len-1] corresponding to
 /// x==1.0.
 inline OIIO_HOSTDEVICE float
-interpolate_linear (float x, array_view_strided<const float> y)
+interpolate_linear (float x, span_strided<const float> y)
 {
 #ifndef __CUDA_ARCH__
     DASSERT_MSG (y.size() >= 2, "interpolate_linear needs at least 2 knot values (%zd)", y.size());

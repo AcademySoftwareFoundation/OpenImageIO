@@ -372,7 +372,7 @@ time_trial(FUNC func, int ntrials, double* range)
 //     ntrials : The number of runs for each thread count (more will take
 //                      longer, but be more accurate timing). The best case
 //                      run is the one that will be reported.
-//     threadcounts[] : An array_view<int> giving the set of thread counts
+//     threadcounts[] : An span<int> giving the set of thread counts
 //                      to try.
 // Return value:
 //     A vector<double> containing the best time (of the trials) for each
@@ -384,7 +384,7 @@ timed_thread_wedge (function_view<void(int)> task,
                     std::ostream *out,
                     int maxthreads,
                     int total_iterations, int ntrials,
-                    array_view<const int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
+                    cspan<int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
 
 // Simplified timed_thread_wedge without pre- and post-tasks, using
 // std::out for output, with a default set of thread counts, and not needing
@@ -392,7 +392,7 @@ timed_thread_wedge (function_view<void(int)> task,
 OIIO_API void
 timed_thread_wedge (function_view<void(int)> task,
                     int maxthreads, int total_iterations, int ntrials,
-                    array_view<const int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
+                    cspan<int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
 
 
 

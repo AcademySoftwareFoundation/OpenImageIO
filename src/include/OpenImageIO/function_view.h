@@ -82,9 +82,9 @@ OIIO_NAMESPACE_BEGIN
 ///
 /// A function_view invocation should have the same cost as a function
 /// pointer (which it basically is underneath). Similar in spirit to a
-/// string_view or array_view, the function-like object that the
-/// function_view refers to MUST have a lifetime that outlasts any use of
-/// the function_view.
+/// string_view or span, the function-like object that the function_view
+/// refers to MUST have a lifetime that outlasts any use of the
+/// function_view.
 ///
 /// In contrast, a full std::function<> is an owning container for a
 /// callable object. It's more robust, especially with restpect to object

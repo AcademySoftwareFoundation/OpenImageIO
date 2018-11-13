@@ -57,7 +57,7 @@ public:
     typedef boost::container::flat_map<std::string, const TagInfo *> namemap_t;
     // Name map is lower case so it's effectively case-insensitive
 
-    Impl (string_view mapname, array_view<const TagInfo> tag_table)
+    Impl (string_view mapname, cspan<TagInfo> tag_table)
             : m_mapname(mapname)
     {
         for (const auto& tag : tag_table) {
@@ -77,7 +77,7 @@ public:
 
 
 
-TagMap::TagMap (string_view mapname, array_view<const TagInfo> tag_table)
+TagMap::TagMap (string_view mapname, cspan<TagInfo> tag_table)
         : m_impl(new Impl (mapname, tag_table))
 {
 }
@@ -244,22 +244,22 @@ tiff_datatype_to_typedesc (TIFFDataType tifftype, size_t tiffcount)
 
 
 
-array_view<const uint8_t>
-tiff_dir_data (const TIFFDirEntry &td, array_view<const uint8_t> data)
+cspan<uint8_t>
+tiff_dir_data (const TIFFDirEntry &td, cspan<uint8_t> data)
 {
     size_t len = tiff_data_size (td);
     if (len <= 4) {
         // Short data are stored in the offset field itself
-        return array_view<const uint8_t> ((const uint8_t *)&td.tdir_offset, len);
+        return cspan<uint8_t> ((const uint8_t *)&td.tdir_offset, len);
     }
     // Long data
     size_t begin = td.tdir_offset;
     if (begin+len > size_t(data.size())) {
         // Invalid span -- it is not entirely contained in the data window.
-        // Signal error by returning an empty array_view.
-        return array_view<const uint8_t>();
+        // Signal error by returning an empty span.
+        return cspan<uint8_t>();
     }
-    return array_view<const uint8_t> (data.data()+begin, len);
+    return cspan<uint8_t> (data.data()+begin, len);
 }
 
 
@@ -267,7 +267,7 @@ tiff_dir_data (const TIFFDirEntry &td, array_view<const uint8_t> data)
 #if DEBUG_EXIF_READ || DEBUG_EXIF_WRITE
 static bool
 print_dir_entry (std::ostream &out, const TagMap &tagmap, const TIFFDirEntry &dir,
-                 array_view<const uint8_t> buf, int offset_adjustment)
+                 cspan<uint8_t> buf, int offset_adjustment)
 {
     int len = tiff_data_size (dir);
     if (len < 0) {
@@ -331,8 +331,8 @@ print_dir_entry (std::ostream &out, const TagMap &tagmap, const TIFFDirEntry &di
 
 // debugging
 static std::string
-dumpdata (array_view<const uint8_t> blob,
-          array_view<const size_t> ifdoffsets, size_t start, int offset_adjustment)
+dumpdata (cspan<uint8_t> blob,
+          cspan<size_t> ifdoffsets, size_t start, int offset_adjustment)
 {
     std::stringstream out;
     for (size_t pos = 0; pos < blob.size(); ++pos) {
@@ -361,7 +361,7 @@ dumpdata (array_view<const uint8_t> blob,
 
 static void
 version4char_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
-                      array_view<const uint8_t> buf, ImageSpec& spec,
+                      cspan<uint8_t> buf, ImageSpec& spec,
                       bool swapendian=false, int offset_adjustment=0)
 {
     const char* data = (const char*) dataptr (dir, buf, offset_adjustment);
@@ -372,7 +372,7 @@ version4char_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
 
 static void
 version4uint8_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
-                       array_view<const uint8_t> buf, ImageSpec& spec,
+                       cspan<uint8_t> buf, ImageSpec& spec,
                        bool swapendian=false, int offset_adjustment=0)
 {
     const char* data = (const char*) dataptr (dir, buf, offset_adjustment);
@@ -384,7 +384,7 @@ version4uint8_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
 
 static void
 makernote_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
-                   array_view<const uint8_t> buf, ImageSpec& spec,
+                   cspan<uint8_t> buf, ImageSpec& spec,
                    bool swapendian=false, int offset_adjustment=0)
 {
     if (tiff_data_size(dir) <= 4) return;  // sanity check
@@ -622,15 +622,15 @@ const TagMap& pvt::gps_tagmap_ref () {
 
 
 
-array_view<const TagInfo>
+cspan<TagInfo>
 tag_table (string_view tablename)
 {
     if (tablename == "Exif")
-        return array_view<const TagInfo> (exif_tag_table);
+        return cspan<TagInfo> (exif_tag_table);
     if (tablename == "GPS")
-        return array_view<const TagInfo> (gps_tag_table);
+        return cspan<TagInfo> (gps_tag_table);
     // if (tablename == "TIFF")
-        return array_view<const TagInfo> (tiff_tag_table);
+        return cspan<TagInfo> (tiff_tag_table);
 }
 
 
@@ -645,7 +645,7 @@ tag_table (string_view tablename)
 static void
 add_exif_item_to_spec (ImageSpec &spec, const char *name,
                        const TIFFDirEntry *dirp,
-                       array_view<const uint8_t> buf, bool swab,
+                       cspan<uint8_t> buf, bool swab,
                        int offset_adjustment=0)
 {
     ASSERT (dirp);
@@ -755,7 +755,7 @@ add_exif_item_to_spec (ImageSpec &spec, const char *name,
 /// endianness of the file.
 static void
 read_exif_tag (ImageSpec &spec, const TIFFDirEntry *dirp,
-               array_view<const uint8_t> buf, bool swab,
+               cspan<uint8_t> buf, bool swab,
                int offset_adjustment, std::set<size_t> &ifd_offsets_seen,
                const TagMap &tagmap)
 {
@@ -998,7 +998,7 @@ encode_exif_entry (const ParamValue &p, int tag,
 // somehow malformed.
 void
 pvt::decode_ifd (const unsigned char *ifd,
-            array_view<const uint8_t> buf, ImageSpec &spec, const TagMap& tag_map,
+            cspan<uint8_t> buf, ImageSpec &spec, const TagMap& tag_map,
             std::set<size_t>& ifd_offsets_seen, bool swab, int offset_adjustment)
 {
     // Read the directory that the header pointed to.  It should contain
@@ -1055,13 +1055,13 @@ pvt::append_tiff_dir_entry (std::vector<TIFFDirEntry> &dirs,
 bool
 decode_exif (string_view exif, ImageSpec &spec)
 {
-    return decode_exif (array_view<const uint8_t>((const uint8_t*)exif.data(), exif.size()), spec);
+    return decode_exif (cspan<uint8_t>((const uint8_t*)exif.data(), exif.size()), spec);
 }
 
 
 
 bool
-decode_exif (array_view<const uint8_t> exif, ImageSpec &spec)
+decode_exif (cspan<uint8_t> exif, ImageSpec &spec)
 {
 #if DEBUG_EXIF_READ
     std::cerr << "Exif dump:\n";
@@ -1139,7 +1139,7 @@ decode_exif (array_view<const uint8_t> exif, ImageSpec &spec)
 bool
 decode_exif (const void *exif, int length, ImageSpec &spec)
 {
-    return decode_exif (array_view<const uint8_t> ((const uint8_t*)exif, length), spec);
+    return decode_exif (cspan<uint8_t> ((const uint8_t*)exif, length), spec);
 }
 
 

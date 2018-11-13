@@ -51,7 +51,7 @@ namespace pvt {
 
 
 inline const void *
-dataptr (const TIFFDirEntry &td, array_view<const uint8_t> data,
+dataptr (const TIFFDirEntry &td, cspan<uint8_t> data,
          int offset_adjustment)
 {
     int len = tiff_data_size (td);
@@ -89,7 +89,7 @@ std::string explain_labeltable (const ParamValue &p, const void *extradata);
 
 class OIIO_API TagMap {
 public:
-    TagMap (string_view mapname, array_view<const TagInfo> tag_table);
+    TagMap (string_view mapname, cspan<TagInfo> tag_table);
     ~TagMap ();
 
     /// Find a TagInfo record for the tag index. or nullptr if not found.
@@ -134,7 +134,7 @@ void append_tiff_dir_entry (std::vector<TIFFDirEntry> &dirs,
                             const void *mydata, size_t offset_correction,
                             size_t offset_override=0);
 
-void decode_ifd (const unsigned char *ifd, array_view<const uint8_t> buf,
+void decode_ifd (const unsigned char *ifd, cspan<uint8_t> buf,
                  ImageSpec &spec, const TagMap& tag_map,
                  std::set<size_t>& ifd_offsets_seen, bool swab=false,
                  int offset_adjustment=0);

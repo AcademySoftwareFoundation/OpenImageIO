@@ -55,7 +55,7 @@
 #include <string>
 #include <vector>
 
-#include <OpenImageIO/array_view.h>
+#include <OpenImageIO/span.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/paramlist.h>

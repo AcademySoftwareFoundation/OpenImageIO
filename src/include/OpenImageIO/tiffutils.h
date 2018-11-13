@@ -173,18 +173,18 @@ OIIO_API size_t tiff_data_size (TIFFDataType tifftype);
 OIIO_API size_t tiff_data_size (const TIFFDirEntry &dir);
 
 /// Given a TIFFDirEntry and a data arena (represented by an array view
-/// of unsigned bytes), return an array_view of where the values for the
-/// tiff dir lives. Return an empty array_view if there is an error, which
+/// of unsigned bytes), return a span of where the values for the
+/// tiff dir lives. Return an empty span if there is an error, which
 /// could include a nonsensical situation where the TIFFDirEntry seems to
 /// point outside the data arena.
-OIIO_API array_view<const uint8_t>
-tiff_dir_data (const TIFFDirEntry &td, array_view<const uint8_t> data);
+OIIO_API cspan<uint8_t>
+tiff_dir_data (const TIFFDirEntry &td, cspan<uint8_t> data);
 
 /// Decode a raw Exif data block and save all the metadata in an
 /// ImageSpec.  Return true if all is ok, false if the exif block was
 /// somehow malformed.  The binary data pointed to by 'exif' should
 /// start with a TIFF directory header.
-OIIO_API bool decode_exif (array_view<const uint8_t> exif, ImageSpec &spec);
+OIIO_API bool decode_exif (cspan<uint8_t> exif, ImageSpec &spec);
 OIIO_API bool decode_exif (string_view exif, ImageSpec &spec);
 OIIO_API bool decode_exif (const void *exif, int length, ImageSpec &spec); // DEPRECATED (1.8)
 
@@ -236,7 +236,7 @@ OIIO_API std::string encode_xmp (const ImageSpec &spec, bool minimal=false);
 /// names and actions.
 struct TagInfo {
     typedef void (*HandlerFunc)(const TagInfo& taginfo, const TIFFDirEntry& dir,
-                                array_view<const uint8_t> buf, ImageSpec& spec,
+                                cspan<uint8_t> buf, ImageSpec& spec,
                                 bool swapendian, int offset_adjustment);
 
     TagInfo (int tag, const char *name, TIFFDataType type,
@@ -251,10 +251,10 @@ struct TagInfo {
     HandlerFunc handler = nullptr;        // Special decoding handler
 };
 
-/// Return an array_view of a TagInfo array for the corresponding table.
+/// Return a span of a TagInfo array for the corresponding table.
 /// Valid names are "Exif", "GPS", and "TIFF". This can be handy for
 /// iterating through all possible tags for each category.
-OIIO_API array_view<const TagInfo> tag_table (string_view tablename);
+OIIO_API cspan<TagInfo> tag_table (string_view tablename);
 
 /// Look up the TagInfo of a numbered or named tag from a named domain
 /// ("TIFF", "Exif", or "GPS"). Return nullptr if it is not known.

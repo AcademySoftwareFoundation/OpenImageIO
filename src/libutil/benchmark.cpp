@@ -198,7 +198,7 @@ timed_thread_wedge (function_view<void(int)> task,
                     std::ostream *out,
                     int maxthreads,
                     int total_iterations, int ntrials,
-                    array_view<const int> threadcounts)
+                    cspan<int> threadcounts)
 {
     std::vector<double> times (threadcounts.size(), 0.0f);
     if (out)
@@ -237,7 +237,7 @@ timed_thread_wedge (function_view<void(int)> task,
 OIIO_API void
 timed_thread_wedge (function_view<void(int)> task,
                     int maxthreads, int total_iterations, int ntrials,
-                    array_view<const int> threadcounts)
+                    cspan<int> threadcounts)
 {
     timed_thread_wedge (task, [](){}, [](){}, &std::cout,
                         maxthreads, total_iterations, ntrials, threadcounts);

@@ -46,7 +46,7 @@
 #include <utility>
 #include <vector>
 
-#include <OpenImageIO/array_view.h>
+#include <OpenImageIO/span.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/oiioversion.h>
@@ -553,8 +553,9 @@ public:
 
     /// Append more data
     void append (const void *data, size_t size);
-    /// Append more data from an array_view, without thinking about sizes.
-    template<class T> void append (array_view<T> v) {
+
+    /// Append more data from a span, without thinking about sizes.
+    template<class T> void append (span<T> v) {
         append (v.data(), v.size()*sizeof(T));
     }
 

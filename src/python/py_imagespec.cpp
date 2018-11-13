@@ -41,7 +41,7 @@ ImageSpec_get_channelformats (const ImageSpec& spec, bool allow_empty=true)
     std::vector<TypeDesc> formats;
     if (spec.channelformats.size() || !allow_empty)
         spec.get_channelformats (formats);
-    return C_to_tuple (array_view<const TypeDesc>(formats));
+    return C_to_tuple (cspan<TypeDesc>(formats));
 }
 
 // Mutator for channelformats, initialized using a tuple or list whose int
@@ -57,7 +57,7 @@ ImageSpec_set_channelformats (ImageSpec& spec, const py::object& py_channelforma
 static py::tuple
 ImageSpec_get_channelnames (const ImageSpec& spec)
 {
-    return C_to_tuple (array_view<const std::string>(spec.channelnames));
+    return C_to_tuple (cspan<std::string>(spec.channelnames));
 }
 
 static void
