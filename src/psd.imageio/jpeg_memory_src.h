@@ -28,12 +28,11 @@
   (This is the Modified BSD License)
 */
 
-#ifndef OPENIMAGEIO_PSD_JPEG_MEMORY_SRC_H
-#define OPENIMAGEIO_PSD_JPEG_MEMORY_SRC_H
+#pragma once
 
 #ifdef WIN32
 //#undef FAR
-#define XMD_H
+#    define XMD_H
 #endif
 
 extern "C" {
@@ -47,10 +46,10 @@ namespace psd_pvt {
 // Newer versions of libjpeg have jpeg_mem_src which has the same functionality.
 // inbuffer is the buffer that holds the JPEG data
 // insize is the size of the buffer
-void jpeg_memory_src (j_decompress_ptr cinfo,
-                      unsigned char *inbuffer, unsigned long insize);
+void
+jpeg_memory_src(j_decompress_ptr cinfo, unsigned char* inbuffer,
+                unsigned long insize);
 
 }  // end namespace psd_pvt
-OIIO_PLUGIN_NAMESPACE_END
 
-#endif /* OPENIMAGEIO_PSD_JPEG_MEMORY_SRC_H */
+OIIO_PLUGIN_NAMESPACE_END

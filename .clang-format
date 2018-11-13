@@ -85,13 +85,13 @@ MaxEmptyLinesToKeep: 3
 #ObjCBlockIndentWidth: 4
 #ObjCSpaceAfterProperty: true
 #ObjCSpaceBeforeProtocolList: true
-#PenaltyBreakAssignment: 2
+PenaltyBreakAssignment: 10
 #PenaltyBreakBeforeFirstCallParameter: 19
 #PenaltyBreakComment: 300
 #PenaltyBreakFirstLessLess: 120
 #PenaltyBreakString: 1000
 #PenaltyBreakTemplateDeclaration: 10
-#PenaltyExcessCharacter: 1000000
+PenaltyExcessCharacter: 100
 #PenaltyReturnTypeOnItsOwnLine: 60
 #PointerAlignment: Left
 ReflowComments:  false

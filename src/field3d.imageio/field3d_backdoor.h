@@ -29,6 +29,8 @@
 */
 
 
+#pragma once
+
 OIIO_NAMESPACE_BEGIN
 
 namespace f3dpvt {
@@ -38,15 +40,14 @@ namespace f3dpvt {
 // from the Field3DInput.
 class Field3DInput_Interface : public ImageInput {
 public:
-    Field3DInput_Interface () { }
+    Field3DInput_Interface() {}
 
     // Transform world space P to local space P.
-    virtual void worldToLocal (const Imath::V3f &wsP, Imath::V3f &lsP,
-                               float time) const = 0;
+    virtual void worldToLocal(const Imath::V3f& wsP, Imath::V3f& lsP,
+                              float time) const = 0;
 };
 
 
-} // end namespace f3dpvt
+}  // end namespace f3dpvt
 
 OIIO_NAMESPACE_END
-
