@@ -35,11 +35,11 @@
 #include <random>
 #include <vector>
 
-#include <OpenImageIO/hash.h>
-#include <OpenImageIO/timer.h>
-#include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/argparse.h>
+#include <OpenImageIO/benchmark.h>
+#include <OpenImageIO/hash.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/timer.h>
 #include <OpenImageIO/unittest.h>
 
 
@@ -47,48 +47,48 @@
 using namespace OIIO;
 
 static int iterations = 100 << 20;
-static int ntrials = 1;
-static bool verbose = false;
+static int ntrials    = 1;
+static bool verbose   = false;
 
 static std::vector<uint32_t> data;
 
 size_t
-test_bjhash (int len)
+test_bjhash(int len)
 {
     char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a = 0;
-    for (int i = 0, e = iterations / len;  i < e; i++, ptr += len)
+    size_t a  = 0;
+    for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
         a += bjhash::hashlittle(ptr, len);
     return a;
 }
 
 size_t
-test_xxhash (int len)
+test_xxhash(int len)
 {
     char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a = 0;
-    for (int i = 0, e = iterations / len;  i < e; i++, ptr += len)
-        a += xxhash::xxhash (ptr, len, 0);
+    size_t a  = 0;
+    for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
+        a += xxhash::xxhash(ptr, len, 0);
     return a;
 }
 
 size_t
-test_farmhash (int len)
+test_farmhash(int len)
 {
     char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a = 0;
-    for (int i = 0, e = iterations / len;  i < e; i++, ptr += len)
-        a += farmhash::Hash (ptr, len);
+    size_t a  = 0;
+    for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
+        a += farmhash::Hash(ptr, len);
     return a;
 }
 
 size_t
-test_fasthash64 (int len)
+test_fasthash64(int len)
 {
     char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a = 0;
-    for (int i = 0, e = iterations / len;  i < e; i++, ptr += len)
-        a += fasthash::fasthash64 (ptr, len, 0);
+    size_t a  = 0;
+    for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
+        a += fasthash::fasthash64(ptr, len, 0);
     return a;
 }
 
@@ -98,12 +98,10 @@ test_fasthash64 (int len)
 
 // Licensed with the unlicense ( http://choosealicense.com/licenses/unlicense/ )
 
-inline uint64_t falkhash(
-                void     *pbuf,
-                uint64_t  len,
-                uint64_t  pseed = 0)
+inline uint64_t
+falkhash(void* pbuf, uint64_t len, uint64_t pseed = 0)
 {
-    uint8_t *buf = (uint8_t*)pbuf;
+    uint8_t* buf = (uint8_t*)pbuf;
 
     uint64_t iv[2];
 
@@ -138,11 +136,11 @@ inline uint64_t falkhash(
         }
 
         /* Load up the data into __m128is */
-        piece[0] = _mm_loadu_si128((__m128i*)(buf + 0*0x10));
-        piece[1] = _mm_loadu_si128((__m128i*)(buf + 1*0x10));
-        piece[2] = _mm_loadu_si128((__m128i*)(buf + 2*0x10));
-        piece[3] = _mm_loadu_si128((__m128i*)(buf + 3*0x10));
-        piece[4] = _mm_loadu_si128((__m128i*)(buf + 4*0x10));
+        piece[0] = _mm_loadu_si128((__m128i*)(buf + 0 * 0x10));
+        piece[1] = _mm_loadu_si128((__m128i*)(buf + 1 * 0x10));
+        piece[2] = _mm_loadu_si128((__m128i*)(buf + 2 * 0x10));
+        piece[3] = _mm_loadu_si128((__m128i*)(buf + 3 * 0x10));
+        piece[4] = _mm_loadu_si128((__m128i*)(buf + 4 * 0x10));
 
         /* xor each piece against the seed */
         piece[0] = _mm_xor_si128(piece[0], seed);
@@ -177,43 +175,42 @@ inline uint64_t falkhash(
 }
 
 size_t
-test_falkhash (int len)
+test_falkhash(int len)
 {
     char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a = 0;
-    for (int i = 0, e = iterations / len;  i < e; i++, ptr += len)
-        a += falkhash (ptr, len, 0);
+    size_t a  = 0;
+    for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
+        a += falkhash(ptr, len, 0);
     return a;
 }
 #endif
 
 static void
-getargs (int argc, char *argv[])
+getargs(int argc, char* argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options ("hash_test\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  hash_test [options]",
-                // "%*", parse_files, "",
-                "--help", &help, "Print help message",
-                "-v", &verbose, "Verbose mode",
-                "--iters %d", &iterations,
-                    Strutil::format("Number of iterations (default: %d)", iterations).c_str(),
-                "--trials %d", &ntrials, "Number of trials",
-                NULL);
-    if (ap.parse (argc, (const char**)argv) < 0) {
+    ap.options("hash_test\n" OIIO_INTRO_STRING "\n"
+               "Usage:  hash_test [options]",
+               // "%*", parse_files, "",
+               "--help", &help, "Print help message", "-v", &verbose,
+               "Verbose mode", "--iters %d", &iterations,
+               Strutil::format("Number of iterations (default: %d)", iterations)
+                   .c_str(),
+               "--trials %d", &ntrials, "Number of trials", NULL);
+    if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
-        ap.usage ();
-        exit (EXIT_FAILURE);
+        ap.usage();
+        exit(EXIT_FAILURE);
     }
     if (help) {
-        ap.usage ();
-        exit (EXIT_FAILURE);
+        ap.usage();
+        exit(EXIT_FAILURE);
     }
 }
 
-int main (int argc, char *argv[])
+int
+main(int argc, char* argv[])
 {
 #if !defined(NDEBUG) || defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
     // For the sake of test time, reduce the default iterations for DEBUG,
@@ -223,7 +220,7 @@ int main (int argc, char *argv[])
     ntrials = 1;
 #endif
 
-    getargs (argc, argv);
+    getargs(argc, argv);
 
     // fill data with random values so we can hash it a bunch of different ways
     std::mt19937 rng(42);
@@ -231,26 +228,30 @@ int main (int argc, char *argv[])
     for (uint32_t& d : data)
         d = rng();
 
-    printf("All times are seconds per %s\n", Strutil::memformat(iterations).c_str());
+    printf("All times are seconds per %s\n",
+           Strutil::memformat(iterations).c_str());
 
     // a sampling of sizes, both tiny and large-ish
-    int hashlen[] = { 1, 2, 4, 8, 12, 16, 20, 24, 32, 64, // small to medium
-                      3, 5, 6, 7, 13, 15, 19, 23, 49, 67, // small to medium - odd sizes
-                         128, 256, 512, 1024,             // large (even)
-                     95, 155, 243, 501, 1337,             // large (odd sizes)
-                         iterations                       // huge
+    int hashlen[] = {
+        1,         2,   4,   8,    12,
+        16,        20,  24,  32,   64,  // small to medium
+        3,         5,   6,   7,    13,
+        15,        19,  23,  49,   67,    // small to medium - odd sizes
+        128,       256, 512, 1024,        // large (even)
+        95,        155, 243, 501,  1337,  // large (odd sizes)
+        iterations                        // huge
     };
 
     // present results from smallest to largest
     std::sort(std::begin(hashlen), std::end(hashlen));
 
     auto candidates = {
-        std::make_pair(test_bjhash       , "BJ hash      "),
-        std::make_pair(test_xxhash       , "XX hash      "),
-        std::make_pair(test_farmhash     , "farmhash     "),
-        std::make_pair(test_fasthash64   , "fasthash64   "),
+        std::make_pair(test_bjhash, "BJ hash      "),
+        std::make_pair(test_xxhash, "XX hash      "),
+        std::make_pair(test_farmhash, "farmhash     "),
+        std::make_pair(test_fasthash64, "fasthash64   "),
 #ifdef __AES__
-        std::make_pair(test_falkhash     , "falkhash     "),
+        std::make_pair(test_falkhash, "falkhash     "),
 #endif
     };
 
@@ -263,10 +264,12 @@ int main (int argc, char *argv[])
         for (auto&& c : candidates) {
             double range;
             double t = time_trial(std::bind(c.first, len), ntrials, 1, &range);
-            printf("  %s took %s (range %s)\n", c.second, Strutil::timeintervalformat(t, 3).c_str(), Strutil::timeintervalformat(range, 3).c_str());
+            printf("  %s took %s (range %s)\n", c.second,
+                   Strutil::timeintervalformat(t, 3).c_str(),
+                   Strutil::timeintervalformat(range, 3).c_str());
             if (t < best_time) {
                 best_time = t;
-                best = c.second;
+                best      = c.second;
             }
         }
 

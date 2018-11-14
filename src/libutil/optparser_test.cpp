@@ -29,13 +29,13 @@
 */
 
 
-#include <iostream>
-#include <string>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
+#include <string>
 
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/optparser.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/unittest.h>
 
 
@@ -44,9 +44,14 @@ using namespace OIIO;
 
 class MySystem {
 public:
-    MySystem() : i(0), f(0) { }
+    MySystem()
+        : i(0)
+        , f(0)
+    {
+    }
 
-    bool attribute (const std::string &name, int value) {
+    bool attribute(const std::string& name, int value)
+    {
         std::cout << "iattribute '" << name << "' = " << value << "\n";
         if (name == "i") {
             i = value;
@@ -54,7 +59,8 @@ public:
         }
         return false;
     }
-    bool attribute (const std::string &name, float value) {
+    bool attribute(const std::string& name, float value)
+    {
         std::cout << "fattribute '" << name << "' = " << value << "\n";
         if (name == "f") {
             f = value;
@@ -62,10 +68,12 @@ public:
         }
         return false;
     }
-    bool attribute (const std::string &name, const std::string &value) {
+    bool attribute(const std::string& name, const std::string& value)
+    {
         std::cout << "sattribute '" << name << "' = '" << value << "'\n";
         if (name == "s") {
-            s = value;  return true;
+            s = value;
+            return true;
         }
         return false;
     }
@@ -77,37 +85,39 @@ public:
 
 
 
-void test_optparser ()
+void
+test_optparser()
 {
     MySystem sys;
-    optparser (sys, "i=14");
-    OIIO_CHECK_EQUAL (sys.i, 14);
-    optparser (sys, "i=-28");
-    OIIO_CHECK_EQUAL (sys.i, -28);
+    optparser(sys, "i=14");
+    OIIO_CHECK_EQUAL(sys.i, 14);
+    optparser(sys, "i=-28");
+    OIIO_CHECK_EQUAL(sys.i, -28);
 
-    optparser (sys, "f=6.28");
-    OIIO_CHECK_EQUAL (sys.f, 6.28f);
-    optparser (sys, "f=-56.0");
-    OIIO_CHECK_EQUAL (sys.f, -56.0f);
-    optparser (sys, "f=-1.");
-    OIIO_CHECK_EQUAL (sys.f, -1.0f);
+    optparser(sys, "f=6.28");
+    OIIO_CHECK_EQUAL(sys.f, 6.28f);
+    optparser(sys, "f=-56.0");
+    OIIO_CHECK_EQUAL(sys.f, -56.0f);
+    optparser(sys, "f=-1.");
+    OIIO_CHECK_EQUAL(sys.f, -1.0f);
 
-    optparser (sys, "s=foo");
-    OIIO_CHECK_EQUAL (sys.s, "foo");
-    optparser (sys, "s=\"foo, bar\"");
-    OIIO_CHECK_EQUAL (sys.s, "foo, bar");
+    optparser(sys, "s=foo");
+    OIIO_CHECK_EQUAL(sys.s, "foo");
+    optparser(sys, "s=\"foo, bar\"");
+    OIIO_CHECK_EQUAL(sys.s, "foo, bar");
 
-    optparser (sys, "f=256.29,s=\"phone call\",i=100");
-    OIIO_CHECK_EQUAL (sys.i, 100);
-    OIIO_CHECK_EQUAL (sys.f, 256.29f);
-    OIIO_CHECK_EQUAL (sys.s, "phone call");
+    optparser(sys, "f=256.29,s=\"phone call\",i=100");
+    OIIO_CHECK_EQUAL(sys.i, 100);
+    OIIO_CHECK_EQUAL(sys.f, 256.29f);
+    OIIO_CHECK_EQUAL(sys.s, "phone call");
 }
 
 
 
-int main (int argc, char *argv[])
+int
+main(int argc, char* argv[])
 {
-    test_optparser ();
+    test_optparser();
 
     return unit_test_failures;
 }

@@ -10,6 +10,7 @@
  * This work is based on the pugxml parser, which is:
  * Copyright (C) 2003, by Kristen Wegner (kristen@tima.net)
  */
+// clang-format off
 
 #ifndef HEADER_PUGICONFIG_HPP
 #define HEADER_PUGICONFIG_HPP

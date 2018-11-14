@@ -34,11 +34,11 @@
 #include <OpenImageIO/platform.h>
 
 #ifndef _WIN32
-# include <dlfcn.h>
+#    include <dlfcn.h>
 #endif
 
-#include <OpenImageIO/thread.h>
 #include <OpenImageIO/plugin.h>
+#include <OpenImageIO/thread.h>
 
 
 OIIO_NAMESPACE_BEGIN
@@ -50,11 +50,11 @@ namespace {
 static mutex plugin_mutex;
 static std::string last_error;
 
-}
+}  // namespace
 
 
-const char *
-Plugin::plugin_extension (void)
+const char*
+Plugin::plugin_extension(void)
 {
 #if defined(_WIN32)
     return "dll";
@@ -68,44 +68,44 @@ Plugin::plugin_extension (void)
 #if defined(_WIN32)
 
 // Dummy values
-#define RTLD_LAZY 0
-#define RTLD_GLOBAL 0
+#    define RTLD_LAZY 0
+#    define RTLD_GLOBAL 0
 
 
 Handle
-dlopen (const char *plugin_filename, int)
+dlopen(const char* plugin_filename, int)
 {
-    return LoadLibrary (plugin_filename);
+    return LoadLibrary(plugin_filename);
 }
 
 
 
 bool
-dlclose (Handle plugin_handle)
+dlclose(Handle plugin_handle)
 {
-    return FreeLibrary ((HMODULE)plugin_handle) != 0;
+    return FreeLibrary((HMODULE)plugin_handle) != 0;
 }
 
 
 
-void *
-dlsym (Handle plugin_handle, const char *symbol_name)
+void*
+dlsym(Handle plugin_handle, const char* symbol_name)
 {
-    return GetProcAddress ((HMODULE)plugin_handle, symbol_name);
+    return GetProcAddress((HMODULE)plugin_handle, symbol_name);
 }
 
 
 
 std::string
-dlerror ()
+dlerror()
 {
     LPVOID lpMsgBuf;
     std::string win32Error;
-    if (FormatMessageA( 
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL, GetLastError(),
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPSTR) &lpMsgBuf, 0, NULL))
+    if (FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+                | FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPSTR)&lpMsgBuf, 0, NULL))
         win32Error = (LPSTR)lpMsgBuf;
     LocalFree(lpMsgBuf);
     return win32Error;
@@ -113,14 +113,14 @@ dlerror ()
 #endif
 
 Handle
-Plugin::open (const char *plugin_filename, bool global)
+Plugin::open(const char* plugin_filename, bool global)
 {
-    lock_guard guard (plugin_mutex);
-    last_error.clear ();
+    lock_guard guard(plugin_mutex);
+    last_error.clear();
     int mode = RTLD_LAZY;
     if (global)
         mode |= RTLD_GLOBAL;
-    Handle h = dlopen (plugin_filename, mode);
+    Handle h = dlopen(plugin_filename, mode);
     if (!h)
         last_error = dlerror();
     return h;
@@ -129,11 +129,11 @@ Plugin::open (const char *plugin_filename, bool global)
 
 
 bool
-Plugin::close (Handle plugin_handle)
+Plugin::close(Handle plugin_handle)
 {
-    lock_guard guard (plugin_mutex);
-    last_error.clear ();
-    if (dlclose (plugin_handle)) {
+    lock_guard guard(plugin_mutex);
+    last_error.clear();
+    if (dlclose(plugin_handle)) {
         last_error = dlerror();
         return false;
     }
@@ -142,13 +142,12 @@ Plugin::close (Handle plugin_handle)
 
 
 
-void *
-Plugin::getsym (Handle plugin_handle, const char *symbol_name,
-                bool report_error)
+void*
+Plugin::getsym(Handle plugin_handle, const char* symbol_name, bool report_error)
 {
-    lock_guard guard (plugin_mutex);
-    last_error.clear ();
-    void *s = dlsym (plugin_handle, symbol_name);
+    lock_guard guard(plugin_mutex);
+    last_error.clear();
+    void* s = dlsym(plugin_handle, symbol_name);
     if (!s && report_error)
         last_error = dlerror();
     return s;
@@ -156,11 +155,11 @@ Plugin::getsym (Handle plugin_handle, const char *symbol_name,
 
 
 std::string
-Plugin::geterror (void)
+Plugin::geterror(void)
 {
-    lock_guard guard (plugin_mutex);
+    lock_guard guard(plugin_mutex);
     std::string e = last_error;
-    last_error.clear ();
+    last_error.clear();
     return e;
 }
 

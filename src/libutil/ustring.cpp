@@ -30,10 +30,10 @@
 
 #include <string>
 
-#include <OpenImageIO/export.h>
-#include <OpenImageIO/thread.h>
-#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/thread.h>
 #include <OpenImageIO/ustring.h>
 
 OIIO_NAMESPACE_BEGIN
@@ -62,35 +62,45 @@ typedef null_lock<null_mutex> ustring_write_lock_t;
 
 
 // NOTE: BASE_CAPACITY must be a power of 2
-template <unsigned BASE_CAPACITY = 1 << 20, unsigned POOL_SIZE = 4 << 20>
+template<unsigned BASE_CAPACITY = 1 << 20, unsigned POOL_SIZE = 4 << 20>
 struct TableRepMap {
-    TableRepMap() :
-        mask(BASE_CAPACITY - 1),
-        entries(static_cast<ustring::TableRep**>(calloc(BASE_CAPACITY, sizeof(ustring::TableRep*)))),
-        num_entries(0),
-        pool(static_cast<char*>(malloc(POOL_SIZE))),
-        pool_offset(0),
-        memory_usage(sizeof(*this) + POOL_SIZE + sizeof(ustring::TableRep*) * BASE_CAPACITY),
-        num_lookups(0) {}
+    TableRepMap()
+        : mask(BASE_CAPACITY - 1)
+        , entries(static_cast<ustring::TableRep**>(
+              calloc(BASE_CAPACITY, sizeof(ustring::TableRep*))))
+        , num_entries(0)
+        , pool(static_cast<char*>(malloc(POOL_SIZE)))
+        , pool_offset(0)
+        , memory_usage(sizeof(*this) + POOL_SIZE
+                       + sizeof(ustring::TableRep*) * BASE_CAPACITY)
+        , num_lookups(0)
+    {
+    }
 
-    ~TableRepMap() { /* just let memory leak */ }
+    ~TableRepMap()
+    { /* just let memory leak */
+    }
 
-    size_t get_memory_usage() {
+    size_t get_memory_usage()
+    {
         ustring_read_lock_t lock(mutex);
         return memory_usage;
     }
 
-    size_t get_num_entries() {
+    size_t get_num_entries()
+    {
         ustring_read_lock_t lock(mutex);
         return num_entries;
     }
 
-    size_t get_num_lookups() {
+    size_t get_num_lookups()
+    {
         ustring_read_lock_t lock(mutex);
         return num_lookups;
     }
 
-    const char* lookup(string_view str, size_t hash) {
+    const char* lookup(string_view str, size_t hash)
+    {
         ustring_read_lock_t lock(mutex);
 #if 0
         // NOTE: this simple increment adds a substantial amount of overhead
@@ -101,53 +111,63 @@ struct TableRepMap {
 #endif
         size_t pos = hash & mask, dist = 0;
         for (;;) {
-            if (entries[pos] == 0) return 0;
-            if (entries[pos]->hashed == hash &&
-                entries[pos]->length == str.length() &&
-                strncmp(entries[pos]->c_str(), str.data(), str.length()) == 0)
+            if (entries[pos] == 0)
+                return 0;
+            if (entries[pos]->hashed == hash
+                && entries[pos]->length == str.length()
+                && strncmp(entries[pos]->c_str(), str.data(), str.length())
+                       == 0)
                 return entries[pos]->c_str();
             ++dist;
-            pos = (pos + dist) & mask; // quadratic probing
+            pos = (pos + dist) & mask;  // quadratic probing
         }
     }
 
-    const char* insert(string_view str, size_t hash) {
+    const char* insert(string_view str, size_t hash)
+    {
         ustring_write_lock_t lock(mutex);
         size_t pos = hash & mask, dist = 0;
         for (;;) {
-            if (entries[pos] == 0) break; // found insert pos
-            if (entries[pos]->hashed == hash &&
-                entries[pos]->length == str.length() &&
-                strncmp(entries[pos]->c_str(), str.data(), str.length()) == 0)
-                return entries[pos]->c_str(); // same string is already inserted, return the one that is already in the table
+            if (entries[pos] == 0)
+                break;  // found insert pos
+            if (entries[pos]->hashed == hash
+                && entries[pos]->length == str.length()
+                && strncmp(entries[pos]->c_str(), str.data(), str.length())
+                       == 0)
+                return entries[pos]
+                    ->c_str();  // same string is already inserted, return the one that is already in the table
             ++dist;
-            pos = (pos + dist) & mask; // quadratic probing
+            pos = (pos + dist) & mask;  // quadratic probing
         }
 
         ustring::TableRep* rep = make_rep(str, hash);
-        entries[pos] = rep;
+        entries[pos]           = rep;
         ++num_entries;
-        if (2 * num_entries > mask) grow(); // maintain 0.5 load factor
-        return rep->c_str();                // rep is now in the table
+        if (2 * num_entries > mask)
+            grow();           // maintain 0.5 load factor
+        return rep->c_str();  // rep is now in the table
     }
 
 private:
-    void grow() {
+    void grow()
+    {
         size_t new_mask = mask * 2 + 1;
 
         // NOTE: only increment by half because we are doubling the entries and freeing the old
         memory_usage += (mask + 1) * sizeof(ustring::TableRep*);
 
-        ustring::TableRep** new_entries = static_cast<ustring::TableRep**>(calloc(new_mask + 1, sizeof(ustring::TableRep*)));
+        ustring::TableRep** new_entries = static_cast<ustring::TableRep**>(
+            calloc(new_mask + 1, sizeof(ustring::TableRep*)));
         size_t to_copy = num_entries;
         for (size_t i = 0; to_copy != 0; i++) {
-            if (entries[i] == 0)  continue;
+            if (entries[i] == 0)
+                continue;
             size_t pos = entries[i]->hashed & new_mask, dist = 0;
             for (;;) {
                 if (new_entries[pos] == 0)
                     break;
                 ++dist;
-                pos = (pos + dist) & new_mask; // quadratic probing
+                pos = (pos + dist) & new_mask;  // quadratic probing
             }
             new_entries[pos] = entries[i];
             to_copy--;
@@ -158,23 +178,27 @@ private:
         mask    = new_mask;
     }
 
-    ustring::TableRep* make_rep(string_view str, size_t hash) {
+    ustring::TableRep* make_rep(string_view str, size_t hash)
+    {
         char* repmem = pool_alloc(sizeof(ustring::TableRep) + str.length() + 1);
-        return new (repmem) ustring::TableRep (str, hash);;
+        return new (repmem) ustring::TableRep(str, hash);
+        ;
     }
 
-    char* pool_alloc(size_t len) {
+    char* pool_alloc(size_t len)
+    {
         // round up to nearest multiple of pointer size to guarentee proper alignment of TableRep objects
-        len = (len + alignof(ustring::TableRep) - 1) & ~(alignof(ustring::TableRep) - 1);
+        len = (len + alignof(ustring::TableRep) - 1)
+              & ~(alignof(ustring::TableRep) - 1);
 
         if (len >= POOL_SIZE) {
             memory_usage += len;
-            return (char*) malloc(len); // no need to try and use the pool
+            return (char*)malloc(len);  // no need to try and use the pool
         }
         if (pool_offset + len > POOL_SIZE) {
             // NOTE: old pool will leak - this is ok because ustrings cannot be freed
             memory_usage += POOL_SIZE;
-            pool = (char*) malloc(POOL_SIZE);
+            pool        = (char*)malloc(POOL_SIZE);
             pool_offset = 0;
         }
         char* result = pool + pool_offset;
@@ -199,29 +223,34 @@ typedef TableRepMap<1 << 20, 4 << 20> UstringTable;
 // Optimized map broken up into chunks by the top bits of the hash.
 // This helps reduce the amount of contention for locks.
 struct UstringTable {
-    const char* lookup(string_view str, size_t hash) {
+    const char* lookup(string_view str, size_t hash)
+    {
         return whichbin(hash).lookup(str, hash);
     }
 
-    const char* insert(string_view str, size_t hash) {
+    const char* insert(string_view str, size_t hash)
+    {
         return whichbin(hash).insert(str, hash);
     }
 
-    size_t get_memory_usage() {
+    size_t get_memory_usage()
+    {
         size_t mem = 0;
         for (auto& bin : bins)
             mem += bin.get_memory_usage();
         return mem;
     }
 
-    size_t get_num_entries() {
+    size_t get_num_entries()
+    {
         size_t num = 0;
         for (auto& bin : bins)
             num += bin.get_num_entries();
         return num;
     }
 
-    size_t get_num_lookups() {
+    size_t get_num_lookups()
+    {
         size_t num = 0;
         for (auto& bin : bins)
             num += bin.get_num_lookups();
@@ -231,7 +260,8 @@ struct UstringTable {
 private:
     enum {
         BIN_SHIFT = 5,
-        NUM_BINS = 1 << BIN_SHIFT, // NOTE: this guarentees NUM_BINS is a power of 2
+        NUM_BINS
+        = 1 << BIN_SHIFT,  // NOTE: this guarentees NUM_BINS is a power of 2
         TOP_SHIFT = 8 * sizeof(size_t) - BIN_SHIFT
     };
 
@@ -239,7 +269,8 @@ private:
 
     Bin bins[NUM_BINS];
 
-    Bin& whichbin(size_t hash) {
+    Bin& whichbin(size_t hash)
+    {
         // use the top bits of the hash to pick a bin
         // (lower bits choose position within the table)
         return bins[(hash >> TOP_SHIFT) % NUM_BINS];
@@ -251,15 +282,16 @@ private:
 std::string ustring::empty_std_string;
 
 
-namespace { // anonymous
+namespace {  // anonymous
 
-static UstringTable & ustring_table ()
+static UstringTable&
+ustring_table()
 {
     static OIIO_CACHE_ALIGN UstringTable table;
     return table;
 }
 
-}           // end anonymous namespace
+}  // end anonymous namespace
 
 
 // Put a ustring in the global scope to force at least one call to
@@ -278,41 +310,45 @@ namespace {
 
 #ifdef _LIBCPP_ALTERNATE_STRING_LAYOUT
 struct libcpp_string__long {
-    std::string::pointer   __data_;
+    std::string::pointer __data_;
     std::string::size_type __size_;
     std::string::size_type __cap_;
 };
-#if _LIBCPP_BIG_ENDIAN
-    enum {libcpp_string__long_mask  = 0x1ul};
-#else  // _LIBCPP_BIG_ENDIAN
-    enum {libcpp_string__long_mask  = ~(std::string::size_type(~0) >> 1)};
-#endif  // _LIBCPP_BIG_ENDIAN
+#    if _LIBCPP_BIG_ENDIAN
+enum { libcpp_string__long_mask = 0x1ul };
+#    else   // _LIBCPP_BIG_ENDIAN
+enum { libcpp_string__long_mask = ~(std::string::size_type(~0) >> 1) };
+#    endif  // _LIBCPP_BIG_ENDIAN
 #else
 struct libcpp_string__long {
     std::string::size_type __cap_;
     std::string::size_type __size_;
-    std::string::pointer   __data_;
+    std::string::pointer __data_;
 };
-#if _LIBCPP_BIG_ENDIAN
-    enum {libcpp_string__long_mask  = ~(std::string::size_type(~0) >> 1)};
-#else  // _LIBCPP_BIG_ENDIAN
-    enum {libcpp_string__long_mask  = 0x1ul};
-#endif  // _LIBCPP_BIG_ENDIAN
+#    if _LIBCPP_BIG_ENDIAN
+enum { libcpp_string__long_mask = ~(std::string::size_type(~0) >> 1) };
+#    else   // _LIBCPP_BIG_ENDIAN
+enum { libcpp_string__long_mask = 0x1ul };
+#    endif  // _LIBCPP_BIG_ENDIAN
 #endif
 
-enum {libcpp_string__min_cap = (sizeof(libcpp_string__long) - 1)/sizeof(std::string::value_type) > 2 ?
-                               (sizeof(libcpp_string__long) - 1)/sizeof(std::string::value_type) : 2};
+enum {
+    libcpp_string__min_cap
+    = (sizeof(libcpp_string__long) - 1) / sizeof(std::string::value_type) > 2
+          ? (sizeof(libcpp_string__long) - 1) / sizeof(std::string::value_type)
+          : 2
+};
 
-}
+}  // namespace
 
 
 
-ustring::TableRep::TableRep (string_view strref, size_t hash)
+ustring::TableRep::TableRep(string_view strref, size_t hash)
     : hashed(hash)
 {
     length = strref.length();
-    memcpy ((char *)c_str(), strref.data(), length);
-    ((char *)c_str())[length] = 0;
+    memcpy((char*)c_str(), strref.data(), length);
+    ((char*)c_str())[length] = 0;
 
     // We don't want the internal 'std::string str' to redundantly store the
     // chars, along with our own allocation.  So we use our knowledge of the
@@ -320,7 +356,8 @@ ustring::TableRep::TableRep (string_view strref, size_t hash)
     // the std::string to make it point to our chars!  In such a case, the
     // destructor will be careful not to allow a deallocation.
 
-#if defined(__GNUC__) && !defined(_LIBCPP_VERSION) && defined(_GLIBCXX_USE_CXX11_ABI) && _GLIBCXX_USE_CXX11_ABI
+#if defined(__GNUC__) && !defined(_LIBCPP_VERSION)                             \
+    && defined(_GLIBCXX_USE_CXX11_ABI) && _GLIBCXX_USE_CXX11_ABI
     // NEW gcc ABI
     // FIXME -- do something smart with this.
 
@@ -337,10 +374,10 @@ ustring::TableRep::TableRep (string_view strref, size_t hash)
     //
     // See /usr/include/c++/VERSION/bits/basic_string.h for the details of
     // gcc's std::string implementation.
-    dummy_capacity = length;
-    dummy_refcount = 1;   // so it never frees
-    *(const char **)&str = c_str();
-    DASSERT (str.c_str() == c_str() && str.size() == length);
+    dummy_capacity      = length;
+    dummy_refcount      = 1;  // so it never frees
+    *(const char**)&str = c_str();
+    DASSERT(str.c_str() == c_str() && str.size() == length);
     return;
 
 #elif defined(_LIBCPP_VERSION)
@@ -356,10 +393,11 @@ ustring::TableRep::TableRep (string_view strref, size_t hash)
     // the length), we construct it ourselves, forcing the pointer to point
     // to the charcters in the TableRep we allocated.
     if (length >= libcpp_string__min_cap /* it'll be a "long string" */) {
-        ((libcpp_string__long *)&str)->__cap_ = libcpp_string__long_mask | (length+1);
-        ((libcpp_string__long *)&str)->__size_ = length;
-        ((libcpp_string__long *)&str)->__data_ = (char *)c_str();
-        DASSERT (str.c_str() == c_str() && str.size() == length);
+        ((libcpp_string__long*)&str)->__cap_
+            = libcpp_string__long_mask | (length + 1);
+        ((libcpp_string__long*)&str)->__size_ = length;
+        ((libcpp_string__long*)&str)->__data_ = (char*)c_str();
+        DASSERT(str.c_str() == c_str() && str.size() == length);
         return;
     }
 #endif
@@ -373,22 +411,22 @@ ustring::TableRep::TableRep (string_view strref, size_t hash)
 
 
 
-ustring::TableRep::~TableRep ()
+ustring::TableRep::~TableRep()
 {
     if (str.c_str() == c_str()) {
         // This is one of those cases where we've carefully doctored the
         // string to point to our allocated characters.  To make a safe
         // string destroy, now force it to look like an empty string.
-        new (&str) std::string();   // "placement new"
+        new (&str) std::string();  // "placement new"
     }
 }
 
-const char *
-ustring::make_unique (string_view strref)
+const char*
+ustring::make_unique(string_view strref)
 {
-    UstringTable &table (ustring_table());
+    UstringTable& table(ustring_table());
     // Eliminate NULLs
-    if (! strref.data())
+    if (!strref.data())
         strref = string_view("", 0);
 
     size_t hash = Strutil::strhash(strref);
@@ -401,35 +439,33 @@ ustring::make_unique (string_view strref)
 }
 
 std::string
-ustring::getstats (bool verbose)
+ustring::getstats(bool verbose)
 {
-    UstringTable &table (ustring_table());
+    UstringTable& table(ustring_table());
     std::ostringstream out;
-    out.imbue (std::locale::classic());  // Force "C" locale with '.' decimal
+    out.imbue(std::locale::classic());  // Force "C" locale with '.' decimal
     size_t n_l = table.get_num_lookups();
     size_t n_e = table.get_num_entries();
     size_t mem = table.get_memory_usage();
     if (verbose) {
         out << "ustring statistics:\n";
-        if (n_l) // NOTE: see #if 0 above
-        out << "  ustring requests: " << n_l << ", unique " << n_e << "\n";
+        if (n_l)  // NOTE: see #if 0 above
+            out << "  ustring requests: " << n_l << ", unique " << n_e << "\n";
         else
-        out << "  unique strings: " << n_e << "\n";
-        out << "  ustring memory: " << Strutil::memformat(mem)
-            << "\n";
+            out << "  unique strings: " << n_e << "\n";
+        out << "  ustring memory: " << Strutil::memformat(mem) << "\n";
     } else {
-        if (n_l) // NOTE: see #if 0 above
-        out << "requests: " << n_l << ", ";
-        out << "unique " << n_e
-            << ", " << Strutil::memformat(mem);
+        if (n_l)  // NOTE: see #if 0 above
+            out << "requests: " << n_l << ", ";
+        out << "unique " << n_e << ", " << Strutil::memformat(mem);
     }
     return out.str();
 }
 
 size_t
-ustring::memory ()
+ustring::memory()
 {
-    UstringTable &table (ustring_table());
+    UstringTable& table(ustring_table());
     return table.get_memory_usage();
 }
 

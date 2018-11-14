@@ -70,7 +70,7 @@
 	SHA1(A million repetitions of "a") =
 		34AA973C D4C4DAA4 F61EEB2B DBAD2731 6534016F
 */
-// clang-format off      (imported file)
+// clang-format off
 
 #ifndef ___SHA1_HDR___
 #define ___SHA1_HDR___

@@ -28,42 +28,42 @@
   (This is the Modified BSD License)
 */
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <string>
-#include <algorithm>
 
 #include <boost/tokenizer.hpp>
 
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/ustring.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/refcnt.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/ustring.h>
 
 #ifdef _WIN32
 // # include <windows.h>   // Already done by platform.h
-# include <shellapi.h>
-# include <direct.h>
-# include <io.h>
+#    include <direct.h>
+#    include <io.h>
+#    include <shellapi.h>
 #else
-# include <unistd.h>
+#    include <unistd.h>
 #endif
 
 #ifdef USE_BOOST_REGEX
-# include <boost/regex.hpp>
-  using boost::regex;
-  using boost::regex_search;
-  using boost::regex_replace;
-  using boost::match_results;
+#    include <boost/regex.hpp>
+using boost::match_results;
+using boost::regex;
+using boost::regex_replace;
+using boost::regex_search;
 #else
-# include <regex>
-  using std::regex;
-  using std::regex_search;
-  using std::regex_replace;
-  using std::match_results;
+#    include <regex>
+using std::match_results;
+using std::regex;
+using std::regex_replace;
+using std::regex_search;
 #endif
 
 #include <boost/filesystem.hpp>
@@ -80,28 +80,31 @@ OIIO_NAMESPACE_BEGIN
 // See boost/filesystem/path.hpp
 // The only correct way to do this is to do the conversion ourselves.
 
-inline filesystem::path u8path (string_view name)
+inline filesystem::path
+u8path(string_view name)
 {
 #ifdef _WIN32
-    return filesystem::path (Strutil::utf8_to_utf16 (name));
+    return filesystem::path(Strutil::utf8_to_utf16(name));
 #else
-    return filesystem::path (name.str());
+    return filesystem::path(name.str());
 #endif
 }
 
-inline filesystem::path u8path (const std::string &name)
+inline filesystem::path
+u8path(const std::string& name)
 {
 #ifdef _WIN32
-    return filesystem::path (Strutil::utf8_to_utf16 (name));
+    return filesystem::path(Strutil::utf8_to_utf16(name));
 #else
-    return filesystem::path (name);
+    return filesystem::path(name);
 #endif
 }
 
-inline std::string pathstr (const filesystem::path &p)
+inline std::string
+pathstr(const filesystem::path& p)
 {
 #ifdef _WIN32
-    return Strutil::utf16_to_utf8 (p.native());
+    return Strutil::utf16_to_utf8(p.native());
 #else
     return p.string();
 #endif
@@ -110,62 +113,62 @@ inline std::string pathstr (const filesystem::path &p)
 
 
 #ifdef _MSC_VER
-    // fix for https://svn.boost.org/trac/boost/ticket/6320
-    const std::string dummy_path = "../dummy_path.txt";
-    const std::string dummy_extension = filesystem::path(dummy_path).extension().string();
+// fix for https://svn.boost.org/trac/boost/ticket/6320
+const std::string dummy_path = "../dummy_path.txt";
+const std::string dummy_extension
+    = filesystem::path(dummy_path).extension().string();
 #endif
 
 std::string
-Filesystem::filename (const std::string &filepath)
+Filesystem::filename(const std::string& filepath)
 {
     // To simplify dealing with platform-specific separators and whatnot,
     // just use the Boost routines:
-    return pathstr (u8path(filepath).filename());
+    return pathstr(u8path(filepath).filename());
 }
 
 
 
 std::string
-Filesystem::extension (const std::string &filepath, bool include_dot)
+Filesystem::extension(const std::string& filepath, bool include_dot)
 {
-    std::string s = pathstr (u8path(filepath).extension());
-    if (! include_dot && !s.empty() && s[0] == '.')
-        s.erase (0, 1);  // erase the first character
+    std::string s = pathstr(u8path(filepath).extension());
+    if (!include_dot && !s.empty() && s[0] == '.')
+        s.erase(0, 1);  // erase the first character
     return s;
 }
 
 
 
 std::string
-Filesystem::parent_path (const std::string &filepath)
+Filesystem::parent_path(const std::string& filepath)
 {
-    return pathstr (u8path(filepath).parent_path());
+    return pathstr(u8path(filepath).parent_path());
 }
 
 
 
 std::string
-Filesystem::replace_extension (const std::string &filepath,
-                               const std::string &new_extension)
+Filesystem::replace_extension(const std::string& filepath,
+                              const std::string& new_extension)
 {
-    return pathstr (u8path(filepath).replace_extension(new_extension));
+    return pathstr(u8path(filepath).replace_extension(new_extension));
 }
 
 
 
 void
-Filesystem::searchpath_split (const std::string &searchpath,
-                              std::vector<std::string> &dirs,
-                              bool validonly)
+Filesystem::searchpath_split(const std::string& searchpath,
+                             std::vector<std::string>& dirs, bool validonly)
 {
     dirs.clear();
 
     std::string path_copy = searchpath;
     std::string last_token;
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
     boost::char_separator<char> sep(":;");
-    tokenizer tokens (searchpath, sep);
-    for (tokenizer::iterator tok_iter = tokens.begin();
+    tokenizer tokens(searchpath, sep);
+    for (tokenizer::iterator tok_iter         = tokens.begin();
          tok_iter != tokens.end(); last_token = *tok_iter, ++tok_iter) {
         std::string path = *tok_iter;
 #ifdef _WIN32
@@ -183,12 +186,12 @@ Filesystem::searchpath_split (const std::string &searchpath,
             path = *tok_iter;
         // Kill trailing slashes (but not simple "/")
         size_t len = path.length();
-        while (len > 1 && (path[len-1] == '/' || path[len-1] == '\\'))
-            path.erase (--len);
+        while (len > 1 && (path[len - 1] == '/' || path[len - 1] == '\\'))
+            path.erase(--len);
         // If it's a valid directory, or if validonly is false, add it
         // to the list
-        if (!validonly || Filesystem::is_directory (path))
-            dirs.push_back (path);
+        if (!validonly || Filesystem::is_directory(path))
+            dirs.push_back(path);
     }
 #if 0
     std::cerr << "Searchpath = '" << searchpath << "'\n";
@@ -201,38 +204,39 @@ Filesystem::searchpath_split (const std::string &searchpath,
 
 
 std::string
-Filesystem::searchpath_find (const std::string &filename_utf8,
-                             const std::vector<std::string> &dirs,
-                             bool testcwd, bool recursive)
+Filesystem::searchpath_find(const std::string& filename_utf8,
+                            const std::vector<std::string>& dirs, bool testcwd,
+                            bool recursive)
 {
-    const filesystem::path filename (u8path (filename_utf8));
+    const filesystem::path filename(u8path(filename_utf8));
     bool abs = filename.is_absolute();
 
     // If it's an absolute filename, or if we want to check "." first,
     // then start by checking filename outright.
     if (testcwd || abs) {
-        if (is_regular (filename_utf8))
+        if (is_regular(filename_utf8))
             return filename_utf8;
     }
 
     // Relative filename, not yet found -- try each directory in turn
     for (auto&& d_utf8 : dirs) {
         // std::cerr << "\tPath = '" << d << "'\n";
-        const filesystem::path d (u8path (d_utf8));
+        const filesystem::path d(u8path(d_utf8));
         filesystem::path f = d / filename;
-        if (is_regular (pathstr(f))) {
-            return pathstr (f);
+        if (is_regular(pathstr(f))) {
+            return pathstr(f);
         }
 
-        if (recursive && is_directory (pathstr(d))) {
+        if (recursive && is_directory(pathstr(d))) {
             std::vector<std::string> subdirs;
             filesystem::directory_iterator end_iter;
             for (filesystem::directory_iterator s(d); s != end_iter; ++s) {
-                if (filesystem::is_directory (s->status())) {
-                    subdirs.push_back (pathstr (s->path()));
+                if (filesystem::is_directory(s->status())) {
+                    subdirs.push_back(pathstr(s->path()));
                 }
             }
-            std::string found = searchpath_find (filename_utf8, subdirs, false, true);
+            std::string found
+                = searchpath_find(filename_utf8, subdirs, false, true);
             if (found.size())
                 return found;
         }
@@ -243,15 +247,16 @@ Filesystem::searchpath_find (const std::string &filename_utf8,
 
 
 bool
-Filesystem::get_directory_entries (const std::string &dirname,
-                                   std::vector<std::string> &filenames,
-                                   bool recursive,
-                                   const std::string &filter_regex)
+Filesystem::get_directory_entries(const std::string& dirname,
+                                  std::vector<std::string>& filenames,
+                                  bool recursive,
+                                  const std::string& filter_regex)
 {
-    filenames.clear ();
-    if (dirname.size() && ! is_directory(dirname))
+    filenames.clear();
+    if (dirname.size() && !is_directory(dirname))
         return false;
-    filesystem::path dirpath (dirname.size() ? u8path(dirname) : filesystem::path("."));
+    filesystem::path dirpath(dirname.size() ? u8path(dirname)
+                                            : filesystem::path("."));
     regex re;
     try {
         re = regex(filter_regex);
@@ -260,18 +265,18 @@ Filesystem::get_directory_entries (const std::string &dirname,
     }
 
     if (recursive) {
-        for (filesystem::recursive_directory_iterator s (dirpath);
-             s != filesystem::recursive_directory_iterator();  ++s) {
-            std::string file = pathstr (s->path());
-            if (!filter_regex.size() || regex_search (file, re))
-                filenames.push_back (file);
+        for (filesystem::recursive_directory_iterator s(dirpath);
+             s != filesystem::recursive_directory_iterator(); ++s) {
+            std::string file = pathstr(s->path());
+            if (!filter_regex.size() || regex_search(file, re))
+                filenames.push_back(file);
         }
     } else {
-        for (filesystem::directory_iterator s (dirpath);
-             s != filesystem::directory_iterator();  ++s) {
-            std::string file = pathstr (s->path());
-            if (!filter_regex.size() || regex_search (file, re))
-                filenames.push_back (file);
+        for (filesystem::directory_iterator s(dirpath);
+             s != filesystem::directory_iterator(); ++s) {
+            std::string file = pathstr(s->path());
+            if (!filter_regex.size() || regex_search(file, re))
+                filenames.push_back(file);
         }
     }
     return true;
@@ -280,7 +285,7 @@ Filesystem::get_directory_entries (const std::string &dirname,
 
 
 bool
-Filesystem::path_is_absolute (const std::string &path, bool dot_is_absolute)
+Filesystem::path_is_absolute(const std::string& path, bool dot_is_absolute)
 {
     // "./foo" is considered absolute if dot_is_absolute is true.
     // Don't get confused by ".foo", which is not absolute!
@@ -288,13 +293,15 @@ Filesystem::path_is_absolute (const std::string &path, bool dot_is_absolute)
     if (!len)
         return false;
     return (path[0] == '/')
-        || (dot_is_absolute && path[0] == '.' && path[1] == '/')
-        || (dot_is_absolute && path[0] == '.' && path[1] == '.' && path[2] == '/')
+           || (dot_is_absolute && path[0] == '.' && path[1] == '/')
+           || (dot_is_absolute && path[0] == '.' && path[1] == '.'
+               && path[2] == '/')
 #ifdef _WIN32
-        || path[0] == '\\'
-        || (dot_is_absolute && path[0] == '.' && path[1] == '\\')
-        || (dot_is_absolute && path[0] == '.' && path[1] == '.' && path[2] == '\\')
-        || (isalpha(path[0]) && path[1] == ':')
+           || path[0] == '\\'
+           || (dot_is_absolute && path[0] == '.' && path[1] == '\\')
+           || (dot_is_absolute && path[0] == '.' && path[1] == '.'
+               && path[2] == '\\')
+           || (isalpha(path[0]) && path[1] == ':')
 #endif
         ;
 }
@@ -302,11 +309,11 @@ Filesystem::path_is_absolute (const std::string &path, bool dot_is_absolute)
 
 
 bool
-Filesystem::exists (const std::string &path)
+Filesystem::exists(const std::string& path)
 {
     bool r = false;
     try {
-        r = filesystem::exists (u8path (path));
+        r = filesystem::exists(u8path(path));
     } catch (...) {
         r = false;
     }
@@ -316,11 +323,11 @@ Filesystem::exists (const std::string &path)
 
 
 bool
-Filesystem::is_directory (const std::string &path)
+Filesystem::is_directory(const std::string& path)
 {
     bool r = false;
     try {
-        r = filesystem::is_directory (u8path (path));
+        r = filesystem::is_directory(u8path(path));
     } catch (...) {
         r = false;
     }
@@ -330,11 +337,11 @@ Filesystem::is_directory (const std::string &path)
 
 
 bool
-Filesystem::is_regular (const std::string &path)
+Filesystem::is_regular(const std::string& path)
 {
     bool r = false;
     try {
-        r = filesystem::is_regular_file (u8path (path));
+        r = filesystem::is_regular_file(u8path(path));
     } catch (...) {
         r = false;
     }
@@ -344,10 +351,10 @@ Filesystem::is_regular (const std::string &path)
 
 
 bool
-Filesystem::create_directory (string_view path, std::string &err)
+Filesystem::create_directory(string_view path, std::string& err)
 {
     boost::system::error_code ec;
-	bool ok = filesystem::create_directory (u8path(path), ec);
+    bool ok = filesystem::create_directory(u8path(path), ec);
     if (ok)
         err.clear();
     else
@@ -357,11 +364,11 @@ Filesystem::create_directory (string_view path, std::string &err)
 
 
 bool
-Filesystem::copy (string_view from, string_view to, std::string &err)
+Filesystem::copy(string_view from, string_view to, std::string& err)
 {
     boost::system::error_code ec;
-    filesystem::copy (u8path(from), u8path(to), ec);
-    if (! ec) {
+    filesystem::copy(u8path(from), u8path(to), ec);
+    if (!ec) {
         err.clear();
         return true;
     } else {
@@ -373,11 +380,11 @@ Filesystem::copy (string_view from, string_view to, std::string &err)
 
 
 bool
-Filesystem::rename (string_view from, string_view to, std::string &err)
+Filesystem::rename(string_view from, string_view to, std::string& err)
 {
     boost::system::error_code ec;
-    filesystem::rename (u8path(from), u8path(to), ec);
-    if (! ec) {
+    filesystem::rename(u8path(from), u8path(to), ec);
+    if (!ec) {
         err.clear();
         return true;
     } else {
@@ -389,10 +396,10 @@ Filesystem::rename (string_view from, string_view to, std::string &err)
 
 
 bool
-Filesystem::remove (string_view path, std::string &err)
+Filesystem::remove(string_view path, std::string& err)
 {
     boost::system::error_code ec;
-    bool ok = filesystem::remove (u8path(path), ec);
+    bool ok = filesystem::remove(u8path(path), ec);
     if (ok)
         err.clear();
     else
@@ -403,10 +410,10 @@ Filesystem::remove (string_view path, std::string &err)
 
 
 unsigned long long
-Filesystem::remove_all (string_view path, std::string &err)
+Filesystem::remove_all(string_view path, std::string& err)
 {
     boost::system::error_code ec;
-    unsigned long long n = filesystem::remove_all (u8path(path), ec);
+    unsigned long long n = filesystem::remove_all(u8path(path), ec);
     if (!ec)
         err.clear();
     else
@@ -420,17 +427,17 @@ std::string
 Filesystem::temp_directory_path()
 {
     boost::system::error_code ec;
-    filesystem::path p = filesystem::temp_directory_path (ec);
+    filesystem::path p = filesystem::temp_directory_path(ec);
     return ec ? std::string() : pathstr(p);
 }
 
 
 
 std::string
-Filesystem::unique_path (string_view model)
+Filesystem::unique_path(string_view model)
 {
     boost::system::error_code ec;
-    filesystem::path p = filesystem::unique_path (u8path(model), ec);
+    filesystem::path p = filesystem::unique_path(u8path(model), ec);
     return ec ? std::string() : pathstr(p);
 }
 
@@ -440,57 +447,57 @@ std::string
 Filesystem::current_path()
 {
     boost::system::error_code ec;
-    filesystem::path p = filesystem::current_path (ec);
+    filesystem::path p = filesystem::current_path(ec);
     return ec ? std::string() : pathstr(p);
 }
 
 
 
 FILE*
-Filesystem::fopen (string_view path, string_view mode)
+Filesystem::fopen(string_view path, string_view mode)
 {
 #ifdef _WIN32
     // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
-    std::wstring wpath = Strutil::utf8_to_utf16 (path);
-    std::wstring wmode = Strutil::utf8_to_utf16 (mode);
+    std::wstring wpath = Strutil::utf8_to_utf16(path);
+    std::wstring wmode = Strutil::utf8_to_utf16(mode);
 
-    return ::_wfopen (wpath.c_str(), wmode.c_str());
+    return ::_wfopen(wpath.c_str(), wmode.c_str());
 #else
     // on Unix platforms passing in UTF-8 works
-    return ::fopen (path.c_str(), mode.c_str());
+    return ::fopen(path.c_str(), mode.c_str());
 #endif
 }
 
 
 
 void
-Filesystem::open (OIIO::ifstream &stream, string_view path,
-                  std::ios_base::openmode mode)
+Filesystem::open(OIIO::ifstream& stream, string_view path,
+                 std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    // Windows std::ifstream accepts non-standard wchar_t* 
-	// On MingW, we use our own OIIO::ifstream
+    // Windows std::ifstream accepts non-standard wchar_t*
+    // On MingW, we use our own OIIO::ifstream
     std::wstring wpath = Strutil::utf8_to_utf16(path);
-    stream.open (wpath.c_str(), mode);
-    stream.seekg (0, std::ios_base::beg); // force seek, otherwise broken
+    stream.open(wpath.c_str(), mode);
+    stream.seekg(0, std::ios_base::beg);  // force seek, otherwise broken
 #else
-    stream.open (path.c_str(), mode);
+    stream.open(path.c_str(), mode);
 #endif
 }
 
 
 
 void
-Filesystem::open (OIIO::ofstream &stream, string_view path,
-                  std::ios_base::openmode mode)
+Filesystem::open(OIIO::ofstream& stream, string_view path,
+                 std::ios_base::openmode mode)
 {
-#ifdef _WIN32 
+#ifdef _WIN32
     // Windows std::ofstream accepts non-standard wchar_t*
-	// On MingW, we use our own OIIO::ofstream
-    std::wstring wpath = Strutil::utf8_to_utf16 (path);
-    stream.open (wpath.c_str(), mode);
+    // On MingW, we use our own OIIO::ofstream
+    std::wstring wpath = Strutil::utf8_to_utf16(path);
+    stream.open(wpath.c_str(), mode);
 #else
-    stream.open (path.c_str(), mode);
+    stream.open(path.c_str(), mode);
 #endif
 }
 
@@ -498,12 +505,12 @@ Filesystem::open (OIIO::ofstream &stream, string_view path,
 /// Read the entire contents of the named file and place it in str,
 /// returning true on success, false on failure.
 bool
-Filesystem::read_text_file (string_view filename, std::string &str)
+Filesystem::read_text_file(string_view filename, std::string& str)
 {
     // For info on why this is the fastest method:
     // http://insanecoding.blogspot.com/2011/11/how-to-read-in-file-in-c.html
     OIIO::ifstream in;
-    Filesystem::open (in, filename);
+    Filesystem::open(in, filename);
 
     // N.B. for binary read: open(in, filename, std::ios::in|std::ios::binary);
     if (in) {
@@ -520,17 +527,17 @@ Filesystem::read_text_file (string_view filename, std::string &str)
 /// Read the entire contents of the named file and place it in str,
 /// returning true on success, false on failure.
 size_t
-Filesystem::read_bytes (string_view path, void *buffer, size_t n, size_t pos)
+Filesystem::read_bytes(string_view path, void* buffer, size_t n, size_t pos)
 {
     size_t ret = 0;
-    if (FILE *file = Filesystem::fopen (path, "rb")) {
+    if (FILE* file = Filesystem::fopen(path, "rb")) {
 #ifdef _MSC_VER
-        _fseeki64 (file, __int64(pos), SEEK_SET);
+        _fseeki64(file, __int64(pos), SEEK_SET);
 #else
-        fseeko (file, pos, SEEK_SET);
+        fseeko(file, pos, SEEK_SET);
 #endif
-        ret = fread (buffer, 1, n, file);
-        fclose (file);
+        ret = fread(buffer, 1, n, file);
+        fclose(file);
     }
     return ret;
 }
@@ -538,12 +545,12 @@ Filesystem::read_bytes (string_view path, void *buffer, size_t n, size_t pos)
 
 
 std::time_t
-Filesystem::last_write_time (const std::string& path)
+Filesystem::last_write_time(const std::string& path)
 {
-    if (! exists(path))
+    if (!exists(path))
         return 0;
     try {
-        return filesystem::last_write_time (u8path(path));
+        return filesystem::last_write_time(u8path(path));
     } catch (...) {
         // File doesn't exist
         return 0;
@@ -553,12 +560,12 @@ Filesystem::last_write_time (const std::string& path)
 
 
 void
-Filesystem::last_write_time (const std::string& path, std::time_t time)
+Filesystem::last_write_time(const std::string& path, std::time_t time)
 {
-    if (! exists(path))
+    if (!exists(path))
         return;
     try {
-        filesystem::last_write_time (u8path(path), time);
+        filesystem::last_write_time(u8path(path), time);
     } catch (...) {
         // File doesn't exist
     }
@@ -567,12 +574,12 @@ Filesystem::last_write_time (const std::string& path, std::time_t time)
 
 
 uint64_t
-Filesystem::file_size (string_view path)
+Filesystem::file_size(string_view path)
 {
-    if (! exists(path))
+    if (!exists(path))
         return 0;
     try {
-        return filesystem::file_size (u8path(path));
+        return filesystem::file_size(u8path(path));
     } catch (...) {
         // File doesn't exist
         return 0;
@@ -582,7 +589,7 @@ Filesystem::file_size (string_view path)
 
 
 void
-Filesystem::convert_native_arguments (int argc, const char *argv[])
+Filesystem::convert_native_arguments(int argc, const char* argv[])
 {
 #ifdef _WIN32
     // Windows only, standard main() entry point does not accept unicode file
@@ -591,14 +598,14 @@ Filesystem::convert_native_arguments (int argc, const char *argv[])
         return;
 
     int native_argc;
-    wchar_t **native_argv = CommandLineToArgvW (GetCommandLineW (), &native_argc);
+    wchar_t** native_argv = CommandLineToArgvW(GetCommandLineW(), &native_argc);
 
     if (!native_argv || native_argc != argc)
         return;
 
     for (int i = 0; i < argc; i++) {
-        std::string utf8_arg = Strutil::utf16_to_utf8 (native_argv[i]);
-        argv[i] = ustring (utf8_arg).c_str();
+        std::string utf8_arg = Strutil::utf16_to_utf8(native_argv[i]);
+        argv[i]              = ustring(utf8_arg).c_str();
     }
 #endif
 }
@@ -606,13 +613,13 @@ Filesystem::convert_native_arguments (int argc, const char *argv[])
 
 
 bool
-Filesystem::enumerate_sequence (string_view desc, std::vector<int> &numbers)
+Filesystem::enumerate_sequence(string_view desc, std::vector<int>& numbers)
 {
-    numbers.clear ();
+    numbers.clear();
 
     // Split the sequence description into comma-separated subranges.
     std::vector<string_view> ranges;
-    Strutil::split (desc, ranges, ",");
+    Strutil::split(desc, ranges, ",");
 
     bool ok = true;
 
@@ -622,30 +629,30 @@ Filesystem::enumerate_sequence (string_view desc, std::vector<int> &numbers)
         // If START>FINISH or if STEP<0, then count down.
         // If 'y' is used, generate the complement.
         int first = 1;
-        ok &= Strutil::parse_int (s, first);
-        int last = first;
-        int step = 1;
+        ok &= Strutil::parse_int(s, first);
+        int last        = first;
+        int step        = 1;
         bool complement = false;
-        if (Strutil::parse_char (s, '-')) {  // it's a range
-            ok &= Strutil::parse_int (s, last);
-            if (Strutil::parse_char (s, 'x')) {
-                ok &= Strutil::parse_int (s, step);
-            } else if (Strutil::parse_char (s, 'y')) {
-                ok &= Strutil::parse_int (s, step);
+        if (Strutil::parse_char(s, '-')) {  // it's a range
+            ok &= Strutil::parse_int(s, last);
+            if (Strutil::parse_char(s, 'x')) {
+                ok &= Strutil::parse_int(s, step);
+            } else if (Strutil::parse_char(s, 'y')) {
+                ok &= Strutil::parse_int(s, step);
                 complement = true;
             }
             if (step == 0)
                 step = 1;
             if (step < 0 && first < last)
-                std::swap (first, last);
+                std::swap(first, last);
             if (first > last && step > 0)
                 step = -step;
         }
-        int end = last + (step > 0 ? 1 : -1);
+        int end    = last + (step > 0 ? 1 : -1);
         int itstep = step > 0 ? 1 : -1;
         for (int i = first; i != end; i += itstep) {
-            if ((abs(i-first) % abs(step) == 0) != complement)
-                numbers.push_back (i);
+            if ((abs(i - first) % abs(step) == 0) != complement)
+                numbers.push_back(i);
         }
     }
     return ok;
@@ -654,26 +661,27 @@ Filesystem::enumerate_sequence (string_view desc, std::vector<int> &numbers)
 
 
 bool
-Filesystem::parse_pattern (const char *pattern_,
-                           int framepadding_override,
-                           std::string &normalized_pattern,
-                           std::string &framespec)
+Filesystem::parse_pattern(const char* pattern_, int framepadding_override,
+                          std::string& normalized_pattern,
+                          std::string& framespec)
 {
-    std::string pattern (pattern_);
+    std::string pattern(pattern_);
 
     // The pattern is either a range (e.g., "1-15#"), a
     // set of hash marks (e.g. "####"), or a printf-style format
     // string (e.g. "%04d").
 #define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
-#define SEQUENCE_SPEC "(" MANYRANGE_SPEC ")?" "((#|@)+|(%[0-9]*d))"
-    static regex sequence_re (SEQUENCE_SPEC);
+#define SEQUENCE_SPEC                                                          \
+    "(" MANYRANGE_SPEC ")?"                                                    \
+    "((#|@)+|(%[0-9]*d))"
+    static regex sequence_re(SEQUENCE_SPEC);
     // std::cout << "pattern >" << (SEQUENCE_SPEC) << "<\n";
     match_results<std::string::const_iterator> range_match;
-    if (! regex_search (pattern, range_match, sequence_re)) {
+    if (!regex_search(pattern, range_match, sequence_re)) {
         // Not a range
-        static regex all_views_re ("%[Vv]");
-        if (regex_search (pattern, all_views_re)) {
+        static regex all_views_re("%[Vv]");
+        if (regex_search(pattern, all_views_re)) {
             normalized_pattern = pattern;
             return true;
         }
@@ -682,23 +690,22 @@ Filesystem::parse_pattern (const char *pattern_,
     }
 
     // It's a range. Generate the names by iterating through the numbers.
-    std::string thematch (range_match[0].first, range_match[0].second);
-    std::string thesequence (range_match[1].first, range_match[1].second);
-    std::string thehashes (range_match[9].first, range_match[9].second);
-    std::string theformat (range_match[11].first, range_match[11].second);
-    std::string prefix (range_match.prefix().first, range_match.prefix().second);
-    std::string suffix (range_match.suffix().first, range_match.suffix().second);
+    std::string thematch(range_match[0].first, range_match[0].second);
+    std::string thesequence(range_match[1].first, range_match[1].second);
+    std::string thehashes(range_match[9].first, range_match[9].second);
+    std::string theformat(range_match[11].first, range_match[11].second);
+    std::string prefix(range_match.prefix().first, range_match.prefix().second);
+    std::string suffix(range_match.suffix().first, range_match.suffix().second);
 
     // std::cout << "theformat: " << theformat << "\n";
 
     std::string fmt;
     if (theformat.length() > 0) {
         fmt = theformat;
-    }
-    else {
+    } else {
         // Compute the amount of padding desired
         int padding = 0;
-        for (int i = (int)thematch.length()-1;  i >= 0;  --i) {
+        for (int i = (int)thematch.length() - 1; i >= 0; --i) {
             if (thematch[i] == '#')
                 padding += 4;
             else if (thematch[i] == '@')
@@ -706,13 +713,13 @@ Filesystem::parse_pattern (const char *pattern_,
         }
         if (framepadding_override > 0)
             padding = framepadding_override;
-        fmt = Strutil::format ("%%0%dd", padding);
+        fmt = Strutil::format("%%0%dd", padding);
     }
 
     // std::cout << "Format: '" << fmt << "'\n";
 
     normalized_pattern = prefix + fmt + suffix;
-    framespec = thesequence;
+    framespec          = thesequence;
 
     return true;
 }
@@ -720,14 +727,14 @@ Filesystem::parse_pattern (const char *pattern_,
 
 
 bool
-Filesystem::enumerate_file_sequence (const std::string &pattern,
-                                     const std::vector<int> &numbers,
-                                     std::vector<std::string> &filenames)
+Filesystem::enumerate_file_sequence(const std::string& pattern,
+                                    const std::vector<int>& numbers,
+                                    std::vector<std::string>& filenames)
 {
-    filenames.clear ();
+    filenames.clear();
     for (int n : numbers) {
-        std::string f = Strutil::format (pattern.c_str(), n);
-        filenames.push_back (f);
+        std::string f = Strutil::format(pattern.c_str(), n);
+        filenames.push_back(f);
     }
     return true;
 }
@@ -735,23 +742,24 @@ Filesystem::enumerate_file_sequence (const std::string &pattern,
 
 
 bool
-Filesystem::enumerate_file_sequence (const std::string &pattern,
-                                     const std::vector<int> &numbers,
-                                     const std::vector<string_view> &views,
-                                     std::vector<std::string> &filenames)
+Filesystem::enumerate_file_sequence(const std::string& pattern,
+                                    const std::vector<int>& numbers,
+                                    const std::vector<string_view>& views,
+                                    std::vector<std::string>& filenames)
 {
-    ASSERT (views.size() == 0 || views.size() == numbers.size());
-    static regex view_re ("%V"), short_view_re ("%v");
+    ASSERT(views.size() == 0 || views.size() == numbers.size());
+    static regex view_re("%V"), short_view_re("%v");
 
-    filenames.clear ();
+    filenames.clear();
     for (size_t i = 0, e = numbers.size(); i < e; ++i) {
         std::string f = pattern;
-        if (views.size() > 0 && ! views[i].empty()) {
-            f = regex_replace (f, view_re, std::string(views[i]));
-            f = regex_replace (f, short_view_re, std::string(views[i].substr(0, 1)));
+        if (views.size() > 0 && !views[i].empty()) {
+            f = regex_replace(f, view_re, std::string(views[i]));
+            f = regex_replace(f, short_view_re,
+                              std::string(views[i].substr(0, 1)));
         }
-        f = Strutil::format (f.c_str(), numbers[i]);
-        filenames.push_back (f);
+        f = Strutil::format(f.c_str(), numbers[i]);
+        filenames.push_back(f);
     }
 
     return true;
@@ -760,70 +768,77 @@ Filesystem::enumerate_file_sequence (const std::string &pattern,
 
 
 bool
-Filesystem::scan_for_matching_filenames(const std::string &pattern,
-                                        const std::vector<string_view> &views,
-                                        std::vector<int> &frame_numbers,
-                                        std::vector<string_view> &frame_views,
-                                        std::vector<std::string> &filenames)
+Filesystem::scan_for_matching_filenames(const std::string& pattern,
+                                        const std::vector<string_view>& views,
+                                        std::vector<int>& frame_numbers,
+                                        std::vector<string_view>& frame_views,
+                                        std::vector<std::string>& filenames)
 {
-    static regex format_re ("%0([0-9]+)d");
-    static regex all_views_re ("%[Vv]"), view_re ("%V"), short_view_re ("%v");
+    static regex format_re("%0([0-9]+)d");
+    static regex all_views_re("%[Vv]"), view_re("%V"), short_view_re("%v");
 
-    frame_numbers.clear ();
-    frame_views.clear ();
-    filenames.clear ();
-    if (regex_search (pattern, all_views_re)) {
-        if (regex_search (pattern, format_re)) {
+    frame_numbers.clear();
+    frame_views.clear();
+    filenames.clear();
+    if (regex_search(pattern, all_views_re)) {
+        if (regex_search(pattern, format_re)) {
             // case 1: pattern has format and view
-            std::vector< std::pair< std::pair< int, string_view>, std::string> > matches;
-            for (const auto & view : views) {
+            std::vector<std::pair<std::pair<int, string_view>, std::string>>
+                matches;
+            for (const auto& view : views) {
                 if (view.empty())
                     continue;
 
-                const string_view short_view = view.substr (0, 1);
+                const string_view short_view = view.substr(0, 1);
                 std::vector<int> view_numbers;
                 std::vector<std::string> view_filenames;
 
                 std::string view_pattern = pattern;
-                view_pattern = regex_replace (view_pattern, view_re, std::string(view));
-                view_pattern = regex_replace (view_pattern, short_view_re, std::string(short_view));
+                view_pattern
+                    = regex_replace(view_pattern, view_re, std::string(view));
+                view_pattern = regex_replace(view_pattern, short_view_re,
+                                             std::string(short_view));
 
-                if (! scan_for_matching_filenames (view_pattern, view_numbers, view_filenames))
+                if (!scan_for_matching_filenames(view_pattern, view_numbers,
+                                                 view_filenames))
                     continue;
 
                 for (int j = 0, f = view_numbers.size(); j < f; ++j) {
-                    matches.push_back (std::make_pair (std::make_pair (view_numbers[j], view), view_filenames[j]));
+                    matches.push_back(
+                        std::make_pair(std::make_pair(view_numbers[j], view),
+                                       view_filenames[j]));
                 }
             }
 
-            std::sort (matches.begin(), matches.end());
+            std::sort(matches.begin(), matches.end());
 
-            for (auto & m : matches) {
-                frame_numbers.push_back (m.first.first);
-                frame_views.push_back (m.first.second);
-                filenames.push_back (m.second);
+            for (auto& m : matches) {
+                frame_numbers.push_back(m.first.first);
+                frame_views.push_back(m.first.second);
+                filenames.push_back(m.second);
             }
 
         } else {
             // case 2: pattern has view, but no format
-            std::vector< std::pair<string_view, std::string> > matches;
-            for (const auto & view : views) {
-                const string_view short_view = view.substr (0, 1);
+            std::vector<std::pair<string_view, std::string>> matches;
+            for (const auto& view : views) {
+                const string_view short_view = view.substr(0, 1);
 
                 std::string view_pattern = pattern;
-                view_pattern = regex_replace (view_pattern, view_re, std::string(view));
-                view_pattern = regex_replace (view_pattern, short_view_re, std::string(short_view));
+                view_pattern
+                    = regex_replace(view_pattern, view_re, std::string(view));
+                view_pattern = regex_replace(view_pattern, short_view_re,
+                                             std::string(short_view));
 
-                if (exists (view_pattern))
-                    matches.push_back (std::make_pair (view, view_pattern));
+                if (exists(view_pattern))
+                    matches.push_back(std::make_pair(view, view_pattern));
             }
 
-            std::sort (matches.begin(), matches.end());
-            for (auto & m : matches) {
-                frame_views.push_back (m.first);
-                filenames.push_back (m.second);
+            std::sort(matches.begin(), matches.end());
+            for (auto& m : matches) {
+                frame_views.push_back(m.first);
+                filenames.push_back(m.second);
             }
-
         }
         return true;
 
@@ -836,15 +851,15 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern,
 }
 
 bool
-Filesystem::scan_for_matching_filenames(const std::string &pattern_,
-                                        std::vector<int> &numbers,
-                                        std::vector<std::string> &filenames)
+Filesystem::scan_for_matching_filenames(const std::string& pattern_,
+                                        std::vector<int>& numbers,
+                                        std::vector<std::string>& filenames)
 {
-    numbers.clear ();
-    filenames.clear ();
+    numbers.clear();
+    filenames.clear();
     std::string pattern = pattern_;
     // Isolate the directory name (or '.' if none was specified)
-    std::string directory = Filesystem::parent_path (pattern);
+    std::string directory = Filesystem::parent_path(pattern);
     if (directory.size() == 0) {
         directory = ".";
 #ifdef _WIN32
@@ -854,40 +869,44 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
 #endif
     }
 
-    if (! exists(directory))
+    if (!exists(directory))
         return false;
 
     // build a regex that matches the pattern
-    static regex format_re ("%0([0-9]+)d");
+    static regex format_re("%0([0-9]+)d");
     match_results<std::string::const_iterator> format_match;
-    if (! regex_search (pattern, format_match, format_re))
+    if (!regex_search(pattern, format_match, format_re))
         return false;
 
-    std::string thepadding (format_match[1].first, format_match[1].second);
-    std::string prefix (format_match.prefix().first, format_match.prefix().second);
-    std::string suffix (format_match.suffix().first, format_match.suffix().second);
+    std::string thepadding(format_match[1].first, format_match[1].second);
+    std::string prefix(format_match.prefix().first,
+                       format_match.prefix().second);
+    std::string suffix(format_match.suffix().first,
+                       format_match.suffix().second);
 
-    std::string pattern_re_str = prefix + "([0-9]{" + thepadding + ",})" + suffix;
-    std::vector< std::pair< int, std::string > > matches;
+    std::string pattern_re_str
+        = prefix + "([0-9]{" + thepadding + ",})" + suffix;
+    std::vector<std::pair<int, std::string>> matches;
 
     // There are some corner cases regex that could be constructed here that
     // are badly structured and might throw an exception.
     try {
+        regex pattern_re(pattern_re_str);
 
-    regex pattern_re (pattern_re_str);
-
-    filesystem::directory_iterator end_it;
-    for (filesystem::directory_iterator it(u8path(directory)); it != end_it; ++it) {
-        const std::string f = pathstr(it->path());
-        if (is_regular(f)) {
-            match_results<std::string::const_iterator> frame_match;
-            if (regex_match (f, frame_match, pattern_re)) {
-                std::string thenumber (frame_match[1].first, frame_match[1].second);
-                int frame = Strutil::stoi (thenumber);
-                matches.push_back (std::make_pair (frame, f));
+        filesystem::directory_iterator end_it;
+        for (filesystem::directory_iterator it(u8path(directory)); it != end_it;
+             ++it) {
+            const std::string f = pathstr(it->path());
+            if (is_regular(f)) {
+                match_results<std::string::const_iterator> frame_match;
+                if (regex_match(f, frame_match, pattern_re)) {
+                    std::string thenumber(frame_match[1].first,
+                                          frame_match[1].second);
+                    int frame = Strutil::stoi(thenumber);
+                    matches.push_back(std::make_pair(frame, f));
+                }
             }
         }
-    }
 
     } catch (...) {
         // Botched regex. Just fail.
@@ -895,11 +914,11 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
     }
 
     // filesystem order is undefined, so return sorted sequences
-    std::sort (matches.begin(), matches.end());
+    std::sort(matches.begin(), matches.end());
 
-    for (auto & m : matches) {
-        numbers.push_back (m.first);
-        filenames.push_back (m.second);
+    for (auto& m : matches) {
+        numbers.push_back(m.first);
+        filenames.push_back(m.second);
     }
 
     return true;
@@ -907,96 +926,98 @@ Filesystem::scan_for_matching_filenames(const std::string &pattern_,
 
 
 
-Filesystem::IOFile::IOFile (string_view filename, Mode mode)
-    : IOProxy(filename,mode)
+Filesystem::IOFile::IOFile(string_view filename, Mode mode)
+    : IOProxy(filename, mode)
 {
     // Call Filesystem::fopen since it handles UTF-8 file paths on Windows,
     // which std fopen does not.
-    m_file = Filesystem::fopen (m_filename.c_str(), mode == Write ? "wb" : "rb");
-    if (! m_file)
+    m_file = Filesystem::fopen(m_filename.c_str(), mode == Write ? "wb" : "rb");
+    if (!m_file)
         mode = Closed;
     m_auto_close = true;
     if (mode == Read)
-        m_size = Filesystem::file_size (filename);
+        m_size = Filesystem::file_size(filename);
 }
 
-Filesystem::IOFile::IOFile (FILE *file, Mode mode)
-    : IOProxy("",mode), m_file(file)
+Filesystem::IOFile::IOFile(FILE* file, Mode mode)
+    : IOProxy("", mode)
+    , m_file(file)
 {
     if (mode == Read) {
-        m_pos = ftell (m_file);             // save old position
-        fseek (m_file, 0, SEEK_END);        // seek to end
-        m_size = size_t(ftell (m_file));    // size is end position
-        fseek (m_file, m_pos, SEEK_SET);    // restore old position
+        m_pos = ftell(m_file);           // save old position
+        fseek(m_file, 0, SEEK_END);      // seek to end
+        m_size = size_t(ftell(m_file));  // size is end position
+        fseek(m_file, m_pos, SEEK_SET);  // restore old position
     }
 }
 
-Filesystem::IOFile::~IOFile ()
+Filesystem::IOFile::~IOFile()
 {
     if (m_auto_close)
         close();
 }
 
 void
-Filesystem::IOFile::close ()
+Filesystem::IOFile::close()
 {
     if (m_file) {
-        fclose (m_file);
+        fclose(m_file);
         m_file = nullptr;
     }
     m_mode = Closed;
 }
 
 bool
-Filesystem::IOFile::seek (int64_t offset)
+Filesystem::IOFile::seek(int64_t offset)
 {
-    if (! m_file)
+    if (!m_file)
         return false;
     m_pos = offset;
 #ifdef _MSC_VER
-    return _fseeki64 (m_file, __int64(offset), SEEK_SET) == 0;
+    return _fseeki64(m_file, __int64(offset), SEEK_SET) == 0;
 #else
-    return fseeko (m_file, offset, SEEK_SET) == 0;
+    return fseeko(m_file, offset, SEEK_SET) == 0;
 #endif
 }
 
 size_t
-Filesystem::IOFile::read (void *buf, size_t size)
+Filesystem::IOFile::read(void* buf, size_t size)
 {
-    if (! m_file || ! size || m_mode != Read)
+    if (!m_file || !size || m_mode != Read)
         return 0;
-    size_t r = fread (buf, 1, size, m_file);
+    size_t r = fread(buf, 1, size, m_file);
     m_pos += r;
     return r;
 }
 
 size_t
-Filesystem::IOFile::pread (void *buf, size_t size, int64_t offset)
+Filesystem::IOFile::pread(void* buf, size_t size, int64_t offset)
 {
-    if (! m_file || ! size || offset < 0 || m_mode != Read)
+    if (!m_file || !size || offset < 0 || m_mode != Read)
         return 0;
 #ifdef _WIN32
     // See MSDN ReadFile docs:
     // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365467(v=vs.85).aspx
     HANDLE h = HANDLE(_get_osfhandle(_fileno(m_file)));
     OVERLAPPED overlapped;
-    memset (&overlapped, 0, sizeof(overlapped));
-    overlapped.Offset = DWORD(offset);
+    memset(&overlapped, 0, sizeof(overlapped));
+    overlapped.Offset     = DWORD(offset);
     overlapped.OffsetHigh = DWORD(offset >> 32);
-    DWORD bytesread = 0;
-    return ReadFile (h, buf, DWORD(size), &bytesread, &overlapped) ? bytesread : 0;
+    DWORD bytesread       = 0;
+    return ReadFile(h, buf, DWORD(size), &bytesread, &overlapped) ? bytesread
+                                                                  : 0;
 #else /* Non-Windows: assume POSIX pwrite is available */
-    int fd = fileno (m_file);
-    return ::pread (fd, buf, size, offset);
+    int fd = fileno(m_file);
+    return ::pread(fd, buf, size, offset);
 #endif
 }
 
 size_t
-Filesystem::IOFile::write (const void *buf, size_t size)
+Filesystem::IOFile::write(const void* buf, size_t size)
 {
-    if (! m_file || ! size || m_mode != Write)
+    if (!m_file || !size || m_mode != Write)
         return 0;
-    size_t r = fwrite (buf, 1, size, m_file);
+    size_t r = fwrite(buf, 1, size, m_file);
     m_pos += r;
     if (m_pos > int64_t(m_size))
         m_size = m_pos;
@@ -1004,23 +1025,25 @@ Filesystem::IOFile::write (const void *buf, size_t size)
 }
 
 size_t
-Filesystem::IOFile::pwrite (const void *buf, size_t size, int64_t offset)
+Filesystem::IOFile::pwrite(const void* buf, size_t size, int64_t offset)
 {
-    if (! m_file || ! size || offset < 0 || m_mode != Write)
+    if (!m_file || !size || offset < 0 || m_mode != Write)
         return 0;
 #ifdef _WIN32
     // See MSDN WriteFile docs:
     // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365747(v=vs.85).aspx
     HANDLE h = HANDLE(_get_osfhandle(_fileno(m_file)));
     OVERLAPPED overlapped;
-    memset (&overlapped, 0, sizeof(overlapped));
-    overlapped.Offset = DWORD(offset);
+    memset(&overlapped, 0, sizeof(overlapped));
+    overlapped.Offset     = DWORD(offset);
     overlapped.OffsetHigh = DWORD(offset >> 32);
-    DWORD byteswritten = 0;
-    size_t r = WriteFile (h, buf, DWORD(size), &byteswritten, &overlapped) ? byteswritten : 0;
+    DWORD byteswritten    = 0;
+    size_t r = WriteFile(h, buf, DWORD(size), &byteswritten, &overlapped)
+                   ? byteswritten
+                   : 0;
 #else /* Non-Windows: assume POSIX pwrite is available */
-    int fd = fileno (m_file);
-    size_t r = ::pwrite (fd, buf, size, offset);
+    int fd   = fileno(m_file);
+    size_t r = ::pwrite(fd, buf, size, offset);
 #endif
     offset += r;
     size -= r;
@@ -1030,24 +1053,24 @@ Filesystem::IOFile::pwrite (const void *buf, size_t size, int64_t offset)
 }
 
 size_t
-Filesystem::IOFile::size () const
+Filesystem::IOFile::size() const
 {
     return m_size;
 }
 
 void
-Filesystem::IOFile::flush () const
+Filesystem::IOFile::flush() const
 {
     if (m_file)
-        fflush (m_file);
+        fflush(m_file);
 }
 
 
 
 size_t
-Filesystem::IOVecOutput::write (const void *buf, size_t size)
+Filesystem::IOVecOutput::write(const void* buf, size_t size)
 {
-    size = pwrite (buf, size, m_pos);
+    size = pwrite(buf, size, m_pos);
     m_pos += size;
     return size;
 }
@@ -1055,19 +1078,20 @@ Filesystem::IOVecOutput::write (const void *buf, size_t size)
 
 
 size_t
-Filesystem::IOVecOutput::pwrite (const void *buf, size_t size, int64_t offset)
+Filesystem::IOVecOutput::pwrite(const void* buf, size_t size, int64_t offset)
 {
-    std::lock_guard<std::mutex> lock (m_mutex);
-    if (size_t(offset) == m_buf.size()) {   // appending
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (size_t(offset) == m_buf.size()) {  // appending
         if (size == 1)
-            m_buf.push_back (*(const unsigned char *)buf);
+            m_buf.push_back(*(const unsigned char*)buf);
         else
-            m_buf.insert (m_buf.end(), (const char*)buf, (const char*)buf+size);
+            m_buf.insert(m_buf.end(), (const char*)buf,
+                         (const char*)buf + size);
     } else {
         size_t end = offset + size;
         if (end > m_buf.size())
-            m_buf.resize (end);
-        memcpy (&m_buf[offset], buf, size);
+            m_buf.resize(end);
+        memcpy(&m_buf[offset], buf, size);
     }
     return size;
 }
@@ -1075,21 +1099,21 @@ Filesystem::IOVecOutput::pwrite (const void *buf, size_t size, int64_t offset)
 
 
 size_t
-Filesystem::IOMemReader::read (void *buf, size_t size)
+Filesystem::IOMemReader::read(void* buf, size_t size)
 {
-    size = pread (buf, size, m_pos);
+    size = pread(buf, size, m_pos);
     m_pos += size;
     return size;
 }
 
 
 size_t
-Filesystem::IOMemReader::pread (void *buf, size_t size, int64_t offset)
+Filesystem::IOMemReader::pread(void* buf, size_t size, int64_t offset)
 {
     // N.B. No lock necessary
-    if (size+size_t(offset) > size_t(m_buf.size()))
-        size = m_buf.size()-size_t(offset);
-    memcpy (buf, m_buf.data()+offset, size);
+    if (size + size_t(offset) > size_t(m_buf.size()))
+        size = m_buf.size() - size_t(offset);
+    memcpy(buf, m_buf.data() + offset, size);
     return size;
 }
 

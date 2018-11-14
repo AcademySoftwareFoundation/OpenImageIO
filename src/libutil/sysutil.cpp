@@ -28,65 +28,65 @@
   (This is the Modified BSD License)
 */
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdio>
-#include <string>
-#include <iostream>
 #include <ctime>
+#include <iostream>
+#include <string>
 #include <thread>
 
 #ifdef __linux__
-# include <sys/sysinfo.h>
-# include <unistd.h>
-# include <sys/ioctl.h>
+#    include <sys/ioctl.h>
+#    include <sys/sysinfo.h>
+#    include <unistd.h>
 #endif
 
-#if defined (__FreeBSD__) || defined (__FreeBSD_kernel__)
-# include <sys/types.h>
-# include <sys/resource.h>
-# include <sys/sysctl.h>
-# include <sys/wait.h>
-# include <sys/ioctl.h>
-# include <unistd.h>
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#    include <sys/ioctl.h>
+#    include <sys/resource.h>
+#    include <sys/sysctl.h>
+#    include <sys/types.h>
+#    include <sys/wait.h>
+#    include <unistd.h>
 #endif
 
 #ifdef __APPLE__
-# include <mach/task.h>
-# include <mach/mach_init.h>
-# include <mach-o/dyld.h>
-# include <unistd.h>
-# include <sys/ioctl.h>
-# include <sys/sysctl.h>
+#    include <mach-o/dyld.h>
+#    include <mach/mach_init.h>
+#    include <mach/task.h>
+#    include <sys/ioctl.h>
+#    include <sys/sysctl.h>
+#    include <unistd.h>
 #endif
 
 #include <OpenImageIO/platform.h>
 
 #ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# define DEFINE_CONSOLEV2_PROPERTIES
-# include <windows.h>
-# include <Psapi.h>
-# include <cstdio>
-# include <io.h>
-# include <malloc.h>
+#    define WIN32_LEAN_AND_MEAN
+#    define DEFINE_CONSOLEV2_PROPERTIES
+#    include <Psapi.h>
+#    include <cstdio>
+#    include <io.h>
+#    include <malloc.h>
+#    include <windows.h>
 #else
-# include <sys/resource.h>
+#    include <sys/resource.h>
 #endif
 
 #ifdef __GNU__
-# include <unistd.h>
-# include <sys/ioctl.h>
+#    include <sys/ioctl.h>
+#    include <unistd.h>
 #endif
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 
 // clang 7.0 (rc2) has errors when including boost thread!
 // The only thin we're using there is boost::physical_concurrency.
 #if !(OIIO_CLANG_VERSION >= 7)
-#include <boost/thread.hpp>
+#    include <boost/thread.hpp>
 #endif
 
 
@@ -96,15 +96,15 @@ using namespace Sysutil;
 
 
 size_t
-Sysutil::memory_used (bool resident)
+Sysutil::memory_used(bool resident)
 {
 #if defined(__linux__)
-#if 0
+#    if 0
     // doesn't seem to work?
     struct rusage ru;
     int ret = getrusage (RUSAGE_SELF, &ru);
     return (size_t)ru.ru_maxrss * (size_t)1024;
-#else
+#    else
     // Ugh, getrusage doesn't work well on Linux.  Try grabbing info
     // directly from the /proc pseudo-filesystem.  Reading from
     // /proc/self/statm gives info on your own process, as one line of
@@ -112,62 +112,64 @@ Sysutil::memory_used (bool resident)
     // shared pages, text/code, data/stack, library, dirty pages.  The
     // mem sizes should all be multiplied by the page size.
     size_t size = 0;
-    FILE *file = fopen("/proc/self/statm", "r");
+    FILE* file  = fopen("/proc/self/statm", "r");
     if (file) {
         unsigned long vm = 0, rss = 0;
-        int n = fscanf (file, "%lu %lu", &vm, &rss);
+        int n = fscanf(file, "%lu %lu", &vm, &rss);
         if (n == 2)
             size = size_t(resident ? rss : vm);
         size *= getpagesize();
-        fclose (file);
+        fclose(file);
     }
     return size;
-#endif
+#    endif
 
 #elif defined(__APPLE__)
     // Inspired by:
     // http://miknight.blogspot.com/2005/11/resident-set-size-in-mac-os-x.html
     struct task_basic_info t_info;
     mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
-    task_info(current_task(), TASK_BASIC_INFO, (task_info_t)&t_info, &t_info_count);
+    task_info(current_task(), TASK_BASIC_INFO, (task_info_t)&t_info,
+              &t_info_count);
     size_t size = (resident ? t_info.resident_size : t_info.virtual_size);
     return size;
 
 #elif defined(_WIN32)
     // According to MSDN...
     PROCESS_MEMORY_COUNTERS counters;
-    if (GetProcessMemoryInfo (GetCurrentProcess(), &counters, sizeof (counters)))
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters)))
         return counters.PagefileUsage;
-    else return 0;
+    else
+        return 0;
 
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
     // FIXME -- does somebody know a good method for figuring this out for
     // FreeBSD?
-    return 0;   // Punt
+    return 0;  // Punt
 #else
     // No idea what platform this is
-    ASSERT (0 && "Need to implement Sysutil::memory_used on this platform");
-    return 0;   // Punt
+    ASSERT(0 && "Need to implement Sysutil::memory_used on this platform");
+    return 0;  // Punt
 #endif
 }
 
 
 
 size_t
-Sysutil::physical_memory ()
+Sysutil::physical_memory()
 {
 #if defined(__linux__)
     size_t size = 0;
-    FILE *file = fopen ("/proc/meminfo", "r");
+    FILE* file  = fopen("/proc/meminfo", "r");
     if (file) {
         char buf[1024];
-        while (fgets (buf, sizeof(buf), file)) {
-            if (! strncmp (buf, "MemTotal:", 9)) {
-                size = 1024 * (size_t) strtol (buf+9, NULL, 10);
+        while (fgets(buf, sizeof(buf), file)) {
+            if (!strncmp(buf, "MemTotal:", 9)) {
+                size = 1024 * (size_t)strtol(buf + 9, NULL, 10);
                 break;
             }
         }
-        fclose (file);
+        fclose(file);
     }
     return size;
 
@@ -178,16 +180,16 @@ Sysutil::physical_memory ()
     int mib[2] = { CTL_HW, HW_MEMSIZE };
     int64_t physical_memory;
     size_t length = sizeof(physical_memory);
-    sysctl (mib, 2, &physical_memory, &length, NULL, 0);
+    sysctl(mib, 2, &physical_memory, &length, NULL, 0);
     return size_t(physical_memory);
 
 #elif defined(_WIN32)
     // According to MSDN
     // (http://msdn.microsoft.com/en-us/library/windows/desktop/aa366589(v=vs.85).aspx
     MEMORYSTATUSEX statex;
-    statex.dwLength = sizeof (statex);
-    GlobalMemoryStatusEx (&statex);
-    return size_t (statex.ullTotalPhys);  // Total physical memory
+    statex.dwLength = sizeof(statex);
+    GlobalMemoryStatusEx(&statex);
+    return size_t(statex.ullTotalPhys);  // Total physical memory
     // N.B. Other fields nice to know (in bytes, except for dwMemoryLoad):
     //        statex.dwMemoryLoad      Percent of memory in use
     //        statex.ullAvailPhys      Free physical memory
@@ -206,108 +208,113 @@ Sysutil::physical_memory ()
     int mib[2] = { CTL_HW, HW_PHYSMEM };
     size_t physical_memory;
     size_t length = sizeof(physical_memory);
-    sysctl (mib, 2, &physical_memory, &length, NULL, 0);
+    sysctl(mib, 2, &physical_memory, &length, NULL, 0);
     return physical_memory;
 
 #else
     // No idea what platform this is
-    ASSERT (0 && "Need to implement Sysutil::physical_memory on this platform");
-    return 0;   // Punt
+    ASSERT(0 && "Need to implement Sysutil::physical_memory on this platform");
+    return 0;  // Punt
 #endif
 }
 
 
 
 void
-Sysutil::get_local_time (const time_t *time, struct tm *converted_time)
+Sysutil::get_local_time(const time_t* time, struct tm* converted_time)
 {
 #ifdef _MSC_VER
-    localtime_s (converted_time, time);
+    localtime_s(converted_time, time);
 #else
-    localtime_r (time, converted_time);
+    localtime_r(time, converted_time);
 #endif
 }
 
 
 
 std::string
-Sysutil::this_program_path ()
+Sysutil::this_program_path()
 {
     char filename[10240];
     filename[0] = 0;
 
 #if defined(__linux__)
     unsigned int size = sizeof(filename);
-    int r = readlink ("/proc/self/exe", filename, size);
-    ASSERT(r < int(size)); // user won't get the right answer if the filename is too long to store
-    if (r > 0) filename[r] = 0; // readlink does not fill in the 0 byte
+    int r             = readlink("/proc/self/exe", filename, size);
+    ASSERT(
+        r
+        < int(size));  // user won't get the right answer if the filename is too long to store
+    if (r > 0)
+        filename[r] = 0;  // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)
     // For info:  'man 3 dyld'
     unsigned int size = sizeof(filename);
-    int r = _NSGetExecutablePath (filename, &size);
+    int r             = _NSGetExecutablePath(filename, &size);
     if (r == 0)
         r = size;
 #elif defined(_WIN32)
     // According to MSDN...
     unsigned int size = sizeof(filename);
-    int r = GetModuleFileName (NULL, filename, size);
+    int r             = GetModuleFileName(NULL, filename, size);
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
     int mib[4];
-    mib[0] = CTL_KERN;
-    mib[1] = KERN_PROC;
-    mib[2] = KERN_PROC_PATHNAME;
-    mib[3] = -1;
+    mib[0]    = CTL_KERN;
+    mib[1]    = KERN_PROC;
+    mib[2]    = KERN_PROC_PATHNAME;
+    mib[3]    = -1;
     size_t cb = sizeof(filename);
-    int r=1;
+    int r     = 1;
     sysctl(mib, 4, filename, &cb, NULL, 0);
 #elif defined(__GNU__) || defined(__OpenBSD__)
     int r = 0;
 #else
     // No idea what platform this is
-    OIIO_STATIC_ASSERT_MSG (0, "this_program_path() unimplemented on this platform");
+    OIIO_STATIC_ASSERT_MSG(
+        0, "this_program_path() unimplemented on this platform");
 #endif
 
     if (r > 0)
-        return std::string (filename);
-    return std::string();   // Couldn't figure it out
+        return std::string(filename);
+    return std::string();  // Couldn't figure it out
 }
 
 
 
 string_view
-Sysutil::getenv (string_view name)
+Sysutil::getenv(string_view name)
 {
-    return string_view (::getenv (name.c_str()));
+    return string_view(::getenv(name.c_str()));
 }
 
 
 
 void
-Sysutil::usleep (unsigned long useconds)
+Sysutil::usleep(unsigned long useconds)
 {
 #ifdef _WIN32
-    Sleep (useconds/1000);   // Win32 Sleep() is milliseconds, not micro
+    Sleep(useconds / 1000);  // Win32 Sleep() is milliseconds, not micro
 #else
-    ::usleep (useconds);     // *nix usleep() is in microseconds
+    ::usleep(useconds);  // *nix usleep() is in microseconds
 #endif
 }
 
 
 
 int
-Sysutil::terminal_columns ()
+Sysutil::terminal_columns()
 {
-    int columns = 80;   // a decent guess, if we have nothing more to go on
+    int columns = 80;  // a decent guess, if we have nothing more to go on
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__GNU__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
+    || defined(__FreeBSD_kernel__) || defined(__GNU__)
     struct winsize w;
-    ioctl (0, TIOCGWINSZ, &w);
+    ioctl(0, TIOCGWINSZ, &w);
     columns = w.ws_col;
 #elif defined(_WIN32)
-    HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
     if (h != INVALID_HANDLE_VALUE) {
         CONSOLE_SCREEN_BUFFER_INFO csbi = { { 0 } };
-        GetConsoleScreenBufferInfo (h, &csbi);
+        GetConsoleScreenBufferInfo(h, &csbi);
         columns = csbi.dwSize.X;
     }
 #endif
@@ -318,19 +325,20 @@ Sysutil::terminal_columns ()
 
 
 int
-Sysutil::terminal_rows ()
+Sysutil::terminal_rows()
 {
-    int rows = 24;   // a decent guess, if we have nothing more to go on
+    int rows = 24;  // a decent guess, if we have nothing more to go on
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__GNU__)
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
+    || defined(__FreeBSD_kernel__) || defined(__GNU__)
     struct winsize w;
-    ioctl (0, TIOCGWINSZ, &w);
+    ioctl(0, TIOCGWINSZ, &w);
     rows = w.ws_row;
 #elif defined(_WIN32)
-    HANDLE h = GetStdHandle (STD_OUTPUT_HANDLE);
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
     if (h != INVALID_HANDLE_VALUE) {
         CONSOLE_SCREEN_BUFFER_INFO csbi = { { 0 } };
-        GetConsoleScreenBufferInfo (h, &csbi);
+        GetConsoleScreenBufferInfo(h, &csbi);
         rows = csbi.dwSize.Y;
     }
 #endif
@@ -341,42 +349,41 @@ Sysutil::terminal_rows ()
 
 
 #ifdef _WIN32
-int isatty(int fd) { return _isatty(fd); }
+int
+isatty(int fd)
+{
+    return _isatty(fd);
+}
 #endif
 
 
-Term::Term (FILE *file)
-{
-    m_is_console = isatty (fileno((file)));
-}
+Term::Term(FILE* file) { m_is_console = isatty(fileno((file))); }
 
 
 
 #ifdef _WIN32
 // from https://msdn.microsoft.com/fr-fr/library/windows/desktop/mt638032%28v=vs.85%29.aspx
 
-#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
-#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
-#endif
+#    ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#        define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#    endif
 
-bool enableVTMode()
+bool
+enableVTMode()
 {
     // Set output mode to handle virtual terminal sequences
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (hOut == INVALID_HANDLE_VALUE)
-    {
+    if (hOut == INVALID_HANDLE_VALUE) {
         return false;
     }
 
     DWORD dwMode = 0;
-    if (!GetConsoleMode(hOut, &dwMode))
-    {
+    if (!GetConsoleMode(hOut, &dwMode)) {
         return false;
     }
 
     dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    if (!SetConsoleMode(hOut, dwMode))
-    {
+    if (!SetConsoleMode(hOut, dwMode)) {
         return false;
     }
     return true;
@@ -385,11 +392,11 @@ bool enableVTMode()
 
 
 
-Term::Term (const std::ostream &stream)
+Term::Term(const std::ostream& stream)
 {
     m_is_console = (&stream == &std::cout && isatty(fileno(stdout)))
-                || (&stream == &std::cerr && isatty(fileno(stderr)))
-                || (&stream == &std::clog && isatty(fileno(stderr)));
+                   || (&stream == &std::cerr && isatty(fileno(stderr)))
+                   || (&stream == &std::clog && isatty(fileno(stderr)));
 
 #ifdef _WIN32
     if (m_is_console)
@@ -399,11 +406,11 @@ Term::Term (const std::ostream &stream)
     // be capable of the color codes. List copied from the Apache-licensed
     // Google Benchmark: https://github.com/google/benchmark/blob/master/src/colorprint.cc
     const char* const supported_terminals[] = {
-        "cygwin", "linux", "rxvt-unicode", "rxvt-unicode-256color",
-        "screen", "screen-256color", "tmux", "tmux-256color",
-        "xterm", "xterm-256color", "xterm-color"
+        "cygwin", "linux",           "rxvt-unicode", "rxvt-unicode-256color",
+        "screen", "screen-256color", "tmux",         "tmux-256color",
+        "xterm",  "xterm-256color",  "xterm-color"
     };
-    string_view TERM = Sysutil::getenv ("TERM");
+    string_view TERM         = Sysutil::getenv("TERM");
     bool term_supports_color = false;
     for (auto t : supported_terminals)
         term_supports_color |= (TERM == t);
@@ -422,47 +429,33 @@ Term::Term (const std::ostream &stream)
 
 
 std::string
-Term::ansi (string_view command) const
+Term::ansi(string_view command) const
 {
-    static const char *codes[] = {
-        "default",    "0",
-        "normal",     "0",
-        "reset",      "0",
-        "bold",       "1",
-        "italic",     "3",       // Not widely supported, sometimes inverse
-        "underscore", "4",
-        "underline",  "4",
-        "blink",      "5",
-        "reverse",    "7",
-        "concealed",  "8",
-        "strike",     "9",       // Not widely supported
-        "black",      "30",
-        "red",        "31",
-        "green",      "32",
-        "yellow",     "33",
-        "blue",       "34",
-        "magenta",    "35",
-        "cyan",       "36",
-        "white",      "37",
-        "black_bg",   "40",
-        "red_bg",     "41",
-        "green_bg",   "42",
-        "yellow_bg",  "43",
-        "blue_bg",    "44",
-        "magenta_bg", "45",
-        "cyan_bg",    "46",
-        "white_bg",   "47",
-        NULL
-    };
+    static const char* codes[]
+        = { "default",    "0",  "normal",     "0",
+            "reset",      "0",  "bold",       "1",
+            "italic",     "3",  // Not widely supported, sometimes inverse
+            "underscore", "4",  "underline",  "4",
+            "blink",      "5",  "reverse",    "7",
+            "concealed",  "8",  "strike",     "9",  // Not widely supported
+            "black",      "30", "red",        "31",
+            "green",      "32", "yellow",     "33",
+            "blue",       "34", "magenta",    "35",
+            "cyan",       "36", "white",      "37",
+            "black_bg",   "40", "red_bg",     "41",
+            "green_bg",   "42", "yellow_bg",  "43",
+            "blue_bg",    "44", "magenta_bg", "45",
+            "cyan_bg",    "46", "white_bg",   "47",
+            NULL };
     std::string ret;
     if (is_console()) {
         std::vector<string_view> cmds;
-        Strutil::split (command, cmds, ",");
+        Strutil::split(command, cmds, ",");
         for (size_t c = 0; c < cmds.size(); ++c) {
             for (size_t i = 0; codes[i]; i += 2)
                 if (codes[i] == cmds[c]) {
                     ret += c ? ";" : "\033[";
-                    ret += codes[i+1];
+                    ret += codes[i + 1];
                 }
         }
         ret += "m";
@@ -473,14 +466,14 @@ Term::ansi (string_view command) const
 
 
 std::string
-Term::ansi_fgcolor (int r, int g, int b)
+Term::ansi_fgcolor(int r, int g, int b)
 {
     std::string ret;
     if (is_console()) {
-        r = std::max (0, std::min (255, r));
-        g = std::max (0, std::min (255, g));
-        b = std::max (0, std::min (255, b));
-        ret = Strutil::format ("\033[38;2;%d;%d;%dm", r, g, b);
+        r   = std::max(0, std::min(255, r));
+        g   = std::max(0, std::min(255, g));
+        b   = std::max(0, std::min(255, b));
+        ret = Strutil::format("\033[38;2;%d;%d;%dm", r, g, b);
     }
     return ret;
 }
@@ -488,14 +481,14 @@ Term::ansi_fgcolor (int r, int g, int b)
 
 
 std::string
-Term::ansi_bgcolor (int r, int g, int b)
+Term::ansi_bgcolor(int r, int g, int b)
 {
     std::string ret;
     if (is_console()) {
-        r = std::max (0, std::min (255, r));
-        g = std::max (0, std::min (255, g));
-        b = std::max (0, std::min (255, b));
-        ret = Strutil::format ("\033[48;2;%d;%d;%dm", r, g, b);
+        r   = std::max(0, std::min(255, r));
+        g   = std::max(0, std::min(255, g));
+        b   = std::max(0, std::min(255, b));
+        ret = Strutil::format("\033[48;2;%d;%d;%dm", r, g, b);
     }
     return ret;
 }
@@ -504,9 +497,9 @@ Term::ansi_bgcolor (int r, int g, int b)
 
 bool
 #if !defined(_MSC_VER)
-Sysutil::put_in_background (int argc, char* argv[])
+Sysutil::put_in_background(int argc, char* argv[])
 #else
-Sysutil::put_in_background (int, char* [])
+Sysutil::put_in_background(int, char*[])
 #endif
 {
     // You would think that this would be sufficient:
@@ -516,7 +509,7 @@ Sysutil::put_in_background (int, char* [])
     //   if (pid == 0)
     //       return true;   // This is the child process, so continue with life
     //   // Otherwise, this is the parent process, so terminate
-    //   exit (0); 
+    //   exit (0);
     // But it's not.  On OS X, it's not safe to fork() if your app is linked
     // against certain libraries or frameworks.  So the only thing that I
     // think is safe is to exec a new process.
@@ -528,19 +521,19 @@ Sysutil::put_in_background (int, char* [])
 #if defined(__linux__) || defined(__GLIBC__)
     // Simplest case:
     // daemon returns 0 if successful, thus return true if successful
-    return daemon (1, 1) == 0;
+    return daemon(1, 1) == 0;
 #endif
 
 #ifdef __APPLE__
     std::string newcmd = std::string(argv[0]) + " -F";
-    for (int i = 1;  i < argc;  ++i) {
+    for (int i = 1; i < argc; ++i) {
         newcmd += " \"";
         newcmd += argv[i];
         newcmd += "\"";
     }
     newcmd += " &";
-    if (system (newcmd.c_str()) != -1)
-        exit (0);
+    if (system(newcmd.c_str()) != -1)
+        exit(0);
     return true;
 #endif
 
@@ -555,7 +548,7 @@ Sysutil::put_in_background (int, char* [])
 
 
 unsigned int
-Sysutil::hardware_concurrency ()
+Sysutil::hardware_concurrency()
 {
     return std::thread::hardware_concurrency();
 }
@@ -563,7 +556,7 @@ Sysutil::hardware_concurrency ()
 
 
 unsigned int
-Sysutil::physical_concurrency ()
+Sysutil::physical_concurrency()
 {
     // clang 7.0.0rc2 has trouble compiling boost thread
 #if BOOST_VERSION >= 105600 && !(OIIO_CLANG_VERSION >= 7)
@@ -576,7 +569,7 @@ Sysutil::physical_concurrency ()
 
 
 size_t
-Sysutil::max_open_files ()
+Sysutil::max_open_files()
 {
 #if defined(_WIN32)
     return size_t(_getmaxstdio());
@@ -585,10 +578,12 @@ Sysutil::max_open_files ()
     if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
         return rl.rlim_cur;
 #endif
-    return size_t(-1); // Couldn't figure out, so return effectively infinity
+    return size_t(-1);  // Couldn't figure out, so return effectively infinity
 }
 
-void* aligned_malloc(std::size_t size, std::size_t align) {
+void*
+aligned_malloc(std::size_t size, std::size_t align)
+{
 #if defined(_WIN32)
     return _aligned_malloc(size, align);
 #else
@@ -597,7 +592,9 @@ void* aligned_malloc(std::size_t size, std::size_t align) {
 #endif
 }
 
-void aligned_free(void* ptr) {
+void
+aligned_free(void* ptr)
+{
 #if defined(_WIN32)
     _aligned_free(ptr);
 #else
