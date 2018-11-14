@@ -376,10 +376,11 @@ DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
                 if (m_dds.fmt.flags & DDS_PF_FOURCC)
                     // only check for DXT1 - all other formats have same block
                     // size
-                    len = squish::GetStorageRequirements(
-                        w, h,
-                        m_dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
-                                                         : squish::kDxt5);
+                    len = squish::GetStorageRequirements(w, h,
+                                                         m_dds.fmt.fourCC
+                                                                 == DDS_4CC_DXT1
+                                                             ? squish::kDxt1
+                                                             : squish::kDxt5);
                 else
                     len = w * h * d * m_Bpp;
                 ofs += len;
@@ -389,10 +390,11 @@ DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
         for (int i = 0; i < miplevel; i++) {
             if (m_dds.fmt.flags & DDS_PF_FOURCC)
                 // only check for DXT1 - all other formats have same block size
-                len = squish::GetStorageRequirements(
-                    w, h,
-                    m_dds.fmt.fourCC == DDS_4CC_DXT1 ? squish::kDxt1
-                                                     : squish::kDxt5);
+                len = squish::GetStorageRequirements(w, h,
+                                                     m_dds.fmt.fourCC
+                                                             == DDS_4CC_DXT1
+                                                         ? squish::kDxt1
+                                                         : squish::kDxt5);
             else
                 len = w * h * d * m_Bpp;
             ofs += len;

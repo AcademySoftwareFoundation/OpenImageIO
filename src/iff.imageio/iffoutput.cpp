@@ -125,8 +125,8 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_iff_header.y      = m_spec.y;
     m_iff_header.width  = m_spec.width;
     m_iff_header.height = m_spec.height;
-    m_iff_header.tiles
-        = tile_width_size(m_spec.width) * tile_height_size(m_spec.height);
+    m_iff_header.tiles  = tile_width_size(m_spec.width)
+                         * tile_height_size(m_spec.height);
     m_iff_header.pixel_bits     = m_spec.format == TypeDesc::UINT8 ? 8 : 16;
     m_iff_header.pixel_channels = m_spec.nchannels;
     m_iff_header.author         = m_spec.get_string_attribute("Artist");
@@ -186,8 +186,8 @@ IffOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
     int iy = 0;
     for (int oy = y; oy < y + th; oy++) {
         // in
-        uint8_t* in_p
-            = (uint8_t*)data + (iy * m_spec.tile_width) * m_spec.pixel_bytes();
+        uint8_t* in_p = (uint8_t*)data
+                        + (iy * m_spec.tile_width) * m_spec.pixel_bytes();
         // out
         uint8_t* out_p = &m_buf[0] + (oy * w + x) * m_spec.pixel_bytes();
         // copy
@@ -334,9 +334,9 @@ IffOutput::close(void)
                     }
                     if (!tile_compress) {
                         for (uint16_t py = ymin; py <= ymax; py++) {
-                            const uint8_t* in_dy
-                                = &m_buf[0]
-                                  + (py * m_spec.width) * m_spec.pixel_bytes();
+                            const uint8_t* in_dy = &m_buf[0]
+                                                   + (py * m_spec.width)
+                                                         * m_spec.pixel_bytes();
 
                             for (uint16_t px = xmin; px <= xmax; px++) {
                                 // Map: RGB(A)8 RGBA to BGRA
@@ -445,9 +445,9 @@ IffOutput::close(void)
 
                     if (!tile_compress) {
                         for (uint16_t py = ymin; py <= ymax; py++) {
-                            const uint8_t* in_dy
-                                = &m_buf[0]
-                                  + (py * m_spec.width) * m_spec.pixel_bytes();
+                            const uint8_t* in_dy = &m_buf[0]
+                                                   + (py * m_spec.width)
+                                                         * m_spec.pixel_bytes();
 
                             for (uint16_t px = xmin; px <= xmax; px++) {
                                 // map: RGB(A) to BGRA

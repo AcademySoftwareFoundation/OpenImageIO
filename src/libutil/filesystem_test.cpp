@@ -96,19 +96,20 @@ test_filename_searchpath_find()
     std::cout << "Testing searchpath_find\n";
 
     // non-recursive search success
-    OIIO_CHECK_EQUAL(
-        Filesystem::searchpath_find("License.txt", dirs, false, false),
-        ".." DIRSEP ".." DIRSEP "cpack" DIRSEP "License.txt");
+    OIIO_CHECK_EQUAL(Filesystem::searchpath_find("License.txt", dirs, false,
+                                                 false),
+                     ".." DIRSEP ".." DIRSEP "cpack" DIRSEP "License.txt");
 
     // non-recursive search failure (file is in a subdirectory)
-    OIIO_CHECK_EQUAL(
-        Filesystem::searchpath_find("oiioversion.h", dirs, false, false), "");
+    OIIO_CHECK_EQUAL(Filesystem::searchpath_find("oiioversion.h", dirs, false,
+                                                 false),
+                     "");
 
     // recursive search success (file is in a subdirectory)
-    OIIO_CHECK_EQUAL(
-        Filesystem::searchpath_find("oiioversion.h", dirs, false, true),
-        ".." DIRSEP ".." DIRSEP "include" DIRSEP "OpenImageIO" DIRSEP
-        "oiioversion.h");
+    OIIO_CHECK_EQUAL(Filesystem::searchpath_find("oiioversion.h", dirs, false,
+                                                 true),
+                     ".." DIRSEP ".." DIRSEP "include" DIRSEP
+                     "OpenImageIO" DIRSEP "oiioversion.h");
 }
 
 
@@ -300,8 +301,9 @@ test_scan_file_seq_with_views(const char* pattern, const char** views_,
         views.emplace_back(views_[i]);
 
     Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
-    Filesystem::scan_for_matching_filenames(
-        normalized_pattern, views, frame_numbers, frame_views, frame_names);
+    Filesystem::scan_for_matching_filenames(normalized_pattern, views,
+                                            frame_numbers, frame_views,
+                                            frame_names);
     std::string joined = Strutil::join(frame_names, " ");
     std::cout << "  " << pattern;
     std::cout << " -> " << joined << "\n";

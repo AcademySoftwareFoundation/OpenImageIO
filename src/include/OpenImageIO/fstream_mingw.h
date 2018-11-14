@@ -144,9 +144,9 @@ basic_ifstream<_CharT, _Traits>::open_internal(const std::wstring& path,
         return;
     }
     int fd;
-    int oflag = ios_open_mode_to_oflag(mode);
-    errno_t errcode
-        = _wsopen_s(&fd, path.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
+    int oflag       = ios_open_mode_to_oflag(mode);
+    errno_t errcode = _wsopen_s(&fd, path.c_str(), oflag, _SH_DENYNO,
+                                _S_IREAD | _S_IWRITE);
     if (errcode != 0) {
         this->setstate(std::ios_base::failbit);
         return;
@@ -221,8 +221,7 @@ public:
 
     basic_ofstream();
     explicit basic_ofstream(const std::wstring& path,
-                            std::ios_base::openmode __mode
-                            = std::ios_base::out);
+                            std::ios_base::openmode __mode = std::ios_base::out);
 
     virtual ~basic_ofstream();
 
@@ -273,9 +272,9 @@ basic_ofstream<_CharT, _Traits>::open_internal(const std::wstring& path,
         return;
     }
     int fd;
-    int oflag = ios_open_mode_to_oflag(mode);
-    errno_t errcode
-        = _wsopen_s(&fd, path.c_str(), oflag, _SH_DENYNO, _S_IREAD | _S_IWRITE);
+    int oflag       = ios_open_mode_to_oflag(mode);
+    errno_t errcode = _wsopen_s(&fd, path.c_str(), oflag, _SH_DENYNO,
+                                _S_IREAD | _S_IWRITE);
     if (errcode != 0) {
         this->setstate(std::ios_base::failbit);
         return;

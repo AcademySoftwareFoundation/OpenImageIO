@@ -548,8 +548,8 @@ deassociateAlpha(T* data, int size, int channels, int alpha_channel,
         for (int x = 0; x < size; ++x, data += channels)
             if (data[alpha_channel]) {
                 // See associateAlpha() for an explanation.
-                float alpha_deassociate
-                    = pow((float)max / data[alpha_channel], gamma);
+                float alpha_deassociate = pow((float)max / data[alpha_channel],
+                                              gamma);
                 for (int c = 0; c < channels; c++)
                     if (c != alpha_channel)
                         data[c] = static_cast<T>(std::min(

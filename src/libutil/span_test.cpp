@@ -282,12 +282,12 @@ void
 test_image_view()
 {
     const int X = 4, Y = 3, C = 3, Z = 1;
-    static const float IMG[Z][Y][X][C]
-        = { // 4x3 2D image with 3 channels
-            { { { 0, 0, 0 }, { 1, 0, 1 }, { 2, 0, 2 }, { 3, 0, 3 } },
-              { { 0, 1, 4 }, { 1, 1, 5 }, { 2, 1, 6 }, { 3, 1, 7 } },
-              { { 0, 2, 8 }, { 1, 2, 9 }, { 2, 2, 10 }, { 3, 2, 11 } } }
-          };
+    static const float IMG[Z][Y][X][C] = {
+        // 4x3 2D image with 3 channels
+        { { { 0, 0, 0 }, { 1, 0, 1 }, { 2, 0, 2 }, { 3, 0, 3 } },
+          { { 0, 1, 4 }, { 1, 1, 5 }, { 2, 1, 6 }, { 3, 1, 7 } },
+          { { 0, 2, 8 }, { 1, 2, 9 }, { 2, 2, 10 }, { 3, 2, 11 } } }
+    };
 
     image_view<const float> I((const float*)IMG, 3, 4, 3);
     for (int y = 0, i = 0; y < Y; ++y) {
@@ -305,12 +305,12 @@ void
 test_image_view_mutable()
 {
     const int X = 4, Y = 3, C = 3, Z = 1;
-    static float IMG[Z][Y][X][C]
-        = { // 4x3 2D image with 3 channels
-            { { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
-              { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
-              { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } } }
-          };
+    static float IMG[Z][Y][X][C] = {
+        // 4x3 2D image with 3 channels
+        { { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
+          { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },
+          { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } } }
+    };
 
     image_view<float> I((float*)IMG, 3, 4, 3);
     for (int y = 0, i = 0; y < Y; ++y) {

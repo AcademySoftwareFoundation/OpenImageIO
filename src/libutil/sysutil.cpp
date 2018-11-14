@@ -241,9 +241,8 @@ Sysutil::this_program_path()
 #if defined(__linux__)
     unsigned int size = sizeof(filename);
     int r             = readlink("/proc/self/exe", filename, size);
-    ASSERT(
-        r
-        < int(size));  // user won't get the right answer if the filename is too long to store
+    // user won't get the right answer if the filename is too long to store
+    ASSERT(r < int(size));
     if (r > 0)
         filename[r] = 0;  // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)
@@ -269,8 +268,8 @@ Sysutil::this_program_path()
     int r = 0;
 #else
     // No idea what platform this is
-    OIIO_STATIC_ASSERT_MSG(
-        0, "this_program_path() unimplemented on this platform");
+    OIIO_STATIC_ASSERT_MSG(0,
+                           "this_program_path() unimplemented on this platform");
 #endif
 
     if (r > 0)

@@ -384,8 +384,8 @@ private:
             for (int c = 0; c < chans; ++c) {
                 dst[c] = src[c];  // element 0
                 for (int x = 1; x < width; ++x)
-                    dst[x * chans + c]
-                        = src[(x - 1) * chans + c] + src[x * chans + c];
+                    dst[x * chans + c] = src[(x - 1) * chans + c]
+                                         + src[x * chans + c];
             }
     }
 
@@ -428,13 +428,13 @@ private:
 
     int tile_index(int x, int y, int z)
     {
-        int xtile = (x - m_spec.x) / m_spec.tile_width;
-        int ytile = (y - m_spec.y) / m_spec.tile_height;
-        int ztile = (z - m_spec.z) / m_spec.tile_depth;
-        int nxtiles
-            = (m_spec.width + m_spec.tile_width - 1) / m_spec.tile_width;
-        int nytiles
-            = (m_spec.height + m_spec.tile_height - 1) / m_spec.tile_height;
+        int xtile   = (x - m_spec.x) / m_spec.tile_width;
+        int ytile   = (y - m_spec.y) / m_spec.tile_height;
+        int ztile   = (z - m_spec.z) / m_spec.tile_depth;
+        int nxtiles = (m_spec.width + m_spec.tile_width - 1)
+                      / m_spec.tile_width;
+        int nytiles = (m_spec.height + m_spec.tile_height - 1)
+                      / m_spec.tile_height;
         return xtile + ytile * nxtiles + ztile * nxtiles * nytiles;
     }
 };
@@ -917,9 +917,9 @@ TIFFInput::readspec(bool read_meta)
     readspec_photometric();
 
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_PLANARCONFIG, &m_planarconfig);
-    m_separate
-        = (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1
-           && m_photometric != PHOTOMETRIC_PALETTE);
+    m_separate = (m_planarconfig == PLANARCONFIG_SEPARATE
+                  && m_spec.nchannels > 1
+                  && m_photometric != PHOTOMETRIC_PALETTE);
     m_spec.attribute("tiff:PlanarConfiguration", (int)m_planarconfig);
     if (m_planarconfig == PLANARCONFIG_SEPARATE)
         m_spec.attribute("planarconfig", "separate");
@@ -943,8 +943,8 @@ TIFFInput::readspec(bool read_meta)
 
     // The libtiff docs say that only uncompressed images, or those with
     // rowsperstrip==1, support random access to scanlines.
-    m_no_random_access
-        = (m_compression != COMPRESSION_NONE && m_rowsperstrip != 1);
+    m_no_random_access = (m_compression != COMPRESSION_NONE
+                          && m_rowsperstrip != 1);
 
     // Do we care about fillorder?  No, the TIFF spec says, "We
     // recommend that FillOrder=2 (lsb-to-msb) be used only in
@@ -1200,8 +1200,8 @@ TIFFInput::readspec(bool read_meta)
 void
 TIFFInput::readspec_photometric()
 {
-    m_photometric
-        = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK : PHOTOMETRIC_RGB);
+    m_photometric = (m_spec.nchannels == 1 ? PHOTOMETRIC_MINISBLACK
+                                           : PHOTOMETRIC_RGB);
     TIFFGetField(m_tif, TIFFTAG_PHOTOMETRIC, &m_photometric);
     m_spec.attribute("tiff:PhotometricInterpretation", (int)m_photometric);
     switch (m_photometric) {
@@ -1391,11 +1391,11 @@ TIFFInput::bit_convert(int n, const unsigned char* in, int inbits, void* out,
         if (outbits == 8)
             ((unsigned char*)out)[i] = (unsigned char)((val * 0xff) / highest);
         else if (outbits == 16)
-            ((unsigned short*)out)[i]
-                = (unsigned short)((val * 0xffff) / highest);
+            ((unsigned short*)out)[i] = (unsigned short)((val * 0xffff)
+                                                         / highest);
         else
-            ((unsigned int*)out)[i]
-                = (unsigned int)((val * 0xffffffff) / highest);
+            ((unsigned int*)out)[i] = (unsigned int)((val * 0xffffffff)
+                                                     / highest);
     }
 }
 
@@ -1669,8 +1669,8 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         && pool->size() > 1
         && !pool->this_thread_is_in_pool()
         // and not if the feature is turned off
-        && m_spec.get_int_attribute(
-               "tiff:multithread", OIIO::get_int_attribute("tiff:multithread"));
+        && m_spec.get_int_attribute("tiff:multithread",
+                                    OIIO::get_int_attribute("tiff:multithread"));
 
     // Make room for, and read the raw (still compressed) strips. As each
     // one is read, kick off the decompress and any other extras, to execute
@@ -1682,8 +1682,8 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     int stripchans = m_separate ? 1 : m_spec.nchannels;  // chans in each strip
     int planes     = m_separate ? m_spec.nchannels : 1;  // color planes
         // N.B. "separate" planarconfig stores only one channel in a strip
-    int stripvals
-        = m_spec.width * stripchans * m_rowsperstrip;  // values in a strip
+    int stripvals = m_spec.width * stripchans
+                    * m_rowsperstrip;  // values in a strip
     imagesize_t strip_bytes = stripvals * m_spec.format.size();
     size_t cbound           = compressBound((uLong)strip_bytes);
     std::unique_ptr<char[]> compressed_scratch;
@@ -1701,8 +1701,8 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             tstrip_t stripnum = (y - m_spec.y) / m_rowsperstrip;
             tsize_t csize;
             if (read_raw_strips) {
-                csize
-                    = TIFFReadRawStrip(m_tif, stripnum, cbuf, tmsize_t(cbound));
+                csize = TIFFReadRawStrip(m_tif, stripnum, cbuf,
+                                         tmsize_t(cbound));
             } else {
                 csize = TIFFReadEncodedStrip(m_tif, stripnum, data,
                                              tmsize_t(strip_bytes));
@@ -1737,16 +1737,17 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         // encoded strips. Still can be a lot more efficient than reading
         // individual scanlines. This is the clause that has to handle
         // "separate" planarconfig.
-        int strips_in_file
-            = (m_spec.height + m_rowsperstrip - 1) / m_rowsperstrip;
+        int strips_in_file = (m_spec.height + m_rowsperstrip - 1)
+                             / m_rowsperstrip;
         for (size_t stripidx = 0; y + m_rowsperstrip <= yend;
              y += m_rowsperstrip, ++stripidx) {
             for (int c = 0; c < planes; ++c) {
-                tstrip_t stripnum
-                    = ((y - m_spec.y) / m_rowsperstrip) + c * strips_in_file;
-                tsize_t csize = TIFFReadEncodedStrip(
-                    m_tif, stripnum, (char*)data + c * strip_bytes,
-                    tmsize_t(strip_bytes));
+                tstrip_t stripnum = ((y - m_spec.y) / m_rowsperstrip)
+                                    + c * strips_in_file;
+                tsize_t csize = TIFFReadEncodedStrip(m_tif, stripnum,
+                                                     (char*)data
+                                                         + c * strip_bytes,
+                                                     tmsize_t(strip_bytes));
                 if (csize < 0) {
                     std::string err = oiio_tiff_last_error();
                     error(
@@ -1760,8 +1761,8 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             if (m_separate) {
                 // handle "separate" planarconfig: copy to temp area, then
                 // separate_to_contig it back.
-                char* sepbuf
-                    = separate_tmp.get() + stripidx * strip_bytes * planes;
+                char* sepbuf = separate_tmp.get()
+                               + stripidx * strip_bytes * planes;
                 memcpy(sepbuf, data, strip_bytes * planes);
                 separate_to_contig(planes, m_spec.width * m_rowsperstrip,
                                    (unsigned char*)sepbuf,
@@ -1903,10 +1904,10 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     // covers most real-world cases.
     thread_pool* pool = default_thread_pool();
     ASSERT(m_spec.tile_depth >= 1);
-    size_t ntiles
-        = size_t((xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
-                 * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height
-                 * (zend - zbegin + m_spec.tile_depth - 1) / m_spec.tile_depth);
+    size_t ntiles = size_t(
+        (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
+        * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height
+        * (zend - zbegin + m_spec.tile_depth - 1) / m_spec.tile_depth);
     bool parallelize =
         // more than one tile, or no point parallelizing
         ntiles > 1
@@ -1928,8 +1929,8 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
         && pool->size() > 1
         && !pool->this_thread_is_in_pool()
         // and not if the feature is turned off
-        && m_spec.get_int_attribute(
-               "tiff:multithread", OIIO::get_int_attribute("tiff:multithread"));
+        && m_spec.get_int_attribute("tiff:multithread",
+                                    OIIO::get_int_attribute("tiff:multithread"));
 
     // If we're not parallelizing, just call the parent class default
     // implementaiton of read_native_tiles, which will loop over the tiles
@@ -1974,11 +1975,12 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                 }
                 // Push the rest of the work onto the thread pool queue
                 tasks.push(pool->push([=, &ok](int id) {
-                    uncompress_one_strip(
-                        cbuf, (unsigned long)csize, ubuf, tile_bytes,
-                        this->m_spec.nchannels, this->m_spec.tile_width,
-                        this->m_spec.tile_height * this->m_spec.tile_depth,
-                        m_compression, &ok);
+                    uncompress_one_strip(cbuf, (unsigned long)csize, ubuf,
+                                         tile_bytes, this->m_spec.nchannels,
+                                         this->m_spec.tile_width,
+                                         this->m_spec.tile_height
+                                             * this->m_spec.tile_depth,
+                                         m_compression, &ok);
                     if (m_photometric == PHOTOMETRIC_MINISWHITE)
                         invert_photometric(tilevals, ubuf);
                     copy_image(this->m_spec.nchannels, this->m_spec.tile_width,

@@ -83,8 +83,8 @@ pnm_imageio_library_version()
     return nullptr;
 }
 
-OIIO_EXPORT const char* pnm_input_extensions[]
-    = { "ppm", "pgm", "pbm", "pnm", "pfm", nullptr };
+OIIO_EXPORT const char* pnm_input_extensions[] = { "ppm", "pgm", "pbm",
+                                                   "pnm", "pfm", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -168,8 +168,8 @@ ascii_to_raw(std::istream& file, std::string& current_line, const char*& pos,
             int tmp;
             if (!nextVal(file, current_line, pos, tmp))
                 return false;
-            write[i]
-                = std::min((int)max, tmp) * std::numeric_limits<T>::max() / max;
+            write[i] = std::min((int)max, tmp) * std::numeric_limits<T>::max()
+                       / max;
         }
     else
         for (imagesize_t i = 0; i < nvals; i++)
@@ -185,9 +185,9 @@ raw_to_raw(const T* read, T* write, imagesize_t nvals, T max)
 {
     if (max)
         for (imagesize_t i = 0; i < nvals; i++) {
-            int tmp = read[i];
-            write[i]
-                = std::min((int)max, tmp) * std::numeric_limits<T>::max() / max;
+            int tmp  = read[i];
+            write[i] = std::min((int)max, tmp) * std::numeric_limits<T>::max()
+                       / max;
         }
     else
         for (imagesize_t i = 0; i < nvals; i++)

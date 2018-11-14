@@ -168,8 +168,8 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
                 m_spec.channelnames.emplace_back("B");
             break;
         default:
-            std::string ch
-                = Strutil::format("channel%d", (int)m_spec.channelnames.size());
+            std::string ch = Strutil::format("channel%d",
+                                             m_spec.channelnames.size());
             m_spec.channelnames.push_back(ch);
             break;
         }
@@ -239,9 +239,9 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     // image descriptor
     for (int i = 0; i < m_cin.header.NumberOfElements(); i++)
         strings[i] = get_descriptor_string(m_cin.header.ImageDescriptor(i));
-    m_spec.attribute(
-        "cineon:ImageDescriptor",
-        TypeDesc(TypeDesc::STRING, m_cin.header.NumberOfElements()), &strings);
+    m_spec.attribute("cineon:ImageDescriptor",
+                     TypeDesc(TypeDesc::STRING, m_cin.header.NumberOfElements()),
+                     &strings);
 
     // save some typing by using macros
     // "internal" macros

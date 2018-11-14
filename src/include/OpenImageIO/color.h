@@ -152,11 +152,9 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
-    ColorProcessorHandle createColorProcessor(string_view inputColorSpace,
-                                              string_view outputColorSpace,
-                                              string_view context_key = "",
-                                              string_view context_value
-                                              = "") const;
+    ColorProcessorHandle createColorProcessor(
+        string_view inputColorSpace, string_view outputColorSpace,
+        string_view context_key = "", string_view context_value = "") const;
     ColorProcessorHandle
     createColorProcessor(ustring inputColorSpace, ustring outputColorSpace,
                          ustring context_key   = ustring(),

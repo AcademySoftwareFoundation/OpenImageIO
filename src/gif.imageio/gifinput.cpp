@@ -385,8 +385,8 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     if (!m_gif_file) {
 #if GIFLIB_MAJOR >= 5
         int giflib_error;
-        if (!(m_gif_file
-              = DGifOpenFileName(m_filename.c_str(), &giflib_error))) {
+        if (!(m_gif_file = DGifOpenFileName(m_filename.c_str(),
+                                            &giflib_error))) {
             error(GifErrorString(giflib_error));
             return false;
         }

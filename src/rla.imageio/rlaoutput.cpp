@@ -256,8 +256,8 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
                 if (m_spec.channelformats[m_rla.NumOfColorChannels + streak]
                     != m_spec.channelformats[m_rla.NumOfColorChannels])
                     break;
-            m_rla.MatteChannelType
-                = rla_type(m_spec.channelformats[m_rla.NumOfColorChannels]);
+            m_rla.MatteChannelType = rla_type(
+                m_spec.channelformats[m_rla.NumOfColorChannels]);
             m_rla.NumOfMatteBits
                 = bits ? bits
                        : m_spec.channelformats[m_rla.NumOfColorChannels].size()
@@ -276,9 +276,9 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
                     != m_spec.channelformats[m_rla.NumOfColorChannels
                                              + m_rla.NumOfMatteChannels])
                     break;
-            m_rla.AuxChannelType
-                = rla_type(m_spec.channelformats[m_rla.NumOfColorChannels
-                                                 + m_rla.NumOfMatteChannels]);
+            m_rla.AuxChannelType = rla_type(
+                m_spec.channelformats[m_rla.NumOfColorChannels
+                                      + m_rla.NumOfMatteChannels]);
             m_rla.NumOfAuxBits = m_spec
                                      .channelformats[m_rla.NumOfColorChannels
                                                      + m_rla.NumOfMatteChannels]
@@ -321,8 +321,8 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     //           << m_rla.NumOfMatteChannels << " z " << m_rla.NumOfAuxChannels << "\n";
     m_rla.Revision = 0xFFFE;
 
-    std::string colorspace
-        = m_spec.get_string_attribute("oiio:ColorSpace", "Unknown");
+    std::string colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
+                                                         "Unknown");
     if (Strutil::iequals(colorspace, "Linear"))
         Strutil::safe_strcpy(m_rla.Gamma, "1.0", sizeof(m_rla.Gamma));
     else if (Strutil::istarts_with(colorspace, "GammaCorrected")) {

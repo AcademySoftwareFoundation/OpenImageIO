@@ -197,8 +197,8 @@ namespace {
 CoordBBox
 getBoundingBox(const GridBase& grid)
 {
-    auto bbMin
-        = grid.getMetadata<TypedMetadata<Vec3i>>(GridBase::META_FILE_BBOX_MIN);
+    auto bbMin = grid.getMetadata<TypedMetadata<Vec3i>>(
+        GridBase::META_FILE_BBOX_MIN);
     if (bbMin) {
         auto bbMax = grid.getMetadata<TypedMetadata<Vec3i>>(
             GridBase::META_FILE_BBOX_MAX);
@@ -396,21 +396,22 @@ OpenVDBInput::readMetaData(const openvdb::GridBase& grid,
                    TypeDesc(TypeDesc::DOUBLE, TypeDesc::MATRIX44), &md);
 
     // Build the 'worldtolocal' matrix that OIIO wants
-    Imath::M44f m(
-        (float)md[0][0], (float)md[0][1], (float)md[0][2], (float)md[0][3],
-        (float)md[1][0], (float)md[1][1], (float)md[1][2], (float)md[1][3],
-        (float)md[2][0], (float)md[2][1], (float)md[2][2], (float)md[2][3],
-        (float)md[3][0], (float)md[3][1], (float)md[3][2], (float)md[3][3]);
+    Imath::M44f m((float)md[0][0], (float)md[0][1], (float)md[0][2],
+                  (float)md[0][3], (float)md[1][0], (float)md[1][1],
+                  (float)md[1][2], (float)md[1][3], (float)md[2][0],
+                  (float)md[2][1], (float)md[2][2], (float)md[2][3],
+                  (float)md[3][0], (float)md[3][1], (float)md[3][2],
+                  (float)md[3][3]);
 
     // Map/scale the data window into a unit cube
     const Vec3f unitScale(1.0 / spec.full_width, 1.0 / spec.full_height,
                           1.0 / spec.full_depth);
 
     // Shift by min data window and half a voxel
-    const Vec3f voxSize = grid.voxelSize();
-    const Vec3f dataOffset
-        = (Vec3f(-spec.full_x, -spec.full_y, -spec.full_z) * voxSize)
-          + (voxSize * 0.5);
+    const Vec3f voxSize    = grid.voxelSize();
+    const Vec3f dataOffset = (Vec3f(-spec.full_x, -spec.full_y, -spec.full_z)
+                              * voxSize)
+                             + (voxSize * 0.5);
 
     // Shift by the data offset
     m = Imath::M44f(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
@@ -541,8 +542,8 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
                     = { iscolor ? 'r' : 'x', iscolor ? 'g' : 'y',
                         iscolor ? 'b' : 'z', iscolor ? 'a' : 'w' };
                 for (int c = 0; c < layerspec.nchannels; ++c)
-                    channelnames[c]
-                        = layer.name + "." + std::string(&kChanName[c], 1);
+                    channelnames[c] = layer.name + "."
+                                      + std::string(&kChanName[c], 1);
             } else
                 channelnames.back() = layer.name;
 
@@ -584,9 +585,9 @@ OpenVDBInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     const layerrecord& lay = m_layers[m_subimage];
     switch (lay.spec.nchannels) {
     case 1:
-        return VDBReader<FloatGrid>::readTile(
-            *gridPtrCast<ScalarGrid>(lay.grid), x, y, z,
-            reinterpret_cast<float*>(data));
+        return VDBReader<FloatGrid>::readTile(*gridPtrCast<ScalarGrid>(lay.grid),
+                                              x, y, z,
+                                              reinterpret_cast<float*>(data));
     case 3:
         return VDBReader<Vec3fGrid>::readTile(*gridPtrCast<Vec3fGrid>(lay.grid),
                                               x, y, z,

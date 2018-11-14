@@ -144,8 +144,8 @@ SocketInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     if (!seek_subimage(subimage, miplevel))
         return false;
     try {
-        boost::asio::read(
-            socket, buffer(reinterpret_cast<char*>(data), m_spec.tile_bytes()));
+        boost::asio::read(socket, buffer(reinterpret_cast<char*>(data),
+                                         m_spec.tile_bytes()));
     } catch (boost::system::system_error& err) {
         error("Error while reading: %s", err.what());
         return false;

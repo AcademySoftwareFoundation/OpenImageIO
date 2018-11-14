@@ -153,9 +153,9 @@ bool
 HdrOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
 {
-    data = to_native_scanline(format, data, xstride, scratch);
-    int r
-        = RGBE_WritePixels_RLE(m_fd, (float*)data, m_spec.width, 1, rgbe_error);
+    data  = to_native_scanline(format, data, xstride, scratch);
+    int r = RGBE_WritePixels_RLE(m_fd, (float*)data, m_spec.width, 1,
+                                 rgbe_error);
     if (r != RGBE_RETURN_SUCCESS)
         error("%s", rgbe_error);
     return (r == RGBE_RETURN_SUCCESS);

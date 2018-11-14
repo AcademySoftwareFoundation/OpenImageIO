@@ -159,8 +159,8 @@ private:
              ++y, src += chans * width, dst += chans * width)
             for (int c = 0; c < chans; ++c) {
                 for (int x = width - 1; x >= 1; --x)
-                    dst[x * chans + c]
-                        = src[x * chans + c] - src[(x - 1) * chans + c];
+                    dst[x * chans + c] = src[x * chans + c]
+                                         - src[(x - 1) * chans + c];
                 dst[c] = src[c];  // element 0
             }
     }
@@ -172,13 +172,13 @@ private:
 
     int tile_index(int x, int y, int z)
     {
-        int xtile = (x - m_spec.x) / m_spec.tile_width;
-        int ytile = (y - m_spec.y) / m_spec.tile_height;
-        int ztile = (z - m_spec.z) / m_spec.tile_depth;
-        int nxtiles
-            = (m_spec.width + m_spec.tile_width - 1) / m_spec.tile_width;
-        int nytiles
-            = (m_spec.height + m_spec.tile_height - 1) / m_spec.tile_height;
+        int xtile   = (x - m_spec.x) / m_spec.tile_width;
+        int ytile   = (y - m_spec.y) / m_spec.tile_height;
+        int ztile   = (z - m_spec.z) / m_spec.tile_depth;
+        int nxtiles = (m_spec.width + m_spec.tile_width - 1)
+                      / m_spec.tile_width;
+        int nytiles = (m_spec.height + m_spec.tile_height - 1)
+                      / m_spec.tile_height;
         return xtile + ytile * nxtiles + ztile * nxtiles * nytiles;
     }
 };
@@ -459,8 +459,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     TIFFSetField(m_tif, TIFFTAG_BITSPERSAMPLE, m_bitspersample);
     TIFFSetField(m_tif, TIFFTAG_SAMPLEFORMAT, sampformat);
 
-    m_photometric
-        = (m_spec.nchannels >= 3 ? PHOTOMETRIC_RGB : PHOTOMETRIC_MINISBLACK);
+    m_photometric = (m_spec.nchannels >= 3 ? PHOTOMETRIC_RGB
+                                           : PHOTOMETRIC_MINISBLACK);
 
     string_view comp = m_spec.get_string_attribute("Compression", "zip");
     if (Strutil::iequals(comp, "jpeg")
@@ -581,8 +581,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     // Did the user request separate planar configuration?
     m_planarconfig = PLANARCONFIG_CONTIG;
     if ((param = m_spec.find_attribute("planarconfig", TypeDesc::STRING))
-        || (param
-            = m_spec.find_attribute("tiff:planarconfig", TypeDesc::STRING))) {
+        || (param = m_spec.find_attribute("tiff:planarconfig",
+                                          TypeDesc::STRING))) {
         str = *(char**)param->data();
         if (str && Strutil::iequals(str, "separate"))
             m_planarconfig = PLANARCONFIG_SEPARATE;
@@ -616,8 +616,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     // Write ICC profile, if we have anything
-    const ParamValue* icc_profile_parameter
-        = m_spec.find_attribute(ICC_PROFILE_ATTR);
+    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
+        ICC_PROFILE_ATTR);
     if (icc_profile_parameter != NULL) {
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
@@ -626,8 +626,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, length, icc_profile);
     }
 
-    if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"),
-                         "sRGB"))
+    if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Deal with missing XResolution or YResolution, or a PixelAspectRatio
@@ -1088,8 +1087,8 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         // space since TIFFWriteScanline is destructive when
         // TIFFTAG_PREDICTOR is used.
         if (data == origdata) {
-            imagesize_t scanline_bytes
-                = m_spec.width * m_spec.format.size() * m_outputchans;
+            imagesize_t scanline_bytes = m_spec.width * m_spec.format.size()
+                                         * m_outputchans;
             m_scratch.assign((unsigned char*)data,
                              (unsigned char*)data + scanline_bytes);
             data = m_scratch.data();
@@ -1179,8 +1178,8 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
         && pool->size() > 1
         && !pool->this_thread_is_in_pool()
         // and not if the feature is turned off
-        && m_spec.get_int_attribute(
-               "tiff:multithread", OIIO::get_int_attribute("tiff:multithread"));
+        && m_spec.get_int_attribute("tiff:multithread",
+                                    OIIO::get_int_attribute("tiff:multithread"));
 
     // If we're not parallelizing, just call the parent class default
     // implementaiton of write_scanlines, which will loop over the scanlines
@@ -1354,8 +1353,8 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
         // space since TIFFWriteTile is destructive when
         // TIFFTAG_PREDICTOR is used.
         if (data == origdata) {
-            imagesize_t tile_bytes
-                = m_spec.tile_pixels() * m_spec.format.size() * m_outputchans;
+            imagesize_t tile_bytes = m_spec.tile_pixels() * m_spec.format.size()
+                                     * m_outputchans;
             m_scratch.assign((unsigned char*)data,
                              (unsigned char*)data + tile_bytes);
             data = m_scratch.data();
@@ -1403,10 +1402,10 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
     // uncommon cases with strips. This covers most real-world cases.
     thread_pool* pool = default_thread_pool();
     ASSERT(m_spec.tile_depth >= 1);
-    size_t ntiles
-        = size_t((xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
-                 * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height
-                 * (zend - zbegin + m_spec.tile_depth - 1) / m_spec.tile_depth);
+    size_t ntiles = size_t(
+        (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
+        * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height
+        * (zend - zbegin + m_spec.tile_depth - 1) / m_spec.tile_depth);
     bool parallelize =
         // more than one tile, or no point parallelizing
         ntiles > 1
@@ -1426,8 +1425,8 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
         && pool->size() > 1
         && !pool->this_thread_is_in_pool()
         // and not if the feature is turned off
-        && m_spec.get_int_attribute(
-               "tiff:multithread", OIIO::get_int_attribute("tiff:multithread"));
+        && m_spec.get_int_attribute("tiff:multithread",
+                                    OIIO::get_int_attribute("tiff:multithread"));
 
     // If we're not parallelizing, just call the parent class default
     // implementaiton of write_tiles, which will loop over the tiles and
@@ -1487,15 +1486,17 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                         tile_ystride = tile_xstride * m_spec.tile_width;
                         tile_zstride = tile_ystride * m_spec.tile_height;
                     }
-                    const void* buf = to_native_tile(
-                        format, tilestart, tile_xstride, tile_ystride,
-                        tile_zstride, tilebuf[tileno], m_dither, x, y, z);
+                    const void* buf
+                        = to_native_tile(format, tilestart, tile_xstride,
+                                         tile_ystride, tile_zstride,
+                                         tilebuf[tileno], m_dither, x, y, z);
                     if (buf == (const void*)tilestart) {
                         // Ugly detail: if to_native_rectangle did not allocate
                         // scratch space and copy to it, we need to do it now,
                         // because the horizontal predictor is destructive.
-                        tilebuf[tileno].assign(
-                            (char*)buf, ((char*)buf) + m_spec.tile_bytes(true));
+                        tilebuf[tileno].assign((char*)buf,
+                                               ((char*)buf)
+                                                   + m_spec.tile_bytes(true));
                         buf = tilebuf[tileno].data();
                     }
                     char* cbuf = compressed_scratch.get() + tileno * cbound;

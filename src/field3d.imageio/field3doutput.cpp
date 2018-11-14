@@ -322,14 +322,14 @@ Field3DOutput::write_scanline_specialized(int y, int z, const T* data)
 {
     int xend = m_spec.x + m_spec.width;
 
-    if (typename DenseField<T>::Ptr f
-        = field_dynamic_cast<DenseField<T>>(m_field)) {
+    if (typename DenseField<T>::Ptr f = field_dynamic_cast<DenseField<T>>(
+            m_field)) {
         for (int x = m_spec.x; x < xend; ++x)
             f->lvalue(x, y, z) = *data++;
         return true;
     }
-    if (typename SparseField<T>::Ptr f
-        = field_dynamic_cast<SparseField<T>>(m_field)) {
+    if (typename SparseField<T>::Ptr f = field_dynamic_cast<SparseField<T>>(
+            m_field)) {
         for (int x = m_spec.x; x < xend; ++x)
             f->lvalue(x, y, z) = *data++;
         return true;
@@ -384,8 +384,8 @@ Field3DOutput::write_tile_specialized(int x, int y, int z, const T* data)
     int yend = std::min(y + m_spec.tile_height, m_spec.y + m_spec.height);
     int zend = std::min(z + m_spec.tile_depth, m_spec.z + m_spec.depth);
 
-    if (typename DenseField<T>::Ptr f
-        = field_dynamic_cast<DenseField<T>>(m_field)) {
+    if (typename DenseField<T>::Ptr f = field_dynamic_cast<DenseField<T>>(
+            m_field)) {
         for (int k = z; k < zend; ++k) {
             for (int j = y; j < yend; ++j) {
                 const T* d
@@ -398,8 +398,8 @@ Field3DOutput::write_tile_specialized(int x, int y, int z, const T* data)
         return true;
     }
 
-    if (typename SparseField<T>::Ptr f
-        = field_dynamic_cast<SparseField<T>>(m_field)) {
+    if (typename SparseField<T>::Ptr f = field_dynamic_cast<SparseField<T>>(
+            m_field)) {
         for (int k = z; k < zend; ++k) {
             for (int j = y; j < yend; ++j) {
                 const T* d
@@ -492,8 +492,8 @@ Field3DOutput::prep_subimage_specialized()
     if (!name.size() && !attribute.size()) {
         // Try to extract from the subimagename or if that fails,
         // ImageDescription
-        std::string unique_name
-            = m_spec.get_string_attribute("oiio:subimagename");
+        std::string unique_name = m_spec.get_string_attribute(
+            "oiio:subimagename");
         if (unique_name.size() == 0)
             unique_name = m_spec.get_string_attribute("ImageDescription");
         if (unique_name.size() == 0)
@@ -511,13 +511,13 @@ Field3DOutput::prep_subimage_specialized()
 
     // Mapping matrix
     TypeDesc TypeMatrixD(TypeDesc::DOUBLE, TypeDesc::MATRIX44);
-    if (ParamValue* mx
-        = m_spec.find_attribute("field3d:localtoworld", TypeMatrixD)) {
+    if (ParamValue* mx = m_spec.find_attribute("field3d:localtoworld",
+                                               TypeMatrixD)) {
         MatrixFieldMapping::Ptr mapping(new MatrixFieldMapping);
         mapping->setLocalToWorld(*((FIELD3D_NS::M44d*)mx->data()));
         m_field->setMapping(mapping);
-    } else if (ParamValue* mx
-               = m_spec.find_attribute("worldtocamera", TypeMatrix)) {
+    } else if (ParamValue* mx = m_spec.find_attribute("worldtocamera",
+                                                      TypeMatrix)) {
         Imath::M44f m = *((Imath::M44f*)mx->data());
         m             = m.inverse();
         FIELD3D_NS::M44d md(m[0][0], m[0][1], m[0][1], m[0][3], m[1][0],
@@ -574,14 +574,14 @@ template<typename T>
 bool
 Field3DOutput::write_current_subimage_specialized()
 {
-    if (typename DenseField<T>::Ptr df
-        = field_dynamic_cast<DenseField<T>>(m_field)) {
+    if (typename DenseField<T>::Ptr df = field_dynamic_cast<DenseField<T>>(
+            m_field)) {
         m_output->writeScalarLayer<T>(df);
         return true;
     }
 
-    if (typename SparseField<T>::Ptr sf
-        = field_dynamic_cast<SparseField<T>>(m_field)) {
+    if (typename SparseField<T>::Ptr sf = field_dynamic_cast<SparseField<T>>(
+            m_field)) {
         m_output->writeScalarLayer<T>(sf);
         return true;
     }
@@ -596,14 +596,14 @@ bool
 Field3DOutput::write_current_subimage_specialized_vec()
 {
     typedef FIELD3D_VEC3_T<T> V;
-    if (typename DenseField<V>::Ptr df
-        = field_dynamic_cast<DenseField<V>>(m_field)) {
+    if (typename DenseField<V>::Ptr df = field_dynamic_cast<DenseField<V>>(
+            m_field)) {
         m_output->writeVectorLayer<T>(df);
         return true;
     }
 
-    if (typename SparseField<V>::Ptr sf
-        = field_dynamic_cast<SparseField<V>>(m_field)) {
+    if (typename SparseField<V>::Ptr sf = field_dynamic_cast<SparseField<V>>(
+            m_field)) {
         m_output->writeVectorLayer<T>(sf);
         return true;
     }

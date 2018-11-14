@@ -33,10 +33,10 @@
 
 #include <boost/container/flat_map.hpp>
 
-#include <OpenImageIO/thread.h>
-#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/thread.h>
 #include <OpenImageIO/tiffutils.h>
 
 extern "C" {
@@ -44,12 +44,12 @@ extern "C" {
 }
 
 #if USE_EXTERNAL_PUGIXML
-# include <pugixml.hpp>
+#    include <pugixml.hpp>
 #else
-# include <OpenImageIO/pugixml.hpp>
+#    include <OpenImageIO/pugixml.hpp>
 #endif
 
-#define DEBUG_XMP_READ  0
+#define DEBUG_XMP_READ 0
 #define DEBUG_XMP_WRITE 0
 
 #define MY_ENCODING "ISO-8859-1"
@@ -63,24 +63,25 @@ namespace {  // anonymous
 // combined with '|'
 enum XMPspecial {
     NothingSpecial = 0,
-    Rational = 1,         // It needs to be expressed as A/B
+    Rational       = 1,   // It needs to be expressed as A/B
     DateConversion = 2,   // It's a date, may need conversion to canonical form
-    TiffRedundant = 4,    // It's something that's part of normal TIFF tags
-    ExifRedundant = 8,    // It's something included in Exif
-    Suppress = 16,        // Explicitly suppress it from XMP
-    IsList = 32,          // Make a semicolon-separated list out of it
-    IsSeq = 64,           // Like List, but order matters
-    IsBool = 128          // Should be output as True/False
+    TiffRedundant  = 4,   // It's something that's part of normal TIFF tags
+    ExifRedundant  = 8,   // It's something included in Exif
+    Suppress       = 16,  // Explicitly suppress it from XMP
+    IsList         = 32,  // Make a semicolon-separated list out of it
+    IsSeq          = 64,  // Like List, but order matters
+    IsBool         = 128  // Should be output as True/False
 };
 
 struct XMPtag {
-    const char *xmpname;      // XMP name
-    const char *oiioname;     // Attribute name we use
-    TypeDesc oiiotype;        // Type we use
-    int special;              // Special handling
+    const char* xmpname;   // XMP name
+    const char* oiioname;  // Attribute name we use
+    TypeDesc oiiotype;     // Type we use
+    int special;           // Special handling
 };
 
-static XMPtag xmptag [] = {
+static XMPtag xmptag[] = {
+    // clang-format off
     { "photoshop:AuthorsPosition", "IPTC:AuthorsPosition", TypeDesc::STRING, 0 },
     { "photoshop:CaptionWriter", "IPTC:CaptionWriter", TypeDesc::STRING, 0 },
     { "photoshop:Category", "IPTC:Category", TypeDesc::STRING, 0 },
@@ -231,27 +232,30 @@ static XMPtag xmptag [] = {
     { "GPano:LargestValidInteriorRectLeft", "GPano:LargestValidInteriorRectLeft", TypeDesc::INT, 0 },
 
     { "rdf:li", "" },  // ignore these strays
-    { NULL, NULL }
+    { nullptr, nullptr }
+    // clang-format on
 };
 
 
 
 class XMPtagMap {
-    typedef boost::container::flat_map<std::string, const XMPtag *> tagmap_t;
+    typedef boost::container::flat_map<std::string, const XMPtag*> tagmap_t;
     // Key is lower case so it's effectively case-insensitive
 public:
-    XMPtagMap (const XMPtag *tag_table) {
-        for (const XMPtag *t = &tag_table[0]; t->xmpname; ++t) {
-            std::string lower (t->xmpname);
-            Strutil::to_lower (lower);
+    XMPtagMap(const XMPtag* tag_table)
+    {
+        for (const XMPtag* t = &tag_table[0]; t->xmpname; ++t) {
+            std::string lower(t->xmpname);
+            Strutil::to_lower(lower);
             m_tagmap[lower] = t;
         }
     }
 
-    const XMPtag * find (string_view name) const {
+    const XMPtag* find(string_view name) const
+    {
         std::string lower = name;
-        Strutil::to_lower (lower);
-        tagmap_t::const_iterator i = m_tagmap.find (lower);
+        Strutil::to_lower(lower);
+        tagmap_t::const_iterator i = m_tagmap.find(lower);
         return i == m_tagmap.end() ? nullptr : i->second;
     }
 
@@ -259,11 +263,12 @@ private:
     tagmap_t m_tagmap;
 };
 
-static XMPtagMap& xmp_tagmap_ref () {
-    static XMPtagMap T (xmptag);
+static XMPtagMap&
+xmp_tagmap_ref()
+{
+    static XMPtagMap T(xmptag);
     return T;
 }
-
 
 
 
@@ -272,7 +277,7 @@ static XMPtagMap& xmp_tagmap_ref () {
 // the type is supposed to be, as well as any special handling.  If not
 // found in the table, add it as a string and hope for the best.
 static void
-add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
+add_attrib(ImageSpec& spec, const char* xmlname, const char* xmlvalue)
 {
 #if DEBUG_XMP_READ
     std::cerr << "add_attrib " << xmlname << ": '" << xmlvalue << "'\n";
@@ -283,20 +288,20 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
 
     // See if it's in the xmp table, which will tell us something about the
     // proper type (everything in the xml itself just looks like a string).
-    if (const XMPtag *xt = xmp_tagmap_ref().find (xmlname)) {
-        if (! xt->oiioname || ! xt->oiioname[0])
-            return;   // ignore it purposefully
+    if (const XMPtag* xt = xmp_tagmap_ref().find(xmlname)) {
+        if (!xt->oiioname || !xt->oiioname[0])
+            return;  // ignore it purposefully
         // Found
         oiioname = xt->oiioname;
         oiiotype = xt->oiiotype;
-        special = xt->special;
+        special  = xt->special;
     }
 
     // Also try looking it up to see if it's a known exif tag.
     int tag = -1, tifftype = -1, count = 0;
-    if (Strutil::istarts_with(xmlname,"Exif:") &&
-        (exif_tag_lookup (xmlname, tag, tifftype, count) ||
-         exif_tag_lookup (xmlname+5, tag, tifftype, count))) {
+    if (Strutil::istarts_with(xmlname, "Exif:")
+        && (exif_tag_lookup(xmlname, tag, tifftype, count)
+            || exif_tag_lookup(xmlname + 5, tag, tifftype, count))) {
         // It's a known Exif name
         if (tifftype == TIFF_SHORT && count == 1)
             oiiotype = TypeDesc::UINT;
@@ -305,9 +310,8 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
         else if ((tifftype == TIFF_RATIONAL || tifftype == TIFF_SRATIONAL)
                  && count == 1) {
             oiiotype = TypeDesc::FLOAT;
-            special = Rational;
-        }
-        else if (tifftype == TIFF_ASCII)
+            special  = Rational;
+        } else if (tifftype == TIFF_ASCII)
             oiiotype = TypeDesc::STRING;
         else if (tifftype == TIFF_BYTE && count == 1)
             oiiotype = TypeDesc::INT;
@@ -317,48 +321,48 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
 
     if (oiiotype == TypeDesc::STRING) {
         std::string val;
-        if (special & (IsList|IsSeq)) {
+        if (special & (IsList | IsSeq)) {
             // Special case -- append it to a list
             std::vector<std::string> items;
-            ParamValue *p = spec.find_attribute (oiioname, TypeDesc::STRING); 
-            bool dup = false;
+            ParamValue* p = spec.find_attribute(oiioname, TypeDesc::STRING);
+            bool dup      = false;
             if (p) {
-                Strutil::split (*(const char **)p->data(), items, ";");
+                Strutil::split(*(const char**)p->data(), items, ";");
                 for (auto& item : items) {
-                    item = Strutil::strip (item);
+                    item = Strutil::strip(item);
                     dup |= (item == xmlvalue);
                 }
-                dup |= (xmlvalue == std::string(*(const char **)p->data()));
+                dup |= (xmlvalue == std::string(*(const char**)p->data()));
             }
-            if (! dup)
-                items.emplace_back (xmlvalue);
-            val = Strutil::join (items, "; ");
+            if (!dup)
+                items.emplace_back(xmlvalue);
+            val = Strutil::join(items, "; ");
         } else {
             val = xmlvalue;
         }
-        spec.attribute (oiioname, val);
+        spec.attribute(oiioname, val);
         return;
     } else if (oiiotype == TypeDesc::INT) {
         if (special & IsBool)
-            spec.attribute (oiioname, (int)Strutil::iequals(xmlvalue,"true"));
+            spec.attribute(oiioname, (int)Strutil::iequals(xmlvalue, "true"));
         else  // ordinary int
-            spec.attribute (oiioname, (int)atoi(xmlvalue));
+            spec.attribute(oiioname, (int)atoi(xmlvalue));
         return;
     } else if (oiiotype == TypeDesc::UINT) {
-        spec.attribute (oiioname, Strutil::from_string<unsigned int>(xmlvalue));
+        spec.attribute(oiioname, Strutil::from_string<unsigned int>(xmlvalue));
         return;
     } else if (oiiotype == TypeDesc::FLOAT) {
-        float f = atoi (xmlvalue);
-        const char *slash = strchr (xmlvalue, '/');
+        float f           = atoi(xmlvalue);
+        const char* slash = strchr(xmlvalue, '/');
         if (slash)  // It's rational!
-            f /= (float) atoi (slash+1);
-        spec.attribute (oiioname, f);
+            f /= (float)atoi(slash + 1);
+        spec.attribute(oiioname, f);
         return;
     }
 #if (!defined(NDEBUG) || DEBUG_XMP_READ)
     else {
-        std::cerr << "iptc xml add_attrib unknown type " << xmlname 
-                  << ' ' << oiiotype.c_str() << "\n";
+        std::cerr << "iptc xml add_attrib unknown type " << xmlname << ' '
+                  << oiiotype.c_str() << "\n";
     }
 #endif
 
@@ -386,7 +390,7 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
 #endif
 
     // Catch-all for unrecognized things -- just add them as a string!
-    spec.attribute (xmlname, xmlvalue);
+    spec.attribute(xmlname, xmlvalue);
 }
 
 
@@ -396,58 +400,59 @@ add_attrib (ImageSpec &spec, const char *xmlname, const char *xmlvalue)
 // If not found, return false.  If found, return true, store the
 // beginning and ending indices in startpos and endpos.
 static bool
-extract_middle (const std::string &str, size_t pos, 
-                const char *startmarker, const char *endmarker,
-                size_t &startpos, size_t &endpos)
+extract_middle(const std::string& str, size_t pos, const char* startmarker,
+               const char* endmarker, size_t& startpos, size_t& endpos)
 {
-    startpos = str.find (startmarker, pos);
+    startpos = str.find(startmarker, pos);
     if (startpos == std::string::npos)
-        return false;   // start marker not found
-    endpos = str.find (endmarker, startpos);
+        return false;  // start marker not found
+    endpos = str.find(endmarker, startpos);
     if (endpos == std::string::npos)
-        return false;   // end marker not found
-    endpos += strlen (endmarker);
+        return false;  // end marker not found
+    endpos += strlen(endmarker);
     return true;
 }
 
 
 static void
-decode_xmp_node (pugi::xml_node node, ImageSpec &spec,
-                 int level=1, const char *parentname=NULL, bool isList=false)
+decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
+                const char* parentname = NULL, bool isList = false)
 {
     std::string mylist;  // will accumulate for list items
-    for ( ;  node;  node = node.next_sibling()) {
+    for (; node; node = node.next_sibling()) {
 #if DEBUG_XMP_READ
-        std::cerr << "Level " << level << " " << node.name() << " = " << node.value() << "\n";
+        std::cerr << "Level " << level << " " << node.name() << " = "
+                  << node.value() << "\n";
 #endif
         // First, encode all attributes of this node
-        for (pugi::xml_attribute attr = node.first_attribute();
-             attr; attr = attr.next_attribute()) {
+        for (pugi::xml_attribute attr = node.first_attribute(); attr;
+             attr                     = attr.next_attribute()) {
 #if DEBUG_XMP_READ
-            std::cerr << "   level " << level
-                      << " parent " << (parentname?parentname:"-")
-                      << " attr " << attr.name() << ' ' << attr.value() << "\n";
+            std::cerr << "   level " << level << " parent "
+                      << (parentname ? parentname : "-") << " attr "
+                      << attr.name() << ' ' << attr.value() << "\n";
 #endif
-            if (Strutil::istarts_with(attr.name(), "xml:") ||
-                Strutil::istarts_with(attr.name(), "xmlns:"))
-                continue;   // xml attributes aren't image metadata
+            if (Strutil::istarts_with(attr.name(), "xml:")
+                || Strutil::istarts_with(attr.name(), "xmlns:"))
+                continue;  // xml attributes aren't image metadata
             if (attr.name()[0] && attr.value()[0])
-                add_attrib (spec, attr.name(), attr.value());
+                add_attrib(spec, attr.name(), attr.value());
         }
         if (Strutil::iequals(node.name(), "xmpMM::History")) {
             // FIXME -- image history is complicated. Come back to it.
             continue;
         }
-        if (Strutil::iequals(node.name(), "rdf:Bag") ||
-            Strutil::iequals(node.name(), "rdf:Seq") ||
-            Strutil::iequals(node.name(), "rdf:Alt") ||
-            Strutil::iequals(node.name(), "rdf:li")) {
+        if (Strutil::iequals(node.name(), "rdf:Bag")
+            || Strutil::iequals(node.name(), "rdf:Seq")
+            || Strutil::iequals(node.name(), "rdf:Alt")
+            || Strutil::iequals(node.name(), "rdf:li")) {
             // Various kinds of lists.  Recuse, pass the parent name
             // down, and let the child know it's part of a list.
-            decode_xmp_node (node.first_child(), spec, level+1, parentname, true);
+            decode_xmp_node(node.first_child(), spec, level + 1, parentname,
+                            true);
         } else {
             // Not a list, but it's got children.  Recurse.
-            decode_xmp_node (node.first_child(), spec, level+1, node.name());
+            decode_xmp_node(node.first_child(), spec, level + 1, node.name());
         }
 
         // If this node has a value but no name, it's definitely part
@@ -461,38 +466,39 @@ decode_xmp_node (pugi::xml_node node, ImageSpec &spec,
 
     // If we have accumulated a list, turn it into an attribute
     if (parentname && mylist.size()) {
-        add_attrib (spec, parentname, mylist.c_str());
+        add_attrib(spec, parentname, mylist.c_str());
     }
 }
 
 
-}   // anonymous namespace
-
+}  // anonymous namespace
 
 
 
 bool
-decode_xmp (const std::string &xml, ImageSpec &spec)
+decode_xmp(const std::string& xml, ImageSpec& spec)
 {
 #if DEBUG_XMP_READ
     std::cerr << "XMP dump:\n---\n" << xml << "\n---\n";
 #endif
-    if (! xml.length())
+    if (!xml.length())
         return true;
     for (size_t startpos = 0, endpos = 0;
-         extract_middle (xml, endpos, "<rdf:Description", "</rdf:Description>", startpos, endpos);  ) {
+         extract_middle(xml, endpos, "<rdf:Description", "</rdf:Description>",
+                        startpos, endpos);) {
         // Turn that middle section into an XML document
-        std::string rdf (xml, startpos, endpos-startpos);  // scooch in
+        std::string rdf(xml, startpos, endpos - startpos);  // scooch in
 #if DEBUG_XMP_READ
         std::cerr << "RDF is:\n---\n" << rdf << "\n---\n";
 #endif
         pugi::xml_document doc;
-        pugi::xml_parse_result parse_result =
-            doc.load_buffer (&rdf[0], rdf.size(), pugi::parse_default | pugi::parse_fragment);
-        if (! parse_result) {
+        pugi::xml_parse_result parse_result
+            = doc.load_buffer(&rdf[0], rdf.size(),
+                              pugi::parse_default | pugi::parse_fragment);
+        if (!parse_result) {
 #if DEBUG_XMP_READ
-            std::cerr << "Error parsing XML @" << parse_result.offset
-                      << ": " << parse_result.description() << "\n";
+            std::cerr << "Error parsing XML @" << parse_result.offset << ": "
+                      << parse_result.description() << "\n";
 #endif
             // Instead of returning early here if there were errors parsing
             // the XML -- I have noticed that very minor XML malformations
@@ -504,7 +510,7 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
 #endif
         }
         // Decode the contents of the XML document (it will recurse)
-        decode_xmp_node (doc.first_child(), spec);
+        decode_xmp_node(doc.first_child(), spec);
     }
 
     return true;
@@ -515,27 +521,26 @@ decode_xmp (const std::string &xml, ImageSpec &spec)
 // Turn one ParamValue (whose xmp info we know) into a properly
 // serialized xmp string.
 static std::string
-stringize (const ParamValueList::const_iterator &p,
-           const XMPtag &xmptag)
+stringize(const ParamValueList::const_iterator& p, const XMPtag& xmptag)
 {
     if (p->type() == TypeDesc::STRING) {
         if (xmptag.special & DateConversion) {
             // FIXME -- convert to yyyy-mm-ddThh:mm:ss.sTZD
             // return std::string();
         }
-        return std::string(*(const char **)p->data());
+        return std::string(*(const char**)p->data());
     } else if (p->type() == TypeDesc::INT) {
         if (xmptag.special & IsBool)
-            return *(const int *)p->data() ? "True" : "False";
-        else // ordinary int
-            return Strutil::format ("%d", *(const int *)p->data());
+            return *(const int*)p->data() ? "True" : "False";
+        else  // ordinary int
+            return Strutil::format("%d", *(const int*)p->data());
     } else if (p->type() == TypeDesc::FLOAT) {
         if (xmptag.special & Rational) {
             unsigned int num, den;
-            float_to_rational (*(const float *)p->data(), num, den);
-            return Strutil::format ("%d/%d", num, den);
-        } else  {
-            return Strutil::format ("%g", *(const float *)p->data());
+            float_to_rational(*(const float*)p->data(), num, den);
+            return Strutil::format("%d/%d", num, den);
+        } else {
+            return Strutil::format("%g", *(const float*)p->data());
         }
     }
     return std::string();
@@ -544,25 +549,25 @@ stringize (const ParamValueList::const_iterator &p,
 
 
 static void
-gather_xmp_attribs (const ImageSpec &spec,
-                    std::vector<std::pair<const XMPtag*,std::string> > &list)
+gather_xmp_attribs(const ImageSpec& spec,
+                   std::vector<std::pair<const XMPtag*, std::string>>& list)
 {
     // Loop over all params...
     for (ParamValueList::const_iterator p = spec.extra_attribs.begin();
-         p != spec.extra_attribs.end();  ++p) {
+         p != spec.extra_attribs.end(); ++p) {
         // For this param, see if there's a table entry with a matching
         // name, where the xmp name is in the right category.
-        const XMPtag *tag = xmp_tagmap_ref().find (p->name());
+        const XMPtag* tag = xmp_tagmap_ref().find(p->name());
         if (tag) {
-            if (! Strutil::iequals (p->name(), tag->oiioname))
-                continue;   // Name doesn't match
+            if (!Strutil::iequals(p->name(), tag->oiioname))
+                continue;  // Name doesn't match
             if (tag->special & Suppress) {
-                break;   // Purposely suppressing
+                break;  // Purposely suppressing
             }
-            std::string s = stringize (p, *tag);
+            std::string s = stringize(p, *tag);
             if (s.size()) {
-                list.emplace_back (tag, s);
-                //std::cerr << "  " << tag->xmpname << " = " << s << "\n"; 
+                list.emplace_back(tag, s);
+                //std::cerr << "  " << tag->xmpname << " = " << s << "\n";
             }
         }
     }
@@ -570,64 +575,67 @@ gather_xmp_attribs (const ImageSpec &spec,
 
 
 
-enum XmpControl { XMP_suppress, XMP_nodes, XMP_attribs,
-                  XMP_SeqList, // sequential list
-                  XMP_BagList, // unordered list
-                  XMP_AltList  // alternate list, WTF is that?
+enum XmpControl {
+    XMP_suppress,
+    XMP_nodes,
+    XMP_attribs,
+    XMP_SeqList,  // sequential list
+    XMP_BagList,  // unordered list
+    XMP_AltList   // alternate list, WTF is that?
 };
 
 
-// Turn an entire category of XMP items into a properly serialized 
+// Turn an entire category of XMP items into a properly serialized
 // xml fragment.
 static std::string
-encode_xmp_category (std::vector<std::pair<const XMPtag *,std::string> > &list,
-                     const char *xmlnamespace, const char *pattern,
-                     const char *exclude_pattern,
-                     const char *nodename, const char *url,
-                     bool minimal, XmpControl control)
+encode_xmp_category(std::vector<std::pair<const XMPtag*, std::string>>& list,
+                    const char* xmlnamespace, const char* pattern,
+                    const char* exclude_pattern, const char* nodename,
+                    const char* url, bool minimal, XmpControl control)
 {
     std::string category = std::string(xmlnamespace) + ':';
     std::string xmp;
     std::string xmp_minimal;
 
 #if DEBUG_XMP_WRITE
-    std::cerr << "Category " << xmlnamespace << ", pattern '" << pattern << "'\n";
+    std::cerr << "Category " << xmlnamespace << ", pattern '" << pattern
+              << "'\n";
 #endif
     // Loop over all params...
     bool found = false;
-    for (size_t li = 0;  li < list.size();  ++li) {
+    for (size_t li = 0; li < list.size(); ++li) {
         // For this param, see if there's a table entry with a matching
         // name, where the xmp name is in the right category.
-        const XMPtag *tag = list[li].first;
-        const std::string &val (list[li].second);
-        const char *xmpname (tag->xmpname);
-        if (control == XMP_attribs && (tag->special & (IsList|IsSeq)))
-            continue;   // Skip lists for attrib output
-        if (exclude_pattern && exclude_pattern[0] &&
-            Strutil::istarts_with (xmpname, exclude_pattern)) {
+        const XMPtag* tag = list[li].first;
+        const std::string& val(list[li].second);
+        const char* xmpname(tag->xmpname);
+        if (control == XMP_attribs && (tag->special & (IsList | IsSeq)))
+            continue;  // Skip lists for attrib output
+        if (exclude_pattern && exclude_pattern[0]
+            && Strutil::istarts_with(xmpname, exclude_pattern)) {
             continue;
         }
-        if (Strutil::istarts_with (xmpname, pattern)) {
+        if (Strutil::istarts_with(xmpname, pattern)) {
             std::string x;
             if (control == XMP_attribs)
-                x = Strutil::format ("%s=\"%s\"", xmpname, val);
+                x = Strutil::format("%s=\"%s\"", xmpname, val);
             else if (control == XMP_AltList || control == XMP_BagList) {
                 std::vector<std::string> vals;
-                Strutil::split (val, vals, ";");
+                Strutil::split(val, vals, ";");
                 for (auto& val : vals) {
-                    val = Strutil::strip (val);
-                    x += Strutil::format ("<rdf:li>%s</rdf:li>", val);
+                    val = Strutil::strip(val);
+                    x += Strutil::format("<rdf:li>%s</rdf:li>", val);
                 }
-            }
-            else
-                x = Strutil::format ("<%s>%s</%s>", xmpname, val, xmpname);
-            if (! x.empty() && control != XMP_suppress) {
-                if (! found) {
-//                    if (nodename && nodename[0]) {
-//                       x = Strutil::format("<%s ", nodename);
-//                    }
+            } else
+                x = Strutil::format("<%s>%s</%s>", xmpname, val, xmpname);
+            if (!x.empty() && control != XMP_suppress) {
+                if (!found) {
+                    // if (nodename && nodename[0]) {
+                    //    x = Strutil::format("<%s ", nodename);
+                    // }
                 }
-                if (minimal && (tag->special & (TiffRedundant|ExifRedundant))) {
+                if (minimal
+                    && (tag->special & (TiffRedundant | ExifRedundant))) {
                     if (xmp_minimal.size())
                         xmp_minimal += ' ';
                     xmp_minimal += x;
@@ -642,9 +650,10 @@ encode_xmp_category (std::vector<std::pair<const XMPtag *,std::string> > &list,
 #endif
             }
 #if DEBUG_XMP_WRITE
-            else std::cerr << "  NOT going to output '" << x << "'\n";
+            else
+                std::cerr << "  NOT going to output '" << x << "'\n";
 #endif
-            list.erase (list.begin()+li);
+            list.erase(list.begin() + li);
             --li;
         }
     }
@@ -655,29 +664,30 @@ encode_xmp_category (std::vector<std::pair<const XMPtag *,std::string> > &list,
 #if 1
     if (xmp.length()) {
         if (control == XMP_BagList)
-            xmp = Strutil::format ("<%s><rdf:Bag> %s </rdf:Bag></%s>",
-                                   nodename ? nodename : xmlnamespace, xmp,
-                                   nodename ? nodename : xmlnamespace);
+            xmp = Strutil::format("<%s><rdf:Bag> %s </rdf:Bag></%s>",
+                                  nodename ? nodename : xmlnamespace, xmp,
+                                  nodename ? nodename : xmlnamespace);
         else if (control == XMP_SeqList)
-            xmp = Strutil::format ("<%s><rdf:Seq> %s </rdf:Seq></%s>",
-                                   nodename ? nodename : xmlnamespace, xmp,
-                                   nodename ? nodename : xmlnamespace);
+            xmp = Strutil::format("<%s><rdf:Seq> %s </rdf:Seq></%s>",
+                                  nodename ? nodename : xmlnamespace, xmp,
+                                  nodename ? nodename : xmlnamespace);
         else if (control == XMP_AltList)
-            xmp = Strutil::format ("<%s><rdf:Alt> %s </rdf:Alt></%s>",
-                                   nodename ? nodename : xmlnamespace, xmp,
-                                   nodename ? nodename : xmlnamespace);
-#if 0
+            xmp = Strutil::format("<%s><rdf:Alt> %s </rdf:Alt></%s>",
+                                  nodename ? nodename : xmlnamespace, xmp,
+                                  nodename ? nodename : xmlnamespace);
+#    if 0
         else if (control == XMP_nodes)
             xmp = Strutil::format("<%s>%s</%s>",
                                    nodename ? nodename : xmlnamespace, xmp,
                                    nodename ? nodename : xmlnamespace);
  nodename);
-#endif
+#    endif
 
         std::string r;
-        r += Strutil::format ("<rdf:Description rdf:about=\"\" "
-                              "xmlns:%s=\"%s\"%s", xmlnamespace, url,
-                              (control == XMP_attribs) ? " " : ">");
+        r += Strutil::format("<rdf:Description rdf:about=\"\" "
+                             "xmlns:%s=\"%s\"%s",
+                             xmlnamespace, url,
+                             (control == XMP_attribs) ? " " : ">");
         r += xmp;
         if (control == XMP_attribs)
             r += "/> ";  // end the <rdf:Description...
@@ -695,62 +705,76 @@ encode_xmp_category (std::vector<std::pair<const XMPtag *,std::string> > &list,
 
 
 
-std::string 
-encode_xmp (const ImageSpec &spec, bool minimal)
+std::string
+encode_xmp(const ImageSpec& spec, bool minimal)
 {
-    std::vector<std::pair<const XMPtag *,std::string> > list;
-    gather_xmp_attribs (spec, list);
+    std::vector<std::pair<const XMPtag*, std::string>> list;
+    gather_xmp_attribs(spec, list);
 
     std::string xmp;
 
 #if 1
     // This stuff seems to work
-    xmp += encode_xmp_category (list, "photoshop", "photoshop:", NULL, NULL,
-                                "http://ns.adobe.com/photoshop/1.0/", minimal, XMP_attribs);
-    xmp += encode_xmp_category (list, "xmp", "xmp:Rating", NULL, NULL,
-                                "http://ns.adobe.com/xap/1.0/", minimal, XMP_attribs);
-    xmp += encode_xmp_category (list, "xmp", "xmp:CreateDate", NULL, NULL,
-                                "http://ns.adobe.com/xap/1.0/", false, XMP_attribs);
-    xmp += encode_xmp_category (list, "xmp", "xmp:ModifyDate", NULL, NULL,
-                                "http://ns.adobe.com/xap/1.0/", false, XMP_attribs);
-    xmp += encode_xmp_category (list, "xmp", "xmp:MetadataDate", NULL, NULL,
-                                "http://ns.adobe.com/xap/1.0/", false, XMP_attribs);
-    xmp += encode_xmp_category (list, "xmpRights", "xmpRights:UsageTerms", NULL, "xmpRights:UsageTerms",
-                                "http://ns.adobe.com/xap/1.0/rights/", minimal, XMP_AltList);
-    xmp += encode_xmp_category (list, "xmpRights", "xmpRights:", NULL, NULL,
-                                "http://ns.adobe.com/xap/1.0/rights/", minimal, XMP_attribs);
-    xmp += encode_xmp_category (list, "dc", "dc:subject", NULL, "dc:subject",
-                                "http://purl.org/dc/elements/1.1/", minimal, XMP_BagList);
-    xmp += encode_xmp_category (list, "Iptc4xmpCore", "Iptc4xmpCore:SubjectCode",
-                                NULL, "Iptc4xmpCore:SubjectCode",
-                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
-                                false, XMP_BagList);
-    xmp += encode_xmp_category (list, "Iptc4xmpCore", "Iptc4xmpCore:",
-                                "Iptc4xmpCore:Ci", NULL,
-                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
-                                minimal, XMP_attribs);
-    xmp += encode_xmp_category (list, "Iptc4xmpCore", "Iptc4xmpCore:Ci", NULL,
-                                "Iptc4xmpCore:CreatorContactInfo",
-                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
-                                minimal, XMP_attribs);
-    xmp += encode_xmp_category (list, "Iptc4xmpCore", "Iptc4xmpCore:Scene", NULL,
-                                "Iptc4xmpCore:Scene",
-                                "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
-                                minimal, XMP_BagList);
+    xmp += encode_xmp_category(list, "photoshop", "photoshop:", NULL, NULL,
+                               "http://ns.adobe.com/photoshop/1.0/", minimal,
+                               XMP_attribs);
+    xmp += encode_xmp_category(list, "xmp", "xmp:Rating", NULL, NULL,
+                               "http://ns.adobe.com/xap/1.0/", minimal,
+                               XMP_attribs);
+    xmp += encode_xmp_category(list, "xmp", "xmp:CreateDate", NULL, NULL,
+                               "http://ns.adobe.com/xap/1.0/", false,
+                               XMP_attribs);
+    xmp += encode_xmp_category(list, "xmp", "xmp:ModifyDate", NULL, NULL,
+                               "http://ns.adobe.com/xap/1.0/", false,
+                               XMP_attribs);
+    xmp += encode_xmp_category(list, "xmp", "xmp:MetadataDate", NULL, NULL,
+                               "http://ns.adobe.com/xap/1.0/", false,
+                               XMP_attribs);
+    xmp += encode_xmp_category(list, "xmpRights", "xmpRights:UsageTerms", NULL,
+                               "xmpRights:UsageTerms",
+                               "http://ns.adobe.com/xap/1.0/rights/", minimal,
+                               XMP_AltList);
+    xmp += encode_xmp_category(list, "xmpRights", "xmpRights:", NULL, NULL,
+                               "http://ns.adobe.com/xap/1.0/rights/", minimal,
+                               XMP_attribs);
+    xmp += encode_xmp_category(list, "dc", "dc:subject", NULL, "dc:subject",
+                               "http://purl.org/dc/elements/1.1/", minimal,
+                               XMP_BagList);
+    xmp += encode_xmp_category(list, "Iptc4xmpCore", "Iptc4xmpCore:SubjectCode",
+                               NULL, "Iptc4xmpCore:SubjectCode",
+                               "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
+                               false, XMP_BagList);
+    xmp += encode_xmp_category(list, "Iptc4xmpCore",
+                               "Iptc4xmpCore:", "Iptc4xmpCore:Ci", NULL,
+                               "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
+                               minimal, XMP_attribs);
+    xmp += encode_xmp_category(list, "Iptc4xmpCore", "Iptc4xmpCore:Ci", NULL,
+                               "Iptc4xmpCore:CreatorContactInfo",
+                               "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
+                               minimal, XMP_attribs);
+    xmp += encode_xmp_category(list, "Iptc4xmpCore", "Iptc4xmpCore:Scene", NULL,
+                               "Iptc4xmpCore:Scene",
+                               "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/",
+                               minimal, XMP_BagList);
 
-    xmp += encode_xmp_category (list, "xmpMM", "xmpMM:", NULL, NULL,
-                                "http://ns.adobe.com/xap/1.0/mm/", minimal, XMP_attribs);
-    xmp += encode_xmp_category (list, "GPano", "GPano:", NULL, NULL,
-                                "http://ns.google.com/photos/1.0/panorama/", minimal, XMP_attribs);
-    xmp += encode_xmp_category (list, "crs", "crs:", NULL, NULL,
-                                "http://ns.adobe.com/camera-raw-settings/1.0/", minimal, XMP_attribs);
+    xmp += encode_xmp_category(list, "xmpMM", "xmpMM:", NULL, NULL,
+                               "http://ns.adobe.com/xap/1.0/mm/", minimal,
+                               XMP_attribs);
+    xmp += encode_xmp_category(list, "GPano", "GPano:", NULL, NULL,
+                               "http://ns.google.com/photos/1.0/panorama/",
+                               minimal, XMP_attribs);
+    xmp += encode_xmp_category(list, "crs", "crs:", NULL, NULL,
+                               "http://ns.adobe.com/camera-raw-settings/1.0/",
+                               minimal, XMP_attribs);
 #endif
 
-    xmp += encode_xmp_category (list, "xmp", "xmp:", NULL, NULL,
-                                "http://ns.adobe.com/xap/1.0/", minimal, XMP_nodes);
+    xmp += encode_xmp_category(list, "xmp", "xmp:", NULL, NULL,
+                               "http://ns.adobe.com/xap/1.0/", minimal,
+                               XMP_nodes);
 
-    xmp += encode_xmp_category (list, "tiff", "tiff:", NULL, NULL,
-                                "http://ns.adobe.com/tiff/1.0/", minimal, XMP_attribs);
+    xmp += encode_xmp_category(list, "tiff", "tiff:", NULL, NULL,
+                               "http://ns.adobe.com/tiff/1.0/", minimal,
+                               XMP_attribs);
 #if 0
     // Doesn't work yet
     xmp += encode_xmp_category (list, "xapRights", "xapRights:", NULL, NULL,
@@ -760,16 +784,14 @@ encode_xmp (const ImageSpec &spec, bool minimal)
 
 #endif
 
-// FIXME exif xmp stRef stVer stJob xmpDM 
+    // FIXME exif xmp stRef stVer stJob xmpDM
 
-  if (! xmp.empty()) {
-      std::string head (
+    if (!xmp.empty()) {
+        std::string head(
             "<?xpacket begin=\"\xEF\xBB\xBF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?> "
-            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.5-c002 1.148022, 2012/07/15-18:06:45        \"> <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"> "
-            );
-        std::string foot (" </rdf:RDF> </x:xmpmeta> <?xpacket end=\"w\"?>");
-        xmp = head + xmp 
-            + foot;
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" x:xmptk=\"Adobe XMP Core 5.5-c002 1.148022, 2012/07/15-18:06:45        \"> <rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"> ");
+        std::string foot(" </rdf:RDF> </x:xmpmeta> <?xpacket end=\"w\"?>");
+        xmp = head + xmp + foot;
     }
 
 
@@ -785,4 +807,3 @@ encode_xmp (const ImageSpec &spec, bool minimal)
 
 
 OIIO_NAMESPACE_END
-

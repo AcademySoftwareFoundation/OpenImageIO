@@ -27,6 +27,7 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
 
 // See: https://sno.phy.queensu.ca/~phil/exiftool/TagNames/Canon.html
 // 

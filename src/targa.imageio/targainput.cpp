@@ -386,9 +386,9 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 if (gamma == 1.f) {
                     m_spec.attribute("oiio:ColorSpace", "linear");
                 } else {
-                    m_spec.attribute(
-                        "oiio:ColorSpace",
-                        Strutil::format("GammaCorrected%.2g", gamma));
+                    m_spec.attribute("oiio:ColorSpace",
+                                     Strutil::format("GammaCorrected%.2g",
+                                                     gamma));
                     m_spec.attribute("oiio:Gamma", gamma);
                 }
             }
@@ -439,9 +439,10 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 // load image data
                 // reuse the image buffer
                 m_buf.resize(buf.c[0] * buf.c[1] * m_spec.nchannels);
-                int bytespp = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
-                int palbytespp
-                    = (m_tga.cmap_size == 15) ? 2 : (m_tga.cmap_size / 8);
+                int bytespp    = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
+                int palbytespp = (m_tga.cmap_size == 15)
+                                     ? 2
+                                     : (m_tga.cmap_size / 8);
                 int alphabits = m_tga.attr & 0x0F;
                 if (alphabits == 0 && m_tga.bpp == 32)
                     alphabits = 8;

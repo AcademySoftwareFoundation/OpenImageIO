@@ -99,8 +99,8 @@ WebpInput::open(const std::string& name, ImageSpec& spec)
     // Read header and verify we've got WebP image.
     std::vector<uint8_t> image_header;
     image_header.resize(std::min(m_image_size, (uint64_t)64), 0);
-    size_t numRead
-        = fread(&image_header[0], sizeof(uint8_t), image_header.size(), m_file);
+    size_t numRead = fread(&image_header[0], sizeof(uint8_t),
+                           image_header.size(), m_file);
     if (numRead != image_header.size()) {
         error("Read failure for header of \"%s\" (expected %d bytes, read %d)",
               m_filename, image_header.size(), numRead);
