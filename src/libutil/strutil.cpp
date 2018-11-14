@@ -760,19 +760,22 @@ Strutil::parse_string(string_view& str, string_view& val, bool eat,
 {
     string_view p = str;
     skip_whitespace(p);
-    bool quoted       = parse_char(p, '\"');
+    if (str.empty())
+        return false;
+    char lead_char    = p.front();
+    bool quoted       = parse_char(p, '\"') || parse_char(p, '\'');
     const char *begin = p.begin(), *end = p.begin();
     bool escaped = false;
     while (end != p.end()) {
         if (isspace(*end) && !quoted)
             break;  // not quoted and we hit whitespace: we're done
-        if (quoted && *end == '\"' && !escaped)
+        if (quoted && *end == lead_char && !escaped)
             break;  // closing quite -- we're done (beware embedded quote)
         escaped = (p[0] == '\\');
         ++end;
     }
     if (quoted && keep_quotes == KeepQuotes) {
-        if (*end == '\"')
+        if (*end == lead_char)
             val = string_view(begin - 1, size_t(end - begin) + 2);
         else
             val = string_view(begin - 1, size_t(end - begin) + 1);
@@ -780,7 +783,7 @@ Strutil::parse_string(string_view& str, string_view& val, bool eat,
         val = string_view(begin, size_t(end - begin));
     }
     p.remove_prefix(size_t(end - begin));
-    if (quoted && p.size() && p[0] == '\"')
+    if (quoted && p.size() && p[0] == lead_char)
         p.remove_prefix(1);  // eat closing quote
     if (eat)
         str = p;

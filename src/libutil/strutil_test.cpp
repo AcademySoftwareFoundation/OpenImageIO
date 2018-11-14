@@ -712,7 +712,21 @@ void test_parse ()
     s = "\"foo bar\" baz";
     OIIO_CHECK_ASSERT (parse_string (s, ss, false) && ss == "foo bar" && s == "\"foo bar\" baz");
     s = "\"foo bar\" baz";
-    OIIO_CHECK_ASSERT (parse_string (s, ss, true, KeepQuotes) && ss == "\"foo bar\"" && s == " baz");
+    parse_string (s, ss, true, KeepQuotes);
+    OIIO_CHECK_EQUAL (ss, "\"foo bar\"");
+    OIIO_CHECK_EQUAL (s, " baz");
+    s = "\"foo bar\" baz";
+    parse_string (s, ss, true, DeleteQuotes);
+    OIIO_CHECK_EQUAL (ss, "foo bar");
+    OIIO_CHECK_EQUAL (s, " baz");
+    s = "'foo bar' baz";
+    parse_string (s, ss, true, KeepQuotes);
+    OIIO_CHECK_EQUAL (ss, "'foo bar'");
+    OIIO_CHECK_EQUAL (s, " baz");
+    s = "'foo bar' baz";
+    parse_string (s, ss, true, DeleteQuotes);
+    OIIO_CHECK_EQUAL (ss, "foo bar");
+    OIIO_CHECK_EQUAL (s, " baz");
 
     s = " foo bar"; ss = parse_word (s);
     OIIO_CHECK_ASSERT (ss == "foo" && s == " bar");

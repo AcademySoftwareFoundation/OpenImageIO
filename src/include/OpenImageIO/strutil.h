@@ -604,12 +604,12 @@ bool OIIO_API parse_float (string_view &str, float &val, bool eat=true);
 enum QuoteBehavior { DeleteQuotes, KeepQuotes };
 /// If str's first non-whitespace characters form a valid string (either a
 /// single word separated by whitespace or anything inside a double-quoted
-/// string (""), return true, place the string's value (not including
-/// surrounding double quotes) in val, and additionally modify str to skip
-/// over the parsed string if eat is also true. Otherwise, if no string is
-/// found at the beginning of str, return false and don't modify val or str.
-/// If keep_quotes is true, the surrounding double quotes (if present)
-/// will be kept in val.
+/// ("") or single-quoted ('') string, return true, place the string's value
+/// (not including surrounding double quotes) in val, and additionally
+/// modify str to skip over the parsed string if eat is also true.
+/// Otherwise, if no string is found at the beginning of str, return false
+/// and don't modify val or str. If keep_quotes is true, the surrounding
+/// double quotes (if present) will be kept in val.
 bool OIIO_API parse_string (string_view &str, string_view &val, bool eat=true,
                             QuoteBehavior keep_quotes=DeleteQuotes);
 
@@ -636,7 +636,7 @@ string_view OIIO_API parse_identifier (string_view &str, bool eat=true);
 /// containing dollar signs and colons as well as the usual alphanumeric and
 /// underscore characters.
 string_view OIIO_API parse_identifier (string_view &str,
-                                       string_view allowed, bool eat);
+                                       string_view allowed, bool eat = true);
 
 /// If the C-like identifier at the head of str exactly matches id,
 /// return true, and also advance str if eat is true. If it is not a match
