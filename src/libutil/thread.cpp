@@ -251,14 +251,13 @@ public:
             std::unique_lock<std::mutex> lock(this->mutex);
             this->cv.notify_all();  // stop all waiting threads
         }
-        for (auto& thread :
-             this->threads) {  // wait for the computing threads to finish
+        // wait for the computing threads to finish
+        for (auto& thread : this->threads) {
             if (thread->joinable())
                 thread->join();
         }
-        for (
-            auto& thread :
-            this->terminating_threads) {  // wait for the terminated threads to finish
+        // wait for the terminated threads to finish
+        for (auto& thread : this->terminating_threads) {
             if (thread->joinable())
                 thread->join();
         }

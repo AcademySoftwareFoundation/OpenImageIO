@@ -28,9 +28,8 @@
   (This is the Modified BSD License)
 */
 
-#include <boost/lexical_cast.hpp>
-
 #include <OpenImageIO/imageio.h>
+
 #include "socket_pvt.h"
 
 
@@ -39,47 +38,45 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageOutput *socket_output_imageio_create () {
+OIIO_EXPORT ImageOutput*
+socket_output_imageio_create()
+{
     return new SocketOutput;
 }
 
-OIIO_EXPORT const char *socket_output_extensions[] = {
-    "socket", nullptr
-};
+OIIO_EXPORT const char* socket_output_extensions[] = { "socket", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
 
 
 SocketOutput::SocketOutput()
-    : socket (io)
+    : socket(io)
 {
-
 }
 
 
 
 int
-SocketOutput::supports (string_view feature) const
+SocketOutput::supports(string_view feature) const
 {
-    return (feature == "alpha" ||
-            feature == "nchannels");
+    return (feature == "alpha" || feature == "nchannels");
 }
 
 
 
 bool
-SocketOutput::open (const std::string &name, const ImageSpec &newspec,
-                    OpenMode mode)
+SocketOutput::open(const std::string& name, const ImageSpec& newspec,
+                   OpenMode mode)
 {
-    if (! (connect_to_server (name) && send_spec_to_server (newspec))) {
+    if (!(connect_to_server(name) && send_spec_to_server(newspec))) {
         return false;
     }
 
     m_next_scanline = 0;
-    m_spec = newspec;
+    m_spec          = newspec;
     if (m_spec.format == TypeDesc::UNKNOWN)
-        m_spec.set_format (TypeDesc::UINT8);  // Default to 8 bit channels
+        m_spec.set_format(TypeDesc::UINT8);  // Default to 8 bit channels
 
     return true;
 }
@@ -87,18 +84,18 @@ SocketOutput::open (const std::string &name, const ImageSpec &newspec,
 
 
 bool
-SocketOutput::write_scanline (int y, int z, TypeDesc format,
-                              const void *data, stride_t xstride)
+SocketOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+                             stride_t xstride)
 {
-    data = to_native_scanline (format, data, xstride, m_scratch);
+    data = to_native_scanline(format, data, xstride, m_scratch);
 
     try {
-        socket_pvt::socket_write (socket, format, data, m_spec.scanline_bytes ());
-    } catch (boost::system::system_error &err) {
-        error ("Error while writing: %s", err.what ());
+        socket_pvt::socket_write(socket, format, data, m_spec.scanline_bytes());
+    } catch (boost::system::system_error& err) {
+        error("Error while writing: %s", err.what());
         return false;
     } catch (...) {
-        error ("Error while writing: unknown exception");
+        error("Error while writing: unknown exception");
         return false;
     }
 
@@ -110,19 +107,18 @@ SocketOutput::write_scanline (int y, int z, TypeDesc format,
 
 
 bool
-SocketOutput::write_tile (int x, int y, int z,
-                          TypeDesc format, const void *data,
-                          stride_t xstride, stride_t ystride, stride_t zstride)
+SocketOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                         stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    data = to_native_tile (format, data, xstride, ystride, zstride, m_scratch);
+    data = to_native_tile(format, data, xstride, ystride, zstride, m_scratch);
 
     try {
-        socket_pvt::socket_write (socket, format, data, m_spec.tile_bytes ());
-    } catch (boost::system::system_error &err) {
-        error ("Error while writing: %s", err.what ());
+        socket_pvt::socket_write(socket, format, data, m_spec.tile_bytes());
+    } catch (boost::system::system_error& err) {
+        error("Error while writing: %s", err.what());
         return false;
     } catch (...) {
-        error ("Error while writing: unknown exception");
+        error("Error while writing: unknown exception");
         return false;
     }
 
@@ -132,7 +128,7 @@ SocketOutput::write_tile (int x, int y, int z,
 
 
 bool
-SocketOutput::close ()
+SocketOutput::close()
 {
     socket.close();
     return true;
@@ -141,7 +137,7 @@ SocketOutput::close ()
 
 
 bool
-SocketOutput::copy_image (ImageInput *in)
+SocketOutput::copy_image(ImageInput* in)
 {
     return true;
 }
@@ -152,17 +148,18 @@ bool
 SocketOutput::send_spec_to_server(const ImageSpec& spec)
 {
     std::string spec_xml = spec.to_xml();
-    int xml_length = spec_xml.length ();
+    int xml_length       = spec_xml.length();
 
     try {
-        boost::asio::write (socket, buffer (reinterpret_cast<const char *> (&xml_length),
-                sizeof (boost::uint32_t)));
-        boost::asio::write (socket, buffer (spec_xml.c_str (), spec_xml.length ()));
-    } catch (boost::system::system_error &err) {
-        error ("Error while send_spec_to_server: %s", err.what ());
+        boost::asio::write(socket,
+                           buffer(reinterpret_cast<const char*>(&xml_length),
+                                  sizeof(boost::uint32_t)));
+        boost::asio::write(socket, buffer(spec_xml.c_str(), spec_xml.length()));
+    } catch (boost::system::system_error& err) {
+        error("Error while send_spec_to_server: %s", err.what());
         return false;
     } catch (...) {
-        error ("Error while send_spec_to_server: unknown exception");
+        error("Error while send_spec_to_server: unknown exception");
         return false;
     }
 
@@ -172,39 +169,39 @@ SocketOutput::send_spec_to_server(const ImageSpec& spec)
 
 
 bool
-SocketOutput::connect_to_server (const std::string &name)
+SocketOutput::connect_to_server(const std::string& name)
 {
     std::map<std::string, std::string> rest_args;
     std::string baseurl;
     rest_args["port"] = socket_pvt::default_port;
     rest_args["host"] = socket_pvt::default_host;
-    
-    if (! Strutil::get_rest_arguments (name, baseurl, rest_args)) {
-        error ("Invalid 'open ()' argument: %s", name.c_str ());
+
+    if (!Strutil::get_rest_arguments(name, baseurl, rest_args)) {
+        error("Invalid 'open ()' argument: %s", name.c_str());
         return false;
     }
 
     try {
-        ip::tcp::resolver resolver (io);
-        ip::tcp::resolver::query query (rest_args["host"].c_str (),
-                rest_args["port"].c_str ());
-        ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve (query);
+        ip::tcp::resolver resolver(io);
+        ip::tcp::resolver::query query(rest_args["host"].c_str(),
+                                       rest_args["port"].c_str());
+        ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
         ip::tcp::resolver::iterator end;
 
         boost::system::error_code err = error::host_not_found;
         while (err && endpoint_iterator != end) {
-            socket.close ();
-            socket.connect (*endpoint_iterator++, err);
+            socket.close();
+            socket.connect(*endpoint_iterator++, err);
         }
         if (err) {
-            error ("Host \"%s\" not found", rest_args["host"].c_str ());
+            error("Host \"%s\" not found", rest_args["host"].c_str());
             return false;
         }
-    } catch (boost::system::system_error &err) {
-        error ("Error while connecting: %s", err.what ());
+    } catch (boost::system::system_error& err) {
+        error("Error while connecting: %s", err.what());
         return false;
     } catch (...) {
-        error ("Error while connecting: unknown exception");
+        error("Error while connecting: unknown exception");
         return false;
     }
 
@@ -212,4 +209,3 @@ SocketOutput::connect_to_server (const std::string &name)
 }
 
 OIIO_PLUGIN_NAMESPACE_END
-

@@ -45,17 +45,16 @@ using namespace boost::asio;
 namespace socket_pvt {
 
 std::size_t
-socket_write (ip::tcp::socket &s, TypeDesc &type, const void *data, int size)
+socket_write(ip::tcp::socket& s, TypeDesc& type, const void* data, int size)
 {
     std::size_t bytes;
 
     // TODO: Translate data to correct endianesss.
-    bytes = write (s, buffer (reinterpret_cast<const char *> (data), size));
+    bytes = write(s, buffer(reinterpret_cast<const char*>(data), size));
 
     return bytes;
 }
 
-}
+}  // namespace socket_pvt
 
 OIIO_PLUGIN_NAMESPACE_END
-

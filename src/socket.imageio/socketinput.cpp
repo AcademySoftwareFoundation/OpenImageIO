@@ -29,6 +29,7 @@
 */
 
 #include <OpenImageIO/imageio.h>
+
 #include "socket_pvt.h"
 
 
@@ -39,64 +40,68 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int socket_imageio_version = OIIO_PLUGIN_VERSION;
 
-OIIO_EXPORT const char* socket_imageio_library_version() { return nullptr; }
+OIIO_EXPORT const char*
+socket_imageio_library_version()
+{
+    return nullptr;
+}
 
-OIIO_EXPORT ImageInput *socket_input_imageio_create () {
+OIIO_EXPORT ImageInput*
+socket_input_imageio_create()
+{
     return new SocketInput;
 }
 
-OIIO_EXPORT const char *socket_input_extensions[] = {
-    "socket", nullptr
-};
+OIIO_EXPORT const char* socket_input_extensions[] = { "socket", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
 
 
 SocketInput::SocketInput()
-        : socket (io)
+    : socket(io)
 {
 }
 
 
 
 bool
-SocketInput::valid_file (const std::string &filename) const
+SocketInput::valid_file(const std::string& filename) const
 {
     // Pass it a configuration request that includes a "nowait" option
     // so that it returns immediately rather than waiting for a socket
     // connection that doesn't yet exist.
     ImageSpec config;
-    config.attribute ("nowait", (int)1);
+    config.attribute("nowait", (int)1);
 
     ImageSpec tmpspec;
-    bool ok = const_cast<SocketInput *>(this)->open (filename, tmpspec, config);
+    bool ok = const_cast<SocketInput*>(this)->open(filename, tmpspec, config);
     if (ok)
-        const_cast<SocketInput *>(this)->close ();
+        const_cast<SocketInput*>(this)->close();
     return ok;
 }
 
 
 
 bool
-SocketInput::open (const std::string &name, ImageSpec &newspec)
+SocketInput::open(const std::string& name, ImageSpec& newspec)
 {
-    return open (name, newspec, ImageSpec());
+    return open(name, newspec, ImageSpec());
 }
 
 
 
 bool
-SocketInput::open (const std::string &name, ImageSpec &newspec,
-                   const ImageSpec &config)
+SocketInput::open(const std::string& name, ImageSpec& newspec,
+                  const ImageSpec& config)
 {
     // If there is a nonzero "nowait" request in the configuration, just
     // return immediately.
-    if (config.get_int_attribute ("nowait", 0)) {
+    if (config.get_int_attribute("nowait", 0)) {
         return false;
     }
 
-    if (! (accept_connection (name) && get_spec_from_client (newspec))) {
+    if (!(accept_connection(name) && get_spec_from_client(newspec))) {
         return false;
     }
     // Also send information about endianess etc.
@@ -109,20 +114,20 @@ SocketInput::open (const std::string &name, ImageSpec &newspec,
 
 
 bool
-SocketInput::read_native_scanline (int subimage, int miplevel,
-                                   int y, int z, void *data)
+SocketInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+                                  void* data)
 {
-    lock_guard lock (m_mutex);
-    if (! seek_subimage (subimage, miplevel))
+    lock_guard lock(m_mutex);
+    if (!seek_subimage(subimage, miplevel))
         return false;
     try {
-        boost::asio::read (socket, buffer (reinterpret_cast<char *> (data),
-                m_spec.scanline_bytes ()));
-    } catch (boost::system::system_error &err) {
-        error ("Error while reading: %s", err.what ());
+        boost::asio::read(socket, buffer(reinterpret_cast<char*>(data),
+                                         m_spec.scanline_bytes()));
+    } catch (boost::system::system_error& err) {
+        error("Error while reading: %s", err.what());
         return false;
     } catch (...) {
-        error ("Error while reading: unknown exception");
+        error("Error while reading: unknown exception");
         return false;
     }
 
@@ -132,20 +137,20 @@ SocketInput::read_native_scanline (int subimage, int miplevel,
 
 
 bool
-SocketInput::read_native_tile (int subimage, int miplevel,
-                               int x, int y, int z, void *data)
+SocketInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                              void* data)
 {
-    lock_guard lock (m_mutex);
-    if (! seek_subimage (subimage, miplevel))
+    lock_guard lock(m_mutex);
+    if (!seek_subimage(subimage, miplevel))
         return false;
     try {
-        boost::asio::read (socket, buffer (reinterpret_cast<char *> (data),
-                m_spec.tile_bytes ()));
-    } catch (boost::system::system_error &err) {
-        error ("Error while reading: %s", err.what ());
+        boost::asio::read(
+            socket, buffer(reinterpret_cast<char*>(data), m_spec.tile_bytes()));
+    } catch (boost::system::system_error& err) {
+        error("Error while reading: %s", err.what());
         return false;
     } catch (...) {
-        error ("Error while reading: unknown exception");
+        error("Error while reading: unknown exception");
         return false;
     }
 
@@ -155,7 +160,7 @@ SocketInput::read_native_tile (int subimage, int miplevel,
 
 
 bool
-SocketInput::close ()
+SocketInput::close()
 {
     socket.close();
     return true;
@@ -164,29 +169,29 @@ SocketInput::close ()
 
 
 bool
-SocketInput::accept_connection(const std::string &name)
+SocketInput::accept_connection(const std::string& name)
 {
     std::map<std::string, std::string> rest_args;
     std::string baseurl;
     rest_args["port"] = socket_pvt::default_port;
     rest_args["host"] = socket_pvt::default_host;
 
-    if (! Strutil::get_rest_arguments (name, baseurl, rest_args)) {
-        error ("Invalid 'open ()' argument: %s", name.c_str ());
+    if (!Strutil::get_rest_arguments(name, baseurl, rest_args)) {
+        error("Invalid 'open ()' argument: %s", name.c_str());
         return false;
     }
 
-    int port = atoi (rest_args["port"].c_str ());
+    int port = atoi(rest_args["port"].c_str());
 
     try {
-        acceptor = std::shared_ptr <ip::tcp::acceptor>
-            (new ip::tcp::acceptor (io, ip::tcp::endpoint (ip::tcp::v4(), port)));
-        acceptor->accept (socket);
-    } catch (boost::system::system_error &err) {
-        error ("Error while accepting: %s", err.what ());
+        acceptor = std::shared_ptr<ip::tcp::acceptor>(
+            new ip::tcp::acceptor(io, ip::tcp::endpoint(ip::tcp::v4(), port)));
+        acceptor->accept(socket);
+    } catch (boost::system::system_error& err) {
+        error("Error while accepting: %s", err.what());
         return false;
     } catch (...) {
-        error ("Error while accepting: unknown exception");
+        error("Error while accepting: unknown exception");
         return false;
     }
 
@@ -196,24 +201,24 @@ SocketInput::accept_connection(const std::string &name)
 
 
 bool
-SocketInput::get_spec_from_client (ImageSpec &spec)
+SocketInput::get_spec_from_client(ImageSpec& spec)
 {
     try {
         int spec_length;
-        
-        boost::asio::read (socket, buffer (reinterpret_cast<char *> (&spec_length),
-                sizeof (boost::uint32_t)));
 
-        char *spec_xml = new char[spec_length + 1];
-        boost::asio::read (socket, buffer (spec_xml, spec_length));
+        boost::asio::read(socket, buffer(reinterpret_cast<char*>(&spec_length),
+                                         sizeof(boost::uint32_t)));
 
-        spec.from_xml (spec_xml);
-        delete [] spec_xml;
-    } catch (boost::system::system_error &err) {
-        error ("Error while get_spec_from_client: %s", err.what ());
+        char* spec_xml = new char[spec_length + 1];
+        boost::asio::read(socket, buffer(spec_xml, spec_length));
+
+        spec.from_xml(spec_xml);
+        delete[] spec_xml;
+    } catch (boost::system::system_error& err) {
+        error("Error while get_spec_from_client: %s", err.what());
         return false;
     } catch (...) {
-        error ("Error while get_spec_from_client: unknown exception");
+        error("Error while get_spec_from_client: unknown exception");
         return false;
     }
 
@@ -221,4 +226,3 @@ SocketInput::get_spec_from_client (ImageSpec &spec)
 }
 
 OIIO_PLUGIN_NAMESPACE_END
-

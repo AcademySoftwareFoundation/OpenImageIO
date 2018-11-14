@@ -348,8 +348,8 @@ main(int argc, char* argv[])
     test_image_view_mutable();
 
     // array_view and span should be synonyms
-    OIIO_CHECK_ASSERT((std::is_same<OIIO::cspan<float>,
-                                    OIIO::array_view<const float>>::value));
+    OIIO_CHECK_ASSERT((
+        std::is_same<OIIO::cspan<float>, OIIO::array_view<const float>>::value));
 
     return unit_test_failures;
 }

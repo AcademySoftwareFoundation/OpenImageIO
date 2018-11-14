@@ -28,11 +28,11 @@
   (This is the Modified BSD License)
 */
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
-#include <iostream>
 #include <ctime>
+#include <iostream>
 
 #include "png_pvt.h"
 
@@ -42,183 +42,183 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class PNGOutput final : public ImageOutput {
 public:
-    PNGOutput ();
-    virtual ~PNGOutput ();
-    virtual const char * format_name (void) const override { return "png"; }
-    virtual int supports (string_view feature) const override {
-        return (feature == "alpha" ||
-                feature == "ioproxy");
+    PNGOutput();
+    virtual ~PNGOutput();
+    virtual const char* format_name(void) const override { return "png"; }
+    virtual int supports(string_view feature) const override
+    {
+        return (feature == "alpha" || feature == "ioproxy");
     }
-    virtual bool open (const std::string &name, const ImageSpec &spec,
-                       OpenMode mode=Create) override;
-    virtual bool close () override;
-    virtual bool write_scanline (int y, int z, TypeDesc format,
-                                 const void *data, stride_t xstride) override;
-    virtual bool write_tile (int x, int y, int z, TypeDesc format,
-                             const void *data, stride_t xstride,
-                             stride_t ystride, stride_t zstride) override;
+    virtual bool open(const std::string& name, const ImageSpec& spec,
+                      OpenMode mode = Create) override;
+    virtual bool close() override;
+    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                                stride_t xstride) override;
+    virtual bool write_tile(int x, int y, int z, TypeDesc format,
+                            const void* data, stride_t xstride,
+                            stride_t ystride, stride_t zstride) override;
 
 private:
-    std::string m_filename;           ///< Stash the filename
-    FILE *m_file;                     ///< Open image handle
-    png_structp m_png;                ///< PNG read structure pointer
-    png_infop m_info;                 ///< PNG image info structure pointer
+    std::string m_filename;  ///< Stash the filename
+    FILE* m_file;            ///< Open image handle
+    png_structp m_png;       ///< PNG read structure pointer
+    png_infop m_info;        ///< PNG image info structure pointer
     unsigned int m_dither;
-    int m_color_type;                 ///< PNG color model type
-    bool m_convert_alpha;             ///< Do we deassociate alpha?
-    float m_gamma;                    ///< Gamma to use for alpha conversion
+    int m_color_type;      ///< PNG color model type
+    bool m_convert_alpha;  ///< Do we deassociate alpha?
+    float m_gamma;         ///< Gamma to use for alpha conversion
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
     std::vector<unsigned char> m_tilebuffer;
-    Filesystem::IOProxy *m_io = nullptr;
+    Filesystem::IOProxy* m_io = nullptr;
 
     // Initialize private members to pre-opened state
-    void init (void) {
-        m_file = NULL;
-        m_png = NULL;
-        m_info = NULL;
+    void init(void)
+    {
+        m_file          = NULL;
+        m_png           = NULL;
+        m_info          = NULL;
         m_convert_alpha = true;
-        m_gamma = 1.0;
-        m_pngtext.clear ();
+        m_gamma         = 1.0;
+        m_pngtext.clear();
         m_io = nullptr;
     }
 
     // Add a parameter to the output
-    bool put_parameter (const std::string &name, TypeDesc type,
-                        const void *data);
+    bool put_parameter(const std::string& name, TypeDesc type,
+                       const void* data);
 
     // Callback for PNG that appends to in-memory buffer instead of writing
     // to a file.
-    static void PngWriteCallback (png_structp  png_ptr, png_bytep data, png_size_t length) {
-        Filesystem::IOProxy *p = (Filesystem::IOProxy *)png_get_io_ptr(png_ptr);
-        DASSERT (p);
-        p->write (data, length);
+    static void PngWriteCallback(png_structp png_ptr, png_bytep data,
+                                 png_size_t length)
+    {
+        Filesystem::IOProxy* p = (Filesystem::IOProxy*)png_get_io_ptr(png_ptr);
+        DASSERT(p);
+        p->write(data, length);
     }
 
-    static void PngFlushCallback (png_structp png_ptr) {
-        Filesystem::IOProxy *p = (Filesystem::IOProxy *)png_get_io_ptr(png_ptr);
-        DASSERT (p);
-        p->flush ();
+    static void PngFlushCallback(png_structp png_ptr)
+    {
+        Filesystem::IOProxy* p = (Filesystem::IOProxy*)png_get_io_ptr(png_ptr);
+        DASSERT(p);
+        p->flush();
     }
-
 };
-
 
 
 
 // Obligatory material to make this a recognizeable imageio plugin:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
-OIIO_EXPORT ImageOutput *png_output_imageio_create () {
+OIIO_EXPORT ImageOutput*
+png_output_imageio_create()
+{
     return new PNGOutput;
 }
 
 // OIIO_EXPORT int png_imageio_version = OIIO_PLUGIN_VERSION;   // it's in pnginput.cpp
 
-OIIO_EXPORT const char * png_output_extensions[] = {
-    "png", nullptr
-};
+OIIO_EXPORT const char* png_output_extensions[] = { "png", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
 
 
-PNGOutput::PNGOutput ()
-{
-    init ();
-}
+PNGOutput::PNGOutput() { init(); }
 
 
 
-PNGOutput::~PNGOutput ()
+PNGOutput::~PNGOutput()
 {
     // Close, if not already done.
-    close ();
+    close();
 }
 
 
 
 bool
-PNGOutput::open (const std::string &name, const ImageSpec &userspec,
-                 OpenMode mode)
+PNGOutput::open(const std::string& name, const ImageSpec& userspec,
+                OpenMode mode)
 {
     if (mode != Create) {
-        error ("%s does not support subimages or MIP levels", format_name());
+        error("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
-    close ();  // Close any already-opened file
+    close();            // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 
     // If not uint8 or uint16, default to uint8
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
-        m_spec.set_format (TypeDesc::UINT8);
+        m_spec.set_format(TypeDesc::UINT8);
 
     // See if we were requested to write to a memory buffer, and if so,
     // extract the pointer.
-    const ParamValue* param = m_spec.find_attribute ("oiio:ioproxy", TypeDesc::PTR);
-    m_io = param ? param->get<Filesystem::IOProxy *>() : nullptr;
+    const ParamValue* param
+        = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+    m_io = param ? param->get<Filesystem::IOProxy*>() : nullptr;
     if (m_io) {
         m_file = nullptr;
     } else {
         // otherwise, we're writing to a file, so open it.
-        m_file = Filesystem::fopen (name, "wb");
-        if (! m_file) {
-            error ("Could not open file \"%s\"", name);
+        m_file = Filesystem::fopen(name, "wb");
+        if (!m_file) {
+            error("Could not open file \"%s\"", name);
             return false;
         }
     }
 
-    std::string s = PNG_pvt::create_write_struct (m_png, m_info,
-                                                  m_color_type, m_spec);
-    if (s.length ()) {
-        close ();
-        error ("%s", s);
+    std::string s
+        = PNG_pvt::create_write_struct(m_png, m_info, m_color_type, m_spec);
+    if (s.length()) {
+        close();
+        error("%s", s);
         return false;
     }
 
     if (m_file)
-        png_init_io (m_png, m_file);
+        png_init_io(m_png, m_file);
     else
-        png_set_write_fn (m_png, m_io, PngWriteCallback, PngFlushCallback);
+        png_set_write_fn(m_png, m_io, PngWriteCallback, PngFlushCallback);
 
-    png_set_compression_level (m_png, std::max (std::min (m_spec.get_int_attribute ("png:compressionLevel", 6/* medium speed vs size tradeoff */), Z_BEST_COMPRESSION), Z_NO_COMPRESSION));
-    std::string compression = m_spec.get_string_attribute ("compression");
-    if (compression.empty ()) {
+    png_set_compression_level(
+        m_png, std::max(std::min(m_spec.get_int_attribute(
+                                     "png:compressionLevel",
+                                     6 /* medium speed vs size tradeoff */),
+                                 Z_BEST_COMPRESSION),
+                        Z_NO_COMPRESSION));
+    std::string compression = m_spec.get_string_attribute("compression");
+    if (compression.empty()) {
         png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
-    }
-    else if (Strutil::iequals (compression, "default")) {
+    } else if (Strutil::iequals(compression, "default")) {
         png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
-    }
-    else if (Strutil::iequals (compression, "filtered")) {
+    } else if (Strutil::iequals(compression, "filtered")) {
         png_set_compression_strategy(m_png, Z_FILTERED);
-    }
-    else if (Strutil::iequals (compression, "huffman")) {
+    } else if (Strutil::iequals(compression, "huffman")) {
         png_set_compression_strategy(m_png, Z_HUFFMAN_ONLY);
-    }
-    else if (Strutil::iequals (compression, "rle")) {
+    } else if (Strutil::iequals(compression, "rle")) {
         png_set_compression_strategy(m_png, Z_RLE);
-    }
-    else if (Strutil::iequals (compression, "fixed")) {
+    } else if (Strutil::iequals(compression, "fixed")) {
         png_set_compression_strategy(m_png, Z_FIXED);
-    }
-    else {
+    } else {
         png_set_compression_strategy(m_png, Z_DEFAULT_STRATEGY);
     }
 
-    PNG_pvt::write_info (m_png, m_info, m_color_type, m_spec, m_pngtext,
-                         m_convert_alpha, m_gamma);
+    PNG_pvt::write_info(m_png, m_info, m_color_type, m_spec, m_pngtext,
+                        m_convert_alpha, m_gamma);
 
-    m_dither = (m_spec.format == TypeDesc::UINT8) ?
-                    m_spec.get_int_attribute ("oiio:dither", 0) : 0;
+    m_dither = (m_spec.format == TypeDesc::UINT8)
+                   ? m_spec.get_int_attribute("oiio:dither", 0)
+                   : 0;
 
-    m_convert_alpha = m_spec.alpha_channel != -1 &&
-                      !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
+    m_convert_alpha = m_spec.alpha_channel != -1
+                      && !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
 
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
     if (m_spec.tile_width && m_spec.tile_height)
-        m_tilebuffer.resize (m_spec.image_bytes());
+        m_tilebuffer.resize(m_spec.image_bytes());
 
     return true;
 }
@@ -226,68 +226,68 @@ PNGOutput::open (const std::string &name, const ImageSpec &userspec,
 
 
 bool
-PNGOutput::close ()
+PNGOutput::close()
 {
-    if (! m_file && !m_io) {   // already closed
-        init ();
+    if (!m_file && !m_io) {  // already closed
+        init();
         return true;
     }
 
     bool ok = true;
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
-        ASSERT (m_tilebuffer.size());
-        ok &= write_scanlines (m_spec.y, m_spec.y+m_spec.height, 0,
-                               m_spec.format, &m_tilebuffer[0]);
-        std::vector<unsigned char>().swap (m_tilebuffer);
+        ASSERT(m_tilebuffer.size());
+        ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
+                              m_spec.format, &m_tilebuffer[0]);
+        std::vector<unsigned char>().swap(m_tilebuffer);
     }
 
     if (m_png) {
-        PNG_pvt::finish_image (m_png, m_info);
+        PNG_pvt::finish_image(m_png, m_info);
     }
 
     if (m_file) {
         // We were writing to a file, so close it.
-        ASSERT (m_io == nullptr);
-        fclose (m_file);
+        ASSERT(m_io == nullptr);
+        fclose(m_file);
         m_file = nullptr;
     }
     if (m_io) {
-        ASSERT (m_file == nullptr);
+        ASSERT(m_file == nullptr);
         m_io->close();
     }
 
-    init ();      // re-initialize
+    init();  // re-initialize
     return ok;
 }
 
 
 
-template <class T>
+template<class T>
 static void
-deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gamma)
+deassociateAlpha(T* data, int size, int channels, int alpha_channel,
+                 float gamma)
 {
     unsigned int max = std::numeric_limits<T>::max();
-    if (gamma == 1){
-        for (int x = 0;  x < size;  ++x, data += channels)
+    if (gamma == 1) {
+        for (int x = 0; x < size; ++x, data += channels)
             if (data[alpha_channel])
-                for (int c = 0;  c < channels;  c++)
+                for (int c = 0; c < channels; c++)
                     if (c != alpha_channel) {
                         unsigned int f = data[c];
-                        f = (f * max) / data[alpha_channel];
-                        data[c] = (T) std::min (max, f);
+                        f              = (f * max) / data[alpha_channel];
+                        data[c]        = (T)std::min(max, f);
                     }
-    }
-    else {
-        for (int x = 0;  x < size;  ++x, data += channels)
+    } else {
+        for (int x = 0; x < size; ++x, data += channels)
             if (data[alpha_channel]) {
                 // See associateAlpha() for an explanation.
-                float alpha_deassociate = pow((float)max / data[alpha_channel],
-                                              gamma);
-                for (int c = 0;  c < channels;  c++)
+                float alpha_deassociate
+                    = pow((float)max / data[alpha_channel], gamma);
+                for (int c = 0; c < channels; c++)
                     if (c != alpha_channel)
-                        data[c] = static_cast<T> (std::min (max,
-                                (unsigned int)(data[c] * alpha_deassociate)));
+                        data[c] = static_cast<T>(std::min(
+                            max, (unsigned int)(data[c] * alpha_deassociate)));
             }
     }
 }
@@ -295,38 +295,35 @@ deassociateAlpha (T * data, int size, int channels, int alpha_channel, float gam
 
 
 bool
-PNGOutput::write_scanline (int y, int z, TypeDesc format,
-                            const void *data, stride_t xstride)
+PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+                          stride_t xstride)
 {
     y -= m_spec.y;
-    m_spec.auto_stride (xstride, format, spec().nchannels);
-    const void *origdata = data;
-    data = to_native_scanline (format, data, xstride, m_scratch,
-                               m_dither, y, z);
+    m_spec.auto_stride(xstride, format, spec().nchannels);
+    const void* origdata = data;
+    data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
     if (data == origdata) {
-        m_scratch.assign ((unsigned char *)data,
-                          (unsigned char *)data+m_spec.scanline_bytes());
+        m_scratch.assign((unsigned char*)data,
+                         (unsigned char*)data + m_spec.scanline_bytes());
         data = &m_scratch[0];
     }
 
     // PNG specifically dictates unassociated (un-"premultiplied") alpha
     if (m_convert_alpha) {
         if (m_spec.format == TypeDesc::UINT16)
-            deassociateAlpha ((unsigned short *)data, m_spec.width,
-                              m_spec.nchannels, m_spec.alpha_channel,
-                              m_gamma);
+            deassociateAlpha((unsigned short*)data, m_spec.width,
+                             m_spec.nchannels, m_spec.alpha_channel, m_gamma);
         else
-            deassociateAlpha ((unsigned char *)data, m_spec.width,
-                              m_spec.nchannels, m_spec.alpha_channel,
-                              m_gamma);
+            deassociateAlpha((unsigned char*)data, m_spec.width,
+                             m_spec.nchannels, m_spec.alpha_channel, m_gamma);
     }
 
     // PNG is always big endian
     if (littleendian() && m_spec.format == TypeDesc::UINT16)
-        swap_endian ((unsigned short *)data, m_spec.width*m_spec.nchannels);
+        swap_endian((unsigned short*)data, m_spec.width * m_spec.nchannels);
 
-    if (!PNG_pvt::write_row (m_png, (png_byte *)data)) {
-        error ("PNG library error");
+    if (!PNG_pvt::write_row(m_png, (png_byte*)data)) {
+        error("PNG library error");
         return false;
     }
 
@@ -336,15 +333,13 @@ PNGOutput::write_scanline (int y, int z, TypeDesc format,
 
 
 bool
-PNGOutput::write_tile (int x, int y, int z, TypeDesc format,
-                       const void *data, stride_t xstride,
-                       stride_t ystride, stride_t zstride)
+PNGOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                      stride_t xstride, stride_t ystride, stride_t zstride)
 {
     // Emulate tiles by buffering the whole image
-    return copy_tile_to_image_buffer (x, y, z, format, data, xstride,
-                                      ystride, zstride, &m_tilebuffer[0]);
+    return copy_tile_to_image_buffer(x, y, z, format, data, xstride, ystride,
+                                     zstride, &m_tilebuffer[0]);
 }
 
 
 OIIO_PLUGIN_NAMESPACE_END
-

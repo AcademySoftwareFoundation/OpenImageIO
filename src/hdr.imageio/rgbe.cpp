@@ -2,6 +2,8 @@
  * WHILE THE AUTHORS HAVE TRIED TO ENSURE THE PROGRAM WORKS CORRECTLY,
  * IT IS STRICTLY USE AT YOUR OWN RISK.  */
 
+// clang-format off
+
 #include "rgbe.h"
 #include <cmath>
 #include <cstdlib>
@@ -494,3 +496,4 @@ int RGBE_ReadPixels_RLE(FILE *fp, float *data, int scanline_width,
 
 OIIO_PLUGIN_NAMESPACE_END
 
+// clang-format on

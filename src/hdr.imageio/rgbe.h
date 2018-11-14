@@ -1,3 +1,7 @@
+// clang-format off
+
+#pragma once
+
 #ifndef _H_RGBE
 #define _H_RGBE
 /* THIS CODE CARRIES NO GUARANTEE OF USABILITY OR FITNESS FOR ANY PURPOSE.

@@ -34,14 +34,13 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
-#ifndef OPENIMAGEIO_JPEG_PVT_H
-#define OPENIMAGEIO_JPEG_PVT_H
+#pragma once
 
 #include <csetjmp>
 
 #ifdef WIN32
-#undef FAR
-#define XMD_H
+#    undef FAR
+#    define XMD_H
 #endif
 
 extern "C" {
@@ -63,58 +62,59 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 #define JPEG_420_STR "4:2:0"
 #define JPEG_411_STR "4:1:1"
 
-static const int JPEG_444_COMP[6] = {1,1, 1,1, 1,1};
-static const int JPEG_422_COMP[6] = {2,1, 1,1, 1,1};
-static const int JPEG_420_COMP[6] = {2,2, 1,1, 1,1};
-static const int JPEG_411_COMP[6] = {4,1, 1,1, 1,1};
+static const int JPEG_444_COMP[6] = { 1, 1, 1, 1, 1, 1 };
+static const int JPEG_422_COMP[6] = { 2, 1, 1, 1, 1, 1 };
+static const int JPEG_420_COMP[6] = { 2, 2, 1, 1, 1, 1 };
+static const int JPEG_411_COMP[6] = { 4, 1, 1, 1, 1, 1 };
 
 
 class JpgInput final : public ImageInput {
- public:
-    JpgInput () { init(); }
-    virtual ~JpgInput () { close(); }
-    virtual const char * format_name (void) const override { return "jpeg"; }
-    virtual int supports (string_view feature) const override {
-        return (feature == "exif"
-             || feature == "iptc");
+public:
+    JpgInput() { init(); }
+    virtual ~JpgInput() { close(); }
+    virtual const char* format_name(void) const override { return "jpeg"; }
+    virtual int supports(string_view feature) const override
+    {
+        return (feature == "exif" || feature == "iptc");
     }
-    virtual bool valid_file (const std::string &filename) const override;
-    virtual bool open (const std::string &name, ImageSpec &spec) override;
-    virtual bool open (const std::string &name, ImageSpec &spec,
-                       const ImageSpec &config) override;
-    virtual bool read_native_scanline (int subimage, int miplevel,
-                                       int y, int z, void *data) override;
-    virtual bool close () override;
-    const std::string &filename () const { return m_filename; }
-    void * coeffs () const { return m_coeffs; }
+    virtual bool valid_file(const std::string& filename) const override;
+    virtual bool open(const std::string& name, ImageSpec& spec) override;
+    virtual bool open(const std::string& name, ImageSpec& spec,
+                      const ImageSpec& config) override;
+    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                                      void* data) override;
+    virtual bool close() override;
+    const std::string& filename() const { return m_filename; }
+    void* coeffs() const { return m_coeffs; }
     struct my_error_mgr {
-        struct jpeg_error_mgr pub;    /* "public" fields */
-        jmp_buf setjmp_buffer;        /* for return to caller */
-        JpgInput *jpginput;           /* back pointer to *this */
+        struct jpeg_error_mgr pub; /* "public" fields */
+        jmp_buf setjmp_buffer;     /* for return to caller */
+        JpgInput* jpginput;        /* back pointer to *this */
     };
-    typedef struct my_error_mgr * my_error_ptr;
+    typedef struct my_error_mgr* my_error_ptr;
 
     // Called by my_error_exit
-    void jpegerror (my_error_ptr myerr, bool fatal=false);
+    void jpegerror(my_error_ptr myerr, bool fatal = false);
 
- private:
-    FILE *m_fd;
+private:
+    FILE* m_fd;
     std::string m_filename;
-    int m_next_scanline;      // Which scanline is the next to read?
-    bool m_raw;               // Read raw coefficients, not scanlines
-    bool m_cmyk;              // The input file is cmyk
-    bool m_fatalerr;          // JPEG reader hit a fatal error
+    int m_next_scanline;  // Which scanline is the next to read?
+    bool m_raw;           // Read raw coefficients, not scanlines
+    bool m_cmyk;          // The input file is cmyk
+    bool m_fatalerr;      // JPEG reader hit a fatal error
     struct jpeg_decompress_struct m_cinfo;
     my_error_mgr m_jerr;
-    jvirt_barray_ptr *m_coeffs;
-    std::vector<unsigned char> m_cmyk_buf; // For CMYK translation
+    jvirt_barray_ptr* m_coeffs;
+    std::vector<unsigned char> m_cmyk_buf;  // For CMYK translation
 
-    void init () {
-        m_fd = NULL;
-        m_raw = false;
-        m_cmyk = false;
-        m_fatalerr = false;
-        m_coeffs = NULL;
+    void init()
+    {
+        m_fd            = NULL;
+        m_raw           = false;
+        m_cmyk          = false;
+        m_fatalerr      = false;
+        m_coeffs        = NULL;
         m_jerr.jpginput = this;
     }
 
@@ -123,14 +123,15 @@ class JpgInput final : public ImageInput {
     // information and adding attributes to spec.  This assumes it's in
     // the form of an IIM (Information Interchange Model), which is actually
     // considered obsolete and is replaced by an XML scheme called XMP.
-    void jpeg_decode_iptc (const unsigned char *buf);
+    void jpeg_decode_iptc(const unsigned char* buf);
 
-    bool read_icc_profile (j_decompress_ptr cinfo, ImageSpec& spec);
+    bool read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec);
 
-    void close_file () {
+    void close_file()
+    {
         if (m_fd)
-            fclose (m_fd);   // N.B. the init() will set m_fd to NULL
-        init ();
+            fclose(m_fd);  // N.B. the init() will set m_fd to NULL
+        init();
     }
 
     friend class JpgOutput;
@@ -139,7 +140,3 @@ class JpgInput final : public ImageInput {
 
 
 OIIO_PLUGIN_NAMESPACE_END
-
-
-#endif /* OPENIMAGEIO_JPEG_PVT_H */
-
