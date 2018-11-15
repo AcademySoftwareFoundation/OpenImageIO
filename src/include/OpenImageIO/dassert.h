@@ -79,12 +79,11 @@
 /// ASSERT_MSG(condition,msg,...) is like ASSERT, but lets you add
 /// formatted output (a la printf) to the failure message.
 #ifndef ASSERT_MSG
-#    define ASSERT_MSG(x, msg, ...)                                            \
-        (OIIO_LIKELY(x)                                                        \
-             ? ((void)0)                                                       \
-             : (std::fprintf(stderr,                                           \
-                             "%s:%u: failed assertion '%s': " msg "\n",        \
-                             __FILE__, __LINE__, #x, __VA_ARGS__),             \
+#    define ASSERT_MSG(x, msg, ...)                                             \
+        (OIIO_LIKELY(x)                                                         \
+             ? ((void)0)                                                        \
+             : (std::fprintf(stderr, "%s:%u: failed assertion '%s': " msg "\n", \
+                             __FILE__, __LINE__, #x, __VA_ARGS__),              \
                 abort()))
 #endif
 

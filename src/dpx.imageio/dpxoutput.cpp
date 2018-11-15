@@ -256,9 +256,10 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     // check if the client wants endianness reverse to native
     // assume big endian per Jeremy's request, unless little endian is
     // explicitly specified
-    std::string endian = m_spec.get_string_attribute(
-        "oiio:Endian", littleendian() ? "little" : "big");
-    m_wantSwap = (littleendian() != Strutil::iequals(endian, "little"));
+    std::string endian = m_spec.get_string_attribute("oiio:Endian",
+                                                     littleendian() ? "little"
+                                                                    : "big");
+    m_wantSwap         = (littleendian() != Strutil::iequals(endian, "little"));
 
     m_dpx.SetFileInfo(
         name.c_str(),                                             // filename
@@ -276,8 +277,8 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
         prep_subimage(s, false);
         m_dpx.header.SetBitDepth(s, m_bitdepth);
         ImageSpec& spec(m_subimage_specs[s]);
-        bool datasign
-            = (spec.format == TypeDesc::INT8 || spec.format == TypeDesc::INT16);
+        bool datasign = (spec.format == TypeDesc::INT8
+                         || spec.format == TypeDesc::INT16);
         m_dpx.SetElement(
             s, m_desc, m_bitdepth, m_transfer, m_cmetr, m_packing, dpx::kNone,
             datasign, spec.get_int_attribute("dpx:LowData", 0xFFFFFFFF),
@@ -292,20 +293,24 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
         m_dpx.header.SetDescription(s, desc.c_str());
     }
 
-    m_dpx.header.SetXScannedSize(m_spec.get_float_attribute(
-        "dpx:XScannedSize", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetYScannedSize(m_spec.get_float_attribute(
-        "dpx:YScannedSize", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetXScannedSize(
+        m_spec.get_float_attribute("dpx:XScannedSize",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetYScannedSize(
+        m_spec.get_float_attribute("dpx:YScannedSize",
+                                   std::numeric_limits<float>::quiet_NaN()));
     m_dpx.header.SetFramePosition(
         m_spec.get_int_attribute("dpx:FramePosition", 0xFFFFFFFF));
     m_dpx.header.SetSequenceLength(
         m_spec.get_int_attribute("dpx:SequenceLength", 0xFFFFFFFF));
     m_dpx.header.SetHeldCount(
         m_spec.get_int_attribute("dpx:HeldCount", 0xFFFFFFFF));
-    m_dpx.header.SetFrameRate(m_spec.get_float_attribute(
-        "dpx:FrameRate", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetShutterAngle(m_spec.get_float_attribute(
-        "dpx:ShutterAngle", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetFrameRate(
+        m_spec.get_float_attribute("dpx:FrameRate",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetShutterAngle(
+        m_spec.get_float_attribute("dpx:ShutterAngle",
+                                   std::numeric_limits<float>::quiet_NaN()));
     // FIXME: should we write the input version through or always default to 2.0?
     /*tmpstr = m_spec.get_string_attribute ("dpx:Version", "");
     if (tmpstr.size () > 0)
@@ -329,24 +334,33 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     m_dpx.header.SetInterlace(m_spec.get_int_attribute("dpx:Interlace", 0xFF));
     m_dpx.header.SetFieldNumber(
         m_spec.get_int_attribute("dpx:FieldNumber", 0xFF));
-    m_dpx.header.SetHorizontalSampleRate(m_spec.get_float_attribute(
-        "dpx:HorizontalSampleRate", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetVerticalSampleRate(m_spec.get_float_attribute(
-        "dpx:VerticalSampleRate", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetTemporalFrameRate(m_spec.get_float_attribute(
-        "dpx:TemporalFrameRate", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetTimeOffset(m_spec.get_float_attribute(
-        "dpx:TimeOffset", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetBlackLevel(m_spec.get_float_attribute(
-        "dpx:BlackLevel", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetBlackGain(m_spec.get_float_attribute(
-        "dpx:BlackGain", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetBreakPoint(m_spec.get_float_attribute(
-        "dpx:BreakPoint", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetWhiteLevel(m_spec.get_float_attribute(
-        "dpx:WhiteLevel", std::numeric_limits<float>::quiet_NaN()));
-    m_dpx.header.SetIntegrationTimes(m_spec.get_float_attribute(
-        "dpx:IntegrationTimes", std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetHorizontalSampleRate(
+        m_spec.get_float_attribute("dpx:HorizontalSampleRate",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetVerticalSampleRate(
+        m_spec.get_float_attribute("dpx:VerticalSampleRate",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetTemporalFrameRate(
+        m_spec.get_float_attribute("dpx:TemporalFrameRate",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetTimeOffset(
+        m_spec.get_float_attribute("dpx:TimeOffset",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetBlackLevel(
+        m_spec.get_float_attribute("dpx:BlackLevel",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetBlackGain(
+        m_spec.get_float_attribute("dpx:BlackGain",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetBreakPoint(
+        m_spec.get_float_attribute("dpx:BreakPoint",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetWhiteLevel(
+        m_spec.get_float_attribute("dpx:WhiteLevel",
+                                   std::numeric_limits<float>::quiet_NaN()));
+    m_dpx.header.SetIntegrationTimes(
+        m_spec.get_float_attribute("dpx:IntegrationTimes",
+                                   std::numeric_limits<float>::quiet_NaN()));
     float aspect = m_spec.get_float_attribute("PixelAspectRatio", 1.0f);
     int aspect_num, aspect_den;
     float_to_rational(aspect, aspect_num, aspect_den);
@@ -370,8 +384,8 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     orient                       = DpxOrientations[clamp(orient, 0, 8)];
     m_dpx.header.SetImageOrientation((dpx::Orientation)orient);
 
-    ParamValue* tc
-        = m_spec.find_attribute("smpte:TimeCode", TypeTimeCode, false);
+    ParamValue* tc = m_spec.find_attribute("smpte:TimeCode", TypeTimeCode,
+                                           false);
     if (tc) {
         unsigned int* timecode = (unsigned int*)tc->data();
         m_dpx.header.timeCode  = timecode[0];
@@ -462,9 +476,9 @@ DPXOutput::prep_subimage(int s, bool allocate)
     else if (Strutil::iequals(colorspace, "KodakLog"))
         m_transfer = dpx::kLogarithmic;
     else {
-        std::string dpxtransfer
-            = m_spec.get_string_attribute("dpx:Transfer", "");
-        m_transfer = get_characteristic_from_string(dpxtransfer);
+        std::string dpxtransfer = m_spec.get_string_attribute("dpx:Transfer",
+                                                              "");
+        m_transfer              = get_characteristic_from_string(dpxtransfer);
     }
 
     // colorimetric
@@ -472,8 +486,8 @@ DPXOutput::prep_subimage(int s, bool allocate)
         m_spec.get_string_attribute("dpx:Colorimetric", "User defined"));
 
     // select packing method
-    std::string pck
-        = m_spec.get_string_attribute("dpx:Packing", "Filled, method A");
+    std::string pck = m_spec.get_string_attribute("dpx:Packing",
+                                                  "Filled, method A");
     if (Strutil::iequals(pck, "Packed"))
         m_packing = dpx::kPacked;
     else if (Strutil::iequals(pck, "Filled, method B"))
@@ -540,8 +554,8 @@ DPXOutput::prep_subimage(int s, bool allocate)
         m_bytes   = m_spec.scanline_bytes();
         m_wantRaw = true;
     } else {
-        m_bytes
-            = dpx::QueryNativeBufferSize(m_desc, m_datasize, m_spec.width, 1);
+        m_bytes = dpx::QueryNativeBufferSize(m_desc, m_datasize, m_spec.width,
+                                             1);
         if (m_bytes == 0 && !m_wantRaw) {
             error("Unable to deliver native format data from source data");
             return false;

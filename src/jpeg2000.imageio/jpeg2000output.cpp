@@ -141,8 +141,8 @@ jpeg2000_output_imageio_create()
     return new Jpeg2000Output;
 }
 
-OIIO_EXPORT const char* jpeg2000_output_extensions[]
-    = { "jp2", "j2k", nullptr };
+OIIO_EXPORT const char* jpeg2000_output_extensions[] = { "jp2", "j2k",
+                                                         nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -225,8 +225,8 @@ deassociateAlpha(T* data, int size, int channels, int alpha_channel,
         for (int x = 0; x < size; ++x, data += channels)
             if (data[alpha_channel]) {
                 // See associateAlpha() for an explanation.
-                float alpha_deassociate
-                    = pow((float)max / data[alpha_channel], gamma);
+                float alpha_deassociate = pow((float)max / data[alpha_channel],
+                                              gamma);
                 for (int c = 0; c < channels; c++)
                     if (c != alpha_channel)
                         data[c] = static_cast<T>(std::min(
@@ -368,9 +368,9 @@ Jpeg2000Output::create_jpeg2000_image()
     if (m_spec.nchannels == 1)
         color_space = OPJ_CLRSPC_GRAY;
 
-    int precision = 16;
-    const ParamValue* prec
-        = m_spec.find_attribute("oiio:BitsPerSample", TypeDesc::INT);
+    int precision          = 16;
+    const ParamValue* prec = m_spec.find_attribute("oiio:BitsPerSample",
+                                                   TypeDesc::INT);
     if (prec)
         precision = *(int*)prec->data();
     else if (m_spec.format == TypeDesc::UINT8
@@ -381,8 +381,8 @@ Jpeg2000Output::create_jpeg2000_image()
     opj_image_cmptparm_t component_params[MAX_COMPONENTS];
     init_components(component_params, precision);
 
-    m_image
-        = opj_image_create(m_spec.nchannels, &component_params[0], color_space);
+    m_image = opj_image_create(m_spec.nchannels, &component_params[0],
+                               color_space);
 
     m_image->x0 = m_compression_parameters.image_offset_x0;
     m_image->y0 = m_compression_parameters.image_offset_y0;
@@ -526,24 +526,26 @@ Jpeg2000Output::setup_compression_params()
     m_compression_parameters.tcp_numlayers++;
     m_compression_parameters.cp_disto_alloc = 1;
 
-    const ParamValue* is_cinema2k
-        = m_spec.find_attribute("jpeg2000:Cinema2K", TypeDesc::UINT);
+    const ParamValue* is_cinema2k = m_spec.find_attribute("jpeg2000:Cinema2K",
+                                                          TypeDesc::UINT);
     if (is_cinema2k)
         setup_cinema_compression(OPJ_CINEMA2K);
 
-    const ParamValue* is_cinema4k
-        = m_spec.find_attribute("jpeg2000:Cinema4K", TypeDesc::UINT);
+    const ParamValue* is_cinema4k = m_spec.find_attribute("jpeg2000:Cinema4K",
+                                                          TypeDesc::UINT);
     if (is_cinema4k)
         setup_cinema_compression(OPJ_CINEMA4K);
 
-    const ParamValue* initial_cb_width = m_spec.find_attribute(
-        "jpeg2000:InitialCodeBlockWidth", TypeDesc::UINT);
+    const ParamValue* initial_cb_width
+        = m_spec.find_attribute("jpeg2000:InitialCodeBlockWidth",
+                                TypeDesc::UINT);
     if (initial_cb_width && initial_cb_width->data())
         m_compression_parameters.cblockw_init
             = *(unsigned int*)initial_cb_width->data();
 
-    const ParamValue* initial_cb_height = m_spec.find_attribute(
-        "jpeg2000:InitialCodeBlockHeight", TypeDesc::UINT);
+    const ParamValue* initial_cb_height
+        = m_spec.find_attribute("jpeg2000:InitialCodeBlockHeight",
+                                TypeDesc::UINT);
     if (initial_cb_height && initial_cb_height->data())
         m_compression_parameters.cblockh_init
             = *(unsigned int*)initial_cb_height->data();

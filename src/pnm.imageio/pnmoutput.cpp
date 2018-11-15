@@ -69,8 +69,8 @@ pnm_output_imageio_create()
     return new PNMOutput;
 }
 
-OIIO_EXPORT const char* pnm_output_extensions[]
-    = { "ppm", "pgm", "pbm", "pnm", nullptr };
+OIIO_EXPORT const char* pnm_output_extensions[] = { "ppm", "pgm", "pbm", "pnm",
+                                                    nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 

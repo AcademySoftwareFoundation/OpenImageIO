@@ -275,8 +275,9 @@ ICOInput::seek_subimage(int subimage, int miplevel)
     m_offset        = subimg.ofs;
     m_subimage_size = subimg.len;
     // palette size of 0 actually indicates 256 colours
-    m_palette_size
-        = (subimg.numColours == 0 && m_bpp < 16) ? 256 : (int)subimg.numColours;
+    m_palette_size = (subimg.numColours == 0 && m_bpp < 16)
+                         ? 256
+                         : (int)subimg.numColours;
 
     m_spec = ImageSpec((int)subimg.width, (int)subimg.height,
                        4,                 // always RGBA

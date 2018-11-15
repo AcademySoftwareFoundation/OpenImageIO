@@ -203,9 +203,10 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     png_timep mod_time;
     if (png_get_tIME(sp, ip, &mod_time)) {
-        std::string date = Strutil::format(
-            "%4d:%02d:%02d %02d:%02d:%02d", mod_time->year, mod_time->month,
-            mod_time->day, mod_time->hour, mod_time->minute, mod_time->second);
+        std::string date = Strutil::format("%4d:%02d:%02d %02d:%02d:%02d",
+                                           mod_time->year, mod_time->month,
+                                           mod_time->day, mod_time->hour,
+                                           mod_time->minute, mod_time->second);
         spec.attribute("DateTime", date);
     }
 
@@ -526,8 +527,8 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     }
 
     // Write ICC profile, if we have anything
-    const ParamValue* icc_profile_parameter
-        = spec.find_attribute(ICC_PROFILE_ATTR);
+    const ParamValue* icc_profile_parameter = spec.find_attribute(
+        ICC_PROFILE_ATTR);
     if (icc_profile_parameter != NULL) {
         unsigned int length = icc_profile_parameter->type().size();
 #if OIIO_LIBPNG_VERSION > 10500 /* PNG function signatures changed */

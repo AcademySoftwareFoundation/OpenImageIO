@@ -143,15 +143,15 @@ main(int argc, char* argv[])
     std::cout << "threads\ttime (best of " << ntrials << ")\n";
     std::cout << "-------\t----------\n";
 
-    static int threadcounts[]
-        = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1 << 30 };
+    static int threadcounts[] = { 1,  2,  4,  8,  12,  16,   20,
+                                  24, 28, 32, 64, 128, 1024, 1 << 30 };
     for (int i = 0; threadcounts[i] <= numthreads; ++i) {
         int nt  = threadcounts[i];
         int its = iterations / nt;
 
         double range;
-        double t
-            = time_trial(std::bind(test_spin_rw, nt, its), ntrials, &range);
+        double t = time_trial(std::bind(test_spin_rw, nt, its), ntrials,
+                              &range);
 
         std::cout << Strutil::format(
             "%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n", nt,

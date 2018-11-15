@@ -184,8 +184,8 @@ jpeg2000_input_imageio_create()
 {
     return { new Jpeg2000Input };
 }
-OIIO_EXPORT const char* jpeg2000_input_extensions[]
-    = { "jp2", "j2k", "j2c", nullptr };
+OIIO_EXPORT const char* jpeg2000_input_extensions[] = { "jp2", "j2k", "j2c",
+                                                        nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -422,8 +422,8 @@ Jpeg2000Input::read_scanline(int y, int z, void* data)
                 unsigned int val = comp.data[yoff * comp.w + x / comp.dx];
                 if (comp.sgnd)
                     val += (1 << (bits / 2 - 1));
-                scanline[x * nc + c]
-                    = (T)bit_range_convert(val, comp.prec, bits);
+                scanline[x * nc + c] = (T)bit_range_convert(val, comp.prec,
+                                                            bits);
             }
         }
     }

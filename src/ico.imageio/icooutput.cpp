@@ -188,8 +188,8 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
                  || m_spec.height == 256;
 
     if (m_want_png) {
-        std::string s
-            = PNG_pvt::create_write_struct(m_png, m_info, m_color_type, m_spec);
+        std::string s = PNG_pvt::create_write_struct(m_png, m_info,
+                                                     m_color_type, m_spec);
         if (s.length()) {
             error("%s", s.c_str());
             return false;
@@ -210,9 +210,9 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
                  || m_color_type == PNG_COLOR_TYPE_RGB_ALPHA)
                     ? 32
                     : 24;
-        m_xor_slb
-            = (m_spec.width * m_bpp + 7) / 8  // real data bytes
-              + (4 - ((m_spec.width * m_bpp + 7) / 8) % 4) % 4;  // padding
+        m_xor_slb = (m_spec.width * m_bpp + 7) / 8  // real data bytes
+                    + (4 - ((m_spec.width * m_bpp + 7) / 8) % 4)
+                          % 4;              // padding
         m_and_slb = (m_spec.width + 7) / 8  // real data bytes
                     + (4 - ((m_spec.width + 7) / 8) % 4) % 4;  // padding
 

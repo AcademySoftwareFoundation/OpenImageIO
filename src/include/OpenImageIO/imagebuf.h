@@ -798,9 +798,10 @@ public:
                     return;
                 }
             } else if (!m_deep)
-                m_proxydata = (char*)m_ib->retile(
-                    x_, y_, z_, m_tile, m_tilexbegin, m_tileybegin,
-                    m_tilezbegin, m_tilexend, e, m_wrap);
+                m_proxydata = (char*)m_ib->retile(x_, y_, z_, m_tile,
+                                                  m_tilexbegin, m_tileybegin,
+                                                  m_tilezbegin, m_tilexend, e,
+                                                  m_wrap);
             m_x      = x_;
             m_y      = y_;
             m_z      = z_;
@@ -948,10 +949,12 @@ public:
                 bool e = m_x < m_img_xend;
                 if (OIIO_UNLIKELY(!(e && m_x < m_tilexend && m_tile))) {
                     // Crossed a tile boundary
-                    m_proxydata = (char*)m_ib->retile(
-                        m_x, m_y, m_z, m_tile, m_tilexbegin, m_tileybegin,
-                        m_tilezbegin, m_tilexend, e, m_wrap);
-                    m_exists = e;
+                    m_proxydata = (char*)m_ib->retile(m_x, m_y, m_z, m_tile,
+                                                      m_tilexbegin,
+                                                      m_tileybegin,
+                                                      m_tilezbegin, m_tilexend,
+                                                      e, m_wrap);
+                    m_exists    = e;
                 }
             }
         }

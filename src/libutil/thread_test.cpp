@@ -43,13 +43,13 @@
 
 using namespace OIIO;
 
-static int iterations = 100000;
-static int numthreads = 16;
-static int ntrials    = 1;
-static bool verbose   = false;
-static bool wedge     = false;
-static int threadcounts[]
-    = { 1, 2, 4, 8, 12, 16, 20, 24, 28, 32, 64, 128, 1024, 1 << 30 };
+static int iterations     = 100000;
+static int numthreads     = 16;
+static int ntrials        = 1;
+static bool verbose       = false;
+static bool wedge         = false;
+static int threadcounts[] = { 1,  2,  4,  8,  12,  16,   20,
+                              24, 28, 32, 64, 128, 1024, 1 << 30 };
 
 
 

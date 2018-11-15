@@ -100,9 +100,10 @@ IffInput::open(const std::string& name, ImageSpec& spec)
     }
 
     // image specification
-    m_spec = ImageSpec(
-        m_iff_header.width, m_iff_header.height, m_iff_header.pixel_channels,
-        m_iff_header.pixel_bits == 8 ? TypeDesc::UINT8 : TypeDesc::UINT16);
+    m_spec = ImageSpec(m_iff_header.width, m_iff_header.height,
+                       m_iff_header.pixel_channels,
+                       m_iff_header.pixel_bits == 8 ? TypeDesc::UINT8
+                                                    : TypeDesc::UINT16);
     // set x, y
     m_spec.x = m_iff_header.x;
     m_spec.y = m_iff_header.y;
@@ -182,8 +183,8 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         // in
         uint8_t* in_p = &m_buf[0] + (iy * w + x) * m_spec.pixel_bytes();
         // out
-        uint8_t* out_p
-            = (uint8_t*)data + (oy * m_spec.tile_width) * m_spec.pixel_bytes();
+        uint8_t* out_p = (uint8_t*)data
+                         + (oy * m_spec.tile_width) * m_spec.pixel_bytes();
         // copy
         memcpy(out_p, in_p, tw * m_spec.pixel_bytes());
         oy++;
@@ -275,8 +276,8 @@ IffInput::readimg()
             uint8_t channels = m_iff_header.pixel_channels;
 
             // set tile size
-            uint32_t tile_size
-                = tw * th * channels * m_spec.channel_bytes() + 8;
+            uint32_t tile_size = tw * th * channels * m_spec.channel_bytes()
+                                 + 8;
 
             // test if compressed
             // we use the non aligned size
@@ -310,9 +311,9 @@ IffInput::readimg()
 
                         // set tile
                         for (uint16_t py = ymin; py <= ymax; py++) {
-                            uint8_t* out_dy
-                                = static_cast<uint8_t*>(&m_buf[0])
-                                  + (py * m_spec.width) * m_spec.pixel_bytes();
+                            uint8_t* out_dy = static_cast<uint8_t*>(&m_buf[0])
+                                              + (py * m_spec.width)
+                                                    * m_spec.pixel_bytes();
 
                             for (uint16_t px = xmin; px <= xmax; px++) {
                                 uint8_t* out_p
@@ -336,8 +337,8 @@ IffInput::readimg()
 
                             // map BGR(A) to RGB(A)
                             for (int c = channels - 1; c >= 0; --c) {
-                                uint8_t* out_p
-                                    = in_p + (c * m_spec.channel_bytes());
+                                uint8_t* out_p = in_p
+                                                 + (c * m_spec.channel_bytes());
                                 *out_dy++ = *out_p;
                             }
                             sx++;
@@ -394,9 +395,9 @@ IffInput::readimg()
 
                         // set tile
                         for (uint16_t py = ymin; py <= ymax; py++) {
-                            uint8_t* out_dy
-                                = static_cast<uint8_t*>(&m_buf[0])
-                                  + (py * m_spec.width) * m_spec.pixel_bytes();
+                            uint8_t* out_dy = static_cast<uint8_t*>(&m_buf[0])
+                                              + (py * m_spec.width)
+                                                    * m_spec.pixel_bytes();
 
                             for (uint16_t px = xmin; px <= xmax; px++) {
                                 uint8_t* out_p
@@ -426,8 +427,8 @@ IffInput::readimg()
                             // map BGR(A) to RGB(A)
                             for (int c = channels - 1; c >= 0; --c) {
                                 uint16_t pixel;
-                                uint8_t* out_p
-                                    = in_p + (c * m_spec.channel_bytes());
+                                uint8_t* out_p = in_p
+                                                 + (c * m_spec.channel_bytes());
                                 memcpy(&pixel, out_p, 2);
                                 // swap endianness
                                 if (littleendian()) {

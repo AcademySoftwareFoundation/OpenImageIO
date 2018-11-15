@@ -155,8 +155,8 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // See if we were requested to write to a memory buffer, and if so,
     // extract the pointer.
-    const ParamValue* param
-        = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+    const ParamValue* param = m_spec.find_attribute("oiio:ioproxy",
+                                                    TypeDesc::PTR);
     m_io = param ? param->get<Filesystem::IOProxy*>() : nullptr;
     if (m_io) {
         m_file = nullptr;
@@ -169,8 +169,8 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
         }
     }
 
-    std::string s
-        = PNG_pvt::create_write_struct(m_png, m_info, m_color_type, m_spec);
+    std::string s = PNG_pvt::create_write_struct(m_png, m_info, m_color_type,
+                                                 m_spec);
     if (s.length()) {
         close();
         error("%s", s);
@@ -282,8 +282,8 @@ deassociateAlpha(T* data, int size, int channels, int alpha_channel,
         for (int x = 0; x < size; ++x, data += channels)
             if (data[alpha_channel]) {
                 // See associateAlpha() for an explanation.
-                float alpha_deassociate
-                    = pow((float)max / data[alpha_channel], gamma);
+                float alpha_deassociate = pow((float)max / data[alpha_channel],
+                                              gamma);
                 for (int c = 0; c < channels; c++)
                     if (c != alpha_channel)
                         data[c] = static_cast<T>(std::min(

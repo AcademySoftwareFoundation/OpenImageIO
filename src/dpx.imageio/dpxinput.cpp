@@ -352,9 +352,9 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     m_spec.attribute("dpx:Transfer", get_characteristic_string(
                                          m_dpx.header.Transfer(subimage)));
     // colorimetric characteristic
-    m_spec.attribute(
-        "dpx:Colorimetric",
-        get_characteristic_string(m_dpx.header.Colorimetric(subimage)));
+    m_spec.attribute("dpx:Colorimetric",
+                     get_characteristic_string(
+                         m_dpx.header.Colorimetric(subimage)));
 
     // general metadata
     // some non-compliant writers will dump a field filled with 0xFF rather
@@ -381,16 +381,16 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     m_dpx.header.Description(subimage, buf);
     if (buf[0] && buf[0] != char(-1))
         m_spec.attribute("ImageDescription", buf);
-    m_spec.attribute(
-        "PixelAspectRatio",
-        m_dpx.header.AspectRatio(1)
-            ? (m_dpx.header.AspectRatio(0) / (float)m_dpx.header.AspectRatio(1))
-            : 1.0f);
+    m_spec.attribute("PixelAspectRatio",
+                     m_dpx.header.AspectRatio(1)
+                         ? (m_dpx.header.AspectRatio(0)
+                            / (float)m_dpx.header.AspectRatio(1))
+                         : 1.0f);
 
     // DPX-specific metadata
-    m_spec.attribute(
-        "dpx:ImageDescriptor",
-        get_descriptor_string(m_dpx.header.ImageDescriptor(subimage)));
+    m_spec.attribute("dpx:ImageDescriptor",
+                     get_descriptor_string(
+                         m_dpx.header.ImageDescriptor(subimage)));
     // save some typing by using macros
     // "internal" macros
 #define DPX_SET_ATTRIB_S(x, n, s) m_spec.attribute(s, m_dpx.header.x(n))
@@ -477,8 +477,8 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (m_dpx.header.timeCode != 0xFFFFFFFF) {
-        unsigned int timecode[2]
-            = { m_dpx.header.timeCode, m_dpx.header.userBits };
+        unsigned int timecode[2] = { m_dpx.header.timeCode,
+                                     m_dpx.header.userBits };
         m_spec.attribute("smpte:TimeCode", TypeTimeCode, timecode);
 
         // This attribute is dpx specific and is left in for backwards compatability.

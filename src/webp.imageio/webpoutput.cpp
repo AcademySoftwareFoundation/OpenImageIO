@@ -140,8 +140,8 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     m_webp_config.method    = 6;
     int compression_quality = 100;
-    const ParamValue* qual
-        = m_spec.find_attribute("CompressionQuality", TypeDesc::INT);
+    const ParamValue* qual  = m_spec.find_attribute("CompressionQuality",
+                                                   TypeDesc::INT);
     if (qual) {
         compression_quality = *static_cast<const int*>(qual->data());
     }

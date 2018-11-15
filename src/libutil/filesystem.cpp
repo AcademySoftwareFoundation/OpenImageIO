@@ -235,8 +235,8 @@ Filesystem::searchpath_find(const std::string& filename_utf8,
                     subdirs.push_back(pathstr(s->path()));
                 }
             }
-            std::string found
-                = searchpath_find(filename_utf8, subdirs, false, true);
+            std::string found = searchpath_find(filename_utf8, subdirs, false,
+                                                true);
             if (found.size())
                 return found;
         }
@@ -794,8 +794,8 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern,
                 std::vector<std::string> view_filenames;
 
                 std::string view_pattern = pattern;
-                view_pattern
-                    = regex_replace(view_pattern, view_re, std::string(view));
+                view_pattern             = regex_replace(view_pattern, view_re,
+                                             std::string(view));
                 view_pattern = regex_replace(view_pattern, short_view_re,
                                              std::string(short_view));
 
@@ -825,8 +825,8 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern,
                 const string_view short_view = view.substr(0, 1);
 
                 std::string view_pattern = pattern;
-                view_pattern
-                    = regex_replace(view_pattern, view_re, std::string(view));
+                view_pattern             = regex_replace(view_pattern, view_re,
+                                             std::string(view));
                 view_pattern = regex_replace(view_pattern, short_view_re,
                                              std::string(short_view));
 
@@ -884,8 +884,8 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
     std::string suffix(format_match.suffix().first,
                        format_match.suffix().second);
 
-    std::string pattern_re_str
-        = prefix + "([0-9]{" + thepadding + ",})" + suffix;
+    std::string pattern_re_str = prefix + "([0-9]{" + thepadding + ",})"
+                                 + suffix;
     std::vector<std::pair<int, std::string>> matches;
 
     // There are some corner cases regex that could be constructed here that

@@ -238,9 +238,9 @@ ffmpeg_input_imageio_create()
 // QuickTime / MOV
 // raw MPEG-4 video
 // MPEG-1 Systems / MPEG program stream
-OIIO_EXPORT const char* ffmpeg_input_extensions[]
-    = { "avi", "mov", "qt",  "mp4", "m4a",  "3gp",
-        "3g2", "mj2", "m4v", "mpg", nullptr };
+OIIO_EXPORT const char* ffmpeg_input_extensions[] = {
+    "avi", "mov", "qt", "mp4", "m4a", "3gp", "3g2", "mj2", "m4v", "mpg", nullptr
+};
 
 
 OIIO_PLUGIN_EXPORTS_END
@@ -347,8 +347,8 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         || !strcmp(m_codec_context->codec->name, "dvvideo")) {
         m_offset_time = false;
     }
-    m_codec_cap_delay
-        = (bool)(m_codec_context->codec->capabilities & CODEC_CAP_DELAY);
+    m_codec_cap_delay = (bool)(m_codec_context->codec->capabilities
+                               & CODEC_CAP_DELAY);
 
     AVStream* stream = m_format_context->streams[m_video_stream];
     if (stream->r_frame_rate.num != 0 && stream->r_frame_rate.den != 0) {
@@ -421,10 +421,11 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
                                            m_codec_context->height),
                         0);
 
-    m_sws_rgb_context = sws_getContext(
-        m_codec_context->width, m_codec_context->height, src_pix_format,
-        m_codec_context->width, m_codec_context->height, m_dst_pix_format,
-        SWS_AREA, NULL, NULL, NULL);
+    m_sws_rgb_context
+        = sws_getContext(m_codec_context->width, m_codec_context->height,
+                         src_pix_format, m_codec_context->width,
+                         m_codec_context->height, m_dst_pix_format, SWS_AREA,
+                         NULL, NULL, NULL);
 
     AVDictionaryEntry* tag = NULL;
     while ((tag = av_dict_get(m_format_context->metadata, "", tag,

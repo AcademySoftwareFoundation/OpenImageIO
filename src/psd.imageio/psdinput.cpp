@@ -352,9 +352,9 @@ private:
                     double f     = data[c];
 
                     if (alpha > 0.0)
-                        data[c]
-                            = T((f - (((1.0 - alpha) * background[c]) / scale))
-                                / alpha);
+                        data[c] = T(
+                            (f - (((1.0 - alpha) * background[c]) / scale))
+                            / alpha);
                     else
                         data[c] = 0;
                 }
@@ -505,8 +505,8 @@ const char* PSDInput::mode_channel_names[][4] = {
     {},      {},      {},      { "L", "a", "b" }
 };
 
-const unsigned int PSDInput::mode_channel_count[]
-    = { 1, 1, 1, 3, 4, 0, 0, 0, 0, 3 };
+const unsigned int PSDInput::mode_channel_count[] = { 1, 1, 1, 3, 4,
+                                                      0, 0, 0, 0, 3 };
 
 
 
@@ -527,8 +527,8 @@ psd_imageio_library_version()
     return nullptr;
 }
 
-OIIO_EXPORT const char* psd_input_extensions[]
-    = { "psd", "pdd", "psb", nullptr };
+OIIO_EXPORT const char* psd_input_extensions[] = { "psd", "pdd", "psb",
+                                                   nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -1312,9 +1312,9 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
     jpeg_memory_src(&cinfo, (unsigned char*)&jpeg_data[0], jpeg_length);
     jpeg_read_header(&cinfo, TRUE);
     jpeg_start_decompress(&cinfo);
-    stride = cinfo.output_width * cinfo.output_components;
-    unsigned int thumbnail_bytes
-        = cinfo.output_width * cinfo.output_height * cinfo.output_components;
+    stride                       = cinfo.output_width * cinfo.output_components;
+    unsigned int thumbnail_bytes = cinfo.output_width * cinfo.output_height
+                                   * cinfo.output_components;
     std::string thumbnail_image(thumbnail_bytes, '\0');
     // jpeg_destroy_decompress will deallocate this
     JSAMPLE** buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo,
@@ -1366,8 +1366,8 @@ PSDInput::load_layers()
         read_bige<uint64_t>(m_layer_mask_info.length);
 
     m_layer_mask_info.begin = m_file.tellg();
-    m_layer_mask_info.end
-        = m_layer_mask_info.begin + (std::streampos)m_layer_mask_info.length;
+    m_layer_mask_info.end   = m_layer_mask_info.begin
+                            + (std::streampos)m_layer_mask_info.length;
     if (!check_io())
         return false;
 
@@ -1578,8 +1578,8 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         // channel data is located after the RLE lengths
         channel_info.data_pos = m_file.tellg();
         // subtract the RLE lengths read above
-        channel_info.data_length
-            = channel_info.data_length - (channel_info.data_pos - start_pos);
+        channel_info.data_length = channel_info.data_length
+                                   - (channel_info.data_pos - start_pos);
         if (height) {
             channel_info.row_pos[0] = channel_info.data_pos;
             for (uint32_t i = 1; i < height; ++i)
@@ -1668,8 +1668,8 @@ PSDInput::load_global_additional()
     char signature[4];
     char key[4];
     uint64_t length;
-    uint64_t remaining
-        = m_layer_mask_info.length - (m_file.tellg() - m_layer_mask_info.begin);
+    uint64_t remaining = m_layer_mask_info.length
+                         - (m_file.tellg() - m_layer_mask_info.begin);
     while (m_file && remaining >= 12) {
         m_file.read(signature, 4);
         if (!check_io())
@@ -1743,8 +1743,8 @@ PSDInput::load_image_data()
         case Compression_Raw:
             channel_info.row_pos[0] = channel_info.data_pos;
             for (uint32_t i = 1; i < m_header.height; ++i)
-                channel_info.row_pos[i]
-                    = channel_info.row_pos[i - 1] + (std::streampos)row_length;
+                channel_info.row_pos[i] = channel_info.row_pos[i - 1]
+                                          + (std::streampos)row_length;
 
             m_file.seekg(channel_info.row_pos.back()
                          + (std::streampos)row_length);
@@ -1806,8 +1806,8 @@ PSDInput::setup()
         spec_channel_count = m_WantRaw ? mode_channel_count[m_header.color_mode]
                                        : 3;
         raw_channel_count = mode_channel_count[m_header.color_mode];
-        bool transparency
-            = (bool)layer.channel_id_map.count(ChannelID_Transparency);
+        bool transparency = (bool)layer.channel_id_map.count(
+            ChannelID_Transparency);
         if (transparency) {
             spec_channel_count++;
             raw_channel_count++;

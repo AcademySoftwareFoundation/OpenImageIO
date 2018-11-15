@@ -165,8 +165,8 @@ ZfileInput::valid_file(const std::string& filename) const
     ZfileHeader header;
     gzread(gz, &header, sizeof(header));
 
-    bool ok
-        = (header.magic == zfile_magic || header.magic == zfile_magic_endian);
+    bool ok = (header.magic == zfile_magic
+               || header.magic == zfile_magic_endian);
     gzclose(gz);
     return ok;
 }

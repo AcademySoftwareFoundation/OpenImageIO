@@ -111,14 +111,16 @@ Benchmarker::compute_stats(std::vector<double>& times, size_t iterations)
         m_stddev = 0;
         m_range  = 0;
     } else {
-        m_avg
-            = std::accumulate(times.begin() + first, times.begin() + last, 0.0)
-              / nt;
-        double sum2 = std::accumulate(
-            times.begin() + first, times.begin() + last, 0.0,
-            [&](double a, double b) { return a + (b - m_avg) * (b - m_avg); });
-        m_stddev = sqrt(sum2 / (nt - 1));
-        m_range  = times[last - 1] - times[first];
+        m_avg = std::accumulate(times.begin() + first, times.begin() + last,
+                                0.0)
+                / nt;
+        double sum2 = std::accumulate(times.begin() + first,
+                                      times.begin() + last, 0.0,
+                                      [&](double a, double b) {
+                                          return a + (b - m_avg) * (b - m_avg);
+                                      });
+        m_stddev    = sqrt(sum2 / (nt - 1));
+        m_range     = times[last - 1] - times[first];
     }
 
     if (m_trials & 1)  // odd

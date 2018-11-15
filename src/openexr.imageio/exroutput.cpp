@@ -234,8 +234,8 @@ openexr_imageio_library_version()
 #endif
 }
 
-OIIO_EXPORT const char* openexr_output_extensions[]
-    = { "exr", "sxr", "mxr", nullptr };
+OIIO_EXPORT const char* openexr_output_extensions[] = { "exr", "sxr", "mxr",
+                                                        nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -344,8 +344,8 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
         m_headers.resize(1);
         m_spec = userspec;  // Stash the spec
         sanity_check_channelnames();
-        const ParamValue* param
-            = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+        const ParamValue* param = m_spec.find_attribute("oiio:ioproxy",
+                                                        TypeDesc::PTR);
         m_io = param ? param->get<Filesystem::IOProxy*>() : nullptr;
 
         if (!spec_to_header(m_spec, m_subimage, m_headers[m_subimage]))
@@ -358,11 +358,13 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
             }
             m_output_stream.reset(new OpenEXROutputStream(name.c_str(), m_io));
             if (m_spec.tile_width) {
-                m_output_tiled.reset(new Imf::TiledOutputFile(
-                    *m_output_stream, m_headers[m_subimage]));
+                m_output_tiled.reset(
+                    new Imf::TiledOutputFile(*m_output_stream,
+                                             m_headers[m_subimage]));
             } else {
-                m_output_scanline.reset(new Imf::OutputFile(
-                    *m_output_stream, m_headers[m_subimage]));
+                m_output_scanline.reset(
+                    new Imf::OutputFile(*m_output_stream,
+                                        m_headers[m_subimage]));
             }
         } catch (const std::exception& e) {
             error("OpenEXR exception: %s", e.what());
@@ -405,8 +407,9 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
                 m_scanline_output_part.reset(
                     new Imf::OutputPart(*m_output_multipart, m_subimage));
             } else if (m_deep_tiled_output_part) {
-                m_deep_tiled_output_part.reset(new Imf::DeepTiledOutputPart(
-                    *m_output_multipart, m_subimage));
+                m_deep_tiled_output_part.reset(
+                    new Imf::DeepTiledOutputPart(*m_output_multipart,
+                                                 m_subimage));
             } else if (m_deep_scanline_output_part) {
                 m_deep_scanline_output_part.reset(
                     new Imf::DeepScanLineOutputPart(*m_output_multipart,
@@ -526,8 +529,9 @@ OpenEXROutput::open(const std::string& name, int subimages,
         // FIXME: Oops, looks like OpenEXR 2.0 currently lacks a
         // MultiPartOutputFile ctr that takes an OStream, so we can't
         // do this quite yet.
-        m_output_multipart.reset(new Imf::MultiPartOutputFile(
-            name.c_str(), &m_headers[0], subimages));
+        m_output_multipart.reset(new Imf::MultiPartOutputFile(name.c_str(),
+                                                              &m_headers[0],
+                                                              subimages));
     } catch (const std::exception& e) {
         m_output_stream.reset();
         error("OpenEXR exception: %s", e.what());
@@ -633,9 +637,9 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         spec.format = TypeDesc::HALF;
     }
 
-    Imath::Box2i dataWindow(
-        Imath::V2i(spec.x, spec.y),
-        Imath::V2i(spec.width + spec.x - 1, spec.height + spec.y - 1));
+    Imath::Box2i dataWindow(Imath::V2i(spec.x, spec.y),
+                            Imath::V2i(spec.width + spec.x - 1,
+                                       spec.height + spec.y - 1));
     Imath::Box2i displayWindow(Imath::V2i(spec.full_x, spec.full_y),
                                Imath::V2i(spec.full_width + spec.full_x - 1,
                                           spec.full_height + spec.full_y - 1));
@@ -740,9 +744,10 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     // since put_parameter will check the header to ensure this is a tiled
     // image before setting lineOrder to randomY.
     if (spec.tile_width)
-        header.setTileDescription(Imf::TileDescription(
-            spec.tile_width, spec.tile_height, Imf::LevelMode(m_levelmode),
-            Imf::LevelRoundingMode(m_roundingmode)));
+        header.setTileDescription(
+            Imf::TileDescription(spec.tile_width, spec.tile_height,
+                                 Imf::LevelMode(m_levelmode),
+                                 Imf::LevelRoundingMode(m_roundingmode)));
 
     // Deal with all other params
     for (size_t p = 0; p < spec.extra_attribs.size(); ++p)
@@ -766,21 +771,21 @@ void
 OpenEXROutput::figure_mip(const ImageSpec& spec, int& nmiplevels,
                           int& levelmode, int& roundingmode)
 {
-    nmiplevels = 1;
-    levelmode  = Imf::ONE_LEVEL;  // Default to no MIP-mapping
-    roundingmode
-        = spec.get_int_attribute("openexr:roundingmode", Imf::ROUND_DOWN);
+    nmiplevels   = 1;
+    levelmode    = Imf::ONE_LEVEL;  // Default to no MIP-mapping
+    roundingmode = spec.get_int_attribute("openexr:roundingmode",
+                                          Imf::ROUND_DOWN);
 
     std::string textureformat = spec.get_string_attribute("textureformat", "");
     if (Strutil::iequals(textureformat, "Plain Texture")) {
-        levelmode
-            = spec.get_int_attribute("openexr:levelmode", Imf::MIPMAP_LEVELS);
+        levelmode = spec.get_int_attribute("openexr:levelmode",
+                                           Imf::MIPMAP_LEVELS);
     } else if (Strutil::iequals(textureformat, "CubeFace Environment")) {
-        levelmode
-            = spec.get_int_attribute("openexr:levelmode", Imf::MIPMAP_LEVELS);
+        levelmode = spec.get_int_attribute("openexr:levelmode",
+                                           Imf::MIPMAP_LEVELS);
     } else if (Strutil::iequals(textureformat, "LatLong Environment")) {
-        levelmode
-            = spec.get_int_attribute("openexr:levelmode", Imf::MIPMAP_LEVELS);
+        levelmode = spec.get_int_attribute("openexr:levelmode",
+                                           Imf::MIPMAP_LEVELS);
     } else if (Strutil::iequals(textureformat, "Shadow")) {
         levelmode = Imf::ONE_LEVEL;  // Force one level for shadow maps
     }
@@ -1033,13 +1038,14 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                     // TODO could probably handle U/INT16 here too
                     if (type.vecsemantics == TypeDesc::RATIONAL) {
                         // It's a floor wax AND a dessert topping
-                        const int* intArray
-                            = reinterpret_cast<const int*>(data);
+                        const int* intArray = reinterpret_cast<const int*>(
+                            data);
                         const unsigned int* uIntArray
                             = reinterpret_cast<const unsigned int*>(data);
                         header.insert(xname.c_str(),
-                                      Imf::RationalAttribute(Imf::Rational(
-                                          intArray[0], uIntArray[1])));
+                                      Imf::RationalAttribute(
+                                          Imf::Rational(intArray[0],
+                                                        uIntArray[1])));
                         return true;
                     }
                     header.insert(xname.c_str(),
@@ -1136,18 +1142,18 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 case TypeDesc::UINT:
                 case TypeDesc::INT: {
                     int* a = (int*)data;
-                    header.insert(
-                        xname.c_str(),
-                        Imf::Box2iAttribute(Imath::Box2i(
-                            Imath::V2i(a[0], a[1]), Imath::V2i(a[2], a[3]))));
+                    header.insert(xname.c_str(),
+                                  Imf::Box2iAttribute(
+                                      Imath::Box2i(Imath::V2i(a[0], a[1]),
+                                                   Imath::V2i(a[2], a[3]))));
                     return true;
                 }
                 case TypeDesc::FLOAT: {
                     float* a = (float*)data;
-                    header.insert(
-                        xname.c_str(),
-                        Imf::Box2fAttribute(Imath::Box2f(
-                            Imath::V2f(a[0], a[1]), Imath::V2f(a[2], a[3]))));
+                    header.insert(xname.c_str(),
+                                  Imf::Box2fAttribute(
+                                      Imath::Box2f(Imath::V2f(a[0], a[1]),
+                                                   Imath::V2f(a[2], a[3]))));
                     return true;
                 }
                 }
@@ -1219,9 +1225,10 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 && type.aggregate * type.arraylen == 8
                 && Strutil::iequals(xname, "chromaticities")) {
                 const float* f = (const float*)data;
-                Imf::Chromaticities c(
-                    Imath::V2f(f[0], f[1]), Imath::V2f(f[2], f[3]),
-                    Imath::V2f(f[4], f[5]), Imath::V2f(f[6], f[7]));
+                Imf::Chromaticities c(Imath::V2f(f[0], f[1]),
+                                      Imath::V2f(f[2], f[3]),
+                                      Imath::V2f(f[4], f[5]),
+                                      Imath::V2f(f[6], f[7]));
                 header.insert("chromaticities",
                               Imf::ChromaticitiesAttribute(c));
                 return true;
@@ -1374,17 +1381,18 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
                        m_spec.width, m_spec.height);
 
-    const imagesize_t limit
-        = 16 * 1024 * 1024;  // Allocate 16 MB, or 1 scanline
+    const imagesize_t limit = 16 * 1024
+                              * 1024;  // Allocate 16 MB, or 1 scanline
     int chunk = std::max(1, int(limit / scanlinebytes));
 
     bool ok = true;
     for (; ok && ybegin < yend; ybegin += chunk) {
         int y1         = std::min(ybegin + chunk, yend);
         int nscanlines = y1 - ybegin;
-        const void* d  = to_native_rectangle(
-            m_spec.x, m_spec.x + m_spec.width, ybegin, y1, z, z + 1, format,
-            data, xstride, ystride, zstride, m_scratch);
+        const void* d  = to_native_rectangle(m_spec.x, m_spec.x + m_spec.width,
+                                            ybegin, y1, z, z + 1, format, data,
+                                            xstride, ystride, zstride,
+                                            m_scratch);
 
         // Compute where OpenEXR needs to think the full buffers starts.
         // OpenImageIO requires that 'data' points to where client stored
@@ -1503,11 +1511,12 @@ OpenEXROutput::write_tiles(int xbegin, int xend, int ybegin, int yend,
         // If the image region is not an even multiple of the tile size,
         // we need to copy and add padding.
         padded.resize(pixelbytes * width * height, 0);
-        OIIO::copy_image(
-            m_spec.nchannels, xend - xbegin, yend - ybegin, 1, data, pixelbytes,
-            pixelbytes, (xend - xbegin) * pixelbytes,
-            (xend - xbegin) * (yend - ybegin) * pixelbytes, &padded[0],
-            pixelbytes, widthbytes, height * widthbytes);
+        OIIO::copy_image(m_spec.nchannels, xend - xbegin, yend - ybegin, 1,
+                         data, pixelbytes, pixelbytes,
+                         (xend - xbegin) * pixelbytes,
+                         (xend - xbegin) * (yend - ybegin) * pixelbytes,
+                         &padded[0], pixelbytes, widthbytes,
+                         height * widthbytes);
         data = &padded[0];
     }
 
@@ -1530,9 +1539,11 @@ OpenEXROutput::write_tiles(int xbegin, int xend, int ybegin, int yend,
                                        m_miplevel, m_miplevel);
         } else if (m_tiled_output_part) {
             m_tiled_output_part->setFrameBuffer(frameBuffer);
-            m_tiled_output_part->writeTiles(
-                firstxtile, firstxtile + nxtiles - 1, firstytile,
-                firstytile + nytiles - 1, m_miplevel, m_miplevel);
+            m_tiled_output_part->writeTiles(firstxtile,
+                                            firstxtile + nxtiles - 1,
+                                            firstytile,
+                                            firstytile + nytiles - 1,
+                                            m_miplevel, m_miplevel);
         } else {
             error("Attempt to write tiles for a non-tiled file.");
             return false;
@@ -1627,10 +1638,11 @@ OpenEXROutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
 
         // Set up the count and pointers arrays and the Imf framebuffer
         Imf::DeepFrameBuffer frameBuffer;
-        Imf::Slice countslice(
-            Imf::UINT,
-            (char*)(deepdata.all_samples().data() - xbegin - ybegin * width),
-            sizeof(unsigned int), sizeof(unsigned int) * width);
+        Imf::Slice countslice(Imf::UINT,
+                              (char*)(deepdata.all_samples().data() - xbegin
+                                      - ybegin * width),
+                              sizeof(unsigned int),
+                              sizeof(unsigned int) * width);
         frameBuffer.insertSampleCountSlice(countslice);
         std::vector<void*> pointerbuf;
         deepdata.get_pointers(pointerbuf);
@@ -1654,9 +1666,11 @@ OpenEXROutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
                      / m_spec.tile_height;
 
         // Write the pixels
-        m_deep_tiled_output_part->writeTiles(
-            firstxtile, firstxtile + xtiles - 1, firstytile,
-            firstytile + ytiles - 1, m_miplevel, m_miplevel);
+        m_deep_tiled_output_part->writeTiles(firstxtile,
+                                             firstxtile + xtiles - 1,
+                                             firstytile,
+                                             firstytile + ytiles - 1,
+                                             m_miplevel, m_miplevel);
     } catch (const std::exception& e) {
         error("Failed OpenEXR write: %s", e.what());
         return false;

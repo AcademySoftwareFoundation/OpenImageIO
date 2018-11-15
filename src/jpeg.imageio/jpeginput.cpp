@@ -298,9 +298,9 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
             jpeg_decode_iptc((unsigned char*)m->data);
         else if (m->marker == JPEG_COM) {
             if (!m_spec.find_attribute("ImageDescription", TypeDesc::STRING))
-                m_spec.attribute(
-                    "ImageDescription",
-                    std::string((const char*)m->data, m->data_length));
+                m_spec.attribute("ImageDescription",
+                                 std::string((const char*)m->data,
+                                             m->data_length));
         }
     }
 

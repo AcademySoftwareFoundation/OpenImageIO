@@ -206,8 +206,8 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         DBG std::cout << "out open: set_quality\n";
 
         if (m_cinfo.input_components == 3) {
-            std::string subsampling
-                = m_spec.get_string_attribute(JPEG_SUBSAMPLING_ATTR);
+            std::string subsampling = m_spec.get_string_attribute(
+                JPEG_SUBSAMPLING_ATTR);
             if (subsampling == JPEG_444_STR)
                 set_subsampling(JPEG_444_COMP);
             else if (subsampling == JPEG_422_STR)
@@ -225,15 +225,14 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     m_next_scanline = 0;  // next scanline we'll write
 
     // Write JPEG comment, if sent an 'ImageDescription'
-    ParamValue* comment
-        = m_spec.find_attribute("ImageDescription", TypeDesc::STRING);
+    ParamValue* comment = m_spec.find_attribute("ImageDescription",
+                                                TypeDesc::STRING);
     if (comment && comment->data()) {
         const char** c = (const char**)comment->data();
         jpeg_write_marker(&m_cinfo, JPEG_COM, (JOCTET*)*c, strlen(*c) + 1);
     }
 
-    if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"),
-                         "sRGB"))
+    if (Strutil::iequals(m_spec.get_string_attribute("oiio:ColorSpace"), "sRGB"))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Write EXIF info
@@ -283,8 +282,8 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     m_spec.set_format(TypeDesc::UINT8);  // JPG is only 8 bit
 
     // Write ICC profile, if we have anything
-    const ParamValue* icc_profile_parameter
-        = m_spec.find_attribute(ICC_PROFILE_ATTR);
+    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
+        ICC_PROFILE_ATTR);
     if (icc_profile_parameter != NULL) {
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
@@ -300,8 +299,9 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                                                + ICC_HEADER_SIZE);
             while (icc_profile_length > 0) {
                 // length of profile to put in this marker
-                unsigned int length = std::min(
-                    icc_profile_length, (unsigned int)MAX_DATA_BYTES_IN_MARKER);
+                unsigned int length
+                    = std::min(icc_profile_length,
+                               (unsigned int)MAX_DATA_BYTES_IN_MARKER);
                 icc_profile_length -= length;
                 // Write the JPEG marker header (APP2 code and marker length)
                 strcpy((char*)&profile[0], "ICC_PROFILE");

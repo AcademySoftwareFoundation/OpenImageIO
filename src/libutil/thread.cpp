@@ -227,8 +227,7 @@ public:
         } else {
             if (this->isDone || this->isStop)
                 return;
-            this->isDone
-                = true;  // give the waiting threads a command to finish
+            this->isDone = true;  // give the waiting threads a command to finish
         }
 
 #if defined(WIN32)
@@ -646,8 +645,8 @@ parallel_for_chunked_2D(
         return;
     }
     if (ychunksize < 1)
-        ychunksize
-            = std::max(int64_t(1), (yend - ystart) / (2 * opt.maxthreads));
+        ychunksize = std::max(int64_t(1),
+                              (yend - ystart) / (2 * opt.maxthreads));
     if (xchunksize < 1) {
         int64_t ny = std::max(int64_t(1), (yend - ystart) / ychunksize);
         int64_t nx = std::max(int64_t(1), opt.maxthreads / ny);

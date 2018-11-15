@@ -291,11 +291,12 @@ Field3DInput::read_one_layer(FieldRes::Ptr field, layerrecord& lay,
         Imath::M44d md = matrixMapping->localToWorld();
         lay.spec.attribute("field3d:localtoworld",
                            TypeDesc(TypeDesc::DOUBLE, TypeDesc::MATRIX44), &md);
-        Imath::M44f m(
-            (float)md[0][0], (float)md[0][1], (float)md[0][2], (float)md[0][3],
-            (float)md[1][0], (float)md[1][1], (float)md[1][2], (float)md[1][3],
-            (float)md[2][0], (float)md[2][1], (float)md[2][2], (float)md[2][3],
-            (float)md[3][0], (float)md[3][1], (float)md[3][2], (float)md[3][3]);
+        Imath::M44f m((float)md[0][0], (float)md[0][1], (float)md[0][2],
+                      (float)md[0][3], (float)md[1][0], (float)md[1][1],
+                      (float)md[1][2], (float)md[1][3], (float)md[2][0],
+                      (float)md[2][1], (float)md[2][2], (float)md[2][3],
+                      (float)md[3][0], (float)md[3][1], (float)md[3][2],
+                      (float)md[3][3]);
         m = m.inverse();
         lay.spec.attribute("worldtocamera", TypeMatrix, &m);  // DEPRECATED
         lay.spec.attribute("worldtolocal", TypeMatrix, &m);
@@ -502,8 +503,8 @@ Field3DInput::readtile(int x, int y, int z, T* data)
     int yend = std::min(y + lay.spec.tile_height, lay.spec.y + lay.spec.height);
     int zend = std::min(z + lay.spec.tile_depth, lay.spec.z + lay.spec.depth);
     {
-        typename DenseField<T>::Ptr f
-            = field_dynamic_cast<DenseField<T>>(lay.field);
+        typename DenseField<T>::Ptr f = field_dynamic_cast<DenseField<T>>(
+            lay.field);
         if (f) {
             //std::cerr << "readtile dense " << x << '-' << xend << " x "
             //        <<  y << '-' << yend << " x " << z << '-' << zend << "\n";
@@ -522,8 +523,8 @@ Field3DInput::readtile(int x, int y, int z, T* data)
         }
     }
     {
-        typename SparseField<T>::Ptr f
-            = field_dynamic_cast<SparseField<T>>(lay.field);
+        typename SparseField<T>::Ptr f = field_dynamic_cast<SparseField<T>>(
+            lay.field);
         if (f) {
             //std::cerr << "readtile sparse " << x << '-' << xend << " x "
             //        <<  y << '-' << yend << " x " << z << '-' << zend << "\n";

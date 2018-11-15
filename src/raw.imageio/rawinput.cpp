@@ -276,8 +276,8 @@ exif_parser_cb(ImageSpec* spec, int tag, int tifftype, int len,
     size_t streampos = ifp->tell();
     // std::cerr << "Stream position " << streampos << "\n";
 
-    TypeDesc type
-        = tiff_datatype_to_typedesc(TIFFDataType(tifftype), size_t(len));
+    TypeDesc type          = tiff_datatype_to_typedesc(TIFFDataType(tifftype),
+                                              size_t(len));
     const TagInfo* taginfo = tag_lookup("Exif", tag);
     if (!taginfo) {
         // Strutil::fprintf (std::cerr, "NO TAGINFO FOR CALLBACK tag=%d (0x%x): tifftype=%d,len=%d (%s), byteorder=0x%x\n",
@@ -1161,8 +1161,8 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (!m_process) {
         // The user has selected not to apply any debayering.
         // We take the raw data directly
-        unsigned short* scanline
-            = &((m_processor->imgdata.rawdata.raw_image)[m_spec.width * y]);
+        unsigned short* scanline = &(
+            (m_processor->imgdata.rawdata.raw_image)[m_spec.width * y]);
         memcpy(data, scanline, m_spec.scanline_bytes(true));
         return true;
     }

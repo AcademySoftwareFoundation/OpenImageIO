@@ -249,8 +249,8 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         }
     }
 
-    m_spec
-        = ImageSpec(m_img->getWidth(), m_img->getHeight(), nchannels, format);
+    m_spec = ImageSpec(m_img->getWidth(), m_img->getHeight(), nchannels,
+                       format);
 
     m_bitspersample = m_img->getDepth();
     if (size_t(m_bitspersample) != m_spec.format.size() * 8)

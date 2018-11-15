@@ -49,8 +49,8 @@ sgi_input_imageio_create()
     return new SgiInput;
 }
 
-OIIO_EXPORT const char* sgi_input_extensions[]
-    = { "sgi", "rgb", "rgba", "bw", "int", "inta", nullptr };
+OIIO_EXPORT const char* sgi_input_extensions[] = { "sgi", "rgb",  "rgba", "bw",
+                                                   "int", "inta", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -121,9 +121,9 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
         return false;
     }
 
-    m_spec
-        = ImageSpec(m_sgi_header.xsize, height, nchannels,
-                    m_sgi_header.bpc == 1 ? TypeDesc::UINT8 : TypeDesc::UINT16);
+    m_spec = ImageSpec(m_sgi_header.xsize, height, nchannels,
+                       m_sgi_header.bpc == 1 ? TypeDesc::UINT8
+                                             : TypeDesc::UINT16);
     if (strlen(m_sgi_header.imagename))
         m_spec.attribute("ImageDescription", m_sgi_header.imagename);
 
@@ -157,8 +157,8 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (m_sgi_header.storage == sgi_pvt::RLE) {
         // reading and uncompressing first channel (red in RGBA images)
         for (int c = 0; c < m_spec.nchannels; ++c) {
-            int off
-                = y + c * m_spec.height;  // offset for this scanline/channel
+            int off = y
+                      + c * m_spec.height;  // offset for this scanline/channel
             int scanline_offset = start_tab[off];
             int scanline_length = length_tab[off];
             channeldata[c].resize(m_spec.width * bpc);
@@ -168,10 +168,10 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     } else {
         // non-RLE case -- just read directly into our channel data
         for (int c = 0; c < m_spec.nchannels; ++c) {
-            int off
-                = y + c * m_spec.height;  // offset for this scanline/channel
-            int scanline_offset
-                = sgi_pvt::SGI_HEADER_LEN + off * m_spec.width * bpc;
+            int off = y
+                      + c * m_spec.height;  // offset for this scanline/channel
+            int scanline_offset = sgi_pvt::SGI_HEADER_LEN
+                                  + off * m_spec.width * bpc;
             fseek(m_fd, scanline_offset, SEEK_SET);
             channeldata[c].resize(m_spec.width * bpc);
             if (!fread(&(channeldata[c][0]), 1, m_spec.width * bpc))

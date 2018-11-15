@@ -27,19 +27,21 @@
   (This is the Modified BSD License)
 */
 
+// clang-format off
+
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <set>
 #include <vector>
-#include <memory>
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/tiffutils.h>
 
 
-#define DEBUG_EXIF_READ  0
+#define DEBUG_EXIF_READ 0
 #define DEBUG_EXIF_WRITE 0
 #define DEBUG_EXIF_UNHANDLED 0
 
@@ -50,17 +52,16 @@ namespace pvt {
 
 
 
-inline const void *
-dataptr (const TIFFDirEntry &td, cspan<uint8_t> data,
-         int offset_adjustment)
+inline const void*
+dataptr(const TIFFDirEntry& td, cspan<uint8_t> data, int offset_adjustment)
 {
-    int len = tiff_data_size (td);
+    int len = tiff_data_size(td);
     if (len <= 4)
-        return (const char *)&td.tdir_offset;
+        return (const char*)&td.tdir_offset;
     else {
         int offset = td.tdir_offset + offset_adjustment;
-        if (offset < 0 || offset+len > (int)data.size())
-            return nullptr;   // out of bounds!
+        if (offset < 0 || offset + len > (int)data.size())
+            return nullptr;  // out of bounds!
         return (const char*)data.data() + offset;
     }
 }
@@ -69,16 +70,17 @@ dataptr (const TIFFDirEntry &td, cspan<uint8_t> data,
 
 struct LabelIndex {
     int value;
-    const char *label;
+    const char* label;
 };
 
 
-typedef std::string (*ExplainerFunc) (const ParamValue &p, const void *extradata);
+typedef std::string (*ExplainerFunc)(const ParamValue& p,
+                                     const void* extradata);
 
 struct ExplanationTableEntry {
-    const char    *oiioname;
-    ExplainerFunc  explainer;
-    const void    *extradata;
+    const char* oiioname;
+    ExplainerFunc explainer;
+    const void* extradata;
 };
 
 
@@ -93,13 +95,13 @@ public:
     ~TagMap ();
 
     /// Find a TagInfo record for the tag index. or nullptr if not found.
-    const TagInfo * find (int tag) const;
+    const TagInfo* find(int tag) const;
 
     /// Find a TagInfo record for the named tag. or nullptr if not found.
-    const TagInfo * find (string_view name) const;
+    const TagInfo* find(string_view name) const;
 
     /// Return the name for the tag index.
-    const char * name (int tag) const;
+    const char* name(int tag) const;
 
     /// Return a TIFFDataType, given a tag index.
     TIFFDataType tifftype (int tag) const;

@@ -142,8 +142,8 @@ test_value_types()
     }
 
     {
-        unsigned long long ullmatrix[]
-            = { 0xffffffffffffffffLL, 0xffffffffffffffffLL };
+        unsigned long long ullmatrix[] = { 0xffffffffffffffffLL,
+                                           0xffffffffffffffffLL };
         ret = test_numeric(&ullmatrix[0], 1, TypeDesc::UINT64);
         OIIO_CHECK_EQUAL(ret, "18446744073709551615");
         ret = test_numeric(ullmatrix,
@@ -155,8 +155,8 @@ test_value_types()
     }
 
     {
-        const char* smatrix[]
-            = { "this is \"a test\"", "this is another test" };
+        const char* smatrix[] = { "this is \"a test\"",
+                                  "this is another test" };
 
         ParamValue p("name", smatrix[0]);
         OIIO_CHECK_EQUAL(p.get<ustring>(), smatrix[0]);
@@ -164,9 +164,8 @@ test_value_types()
 
         ParamValue q("name", TypeString, sizeof(smatrix) / sizeof(char*),
                      &smatrix);
-        OIIO_CHECK_EQUAL(
-            q.get_string(),
-            "\"this is \\\"a test\\\"\", \"this is another test\"");
+        OIIO_CHECK_EQUAL(q.get_string(),
+                         "\"this is \\\"a test\\\"\", \"this is another test\"");
     }
 
     {

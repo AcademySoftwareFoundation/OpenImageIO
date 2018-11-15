@@ -302,13 +302,12 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         return false;  // failed sanity check
     }
 
-    m_spec
-        = ImageSpec(m_rla.ActiveRight - m_rla.ActiveLeft + 1,
-                    (m_rla.ActiveTop - m_rla.ActiveBottom + 1)
-                        / (m_rla.FieldRendered ? 2 : 1),  // interlaced image?
-                    m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels
-                        + m_rla.NumOfAuxChannels,
-                    maxtype);
+    m_spec = ImageSpec(m_rla.ActiveRight - m_rla.ActiveLeft + 1,
+                       (m_rla.ActiveTop - m_rla.ActiveBottom + 1)
+                           / (m_rla.FieldRendered ? 2 : 1),  // interlaced image?
+                       m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels
+                           + m_rla.NumOfAuxChannels,
+                       maxtype);
 
     // set window dimensions etc.
     m_spec.x           = m_rla.ActiveLeft;
@@ -322,8 +321,8 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     // set channel formats and stride
     int z_channel = -1;
     m_stride      = 0;
-    TypeDesc t
-        = get_channel_typedesc(m_rla.ColorChannelType, m_rla.NumOfChannelBits);
+    TypeDesc t    = get_channel_typedesc(m_rla.ColorChannelType,
+                                      m_rla.NumOfChannelBits);
     for (int i = 0; i < m_rla.NumOfColorChannels; ++i)
         m_spec.channelformats.push_back(t);
     m_stride += m_rla.NumOfColorChannels * t.size();
@@ -430,42 +429,38 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     if (m_rla.RedChroma[0]) {
         int num = sscanf(m_rla.RedChroma, "%f %f %f", f + 0, f + 1, f + 2);
         if (num >= 2)
-            m_spec.attribute(
-                "rla:RedChroma",
-                TypeDesc(TypeDesc::FLOAT,
-                         num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
-                         TypeDesc::POINT),
-                f);
+            m_spec.attribute("rla:RedChroma",
+                             TypeDesc(TypeDesc::FLOAT,
+                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      TypeDesc::POINT),
+                             f);
     }
     if (m_rla.GreenChroma[0]) {
         int num = sscanf(m_rla.GreenChroma, "%f %f %f", f + 0, f + 1, f + 2);
         if (num >= 2)
-            m_spec.attribute(
-                "rla:GreenChroma",
-                TypeDesc(TypeDesc::FLOAT,
-                         num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
-                         TypeDesc::POINT),
-                f);
+            m_spec.attribute("rla:GreenChroma",
+                             TypeDesc(TypeDesc::FLOAT,
+                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      TypeDesc::POINT),
+                             f);
     }
     if (m_rla.BlueChroma[0]) {
         int num = sscanf(m_rla.BlueChroma, "%f %f %f", f + 0, f + 1, f + 2);
         if (num >= 2)
-            m_spec.attribute(
-                "rla:BlueChroma",
-                TypeDesc(TypeDesc::FLOAT,
-                         num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
-                         TypeDesc::POINT),
-                f);
+            m_spec.attribute("rla:BlueChroma",
+                             TypeDesc(TypeDesc::FLOAT,
+                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      TypeDesc::POINT),
+                             f);
     }
     if (m_rla.WhitePoint[0]) {
         int num = sscanf(m_rla.WhitePoint, "%f %f %f", f + 0, f + 1, f + 2);
         if (num >= 2)
-            m_spec.attribute(
-                "rla:WhitePoint",
-                TypeDesc(TypeDesc::FLOAT,
-                         num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
-                         TypeDesc::POINT),
-                f);
+            m_spec.attribute("rla:WhitePoint",
+                             TypeDesc(TypeDesc::FLOAT,
+                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      TypeDesc::POINT),
+                             f);
     }
 
     m_subimage = subimage;
@@ -679,9 +674,10 @@ RLAInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                                   m_rla.NumOfMatteBits, y))
             return false;
     if (m_rla.NumOfAuxChannels > 0)
-        if (!decode_channel_group(
-                m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels,
-                m_rla.NumOfAuxChannels, m_rla.NumOfAuxBits, y))
+        if (!decode_channel_group(m_rla.NumOfColorChannels
+                                      + m_rla.NumOfMatteChannels,
+                                  m_rla.NumOfAuxChannels, m_rla.NumOfAuxBits,
+                                  y))
             return false;
 
     memcpy(data, &m_buf[0], size);

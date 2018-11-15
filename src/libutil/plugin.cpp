@@ -101,11 +101,12 @@ dlerror()
 {
     LPVOID lpMsgBuf;
     std::string win32Error;
-    if (FormatMessageA(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-            (LPSTR)&lpMsgBuf, 0, NULL))
+    if (FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER
+                           | FORMAT_MESSAGE_FROM_SYSTEM
+                           | FORMAT_MESSAGE_IGNORE_INSERTS,
+                       NULL, GetLastError(),
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                       (LPSTR)&lpMsgBuf, 0, NULL))
         win32Error = (LPSTR)lpMsgBuf;
     LocalFree(lpMsgBuf);
     return win32Error;
