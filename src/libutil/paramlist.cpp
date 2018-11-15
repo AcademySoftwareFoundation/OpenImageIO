@@ -267,6 +267,24 @@ formatType(const ParamValue& p, const int n, const char* formatString,
     }
 }
 
+
+// From OpenEXR
+inline unsigned int
+bitField(unsigned int value, int minBit, int maxBit)
+{
+    int shift         = minBit;
+    unsigned int mask = (~(~0U << (maxBit - minBit + 1)) << minBit);
+    return (value & mask) >> shift;
+}
+
+
+// From OpenEXR
+inline int
+bcdToBinary(unsigned int bcd)
+{
+    return int((bcd & 0x0f) + 10 * ((bcd >> 4) & 0x0f));
+}
+
 }  // namespace
 
 
@@ -297,8 +315,7 @@ ParamValue::get_string(int maxsize) const
     } else if (element.basetype == TypeDesc::HALF) {
         formatType<half>(*this, n, "%g", out);
     } else if (element.basetype == TypeDesc::INT) {
-        if (element.vecsemantics == TypeDesc::RATIONAL
-            && element.aggregate == TypeDesc::VEC2) {
+        if (element == TypeRational) {
             const int* val = (const int*)data();
             for (int i = 0; i < n; ++i, val += 2) {
                 if (i)
@@ -317,6 +334,16 @@ ParamValue::get_string(int maxsize) const
                     out += ", ";
                 out += Strutil::format("%d/%d", val[0], val[1]);
             }
+        } else if (type() == TypeTimeCode) {
+            // Replicating the logic in OpenEXR, but this prevents us from
+            // needing to link to libIlmImf just to do this.
+            unsigned int t = get<unsigned int>(0);
+            int hours      = bcdToBinary(bitField(t, 24, 29));
+            int minutes    = bcdToBinary(bitField(t, 16, 22));
+            int seconds    = bcdToBinary(bitField(t, 8, 14));
+            int frame      = bcdToBinary(bitField(t, 0, 5));
+            out += Strutil::format("%02d:%02d:%02d:%02d", hours, minutes,
+                                   seconds, frame);
         } else {
             formatType<unsigned int>(*this, n, "%u", out);
         }

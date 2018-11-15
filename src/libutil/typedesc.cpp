@@ -185,9 +185,10 @@ TypeDesc::c_str() const
     // we don't have to re-assemble strings all the time?
 
     // Timecode and Keycode are hard coded
-    if (basetype == UINT && vecsemantics == TIMECODE && arraylen == 2)
+    static constexpr TypeDesc TypeTimeCodeAlt(UINT, VEC2, TIMECODE);
+    if (*this == TypeTimeCode || *this == TypeTimeCodeAlt)
         return ustring("timecode").c_str();
-    else if (basetype == INT && vecsemantics == KEYCODE && arraylen == 7)
+    else if (*this == TypeKeyCode)
         return ustring("keycode").c_str();
 
     std::string result;
@@ -218,7 +219,7 @@ TypeDesc::c_str() const
         case VECTOR: vec = "vector"; break;
         case NORMAL: vec = "normal"; break;
         case RATIONAL: vec = "rational"; break;
-        default: ASSERT(0 && "Invalid vector semantics");
+        default: DASSERT(0 && "Invalid vector semantics");
         }
         const char* agg = "";
         switch (aggregate) {

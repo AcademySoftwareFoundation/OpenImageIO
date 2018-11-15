@@ -73,6 +73,8 @@ Sequence -5--2:  -5
 Sequence -5--2:  -4
 Sequence -5--2:  -3
 Sequence -5--2:  -2
+xyz should say xyz
+timecode is 01:02:03:04
 Reading black.tif
     oiio:DebugOpenConfig!: 42
 Reading add_rgb_rgba.exr
