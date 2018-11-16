@@ -185,19 +185,25 @@ test_falkhash(int len)
 }
 #endif
 
+
+
 static void
 getargs(int argc, char* argv[])
 {
     bool help = false;
     ArgParse ap;
-    ap.options("hash_test\n" OIIO_INTRO_STRING "\n"
-               "Usage:  hash_test [options]",
-               // "%*", parse_files, "",
-               "--help", &help, "Print help message", "-v", &verbose,
-               "Verbose mode", "--iters %d", &iterations,
-               Strutil::format("Number of iterations (default: %d)", iterations)
-                   .c_str(),
-               "--trials %d", &ntrials, "Number of trials", NULL);
+    // clang-format off
+    ap.options(
+        "hash_test\n" OIIO_INTRO_STRING "\n"
+        "Usage:  hash_test [options]",
+        // "%*", parse_files, "",
+        "--help", &help, "Print help message",
+        "-v", &verbose, "Verbose mode",
+        "--iters %d", &iterations,
+            Strutil::format("Number of iterations (default: %d)", iterations).c_str(),
+        "--trials %d", &ntrials, "Number of trials",
+        nullptr);
+    // clang-format on
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage();

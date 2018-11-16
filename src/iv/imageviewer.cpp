@@ -28,18 +28,16 @@
   (This is the Modified BSD License)
 */
 
-#include <iostream>
 #include <cmath>
+#include <iostream>
 #ifndef WIN32
-#include <unistd.h>
+#    include <unistd.h>
 #endif
 #include <vector>
 
 #include "imageviewer.h"
 #include "ivgl.h"
 
-#include <QSettings>
-#include <QTimer>
 #include <QApplication>
 #include <QComboBox>
 #include <QDesktopWidget>
@@ -51,30 +49,36 @@
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QResizeEvent>
+#include <QSettings>
 #include <QSpinBox>
 #include <QStatusBar>
+#include <QTimer>
 
 #include <OpenEXR/ImathFun.h>
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/strutil.h>
-#include <OpenImageIO/timer.h>
-#include <OpenImageIO/fmath.h>
-#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/timer.h>
+
 #include "ivutils.h"
 
 
-namespace
-{
-    bool IsSpecSrgb(const ImageSpec & spec) {
-        return (Strutil::iequals (spec.get_string_attribute ("oiio:ColorSpace"), "sRGB"));
-    }
+namespace {
 
+inline bool
+IsSpecSrgb(const ImageSpec& spec)
+{
+    return Strutil::iequals(spec.get_string_attribute("oiio:ColorSpace"),
+                            "sRGB");
 }
 
+}  // namespace
 
 
+// clang-format off
 static const char *s_file_filters = ""
     "Image Files (*.bmp *.cin *.dcm *.dds *.dpx *.f3d *.fits *.gif *.hdr *.ico *.iff "
     "*.jpg *.jpe *.jpeg *.jif *.jfif *.jfi *.jp2 *.j2k *.exr *.png *.pbm *.pgm "
@@ -106,39 +110,47 @@ static const char *s_file_filters = ""
     "Webp (*.webp);;"
     "Zfile (*.zfile);;"
     "All Files (*)";
+// clang-format on
 
 
 
-ImageViewer::ImageViewer ()
-    : infoWindow(NULL), preferenceWindow(NULL), darkPaletteBox(NULL),
-      m_current_image(-1), m_current_channel(0), m_color_mode(RGBA),
-      m_last_image(-1), m_zoom(1), m_fullscreen(false), m_default_gamma(1),
-      m_darkPalette(false)
+ImageViewer::ImageViewer()
+    : infoWindow(NULL)
+    , preferenceWindow(NULL)
+    , darkPaletteBox(NULL)
+    , m_current_image(-1)
+    , m_current_channel(0)
+    , m_color_mode(RGBA)
+    , m_last_image(-1)
+    , m_zoom(1)
+    , m_fullscreen(false)
+    , m_default_gamma(1)
+    , m_darkPalette(false)
 {
-    readSettings (false);
+    readSettings(false);
 
-    float gam = Strutil::stof (Sysutil::getenv ("GAMMA"));
+    float gam = Strutil::stof(Sysutil::getenv("GAMMA"));
     if (gam >= 0.1 && gam <= 5)
         m_default_gamma = gam;
     // FIXME -- would be nice to have a more nuanced approach to display
     // color space, in particular knowing whether the display is sRGB.
-    // Also, some time in the future we may want a real 3D LUT for 
+    // Also, some time in the future we may want a real 3D LUT for
     // "film look", etc.
 
     if (darkPalette())
-        m_palette = QPalette (Qt::darkGray);  // darkGray?
+        m_palette = QPalette(Qt::darkGray);  // darkGray?
     else
-        m_palette = QPalette ();
-    QApplication::setPalette (m_palette);  // FIXME -- why not work?
-    this->setPalette (m_palette);
+        m_palette = QPalette();
+    QApplication::setPalette(m_palette);  // FIXME -- why not work?
+    this->setPalette(m_palette);
 
-    slideTimer = new QTimer();
+    slideTimer       = new QTimer();
     slideDuration_ms = 5000;
-    slide_loop = true;
-    glwin = new IvGL (this, *this);
-    glwin->setPalette (m_palette);
-    glwin->resize (m_default_width, m_default_height);
-    setCentralWidget (glwin);
+    slide_loop       = true;
+    glwin            = new IvGL(this, *this);
+    glwin->setPalette(m_palette);
+    glwin->resize(m_default_width, m_default_height);
+    setCentralWidget(glwin);
 
     createActions();
     createMenus();
@@ -147,14 +159,14 @@ ImageViewer::ImageViewer ()
 
     readSettings();
 
-    setWindowTitle (tr("Image Viewer"));
-    resize (m_default_width, m_default_height);
-//    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
+    setWindowTitle(tr("Image Viewer"));
+    resize(m_default_width, m_default_height);
+    //    setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Ignored);
 }
 
 
 
-ImageViewer::~ImageViewer ()
+ImageViewer::~ImageViewer()
 {
     for (auto i : m_images)
         delete i;
@@ -163,9 +175,9 @@ ImageViewer::~ImageViewer ()
 
 
 void
-ImageViewer::closeEvent (QCloseEvent*)
+ImageViewer::closeEvent(QCloseEvent*)
 {
-    writeSettings ();
+    writeSettings();
 }
 
 
@@ -178,9 +190,9 @@ ImageViewer::createActions()
     connect(openAct, SIGNAL(triggered()), this, SLOT(open()));
 
     for (auto& i : openRecentAct) {
-        i = new QAction (this);
-        i->setVisible (false);
-        connect (i, SIGNAL(triggered()), this, SLOT(openRecentFile()));
+        i = new QAction(this);
+        i->setVisible(false);
+        connect(i, SIGNAL(triggered()), this, SLOT(openRecentFile()));
     }
 
     reloadAct = new QAction(tr("&Reload image"), this);
@@ -199,7 +211,8 @@ ImageViewer::createActions()
     connect(saveWindowAsAct, SIGNAL(triggered()), this, SLOT(saveWindowAs()));
 
     saveSelectionAsAct = new QAction(tr("Save Selection As..."), this);
-    connect(saveSelectionAsAct, SIGNAL(triggered()), this, SLOT(saveSelectionAs()));
+    connect(saveSelectionAsAct, SIGNAL(triggered()), this,
+            SLOT(saveSelectionAs()));
 
     printAct = new QAction(tr("&Print..."), this);
     printAct->setShortcut(tr("Ctrl+P"));
@@ -208,12 +221,14 @@ ImageViewer::createActions()
 
     deleteCurrentImageAct = new QAction(tr("&Delete from disk"), this);
     deleteCurrentImageAct->setShortcut(tr("Delete"));
-    connect(deleteCurrentImageAct, SIGNAL(triggered()), this, SLOT(deleteCurrentImage()));
+    connect(deleteCurrentImageAct, SIGNAL(triggered()), this,
+            SLOT(deleteCurrentImage()));
 
     editPreferencesAct = new QAction(tr("&Preferences..."), this);
     editPreferencesAct->setShortcut(tr("Ctrl+,"));
-    editPreferencesAct->setEnabled (true);
-    connect (editPreferencesAct, SIGNAL(triggered()), this, SLOT(editPreferences()));
+    editPreferencesAct->setEnabled(true);
+    connect(editPreferencesAct, SIGNAL(triggered()), this,
+            SLOT(editPreferences()));
 
     exitAct = new QAction(tr("E&xit"), this);
     exitAct->setShortcut(tr("Ctrl+Q"));
@@ -221,19 +236,23 @@ ImageViewer::createActions()
 
     exposurePlusOneTenthStopAct = new QAction(tr("Exposure +1/10 stop"), this);
     exposurePlusOneTenthStopAct->setShortcut(tr("]"));
-    connect(exposurePlusOneTenthStopAct, SIGNAL(triggered()), this, SLOT(exposurePlusOneTenthStop()));
+    connect(exposurePlusOneTenthStopAct, SIGNAL(triggered()), this,
+            SLOT(exposurePlusOneTenthStop()));
 
     exposurePlusOneHalfStopAct = new QAction(tr("Exposure +1/2 stop"), this);
     exposurePlusOneHalfStopAct->setShortcut(tr("}"));
-    connect(exposurePlusOneHalfStopAct, SIGNAL(triggered()), this, SLOT(exposurePlusOneHalfStop()));
+    connect(exposurePlusOneHalfStopAct, SIGNAL(triggered()), this,
+            SLOT(exposurePlusOneHalfStop()));
 
     exposureMinusOneTenthStopAct = new QAction(tr("Exposure -1/10 stop"), this);
     exposureMinusOneTenthStopAct->setShortcut(tr("["));
-    connect(exposureMinusOneTenthStopAct, SIGNAL(triggered()), this, SLOT(exposureMinusOneTenthStop()));
+    connect(exposureMinusOneTenthStopAct, SIGNAL(triggered()), this,
+            SLOT(exposureMinusOneTenthStop()));
 
     exposureMinusOneHalfStopAct = new QAction(tr("Exposure -1/2 stop"), this);
     exposureMinusOneHalfStopAct->setShortcut(tr("{"));
-    connect(exposureMinusOneHalfStopAct, SIGNAL(triggered()), this, SLOT(exposureMinusOneHalfStop()));
+    connect(exposureMinusOneHalfStopAct, SIGNAL(triggered()), this,
+            SLOT(exposureMinusOneHalfStop()));
 
     gammaPlusAct = new QAction(tr("Gamma +0.1"), this);
     gammaPlusAct->setShortcut(tr(")"));
@@ -245,71 +264,82 @@ ImageViewer::createActions()
 
     viewChannelFullAct = new QAction(tr("Full Color"), this);
     viewChannelFullAct->setShortcut(tr("c"));
-    viewChannelFullAct->setCheckable (true);
-    viewChannelFullAct->setChecked (true);
-    connect(viewChannelFullAct, SIGNAL(triggered()), this, SLOT(viewChannelFull()));
+    viewChannelFullAct->setCheckable(true);
+    viewChannelFullAct->setChecked(true);
+    connect(viewChannelFullAct, SIGNAL(triggered()), this,
+            SLOT(viewChannelFull()));
 
     viewChannelRedAct = new QAction(tr("Red"), this);
     viewChannelRedAct->setShortcut(tr("r"));
-    viewChannelRedAct->setCheckable (true);
-    connect(viewChannelRedAct, SIGNAL(triggered()), this, SLOT(viewChannelRed()));
+    viewChannelRedAct->setCheckable(true);
+    connect(viewChannelRedAct, SIGNAL(triggered()), this,
+            SLOT(viewChannelRed()));
 
     viewChannelGreenAct = new QAction(tr("Green"), this);
     viewChannelGreenAct->setShortcut(tr("g"));
-    viewChannelGreenAct->setCheckable (true);
-    connect(viewChannelGreenAct, SIGNAL(triggered()), this, SLOT(viewChannelGreen()));
+    viewChannelGreenAct->setCheckable(true);
+    connect(viewChannelGreenAct, SIGNAL(triggered()), this,
+            SLOT(viewChannelGreen()));
 
     viewChannelBlueAct = new QAction(tr("Blue"), this);
     viewChannelBlueAct->setShortcut(tr("b"));
-    viewChannelBlueAct->setCheckable (true);
-    connect(viewChannelBlueAct, SIGNAL(triggered()), this, SLOT(viewChannelBlue()));
+    viewChannelBlueAct->setCheckable(true);
+    connect(viewChannelBlueAct, SIGNAL(triggered()), this,
+            SLOT(viewChannelBlue()));
 
     viewChannelAlphaAct = new QAction(tr("Alpha"), this);
     viewChannelAlphaAct->setShortcut(tr("a"));
-    viewChannelAlphaAct->setCheckable (true);
-    connect(viewChannelAlphaAct, SIGNAL(triggered()), this, SLOT(viewChannelAlpha()));
+    viewChannelAlphaAct->setCheckable(true);
+    connect(viewChannelAlphaAct, SIGNAL(triggered()), this,
+            SLOT(viewChannelAlpha()));
 
-    viewColorLumAct = new QAction (tr("Luminance"), this);
-    viewColorLumAct->setShortcut (tr("l"));
-    viewColorLumAct->setCheckable (true);
-    connect(viewColorLumAct, SIGNAL(triggered()), this, SLOT(viewChannelLuminance()));
+    viewColorLumAct = new QAction(tr("Luminance"), this);
+    viewColorLumAct->setShortcut(tr("l"));
+    viewColorLumAct->setCheckable(true);
+    connect(viewColorLumAct, SIGNAL(triggered()), this,
+            SLOT(viewChannelLuminance()));
 
-    viewColorRGBAAct = new QAction (tr("RGBA"), this);
+    viewColorRGBAAct = new QAction(tr("RGBA"), this);
     //viewColorRGBAAct->setShortcut (tr("Ctrl+c"));
-    viewColorRGBAAct->setCheckable (true);
-    viewColorRGBAAct->setChecked (true);
+    viewColorRGBAAct->setCheckable(true);
+    viewColorRGBAAct->setChecked(true);
     connect(viewColorRGBAAct, SIGNAL(triggered()), this, SLOT(viewColorRGBA()));
 
-    viewColorRGBAct = new QAction (tr("RGB"), this);
+    viewColorRGBAct = new QAction(tr("RGB"), this);
     //viewColorRGBAct->setShortcut (tr("Ctrl+a"));
-    viewColorRGBAct->setCheckable (true);
+    viewColorRGBAct->setCheckable(true);
     connect(viewColorRGBAct, SIGNAL(triggered()), this, SLOT(viewColorRGB()));
 
-    viewColor1ChAct = new QAction (tr("Single channel"), this);
-    viewColor1ChAct->setShortcut (tr("1"));
-    viewColor1ChAct->setCheckable (true);
+    viewColor1ChAct = new QAction(tr("Single channel"), this);
+    viewColor1ChAct->setShortcut(tr("1"));
+    viewColor1ChAct->setCheckable(true);
     connect(viewColor1ChAct, SIGNAL(triggered()), this, SLOT(viewColor1Ch()));
 
-    viewColorHeatmapAct = new QAction (tr("Single channel (Heatmap)"), this);
-    viewColorHeatmapAct->setShortcut (tr("h"));
-    viewColorHeatmapAct->setCheckable (true);
-    connect(viewColorHeatmapAct, SIGNAL(triggered()), this, SLOT(viewColorHeatmap()));
+    viewColorHeatmapAct = new QAction(tr("Single channel (Heatmap)"), this);
+    viewColorHeatmapAct->setShortcut(tr("h"));
+    viewColorHeatmapAct->setCheckable(true);
+    connect(viewColorHeatmapAct, SIGNAL(triggered()), this,
+            SLOT(viewColorHeatmap()));
 
     viewChannelPrevAct = new QAction(tr("Prev Channel"), this);
     viewChannelPrevAct->setShortcut(tr(","));
-    connect(viewChannelPrevAct, SIGNAL(triggered()), this, SLOT(viewChannelPrev()));
+    connect(viewChannelPrevAct, SIGNAL(triggered()), this,
+            SLOT(viewChannelPrev()));
 
     viewChannelNextAct = new QAction(tr("Next Channel"), this);
     viewChannelNextAct->setShortcut(tr("."));
-    connect(viewChannelNextAct, SIGNAL(triggered()), this, SLOT(viewChannelNext()));
+    connect(viewChannelNextAct, SIGNAL(triggered()), this,
+            SLOT(viewChannelNext()));
 
     viewSubimagePrevAct = new QAction(tr("Prev Subimage"), this);
     viewSubimagePrevAct->setShortcut(tr("<"));
-    connect(viewSubimagePrevAct, SIGNAL(triggered()), this, SLOT(viewSubimagePrev()));
+    connect(viewSubimagePrevAct, SIGNAL(triggered()), this,
+            SLOT(viewSubimagePrev()));
 
     viewSubimageNextAct = new QAction(tr("Next Subimage"), this);
     viewSubimageNextAct->setShortcut(tr(">"));
-    connect(viewSubimageNextAct, SIGNAL(triggered()), this, SLOT(viewSubimageNext()));
+    connect(viewSubimageNextAct, SIGNAL(triggered()), this,
+            SLOT(viewSubimageNext()));
 
     zoomInAct = new QAction(tr("Zoom &In"), this);
     zoomInAct->setShortcut(tr("Ctrl++"));
@@ -325,17 +355,19 @@ ImageViewer::createActions()
 
     fitWindowToImageAct = new QAction(tr("&Fit Window to Image"), this);
     fitWindowToImageAct->setShortcut(tr("f"));
-    connect(fitWindowToImageAct, SIGNAL(triggered()), this, SLOT(fitWindowToImage()));
+    connect(fitWindowToImageAct, SIGNAL(triggered()), this,
+            SLOT(fitWindowToImage()));
 
     fitImageToWindowAct = new QAction(tr("Fit Image to Window"), this);
-//    fitImageToWindowAct->setEnabled(false);
+    //    fitImageToWindowAct->setEnabled(false);
     fitImageToWindowAct->setCheckable(true);
     fitImageToWindowAct->setShortcut(tr("Alt+f"));
-    connect(fitImageToWindowAct, SIGNAL(triggered()), this, SLOT(fitImageToWindow()));
+    connect(fitImageToWindowAct, SIGNAL(triggered()), this,
+            SLOT(fitImageToWindow()));
 
     fullScreenAct = new QAction(tr("Full screen"), this);
-//    fullScreenAct->setEnabled(false);
-//    fullScreenAct->setCheckable(true);
+    //    fullScreenAct->setEnabled(false);
+    //    fullScreenAct->setCheckable(true);
     fullScreenAct->setShortcut(tr("Ctrl+f"));
     connect(fullScreenAct, SIGNAL(triggered()), this, SLOT(fullScreenToggle()));
 
@@ -344,29 +376,29 @@ ImageViewer::createActions()
 
     prevImageAct = new QAction(tr("Previous Image"), this);
     prevImageAct->setShortcut(tr("PgUp"));
-//    prevImageAct->setEnabled(true);
-    connect (prevImageAct, SIGNAL(triggered()), this, SLOT(prevImage()));
+    //    prevImageAct->setEnabled(true);
+    connect(prevImageAct, SIGNAL(triggered()), this, SLOT(prevImage()));
 
     nextImageAct = new QAction(tr("Next Image"), this);
     nextImageAct->setShortcut(tr("PgDown"));
-//    nextImageAct->setEnabled(true);
-    connect (nextImageAct, SIGNAL(triggered()), this, SLOT(nextImage()));
+    //    nextImageAct->setEnabled(true);
+    connect(nextImageAct, SIGNAL(triggered()), this, SLOT(nextImage()));
 
     toggleImageAct = new QAction(tr("Toggle image"), this);
     toggleImageAct->setShortcut(tr("T"));
-//    toggleImageAct->setEnabled(true);
-    connect (toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
+    //    toggleImageAct->setEnabled(true);
+    connect(toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
     slideShowAct = new QAction(tr("Start Slide Show"), this);
     connect(slideShowAct, SIGNAL(triggered()), this, SLOT(slideShow()));
 
     slideLoopAct = new QAction(tr("Loop slide show"), this);
-    slideLoopAct->setCheckable (true);
-    slideLoopAct->setChecked (true);
+    slideLoopAct->setCheckable(true);
+    slideLoopAct->setChecked(true);
     connect(slideLoopAct, SIGNAL(triggered()), this, SLOT(slideLoop()));
 
     slideNoLoopAct = new QAction(tr("Stop at end"), this);
-    slideNoLoopAct->setCheckable (true);
+    slideNoLoopAct->setCheckable(true);
     connect(slideNoLoopAct, SIGNAL(triggered()), this, SLOT(slideNoLoop()));
 
     sortByNameAct = new QAction(tr("By Name"), this);
@@ -376,49 +408,55 @@ ImageViewer::createActions()
     connect(sortByPathAct, SIGNAL(triggered()), this, SLOT(sortByPath()));
 
     sortByImageDateAct = new QAction(tr("By Image Date"), this);
-    connect(sortByImageDateAct, SIGNAL(triggered()), this, SLOT(sortByImageDate()));
+    connect(sortByImageDateAct, SIGNAL(triggered()), this,
+            SLOT(sortByImageDate()));
 
     sortByFileDateAct = new QAction(tr("By File Date"), this);
-    connect(sortByFileDateAct, SIGNAL(triggered()), this, SLOT(sortByFileDate()));
+    connect(sortByFileDateAct, SIGNAL(triggered()), this,
+            SLOT(sortByFileDate()));
 
     sortReverseAct = new QAction(tr("Reverse current order"), this);
     connect(sortReverseAct, SIGNAL(triggered()), this, SLOT(sortReverse()));
 
     showInfoWindowAct = new QAction(tr("&Image info..."), this);
     showInfoWindowAct->setShortcut(tr("Ctrl+I"));
-//    showInfoWindowAct->setEnabled(true);
-    connect (showInfoWindowAct, SIGNAL(triggered()), this, SLOT(showInfoWindow()));
+    //    showInfoWindowAct->setEnabled(true);
+    connect(showInfoWindowAct, SIGNAL(triggered()), this,
+            SLOT(showInfoWindow()));
 
     showPixelviewWindowAct = new QAction(tr("&Pixel closeup view..."), this);
-    showPixelviewWindowAct->setCheckable (true);
+    showPixelviewWindowAct->setCheckable(true);
     showPixelviewWindowAct->setShortcut(tr("P"));
-    connect (showPixelviewWindowAct, SIGNAL(triggered()), this, SLOT(showPixelviewWindow()));
+    connect(showPixelviewWindowAct, SIGNAL(triggered()), this,
+            SLOT(showPixelviewWindow()));
 
-    pixelviewFollowsMouseBox = new QCheckBox (tr("Pixel view follows mouse"));
-    pixelviewFollowsMouseBox->setChecked (false);
-    linearInterpolationBox = new QCheckBox (tr("Linear interpolation"));
-    linearInterpolationBox->setChecked (true);
-    darkPaletteBox = new QCheckBox (tr("Dark palette"));
-    darkPaletteBox->setChecked (true);
-    autoMipmap = new QCheckBox (tr("Generate mipmaps (requires restart)"));
-    autoMipmap->setChecked (false);
+    pixelviewFollowsMouseBox = new QCheckBox(tr("Pixel view follows mouse"));
+    pixelviewFollowsMouseBox->setChecked(false);
+    linearInterpolationBox = new QCheckBox(tr("Linear interpolation"));
+    linearInterpolationBox->setChecked(true);
+    darkPaletteBox = new QCheckBox(tr("Dark palette"));
+    darkPaletteBox->setChecked(true);
+    autoMipmap = new QCheckBox(tr("Generate mipmaps (requires restart)"));
+    autoMipmap->setChecked(false);
 
-    maxMemoryICLabel = new QLabel (tr("Image Cache max memory (requires restart)"));
-    maxMemoryIC = new QSpinBox ();
-    if (sizeof (void *) == 4)
-        maxMemoryIC->setRange (128, 2048); //2GB is enough for 32 bit machines
+    maxMemoryICLabel = new QLabel(
+        tr("Image Cache max memory (requires restart)"));
+    maxMemoryIC = new QSpinBox();
+    if (sizeof(void*) == 4)
+        maxMemoryIC->setRange(128, 2048);  //2GB is enough for 32 bit machines
     else
-        maxMemoryIC->setRange (128, 8192); //8GB probably ok for 64 bit
-    maxMemoryIC->setSingleStep (64);
-    maxMemoryIC->setSuffix (" MB");
+        maxMemoryIC->setRange(128, 8192);  //8GB probably ok for 64 bit
+    maxMemoryIC->setSingleStep(64);
+    maxMemoryIC->setSuffix(" MB");
 
-    slideShowDurationLabel = new QLabel (tr("Slide Show delay"));
-    slideShowDuration = new QSpinBox ();
-    slideShowDuration->setRange (1, 3600);
-    slideShowDuration->setSingleStep (1);
-    slideShowDuration->setSuffix (" s");
-    slideShowDuration->setAccelerated (true);
-    connect(slideShowDuration, SIGNAL(valueChanged(int)), this, SLOT(setSlideShowDuration(int)));
+    slideShowDurationLabel = new QLabel(tr("Slide Show delay"));
+    slideShowDuration      = new QSpinBox();
+    slideShowDuration->setRange(1, 3600);
+    slideShowDuration->setSingleStep(1);
+    slideShowDuration->setSuffix(" s");
+    slideShowDuration->setAccelerated(true);
+    connect(slideShowDuration, SIGNAL(valueChanged(int)), this,
+            SLOT(setSlideShowDuration(int)));
 }
 
 
@@ -428,24 +466,24 @@ ImageViewer::createMenus()
 {
     openRecentMenu = new QMenu(tr("Open recent..."), this);
     for (auto& i : openRecentAct)
-        openRecentMenu->addAction (i);
+        openRecentMenu->addAction(i);
 
     fileMenu = new QMenu(tr("&File"), this);
-    fileMenu->addAction (openAct);
-    fileMenu->addMenu (openRecentMenu);
-    fileMenu->addAction (reloadAct);
-    fileMenu->addAction (closeImgAct);
-    fileMenu->addSeparator ();
-    fileMenu->addAction (saveAsAct);
-    fileMenu->addAction (saveWindowAsAct);
-    fileMenu->addAction (saveSelectionAsAct);
-    fileMenu->addSeparator ();
-    fileMenu->addAction (printAct);
-    fileMenu->addAction (deleteCurrentImageAct);
-    fileMenu->addSeparator ();
-    fileMenu->addAction (editPreferencesAct);
-    fileMenu->addAction (exitAct);
-    menuBar()->addMenu (fileMenu);
+    fileMenu->addAction(openAct);
+    fileMenu->addMenu(openRecentMenu);
+    fileMenu->addAction(reloadAct);
+    fileMenu->addAction(closeImgAct);
+    fileMenu->addSeparator();
+    fileMenu->addAction(saveAsAct);
+    fileMenu->addAction(saveWindowAsAct);
+    fileMenu->addAction(saveSelectionAsAct);
+    fileMenu->addSeparator();
+    fileMenu->addAction(printAct);
+    fileMenu->addAction(deleteCurrentImageAct);
+    fileMenu->addSeparator();
+    fileMenu->addAction(editPreferencesAct);
+    fileMenu->addAction(exitAct);
+    menuBar()->addMenu(fileMenu);
 
     // Copy
     // Paste
@@ -453,73 +491,73 @@ ImageViewer::createMenus()
     // radio: prioritize selection, crop selection
 
     expgamMenu = new QMenu(tr("Exposure/gamma"));  // submenu
-    expgamMenu->addAction (exposureMinusOneHalfStopAct);
-    expgamMenu->addAction (exposureMinusOneTenthStopAct);
-    expgamMenu->addAction (exposurePlusOneHalfStopAct);
-    expgamMenu->addAction (exposurePlusOneTenthStopAct);
-    expgamMenu->addAction (gammaMinusAct);
-    expgamMenu->addAction (gammaPlusAct);
+    expgamMenu->addAction(exposureMinusOneHalfStopAct);
+    expgamMenu->addAction(exposureMinusOneTenthStopAct);
+    expgamMenu->addAction(exposurePlusOneHalfStopAct);
+    expgamMenu->addAction(exposurePlusOneTenthStopAct);
+    expgamMenu->addAction(gammaMinusAct);
+    expgamMenu->addAction(gammaPlusAct);
 
-//    imageMenu = new QMenu(tr("&Image"), this);
-//    menuBar()->addMenu (imageMenu);
+    //    imageMenu = new QMenu(tr("&Image"), this);
+    //    menuBar()->addMenu (imageMenu);
     slideMenu = new QMenu(tr("Slide Show"));
-    slideMenu->addAction (slideShowAct);
-    slideMenu->addAction (slideLoopAct);
-    slideMenu->addAction (slideNoLoopAct);
+    slideMenu->addAction(slideShowAct);
+    slideMenu->addAction(slideLoopAct);
+    slideMenu->addAction(slideNoLoopAct);
 
     sortMenu = new QMenu(tr("Sort"));
-    sortMenu->addAction (sortByNameAct);
-    sortMenu->addAction (sortByPathAct);
-    sortMenu->addAction (sortByImageDateAct);
-    sortMenu->addAction (sortByFileDateAct);
-    sortMenu->addAction (sortReverseAct);
+    sortMenu->addAction(sortByNameAct);
+    sortMenu->addAction(sortByPathAct);
+    sortMenu->addAction(sortByImageDateAct);
+    sortMenu->addAction(sortByFileDateAct);
+    sortMenu->addAction(sortReverseAct);
 
     channelMenu = new QMenu(tr("Channels"));
     // Color mode: true, random, falsegrgbacCrgR
-    channelMenu->addAction (viewChannelFullAct);
-    channelMenu->addAction (viewChannelRedAct);
-    channelMenu->addAction (viewChannelGreenAct);
-    channelMenu->addAction (viewChannelBlueAct);
-    channelMenu->addAction (viewChannelAlphaAct);
-    channelMenu->addAction (viewChannelPrevAct);
-    channelMenu->addAction (viewChannelNextAct);
+    channelMenu->addAction(viewChannelFullAct);
+    channelMenu->addAction(viewChannelRedAct);
+    channelMenu->addAction(viewChannelGreenAct);
+    channelMenu->addAction(viewChannelBlueAct);
+    channelMenu->addAction(viewChannelAlphaAct);
+    channelMenu->addAction(viewChannelPrevAct);
+    channelMenu->addAction(viewChannelNextAct);
 
     colormodeMenu = new QMenu(tr("Color mode"));
-    colormodeMenu->addAction (viewColorRGBAAct);
-    colormodeMenu->addAction (viewColorRGBAct);
-    colormodeMenu->addAction (viewColor1ChAct);
-    colormodeMenu->addAction (viewColorLumAct);
-    colormodeMenu->addAction (viewColorHeatmapAct);
+    colormodeMenu->addAction(viewColorRGBAAct);
+    colormodeMenu->addAction(viewColorRGBAct);
+    colormodeMenu->addAction(viewColor1ChAct);
+    colormodeMenu->addAction(viewColorLumAct);
+    colormodeMenu->addAction(viewColorHeatmapAct);
 
     viewMenu = new QMenu(tr("&View"), this);
-    viewMenu->addAction (prevImageAct);
-    viewMenu->addAction (nextImageAct);
-    viewMenu->addAction (toggleImageAct);
-    viewMenu->addSeparator ();
-    viewMenu->addAction (zoomInAct);
-    viewMenu->addAction (zoomOutAct);
-    viewMenu->addAction (normalSizeAct);
-    viewMenu->addAction (fitWindowToImageAct);
-    viewMenu->addAction (fitImageToWindowAct);
-    viewMenu->addAction (fullScreenAct);
-    viewMenu->addSeparator ();
-    viewMenu->addAction (viewSubimagePrevAct);
-    viewMenu->addAction (viewSubimageNextAct);
-    viewMenu->addMenu (channelMenu);
-    viewMenu->addMenu (colormodeMenu);
-    viewMenu->addMenu (expgamMenu);
-    menuBar()->addMenu (viewMenu);
+    viewMenu->addAction(prevImageAct);
+    viewMenu->addAction(nextImageAct);
+    viewMenu->addAction(toggleImageAct);
+    viewMenu->addSeparator();
+    viewMenu->addAction(zoomInAct);
+    viewMenu->addAction(zoomOutAct);
+    viewMenu->addAction(normalSizeAct);
+    viewMenu->addAction(fitWindowToImageAct);
+    viewMenu->addAction(fitImageToWindowAct);
+    viewMenu->addAction(fullScreenAct);
+    viewMenu->addSeparator();
+    viewMenu->addAction(viewSubimagePrevAct);
+    viewMenu->addAction(viewSubimageNextAct);
+    viewMenu->addMenu(channelMenu);
+    viewMenu->addMenu(colormodeMenu);
+    viewMenu->addMenu(expgamMenu);
+    menuBar()->addMenu(viewMenu);
     // Full screen mode
     // prev subimage <, next subimage >
     // fg/bg image...
 
     toolsMenu = new QMenu(tr("&Tools"), this);
     // Mode: select, zoom, pan, wipe
-    toolsMenu->addAction (showInfoWindowAct);
-    toolsMenu->addAction (showPixelviewWindowAct);
-    toolsMenu->addMenu (slideMenu);
-    toolsMenu->addMenu (sortMenu);
-        
+    toolsMenu->addAction(showInfoWindowAct);
+    toolsMenu->addAction(showPixelviewWindowAct);
+    toolsMenu->addMenu(slideMenu);
+    toolsMenu->addMenu(sortMenu);
+
     // Menus, toolbars, & status
     // Annotate
     // [check] overwrite render
@@ -527,11 +565,11 @@ ImageViewer::createMenus()
     // kill renderer
     // store render
     // Playback: forward, reverse, faster, slower, loop/pingpong
-    menuBar()->addMenu (toolsMenu);
+    menuBar()->addMenu(toolsMenu);
 
     helpMenu = new QMenu(tr("&Help"), this);
-    helpMenu->addAction (aboutAct);
-    menuBar()->addMenu (helpMenu);
+    helpMenu->addAction(aboutAct);
+    menuBar()->addMenu(helpMenu);
     // Bring up user's guide
 }
 
@@ -559,54 +597,57 @@ void
 ImageViewer::createStatusBar()
 {
     statusImgInfo = new QLabel;
-    statusBar()->addWidget (statusImgInfo);
+    statusBar()->addWidget(statusImgInfo);
 
     statusViewInfo = new QLabel;
-    statusBar()->addWidget (statusViewInfo);
+    statusBar()->addWidget(statusViewInfo);
 
     statusProgress = new QProgressBar;
-    statusProgress->setRange (0, 100);
-    statusProgress->reset ();
-    statusBar()->addWidget (statusProgress);
+    statusProgress->setRange(0, 100);
+    statusProgress->reset();
+    statusBar()->addWidget(statusProgress);
 
     mouseModeComboBox = new QComboBox;
-    mouseModeComboBox->addItem (tr("Zoom"));
-    mouseModeComboBox->addItem (tr("Pan"));
-    mouseModeComboBox->addItem (tr("Wipe"));
-    mouseModeComboBox->addItem (tr("Select"));
-    mouseModeComboBox->addItem (tr("Annotate"));
+    mouseModeComboBox->addItem(tr("Zoom"));
+    mouseModeComboBox->addItem(tr("Pan"));
+    mouseModeComboBox->addItem(tr("Wipe"));
+    mouseModeComboBox->addItem(tr("Select"));
+    mouseModeComboBox->addItem(tr("Annotate"));
     // Note: the order of the above MUST match the order of enum MouseMode
-    statusBar()->addWidget (mouseModeComboBox);
-    mouseModeComboBox->hide ();
+    statusBar()->addWidget(mouseModeComboBox);
+    mouseModeComboBox->hide();
 }
 
 
 
 void
-ImageViewer::readSettings (bool ui_is_set_up)
+ImageViewer::readSettings(bool ui_is_set_up)
 {
     QSettings settings("OpenImageIO", "iv");
-    m_darkPalette = settings.value ("darkPalette").toBool();
-    if (! ui_is_set_up)
+    m_darkPalette = settings.value("darkPalette").toBool();
+    if (!ui_is_set_up)
         return;
-    pixelviewFollowsMouseBox->setChecked (settings.value ("pixelviewFollowsMouse").toBool());
-    linearInterpolationBox->setChecked (settings.value ("linearInterpolation").toBool());
-    darkPaletteBox->setChecked (settings.value ("darkPalette").toBool());
-    QStringList recent = settings.value ("RecentFiles").toStringList();
+    pixelviewFollowsMouseBox->setChecked(
+        settings.value("pixelviewFollowsMouse").toBool());
+    linearInterpolationBox->setChecked(
+        settings.value("linearInterpolation").toBool());
+    darkPaletteBox->setChecked(settings.value("darkPalette").toBool());
+    QStringList recent = settings.value("RecentFiles").toStringList();
     for (auto&& s : recent)
-        addRecentFile (s.toStdString());
-    updateRecentFilesMenu (); // only safe because it's called after menu setup
+        addRecentFile(s.toStdString());
+    updateRecentFilesMenu();  // only safe because it's called after menu setup
 
-    autoMipmap->setChecked (settings.value ("autoMipmap", false).toBool());
-    if (sizeof(void *) == 4)  // 32 bit or 64?
-        maxMemoryIC->setValue (settings.value ("maxMemoryIC", 512).toInt());
+    autoMipmap->setChecked(settings.value("autoMipmap", false).toBool());
+    if (sizeof(void*) == 4)  // 32 bit or 64?
+        maxMemoryIC->setValue(settings.value("maxMemoryIC", 512).toInt());
     else
-        maxMemoryIC->setValue (settings.value ("maxMemoryIC", 2048).toInt());
-    slideShowDuration->setValue (settings.value ("slideShowDuration", 10).toInt());
+        maxMemoryIC->setValue(settings.value("maxMemoryIC", 2048).toInt());
+    slideShowDuration->setValue(
+        settings.value("slideShowDuration", 10).toInt());
 
-    ImageCache *imagecache = ImageCache::create (true);
-    imagecache->attribute ("automip", autoMipmap->isChecked());
-    imagecache->attribute ("max_memory_MB", (float) maxMemoryIC->value ());
+    ImageCache* imagecache = ImageCache::create(true);
+    imagecache->attribute("automip", autoMipmap->isChecked());
+    imagecache->attribute("max_memory_MB", (float)maxMemoryIC->value());
 }
 
 
@@ -615,27 +656,27 @@ void
 ImageViewer::writeSettings()
 {
     QSettings settings("OpenImageIO", "iv");
-    settings.setValue ("pixelviewFollowsMouse",
-                       pixelviewFollowsMouseBox->isChecked());
-    settings.setValue ("linearInterpolation",
-                       linearInterpolationBox->isChecked());
-    settings.setValue ("darkPalette", darkPaletteBox->isChecked());
-    settings.setValue ("autoMipmap", autoMipmap->isChecked());
-    settings.setValue ("maxMemoryIC", maxMemoryIC->value());
-    settings.setValue ("slideShowDuration", slideShowDuration->value());
+    settings.setValue("pixelviewFollowsMouse",
+                      pixelviewFollowsMouseBox->isChecked());
+    settings.setValue("linearInterpolation",
+                      linearInterpolationBox->isChecked());
+    settings.setValue("darkPalette", darkPaletteBox->isChecked());
+    settings.setValue("autoMipmap", autoMipmap->isChecked());
+    settings.setValue("maxMemoryIC", maxMemoryIC->value());
+    settings.setValue("slideShowDuration", slideShowDuration->value());
     QStringList recent;
     for (auto&& s : m_recent_files)
-        recent.push_front (QString(s.c_str()));
-    settings.setValue ("RecentFiles", recent);
+        recent.push_front(QString(s.c_str()));
+    settings.setValue("RecentFiles", recent);
 }
 
 
 
 bool
-image_progress_callback (void *opaque, float done)
+image_progress_callback(void* opaque, float done)
 {
-    ImageViewer *viewer = (ImageViewer *) opaque;
-    viewer->statusProgress->setValue ((int)(done*100));
+    ImageViewer* viewer = (ImageViewer*)opaque;
+    viewer->statusProgress->setValue((int)(done * 100));
     QApplication::processEvents();
     return false;
 }
@@ -646,55 +687,54 @@ void
 ImageViewer::open()
 {
     static QString openPath = QDir::currentPath();
-    QFileDialog dialog(NULL, tr("Open File(s)"),
-                       openPath, tr(s_file_filters));
-    dialog.setAcceptMode (QFileDialog::AcceptOpen);
-    dialog.setFileMode (QFileDialog::ExistingFiles);
+    QFileDialog dialog(NULL, tr("Open File(s)"), openPath, tr(s_file_filters));
+    dialog.setAcceptMode(QFileDialog::AcceptOpen);
+    dialog.setFileMode(QFileDialog::ExistingFiles);
     if (!dialog.exec())
         return;
-    openPath = dialog.directory().path();
+    openPath          = dialog.directory().path();
     QStringList names = dialog.selectedFiles();
 
-    int old_lastimage = m_images.size()-1;
+    int old_lastimage = m_images.size() - 1;
     for (auto& name : names) {
         std::string filename = name.toUtf8().data();
         if (filename.empty())
             continue;
-        add_image (filename);
-//        int n = m_images.size()-1;
-//        IvImage *newimage = m_images[n];
-//        newimage->read_iv (0, false, image_progress_callback, this);
+        add_image(filename);
+        //        int n = m_images.size()-1;
+        //        IvImage *newimage = m_images[n];
+        //        newimage->read_iv (0, false, image_progress_callback, this);
     }
     if (old_lastimage >= 0) {
         // Otherwise, add_image already did this for us.
-        current_image (old_lastimage + 1);
-        fitWindowToImage (true, true);
+        current_image(old_lastimage + 1);
+        fitWindowToImage(true, true);
     }
 }
 
 
 
 void
-ImageViewer::openRecentFile ()
+ImageViewer::openRecentFile()
 {
-    QAction *action = qobject_cast<QAction *>(sender());
+    QAction* action = qobject_cast<QAction*>(sender());
     if (action) {
         std::string filename = action->data().toString().toStdString();
         // If it's an image we already have loaded, just switch to it
         // (and reload) rather than loading a second copy.
-        for (size_t i = 0;  i < m_images.size();  ++i) {
+        for (size_t i = 0; i < m_images.size(); ++i) {
             if (m_images[i]->name() == filename) {
-                current_image (i);
-                reload ();
+                current_image(i);
+                reload();
                 return;
             }
         }
         // It's not an image we already have loaded
-        add_image (filename);
+        add_image(filename);
         if (m_images.size() > 1) {
             // Otherwise, add_image already did this for us.
-            current_image (m_images.size() - 1);
-            fitWindowToImage (true, true);
+            current_image(m_images.size() - 1);
+            fitWindowToImage(true, true);
         }
     }
 }
@@ -702,22 +742,22 @@ ImageViewer::openRecentFile ()
 
 
 void
-ImageViewer::addRecentFile (const std::string &name)
+ImageViewer::addRecentFile(const std::string& name)
 {
-    removeRecentFile (name);
-    m_recent_files.insert (m_recent_files.begin(), name);
+    removeRecentFile(name);
+    m_recent_files.insert(m_recent_files.begin(), name);
     if (m_recent_files.size() > MaxRecentFiles)
-        m_recent_files.resize (MaxRecentFiles);
+        m_recent_files.resize(MaxRecentFiles);
 }
 
 
 
 void
-ImageViewer::removeRecentFile (const std::string &name)
+ImageViewer::removeRecentFile(const std::string& name)
 {
-    for (size_t i = 0;  i < m_recent_files.size();  ++i) {
+    for (size_t i = 0; i < m_recent_files.size(); ++i) {
         if (m_recent_files[i] == name) {
-            m_recent_files.erase (m_recent_files.begin()+i);
+            m_recent_files.erase(m_recent_files.begin() + i);
             --i;
         }
     }
@@ -726,16 +766,16 @@ ImageViewer::removeRecentFile (const std::string &name)
 
 
 void
-ImageViewer::updateRecentFilesMenu ()
+ImageViewer::updateRecentFilesMenu()
 {
-    for (size_t i = 0;  i < MaxRecentFiles;  ++i) {
+    for (size_t i = 0; i < MaxRecentFiles; ++i) {
         if (i < m_recent_files.size()) {
-            std::string name = Filesystem::filename (m_recent_files[i]);
-            openRecentAct[i]->setText (QString::fromStdString (name));
-            openRecentAct[i]->setData (m_recent_files[i].c_str());
-            openRecentAct[i]->setVisible (true);
+            std::string name = Filesystem::filename(m_recent_files[i]);
+            openRecentAct[i]->setText(QString::fromStdString(name));
+            openRecentAct[i]->setData(m_recent_files[i].c_str());
+            openRecentAct[i]->setVisible(true);
         } else {
-            openRecentAct[i]->setVisible (false);
+            openRecentAct[i]->setVisible(false);
         }
     }
 }
@@ -747,25 +787,25 @@ ImageViewer::reload()
 {
     if (m_images.empty())
         return;
-    IvImage *newimage = m_images[m_current_image];
-    newimage->invalidate ();
+    IvImage* newimage = m_images[m_current_image];
+    newimage->invalidate();
     //glwin->trigger_redraw ();
-    displayCurrentImage ();
+    displayCurrentImage();
 }
 
 
 
 void
-ImageViewer::add_image (const std::string &filename)
+ImageViewer::add_image(const std::string& filename)
 {
     if (filename.empty())
         return;
-    IvImage *newimage = new IvImage(filename);
-    ASSERT (newimage);
-    newimage->gamma (m_default_gamma);
-    m_images.push_back (newimage);
-    addRecentFile (filename);
-    updateRecentFilesMenu ();
+    IvImage* newimage = new IvImage(filename);
+    ASSERT(newimage);
+    newimage->gamma(m_default_gamma);
+    m_images.push_back(newimage);
+    addRecentFile(filename);
+    updateRecentFilesMenu();
 
 #if 0
     if (getspec) {
@@ -781,8 +821,8 @@ ImageViewer::add_image (const std::string &filename)
 #endif
     if (m_images.size() == 1) {
         // If this is the first image, resize to fit it
-        displayCurrentImage ();
-        fitWindowToImage (true, true);
+        displayCurrentImage();
+        fitWindowToImage(true, true);
     }
 }
 
@@ -791,17 +831,17 @@ ImageViewer::add_image (const std::string &filename)
 void
 ImageViewer::saveAs()
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
     QString name;
-    name = QFileDialog::getSaveFileName (this, tr("Save Image"),
-                                         QString(img->name().c_str()),
-                                         tr(s_file_filters));
+    name = QFileDialog::getSaveFileName(this, tr("Save Image"),
+                                        QString(img->name().c_str()),
+                                        tr(s_file_filters));
     if (name.isEmpty())
         return;
-    bool ok = img->write (name.toStdString(), "", image_progress_callback, this);
-    if (! ok) {
+    bool ok = img->write(name.toStdString(), "", image_progress_callback, this);
+    if (!ok) {
         std::cerr << "Save failed: " << img->geterror() << "\n";
     }
 }
@@ -811,15 +851,15 @@ ImageViewer::saveAs()
 void
 ImageViewer::saveWindowAs()
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
     QString name;
-    name = QFileDialog::getSaveFileName (this, tr("Save Window"),
-                                         QString(img->name().c_str()));
+    name = QFileDialog::getSaveFileName(this, tr("Save Window"),
+                                        QString(img->name().c_str()));
     if (name.isEmpty())
         return;
-    img->write (name.toStdString(), "", image_progress_callback, this);  // FIXME
+    img->write(name.toStdString(), "", image_progress_callback, this);  // FIXME
 }
 
 
@@ -827,141 +867,151 @@ ImageViewer::saveWindowAs()
 void
 ImageViewer::saveSelectionAs()
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
     QString name;
-    name = QFileDialog::getSaveFileName (this, tr("Save Selection"),
-                                         QString(img->name().c_str()));
+    name = QFileDialog::getSaveFileName(this, tr("Save Selection"),
+                                        QString(img->name().c_str()));
     if (name.isEmpty())
         return;
-    img->write (name.toStdString(), "", image_progress_callback, this);  // FIXME
+    img->write(name.toStdString(), "", image_progress_callback, this);  // FIXME
 }
 
 
 
 void
-ImageViewer::updateTitle ()
+ImageViewer::updateTitle()
 {
-    IvImage *img = cur();
-    if (! img) {
-        setWindowTitle (tr("iv Image Viewer (no image loaded)"));
+    IvImage* img = cur();
+    if (!img) {
+        setWindowTitle(tr("iv Image Viewer (no image loaded)"));
         return;
     }
     std::string message;
-    message = Strutil::format ("%s - iv Image Viewer", img->name().c_str());
-    setWindowTitle (QString::fromLocal8Bit(message.c_str()));
+    message = Strutil::format("%s - iv Image Viewer", img->name().c_str());
+    setWindowTitle(QString::fromLocal8Bit(message.c_str()));
 }
 
 
 
 void
-ImageViewer::updateStatusBar ()
+ImageViewer::updateStatusBar()
 {
-    const ImageSpec *spec = curspec();
-    if (! spec) {
-        statusImgInfo->setText (tr("No image loaded"));
-        statusViewInfo->setText (tr(""));
+    const ImageSpec* spec = curspec();
+    if (!spec) {
+        statusImgInfo->setText(tr("No image loaded"));
+        statusViewInfo->setText(tr(""));
         return;
     }
     std::string message;
-    message = Strutil::format ("(%d/%d) : ", m_current_image+1, (int) m_images.size());
+    message = Strutil::format("(%d/%d) : ", m_current_image + 1,
+                              (int)m_images.size());
     message += cur()->shortinfo();
-    statusImgInfo->setText (message.c_str());
+    statusImgInfo->setText(message.c_str());
 
     message.clear();
     switch (m_color_mode) {
-    case RGBA: message = Strutil::format ("RGBA (%d-%d)", m_current_channel, m_current_channel+3); break;
-    case RGB: message = Strutil::format ("RGB (%d-%d)", m_current_channel, m_current_channel+2); break;
-    case LUMINANCE: message = Strutil::format ("Lum (%d-%d)", m_current_channel, m_current_channel+2); break;
-    case HEATMAP: 
-        message = "Heat ";
+    case RGBA:
+        message = Strutil::format("RGBA (%d-%d)", m_current_channel,
+                                  m_current_channel + 3);
+        break;
+    case RGB:
+        message = Strutil::format("RGB (%d-%d)", m_current_channel,
+                                  m_current_channel + 2);
+        break;
+    case LUMINANCE:
+        message = Strutil::format("Lum (%d-%d)", m_current_channel,
+                                  m_current_channel + 2);
+        break;
+    case HEATMAP: message = "Heat ";
     case SINGLE_CHANNEL:
-        if ((int)spec->channelnames.size() > m_current_channel &&
-                spec->channelnames[m_current_channel].size())
+        if ((int)spec->channelnames.size() > m_current_channel
+            && spec->channelnames[m_current_channel].size())
             message += spec->channelnames[m_current_channel];
-        else
-            if (m_color_mode == HEATMAP) {
-                message += Strutil::format ("%d", m_current_channel);
-            } else {
-                message = Strutil::format ("chan %d", m_current_channel);
-            }
+        else if (m_color_mode == HEATMAP) {
+            message += Strutil::format("%d", m_current_channel);
+        } else {
+            message = Strutil::format("chan %d", m_current_channel);
+        }
         break;
     }
-    message += Strutil::format ("  %g:%g  exp %+.1f  gam %.2f",
-                                zoom() >= 1 ? zoom() : 1.0f,
-                                zoom() >= 1 ? 1.0f : 1.0f/zoom(),
-                                cur()->exposure(), cur()->gamma());
+    message += Strutil::format("  %g:%g  exp %+.1f  gam %.2f",
+                               zoom() >= 1 ? zoom() : 1.0f,
+                               zoom() >= 1 ? 1.0f : 1.0f / zoom(),
+                               cur()->exposure(), cur()->gamma());
     if (cur()->nsubimages() > 1) {
         if (cur()->auto_subimage()) {
-            message += Strutil::format ("  subimg AUTO (%d/%d)",
-                                        cur()->subimage()+1, cur()->nsubimages());
+            message += Strutil::format("  subimg AUTO (%d/%d)",
+                                       cur()->subimage() + 1,
+                                       cur()->nsubimages());
         } else {
-            message += Strutil::format ("  subimg %d/%d",
-                                        cur()->subimage()+1, cur()->nsubimages());
+            message += Strutil::format("  subimg %d/%d", cur()->subimage() + 1,
+                                       cur()->nsubimages());
         }
     }
     if (cur()->nmiplevels() > 1) {
-        message += Strutil::format ("  MIP %d/%d",
-                                    cur()->miplevel()+1, cur()->nmiplevels());
+        message += Strutil::format("  MIP %d/%d", cur()->miplevel() + 1,
+                                   cur()->nmiplevels());
     }
 
-    statusViewInfo->setText(message.c_str()); // tr("iv status"));
+    statusViewInfo->setText(message.c_str());  // tr("iv status"));
 }
 
 
 
 bool
-ImageViewer::loadCurrentImage (int subimage, int miplevel)
+ImageViewer::loadCurrentImage(int subimage, int miplevel)
 {
     if (m_current_image < 0 || m_current_image >= (int)m_images.size()) {
         m_current_image = 0;
     }
-    IvImage *img = cur ();
+    IvImage* img = cur();
     if (img) {
         // We need the spec available to compare the image format with
         // opengl's capabilities.
-        if (! img->init_spec (img->name(), subimage, miplevel)) {
-            statusImgInfo->setText (tr ("Could not display image: %1.").arg (img->name().c_str()));
-            statusViewInfo->setText (tr(""));
+        if (!img->init_spec(img->name(), subimage, miplevel)) {
+            statusImgInfo->setText(
+                tr("Could not display image: %1.").arg(img->name().c_str()));
+            statusViewInfo->setText(tr(""));
             return false;
         }
 
         // Used to check whether we'll need to do adjustments in the
         // CPU. If true, images should be loaded as UINT8.
         bool allow_transforms = false;
-        bool srgb_transform = false;
+        bool srgb_transform   = false;
 
         // By default, we try to load into OpenGL with the same format,
-        TypeDesc read_format = TypeDesc::UNKNOWN;
-        const ImageSpec &image_spec = img->spec();
+        TypeDesc read_format        = TypeDesc::UNKNOWN;
+        const ImageSpec& image_spec = img->spec();
 
         if (image_spec.format.basetype == TypeDesc::DOUBLE) {
             // AFAIK, OpenGL doesn't support 64-bit floats as pixel size.
             read_format = TypeDesc::FLOAT;
         }
-        if (glwin->is_glsl_capable ()) {
-            if (image_spec.format.basetype == TypeDesc::HALF &&
-                ! glwin->is_half_capable ()) {
+        if (glwin->is_glsl_capable()) {
+            if (image_spec.format.basetype == TypeDesc::HALF
+                && !glwin->is_half_capable()) {
                 //std::cerr << "Loading HALF-FLOAT as FLOAT\n";
                 read_format = TypeDesc::FLOAT;
             }
-            if (IsSpecSrgb(image_spec) && !glwin->is_srgb_capable ()) {
+            if (IsSpecSrgb(image_spec) && !glwin->is_srgb_capable()) {
                 // If the image is in sRGB, but OpenGL can't load sRGB textures then
                 // we'll need to do the transformation on the CPU after loading the
                 // image. We (so far) can only do this with UINT8 images, so make
                 // sure that it gets loaded in this format.
                 //std::cerr << "Loading as UINT8 to do sRGB\n";
-                read_format = TypeDesc::UINT8;
-                srgb_transform = true;
+                read_format      = TypeDesc::UINT8;
+                srgb_transform   = true;
                 allow_transforms = true;
             }
         } else {
             //std::cerr << "Loading as UINT8\n";
-            read_format = TypeDesc::UINT8;
+            read_format      = TypeDesc::UINT8;
             allow_transforms = true;
 
-            if (IsSpecSrgb(image_spec) && !glwin->is_srgb_capable ())
+            if (IsSpecSrgb(image_spec) && !glwin->is_srgb_capable())
                 srgb_transform = true;
         }
 
@@ -976,19 +1026,22 @@ ImageViewer::loadCurrentImage (int subimage, int miplevel)
         //}
 
         // Read the image from disk or from the ImageCache if available.
-        if (img->read_iv (subimage, miplevel, false, read_format, image_progress_callback, this, allow_transforms)) {
+        if (img->read_iv(subimage, miplevel, false, read_format,
+                         image_progress_callback, this, allow_transforms)) {
             // The image was read succesfully.
             // Check if we've got to do sRGB to linear (ie, when not supported
             // by OpenGL).
             // Do the first pixel transform to fill-in the secondary image
             // buffer.
             if (allow_transforms) {
-                img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
+                img->pixel_transform(srgb_transform, (int)current_color_mode(),
+                                     current_channel());
             }
             return true;
         } else {
-            statusImgInfo->setText (tr ("Could not display image: %1.").arg (img->name().c_str()));
-            statusViewInfo->setText (tr(""));
+            statusImgInfo->setText(
+                tr("Could not display image: %1.").arg(img->name().c_str()));
+            statusViewInfo->setText(tr(""));
             return false;
         }
     }
@@ -998,21 +1051,21 @@ ImageViewer::loadCurrentImage (int subimage, int miplevel)
 
 
 void
-ImageViewer::displayCurrentImage (bool update)
+ImageViewer::displayCurrentImage(bool update)
 {
     if (m_current_image < 0 || m_current_image >= (int)m_images.size())
         m_current_image = 0;
-    IvImage *img = cur();
+    IvImage* img = cur();
     if (img) {
-        if (! img->image_valid()) {
+        if (!img->image_valid()) {
             bool load_result = false;
 
-            statusViewInfo->hide ();
-            statusProgress->show ();
-            load_result = loadCurrentImage (std::max (0, img->subimage()),
-                                            std::max (0, img->miplevel()));
-            statusProgress->hide ();
-            statusViewInfo->show ();
+            statusViewInfo->hide();
+            statusProgress->show();
+            load_result = loadCurrentImage(std::max(0, img->subimage()),
+                                           std::max(0, img->miplevel()));
+            statusProgress->hide();
+            statusViewInfo->show();
 
             if (load_result) {
                 update = true;
@@ -1022,26 +1075,26 @@ ImageViewer::displayCurrentImage (bool update)
         }
     } else {
         m_current_image = m_last_image = -1;
-        ((QOpenGLWidget*)(glwin))->update ();
+        ((QOpenGLWidget*)(glwin))->update();
     }
 
     if (update) {
-        glwin->update ();
+        glwin->update();
     }
     float z = zoom();
-    if (fitImageToWindowAct->isChecked ())
-        z = zoom_needed_to_fit (glwin->width(), glwin->height());
-    zoom (z);
-//    glwin->trigger_redraw ();
+    if (fitImageToWindowAct->isChecked())
+        z = zoom_needed_to_fit(glwin->width(), glwin->height());
+    zoom(z);
+    //    glwin->trigger_redraw ();
 
     updateTitle();
     updateStatusBar();
     if (infoWindow)
-        infoWindow->update (img);
+        infoWindow->update(img);
 
-//    printAct->setEnabled(true);
-//    fitImageToWindowAct->setEnabled(true);
-//    fullScreenAct->setEnabled(true);
+    //    printAct->setEnabled(true);
+    //    fitImageToWindowAct->setEnabled(true);
+    //    fullScreenAct->setEnabled(true);
     updateActions();
 }
 
@@ -1050,19 +1103,19 @@ ImageViewer::displayCurrentImage (bool update)
 void
 ImageViewer::deleteCurrentImage()
 {
-    IvImage *img = cur();
+    IvImage* img = cur();
     if (img) {
-        const char *filename = img->name().c_str();
-        QString message ("Are you sure you want to remove <b>");
+        const char* filename = img->name().c_str();
+        QString message("Are you sure you want to remove <b>");
         message = message + QString(filename) + QString("</b> file from disk?");
         QMessageBox::StandardButton button;
-        button = QMessageBox::question (this, "", message, 
-                                        QMessageBox::Yes | QMessageBox::No);
+        button = QMessageBox::question(this, "", message,
+                                       QMessageBox::Yes | QMessageBox::No);
         if (button == QMessageBox::Yes) {
             closeImg();
-            int r = remove (filename);
+            int r = remove(filename);
             if (r)
-                QMessageBox::information (this, "", "Unable to delete file");
+                QMessageBox::information(this, "", "Unable to delete file");
         }
     }
 }
@@ -1070,7 +1123,7 @@ ImageViewer::deleteCurrentImage()
 
 
 void
-ImageViewer::current_image (int newimage)
+ImageViewer::current_image(int newimage)
 {
 #ifndef NDEBUG
     Timer swap_image_time;
@@ -1079,168 +1132,181 @@ ImageViewer::current_image (int newimage)
     if (m_images.empty() || newimage < 0 || newimage >= (int)m_images.size())
         m_current_image = 0;
     if (m_current_image != newimage) {
-        m_last_image = (m_current_image >= 0) ? m_current_image : newimage;
+        m_last_image    = (m_current_image >= 0) ? m_current_image : newimage;
         m_current_image = newimage;
-        displayCurrentImage ();
+        displayCurrentImage();
     } else {
-        displayCurrentImage (false);
+        displayCurrentImage(false);
     }
 #ifndef NDEBUG
     swap_image_time.stop();
-    std::cerr << "Current Image change elapsed time: " << swap_image_time() << " seconds \n";
+    std::cerr << "Current Image change elapsed time: " << swap_image_time()
+              << " seconds \n";
 #endif
 }
 
 
 
 void
-ImageViewer::prevImage ()
+ImageViewer::prevImage()
 {
     if (m_images.empty())
         return;
     if (m_current_image == 0)
-        current_image ((int)m_images.size() - 1);
+        current_image((int)m_images.size() - 1);
     else
-        current_image (current_image() - 1);
+        current_image(current_image() - 1);
 }
 
 
 void
-ImageViewer::nextImage ()
+ImageViewer::nextImage()
 {
     if (m_images.empty())
         return;
-    if (m_current_image >= (int)m_images.size()-1)
-        current_image (0);
+    if (m_current_image >= (int)m_images.size() - 1)
+        current_image(0);
     else
-        current_image (current_image() + 1);
+        current_image(current_image() + 1);
 }
 
 
 
 void
-ImageViewer::toggleImage ()
+ImageViewer::toggleImage()
 {
-    current_image (m_last_image);
+    current_image(m_last_image);
 }
 
 
 
 void
-ImageViewer::exposureMinusOneTenthStop ()
+ImageViewer::exposureMinusOneTenthStop()
 {
     if (m_images.empty())
         return;
-    IvImage *img = m_images[m_current_image];
-    img->exposure (img->exposure() - 0.1);
-    if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
-        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
-        displayCurrentImage ();
+    IvImage* img = m_images[m_current_image];
+    img->exposure(img->exposure() - 0.1);
+    if (!glwin->is_glsl_capable()) {
+        bool srgb_transform = (!glwin->is_srgb_capable()
+                               && IsSpecSrgb(img->spec()));
+        img->pixel_transform(srgb_transform, (int)current_color_mode(),
+                             current_channel());
+        displayCurrentImage();
     } else {
-        displayCurrentImage (false);
+        displayCurrentImage(false);
     }
 }
 
 
 void
-ImageViewer::exposureMinusOneHalfStop ()
+ImageViewer::exposureMinusOneHalfStop()
 {
     if (m_images.empty())
         return;
-    IvImage *img = m_images[m_current_image];
-    img->exposure (img->exposure() - 0.5);
-    if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
-        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
-        displayCurrentImage ();
+    IvImage* img = m_images[m_current_image];
+    img->exposure(img->exposure() - 0.5);
+    if (!glwin->is_glsl_capable()) {
+        bool srgb_transform = (!glwin->is_srgb_capable()
+                               && IsSpecSrgb(img->spec()));
+        img->pixel_transform(srgb_transform, (int)current_color_mode(),
+                             current_channel());
+        displayCurrentImage();
     } else {
-        displayCurrentImage (false);
+        displayCurrentImage(false);
     }
 }
 
 
 void
-ImageViewer::exposurePlusOneTenthStop ()
+ImageViewer::exposurePlusOneTenthStop()
 {
     if (m_images.empty())
         return;
-    IvImage *img = m_images[m_current_image];
-    img->exposure (img->exposure() + 0.1);
-    if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
-        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
-        displayCurrentImage ();
+    IvImage* img = m_images[m_current_image];
+    img->exposure(img->exposure() + 0.1);
+    if (!glwin->is_glsl_capable()) {
+        bool srgb_transform = (!glwin->is_srgb_capable()
+                               && IsSpecSrgb(img->spec()));
+        img->pixel_transform(srgb_transform, (int)current_color_mode(),
+                             current_channel());
+        displayCurrentImage();
     } else {
-        displayCurrentImage (false);
+        displayCurrentImage(false);
     }
 }
 
 
 void
-ImageViewer::exposurePlusOneHalfStop ()
+ImageViewer::exposurePlusOneHalfStop()
 {
     if (m_images.empty())
         return;
-    IvImage *img = m_images[m_current_image];
-    img->exposure (img->exposure() + 0.5);
-    if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
-        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
-        displayCurrentImage ();
+    IvImage* img = m_images[m_current_image];
+    img->exposure(img->exposure() + 0.5);
+    if (!glwin->is_glsl_capable()) {
+        bool srgb_transform = (!glwin->is_srgb_capable()
+                               && IsSpecSrgb(img->spec()));
+        img->pixel_transform(srgb_transform, (int)current_color_mode(),
+                             current_channel());
+        displayCurrentImage();
     } else {
-        displayCurrentImage (false);
-    }
-}
-
-
-
-void
-ImageViewer::gammaMinus ()
-{
-    if (m_images.empty())
-        return;
-    IvImage *img = m_images[m_current_image];
-    img->gamma (img->gamma() - 0.05);
-    if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
-        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
-        displayCurrentImage ();
-    } else {
-        displayCurrentImage (false);
-    }
-}
-
-
-void
-ImageViewer::gammaPlus ()
-{
-    if (m_images.empty())
-        return;
-    IvImage *img = m_images[m_current_image];
-    img->gamma (img->gamma() + 0.05);
-    if (! glwin->is_glsl_capable ()) {
-        bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
-        img->pixel_transform (srgb_transform, (int) current_color_mode(), current_channel());
-        displayCurrentImage ();
-    } else {
-        displayCurrentImage (false);
+        displayCurrentImage(false);
     }
 }
 
 
 
 void
-ImageViewer::slide (long t, bool b)
+ImageViewer::gammaMinus()
 {
-    slideLoopAct->setChecked (b == true);
-    slideNoLoopAct->setChecked (b == false);
+    if (m_images.empty())
+        return;
+    IvImage* img = m_images[m_current_image];
+    img->gamma(img->gamma() - 0.05);
+    if (!glwin->is_glsl_capable()) {
+        bool srgb_transform = (!glwin->is_srgb_capable()
+                               && IsSpecSrgb(img->spec()));
+        img->pixel_transform(srgb_transform, (int)current_color_mode(),
+                             current_channel());
+        displayCurrentImage();
+    } else {
+        displayCurrentImage(false);
+    }
+}
+
+
+void
+ImageViewer::gammaPlus()
+{
+    if (m_images.empty())
+        return;
+    IvImage* img = m_images[m_current_image];
+    img->gamma(img->gamma() + 0.05);
+    if (!glwin->is_glsl_capable()) {
+        bool srgb_transform = (!glwin->is_srgb_capable()
+                               && IsSpecSrgb(img->spec()));
+        img->pixel_transform(srgb_transform, (int)current_color_mode(),
+                             current_channel());
+        displayCurrentImage();
+    } else {
+        displayCurrentImage(false);
+    }
 }
 
 
 
 void
-ImageViewer::viewChannel (int c, COLOR_MODE colormode)
+ImageViewer::slide(long t, bool b)
+{
+    slideLoopAct->setChecked(b == true);
+    slideNoLoopAct->setChecked(b == false);
+}
+
+
+
+void
+ImageViewer::viewChannel(int c, COLOR_MODE colormode)
 {
 #ifndef NDEBUG
     Timer change_channel_time;
@@ -1248,11 +1314,12 @@ ImageViewer::viewChannel (int c, COLOR_MODE colormode)
 #endif
     if (m_current_channel != c || colormode != m_color_mode) {
         bool update = true;
-        if (! glwin->is_glsl_capable ()) {
-            IvImage *img = cur ();
+        if (!glwin->is_glsl_capable()) {
+            IvImage* img = cur();
             if (img) {
-                bool srgb_transform = (! glwin->is_srgb_capable () && IsSpecSrgb(img->spec()));
-                img->pixel_transform (srgb_transform, (int)colormode, c);
+                bool srgb_transform = (!glwin->is_srgb_capable()
+                                       && IsSpecSrgb(img->spec()));
+                img->pixel_transform(srgb_transform, (int)colormode, c);
             }
         } else {
             // FIXME: There are even more chances to avoid updating the textures
@@ -1268,23 +1335,27 @@ ImageViewer::viewChannel (int c, COLOR_MODE colormode)
             }
         }
         m_current_channel = c;
-        m_color_mode = colormode;
-        displayCurrentImage (update);
+        m_color_mode      = colormode;
+        displayCurrentImage(update);
 
-        viewChannelFullAct->setChecked (c == 0 && m_color_mode == RGBA);
-        viewChannelRedAct->setChecked (c == 0 && m_color_mode == SINGLE_CHANNEL);
-        viewChannelGreenAct->setChecked (c == 1 && m_color_mode == SINGLE_CHANNEL);
-        viewChannelBlueAct->setChecked (c == 2 && m_color_mode == SINGLE_CHANNEL);
-        viewChannelAlphaAct->setChecked (c == 3 && m_color_mode == SINGLE_CHANNEL);
-        viewColorLumAct->setChecked (m_color_mode == LUMINANCE);
-        viewColorRGBAAct->setChecked (m_color_mode == RGBA);
-        viewColorRGBAct->setChecked (m_color_mode == RGB);
-        viewColor1ChAct->setChecked (m_color_mode == SINGLE_CHANNEL);
-        viewColorHeatmapAct->setChecked (m_color_mode == HEATMAP);
+        viewChannelFullAct->setChecked(c == 0 && m_color_mode == RGBA);
+        viewChannelRedAct->setChecked(c == 0 && m_color_mode == SINGLE_CHANNEL);
+        viewChannelGreenAct->setChecked(c == 1
+                                        && m_color_mode == SINGLE_CHANNEL);
+        viewChannelBlueAct->setChecked(c == 2
+                                       && m_color_mode == SINGLE_CHANNEL);
+        viewChannelAlphaAct->setChecked(c == 3
+                                        && m_color_mode == SINGLE_CHANNEL);
+        viewColorLumAct->setChecked(m_color_mode == LUMINANCE);
+        viewColorRGBAAct->setChecked(m_color_mode == RGBA);
+        viewColorRGBAct->setChecked(m_color_mode == RGB);
+        viewColor1ChAct->setChecked(m_color_mode == SINGLE_CHANNEL);
+        viewColorHeatmapAct->setChecked(m_color_mode == HEATMAP);
     }
 #ifndef NDEBUG
     change_channel_time.stop();
-    std::cerr << "Change channel elapsed time: " << change_channel_time() << " seconds \n";
+    std::cerr << "Change channel elapsed time: " << change_channel_time()
+              << " seconds \n";
 #endif
 }
 
@@ -1294,24 +1365,23 @@ ImageViewer::slideImages()
 {
     if (m_images.empty())
         return;
-    if (m_current_image >= (int)m_images.size()-1) {
+    if (m_current_image >= (int)m_images.size() - 1) {
         if (slide_loop == true)
-            current_image (0);
+            current_image(0);
         else {
             slideTimer->stop();
-            disconnect(slideTimer,0,0,0);
+            disconnect(slideTimer, 0, 0, 0);
         }
-    }       
-    else
-        current_image (current_image() + 1);
+    } else
+        current_image(current_image() + 1);
 }
 
 
 void
-ImageViewer::slideShow ()
+ImageViewer::slideShow()
 {
     fullScreenToggle();
-    connect(slideTimer,SIGNAL(timeout()),this,SLOT(slideImages()));
+    connect(slideTimer, SIGNAL(timeout()), this, SLOT(slideImages()));
     slideTimer->start(slideDuration_ms);
     updateActions();
 }
@@ -1319,7 +1389,7 @@ ImageViewer::slideShow ()
 
 
 void
-ImageViewer::slideLoop ()
+ImageViewer::slideLoop()
 {
     slide_loop = true;
     slide(slideDuration_ms, slide_loop);
@@ -1327,7 +1397,7 @@ ImageViewer::slideLoop ()
 
 
 void
-ImageViewer::slideNoLoop ()
+ImageViewer::slideNoLoop()
 {
     slide_loop = false;
     slide(slideDuration_ms, slide_loop);
@@ -1335,7 +1405,7 @@ ImageViewer::slideNoLoop ()
 
 
 void
-ImageViewer::setSlideShowDuration (int seconds)
+ImageViewer::setSlideShowDuration(int seconds)
 {
     slideDuration_ms = seconds * 1000;
 }
@@ -1343,46 +1413,22 @@ ImageViewer::setSlideShowDuration (int seconds)
 
 
 static bool
-compName (IvImage *first, IvImage *second)
+compName(IvImage* first, IvImage* second)
 {
-    std::string firstFile = Filesystem::filename (first->name());
-    std::string secondFile = Filesystem::filename (second->name());
+    std::string firstFile  = Filesystem::filename(first->name());
+    std::string secondFile = Filesystem::filename(second->name());
     return (firstFile.compare(secondFile) < 0);
 }
 
 
 
 void
-ImageViewer::sortByName ()
+ImageViewer::sortByName()
 {
     int numImg = m_images.size();
     if (numImg < 2)
         return;
-    std::sort (m_images.begin(), m_images.end(), &compName);
-    current_image (0);
-    displayCurrentImage();
-    // updateActions();
-}
-
-
-
-static bool
-compPath (IvImage *first, IvImage *second)
-{
-    std::string firstFile = first->name ();
-    std::string secondFile = second->name ();
-    return (firstFile.compare(secondFile) < 0);
-}
-
-
-
-void
-ImageViewer::sortByPath ()
-{
-    int numImg = m_images.size();
-    if (numImg < 2)
-        return;
-    std::sort (m_images.begin(), m_images.end(), &compPath);
+    std::sort(m_images.begin(), m_images.end(), &compName);
     current_image(0);
     displayCurrentImage();
     // updateActions();
@@ -1391,96 +1437,85 @@ ImageViewer::sortByPath ()
 
 
 static bool
-DateTime_to_time_t (const char *datetime, time_t &timet)
+compPath(IvImage* first, IvImage* second)
+{
+    std::string firstFile  = first->name();
+    std::string secondFile = second->name();
+    return (firstFile.compare(secondFile) < 0);
+}
+
+
+
+void
+ImageViewer::sortByPath()
+{
+    int numImg = m_images.size();
+    if (numImg < 2)
+        return;
+    std::sort(m_images.begin(), m_images.end(), &compPath);
+    current_image(0);
+    displayCurrentImage();
+    // updateActions();
+}
+
+
+
+static bool
+DateTime_to_time_t(const char* datetime, time_t& timet)
 {
     int year, month, day, hour, min, sec;
-    int r = sscanf (datetime, "%d:%d:%d %d:%d:%d",
-                    &year, &month, &day, &hour, &min, &sec);
+    int r = sscanf(datetime, "%d:%d:%d %d:%d:%d", &year, &month, &day, &hour,
+                   &min, &sec);
     // printf ("%d  %d:%d:%d %d:%d:%d\n", r, year, month, day, hour, min, sec);
     if (r != 6)
         return false;
     struct tm tmtime;
     time_t now;
-    Sysutil::get_local_time (&now, &tmtime); // fill in defaults
-    tmtime.tm_sec = sec;
-    tmtime.tm_min = min;
+    Sysutil::get_local_time(&now, &tmtime);  // fill in defaults
+    tmtime.tm_sec  = sec;
+    tmtime.tm_min  = min;
     tmtime.tm_hour = hour;
     tmtime.tm_mday = day;
-    tmtime.tm_mon = month-1;
-    tmtime.tm_year = year-1900;
-    timet = mktime (&tmtime);
+    tmtime.tm_mon  = month - 1;
+    tmtime.tm_year = year - 1900;
+    timet          = mktime(&tmtime);
     return true;
 }
 
 
 
 static bool
-compImageDate (IvImage *first, IvImage *second)
+compImageDate(IvImage* first, IvImage* second)
 {
-    std::time_t firstFile = time(NULL);
+    std::time_t firstFile  = time(NULL);
     std::time_t secondFile = time(NULL);
     double diff;
-    std::string metadatatime = first->spec ().get_string_attribute ("DateTime");
+    std::string metadatatime = first->spec().get_string_attribute("DateTime");
     if (metadatatime.empty()) {
-        if (first->init_spec (first->name(), 0, 0)) {
-            metadatatime = first->spec ().get_string_attribute ("DateTime");
-            if (metadatatime.empty()){
-                if (! Filesystem::exists (first->name ()))
+        if (first->init_spec(first->name(), 0, 0)) {
+            metadatatime = first->spec().get_string_attribute("DateTime");
+            if (metadatatime.empty()) {
+                if (!Filesystem::exists(first->name()))
                     return false;
-                firstFile = Filesystem::last_write_time (first->name ());
+                firstFile = Filesystem::last_write_time(first->name());
             }
-        }
-        else
+        } else
             return false;
     }
-    DateTime_to_time_t (metadatatime.c_str(), firstFile);
-    metadatatime = second->spec().get_string_attribute ("DateTime");
+    DateTime_to_time_t(metadatatime.c_str(), firstFile);
+    metadatatime = second->spec().get_string_attribute("DateTime");
     if (metadatatime.empty()) {
         if (second->init_spec(second->name(), 0, 0)) {
-            metadatatime = second->spec ().get_string_attribute ("DateTime");
-            if (metadatatime.empty()){
-                if (! Filesystem::exists (second->name ()))
+            metadatatime = second->spec().get_string_attribute("DateTime");
+            if (metadatatime.empty()) {
+                if (!Filesystem::exists(second->name()))
                     return true;
-                secondFile = Filesystem::last_write_time (second->name());
+                secondFile = Filesystem::last_write_time(second->name());
             }
-        }
-        else
+        } else
             return true;
     }
-    DateTime_to_time_t (metadatatime.c_str(), secondFile);
-    diff = difftime(firstFile, secondFile);
-    if (diff == 0)
-        return compName(first,second);
-    return (diff < 0);
-}
-
-
-
-void
-ImageViewer::sortByImageDate ()
-{
-    int numImg = m_images.size();
-    if (numImg < 2)
-        return;
-    std::sort( m_images.begin(), m_images.end(), &compImageDate);
-    current_image(0);
-    displayCurrentImage();
-    // updateActions();
-}
-
-
-
-static bool
-compFileDate (IvImage *first, IvImage *second)
-{
-    std::time_t firstFile, secondFile;
-    double diff;
-    if (! Filesystem::exists (first->name ()))
-        return false;
-    firstFile = Filesystem::last_write_time (first->name());
-    if (! Filesystem::exists (second->name ()))
-        return true;
-    secondFile = Filesystem::last_write_time (second->name());
+    DateTime_to_time_t(metadatatime.c_str(), secondFile);
     diff = difftime(firstFile, secondFile);
     if (diff == 0)
         return compName(first, second);
@@ -1490,26 +1525,45 @@ compFileDate (IvImage *first, IvImage *second)
 
 
 void
-ImageViewer::sortByFileDate ()
-{
-    int numImg = m_images.size();
-    if (numImg<2)
-        return;
-    std::sort( m_images.begin(), m_images.end(), &compFileDate);
-    current_image(0);
-    displayCurrentImage();
-    // updateActions();
-}
-
-
-
-void
-ImageViewer::sortReverse ()
+ImageViewer::sortByImageDate()
 {
     int numImg = m_images.size();
     if (numImg < 2)
         return;
-    std::reverse( m_images.begin(), m_images.end());
+    std::sort(m_images.begin(), m_images.end(), &compImageDate);
+    current_image(0);
+    displayCurrentImage();
+    // updateActions();
+}
+
+
+
+static bool
+compFileDate(IvImage* first, IvImage* second)
+{
+    std::time_t firstFile, secondFile;
+    double diff;
+    if (!Filesystem::exists(first->name()))
+        return false;
+    firstFile = Filesystem::last_write_time(first->name());
+    if (!Filesystem::exists(second->name()))
+        return true;
+    secondFile = Filesystem::last_write_time(second->name());
+    diff       = difftime(firstFile, secondFile);
+    if (diff == 0)
+        return compName(first, second);
+    return (diff < 0);
+}
+
+
+
+void
+ImageViewer::sortByFileDate()
+{
+    int numImg = m_images.size();
+    if (numImg < 2)
+        return;
+    std::sort(m_images.begin(), m_images.end(), &compFileDate);
     current_image(0);
     displayCurrentImage();
     // updateActions();
@@ -1518,100 +1572,114 @@ ImageViewer::sortReverse ()
 
 
 void
-ImageViewer::viewChannelFull ()
+ImageViewer::sortReverse()
 {
-    viewChannel (0, RGBA);
+    int numImg = m_images.size();
+    if (numImg < 2)
+        return;
+    std::reverse(m_images.begin(), m_images.end());
+    current_image(0);
+    displayCurrentImage();
+    // updateActions();
+}
+
+
+
+void
+ImageViewer::viewChannelFull()
+{
+    viewChannel(0, RGBA);
 }
 
 
 void
-ImageViewer::viewChannelRed ()
+ImageViewer::viewChannelRed()
 {
-    viewChannel (0, SINGLE_CHANNEL);
+    viewChannel(0, SINGLE_CHANNEL);
 }
 
 
 void
-ImageViewer::viewChannelGreen ()
+ImageViewer::viewChannelGreen()
 {
-    viewChannel (1, SINGLE_CHANNEL);
+    viewChannel(1, SINGLE_CHANNEL);
 }
 
 
 void
-ImageViewer::viewChannelBlue ()
+ImageViewer::viewChannelBlue()
 {
-    viewChannel (2, SINGLE_CHANNEL);
+    viewChannel(2, SINGLE_CHANNEL);
 }
 
 
 void
-ImageViewer::viewChannelAlpha ()
+ImageViewer::viewChannelAlpha()
 {
-    viewChannel (3, SINGLE_CHANNEL);
+    viewChannel(3, SINGLE_CHANNEL);
 }
 
 
 void
-ImageViewer::viewChannelLuminance ()
+ImageViewer::viewChannelLuminance()
 {
-    viewChannel (m_current_channel, LUMINANCE);
+    viewChannel(m_current_channel, LUMINANCE);
 }
 
 
 void
-ImageViewer::viewColorRGBA ()
+ImageViewer::viewColorRGBA()
 {
-    viewChannel (m_current_channel, RGBA);
+    viewChannel(m_current_channel, RGBA);
 }
 
 
 void
-ImageViewer::viewColorRGB ()
+ImageViewer::viewColorRGB()
 {
-    viewChannel (m_current_channel, RGB);
+    viewChannel(m_current_channel, RGB);
 }
 
 
 void
-ImageViewer::viewColor1Ch ()
+ImageViewer::viewColor1Ch()
 {
-    viewChannel (m_current_channel, SINGLE_CHANNEL);
+    viewChannel(m_current_channel, SINGLE_CHANNEL);
 }
 
 
 void
-ImageViewer::viewColorHeatmap ()
+ImageViewer::viewColorHeatmap()
 {
-    viewChannel (m_current_channel, HEATMAP);
+    viewChannel(m_current_channel, HEATMAP);
 }
 
 
 void
-ImageViewer::viewChannelPrev ()
+ImageViewer::viewChannelPrev()
 {
     if (glwin->is_glsl_capable()) {
         if (m_current_channel > 0)
-            viewChannel (m_current_channel-1, m_color_mode);
+            viewChannel(m_current_channel - 1, m_color_mode);
     } else {
         // Simulate old behavior.
         if (m_color_mode == RGBA || m_color_mode == RGB) {
-            viewChannel (m_current_channel, LUMINANCE);
+            viewChannel(m_current_channel, LUMINANCE);
         } else if (m_color_mode == SINGLE_CHANNEL) {
             if (m_current_channel == 0)
                 viewChannelFull();
             else
-                viewChannel (m_current_channel-1, SINGLE_CHANNEL);
+                viewChannel(m_current_channel - 1, SINGLE_CHANNEL);
         }
     }
 }
 
 
 void
-ImageViewer::viewChannelNext ()
+ImageViewer::viewChannelNext()
 {
     if (glwin->is_glsl_capable()) {
-        viewChannel (m_current_channel+1, m_color_mode);
+        viewChannel(m_current_channel + 1, m_color_mode);
     } else {
         // Simulate old behavior.
         if (m_color_mode == LUMINANCE) {
@@ -1619,7 +1687,7 @@ ImageViewer::viewChannelNext ()
         } else if (m_color_mode == RGBA || m_color_mode == RGB) {
             viewChannelRed();
         } else if (m_color_mode == SINGLE_CHANNEL) {
-            viewChannel (m_current_channel+1, SINGLE_CHANNEL);
+            viewChannel(m_current_channel + 1, SINGLE_CHANNEL);
         }
     }
 }
@@ -1627,96 +1695,88 @@ ImageViewer::viewChannelNext ()
 
 
 void
-ImageViewer::viewSubimagePrev ()
+ImageViewer::viewSubimagePrev()
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
     bool ok = false;
     if (img->miplevel() > 0) {
-        ok = loadCurrentImage (img->subimage(), img->miplevel()-1);
+        ok = loadCurrentImage(img->subimage(), img->miplevel() - 1);
     } else if (img->subimage() > 0) {
-        ok = loadCurrentImage (img->subimage()-1);
+        ok = loadCurrentImage(img->subimage() - 1);
     } else if (img->nsubimages() > 0) {
-        img->auto_subimage (true);
-        ok = loadCurrentImage (0);
+        img->auto_subimage(true);
+        ok = loadCurrentImage(0);
     }
     if (ok) {
-        if (fitImageToWindowAct->isChecked ())
-            fitImageToWindow ();
-        displayCurrentImage ();
+        if (fitImageToWindowAct->isChecked())
+            fitImageToWindow();
+        displayCurrentImage();
     }
 }
 
 
 void
-ImageViewer::viewSubimageNext ()
+ImageViewer::viewSubimageNext()
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
     bool ok = false;
     if (img->auto_subimage()) {
         img->auto_subimage(false);
-        ok = loadCurrentImage (0);
-    } else if (img->miplevel() < img->nmiplevels()-1) {
-        ok = loadCurrentImage (img->subimage(), img->miplevel()+1);
-    } else if (img->subimage() < img->nsubimages()-1) {
-        ok = loadCurrentImage (img->subimage()+1);
+        ok = loadCurrentImage(0);
+    } else if (img->miplevel() < img->nmiplevels() - 1) {
+        ok = loadCurrentImage(img->subimage(), img->miplevel() + 1);
+    } else if (img->subimage() < img->nsubimages() - 1) {
+        ok = loadCurrentImage(img->subimage() + 1);
     }
     if (ok) {
-        if (fitImageToWindowAct->isChecked ())
-            fitImageToWindow ();
-        displayCurrentImage ();
+        if (fitImageToWindowAct->isChecked())
+            fitImageToWindow();
+        displayCurrentImage();
     }
 }
 
 
 
 void
-ImageViewer::keyPressEvent (QKeyEvent *event)
+ImageViewer::keyPressEvent(QKeyEvent* event)
 {
     switch (event->key()) {
-    case Qt::Key_Left :
-    case Qt::Key_Up :
-    case Qt::Key_PageUp :
-        prevImage();
-        return;  //break;
-    case Qt::Key_Right :
-//        std::cerr << "Modifier is " << (int)event->modifiers() << '\n';
-//        fprintf (stderr, "%x\n", (int)event->modifiers());
-//        if (event->modifiers() & Qt::ShiftModifier)
-//            std::cerr << "hey, ctrl right\n";
-    case Qt::Key_Down :
-    case Qt::Key_PageDown :
-        nextImage();
-        return; //break;
-    case Qt::Key_Escape :
+    case Qt::Key_Left:
+    case Qt::Key_Up:
+    case Qt::Key_PageUp: prevImage(); return;  //break;
+    case Qt::Key_Right:
+        //        std::cerr << "Modifier is " << (int)event->modifiers() << '\n';
+        //        fprintf (stderr, "%x\n", (int)event->modifiers());
+        //        if (event->modifiers() & Qt::ShiftModifier)
+        //            std::cerr << "hey, ctrl right\n";
+    case Qt::Key_Down:
+    case Qt::Key_PageDown: nextImage(); return;  //break;
+    case Qt::Key_Escape:
         if (m_fullscreen)
             fullScreenToggle();
         return;
-    case Qt::Key_Minus :
-    case Qt::Key_Underscore :
-        zoomOut();
-        break;
-    case Qt::Key_Plus :
-    case Qt::Key_Equal :
-        zoomIn();
-        break;
+    case Qt::Key_Minus:
+    case Qt::Key_Underscore: zoomOut(); break;
+    case Qt::Key_Plus:
+    case Qt::Key_Equal: zoomIn(); break;
     default:
         // std::cerr << "ImageViewer key " << (int)event->key() << '\n';
-        QMainWindow::keyPressEvent (event);
+        QMainWindow::keyPressEvent(event);
     }
 }
 
 
 
 void
-ImageViewer::resizeEvent (QResizeEvent *event)
+ImageViewer::resizeEvent(QResizeEvent* event)
 {
-    if (fitImageToWindowAct->isChecked ())
-        fitImageToWindow ();
-    QMainWindow::resizeEvent (event);
+    if (fitImageToWindowAct->isChecked())
+        fitImageToWindow();
+    QMainWindow::resizeEvent(event);
 }
 
 
@@ -1728,22 +1788,22 @@ ImageViewer::closeImg()
         return;
     delete m_images[m_current_image];
     m_images[m_current_image] = NULL;
-    m_images.erase (m_images.begin()+m_current_image);
+    m_images.erase(m_images.begin() + m_current_image);
 
     // Update image indices
     // This should be done for all image indices we may be storing
-    if (m_last_image == m_current_image)
-    {
+    if (m_last_image == m_current_image) {
         if (!m_images.empty() && m_last_image > 0)
             m_last_image = 0;
         else
             m_last_image = -1;
     }
     if (m_last_image > m_current_image)
-        m_last_image --;
+        m_last_image--;
 
-    m_current_image = m_current_image < (int)m_images.size() ? m_current_image : 0;
-    displayCurrentImage ();
+    m_current_image = m_current_image < (int)m_images.size() ? m_current_image
+                                                             : 0;
+    displayCurrentImage();
 }
 
 
@@ -1768,132 +1828,140 @@ ImageViewer::print()
 
 
 
-void ImageViewer::zoomIn()
+void
+ImageViewer::zoomIn()
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
     if (zoom() >= 64)
         return;
-    float oldzoom = zoom ();
-    float newzoom = pow2roundupf (oldzoom);
-    
+    float oldzoom = zoom();
+    float newzoom = pow2roundupf(oldzoom);
+
     float xc, yc;  // Center view position
-    glwin->get_center (xc, yc);
+    glwin->get_center(xc, yc);
     int xm, ym;  // Mouse position
-    glwin->get_focus_image_pixel (xm, ym);
-    float xoffset = xc - xm;
-    float yoffset = yc - ym;
-    float maxzoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
-    int nsteps = (int) Imath::clamp (20 * (maxzoomratio - 1), 2.0f, 10.0f);
-    for (int i = 1;  i <= nsteps;  ++i) {
-        float a = (float)i/(float)nsteps;   // Interpolation amount
-        float z = Imath::lerp (oldzoom, newzoom, a);
+    glwin->get_focus_image_pixel(xm, ym);
+    float xoffset      = xc - xm;
+    float yoffset      = yc - ym;
+    float maxzoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
+    int nsteps = (int)Imath::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
+    for (int i = 1; i <= nsteps; ++i) {
+        float a         = (float)i / (float)nsteps;  // Interpolation amount
+        float z         = Imath::lerp(oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
-        view (xm + xoffset/zoomratio, ym + yoffset/zoomratio, z, false);
+        view(xm + xoffset / zoomratio, ym + yoffset / zoomratio, z, false);
         if (i != nsteps) {
             QApplication::processEvents();
-            Sysutil::usleep (1000000 / 4 / nsteps);
+            Sysutil::usleep(1000000 / 4 / nsteps);
         }
     }
 
-    fitImageToWindowAct->setChecked (false);
+    fitImageToWindowAct->setChecked(false);
 }
 
 
 
-void ImageViewer::zoomOut()
+void
+ImageViewer::zoomOut()
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
-    if (zoom() <= 1.0f/64)
+    if (zoom() <= 1.0f / 64)
         return;
-    float oldzoom = zoom ();
-    float newzoom = pow2rounddownf (oldzoom);
-    
+    float oldzoom = zoom();
+    float newzoom = pow2rounddownf(oldzoom);
+
     float xcpel, ycpel;  // Center view position
-    glwin->get_center (xcpel, ycpel);
+    glwin->get_center(xcpel, ycpel);
     int xmpel, ympel;  // Mouse position
-    glwin->get_focus_image_pixel (xmpel, ympel);
-    float xoffset = xcpel - xmpel;
-    float yoffset = ycpel - ympel;
-    float maxzoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
-    int nsteps = (int) Imath::clamp (20 * (maxzoomratio - 1), 2.0f, 10.0f);
-    for (int i = 1;  i <= nsteps;  ++i) {
-        float a = (float)i/(float)nsteps;   // Interpolation amount
-        float z = Imath::lerp (oldzoom, newzoom, a);
+    glwin->get_focus_image_pixel(xmpel, ympel);
+    float xoffset      = xcpel - xmpel;
+    float yoffset      = ycpel - ympel;
+    float maxzoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
+    int nsteps = (int)Imath::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
+    for (int i = 1; i <= nsteps; ++i) {
+        float a         = (float)i / (float)nsteps;  // Interpolation amount
+        float z         = Imath::lerp(oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
-        view (xmpel + xoffset/zoomratio, ympel + yoffset/zoomratio, z, false);
+        view(xmpel + xoffset / zoomratio, ympel + yoffset / zoomratio, z,
+             false);
         if (i != nsteps) {
             QApplication::processEvents();
-            Sysutil::usleep (1000000 / 4 / nsteps);
+            Sysutil::usleep(1000000 / 4 / nsteps);
         }
     }
 
-    fitImageToWindowAct->setChecked (false);
+    fitImageToWindowAct->setChecked(false);
 }
 
 
-void ImageViewer::normalSize()
+void
+ImageViewer::normalSize()
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
-    fitImageToWindowAct->setChecked (false);
+    fitImageToWindowAct->setChecked(false);
     float xcenter = img->oriented_full_x() + 0.5 * img->oriented_full_width();
     float ycenter = img->oriented_full_y() + 0.5 * img->oriented_full_height();
-    view (xcenter, ycenter, 1.0, true);
-    fitWindowToImage (false);
+    view(xcenter, ycenter, 1.0, true);
+    fitWindowToImage(false);
 }
 
 
 
 float
-ImageViewer::zoom_needed_to_fit (int w, int h)
+ImageViewer::zoom_needed_to_fit(int w, int h)
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return 1;
-    float zw = (float) w / img->oriented_width ();
-    float zh = (float) h / img->oriented_height ();
-    return std::min (zw, zh);
+    float zw = (float)w / img->oriented_width();
+    float zh = (float)h / img->oriented_height();
+    return std::min(zw, zh);
 }
 
 
 
-void ImageViewer::fitImageToWindow()
+void
+ImageViewer::fitImageToWindow()
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
-    fitImageToWindowAct->setChecked (true);
-    zoom (zoom_needed_to_fit (glwin->width(), glwin->height()));
+    fitImageToWindowAct->setChecked(true);
+    zoom(zoom_needed_to_fit(glwin->width(), glwin->height()));
 }
 
 
 
-void ImageViewer::fitWindowToImage (bool zoomok, bool minsize)
+void
+ImageViewer::fitWindowToImage(bool zoomok, bool minsize)
 {
-    IvImage *img = cur();
+    IvImage* img = cur();
     // Don't resize when there's no image or the image hasn't been opened yet
     // (or we failed to open it).
-    if (! img || ! img->image_valid ())
+    if (!img || !img->image_valid())
         return;
-    // FIXME -- figure out a way to make it exactly right, even for the
-    // main window border, etc.
+        // FIXME -- figure out a way to make it exactly right, even for the
+        // main window border, etc.
 #ifdef __APPLE__
-    int extraw = 0; //12; // width() - minimumWidth();
-    int extrah = statusBar()->height() + 0; //40; // height() - minimumHeight();
+    int extraw = 0;  //12; // width() - minimumWidth();
+    int extrah = statusBar()->height()
+                 + 0;  //40; // height() - minimumHeight();
 #else
-    int extraw = 4; //12; // width() - minimumWidth();
-    int extrah = statusBar()->height() + 4; //40; // height() - minimumHeight();
+    int extraw = 4;  //12; // width() - minimumWidth();
+    int extrah = statusBar()->height()
+                 + 4;  //40; // height() - minimumHeight();
 #endif
-//    std::cerr << "extra wh = " << extraw << ' ' << extrah << '\n';
+    //    std::cerr << "extra wh = " << extraw << ' ' << extrah << '\n';
 
     float z = zoom();
-    int w = (int)(img->oriented_full_width()  * z)+extraw;
-    int h = (int)(img->oriented_full_height() * z)+extrah;
+    int w   = (int)(img->oriented_full_width() * z) + extraw;
+    int h   = (int)(img->oriented_full_height() * z) + extrah;
     if (minsize) {
         if (w < m_default_width) {
             w = m_default_width;
@@ -1903,22 +1971,23 @@ void ImageViewer::fitWindowToImage (bool zoomok, bool minsize)
         }
     }
 
-    if (! m_fullscreen) {
-        QDesktopWidget *desktop = QApplication::desktop ();
-        QRect availgeom = desktop->availableGeometry (this);
-        int availwidth = availgeom.width() - extraw - 20;
-        int availheight = availgeom.height() - extrah - menuBar()->height() - 20;
+    if (!m_fullscreen) {
+        QDesktopWidget* desktop = QApplication::desktop();
+        QRect availgeom         = desktop->availableGeometry(this);
+        int availwidth          = availgeom.width() - extraw - 20;
+        int availheight = availgeom.height() - extrah - menuBar()->height()
+                          - 20;
 #if 0
         QRect screengeom = desktop->screenGeometry (this);
         std::cerr << "available desktop geom " << availgeom.x() << ' ' << availgeom.y() << ' ' << availgeom.width() << "x" << availgeom.height() << "\n";
         std::cerr << "screen desktop geom " << screengeom.x() << ' ' << screengeom.y() << ' ' << screengeom.width() << "x" << screengeom.height() << "\n";
 #endif
         if (w > availwidth || h > availheight) {
-            w = std::min (w, availwidth);
-            h = std::min (h, availheight);
+            w = std::min(w, availwidth);
+            h = std::min(h, availheight);
             if (zoomok) {
-                z = zoom_needed_to_fit (w, h);
-                w = (int)(img->oriented_full_width()  * z) + extraw;
+                z = zoom_needed_to_fit(w, h);
+                w = (int)(img->oriented_full_width() * z) + extraw;
                 h = (int)(img->oriented_full_height() * z) + extrah;
                 // std::cerr << "must rezoom to " << z << " to fit\n";
             }
@@ -1926,19 +1995,19 @@ void ImageViewer::fitWindowToImage (bool zoomok, bool minsize)
             int posx = x(), posy = y();
             if (posx + w > availwidth || posy + h > availheight) {
                 if (posx + w > availwidth)
-                    posx = std::max (0, availwidth - w) + availgeom.x();
+                    posx = std::max(0, availwidth - w) + availgeom.x();
                 if (posy + h > availheight)
-                    posy = std::max (0, availheight - h) + availgeom.y();
+                    posy = std::max(0, availheight - h) + availgeom.y();
                 // std::cerr << "New position " << posx << ' ' << posy << "\n";
-                move (QPoint (posx, posy));
+                move(QPoint(posx, posy));
             }
         }
     }
 
     float midx = img->oriented_full_x() + 0.5 * img->oriented_full_width();
     float midy = img->oriented_full_y() + 0.5 * img->oriented_full_height();
-    view (midx, midy, z, false, false);
-    resize (w, h); // Resize will trigger a repaint.
+    view(midx, midy, z, false, false);
+    resize(w, h);  // Resize will trigger a repaint.
 
 #if 0
     QRect g = geometry();
@@ -1961,21 +2030,22 @@ void ImageViewer::fitWindowToImage (bool zoomok, bool minsize)
 
 
 
-void ImageViewer::fullScreenToggle()
+void
+ImageViewer::fullScreenToggle()
 {
     if (m_fullscreen) {
-        menuBar()->show ();
-        statusBar()->show ();
-        showNormal ();
+        menuBar()->show();
+        statusBar()->show();
+        showNormal();
         m_fullscreen = false;
         slideTimer->stop();
-        disconnect(slideTimer,0,0,0);
+        disconnect(slideTimer, 0, 0, 0);
     } else {
-        menuBar()->hide ();
-        statusBar()->hide ();
-        showFullScreen ();
+        menuBar()->hide();
+        statusBar()->hide();
+        showFullScreen();
         m_fullscreen = true;
-        fitImageToWindow ();
+        fitImageToWindow();
     }
 }
 
@@ -1984,30 +2054,34 @@ void ImageViewer::fullScreenToggle()
 void
 ImageViewer::about()
 {
-    QMessageBox::about(this, tr("About iv"),
-            tr("<p><b>iv</b> is the image viewer for OpenImageIO.</p>"
-               "<p>(c) Copyright 2008 Larry Gritz et al.  All Rights Reserved.</p>"
-               "<p>See <a href='http://openimageio.org'>http://openimageio.org</a> for details.</p>"));
+    QMessageBox::about(
+        this, tr("About iv"),
+        tr("<p><b>iv</b> is the image viewer for OpenImageIO.</p>"
+           "<p>(c) Copyright 2008 Larry Gritz et al.  All Rights Reserved.</p>"
+           "<p>See <a href='http://openimageio.org'>http://openimageio.org</a> for details.</p>"));
 }
 
 
-void ImageViewer::updateActions()
+void
+ImageViewer::updateActions()
 {
-//    zoomInAct->setEnabled(!fitImageToWindowAct->isChecked());
-//    zoomOutAct->setEnabled(!fitImageToWindowAct->isChecked());
-//    normalSizeAct->setEnabled(!fitImageToWindowAct->isChecked());
+    //    zoomInAct->setEnabled(!fitImageToWindowAct->isChecked());
+    //    zoomOutAct->setEnabled(!fitImageToWindowAct->isChecked());
+    //    normalSizeAct->setEnabled(!fitImageToWindowAct->isChecked());
 }
 
 
 
-static inline void 
-calc_subimage_from_zoom (const IvImage *img, int &subimage, float &zoom, float &xcenter, float &ycenter) 
+static inline void
+calc_subimage_from_zoom(const IvImage* img, int& subimage, float& zoom,
+                        float& xcenter, float& ycenter)
 {
-    int rel_subimage = Imath::trunc (log2f (1/zoom));
-    subimage = clamp<int> (img->subimage() + rel_subimage, 0, img->nsubimages()-1);
-    if (! (img->subimage() == 0 && zoom > 1) &&
-        ! (img->subimage() == img->nsubimages()-1 && zoom < 1)) {
-        float pow_zoom = powf (2.0f, (float) rel_subimage);
+    int rel_subimage = Imath::trunc(log2f(1 / zoom));
+    subimage         = clamp<int>(img->subimage() + rel_subimage, 0,
+                          img->nsubimages() - 1);
+    if (!(img->subimage() == 0 && zoom > 1)
+        && !(img->subimage() == img->nsubimages() - 1 && zoom < 1)) {
+        float pow_zoom = powf(2.0f, (float)rel_subimage);
         zoom *= pow_zoom;
         xcenter /= pow_zoom;
         ycenter /= pow_zoom;
@@ -2017,92 +2091,93 @@ calc_subimage_from_zoom (const IvImage *img, int &subimage, float &zoom, float &
 
 
 void
-ImageViewer::view (float xcenter, float ycenter, float newzoom, bool smooth, bool redraw)
+ImageViewer::view(float xcenter, float ycenter, float newzoom, bool smooth,
+                  bool redraw)
 {
-    IvImage *img = cur();
-    if (! img)
+    IvImage* img = cur();
+    if (!img)
         return;
 
-    float oldzoom = m_zoom; 
+    float oldzoom = m_zoom;
     float oldxcenter, oldycenter;
-    glwin->get_center (oldxcenter, oldycenter);
-    float zoomratio = std::max (oldzoom/newzoom, newzoom/oldzoom);
-    int nsteps = (int) Imath::clamp (20 * (zoomratio - 1), 2.0f, 10.0f);
-    if (! smooth || ! redraw)
+    glwin->get_center(oldxcenter, oldycenter);
+    float zoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
+    int nsteps      = (int)Imath::clamp(20 * (zoomratio - 1), 2.0f, 10.0f);
+    if (!smooth || !redraw)
         nsteps = 1;
-    for (int i = 1;  i <= nsteps;  ++i) {
-        float a = (float)i/(float)nsteps;   // Interpolation amount
-        float xc = Imath::lerp (oldxcenter, xcenter, a);
-        float yc = Imath::lerp (oldycenter, ycenter, a);
-        m_zoom = Imath::lerp (oldzoom, newzoom, a);
+    for (int i = 1; i <= nsteps; ++i) {
+        float a  = (float)i / (float)nsteps;  // Interpolation amount
+        float xc = Imath::lerp(oldxcenter, xcenter, a);
+        float yc = Imath::lerp(oldycenter, ycenter, a);
+        m_zoom   = Imath::lerp(oldzoom, newzoom, a);
 
-        glwin->view (xc, yc, m_zoom, redraw);  // Triggers redraw automatically
+        glwin->view(xc, yc, m_zoom, redraw);  // Triggers redraw automatically
         if (i != nsteps) {
             QApplication::processEvents();
-            Sysutil::usleep (1000000 / 4 / nsteps);
+            Sysutil::usleep(1000000 / 4 / nsteps);
         }
     }
 
-    if (img->auto_subimage ()) {
+    if (img->auto_subimage()) {
         int subimage = 0;
-        calc_subimage_from_zoom (img, subimage, m_zoom, xcenter, ycenter);
-        if (subimage != img->subimage ()) {
+        calc_subimage_from_zoom(img, subimage, m_zoom, xcenter, ycenter);
+        if (subimage != img->subimage()) {
             //std::cerr << "Changing to subimage " << subimage;
             //std::cerr << " With zoom: " << m_zoom << '\n';
-            loadCurrentImage (subimage);
-            glwin->update ();
-            glwin->view (xcenter, ycenter, m_zoom, redraw);
+            loadCurrentImage(subimage);
+            glwin->update();
+            glwin->view(xcenter, ycenter, m_zoom, redraw);
         }
     }
 
-//    zoomInAct->setEnabled (zoom() < 64.0);
-//    zoomOutAct->setEnabled (zoom() > 1.0/64);
+    //    zoomInAct->setEnabled (zoom() < 64.0);
+    //    zoomOutAct->setEnabled (zoom() > 1.0/64);
 
-    updateStatusBar ();
+    updateStatusBar();
 }
 
 
 
 void
-ImageViewer::zoom (float newzoom, bool smooth)
+ImageViewer::zoom(float newzoom, bool smooth)
 {
     float xcenter, ycenter;
-    glwin->get_center (xcenter, ycenter);
-    view (xcenter, ycenter, newzoom, smooth);
+    glwin->get_center(xcenter, ycenter);
+    view(xcenter, ycenter, newzoom, smooth);
 }
 
 
 
 void
-ImageViewer::showInfoWindow ()
+ImageViewer::showInfoWindow()
 {
-    if (! infoWindow) {
-        infoWindow = new IvInfoWindow (*this, true);
-        infoWindow->setPalette (m_palette);
+    if (!infoWindow) {
+        infoWindow = new IvInfoWindow(*this, true);
+        infoWindow->setPalette(m_palette);
     }
-    infoWindow->update (cur());
-    if (infoWindow->isHidden ())
-        infoWindow->show ();
+    infoWindow->update(cur());
+    if (infoWindow->isHidden())
+        infoWindow->show();
     else
-        infoWindow->hide ();
+        infoWindow->hide();
 }
 
 
 
 void
-ImageViewer::showPixelviewWindow ()
+ImageViewer::showPixelviewWindow()
 {
-    ((QOpenGLWidget*)(glwin))->update ();
+    ((QOpenGLWidget*)(glwin))->update();
 }
 
 
 
 void
-ImageViewer::editPreferences ()
+ImageViewer::editPreferences()
 {
-    if (! preferenceWindow) {
-        preferenceWindow = new IvPreferenceWindow (*this);
-        preferenceWindow->setPalette (m_palette);
+    if (!preferenceWindow) {
+        preferenceWindow = new IvPreferenceWindow(*this);
+        preferenceWindow->setPalette(m_palette);
     }
-    preferenceWindow->show ();
+    preferenceWindow->show();
 }

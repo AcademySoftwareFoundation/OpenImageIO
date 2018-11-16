@@ -34,12 +34,12 @@
 // nothing wrong with such conditionals.
 // Also ignore warnings about not being able to generate default assignment
 // operators for some Qt classes included in headers below.
-#  pragma warning (disable : 4127 4512)
+#    pragma warning(disable : 4127 4512)
 #endif
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
 #include <ctime>
 #include <iostream>
 #include <iterator>
@@ -47,27 +47,27 @@
 #include <QApplication>
 
 #include "imageviewer.h"
-#include <OpenImageIO/timer.h>
 #include <OpenImageIO/argparse.h>
-#include <OpenImageIO/sysutil.h>
-#include <OpenImageIO/strutil.h>
-#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagecache.h>
+#include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/timer.h>
 
 using namespace OIIO;
 
 
-static bool verbose = false;
+static bool verbose         = false;
 static bool foreground_mode = false;
-static bool autopremult = true;
+static bool autopremult     = true;
 static std::vector<std::string> filenames;
 
 
 
 static int
-parse_files (int argc, const char *argv[])
+parse_files(int argc, const char* argv[])
 {
-    for (int i = 0;  i < argc;  i++)
+    for (int i = 0; i < argc; i++)
         filenames.emplace_back(argv[i]);
     return 0;
 }
@@ -75,73 +75,76 @@ parse_files (int argc, const char *argv[])
 
 
 static void
-getargs (int argc, char *argv[])
+getargs(int argc, char* argv[])
 {
     bool help = false;
     ArgParse ap;
+    // clang-format off
     ap.options ("iv -- image viewer\n"
                 OIIO_INTRO_STRING "\n"
                 "Usage:  iv [options] [filename...]",
-                  "%*", parse_files, "",
-                  "--help", &help, "Print help message",
-                  "-v", &verbose, "Verbose status messages",
-                  "-F", &foreground_mode, "Foreground mode",
-                  "--no-autopremult %!", &autopremult, "Turn off automatic premultiplication of images with unassociated alpha",
-                  NULL);
-    if (ap.parse (argc, (const char**)argv) < 0) {
+                "%*", parse_files, "",
+                "--help", &help, "Print help message",
+                "-v", &verbose, "Verbose status messages",
+                "-F", &foreground_mode, "Foreground mode",
+                "--no-autopremult %!", &autopremult,
+                    "Turn off automatic premultiplication of images with unassociated alpha",
+                nullptr);
+    // clang-format on
+    if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
-        ap.usage ();
-        exit (EXIT_FAILURE);
+        ap.usage();
+        exit(EXIT_FAILURE);
     }
     if (help) {
-        ap.usage ();
-        exit (EXIT_FAILURE);
+        ap.usage();
+        exit(EXIT_FAILURE);
     }
 }
 
 #ifdef WIN32
-    // if we are not in DEBUG mode this code switch the app to
-    // full windowed mode (no console and no need to define WinMain)
-    // FIXME: this should be done in CMakeLists.txt but first we have to
-    // fix Windows Debug build
-# ifdef NDEBUG
-#  pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
-# endif
+// if we are not in DEBUG mode this code switch the app to
+// full windowed mode (no console and no need to define WinMain)
+// FIXME: this should be done in CMakeLists.txt but first we have to
+// fix Windows Debug build
+#    ifdef NDEBUG
+#        pragma comment(linker, "/subsystem:windows /entry:mainCRTStartup")
+#    endif
 #endif
 
 
 int
-main (int argc, char *argv[])
+main(int argc, char* argv[])
 {
-    Filesystem::convert_native_arguments (argc, (const char **)argv);
-    getargs (argc, argv);
+    Filesystem::convert_native_arguments(argc, (const char**)argv);
+    getargs(argc, argv);
 
-    if (! foreground_mode)
-        Sysutil::put_in_background (argc, argv);
+    if (!foreground_mode)
+        Sysutil::put_in_background(argc, argv);
 
     // LG
-//    Q_INIT_RESOURCE(iv);
+    //    Q_INIT_RESOURCE(iv);
     QApplication app(argc, argv);
-    ImageViewer *mainWin = new ImageViewer;
+    ImageViewer* mainWin = new ImageViewer;
     mainWin->show();
 
     // Set up the imagecache with parameters that make sense for iv
-    ImageCache *imagecache = ImageCache::create (true);
-    imagecache->attribute ("autotile", 256);
-    imagecache->attribute ("deduplicate", (int)0);
-    if (! autopremult)
-        imagecache->attribute ("unassociatedalpha", 1);
+    ImageCache* imagecache = ImageCache::create(true);
+    imagecache->attribute("autotile", 256);
+    imagecache->attribute("deduplicate", (int)0);
+    if (!autopremult)
+        imagecache->attribute("unassociatedalpha", 1);
 
     // Make sure we are the top window with the focus.
-    mainWin->raise ();
-    mainWin->activateWindow ();
+    mainWin->raise();
+    mainWin->activateWindow();
 
     // Add the images
-    for (const auto &s : filenames) {
-        mainWin->add_image (s);
+    for (const auto& s : filenames) {
+        mainWin->add_image(s);
     }
 
-    mainWin->current_image (0);
+    mainWin->current_image(0);
 
     int r = app.exec();
     // OK to clean up here
@@ -150,10 +153,11 @@ main (int argc, char *argv[])
     if (verbose)
 #endif
     {
-        size_t mem = Sysutil::memory_used (true);
-        std::cout << "iv total memory used: " << Strutil::memformat (mem) << "\n";
+        size_t mem = Sysutil::memory_used(true);
+        std::cout << "iv total memory used: " << Strutil::memformat(mem)
+                  << "\n";
         std::cout << "\n";
-        std::cout << imagecache->getstats (1+verbose) << "\n";
+        std::cout << imagecache->getstats(1 + verbose) << "\n";
     }
 
     return r;
