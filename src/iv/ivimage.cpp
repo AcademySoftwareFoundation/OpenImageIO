@@ -34,48 +34,48 @@
 #include <OpenEXR/half.h>
 
 #include "imageviewer.h"
-#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/strutil.h>
 
 
-IvImage::IvImage (const std::string &filename)
-    : ImageBuf(filename), m_thumbnail(NULL),
-      m_thumbnail_valid(false),
-      m_gamma(1), m_exposure(0),
-      m_file_dataformat(TypeDesc::UNKNOWN), 
-      m_image_valid(false), m_auto_subimage(false)
+IvImage::IvImage(const std::string& filename)
+    : ImageBuf(filename)
+    , m_thumbnail(NULL)
+    , m_thumbnail_valid(false)
+    , m_gamma(1)
+    , m_exposure(0)
+    , m_file_dataformat(TypeDesc::UNKNOWN)
+    , m_image_valid(false)
+    , m_auto_subimage(false)
 {
 }
 
 
 
-IvImage::~IvImage ()
-{
-    delete [] m_thumbnail;
-}
+IvImage::~IvImage() { delete[] m_thumbnail; }
 
 
 
 bool
-IvImage::init_spec_iv (const std::string &filename, int subimage, int miplevel)
+IvImage::init_spec_iv(const std::string& filename, int subimage, int miplevel)
 {
     // invalidate info strings
-    m_shortinfo.clear ();
-    m_longinfo.clear ();
+    m_shortinfo.clear();
+    m_longinfo.clear();
 
     // If we're changing mip levels or subimages, the pixels will no
     // longer be valid.
     if (subimage != this->subimage() || miplevel != this->miplevel())
         m_image_valid = false;
-    bool ok = ImageBuf::init_spec (filename, subimage, miplevel);
+    bool ok = ImageBuf::init_spec(filename, subimage, miplevel);
     if (ok && m_file_dataformat.basetype == TypeDesc::UNKNOWN) {
         m_file_dataformat = spec().format;
     }
-    string_view colorspace = spec().get_string_attribute ("oiio:ColorSpace");
-    if (Strutil::istarts_with (colorspace, "GammaCorrected")) {
-        float g = Strutil::from_string<float>(colorspace.c_str()+14);
+    string_view colorspace = spec().get_string_attribute("oiio:ColorSpace");
+    if (Strutil::istarts_with(colorspace, "GammaCorrected")) {
+        float g = Strutil::from_string<float>(colorspace.c_str() + 14);
         if (g > 1.0 && g <= 3.0 /*sanity check*/) {
-            gamma (gamma()/g);
+            gamma(gamma() / g);
         }
     }
     return ok;
@@ -84,26 +84,29 @@ IvImage::init_spec_iv (const std::string &filename, int subimage, int miplevel)
 
 
 bool
-IvImage::read_iv (int subimage, int miplevel, bool force, TypeDesc format,
-               ProgressCallback progress_callback,
-               void *progress_callback_data, bool secondary_data)
+IvImage::read_iv(int subimage, int miplevel, bool force, TypeDesc format,
+                 ProgressCallback progress_callback,
+                 void* progress_callback_data, bool secondary_data)
 {
     // Don't read if we already have it in memory, unless force is true.
     // FIXME: should we also check the time on the file to see if it's
     // been updated since we last loaded?
-    if (m_image_valid && !force
-        && subimage == this->subimage() && miplevel != this->miplevel())
+    if (m_image_valid && !force && subimage == this->subimage()
+        && miplevel != this->miplevel())
         return true;
 
-    m_image_valid = init_spec_iv (name(), subimage, miplevel);
+    m_image_valid = init_spec_iv(name(), subimage, miplevel);
     if (m_image_valid)
-        m_image_valid = ImageBuf::read (subimage, miplevel, force, format,
-                                        progress_callback, progress_callback_data);
+        m_image_valid = ImageBuf::read(subimage, miplevel, force, format,
+                                       progress_callback,
+                                       progress_callback_data);
 
     if (m_image_valid && secondary_data && spec().format == TypeDesc::UINT8) {
-        m_corrected_image.reset ("", ImageSpec (spec().width, spec().height, std::min(spec().nchannels, 4), spec().format));
+        m_corrected_image.reset("", ImageSpec(spec().width, spec().height,
+                                              std::min(spec().nchannels, 4),
+                                              spec().format));
     } else {
-        m_corrected_image.clear ();
+        m_corrected_image.clear();
     }
     return m_image_valid;
 }
@@ -111,16 +114,16 @@ IvImage::read_iv (int subimage, int miplevel, bool force, TypeDesc format,
 
 
 std::string
-IvImage::shortinfo () const
+IvImage::shortinfo() const
 {
     if (m_shortinfo.empty()) {
-        m_shortinfo = Strutil::format ("%d x %d", spec().width, spec().height);
+        m_shortinfo = Strutil::format("%d x %d", spec().width, spec().height);
         if (spec().depth > 1)
-            m_shortinfo += Strutil::format (" x %d", spec().depth);
-        m_shortinfo += Strutil::format (" x %d channel %s (%.2f MB)",
-                                        spec().nchannels,
-                                        m_file_dataformat.c_str(),
-                                        (float)spec().image_bytes() / (1024.0*1024.0));
+            m_shortinfo += Strutil::format(" x %d", spec().depth);
+        m_shortinfo
+            += Strutil::format(" x %d channel %s (%.2f MB)", spec().nchannels,
+                               m_file_dataformat.c_str(),
+                               (float)spec().image_bytes() / (1024.0 * 1024.0));
     }
     return m_shortinfo;
 }
@@ -129,80 +132,85 @@ IvImage::shortinfo () const
 
 // Format name/value pairs as HTML table entries.
 std::string
-html_table_row (const char *name, const std::string &value)
+html_table_row(const char* name, const std::string& value)
 {
-    std::string line = Strutil::format ("<tr><td><i>%s</i> : &nbsp;&nbsp;</td>",
-                                        name);
-    line += Strutil::format ("<td>%s</td></tr>\n", value.c_str());
+    std::string line = Strutil::format("<tr><td><i>%s</i> : &nbsp;&nbsp;</td>",
+                                       name);
+    line += Strutil::format("<td>%s</td></tr>\n", value.c_str());
     return line;
 }
 
 
 std::string
-html_table_row (const char *name, int value)
+html_table_row(const char* name, int value)
 {
-    return html_table_row (name, Strutil::format ("%d", value));
+    return html_table_row(name, Strutil::format("%d", value));
 }
 
 
 std::string
-html_table_row (const char *name, float value)
+html_table_row(const char* name, float value)
 {
-    return html_table_row (name, Strutil::format ("%g", value));
+    return html_table_row(name, Strutil::format("%g", value));
 }
 
 
 
 std::string
-IvImage::longinfo () const
+IvImage::longinfo() const
 {
     using Strutil::format;  // shorthand
     if (m_longinfo.empty()) {
-        const ImageSpec &m_spec (nativespec());
+        const ImageSpec& m_spec(nativespec());
         m_longinfo += "<table>";
-//        m_longinfo += html_table_row (format("<b>%s</b>", m_name.c_str()).c_str(),
-//                                std::string());
+        //        m_longinfo += html_table_row (format("<b>%s</b>", m_name.c_str()).c_str(),
+        //                                std::string());
         if (m_spec.depth <= 1)
-            m_longinfo += html_table_row ("Dimensions", 
-                        format ("%d x %d pixels", m_spec.width, m_spec.height));
+            m_longinfo += html_table_row("Dimensions",
+                                         format("%d x %d pixels", m_spec.width,
+                                                m_spec.height));
         else
-            m_longinfo += html_table_row ("Dimensions", 
-                        format ("%d x %d x %d pixels",
-                                m_spec.width, m_spec.height, m_spec.depth));
-        m_longinfo += html_table_row ("Channels", m_spec.nchannels);
+            m_longinfo += html_table_row("Dimensions",
+                                         format("%d x %d x %d pixels",
+                                                m_spec.width, m_spec.height,
+                                                m_spec.depth));
+        m_longinfo += html_table_row("Channels", m_spec.nchannels);
         std::string chanlist;
-        for (int i = 0;  i < m_spec.nchannels;  ++i) {
+        for (int i = 0; i < m_spec.nchannels; ++i) {
             chanlist += m_spec.channelnames[i].c_str();
-            if (i != m_spec.nchannels-1)
+            if (i != m_spec.nchannels - 1)
                 chanlist += ", ";
         }
-        m_longinfo += html_table_row ("Channel list", chanlist);
-        m_longinfo += html_table_row ("File format", file_format_name());
-        m_longinfo += html_table_row ("Data format", m_file_dataformat.c_str());
-        m_longinfo += html_table_row ("Data size",
-             format("%.2f MB", (float)m_spec.image_bytes() / (1024.0*1024.0)));
-        m_longinfo += html_table_row ("Image origin", 
-                          format ("%d, %d, %d", m_spec.x, m_spec.y, m_spec.z));
-        m_longinfo += html_table_row ("Full/display size", 
-                          format ("%d x %d x %d", m_spec.full_width,
-                                  m_spec.full_height, m_spec.full_depth));
-        m_longinfo += html_table_row ("Full/display origin", 
-                          format ("%d, %d, %d", m_spec.full_x,
-                                  m_spec.full_y, m_spec.full_z));
+        m_longinfo += html_table_row("Channel list", chanlist);
+        m_longinfo += html_table_row("File format", file_format_name());
+        m_longinfo += html_table_row("Data format", m_file_dataformat.c_str());
+        m_longinfo += html_table_row(
+            "Data size",
+            format("%.2f MB", (float)m_spec.image_bytes() / (1024.0 * 1024.0)));
+        m_longinfo += html_table_row("Image origin",
+                                     format("%d, %d, %d", m_spec.x, m_spec.y,
+                                            m_spec.z));
+        m_longinfo += html_table_row("Full/display size",
+                                     format("%d x %d x %d", m_spec.full_width,
+                                            m_spec.full_height,
+                                            m_spec.full_depth));
+        m_longinfo += html_table_row("Full/display origin",
+                                     format("%d, %d, %d", m_spec.full_x,
+                                            m_spec.full_y, m_spec.full_z));
         if (m_spec.tile_width)
-            m_longinfo += html_table_row ("Scanline/tile",
-                            format ("tiled %d x %d x %d", m_spec.tile_width,
-                                    m_spec.tile_height, m_spec.tile_depth));
+            m_longinfo += html_table_row(
+                "Scanline/tile", format("tiled %d x %d x %d", m_spec.tile_width,
+                                        m_spec.tile_height, m_spec.tile_depth));
         else
-            m_longinfo += html_table_row ("Scanline/tile", "scanline");
+            m_longinfo += html_table_row("Scanline/tile", "scanline");
         if (m_spec.alpha_channel >= 0)
-            m_longinfo += html_table_row ("Alpha channel", m_spec.alpha_channel);
+            m_longinfo += html_table_row("Alpha channel", m_spec.alpha_channel);
         if (m_spec.z_channel >= 0)
-            m_longinfo += html_table_row ("Depth (z) channel", m_spec.z_channel);
+            m_longinfo += html_table_row("Depth (z) channel", m_spec.z_channel);
 
         for (auto&& p : m_spec.extra_attribs) {
-            std::string s = m_spec.metadata_val (p, true);
-            m_longinfo += html_table_row (p.name().c_str(), s);
+            std::string s = m_spec.metadata_val(p, true);
+            m_longinfo += html_table_row(p.name().c_str(), s);
         }
 
         m_longinfo += "</table>";
@@ -219,23 +227,24 @@ static EightBitConverter<float> converter;
 /// Helper routine: compute (gain*value)^invgamma
 ///
 
-namespace
-{
+namespace {
 
-inline float calc_exposure (float value, float gain, float invgamma)
+inline float
+calc_exposure(float value, float gain, float invgamma)
 {
     if (invgamma != 1 && value >= 0)
-        return powf (gain * value, invgamma);
+        return powf(gain * value, invgamma);
     // Simple case - skip the expensive pow; also fall back to this
     // case for negative values, for which gamma makes no sense.
     return gain * value;
 }
 
-}
+}  // namespace
 
 
-void 
-IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel)
+void
+IvImage::pixel_transform(bool srgb_to_linear, int color_mode,
+                         int select_channel)
 {
     /// This table obeys the following function:
     ///
@@ -249,8 +258,9 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
     ///           x_l = powf((x_f+0.055)/1.055,2.4);
     ///       return (unsigned char)(x_l * 255 + 0.5)
     ///   }
-    /// 
+    ///
     ///  It's used to transform from sRGB color space to linear color space.
+    // clang-format off
     static const unsigned char srgb_to_linear_lut[256] = {
         0, 0, 0, 0, 0, 0, 0, 1,
         1, 1, 1, 1, 1, 1, 1, 1,
@@ -285,15 +295,16 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
         222, 224, 226, 229, 231, 233, 235, 237,
         239, 242, 244, 246, 248, 250, 253, 255
     };
+    // clang-format on
     unsigned char correction_table[256];
     int total_channels = spec().nchannels;
     int color_channels = spec().nchannels;
-    int max_channels = m_corrected_image.nchannels();
+    int max_channels   = m_corrected_image.nchannels();
 
     // FIXME: Now with the iterator and data proxy in place, it should be
     // trivial to apply the transformations to any kind of data, not just
     // UINT8.
-    if (spec().format != TypeDesc::UINT8 || ! m_corrected_image.localpixels()) {
+    if (spec().format != TypeDesc::UINT8 || !m_corrected_image.localpixels()) {
         return;
     }
 
@@ -306,15 +317,16 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
     // This image is Luminance or Luminance + Alpha, and we are asked to show
     // luminance.
     if (color_channels == 1 && color_mode == 3) {
-        color_mode = 0; // Just copy as usual.
+        color_mode = 0;  // Just copy as usual.
     }
 
     // Happy path:
-    if (! srgb_to_linear && color_mode <= 1 && m_gamma == 1.0 && m_exposure == 0.0) {
-        ImageBuf::ConstIterator<unsigned char, unsigned char> src (*this);
-        ImageBuf::Iterator<unsigned char, unsigned char> dst (m_corrected_image);
-        for ( ; src.valid (); ++src) {
-            dst.pos (src.x(), src.y());
+    if (!srgb_to_linear && color_mode <= 1 && m_gamma == 1.0
+        && m_exposure == 0.0) {
+        ImageBuf::ConstIterator<unsigned char, unsigned char> src(*this);
+        ImageBuf::Iterator<unsigned char, unsigned char> dst(m_corrected_image);
+        for (; src.valid(); ++src) {
+            dst.pos(src.x(), src.y());
             for (int i = 0; i < max_channels; i++)
                 dst[i] = src[i];
         }
@@ -327,20 +339,19 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
             correction_table[pixelvalue] = pixelvalue;
         }
     } else {
-        float inv_gamma = 1.0/gamma();
-        float gain = powf (2.0f, exposure());
+        float inv_gamma = 1.0 / gamma();
+        float gain      = powf(2.0f, exposure());
         for (int pixelvalue = 0; pixelvalue < 256; ++pixelvalue) {
-            float pv_f = converter (pixelvalue);
-            pv_f = clamp (calc_exposure (pv_f, gain, inv_gamma),
-                          0.0f, 1.0f);
-            correction_table[pixelvalue] = (unsigned char) (pv_f*255 + 0.5);
+            float pv_f = converter(pixelvalue);
+            pv_f = clamp(calc_exposure(pv_f, gain, inv_gamma), 0.0f, 1.0f);
+            correction_table[pixelvalue] = (unsigned char)(pv_f * 255 + 0.5);
         }
     }
 
-    ImageBuf::ConstIterator<unsigned char, unsigned char> src (*this);
-    ImageBuf::Iterator<unsigned char, unsigned char> dst (m_corrected_image);
-    for ( ; src.valid(); ++src) {
-        dst.pos (src.x(), src.y());
+    ImageBuf::ConstIterator<unsigned char, unsigned char> src(*this);
+    ImageBuf::Iterator<unsigned char, unsigned char> dst(m_corrected_image);
+    for (; src.valid(); ++src) {
+        dst.pos(src.x(), src.y());
         if (color_mode == 0 || color_mode == 1) {
             // RGBA, RGB modes.
             int ch = 0;
@@ -357,16 +368,17 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
             // Convert RGB to luminance, (Rec. 709 luma coefficients).
             float luminance;
             if (srgb_to_linear) {
-                luminance = converter (srgb_to_linear_lut[src[0]])*0.2126f +
-                            converter (srgb_to_linear_lut[src[1]])*0.7152f +
-                            converter (srgb_to_linear_lut[src[2]])*0.0722f;
+                luminance = converter(srgb_to_linear_lut[src[0]]) * 0.2126f
+                            + converter(srgb_to_linear_lut[src[1]]) * 0.7152f
+                            + converter(srgb_to_linear_lut[src[2]]) * 0.0722f;
             } else {
-                luminance = converter (src[0])*0.2126f +
-                            converter (src[1])*0.7152f +
-                            converter (src[2])*0.0722f;
+                luminance = converter(src[0]) * 0.2126f
+                            + converter(src[1]) * 0.7152f
+                            + converter(src[2]) * 0.0722f;
             }
-            unsigned char val = (unsigned char) (clamp (luminance, 0.0f, 1.0f) * 255.0 + 0.5);
-            val = correction_table[val];
+            unsigned char val
+                = (unsigned char)(clamp(luminance, 0.0f, 1.0f) * 255.0 + 0.5);
+            val    = correction_table[val];
             dst[0] = val;
             dst[1] = val;
             dst[2] = val;
@@ -375,7 +387,7 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
             for (int ch = 3; ch < total_channels; ++ch) {
                 dst[ch] = src[ch];
             }
-        } else { // Single channel, heatmap.
+        } else {  // Single channel, heatmap.
             unsigned char v = 0;
             if (select_channel < color_channels) {
                 if (srgb_to_linear)
@@ -392,19 +404,19 @@ IvImage::pixel_transform(bool srgb_to_linear, int color_mode, int select_channel
             for (; ch < max_channels; ++ch) {
                 dst[ch] = src[ch];
             }
-        } 
+        }
     }
 }
 
 
 
 void
-IvImage::invalidate ()
+IvImage::invalidate()
 {
-    ustring filename (name());
-    reset (filename.string());
+    ustring filename(name());
+    reset(filename.string());
     m_thumbnail_valid = false;
-    m_image_valid = false;
+    m_image_valid     = false;
     if (imagecache())
-        imagecache()->invalidate (filename);
+        imagecache()->invalidate(filename);
 }

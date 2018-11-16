@@ -57,10 +57,13 @@ getargs(int argc, char* argv[])
 {
     bool help = false;
     ArgParse ap;
+    // clang-format off
     ap.options("timer_test\n" OIIO_INTRO_STRING "\n"
                "Usage:  timer_test [options]",
-               "%*", parse_files, "", "--help", &help, "Print help message",
+               "%*", parse_files, "",
+               "--help", &help, "Print help message",
                NULL);
+    // clang-format on
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage();

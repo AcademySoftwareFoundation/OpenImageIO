@@ -1,5 +1,5 @@
 #ifndef _WIN32
-#include <unistd.h>
+#    include <unistd.h>
 #endif
 
 #include "DDImage/Enumeration_KnobI.h"
@@ -23,14 +23,13 @@ using namespace DD::Image;
  */
 
 
-namespace TxReaderNS
-{
+namespace TxReaderNS {
 
 
 using namespace OIIO;
 
 
-static const char* const EMPTY[] = {NULL};
+static const char* const EMPTY[] = { NULL };
 
 
 class TxReaderFormat : public ReaderFormat {
@@ -40,14 +39,16 @@ class TxReaderFormat : public ReaderFormat {
     Knob* mipLevelEnumKnob_;
 
 public:
-    TxReaderFormat() :
-        mipLevel_(0),
-        mipEnumIndex_(0),
-        mipLevelKnob_(NULL),
-        mipLevelEnumKnob_(NULL)
-    { }
+    TxReaderFormat()
+        : mipLevel_(0)
+        , mipEnumIndex_(0)
+        , mipLevelKnob_(NULL)
+        , mipLevelEnumKnob_(NULL)
+    {
+    }
 
-    void knobs(Knob_Callback cb) {
+    void knobs(Knob_Callback cb)
+    {
         // The "real" mip level knob that controls the level read by the Reader
         // class, and whose value is stored when the Read is serialized.
         mipLevelKnob_ = Int_knob(cb, &mipLevel_, "tx_mip_level", "mip index");
@@ -57,13 +58,16 @@ public:
         // Reader when it opens a file, and does not directly contribute to the
         // op hash or get stored when the Read is serialized.
         mipLevelEnumKnob_ = Enumeration_knob(cb, &mipEnumIndex_, EMPTY,
-                                            "tx_user_mip_level", "mip level");
-        SetFlags(cb, Knob::EXPAND_TO_WIDTH | Knob::DO_NOT_WRITE | Knob::NO_RERENDER);
-        Tooltip(cb, "The mip level to read from the file. Currently, this will "
+                                             "tx_user_mip_level", "mip level");
+        SetFlags(cb, Knob::EXPAND_TO_WIDTH | Knob::DO_NOT_WRITE
+                         | Knob::NO_RERENDER);
+        Tooltip(cb,
+                "The mip level to read from the file. Currently, this will "
                 "be resampled to fill the same resolution as the base image.");
     }
 
-    int knob_changed(Knob* k) {
+    int knob_changed(Knob* k)
+    {
         if (k == mipLevelEnumKnob_)
             mipLevelKnob_->set_value(mipEnumIndex_);
         return 1;
@@ -73,12 +77,13 @@ public:
 
     inline int mipLevel() { return mipLevel_; }
 
-    void setMipLabels(std::vector<std::string> items) {
+    void setMipLabels(std::vector<std::string> items)
+    {
         if (mipLevelEnumKnob_) {
             mipLevelEnumKnob_->set_flag(Knob::NO_KNOB_CHANGED);
             mipLevelEnumKnob_->enumerationKnob()->menu(items);
             mipLevelEnumKnob_->set_value(
-                    std::min((int)items.size() - 1, mipLevel_));
+                std::min((int)items.size() - 1, mipLevel_));
             mipLevelEnumKnob_->clear_flag(Knob::NO_KNOB_CHANGED);
         }
     }
@@ -100,32 +105,31 @@ class txReader : public Reader {
 
     static const Description d;
 
-    void fillMetadata(const ImageSpec& spec, bool isEXR) {
+    void fillMetadata(const ImageSpec& spec, bool isEXR)
+    {
         switch (spec.format.basetype) {
-            case TypeDesc::UINT8:
-            case TypeDesc::INT8:
-                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_8);
-                break;
-            case TypeDesc::UINT16:
-            case TypeDesc::INT16:
-                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_16);
-                break;
-            case TypeDesc::UINT32:
-            case TypeDesc::INT32:
-                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_32);
-                break;
-            case TypeDesc::HALF:
-                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_HALF);
-                break;
-            case TypeDesc::FLOAT:
-                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_FLOAT);
-                break;
-            case TypeDesc::DOUBLE:
-                meta_.setData(MetaData::DEPTH, MetaData::DEPTH_DOUBLE);
-                break;
-            default:
-                meta_.setData(MetaData::DEPTH, "Unknown");
-                break;
+        case TypeDesc::UINT8:
+        case TypeDesc::INT8:
+            meta_.setData(MetaData::DEPTH, MetaData::DEPTH_8);
+            break;
+        case TypeDesc::UINT16:
+        case TypeDesc::INT16:
+            meta_.setData(MetaData::DEPTH, MetaData::DEPTH_16);
+            break;
+        case TypeDesc::UINT32:
+        case TypeDesc::INT32:
+            meta_.setData(MetaData::DEPTH, MetaData::DEPTH_32);
+            break;
+        case TypeDesc::HALF:
+            meta_.setData(MetaData::DEPTH, MetaData::DEPTH_HALF);
+            break;
+        case TypeDesc::FLOAT:
+            meta_.setData(MetaData::DEPTH, MetaData::DEPTH_FLOAT);
+            break;
+        case TypeDesc::DOUBLE:
+            meta_.setData(MetaData::DEPTH, MetaData::DEPTH_DOUBLE);
+            break;
+        default: meta_.setData(MetaData::DEPTH, "Unknown"); break;
         }
 
         meta_.setData("tx/tile_width", spec.tile_width);
@@ -166,24 +170,26 @@ class txReader : public Reader {
             if (!val.empty())
                 meta_.setData("exr/line_order", val);
 
-            float cl = spec.get_float_attribute("openexr:dwaCompressionLevel", 0.0f);
+            float cl = spec.get_float_attribute("openexr:dwaCompressionLevel",
+                                                0.0f);
             if (val > 0)
                 meta_.setData("exr/dwa_compression_level", cl);
-        }
-        else {
+        } else {
             val = spec.get_string_attribute("tiff:planarconfig");
             if (!val.empty())
                 meta_.setData("tiff/planar_config", val);
         }
     }
 
-    void setChannels(const ImageSpec& spec) {
+    void setChannels(const ImageSpec& spec)
+    {
         ChannelSet mask;
         Channel chan;
         int chanIndex = 0;
 
-        for (std::vector<std::string>::const_iterator it = spec.channelnames.begin();
-                it != spec.channelnames.end(); it++) {
+        for (std::vector<std::string>::const_iterator it
+             = spec.channelnames.begin();
+             it != spec.channelnames.end(); it++) {
             chan = Reader::channel(it->c_str());
             mask += chan;
             chanMap_[chan] = chanIndex++;
@@ -193,12 +199,13 @@ class txReader : public Reader {
     }
 
 public:
-    txReader(Read* iop) : Reader(iop),
-            oiioInput_(ImageInput::open(filename())),
-            chanCount_(0),
-            lastMipLevel_(-1),
-            haveImage_(false),
-            flip_(false)
+    txReader(Read* iop)
+        : Reader(iop)
+        , oiioInput_(ImageInput::open(filename()))
+        , chanCount_(0)
+        , lastMipLevel_(-1)
+        , haveImage_(false)
+        , flip_(false)
     {
         txFmt_ = dynamic_cast<TxReaderFormat*>(iop->handler());
 
@@ -214,28 +221,30 @@ public:
 
         if (!(baseSpec.width * baseSpec.height)) {
             iop->internalError("tx file has one or more zero dimensions "
-                               "(%d x %d)", baseSpec.width, baseSpec.height);
+                               "(%d x %d)",
+                               baseSpec.width, baseSpec.height);
             return;
         }
 
-        chanCount_ = baseSpec.nchannels;
+        chanCount_       = baseSpec.nchannels;
         const bool isEXR = strcmp(oiioInput_->format_name(), "openexr") == 0;
 
         if (isEXR) {
-            float pixAspect = baseSpec.get_float_attribute("PixelAspectRatio", 0);
+            float pixAspect = baseSpec.get_float_attribute("PixelAspectRatio",
+                                                           0);
             set_info(baseSpec.width, baseSpec.height, 1, pixAspect);
-            meta_.setData(MetaData::PIXEL_ASPECT, pixAspect > 0 ? pixAspect : 1.0f);
+            meta_.setData(MetaData::PIXEL_ASPECT,
+                          pixAspect > 0 ? pixAspect : 1.0f);
             setChannels(baseSpec);  // Fills chanMap_
             flip_ = true;
-        }
-        else {
+        } else {
             set_info(baseSpec.width, baseSpec.height, chanCount_);
             int orientation = baseSpec.get_int_attribute("Orientation", 1);
             meta_.setData("tiff/orientation", orientation);
             flip_ = !((orientation - 1) & 2);
 
             int chanIndex = 0;
-            foreach(z, info_.channels())
+            foreach (z, info_.channels())
                 chanMap_[z] = chanIndex++;
         }
 
@@ -254,8 +263,7 @@ public:
                 buf.str(std::string());
                 buf.clear();
                 mipLevel++;
-            }
-            else
+            } else
                 break;
         }
 
@@ -264,17 +272,20 @@ public:
         txFmt_->setMipLabels(mipLabels);
     }
 
-    virtual ~txReader() {
+    virtual ~txReader()
+    {
         if (oiioInput_)
             oiioInput_->close();
     }
 
-    void open() {
+    void open()
+    {
         if (lastMipLevel_ != txFmt_->mipLevel()) {
             ImageSpec mipSpec;
             if (!oiioInput_->seek_subimage(0, txFmt_->mipLevel(), mipSpec)) {
                 iop->internalError("Failed to seek to mip level %d: %s",
-                        txFmt_->mipLevel(), oiioInput_->geterror().c_str());
+                                   txFmt_->mipLevel(),
+                                   oiioInput_->geterror().c_str());
                 return;
             }
 
@@ -285,13 +296,13 @@ public:
             }
 
             lastMipLevel_ = txFmt_->mipLevel();
-            haveImage_ = false;
+            haveImage_    = false;
         }
 
         if (!haveImage_) {
             const int needSize = oiioInput_->spec().width
-                                * oiioInput_->spec().height
-                                * oiioInput_->spec().nchannels;
+                                 * oiioInput_->spec().height
+                                 * oiioInput_->spec().nchannels;
             if (size_t(needSize) > imageBuf_.size())
                 imageBuf_.resize(needSize);
             oiioInput_->read_image(&imageBuf_[0]);
@@ -299,7 +310,8 @@ public:
         }
     }
 
-    void engine(int y, int x, int r, ChannelMask channels, Row& row) {
+    void engine(int y, int x, int r, ChannelMask channels, Row& row)
+    {
         if (!haveImage_)
             iop->internalError("engine called, but haveImage_ is false");
 
@@ -314,18 +326,19 @@ public:
             y = height() - y - 1;
 
         if (lastMipLevel_) {  // Mip level other than 0
-            const int mipW = oiioInput_->spec().width;
+            const int mipW    = oiioInput_->spec().width;
             const int mipMult = width() / mipW;
 
-            y = y * oiioInput_->spec().height / height();
+            y              = y * oiioInput_->spec().height / height();
             const int bufX = x ? x / mipMult : 0;
             const int bufR = r / mipMult;
             const int bufW = bufR - bufX;
 
             std::vector<float> chanBuf(bufW);
-            float* chanStart = &chanBuf[0];
+            float* chanStart   = &chanBuf[0];
             const int bufStart = y * mipW * chanCount_ + bufX * chanCount_;
-            const float* alpha = doAlpha ? &imageBuf_[bufStart + chanMap_[Chan_Alpha]] : NULL;
+            const float* alpha
+                = doAlpha ? &imageBuf_[bufStart + chanMap_[Chan_Alpha]] : NULL;
             foreach (z, channels) {
                 from_float(z, &chanBuf[0], &imageBuf_[bufStart + chanMap_[z]],
                            alpha, bufW, chanCount_);
@@ -335,14 +348,15 @@ public:
                     for (; c < mipMult; c++)
                         *OUT++ = *(chanStart + stride);
             }
-        }
-        else {  // Mip level 0
+        } else {  // Mip level 0
             const int pixStart = y * width() * chanCount_ + x * chanCount_;
-            const float* alpha = doAlpha ? &imageBuf_[pixStart + chanMap_[Chan_Alpha]] : NULL;
+            const float* alpha
+                = doAlpha ? &imageBuf_[pixStart + chanMap_[Chan_Alpha]] : NULL;
 
             foreach (z, channels) {
-                from_float(z, row.writable(z) + x, &imageBuf_[pixStart + chanMap_[z]],
-                           alpha, r - x, chanCount_);
+                from_float(z, row.writable(z) + x,
+                           &imageBuf_[pixStart + chanMap_[z]], alpha, r - x,
+                           chanCount_);
             }
         }
     }
@@ -351,10 +365,12 @@ public:
 };
 
 
-}  // ~TxReaderNS
+}  // namespace TxReaderNS
 
 
-static Reader* buildReader(Read* iop, int fd, const unsigned char* b, int n) {
+static Reader*
+buildReader(Read* iop, int fd, const unsigned char* b, int n)
+{
     // FIXME: I expect that this close() may be problematic on Windows.
     // For Linux/gcc, we needed to #include <unistd.h> at the top of
     // this file. If this is a problem for Windows, a different #include
@@ -363,11 +379,15 @@ static Reader* buildReader(Read* iop, int fd, const unsigned char* b, int n) {
     return new TxReaderNS::txReader(iop);
 }
 
-static ReaderFormat* buildformat(Read* iop) {
+static ReaderFormat*
+buildformat(Read* iop)
+{
     return new TxReaderNS::TxReaderFormat();
 }
 
-static bool test(int fd, const unsigned char* block, int length) {
+static bool
+test(int fd, const unsigned char* block, int length)
+{
     // Big-endian TIFF
     if (block[0] == 'M' && block[1] == 'M' && block[2] == 0 && block[3] == 42)
         return true;
@@ -375,8 +395,8 @@ static bool test(int fd, const unsigned char* block, int length) {
     if (block[0] == 'I' && block[1] == 'I' && block[2] == 42 && block[3] == 0)
         return true;
     // EXR
-    return block[0] == 0x76 && block[1] == 0x2f &&
-           block[2] == 0x31 && block[3] == 0x01;
+    return block[0] == 0x76 && block[1] == 0x2f && block[2] == 0x31
+           && block[3] == 0x01;
 }
 
 const Reader::Description TxReaderNS::txReader::d("tx\0TX\0", buildReader, test,

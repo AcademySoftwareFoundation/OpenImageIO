@@ -79,26 +79,28 @@ getargs(int argc, char* argv[])
 {
     bool help = false;
     ArgParse ap;
+    // clang-format off
     ap.options(
         "imagespeed_test\n" OIIO_INTRO_STRING "\n"
         "Usage:  imagespeed_test [options] filename...",
-        "%*", parse_files, "", "--help", &help, "Print help message", "-v",
-        &verbose, "Verbose mode", "--threads %d", &numthreads,
-        ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+        "%*", parse_files, "",
+        "--help", &help, "Print help message",
+        "-v", &verbose, "Verbose mode",
+        "--threads %d", &numthreads,
+            ustring::format("Number of threads (default: %d)", numthreads).c_str(),
         "--iters %d", &iterations,
-        ustring::format("Number of iterations (default: %d)", iterations)
-            .c_str(),
-        "--trials %d", &ntrials, "Number of trials", "--autotile %d",
-        &autotile_size,
-        ustring::format("Autotile size (when used; default: %d)", autotile_size)
-            .c_str(),
-        "--iteronly", &iter_only,
-        "Run ImageBuf iteration tests only (not read tests)", "--noiter",
-        &no_iter, "Don't run ImageBuf iteration tests", "--convert %s",
-        &conversionname, "Convert to named type upon read (default: native)",
-        "--cache %f", &cache_size, "Specify ImageCache size, in MB", "-o %s",
-        &output_filename, "Test output by writing to this file", "-od %s",
-        &output_format, "Requested output format", NULL);
+            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+        "--trials %d", &ntrials, "Number of trials",
+        "--autotile %d", &autotile_size,
+            ustring::format("Autotile size (when used; default: %d)", autotile_size).c_str(),
+        "--iteronly", &iter_only, "Run ImageBuf iteration tests only (not read tests)",
+        "--noiter", &no_iter, "Don't run ImageBuf iteration tests",
+        "--convert %s", &conversionname, "Convert to named type upon read (default: native)",
+        "--cache %f", &cache_size, "Specify ImageCache size, in MB",
+        "-o %s", &output_filename, "Test output by writing to this file",
+        "-od %s", &output_format, "Requested output format",
+        nullptr);
+    // clang-format on
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage();

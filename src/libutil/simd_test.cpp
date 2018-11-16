@@ -69,13 +69,14 @@ getargs(int argc, char* argv[])
     bool help = false;
     ArgParse ap;
     ap.options("simd_test\n" OIIO_INTRO_STRING "\n"
-               "Usage:  simd_test [options]",
-               // "%*", parse_files, "",
-               "--help", &help, "Print help message", "-v", &verbose,
-               "Verbose mode", "--iterations %d", &iterations,
-               ustring::format("Number of iterations (default: %d)", iterations)
-                   .c_str(),
-               "--trials %d", &ntrials, "Number of trials", NULL);
+        "Usage:  simd_test [options]",
+        // "%*", parse_files, "",
+        "--help", &help, "Print help message",
+        "-v", &verbose, "Verbose mode",
+        "--iterations %d", &iterations,
+            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+        "--trials %d", &ntrials, "Number of trials",
+        nullptr);
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage();

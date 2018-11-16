@@ -105,21 +105,23 @@ getargs(int argc, char* argv[])
 {
     bool help = false;
     ArgParse ap;
+    // clang-format off
     ap.options(
         "spin_rw_test\n" OIIO_INTRO_STRING "\n"
         "Usage:  spin_rw_test [options]",
         // "%*", parse_files, "",
-        "--help", &help, "Print help message", "-v", &verbose, "Verbose mode",
+        "--help", &help, "Print help message",
+        "-v", &verbose, "Verbose mode",
         "--threads %d", &numthreads,
-        ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+            ustring::format("Number of threads (default: %d)", numthreads).c_str(),
         "--iters %d", &iterations,
-        ustring::format("Number of iterations (default: %d)", iterations)
-            .c_str(),
-        "--trials %d", &ntrials, "Number of trials", "--rwratio %d",
-        &read_write_ratio,
-        ustring::format("Reader::writer ratio (default: %d)", read_write_ratio)
-            .c_str(),
-        "--wedge", &wedge, "Do a wedge test", NULL);
+            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+        "--trials %d", &ntrials, "Number of trials",
+        "--rwratio %d", &read_write_ratio,
+            ustring::format("Reader::writer ratio (default: %d)", read_write_ratio).c_str(),
+        "--wedge", &wedge, "Do a wedge test",
+        nullptr);
+    // clang-format on
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage();
