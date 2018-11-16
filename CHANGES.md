@@ -14,7 +14,7 @@ Major new features and improvements:
   return image results directly rather than passing ImageBuf references
   as parameters for output (the old kind of calls still exist, too, and
   have their uses). Also in C++, change all IBA functions that took raw
-  pointers to per-channel colors into span<> for safety. #1961 (1.9.4)
+  pointers to per-channel colors into `span<>` for safety. #1961 (1.9.4)
 * For some readers and writers, an "IOProxy" can be passed that customizes
   the I/O methods. An important use of this is to write an image "file"
   to memory or to read an image "file" from a memory, rather than disk.
@@ -109,7 +109,7 @@ Public API changes:
 * **ImageBufAlgo**
     * In C++, functions that take raw pointers for per-channel constant
       values or results are deprecated, in favor of new versions that
-      heavily rely on span<> to safely pass array references and their
+      heavily rely on `span<>` to safely pass array references and their
       lengths. #1961 (1.9.4)
     * In both C++ and Python, every IBA function that takes a parameter
       giving an ImageBuf destination reference for results have an additional
@@ -190,7 +190,7 @@ Public API changes:
   most of the methods `constexpr`. #1906 (1.9.2)
 * Rename/move of `array_view` to `span`. Deprecated `array_view` and moved
   array_view.h contents to span.h. You should change `array_view<T>`
-  to `span<T>` and `array_view<const T>` to `cspan<T>`. #1956 (1.9.4)
+  to `span<T>` and `array_view<const T>` to `cspan<T>`. #1956,2062 (1.9.4)
 * ustring: removed `operator int()` that allowed simple int casting such as:
   ```
       ustring u, v;
@@ -263,6 +263,14 @@ Fixes and feature enhancements:
       used (because they set a CPU flag strangely upon library load and then
       never changed it back, this is a libopenjpeg bug that has since been
       fixed). #2048 (2.0)
+    * `-d chan=type` logic fixed for certain cases of specifying the data
+      types of individual channels. #2061 (2.0beta2)
+    * Expression evaluation: metadata names can now be enclosed in single
+      or double quotes if they don't follow "C" identifier naming conventions.
+      For example, `{TOP.'foo/bar'}` retrieves metadata called "foo/bar"
+      rather than trying to retrieve "foo" and divide by bar. #2068 (2.0beta2)
+    * Expression evaluation: When retrieving metadata, timecode data will be
+      expressed properly as a string ("00:00:00:00"). #2068 (2.0beta2)
 * ImageBufAlgo:
     * `color_map()` supports new maps "inferno", "magma", "plasma",
       "viridis". #1820 (1.9.2)
@@ -464,6 +472,15 @@ Build/test system improvements:
   #2036 (1.9.4)
 
 Developer goodies / internals:
+
+* **Formatting with clang-format**: All submissions are expected to be
+  formatted using our standard clang-format rules. Please run
+  `make clang-format` prior to submitting code. The TravisCI tests include
+  one entry just to check that the formatting conforms, and will fail if it
+  doesn't, printing the diffs that would bring it to proper formatting.
+  (Note: for small changes, if you don't have clang-format locally, it's ok
+  to submit, then use the diffs from the failures to fix it by hand and
+  resubmit and update.) #2059,2064,2065,2067,2069.
 * argparse.h:
     * Add pre- and post-option help printing callbacks. #1811 (1.9.2)
     * Changed to PIMPL to hide implementation from the public headers.
@@ -539,6 +556,8 @@ Developer goodies / internals:
       std::string or string_view, respectively. #2033 (1.9.4)
     * A second version of `extract_from_list_string` that directly returns
       a std::vector (instead of being passed as a param). #2033 (1.9.4)
+    * `parse_string` now accepts single quotes as well as double quotes
+      to enclose a quoted string. #2066 (2.0beta2)
 * thread.h:
     * Reimplementaiton of `spin_rw_mutex` has much better performance when
       many threads are accessing at once, especially if most of them are

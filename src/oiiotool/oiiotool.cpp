@@ -5278,7 +5278,15 @@ print_usage_tips(const ArgParse& ap, std::ostream& out)
                "several sequentially-named files, for example:\n",
                columns, 4)
         << "       oiiotool fg.#.tif bg.#.tif -over -o comp.#.tif\n"
-        << "   See the manual for info about subranges, number of digits, etc.\n"
+        << Strutil::wordwrap(
+               "    See the manual for info about subranges, number of digits, etc.\n",
+               columns, 4)
+        << Strutil::wordwrap(
+               "  * Command line arguments containing substrings enclosed in braces "
+               "{} are replaced by evaluating their contents as expressions. Simple "
+               "math is allowed as well as retrieving metadata such as {TOP.'foo:bar'}, "
+               "{IMG[0].filename}, or {FRAME_NUMBER/24.0}.\n",
+               columns, 4)
         << "\n";
 }
 
