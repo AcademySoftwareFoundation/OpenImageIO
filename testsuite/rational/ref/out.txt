@@ -63,7 +63,7 @@ src/test.exr         :   64 x   64, 3 channel, half openexr
     timecodeRate: 24
     Exif:ImageHistory: "oiiotool cropped-stripped-Isabella.0.exr -cut 64x64+0+0 -o test.exr"
     oiio:ColorSpace: "Linear"
-    smpte:TimeCode: 18356486, 4294967295 (01:18:19:06)
+    smpte:TimeCode: 01:18:19:06
 Comparing "src/test.exr" and "test.exr"
 PASS
 Reading rat2.exr

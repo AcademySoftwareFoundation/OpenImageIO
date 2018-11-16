@@ -1054,7 +1054,14 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s, std::string
             result = orig;
             return false;
         }
-        string_view metadata = Strutil::parse_identifier (s, ":", true);
+        string_view metadata;
+        char quote = s.size() ? s.front() : ' ';
+        bool metadata_in_quote = quote == '\"' || quote == '\'';
+        if (metadata_in_quote)
+            Strutil::parse_string (s, metadata);
+        else
+            metadata = Strutil::parse_identifier (s, ":");
+
         if (metadata.size()) {
             read (img);
             ParamValue tmpparam;

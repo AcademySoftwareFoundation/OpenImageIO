@@ -32,7 +32,6 @@
 #include <cstdlib>
 #include <sstream>
 
-#include <OpenEXR/ImfTimeCode.h>
 #include <OpenEXR/half.h>
 
 #include <OpenImageIO/dassert.h>
@@ -826,12 +825,8 @@ ImageSpec::metadata_val(const ParamValue& p, bool human)
                     nice += "inf";
             }
         }
-        if (ptype == TypeTimeCode) {
-            Imf::TimeCode tc = *reinterpret_cast<const Imf::TimeCode*>(
-                p.data());
-            nice = Strutil::format("%02d:%02d:%02d:%02d", tc.hours(),
-                                   tc.minutes(), tc.seconds(), tc.frame());
-        }
+        // if (ptype == TypeTimeCode)
+        //     nice = p.get_string(); // convert to "hh:mm:ss:ff"
         if (nice.length())
             out = out + " (" + nice + ")";
     }
@@ -979,12 +974,8 @@ spec_to_xml(const ImageSpec& spec, ImageSpec::SerialVerbose verbose)
                     break;
                 }
             }
-            if (p.type() == TypeTimeCode) {
-                Imf::TimeCode tc = *reinterpret_cast<const Imf::TimeCode*>(
-                    p.data());
-                desc = Strutil::format("%02d:%02d:%02d:%02d", tc.hours(),
-                                       tc.minutes(), tc.seconds(), tc.frame());
-            }
+            if (p.type() == TypeTimeCode)
+                desc = p.get_string();
             xml_node n = add_node(node, "attrib", s.c_str());
             n.append_attribute("name").set_value(p.name().c_str());
             n.append_attribute("type").set_value(p.type().c_str());

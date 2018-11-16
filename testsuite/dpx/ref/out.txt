@@ -36,7 +36,7 @@ Reading ../../../../../oiio-images/dpx_nuke_10bits_rgb.dpx
     dpx:XScannedSize: 0
     dpx:YScannedSize: 0
     oiio:BitsPerSample: 10
-    smpte:TimeCode: 0, 0 (00:00:00:00)
+    smpte:TimeCode: 00:00:00:00
 Comparing "../../../../../oiio-images/dpx_nuke_10bits_rgb.dpx" and "dpx_nuke_10bits_rgb.dpx"
 PASS
 Reading ../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx
@@ -77,7 +77,7 @@ Reading ../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx
     dpx:XScannedSize: 0
     dpx:YScannedSize: 0
     oiio:BitsPerSample: 10
-    smpte:TimeCode: 0, 0 (00:00:00:00)
+    smpte:TimeCode: 00:00:00:00
 Comparing "../../../../../oiio-images/dpx_nuke_16bits_rgba.dpx" and "dpx_nuke_16bits_rgba.dpx"
 PASS
 Comparing "src/input_rgb_mattes.tif" and "output_rgb_mattes.dpx"
