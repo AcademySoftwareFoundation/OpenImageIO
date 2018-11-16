@@ -120,7 +120,8 @@ main(int argc, char** argv)
 #    if defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
     // It seems especially bad on Travis, give extra time slop.
     // Got even worse in Nov 2017 on Travis. Make the slop enormous.
-    eps = 0.5;
+    // Got worse again Nov 2018. (What does Travis do every November?)
+    eps = 1.0;
 #    endif
 #endif
 
