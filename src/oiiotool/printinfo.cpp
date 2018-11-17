@@ -82,7 +82,7 @@ compute_sha1(Oiiotool& ot, ImageInput* input)
         // Special handling of deep data
         DeepData dd;
         if (!input->read_native_deep_image(dd)) {
-            ot.error("    SHA-1: unable to compute, could not read image\n");
+            ot.error("-info", "SHA-1: unable to compute, could not read image");
             return std::string();
         }
         // Hash both the sample counts and the data block
@@ -91,13 +91,13 @@ compute_sha1(Oiiotool& ot, ImageInput* input)
     } else {
         imagesize_t size = input->spec().image_bytes(true /*native*/);
         if (size >= std::numeric_limits<size_t>::max()) {
-            ot.error("    SHA-1: unable to compute, image is too big\n");
+            ot.error("-info", "SHA-1: unable to compute, image is too big");
             return std::string();
         } else if (size != 0) {
             std::unique_ptr<char[]> buf(new char[size]);
             if (!input->read_image(TypeDesc::UNKNOWN /*native*/, &buf[0])) {
-                ot.error(
-                    "    SHA-1: unable to compute, could not read image\n");
+                ot.error("-info",
+                         "SHA-1: unable to compute, could not read image");
                 return std::string();
             }
             sha.append(&buf[0], size);
@@ -360,9 +360,8 @@ print_stats(Oiiotool& ot, const std::string& filename,
     PixelStats stats;
     if (!computePixelStats(stats, input)) {
         std::string err = input.geterror();
-        ot.error("stats", Strutil::format("unable to compute: %s",
-                                          err.empty() ? "unspecified error"
-                                                      : err.c_str()));
+        ot.error("stats", "unable to compute: %s",
+                 err.empty() ? "unspecified error" : err.c_str());
         return;
     }
 
