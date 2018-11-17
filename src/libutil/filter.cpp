@@ -1,7 +1,6 @@
 /*
   Copyright 2008 Larry Gritz and the other authors and contributors.
   All Rights Reserved.
-  Based on BSD-licensed software Copyright 2004 NVIDIA Corp.
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are
