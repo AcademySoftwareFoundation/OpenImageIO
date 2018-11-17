@@ -341,7 +341,7 @@ namespace dpx
 			fileOffset += (bufaccess.length * sizeof(IB));
 			if (swapEndian)
 			    EndianBufferSwap(BITDEPTH, packing, dst + bufaccess.offset, bufaccess.length * sizeof(IB));
-			if (fd->Write(dst+bufaccess.offset, (bufaccess.length * sizeof(IB))) == false)
+			if (!fd->WriteCheck(dst+bufaccess.offset, (bufaccess.length * sizeof(IB))))
 			{
 				status = false;
 				break;
@@ -351,7 +351,7 @@ namespace dpx
 			if (eolnPad)
 			{
 				fileOffset += eolnPad;
-				if (fd->Write(blank, eolnPad) == false)
+				if (!fd->WriteCheck(blank, eolnPad))
 				{
 					status = false;
 					break;
@@ -416,7 +416,7 @@ namespace dpx
 			fileOffset += (bufaccess.length * sizeof(IB));
 			if (swapEndian)
 			    EndianBufferSwap(BITDEPTH, packing, dst + bufaccess.offset, bufaccess.length * sizeof(IB));
-			if (fd->Write(dst+bufaccess.offset, (bufaccess.length * sizeof(IB))) == false)
+			if (!fd->WriteCheck(dst+bufaccess.offset, (bufaccess.length * sizeof(IB))))
 			{
 				status = false;
 				break;
@@ -426,7 +426,7 @@ namespace dpx
 			if (eolnPad)
 			{
 				fileOffset += eolnPad;
-				if (fd->Write(blank, eolnPad) == false)
+				if (!fd->WriteCheck(blank, eolnPad))
 				{
 					status = false;
 					break;

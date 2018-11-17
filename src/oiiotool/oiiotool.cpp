@@ -5115,7 +5115,10 @@ output_file(int argc, const char* argv[])
             }
         }
 
-        out->close();
+        if (!out->close()) {
+            ot.error(command, out->geterror());
+            ok = false;
+        }
         out.reset();  // make extra sure it's cleaned up
 
         // We wrote to a temporary file, so now atomically move it to the

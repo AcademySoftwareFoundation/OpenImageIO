@@ -74,7 +74,7 @@ size_t OutStream::Write(void *buf, const size_t size)
 {
 	if (this->fp == 0)
 		return false;
-	return ::fwrite(buf, 1, size, this->fp);
+    return ::fwrite(buf, 1, size, this->fp);
 }
 
 

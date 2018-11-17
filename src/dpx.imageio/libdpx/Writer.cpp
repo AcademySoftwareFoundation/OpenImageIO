@@ -141,7 +141,7 @@ void dpx::Writer::SetUserData(const long size)
 bool dpx::Writer::WriteUserData(void *data)
 {
     size_t size = this->header.UserSize();
-	if (fd->Write(data, size) != size)
+	if (!fd->WriteCheck(data, size))
 		return false;
     this->fileLoc += size;
 	return true;
@@ -213,7 +213,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const long count)
 	this->fileLoc += count;
 		
 	// write
-	return (this->fd->Write(data, count) > 0);
+	return this->fd->WriteCheck(data, count);
 }
 
 
@@ -353,7 +353,7 @@ bool dpx::Writer::WriteElement(const int element, void *data, const DataSize siz
 	{
 		// end of image padding
 		this->fileLoc += eoimPad;
-		status = (this->fd->Write(blank, eoimPad) > 0);
+		status = this->fd->WriteCheck(blank, eoimPad);
 	}
 	
 	// rid of memory
@@ -383,14 +383,14 @@ bool dpx::Writer::WriteThrough(void *data, const U32 width, const U32 height, co
 		for (i = 0; i < height; i++)
 		{
 			// write one line
-			if (this->fd->Write(imageBuf+(width*bytes*i), bytes * width) == false)
+			if (!this->fd->WriteCheck(imageBuf+(width*bytes*i), bytes * width))
 			{
 				status = false;
 				break;
 			}
 			
 			// write end of line padding
-			if (this->fd->Write(blank, eoimPad) == false)
+			if (!this->fd->WriteCheck(blank, eoimPad))
 			{
 				status = false;
 				break;
@@ -400,7 +400,7 @@ bool dpx::Writer::WriteThrough(void *data, const U32 width, const U32 height, co
 	else
 	{
 		// write data as one chunk
-		if (this->fd->Write(imageBuf, bytes * count) == false)
+		if (!this->fd->WriteCheck(imageBuf, bytes * count))
 		{
 			status = false;
 		}
@@ -410,7 +410,7 @@ bool dpx::Writer::WriteThrough(void *data, const U32 width, const U32 height, co
 	if (status && eoimPad)
 	{
 		this->fileLoc += eoimPad;
-		status = (this->fd->Write(blank, eoimPad) > 0);
+		status = this->fd->WriteCheck(blank, eoimPad);
 	}
 	
 	return status;
