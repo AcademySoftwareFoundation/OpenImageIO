@@ -9,9 +9,7 @@ dist: trusty
 addons:
   apt:
    sources:
-      - boost-latest
       - ubuntu-toolchain-r-test
-      - george-edison55-precise-backports
       - sourceline: 'ppa:jonathonf/ffmpeg-3'
    packages:
       - g++-6
@@ -110,7 +108,7 @@ after_success:
     - if [ "$CODECOV" == 1 ] ; then bash <(curl -s https://codecov.io/bash) ; fi
 
 after_failure:
-# FIXME: find failed logs, stash them or send them to lg?
+
 
 branches:
   only:
@@ -128,9 +126,10 @@ matrix:
 
     include:
     # test default compile: C++11, optimized, default compilers, SSE2
-      - name: "Linux Standard (gcc48, py27)"
+      - name: "VFX Platform 2017 (gcc48, py27, exr2.2)"
         os: linux
         compiler: gcc
+        env: EXRBRANCH=v2.2.0
       - name: "Mac (latest clang, py37)"
         os: osx
         compiler: clang
@@ -143,7 +142,7 @@ matrix:
         env: PYTHON_VERSION=2.7
         if: branch =~ /(master|RB|travis|python)/ OR type = pull_request
     # test debug build with default compiler
-      - name: "Linux DEBUG Standard"
+      - name: "Linux DEBUG"
         os: linux
         compiler: gcc
         env: DEBUG=1
@@ -151,12 +150,12 @@ matrix:
       #   compiler: clang
       #   env: DEBUG=1
     # test with C++14, gcc 6, SSE 4.2
-      - name: "VFX Platform 2018 (gcc6, cpp14), sse4.2"
+      - name: "VFX Platform 2018 (gcc6, cpp14, exr2.2), sse4.2"
         os: linux
         compiler: gcc
-        env: WHICHGCC=6 USE_CPP=14 USE_SIMD=sse4.2
+        env: WHICHGCC=6 USE_CPP=14 USE_SIMD=sse4.2 EXRBRANCH=v2.2.0
     # test with C++14, gcc 7, latest SIMD flags supported by TravisCI VMs
-      - name: "gcc7, cpp14, avx"
+      - name: "gcc7, cpp14, avx, exr2.3"
         os: linux
         compiler: gcc
         env: WHICHGCC=7 USE_CPP=14 USE_SIMD=avx,f16c
@@ -191,10 +190,10 @@ matrix:
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
     # pushes don't need to run this.
-      - name: "Test no simd, no jpegturbo, dso plugins"
+      - name: "Oldest everything: no simd, no jpegturbo, dso plugins, exr2.2"
         os: linux
         compiler: gcc
-        env: USE_SIMD=0 USE_JPEGTURBO=0 EMBEDPLUGINS=0
+        env: USE_SIMD=0 USE_JPEGTURBO=0 EMBEDPLUGINS=0 EXRBRANCH=v2.2.0
         if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
     # test with C++14, gcc 8, latest SIMD flags supported by TravisCI VMs
     # Since VFXPlatform doesn't bless gcc8 yet, only build this
@@ -220,7 +219,7 @@ matrix:
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
     # pushes don't need to run this.
-      - name: "Build clean AVX2"
+      - name: "Build clean AVX2 (no tests)"
         os: linux
         compiler: gcc
         env: WHICHGCC=6 USE_SIMD=avx2 SKIP_TESTS=1
@@ -229,7 +228,7 @@ matrix:
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
     # pushes don't need to run this.
-      - name: "Build clean vs AVX512"
+      - name: "Build clean AVX512 (no tests)"
         os: linux
         compiler: gcc
         env: WHICHGCC=7 USE_SIMD=avx2,avx512f,f16c SKIP_TESTS=1
