@@ -279,7 +279,7 @@ oiio_add_tests (nonwhole-tiles
                 oiiotool-subimage oiiotool-text
                 diff
                 dither dup-channels
-                jpeg-corrupt-exif
+                jpeg-corrupt
                 null psd-colormodes
                 rational
               )

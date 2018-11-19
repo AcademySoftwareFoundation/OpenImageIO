@@ -105,7 +105,14 @@ static void
 my_output_message(j_common_ptr cinfo)
 {
     JpgInput::my_error_ptr myerr = (JpgInput::my_error_ptr)cinfo->err;
+
+    // Create the message
+    char buffer[JMSG_LENGTH_MAX];
+    (*cinfo->err->format_message)(cinfo, buffer);
     myerr->jpginput->jpegerror(myerr, true);
+
+    /* Return control to the setjmp point */
+    longjmp(myerr->setjmp_buffer, 1);
 }
 
 
