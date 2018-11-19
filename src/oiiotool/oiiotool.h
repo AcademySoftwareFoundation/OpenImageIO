@@ -229,8 +229,17 @@ public:
     int extract_options(std::map<std::string, std::string>& options,
                         std::string command);
 
-    void error(string_view command, string_view explanation = "") const;
-    void warning(string_view command, string_view explanation = "") const;
+    template<typename... Args>
+    void error(string_view command, string_view fmt, const Args&... args) const
+    {
+        error_impl(command, Strutil::format(fmt, args...));
+    }
+    template<typename... Args>
+    void warning(string_view command, string_view fmt,
+                 const Args&... args) const
+    {
+        warning_impl(command, Strutil::format(fmt, args...));
+    }
 
     size_t check_peak_memory()
     {
@@ -255,6 +264,8 @@ private:
                                 std::string& result);
 
     std::string express_impl(string_view s);
+    void error_impl(string_view command, string_view message = "") const;
+    void warning_impl(string_view command, string_view message = "") const;
 };
 
 
