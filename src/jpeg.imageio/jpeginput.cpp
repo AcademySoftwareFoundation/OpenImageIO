@@ -57,7 +57,8 @@ jpeg_imageio_library_version()
 #define STRINGIZE2(a) #a
 #define STRINGIZE(a) STRINGIZE2(a)
 #ifdef LIBJPEG_TURBO_VERSION
-    return "jpeg-turbo " STRINGIZE(LIBJPEG_TURBO_VERSION);
+    return "jpeg-turbo " STRINGIZE(LIBJPEG_TURBO_VERSION) "/jp" STRINGIZE(
+        JPEG_LIB_VERSION);
 #else
     return "jpeglib " STRINGIZE(JPEG_LIB_VERSION_MAJOR) "." STRINGIZE(
         JPEG_LIB_VERSION_MINOR);

@@ -284,6 +284,11 @@ oiio_add_tests (nonwhole-tiles
                 rational
               )
 
+# Travis + old libjpeg seems to not catch an error in this test, skip it
+# for that case.
+if (JPEG_TURBO_FOUND OR NOT DEFINED ENV{TRAVIS})
+    oiio_add_tests (jpeg-corrupt-header)
+endif()
 
 # Add tests that require the Python bindings if we built the Python
 # bindings. This is mostly the test that are specifically about testing
