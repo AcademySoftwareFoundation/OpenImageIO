@@ -231,7 +231,7 @@ bool dpx::Header::Write(OutStream *io)
 
 	// write the header to the file
 	size_t r = sizeof(GenericHeader) + sizeof(IndustryHeader);
-	if (io->Write(&(this->magicNumber), r) != r)
+	if (! io->WriteCheck(&(this->magicNumber), r))
 		return false;
 
 	// swap back - data is in file, now we need it native again
@@ -251,7 +251,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->imageOffset);
-	if (io->Write(&this->imageOffset, sizeof(U32)) == false)
+	if (!io->WriteCheck(&this->imageOffset, sizeof(U32)))
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->imageOffset);
@@ -263,7 +263,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->fileSize);
-	if (io->Write(&this->fileSize, sizeof(U32)) == false)
+	if (! io->WriteCheck(&this->fileSize, sizeof(U32)))
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->fileSize);
@@ -274,7 +274,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->numberOfElements);
-	if (io->Write(&this->numberOfElements, sizeof(U16)) == false)
+	if (! io->WriteCheck(&this->numberOfElements, sizeof(U16)))
 		return false;
 	if (this->RequiresByteSwap())
 		SwapBytes(this->numberOfElements);
@@ -297,7 +297,7 @@ bool dpx::Header::WriteOffsetData(OutStream *io)
 			// write
 			if (this->RequiresByteSwap())
 				SwapBytes(this->chan[i].dataOffset);
-			if (io->Write(&this->chan[i].dataOffset, sizeof(U32)) == false)
+			if (! io->WriteCheck(&this->chan[i].dataOffset, sizeof(U32)))
 				return false;
 			if (this->RequiresByteSwap())
 				SwapBytes(this->chan[i].dataOffset);

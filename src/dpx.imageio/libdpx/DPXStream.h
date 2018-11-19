@@ -170,14 +170,25 @@ class OutStream
 	 */
 	virtual void Close();
 		
-	/*!
-	 * \brief Write data to file
-	 * \param buf data buffer
-	 * \param size bytes to write
-	 * \return number of bytes written
-	 */
-	virtual size_t Write(void * buf, const size_t size);
-		
+    /*!
+     * \brief Write data to file
+     * \param buf data buffer
+     * \param size bytes to write
+     * \return number of bytes written
+     */
+    virtual size_t Write(void * buf, const size_t size);
+        
+    /*!
+     * \brief Write data to file
+     * \param buf data buffer
+     * \param size bytes to write
+     * \return true for success, false if it didn't write all the bytes.
+     */
+    bool WriteCheck(void * buf, const size_t size)
+    {
+        return Write(buf, size) == size;
+    }
+        
 	/*!
 	 * \brief Seek to a position in the file
 	 * \param offset offset from originating position

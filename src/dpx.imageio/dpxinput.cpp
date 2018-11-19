@@ -32,6 +32,8 @@
 
 #include <OpenEXR/ImfTimeCode.h>  //For TimeCode support
 
+// Note: libdpx originally from: https://github.com/PatrickPalmer/dpx
+// But that seems not to be actively maintained.
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 

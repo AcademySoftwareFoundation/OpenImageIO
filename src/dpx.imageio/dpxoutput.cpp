@@ -33,6 +33,8 @@
 #include <cstdlib>
 #include <iomanip>
 
+// Note: libdpx originally from: https://github.com/PatrickPalmer/dpx
+// But that seems not to be actively maintained.
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 
@@ -582,11 +584,17 @@ DPXOutput::prep_subimage(int s, bool allocate)
 bool
 DPXOutput::write_buffer()
 {
+    bool ok = true;
     if (m_write_pending) {
-        m_dpx.WriteElement(m_subimage, &m_buf[0], m_datasize);
+        ok = m_dpx.WriteElement(m_subimage, &m_buf[0], m_datasize);
+        if (!ok) {
+            const char* err = strerror(errno);
+            error("DPX write failed (%s)",
+                  (err && err[0]) ? err : "unknown error");
+        }
         m_write_pending = false;
     }
-    return true;
+    return ok;
 }
 
 
