@@ -238,7 +238,7 @@ oiio_add_tests (
                 jpeg-corrupt-exif
                 png
                 psd psd-colormodes
-                rla sgi
+                rla sgi zfile
                 rational
                 texture-interp-bicubic
                 texture-blurtube
