@@ -35,6 +35,7 @@
 
 
 #pragma once
+#define OPENIMAGEIO_IMAGEBUF_H
 
 #if defined(_MSC_VER)
 // Ignore warnings about DLL exported classes with member variables that are template classes.
