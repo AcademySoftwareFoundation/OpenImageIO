@@ -18,3 +18,5 @@ Comparing "grid-tile.tif" and "../../../../../oiio-images/grid.tif"
 PASS
 Comparing "grid-tiles.tif" and "../../../../../oiio-images/grid.tif"
 PASS
+Comparing "multipart.exr" and "ref/multipart.exr"
+PASS
