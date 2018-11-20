@@ -58,6 +58,22 @@ struct ZfileHeader {
 static const int zfile_magic        = 0x2f0867ab;
 static const int zfile_magic_endian = 0xab67082f;  // other endianness
 
+
+
+// Open the named file (setting m_filename), return either open gz
+// handle or 0 (if it failed).
+gzFile
+open_gz(const std::string& filename, const char* mode)
+{
+#ifdef _WIN32
+    std::wstring wpath = Strutil::utf8_to_utf16(filename);
+    gzFile gz          = gzopen_w(wpath.c_str(), mode);
+#else
+    gzFile gz = gzopen(filename.c_str(), mode);
+#endif
+    return gz;
+}
+
 }  // namespace
 
 
@@ -82,6 +98,7 @@ private:
     // Reset everything to initial state
     void init()
     {
+        m_filename.clear();
         m_gz            = 0;
         m_swab          = false;
         m_next_scanline = 0;
@@ -106,7 +123,7 @@ public:
 
 private:
     std::string m_filename;  ///< Stash the filename
-    FILE* m_file;            ///< Open image handle for not compresed
+    FILE* m_file;            ///< Open image handle for not compressed
     gzFile m_gz;             ///< Handle for compressed files
     std::vector<unsigned char> m_scratch;
     std::vector<unsigned char> m_tilebuffer;
@@ -114,7 +131,7 @@ private:
     // Initialize private members to pre-opened state
     void init(void)
     {
-        m_file = NULL;
+        m_file = nullptr;
         m_gz   = 0;
     }
 };
@@ -150,21 +167,17 @@ OIIO_EXPORT const char* zfile_output_extensions[] = { "zfile", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
+
+
 bool
 ZfileInput::valid_file(const std::string& filename) const
 {
-#ifdef _WIN32
-    std::wstring wpath = Strutil::utf8_to_utf16(filename);
-    gzFile gz          = gzopen_w(wpath.c_str(), "rb");
-#else
-    gzFile gz = gzopen(filename.c_str(), "rb");
-#endif
+    gzFile gz = open_gz(filename, "rb");
     if (!gz)
         return false;
 
     ZfileHeader header;
     gzread(gz, &header, sizeof(header));
-
     bool ok = (header.magic == zfile_magic
                || header.magic == zfile_magic_endian);
     gzclose(gz);
@@ -177,13 +190,9 @@ bool
 ZfileInput::open(const std::string& name, ImageSpec& newspec)
 {
     m_filename = name;
-
-    FILE* fd = Filesystem::fopen(name, "rb");
-    m_gz     = (fd) ? gzdopen(fileno(fd), "rb") : NULL;
+    m_gz       = open_gz(name, "rb");
     if (!m_gz) {
-        if (fd)
-            fclose(fd);
-        error("Could not open file \"%s\"", name.c_str());
+        error("Could not open file \"%s\"", name);
         return false;
     }
 
@@ -320,27 +329,24 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
 
     if (m_spec.get_string_attribute("compression", "none")
         != std::string("none")) {
-        FILE* fd = Filesystem::fopen(name, "wb");
-        if (fd) {
-            m_gz = gzdopen(fileno(fd), "wb");
-            if (!m_gz)
-                fclose(fd);
-        }
-    } else
+        m_gz = open_gz(name, "wb");
+    } else {
         m_file = Filesystem::fopen(name, "wb");
+    }
     if (!m_file && !m_gz) {
-        error("Could not open file \"%s\"", name.c_str());
+        error("Could not open file \"%s\"", name);
         return false;
     }
 
-    if (m_gz)
-        gzwrite(m_gz, &header, sizeof(header));
-    else {
-        size_t b = fwrite(&header, sizeof(header), 1, m_file);
-        if (b != 1) {
-            error("Failed write zfile::open (err: %d)", b);
-            return false;
-        }
+    bool b = 0;
+    if (m_gz) {
+        b = gzwrite(m_gz, &header, sizeof(header));
+    } else {
+        b = fwrite(&header, sizeof(header), 1, m_file);
+    }
+    if (!b) {
+        error("Failed write zfile::open (err: %d)", b);
+        return false;
     }
 
     // If user asked for tiles -- which this format doesn't support, emulate
@@ -371,7 +377,7 @@ ZfileOutput::close()
     }
     if (m_file) {
         fclose(m_file);
-        m_file = NULL;
+        m_file = nullptr;
     }
 
     init();  // re-initialize
