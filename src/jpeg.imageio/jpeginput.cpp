@@ -57,7 +57,8 @@ jpeg_imageio_library_version()
 #define STRINGIZE2(a) #a
 #define STRINGIZE(a) STRINGIZE2(a)
 #ifdef LIBJPEG_TURBO_VERSION
-    return "jpeg-turbo " STRINGIZE(LIBJPEG_TURBO_VERSION);
+    return "jpeg-turbo " STRINGIZE(LIBJPEG_TURBO_VERSION) "/jp" STRINGIZE(
+        JPEG_LIB_VERSION);
 #else
     return "jpeglib " STRINGIZE(JPEG_LIB_VERSION_MAJOR) "." STRINGIZE(
         JPEG_LIB_VERSION_MINOR);
@@ -105,7 +106,14 @@ static void
 my_output_message(j_common_ptr cinfo)
 {
     JpgInput::my_error_ptr myerr = (JpgInput::my_error_ptr)cinfo->err;
+
+    // Create the message
+    char buffer[JMSG_LENGTH_MAX];
+    (*cinfo->err->format_message)(cinfo, buffer);
     myerr->jpginput->jpegerror(myerr, true);
+
+    /* Return control to the setjmp point */
+    longjmp(myerr->setjmp_buffer, 1);
 }
 
 

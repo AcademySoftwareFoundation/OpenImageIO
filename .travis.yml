@@ -94,6 +94,7 @@ script:
     - export PYTHONPATH=$OPENIMAGEIO_ROOT_DIR/python:$PYTHONPATH
     - export LSAN_OPTIONS=suppressions=$PWD/src/build-scripts/nosanitize.txt
     - if [ "$SKIP_TESTS" == "" ] ; then
+          $OPENIMAGEIO_ROOT_DIR/bin/oiiotool --help ;
           make $BUILD_FLAGS test ;
       fi
     - git diff --color ;

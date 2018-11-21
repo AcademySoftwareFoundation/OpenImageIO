@@ -1,6 +1,6 @@
-Reading src/corrupt.jpg
-src/corrupt.jpg      :  256 x  256, 3 channel, uint8 jpeg
-    SHA-1: 3EA7BAEB0871E9B9BAADF286521423199ACA2401
+Reading src/corrupt-exif.jpg
+src/corrupt-exif.jpg :  256 x  256, 3 channel, uint8 jpeg
+    SHA-1: 4E7872E76ACB971D56715978C9C4F8FF4055AD67
     channel list: R, G, B
     Orientation: 1 (normal)
     ResolutionUnit: "in"

@@ -41,6 +41,7 @@ path = os.path.normpath (path)
 
 tmpdir = "."
 tmpdir = os.path.abspath (tmpdir)
+redirect = " >> out.txt "
 
 def oiio_relpath (path, start=os.curdir):
     "Wrapper around os.path.relpath which always uses '/' as the separator."
@@ -201,7 +202,7 @@ def info_command (file, extraargs="", safematch=False, hash=True,
     if hash :
         args += " --hash"
     return (oiio_app("oiiotool") + args + " " + extraargs
-            + " " + oiio_relpath(file,tmpdir) + " >> out.txt ;\n")
+            + " " + oiio_relpath(file,tmpdir) + redirect + ";\n")
 
 
 # Construct a command that will compare two images, appending output to
@@ -218,7 +219,7 @@ def diff_command (fileA, fileB, extraargs="", silent=False, concat=True) :
                + " " + extraargs + " " + oiio_relpath(fileA,tmpdir) 
                + " " + oiio_relpath(fileB,tmpdir))
     if not silent :
-        command += " >> out.txt"
+        command += redirect
     if concat:
         command += " ;\n"
     return command
@@ -234,7 +235,7 @@ def maketx_command (infile, outfile, extraargs="",
                + " " + extraargs
                + " -o " + oiio_relpath(outfile,tmpdir) )
     if not silent :
-        command += " >> out.txt"
+        command += redirect
     if concat:
         command += " ;\n"
     if showinfo:
@@ -262,23 +263,23 @@ def rw_command (dir, filename, testwrite=True, use_oiiotool=False, extraargs="",
     if testwrite :
         if use_oiiotool :
             cmd = (cmd + oiio_app("oiiotool") + preargs + " " + fn
-                   + " " + extraargs + " -o " + output_filename + " >> out.txt ;\n")
+                   + " " + extraargs + " -o " + output_filename + redirect + ";\n")
         else :
             cmd = (cmd + oiio_app("iconvert") + preargs + " " + fn
-                   + " " + extraargs + " " + output_filename + " >> out.txt ;\n")
+                   + " " + extraargs + " " + output_filename + redirect + ";\n")
         cmd = (cmd + oiio_app("idiff") + " -a " + fn
                + " -fail " + str(failthresh)
                + " -failpercent " + str(failpercent)
                + " -hardfail " + str(hardfail)
                + " -warn " + str(2*failthresh)
-               + " " + idiffextraargs + " " + output_filename + " >> out.txt ;\n")
+               + " " + idiffextraargs + " " + output_filename + redirect + ";\n")
     return cmd
 
 
 # Construct a command that will testtex
 def testtex_command (file, extraargs="") :
     cmd = (oiio_app("testtex") + " " + file + " " + extraargs + " " +
-           " >> out.txt ;\n")
+           redirect + ";\n")
     return cmd
 
 
@@ -288,7 +289,7 @@ def oiiotool (args, silent=False, concat=True) :
            + "-colorconfig " + colorconfig_file + " "
            + args)
     if not silent :
-        cmd += " >> out.txt"
+        cmd += redirect
     if concat:
         cmd += " ;\n"
     return cmd
@@ -346,6 +347,7 @@ def runtest (command, outputs, failureok=0) :
 #    print ("working dir = " + tmpdir)
     os.chdir (srcdir)
     open ("out.txt", "w").close()    # truncate out.txt
+    open ("out.err.txt", "w").close()    # truncate out.txt
     if os.path.isfile("debug.log") :
         os.remove ("debug.log")
 

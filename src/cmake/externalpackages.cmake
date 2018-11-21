@@ -354,6 +354,7 @@ if (USE_JPEGTURBO)
 endif ()
 if (JPEG_FOUND)
     add_definitions ("-DUSE_JPEG_TURBO=1")
+    set (JPEG_TURBO_FOUND 1)
 else ()
     # Try to find the non-turbo version
     find_package (JPEG REQUIRED)
