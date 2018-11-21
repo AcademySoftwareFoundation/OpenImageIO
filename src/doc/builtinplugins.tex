@@ -129,6 +129,43 @@ DPX files use the file extension {\cf .dpx}.
 %\subsubsection*{Attributes}
 \vspace{.125in}
 
+\subsubsection*{Configuration settings for DPX input}
+
+When opening a DPX \ImageInput with a \emph{configuration} (see
+Section~\ref{sec:inputwithconfig}), the following special configuration
+options are supported:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
+Configuration attribute & Type & Meaning \\
+\hline
+\qkws{oiio:RawColor} & int & If nonzero, reading images with non-RGB color
+                        models (such as YCbCr) will return unaltered
+                        pixel values (versus the default OIIO behavior of
+                        automatically converting to RGB). \\
+\end{tabular}
+
+\subsubsection*{Configuration settings for DPX output}
+
+When opening a DPX \ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
+Output attribute & Type & Meaning \\
+\hline
+\qkws{oiio:RawColor} & int & If nonzero, writing images with non-RGB color
+                        models (such as YCbCr) will keep unaltered
+                        pixel values (versus the default OIIO behavior of
+                        automatically converting from RGB to the designated
+                        color space as the pixels are written). \\
+\end{tabular}
+
+
+\subsubsection*{DPX Attributes}
+
 \noindent\begin{longtable}{p{1.8in}|p{0.65in}|p{2.75in}}
 OIIO Attribute & Type & DPX header data or explanation \\
 \hline
@@ -1219,9 +1256,11 @@ aspects of the writing itself:
 Output attribute & Type & Meaning \\
 \hline
 \qkws{oiio:UnassociatedAlpha} & int & If nonzero, any alpha channel is
-                                understood do be unassociated, and the
+                                understood to be unassociated, and the
                                 EXTRASAMPLES tag in the TIFF file will be
                                 set to reflect this). \\
+\qkws{oiio:BitsPerSample} & int & Requests a rescaling to a specific bits
+                                per sample (such as writing 12-bit TIFFs). \\
 \qkw{tiff:write_exif} & int & If zero, will not write any Exif data to the
                             TIFF file. (The default is 1.) \\
 \qkw{tiff:half} & int & If nonzero, allow writing TIFF files with `half'
@@ -1238,7 +1277,10 @@ Output attribute & Type & Meaning \\
         compression, ranging from 1--9 (default is 6). Higher means compress
         to less space, but taking longer to do so. It is strictly a time
         vs space tradeoff, the quality is identical (lossless) no matter
-        what the setting.
+        what the setting. \\
+\qkws{tiff:RowsPerStrip} & int & Overrides TIFF scanline rows per strip
+        with a specific request (if not supplied, OIIO will choose a
+        reasonable default). \\
 \end{tabular}
 
 \subsubsection*{TIFF compression modes}
