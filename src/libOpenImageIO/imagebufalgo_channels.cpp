@@ -284,7 +284,7 @@ ImageBufAlgo::channel_append(ImageBuf& dst, const ImageBuf& A,
                 != dstspec.channelnames.end()) {
                 // If it's still a duplicate, fall back on a totally
                 // artificial name that contains the channel number.
-                name = Strutil::format("channel%d", A.spec().nchannels + c);
+                name = Strutil::sprintf("channel%d", A.spec().nchannels + c);
             }
             dstspec.channelnames.push_back(name);
         }

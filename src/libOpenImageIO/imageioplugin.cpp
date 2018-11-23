@@ -69,8 +69,8 @@ static std::map<std::string, std::string> format_library_versions;
 
 
 
-static std::string pattern = Strutil::format(".imageio.%s",
-                                             Plugin::plugin_extension());
+static std::string pattern = Strutil::sprintf(".imageio.%s",
+                                              Plugin::plugin_extension());
 
 
 inline void
@@ -149,7 +149,7 @@ declare_imageio_format(const std::string& format_name,
         format_library_versions[format_name] = lib_version;
         if (library_list.length())
             library_list += std::string(";");
-        library_list += Strutil::format("%s:%s", format_name, lib_version);
+        library_list += Strutil::sprintf("%s:%s", format_name, lib_version);
         // std::cout << format_name << ": " << lib_version << "\n";
     }
 }
@@ -415,7 +415,7 @@ ImageOutput::create(const std::string& filename,
 {
     std::unique_ptr<ImageOutput> out;
     if (filename.empty()) {  // Can't even guess if no filename given
-        pvt::error("ImageOutput::create() called with no filename");
+        OIIO::pvt::errorf("ImageOutput::create() called with no filename");
         return out;
     }
 
@@ -449,9 +449,9 @@ ImageOutput::create(const std::string& filename,
                 const char* msg
                     = "ImageOutput::create() could not find any ImageOutput plugins!  Perhaps you need to set OIIO_LIBRARY_PATH.\n";
                 fprintf(stderr, "%s", msg);
-                pvt::error("%s", msg);
+                OIIO::pvt::errorf("%s", msg);
             } else
-                pvt::error(
+                OIIO::pvt::errorf(
                     "OpenImageIO could not find a format writer for \"%s\". "
                     "Is it a file format that OpenImageIO doesn't know about?\n",
                     filename);
@@ -508,7 +508,8 @@ ImageInput::create(const std::string& filename, bool do_open,
     std::map<std::string, std::string> args;
     std::string filename_stripped;
     if (!Strutil::get_rest_arguments(filename, filename_stripped, args)) {
-        pvt::error("ImageInput::create() called with malformed filename");
+        OIIO::pvt::errorf(
+            "ImageInput::create() called with malformed filename");
         return in;
     }
 
@@ -516,7 +517,7 @@ ImageInput::create(const std::string& filename, bool do_open,
         filename_stripped = filename;
 
     if (filename_stripped.empty()) {  // Can't even guess if no filename given
-        pvt::error("ImageInput::create() called with no filename");
+        OIIO::pvt::errorf("ImageInput::create() called with no filename");
         return in;
     }
 
@@ -640,18 +641,18 @@ ImageInput::create(const std::string& filename, bool do_open,
                 = "ImageInput::create() could not find any ImageInput plugins!\n"
                   "    Perhaps you need to set OIIO_LIBRARY_PATH.\n";
             fprintf(stderr, "%s", msg);
-            pvt::error("%s", msg);
+            OIIO::pvt::errorf("%s", msg);
         } else if (!specific_error.empty()) {
             // Pass along any specific error message we got from our
             // best guess of the format.
-            pvt::error("%s", specific_error);
+            OIIO::pvt::errorf("%s", specific_error);
         } else if (Filesystem::exists(filename))
-            pvt::error(
+            pvt::errorf(
                 "OpenImageIO could not find a format reader for \"%s\". "
                 "Is it a file format that OpenImageIO doesn't know about?\n",
                 filename);
         else
-            pvt::error(
+            OIIO::pvt::errorf(
                 "Image \"%s\" does not exist. Also, it is not the name of an image format that OpenImageIO recognizes.\n",
                 filename);
         DASSERT(!in);

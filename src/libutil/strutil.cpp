@@ -155,19 +155,7 @@ Strutil::sync_output(std::ostream& file, string_view str)
 
 
 std::string
-Strutil::format_raw(const char* fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-    std::string buf = vformat(fmt, ap);
-    va_end(ap);
-    return buf;
-}
-
-
-
-std::string
-Strutil::vformat(const char* fmt, va_list ap)
+Strutil::vsprintf(const char* fmt, va_list ap)
 {
     // Allocate a buffer on the stack that's big enough for us almost
     // all the time.  Be prepared to allocate dynamically if it doesn't fit.
@@ -209,6 +197,15 @@ Strutil::vformat(const char* fmt, va_list ap)
         ap     = apsave;
 #endif
     }
+}
+
+
+
+std::string
+Strutil::vformat(const char* fmt, va_list ap)
+{
+    // For now, just treat as a synonym for vsprintf
+    return vsprintf(fmt, ap);
 }
 
 

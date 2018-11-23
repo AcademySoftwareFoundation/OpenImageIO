@@ -233,7 +233,7 @@ TypeDesc::c_str() const
             result += basetype_code[basetype];
     }
     if (arraylen > 0)
-        result += Strutil::format("[%d]", arraylen);
+        result += Strutil::sprintf("[%d]", arraylen);
     else if (arraylen < 0)
         result += "[]";
     return ustring(result).c_str();
@@ -337,7 +337,7 @@ sprintt(TypeDesc type, const char* format, const char* aggregate_delim,
         if (type.aggregate > 1)
             val += aggregate_delim[0];
         for (int j = 0; j < (int)type.aggregate; ++j, ++v) {
-            val += Strutil::format(format, *v);
+            val += Strutil::sprintf(format, *v);
             if (type.aggregate > 1 && j < type.aggregate - 1)
                 val += aggregate_sep;
         }

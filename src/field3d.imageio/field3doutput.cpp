@@ -115,8 +115,8 @@ OIIO_EXPORT int field3d_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 field3d_imageio_library_version()
 {
-    return ustring::format("Field3d %d.%d.%d", FIELD3D_MAJOR_VER,
-                           FIELD3D_MINOR_VER, FIELD3D_MICRO_VER)
+    return ustring::sprintf("Field3d %d.%d.%d", FIELD3D_MAJOR_VER,
+                            FIELD3D_MINOR_VER, FIELD3D_MICRO_VER)
         .c_str();
 }
 

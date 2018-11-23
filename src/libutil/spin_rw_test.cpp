@@ -113,12 +113,12 @@ getargs(int argc, char* argv[])
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",
         "--threads %d", &numthreads,
-            ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+            ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
         "--iters %d", &iterations,
-            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
         "--trials %d", &ntrials, "Number of trials",
         "--rwratio %d", &read_write_ratio,
-            ustring::format("Reader::writer ratio (default: %d)", read_write_ratio).c_str(),
+            ustring::sprintf("Reader::writer ratio (default: %d)", read_write_ratio).c_str(),
         "--wedge", &wedge, "Do a wedge test",
         nullptr);
     // clang-format on
@@ -155,10 +155,8 @@ main(int argc, char* argv[])
         double t = time_trial(std::bind(test_spin_rw, nt, its), ntrials,
                               &range);
 
-        std::cout << Strutil::format(
-            "%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n", nt,
-            Strutil::timeintervalformat(t), t, range, its);
-        std::cout.flush();
+        Strutil::printf("%2d\t%s\t%5.1fs, range %.1f\t(%d iters/thread)\n", nt,
+                        Strutil::timeintervalformat(t), t, range, its);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }

@@ -87,12 +87,12 @@ getargs(int argc, char* argv[])
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",
         "--threads %d", &numthreads,
-            ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+            ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
         "--iters %d", &iterations,
-            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
         "--trials %d", &ntrials, "Number of trials",
         "--autotile %d", &autotile_size,
-            ustring::format("Autotile size (when used; default: %d)", autotile_size).c_str(),
+            ustring::sprintf("Autotile size (when used; default: %d)", autotile_size).c_str(),
         "--iteronly", &iter_only, "Run ImageBuf iteration tests only (not read tests)",
         "--noiter", &no_iter, "Don't run ImageBuf iteration tests",
         "--convert %s", &conversionname, "Convert to named type upon read (default: native)",
@@ -207,7 +207,7 @@ test_read(const std::string& explanation, void (*func)(), int autotile = 64,
     double rate = double(total_image_pixels) / t;
     std::cout << "  " << explanation << ": "
               << Strutil::timeintervalformat(t, 2) << " = "
-              << Strutil::format("%5.1f", rate / 1.0e6) << " Mpel/s"
+              << Strutil::sprintf("%5.1f", rate / 1.0e6) << " Mpel/s"
               << std::endl;
 }
 
@@ -334,7 +334,7 @@ test_write(const std::string& explanation, void (*func)(), int tilesize = 0)
     double rate         = double(total_image_pixels) / t;
     std::cout << "  " << explanation << ": "
               << Strutil::timeintervalformat(t, 2) << " = "
-              << Strutil::format("%5.1f", rate / 1.0e6) << " Mpel/s"
+              << Strutil::sprintf("%5.1f", rate / 1.0e6) << " Mpel/s"
               << std::endl;
 }
 
@@ -483,7 +483,7 @@ test_pixel_iteration(const std::string& explanation,
     double rate = double(ib.spec().image_pixels()) / (t / iters);
     std::cout << "  " << explanation << ": "
               << Strutil::timeintervalformat(t / iters, 3) << " = "
-              << Strutil::format("%5.1f", rate / 1.0e6) << " Mpel/s"
+              << Strutil::sprintf("%5.1f", rate / 1.0e6) << " Mpel/s"
               << std::endl;
 }
 

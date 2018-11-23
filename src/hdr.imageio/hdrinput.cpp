@@ -164,7 +164,7 @@ HdrInput::seek_subimage(int subimage, int miplevel)
             m_spec.attribute("oiio:ColorSpace", "linear");
         else
             m_spec.attribute("oiio:ColorSpace",
-                             Strutil::format("GammaCorrected%.2g", g));
+                             Strutil::sprintf("GammaCorrected%.2g", g));
     } else {
         // Presume linear color space
         m_spec.attribute("oiio:ColorSpace", "linear");

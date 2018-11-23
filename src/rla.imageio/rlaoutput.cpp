@@ -381,7 +381,7 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     STRING_FIELD(Aspect, "rla:Aspect");
 
     float aspect = m_spec.get_float_attribute("PixelAspectRatio", 1.f);
-    Strutil::safe_strcpy(m_rla.AspectRatio, Strutil::format("%.6f", aspect),
+    Strutil::safe_strcpy(m_rla.AspectRatio, Strutil::sprintf("%.6f", aspect),
                          sizeof(m_rla.AspectRatio));
     Strutil::safe_strcpy(m_rla.ColorChannel,
                          m_spec.get_string_attribute("rla:ColorChannel", "rgb"),

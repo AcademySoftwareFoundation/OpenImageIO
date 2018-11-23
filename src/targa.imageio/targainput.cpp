@@ -387,8 +387,8 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                     m_spec.attribute("oiio:ColorSpace", "linear");
                 } else {
                     m_spec.attribute("oiio:ColorSpace",
-                                     Strutil::format("GammaCorrected%.2g",
-                                                     gamma));
+                                     Strutil::sprintf("GammaCorrected%.2g",
+                                                      gamma));
                     m_spec.attribute("oiio:Gamma", gamma);
                 }
             }

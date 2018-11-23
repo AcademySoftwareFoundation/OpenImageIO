@@ -170,28 +170,28 @@ operator<<(std::ostream& out, const Benchmarker& bench)
     if (bench.indent())
         out << std::string(bench.indent(), ' ');
     if (unit == int(Benchmarker::Unit::s))
-        out << Strutil::format("%-16s: %s", bench.m_name,
-                               Strutil::timeintervalformat(avg, 2));
+        out << Strutil::sprintf("%-16s: %s", bench.m_name,
+                                Strutil::timeintervalformat(avg, 2));
     else
-        out << Strutil::format("%-16s: %6.1f %s (+/-%4.1f%s), ", bench.name(),
-                               avg, unitname, stddev, unitname);
+        out << Strutil::sprintf("%-16s: %6.1f %s (+/-%4.1f%s), ", bench.name(),
+                                avg, unitname, stddev, unitname);
     if (bench.avg() < 0.25e-9) {
         // Less than 1/4 ns iteration time is probably an error
         out << "unreliable";
         return out;
     }
     if (bench.work() == 1)
-        out << Strutil::format("%6.1f %c/s", (1.0f / ratescale) / bench.avg(),
-                               rateunit);
+        out << Strutil::sprintf("%6.1f %c/s", (1.0f / ratescale) / bench.avg(),
+                                rateunit);
     else
-        out << Strutil::format("%6.1f %cvals/s, %.1f %ccalls/s",
-                               (bench.work() / ratescale) / bench.avg(),
-                               rateunit, (1.0f / ratescale) / bench.avg(),
-                               rateunit);
+        out << Strutil::sprintf("%6.1f %cvals/s, %.1f %ccalls/s",
+                                (bench.work() / ratescale) / bench.avg(),
+                                rateunit, (1.0f / ratescale) / bench.avg(),
+                                rateunit);
     if (bench.verbose() >= 2)
-        out << Strutil::format(" (%dx%d, rng=%.1f%%, med=%.1f)", bench.trials(),
-                               bench.iterations(), unitname,
-                               (range / avg) * 100.0, bench.median() * scale);
+        out << Strutil::sprintf(" (%dx%d, rng=%.1f%%, med=%.1f)",
+                                bench.trials(), bench.iterations(), unitname,
+                                (range / avg) * 100.0, bench.median() * scale);
 #if 0
     if (range > avg/10.0) {
         for (auto v : bench.m_times)
@@ -236,10 +236,10 @@ timed_thread_wedge(function_view<void(int)> task, function_view<void()> pretask,
             double ideal           = one_thread_time / nthreads;
             double speedup         = one_thread_time / times[i];
             double efficiency      = 100.0 * ideal / times[i];
-            (*out) << Strutil::format(
-                "%4d   %8.1f   %6.2fx    %6.2f%% %10d %8.2f\n", nthreads,
-                times[i], speedup, efficiency, iters, range);
-            out->flush();
+            Strutil::fprintf(*out,
+                             "%4d   %8.1f   %6.2fx    %6.2f%% %10d %8.2f\n",
+                             nthreads, times[i], speedup, efficiency, iters,
+                             range);
         }
     }
     return times;

@@ -129,9 +129,9 @@ public:
     int found(const char* option);  // number of times option was parsed
 
     template<typename... Args>
-    void error(string_view fmt, const Args&... args) const
+    void error(const char* fmt, const Args&... args) const
     {
-        m_errmessage = Strutil::format(fmt, args...);
+        m_errmessage = Strutil::sprintf(fmt, args...);
     }
 };
 

@@ -167,9 +167,9 @@ datestring(time_t t)
 {
     struct tm mytm;
     Sysutil::get_local_time(&t, &mytm);
-    return Strutil::format("%4d:%02d:%02d %02d:%02d:%02d", mytm.tm_year + 1900,
-                           mytm.tm_mon + 1, mytm.tm_mday, mytm.tm_hour,
-                           mytm.tm_min, mytm.tm_sec);
+    return Strutil::sprintf("%4d:%02d:%02d %02d:%02d:%02d", mytm.tm_year + 1900,
+                            mytm.tm_mon + 1, mytm.tm_mday, mytm.tm_hour,
+                            mytm.tm_min, mytm.tm_sec);
 }
 
 
@@ -593,16 +593,16 @@ static std::string
 formatres(const ImageSpec& spec, bool extended = false)
 {
     std::string s;
-    s = Strutil::format("%dx%d", spec.width, spec.height);
+    s = Strutil::sprintf("%dx%d", spec.width, spec.height);
     if (extended) {
         if (spec.x || spec.y)
-            s += Strutil::format("%+d%+d", spec.x, spec.y);
+            s += Strutil::sprintf("%+d%+d", spec.x, spec.y);
         if (spec.width != spec.full_width || spec.height != spec.full_height
             || spec.x != spec.full_x || spec.y != spec.full_y) {
             s += " (full/display window is ";
-            s += Strutil::format("%dx%d", spec.full_width, spec.full_height);
+            s += Strutil::sprintf("%dx%d", spec.full_width, spec.full_height);
             if (spec.full_x || spec.full_y)
-                s += Strutil::format("%+d%+d", spec.full_x, spec.full_y);
+                s += Strutil::sprintf("%+d%+d", spec.full_x, spec.full_y);
             s += ")";
         }
     }
@@ -866,9 +866,9 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
             if (verbose) {
                 size_t mem = Sysutil::memory_used(true);
                 peak_mem   = std::max(peak_mem, mem);
-                outstream << Strutil::format("    %-15s (%s)",
-                                             formatres(smallspec),
-                                             Strutil::memformat(mem))
+                outstream << Strutil::sprintf("    %-15s (%s)",
+                                              formatres(smallspec),
+                                              Strutil::memformat(mem))
                           << std::endl;
             }
             std::swap(img, small);
@@ -905,14 +905,15 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     size_t peak_mem              = 0;
     Timer alltime;
 
-#define STATUS(task, timer)                                                     \
-    {                                                                           \
-        size_t mem = Sysutil::memory_used(true);                                \
-        peak_mem   = std::max(peak_mem, mem);                                   \
-        if (verbose)                                                            \
-            outstream << Strutil::format("  %-25s %s   (%s)\n", task,           \
-                                         Strutil::timeintervalformat(timer, 2), \
-                                         Strutil::memformat(mem));              \
+#define STATUS(task, timer)                                                    \
+    {                                                                          \
+        size_t mem = Sysutil::memory_used(true);                               \
+        peak_mem   = std::max(peak_mem, mem);                                  \
+        if (verbose)                                                           \
+            outstream << Strutil::sprintf("  %-25s %s   (%s)\n", task,         \
+                                          Strutil::timeintervalformat(timer,   \
+                                                                      2),      \
+                                          Strutil::memformat(mem));            \
     }
 
     ImageSpec configspec = _configspec;
@@ -1050,7 +1051,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         }
     }
     stat_readtime += alltime.lap();
-    STATUS(Strutil::format("read \"%s\"", src->name()), stat_readtime);
+    STATUS(Strutil::sprintf("read \"%s\"", src->name()), stat_readtime);
 
     if (mode == ImageBufAlgo::MakeTxEnvLatlFromLightProbe) {
         ImageSpec newspec = src->spec();
@@ -1707,30 +1708,28 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     if (verbose || configspec.get_int_attribute("maketx:runstats")
         || configspec.get_int_attribute("maketx:stats")) {
         double all = alltime();
-        outstream << Strutil::format("maketx run time (seconds): %5.2f\n", all);
-        ;
-
-        outstream << Strutil::format("  file read:       %5.2f\n",
-                                     stat_readtime);
-        outstream << Strutil::format("  file write:      %5.2f\n",
-                                     stat_writetime);
-        outstream << Strutil::format("  initial resize:  %5.2f\n",
-                                     stat_resizetime);
-        outstream << Strutil::format("  hash:            %5.2f\n",
-                                     stat_hashtime);
-        outstream << Strutil::format("  pixelstats:      %5.2f\n",
-                                     stat_pixelstatstime);
-        outstream << Strutil::format("  mip computation: %5.2f\n",
-                                     stat_miptime);
-        outstream << Strutil::format("  color convert:   %5.2f\n",
-                                     stat_colorconverttime);
-        outstream << Strutil::format(
+        Strutil::fprintf(outstream, "maketx run time (seconds): %5.2f\n", all);
+        Strutil::fprintf(outstream, "  file read:       %5.2f\n",
+                         stat_readtime);
+        Strutil::fprintf(outstream, "  file write:      %5.2f\n",
+                         stat_writetime);
+        Strutil::fprintf(outstream, "  initial resize:  %5.2f\n",
+                         stat_resizetime);
+        Strutil::fprintf(outstream, "  hash:            %5.2f\n",
+                         stat_hashtime);
+        Strutil::fprintf(outstream, "  pixelstats:      %5.2f\n",
+                         stat_pixelstatstime);
+        Strutil::fprintf(outstream, "  mip computation: %5.2f\n", stat_miptime);
+        Strutil::fprintf(outstream, "  color convert:   %5.2f\n",
+                         stat_colorconverttime);
+        Strutil::fprintf(
+            outstream,
             "  unaccounted:     %5.2f  (%5.2f %5.2f %5.2f %5.2f %5.2f)\n",
             all - stat_readtime - stat_writetime - stat_resizetime
                 - stat_hashtime - stat_miptime,
             misc_time_1, misc_time_2, misc_time_3, misc_time_4, misc_time_5);
-        outstream << Strutil::format("maketx peak memory used: %s\n",
-                                     Strutil::memformat(peak_mem));
+        Strutil::fprintf(outstream, "maketx peak memory used: %s\n",
+                         Strutil::memformat(peak_mem));
     }
 
 #undef STATUS

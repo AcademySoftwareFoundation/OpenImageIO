@@ -74,7 +74,7 @@ getargs(int argc, char* argv[])
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",
         "--iterations %d", &iterations,
-            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
         "--trials %d", &ntrials, "Number of trials",
         nullptr);
     if (ap.parse(argc, (const char**)argv) < 0) {
@@ -134,7 +134,7 @@ benchmark(string_view funcname, FUNC func, T x, size_t work = 0)
         r = func(x); DoNotOptimize (r); clobber_all_memory();
     };
     float time = time_trial(repeat_func, ntrials, iterations / 8);
-    std::cout << Strutil::format("  %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
+    Strutil::printf("  %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
                                  funcname, ((iterations * work) / 1.0e6) / time,
                                  (iterations / 1.0e6) / time);
 }
@@ -158,7 +158,7 @@ benchmark2(string_view funcname, FUNC func, T x, U y, size_t work = 0)
         r = func(x, y); DoNotOptimize (r); clobber_all_memory();
     };
     float time = time_trial(repeat_func, ntrials, iterations / 8);
-    std::cout << Strutil::format("  %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
+    Strutil::printf("  %s: %7.1f Mvals/sec, (%.1f Mcalls/sec)\n",
                                  funcname, ((iterations * work) / 1.0e6) / time,
                                  (iterations / 1.0e6) / time);
 }
@@ -541,7 +541,7 @@ void test_conversion_loadstore_int ()
 template<typename VEC>
 void test_vint_to_uint16s ()
 {
-    test_heading (Strutil::format("test converting %s to uint16", VEC::type_name()));
+    test_heading (Strutil::sprintf("test converting %s to uint16", VEC::type_name()));
     VEC ival = VEC::Iota (0xffff0000);
     unsigned short buf[VEC::elements];
     ival.store (buf);
@@ -557,7 +557,7 @@ void test_vint_to_uint16s ()
 template<typename VEC>
 void test_vint_to_uint8s ()
 {
-    test_heading (Strutil::format("test converting %s to uint8", VEC::type_name()));
+    test_heading (Strutil::sprintf("test converting %s to uint8", VEC::type_name()));
     VEC ival = VEC::Iota (0xffffff00);
     unsigned char buf[VEC::elements];
     ival.store (buf);
@@ -1372,11 +1372,11 @@ test_shift()
         VEC vhard(hard);
         OIIO_CHECK_SIMD_EQUAL (vhard >> 1, VEC(hard>>1));
         OIIO_CHECK_SIMD_EQUAL (srl(vhard,1), VEC(unsigned(hard)>>1));
-        std::cout << Strutil::format ("  [%x] >>  1 == [%x]\n", vhard, vhard>>1);
-        std::cout << Strutil::format ("  [%x] srl 1 == [%x]\n", vhard, srl(vhard,1));
+        Strutil::printf("  [%x] >>  1 == [%x]\n", vhard, vhard>>1);
+        Strutil::printf("  [%x] srl 1 == [%x]\n", vhard, srl(vhard,1));
         OIIO_CHECK_SIMD_EQUAL (srl(vhard,4), VEC(unsigned(hard)>>4));
-        std::cout << Strutil::format ("  [%x] >>  4 == [%x]\n", vhard, vhard>>4);
-        std::cout << Strutil::format ("  [%x] srl 4 == [%x]\n", vhard, srl(vhard,4));
+        Strutil::printf("  [%x] >>  4 == [%x]\n", vhard, vhard>>4);
+        Strutil::printf("  [%x] srl 4 == [%x]\n", vhard, srl(vhard,4));
     }
 
     // Test <<= and >>=

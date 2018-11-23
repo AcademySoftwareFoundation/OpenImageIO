@@ -116,7 +116,7 @@ ImageInput::open(const std::string& filename, const ImageSpec* config)
         // error, delete the ImageInput we allocated, and return NULL.
         std::string err = in->geterror();
         if (err.size())
-            pvt::error("%s", err);
+            OIIO::pvt::errorf("%s", err);
         in.reset();
     }
 
@@ -221,8 +221,8 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
     }
 
     if (!ok)
-        error("ImageInput::read_scanline : no support for format %s",
-              m_spec.format.c_str());
+        errorf("ImageInput::read_scanline : no support for format %s",
+               m_spec.format);
     return ok;
 }
 
@@ -346,8 +346,8 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
             }
         }
         if (!ok)
-            error("ImageInput::read_scanlines : no support for format %s",
-                  spec.format.c_str());
+            errorf("ImageInput::read_scanlines : no support for format %s",
+                   spec.format);
         data = (char*)data + ystride * nscanlines;
     }
     return ok;
@@ -493,8 +493,8 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
     }
 
     if (!ok)
-        error("ImageInput::read_tile : no support for format %s",
-              m_spec.format.c_str());
+        errorf("ImageInput::read_tile : no support for format %s",
+               m_spec.format);
     return ok;
 }
 
@@ -695,7 +695,8 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
     }
 
     if (!ok)
-        error("ImageInput::read_tiles : no support for format %s", spec.format);
+        errorf("ImageInput::read_tiles : no support for format %s",
+               spec.format);
     return ok;
 }
 

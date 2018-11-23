@@ -425,10 +425,10 @@ extended_format_name(TypeDesc type, int bits)
         // file than the data type we are passing.
         if (type == TypeDesc::UINT8 || type == TypeDesc::UINT16
             || type == TypeDesc::UINT32 || type == TypeDesc::UINT64)
-            return ustring::format("uint%d", bits).c_str();
+            return ustring::sprintf("uint%d", bits).c_str();
         if (type == TypeDesc::INT8 || type == TypeDesc::INT16
             || type == TypeDesc::INT32 || type == TypeDesc::INT64)
-            return ustring::format("int%d", bits).c_str();
+            return ustring::sprintf("int%d", bits).c_str();
     }
     return type.c_str();  // use the name implied by type
 }
@@ -445,11 +445,11 @@ brief_format_name(TypeDesc type, int bits = 0)
             return "f";
         if (type.basetype == TypeDesc::HALF)
             return "h";
-        return ustring::format("f%d", bits).c_str();
+        return ustring::sprintf("f%d", bits).c_str();
     } else if (type.is_signed()) {
-        return ustring::format("i%d", bits).c_str();
+        return ustring::sprintf("i%d", bits).c_str();
     } else {
-        return ustring::format("u%d", bits).c_str();
+        return ustring::sprintf("u%d", bits).c_str();
     }
     return type.c_str();  // use the name implied by type
 }
@@ -701,7 +701,7 @@ main(int argc, const char* argv[])
         if (!in) {
             std::string err = geterror();
             if (err.empty())
-                err = Strutil::format("Could not open \"%s\"", s);
+                err = Strutil::sprintf("Could not open \"%s\"", s);
             std::cerr << "iinfo ERROR: " << err << "\n";
             continue;
         }

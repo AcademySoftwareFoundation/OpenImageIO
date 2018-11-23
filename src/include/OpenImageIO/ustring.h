@@ -691,12 +691,33 @@ public:
 
     /// Construct a ustring in a printf-like fashion.  In other words,
     /// something like:
-    ///    ustring s = ustring::format ("blah %d %g", (int)foo, (float)bar);
+    ///    ustring s = ustring::sprintf("blah %d %g", (int)foo, (float)bar);
     /// The argument list is fully typesafe.
     /// The formatting of the string will always use the classic "C" locale
     /// conventions (in particular, '.' as decimal separator for float values).
     template<typename... Args>
-    static ustring format(string_view fmt, const Args&... args)
+    static ustring sprintf(const char* fmt, const Args&... args)
+    {
+        return ustring(Strutil::sprintf(fmt, args...));
+    }
+
+    /// Construct a ustring in a fmt::format-like fashion.  In other words,
+    /// something like:
+    ///    ustring s = ustring::fmtformat("blah {} {}", (int)foo, (float)bar);
+    /// The argument list is fully typesafe.
+    /// The formatting of the string will always use the classic "C" locale
+    /// conventions (in particular, '.' as decimal separator for float values).
+    template<typename... Args>
+    static ustring fmtformat(const char* fmt, const Args&... args)
+    {
+        return ustring(Strutil::fmt::format(fmt, args...));
+    }
+
+    /// NOTE: Semi-DEPRECATED! This will someday switch to behave like
+    /// fmt::format (or future std::format) but for now, it is back
+    /// compatible and equivalent to sprintf.
+    template<typename... Args>
+    static ustring format(const char* fmt, const Args&... args)
     {
         return ustring(Strutil::format(fmt, args...));
     }

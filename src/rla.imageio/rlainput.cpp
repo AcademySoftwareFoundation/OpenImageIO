@@ -144,10 +144,10 @@ private:
             swap_endian(s, 2);
             swap_endian(&i);
         }
-        out << Strutil::format("%d/%u %d/%u %d/%u %d/%u (%d %d) (%u)\n", u.c[0],
-                               ((char*)u.c)[0], u.c[1], ((char*)u.c)[1], u.c[2],
-                               ((char*)u.c)[2], u.c[3], ((char*)u.c)[3], s[0],
-                               s[1], i);
+        out << Strutil::sprintf("%d/%u %d/%u %d/%u %d/%u (%d %d) (%u)\n",
+                                u.c[0], ((char*)u.c)[0], u.c[1],
+                                ((char*)u.c)[1], u.c[2], ((char*)u.c)[2],
+                                u.c[3], ((char*)u.c)[3], s[0], s[1], i);
         fseek(m_file, pos, SEEK_SET);
     }
 };
@@ -373,8 +373,8 @@ RLAInput::seek_subimage(int subimage, int miplevel)
             if (M > 0) {
                 // construct a date/time marker in OIIO convention
                 m_spec.attribute("DateTime",
-                                 Strutil::format("%4d:%02d:%02d %02d:%02d:00",
-                                                 y, M, d, h, m));
+                                 Strutil::sprintf("%4d:%02d:%02d %02d:%02d:00",
+                                                  y, M, d, h, m));
             }
         }
     }
@@ -415,7 +415,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
             m_spec.attribute("oiio:ColorSpace", "Linear");
         else {
             m_spec.attribute("oiio:ColorSpace",
-                             Strutil::format("GammaCorrected%.2g", gamma));
+                             Strutil::sprintf("GammaCorrected%.2g", gamma));
             m_spec.attribute("oiio:Gamma", gamma);
         }
     }

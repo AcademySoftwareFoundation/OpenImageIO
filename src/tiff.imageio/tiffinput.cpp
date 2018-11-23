@@ -984,7 +984,7 @@ TIFFInput::readspec(bool read_meta)
                 // This extra channel is not alpha at all.  Undo any
                 // assumptions we previously made about this channel.
                 if (m_spec.alpha_channel == c) {
-                    m_spec.channelnames[c] = Strutil::format("channel%d", c);
+                    m_spec.channelnames[c] = Strutil::sprintf("channel%d", c);
                     m_spec.alpha_channel   = -1;
                 }
             }
@@ -1252,7 +1252,7 @@ TIFFInput::readspec_photometric()
             }
             // No ink names. Make it up.
             for (int i = numberofinks; i < m_spec.nchannels; ++i)
-                m_spec.channelnames.emplace_back(Strutil::format("ink%d", i));
+                m_spec.channelnames.emplace_back(Strutil::sprintf("ink%d", i));
         }
         break;
     }

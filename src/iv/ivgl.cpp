@@ -858,8 +858,8 @@ IvGL::paint_pixelview()
                 texty = closeupsize + yspacing;
             }
         }
-        std::string s = Strutil::format("(%d, %d)", (int)real_xp + spec.x,
-                                        (int)real_yp + spec.y);
+        std::string s = Strutil::sprintf("(%d, %d)", (int)real_xp + spec.x,
+                                         (int)real_yp + spec.y);
         shadowed_text(textx, texty, 0.0f, s, font);
         texty += yspacing;
         img->getpixel((int)real_xp + spec.x, (int)real_yp + spec.y, fpixel);
@@ -868,20 +868,20 @@ IvGL::paint_pixelview()
             case TypeDesc::UINT8: {
                 ImageBuf::ConstIterator<unsigned char, unsigned char> p(
                     *img, (int)real_xp + spec.x, (int)real_yp + spec.y);
-                s = Strutil::format("%s: %3d  (%5.3f)",
-                                    spec.channelnames[i].c_str(), (int)(p[i]),
-                                    fpixel[i]);
+                s = Strutil::sprintf("%s: %3d  (%5.3f)",
+                                     spec.channelnames[i].c_str(), (int)(p[i]),
+                                     fpixel[i]);
             } break;
             case TypeDesc::UINT16: {
                 ImageBuf::ConstIterator<unsigned short, unsigned short> p(
                     *img, (int)real_xp + spec.x, (int)real_yp + spec.y);
-                s = Strutil::format("%s: %3d  (%5.3f)",
-                                    spec.channelnames[i].c_str(), (int)(p[i]),
-                                    fpixel[i]);
+                s = Strutil::sprintf("%s: %3d  (%5.3f)",
+                                     spec.channelnames[i].c_str(), (int)(p[i]),
+                                     fpixel[i]);
             } break;
             default:  // everything else, treat as float
-                s = Strutil::format("%s: %5.3f", spec.channelnames[i].c_str(),
-                                    fpixel[i]);
+                s = Strutil::sprintf("%s: %5.3f", spec.channelnames[i].c_str(),
+                                     fpixel[i]);
             }
             shadowed_text(textx, texty, 0.0f, s, font);
             texty += yspacing;

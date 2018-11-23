@@ -167,8 +167,8 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
         int s = m_imagecache->subimage_from_name(texturefile,
                                                  options.subimagename);
         if (s < 0) {
-            error("Unknown subimage \"%s\" in texture \"%s\"",
-                  options.subimagename, texturefile->filename());
+            errorf("Unknown subimage \"%s\" in texture \"%s\"",
+                   options.subimagename, texturefile->filename());
             return missing_texture(options, nchannels, result, dresultds,
                                    dresultdt, dresultdr);
         }
@@ -176,8 +176,8 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
         options.subimagename.clear();
     }
     if (options.subimage < 0 || options.subimage >= texturefile->subimages()) {
-        error("Unknown subimage \"%s\" in texture \"%s\"", options.subimagename,
-              texturefile->filename());
+        errorf("Unknown subimage \"%s\" in texture \"%s\"",
+               options.subimagename, texturefile->filename());
         return missing_texture(options, nchannels, result, dresultds, dresultdt,
                                dresultdr);
     }
@@ -394,7 +394,7 @@ TextureSystemImpl::accum3d_sample_closest(
               ttex - tile_t, rtex - tile_r, tile_chbegin, tile_chend);
     bool ok = find_tile(id, thread_info);
     if (!ok)
-        error("%s", m_imagecache->geterror().c_str());
+        errorf("%s", m_imagecache->geterror());
     TileRef& tile(thread_info->tile);
     if (!tile || !ok)
         return false;
@@ -534,7 +534,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
         id.xyz(stex[0] - tile_s, ttex[0] - tile_t, rtex[0] - tile_r);
         bool ok = find_tile(id, thread_info);
         if (!ok)
-            error("%s", m_imagecache->geterror().c_str());
+            errorf("%s", m_imagecache->geterror());
         TileRef& tile(thread_info->tile);
         if (!tile->valid())
             return false;
@@ -570,7 +570,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
                            rtex[k] - tile_r);
                     bool ok = find_tile(id, thread_info);
                     if (!ok)
-                        error("%s", m_imagecache->geterror().c_str());
+                        errorf("%s", m_imagecache->geterror());
                     TileRef& tile(thread_info->tile);
                     if (!tile->valid())
                         return false;

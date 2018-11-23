@@ -133,10 +133,10 @@ public:
             double time         = item.second.first;
             double percall      = time / ncalls;
             bool use_ms_percall = (percall < 0.1);
-            out << Strutil::format("%-25s%6d %7.3fs  (avg %6.2f%s)\n",
-                                   item.first, ncalls, time,
-                                   percall * (use_ms_percall ? 1000.0 : 1.0),
-                                   use_ms_percall ? "ms" : "s");
+            out << Strutil::sprintf("%-25s%6d %7.3fs  (avg %6.2f%s)\n",
+                                    item.first, ncalls, time,
+                                    percall * (use_ms_percall ? 1000.0 : 1.0),
+                                    use_ms_percall ? "ms" : "s");
         }
         return out.str();
     }

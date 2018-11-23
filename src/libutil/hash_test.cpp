@@ -200,7 +200,7 @@ getargs(int argc, char* argv[])
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",
         "--iters %d", &iterations,
-            Strutil::format("Number of iterations (default: %d)", iterations).c_str(),
+            Strutil::sprintf("Number of iterations (default: %d)", iterations).c_str(),
         "--trials %d", &ntrials, "Number of trials",
         nullptr);
     // clang-format on

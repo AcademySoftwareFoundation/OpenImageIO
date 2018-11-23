@@ -7,6 +7,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
           OpenImageIO/pugixml.cpp)
 endif ()
 
+
 if (VERBOSE)
     message(STATUS "Create oiioversion.h from oiioversion.h.in")
 endif ()
@@ -32,4 +33,9 @@ list(APPEND public_headers "${CMAKE_BINARY_DIR}/include/OpenImageIO/oiioversion.
 
 install (FILES ${public_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/OpenImageIO
+         COMPONENT developer)
+
+file (GLOB fmt_headers OpenImageIO/fmt/*.h)
+install (FILES ${fmt_headers}
+         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/OpenImageIO/fmt
          COMPONENT developer)

@@ -218,11 +218,11 @@ dump_data(ImageInput* input, const print_info_options& opt)
                         continue;
                     std::cout << "    Pixel (";
                     if (spec.depth > 1 || spec.z != 0)
-                        std::cout << Strutil::format("%d, %d, %d", x + spec.x,
-                                                     y + spec.y, z + spec.z);
+                        std::cout << Strutil::sprintf("%d, %d, %d", x + spec.x,
+                                                      y + spec.y, z + spec.z);
                     else
-                        std::cout << Strutil::format("%d, %d", x + spec.x,
-                                                     y + spec.y);
+                        std::cout << Strutil::sprintf("%d, %d", x + spec.x,
+                                                      y + spec.y);
                     std::cout << "): " << nsamples << " samples"
                               << (nsamples ? ":" : "");
                     for (int s = 0; s < nsamples; ++s) {
@@ -360,8 +360,8 @@ print_stats(Oiiotool& ot, const std::string& filename,
     PixelStats stats;
     if (!computePixelStats(stats, input)) {
         std::string err = input.geterror();
-        ot.error("stats", "unable to compute: %s",
-                 err.empty() ? "unspecified error" : err.c_str());
+        ot.errorf("stats", "unable to compute: %s",
+                  err.empty() ? "unspecified error" : err.c_str());
         return;
     }
 
@@ -573,11 +573,11 @@ brief_format_name(TypeDesc type, int bits = 0)
             return "f";
         if (type.basetype == TypeDesc::HALF)
             return "h";
-        return ustring::format("f%d", bits).c_str();
+        return ustring::sprintf("f%d", bits).c_str();
     } else if (type.is_signed()) {
-        return ustring::format("i%d", bits).c_str();
+        return ustring::sprintf("i%d", bits).c_str();
     } else {
-        return ustring::format("u%d", bits).c_str();
+        return ustring::sprintf("u%d", bits).c_str();
     }
     return type.c_str();  // use the name implied by type
 }
@@ -592,7 +592,7 @@ print_info_subimage(Oiiotool& ot, int current_subimage, int num_of_subimages,
                     ImageSpec::SerialFormat serformat,
                     ImageSpec::SerialVerbose verbose)
 {
-    using Strutil::format;
+    using Strutil::sprintf;
 
     int padlen = std::max(0, (int)opt.namefieldlength - (int)filename.length());
     std::string padding(padlen, ' ');
@@ -611,18 +611,18 @@ print_info_subimage(Oiiotool& ot, int current_subimage, int num_of_subimages,
         ImageSpec tmpspec;
         std::string sha = compute_sha1(ot, input);
         if (serformat == ImageSpec::SerialText)
-            lines.insert(lines.begin() + 1, format("    SHA-1: %s", sha));
+            lines.insert(lines.begin() + 1, sprintf("    SHA-1: %s", sha));
         else if (serformat == ImageSpec::SerialText)
-            lines.insert(lines.begin() + 1, format("<SHA1>%s</SHA1>", sha));
+            lines.insert(lines.begin() + 1, sprintf("<SHA1>%s</SHA1>", sha));
     }
 
     // Count MIP levels
     if (printres && nmip > 1) {
         ImageSpec mipspec;
-        std::string mipdesc = format("    MIP-map levels: %dx%d", spec.width,
-                                     spec.height);
+        std::string mipdesc = sprintf("    MIP-map levels: %dx%d", spec.width,
+                                      spec.height);
         for (int m = 1; input->seek_subimage(current_subimage, m, mipspec); ++m)
-            mipdesc += format(" %dx%d", mipspec.width, mipspec.height);
+            mipdesc += sprintf(" %dx%d", mipspec.width, mipspec.height);
         lines.insert(lines.begin() + 1, mipdesc);
     }
 
@@ -633,46 +633,46 @@ print_info_subimage(Oiiotool& ot, int current_subimage, int num_of_subimages,
                             field_re)) {
             std::string orig_line0 = lines[0];
             if (current_subimage == 0)
-                lines[0] = Strutil::format("%s%s : ", filename, padding)
+                lines[0] = Strutil::sprintf("%s%s : ", filename, padding)
                            + lines[0];
             else
-                lines[0] = Strutil::format(" subimage %2d: ", current_subimage)
+                lines[0] = Strutil::sprintf(" subimage %2d: ", current_subimage)
                            + lines[0];
             if (opt.sum) {
                 imagesize_t imagebytes = spec.image_bytes(true);
                 // totalsize += imagebytes;
-                lines[0] += format(" (%.2f MB)",
-                                   (float)imagebytes / (1024.0 * 1024.0));
+                lines[0] += sprintf(" (%.2f MB)",
+                                    (float)imagebytes / (1024.0 * 1024.0));
             }
-            lines[0] += format(" %s", input->format_name());
+            lines[0] += sprintf(" %s", input->format_name());
             // we print info about how many subimages are stored in file
             // only when we have more then one subimage
             if (!opt.verbose && num_of_subimages != 1)
-                lines[0] += format(" (%d subimages%s)", num_of_subimages,
-                                   (nmip > 1) ? " +mipmap)" : "");
+                lines[0] += sprintf(" (%d subimages%s)", num_of_subimages,
+                                    (nmip > 1) ? " +mipmap)" : "");
             if (!opt.verbose && num_of_subimages == 1 && (nmip > 1))
                 lines[0] += " (+mipmap)";
             if (num_of_subimages > 1 && current_subimage == 0 && opt.subimages)
                 lines.insert(lines.begin() + 1,
-                             format(" subimage  0: %s %s", orig_line0,
-                                    input->format_name()));
+                             sprintf(" subimage  0: %s %s", orig_line0,
+                                     input->format_name()));
         } else {
             lines.erase(lines.begin());
         }
     } else if (serformat == ImageSpec::SerialXML) {
         if (nmip > 1)
             lines.insert(lines.begin() + 1,
-                         format("<miplevels>%d</miplevels>", nmip));
+                         sprintf("<miplevels>%d</miplevels>", nmip));
         if (num_of_subimages > 1)
-            lines.insert(lines.begin() + 1,
-                         format("<subimages>%d</subimages>", num_of_subimages));
+            lines.insert(lines.begin() + 1, sprintf("<subimages>%d</subimages>",
+                                                    num_of_subimages));
     }
 
     if (current_subimage == 0 && opt.verbose && num_of_subimages != 1
         && serformat == ImageSpec::SerialText) {
         // info about num of subimages and their resolutions
         int movie     = spec.get_int_attribute("oiio:Movie");
-        std::string s = format("    %d subimages: ", num_of_subimages);
+        std::string s = sprintf("    %d subimages: ", num_of_subimages);
         for (int i = 0; i < num_of_subimages; ++i) {
             ImageSpec spec;
             input->seek_subimage(i, 0, spec);
@@ -681,12 +681,12 @@ print_info_subimage(Oiiotool& ot, int current_subimage, int num_of_subimages,
             if (i)
                 s += ", ";
             if (spec.depth > 1)
-                s += format("%dx%dx%d ", spec.width, spec.height, spec.depth);
+                s += sprintf("%dx%dx%d ", spec.width, spec.height, spec.depth);
             else
-                s += format("%dx%d ", spec.width, spec.height);
+                s += sprintf("%dx%d ", spec.width, spec.height);
             for (int c = 0; c < spec.nchannels; ++c)
-                s += format("%c%s", c ? ',' : '[',
-                            brief_format_name(spec.channelformat(c), bits));
+                s += sprintf("%c%s", c ? ',' : '[',
+                             brief_format_name(spec.channelformat(c), bits));
             s += "]";
             if (movie)
                 break;
@@ -733,10 +733,10 @@ print_info_subimage(Oiiotool& ot, int current_subimage, int num_of_subimages,
             ImageSpec mipspec;
             input->seek_subimage(current_subimage, m, mipspec);
             if (opt.filenameprefix)
-                std::cout << format("%s : ", filename);
+                std::cout << sprintf("%s : ", filename);
             if (nmip > 1) {
-                std::cout << format("    MIP %d of %d (%d x %d):\n", m, nmip,
-                                    mipspec.width, mipspec.height);
+                std::cout << sprintf("    MIP %d of %d (%d x %d):\n", m, nmip,
+                                     mipspec.width, mipspec.height);
             }
             print_stats(ot, filename, spec, current_subimage, m, nmip > 1);
         }
@@ -750,13 +750,12 @@ OiioTool::print_info(Oiiotool& ot, const std::string& filename,
                      const print_info_options& opt, long long& totalsize,
                      std::string& error)
 {
-    using Strutil::format;
     error.clear();
     auto input = ImageInput::open(filename, &ot.input_config);
     if (!input) {
         error = geterror();
         if (error.empty())
-            error = Strutil::format("Could not open \"%s\"", filename);
+            error = Strutil::sprintf("Could not open \"%s\"", filename);
         return false;
     }
 
@@ -779,8 +778,9 @@ OiioTool::print_info(Oiiotool& ot, const std::string& filename,
                                                | std::regex_constants::icase);
 #endif
         } catch (const std::exception& e) {
-            error = Strutil::format("Regex error '%s' on metamatch regex \"%s\"",
-                                    e.what(), opt.metamatch);
+            error
+                = Strutil::sprintf("Regex error '%s' on metamatch regex \"%s\"",
+                                   e.what(), opt.metamatch);
             return false;
         }
     }
@@ -796,8 +796,9 @@ OiioTool::print_info(Oiiotool& ot, const std::string& filename,
                                         | std::regex_constants::icase);
 #endif
         } catch (const std::exception& e) {
-            error = Strutil::format("Regex error '%s' on metamatch regex \"%s\"",
-                                    e.what(), opt.nometamatch);
+            error
+                = Strutil::sprintf("Regex error '%s' on metamatch regex \"%s\"",
+                                   e.what(), opt.nometamatch);
             return false;
         }
     }

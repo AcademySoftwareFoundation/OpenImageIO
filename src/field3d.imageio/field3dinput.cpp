@@ -224,9 +224,9 @@ Field3DInput::read_one_layer(FieldRes::Ptr field, layerrecord& lay,
         lay.unique_name = lay.name;
     else
         lay.unique_name
-            = duplicates ? Strutil::format("%s.%u:%s", lay.name, duplicates + 1,
-                                           lay.attribute)
-                         : Strutil::format("%s:%s", lay.name, lay.attribute);
+            = duplicates ? Strutil::sprintf("%s.%u:%s", lay.name,
+                                            duplicates + 1, lay.attribute)
+                         : Strutil::sprintf("%s:%s", lay.name, lay.attribute);
 
     lay.spec        = ImageSpec();  // Clear everything with default constructor
     lay.spec.format = lay.datatype;
