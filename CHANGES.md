@@ -397,7 +397,7 @@ Fixes and feature enhancements:
   filename. #1839 (1.9.2/1.8.8)
 * Windows fix: Safer thread pool destruction on. #2038 (1.9.4)
 
-Build/test system improvements:
+Build/test system improvements and platform ports:
 * Fixes for Windows build. #1793, #1794 (1.9.0/1.8.6), #2025 (1.9.4)
 * Fix build bug where if the makefile wrapper got `CODECOV=0`, it would
   force a "Debug" build (required for code coverage tests) even though code
@@ -470,6 +470,8 @@ Build/test system improvements:
 * Remove stale python examples from `src/python`. They were untested,
   undocumented, and probably no longer worked against the current APIs.
   #2036 (1.9.4)
+* Fixes for Windows when making Unicode builds, and fix Plugin::dlopen
+  on Windows to properly support UTF-8 filenames. #1454 (2.0.1)
 
 Developer goodies / internals:
 

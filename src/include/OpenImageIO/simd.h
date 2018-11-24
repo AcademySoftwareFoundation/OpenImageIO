@@ -249,6 +249,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OIIO_SIMD_HAS_SIMD16 1   /* vfloat16, vint16, vbool16 defined */
 
 
+#include "missing_math.h"
+
 
 OIIO_NAMESPACE_BEGIN
 

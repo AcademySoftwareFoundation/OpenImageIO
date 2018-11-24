@@ -117,6 +117,7 @@ lg@openimageio.org
 * Ramon Montoya
 * Ray Molenkamp
 * Richard Shaw
+* Roeland Schoukens
 * Robert Matusewicz
 * Roman Zulak
 * Rui Li

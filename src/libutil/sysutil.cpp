@@ -235,8 +235,15 @@ Sysutil::get_local_time(const time_t* time, struct tm* converted_time)
 std::string
 Sysutil::this_program_path()
 {
-    char filename[10240];
-    filename[0] = 0;
+#if defined(_WIN32)
+    // According to MSDN...
+    WCHAR wfilename[10240];
+    if (GetModuleFileNameW(NULL, wfilename, 10240) > 0)
+        return Strutil::utf16_to_utf8(wfilename);
+    return std::string();
+#endif
+
+    char filename[10240] = "";
 
 #if defined(__linux__)
     unsigned int size = sizeof(filename);
@@ -251,10 +258,6 @@ Sysutil::this_program_path()
     int r             = _NSGetExecutablePath(filename, &size);
     if (r == 0)
         r = size;
-#elif defined(_WIN32)
-    // According to MSDN...
-    unsigned int size = sizeof(filename);
-    int r             = GetModuleFileName(NULL, filename, size);
 #elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
     int mib[4];
     mib[0]    = CTL_KERN;
@@ -264,7 +267,7 @@ Sysutil::this_program_path()
     size_t cb = sizeof(filename);
     int r     = 1;
     sysctl(mib, 4, filename, &cb, NULL, 0);
-#elif defined(__GNU__) || defined(__OpenBSD__)
+#elif defined(__GNU__) || defined(__OpenBSD__) || defined(_WIN32)
     int r = 0;
 #else
     // No idea what platform this is
