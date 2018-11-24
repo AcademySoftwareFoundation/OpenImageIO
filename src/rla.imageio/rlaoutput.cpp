@@ -43,9 +43,6 @@
 
 #include "rla_pvt.h"
 
-#ifdef WIN32
-#    define snprintf _snprintf
-#endif
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
