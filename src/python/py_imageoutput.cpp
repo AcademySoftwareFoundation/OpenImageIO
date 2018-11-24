@@ -223,6 +223,12 @@ declare_imageoutput(py::module& m)
                  return self.open(name, newspec, mode);
              },
              "filename"_a, "spec"_a, "mode"_a = "Create")
+        .def("open",
+             [](ImageOutput& self, const std::string& name,
+                const std::vector<ImageSpec>& specs) {
+                 return self.open(name, (int)specs.size(), &specs[0]);
+             },
+             "filename"_a, "specs"_a)
         .def("open", &ImageOutput_open_specs)
         .def("close", [](ImageOutput& self) { return self.close(); })
         .def("write_image", &ImageOutput_write_image)

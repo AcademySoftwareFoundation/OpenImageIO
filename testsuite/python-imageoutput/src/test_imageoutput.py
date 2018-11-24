@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import OpenImageIO as oiio
+import numpy as np
 
 
 # Read the one subimage from input then write it to output using
@@ -85,6 +86,18 @@ def copy_image (in_filename, out_filename, method="image",
         print ("Copied", in_filename, "to", out_filename, "as", method)
 
 
+def test_subimages (out_filename="multipart.exr") :
+    output = oiio.ImageOutput.create (out_filename)
+    spec = oiio.ImageSpec (64, 64, 3, "half")
+    specs = (spec, spec, spec)
+    output.open (out_filename, specs)
+    buffer = np.zeros ((64, 64, 3), dtype=float)
+    for i in range(3) :
+        if i != 0 :
+            output.open (out_filename, specs[i], "AppendSubimage")
+        output.write_image (buffer)
+    output.close ()
+
 ######################################################################
 # main test starts here
 
@@ -100,6 +113,9 @@ try:
     # Regression test for crash when changing formats
     copy_image ("scanline.tif", "grid-image.tif",
                 memformat=oiio.TypeUInt8, outformat=oiio.TypeUInt16)
+
+    # Ensure we can write multiple subimages
+    test_subimages ()
 
     print ("Done.")
 except Exception as detail:
