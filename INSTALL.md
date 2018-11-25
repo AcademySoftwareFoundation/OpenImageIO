@@ -12,8 +12,8 @@ Mac OS X, and Windows.
 Our build system is based upon 'CMake'.  If you don't already have it
 installed on your system, you can get it from http://www.cmake.org
 
-After you build OpenImageIO, if you compiled with the EMBEDPLUGINS=0 flag
-you will need to set the environment variable OIIO_LIBRARY_PATH to point
+After you build OpenImageIO, if you compiled with the `EMBEDPLUGINS=0` flag
+you will need to set the environment variable `OIIO_LIBRARY_PATH` to point
 to the 'lib' directory where OpenImageIO is installed, or else it will
 not be able to find the plugins.
 
@@ -90,37 +90,37 @@ During the make, various temporary files (object files, etc.) will
 be put in build/PLATFORM, where 'PLATFORM' will be the name of the
 platform you are building for (e.g., linux, linux64, macosx).
 
-The result of the make will be a full binary distribution in 
+The result of the make will be a full binary distribution in
 dist/PLATFORM.
 
 Make targets you should know about:
 
-|  Target             |  Command                                           |
-| ------------------- | -------------------------------------------------- |
-|  make               |  Build an optimized distro in dist/PLATFORM, with temp files created while building in build/PLATFORM.
-|  make debug         |  Build a debugging (symbols, not stripped) distro, will end up in dist/PLATFORM.debug
-|  make clean         |  Get rid of all the temporary files in build/PLATFORM
-|  make realclean     |  Get rid of both build/PLATFORM and dist/PLATFORM
-|  make nuke          |  Get rid of all build/ and dist/, for all platforms
-|  make profile       |  Build a profilable version dist/PLATFORM.profile
-|  make doxygen       |  Build the Doxygen docs
-|  make help          |  Print all the make options
+|  Target           |  Command                                           |
+| ----------------- | -------------------------------------------------- |
+|  make             |  Build an optimized distro in dist/PLATFORM, with temp files created while building in build/PLATFORM. |
+|  make debug       |  Build a debugging (symbols, not stripped) distro, will end up in dist/PLATFORM.debug |
+|  make clean       |  Get rid of all the temporary files in build/PLATFORM |
+|  make realclean   |  Get rid of both build/PLATFORM and dist/PLATFORM     |
+|  make nuke        |  Get rid of all build/ and dist/, for all platforms   |
+|  make profile     |  Build a profilable version dist/PLATFORM.profile     |
+|  make doxygen     |  Build the Doxygen docs                               |
+|  make help        |  Print all the make options                           |
 
 Additionally, a few helpful modifiers alter some build-time options:
 
-|  Target                   |  Command                                           |
-| :------------------------ | -------------------------------------------------- |
-| make VERBOSE=1 ...        |  Show all compilation commands
-| make STOP_ON_WARNING=0    |  Do not stop building if compiler warns
-| make EMBEDPLUGINS=0 ...   |  Don't compile the plugins into libOpenImageIO
-| make USE_OPENGL=0 ...     |  Skip anything that needs OpenGL
-| make USE_QT=0 ...         |  Skip anything that needs Qt
-| make MYCC=xx MYCXX=yy ... |  Use custom compilers
-| make USE_PYTHON=0 ...     |  Don't build the Python binding
-| make BUILDSTATIC=1 ...    |  Build static library instead of shared
-| make LINKSTATIC=1 ...     |  Link with static external libraries when possible
-| make SOVERSION=nn ...     |  Include the specifed major version number in the shared object metadata
-| make NAMESPACE=name       |   Wrap everything in another namespace
+|  Target                   |  Command                                       |
+| ------------------------- | ---------------------------------------------- |
+| make VERBOSE=1 ...        |  Show all compilation commands                 |
+| make STOP_ON_WARNING=0    |  Do not stop building if compiler warns        |
+| make EMBEDPLUGINS=0 ...   |  Don't compile the plugins into libOpenImageIO |
+| make USE_OPENGL=0 ...     |  Skip anything that needs OpenGL               |
+| make USE_QT=0 ...         |  Skip anything that needs Qt                   |
+| make MYCC=xx MYCXX=yy ... |  Use custom compilers                          |
+| make USE_PYTHON=0 ...     |  Don't build the Python binding                |
+| make BUILDSTATIC=1 ...    |  Build static library instead of shared        |
+| make LINKSTATIC=1 ...     |  Link with static external libraries when possible |
+| make SOVERSION=nn ...     |  Include the specifed major version number in the shared object metadata |
+| make NAMESPACE=name       |   Wrap everything in another namespace         |
 
 The command 'make help' will list all possible options.
 
@@ -238,10 +238,10 @@ D:\OIIO\external\dist\windows\zlib-1.2.3;D:\OIIO\external\dist\windows\libpng-1.
 Test Images
 -----------
 
-We have yet another SVN project just for containing a set of sample
-images for testing OpenImageIO. We split test images into a separate
-SVN project in order to make the main source code tree smaller and
-simpler for people who don't need the test suite.
+We have yet another project containing a set of sample images for testing
+OpenImageIO. We split test images into a separate project in order to make
+the main source code tree smaller and simpler for people who don't need the
+test suite.
 
     git clone https://github.com/OpenImageIO/oiio-images.git
 
