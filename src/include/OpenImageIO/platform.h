@@ -99,7 +99,7 @@
 #    define OIIO_CONSTEXPR14 constexpr
 #    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
-#elif (__cplusplus >= 201103L) || _MSC_VER >= 1900
+#elif (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900)
 #    define OIIO_CPLUSPLUS_VERSION 11
 #    define OIIO_CONSTEXPR14 /* not constexpr before C++14 */
 #    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
@@ -166,8 +166,8 @@
 
 // Tests for MSVS versions, always 0 if not MSVS at all.
 #if defined(_MSC_VER)
-#  if _MSC_VER < 1800
-#    error "This version of OIIO is meant to work only with Visual Studio 2013 or later"
+#  if _MSC_VER < 1900
+#    error "This version of OIIO is meant to work only with Visual Studio 2015 or later"
 #  endif
 #  define OIIO_MSVS_AT_LEAST_2013 (_MSC_VER >= 1800)
 #  define OIIO_MSVS_BEFORE_2013   (_MSC_VER <  1800)
