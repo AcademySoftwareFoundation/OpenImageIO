@@ -47,12 +47,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class DPXInput final : public ImageInput {
 public:
-    DPXInput()
-        : m_stream(NULL)
-        , m_dataPtr(NULL)
-    {
-        init();
-    }
+    DPXInput() { init(); }
     virtual ~DPXInput() { close(); }
     virtual const char* format_name(void) const override { return "dpx"; }
     virtual bool valid_file(const std::string& filename) const override;
@@ -67,11 +62,11 @@ public:
 
 private:
     int m_subimage;
-    InStream* m_stream;
+    InStream* m_stream = nullptr;
     dpx::Reader m_dpx;
     std::vector<unsigned char> m_userBuf;
-    bool m_wantRaw;
-    unsigned char* m_dataPtr;
+    bool m_rawcolor;
+    unsigned char* m_dataPtr = nullptr;
 
     /// Reset everything to initial state
     ///
@@ -80,12 +75,12 @@ private:
         if (m_stream) {
             m_stream->Close();
             delete m_stream;
-            m_stream = NULL;
+            m_stream = nullptr;
         }
         delete m_dataPtr;
-        m_dataPtr = NULL;
+        m_dataPtr = nullptr;
         m_userBuf.clear();
-        m_wantRaw = false;
+        m_rawcolor = false;
     }
 
     /// Helper function - retrieve string for libdpx characteristic
@@ -181,7 +176,9 @@ DPXInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
     // Check 'config' for any special requests
-    m_wantRaw = config.get_int_attribute("dpx:RawData", 0) != 0;
+    m_rawcolor = config.get_int_attribute("dpx:RawColor")
+                 || config.get_int_attribute("dpx:RawData")  // deprecated
+                 || config.get_int_attribute("oiio:RawColor");
     return open(name, newspec);
 }
 
@@ -260,7 +257,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         m_spec.default_channel_names();
         break;
     case dpx::kCbYCrY:
-        if (m_wantRaw) {
+        if (m_rawcolor) {
             m_spec.channelnames.emplace_back("CbCr");
             m_spec.channelnames.emplace_back("Y");
         } else {
@@ -269,7 +266,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         }
         break;
     case dpx::kCbYACrYA:
-        if (m_wantRaw) {
+        if (m_rawcolor) {
             m_spec.channelnames.emplace_back("CbCr");
             m_spec.channelnames.emplace_back("Y");
             m_spec.channelnames.emplace_back("A");
@@ -280,7 +277,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         }
         break;
     case dpx::kCbYCr:
-        if (m_wantRaw) {
+        if (m_rawcolor) {
             m_spec.channelnames.emplace_back("Cb");
             m_spec.channelnames.emplace_back("Y");
             m_spec.channelnames.emplace_back("Cr");
@@ -288,7 +285,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
             m_spec.default_channel_names();
         break;
     case dpx::kCbYCrA:
-        if (m_wantRaw) {
+        if (m_rawcolor) {
             m_spec.channelnames.emplace_back("Cb");
             m_spec.channelnames.emplace_back("Y");
             m_spec.channelnames.emplace_back("Cr");
@@ -566,10 +563,10 @@ DPXInput::seek_subimage(int subimage, int miplevel)
 
     dpx::Block block(0, 0, m_dpx.header.Width() - 1, 0);
     int bufsize = dpx::QueryRGBBufferSize(m_dpx.header, subimage, block);
-    if (bufsize == 0 && !m_wantRaw) {
+    if (bufsize == 0 && !m_rawcolor) {
         error("Unable to deliver RGB data from source data");
         return false;
-    } else if (!m_wantRaw && bufsize > 0)
+    } else if (!m_rawcolor && bufsize > 0)
         m_dataPtr = new unsigned char[bufsize];
     else
         // no need to allocate another buffer
@@ -599,7 +596,7 @@ DPXInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
     dpx::Block block(0, y - m_spec.y, m_dpx.header.Width() - 1, y - m_spec.y);
 
-    if (m_wantRaw) {
+    if (m_rawcolor) {
         // fast path - just read the scanline in
         if (!m_dpx.ReadBlock(m_subimage, (unsigned char*)data, block))
             return false;

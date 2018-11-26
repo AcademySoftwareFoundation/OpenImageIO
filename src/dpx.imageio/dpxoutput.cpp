@@ -86,7 +86,8 @@ private:
     dpx::Characteristic m_transfer;
     dpx::Packing m_packing;
     int m_bitdepth;
-    bool m_wantRaw, m_wantSwap;
+    bool m_rawcolor;
+    bool m_wantSwap;
     int m_bytes;
     int m_subimage;
     int m_subimages_to_write;
@@ -548,22 +549,24 @@ DPXOutput::prep_subimage(int s, bool allocate)
     }
 
     // check if the client is giving us raw data to write
-    m_wantRaw = m_spec.get_int_attribute("dpx:RawData", 0) != 0;
+    m_rawcolor = m_spec.get_int_attribute("dpx:RawColor")
+                 || m_spec.get_int_attribute("dpx:RawData")  // deprecated
+                 || m_spec.get_int_attribute("oiio:RawColor");
 
     // see if we'll need to convert or not
     if (m_desc == dpx::kRGB || m_desc == dpx::kRGBA) {
         // shortcut for RGB(A) that gets the job done
-        m_bytes   = m_spec.scanline_bytes();
-        m_wantRaw = true;
+        m_bytes    = m_spec.scanline_bytes();
+        m_rawcolor = true;
     } else {
         m_bytes = dpx::QueryNativeBufferSize(m_desc, m_datasize, m_spec.width,
                                              1);
-        if (m_bytes == 0 && !m_wantRaw) {
+        if (m_bytes == 0 && !m_rawcolor) {
             error("Unable to deliver native format data from source data");
             return false;
         } else if (m_bytes < 0) {
             // no need to allocate another buffer
-            if (!m_wantRaw)
+            if (!m_rawcolor)
                 m_bytes = m_spec.scanline_bytes();
             else
                 m_bytes = -m_bytes;
@@ -640,7 +643,7 @@ DPXOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     }
 
     unsigned char* dst = &m_buf[(y - m_spec.y) * m_bytes];
-    if (m_wantRaw)
+    if (m_rawcolor)
         // fast path - just dump the scanline into the buffer
         memcpy(dst, data, m_spec.scanline_bytes());
     else if (!dpx::ConvertToNative(m_desc, m_datasize, m_cmetr, m_spec.width, 1,
