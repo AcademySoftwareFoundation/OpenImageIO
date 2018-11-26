@@ -66,14 +66,13 @@ OpenImageIO consists of:
 Licensing
 ---------
 
-OpenImageIO is (c) Copyright 2008-2016 by Larry Gritz et al.
+OpenImageIO is (c) Copyright 2008-2019 by Larry Gritz et al.
 All Rights Reserved.
 
-OpenImageIO is distributed using the modified BSD license (also known as
-the "new BSD" or "3-clause BSD" license).  Please read the "LICENSE"
-file for the legal wording.  The documentation is licensed under the
-Creative Commons Attribution 3.0 Unported License
-(http://creativecommons.org/licenses/by/3.0/).
+OpenImageIO is distributed using the [modified BSD license](LICENSE.md)
+(also known as the "new BSD" or "3-clause BSD" license).  The documentation
+is licensed under the [Creative Commons Attribution 3.0 Unported
+License](http://creativecommons.org/licenses/by/3.0/).
 
 The plain English bottom line is that OpenImageIO is free, as well as
 freely modifiable and redistributable (in both source and binary form).
@@ -84,8 +83,56 @@ particular licensing terms in your own application.
 
 Some code and resources are distributed along with OIIO that have highly
 compatible, though slightly different, licenses (generally MIT or Apache).
-See the PDF documentation Acknowledgements section for details.
+See the PDF documentation Acknowledgements section, and the
+[LICENSE-THIRD-PARTY](LICENSE-THIRD-PARTY.md) file for details.
 
+
+Building and Installation
+-------------------------
+
+Please read the [INSTALL.md](INSTALL.md) file for detailed instructions on
+how to build and install OpenImageIO.
+
+If you build with `EMBEDPLUGINS=0`, remember that you need to set the
+environment variable `OIIO_LIBRARY_PATH` to point to the 'lib' directory
+where OpenImageIO is installed, or else it will not be able to find the
+plugins.
+
+
+Documentation
+-------------
+
+The primary user and programmer documentation can be found in
+[src/doc/openimageio.pdf](src/doc/openimageio.pdf) (in a source
+distribution) or in the share/doc/OpenImageIO/openimageio.pdf file of an
+installed binary distribution.
+
+
+Contact & reporting problems
+----------------------------
+
+Simple "how do I...", "I'm having trouble", or "is this a bug" questions are
+best asked on the [oiio-dev developer mail
+list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
+That's where the most people will see it and potentially be able to answer
+your question quickly (moreso than a GH "issue").
+
+Bugs, build problems, and discovered vulnerabilities that you are relatively
+certain is a legit problem in the code, and for which you can give clear
+instructions for how to reproduce, should be [reported as
+issues](https://github.com/OpenImageIO/oiio/issues).
+
+If confidentiality precludes a public question or issue, you may contact
+us privately at [info@openimageio.org](info@openimageio.org).
+
+
+Contributing
+------------
+
+OpenImageIO welcomes code contributions, and [nearly 150 people](CREDITS.md)
+have done so over the years. We take code contributions via the usual GitHub
+pull request (PR) mechanism. Please see [CONTRIBUTING](CONTRIBUTING.md) for
+detailed instructions.
 
 
 Web Resources
@@ -101,29 +148,3 @@ Mail list subscriptions and archives:
 
 * Just release announcements: http://lists.openimageio.org/listinfo.cgi/oiio-announce-openimageio.org
 
-
-
-Contact
--------
-
-info@openimageio.org
-
-
-
-Building and Installation
--------------------------
-
-Please read the "INSTALL" file for detailed instructions on how to
-build and install OpenImageIO.
-
-If you build with EMBEDPLUGINS=0, remember that you need to set the
-environment variable OIIO_LIBRARY_PATH to point to the 'lib' directory where
-OpenImageIO is installed, or else it will not be able to find the plugins.
-
-
-Documentation
--------------
-
-The primary user and programmer documentation can be found in
-src/doc/openimageio.pdf (in a source distribution) or in the
-doc/openimageio.pdf file of an installed binary distribution.

@@ -1,9 +1,9 @@
 Contributing to OpenImageIO
 ===========================
 
-Code contributions to OpenImageIO are always welcome. That's a big part of
-why it's an open source project. Please review this document to get a
-briefing on our process.
+Code contributions to OpenImageIO are always welcome, and [nearly 150
+people](CREDITS.md) have done so over the years.  Please review this
+document to get a briefing on our process.
 
 
 Mail Lists
@@ -43,6 +43,11 @@ give a specific an account of
 * what you expected to happen instead
 
 with enough detail that others can reproduce the problem.
+
+Suspected security vulnerabilities should be reported by the same process.
+
+If confidentiality precludes a public question or issue for any reason, you
+may contact us privately at [info@openimageio.org](info@openimageio.org).
 
 
 Contributor License Agreement (CLA) and Intellectual Property
