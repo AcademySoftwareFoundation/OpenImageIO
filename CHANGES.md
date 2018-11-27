@@ -1,9 +1,8 @@
-Release 2.0 (beta - Nov 2018) -- compared to 1.8.x
+Release 2.0 (Dec 1, 2018) -- compared to 1.8.x
 ----------------------------------------------
 
 New minimum dependencies:
-* No change in minimum dependencies since 1.8! See [INSTALL.md](INSTALL.md)
-  for a full list of required dependencies.
+* On Windows compiling with MSVS, the new minimum version is MSVS 2015.
 
 Major new features and improvements:
 * ImageInput and ImageOutput static create() and open() methods now return
@@ -159,6 +158,18 @@ Public API changes:
     * `ImageCache::add_file()` extended with an optional `replace` parameter
       (default: false), that if true, will replace the tile and invalidate
       the old one. #2021 (1.9.4)
+* **Changes to string formatting**: #2076 (2.0.1)
+    * New `Strutil::sprintf()` and `ustring::sprintf()` functions are for
+      printf-style formatted errors and warnings. You are encouraged to
+      change your existing `format()` calls to `sprintf()`, since the
+      original `format` may in a later version (2.1?) switch to Python-style
+      formatting commands, but `sprintf` will continue to reliably use
+      C printf style notation.
+    * In ImageInput, ImageOutput, ImageBuf, and ErrorHandler, new `errorf()`
+      and `warningf()` methods similarly provide printf-style formatted
+      errors and warnings. The old `error()/warning()` calls will someday
+      (maybe 2.1?) switch to Python-style formatting commands, but
+      `errorf` will continue to reliably use C printf style notation.
 * ColorConfig changes: ColorConfig methods now return shared pointers to
   `ColorProcessor` rather than raw pointers. It is therefore no longer
   required to make an explicit delete call. Created ColorProcessor objects
@@ -336,6 +347,8 @@ Fixes and feature enhancements:
   locale-independent and always uses '.' as decimal marker. #1796 (1.9.0)
 * Python Imagebuf.get_pixels and set_pixels bugs fixed, in the varieties
   that take an ROI to describe the region. #1802 (1.9.2)
+* Python: Implement missing `ImageOutput.open()` call variety for declaring
+  multiple subimages. #2074 (2.0.1)
 * More robust parsing of XMP metadata for unknown metadata names.
   #1816 (1.9.2/1.8.7)
 * Fix ImageSpec constructor from an ROI, display/"full" window did not get
@@ -343,6 +356,9 @@ Fixes and feature enhancements:
 * ImageSpec::erase_attribute() fix bug where it got case-sensitivity of the
   search backwards when built using std::regex rather than boost::regex.
   #2003 (1.8.14/1.9.4)
+* DPX:
+    * Better catching of write errors, including filling the disk while in
+      the process of writing a DPX file. #2072 (2.0.1)
 * Field3d:
     * Prevent crashes when open fails. #1848 (1.9.2/1.8.8)
     * Fix potential mutex deadlock. #1972 (1.9.4)
@@ -353,6 +369,8 @@ Fixes and feature enhancements:
     * When writing, be robust to accidentally setting the "density" metadata
       to values larger than JPEG's 16 bit integer field will accommodate.
       #2002 (1.8.14/1.9.4)
+    * Better detection and reporting of error conditions while reading
+      corrupt JPEG files. #2073 (2.0.1)
 * OpenEXR:
     * Gracefully detect and reject files with subsampled channels,
       which is a rarely-to-never-used OpenEXR feature that we don't support
@@ -394,7 +412,7 @@ Fixes and feature enhancements:
       were some edge cases where they pixels failed to automatically
       premultiply upon read. #2032 (1.9.4)
 * zfile: more careful gzopen on Windows that could crash when given bogus
-  filename. #1839 (1.9.2/1.8.8)
+  filename. #1839,2070 (1.9.2/1.8.8/2.0.1)
 * Windows fix: Safer thread pool destruction on. #2038 (1.9.4)
 
 Build/test system improvements and platform ports:

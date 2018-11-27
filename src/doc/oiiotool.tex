@@ -226,6 +226,20 @@ specified image (e.g., {\cf ImageDescription}, or {\cf width})
 \item {\cf AVGCOLOR} : the average pixel value of the image (channels are comma-separated)
 \end{itemize}
 
+\item[{\emph{imagename.'metadata'}}]
+
+If the metadata name is not a "C identifier" (initial letter followed by
+any number of letter, number, or underscore), it is permissible to use
+single or double quotes to enclose the metadata name. For example, suppose
+you want to retrieve metadata named \qkw{foo/bar}, you could say
+
+\begin{code}
+    {TOP.'foo/bar'}
+\end{code}
+
+\noindent Without the quotes, it might try to retrieve {\cf TOP.foo} (which
+doesn't exist) and divide it by {\cf bar}.
+
 \item[{Arithmetic}] Sub-expressions may be joined by {\cf +}, {\cf -},
 {\cf *}, or {\cf /} for arithmetic operations. Parentheses are supported,
 and standard operator precedence applies.
