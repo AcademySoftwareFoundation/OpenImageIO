@@ -653,7 +653,7 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     for (int c = 0; c < spec.nchannels; ++c) {
         if (spec.channelnames[c].empty())
             spec.channelnames[c] = (c < 4) ? default_chan_names[c]
-                                           : Strutil::format("unknown %d", c);
+                                           : Strutil::sprintf("unknown %d", c);
         // Hint to lossy compression methods that indicates whether
         // human perception of the quantity represented by this channel
         // is closer to linear or closer to logarithmic.  Compression
@@ -708,10 +708,11 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         time(&now);
         struct tm mytm;
         Sysutil::get_local_time(&now, &mytm);
-        std::string date = Strutil::format("%4d:%02d:%02d %02d:%02d:%02d",
-                                           mytm.tm_year + 1900, mytm.tm_mon + 1,
-                                           mytm.tm_mday, mytm.tm_hour,
-                                           mytm.tm_min, mytm.tm_sec);
+        std::string date = Strutil::sprintf("%4d:%02d:%02d %02d:%02d:%02d",
+                                            mytm.tm_year + 1900,
+                                            mytm.tm_mon + 1, mytm.tm_mday,
+                                            mytm.tm_hour, mytm.tm_min,
+                                            mytm.tm_sec);
         spec.attribute("DateTime", date);
     }
 
@@ -758,7 +759,7 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     // Multi-part EXR files required to have a name. Make one up if not
     // supplied.
     if (m_nsubimages > 1 && !header.hasName()) {
-        std::string n = Strutil::format("subimage%02d", subimage);
+        std::string n = Strutil::sprintf("subimage%02d", subimage);
         header.insert("name", Imf::StringAttribute(n));
     }
 
@@ -1266,7 +1267,7 @@ OpenEXROutput::sanity_check_channelnames()
                 // Duplicate or missing channel name! We don't want
                 // libIlmImf to drop the channel (as it will do for
                 // duplicates), so rename it and hope for the best.
-                m_spec.channelnames[c] = Strutil::format("channel%d", c);
+                m_spec.channelnames[c] = Strutil::sprintf("channel%d", c);
                 break;
             }
         }

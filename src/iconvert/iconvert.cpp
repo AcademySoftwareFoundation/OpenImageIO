@@ -345,8 +345,8 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
         std::string err = geterror();
         std::cerr << "iconvert ERROR: "
                   << (err.length() ? err
-                                   : Strutil::format("Could not open \"%s\"",
-                                                     in_filename))
+                                   : Strutil::sprintf("Could not open \"%s\"",
+                                                      in_filename))
                   << "\n";
         return false;
     }
@@ -440,8 +440,8 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
                 std::cerr << "iconvert ERROR: "
                           << (err.length()
                                   ? err
-                                  : Strutil::format("Could not open \"%s\"",
-                                                    out_filename))
+                                  : Strutil::sprintf("Could not open \"%s\"",
+                                                     out_filename))
                           << "\n";
                 ok = false;
                 break;

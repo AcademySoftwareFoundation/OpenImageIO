@@ -277,11 +277,11 @@ ImageBufAlgo::capture_image(int cameranum, TypeDesc convert)
         time(&now);
         struct tm tmtime;
         Sysutil::get_local_time(&now, &tmtime);
-        std::string datetime = Strutil::format("%4d:%02d:%02d %02d:%02d:%02d",
-                                               tmtime.tm_year + 1900,
-                                               tmtime.tm_mon + 1,
-                                               tmtime.tm_mday, tmtime.tm_hour,
-                                               tmtime.tm_min, tmtime.tm_sec);
+        std::string datetime = Strutil::sprintf("%4d:%02d:%02d %02d:%02d:%02d",
+                                                tmtime.tm_year + 1900,
+                                                tmtime.tm_mon + 1,
+                                                tmtime.tm_mday, tmtime.tm_hour,
+                                                tmtime.tm_min, tmtime.tm_sec);
         dst.specmod().attribute("DateTime", datetime);
     }
 #else

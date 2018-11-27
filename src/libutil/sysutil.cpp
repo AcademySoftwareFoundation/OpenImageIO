@@ -475,7 +475,7 @@ Term::ansi_fgcolor(int r, int g, int b)
         r   = std::max(0, std::min(255, r));
         g   = std::max(0, std::min(255, g));
         b   = std::max(0, std::min(255, b));
-        ret = Strutil::format("\033[38;2;%d;%d;%dm", r, g, b);
+        ret = Strutil::sprintf("\033[38;2;%d;%d;%dm", r, g, b);
     }
     return ret;
 }
@@ -490,7 +490,7 @@ Term::ansi_bgcolor(int r, int g, int b)
         r   = std::max(0, std::min(255, r));
         g   = std::max(0, std::min(255, g));
         b   = std::max(0, std::min(255, b));
-        ret = Strutil::format("\033[48;2;%d;%d;%dm", r, g, b);
+        ret = Strutil::sprintf("\033[48;2;%d;%d;%dm", r, g, b);
     }
     return ret;
 }

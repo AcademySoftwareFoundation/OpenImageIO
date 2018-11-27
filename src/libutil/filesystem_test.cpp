@@ -441,7 +441,7 @@ test_scan_sequences()
     std::vector<std::string> filenames;
 
     for (size_t i = 1; i <= 5; i++) {
-        std::string fn = Strutil::format("foo.%04d.exr", i);
+        std::string fn = Strutil::sprintf("foo.%04d.exr", i);
         filenames.push_back(fn);
         create_test_file(fn);
     }
@@ -462,7 +462,7 @@ test_scan_sequences()
     Filesystem::create_directory("left/l");
 
     for (size_t i = 1; i <= 5; i++) {
-        std::string fn = Strutil::format("left/l/foo_left_l.%04d.exr", i);
+        std::string fn = Strutil::sprintf("left/l/foo_left_l.%04d.exr", i);
         filenames.push_back(fn);
         create_test_file(fn);
     }

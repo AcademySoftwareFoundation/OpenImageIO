@@ -37,29 +37,61 @@
 #include <OpenImageIO/ustring.h>
 
 using namespace OIIO;
-using namespace Strutil;
 
 
 
 void
 test_format()
 {
-    // Test formatting
-    OIIO_CHECK_EQUAL(Strutil::format("%d %f %g", int(3), 3.14f, 3.14f),
+    std::cout << "testing format()/sprintf()" << std::endl;
+
+    // Test formatting with Strutil::sprintf()
+    // ---------------------------------------
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%d %f %g", int(3), 3.14f, 3.14f),
                      "3 3.140000 3.14");
-    OIIO_CHECK_EQUAL(Strutil::format("'%s' '%s'", "foo", std::string("foo")),
+    OIIO_CHECK_EQUAL(Strutil::sprintf("'%s' '%s'", "foo", std::string("foo")),
                      "'foo' 'foo'");
-    OIIO_CHECK_EQUAL(Strutil::format("'%3d' '%03d' '%-3d'", 3, 3, 3),
+    OIIO_CHECK_EQUAL(Strutil::sprintf("'%3d' '%03d' '%-3d'", 3, 3, 3),
                      "'  3' '003' '3  '");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%+d%+d%+d", 3, -3, 0), "+3-3+0");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("foo"), "foo");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%%foo"), "%foo");
 
-    // Test '+' format modifier
-    OIIO_CHECK_EQUAL(Strutil::format("%+d%+d%+d", 3, -3, 0), "+3-3+0");
+    // spot check that Strutil::old::format() is sprintf:
+    OIIO_CHECK_EQUAL(Strutil::old::format("%d",1), "1");
 
-    // Test single string with no args
-    OIIO_CHECK_EQUAL(Strutil::format("foo"), "foo");
-    OIIO_CHECK_EQUAL(Strutil::format("%%foo"), "%foo");
+    // Test formatting with Strutil::fmt::format(), which uses the
+    // Python conventions:
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{} {:f} {:g}", int(3), 3.14f, 3.14f),
+                     "3 3.140000 3.14");
 
-    // FIXME -- we should make comprehensive tests here
+    // Check that Strutil::format is currently aliased to old::format:
+    OIIO_CHECK_EQUAL(Strutil::format("%d",1), "1");
+
+
+    Benchmarker bench;
+    bench.indent (2);
+    bench.units (Benchmarker::Unit::ns);
+    char buffer[256];
+    bench ("std::sprintf(\"%g\")", [&](){ DoNotOptimize (std::sprintf(buffer,"%g",123.45f)); });
+    bench ("Strutil::sprintf(\"%g\")", [&](){ DoNotOptimize (Strutil::sprintf("%g",123.45f)); });
+    bench ("Strutil::fmt::format(\"{:g}\")", [&](){ DoNotOptimize (Strutil::fmt::format("{:g}",123.45f)); });
+    bench ("Strutil::to_string(float)", [&](){ DoNotOptimize (Strutil::to_string(123.45f)); });
+
+    bench ("std::sprintf(\"%d\")", [&](){ DoNotOptimize (std::sprintf(buffer,"%d",123)); });
+    bench ("Strutil::sprintf(\"%d\")", [&](){ DoNotOptimize (Strutil::sprintf("%g",123)); });
+    bench ("Strutil::fmt::format(\"{}\")", [&](){ DoNotOptimize (Strutil::fmt::format("{}",123)); });
+    bench ("Strutil::to_string(int)", [&](){ DoNotOptimize (Strutil::to_string(123)); });
+
+    bench ("std::sprintf(\"%g %d %s %d %s %g\")", [&](){
+               DoNotOptimize (std::sprintf(buffer,"%g %d %s %d %s %g", 123.45f, 1234, "foobar", 42, "kablooey", 3.14159f));
+           });
+    bench ("Strutil::sprintf(\"%g %d %s %d %s %g\")", [&](){
+               DoNotOptimize (Strutil::sprintf("%g %d %s %d %s %g", 123.45f, 1234, "foobar", "kablooey", 42, 3.14159f));
+           });
+    bench ("Strutil::fmt::format(\"{} {} {} {} {} {}\")", [&](){
+               DoNotOptimize (Strutil::fmt::format("{} {} {} {} {} {}", 123.45f, 1234, "foobar", 42, "kablooey", 3.14159f));
+           });
 }
 
 
@@ -184,6 +216,7 @@ test_wordwrap()
 void
 test_hash()
 {
+    using namespace Strutil;
     OIIO_CHECK_EQUAL(strhash("foo"), 6150913649986995171);
     OIIO_CHECK_EQUAL(strhash(std::string("foo")), 6150913649986995171);
     OIIO_CHECK_EQUAL(strhash(string_view("foo")), 6150913649986995171);
@@ -250,10 +283,10 @@ test_comparisons()
     OIIO_CHECK_EQUAL(Strutil::icontains("", ""), true);
     OIIO_CHECK_EQUAL(Strutil::icontains("", "x"), false);
 
-    StringEqual eq;
-    StringIEqual ieq;
-    StringLess less;
-    StringILess iless;
+    Strutil::StringEqual eq;
+    Strutil::StringIEqual ieq;
+    Strutil::StringLess less;
+    Strutil::StringILess iless;
     OIIO_CHECK_ASSERT(eq("abc", "abc"));
     OIIO_CHECK_ASSERT(!eq("abc", "ABC"));
     OIIO_CHECK_ASSERT(!eq("abc", "axc"));
@@ -450,7 +483,7 @@ test_numeric_conversion()
     // Make sure it's correct for EVERY value. This takes too long to do as
     // part of unit tests, but I assure you that I did it once to confirm.
     for (int64_t i = std::numeric_limits<int>::min(); i <= std::numeric_limits<int>::max(); ++i)
-        OIIO_CHECK_EQUAL (Strutil::stoi(Strutil::format("%d",i)), i);
+        OIIO_CHECK_EQUAL (Strutil::stoi(Strutil::sprintf("%d",i)), i);
 #endif
 
     OIIO_CHECK_EQUAL(Strutil::stoui("hi"), unsigned(0));
@@ -673,6 +706,7 @@ test_string_view()
 
 void test_parse ()
 {
+    using namespace Strutil;
     std::cout << "Testing parse functions\n";
     string_view s;
     s = "";        skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "");
@@ -790,9 +824,24 @@ test_locale()
     std::cout << "unsafe float convert (default locale) " << numcstr << " = "
               << atof(numcstr) << "\n";
     OIIO_CHECK_EQUAL_APPROX(atof(numcstr), 123.0f);
-    // Verify that Strutil::format does the right thing, even when in a
+
+    // Verify that Strutil::sprintf does the right thing, even when in a
     // comma-based locale.
-    OIIO_CHECK_EQUAL(Strutil::format("%g", 123.45f), "123.45");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%g", 123.45f), "123.45");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%d", 12345), "12345");
+    // Verify that Strutil::fmt::format does the right thing, even when in a
+    // comma-based locale.
+#if 0
+    // FIXME: currently broken! Re-enable after {fmt} fixes its ability
+    // to format floating point numbers locale-independently.
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", 123.45f), "123.45");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{:.3f}", 123.45f), "123.450");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{:g}", 123.45f), "123.45");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", 12345), "12345");
+    // Verify that fmt::format does use locale when {:n}
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{:g}", 123.45f), "123,45");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{:n}", 12345), "12,345");
+#endif
     std::locale::global(oldloc);  // restore
 }
 
@@ -803,7 +852,7 @@ test_float_formatting()
 {
     // For every possible float value, test that printf("%.9g"), which
     // we are sure preserves full precision as text, exactly matches
-    // Strutil::format("%.9g") and also matches stream output with
+    // Strutil::sprintf("%.9g") and also matches stream output with
     // precision(9).  VERY EXPENSIVE!  Takes tens of minutes to run.
     // Don't do this unless you really need to test it.
     for (unsigned long long i = 0; i <= (unsigned long long)0xffffffff; ++i) {
@@ -813,11 +862,11 @@ test_float_formatting()
         sstream.precision(9);
         sstream << *f;
         char buffer[64];
-        sprintf(buffer, "%.9g", *f);
-        std::string tiny = Strutil::format("%.9g", *f);
+        std::sprintf(buffer, "%.9g", *f);
+        std::string tiny = Strutil::sprintf("%.9g", *f);
         if (sstream.str() != tiny || tiny != buffer)
             Strutil::printf(
-                "%x  stream '%s'  printf '%s'  Strutil::format '%s'\n", i32,
+                "%x  stream '%s'  printf '%s'  Strutil::sprintf '%s'\n", i32,
                 sstream.str(), buffer, tiny);
         if ((i32 & 0xfffffff) == 0xfffffff) {
             Strutil::printf("%x\n", i32);

@@ -1062,10 +1062,11 @@ public:
 
     /// Internal error reporting routine, with printf-like arguments.
     template<typename... Args>
-    void error(string_view fmt, const Args&... args) const
+    void errorf(const char* fmt, const Args&... args) const
     {
-        append_error(Strutil::format(fmt, args...));
+        append_error(Strutil::sprintf(fmt, args...));
     }
+    void error(const char* msg) const { append_error(msg); }
 
     /// Append a string to the current error message
     void append_error(const std::string& message) const;

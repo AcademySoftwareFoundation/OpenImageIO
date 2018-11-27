@@ -298,12 +298,31 @@ public:
     /// Swap with another ImageBuf
     void swap(ImageBuf& other) { std::swap(m_impl, other.m_impl); }
 
-    /// Error reporting for ImageBuf: call this with printf-like
-    /// arguments.  Note however that this is fully typesafe!
+    /// Add simple string to the error message list for this IB.
+    void error(const std::string& message) const;
+
+    /// Error reporting for ImageBuf: call this with Python / {fmt} /
+    /// std::format style formatting specification.
     template<typename... Args>
-    void error(string_view fmt, const Args&... args) const
+    void fmterror(const char* fmt, const Args&... args) const
     {
-        append_error(Strutil::format(fmt, args...));
+        error(Strutil::fmt::format(fmt, args...));
+    }
+
+    /// Error reporting for ImageBuf: call this with printf-like arguments.
+    template<typename... Args>
+    void errorf(const char* fmt, const Args&... args) const
+    {
+        error(Strutil::sprintf(fmt, args...));
+    }
+
+    /// Error reporting for ImageBuf: call this with Strutil::format
+    /// formatting conventions. Beware, this is in transition, is currently
+    /// printf-like but will someday change to python-like!
+    template<typename... Args>
+    void error(const char* fmt, const Args&... args) const
+    {
+        error(Strutil::format(fmt, args...));
     }
 
     /// Return true if the IB has had an error and has an error message
@@ -1240,9 +1259,6 @@ protected:
     // x,y,z is within the valid pixel data window, false if it still is
     // not.
     bool do_wrap(int& x, int& y, int& z, WrapMode wrap) const;
-
-    /// Add to the error message list for this IB.
-    void append_error(const std::string& message) const;
 };
 
 

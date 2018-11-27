@@ -38,7 +38,7 @@ ParamValue_getitem(const ParamValue& self, int n)
 {
     if (n < 0 || n >= self.nvalues()) {
         throw std::out_of_range(
-            Strutil::format("ParamValue index out of range %d", n));
+            Strutil::sprintf("ParamValue index out of range %d", n));
     }
 
     TypeDesc t = self.type();

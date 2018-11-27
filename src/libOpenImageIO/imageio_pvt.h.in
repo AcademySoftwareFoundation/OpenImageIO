@@ -67,8 +67,8 @@ void seterror (string_view message);
 /// Use error() privately only.  Protoype is conceptually printf-like, but
 /// also fully typesafe:
 template<typename... Args>
-inline void error (string_view fmt, const Args&... args) {
-    seterror(Strutil::format (fmt, args...));
+inline void errorf (const char* fmt, const Args&... args) {
+    seterror(Strutil::sprintf (fmt, args...));
 }
 
 // Make sure all plugins are inventoried.  Should only be called while

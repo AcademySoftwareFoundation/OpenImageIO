@@ -411,8 +411,8 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
         configspec.attribute("maketx:bumpformat", bumpformat);
 
     std::string cmdline
-        = Strutil::format("OpenImageIO %s : %s", OIIO_VERSION_STRING,
-                          command_line_string(argc, argv, sansattrib));
+        = Strutil::sprintf("OpenImageIO %s : %s", OIIO_VERSION_STRING,
+                           command_line_string(argc, argv, sansattrib));
     configspec.attribute("Software", cmdline);
     configspec.attribute("maketx:full_command_line", cmdline);
 

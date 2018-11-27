@@ -242,7 +242,7 @@ ImageSpec::default_channel_names()
         alpha_channel = 3;
     }
     for (int c = 4; c < nchannels; ++c)
-        channelnames.push_back(Strutil::format("channel%d", c));
+        channelnames.push_back(Strutil::sprintf("channel%d", c));
 }
 
 
@@ -473,19 +473,19 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
     // some special cases
     if (MATCH("geom", TypeString)) {
         ustring s = (depth <= 1 && full_depth <= 1)
-                        ? ustring::format("%dx%d%+d%+d", width, height, x, y)
-                        : ustring::format("%dx%dx%d%+d%+d%+d", width, height,
-                                          depth, x, y, z);
+                        ? ustring::sprintf("%dx%d%+d%+d", width, height, x, y)
+                        : ustring::sprintf("%dx%dx%d%+d%+d%+d", width, height,
+                                           depth, x, y, z);
         tmpparam.init("geom", TypeString, 1, &s);
         return &tmpparam;
     }
     if (MATCH("full_geom", TypeString)) {
         ustring s = (depth <= 1 && full_depth <= 1)
-                        ? ustring::format("%dx%d%+d%+d", full_width,
-                                          full_height, full_x, full_y)
-                        : ustring::format("%dx%dx%d%+d%+d%+d", full_width,
-                                          full_height, full_depth, full_x,
-                                          full_y, full_z);
+                        ? ustring::sprintf("%dx%d%+d%+d", full_width,
+                                           full_height, full_x, full_y)
+                        : ustring::sprintf("%dx%dx%d%+d%+d%+d", full_width,
+                                           full_height, full_depth, full_x,
+                                           full_y, full_z);
         tmpparam.init("full_geom", TypeString, 1, &s);
         return &tmpparam;
     }
@@ -577,9 +577,9 @@ explain_shutterapex(const ParamValue& p, const void* extradata)
     if (p.type() == TypeDesc::FLOAT) {
         double val = pow(2.0, -(double)*(float*)p.data());
         if (val > 1)
-            return Strutil::format("%g s", val);
+            return Strutil::sprintf("%g s", val);
         else
-            return Strutil::format("1/%g s", floor(1.0 / val));
+            return Strutil::sprintf("1/%g s", floor(1.0 / val));
     }
     return std::string();
 }
@@ -588,7 +588,7 @@ static std::string
 explain_apertureapex(const ParamValue& p, const void* extradata)
 {
     if (p.type() == TypeDesc::FLOAT)
-        return Strutil::format("f/%2.1f", powf(2.0f, *(float*)p.data() / 2.0f));
+        return Strutil::sprintf("f/%2.1f", powf(2.0f, *(float*)p.data() / 2.0f));
     return std::string();
 }
 
@@ -596,7 +596,7 @@ static std::string
 explain_ExifFlash(const ParamValue& p, const void* extradata)
 {
     int val = p.get_int();
-    return Strutil::format("%s%s%s%s%s%s%s%s",
+    return Strutil::sprintf("%s%s%s%s%s%s%s%s",
                            (val & 1) ? "flash fired" : "no flash",
                            (val & 6) == 4 ? ", no strobe return" : "",
                            (val & 6) == 6 ? ", strobe return" : "",
@@ -800,7 +800,7 @@ ImageSpec::metadata_val(const ParamValue& p, bool human)
     // strings, so we need to correct for that here.
     TypeDesc ptype = p.type();
     if (ptype == TypeString && p.nvalues() == 1)
-        out = Strutil::format("\"%s\"", Strutil::escape_chars(out));
+        out = Strutil::sprintf("\"%s\"", Strutil::escape_chars(out));
     if (human) {
         const ExplanationTableEntry* exp = nullptr;
         for (const auto& e : explanation)
@@ -820,7 +820,7 @@ ImageSpec::metadata_val(const ParamValue& p, bool human)
                     nice += ", ";
                 int num = p.get<int>(2 * i + 0), den = p.get<int>(2 * i + 1);
                 if (den)
-                    nice += Strutil::format("%g", float(num) / float(den));
+                    nice += Strutil::sprintf("%g", float(num) / float(den));
                 else
                     nice += "inf";
             }
@@ -896,10 +896,10 @@ extended_format_name(TypeDesc type, int bits)
         // file than the data type we are passing.
         if (type == TypeDesc::UINT8 || type == TypeDesc::UINT16
             || type == TypeDesc::UINT32 || type == TypeDesc::UINT64)
-            return ustring::format("uint%d", bits).c_str();
+            return ustring::sprintf("uint%d", bits).c_str();
         if (type == TypeDesc::INT8 || type == TypeDesc::INT16
             || type == TypeDesc::INT32 || type == TypeDesc::INT64)
-            return ustring::format("int%d", bits).c_str();
+            return ustring::sprintf("int%d", bits).c_str();
     }
     return type.c_str();  // use the name implied by type
 }
@@ -909,18 +909,16 @@ extended_format_name(TypeDesc type, int bits)
 inline std::string
 format_res(const ImageSpec& spec, int w, int h, int d)
 {
-    using Strutil::format;
-    return (spec.depth > 1) ? format("%d x %d x %d", w, h, d)
-                            : format("%d x %d", w, h);
+    return (spec.depth > 1) ? Strutil::sprintf("%d x %d x %d", w, h, d)
+                            : Strutil::sprintf("%d x %d", w, h);
 }
 
 
 inline std::string
 format_offset(const ImageSpec& spec, int x, int y, int z)
 {
-    using Strutil::format;
-    return (spec.depth > 1) ? format("%d, %d, %d", x, y, z)
-                            : format("%d, %d", x, y);
+    return (spec.depth > 1) ? Strutil::sprintf("%d, %d, %d", x, y, z)
+                            : Strutil::sprintf("%d, %d", x, y);
 }
 
 
@@ -1001,16 +999,16 @@ ImageSpec::serialize(SerialFormat fmt, SerialVerbose verbose) const
     // Text case:
     //
 
-    using Strutil::format;
+    using Strutil::sprintf;
     std::stringstream out;
 
-    out << ((depth > 1) ? format("%4d x %4d x %4d", width, height, depth)
-                        : format("%4d x %4d", width, height));
-    out << format(", %d channel, %s%s", nchannels, deep ? "deep " : "",
-                  depth > 1 ? "volume " : "");
+    out << ((depth > 1) ? sprintf("%4d x %4d x %4d", width, height, depth)
+                        : sprintf("%4d x %4d", width, height));
+    out << sprintf(", %d channel, %s%s", nchannels, deep ? "deep " : "",
+                   depth > 1 ? "volume " : "");
     if (channelformats.size()) {
         for (size_t c = 0; c < channelformats.size(); ++c)
-            out << format("%s%s", c ? "/" : "", channelformats[c]);
+            out << sprintf("%s%s", c ? "/" : "", channelformats[c]);
     } else {
         int bits = get_int_attribute("oiio:BitsPerSample", 0);
         out << extended_format_name(this->format, bits);
@@ -1025,15 +1023,15 @@ ImageSpec::serialize(SerialFormat fmt, SerialVerbose verbose) const
             else
                 out << "unknown";
             if (i < (int)channelformats.size())
-                out << format(" (%s)", channelformats[i]);
+                out << sprintf(" (%s)", channelformats[i]);
             if (i < nchannels - 1)
                 out << ", ";
         }
         out << '\n';
         if (x || y || z) {
             out << "    pixel data origin: "
-                << ((depth > 1) ? format("x=%d, y=%d, z=%d", x, y, z)
-                                : format("x=%d, y=%d", x, y))
+                << ((depth > 1) ? sprintf("x=%d, y=%d, z=%d", x, y, z)
+                                : sprintf("x=%d, y=%d", x, y))
                 << '\n';
         }
         if (full_x || full_y || full_z
@@ -1059,7 +1057,7 @@ ImageSpec::serialize(SerialFormat fmt, SerialVerbose verbose) const
         attribs.sort(false /* sort case-insensitively */);
 
         for (auto&& p : attribs) {
-            out << format("    %s: ", p.name());
+            out << sprintf("    %s: ", p.name());
             std::string s = metadata_val(p, verbose == SerialDetailedHuman);
             if (s == "1.#INF")
                 s = "inf";

@@ -713,7 +713,7 @@ Filesystem::parse_pattern(const char* pattern_, int framepadding_override,
         }
         if (framepadding_override > 0)
             padding = framepadding_override;
-        fmt = Strutil::format("%%0%dd", padding);
+        fmt = Strutil::sprintf("%%0%dd", padding);
     }
 
     // std::cout << "Format: '" << fmt << "'\n";
@@ -733,7 +733,7 @@ Filesystem::enumerate_file_sequence(const std::string& pattern,
 {
     filenames.clear();
     for (int n : numbers) {
-        std::string f = Strutil::format(pattern.c_str(), n);
+        std::string f = Strutil::sprintf(pattern.c_str(), n);
         filenames.push_back(f);
     }
     return true;
@@ -758,7 +758,7 @@ Filesystem::enumerate_file_sequence(const std::string& pattern,
             f = regex_replace(f, short_view_re,
                               std::string(views[i].substr(0, 1)));
         }
-        f = Strutil::format(f.c_str(), numbers[i]);
+        f = Strutil::sprintf(f.c_str(), numbers[i]);
         filenames.push_back(f);
     }
 

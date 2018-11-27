@@ -230,7 +230,7 @@ Oiiotool::clear_input_config()
 std::string
 format_resolution(int w, int h, int x, int y)
 {
-    return Strutil::format("%dx%d%+d%+d", w, h, x, y);
+    return Strutil::sprintf("%dx%d%+d%+d", w, h, x, y);
 }
 
 
@@ -238,7 +238,7 @@ format_resolution(int w, int h, int x, int y)
 std::string
 format_resolution(int w, int h, int d, int x, int y, int z)
 {
-    return Strutil::format("%dx%dx%d%+d%+d%+d", w, h, d, x, y, z);
+    return Strutil::sprintf("%dx%dx%d%+d%+d%+d", w, h, d, x, y, z);
 }
 
 
@@ -291,7 +291,7 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy)
     }
 
     if (!ok) {
-        error("read " + img->name(), img->geterror());
+        errorf("read " + img->name(), "%s", img->geterror());
     }
     return ok;
 }
@@ -337,7 +337,7 @@ Oiiotool::process_pending()
 
 
 void
-Oiiotool::error_impl(string_view command, string_view explanation) const
+Oiiotool::error(string_view command, string_view explanation) const
 {
     std::cerr << "oiiotool ERROR";
     if (command.size())
@@ -354,7 +354,7 @@ Oiiotool::error_impl(string_view command, string_view explanation) const
 
 
 void
-Oiiotool::warning_impl(string_view command, string_view explanation) const
+Oiiotool::warning(string_view command, string_view explanation) const
 {
     std::cerr << "oiiotool WARNING";
     if (command.size())
@@ -719,9 +719,9 @@ adjust_output_options(string_view filename, ImageSpec& spec,
             spec.attribute("Exif:ImageHistory", history);
         }
 
-        std::string software = Strutil::format("OpenImageIO %s : %s",
-                                               OIIO_VERSION_STRING,
-                                               ot.full_command_line);
+        std::string software = Strutil::sprintf("OpenImageIO %s : %s",
+                                                OIIO_VERSION_STRING,
+                                                ot.full_command_line);
         spec.attribute("Software", software);
     }
 
@@ -826,7 +826,7 @@ set_dataformat(int argc, const char* argv[])
         string_to_dataformat(chans[0], ot.output_dataformat,
                              ot.output_bitspersample);
         if (ot.output_dataformat == TypeDesc::UNKNOWN)
-            ot.error(command, "Unknown data format \"%s\"", chans[0]);
+            ot.errorf(command, "Unknown data format \"%s\"", chans[0]);
         ot.output_channelformats.clear();
         return 0;  // we're done
     }
@@ -839,7 +839,7 @@ set_dataformat(int argc, const char* argv[])
             std::string channame(chan, 0, eq - chan.c_str());
             ot.output_channelformats[channame] = std::string(eq + 1);
         } else {
-            ot.error(command, "Malformed format designator \"%s\"", chan);
+            ot.errorf(command, "Malformed format designator \"%s\"", chan);
         }
     }
 
@@ -924,8 +924,7 @@ Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
     bool ok = Strutil::parse_int(geom, x) && Strutil::parse_char(geom, ',')
               && Strutil::parse_int(geom, y);
     if (!ok)
-        error(command,
-              Strutil::format("Unrecognized position \"%s\"", orig_geom));
+        errorf(command, "Unrecognized position \"%s\"", orig_geom);
     return ok;
 }
 
@@ -983,7 +982,7 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
         w = (int)(w * scaleX + 0.5f);
         h = (int)(h * scaleX + 0.5f);
     } else {
-        error(command, Strutil::format("Unrecognized geometry \"%s\"", geom));
+        errorf(command, "Unrecognized geometry \"%s\"", geom);
         return false;
     }
     // printf ("geom %dx%d, %+d%+d\n", w, h, x, y);
@@ -997,8 +996,7 @@ Oiiotool::express_error(const string_view expr, const string_view s,
                         string_view explanation)
 {
     int offset = expr.rfind(s) + 1;
-    error("expression",
-          Strutil::format("%s at char %d of `%s'", explanation, offset, expr));
+    errorf("expression", "%s at char %d of `%s'", explanation, offset, expr);
 }
 
 
@@ -1127,23 +1125,24 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                 result = out.str();
             } else {
                 express_error(expr, s,
-                              Strutil::format("unknown attribute name `%s'",
-                                              metadata));
+                              Strutil::sprintf("unknown attribute name `%s'",
+                                               metadata));
                 result = orig;
                 return false;
             }
         }
     } else if (Strutil::parse_float(s, floatval)) {
-        result = Strutil::format("%g", floatval);
+        result = Strutil::sprintf("%g", floatval);
     }
     // Test some special identifiers
     else if (Strutil::parse_identifier_if(s, "FRAME_NUMBER")) {
-        result = Strutil::format("%d", ot.frame_number);
+        result = Strutil::sprintf("%d", ot.frame_number);
     } else if (Strutil::parse_identifier_if(s, "FRAME_NUMBER_PAD")) {
         std::string fmt = ot.frame_padding == 0
                               ? std::string("%d")
-                              : Strutil::format("\"%%0%dd\"", ot.frame_padding);
-        result = Strutil::format(fmt, ot.frame_number);
+                              : Strutil::sprintf("\"%%0%dd\"",
+                                                 ot.frame_padding);
+        result = Strutil::sprintf(fmt.c_str(), ot.frame_number);
     } else {
         express_error(expr, s, "syntax error");
         result = orig;
@@ -1201,8 +1200,8 @@ Oiiotool::express_parse_factors(const string_view expr, string_view& s,
 
             if (!Strutil::string_is<float>(atom)) {
                 express_error(expr, s,
-                              Strutil::format("expected number but got `%s'",
-                                              atom));
+                              Strutil::sprintf("expected number but got `%s'",
+                                               atom));
                 result = orig;
                 return false;
             }
@@ -1215,7 +1214,7 @@ Oiiotool::express_parse_factors(const string_view expr, string_view& s,
                 lval /= rval;
         }
 
-        result = Strutil::format("%g", lval);
+        result = Strutil::sprintf("%g", lval);
 
     } else {
         // atom is not a number, so we're done
@@ -1270,7 +1269,7 @@ Oiiotool::express_parse_summands(const string_view expr, string_view& s,
 
             if (!Strutil::string_is<float>(atom)) {
                 express_error(expr, s,
-                              Strutil::format("`%s' is not a number", atom));
+                              Strutil::sprintf("`%s' is not a number", atom));
                 result = orig;
                 return false;
             }
@@ -1283,7 +1282,7 @@ Oiiotool::express_parse_summands(const string_view expr, string_view& s,
                 lval -= rval;
         }
 
-        result = Strutil::format("%g", lval);
+        result = Strutil::sprintf("%g", lval);
 
     } else {
         // atom is not a number, so we're done
@@ -1332,8 +1331,8 @@ Oiiotool::express(string_view str)
     expr.remove_prefix(1);
     expr.remove_suffix(1);
     // eg. expr="cde"
-    ustring result = ustring::format("%s%s%s", prefix, express_impl(expr),
-                                     express(s));
+    ustring result = ustring::sprintf("%s%s%s", prefix, express_impl(expr),
+                                      express(s));
     if (ot.debug)
         std::cout << "Expanding expression \"" << str << "\" -> \"" << result
                   << "\"\n";
@@ -1865,7 +1864,7 @@ public:
             // The color transform failed, but we were told not to be
             // strict, so ignore the error and just copy destination to
             // source.
-            ot.warning(opname(), "%s", img[0]->geterror());
+            ot.warningf(opname(), "%s", img[0]->geterror());
             // ok = ImageBufAlgo::copy (*img[0], *img[1], TypeDesc);
             ok = img[0]->copy(*img[1]);
         }
@@ -2155,7 +2154,7 @@ OiioTool::decode_channel_set(const ImageSpec& spec, string_view chanlist,
             if (c <= 4)
                 newname = std::string(RGBAZ[c]);
             else
-                newname = Strutil::format("channel%d", c);
+                newname = Strutil::sprintf("channel%d", c);
         }
 
         // std::cout << "  Chan " << c << ": " << newname << ' ' << chan << ' ' << val << "\n";
@@ -2200,8 +2199,8 @@ action_channels(int argc, const char* argv[])
         bool ok = decode_channel_set(*A->spec(s, 0), chanlist, newchannelnames,
                                      channels, values);
         if (!ok) {
-            ot.error(command, "Invalid or unknown channel selection \"%s\"",
-                     chanlist);
+            ot.errorf(command, "Invalid or unknown channel selection \"%s\"",
+                      chanlist);
             ot.push(A);
             return 0;
         }
@@ -2334,9 +2333,9 @@ action_select_subimage(int argc, const char* argv[])
     if (Strutil::parse_int(w, subimage) && w.empty()) {
         // Subimage specification was an integer: treat as an index
         if (subimage < 0 || subimage >= ot.curimg->subimages()) {
-            ot.error(command, "Invalid -subimage (%d): %s has %d subimage%s",
-                     subimage, ot.curimg->name(), ot.curimg->subimages(),
-                     ot.curimg->subimages() == 1 ? "" : "s");
+            ot.errorf(command, "Invalid -subimage (%d): %s has %d subimage%s",
+                      subimage, ot.curimg->name(), ot.curimg->subimages(),
+                      ot.curimg->subimages() == 1 ? "" : "s");
             return 0;
         }
     } else {
@@ -2351,9 +2350,9 @@ action_select_subimage(int argc, const char* argv[])
             }
         }
         if (subimage < 0) {
-            ot.error(command,
-                     "Invalid -subimage (%s): named subimage not found",
-                     whichsubimage);
+            ot.errorf(command,
+                      "Invalid -subimage (%s): named subimage not found",
+                      whichsubimage);
             return 0;
         }
     }
@@ -2508,8 +2507,7 @@ action_colorcount(int argc, const char* argv[])
                                         &colorvalues[0], &eps[0]);
     if (ok) {
         for (int col = 0; col < ncolors; ++col)
-            std::cout << Strutil::format("%8d  %s\n", count[col],
-                                         colorstrings[col]);
+            Strutil::printf("%8d  %s\n", count[col], colorstrings[col]);
     } else {
         ot.error(command, (*ot.curimg)(0, 0).geterror());
     }
@@ -2543,9 +2541,9 @@ action_rangecheck(int argc, const char* argv[])
                                               &highcount, &inrangecount,
                                               &low[0], &high[0]);
     if (ok) {
-        std::cout << Strutil::format("%8d  < %s\n", lowcount, lowarg);
-        std::cout << Strutil::format("%8d  > %s\n", highcount, higharg);
-        std::cout << Strutil::format("%8d  within range\n", inrangecount);
+        Strutil::printf("%8d  < %s\n", lowcount, lowarg);
+        Strutil::printf("%8d  > %s\n", highcount, higharg);
+        Strutil::printf("%8d  within range\n", inrangecount);
     } else {
         ot.error(command, (*ot.curimg)(0, 0).geterror());
     }
@@ -2569,7 +2567,7 @@ action_diff(int argc, const char* argv[])
         ot.return_value = EXIT_FAILURE;
 
     if (ret != DiffErrOK && ret != DiffErrWarn && ret != DiffErrFail)
-        ot.error(command, "Diff failed");
+        ot.errorf(command, "Diff failed");
 
     ot.printed_info = true;  // because taking the diff has output
     ot.function_times[command] += timer();
@@ -2591,7 +2589,7 @@ action_pdiff(int argc, const char* argv[])
         ot.return_value = EXIT_FAILURE;
 
     if (ret != DiffErrOK && ret != DiffErrWarn && ret != DiffErrFail)
-        ot.error(command, "Diff failed");
+        ot.errorf(command, "Diff failed");
 
     ot.function_times[command] += timer();
     return 0;
@@ -2721,7 +2719,7 @@ public:
             A = Strutil::from_string<float>(options["value"]);
             B = Strutil::from_string<float>(options["portion"]);
         } else {
-            ot.error(opname(), "Unknown noise type \"%s\"", type);
+            ot.errorf(opname(), "Unknown noise type \"%s\"", type);
             return 0;
         }
         bool mono     = Strutil::from_string<int>(options["mono"]);
@@ -2921,7 +2919,7 @@ public:
     {
         int x = 0, y = 0, z = 0;
         if (sscanf(args[1].c_str(), "%d%d%d", &x, &y, &z) < 2) {
-            ot.error(opname(), "Invalid shift offset '%s'", args[1]);
+            ot.errorf(opname(), "Invalid shift offset '%s'", args[1]);
             return 0;
         }
         return ImageBufAlgo::circular_shift(*img[0], *img[1], x, y, z);
@@ -2957,7 +2955,7 @@ action_swap(int argc, const char* argv[])
     ASSERT(argc == 1);
     string_view command = ot.express(argv[0]);
     if (ot.image_stack.size() < 1) {
-        ot.error(command, "requires at least two loaded images");
+        ot.errorf(command, "requires at least two loaded images");
         return 0;
     }
     ImageRecRef B(ot.pop());
@@ -2977,7 +2975,7 @@ action_create(int argc, const char* argv[])
     string_view size    = ot.express(argv[1]);
     int nchans          = Strutil::from_string<int>(ot.express(argv[2]));
     if (nchans < 1 || nchans > 1024) {
-        ot.warning(argv[0], "Invalid number of channels: %d", nchans);
+        ot.warningf(argv[0], "Invalid number of channels: %d", nchans);
         nchans = 3;
     }
     ImageSpec spec(64, 64, nchans, TypeDesc::FLOAT);
@@ -3012,7 +3010,7 @@ action_pattern(int argc, const char* argv[])
     std::string size    = ot.express(argv[2]);
     int nchans          = Strutil::from_string<int>(ot.express(argv[3]));
     if (nchans < 1 || nchans > 1024) {
-        ot.warning(argv[0], "Invalid number of channels: %d", nchans);
+        ot.warningf(argv[0], "Invalid number of channels: %d", nchans);
         nchans = 3;
     }
     ImageSpec spec(64, 64, nchans, TypeDesc::FLOAT);
@@ -3103,7 +3101,7 @@ action_pattern(int argc, const char* argv[])
             A = Strutil::from_string<float>(options["value"]);
             B = Strutil::from_string<float>(options["portion"]);
         } else {
-            ot.error(command, "Unknown noise type \"%s\"", type);
+            ot.errorf(command, "Unknown noise type \"%s\"", type);
             ok = false;
         }
         bool mono = Strutil::from_string<int>(options["mono"]);
@@ -3113,7 +3111,7 @@ action_pattern(int argc, const char* argv[])
             ok = ImageBufAlgo::noise(ib, type, A, B, mono, seed);
     } else {
         ok = ImageBufAlgo::zero(ib);
-        ot.warning(command, "Unknown pattern \"%s\"", pattern);
+        ot.warningf(command, "Unknown pattern \"%s\"", pattern);
     }
     if (!ok)
         ot.error(command, ib.geterror());
@@ -3135,7 +3133,7 @@ public:
         string_view kernelsize(args[2]);
         float w = 1.0f, h = 1.0f;
         if (sscanf(kernelsize.c_str(), "%fx%f", &w, &h) != 2)
-            ot.error(opname(), "Unknown size %s", kernelsize);
+            ot.errorf(opname(), "Unknown size %s", kernelsize);
         return ImageBufAlgo::make_kernel(*img[0], kernelname, w, h);
     }
 };
@@ -3572,8 +3570,8 @@ action_fit(int argc, const char* argv[])
                 std::cout << "    Resizing to " << resize << "\n";
             std::string command = "resize";
             if (filtername.size())
-                command += Strutil::format(":filter=%s", filtername);
-            command += Strutil::format(":allsubimages=%d", allsubimages);
+                command += Strutil::sprintf(":filter=%s", filtername);
+            command += Strutil::sprintf(":allsubimages=%d", allsubimages);
             const char* newargv[2] = { command.c_str(), resize.c_str() };
             action_resize(2, newargv);
             A     = ot.top();
@@ -3623,7 +3621,7 @@ action_pixelaspect(int argc, const char* argv[])
 
     float new_paspect = Strutil::from_string<float>(ot.express(argv[1]));
     if (new_paspect <= 0.0f) {
-        ot.error(command, "Invalid pixel aspect ratio '%g'", new_paspect);
+        ot.errorf(command, "Invalid pixel aspect ratio '%g'", new_paspect);
         return 0;
     }
 
@@ -3635,7 +3633,8 @@ action_pixelaspect(int argc, const char* argv[])
     // Get the current pixel aspect ratio
     float paspect = Aspec->get_float_attribute("PixelAspectRatio", 1.0);
     if (paspect <= 0.0f) {
-        ot.error(command, "Invalid pixel aspect ratio '%g' in source", paspect);
+        ot.errorf(command, "Invalid pixel aspect ratio '%g' in source",
+                  paspect);
         return 0;
     }
 
@@ -3678,7 +3677,7 @@ action_pixelaspect(int argc, const char* argv[])
                                                scale_full_height, 0, 0);
         std::string command = "resize";
         if (filtername.size())
-            command += Strutil::format(":filter=%s", filtername);
+            command += Strutil::sprintf(":filter=%s", filtername);
         const char* newargv[2] = { command.c_str(), resize.c_str() };
         action_resize(2, newargv);
         A                         = ot.top();
@@ -3729,7 +3728,7 @@ public:
         string_view kernopt = options["kernel"];
         float w = 1.0f, h = 1.0f;
         if (sscanf(args[1].c_str(), "%fx%f", &w, &h) != 2)
-            ot.error(opname(), "Unknown size %s", args[1]);
+            ot.errorf(opname(), "Unknown size %s", args[1]);
         ImageBuf Kernel;
         if (!ImageBufAlgo::make_kernel(Kernel, kernopt, w, h))
             ot.error(opname(), Kernel.geterror());
@@ -3752,7 +3751,7 @@ public:
         string_view size(args[1]);
         int w = 3, h = 3;
         if (sscanf(size.c_str(), "%dx%d", &w, &h) != 2)
-            ot.error(opname(), "Unknown size %s", size);
+            ot.errorf(opname(), "Unknown size %s", size);
         return ImageBufAlgo::median_filter(*img[0], *img[1], w, h);
     }
 };
@@ -3772,7 +3771,7 @@ public:
         string_view size(args[1]);
         int w = 3, h = 3;
         if (sscanf(size.c_str(), "%dx%d", &w, &h) != 2)
-            ot.error(opname(), "Unknown size %s", size);
+            ot.errorf(opname(), "Unknown size %s", size);
         return ImageBufAlgo::dilate(*img[0], *img[1], w, h);
     }
 };
@@ -3792,7 +3791,7 @@ public:
         string_view size(args[1]);
         int w = 3, h = 3;
         if (sscanf(size.c_str(), "%dx%d", &w, &h) != 2)
-            ot.error(opname(), "Unknown size %s", size);
+            ot.errorf(opname(), "Unknown size %s", size);
         return ImageBufAlgo::erode(*img[0], *img[1], w, h);
     }
 };
@@ -3868,9 +3867,9 @@ action_fixnan(int argc, const char* argv[])
     else if (modename == "error")
         mode = NONFINITE_ERROR;
     else {
-        ot.warning(argv[0],
-                   "\"%s\" not recognized. Valid choices: black, box3, error",
-                   modename);
+        ot.warningf(argv[0],
+                    "\"%s\" not recognized. Valid choices: black, box3, error",
+                    modename);
     }
     ot.read();
     ImageRecRef A = ot.pop();
@@ -3936,7 +3935,7 @@ action_paste(int argc, const char* argv[])
 
     int x = 0, y = 0;
     if (sscanf(position.c_str(), "%d%d", &x, &y) != 2) {
-        ot.error(command, "Invalid offset '%s'", position);
+        ot.errorf(command, "Invalid offset '%s'", position);
         return 0;
     }
 
@@ -3964,7 +3963,7 @@ action_mosaic(int argc, const char* argv[])
     int ximages = 0, yimages = 0;
     if (sscanf(size.c_str(), "%dx%d", &ximages, &yimages) != 2 || ximages < 1
         || yimages < 1) {
-        ot.error(command, "Invalid size '%s'", size);
+        ot.errorf(command, "Invalid size '%s'", size);
         return 0;
     }
     int nimages = ximages * yimages;
@@ -4477,7 +4476,7 @@ action_histogram(int argc, const char* argv[])
     // Extract bins and height from size.
     int bins = 0, height = 0;
     if (sscanf(size.c_str(), "%dx%d", &bins, &height) != 2) {
-        ot.error(command, "Invalid size: %s", size);
+        ot.errorf(command, "Invalid size: %s", size);
         return -1;
     }
 
@@ -4563,7 +4562,7 @@ input_file(int argc, const char* argv[])
             bool procedural = input ? input->supports("procedural") : false;
             input.reset();
             if (!Filesystem::exists(filename) && !procedural)
-                ot.error("read", "File does not exist: \"%s\"", filename);
+                ot.errorf("read", "File does not exist: \"%s\"", filename);
             else {
                 std::string err;
                 auto in = ImageInput::open(filename);
@@ -4686,7 +4685,7 @@ prep_texture_config(ImageSpec& configspec,
     string_view wrap       = get_value_override(fileoptions["wrap"], "black");
     string_view swrap      = get_value_override(fileoptions["swrap"], wrap);
     string_view twrap      = get_value_override(fileoptions["twrap"], wrap);
-    configspec.attribute("wrapmodes", Strutil::format("%s,%s", swrap, twrap));
+    configspec.attribute("wrapmodes", Strutil::sprintf("%s,%s", swrap, twrap));
     configspec.attribute("maketx:verbose", ot.verbose);
     configspec.attribute("maketx:runstats", ot.runstats);
     configspec.attribute("maketx:resize",
@@ -4773,8 +4772,8 @@ output_file(int argc, const char* argv[])
     if (ot.debug)
         std::cout << "Output: " << filename << "\n";
     if (!ot.curimg.get()) {
-        ot.warning(command, "%s did not have any current image to output.",
-                   filename);
+        ot.warningf(command, "%s did not have any current image to output.",
+                    filename);
         return 0;
     }
 
@@ -4801,7 +4800,7 @@ output_file(int argc, const char* argv[])
                     = saved_curimg;  // note: last iteration also restores it!
             // Use the filename as a pattern, format with the frame number
             new_argv[1]
-                = ustring::format(filename.c_str(), i + startnumber).c_str();
+                = ustring::sprintf(filename.c_str(), i + startnumber).c_str();
             // recurse for this file
             output_file(2, new_argv);
         }
@@ -4809,7 +4808,7 @@ output_file(int argc, const char* argv[])
     }
 
     if (ot.noclobber && Filesystem::exists(filename)) {
-        ot.warning(command, "%s already exists, not overwriting.", filename);
+        ot.warningf(command, "%s already exists, not overwriting.", filename);
         return 0;
     }
     string_view formatname = fileoptions["fileformatname"];
@@ -4845,8 +4844,8 @@ output_file(int argc, const char* argv[])
         const char* argv[] = { "channels", chanlist.c_str() };
         int action_channels(int argc, const char* argv[]);  // forward decl
         action_channels(2, argv);
-        ot.warning(command, "Can't save %d channels to %f... saving only %s",
-                   ir->spec()->nchannels, out->format_name(), chanlist);
+        ot.warningf(command, "Can't save %d channels to %f... saving only %s",
+                    ir->spec()->nchannels, out->format_name(), chanlist);
         ir = ot.curimg;
     }
 
@@ -4908,7 +4907,7 @@ output_file(int argc, const char* argv[])
             if ((ot.output_dataformat && ot.output_dataformat != type)
                 || (bits && ot.output_bitspersample
                     && ot.output_bitspersample != bits)) {
-                ot.warning(
+                ot.warningf(
                     command,
                     "Output filename colorspace \"%s\" implies %s (%d bits), overriding prior request for %s.",
                     outcolorspace, type, bits, ot.output_dataformat);
@@ -4996,7 +4995,7 @@ output_file(int argc, const char* argv[])
         ok = ImageBufAlgo::make_texture(mode, (*ir)(0, 0), filename, configspec,
                                         &std::cout);
         if (!ok)
-            ot.error(command, "Could not make texture");
+            ot.errorf(command, "Could not make texture");
         // N.B. make_texture already internally writes to a temp file and
         // then atomically moves it to the final destination, so we don't
         // need to explicitly do that here.
@@ -5076,18 +5075,18 @@ output_file(int argc, const char* argv[])
                     } else if (out->supports("multiimage")) {
                         mode = ImageOutput::AppendSubimage;
                     } else {
-                        ot.warning(command,
-                                   "%s does not support MIP-maps for %s",
-                                   out->format_name(), filename);
+                        ot.warningf(command,
+                                    "%s does not support MIP-maps for %s",
+                                    out->format_name(), filename);
                         break;
                     }
                 }
             }
             mode = ImageOutput::AppendSubimage;  // for next subimage
             if (send > 1 && !out->supports("multiimage")) {
-                ot.warning(command,
-                           "%s does not support multiple subimages for %s",
-                           out->format_name(), filename);
+                ot.warningf(command,
+                            "%s does not support multiple subimages for %s",
+                            out->format_name(), filename);
                 break;
             }
         }
@@ -5104,9 +5103,10 @@ output_file(int argc, const char* argv[])
             std::string err;
             ok = Filesystem::rename(tmpfilename, filename, err);
             if (!ok)
-                ot.error(command,
-                         "oiiotool ERROR: could not move temp file %s to %s: %s",
-                         tmpfilename, filename, err);
+                ot.errorf(
+                    command,
+                    "oiiotool ERROR: could not move temp file %s to %s: %s",
+                    tmpfilename, filename, err);
         }
         if (!ok)
             Filesystem::remove(tmpfilename);
@@ -5359,11 +5359,11 @@ print_help_end(const ArgParse& ap, std::ostream& out)
     if (!buildsimd.size())
         buildsimd = "no SIMD";
     auto hwinfo
-        = Strutil::format("OIIO %s built %s, running on %d cores %.1fGB %s",
-                          OIIO_VERSION_STRING, buildsimd,
-                          Sysutil::hardware_concurrency(),
-                          Sysutil::physical_memory() / float(1 << 30),
-                          OIIO::get_string_attribute("hw:simd"));
+        = Strutil::sprintf("OIIO %s built %s, running on %d cores %.1fGB %s",
+                           OIIO_VERSION_STRING, buildsimd,
+                           Sysutil::hardware_concurrency(),
+                           Sysutil::physical_memory() / float(1 << 30),
+                           OIIO::get_string_attribute("hw:simd"));
     out << Strutil::wordwrap(hwinfo, columns, 4) << std::endl;
 
     // Print the path to the docs. If found, use the one installed in the
@@ -5381,9 +5381,9 @@ print_help_end(const ArgParse& ap, std::ostream& out)
         if (Strutil::ends_with(OIIO_VERSION_STRING, "dev"))
             branch = "master";
         else
-            branch = Strutil::format("RB-%d.%d", OIIO_VERSION_MAJOR,
-                                     OIIO_VERSION_MINOR);
-        std::string docsurl = Strutil::format(
+            branch = Strutil::sprintf("RB-%d.%d", OIIO_VERSION_MAJOR,
+                                      OIIO_VERSION_MINOR);
+        std::string docsurl = Strutil::sprintf(
             "https://github.com/OpenImageIO/oiio/blob/%s/src/doc/openimageio.pdf",
             branch);
         out << "    " << docsurl << "\n";
@@ -5781,7 +5781,7 @@ handle_sequence(int argc, const char** argv)
                                            normalized_pattern,
                                            sequence_framespec);
         if (!result) {
-            ot.error("", "Could not parse pattern: %s", argv[a]);
+            ot.errorf("", "Could not parse pattern: %s", argv[a]);
             return true;
         }
 
@@ -5806,7 +5806,7 @@ handle_sequence(int argc, const char** argv)
                                                              frame_views[a],
                                                              filenames[a]);
             if (!result) {
-                ot.error("",
+                ot.errorf("",
                     "No filenames found matching pattern: \"%s\" (did you intend to use --wildcardoff?)",
                         argv[a]);
                 return true;
@@ -5816,10 +5816,10 @@ handle_sequence(int argc, const char** argv)
         if (i == 0) {
             nfilenames = filenames[a].size();
         } else if (nfilenames != filenames[a].size()) {
-            ot.error("",
-                    "Not all sequence specifications matched: %s (%d frames) vs. %s (%d frames)",
-                    argv[sequence_args[0]], nfilenames, argv[a],
-                    filenames[a].size());
+            ot.errorf("",
+                     "Not all sequence specifications matched: %s (%d frames) vs. %s (%d frames)",
+                     argv[sequence_args[0]], nfilenames, argv[a],
+                     filenames[a].size());
             return true;
         }
     }
@@ -5961,10 +5961,10 @@ main(int argc, char* argv[])
              = ot.function_times.begin();
              func != ot.function_times.end(); ++func) {
             double t = func->second;
-            std::cout << Strutil::format(timeformat, func->first, t);
+            Strutil::printf(timeformat, func->first, t);
             unaccounted -= t;
         }
-        std::cout << Strutil::format(timeformat, "unaccounted",
+        Strutil::printf(timeformat, "unaccounted",
                                      std::max(unaccounted, 0.0));
         ot.check_peak_memory();
         std::cout << "  Peak memory:    " << Strutil::memformat(ot.peak_memory)

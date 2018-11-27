@@ -533,14 +533,14 @@ stringize(const ParamValueList::const_iterator& p, const XMPtag& xmptag)
         if (xmptag.special & IsBool)
             return *(const int*)p->data() ? "True" : "False";
         else  // ordinary int
-            return Strutil::format("%d", *(const int*)p->data());
+            return Strutil::sprintf("%d", *(const int*)p->data());
     } else if (p->type() == TypeDesc::FLOAT) {
         if (xmptag.special & Rational) {
             unsigned int num, den;
             float_to_rational(*(const float*)p->data(), num, den);
-            return Strutil::format("%d/%d", num, den);
+            return Strutil::sprintf("%d/%d", num, den);
         } else {
-            return Strutil::format("%g", *(const float*)p->data());
+            return Strutil::sprintf("%g", *(const float*)p->data());
         }
     }
     return std::string();
@@ -618,20 +618,20 @@ encode_xmp_category(std::vector<std::pair<const XMPtag*, std::string>>& list,
         if (Strutil::istarts_with(xmpname, pattern)) {
             std::string x;
             if (control == XMP_attribs)
-                x = Strutil::format("%s=\"%s\"", xmpname, val);
+                x = Strutil::sprintf("%s=\"%s\"", xmpname, val);
             else if (control == XMP_AltList || control == XMP_BagList) {
                 std::vector<std::string> vals;
                 Strutil::split(val, vals, ";");
                 for (auto& val : vals) {
                     val = Strutil::strip(val);
-                    x += Strutil::format("<rdf:li>%s</rdf:li>", val);
+                    x += Strutil::sprintf("<rdf:li>%s</rdf:li>", val);
                 }
             } else
-                x = Strutil::format("<%s>%s</%s>", xmpname, val, xmpname);
+                x = Strutil::sprintf("<%s>%s</%s>", xmpname, val, xmpname);
             if (!x.empty() && control != XMP_suppress) {
                 if (!found) {
                     // if (nodename && nodename[0]) {
-                    //    x = Strutil::format("<%s ", nodename);
+                    //    x = Strutil::sprintf("<%s ", nodename);
                     // }
                 }
                 if (minimal
@@ -664,30 +664,29 @@ encode_xmp_category(std::vector<std::pair<const XMPtag*, std::string>>& list,
 #if 1
     if (xmp.length()) {
         if (control == XMP_BagList)
-            xmp = Strutil::format("<%s><rdf:Bag> %s </rdf:Bag></%s>",
-                                  nodename ? nodename : xmlnamespace, xmp,
-                                  nodename ? nodename : xmlnamespace);
-        else if (control == XMP_SeqList)
-            xmp = Strutil::format("<%s><rdf:Seq> %s </rdf:Seq></%s>",
-                                  nodename ? nodename : xmlnamespace, xmp,
-                                  nodename ? nodename : xmlnamespace);
-        else if (control == XMP_AltList)
-            xmp = Strutil::format("<%s><rdf:Alt> %s </rdf:Alt></%s>",
-                                  nodename ? nodename : xmlnamespace, xmp,
-                                  nodename ? nodename : xmlnamespace);
-#    if 0
-        else if (control == XMP_nodes)
-            xmp = Strutil::format("<%s>%s</%s>",
+            xmp = Strutil::sprintf("<%s><rdf:Bag> %s </rdf:Bag></%s>",
                                    nodename ? nodename : xmlnamespace, xmp,
                                    nodename ? nodename : xmlnamespace);
- nodename);
+        else if (control == XMP_SeqList)
+            xmp = Strutil::sprintf("<%s><rdf:Seq> %s </rdf:Seq></%s>",
+                                   nodename ? nodename : xmlnamespace, xmp,
+                                   nodename ? nodename : xmlnamespace);
+        else if (control == XMP_AltList)
+            xmp = Strutil::sprintf("<%s><rdf:Alt> %s </rdf:Alt></%s>",
+                                   nodename ? nodename : xmlnamespace, xmp,
+                                   nodename ? nodename : xmlnamespace);
+#    if 0
+        else if (control == XMP_nodes)
+            xmp = Strutil::sprintf("<%s>%s</%s>",
+                                   nodename ? nodename : xmlnamespace, xmp,
+                                   nodename ? nodename : xmlnamespace);
 #    endif
 
         std::string r;
-        r += Strutil::format("<rdf:Description rdf:about=\"\" "
-                             "xmlns:%s=\"%s\"%s",
-                             xmlnamespace, url,
-                             (control == XMP_attribs) ? " " : ">");
+        r += Strutil::sprintf("<rdf:Description rdf:about=\"\" "
+                              "xmlns:%s=\"%s\"%s",
+                              xmlnamespace, url,
+                              (control == XMP_attribs) ? " " : ">");
         r += xmp;
         if (control == XMP_attribs)
             r += "/> ";  // end the <rdf:Description...

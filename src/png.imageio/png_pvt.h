@@ -180,7 +180,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                 spec.attribute("oiio:ColorSpace", "linear");
             else
                 spec.attribute("oiio:ColorSpace",
-                               Strutil::format("GammaCorrected%.2g", g));
+                               Strutil::sprintf("GammaCorrected%.2g", g));
         }
     }
 
@@ -203,10 +203,10 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 
     png_timep mod_time;
     if (png_get_tIME(sp, ip, &mod_time)) {
-        std::string date = Strutil::format("%4d:%02d:%02d %02d:%02d:%02d",
-                                           mod_time->year, mod_time->month,
-                                           mod_time->day, mod_time->hour,
-                                           mod_time->minute, mod_time->second);
+        std::string date = Strutil::sprintf("%4d:%02d:%02d %02d:%02d:%02d",
+                                            mod_time->year, mod_time->month,
+                                            mod_time->day, mod_time->hour,
+                                            mod_time->minute, mod_time->second);
         spec.attribute("DateTime", date);
     }
 
@@ -351,9 +351,9 @@ create_write_struct(png_structp& sp, png_infop& ip, int& color_type,
 {
     // Check for things this format doesn't support
     if (spec.width < 1 || spec.height < 1)
-        return Strutil::format("Image resolution must be at least 1x1, "
-                               "you asked for %d x %d",
-                               spec.width, spec.height);
+        return Strutil::sprintf("Image resolution must be at least 1x1, "
+                                "you asked for %d x %d",
+                                spec.width, spec.height);
     if (spec.depth < 1)
         spec.depth = 1;
     if (spec.depth > 1)
@@ -377,8 +377,8 @@ create_write_struct(png_structp& sp, png_infop& ip, int& color_type,
         spec.alpha_channel = 3;
         break;
     default:
-        return Strutil::format("PNG only supports 1-4 channels, not %d",
-                               spec.nchannels);
+        return Strutil::sprintf("PNG only supports 1-4 channels, not %d",
+                                spec.nchannels);
     }
     // N.B. PNG is very rigid about the meaning of the channels, so enforce
     // which channel is alpha, that's the only way PNG can do it.
@@ -549,10 +549,11 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         time(&now);
         struct tm mytm;
         Sysutil::get_local_time(&now, &mytm);
-        std::string date = Strutil::format("%4d:%02d:%02d %02d:%02d:%02d",
-                                           mytm.tm_year + 1900, mytm.tm_mon + 1,
-                                           mytm.tm_mday, mytm.tm_hour,
-                                           mytm.tm_min, mytm.tm_sec);
+        std::string date = Strutil::sprintf("%4d:%02d:%02d %02d:%02d:%02d",
+                                            mytm.tm_year + 1900,
+                                            mytm.tm_mon + 1, mytm.tm_mday,
+                                            mytm.tm_hour, mytm.tm_min,
+                                            mytm.tm_sec);
         spec.attribute("DateTime", date);
     }
 

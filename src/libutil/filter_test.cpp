@@ -66,9 +66,9 @@ getargs(int argc, char* argv[])
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",
         // "--threads %d", &numthreads,
-        //     ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+        //     ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
         "--iterations %d", &iterations,
-            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
         "--trials %d", &ntrials, "Number of trials",
         "--normalize", &normalize, "Normalize/rescale all filters to peak at 1",
         nullptr);

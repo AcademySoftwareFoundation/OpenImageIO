@@ -24,7 +24,8 @@ option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
 set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
     CACHE STRING "Glob patterns to include for clang-format")
     # Eventually: want this to be: "src/*.h;src/*.cpp"
-set (CLANG_FORMAT_EXCLUDES "*pugixml*" "*SHA1*" "*/farmhash.cpp" "*/tinyformat.h"
+set (CLANG_FORMAT_EXCLUDES "src/include/OpenImageIO/fmt/*.h"
+                           "*pugixml*" "*SHA1*" "*/farmhash.cpp" "*/tinyformat.h"
                            "src/dpx.imageio/libdpx/*"
                            "src/cineon.imageio/libcineon/*"
                            "src/dds.imageio/squish/*"

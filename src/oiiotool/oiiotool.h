@@ -229,16 +229,22 @@ public:
     int extract_options(std::map<std::string, std::string>& options,
                         std::string command);
 
+    // Error base case -- single unformatted string.
+    void error(string_view command, string_view message = "") const;
+    void warning(string_view command, string_view message = "") const;
+
+    // Formatted errors with printf-like notation
     template<typename... Args>
-    void error(string_view command, string_view fmt, const Args&... args) const
+    void errorf(string_view command, const char* fmt, const Args&... args) const
     {
-        error_impl(command, Strutil::format(fmt, args...));
+        error(command, Strutil::sprintf(fmt, args...));
     }
+
     template<typename... Args>
-    void warning(string_view command, string_view fmt,
-                 const Args&... args) const
+    void warningf(string_view command, const char* fmt,
+                  const Args&... args) const
     {
-        warning_impl(command, Strutil::format(fmt, args...));
+        warning(command, Strutil::sprintf(fmt, args...));
     }
 
     size_t check_peak_memory()
@@ -264,8 +270,6 @@ private:
                                 std::string& result);
 
     std::string express_impl(string_view s);
-    void error_impl(string_view command, string_view message = "") const;
-    void warning_impl(string_view command, string_view message = "") const;
 };
 
 
@@ -463,9 +467,9 @@ public:
     /// Error reporting for ImageRec: call this with printf-like arguments.
     /// Note however that this is fully typesafe!
     template<typename... Args>
-    void error(string_view fmt, const Args&... args) const
+    void errorf(const char* fmt, const Args&... args) const
     {
-        append_error(Strutil::format(fmt, args...));
+        append_error(Strutil::sprintf(fmt, args...));
     }
 
     /// Return true if the IR has had an error and has an error message
@@ -677,14 +681,14 @@ public:
             // Call the impl kernel for this subimage
             bool ok = impl(nimages() ? &img[0] : NULL);
             if (!ok)
-                ot.error(opname(), img[0]->geterror());
+                ot.errorf(opname(), "%s", img[0]->geterror());
             ir[0]->update_spec_from_imagebuf(s);
         }
 
         // Make sure to forward any errors missed by the impl
         for (int i = 0; i < nimages(); ++i) {
             if (img[i]->has_error())
-                ot.error(opname(), img[i]->geterror());
+                ot.errorf(opname(), "%s", img[i]->geterror());
         }
 
         if (ot.debug || ot.runstats)

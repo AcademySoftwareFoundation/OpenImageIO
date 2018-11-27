@@ -213,9 +213,9 @@ getargs(int argc, char* argv[])
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",
         "--threads %d", &numthreads,
-            ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+            ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
         "--iters %d", &iterations,
-            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
         "--trials %d", &ntrials, "Number of trials", "--wedge", &wedge, "Do a wedge test",
         nullptr);
     // clang-format on

@@ -132,15 +132,19 @@ public:
               void* progress_callback_data       = nullptr);
     void copy_metadata(const ImageBufImpl& src);
 
-    // Error reporting for ImageBuf: call this with printf-like
-    // arguments.  Note however that this is fully typesafe!
     template<typename... Args>
-    void error(string_view fmt, const Args&... args) const
+    void error(const char* fmt, const Args&... args) const
     {
-        append_error(Strutil::format(fmt, args...));
+        error(Strutil::sprintf(fmt, args...));
     }
 
-    void append_error(const std::string& message) const;
+    template<typename... Args>
+    void errorf(const char* fmt, const Args&... args) const
+    {
+        error(Strutil::sprintf(fmt, args...));
+    }
+
+    void error(const std::string& message) const;
 
     ImageBuf::IBStorage storage() const { return m_storage; }
 
@@ -572,7 +576,7 @@ ImageBuf::geterror(void) const
 
 
 void
-ImageBufImpl::append_error(const std::string& message) const
+ImageBufImpl::error(const std::string& message) const
 {
     spin_lock lock(err_mutex);
     ASSERT(m_err.size() < 1024 * 1024 * 16
@@ -585,9 +589,9 @@ ImageBufImpl::append_error(const std::string& message) const
 
 
 void
-ImageBuf::append_error(const std::string& message) const
+ImageBuf::error(const std::string& message) const
 {
-    impl()->append_error(message);
+    impl()->error(message);
 }
 
 

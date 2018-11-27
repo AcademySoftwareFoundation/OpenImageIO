@@ -88,7 +88,7 @@ declare_roi(py::module& m)
 
         // Conversion to string
         .def("__str__",
-             [](const ROI& roi) { return Strutil::format("%s", roi); })
+             [](const ROI& roi) { return Strutil::sprintf("%s", roi); })
 
         // roi_union, roi_intersection, get_roi(spec), get_roi_full(spec)
         // set_roi(spec,newroi), set_roi_full(newroi)

@@ -262,7 +262,7 @@ formatType(const ParamValue& p, const int n, const char* formatString,
         for (int c = 0; c < (int)element.aggregate; ++c, ++f) {
             if (c)
                 out += " ";
-            out += Strutil::format(formatString, f[0]);
+            out += Strutil::sprintf(formatString, f[0]);
         }
     }
 }
@@ -304,9 +304,9 @@ ParamValue::get_string(int maxsize) const
         // strings.
         for (int i = 0; i < n; ++i) {
             const char* s = ((const char**)data())[i];
-            out += Strutil::format("%s\"%s\"", (i ? ", " : ""),
-                                   s ? Strutil::escape_chars(s)
-                                     : std::string());
+            out += Strutil::sprintf("%s\"%s\"", (i ? ", " : ""),
+                                    s ? Strutil::escape_chars(s)
+                                      : std::string());
         }
     } else if (element.basetype == TypeDesc::FLOAT) {
         formatType<float>(*this, n, "%g", out);
@@ -320,7 +320,7 @@ ParamValue::get_string(int maxsize) const
             for (int i = 0; i < n; ++i, val += 2) {
                 if (i)
                     out += ", ";
-                out += Strutil::format("%d/%d", val[0], val[1]);
+                out += Strutil::sprintf("%d/%d", val[0], val[1]);
             }
         } else {
             formatType<int>(*this, n, "%d", out);
@@ -332,7 +332,7 @@ ParamValue::get_string(int maxsize) const
             for (int i = 0; i < n; ++i, val += 2) {
                 if (i)
                     out += ", ";
-                out += Strutil::format("%d/%d", val[0], val[1]);
+                out += Strutil::sprintf("%d/%d", val[0], val[1]);
             }
         } else if (type() == TypeTimeCode) {
             // Replicating the logic in OpenEXR, but this prevents us from
@@ -342,8 +342,8 @@ ParamValue::get_string(int maxsize) const
             int minutes    = bcdToBinary(bitField(t, 16, 22));
             int seconds    = bcdToBinary(bitField(t, 8, 14));
             int frame      = bcdToBinary(bitField(t, 0, 5));
-            out += Strutil::format("%02d:%02d:%02d:%02d", hours, minutes,
-                                   seconds, frame);
+            out += Strutil::sprintf("%02d:%02d:%02d:%02d", hours, minutes,
+                                    seconds, frame);
         } else {
             formatType<unsigned int>(*this, n, "%u", out);
         }
@@ -363,13 +363,13 @@ ParamValue::get_string(int maxsize) const
         out += "ptr ";
         formatType<void*>(*this, n, "%p", out);
     } else {
-        out += Strutil::format("<unknown data type> (base %d, agg %d vec %d)",
-                               type().basetype, type().aggregate,
-                               type().vecsemantics);
+        out += Strutil::sprintf("<unknown data type> (base %d, agg %d vec %d)",
+                                type().basetype, type().aggregate,
+                                type().vecsemantics);
     }
     if (n < nfull)
-        out += Strutil::format(", ... [%d x %s]", nfull,
-                               TypeDesc(TypeDesc::BASETYPE(element.basetype)));
+        out += Strutil::sprintf(", ... [%d x %s]", nfull,
+                                TypeDesc(TypeDesc::BASETYPE(element.basetype)));
     return out;
 }
 

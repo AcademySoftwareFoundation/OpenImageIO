@@ -64,9 +64,9 @@ getargs(int argc, char* argv[])
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",
         // "--threads %d", &numthreads,
-        //     ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+        //     ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
         "--iterations %d", &iterations,
-            ustring::format("Number of values to convert for benchmarks (default: %d)", iterations).c_str(),
+            ustring::sprintf("Number of values to convert for benchmarks (default: %d)", iterations).c_str(),
         "--trials %d", &ntrials, "Number of trials",
         nullptr);
     // clang-format on
@@ -241,15 +241,14 @@ benchmark_convert_type()
     const S testval(1.0);
     std::vector<S> svec(size, testval);
     std::vector<D> dvec(size);
-    std::cout << Strutil::format("Benchmark conversion of %6s -> %6s : ",
-                                 TypeDesc(BaseTypeFromC<S>::value),
-                                 TypeDesc(BaseTypeFromC<D>::value));
-    float time = time_trial(std::bind(do_convert_type<S, D>, std::cref(svec),
-                                      std::ref(dvec)),
+    Strutil::printf("Benchmark conversion of %6s -> %6s : ",
+                    TypeDesc(BaseTypeFromC<S>::value),
+                    TypeDesc(BaseTypeFromC<D>::value));
+    float time = time_trial(bind(do_convert_type<S, D>, std::cref(svec),
+                                 std::ref(dvec)),
                             ntrials, repeats)
                  / repeats;
-    std::cout << Strutil::format("%7.1f Mvals/sec", (size / 1.0e6) / time)
-              << std::endl;
+    Strutil::printf("%7.1f Mvals/sec\n", (size / 1.0e6) / time);
     D r = convert_type<S, D>(testval);
     OIIO_CHECK_EQUAL(dvec[size - 1], r);
 }

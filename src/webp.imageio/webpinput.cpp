@@ -188,7 +188,7 @@ OIIO_EXPORT const char*
 webp_imageio_library_version()
 {
     int v = WebPGetDecoderVersion();
-    return ustring::format("Webp %d.%d.%d", v >> 16, (v >> 8) & 255, v & 255)
+    return ustring::sprintf("Webp %d.%d.%d", v >> 16, (v >> 8) & 255, v & 255)
         .c_str();
 }
 

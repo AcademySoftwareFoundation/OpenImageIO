@@ -1104,10 +1104,26 @@ public:
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.  Note however that this is fully typesafe!
+    /// Strutil::format-like arguments.
+    /// Use with caution! Some day this will change to be fmt-like rather
+    /// than printf-like.
     template<typename... Args>
-    void error (string_view fmt, const Args&... args) const {
+    void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
+    }
+
+    /// Error reporting for the plugin implementation: call this with
+    /// printf-like arguments.
+    template<typename... Args>
+    void errorf(const char* fmt, const Args&... args) const {
+        append_error(Strutil::sprintf (fmt, args...));
+    }
+
+    /// Error reporting for the plugin implementation: call this with
+    /// fmt::format-like arguments.
+    template<typename... Args>
+    void fmterror(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
     }
 
     /// Set the current thread-spawning policy: the maximum number of
@@ -1448,10 +1464,26 @@ public:
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.  Note however that this is fully typesafe!
+    /// Strutil::format-like arguments.
+    /// Use with caution! Some day this will change to be fmt-like rather
+    /// than printf-like.
     template<typename... Args>
-    void error (string_view fmt, const Args&... args) const {
+    void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
+    }
+
+    /// Error reporting for the plugin implementation: call this with
+    /// printf-like arguments.
+    template<typename... Args>
+    void errorf(const char* fmt, const Args&... args) const {
+        append_error(Strutil::sprintf (fmt, args...));
+    }
+
+    /// Error reporting for the plugin implementation: call this with
+    /// fmt::format-like arguments.
+    template<typename... Args>
+    void fmterror(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
     }
 
     /// Set the current thread-spawning policy: the maximum number of
@@ -1783,10 +1815,26 @@ typedef bool (*wrap_impl) (int &coord, int origin, int width);
 /// output to stderr for debugging statements.
 OIIO_API void debug (string_view str);
 
+/// debug output with fmt/std::format conventions.
 template<typename T1, typename... Args>
-void debug (string_view fmt, const T1& v1, const Args&... args)
+void fmtdebug (const char* fmt, const T1& v1, const Args&... args)
 {
-    debug (Strutil::format(fmt.c_str(), v1, args...));
+    debug (Strutil::fmt::format(fmt, v1, args...));
+}
+
+/// debug output with printf conventions.
+template<typename T1, typename... Args>
+void debugf (const char* fmt, const T1& v1, const Args&... args)
+{
+    debug (Strutil::sprintf(fmt, v1, args...));
+}
+
+/// debug output with the same conventions as Strutil::format. Beware, this
+/// will change one day!
+template<typename T1, typename... Args>
+void debug (const char* fmt, const T1& v1, const Args&... args)
+{
+    debug (Strutil::format(fmt, v1, args...));
 }
 
 

@@ -93,7 +93,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
         || pybuf.size
                != int64_t(width) * int64_t(height) * int64_t(depth * nchans)) {
         format = TypeUnknown;  // Something went wrong
-        throw std::length_error(Strutil::format(
+        throw std::length_error(Strutil::sprintf(
             "buffer is wrong size (expected %dx%dx%dx%d, got total %d)", depth,
             height, width, nchans, pybuf.size));
     }
@@ -136,7 +136,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
                 xstride = pybuf.strides[0] * nchans;
             } else {
                 format = TypeUnknown;  // error
-                throw std::invalid_argument(Strutil::format(
+                throw std::invalid_argument(Strutil::sprintf(
                     "Can't figure out array shape (pixeldims=%d, pydim=%d)",
                     pixeldims, pybuf.ndim));
             }
@@ -146,7 +146,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             // just rely on autostride
         } else {
             format = TypeUnknown;  // No idea what's going on -- error
-            throw std::invalid_argument(Strutil::format(
+            throw std::invalid_argument(Strutil::sprintf(
                 "Can't figure out array shape (pixeldims=%d, pydim=%d)",
                 pixeldims, pybuf.ndim));
         }
@@ -161,12 +161,12 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             xstride = pybuf.strides[0] * nchans;
         } else {
             format = TypeUnknown;  // No idea what's going on -- error
-            throw std::invalid_argument(Strutil::format(
+            throw std::invalid_argument(Strutil::sprintf(
                 "Can't figure out array shape (pixeldims=%d, pydim=%d)",
                 pixeldims, pybuf.ndim));
         }
     } else {
-        throw std::invalid_argument(Strutil::format(
+        throw std::invalid_argument(Strutil::sprintf(
             "Can't figure out array shape (pixeldims=%d, pydim=%d)", pixeldims,
             pybuf.ndim));
     }

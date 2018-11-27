@@ -1246,7 +1246,7 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
         ImageBuf blowup(big.spec());
         ImageBufAlgo::resize(blowup, small, "triangle");
         ImageBufAlgo::over(big, big, blowup);
-        //debug big.save (Strutil::format ("after%d.exr", i));
+        //debug big.save (Strutil::sprintf("after%d.exr", i));
     }
 
     // Now copy the completed base layer of the pyramid back to the

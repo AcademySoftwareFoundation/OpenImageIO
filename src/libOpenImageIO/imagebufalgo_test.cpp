@@ -68,9 +68,9 @@ getargs(int argc, char* argv[])
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",
         "--threads %d", &numthreads,
-            ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+            ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
         "--iters %d", &iterations,
-            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
         "--trials %d", &ntrials, "Number of trials",
         "--wedge", &wedge, "Do a wedge test",
         nullptr);
@@ -934,8 +934,8 @@ benchmark_parallel_image(int res, int iters)
         };
         double range;
         double t = time_trial(func, ntrials, iters, &range) / iters;
-        std::cout << Strutil::format("  %4d   %7.3f ms  %5.1f Mpels/s\n", nt,
-                                     t * 1000, double(res * res) / t / 1.0e6);
+        std::cout << Strutil::sprintf("  %4d   %7.3f ms  %5.1f Mpels/s\n", nt,
+                                      t * 1000, double(res * res) / t / 1.0e6);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }
@@ -951,8 +951,8 @@ benchmark_parallel_image(int res, int iters)
         auto func = [&]() { parallel_image(Y.roi(), nt, exercise); };
         double range;
         double t = time_trial(func, ntrials, iters, &range) / iters;
-        std::cout << Strutil::format("  %4d   %6.2f ms  %5.1f Mpels/s\n", nt,
-                                     t * 1000, double(res * res) / t / 1.0e6);
+        std::cout << Strutil::sprintf("  %4d   %6.2f ms  %5.1f Mpels/s\n", nt,
+                                      t * 1000, double(res * res) / t / 1.0e6);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }

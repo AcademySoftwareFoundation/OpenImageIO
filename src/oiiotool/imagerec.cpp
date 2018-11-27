@@ -233,7 +233,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
     ustring uname(name());
     if (!m_imagecache->get_image_info(uname, 0, 0, u_subimages, TypeInt,
                                       &subimages)) {
-        error("file not found: \"%s\"", name());
+        errorf("file not found: \"%s\"", name());
         return false;  // Image not found
     }
     m_subimages.resize(subimages);
@@ -319,7 +319,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
                                             &newchannelnames[0], false);
             }
             if (!ok)
-                error("%s", ib->geterror());
+                errorf("%s", ib->geterror());
 
             allok &= ok;
             // Remove any existing SHA-1 hash from the spec.

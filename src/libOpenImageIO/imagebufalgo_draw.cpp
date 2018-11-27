@@ -812,7 +812,8 @@ resolve_font(int fontsize, string_view font_, std::string& result)
             f = Filesystem::searchpath_find(font + extensions[i],
                                             font_search_dirs, true, true);
         if (f.empty()) {
-            result = Strutil::format("Could not set font face to \"%s\"", font);
+            result = Strutil::sprintf("Could not set font face to \"%s\"",
+                                      font);
             return false;
         }
         font = f;
@@ -820,7 +821,7 @@ resolve_font(int fontsize, string_view font_, std::string& result)
 
     ASSERT(!font.empty());
     if (!Filesystem::is_regular(font)) {
-        result = Strutil::format("Could not find font \"%s\"", font);
+        result = Strutil::sprintf("Could not find font \"%s\"", font);
         return false;
     }
 

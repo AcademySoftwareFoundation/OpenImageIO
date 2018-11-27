@@ -168,7 +168,7 @@ getargs(int argc, const char* argv[])
                   "--wrap %s", &wrapmodes, "Set wrap mode (default, black, clamp, periodic, mirror, overscan)",
                   "--anisoaspect %f", &anisoaspect, "Set anisotropic ellipse aspect ratio for threadtimes tests (default: 2.0)",
                   "--anisomax %d", &anisomax,
-                      Strutil::format("Set max anisotropy (default: %d)", anisomax).c_str(),
+                      Strutil::sprintf("Set max anisotropy (default: %d)", anisomax).c_str(),
                   "--mipmode %d", &mipmode, "Set mip mode (default: 0 = aniso)",
                   "--interpmode %d", &interpmode, "Set interp mode (default: 3 = smart bicubic)",
                   "--missing %f %f %f", &missing[0], &missing[1], &missing[2],
@@ -176,7 +176,7 @@ getargs(int argc, const char* argv[])
                   "--autotile %d", &autotile, "Set auto-tile size for the image cache",
                   "--automip", &automip, "Set auto-MIPmap for the image cache",
                   "--batch", &batch,
-                        Strutil::format("Use batched shading, batch size = %d", Tex::BatchWidth).c_str(),
+                        Strutil::sprintf("Use batched shading, batch size = %d", Tex::BatchWidth).c_str(),
                   "--handle", &use_handle, "Use texture handle rather than name lookup",
                   "--searchpath %s", &searchpath, "Search path for files",
                   "--filtertest", &filtertest, "Test the filter sizes",
@@ -1033,7 +1033,7 @@ test_hash()
     using OIIO::pvt::ImageCacheImpl;
     std::vector<ImageCacheFileRef> icf;
     for (int f = 0; f < nfiles; ++f) {
-        ustring filename = ustring::format("%06d.tif", f);
+        ustring filename = ustring::sprintf("%06d.tif", f);
         icf.push_back(
             new ImageCacheFile(*(ImageCacheImpl*)imagecache, NULL, filename));
     }
@@ -1053,7 +1053,7 @@ test_hash()
     std::cout << "hh = " << hh << "\n";
     double time = timer();
     double rate = (i / 1.0e6) / time;
-    std::cout << "Hashing rate: " << Strutil::format("%3.2f", rate)
+    std::cout << "Hashing rate: " << Strutil::sprintf("%3.2f", rate)
               << " Mhashes/sec\n";
 
     // Now, check the quality of the hash by looking at the low 4, 8, and
@@ -1069,7 +1069,7 @@ test_hash()
                 ++eightbits[h & 0xff];
                 ++highereightbits[(h >> 24) & 0xff];
                 ++sixteenbits[h & 0xffff];
-                // if (i < 16) std::cout << Strutil::format("%llx\n", h);
+                // if (i < 16) std::cout << Strutil::sprintf("%llx\n", h);
             }
         }
     }
@@ -1533,7 +1533,7 @@ main(int argc, const char* argv[])
                 single_thread_time = (float)t;
             float speedup    = (single_thread_time /*/nt*/) / (float)t;
             float efficiency = (single_thread_time / nt) / float(t);
-            std::cout << Strutil::format(
+            std::cout << Strutil::sprintf(
                 "%3d     %8.2f   %6.1fx  %6.1f%%    range %.2f\t(%d iters/thread)\n",
                 nt, t, speedup, efficiency * 100.0f, range, its);
             std::cout.flush();
@@ -1624,7 +1624,7 @@ main(int argc, const char* argv[])
             texsys->get_texture_info(all_filenames[i], 0,
                                      ustring("stat:file_size"), TypeDesc::INT64,
                                      &file_size);
-            std::cout << Strutil::format(
+            std::cout << Strutil::sprintf(
                 "  %d: %s  opens=%d, read=%s, time=%s, data=%s, file=%s\n", i,
                 all_filenames[i], timesopened, Strutil::memformat(bytesread),
                 Strutil::timeintervalformat(iotime, 2),

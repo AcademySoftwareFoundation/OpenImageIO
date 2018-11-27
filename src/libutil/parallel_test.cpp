@@ -67,9 +67,9 @@ getargs(int argc, char* argv[])
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",
         "--threads %d", &numthreads,
-            ustring::format("Number of threads (default: %d)", numthreads).c_str(),
+            ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
         "--iters %d", &iterations,
-            ustring::format("Number of iterations (default: %d)", iterations).c_str(),
+            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
         "--trials %d", &ntrials, "Number of trials",
         "--wedge", &wedge, "Do a wedge test",
         nullptr);
@@ -105,8 +105,8 @@ time_parallel_for()
         double range;
         double t = time_trial(func, ntrials, its, &range);
 
-        std::cout << Strutil::format("%2d\t%5.1f   launch %8.1f threads/sec\n",
-                                     nt, t, (nt * its) / t);
+        Strutil::printf("%2d\t%5.1f   launch %8.1f threads/sec\n", nt, t,
+                        (nt * its) / t);
         if (!wedge)
             break;  // don't loop if we're not wedging
     }

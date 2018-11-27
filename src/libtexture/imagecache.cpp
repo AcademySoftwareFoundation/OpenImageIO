@@ -840,7 +840,7 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
     if (!ok) {
         std::string err = inp->geterror();
         if (!err.empty() && errors_should_issue())
-            imagecache().error("%s", err);
+            imagecache().errorf("%s", err);
     }
 
     if (ok) {
@@ -994,7 +994,7 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
         if (!ok) {
             std::string err = inp->geterror();
             if (!err.empty() && errors_should_issue())
-                imagecache().error("%s", err);
+                imagecache().errorf("%s", err);
         }
         size_t b = (y1 - y0 + 1) * spec.scanline_bytes();
         thread_info->m_stats.bytes_read += b;
@@ -1035,7 +1035,7 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
         if (!ok) {
             std::string err = inp->geterror();
             if (!err.empty() && errors_should_issue())
-                imagecache().error("%s", err);
+                imagecache().errorf("%s", err);
         }
         size_t b = spec.image_bytes();
         thread_info->m_stats.bytes_read += b;
@@ -1162,7 +1162,7 @@ ImageCacheFile::mark_broken(string_view error)
     if (!error.size())
         error = string_view("unknown error");
     m_broken_message = error;
-    imagecache().error("%s", error);
+    imagecache().errorf("%s", error);
     invalidate_spec();
 }
 
@@ -1668,31 +1668,31 @@ ImageCacheImpl::onefile_stat_line(const ImageCacheFileRef& file, int i,
     default: break;
     }
     if (i >= 0)
-        out << Strutil::format("%7d ", i);
+        out << Strutil::sprintf("%7d ", i);
     if (includestats) {
         unsigned long long redund_tiles = file->redundant_tiles();
         if (redund_tiles)
-            out << Strutil::format("%4llu  %7llu   %8.1f   (%5llu %6.1f) %9s  ",
-                                   (unsigned long long)file->timesopened(),
-                                   (unsigned long long)file->tilesread(),
-                                   file->bytesread() / 1024.0 / 1024.0,
-                                   redund_tiles,
-                                   file->redundant_bytesread() / 1024.0
-                                       / 1024.0,
-                                   Strutil::timeintervalformat(file->iotime()));
+            out << Strutil::sprintf(
+                "%4llu  %7llu   %8.1f   (%5llu %6.1f) %9s  ",
+                (unsigned long long)file->timesopened(),
+                (unsigned long long)file->tilesread(),
+                file->bytesread() / 1024.0 / 1024.0, redund_tiles,
+                file->redundant_bytesread() / 1024.0 / 1024.0,
+                Strutil::timeintervalformat(file->iotime()));
         else
-            out << Strutil::format("%4llu  %7llu   %8.1f                  %9s  ",
-                                   (unsigned long long)file->timesopened(),
-                                   (unsigned long long)file->tilesread(),
-                                   file->bytesread() / 1024.0 / 1024.0,
-                                   Strutil::timeintervalformat(file->iotime()));
+            out << Strutil::sprintf(
+                "%4llu  %7llu   %8.1f                  %9s  ",
+                (unsigned long long)file->timesopened(),
+                (unsigned long long)file->tilesread(),
+                file->bytesread() / 1024.0 / 1024.0,
+                Strutil::timeintervalformat(file->iotime()));
     }
     if (file->subimages() > 1)
-        out << Strutil::format("%3d face x%d.%s", file->subimages(),
-                               spec.nchannels, formatcode);
+        out << Strutil::sprintf("%3d face x%d.%s", file->subimages(),
+                                spec.nchannels, formatcode);
     else
-        out << Strutil::format("%4dx%4dx%d.%s", spec.width, spec.height,
-                               spec.nchannels, formatcode);
+        out << Strutil::sprintf("%4dx%4dx%d.%s", spec.width, spec.height,
+                                spec.nchannels, formatcode);
     out << "  " << file->filename() << " ";
     if (file->duplicate()) {
         out << " DUPLICATES " << file->duplicate()->filename();
@@ -1796,12 +1796,12 @@ ImageCacheImpl::getstats(int level) const
 #define BOOLOPT(name)                                                          \
     if (m_##name)                                                              \
     opt += #name " "
-#define INTOPT(name) opt += Strutil::format(#name "=%d ", m_##name)
+#define INTOPT(name) opt += Strutil::sprintf(#name "=%d ", m_##name)
 #define STROPT(name)                                                           \
     if (m_##name.size())                                                       \
-    opt += Strutil::format(#name "=\"%s\" ", m_##name)
-        opt += Strutil::format("max_memory_MB=%0.1f ",
-                               m_max_memory_bytes / (1024.0 * 1024.0));
+    opt += Strutil::sprintf(#name "=\"%s\" ", m_##name)
+        opt += Strutil::sprintf("max_memory_MB=%0.1f ",
+                                m_max_memory_bytes / (1024.0 * 1024.0));
         INTOPT(max_open_files);
         INTOPT(autotile);
         INTOPT(autoscanline);
@@ -1908,7 +1908,7 @@ ImageCacheImpl::getstats(int level) const
             }
             out << onefile_stat_line(file, i + 1) << "\n";
         }
-        out << Strutil::format(
+        out << Strutil::sprintf(
             "\n  Tot:  %4llu  %7llu   %8.1f   (%5llu %6.1f) %9s\n",
             (unsigned long long)total_opens, (unsigned long long)total_tiles,
             total_bytes / 1024.0 / 1024.0,
@@ -1951,7 +1951,7 @@ ImageCacheImpl::getstats(int level) const
                     break;
                 if (file->broken() || !file->validspec())
                     continue;
-                out << Strutil::format(
+                out << Strutil::sprintf(
                     "    %d   %6.1f MB (%4.1f%%)  ", nprinted,
                     file->bytesread() / 1024.0 / 1024.0,
                     100.0 * (file->bytesread() / (double)total_bytes));
@@ -1965,7 +1965,7 @@ ImageCacheImpl::getstats(int level) const
                     break;
                 if (file->broken() || !file->validspec())
                     continue;
-                out << Strutil::format(
+                out << Strutil::sprintf(
                     "    %d   %9s (%4.1f%%)   ", nprinted,
                     Strutil::timeintervalformat(file->iotime()).c_str(),
                     100.0 * file->iotime() / total_iotime);
@@ -1983,15 +1983,15 @@ ImageCacheImpl::getstats(int level) const
                     break;
                 double mb = file->bytesread() / (1024.0 * 1024.0);
                 double r  = mb / file->iotime();
-                out << Strutil::format("    %d   %6.2f MB/s (%.2fMB/%.2fs)   ",
-                                       nprinted, r, mb, file->iotime());
+                out << Strutil::sprintf("    %d   %6.2f MB/s (%.2fMB/%.2fs)   ",
+                                        nprinted, r, mb, file->iotime());
                 out << onefile_stat_line(file, -1, false) << "\n";
             }
             if (nprinted == 0)
                 out << "    (nothing took more than 0.25s)\n";
             double fast = files.back()->bytesread() / (1024.0 * 1024.0)
                           / files.back()->iotime();
-            out << Strutil::format("    (fastest was %.1f MB/s)\n", fast);
+            out << Strutil::sprintf("    (fastest was %.1f MB/s)\n", fast);
             if (total_redundant_tiles > 0) {
                 std::sort(files.begin(), files.end(), redundantbytes_compare);
                 out << "  Top files by redundant I/O:\n";
@@ -2001,7 +2001,7 @@ ImageCacheImpl::getstats(int level) const
                         break;
                     if (file->broken() || !file->validspec())
                         continue;
-                    out << Strutil::format(
+                    out << Strutil::sprintf(
                         "    %d   %6.1f MB (%4.1f%%)  ", nprinted,
                         file->redundant_bytesread() / 1024.0 / 1024.0,
                         100.0
@@ -2023,8 +2023,8 @@ ImageCacheImpl::getstats(int level) const
             for (const ImageCacheFileRef& file : files) {
                 if (file->broken()) {
                     ++nprinted;
-                    out << Strutil::format("   %4d  %s\n", nprinted,
-                                           file->filename());
+                    out << Strutil::sprintf("   %4d  %s\n", nprinted,
+                                            file->filename());
                 }
             }
         }
@@ -2506,7 +2506,7 @@ ImageCacheImpl::get_image_info(ustring filename, int subimage, int miplevel,
     ImageCachePerThreadInfo* thread_info = get_perthread_info();
     ImageCacheFile* file = find_file(filename, thread_info, nullptr, true);
     if (!file && dataname != s_exists) {
-        error("Invalid image file \"%s\"", filename);
+        errorf("Invalid image file \"%s\"", filename);
         return false;
     }
     return get_image_info(file, thread_info, subimage, miplevel, dataname,
@@ -2558,8 +2558,8 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
 
     if (file->broken()) {
         if (file->errors_should_issue())
-            error("Invalid image file \"%s\": %s", file->filename(),
-                  file->broken_error_message());
+            errorf("Invalid image file \"%s\": %s", file->filename(),
+                   file->broken_error_message());
         return false;
     }
     // No other queries below are expected to work with broken
@@ -2603,14 +2603,14 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
     // reference to the spec.
     if (subimage < 0 || subimage >= file->subimages()) {
         if (file->errors_should_issue())
-            error("Unknown subimage %d (out of %d)", subimage,
-                  file->subimages());
+            errorf("Unknown subimage %d (out of %d)", subimage,
+                   file->subimages());
         return false;
     }
     if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
         if (file->errors_should_issue())
-            error("Unknown mip level %d (out of %d)", miplevel,
-                  file->miplevels(subimage));
+            errorf("Unknown mip level %d (out of %d)", miplevel,
+                   file->miplevels(subimage));
         return false;
     }
 
@@ -2793,7 +2793,7 @@ ImageCacheImpl::imagespec(ustring filename, int subimage, int miplevel,
     ImageCachePerThreadInfo* thread_info = get_perthread_info();
     ImageCacheFile* file = find_file(filename, thread_info, nullptr, true);
     if (!file) {
-        error("Image file \"%s\" not found", filename);
+        errorf("Image file \"%s\" not found", filename);
         return NULL;
     }
     return imagespec(file, thread_info, subimage, miplevel, native);
@@ -2815,8 +2815,8 @@ ImageCacheImpl::imagespec(ImageCacheFile* file,
     file = verify_file(file, thread_info, true);
     if (file->broken()) {
         if (file->errors_should_issue())
-            error("Invalid image file \"%s\": %s", file->filename(),
-                  file->broken_error_message());
+            errorf("Invalid image file \"%s\": %s", file->filename(),
+                   file->broken_error_message());
         return NULL;
     }
     if (file->is_udim()) {
@@ -2825,14 +2825,14 @@ ImageCacheImpl::imagespec(ImageCacheFile* file,
     }
     if (subimage < 0 || subimage >= file->subimages()) {
         if (file->errors_should_issue())
-            error("Unknown subimage %d (out of %d)", subimage,
-                  file->subimages());
+            errorf("Unknown subimage %d (out of %d)", subimage,
+                   file->subimages());
         return NULL;
     }
     if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
         if (file->errors_should_issue())
-            error("Unknown mip level %d (out of %d)", miplevel,
-                  file->miplevels(subimage));
+            errorf("Unknown mip level %d (out of %d)", miplevel,
+                   file->miplevels(subimage));
         return NULL;
     }
     const ImageSpec* spec = native ? &file->nativespec(subimage, miplevel)
@@ -2889,7 +2889,7 @@ ImageCacheImpl::get_pixels(ustring filename, int subimage, int miplevel,
     ImageCachePerThreadInfo* thread_info = get_perthread_info();
     ImageCacheFile* file                 = find_file(filename, thread_info);
     if (!file) {
-        error("Image file \"%s\" not found", filename);
+        errorf("Image file \"%s\" not found", filename);
         return false;
     }
     return get_pixels(file, thread_info, subimage, miplevel, xbegin, xend,
@@ -2914,8 +2914,8 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
     file = verify_file(file, thread_info);
     if (file->broken()) {
         if (file->errors_should_issue())
-            error("Invalid image file \"%s\": %s", file->filename(),
-                  file->broken_error_message());
+            errorf("Invalid image file \"%s\": %s", file->filename(),
+                   file->broken_error_message());
         return false;
     }
     if (file->is_udim()) {
@@ -2924,14 +2924,14 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
     }
     if (subimage < 0 || subimage >= file->subimages()) {
         if (file->errors_should_issue())
-            error("get_pixels asked for nonexistant subimage %d of \"%s\"",
-                  subimage, file->filename());
+            errorf("get_pixels asked for nonexistant subimage %d of \"%s\"",
+                   subimage, file->filename());
         return false;
     }
     if (miplevel < 0 || miplevel >= file->miplevels(subimage)) {
         if (file->errors_should_issue())
-            error("get_pixels asked for nonexistant MIP level %d of \"%s\"",
-                  miplevel, file->filename());
+            errorf("get_pixels asked for nonexistant MIP level %d of \"%s\"",
+                   miplevel, file->filename());
         return false;
     }
 
@@ -3393,15 +3393,15 @@ ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, float& s, float& t)
         ustring realname = udimfile->filename();
         int udim_tile    = 1001 + utile + 10 * vtile;
         realname         = Strutil::replace(realname, "<UDIM>",
-                                    Strutil::format("%04d", udim_tile), true);
+                                    Strutil::sprintf("%04d", udim_tile), true);
         realname         = Strutil::replace(realname, "<u>",
-                                    Strutil::format("u%d", utile), true);
+                                    Strutil::sprintf("u%d", utile), true);
         realname         = Strutil::replace(realname, "<v>",
-                                    Strutil::format("v%d", vtile), true);
+                                    Strutil::sprintf("v%d", vtile), true);
         realname         = Strutil::replace(realname, "<U>",
-                                    Strutil::format("u%d", utile + 1), true);
+                                    Strutil::sprintf("u%d", utile + 1), true);
         realname         = Strutil::replace(realname, "<V>",
-                                    Strutil::format("v%d", vtile + 1), true);
+                                    Strutil::sprintf("v%d", vtile + 1), true);
         realfile         = find_file(realname, get_perthread_info());
         // Now grab the actual write lock, and double check that it hasn't
         // been added by another thread during the brief time when we

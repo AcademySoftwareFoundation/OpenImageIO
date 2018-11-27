@@ -138,7 +138,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         switch (m_cin.header.ImageDescriptor(i)) {
         case cineon::kGrayscale:
             if (++gscount > 1) {
-                std::string ch = Strutil::format("I%d", gscount);
+                std::string ch = Strutil::sprintf("I%d", gscount);
                 m_spec.channelnames.push_back(ch);
             } else
                 m_spec.channelnames.emplace_back("I");
@@ -146,7 +146,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         case cineon::kPrintingDensityRed:
         case cineon::kRec709Red:
             if (++gscount > 1) {
-                std::string ch = Strutil::format("R%d", rcount);
+                std::string ch = Strutil::sprintf("R%d", rcount);
                 m_spec.channelnames.push_back(ch);
             } else
                 m_spec.channelnames.emplace_back("R");
@@ -154,7 +154,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         case cineon::kPrintingDensityGreen:
         case cineon::kRec709Green:
             if (++gcount > 1) {
-                std::string ch = Strutil::format("G%d", gcount);
+                std::string ch = Strutil::sprintf("G%d", gcount);
                 m_spec.channelnames.push_back(ch);
             } else
                 m_spec.channelnames.emplace_back("G");
@@ -162,14 +162,14 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         case cineon::kPrintingDensityBlue:
         case cineon::kRec709Blue:
             if (++bcount > 1) {
-                std::string ch = Strutil::format("B%d", bcount);
+                std::string ch = Strutil::sprintf("B%d", bcount);
                 m_spec.channelnames.push_back(ch);
             } else
                 m_spec.channelnames.emplace_back("B");
             break;
         default:
-            std::string ch = Strutil::format("channel%d",
-                                             m_spec.channelnames.size());
+            std::string ch = Strutil::sprintf("channel%d",
+                                              m_spec.channelnames.size());
             m_spec.channelnames.push_back(ch);
             break;
         }
@@ -209,7 +209,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         if (!isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
             // actual gamma value is read later on
             m_spec.attribute("oiio:ColorSpace",
-                             Strutil::format("GammaCorrected%.2g", g));
+                             Strutil::sprintf("GammaCorrected%.2g", g));
         break;
     }
 
@@ -226,8 +226,8 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         // libcineon's date/time format is pretty close to OIIO's (libcineon
         // uses %Y:%m:%d:%H:%M:%S%Z)
         m_spec.attribute("DateTime",
-                         Strutil::format("%s %s", m_cin.header.creationDate,
-                                         m_cin.header.creationTime));
+                         Strutil::sprintf("%s %s", m_cin.header.creationDate,
+                                          m_cin.header.creationTime));
         // FIXME: do something about the time zone
     }
 
@@ -357,8 +357,8 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         // libcineon's date/time format is pretty close to OIIO's (libcineon
         // uses %Y:%m:%d:%H:%M:%S%Z)
         m_spec.attribute("DateTime",
-                         Strutil::format("%s %s", m_cin.header.sourceDate,
-                                         m_cin.header.sourceTime));
+                         Strutil::sprintf("%s %s", m_cin.header.sourceDate,
+                                          m_cin.header.sourceTime));
         // FIXME: do something about the time zone
     }
     m_cin.header.FilmEdgeCode(buf);
