@@ -2076,7 +2076,7 @@ static inline void
 calc_subimage_from_zoom(const IvImage* img, int& subimage, float& zoom,
                         float& xcenter, float& ycenter)
 {
-    int rel_subimage = Imath::trunc(log2f(1 / zoom));
+    int rel_subimage = Imath::trunc(std::log2(1.0f / zoom));
     subimage         = clamp<int>(img->subimage() + rel_subimage, 0,
                           img->nsubimages() - 1);
     if (!(img->subimage() == 0 && zoom > 1)

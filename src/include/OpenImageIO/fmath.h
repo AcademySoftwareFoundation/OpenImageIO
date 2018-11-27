@@ -58,10 +58,10 @@
 #include <cstring>
 #include <limits>
 #include <typeinfo>
+#include <type_traits>
 
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/missing_math.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/simd.h>
@@ -70,10 +70,58 @@
 OIIO_NAMESPACE_BEGIN
 
 
-/// Helper template to let us tell if two types are the same.
-template<typename T, typename U> struct is_same { static const bool value = false; };
-template<typename T> struct is_same<T,T> { static const bool value = true; };
+// Helper template to let us tell if two types are the same.
+// C++11 defines this, keep in OIIO namespace for back compat.
+// DEPRECATED(2.0) -- clients should switch OIIO::is_same -> std::is_same.
+using std::is_same;
 
+
+// For back compatibility: expose these in the OIIO namespace.
+// DEPRECATED(2.0) -- clients should switch OIIO:: -> std:: for these.
+using std::isfinite;
+using std::isinf;
+using std::isnan;
+
+
+// Define math constants just in case they aren't included (Windows is a
+// little finicky about this, only defining these if _USE_MATH_DEFINES is
+// defined before <cmath> is included, which is hard to control).
+#ifndef M_PI
+#    define M_PI 3.14159265358979323846264338327950288
+#endif
+#ifndef M_PI_2
+#    define M_PI_2 1.57079632679489661923132169163975144
+#endif
+#ifndef M_PI_4
+#    define M_PI_4 0.785398163397448309615660845819875721
+#endif
+#ifndef M_TWO_PI
+#    define M_TWO_PI (M_PI * 2.0)
+#endif
+#ifndef M_1_PI
+#    define M_1_PI 0.318309886183790671537767526745028724
+#endif
+#ifndef M_2_PI
+#    define M_2_PI 0.636619772367581343075535053490057448
+#endif
+#ifndef M_SQRT2
+#    define M_SQRT2 1.41421356237309504880168872420969808
+#endif
+#ifndef M_SQRT1_2
+#    define M_SQRT1_2 0.707106781186547524400844362104849039
+#endif
+#ifndef M_LN2
+#    define M_LN2 0.69314718055994530941723212145817656
+#endif
+#ifndef M_LN10
+#    define M_LN10 2.30258509299404568401799145468436421
+#endif
+#ifndef M_E
+#    define M_E 2.71828182845904523536028747135266250
+#endif
+#ifndef M_LOG2E
+#    define M_LOG2E 1.44269504088896340735992468100189214
+#endif
 
 
 
@@ -644,7 +692,7 @@ scaled_conversion(const S& src, F scale, F min, F max)
 template<typename S, typename D>
 void convert_type (const S *src, D *dst, size_t n, D _min, D _max)
 {
-    if (is_same<S,D>::value) {
+    if (std::is_same<S,D>::value) {
         // They must be the same type.  Just memcpy.
         memcpy (dst, src, n*sizeof(D));
         return;
@@ -857,7 +905,7 @@ template<typename S, typename D>
 inline D
 convert_type (const S &src)
 {
-    if (is_same<S,D>::value) {
+    if (std::is_same<S,D>::value) {
         // They must be the same type.  Just return it.
         return (D)src;
     }

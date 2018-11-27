@@ -1092,7 +1092,7 @@ complex_to_polar_impl(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
             float imag  = a[1];
             float phase = std::atan2(imag, real);
             if (phase < 0.0f)
-                phase += float(M_TWO_PI);
+                phase += float(2.0 * M_PI);
             r[0] = hypotf(real, imag);
             r[1] = phase;
         }
