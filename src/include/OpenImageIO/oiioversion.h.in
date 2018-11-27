@@ -116,10 +116,12 @@ namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
 #endif
 
 #define OIIO_BUILD_CPP11 1 /* Always build for C++ >= 11 */
-// OIIO_BUILD_CPP14 will be 1 if this OIIO was built using C++14
+// OIIO_BUILD_CPP14 will be 1 if this OIIO was built using C++14 or higher
 #cmakedefine01 OIIO_BUILD_CPP14
-// OIIO_BUILD_CPP17 will be 1 if this OIIO was built using C++17
+// OIIO_BUILD_CPP17 will be 1 if this OIIO was built using C++17 or higher
 #cmakedefine01 OIIO_BUILD_CPP17
+// OIIO_BUILD_CPP20 will be 1 if this OIIO was built using C++20 or higher
+#cmakedefine01 OIIO_BUILD_CPP20
 
 #endif
 

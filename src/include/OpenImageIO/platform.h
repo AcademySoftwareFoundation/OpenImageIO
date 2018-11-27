@@ -80,9 +80,12 @@
 // OIIO_USING_CPP11 : (deprecated) defined and 1 if using C++11 or newer.
 // OIIO_CONSTEXPR14 : constexpr for C++ >= 14, otherwise nothing (this is
 //                      useful for things that can only be constexpr for 14)
+// OIIO_CONSTEXPR17 : constexpr for C++ >= 17, otherwise nothing (this is
+//                      useful for things that can only be constexpr for 17)
 //
-// Note: oiioversion.h defines OIIO_BUILD_CPP11 or OIIO_BUILD_CPP14 to be 1
-// if OIIO itself was built using C++11 or C++14, respectively. In contrast,
+// Note: oiioversion.h defines OIIO_BUILD_CPP11, OIIO_BUILD_CPP14,
+// OIIO_BUILD_CPP17, or OIIO_BUILD_CPP20 to be 1 if OIIO itself was *built*
+// using C++11, C++14, C++17, or C++20, respectively. In contrast,
 // OIIO_CPLUSPLUS_VERSION defined below will be set to the right number for
 // the C++ standard being compiled RIGHT NOW. These two things may be the
 // same when compiling OIIO, but they may not be the same if another
@@ -116,20 +119,19 @@
 #define OIIO_NOEXCEPT noexcept
 
 
-// Fallback definitions for feature testing. Some newer compilers define
-// these for real, and it may be standard for C++17.
-#ifndef __has_feature
-#    define __has_feature(x) 0
+// In C++20 (and some compilers before that), __has_cpp_attribute can
+// test for understand of [[attr]] tests.
+#ifndef __has_cpp_attribute
+#    define __has_cpp_attribute(x) 0
 #endif
-#ifndef __has_extension
-#    define __has_extension(x) __has_feature(x)
-#endif
+
+// On gcc & clang, __has_attribute can test for __attribute__((attr))
 #ifndef __has_attribute
 #    define __has_attribute(x) 0
 #endif
-#ifndef __has_builtin
-#    define __has_builtin(x) 0
-#endif
+
+// In C++17 (and some compilers before that), __has_include("blah.h") or
+// __has_include(<blah.h>) can test for presence of an include file.
 #ifndef __has_include
 #    define __has_include(x) 0
 #endif
@@ -277,7 +279,7 @@
 
 // OIIO_MAYBE_UNUSED is a function or variable attribute that assures the
 // compiler that it's fine for the item to appear to be unused.
-#if OIIO_CPLUSPLUS_VERSION >= 17
+#if OIIO_CPLUSPLUS_VERSION >= 17 || __has_cpp_attribute(maybe_unused)
 #    define OIIO_MAYBE_UNUSED [[maybe_unused]]
 #elif defined(__GNUC__) || defined(__clang__) || defined(__INTEL_COMPILER) || __has_attribute(unused)
 #    define OIIO_MAYBE_UNUSED __attribute__((unused))
@@ -298,12 +300,10 @@
 #endif
 
 
-#if OIIO_CPLUSPLUS_VERSION >= 14 && __has_attribute(deprecated)
+#if OIIO_CPLUSPLUS_VERSION >= 14 || __has_cpp_attribute(deprecated)
 #    define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
-#elif OIIO_GNUC_VERSION >= 40600 || defined(__clang__)
+#elif defined(__GNUC__) || defined(__clang__) || __has_attribute(deprecated)
 #    define OIIO_DEPRECATED(msg) __attribute__((deprecated(msg)))
-#elif defined(__GNUC__) /* older gcc -- only the one with no message */
-#    define OIIO_DEPRECATED(msg) __attribute__((deprecated))
 #elif defined(_MSC_VER)
 #    define OIIO_DEPRECATED(msg) __declspec(deprecated(msg))
 #else
@@ -312,7 +312,7 @@
 
 
 // OIIO_FALLTHROUGH documents that switch statement fallthrough case.
-#if OIIO_CPLUSPLUS_VERSION >= 17
+#if OIIO_CPLUSPLUS_VERSION >= 17 || __has_cpp_attribute(fallthrough)
 #    define OIIO_FALLTHROUGH [[fallthrough]]
 #else
 #    define OIIO_FALLTHROUGH
@@ -321,7 +321,7 @@
 
 // OIIO_NODISCARD documents functions whose return values should never be
 // ignored.
-#if OIIO_CPLUSPLUS_VERSION >= 17
+#if OIIO_CPLUSPLUS_VERSION >= 17 || __has_cpp_attribute(nodiscard)
 #    define OIIO_NODISCARD [[nodiscard]]
 #else
 #    define OIIO_NODISCARD
@@ -333,7 +333,7 @@
 // false positives that you can't easily get rid of.
 // This should work for any clang >= 3.3 and gcc >= 4.8, which are
 // guaranteed by our minimum requirements.
-#if defined(__clang__) || defined(__GNUC__)
+#if defined(__clang__) || defined(__GNUC__) || __has_attribute(no_sanitize_address)
 #    define OIIO_NO_SANITIZE_ADDRESS __attribute__((no_sanitize_address))
 #else
 #    define OIIO_NO_SANITIZE_ADDRESS
