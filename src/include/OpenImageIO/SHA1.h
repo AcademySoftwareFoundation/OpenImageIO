@@ -123,9 +123,9 @@
 #endif
 
 #ifdef _MSC_VER
-#define _sntprintf _snprintf
+#define _sntprintf std::snprintf
 #else
-#define _sntprintf snprintf
+#define _sntprintf std::snprintf
 #endif
 
 // Fallback, if no 64-bit support
