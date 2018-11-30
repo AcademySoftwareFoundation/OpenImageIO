@@ -133,10 +133,8 @@ declare_deepdata(py::module& m)
              "samplepos"_a, "nsamples"_a = 1)
         .def("erase_samples", &DeepData::erase_samples, "pixel"_a,
              "samplepos"_a, "nsamples"_a = 1)
-        .def("channelname",
-             [](const DeepData& dd, int c) {
-                 return (std::string)dd.channelname(c);
-             })
+        .def("channelname", [](const DeepData& dd,
+                               int c) { return PY_STR(dd.channelname(c)); })
         .def("channeltype", &DeepData::channeltype)
         .def("channelsize",
              [](const DeepData& dd, int c) { return (int)dd.channelsize(c); })

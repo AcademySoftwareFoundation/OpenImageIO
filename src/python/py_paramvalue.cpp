@@ -85,11 +85,11 @@ declare_paramvalue(py::module& m)
     py::class_<ParamValue>(m, "ParamValue")
         .def_property_readonly("name",
                                [](const ParamValue& p) {
-                                   return p.name().string();
+                                   return PY_STR(p.name().string());
                                })
         .def_property_readonly("type",
                                [](const ParamValue& p) {
-                                   return p.type().c_str();
+                                   return PY_STR(p.type().c_str());
                                })
         .def_property_readonly("value",
                                [](const ParamValue& p) {
