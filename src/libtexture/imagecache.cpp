@@ -3188,15 +3188,15 @@ ImageCacheImpl::invalidate (ustring filename)
     for (const TileID &id : tiles_to_delete)
         m_tilecache.erase (id);
 
+    const ustring fingerprint = file->fingerprint();
+
     // Invalidate the file itself (close it and clear its spec)
     file->invalidate ();
 
     // Remove the fingerprint corresponding to this file
     {
-        spin_lock lock (m_fingerprints_mutex);
-        FingerprintMap::iterator f = m_fingerprints.find (filename);
-        if (f != m_fingerprints.end())
-            m_fingerprints.erase (f);
+        spin_lock lock(m_fingerprints_mutex);
+        m_fingerprints.erase(fingerprint);
     }
 
     purge_perthread_microcaches ();
