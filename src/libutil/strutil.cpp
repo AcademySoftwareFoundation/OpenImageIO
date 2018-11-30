@@ -171,12 +171,12 @@ Strutil::vformat (const char *fmt, va_list ap)
         int needed = vsnprintf (buf, size, fmt, ap);
         va_end (ap);
 
-        // NB. C99 (which modern Linux and OS X follow) says vsnprintf
-        // failure returns the length it would have needed.  But older
-        // glibc and current Windows return -1 for failure, i.e., not
-        // telling us how much was needed.
-
-        if (needed < (int)size && needed >= 0) {
+        // NB. C99 says vsnprintf returns -1 on an encoding error. Otherwise
+        // it's the number of characters that would have been written if the
+        // buffer were large enough.
+        if (needed == -1)
+            return std::string("ENCODING ERROR");
+        if (needed < (int)size) {
             // It fit fine so we're done.
             return std::string (buf, (size_t) needed);
         }
