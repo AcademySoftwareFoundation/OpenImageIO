@@ -3211,10 +3211,10 @@ the ``unsharp mask'' technique.
 \subsection{Color manipulation}
 \label{sec:iba:py:color}
 
-\apiitem{ImageBuf ImageBufAlgo.{\ce colorconvert} (src, from, to, unpremult=True, \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce colorconvert} (src, fromspace, tospace, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", \\
   \bigspc\bigspc  colorconfig="", roi=ROI.All, nthreads=0) \\
-bool ImageBufAlgo.{\ce colorconvert} (dst, src, from, to, unpremult=True, \\
+bool ImageBufAlgo.{\ce colorconvert} (dst, src, fromspace, tospace, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", \\
   \bigspc\bigspc  colorconfig="", roi=ROI.All, nthreads=0)
 }
@@ -3230,11 +3230,11 @@ Apply a color transform to the pixel values.
 \apiend
 
 
-\apiitem{ImageBuf ImageBufAlgo.{\ce ociolook} (src, looks, from, to,  \\
+\apiitem{ImageBuf ImageBufAlgo.{\ce ociolook} (src, looks, fromspace, tospace,  \\
   \bigspc\bigspc  inverse=False, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)\\
-bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, from, to,  \\
+bool ImageBufAlgo.{\ce ociolook} (dst, src, looks, fromspace, tospace,  \\
   \bigspc\bigspc  inverse=False, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
@@ -3252,11 +3252,11 @@ Apply an OpenColorIO ``look'' transform to the pixel values.
 
 
 \apiitem{ImageBuf ImageBufAlgo.{\ce ociodisplay} (src, display, view, \\
-  \bigspc\bigspc from=None, looks=None, unpremult=True, \\
+  \bigspc\bigspc fromspace="", looks="", unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0) \\
 bool ImageBufAlgo.{\ce ociodisplay} (dst, src, display, view, \\
-  \bigspc\bigspc from=None, looks=None, unpremult=True, \\
+  \bigspc\bigspc fromspace="", looks="", unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
   \bigspc\bigspc roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!ociodisplay} \indexapi{ociodisplay}

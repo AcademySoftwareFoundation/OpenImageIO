@@ -623,12 +623,12 @@ bool OIIO_API rangeexpand (ImageBuf &dst, const ImageBuf &src,
 /// which may be desirable if you know that the image is "unassociated alpha"
 /// (a.k.a. "not pre-multiplied colors").
 ImageBuf OIIO_API colorconvert (const ImageBuf &src,
-                      string_view from, string_view to, bool unpremult=true,
+                      string_view fromspace, string_view tospace, bool unpremult=true,
                       string_view context_key="", string_view context_value="",
                       ColorConfig *colorconfig=nullptr,
                       ROI roi={}, int nthreads=0);
 bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
-                  string_view from, string_view to, bool unpremult=true,
+                  string_view fromspace, string_view tospace, bool unpremult=true,
                   string_view context_key="", string_view context_value="",
                   ColorConfig *colorconfig=nullptr,
                   ROI roi={}, int nthreads=0);
@@ -674,13 +674,13 @@ inline bool colorconvert (float *color, int nchannels,
 /// flag if your image contains an alpha channel. If inverse is true, it
 /// will reverse the color transformation.
 ImageBuf OIIO_API ociolook (const ImageBuf &src, string_view looks,
-                            string_view from, string_view to,
+                            string_view fromspace, string_view tospace,
                             bool unpremult=true, bool inverse=false,
                             string_view key="", string_view value="",
                             ColorConfig *colorconfig=nullptr,
                             ROI roi={}, int nthreads=0);
 bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src, string_view looks,
-                        string_view from, string_view to,
+                        string_view fromspace, string_view tospace,
                         bool unpremult=true, bool inverse=false,
                         string_view key="", string_view value="",
                         ColorConfig *colorconfig=nullptr,
@@ -699,14 +699,14 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src, string_view looks,
 /// (a.k.a. "not pre-multiplied colors").
 ImageBuf OIIO_API ociodisplay (const ImageBuf &src,
                                string_view display, string_view view,
-                               string_view from="", string_view looks="",
+                               string_view fromspace="", string_view looks="",
                                bool unpremult=true,
                                string_view key="", string_view value="",
                                ColorConfig *colorconfig=nullptr,
                                ROI roi={}, int nthreads=0);
 bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
                            string_view display, string_view view,
-                           string_view from="", string_view looks="",
+                           string_view fromspace="", string_view looks="",
                            bool unpremult=true,
                            string_view key="", string_view value="",
                            ColorConfig *colorconfig=nullptr,
@@ -742,7 +742,8 @@ bool OIIO_API ociofiletransform (ImageBuf &dst, const ImageBuf &src,
 /// is just a copy if there is no identified alpha channel (and a no-op if
 /// dst and src are the same image).
 ImageBuf OIIO_API unpremult (const ImageBuf &src, ROI roi={}, int nthreads=0);
-bool OIIO_API unpremult (ImageBuf &dst, const ImageBuf &src, ROI roi={}, int nthreads=0);
+bool OIIO_API unpremult (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi={}, int nthreads=0);
 
 /// Return (or copy into dst) pixels from src, and in the process multiply
 /// all color channels (those not alpha or z) by the alpha value, to
@@ -754,7 +755,8 @@ bool OIIO_API unpremult (ImageBuf &dst, const ImageBuf &src, ROI roi={}, int nth
 /// just a copy if there is no identified alpha channel (and a no-op if dst
 /// and src are the same image).
 ImageBuf OIIO_API premult (const ImageBuf &src, ROI roi={}, int nthreads=0);
-bool OIIO_API premult (ImageBuf &dst, const ImageBuf &src, ROI roi={}, int nthreads=0);
+bool OIIO_API premult (ImageBuf &dst, const ImageBuf &src,
+                       ROI roi={}, int nthreads=0);
 
 
 /// Return (or copy into dst) pixel values determined by looking up a color

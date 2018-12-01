@@ -2200,12 +2200,12 @@ higher-contrast edges.
 \label{sec:iba:color}
 
 \apiitem{ImageBuf {\ce colorconvert} (const ImageBuf \&src, \\
-  \bigspc\spc string_view from, string_view to, bool unpremult=true, \\
+  \bigspc\spc string_view fromspace, string_view tospace, bool unpremult=true, \\
   \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=nullptr, \\
   \bigspc\spc ROI roi=\{\}, int nthreads=0) \\
 bool {\ce colorconvert} (ImageBuf \&dst, const ImageBuf \&src, \\
-  \bigspc\spc string_view from, string_view to, bool unpremult=true, \\
+  \bigspc\spc string_view fromspace, string_view tospace, bool unpremult=true, \\
   \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=nullptr, \\
   \bigspc\spc ROI roi=\{\}, int nthreads=0) \\[1.0ex]
@@ -2263,13 +2263,13 @@ to \qkw{linear} and vice versa.
 \apiend
 
 \apiitem{ImageBuf {\ce ociolook} (const ImageBuf \&src, \\
-  \bigspc\spc string_view looks, string_view from, string_view to, \\
+  \bigspc\spc string_view looks, string_view fromspace, string_view tospace, \\
   \bigspc\spc bool inverse=false, bool unpremult=true, \\
   \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
   \bigspc\spc ROI roi=\{\}, int nthreads=0) \\[1.0ex]
 bool {\ce ociolook} (ImageBuf \&dst, const ImageBuf \&src, \\
-  \bigspc\spc string_view looks, string_view from, string_view to, \\
+  \bigspc\spc string_view looks, string_view fromspace, string_view tospace, \\
   \bigspc\spc bool inverse=false, bool unpremult=true, \\
   \bigspc\spc string_view context_key="", string_view context_value="", \\
   \bigspc\spc ColorConfig *colorconfig=NULL, \\
@@ -2302,12 +2302,12 @@ environment variable will be used instead.
 
 
 \apiitem{ImageBuf {\ce ociodisplay} (const ImageBuf \&src, string_view display,\\
-  \bigspc\spc string_view view, string_view from="", string_view looks="",\\
+  \bigspc\spc string_view view, string_view fromspace="", string_view looks="",\\
   \bigspc\spc bool unpremult=true, string_view key="", string_view value="", \\
   \bigspc\spc ColorConfig *colorconfig=nullptr, \\
   \bigspc\spc ROI roi=\{\}, int nthreads=0) \\[1.0ex]
 bool {\ce ociodisplay} (ImageBuf \&dst, const ImageBuf \&src, string_view display,\\
-  \bigspc\spc string_view view, string_view from="", string_view looks="",\\
+  \bigspc\spc string_view view, string_view fromspace="", string_view looks="",\\
   \bigspc\spc bool unpremult=true, string_view key="", string_view value="", \\
   \bigspc\spc ColorConfig *colorconfig=nullptr, \\
   \bigspc\spc ROI roi=\{\}, int nthreads=0)}

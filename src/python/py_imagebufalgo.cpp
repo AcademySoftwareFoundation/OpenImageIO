@@ -2489,58 +2489,60 @@ declare_imagebufalgo(py::module& m)
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("colorconvert", &IBA_colorconvert, "dst"_a, "src"_a,
-                    "from"_a, "to"_a, "unpremult"_a = true,
+                    "fromspace"_a, "tospace"_a, "unpremult"_a = true,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("colorconvert", &IBA_colorconvert_colorconfig, "dst"_a,
-                    "src"_a, "from"_a, "to"_a, "unpremult"_a = true,
+                    "src"_a, "fromspace"_a, "tospace"_a, "unpremult"_a = true,
                     "context_key"_a = "", "context_value"_a = "",
                     "colorconfig"_a = "", "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
-        .def_static("colorconvert", &IBA_colorconvert_ret, "src"_a, "from"_a,
-                    "to"_a, "unpremult"_a = true, "roi"_a = ROI::All(),
-                    "nthreads"_a = 0)
+        .def_static("colorconvert", &IBA_colorconvert_ret, "src"_a,
+                    "fromspace"_a, "tospace"_a, "unpremult"_a = true,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("colorconvert", &IBA_colorconvert_colorconfig_ret, "src"_a,
-                    "from"_a, "to"_a, "unpremult"_a = true,
+                    "fromspace"_a, "tospace"_a, "unpremult"_a = true,
                     "context_key"_a = "", "context_value"_a = "",
                     "colorconfig"_a = "", "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
 
         .def_static("ociolook", &IBA_ociolook, "dst"_a, "src"_a, "looks"_a,
-                    "from"_a, "to"_a, "unpremult"_a = true, "invert"_a = false,
-                    "context_key"_a = "", "context_value"_a = "",
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "fromspace"_a, "tospace"_a, "unpremult"_a = true,
+                    "invert"_a = false, "context_key"_a = "",
+                    "context_value"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
         .def_static("ociolook", &IBA_ociolook_colorconfig, "dst"_a, "src"_a,
-                    "looks"_a, "from"_a, "to"_a, "unpremult"_a = true,
+                    "looks"_a, "fromspace"_a, "tospace"_a, "unpremult"_a = true,
                     "invert"_a = false, "context_key"_a = "",
                     "context_value"_a = "", "colorconfig"_a = "",
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
-        .def_static("ociolook", &IBA_ociolook_ret, "src"_a, "looks"_a, "from"_a,
-                    "to"_a, "unpremult"_a = true, "invert"_a = false,
-                    "context_key"_a = "", "context_value"_a = "",
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("ociolook", &IBA_ociolook_ret, "src"_a, "looks"_a,
+                    "fromspace"_a, "tospace"_a, "unpremult"_a = true,
+                    "invert"_a = false, "context_key"_a = "",
+                    "context_value"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
         .def_static("ociolook", &IBA_ociolook_colorconfig_ret, "src"_a,
-                    "looks"_a, "from"_a, "to"_a, "unpremult"_a = true,
+                    "looks"_a, "fromspace"_a, "tospace"_a, "unpremult"_a = true,
                     "invert"_a = false, "context_key"_a = "",
                     "context_value"_a = "", "colorconfig"_a = "",
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("ociodisplay", &IBA_ociodisplay, "dst"_a, "src"_a,
-                    "display"_a, "view"_a, "from"_a = "", "looks"_a = "",
+                    "display"_a, "view"_a, "fromspace"_a = "", "looks"_a = "",
                     "unpremult"_a = true, "context_key"_a = "",
                     "context_value"_a = "", "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
         .def_static("ociodisplay", &IBA_ociodisplay_colorconfig, "dst"_a,
-                    "src"_a, "display"_a, "view"_a, "from"_a = "",
+                    "src"_a, "display"_a, "view"_a, "fromspace"_a = "",
                     "looks"_a = "", "unpremult"_a = true, "context_key"_a = "",
                     "context_value"_a = "", "colorconfig"_a = "",
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("ociodisplay", &IBA_ociodisplay_ret, "src"_a, "display"_a,
-                    "view"_a, "from"_a = "", "looks"_a = "",
+                    "view"_a, "fromspace"_a = "", "looks"_a = "",
                     "unpremult"_a = true, "context_key"_a = "",
                     "context_value"_a = "", "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
         .def_static("ociodisplay", &IBA_ociodisplay_colorconfig_ret, "src"_a,
-                    "display"_a, "view"_a, "from"_a = "", "looks"_a = "",
+                    "display"_a, "view"_a, "fromspace"_a = "", "looks"_a = "",
                     "unpremult"_a = true, "context_key"_a = "",
                     "context_value"_a = "", "colorconfig"_a = "",
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
