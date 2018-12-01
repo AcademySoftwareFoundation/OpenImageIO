@@ -1,8 +1,19 @@
-These are all the release notes for versions 1.0 (Feb 2012) - 1.8 (Nov 2018).
+These are all the release notes for versions 1.0 (Feb 2012) - 1.8 (Dec 2018).
 For 0.x releases, see [CHANGES-0.x.md](CHANGES-0.x.md).
 For the full release notes of all versions, see:
 [CHANGES](https://github.com/OpenImageIO/oiio/blob/master/CHANGES.md).
 
+
+Release 1.8.17 (1 Dec 2018) -- compared to 1.8.16
+-------------------------------------------------
+* Fix `oiiotool --info` in Windows -- printed path wrong. #2052
+* When finding OpenEXR, use the version detected by pkg-config, if
+  available. #2057
+* zfile: more careful gzopen on Windows that could crash when given bogus
+  filename. (Particularly on Windows.) #2070
+* `ImageCache::invalidate(filename)` did not properly invalidate the
+  "fingerprint" is used to detect duplicate files. #2081
+* Fix Strutil::vsnprintf detection of encoding errors on Windows. #2082
 
 Release 1.8.16 (1 Nov 2018) -- compared to 1.8.15
 -------------------------------------------------

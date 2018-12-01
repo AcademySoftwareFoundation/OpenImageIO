@@ -61,6 +61,9 @@ Public API changes:
       or `TypeDesc.BASETYPE` now will accept a string that signifies the
       type. For example, `ImageBuf.set_write_format("float")` is now a
       synonym for `ImageBuf.set_write_format(oiio.TypeDesc(oiio.FLOAT))`.
+    * For several color conversion functions, parameter names were changed
+      from "from" to "fromspace" and "to" to "tospace" to avoid a clash with
+      the Python reserved word `from`. #2084
 * **ImageInput API changes for thread safety and statelessness** #1927 (1.9.2)
     * `seek_subimage()` no longer takes an `ImageSpec&`, to avoid the obligatory
        copy. (If the copy is desired, just call `spec()` to get it afterwards.)
@@ -300,6 +303,10 @@ Fixes and feature enhancements:
       whether the image is constant or monochrome within a non-zero
       tolerance (the default is still 0.0, meaning checking for an exact
       match). #2049 (2.0.0)
+    * `IBA::ociodisplay()` has better behavior when its "fromspace" parameter
+      is left blank -- instead of assuming "linear" (as a space name), it
+      assumes it's whatever space in your OCIO color config has the "linear"
+      role. #2083 (1.8.17/2.0.1)
 * ImageBuf:
     * Bug fixed in IB::copy() of rare types. #1829 (1.9.2)
     * write() automatically tells the ImageCache to 'invalidate' the file
@@ -337,6 +344,8 @@ Fixes and feature enhancements:
     * Fix minor texture filtering bug where widely disparate "sblur" and
       "tblur" values could in some circumstances lead to incorrect texture
       filter estimation. #2052 (2.0.0)
+    * `ImageCache::invalidate(filename)` did not properly invalidate the
+      "fingerprint" is used to detect duplicate files. #2081 (1.8.17/2.0.1)
 * iv:
     * Fix (especially on OSX) for various ways it has been broken since the
       shift to Qt5. #1946 (1.8.12, 1.9.4)
@@ -578,6 +587,8 @@ Developer goodies / internals:
       a std::vector (instead of being passed as a param). #2033 (1.9.4)
     * `parse_string` now accepts single quotes as well as double quotes
       to enclose a quoted string. #2066 (2.0beta2)
+    * Fix Strutil::vsnprintf detection of encoding errors on Windows. #2082
+      (1.8.17/2.0.1)
 * thread.h:
     * Reimplementaiton of `spin_rw_mutex` has much better performance when
       many threads are accessing at once, especially if most of them are
