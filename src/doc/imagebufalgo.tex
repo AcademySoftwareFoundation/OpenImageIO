@@ -2223,7 +2223,7 @@ If {\cf unpremult} is {\cf true} and the image has an alpha channel,
 unpremultiply (divide color channels by alpha) before color conversion, then
 premultiply again after the color conversion.
 
-The first form of this function specifies the ``from'' and ``to'' color
+The first form of this function specifies the ``fromspace'' and ``tospace'' color
 spaces by name. An optional {\cf ColorConfig} is specified, but {\cf nullptr}
 is passed, the default OCIO color configuration found by examining the {\cf
 \$OCIO} environment variable will be used instead.
@@ -2314,11 +2314,13 @@ bool {\ce ociodisplay} (ImageBuf \&dst, const ImageBuf \&src, string_view displa
 \index{ImageBufAlgo!ociodisplay} \indexapi{ociodisplay}
 Return (or copy into {\cf dst}) the pixels of {\cf src} within the ROI,
 applying an OpenColorIO ``display'' transform to the pixel values.
-If {\cf from} or {\cf looks} are empty, it will not
-override the look or source color space (subtly different than
-passing \qkw{}, the empty string, which means to use no look or source
-space).  The {\cf key} and {\cf value} may optionally be used
-to establish a context (for example, a shot-specific transform).
+
+If {\cf fromspace} is not supplied, it will assume that the source color
+space is whatever is indicated by the source image's metadata or filename,
+and if that cannot be deduced, it will be assumed to be scene linear. If
+{\cf looks} is empty, use no look. The {\cf key} and {\cf value} may
+optionally be used to establish a context (for example, a shot-specific
+transform).
 
 If {\cf inverse} is {\cf true}, it will reverse the color transformation
 and look application.
