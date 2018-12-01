@@ -328,7 +328,8 @@ declare_imagebuf(py::module& m)
         .def_property_readonly("pixels_valid", &ImageBuf::pixels_valid)
         .def_property_readonly("pixeltype", &ImageBuf::pixeltype)
         .def_property_readonly("has_error", &ImageBuf::has_error)
-        .def("geterror", &ImageBuf::geterror)
+        .def("geterror",
+             [](const ImageBuf& self) { return PY_STR(self.geterror()); })
 
         .def("pixelindex", &ImageBuf::pixelindex, "x"_a, "y"_a, "z"_a,
              "check_range"_a = false)

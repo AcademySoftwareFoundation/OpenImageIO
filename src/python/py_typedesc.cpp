@@ -131,7 +131,7 @@ declare_typedesc(py::module& m)
         //   .def(init<TypeDesc::BASETYPE, int>())
         //   .def(init<TypeDesc::BASETYPE, TypeDesc::AGGREGATE, int>())
         // FIXME -- I bet this works with Pybind11
-        .def("c_str", &TypeDesc::c_str)
+        .def("c_str", [](const TypeDesc& self) { return PY_STR(self.c_str()); })
         .def("numelements", &TypeDesc::numelements)
         .def("basevalues", &TypeDesc::basevalues)
         .def("size", &TypeDesc::size)
