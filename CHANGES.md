@@ -1,4 +1,4 @@
-Release 2.0 (Dec 1, 2018) -- compared to 1.8.x
+Release 2.0 (Dec 7, 2018) -- compared to 1.8.x
 ----------------------------------------------
 
 New minimum dependencies:
