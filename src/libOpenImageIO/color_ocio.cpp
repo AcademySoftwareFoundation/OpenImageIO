@@ -1444,13 +1444,6 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
                           ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::ociodisplay");
-    if (from.empty() || from == "current") {
-        from = src.spec().get_string_attribute("oiio:Colorspace", "Linear");
-    }
-    if (from.empty()) {
-        dst.error("Unknown color space name");
-        return false;
-    }
     ColorProcessorHandle processor;
     {
         spin_lock lock(colorconfig_mutex);
@@ -1458,6 +1451,15 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
             colorconfig = default_colorconfig.get();
         if (!colorconfig)
             default_colorconfig.reset(colorconfig = new ColorConfig);
+        if (from.empty() || from == "current") {
+            auto linearspace = colorconfig->getColorSpaceNameByRole("linear");
+            from = src.spec().get_string_attribute("oiio:Colorspace",
+                                                   linearspace);
+        }
+        if (from.empty()) {
+            dst.error("Unknown color space name");
+            return false;
+        }
         processor = colorconfig->createDisplayTransform(display, view, from,
                                                         looks, key, value);
         if (!processor) {
