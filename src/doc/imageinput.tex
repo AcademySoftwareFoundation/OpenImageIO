@@ -681,7 +681,6 @@ a file and print all its values:
 \subsection{Custom I/O proxies (and reading the file from a memory buffer)}
 \label{sec:imageinput:ioproxy}
 \index{reading an image file from memory buffer}
-\NEW   % 1.9
 
 Some file format readers allow you to supply a custom I/O proxy object that
 can allow bypassing the usual file I/O with custom behavior, including the
@@ -926,7 +925,6 @@ invalid before {\kw open()} or after {\kw close()}.
 
 \apiitem {ImageSpec {\ce spec} (int subimage, int miplevel=0) \\
 ImageSpec {\ce spec_dimensions} (int subimage, int miplevel=0)}
-\NEW % 1.9
 Both of these thread-safe methods return a copy of the \ImageSpec of the
 designated subimage/miplevel.
 
@@ -1016,7 +1014,6 @@ to the {\cf read_tiles()} or {\cf read_scanlines()} varieties that takes
 explicit subimage and miplevel (but not necessarily against any other
 \ImageInput methods).
 
-\NEW % 1.9
 This call was changed for \OpenImageIO 1.9 to include the explicit subimage
 and miplevel parameters. The previous versions, which lacked subimage and
 miplevel parameters (thus were dependent on a prior call to
@@ -1101,7 +1098,6 @@ to the {\cf read_tiles()} or {\cf read_scanlines()} varieties that takes
 explicit subimage and miplevel (but not necessarily against any other
 \ImageInput methods).
 
-\NEW % 1.9
 This call was changed for \OpenImageIO 1.9 to include the explicit subimage
 and miplevel parameters. The previous versions, which lacked subimage and
 miplevel parameters (thus were dependent on a prior call to
@@ -1152,7 +1148,6 @@ Periodically, it will be called as follows:\\
 \noindent where \emph{done} gives the portion of the image 
 (between 0.0 and 1.0) that has been read thus far.
 
-\NEW % 1.9
 The version of {\cf read_image} that takes explicit subimage and
 miplevel parameters is guaranteed to be thread-safe against other concurrent
 calls to the {\cf read_scanlines()}, {\cf read_tiles()}, or

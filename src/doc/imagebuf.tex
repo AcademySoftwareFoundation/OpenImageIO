@@ -351,7 +351,6 @@ The data type of the pixels stored in the buffer (equivalent to
 \apiend
 
 \apiitem{void {\ce set_origin} (int x, int y, int z=0)}
-\NEW % 1.9
 Alters the metadata of the spec in the \ImageBuf to reset the ``origin''
 of the pixel data window to be the specified coordinates.  This does not
 affect the size of the pixel data window, only its position.
@@ -394,12 +393,10 @@ has already spawned multiple worker threads.
 
 \apiitem{const ImageBuf\& operator= (const ImageBuf \&src) \\
 const ImageBuf\& operator= (ImageBuf \&\&src)}
-\NEW % 1.9
 Copy and move assignment.
 \apiend
 
 \apiitem{ImageBuf {\ce copy} (TypeDesc format=TypeUnknown) const}
-\NEW % 1.9
 Returns a full copy of {\cf this} (pixels and metadata), with optional data
 format conversion.
 \apiend

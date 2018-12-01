@@ -909,7 +909,6 @@ bool {\ce fit} (ImageBuf \&dst, const ImageBuf \&src, string_view filtername="",
 bool {\ce fit} (ImageBuf \&dst, const ImageBuf \&src, Filter2D *filter, \\
         \bigspc  bool exact=false, ROI roi=\{\}, int nthreads=0)}
 \index{ImageBufAlgo!fit} \indexapi{fit}
-\NEW % 1.9
 
 Fit {\cf src} into {\cf dst} (to a size specified by {\cf roi}, if {\cf dst}
 is not initialized), resizing but preserving its original aspect ratio.
@@ -1208,7 +1207,6 @@ bool {\ce contrast_remap} (ImageBuf \&dst, const ImageBuf \&src,\\
         \bigspc\spc cspan<float> scontrast=1.0f, cspan<float> sthresh=0.5f, \\
         \bigspc\spc ROI roi=\{\}, int nthreads=0)}
 \index{ImageBufAlgo!contrast_remap} \indexapi{contrast_remap}
-\NEW % 1.9
 
 Return (or copy into {\cf dst}) pixel values that are a contrast-remap
 of the corresponding values of the {\cf src} image, transforming pixel

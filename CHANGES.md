@@ -1,3 +1,24 @@
+Release 2.1 (?? 2019) -- compared to 2.0
+----------------------------------------------
+New minimum dependencies:
+
+Major new features and improvements:
+
+Public API changes:
+
+Performance improvements:
+
+Fixes and feature enhancements:
+
+Build/test system improvements and platform ports:
+
+Developer goodies / internals:
+
+Notable documentation changes:
+
+
+
+
 Release 2.0 (Dec 1, 2018) -- compared to 1.8.x
 ----------------------------------------------
 
@@ -501,7 +522,6 @@ Build/test system improvements and platform ports:
   on Windows to properly support UTF-8 filenames. #1454 (2.0.1)
 
 Developer goodies / internals:
-
 * **Formatting with clang-format**: All submissions are expected to be
   formatted using our standard clang-format rules. Please run
   `make clang-format` prior to submitting code. The TravisCI tests include

@@ -250,12 +250,10 @@ The total number of pixels in the region described by the \ROI.
 \apiend
 
 \apiitem{int ROI.{\ce contains} (x, y, z=0, ch=0)}
-\NEW % 1.9
 Returns {\cf True} if the ROI contains the coordinate.
 \apiend
 
 \apiitem{int ROI.{\ce contains} (other)}
-\NEW % 1.9
 Returns {\cf True} if the ROI {\cf other} is entirel contained within
 this ROI.
 \apiend
@@ -420,12 +418,10 @@ The value of the indexed attribute.
 \apiend
 
 \apiitem{Imagespec.{\ce roi}}
-\NEW % 1.9
 The ROI describing the pixel data window.
 \apiend
 
 \apiitem{ImageSpec.{\ce roi_full}}
-\NEW % 1.9
 The ROI describing the ``display window'' (or ``full size'').
 \apiend
 
@@ -544,58 +540,48 @@ value) if not found.
 %\apiend
 
 \apiitem{ImageSpec.{\ce serialize} (format="text", verbose="Detailed")}
-\NEW % 1.9
 Return a string containing the serialization of the \ImageSpec. The {\cf format}
 may be either \qkw{text} or \qkw{XML}. The {\cf verbose} may be one of
 \qkw{brief}, \qkw{detailed}, or \qkw{detailedhuman}.
 \apiend
 
 \apiitem{ImageSpec.{\ce to_xml} ()}
-\NEW % 1.9
 Equivalent to {\cf serialize ("xml", "detailedhuman")}.
 \apiend
 
 \apiitem{ImageSpec.{\ce from_xml} (xml)}
-\NEW % 1.9
 Initializes the \ImageSpec from the information in the string {\cf xml}
 containing an XML-serialized \ImageSpec.
 \apiend
 
 \apiitem{ImageSpec.{\ce channel_name} (chan)}
-\NEW % 1.9
 Returns a string containing the name of the channel with index {\cf chan}.
 \apiend
 
 \apiitem{ImageSpec.{\ce channelindex} (name)}
-\NEW % 1.9
 Return the integer index of the channel with the given {\cf name}, or
 -1 if the name is not a name of one of the channels.
 \apiend
 
 \apiitem{ImageSpec.{\ce channelformat} (chan)}
-\NEW % 1.9
 Returns a \TypeDesc of the channel with index {\cf chan}.
 \apiend
 
 \apiitem{ImageSpec.{\ce get_channelformats} ()}
-\NEW % 1.9
 Returns a tuple containing all the channel formats.
 \apiend
 
 \apiitem{ImageSpec.{\ce valid_tile_range} (xbegin, xend, ybegin, yend, zbegin, zend)}
-\NEW % 1.9
 Returns {\cf True} if the given tile range exactly covers a set of tiles, or
 {\cf False} if it isn't (or if the image is not tiled).
 \apiend
 
 \apiitem{ImageSpec.{\ce copy_dimensions} (other)}
-\NEW % 1.9
 Copies from \ImageSpec {\cf other} only the fields describing the size
 and data types, but not the arbitrary named metadata or channel names.
 \apiend
 
 \apiitem{ImageSpec.{\ce undefined}()}
-\NEW % 1.9
 Returns {\cf True} for a newly initialized (undefined) \ImageSpec.
 \apiend
 
@@ -872,7 +858,6 @@ MIP level of the file.
 
 \apiitem{ImageSpec ImageInput.{\ce spec} (subimage, miplevel=0) \\
 ImageSpec ImageInput.{\ce spec_dimensions} (subimage, miplevel=0)}
-\NEW % 1.9
 Returns a copy of the \ImageSpec corresponding to the designated subimage
 and MIP level. Note that {\cf spec()} copies the entire \ImageSpec including
 all metadata, whereas {\cf spec_dimensions()} only copies the dimension
@@ -1025,7 +1010,6 @@ array indexed as {\cf [z][y][x][channel]},
 DeepData ImageInput.{\ce read_native_deep_tiles} (subimage, miplevel, \\
 \bigspc\bigspc xbegin, xend, ybegin, yend, zbegin, zend, chbegin, chend) \\
 DeepData ImageInput.{\ce read_native_deep_image} (subimage=0, miplevel=0)}
-\NEW % 1.9
 Read a collection of scanlines, tiles, or an entire image of ``deep'' pixel
 data from the specified subimage and MIP level. The begin/end coordinates
 are all integer values. The value returned will be a \DeepData if the read
@@ -1578,7 +1562,6 @@ These fields return an \ROI description of the pixel data window
 \apiend
 
 \apiitem{ImageBuf.{\ce set_origin} (x, y, z=0)}
-\NEW % 1.9
 Changes the ``origin'' of the data pixel data window to the specified
 coordinates.
 
@@ -2381,7 +2364,6 @@ interpolate}).
 bool ImageBufAlgo.{\ce fit} (dst, src, filtername="", filtersize=0.0, \\
         \bigspc\bigspc  exact=false, roi=ROI.All, nthreads=0)}
 \index{ImageBufAlgo!fit} \indexapi{fit}
-\NEW % 1.9
 Fit {\cf src} into the {\cf roi} while preserving the
 original aspect ratio, without stretching.  If the filter and size are not
 specified, an appropriate default will be chosen.
@@ -2588,7 +2570,6 @@ bool ImageBufAlgo.{\ce contrast_remap} (ImageBuf \&dst, src,\\
         \bigspc\spc sthresh=0.0, scontrast=1.0, \\
         \bigspc\spc ROI roi=\{\}, int nthreads=0)}
 \index{ImageBufAlgo!contrast_remap} \indexapi{contrast_remap}
-\NEW % 1.9
 
 Return (or copy into {\cf dst}) pixel values that are a contrast-remap
 of the corresponding values of the {\cf src} image, transforming pixel

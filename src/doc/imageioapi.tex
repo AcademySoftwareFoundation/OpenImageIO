@@ -460,12 +460,10 @@ in the channel range.
 \apiend
 
 \apiitem{bool ROI::{\ce contains} (int x, int y, int z=0, int ch=0) const}
-\NEW % 1.9
 Returns {\cf true} if the ROI contains the coordinate.
 \apiend
 
 \apiitem{bool ROI::{\ce contains} (const ROI \&other) const}
-\NEW % 1.9
 Returns {\cf true} if the ROI {\cf other} is entirel contained within
 this ROI.
 \apiend
@@ -750,7 +748,6 @@ channel is present in {\cf channelnames}.
 
 \apiitem{ROI {\ce roi} () const \\
 ROI {\ce roi_full} () const}
-\NEW % 1.9
 The {\cf roi()} method returns an \ROI describing the pixel data window and
 channel range, and {\cf roi_full()} returns an \ROI describing the ``full
 size'' (a.k.a.\ ``display window'').
@@ -758,14 +755,12 @@ size'' (a.k.a.\ ``display window'').
 
 \apiitem{void {\ce set_roi} (ROI roi) \\
 void {\ce set_roi_full} (ROI roi)}
-\NEW % 1.9
 Sets the dimensions and offset of the pixel data window and full/display
 window, respectively. Note that the channel range of the \ROI is ignored,
 i.e., these methods do not modify the {\cf nchannels} field of the \ImageSpec.
 \apiend
 
 \apiitem{void {\ce copy_dimensions} (const ImageSpec \&other)}
-\NEW % 1.9
 Copies from {\cf other} only the fields describing the dimensions and
 data types, and \emph{not} arbitrary named metadata or channel names (thus,
 for an \ImageSpec with lots of metadata, it is much less expensive than
@@ -773,7 +768,6 @@ copying the whole thing with {\cf operator=()}).
 \apiend
 
 \apiitem{bool {\ce undefined} () const}
-\NEW % 1.9
 Returns {\cf true} for a newly initialized (undefined) \ImageSpec.
 \apiend
 
@@ -1178,7 +1172,6 @@ to print even more debugging information.
 string timing_report}
 \vspace{10pt}
 \index{log_times} \index{timing_report}
-\NEW % 1.9
 
 When the \qkw{log_times} attribute is nonzero, {\cf ImageBufAlgo} functions
 are instrumented to record the number of times they were called and the
@@ -1224,7 +1217,6 @@ to support.
 \apiitem{float resident_memory_used_MB}
 \vspace{10pt}
 \index{resident_memory_used_MB}
-\NEW % 1.9
 This read-only attribute can be used for debugging purposes to report
 the approximate process memory used (resident) by the application, in MB.
 \apiend
