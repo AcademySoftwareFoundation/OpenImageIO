@@ -1,5 +1,13 @@
 Release 1.8.17 (1 Dec 2018) -- compared to 1.8.16
 -------------------------------------------------
+* Fix `oiiotool --info` in Windows -- printed path wrong. #2052
+* When finding OpenEXR, use the version detected by pkg-config, if
+  available. #2057
+* zfile: more careful gzopen on Windows that could crash when given bogus
+  filename. (Particularly on Windows.) #2070
+* `ImageCache::invalidate(filename)` did not properly invalidate the
+  "fingerprint" is used to detect duplicate files. #2081
+* Fix Strutil::vsnprintf detection of encoding errors on Windows. #2082
 
 Release 1.8.16 (1 Nov 2018) -- compared to 1.8.15
 -------------------------------------------------
