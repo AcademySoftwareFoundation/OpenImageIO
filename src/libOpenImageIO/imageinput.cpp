@@ -321,7 +321,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                                             &buf[0], spec.format, AutoStride,
                                             AutoStride, AutoStride, data,
                                             format, xstride, ystride, zstride,
-                                            -1 /*alpha*/, -1 /*z*/, threads());
+                                            threads());
             }
         } else {
             // Per-channel formats -- have to convert/copy channels individually
@@ -341,7 +341,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                                             AutoStride, AutoStride,
                                             (char*)data + c * format.size(),
                                             format, xstride, ystride, zstride,
-                                            -1 /*alpha*/, -1 /*z*/, threads());
+                                            threads());
                 offset += n * chanformat.size();
             }
         }

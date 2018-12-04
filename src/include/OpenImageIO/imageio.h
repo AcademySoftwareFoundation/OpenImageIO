@@ -1741,8 +1741,20 @@ OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
                              stride_t src_zstride,
                              void *dst, TypeDesc dst_type,
                              stride_t dst_xstride, stride_t dst_ystride,
-                             stride_t dst_zstride,
-                             int alpha_channel = -1, int z_channel = -1);
+                             stride_t dst_zstride);
+/// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
+inline bool convert_image(int nchannels, int width, int height, int depth,
+            const void *src, TypeDesc src_type,
+            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
+            void *dst, TypeDesc dst_type,
+            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
+            int alpha_channel, int z_channel = -1)
+{
+    return convert_image(nchannels, width, height, depth, src, src_type,
+                         src_xstride, src_ystride, src_zstride, dst, dst_type,
+                         dst_xstride, dst_ystride, dst_zstride);
+}
+
 
 /// A version of convert_image that will break up big jobs into multiple
 /// threads.
@@ -1753,8 +1765,20 @@ OIIO_API bool parallel_convert_image (
                stride_t src_zstride,
                void *dst, TypeDesc dst_type,
                stride_t dst_xstride, stride_t dst_ystride,
-               stride_t dst_zstride,
-               int alpha_channel=-1, int z_channel=-1, int nthreads=0);
+               stride_t dst_zstride, int nthreads=0);
+/// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
+inline bool parallel_convert_image(
+            int nchannels, int width, int height, int depth,
+            const void *src, TypeDesc src_type,
+            stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
+            void *dst, TypeDesc dst_type,
+            stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
+            int alpha_channel, int z_channel, int nthreads=0)
+{
+    return parallel_convert_image (nchannels, width, height, depth,
+           src, src_type, src_xstride, src_ystride, src_zstride,
+           dst, dst_type, dst_xstride, dst_ystride, dst_zstride, nthreads);
+}
 
 /// Add random [-theramplitude,ditheramplitude] dither to the color channels
 /// of the image.  Dither will not be added to the alpha or z channel.  The

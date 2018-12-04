@@ -198,7 +198,7 @@ ImageBufAlgo::copy(ImageBuf& dst, const ImageBuf& src, TypeDesc convert,
             src.z_stride(),
             dst.pixeladdr(roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
             dst.spec().format, dst.pixel_stride(), dst.scanline_stride(),
-            dst.z_stride(), -1, -1, nthreads);
+            dst.z_stride(), nthreads);
     }
 
     bool ok;
@@ -252,7 +252,7 @@ ImageBufAlgo::crop(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
             src.z_stride(),
             dst.pixeladdr(roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
             dst.spec().format, dst.pixel_stride(), dst.scanline_stride(),
-            dst.z_stride(), -1, -1, nthreads);
+            dst.z_stride(), nthreads);
     }
 
     bool ok;

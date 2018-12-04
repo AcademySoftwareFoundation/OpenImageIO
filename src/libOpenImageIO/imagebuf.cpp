@@ -1891,7 +1891,7 @@ ImageBuf::get_pixels(ROI roi, TypeDesc format, void* result, stride_t xstride,
             pixeladdr(roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
             spec().format, pixel_stride(), scanline_stride(), z_stride(),
             result, format, roi.nchannels() * format.size(), AutoStride,
-            AutoStride, -1, -1, threads());
+            AutoStride, threads());
     }
 
     // General case -- can handle IC-backed images.
