@@ -3153,7 +3153,7 @@ action_capture(int argc, const char* argv[])
     int camera = Strutil::from_string<int>(options["camera"]);
 
     ImageBuf ib;
-    bool ok = ImageBufAlgo::capture_image(ib, camera, TypeDesc::FLOAT);
+    bool ok = ImageBufAlgo::capture_image(ib, camera /*, TypeDesc::FLOAT*/);
     if (!ok)
         ot.error(command, ib.geterror());
     ImageRecRef img(new ImageRec("capture", ib.spec(), ot.imagecache));

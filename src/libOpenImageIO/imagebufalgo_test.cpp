@@ -34,6 +34,10 @@
 #include <iostream>
 #include <string>
 
+#if USE_OPENCV
+#    include <opencv2/opencv.hpp>
+#endif
+
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/imagebuf.h>
@@ -960,6 +964,31 @@ benchmark_parallel_image(int res, int iters)
 
 
 
+void
+test_opencv()
+{
+#if USE_OPENCV
+    std::cout << "Testing OpenCV round trip\n";
+    // Make a gradient RGB image, convert to OpenCV cv::Mat, then convert
+    // that back to ImageBuf, make sure the round trip has the same pixels
+    // as the original image.
+    ImageBuf src
+        = ImageBufAlgo::fill({ 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },
+                             { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f },
+                             ROI(0, 64, 0, 64, 0, 1, 0, 3));
+    cv::Mat mat;
+    ImageBufAlgo::to_OpenCV(mat, src);
+    OIIO_CHECK_ASSERT(!mat.empty());
+    ImageBuf dst = ImageBufAlgo::from_OpenCV(mat);
+    OIIO_CHECK_ASSERT(!dst.has_error());
+    auto comp = ImageBufAlgo::compare(src, dst, 0.0f, 0.0f);
+    OIIO_CHECK_EQUAL(comp.error, false);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+#endif
+}
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -992,6 +1021,7 @@ main(int argc, char** argv)
     histogram_computation_test();
     test_maketx_from_imagebuf();
     test_IBAprep();
+    test_opencv();
 
     benchmark_parallel_image(64, iterations * 64);
     benchmark_parallel_image(512, iterations * 16);
