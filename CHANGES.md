@@ -539,6 +539,10 @@ Developer goodies / internals:
   borrowed from LLVM. (1.9.4)
 * hash.h: add guards to make this header safe for Cuda compilation.
   #1905 (1.9.2/1.8.10)
+* imageio.h: `convert_image()` and `parallel_convert_image` have been
+  simplified to remove optional `alpha_channel` and `z_channel` parameters
+  that were never actually used. The old versions are still present but
+  are deprecated. #2088 (2.0.1)
 * parallel.h:
     * `parallel_options` passed to many functions. #1807 (1.9.2)
     * More careful avoidance of threads not recursively using the thread
