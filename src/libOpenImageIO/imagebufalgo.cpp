@@ -1063,9 +1063,9 @@ ImageBufAlgo::render_text (ImageBuf &R, int x, int y, const std::string &text,
         if (error)
             continue;  // ignore errors
         // now, draw to our target surface
-        for (int j = 0;  j < slot->bitmap.rows; ++j) {
+        for (size_t j = 0;  j < slot->bitmap.rows; ++j) {
             int ry = y + j - slot->bitmap_top;
-            for (int i = 0;  i < slot->bitmap.width; ++i) {
+            for (size_t i = 0;  i < slot->bitmap.width; ++i) {
                 int rx = x + i + slot->bitmap_left;
                 float b = slot->bitmap.buffer[slot->bitmap.pitch*j+i] / 255.0f;
                 R.getpixel (rx, ry, pixelcolor);

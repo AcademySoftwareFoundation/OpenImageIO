@@ -345,7 +345,7 @@ RLAOutput::open (const std::string &name, const ImageSpec &userspec,
     // I think it's safe not to care until someone complains
     STRING_FIELD (Aspect, "rla:Aspect");
 
-    snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.10f",
+    snprintf (m_rla.AspectRatio, sizeof(m_rla.AspectRatio), "%.5f",
         m_spec.get_float_attribute ("PixelAspectRatio", 1.f));
     strcpy (m_rla.ColorChannel, m_spec.get_string_attribute ("rla:ColorChannel",
         "rgb").c_str ());

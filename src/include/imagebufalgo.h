@@ -46,7 +46,7 @@
 
 #include <limits>
 
-#ifndef __OPENCV_CORE_TYPES_H__
+#if !defined(__OPENCV_CORE_TYPES_H__) && !defined(OPENCV_CORE_TYPES_H)
 struct IplImage;  // Forward declaration; used by Intel Image lib & OpenCV
 #endif
 
