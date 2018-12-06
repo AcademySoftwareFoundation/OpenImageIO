@@ -662,8 +662,7 @@ bool
 convert_image(int nchannels, int width, int height, int depth, const void* src,
               TypeDesc src_type, stride_t src_xstride, stride_t src_ystride,
               stride_t src_zstride, void* dst, TypeDesc dst_type,
-              stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-              int alpha_channel, int z_channel)
+              stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride)
 {
     // If no format conversion is taking place, use the simplified
     // copy_image.
@@ -714,8 +713,7 @@ parallel_convert_image(int nchannels, int width, int height, int depth,
                        const void* src, TypeDesc src_type, stride_t src_xstride,
                        stride_t src_ystride, stride_t src_zstride, void* dst,
                        TypeDesc dst_type, stride_t dst_xstride,
-                       stride_t dst_ystride, stride_t dst_zstride,
-                       int alpha_channel, int z_channel, int nthreads)
+                       stride_t dst_ystride, stride_t dst_zstride, int nthreads)
 {
     if (nthreads <= 0)
         nthreads = oiio_threads;
@@ -725,8 +723,7 @@ parallel_convert_image(int nchannels, int width, int height, int depth,
     if (nthreads <= 1)
         return convert_image(nchannels, width, height, depth, src, src_type,
                              src_xstride, src_ystride, src_zstride, dst,
-                             dst_type, dst_xstride, dst_ystride, dst_zstride,
-                             alpha_channel, z_channel);
+                             dst_type, dst_xstride, dst_ystride, dst_zstride);
 
     ImageSpec::auto_stride(src_xstride, src_ystride, src_zstride, src_type,
                            nchannels, width, height);
@@ -740,8 +737,7 @@ parallel_convert_image(int nchannels, int width, int height, int depth,
                           (const char*)src + src_ystride * ybegin, src_type,
                           src_xstride, src_ystride, src_zstride,
                           (char*)dst + dst_ystride * ybegin, dst_type,
-                          dst_xstride, dst_ystride, dst_zstride, alpha_channel,
-                          z_channel);
+                          dst_xstride, dst_ystride, dst_zstride);
         });
     return true;
 }

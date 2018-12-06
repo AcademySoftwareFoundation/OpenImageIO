@@ -228,8 +228,7 @@ GIFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     return convert_image(spec().nchannels, spec().width, 1 /*1 scanline*/, 1,
                          data, format, xstride, AutoStride, AutoStride,
                          &m_canvas[y * spec().width * 4], TypeDesc::UINT8, 4,
-                         AutoStride, AutoStride,
-                         spec().nchannels > 3 ? 3 : -1 /*alpha channel*/);
+                         AutoStride, AutoStride);
 }
 
 
