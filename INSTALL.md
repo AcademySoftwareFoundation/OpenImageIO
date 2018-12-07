@@ -53,6 +53,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Field3D
  * If you want support for OpenVDB files:
      * OpenVDB >= 5.0 and Intel TBB >= 2018
+ * If you want support for converting to and from OpenCV data structures,
+   or for capturing images from a camera:
+     * OpenCV 2.x, 3.x, or 4.x
 
 
 Building OpenImageIO on Linux or OS X

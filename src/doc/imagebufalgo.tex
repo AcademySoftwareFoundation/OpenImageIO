@@ -2595,16 +2595,17 @@ created.  The full list of supported configuration options is:
 \apiend
 
 
-\apiitem{ImageBuf {\ce from_IplImage} (const IplImage *ipl, TypeDesc convert=TypeUnknown)}
-\index{ImageBufAlgo!from_IplImage} \indexapi{from_IplImage}
-\index{OpenCV}\indexapi{IplImage}\index{Intel Image Library}
-Convert an {\cf IplImage}, used by OpenCV and Intel's Image Libray, to
-an \ImageBuf (copying the pixels).  If {\cf convert} is
-not set to {\cf UNKNOWN}, try to establish the result as holding that
-data type and convert the {\cf IplImage} data.  Return {\cf true} if ok,
-{\cf false} if it couldn't figure out how to make the conversion from
-{\cf IplImage} to an \ImageBuf.  If OpenImageIO was compiled without OpenCV
-support, this function will fail.
+\apiitem{ImageBuf {\ce from_OpenCV} (const cv::Mat\& mat, TypeDesc convert=TypeUnknown, \\
+        \bigspc  ROI roi=\{\}, int nthreads=0)}
+\index{ImageBufAlgo!from_OpenCV} \indexapi{from_OpenCV}
+\index{OpenCV}
+Convert an OpenCV {\cf cv::Mat} into an \ImageBuf, copying the pixels
+(optionally converting to the pixel data type specified by {\cf convert}, if
+not {\cf UNKNOWN}, which means to preserve the original data type if
+possible).  Return true if ok, false if it couldn't figure out how to
+make the conversion from Mat to ImageBuf. If OpenImageIO was compiled
+without OpenCV support, this function will return an empty image with
+error message set.
 
 \begin{comment}
 \smallskip
@@ -2615,14 +2616,15 @@ support, this function will fail.
 \apiend
 
 
-\apiitem{IplImage* {\ce to_IplImage} (const ImageBuf \&src)}
-\index{ImageBufAlgo!to_IplImage} \indexapi{to_IplImage}
-\index{OpenCV}\indexapi{IplImage}\index{Intel Image Library}
-Construct an {\cf IplImage*}, used by OpenCV and Intel's Image Library,
-that is equivalent to the \ImageBuf {\cf src}.  If it is not possible, or
-if OpenImageIO was compiled without OpenCV support, then return
-{\cf nullptr}.  The ownership of the {\cf IplImage} is fully transferred to the
-calling application.
+\apiitem{bool {\ce to_OpenCV} (cv::Mat\& dst, const ImageBuf\& src,\\
+        \bigspc  ROI roi=\{\}, int nthreads=0)}
+\index{ImageBufAlgo!to_OpenCV} \indexapi{to_OpenCV}
+\index{OpenCV}
+Construct an OpenCV {\cf cv::Mat} containing the contents of \ImageBuf src,
+and return true. If it is not possible, or if OpenImageIO was compiled
+without OpenCV support, then return false. Note that OpenCV only supports up
+to 4 channels, so images with more than 4 channels will be truncated in the
+conversion.
 
 \begin{comment}
 \smallskip

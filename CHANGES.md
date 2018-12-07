@@ -140,6 +140,10 @@ Public API changes:
       the more correct choice. Also, if their input image is clearly marked
       as having unasociated alpha already, they will not bracket the color
       conversion with the requested unpremult/premult. #1864 (1.9.2)
+    * Updated the OpenCV interoperability with new functions to_OpenCV (make
+      an ImageBuf out of a cv::Mat) and from_OpenCV (fill in a cv::Mat with
+      the contents of an ImageBuf). Deprecated the old from_IplImage and
+      to_IplImage, which are very OpenCV-1.x-centric. (2.0.2)
 * **ImageCache/TextureSystem:**
     * ImageCache and TextureSystem now have `close(filename)` and
       `close_all()` methods, which for one file or all files will close the
@@ -499,6 +503,7 @@ Build/test system improvements and platform ports:
   #2036 (1.9.4)
 * Fixes for Windows when making Unicode builds, and fix Plugin::dlopen
   on Windows to properly support UTF-8 filenames. #1454 (2.0.1)
+* Support added for OpenCV 4.0. (2.0.1)
 
 Developer goodies / internals:
 
