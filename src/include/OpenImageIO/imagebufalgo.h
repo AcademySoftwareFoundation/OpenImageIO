@@ -53,6 +53,9 @@
 
 #if !defined(__OPENCV_CORE_TYPES_H__) && !defined(OPENCV_CORE_TYPES_H)
 struct IplImage;  // Forward declaration; used by Intel Image lib & OpenCV
+namespace cv {
+    class Mat;
+}
 #endif
 
 
@@ -1408,27 +1411,24 @@ bool OIIO_API fillholes_pushpull (ImageBuf &dst, const ImageBuf &src,
                                   ROI roi={}, int nthreads=0);
 
 
-/// Convert an IplImage, used by OpenCV and Intel's Image Libray, into an
-/// ImageBuf (copying the pixels).  If convert is not set to UNKNOWN,
-/// convert the IplImage to that data type. Return true if ok, false if it
-/// couldn't figure out how to make the conversion from IplImage to
-/// ImageBuf.  If OpenImageIO was compiled without OpenCV support, this
-/// function will return an empty image with error message set.
-ImageBuf OIIO_API from_IplImage (const IplImage *ipl,
-                                 TypeDesc convert=TypeUnknown);
-// DEPRECATED(1.9):
-inline bool from_IplImage (ImageBuf &dst, const IplImage *ipl,
-                           TypeDesc convert=TypeUnknown) {
-    dst = from_IplImage (ipl, convert);
-    return ! dst.has_error();
-}
+/// Convert an OpenCV cv::Mat into an ImageBuf, copying the pixels
+/// (optionally converting to the pixel data type specified by `convert`, if
+/// not UNKNOWN, which means to preserve the original data type if
+/// possible).  Return true if ok, false if it couldn't figure out how to
+/// make the conversion from Mat to ImageBuf. If OpenImageIO was compiled
+/// without OpenCV support, this function will return an empty image with
+/// error message set.
+OIIO_API ImageBuf
+from_OpenCV (const cv::Mat& mat, TypeDesc convert = TypeUnknown,
+             ROI roi={}, int nthreads=0);
 
-/// Construct an IplImage*, used by OpenCV and Intel's Image Library, that
-/// is equivalent to the ImageBuf src.  If it is not possible, or if
-/// OpenImageIO was compiled without OpenCV support, then return nullptr.
-/// The ownership of the IplImage is fully transferred to the calling
-/// application.
-OIIO_API IplImage* to_IplImage (const ImageBuf &src);
+/// Construct an OpenCV cv::Mat containing the contents of ImageBuf src, and
+/// return true. If it is not possible, or if OpenImageIO was compiled
+/// without OpenCV support, then return false. Note that OpenCV only
+/// supports up to 4 channels, so >4 channel images will be truncated in the
+/// conversion.
+OIIO_API bool to_OpenCV (cv::Mat& dst, const ImageBuf& src,
+                         ROI roi={}, int nthreads=0);
 
 /// Capture a still image from a designated camera.  If able to do so,
 /// store the image in dst and return true.  If there is no such device,
@@ -1443,6 +1443,35 @@ inline bool capture_image (ImageBuf &dst, int cameranum = 0,
     dst = capture_image (cameranum, convert);
     return !dst.has_error();
 }
+
+/// Convert an IplImage, used by OpenCV and Intel's Image Libray, into an
+/// ImageBuf (copying the pixels).  If convert is not set to UNKNOWN,
+/// convert the IplImage to that data type. Return true if ok, false if it
+/// couldn't figure out how to make the conversion from IplImage to
+/// ImageBuf.  If OpenImageIO was compiled without OpenCV support, this
+/// function will return an empty image with error message set.
+///
+/// DEPRECATED(2.0). The OpenCV 1.x era IplImage-based functions should be
+/// avoided, giving preference to from_OpenCV.
+ImageBuf OIIO_API from_IplImage (const IplImage *ipl,
+                                 TypeDesc convert=TypeUnknown);
+// DEPRECATED(1.9):
+inline bool from_IplImage (ImageBuf &dst, const IplImage *ipl,
+                           TypeDesc convert=TypeUnknown) {
+    dst = from_IplImage (ipl, convert);
+    return ! dst.has_error();
+}
+
+/// Construct an IplImage*, used by OpenCV and Intel's Image Library, that
+/// is equivalent to the ImageBuf src.  If it is not possible, or if
+/// OpenImageIO was compiled without OpenCV support, then return nullptr.
+/// The ownership of the IplImage is fully transferred to the calling
+/// application.
+///
+/// DEPRECATED(2.0). The OpenCV 1.x era IplImage-based functions should be
+/// avoided, giving preference to from_OpenCV.
+OIIO_API IplImage* to_IplImage (const ImageBuf &src);
+
 
 
 
