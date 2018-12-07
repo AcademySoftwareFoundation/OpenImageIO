@@ -58,10 +58,14 @@ public:
 private:
     FILE* m_fd;
     std::vector<unsigned char> scratch;
-    char rgbe_error[1024];  ///< Buffer for RGBE library error msgs
+    std::string rgbe_error;  // Buffer for RGBE library error msgs
     std::vector<unsigned char> m_tilebuffer;
 
-    void init(void) { m_fd = NULL; }
+    void init(void)
+    {
+        m_fd = NULL;
+        rgbe_error.clear();
+    }
 };
 
 
