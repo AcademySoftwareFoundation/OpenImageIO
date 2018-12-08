@@ -5876,13 +5876,6 @@ handle_sequence(int argc, const char** argv)
 int
 main(int argc, char* argv[])
 {
-#if OIIO_MSVS_BEFORE_2015
-    // When older Visual Studio is used, float values in scientific foramt
-    // are printed with three digit exponent. We change this behaviour to
-    // fit Linux way.
-    _set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
-
 #if OIIO_SIMD_SSE && !OIIO_F16C_ENABLED
     // We've found old versions of libopenjpeg (either by itself, or
     // pulled in by ffmpeg libraries that link against it) that upon its

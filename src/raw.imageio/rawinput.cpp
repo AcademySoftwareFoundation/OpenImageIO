@@ -611,9 +611,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
     const libraw_imgother_t& other(m_processor->imgdata.other);
     m_spec.attribute("Exif:ISOSpeedRatings", (int)other.iso_speed);
     m_spec.attribute("ExposureTime", other.shutter);
-    m_spec.attribute("Exif:ShutterSpeedValue", -log2f(other.shutter));
+    m_spec.attribute("Exif:ShutterSpeedValue", -std::log2(other.shutter));
     m_spec.attribute("FNumber", other.aperture);
-    m_spec.attribute("Exif:ApertureValue", 2.0f * log2f(other.aperture));
+    m_spec.attribute("Exif:ApertureValue", 2.0f * std::log2(other.aperture));
     m_spec.attribute("Exif:FocalLength", other.focal_len);
     struct tm m_tm;
     Sysutil::get_local_time(&m_processor->imgdata.other.timestamp, &m_tm);
