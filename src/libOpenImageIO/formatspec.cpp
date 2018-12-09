@@ -1088,27 +1088,27 @@ ImageSpec::from_xml(const char* xml)
     //int version = n.attribute ("version").as_int();
 
     // Fields for version == 10 (current)
-    x           = atoi(n.child_value("x"));
-    y           = atoi(n.child_value("y"));
-    z           = atoi(n.child_value("z"));
-    width       = atoi(n.child_value("width"));
-    height      = atoi(n.child_value("height"));
-    depth       = atoi(n.child_value("depth"));
-    full_x      = atoi(n.child_value("full_x"));
-    full_y      = atoi(n.child_value("full_y"));
-    full_z      = atoi(n.child_value("full_z"));
-    full_width  = atoi(n.child_value("full_width"));
-    full_height = atoi(n.child_value("full_height"));
-    full_depth  = atoi(n.child_value("full_depth"));
-    tile_width  = atoi(n.child_value("tile_width"));
-    tile_height = atoi(n.child_value("tile_height"));
-    tile_depth  = atoi(n.child_value("tile_depth"));
+    x           = Strutil::stoi(n.child_value("x"));
+    y           = Strutil::stoi(n.child_value("y"));
+    z           = Strutil::stoi(n.child_value("z"));
+    width       = Strutil::stoi(n.child_value("width"));
+    height      = Strutil::stoi(n.child_value("height"));
+    depth       = Strutil::stoi(n.child_value("depth"));
+    full_x      = Strutil::stoi(n.child_value("full_x"));
+    full_y      = Strutil::stoi(n.child_value("full_y"));
+    full_z      = Strutil::stoi(n.child_value("full_z"));
+    full_width  = Strutil::stoi(n.child_value("full_width"));
+    full_height = Strutil::stoi(n.child_value("full_height"));
+    full_depth  = Strutil::stoi(n.child_value("full_depth"));
+    tile_width  = Strutil::stoi(n.child_value("tile_width"));
+    tile_height = Strutil::stoi(n.child_value("tile_height"));
+    tile_depth  = Strutil::stoi(n.child_value("tile_depth"));
     format      = TypeDesc(n.child_value("format"));
-    nchannels   = atoi(n.child_value("nchannels"));
+    nchannels   = Strutil::stoi(n.child_value("nchannels"));
     get_channelnames(n, channelnames);
-    alpha_channel = atoi(n.child_value("alpha_channel"));
-    z_channel     = atoi(n.child_value("z_channel"));
-    deep          = atoi(n.child_value("deep"));
+    alpha_channel = Strutil::stoi(n.child_value("alpha_channel"));
+    z_channel     = Strutil::stoi(n.child_value("z_channel"));
+    deep          = Strutil::stoi(n.child_value("deep"));
 
     // FIXME: What about extra attributes?
 

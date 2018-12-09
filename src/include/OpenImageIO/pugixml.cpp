@@ -8075,7 +8075,7 @@ PUGI__NS_BEGIN
 		char* exponent_string = strchr(buffer, 'e');
 		assert(exponent_string);
 
-		int exponent = atoi(exponent_string + 1);
+		int exponent = atoi(exponent_string + 1); // NOLINT(cert-err34-c)
 
 		// extract mantissa string: skip sign
 		char* mantissa = buffer[0] == '-' ? buffer + 1 : buffer;

@@ -76,9 +76,9 @@ std::string extension_list;      // list of all extensions for all formats
 std::string library_list;        // list of all libraries for all formats
 static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");
 #ifdef NDEBUG
-int oiio_print_debug(oiio_debug_env ? atoi(oiio_debug_env) : 0);
+int oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 0);
 #else
-int oiio_print_debug(oiio_debug_env ? atoi(oiio_debug_env) : 1);
+int oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
 #endif
 int oiio_log_times = Strutil::from_string<int>(
     Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
