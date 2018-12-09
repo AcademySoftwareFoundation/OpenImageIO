@@ -51,6 +51,12 @@ if [ "$LINKSTATIC" == "1" ] ; then
     brew install homebrew/dupes/bzip2
     brew install yaml-cpp --with-static-lib
 fi
+if [ "$CLANG_TIDY" != "" ] ; then
+    # If we are running for the sake of clang-tidy only, we will need
+    # a modern clang version not just the xcode one.
+    brew install llvm
+fi
+
 echo ""
 echo "After brew installs:"
 brew list --versions
