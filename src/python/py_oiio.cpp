@@ -285,18 +285,19 @@ OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME)
           py::arg("name"), py::arg("defaultval") = 0.0f);
     m.def("get_string_attribute",
           [](const std::string& name, const std::string& def) {
-              return std::string(OIIO::get_string_attribute(name, def));
+              return PY_STR(std::string(OIIO::get_string_attribute(name, def)));
           },
           py::arg("name"), py::arg("defaultval") = "");
     m.def("getattribute", &oiio_getattribute_typed);
     m.attr("AutoStride")          = AutoStride;
     m.attr("openimageio_version") = OIIO_VERSION;
     m.attr("VERSION")             = OIIO_VERSION;
-    m.attr("VERSION_STRING")      = OIIO_VERSION_STRING;
+    m.attr("VERSION_STRING")      = PY_STR(OIIO_VERSION_STRING);
     m.attr("VERSION_MAJOR")       = OIIO_VERSION_MAJOR;
     m.attr("VERSION_MINOR")       = OIIO_VERSION_MINOR;
     m.attr("VERSION_PATCH")       = OIIO_VERSION_PATCH;
-    m.attr("INTRO_STRING")        = OIIO_INTRO_STRING;
+    m.attr("INTRO_STRING")        = PY_STR(OIIO_INTRO_STRING);
+    m.attr("__version__")         = PY_STR(OIIO_VERSION_STRING);
 }
 
 }  // namespace PyOpenImageIO
