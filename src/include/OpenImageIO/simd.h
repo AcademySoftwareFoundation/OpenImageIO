@@ -49,13 +49,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <OpenImageIO/dassert.h>
-#include <OpenImageIO/missing_math.h>
-#include <OpenImageIO/platform.h>
-#include <OpenEXR/ImathVec.h>
-#include <OpenEXR/ImathMatrix.h>
 #include <algorithm>
 #include <cstring>
+
+#include <OpenEXR/ImathVec.h>
+#include <OpenEXR/ImathMatrix.h>
+
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/platform.h>
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -248,8 +249,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OIIO_SIMD_HAS_SIMD8 1    /* vfloat8, vint8, vbool8 defined */
 #define OIIO_SIMD_HAS_SIMD16 1   /* vfloat16, vint16, vbool16 defined */
 
-
-#include "missing_math.h"
 
 
 OIIO_NAMESPACE_BEGIN
