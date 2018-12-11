@@ -77,8 +77,7 @@ install:
           export OPENEXR_ROOT_DIR=$PWD/ext/openexr-install ;
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENEXR_ROOT_DIR/lib ;
           CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_ocio.bash ;
-          export OCIO_PATH=$PWD/ext/OpenColorIO/dist ;
-          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OCIO_PATH/lib ;
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/ext/OpenColorIO/dist/lib ;
       fi
     - src/build-scripts/install_test_images.bash
 

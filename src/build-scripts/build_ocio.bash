@@ -5,6 +5,11 @@ OCIOBUILDDIR=${OCIOBUILDDIR:=${PWD}/ext/OpenColorIO}
 OCIOINSTALLDIR=${OCIOINSTALLDIR:=${PWD}/ext/OpenColorIO/dist}
 OCIOBRANCH=${OCIOBRANCH:=v1.1.0}
 OCIOCXXFLAGS=${OCIOCXXFLAGS:="-Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
+# Just need libs:
+OCIO_BUILDOPTS="-DOCIO_BUILD_APPS=OFF -DOCIO_BUILD_NUKE=OFF \
+               -DOCIO_BUILD_DOCS=OFF -DOCIO_BUILD_TESTS=OFF \
+               -DOCIO_BUILD_PYTHON=OFF -DOCIO_BUILD_PYGLUE=OFF \
+               -DOCIO_BUILD_JAVA=OFF"
 BASEDIR=`pwd`
 pwd
 echo "OpenColorIO install dir will be: ${OCIOINSTALLDIR}"
@@ -22,9 +27,7 @@ cd OpenColorIO
 echo "git checkout ${OCIOBRANCH} --force"
 git checkout ${OCIOBRANCH} --force
 mkdir -p build
-cd build
-cmake --config Release -DCMAKE_INSTALL_PREFIX=${OCIOINSTALLDIR} -DCMAKE_CXX_FLAGS="${OCIOCXXFLAGS}" .. && make clean && make -j 4 && make install
-cd ..
+time (cd build ; cmake --config Release -DCMAKE_INSTALL_PREFIX=${OCIOINSTALLDIR} -DCMAKE_CXX_FLAGS="${OCIOCXXFLAGS}" ${OCIO_BUILDOPTS} .. && make clean && make -j 4 && make install)
 popd
 
 ls -R ${OCIOINSTALLDIR}
