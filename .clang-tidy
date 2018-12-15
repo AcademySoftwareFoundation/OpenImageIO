@@ -1,0 +1,11 @@
+Checks:          '-*,clang-analyzer-security*'
+WarningsAsErrors: ''
+HeaderFilterRegex: '(OpenImageIO/[a-zA-Z0-9_]+\.h)|(imageio)|(oiio)|(iv/)|(_pvt\.h)'
+AnalyzeTemporaryDtors: false
+User:            lg
+CheckOptions:
+  - key:            modernize-use-nullptr.NullMacros
+    value:          'NULL'
+  - key:            modernize-use-emplace.SmartPointers
+    value:          'OIIO::intrusive_ptr'
+...

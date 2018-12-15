@@ -18,7 +18,7 @@ option (LINKSTATIC  "Link with static external libraries when possible" OFF)
 option (CODECOV "Build code coverage tests" OFF)
 set (SANITIZE "" CACHE STRING "Build code using sanitizer (address, thread)")
 option (CLANG_TIDY "Enable clang-tidy" OFF)
-set (CLANG_TIDY_CHECKS "-*" CACHE STRING "clang-tidy checks to perform")
+set (CLANG_TIDY_CHECKS "" CACHE STRING "clang-tidy checks to perform (none='-*')")
 set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
 option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
 set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
@@ -317,15 +317,31 @@ endif ()
 
 # clang-tidy options
 if (CLANG_TIDY)
-    set (CMAKE_CXX_CLANG_TIDY "clang-tidy;-header-filter=(${PROJECT_NAME})|(${PROJ_NAME})|(${PROJ_NAME_LOWER})|(_pvt.h)")
-    if (CLANG_TIDY_ARGS)
-        set (CMAKE_CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};${CLANG_TIDY_ARGS}")
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy"
+                 DOC "Path to clang-tidy executable")
+    message (STATUS "CLANG_TIDY_EXE ${CLANG_TIDY_EXE}")
+    if (CLANG_TIDY_EXE AND NOT ${CMAKE_VERSION} VERSION_LESS 3.6)
+        set (CMAKE_CXX_CLANG_TIDY
+             "${CLANG_TIDY_EXE}"
+             )
+        if (CLANG_TIDY_ARGS)
+            list (APPEND CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_ARGS})
+        endif ()
+        if (CLANG_TIDY_CHECKS)
+            list (APPEND CMAKE_CXX_CLANG_TIDY -checks="${CLANG_TIDY_CHECKS}")
+        endif ()
+        execute_process (COMMAND ${CMAKE_CXX_CLANG_TIDY} -list-checks
+                         OUTPUT_VARIABLE tidy_checks
+                         OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if (CLANG_TIDY_FIX)
+            list (APPEND CMAKE_CXX_CLANG_TIDY "-fix")
+        endif ()
+        message (STATUS "clang-tidy command line is: ${CMAKE_CXX_CLANG_TIDY}")
+        message (STATUS "${tidy_checks}")
+    else ()
+        message (STATUS "Cannot run clang-tidy as requested")
     endif ()
-    if (CLANG_TIDY_FIX)
-        set (CMAKE_CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};-fix")
-    endif ()
-    set (CMAKE_CXX_CLANG_TIDY "${CMAKE_CXX_CLANG_TIDY};-checks=${CLANG_TIDY_CHECKS}")
-    message (STATUS "clang-tidy command line is: ${CMAKE_CXX_CLANG_TIDY}")
+    # Hint: run with CLANG_TIDY_ARGS=-list-checks to list all the checks
 endif ()
 
 # clang-format
