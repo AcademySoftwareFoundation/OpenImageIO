@@ -71,6 +71,10 @@ install:
           export PATH=/usr/local/opt/qt5/bin:$PATH ;
           export PATH=/usr/local/opt/python/libexec/bin:$PATH ;
           export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
+          if [ "${CLANG_TIDY}" != "" ] ; then
+              export PATH=/usr/local/Cellar/llvm/7.0.0_1/bin:$PATH ;
+              echo $PATH ;
+          fi ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
           CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_openexr.bash ;
           export ILMBASE_ROOT_DIR=$PWD/ext/openexr-install ;
@@ -78,6 +82,16 @@ install:
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENEXR_ROOT_DIR/lib ;
           CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_ocio.bash ;
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/ext/OpenColorIO/dist/lib ;
+          if [ "${CLANG_TIDY}" != "" ] ; then
+              export LLVM_VERSION=7.0.0 ;
+              export LLVMTAR=clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-14.04.tar.xz ;
+              time wget http://releases.llvm.org/${LLVM_VERSION}/${LLVMTAR} ;
+              tar xf $LLVMTAR ;
+              rm -f $LLVMTAR ;
+              mv clang+llvm* llvm-install ;
+              export LLVM_DIRECTORY=$PWD/llvm-install ;
+              export PATH=$LLVM_DIRECTORY/bin:$PATH ;
+          fi
       fi
     - src/build-scripts/install_test_images.bash
 
@@ -99,7 +113,7 @@ script:
     - git diff --color ;
       THEDIFF=`git diff` ;
       if [ "$THEDIFF" != "" ] ; then
-          echo "git diff was not empty. Failing clang-format check." ;
+          echo "git diff was not empty. Failing clang-format or clang-tidy check." ;
           exit 1 ;
       fi
 
@@ -172,7 +186,7 @@ matrix:
       ##  osx_image: xcode8.3
       ##  compiler: clang
       ##  env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0
-    # Build with sanitizers
+    # Dynamic analysis: build with sanitizers and run most tests.
     # Because this test takes so long to run, only build for PRs, direct
     # pushes to master or RB branches, or if the branch name includes
     # "sanitize". Other ordinary work branch pushes don't need to run this
@@ -239,6 +253,14 @@ matrix:
         compiler: clang
         env: OIIOTARGET=clang-format SKIP_TESTS=1 BUILD_MISSING_DEPS=0
         #if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
+    # Static analysis: build with clang-tidy.
+    # Disabled -- this takes so long to run, it can't complete in Travis's
+    # 50 minute time limit. Left here just to show how it should work.
+      #  - name: "Static analysis / clang-tidy"
+      #    os: linux
+      #    compiler: gcc
+      #    env: CLANG_TIDY=1 CLANG_TIDY_FIX=1 SKIP_TESTS=1
+      #    if: branch =~ /(master|RB|travis|tidy)/ OR type = pull_request
     # Build with EMBEDPLUGINS=0, both platforms.
       # FIXME: doesn't work yet on Travis
       # - os: linux
