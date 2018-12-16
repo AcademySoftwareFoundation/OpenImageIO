@@ -35,6 +35,7 @@
 
 #pragma once
 
+#include <ctime>
 #include <functional>
 #include <iostream>
 
@@ -49,10 +50,8 @@
 #elif defined(__APPLE__)
 #    include <mach/mach_time.h>
 #else
-#    include <cstdlib>  // Just for NULL definition
 #    include <sys/time.h>
 #endif
-#include <iostream>
 
 
 OIIO_NAMESPACE_BEGIN
