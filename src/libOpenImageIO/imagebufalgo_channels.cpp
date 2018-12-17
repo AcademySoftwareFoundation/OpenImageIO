@@ -259,10 +259,10 @@ ImageBufAlgo::channel_append(ImageBuf& dst, const ImageBuf& A,
         roi = roi_union(get_roi(A.spec()), get_roi(B.spec()));
 
     // If dst has not already been allocated, set it to the right size,
-    // make it unconditinally float.
+    // make it a type that can hold both A's and B's type.
     if (!dst.pixels_valid()) {
         ImageSpec dstspec = A.spec();
-        dstspec.set_format(TypeFloat);
+        dstspec.set_format(type_merge(A.spec().format, B.spec().format));
         // Append the channel descriptions
         dstspec.nchannels = A.spec().nchannels + B.spec().nchannels;
         for (int c = 0; c < B.spec().nchannels; ++c) {
