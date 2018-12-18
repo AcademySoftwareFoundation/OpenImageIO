@@ -225,6 +225,8 @@ command += oiiotool ("src/tahoe-tiny.tif -subc '{TOP.MINCOLOR}' -divc '{TOP.MAXC
 # 'foo/bar'.
 command += oiiotool ("-create 16x16 3 -attrib \"foo/bar\" \"xyz\" -echo \"{TOP.'foo/bar'} should say xyz\"")
 command += oiiotool ("-create 16x16 3 -attrib smpte:TimeCode \"01:02:03:04\" -echo \"timecode is {TOP.'smpte:TimeCode'}\"")
+# Ensure that --evaloff/--evalon work
+command += oiiotool ("-echo \"{1+1}\" --evaloff -echo \"{3+4}\" --evalon -echo \"{2*2}\"")
 
 # test --iconfig
 command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig! 1 black.tif")

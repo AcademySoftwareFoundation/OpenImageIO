@@ -85,6 +85,7 @@ public:
     int cachesize;
     int autotile;
     int frame_padding;
+    bool eval_enable;  // Enable evaluation of expressions
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;

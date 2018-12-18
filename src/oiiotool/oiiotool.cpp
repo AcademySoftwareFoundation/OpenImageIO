@@ -177,6 +177,7 @@ Oiiotool::clear_options()
     // in combination with autotile. When the deadlock possibility is fixed,
     // maybe we'll turn it back to on by default.
     frame_padding = 0;
+    eval_enable   = true;
     full_command_line.clear();
     printinfo_metamatch.clear();
     printinfo_nometamatch.clear();
@@ -486,6 +487,26 @@ unset_autopremult(int argc, const char* argv[])
     ot.imagecache->attribute("unassociatedalpha", 1);
     ot.input_config.attribute("oiio:UnassociatedAlpha", 1);
     ot.input_config_set = true;
+    return 0;
+}
+
+
+
+static int
+enable_eval(int argc, const char* argv[])
+{
+    ASSERT(argc == 1);
+    ot.eval_enable = true;
+    return 0;
+}
+
+
+
+static int
+disable_eval(int argc, const char* argv[])
+{
+    ASSERT(argc == 1);
+    ot.eval_enable = false;
     return 0;
 }
 
@@ -1314,6 +1335,9 @@ Oiiotool::express_impl(string_view s)
 string_view
 Oiiotool::express(string_view str)
 {
+    if (!eval_enable)
+        return str;  // Expression evaluation disabled
+
     string_view s = str;
     // eg. s="ab{cde}fg"
     size_t openbrace = s.find('{');
@@ -5450,6 +5474,8 @@ getargs(int argc, char* argv[])
                 "--views %s", NULL, "Views for %V/%v wildcards (comma-separated, defaults to left,right)",
                 "--wildcardoff", NULL, "Disable numeric wildcard expansion for subsequent command line arguments",
                 "--wildcardon", NULL, "Enable numeric wildcard expansion for subsequent command line arguments",
+                "--evaloff %@", disable_eval, nullptr, "Disable {expression} evaluation for subsequent command line arguments",
+                "--evalon %@", enable_eval, nullptr, "Enable {expression} evaluation for subsequent command line arguments",
                 "--no-autopremult %@", unset_autopremult, NULL, "Turn off automatic premultiplication of images with unassociated alpha",
                 "--autopremult %@", set_autopremult, NULL, "Turn on automatic premultiplication of images with unassociated alpha",
                 "--autoorient", &ot.autoorient, "Automatically --reorient all images upon input",

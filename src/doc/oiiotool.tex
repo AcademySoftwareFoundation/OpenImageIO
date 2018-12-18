@@ -265,6 +265,19 @@ original image:
         -o cropped_{TOP.filename}
 \end{smallcode}
 
+\NEW % 2.0
+If you should come across filenames that contain braces (these are vary
+rare, but have been known to happen), you temporarily disable expression
+evaluation with the {\cf --evaloff} end {\cf --evalon} flags. For example:
+
+\begin{smallcode}
+    $ oiiotool --info "{weird}.exr"
+    > oiiotool ERROR: expression : syntax error at char 1 of `weird'
+
+    $ oiiotool --info --evaloff "{weird}.exr"
+    > weird.exr            : 2048 x 1536, 3 channel, half openexr
+\end{smallcode}
+
 \section{\oiiotool Tutorial / Recipes}
 
 This section will give quick examples of common uses of \oiiotool to get
@@ -952,6 +965,15 @@ and {\cf \%v}). If not supplied, the view list will be {\cf left,right}.
 Turns off (or on) numeric wildcard expansion for subsequent command
 line arguments. This can be useful in selectively disabling numeric wildcard
 expansion for a subset of the command line.
+\apiend
+
+\apiitem{\ce --evaloff \\
+--evalon}
+\NEW % 2.0
+Turns off (or on) expression evaluation (things with {\cf \{\}})  for
+subsequent command line arguments. This can be useful in selectively
+disabling expression evaluation expansion for a subset of the command line,
+for example if you actually have filenames containing curly braces.
 \apiend
 
 
