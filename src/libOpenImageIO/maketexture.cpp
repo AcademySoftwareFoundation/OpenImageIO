@@ -891,6 +891,39 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
 
 
 
+// Deconstruct the command line string, stripping directory names off of
+// any arguments. This is used for "update mode" to not think it's doing
+// a fresh maketx for relative paths and whatnot.
+static std::string
+strip_cmd_line(string_view cmdline)
+{
+    std::string out;
+    bool firstarg = true;
+    while (!cmdline.empty()) {
+        if (!firstarg)
+            out += ' ';
+        string_view s;
+        if (!Strutil::parse_string(cmdline, s))
+            break;
+        // OK, we're doing something stupid, we're just going to treat every
+        // arg as if it were a filename and if it has a directory separator,
+        // only keep what's left after the last dir separator. This trick
+        // works because there just aren't any expected non-file arguments
+        // to maketx (or oiiotool) are among the ones we are trying to
+        // compare for update mode. Anything that looks like a filename
+        // gets stripped for the comparison, and we're ok with that.
+        std::string stripped = Filesystem::filename(s);
+        if (stripped.find(' ') != std::string::npos)
+            out += Strutil::sprintf("\"%s\"", stripped);
+        else
+            out += stripped;
+        firstarg = false;
+    }
+    return out;
+}
+
+
+
 static bool
 make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                   std::string filename, std::string outputfilename,
@@ -989,7 +1022,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         }
         std::string newcmdline = configspec.get_string_attribute(
             "maketx:full_command_line");
-        if (lastcmdline.size() && lastcmdline == newcmdline) {
+        if (lastcmdline.size()
+            && strip_cmd_line(lastcmdline) == strip_cmd_line(newcmdline)) {
             outstream << "maketx: no update required for \"" << outputfilename
                       << "\"\n";
             return true;

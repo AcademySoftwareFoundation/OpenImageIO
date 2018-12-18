@@ -5169,7 +5169,8 @@ do_echo(int argc, const char* argv[])
 
 
 // Concatenate the command line into one string, optionally filtering out
-// verbose attribute commands.
+// verbose attribute commands. Escape control chars in the arguments, and
+// double-quote any that contain spaces.
 static std::string
 command_line_string(int argc, char* argv[], bool sansattrib)
 {
@@ -5177,24 +5178,26 @@ command_line_string(int argc, char* argv[], bool sansattrib)
     for (int i = 0; i < argc; ++i) {
         if (sansattrib) {
             // skip any filtered attributes
-            if (Strutil::starts_with(argv[i], "--attrib")
-                || Strutil::starts_with(argv[i], "-attrib")
-                || Strutil::starts_with(argv[i], "--sattrib")
-                || Strutil::starts_with(argv[i], "-sattrib")) {
+            if (!strcmp(argv[i], "--attrib") || !strcmp(argv[i], "-attrib")
+                || !strcmp(argv[i], "--sattrib")
+                || !strcmp(argv[i], "-sattrib")) {
                 i += 2;  // also skip the following arguments
                 continue;
             }
-            if (Strutil::starts_with(argv[i], "--sansattrib")
-                || Strutil::starts_with(argv[i], "-sansattrib")) {
+            if (!strcmp(argv[i], "--sansattrib")
+                || !strcmp(argv[i], "-sansattrib")) {
                 continue;
             }
         }
-        if (strchr(argv[i], ' ')) {  // double quote args with spaces
+        std::string a = Strutil::escape_chars(argv[i]);
+        // If the string contains spaces
+        if (a.find(' ') != std::string::npos) {
+            // double quote args with spaces
             s += '\"';
-            s += argv[i];
+            s += a;
             s += '\"';
         } else {
-            s += argv[i];
+            s += a;
         }
         if (i < argc - 1)
             s += ' ';
