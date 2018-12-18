@@ -256,6 +256,18 @@ test_get_attribute()
                       == NULL);
     OIIO_CHECK_ASSERT(spec.find_attribute("foo", TypeDesc::INT) != NULL);
     OIIO_CHECK_ASSERT(spec.find_attribute("foo", TypeDesc::FLOAT) == NULL);
+
+    ParamValue tmp;
+    const ParamValue* p;
+    int datawin[] = { 10, 12, 649, 491 };
+    int dispwin[] = { -5, -8, 1018, 791 };
+    bool ok;
+    p  = spec.find_attribute("datawindow", tmp);
+    ok = cspan<int>((const int*)p->data(), 4) == cspan<int>(datawin);
+    OIIO_CHECK_ASSERT(ok);
+    p  = spec.find_attribute("displaywindow", tmp);
+    ok = cspan<int>((const int*)p->data(), 4) == cspan<int>(dispwin);
+    OIIO_CHECK_ASSERT(ok);
 }
 
 
