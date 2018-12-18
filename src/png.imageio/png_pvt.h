@@ -85,7 +85,7 @@ create_read_struct(png_structp& sp, png_infop& ip)
         return "Could not create PNG info structure";
 
     // Must call this setjmp in every function that does PNG reads
-    if (setjmp(png_jmpbuf(sp)))
+    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
         return "PNG library error";
 
     // success
@@ -100,7 +100,7 @@ inline bool
 get_background(png_structp& sp, png_infop& ip, ImageSpec& spec, int& bit_depth,
                float* red, float* green, float* blue)
 {
-    if (setjmp(png_jmpbuf(sp)))
+    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
         return false;
     if (!png_get_valid(sp, ip, PNG_INFO_bKGD))
         return false;
@@ -275,7 +275,7 @@ read_into_buffer(png_structp& sp, png_infop& ip, ImageSpec& spec,
                  std::vector<unsigned char>& buffer)
 {
     // Must call this setjmp in every function that does PNG reads
-    if (setjmp(png_jmpbuf(sp)))
+    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
         return "PNG library error";
 
 #if 0
@@ -310,7 +310,7 @@ inline const std::string
 read_next_scanline(png_structp& sp, void* buffer)
 {
     // Must call this setjmp in every function that does PNG reads
-    if (setjmp(png_jmpbuf(sp)))
+    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
         return "PNG library error";
 
     png_read_row(sp, (png_bytep)buffer, NULL);
@@ -393,7 +393,7 @@ create_write_struct(png_structp& sp, png_infop& ip, int& color_type,
         return "Could not create PNG info structure";
 
     // Must call this setjmp in every function that does PNG writes
-    if (setjmp(png_jmpbuf(sp)))
+    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
         return "PNG library error";
 
     // success
@@ -614,7 +614,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 inline bool
 write_row(png_structp& sp, png_byte* data)
 {
-    if (setjmp(png_jmpbuf(sp))) {
+    if (setjmp(png_jmpbuf(sp))) {  // NOLINT(cert-err52-cpp)
         //error ("PNG library error");
         return false;
     }
@@ -630,7 +630,7 @@ inline void
 finish_image(png_structp& sp, png_infop& ip)
 {
     // Must call this setjmp in every function that does PNG writes
-    if (setjmp(png_jmpbuf(sp))) {
+    if (setjmp(png_jmpbuf(sp))) {  // NOLINT(cert-err52-cpp)
         //error ("PNG library error");
         return;
     }
