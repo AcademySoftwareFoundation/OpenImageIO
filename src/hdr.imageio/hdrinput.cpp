@@ -73,13 +73,14 @@ private:
     FILE* m_fd;              ///< The open file handle
     int m_subimage;          ///< What subimage are we looking at?
     int m_next_scanline;     ///< Next scanline to read
-    char rgbe_error[1024];   ///< Buffer for RGBE library error msgs
+    std::string rgbe_error;  ///< Buffer for RGBE library error msgs
 
     void init()
     {
         m_fd            = NULL;
         m_subimage      = -1;
         m_next_scanline = 0;
+        rgbe_error.clear();
     }
 };
 

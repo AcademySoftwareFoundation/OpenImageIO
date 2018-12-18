@@ -270,24 +270,24 @@ bool CSHA1::ReportHash(char* szReport, REPORT_TYPE rtReportType) const
 	if((rtReportType == REPORT_HEX) || (rtReportType == REPORT_HEX_SHORT))
 	{
 		_sntprintf(szTemp, 15, "%02X", m_digest[0]);
-		strcpy(szReport, szTemp);
+		strncpy(szReport, szTemp, 15);
 
 		const char* lpFmt = ((rtReportType == REPORT_HEX) ? " %02X" : "%02X");
 		for(size_t i = 1; i < 20; ++i)
 		{
 			_sntprintf(szTemp, 15, lpFmt, m_digest[i]);
-			strcat(szReport, szTemp);
+			strncat(szReport, szTemp, 15);
 		}
 	}
 	else if(rtReportType == REPORT_DIGIT)
 	{
 		_sntprintf(szTemp, 15, "%u", m_digest[0]);
-		strcpy(szReport, szTemp);
+		strncpy(szReport, szTemp, 15);
 
 		for(size_t i = 1; i < 20; ++i)
 		{
 			_sntprintf(szTemp, 15, " %u", m_digest[i]);
-			strcat(szReport, szTemp);
+			strncat(szReport, szTemp, 15);
 		}
 	}
 	else return false;
