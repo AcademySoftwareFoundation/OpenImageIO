@@ -489,6 +489,13 @@ public:
     ///
     void from_xml (const char *xml);
 
+    /// Hunt for the "Compression" and "CompressionQuality" settings in the
+    /// spec and turn them into the compression name and quality. This
+    /// handles compression name/qual combos of the form "name:quality".
+    std::pair<string_view, int>
+    decode_compression_metadata(string_view defaultcomp = "",
+                                int defaultqual = -1) const;
+
     /// Helper function to verify that the given pixel range exactly covers
     /// a set of tiles.  Also returns false if the spec indicates that the
     /// image isn't tiled at all.

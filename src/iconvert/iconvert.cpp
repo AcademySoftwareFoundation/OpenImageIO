@@ -104,8 +104,9 @@ getargs(int argc, char* argv[])
                 "-g %f", &gammaval, "Set gamma correction (default = 1)",
                 "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
                 "--scanline", &scanline, "Output as a scanline image",
-                "--compression %s", &compression, "Set the compression method (default = same as input)",
-                "--quality %d", &quality, "Set the compression quality, 1-100",
+                "--compression %s", &compression, "Set the compression method (default = same as input)."
+                                    " Note: may be in the form \"name:quality\"",
+                "--quality %d", &quality, "", // DEPRECATED(2.1)
                 "--no-copy-image", &no_copy_image, "Do not use ImageOutput copy_image functionality (dbg)",
                 "--adjust-time", &adjust_time, "Adjust file times to match DateTime metadata",
                 "--caption %s", &caption, "Set caption (ImageDescription)",

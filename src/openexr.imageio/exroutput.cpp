@@ -672,31 +672,18 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
                                  Imf::Channel(m_pixeltype[c], 1, 1, pLinear));
     }
 
-    // See what compression has been requested, default to ZIP compression
-    // if no request came with the user spec.
-    string_view compression = spec.get_string_attribute("compression", "zip");
+    string_view comp;
+    int qual;
+    std::tie(comp, qual) = m_spec.decode_compression_metadata("zip");
     // It seems that zips is the only compression that can reliably work
     // on deep files (but allow "none" as well)
-    if (spec.deep && compression != "none")
-        compression = "zips";
-    // Separate any appended quality from the name
-    size_t sep = compression.find_first_of(":");
-    if (sep != compression.npos) {
-        string_view qual = compression.substr(sep + 1);
-        compression      = compression.substr(0, sep);
-        if (qual.size() && Strutil::istarts_with(compression, "dwa")) {
-            float q = Strutil::from_string<float>(qual);
-            q       = clamp(q, 10.0f, 250000.0f);  // useful range
-            spec.attribute("openexr:dwaCompressionLevel", q);
-        }
+    if (spec.deep && comp != "none")
+        comp = "zips";
+    spec.attribute("compression", comp);
+    if (Strutil::istarts_with(comp, "dwa")) {
+        spec.attribute("openexr:dwaCompressionLevel",
+                       qual > 0 ? float(qual) : 45.0f);
     }
-    spec.attribute("compression", compression);
-
-    // If compression is one of the DWA types and no compression level
-    // was set, default to 45.
-    if (Strutil::istarts_with(compression, "dwa")
-        && !spec.find_attribute("openexr:dwaCompressionLevel"))
-        spec.attribute("openexr:dwaCompressionLevel", 45.0f);
 
     // Default to increasingY line order
     if (!spec.find_attribute("openexr:lineOrder"))

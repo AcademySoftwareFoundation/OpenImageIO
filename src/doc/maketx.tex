@@ -108,8 +108,10 @@ RGBRGBRGB...) packing of channels will be used for those file formats
 that support it.
 \apiend
 
-\apiitem{--compression {\rm \emph{method}}}
-Sets the compression method for the output image (the default is to try
+\apiitem{--compression {\rm \emph{method}} \\
+--compression {\rm \emph{method}{\cf :}\emph{quality}}}
+Sets the compression method, and optionally a quality setting,
+for the output image (the default is to try
 to use \qkw{zip} compression, if it is available).
 \apiend
 

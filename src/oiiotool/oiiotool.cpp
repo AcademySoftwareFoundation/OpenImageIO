@@ -714,8 +714,10 @@ adjust_output_options(string_view filename, ImageSpec& spec,
         spec.tile_width = spec.tile_height = spec.tile_depth = 0;
     }
 
-    if (!ot.output_compression.empty())
+    if (!ot.output_compression.empty()) {
+        // Note: may be in the form "name:quality"
         spec.attribute("compression", ot.output_compression);
+    }
     if (ot.output_quality > 0)
         spec.attribute("CompressionQuality", ot.output_quality);
 
@@ -5502,8 +5504,8 @@ getargs(int argc, char* argv[])
                 "--tile %@ %d %d", output_tiles, &ot.output_tilewidth, &ot.output_tileheight,
                     "Output tiled images (tilewidth, tileheight)",
                 "--force-tiles", &ot.output_force_tiles, "", // undocumented
-                "--compression %s", &ot.output_compression, "Set the compression method",
-                "--quality %d", &ot.output_quality, "Set the compression quality, 1-100",
+                "--compression %s", &ot.output_compression, "Set the compression method (in the form \"name\" or \"name:quality\")",
+                "--quality %d", &ot.output_quality, "", // DEPRECATED(2.1)
                 "--dither", &ot.output_dither, "Add dither to 8-bit output",
                 "--planarconfig %s", &ot.output_planarconfig,
                     "Force planarconfig (contig, separate, default)",

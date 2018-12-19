@@ -462,10 +462,14 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     m_photometric = (m_spec.nchannels >= 3 ? PHOTOMETRIC_RGB
                                            : PHOTOMETRIC_MINISBLACK);
 
-    string_view comp = m_spec.get_string_attribute("Compression", "zip");
+    string_view comp;
+    int qual;
+    std::tie(comp, qual) = m_spec.decode_compression_metadata("zip");
+
     if (Strutil::iequals(comp, "jpeg")
         && (m_spec.format != TypeDesc::UINT8 || m_spec.nchannels != 3)) {
         comp = "zip";  // can't use JPEG for anything but 3xUINT8
+        qual = -1;
     }
     m_compression = tiff_compression_code(comp);
     TIFFSetField(m_tif, TIFFTAG_COMPRESSION, m_compression);
@@ -490,13 +494,16 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         if (m_predictor != PREDICTOR_NONE)
             TIFFSetField(m_tif, TIFFTAG_PREDICTOR, m_predictor);
         if (m_compression == COMPRESSION_ADOBE_DEFLATE) {
-            int q = m_spec.get_int_attribute("tiff:zipquality", -1);
-            if (q >= 0)
-                TIFFSetField(m_tif, TIFFTAG_ZIPQUALITY, OIIO::clamp(q, 1, 9));
+            qual = m_spec.get_int_attribute("tiff:zipquality", qual);
+            if (qual > 0)
+                TIFFSetField(m_tif, TIFFTAG_ZIPQUALITY,
+                             OIIO::clamp(qual, 1, 9));
         }
     } else if (m_compression == COMPRESSION_JPEG) {
-        TIFFSetField(m_tif, TIFFTAG_JPEGQUALITY,
-                     m_spec.get_int_attribute("CompressionQuality", 95));
+        if (qual <= 0)
+            qual = 95;
+        qual = OIIO::clamp(qual, 1, 100);
+        TIFFSetField(m_tif, TIFFTAG_JPEGQUALITY, qual);
         m_rowsperstrip = 64;
         m_spec.attribute("tiff:RowsPerStrip", m_rowsperstrip);
         TIFFSetField(m_tif, TIFFTAG_ROWSPERSTRIP, m_rowsperstrip);
