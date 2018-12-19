@@ -94,7 +94,7 @@ public:
 
     // Increment and decrement moves the pointer to the next element
     // one stride length away.
-    const strided_ptr& operator++()
+    strided_ptr& operator++()
     {  // prefix
         m_ptr = getptr(1);
         return *this;
@@ -105,7 +105,7 @@ public:
         ++(*this);
         return r;
     }
-    const strided_ptr& operator--()
+    strided_ptr& operator--()
     {  // prefix
         m_ptr = getptr(-1);
         return *this;
