@@ -80,6 +80,8 @@ static int basetype_size[TypeDesc::LASTBASE] = {
 size_t
 TypeDesc::basesize() const
 {
+    if (basetype >= TypeDesc::LASTBASE)
+        return 0;
     DASSERT(basetype < TypeDesc::LASTBASE);
     return basetype_size[basetype];
 }

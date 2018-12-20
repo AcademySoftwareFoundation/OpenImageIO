@@ -142,6 +142,8 @@ declare_imagespec(py::module& m)
         .def(py::init<const ROI&, TypeDesc>())
         .def(py::init<TypeDesc>())
         .def(py::init<const ImageSpec&>())
+        .def("copy", [](const ImageSpec& self) { return ImageSpec(self); },
+             py::return_value_policy::reference_internal)
         .def("set_format", &ImageSpec::set_format)
         .def("default_channel_names", &ImageSpec::default_channel_names)
         .def("channel_bytes",

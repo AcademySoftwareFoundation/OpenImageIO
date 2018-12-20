@@ -33,11 +33,17 @@ def print_imagespec (spec, subimage=0, mip=0, msg="") :
     print ("  alpha channel = ", spec.alpha_channel)
     print ("  z channel = ", spec.z_channel)
     print ("  deep = ", spec.deep)
-    for i in range(len(spec.extra_attribs)) :
-        if type(spec.extra_attribs[i].value) == str :
-            print (" ", spec.extra_attribs[i].name, "= \"" + spec.extra_attribs[i].value + "\"")
+    for attrib in spec.extra_attribs :
+        if type(attrib.value) == str :
+            print (" ", attrib.name, "= \"" + attrib.value + "\"")
         else :
-            print (" ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value)
+            print (" ", attrib.name, "=", attrib.value)
+    # Equivalent, using indexing rather than iterating:
+    #for i in range(len(spec.extra_attribs)) :
+    #    if type(spec.extra_attribs[i].value) == str :
+    #        print (" ", spec.extra_attribs[i].name, "= \"" + spec.extra_attribs[i].value + "\"")
+    #    else :
+    #        print (" ", spec.extra_attribs[i].name, "=", spec.extra_attribs[i].value)
 
 
 def write (image, filename, format=oiio.UNKNOWN) :
