@@ -522,19 +522,19 @@ void cineon::IndustryHeader::SetFilmEdgeCode(const char *edge)
 	char buf[7];
 
 	strncpy(buf, edge, 2);
-	this->filmManufacturingIdCode = atoi(buf);
+	this->filmManufacturingIdCode = OIIO::Strutil::stoi(buf);
 
 	strncpy(buf, edge + 2, 2);
-	this->filmType = atoi(buf);
+	this->filmType = OIIO::Strutil::stoi(buf);
 
 	strncpy(buf, edge + 4, 2);
-	this->perfsOffset = atoi(buf);
+	this->perfsOffset = OIIO::Strutil::stoi(buf);
 
 	strncpy(buf, edge + 6, 6);
-	this->prefix = atoi(buf);
+	this->prefix = OIIO::Strutil::stoi(buf);
 
 	strncpy(buf, edge + 12, 4);
-	this->count = atoi(buf);
+	this->count = OIIO::Strutil::stoi(buf);
 }
 
 

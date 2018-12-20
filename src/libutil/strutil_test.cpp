@@ -535,10 +535,10 @@ test_numeric_conversion()
     std::string numstring (numcstr);
     bench ("get default locale", [](){ std::locale loc; DoNotOptimize (loc); });
     bench ("ref classic locale", [](){ DoNotOptimize (std::locale::classic()); });
-    bench ("std atoi", [&](){ DoNotOptimize(atoi(numcstr));});
+    bench ("std atoi", [&](){ DoNotOptimize(atoi(numcstr));}); // NOLINT(cert-err34-c)
     bench ("Strutil::stoi(string) ", [&](){ return DoNotOptimize(Strutil::stoi(numstring)); });
     bench ("Strutil::stoi(char*) ", [&](){ return DoNotOptimize(Strutil::stoi(numcstr)); });
-    bench ("std atof", [&](){ DoNotOptimize(atof(numcstr));});
+    bench ("std atof", [&](){ DoNotOptimize(atof(numcstr));}); // NOLINT(cert-err34-c)
     bench ("std strtod", [&](){ DoNotOptimize(::strtod(numcstr, nullptr));});
     bench ("Strutil::from_string<float>", [&](){ DoNotOptimize(Strutil::from_string<float>(numstring));});
     bench ("Strutil::stof(string) - locale-independent", [&](){ return DoNotOptimize(Strutil::stof(numstring)); });
@@ -822,8 +822,8 @@ test_locale()
               << Strutil::stof(numcstr) << "\n";
     OIIO_CHECK_EQUAL_APPROX(Strutil::stof(numcstr), 123.45f);
     std::cout << "unsafe float convert (default locale) " << numcstr << " = "
-              << atof(numcstr) << "\n";
-    OIIO_CHECK_EQUAL_APPROX(atof(numcstr), 123.0f);
+              << atof(numcstr) << "\n"; // NOLINT(cert-err34-c)
+    OIIO_CHECK_EQUAL_APPROX(atof(numcstr), 123.0f); // NOLINT(cert-err34-c)
 
     // Verify that Strutil::sprintf does the right thing, even when in a
     // comma-based locale.

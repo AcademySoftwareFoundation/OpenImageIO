@@ -395,7 +395,7 @@ static int
 set_threads(int argc, const char* argv[])
 {
     ASSERT(argc == 2);
-    int nthreads = atoi(argv[1]);
+    int nthreads = Strutil::stoi(argv[1]);
     OIIO::attribute("threads", nthreads);
     OIIO::attribute("exr_threads", nthreads);
     return 0;
@@ -407,7 +407,7 @@ static int
 set_cachesize(int argc, const char* argv[])
 {
     ASSERT(argc == 2);
-    ot.cachesize = atoi(argv[1]);
+    ot.cachesize = Strutil::stoi(argv[1]);
     ot.imagecache->attribute("max_memory_MB", float(ot.cachesize));
     return 0;
 }
@@ -418,7 +418,7 @@ static int
 set_autotile(int argc, const char* argv[])
 {
     ASSERT(argc == 2);
-    ot.autotile = atoi(argv[1]);
+    ot.autotile = Strutil::stoi(argv[1]);
     ot.imagecache->attribute("autotile", ot.autotile);
     ot.imagecache->attribute("autoscanline", int(ot.autotile ? 1 : 0));
     return 0;
@@ -4079,7 +4079,7 @@ action_zover(int argc, const char* argv[])
     while ((pos = cmd.find_first_of(":")) != std::string::npos) {
         cmd = cmd.substr(pos + 1, std::string::npos);
         if (Strutil::istarts_with(cmd, "zeroisinf="))
-            z_zeroisinf = (atoi(cmd.c_str() + 10) != 0);
+            z_zeroisinf = (Strutil::stoi(cmd.c_str() + 10) != 0);
     }
 
     ImageRecRef B(ot.pop());
@@ -5765,7 +5765,7 @@ handle_sequence(int argc, const char** argv)
             // std::cout << "Frame range " << framespec << "\n";
         } else if ((strarg == "--framepadding" || strarg == "-framepadding")
                    && a < argc - 1) {
-            int f = atoi(argv[++a]);
+            int f = Strutil::stoi(argv[++a]);
             if (f >= 1 && f < 10)
                 framepadding = f;
         } else if ((strarg == "--views" || strarg == "-views")

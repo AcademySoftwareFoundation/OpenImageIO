@@ -220,11 +220,12 @@ FitsOutput::create_fits_header(void)
         // FITS use Date keyword for dates so we convert our DateTime attribute
         // to Date format before adding it to the FITS file
         if (keyname == "DateTime") {
+            using Strutil::stoi;
             keyname = "Date";
             value   = Strutil::sprintf("%04u-%02u-%02uT%02u:%02u:%02u",
-                                     atoi(&value[0]), atoi(&value[5]),
-                                     atoi(&value[8]), atoi(&value[11]),
-                                     atoi(&value[14]), atoi(&value[17]));
+                                     stoi(&value[0]), stoi(&value[5]),
+                                     stoi(&value[8]), stoi(&value[11]),
+                                     stoi(&value[14]), stoi(&value[17]));
         }
 
         header += create_card(keyname, value);

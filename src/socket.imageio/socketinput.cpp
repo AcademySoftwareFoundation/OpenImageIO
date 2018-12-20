@@ -181,7 +181,7 @@ SocketInput::accept_connection(const std::string& name)
         return false;
     }
 
-    int port = atoi(rest_args["port"].c_str());
+    int port = Strutil::stoi(rest_args["port"]);
 
     try {
         acceptor = std::shared_ptr<ip::tcp::acceptor>(

@@ -346,16 +346,16 @@ add_attrib(ImageSpec& spec, const char* xmlname, const char* xmlvalue)
         if (special & IsBool)
             spec.attribute(oiioname, (int)Strutil::iequals(xmlvalue, "true"));
         else  // ordinary int
-            spec.attribute(oiioname, (int)atoi(xmlvalue));
+            spec.attribute(oiioname, (int)Strutil::stoi(xmlvalue));
         return;
     } else if (oiiotype == TypeDesc::UINT) {
         spec.attribute(oiioname, Strutil::from_string<unsigned int>(xmlvalue));
         return;
     } else if (oiiotype == TypeDesc::FLOAT) {
-        float f           = atoi(xmlvalue);
+        float f           = Strutil::stoi(xmlvalue);
         const char* slash = strchr(xmlvalue, '/');
         if (slash)  // It's rational!
-            f /= (float)atoi(slash + 1);
+            f /= (float)Strutil::stoi(slash + 1);
         spec.attribute(oiioname, f);
         return;
     }
