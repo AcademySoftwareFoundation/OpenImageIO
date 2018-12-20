@@ -48,6 +48,7 @@
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 
 // For now, let a prior set of OIIO_USE_FMT=0 cause us to fall back to

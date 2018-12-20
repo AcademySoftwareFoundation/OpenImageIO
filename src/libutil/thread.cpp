@@ -44,10 +44,6 @@
 #    define _ENABLE_ATOMIC_ALIGNMENT_FIX /* Avoid MSVS error, ugh */
 #endif
 
-#if defined(WIN32)
-#    include <windows.h>
-#endif
-
 #include <exception>
 #include <functional>
 #include <future>
