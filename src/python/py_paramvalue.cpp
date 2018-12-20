@@ -103,13 +103,19 @@ declare_paramvalue(py::module& m)
 
     py::class_<ParamValueList>(m, "ParamValueList")
         .def(py::init<>())
-        .def("__getitem__", [](ParamValueList& self, int i) { return self[i]; },
+        .def("__getitem__",
+             [](const ParamValueList& self, size_t i) {
+                 if (i >= self.size())
+                     throw py::index_error();
+                 return self[i];
+             },
              py::return_value_policy::reference_internal)
-
-        // .def("__iter__", boost::python::iterator<ParamValueList>())
         .def("__len__", [](const ParamValueList& p) { return p.size(); })
-        // .def("grow",        &ParamValueList::grow,
-        //     py::return_value_policy::reference_internal)
+        .def("__iter__",
+             [](const ParamValueList& self) {
+                 return py::make_iterator(self.begin(), self.end());
+             },
+             py::keep_alive<0, 1>())
         .def("append", [](ParamValueList& p,
                           const ParamValue& v) { return p.push_back(v); })
         .def("clear", &ParamValueList::clear)
