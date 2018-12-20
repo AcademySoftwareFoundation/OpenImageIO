@@ -69,7 +69,6 @@
 #    include <cstdio>
 #    include <io.h>
 #    include <malloc.h>
-#    include <windows.h>
 #else
 #    include <sys/resource.h>
 #endif
