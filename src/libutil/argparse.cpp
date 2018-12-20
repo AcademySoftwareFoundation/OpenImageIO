@@ -279,7 +279,7 @@ ArgOption::set_parameter(int i, const char* argv)
         return;       // don't write anything.
 
     switch (m_code[i]) {
-    case 'd': *(int*)m_param[i] = atoi(argv); break;
+    case 'd': *(int*)m_param[i] = Strutil::stoi(argv); break;
 
     case 'f':
     case 'g': *(float*)m_param[i] = Strutil::stof(argv); break;

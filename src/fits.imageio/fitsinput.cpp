@@ -284,22 +284,22 @@ FitsInput::read_fits_header(void)
         // m_naxes - number of axes
         // width, height and depth of the image
         if (keyname == "BITPIX") {
-            m_bitpix = atoi(&card[10]);
+            m_bitpix = Strutil::stoi(&card[10]);
             continue;
         }
         if (keyname == "NAXIS") {
-            m_naxes = atoi(&card[10]);
+            m_naxes = Strutil::stoi(&card[10]);
             if (m_naxes == 1)  // 1 axis is w x 1 image
                 m_spec.height = m_spec.full_height = 1;
             continue;
         }
         if (keyname == "NAXIS1") {
-            m_spec.width      = atoi(&card[10]);
+            m_spec.width      = Strutil::stoi(&card[10]);
             m_spec.full_width = m_spec.width;
             continue;
         }
         if (keyname == "NAXIS2") {
-            m_spec.height      = atoi(&card[10]);
+            m_spec.height      = Strutil::stoi(&card[10]);
             m_spec.full_height = m_spec.height;
             continue;
         }
@@ -401,21 +401,22 @@ FitsInput::subimage_search()
 std::string
 FitsInput::convert_date(const std::string& date)
 {
+    using Strutil::stoi;
     std::string ndate;
     if (date[4] == '-') {
         // YYYY-MM-DDThh:mm:ss convention is used since 1 January 2000
-        ndate = Strutil::sprintf("%04u:%02u:%02u", atoi(&date[0]),
-                                 atoi(&date[5]), atoi(&date[8]));
+        ndate = Strutil::sprintf("%04u:%02u:%02u", stoi(&date[0]),
+                                 stoi(&date[5]), stoi(&date[8]));
         if (date.size() >= 11 && date[10] == 'T')
-            ndate += Strutil::sprintf(" %02u:%02u:%02u", atoi(&date[11]),
-                                      atoi(&date[14]), atoi(&date[17]));
+            ndate += Strutil::sprintf(" %02u:%02u:%02u", stoi(&date[11]),
+                                      stoi(&date[14]), stoi(&date[17]));
         return ndate;
     }
 
     if (date[2] == '/') {
         // DD/MM/YY convention was used before 1 January 2000
-        ndate = Strutil::sprintf("19%02u:%02u:%02u 00:00:00", atoi(&date[6]),
-                                 atoi(&date[3]), atoi(&date[0]));
+        ndate = Strutil::sprintf("19%02u:%02u:%02u 00:00:00", stoi(&date[6]),
+                                 stoi(&date[3]), stoi(&date[0]));
         return ndate;
     }
     // unrecognized format
