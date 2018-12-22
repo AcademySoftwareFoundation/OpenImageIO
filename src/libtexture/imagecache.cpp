@@ -2730,7 +2730,8 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
 
     // general case -- handle anything else that's able to be found by
     // spec.find_attribute().
-    const ParamValue* p = spec.find_attribute(dataname);
+    ParamValue tmpparam;
+    const ParamValue* p = spec.find_attribute(dataname, tmpparam);
     if (p && p->type().basevalues() == datatype.basevalues()) {
         // First test for exact base type match
         if (p->type().basetype == datatype.basetype) {

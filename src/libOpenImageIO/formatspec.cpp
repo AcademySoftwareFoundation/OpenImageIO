@@ -470,7 +470,8 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
     GETINT(tile_depth);
     GETINT(alpha_channel);
     GETINT(z_channel);
-    // some special cases
+
+    // some special cases -- assemblies of multiple fields or attributes
     if (MATCH("geom", TypeString)) {
         ustring s = (depth <= 1 && full_depth <= 1)
                         ? ustring::sprintf("%dx%d%+d%+d", width, height, x, y)
@@ -487,6 +488,34 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
                                            full_height, full_depth, full_x,
                                            full_y, full_z);
         tmpparam.init("full_geom", TypeString, 1, &s);
+        return &tmpparam;
+    }
+    static constexpr TypeDesc TypeInt_4(TypeDesc::INT, 4);
+    static constexpr TypeDesc TypeInt_6(TypeDesc::INT, 6);
+    if (MATCH("datawindow", TypeInt_4)) {
+        int val[] = { x, y, x + width - 1, y + height - 1 };
+        tmpparam.init(name, TypeInt_4, 1, &val);
+        return &tmpparam;
+    }
+    if (MATCH("datawindow", TypeInt_6)) {
+        int val[] = { x, y, z, x + width - 1, y + height - 1, z + depth - 1 };
+        tmpparam.init(name, TypeInt_6, 1, &val);
+        return &tmpparam;
+    }
+    if (MATCH("displaywindow", TypeInt_4)) {
+        int val[] = { full_x, full_y, full_x + full_width - 1,
+                      full_y + full_height - 1 };
+        tmpparam.init(name, TypeInt_4, 1, &val);
+        return &tmpparam;
+    }
+    if (MATCH("displaywindow", TypeInt_6)) {
+        int val[] = { full_x,
+                      full_y,
+                      full_z,
+                      full_x + full_width - 1,
+                      full_y + full_height - 1,
+                      full_z + full_depth - 1 };
+        tmpparam.init(name, TypeInt_6, 1, &val);
         return &tmpparam;
     }
 #undef GETINT
