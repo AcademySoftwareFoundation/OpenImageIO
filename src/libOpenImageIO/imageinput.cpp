@@ -175,14 +175,16 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
     // native_data is true if the user asking for data in the native format
     bool native_data = (format == TypeDesc::UNKNOWN
                         || (format == m_spec.format && !perchanfile));
+    // buffer_pixel_bytes is the size in the buffer
+    stride_t buffer_pixel_bytes = native_data
+                                      ? native_pixel_bytes
+                                      : format.size() * m_spec.nchannels;
     if (native_data && xstride == AutoStride)
         xstride = native_pixel_bytes;
     else
         m_spec.auto_stride(xstride, format, m_spec.nchannels);
     // Do the strides indicate that the data area is contiguous?
-    bool contiguous = (native_data && xstride == native_pixel_bytes)
-                      || (!native_data
-                          && xstride == (stride_t)m_spec.pixel_bytes(false));
+    bool contiguous = (xstride == buffer_pixel_bytes);
 
     // If user's format and strides are set up to accept the native data
     // layout, read the scanline directly into the user's buffer.
@@ -197,7 +199,7 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
                                    buf);
     if (!ok)
         return false;
-    if (!perchanfile) {
+    if (m_spec.channelformats.empty()) {
         // No per-channel formats -- do the conversion in one shot
         ok = contiguous ? convert_types(m_spec.format, buf, format, data,
                                         scanline_values)
@@ -275,14 +277,14 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
     stride_t zstride = AutoStride;
     spec.auto_stride(xstride, ystride, zstride, format, nchans, spec.width,
                      spec.height);
-    bool contiguous = (xstride == (stride_t)native_pixel_bytes
-                       && ystride == (stride_t)native_scanline_bytes);
-    // If user's format and strides are set up to accept the native data
-    // layout, read the scanlines directly into the user's buffer.
-    bool rightformat = (format == TypeDesc::UNKNOWN)
-                       || (format == spec.format
-                           && spec.channelformats.empty());
-    if (rightformat && contiguous) {
+    stride_t buffer_pixel_bytes = native ? native_pixel_bytes
+                                         : format.size() * nchans;
+    stride_t buffer_scanline_bytes = native ? native_scanline_bytes
+                                            : buffer_pixel_bytes * spec.width;
+    bool contiguous = (xstride == (stride_t)buffer_pixel_bytes
+                       && ystride == (stride_t)buffer_scanline_bytes);
+
+    if (native && contiguous) {
         if (chbegin == 0 && chend == spec.nchannels)
             return read_native_scanlines(subimage, miplevel, ybegin, yend, z,
                                          data);
@@ -446,12 +448,14 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
         xstride = native_pixel_bytes;
     m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
                        m_spec.tile_width, m_spec.tile_height);
+    stride_t buffer_pixel_bytes = native_data
+                                      ? native_pixel_bytes
+                                      : format.size() * m_spec.nchannels;
     // Do the strides indicate that the data area is contiguous?
-    bool contiguous = (native_data && xstride == native_pixel_bytes)
-                      || (!native_data
-                          && xstride == (stride_t)m_spec.pixel_bytes(false));
-    contiguous &= (ystride == xstride * m_spec.tile_width
-                   && (zstride == ystride * m_spec.tile_height || zstride == 0));
+    bool contiguous
+        = xstride == buffer_pixel_bytes
+          && (ystride == xstride * m_spec.tile_width
+              && (zstride == ystride * m_spec.tile_height || zstride == 0));
 
     // If user's format and strides are set up to accept the native data
     // layout, read the tile directly into the user's buffer.
@@ -467,7 +471,7 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
                                &buf[0]);
     if (!ok)
         return false;
-    if (!perchanfile) {
+    if (m_spec.channelformats.empty()) {
         // No per-channel formats -- do the conversion in one shot
         ok = contiguous ? convert_types(m_spec.format, &buf[0], format, data,
                                         tile_values)
@@ -547,11 +551,11 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
     if (spec.undefined())
         return false;
 
-    chend      = clamp(chend, chbegin + 1, spec.nchannels);
-    int nchans = chend - chbegin;
+    chend = clamp(chend, chbegin + 1, spec.nchannels);
     if (!spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
 
+    int nchans = chend - chbegin;
     // native_pixel_bytes is the size of a pixel in the FILE, including
     // the per-channel format.
     stride_t native_pixel_bytes = (stride_t)spec.pixel_bytes(chbegin, chend,

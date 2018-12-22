@@ -500,6 +500,93 @@ test_roi()
 
 
 
+// This tests a particular troublesome case where we got the logic wrong.
+// Read 1-channel float exr into 4-channel uint8 buffer with 4-byte xstride.
+// The correct behavior is to translate the one channel from float to uint8
+// and put it in channel 0, leaving channels 1-3 untouched. The bug was that
+// because the buffer stride and native stride were both 4 bytes, it was
+// incorrectly doing a straight data copy.
+void
+test_read_tricky_sizes()
+{
+    // Make 4x4 1-channel float source image, value 0.5, write it.
+    char srcfilename[] = "tmp_f1.exr";
+    ImageSpec fsize1(4, 4, 1, TypeFloat);
+    ImageBuf src(fsize1);
+    ImageBufAlgo::fill(src, 0.5f);
+    src.write(srcfilename);
+
+    // Make a 4x4 4-channel uint8 buffer, initialize with 0
+    unsigned char buf[4][4][4];
+    memset(buf, 0, 4 * 4 * 4);
+
+    // Read in, make sure it's right, several different ways
+    {
+        auto imgin = ImageInput::open(srcfilename);
+        imgin->read_image(TypeUInt8, buf, 4 /* xstride */);
+        OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
+        OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][3]), 0);
+    }
+    {
+        memset(buf, 0, 4 * 4 * 4);
+        auto imgin = ImageInput::open(srcfilename);
+        imgin->read_scanlines(0, 0, 0, 4, 0, 0, 4, TypeUInt8, buf,
+                              /*xstride=*/4);
+        OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
+        OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][3]), 0);
+    }
+    {
+        memset(buf, 0, 4 * 4 * 4);
+        auto imgin = ImageInput::open(srcfilename);
+        for (int y = 0; y < 4; ++y)
+            imgin->read_scanline(y, 0, TypeUInt8, buf, /*xstride=*/4);
+        OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
+        OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][3]), 0);
+    }
+    // And repeat for tiled
+    src.set_write_tiles(2, 2);
+    src.write(srcfilename);
+    {
+        memset(buf, 0, 4 * 4 * 4);
+        auto imgin = ImageInput::open(srcfilename);
+        imgin->read_image(TypeUInt8, buf, 4 /* xstride */);
+        OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
+        OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][3]), 0);
+    }
+    {
+        memset(buf, 0, 4 * 4 * 4);
+        auto imgin = ImageInput::open(srcfilename);
+        imgin->read_tiles(0, 0, 0, 4, 0, 4, 0, 1, 0, 4, TypeUInt8, buf,
+                          /*xstride=*/4);
+        OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
+        OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][3]), 0);
+    }
+    {
+        memset(buf, 0, 4 * 4 * 4);
+        auto imgin = ImageInput::open(srcfilename);
+        imgin->read_tile(0, 0, 0, TypeUInt8, buf, /*xstride=*/4);
+        OIIO_CHECK_EQUAL(int(buf[0][0][0]), 128);
+        OIIO_CHECK_EQUAL(int(buf[0][0][1]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][2]), 0);
+        OIIO_CHECK_EQUAL(int(buf[0][0][3]), 0);
+    }
+
+    // Clean up
+    Filesystem::remove(srcfilename);
+}
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -529,6 +616,8 @@ main(int argc, char** argv)
 
     test_write_png_to_memory();
     test_write_exr_to_memory();
+
+    test_read_tricky_sizes();
 
     Filesystem::remove("A_imagebuf_test.tif");
     return unit_test_failures;
