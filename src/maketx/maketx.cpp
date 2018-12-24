@@ -139,7 +139,8 @@ parse_files(int argc, const char* argv[])
 
 
 // Concatenate the command line into one string, optionally filtering out
-// verbose attribute commands.
+// verbose attribute commands. Escape control chars in the arguments, and
+// double-quote any that contain spaces.
 static std::string
 command_line_string(int argc, char* argv[], bool sansattrib)
 {
@@ -158,12 +159,15 @@ command_line_string(int argc, char* argv[], bool sansattrib)
                 continue;
             }
         }
-        if (strchr(argv[i], ' ')) {  // double quote args with spaces
+        std::string a = Strutil::escape_chars(argv[i]);
+        // If the string contains spaces
+        if (a.find(' ') != std::string::npos) {
+            // double quote args with spaces
             s += '\"';
-            s += argv[i];
+            s += a;
             s += '\"';
         } else {
-            s += argv[i];
+            s += a;
         }
         if (i < argc - 1)
             s += ' ';
