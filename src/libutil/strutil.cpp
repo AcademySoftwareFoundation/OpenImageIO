@@ -358,25 +358,50 @@ Strutil::unescape_chars(string_view escaped)
 
 
 std::string
-Strutil::wordwrap(string_view src, int columns, int prefix)
+Strutil::wordwrap(string_view src, int columns, int prefix, string_view sep,
+                  string_view presep)
 {
     if (columns < prefix + 20)
         return src;  // give up, no way to make it wrap
     std::ostringstream out;
     columns -= prefix;  // now columns is the real width we have to work with
+    std::string allsep = Strutil::sprintf("%s%s", sep, presep);
     while ((int)src.length() > columns) {
-        // break the string in two
-        size_t breakpoint = src.find_last_of(' ', columns);
+        // Find the last `sep` break before the column limit.
+        size_t breakpoint = src.find_last_of(allsep, columns);
+        // If presep is not empty, find the last presep break before the
+        // column limit and break one character AFTER that, if it's a better
+        // breakpost than the sep break.
+        if (presep.size()) {
+            size_t presep_break = src.find_last_of(presep, columns);
+            if (presep_break >= breakpoint && presep_break < src.size())
+                breakpoint = presep_break + 1;
+        }
+        // If no break was found, punt and hard break at the column limit.
         if (breakpoint == string_view::npos)
             breakpoint = columns;
+        // Copy up to the breakpoint, then newline and prefex blanks.
         out << src.substr(0, breakpoint) << "\n" << std::string(prefix, ' ');
+        // Pick up where we left off
         src = src.substr(breakpoint);
-        while (src[0] == ' ')
+        // Skip any separator characters at the start of the string
+        while (sep.find(src[0]) != string_view::npos)
             src.remove_prefix(1);
     }
     out << src;
     return out.str();
 }
+
+
+
+// DEPRECATED(2.0) -- for link compatibility
+namespace Strutil {
+std::string
+wordwrap(string_view src, int columns, int prefix)
+{
+    return wordwrap(src, columns, prefix, " ", "");
+}
+}  // namespace Strutil
 
 
 
