@@ -700,6 +700,30 @@ test_string_view()
     OIIO_CHECK_EQUAL(sr.rfind('1', 4), s.rfind('1', 4));
     OIIO_CHECK_EQUAL(sr.rfind('1', 4), 1);
     OIIO_CHECK_EQUAL(sr.rfind('5', 4), string_view::npos);
+
+    OIIO_CHECK_EQUAL(sr.find_first_of('2'), 2);
+    OIIO_CHECK_EQUAL(sr.find_first_of("23"), 2);
+    OIIO_CHECK_EQUAL(sr.find_first_of("xyz"), string_view::npos);
+    OIIO_CHECK_EQUAL(sr.find_first_of('2', 5), 7);
+    OIIO_CHECK_EQUAL(sr.find_first_of("23", 5), 7);
+
+    OIIO_CHECK_EQUAL(sr.find_last_of('2'), 7);
+    OIIO_CHECK_EQUAL(sr.find_last_of("23"), 8);
+    OIIO_CHECK_EQUAL(sr.find_last_of("xyz"), string_view::npos);
+    OIIO_CHECK_EQUAL(sr.find_last_of('2', 5), 2);
+    OIIO_CHECK_EQUAL(sr.find_last_of("23", 5), 3);
+
+    OIIO_CHECK_EQUAL(sr.find_first_not_of('0'), 1);
+    OIIO_CHECK_EQUAL(sr.find_first_not_of("012"), 3);
+    OIIO_CHECK_EQUAL(sr.find_first_not_of('0', 5), 6);
+    OIIO_CHECK_EQUAL(sr.find_first_not_of("012", 5), 8);
+    OIIO_CHECK_EQUAL(sr.find_first_of("xyz"), string_view::npos);
+
+    OIIO_CHECK_EQUAL(sr.find_last_not_of('4'), 8);
+    OIIO_CHECK_EQUAL(sr.find_last_not_of("234"), 6);
+    OIIO_CHECK_EQUAL(sr.find_last_not_of('4', 5), 3);
+    OIIO_CHECK_EQUAL(sr.find_last_not_of("234", 5), 1);
+    OIIO_CHECK_EQUAL(sr.find_last_of("xyz"), string_view::npos);
 }
 
 
