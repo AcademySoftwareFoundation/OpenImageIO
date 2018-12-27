@@ -260,37 +260,52 @@ public:
 
     size_type find_last_of (charT c, size_t pos=npos) const { return rfind (c, pos); }
 
-    size_type find_first_of (string_view s) const {
-        const_iterator i = std::find_first_of (this->cbegin(), this->cend(),
+    size_type find_first_of (string_view s, size_t pos=0) const {
+        if (pos >= size())
+            return npos;
+        const_iterator i = std::find_first_of (this->cbegin()+pos, this->cend(),
                                                s.cbegin(), s.cend(), traits::eq);
         return i == this->cend() ? npos : std::distance (this->cbegin(), i);
     }
 
-    size_type find_last_of (string_view s) const {
-        const_reverse_iterator i = std::find_first_of (this->crbegin(), this->crend(),
+    size_type find_last_of (string_view s, size_t pos=npos) const {
+        if (pos > size())
+            pos = size();
+        size_t off = size()-pos;
+        const_reverse_iterator i = std::find_first_of (this->crbegin()+off, this->crend(),
                                                        s.cbegin(), s.cend(), traits::eq);
         return i == this->crend() ? npos : reverse_distance (this->crbegin(), i);
     }
 
-    size_type find_first_not_of (string_view s) const {
-        const_iterator i = find_not_of (this->cbegin(), this->cend(), s);
+    size_type find_first_not_of (string_view s, size_t pos=0) const {
+        if (pos >= size())
+            return npos;
+        const_iterator i = find_not_of (this->cbegin()+pos, this->cend(), s);
         return i == this->cend() ? npos : std::distance (this->cbegin(), i);
     }
 
-    size_type find_first_not_of (charT c) const {
-        for (const_iterator i = this->cbegin(); i != this->cend(); ++i)
+    size_type find_first_not_of (charT c, size_t pos=0) const {
+        if (pos >= size())
+            return npos;
+        for (const_iterator i = this->cbegin()+pos; i != this->cend(); ++i)
             if (! traits::eq (c, *i))
                 return std::distance (this->cbegin(), i);
         return npos;
     }
 
-    size_type find_last_not_of (string_view s) const {
-        const_reverse_iterator i = find_not_of (this->crbegin(), this->crend(), s);
+    size_type find_last_not_of (string_view s, size_t pos=npos) const {
+        if (pos > size())
+            pos = size();
+        size_t off = size()-pos;
+        const_reverse_iterator i = find_not_of (this->crbegin()+off, this->crend(), s);
         return i == this->crend() ? npos : reverse_distance (this->crbegin(), i);
     }
 
-    size_type find_last_not_of (charT c) const {
-        for (const_reverse_iterator i = this->crbegin(); i != this->crend(); ++i)
+    size_type find_last_not_of (charT c, size_t pos=npos) const {
+        if (pos > size())
+            pos = size();
+        size_t off = size()-pos;
+        for (const_reverse_iterator i = this->crbegin()+off; i != this->crend(); ++i)
             if (! traits::eq (c, *i))
                 return reverse_distance (this->crbegin(), i);
         return npos;
