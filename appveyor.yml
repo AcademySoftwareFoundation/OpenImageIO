@@ -12,18 +12,23 @@ platform:
 #     - master
 environment:
   matrix:
-    # - CMAKE_PLATFORM: "Visual Studio 14 2015"
-    #   PYTHON_DIR: "C:\\Python27"
     - CMAKE_PLATFORM: "Visual Studio 14 2015 Win64"
       PYTHON_DIR: "C:\\Python27-x64"
       tbs_arch: "x64"
       tbs_tools: "msvc14"
       tbs_static_runtime: 0
 
+cache:
+  - C:\tools\vcpkg\installed
+  #- C:\tools\vcpkg -> appveyor.yml
+  #- C:\projects\ext -> appveyor.yml
+  # The -> means that the cache dir is discarded if appveyor.yml has changed
+
 install:
+  - ps: $OIIO_INSTALL_BEGIN=Get-Date
   - cinstall: python
   - git submodule update --init --recursive
-  - set CMAKE_PREFIX_PATH=C:/Sys;%APPVEYOR_BUILD_FOLDER%/ext
+  - set CMAKE_PREFIX_PATH=C:/Sys;%APPVEYOR_BUILD_FOLDER%/ext;c:/tools/vcpkg/installed/%platform%-windows
   - set CMAKE_LIBRARY_PATH=C:/Sys/lib;%APPVEYOR_BUILD_FOLDER%/ext/lib
   - set CMAKE_INCLUDE_PATH=C:/Sys/include;%APPVEYOR_BUILD_FOLDER%/ext/include
   - mkdir c:\sys
@@ -32,83 +37,62 @@ install:
   - mkdir lib
   - mkdir include
 
-  # ZLIB
-  - appveyor DownloadFile https://github.com/madler/zlib/archive/v1.2.8.tar.gz
-  - 7z x v1.2.8.tar.gz -so | 7z x -si -ttar
-  - cd zlib-1.2.8
-  - cmake -G "%CMAKE_PLATFORM%" . -DCMAKE_INSTALL_PREFIX=C:/Sys
-  - cmake --build . --config Release
-  - cmake --build . --config Release --target install
-  - cd ..
-
-  # TIFF
-  - nuget install libtiff-%tbs_tools%-%tbs_arch%-master -Version 4.0.6.85 -Source https://ci.appveyor.com/nuget/libtiff-i3h8tqqy7o7b &&
-      powershell -Command "move libtiff*\* . -force" 
-
-  # PNG
-  - nuget install libpng-%tbs_tools%-%tbs_arch%-master -Version 1.6.18.44 -Source https://ci.appveyor.com/nuget/libpng-7hwq4pmmrc48
-  - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/ext/libpng-msvc14-x64-master.1.6.18.44
-
-  # OpenEXR   FIXME - this is 2.0?
-  - set EXRINSTALLDIR=%APPVEYOR_BUILD_FOLDER%/ext/openexr-install
-  - set EXRVERSION=2.2.0
-  - mkdir openexr-install
-  - git clone -b v%EXRVERSION% https://github.com/openexr/openexr.git ./openexr
-  - cd openexr
-  - dir
-  - cd IlmBase
-  - mkdir build
-  - cd build
-  - cmake -G "%CMAKE_PLATFORM%" --config Release -DCMAKE_CXX_FLAGS="/W0 /EHsc" -DCMAKE_INSTALL_PREFIX=C:/Sys ..
-  - cmake --build . --config Release
-  - cmake --build . --config Release --target install
-  - dir C:\Sys
-  - dir C:\Sys\lib
-  - dir C:\Sys\include
-  - cd ../../OpenEXR
-  - mkdir build
-  # Huge cheat -- substitute our own tables to save compile time, and
-  # a modified IlmImf/CMakeLists.txt that skips the files if already present
-  - copy %APPVEYOR_BUILD_FOLDER%\src\build-scripts\OpenEXR-CMakeLists.txt CMakeLists.txt
-  - copy %APPVEYOR_BUILD_FOLDER%\src\build-scripts\OpenEXR-IlmImf-CMakeLists.txt IlmImf\CMakeLists.txt
-  - cd build
-  - mkdir IlmImf
-  - 7z x -oIlmImf "%APPVEYOR_BUILD_FOLDER%/src/build-scripts/b44ExpLogTable.h.zip"
-  - 7z x -oIlmImf "%APPVEYOR_BUILD_FOLDER%/src/build-scripts/dwaLookups.h.zip"
-  - dir IlmImf
-  - cmake -G "%CMAKE_PLATFORM%" --config Release -DCMAKE_CXX_FLAGS="/W0 /EHsc" -DCMAKE_INSTALL_PREFIX=C:/Sys -DCMAKE_PREFIX_PATH=c:/sys -DILMBASE_PACKAGE_PREFIX=c:/sys -DBUILD_UTILS=0 -DBUILD_TESTS=0 ..
-  - cmake --build . --config Release
-  - cmake --build . --config Release --target install
-  - cd ../../..
-  - dir
-
-  # JPEG
-  - nuget install libjpeg-%tbs_tools%-%tbs_arch%-master -Version 1.4.80.21 -Source https://ci.appveyor.com/nuget/libjpegturbo-o6k4js4y7pjw
-  - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/ext/libjpeg-msvc14-x64-master.1.4.80.21
-
   # Boost
+  # 1.63 is already installed on appveyor, just use it
   - set BOOST_ROOT=C:\Libraries\boost_1_63_0
-  - dir %BOOST_ROOT%
-  - set BOOST_LIBRARYDIR=C:\Libraries\boost_1_63_0\lib64-msvc-14.0
   - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%BOOST_ROOT%
 
-  # OpenColorIO
-  # - svn co https://svn.blender.org/svnroot/bf-blender/trunk//lib/win64_vc14/OpenColorIO
-  # - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/ext/OpenColorIO
+  # Install a bunch of vcpkg dependencies. We rely on the run-to-run caching
+  # of these, but if the cache is flushed, it takes too long to rebuild them
+  # all, so we stage it.
+  - vcpkg list
+  - vcpkg update
+  # - vcpkg help triplet
 
-  # FFmpeg
-  # - svn co https://svn.blender.org/svnroot/bf-blender/trunk//lib/win64/ffmpeg
-  # - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/ext/ffmpeg
+  # Dependencies that don't take too long, just build them unconditionally.
+  - vcpkg install zlib:"%platform%"-windows
+  - vcpkg install tiff:"%platform%"-windows
+  - vcpkg install libpng:"%platform%"-windows
+  - vcpkg install openexr:"%platform%"-windows
+  - vcpkg install freetype:"%platform%"-windows
+  - vcpkg install giflib:"%platform%"-windows
+  - vcpkg install libwebp:"%platform%"-windows
+  - vcpkg install openjpeg:"%platform%"-windows
+  - vcpkg install ptex:"%platform%"-windows
+  - vcpkg install libraw:x64-windows
 
-  # Freetype
-  # - nuget install freetype-%tbs_tools%-%tbs_arch%-master -Version 2.6.2.1 -Source https://ci.appveyor.com/nuget/freetype-vf7bw7v5ec29
-  # - ps: move freetype*\* ext -force
-  # - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;%APPVEYOR_BUILD_FOLDER%/ext/freetype
+  # These are all deps for qt, install these first to isolate from the
+  # huge time it takes qt to build
+  - vcpkg install double-conversion:x64-windows
+  - vcpkg install harfbuzz:x64-windows
+  - vcpkg install libpq:x64-windows
+  - vcpkg install openssl:x64-windows
+  - vcpkg install pcre2:x64-windows
+  - vcpkg install ragel:x64-windows
+  - vcpkg install sqlite3:x64-windows
+
+  # Expensive optional deps only build if there's plenty of time left.
+  # If we run out the clock, the cache won't be saved.
+  - ps: |
+        $OIIO_BUILD_NOW=Get-Date
+        if (($OIIO_BUILD_NOW-$OIIO_INSTALL_BEGIN).TotalMinutes -gt 15) {
+            Add-AppveyorMessage -Message "OIIO low on time, skippping dependency qt5-base"
+        } else {
+            vcpkg install qt5-base:x64-windows
+        }
+
+  # Wish list:
+  #   OpenCV
+  #   ffmpeg
+  #   OpenColorIO
 
   - cd ..
   - dir C:\Sys
-  - dir C:\Sys\include
-  - dir C:\Sys\lib
+  # - dir C:\Sys\include
+  # - dir C:\Sys\lib
+  - vcpkg list
+  - dir c:\tools\vcpkg
+  - dir c:\tools\vcpkg\installed\x64-windows
   - dir C:\projects\oiio\ext
   - dir C:\projects\oiio\ext\include
   - dir C:\projects\oiio\ext\lib
@@ -120,7 +104,8 @@ build_script:
   - mkdir build
   - mkdir build\windows64
   - cd build\windows64
-  - cmake -G "%CMAKE_PLATFORM%" -DPYTHON_INCLUDE_DIR:PATH=%PYTHON_DIR%/include -DPYTHON_LIBRARY:FILEPATH=%PYTHON_DIR%/libs/python27.lib -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe -DCMAKE_LIBRARY_PATH=%CMAKE_LIBRARY_PATH% -DCMAKE_INCLUDE_PATH=%CMAKE_INCLUDE_PATH%  -DCMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH% -DOPENEXR_ROOT_DIR=C:\projects\oiio\ext -DVERBOSE=1 -DBUILD_MISSING_DEPS=1 ../..
+  - cmake -G "%CMAKE_PLATFORM%" -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake \
+      -DPYTHON_INCLUDE_DIR:PATH=%PYTHON_DIR%/include -DPYTHON_LIBRARY:FILEPATH=%PYTHON_DIR%/libs/python27.lib -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe -DCMAKE_LIBRARY_PATH=%CMAKE_LIBRARY_PATH% -DCMAKE_INCLUDE_PATH=%CMAKE_INCLUDE_PATH%  -DCMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH% -DOPENEXR_ROOT_DIR=C:\projects\oiio\ext -DVERBOSE=1 -DBUILD_MISSING_DEPS=1 ../..
   - dir c:\projects\oiio
   - dir c:\projects\oiio\build
   - dir c:\projects\oiio\build\windows64
