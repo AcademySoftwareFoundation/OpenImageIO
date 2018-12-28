@@ -685,11 +685,12 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
                                || m_photometric == PHOTOMETRIC_ITULAB
                                || m_photometric == PHOTOMETRIC_LOGL
                                || m_photometric == PHOTOMETRIC_LOGLUV);
-        if (is_jpeg || (is_nonspectral && !m_raw_color)) {
+        if ((is_jpeg && m_spec.nchannels != 3)
+            || (is_nonspectral && !m_raw_color)) {
             char emsg[1024];
             m_use_rgba_interface = true;
             if (!TIFFRGBAImageOK(m_tif, emsg)) {
-                error("No support for this flavor of TIFF file");
+                errorf("No support for this flavor of TIFF file (%s)", emsg);
                 return false;
             }
             // This falls back to looking like uint8 images
