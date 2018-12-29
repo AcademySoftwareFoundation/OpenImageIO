@@ -345,6 +345,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         case dpx::kPALCompositeVideo:
         case dpx::kZLinear:
         case dpx::kZHomogeneous:
+        case dpx::kADX:
         case dpx::kUndefinedCharacteristic:*/
     default: break;
     }
@@ -633,6 +634,7 @@ DPXInput::get_characteristic_string(dpx::Characteristic c)
     case dpx::kPALCompositeVideo: return "PAL composite video";
     case dpx::kZLinear: return "Z depth linear";
     case dpx::kZHomogeneous: return "Z depth homogeneous";
+    case dpx::kADX: return "ADX";
     case dpx::kUndefinedCharacteristic:
     default: return "Undefined";
     }
