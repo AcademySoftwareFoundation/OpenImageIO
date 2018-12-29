@@ -189,20 +189,21 @@ namespace dpx
 	 */
 	enum Characteristic 
 	{
-		kUserDefined = 0,								//!< User defined
-		kPrintingDensity,								//!< Printing density
-		kLinear,										//!< Linear, transfer only
-		kLogarithmic,									//!< Logarithmic, transfer only
-		kUnspecifiedVideo,								//!< Unspecified video
-		kSMPTE274M,										//!< SMPTE 274M
-		kITUR709,										//!< ITU-R 709-4
-		kITUR601,										//!< ITU-R 601-5 system B or G
-		kITUR602,										//!< ITU-R 601-5 system M
-		kNTSCCompositeVideo,							//!< NTSC composite video
-		kPALCompositeVideo,								//!< PAL composite video
-		kZLinear,										//!< Z depth linear, transfer only
-		kZHomogeneous,									//!< Z depth homogeneous, transfer only
-		kUndefinedCharacteristic = 0xff					//!< Undefined
+		kUserDefined = 0,					//!< User defined
+		kPrintingDensity = 1,				//!< Printing density
+		kLinear = 2,						//!< Linear, transfer only
+		kLogarithmic = 3,					//!< Logarithmic, transfer only
+		kUnspecifiedVideo = 4,				//!< Unspecified video
+		kSMPTE274M = 5,						//!< SMPTE 274M
+		kITUR709 = 6,						//!< ITU-R 709-4
+		kITUR601 = 7,						//!< ITU-R 601-5 system B or G
+		kITUR602 = 8,						//!< ITU-R 601-5 system M
+		kNTSCCompositeVideo = 9,			//!< NTSC composite video
+		kPALCompositeVideo = 10,			//!< PAL composite video
+		kZLinear = 11,						//!< Z depth linear, transfer only
+		kZHomogeneous = 12,					//!< Z depth homogeneous, transfer only
+        kADX = 13,                          //!< SMPTE ST 2065-3 Academy Density Exchange Encoding (ADX)
+		kUndefinedCharacteristic = 0xff		//!< Undefined
 	};
 
 	

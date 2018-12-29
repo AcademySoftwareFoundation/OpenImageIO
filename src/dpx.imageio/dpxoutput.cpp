@@ -695,6 +695,8 @@ DPXOutput::get_characteristic_from_string(const std::string& str)
         return dpx::kZLinear;
     else if (Strutil::iequals(str, "Z depth homogeneous"))
         return dpx::kZHomogeneous;
+    else if (Strutil::iequals(str, "ADX"))
+        return dpx::kADX;
     else
         return dpx::kUndefinedCharacteristic;
 }
