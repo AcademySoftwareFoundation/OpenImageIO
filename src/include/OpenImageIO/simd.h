@@ -1155,6 +1155,10 @@ void transpose (const vint4& a, const vint4& b, const vint4& c, const vint4& d,
 
 vint4 AxBxCxDx (const vint4& a, const vint4& b, const vint4& c, const vint4& d);
 
+// safe_mod(a,b) is like a%b, but safely returns 0 when b==0.
+vint4 safe_mod (const vint4& a, const vint4& b);
+vint4 safe_mod (const vint4& a, int b);
+
 
 
 
@@ -1442,6 +1446,10 @@ vint8 andnot (const vint8& a, const vint8& b);
 vint8 bitcast_to_int (const vbool8& x);
 vint8 bitcast_to_int (const vfloat8& x);
 vfloat8 bitcast_to_float (const vint8& x);
+
+// safe_mod(a,b) is like a%b, but safely returns 0 when b==0.
+vint8 safe_mod (const vint8& a, const vint8& b);
+vint8 safe_mod (const vint8& a, int b);
 
 
 
@@ -1743,6 +1751,10 @@ vint16 andnot (const vint16& a, const vint16& b);
 vint16 bitcast_to_int (const vbool16& x);
 vint16 bitcast_to_int (const vfloat16& x);
 vfloat16 bitcast_to_float (const vint16& x);
+
+// safe_mod(a,b) is like a%b, but safely returns 0 when b==0.
+vint16 safe_mod (const vint16& a, const vint16& b);
+vint16 safe_mod (const vint16& a, int b);
 
 
 
@@ -4711,6 +4723,17 @@ OIIO_FORCEINLINE vbool4::vbool4 (const vint4& ival) {
 
 
 
+OIIO_FORCEINLINE vint4 safe_mod (const vint4& a, const vint4& b) {
+    // NO INTEGER MODULUS IN SSE!
+    SIMD_RETURN (vint4, b[i] ? a[i] % b[i] : 0);
+}
+
+OIIO_FORCEINLINE vint4 safe_mod (const vint4& a, int b) {
+    return b ? (a % b) : vint4::Zero();
+}
+
+
+
 
 //////////////////////////////////////////////////////////////////////
 // vint8 implementation
@@ -5486,6 +5509,17 @@ OIIO_FORCEINLINE vbool8::vbool8 (const vint8& ival) {
 
 
 
+OIIO_FORCEINLINE vint8 safe_mod (const vint8& a, const vint8& b) {
+    // NO INTEGER MODULUS IN SSE!
+    SIMD_RETURN (vint8, b[i] ? a[i] % b[i] : 0);
+}
+
+OIIO_FORCEINLINE vint8 safe_mod (const vint8& a, int b) {
+    return b ? (a % b) : vint8::Zero();
+}
+
+
+
 
 //////////////////////////////////////////////////////////////////////
 // vint16 implementation
@@ -6252,6 +6286,17 @@ OIIO_FORCEINLINE vint16 andnot (const vint16& a, const vint16& b) {
 #else
     return vint16 (andnot(a.lo(), b.lo()), andnot(a.hi(), b.hi()));
 #endif
+}
+
+
+
+OIIO_FORCEINLINE vint16 safe_mod (const vint16& a, const vint16& b) {
+    // NO INTEGER MODULUS IN SSE!
+    SIMD_RETURN (vint16, b[i] ? a[i] % b[i] : 0);
+}
+
+OIIO_FORCEINLINE vint16 safe_mod (const vint16& a, int b) {
+    return b ? (a % b) : vint16::Zero();
 }
 
 
