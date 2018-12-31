@@ -257,6 +257,15 @@ rotl64(uint64_t x, int k)
 }
 
 
+
+// safe_mod is like integer a%b, but safely returns 0 when b==0.
+template <class T>
+inline OIIO_HOSTDEVICE T
+safe_mod(T a, T b)
+{
+    return b ? (a % b) : T(0);
+}
+
 // (end of integer helper functions)
 ////////////////////////////////////////////////////////////////////////////
 
