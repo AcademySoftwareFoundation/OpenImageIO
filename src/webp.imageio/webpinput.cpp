@@ -32,6 +32,7 @@
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
 
 #include <webp/decode.h>
@@ -128,10 +129,11 @@ WebpInput::open(const std::string& name, ImageSpec& spec)
         return false;
     }
 
-    const int CHANNEL_NUM = 4;
-    m_scanline_size       = width * CHANNEL_NUM;
-    m_spec = ImageSpec(width, height, CHANNEL_NUM, TypeDesc::UINT8);
-    spec   = m_spec;
+    const int nchannels = 4;
+    m_scanline_size     = width * nchannels;
+    m_spec              = ImageSpec(width, height, nchannels, TypeDesc::UINT8);
+    m_spec.attribute("oiio:ColorSpace", "sRGB");  // webp is always sRGB
+    spec = m_spec;
 
     if (!(m_decoded_image = WebPDecodeRGBA(&encoded_image[0],
                                            encoded_image.size(), &m_spec.width,
@@ -140,6 +142,17 @@ WebpInput::open(const std::string& name, ImageSpec& spec)
         close();
         return false;
     }
+
+
+    // WebP requires unassociated alpha, and it's sRGB.
+    // Handle this all by wrapping an IB around it.
+    ImageSpec specwrap(m_spec.width, m_spec.height, 4, TypeUInt8);
+    ImageBuf bufwrap(specwrap, m_decoded_image);
+    ROI rgbroi(0, m_spec.width, 0, m_spec.height, 0, 1, 0, 3);
+    ImageBufAlgo::pow(bufwrap, bufwrap, 2.2f, rgbroi);
+    ImageBufAlgo::premult(bufwrap, bufwrap);
+    ImageBufAlgo::pow(bufwrap, bufwrap, 1.0f / 2.2f, rgbroi);
+
     return true;
 }
 
@@ -155,7 +168,7 @@ WebpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     // if (! seek_subimage (subimage, miplevel))
     //     return false;
 
-    if (y < 0 || y >= m_spec.width)  // out of range scanline
+    if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
     memcpy(data, &m_decoded_image[y * m_scanline_size], m_scanline_size);
     return true;
@@ -170,8 +183,7 @@ WebpInput::close()
         m_file = NULL;
     }
     if (m_decoded_image) {
-        free(
-            m_decoded_image);  // this was allocated by WebPDecodeRGB and should be fread by free
+        free(m_decoded_image);
         m_decoded_image = NULL;
     }
     return true;
