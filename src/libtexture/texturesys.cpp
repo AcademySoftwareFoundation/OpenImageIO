@@ -186,15 +186,12 @@ TextureSystemImpl::wrap_periodic_sharedborder(int& coord, int origin, int width)
     // Like periodic, but knowing that the first column and last are
     // actually the same position, so we essentially skip the last
     // column in the next cycle.
-    if (width <= 2) {
-        coord = origin;  // special case -- just 1 pixel wide
-    } else {
-        coord -= origin;
-        coord %= (width - 1);
-        if (coord < 0)  // Fix negative values
-            coord += width;
-        coord += origin;
-    }
+    width = std::max(width, 2);  // avoid %0 for width=1
+    coord -= origin;
+    coord = safe_mod(coord, width - 1);
+    if (coord < 0)  // Fix negative values
+        coord += width;
+    coord += origin;
     return true;
 }
 
@@ -290,11 +287,9 @@ wrap_periodic_sharedborder_simd(simd::vint4& coord_, const simd::vint4& origin,
     // column in the next cycle.
     simd::vint4 coord(coord_);
     coord = coord - origin;
-    coord = coord % (width - 1);
+    coord = safe_mod(coord, (width - 1));
     coord += blend(simd::vint4(origin), width + origin,
                    coord < 0);  // Fix negative values
-    coord  = blend(coord, origin,
-                  width <= 2);  // special case -- just 1 pixel wide
     coord_ = coord;
     return true;
 }
