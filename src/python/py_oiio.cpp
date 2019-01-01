@@ -93,9 +93,10 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
         || pybuf.size
                != int64_t(width) * int64_t(height) * int64_t(depth * nchans)) {
         format = TypeUnknown;  // Something went wrong
-        throw std::length_error(Strutil::sprintf(
+        error  = Strutil::sprintf(
             "buffer is wrong size (expected %dx%dx%dx%d, got total %d)", depth,
-            height, width, nchans, pybuf.size));
+            height, width, nchans, pybuf.size);
+        return;
     }
     size = pybuf.size;
     if (pixeldims == 3) {
@@ -116,7 +117,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             zstride = pybuf.strides[0];
         } else {
             format = TypeUnknown;  // No idea what's going on -- error
-            throw std::invalid_argument("Bad pixeldims in oiio_bufinfo ctr");
+            error  = "Bad dimensions of pixel data";
         }
     } else if (pixeldims == 2) {
         // Reading an 2D image rectangle
@@ -136,9 +137,9 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
                 xstride = pybuf.strides[0] * nchans;
             } else {
                 format = TypeUnknown;  // error
-                throw std::invalid_argument(Strutil::sprintf(
+                error  = Strutil::sprintf(
                     "Can't figure out array shape (pixeldims=%d, pydim=%d)",
-                    pixeldims, pybuf.ndim));
+                    pixeldims, pybuf.ndim);
             }
         } else if (pybuf.ndim == 1
                    && pybuf.shape[0] == height * width * nchans) {
@@ -146,9 +147,9 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             // just rely on autostride
         } else {
             format = TypeUnknown;  // No idea what's going on -- error
-            throw std::invalid_argument(Strutil::sprintf(
+            error  = Strutil::sprintf(
                 "Can't figure out array shape (pixeldims=%d, pydim=%d)",
-                pixeldims, pybuf.ndim));
+                pixeldims, pybuf.ndim);
         }
     } else if (pixeldims == 1) {
         // Reading a 1D scanline span
@@ -161,20 +162,19 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
             xstride = pybuf.strides[0] * nchans;
         } else {
             format = TypeUnknown;  // No idea what's going on -- error
-            throw std::invalid_argument(Strutil::sprintf(
+            error  = Strutil::sprintf(
                 "Can't figure out array shape (pixeldims=%d, pydim=%d)",
-                pixeldims, pybuf.ndim));
+                pixeldims, pybuf.ndim);
         }
     } else {
-        throw std::invalid_argument(Strutil::sprintf(
+        error = Strutil::sprintf(
             "Can't figure out array shape (pixeldims=%d, pydim=%d)", pixeldims,
-            pybuf.ndim));
+            pybuf.ndim);
     }
 
     if (nchans > 1 && size_t(pybuf.strides.back()) != format.size()) {
         format = TypeUnknown;  // can't handle noncontig channels
-        throw std::invalid_argument(
-            "Can't handle numpy array with noncontiguous channels");
+        error  = "Can't handle numpy array with noncontiguous channels";
     }
     if (format != TypeUnknown)
         data = pybuf.ptr;

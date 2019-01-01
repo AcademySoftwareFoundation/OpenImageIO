@@ -390,6 +390,7 @@ struct oiio_bufinfo {
     void* data       = nullptr;
     stride_t xstride = AutoStride, ystride = AutoStride, zstride = AutoStride;
     size_t size = 0;
+    std::string error;
 
     oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
                  int height, int depth, int pixeldims);
