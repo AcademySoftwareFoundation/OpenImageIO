@@ -40,6 +40,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/optparser.h>
 #include <OpenImageIO/parallel.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
@@ -142,6 +143,27 @@ public:
     }
 };
 static TimingLog timing_log;
+
+
+
+// Pipe-fitting class to set global options, for the sake of optparser.
+struct GlobalOptSetter {
+public:
+    template<typename T> bool attribute(string_view name, T val) const
+    {
+        return OIIO::attribute(name, val);
+    }
+};
+
+
+// Trick to force get the "OPENIMAGEIO_OPTIONS" env var on startup.
+bool force_global_opts = []() {
+    auto options = Sysutil::getenv("OPENIMAGEIO_OPTIONS");
+    // std::cout << "OPTIONS: '" << options << "'\n";
+    if (!options.empty())
+        attribute("options", options);
+    return true;
+}();
 
 }  // namespace
 
@@ -283,6 +305,10 @@ pvt::log_time(string_view key, const Timer& timer)
 bool
 attribute(string_view name, TypeDesc type, const void* val)
 {
+    if (name == "options" && type == TypeDesc::STRING) {
+        GlobalOptSetter gos;
+        return optparser(gos, *(const char**)val);
+    }
     if (name == "threads" && type == TypeInt) {
         int ot = Imath::clamp(*(const int*)val, 0, maxthreads);
         if (ot == 0)
