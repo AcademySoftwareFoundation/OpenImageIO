@@ -1115,6 +1115,19 @@ attribute is a string), the attribute will not be modified, and {\cf
 
 \noindent The following are the recognized attributes:
 
+\apiitem{string options}
+\vspace{10pt}
+This catch-all is simply a comma-separated list of {\cf name=value}
+settings of named options, which will be parsed and individually set.
+For example,
+\begin{code}
+        OIIO::attribute ("options", "threads=4,log_times=1");
+\end{code}
+Note that if an option takes a string value that must itself contain a
+comma, it is permissible to enclose the value in either single ({\cf ' '})
+or double ({\cf " "}) quotes.
+\apiend
+
 \apiitem{int threads}
 \vspace{10pt}
 \index{threads} \label{sec:attribute:threads}
@@ -1348,6 +1361,21 @@ for a particular format.
 There are a few special environment variables that can be used to control
 \product at times that it is not convenient to set options individually from
 inside the source code.
+
+\apiitem{OPENIMAGEIO_OPTIONS}
+\NEW % 2.0
+Allows you to seed the global \product-wide options.
+
+The value of the environment variable should be a comma-separated list of
+\emph{name=value} settings. If a value is a string that itself needs to
+contain commas, it may be enclosed in single or double quotes.
+
+Upon startup, the contents of this environment variable will be passed
+to a call to:
+\begin{code}
+    OIIO::attribute ("options", value);
+\end{code}
+\apiend
 
 \apiitem{OPENIMAGEIO_IMAGECACHE_OPTIONS}
 Allows you to seed the options for any \ImageCache created.

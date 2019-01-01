@@ -74,11 +74,11 @@ optparse1(C& system, const std::string& opt)
     // otherwise treat it as a string
 
     // trim surrounding double quotes
-    if (value.size() >= 2 && value[0] == '\"'
-        && value[value.size() - 1] == '\"')
+    if (value.size() >= 2 && (value[0] == '\"' || value[0] == '\'')
+        && value[value.size() - 1] == value[0])
         value = std::string(value, 1, value.size() - 2);
 
-    return system.attribute(name.c_str(), value.c_str());
+    return system.attribute(name, value);
 }
 
 
@@ -98,12 +98,17 @@ optparser(C& system, const std::string& optstring)
     size_t pos = 0;
     while (pos < len) {
         std::string opt;
-        bool inquote = false;
+        char inquote = 0;
         while (pos < len) {
             unsigned char c = optstring[pos];
-            if (c == '\"') {
-                // Hit a double quote -- toggle "inquote" and add the quote
-                inquote = !inquote;
+            if (c == inquote) {
+                // Ending a quote
+                inquote = 0;
+                opt += c;
+                ++pos;
+            } else if (c == '\"' || c == '\'') {
+                // Found a quote
+                inquote = c;
                 opt += c;
                 ++pos;
             } else if (c == ',' && !inquote) {
