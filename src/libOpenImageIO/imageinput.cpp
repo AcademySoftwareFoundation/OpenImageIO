@@ -698,9 +698,6 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
         }
     }
 
-    if (!ok)
-        errorf("ImageInput::read_tiles : no support for format %s",
-               spec.format);
     return ok;
 }
 
