@@ -324,6 +324,16 @@ TIFFOutput::supports(string_view feature) const
 #define ICC_PROFILE_ATTR "ICCProfile"
 
 
+// Do all elements of vector d have value v?
+template<typename T>
+inline bool
+allval(const std::vector<T>& d, T v = T(0))
+{
+    return std::all_of(d.begin(), d.end(), [&](const T& a) { return a == v; });
+}
+
+
+
 bool
 TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                  OpenMode mode)
@@ -352,8 +362,17 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     }
     if (m_spec.depth < 1)
         m_spec.depth = 1;
+    if (m_spec.channelformats.size()) {
+        if (allval(m_spec.channelformats, m_spec.format))
+            m_spec.channelformats.clear();
+        else {
+            errorf("%s does not support per-channel data formats",
+                   format_name());
+            return false;
+        }
+    }
 
-        // Open the file
+    // Open the file
 #ifdef _WIN32
     std::wstring wname = Strutil::utf8_to_utf16(name);
     m_tif = TIFFOpenW(wname.c_str(), mode == AppendSubimage ? "a" : "w");
