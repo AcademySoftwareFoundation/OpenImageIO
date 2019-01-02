@@ -663,7 +663,7 @@ arbitrary metadata, and arbitrary numbers of color channels.  OpenEXR
 files use the file extension {\cf .exr}.
 The official OpenEXR site is \url{http://www.openexr.com/}.
 
-%\subsubsection*{Attributes}
+\subsubsection*{Attributes}
 \vspace{.125in}
 
 \noindent\begin{longtable}{p{1.95in}|p{0.5in}|p{2.8in}}
@@ -717,6 +717,43 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
 \emph{other} & & All other attributes will be added to the \ImageSpec by their
   name and apparent type.
 \end{longtable}
+
+\subsubsection*{Configuration settings for OpenEXR input}
+
+When opening an OpenEXR \ImageInput with a \emph{configuration} (see
+Section~\ref{sec:inputwithconfig}), the following special configuration
+attributes are supported:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
+Configuration attribute & Type & Meaning \\
+\hline
+\qkws{oiio:ioproxy} & ptr & Pointer to a {\cf Filesystem::IOProxy} that will
+    handle the I/O, for example by reading from memory rather than the file
+    system. \\[0.5ex]
+\end{tabular}
+
+\subsubsection*{Configuration settings for OpenEXR output}
+
+When opening an OpenEXR \ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
+Output attribute & Type & Meaning \\
+\hline
+\qkws{oiio:RawColor} & int & If nonzero, writing images with non-RGB color
+                        models (such as YCbCr) will keep unaltered
+                        pixel values (versus the default OIIO behavior of
+                        automatically converting from RGB to the designated
+                        color space as the pixels are written). \\[0.5ex]
+\qkws{oiio:ioproxy} & ptr & Pointer to a {\cf Filesystem::IOProxy} that will
+    handle the I/O, for example by writing to a memory buffer. \\[0.5ex]
+\end{tabular}
+
+\subsection*{Custom I/O Overrides}
 
 OpenEXR input and output both support the ``custom I/O'' feature via the
 special \qkw{oiio:ioproxy} attributes (see
@@ -791,7 +828,7 @@ open source community as an alternative to the GIF, after Unisys started
 enforcing patents allegedly covering techniques necessary to use GIF.
 PNG files use the file extension {\cf .png}.
 
-%\subsubsection*{Attributes}
+\subsubsection*{Attributes}
 \vspace{.125in}
 
 \noindent\begin{tabular}{p{1.75in}|p{0.5in}|p{3.0in}}
@@ -809,6 +846,45 @@ PNG files use the file extension {\cf .png}.
 \qkw{oiio:Gamma} & float & the gamma correction value (if specified). \\
 \qkw{ICCProfile} & uint8[] & The ICC color profile \\
 \end{tabular}
+
+\subsubsection*{Configuration settings for PNG input}
+
+When opening an PNG \ImageInput with a \emph{configuration} (see
+Section~\ref{sec:inputwithconfig}), the following special configuration
+attributes are supported:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
+Configuration attribute & Type & Meaning \\
+\hline
+\qkws{oiio:UnassociatedAlpha} & int & If nonzero, will leave alpha unassociated
+                                     (versus the default of premultiplying
+                                     color channels by alpha if the alpha channel
+                                     is unassociated). \\
+%\qkws{oiio:ioproxy} & ptr & Pointer to a {\cf Filesystem::IOProxy} that will
+%    handle the I/O, for example by reading from memory rather than the file
+%    system. \\
+\end{tabular}
+
+\subsubsection*{Configuration settings for PNG output}
+
+When opening an PNG \ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+\vspace{.125in}
+
+\noindent\begin{tabular}{p{1.8in}|p{0.5in}|p{2.95in}}
+Output attribute & Type & Meaning \\
+\hline
+\qkws{oiio:ioproxy} & ptr & Pointer to a {\cf Filesystem::IOProxy} that will
+    handle the I/O, for example by writing to a memory buffer. \\[0.5ex]
+\qkws{oiio:dither} & int & If nonzero and outputting UINT8 values in the
+    file, will add a small amount of random dither to combat the appearance
+    of banding. \\
+\end{tabular}
+
+\subsection*{Custom I/O Overrides}
 
 PNG output supports the ``custom I/O'' feature via the special
 \qkw{oiio:ioproxy} attributes (see Section~\ref{sec:imageoutput:ioproxy}).
