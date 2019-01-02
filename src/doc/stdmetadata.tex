@@ -186,15 +186,24 @@ file, if possible.
 
 \apiitem{"compression" : string}
 Indicates the type of compression the file uses.  Supported compression
-modes will vary from \ImageInput plugin to plugin, and each plugin
-should document the modes it supports.  If {\cf ImageInput::open} is
-called with an \ImageSpec that specifies an compression mode not
-supported by that \ImageInput, it will choose a reasonable default.
-As an example, the TIFF \ImageInput plugin supports \qkw{none},
-\qkw{lzw}, \qkw{ccittrle}, \qkw{zip} (the default), \qkw{packbits}.
+modes will vary from file format to file format, and each reader/writer
+plugin should document the modes it supports.  If {\cf ImageOutput::open} is
+called with an \ImageSpec that specifies an compression mode not supported
+by that \ImageOutput, it will choose a reasonable default. As an example,
+the OpenEXR writer supports \qkw{none}, \qkw{rle}, \qkw{zip}, \qkw{zips},
+\qkw{piz}, \qkw{pxr24}, \qkw{b44}, \qkw{b44a}, \qkw{dwaa}, or \qkw{dwab}.
+
+The compression name is permitted to have a quality value to be appended
+after a colon, for example \qkw{dwaa:60}.  The exact meaning and range of
+the quality value can vary between different file formats and compression
+modes, and some don't support quality values at all (it will be ignored if
+not supported, or if out of range).
 \apiend
 
 \apiitem{"CompressionQuality" : int}
+% DEPRECATED(2.1)
+This is a deprecated methods of separately specifying the compression
+quality.
 Indicates the quality of compression to use (0--100), for those 
 plugins and compression methods that allow a variable amount of 
 compression, with higher numbers indicating higher image fidelity.

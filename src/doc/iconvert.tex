@@ -75,11 +75,12 @@ LZW compression:
     iconvert --compression lzw in.tif out.tif
 \end{code}
 
-The following command writes its results as a JPEG file at a 
-compression quality of 50 (pretty severe compression):
+The following command writes its results as a JPEG file at a compression
+quality of 50 (pretty severe compression), illustrating how some compression
+methods allow a quality metric to be optionally appended to the name:
 
 \begin{code}
-    iconvert --quality 50 big.jpg small.jpg
+    iconvert --compression jpeg:50 50 big.jpg small.jpg
 \end{code}
 
 \subsection*{Gamma-correcting an image}
@@ -241,20 +242,26 @@ if the output file format does not support a choice or does not support
 the particular choice requested.
 \apiend
 
-\apiitem{--compression {\rm \emph{method}}}
-Sets the compression method for the output image.  Each \ImageOutput
-plugin will have its own set of methods that it supports.
+\apiitem{--compression {\rm \emph{method}} \\
+--compression {\rm \emph{method}{\cf :}\emph{quality}}}
+Sets the compression method, and optionally a quality setting, for the
+output image.  Each \ImageOutput plugin will have its own set of methods
+that it supports.
 
 By default, the output image will use the same compression technique as
 the input image (assuming it is supported by the output format,
 otherwise it will use the default compression method of the output
-plugin).  
+plugin).
 \apiend
 
 \apiitem{--quality {\rm \emph{q}}}
 Sets the compression quality, on a 1--100 floating-point scale.
 This only has an effect if the particular compression method supports
 a quality metric (as JPEG does).
+
+% DEPRECATED(2.1)
+This is considered deprecated, and in general we now recommend just
+appending the quality metric to the {\cf compression name:qual}.
 \apiend
 
 \apiitem{--no-copy-image}

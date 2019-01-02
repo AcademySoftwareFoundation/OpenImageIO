@@ -452,7 +452,7 @@ OIIO Attribute & Type & DPX header data or explanation \\
 \hline
 \qkw{Artist} & string & The IFF ``author'' \\
 \qkw{DateTime} & string & Creation date/time \\
-\qkw{compression} & string & The compression type \\
+\qkw{compression} & string & The compression type (\qkw{none} or \qkw{rle} [default]) \\
 \qkw{oiio:BitsPerSample} & int & the true bits per sample of the IFF file. \\
 \end{tabular}
 
@@ -498,7 +498,9 @@ anywhere near the acceptance of the original JPEG/JFIF format.
 \qkw{Orientation} & int & the image orientation \\[2ex]
 \qkw{XResolution}, \qkw{YResolution},
 \qkw{ResolutionUnit} & & The resolution and units from the Exif header \\[2ex]
-\qkw{CompressionQuality} & int & Quality of compression (1-100) \\[2ex]
+\qkw{Compression} & string & If supplied, must be \qkw{jpeg}, but may
+     optionally have a quality value appended, like \qkw{jpeg:90}.
+     Quality can be 1-100, with 100 meaning lossless. \\[2ex]
 \qkw{ICCProfile} & uint8[] & The ICC color profile \\[2ex]
 \qkw{jpeg:subsampling} & string & Describes the chroma subsampling,
     e.g., \qkw{4:2:0} (the default), \qkw{4:4:4}, \qkw{4:2:2},
@@ -687,7 +689,8 @@ The official OpenEXR site is \url{http://www.openexr.com/}.
   recognize or is not supported by the version of OpenEXR on the system,
   it will use \qkw{zip} by default. For \qkw{dwaa} and \qkw{dwab}, the
   dwaCompressionLevel may be optionally appended to the compression name
-  after a colon, like this: \qkw{dwaa:200}. \\
+  after a colon, like this: \qkw{dwaa:200}. (The default DWA compression
+  value is 45.) \\
 \qkw{textureformat} & string & \qkw{Plain Texture} for
   MIP-mapped OpenEXR files, \qkw{CubeFace Environment} or \qkw{Latlong
     Environment} for OpenEXR environment maps.  Non-environment
@@ -1168,7 +1171,7 @@ and 16-bit integer pixels (no floating point), only 1-4 channels.
 \ImageSpec Attribute & Type & SGI header data or explanation \\
 \hline
 \qkw{ImageDescription} & string & image name \\
-\qkw{Compression} & string & thee compression of the SGI file (\qkw{rle}, if
+\qkw{Compression} & string & the compression of the SGI file (\qkw{rle}, if
   RLE compression is used).
 \end{tabular}
 

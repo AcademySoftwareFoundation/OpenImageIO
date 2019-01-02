@@ -138,14 +138,16 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
         return false;
     }
 
-    m_webp_config.method    = 6;
-    int compression_quality = 100;
-    const ParamValue* qual  = m_spec.find_attribute("CompressionQuality",
-                                                   TypeDesc::INT);
-    if (qual) {
-        compression_quality = *static_cast<const int*>(qual->data());
+    auto compqual = m_spec.decode_compression_metadata("webp", 100);
+    if (Strutil::iequals(compqual.first, "webp")) {
+        m_webp_config.method  = 6;
+        m_webp_config.quality = OIIO::clamp(compqual.second, 1, 100);
+    } else {
+        // If compression name wasn't "webp", don't trust the quality
+        // metric, just use the default.
+        m_webp_config.method  = 6;
+        m_webp_config.quality = 100;
     }
-    m_webp_config.quality = compression_quality;
 
     // forcing UINT8 format
     m_spec.set_format(TypeDesc::UINT8);
