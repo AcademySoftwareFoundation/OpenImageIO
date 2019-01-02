@@ -312,13 +312,21 @@ std::string OIIO_API escape_chars (string_view unescaped);
 /// and collapse them into the 'real' characters.
 std::string OIIO_API unescape_chars (string_view escaped);
 
-/// Word-wrap string 'src' to no more than columns width, splitting at
-/// space characters.  It assumes that 'prefix' characters are already
-/// printed, and furthermore, if it should need to wrap, it prefixes that
-/// number of spaces in front of subsequent lines.  By illustration, 
-/// wordwrap("0 1 2 3 4 5 6 7 8", 4, 10) should return:
-/// "0 1 2\n    3 4 5\n    6 7 8"
-std::string OIIO_API wordwrap (string_view src, int columns=80, int prefix=0);
+/// Word-wrap string `src` to no more than `columns` width, starting with an
+/// assumed position of `prefix` on the first line and intending by `prefix`
+/// blanks before all lines other than the first.
+///
+/// Words may be split AT any characters in `sep` or immediately AFTER any
+/// characters in `presep`. After the break, any extra `sep` characters will
+/// be deleted.
+///
+/// By illustration,
+///     wordwrap("0 1 2 3 4 5 6 7 8", 10, 4)
+/// should return:
+///     "0 1 2\n    3 4 5\n    6 7 8"
+std::string OIIO_API wordwrap (string_view src, int columns = 80,
+                               int prefix = 0, string_view sep = " ",
+                               string_view presep = "");
 
 /// Hash a string_view.
 inline size_t

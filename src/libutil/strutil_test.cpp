@@ -209,6 +209,12 @@ test_wordwrap()
     OIIO_CHECK_EQUAL(Strutil::wordwrap(words, 24), "Now is the time for all\n"
                                                    "good men to come to the\n"
                                                    "aid of their party.");
+    std::string densewords
+        = "Now is the,time,for,all,good,men,to,come to the aid of their party.";
+    OIIO_CHECK_EQUAL(Strutil::wordwrap(densewords, 24, 0, " ", ","),
+                     "Now is the,time,for,all,\n"
+                     "good,men,to,come to the\n"
+                     "aid of their party.");
 }
 
 
