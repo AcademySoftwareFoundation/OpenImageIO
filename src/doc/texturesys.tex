@@ -392,10 +392,13 @@ The default is 0.
 
 \apiitem{string options}
 This catch-all is simply a comma-separated list of {\cf name=value}
-settings of named options.  For example,
+settings of named options, which will be parsed and individually set.
 \begin{code}
         ic->attribute ("options", "max_memory_MB=512.0,autotile=1");
 \end{code}
+Note that if an option takes a string value that must itself contain a
+comma, it is permissible to enclose the value in either single ({\cf ' '})
+or double ({\cf " "}) quotes.
 \apiend
 
 

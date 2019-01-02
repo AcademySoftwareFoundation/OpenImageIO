@@ -1152,44 +1152,6 @@ A colon-separated list of directories to search for
 dynamically-loaded format plugins.
 \apiend
 
-\apiitem{string format_list \\
-string input_format_list \\
-string output_format_list}
-\vspace{10pt}
-\index{format_list} \index{input_format_list} \index{output_format_list}
-A comma-separated list of all the names of, respectively, all supported
-image formats, all formats accepted as inputs, and all formats accepted
-as outputs.  (Note: can only be retrieved
-by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
-\apiend
-
-\apiitem{string extension_list}
-\vspace{10pt}
-\index{extension_list}
-For each format, the format name, followed by a colon, followed by
-a comma-separated list of all extensions that are presumed to be used
-for that format.  Semicolons separate the lists for formats.  For
-example,
-\begin{code}
-     "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
-\end{code}
-(Note: can only be retrieved
-by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
-\apiend
-
-\apiitem{string library_list}
-\vspace{10pt}
-\index{library_list}
-For each format that uses a dependent library, the format name, followed by
-a colon, followed by the name and version of the dependency. Semicolons
-separate the lists for formats.  For example,
-\begin{code}
-     "tiff:LIBTIFF 4.0.4;gif:gif_lib 4.2.3;openexr:OpenEXR 2.2.0"
-\end{code}
-(Note: can only be retrieved by {\cf getattribute()}, cannot be set by
-{\cf attribute()}.)
-\apiend
-
 \apiitem{int read_chunk}
 \vspace{10pt}
 \index{read_chunk}
@@ -1209,7 +1171,7 @@ to print even more debugging information.
 \apiend
 
 \apiitem{int log_times \\
-string timing_report}
+string timing_report {\rm ~(read only)}}
 \vspace{10pt}
 \index{log_times} \index{timing_report}
 
@@ -1243,6 +1205,44 @@ If the value of {\cf log_times} is 2 or more when the application terminates,
 the timing report will be printed to {\cf stdout} upon exit.
 \apiend
 
+\apiitem{string format_list \\
+string input_format_list \\
+string output_format_list {\rm ~(read only)}}
+\vspace{10pt}
+\index{format_list} \index{input_format_list} \index{output_format_list}
+A comma-separated list of all the names of, respectively, all supported
+image formats, all formats accepted as inputs, and all formats accepted
+as outputs.  (Note: can only be retrieved
+by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
+\apiend
+
+\apiitem{string extension_list {\rm ~(read only)}}
+\vspace{10pt}
+\index{extension_list}
+For each format, the format name, followed by a colon, followed by
+a comma-separated list of all extensions that are presumed to be used
+for that format.  Semicolons separate the lists for formats.  For
+example,
+\begin{code}
+     "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
+\end{code}
+(Note: can only be retrieved
+by {\cf getattribute()}, cannot be set by {\cf attribute()}.)
+\apiend
+
+\apiitem{string library_list {\rm ~(read only)}}
+\vspace{10pt}
+\index{library_list}
+For each format that uses a dependent library, the format name, followed by
+a colon, followed by the name and version of the dependency. Semicolons
+separate the lists for formats.  For example,
+\begin{code}
+     "tiff:LIBTIFF 4.0.4;gif:gif_lib 4.2.3;openexr:OpenEXR 2.2.0"
+\end{code}
+(Note: can only be retrieved by {\cf getattribute()}, cannot be set by
+{\cf attribute()}.)
+\apiend
+
 \apiitem{string hw:simd \\
 string oiio:simd}
 \vspace{10pt}
@@ -1254,7 +1254,7 @@ is similarly a list of which features this build of OIIO was compiled
 to support.
 \apiend
 
-\apiitem{float resident_memory_used_MB}
+\apiitem{float resident_memory_used_MB {\rm ~(read only)}}
 \vspace{10pt}
 \index{resident_memory_used_MB}
 This read-only attribute can be used for debugging purposes to report
@@ -1341,6 +1341,40 @@ general (pointer) form of {\cf getattribute()}:
 \bigspc\bigspc\spc                    const char *lib_version)}
 Register the input and output `create' functions and list of file extensions
 for a particular format.
+\apiend
+
+\section{Environment variables}
+
+There are a few special environment variables that can be used to control
+\product at times that it is not convenient to set options individually from
+inside the source code.
+
+\apiitem{OPENIMAGEIO_IMAGECACHE_OPTIONS}
+Allows you to seed the options for any \ImageCache created.
+
+The value of the environment variable should be a comma-separated list of
+\emph{name=value} settings. If a value is a string that itself needs to
+contain commas, it may be enclosed in single or double quotes.
+
+Upon creation of any \ImageCache, the contents of this environment variable
+will be passed to a call to:
+\begin{code}
+    imagecache->attribute ("options", value);
+\end{code}
+\apiend
+
+\apiitem{OPENIMAGEIO_TEXTURESYSTEM_OPTIONS}
+Allows you to seed the options for any \TextureSystem created.
+
+The value of the environment variable should be a comma-separated list of
+\emph{name=value} settings. If a value is a string that itself needs to
+contain commas, it may be enclosed in single or double quotes.
+
+Upon creation of any \TextureSystem, the contents of this environment variable
+will be passed to a call to:
+\begin{code}
+    texturesys->attribute ("options", value);
+\end{code}
 \apiend
 
 
