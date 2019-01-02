@@ -200,9 +200,12 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         // Careful -- jpeg_set_defaults overwrites density
         resmeta_to_density();
         DBG std::cout << "out open: set_defaults\n";
-        int quality = newspec.get_int_attribute("CompressionQuality", 98);
-        jpeg_set_quality(&m_cinfo, quality, TRUE);  // baseline values
-        DBG std::cout << "out open: set_quality\n";
+
+        auto compqual = m_spec.decode_compression_metadata("jpeg", 98);
+        if (Strutil::iequals(compqual.first, "jpeg"))
+            jpeg_set_quality(&m_cinfo, clamp(compqual.second, 1, 100), TRUE);
+        else
+            jpeg_set_quality(&m_cinfo, 98, TRUE);  // not jpeg? default qual
 
         if (m_cinfo.input_components == 3) {
             std::string subsampling = m_spec.get_string_attribute(

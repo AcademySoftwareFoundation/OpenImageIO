@@ -1146,6 +1146,22 @@ ImageSpec::from_xml(const char* xml)
 
 
 
+std::pair<string_view, int>
+ImageSpec::decode_compression_metadata(string_view defaultcomp,
+                                       int defaultqual) const
+{
+    string_view comp   = get_string_attribute("Compression", defaultcomp);
+    int qual           = get_int_attribute("CompressionQuality", defaultqual);
+    auto comp_and_qual = Strutil::splitsv(comp, ":");
+    if (comp_and_qual.size() >= 1)
+        comp = comp_and_qual[0];
+    if (comp_and_qual.size() >= 2)
+        qual = Strutil::stoi(comp_and_qual[1]);
+    return { comp, qual };
+}
+
+
+
 bool
 pvt::check_texture_metadata_sanity(ImageSpec& spec)
 {
