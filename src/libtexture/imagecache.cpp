@@ -1523,6 +1523,11 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
     } else {
         // (! m_valid)
         m_used = false;  // Don't let it hold mem if invalid
+        if (file.mod_time()
+            != Filesystem::last_write_time(file.filename().string()))
+            file.imagecache().errorf(
+                "File \"%s\" was modified after being opened by OIIO",
+                file.filename());
 #if 0
         std::cerr << "(1) error reading tile " << m_id.x() << ' ' << m_id.y()
                   << ' ' << m_id.z()
