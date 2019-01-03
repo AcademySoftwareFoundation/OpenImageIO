@@ -2254,7 +2254,7 @@ public:
         m_row[2].load (f+8);
         m_row[3].load (f+12);
 #else
-        memcpy (&m_mat[0][0], f, 16*sizeof(float));
+        m_mat = *(const Imath::M44f*)f;
 #endif
     }
 
