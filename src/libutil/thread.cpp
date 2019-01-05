@@ -593,11 +593,27 @@ task_set::wait(bool block)
 
 
 
+// Helper function to keep track of the recursve depth of our use of the
+// thread pool. Call with the adjustment (i.e., parallel_recursive_depth(1)
+// to enter, parallel_recursive_depth(-1) to exit), and it will return the
+// new value. Call with default args (0) to just return the current depth.
+static int
+parallel_recursive_depth(int change = 0)
+{
+    thread_local int depth = 0;  // let's only allow one level of parallel work
+    depth += change;
+    return depth;
+}
+
+
+
 void
 parallel_for_chunked(int64_t start, int64_t end, int64_t chunksize,
                      std::function<void(int id, int64_t b, int64_t e)>&& task,
                      parallel_options opt)
 {
+    if (parallel_recursive_depth(1) > 1)
+        opt.maxthreads = 1;
     opt.resolve();
     chunksize = std::min(chunksize, end - start);
     if (chunksize < 1) {           // If caller left chunk size to us...
@@ -622,6 +638,7 @@ parallel_for_chunked(int64_t start, int64_t end, int64_t chunksize,
             ts.push(opt.pool->push(task, start, e));
         }
     }
+    parallel_recursive_depth(-1);
 }
 
 
@@ -633,11 +650,14 @@ parallel_for_chunked_2D(
     std::function<void(int id, int64_t, int64_t, int64_t, int64_t)>&& task,
     parallel_options opt)
 {
+    if (parallel_recursive_depth(1) > 1)
+        opt.maxthreads = 1;
     opt.resolve();
     if (opt.singlethread()
         || (xchunksize >= (xend - xstart) && ychunksize >= (yend - ystart))
         || opt.pool->very_busy()) {
         task(-1, xstart, xend, ystart, yend);
+        parallel_recursive_depth(-1);
         return;
     }
     if (ychunksize < 1)
@@ -656,6 +676,7 @@ parallel_for_chunked_2D(
             ts.push(opt.pool->push(task, x, xchunkend, y, ychunkend));
         }
     }
+    parallel_recursive_depth(-1);
 }
 
 
