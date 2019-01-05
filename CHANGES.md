@@ -5,17 +5,121 @@ New minimum dependencies:
 Major new features and improvements:
 
 Public API changes:
+* Python: define `__version__` for the module. #2096 (2.1.0/2.0.4)
+* ImageSpec::find_attribute now will retrive "datawindow" and "displaywindow"
+  (type int[4] for images int[6] for volumes) giving the OpenEXR-like bounds
+  even though there is no such named metadata for OIIO (the results will
+  assembled from x, y, width, height, etc.). #2110 (2.1.0/2.0.4)
+* "Compression" names (where applicable) can now have the quality appended
+  to the name (e.g., `"jpeg:85"`) insead of requiring quality to be passed
+  as a separate piece of metadata. #2111 (2.1.0/2.0.5)
 
 Performance improvements:
 
 Fixes and feature enhancements:
+* oiiotool:
+    - New `-evaloff` and `-evalon` lets you disable and enable the expression
+      substitution for regions of arguments (for example, if you have an
+      input image filename that contains `{}` brace characters that you want
+      interpreted literally, not evaluated as an expression). #2100 (2.1.0/2.0.4)
+    - `--dumpdata` has more intelligible output for uint8 images. #2124
+       (2.1.0/2.0.4)
+* ImageBufAlgo:
+    - `channel_append()` previously always forced its result to be float, if
+      it wasn't previously initialized. Now it uses the uaual type-merging
+      logic, making the result the "widest" type of the inputs. #2095
+      (2.1.0/2.0.4)
+* ImageInput read_image/scanline/tile fixed subtle bugs for certain
+  combination of strides and channel subset reads. #2108 (2.1.0/2.0.4)
+* ImageCache / TextureSystem / maketx:
+    - More specific error message when tile reads appear to be due to the
+      file having changed or been overwritten on disk since it was first
+      opened. #2115 (2.1.0/2.0.4)
+    - maketx: the `-u` (update mode) is slightly less conservative now,
+      no longer forcing a rebuild of the texture just because the file uses
+      a different relative directory path than last time. #2109 (2.1.0/2.0.4)
+* DPX:
+    - Now recognizes the new transfer/colorimetric code for ADX. #2119
+      (2.1.0/2.0.4)
+* TIFF:
+    - Fix problems with JPEG compression in some cases. #2771 (2.1.0/2.0.4)
+    - Fix error where reading just a subset of channels, if that subset did
+      not include the alpha channel but the image was "unassociated alpha",
+      the attempt to automatically associate (i.e. "premultiply" the alpha)
+      upon read would get bogus values because the alpha channel was not
+      actually read. Now in this case it will not do the premultiplication.
+      So if you are purposely reading RGB only from an RGBA file that is
+      specifically "unassociated alpha", beware that you will not get the
+      automatic premultiplication. #2122 (2.1.0/2.0.4)
+    - More careful check and error reporting when user tries to request
+      writing to a TIFF file mixed channel data types (which is not supported
+      by the underlying libtiff). #2112 (2.1.0/2.0.5)
+* WebP: fix bug that gave totally incorrect image read for webp images that
+  had a smaller width than height. #2120 (2.1.0/2.0.4)
+* Fix potential threadpool deadlock issue that could happen if you were
+  (among possibly other things?) simultaneously calling make_texture from
+  multiple application threads. #2132 (2.1.0/2.0.4)
 
 Build/test system improvements and platform ports:
+* Deprecate "missingmath.h". What little of it is still needed (it mostly
+  addressed shortcomings of old MSVS releases) is now in fmath.h. #2086
+* Remove "osdep.h" header that was no longer needed. #2097
+* Appveyor scripts have been overhauled and simplified by relying on
+  `vcpkg` to build dependencies. #2113 (2.1.0/2.0.4)
 
 Developer goodies / internals:
+* `string_view` now adds an optional `pos` parameter to the `find_first_of`
+  / `find_last_of` family of methods. #2114 (2.1.0/2.0.4)
+* `Strutil::wordwrap()` now lets you specify the separation characters more
+  flexibly (rather than being hard-coded to spaces as separators).
+  #2116 (2.1.0/2.0.4)
 
 Notable documentation changes:
 
+
+
+Release 2.0.4 (Jan 5, 2019) -- compared to 2.0.3
+------------------------------------------------
+* Fix potential threadpool deadlock issue that could happen if you were
+  (among possibly other things?) simultaneously calling make_texture from
+  multiple application threads. #2132
+* ImageInput read_image/scanline/tile fixed subtle bugs for certain
+  combination of strides and channel subset reads. #2108
+* TIFF: Fix problems with JPEG compression in some cases. #2771
+* TIFF: Fixed error where reading just a subset of channels, if that subset
+  did not include the alpha channel but the image was "unassociated alpha",
+  the attempt to automatically associate (i.e. "premultiply" the alpha) upon
+  read would get bogus values because the alpha channel was not actually
+  read. Now in this case it will not do the premultiplication. So if you are
+  purposely reading RGB only from an RGBA file that is specifically
+  "unassociated alpha", beware that you will not get the automatic
+  premultiplication. #2122
+* Python: define `__version__` for the module. #2096
+* IBA::channel_append() previously always forced its result to be float, if
+  it wasn't previously initialized. Now it uses the uaual type-merging
+  logic, making the result the "widest" type of the inputs. #2095
+* ImageSpec::find_attribute now will retrive "datawindow" and "displaywindow"
+  (type int[4] for images int[6] for volumes) giving the OpenEXR-like bounds
+  even though there is no such named metadata for OIIO (the results will
+  assembled from x, y, width, height, etc.). #2110
+* ImageCache/TextureSystem: more specific error message when tile reads
+  appear to be due to the file having changed or been overwritten on disk
+  since it was first opened. #2115
+* oiiotool: New `-evaloff` and `-evalon` lets you disable and enable
+  the expression substitution for regions of arguments (for example, if
+  you have an input image filename that contains `{}` brace characters that
+  you want interpreted literally, not evaluated as an expression). #2100
+* oiiotool `--dumpdata` has more intelligible output for uint8 images. #2124
+* maketx: the `-u` (update mode) is slightly less conservative now,
+  no longer forcing a rebuild of the texture just because the file uses
+  a different relative directory path than last time. #2109
+* WebP: fix bug that gave totally incorrect image read for webp images that
+  had a smaller width than height. #2120
+* Developer goodies: string_view now adds an optional `pos` parameter to the
+  `find_first_of`/`find_last_of` family of methods. #2114
+* Dev goodies: Strutil::wordwrap() now lets you specify the separation
+  characters more flexibly (rather than being hard-coded to spaces as
+  separators). #2116
 
 
 
