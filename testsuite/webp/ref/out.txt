@@ -1,16 +1,20 @@
 Reading ../../../../../webp-images/1.webp
 ../../../../../webp-images/1.webp :  550 x  368, 4 channel, uint8 webp
-    SHA-1: AD5A0E48F993E656B2A6CFD3E195442E97271B81
+    SHA-1: 5521F0AB5AC4C47B43129D525C53B1CA359B7941
     channel list: R, G, B, A
+    oiio:ColorSpace: "sRGB"
 Reading ../../../../../webp-images/2.webp
 ../../../../../webp-images/2.webp :  550 x  404, 4 channel, uint8 webp
-    SHA-1: BA9DC9C48DB3448D4412913C2F582B0A7A06AF5D
+    SHA-1: 34BA8B9186794CB4312DFFA24A493A0BFCFC9BF0
     channel list: R, G, B, A
+    oiio:ColorSpace: "sRGB"
 Reading ../../../../../webp-images/3.webp
 ../../../../../webp-images/3.webp : 1280 x  720, 4 channel, uint8 webp
-    SHA-1: 9F285F78ED60DEF1811FE6BDAE58AFDD285CE875
+    SHA-1: 09477805F1A883D47B3407CFCE5F8652EA6903B0
     channel list: R, G, B, A
+    oiio:ColorSpace: "sRGB"
 Reading ../../../../../webp-images/4.webp
 ../../../../../webp-images/4.webp : 1024 x  772, 4 channel, uint8 webp
-    SHA-1: BAD674C7D9339B14402CAF5C67CFCC1861A0E3F9
+    SHA-1: 54C22B1F12C15CF9AEEDC6A0676C007D2FBF16FB
     channel list: R, G, B, A
+    oiio:ColorSpace: "sRGB"
