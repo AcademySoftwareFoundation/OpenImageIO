@@ -1,7 +1,45 @@
-Release 2.0.4 (??) -- compared to 2.0.3
-----------------------------------------------
-
-
+Release 2.0.4 (Jan 5, 2019) -- compared to 2.0.3
+------------------------------------------------
+* Fix potential threadpool deadlock issue that could happen if you were
+  (among possibly other things?) simultaneously calling make_texture from
+  multiple application threads. #2132
+* ImageInput read_image/scanline/tile fixed subtle bugs for certain
+  combination of strides and channel subset reads. #2108
+* TIFF: Fix problems with JPEG compression in some cases. #2771
+* TIFF: Fixed error where reading just a subset of channels, if that subset
+  did not include the alpha channel but the image was "unassociated alpha",
+  the attempt to automatically associate (i.e. "premultiply" the alpha) upon
+  read would get bogus values because the alpha channel was not actually
+  read. Now in this case it will not do the premultiplication. So if you are
+  purposely reading RGB only from an RGBA file that is specifically
+  "unassociated alpha", beware that you will not get the automatic
+  premultiplication. #2122
+* Python: define `__version__` for the module. #2096
+* IBA::channel_append() previously always forced its result to be float, if
+  it wasn't previously initialized. Now it uses the uaual type-merging
+  logic, making the result the "widest" type of the inputs. #2095
+* ImageSpec::find_attribute now will retrive "datawindow" and "displaywindow"
+  (type int[4] for images int[6] for volumes) giving the OpenEXR-like bounds
+  even though there is no such named metadata for OIIO (the results will
+  assembled from x, y, width, height, etc.). #2110
+* ImageCache/TextureSystem: more specific error message when tile reads
+  appear to be due to the file having changed or been overwritten on disk
+  since it was first opened. #2115
+* oiiotool: New `-evaloff` and `-evalon` lets you disable and enable
+  the expression substitution for regions of arguments (for example, if
+  you have an input image filename that contains `{}` brace characters that
+  you want interpreted literally, not evaluated as an expression). #2100
+* oiiotool `--dumpdata` has more intelligible output for uint8 images. #2124
+* maketx: the `-u` (update mode) is slightly less conservative now,
+  no longer forcing a rebuild of the texture just because the file uses
+  a different relative directory path than last time. #2109
+* WebP: fix bug that gave totally incorrect image read for webp images that
+  had a smaller width than height. #2120
+* Developer goodies: string_view now adds an optional `pos` parameter to the
+  `find_first_of`/`find_last_of` family of methods. #2114
+* Dev goodies: Strutil::wordwrap() now lets you specify the separation
+  characters more flexibly (rather than being hard-coded to spaces as
+  separators). #2116
 
 
 Release 2.0 (Dec 7, 2018) -- compared to 1.8.x
