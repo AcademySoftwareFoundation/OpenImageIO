@@ -1,4 +1,7 @@
-Release 2.0.4 (Jan 5, 2019) -- compared to 2.0.3
+Release 2.0.5 (1 Feb?, 2019) -- compared to 2.0.4
+------------------------------------------------
+
+Release 2.0.4 (5 Jan, 2019) -- compared to 2.0.3
 ------------------------------------------------
 * Fix potential threadpool deadlock issue that could happen if you were
   (among possibly other things?) simultaneously calling make_texture from
