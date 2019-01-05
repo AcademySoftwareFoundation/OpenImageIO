@@ -129,7 +129,7 @@ print_nums(int n, const T* val, string_view sep = " ")
     } else {
         // not floating point -- print the int values, then float equivalents
         for (int i = 0; i < n; ++i) {
-            Strutil::printf("%s%g", i ? sep : "", val[i]);
+            Strutil::printf("%s%d", i ? sep : "", int64_t(val[i]));
         }
         Strutil::printf(" (");
         for (int i = 0; i < n; ++i) {
