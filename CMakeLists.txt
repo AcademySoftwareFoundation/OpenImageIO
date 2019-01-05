@@ -369,8 +369,8 @@ oiio_add_tests (fits
 
 oiio_add_tests (webp
     FOUNDVAR WEBP_FOUND
-    IMAGEDIR webp-images
-    URL http://code.google.com/speed/webp/gallery.html)
+    IMAGEDIR oiio-images/webp
+    URL "Recent checkout of oiio-images")
 
 oiio_add_tests (ptex
     FOUNDVAR PTEX_FOUND)
