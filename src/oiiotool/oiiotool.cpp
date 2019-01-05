@@ -4952,7 +4952,8 @@ output_file(int argc, const char* argv[])
         if (outcolorspace.empty()
             && (Strutil::iends_with(filename, ".jpg")
                 || Strutil::iends_with(filename, ".jpeg")
-                || Strutil::iends_with(filename, ".gif")))
+                || Strutil::iends_with(filename, ".gif")
+                || Strutil::iends_with(filename, ".webp")))
             outcolorspace = string_view("sRGB");
         if (outcolorspace.size() && currentspace != outcolorspace) {
             if (ot.debug)

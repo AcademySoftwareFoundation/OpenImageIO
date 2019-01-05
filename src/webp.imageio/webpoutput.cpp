@@ -33,6 +33,7 @@
 #include <webp/encode.h>
 
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -173,6 +174,14 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
     if (y == m_spec.height - 1) {
         if (m_spec.nchannels == 4) {
+            // WebP requires unassociated alpha, and it's sRGB.
+            // Handle this all by wrapping an IB around it.
+            ImageSpec specwrap(m_spec.width, m_spec.height, 4, TypeUInt8);
+            ImageBuf bufwrap(specwrap, &m_uncompressed_image[0]);
+            ROI rgbroi(0, m_spec.width, 0, m_spec.height, 0, 1, 0, 3);
+            ImageBufAlgo::pow(bufwrap, bufwrap, 2.2f, rgbroi);
+            ImageBufAlgo::unpremult(bufwrap, bufwrap);
+            ImageBufAlgo::pow(bufwrap, bufwrap, 1.0f / 2.2f, rgbroi);
             WebPPictureImportRGBA(&m_webp_picture, &m_uncompressed_image[0],
                                   m_scanline_size);
         } else {
