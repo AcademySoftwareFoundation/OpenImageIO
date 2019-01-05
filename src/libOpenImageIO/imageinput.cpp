@@ -904,7 +904,8 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         // we may someday want to revisit this to batch multiple rows.
         for (int z = 0; z < spec.depth; z += spec.tile_depth) {
             for (int y = 0; y < spec.height && ok; y += spec.tile_height) {
-                ok &= read_tiles(spec.x, spec.x + spec.width, y + spec.y,
+                ok &= read_tiles(subimage, miplevel, spec.x,
+                                 spec.x + spec.width, y + spec.y,
                                  std::min(y + spec.y + spec.tile_height,
                                           spec.y + spec.height),
                                  z + spec.z,
@@ -929,8 +930,8 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         for (int z = 0; z < spec.depth; ++z) {
             for (int y = 0; y < spec.height && ok; y += chunk) {
                 int yend = std::min(y + spec.y + chunk, spec.y + spec.height);
-                ok &= read_scanlines(y + spec.y, yend, z + spec.z, chbegin,
-                                     chend, format,
+                ok &= read_scanlines(subimage, miplevel, y + spec.y, yend,
+                                     z + spec.z, chbegin, chend, format,
                                      (char*)data + z * zstride + y * ystride,
                                      xstride, ystride);
                 if (progress_callback)
