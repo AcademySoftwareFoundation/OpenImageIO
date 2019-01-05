@@ -2045,15 +2045,26 @@ TIFFInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         // by alpha should happen after we've already done data format
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
+        int nchannels, alpha_channel, z_channel, width;
         {
             lock_guard lock(m_mutex);
-            if (format
-                == TypeUnknown)  // unknown means retrieve the native type
+            seek_subimage(subimage, miplevel);
+            nchannels     = m_spec.nchannels;
+            alpha_channel = m_spec.alpha_channel;
+            z_channel     = m_spec.z_channel;
+            width         = m_spec.width;
+            if (format == TypeUnknown)  // unknown == native type
                 format = m_spec.format;
         }
-        OIIO::premult(m_spec.nchannels, m_spec.width, yend - ybegin, 1, chbegin,
-                      chend, format, data, xstride, ystride, AutoStride,
-                      m_spec.alpha_channel, m_spec.z_channel);
+        // NOTE: if the channel range we read doesn't include the alpha
+        // channel, we don't have the alpha data to do the premult, so skip
+        // this. Pity the hapless soul who tries to read only the first
+        // three channels of an RGBA file with unassociated alpha. They will
+        // not get the premultiplication they deserve.
+        if (alpha_channel >= chbegin && alpha_channel < chend)
+            OIIO::premult(nchannels, width, yend - ybegin, 1, chbegin, chend,
+                          format, data, xstride, ystride, AutoStride,
+                          alpha_channel, z_channel);
     }
     return ok;
 }
@@ -2112,13 +2123,18 @@ TIFFInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
             nchannels     = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;
             z_channel     = m_spec.z_channel;
-            if (format
-                == TypeUnknown)  // unknown means retrieve the native type
+            if (format == TypeUnknown)  // unknown == native type
                 format = m_spec.format;
         }
-        OIIO::premult(nchannels, xend - xbegin, yend - ybegin, zend - zbegin,
-                      chbegin, chend, format, data, xstride, ystride, zstride,
-                      alpha_channel, z_channel);
+        // NOTE: if the channel range we read doesn't include the alpha
+        // channel, we don't have the alpha data to do the premult, so skip
+        // this. Pity the hapless soul who tries to read only the first
+        // three channels of an RGBA file with unassociated alpha. They will
+        // not get the premultiplication they deserve.
+        if (alpha_channel >= chbegin && alpha_channel < chend)
+            OIIO::premult(nchannels, xend - xbegin, yend - ybegin,
+                          zend - zbegin, chbegin, chend, format, data, xstride,
+                          ystride, zstride, alpha_channel, z_channel);
     }
     return ok;
 }
