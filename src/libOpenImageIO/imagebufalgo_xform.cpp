@@ -473,8 +473,7 @@ ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
 {
     pvt::LoggedTimer logtime("IBA::resize");
     if (!IBAprep(roi, &dst, &src,
-                 IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME
-                     | IBAprep_NO_COPY_ROI_FULL))
+                 IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL))
         return false;
 
     // Set up a shared pointer with custom deleter to make sure any
@@ -507,8 +506,7 @@ ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, string_view filtername,
 {
     pvt::LoggedTimer logtime("IBA::resize");
     if (!IBAprep(roi, &dst, &src,
-                 IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME
-                     | IBAprep_NO_COPY_ROI_FULL))
+                 IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL))
         return false;
     const ImageSpec& srcspec(src.spec());
     const ImageSpec& dstspec(dst.spec());
@@ -560,8 +558,7 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
 {
     // No time logging, it will be accounted in the underlying warp/resize
     if (!IBAprep(roi, &dst, &src,
-                 IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME
-                     | IBAprep_NO_COPY_ROI_FULL))
+                 IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL))
         return false;
 
     const ImageSpec& srcspec(src.spec());
@@ -661,8 +658,7 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
 {
     pvt::LoggedTimer logtime("IBA::fit");
     if (!IBAprep(roi, &dst, &src,
-                 IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME
-                     | IBAprep_NO_COPY_ROI_FULL))
+                 IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL))
         return false;
     const ImageSpec& srcspec(src.spec());
     const ImageSpec& dstspec(dst.spec());
@@ -787,8 +783,8 @@ ImageBufAlgo::resample(ImageBuf& dst, const ImageBuf& src, bool interpolate,
 {
     pvt::LoggedTimer logtime("IBA::resample");
     if (!IBAprep(roi, &dst, &src,
-                 IBAprep_REQUIRE_SAME_NCHANNELS | IBAprep_NO_SUPPORT_VOLUME
-                     | IBAprep_NO_COPY_ROI_FULL | IBAprep_SUPPORT_DEEP))
+                 IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL
+                     | IBAprep_SUPPORT_DEEP))
         return false;
 
     if (dst.deep()) {
