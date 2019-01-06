@@ -43,7 +43,12 @@
 
 // Define symbols that let client applications determine if newly added
 // features are supported.
+
+// Is the close() method present?
 #define OIIO_IMAGECACHE_SUPPORTS_CLOSE 1
+
+// Does invalidate() support the optional `force` flag?
+#define OIIO_IMAGECACHE_INVALIDATE_FORCE 1
 
 
 
@@ -394,8 +399,10 @@ public:
     /// to do even if other procedures are currently holding
     /// reference-counted tile pointers from the named image, but those
     /// procedures will not get updated pixels until they release the
-    /// tiles they are holding.
-    virtual void invalidate(ustring filename) = 0;
+    /// tiles they are holding.  If `force` is true, this invalidation will
+    /// happen unconditionally; if false, the file will only be invalidated
+    /// if it has been changed since it was first opened by the ImageCache.
+    virtual void invalidate(ustring filename, bool force = true) = 0;
 
     /// Invalidate all loaded tiles and open file handles.  This is safe
     /// to do even if other procedures are currently holding

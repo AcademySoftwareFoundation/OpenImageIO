@@ -4572,7 +4572,7 @@ input_file(int argc, const char* argv[])
             // User has set some input configuration, so seed the cache with
             // that information.
             ustring fn(filename);
-            ot.imagecache->invalidate(fn);
+            ot.imagecache->invalidate(fn, true);
             bool ok = ot.imagecache->add_file(fn, nullptr, &ot.input_config);
             if (!ok) {
                 std::string err = ot.imagecache->geterror();
@@ -5141,7 +5141,7 @@ output_file(int argc, const char* argv[])
 
     // Make sure to invalidate any IC entries that think they are the
     // file we just wrote.
-    ot.imagecache->invalidate(ustring(filename));
+    ot.imagecache->invalidate(ustring(filename), true);
 
     if (ot.output_adjust_time && ok) {
         std::string metadatatime = ir->spec(0, 0)->get_string_attribute(

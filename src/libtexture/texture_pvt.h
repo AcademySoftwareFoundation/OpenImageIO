@@ -354,7 +354,7 @@ public:
     virtual std::string getstats(int level = 1, bool icstats = true) const;
     virtual void reset_stats();
 
-    virtual void invalidate(ustring filename);
+    virtual void invalidate(ustring filename, bool force);
     virtual void invalidate_all(bool force = false);
     virtual void close(ustring filename);
     virtual void close_all();
