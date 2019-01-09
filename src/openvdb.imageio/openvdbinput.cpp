@@ -317,7 +317,7 @@ openVDB(const std::string& filename, const ImageInput* errReport)
     if (!Filesystem::is_regular(filename))
         return nullptr;
 
-    FILE* f = fopen(filename.c_str(), "r");
+    FILE* f = Filesystem::fopen(filename, "r");
     if (!f)
         return nullptr;
 
@@ -332,22 +332,27 @@ openVDB(const std::string& filename, const ImageInput* errReport)
     if (magic != OPENVDB_MAGIC)
         return nullptr;
 
-    static struct OpenVDBLib {
-        OpenVDBLib() { openvdb::initialize(); }
-        ~OpenVDBLib() { openvdb::uninitialize(); }
-    } sVDBLib;
-
-    VDBFile file(new io::File(filename));
+    const char* errhint = "Unknown error";
     try {
+
+        static struct OpenVDBLib {
+            OpenVDBLib() { openvdb::initialize(); }
+            ~OpenVDBLib() { openvdb::uninitialize(); }
+        } sVDBLib;
+
+        VDBFile file(new io::File(filename));
+
         file->open();
         if (file->isOpen())
             return file;
+
     } catch (const std::exception& e) {
         errReport->error("Could not open '%s': %s", filename, e.what());
-        file.reset();  // Mark error reported
+    } catch(...) {
+        errhint = "Unknown exception thrown";
     }
-    if (file)
-        errReport->error("Could not open '%s': %s", filename, "Unknown error");
+
+    errReport->error("Could not open '%s': %s", filename, errhint);
     return nullptr;
 }
 
