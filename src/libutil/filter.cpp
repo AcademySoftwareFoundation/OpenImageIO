@@ -36,7 +36,9 @@
 //     - prman 16.0 txmake
 //
 // box: oiio, prman, katana, imagemagick match
-// lanczos3: oiio, katana, imagemagick match.  prman is far sharper (perhaps lanczos2?)
+// lanczos3: oiio, katana, imagemagick match.  prman is far sharper
+//   (perhaps lanczos2?). Note that Nuke calls this filter "lanczos6" (they
+//   measure full width).
 // sinc: oiio, prman match.  Katana is slighly softer. imagemagick is much softer
 // blackman harris:  all differ. In order of decreasing sharpness... imagemagick, oiio, prman
 // catrom: oiio, imagemagick, prman match
@@ -848,6 +850,7 @@ FilterDesc filter1d_list[] = {
     { "blackman-harris", 1,   3,    false,    true,     true },
     { "sinc",            1,   4,    false,    true,     true },
     { "lanczos3",        1,   6,    false,    true,     true },
+    { "nuke-lanczos6",   1,   6,    false,    true,     true },
     { "mitchell",        1,   4,    false,    true,     true },
     { "bspline",         1,   4,    false,    true,     true },
     { "cubic",           1,   4,    false,    true,     true },
@@ -864,11 +867,17 @@ Filter1D::num_filters()
     return sizeof(filter1d_list) / sizeof(filter1d_list[0]);
 }
 
+const FilterDesc&
+Filter1D::get_filterdesc(int filternum)
+{
+    ASSERT(filternum >= 0 && filternum < num_filters());
+    return filter1d_list[filternum];
+}
+
 void
 Filter1D::get_filterdesc(int filternum, FilterDesc* filterdesc)
 {
-    ASSERT(filternum >= 0 && filternum < num_filters());
-    *filterdesc = filter1d_list[filternum];
+    *filterdesc = get_filterdesc(filternum);
 }
 
 
@@ -894,7 +903,8 @@ Filter1D::create(string_view filtername, float width)
         return new FilterBlackmanHarris1D(width);
     if (filtername == "sinc")
         return new FilterSinc1D(width);
-    if (filtername == "lanczos3" || filtername == "lanczos")
+    if (filtername == "lanczos3" || filtername == "lanczos"
+        || filtername == "nuke-lanczos6")
         return new FilterLanczos3_1D(width);
     if (filtername == "mitchell")
         return new FilterMitchell1D(width);
@@ -933,6 +943,7 @@ static FilterDesc filter2d_list[] = {
     { "sinc",            2,   4,    false,    true,     true  },
     { "lanczos3",        2,   6,    false,    true,     true  },
     { "radial-lanczos3", 2,   6,    false,    true,     false },
+    { "nuke-lanczos6",   2,   6,    false,    true,     false },
     { "mitchell",        2,   4,    false,    true,     true  },
     { "bspline",         2,   4,    false,    true,     true  },
     { "disk",            2,   1,    false,    true,     false },
@@ -949,11 +960,17 @@ Filter2D::num_filters()
     return sizeof(filter2d_list) / sizeof(filter2d_list[0]);
 }
 
+const FilterDesc&
+Filter2D::get_filterdesc(int filternum)
+{
+    ASSERT(filternum >= 0 && filternum < num_filters());
+    return filter2d_list[filternum];
+}
+
 void
 Filter2D::get_filterdesc(int filternum, FilterDesc* filterdesc)
 {
-    ASSERT(filternum >= 0 && filternum < num_filters());
-    *filterdesc = filter2d_list[filternum];
+    *filterdesc = get_filterdesc(filternum);
 }
 
 
@@ -980,7 +997,8 @@ Filter2D::create(string_view filtername, float width, float height)
         return new FilterBlackmanHarris2D(width, height);
     if (filtername == "sinc")
         return new FilterSinc2D(width, height);
-    if (filtername == "lanczos3" || filtername == "lanczos")
+    if (filtername == "lanczos3" || filtername == "lanczos"
+        || filtername == "nuke-lanczos6")
         return new FilterLanczos3_2D(width, height);
     if (filtername == "radial-lanczos3" || filtername == "radial-lanczos")
         return new FilterRadialLanczos3_2D(width, height);

@@ -5370,6 +5370,15 @@ print_help_end(const ArgParse& ap, std::ostream& out)
     }
     if (!ot.colorconfig.supportsOpenColorIO())
         out << "No OpenColorIO support was enabled at build time.\n";
+
+    std::vector<string_view> filternames;
+    for (int i = 0, e = Filter2D::num_filters(); i < e; ++i)
+        filternames.emplace_back(Filter2D::get_filterdesc(i).name);
+    out << Strutil::wordwrap("Filters available: "
+                                 + Strutil::join(filternames, ", "),
+                             columns, 4)
+        << "\n";
+
     std::string libs = OIIO::get_string_attribute("library_list");
     if (libs.size()) {
         std::vector<string_view> libvec;
