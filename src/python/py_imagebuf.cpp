@@ -180,8 +180,9 @@ ImageBuf_set_pixels_buffer(ImageBuf& self, ROI roi, py::buffer& buffer)
     }
     oiio_bufinfo buf(buffer.request(), roi.nchannels(), roi.width(),
                      roi.height(), roi.depth(), self.spec().depth > 1 ? 3 : 2);
-    if (!buf.data) {
-        self.error("set_pixels unspecified error decoding the Python buffer");
+    if (!buf.data || buf.error.size()) {
+        self.errorf("set_pixels error: %s",
+                    buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (!buf.data || buf.size != size) {

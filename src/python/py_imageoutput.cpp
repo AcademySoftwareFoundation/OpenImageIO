@@ -59,9 +59,14 @@ bool
 ImageOutput_write_scanline(ImageOutput& self, int y, int z, py::buffer& buffer)
 {
     const ImageSpec& spec(self.spec());
+    if (spec.tile_width != 0) {
+        self.errorf("Cannot write scanlines to a filed file.");
+        return false;
+    }
     oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.width, 1, 1, 1);
-    if (!buf.data) {
-        self.error("Could not decode python buffer");
+    if (!buf.data || buf.error.size()) {
+        self.errorf("Pixel data array error: %s",
+                    buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (static_cast<int>(buf.size)
@@ -80,10 +85,15 @@ ImageOutput_write_scanlines(ImageOutput& self, int ybegin, int yend, int z,
                             py::buffer& buffer)
 {
     const ImageSpec& spec(self.spec());
+    if (spec.tile_width != 0) {
+        self.errorf("Cannot write scanlines to a filed file.");
+        return false;
+    }
     oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.width,
                      yend - ybegin, 1, 2);
-    if (!buf.data) {
-        self.error("Could not decode python buffer");
+    if (!buf.data || buf.error.size()) {
+        self.errorf("Pixel data array error: %s",
+                    buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (static_cast<int>(buf.size)
@@ -103,11 +113,16 @@ ImageOutput_write_tile(ImageOutput& self, int x, int y, int z,
                        py::buffer& buffer)
 {
     const ImageSpec& spec(self.spec());
+    if (spec.tile_width == 0) {
+        self.errorf("Cannot write tiles to a scanline file.");
+        return false;
+    }
     oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.tile_width,
                      spec.tile_height, spec.tile_depth,
                      spec.tile_depth > 1 ? 3 : 2);
-    if (!buf.data) {
-        self.error("Could not decode python buffer");
+    if (!buf.data || buf.error.size()) {
+        self.errorf("Pixel data array error: %s",
+                    buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (buf.size < self.spec().tile_pixels() * self.spec().nchannels) {
@@ -126,10 +141,15 @@ ImageOutput_write_tiles(ImageOutput& self, int xbegin, int xend, int ybegin,
                         int yend, int zbegin, int zend, py::buffer& buffer)
 {
     const ImageSpec& spec(self.spec());
+    if (spec.tile_width == 0) {
+        self.errorf("Cannot write tiles to a scanline file.");
+        return false;
+    }
     oiio_bufinfo buf(buffer.request(), spec.nchannels, xend - xbegin,
                      yend - ybegin, zend - zbegin, spec.tile_depth > 1 ? 3 : 2);
-    if (!buf.data) {
-        self.error("Could not decode python buffer");
+    if (!buf.data || buf.error.size()) {
+        self.errorf("Pixel data array error: %s",
+                    buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (static_cast<int>(buf.size) < (xend - xbegin) * (yend - ybegin)
@@ -152,8 +172,12 @@ ImageOutput_write_image(ImageOutput& self, py::buffer& buffer)
     const ImageSpec& spec(self.spec());
     oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.width, spec.height,
                      spec.depth, spec.depth > 1 ? 3 : 2);
-    if (!buf.data || buf.size < spec.image_pixels() * spec.nchannels)
+    if (!buf.data || buf.size < spec.image_pixels() * spec.nchannels
+        || buf.error.size()) {
+        self.errorf("Pixel data array error: %s",
+                    buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
+    }
     py::gil_scoped_release gil;
     return self.write_image(buf.format, buf.data, buf.xstride, buf.ystride,
                             buf.zstride);
