@@ -16,17 +16,18 @@ if [ `which brew` == "" ] ; then
 fi
 
 
-if [ "$OIIOTARGET" == "clang-format" ] ; then
-    # If we are running for the sake of clang-format only, just install the
-    # bare minimum packages and return.
-    brew install ilmbase openexr clang-format
-    exit 0
-fi
-
 brew update >/dev/null
 echo ""
 echo "Before my brew installs:"
 brew list --versions
+
+if [ "$OIIOTARGET" == "clang-format" ] ; then
+    # If we are running for the sake of clang-format only, just install the
+    # bare minimum packages and return.
+    brew install ilmbase openexr llvm
+    exit 0
+fi
+
 brew install gcc
 brew link --overwrite gcc
 brew install ccache cmake

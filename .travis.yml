@@ -71,10 +71,7 @@ install:
           export PATH=/usr/local/opt/qt5/bin:$PATH ;
           export PATH=/usr/local/opt/python/libexec/bin:$PATH ;
           export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
-          if [ "${CLANG_TIDY}" != "" ] ; then
-              export PATH=/usr/local/Cellar/llvm/7.0.0_1/bin:$PATH ;
-              echo $PATH ;
-          fi ;
+          export PATH=/usr/local/Cellar/llvm/7.0.1/bin:$PATH ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
           CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_openexr.bash ;
           export ILMBASE_ROOT_DIR=$PWD/ext/openexr-install ;
