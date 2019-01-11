@@ -21,6 +21,7 @@ option (CLANG_TIDY "Enable clang-tidy" OFF)
 set (CLANG_TIDY_CHECKS "" CACHE STRING "clang-tidy checks to perform (none='-*')")
 set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
 option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
+set (CLANG_FORMAT_EXE_HINT "" CACHE STRING "clang-format executable's directory (will search if not specified")
 set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
     CACHE STRING "Glob patterns to include for clang-format")
     # Eventually: want this to be: "src/*.h;src/*.cpp"
@@ -346,8 +347,12 @@ endif ()
 
 # clang-format
 find_program (CLANG_FORMAT_EXE
-              NAMES "clang-format"
+              NAMES clang-format bin/clang-format
+              HINTS ${CLANG_FORMAT_EXE_HINT} ENV CLANG_FORMAT_EXE_HINT
+                    ENV LLVM_DIRECTORY
+              NO_DEFAULT_PATH
               DOC "Path to clang-format executable")
+find_program (CLANG_FORMAT_EXE NAMES clang-format bin/clang-format)
 if (CLANG_FORMAT_EXE)
     message (STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
     # Start with the list of files to include when formatting...

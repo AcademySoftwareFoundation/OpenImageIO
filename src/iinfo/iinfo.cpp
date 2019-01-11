@@ -467,8 +467,8 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
 
     if (!metamatch.empty()
         && !regex_search(
-            "resolution, width, height, depth, channels, sha-1, stats",
-            field_re)) {
+               "resolution, width, height, depth, channels, sha-1, stats",
+               field_re)) {
         // nothing to do here
         return;
     }
