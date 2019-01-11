@@ -334,7 +334,6 @@ openVDB(const std::string& filename, const ImageInput* errReport)
 
     const char* errhint = "Unknown error";
     try {
-
         static struct OpenVDBLib {
             OpenVDBLib() { openvdb::initialize(); }
             ~OpenVDBLib() { openvdb::uninitialize(); }
@@ -349,7 +348,7 @@ openVDB(const std::string& filename, const ImageInput* errReport)
     } catch (const std::exception& e) {
         errReport->error("Could not open '%s': %s", filename, e.what());
         return nullptr;
-    } catch(...) {
+    } catch (...) {
         errhint = "Unknown exception thrown";
     }
 
