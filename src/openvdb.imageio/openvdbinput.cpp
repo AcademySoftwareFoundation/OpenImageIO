@@ -348,6 +348,7 @@ openVDB(const std::string& filename, const ImageInput* errReport)
 
     } catch (const std::exception& e) {
         errReport->error("Could not open '%s': %s", filename, e.what());
+        return nullptr;
     } catch(...) {
         errhint = "Unknown exception thrown";
     }
