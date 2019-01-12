@@ -895,29 +895,64 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
 // any arguments. This is used for "update mode" to not think it's doing
 // a fresh maketx for relative paths and whatnot.
 static std::string
-strip_cmd_line(string_view cmdline)
+stripdir_cmd_line(string_view cmdline)
 {
     std::string out;
     bool firstarg = true;
+    int skipstrip = 0;
     while (!cmdline.empty()) {
         if (!firstarg)
             out += ' ';
+
+        // Grab the next word or quoted string
         string_view s;
         if (!Strutil::parse_string(cmdline, s))
             break;
-        // OK, we're doing something stupid, we're just going to treat every
-        // arg as if it were a filename and if it has a directory separator,
-        // only keep what's left after the last dir separator. This trick
-        // works because there just aren't any expected non-file arguments
-        // to maketx (or oiiotool) are among the ones we are trying to
-        // compare for update mode. Anything that looks like a filename
-        // gets stripped for the comparison, and we're ok with that.
-        std::string stripped = Filesystem::filename(s);
+
+        // Uniformize commands that start with '-' and those that start
+        // with '--'.
+        if (Strutil::starts_with(s, "--"))
+            s.remove_prefix(1);
+
+        std::string stripped = s;
+
+        // Some commands are known to be followed by arguments that might
+        // contain slashes, yet not be filenames. Remember to skip those.
+        // In particular, we're looking for things that might have arbitrary
+        // strings including slashes, for example, attribute names and color
+        // space names.
+        if (Strutil::starts_with(s, "-")) {
+            static const char* one_arg_list[]
+                = { "-colorconfig", "-iscolorspace",      "-tocolorspace",
+                    "-ociolook",    "-ociofiletransform", "-eraseattrib",
+                    "-caption",     "-keyword",           "-text",
+                    "-echo" };
+            static const char* two_arg_list[] = { "-attrib", "-sattrib",
+                                                  "-iconfig", "-colorconvert",
+                                                  "-ociodisplay" };
+            for (auto cmd : one_arg_list)
+                if (Strutil::starts_with(s, cmd))
+                    skipstrip = 2;  // including the command itself
+            for (auto cmd : two_arg_list)
+                if (Strutil::starts_with(s, cmd))
+                    skipstrip = 3;  // including the command itself
+        }
+
+        // Whatever's left when we're not disabling stripping for this arg,
+        // for anything that looks like a filename by having directory
+        // separators, strip out the directory name so that command lines
+        // appear to match even if filenames have different relative paths.
+        if (!skipstrip)
+            stripped = Filesystem::filename(stripped);
+
+        // Add the maybe-stripped string to the output, surrounding by
+        // double quotes if it contains any spaces.
         if (stripped.find(' ') != std::string::npos)
             out += Strutil::sprintf("\"%s\"", stripped);
         else
             out += stripped;
-        firstarg = false;
+        firstarg  = false;
+        skipstrip = std::max(0, skipstrip - 1);
     }
     return out;
 }
@@ -1023,7 +1058,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         std::string newcmdline = configspec.get_string_attribute(
             "maketx:full_command_line");
         if (lastcmdline.size()
-            && strip_cmd_line(lastcmdline) == strip_cmd_line(newcmdline)) {
+            && stripdir_cmd_line(lastcmdline)
+                   == stripdir_cmd_line(newcmdline)) {
             outstream << "maketx: no update required for \"" << outputfilename
                       << "\"\n";
             return true;
