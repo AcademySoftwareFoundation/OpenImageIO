@@ -286,12 +286,12 @@ code.
 
 
 \section{Non-owning array views: {\cf span} / {\cf cspan}}
-\label{sec:span} \label{sec:arrayview}
+\label{sec:span}
 \indexapi{span} \index{cspan} \indexapi{array_view}
 
-{\bf Note:} {\cf span} and \arrayview are synonyms. The new preferred name is
+{\bf Note:} {\cf span} and {\cf array_view} are synonyms. The new preferred name is
 {\cf span}, in keeping with the equivalent template that has been accepted into
-future C++ standards. But the old name \arrayview is still accepted. Over
+future C++ standards. But the old name {\cf array_view} is still accepted. Over
 time, we will eventually update the documentation to reflect the change.
 % DEPRECATED 2.0
 
@@ -307,7 +307,7 @@ Thus, a function that might ordinarily take a {\cf const T*} and a length
 could instead take a {\cf span<const T>}. As a shorthand, {\cf cspan<T>} is
 defined as a synonym to {\cf span<const T>}, they are equivalent.
 
-For historical reasons, the deprecated name \arrayview is accepted as a
+For historical reasons, the deprecated name {\cf array_view} is accepted as a
 synonym for {\cf span}. (But will eventually be removed.)
 
 A {\cf span} may be initialized explicitly from a pointer and length, by
