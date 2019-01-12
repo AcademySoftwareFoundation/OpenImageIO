@@ -908,6 +908,24 @@ Strutil::parse_until(string_view& str, string_view sep, bool eat)
 }
 
 
+
+string_view
+Strutil::parse_while(string_view& str, string_view set, bool eat)
+{
+    string_view p     = str;
+    const char *begin = p.begin(), *end = p.begin();
+    while (end != p.end() && set.find(*end) != string_view::npos)
+        ++end;
+    size_t wordlen = end - begin;
+    if (eat && wordlen) {
+        p.remove_prefix(wordlen);
+        str = p;
+    }
+    return string_view(begin, wordlen);
+}
+
+
+
 string_view
 Strutil::parse_nested(string_view& str, bool eat)
 {
