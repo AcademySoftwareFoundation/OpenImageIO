@@ -283,7 +283,7 @@ ImageBufAlgo::from_OpenCV(const cv::Mat& mat, TypeDesc convert, ROI roi,
 
     // OpenCV uses BGR ordering
     if (spec.nchannels >= 3) {
-        bool ok = true;
+        OIIO_MAYBE_UNUSED bool ok = true;
         OIIO_DISPATCH_TYPES(ok, "from_OpenCV R/B swap", RBswap, dstformat, dst,
                             roi, nthreads);
     }
