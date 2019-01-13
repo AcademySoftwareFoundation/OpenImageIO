@@ -1284,7 +1284,7 @@ bool OIIO_API median_filter (ImageBuf &dst, const ImageBuf &src,
 
 
 /// Return (or copy into dst) a dilated version of the corresponding region
-/// of src. Dilation is definted as the maximum value of all pixels under
+/// of src. Dilation is defined as the maximum value of all pixels under
 /// nonzero values of the structuring element (which is taken to be a width
 /// x height square). If height is not set, it will default to be the same
 /// as width. Dilation makes bright features wider and more prominent, dark
@@ -1296,7 +1296,7 @@ bool OIIO_API dilate (ImageBuf &dst, const ImageBuf &src,
 
 
 /// Return (or copy into dst) an eroded version of the corresponding region
-/// of src. Erosion is definted as the minimum value of all pixels under
+/// of src. Erosion is defined as the minimum value of all pixels under
 /// nonzero values of the structuring element (which is taken to be a width
 /// x height square). If height is not set, it will default to be the same
 /// as width. Erosion makes dark features wider, bright features thinner,
