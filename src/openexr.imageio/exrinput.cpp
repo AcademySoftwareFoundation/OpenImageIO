@@ -229,9 +229,10 @@ private:
     Imf::TiledInputFile* m_input_tiled;  ///< Input for tiled files
     Filesystem::IOProxy* m_io = nullptr;
     std::unique_ptr<Filesystem::IOProxy> m_local_io;
-    int m_subimage;    ///< What subimage are we looking at?
-    int m_nsubimages;  ///< How many subimages are there?
-    int m_miplevel;    ///< What MIP level are we looking at?
+    int m_subimage;                     ///< What subimage are we looking at?
+    int m_nsubimages;                   ///< How many subimages are there?
+    int m_miplevel;                     ///< What MIP level are we looking at?
+    std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
 
     void init()
     {
@@ -247,9 +248,21 @@ private:
         m_miplevel                 = -1;
         m_io                       = nullptr;
         m_local_io.reset();
+        m_missingcolor.clear();
     }
 
     bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
+
+    bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
+                                        int xend, int ybegin, int yend,
+                                        int zbegin, int zend, int chbegin,
+                                        int chend, void* data, stride_t xstride,
+                                        stride_t ystride);
+
+    // Fill in with 'missing' color/pattern.
+    void fill_missing(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                      int zend, int chbegin, int chend, void* data,
+                      stride_t xstride, stride_t ystride);
 };
 
 
@@ -414,6 +427,27 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
         return false;
     }
     pvt::set_exr_threads();
+
+    // "missingcolor" gives fill color for missing scanlines or tiles.
+    if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
+        if (m->type().basetype == TypeDesc::STRING) {
+            // missingcolor as string
+            m_missingcolor = Strutil::extract_from_list_string<float>(
+                m->get_string());
+        } else {
+            // missingcolor as numeric array
+            int n = m->type().basevalues();
+            m_missingcolor.clear();
+            m_missingcolor.reserve(n);
+            for (int i = 0; i < n; ++i)
+                m_missingcolor[i] = m->get_float(i);
+        }
+    } else {
+        // If not passed explicit, is there a global setting?
+        std::string mc = OIIO::get_string_attribute("missingcolor");
+        if (mc.size())
+            m_missingcolor = Strutil::extract_from_list_string<float>(mc);
+    }
 
     m_spec = ImageSpec();  // Clear everything with default constructor
 
@@ -1319,14 +1353,95 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                        user_scanline_bytes);
         }
     } catch (const std::exception& e) {
-        error("Failed OpenEXR read: %s", e.what());
-        return false;
+        std::string err = e.what();
+        if (m_missingcolor.size()) {
+            // User said not to fail for bad or missing tiles. If we failed
+            // reading a single tile, use the fill pattern. If we failed
+            // reading many tiles, we don't know which ones, so go back and
+            // read them individually for a second chance.
+            stride_t xstride = pixelbytes;
+            stride_t ystride = xstride * (xend - xbegin);
+            if (nxtiles * nytiles == 1) {
+                // Read of one tile -- use the fill pattern
+                fill_missing(xbegin, xend, ybegin, yend, zbegin, zend, chbegin,
+                             chend, data, xstride, ystride);
+            } else {
+                // Read of many tiles -- don't know which failed, so try
+                // again to read them all individually.
+                return read_native_tiles_individually(subimage, miplevel,
+                                                      xbegin, xend, ybegin,
+                                                      yend, zbegin, zend,
+                                                      chbegin, chend, data,
+                                                      xstride, ystride);
+            }
+        } else {
+            error("Failed OpenEXR read: %s", err);
+            return false;
+        }
     } catch (...) {  // catch-all for edge cases or compiler bugs
         error("Failed OpenEXR read: unknown exception");
         return false;
     }
 
     return true;
+}
+
+
+
+bool
+OpenEXRInput::read_native_tiles_individually(int subimage, int miplevel,
+                                             int xbegin, int xend, int ybegin,
+                                             int yend, int zbegin, int zend,
+                                             int chbegin, int chend, void* data,
+                                             stride_t xstride, stride_t ystride)
+{
+    // Note: this is only called by read_tiles, which still holds the
+    // mutex, so it's safe to directly access m_spec.
+    bool ok = true;
+    for (int y = ybegin; y < yend; y += m_spec.tile_height) {
+        // int ye = std::min(y + m_spec.tile_height, m_spec.y + m_spec.height);
+        int ye = y + m_spec.tile_height;
+        for (int x = xbegin; x < xend; x += m_spec.tile_width) {
+            // int xe = std::min(x + m_spec.tile_width, m_spec.x + m_spec.width);
+            int xe  = x + m_spec.tile_width;
+            char* d = (char*)data + (y - ybegin) * ystride
+                      + (x - xbegin) * xstride;
+            ok &= read_tiles(subimage, miplevel, x, xe, y, ye, zbegin, zend,
+                             chbegin, chend, TypeUnknown, d, xstride, ystride);
+        }
+    }
+    return ok;
+}
+
+
+
+void
+OpenEXRInput::fill_missing(int xbegin, int xend, int ybegin, int yend,
+                           int zbegin, int zend, int chbegin, int chend,
+                           void* data, stride_t xstride, stride_t ystride)
+{
+    std::vector<float> missingcolor = m_missingcolor;
+    missingcolor.resize(chend, m_missingcolor.back());
+    bool stripe = missingcolor[0] < 0.0f;
+    if (stripe)
+        missingcolor[0] = fabsf(missingcolor[0]);
+    for (int y = ybegin; y < yend; ++y) {
+        for (int x = xbegin; x < xend; ++x) {
+            char* d = (char*)data + (y - ybegin) * ystride
+                      + (x - xbegin) * xstride;
+            for (int ch = chbegin; ch < chend; ++ch) {
+                float v = missingcolor[ch];
+                if (stripe && ((x - y) & 8))
+                    v = 0.0f;
+                TypeDesc cf = m_spec.channelformat(ch);
+                if (cf == TypeFloat)
+                    *(float*)d = v;
+                else if (cf == TypeHalf)
+                    *(half*)d = v;
+                d += cf.size();
+            }
+        }
+    }
 }
 
 

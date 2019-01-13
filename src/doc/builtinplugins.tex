@@ -735,6 +735,13 @@ Configuration attribute & Type & Meaning \\
 \qkws{oiio:ioproxy} & ptr & Pointer to a {\cf Filesystem::IOProxy} that will
     handle the I/O, for example by reading from memory rather than the file
     system. \\[0.5ex]
+\qkws{oiio:missingcolor} & float[] & \\
+\qkws{oiio:missingcolor} & string & Either an array of float values or a
+    string holding a comma-separated list of values, if present this is
+    a request to use this color for pixels of any missing tiles or scanlines,
+    rather than considering a tile/scanline read failure to be an error.
+    This can be helpful when intentionally reading partially-written or
+    incomplete files (such as an in-progress render). \\
 \end{tabular}
 
 \subsubsection*{Configuration settings for OpenEXR output}

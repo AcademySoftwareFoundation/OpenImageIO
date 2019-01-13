@@ -103,6 +103,7 @@ script:
     - export OIIO_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib
     - export PYTHONPATH=$OPENIMAGEIO_ROOT_DIR/python:$PYTHONPATH
     - export LSAN_OPTIONS=suppressions=$PWD/src/build-scripts/nosanitize.txt
+    - export ASAN_OPTIONS=print_suppressions=0
     - if [ "$SKIP_TESTS" == "" ] ; then
           $OPENIMAGEIO_ROOT_DIR/bin/oiiotool --help ;
           make $BUILD_FLAGS test ;

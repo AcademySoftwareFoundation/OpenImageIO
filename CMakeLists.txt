@@ -252,6 +252,7 @@ oiio_add_tests (gpsread
                 oiiotool-fixnan ## maketx & oiiotool-maketx depend on this
                 maketx oiiotool-maketx
                 misnamed-file
+                missingcolor
                 dpx ico iff png psd rla sgi zfile
                 texture-interp-bicubic
                 texture-blurtube
