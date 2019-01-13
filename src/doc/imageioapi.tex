@@ -1174,6 +1174,35 @@ and decoding multiple scanlines).  The default is 256.  The special value
 of 0 indicates that it should try to read the whole image if possible.
 \apiend
 
+\apiitem{float[] missingcolor \\
+string missingcolor}
+\vspace{10pt}
+\index{missingcolor} \label{sec:missingcolor}
+\NEW % 2.0
+The \qkw{missingcolor} attribute may either be an array of float values,
+or a string containing a comma-separated list of the values.
+Setting this option globally is equivalent to always passing an
+\ImageInput open-with-configuration hint \qkw{oiio:missingcolor} with the
+value.
+
+When set, it gives some {\cf ImageInput} readers the option of ignoring any
+\emph{missing} tiles or scanlines in the file, and instead of treating the
+read failure of an individual tile as a full error, will interpret is as
+an intentionally missing tile and proceed by simply filling in the missing
+pixels with the color specified. If the first element is negative, it will
+use the absolute value, but draw alternating diagonal stripes of the color.
+For example,
+\begin{code}
+    float missing[4] = { -1.0, 0.0, 0.0, 0.0 }; // striped red
+    OIIO::attribute ("missingcolor", TypeDesc("float[4]"), &missing);
+\end{code}
+
+Note that only some file formats support files with missing tiles or
+scanlines, and this is only taken as a hint. Please see
+Section~\ref{chap:bundledplugins} for details on which formats accept a
+\qkw{missingcolor} configuration hint.
+\apiend
+
 \apiitem{int debug}
 \vspace{10pt}
 \index{debug}

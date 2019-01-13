@@ -83,6 +83,7 @@ int oiio_print_debug(oiio_debug_env ? Strutil::stoi(oiio_debug_env) : 1);
 #endif
 int oiio_log_times = Strutil::from_string<int>(
     Sysutil::getenv("OPENIMAGEIO_LOG_TIMES"));
+std::vector<float> oiio_missingcolor;
 }  // namespace pvt
 
 using namespace pvt;
@@ -346,6 +347,22 @@ attribute(string_view name, TypeDesc type, const void* val)
         oiio_log_times = *(const int*)val;
         return true;
     }
+    if (name == "missingcolor" && type.basetype == TypeFloat) {
+        // missingcolor as float array
+        oiio_missingcolor.clear();
+        oiio_missingcolor.reserve(type.basevalues());
+        int n = type.basevalues();
+        for (int i = 0; i < n; ++i)
+            oiio_missingcolor[i] = ((const float*)val)[i];
+        return true;
+    }
+    if (name == "missingcolor" && type == TypeString) {
+        // missingcolor as string
+        oiio_missingcolor = Strutil::extract_from_list_string<float>(
+            *(const char**)val);
+        return true;
+    }
+
     return false;
 }
 
@@ -431,6 +448,22 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "resident_memory_used_MB" && type == TypeInt) {
         *(int*)val = int(Sysutil::memory_used(true) >> 20);
+        return true;
+    }
+    if (name == "missingcolor" && type.basetype == TypeFloat
+        && oiio_missingcolor.size()) {
+        // missingcolor as float array
+        int n  = type.basevalues();
+        int nm = std::min(int(oiio_missingcolor.size()), n);
+        for (int i = 0; i < nm; ++i)
+            ((float*)val)[i] = oiio_missingcolor[i];
+        for (int i = nm; i < n; ++i)
+            ((float*)val)[i] = 0.0f;
+        return true;
+    }
+    if (name == "missingcolor" && type == TypeString) {
+        // missingcolor as string
+        *(ustring*)val = ustring(Strutil::join(oiio_missingcolor, ","));
         return true;
     }
     return false;
