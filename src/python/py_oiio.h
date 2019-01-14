@@ -60,6 +60,9 @@
 #include <pybind11/stl.h>
 namespace py = pybind11;
 
+#if (PYBIND11_VERSION_MAJOR * 100 + PYBIND11_VERSION_MINOR) < 202
+#    error "OIIO requires pybind11 version 2.2 or later"
+#endif
 
 #if PY_MAJOR_VERSION == 2
 // Preferred Python string caster for Python2 is py::bytes, so it's a byte
