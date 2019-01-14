@@ -525,6 +525,7 @@ option (BUILD_PYBIND11_FORCE "Force local download/build of Pybind11 even if ins
 option (BUILD_MISSING_PYBIND11 "Local download/build of Pybind11 if not installed" ON)
 set (BUILD_PYBIND11_VERSION "v2.2.4" CACHE STRING "Preferred pybind11 version, of downloading/building our own")
 set (PYBIND11_HOME "" CACHE STRING "Installed pybind11 location hint")
+set (BUILD_PYBIND11_MINIMUM_VERSION "2.2.0")
 
 macro (find_or_download_pybind11)
     # If we weren't told to force our own download/build of pybind11, look
@@ -536,6 +537,18 @@ macro (find_or_download_pybind11)
                "${PYBIND11_HOME}"
                "$ENV{PYBIND11_HOME}"
                )
+    endif ()
+    # Check the version -- if it's too old, download a local copy.
+    if (PYBIND11_INCLUDE_DIR)
+        file(STRINGS "${PYBIND11_INCLUDE_DIR}/pybind11/detail/common.h" TMP REGEX "^#define PYBIND11_VERSION_MAJOR .*$")
+        string (REGEX MATCHALL "[0-9]+$" PYBIND11_VERSION_MAJOR ${TMP})
+        file(STRINGS "${PYBIND11_INCLUDE_DIR}/pybind11/detail/common.h" TMP REGEX "^#define PYBIND11_VERSION_MINOR .*$")
+        string (REGEX MATCHALL "[0-9]+$" PYBIND11_VERSION_MINOR ${TMP})
+        set (PYBIND11_VERSION "${PYBIND11_VERSION_MAJOR}.${PYBIND11_VERSION_MINOR}")
+        if ("${PYBIND11_VERSION}" VERSION_LESS BUILD_PYBIND11_MINIMUM_VERSION)
+            message (WARNING "pybind11 from ${PYBIND11_INCLUDE_DIR} is too old (${PYBIND11_VERSION}), minimum is ${BUILD_PYBIND11_MINIMUM_VERSION}, downloading our own.")
+            set (PYBIND11_INCLUDE_DIR "")
+        endif ()
     endif ()
     # If an external copy wasn't found and we requested that missing
     # packages be built, or we we are forcing a local copy to be built, then
@@ -559,10 +572,19 @@ macro (find_or_download_pybind11)
             endif ()
         endif ()
         set (PYBIND11_INCLUDE_DIR "${PYBIND11_INSTALL_DIR}/include")
+        file(STRINGS "${PYBIND11_INCLUDE_DIR}/pybind11/detail/common.h" TMP REGEX "^#define PYBIND11_VERSION_MAJOR .*$")
+        string (REGEX MATCHALL "[0-9]+$" PYBIND11_VERSION_MAJOR ${TMP})
+        file(STRINGS "${PYBIND11_INCLUDE_DIR}/pybind11/detail/common.h" TMP REGEX "^#define PYBIND11_VERSION_MINOR .*$")
+        string (REGEX MATCHALL "[0-9]+$" PYBIND11_VERSION_MINOR ${TMP})
+        set (PYBIND11_VERSION "${PYBIND11_VERSION_MAJOR}.${PYBIND11_VERSION_MINOR}")
     endif ()
 
+    if ("${PYBIND11_VERSION}" VERSION_LESS BUILD_PYBIND11_MINIMUM_VERSION)
+        message (WARNING "pybind11 from ${PYBIND11_INCLUDE_DIR} is too old (${PYBIND11_VERSION}), minimum is ${BUILD_PYBIND11_MINIMUM_VERSION}.")
+        set (PYBIND11_INCLUDE_DIR "")
+    endif ()
     if (PYBIND11_INCLUDE_DIR)
-        message (STATUS "pybind11 include dir: ${PYBIND11_INCLUDE_DIR}")
+        message (STATUS "pybind11 ${PYBIND11_VERSION}, include dir: ${PYBIND11_INCLUDE_DIR}")
     else ()
         message (FATAL_ERROR "pybind11 is missing! If it's not on your "
                  "system, you need to install it, or build with either "
