@@ -24,6 +24,7 @@ set_target_properties(OpenImageIO_Util
                          PROPERTIES
                          VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
                          SOVERSION ${SOVERSION}
+                         OUTPUT_NAME OpenImageIO_Util${OIIO_LIBNAME_SUFFIX}
                      )
 
 if (VISIBILITY_COMMAND)

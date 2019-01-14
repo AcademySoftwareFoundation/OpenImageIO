@@ -25,6 +25,7 @@
 #   OPENIMAGEIO_ROOT_DIR - custom "prefix" location of OIIO installation
 #                          (expecting bin, lib, include subdirectories)
 #   OpenImageIO_FIND_QUIETLY - if set, print minimal console output
+#   OIIO_LIBNAME_SUFFIX - if set, optional nonstandard library suffix
 #
 ###########################################################################
 
@@ -40,7 +41,7 @@ if (NOT OpenImageIO_FIND_QUIETLY)
 endif ()
 
 find_library ( OPENIMAGEIO_LIBRARY
-               NAMES OpenImageIO
+               NAMES OpenImageIO${OIIO_LIBNAME_SUFFIX}
                HINTS ${OPENIMAGEIO_ROOT_DIR}/lib
                PATH_SUFFIXES lib64 lib
                PATHS "${OPENIMAGEIO_ROOT_DIR}/lib" )

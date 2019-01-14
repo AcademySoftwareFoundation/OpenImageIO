@@ -103,6 +103,8 @@ option (USE_DICOM "Use DICOM if DCMTK is found" ON)
 set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
+set (OIIO_LIBNAME_SUFFIX "" CACHE STRING
+     "Optional name appended to ${PROJECT_NAME} libraries that are built")
 option (BUILD_OIIOUTIL_ONLY "If ON, will build *only* libOpenImageIO_Util" OFF)
 option (BUILD_DOCS "If ON, build documentation and man pages." ON)
 option (INSTALL_DOCS "If ON, install documentation and man pages." ON)

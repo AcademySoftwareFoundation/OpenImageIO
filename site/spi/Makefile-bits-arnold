@@ -51,6 +51,7 @@ ifeq (${SP_OS}, rhel7)
         MY_CMAKE_FLAGS += -DCMAKE_MAKE_PROGRAM=${NINJA}
     endif
     export CCACHE_CPP2 ?= 1
+    OIIO_LIBNAME_SUFFIX=_Arnold
     # Override lib64 and use SPI convention of lib
     MY_CMAKE_FLAGS += -DCMAKE_INSTALL_LIBDIR="${INSTALL_PREFIX}/lib"
     BOOSTVERS ?= 1.55
