@@ -1203,7 +1203,7 @@ ImageCacheImpl::find_file(ustring filename,
         }
         m_files.unlock_bin(bin);
         if (replace && found) {
-            invalidate(filename);
+            invalidate(filename, true);
             tf->reset(creator, config);
         }
 
@@ -3211,7 +3211,7 @@ ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
 
 
 void
-ImageCacheImpl::invalidate(ustring filename)
+ImageCacheImpl::invalidate(ustring filename, bool force)
 {
     ImageCacheFile* file = NULL;
     {
@@ -3220,6 +3220,15 @@ ImageCacheImpl::invalidate(ustring filename)
             file = fileit->second.get();
         else
             return;  // no such file
+    }
+
+    if (!force) {
+        // If not in force mode, we don't do anything if the modification
+        // time of the file has not changed since we opened it.
+        recursive_lock_guard guard(file->m_input_mutex);
+        if (file->mod_time() == Filesystem::last_write_time(filename.string())
+            && !file->broken())
+            return;
     }
 
     // Iterate over the entire tilecache, record the TileID's of all
@@ -3331,7 +3340,7 @@ ImageCacheImpl::invalidate_all(bool force)
     // Now, invalidate all the files in our "needs invalidation" list
     for (auto f : all_files) {
         // fprintf (stderr, "Invalidating %s\n", f.c_str());
-        invalidate(f);
+        invalidate(f, force);
     }
 
     // Mark the per-thread microcaches as invalid

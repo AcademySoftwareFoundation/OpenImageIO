@@ -153,11 +153,11 @@ declare_imagecache(py::module& m)
              },
              "level"_a = 1)
         .def("invalidate",
-             [](ImageCacheWrap& ic, const std::string& filename) {
+             [](ImageCacheWrap& ic, const std::string& filename, bool force) {
                  py::gil_scoped_release gil;
-                 ic.m_cache->invalidate(ustring(filename));
+                 ic.m_cache->invalidate(ustring(filename), force);
              },
-             "filename"_a)
+             "filename"_a, "force"_a = true)
         .def("invalidate_all",
              [](ImageCacheWrap& ic, bool force) {
                  py::gil_scoped_release gil;

@@ -817,9 +817,9 @@ TextureSystemImpl::append_error(const std::string& message) const
 
 // Implementation of invalidate -- just invalidate the image cache.
 void
-TextureSystemImpl::invalidate(ustring filename)
+TextureSystemImpl::invalidate(ustring filename, bool force)
 {
-    m_imagecache->invalidate(filename);
+    m_imagecache->invalidate(filename, force);
 }
 
 

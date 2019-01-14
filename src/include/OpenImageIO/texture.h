@@ -892,7 +892,10 @@ public:
     /// Invalidate any cached information about the named file. A client
     /// might do this if, for example, they are aware that an image
     /// being held in the cache has been updated on disk.
-    virtual void invalidate (ustring filename) = 0;
+    /// If force is true, this invalidation will happen unconditionally; if
+    /// false, the file will only be invalidated if it has been changed
+    /// since it was first opened by the underlying image cache.
+    virtual void invalidate (ustring filename, bool force = true) = 0;
 
     /// Invalidate all cached data for all textures.  If force is true,
     /// everything will be invalidated, no matter how wasteful it is,
