@@ -60,8 +60,8 @@ getargs(int argc, char* argv[])
     ArgParse ap;
     // clang-format off
     ap.options(
-        "fmath_test\n" OIIO_INTRO_STRING "\n"
-        "Usage:  fmath_test [options]",
+        "filter_test\n" OIIO_INTRO_STRING "\n"
+        "Usage:  filter_test [options]",
         // "%*", parse_files, "",
         "--help", &help, "Print help message",
         "-v", &verbose, "Verbose mode",

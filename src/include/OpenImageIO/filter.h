@@ -86,6 +86,7 @@ public:
     static int num_filters();
     /// Get the info for a particular index (0..num_filters()-1).
     static void get_filterdesc(int filternum, FilterDesc* filterdesc);
+    static const FilterDesc& get_filterdesc(int filternum);
 
 protected:
     float m_w;
@@ -143,6 +144,7 @@ public:
     static int num_filters();
     /// Get the info for a particular index (0..num_filters()-1).
     static void get_filterdesc(int filternum, FilterDesc* filterdesc);
+    static const FilterDesc& get_filterdesc(int filternum);
 
 protected:
     float m_w, m_h;
