@@ -718,7 +718,7 @@ and output each one to a different file, with names \qkw{sub0001.tif},
 
 \apiitem{\ce --help}
 Prints full usage information to the terminal, as well as information
-about image formats supported, known color spaces, OIIO build options
+about image formats supported, known color spaces, filters, OIIO build options
 and library dependencies.
 \apiend
 
@@ -1772,7 +1772,8 @@ of all pixel values will be 1.0).
 Kernel names can be: {\cf gaussian}, {\cf sharp-gaussian}, {\cf box},
 {\cf triangle}, {\cf blackman-harris}, {\cf mitchell}, {\cf b-spline},
 \qkw{cubic}, \qkw{keys}, \qkw{simon}, \qkw{rifman}, {\cf disk}.
-There are also {\cf catmull-rom} and {\cf lanczos3}, but
+There are also {\cf catmull-rom} and {\cf lanczos3} (and its synonym,
+{\cf nuke-lanczos6}), but
 they are fixed-size kernels that don't scale with the width, and are
 therefore probably less useful in most cases.
 
