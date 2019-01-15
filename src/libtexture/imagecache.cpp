@@ -2589,8 +2589,12 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
                 concretefile = verify_file(concretefile, thread_info, true);
                 if (concretefile && !concretefile->broken()) {
                     // Recurse to try again with the concrete file
-                    return get_image_info(concretefile, thread_info, subimage,
-                                          miplevel, dataname, datatype, data);
+                    bool r = get_image_info(concretefile, thread_info, subimage,
+                                            miplevel, dataname, datatype, data);
+                    // suppress errors from missing tiles we encountered
+                    // prior to finding the one that worked.
+                    (void)geterror();
+                    return r;
                 }
             }
         }
