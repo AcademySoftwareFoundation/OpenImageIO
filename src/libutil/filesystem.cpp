@@ -1046,7 +1046,6 @@ Filesystem::IOFile::pwrite(const void* buf, size_t size, int64_t offset)
     size_t r = ::pwrite(fd, buf, size, offset);
 #endif
     offset += r;
-    size -= r;
     if (m_pos > int64_t(m_size))
         m_size = offset;
     return r;
