@@ -802,6 +802,13 @@ bool OIIO_API parse_identifier_if (string_view &str, string_view id,
 string_view OIIO_API parse_until (string_view &str,
                                   string_view sep=" \t\r\n", bool eat=true);
 
+/// Return the characters at the head of the string that match any in set,
+/// and additionally modify str to skip over the parsed section if eat is
+/// also true. Otherwise, if no `set` characters are found at the beginning
+/// of str, return an empty string_view and don't modify str.
+string_view OIIO_API parse_while (string_view &str,
+                                  string_view set, bool eat=true);
+
 /// Assuming the string str starts with either '(', '[', or '{', return the
 /// head, up to and including the corresponding closing character (')', ']',
 /// or '}', respectively), recognizing nesting structures. For example,
