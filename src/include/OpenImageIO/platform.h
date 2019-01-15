@@ -300,6 +300,8 @@
 #endif
 
 
+// OIIO_DEPRECATED before a function declaration marks it as deprecated in
+// a way that will generate compile warnings if it is called.
 #if OIIO_CPLUSPLUS_VERSION >= 14 || __has_cpp_attribute(deprecated)
 #    define OIIO_DEPRECATED(msg) [[deprecated(msg)]]
 #elif defined(__GNUC__) || defined(__clang__) || __has_attribute(deprecated)
@@ -311,7 +313,9 @@
 #endif
 
 
-// OIIO_FALLTHROUGH documents that switch statement fallthrough case.
+// OIIO_FALLTHROUGH at the end of a `case` label's statements documents that
+// he switch statement case is intentionally falling through to the code for
+// the next case.
 #if OIIO_CPLUSPLUS_VERSION >= 17 || __has_cpp_attribute(fallthrough)
 #    define OIIO_FALLTHROUGH [[fallthrough]]
 #else
@@ -319,8 +323,8 @@
 #endif
 
 
-// OIIO_NODISCARD documents functions whose return values should never be
-// ignored.
+// OIIO_NODISCARD following a function declaration documents that the
+// function's return value should never be ignored.
 #if OIIO_CPLUSPLUS_VERSION >= 17 || __has_cpp_attribute(nodiscard)
 #    define OIIO_NODISCARD [[nodiscard]]
 #else
@@ -340,8 +344,18 @@
 #endif
 
 
-// OIIO_HOSTDEVICE is used to supply the function decorators needed when
-// compiling for CUDA devices.
+// OIIO_RETURNS_NONNULL following a function declaration of a function
+// indicates that the pointer returned by the function is guaranteed to
+// never be nullptr.
+#if defined(__clang__) || defined(__GNUC__) || __has_attribute(returns_nonnull)
+#    define OIIO_RETURNS_NONNULL __attribute__((returns_nonnull))
+#else
+#    define OIIO_RETURNS_NONNULL
+#endif
+
+
+// OIIO_HOSTDEVICE is used before a function declaration to supply the
+// function decorators needed when compiling for CUDA devices.
 #ifdef __CUDACC__
 #    define OIIO_HOSTDEVICE __host__ __device__
 #else
