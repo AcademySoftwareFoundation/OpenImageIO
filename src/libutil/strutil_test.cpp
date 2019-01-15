@@ -831,6 +831,11 @@ void test_parse ()
     s = "foo;bar blow"; ss = parse_until (s, "/");
     OIIO_CHECK_ASSERT (ss == "foo;bar blow" && s == "");
 
+    s = "foo;bar blow"; ss = parse_while (s, "of");
+    OIIO_CHECK_ASSERT (ss == "foo" && s == ";bar blow");
+    s = "foo;bar blow"; ss = parse_while (s, "abc");
+    OIIO_CHECK_ASSERT (ss == "" && s == "foo;bar blow");
+
     s = "[a([b]c)]x]"; ss = parse_nested (s);
     OIIO_CHECK_EQUAL (ss, "[a([b]c)]"); OIIO_CHECK_EQUAL (s, "x]");
     s = "[a([b]c)]x]"; ss = parse_nested (s, false);
