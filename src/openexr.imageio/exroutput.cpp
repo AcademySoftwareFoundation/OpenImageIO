@@ -679,6 +679,11 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     // on deep files (but allow "none" as well)
     if (spec.deep && comp != "none")
         comp = "zips";
+    // Currently dwaa/b compression does not work on single channel with tile < 16
+    if (spec.nchannels == 1 && spec.tile_width < 16 && spec.tile_height < 16 &&
+        Strutil::istarts_with(comp, "dwa")) {
+        comp = "zip";
+    }
     spec.attribute("compression", comp);
     if (Strutil::istarts_with(comp, "dwa")) {
         spec.attribute("openexr:dwaCompressionLevel",
