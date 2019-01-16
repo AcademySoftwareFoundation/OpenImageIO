@@ -183,6 +183,7 @@ set_target_properties(OpenImageIO
                          PROPERTIES
                          VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
                          SOVERSION ${SOVERSION}
+                         OUTPUT_NAME OpenImageIO${OIIO_LIBNAME_SUFFIX}
                      )
 if (VISIBILITY_COMMAND)
     set_target_properties (OpenImageIO

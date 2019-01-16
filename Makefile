@@ -243,6 +243,10 @@ ifneq (${SOVERSION},)
 MY_CMAKE_FLAGS += -DSOVERSION:STRING=${SOVERSION}
 endif
 
+ifneq (${OIIO_LIBNAME_SUFFIX},)
+MY_CMAKE_FLAGS += -DOIIO_LIBNAME_SUFFIX:STRING=${OIIO_LIBNAME_SUFFIX}
+endif
+
 ifneq (${BUILD_OIIOUTIL_ONLY},)
 MY_CMAKE_FLAGS += -DBUILD_OIIOUTIL_ONLY:BOOL=${BUILD_OIIOUTIL_ONLY}
 endif
@@ -502,6 +506,7 @@ help:
 	@echo "      HIDE_SYMBOLS=1           Hide symbols not in the public API"
 	@echo "      SOVERSION=nn             Include the specifed major version number "
 	@echo "                                  in the shared object metadata"
+	@echo "      OIIO_LIBNAME_SUFFIX=name Optional name appended to library names"
 	@echo "      BUILDSTATIC=1            Build static library instead of shared"
 	@echo "      LINKSTATIC=1             Link with static external libs when possible"
 	@echo "  Finding and Using Dependencies:"
