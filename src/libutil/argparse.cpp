@@ -498,7 +498,7 @@ int
 ArgParse::Impl::found(const char* option_name)
 {
     ArgOption* option = find_option(option_name);
-    return option ? 0 : option->parsed_count();
+    return option ? option->parsed_count() : 0;
 }
 
 
