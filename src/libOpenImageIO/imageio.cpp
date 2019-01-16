@@ -100,7 +100,7 @@ public:
     spin_mutex mutex;
     std::map<std::string, std::pair<double, size_t>> timing_map;
 
-    TimingLog() {}
+    TimingLog() noexcept {}
 
     // Destructor prints the timing report if oiio_log_times >= 2
     ~TimingLog()

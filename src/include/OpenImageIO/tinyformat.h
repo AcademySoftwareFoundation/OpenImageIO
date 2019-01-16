@@ -177,9 +177,9 @@ struct is_convertible
         struct fail { char dummy[2]; };
         struct succeed { char dummy; };
         // Try to convert a T1 to a T2 by plugging into tryConvert
-        static fail tryConvert(...);
-        static succeed tryConvert(const T2&);
-        static const T1& makeT1();
+        static fail tryConvert(...) noexcept;
+        static succeed tryConvert(const T2&) noexcept;
+        static const T1& makeT1() noexcept;
     public:
 #       ifdef _MSC_VER
         // Disable spurious loss of precision warnings in tryConvert(makeT1())

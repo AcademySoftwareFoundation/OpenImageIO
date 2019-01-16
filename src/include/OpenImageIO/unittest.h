@@ -59,7 +59,7 @@ namespace pvt {
 
 class UnitTestFailureCounter {
 public:
-    UnitTestFailureCounter()
+    UnitTestFailureCounter() noexcept
         : m_failures(0)
     {
     }
@@ -72,18 +72,18 @@ public:
             std::cout << Sysutil::Term(std::cout).ansi("green", "OK\n");
         }
     }
-    const UnitTestFailureCounter& operator++()
+    const UnitTestFailureCounter& operator++() noexcept  // prefix
     {
         ++m_failures;
         return *this;
-    }                                             // prefix
-    int operator++(int) { return m_failures++; }  // postfix
-    UnitTestFailureCounter operator+=(int i)
+    }
+    int operator++(int) noexcept { return m_failures++; }  // postfix
+    UnitTestFailureCounter operator+=(int i) noexcept
     {
         m_failures += i;
         return *this;
     }
-    operator int() const { return m_failures; }
+    operator int() const noexcept { return m_failures; }
 
 private:
     int m_failures = 0;

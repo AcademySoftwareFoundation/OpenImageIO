@@ -155,7 +155,7 @@ public:
 
     /// Default ctr for ustring -- make an empty string.
     ///
-    ustring(void)
+    ustring(void) noexcept
         : m_chars(nullptr)
     {
     }
@@ -207,7 +207,7 @@ public:
 
     /// Copy construct a ustring from another ustring.
     ///
-    ustring(const ustring& str)
+    ustring(const ustring& str) noexcept
         : m_chars(str.m_chars)
     {
     }
@@ -223,10 +223,13 @@ public:
 
     /// ustring destructor.
     ///
-    ~ustring() {}
+    ~ustring() noexcept {}
 
     /// Conversion to string_view
-    operator string_view() const { return string_view(c_str(), length()); }
+    operator string_view() const noexcept
+    {
+        return string_view(c_str(), length());
+    }
 
     /// Assign a ustring to *this.
     ///
@@ -321,15 +324,15 @@ public:
 
     /// Return a C string representation of a ustring.
     ///
-    const char* c_str() const { return m_chars; }
+    const char* c_str() const noexcept { return m_chars; }
 
     /// Return a C string representation of a ustring.
     ///
-    const char* data() const { return c_str(); }
+    const char* data() const noexcept { return c_str(); }
 
     /// Return a C++ std::string representation of a ustring.
     ///
-    const std::string& string() const
+    const std::string& string() const noexcept
     {
         if (m_chars) {
             const TableRep* rep = (const TableRep*)m_chars - 1;
@@ -340,11 +343,11 @@ public:
 
     /// Reset to an empty string.
     ///
-    void clear(void) { m_chars = nullptr; }
+    void clear(void) noexcept { m_chars = nullptr; }
 
     /// Return the number of characters in the string.
     ///
-    size_t length(void) const
+    size_t length(void) const noexcept
     {
         if (!m_chars)
             return 0;
@@ -354,7 +357,7 @@ public:
 
     /// Return a hashed version of the string
     ///
-    size_t hash(void) const
+    size_t hash(void) const noexcept
     {
         if (!m_chars)
             return 0;
@@ -364,32 +367,35 @@ public:
 
     /// Return the number of characters in the string.
     ///
-    size_t size(void) const { return length(); }
+    size_t size(void) const noexcept { return length(); }
 
     /// Is the string empty -- i.e., is it nullptr or does it point to an
     /// empty string?
-    bool empty(void) const { return (size() == 0); }
+    bool empty(void) const noexcept { return (size() == 0); }
 
     /// Return a const_iterator that references the first character of
     /// the string.
-    const_iterator begin() const { return string().begin(); }
+    const_iterator begin() const noexcept { return string().begin(); }
 
     /// Return a const_iterator that references the end of a traversal
     /// of the characters of the string.
-    const_iterator end() const { return string().end(); }
+    const_iterator end() const noexcept { return string().end(); }
 
     /// Return a const_reverse_iterator that references the last
     /// character of the string.
-    const_reverse_iterator rbegin() const { return string().rbegin(); }
+    const_reverse_iterator rbegin() const noexcept { return string().rbegin(); }
 
     /// Return a const_reverse_iterator that references the end of
     /// a reverse traversal of the characters of the string.
-    const_reverse_iterator rend() const { return string().rend(); }
+    const_reverse_iterator rend() const noexcept { return string().rend(); }
 
     /// Return a reference to the character at the given position.
     /// Note that it's up to the caller to be sure pos is within the
     /// size of the string.
-    const_reference operator[](size_type pos) const { return c_str()[pos]; }
+    const_reference operator[](size_type pos) const noexcept
+    {
+        return c_str()[pos];
+    }
 
     /// Dump into character array s the characters of this ustring,
     /// beginning with position pos and copying at most n characters.
@@ -412,12 +418,12 @@ public:
 
     // FIXME: implement compare.
 
-    size_type find(const ustring& str, size_type pos = 0) const
+    size_type find(const ustring& str, size_type pos = 0) const noexcept
     {
         return string().find(str.string(), pos);
     }
 
-    size_type find(const std::string& str, size_type pos = 0) const
+    size_type find(const std::string& str, size_type pos = 0) const noexcept
     {
         return string().find(str, pos);
     }
@@ -432,17 +438,17 @@ public:
         return string().find(s, pos);
     }
 
-    size_type find(char c, size_type pos = 0) const
+    size_type find(char c, size_type pos = 0) const noexcept
     {
         return string().find(c, pos);
     }
 
-    size_type rfind(const ustring& str, size_type pos = npos) const
+    size_type rfind(const ustring& str, size_type pos = npos) const noexcept
     {
         return string().rfind(str.string(), pos);
     }
 
-    size_type rfind(const std::string& str, size_type pos = npos) const
+    size_type rfind(const std::string& str, size_type pos = npos) const noexcept
     {
         return string().rfind(str, pos);
     }
@@ -457,17 +463,19 @@ public:
         return string().rfind(s, pos);
     }
 
-    size_type rfind(char c, size_type pos = npos) const
+    size_type rfind(char c, size_type pos = npos) const noexcept
     {
         return string().rfind(c, pos);
     }
 
     size_type find_first_of(const ustring& str, size_type pos = 0) const
+        noexcept
     {
         return string().find_first_of(str.string(), pos);
     }
 
     size_type find_first_of(const std::string& str, size_type pos = 0) const
+        noexcept
     {
         return string().find_first_of(str, pos);
     }
@@ -482,17 +490,19 @@ public:
         return string().find_first_of(s, pos);
     }
 
-    size_type find_first_of(char c, size_type pos = 0) const
+    size_type find_first_of(char c, size_type pos = 0) const noexcept
     {
         return string().find_first_of(c, pos);
     }
 
     size_type find_last_of(const ustring& str, size_type pos = npos) const
+        noexcept
     {
         return string().find_last_of(str.string(), pos);
     }
 
     size_type find_last_of(const std::string& str, size_type pos = npos) const
+        noexcept
     {
         return string().find_last_of(str, pos);
     }
@@ -507,17 +517,19 @@ public:
         return string().find_last_of(s, pos);
     }
 
-    size_type find_last_of(char c, size_type pos = npos) const
+    size_type find_last_of(char c, size_type pos = npos) const noexcept
     {
         return string().find_last_of(c, pos);
     }
 
     size_type find_first_not_of(const ustring& str, size_type pos = 0) const
+        noexcept
     {
         return string().find_first_not_of(str.string(), pos);
     }
 
     size_type find_first_not_of(const std::string& str, size_type pos = 0) const
+        noexcept
     {
         return string().find_first_not_of(str, pos);
     }
@@ -532,18 +544,19 @@ public:
         return string().find_first_not_of(s, pos);
     }
 
-    size_type find_first_not_of(char c, size_type pos = 0) const
+    size_type find_first_not_of(char c, size_type pos = 0) const noexcept
     {
         return string().find_first_not_of(c, pos);
     }
 
     size_type find_last_not_of(const ustring& str, size_type pos = npos) const
+        noexcept
     {
         return string().find_last_not_of(str.string(), pos);
     }
 
     size_type find_last_not_of(const std::string& str,
-                               size_type pos = npos) const
+                               size_type pos = npos) const noexcept
     {
         return string().find_last_not_of(str, pos);
     }
@@ -558,7 +571,7 @@ public:
         return string().find_last_not_of(s, pos);
     }
 
-    size_type find_last_not_of(char c, size_type pos = npos) const
+    size_type find_last_not_of(char c, size_type pos = npos) const noexcept
     {
         return string().find_last_not_of(c, pos);
     }
@@ -567,7 +580,7 @@ public:
     /// *this is lexicographically earlier than str, 1 if *this is
     /// lexicographically after str.
 
-    int compare(const ustring& str) const
+    int compare(const ustring& str) const noexcept
     {
         return (c_str() == str.c_str())
                    ? 0
@@ -578,7 +591,7 @@ public:
     /// Return 0 if *this is lexicographically equal to str, -1 if
     /// *this is lexicographically earlier than str, 1 if *this is
     /// lexicographically after str.
-    int compare(const std::string& str) const
+    int compare(const std::string& str) const noexcept
     {
         return strcmp(c_str() ? c_str() : "", str.c_str());
     }
@@ -586,7 +599,7 @@ public:
     /// Return 0 if *this is lexicographically equal to str, -1 if
     /// *this is lexicographically earlier than str, 1 if *this is
     /// lexicographically after str.
-    int compare(string_view str) const
+    int compare(string_view str) const noexcept
     {
         return strncmp(c_str() ? c_str() : "", str.data() ? str.data() : "",
                        str.length());
@@ -595,7 +608,7 @@ public:
     /// Return 0 if *this is lexicographically equal to str, -1 if
     /// *this is lexicographically earlier than str, 1 if *this is
     /// lexicographically after str.
-    int compare(const char* str) const
+    int compare(const char* str) const noexcept
     {
         return strcmp(c_str() ? c_str() : "", str ? str : "");
     }
@@ -603,7 +616,7 @@ public:
     /// Return 0 if a is lexicographically equal to b, -1 if a is
     /// lexicographically earlier than b, 1 if a is lexicographically
     /// after b.
-    friend int compare(const std::string& a, const ustring& b)
+    friend int compare(const std::string& a, const ustring& b) noexcept
     {
         return strcmp(a.c_str(), b.c_str() ? b.c_str() : "");
     }
@@ -612,82 +625,94 @@ public:
     /// sequence of characters.  Note that because ustrings are unique,
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
-    bool operator==(const ustring& str) const { return c_str() == str.c_str(); }
+    bool operator==(const ustring& str) const noexcept
+    {
+        return c_str() == str.c_str();
+    }
 
     /// Test two ustrings for inequality -- are they comprised of different
     /// sequences of characters.  Note that because ustrings are unique,
     /// this is a trivial pointer comparison, not a char-by-char loop as
     /// would be the case with a char* or a std::string.
-    bool operator!=(const ustring& str) const { return c_str() != str.c_str(); }
+    bool operator!=(const ustring& str) const noexcept
+    {
+        return c_str() != str.c_str();
+    }
 
     /// Test a ustring (*this) for lexicographic equality with std::string
     /// x.
-    bool operator==(const std::string& x) const { return compare(x) == 0; }
+    bool operator==(const std::string& x) const noexcept
+    {
+        return compare(x) == 0;
+    }
 
     /// Test a ustring (*this) for lexicographic equality with string_view
     /// x.
-    bool operator==(string_view x) const { return compare(x) == 0; }
+    bool operator==(string_view x) const noexcept { return compare(x) == 0; }
 
     /// Test a ustring (*this) for lexicographic equality with char* x.
-    bool operator==(const char* x) const { return compare(x) == 0; }
+    bool operator==(const char* x) const noexcept { return compare(x) == 0; }
 
     /// Test for lexicographic equality between std::string a and ustring
     /// b.
-    friend bool operator==(const std::string& a, const ustring& b)
+    friend bool operator==(const std::string& a, const ustring& b) noexcept
     {
         return b.compare(a) == 0;
     }
 
     /// Test for lexicographic equality between string_view a and ustring
     /// b.
-    friend bool operator==(string_view a, const ustring& b)
+    friend bool operator==(string_view a, const ustring& b) noexcept
     {
         return b.compare(a) == 0;
     }
 
     /// Test for lexicographic equality between char* a and ustring
     /// b.
-    friend bool operator==(const char* a, const ustring& b)
+    friend bool operator==(const char* a, const ustring& b) noexcept
     {
         return b.compare(a) == 0;
     }
 
     /// Test a ustring (*this) for lexicographic inequality with
     /// std::string x.
-    bool operator!=(const std::string& x) const { return compare(x) != 0; }
+    bool operator!=(const std::string& x) const noexcept
+    {
+        return compare(x) != 0;
+    }
 
     /// Test a ustring (*this) for lexicographic inequality with
     /// string_view x.
-    bool operator!=(string_view x) const { return compare(x) != 0; }
+    bool operator!=(string_view x) const noexcept { return compare(x) != 0; }
 
     /// Test a ustring (*this) for lexicographic inequality with
     /// char* x.
-    bool operator!=(const char* x) const { return compare(x) != 0; }
+    bool operator!=(const char* x) const noexcept { return compare(x) != 0; }
 
     /// Test for lexicographic inequality between std::string a and
     /// ustring b.
-    friend bool operator!=(const std::string& a, const ustring& b)
+    friend bool operator!=(const std::string& a, const ustring& b) noexcept
     {
         return b.compare(a) != 0;
     }
 
     /// Test for lexicographic inequality between string_view a and
     /// ustring b.
-    friend bool operator!=(string_view a, const ustring& b)
+    friend bool operator!=(string_view a, const ustring& b) noexcept
     {
         return b.compare(a) != 0;
     }
 
     /// Test for lexicographic inequality between char* a and
     /// ustring b.
-    friend bool operator!=(const char* a, const ustring& b)
+    friend bool operator!=(const char* a, const ustring& b) noexcept
     {
         return b.compare(a) != 0;
     }
 
     /// Test for lexicographic 'less', comes in handy for lots of STL
     /// containers and algorithms.
-    bool operator<(const ustring& x) const { return compare(x) < 0; }
+    bool operator<(const ustring& x) const noexcept { return compare(x) < 0; }
 
     /// Construct a ustring in a printf-like fashion.  In other words,
     /// something like:
@@ -784,7 +809,7 @@ public:
         int dummy_refcount;     // Dummy field! must be right before chars
         TableRep(string_view strref, size_t hash);
         ~TableRep();
-        const char* c_str() const { return (const char*)(this + 1); }
+        const char* c_str() const noexcept { return (const char*)(this + 1); }
     };
 
 private:
@@ -797,7 +822,7 @@ private:
 /// hash_set using ustring as a key.
 class ustringHash {
 public:
-    size_t operator()(const ustring& s) const { return s.hash(); }
+    size_t operator()(const ustring& s) const noexcept { return s.hash(); }
 };
 
 
@@ -806,7 +831,7 @@ public:
 /// want the strings sorted lexicographically.
 class ustringLess {
 public:
-    size_t operator()(ustring a, ustring b) const { return a < b; }
+    size_t operator()(ustring a, ustring b) const noexcept { return a < b; }
 };
 
 
@@ -817,7 +842,7 @@ public:
 /// sorting order may vary from run to run!
 class ustringPtrIsLess {
 public:
-    size_t operator()(ustring a, ustring b) const
+    size_t operator()(ustring a, ustring b) const noexcept
     {
         return size_t(a.data()) < size_t(b.data());
     }
