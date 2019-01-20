@@ -41,6 +41,9 @@
 #    pragma warning(disable : 4127 4512)
 #endif
 
+// Thanks, Apple, dammit:
+#define GL_SILENCE_DEPRECATION 1
+
 // included to remove std::min/std::max errors
 #include <OpenImageIO/platform.h>
 
