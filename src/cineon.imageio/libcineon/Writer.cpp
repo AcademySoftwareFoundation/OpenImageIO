@@ -239,8 +239,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 		 (bitDepth == 16 && size == cineon::kWord))
 	{
 		status = this->WriteThrough(data, width, height, noc, bytes, eolnPad, eoimPad, blank);
-		if (blank)
-			delete [] blank;
+        delete [] blank;
 		return status;
 	}
 	else
@@ -280,6 +279,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 			break;
 
         default:
+            delete [] blank;
             return false;
 		}
 	}
@@ -293,8 +293,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 	}
 
 	// rid of memory
-	if (blank)
-		delete [] blank;
+    delete [] blank;
 
 	return status;
 }
