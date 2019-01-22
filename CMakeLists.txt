@@ -443,4 +443,26 @@ set (CPACK_COMPONENT_USER_DESCRIPTION
 set (CPACK_COMPONENT_DEVELOPER_DESCRIPTION "Include files")
 set (CPACK_COMPONENT_DOCUMENTATION_DESCRIPTION "OpenImageIO documentation")
 set (CPACK_COMPONENT_DEVELOPER_DEPENDS user)
+
+# install pkg-config file
+IF ( NOT WIN32 )
+  FILE ( WRITE ${CMAKE_BINARY_DIR}/OpenImageIO.pc "prefix=${CMAKE_INSTALL_PREFIX}\n" )
+  FILE ( APPEND ${CMAKE_BINARY_DIR}/OpenImageIO.pc "exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
+
+Name: OpenImageIO
+Description: ${CPACK_PACKAGE_DESCRIPTION_SUMMARY}
+Version: ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
+Libs: -L\${libdir} -lOpenImageIO -lOpenImageIO_Util
+Cflags: -I\${includedir}/OpenImageIO
+")
+
+  INSTALL ( FILES
+    ${CMAKE_BINARY_DIR}/OpenImageIO.pc
+    DESTINATION
+    lib/pkgconfig
+  )
+ENDIF()
+
 include (CPack)
