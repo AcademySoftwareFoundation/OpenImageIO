@@ -100,6 +100,7 @@ set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
      "Use an externally built shared library version of the pugixml library")
 set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML library")
 option (USE_DICOM "Use DICOM if DCMTK is found" ON)
+option (USE_HEIF "Support HEIC/HEIF files, if libheif is found)" ON)
 set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
 set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
@@ -369,6 +370,10 @@ oiio_add_tests (targa-tgautils
 oiio_add_tests (fits
     IMAGEDIR fits-images
     URL http://www.cv.nrao.edu/fits/data/tests/)
+
+oiio_add_tests (heif
+    FOUNDVAR LIBHEIF_FOUND
+    URL https://github.com/nokiatech/heif/tree/gh-pages/content)
 
 oiio_add_tests (webp
     FOUNDVAR WEBP_FOUND

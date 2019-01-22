@@ -403,6 +403,40 @@ required.
   RGBE header (if it's gamma corrected).
 \end{tabular}
 
+\vspace{.25in}
+
+
+\section{HEIF/HEIC}
+\label{sec:bundledplugins:heif}
+\index{HEIF} \endex{HEIC}
+
+HEIF is a container format for images compressed with the HEIC compression
+standard (same compression as HEVC/H.265). It is used commonly for iPhone
+camera pictures, but it is not Apple-specific and will probably become more
+popualar on other platforms in coming years. HEIF files usually use the file
+extension {\cf .HEIC}.
+
+HEIC compression is lossy, but is higher visual quality than JPEG while
+taking only half the file size. Currently, OIIO's HEIF reader supports
+reading files as RGB or RGBA, uint8 pixel values. Multi-image files are
+currently supported for reading, but not yet writing. All pixel data is
+uint8, though we hope to add support for HDR (more than 8 bits) in the
+future.
+
+\subsubsection*{Configuration settings for HEIF output}
+
+When opening an HEIF \ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+\vspace{.125in}
+\noindent\begin{tabular}{p{1.5in}|p{0.5in}|p{3.25in}}
+\ImageSpec Attribute & Type & HEIF header data or explanation \\
+\hline
+\qkw{Compression} & string & If supplied, must be \qkw{heic}, but may
+     optionally have a quality value appended, like \qkw{heic:90}.
+     Quality can be 1-100, with 100 meaning lossless. The default is 75. \\[2ex]
+\end{tabular}
+
 
 \vspace{.25in}
 

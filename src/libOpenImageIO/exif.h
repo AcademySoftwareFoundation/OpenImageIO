@@ -134,7 +134,8 @@ void append_tiff_dir_entry (std::vector<TIFFDirEntry> &dirs,
                             std::vector<char> &data,
                             int tag, TIFFDataType type, size_t count,
                             const void *mydata, size_t offset_correction,
-                            size_t offset_override=0);
+                            size_t offset_override = 0,
+                            OIIO::endian endianreq = OIIO::endian::native);
 
 void decode_ifd (const unsigned char *ifd, cspan<uint8_t> buf,
                  ImageSpec &spec, const TagMap& tag_map,

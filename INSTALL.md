@@ -56,6 +56,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
      * OpenCV 2.x, 3.x, or 4.x
+ * If you want support for HEIF/HEIC images:
+     * libheic >= 1.3 (older versions may work, we haven't tested)
 
 
 Building OpenImageIO on Linux or OS X

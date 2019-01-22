@@ -3,6 +3,9 @@ Release 2.1 (?? 2019) -- compared to 2.0
 New minimum dependencies:
 
 Major new features and improvements:
+* Support for HEIC/HEIF images. HEIC is the still-image sibling of HEVC
+  (a.k.a. H.265), and compresses to about half the size of JPEG but with
+  higher visual quality. (2.1.0)
 
 Public API changes:
 * Python: define `__version__` for the module. #2096 (2.1.0/2.0.4)

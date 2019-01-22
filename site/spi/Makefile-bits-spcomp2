@@ -146,7 +146,8 @@ ifeq (${SP_OS}, rhel7)
 	-DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
 	-DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION} \
 	-DLIBRAW_INCLUDEDIR_HINT=/usr/include/libraw-0.18.11 \
-	-DLIBRAW_LIBDIR_HINT=/usr/lib64/libraw-0.18.11
+	-DLIBRAW_LIBDIR_HINT=/usr/lib64/libraw-0.18.11 \
+	-DLIBHEIF_PATH=/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2
 
     # Special sauce for Python 3.6
     ifeq (${PYTHON_VERSION},3.6)

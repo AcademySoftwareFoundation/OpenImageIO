@@ -47,6 +47,7 @@ brew install opencv
 brew install tbb
 brew install openvdb
 brew install pybind11
+brew install libheif
 if [ "$LINKSTATIC" == "1" ] ; then
     brew install little-cms2 tinyxml szip
     brew install homebrew/dupes/bzip2
