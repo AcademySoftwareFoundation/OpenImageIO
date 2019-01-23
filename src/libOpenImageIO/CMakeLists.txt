@@ -4,11 +4,11 @@ endif ()
 file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
 configure_file (imageio_pvt.h.in "${CMAKE_BINARY_DIR}/include/imageio_pvt.h" @ONLY)
 
-# install pkgconfig file
-if (VERBOSE)
-    message(STATUS "Create OpenImageIO.h from OpeImageIO.pc.in")
-endif ()
-configure_file(OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/lib/pkgconfig/OpenImageIO.pc" @ONLY)
+# install pkgconfig file                                                            
+configure_file(OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/include/OpenImageIO.pc" @ONLY) 
+install (FILES "${CMAKE_BINARY_DIR}/include/OpenImageIO.pc"
+         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+         COMPONENT developer)
 
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
