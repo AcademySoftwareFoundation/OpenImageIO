@@ -4,11 +4,13 @@ endif ()
 file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
 configure_file (imageio_pvt.h.in "${CMAKE_BINARY_DIR}/include/imageio_pvt.h" @ONLY)
 
-# install pkgconfig file                                                            
-configure_file(OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/include/OpenImageIO.pc" @ONLY) 
-install (FILES "${CMAKE_BINARY_DIR}/include/OpenImageIO.pc"
-         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
-         COMPONENT developer)
+# install pkgconfig file
+IF ( NOT WIN32 )
+   configure_file(OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/include/OpenImageIO.pc" @ONLY) 
+   install (FILES "${CMAKE_BINARY_DIR}/include/OpenImageIO.pc"
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+            COMPONENT developer)
+ENDIF()
 
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
