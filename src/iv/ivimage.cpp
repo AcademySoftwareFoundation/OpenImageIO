@@ -213,7 +213,12 @@ IvImage::longinfo() const
         if (m_spec.z_channel >= 0)
             m_longinfo += html_table_row("Depth (z) channel", m_spec.z_channel);
 
-        for (auto&& p : m_spec.extra_attribs) {
+        // Sort the metadata alphabetically, case-insensitive, but making
+        // sure that all non-namespaced attribs appear before namespaced
+        // attribs.
+        ParamValueList attribs = m_spec.extra_attribs;
+        attribs.sort(false /* sort case-insensitively */);
+        for (auto&& p : attribs) {
             std::string s = m_spec.metadata_val(p, true);
             m_longinfo += html_table_row(p.name().c_str(), s);
         }
