@@ -16,6 +16,29 @@ Public API changes:
 * "Compression" names (where applicable) can now have the quality appended
   to the name (e.g., `"jpeg:85"`) insead of requiring quality to be passed
   as a separate piece of metadata. #2111 (2.1.0/2.0.5)
+* Python error reporting for `ImageOutput` and `ImageBuf.set_pixels` involving
+  transferring pixel arrays have changed from throwing exceptions to reporting
+  errors through the usual OIIO error return codes and queries.
+  #2127 (2.1.0/2.0.5)
+* New shell environment variable `OPENIMAGEIO_OPTIONS` can now be used to
+  set global `OIIO::attribute()` settings upon startup (comma separated
+  name=value syntax). #2128 (2.1.0/2.0.5)
+* ImageInput open-with-config new attribute `"missingcolor"` can supply
+  a value for missing tiles or scanlines in a file in lieu of treating it
+  as an error (for example, how OpenEXR allows missing tiles, or when reading
+  an incompletely-written image file). A new global `OIIO::attribute()`
+  setting (same name) also accomplishes the same thing for all files read.
+  Note that this is only advisory, and not all file times are able to do
+  this (OpenEXR is the main one of interest, so that works). #2129 (2.1.0/2.0.5)
+* `ImageCache::invalidate()` and `TextureSystem::invalidate()` now take an
+  optional `force` parameter (default: true) that if false, will only
+  invalidate a file if it has been updated on disk since it was first opened.
+  #2133 (2.1.0/2.0.5)
+* New filter name `"nuke-lanczos6"` matches the "lanczos6" filter from Nuke.
+  In reality, it's identical to our "lanczos3", but the name alias is
+  supposed to make it more clear which one to use to match Nuke, which uses
+  a different nomenclature (our "3" is radius, their "6" is full width).
+  #2136 (2.1.0/2.0.5)
 
 Performance improvements:
 
@@ -32,6 +55,9 @@ Fixes and feature enhancements:
       it wasn't previously initialized. Now it uses the uaual type-merging
       logic, making the result the "widest" type of the inputs. #2095
       (2.1.0/2.0.4)
+    - `resize()`, `fit()`, and `resample()` are no longer restricted to
+      source and destination images having the same numer of channels.
+      #2125 (2.1.0/2.0.5)
 * ImageInput read_image/scanline/tile fixed subtle bugs for certain
   combination of strides and channel subset reads. #2108 (2.1.0/2.0.4)
 * ImageCache / TextureSystem / maketx:
@@ -41,11 +67,22 @@ Fixes and feature enhancements:
     - maketx: the `-u` (update mode) is slightly less conservative now,
       no longer forcing a rebuild of the texture just because the file uses
       a different relative directory path than last time. #2109 (2.1.0/2.0.4)
+    - Protection against certain divide-by-zero errors when using
+      very blurry latong environment map lookups. #2121 (2.1.0/2.0.5)
+    - `maketx -u` is smarter about which textures to avoid re-making because
+      they are repeats of earlier commands. #2140 (2.1.0/2.05)
+* iv viewer:
+    - Image info window now sorts the metadata, in the same manner as
+      `iinfo -v` or `oiiotool -info -v`. #2159 (2.1.0/2.0.5)
 * DPX:
     - Now recognizes the new transfer/colorimetric code for ADX. #2119
       (2.1.0/2.0.4)
+* OpenEXR:
+    - Avoid some OpenEXR/libIlmImf internal errors with DWA compression by
+      switching to zip for single channel images with certain small tile
+      sizes. #2147 (2.1.0/2.0.5)
 * TIFF:
-    - Fix problems with JPEG compression in some cases. #2771 (2.1.0/2.0.4)
+    - Fix problems with JPEG compression in some cases. #2117 (2.1.0/2.0.4)
     - Fix error where reading just a subset of channels, if that subset did
       not include the alpha channel but the image was "unassociated alpha",
       the attempt to automatically associate (i.e. "premultiply" the alpha)
@@ -69,13 +106,30 @@ Build/test system improvements and platform ports:
 * Remove "osdep.h" header that was no longer needed. #2097
 * Appveyor scripts have been overhauled and simplified by relying on
   `vcpkg` to build dependencies. #2113 (2.1.0/2.0.4)
+* Detect and error if builder is trying to use a pybind11 that's too old.
+  #2144 (2.1.0/2.0.5)
+* New CMake build-time option `OIIO_LIBNAME_SUFFIX` (default: empty) lets
+  you append an optional name to the libraries produced (to disambiguate
+  two builds at the same facility or distro, much like you could do before
+  for symbols with custom namespaces). #2148 (2.1.0)
+* On MacOS 10.14 Mojave, fix warnings during `iv` compiler about OpenGL
+  being deprecated in future releases. #2151 (2.1.0/2.0.5)
 
 Developer goodies / internals:
 * `string_view` now adds an optional `pos` parameter to the `find_first_of`
   / `find_last_of` family of methods. #2114 (2.1.0/2.0.4)
-* `Strutil::wordwrap()` now lets you specify the separation characters more
-  flexibly (rather than being hard-coded to spaces as separators).
-  #2116 (2.1.0/2.0.4)
+* strutil.h:
+    - `Strutil::wordwrap()` now lets you specify the separation characters
+      more flexibly (rather than being hard-coded to spaces as separators).
+      #2116 (2.1.0/2.0.4)
+    - `Strutil::parse_while()`.  #2139 (2.1.0/2.0.5)
+* fmath.h:
+    - `safe_mod()` does integer modulus but protects against mod-by-zero
+      exceptions. #2121 (2.1.0/2.0.5)
+* platform.h:
+    - New `OIIO_RETURNS_NONNULL` macro implements an attribute that marks
+      a function that returns a pointer as guaranteeing that it's never
+      NULL. #2150 (2.1.0/2.0.5)
 
 Notable documentation changes:
 
@@ -88,7 +142,7 @@ Release 2.0.4 (Jan 5, 2019) -- compared to 2.0.3
   multiple application threads. #2132
 * ImageInput read_image/scanline/tile fixed subtle bugs for certain
   combination of strides and channel subset reads. #2108
-* TIFF: Fix problems with JPEG compression in some cases. #2771
+* TIFF: Fix problems with JPEG compression in some cases. #2117
 * TIFF: Fixed error where reading just a subset of channels, if that subset
   did not include the alpha channel but the image was "unassociated alpha",
   the attempt to automatically associate (i.e. "premultiply" the alpha) upon
