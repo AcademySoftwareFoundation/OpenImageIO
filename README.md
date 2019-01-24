@@ -32,8 +32,8 @@ OpenImageIO consists of:
   including TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/RGBE, ICO, BMP, Targa,
   JPEG-2000, RMan Zfile, FITS, DDS, Softimage PIC, PNM, DPX, Cineon,
   IFF, Field3D, OpenVDB, Ptex, Photoshop PSD, Wavefront RLA, SGI, WebP,
-  GIF, DICOM, many "RAW" digital camera formats, and a variety of movie
-  formats (readable as individual frames).  More are being developed
+  GIF, DICOM, HEIC/HEIF, many "RAW" digital camera formats, and a variety of
+  movie formats (readable as individual frames).  More are being developed
   all the time.
 
 * Several command line image tools based on these classes, including

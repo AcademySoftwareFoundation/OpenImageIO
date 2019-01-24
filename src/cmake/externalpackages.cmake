@@ -12,6 +12,7 @@ if (NOT VERBOSE)
     set (HDF5_FIND_QUIETLY true)
     set (IlmBase_FIND_QUIETLY true)
     set (JPEG_FIND_QUIETLY true)
+    set (LIBHEIF_FIND_QUIETLY true)
     set (LibRaw_FIND_QUIETLY true)
     set (Nuke_FIND_QUIETLY true)
     set (OpenColorIO_FIND_QUIETLY true)
@@ -515,6 +516,15 @@ if (USE_DICOM)
     endif ()
 endif()
 # end DCMTK setup
+###########################################################################
+
+
+###########################################################################
+# HEIF
+if (USE_HEIF)
+    find_package (Libheif 1.3)
+endif()
+# end HEIF setup
 ###########################################################################
 
 

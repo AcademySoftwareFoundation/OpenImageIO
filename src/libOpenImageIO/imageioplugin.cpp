@@ -245,6 +245,7 @@ PLUGENTRY(ffmpeg);
 PLUGENTRY(field3d);
 PLUGENTRY(fits);
 PLUGENTRY(gif);
+PLUGENTRY(heif);
 PLUGENTRY(hdr);
 PLUGENTRY(ico);
 PLUGENTRY(iff);
@@ -311,6 +312,9 @@ catalog_builtin_plugins()
     DECLAREPLUG (fits);
 #ifdef USE_GIF
     DECLAREPLUG (gif);
+#endif
+#ifdef USE_HEIF
+    DECLAREPLUG (heif);
 #endif
     DECLAREPLUG (hdr);
     DECLAREPLUG (ico);
