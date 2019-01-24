@@ -19,7 +19,7 @@ endif
 #   release versions on the svn server.
 #
 
-OPENIMAGEIO_SPCOMP2_VERSION=46
+OPENIMAGEIO_SPCOMP2_VERSION=47
 
 # Default namespace
 NAMESPACE ?= 'OpenImageIO_SPI'
@@ -92,7 +92,7 @@ ifeq (${SP_OS}, rhel7)
 
     ## If not overridden, here is our preferred LLVM installation
     ## (may be changed as new versions are rolled out to the facility)
-    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_7.0.0
+    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_7.0.1
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
@@ -105,7 +105,7 @@ ifeq (${SP_OS}, rhel7)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
         MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER},clang7)
-	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_7.0.0
+        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_7.0.1
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
 	MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER},clang)
@@ -218,7 +218,7 @@ else ifeq (${platform}, macosx)
            -DCMAKE_C_COMPILER=gcc-8 -DCMAKE_CXX_COMPILER=g++-8
         USE_LIBCPLUSPLUS := 0
     else ifeq (${COMPILER},clang7)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm/7.0.0/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm/7.0.0/bin/clang++
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm/7.0.1/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm/7.0.1/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER},gcc)
@@ -260,8 +260,8 @@ space:= $(empty) $(empty)
 INSTALL_BIN_LOCATION = /shots/spi/home/bin/${SP_OS}
 INSTALL_SPCOMP2_CURRENT = $(SPCOMP2_LOCATION)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
 
-SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib
-SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${FIELD3D_HOME}/lib/debug:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib/debug
+SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib
+SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${FIELD3D_HOME}/lib/debug:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib/debug:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib
 PYSPCOMP2_RPATH_OPT ?= ${SPCOMP2_RPATH_OPT}:${OIIO_SPCOMP2_PATH}/lib:${PYTHON_LIBRARY_DIR}
 PYSPCOMP2_RPATH_DEBUG ?= ${SPCOMP2_RPATH_DEBUG}:${OIIO_SPCOMP2_PATH}/lib/debug:${PYTHON_LIBRARY_DIR}
 

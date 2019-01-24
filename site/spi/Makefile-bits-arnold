@@ -77,7 +77,7 @@ ifeq (${SP_OS}, rhel7)
 
     ## If not overridden, here is our preferred LLVM installation
     ## (may be changed as new versions are rolled out to the facility)
-    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_7.0.0
+    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_7.0.1
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
@@ -90,7 +90,7 @@ ifeq (${SP_OS}, rhel7)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
         MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER},clang7)
-	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_7.0.0
+        LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_7.0.1
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
 	MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER},clang)
@@ -205,7 +205,7 @@ else ifeq (${platform}, macosx)
     else ifeq (${COMPILER},clang6)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm@6/6.0.1_1/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm@6/6.0.1_1/bin/clang++
     else ifeq (${COMPILER},clang7)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm/7.0.0_1/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm/7.0.0_1/bin/clang++
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm/7.0.1/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm/7.0.1/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER},gcc)
