@@ -1,5 +1,37 @@
-Release 2.0.5 (1 Feb?, 2019) -- compared to 2.0.4
+Release 2.0.5 (1 Feb, 2019) -- compared to 2.0.4
 ------------------------------------------------
+* `resize()`, `fit()`, and `resample()` are no longer restricted to
+  source and destination images having the same numer of channels. #2125
+* Python error reporting for `ImageOutput` and `ImageBuf.set_pixels` involving
+  transferring pixel arrays have changed from throwing exceptions to reporting
+  errors through the usual OIIO error return codes and queries. #2127
+* Protection against certain divide-by-zero errors when using very blurry
+  latlong environment map lookups. #2121
+* New shell environment variable `OPENIMAGEIO_OPTIONS` can now be used to
+  set global `OIIO::attribute()` settings upon startup (comma separated
+  name=value syntax). #2128
+* ImageInput open-with-config new attribute `"missingcolor"` can supply
+  a value for missing tiles or scanlines in a file in lieu of treating it
+  as an error (for example, how OpenEXR allows missing tiles, or when reading
+  an incompletely-written image file). A new global `OIIO::attribute()`
+  setting (same name) also accomplishes the same thing for all files read.
+  Note that this is only advisory, and not all file times are able to do
+  this (OpenEXR is the main one of interest, so that works). #2129
+* New filter name `"nuke-lanczos6"` matches the "lanczos6" filter from Nuke.
+  In reality, it's identical to our "lanczos3", but the name alias is
+  supposed to make it more clear which one to use to match Nuke, which uses
+  a different nomenclature (our "3" is radius, their "6" is full width).
+  #2136
+* `maketx -u` is smarter about which textures to avoid re-making because
+   they are repeats of earlier commands. #2140
+* Detect/error if builder is trying to use a pybind11 that's too old. #2144
+* OpenEXR: avoid some OpenEXR/libIlmImf internal errors with DWA compression
+  by switching to zip for single channel images with certain small tile
+  sizes. #2147
+* On MacOS 10.14 Mojave, fix warnings during `iv` compile about OpenGL
+  being deprecated in future releases. #2151
+* `iv` info window now sorts the metadata. #2159
+
 
 Release 2.0.4 (5 Jan, 2019) -- compared to 2.0.3
 ------------------------------------------------
@@ -8,7 +40,7 @@ Release 2.0.4 (5 Jan, 2019) -- compared to 2.0.3
   multiple application threads. #2132
 * ImageInput read_image/scanline/tile fixed subtle bugs for certain
   combination of strides and channel subset reads. #2108
-* TIFF: Fix problems with JPEG compression in some cases. #2771
+* TIFF: Fix problems with JPEG compression in some cases. #2117
 * TIFF: Fixed error where reading just a subset of channels, if that subset
   did not include the alpha channel but the image was "unassociated alpha",
   the attempt to automatically associate (i.e. "premultiply" the alpha) upon
