@@ -103,15 +103,15 @@ public:
     static const size_type npos = ~size_type(0);
 
     /// Default ctr
-    string_view() { init(NULL, 0); }
+    string_view() noexcept { init(nullptr, 0); }
     /// Copy ctr
-    string_view(const string_view& copy) { init(copy.m_chars, copy.m_len); }
+    string_view(const string_view& copy) noexcept { init(copy.m_chars, copy.m_len); }
     /// Construct from char* and length.
     string_view(const charT* chars, size_t len) { init(chars, len); }
     /// Construct from char*, use strlen to determine length.
     string_view(const charT* chars) { init(chars, chars ? strlen(chars) : 0); }
     /// Construct from std::string.
-    string_view(const std::string& str) { init(str.data(), str.size()); }
+    string_view(const std::string& str) noexcept { init(str.data(), str.size()); }
 
     std::string str() const
     {
@@ -139,7 +139,7 @@ public:
     const char* c_str() const;
 
     // assignments
-    string_view& operator=(const string_view& copy)
+    string_view& operator=(const string_view& copy) noexcept
     {
         init(copy.data(), copy.length());
         return *this;
@@ -148,20 +148,20 @@ public:
     operator std::string() const { return str(); }
 
     // iterators
-    const_iterator begin() const { return m_chars; }
-    const_iterator end() const { return m_chars + m_len; }
-    const_iterator cbegin() const { return m_chars; }
-    const_iterator cend() const { return m_chars + m_len; }
-    const_reverse_iterator rbegin() const { return const_reverse_iterator (end()); }
-    const_reverse_iterator rend() const { return const_reverse_iterator (begin()); }
-    const_reverse_iterator crbegin() const { return const_reverse_iterator (end()); }
-    const_reverse_iterator crend() const { return const_reverse_iterator (begin()); }
+    const_iterator begin() const noexcept { return m_chars; }
+    const_iterator end() const noexcept { return m_chars + m_len; }
+    const_iterator cbegin() const noexcept { return m_chars; }
+    const_iterator cend() const noexcept { return m_chars + m_len; }
+    const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator (end()); }
+    const_reverse_iterator rend() const noexcept { return const_reverse_iterator (begin()); }
+    const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator (end()); }
+    const_reverse_iterator crend() const noexcept { return const_reverse_iterator (begin()); }
 
     // capacity
-    size_type size() const { return m_len; }
-    size_type length() const { return m_len; }
-    size_type max_size() const { return m_len; }
-    bool empty() const { return m_len == 0; }
+    size_type size() const noexcept { return m_len; }
+    size_type length() const noexcept { return m_len; }
+    size_type max_size() const noexcept { return m_len; }
+    bool empty() const noexcept { return m_len == 0; }
 
     // element access
     const charT& operator[](size_type pos) const { return m_chars[pos]; }
@@ -173,25 +173,25 @@ public:
     }
     const charT& front() const { return m_chars[0]; }
     const charT& back() const { return m_chars[m_len - 1]; }
-    const charT* data() const { return m_chars; }
+    const charT* data() const noexcept { return m_chars; }
 
     // modifiers
-    void clear() { init(NULL, 0); }
-    void remove_prefix(size_type n)
+    void clear() noexcept { init(nullptr, 0); }
+    void remove_prefix(size_type n) noexcept
     {
         if (n > m_len)
             n = m_len;
         m_chars += n;
         m_len -= n;
     }
-    void remove_suffix(size_type n)
+    void remove_suffix(size_type n) noexcept
     {
         if (n > m_len)
             n = m_len;
         m_len -= n;
     }
 
-    string_view substr(size_type pos, size_type n = npos) const
+    string_view substr(size_type pos, size_type n = npos) const noexcept
     {
         if (pos > size())
             return string_view();  // start past end -> return empty
@@ -200,7 +200,7 @@ public:
         return string_view(data() + pos, n);
     }
 
-    int compare (string_view x) const {
+    int compare (string_view x) const noexcept {
         const int cmp = std::char_traits<char>::compare (m_chars, x.m_chars, (std::min)(m_len, x.m_len));
         return cmp != 0 ? cmp : int(m_len - x.m_len);
         // Equivalent to:
@@ -209,13 +209,14 @@ public:
 
 #if 0
     // Do these later if anybody needs them
-    bool starts_with(string_view x) const;
-    bool ends_with(string_view x) const;
+    bool starts_with(string_view x) const noexcept;
+    bool ends_with(string_view x) const noexcept;
+    size_type copy(CharT* dest, size_type count, size_type pos = 0) const;
 #endif
 
     /// Find the first occurrence of substring s in *this, starting at
     /// position pos.
-    size_type find(string_view s, size_t pos = 0) const
+    size_type find(string_view s, size_t pos = 0) const noexcept
     {
         if (pos > size())
             pos = size();
@@ -226,7 +227,7 @@ public:
 
     /// Find the first occurrence of character c in *this, starting at
     /// position pos.
-    size_type find (charT c, size_t pos=0) const {
+    size_type find (charT c, size_t pos=0) const noexcept {
         if (pos > size())
             pos = size();
         const_iterator i = std::find_if (this->cbegin()+pos, this->cend(),
@@ -236,7 +237,7 @@ public:
 
     /// Find the last occurrence of substring s *this, but only those
     /// occurrences earlier than position pos.
-    size_type rfind (string_view s, size_t pos=npos) const {
+    size_type rfind (string_view s, size_t pos=npos) const noexcept {
         if (pos > size())
             pos = size();
         const_reverse_iterator b = this->crbegin()+(size()-pos);
@@ -247,7 +248,7 @@ public:
 
     /// Find the last occurrence of character c in *this, but only those
     /// occurrences earlier than position pos.
-    size_type rfind (charT c, size_t pos=npos) const {
+    size_type rfind (charT c, size_t pos=npos) const noexcept {
         if (pos > size())
             pos = size();
         const_reverse_iterator b = this->crbegin()+(size()-pos);
@@ -256,11 +257,11 @@ public:
         return i == e ? npos : reverse_distance (this->crbegin(),i);
     }
 
-    size_type find_first_of (charT c, size_t pos=0) const { return find (c, pos); }
+    size_type find_first_of (charT c, size_t pos=0) const noexcept { return find (c, pos); }
 
-    size_type find_last_of (charT c, size_t pos=npos) const { return rfind (c, pos); }
+    size_type find_last_of (charT c, size_t pos=npos) const noexcept { return rfind (c, pos); }
 
-    size_type find_first_of (string_view s, size_t pos=0) const {
+    size_type find_first_of (string_view s, size_t pos=0) const noexcept {
         if (pos >= size())
             return npos;
         const_iterator i = std::find_first_of (this->cbegin()+pos, this->cend(),
@@ -268,7 +269,7 @@ public:
         return i == this->cend() ? npos : std::distance (this->cbegin(), i);
     }
 
-    size_type find_last_of (string_view s, size_t pos=npos) const {
+    size_type find_last_of (string_view s, size_t pos=npos) const noexcept {
         if (pos > size())
             pos = size();
         size_t off = size()-pos;
@@ -277,14 +278,14 @@ public:
         return i == this->crend() ? npos : reverse_distance (this->crbegin(), i);
     }
 
-    size_type find_first_not_of (string_view s, size_t pos=0) const {
+    size_type find_first_not_of (string_view s, size_t pos=0) const noexcept {
         if (pos >= size())
             return npos;
         const_iterator i = find_not_of (this->cbegin()+pos, this->cend(), s);
         return i == this->cend() ? npos : std::distance (this->cbegin(), i);
     }
 
-    size_type find_first_not_of (charT c, size_t pos=0) const {
+    size_type find_first_not_of (charT c, size_t pos=0) const noexcept {
         if (pos >= size())
             return npos;
         for (const_iterator i = this->cbegin()+pos; i != this->cend(); ++i)
@@ -293,7 +294,7 @@ public:
         return npos;
     }
 
-    size_type find_last_not_of (string_view s, size_t pos=npos) const {
+    size_type find_last_not_of (string_view s, size_t pos=npos) const noexcept {
         if (pos > size())
             pos = size();
         size_t off = size()-pos;
@@ -301,7 +302,7 @@ public:
         return i == this->crend() ? npos : reverse_distance (this->crbegin(), i);
     }
 
-    size_type find_last_not_of (charT c, size_t pos=npos) const {
+    size_type find_last_not_of (charT c, size_t pos=npos) const noexcept {
         if (pos > size())
             pos = size();
         size_t off = size()-pos;
@@ -315,20 +316,20 @@ private:
     const charT* m_chars;
     size_t m_len;
 
-    void init(const charT* chars, size_t len)
+    void init(const charT* chars, size_t len) noexcept
     {
         m_chars = chars;
         m_len   = len;
     }
 
     template<typename r_iter>
-    size_type reverse_distance(r_iter first, r_iter last) const
+    size_type reverse_distance(r_iter first, r_iter last) const noexcept
     {
         return m_len - 1 - std::distance(first, last);
     }
 
     template<typename iter>
-    iter find_not_of(iter first, iter last, string_view s) const
+    iter find_not_of(iter first, iter last, string_view s) const noexcept
     {
         for (; first != last; ++first)
             if (!traits::find(s.data(), s.length(), *first))
@@ -338,8 +339,8 @@ private:
 
     class traits_eq {
     public:
-        traits_eq (charT ch) : ch(ch) {}
-        bool operator () (charT val) const { return traits::eq (ch, val); }
+        traits_eq (charT ch) noexcept : ch(ch) {}
+        bool operator () (charT val) const noexcept { return traits::eq (ch, val); }
         charT ch;
     };
 };
@@ -347,37 +348,37 @@ private:
 
 
 inline bool
-operator==(string_view x, string_view y)
+operator==(string_view x, string_view y) noexcept
 {
     return x.size() == y.size() ? (x.compare(y) == 0) : false;
 }
 
 inline bool
-operator!=(string_view x, string_view y)
+operator!=(string_view x, string_view y) noexcept
 {
     return x.size() == y.size() ? (x.compare(y) != 0) : true;
 }
 
 inline bool
-operator<(string_view x, string_view y)
+operator<(string_view x, string_view y) noexcept
 {
     return x.compare(y) < 0;
 }
 
 inline bool
-operator>(string_view x, string_view y)
+operator>(string_view x, string_view y) noexcept
 {
     return x.compare(y) > 0;
 }
 
 inline bool
-operator<=(string_view x, string_view y)
+operator<=(string_view x, string_view y) noexcept
 {
     return x.compare(y) <= 0;
 }
 
 inline bool
-operator>=(string_view x, string_view y)
+operator>=(string_view x, string_view y) noexcept
 {
     return x.compare(y) >= 0;
 }

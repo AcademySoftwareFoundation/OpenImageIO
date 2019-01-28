@@ -118,33 +118,33 @@ struct ROI {
 
     /// Default constructor is an undefined region. Note that this is also
     /// interpreted as All().
-    constexpr ROI () : xbegin(std::numeric_limits<int>::min()), xend(0),
+    constexpr ROI () noexcept : xbegin(std::numeric_limits<int>::min()), xend(0),
              ybegin(0), yend(0), zbegin(0), zend(0), chbegin(0), chend(0)
     { }
 
     /// Constructor with an explicitly defined region.
     ///
     constexpr ROI (int xbegin, int xend, int ybegin, int yend,
-         int zbegin=0, int zend=1, int chbegin=0, int chend=10000)
+         int zbegin=0, int zend=1, int chbegin=0, int chend=10000) noexcept
         : xbegin(xbegin), xend(xend), ybegin(ybegin), yend(yend),
           zbegin(zbegin), zend(zend), chbegin(chbegin), chend(chend)
     { }
 
     /// Is a region defined?
-    constexpr bool defined () const { return (xbegin != std::numeric_limits<int>::min()); }
+    constexpr bool defined () const noexcept { return (xbegin != std::numeric_limits<int>::min()); }
 
     // Region dimensions.
-    constexpr int width () const { return xend - xbegin; }
-    constexpr int height () const { return yend - ybegin; }
-    constexpr int depth () const { return zend - zbegin; }
+    constexpr int width () const noexcept { return xend - xbegin; }
+    constexpr int height () const noexcept { return yend - ybegin; }
+    constexpr int depth () const noexcept { return zend - zbegin; }
 
     /// Number of channels in the region.  Beware -- this defaults to a
     /// huge number, and to be meaningful you must consider
     /// std::min (imagebuf.nchannels(), roi.nchannels()).
-    constexpr int nchannels () const { return chend - chbegin; }
+    constexpr int nchannels () const noexcept { return chend - chbegin; }
 
     /// Total number of pixels in the region.
-    constexpr imagesize_t npixels () const {
+    constexpr imagesize_t npixels () const noexcept {
         return defined()
             ? imagesize_t(width()) * imagesize_t(height()) * imagesize_t(depth())
             : 0;
@@ -155,17 +155,17 @@ struct ROI {
     ///     float myfunc (ImageBuf &buf, ROI roi = ROI::All());
     /// Note that this is equivalent to:
     ///     float myfunc (ImageBuf &buf, ROI roi = {});
-    static constexpr ROI All () { return ROI(); }
+    static constexpr ROI All () noexcept { return ROI(); }
 
     /// Test equality of two ROIs
-    friend constexpr bool operator== (const ROI &a, const ROI &b) {
+    friend constexpr bool operator== (const ROI &a, const ROI &b) noexcept {
         return (a.xbegin == b.xbegin && a.xend == b.xend &&
                 a.ybegin == b.ybegin && a.yend == b.yend &&
                 a.zbegin == b.zbegin && a.zend == b.zend &&
                 a.chbegin == b.chbegin && a.chend == b.chend);
     }
     /// Test inequality of two ROIs
-    friend constexpr bool operator!= (const ROI &a, const ROI &b) {
+    friend constexpr bool operator!= (const ROI &a, const ROI &b) noexcept {
         return (a.xbegin != b.xbegin || a.xend != b.xend ||
                 a.ybegin != b.ybegin || a.yend != b.yend ||
                 a.zbegin != b.zbegin || a.zend != b.zend ||
@@ -173,13 +173,13 @@ struct ROI {
     }
 
     /// Test if the coordinate is within the ROI.
-    constexpr bool contains (int x, int y, int z=0, int ch=0) const {
+    constexpr bool contains (int x, int y, int z=0, int ch=0) const noexcept {
         return x >= xbegin && x < xend && y >= ybegin && y < yend
             && z >= zbegin && z < zend && ch >= chbegin && ch < chend;
     }
 
     /// Test if another ROI is entirely within our ROI.
-    constexpr bool contains (const ROI& other) const {
+    constexpr bool contains (const ROI& other) const noexcept {
         return (other.xbegin >= xbegin && other.xend <= xend &&
                 other.ybegin >= ybegin && other.yend <= yend &&
                 other.zbegin >= zbegin && other.zend <= zend &&
@@ -198,7 +198,7 @@ struct ROI {
 
 
 /// Union of two regions, the smallest region containing both.
-inline constexpr ROI roi_union (const ROI &A, const ROI &B) {
+inline constexpr ROI roi_union (const ROI &A, const ROI &B) noexcept {
     return (A.defined() && B.defined())
         ? ROI (std::min (A.xbegin,  B.xbegin),  std::max (A.xend,  B.xend),
                std::min (A.ybegin,  B.ybegin),  std::max (A.yend,  B.yend),
@@ -208,7 +208,7 @@ inline constexpr ROI roi_union (const ROI &A, const ROI &B) {
 }
 
 /// Intersection of two regions.
-inline constexpr ROI roi_intersection (const ROI &A, const ROI &B) {
+inline constexpr ROI roi_intersection (const ROI &A, const ROI &B) noexcept {
     return (A.defined() && B.defined())
         ? ROI (std::max (A.xbegin,  B.xbegin),  std::min (A.xend,  B.xend),
                std::max (A.ybegin,  B.ybegin),  std::min (A.yend,  B.yend),

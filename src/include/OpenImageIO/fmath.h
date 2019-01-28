@@ -1045,11 +1045,11 @@ private:
 template <class T=float>
 class EightBitConverter {
 public:
-    EightBitConverter () { init(); }
-    T operator() (unsigned char c) const { return val[c]; }
+    EightBitConverter () noexcept { init(); }
+    T operator() (unsigned char c) const noexcept { return val[c]; }
 private:
     T val[256];
-    void init () {
+    void init () noexcept {
         float scale = 1.0f / 255.0f;
         if (std::numeric_limits<T>::is_integer)
             scale *= (float)std::numeric_limits<T>::max();

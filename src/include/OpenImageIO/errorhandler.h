@@ -77,17 +77,17 @@ public:
         VERBOSE = 2   ///< Like NORMAL, but also show INFO
     };
 
-    ErrorHandler()
+    ErrorHandler() noexcept
         : m_verbosity(NORMAL)
     {
     }
     virtual ~ErrorHandler() {}
 
     /// Set desired verbosity level.
-    void verbosity(int v) { m_verbosity = v; }
+    void verbosity(int v) noexcept { m_verbosity = v; }
 
     /// Return the current verbosity level.
-    int verbosity() const { return m_verbosity; }
+    int verbosity() const noexcept { return m_verbosity; }
 
     /// The main (or "full detail") method -- takes a code (with high
     /// bits being an ErrCode) and writes the message, with a prefix

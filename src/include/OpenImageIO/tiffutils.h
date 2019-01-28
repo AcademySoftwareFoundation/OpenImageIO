@@ -249,7 +249,7 @@ struct TagInfo {
                                 bool swapendian, int offset_adjustment);
 
     TagInfo (int tag, const char *name, TIFFDataType type,
-             int count, HandlerFunc handler = nullptr)
+             int count, HandlerFunc handler = nullptr) noexcept
         : tifftag(tag), name(name), tifftype(type), tiffcount(count),
           handler(handler) {}
 

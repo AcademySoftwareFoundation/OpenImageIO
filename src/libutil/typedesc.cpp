@@ -78,7 +78,7 @@ static int basetype_size[TypeDesc::LASTBASE] = {
 }
 
 size_t
-TypeDesc::basesize() const
+TypeDesc::basesize() const noexcept
 {
     if (basetype >= TypeDesc::LASTBASE)
         return 0;
@@ -89,7 +89,7 @@ TypeDesc::basesize() const
 
 
 bool
-TypeDesc::is_floating_point() const
+TypeDesc::is_floating_point() const noexcept
 {
     static bool isfloat[TypeDesc::LASTBASE] = {
         0,  // UNKNOWN
@@ -115,7 +115,7 @@ TypeDesc::is_floating_point() const
 
 
 bool
-TypeDesc::is_signed() const
+TypeDesc::is_signed() const noexcept
 {
     static bool issigned[TypeDesc::LASTBASE] = {
         0,  // UNKNOWN
@@ -415,7 +415,7 @@ tostring(TypeDesc type, const void* data, const char* float_fmt,
 
 
 bool
-TypeDesc::operator<(const TypeDesc& x) const
+TypeDesc::operator<(const TypeDesc& x) const noexcept
 {
     if (basetype != x.basetype)
         return basetype < x.basetype;

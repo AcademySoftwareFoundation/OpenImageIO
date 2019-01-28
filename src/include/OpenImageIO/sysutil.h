@@ -132,7 +132,7 @@ terminal_rows();
 class OIIO_API Term {
 public:
     /// Default ctr: assume ANSI escape sequences are ok.
-    Term() {}
+    Term() noexcept {}
     /// Construct from a FILE*: ANSI codes ok if the file describes a
     /// live console, otherwise they will be supressed.
     Term(FILE* file);
@@ -162,7 +162,7 @@ public:
     std::string ansi_fgcolor(int r, int g, int b);
     std::string ansi_bgcolor(int r, int g, int b);
 
-    bool is_console() const { return m_is_console; }
+    bool is_console() const noexcept { return m_is_console; }
 
 private:
     bool m_is_console = true;  // Default: assume ANSI escape sequences ok.
