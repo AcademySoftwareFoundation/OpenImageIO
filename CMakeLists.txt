@@ -211,6 +211,9 @@ endif ()
 add_subdirectory (src/fonts)
 add_subdirectory (src/nuke)
 
+# for pkgconfig.pc
+add_subdirectory (src/build-scripts)
+
 # Oddball: install the FindOpenImageIO.cmake file
 install (FILES src/cmake/modules/FindOpenImageIO.cmake
          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/cmake/Modules
