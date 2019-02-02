@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/include
+
+Name: OpenImageIO
+Description: OpenImageIO is a library for reading and writing images.
+Version: @OIIO_VERSION_MAJOR@.@OIIO_VERSION_MINOR@.@OIIO_VERSION_PATCH@
+Libs: -L${libdir} -lOpenImageIO 
+Cflags: -I${includedir}/OpenImageIO
