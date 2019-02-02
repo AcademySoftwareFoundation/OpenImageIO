@@ -1748,6 +1748,30 @@ transformv_imath(const Imath::V3f& v, const Imath::M44f& m)
     return r;
 }
 
+inline Imath::V4f
+mul_vm_imath(const Imath::V4f& v, const Imath::M44f& m)
+{
+    return v*m;
+}
+
+// inline Imath::V4f
+// mul_mv_imath(const Imath::M44f& m, const Imath::V4f& v)
+// {
+//     return m*v;
+// }
+
+inline vfloat4
+mul_vm_simd(const vfloat4& v, const matrix44& m)
+{
+    return v*m;
+}
+
+inline vfloat4
+mul_mv_simd(const matrix44& m, const vfloat4 v)
+{
+    return m*v;
+}
+
 
 
 inline bool
@@ -1775,6 +1799,7 @@ mat_transpose_simd(const Imath::M44f& m)
 }
 
 
+
 void
 test_matrix()
 {
@@ -1800,6 +1825,24 @@ test_matrix()
     OIIO_CHECK_EQUAL(matrix44(Mrot).transposed().M44f(), Mrot.transposed());
     std::cout << "  Mrot transposed = " << matrix44(Mrot).transposed().M44f()
               << "\n";
+
+    // Test m44 * v4, v4 * m44
+    {
+        Imath::M44f M(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16);
+        matrix44 m(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16);
+        Imath::V4f V(1,2,3,4);
+        vfloat4 v(1,2,3,4);
+        vfloat4 mv = m*v;
+        vfloat4 vm = v*m;
+        OIIO_CHECK_SIMD_EQUAL(mv, M*V);
+        OIIO_CHECK_SIMD_EQUAL(vm, V*M);
+        benchmark2("V4 * M44 Imath", mul_vm_imath, V, M, 1);
+        // benchmark2("M44 * V4 Imath", mul_mv_imath, mx, v4x, 1);
+        benchmark2("M44 * V4 simd", mul_mv_simd, m, v, 1);
+        benchmark2("V4 * M44 simd", mul_vm_simd, v, m, 1);
+    }
+
+    // Test ==, !=
     {
         matrix44 mt(Mtrans), mr(Mrot);
         OIIO_CHECK_EQUAL(mt, mt);
@@ -1818,10 +1861,12 @@ test_matrix()
         Imath::M44f(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15));
 
     Imath::V3f vx(2.51f, 1.0f, 1.0f);
+    Imath::V4f v4x(2.51f, 1.0f, 1.0f, 1.0f);
     Imath::M44f mx(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 11, 12, 1);
     benchmark2("transformp Imath", transformp_imath, vx, mx, 1);
     benchmark2("transformp Imath with simd", transformp_imath_simd, vx, mx, 1);
     benchmark2("transformp simd", transformp_simd, vfloat3(vx), mx, 1);
+
     benchmark("transpose m44", mat_transpose, mx, 1);
     benchmark("transpose m44 with simd", mat_transpose_simd, mx, 1);
     // Reduce the iterations of the ones below, if we can
