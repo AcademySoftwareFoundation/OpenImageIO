@@ -1,3 +1,7 @@
+Release 2.0.6 (1 Mar, 2019) -- compared to 2.0.5
+------------------------------------------------
+
+
 Release 2.0.5 (1 Feb, 2019) -- compared to 2.0.4
 ------------------------------------------------
 * `resize()`, `fit()`, and `resample()` are no longer restricted to
