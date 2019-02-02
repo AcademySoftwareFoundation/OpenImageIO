@@ -211,8 +211,13 @@ endif ()
 add_subdirectory (src/fonts)
 add_subdirectory (src/nuke)
 
-# for pkgconfig.pc
-add_subdirectory (src/build-scripts)
+# install pkgconfig file
+IF ( NOT WIN32 )
+   configure_file(src/build-scripts/OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/OpenImageIO.pc" @ONLY) 
+   install (FILES "${CMAKE_BINARY_DIR}/OpenImageIO.pc"
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+            COMPONENT developer)
+ENDIF()
 
 # Oddball: install the FindOpenImageIO.cmake file
 install (FILES src/cmake/modules/FindOpenImageIO.cmake
