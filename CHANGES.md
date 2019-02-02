@@ -31,6 +31,11 @@ Release 2.0.5 (1 Feb, 2019) -- compared to 2.0.4
 * On MacOS 10.14 Mojave, fix warnings during `iv` compile about OpenGL
   being deprecated in future releases. #2151
 * `iv` info window now sorts the metadata. #2159
+* At build time, the Python version used can be controlled by setting the
+  environment variable `$OIIO_PYTHON_VERSION`, which if set will initialize
+  the default value of the CMake variable `PYTHON_VERSION`. #2161 (2.0.5)
+* On non-Windows systems, the build now generates a PkgConfig file, installed
+  at `CMAKE_INSTALL_PREFIX/lib/pkgconfig/OpenImageIO.pc`. #2158 (2.0.5)
 
 
 Release 2.0.4 (5 Jan, 2019) -- compared to 2.0.3
