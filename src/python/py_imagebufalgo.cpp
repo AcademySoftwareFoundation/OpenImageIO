@@ -1792,6 +1792,37 @@ IBA_colorconvert_colorconfig_ret(const ImageBuf& src, const std::string& from,
 
 
 bool
+IBA_colormatrixtransform(ImageBuf& dst, const ImageBuf& src,
+                         const py::object& Mobj, bool unpremult = true,
+                         ROI roi = ROI::All(), int nthreads = 0)
+{
+    std::vector<float> Mvals;
+    bool ok = py_to_stdvector(Mvals, Mobj);
+    if (!ok || Mvals.size() != 16) {
+        dst.errorf(
+            "colormatrixtransform did not receive 16 elements to make a 4x4 matrix");
+        return false;
+    }
+    py::gil_scoped_release gil;
+    const Imath::M44f* M = (const Imath::M44f*)Mvals.data();
+    return ImageBufAlgo::colormatrixtransform(dst, src, *M, unpremult, roi,
+                                              nthreads);
+}
+
+
+ImageBuf
+IBA_colormatrixtransform_ret(const ImageBuf& src, const py::object& Mobj,
+                             bool unpremult = true, ROI roi = ROI::All(),
+                             int nthreads = 0)
+{
+    ImageBuf dst;
+    IBA_colormatrixtransform(dst, src, Mobj, unpremult, roi, nthreads);
+    return dst;
+}
+
+
+
+bool
 IBA_ociolook(ImageBuf& dst, const ImageBuf& src, const std::string& looks,
              const std::string& from, const std::string& to, bool inverse,
              bool unpremult, const std::string& context_key,
@@ -2503,6 +2534,13 @@ declare_imagebufalgo(py::module& m)
                     "fromspace"_a, "tospace"_a, "unpremult"_a = true,
                     "context_key"_a = "", "context_value"_a = "",
                     "colorconfig"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+
+        .def_static("colormatrixtransform", &IBA_colormatrixtransform, "dst"_a,
+                    "src"_a, "M"_a, "unpremult"_a = true, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+        .def_static("colormatrixtransform", &IBA_colormatrixtransform_ret,
+                    "src"_a, "M"_a, "unpremult"_a = true, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
 
         .def_static("ociolook", &IBA_ociolook, "dst"_a, "src"_a, "looks"_a,

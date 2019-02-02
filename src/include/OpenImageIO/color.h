@@ -39,6 +39,8 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 
+#include <OpenEXR/ImathMatrix.h> /* because we need M44f */
+
 
 OIIO_NAMESPACE_BEGIN
 
@@ -248,6 +250,17 @@ public:
                                              bool inverse = false) const;
     ColorProcessorHandle createFileTransform(ustring name,
                                              bool inverse = false) const;
+
+    /// Construct a processor to perform color transforms specified by a
+    /// 4x4 matrix.
+    ///
+    /// The handle is actually a shared_ptr, so when you're done with a
+    /// ColorProcess, just discard it.
+    ///
+    /// Created ColorProcessors are cached, so asking for the same color
+    /// space transformation multiple times shouldn't be very expensive.
+    ColorProcessorHandle createMatrixTransform(const Imath::M44f& M,
+                                               bool inverse = false) const;
 
     /// Given a string (like a filename), look for the longest, right-most
     /// colorspace substring that appears. Returns "" if no such color space

@@ -2987,6 +2987,42 @@ into the named \emph{tospace}.  This is equivalent to a use of
 automatically deduced.
 \apiend
 
+\apiitem{\ce --ccmatrix {\rm \emph{m00,m01,...}}}
+\NEW % 2.1
+Replace the current image with a new image whose colors are transformed
+according to the $3 \times 3$ or $4 \times 4$ matrix formed from the
+9 or 16 comma-separated floating-point values in the subsequent argument
+(spaces are allowed only if the whole collection of values is enclosed in
+quotes so that they are a single command-line argument).
+
+The values fill in the matrix left to right, first row, then second row,
+etc. This means that colors are treated as ``row vectors'' that are
+post-multiplied by the matrix ($C*M$).
+
+\noindent Optional appended arguments include:
+
+\begin{tabular}{p{10pt} p{1in} p{3.75in}}
+ & {\cf unpremult=}\emph{val} & If the numeric \emph{val} is nonzero, the
+     pixel values will be ``un-premultipled'' (divided by alpha) prior to
+     the actual color conversion, and then re-multipled by alpha afterwards.
+     The default is 0, meaning the color transformation not will be
+     automatically bracketed by divide-by-alpha / mult-by-alpha operations. \\
+ & {\cf invert=}\emph{val} & If nonzero, this will cause the matrix to
+     be inverted before being applied. \\
+ & {\cf transpose=}\emph{val} & If nonzero, this will cause the matrix to
+     be transposed (this allowing you to more easily specify it as if the
+     color values were column vectors and the transformation as $M*C$). \\
+\end{tabular}
+
+\noindent Example:
+\begin{tinycode}
+  # Convert ACES to ACEScg using a matrix
+  oiiotool aces.exr --ccmatrix:transpose=1 \
+      "1.454,-0.237,-0.215,-0.077,1.176,-0.010,0.008,-0.006, 0.998" \
+      -o acescg.exr
+\end{tinycode}
+\apiend
+
 \apiitem{\ce --ociolook {\rm \emph{lookname}}}
 Replace the current image with a new image whose pixels are transformed
 using the named OpenColorIO look description.  Optional appended
