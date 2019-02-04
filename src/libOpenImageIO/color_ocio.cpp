@@ -1198,13 +1198,14 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
     int channelsToCopy = std::min(4, roi.nchannels());
     if (channelsToCopy < 4)
         unpremult = false;
+    // clang-format off
     parallel_image(
         roi, parallel_image_options(nthreads),
         [&, unpremult, channelsToCopy, processor](ROI roi) {
             int width = roi.width();
             // Temporary space to hold one RGBA scanline
             vfloat4* scanline  = OIIO_ALLOCA(vfloat4, width);
-            vfloat4* alpha     = OIIO_ALLOCA(vfloat4, width);
+            float* alpha       = OIIO_ALLOCA(float, width);
             const float fltmin = std::numeric_limits<float>::min();
             ImageBuf::ConstIterator<Atype> a(A, roi);
             ImageBuf::Iterator<Rtype> r(R, roi);
@@ -1222,11 +1223,10 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
                     // Optionally unpremult
                     if (unpremult) {
                         for (int i = 0; i < width; ++i) {
-                            // float alpha = scanline[i][3];
-                            vfloat4 a = shuffle<3>(scanline[i]);
-                            a         = select(a >= fltmin, a, vfloat4::One());
-                            alpha[i]  = a;
-                            scanline[i] *= rcp_fast(a);
+                            float a  = extract<3>(scanline[i]);
+                            a        = a >= fltmin ? a : 1.0f;
+                            alpha[i] = a;
+                            scanline[i] /= a;
                         }
                     }
 
@@ -1250,6 +1250,7 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
                 }
             }
         });
+    // clang-format on
     return true;
 }
 
@@ -1268,12 +1269,10 @@ colorconvert_impl_float_rgba(ImageBuf& R, const ImageBuf& A,
            && A.spec().format == TypeFloat && R.nchannels() == 4
            && A.nchannels() == 4);
     parallel_image(roi, parallel_image_options(nthreads), [&](ROI roi) {
-        // int Rchans = R.nchannels();
-        // int Achans = A.nchannels();
         int width = roi.width();
         // Temporary space to hold one RGBA scanline
         vfloat4* scanline  = OIIO_ALLOCA(vfloat4, width);
-        vfloat4* alpha     = OIIO_ALLOCA(vfloat4, width);
+        float* alpha       = OIIO_ALLOCA(float, width);
         const float fltmin = std::numeric_limits<float>::min();
         for (int k = roi.zbegin; k < roi.zend; ++k) {
             for (int j = roi.ybegin; j < roi.yend; ++j) {
@@ -1284,10 +1283,13 @@ colorconvert_impl_float_rgba(ImageBuf& R, const ImageBuf& A,
                 if (unpremult) {
                     for (int i = 0; i < width; ++i) {
                         vfloat4 p(scanline[i]);
-                        vfloat4 a   = shuffle<3>(p);
-                        a           = select(a >= fltmin, a, vfloat4::One());
-                        alpha[i]    = a;
-                        scanline[i] = p * rcp_fast(a);
+                        float a  = extract<3>(p);
+                        a        = a >= fltmin ? a : 1.0f;
+                        alpha[i] = a;
+                        if (a == 1.0f)
+                            scanline[i] = p;
+                        else
+                            scanline[i] = p / a;
                     }
                 }
 
