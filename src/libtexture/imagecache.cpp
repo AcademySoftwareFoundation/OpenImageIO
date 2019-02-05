@@ -3344,7 +3344,7 @@ ImageCacheImpl::invalidate_all(bool force)
     // Now, invalidate all the files in our "needs invalidation" list
     for (auto f : all_files) {
         // fprintf (stderr, "Invalidating %s\n", f.c_str());
-        invalidate(f, force);
+        invalidate(f, true);
     }
 
     // Mark the per-thread microcaches as invalid
