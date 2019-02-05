@@ -1811,15 +1811,11 @@ public:
     /// Cast to a Imath::V3f
     const Imath::V3f& V3f () const { return *(const Imath::V3f*)this; }
 
-#if defined(ILMBASE_VERSION_MAJOR) && ILMBASE_VERSION_MAJOR >= 2
-    // V4f is not defined for older Ilmbase. It's certainly safe for 2.x.
-
     /// Construct from a Imath::V4f
     vfloat4 (const Imath::V4f &v) { load ((const float *)&v); }
 
     /// Cast to a Imath::V4f
     const Imath::V4f& V4f () const { return *(const Imath::V4f*)this; }
-#endif
 
     /// Construct from a pointer to 4 unsigned short values
     explicit vfloat4 (const unsigned short *vals) { load(vals); }
@@ -1860,10 +1856,8 @@ public:
     /// Set all components to 0.0
     void clear ();
 
-#if defined(ILMBASE_VERSION_MAJOR) && ILMBASE_VERSION_MAJOR >= 2
     /// Assign from a Imath::V4f
     const vfloat4 & operator= (const Imath::V4f &v);
-#endif
 
     /// Assign from a Imath::V3f
     const vfloat4 & operator= (const Imath::V3f &v);
@@ -2332,6 +2326,9 @@ public:
 
     /// Transform 3-vector V by the transpose of 4x4 matrix M.
     vfloat3 transformvT (const vfloat3 &V) const;
+
+    friend vfloat4 operator* (const vfloat4 &V, const matrix44& M);
+    friend vfloat4 operator* (const matrix44& M, const vfloat4 &V);
 
     bool operator== (const matrix44& m) const;
 
@@ -6341,12 +6338,10 @@ OIIO_FORCEINLINE void vfloat4::clear () {
 #endif
 }
 
-#if defined(ILMBASE_VERSION_MAJOR) && ILMBASE_VERSION_MAJOR >= 2
 OIIO_FORCEINLINE const vfloat4 & vfloat4::operator= (const Imath::V4f &v) {
     load ((const float *)&v);
     return *this;
 }
-#endif
 
 OIIO_FORCEINLINE const vfloat4 & vfloat4::operator= (const Imath::V3f &v) {
     load (v[0], v[1], v[2], 0.0f);
@@ -7855,6 +7850,39 @@ OIIO_FORCEINLINE vfloat3 matrix44::transformvT (const vfloat3 &V) const {
     return vfloat3(R);
 #endif
 }
+
+OIIO_FORCEINLINE vfloat4 operator* (const vfloat4 &V, const matrix44& M)
+{
+#if OIIO_SIMD_SSE
+    return shuffle<0>(V) * M[0] + shuffle<1>(V) * M[1] +
+           shuffle<2>(V) * M[2] + shuffle<3>(V) * M[3];
+#else
+    return vfloat4(V.V4f() * M.M44f());
+#endif
+}
+
+OIIO_FORCEINLINE vfloat4 operator* (const matrix44& M, const vfloat4 &V)
+{
+#if OIIO_SIMD_SSE >= 3
+    vfloat4 m0v = M[0] * V;  // [ M00*Vx, M01*Vy, M02*Vz, M03*Vw ]
+    vfloat4 m1v = M[1] * V;  // [ M10*Vx, M11*Vy, M12*Vz, M13*Vw ]
+    vfloat4 m2v = M[2] * V;  // [ M20*Vx, M21*Vy, M22*Vz, M23*Vw ]
+    vfloat4 m3v = M[3] * V;  // [ M30*Vx, M31*Vy, M32*Vz, M33*Vw ]
+    vfloat4 s01 = _mm_hadd_ps(m0v, m1v);
+       // [ M00*Vx + M01*Vy, M02*Vz + M03*Vw, M10*Vx + M11*Vy, M12*Vz + M13*Vw ]
+    vfloat4 s23 = _mm_hadd_ps(m2v, m3v);
+       // [ M20*Vx + M21*Vy, M22*Vz + M23*Vw, M30*Vx + M31*Vy, M32*Vz + M33*Vw ]
+    vfloat4 result = _mm_hadd_ps(s01, s23);
+       // [ M00*Vx + M01*Vy + M02*Vz + M03*Vw,
+       //   M10*Vx + M11*Vy + M12*Vz + M13*Vw,
+       //   M20*Vx + M21*Vy + M22*Vz + M23*Vw,
+       //   M30*Vx + M31*Vy + M32*Vz + M33*Vw ]
+    return result;
+#else
+    return vfloat4(dot(M[0], V), dot(M[1], V), dot(M[2], V), dot(M[3], V));
+#endif
+}
+
 
 OIIO_FORCEINLINE bool matrix44::operator== (const matrix44& m) const {
 #if OIIO_SIMD_SSE
