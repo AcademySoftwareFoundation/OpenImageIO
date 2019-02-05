@@ -70,16 +70,34 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace PNG_pvt {
 
+static void
+rderr_handler(png_structp png, png_const_charp data)
+{
+    ImageInput* inp = (ImageInput*)png_get_error_ptr(png);
+    if (inp && data)
+        inp->errorf("PNG read error: %s", data);
+}
+
+
+static void
+rdwarn_handler(png_structp png, png_const_charp data)
+{
+}
+
+
+
 /// Initializes a PNG read struct.
 /// \return empty string on success, error message on failure.
 ///
 inline const std::string
-create_read_struct(png_structp& sp, png_infop& ip)
+create_read_struct(png_structp& sp, png_infop& ip, ImageInput* inp = nullptr)
 {
-    sp = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    sp = png_create_read_struct(PNG_LIBPNG_VER_STRING, inp, rderr_handler,
+                                rdwarn_handler);
     if (!sp)
         return "Could not create PNG read structure";
 
+    png_set_error_fn(sp, inp, rderr_handler, rdwarn_handler);
     ip = png_create_info_struct(sp);
     if (!ip)
         return "Could not create PNG info structure";
@@ -130,11 +148,16 @@ get_background(png_structp& sp, png_infop& ip, ImageSpec& spec, int& bit_depth,
 
 /// Read information from a PNG file and fill the ImageSpec accordingly.
 ///
-inline void
+inline bool
 read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
           int& interlace_type, Imath::Color3f& bg, ImageSpec& spec,
           bool keep_unassociated_alpha)
 {
+    // Must call this setjmp in every function that does PNG reads
+    if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+        return false;
+
+    bool ok = true;
     png_read_info(sp, ip);
 
     // Auto-convert 1-, 2-, and 4- bit images to 8 bits, palette to RGB,
@@ -148,9 +171,8 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     png_read_update_info(sp, ip);
 
     png_uint_32 width, height;
-    png_get_IHDR(sp, ip, &width, &height, &bit_depth, &color_type, NULL, NULL,
-                 NULL);
-
+    ok &= png_get_IHDR(sp, ip, &width, &height, &bit_depth, &color_type,
+                       nullptr, nullptr, nullptr);
 
     spec = ImageSpec((int)width, (int)height, png_get_channels(sp, ip),
                      bit_depth == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);
@@ -262,6 +284,8 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         spec.attribute("oiio:UnassociatedAlpha", (int)1);
 
     // FIXME -- look for an XMP packet in an iTXt chunk.
+
+    return ok;
 }
 
 

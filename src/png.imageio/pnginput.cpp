@@ -156,7 +156,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    std::string s = PNG_pvt::create_read_struct(m_png, m_info);
+    std::string s = PNG_pvt::create_read_struct(m_png, m_info, this);
     if (s.length()) {
         close();
         error("%s", s.c_str());
@@ -166,14 +166,18 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
     png_init_io(m_png, m_file);
     png_set_sig_bytes(m_png, 8);  // already read 8 bytes
 
-    PNG_pvt::read_info(m_png, m_info, m_bit_depth, m_color_type,
-                       m_interlace_type, m_bg, m_spec,
-                       m_keep_unassociated_alpha);
+    bool ok = PNG_pvt::read_info(m_png, m_info, m_bit_depth, m_color_type,
+                                 m_interlace_type, m_bg, m_spec,
+                                 m_keep_unassociated_alpha);
+    if (!ok) {
+        close();
+        return false;
+    }
 
     newspec         = spec();
     m_next_scanline = 0;
 
-    return true;
+    return ok;
 }
 
 
