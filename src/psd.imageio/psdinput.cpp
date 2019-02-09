@@ -734,6 +734,7 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (!seek_subimage(subimage, miplevel))
         return false;
 
+    y -= m_spec.y;
     if (y < 0 || y > m_spec.height)
         return false;
 
@@ -1815,6 +1816,8 @@ PSDInput::setup()
         m_specs.emplace_back(layer.width, layer.height, spec_channel_count,
                              m_type_desc);
         ImageSpec& spec    = m_specs.back();
+        spec.x             = layer.left;
+        spec.y             = layer.top;
         spec.extra_attribs = m_common_attribs.extra_attribs;
         if (m_WantRaw)
             fill_channel_names(spec, transparency);
@@ -1828,6 +1831,8 @@ PSDInput::setup()
 
         if (transparency)
             channels.push_back(layer.channel_id_map[ChannelID_Transparency]);
+        if (layer.name.size())
+            spec.attribute("oiio:subimagename", layer.name);
     }
 
     if (m_specs.back().alpha_channel != -1)
