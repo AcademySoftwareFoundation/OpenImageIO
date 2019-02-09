@@ -2295,7 +2295,7 @@ premultiply again after the color conversion.
                    -.3106172,  .8047379,  .5058794, 0,
                     .5058794, -.3106172,  .8047379, 0,
                      0,         0,         0,       1);
-    ImageBuf dst = ImageBufAlgo::colorconvert (Src, M);
+    ImageBuf dst = ImageBufAlgo::colormatrixtransform (Src, M);
 \end{code}
 
 \noindent \begin{tabular}{cccc}
