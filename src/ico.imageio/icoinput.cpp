@@ -220,7 +220,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
 
         //std::cerr << "[ico] creating PNG read struct\n";
 
-        std::string s = PNG_pvt::create_read_struct(m_png, m_info);
+        std::string s = PNG_pvt::create_read_struct(m_png, m_info, this);
         if (s.length()) {
             error("%s", s.c_str());
             return false;
