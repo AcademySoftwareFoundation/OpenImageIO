@@ -429,6 +429,31 @@ test_replace()
 
 
 void
+test_excise_string_after_head()
+{
+    std::cout << "Testing excise_string_after_head\n";
+    std::string pattern = "Red rose, red rose, end.";
+
+    // test non-match
+    {
+        std::string p = pattern;
+        auto m = Strutil::excise_string_after_head(p, "blue");
+        OIIO_CHECK_EQUAL(p, pattern);
+        OIIO_CHECK_EQUAL(m, "");
+    }
+
+    // test match: head is "ro", match subsequent chars to the next space
+    {
+        std::string p = pattern;
+        auto m = Strutil::excise_string_after_head(p, "ro");
+        OIIO_CHECK_EQUAL(p, "Red red rose, end.");
+        OIIO_CHECK_EQUAL(m, "se,");
+    }
+}
+
+
+
+void
 test_numeric_conversion()
 {
     std::cout << "Testing string_is, string_from conversions\n";
@@ -929,6 +954,7 @@ main(int argc, char* argv[])
     test_join();
     test_repeat();
     test_replace();
+    test_excise_string_after_head();
     test_numeric_conversion();
     test_to_string();
     test_extract();

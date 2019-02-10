@@ -820,6 +820,15 @@ string_view OIIO_API parse_while (string_view &str,
 string_view OIIO_API parse_nested (string_view &str, bool eat=true);
 
 
+/// Look within `str` for the pattern:
+///     head nonwhitespace_chars whitespace
+/// Remove that full pattern from `str` and return the nonwhitespace
+/// part that followed the head (or return the empty string and leave `str`
+/// unmodified, if the head was never found).
+OIIO_API std::string
+excise_string_after_head (std::string& str, string_view head);
+
+
 /// Converts utf-8 string to vector of unicode codepoints. This function
 /// will not stop on invalid sequences. It will let through some invalid
 /// utf-8 sequences like: 0xfdd0-0xfdef, 0x??fffe/0x??ffff. It does not
