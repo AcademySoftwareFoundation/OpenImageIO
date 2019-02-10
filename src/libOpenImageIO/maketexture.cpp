@@ -58,16 +58,6 @@
 
 #include "imageio_pvt.h"
 
-#ifdef USE_BOOST_REGEX
-#    include <boost/regex.hpp>
-using boost::regex;
-using boost::regex_replace;
-#else
-#    include <regex>
-using std::regex;
-using std::regex_replace;
-#endif
-
 using namespace OIIO;
 
 
@@ -1640,17 +1630,12 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
 
     // Eliminate any SHA-1 or ConstantColor hints in the ImageDescription.
     if (desc.size()) {
-        desc = regex_replace(desc, regex("SHA-1=[[:xdigit:]]*[ ]*"), "");
-        static const char* fp_number_pattern
-            = "([+-]?((?:(?:[[:digit:]]*\\.)?[[:digit:]]+(?:[eE][+-]?[[:digit:]]+)?)))";
-        const std::string constcolor_pattern
-            = std::string("ConstantColor=(\\[?") + fp_number_pattern
-              + ",?)+\\]?[ ]*";
-        const std::string average_pattern = std::string("AverageColor=(\\[?")
-                                            + fp_number_pattern
-                                            + ",?)+\\]?[ ]*";
-        desc        = regex_replace(desc, regex(constcolor_pattern), "");
-        desc        = regex_replace(desc, regex(average_pattern), "");
+        Strutil::excise_string_after_head(desc, "oiio:ConstantColor=");
+        Strutil::excise_string_after_head(desc, "ConstantColor=");
+        Strutil::excise_string_after_head(desc, "oiio:AverageColor=");
+        Strutil::excise_string_after_head(desc, "AverageColor=");
+        Strutil::excise_string_after_head(desc, "oiio:SHA-1=");
+        Strutil::excise_string_after_head(desc, "SHA-1=");
         updatedDesc = true;
     }
 

@@ -56,13 +56,11 @@
 #    include <boost/regex.hpp>
 using boost::match_results;
 using boost::regex;
-using boost::regex_replace;
 using boost::regex_search;
 #else
 #    include <regex>
 using std::match_results;
 using std::regex;
-using std::regex_replace;
 using std::regex_search;
 #endif
 
@@ -748,15 +746,12 @@ Filesystem::enumerate_file_sequence(const std::string& pattern,
                                     std::vector<std::string>& filenames)
 {
     ASSERT(views.size() == 0 || views.size() == numbers.size());
-    static regex view_re("%V"), short_view_re("%v");
-
     filenames.clear();
     for (size_t i = 0, e = numbers.size(); i < e; ++i) {
         std::string f = pattern;
         if (views.size() > 0 && !views[i].empty()) {
-            f = regex_replace(f, view_re, std::string(views[i]));
-            f = regex_replace(f, short_view_re,
-                              std::string(views[i].substr(0, 1)));
+            f = Strutil::replace(f, "%V", views[i], true);
+            f = Strutil::replace(f, "%v", views[i].substr(0, 1), true);
         }
         f = Strutil::sprintf(f.c_str(), numbers[i]);
         filenames.push_back(f);
@@ -794,10 +789,9 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern,
                 std::vector<std::string> view_filenames;
 
                 std::string view_pattern = pattern;
-                view_pattern             = regex_replace(view_pattern, view_re,
-                                             std::string(view));
-                view_pattern = regex_replace(view_pattern, short_view_re,
-                                             std::string(short_view));
+                view_pattern = Strutil::replace(view_pattern, "%V", view, true);
+                view_pattern = Strutil::replace(view_pattern, "%v", short_view,
+                                                true);
 
                 if (!scan_for_matching_filenames(view_pattern, view_numbers,
                                                  view_filenames))
@@ -823,13 +817,10 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern,
             std::vector<std::pair<string_view, std::string>> matches;
             for (const auto& view : views) {
                 const string_view short_view = view.substr(0, 1);
-
-                std::string view_pattern = pattern;
-                view_pattern             = regex_replace(view_pattern, view_re,
-                                             std::string(view));
-                view_pattern = regex_replace(view_pattern, short_view_re,
-                                             std::string(short_view));
-
+                std::string view_pattern     = pattern;
+                view_pattern = Strutil::replace(view_pattern, "%V", view, true);
+                view_pattern = Strutil::replace(view_pattern, "%v", short_view,
+                                                true);
                 if (exists(view_pattern))
                     matches.push_back(std::make_pair(view, view_pattern));
             }
