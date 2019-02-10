@@ -375,7 +375,7 @@ WITH THE SOFTWARE.
 
 -------------------------------------------------------------------------
 
-FindOpenVDB.cmake} (c) Copyright 2015 Blender Foundation, BSD license.
+FindOpenVDB.cmake (c) Copyright 2015 Blender Foundation, BSD license.
 
 Copyright 2015 Blender Foundation.
 
@@ -439,6 +439,59 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+-------------------------------------------------------------------------
+
+UTF-8 decoder function from http://bjoern.hoehrmann.de/utf-8/decoder/dfa/
+
+The MIT License
+
+Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
+
+-------------------------------------------------------------------------
+
+Base-64 encoder from http://www.adp-gmbh.ch/cpp/common/base64.html
+https://github.com/ReneNyffenegger/cpp-base64
+
+Zlib license
+
+Copyright (C) 2004-2008 René Nyffenegger
+
+This source code is provided 'as-is', without any express or implied
+warranty. In no event will the author be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this source code must not be misrepresented; you must not
+   claim that you wrote the original source code. If you use this source code
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original source code.
+3. This notice may not be removed or altered from any source distribution.
+
+René Nyffenegger rene.nyffenegger@adp-gmbh.ch
 
 -------------------------------------------------------------------------
 

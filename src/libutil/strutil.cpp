@@ -974,6 +974,8 @@ Strutil::parse_nested(string_view& str, bool eat)
 Copyright for decode function:
 See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
 
+MIT license
+
 Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1047,6 +1049,10 @@ Strutil::utf8_to_unicode(string_view str, std::vector<uint32_t>& uvec)
 
 
 /* base64 code is based upon: http://www.adp-gmbh.ch/cpp/common/base64.html
+   https://github.com/ReneNyffenegger/cpp-base64
+
+   Zlib license
+
    Copyright (C) 2004-2008 René Nyffenegger
 
    This source code is provided 'as-is', without any express or implied
