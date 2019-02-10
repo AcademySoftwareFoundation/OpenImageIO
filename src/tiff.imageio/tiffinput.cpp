@@ -51,17 +51,6 @@
 
 #include "imageio_pvt.h"
 
-#ifdef USE_BOOST_REGEX
-#    include <boost/regex.hpp>
-using boost::regex;
-using boost::regex_replace;
-#else
-#    include <regex>
-using std::regex;
-using std::regex_replace;
-#endif
-
-
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -1141,49 +1130,31 @@ TIFFInput::readspec(bool read_meta)
         m_spec.erase_attribute("IPTC:Caption");
 
     // Because TIFF doesn't support arbitrary metadata, we look for certain
-    // hints in the ImageDescription and turn them into metadata.
+    // hints in the ImageDescription and turn them into metadata, also
+    // removing them from the ImageDescrption.
     bool updatedDesc = false;
-    static const char* fp_number_pattern
-        = "([+-]?((?:(?:[[:digit:]]*\\.)?[[:digit:]]+(?:[eE][+-]?[[:digit:]]+)?)))";
-    size_t found;
-    found = desc.rfind("oiio:ConstantColor=");
-    if (found != std::string::npos) {
-        size_t begin  = desc.find_first_of('=', found) + 1;
-        size_t end    = std::min(desc.find_first_of(' ', begin), desc.size());
-        string_view s = string_view(desc.data() + begin, end - begin);
-        m_spec.attribute("oiio:ConstantColor", s);
-        const std::string constcolor_pattern
-            = std::string("oiio:ConstantColor=(\\[?") + fp_number_pattern
-              + ",?)+\\]?[ ]*";
-        desc        = regex_replace(desc, regex(constcolor_pattern), "");
+    auto cc = Strutil::excise_string_after_head(desc, "oiio:ConstantColor=");
+    if (cc.size()) {
+        m_spec.attribute("oiio:ConstantColor", cc);
         updatedDesc = true;
     }
-    found = desc.rfind("oiio:AverageColor=");
-    if (found != std::string::npos) {
-        size_t begin  = desc.find_first_of('=', found) + 1;
-        size_t end    = std::min(desc.find_first_of(' ', begin), desc.size());
-        string_view s = string_view(desc.data() + begin, end - begin);
-        m_spec.attribute("oiio:AverageColor", s);
-        const std::string average_pattern
-            = std::string("oiio:AverageColor=(\\[?") + fp_number_pattern
-              + ",?)+\\]?[ ]*";
-        desc        = regex_replace(desc, regex(average_pattern), "");
+    auto ac = Strutil::excise_string_after_head(desc, "oiio:AverageColor=");
+    if (ac.size()) {
+        m_spec.attribute("oiio:AverageColor", ac);
         updatedDesc = true;
     }
-    found = desc.rfind("oiio:SHA-1=");
-    if (found == std::string::npos)  // back compatibility with < 1.5
-        found = desc.rfind("SHA-1=");
-    if (found != std::string::npos) {
-        size_t begin  = desc.find_first_of('=', found) + 1;
-        size_t end    = std::min(begin + 40, desc.size());
-        string_view s = string_view(desc.data() + begin, end - begin);
-        m_spec.attribute("oiio:SHA-1", s);
-        desc = regex_replace(desc, regex("oiio:SHA-1=[[:xdigit:]]*[ ]*"), "");
-        desc = regex_replace(desc, regex("SHA-1=[[:xdigit:]]*[ ]*"), "");
+    std::string sha = Strutil::excise_string_after_head(desc, "oiio:SHA-1=");
+    if (sha.empty())  // back compatibility with OIIO < 1.5
+        sha = Strutil::excise_string_after_head(desc, "SHA-1=");
+    if (sha.size()) {
+        m_spec.attribute("oiio:SHA-1", sha);
         updatedDesc = true;
     }
+
     if (updatedDesc) {
-        if (desc.size())
+        string_view d(desc);
+        Strutil::skip_whitespace(d);  // erase if it's only whitespace
+        if (d.size())
             m_spec.attribute("ImageDescription", desc);
         else
             m_spec.erase_attribute("ImageDescription");

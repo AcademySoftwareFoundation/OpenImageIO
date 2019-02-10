@@ -48,12 +48,6 @@
 
 #include "oiiotool.h"
 
-#ifdef USE_BOOST_REGEX
-#    include <boost/regex.hpp>
-#else
-#    include <regex>
-#endif
-
 using namespace OIIO;
 using namespace OiioTool;
 using namespace ImageBufAlgo;
@@ -327,16 +321,8 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
             std::string desc = ib->spec().get_string_attribute(
                 "ImageDescription");
             if (desc.size()) {
-#ifdef USE_BOOST_REGEX
-                static boost::regex regex_sha("SHA-1=[[:xdigit:]]*[ ]*");
-                ib->specmod().attribute("ImageDescription",
-                                        boost::regex_replace(desc, regex_sha,
-                                                             ""));
-#else
-                static std::regex regex_sha("SHA-1=[[:xdigit:]]*[ ]*");
-                ib->specmod().attribute("ImageDescription",
-                                        std::regex_replace(desc, regex_sha, ""));
-#endif
+                Strutil::excise_string_after_head(desc, "oiio:SHA-1=");
+                ib->specmod().attribute("ImageDescription", desc);
             }
 
             m_subimages[s].m_miplevels[m] = ib;
