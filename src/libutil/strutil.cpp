@@ -970,6 +970,25 @@ Strutil::parse_nested(string_view& str, bool eat)
 
 
 
+std::string
+Strutil::excise_string_after_head(std::string& str, string_view head)
+{
+    std::string result;
+    string_view s(str);
+    size_t pattern_start = s.find(head);
+    if (pattern_start != string_view::npos) {
+        // Reposition s to be after the head
+        s.remove_prefix(pattern_start + head.size());
+        string_view m = Strutil::parse_until(s, " \t\r\n");
+        Strutil::skip_whitespace(s);
+        result = m;
+        str    = str.substr(0, pattern_start) + std::string(s);
+    }
+    return result;
+}
+
+
+
 /*
 Copyright for decode function:
 See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
