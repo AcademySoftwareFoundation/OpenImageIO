@@ -45,12 +45,6 @@
 
 #include "kissfft.hh"
 
-#ifdef USE_BOOST_REGEX
-#    include <boost/regex.hpp>
-#else
-#    include <regex>
-#endif
-
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -256,15 +250,8 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
             spec.erase_attribute("oiio:SHA-1");
             std::string desc = spec.get_string_attribute("ImageDescription");
             if (desc.size()) {
-#ifdef USE_BOOST_REGEX
-                static boost::regex regex_sha("SHA-1=[[:xdigit:]]*[ ]*");
-                spec.attribute("ImageDescription",
-                               boost::regex_replace(desc, regex_sha, ""));
-#else
-                static std::regex regex_sha("SHA-1=[[:xdigit:]]*[ ]*");
-                spec.attribute("ImageDescription",
-                               std::regex_replace(desc, regex_sha, ""));
-#endif
+                Strutil::excise_string_after_head(desc, "oiio:SHA-1=");
+                spec.attribute("ImageDescription", desc);
             }
         }
 

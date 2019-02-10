@@ -63,13 +63,11 @@
 #    include <boost/regex.hpp>
 using boost::match_results;
 using boost::regex;
-using boost::regex_replace;
 using boost::regex_search;
 #else
 #    include <regex>
 using std::match_results;
 using std::regex;
-using std::regex_replace;
 using std::regex_search;
 #endif
 
@@ -4818,6 +4816,21 @@ prep_texture_config(ImageSpec& configspec,
 
 
 
+// Helper: Remove ":all=[0-9]+" from str
+static void
+remove_all_cmd(std::string& str)
+{
+    std::string result;
+    size_t start = str.find(":all=");
+    if (start != std::string::npos) {
+        size_t end = start + 5;  // : a l l =
+        end = std::min(str.find_first_not_of("0123456789", end), str.size());
+        str = std::string(str, 0, start) + std::string(str, end);
+    }
+}
+
+
+
 static int
 output_file(int argc, const char* argv[])
 {
@@ -4856,10 +4869,9 @@ output_file(int argc, const char* argv[])
         const char* new_argv[2];
         // Git rid of the ":all=" part of the command so we don't infinitely
         // recurse.
-        std::string newcmd = regex_replace(command.str(), regex(":all=[0-9]+"),
-                                           "");
-        new_argv[0]        = newcmd.c_str();
-        ;
+        std::string newcmd = command;
+        remove_all_cmd(newcmd);
+        new_argv[0]              = newcmd.c_str();
         ImageRecRef saved_curimg = ot.curimg;  // because we'll overwrite it
         for (int i = 0; i < nimages; ++i) {
             if (i < nimages - 1)
