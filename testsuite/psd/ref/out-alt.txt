@@ -36,6 +36,7 @@ Reading ../../../../../oiio-images/psd_123.psd
  subimage  1:   33 x   98, 4 channel, uint8 psd
     SHA-1: CDA136B1B34A86AEBDCB88283F0D2323F921C00C
     channel list: R, G, B, A
+    pixel data origin: x=15, y=15
     DateTime: "2011-08-22T22:14:43-04:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -52,6 +53,7 @@ Reading ../../../../../oiio-images/psd_123.psd
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "1"
     photoshop:ColorMode: "3"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     photoshop:LayerName: "3"
@@ -64,6 +66,7 @@ Reading ../../../../../oiio-images/psd_123.psd
  subimage  2:   63 x  100, 4 channel, uint8 psd
     SHA-1: E0B9D4A8BE16B52126EC5BC1E829D099EF4C5DC4
     channel list: R, G, B, A
+    pixel data origin: x=84, y=13
     DateTime: "2011-08-22T22:14:43-04:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -80,6 +83,7 @@ Reading ../../../../../oiio-images/psd_123.psd
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "2"
     photoshop:ColorMode: "3"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     photoshop:LayerName: "3"
@@ -92,6 +96,7 @@ Reading ../../../../../oiio-images/psd_123.psd
  subimage  3:   61 x  102, 4 channel, uint8 psd
     SHA-1: 11FDE5499A2150FD5C779C9012649E839750C1D8
     channel list: R, G, B, A
+    pixel data origin: x=175, y=14
     DateTime: "2011-08-22T22:14:43-04:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -108,6 +113,7 @@ Reading ../../../../../oiio-images/psd_123.psd
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "3"
     photoshop:ColorMode: "3"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     photoshop:LayerName: "3"
@@ -156,6 +162,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
  subimage  1:   33 x   98, 4 channel, uint8 psd
     SHA-1: CDA136B1B34A86AEBDCB88283F0D2323F921C00C
     channel list: R, G, B, A
+    pixel data origin: x=15, y=15
     DateTime: "2011-08-22T22:14:43-04:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -172,6 +179,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "1"
     photoshop:ColorMode: "3"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     photoshop:LayerName: "3"
@@ -185,6 +193,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
  subimage  2:   63 x  100, 4 channel, uint8 psd
     SHA-1: E0B9D4A8BE16B52126EC5BC1E829D099EF4C5DC4
     channel list: R, G, B, A
+    pixel data origin: x=84, y=13
     DateTime: "2011-08-22T22:14:43-04:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -201,6 +210,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "2"
     photoshop:ColorMode: "3"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     photoshop:LayerName: "3"
@@ -214,6 +224,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
  subimage  3:   61 x  102, 4 channel, uint8 psd
     SHA-1: 11FDE5499A2150FD5C779C9012649E839750C1D8
     channel list: R, G, B, A
+    pixel data origin: x=175, y=14
     DateTime: "2011-08-22T22:14:43-04:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -230,6 +241,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "3"
     photoshop:ColorMode: "3"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     photoshop:LayerName: "3"
@@ -646,6 +658,7 @@ Reading ../../../../../oiio-images/psd_rgba_8.psd
     IPTC:ModifyDate: "2011-08-25T17:39:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Layer 1"
     photoshop:ColorMode: "3"
     photoshop:DocumentAncestors: "E146B3E37A92795EE3EA6577040DE6D5"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -705,6 +718,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "Layer 0"
     photoshop:ColorMode: "3"
     photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -717,6 +731,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
  subimage  2:    4 x   93, 4 channel, uint8 psd
     SHA-1: 8CE9A2A394ED148194055A22E59E55CE7BDFB3B7
     channel list: R, G, B, A
+    pixel data origin: x=18, y=-2
     DateTime: "2014-02-16T17:20:13+09:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -733,6 +748,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "line1"
     photoshop:ColorMode: "3"
     photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -745,6 +761,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
  subimage  3:    4 x   93, 4 channel, uint8 psd
     SHA-1: 8CE9A2A394ED148194055A22E59E55CE7BDFB3B7
     channel list: R, G, B, A
+    pixel data origin: x=8, y=-2
     DateTime: "2014-02-16T17:20:13+09:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -761,6 +778,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
+    oiio:subimagename: "line2"
     photoshop:ColorMode: "3"
     photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
@@ -801,6 +819,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
  subimage  1:    8 x    8, 4 channel, uint8 psd
     SHA-1: D1803D25687AA8C80C50AC74CCD47B1C59865B2F
     channel list: R, G, B, A
+    pixel data origin: x=0, y=1
     DateTime: "2017-07-13T10:26:10+09:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -816,6 +835,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
     IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
     IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    oiio:subimagename: "Vector mask feather"
     photoshop:ColorMode: "3"
     rdf:parseType: "Resource"
     stEvt:action: "saved"
@@ -826,6 +846,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
  subimage  2:    9 x    9, 4 channel, uint8 psd
     SHA-1: 6BEB9ABA4756704D8A330EA3B8F79640F3D88088
     channel list: R, G, B, A
+    pixel data origin: x=-2, y=-1
     DateTime: "2017-07-13T10:26:10+09:00"
     Orientation: 1 (normal)
     PixelAspectRatio: 1
@@ -841,6 +862,7 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
     IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
     IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
+    oiio:subimagename: "Layer mask"
     photoshop:ColorMode: "3"
     rdf:parseType: "Resource"
     stEvt:action: "saved"
