@@ -4867,6 +4867,10 @@ output_file(int argc, const char* argv[])
             else
                 ot.curimg
                     = saved_curimg;  // note: last iteration also restores it!
+            // Skip 0x0 images. Yes, this can happen.
+            const ImageSpec* spec(ot.curimg->spec());
+            if (spec->width < 1 || spec->height < 1 || spec->depth < 1)
+                continue;
             // Use the filename as a pattern, format with the frame number
             new_argv[1]
                 = ustring::sprintf(filename.c_str(), i + startnumber).c_str();
