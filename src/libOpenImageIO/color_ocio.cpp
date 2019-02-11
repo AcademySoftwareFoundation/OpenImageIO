@@ -730,13 +730,61 @@ private:
 class ColorProcessor_Ident : public ColorProcessor {
 public:
     ColorProcessor_Ident()
-        : ColorProcessor() {};
-    ~ColorProcessor_Ident() {};
+        : ColorProcessor()
+    {
+    }
+    ~ColorProcessor_Ident() {}
     virtual void apply(float* data, int width, int height, int channels,
                        stride_t chanstride, stride_t xstride,
                        stride_t ystride) const
     {
     }
+};
+
+
+
+// ColorProcessor that implements a matrix multiply color transfomation.
+class ColorProcessor_Matrix : public ColorProcessor {
+public:
+    ColorProcessor_Matrix(const Imath::M44f& Matrix, bool inverse)
+        : ColorProcessor()
+        , m_M(Matrix)
+    {
+        if (inverse)
+            m_M = m_M.inverse();
+    }
+    ~ColorProcessor_Matrix() {}
+
+    virtual void apply(float* data, int width, int height, int channels,
+                       stride_t chanstride, stride_t xstride,
+                       stride_t ystride) const
+    {
+        using namespace simd;
+        if (channels == 3) {
+            for (int y = 0; y < height; ++y) {
+                char* d = (char*)data + y * ystride;
+                for (int x = 0; x < width; ++x, d += xstride) {
+                    vfloat4 color;
+                    color.load((float*)d, 3);
+                    vfloat4 xcolor = color * m_M;
+                    xcolor.store((float*)d, 3);
+                }
+            }
+        } else if (channels >= 4) {
+            for (int y = 0; y < height; ++y) {
+                char* d = (char*)data + y * ystride;
+                for (int x = 0; x < width; ++x, d += xstride) {
+                    vfloat4 color;
+                    color.load((float*)d);
+                    vfloat4 xcolor = color * m_M;
+                    xcolor.store((float*)d);
+                }
+            }
+        }
+    }
+
+private:
+    simd::matrix44 m_M;
 };
 
 
@@ -1103,6 +1151,14 @@ ColorConfig::createFileTransform(ustring name, bool inverse) const
 
 
 
+ColorProcessorHandle
+ColorConfig::createMatrixTransform(const Imath::M44f& M, bool inverse) const
+{
+    return ColorProcessorHandle(new ColorProcessor_Matrix(M, inverse));
+}
+
+
+
 string_view
 ColorConfig::parseColorSpaceFromString(string_view str) const
 {
@@ -1179,6 +1235,41 @@ ImageBufAlgo::colorconvert(const ImageBuf& src, string_view from,
                            context_value, colorconfig, roi, nthreads);
     if (!ok && !result.has_error())
         result.error("ImageBufAlgo::colorconvert() error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::colormatrixtransform(ImageBuf& dst, const ImageBuf& src,
+                                   const Imath::M44f& M, bool unpremult,
+                                   ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::colormatrixtransform");
+    ColorProcessorHandle processor;
+    {
+        spin_lock lock(colorconfig_mutex);
+        auto colorconfig = default_colorconfig.get();
+        if (!colorconfig)
+            default_colorconfig.reset(colorconfig = new ColorConfig);
+        processor = colorconfig->createMatrixTransform(M);
+    }
+
+    logtime.stop();  // transition to other colorconvert
+    bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
+    return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::colormatrixtransform(const ImageBuf& src, const Imath::M44f& M,
+                                   bool unpremult, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = colormatrixtransform(result, src, M, unpremult, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.error("ImageBufAlgo::colormatrixtransform() error");
     return result;
 }
 

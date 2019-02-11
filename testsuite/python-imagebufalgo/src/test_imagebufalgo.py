@@ -24,6 +24,18 @@ def write (image, filename, format=oiio.UNKNOWN) :
     if image.has_error :
         print ("Error writing", filename, ":", image.geterror())
 
+def dumpimg (image, fmt="{:.3f}", msg="") :
+    spec = image.spec()
+    print (msg, end="")
+    for y in range(spec.y, spec.y+spec.height) :
+        for x in range(spec.x, spec.x+spec.width) :
+            p = image.getpixel (x, y)
+            print ("[", end="")
+            for c in range(spec.nchannels) :
+                print (fmt.format(p[c]), end=" ")
+            print ("] ", end="")
+        print ("")
+
 
 
 ######################################################################
@@ -243,6 +255,24 @@ try:
     write (b, "rangeexpand.tif", oiio.UINT8)
 
     # FIXME - colorconvert, ociolook need tests
+    print ("\nTesting color conversions:")
+    b = make_constimage (2,2,4,oiio.FLOAT,(0,0,0,1))
+    b.setpixel(1, 0, (.25,.25,.25,1))
+    b.setpixel(0, 1, (.5,.5,.5,1))
+    b.setpixel(1, 1, (1,1,1,1))
+    dumpimg (b, msg="linear src=")
+    r = ImageBufAlgo.colorconvert(b, "Linear", "sRGB")
+    dumpimg (r, msg="to srgb =")
+    r = ImageBufAlgo.colorconvert(r, "sRGB", "Linear")
+    dumpimg (r, msg="back to linear =")
+    # Just to test, make a matrix that halves red, doubles green,
+    # adds 0.1 to blue.
+    M = ( 0.5, 0, 0,   0,
+          0,   2, 0,   0,
+          0,   0, 1,   0,
+          0,   0, 0.1, 1)
+    r = ImageBufAlgo.colormatrixtransform (b, M)
+    dumpimg (r, msg="after *M =")
 
     # computePixelStats
     b = ImageBuf ("../oiiotool/src/tahoe-small.tif")

@@ -26,3 +26,5 @@ Comparing "greyalpha_sRGB_un.tif" and "ref/greyalpha_sRGB_un.tif"
 PASS
 Comparing "greyalpha_Cineon_un.tif" and "ref/greyalpha_Cineon_un.tif"
 PASS
+Comparing "tahoe-ccmatrix.tif" and "ref/tahoe-ccmatrix.tif"
+PASS
