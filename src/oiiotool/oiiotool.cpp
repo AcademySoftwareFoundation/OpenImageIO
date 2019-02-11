@@ -1960,6 +1960,49 @@ action_tocolorspace(int argc, const char* argv[])
 
 
 
+class OpColorMatrixTransform : public OiiotoolOp {
+public:
+    OpColorMatrixTransform(Oiiotool& ot, string_view opname, int argc,
+                           const char* argv[])
+        : OiiotoolOp(ot, opname, argc, argv, 1)
+    {
+    }
+    virtual void option_defaults()
+    {
+        options["M"]         = "1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1";
+        options["unpremult"] = "0";
+        options["transpose"] = "0";
+        options["invert"]    = "0";
+    }
+    virtual int impl(ImageBuf** img)
+    {
+        bool unpremult = Strutil::from_string<int>(options["unpremult"]);
+        auto M         = Strutil::extract_from_list_string<float>(args[1]);
+        Imath::M44f MM;
+        if (M.size() == 9) {
+            MM = Imath::M44f(M[0], M[1], M[2], 0.0f, M[3], M[4], M[5], 0.0f,
+                             M[6], M[7], M[8], 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+        } else if (M.size() == 16) {
+            memcpy((float*)&MM, M.data(), 16 * sizeof(float));
+        } else {
+            ot.error(opname(),
+                     "expected 9 or 16 comma-separatd floats to form a matrix");
+            return 0;
+        }
+        if (Strutil::from_string<int>(options["transpose"]))
+            MM.transpose();
+        if (Strutil::from_string<int>(options["invert"])
+            || Strutil::from_string<int>(options["inverse"]))
+            MM.invert();
+        return ImageBufAlgo::colormatrixtransform(*img[0], *img[1], MM,
+                                                  unpremult);
+    }
+};
+
+OP_CUSTOMCLASS(ccmatrix, OpColorMatrixTransform, 1);
+
+
+
 class OpOcioLook : public OiiotoolOp {
 public:
     OpOcioLook(Oiiotool& ot, string_view opname, int argc, const char* argv[])
@@ -5786,7 +5829,9 @@ getargs(int argc, char* argv[])
                 "--tocolorspace %@ %s", action_tocolorspace, NULL,
                     "Convert the current image's pixels to a named color space",
                 "--colorconvert %@ %s %s", action_colorconvert, NULL, NULL,
-                    "Convert pixels from 'src' to 'dst' color space (options: key=, value=, unpremult=)",
+                    "Convert pixels from 'src' to 'dst' color space (options: key=, value=, unpremult=, strict=)",
+                "--ccmatrix %@ %s", action_ccmatrix, NULL,
+                    "Color convert pixels with a 3x3 or 4x4 matrix (options: unpremult=,transpose=)",
                 "--ociolook %@ %s", action_ociolook, NULL,
                     "Apply the named OCIO look (options: from=, to=, inverse=, key=, value=, unpremult=)",
                 "--ociodisplay %@ %s %s", action_ociodisplay, NULL, NULL,

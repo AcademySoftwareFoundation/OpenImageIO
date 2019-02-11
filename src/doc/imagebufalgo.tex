@@ -2263,6 +2263,51 @@ to \qkw{linear} and vice versa.
 \end{code}
 \apiend
 
+
+\apiitem{ImageBuf {\ce colormatrixtransform} (const ImageBuf \&src, \\
+  \bigspc\bigspc const Imath::M44f\& M, bool unpremult=true, \\
+  \bigspc\bigspc ROI roi=\{\}, int nthreads=0) \\
+bool {\ce colormatrixtransform} (ImageBuf \&dst, const ImageBuf \&src, \\
+  \bigspc\bigspc const Imath::M44f\& M, bool unpremult=true, \\
+  \bigspc\bigspc ROI roi=\{\}, int nthreads=0)}
+\index{ImageBufAlgo!colormatrixtransform} \indexapi{colormatrixtransform}
+\NEW % 2.1
+Return (or copy into {\cf dst}) the pixels of {\cf src} within the ROI,
+applying a color transform to the pixel values. The color transform is
+specified by $4 \times 4$ matrix $M$ as:
+
+$$ C_{\mathrm{new}} = \left[ \begin{array}{cccc} C_r & C_g & C_b & C_\alpha \end{array} \right]
+\left[ \begin{array}{cccc}
+    M_{00} & M_{01} & M_{02} & M_{03} \\
+    M_{10} & M_{11} & M_{12} & M_{13} \\
+    M_{20} & M_{21} & M_{22} & M_{23} \\
+    M_{30} & M_{31} & M_{32} & M_{33}
+\end{array} \right]
+$$
+
+If {\cf unpremult} is {\cf true} and the image has an alpha channel,
+unpremultiply (divide color channels by alpha) before color conversion, then
+premultiply again after the color conversion.
+
+\smallskip
+\noindent Example:
+\begin{code}
+    ImageBuf Src ("tahoe.jpg");
+    Imath::M44f M ( .8047379,  .5058794, -.3106172, 0,
+                   -.3106172,  .8047379,  .5058794, 0,
+                    .5058794, -.3106172,  .8047379, 0,
+                     0,         0,         0,       1);
+    ImageBuf dst = ImageBufAlgo::colormatrixtransform (Src, M);
+\end{code}
+
+\noindent \begin{tabular}{cccc}
+\includegraphics[width=1.5in]{figures/tahoe-small.jpg} &
+\includegraphics[width=1.5in]{figures/tahoe-ccmatrix.jpg} \\
+original & matrix applied \\
+\end{tabular}
+\apiend
+
+
 \apiitem{ImageBuf {\ce ociolook} (const ImageBuf \&src, \\
   \bigspc\spc string_view looks, string_view fromspace, string_view tospace, \\
   \bigspc\spc bool inverse=false, bool unpremult=true, \\

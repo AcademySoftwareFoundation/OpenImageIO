@@ -49,6 +49,11 @@ command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=0 linear Cin
 command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=1 linear sRGB -o greyalpha_sRGB_un.tif")
 command += oiiotool ("greyalpha_linear.tif --colorconvert:unpremult=1 linear Cineon -o greyalpha_Cineon_un.tif")
 
+# test color convert by matrix
+command += oiiotool ("--autocc ../oiiotool/src/tahoe-tiny.tif "
+                     + "--ccmatrix 0.805,0.506,-0.311,0,-0.311,0.805,0.506,0,0.506,-0.311,0.805,0,0,0,0,1 "
+                     + "-d uint8 -o tahoe-ccmatrix.tif")
+
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
@@ -69,4 +74,5 @@ outputs = [
             "greyalpha_Cineon.tif",
             "greyalpha_sRGB_un.tif",
             "greyalpha_Cineon_un.tif",
+            "tahoe-ccmatrix.tif",
             "out.txt" ]

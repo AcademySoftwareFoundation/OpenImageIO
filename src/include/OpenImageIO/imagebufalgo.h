@@ -618,26 +618,8 @@ bool OIIO_API rangeexpand (ImageBuf &dst, const ImageBuf &src,
 
 
 /// Return (or copy into dst) the pixels of src within the ROI, applying a
-/// color transform. In-place operations (dst == src) are supported.
-///
-/// If unpremult is true, divide the RGB channels by alpha (if it exists and
-/// is nonzero) before color conversion, then re-multiply by alpha after the
-/// after the color conversion. Passing unpremult=false skips this step,
-/// which may be desirable if you know that the image is "unassociated alpha"
-/// (a.k.a. "not pre-multiplied colors").
-ImageBuf OIIO_API colorconvert (const ImageBuf &src,
-                      string_view fromspace, string_view tospace, bool unpremult=true,
-                      string_view context_key="", string_view context_value="",
-                      ColorConfig *colorconfig=nullptr,
-                      ROI roi={}, int nthreads=0);
-bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
-                  string_view fromspace, string_view tospace, bool unpremult=true,
-                  string_view context_key="", string_view context_value="",
-                  ColorConfig *colorconfig=nullptr,
-                  ROI roi={}, int nthreads=0);
-
-/// Return (or copy into dst) the pixels of src within the ROI, applying a
-/// color transform. In-place operations (dst == src) are supported.
+/// color transform implemented by a ColorProcessor. In-place operations
+/// (dst == src) are supported.
 ///
 /// If unpremult is true, divide the RGB channels by alpha (if it exists and
 /// is nonzero) before color conversion, then re-multiply by alpha after the
@@ -666,6 +648,47 @@ inline bool colorconvert (float *color, int nchannels,
                           const ColorProcessor *processor, bool unpremult) {
     return colorconvert ({color,nchannels}, processor, unpremult);
 }
+
+
+/// Return (or copy into dst) the pixels of src within the ROI, applying a
+/// color transform specified by from/to names and optionally a context
+/// key/value. In-place operations (dst == src) are supported.
+///
+/// If unpremult is true, divide the RGB channels by alpha (if it exists and
+/// is nonzero) before color conversion, then re-multiply by alpha after the
+/// after the color conversion. Passing unpremult=false skips this step,
+/// which may be desirable if you know that the image is "unassociated alpha"
+/// (a.k.a. "not pre-multiplied colors").
+ImageBuf OIIO_API colorconvert (const ImageBuf &src,
+                      string_view fromspace, string_view tospace, bool unpremult=true,
+                      string_view context_key="", string_view context_value="",
+                      ColorConfig *colorconfig=nullptr,
+                      ROI roi={}, int nthreads=0);
+bool OIIO_API colorconvert (ImageBuf &dst, const ImageBuf &src,
+                  string_view fromspace, string_view tospace, bool unpremult=true,
+                  string_view context_key="", string_view context_value="",
+                  ColorConfig *colorconfig=nullptr,
+                  ROI roi={}, int nthreads=0);
+
+
+/// Return (or copy into dst) the pixels of src within the ROI, applying a
+/// color transform specified by a 4x4 matrix.  Following Imath conventions,
+/// the color is a row vector and the matrix has the "translation" part in
+/// elements [12..14] (matching the memory layout of OpenGL or RenderMan),
+/// so the math is color * Matrix (NOT M*c). In-place operations (dst == src)
+/// are supported.
+///
+/// If unpremult is true, divide the RGB channels by alpha (if it exists and
+/// is nonzero) before color conversion, then re-multiply by alpha after the
+/// after the color conversion. Passing unpremult=false skips this step,
+/// which may be desirable if you know that the image is "unassociated alpha"
+/// (a.k.a. "not pre-multiplied colors").
+ImageBuf OIIO_API colormatrixtransform (const ImageBuf &src,
+                                    const Imath::M44f& M, bool unpremult=true,
+                                    ROI roi={}, int nthreads=0);
+bool OIIO_API colormatrixtransform (ImageBuf &dst, const ImageBuf &src,
+                                    const Imath::M44f& M, bool unpremult=true,
+                                    ROI roi={}, int nthreads=0);
 
 
 /// Return (or copy into dst) the pixels of src within the ROI, applying an

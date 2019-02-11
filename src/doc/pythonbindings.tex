@@ -3230,6 +3230,29 @@ Apply a color transform to the pixel values.
 \apiend
 
 
+\apiitem{ImageBuf ImageBufAlgo.{\ce colormatrixtransform} (src, M, unpremult=True, \\
+  \bigspc\bigspc  roi=ROI.All, nthreads=0) \\
+bool ImageBufAlgo.{\ce colormatrixtransform} (dst, src, M, unpremult=True, \\
+  \bigspc\bigspc  roi=ROI.All, nthreads=0)
+}
+\index{ImageBufAlgo!colormatrixtransform} \indexapi{colormatrixtransform}
+\NEW % 2.1
+Apply a $4 \times 4$ matrix color transform to the pixel values. The matrix
+can be any tuple of 16 float values.
+
+\smallskip
+\noindent Examples:
+\begin{code}
+    Src = ImageBuf ("tahoe.jpg")
+    M = ( .8047379,  .5058794, -.3106172, 0,
+         -.3106172,  .8047379,  .5058794, 0,
+          .5058794, -.3106172,  .8047379, 0,
+          0,         0,         0,       1)
+    Dst = ImageBufAlgo.colormatrixtransform (Src, M)
+\end{code}
+\apiend
+
+
 \apiitem{ImageBuf ImageBufAlgo.{\ce ociolook} (src, looks, fromspace, tospace,  \\
   \bigspc\bigspc  inverse=False, unpremult=True, \\
   \bigspc\bigspc context_key="", context_value="", colorconfig="", \\
