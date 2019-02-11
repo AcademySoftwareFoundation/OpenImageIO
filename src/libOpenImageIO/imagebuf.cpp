@@ -948,13 +948,18 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         // loss of range or precision resulting from going through the
         // cache. Or the caller requested a forced read, for that case we
         // also do a direct read now.
-        int unassoc = 0;
-        if (m_imagecache->getattribute("unassociatedalpha", unassoc)) {
-            // Since IB needs to act as if it's backed by an ImageCache,
-            // even though in this case we're bypassing the IC, we need to
-            // honor the IC's "unassociatedalpha" flag.
-            add_configspec();
-            m_configspec->attribute("oiio:UnassociatedAlpha", unassoc);
+        if (!m_configspec
+            || !m_configspec->find_attribute("oiio:UnassociatedAlpha")) {
+            int unassoc = 0;
+            if (m_imagecache->getattribute("unassociatedalpha", unassoc)) {
+                // Since IB needs to act as if it's backed by an ImageCache,
+                // even though in this case we're bypassing the IC, we need
+                // to honor the IC's "unassociatedalpha" flag. But only if
+                // this IB wasn't already given a config spec that dictated
+                // a specific unassociated alpha behavior.
+                add_configspec();
+                m_configspec->attribute("oiio:UnassociatedAlpha", unassoc);
+            }
         }
         auto in = ImageInput::open(m_name.string(), m_configspec.get());
         bool ok = true;
