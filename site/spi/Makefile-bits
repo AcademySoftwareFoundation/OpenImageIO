@@ -14,7 +14,7 @@ endif
 # takes precedence.
 OIIO_SPCOMP2 ?= 0
 OIIO_ARNOLD ?= 1
-OPENIMAGEIO_SPCOMP2_VERSION ?= 47
+OPENIMAGEIO_SPCOMP2_VERSION ?= 48
 ifeq (${OIIO_SPCOMP2},1)
     $(info Building for SpComp2)
     OIIO_ARNOLD := 0
