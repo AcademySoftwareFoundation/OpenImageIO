@@ -33,7 +33,7 @@ Public API changes:
 * `ImageCache::invalidate()` and `TextureSystem::invalidate()` now take an
   optional `force` parameter (default: true) that if false, will only
   invalidate a file if it has been updated on disk since it was first opened.
-  #2133 (2.1.0/2.0.5)
+  #2133, #2166 (2.1.0/2.0.5)
 * New filter name `"nuke-lanczos6"` matches the "lanczos6" filter from Nuke.
   In reality, it's identical to our "lanczos3", but the name alias is
   supposed to make it more clear which one to use to match Nuke, which uses
@@ -50,14 +50,21 @@ Fixes and feature enhancements:
       interpreted literally, not evaluated as an expression). #2100 (2.1.0/2.0.4)
     - `--dumpdata` has more intelligible output for uint8 images. #2124
        (2.1.0/2.0.4)
-* ImageBufAlgo:
-    - `channel_append()` previously always forced its result to be float, if
-      it wasn't previously initialized. Now it uses the uaual type-merging
+    - Fixed but that could prevent `-iconvert oiio:UnassociatedApha 1` from
+      correctly propagating to the input reader. #2172 (2.1.0/2.0.6)
+    - `-o:all=1` (which outputs all subimages to separate files) fixed a
+      crash that would occur if any of the subimages were 0x0 (it could
+      happen; now it just skips outputting those subimages). #2171 (2.1.0)
+* ImageBuf/ImageBufAlgo:
+    - `IBA::channel_append()` previously always forced its result to be float,
+      if it wasn't previously initialized. Now it uses the uaual type-merging
       logic, making the result the "widest" type of the inputs. #2095
       (2.1.0/2.0.4)
-    - `resize()`, `fit()`, and `resample()` are no longer restricted to
+    - IBA `resize()`, `fit()`, and `resample()` are no longer restricted to
       source and destination images having the same numer of channels.
       #2125 (2.1.0/2.0.5)
+    - Improve numerical precision of the unpremult/premult part of certain
+      color transformations. #2164 (2.1.0)
 * ImageInput read_image/scanline/tile fixed subtle bugs for certain
   combination of strides and channel subset reads. #2108 (2.1.0/2.0.4)
 * ImageCache / TextureSystem / maketx:
@@ -71,6 +78,8 @@ Fixes and feature enhancements:
       very blurry latong environment map lookups. #2121 (2.1.0/2.0.5)
     - `maketx -u` is smarter about which textures to avoid re-making because
       they are repeats of earlier commands. #2140 (2.1.0/2.05)
+    - Fix possible maketx crash on Windows due to a stack overflow within
+      MSVS's implementation of std::regex_replace! #2173 (2.1.0/2.0.6)
 * iv viewer:
     - Image info window now sorts the metadata, in the same manner as
       `iinfo -v` or `oiiotool -info -v`. #2159 (2.1.0/2.0.5)
@@ -81,6 +90,14 @@ Fixes and feature enhancements:
     - Avoid some OpenEXR/libIlmImf internal errors with DWA compression by
       switching to zip for single channel images with certain small tile
       sizes. #2147 (2.1.0/2.0.5)
+* PNG:
+    - More carefu catching and reporting errors and corrupt PNG files.
+      #2167 (2.1.0/2.0.6)
+* PSD:
+    - When reading PSD files with multiple PhotoShop "layers", properly set
+      ImageSpec x, y to the image plane offset (upper left corner) of the
+      layer, and set and metadata "oiio:subimagename" to the layer name.
+      #2170 (2.1.0)
 * TIFF:
     - Fix problems with JPEG compression in some cases. #2117 (2.1.0/2.0.4)
     - Fix error where reading just a subset of channels, if that subset did
@@ -114,6 +131,11 @@ Build/test system improvements and platform ports:
   for symbols with custom namespaces). #2148 (2.1.0)
 * On MacOS 10.14 Mojave, fix warnings during `iv` compiler about OpenGL
   being deprecated in future releases. #2151 (2.1.0/2.0.5)
+* At build time, the Python version used can be controlled by setting the
+  environment variable `$OIIO_PYTHON_VERSION`, which if set will initialize
+  the default value of the CMake variable `PYTHON_VERSION`. #2161 (2.0.5/2.1.0)
+* On non-Windows systems, the build now generates a PkgConfig file, installed
+  at `CMAKE_INSTALL_PREFIX/lib/pkgconfig/OpenImageIO.pc`. #2158 (2.0.5/2.1.0)
 
 Developer goodies / internals:
 * `string_view` now adds an optional `pos` parameter to the `find_first_of`
@@ -130,10 +152,55 @@ Developer goodies / internals:
     - New `OIIO_RETURNS_NONNULL` macro implements an attribute that marks
       a function that returns a pointer as guaranteeing that it's never
       NULL. #2150 (2.1.0/2.0.5)
+* simd.h:
+    - Added vec4 * matrix44 multiplication. #2165 (2.1.0/2.0.6)
+* strutil.h:
+    - Added `excise_string_after_head()`. #2173 (2.1.0/2.0.6)
+* Wide use of declaring methods `noexcept` when we want to promise that
+  they won't throw exceptions. #2156 (2.1.0)
 
 Notable documentation changes:
 
 
+
+Release 2.0.5 (1 Feb, 2019) -- compared to 2.0.4
+------------------------------------------------
+* `resize()`, `fit()`, and `resample()` are no longer restricted to
+  source and destination images having the same numer of channels. #2125
+* Python error reporting for `ImageOutput` and `ImageBuf.set_pixels` involving
+  transferring pixel arrays have changed from throwing exceptions to reporting
+  errors through the usual OIIO error return codes and queries. #2127
+* Protection against certain divide-by-zero errors when using very blurry
+  latlong environment map lookups. #2121
+* New shell environment variable `OPENIMAGEIO_OPTIONS` can now be used to
+  set global `OIIO::attribute()` settings upon startup (comma separated
+  name=value syntax). #2128
+* ImageInput open-with-config new attribute `"missingcolor"` can supply
+  a value for missing tiles or scanlines in a file in lieu of treating it
+  as an error (for example, how OpenEXR allows missing tiles, or when reading
+  an incompletely-written image file). A new global `OIIO::attribute()`
+  setting (same name) also accomplishes the same thing for all files read.
+  Note that this is only advisory, and not all file times are able to do
+  this (OpenEXR is the main one of interest, so that works). #2129
+* New filter name `"nuke-lanczos6"` matches the "lanczos6" filter from Nuke.
+  In reality, it's identical to our "lanczos3", but the name alias is
+  supposed to make it more clear which one to use to match Nuke, which uses
+  a different nomenclature (our "3" is radius, their "6" is full width).
+  #2136
+* `maketx -u` is smarter about which textures to avoid re-making because
+   they are repeats of earlier commands. #2140
+* Detect/error if builder is trying to use a pybind11 that's too old. #2144
+* OpenEXR: avoid some OpenEXR/libIlmImf internal errors with DWA compression
+  by switching to zip for single channel images with certain small tile
+  sizes. #2147
+* On MacOS 10.14 Mojave, fix warnings during `iv` compile about OpenGL
+  being deprecated in future releases. #2151
+* `iv` info window now sorts the metadata. #2159
+* At build time, the Python version used can be controlled by setting the
+  environment variable `$OIIO_PYTHON_VERSION`, which if set will initialize
+  the default value of the CMake variable `PYTHON_VERSION`. #2161 (2.0.5)
+* On non-Windows systems, the build now generates a PkgConfig file, installed
+  at `CMAKE_INSTALL_PREFIX/lib/pkgconfig/OpenImageIO.pc`. #2158 (2.0.5)
 
 Release 2.0.4 (Jan 5, 2019) -- compared to 2.0.3
 ------------------------------------------------
