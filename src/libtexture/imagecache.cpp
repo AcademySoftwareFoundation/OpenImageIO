@@ -568,7 +568,8 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
     do {
         m_subimages.resize(nsubimages + 1);
         SubimageInfo& si(subimageinfo(nsubimages));
-        int nmip = 0;
+        int max_mip_res = imagecache().max_mip_res();
+        int nmip        = 0;
         do {
             tempspec = nativespec;
             if (nmip == 0) {
@@ -599,6 +600,12 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     tempspec.tile_depth  = tempspec.depth;
                 }
             }
+            // If a request was made for a maximum MIP resolution to use for
+            // texture lookups and this level is too big, bump up this
+            // subimage's "min MIP level".
+            if (tempspec.width > max_mip_res || tempspec.height > max_mip_res
+                || tempspec.depth > max_mip_res)
+                si.min_mip_level = nmip + 1;
             //            thread_info->m_stats.files_totalsize += tempspec.image_bytes();
             m_total_imagesize += tempspec.image_bytes();
             // All MIP levels need the same number of channels
@@ -675,7 +682,8 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             inp.reset();
             return {};
         }
-
+        // Make sure we didn't set the subimage's mip_mip_level past the end
+        si.min_mip_level = std::min(si.min_mip_level, nmip - 1);
         ++nsubimages;
     } while (inp->seek_subimage(nsubimages, 0, nativespec));
     ASSERT((size_t)nsubimages == m_subimages.size());
@@ -2181,6 +2189,9 @@ ImageCacheImpl::attribute(string_view name, TypeDesc type, const void* val)
     } else if (name == "substitute_image" && type == TypeDesc::STRING) {
         m_substitute_image = ustring(*(const char**)val);
         do_invalidate      = true;
+    } else if (name == "max_mip_res" && type == TypeInt) {
+        m_max_mip_res = *(const int*)val;
+        do_invalidate = true;
     } else {
         // Otherwise, unknown name
         return false;
@@ -2217,6 +2228,7 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
     ATTR_DECODE("unassociatedalpha", int, m_unassociatedalpha);
     ATTR_DECODE("failure_retries", int, m_failure_retries);
     ATTR_DECODE("total_files", int, m_files.size());
+    ATTR_DECODE("max_mip_res", int, m_max_mip_res);
 
     // The cases that don't fit in the simple ATTR_DECODE scheme
     if (name == "searchpath" && type == TypeDesc::STRING) {

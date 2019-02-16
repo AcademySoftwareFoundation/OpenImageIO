@@ -279,7 +279,8 @@ oiio_add_tests (gpsread
                 texture-uint8
                 texture-width0blur
                 texture-fat texture-skinny texture-wrapfill
-                texture-missing texture-res texture-udim texture-udim2
+                texture-missing texture-res texture-maxres
+                texture-udim texture-udim2
                 IMAGEDIR oiio-images
               )
 

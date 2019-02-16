@@ -111,6 +111,7 @@ static bool test_statquery         = false;
 static bool invalidate_before_iter = true;
 static bool close_before_iter      = false;
 static Imath::M33f xform;
+static std::string texoptions;
 void* dummyptr;
 
 typedef void (*Mapping2D)(const int&, const int&, float&, float&, float&,
@@ -161,6 +162,7 @@ getargs(int argc, const char* argv[])
                       "Iterations for time trials",
                   "--threads %d", &nthreads, "Number of threads (default 0 = #cores)",
                   "-t %d", &nthreads, "",  // synonym
+                  "--texoptions %s", &texoptions, "Set extra TextureSystem options (name=val,name=val)",
                   "--blur %f", &sblur, "Add blur to texture lookup",
                   "--stblur %f %f", &sblur, &tblur, "Add blur (s, t) to texture lookup",
                   "--width %f", &width, "Multiply filter width of texture lookup",
@@ -1439,6 +1441,8 @@ main(int argc, const char* argv[])
 
     texsys = TextureSystem::create();
     std::cout << "Created texture system\n";
+    if (texoptions.size())
+        texsys->attribute("options", texoptions);
     texsys->attribute("autotile", autotile);
     texsys->attribute("automip", (int)automip);
     texsys->attribute("deduplicate", (int)dedup);

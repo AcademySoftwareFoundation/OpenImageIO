@@ -1253,7 +1253,10 @@ TextureSystemImpl::texture_lookup_nomip(
     OIIO_SIMD4_ALIGN float sval[4] = { s, 0.0f, 0.0f, 0.0f };
     OIIO_SIMD4_ALIGN float tval[4] = { t, 0.0f, 0.0f, 0.0f };
     static OIIO_SIMD4_ALIGN float weight[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
-    bool ok = (this->*sampler)(1, sval, tval, 0 /*miplevel*/, texturefile,
+    ImageCacheFile::SubimageInfo& subinfo(
+        texturefile.subimageinfo(options.subimage));
+    int min_mip_level = subinfo.min_mip_level;
+    bool ok = (this->*sampler)(1, sval, tval, min_mip_level, texturefile,
                                thread_info, options, nchannels_result,
                                actualchannels, weight, (vfloat4*)result,
                                (vfloat4*)dresultds, (vfloat4*)dresultdt);
@@ -1398,9 +1401,10 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
 {
     ImageCacheFile::SubimageInfo& subinfo(
         texturefile.subimageinfo(options.subimage));
-    float levelblend = 0.0f;
-    int nmiplevels   = (int)subinfo.levels.size();
-    for (int m = 0; m < nmiplevels; ++m) {
+    float levelblend  = 0.0f;
+    int nmiplevels    = (int)subinfo.levels.size();
+    int min_mip_level = subinfo.min_mip_level;
+    for (int m = min_mip_level; m < nmiplevels; ++m) {
         // Compute the filter size (minor axis) in raster space at this
         // MIP level.  We use the smaller of the two texture resolutions,
         // which is better than just using one, but a more principled
@@ -1426,11 +1430,11 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
         miplevel[0] = nmiplevels - 1;
         miplevel[1] = miplevel[0];
         levelblend  = 0;
-    } else if (miplevel[0] < 0) {
+    } else if (miplevel[0] < min_mip_level) {
         // We wish we had even more resolution than the finest MIP level,
         // but tough for us.
-        miplevel[0] = 0;
-        miplevel[1] = 0;
+        miplevel[0] = min_mip_level;
+        miplevel[1] = min_mip_level;
         levelblend  = 0;
         // It's possible that minorlength is degenerate, giving an aspect
         // ratio that implies a huge nsamples, which is pointless if those

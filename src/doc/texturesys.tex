@@ -390,6 +390,16 @@ If nonzero, $t$ coordinates will be flipped ($1-t$) for texture lookups.
 The default is 0.
 \apiend
 
+\apiitem{int max_mip_res}
+\NEW % 2.1
+Sets the maximum MIP-map resolution for filtered texture lookups. The MIP
+levels used will be clamped to those having fewer than this number of pixels
+in each dimension. This can be helpful as a way to limit disk I/O when doing
+fast preview renders (with the tradeoff that you may see some texture more
+blurry than they would ideally be). The default is 1 << 30, a value so large
+that no such clamping will be performed.
+\apiend
+
 \apiitem{string options}
 This catch-all is simply a comma-separated list of {\cf name=value}
 settings of named options, which will be parsed and individually set.
