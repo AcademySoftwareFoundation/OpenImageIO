@@ -292,6 +292,7 @@ public:
         // 0-1 relative to the "pixel window".
         float sscale = 1.0f, soffset = 0.0f;
         float tscale = 1.0f, toffset = 0.0f;
+        int min_mip_level = 0;  // Start with this MIP
         ustring subimagename;
 
         SubimageInfo() {}
@@ -1099,6 +1100,8 @@ public:
     // ImageCacheFile pointer for the tile it's on.
     ImageCacheFile* resolve_udim(ImageCacheFile* file, float& s, float& t);
 
+    int max_mip_res() const noexcept { return m_max_mip_res; }
+
 private:
     void init();
 
@@ -1152,6 +1155,7 @@ private:
     bool m_unassociatedalpha;  ///< Keep unassociated alpha files as they are?
     int m_failure_retries;     ///< Times to re-try disk failures
     bool m_latlong_y_up_default;  ///< Is +y the default "up" for latlong?
+    int m_max_mip_res = 1 << 30;  ///< Don't use MIP levels higher than this
     Imath::M44f m_Mw2c;           ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;           ///< common-to-world matrix
     ustring m_substitute_image;   ///< Substitute this image for all others

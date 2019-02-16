@@ -487,6 +487,7 @@ public:
     ///     int deduplicate : if nonzero, detect duplicate textures (default=1)
     ///     int gray_to_rgb : make 1-channel images fill RGB lookups
     ///     int max_tile_channels : max channels to store all chans in a tile
+    ///     int max_mip_res : max resolution MIP level to use for lookups
     ///     string latlong_up : default "up" direction for latlong ("y")
     ///     int flip_t : flip v coord for texture lookups?
     ///     int max_errors_per_file : Limits how many errors to issue for

@@ -477,6 +477,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
 
     ImageCacheFile::SubimageInfo& subinfo(
         texturefile->subimageinfo(options.subimage));
+    int min_mip_level = subinfo.min_mip_level;
 
     // FIXME -- assuming latlong
     bool ok   = true;
@@ -492,7 +493,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
         float levelblend = 0;
 
         int nmiplevels = (int)subinfo.levels.size();
-        for (int m = 0; m < nmiplevels; ++m) {
+        for (int m = min_mip_level; m < nmiplevels; ++m) {
             // Compute the filter size in raster space at this MIP level.
             // Filters are in radians, and the vertical resolution of a
             // latlong map is PI radians.  So to compute the raster size of
@@ -517,11 +518,11 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
             miplevel[0] = nmiplevels - 1;
             miplevel[1] = miplevel[0];
             levelblend  = 0;
-        } else if (miplevel[0] < 0) {
+        } else if (miplevel[0] < min_mip_level) {
             // We wish we had even more resolution than the finest MIP level,
             // but tough for us.
-            miplevel[0] = 0;
-            miplevel[1] = 0;
+            miplevel[0] = min_mip_level;
+            miplevel[1] = min_mip_level;
             levelblend  = 0;
         }
         if (options.mipmode == TextureOpt::MipModeOneLevel) {
@@ -530,8 +531,8 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
             levelblend  = 0;
         } else if (mipmode == TextureOpt::MipModeNoMIP) {
             // Just sample from lowest level
-            miplevel[0] = 0;
-            miplevel[1] = 0;
+            miplevel[0] = min_mip_level;
+            miplevel[1] = min_mip_level;
             levelblend  = 0;
         }
 
