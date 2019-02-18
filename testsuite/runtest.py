@@ -48,19 +48,25 @@ def oiio_relpath (path, start=os.curdir):
     p = os.path.relpath (path, start)
     return p if sys.platform != "win32" else p.replace ('\\', '/')
 
-OIIO_TESTSUITE_ROOT = oiio_relpath(os.environ['OIIO_TESTSUITE_ROOT'])
-OIIO_TESTSUITE_IMAGEDIR = os.environ.get('OIIO_TESTSUITE_IMAGEDIR', None)
+# Try to figure out where some key things are. Go by env variables set by
+# the cmake tests, but if those aren't set, assume somebody is running
+# this script by hand from inside build/PLATFORM/testsuite/TEST and that
+# the rest of the tree has the standard layout.
+OIIO_TESTSUITE_ROOT = oiio_relpath(os.environ.get('OIIO_TESTSUITE_ROOT',
+                                                  '../../../../testsuite'))
+OIIO_TESTSUITE_IMAGEDIR = os.environ.get('OIIO_TESTSUITE_IMAGEDIR',
+                                         '../../../../../oiio-images')
 if OIIO_TESTSUITE_IMAGEDIR:
     OIIO_TESTSUITE_IMAGEDIR = oiio_relpath(OIIO_TESTSUITE_IMAGEDIR)
     # Set it back so test's can use it (python-imagebufalgo)
     os.environ['OIIO_TESTSUITE_IMAGEDIR'] = OIIO_TESTSUITE_IMAGEDIR
-
 refdir = "ref/"
 refdirlist = [ refdir ]
-test_source_dir = os.environ['OIIO_TESTSUITE_SRC']
+mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]
+test_source_dir = os.environ.get('OIIO_TESTSUITE_SRC',
+                                 os.path.join(OIIO_TESTSUITE_ROOT, mytest))
 colorconfig_file = os.path.join(OIIO_TESTSUITE_ROOT,
                                 "common", "OpenColorIO", "nuke-default", "config.ocio")
-
 
 # Swap the relative diff lines if the test suite is not being run via Makefile
 if OIIO_TESTSUITE_ROOT != "../../../../testsuite":
