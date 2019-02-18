@@ -373,10 +373,23 @@ public:
                      (origin == SEEK_CUR ? offset+tell() : 0) +
                      (origin == SEEK_END ? size() : 0));
     }
+
+#if OIIO_VERSION >= 20101
+    #define OIIO_IOPROXY_HAS_ERROR 1
+    std::string error() const { return m_error; }
+    void error(string_view e) { m_error = e; }
+#else
+    std::string error() const { return ""; }
+    void error(string_view e) { }
+#endif
+
 protected:
     std::string m_filename;
     int64_t m_pos = 0;
     Mode m_mode   = Closed;
+#ifdef OIIO_IOPROXY_HAS_ERROR
+    std::string m_error;
+#endif
 };
 
 

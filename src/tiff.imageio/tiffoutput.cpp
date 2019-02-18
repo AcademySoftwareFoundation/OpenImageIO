@@ -206,7 +206,7 @@ tiff_imageio_library_version()
 }
 
 OIIO_EXPORT const char* tiff_output_extensions[]
-    = { "tiff", "tif", "tx", "env", "sm", "vsm", nullptr };
+    = { "tif", "tiff", "tx", "env", "sm", "vsm", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 

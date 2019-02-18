@@ -233,7 +233,12 @@ if (OIIO_BUILD_TESTS)
     set_target_properties (imagespec_test PROPERTIES FOLDER "Unit Tests")
     target_link_libraries (imagespec_test OpenImageIO ${Boost_LIBRARIES})
     add_test (unit_imagespec imagespec_test)
-    
+
+    add_executable (imageinout_test imageinout_test.cpp)
+    set_target_properties (imageinout_test PROPERTIES FOLDER "Unit Tests")
+    target_link_libraries (imageinout_test OpenImageIO ${Boost_LIBRARIES})
+    add_test (unit_imageinout imageinout_test)
+
     add_executable (imagespeed_test imagespeed_test.cpp)
     set_target_properties (imagespeed_test PROPERTIES FOLDER "Unit Tests")
     target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES})
