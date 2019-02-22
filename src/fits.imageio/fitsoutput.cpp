@@ -68,7 +68,7 @@ bool
 FitsOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
     if (mode == AppendMIPLevel) {
-        error("%s does not support MIP levels", format_name());
+        errorf("%s does not support MIP levels", format_name());
         return false;
     }
 
@@ -77,11 +77,21 @@ FitsOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_spec     = spec;
     if (m_spec.format == TypeDesc::UNKNOWN)  // if unknown, default to float
         m_spec.set_format(TypeDesc::FLOAT);
+    // FITS only supports signed short and int pixels
+    if (m_spec.format == TypeDesc::USHORT)
+        m_spec.format = TypeDesc::SHORT;
+    else if (m_spec.format == TypeDesc::UINT)
+        m_spec.format = TypeDesc::INT;
 
     // checking if the file exists and can be opened in WRITE mode
     m_fd = Filesystem::fopen(m_filename, mode == AppendSubimage ? "r+b" : "wb");
     if (!m_fd) {
-        error("Unable to open file \"%s\"", m_filename.c_str());
+        errorf("Unable to open file \"%s\"", m_filename);
+        return false;
+    }
+
+    if (m_spec.depth != 1) {
+        errorf("Volume FITS files not supported");
         return false;
     }
 
@@ -108,7 +118,7 @@ FitsOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     if (m_spec.width == 0 && m_spec.height == 0)
         return true;
     if (y > m_spec.height) {
-        error("Attempt to write too many scanlines to %s", m_filename.c_str());
+        errorf("Attempt to write too many scanlines to %s", m_filename);
         close();
         return false;
     }
@@ -240,7 +250,7 @@ FitsOutput::create_fits_header(void)
     size_t byte_count = fwrite(&header[0], 1, header.size(), m_fd);
     if (byte_count != header.size()) {
         // FIXME Bad Write
-        error("Bad header write (err %d)", byte_count);
+        errorf("Bad header write (err %d)", byte_count);
     }
 }
 
@@ -277,16 +287,27 @@ FitsOutput::create_basic_header(std::string& header)
     header += create_card("BITPIX", num2str(m_bitpix));
 
     // NAXIS inform how many dimension have the image.
-    // we deal only with 2D images so this value is always set to 2
+    // we deal only with 2D images so this value is always set to 2.
+    // But we make a multi-channel FITS look like 3 axes and hope it's
+    // not confused with a volume.
     int axes = 0;
     if (m_spec.width != 0 || m_spec.height != 0)
         axes = 2;
+    if (m_spec.nchannels > 1)
+        axes += 1;
     header += create_card("NAXIS", num2str(axes));
 
     // now we save NAXIS1 and NAXIS2
     // this keywords represents width and height
-    header += create_card("NAXIS1", num2str(m_spec.width));
-    header += create_card("NAXIS2", num2str(m_spec.height));
+    if (m_spec.nchannels == 1) {
+        header += create_card("NAXIS1", num2str(m_spec.width));
+        header += create_card("NAXIS2", num2str(m_spec.height));
+    } else {
+        // 3D image for color
+        header += create_card("NAXIS1", num2str(m_spec.nchannels));
+        header += create_card("NAXIS2", num2str(m_spec.width));
+        header += create_card("NAXIS3", num2str(m_spec.height));
+    }
 }
 
 OIIO_PLUGIN_NAMESPACE_END

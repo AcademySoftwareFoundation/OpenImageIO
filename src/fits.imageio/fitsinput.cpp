@@ -86,19 +86,19 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
     // checking if the file exists and can be opened in READ mode
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (!m_fd) {
-        error("Could not open file \"%s\"", m_filename.c_str());
+        errorf("Could not open file \"%s\"", m_filename);
         return false;
     }
 
     // checking if the file is FITS file
     char magic[6] = { 0 };
     if (fread(magic, 1, 6, m_fd) != 6) {
-        error("%s isn't a FITS file", m_filename.c_str());
+        errorf("%s isn't a FITS file", m_filename);
         return false;  // Read failed
     }
 
     if (strncmp(magic, "SIMPLE", 6)) {
-        error("%s isn't a FITS file", m_filename.c_str());
+        errorf("%s isn't a FITS file", m_filename);
         close();
         return false;
     }
@@ -134,19 +134,22 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     size_t n = fread(&data_tmp[0], 1, m_spec.scanline_bytes(), m_fd);
     if (n != m_spec.scanline_bytes()) {
         if (feof(m_fd))
-            error("Hit end of file unexpectedly");
+            errorf("Hit end of file unexpectedly (offset=%d, scanline %d)",
+                   ftell(m_fd), y);
         else
-            error("read error");
+            errorf("read error");
         return false;  // Read failed
     }
 
     // in FITS image data is stored in big-endian so we have to switch to
     // little-endian on little-endian machines
     if (littleendian()) {
-        if (m_spec.format == TypeDesc::USHORT)
+        if (m_spec.format == TypeDesc::USHORT
+            || m_spec.format == TypeDesc::SHORT)
             swap_endian((unsigned short*)&data_tmp[0],
                         data_tmp.size() / sizeof(unsigned short));
-        else if (m_spec.format == TypeDesc::UINT)
+        else if (m_spec.format == TypeDesc::UINT
+                 || m_spec.format == TypeDesc::INT)
             swap_endian((unsigned int*)&data_tmp[0],
                         data_tmp.size() / sizeof(unsigned int));
         else if (m_spec.format == TypeDesc::FLOAT)
@@ -202,13 +205,6 @@ FitsInput::set_spec_info()
     if (!read_fits_header())
         return false;
 
-    // we don't deal with one dimension images
-    // it's some kind of spectral data
-    if (!m_spec.width || !m_spec.height) {
-        m_spec.width = m_spec.full_width = 0;
-        m_spec.height = m_spec.full_height = 0;
-    }
-
     // now we can get the current position in the file
     // this is the start of the image data
     // we will need it in the read_native_scanline method
@@ -217,9 +213,9 @@ FitsInput::set_spec_info()
     if (m_bitpix == 8)
         m_spec.set_format(TypeDesc::UCHAR);
     else if (m_bitpix == 16)
-        m_spec.set_format(TypeDesc::USHORT);
+        m_spec.set_format(TypeDesc::SHORT);
     else if (m_bitpix == 32)
-        m_spec.set_format(TypeDesc::UINT);
+        m_spec.set_format(TypeDesc::INT);
     else if (m_bitpix == -32)
         m_spec.set_format(TypeDesc::FLOAT);
     else if (m_bitpix == -64)
@@ -248,12 +244,13 @@ FitsInput::read_fits_header(void)
     // we read whole header at once
     if (fread(&fits_header[0], 1, HEADER_SIZE, m_fd) != HEADER_SIZE) {
         if (feof(m_fd))
-            error("Hit end of file unexpectedly");
+            errorf("Hit end of file unexpectedly (offset=%d)", ftell(m_fd));
         else
-            error("read error");
+            errorf("read error");
         return false;  // Read failed
     }
 
+    bool found_end = false;
     for (int i = 0; i < CARDS_PER_HEADER; ++i) {
         std::string card(CARD_SIZE, 0);
         // reading card number i
@@ -273,7 +270,8 @@ FitsInput::read_fits_header(void)
             add_to_spec("Comment", m_comment);
             add_to_spec("History", m_history);
             add_to_spec("Hierarch", m_hierarch);
-            return true;
+            found_end = true;
+            break;
         }
 
         if (keyname == "SIMPLE" || keyname == "XTENSION")
@@ -289,22 +287,13 @@ FitsInput::read_fits_header(void)
         }
         if (keyname == "NAXIS") {
             m_naxes = Strutil::stoi(&card[10]);
-            if (m_naxes == 1)  // 1 axis is w x 1 image
-                m_spec.height = m_spec.full_height = 1;
+            m_naxis.resize(m_naxes);
             continue;
         }
-        if (keyname == "NAXIS1") {
-            m_spec.width      = Strutil::stoi(&card[10]);
-            m_spec.full_width = m_spec.width;
-            continue;
-        }
-        if (keyname == "NAXIS2") {
-            m_spec.height      = Strutil::stoi(&card[10]);
-            m_spec.full_height = m_spec.height;
-            continue;
-        }
-        // ignoring other axis
-        if (keyname.substr(0, 5) == "NAXIS") {
+        if (Strutil::starts_with(keyname, "NAXIS")) {
+            int i = Strutil::stoi(keyname.substr(5));
+            if (i > 0 && i <= m_naxes)
+                m_naxis[i - 1] = Strutil::stoi(&card[10]);
             continue;
         }
         if (keyname == "ORIENTAT") {
@@ -333,8 +322,57 @@ FitsInput::read_fits_header(void)
             keyname[0] = toupper(keyname[0]);
         add_to_spec(keyname, value);
     }
+
+    // Fix up dimensions
+    while (m_naxes > 1 && m_naxis[m_naxes - 1] == 1) {
+        --m_naxes;
+    }
+    if (m_naxes < 0 || m_naxes > 4) {
+        errorf("Number of data axes %d not supported", m_naxes);
+        return false;
+    }
+    m_spec.nchannels = 1;
+    m_spec.depth     = 1;
+    if (m_naxes == 0 || m_naxis[0] == 0) {
+        m_spec.width = m_spec.height = 0;
+    } else if (m_naxes == 1) {
+        m_spec.width  = m_naxis[0];
+        m_spec.height = 1;
+    } else if (m_naxes == 2) {
+        m_spec.width  = m_naxis[0];
+        m_spec.height = m_naxis[1];
+    } else if (m_naxes == 3 && m_naxis[0] <= 4) {
+        // 3D, small number of most-rapidly changing dimension: color image?
+        m_spec.nchannels = m_naxis[0];
+        m_spec.width     = m_naxis[1];
+        m_spec.height    = m_naxis[2];
+    } else if (m_naxes == 3) {
+        // 3D, large number of most-rapidly changing dimension: volume?
+        m_spec.width  = m_naxis[0];
+        m_spec.height = m_naxis[1];
+        m_spec.depth  = m_naxis[2];
+    } else if (m_naxes == 4) {
+        // 4D... volume + color?
+        m_spec.nchannels = m_naxis[0];
+        m_spec.width     = m_naxis[1];
+        m_spec.height    = m_naxis[2];
+        m_spec.depth     = m_naxis[3];
+    } else {
+        errorf("Don't know now to read %d-channel FITS image", m_naxes);
+        return false;
+    }
+    m_spec.full_width  = m_spec.width;
+    m_spec.full_height = m_spec.height;
+    m_spec.full_depth  = m_spec.depth;
+
+    // if (m_spec.width < 1 || m_spec.height < 1 || m_spec.depth < 1 ||
+    //     m_spec.nchannels < 1) {
+    //     errorf("Don't know now to read empty (0 pixel) FITS image");
+    //     return false;
+    // }
+
     // if we didn't found END keyword in current header, we read next one
-    return read_fits_header();
+    return found_end ? true : read_fits_header();
 }
 
 
