@@ -3,7 +3,7 @@
 # ../fits-image/pg93:
 # tst0001.fits to tst0014.fits
 imagedir = OIIO_TESTSUITE_IMAGEDIR + "/pg93"
-files = [ "tst0001.fits", "tst0002.fits", "tst0003.fits",
+files = [ "tst0001.fits", "tst0003.fits",
            "tst0005.fits", "tst0006.fits", "tst0007.fits",  "tst0008.fits",
            #FIXME? "tst0009.fits",
           "tst0013.fits"

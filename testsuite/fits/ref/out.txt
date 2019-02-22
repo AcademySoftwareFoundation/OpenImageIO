@@ -19,30 +19,8 @@ Simple 8-bit ramp pattern for testing of FITS readers"
     Origin: "ESO"
 Comparing "../../../../../fits-images/pg93/tst0001.fits" and "tst0001.fits"
 PASS
-Reading ../../../../../fits-images/pg93/tst0002.fits
-../../../../../fits-images/pg93/tst0002.fits :   73 x   31, 1 channel, uint16 fits
-    SHA-1: 4FCD0E343956DEA4E792786138651F9D8C81F615
-    channel list: Y
-    Cdelt1: -2.3
-    Cdelt2: 7.1
-    Cdelt3: 0.003
-    Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
-Simple 16-bit ramp pattern for testing of FITS readers"
-    Crpix1: 12.1
-    Crpix2: -11.3
-    Crpix3: 199
-    Crval1: -73.5
-    Crval2: 300.9
-    Crval3: 21.1
-    Ctype3: "VELO"
-    Cunit3: "M/SEC"
-    DateTime: "1992:08:20 00:00:00"
-    Object: "Ramp 16-bit"
-    Origin: "ESO"
-Comparing "../../../../../fits-images/pg93/tst0002.fits" and "tst0002.fits"
-PASS
 Reading ../../../../../fits-images/pg93/tst0003.fits
-../../../../../fits-images/pg93/tst0003.fits :  137 x  271, 1 channel, uint fits
+../../../../../fits-images/pg93/tst0003.fits :  137 x  271, 1 channel, int fits
     SHA-1: 9D2DEE3C1411AB38B5DBAD0532F3679B797B2374
     channel list: Y
     Blocked: "T"
@@ -291,7 +269,7 @@ Reading ../../../../../fits-images/ftt4b/file002.fits
 Comparing "../../../../../fits-images/ftt4b/file002.fits" and "file002.fits"
 PASS
 Reading ../../../../../fits-images/ftt4b/file003.fits
-../../../../../fits-images/ftt4b/file003.fits :  512 x  512, 1 channel, uint16 fits
+../../../../../fits-images/ftt4b/file003.fits :  512 x  512, 1 channel, int16 fits
     SHA-1: 5CC4340F5D8AB2B776D2E12BFE946CA5CAFA38C6
     channel list: Y
     Blank: -32768
@@ -504,7 +482,7 @@ AIPS   CLEAN NITER= 12000 PRODUCT=1"
 Comparing "../../../../../fits-images/ftt4b/file003.fits" and "file003.fits"
 PASS
 Reading ../../../../../fits-images/ftt4b/file009.fits
-../../../../../fits-images/ftt4b/file009.fits :    0 x    0, 1 channel, uint16 fits
+../../../../../fits-images/ftt4b/file009.fits :    0 x    0, 1 channel, int16 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
     channel list: Y
     Blank: -32768
@@ -586,7 +564,7 @@ VLACV ANT   N=22 X=  1021.275 Y= -2683.726 Z= -1494.627 ST='CW6'"
 Comparing "../../../../../fits-images/ftt4b/file009.fits" and "file009.fits"
 PASS
 Reading ../../../../../fits-images/ftt4b/file012.fits
-../../../../../fits-images/ftt4b/file012.fits :  513 x  513, 1 channel, uint16 fits
+../../../../../fits-images/ftt4b/file012.fits :  513 x  513, 1 channel, int16 fits
     SHA-1: 844CE9474D5C9E91154E41D7ED417173DE57286D
     channel list: Y
     Bscale: 2.85522e-06
