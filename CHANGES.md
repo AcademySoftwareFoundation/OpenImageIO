@@ -1,3 +1,7 @@
+Release 2.0.7 (1 Apr??, 2019) -- compared to 2.0.6
+------------------------------------------------
+
+
 Release 2.0.6 (1 Mar, 2019) -- compared to 2.0.5
 ------------------------------------------------
 * PNG: more careful catching of errors and corrupt png files. #2167
@@ -48,7 +52,6 @@ Release 2.0.5 (1 Feb, 2019) -- compared to 2.0.4
   the default value of the CMake variable `PYTHON_VERSION`. #2161 (2.0.5)
 * On non-Windows systems, the build now generates a PkgConfig file, installed
   at `CMAKE_INSTALL_PREFIX/lib/pkgconfig/OpenImageIO.pc`. #2158 (2.0.5)
-
 
 Release 2.0.4 (5 Jan, 2019) -- compared to 2.0.3
 ------------------------------------------------
