@@ -1,6 +1,14 @@
 Release 2.0.6 (1 Mar, 2019) -- compared to 2.0.5
 ------------------------------------------------
-
+* PNG: more careful catching of errors and corrupt png files. #2167
+* PSD: read now properly extracts layer/subimage name and data window offset
+  coordinates. #2170
+* ImageBuf: Fix bug in propagating unassociated alpha behavior request. #2172
+* `oiiotool -o:all=1` fix crash when outputting 0x0 subimages. #2171
+* Developer goodies: simd.h ops for vec4 * mat44 multiplication. #2165
+* Developer goodies: `Strutil::excise_string_after_head()` #2173
+* Fix crashes on Windows from certain regex replacement happening as part
+  of MakeTexture (internally avoid MSVS implementation of std::regex). #2173
 
 Release 2.0.5 (1 Feb, 2019) -- compared to 2.0.4
 ------------------------------------------------
