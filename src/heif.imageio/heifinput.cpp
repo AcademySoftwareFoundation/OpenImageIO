@@ -94,7 +94,7 @@ heif_input_imageio_create()
     return new HeifInput;
 }
 
-OIIO_EXPORT const char* heif_input_extensions[] = { "heif", "heic", "heics",
+OIIO_EXPORT const char* heif_input_extensions[] = { "heic", "heif", "heics",
                                                     nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
