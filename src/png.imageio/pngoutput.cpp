@@ -60,7 +60,6 @@ public:
 
 private:
     std::string m_filename;  ///< Stash the filename
-    FILE* m_file;            ///< Open image handle
     png_structp m_png;       ///< PNG read structure pointer
     png_infop m_info;        ///< PNG image info structure pointer
     unsigned int m_dither;
@@ -70,39 +69,46 @@ private:
     std::vector<unsigned char> m_scratch;
     std::vector<png_text> m_pngtext;
     std::vector<unsigned char> m_tilebuffer;
+    std::unique_ptr<Filesystem::IOProxy> m_local_io;
     Filesystem::IOProxy* m_io = nullptr;
+    bool m_err                = false;
 
     // Initialize private members to pre-opened state
     void init(void)
     {
-        m_file          = NULL;
         m_png           = NULL;
         m_info          = NULL;
         m_convert_alpha = true;
         m_gamma         = 1.0;
         m_pngtext.clear();
-        m_io = nullptr;
+        m_local_io.reset();
+        m_io  = nullptr;
+        m_err = false;
     }
 
     // Add a parameter to the output
     bool put_parameter(const std::string& name, TypeDesc type,
                        const void* data);
 
-    // Callback for PNG that appends to in-memory buffer instead of writing
+    // Callback for PNG that writes via an IOProxy instead of writing
     // to a file.
     static void PngWriteCallback(png_structp png_ptr, png_bytep data,
                                  png_size_t length)
     {
-        Filesystem::IOProxy* p = (Filesystem::IOProxy*)png_get_io_ptr(png_ptr);
-        DASSERT(p);
-        p->write(data, length);
+        PNGOutput* pngoutput = (PNGOutput*)png_get_io_ptr(png_ptr);
+        DASSERT(pngoutput);
+        size_t bytes = pngoutput->m_io->write(data, length);
+        if (bytes != length) {
+            pngoutput->error("Write error");
+            pngoutput->m_err = true;
+        }
     }
 
     static void PngFlushCallback(png_structp png_ptr)
     {
-        Filesystem::IOProxy* p = (Filesystem::IOProxy*)png_get_io_ptr(png_ptr);
-        DASSERT(p);
-        p->flush();
+        PNGOutput* pngoutput = (PNGOutput*)png_get_io_ptr(png_ptr);
+        DASSERT(pngoutput);
+        pngoutput->m_io->flush();
     }
 };
 
@@ -142,7 +148,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -155,32 +161,27 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // See if we were requested to write to a memory buffer, and if so,
     // extract the pointer.
-    const ParamValue* param = m_spec.find_attribute("oiio:ioproxy",
-                                                    TypeDesc::PTR);
-    m_io = param ? param->get<Filesystem::IOProxy*>() : nullptr;
-    if (m_io) {
-        m_file = nullptr;
-    } else {
-        // otherwise, we're writing to a file, so open it.
-        m_file = Filesystem::fopen(name, "wb");
-        if (!m_file) {
-            error("Could not open file \"%s\"", name);
-            return false;
-        }
+    auto ioparam = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+    m_io         = ioparam ? ioparam->get<Filesystem::IOProxy*>() : nullptr;
+    if (!m_io) {
+        // If no proxy was supplied, create a file writer
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Write);
+        m_local_io.reset(m_io);
+    }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Write) {
+        errorf("Could not open file \"%s\"", name);
+        return false;
     }
 
     std::string s = PNG_pvt::create_write_struct(m_png, m_info, m_color_type,
                                                  m_spec);
     if (s.length()) {
         close();
-        error("%s", s);
+        errorf("%s", s);
         return false;
     }
 
-    if (m_file)
-        png_init_io(m_png, m_file);
-    else
-        png_set_write_fn(m_png, m_io, PngWriteCallback, PngFlushCallback);
+    png_set_write_fn(m_png, this, PngWriteCallback, PngFlushCallback);
 
     png_set_compression_level(
         m_png, std::max(std::min(m_spec.get_int_attribute(
@@ -228,7 +229,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 bool
 PNGOutput::close()
 {
-    if (!m_file && !m_io) {  // already closed
+    if (!m_io) {  // already closed
         init();
         return true;
     }
@@ -244,17 +245,6 @@ PNGOutput::close()
 
     if (m_png) {
         PNG_pvt::finish_image(m_png, m_info);
-    }
-
-    if (m_file) {
-        // We were writing to a file, so close it.
-        ASSERT(m_io == nullptr);
-        fclose(m_file);
-        m_file = nullptr;
-    }
-    if (m_io) {
-        ASSERT(m_file == nullptr);
-        m_io->close();
     }
 
     init();  // re-initialize

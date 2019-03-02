@@ -478,6 +478,9 @@ public:
     virtual size_t pread(void* buf, size_t size, int64_t offset);
     virtual size_t size() const { return m_buf.size(); }
 
+    // Access the buffer (caveat emptor)
+    cspan<unsigned char> buffer() const noexcept { return m_buf; }
+
 protected:
     cspan<unsigned char> m_buf;
 };

@@ -151,7 +151,7 @@ JpgInput::jpegerror(my_error_ptr myerr, bool fatal)
     // Send the error message to the ImageInput
     char errbuf[JMSG_LENGTH_MAX];
     (*m_cinfo.err->format_message)((j_common_ptr)&m_cinfo, errbuf);
-    error("JPEG error: %s (\"%s\")", errbuf, filename().c_str());
+    errorf("JPEG error: %s (\"%s\")", errbuf, filename());
 
     // Shut it down and clean it up
     if (fatal) {
@@ -164,16 +164,21 @@ JpgInput::jpegerror(my_error_ptr myerr, bool fatal)
 
 
 bool
-JpgInput::valid_file(const std::string& filename) const
+JpgInput::valid_file(const std::string& filename, Filesystem::IOProxy* io) const
 {
-    FILE* fd = Filesystem::fopen(filename, "rb");
-    if (!fd)
-        return false;
-
     // Check magic number to assure this is a JPEG file
     uint8_t magic[2] = { 0, 0 };
-    bool ok          = (fread(magic, sizeof(magic), 1, fd) == 1);
-    fclose(fd);
+    bool ok          = true;
+
+    if (io) {
+        ok = (io->pread(magic, sizeof(magic), 0) == sizeof(magic));
+    } else {
+        FILE* fd = Filesystem::fopen(filename, "rb");
+        if (!fd)
+            return false;
+        ok = (fread(magic, sizeof(magic), 1, fd) == 1);
+        fclose(fd);
+    }
 
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
         ok = false;
@@ -187,8 +192,10 @@ bool
 JpgInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
-    const ParamValue* p = config.find_attribute("_jpeg:raw", TypeInt);
-    m_raw               = p && *(int*)p->data();
+    auto p = config.find_attribute("_jpeg:raw", TypeInt);
+    m_raw  = p && *(int*)p->data();
+    p      = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+    m_io   = p ? p->get<Filesystem::IOProxy*>() : nullptr;
     return open(name, newspec);
 }
 
@@ -197,28 +204,39 @@ JpgInput::open(const std::string& name, ImageSpec& newspec,
 bool
 JpgInput::open(const std::string& name, ImageSpec& newspec)
 {
-    // Check that file exists and can be opened
     m_filename = name;
-    m_fd       = Filesystem::fopen(name, "rb");
-    if (m_fd == NULL) {
-        error("Could not open file \"%s\"", name.c_str());
+
+    if (m_io) {
+        // If an IOProxy was passed, it had better be a File or a
+        // MemReader, that's all we know how to use with jpeg.
+        std::string proxytype = m_io->proxytype();
+        if (proxytype != "file" && proxytype != "memreader") {
+            errorf("JPEG reader can't handle proxy type %s", proxytype);
+            return false;
+        }
+    } else {
+        // If no proxy was supplied, create a file reader
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
+        m_local_io.reset(m_io);
+    }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
     // Check magic number to assure this is a JPEG file
     uint8_t magic[2] = { 0, 0 };
-    if (fread(magic, sizeof(magic), 1, m_fd) != 1) {
-        error("Empty file \"%s\"", name.c_str());
+    if (m_io->pread(magic, sizeof(magic), 0) != sizeof(magic)) {
+        errorf("Empty file \"%s\"", name);
         close_file();
         return false;
     }
 
-    rewind(m_fd);
     if (magic[0] != JPEG_MAGIC1 || magic[1] != JPEG_MAGIC2) {
         close_file();
-        error(
+        errorf(
             "\"%s\" is not a JPEG file, magic number doesn't match (was 0x%x%x)",
-            name.c_str(), int(magic[0]), int(magic[1]));
+            name, int(magic[0]), int(magic[1]));
         return false;
     }
 
@@ -235,8 +253,17 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    jpeg_create_decompress(&m_cinfo);  // initialize decompressor
-    jpeg_stdio_src(&m_cinfo, m_fd);    // specify the data source
+    // initialize decompressor
+    jpeg_create_decompress(&m_cinfo);
+    // specify the data source
+    if (!strcmp(m_io->proxytype(), "file")) {
+        auto fd = ((Filesystem::IOFile*)m_io)->handle();
+        jpeg_stdio_src(&m_cinfo, fd);
+    } else {
+        auto buffer = ((Filesystem::IOMemReader*)m_io)->buffer();
+        jpeg_mem_src(&m_cinfo, const_cast<unsigned char*>(buffer.data()),
+                     buffer.size());
+    }
 
     // Request saving of EXIF and other special tags for later spelunking
     for (int mark = 0; mark < 16; ++mark)
@@ -245,7 +272,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 
     // read the file parameters
     if (jpeg_read_header(&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
-        error("Bad JPEG header for \"%s\"", filename().c_str());
+        errorf("Bad JPEG header for \"%s\"", filename());
         return false;
     }
 
@@ -465,7 +492,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         // Keep reading until we've read the scanline we really need
         if (jpeg_read_scanlines(&m_cinfo, (JSAMPLE**)&readdata, 1) != 1
             || m_fatalerr) {
-            error("JPEG failed scanline read (\"%s\")", filename().c_str());
+            errorf("JPEG failed scanline read (\"%s\")", filename());
             return false;
         }
     }
@@ -482,7 +509,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 bool
 JpgInput::close()
 {
-    if (m_fd != NULL) {
+    if (m_io) {
         // unnecessary?  jpeg_abort_decompress (&m_cinfo);
         jpeg_destroy_decompress(&m_cinfo);
         close_file();

@@ -75,9 +75,12 @@ public:
     virtual const char* format_name(void) const override { return "jpeg"; }
     virtual int supports(string_view feature) const override
     {
-        return (feature == "exif" || feature == "iptc");
+        return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
     }
-    virtual bool valid_file(const std::string& filename) const override;
+    virtual bool valid_file(const std::string& filename) const override
+    {
+        return valid_file(filename, nullptr);
+    }
     virtual bool open(const std::string& name, ImageSpec& spec) override;
     virtual bool open(const std::string& name, ImageSpec& spec,
                       const ImageSpec& config) override;
@@ -107,6 +110,8 @@ private:
     my_error_mgr m_jerr;
     jvirt_barray_ptr* m_coeffs;
     std::vector<unsigned char> m_cmyk_buf;  // For CMYK translation
+    Filesystem::IOProxy* m_io = nullptr;
+    std::unique_ptr<Filesystem::IOProxy> m_local_io;
 
     void init()
     {
@@ -116,6 +121,8 @@ private:
         m_fatalerr      = false;
         m_coeffs        = NULL;
         m_jerr.jpginput = this;
+        m_io            = nullptr;
+        m_local_io.reset();
     }
 
     // Rummage through the JPEG "APP1" marker pointed to by buf, decoding
@@ -127,10 +134,11 @@ private:
 
     bool read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec);
 
+    bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
+
     void close_file()
     {
-        if (m_fd)
-            fclose(m_fd);  // N.B. the init() will set m_fd to NULL
+        m_local_io.reset();
         init();
     }
 

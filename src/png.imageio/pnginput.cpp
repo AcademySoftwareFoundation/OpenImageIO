@@ -44,6 +44,10 @@ public:
     PNGInput() { init(); }
     virtual ~PNGInput() { close(); }
     virtual const char* format_name(void) const override { return "png"; }
+    virtual int supports(string_view feature) const override
+    {
+        return (feature == "ioproxy");
+    }
     virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
@@ -59,7 +63,6 @@ public:
 
 private:
     std::string m_filename;            ///< Stash the filename
-    FILE* m_file;                      ///< Open image handle
     png_structp m_png;                 ///< PNG read structure pointer
     png_infop m_info;                  ///< PNG image info structure pointer
     int m_bit_depth;                   ///< PNG bit depth
@@ -70,18 +73,22 @@ private:
     Imath::Color3f m_bg;               ///< Background color
     int m_next_scanline;
     bool m_keep_unassociated_alpha;  ///< Do not convert unassociated alpha
+    std::unique_ptr<Filesystem::IOProxy> m_io_local;
+    Filesystem::IOProxy* m_io = nullptr;
+    int64_t m_io_offset       = 0;
+    bool m_err                = false;
 
     /// Reset everything to initial state
     ///
     void init()
     {
         m_subimage = -1;
-        m_file     = NULL;
-        m_png      = NULL;
-        m_info     = NULL;
+        m_png      = nullptr;
+        m_info     = nullptr;
         m_buf.clear();
         m_next_scanline           = 0;
         m_keep_unassociated_alpha = false;
+        m_err                     = false;
     }
 
     /// Helper function: read the image.
@@ -91,6 +98,19 @@ private:
     /// Extract the background color.
     ///
     bool get_background(float* red, float* green, float* blue);
+
+    // Callback for PNG that reads from an IOProxy.
+    static void PngReadCallback(png_structp png_ptr, png_bytep data,
+                                png_size_t length)
+    {
+        PNGInput* pnginput = (PNGInput*)png_get_io_ptr(png_ptr);
+        DASSERT(pnginput);
+        size_t bytes = pnginput->m_io->read(data, length);
+        if (bytes != length) {
+            pnginput->errorf("Read error: requested %d got %d", length, bytes);
+            pnginput->m_err = true;
+        }
+    }
 };
 
 
@@ -139,37 +159,38 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
     m_filename = name;
     m_subimage = 0;
 
-    m_file = Filesystem::fopen(name, "rb");
-    if (!m_file) {
-        error("Could not open file \"%s\"", name.c_str());
+    if (!m_io) {
+        // If no proxy was supplied, create a file reader
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
+        m_io_local.reset(m_io);
+    }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
+    m_io_offset = m_io->tell();
 
     unsigned char sig[8];
-    if (fread(sig, 1, sizeof(sig), m_file) != sizeof(sig)) {
-        error("Not a PNG file");
+    if (m_io->pread(sig, sizeof(sig), 0) != sizeof(sig)
+        || png_sig_cmp(sig, 0, 7)) {
+        errorf("Not a PNG file");
         return false;  // Read failed
-    }
-
-    if (png_sig_cmp(sig, 0, 7)) {
-        error("File failed PNG signature check");
-        return false;
     }
 
     std::string s = PNG_pvt::create_read_struct(m_png, m_info, this);
     if (s.length()) {
         close();
-        error("%s", s.c_str());
+        errorf("%s", s);
         return false;
     }
 
-    png_init_io(m_png, m_file);
-    png_set_sig_bytes(m_png, 8);  // already read 8 bytes
+    // Tell libpng to use our read callback to read from the IOProxy
+    png_set_read_fn(m_png, this, PngReadCallback);
 
     bool ok = PNG_pvt::read_info(m_png, m_info, m_bit_depth, m_color_type,
                                  m_interlace_type, m_bg, m_spec,
                                  m_keep_unassociated_alpha);
-    if (!ok) {
+    if (!ok || m_err) {
         close();
         return false;
     }
@@ -189,6 +210,9 @@ PNGInput::open(const std::string& name, ImageSpec& newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+    auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+    m_io_local.reset();
+    m_io = ioparam ? ioparam->get<Filesystem::IOProxy*>() : nullptr;
     return open(name, newspec);
 }
 
@@ -201,7 +225,7 @@ PNGInput::readimg()
                                               m_bit_depth, m_color_type, m_buf);
     if (s.length()) {
         close();
-        error("%s", s.c_str());
+        errorf("%s", s);
         return false;
     }
 
@@ -214,11 +238,16 @@ bool
 PNGInput::close()
 {
     PNG_pvt::destroy_read_struct(m_png, m_info);
-    if (m_file) {
-        fclose(m_file);
-        m_file = NULL;
+    if (m_io_local) {
+        // If we allocated our own ioproxy, close it.
+        m_io_local.reset();
+        m_io = nullptr;
+    } else if (m_io) {
+        // We were passed an ioproxy from the user. Don't actually close it,
+        // just reset it to the original position. This makes it possible to
+        // "re-open".
+        m_io->seek(m_io_offset);
     }
-
     init();  // Reset to initial state
     return true;
 }
@@ -294,10 +323,11 @@ PNGInput::read_native_scanline(int subimage, int miplevel, int y, int z,
             // std::cerr << "reading scanline " << m_next_scanline << "\n";
             std::string s = PNG_pvt::read_next_scanline(m_png, data);
             if (s.length()) {
-                close();
-                error("%s", s.c_str());
+                errorf("%s", s);
                 return false;
             }
+            if (m_err)
+                return false;  // error is already registered
             ++m_next_scanline;
         }
     }

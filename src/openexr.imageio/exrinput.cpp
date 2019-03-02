@@ -136,8 +136,9 @@ public:
     virtual int supports(string_view feature) const override
     {
         return (feature == "arbitrary_metadata"
-                || feature == "exif"    // Because of arbitrary_metadata
-                || feature == "iptc");  // Because of arbitrary_metadata
+                || feature == "exif"  // Because of arbitrary_metadata
+                || feature == "iptc"  // Because of arbitrary_metadata
+                || feature == "ioproxy");
     }
     virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
