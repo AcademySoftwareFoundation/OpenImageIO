@@ -942,6 +942,8 @@ public:
     get_image_handle(ustring filename,
                      ImageCachePerThreadInfo* thread_info = NULL)
     {
+        if (!thread_info)
+            thread_info = get_perthread_info();
         ImageCacheFile* file = find_file(filename, thread_info);
         return verify_file(file, thread_info);
     }
