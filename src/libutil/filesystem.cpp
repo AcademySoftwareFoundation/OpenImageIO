@@ -922,11 +922,12 @@ Filesystem::IOFile::IOFile(string_view filename, Mode mode)
 {
     // Call Filesystem::fopen since it handles UTF-8 file paths on Windows,
     // which std fopen does not.
-    m_file = Filesystem::fopen(m_filename.c_str(), mode == Write ? "wb" : "rb");
+    m_file = Filesystem::fopen(m_filename.c_str(),
+                               m_mode == Write ? "wb" : "rb");
     if (!m_file)
-        mode = Closed;
+        m_mode = Closed;
     m_auto_close = true;
-    if (mode == Read)
+    if (m_mode == Read)
         m_size = Filesystem::file_size(filename);
 }
 
@@ -934,7 +935,7 @@ Filesystem::IOFile::IOFile(FILE* file, Mode mode)
     : IOProxy("", mode)
     , m_file(file)
 {
-    if (mode == Read) {
+    if (m_mode == Read) {
         m_pos = ftell(m_file);           // save old position
         fseek(m_file, 0, SEEK_END);      // seek to end
         m_size = size_t(ftell(m_file));  // size is end position
