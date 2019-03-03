@@ -45,60 +45,181 @@ using namespace OIIO;
 
 
 
+// Generate a small test image appropriate to the given format
+static ImageBuf
+make_test_image(string_view formatname)
+{
+    ImageBuf buf;
+    auto out = ImageOutput::create(formatname);
+    ASSERT(out);
+    if (formatname == "zfile" || formatname == "fits")
+        buf.reset(ImageSpec(64, 64, 1, TypeFloat));
+    else if (!out->supports("alpha"))
+        buf.reset(ImageSpec(64, 64, 3, TypeFloat));
+    else
+        buf.reset(ImageSpec(64, 64, 4, TypeFloat));
+    ImageBufAlgo::fill(buf, { 1.0f, 1.0f, 1.0f, 1.0f });
+    return buf;
+}
+
+
+
+#define CHECKED(obj, call)                                                     \
+    if (!obj->call) {                                                          \
+        if (do_asserts)                                                        \
+            OIIO_CHECK_ASSERT(false && #call);                                 \
+        if (errmsg)                                                            \
+            *errmsg = obj->geterror();                                         \
+        else                                                                   \
+            std::cout << "      " << obj->geterror() << "\n";                  \
+        return false;                                                          \
+    }
+
+
 static bool
 checked_write(ImageOutput* out, string_view filename, const ImageSpec& spec,
-              TypeDesc type, const void* data)
+              TypeDesc type, const void* data, bool do_asserts = true,
+              std::string* errmsg = nullptr)
 {
-    bool ok = out->open(filename, spec);
-    OIIO_CHECK_ASSERT(ok && "Unable to open");
-    if (!ok) {
-        std::cout << "      " << out->geterror() << "\n";
-        return ok;
+    if (errmsg)
+        *errmsg = "";
+    std::unique_ptr<ImageOutput> out_local;
+    if (!out) {
+        out_local = ImageOutput::create(filename);
+        out       = out_local.get();
     }
-    ok = out->write_image(type, data);
-    OIIO_CHECK_ASSERT(ok && "Unable to write_image");
-    if (!ok) {
-        std::cout << "      " << out->geterror() << "\n";
-        return ok;
+    OIIO_CHECK_ASSERT(out && "Failed to create output");
+    if (!out) {
+        if (errmsg)
+            *errmsg = OIIO::geterror();
+        else
+            std::cout << "      " << OIIO::geterror() << "\n";
+        return false;
     }
-    ok = out->close();
-    OIIO_CHECK_ASSERT(ok && "Unable to close");
-    if (!ok) {
-        std::cout << "      " << out->geterror() << "\n";
-        return ok;
-    }
-    return ok;
+
+    CHECKED(out, open(filename, spec));
+    CHECKED(out, write_image(type, data));
+    CHECKED(out, close());
+    return true;
 }
 
 
 
 static bool
 checked_read(ImageInput* in, string_view filename,
-             std::vector<unsigned char>& data, bool already_opened = false)
+             std::vector<unsigned char>& data, bool already_opened = false,
+             bool do_asserts = true, std::string* errmsg = nullptr)
 {
-    bool ok = true;
+    if (errmsg)
+        *errmsg = "";
     if (!already_opened) {
         ImageSpec spec;
-        ok = in->open(filename, spec);
-        OIIO_CHECK_ASSERT(ok && "Unable to open");
-        if (!ok) {
-            std::cout << "      " << in->geterror() << "\n";
-            return ok;
-        }
+        CHECKED(in, open(filename, spec));
     }
     data.resize(in->spec().image_pixels() * in->spec().nchannels
                 * sizeof(float));
-    ok = in->read_image(TypeFloat, data.data());
-    OIIO_CHECK_ASSERT(ok && "Unable to read_image");
-    if (!ok) {
-        std::cout << "      " << in->geterror() << "\n";
-        return ok;
+    CHECKED(in, read_image(TypeFloat, data.data()));
+    CHECKED(in, close());
+    return true;
+}
+
+
+
+// Helper for test_all_formats: write the pixels in buf to an in-memrory
+// IOProxy, make sure it matches byte for byte the file named by disk_filename.
+static bool
+test_write_proxy(string_view formatname, string_view extension,
+                 const std::string& disk_filename, const ImageBuf& buf)
+{
+    bool ok = true;
+    Sysutil::Term term(stdout);
+    Filesystem::IOVecOutput outproxy;
+    ImageSpec proxyspec(buf.spec());
+    void* ptr = &outproxy;
+    proxyspec.attribute("oiio:ioproxy", TypeDesc::PTR, &ptr);
+    std::string memname = Strutil::sprintf("mem.%s", extension);
+    ok = checked_write(nullptr, memname, proxyspec, buf.spec().format,
+                       buf.localpixels());
+
+    // The in-memory vector we wrote should match, byte-for-byte,
+    // the version we wrote to disk earlier.
+    uint64_t bytes_written = Filesystem::file_size(disk_filename);
+    std::vector<unsigned char> readbuf(bytes_written);
+    size_t bread = Filesystem::read_bytes(disk_filename, readbuf.data(),
+                                          bytes_written);
+    ok           = (bread == bytes_written && outproxy.buffer() == readbuf);
+    OIIO_CHECK_ASSERT(ok && "Write proxy didn't match write file");
+    if (ok)
+        std::cout << term.ansi("green", "OK\n");
+    else {
+        Strutil::printf("Read size=%d write size=%d\n", bread, bytes_written);
     }
-    ok = in->close();
-    OIIO_CHECK_ASSERT(ok && "Unable to close");
-    if (!ok) {
-        std::cout << "      " << in->geterror() << "\n";
-        return ok;
+    return ok;
+}
+
+
+
+// Helper for test_all_formats: read the pixels of the given disk file into
+// a buffer, then use an IOProxy to read the "file" from the buffer, and
+// the pixels ought to match those of ImageBuf buf.
+static bool
+test_read_proxy(string_view formatname, string_view extension,
+                const std::string& disk_filename, const ImageBuf& buf)
+{
+    bool ok = true;
+    Sysutil::Term term(stdout);
+    uint64_t bytes_written = Filesystem::file_size(disk_filename);
+    std::vector<unsigned char> readbuf(bytes_written);
+    Filesystem::read_bytes(disk_filename, readbuf.data(), bytes_written);
+    std::cout << "    Reading Proxy " << formatname << " ... ";
+    std::cout.flush();
+    Filesystem::IOMemReader inproxy(readbuf);
+    void* ptr = &inproxy;
+    ImageSpec config;
+    config.attribute("oiio:ioproxy", TypeDesc::PTR, &ptr);
+    std::string memname = Strutil::sprintf("mem.%s", extension);
+    auto in             = ImageInput::open(memname, &config);
+    OIIO_CHECK_ASSERT(in && "Failed to open input with proxy");
+    if (in) {
+        readbuf.clear();
+        std::vector<unsigned char> readbuf2;
+        ok = checked_read(in.get(), memname, readbuf2, true);
+        ok &= memcmp(readbuf2.data(), buf.localpixels(), readbuf2.size()) == 0;
+        OIIO_CHECK_ASSERT(ok && "Read proxy didn't match original");
+        if (ok)
+            std::cout << term.ansi("green", "OK\n");
+    } else {
+        std::cout << "Error was: " << OIIO::geterror() << "\n";
+    }
+    return ok;
+}
+
+
+
+// Test writer's ability to detect and recover from errors when asked to
+// write an unwriteable file (such as in a nonexistant directory).
+static bool
+test_write_unwriteable(string_view formatname, string_view extension,
+                       const ImageBuf& buf)
+{
+    bool ok = true;
+    Sysutil::Term term(stdout);
+    std::string bad_filename = Strutil::sprintf("bad/bad.%s", extension);
+    std::cout << "    Writing bad to " << bad_filename << " ... ";
+    auto badout = ImageOutput::create(bad_filename);
+    if (badout) {
+        std::string errmsg;
+        ok = checked_write(badout.get(), bad_filename, buf.spec(),
+                           buf.spec().format, buf.localpixels(),
+                           /*do_asserts=*/false, &errmsg);
+        if (!ok)
+            std::cout << term.ansi("green", "OK") << " ("
+                      << errmsg.substr(0, 60) << ")\n";
+        else
+            OIIO_CHECK_ASSERT(0 && "Bad write should not have 'succeeded'");
+    } else {
+        OIIO_CHECK_ASSERT(badout);
+        ok = false;
     }
     return ok;
 }
@@ -132,20 +253,14 @@ test_all_formats()
         auto out             = ImageOutput::create(filename);
         if (!out) {
             std::cout << "  [skipping " << formatname << " -- no writer]\n";
+            (void)OIIO::geterror();  // discard error
             continue;
         }
         bool ioproxy_write_supported = out->supports("ioproxy");
         std::cout << "  " << formatname << " ("
                   << Strutil::join(extensions, ", ") << "):\n";
 
-        ImageBuf buf;
-        if (formatname == "zfile" || formatname == "fits")
-            buf.reset(ImageSpec(64, 64, 1, TypeFloat));
-        else if (!out->supports("alpha"))
-            buf.reset(ImageSpec(64, 64, 3, TypeFloat));
-        else
-            buf.reset(ImageSpec(64, 64, 4, TypeFloat));
-        ImageBufAlgo::fill(buf, { 1.0f, 1.0f, 1.0f, 1.0f });
+        ImageBuf buf             = make_test_image(formatname);
         const float* orig_pixels = (const float*)buf.localpixels();
 
         std::cout << "    Writing " << filename << " ... ";
@@ -170,6 +285,8 @@ test_all_formats()
             OIIO_CHECK_ASSERT(ok && "Failed read/write comparison");
             if (ok)
                 std::cout << term.ansi("green", "OK\n");
+        } else {
+            (void)OIIO::geterror();  // discard error
         }
         if (!ok)
             continue;
@@ -177,68 +294,19 @@ test_all_formats()
         //
         // If this format supports proxies, round trip through memory
         //
-        std::string memname = Strutil::sprintf("mem.%s", extensions[0]);
-        if (ioproxy_write_supported) {
-            // Write the file again, to in-memory vector
-            Filesystem::IOVecOutput outproxy;
-            ImageSpec proxyspec(buf.spec());
-            void* ptr = &outproxy;
-            proxyspec.attribute("oiio:ioproxy", TypeDesc::PTR, &ptr);
-            auto out = ImageOutput::create(memname);
-            OIIO_CHECK_ASSERT(out && "Failed to create output for proxy");
-            if (out) {
-                std::cout << "    Writing Proxy " << formatname << " ... ";
-                ok = checked_write(out.get(), memname, proxyspec,
-                                   buf.spec().format, orig_pixels);
-            }
-            out.reset();
+        if (ioproxy_write_supported)
+            test_write_proxy(formatname, extensions[0], filename, buf);
+        if (ioproxy_read_supported)
+            test_read_proxy(formatname, extensions[0], filename, buf);
 
-            // The in-memory vector we wrote should match, byte-for-byte,
-            // the version we wrote to disk earlier.
-            uint64_t bytes_written = Filesystem::file_size(filename);
-            std::vector<unsigned char> readbuf(bytes_written);
-            size_t bread = Filesystem::read_bytes(filename, readbuf.data(),
-                                                  bytes_written);
-            ok = (bread == bytes_written && outproxy.buffer() == readbuf);
-            OIIO_CHECK_ASSERT(ok && "Write proxy didn't match write file");
-            if (ok)
-                std::cout << term.ansi("green", "OK\n");
-            else {
-                Strutil::printf("Read size=%d write size=%d\n", bread,
-                                bytes_written);
-            }
-        }
+        //
+        // Test what happens when we write to an unwriteable or nonexistant
+        // directory. It should not crash! But appropriately return some
+        // error.
+        //
+        test_write_unwriteable(formatname, extensions[0], buf);
 
-        if (ioproxy_read_supported) {
-            // Now read from memory, and again it ought to match the pixels
-            // we started with.
-            uint64_t bytes_written = Filesystem::file_size(filename);
-            std::vector<unsigned char> readbuf(bytes_written);
-            Filesystem::read_bytes(filename, readbuf.data(), bytes_written);
-            std::cout << "    Reading Proxy " << formatname << " ... ";
-            std::cout.flush();
-            Filesystem::IOMemReader inproxy(readbuf);
-            void* ptr = &inproxy;
-            ImageSpec config;
-            config.attribute("oiio:ioproxy", TypeDesc::PTR, &ptr);
-            auto in = ImageInput::open(memname, &config);
-            OIIO_CHECK_ASSERT(in && "Failed to open input with proxy");
-            if (in) {
-                readbuf.clear();
-                std::vector<unsigned char> readbuf2;
-                ok = checked_read(in.get(), memname, readbuf2, true);
-                ok &= memcmp(readbuf2.data(), orig_pixels, readbuf2.size())
-                      == 0;
-                OIIO_CHECK_ASSERT(ok && "Read proxy didn't match original");
-                if (ok)
-                    std::cout << term.ansi("green", "OK\n");
-            } else {
-                std::cout << "Error was: " << OIIO::geterror() << "\n";
-            }
-        }
-
-        if (ok)
-            Filesystem::remove(filename);
+        Filesystem::remove(filename);
     }
     std::cout << "\n";
 }
