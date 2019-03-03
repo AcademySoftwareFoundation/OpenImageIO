@@ -442,7 +442,7 @@ tiff_input_imageio_create()
 // OIIO_EXPORT int tiff_imageio_version = OIIO_PLUGIN_VERSION; // it's in tiffoutput.cpp
 
 OIIO_EXPORT const char* tiff_input_extensions[]
-    = { "tiff", "tif", "tx", "env", "sm", "vsm", nullptr };
+    = { "tif", "tiff", "tx", "env", "sm", "vsm", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
