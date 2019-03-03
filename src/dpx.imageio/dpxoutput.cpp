@@ -219,6 +219,8 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     m_stream = new OutStream();
     if (!m_stream->Open(name.c_str())) {
         error("Could not open file \"%s\"", name.c_str());
+        delete m_stream;
+        m_stream = nullptr;
         return false;
     }
     m_dpx.SetOutStream(m_stream);
