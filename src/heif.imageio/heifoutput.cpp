@@ -29,6 +29,7 @@
 */
 
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
@@ -65,6 +66,34 @@ private:
     std::vector<unsigned char> m_tilebuffer;
 };
 
+
+
+namespace {
+
+class MyHeifWriter : public heif::Context::Writer {
+public:
+    MyHeifWriter(Filesystem::IOProxy* ioproxy)
+        : m_ioproxy(ioproxy)
+    {
+    }
+    virtual heif_error write(const void* data, size_t size)
+    {
+        heif_error herr { heif_error_Ok, heif_suberror_Unspecified, "" };
+        if (m_ioproxy && m_ioproxy->mode() == Filesystem::IOProxy::Write
+            && m_ioproxy->write(data, size) == size) {
+            // ok
+        } else {
+            herr.code    = heif_error_Encoding_error;
+            herr.message = "write error";
+        }
+        return herr;
+    }
+
+private:
+    Filesystem::IOProxy* m_ioproxy = nullptr;
+};
+
+}  // namespace
 
 
 OIIO_PLUGIN_EXPORTS_BEGIN
@@ -217,9 +246,14 @@ HeifOutput::close()
 #endif
         }
         m_ctx->set_primary_image(m_ihandle);
-        m_ctx->write_to_file(m_filename);
-        // FIXME: ^^^ should really use Writer for full generality
-
+        Filesystem::IOFile ioproxy(m_filename, Filesystem::IOProxy::Write);
+        if (ioproxy.mode() != Filesystem::IOProxy::Write) {
+            errorf("Could not open \"%s\"", m_filename);
+            ok = false;
+        } else {
+            MyHeifWriter writer(&ioproxy);
+            m_ctx->write(writer);
+        }
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorf("%s", e.empty() ? "unknown exception" : e.c_str());
