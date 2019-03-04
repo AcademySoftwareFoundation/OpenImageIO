@@ -380,7 +380,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     m_tif = TIFFOpen(name.c_str(), mode == AppendSubimage ? "a" : "w");
 #endif
     if (!m_tif) {
-        error("Can't open \"%s\" for output.", name.c_str());
+        errorf("Could not open \"%s\"", name);
         return false;
     }
 

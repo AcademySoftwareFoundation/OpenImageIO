@@ -189,8 +189,10 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
         Filesystem::open(m_file, name, std::ios::out | std::ios::binary);
     }
 
-    if (!m_file)
+    if (!m_file) {
+        errorf("Could not open \"%s\"", name);
         return false;
+    }
 
     m_max_val = (1 << bits_per_sample) - 1;
     // Write header

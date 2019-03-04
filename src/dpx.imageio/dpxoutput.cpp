@@ -218,7 +218,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
         close();  // Close any already-opened file
     m_stream = new OutStream();
     if (!m_stream->Open(name.c_str())) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open \"%s\"", name);
         delete m_stream;
         m_stream = nullptr;
         return false;

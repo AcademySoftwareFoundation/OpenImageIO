@@ -117,7 +117,7 @@ HdrOutput::open(const std::string& name, const ImageSpec& newspec,
 
     m_fd = Filesystem::fopen(name, "wb");
     if (m_fd == NULL) {
-        error("Unable to open file");
+        errorf("Could not open \"%s\"", name);
         return false;
     }
 

@@ -193,7 +193,7 @@ GIFOutput::start_subimage()
                            m_spec.height, m_delay, 8 /*bit depth*/,
                            true /*dither*/);
         if (!ok) {
-            error("Could not open file %s", m_filename);
+            errorf("Could not open \"%s\"", m_filename);
             return false;
         }
     }

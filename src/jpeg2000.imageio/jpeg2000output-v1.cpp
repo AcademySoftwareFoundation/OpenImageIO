@@ -157,7 +157,7 @@ Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
 
     m_file = Filesystem::fopen(m_filename, "wb");
     if (m_file == NULL) {
-        error("Unable to open file \"%s\"", m_filename.c_str());
+        errorf("Could not open \"%s\"", m_filename);
         return false;
     }
 

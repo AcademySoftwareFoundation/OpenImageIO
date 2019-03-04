@@ -192,7 +192,7 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
     m_filename = name;
     m_gz       = open_gz(name, "rb");
     if (!m_gz) {
-        error("Could not open file \"%s\"", name);
+        errorf("Could not open \"%s\"", name);
         return false;
     }
 
@@ -334,7 +334,7 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
         m_file = Filesystem::fopen(name, "wb");
     }
     if (!m_file && !m_gz) {
-        error("Could not open file \"%s\"", name);
+        errorf("Could not open \"%s\"", name);
         return false;
     }
 

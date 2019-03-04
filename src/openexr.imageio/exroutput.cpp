@@ -367,12 +367,12 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
                                         m_headers[m_subimage]));
             }
         } catch (const std::exception& e) {
-            error("OpenEXR exception: %s", e.what());
+            errorf("Could not open \"%s\" (%s)", name, e.what());
             m_output_scanline = NULL;
             m_output_tiled    = NULL;
             return false;
         } catch (...) {  // catch-all for edge cases or compiler bugs
-            error("OpenEXR exception: unknown");
+            errorf("Could not open \"%s\" (unknown exception)", name);
             m_output_scanline = NULL;
             m_output_tiled    = NULL;
             return false;

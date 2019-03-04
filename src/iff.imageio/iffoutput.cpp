@@ -100,7 +100,7 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     m_fd = Filesystem::fopen(m_filename, "wb");
     if (!m_fd) {
-        error("Unable to open file \"%s\"", m_filename.c_str());
+        errorf("Could not open \"%s\"", m_filename);
         return false;
     }
 
