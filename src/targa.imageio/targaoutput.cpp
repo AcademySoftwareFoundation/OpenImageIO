@@ -200,7 +200,7 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
 
     m_file = Filesystem::fopen(name, "wb");
     if (!m_file) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open \"%s\"", name);
         return false;
     }
 

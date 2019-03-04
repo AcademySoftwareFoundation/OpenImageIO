@@ -169,7 +169,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
         m_local_io.reset(m_io);
     }
     if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Write) {
-        errorf("Could not open file \"%s\"", name);
+        errorf("Could not open \"%s\"", name);
         return false;
     }
 
