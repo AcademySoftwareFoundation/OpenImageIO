@@ -28,6 +28,13 @@
   (This is the Modified BSD License)
 */
 
+
+//
+// General information about PSD:
+// https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
+//
+
+
 #include <csetjmp>
 #include <fstream>
 #include <functional>
