@@ -815,7 +815,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     }
 
     // EXR "name" also gets passed along as "oiio:subimagename".
-    if (header->hasName())
+    if (header->hasName() && header->name() != "")
         spec.attribute("oiio:subimagename", header->name());
 
     // Squash some problematic texture metadata if we suspect it's wrong
