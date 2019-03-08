@@ -255,6 +255,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 
     // initialize decompressor
     jpeg_create_decompress(&m_cinfo);
+    m_decomp_create = true;
     // specify the data source
     if (!strcmp(m_io->proxytype(), "file")) {
         auto fd = ((Filesystem::IOFile*)m_io)->handle();
@@ -511,7 +512,9 @@ JpgInput::close()
 {
     if (m_io) {
         // unnecessary?  jpeg_abort_decompress (&m_cinfo);
-        jpeg_destroy_decompress(&m_cinfo);
+        if (m_decomp_create)
+            jpeg_destroy_decompress(&m_cinfo);
+        m_decomp_create = false;
         close_file();
     }
     init();  // Reset to initial state
