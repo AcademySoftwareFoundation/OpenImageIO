@@ -235,8 +235,10 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    jpeg_create_decompress(&m_cinfo);  // initialize decompressor
-    jpeg_stdio_src(&m_cinfo, m_fd);    // specify the data source
+    // initialize decompressor
+    jpeg_create_decompress(&m_cinfo);
+    // specify the data source
+    jpeg_stdio_src(&m_cinfo, m_fd);
 
     // Request saving of EXIF and other special tags for later spelunking
     for (int mark = 0; mark < 16; ++mark)
@@ -484,7 +486,9 @@ JpgInput::close()
 {
     if (m_fd != NULL) {
         // unnecessary?  jpeg_abort_decompress (&m_cinfo);
-        jpeg_destroy_decompress(&m_cinfo);
+        if (m_decomp_create)
+            jpeg_destroy_decompress(&m_cinfo);
+        m_decomp_create = false;
         close_file();
     }
     init();  // Reset to initial state
