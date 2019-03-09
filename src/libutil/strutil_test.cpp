@@ -875,34 +875,38 @@ test_locale()
     std::cout << "Testing float conversion + locale\n";
     std::locale oldloc
         = std::locale::global(std::locale::classic());  // save original locale
-    std::locale::global(std::locale("fr_FR.UTF-8"));
-    const char* numcstr = "123.45";
-    std::string numstring(numcstr);
-    std::cout << "safe float convert (C locale) " << numcstr << " = "
-              << Strutil::stof(numcstr) << "\n";
-    OIIO_CHECK_EQUAL_APPROX(Strutil::stof(numcstr), 123.45f);
-    std::cout << "unsafe float convert (default locale) " << numcstr << " = "
-              << atof(numcstr) << "\n"; // NOLINT(cert-err34-c)
-    OIIO_CHECK_EQUAL_APPROX(atof(numcstr), 123.0f); // NOLINT(cert-err34-c)
+    try {
+        // Just in case we're on a system that can't do this?
+        std::locale::global(std::locale("fr_FR.UTF-8"));
+        const char* numcstr = "123.45";
+        std::string numstring(numcstr);
+        std::cout << "safe float convert (C locale) " << numcstr << " = "
+                  << Strutil::stof(numcstr) << "\n";
+        OIIO_CHECK_EQUAL_APPROX(Strutil::stof(numcstr), 123.45f);
+        std::cout << "unsafe float convert (default locale) " << numcstr << " = "
+                  << atof(numcstr) << "\n"; // NOLINT(cert-err34-c)
+        OIIO_CHECK_EQUAL_APPROX(atof(numcstr), 123.0f); // NOLINT(cert-err34-c)
 
-    // Verify that Strutil::sprintf does the right thing, even when in a
-    // comma-based locale.
-    OIIO_CHECK_EQUAL(Strutil::sprintf("%g", 123.45f), "123.45");
-    OIIO_CHECK_EQUAL(Strutil::sprintf("%d", 12345), "12345");
-    // Verify that Strutil::fmt::format does the right thing, even when in a
-    // comma-based locale.
+        // Verify that Strutil::sprintf does the right thing, even when in a
+        // comma-based locale.
+        OIIO_CHECK_EQUAL(Strutil::sprintf("%g", 123.45f), "123.45");
+        OIIO_CHECK_EQUAL(Strutil::sprintf("%d", 12345), "12345");
 #if 0
-    // FIXME: currently broken! Re-enable after {fmt} fixes its ability
-    // to format floating point numbers locale-independently.
-    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", 123.45f), "123.45");
-    OIIO_CHECK_EQUAL(Strutil::fmt::format("{:.3f}", 123.45f), "123.450");
-    OIIO_CHECK_EQUAL(Strutil::fmt::format("{:g}", 123.45f), "123.45");
-    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", 12345), "12345");
-    // Verify that fmt::format does use locale when {:n}
-    OIIO_CHECK_EQUAL(Strutil::fmt::format("{:g}", 123.45f), "123,45");
-    OIIO_CHECK_EQUAL(Strutil::fmt::format("{:n}", 12345), "12,345");
+        // Verify that Strutil::fmt::format does the right thing, even when in a
+        // comma-based locale.
+        // FIXME: currently broken! Re-enable after {fmt} fixes its ability
+        // to format floating point numbers locale-independently.
+        OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", 123.45f), "123.45");
+        OIIO_CHECK_EQUAL(Strutil::fmt::format("{:.3f}", 123.45f), "123.450");
+        OIIO_CHECK_EQUAL(Strutil::fmt::format("{:g}", 123.45f), "123.45");
+        OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", 12345), "12345");
+        // Verify that fmt::format does use locale when {:n}
+        OIIO_CHECK_EQUAL(Strutil::fmt::format("{:g}", 123.45f), "123,45");
+        OIIO_CHECK_EQUAL(Strutil::fmt::format("{:n}", 12345), "12,345");
 #endif
     std::locale::global(oldloc);  // restore
+    } catch (...) {
+    }
 }
 
 
