@@ -120,6 +120,9 @@ class ArgOption;  // Forward declaration
 ///                  int callback (int argc, char *argv[])
 ///    - \%* - catch all non-options and pass individually as an (argc,argv)
 ///            sublist to a callback, each immediately after it's found
+///    - \%1 - catch all non-options that occur before any option is
+///            encountered (like %*, but only for those prior to the first
+///            real option.
 ///
 /// There are several special format tokens:
 ///    - "<SEPARATOR>" - not an option at all, just a description to print

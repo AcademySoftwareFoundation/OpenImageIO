@@ -44,6 +44,11 @@ oiio_install_targets (OpenImageIO_Util)
 
 if (OIIO_BUILD_TESTS)
 
+    add_executable (argparse_test argparse_test.cpp)
+    set_target_properties (argparse_test PROPERTIES FOLDER "Unit Tests")
+    target_link_libraries (argparse_test OpenImageIO_Util ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
+    add_test (unit_argparse argparse_test)
+
     add_executable (atomic_test atomic_test.cpp)
     set_target_properties (atomic_test PROPERTIES FOLDER "Unit Tests")
     target_link_libraries (atomic_test OpenImageIO_Util ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
