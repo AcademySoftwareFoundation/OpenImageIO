@@ -111,7 +111,9 @@ public:
     int m_argc;                        // a copy of the command line argc
     const char** m_argv;               // a copy of the command line argv
     mutable std::string m_errmessage;  // error message
-    ArgOption* m_global;               // option for extra cmd line arguments
+    ArgOption* m_global = nullptr;     // option for extra cmd line arguments
+    ArgOption* m_preoption
+        = nullptr;  // option for pre-switch cmd line arguments
     std::string m_intro;
     std::vector<std::unique_ptr<ArgOption>> m_option;
     callback_t m_preoption_help  = [](const ArgParse& ap, std::ostream&) {};
@@ -157,6 +159,11 @@ ArgOption::initialize()
     const char* s;
 
     if (m_format.empty() || m_format == "%*") {
+        m_type  = Sublist;
+        m_count = 1;  // sublist callback function pointer
+        m_code  = "*";
+        m_flag  = "";
+    } else if (m_format == "%1") {
         m_type  = Sublist;
         m_count = 1;  // sublist callback function pointer
         m_code  = "*";
@@ -211,6 +218,10 @@ ArgOption::initialize()
                         m_code += *s;
                         break;
                     case '*':
+                        assert(m_count == 1);
+                        m_type = Sublist;
+                        break;
+                    case '1':
                         assert(m_count == 1);
                         m_type = Sublist;
                         break;
@@ -361,9 +372,11 @@ ArgParse::Impl::parse(int xargc, const char** xargv)
     m_argc = xargc;
     m_argv = xargv;
 
+    bool any_option_encountered = false;
     for (int i = 1; i < m_argc; i++) {
         if (m_argv[i][0] == '-'
             && (isalpha(m_argv[i][1]) || m_argv[i][1] == '-')) {  // flag
+            any_option_encountered = true;
             // Look up only the part before a ':'
             std::string argname = m_argv[i];
             size_t colon        = argname.find_first_of(':');
@@ -398,8 +411,12 @@ ArgParse::Impl::parse(int xargc, const char** xargv)
                 i += option->parameter_count();
             }
         } else {
-            // not an option nor an option parameter, glob onto global list
-            if (m_global)
+            // not an option nor an option parameter, glob onto global list,
+            // or the preoption list if a preoption callback was given and
+            // we haven't encountered any options yet.
+            if (m_preoption && !any_option_encountered)
+                m_preoption->invoke_callback(1, m_argv + i);
+            else if (m_global)
                 m_global->invoke_callback(1, m_argv + i);
             else {
                 error("Argument \"%s\" does not have an associated "
@@ -448,6 +465,11 @@ ArgParse::options(const char* intro, ...)
             m_impl->m_global = option.get();
         }
 
+        if (cur[0] == '%' && cur[1] == '1' && cur[2] == '\0') {
+            // set default pre-switch option
+            m_impl->m_preoption = option.get();
+        }
+
         if (option->has_callback())
             option->set_callback((ArgOption::callback_t)va_arg(ap, void*));
 
@@ -455,7 +477,8 @@ ArgParse::options(const char* intro, ...)
         for (int i = 0; i < option->parameter_count(); i++) {
             void* p = va_arg(ap, void*);
             option->add_parameter(i, p);
-            if (option.get() == m_impl->m_global)
+            if (option.get() == m_impl->m_global
+                || option.get() == m_impl->m_preoption)
                 option->set_callback((ArgOption::callback_t)p);
         }
 
