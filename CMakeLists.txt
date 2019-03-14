@@ -339,8 +339,10 @@ oiio_add_tests (
                 texture-interp-bilinear
                 texture-interp-closest
                 texture-mip-onelevel
-                texture-icwrite
                )
+endif ()
+if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI})
+oiio_add_tests (texture-icwrite )
 endif ()
 
 # List testsuites which need special external reference images from the web

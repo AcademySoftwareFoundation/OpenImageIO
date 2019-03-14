@@ -18,7 +18,7 @@ mkdir -p ./ext
 pushd ./ext
 
 # Clone OpenColorIO project from GitHub and build
-if [ ! -e OpenColorIO ] ; then
+if [[ ! -e OpenColorIO ]] ; then
     echo "git clone ${OCIOREPO} OpenColorIO"
     git clone ${OCIOREPO} OpenColorIO
 fi
@@ -34,4 +34,8 @@ ls -R ${OCIOINSTALLDIR}
 
 #echo "listing .."
 #ls ..
+
+# Set up paths. These will only affect the caller if this script is
+# run with 'source' rather than in a separate shell.
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OCIOINSTALLDIR}/lib
 
