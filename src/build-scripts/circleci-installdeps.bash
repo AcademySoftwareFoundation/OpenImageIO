@@ -27,7 +27,14 @@ time apt-get install -y \
     libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
     locales \
     opencolorio-tools \
-    wget
+    wget \
+    libtbb-dev \
+    libopenvdb-dev \
+    libopencv-dev \
+    ptex-base \
+    dcmtk
+
+
 # time apt-get install -y g++-4.8
 #time apt-get install -y g++-7
 #time apt-get install -y g++-8
