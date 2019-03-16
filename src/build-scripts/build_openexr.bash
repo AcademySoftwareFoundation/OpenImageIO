@@ -11,19 +11,19 @@ BASEDIR=`pwd`
 pwd
 echo "EXR install dir will be: ${EXRINSTALLDIR}"
 
-if [ ! -e ${EXRINSTALLDIR} ] ; then
+if [[ ! -e ${EXRINSTALLDIR} ]] ; then
     mkdir -p ${EXRINSTALLDIR}
 fi
 
 # Clone OpenEXR project (including IlmBase) from GitHub and build
-if [ ! -e ./ext/openexr ] ; then
+if [[ ! -e ./ext/openexr ]] ; then
     echo "git clone ${EXRREPO} ./ext/openexr"
     git clone ${EXRREPO} ./ext/openexr
 fi
 
 flags=
 
-if [ ${LINKSTATIC:=0} == 1 ] ; then
+if [[ ${LINKSTATIC:=0} == 1 ]] ; then
     flags=${flags} --enable-static --enable-shared=no --with-pic
 fi
 
@@ -31,7 +31,7 @@ pushd ./ext/openexr
 echo "git checkout ${EXRBRANCH} --force"
 git checkout ${EXRBRANCH} --force
 
-if [ ${EXRBRANCH} == "v2.3.0" ] ; then
+if [[ ${EXRBRANCH} == "v2.3.0" ]] ; then
     # Simplified setup for 2.3+
     mkdir build
     cd build
@@ -63,4 +63,10 @@ ls -R ${EXRINSTALLDIR}
 
 #echo "listing .."
 #ls ..
+
+# Set up paths. These will only affect the caller if this script is
+# run with 'source' rather than in a separate shell.
+export ILMBASE_ROOT_DIR=$EXRINSTALLDIR
+export OPENEXR_ROOT_DIR=$EXRINSTALLDIR
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENEXR_ROOT_DIR/lib
 

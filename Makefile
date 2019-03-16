@@ -437,7 +437,7 @@ TEST_FLAGS += --force-new-ctest-process --output-on-failure
 test: cmake
 	@ ${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
 	@ ( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest -E broken ${TEST_FLAGS} )
-	@ ( if [ "${CODECOV}" == "1" ] ; then \
+	@ ( if [[ "${CODECOV}" == "1" ]] ; then \
 	      cd ${build_dir} ; \
 	      lcov -b . -d . -c -o cov.info ; \
 	      lcov --remove cov.info "/usr*" -o cov.info ; \
