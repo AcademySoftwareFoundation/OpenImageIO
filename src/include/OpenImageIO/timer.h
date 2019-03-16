@@ -120,8 +120,8 @@ public:
     ~Timer()
     {
         if (m_printdtr == PrintDtr)
-            std::cout << "Timer " << (m_name ? m_name : "") << ": "
-                      << seconds(ticks()) << "s\n";
+            Strutil::printf("Timer %s: %gs\n", (m_name ? m_name : ""),
+                            seconds(ticks()));
     }
 
     /// Start (or restart) ticking, if we are not currently.
