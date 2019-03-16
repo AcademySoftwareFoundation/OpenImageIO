@@ -1546,8 +1546,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
 
     // Handle resize to power of two, if called for
     if (configspec.get_int_attribute("maketx:resize") && !shadowmode) {
-        dstspec.width       = pow2roundup(dstspec.width);
-        dstspec.height      = pow2roundup(dstspec.height);
+        dstspec.width       = ceil2(dstspec.width);
+        dstspec.height      = ceil2(dstspec.height);
         dstspec.full_width  = dstspec.width;
         dstspec.full_height = dstspec.height;
     }

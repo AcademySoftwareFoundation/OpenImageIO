@@ -997,8 +997,8 @@ IvGL::update()
     GLenum glinternalformat = GL_RGB;
     typespec_to_opengl(spec, nchannels, gltype, glformat, glinternalformat);
 
-    m_texture_width  = clamp(pow2roundup(spec.width), 1, m_max_texture_size);
-    m_texture_height = clamp(pow2roundup(spec.height), 1, m_max_texture_size);
+    m_texture_width  = clamp(ceil2(spec.width), 1, m_max_texture_size);
+    m_texture_height = clamp(ceil2(spec.height), 1, m_max_texture_size);
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
@@ -1230,8 +1230,8 @@ IvGL::wheelEvent(QWheelEvent* event)
     if (event->orientation() == Qt::Vertical) {
         // TODO: Update this to keep the zoom centered on the event .x, .y
         float oldzoom = m_viewer.zoom();
-        float newzoom = (event->delta() > 0) ? pow2roundupf(oldzoom)
-                                             : pow2rounddownf(oldzoom);
+        float newzoom = (event->delta() > 0) ? ceil2f(oldzoom)
+                                             : floor2f(oldzoom);
         m_viewer.zoom(newzoom);
         event->accept();
     }

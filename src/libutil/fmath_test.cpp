@@ -106,19 +106,19 @@ test_int_helpers()
     }
     OIIO_CHECK_ASSERT(ispow2((unsigned int)0));
 
-    // pow2roundup
-    OIIO_CHECK_EQUAL(pow2roundup(4), 4);
-    OIIO_CHECK_EQUAL(pow2roundup(5), 8);
-    OIIO_CHECK_EQUAL(pow2roundup(6), 8);
-    OIIO_CHECK_EQUAL(pow2roundup(7), 8);
-    OIIO_CHECK_EQUAL(pow2roundup(8), 8);
+    // ceil2
+    OIIO_CHECK_EQUAL(ceil2(4), 4);
+    OIIO_CHECK_EQUAL(ceil2(5), 8);
+    OIIO_CHECK_EQUAL(ceil2(6), 8);
+    OIIO_CHECK_EQUAL(ceil2(7), 8);
+    OIIO_CHECK_EQUAL(ceil2(8), 8);
 
-    // pow2rounddown
-    OIIO_CHECK_EQUAL(pow2rounddown(4), 4);
-    OIIO_CHECK_EQUAL(pow2rounddown(5), 4);
-    OIIO_CHECK_EQUAL(pow2rounddown(6), 4);
-    OIIO_CHECK_EQUAL(pow2rounddown(7), 4);
-    OIIO_CHECK_EQUAL(pow2rounddown(8), 8);
+    // floor2
+    OIIO_CHECK_EQUAL(floor2(4), 4);
+    OIIO_CHECK_EQUAL(floor2(5), 4);
+    OIIO_CHECK_EQUAL(floor2(6), 4);
+    OIIO_CHECK_EQUAL(floor2(7), 4);
+    OIIO_CHECK_EQUAL(floor2(8), 8);
 
     // round_to_multiple
     OIIO_CHECK_EQUAL(round_to_multiple(0, 5), 0);
