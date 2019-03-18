@@ -1866,7 +1866,7 @@ inline OIIO_HOSTDEVICE float fast_ierf (float x)
 /// on that interval or if there are multiple roots in the interval (it
 /// may not converge, or may converge to any of the roots without
 /// telling you that there are more than one).
-template<class T, class Func>
+template<class T, class Func> OIIO_HOSTDEVICE
 T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
           int maxiters=32, T eps=1.0e-6, bool *brack=0)
 {
