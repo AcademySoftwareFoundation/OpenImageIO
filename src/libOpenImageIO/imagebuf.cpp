@@ -969,8 +969,12 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                 ImageSpec newspec;
                 ok &= in->seek_subimage(subimage, miplevel, newspec);
             }
-            if (ok)
-                ok &= in->read_image(chbegin, chend, convert, m_localpixels);
+            if (ok) {
+                ok &= in->read_image(chbegin, chend, convert, m_localpixels,
+                                     AutoStride, AutoStride, AutoStride,
+                                     progress_callback, progress_callback_data);
+            }
+
             in->close();
             if (ok) {
                 m_pixels_valid = true;
