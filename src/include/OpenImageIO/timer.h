@@ -44,6 +44,7 @@
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/span.h>
+#include <OpenImageIO/strutil.h>
 
 #ifdef _WIN32
 //# include <windows.h>  // Already done by platform.h
