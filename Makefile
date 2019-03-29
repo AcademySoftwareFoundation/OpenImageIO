@@ -183,6 +183,10 @@ ifneq (${USE_PTEX},)
 MY_CMAKE_FLAGS += -DUSE_PTEX:BOOL=${USE_PTEX}
 endif
 
+ifneq (${USE_WEBP},)
+MY_CMAKE_FLAGS += -DUSE_WEBP:BOOL=${USE_WEBP}
+endif
+
 ifneq (${USE_EXTERNAL_PUGIXML},)
 MY_CMAKE_FLAGS += -DUSE_EXTERNAL_PUGIXML:BOOL=${USE_EXTERNAL_PUGIXML} -DPUGIXML_HOME=${PUGIXML_HOME}
 endif
@@ -540,6 +544,7 @@ help:
 	@echo "      LIBRAW_PATH=path         Custom LibRaw installation"
 	@echo "      USE_OPENCV=0             Skip anything that needs OpenCV"
 	@echo "      USE_PTEX=0               Skip anything that needs PTex"
+	@echo "      USE_WEBP=0               Skip anything that needs WebP"
 	@echo "      USE_FREETYPE=0           Skip anything that needs Freetype"
 	@echo "  OIIO build-time options:"
 	@echo "      INSTALL_PREFIX=path      Set installation prefix (default: ./${INSTALL_PREFIX_BRIEF})"

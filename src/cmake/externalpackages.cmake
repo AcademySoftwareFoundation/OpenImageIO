@@ -400,25 +400,30 @@ endif()
 ###########################################################################
 # WebP setup
 
-if (NOT WEBP_FIND_QUIETLY)
-    message (STATUS "WEBP_HOME=${WEBP_HOME}")
-endif ()
-find_path (WEBP_INCLUDE_DIR webp/encode.h
-           "${PROJECT_SOURCE_DIR}/src/include"
-           "${WEBP_HOME}")
-find_library (WEBP_LIBRARY
-              NAMES webp
-              PATHS "${WEBP_HOME}")
-if (WEBP_INCLUDE_DIR AND WEBP_LIBRARY)
-    set (WEBP_FOUND TRUE)
+if (USE_WEBP)
     if (NOT WEBP_FIND_QUIETLY)
-        message (STATUS "WEBP includes = ${WEBP_INCLUDE_DIR} ")
-        message (STATUS "WEBP library = ${WEBP_LIBRARY} ")
+        message (STATUS "WEBP_HOME=${WEBP_HOME}")
     endif ()
-else()
-    set (WEBP_FOUND FALSE)
-    message (STATUS "WebP library not found")
-endif()
+    find_path (WEBP_INCLUDE_DIR webp/encode.h
+               "${PROJECT_SOURCE_DIR}/src/include"
+               "${WEBP_HOME}")
+    find_library (WEBP_LIBRARY
+                  NAMES webp
+                  PATHS "${WEBP_HOME}")
+    if (WEBP_INCLUDE_DIR AND WEBP_LIBRARY)
+        set (WEBP_FOUND TRUE)
+        if (NOT WEBP_FIND_QUIETLY)
+            message (STATUS "WEBP includes = ${WEBP_INCLUDE_DIR} ")
+            message (STATUS "WEBP library = ${WEBP_LIBRARY} ")
+        endif ()
+    else()
+        set (WEBP_FOUND FALSE)
+        message (STATUS "WebP library not found")
+    endif()
+else ()
+    message (STATUS "Not using WebP")
+endif ()
+
 # end Webp setup
 ###########################################################################
 
