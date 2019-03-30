@@ -273,21 +273,24 @@ OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME)
               oiio_attribute_typed(name, type, obj);
           });
 
-    m.def("get_int_attribute",
-          [](const std::string& name, int def) {
-              return OIIO::get_int_attribute(name, def);
-          },
-          py::arg("name"), py::arg("defaultval") = 0);
-    m.def("get_float_attribute",
-          [](const std::string& name, float def) {
-              return OIIO::get_float_attribute(name, def);
-          },
-          py::arg("name"), py::arg("defaultval") = 0.0f);
-    m.def("get_string_attribute",
-          [](const std::string& name, const std::string& def) {
-              return PY_STR(std::string(OIIO::get_string_attribute(name, def)));
-          },
-          py::arg("name"), py::arg("defaultval") = "");
+    m.def(
+        "get_int_attribute",
+        [](const std::string& name, int def) {
+            return OIIO::get_int_attribute(name, def);
+        },
+        py::arg("name"), py::arg("defaultval") = 0);
+    m.def(
+        "get_float_attribute",
+        [](const std::string& name, float def) {
+            return OIIO::get_float_attribute(name, def);
+        },
+        py::arg("name"), py::arg("defaultval") = 0.0f);
+    m.def(
+        "get_string_attribute",
+        [](const std::string& name, const std::string& def) {
+            return PY_STR(std::string(OIIO::get_string_attribute(name, def)));
+        },
+        py::arg("name"), py::arg("defaultval") = "");
     m.def("getattribute", &oiio_getattribute_typed);
     m.attr("AutoStride")          = AutoStride;
     m.attr("openimageio_version") = OIIO_VERSION;

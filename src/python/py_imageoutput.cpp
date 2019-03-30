@@ -220,39 +220,42 @@ declare_imageoutput(py::module& m)
     using namespace pybind11::literals;
 
     py::class_<ImageOutput>(m, "ImageOutput")
-        .def_static("create",
-                    [](const std::string& filename,
-                       const std::string& searchpath) -> py::object {
-                        auto out(ImageOutput::create(filename, searchpath));
-                        return out ? py::cast(out.release()) : py::none();
-                    },
-                    "filename"_a, "plugin_searchpath"_a = "")
+        .def_static(
+            "create",
+            [](const std::string& filename,
+               const std::string& searchpath) -> py::object {
+                auto out(ImageOutput::create(filename, searchpath));
+                return out ? py::cast(out.release()) : py::none();
+            },
+            "filename"_a, "plugin_searchpath"_a = "")
         .def("format_name", &ImageOutput::format_name)
         .def("supports",
              [](const ImageOutput& self, const std::string& feature) {
                  return self.supports(feature);
              })
         .def("spec", &ImageOutput::spec)
-        .def("open",
-             [](ImageOutput& self, const std::string& name,
-                const ImageSpec& newspec, const std::string& modestr) {
-                 ImageOutput::OpenMode mode = ImageOutput::Create;
-                 if (Strutil::iequals(modestr, "AppendSubimage"))
-                     mode = ImageOutput::AppendSubimage;
-                 else if (Strutil::iequals(modestr, "AppendMIPLevel"))
-                     mode = ImageOutput::AppendMIPLevel;
-                 else if (!Strutil::iequals(modestr, "Create"))
-                     throw std::invalid_argument(
-                         Strutil::sprintf("Unknown open mode '%s'", modestr));
-                 return self.open(name, newspec, mode);
-             },
-             "filename"_a, "spec"_a, "mode"_a = "Create")
-        .def("open",
-             [](ImageOutput& self, const std::string& name,
-                const std::vector<ImageSpec>& specs) {
-                 return self.open(name, (int)specs.size(), &specs[0]);
-             },
-             "filename"_a, "specs"_a)
+        .def(
+            "open",
+            [](ImageOutput& self, const std::string& name,
+               const ImageSpec& newspec, const std::string& modestr) {
+                ImageOutput::OpenMode mode = ImageOutput::Create;
+                if (Strutil::iequals(modestr, "AppendSubimage"))
+                    mode = ImageOutput::AppendSubimage;
+                else if (Strutil::iequals(modestr, "AppendMIPLevel"))
+                    mode = ImageOutput::AppendMIPLevel;
+                else if (!Strutil::iequals(modestr, "Create"))
+                    throw std::invalid_argument(
+                        Strutil::sprintf("Unknown open mode '%s'", modestr));
+                return self.open(name, newspec, mode);
+            },
+            "filename"_a, "spec"_a, "mode"_a = "Create")
+        .def(
+            "open",
+            [](ImageOutput& self, const std::string& name,
+               const std::vector<ImageSpec>& specs) {
+                return self.open(name, (int)specs.size(), &specs[0]);
+            },
+            "filename"_a, "specs"_a)
         .def("open", &ImageOutput_open_specs)
         .def("close", [](ImageOutput& self) { return self.close(); })
         .def("write_image", &ImageOutput_write_image)

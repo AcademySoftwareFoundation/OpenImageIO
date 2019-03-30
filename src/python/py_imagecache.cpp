@@ -125,12 +125,13 @@ declare_imagecache(py::module& m)
                  if (ic.m_cache)
                      attribute_typed(*ic.m_cache, name, type, obj);
              })
-        .def("getattribute",
-             [](const ImageCacheWrap& ic, const std::string& name,
-                TypeDesc type) {
-                 return getattribute_typed(*ic.m_cache, name, type);
-             },
-             "name"_a, "type"_a = TypeUnknown)
+        .def(
+            "getattribute",
+            [](const ImageCacheWrap& ic, const std::string& name,
+               TypeDesc type) {
+                return getattribute_typed(*ic.m_cache, name, type);
+            },
+            "name"_a, "type"_a = TypeUnknown)
         .def("resolve_filename",
              [](ImageCacheWrap& ic, const std::string& filename) {
                  py::gil_scoped_release gil;
@@ -146,24 +147,27 @@ declare_imagecache(py::module& m)
 
         .def("geterror",
              [](ImageCacheWrap& ic) { return PY_STR(ic.m_cache->geterror()); })
-        .def("getstats",
-             [](ImageCacheWrap& ic, int level) {
-                 py::gil_scoped_release gil;
-                 return PY_STR(ic.m_cache->getstats(level));
-             },
-             "level"_a = 1)
-        .def("invalidate",
-             [](ImageCacheWrap& ic, const std::string& filename, bool force) {
-                 py::gil_scoped_release gil;
-                 ic.m_cache->invalidate(ustring(filename), force);
-             },
-             "filename"_a, "force"_a = true)
-        .def("invalidate_all",
-             [](ImageCacheWrap& ic, bool force) {
-                 py::gil_scoped_release gil;
-                 ic.m_cache->invalidate_all(force);
-             },
-             "force"_a = false);
+        .def(
+            "getstats",
+            [](ImageCacheWrap& ic, int level) {
+                py::gil_scoped_release gil;
+                return PY_STR(ic.m_cache->getstats(level));
+            },
+            "level"_a = 1)
+        .def(
+            "invalidate",
+            [](ImageCacheWrap& ic, const std::string& filename, bool force) {
+                py::gil_scoped_release gil;
+                ic.m_cache->invalidate(ustring(filename), force);
+            },
+            "filename"_a, "force"_a = true)
+        .def(
+            "invalidate_all",
+            [](ImageCacheWrap& ic, bool force) {
+                py::gil_scoped_release gil;
+                ic.m_cache->invalidate_all(force);
+            },
+            "force"_a = false);
 }
 
 }  // namespace PyOpenImageIO
