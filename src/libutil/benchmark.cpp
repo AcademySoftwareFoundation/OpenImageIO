@@ -251,8 +251,9 @@ OIIO_API void
 timed_thread_wedge(function_view<void(int)> task, int maxthreads,
                    int total_iterations, int ntrials, cspan<int> threadcounts)
 {
-    timed_thread_wedge(task, []() {}, []() {}, &std::cout, maxthreads,
-                       total_iterations, ntrials, threadcounts);
+    timed_thread_wedge(
+        task, []() {}, []() {}, &std::cout, maxthreads, total_iterations,
+        ntrials, threadcounts);
 }
 
 OIIO_NAMESPACE_END

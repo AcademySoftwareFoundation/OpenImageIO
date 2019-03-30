@@ -117,17 +117,17 @@ declare_deepdata(py::module& m)
         .def("initialized", &DeepData::initialized)
         .def("allocated", &DeepData::allocated)
 
-        .def("samples",
-             [](const DeepData& dd, int pixel) {
-                 return (int)dd.samples(pixel);
-             },
-             "pixel"_a)
+        .def(
+            "samples",
+            [](const DeepData& dd, int pixel) { return (int)dd.samples(pixel); },
+            "pixel"_a)
         .def("set_samples", &DeepData::set_samples, "pixel"_a, "nsamples"_a)
-        .def("capacity",
-             [](const DeepData& dd, int pixel) {
-                 return (int)dd.capacity(pixel);
-             },
-             "pixel"_a)
+        .def(
+            "capacity",
+            [](const DeepData& dd, int pixel) {
+                return (int)dd.capacity(pixel);
+            },
+            "pixel"_a)
         .def("set_capacity", &DeepData::set_capacity, "pixel"_a, "nsamples"_a)
         .def("insert_samples", &DeepData::insert_samples, "pixel"_a,
              "samplepos"_a, "nsamples"_a = 1)

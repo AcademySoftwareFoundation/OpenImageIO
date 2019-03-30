@@ -211,70 +211,79 @@ declare_imagebuf(py::module& m)
         .def(py::init<const std::string&, int, int>())
         .def(py::init<const ImageSpec&>())
         .def("clear", &ImageBuf::clear)
-        .def("reset",
-             [](ImageBuf& self, const std::string& name, int subimage,
-                int miplevel) { self.reset(name, subimage, miplevel); },
-             "name"_a, "subimage"_a = 0, "miplevel"_a = 0)
-        .def("reset",
-             [](ImageBuf& self, const std::string& name, int subimage,
-                int miplevel, const ImageSpec& config) {
-                 self.reset(name, subimage, miplevel, nullptr, &config);
-             },
-             "name"_a, "subimage"_a = 0, "miplevel"_a = 0,
-             "config"_a = ImageSpec())
-        .def("reset",
-             [](ImageBuf& self, const ImageSpec& spec) { self.reset(spec); },
-             "spec"_a)
+        .def(
+            "reset",
+            [](ImageBuf& self, const std::string& name, int subimage,
+               int miplevel) { self.reset(name, subimage, miplevel); },
+            "name"_a, "subimage"_a = 0, "miplevel"_a = 0)
+        .def(
+            "reset",
+            [](ImageBuf& self, const std::string& name, int subimage,
+               int miplevel, const ImageSpec& config) {
+                self.reset(name, subimage, miplevel, nullptr, &config);
+            },
+            "name"_a, "subimage"_a = 0, "miplevel"_a = 0,
+            "config"_a = ImageSpec())
+        .def(
+            "reset",
+            [](ImageBuf& self, const ImageSpec& spec) { self.reset(spec); },
+            "spec"_a)
         .def_property_readonly("initialized",
                                [](const ImageBuf& self) {
                                    return self.initialized();
                                })
-        .def("init_spec",
-             [](ImageBuf& self, std::string filename, int subimage,
-                int miplevel) {
-                 py::gil_scoped_release gil;
-                 self.init_spec(filename, subimage, miplevel);
-             },
-             "filename"_a, "subimage"_a = 0, "miplevel"_a = 0)
-        .def("read",
-             [](ImageBuf& self, int subimage, int miplevel, int chbegin,
-                int chend, bool force, TypeDesc convert) {
-                 py::gil_scoped_release gil;
-                 return self.read(subimage, miplevel, chbegin, chend, force,
-                                  convert);
-             },
-             "subimage"_a, "miplevel"_a, "chbegin"_a, "chend"_a, "force"_a,
-             "convert"_a)
-        .def("read",
-             [](ImageBuf& self, int subimage, int miplevel, bool force,
-                TypeDesc convert) {
-                 py::gil_scoped_release gil;
-                 return self.read(subimage, miplevel, force, convert);
-             },
-             "subimage"_a = 0, "miplevel"_a = 0, "force"_a = false,
-             "convert"_a = TypeUnknown)
+        .def(
+            "init_spec",
+            [](ImageBuf& self, std::string filename, int subimage,
+               int miplevel) {
+                py::gil_scoped_release gil;
+                self.init_spec(filename, subimage, miplevel);
+            },
+            "filename"_a, "subimage"_a = 0, "miplevel"_a = 0)
+        .def(
+            "read",
+            [](ImageBuf& self, int subimage, int miplevel, int chbegin,
+               int chend, bool force, TypeDesc convert) {
+                py::gil_scoped_release gil;
+                return self.read(subimage, miplevel, chbegin, chend, force,
+                                 convert);
+            },
+            "subimage"_a, "miplevel"_a, "chbegin"_a, "chend"_a, "force"_a,
+            "convert"_a)
+        .def(
+            "read",
+            [](ImageBuf& self, int subimage, int miplevel, bool force,
+               TypeDesc convert) {
+                py::gil_scoped_release gil;
+                return self.read(subimage, miplevel, force, convert);
+            },
+            "subimage"_a = 0, "miplevel"_a = 0, "force"_a = false,
+            "convert"_a = TypeUnknown)
 
-        .def("write",
-             [](ImageBuf& self, const std::string& filename, TypeDesc dtype,
-                const std::string& fileformat) {
-                 py::gil_scoped_release gil;
-                 return self.write(filename, dtype, fileformat);
-             },
-             "filename"_a, "dtype"_a = TypeUnknown, "fileformat"_a = "")
+        .def(
+            "write",
+            [](ImageBuf& self, const std::string& filename, TypeDesc dtype,
+               const std::string& fileformat) {
+                py::gil_scoped_release gil;
+                return self.write(filename, dtype, fileformat);
+            },
+            "filename"_a, "dtype"_a = TypeUnknown, "fileformat"_a = "")
         // deprecated version:
-        .def("write",
-             [](ImageBuf& self, const std::string& filename,
-                const std::string& fileformat) {
-                 py::gil_scoped_release gil;
-                 return self.write(filename, fileformat);
-             },
-             "filename"_a, "fileformat"_a)
-        .def("make_writeable",
-             [](ImageBuf& self, bool keep_cache_type) {
-                 py::gil_scoped_release gil;
-                 return self.make_writeable(keep_cache_type);
-             },
-             "keep_cache_type"_a = false)
+        .def(
+            "write",
+            [](ImageBuf& self, const std::string& filename,
+               const std::string& fileformat) {
+                py::gil_scoped_release gil;
+                return self.write(filename, fileformat);
+            },
+            "filename"_a, "fileformat"_a)
+        .def(
+            "make_writeable",
+            [](ImageBuf& self, bool keep_cache_type) {
+                py::gil_scoped_release gil;
+                return self.make_writeable(keep_cache_type);
+            },
+            "keep_cache_type"_a = false)
         .def("set_write_format", &ImageBuf::set_write_format)
         // FIXME -- write(ImageOut&)
         .def("set_write_tiles", &ImageBuf::set_write_tiles, "width"_a = 0,
@@ -336,18 +345,20 @@ declare_imagebuf(py::module& m)
              "check_range"_a = false)
         .def("copy_metadata", &ImageBuf::copy_metadata)
         .def("copy_pixels", &ImageBuf::copy_pixels)
-        .def("copy",
-             [](ImageBuf& self, const ImageBuf& src, TypeDesc format) {
-                 py::gil_scoped_release gil;
-                 return self.copy(src, format);
-             },
-             "src"_a, "format"_a = TypeUnknown)
-        .def("copy",
-             [](const ImageBuf& src, TypeDesc format) {
-                 py::gil_scoped_release gil;
-                 return src.copy(format);
-             },
-             "format"_a = TypeUnknown)
+        .def(
+            "copy",
+            [](ImageBuf& self, const ImageBuf& src, TypeDesc format) {
+                py::gil_scoped_release gil;
+                return self.copy(src, format);
+            },
+            "src"_a, "format"_a = TypeUnknown)
+        .def(
+            "copy",
+            [](const ImageBuf& src, TypeDesc format) {
+                py::gil_scoped_release gil;
+                return src.copy(format);
+            },
+            "format"_a = TypeUnknown)
         .def("swap", &ImageBuf::swap)
         .def("getchannel", &ImageBuf::getchannel, "x"_a, "y"_a, "z"_a, "c"_a,
              "wrap"_a = "black")
@@ -387,8 +398,9 @@ declare_imagebuf(py::module& m)
              "channel"_a, "sample"_a, "value"_a = 0.0f)
         .def("set_deep_value_uint", &ImageBuf_set_deep_value_uint, "x"_a, "y"_a,
              "z"_a, "channel"_a, "sample"_a, "value"_a = 0)
-        .def("deepdata", [](ImageBuf& self) { return *self.deepdata(); },
-             py::return_value_policy::reference_internal)
+        .def(
+            "deepdata", [](ImageBuf& self) { return *self.deepdata(); },
+            py::return_value_policy::reference_internal)
 
         // FIXME -- do we want to provide pixel iterators?
         ;

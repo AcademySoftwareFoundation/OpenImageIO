@@ -71,7 +71,7 @@ install:
           export PATH=/usr/local/opt/qt5/bin:$PATH ;
           export PATH=/usr/local/opt/python/libexec/bin:$PATH ;
           export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
-          export PATH=/usr/local/Cellar/llvm/7.0.1/bin:$PATH ;
+          export PATH=/usr/local/Cellar/llvm/8.0.0/bin:$PATH ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
           CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_openexr.bash ;
           export ILMBASE_ROOT_DIR=$PWD/ext/openexr-install ;
@@ -80,7 +80,7 @@ install:
           CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_ocio.bash ;
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/ext/OpenColorIO/dist/lib ;
           if [ "${CLANG_TIDY}" != "" ] ; then
-              export LLVM_VERSION=7.0.0 ;
+              export LLVM_VERSION=8.0.0 ;
               export LLVMTAR=clang+llvm-${LLVM_VERSION}-x86_64-linux-gnu-ubuntu-14.04.tar.xz ;
               time wget http://releases.llvm.org/${LLVM_VERSION}/${LLVMTAR} ;
               tar xf $LLVMTAR ;

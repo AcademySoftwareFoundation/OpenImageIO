@@ -4,12 +4,12 @@
 # installed, does a "brew install" in all packages reasonably needed by
 # OIIO.
 
-if [ `uname` != "Darwin" ] ; then
+if [[ `uname` != "Darwin" ]] ; then
     echo "Don't run this script unless you are on Mac OSX"
     exit 1
 fi
 
-if [ `which brew` == "" ] ; then
+if [[ `which brew` == "" ]] ; then
     echo "You need to install Homebrew before running this script."
     echo "See http://brew.sh"
     exit 1
@@ -21,7 +21,7 @@ echo ""
 echo "Before my brew installs:"
 brew list --versions
 
-if [ "$OIIOTARGET" == "clang-format" ] ; then
+if [[ "$OIIOTARGET" == "clang-format" ]] ; then
     # If we are running for the sake of clang-format only, just install the
     # bare minimum packages and return.
     brew install ilmbase openexr llvm
@@ -30,7 +30,7 @@ fi
 
 brew install gcc
 brew link --overwrite gcc
-brew install ccache cmake
+brew install ccache cmake ninja
 brew install ilmbase openexr
 brew install opencolorio
 brew install freetype
@@ -47,12 +47,12 @@ brew install opencv
 brew install tbb
 brew install openvdb
 brew install pybind11
-if [ "$LINKSTATIC" == "1" ] ; then
+if [[ "$LINKSTATIC" == "1" ]] ; then
     brew install little-cms2 tinyxml szip
     brew install homebrew/dupes/bzip2
     brew install yaml-cpp --with-static-lib
 fi
-if [ "$CLANG_TIDY" != "" ] ; then
+if [[ "$CLANG_TIDY" != "" ]] ; then
     # If we are running for the sake of clang-tidy only, we will need
     # a modern clang version not just the xcode one.
     brew install llvm

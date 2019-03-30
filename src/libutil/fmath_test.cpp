@@ -180,8 +180,9 @@ test_math_functions()
     OIIO_CHECK_EQUAL(ival, 1);
     OIIO_CHECK_EQUAL_APPROX(floorfrac(1.001f, &ival), 0.001f);
     OIIO_CHECK_EQUAL(ival, 1);
-    bench("floorfrac",
-          [&](float x) { return DoNotOptimize(floorfrac(x, &ival)); }, fval);
+    bench(
+        "floorfrac",
+        [&](float x) { return DoNotOptimize(floorfrac(x, &ival)); }, fval);
 
     OIIO_CHECK_EQUAL(sign(3.1f), 1.0f);
     OIIO_CHECK_EQUAL(sign(-3.1f), -1.0f);

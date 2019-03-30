@@ -92,25 +92,20 @@ declare_typedesc(py::module& m)
         // char, def_readwrite() doesn't do the right thing. Instead, we
         // use set_foo/get_foo wrappers, but from Python it looks like
         // regular member access.
-        .def_property("basetype",
-                      [](TypeDesc t) { return TypeDesc::BASETYPE(t.basetype); },
-                      [](TypeDesc& t, TypeDesc::BASETYPE b) {
-                          return t.basetype = b;
-                      })
-        .def_property("aggregate",
-                      [](TypeDesc t) {
-                          return TypeDesc::AGGREGATE(t.aggregate);
-                      },
-                      [](TypeDesc& t, TypeDesc::AGGREGATE b) {
-                          return t.aggregate = b;
-                      })
-        .def_property("vecsemantics",
-                      [](TypeDesc t) {
-                          return TypeDesc::VECSEMANTICS(t.vecsemantics);
-                      },
-                      [](TypeDesc& t, TypeDesc::VECSEMANTICS b) {
-                          return t.vecsemantics = b;
-                      })
+        .def_property(
+            "basetype",
+            [](TypeDesc t) { return TypeDesc::BASETYPE(t.basetype); },
+            [](TypeDesc& t, TypeDesc::BASETYPE b) { return t.basetype = b; })
+        .def_property(
+            "aggregate",
+            [](TypeDesc t) { return TypeDesc::AGGREGATE(t.aggregate); },
+            [](TypeDesc& t, TypeDesc::AGGREGATE b) { return t.aggregate = b; })
+        .def_property(
+            "vecsemantics",
+            [](TypeDesc t) { return TypeDesc::VECSEMANTICS(t.vecsemantics); },
+            [](TypeDesc& t, TypeDesc::VECSEMANTICS b) {
+                return t.vecsemantics = b;
+            })
         .def_readwrite("arraylen", &TypeDesc::arraylen)
         // Constructors: () [defined implicitly], (base), (base, agg),
         // (base,agg,vecsem), (base,agg,vecsem,arraylen), string.
