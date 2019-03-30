@@ -10,7 +10,7 @@ OIIO_NAMESPACE_BEGIN
 /// representation.  Once optimized and tested, move to fmath.h
 
 inline float
-pow2roundupf(float f)
+ceil2f(float f)
 {
     float logval = logf(f) / logf(2.0f);
     logval += 1e-6f;  // add floating point slop. this supports [0.00012207,8192]
@@ -22,7 +22,7 @@ pow2roundupf(float f)
 /// representation.  Once optimized and tested, move to fmath.h
 
 inline float
-pow2rounddownf(float f)
+floor2f(float f)
 {
     float logval = logf(f) / logf(2.0f);
     logval -= 1e-6f;  // add floating point slop. this supports [0.00012207,8192]

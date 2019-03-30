@@ -1837,7 +1837,7 @@ ImageViewer::zoomIn()
     if (zoom() >= 64)
         return;
     float oldzoom = zoom();
-    float newzoom = pow2roundupf(oldzoom);
+    float newzoom = ceil2f(oldzoom);
 
     float xc, yc;  // Center view position
     glwin->get_center(xc, yc);
@@ -1872,7 +1872,7 @@ ImageViewer::zoomOut()
     if (zoom() <= 1.0f / 64)
         return;
     float oldzoom = zoom();
-    float newzoom = pow2rounddownf(oldzoom);
+    float newzoom = floor2f(oldzoom);
 
     float xcpel, ycpel;  // Center view position
     glwin->get_center(xcpel, ycpel);
