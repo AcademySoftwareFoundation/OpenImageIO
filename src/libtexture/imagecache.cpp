@@ -2116,7 +2116,7 @@ ImageCacheImpl::attribute(string_view name, TypeDesc type, const void* val)
     } else if (name == "max_errors_per_file" && type == TypeDesc::INT) {
         m_max_errors_per_file = *(const int*)val;
     } else if (name == "autotile" && type == TypeDesc::INT) {
-        int a = pow2roundup(*(const int*)val);  // guarantee pow2
+        int a = ceil2(*(const int*)val);  // guarantee pow2
         // Clamp to minimum 8x8 tiles to protect against stupid user who
         // think this is a boolean rather than the tile size.  Unless
         // we're in DEBUG mode, then allow developers to play with fire.
