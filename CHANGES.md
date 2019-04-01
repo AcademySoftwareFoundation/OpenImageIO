@@ -1,6 +1,19 @@
-Release 2.0.7 (1 Apr??, 2019) -- compared to 2.0.6
+Release 2.0.7 (1 Apr, 2019) -- compared to 2.0.6
 ------------------------------------------------
-
+* DPX: fix potential crash when file open fails. #2186
+* EXR: Suppress empty string for subimage name (fixes a problem when reading
+  files written by V-Ray). #2190
+* Disable JPEG-2000 support for the (rare) combination of an older OpenJPEG
+  1.x and EMBEDPLUGINS=0 mode, which was buggy. The solution if you really
+  need EMBEDPLUGINS and JPEG-2000 support is to please use OpenJPEG >= 2.0.
+  #2183.
+* New build flag `USE_WEBP=0` can be set to 0 to force disabled support of
+  WebP even when the webp package is found. #2200
+* Bug fix: `ImageInput::create(name)` and `ImageOutput::create(name)` worked
+  if `name` was a filename (such as `foo.exr`), or the extension (such as
+  `exr`), but previously did not work if it was the name of the format
+  (such as `openexr`), despite having been documented as working in that
+  case. #2185
 
 Release 2.0.6 (1 Mar, 2019) -- compared to 2.0.5
 ------------------------------------------------
