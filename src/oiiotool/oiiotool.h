@@ -651,7 +651,7 @@ public:
 
         // Parse the options.
         options.clear();
-        options["allsubimages"] = ot.allsubimages;
+        options["allsubimages"] = std::to_string((int)ot.allsubimages);
         option_defaults();  // this can be customized to set up defaults
         ot.extract_options(options, args[0]);
 

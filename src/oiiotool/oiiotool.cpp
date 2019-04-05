@@ -877,7 +877,14 @@ set_string_attribute(int argc, const char* argv[])
         ot.warning(argv[0], "no current image available to modify");
         return 0;
     }
-    set_attribute(ot.curimg, argv[1], TypeString, argv[2], ot.allsubimages);
+
+    string_view command = ot.express(argv[0]);
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
+    set_attribute(ot.curimg, argv[1], TypeString, argv[2], allsubimages);
     // N.B. set_attribute does expression expansion on its args
     return 0;
 }
@@ -893,11 +900,14 @@ set_any_attribute(int argc, const char* argv[])
         return 0;
     }
 
+    string_view command = ot.express(argv[0]);
     std::map<std::string, std::string> options;
-    ot.extract_options(options, argv[0]);
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
     TypeDesc type(options["type"]);
+    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
 
-    set_attribute(ot.curimg, argv[1], type, argv[2], ot.allsubimages);
+    set_attribute(ot.curimg, argv[1], type, argv[2], allsubimages);
     // N.B. set_attribute does expression expansion on its args
     return 0;
 }
@@ -1657,8 +1667,15 @@ set_orientation(int argc, const char* argv[])
         ot.warning(argv[0], "no current image available to modify");
         return 0;
     }
+
+    string_view command = ot.express(argv[0]);
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     return set_attribute(ot.curimg, "Orientation", TypeDesc::INT, argv[1],
-                         ot.allsubimages);
+                         allsubimages);
     // N.B. set_attribute does expression expansion on its args
 }
 
@@ -1698,7 +1715,13 @@ rotate_orientation(int argc, const char* argv[])
         ot.warning(command, "no current image available to modify");
         return 0;
     }
-    apply_spec_mod(*ot.curimg, do_rotate_orientation, command, ot.allsubimages);
+
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
+    apply_spec_mod(*ot.curimg, do_rotate_orientation, command, allsubimages);
     return 0;
 }
 
@@ -1713,9 +1736,15 @@ set_origin(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view origin  = ot.express(argv[1]);
 
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     ot.read();
     ImageRecRef A = ot.curimg;
-    for (int s = 0; s < A->subimages(); ++s) {
+    int subimages = allsubimages ? A->subimages() : 1;
+    for (int s = 0; s < subimages; ++s) {
         ImageSpec& spec(*A->spec(s));
         int x = spec.x, y = spec.y, z = spec.z;
         int w = spec.width, h = spec.height, d = spec.depth;
@@ -1756,27 +1785,34 @@ set_fullsize(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view size    = ot.express(argv[1]);
 
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     ot.read();
     ImageRecRef A = ot.curimg;
-    ImageSpec& spec(*A->spec(0, 0));
-    int x = spec.full_x, y = spec.full_y;
-    int w = spec.full_width, h = spec.full_height;
-
-    ot.adjust_geometry(argv[0], w, h, x, y, size.c_str());
-    if (spec.full_x != x || spec.full_y != y || spec.full_width != w
-        || spec.full_height != h) {
-        spec.full_x      = x;
-        spec.full_y      = y;
-        spec.full_width  = w;
-        spec.full_height = h;
-        // That updated the private spec of the ImageRec. In this case
-        // we really need to update the underlying IB as well.
-        ImageSpec& ibspec  = (*A)(0, 0).specmod();
-        ibspec.full_x      = x;
-        ibspec.full_y      = y;
-        ibspec.full_width  = w;
-        ibspec.full_height = h;
-        A->metadata_modified(true);
+    int subimages = allsubimages ? A->subimages() : 1;
+    for (int s = 0; s < subimages; ++s) {
+        ImageSpec& spec(*A->spec(s));
+        int x = spec.full_x, y = spec.full_y;
+        int w = spec.full_width, h = spec.full_height;
+        ot.adjust_geometry(argv[0], w, h, x, y, size.c_str());
+        if (spec.full_x != x || spec.full_y != y || spec.full_width != w
+            || spec.full_height != h) {
+            spec.full_x      = x;
+            spec.full_y      = y;
+            spec.full_width  = w;
+            spec.full_height = h;
+            // That updated the private spec of the ImageRec. In this case
+            // we really need to update the underlying IB as well.
+            ImageSpec& ibspec  = (*A)(s).specmod();
+            ibspec.full_x      = x;
+            ibspec.full_y      = y;
+            ibspec.full_width  = w;
+            ibspec.full_height = h;
+            A->metadata_modified(true);
+        }
     }
     ot.function_times[command] += timer();
     return 0;
@@ -1792,9 +1828,15 @@ set_full_to_pixels(int argc, const char* argv[])
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
 
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     ot.read();
     ImageRecRef A = ot.curimg;
-    for (int s = 0, send = A->subimages(); s < send; ++s) {
+    int subimages = allsubimages ? A->subimages() : 1;
+    for (int s = 0; s < subimages; ++s) {
         for (int m = 0, mend = A->miplevels(s); m < mend; ++m) {
             ImageSpec& spec  = *A->spec(s, m);
             spec.full_x      = spec.x;
@@ -3253,10 +3295,16 @@ action_croptofull(int argc, const char* argv[])
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
 
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     ot.read();
     ImageRecRef A     = ot.curimg;
+    int subimages     = allsubimages ? A->subimages() : 1;
     bool crops_needed = false;
-    for (int s = 0; s < A->subimages(); ++s) {
+    for (int s = 0; s < subimages; ++s) {
         crops_needed |= ((*A)(s).roi() != (*A)(s).roi_full());
     }
 
@@ -3264,7 +3312,7 @@ action_croptofull(int argc, const char* argv[])
         ot.pop();
         ImageRecRef R(new ImageRec(A->name(), A->subimages(), 0));
         ot.push(R);
-        for (int s = 0; s < A->subimages(); ++s) {
+        for (int s = 0; s < subimages; ++s) {
             const ImageBuf& Aib((*A)(s, 0));
             ImageBuf& Rib((*R)(s, 0));
             ROI roi = (Aib.roi() != Aib.roi_full()) ? Aib.roi_full()
@@ -3289,12 +3337,18 @@ action_trim(int argc, const char* argv[])
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
 
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     ot.read();
     ImageRecRef A = ot.curimg;
+    int subimages = allsubimages ? A->subimages() : 1;
 
     // First, figure out shared nonzero region
     ROI nonzero_region;
-    for (int s = 0; s < A->subimages(); ++s) {
+    for (int s = 0; s < subimages; ++s) {
         ROI roi = ImageBufAlgo::nonzero_region((*A)(s));
         if (roi.npixels() == 0) {
             // Special case -- all zero; but doctor to make it 1 zero pixel
@@ -3308,14 +3362,14 @@ action_trim(int argc, const char* argv[])
 
     // Now see if any subimges need cropping
     bool crops_needed = false;
-    for (int s = 0; s < A->subimages(); ++s) {
+    for (int s = 0; s < subimages; ++s) {
         crops_needed |= (nonzero_region != (*A)(s).roi());
     }
     if (crops_needed) {
         ot.pop();
-        ImageRecRef R(new ImageRec(A->name(), A->subimages(), 0));
+        ImageRecRef R(new ImageRec(A->name(), subimages, 0));
         ot.push(R);
-        for (int s = 0; s < A->subimages(); ++s) {
+        for (int s = 0; s < subimages; ++s) {
             const ImageBuf& Aib((*A)(s, 0));
             ImageBuf& Rib((*R)(s, 0));
             bool ok = ImageBufAlgo::crop(Rib, Aib, nonzero_region);
@@ -3339,24 +3393,39 @@ action_cut(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view size    = ot.express(argv[1]);
 
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
+    // Operate on (and replace) the top-of-stack image
     ot.read();
     ImageRecRef A = ot.pop();
-    ImageSpec& Aspec(*A->spec(0, 0));
-    ImageSpec newspec = Aspec;
 
-    ot.adjust_geometry(argv[0], newspec.width, newspec.height, newspec.x,
-                       newspec.y, size.c_str());
+    // First, compute the specs of the cropped subimages
+    int subimages = allsubimages ? A->subimages() : 1;
+    std::vector<ImageSpec> newspecs(subimages);
+    for (int s = 0; s < subimages; ++s) {
+        ImageSpec& newspec(newspecs[s]);
+        newspec = *A->spec(s, 0);
+        ot.adjust_geometry(argv[0], newspec.width, newspec.height, newspec.x,
+                           newspec.y, size.c_str());
+    }
 
-    ImageRecRef R(new ImageRec(A->name(), newspec, ot.imagecache));
-    const ImageBuf& Aib((*A)(0, 0));
-    ImageBuf& Rib((*R)(0, 0));
-    ImageBufAlgo::cut(Rib, Aib, get_roi(newspec));
+    // Make a new ImageRec sized according to the new set of specs
+    ImageRecRef R(new ImageRec(A->name(), subimages, nullptr, newspecs.data()));
 
-    ImageSpec& spec(*R->spec(0, 0));
-    set_roi(spec, Rib.roi());
-    set_roi_full(spec, Rib.roi());
-    A->metadata_modified(true);
+    // Crop and populate the new ImageRec
+    for (int s = 0; s < subimages; ++s) {
+        const ImageBuf& Aib((*A)(s, 0));
+        ImageBuf& Rib((*R)(s, 0));
+        ImageBufAlgo::cut(Rib, Aib, get_roi(newspecs[s]));
+        ImageSpec& spec(*R->spec(s, 0));
+        set_roi(spec, Rib.roi());
+        set_roi_full(spec, Rib.roi());
+    }
 
+    R->metadata_modified(true);
     ot.push(R);
 
     ot.function_times[command] += timer();
@@ -3883,6 +3952,11 @@ action_fixnan(int argc, const char* argv[])
     string_view command  = ot.express(argv[0]);
     string_view modename = ot.express(argv[1]);
 
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     NonFiniteFixMode mode = NONFINITE_BOX3;
     if (modename == "black")
         mode = NONFINITE_BLACK;
@@ -3897,9 +3971,9 @@ action_fixnan(int argc, const char* argv[])
     }
     ot.read();
     ImageRecRef A = ot.pop();
-    ot.push(new ImageRec(*A, ot.allsubimages ? -1 : 0, ot.allsubimages ? -1 : 0,
-                         true, false));
-    int subimages = ot.curimg->subimages();
+    ot.push(new ImageRec(*A, allsubimages ? -1 : 0, allsubimages ? -1 : 0, true,
+                         false));
+    int subimages = allsubimages ? A->subimages() : 1;
     for (int s = 0; s < subimages; ++s) {
         int miplevels = ot.curimg->miplevels(s);
         for (int m = 0; m < miplevels; ++m) {
@@ -4046,66 +4120,22 @@ action_mosaic(int argc, const char* argv[])
 BINARY_IMAGE_OP(over, ImageBufAlgo::over);
 
 
-#if 0
-// Don't enable this until we are sure we have a zover test in testsuite.
 
 class OpZover : public OiiotoolOp {
 public:
-    OpZover (Oiiotool &ot, string_view opname,
-                             int argc, const char *argv[])
-        : OiiotoolOp (ot, opname, argc, argv, 1) {}
-    virtual int impl (ImageBuf **img) {
+    OpZover(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+        : OiiotoolOp(ot, opname, argc, argv, 2)
+    {
+    }
+    virtual int impl(ImageBuf** img)
+    {
         bool zeroisinf = Strutil::from_string<int>(options["zeroisinf"]);
-        return ImageBufAlgo::zover (*img[0], *img[1], zeroisinf, ROI(), 0);
+        return ImageBufAlgo::zover(*img[0], *img[1], *img[2], zeroisinf, ROI(),
+                                   0);
     }
 };
 
-OP_CUSTOMCLASS (zover, OpZover, 1);
-
-#else
-
-static int
-action_zover(int argc, const char* argv[])
-{
-    if (ot.postpone_callback(2, action_zover, argc, argv))
-        return 0;
-    Timer timer(ot.enable_function_timing);
-    string_view command = ot.express(argv[0]);
-
-    // Get optional flags
-    bool z_zeroisinf = false;
-    std::string cmd  = argv[0];
-    size_t pos;
-    while ((pos = cmd.find_first_of(":")) != std::string::npos) {
-        cmd = cmd.substr(pos + 1, std::string::npos);
-        if (Strutil::istarts_with(cmd, "zeroisinf="))
-            z_zeroisinf = (Strutil::stoi(cmd.c_str() + 10) != 0);
-    }
-
-    ImageRecRef B(ot.pop());
-    ImageRecRef A(ot.pop());
-    ot.read(A);
-    ot.read(B);
-    const ImageBuf& Aib((*A)());
-    const ImageBuf& Bib((*B)());
-    const ImageSpec& specA = Aib.spec();
-    const ImageSpec& specB = Bib.spec();
-
-    // Create output image specification.
-    ImageSpec specR = specA;
-    set_roi(specR, roi_union(get_roi(specA), get_roi(specB)));
-    set_roi_full(specR, roi_union(get_roi_full(specA), get_roi_full(specB)));
-
-    ot.push(new ImageRec("zover", specR, ot.imagecache));
-    ImageBuf& Rib((*ot.curimg)());
-
-    bool ok = ImageBufAlgo::zover(Rib, Aib, Bib, z_zeroisinf);
-    if (!ok)
-        ot.error(command, Rib.geterror());
-    ot.function_times[command] += timer();
-    return 0;
-}
-#endif
+OP_CUSTOMCLASS(zover, OpZover, 1);
 
 
 
@@ -4173,54 +4203,60 @@ action_fill(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view size    = ot.express(argv[1]);
 
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     // Read and copy the top-of-stack image
     ImageRecRef A(ot.pop());
     ot.read(A);
-    ot.push(new ImageRec(*A, 0, 0, true, true /*copy_pixels*/));
-    ImageBuf& Rib((*ot.curimg)(0, 0));
-    const ImageSpec& Rspec = Rib.spec();
+    ot.push(new ImageRec(*A, allsubimages ? -1 : 0, allsubimages ? -1 : 0,
+                         /*writeable=*/true, /*copy_pixels=*/true));
 
-    int w = Rib.spec().width, h = Rib.spec().height;
-    int x = Rib.spec().x, y = Rib.spec().y;
-    if (!ot.adjust_geometry(argv[0], w, h, x, y, size.c_str(), true)) {
-        return 0;
+    int subimages = allsubimages ? A->subimages() : 1;
+    for (int s = 0; s < subimages; ++s) {
+        ImageBuf& Rib((*ot.curimg)(s));
+        const ImageSpec& Rspec = Rib.spec();
+        int w = Rib.spec().width, h = Rib.spec().height;
+        int x = Rib.spec().x, y = Rib.spec().y;
+        if (!ot.adjust_geometry(argv[0], w, h, x, y, size.c_str(), true))
+            continue;
+        std::vector<float> topleft(Rspec.nchannels, 1.0f);
+        std::vector<float> topright(Rspec.nchannels, 1.0f);
+        std::vector<float> bottomleft(Rspec.nchannels, 1.0f);
+        std::vector<float> bottomright(Rspec.nchannels, 1.0f);
+        bool ok = true;
+        if (Strutil::extract_from_list_string(topleft, options["topleft"])
+            && Strutil::extract_from_list_string(topright, options["topright"])
+            && Strutil::extract_from_list_string(bottomleft,
+                                                 options["bottomleft"])
+            && Strutil::extract_from_list_string(bottomright,
+                                                 options["bottomright"])) {
+            ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0],
+                                    &bottomleft[0], &bottomright[0],
+                                    ROI(x, x + w, y, y + h));
+        } else if (Strutil::extract_from_list_string(topleft, options["top"])
+                   && Strutil::extract_from_list_string(bottomleft,
+                                                        options["bottom"])) {
+            ok = ImageBufAlgo::fill(Rib, &topleft[0], &bottomleft[0],
+                                    ROI(x, x + w, y, y + h));
+        } else if (Strutil::extract_from_list_string(topleft, options["left"])
+                   && Strutil::extract_from_list_string(topright,
+                                                        options["right"])) {
+            ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0], &topleft[0],
+                                    &topright[0], ROI(x, x + w, y, y + h));
+        } else if (Strutil::extract_from_list_string(topleft,
+                                                     options["color"])) {
+            ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
+        } else {
+            ot.warning(command,
+                       "No recognized fill parameters: filling with white.");
+            ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
+        }
+        if (!ok)
+            ot.error(command, Rib.geterror());
     }
-
-    std::vector<float> topleft(Rspec.nchannels, 1.0f);
-    std::vector<float> topright(Rspec.nchannels, 1.0f);
-    std::vector<float> bottomleft(Rspec.nchannels, 1.0f);
-    std::vector<float> bottomright(Rspec.nchannels, 1.0f);
-
-    std::map<std::string, std::string> options;
-    ot.extract_options(options, command);
-
-    bool ok = true;
-    if (Strutil::extract_from_list_string(topleft, options["topleft"])
-        && Strutil::extract_from_list_string(topright, options["topright"])
-        && Strutil::extract_from_list_string(bottomleft, options["bottomleft"])
-        && Strutil::extract_from_list_string(bottomright,
-                                             options["bottomright"])) {
-        ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0], &bottomleft[0],
-                                &bottomright[0], ROI(x, x + w, y, y + h));
-    } else if (Strutil::extract_from_list_string(topleft, options["top"])
-               && Strutil::extract_from_list_string(bottomleft,
-                                                    options["bottom"])) {
-        ok = ImageBufAlgo::fill(Rib, &topleft[0], &bottomleft[0],
-                                ROI(x, x + w, y, y + h));
-    } else if (Strutil::extract_from_list_string(topleft, options["left"])
-               && Strutil::extract_from_list_string(topright,
-                                                    options["right"])) {
-        ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0], &topleft[0],
-                                &topright[0], ROI(x, x + w, y, y + h));
-    } else if (Strutil::extract_from_list_string(topleft, options["color"])) {
-        ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
-    } else {
-        ot.warning(command,
-                   "No recognized fill parameters: filling with white.");
-        ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
-    }
-    if (!ok)
-        ot.error(command, Rib.geterror());
 
     ot.function_times[command] += timer();
     return 0;
@@ -4236,20 +4272,23 @@ action_clamp(int argc, const char* argv[])
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
 
+    std::map<std::string, std::string> options;
+    options["clampalpha"]   = "0";
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     ImageRecRef A = ot.pop();
     ot.read(A);
-    ImageRecRef R(new ImageRec(*A, ot.allsubimages ? -1 : 0,
-                               ot.allsubimages ? -1 : 0, true /*writeable*/,
-                               false /*copy_pixels*/));
+    int subimages = allsubimages ? A->subimages() : 1;
+    ImageRecRef R(new ImageRec(*A, allsubimages ? -1 : 0, allsubimages ? -1 : 0,
+                               true /*writeable*/, false /*copy_pixels*/));
     ot.push(R);
-    for (int s = 0, subimages = R->subimages(); s < subimages; ++s) {
+    for (int s = 0; s < subimages; ++s) {
         int nchans      = (*R)(s, 0).nchannels();
         const float big = std::numeric_limits<float>::max();
         std::vector<float> min(nchans, -big);
         std::vector<float> max(nchans, big);
-        std::map<std::string, std::string> options;
-        options["clampalpha"] = "0";  // initialize
-        ot.extract_options(options, command);
         Strutil::extract_from_list_string(min, options["min"]);
         Strutil::extract_from_list_string(max, options["max"]);
         bool clampalpha01 = Strutil::stoi(options["clampalpha"]);
