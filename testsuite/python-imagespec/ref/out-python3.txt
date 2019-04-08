@@ -87,8 +87,11 @@ getattribute('foo_str') retrieves blah
 getattribute('foo_vector') retrieves (1.0, 0.0, 11.0)
 getattribute('foo_matrix') retrieves (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
 getattribute('foo_no') retrieves None
+s['delfoo_float'] = 99.5
+s['delfoo_int'] = 29
+s['delfoo_str'] = egg
 
-extra_attribs size is 5
+extra_attribs size is 8
 0 foo_str string blah
 "blah"
 1 foo_int int 14
@@ -96,9 +99,15 @@ extra_attribs size is 5
 2 foo_float float 3.140000104904175
 3.14
 3 foo_vector vector (1.0, 0.0, 11.0)
-1 0 11
+1, 0, 11
 4 foo_matrix matrix (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
-1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
+1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1
+5 delfoo_str string egg
+"egg"
+6 delfoo_int int 29
+29
+7 delfoo_float float 99.5
+99.5
 
 seralize(xml):
 <ImageSpec version="22">
@@ -132,8 +141,11 @@ seralize(xml):
 <attrib name="foo_str" type="string">blah</attrib>
 <attrib name="foo_int" type="int">14</attrib>
 <attrib name="foo_float" type="float">3.14</attrib>
-<attrib name="foo_vector" type="vector">1 0 11</attrib>
-<attrib name="foo_matrix" type="matrix">1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1</attrib>
+<attrib name="foo_vector" type="vector">1, 0, 11</attrib>
+<attrib name="foo_matrix" type="matrix">1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1</attrib>
+<attrib name="delfoo_str" type="string">egg</attrib>
+<attrib name="delfoo_int" type="int">29</attrib>
+<attrib name="delfoo_float" type="float">99.5</attrib>
 </ImageSpec>
 
 serialize(text, human):
@@ -143,11 +155,14 @@ serialize(text, human):
     full/display size: 1280 x 960
     full/display origin: 4, 5
     tile size: 32 x 64
+    delfoo_float: 99.5
+    delfoo_int: 29
+    delfoo_str: "egg"
     foo_float: 3.14
     foo_int: 14
-    foo_matrix: 1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
+    foo_matrix: 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1
     foo_str: "blah"
-    foo_vector: 1 0 11
+    foo_vector: 1, 0, 11
 
 Testing construction from ROI:
   resolution (width,height,depth) =  640 480 1

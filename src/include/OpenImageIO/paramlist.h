@@ -40,6 +40,7 @@
 
 #include <vector>
 
+#include <OpenImageIO/attrdelegate.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
@@ -221,10 +222,12 @@ public:
     /// is returned as one string that's a comma-separated list of double-
     /// quoted, escaped strings.
     std::string get_string(int maxsize = 64) const;
+    std::string get_string_indexed(int index) const;
     /// Convert any type to a ustring value. An optional maximum number of
     /// elements is also passed. Same behavior as get_string, but returning
     /// a ustring.
     ustring get_ustring(int maxsize = 64) const;
+    ustring get_ustring_indexed(int index) const;
 
 private:
     ustring m_name;   ///< data name
@@ -311,6 +314,63 @@ public:
     void add_or_replace(const ParamValue& pv, bool casesensitive = true);
     void add_or_replace(ParamValue&& pv, bool casesensitive = true);
 
+    /// Add (or replace) a value in the list.
+    void attribute(string_view name, TypeDesc type, int nvalues,
+                   const void* value)
+    {
+        if (!name.empty())
+            add_or_replace(ParamValue(name, type, nvalues, value));
+    }
+
+    void attribute(string_view name, TypeDesc type, const void* value)
+    {
+        attribute(name, type, 1, value);
+    }
+
+    /// Set directly from string -- parse if type is non-string.
+    void attribute(string_view name, TypeDesc type, string_view value)
+    {
+        if (!name.empty())
+            add_or_replace(ParamValue(name, type, value));
+    }
+
+    // Shortcuts for single value of common types.
+    void attribute(string_view name, int value)
+    {
+        attribute(name, TypeInt, 1, &value);
+    }
+    void attribute(string_view name, unsigned int value)
+    {
+        attribute(name, TypeUInt, 1, &value);
+    }
+    void attribute(string_view name, float value)
+    {
+        attribute(name, TypeFloat, 1, &value);
+    }
+    void attribute(string_view name, string_view value)
+    {
+        ustring v(value);
+        attribute(name, TypeString, 1, &v);
+    }
+
+    /// Search list for named item, return its type or TypeUnknnown if not
+    /// found.
+    TypeDesc getattributetype(string_view name,
+                              bool casesensitive = false) const
+    {
+        auto p = find(name, TypeUnknown, casesensitive);
+        return p != cend() ? p->type() : TypeUnknown;
+    }
+
+    /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into val[...] and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    bool getattribute(string_view name, TypeDesc type, void* value,
+                      bool casesensitive = false) const;
+    /// Shortcut for retrieving a single string via getattribute.
+    bool getattribute(string_view name, std::string& value,
+                      bool casesensitive = false) const;
+
     // Sort alphabetically, optionally case-insensitively, locale-
     // independently, and with all the "un-namespaced" items appearing
     // first, followed by items with "prefixed namespaces" (e.g. "z" comes
@@ -324,7 +384,43 @@ public:
         clear();
         shrink_to_fit();
     }
+
+    /// Array indexing by integer will return a reference to the ParamValue
+    /// in that position of the list.
+    ParamValue& operator[](int index)
+    {
+        return std::vector<ParamValue>::operator[](index);
+    }
+    const ParamValue& operator[](int index) const
+    {
+        return std::vector<ParamValue>::operator[](index);
+    }
+
+    /// Array indexing by string will create a "Delegate" that enables a
+    /// convenient shorthand for adding and retrieving values from the list:
+    ///
+    /// 1. Assigning to the delegate adds a ParamValue to the list:
+    ///        ParamValueList list;
+    ///        list["foo"] = 42;       // adds integer
+    ///        list["bar"] = 39.8f;    // adds float
+    ///        list["baz"] = "hello";  // adds string
+    ///    Be very careful, the attribute's type will be implied by the C++
+    ///    type of what you assign.
+    ///
+    /// 2. The delegate supports a get<T>() that retrieves an item of type T:
+    ///         int i = list["foo"].get<int>();
+    ///         std::string s = list["baz"].get<std::string>();
+    ///
+    AttrDelegate<const ParamValueList> operator[](string_view name) const
+    {
+        return { this, name };
+    }
+    AttrDelegate<ParamValueList> operator[](string_view name)
+    {
+        return { this, name };
+    }
 };
+
 
 
 OIIO_NAMESPACE_END

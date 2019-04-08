@@ -319,7 +319,8 @@ endif()
 if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
     if (NOT SANITIZE_ON_LINUX)
         oiio_add_tests (
-                python-typedesc python-imagespec python-roi python-deep
+                python-typedesc python-paramlist
+                python-imagespec python-roi python-deep
                 python-imageinput python-imageoutput
                 python-imagebuf python-imagebufalgo
                 IMAGEDIR oiio-images

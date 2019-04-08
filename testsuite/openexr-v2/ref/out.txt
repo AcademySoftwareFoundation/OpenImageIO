@@ -12,7 +12,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     name: "rgba.left"
     nuke/node_hash: "b4ea9f917764b762"
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
     oiio:ColorSpace: "Linear"
@@ -28,7 +28,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     Copyright: "Copyright 2012 Weta Digital Ltd"
     name: "depth.left"
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
     oiio:ColorSpace: "Linear"
@@ -44,7 +44,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     Copyright: "Copyright 2012 Weta Digital Ltd"
     name: "rgba.right"
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
     oiio:ColorSpace: "Linear"
@@ -60,7 +60,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     Copyright: "Copyright 2012 Weta Digital Ltd"
     name: "depth.right"
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
     oiio:ColorSpace: "Linear"
@@ -91,7 +91,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     Copyright: "Copyright 2012 Weta Digital Ltd"
     name: "rgba.left"
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
     oiio:ColorSpace: "Linear"
@@ -108,7 +108,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     Copyright: "Copyright 2012 Weta Digital Ltd"
     name: "rgba.right"
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
     oiio:ColorSpace: "Linear"
@@ -148,7 +148,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     Copyright: "Copyright 2012 Weta Digital Ltd"
     name: "rgba.left"
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
     oiio:ColorSpace: "Linear"
@@ -162,7 +162,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     Copyright: "Copyright 2012 Weta Digital Ltd"
     name: "rgba.right"
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
     oiio:ColorSpace: "Linear"

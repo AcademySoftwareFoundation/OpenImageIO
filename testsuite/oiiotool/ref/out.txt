@@ -14,7 +14,7 @@ chname.exr           :   38 x   38, 5 channel, float openexr
     nuke/node_hash: ""
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
 Reading allhalf.exr
@@ -27,7 +27,7 @@ allhalf.exr          :   38 x   38, 5 channel, half openexr
     nuke/node_hash: ""
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
 Reading rgbahalf-zfloat.exr
@@ -40,7 +40,7 @@ rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
     nuke/node_hash: ""
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
 copyA.0001.jpg       :  128 x   96, 3 channel, uint8 jpeg
@@ -86,7 +86,7 @@ add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
     channel list: R, G, B, A
     compression: "zip"
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
 Comparing "filled.tif" and "ref/filled.tif"

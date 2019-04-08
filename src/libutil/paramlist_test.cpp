@@ -28,9 +28,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#include <limits>
+
+#include <OpenEXR/ImathColor.h>
+#include <OpenEXR/ImathMatrix.h>
+#include <OpenEXR/ImathVec.h>
+
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/unittest.h>
-#include <limits>
+
 
 using namespace OIIO;
 
@@ -175,13 +181,13 @@ test_value_types()
         };
         ParamValue p("name", TypeMatrix, 1, matrix16);
         std::string s = p.get_string();
-        OIIO_CHECK_EQUAL(s, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16");
-        OIIO_CHECK_NE(s, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16,");
+        OIIO_CHECK_EQUAL(
+            s, "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16");
         ParamValue q("name", TypeMatrix,
                      sizeof(matrix16) / (16 * sizeof(float)), matrix16);
         OIIO_CHECK_EQUAL(
             q.get_string(),
-            "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16, 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25");
+            "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25");
     }
 
     // Test rational
@@ -243,7 +249,7 @@ test_from_string()
     OIIO_CHECK_EQUAL(data, list_test(data, type));
 
     type = TypeMatrix;
-    data = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16";
+    data = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16";
     OIIO_CHECK_EQUAL(data, list_test(data, type));
 
     type = TypeString;
@@ -284,6 +290,51 @@ test_paramlist()
 
 
 
+static void
+test_delegates()
+{
+    std::cout << "test_delegates\n";
+    ParamValueList pl;
+    pl["foo"]  = 42;
+    pl["pi"]   = float(M_PI);
+    pl["bar"]  = "barbarbar?";
+    pl["bar2"] = std::string("barbarbar?");
+    pl["bar3"] = ustring("barbarbar?");
+    pl["bar4"] = string_view("barbarbar?");
+    pl["red"]  = Imath::Color3f(1.0f, 0.0f, 0.0f);
+    pl["xy"]   = Imath::V3f(0.5f, 0.5f, 0.0f);
+    pl["Tx"]   = Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0, 1);
+
+    OIIO_CHECK_EQUAL(pl["absent"].get<int>(), 0);
+    OIIO_CHECK_EQUAL(pl["absent"].type(), TypeUnknown);
+    OIIO_CHECK_EQUAL(pl["foo"].get<int>(), 42);
+    OIIO_CHECK_EQUAL(pl["foo"].type(), TypeInt);
+    OIIO_CHECK_EQUAL(pl["foo"].as_string(), "42");
+    OIIO_CHECK_EQUAL(pl["pi"].get<float>(), float(M_PI));
+    OIIO_CHECK_EQUAL(pl["bar"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar"].get<string_view>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar"].get<ustring>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar"].as_string(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar2"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar3"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["bar4"].get<std::string>(), "barbarbar?");
+    OIIO_CHECK_EQUAL(pl["red"].get<Imath::Color3f>(),
+                     Imath::Color3f(1.0f, 0.0f, 0.0f));
+    OIIO_CHECK_EQUAL(pl["xy"].get<Imath::V3f>(), Imath::V3f(0.5f, 0.5f, 0.0f));
+    OIIO_CHECK_EQUAL(pl["Tx"].get<Imath::M44f>(),
+                     Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0,
+                                 1));
+    std::string s = pl["foo"];
+    OIIO_CHECK_EQUAL(s, "42");
+
+    Strutil::printf("Delegate-loaded array is\n");
+    for (auto&& p : pl)
+        Strutil::printf(" %16s : %s\n", p.name(), p.get_string());
+    Strutil::printf("\n");
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -291,6 +342,7 @@ main(int argc, char* argv[])
     test_value_types();
     test_from_string();
     test_paramlist();
+    test_delegates();
 
     return unit_test_failures;
 }

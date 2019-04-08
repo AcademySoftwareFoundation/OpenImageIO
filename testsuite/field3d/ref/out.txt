@@ -6,11 +6,11 @@ Reading ../texture-field3d/src/dense_float.f3d
     field_type: 0
     ImageDescription: "sphere:density"
     storage_type: 2
-    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
-    worldtolocal: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
+    worldtocamera: 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0.5, 0.5, 0.5, 1
+    worldtolocal: 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0.5, 0.5, 0.5, 1
     field3d:fieldtype: "DenseField"
     field3d:layer: "density"
-    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
+    field3d:localtoworld: 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, -1, -1, -1, 1
     field3d:mapping: "MatrixFieldMapping"
     field3d:partition: "sphere"
     oiio:subimagename: "sphere:density"
@@ -24,11 +24,11 @@ Reading ../texture-field3d/src/sparse_float.f3d
     field_type: 1
     ImageDescription: "sphere:density"
     storage_type: 2
-    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
-    worldtolocal: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
+    worldtocamera: 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0.5, 0.5, 0.5, 1
+    worldtolocal: 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0.5, 0.5, 0.5, 1
     field3d:fieldtype: "SparseField"
     field3d:layer: "density"
-    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
+    field3d:localtoworld: 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, -1, -1, -1, 1
     field3d:mapping: "MatrixFieldMapping"
     field3d:partition: "sphere"
     oiio:subimagename: "sphere:density"
@@ -42,11 +42,11 @@ Reading ../texture-field3d/src/dense_half.f3d
     field_type: 0
     ImageDescription: "sphere:density"
     storage_type: 1
-    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
-    worldtolocal: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
+    worldtocamera: 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0.5, 0.5, 0.5, 1
+    worldtolocal: 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0.5, 0.5, 0.5, 1
     field3d:fieldtype: "DenseField"
     field3d:layer: "density"
-    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
+    field3d:localtoworld: 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, -1, -1, -1, 1
     field3d:mapping: "MatrixFieldMapping"
     field3d:partition: "sphere"
     oiio:subimagename: "sphere:density"
@@ -60,11 +60,11 @@ Reading ../texture-field3d/src/sparse_half.f3d
     field_type: 1
     ImageDescription: "sphere:density"
     storage_type: 1
-    worldtocamera: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
-    worldtolocal: 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0.5 0.5 0.5 1
+    worldtocamera: 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0.5, 0.5, 0.5, 1
+    worldtolocal: 0.5, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0.5, 0, 0.5, 0.5, 0.5, 1
     field3d:fieldtype: "SparseField"
     field3d:layer: "density"
-    field3d:localtoworld: 2 0 0 0 0 2 0 0 0 0 2 0 -1 -1 -1 1
+    field3d:localtoworld: 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, -1, -1, -1, 1
     field3d:mapping: "MatrixFieldMapping"
     field3d:partition: "sphere"
     oiio:subimagename: "sphere:density"
