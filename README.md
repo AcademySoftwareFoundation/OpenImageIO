@@ -4,7 +4,8 @@ README for OpenImageIO
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/OpenImageIO/oiio.svg?branch=master)](https://travis-ci.org/OpenImageIO/oiio)
 [![Windows Build Status](https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master)
-
+[![CircleCI](https://circleci.com/gh/OpenImageIO/oiio/tree/master.svg?style=svg)](https://circleci.com/gh/OpenImageIO/oiio/tree/master)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/2694/badge)](https://bestpractices.coreinfrastructure.org/projects/2694)
 
 
 Introduction
