@@ -239,7 +239,7 @@ private:
     // program!  Ick.  So to avoid this, we always push a pointer, which
     // we expect NOT to be altered, and if it is, it's a danger sign (plus
     // we didn't crash).
-    bool safe_tiffgetfield(const std::string& name, int tag, void* dest)
+    bool safe_tiffgetfield(string_view name, int tag, void* dest)
     {
         void* ptr = NULL;  // dummy -- expect it to stay NULL
         bool ok   = TIFFGetField(m_tif, tag, dest, &ptr);
@@ -922,7 +922,8 @@ TIFFInput::readspec(bool read_meta)
     if (const char* compressname = tiff_compression_name(m_compression))
         m_spec.attribute("compression", compressname);
     m_predictor = PREDICTOR_NONE;
-    TIFFGetField(m_tif, TIFFTAG_PREDICTOR, &m_predictor);
+    if (! safe_tiffgetfield("Predictor", TIFFTAG_PREDICTOR, &m_predictor))
+        m_predictor = PREDICTOR_NONE;
 
     m_rowsperstrip = -1;
     if (!m_spec.tile_width) {
