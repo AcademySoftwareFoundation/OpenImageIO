@@ -239,22 +239,17 @@ private:
     // program!  Ick.  So to avoid this, we always push a pointer, which
     // we expect NOT to be altered, and if it is, it's a danger sign (plus
     // we didn't crash).
-    bool safe_tiffgetfield(string_view name, TypeDesc type, int tag, void* dest)
+    bool safe_tiffgetfield(const std::string& name, int tag, void* dest)
     {
-        const size_t bufsize = 16 * sizeof(float);
-        char buffer[bufsize];
-        ASSERT(type.size() <= bufsize);
         void* ptr = NULL;  // dummy -- expect it to stay NULL
-        bool ok   = TIFFGetField(m_tif, tag, buffer, &ptr);
+        bool ok   = TIFFGetField(m_tif, tag, dest, &ptr);
         if (ptr) {
 #ifndef NDEBUG
             std::cerr << "Error safe_tiffgetfield : did not expect ptr set on "
-                      << name << " " << (void*)ptr << " ok=" << ok << "\n";
+                      << name << " " << (void*)ptr << "\n";
 #endif
             return false;
         }
-        if (ok)
-            memcpy (dest, buffer, type.size());
         return ok;
     }
 
@@ -290,7 +285,7 @@ private:
     void get_matrix_attribute(string_view name, int tag)
     {
         float* f = NULL;
-        if (safe_tiffgetfield(name, TypeMatrix, tag, &f) && f)
+        if (safe_tiffgetfield(name, tag, &f) && f)
             m_spec.attribute(name, TypeMatrix, f);
     }
 
@@ -298,7 +293,7 @@ private:
     void get_float_attribute(string_view name, int tag)
     {
         float f[16];
-        if (safe_tiffgetfield(name, TypeFloat, tag, f))
+        if (safe_tiffgetfield(name, tag, f))
             m_spec.attribute(name, f[0]);
     }
 
@@ -306,17 +301,17 @@ private:
     void get_int_attribute(string_view name, int tag)
     {
         int i;
-        if (safe_tiffgetfield(name, TypeInt, tag, &i))
+        if (safe_tiffgetfield(name, tag, &i))
             m_spec.attribute(name, i);
     }
 
-    // Get a short tiff tag field and put it into extra_params
+    // Get an int tiff tag field and put it into extra_params
     void get_short_attribute(string_view name, int tag)
     {
         // Make room for two shorts, in case the tag is not the type we
         // expect, and libtiff writes a long instead.
         unsigned short s[2] = { 0, 0 };
-        if (safe_tiffgetfield(name, TypeInt16, tag, &s)) {
+        if (safe_tiffgetfield(name, tag, &s)) {
             int i = s[0];
             m_spec.attribute(name, i);
         }
@@ -927,7 +922,7 @@ TIFFInput::readspec(bool read_meta)
     if (const char* compressname = tiff_compression_name(m_compression))
         m_spec.attribute("compression", compressname);
     m_predictor = PREDICTOR_NONE;
-    safe_tiffgetfield("Predictor", TypeUInt16, TIFFTAG_PREDICTOR, &m_predictor);
+    TIFFGetField(m_tif, TIFFTAG_PREDICTOR, &m_predictor);
 
     m_rowsperstrip = -1;
     if (!m_spec.tile_width) {
@@ -1210,7 +1205,7 @@ TIFFInput::readspec_photometric()
             m_spec.attribute("oiio:ColorSpace", "color separated");
             m_raw_color = true;  // Conversion to RGB doesn't make sense
             const char* inknames = NULL;
-            safe_tiffgetfield("tiff:InkNames", TypeString, TIFFTAG_INKNAMES, &inknames);
+            safe_tiffgetfield("tiff:InkNames", TIFFTAG_INKNAMES, &inknames);
             if (inknames && inknames[0] && numberofinks) {
                 m_spec.channelnames.clear();
                 // Decode the ink names, which are all concatenated together.
