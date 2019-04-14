@@ -3,20 +3,22 @@ jobs:
   avx2:
     docker:
       - image: debian:stretch
+    environment:
+      - USE_SIMD: avx2,fma,f16c
     steps:
       - checkout
       - run: |
-            export USE_SIMD=avx2,fma,f16c
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/circleci-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
   avx512:
     docker:
       - image: debian:stretch
+    environment:
+      - USE_SIMD: avx512f,avx512dq,avx512cd,avx512bw,avx512vl,fma,f16c
     steps:
       - checkout
       - run: |
-            export USE_SIMD=avx512f,avx512dq,avx512cd,avx512bw,avx512vl,fma,f16c
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/circleci-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash

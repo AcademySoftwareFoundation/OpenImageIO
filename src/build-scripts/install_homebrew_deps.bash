@@ -21,7 +21,7 @@ echo ""
 echo "Before my brew installs:"
 brew list --versions
 
-if [[ "$OIIOTARGET" == "clang-format" ]] ; then
+if [[ "$BUILDTARGET" == "clang-format" ]] ; then
     # If we are running for the sake of clang-format only, just install the
     # bare minimum packages and return.
     brew install ilmbase openexr llvm

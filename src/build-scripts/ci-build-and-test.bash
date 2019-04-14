@@ -16,14 +16,14 @@ elif [[ "$CIRCLECI" != "" ]] ; then
 fi
 
 make $MAKEFLAGS VERBOSE=1 $BUILD_FLAGS cmakesetup
-make $MAKEFLAGS $BUILD_FLAGS $OIIOTARGET
+make $MAKEFLAGS $BUILD_FLAGS $BUILDTARGET
 
 if [[ "$SKIP_TESTS" == "" ]] ; then
     $OPENIMAGEIO_ROOT_DIR/bin/oiiotool --help
     make $BUILD_FLAGS test
 fi
 
-if [[ $OIIOTARGET == clang-format ]] ; then
+if [[ $BUILDTARGET == clang-format ]] ; then
     git diff --color
     THEDIFF=`git diff`
     if [[ "$THEDIFF" != "" ]] ; then

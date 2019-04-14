@@ -195,7 +195,7 @@ matrix:
       - name: "clang-format format verification"
         os: osx
         compiler: clang
-        env: OIIOTARGET=clang-format SKIP_TESTS=1 BUILD_MISSING_DEPS=0
+        env: BUILDTARGET=clang-format SKIP_TESTS=1 BUILD_MISSING_DEPS=0
         #if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
     # Static analysis: build with clang-tidy.
     # Disabled -- this takes so long to run, it can't complete in Travis's
