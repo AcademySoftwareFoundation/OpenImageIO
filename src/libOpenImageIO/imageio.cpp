@@ -347,7 +347,7 @@ attribute(string_view name, TypeDesc type, const void* val)
         oiio_log_times = *(const int*)val;
         return true;
     }
-    if (name == "missingcolor" && type.basetype == TypeFloat) {
+    if (name == "missingcolor" && type.basetype == TypeDesc::FLOAT) {
         // missingcolor as float array
         oiio_missingcolor.clear();
         oiio_missingcolor.reserve(type.basevalues());
@@ -450,7 +450,7 @@ getattribute(string_view name, TypeDesc type, void* val)
         *(int*)val = int(Sysutil::memory_used(true) >> 20);
         return true;
     }
-    if (name == "missingcolor" && type.basetype == TypeFloat
+    if (name == "missingcolor" && type.basetype == TypeDesc::FLOAT
         && oiio_missingcolor.size()) {
         // missingcolor as float array
         int n  = type.basevalues();
