@@ -52,6 +52,17 @@ OIIO_NAMESPACE_BEGIN
 
 namespace {
 
+// Define a templated Accumulator type that's float, except in the case
+// of double input, in which case it's double.
+template<typename T> struct Accum_t {
+    typedef float type;
+};
+template<> struct Accum_t<double> {
+    typedef double type;
+};
+
+
+
 // Poor man's Dual2<float> makes it easy to compute with differentials. For
 // a rich man's implementation and full documentation, see
 // OpenShadingLanguage (dual2.h).
@@ -232,7 +243,6 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
         float dstfh          = float(dstspec.full_height);
         float dstpixelwidth  = 1.0f / dstfw;
         float dstpixelheight = 1.0f / dstfh;
-        float* pel           = ALLOCA(float, nchannels);
         float filterrad      = filter->width() / 2.0f;
 
         // radi,radj is the filter radius, as an integer, in source pixels.  We
@@ -256,9 +266,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
                 float s         = (x - dstfx + 0.5f) * dstpixelwidth;
                 float src_xf    = srcfx + s * srcfw;
                 int src_x;
-                float src_xf_frac = floorfrac(src_xf, &src_x);
-                for (int c = 0; c < nchannels; ++c)
-                    pel[c] = 0.0f;
+                float src_xf_frac   = floorfrac(src_xf, &src_x);
                 float totalweight_x = 0.0f;
                 for (int i = 0; i < xtaps; ++i) {
                     float w = filter->xfilt(
@@ -282,6 +290,11 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
     std::cerr << "dst range " << roi << "\n";
     std::cerr << "separable filter\n";
 #endif
+
+        // Accumulate the weighted results in pel[]. We select a type big
+        // enough to hold with required precision.
+        typedef typename Accum_t<DSTTYPE>::type Acc_t;
+        Acc_t* pel = ALLOCA(Acc_t, nchannels);
 
 #define USE_SPECIAL 0
 #if USE_SPECIAL
