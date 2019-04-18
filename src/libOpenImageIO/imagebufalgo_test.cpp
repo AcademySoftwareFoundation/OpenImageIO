@@ -332,7 +332,7 @@ test_paste()
     // Create destination image -- black it out
     ImageSpec Bspec(8, 8, 3, TypeDesc::FLOAT);
     ImageBuf B(Bspec);
-    float gray[3] = { .1, .1, .1 };
+    float gray[3] = { 0.1f, 0.1f, 0.1f };
     ImageBufAlgo::fill(B, gray);
 
     // Paste a few pixels from A into B -- include offsets
@@ -393,10 +393,10 @@ test_add()
 
     // Create buffers
     ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1, 0.2, 0.3, 0.4 };
+    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
     ImageBufAlgo::fill(A, Aval);
     ImageBuf B(spec);
-    const float Bval[CHANNELS] = { 0.01, 0.02, 0.03, 0.04 };
+    const float Bval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
     ImageBufAlgo::fill(B, Bval);
 
     // Test addition of images
@@ -411,8 +411,8 @@ test_add()
     ImageBuf D(spec);
     ImageBufAlgo::add(D, A, Bval);
     ImageBufAlgo::CompareResults comp;
-    ImageBufAlgo::compare(R, D, 1e-6, 1e-6, comp);
-    OIIO_CHECK_EQUAL(comp.maxerror, 0.0);
+    ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f, comp);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
 
@@ -427,10 +427,10 @@ test_sub()
 
     // Create buffers
     ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1, 0.2, 0.3, 0.4 };
+    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
     ImageBufAlgo::fill(A, Aval);
     ImageBuf B(spec);
-    const float Bval[CHANNELS] = { 0.01, 0.02, 0.03, 0.04 };
+    const float Bval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
     ImageBufAlgo::fill(B, Bval);
 
     // Test subtraction of images
@@ -445,8 +445,8 @@ test_sub()
     ImageBuf D(spec);
     ImageBufAlgo::sub(D, A, Bval);
     ImageBufAlgo::CompareResults comp;
-    ImageBufAlgo::compare(R, D, 1e-6, 1e-6, comp);
-    OIIO_CHECK_EQUAL(comp.maxerror, 0.0);
+    ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f, comp);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
 
@@ -461,10 +461,10 @@ test_mul()
 
     // Create buffers
     ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1, 0.2, 0.3, 0.4 };
+    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
     ImageBufAlgo::fill(A, Aval);
     ImageBuf B(spec);
-    const float Bval[CHANNELS] = { 0.01, 0.02, 0.03, 0.04 };
+    const float Bval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
     ImageBufAlgo::fill(B, Bval);
 
     // Test multiplication of images
@@ -479,8 +479,8 @@ test_mul()
     ImageBuf D(spec);
     ImageBufAlgo::mul(D, A, Bval);
     ImageBufAlgo::CompareResults comp;
-    ImageBufAlgo::compare(R, D, 1e-6, 1e-6, comp);
-    OIIO_CHECK_EQUAL(comp.maxerror, 0.0);
+    ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f, comp);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
 
@@ -495,13 +495,13 @@ test_mad()
 
     // Create buffers
     ImageBuf A(spec);
-    const float Aval[CHANNELS] = { 0.1, 0.2, 0.3, 0.4 };
+    const float Aval[CHANNELS] = { 0.1f, 0.2f, 0.3f, 0.4f };
     ImageBufAlgo::fill(A, Aval);
     ImageBuf B(spec);
     const float Bval[CHANNELS] = { 1, 2, 3, 4 };
     ImageBufAlgo::fill(B, Bval);
     ImageBuf C(spec);
-    const float Cval[CHANNELS] = { 0.01, 0.02, 0.03, 0.04 };
+    const float Cval[CHANNELS] = { 0.01f, 0.02f, 0.03f, 0.04f };
     ImageBufAlgo::fill(C, Cval);
 
     // Test multiplication of images
@@ -517,8 +517,8 @@ test_mad()
     ImageBuf D(spec);
     ImageBufAlgo::mad(D, A, Bval, Cval);
     ImageBufAlgo::CompareResults comp;
-    ImageBufAlgo::compare(R, D, 1e-6, 1e-6, comp);
-    OIIO_CHECK_EQUAL(comp.maxerror, 0.0);
+    ImageBufAlgo::compare(R, D, 1e-6f, 1e-6f, comp);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
 }
 
 
@@ -535,16 +535,16 @@ test_over()
 
     // Create buffers
     ImageBuf BG(spec);
-    const float BGval[CHANNELS] = { 0.5, 0, 0, 0.5 };
+    const float BGval[CHANNELS] = { 0.5f, 0.0f, 0.0f, 0.5f };
     ImageBufAlgo::fill(BG, BGval);
 
     ImageBuf FG(spec);
     ImageBufAlgo::zero(FG);
-    const float FGval[CHANNELS] = { 0, 0.5, 0, 0.5 };
+    const float FGval[CHANNELS] = { 0.0f, 0.5f, 0.0f, 0.5f };
     ImageBufAlgo::fill(FG, FGval, roi);
 
     // value it should be where composited
-    const float comp_val[CHANNELS] = { 0.25, 0.5, 0, 0.75 };
+    const float comp_val[CHANNELS] = { 0.25f, 0.5f, 0.0f, 0.75f };
 
     // Test over
     ImageBuf R(spec);
@@ -582,7 +582,7 @@ test_compare()
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A(spec);
     ImageBuf B(spec);
-    const float grey[CHANNELS] = { 0.5, 0.5, 0.5 };
+    const float grey[CHANNELS] = { 0.5f, 0.5f, 0.5f };
     ImageBufAlgo::fill(A, grey);
     ImageBufAlgo::fill(B, grey);
 
@@ -611,10 +611,10 @@ test_compare()
               << comp.rms_error << ", PSNR = " << comp.PSNR << "\n";
     OIIO_CHECK_EQUAL(comp.nfail, 5);
     OIIO_CHECK_EQUAL(comp.nwarn, 7);
-    OIIO_CHECK_EQUAL_THRESH(comp.maxerror, 0.09, 1e-6);
+    OIIO_CHECK_EQUAL_THRESH(comp.maxerror, 0.09f, 1e-6f);
     OIIO_CHECK_EQUAL(comp.maxx, 9);
     OIIO_CHECK_EQUAL(comp.maxy, 0);
-    OIIO_CHECK_EQUAL_THRESH(comp.meanerror, 0.0045, 1.0e-8);
+    OIIO_CHECK_EQUAL_THRESH(comp.meanerror, 0.0045f, 1.0e-8f);
 }
 
 
@@ -638,12 +638,12 @@ test_isConstantColor()
     OIIO_CHECK_EQUAL(col[2], thecolor[2]);
 
     // Now introduce a difference
-    const float another[CHANNELS] = { 0.25, 0.51, 0.75 };
+    const float another[CHANNELS] = { 0.25f, 0.51f, 0.75f };
     A.setpixel(2, 2, 0, another, 3);
     OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A), false);
     OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, thecolor), false);
     // But not with lower threshold
-    OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, 0.015), true);
+    OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantColor(A, 0.015f), true);
 
     // Make sure ROI works
     ROI roi(0, WIDTH, 0, 2, 0, 1, 0, CHANNELS);  // should match for this ROI
@@ -660,13 +660,13 @@ test_isConstantChannel()
     const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A(spec);
-    const float col[CHANNELS] = { 0.25, 0.5, 0.75 };
+    const float col[CHANNELS] = { 0.25f, 0.5f, 0.75f };
     ImageBufAlgo::fill(A, col);
 
     OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantChannel(A, 1, 0.5f), true);
 
     // Now introduce a difference
-    const float another[CHANNELS] = { 0.25, 0.51, 0.75 };
+    const float another[CHANNELS] = { 0.25f, 0.51f, 0.75f };
     A.setpixel(2, 2, 0, another, 3);
     // It should still pass if within the threshold
     OIIO_CHECK_EQUAL(ImageBufAlgo::isConstantChannel(A, 1, 0.5f, 0.015f), true);
@@ -691,13 +691,13 @@ test_isMonochrome()
     const int WIDTH = 10, HEIGHT = 10, CHANNELS = 3;
     ImageSpec spec(WIDTH, HEIGHT, CHANNELS, TypeDesc::FLOAT);
     ImageBuf A(spec);
-    const float col[CHANNELS] = { 0.25, 0.25, 0.25 };
+    const float col[CHANNELS] = { 0.25f, 0.25f, 0.25f };
     ImageBufAlgo::fill(A, col);
 
     OIIO_CHECK_EQUAL(ImageBufAlgo::isMonochrome(A), true);
 
     // Now introduce a tiny difference
-    const float another[CHANNELS] = { 0.25, 0.25, 0.26 };
+    const float another[CHANNELS] = { 0.25f, 0.25f, 0.26f };
     A.setpixel(2, 2, 0, another, 3);
     // It should still pass if within the threshold
     OIIO_CHECK_EQUAL(ImageBufAlgo::isMonochrome(A, 0.015f), true);

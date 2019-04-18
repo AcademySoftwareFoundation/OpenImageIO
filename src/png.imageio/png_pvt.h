@@ -171,8 +171,8 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     png_read_update_info(sp, ip);
 
     png_uint_32 width, height;
-    ok &= png_get_IHDR(sp, ip, &width, &height, &bit_depth, &color_type,
-                       nullptr, nullptr, nullptr);
+    ok &= (bool)png_get_IHDR(sp, ip, &width, &height, &bit_depth, &color_type,
+                             nullptr, nullptr, nullptr);
 
     spec = ImageSpec((int)width, (int)height, png_get_channels(sp, ip),
                      bit_depth == 16 ? TypeDesc::UINT16 : TypeDesc::UINT8);

@@ -340,7 +340,7 @@ test_read_channel_subset()
     std::cout << "\nTesting reading a channel subset\n";
 
     // FIrst, write a test image with 6 channels
-    static float color6[] = { .6, .5, .4, .3, .2, .1 };
+    static float color6[] = { 0.6f, 0.5f, 0.4f, 0.3f, 0.2f, 0.1f };
     ImageBuf A(ImageSpec(2, 2, 6, TypeDesc::FLOAT));
     ImageBufAlgo::fill(A, color6);
     A.write("sixchans.tif");

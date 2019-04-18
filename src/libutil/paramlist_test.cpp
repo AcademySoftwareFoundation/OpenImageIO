@@ -142,8 +142,8 @@ test_value_types()
     }
 
     {
-        unsigned long long ullmatrix[] = { 0xffffffffffffffffLL,
-                                           0xffffffffffffffffLL };
+        unsigned long long ullmatrix[] = { 0xffffffffffffffffULL,
+                                           0xffffffffffffffffULL };
         ret = test_numeric(&ullmatrix[0], 1, TypeDesc::UINT64);
         OIIO_CHECK_EQUAL(ret, "18446744073709551615");
         ret = test_numeric(ullmatrix,

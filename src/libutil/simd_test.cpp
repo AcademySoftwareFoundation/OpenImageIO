@@ -1198,6 +1198,7 @@ template<typename VEC>
 void
 test_shuffle4()
 {
+    typedef typename VEC::value_t ELEM;
     test_heading("shuffle ", VEC::type_name());
 
     VEC a(0, 1, 2, 3);
@@ -1205,7 +1206,7 @@ test_shuffle4()
     OIIO_CHECK_SIMD_EQUAL((shuffle<0, 0, 2, 2>(a)), VEC(0, 0, 2, 2));
     OIIO_CHECK_SIMD_EQUAL((shuffle<1, 1, 3, 3>(a)), VEC(1, 1, 3, 3));
     OIIO_CHECK_SIMD_EQUAL((shuffle<0, 1, 0, 1>(a)), VEC(0, 1, 0, 1));
-    OIIO_CHECK_SIMD_EQUAL((shuffle<2>(a)), VEC(2));
+    OIIO_CHECK_SIMD_EQUAL((shuffle<2>(a)), VEC(ELEM(2)));
 
     benchmark("shuffle<...> ",
               [&](const VEC& v) { return shuffle<3, 2, 1, 0>(v); }, a);
@@ -1220,13 +1221,14 @@ test_shuffle4()
 template<typename VEC>
 void test_shuffle8 ()
 {
+    typedef typename VEC::value_t ELEM;
     test_heading ("shuffle ", VEC::type_name());
     VEC a (0, 1, 2, 3, 4, 5, 6, 7);
     OIIO_CHECK_SIMD_EQUAL ((shuffle<3,2,1,0,3,2,1,0>(a)), VEC(3,2,1,0,3,2,1,0));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<0,0,2,2,0,0,2,2>(a)), VEC(0,0,2,2,0,0,2,2));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<1,1,3,3,1,1,3,3>(a)), VEC(1,1,3,3,1,1,3,3));
     OIIO_CHECK_SIMD_EQUAL ((shuffle<0,1,0,1,0,1,0,1>(a)), VEC(0,1,0,1,0,1,0,1));
-    OIIO_CHECK_SIMD_EQUAL ((shuffle<2>(a)), VEC(2));
+    OIIO_CHECK_SIMD_EQUAL ((shuffle<2>(a)), VEC(ELEM(2)));
 
     benchmark ("shuffle<...> ", [&](const VEC& v){ return shuffle<7,6,5,4,3,2,1,0>(v); }, a);
     benchmark ("shuffle<0> ", [&](const VEC& v){ return shuffle<0>(v); }, a);
