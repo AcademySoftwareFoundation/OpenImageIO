@@ -24,39 +24,40 @@ brew list --versions
 if [[ "$BUILDTARGET" == "clang-format" ]] ; then
     # If we are running for the sake of clang-format only, just install the
     # bare minimum packages and return.
-    brew install ilmbase openexr llvm
-    exit 0
+    time brew install ilmbase openexr llvm
+else
+    # All cases except for clang-format target, we need the dependencies.
+    time brew install gcc
+    time brew link --overwrite gcc
+    time brew install ccache cmake ninja
+    time brew install ilmbase openexr
+    time brew install opencolorio
+    time brew install freetype
+    time brew install libraw
+    time brew install libpng webp jpeg-turbo
+    time brew install openjpeg
+    time brew install dcmtk
+    time brew install qt
+    time brew install -s field3d
+    # Note: field3d must be build from source to fix boost mismatch as of
+    # Nov 2018. Maybe it will be fixed soon? Check later.
+    time brew install ffmpeg
+    time brew install opencv
+    time brew install tbb
+    time brew install openvdb
+    time brew install pybind11
+    time brew install libheif
 fi
 
-brew install gcc
-brew link --overwrite gcc
-brew install ccache cmake ninja
-brew install ilmbase openexr
-brew install opencolorio
-brew install freetype
-brew install libraw
-brew install libpng webp jpeg-turbo
-brew install openjpeg
-brew install dcmtk
-brew install qt
-brew install -s field3d
-# Note: field3d must be build from source to fix boost mismatch as of
-# Nov 2018. Maybe it will be fixed soon? Check later.
-brew install ffmpeg
-brew install opencv
-brew install tbb
-brew install openvdb
-brew install pybind11
-brew install libheif
 if [[ "$LINKSTATIC" == "1" ]] ; then
-    brew install little-cms2 tinyxml szip
-    brew install homebrew/dupes/bzip2
-    brew install yaml-cpp --with-static-lib
+    time brew install little-cms2 tinyxml szip
+    time brew install homebrew/dupes/bzip2
+    time brew install yaml-cpp --with-static-lib
 fi
 if [[ "$CLANG_TIDY" != "" ]] ; then
     # If we are running for the sake of clang-tidy only, we will need
     # a modern clang version not just the xcode one.
-    brew install llvm
+    time brew install llvm
 fi
 
 echo ""

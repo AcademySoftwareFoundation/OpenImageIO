@@ -922,7 +922,7 @@ TIFFInput::readspec(bool read_meta)
     if (const char* compressname = tiff_compression_name(m_compression))
         m_spec.attribute("compression", compressname);
     m_predictor = PREDICTOR_NONE;
-    if (! safe_tiffgetfield("Predictor", TIFFTAG_PREDICTOR, &m_predictor))
+    if (!safe_tiffgetfield("Predictor", TIFFTAG_PREDICTOR, &m_predictor))
         m_predictor = PREDICTOR_NONE;
 
     m_rowsperstrip = -1;

@@ -54,8 +54,12 @@ namespace {
 
 // Define a templated Accumulator type that's float, except in the case
 // of double input, in which case it's double.
-template <typename T> struct Accum_t { typedef float  type; };
-template<> struct Accum_t<double>    { typedef double type; };
+template<typename T> struct Accum_t {
+    typedef float type;
+};
+template<> struct Accum_t<double> {
+    typedef double type;
+};
 
 
 
@@ -262,7 +266,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
                 float s         = (x - dstfx + 0.5f) * dstpixelwidth;
                 float src_xf    = srcfx + s * srcfw;
                 int src_x;
-                float src_xf_frac = floorfrac(src_xf, &src_x);
+                float src_xf_frac   = floorfrac(src_xf, &src_x);
                 float totalweight_x = 0.0f;
                 for (int i = 0; i < xtaps; ++i) {
                     float w = filter->xfilt(
