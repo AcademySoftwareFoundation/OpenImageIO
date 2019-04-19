@@ -121,7 +121,7 @@ ImageRec::ImageRec(ImageRec& img, int subimage_to_copy, int miplevel_to_copy,
 
 
 ImageRec::ImageRec(ImageRec& A, ImageRec& B, int subimage_to_copy,
-                   WinMerge pixwin, WinMerge fullwin, TypeDesc pixeltype)
+                   WinMerge pixwin, WinMerge fullwin, const TypeDesc& pixeltype)
     : m_name(A.name())
     , m_elaborated(true)
     , m_imagecache(A.m_imagecache)
@@ -177,7 +177,7 @@ ImageRec::ImageRec(ImageRec& A, ImageRec& B, int subimage_to_copy,
 
 
 
-ImageRec::ImageRec(ImageBufRef img, bool copy_pixels)
+ImageRec::ImageRec(const ImageBufRef& img, bool copy_pixels)
     : m_name(img->name())
     , m_elaborated(true)
     , m_imagecache(img->imagecache())
@@ -218,7 +218,7 @@ ImageRec::ImageRec(const std::string& name, const ImageSpec& spec,
 
 
 bool
-ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
+ImageRec::read(ReadPolicy readpolicy, const string_view& channel_set)
 {
     if (elaborated())
         return true;
@@ -371,7 +371,7 @@ ImageRec::geterror(bool clear_error) const
 
 
 void
-ImageRec::append_error(string_view message) const
+ImageRec::append_error(const string_view& message) const
 {
     spin_lock lock(err_mutex);
     ASSERT(m_err.size() < 1024 * 1024 * 16

@@ -32,6 +32,7 @@
 #include <ctime> /* time_t, struct tm, gmtime */
 #include <iostream>
 #include <memory>
+#include <utility>
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -118,58 +119,58 @@ private:
                            [&](const T& a) { return a == v; });
     }
 
-    static std::string prefixedname(string_view prefix, std::string& name)
+    static std::string prefixedname(const string_view& prefix, std::string& name)
     {
         return prefix.size() ? (std::string(prefix) + ':' + name) : name;
     }
 
-    void add(string_view prefix, std::string name, int data, bool force = true,
+    void add(const string_view& prefix, std::string name, int data, bool force = true,
              int ignval = 0)
     {
         if (force || data != ignval)
             m_spec.attribute(prefixedname(prefix, name), data);
     }
-    void add(string_view prefix, std::string name, float data,
+    void add(const string_view& prefix, std::string name, float data,
              bool force = true, float ignval = 0)
     {
         if (force || data != ignval)
             m_spec.attribute(prefixedname(prefix, name), data);
     }
-    void add(string_view prefix, std::string name, string_view data,
+    void add(const string_view& prefix, std::string name, const string_view& data,
              bool force = true, int ignval = 0)
     {
         if (force || (data.size() && data[0]))
             m_spec.attribute(prefixedname(prefix, name), data);
     }
-    void add(string_view prefix, std::string name, unsigned long long data,
+    void add(const string_view& prefix, std::string name, unsigned long long data,
              bool force = true, unsigned long long ignval = 0)
     {
         if (force || data != ignval)
             m_spec.attribute(prefixedname(prefix, name), TypeDesc::UINT64,
                              &data);
     }
-    void add(string_view prefix, std::string name, unsigned int data,
+    void add(const string_view& prefix, std::string name, unsigned int data,
              bool force = true, int ignval = 0)
     {
-        add(prefix, name, (int)data, force, ignval);
+        add(prefix, std::move(name), (int)data, force, ignval);
     }
-    void add(string_view prefix, std::string name, unsigned short data,
+    void add(const string_view& prefix, std::string name, unsigned short data,
              bool force = true, int ignval = 0)
     {
-        add(prefix, name, (int)data, force, ignval);
+        add(prefix, std::move(name), (int)data, force, ignval);
     }
-    void add(string_view prefix, std::string name, unsigned char data,
+    void add(const string_view& prefix, std::string name, unsigned char data,
              bool force = true, int ignval = 0)
     {
-        add(prefix, name, (int)data, force, ignval);
+        add(prefix, std::move(name), (int)data, force, ignval);
     }
-    void add(string_view prefix, std::string name, double data,
+    void add(const string_view& prefix, std::string name, double data,
              bool force = true, float ignval = 0)
     {
-        add(prefix, name, float(data), force, ignval);
+        add(prefix, std::move(name), float(data), force, ignval);
     }
 
-    void add(string_view prefix, std::string name, cspan<int> data,
+    void add(const string_view& prefix, std::string name, cspan<int> data,
              bool force = true, int ignval = 0)
     {
         if (force || !allval(data, ignval)) {
@@ -178,7 +179,7 @@ private:
                              TypeDesc(TypeDesc::INT, size), data.data());
         }
     }
-    void add(string_view prefix, std::string name, cspan<short> data,
+    void add(const string_view& prefix, std::string name, cspan<short> data,
              bool force = true, short ignval = 0)
     {
         if (force || !allval(data, ignval)) {
@@ -187,7 +188,7 @@ private:
                              TypeDesc(TypeDesc::INT16, size), data.data());
         }
     }
-    void add(string_view prefix, std::string name, cspan<unsigned short> data,
+    void add(const string_view& prefix, std::string name, cspan<unsigned short> data,
              bool force = true, unsigned short ignval = 0)
     {
         if (force || !allval(data, ignval)) {
@@ -196,7 +197,7 @@ private:
                              TypeDesc(TypeDesc::UINT16, size), data.data());
         }
     }
-    void add(string_view prefix, std::string name, cspan<unsigned char> data,
+    void add(const string_view& prefix, std::string name, cspan<unsigned char> data,
              bool force = true, unsigned char ignval = 0)
     {
         if (force || !allval(data, ignval)) {
@@ -205,7 +206,7 @@ private:
                              TypeDesc(TypeDesc::UINT8, size), data.data());
         }
     }
-    void add(string_view prefix, std::string name, cspan<float> data,
+    void add(const string_view& prefix, std::string name, cspan<float> data,
              bool force = true, float ignval = 0)
     {
         if (force || !allval(data, ignval)) {
@@ -214,13 +215,13 @@ private:
                              TypeDesc(TypeDesc::FLOAT, size), data.data());
         }
     }
-    void add(string_view prefix, std::string name, cspan<double> data,
+    void add(const string_view& prefix, std::string name, cspan<double> data,
              bool force = true, float ignval = 0)
     {
         float* d = OIIO_ALLOCA(float, data.size());
         for (auto i = 0; i < data.size(); ++i)
             d[i] = data[i];
-        add(prefix, name, cspan<float>(d, data.size()), force, ignval);
+        add(prefix, std::move(name), cspan<float>(d, data.size()), force, ignval);
     }
 };
 

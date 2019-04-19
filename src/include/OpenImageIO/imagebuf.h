@@ -102,7 +102,7 @@ public:
     /// If 'config' is not NULL, it points to an ImageSpec giving requests
     /// or special instructions to be passed on to the eventual
     /// ImageInput::open() call.
-    explicit ImageBuf(string_view name, int subimage = 0, int miplevel = 0,
+    explicit ImageBuf(const string_view& name, int subimage = 0, int miplevel = 0,
                       ImageCache* imagecache  = NULL,
                       const ImageSpec* config = NULL);
 
@@ -112,7 +112,7 @@ public:
     /// init_spec() or read() is made, whichever comes first. If a non-NULL
     /// imagecache is supplied, it will specifiy a custom ImageCache to use;
     /// if otherwise, the global/shared ImageCache will be used.
-    ImageBuf(string_view name, ImageCache* imagecache);
+    ImageBuf(const string_view& name, ImageCache* imagecache);
 
     /// Construct an Imagebuf given a proposed spec describing the image
     /// size and type, and allocate storage for the pixels of the image
@@ -122,7 +122,7 @@ public:
     /// Construct an Imagebuf given both a name and a proposed spec
     /// describing the image size and type, and allocate storage for
     /// the pixels of the image (whose values will be undefined).
-    ImageBuf(string_view name, const ImageSpec& spec);
+    ImageBuf(const string_view& name, const ImageSpec& spec);
 
     /// Construct an ImageBuf that "wraps" a memory buffer owned by the
     /// calling application.  It can write pixels to this buffer, but
@@ -132,7 +132,7 @@ public:
     /// Construct an ImageBuf that "wraps" a memory buffer owned by the
     /// calling application.  It can write pixels to this buffer, but
     /// can't change its resolution or data type.
-    ImageBuf(string_view name, const ImageSpec& spec, void* buffer);
+    ImageBuf(const string_view& name, const ImageSpec& spec, void* buffer);
 
     /// Construct a copy of an ImageBuf.
     ///
@@ -163,12 +163,12 @@ public:
     /// If 'config' is not NULL, it points to an ImageSpec giving requests
     /// or special instructions to be passed on to the eventual
     /// ImageInput::open() call.
-    void reset(string_view name, int subimage, int miplevel,
+    void reset(const string_view& name, int subimage, int miplevel,
                ImageCache* imagecache = NULL, const ImageSpec* config = NULL);
 
     /// Forget all previous info, reset this ImageBuf to a new image
     /// that is uninitialized (no pixel values, no size or spec).
-    void reset(string_view name, ImageCache* imagecache = NULL);
+    void reset(const string_view& name, ImageCache* imagecache = NULL);
 
     /// Forget all previous info, reset this ImageBuf to a blank
     /// image of the given dimensions.
@@ -176,7 +176,7 @@ public:
 
     /// Forget all previous info, reset this ImageBuf to a blank
     /// image of the given name and dimensions.
-    void reset(string_view name, const ImageSpec& spec);
+    void reset(const string_view& name, const ImageSpec& spec);
 
     // Copy assignment
     const ImageBuf& operator=(const ImageBuf& src);
@@ -196,7 +196,7 @@ public:
     /// file format for which an appropriate imageio plugin can be found.
     /// Return value is true if all is ok, otherwise false.
     bool read(int subimage = 0, int miplevel = 0, bool force = false,
-              TypeDesc convert                   = TypeDesc::UNKNOWN,
+              const TypeDesc& convert                   = TypeDesc::UNKNOWN,
               ProgressCallback progress_callback = NULL,
               void* progress_callback_data       = NULL);
 
@@ -209,22 +209,22 @@ public:
     /// note that it is "advisory" and not guaranteed to be honored by the
     /// underlying implementation.
     bool read(int subimage, int miplevel, int chbegin, int chend, bool force,
-              TypeDesc convert, ProgressCallback progress_callback = NULL,
+              const TypeDesc& convert, ProgressCallback progress_callback = NULL,
               void* progress_callback_data = NULL);
 
     /// Initialize this ImageBuf with the named image file, and read its
     /// header to fill out the spec correctly.  Return true if this
     /// succeeded, false if the file could not be read.  But don't
     /// allocate or read the pixels.
-    bool init_spec(string_view filename, int subimage, int miplevel);
+    bool init_spec(const string_view& filename, int subimage, int miplevel);
 
     /// Write the image to the named file, converted to the specified pixel
     /// data type `dtype` (TypeUnknown signifies to use the data type of the
     /// buffer), and file format ("" means to infer the type from the
     /// filename extension). Return true if all went ok, false if there were
     /// errors writing.
-    bool write(string_view filename, TypeDesc dtype = TypeUnknown,
-               string_view fileformat             = string_view(),
+    bool write(const string_view& filename, TypeDesc dtype = TypeUnknown,
+               const string_view& fileformat             = string_view(),
                ProgressCallback progress_callback = nullptr,
                void* progress_callback_data       = nullptr) const;
     // DEPRECATED(1.9): old version did not have the data type
@@ -238,7 +238,7 @@ public:
 
     /// Inform the ImageBuf what data format you'd like for any subsequent
     /// write().
-    void set_write_format(TypeDesc format);
+    void set_write_format(const TypeDesc& format);
 
     /// Inform the ImageBuf what tile size (or no tiling, for 0) for
     /// any subsequent write().
@@ -289,11 +289,11 @@ public:
     /// the app-owned buffer is already the correct resolution and
     /// number of channels.  The data type of the pixels will be
     /// converted automatically to the data type of the app buffer.
-    bool copy(const ImageBuf& src, TypeDesc format = TypeUnknown);
+    bool copy(const ImageBuf& src, const TypeDesc& format = TypeUnknown);
 
     /// Return a full copy of `this` ImageBuf (optionally with an explicit
     /// data format conversion).
-    ImageBuf copy(TypeDesc format /*= TypeDesc::UNKNOWN*/) const;
+    ImageBuf copy(const TypeDesc& format /*= TypeDesc::UNKNOWN*/) const;
 
     /// Swap with another ImageBuf
     void swap(ImageBuf& other) { std::swap(m_impl, other.m_impl); }
@@ -392,7 +392,7 @@ public:
     };
 
     /// Named wrap mode to enum WrapMode.
-    static WrapMode WrapMode_from_string(string_view name);
+    static WrapMode WrapMode_from_string(const string_view& name);
 
     /// Retrieve a single channel of one pixel.
     ///
@@ -475,7 +475,7 @@ public:
     /// area of memory big enough to accommodate the requested rectangle.
     /// Return true if the operation could be completed, otherwise return
     /// false.
-    bool get_pixels(ROI roi, TypeDesc format, void* result,
+    bool get_pixels(ROI roi, const TypeDesc& format, void* result,
                     stride_t xstride = AutoStride,
                     stride_t ystride = AutoStride,
                     stride_t zstride = AutoStride) const;
@@ -486,7 +486,7 @@ public:
     /// It is up to the caller to ensure that data points to an area of
     /// memory big enough to account for the ROI. Return true if the
     /// operation could be completed, otherwise return false.
-    bool set_pixels(ROI roi, TypeDesc format, const void* data,
+    bool set_pixels(ROI roi, const TypeDesc& format, const void* data,
                     stride_t xstride = AutoStride,
                     stride_t ystride = AutoStride,
                     stride_t zstride = AutoStride);

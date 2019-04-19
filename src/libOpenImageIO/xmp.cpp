@@ -251,7 +251,7 @@ public:
         }
     }
 
-    const XMPtag* find(string_view name) const
+    const XMPtag* find(const string_view& name) const
     {
         std::string lower = name;
         Strutil::to_lower(lower);
@@ -400,8 +400,8 @@ add_attrib(ImageSpec& spec, const char* xmlname, const char* xmlvalue)
 // If not found, return false.  If found, return true, store the
 // beginning and ending indices in startpos and endpos.
 static bool
-extract_middle(string_view str, size_t pos, string_view startmarker,
-               string_view endmarker, size_t& startpos, size_t& endpos)
+extract_middle(const string_view& str, size_t pos, const string_view& startmarker,
+               const string_view& endmarker, size_t& startpos, size_t& endpos)
 {
     startpos = str.find(startmarker, pos);
     if (startpos == std::string::npos)
@@ -502,7 +502,7 @@ decode_xmp(cspan<uint8_t> xml, ImageSpec& spec)
 
 
 bool
-decode_xmp(string_view xml, ImageSpec& spec)
+decode_xmp(const string_view& xml, ImageSpec& spec)
 {
 #if DEBUG_XMP_READ
     std::cerr << "XMP dump:\n---\n" << xml << "\n---\n";

@@ -155,7 +155,7 @@ struct ImageCacheStatistics {
 class OIIO_API ImageCacheFile : public RefCnt {
 public:
     ImageCacheFile(ImageCacheImpl& imagecache,
-                   ImageCachePerThreadInfo* thread_info, ustring filename,
+                   ImageCachePerThreadInfo* thread_info, const ustring& filename,
                    ImageInput::Creator creator = nullptr,
                    const ImageSpec* config     = nullptr);
     ~ImageCacheFile();
@@ -196,7 +196,7 @@ public:
     ///
     bool read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
                    int miplevel, int x, int y, int z, int chbegin, int chend,
-                   TypeDesc format, void* data);
+                   const TypeDesc& format, void* data);
 
     /// Mark the file as recently used.
     ///
@@ -410,7 +410,7 @@ private:
     // Safely replace the existing ImageInput shared pointer with the one in
     // newval. Ensure that the cache still knows how many open ImageInputs
     // there are in total.
-    void set_imageinput(std::shared_ptr<ImageInput> newval);
+    void set_imageinput(const std::shared_ptr<ImageInput>& newval);
 
     /// Retrieve a shared pointer to the file's open ImageInput (opening if
     /// necessary, and maintaining the limit on number of open files). For a
@@ -430,14 +430,14 @@ private:
     /// a seek_subimage to the right subimage and MIP level.
     bool read_untiled(ImageCachePerThreadInfo* thread_info, ImageInput* inp,
                       int subimage, int miplevel, int x, int y, int z,
-                      int chbegin, int chend, TypeDesc format, void* data);
+                      int chbegin, int chend, const TypeDesc& format, void* data);
 
     /// Load the requested tile, from a file that's not really MIPmapped.
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage.
     bool read_unmipped(ImageCachePerThreadInfo* thread_info, ImageInput* inp,
                        int subimage, int miplevel, int x, int y, int z,
-                       int chbegin, int chend, TypeDesc format, void* data);
+                       int chbegin, int chend, const TypeDesc& format, void* data);
 
     // Initialize a bunch of fields based on the ImageSpec.
     // FIXME -- this is actually deeply flawed, many of these things only
@@ -612,7 +612,7 @@ public:
 
     /// Construct a new tile out of the pixels supplied.
     ///
-    ImageCacheTile(const TileID& id, const void* pels, TypeDesc format,
+    ImageCacheTile(const TileID& id, const void* pels, const TypeDesc& format,
                    stride_t xstride, stride_t ystride, stride_t zstride,
                    bool copy = true);
 
@@ -1013,7 +1013,7 @@ public:
     /// Return the numerical subimage index for the given subimage name,
     /// as stored in the "oiio:subimagename" metadata.  Return -1 if no
     /// subimage matches its name.
-    int subimage_from_name(ImageCacheFile* file, ustring subimagename);
+    int subimage_from_name(ImageCacheFile* file, const ustring& subimagename);
 
     virtual std::string geterror() const;
     virtual std::string getstats(int level = 1) const;
@@ -1131,7 +1131,7 @@ private:
     /// by whether the return value is the same as the passed-in file).
     /// All the while, properly maintain thread safety on the
     /// fingerprint table.
-    ImageCacheFile* find_fingerprint(ustring finger, ImageCacheFile* file);
+    ImageCacheFile* find_fingerprint(const ustring& finger, ImageCacheFile* file);
 
     /// Clear all the per-thread microcaches.
     void purge_perthread_microcaches();

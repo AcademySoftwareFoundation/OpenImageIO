@@ -34,7 +34,7 @@ namespace PyOpenImageIO {
 
 
 const char*
-python_array_code(TypeDesc format)
+python_array_code(const TypeDesc& format)
 {
     switch (format.basetype) {
     case TypeDesc::UINT8: return "B";
@@ -183,7 +183,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
 
 
 bool
-oiio_attribute_typed(const std::string& name, TypeDesc type,
+oiio_attribute_typed(const std::string& name, const TypeDesc& type,
                      const py::tuple& obj)
 {
     if (type.basetype == TypeDesc::INT) {
@@ -205,7 +205,8 @@ oiio_attribute_typed(const std::string& name, TypeDesc type,
         py_to_stdvector(vals, obj);
         if (vals.size() == type.numelements() * type.aggregate) {
             std::vector<ustring> u;
-            for (auto& val : vals)
+            u.reserve(vals.size());
+for (auto& val : vals)
                 u.emplace_back(val);
             return OIIO::attribute(name, type, &u[0]);
         }
@@ -217,7 +218,7 @@ oiio_attribute_typed(const std::string& name, TypeDesc type,
 
 
 static py::object
-oiio_getattribute_typed(const std::string& name, TypeDesc type = TypeUnknown)
+oiio_getattribute_typed(const std::string& name, const TypeDesc& type = TypeUnknown)
 {
     if (type == TypeDesc::UNKNOWN)
         return py::none();

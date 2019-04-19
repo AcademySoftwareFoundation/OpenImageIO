@@ -79,7 +79,7 @@ OIIO_NAMESPACE_BEGIN
 // The only correct way to do this is to do the conversion ourselves.
 
 inline filesystem::path
-u8path(string_view name)
+u8path(const string_view& name)
 {
 #ifdef _WIN32
     return filesystem::path(Strutil::utf8_to_utf16(name));
@@ -161,7 +161,7 @@ Filesystem::searchpath_split(const std::string& searchpath,
 {
     dirs.clear();
 
-    std::string path_copy = searchpath;
+    const std::string& path_copy = searchpath;
     std::string last_token;
     typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
     boost::char_separator<char> sep(":;");
@@ -349,7 +349,7 @@ Filesystem::is_regular(const std::string& path)
 
 
 bool
-Filesystem::create_directory(string_view path, std::string& err)
+Filesystem::create_directory(const string_view& path, std::string& err)
 {
     boost::system::error_code ec;
     bool ok = filesystem::create_directory(u8path(path), ec);
@@ -362,7 +362,7 @@ Filesystem::create_directory(string_view path, std::string& err)
 
 
 bool
-Filesystem::copy(string_view from, string_view to, std::string& err)
+Filesystem::copy(const string_view& from, const string_view& to, std::string& err)
 {
     boost::system::error_code ec;
     filesystem::copy(u8path(from), u8path(to), ec);
@@ -378,7 +378,7 @@ Filesystem::copy(string_view from, string_view to, std::string& err)
 
 
 bool
-Filesystem::rename(string_view from, string_view to, std::string& err)
+Filesystem::rename(const string_view& from, const string_view& to, std::string& err)
 {
     boost::system::error_code ec;
     filesystem::rename(u8path(from), u8path(to), ec);
@@ -394,7 +394,7 @@ Filesystem::rename(string_view from, string_view to, std::string& err)
 
 
 bool
-Filesystem::remove(string_view path, std::string& err)
+Filesystem::remove(const string_view& path, std::string& err)
 {
     boost::system::error_code ec;
     bool ok = filesystem::remove(u8path(path), ec);
@@ -408,7 +408,7 @@ Filesystem::remove(string_view path, std::string& err)
 
 
 unsigned long long
-Filesystem::remove_all(string_view path, std::string& err)
+Filesystem::remove_all(const string_view& path, std::string& err)
 {
     boost::system::error_code ec;
     unsigned long long n = filesystem::remove_all(u8path(path), ec);
@@ -432,7 +432,7 @@ Filesystem::temp_directory_path()
 
 
 std::string
-Filesystem::unique_path(string_view model)
+Filesystem::unique_path(const string_view& model)
 {
     boost::system::error_code ec;
     filesystem::path p = filesystem::unique_path(u8path(model), ec);
@@ -452,7 +452,7 @@ Filesystem::current_path()
 
 
 FILE*
-Filesystem::fopen(string_view path, string_view mode)
+Filesystem::fopen(const string_view& path, const string_view& mode)
 {
 #ifdef _WIN32
     // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
@@ -469,7 +469,7 @@ Filesystem::fopen(string_view path, string_view mode)
 
 
 void
-Filesystem::open(OIIO::ifstream& stream, string_view path,
+Filesystem::open(OIIO::ifstream& stream, const string_view& path,
                  std::ios_base::openmode mode)
 {
 #ifdef _WIN32
@@ -486,7 +486,7 @@ Filesystem::open(OIIO::ifstream& stream, string_view path,
 
 
 void
-Filesystem::open(OIIO::ofstream& stream, string_view path,
+Filesystem::open(OIIO::ofstream& stream, const string_view& path,
                  std::ios_base::openmode mode)
 {
 #ifdef _WIN32
@@ -503,7 +503,7 @@ Filesystem::open(OIIO::ofstream& stream, string_view path,
 /// Read the entire contents of the named file and place it in str,
 /// returning true on success, false on failure.
 bool
-Filesystem::read_text_file(string_view filename, std::string& str)
+Filesystem::read_text_file(const string_view& filename, std::string& str)
 {
     // For info on why this is the fastest method:
     // http://insanecoding.blogspot.com/2011/11/how-to-read-in-file-in-c.html
@@ -525,7 +525,7 @@ Filesystem::read_text_file(string_view filename, std::string& str)
 /// Read the entire contents of the named file and place it in str,
 /// returning true on success, false on failure.
 size_t
-Filesystem::read_bytes(string_view path, void* buffer, size_t n, size_t pos)
+Filesystem::read_bytes(const string_view& path, void* buffer, size_t n, size_t pos)
 {
     size_t ret = 0;
     if (FILE* file = Filesystem::fopen(path, "rb")) {
@@ -572,7 +572,7 @@ Filesystem::last_write_time(const std::string& path, std::time_t time)
 
 
 uint64_t
-Filesystem::file_size(string_view path)
+Filesystem::file_size(const string_view& path)
 {
     if (!exists(path))
         return 0;
@@ -611,7 +611,7 @@ Filesystem::convert_native_arguments(int argc, const char* argv[])
 
 
 bool
-Filesystem::enumerate_sequence(string_view desc, std::vector<int>& numbers)
+Filesystem::enumerate_sequence(const string_view& desc, std::vector<int>& numbers)
 {
     numbers.clear();
 
@@ -917,7 +917,7 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
 
 
 
-Filesystem::IOFile::IOFile(string_view filename, Mode mode)
+Filesystem::IOFile::IOFile(const string_view& filename, Mode mode)
     : IOProxy(filename, mode)
 {
     // Call Filesystem::fopen since it handles UTF-8 file paths on Windows,

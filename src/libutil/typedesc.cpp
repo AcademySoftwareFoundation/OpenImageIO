@@ -43,7 +43,7 @@
 
 OIIO_NAMESPACE_BEGIN
 
-TypeDesc::TypeDesc(string_view typestring)
+TypeDesc::TypeDesc(const string_view& typestring)
     : basetype(UNKNOWN)
     , aggregate(SCALAR)
     , vecsemantics(NOXFORM)
@@ -327,7 +327,7 @@ TypeDesc::fromstring(string_view typestring)
 
 template<class T>
 inline std::string
-sprintt(TypeDesc type, const char* format, const char* aggregate_delim,
+sprintt(const TypeDesc& type, const char* format, const char* aggregate_delim,
         const char* aggregate_sep, const char* array_delim,
         const char* array_sep, T* v)
 {
@@ -356,7 +356,7 @@ sprintt(TypeDesc type, const char* format, const char* aggregate_delim,
 
 
 std::string
-tostring(TypeDesc type, const void* data, const char* float_fmt,
+tostring(const TypeDesc& type, const void* data, const char* float_fmt,
          const char* string_fmt, const char* aggregate_delim,
          const char* aggregate_sep, const char* array_delim,
          const char* array_sep)

@@ -213,7 +213,7 @@ simd::vbool4
 wrap_black_simd(simd::vint4& coord_, const simd::vint4& origin,
                 const simd::vint4& width)
 {
-    simd::vint4 coord(coord_);
+    const simd::vint4& coord(coord_);
     return (coord >= origin) & (coord < (width + origin));
 }
 

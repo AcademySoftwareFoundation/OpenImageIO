@@ -47,7 +47,7 @@ using namespace OIIO;
 
 // Generate a small test image appropriate to the given format
 static ImageBuf
-make_test_image(string_view formatname)
+make_test_image(const string_view& formatname)
 {
     ImageBuf buf;
     auto out = ImageOutput::create(formatname);
@@ -77,8 +77,8 @@ make_test_image(string_view formatname)
 
 
 static bool
-checked_write(ImageOutput* out, string_view filename, const ImageSpec& spec,
-              TypeDesc type, const void* data, bool do_asserts = true,
+checked_write(ImageOutput* out, const string_view& filename, const ImageSpec& spec,
+              const TypeDesc& type, const void* data, bool do_asserts = true,
               std::string* errmsg = nullptr)
 {
     if (errmsg)
@@ -106,7 +106,7 @@ checked_write(ImageOutput* out, string_view filename, const ImageSpec& spec,
 
 
 static bool
-checked_read(ImageInput* in, string_view filename,
+checked_read(ImageInput* in, const string_view& filename,
              std::vector<unsigned char>& data, bool already_opened = false,
              bool do_asserts = true, std::string* errmsg = nullptr)
 {
@@ -128,7 +128,7 @@ checked_read(ImageInput* in, string_view filename,
 // Helper for test_all_formats: write the pixels in buf to an in-memrory
 // IOProxy, make sure it matches byte for byte the file named by disk_filename.
 static bool
-test_write_proxy(string_view formatname, string_view extension,
+test_write_proxy(const string_view& formatname, const string_view& extension,
                  const std::string& disk_filename, const ImageBuf& buf)
 {
     bool ok = true;
@@ -163,7 +163,7 @@ test_write_proxy(string_view formatname, string_view extension,
 // a buffer, then use an IOProxy to read the "file" from the buffer, and
 // the pixels ought to match those of ImageBuf buf.
 static bool
-test_read_proxy(string_view formatname, string_view extension,
+test_read_proxy(const string_view& formatname, const string_view& extension,
                 const std::string& disk_filename, const ImageBuf& buf)
 {
     bool ok = true;
@@ -199,7 +199,7 @@ test_read_proxy(string_view formatname, string_view extension,
 // Test writer's ability to detect and recover from errors when asked to
 // write an unwriteable file (such as in a nonexistant directory).
 static bool
-test_write_unwriteable(string_view formatname, string_view extension,
+test_write_unwriteable(const string_view& formatname, const string_view& extension,
                        const ImageBuf& buf)
 {
     bool ok = true;

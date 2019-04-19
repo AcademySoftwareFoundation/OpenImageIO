@@ -75,7 +75,7 @@ OIIO_NAMESPACE_BEGIN
 
 // Note: DEPRECATED(2.0)
 ImageBuf
-ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
+ImageBufAlgo::from_IplImage(const IplImage* ipl, const TypeDesc& convert)
 {
     pvt::LoggedTimer logtime("IBA::from_IplImage");
     ImageBuf dst;
@@ -248,7 +248,7 @@ RBswap(ImageBuf& R, ROI roi, int nthreads)
 
 
 ImageBuf
-ImageBufAlgo::from_OpenCV(const cv::Mat& mat, TypeDesc convert, ROI roi,
+ImageBufAlgo::from_OpenCV(const cv::Mat& mat, const TypeDesc& convert, ROI roi,
                           int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::from_OpenCV");
@@ -404,7 +404,7 @@ static CameraHolder cameras;
 
 
 ImageBuf
-ImageBufAlgo::capture_image(int cameranum, TypeDesc convert)
+ImageBufAlgo::capture_image(int cameranum, const TypeDesc& convert)
 {
     pvt::LoggedTimer logtime("IBA::capture_image");
     ImageBuf dst;

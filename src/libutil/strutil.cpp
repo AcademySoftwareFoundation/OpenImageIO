@@ -131,7 +131,7 @@ string_view::c_str() const
 
 
 void
-Strutil::sync_output(FILE* file, string_view str)
+Strutil::sync_output(FILE* file, const string_view& str)
 {
     if (str.size() && file) {
         std::unique_lock<std::mutex> lock(output_mutex);
@@ -143,7 +143,7 @@ Strutil::sync_output(FILE* file, string_view str)
 
 
 void
-Strutil::sync_output(std::ostream& file, string_view str)
+Strutil::sync_output(std::ostream& file, const string_view& str)
 {
     if (str.size()) {
         std::unique_lock<std::mutex> lock(output_mutex);
@@ -267,7 +267,7 @@ bool
 Strutil::get_rest_arguments(const std::string& str, std::string& base,
                             std::map<std::string, std::string>& result)
 {
-    std::string::size_type mark_pos = str.find_first_of("?");
+    std::string::size_type mark_pos = str.find_first_of('?');
     if (mark_pos == std::string::npos) {
         base = str;
         return true;
@@ -278,7 +278,7 @@ Strutil::get_rest_arguments(const std::string& str, std::string& base,
     std::vector<std::string> rest_tokens;
     Strutil::split(rest, rest_tokens, "&");
     for (const std::string& keyval : rest_tokens) {
-        mark_pos = keyval.find_first_of("=");
+        mark_pos = keyval.find_first_of('=');
         if (mark_pos == std::string::npos)
             return false;
         result[keyval.substr(0, mark_pos)] = keyval.substr(mark_pos + 1);
@@ -290,7 +290,7 @@ Strutil::get_rest_arguments(const std::string& str, std::string& base,
 
 
 std::string
-Strutil::escape_chars(string_view unescaped)
+Strutil::escape_chars(const string_view& unescaped)
 {
     std::string s = unescaped;
     for (size_t i = 0; i < s.length(); ++i) {
@@ -317,7 +317,7 @@ Strutil::escape_chars(string_view unescaped)
 
 
 std::string
-Strutil::unescape_chars(string_view escaped)
+Strutil::unescape_chars(const string_view& escaped)
 {
     std::string s = escaped;
     for (size_t i = 0, len = s.length(); i < len; ++i) {
@@ -358,8 +358,8 @@ Strutil::unescape_chars(string_view escaped)
 
 
 std::string
-Strutil::wordwrap(string_view src, int columns, int prefix, string_view sep,
-                  string_view presep)
+Strutil::wordwrap(string_view src, int columns, int prefix, const string_view& sep,
+                  const string_view& presep)
 {
     if (columns < prefix + 20)
         return src;  // give up, no way to make it wrap
@@ -397,7 +397,7 @@ Strutil::wordwrap(string_view src, int columns, int prefix, string_view sep,
 // DEPRECATED(2.0) -- for link compatibility
 namespace Strutil {
 std::string
-wordwrap(string_view src, int columns, int prefix)
+wordwrap(const string_view& src, int columns, int prefix)
 {
     return wordwrap(src, columns, prefix, " ", "");
 }
@@ -406,14 +406,14 @@ wordwrap(string_view src, int columns, int prefix)
 
 
 bool
-Strutil::iequals(string_view a, string_view b)
+Strutil::iequals(const string_view& a, const string_view& b)
 {
     return boost::algorithm::iequals(a, b, std::locale::classic());
 }
 
 
 bool
-Strutil::iless(string_view a, string_view b)
+Strutil::iless(const string_view& a, const string_view& b)
 {
     return boost::algorithm::ilexicographical_compare(a, b,
                                                       std::locale::classic());
@@ -421,42 +421,42 @@ Strutil::iless(string_view a, string_view b)
 
 
 bool
-Strutil::starts_with(string_view a, string_view b)
+Strutil::starts_with(const string_view& a, const string_view& b)
 {
     return boost::algorithm::starts_with(a, b);
 }
 
 
 bool
-Strutil::istarts_with(string_view a, string_view b)
+Strutil::istarts_with(const string_view& a, const string_view& b)
 {
     return boost::algorithm::istarts_with(a, b, std::locale::classic());
 }
 
 
 bool
-Strutil::ends_with(string_view a, string_view b)
+Strutil::ends_with(const string_view& a, const string_view& b)
 {
     return boost::algorithm::ends_with(a, b);
 }
 
 
 bool
-Strutil::iends_with(string_view a, string_view b)
+Strutil::iends_with(const string_view& a, const string_view& b)
 {
     return boost::algorithm::iends_with(a, b, std::locale::classic());
 }
 
 
 bool
-Strutil::contains(string_view a, string_view b)
+Strutil::contains(const string_view& a, const string_view& b)
 {
     return boost::algorithm::contains(a, b);
 }
 
 
 bool
-Strutil::icontains(string_view a, string_view b)
+Strutil::icontains(const string_view& a, const string_view& b)
 {
     return boost::algorithm::icontains(a, b, std::locale::classic());
 }
@@ -494,7 +494,7 @@ Strutil::StringILess::operator()(const char* a, const char* b) const
 
 
 string_view
-Strutil::strip(string_view str, string_view chars)
+Strutil::strip(const string_view& str, string_view chars)
 {
     if (chars.empty())
         chars = string_view(" \t\n\r\f\v", 6);
@@ -509,7 +509,7 @@ Strutil::strip(string_view str, string_view chars)
 
 
 static void
-split_whitespace(string_view str, std::vector<string_view>& result,
+split_whitespace(const string_view& str, std::vector<string_view>& result,
                  int maxsplit)
 {
     // Implementation inspired by Pystring
@@ -536,7 +536,7 @@ split_whitespace(string_view str, std::vector<string_view>& result,
 
 
 std::vector<std::string>
-Strutil::splits(string_view str, string_view sep, int maxsplit)
+Strutil::splits(const string_view& str, const string_view& sep, int maxsplit)
 {
     auto sr_result = splitsv(str, sep, maxsplit);
     std::vector<std::string> result;
@@ -549,8 +549,8 @@ Strutil::splits(string_view str, string_view sep, int maxsplit)
 
 
 void
-Strutil::split(string_view str, std::vector<std::string>& result,
-               string_view sep, int maxsplit)
+Strutil::split(const string_view& str, std::vector<std::string>& result,
+               const string_view& sep, int maxsplit)
 {
     result = splits(str, sep, maxsplit);
 }
@@ -558,7 +558,7 @@ Strutil::split(string_view str, std::vector<std::string>& result,
 
 
 std::vector<string_view>
-Strutil::splitsv(string_view str, string_view sep, int maxsplit)
+Strutil::splitsv(const string_view& str, const string_view& sep, int maxsplit)
 {
     std::vector<string_view> result;
 
@@ -587,8 +587,8 @@ Strutil::splitsv(string_view str, string_view sep, int maxsplit)
 
 
 void
-Strutil::split(string_view str, std::vector<string_view>& result,
-               string_view sep, int maxsplit)
+Strutil::split(const string_view& str, std::vector<string_view>& result,
+               const string_view& sep, int maxsplit)
 {
     result = splitsv(str, sep, maxsplit);
 }
@@ -596,7 +596,7 @@ Strutil::split(string_view str, std::vector<string_view>& result,
 
 
 std::string
-Strutil::repeat(string_view str, int n)
+Strutil::repeat(const string_view& str, int n)
 {
     std::ostringstream out;
     while (n-- > 0)
@@ -607,7 +607,7 @@ Strutil::repeat(string_view str, int n)
 
 
 std::string
-Strutil::replace(string_view str, string_view pattern, string_view replacement,
+Strutil::replace(string_view str, const string_view& pattern, const string_view& replacement,
                  bool global)
 {
     std::string r;
@@ -665,7 +665,7 @@ Strutil::utf16_to_utf8(const std::wstring& str)
 
 
 char*
-Strutil::safe_strcpy(char* dst, string_view src, size_t size)
+Strutil::safe_strcpy(char* dst, const string_view& src, size_t size)
 {
     if (src.size()) {
         size_t end = std::min(size - 1, src.size());
@@ -723,7 +723,7 @@ Strutil::parse_until_char(string_view& str, char c, bool eat)
 
 
 bool
-Strutil::parse_prefix(string_view& str, string_view prefix, bool eat)
+Strutil::parse_prefix(string_view& str, const string_view& prefix, bool eat)
 {
     string_view p = str;
     skip_whitespace(p);
@@ -854,7 +854,7 @@ Strutil::parse_identifier(string_view& str, bool eat)
 
 
 string_view
-Strutil::parse_identifier(string_view& str, string_view allowed, bool eat)
+Strutil::parse_identifier(string_view& str, const string_view& allowed, bool eat)
 {
     string_view p = str;
     skip_whitespace(p);
@@ -879,7 +879,7 @@ Strutil::parse_identifier(string_view& str, string_view allowed, bool eat)
 
 
 bool
-Strutil::parse_identifier_if(string_view& str, string_view id, bool eat)
+Strutil::parse_identifier_if(string_view& str, const string_view& id, bool eat)
 {
     string_view head = parse_identifier(str, false /* don't eat */);
     if (head == id) {
@@ -893,7 +893,7 @@ Strutil::parse_identifier_if(string_view& str, string_view id, bool eat)
 
 
 string_view
-Strutil::parse_until(string_view& str, string_view sep, bool eat)
+Strutil::parse_until(string_view& str, const string_view& sep, bool eat)
 {
     string_view p     = str;
     const char *begin = p.begin(), *end = p.begin();
@@ -910,7 +910,7 @@ Strutil::parse_until(string_view& str, string_view sep, bool eat)
 
 
 string_view
-Strutil::parse_while(string_view& str, string_view set, bool eat)
+Strutil::parse_while(string_view& str, const string_view& set, bool eat)
 {
     string_view p     = str;
     const char *begin = p.begin(), *end = p.begin();
@@ -971,7 +971,7 @@ Strutil::parse_nested(string_view& str, bool eat)
 
 
 std::string
-Strutil::excise_string_after_head(std::string& str, string_view head)
+Strutil::excise_string_after_head(std::string& str, const string_view& head)
 {
     std::string result;
     string_view s(str);
@@ -1053,7 +1053,7 @@ decode(uint32_t* state, uint32_t* codep, uint32_t byte)
 }
 
 void
-Strutil::utf8_to_unicode(string_view str, std::vector<uint32_t>& uvec)
+Strutil::utf8_to_unicode(const string_view& str, std::vector<uint32_t>& uvec)
 {
     const char* begin = str.begin();
     const char* end   = str.end();
@@ -1336,7 +1336,7 @@ Strutil::stof(const std::string& s, size_t* pos)
 
 
 float
-Strutil::stof(string_view s, size_t* pos)
+Strutil::stof(const string_view& s, size_t* pos)
 {
     // string_view can't be counted on to end with a terminating null, so
     // for safety, create a temporary string. This looks wasteful, but it's
@@ -1376,7 +1376,7 @@ Strutil::stod(const std::string& s, size_t* pos)
 
 
 double
-Strutil::stod(string_view s, size_t* pos)
+Strutil::stod(const string_view& s, size_t* pos)
 {
     // string_view can't be counted on to end with a terminating null, so
     // for safety, create a temporary string. This looks wasteful, but it's

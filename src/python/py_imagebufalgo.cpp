@@ -32,6 +32,8 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebufalgo.h>
 
+#include <utility>
+
 
 namespace PyOpenImageIO {
 
@@ -57,7 +59,7 @@ IBA_zero_ret(ROI roi, int nthreads)
 
 
 bool
-IBA_fill(ImageBuf& dst, py::object values_tuple, ROI roi = ROI::All(),
+IBA_fill(ImageBuf& dst, const py::object& values_tuple, ROI roi = ROI::All(),
          int nthreads = 0)
 {
     std::vector<float> values;
@@ -75,7 +77,7 @@ IBA_fill(ImageBuf& dst, py::object values_tuple, ROI roi = ROI::All(),
 
 
 bool
-IBA_fill2(ImageBuf& dst, py::object top_tuple, py::object bottom_tuple,
+IBA_fill2(ImageBuf& dst, const py::object& top_tuple, const py::object& bottom_tuple,
           ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> top, bottom;
@@ -96,8 +98,8 @@ IBA_fill2(ImageBuf& dst, py::object top_tuple, py::object bottom_tuple,
 
 
 bool
-IBA_fill4(ImageBuf& dst, py::object top_left_tuple, py::object top_right_tuple,
-          py::object bottom_left_tuple, py::object bottom_right_tuple,
+IBA_fill4(ImageBuf& dst, const py::object& top_left_tuple, const py::object& top_right_tuple,
+          const py::object& bottom_left_tuple, const py::object& bottom_right_tuple,
           ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> top_left, top_right, bottom_left, bottom_right;
@@ -130,7 +132,7 @@ ImageBuf
 IBA_fill_ret(py::object values_tuple, ROI roi, int nthreads = 0)
 {
     ImageBuf result;
-    IBA_fill(result, values_tuple, roi, nthreads);
+    IBA_fill(result, std::move(values_tuple), roi, nthreads);
     return result;
 }
 
@@ -140,7 +142,7 @@ IBA_fill2_ret(py::object top_tuple, py::object bottom_tuple, ROI roi,
               int nthreads = 0)
 {
     ImageBuf result;
-    IBA_fill2(result, top_tuple, bottom_tuple, roi, nthreads);
+    IBA_fill2(result, std::move(top_tuple), std::move(bottom_tuple), roi, nthreads);
     return result;
 }
 
@@ -151,8 +153,8 @@ IBA_fill4_ret(py::object top_left_tuple, py::object top_right_tuple,
               ROI roi, int nthreads = 0)
 {
     ImageBuf result;
-    IBA_fill4(result, top_left_tuple, top_right_tuple, bottom_left_tuple,
-              bottom_right_tuple, roi, nthreads);
+    IBA_fill4(result, std::move(top_left_tuple), std::move(top_right_tuple), std::move(bottom_left_tuple),
+              std::move(bottom_right_tuple), roi, nthreads);
     return result;
 }
 
@@ -160,7 +162,7 @@ IBA_fill4_ret(py::object top_left_tuple, py::object top_right_tuple,
 
 bool
 IBA_checker(ImageBuf& dst, int width, int height, int depth,
-            py::object color1_tuple, py::object color2_tuple, int xoffset,
+            const py::object& color1_tuple, const py::object& color2_tuple, int xoffset,
             int yoffset, int zoffset, ROI roi, int nthreads)
 {
     std::vector<float> color1, color2;
@@ -191,7 +193,7 @@ IBA_checker_ret(int width, int height, int depth, py::object color1_tuple,
                 ROI roi, int nthreads)
 {
     ImageBuf result;
-    IBA_checker(result, width, height, depth, color1_tuple, color2_tuple,
+    IBA_checker(result, width, height, depth, std::move(color1_tuple), std::move(color2_tuple),
                 xoffset, yoffset, zoffset, roi, nthreads);
     return result;
 }
@@ -218,8 +220,8 @@ IBA_noise_ret(const std::string& type, float A, float B, bool mono, int seed,
 
 
 bool
-IBA_channels(ImageBuf& dst, const ImageBuf& src, py::tuple channelorder_,
-             py::tuple newchannelnames_, bool shuffle_channel_names,
+IBA_channels(ImageBuf& dst, const ImageBuf& src, const py::tuple& channelorder_,
+             const py::tuple& newchannelnames_, bool shuffle_channel_names,
              int nthreads)
 {
     size_t nchannels = (size_t)len(channelorder_);
@@ -265,7 +267,7 @@ IBA_channels_ret(const ImageBuf& src, py::tuple channelorder,
                  int nthreads)
 {
     ImageBuf result;
-    IBA_channels(result, src, channelorder, newchannelnames,
+    IBA_channels(result, src, std::move(channelorder), std::move(newchannelnames),
                  shuffle_channel_names, nthreads);
     return result;
 }
@@ -368,7 +370,7 @@ IBA_deep_holdout_ret(const ImageBuf& src, const ImageBuf& holdout, ROI roi,
 
 
 bool
-IBA_copy(ImageBuf& dst, const ImageBuf& src, TypeDesc convert, ROI roi,
+IBA_copy(ImageBuf& dst, const ImageBuf& src, const TypeDesc& convert, ROI roi,
          int nthreads)
 {
     py::gil_scoped_release gil;
@@ -378,7 +380,7 @@ IBA_copy(ImageBuf& dst, const ImageBuf& src, TypeDesc convert, ROI roi,
 
 
 ImageBuf
-IBA_copy_ret(const ImageBuf& src, TypeDesc convert, ROI roi, int nthreads)
+IBA_copy_ret(const ImageBuf& src, const TypeDesc& convert, ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
     return ImageBufAlgo::copy(src, convert, roi, nthreads);
@@ -559,7 +561,7 @@ IBA_circular_shift_ret(const ImageBuf& src, int xshift, int yshift, int zshift,
 
 
 bool
-IBA_add_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+IBA_add_color(ImageBuf& dst, const ImageBuf& A, const py::object& values_tuple,
               ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> values;
@@ -584,7 +586,7 @@ IBA_add_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
 }
 
 ImageBuf
-IBA_add_color_ret(const ImageBuf& A, py::object values_tuple,
+IBA_add_color_ret(const ImageBuf& A, const py::object& values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
@@ -614,7 +616,7 @@ IBA_add_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
 
 
 bool
-IBA_sub_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+IBA_sub_color(ImageBuf& dst, const ImageBuf& A, const py::object& values_tuple,
               ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> values;
@@ -639,7 +641,7 @@ IBA_sub_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
 }
 
 ImageBuf
-IBA_sub_color_ret(const ImageBuf& A, py::object values_tuple,
+IBA_sub_color_ret(const ImageBuf& A, const py::object& values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
@@ -668,7 +670,7 @@ IBA_sub_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
 
 
 bool
-IBA_absdiff_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+IBA_absdiff_color(ImageBuf& dst, const ImageBuf& A, const py::object& values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> values;
@@ -693,7 +695,7 @@ IBA_absdiff_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
 }
 
 ImageBuf
-IBA_absdiff_color_ref(const ImageBuf& A, py::object values_tuple,
+IBA_absdiff_color_ref(const ImageBuf& A, const py::object& values_tuple,
                       ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
@@ -741,7 +743,7 @@ IBA_abs_ret(const ImageBuf& A, ROI roi = ROI::All(), int nthreads = 0)
 
 
 bool
-IBA_mul_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+IBA_mul_color(ImageBuf& dst, const ImageBuf& A, const py::object& values_tuple,
               ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> values;
@@ -766,7 +768,7 @@ IBA_mul_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
 }
 
 ImageBuf
-IBA_mul_color_ret(const ImageBuf& A, py::object values_tuple,
+IBA_mul_color_ret(const ImageBuf& A, const py::object& values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
@@ -795,7 +797,7 @@ IBA_mul_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
 
 
 bool
-IBA_div_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+IBA_div_color(ImageBuf& dst, const ImageBuf& A, const py::object& values_tuple,
               ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> values;
@@ -822,7 +824,7 @@ IBA_div_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
 
 
 ImageBuf
-IBA_div_color_ret(const ImageBuf& A, py::object values_tuple,
+IBA_div_color_ret(const ImageBuf& A, const py::object& values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
@@ -851,8 +853,8 @@ IBA_div_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
 
 
 bool
-IBA_mad_color(ImageBuf& dst, const ImageBuf& A, py::object Bvalues_tuple,
-              py::object Cvalues_tuple, ROI roi = ROI::All(), int nthreads = 0)
+IBA_mad_color(ImageBuf& dst, const ImageBuf& A, const py::object& Bvalues_tuple,
+              const py::object& Cvalues_tuple, ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> Bvalues, Cvalues;
     py_to_stdvector(Bvalues, Bvalues_tuple);
@@ -875,7 +877,7 @@ IBA_mad_color(ImageBuf& dst, const ImageBuf& A, py::object Bvalues_tuple,
 }
 
 bool
-IBA_mad_ici(ImageBuf& dst, const ImageBuf& A, py::object Bvalues_tuple,
+IBA_mad_ici(ImageBuf& dst, const ImageBuf& A, const py::object& Bvalues_tuple,
             const ImageBuf& C, ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> Bvalues, Cvalues;
@@ -895,7 +897,7 @@ bool
 IBA_mad_cii(ImageBuf& dst, py::object Avalues_tuple, const ImageBuf& B,
             const ImageBuf& C, ROI roi = ROI::All(), int nthreads = 0)
 {
-    return IBA_mad_ici(dst, B, Avalues_tuple, C, roi, nthreads);
+    return IBA_mad_ici(dst, B, std::move(Avalues_tuple), C, roi, nthreads);
 }
 
 bool
@@ -909,8 +911,8 @@ IBA_mad_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
 
 
 ImageBuf
-IBA_mad_color_ret(const ImageBuf& A, py::object Bvalues_tuple,
-                  py::object Cvalues_tuple, ROI roi = ROI::All(),
+IBA_mad_color_ret(const ImageBuf& A, const py::object& Bvalues_tuple,
+                  const py::object& Cvalues_tuple, ROI roi = ROI::All(),
                   int nthreads = 0)
 {
     ImageBuf result;
@@ -936,7 +938,7 @@ IBA_mad_color_ret(const ImageBuf& A, py::object Bvalues_tuple,
 }
 
 ImageBuf
-IBA_mad_ici_ret(const ImageBuf& A, py::object Bvalues_tuple, const ImageBuf& C,
+IBA_mad_ici_ret(const ImageBuf& A, const py::object& Bvalues_tuple, const ImageBuf& C,
                 ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
@@ -958,7 +960,7 @@ ImageBuf
 IBA_mad_cii_ret(py::object Avalues_tuple, const ImageBuf& B, const ImageBuf& C,
                 ROI roi = ROI::All(), int nthreads = 0)
 {
-    return IBA_mad_ici_ret(B, Avalues_tuple, C, roi, nthreads);
+    return IBA_mad_ici_ret(B, std::move(Avalues_tuple), C, roi, nthreads);
 }
 
 ImageBuf
@@ -990,7 +992,7 @@ IBA_invert_ret(const ImageBuf& A, ROI roi = ROI::All(), int nthreads = 0)
 
 
 bool
-IBA_pow_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+IBA_pow_color(ImageBuf& dst, const ImageBuf& A, const py::object& values_tuple,
               ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> values;
@@ -1008,7 +1010,7 @@ IBA_pow_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
 
 
 ImageBuf
-IBA_pow_color_ret(const ImageBuf& A, py::object values_tuple,
+IBA_pow_color_ret(const ImageBuf& A, const py::object& values_tuple,
                   ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
@@ -1029,7 +1031,7 @@ IBA_pow_color_ret(const ImageBuf& A, py::object values_tuple,
 
 
 bool
-IBA_clamp(ImageBuf& dst, const ImageBuf& src, py::object min_, py::object max_,
+IBA_clamp(ImageBuf& dst, const ImageBuf& src, const py::object& min_, const py::object& max_,
           bool clampalpha01 = false, ROI roi = ROI::All(), int nthreads = 0)
 {
     if (!src.initialized())
@@ -1048,7 +1050,7 @@ IBA_clamp_ret(const ImageBuf& src, py::object min_, py::object max_,
               bool clampalpha01 = false, ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf dst;
-    IBA_clamp(dst, src, min_, max_, clampalpha01, roi, nthreads);
+    IBA_clamp(dst, src, std::move(min_), std::move(max_), clampalpha01, roi, nthreads);
     return dst;
 }
 
@@ -1056,7 +1058,7 @@ IBA_clamp_ret(const ImageBuf& src, py::object min_, py::object max_,
 
 bool
 IBA_channel_sum_weight(ImageBuf& dst, const ImageBuf& src,
-                       py::object weight_tuple, ROI roi = ROI::All(),
+                       const py::object& weight_tuple, ROI roi = ROI::All(),
                        int nthreads = 0)
 {
     std::vector<float> weight;
@@ -1084,7 +1086,7 @@ IBA_channel_sum(ImageBuf& dst, const ImageBuf& src, ROI roi = ROI::All(),
 
 
 ImageBuf
-IBA_channel_sum_weight_ret(const ImageBuf& src, py::object weight_tuple,
+IBA_channel_sum_weight_ret(const ImageBuf& src, const py::object& weight_tuple,
                            ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf result;
@@ -1114,7 +1116,7 @@ IBA_channel_sum_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
 
 bool
 IBA_color_map_values(ImageBuf& dst, const ImageBuf& src, int srcchannel,
-                     int nknots, int channels, py::object knots_tuple,
+                     int nknots, int channels, const py::object& knots_tuple,
                      ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> knots;
@@ -1155,7 +1157,7 @@ IBA_color_map_values_ret(const ImageBuf& src, int srcchannel, int nknots,
                          ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf dst;
-    IBA_color_map_values(dst, src, srcchannel, nknots, channels, knots_tuple,
+    IBA_color_map_values(dst, src, srcchannel, nknots, channels, std::move(knots_tuple),
                          roi, nthreads);
     return dst;
 }
@@ -1248,9 +1250,9 @@ IBA_unpremult_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
 
 
 bool
-IBA_contrast_remap(ImageBuf& dst, const ImageBuf& src, py::object black_,
-                   py::object white_, py::object min_, py::object max_,
-                   py::object scontrast_, py::object sthresh_,
+IBA_contrast_remap(ImageBuf& dst, const ImageBuf& src, const py::object& black_,
+                   const py::object& white_, const py::object& min_, const py::object& max_,
+                   const py::object& scontrast_, const py::object& sthresh_,
                    ROI roi = ROI::All(), int nthreads = 0)
 {
     if (!src.initialized())
@@ -1280,8 +1282,8 @@ IBA_contrast_remap_ret(const ImageBuf& src, py::object black_,
                        ROI roi = ROI::All(), int nthreads = 0)
 {
     ImageBuf dst;
-    IBA_contrast_remap(dst, src, black_, white_, min_, max_, scontrast_,
-                       sthresh_, roi, nthreads);
+    IBA_contrast_remap(dst, src, std::move(black_), std::move(white_), std::move(min_), std::move(max_), std::move(scontrast_),
+                       std::move(sthresh_), roi, nthreads);
     return dst;
 }
 
@@ -1351,7 +1353,7 @@ IBA_computePixelHashSHA1(const ImageBuf& src, const std::string& extrainfo,
 
 
 bool
-IBA_warp(ImageBuf& dst, const ImageBuf& src, py::object values_M,
+IBA_warp(ImageBuf& dst, const ImageBuf& src, const py::object& values_M,
          const std::string& filtername = "", float filterwidth = 0.0f,
          bool recompute_roi = false, const std::string& wrapname = "default",
          ROI roi = ROI::All(), int nthreads = 0)
@@ -1375,7 +1377,7 @@ IBA_warp_ret(const ImageBuf& src, py::object values_M,
              int nthreads = 0)
 {
     ImageBuf dst;
-    IBA_warp(dst, src, values_M, filtername, filterwidth, recompute_roi,
+    IBA_warp(dst, src, std::move(values_M), filtername, filterwidth, recompute_roi,
              wrapname, roi, nthreads);
     return dst;
 }
@@ -2074,7 +2076,7 @@ IBA_fixNonFinite_ret(const ImageBuf& src,
 
 
 bool
-IBA_render_point(ImageBuf& dst, int x, int y, py::object color_)
+IBA_render_point(ImageBuf& dst, int x, int y, const py::object& color_)
 {
     std::vector<float> color;
     py_to_stdvector(color, color_);
@@ -2086,7 +2088,7 @@ IBA_render_point(ImageBuf& dst, int x, int y, py::object color_)
 
 bool
 IBA_render_line(ImageBuf& dst, int x1, int y1, int x2, int y2,
-                py::object color_, bool skip_first_point = false)
+                const py::object& color_, bool skip_first_point = false)
 {
     std::vector<float> color;
     py_to_stdvector(color, color_);
@@ -2098,7 +2100,7 @@ IBA_render_line(ImageBuf& dst, int x1, int y1, int x2, int y2,
 
 
 bool
-IBA_render_box(ImageBuf& dst, int x1, int y1, int x2, int y2, py::object color_,
+IBA_render_box(ImageBuf& dst, int x1, int y1, int x2, int y2, const py::object& color_,
                bool fill = false)
 {
     std::vector<float> color;
@@ -2112,9 +2114,9 @@ IBA_render_box(ImageBuf& dst, int x1, int y1, int x2, int y2, py::object color_,
 bool
 IBA_render_text(ImageBuf& dst, int x, int y, const std::string& text,
                 int fontsize = 16, const std::string& fontname = "",
-                py::object textcolor_ = py::none(),
-                const std::string ax  = "left",
-                const std::string ay = "baseline", int shadow = 0,
+                const py::object& textcolor_ = py::none(),
+                const std::string& ax  = "left",
+                const std::string& ay = "baseline", int shadow = 0,
                 ROI roi = ROI::All(), int nthreads = 0)
 {
     std::vector<float> textcolor;

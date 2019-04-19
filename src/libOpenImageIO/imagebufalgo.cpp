@@ -474,7 +474,7 @@ binomial(int n, int k)
 
 
 ImageBuf
-ImageBufAlgo::make_kernel(string_view name, float width, float height,
+ImageBufAlgo::make_kernel(const string_view& name, float width, float height,
                           float depth, bool normalize)
 {
     int w = std::max(1, (int)ceilf(width));
@@ -566,7 +566,7 @@ threshold_to_zero(ImageBuf& dst, float threshold, ROI roi, int nthreads)
 
 bool
 ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
-                           string_view kernel, float width, float contrast,
+                           const string_view& kernel, float width, float contrast,
                            float threshold, ROI roi, int nthreads)
 {
     // N.B. Don't log time, it will get caught by the constituent parts
@@ -619,7 +619,7 @@ ImageBufAlgo::unsharp_mask(ImageBuf& dst, const ImageBuf& src,
 
 
 ImageBuf
-ImageBufAlgo::unsharp_mask(const ImageBuf& src, string_view kernel, float width,
+ImageBufAlgo::unsharp_mask(const ImageBuf& src, const string_view& kernel, float width,
                            float contrast, float threshold, ROI roi,
                            int nthreads)
 {

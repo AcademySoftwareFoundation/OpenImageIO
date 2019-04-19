@@ -127,7 +127,7 @@ iterator_read_test()
 // Test iterators
 template<class ITERATOR>
 void
-iterator_wrap_test(ImageBuf::WrapMode wrap, std::string wrapname)
+iterator_wrap_test(ImageBuf::WrapMode wrap, const std::string& wrapname)
 {
     const int WIDTH = 4, HEIGHT = 4, CHANNELS = 3;
     static float buf[HEIGHT][WIDTH][CHANNELS]

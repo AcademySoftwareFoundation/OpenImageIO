@@ -31,6 +31,7 @@
 #include <cmath>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <boost/container/flat_map.hpp>
@@ -57,10 +58,10 @@ OIIO_NAMESPACE_BEGIN
 // Class used as the key to index color processors in the cache.
 class ColorProcCacheKey {
 public:
-    ColorProcCacheKey(ustring in, ustring out, ustring key = ustring(),
-                      ustring val = ustring(), ustring looks = ustring(),
-                      ustring display = ustring(), ustring view = ustring(),
-                      ustring file = ustring(), bool inverse = false)
+    ColorProcCacheKey(const ustring& in, const ustring& out, const ustring& key = ustring(),
+                      const ustring& val = ustring(), const ustring& looks = ustring(),
+                      const ustring& display = ustring(), const ustring& view = ustring(),
+                      const ustring& file = ustring(), bool inverse = false)
         : inputColorSpace(in)
         , outputColorSpace(out)
         , context_key(key)
@@ -250,7 +251,7 @@ public:
     }
 
     const std::string& configname() const { return m_configname; }
-    void configname(string_view name) { m_configname = name; }
+    void configname(const string_view& name) { m_configname = name; }
 };
 
 
@@ -295,7 +296,7 @@ ColorConfig::Impl::inventory()
 
 
 
-ColorConfig::ColorConfig(string_view filename) { reset(filename); }
+ColorConfig::ColorConfig(const string_view& filename) { reset(filename); }
 
 
 
@@ -304,7 +305,7 @@ ColorConfig::~ColorConfig() {}
 
 
 bool
-ColorConfig::reset(string_view filename)
+ColorConfig::reset(const string_view& filename)
 {
     bool ok = true;
 
@@ -430,7 +431,7 @@ ColorConfig::getColorSpaceNameByRole(string_view role) const
 
 
 TypeDesc
-ColorConfig::getColorSpaceDataType(string_view name, int* bits) const
+ColorConfig::getColorSpaceDataType(const string_view& name, int* bits) const
 {
 #ifdef USE_OCIO
     OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
@@ -480,7 +481,7 @@ ColorConfig::getDisplayNameByIndex(int index) const
 
 
 int
-ColorConfig::getNumViews(string_view display) const
+ColorConfig::getNumViews(const string_view& display) const
 {
 #ifdef USE_OCIO
     if (getImpl()->config_)
@@ -492,7 +493,7 @@ ColorConfig::getNumViews(string_view display) const
 
 
 const char*
-ColorConfig::getViewNameByIndex(string_view display, int index) const
+ColorConfig::getViewNameByIndex(const string_view& display, int index) const
 {
 #ifdef USE_OCIO
     if (getImpl()->config_)
@@ -516,7 +517,7 @@ ColorConfig::getDefaultDisplayName() const
 
 
 const char*
-ColorConfig::getDefaultViewName(string_view display) const
+ColorConfig::getDefaultViewName(const string_view& display) const
 {
 #ifdef USE_OCIO
     if (getImpl()->config_)
@@ -544,7 +545,7 @@ ColorConfig::configname() const
 class ColorProcessor_OCIO : public ColorProcessor {
 public:
     ColorProcessor_OCIO(OCIO::ConstProcessorRcPtr p)
-        : m_p(p) {};
+        : m_p(std::move(p)) {};
     virtual ~ColorProcessor_OCIO(void) {};
 
     virtual bool isNoOp() const { return m_p->isNoOp(); }
@@ -790,10 +791,10 @@ private:
 
 
 ColorProcessorHandle
-ColorConfig::createColorProcessor(string_view inputColorSpace,
-                                  string_view outputColorSpace,
-                                  string_view context_key,
-                                  string_view context_value) const
+ColorConfig::createColorProcessor(const string_view& inputColorSpace,
+                                  const string_view& outputColorSpace,
+                                  const string_view& context_key,
+                                  const string_view& context_value) const
 {
     return createColorProcessor(ustring(inputColorSpace),
                                 ustring(outputColorSpace), ustring(context_key),
@@ -804,8 +805,8 @@ ColorConfig::createColorProcessor(string_view inputColorSpace,
 
 ColorProcessorHandle
 ColorConfig::createColorProcessor(ustring inputColorSpace,
-                                  ustring outputColorSpace, ustring context_key,
-                                  ustring context_value) const
+                                  ustring outputColorSpace, const ustring& context_key,
+                                  const ustring& context_value) const
 {
     ustring inputrole, outputrole;
     std::string pending_error;
@@ -943,10 +944,10 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
 
 
 ColorProcessorHandle
-ColorConfig::createLookTransform(string_view looks, string_view inputColorSpace,
-                                 string_view outputColorSpace, bool inverse,
-                                 string_view context_key,
-                                 string_view context_value) const
+ColorConfig::createLookTransform(const string_view& looks, const string_view& inputColorSpace,
+                                 const string_view& outputColorSpace, bool inverse,
+                                 const string_view& context_key,
+                                 const string_view& context_value) const
 {
     return createLookTransform(ustring(looks), ustring(inputColorSpace),
                                ustring(outputColorSpace), inverse,
@@ -956,10 +957,10 @@ ColorConfig::createLookTransform(string_view looks, string_view inputColorSpace,
 
 
 ColorProcessorHandle
-ColorConfig::createLookTransform(ustring looks, ustring inputColorSpace,
-                                 ustring outputColorSpace, bool inverse,
-                                 ustring context_key,
-                                 ustring context_value) const
+ColorConfig::createLookTransform(const ustring& looks, const ustring& inputColorSpace,
+                                 const ustring& outputColorSpace, bool inverse,
+                                 const ustring& context_key,
+                                 const ustring& context_value) const
 {
     // First, look up the requested processor in the cache. If it already
     // exists, just return it.
@@ -1024,10 +1025,10 @@ ColorConfig::createLookTransform(ustring looks, ustring inputColorSpace,
 
 
 ColorProcessorHandle
-ColorConfig::createDisplayTransform(string_view display, string_view view,
-                                    string_view inputColorSpace,
-                                    string_view looks, string_view context_key,
-                                    string_view context_value) const
+ColorConfig::createDisplayTransform(const string_view& display, const string_view& view,
+                                    const string_view& inputColorSpace,
+                                    const string_view& looks, const string_view& context_key,
+                                    const string_view& context_value) const
 {
     return createDisplayTransform(ustring(display), ustring(view),
                                   ustring(inputColorSpace), ustring(looks),
@@ -1037,10 +1038,10 @@ ColorConfig::createDisplayTransform(string_view display, string_view view,
 
 
 ColorProcessorHandle
-ColorConfig::createDisplayTransform(ustring display, ustring view,
-                                    ustring inputColorSpace, ustring looks,
-                                    ustring context_key,
-                                    ustring context_value) const
+ColorConfig::createDisplayTransform(const ustring& display, const ustring& view,
+                                    const ustring& inputColorSpace, const ustring& looks,
+                                    const ustring& context_key,
+                                    const ustring& context_value) const
 {
     // First, look up the requested processor in the cache. If it already
     // exists, just return it.
@@ -1098,7 +1099,7 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
 
 
 ColorProcessorHandle
-ColorConfig::createFileTransform(string_view name, bool inverse) const
+ColorConfig::createFileTransform(const string_view& name, bool inverse) const
 {
     return createFileTransform(ustring(name), inverse);
 }
@@ -1106,7 +1107,7 @@ ColorConfig::createFileTransform(string_view name, bool inverse) const
 
 
 ColorProcessorHandle
-ColorConfig::createFileTransform(ustring name, bool inverse) const
+ColorConfig::createFileTransform(const ustring& name, bool inverse) const
 {
     // First, look up the requested processor in the cache. If it already
     // exists, just return it.
@@ -1160,7 +1161,7 @@ ColorConfig::createMatrixTransform(const Imath::M44f& M, bool inverse) const
 
 
 string_view
-ColorConfig::parseColorSpaceFromString(string_view str) const
+ColorConfig::parseColorSpaceFromString(const string_view& str) const
 {
 #ifdef USE_OCIO
     if (getImpl() && getImpl()->config_) {
@@ -1184,8 +1185,8 @@ static spin_mutex colorconfig_mutex;
 
 bool
 ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
-                           string_view to, bool unpremult,
-                           string_view context_key, string_view context_value,
+                           const string_view& to, bool unpremult,
+                           const string_view& context_key, const string_view& context_value,
                            ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::colorconvert");
@@ -1225,9 +1226,9 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
 
 
 ImageBuf
-ImageBufAlgo::colorconvert(const ImageBuf& src, string_view from,
-                           string_view to, bool unpremult,
-                           string_view context_key, string_view context_value,
+ImageBufAlgo::colorconvert(const ImageBuf& src, const string_view& from,
+                           const string_view& to, bool unpremult,
+                           const string_view& context_key, const string_view& context_value,
                            ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     ImageBuf result;
@@ -1470,9 +1471,9 @@ ImageBufAlgo::colorconvert(const ImageBuf& src, const ColorProcessor* processor,
 
 
 bool
-ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
+ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, const string_view& looks,
                        string_view from, string_view to, bool inverse,
-                       bool unpremult, string_view key, string_view value,
+                       bool unpremult, const string_view& key, const string_view& value,
                        ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::ociolook");
@@ -1514,9 +1515,9 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
 
 
 ImageBuf
-ImageBufAlgo::ociolook(const ImageBuf& src, string_view looks, string_view from,
-                       string_view to, bool inverse, bool unpremult,
-                       string_view key, string_view value,
+ImageBufAlgo::ociolook(const ImageBuf& src, const string_view& looks, const string_view& from,
+                       const string_view& to, bool inverse, bool unpremult,
+                       const string_view& key, const string_view& value,
                        ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     ImageBuf result;
@@ -1531,9 +1532,9 @@ ImageBufAlgo::ociolook(const ImageBuf& src, string_view looks, string_view from,
 
 bool
 ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
-                          string_view display, string_view view,
-                          string_view from, string_view looks, bool unpremult,
-                          string_view key, string_view value,
+                          const string_view& display, const string_view& view,
+                          string_view from, const string_view& looks, bool unpremult,
+                          const string_view& key, const string_view& value,
                           ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::ociodisplay");
@@ -1572,9 +1573,9 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
 
 
 ImageBuf
-ImageBufAlgo::ociodisplay(const ImageBuf& src, string_view display,
-                          string_view view, string_view from, string_view looks,
-                          bool unpremult, string_view key, string_view value,
+ImageBufAlgo::ociodisplay(const ImageBuf& src, const string_view& display,
+                          const string_view& view, const string_view& from, const string_view& looks,
+                          bool unpremult, const string_view& key, const string_view& value,
                           ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     ImageBuf result;
@@ -1589,7 +1590,7 @@ ImageBufAlgo::ociodisplay(const ImageBuf& src, string_view display,
 
 bool
 ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
-                                string_view name, bool inverse, bool unpremult,
+                                const string_view& name, bool inverse, bool unpremult,
                                 ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::ociofiletransform");
@@ -1624,7 +1625,7 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
 
 
 ImageBuf
-ImageBufAlgo::ociofiletransform(const ImageBuf& src, string_view name,
+ImageBufAlgo::ociofiletransform(const ImageBuf& src, const string_view& name,
                                 bool inverse, bool unpremult,
                                 ColorConfig* colorconfig, ROI roi, int nthreads)
 {

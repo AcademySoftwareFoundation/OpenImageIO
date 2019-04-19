@@ -38,6 +38,7 @@
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <utility>
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/dassert.h>
@@ -632,7 +633,7 @@ ArgParse::command_line() const
 void
 ArgParse::set_preoption_help(callback_t callback)
 {
-    m_impl->m_preoption_help = callback;
+    m_impl->m_preoption_help = std::move(callback);
 }
 
 
@@ -640,7 +641,7 @@ ArgParse::set_preoption_help(callback_t callback)
 void
 ArgParse::set_postoption_help(callback_t callback)
 {
-    m_impl->m_postoption_help = callback;
+    m_impl->m_postoption_help = std::move(callback);
 }
 
 

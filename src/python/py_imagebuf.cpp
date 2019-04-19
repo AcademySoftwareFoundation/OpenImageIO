@@ -31,6 +31,7 @@
 #include "py_oiio.h"
 
 #include <memory>
+#include <utility>
 
 #include <OpenImageIO/platform.h>
 
@@ -105,7 +106,7 @@ ImageBuf_interppixel_bicubic_NDC(const ImageBuf& buf, float x, float y,
 
 
 void
-ImageBuf_setpixel(ImageBuf& buf, int x, int y, int z, py::object p)
+ImageBuf_setpixel(ImageBuf& buf, int x, int y, int z, const py::object& p)
 {
     std::vector<float> pixel;
     py_to_stdvector(pixel, p);
@@ -116,12 +117,12 @@ ImageBuf_setpixel(ImageBuf& buf, int x, int y, int z, py::object p)
 void
 ImageBuf_setpixel2(ImageBuf& buf, int x, int y, py::object p)
 {
-    ImageBuf_setpixel(buf, x, y, 0, p);
+    ImageBuf_setpixel(buf, x, y, 0, std::move(p));
 }
 
 
 void
-ImageBuf_setpixel1(ImageBuf& buf, int i, py::object p)
+ImageBuf_setpixel1(ImageBuf& buf, int i, const py::object& p)
 {
     std::vector<float> pixel;
     py_to_stdvector(pixel, p);
@@ -132,7 +133,7 @@ ImageBuf_setpixel1(ImageBuf& buf, int i, py::object p)
 
 
 py::object
-ImageBuf_get_pixels(const ImageBuf& buf, TypeDesc format, ROI roi = ROI::All())
+ImageBuf_get_pixels(const ImageBuf& buf, const TypeDesc& format, ROI roi = ROI::All())
 {
     // Allocate our own temp buffer and try to read the image into it.
     // If the read fails, return None.

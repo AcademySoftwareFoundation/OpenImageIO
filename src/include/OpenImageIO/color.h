@@ -99,7 +99,7 @@ public:
     ///
     /// Multiple calls to this are potentially expensive. A ColorConfig
     /// should usually be shared by an app for its entire runtime.
-    ColorConfig(string_view filename = "");
+    ColorConfig(const string_view& filename = "");
 
     ~ColorConfig();
 
@@ -110,7 +110,7 @@ public:
     ///
     /// Multiple calls to this are potentially expensive. A ColorConfig
     /// should usually be shared by an app for its entire runtime.
-    bool reset(string_view filename = "");
+    bool reset(const string_view& filename = "");
 
     /// Has an error string occurred?
     /// (This will not affect the error state.)
@@ -133,7 +133,7 @@ public:
 
     /// Get the data type that OCIO thinks this color space is. The name
     /// may be either a color space name or a role.
-    OIIO::TypeDesc getColorSpaceDataType(string_view name, int* bits) const;
+    OIIO::TypeDesc getColorSpaceDataType(const string_view& name, int* bits) const;
 
 
     /// Get the number of Looks defined in this configuration
@@ -155,12 +155,12 @@ public:
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
     ColorProcessorHandle createColorProcessor(
-        string_view inputColorSpace, string_view outputColorSpace,
-        string_view context_key = "", string_view context_value = "") const;
+        const string_view& inputColorSpace, const string_view& outputColorSpace,
+        const string_view& context_key = "", const string_view& context_value = "") const;
     ColorProcessorHandle
     createColorProcessor(ustring inputColorSpace, ustring outputColorSpace,
-                         ustring context_key   = ustring(),
-                         ustring context_value = ustring()) const;
+                         const ustring& context_key   = ustring(),
+                         const ustring& context_value = ustring()) const;
 
     /// Given the named look(s), input and output color spaces, request a
     /// color processor that applies an OCIO look transformation.  If
@@ -176,15 +176,15 @@ public:
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
     ColorProcessorHandle
-    createLookTransform(string_view looks, string_view inputColorSpace,
-                        string_view outputColorSpace, bool inverse = false,
-                        string_view context_key   = "",
-                        string_view context_value = "") const;
+    createLookTransform(const string_view& looks, const string_view& inputColorSpace,
+                        const string_view& outputColorSpace, bool inverse = false,
+                        const string_view& context_key   = "",
+                        const string_view& context_value = "") const;
     ColorProcessorHandle
-    createLookTransform(ustring looks, ustring inputColorSpace,
-                        ustring outputColorSpace, bool inverse = false,
-                        ustring context_key   = ustring(),
-                        ustring context_value = ustring()) const;
+    createLookTransform(const ustring& looks, const ustring& inputColorSpace,
+                        const ustring& outputColorSpace, bool inverse = false,
+                        const ustring& context_key   = ustring(),
+                        const ustring& context_value = ustring()) const;
 
     /// Get the number of displays defined in this configuration
     int getNumDisplays() const;
@@ -193,16 +193,16 @@ public:
     const char* getDisplayNameByIndex(int index) const;
 
     /// Get the number of views for a given display defined in this configuration
-    int getNumViews(string_view display) const;
+    int getNumViews(const string_view& display) const;
 
     /// Query the name of the specified view for the specified display
-    const char* getViewNameByIndex(string_view display, int index) const;
+    const char* getViewNameByIndex(const string_view& display, int index) const;
 
     /// Query the name of the default display
     const char* getDefaultDisplayName() const;
 
     /// Query the name of the default view for the specified display
-    const char* getDefaultViewName(string_view display) const;
+    const char* getDefaultViewName(const string_view& display) const;
 
     /// Construct a processor to transform from the given color space
     /// to the color space of the given display and view. You may optionally
@@ -226,15 +226,15 @@ public:
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
     ColorProcessorHandle
-    createDisplayTransform(string_view display, string_view view,
-                           string_view inputColorSpace, string_view looks = "",
-                           string_view context_key   = "",
-                           string_view context_value = "") const;
+    createDisplayTransform(const string_view& display, const string_view& view,
+                           const string_view& inputColorSpace, const string_view& looks = "",
+                           const string_view& context_key   = "",
+                           const string_view& context_value = "") const;
     ColorProcessorHandle
-    createDisplayTransform(ustring display, ustring view,
-                           ustring inputColorSpace, ustring looks = ustring(),
-                           ustring context_key   = ustring(),
-                           ustring context_value = ustring()) const;
+    createDisplayTransform(const ustring& display, const ustring& view,
+                           const ustring& inputColorSpace, const ustring& looks = ustring(),
+                           const ustring& context_key   = ustring(),
+                           const ustring& context_value = ustring()) const;
 
     /// Construct a processor to perform color transforms determined by an
     /// OpenColorIO FileTransform. It is possible that this will return an
@@ -246,9 +246,9 @@ public:
     ///
     /// Created ColorProcessors are cached, so asking for the same color
     /// space transformation multiple times shouldn't be very expensive.
-    ColorProcessorHandle createFileTransform(string_view name,
+    ColorProcessorHandle createFileTransform(const string_view& name,
                                              bool inverse = false) const;
-    ColorProcessorHandle createFileTransform(ustring name,
+    ColorProcessorHandle createFileTransform(const ustring& name,
                                              bool inverse = false) const;
 
     /// Construct a processor to perform color transforms specified by a
@@ -266,7 +266,7 @@ public:
     /// colorspace substring that appears. Returns "" if no such color space
     /// is found. (This is just a wrapper around OCIO's
     /// ColorConfig::parseColorSpaceFromString.)
-    string_view parseColorSpaceFromString(string_view str) const;
+    string_view parseColorSpaceFromString(const string_view& str) const;
 
     /// Return a filename or other identifier for the config we're using.
     std::string configname() const;

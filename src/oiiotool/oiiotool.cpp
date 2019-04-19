@@ -247,7 +247,7 @@ format_resolution(int w, int h, int d, int x, int y, int z)
 
 
 bool
-Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy)
+Oiiotool::read(const ImageRecRef& img, ReadPolicy readpolicy)
 {
     // If the image is already elaborated, take an early out, both to
     // save time, but also because we only want to do the format and
@@ -336,7 +336,7 @@ Oiiotool::process_pending()
 
 
 void
-Oiiotool::error(string_view command, string_view explanation) const
+Oiiotool::error(const string_view& command, const string_view& explanation) const
 {
     std::cerr << "oiiotool ERROR";
     if (command.size())
@@ -353,7 +353,7 @@ Oiiotool::error(string_view command, string_view explanation) const
 
 
 void
-Oiiotool::warning(string_view command, string_view explanation) const
+Oiiotool::warning(const string_view& command, const string_view& explanation) const
 {
     std::cerr << "oiiotool WARNING";
     if (command.size())
@@ -372,12 +372,12 @@ Oiiotool::extract_options(std::map<std::string, std::string>& options,
     // std::cout << "extract_options '" << command << "'\n";
     int noptions = 0;
     size_t pos;
-    while ((pos = command.find_first_of(":")) != std::string::npos) {
+    while ((pos = command.find_first_of(':')) != std::string::npos) {
         command  = command.substr(pos + 1, std::string::npos);
-        size_t e = command.find_first_of("=");
+        size_t e = command.find_first_of('=');
         if (e != std::string::npos) {
             std::string name  = command.substr(0, e);
-            std::string value = command.substr(e + 1, command.find_first_of(":")
+            std::string value = command.substr(e + 1, command.find_first_of(':')
                                                           - (e + 1));
             options[name]     = value;
             ++noptions;
@@ -562,7 +562,7 @@ string_to_dataformat(const std::string& s, TypeDesc& dataformat, int& bits)
 
 
 inline int
-get_value_override(string_view localoption, int defaultval = 0)
+get_value_override(const string_view& localoption, int defaultval = 0)
 {
     return localoption.size() ? Strutil::from_string<int>(localoption)
                               : defaultval;
@@ -570,7 +570,7 @@ get_value_override(string_view localoption, int defaultval = 0)
 
 
 inline float
-get_value_override(string_view localoption, float defaultval)
+get_value_override(const string_view& localoption, float defaultval)
 {
     return localoption.size() ? Strutil::from_string<float>(localoption)
                               : defaultval;
@@ -578,7 +578,7 @@ get_value_override(string_view localoption, float defaultval)
 
 
 inline string_view
-get_value_override(string_view localoption, string_view defaultval)
+get_value_override(const string_view& localoption, const string_view& defaultval)
 {
     return localoption.size() ? localoption : defaultval;
 }
@@ -588,7 +588,7 @@ get_value_override(string_view localoption, string_view defaultval)
 // Given a (potentially empty) overall data format, per-channel formats,
 // and bit depth, modify the existing spec.
 static void
-set_output_dataformat(ImageSpec& spec, TypeDesc format,
+set_output_dataformat(ImageSpec& spec, const TypeDesc& format,
                       const std::map<std::string, std::string>& channelformats,
                       int bitdepth)
 {
@@ -626,7 +626,7 @@ set_output_dataformat(ImageSpec& spec, TypeDesc format,
 
 
 static void
-adjust_output_options(string_view filename, ImageSpec& spec,
+adjust_output_options(const string_view& filename, ImageSpec& spec,
                       const ImageSpec* nativespec, const Oiiotool& ot,
                       bool format_supports_tiles,
                       std::map<std::string, std::string>& fileoptions,
@@ -915,7 +915,7 @@ set_any_attribute(int argc, const char* argv[])
 
 
 static bool
-do_erase_attribute(ImageSpec& spec, string_view attribname)
+do_erase_attribute(ImageSpec& spec, const string_view& attribname)
 {
     spec.erase_attribute(attribname);
     return true;
@@ -949,7 +949,7 @@ do_set_any_attribute(ImageSpec& spec, const std::pair<std::string, T>& x)
 
 
 bool
-Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
+Oiiotool::get_position(const string_view& command, string_view geom, int& x, int& y)
 {
     string_view orig_geom(geom);
     bool ok = Strutil::parse_int(geom, x) && Strutil::parse_char(geom, ',')
@@ -962,7 +962,7 @@ Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
 
 
 bool
-Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
+Oiiotool::adjust_geometry(const string_view& command, int& w, int& h, int& x, int& y,
                           const char* geom, bool allow_scaling) const
 {
     float scaleX = 1.0f;
@@ -1023,8 +1023,8 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
 
 
 void
-Oiiotool::express_error(const string_view expr, const string_view s,
-                        string_view explanation)
+Oiiotool::express_error(const string_view& expr, const string_view& s,
+                        const string_view& explanation)
 {
     int offset = expr.rfind(s) + 1;
     errorf("expression", "%s at char %d of `%s'", explanation, offset, expr);
@@ -1033,7 +1033,7 @@ Oiiotool::express_error(const string_view expr, const string_view s,
 
 
 bool
-Oiiotool::express_parse_atom(const string_view expr, string_view& s,
+Oiiotool::express_parse_atom(const string_view& expr, string_view& s,
                              std::string& result)
 {
     // std::cout << " Entering express_parse_atom, s='" << s << "'\n";
@@ -1191,7 +1191,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
 
 
 bool
-Oiiotool::express_parse_factors(const string_view expr, string_view& s,
+Oiiotool::express_parse_factors(const string_view& expr, string_view& s,
                                 std::string& result)
 {
     // std::cout << " Entering express_parse_factors, s='" << s << "'\n";
@@ -1260,7 +1260,7 @@ Oiiotool::express_parse_factors(const string_view expr, string_view& s,
 
 
 bool
-Oiiotool::express_parse_summands(const string_view expr, string_view& s,
+Oiiotool::express_parse_summands(const string_view& expr, string_view& s,
                                  std::string& result)
 {
     // std::cout << " Entering express_parse_summands, s='" << s << "'\n";
@@ -1343,7 +1343,7 @@ Oiiotool::express_impl(string_view s)
 
 // Perform expression evaluation and substitution on a string
 string_view
-Oiiotool::express(string_view str)
+Oiiotool::express(const string_view& str)
 {
     if (!eval_enable)
         return str;  // Expression evaluation disabled
@@ -1452,7 +1452,7 @@ set_input_attribute(int argc, const char* argv[])
 
 
 bool
-OiioTool::set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
+OiioTool::set_attribute(const ImageRecRef& img, string_view attribname, const TypeDesc& type,
                         string_view value, bool allsubimages)
 {
     // Expression substitution
@@ -1682,7 +1682,7 @@ set_orientation(int argc, const char* argv[])
 
 
 static bool
-do_rotate_orientation(ImageSpec& spec, string_view cmd)
+do_rotate_orientation(ImageSpec& spec, const string_view& cmd)
 {
     bool rotcw  = (cmd == "--orientcw" || cmd == "-orientcw" || cmd == "--rotcw"
                   || cmd == "-rotcw");
@@ -1886,7 +1886,7 @@ set_colorspace(int argc, const char* argv[])
 
 class OpColorConvert : public OiiotoolOp {
 public:
-    OpColorConvert(Oiiotool& ot, string_view opname, int argc,
+    OpColorConvert(Oiiotool& ot, const string_view& opname, int argc,
                    const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
@@ -1962,7 +1962,7 @@ action_tocolorspace(int argc, const char* argv[])
 
 class OpColorMatrixTransform : public OiiotoolOp {
 public:
-    OpColorMatrixTransform(Oiiotool& ot, string_view opname, int argc,
+    OpColorMatrixTransform(Oiiotool& ot, const string_view& opname, int argc,
                            const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
@@ -2005,7 +2005,7 @@ OP_CUSTOMCLASS(ccmatrix, OpColorMatrixTransform, 1);
 
 class OpOcioLook : public OiiotoolOp {
 public:
-    OpOcioLook(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpOcioLook(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -2042,7 +2042,7 @@ OP_CUSTOMCLASS(ociolook, OpOcioLook, 1);
 
 class OpOcioDisplay : public OiiotoolOp {
 public:
-    OpOcioDisplay(Oiiotool& ot, string_view opname, int argc,
+    OpOcioDisplay(Oiiotool& ot, const string_view& opname, int argc,
                   const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
@@ -2079,7 +2079,7 @@ OP_CUSTOMCLASS(ociodisplay, OpOcioDisplay, 1);
 
 class OpOcioFileTransform : public OiiotoolOp {
 public:
-    OpOcioFileTransform(Oiiotool& ot, string_view opname, int argc,
+    OpOcioFileTransform(Oiiotool& ot, const string_view& opname, int argc,
                         const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
@@ -2499,7 +2499,7 @@ action_subimage_split(int argc, const char* argv[])
 
 
 static void
-action_subimage_append_n(int n, string_view command)
+action_subimage_append_n(int n, const string_view& command)
 {
     std::vector<ImageRecRef> images(n);
     for (int i = n - 1; i >= 0; --i) {
@@ -2725,7 +2725,7 @@ UNARY_IMAGE_OP(abs, ImageBufAlgo::abs);
 
 class OpPremult : public OiiotoolOp {
 public:
-    OpPremult(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpPremult(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -2740,7 +2740,7 @@ OP_CUSTOMCLASS(premult, OpPremult, 1);
 
 class OpUnpremult : public OiiotoolOp {
 public:
-    OpUnpremult(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpUnpremult(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -2761,7 +2761,7 @@ OP_CUSTOMCLASS(unpremult, OpUnpremult, 1);
 
 class OpMad : public OiiotoolOp {
 public:
-    OpMad(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpMad(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 3)
     {
     }
@@ -2777,7 +2777,7 @@ OP_CUSTOMCLASS(mad, OpMad, 3);
 
 class OpInvert : public OiiotoolOp {
 public:
-    OpInvert(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpInvert(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -2796,7 +2796,7 @@ OP_CUSTOMCLASS(invert, OpInvert, 1);
 
 class OpNoise : public OiiotoolOp {
 public:
-    OpNoise(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpNoise(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -2879,7 +2879,7 @@ action_chsum(int argc, const char* argv[])
 
 class OpColormap : public OiiotoolOp {
 public:
-    OpColormap(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpColormap(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -2957,7 +2957,7 @@ action_reorient(int argc, const char* argv[])
 
 class OpRotate : public OiiotoolOp {
 public:
-    OpRotate(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpRotate(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -2993,7 +2993,7 @@ OP_CUSTOMCLASS(rotate, OpRotate, 1);
 
 class OpWarp : public OiiotoolOp {
 public:
-    OpWarp(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpWarp(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -3020,7 +3020,7 @@ OP_CUSTOMCLASS(warp, OpWarp, 1);
 
 class OpCshift : public OiiotoolOp {
 public:
-    OpCshift(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpCshift(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -3232,7 +3232,7 @@ action_pattern(int argc, const char* argv[])
 
 class OpKernel : public OiiotoolOp {
 public:
-    OpKernel(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpKernel(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 0)
     {
     }
@@ -3479,7 +3479,7 @@ action_cut(int argc, const char* argv[])
 
 class OpResample : public OiiotoolOp {
 public:
-    OpResample(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpResample(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -3525,7 +3525,7 @@ OP_CUSTOMCLASS(resample, OpResample, 1);
 
 class OpResize : public OiiotoolOp {
 public:
-    OpResize(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpResize(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -3838,7 +3838,7 @@ action_pixelaspect(int argc, const char* argv[])
 
 class OpConvolve : public OiiotoolOp {
 public:
-    OpConvolve(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpConvolve(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 2)
     {
     }
@@ -3854,7 +3854,7 @@ OP_CUSTOMCLASS(convolve, OpConvolve, 2);
 
 class OpBlur : public OiiotoolOp {
 public:
-    OpBlur(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpBlur(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -3878,7 +3878,7 @@ OP_CUSTOMCLASS(blur, OpBlur, 1);
 
 class OpMedian : public OiiotoolOp {
 public:
-    OpMedian(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpMedian(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -3898,7 +3898,7 @@ OP_CUSTOMCLASS(median, OpMedian, 1);
 
 class OpDilate : public OiiotoolOp {
 public:
-    OpDilate(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpDilate(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -3918,7 +3918,7 @@ OP_CUSTOMCLASS(dilate, OpDilate, 1);
 
 class OpErode : public OiiotoolOp {
 public:
-    OpErode(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpErode(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -3938,7 +3938,7 @@ OP_CUSTOMCLASS(erode, OpErode, 1);
 
 class OpUnsharp : public OiiotoolOp {
 public:
-    OpUnsharp(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpUnsharp(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -3965,7 +3965,7 @@ OP_CUSTOMCLASS(unsharp, OpUnsharp, 1);
 
 class OpLaplacian : public OiiotoolOp {
 public:
-    OpLaplacian(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpLaplacian(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -4166,7 +4166,7 @@ BINARY_IMAGE_OP(over, ImageBufAlgo::over);
 
 class OpZover : public OiiotoolOp {
 public:
-    OpZover(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpZover(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 2)
     {
     }
@@ -4184,7 +4184,7 @@ OP_CUSTOMCLASS(zover, OpZover, 1);
 
 class OpDeepMerge : public OiiotoolOp {
 public:
-    OpDeepMerge(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpDeepMerge(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 2)
     {
     }
@@ -4200,7 +4200,7 @@ OP_CUSTOMCLASS(deepmerge, OpDeepMerge, 2);
 
 class OpDeepHoldout : public OiiotoolOp {
 public:
-    OpDeepHoldout(Oiiotool& ot, string_view opname, int argc,
+    OpDeepHoldout(Oiiotool& ot, const string_view& opname, int argc,
                   const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 2)
     {
@@ -4217,7 +4217,7 @@ OP_CUSTOMCLASS(deepholdout, OpDeepHoldout, 2);
 
 class OpDeepen : public OiiotoolOp {
 public:
-    OpDeepen(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpDeepen(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -4354,7 +4354,7 @@ action_clamp(int argc, const char* argv[])
 
 class OpRangeCompress : public OiiotoolOp {
 public:
-    OpRangeCompress(Oiiotool& ot, string_view opname, int argc,
+    OpRangeCompress(Oiiotool& ot, const string_view& opname, int argc,
                     const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
@@ -4372,7 +4372,7 @@ OP_CUSTOMCLASS(rangecompress, OpRangeCompress, 1);
 
 class OpRangeExpand : public OiiotoolOp {
 public:
-    OpRangeExpand(Oiiotool& ot, string_view opname, int argc,
+    OpRangeExpand(Oiiotool& ot, const string_view& opname, int argc,
                   const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
@@ -4390,7 +4390,7 @@ OP_CUSTOMCLASS(rangeexpand, OpRangeExpand, 1);
 
 class OpContrast : public OiiotoolOp {
 public:
-    OpContrast(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpContrast(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -4432,7 +4432,7 @@ OP_CUSTOMCLASS(contrast, OpContrast, 1);
 
 class OpBox : public OiiotoolOp {
 public:
-    OpBox(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpBox(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -4462,7 +4462,7 @@ OP_CUSTOMCLASS(box, OpBox, 1);
 
 class OpLine : public OiiotoolOp {
 public:
-    OpLine(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpLine(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -4491,7 +4491,7 @@ OP_CUSTOMCLASS(line, OpLine, 1);
 
 class OpText : public OiiotoolOp {
 public:
-    OpText(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+    OpText(Oiiotool& ot, const string_view& opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
@@ -5333,7 +5333,7 @@ command_line_string(int argc, char* argv[], bool sansattrib)
 
 
 static std::string
-formatted_format_list(string_view format_typename, string_view attr)
+formatted_format_list(const string_view& format_typename, const string_view& attr)
 {
     int columns = Sysutil::terminal_columns() - 2;
     std::stringstream s;

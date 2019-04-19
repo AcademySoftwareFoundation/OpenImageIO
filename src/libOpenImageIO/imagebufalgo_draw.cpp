@@ -639,7 +639,7 @@ noise_salt_(ImageBuf& dst, float saltval, float saltportion, bool mono,
 
 
 bool
-ImageBufAlgo::noise(ImageBuf& dst, string_view noisetype, float A, float B,
+ImageBufAlgo::noise(ImageBuf& dst, const string_view& noisetype, float A, float B,
                     bool mono, int seed, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::noise");
@@ -668,7 +668,7 @@ ImageBufAlgo::noise(ImageBuf& dst, string_view noisetype, float A, float B,
 
 
 ImageBuf
-ImageBufAlgo::noise(string_view noisetype, float A, float B, bool mono,
+ImageBufAlgo::noise(const string_view& noisetype, float A, float B, bool mono,
                     int seed, ROI roi, int nthreads)
 {
     ImageBuf result = ImageBufAlgo::zero(roi, nthreads);
@@ -722,7 +722,7 @@ text_size_from_unicode(std::vector<uint32_t>& utext, FT_Face face)
 // If not found, return false and put an error message in result.
 // Not thread-safe! The caller must use the mutex.
 static bool
-resolve_font(int fontsize, string_view font_, std::string& result)
+resolve_font(int fontsize, const string_view& font_, std::string& result)
 {
     result.clear();
 
@@ -836,7 +836,7 @@ resolve_font(int fontsize, string_view font_, std::string& result)
 
 
 ROI
-ImageBufAlgo::text_size(string_view text, int fontsize, string_view font_)
+ImageBufAlgo::text_size(const string_view& text, int fontsize, const string_view& font_)
 {
     pvt::LoggedTimer logtime("IBA::text_size");
     ROI size;
@@ -897,8 +897,8 @@ ImageBufAlgo::text_size(string_view text, int fontsize, string_view font_)
 
 
 bool
-ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
-                          int fontsize, string_view font_,
+ImageBufAlgo::render_text(ImageBuf& R, int x, int y, const string_view& text,
+                          int fontsize, const string_view& font_,
                           cspan<float> textcolor, TextAlignX alignx,
                           TextAlignY aligny, int shadow, ROI roi, int nthreads)
 {

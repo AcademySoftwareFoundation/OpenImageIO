@@ -135,7 +135,7 @@ AdobeRGBToXYZ(ImageBuf& A, ROI roi, int nthreads)
 /// Convert a color in XYZ space to LAB space.
 ///
 static Color3f
-XYZToLAB_color(const Color3f xyz)
+XYZToLAB_color(const Color3f& xyz)
 {
     // Reference white point
     static const Color3f white(0.576700f + 0.185556f + 0.188212f,

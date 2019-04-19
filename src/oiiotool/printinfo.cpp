@@ -111,7 +111,7 @@ compute_sha1(Oiiotool& ot, ImageInput* input)
 
 template<typename T>
 static void
-print_nums(int n, const T* val, string_view sep = " ")
+print_nums(int n, const T* val, const string_view& sep = " ")
 {
     if (std::is_floating_point<T>::value) {
         // Ensure uniform printing of NaN and Inf on all platforms
@@ -564,7 +564,7 @@ print_stats(Oiiotool& ot, const std::string& filename,
 
 
 static const char*
-brief_format_name(TypeDesc type, int bits = 0)
+brief_format_name(const TypeDesc& type, int bits = 0)
 {
     if (!bits)
         bits = (int)type.size() * 8;

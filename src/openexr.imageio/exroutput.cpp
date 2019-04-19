@@ -811,7 +811,7 @@ struct ExrMeta {
     TypeDesc exrtype;
 
     ExrMeta(const char* oiioname = NULL, const char* exrname = NULL,
-            TypeDesc exrtype = TypeDesc::UNKNOWN)
+            const TypeDesc& exrtype = TypeDesc::UNKNOWN)
         : oiioname(oiioname)
         , exrname(exrname)
         , exrtype(exrtype)

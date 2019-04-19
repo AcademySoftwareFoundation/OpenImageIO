@@ -286,7 +286,7 @@ ImageCacheFile::LevelInfo::LevelInfo(const LevelInfo& src)
 
 ImageCacheFile::ImageCacheFile(ImageCacheImpl& imagecache,
                                ImageCachePerThreadInfo* thread_info,
-                               ustring filename, ImageInput::Creator creator,
+                               const ustring& filename, ImageInput::Creator creator,
                                const ImageSpec* config)
     : m_filename(filename)
     , m_used(true)
@@ -365,7 +365,7 @@ ImageCacheFile::get_imageinput(ImageCachePerThreadInfo* thread_info)
 
 
 void
-ImageCacheFile::set_imageinput(std::shared_ptr<ImageInput> newval)
+ImageCacheFile::set_imageinput(const std::shared_ptr<ImageInput>& newval)
 {
     if (newval)
         imagecache().incr_open_files();
@@ -800,7 +800,7 @@ ImageCacheFile::init_from_spec()
 bool
 ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
                           int miplevel, int x, int y, int z, int chbegin,
-                          int chend, TypeDesc format, void* data)
+                          int chend, const TypeDesc& format, void* data)
 {
     ASSERT(chend > chbegin);
     std::shared_ptr<ImageInput> inp = open(thread_info);
@@ -866,7 +866,7 @@ bool
 ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
                               ImageInput* inp, int subimage, int miplevel,
                               int x, int y, int z, int chbegin, int chend,
-                              TypeDesc format, void* data)
+                              const TypeDesc& format, void* data)
 {
     // We need a tile from an unmipmapped file, and it doesn't really
     // exist.  So generate it out of thin air by interpolating pixels
@@ -962,7 +962,7 @@ bool
 ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
                              ImageInput* inp, int subimage, int miplevel, int x,
                              int y, int z, int chbegin, int chend,
-                             TypeDesc format, void* data)
+                             const TypeDesc& format, void* data)
 {
     // Strides for a single tile
     const ImageSpec& spec(this->spec(subimage, miplevel));
@@ -1326,7 +1326,7 @@ ImageCacheImpl::verify_file(ImageCacheFile* tf,
 
 
 ImageCacheFile*
-ImageCacheImpl::find_fingerprint(ustring finger, ImageCacheFile* file)
+ImageCacheImpl::find_fingerprint(const ustring& finger, ImageCacheFile* file)
 {
     spin_lock lock(m_fingerprints_mutex);
     // Insert if missing, otherwise return old value
@@ -1442,7 +1442,7 @@ ImageCacheTile::ImageCacheTile(const TileID& id)
 
 
 ImageCacheTile::ImageCacheTile(const TileID& id, const void* pels,
-                               TypeDesc format, stride_t xstride,
+                               const TypeDesc& format, stride_t xstride,
                                stride_t ystride, stride_t zstride, bool copy)
     : m_id(id)
 {
@@ -2865,7 +2865,7 @@ ImageCacheImpl::imagespec(ImageCacheFile* file,
 
 
 int
-ImageCacheImpl::subimage_from_name(ImageCacheFile* file, ustring subimagename)
+ImageCacheImpl::subimage_from_name(ImageCacheFile* file, const ustring& subimagename)
 {
     for (int s = 0, send = file->subimages(); s < send; ++s) {
         if (file->subimageinfo(s).subimagename == subimagename)
@@ -3354,7 +3354,7 @@ ImageCacheImpl::invalidate_all(bool force)
     }
 
     // Now, invalidate all the files in our "needs invalidation" list
-    for (auto f : all_files) {
+    for (const auto& f : all_files) {
         // fprintf (stderr, "Invalidating %s\n", f.c_str());
         invalidate(f, true);
     }

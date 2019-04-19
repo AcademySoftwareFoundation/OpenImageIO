@@ -138,7 +138,7 @@ set_prman_options(TypeDesc out_dataformat, ImageSpec& configspec)
 
 
 static TypeDesc
-set_oiio_options(TypeDesc out_dataformat, ImageSpec& configspec)
+set_oiio_options(const TypeDesc& out_dataformat, ImageSpec& configspec)
 {
     // Interleaved channels are faster to read
     configspec.attribute("planarconfig", "contig");
@@ -606,7 +606,7 @@ maketx_merge_spec(ImageSpec& dstspec, const ImageSpec& srcspec)
 {
     for (size_t i = 0, e = srcspec.extra_attribs.size(); i < e; ++i) {
         const ParamValue& p(srcspec.extra_attribs[i]);
-        ustring name = p.name();
+        const ustring& name = p.name();
         if (Strutil::istarts_with(name.string(), "maketx:")) {
             // Special instruction -- don't copy it to the destination spec
         } else {
@@ -620,8 +620,8 @@ maketx_merge_spec(ImageSpec& dstspec, const ImageSpec& srcspec)
 
 static bool
 write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
-             const ImageSpec& outspec_template, std::string outputfilename,
-             ImageOutput* out, TypeDesc outputdatatype, bool mipmap,
+             const ImageSpec& outspec_template, const std::string& outputfilename,
+             ImageOutput* out, const TypeDesc& outputdatatype, bool mipmap,
              string_view filtername, const ImageSpec& configspec,
              std::ostream& outstream, double& stat_writetime,
              double& stat_miptime, size_t& peak_mem)
@@ -951,7 +951,7 @@ stripdir_cmd_line(string_view cmdline)
 
 static bool
 make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
-                  std::string filename, std::string outputfilename,
+                  const std::string& filename, std::string outputfilename,
                   const ImageSpec& _configspec, std::ostream* outstream_ptr)
 {
     ASSERT(mode >= 0 && mode < ImageBufAlgo::_MakeTxLast);
@@ -1795,7 +1795,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
 
 bool
 ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
-                           string_view filename, string_view outputfilename,
+                           const string_view& filename, const string_view& outputfilename,
                            const ImageSpec& configspec, std::ostream* outstream)
 {
     pvt::LoggedTimer logtime("IBA::make_texture");
@@ -1808,7 +1808,7 @@ ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
 bool
 ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
                            const std::vector<std::string>& filenames,
-                           string_view outputfilename,
+                           const string_view& outputfilename,
                            const ImageSpec& configspec,
                            std::ostream* outstream_ptr)
 {
@@ -1821,7 +1821,7 @@ ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
 
 bool
 ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
-                           const ImageBuf& input, string_view outputfilename,
+                           const ImageBuf& input, const string_view& outputfilename,
                            const ImageSpec& configspec, std::ostream* outstream)
 {
     pvt::LoggedTimer logtime("IBA::make_texture");

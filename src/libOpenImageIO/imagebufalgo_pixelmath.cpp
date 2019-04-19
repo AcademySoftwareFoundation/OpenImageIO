@@ -967,7 +967,7 @@ static const float viridis_data[] = {
 
 bool
 ImageBufAlgo::color_map(ImageBuf& dst, const ImageBuf& src, int srcchannel,
-                        string_view mapname, ROI roi, int nthreads)
+                        const string_view& mapname, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::color_map");
     if (srcchannel >= src.nchannels()) {
@@ -1006,7 +1006,7 @@ ImageBufAlgo::color_map(ImageBuf& dst, const ImageBuf& src, int srcchannel,
 
 ImageBuf
 ImageBufAlgo::color_map(const ImageBuf& src, int srcchannel,
-                        string_view mapname, ROI roi, int nthreads)
+                        const string_view& mapname, ROI roi, int nthreads)
 {
     ImageBuf result;
     bool ok = color_map(result, src, srcchannel, mapname, roi, nthreads);

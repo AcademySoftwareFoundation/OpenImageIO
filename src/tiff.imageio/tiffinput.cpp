@@ -239,7 +239,7 @@ private:
     // program!  Ick.  So to avoid this, we always push a pointer, which
     // we expect NOT to be altered, and if it is, it's a danger sign (plus
     // we didn't crash).
-    bool safe_tiffgetfield(string_view name, int tag, void* dest)
+    bool safe_tiffgetfield(const string_view& name, int tag, void* dest)
     {
         void* ptr = NULL;  // dummy -- expect it to stay NULL
         bool ok   = TIFFGetField(m_tif, tag, dest, &ptr);
@@ -274,7 +274,7 @@ private:
     }
 
     // Get a string tiff tag field and put it into extra_params
-    void get_string_attribute(string_view name, int tag)
+    void get_string_attribute(const string_view& name, int tag)
     {
         string_view s;
         if (tiff_get_string_field(tag, s))
@@ -282,7 +282,7 @@ private:
     }
 
     // Get a matrix tiff tag field and put it into extra_params
-    void get_matrix_attribute(string_view name, int tag)
+    void get_matrix_attribute(const string_view& name, int tag)
     {
         float* f = NULL;
         if (safe_tiffgetfield(name, tag, &f) && f)
@@ -290,7 +290,7 @@ private:
     }
 
     // Get a float tiff tag field and put it into extra_params
-    void get_float_attribute(string_view name, int tag)
+    void get_float_attribute(const string_view& name, int tag)
     {
         float f[16];
         if (safe_tiffgetfield(name, tag, f))
@@ -298,7 +298,7 @@ private:
     }
 
     // Get an int tiff tag field and put it into extra_params
-    void get_int_attribute(string_view name, int tag)
+    void get_int_attribute(const string_view& name, int tag)
     {
         int i;
         if (safe_tiffgetfield(name, tag, &i))
@@ -306,7 +306,7 @@ private:
     }
 
     // Get an int tiff tag field and put it into extra_params
-    void get_short_attribute(string_view name, int tag)
+    void get_short_attribute(const string_view& name, int tag)
     {
         // Make room for two shorts, in case the tag is not the type we
         // expect, and libtiff writes a long instead.
@@ -331,7 +331,7 @@ private:
 
     // Search for TIFF tag having type 'tifftype', and if found,
     // add it in the obvious way to m_spec under the name 'oiioname'.
-    void find_tag(int tifftag, TIFFDataType tifftype, string_view oiioname)
+    void find_tag(int tifftag, TIFFDataType tifftype, const string_view& oiioname)
     {
         auto info = find_field(tifftag, tifftype);
         if (!info) {

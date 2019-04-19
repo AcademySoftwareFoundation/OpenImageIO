@@ -887,7 +887,7 @@ Filter1D::get_filterdesc(int filternum, FilterDesc* filterdesc)
 // the correct implementation.  If the name is not recognized, return
 // NULL.
 Filter1D*
-Filter1D::create(string_view filtername, float width)
+Filter1D::create(const string_view& filtername, float width)
 {
     if (filtername == "box")
         return new FilterBox1D(width);
@@ -981,7 +981,7 @@ Filter2D::get_filterdesc(int filternum, FilterDesc* filterdesc)
 // NULL.
 
 Filter2D*
-Filter2D::create(string_view filtername, float width, float height)
+Filter2D::create(const string_view& filtername, float width, float height)
 {
     if (filtername == "box")
         return new FilterBox2D(width, height);

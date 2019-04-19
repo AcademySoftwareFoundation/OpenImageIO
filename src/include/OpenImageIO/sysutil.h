@@ -87,7 +87,7 @@ this_program_path();
 /// Return the value of an environment variable (or the empty string_view
 /// if it is not found in the environment.)
 OIIO_API string_view
-getenv(string_view name);
+getenv(const string_view& name);
 
 /// Sleep for the given number of microseconds.
 ///
@@ -148,7 +148,7 @@ public:
     /// "green_bg", "yellow_bg", "blue_bg", "magenta_bg", "cyan_bg",
     /// "white_bg". Commands may be combined with "," for example:
     /// "bold,green,white_bg".
-    std::string ansi(string_view command) const;
+    std::string ansi(const string_view& command) const;
 
     /// ansi("appearance", "text") returns the text, with the formatting
     /// command, then the text, then the formatting command to return to

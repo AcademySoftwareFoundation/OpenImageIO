@@ -105,7 +105,7 @@ public:
     }
 
     // Set from string -- parse
-    ParamValue(string_view _name, TypeDesc type, string_view value);
+    ParamValue(const string_view& _name, const TypeDesc& type, const string_view& value);
 
     // Copy constructor
     ParamValue(const ParamValue& p)
@@ -238,9 +238,9 @@ private:
     bool m_copy            = false;
     bool m_nonlocal        = false;
 
-    void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
+    void init_noclear(const ustring& _name, const TypeDesc& _type, int _nvalues,
                       const void* _value, bool _copy = true);
-    void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
+    void init_noclear(const ustring& _name, const TypeDesc& _type, int _nvalues,
                       Interp _interp, const void* _value, bool _copy = true);
     void clear_value();
 };
@@ -265,45 +265,45 @@ public:
     /// Find the first entry with matching name, and if type != UNKNOWN,
     /// then also with matching type. The name search is case sensitive if
     /// casesensitive == true.
-    iterator find(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+    iterator find(const string_view& name, const TypeDesc& type = TypeDesc::UNKNOWN,
                   bool casesensitive = true);
-    iterator find(ustring name, TypeDesc type = TypeDesc::UNKNOWN,
+    iterator find(const ustring& name, const TypeDesc& type = TypeDesc::UNKNOWN,
                   bool casesensitive = true);
-    const_iterator find(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+    const_iterator find(const string_view& name, const TypeDesc& type = TypeDesc::UNKNOWN,
                         bool casesensitive = true) const;
-    const_iterator find(ustring name, TypeDesc type = TypeDesc::UNKNOWN,
+    const_iterator find(const ustring& name, const TypeDesc& type = TypeDesc::UNKNOWN,
                         bool casesensitive = true) const;
 
     /// Case insensitive search for an integer, with default if not found.
     /// Automatically will return an int even if the data is really
     /// unsigned, short, or byte, but not float. It will retrive from a
     /// string, but only if the string is entirely a valid int format.
-    int get_int(string_view name, int defaultval = 0,
+    int get_int(const string_view& name, int defaultval = 0,
                 bool casesensitive = false, bool convert = true) const;
 
     /// Case insensitive search for a float, with default if not found.
     /// Automatically will return a float even if the data is really double
     /// or half. It will retrive from a string, but only if the string is
     /// entirely a valid float format.
-    float get_float(string_view name, float defaultval = 0,
+    float get_float(const string_view& name, float defaultval = 0,
                     bool casesensitive = false, bool convert = true) const;
 
     /// Simple way to get a string attribute, with default provided.
     /// If the value is another type, it will be turned into a string.
-    string_view get_string(string_view name,
-                           string_view defaultval = string_view(),
+    string_view get_string(const string_view& name,
+                           const string_view& defaultval = string_view(),
                            bool casesensitive     = false,
                            bool convert           = true) const;
-    ustring get_ustring(string_view name,
-                        string_view defaultval = string_view(),
+    ustring get_ustring(const string_view& name,
+                        const string_view& defaultval = string_view(),
                         bool casesensitive = false, bool convert = true) const;
 
     /// Remove the named parameter, if it is in the list.
-    void remove(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+    void remove(const string_view& name, const TypeDesc& type = TypeDesc::UNKNOWN,
                 bool casesensitive = true);
 
     /// Does the list contain the named attribute?
-    bool contains(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+    bool contains(const string_view& name, const TypeDesc& type = TypeDesc::UNKNOWN,
                   bool casesensitive = true);
 
     // Add the param to the list, replacing in-place any existing one with

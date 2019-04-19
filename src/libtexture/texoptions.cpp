@@ -162,7 +162,7 @@ Tex::decode_wrapmode(const char* name)
 
 
 Tex::Wrap
-Tex::decode_wrapmode(ustring name)
+Tex::decode_wrapmode(const ustring& name)
 {
     for (int i = 0; i < (int)Tex::Wrap::Last; ++i)
         if (name == wrap_type_name[i])

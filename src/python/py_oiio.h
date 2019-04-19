@@ -93,7 +93,7 @@ void declare_global (py::module& m);
 
 // bool PyProgressCallback(void*, float);
 // object C_array_to_Python_array (const char *data, TypeDesc type, size_t size);
-const char * python_array_code (TypeDesc format);
+const char * python_array_code (const TypeDesc& format);
 TypeDesc typedesc_from_python_array_code (char code);
 std::string object_classname (const py::object& obj);
 

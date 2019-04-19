@@ -157,7 +157,7 @@ copy_deep(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 1)
 
 
 bool
-ImageBufAlgo::copy(ImageBuf& dst, const ImageBuf& src, TypeDesc convert,
+ImageBufAlgo::copy(ImageBuf& dst, const ImageBuf& src, const TypeDesc& convert,
                    ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::copy");
@@ -210,7 +210,7 @@ ImageBufAlgo::copy(ImageBuf& dst, const ImageBuf& src, TypeDesc convert,
 
 
 ImageBuf
-ImageBufAlgo::copy(const ImageBuf& src, TypeDesc convert, ROI roi, int nthreads)
+ImageBufAlgo::copy(const ImageBuf& src, const TypeDesc& convert, ROI roi, int nthreads)
 {
     ImageBuf result;
     bool ok = copy(result, src, convert, roi, nthreads);

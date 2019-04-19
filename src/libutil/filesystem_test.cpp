@@ -115,7 +115,7 @@ test_filename_searchpath_find()
 
 
 inline std::string
-my_read_text_file(string_view filename)
+my_read_text_file(const string_view& filename)
 {
     std::string err;
     std::string contents;

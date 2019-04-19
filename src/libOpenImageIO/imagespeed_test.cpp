@@ -117,7 +117,7 @@ getargs(int argc, char* argv[])
 static void
 time_read_image()
 {
-    for (ustring filename : input_filename) {
+    for (const ustring& filename : input_filename) {
         auto in = ImageInput::open(filename.c_str());
         ASSERT(in);
         in->read_image(conversion, &buffer[0]);
@@ -130,7 +130,7 @@ time_read_image()
 static void
 time_read_scanline_at_a_time()
 {
-    for (ustring filename : input_filename) {
+    for (const ustring& filename : input_filename) {
         auto in = ImageInput::open(filename.c_str());
         ASSERT(in);
         const ImageSpec& spec(in->spec());
@@ -151,7 +151,7 @@ time_read_scanline_at_a_time()
 static void
 time_read_64_scanlines_at_a_time()
 {
-    for (ustring filename : input_filename) {
+    for (const ustring& filename : input_filename) {
         auto in = ImageInput::open(filename.c_str());
         ASSERT(in);
         const ImageSpec& spec(in->spec());
@@ -174,7 +174,7 @@ static void
 time_read_imagebuf()
 {
     imagecache->invalidate_all(true);
-    for (ustring filename : input_filename) {
+    for (const ustring& filename : input_filename) {
         ImageBuf ib(filename.string(), imagecache);
         ib.read(0, 0, true, conversion);
     }
@@ -186,7 +186,7 @@ static void
 time_ic_get_pixels()
 {
     imagecache->invalidate_all(true);
-    for (ustring filename : input_filename) {
+    for (const ustring& filename : input_filename) {
         const ImageSpec spec = (*imagecache->imagespec(filename));
         imagecache->get_pixels(filename, 0, 0, spec.x, spec.x + spec.width,
                                spec.y, spec.y + spec.height, spec.z,

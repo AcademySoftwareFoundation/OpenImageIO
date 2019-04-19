@@ -327,7 +327,7 @@ DeepData::samplesize() const
 
 // Is name the same as suffix, or does it end in ".suffix"?
 inline bool
-is_or_endswithdot(string_view name, string_view suffix)
+is_or_endswithdot(const string_view& name, const string_view& suffix)
 {
     return (Strutil::iequals(name, suffix)
             || (name.size() > suffix.size() && Strutil::iends_with(name, suffix)

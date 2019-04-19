@@ -514,7 +514,7 @@ ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
 
 
 bool
-ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, string_view filtername,
+ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, const string_view& filtername,
                      float fwidth, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::resize");
@@ -553,7 +553,7 @@ ImageBufAlgo::resize(const ImageBuf& src, Filter2D* filter, ROI roi,
 
 
 ImageBuf
-ImageBufAlgo::resize(const ImageBuf& src, string_view filtername,
+ImageBufAlgo::resize(const ImageBuf& src, const string_view& filtername,
                      float filterwidth, ROI roi, int nthreads)
 {
     ImageBuf result;
@@ -666,7 +666,7 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
 
 
 bool
-ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
+ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, const string_view& filtername,
                   float fwidth, bool exact, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::fit");
@@ -704,7 +704,7 @@ ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, bool exact, ROI roi,
 
 
 ImageBuf
-ImageBufAlgo::fit(const ImageBuf& src, string_view filtername,
+ImageBufAlgo::fit(const ImageBuf& src, const string_view& filtername,
                   float filterwidth, bool exact, ROI roi, int nthreads)
 {
     ImageBuf result;
@@ -938,7 +938,7 @@ ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
 
 bool
 ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
-                   string_view filtername_, float filterwidth,
+                   const string_view& filtername_, float filterwidth,
                    bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
                    int nthreads)
 {
@@ -982,7 +982,7 @@ ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
 
 ImageBuf
 ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
-                   string_view filtername, float filterwidth,
+                   const string_view& filtername, float filterwidth,
                    bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
                    int nthreads)
 {
@@ -1014,7 +1014,7 @@ ImageBufAlgo::rotate(ImageBuf& dst, const ImageBuf& src, float angle,
 
 bool
 ImageBufAlgo::rotate(ImageBuf& dst, const ImageBuf& src, float angle,
-                     float center_x, float center_y, string_view filtername,
+                     float center_x, float center_y, const string_view& filtername,
                      float filterwidth, bool recompute_roi, ROI roi,
                      int nthreads)
 {
@@ -1046,7 +1046,7 @@ ImageBufAlgo::rotate(ImageBuf& dst, const ImageBuf& src, float angle,
 
 bool
 ImageBufAlgo::rotate(ImageBuf& dst, const ImageBuf& src, float angle,
-                     string_view filtername, float filterwidth,
+                     const string_view& filtername, float filterwidth,
                      bool recompute_roi, ROI roi, int nthreads)
 {
     ROI src_roi_full = src.roi_full();
@@ -1075,7 +1075,7 @@ ImageBufAlgo::rotate(const ImageBuf& src, float angle, float center_x,
 
 ImageBuf
 ImageBufAlgo::rotate(const ImageBuf& src, float angle, float center_x,
-                     float center_y, string_view filtername, float filterwidth,
+                     float center_y, const string_view& filtername, float filterwidth,
                      bool recompute_roi, ROI roi, int nthreads)
 {
     ImageBuf result;
@@ -1102,7 +1102,7 @@ ImageBufAlgo::rotate(const ImageBuf& src, float angle, Filter2D* filter,
 
 
 ImageBuf
-ImageBufAlgo::rotate(const ImageBuf& src, float angle, string_view filtername,
+ImageBufAlgo::rotate(const ImageBuf& src, float angle, const string_view& filtername,
                      float filterwidth, bool recompute_roi, ROI roi,
                      int nthreads)
 {

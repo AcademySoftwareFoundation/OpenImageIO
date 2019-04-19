@@ -109,25 +109,25 @@ set_roi_full(ImageSpec& spec, const ROI& newroi)
 // detail.
 class ImageBufImpl {
 public:
-    ImageBufImpl(string_view filename, int subimage, int miplevel,
+    ImageBufImpl(const string_view& filename, int subimage, int miplevel,
                  ImageCache* imagecache = NULL, const ImageSpec* spec = NULL,
                  void* buffer = NULL, const ImageSpec* config = NULL);
     ImageBufImpl(const ImageBufImpl& src);
     ~ImageBufImpl();
 
     void clear();
-    void reset(string_view name, int subimage, int miplevel,
+    void reset(const string_view& name, int subimage, int miplevel,
                ImageCache* imagecache, const ImageSpec* config);
     // Reset the buf to blank, given the spec. If nativespec is also
     // supplied, use it for the "native" spec, otherwise make the nativespec
     // just copy the regular spec.
-    void reset(string_view name, const ImageSpec& spec,
+    void reset(const string_view& name, const ImageSpec& spec,
                const ImageSpec* nativespec = nullptr);
     void alloc(const ImageSpec& spec, const ImageSpec* nativespec = nullptr);
     void realloc();
-    bool init_spec(string_view filename, int subimage, int miplevel);
+    bool init_spec(const string_view& filename, int subimage, int miplevel);
     bool read(int subimage, int miplevel, int chbegin = 0, int chend = -1,
-              bool force = false, TypeDesc convert = TypeDesc::UNKNOWN,
+              bool force = false, const TypeDesc& convert = TypeDesc::UNKNOWN,
               ProgressCallback progress_callback = nullptr,
               void* progress_callback_data       = nullptr);
     void copy_metadata(const ImageBufImpl& src);
@@ -306,7 +306,7 @@ private:
 
 
 
-ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
+ImageBufImpl::ImageBufImpl(const string_view& filename, int subimage, int miplevel,
                            ImageCache* imagecache, const ImageSpec* spec,
                            void* buffer, const ImageSpec* config)
     : m_storage(ImageBuf::UNINITIALIZED)
@@ -437,7 +437,7 @@ ImageBuf::ImageBuf()
 
 
 
-ImageBuf::ImageBuf(string_view filename, int subimage, int miplevel,
+ImageBuf::ImageBuf(const string_view& filename, int subimage, int miplevel,
                    ImageCache* imagecache, const ImageSpec* config)
     : m_impl(new ImageBufImpl(filename, subimage, miplevel, imagecache,
                               NULL /*spec*/, NULL /*buffer*/, config))
@@ -446,7 +446,7 @@ ImageBuf::ImageBuf(string_view filename, int subimage, int miplevel,
 
 
 
-ImageBuf::ImageBuf(string_view filename, ImageCache* imagecache)
+ImageBuf::ImageBuf(const string_view& filename, ImageCache* imagecache)
     : m_impl(new ImageBufImpl(filename, 0, 0, imagecache))
 {
 }
@@ -461,7 +461,7 @@ ImageBuf::ImageBuf(const ImageSpec& spec)
 
 
 
-ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec)
+ImageBuf::ImageBuf(const string_view& filename, const ImageSpec& spec)
     : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec))
 {
     m_impl->alloc(spec);
@@ -469,7 +469,7 @@ ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec)
 
 
 
-ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec, void* buffer)
+ImageBuf::ImageBuf(const string_view& filename, const ImageSpec& spec, void* buffer)
     : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec, buffer))
 {
 }
@@ -646,7 +646,7 @@ ImageBuf::clear()
 
 
 void
-ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
+ImageBufImpl::reset(const string_view& filename, int subimage, int miplevel,
                     ImageCache* imagecache, const ImageSpec* config)
 {
     clear();
@@ -669,7 +669,7 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
 
 
 void
-ImageBuf::reset(string_view filename, int subimage, int miplevel,
+ImageBuf::reset(const string_view& filename, int subimage, int miplevel,
                 ImageCache* imagecache, const ImageSpec* config)
 {
     impl()->reset(filename, subimage, miplevel, imagecache, config);
@@ -678,7 +678,7 @@ ImageBuf::reset(string_view filename, int subimage, int miplevel,
 
 
 void
-ImageBuf::reset(string_view filename, ImageCache* imagecache)
+ImageBuf::reset(const string_view& filename, ImageCache* imagecache)
 {
     impl()->reset(filename, 0, 0, imagecache, NULL);
 }
@@ -686,7 +686,7 @@ ImageBuf::reset(string_view filename, ImageCache* imagecache)
 
 
 void
-ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
+ImageBufImpl::reset(const string_view& filename, const ImageSpec& spec,
                     const ImageSpec* nativespec)
 {
     clear();
@@ -701,7 +701,7 @@ ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
 
 
 void
-ImageBuf::reset(string_view filename, const ImageSpec& spec)
+ImageBuf::reset(const string_view& filename, const ImageSpec& spec)
 {
     impl()->reset(filename, spec);
 }
@@ -761,7 +761,7 @@ ImageBufImpl::alloc(const ImageSpec& spec, const ImageSpec* nativespec)
 
 
 bool
-ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel)
+ImageBufImpl::init_spec(const string_view& filename, int subimage, int miplevel)
 {
     if (!m_badfile && m_spec_valid && m_current_subimage >= 0
         && m_current_miplevel >= 0 && m_name == filename
@@ -834,7 +834,7 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel)
 
 
 bool
-ImageBuf::init_spec(string_view filename, int subimage, int miplevel)
+ImageBuf::init_spec(const string_view& filename, int subimage, int miplevel)
 {
     return impl()->init_spec(filename, subimage, miplevel);
 }
@@ -843,7 +843,7 @@ ImageBuf::init_spec(string_view filename, int subimage, int miplevel)
 
 bool
 ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
-                   bool force, TypeDesc convert,
+                   bool force, const TypeDesc& convert,
                    ProgressCallback progress_callback,
                    void* progress_callback_data)
 {
@@ -1008,7 +1008,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
 
 
 bool
-ImageBuf::read(int subimage, int miplevel, bool force, TypeDesc convert,
+ImageBuf::read(int subimage, int miplevel, bool force, const TypeDesc& convert,
                ProgressCallback progress_callback, void* progress_callback_data)
 {
     return impl()->read(subimage, miplevel, 0, -1, force, convert,
@@ -1019,7 +1019,7 @@ ImageBuf::read(int subimage, int miplevel, bool force, TypeDesc convert,
 
 bool
 ImageBuf::read(int subimage, int miplevel, int chbegin, int chend, bool force,
-               TypeDesc convert, ProgressCallback progress_callback,
+               const TypeDesc& convert, ProgressCallback progress_callback,
                void* progress_callback_data)
 {
     return impl()->read(subimage, miplevel, chbegin, chend, force, convert,
@@ -1029,7 +1029,7 @@ ImageBuf::read(int subimage, int miplevel, int chbegin, int chend, bool force,
 
 
 void
-ImageBuf::set_write_format(TypeDesc format)
+ImageBuf::set_write_format(const TypeDesc& format)
 {
     impl()->m_write_format = format;
 }
@@ -1139,7 +1139,7 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
 
 
 bool
-ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
+ImageBuf::write(const string_view& _filename, TypeDesc dtype, const string_view& _fileformat,
                 ProgressCallback progress_callback,
                 void* progress_callback_data) const
 {
@@ -1566,7 +1566,7 @@ ImageBuf::copy_pixels(const ImageBuf& src)
 
 
 bool
-ImageBuf::copy(const ImageBuf& src, TypeDesc format)
+ImageBuf::copy(const ImageBuf& src, const TypeDesc& format)
 {
     src.impl()->validate_pixels();
     if (this == &src)  // self-assignment
@@ -1594,7 +1594,7 @@ ImageBuf::copy(const ImageBuf& src, TypeDesc format)
 
 
 ImageBuf
-ImageBuf::copy(TypeDesc format) const
+ImageBuf::copy(const TypeDesc& format) const
 {
     ImageBuf result;
     result.copy(*this, format);
@@ -1882,7 +1882,7 @@ get_pixels_(const ImageBuf& buf, const ImageBuf& dummyarg, ROI whole_roi,
 
 
 bool
-ImageBuf::get_pixels(ROI roi, TypeDesc format, void* result, stride_t xstride,
+ImageBuf::get_pixels(ROI roi, const TypeDesc& format, void* result, stride_t xstride,
                      stride_t ystride, stride_t zstride) const
 {
     if (!roi.defined())
@@ -1938,7 +1938,7 @@ set_pixels_(ImageBuf& buf, ROI roi, const void* data_, stride_t xstride,
 
 
 bool
-ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
+ImageBuf::set_pixels(ROI roi, const TypeDesc& format, const void* data,
                      stride_t xstride, stride_t ystride, stride_t zstride)
 {
     if (!initialized()) {
@@ -2415,7 +2415,7 @@ ImageBuf::do_wrap(int& x, int& y, int& z, WrapMode wrap) const
 
 
 ImageBuf::WrapMode
-ImageBuf::WrapMode_from_string(string_view name)
+ImageBuf::WrapMode_from_string(const string_view& name)
 {
     static const char* names[] = { "default",  "black",  "clamp",
                                    "periodic", "mirror", nullptr };

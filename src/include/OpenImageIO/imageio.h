@@ -260,18 +260,18 @@ public:
 
     /// Constructor: given just the data format, set all other fields to
     /// something reasonable.
-    ImageSpec (TypeDesc format = TypeDesc::UNKNOWN);
+    ImageSpec (const TypeDesc& format = TypeDesc::UNKNOWN);
 
     /// Constructor for simple 2D scanline image with nothing special.
     /// If fmt is not supplied, default to unsigned 8-bit data.
-    ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeDesc::UINT8);
+    ImageSpec (int xres, int yres, int nchans, const TypeDesc& fmt = TypeDesc::UINT8);
 
     /// Constructor from an ROI that gives x, y, z, and channel range, and
     /// a data format.
-    explicit ImageSpec (const ROI &roi, TypeDesc fmt = TypeDesc::UINT8);
+    explicit ImageSpec (const ROI &roi, const TypeDesc& fmt = TypeDesc::UINT8);
 
     /// Set the data format.
-    void set_format (TypeDesc fmt);
+    void set_format (const TypeDesc& fmt);
 
     /// Set the channelnames to reasonable defaults ("R", "G", "B", "A"),
     /// and alpha_channel, based on the number of channels.
@@ -388,11 +388,11 @@ public:
 
     /// Add an optional attribute to the extra attribute list
     ///
-    void attribute (string_view name, TypeDesc type, const void *value);
+    void attribute (const string_view& name, const TypeDesc& type, const void *value);
 
     /// Add an optional attribute to the extra attribute list.
     ///
-    void attribute (string_view name, TypeDesc type, string_view value);
+    void attribute (const string_view& name, const TypeDesc& type, const string_view& value);
 
     /// Add an unsigned int attribute
     ///
@@ -425,8 +425,8 @@ public:
     /// is true, the name search will be case-sensitive, otherwise the name
     /// search will be performed without regard to case (this is the
     /// default).
-    void erase_attribute (string_view name,
-                          TypeDesc searchtype=TypeDesc::UNKNOWN,
+    void erase_attribute (const string_view& name,
+                          const TypeDesc& searchtype=TypeDesc::UNKNOWN,
                           bool casesensitive=false);
 
     /// Search for an attribute of the given name in the list of
@@ -434,11 +434,11 @@ public:
     /// matches to only those of the given type. If casesensitive is true,
     /// the name search will be case-sensitive, otherwise the name search
     /// will be performed without regard to case (this is the default).
-    ParamValue * find_attribute (string_view name,
-                                 TypeDesc searchtype=TypeDesc::UNKNOWN,
+    ParamValue * find_attribute (const string_view& name,
+                                 const TypeDesc& searchtype=TypeDesc::UNKNOWN,
                                  bool casesensitive=false);
-    const ParamValue *find_attribute (string_view name,
-                                      TypeDesc searchtype=TypeDesc::UNKNOWN,
+    const ParamValue *find_attribute (const string_view& name,
+                                      const TypeDesc& searchtype=TypeDesc::UNKNOWN,
                                       bool casesensitive=false) const;
 
     /// Search for the named attribute and return a pointer to an
@@ -449,25 +449,25 @@ public:
     /// temporary buffer in cases where the information does not correspond
     /// to an actual extra_attribs (in this case, the return value will be
     /// &tmpparam).
-    const ParamValue * find_attribute (string_view name,
+    const ParamValue * find_attribute (const string_view& name,
                          ParamValue &tmpparam,
-                         TypeDesc searchtype=TypeDesc::UNKNOWN,
+                         const TypeDesc& searchtype=TypeDesc::UNKNOWN,
                          bool casesensitive=false) const;
 
     /// Simple way to get an integer attribute, with default provided.
     /// Automatically will return an int even if the data is really
     /// unsigned, short, or byte.
-    int get_int_attribute (string_view name, int defaultval=0) const;
+    int get_int_attribute (const string_view& name, int defaultval=0) const;
 
     /// Simple way to get a float attribute, with default provided.
     /// Automatically will return a float even if the data is really
     /// double or half.
-    float get_float_attribute (string_view name, float defaultval=0) const;
+    float get_float_attribute (const string_view& name, float defaultval=0) const;
 
     /// Simple way to get a string attribute, with default provided.
     ///
-    string_view get_string_attribute (string_view name,
-                           string_view defaultval = string_view()) const;
+    string_view get_string_attribute (const string_view& name,
+                           const string_view& defaultval = string_view()) const;
 
     /// For a given parameter p, format the value nicely as a string.  If
     /// 'human' is true, use especially human-readable explanations (units,
@@ -493,7 +493,7 @@ public:
     /// spec and turn them into the compression name and quality. This
     /// handles compression name/qual combos of the form "name:quality".
     std::pair<string_view, int>
-    decode_compression_metadata(string_view defaultcomp = "",
+    decode_compression_metadata(const string_view& defaultcomp = "",
                                 int defaultqual = -1) const;
 
     /// Helper function to verify that the given pixel range exactly covers
@@ -535,7 +535,7 @@ public:
     }
 
     /// Return the index of the named channel, or -1 if not found.
-    int channelindex (string_view name) const;
+    int channelindex (const string_view& name) const;
 
     /// Return pixel data window for this ImageSpec as a ROI.
     ROI roi () const {
@@ -844,12 +844,12 @@ public:
     // new variety of read_scanlines that takes an explicit subimage and
     // miplevel. These old versions are NOT THREAD-SAFE.
     bool read_scanlines (int ybegin, int yend, int z,
-                         TypeDesc format, void *data,
+                         const TypeDesc& format, void *data,
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride);
     bool read_scanlines (int ybegin, int yend, int z,
                          int chbegin, int chend,
-                         TypeDesc format, void *data,
+                         const TypeDesc& format, void *data,
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride);
 
@@ -915,12 +915,12 @@ public:
     // new variety of read_tiles that takes an explicit subimage and
     // miplevel. These old versions are NOT THREAD-SAFE.
     bool read_tiles (int xbegin, int xend, int ybegin, int yend,
-                     int zbegin, int zend, TypeDesc format, void *data,
+                     int zbegin, int zend, const TypeDesc& format, void *data,
                      stride_t xstride=AutoStride, stride_t ystride=AutoStride,
                      stride_t zstride=AutoStride);
     bool read_tiles (int xbegin, int xend, int ybegin, int yend,
                      int zbegin, int zend, int chbegin, int chend,
-                     TypeDesc format, void *data, stride_t xstride=AutoStride,
+                     const TypeDesc& format, void *data, stride_t xstride=AutoStride,
                      stride_t ystride=AutoStride, stride_t zstride=AutoStride);
 
     /// Read the entire image of spec.width x spec.height x spec.depth
@@ -1524,12 +1524,12 @@ protected:
     /// as a seed for the hash function that produces the per-pixel dither
     /// amounts, and the optional [xyz]origin parameters help it to align
     /// the pixels to the right position in the dither pattern.
-    const void *to_native_scanline (TypeDesc format,
+    const void *to_native_scanline (const TypeDesc& format,
                                     const void *data, stride_t xstride,
                                     std::vector<unsigned char> &scratch,
                                     unsigned int dither=0,
                                     int yorigin=0, int zorigin=0);
-    const void *to_native_tile (TypeDesc format, const void *data,
+    const void *to_native_tile (const TypeDesc& format, const void *data,
                                 stride_t xstride, stride_t ystride,
                                 stride_t zstride,
                                 std::vector<unsigned char> &scratch,
@@ -1560,11 +1560,11 @@ protected:
     /// image-sized buffer. This is really just a wrapper for
     /// copy_to_image_buffer, passing all the right parameters to copy
     /// exactly one tile.
-    bool copy_tile_to_image_buffer (int x, int y, int z, TypeDesc format,
+    bool copy_tile_to_image_buffer (int x, int y, int z, const TypeDesc& format,
                                     const void *data, stride_t xstride,
                                     stride_t ystride, stride_t zstride,
                                     void *image_buffer,
-                                    TypeDesc buf_format = TypeDesc::UNKNOWN);
+                                    const TypeDesc& buf_format = TypeDesc::UNKNOWN);
 
 protected:
     ImageSpec m_spec;           ///< format spec of the currently open image
@@ -1627,7 +1627,7 @@ OIIO_API std::string geterror ();
 ///             N.B. Most apps may not read these correctly, but OIIO will.
 ///             That's why the default is not to support it.
 ///
-OIIO_API bool attribute (string_view name, TypeDesc type, const void *val);
+OIIO_API bool attribute (const string_view& name, const TypeDesc& type, const void *val);
 // Shortcuts for common types
 inline bool attribute (string_view name, int val) {
     return attribute (name, TypeInt, &val);
@@ -1683,7 +1683,7 @@ inline bool attribute (string_view name, string_view val) {
 ///     int "resident_memory_used_MB"
 ///             Approximate process memory used (resident) by the application,
 ///             in MB. This might be helpful in debugging.
-OIIO_API bool getattribute (string_view name, TypeDesc type, void *val);
+OIIO_API bool getattribute (const string_view& name, const TypeDesc& type, void *val);
 // Shortcuts for common types
 inline bool getattribute (string_view name, int &val) {
     return getattribute (name, TypeInt, &val);
@@ -1730,8 +1730,8 @@ OIIO_API void declare_imageio_format (const std::string &format_name,
 /// Return true if ok, false if it didn't know how to do the
 /// conversion.  If dst_type is UNKNOWN, it will be assumed to be the
 /// same as src_type.
-OIIO_API bool convert_types (TypeDesc src_type, const void *src,
-                              TypeDesc dst_type, void *dst, int n);
+OIIO_API bool convert_types (const TypeDesc& src_type, const void *src,
+                              const TypeDesc& dst_type, void *dst, int n);
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
@@ -1743,10 +1743,10 @@ OIIO_API bool convert_types (TypeDesc src_type, const void *src,
 /// data.  Return true if ok, false if it didn't know how to do the
 /// conversion.
 OIIO_API bool convert_image (int nchannels, int width, int height, int depth,
-                             const void *src, TypeDesc src_type,
+                             const void *src, const TypeDesc& src_type,
                              stride_t src_xstride, stride_t src_ystride,
                              stride_t src_zstride,
-                             void *dst, TypeDesc dst_type,
+                             void *dst, const TypeDesc& dst_type,
                              stride_t dst_xstride, stride_t dst_ystride,
                              stride_t dst_zstride);
 /// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
@@ -1767,10 +1767,10 @@ inline bool convert_image(int nchannels, int width, int height, int depth,
 /// threads.
 OIIO_API bool parallel_convert_image (
                int nchannels, int width, int height, int depth,
-               const void *src, TypeDesc src_type,
+               const void *src, const TypeDesc& src_type,
                stride_t src_xstride, stride_t src_ystride,
                stride_t src_zstride,
-               void *dst, TypeDesc dst_type,
+               void *dst, const TypeDesc& dst_type,
                stride_t dst_xstride, stride_t dst_ystride,
                stride_t dst_zstride, int nthreads=0);
 /// DEPRECATED(2.0) -- the alpha_channel, z_channel were never used
@@ -1805,7 +1805,7 @@ OIIO_API void add_dither (int nchannels, int width, int height, int depth,
 /// (non-alpha, non-z) channels by alpha.
 OIIO_API void premult (int nchannels, int width, int height, int depth,
                        int chbegin, int chend,
-                       TypeDesc datatype, void *data, stride_t xstride,
+                       const TypeDesc& datatype, void *data, stride_t xstride,
                        stride_t ystride, stride_t zstride,
                        int alpha_channel = -1, int z_channel = -1);
 
@@ -1844,7 +1844,7 @@ typedef bool (*wrap_impl) (int &coord, int origin, int width);
 /// nonzero, which it is by default for DEBUG compiles or when the
 /// environment variable OPENIMAGEIO_DEBUG is set. This is preferred to raw
 /// output to stderr for debugging statements.
-OIIO_API void debug (string_view str);
+OIIO_API void debug (const string_view& str);
 
 /// debug output with fmt/std::format conventions.
 template<typename T1, typename... Args>

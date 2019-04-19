@@ -231,7 +231,7 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
 
 
 bool
-ImageInput::read_scanlines(int ybegin, int yend, int z, TypeDesc format,
+ImageInput::read_scanlines(int ybegin, int yend, int z, const TypeDesc& format,
                            void* data, stride_t xstride, stride_t ystride)
 {
     lock_guard lock(m_mutex);
@@ -244,7 +244,7 @@ ImageInput::read_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
 bool
 ImageInput::read_scanlines(int ybegin, int yend, int z, int chbegin, int chend,
-                           TypeDesc format, void* data, stride_t xstride,
+                           const TypeDesc& format, void* data, stride_t xstride,
                            stride_t ystride)
 {
     lock_guard lock(m_mutex);
@@ -506,7 +506,7 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
 
 bool
 ImageInput::read_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                       int zend, TypeDesc format, void* data, stride_t xstride,
+                       int zend, const TypeDesc& format, void* data, stride_t xstride,
                        stride_t ystride, stride_t zstride)
 {
     int subimage, miplevel, chend;
@@ -524,7 +524,7 @@ ImageInput::read_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 
 bool
 ImageInput::read_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                       int zend, int chbegin, int chend, TypeDesc format,
+                       int zend, int chbegin, int chend, const TypeDesc& format,
                        void* data, stride_t xstride, stride_t ystride,
                        stride_t zstride)
 {

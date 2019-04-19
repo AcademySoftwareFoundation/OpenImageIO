@@ -91,7 +91,7 @@ getargs(int argc, char* argv[])
 
 
 static void
-category_heading(string_view name)
+category_heading(const string_view& name)
 {
     std::cout << "\n" << term.ansi("bold,underscore,yellow", name) << "\n\n";
 }
@@ -99,7 +99,7 @@ category_heading(string_view name)
 
 
 static void
-test_heading(string_view name, string_view name2 = "")
+test_heading(const string_view& name, const string_view& name2 = "")
 {
     std::cout << term.ansi("bold") << name << ' ' << name2
               << term.ansi("normal") << "\n";
@@ -118,7 +118,7 @@ test_heading(string_view name, string_view name2 = "")
 
 template<typename FUNC, typename T>
 void
-benchmark(string_view funcname, FUNC func, T x, size_t work = 0)
+benchmark(const string_view& funcname, FUNC func, T x, size_t work = 0)
 {
     if (!work)
         work = SimdElements<decltype(func(x))>::size;
@@ -142,7 +142,7 @@ benchmark(string_view funcname, FUNC func, T x, size_t work = 0)
 
 template<typename FUNC, typename T, typename U>
 void
-benchmark2(string_view funcname, FUNC func, T x, U y, size_t work = 0)
+benchmark2(const string_view& funcname, FUNC func, T x, U y, size_t work = 0)
 {
     if (!work)
         work = SimdElements<decltype(func(x, y))>::size;
@@ -1767,7 +1767,7 @@ mul_vm_simd(const vfloat4& v, const matrix44& m)
 }
 
 inline vfloat4
-mul_mv_simd(const matrix44& m, const vfloat4 v)
+mul_mv_simd(const matrix44& m, const vfloat4& v)
 {
     return m*v;
 }

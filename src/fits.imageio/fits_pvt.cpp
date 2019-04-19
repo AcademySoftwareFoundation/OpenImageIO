@@ -101,9 +101,9 @@ unpack_card(const std::string& card, std::string& keyname, std::string& value)
     size_t begin = 0, end = std::string::npos;
     if (card_cpy[0] == '\'') {
         begin = 1;
-        end   = card_cpy.find("'", 1);
+        end   = card_cpy.find(''', 1);
     } else {
-        end = card_cpy.find("/", 1);
+        end = card_cpy.find('/', 1);
     }
 
     // after creating substring we strip NULL chars from the end

@@ -418,7 +418,7 @@ print_metadata(const ImageSpec& spec, const std::string& filename)
 
 
 static const char*
-extended_format_name(TypeDesc type, int bits)
+extended_format_name(const TypeDesc& type, int bits)
 {
     if (bits && bits < (int)type.size() * 8) {
         // The "oiio:BitsPerSample" betrays a different bit depth in the
@@ -436,7 +436,7 @@ extended_format_name(TypeDesc type, int bits)
 
 
 static const char*
-brief_format_name(TypeDesc type, int bits = 0)
+brief_format_name(const TypeDesc& type, int bits = 0)
 {
     if (!bits)
         bits = (int)type.size() * 8;

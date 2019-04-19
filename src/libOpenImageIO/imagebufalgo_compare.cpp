@@ -809,7 +809,7 @@ ImageBufAlgo::nonzero_region(const ImageBuf& src, ROI roi, int nthreads)
 namespace {
 
 std::string
-simplePixelHashSHA1(const ImageBuf& src, string_view extrainfo, ROI roi)
+simplePixelHashSHA1(const ImageBuf& src, const string_view& extrainfo, ROI roi)
 {
     if (!roi.defined())
         roi = get_roi(src.spec());
@@ -858,7 +858,7 @@ simplePixelHashSHA1(const ImageBuf& src, string_view extrainfo, ROI roi)
 
 
 std::string
-ImageBufAlgo::computePixelHashSHA1(const ImageBuf& src, string_view extrainfo,
+ImageBufAlgo::computePixelHashSHA1(const ImageBuf& src, const string_view& extrainfo,
                                    ROI roi, int blocksize, int nthreads)
 {
     pvt::LoggedTimer logtimer("IBA::computePixelHashSHA1");

@@ -185,7 +185,7 @@ tiff_dir_data (const TIFFDirEntry &td, cspan<uint8_t> data);
 /// somehow malformed.  The binary data pointed to by 'exif' should
 /// start with a TIFF directory header.
 OIIO_API bool decode_exif (cspan<uint8_t> exif, ImageSpec &spec);
-OIIO_API bool decode_exif (string_view exif, ImageSpec &spec);
+OIIO_API bool decode_exif (const string_view& exif, ImageSpec &spec);
 OIIO_API bool decode_exif (const void *exif, int length, ImageSpec &spec); // DEPRECATED (1.8)
 
 /// Construct an Exif data block from the ImageSpec, appending the Exif
@@ -199,7 +199,7 @@ OIIO_API void encode_exif (const ImageSpec &spec, std::vector<char> &blob);
 /// Helper: For the given OIIO metadata attribute name, look up the Exif tag
 /// ID, TIFFDataType (expressed as an int), and count. Return true and fill
 /// in the fields if found, return false if not found.
-OIIO_API bool exif_tag_lookup (string_view name, int &tag,
+OIIO_API bool exif_tag_lookup (const string_view& name, int &tag,
                                int &tifftype, int &count);
 
 /// Add metadata to spec based on raw IPTC (International Press
@@ -226,7 +226,7 @@ OIIO_API void encode_iptc_iim (const ImageSpec &spec, std::vector<char> &iptc);
 /// support embedding XMP metadata without having to duplicate
 /// functionality within each plugin.
 OIIO_API bool decode_xmp (cspan<uint8_t> xml, ImageSpec &spec);
-OIIO_API bool decode_xmp (string_view xml, ImageSpec &spec);
+OIIO_API bool decode_xmp (const string_view& xml, ImageSpec &spec);
 // DEPRECATED(2.1):
 OIIO_API bool decode_xmp (const char* xml, ImageSpec &spec);
 OIIO_API bool decode_xmp (const std::string& xml, ImageSpec &spec);
@@ -263,12 +263,12 @@ struct TagInfo {
 /// Return a span of a TagInfo array for the corresponding table.
 /// Valid names are "Exif", "GPS", and "TIFF". This can be handy for
 /// iterating through all possible tags for each category.
-OIIO_API cspan<TagInfo> tag_table (string_view tablename);
+OIIO_API cspan<TagInfo> tag_table (const string_view& tablename);
 
 /// Look up the TagInfo of a numbered or named tag from a named domain
 /// ("TIFF", "Exif", or "GPS"). Return nullptr if it is not known.
-OIIO_API const TagInfo* tag_lookup (string_view domain, int tag);
-OIIO_API const TagInfo* tag_lookup (string_view domain, string_view tagname);
+OIIO_API const TagInfo* tag_lookup (const string_view& domain, int tag);
+OIIO_API const TagInfo* tag_lookup (const string_view& domain, const string_view& tagname);
 
 
 

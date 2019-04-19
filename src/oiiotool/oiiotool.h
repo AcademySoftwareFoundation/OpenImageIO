@@ -149,7 +149,7 @@ public:
     /// Force img to be read at this point.  Use this wrapper, don't directly
     /// call img->read(), because there's extra work done here specific to
     /// oiiotool.
-    bool read(ImageRecRef img, ReadPolicy readpolicy = ReadDefault);
+    bool read(const ImageRecRef& img, ReadPolicy readpolicy = ReadDefault);
     // Read the current image
     bool read(ReadPolicy readpolicy = ReadDefault)
     {
@@ -204,7 +204,7 @@ public:
     }
 
     // Parse geom in the form of "x,y" to retrieve a 2D integer position.
-    bool get_position(string_view command, string_view geom, int& x, int& y);
+    bool get_position(const string_view& command, string_view geom, int& x, int& y);
 
     // Modify the resolution and/or offset according to what's in geom.
     // Valid geometries are WxH (resolution), +X+Y (offsets), WxH+X+Y
@@ -212,7 +212,7 @@ public:
     // S% (e.g. "50%") or just S (e.g., "1.2") will be accepted to scale the
     // existing width and height (rounding to the nearest whole number of
     // pixels.
-    bool adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
+    bool adjust_geometry(const string_view& command, int& w, int& h, int& x, int& y,
                          const char* geom, bool allow_scaling = false) const;
 
     // Expand substitution expressions in string str. Expressions are
@@ -225,14 +225,14 @@ public:
     //     "IMG[0]" is the top of the stack; also "TOP" is a synonym). The
     //     metadata can be any of the usual named metadata from the image's
     //     spec, such as "width", "ImageDescription", etc.
-    string_view express(string_view str);
+    string_view express(const string_view& str);
 
     int extract_options(std::map<std::string, std::string>& options,
                         std::string command);
 
     // Error base case -- single unformatted string.
-    void error(string_view command, string_view message = "") const;
-    void warning(string_view command, string_view message = "") const;
+    void error(const string_view& command, const string_view& message = "") const;
+    void warning(const string_view& command, const string_view& message = "") const;
 
     // Formatted errors with printf-like notation
     template<typename... Args>
@@ -260,14 +260,14 @@ private:
     int m_pending_argc;
     const char* m_pending_argv[4];
 
-    void express_error(const string_view expr, const string_view s,
-                       string_view explanation);
+    void express_error(const string_view& expr, const string_view& s,
+                       const string_view& explanation);
 
-    bool express_parse_atom(const string_view expr, string_view& s,
+    bool express_parse_atom(const string_view& expr, string_view& s,
                             std::string& result);
-    bool express_parse_factors(const string_view expr, string_view& s,
+    bool express_parse_factors(const string_view& expr, string_view& s,
                                std::string& result);
-    bool express_parse_summands(const string_view expr, string_view& s,
+    bool express_parse_summands(const string_view& expr, string_view& s,
                                 std::string& result);
 
     std::string express_impl(string_view s);
@@ -349,7 +349,7 @@ public:
     // Create an ImageRef that consists of the ImageBuf img.  Copy img
     // if copy_pixels==true, otherwise just take ownership of img (it's
     // a shared pointer).
-    ImageRec(ImageBufRef img, bool copy_pixels = true);
+    ImageRec(const ImageBufRef& img, bool copy_pixels = true);
 
     // Initialize an ImageRec with the given spec.
     ImageRec(const std::string& name, const ImageSpec& spec,
@@ -367,7 +367,7 @@ public:
     // A's pixel type (the default behavior).
     ImageRec(ImageRec& imgA, ImageRec& imgB, int subimage_to_copy = -1,
              WinMerge pixwin = WinMergeUnion, WinMerge fullwin = WinMergeUnion,
-             TypeDesc pixeltype = TypeDesc::UNKNOWN);
+             const TypeDesc& pixeltype = TypeDesc::UNKNOWN);
 
     // Number of subimages
     int subimages() const { return (int)m_subimages.size(); }
@@ -395,7 +395,7 @@ public:
     bool elaborated() const { return m_elaborated; }
 
     bool read(ReadPolicy readpolicy   = ReadDefault,
-              string_view channel_set = "");
+              const string_view& channel_set = "");
 
     // ir(subimg,mip) references a specific MIP level of a subimage
     // ir(subimg) references the first MIP level of a subimage
@@ -496,7 +496,7 @@ private:
     ImageSpec m_configspec;
 
     // Add to the error message
-    void append_error(string_view message) const;
+    void append_error(const string_view& message) const;
 };
 
 
@@ -548,7 +548,7 @@ print_info(Oiiotool& ot, const std::string& filename,
 // attribute.  If allsubimages is true, apply the attribute to all
 // subimages, otherwise just the first subimage.
 bool
-set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
+set_attribute(const ImageRecRef& img, string_view attribname, const TypeDesc& type,
               string_view value, bool allsubimages);
 
 inline bool

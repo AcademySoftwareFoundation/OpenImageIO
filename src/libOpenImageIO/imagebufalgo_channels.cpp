@@ -82,7 +82,7 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
 {
     // Handle in-place case
     if (&dst == &src) {
-        ImageBuf tmp = src;
+        const ImageBuf& tmp = src;
         return channels(dst, tmp, nchannels, channelorder, channelvalues,
                         newchannelnames, shuffle_channel_names, nthreads);
     }

@@ -40,7 +40,7 @@ using namespace OIIO;
 // int or float, and also return a string representation.
 template<typename T>
 static std::string
-test_numeric(T* data, int num_elements, TypeDesc type)
+test_numeric(T* data, int num_elements, const TypeDesc& type)
 {
     ParamValue p("name", type, num_elements, data);
     int n = type.numelements() * num_elements;
@@ -212,7 +212,7 @@ test_value_types()
 
 
 static std::string
-list_test(const std::string& data, TypeDesc type)
+list_test(const std::string& data, const TypeDesc& type)
 {
     ParamValue p("name", type, data);
     return p.get_string();

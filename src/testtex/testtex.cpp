@@ -277,7 +277,7 @@ initialize_opt(TextureOptBatch& opt, int nchannels)
 
 
 static void
-test_gettextureinfo(ustring filename)
+test_gettextureinfo(const ustring& filename)
 {
     bool ok;
 
@@ -558,7 +558,7 @@ map_warp_3D(const Int& x, const Int& y, Imath::Vec3<Float>& P,
 
 
 void
-plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
+plain_tex_region(ImageBuf& image, const ustring& filename, Mapping2D mapping,
                  ImageBuf* image_ds, ImageBuf* image_dt, ROI roi)
 {
     TextureSystem::Perthread* perthread_info     = texsys->get_perthread_info();
@@ -666,7 +666,7 @@ test_plain_texture(Mapping2D mapping)
 
 
 void
-plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
+plain_tex_region_batch(ImageBuf& image, const ustring& filename, Mapping2DWide mapping,
                        ImageBuf* image_ds, ImageBuf* image_dt, const ROI roi)
 {
     using namespace Tex;
@@ -796,7 +796,7 @@ test_plain_texture_batch(Mapping2DWide mapping)
 
 
 void
-tex3d_region(ImageBuf& image, ustring filename, Mapping3D mapping, ROI roi)
+tex3d_region(ImageBuf& image, const ustring& filename, Mapping3D mapping, ROI roi)
 {
     TextureSystem::Perthread* perthread_info     = texsys->get_perthread_info();
     TextureSystem::TextureHandle* texture_handle = texsys->get_texture_handle(
@@ -836,7 +836,7 @@ tex3d_region(ImageBuf& image, ustring filename, Mapping3D mapping, ROI roi)
 
 
 void
-tex3d_region_batch(ImageBuf& image, ustring filename, Mapping3DWide mapping,
+tex3d_region_batch(ImageBuf& image, const ustring& filename, Mapping3DWide mapping,
                    ROI roi)
 {
     using namespace Tex;
@@ -953,21 +953,21 @@ test_texture3d_batch(ustring filename, Mapping3DWide mapping)
 
 
 static void
-test_shadow(ustring filename)
+test_shadow(const ustring& filename)
 {
 }
 
 
 
 static void
-test_environment(ustring filename)
+test_environment(const ustring& filename)
 {
 }
 
 
 
 static void
-test_getimagespec_gettexels(ustring filename)
+test_getimagespec_gettexels(const ustring& filename)
 {
     ImageSpec spec;
     int miplevel = 0;
@@ -1158,7 +1158,8 @@ do_tex_thread_workout(int iterations, int mythread)
     int pixel, whichfile = 0;
 
     std::vector<TextureSystem::TextureHandle*> texture_handles;
-    for (auto f : filenames)
+    texture_handles.reserve(filenames.size());
+for (const auto& f : filenames)
         texture_handles.emplace_back(texsys->get_texture_handle(f));
 
     ImageSpec spec0;

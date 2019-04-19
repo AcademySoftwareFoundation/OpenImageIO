@@ -90,7 +90,7 @@ private:
     // channel. The data is guaranteed to be in the scratch area and need
     // not be preserved.
     bool encode_channel(unsigned char* data, stride_t xstride,
-                        TypeDesc chantype, int bits);
+                        const TypeDesc& chantype, int bits);
 
     /// Helper - write, with error detection
     bool fwrite(const void* buf, size_t itemsize, size_t nitems)
@@ -462,7 +462,7 @@ RLAOutput::close()
 
 bool
 RLAOutput::encode_channel(unsigned char* data, stride_t xstride,
-                          TypeDesc chantype, int bits)
+                          const TypeDesc& chantype, int bits)
 {
     if (chantype == TypeDesc::FLOAT) {
         // Special case -- float data is just dumped raw, no RLE

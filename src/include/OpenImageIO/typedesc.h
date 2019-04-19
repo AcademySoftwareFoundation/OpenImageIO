@@ -149,7 +149,7 @@ struct OIIO_API TypeDesc {
 
     /// Construct from a string (e.g., "float[3]").  If no valid
     /// type could be assembled, set base to UNKNOWN.
-    TypeDesc (string_view typestring);
+    TypeDesc (const string_view& typestring);
 
     /// Copy constructor.
     constexpr TypeDesc (const TypeDesc &t) noexcept
@@ -363,7 +363,7 @@ static constexpr TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::
 
 /// Return a string containing the data values formatted according
 /// to the type and the optional formatting arguments.
-std::string tostring (TypeDesc type, const void *data,
+std::string tostring (const TypeDesc& type, const void *data,
                       const char *float_fmt = "%f",         // E.g. "%g"
                       const char *string_fmt = "%s",        // E.g. "\"%s\""
                       const char aggregate_delim[2] = "()", // Both sides of vector

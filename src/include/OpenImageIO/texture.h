@@ -104,7 +104,7 @@ enum class Wrap {
 /// Utility: Return the Wrap enum corresponding to a wrap name:
 /// "default", "black", "clamp", "periodic", "mirror".
 OIIO_API Wrap decode_wrapmode (const char *name);
-OIIO_API Wrap decode_wrapmode (ustring name);
+OIIO_API Wrap decode_wrapmode (const ustring& name);
 
 /// Utility: Parse a single wrap mode (e.g., "periodic") or a
 /// comma-separated wrap modes string (e.g., "black,clamp") into

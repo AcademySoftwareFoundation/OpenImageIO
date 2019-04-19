@@ -34,8 +34,8 @@ namespace PyOpenImageIO {
 
 
 void
-DeepData_init(DeepData& dd, int npix, int nchan, py::object py_channeltypes,
-              py::object py_channelnames)
+DeepData_init(DeepData& dd, int npix, int nchan, const py::object& py_channeltypes,
+              const py::object& py_channelnames)
 {
     std::vector<TypeDesc> chantypes;
     py_to_stdvector(chantypes, py_channeltypes);

@@ -127,7 +127,7 @@ private:
     void fix_bitdepth(void* data, int nvals);
 
     // Add a parameter to the output
-    bool put_parameter(const std::string& name, TypeDesc type,
+    bool put_parameter(const std::string& name, const TypeDesc& type,
                        const void* data);
     bool write_exif_data();
 
@@ -264,7 +264,7 @@ static CompressionCode tiff_compressions[] = {
 };
 
 static int
-tiff_compression_code(string_view name)
+tiff_compression_code(const string_view& name)
 {
     for (int i = 0; tiff_compressions[i].name; ++i)
         if (Strutil::iequals(name, tiff_compressions[i].name))
@@ -723,7 +723,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
 
 
 bool
-TIFFOutput::put_parameter(const std::string& name, TypeDesc type,
+TIFFOutput::put_parameter(const std::string& name, const TypeDesc& type,
                           const void* data)
 {
     if (Strutil::iequals(name, "Artist") && type == TypeDesc::STRING) {

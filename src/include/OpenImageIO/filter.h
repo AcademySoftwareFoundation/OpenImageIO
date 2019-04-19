@@ -77,7 +77,7 @@ public:
     ///        Filter1D *myfilt = Filter1::create ("box", 1);
     /// The caller is responsible for deleting it when it's done.
     /// If the name is not recognized, return NULL.
-    static Filter1D* create(string_view filtername, float width);
+    static Filter1D* create(const string_view& filtername, float width);
 
     /// Destroy a filter that was created with create().
     static void destroy(Filter1D* filt);
@@ -135,7 +135,7 @@ public:
     ///        Filter2D *myfilt = Filter2::create ("box", 1, 1);
     /// The caller is responsible for deleting it when it's done.
     /// If the name is not recognized, return NULL.
-    static Filter2D* create(string_view filtername, float width, float height);
+    static Filter2D* create(const string_view& filtername, float width, float height);
 
     /// Destroy a filter that was created with create().
     static void destroy(Filter2D* filt);

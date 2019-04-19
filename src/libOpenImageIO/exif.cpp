@@ -57,7 +57,7 @@ public:
     typedef boost::container::flat_map<std::string, const TagInfo*> namemap_t;
     // Name map is lower case so it's effectively case-insensitive
 
-    Impl(string_view mapname, cspan<TagInfo> tag_table)
+    Impl(const string_view& mapname, cspan<TagInfo> tag_table)
         : m_mapname(mapname)
     {
         for (const auto& tag : tag_table) {
@@ -77,7 +77,7 @@ public:
 
 
 
-TagMap::TagMap(string_view mapname, cspan<TagInfo> tag_table)
+TagMap::TagMap(const string_view& mapname, cspan<TagInfo> tag_table)
     : m_impl(new Impl(mapname, tag_table))
 {
 }
@@ -96,7 +96,7 @@ TagMap::find(int tag) const
 
 
 const TagInfo*
-TagMap::find(string_view name) const
+TagMap::find(const string_view& name) const
 {
     std::string lowername(name);
     Strutil::to_lower(lowername);
@@ -130,7 +130,7 @@ TagMap::tiffcount(int tag) const
 
 
 int
-TagMap::tag(string_view name) const
+TagMap::tag(const string_view& name) const
 {
     std::string lowername(name);
     Strutil::to_lower(lowername);
@@ -148,7 +148,7 @@ TagMap::mapname() const
 
 
 const TagInfo*
-tag_lookup(string_view domain, int tag)
+tag_lookup(const string_view& domain, int tag)
 {
     const TagMap* tm = nullptr;
     if (domain == "Exif")
@@ -163,7 +163,7 @@ tag_lookup(string_view domain, int tag)
 
 
 const TagInfo*
-tag_lookup(string_view domain, string_view tag)
+tag_lookup(const string_view& domain, const string_view& tag)
 {
     const TagMap* tm = nullptr;
     if (domain == "Exif")
@@ -637,7 +637,7 @@ pvt::gps_tagmap_ref()
 
 
 cspan<TagInfo>
-tag_table(string_view tablename)
+tag_table(const string_view& tablename)
 {
     if (tablename == "Exif")
         return cspan<TagInfo>(exif_tag_table);
@@ -1099,7 +1099,7 @@ pvt::append_tiff_dir_entry(std::vector<TIFFDirEntry>& dirs,
 
 
 bool
-decode_exif(string_view exif, ImageSpec& spec)
+decode_exif(const string_view& exif, ImageSpec& spec)
 {
     return decode_exif(cspan<uint8_t>((const uint8_t*)exif.data(), exif.size()),
                        spec);
@@ -1462,7 +1462,7 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
 
 
 bool
-exif_tag_lookup(string_view name, int& tag, int& tifftype, int& count)
+exif_tag_lookup(const string_view& name, int& tag, int& tifftype, int& count)
 {
     const TagInfo* e = exif_tagmap_ref().find(name);
     if (!e)

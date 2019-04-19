@@ -43,7 +43,7 @@ OIIO_NAMESPACE_BEGIN
 
 
 void
-ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
+ParamValue::init_noclear(const ustring& _name, const TypeDesc& _type, int _nvalues,
                          const void* _value, bool _copy)
 {
     init_noclear(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
@@ -52,7 +52,7 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
 
 
 void
-ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
+ParamValue::init_noclear(const ustring& _name, const TypeDesc& _type, int _nvalues,
                          Interp _interp, const void* _value, bool _copy)
 {
     m_name      = _name;
@@ -100,7 +100,7 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
 // helper to parse a list from a string
 template<class T>
 static void
-parse_elements(string_view name, TypeDesc type, const char* type_code,
+parse_elements(const string_view& name, const TypeDesc& type, const char* type_code,
                string_view value, ParamValue& p)
 {
     int num_items = type.numelements() * type.aggregate;
@@ -124,7 +124,7 @@ parse_elements(string_view name, TypeDesc type, const char* type_code,
 
 
 // Construct from parsed string
-ParamValue::ParamValue(string_view name, TypeDesc type, string_view value)
+ParamValue::ParamValue(const string_view& name, const TypeDesc& type, const string_view& value)
     : ParamValue(name, type, 1, nullptr)
 {
     if (type.basetype == TypeDesc::INT) {
@@ -400,7 +400,7 @@ ParamValue::clear_value()
 
 
 ParamValueList::const_iterator
-ParamValueList::find(ustring name, TypeDesc type, bool casesensitive) const
+ParamValueList::find(const ustring& name, const TypeDesc& type, bool casesensitive) const
 {
     if (casesensitive) {
         for (const_iterator i = cbegin(), e = cend(); i != e; ++i) {
@@ -421,7 +421,7 @@ ParamValueList::find(ustring name, TypeDesc type, bool casesensitive) const
 
 
 ParamValueList::const_iterator
-ParamValueList::find(string_view name, TypeDesc type, bool casesensitive) const
+ParamValueList::find(const string_view& name, const TypeDesc& type, bool casesensitive) const
 {
     if (casesensitive) {
         return find(ustring(name), type, casesensitive);
@@ -438,7 +438,7 @@ ParamValueList::find(string_view name, TypeDesc type, bool casesensitive) const
 
 
 ParamValueList::iterator
-ParamValueList::find(ustring name, TypeDesc type, bool casesensitive)
+ParamValueList::find(const ustring& name, const TypeDesc& type, bool casesensitive)
 {
     if (casesensitive) {
         for (iterator i = begin(), e = end(); i != e; ++i) {
@@ -459,7 +459,7 @@ ParamValueList::find(ustring name, TypeDesc type, bool casesensitive)
 
 
 ParamValueList::iterator
-ParamValueList::find(string_view name, TypeDesc type, bool casesensitive)
+ParamValueList::find(const string_view& name, const TypeDesc& type, bool casesensitive)
 {
     if (casesensitive) {
         return find(ustring(name), type, casesensitive);
@@ -476,7 +476,7 @@ ParamValueList::find(string_view name, TypeDesc type, bool casesensitive)
 
 
 int
-ParamValueList::get_int(string_view name, int defaultval, bool casesensitive,
+ParamValueList::get_int(const string_view& name, int defaultval, bool casesensitive,
                         bool convert) const
 {
     auto p = find(name, convert ? TypeDesc::UNKNOWN : TypeDesc::INT,
@@ -487,7 +487,7 @@ ParamValueList::get_int(string_view name, int defaultval, bool casesensitive,
 
 
 float
-ParamValueList::get_float(string_view name, float defaultval,
+ParamValueList::get_float(const string_view& name, float defaultval,
                           bool casesensitive, bool convert) const
 {
     auto p = find(name, convert ? TypeDesc::UNKNOWN : TypeDesc::FLOAT,
@@ -498,7 +498,7 @@ ParamValueList::get_float(string_view name, float defaultval,
 
 
 string_view
-ParamValueList::get_string(string_view name, string_view defaultval,
+ParamValueList::get_string(const string_view& name, const string_view& defaultval,
                            bool casesensitive, bool convert) const
 {
     auto p = find(name, convert ? TypeDesc::UNKNOWN : TypeDesc::STRING,
@@ -509,7 +509,7 @@ ParamValueList::get_string(string_view name, string_view defaultval,
 
 
 ustring
-ParamValueList::get_ustring(string_view name, string_view defaultval,
+ParamValueList::get_ustring(const string_view& name, const string_view& defaultval,
                             bool casesensitive, bool convert) const
 {
     auto p = find(name, convert ? TypeDesc::UNKNOWN : TypeDesc::STRING,
@@ -520,7 +520,7 @@ ParamValueList::get_ustring(string_view name, string_view defaultval,
 
 
 void
-ParamValueList::remove(string_view name, TypeDesc type, bool casesensitive)
+ParamValueList::remove(const string_view& name, const TypeDesc& type, bool casesensitive)
 {
     auto p = find(name, type, casesensitive);
     if (p != end())
@@ -530,7 +530,7 @@ ParamValueList::remove(string_view name, TypeDesc type, bool casesensitive)
 
 
 bool
-ParamValueList::contains(string_view name, TypeDesc type, bool casesensitive)
+ParamValueList::contains(const string_view& name, const TypeDesc& type, bool casesensitive)
 {
     auto p = find(name, type, casesensitive);
     return (p != end());

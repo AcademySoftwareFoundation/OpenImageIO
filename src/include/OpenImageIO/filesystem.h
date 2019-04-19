@@ -163,7 +163,7 @@ OIIO_API bool is_regular (const std::string &path);
 
 /// Create the directory. Return true for success, false for failure and
 /// place an error message in err.
-OIIO_API bool create_directory (string_view path, std::string &err);
+OIIO_API bool create_directory (const string_view& path, std::string &err);
 inline bool create_directory (string_view path) {
     std::string err;
     return create_directory (path, err);
@@ -172,7 +172,7 @@ inline bool create_directory (string_view path) {
 /// Copy a file, directory, or link. It is an error if 'to' already exists.
 /// Return true upon success, false upon failure and place an error message
 /// in err.
-OIIO_API bool copy (string_view from, string_view to, std::string &err);
+OIIO_API bool copy (const string_view& from, const string_view& to, std::string &err);
 inline bool copy (string_view from, string_view to) {
     std::string err;
     return copy (from, to, err);
@@ -180,7 +180,7 @@ inline bool copy (string_view from, string_view to) {
 
 /// Rename (or move) a file, directory, or link.  Return true upon success,
 /// false upon failure and place an error message in err.
-OIIO_API bool rename (string_view from, string_view to, std::string &err);
+OIIO_API bool rename (const string_view& from, const string_view& to, std::string &err);
 inline bool rename (string_view from, string_view to) {
     std::string err;
     return rename (from, to, err);
@@ -188,7 +188,7 @@ inline bool rename (string_view from, string_view to) {
 
 /// Remove the file or directory. Return true for success, false for
 /// failure and place an error message in err.
-OIIO_API bool remove (string_view path, std::string &err);
+OIIO_API bool remove (const string_view& path, std::string &err);
 inline bool remove (string_view path) {
     std::string err;
     return remove (path, err);
@@ -197,7 +197,7 @@ inline bool remove (string_view path) {
 /// Remove the file or directory, including any children (recursively).
 /// Return the number of files removed.  Place an error message (if
 /// applicable in err.
-OIIO_API unsigned long long remove_all (string_view path, std::string &err);
+OIIO_API unsigned long long remove_all (const string_view& path, std::string &err);
 inline unsigned long long remove_all (string_view path) {
     std::string err;
     return remove_all (path, err);
@@ -209,11 +209,11 @@ OIIO_API std::string temp_directory_path ();
 
 /// Return a unique filename suitable for making a temporary file or
 /// directory.
-OIIO_API std::string unique_path (string_view model="%%%%-%%%%-%%%%-%%%%");
+OIIO_API std::string unique_path (const string_view& model="%%%%-%%%%-%%%%-%%%%");
 
 /// Version of fopen that can handle UTF-8 paths even on Windows
 ///
-OIIO_API FILE *fopen (string_view path, string_view mode);
+OIIO_API FILE *fopen (const string_view& path, const string_view& mode);
 
 /// Return the current (".") directory path.
 ///
@@ -221,25 +221,25 @@ OIIO_API std::string current_path ();
 
 /// Version of std::ifstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (OIIO::ifstream &stream, string_view path,
+OIIO_API void open (OIIO::ifstream &stream, const string_view& path,
                     std::ios_base::openmode mode = std::ios_base::in);
 
 /// Version of std::ofstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (OIIO::ofstream &stream, string_view path,
+OIIO_API void open (OIIO::ofstream &stream, const string_view& path,
                     std::ios_base::openmode mode = std::ios_base::out);
 
 
 /// Read the entire contents of the named text file and place it in str,
 /// returning true on success, false on failure.
-OIIO_API bool read_text_file (string_view filename, std::string &str);
+OIIO_API bool read_text_file (const string_view& filename, std::string &str);
 
 /// Read a maximum of n bytes from the named file, starting at position pos
 /// (which defaults to the start of the file), storing results in
 /// buffer[0..n-1]. Return the number of bytes read, which will be n for
 /// full success, less than n if the file was fewer than n+pos bytes long,
 /// or 0 if the file did not exist or could not be read.
-OIIO_API size_t read_bytes (string_view path, void *buffer, size_t n,
+OIIO_API size_t read_bytes (const string_view& path, void *buffer, size_t n,
                             size_t pos=0);
 
 /// Get last modified time of file
@@ -252,7 +252,7 @@ OIIO_API void last_write_time (const std::string& path, std::time_t time);
 
 /// Return the size of the file (in bytes), or uint64_t(-1) if there is any
 /// error.
-OIIO_API uint64_t file_size (string_view path);
+OIIO_API uint64_t file_size (const string_view& path);
 
 /// Ensure command line arguments are UTF-8 everywhere
 ///
@@ -271,7 +271,7 @@ OIIO_API void convert_native_arguments (int argc, const char *argv[]);
 ///  * Multiple values or ranges, separated by a comma (e.g., "3,4,10-20x2")
 /// Retrn true upon success, false if the description was too malformed
 /// to generate a sequence.
-OIIO_API bool enumerate_sequence (string_view desc,
+OIIO_API bool enumerate_sequence (const string_view& desc,
                                   std::vector<int> &numbers);
 
 /// Given a pattern (such as "foo.#.tif" or "bar.1-10#.exr"), return a
@@ -398,7 +398,7 @@ protected:
 class OIIO_API IOFile : public IOProxy {
 public:
     // Construct from a filename, open, own the FILE*.
-    IOFile(string_view filename, Mode mode);
+    IOFile(const string_view& filename, Mode mode);
     // Construct from an already-open FILE* that is owned by the caller.
     // Caller is responsible for closing the FILE* after the proxy is gone.
     IOFile(FILE* file, Mode mode);

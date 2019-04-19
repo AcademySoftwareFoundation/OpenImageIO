@@ -282,7 +282,7 @@ Sysutil::this_program_path()
 
 
 string_view
-Sysutil::getenv(string_view name)
+Sysutil::getenv(const string_view& name)
 {
     return string_view(::getenv(name.c_str()));
 }
@@ -430,7 +430,7 @@ Term::Term(const std::ostream& stream)
 
 
 std::string
-Term::ansi(string_view command) const
+Term::ansi(const string_view& command) const
 {
     static const char* codes[]
         = { "default",    "0",  "normal",     "0",

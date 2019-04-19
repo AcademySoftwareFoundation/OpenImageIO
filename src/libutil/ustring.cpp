@@ -99,7 +99,7 @@ struct TableRepMap {
         return num_lookups;
     }
 
-    const char* lookup(string_view str, size_t hash)
+    const char* lookup(const string_view& str, size_t hash)
     {
         ustring_read_lock_t lock(mutex);
 #if 0
@@ -123,7 +123,7 @@ struct TableRepMap {
         }
     }
 
-    const char* insert(string_view str, size_t hash)
+    const char* insert(const string_view& str, size_t hash)
     {
         ustring_write_lock_t lock(mutex);
         size_t pos = hash & mask, dist = 0;
@@ -178,7 +178,7 @@ private:
         mask    = new_mask;
     }
 
-    ustring::TableRep* make_rep(string_view str, size_t hash)
+    ustring::TableRep* make_rep(const string_view& str, size_t hash)
     {
         char* repmem = pool_alloc(sizeof(ustring::TableRep) + str.length() + 1);
         return new (repmem) ustring::TableRep(str, hash);
@@ -223,12 +223,12 @@ typedef TableRepMap<1 << 20, 4 << 20> UstringTable;
 // Optimized map broken up into chunks by the top bits of the hash.
 // This helps reduce the amount of contention for locks.
 struct UstringTable {
-    const char* lookup(string_view str, size_t hash)
+    const char* lookup(const string_view& str, size_t hash)
     {
         return whichbin(hash).lookup(str, hash);
     }
 
-    const char* insert(string_view str, size_t hash)
+    const char* insert(const string_view& str, size_t hash)
     {
         return whichbin(hash).insert(str, hash);
     }
@@ -343,7 +343,7 @@ enum {
 
 
 
-ustring::TableRep::TableRep(string_view strref, size_t hash)
+ustring::TableRep::TableRep(const string_view& strref, size_t hash)
     : hashed(hash)
 {
     length = strref.length();

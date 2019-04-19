@@ -261,7 +261,7 @@ ImageOutput::append_error(const std::string& message) const
 
 
 const void*
-ImageOutput::to_native_scanline(TypeDesc format, const void* data,
+ImageOutput::to_native_scanline(const TypeDesc& format, const void* data,
                                 stride_t xstride,
                                 std::vector<unsigned char>& scratch,
                                 unsigned int dither, int yorigin, int zorigin)
@@ -274,7 +274,7 @@ ImageOutput::to_native_scanline(TypeDesc format, const void* data,
 
 
 const void*
-ImageOutput::to_native_tile(TypeDesc format, const void* data, stride_t xstride,
+ImageOutput::to_native_tile(const TypeDesc& format, const void* data, stride_t xstride,
                             stride_t ystride, stride_t zstride,
                             std::vector<unsigned char>& scratch,
                             unsigned int dither, int xorigin, int yorigin,
@@ -634,10 +634,10 @@ ImageOutput::copy_to_image_buffer(int xbegin, int xend, int ybegin, int yend,
 
 
 bool
-ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
+ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, const TypeDesc& format,
                                        const void* data, stride_t xstride,
                                        stride_t ystride, stride_t zstride,
-                                       void* image_buffer, TypeDesc buf_format)
+                                       void* image_buffer, const TypeDesc& buf_format)
 {
     if (!m_spec.tile_width || !m_spec.tile_height) {
         error("Called write_tile for non-tiled image.");

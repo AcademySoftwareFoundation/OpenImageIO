@@ -120,8 +120,8 @@ namespace Strutil {
 /// clobbering each other -- output strings coming from concurrent threads
 /// may be interleaved, but each string is "atomic" and will never splice
 /// each other character-by-character.
-void OIIO_API sync_output (FILE *file, string_view str);
-void OIIO_API sync_output (std::ostream &file, string_view str);
+void OIIO_API sync_output (FILE *file, const string_view& str);
+void OIIO_API sync_output (std::ostream &file, const string_view& str);
 
 
 /// Construct a std::string in a printf-like fashion.  For example:
@@ -307,11 +307,11 @@ bool OIIO_API get_rest_arguments (const std::string &str, std::string &base,
 /// Take a string that may have embedded newlines, tabs, etc., and turn
 /// those characters into escape sequences like \n, \t, \v, \b, \r, \f,
 /// \a, \\, \".
-std::string OIIO_API escape_chars (string_view unescaped);
+std::string OIIO_API escape_chars (const string_view& unescaped);
 
 /// Take a string that has embedded escape sequences (\\, \", \n, etc.)
 /// and collapse them into the 'real' characters.
-std::string OIIO_API unescape_chars (string_view escaped);
+std::string OIIO_API unescape_chars (const string_view& escaped);
 
 /// Word-wrap string `src` to no more than `columns` width, starting with an
 /// assumed position of `prefix` on the first line and intending by `prefix`
@@ -326,8 +326,8 @@ std::string OIIO_API unescape_chars (string_view escaped);
 /// should return:
 ///     "0 1 2\n    3 4 5\n    6 7 8"
 std::string OIIO_API wordwrap (string_view src, int columns = 80,
-                               int prefix = 0, string_view sep = " ",
-                               string_view presep = "");
+                               int prefix = 0, const string_view& sep = " ",
+                               const string_view& presep = "");
 
 /// Hash a string_view.
 inline size_t
@@ -340,32 +340,32 @@ strhash (string_view s)
 
 /// Case-insensitive comparison of strings.  For speed, this always uses
 /// a static locale that doesn't require a mutex.
-bool OIIO_API iequals (string_view a, string_view b);
+bool OIIO_API iequals (const string_view& a, const string_view& b);
 
 /// Case-insensitive ordered comparison of strings.  For speed, this always
 /// uses a static locale that doesn't require a mutex.
-bool OIIO_API iless (string_view a, string_view b);
+bool OIIO_API iless (const string_view& a, const string_view& b);
 
 /// Does 'a' start with the string 'b', with a case-sensitive comparison?
-bool OIIO_API starts_with (string_view a, string_view b);
+bool OIIO_API starts_with (const string_view& a, const string_view& b);
 
 /// Does 'a' start with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
-bool OIIO_API istarts_with (string_view a, string_view b);
+bool OIIO_API istarts_with (const string_view& a, const string_view& b);
 
 /// Does 'a' end with the string 'b', with a case-sensitive comparison?
-bool OIIO_API ends_with (string_view a, string_view b);
+bool OIIO_API ends_with (const string_view& a, const string_view& b);
 
 /// Does 'a' end with the string 'b', with a case-insensitive comparison?
 /// For speed, this always uses a static locale that doesn't require a mutex.
-bool OIIO_API iends_with (string_view a, string_view b);
+bool OIIO_API iends_with (const string_view& a, const string_view& b);
 
 /// Does 'a' contain the string 'b' within it?
-bool OIIO_API contains (string_view a, string_view b);
+bool OIIO_API contains (const string_view& a, const string_view& b);
 
 /// Does 'a' contain the string 'b' within it, using a case-insensitive
 /// comparison?
-bool OIIO_API icontains (string_view a, string_view b);
+bool OIIO_API icontains (const string_view& a, const string_view& b);
 
 /// Convert to upper case, faster than std::toupper because we use
 /// a static locale that doesn't require a mutex lock.
@@ -380,15 +380,15 @@ void OIIO_API to_upper (std::string &a);
 /// Return a reference to the section of str that has all consecutive
 /// characters in chars removed from the beginning and ending.  If chars is
 /// empty, it will be interpreted as " \t\n\r\f\v" (whitespace).
-string_view OIIO_API strip (string_view str, string_view chars=string_view());
+string_view OIIO_API strip (const string_view& str, string_view chars=string_view());
 
 /// Fills the "result" list with the words in the string, using sep as
 /// the delimiter string.  If maxsplit is > -1, at most maxsplit splits
 /// are done. If sep is "", any whitespace string is a separator.
-void OIIO_API split (string_view str, std::vector<string_view> &result,
-                     string_view sep = string_view(), int maxsplit = -1);
-void OIIO_API split (string_view str, std::vector<std::string> &result,
-                     string_view sep = string_view(), int maxsplit = -1);
+void OIIO_API split (const string_view& str, std::vector<string_view> &result,
+                     const string_view& sep = string_view(), int maxsplit = -1);
+void OIIO_API split (const string_view& str, std::vector<std::string> &result,
+                     const string_view& sep = string_view(), int maxsplit = -1);
 
 /// Split the contents of `str` using `sep` as the delimiter string (if
 /// `sep` is "", any whitespace string is a separator). If `maxsplit > -1`,
@@ -396,9 +396,9 @@ void OIIO_API split (string_view str, std::vector<std::string> &result,
 /// vector of std::string (for `splits()`) or a vector of string_view (for
 /// `splitsv()`).
 OIIO_API std::vector<std::string>
-splits (string_view str, string_view sep = "", int maxsplit = -1);
+splits (const string_view& str, const string_view& sep = "", int maxsplit = -1);
 OIIO_API std::vector<string_view>
-splitsv (string_view str, string_view sep = "", int maxsplit = -1);
+splitsv (const string_view& str, const string_view& sep = "", int maxsplit = -1);
 
 /// Join all the strings in 'seq' into one big string, separated by the
 /// 'sep' string. The Sequence can be any iterable collection of items that
@@ -420,12 +420,12 @@ std::string join (const Sequence& seq, string_view sep="")
 }
 
 /// Repeat a string formed by concatenating str n times.
-std::string OIIO_API repeat (string_view str, int n);
+std::string OIIO_API repeat (const string_view& str, int n);
 
 /// Replace a pattern inside a string and return the result. If global is
 /// true, replace all instances of the pattern, otherwise just the first.
-std::string OIIO_API replace (string_view str, string_view pattern,
-                              string_view replacement, bool global=false);
+std::string OIIO_API replace (string_view str, const string_view& pattern,
+                              const string_view& replacement, bool global=false);
 
 
 /// strtod/strtof equivalents that are "locale-independent", always using
@@ -452,7 +452,7 @@ inline unsigned int stoui (string_view s, size_t* pos=0, int base=10) {
 /// No exceptions or errors -- parsing errors just return 0.0. These always
 /// use '.' for the decimal mark (versus atof and std::strtof, which are
 /// locale-dependent).
-OIIO_API float stof (string_view s, size_t* pos=0);
+OIIO_API float stof (const string_view& s, size_t* pos=0);
 #define OIIO_STRUTIL_HAS_STOF 1  /* be able to test this */
 
 // Temporary fix: allow separate std::string and char* versions, to avoid
@@ -462,7 +462,7 @@ OIIO_API float stof (const std::string& s, size_t* pos=0);
 OIIO_API float stof (const char* s, size_t* pos=0);
 // N.B. For users of ustring, there's a stof(ustring) defined in ustring.h.
 
-OIIO_API double stod (string_view s, size_t* pos=0);
+OIIO_API double stod (const string_view& s, size_t* pos=0);
 OIIO_API double stod (const std::string& s, size_t* pos=0);
 OIIO_API double stod (const char* s, size_t* pos=0);
 
@@ -711,7 +711,7 @@ std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str);
 /// src into dst[], filling any remaining characters with 0 values. Returns
 /// dst. Note that this behavior is identical to strncpy, except that it
 /// guarantees that there will be a termining 0 character.
-OIIO_API char * safe_strcpy (char *dst, string_view src, size_t size);
+OIIO_API char * safe_strcpy (char *dst, const string_view& src, size_t size);
 
 
 /// Modify str to trim any whitespace (space, tab, linefeed, cr) from the
@@ -736,7 +736,7 @@ bool OIIO_API parse_until_char (string_view &str, char c, bool eat=true);
 /// additionally modify str to skip over that prefix if eat is also true.
 /// Otherwise, if str doesn't start with optional whitespace and the prefix,
 /// return false and don't modify str.
-bool OIIO_API parse_prefix (string_view &str, string_view prefix, bool eat=true);
+bool OIIO_API parse_prefix (string_view &str, const string_view& prefix, bool eat=true);
 
 /// If str's first non-whitespace characters form a valid integer, return
 /// true, place the integer's value in val, and additionally modify str to
@@ -787,12 +787,12 @@ string_view OIIO_API parse_identifier (string_view &str, bool eat=true);
 /// containing dollar signs and colons as well as the usual alphanumeric and
 /// underscore characters.
 string_view OIIO_API parse_identifier (string_view &str,
-                                       string_view allowed, bool eat = true);
+                                       const string_view& allowed, bool eat = true);
 
 /// If the C-like identifier at the head of str exactly matches id,
 /// return true, and also advance str if eat is true. If it is not a match
 /// for id, return false and do not alter str.
-bool OIIO_API parse_identifier_if (string_view &str, string_view id,
+bool OIIO_API parse_identifier_if (string_view &str, const string_view& id,
                                    bool eat=true);
 
 /// Return the characters until any character in sep is found, storing it in
@@ -800,14 +800,14 @@ bool OIIO_API parse_identifier_if (string_view &str, string_view id,
 /// is also true. Otherwise, if no word is found at the beginning of str,
 /// return an empty string_view and don't modify str.
 string_view OIIO_API parse_until (string_view &str,
-                                  string_view sep=" \t\r\n", bool eat=true);
+                                  const string_view& sep=" \t\r\n", bool eat=true);
 
 /// Return the characters at the head of the string that match any in set,
 /// and additionally modify str to skip over the parsed section if eat is
 /// also true. Otherwise, if no `set` characters are found at the beginning
 /// of str, return an empty string_view and don't modify str.
 string_view OIIO_API parse_while (string_view &str,
-                                  string_view set, bool eat=true);
+                                  const string_view& set, bool eat=true);
 
 /// Assuming the string str starts with either '(', '[', or '{', return the
 /// head, up to and including the corresponding closing character (')', ']',
@@ -826,7 +826,7 @@ string_view OIIO_API parse_nested (string_view &str, bool eat=true);
 /// part that followed the head (or return the empty string and leave `str`
 /// unmodified, if the head was never found).
 OIIO_API std::string
-excise_string_after_head (std::string& str, string_view head);
+excise_string_after_head (std::string& str, const string_view& head);
 
 
 /// Converts utf-8 string to vector of unicode codepoints. This function
@@ -839,7 +839,7 @@ excise_string_after_head (std::string& str, string_view head);
 /// vector, but C++11 support is not yet stabilized across compilers.
 /// We will eventually add that and deprecate this one, after everybody
 /// is caught up to C++11.
-void OIIO_API utf8_to_unicode (string_view str, std::vector<uint32_t> &uvec);
+void OIIO_API utf8_to_unicode (const string_view& str, std::vector<uint32_t> &uvec);
 
 /// Encode the string in base64.
 /// https://en.wikipedia.org/wiki/Base64

@@ -41,7 +41,7 @@ using namespace OIIO;
 
 // Split a command line into a vector of const char* arguments.
 std::vector<const char*>
-split_commands(string_view commands)
+split_commands(const string_view& commands)
 {
     std::vector<const char*> result;
     for (auto& c : Strutil::splitsv(commands)) {

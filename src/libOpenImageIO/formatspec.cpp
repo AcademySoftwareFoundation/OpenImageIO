@@ -88,7 +88,7 @@ get_default_quantize_(long long& quant_min, long long& quant_max)
 // Given the format, set the default quantization range.
 // Rely on the template version to make life easy.
 void
-pvt::get_default_quantize(TypeDesc format, long long& quant_min,
+pvt::get_default_quantize(const TypeDesc& format, long long& quant_min,
                           long long& quant_max)
 {
     switch (format.basetype) {
@@ -130,7 +130,7 @@ pvt::get_default_quantize(TypeDesc format, long long& quant_min,
 
 
 
-ImageSpec::ImageSpec(TypeDesc format)
+ImageSpec::ImageSpec(const TypeDesc& format)
     : x(0)
     , y(0)
     , z(0)
@@ -156,7 +156,7 @@ ImageSpec::ImageSpec(TypeDesc format)
 
 
 
-ImageSpec::ImageSpec(int xres, int yres, int nchans, TypeDesc format)
+ImageSpec::ImageSpec(int xres, int yres, int nchans, const TypeDesc& format)
     : x(0)
     , y(0)
     , z(0)
@@ -183,7 +183,7 @@ ImageSpec::ImageSpec(int xres, int yres, int nchans, TypeDesc format)
 
 
 
-ImageSpec::ImageSpec(const ROI& roi, TypeDesc format)
+ImageSpec::ImageSpec(const ROI& roi, const TypeDesc& format)
     : x(roi.xbegin)
     , y(roi.ybegin)
     , z(roi.zbegin)
@@ -211,7 +211,7 @@ ImageSpec::ImageSpec(const ROI& roi, TypeDesc format)
 
 
 void
-ImageSpec::set_format(TypeDesc fmt)
+ImageSpec::set_format(const TypeDesc& fmt)
 {
     format = fmt;
     channelformats.clear();
@@ -349,7 +349,7 @@ ImageSpec::image_bytes(bool native) const
 
 
 void
-ImageSpec::attribute(string_view name, TypeDesc type, const void* value)
+ImageSpec::attribute(const string_view& name, const TypeDesc& type, const void* value)
 {
     if (name.empty())  // Guard against bogus empty names
         return;
@@ -365,7 +365,7 @@ ImageSpec::attribute(string_view name, TypeDesc type, const void* value)
 
 
 void
-ImageSpec::attribute(string_view name, TypeDesc type, string_view value)
+ImageSpec::attribute(const string_view& name, const TypeDesc& type, const string_view& value)
 {
     if (name.empty())  // Guard against bogus empty names
         return;
@@ -381,7 +381,7 @@ ImageSpec::attribute(string_view name, TypeDesc type, string_view value)
 
 
 void
-ImageSpec::erase_attribute(string_view name, TypeDesc searchtype,
+ImageSpec::erase_attribute(const string_view& name, const TypeDesc& searchtype,
                            bool casesensitive)
 {
     if (extra_attribs.empty())
@@ -412,7 +412,7 @@ ImageSpec::erase_attribute(string_view name, TypeDesc searchtype,
 
 
 ParamValue*
-ImageSpec::find_attribute(string_view name, TypeDesc searchtype,
+ImageSpec::find_attribute(const string_view& name, const TypeDesc& searchtype,
                           bool casesensitive)
 {
     auto iter = extra_attribs.find(name, searchtype, casesensitive);
@@ -424,7 +424,7 @@ ImageSpec::find_attribute(string_view name, TypeDesc searchtype,
 
 
 const ParamValue*
-ImageSpec::find_attribute(string_view name, TypeDesc searchtype,
+ImageSpec::find_attribute(const string_view& name, const TypeDesc& searchtype,
                           bool casesensitive) const
 {
     auto iter = extra_attribs.find(name, searchtype, casesensitive);
@@ -436,8 +436,8 @@ ImageSpec::find_attribute(string_view name, TypeDesc searchtype,
 
 
 const ParamValue*
-ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
-                          TypeDesc searchtype, bool casesensitive) const
+ImageSpec::find_attribute(const string_view& name, ParamValue& tmpparam,
+                          const TypeDesc& searchtype, bool casesensitive) const
 {
     auto iter = extra_attribs.find(name, searchtype, casesensitive);
     if (iter != extra_attribs.end())
@@ -526,7 +526,7 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
 
 
 int
-ImageSpec::get_int_attribute(string_view name, int defaultval) const
+ImageSpec::get_int_attribute(const string_view& name, int defaultval) const
 {
     // Call find_attribute with the tmpparam, in order to retrieve special
     // "virtual" attribs that aren't really in extra_attribs.
@@ -538,7 +538,7 @@ ImageSpec::get_int_attribute(string_view name, int defaultval) const
 
 
 float
-ImageSpec::get_float_attribute(string_view name, float defaultval) const
+ImageSpec::get_float_attribute(const string_view& name, float defaultval) const
 {
     // No need for the special find_attribute trick, because there are
     // currently no special virtual attribs that are floats.
@@ -549,7 +549,7 @@ ImageSpec::get_float_attribute(string_view name, float defaultval) const
 
 
 string_view
-ImageSpec::get_string_attribute(string_view name, string_view defaultval) const
+ImageSpec::get_string_attribute(const string_view& name, const string_view& defaultval) const
 {
     ParamValue tmpparam;
     const ParamValue* p = find_attribute(name, tmpparam, TypeDesc::STRING);
@@ -559,7 +559,7 @@ ImageSpec::get_string_attribute(string_view name, string_view defaultval) const
 
 
 int
-ImageSpec::channelindex(string_view name) const
+ImageSpec::channelindex(const string_view& name) const
 {
     ASSERT(nchannels == int(channelnames.size()));
     for (int i = 0; i < nchannels; ++i)
@@ -870,7 +870,7 @@ namespace {  // Helper functions for from_xml () and to_xml () methods.
 using namespace pugi;
 
 static xml_node
-add_node(xml_node& node, string_view node_name, const char* val)
+add_node(xml_node& node, const string_view& node_name, const char* val)
 {
     xml_node newnode = node.append_child();
     newnode.set_name(node_name.c_str());
@@ -881,7 +881,7 @@ add_node(xml_node& node, string_view node_name, const char* val)
 
 
 static xml_node
-add_node(xml_node& node, string_view node_name, const int val)
+add_node(xml_node& node, const string_view& node_name, const int val)
 {
     char buf[64];
     sprintf(buf, "%d", val);
@@ -918,7 +918,7 @@ get_channelnames(const xml_node& n, std::vector<std::string>& channelnames)
 
 
 static const char*
-extended_format_name(TypeDesc type, int bits)
+extended_format_name(const TypeDesc& type, int bits)
 {
     if (bits && bits < (int)type.size() * 8) {
         // The "oiio:BitsPerSample" betrays a different bit depth in the
@@ -1147,7 +1147,7 @@ ImageSpec::from_xml(const char* xml)
 
 
 std::pair<string_view, int>
-ImageSpec::decode_compression_metadata(string_view defaultcomp,
+ImageSpec::decode_compression_metadata(const string_view& defaultcomp,
                                        int defaultqual) const
 {
     string_view comp   = get_string_attribute("Compression", defaultcomp);

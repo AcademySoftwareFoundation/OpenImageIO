@@ -88,7 +88,7 @@ test_imagespec_pixels()
 
 
 static void
-metadata_val_test(void* data, int num_elements, TypeDesc type, std::string& val)
+metadata_val_test(void* data, int num_elements, const TypeDesc& type, std::string& val)
 {
     static ImageSpec spec;
     ParamValue p;
@@ -158,7 +158,7 @@ test_imagespec_metadata_val()
 
 
 static void
-attribute_test(const std::string& data, TypeDesc type, std::string& ret)
+attribute_test(const std::string& data, const TypeDesc& type, std::string& ret)
 {
     ImageSpec spec;
     spec.attribute("name", type, data);

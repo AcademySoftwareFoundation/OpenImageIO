@@ -91,14 +91,14 @@ std::string explain_labeltable (const ParamValue &p, const void *extradata);
 
 class OIIO_API TagMap {
 public:
-    TagMap (string_view mapname, cspan<TagInfo> tag_table);
+    TagMap (const string_view& mapname, cspan<TagInfo> tag_table);
     ~TagMap ();
 
     /// Find a TagInfo record for the tag index. or nullptr if not found.
     const TagInfo* find(int tag) const;
 
     /// Find a TagInfo record for the named tag. or nullptr if not found.
-    const TagInfo* find(string_view name) const;
+    const TagInfo* find(const string_view& name) const;
 
     /// Return the name for the tag index.
     const char* name(int tag) const;
@@ -110,7 +110,7 @@ public:
     int tiffcount (int tag) const;
 
     /// Return the tag number, given a tag name.
-    int tag (string_view name) const;
+    int tag (const string_view& name) const;
 
     /// Return the name of the map
     string_view mapname() const;

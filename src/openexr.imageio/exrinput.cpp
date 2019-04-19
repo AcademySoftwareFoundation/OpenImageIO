@@ -856,7 +856,7 @@ struct ChanNameHolder {
     int xSampling;
     int ySampling;
 
-    ChanNameHolder(string_view fullname, int n, const Imf::Channel& exrchan)
+    ChanNameHolder(const string_view& fullname, int n, const Imf::Channel& exrchan)
         : fullname(fullname)
         , exr_channel_number(n)
         , exr_data_type(exrchan.type)

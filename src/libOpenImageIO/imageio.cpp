@@ -110,7 +110,7 @@ public:
     }
 
     // Call like a function to record times (but only if oiio_log_times > 0)
-    void operator()(string_view key, const Timer& timer)
+    void operator()(const string_view& key, const Timer& timer)
     {
         if (oiio_log_times) {
             auto t = timer();
@@ -261,7 +261,7 @@ error_msg()
 
 
 void
-pvt::seterror(string_view message)
+pvt::seterror(const string_view& message)
 {
     error_msg() = message;
 }
@@ -279,7 +279,7 @@ geterror()
 
 
 void
-debug(string_view message)
+debug(const string_view& message)
 {
     recursive_lock_guard lock(pvt::imageio_mutex);
     if (oiio_print_debug) {
@@ -296,7 +296,7 @@ debug(string_view message)
 
 
 void
-pvt::log_time(string_view key, const Timer& timer)
+pvt::log_time(const string_view& key, const Timer& timer)
 {
     timing_log(key, timer);
 }
@@ -304,7 +304,7 @@ pvt::log_time(string_view key, const Timer& timer)
 
 
 bool
-attribute(string_view name, TypeDesc type, const void* val)
+attribute(const string_view& name, const TypeDesc& type, const void* val)
 {
     if (name == "options" && type == TypeDesc::STRING) {
         GlobalOptSetter gos;
@@ -369,7 +369,7 @@ attribute(string_view name, TypeDesc type, const void* val)
 
 
 bool
-getattribute(string_view name, TypeDesc type, void* val)
+getattribute(const string_view& name, const TypeDesc& type, void* val)
 {
     if (name == "threads" && type == TypeInt) {
         *(int*)val = oiio_threads;
@@ -530,7 +530,7 @@ _contiguize(const T* src, int nchannels, stride_t xstride, stride_t ystride,
 const void*
 pvt::contiguize(const void* src, int nchannels, stride_t xstride,
                 stride_t ystride, stride_t zstride, void* dst, int width,
-                int height, int depth, TypeDesc format)
+                int height, int depth, const TypeDesc& format)
 {
     switch (format.basetype) {
     case TypeDesc::FLOAT:
@@ -563,7 +563,7 @@ pvt::contiguize(const void* src, int nchannels, stride_t xstride,
 
 
 const float*
-pvt::convert_to_float(const void* src, float* dst, int nvals, TypeDesc format)
+pvt::convert_to_float(const void* src, float* dst, int nvals, const TypeDesc& format)
 {
     switch (format.basetype) {
     case TypeDesc::FLOAT: return (float*)src;
@@ -628,7 +628,7 @@ _from_float(const float* src, T* dst, size_t nvals)
 
 const void*
 pvt::convert_from_float(const float* src, void* dst, size_t nvals,
-                        TypeDesc format)
+                        const TypeDesc& format)
 {
     switch (format.basetype) {
     case TypeDesc::FLOAT: return src;
@@ -650,7 +650,7 @@ pvt::convert_from_float(const float* src, void* dst, size_t nvals,
 
 const void*
 pvt::parallel_convert_from_float(const float* src, void* dst, size_t nvals,
-                                 TypeDesc format)
+                                 const TypeDesc& format)
 {
     if (format.basetype == TypeDesc::FLOAT)
         return src;
@@ -665,7 +665,7 @@ pvt::parallel_convert_from_float(const float* src, void* dst, size_t nvals,
 
 
 bool
-convert_types(TypeDesc src_type, const void* src, TypeDesc dst_type, void* dst,
+convert_types(const TypeDesc& src_type, const void* src, const TypeDesc& dst_type, void* dst,
               int n)
 {
     // If no conversion is necessary, just memcpy
@@ -719,8 +719,8 @@ convert_types(TypeDesc src_type, const void* src, TypeDesc dst_type, void* dst,
 
 bool
 convert_image(int nchannels, int width, int height, int depth, const void* src,
-              TypeDesc src_type, stride_t src_xstride, stride_t src_ystride,
-              stride_t src_zstride, void* dst, TypeDesc dst_type,
+              const TypeDesc& src_type, stride_t src_xstride, stride_t src_ystride,
+              stride_t src_zstride, void* dst, const TypeDesc& dst_type,
               stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride)
 {
     // If no format conversion is taking place, use the simplified
@@ -769,9 +769,9 @@ convert_image(int nchannels, int width, int height, int depth, const void* src,
 
 bool
 parallel_convert_image(int nchannels, int width, int height, int depth,
-                       const void* src, TypeDesc src_type, stride_t src_xstride,
+                       const void* src, const TypeDesc& src_type, stride_t src_xstride,
                        stride_t src_ystride, stride_t src_zstride, void* dst,
-                       TypeDesc dst_type, stride_t dst_xstride,
+                       const TypeDesc& dst_type, stride_t dst_xstride,
                        stride_t dst_ystride, stride_t dst_zstride, int nthreads)
 {
     if (nthreads <= 0)
@@ -905,7 +905,7 @@ premult_impl(int nchannels, int width, int height, int depth, int chbegin,
 
 void
 premult(int nchannels, int width, int height, int depth, int chbegin, int chend,
-        TypeDesc datatype, void* data, stride_t xstride, stride_t ystride,
+        const TypeDesc& datatype, void* data, stride_t xstride, stride_t ystride,
         stride_t zstride, int alpha_channel, int z_channel)
 {
     if (alpha_channel < 0 || alpha_channel > nchannels)
