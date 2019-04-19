@@ -161,7 +161,6 @@ Filesystem::searchpath_split(const std::string& searchpath,
 {
     dirs.clear();
 
-    const std::string& path_copy = searchpath;
     std::string last_token;
     typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
     boost::char_separator<char> sep(":;");
@@ -362,7 +361,8 @@ Filesystem::create_directory(const string_view& path, std::string& err)
 
 
 bool
-Filesystem::copy(const string_view& from, const string_view& to, std::string& err)
+Filesystem::copy(const string_view& from, const string_view& to,
+                 std::string& err)
 {
     boost::system::error_code ec;
     filesystem::copy(u8path(from), u8path(to), ec);
@@ -378,7 +378,8 @@ Filesystem::copy(const string_view& from, const string_view& to, std::string& er
 
 
 bool
-Filesystem::rename(const string_view& from, const string_view& to, std::string& err)
+Filesystem::rename(const string_view& from, const string_view& to,
+                   std::string& err)
 {
     boost::system::error_code ec;
     filesystem::rename(u8path(from), u8path(to), ec);
@@ -525,7 +526,8 @@ Filesystem::read_text_file(const string_view& filename, std::string& str)
 /// Read the entire contents of the named file and place it in str,
 /// returning true on success, false on failure.
 size_t
-Filesystem::read_bytes(const string_view& path, void* buffer, size_t n, size_t pos)
+Filesystem::read_bytes(const string_view& path, void* buffer, size_t n,
+                       size_t pos)
 {
     size_t ret = 0;
     if (FILE* file = Filesystem::fopen(path, "rb")) {
@@ -611,7 +613,8 @@ Filesystem::convert_native_arguments(int argc, const char* argv[])
 
 
 bool
-Filesystem::enumerate_sequence(const string_view& desc, std::vector<int>& numbers)
+Filesystem::enumerate_sequence(const string_view& desc,
+                               std::vector<int>& numbers)
 {
     numbers.clear();
 
