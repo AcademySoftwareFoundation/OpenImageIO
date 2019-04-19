@@ -32,7 +32,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "zlib.h"
+#include <zlib.h>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
