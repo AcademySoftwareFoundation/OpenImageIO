@@ -54,7 +54,6 @@ endif ()
 ###########################################################################
 # Several packages need Zlib
 find_package (ZLIB REQUIRED)
-include_directories (${ZLIB_INCLUDE_DIR})
 
 
 ###########################################################################
