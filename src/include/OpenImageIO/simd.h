@@ -478,11 +478,16 @@ public:
 
     explicit vbool4 (const bool *a);
 
-    /// Construct from 4 values
+    /// Construct from 4 bool values
     vbool4 (bool a, bool b, bool c, bool d) { load (a, b, c, d); }
 
     /// Copy construct from another vbool4
     vbool4 (const vbool4 &other) { m_simd = other.m_simd; }
+
+    /// Construct from 4 int values
+    vbool4 (int a, int b, int c, int d) {
+        load (bool(a), bool(b), bool(c), bool(d));
+    }
 
     /// Construct from a SIMD int (is each element nonzero?)
     vbool4 (const vint4 &i);
@@ -612,11 +617,14 @@ public:
 
     explicit vbool8 (const bool *values);
 
-    /// Construct from 8 values
+    /// Construct from 8 bool values
     vbool8 (bool a, bool b, bool c, bool d, bool e, bool f, bool g, bool h);
 
     /// Copy construct from another vbool8
     vbool8 (const vbool8 &other) { m_simd = other.m_simd; }
+
+    /// Construct from 8 int values
+    vbool8 (int a, int b, int c, int d, int e, int f, int g, int h);
 
     /// Construct from a SIMD int (is each element nonzero?)
     vbool8 (const vint8 &i);
@@ -758,12 +766,16 @@ public:
 
     explicit vbool16 (const bool *values);
 
-    /// Construct from 16 values
+    /// Construct from 16 bool values
     vbool16 (bool v0, bool v1, bool v2, bool v3, bool v4, bool v5, bool v6, bool v7,
             bool v8, bool v9, bool v10, bool v11, bool v12, bool v13, bool v14, bool v15);
 
     /// Copy construct from another vbool16
     vbool16 (const vbool16 &other) { m_simd = other.m_simd; }
+
+    /// Construct from 16 int values
+    vbool16 (int v0, int v1, int v2, int v3, int v4, int v5, int v6, int v7,
+             int v8, int v9, int v10, int v11, int v12, int v13, int v14, int v15);
 
     /// Construct from a SIMD int (is each element nonzero?)
     vbool16 (const vint16 &i);
@@ -3429,6 +3441,12 @@ OIIO_FORCEINLINE vbool8::vbool8 (bool a, bool b, bool c, bool d,
     load (a, b, c, d, e, f, g, h);
 }
 
+OIIO_FORCEINLINE vbool8::vbool8 (int a, int b, int c, int d,
+                                 int e, int f, int g, int h) {
+    load (bool(a), bool(b), bool(c), bool(d),
+          bool(e), bool(f), bool(g), bool(h));
+}
+
 OIIO_FORCEINLINE vbool8::vbool8 (const bool *a) {
     load (a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
 }
@@ -3736,6 +3754,16 @@ OIIO_FORCEINLINE vbool16::vbool16 (bool v0, bool v1, bool v2, bool v3,
                                  bool v8, bool v9, bool v10, bool v11,
                                  bool v12, bool v13, bool v14, bool v15) {
     load (v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
+}
+
+OIIO_FORCEINLINE vbool16::vbool16 (int v0, int v1, int v2, int v3,
+                                   int v4, int v5, int v6, int v7,
+                                   int v8, int v9, int v10, int v11,
+                                   int v12, int v13, int v14, int v15) {
+    load (bool(v0), bool(v1), bool(v2), bool(v3),
+          bool(v4), bool(v5), bool(v6), bool(v7),
+          bool(v8), bool(v9), bool(v10), bool(v11),
+          bool(v12), bool(v13), bool(v14), bool(v15));
 }
 
 OIIO_FORCEINLINE vbool16::vbool16 (const vbool8& a, const vbool8& b) {
