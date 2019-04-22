@@ -120,8 +120,8 @@ test_imagespec_metadata_val()
     OIIO_CHECK_NE(ret, "10, 200, 300, 400");
     OIIO_CHECK_NE(ret, "10.12, 200.34, 300.11, 400.9,");
 
-    unsigned long long ullmatrix[] = { 0xffffffffffffffffLL,
-                                       0xffffffffffffffffLL };
+    unsigned long long ullmatrix[] = { 0xffffffffffffffffULL,
+                                       0xffffffffffffffffULL };
     metadata_val_test(&ullmatrix, 1, TypeDesc::UINT64, ret);
     OIIO_CHECK_EQUAL(ret, "18446744073709551615");
     metadata_val_test(&ullmatrix,
