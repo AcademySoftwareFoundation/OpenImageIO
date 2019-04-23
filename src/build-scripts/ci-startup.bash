@@ -13,6 +13,13 @@ if [[ $TRAVIS_OS_NAME == linux || $CIRCLECI == true ]] ; then
 fi
 PLATFORM=$ARCH
 
+if [[ "$DEBUG" == 1 ]] ; then
+    export PLATFORM=${PLATFORM}.debug
+fi
+
+echo "Architecture is $ARCH"
+echo "Build platform name is $PLATFORM"
+
 # Environment variables we always need
 export USE_CCACHE=1
 export CCACHE_CPP2=1
@@ -28,22 +35,6 @@ export PYTHON_VERSION=${PYTHON_VERSION:="2.7"}
 export BUILD_MISSING_DEPS=${BUILD_MISSING_DEPS:=1}
 export COMPILER=${COMPILER:=gcc}
 export CXX=${CXX:=g++}
-
-# Set some things differently based on the platform
-#if [[ $ARCH == linux64 ]] ; then
-#
-#fi
-#
-#if [[ $ARCH == macosx ]] ; then
-#
-#fi
-
-if [[ "$DEBUG" == 1 ]] ; then
-    export PLATFORM=${PLATFORM}.debug
-fi
-
-echo "Architecture is $ARCH"
-echo "Build platform name is $PLATFORM"
 
 uname -n
 pwd
