@@ -33,44 +33,6 @@
 namespace PyOpenImageIO {
 
 
-py::object
-ParamValue_getitem(const ParamValue& self, int n)
-{
-    if (n < 0 || n >= self.nvalues()) {
-        throw std::out_of_range(
-            Strutil::sprintf("ParamValue index out of range %d", n));
-    }
-
-    TypeDesc t = self.type();
-
-#define ParamValue_convert_dispatch(TYPE)                                      \
-    case TypeDesc::TYPE:                                                       \
-        return C_to_val_or_tuple((CType<TypeDesc::TYPE>::type*)self.data(), t)
-
-    switch (t.basetype) {
-        // ParamValue_convert_dispatch(UCHAR);
-        // ParamValue_convert_dispatch(CHAR);
-        ParamValue_convert_dispatch(USHORT);
-        ParamValue_convert_dispatch(SHORT);
-        ParamValue_convert_dispatch(UINT);
-        ParamValue_convert_dispatch(INT);
-        // ParamValue_convert_dispatch(ULONGLONG);
-        // ParamValue_convert_dispatch(LONGLONG);
-#ifdef _HALF_H_
-        ParamValue_convert_dispatch(HALF);
-#endif
-        ParamValue_convert_dispatch(FLOAT);
-        ParamValue_convert_dispatch(DOUBLE);
-    case TypeDesc::STRING:
-        return C_to_val_or_tuple((const char**)self.data(), t);
-    default: return py::none();
-    }
-
-#undef ParamValue_convert_dispatch
-}
-
-
-
 void
 declare_paramvalue(py::module& m)
 {
@@ -111,6 +73,17 @@ declare_paramvalue(py::module& m)
                 return self[i];
             },
             py::return_value_policy::reference_internal)
+        .def("__getitem__",
+             [](const ParamValueList& self, const std::string& key) {
+                 auto p = self.find(key);
+                 if (p == self.end())
+                     throw py::key_error("key '" + key + "' does not exist");
+                 return ParamValue_getitem(*p);
+             })
+        .def("__setitem__",
+             [](ParamValueList& self, const std::string& key, py::object val) {
+                 delegate_setitem(self, key, val);
+             })
         .def("__len__", [](const ParamValueList& p) { return p.size(); })
         .def(
             "__iter__",
@@ -141,7 +114,23 @@ declare_paramvalue(py::module& m)
                 return p.add_or_replace(pv, casesensitive);
             },
             "value"_a, "casesensitive"_a = true)
-        .def("sort", &ParamValueList::sort, "casesensitive"_a = true);
+        .def("sort", &ParamValueList::sort, "casesensitive"_a = true)
+        .def("attribute",
+             [](ParamValueList& self, const std::string& name, float val) {
+                 self.attribute(name, TypeFloat, &val);
+             })
+        .def("attribute", [](ParamValueList& self, const std::string& name,
+                             int val) { self.attribute(name, TypeInt, &val); })
+        .def("attribute",
+             [](ParamValueList& self, const std::string& name,
+                const std::string& val) {
+                 const char* s = val.c_str();
+                 self.attribute(name, TypeString, &s);
+             })
+        .def("attribute", [](ParamValueList& self, const std::string& name,
+                             TypeDesc type, const py::tuple& obj) {
+            attribute_typed(self, name, type, obj);
+        });
 }
 
 }  // namespace PyOpenImageIO

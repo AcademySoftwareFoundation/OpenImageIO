@@ -146,13 +146,15 @@ test_imagespec_metadata_val()
         { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 }
     };
     metadata_val_test(&matrix16[0], 1, TypeMatrix, ret);
-    OIIO_CHECK_EQUAL(ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16");
-    OIIO_CHECK_NE(ret, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16,");
+    OIIO_CHECK_EQUAL(ret,
+                     "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16");
+    OIIO_CHECK_NE(ret,
+                  "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,");
     metadata_val_test(matrix16, sizeof(matrix16) / (16 * sizeof(float)),
                       TypeMatrix, ret);
     OIIO_CHECK_EQUAL(
         ret,
-        "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16, 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25");
+        "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25");
 }
 
 
@@ -194,7 +196,7 @@ test_imagespec_attribute_from_string()
     OIIO_CHECK_EQUAL(ret, data);
 
     type = TypeMatrix;
-    data = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16";
+    data = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16";
     attribute_test(data, type, ret);
     OIIO_CHECK_EQUAL(ret, data);
 
@@ -222,6 +224,7 @@ test_get_attribute()
     spec.attribute("foo", int(42));
     spec.attribute("pi", float(M_PI));
     spec.attribute("bar", "barbarbar?");
+    spec["baz"] = (unsigned int)14;
 
     OIIO_CHECK_EQUAL(spec.get_int_attribute("width"), 640);
     OIIO_CHECK_EQUAL(spec.get_int_attribute("height"), 480);
@@ -268,6 +271,13 @@ test_get_attribute()
     p  = spec.find_attribute("displaywindow", tmp);
     ok = cspan<int>((const int*)p->data(), 4) == cspan<int>(dispwin);
     OIIO_CHECK_ASSERT(ok);
+
+    // Check [] syntax using AttribDelegate
+    OIIO_CHECK_EQUAL(spec["pi"].get<float>(), float(M_PI));
+    OIIO_CHECK_EQUAL(spec["foo"].get<int>(), 42);
+    OIIO_CHECK_EQUAL(spec["foo"].get<std::string>(), "42");
+    OIIO_CHECK_EQUAL(spec.getattributetype("baz"), TypeUInt32);
+    OIIO_CHECK_EQUAL(spec["baz"].get<unsigned int>(), (unsigned int)14);
 }
 
 

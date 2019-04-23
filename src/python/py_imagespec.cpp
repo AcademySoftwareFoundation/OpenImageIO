@@ -283,7 +283,19 @@ declare_imagespec(py::module& m)
         .def("from_xml", &ImageSpec::from_xml)
         .def("valid_tile_range", &ImageSpec::valid_tile_range, "xbegin"_a,
              "xend"_a, "ybegin"_a, "yend"_a, "zbegin"_a, "zend"_a)
-        .def("copy_dimensions", &ImageSpec::copy_dimensions, "other"_a);
+        .def("copy_dimensions", &ImageSpec::copy_dimensions, "other"_a)
+        .def("__getitem__",
+             [](const ImageSpec& self, const std::string& key) {
+                 ParamValue tmpparam;
+                 auto p = self.find_attribute(key, tmpparam);
+                 if (p == nullptr)
+                     throw py::key_error("key '" + key + "' does not exist");
+                 return ParamValue_getitem(*p);
+             })
+        .def("__setitem__",
+             [](ImageSpec& self, const std::string& key, py::object val) {
+                 delegate_setitem(self, key, val);
+             });
 }
 
 }  // namespace PyOpenImageIO

@@ -162,6 +162,13 @@ ParamValue::get_int(int defaultval) const
 int
 ParamValue::get_int_indexed(int index, int defaultval) const
 {
+#if 1 && OIIO_VERSION >= 20101
+    int val = defaultval;
+    convert_type(type().elementtype(),
+                 (const char*)data() + index * type().basesize(), TypeInt,
+                 &val);
+    return val;
+#else
     int base = type().basetype;
     if (base == TypeDesc::INT)
         return get<int>(index);
@@ -188,6 +195,7 @@ ParamValue::get_int_indexed(int index, int defaultval) const
             return val;
     }
     return defaultval;  // Some nonstandard type, fail
+#endif
 }
 
 
@@ -203,6 +211,13 @@ ParamValue::get_float(float defaultval) const
 float
 ParamValue::get_float_indexed(int index, float defaultval) const
 {
+#if 1 && OIIO_VERSION >= 20101
+    float val = defaultval;
+    convert_type(type().elementtype(),
+                 (const char*)data() + index * type().basesize(), TypeFloat,
+                 &val);
+    return val;
+#else
     int base = type().basetype;
     if (base == TypeDesc::FLOAT)
         return get<float>(index);
@@ -243,6 +258,7 @@ ParamValue::get_float_indexed(int index, float defaultval) const
     }
 
     return defaultval;
+#endif
 }
 
 
@@ -251,13 +267,13 @@ namespace {  // make an anon namespace
 
 template<typename T>
 void
-formatType(const ParamValue& p, const int n, const char* formatString,
-           std::string& out)
+formatType(const ParamValue& p, int beginindex, int endindex,
+           const char* formatString, std::string& out)
 {
     TypeDesc element = p.type().elementtype();
-    const T* f       = (const T*)p.data();
-    for (int i = 0; i < n; ++i) {
-        if (i)
+    const T* f       = (const T*)p.data() + beginindex * element.aggregate;
+    for (int i = beginindex; i < endindex; ++i) {
+        if (i > beginindex)
             out += ", ";
         for (int c = 0; c < (int)element.aggregate; ++c, ++f) {
             if (c)
@@ -292,6 +308,19 @@ bcdToBinary(unsigned int bcd)
 std::string
 ParamValue::get_string(int maxsize) const
 {
+#if OIIO_VERSION >= 20101
+    int nfull  = int(type().numelements()) * nvalues();
+    int n      = std::min(nfull, maxsize);
+    TypeDesc t = type();
+    if (nvalues() > 1 || n < nfull)
+        t.arraylen = n;
+    static const tostring_formatting fmt
+        = { "%d", "%g", "\"%s\"", "%p", "", "", ", ", "", "", ", ", true };
+    std::string out = tostring(t, data(), fmt);
+    if (n < nfull)
+        out += Strutil::sprintf(", ... [%d x %s]", nfull,
+                                TypeDesc(TypeDesc::BASETYPE(type().basetype)));
+#else
     std::string out;
     TypeDesc element = type().elementtype();
     int nfull        = int(type().numelements()) * nvalues();
@@ -309,11 +338,11 @@ ParamValue::get_string(int maxsize) const
                                       : std::string());
         }
     } else if (element.basetype == TypeDesc::FLOAT) {
-        formatType<float>(*this, n, "%g", out);
+        formatType<float>(*this, 0, n, "%g", out);
     } else if (element.basetype == TypeDesc::DOUBLE) {
-        formatType<double>(*this, n, "%g", out);
+        formatType<double>(*this, 0, n, "%g", out);
     } else if (element.basetype == TypeDesc::HALF) {
-        formatType<half>(*this, n, "%g", out);
+        formatType<half>(*this, 0, n, "%g", out);
     } else if (element.basetype == TypeDesc::INT) {
         if (element == TypeRational) {
             const int* val = (const int*)data();
@@ -323,12 +352,12 @@ ParamValue::get_string(int maxsize) const
                 out += Strutil::sprintf("%d/%d", val[0], val[1]);
             }
         } else {
-            formatType<int>(*this, n, "%d", out);
+            formatType<int>(*this, 0, n, "%d", out);
         }
     } else if (element.basetype == TypeDesc::UINT) {
         if (element.vecsemantics == TypeDesc::RATIONAL
             && element.aggregate == TypeDesc::VEC2) {
-            const int* val = (const int*)data();
+            const uint32_t* val = (const uint32_t*)data();
             for (int i = 0; i < n; ++i, val += 2) {
                 if (i)
                     out += ", ";
@@ -345,23 +374,23 @@ ParamValue::get_string(int maxsize) const
             out += Strutil::sprintf("%02d:%02d:%02d:%02d", hours, minutes,
                                     seconds, frame);
         } else {
-            formatType<unsigned int>(*this, n, "%u", out);
+            formatType<unsigned int>(*this, 0, n, "%u", out);
         }
     } else if (element.basetype == TypeDesc::UINT16) {
-        formatType<unsigned short>(*this, n, "%u", out);
+        formatType<unsigned short>(*this, 0, n, "%u", out);
     } else if (element.basetype == TypeDesc::INT16) {
-        formatType<short>(*this, n, "%d", out);
+        formatType<short>(*this, 0, n, "%d", out);
     } else if (element.basetype == TypeDesc::UINT64) {
-        formatType<unsigned long long>(*this, n, "%llu", out);
+        formatType<unsigned long long>(*this, 0, n, "%llu", out);
     } else if (element.basetype == TypeDesc::INT64) {
-        formatType<long long>(*this, n, "%lld", out);
+        formatType<long long>(*this, 0, n, "%lld", out);
     } else if (element.basetype == TypeDesc::UINT8) {
-        formatType<unsigned char>(*this, n, "%d", out);
+        formatType<unsigned char>(*this, 0, n, "%d", out);
     } else if (element.basetype == TypeDesc::INT8) {
-        formatType<char>(*this, n, "%d", out);
+        formatType<char>(*this, 0, n, "%d", out);
     } else if (element.basetype == TypeDesc::PTR) {
         out += "ptr ";
-        formatType<void*>(*this, n, "%p", out);
+        formatType<void*>(*this, 0, n, "%p", out);
     } else {
         out += Strutil::sprintf("<unknown data type> (base %d, agg %d vec %d)",
                                 type().basetype, type().aggregate,
@@ -369,7 +398,74 @@ ParamValue::get_string(int maxsize) const
     }
     if (n < nfull)
         out += Strutil::sprintf(", ... [%d x %s]", nfull,
-                                TypeDesc(TypeDesc::BASETYPE(element.basetype)));
+                                TypeDesc(TypeDesc::BASETYPE(type().basetype)));
+#endif
+    return out;
+}
+
+
+
+std::string
+ParamValue::get_string_indexed(int index) const
+{
+    std::string out;
+    TypeDesc element = type().elementtype();
+    int n            = int(type().numelements()) * nvalues();
+    if (index < 0 || index >= n)
+        return out;
+    if (element.basetype == TypeDesc::STRING) {
+        return get<const char*>(index);
+    } else if (element.basetype == TypeDesc::FLOAT) {
+        formatType<float>(*this, index, index + 1, "%g", out);
+    } else if (element.basetype == TypeDesc::DOUBLE) {
+        formatType<double>(*this, index, index + 1, "%g", out);
+    } else if (element.basetype == TypeDesc::HALF) {
+        formatType<half>(*this, index, index + 1, "%g", out);
+    } else if (element.basetype == TypeDesc::INT) {
+        if (element == TypeRational) {
+            const int* val = (const int*)data() + 2 * index;
+            out            = Strutil::sprintf("%d/%d", val[0], val[1]);
+        } else {
+            formatType<int>(*this, index, index + 1, "%d", out);
+        }
+    } else if (element.basetype == TypeDesc::UINT) {
+        if (element.vecsemantics == TypeDesc::RATIONAL
+            && element.aggregate == TypeDesc::VEC2) {
+            const int* val = (const int*)data() + 2 * index;
+            out            = Strutil::sprintf("%d/%d", val[0], val[1]);
+        } else if (type() == TypeTimeCode) {
+            // Replicating the logic in OpenEXR, but this prevents us from
+            // needing to link to libIlmImf just to do this.
+            unsigned int t = get<unsigned int>(0);
+            int hours      = bcdToBinary(bitField(t, 24, 29));
+            int minutes    = bcdToBinary(bitField(t, 16, 22));
+            int seconds    = bcdToBinary(bitField(t, 8, 14));
+            int frame      = bcdToBinary(bitField(t, 0, 5));
+            out += Strutil::sprintf("%02d:%02d:%02d:%02d", hours, minutes,
+                                    seconds, frame);
+        } else {
+            formatType<unsigned int>(*this, index, index + 1, "%u", out);
+        }
+    } else if (element.basetype == TypeDesc::UINT16) {
+        formatType<unsigned short>(*this, index, index + 1, "%u", out);
+    } else if (element.basetype == TypeDesc::INT16) {
+        formatType<short>(*this, index, index + 1, "%d", out);
+    } else if (element.basetype == TypeDesc::UINT64) {
+        formatType<unsigned long long>(*this, index, index + 1, "%llu", out);
+    } else if (element.basetype == TypeDesc::INT64) {
+        formatType<long long>(*this, index, index + 1, "%lld", out);
+    } else if (element.basetype == TypeDesc::UINT8) {
+        formatType<unsigned char>(*this, index, index + 1, "%d", out);
+    } else if (element.basetype == TypeDesc::INT8) {
+        formatType<char>(*this, index, index + 1, "%d", out);
+    } else if (element.basetype == TypeDesc::PTR) {
+        out += "ptr ";
+        formatType<void*>(*this, index, index + 1, "%p", out);
+    } else {
+        out += Strutil::sprintf("<unknown data type> (base %d, agg %d vec %d)",
+                                type().basetype, type().aggregate,
+                                type().vecsemantics);
+    }
     return out;
 }
 
@@ -383,6 +479,18 @@ ParamValue::get_ustring(int maxsize) const
     if (type() == TypeDesc::STRING)
         return get<ustring>();
     return ustring(get_string(maxsize));
+}
+
+
+
+ustring
+ParamValue::get_ustring_indexed(int index) const
+{
+    // Special case for retrieving a string already in ustring form,
+    // super inexpensive.
+    if (type() == TypeDesc::STRING)
+        return get<ustring>(index);
+    return ustring(get_string_indexed(index));
 }
 
 
@@ -557,6 +665,33 @@ ParamValueList::add_or_replace(ParamValue&& pv, bool casesensitive)
         *p = pv;
     else
         emplace_back(pv);
+}
+
+
+
+bool
+ParamValueList::getattribute(string_view name, TypeDesc type, void* value,
+                             bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        return convert_type(p->type(), p->data(), type, value);
+    } else {
+        return false;
+    }
+}
+
+
+
+bool
+ParamValueList::getattribute(string_view name, std::string& value,
+                             bool casesensitive) const
+{
+    ustring s;
+    bool ok = getattribute(name, TypeString, &s, casesensitive);
+    if (ok)
+        value = s.string();
+    return ok;
 }
 
 

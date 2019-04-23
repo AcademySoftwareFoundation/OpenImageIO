@@ -180,8 +180,8 @@ checker-camera.tx    :  128 x  128, 4 channel, uint8 tiff
     Orientation: 1 (normal)
     planarconfig: "contig"
     textureformat: "Plain Texture"
-    worldtocamera: 1 0 0 0 0 2 0 0 0 0 1 0 0 0 0 1
-    worldtoscreen: 3 0 0 0 0 3 0 0 0 0 3 0 1 2 3 1
+    worldtocamera: 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
+    worldtoscreen: 3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 1, 2, 3, 1
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 8
@@ -271,7 +271,7 @@ nan.exr              :   64 x   64, 3 channel, half openexr
     compression: "zip"
     fovcot: 1
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
@@ -298,7 +298,7 @@ checker-exr.pdq      :  128 x  128, 4 channel, half openexr
     fovcot: 1
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    screenWindowCenter: 0 0
+    screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "Plain Texture"
     wrapmodes: "black,black"

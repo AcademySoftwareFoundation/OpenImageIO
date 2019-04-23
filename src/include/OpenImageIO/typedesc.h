@@ -361,10 +361,10 @@ static constexpr TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::
 
 
 
-/// Return a string containing the data values formatted according
-/// to the type and the optional formatting arguments.
+// DEPRECATED
+OIIO_API
 std::string tostring (TypeDesc type, const void *data,
-                      const char *float_fmt = "%f",         // E.g. "%g"
+                      const char *float_fmt,                // E.g. "%g"
                       const char *string_fmt = "%s",        // E.g. "\"%s\""
                       const char aggregate_delim[2] = "()", // Both sides of vector
                       const char *aggregate_sep = ",",      // E.g. ", "
@@ -389,7 +389,34 @@ template<> struct BaseTypeFromC<half> { static const TypeDesc::BASETYPE value = 
 #endif
 template<> struct BaseTypeFromC<float> { static const TypeDesc::BASETYPE value = TypeDesc::FLOAT; };
 template<> struct BaseTypeFromC<double> { static const TypeDesc::BASETYPE value = TypeDesc::DOUBLE; };
+template<> struct BaseTypeFromC<const char*> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<char*> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<std::string> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<> struct BaseTypeFromC<string_view> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
+class ustring;
+template<> struct BaseTypeFromC<ustring> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<size_t S> struct BaseTypeFromC<char[S]> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
+template<size_t S> struct BaseTypeFromC<const char[S]> { static const TypeDesc::BASETYPE value = TypeDesc::STRING; };
 
+
+/// A template mechanism for getting the TypeDesc from a C type.
+/// The default for simple types is just the TypeDesc based on BaseTypeFromC.
+/// But we can specialize more complex types.
+template<typename T> struct TypeDescFromC { static const constexpr TypeDesc value() { return BaseTypeFromC<T>::value; } };
+template<> struct TypeDescFromC<int> { static const constexpr TypeDesc value() { return TypeDesc::INT; } };
+template<> struct TypeDescFromC<float> { static const constexpr TypeDesc value() { return TypeDesc::FLOAT; } };
+template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+template<size_t S> struct TypeDescFromC<const char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
+#ifdef INCLUDED_IMATHVEC_H
+template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc value() { return TypeVector; } };
+#endif
+#ifdef INCLUDED_IMATHCOLOR_H
+template<> struct TypeDescFromC<Imath::Color3f> { static const constexpr TypeDesc value() { return TypeColor; } };
+#endif
+#ifdef INCLUDED_IMATHMATRIX_H
+template<> struct TypeDescFromC<Imath::M33f> { static const constexpr TypeDesc value() { return TypeMatrix33; } };
+template<> struct TypeDescFromC<Imath::M44f> { static const constexpr TypeDesc value() { return TypeMatrix44; } };
+#endif
 
 
 /// A template mechanism for getting C type of TypeDesc::BASETYPE.
@@ -408,6 +435,71 @@ template<> struct CType<(int)TypeDesc::HALF> { typedef half type; };
 #endif
 template<> struct CType<(int)TypeDesc::FLOAT> { typedef float type; };
 template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
+
+
+
+/// Helper class for tostring() that contains a whole bunch of parameters
+/// that control exactly how all the data types that can be described as
+/// TypeDesc ought to be formatted as a string.
+struct tostring_formatting {
+    // Printf-like formatting specs for int, float, string, pointer data.
+    const char *int_fmt = "%d";
+    const char *float_fmt = "%g";
+    const char *string_fmt = "\"%s\"";
+    const char *ptr_fmt = "%p";
+    // Aggregates are multi-part types, like VEC3, etc. How do we mark the
+    // start, separation between elements, and end?
+    const char *aggregate_begin = "(";
+    const char *aggregate_end = ")";
+    const char *aggregate_sep = ",";
+    // For arrays, how do we mark the start, separation between elements,
+    // and end?
+    const char *array_begin = "{";
+    const char *array_end = "}";
+    const char *array_sep = ",";
+    // Miscellaneous control flags, OR the enum values together.
+    enum Flags { None=0, escape_strings=1, quote_single_string=2 };
+    int flags = escape_strings;
+    // Reserved space for future expansion without breaking the ABI.
+    const char *reserved1 = "";
+    const char *reserved2 = "";
+    const char *reserved3 = "";
+
+    tostring_formatting() = default;
+    tostring_formatting(const char *int_fmt, const char *float_fmt = "%g",
+        const char *string_fmt = "\"%s\"", const char *ptr_fmt = "%p",
+        const char *aggregate_begin = "(", const char *aggregate_end = ")",
+        const char *aggregate_sep = ",", const char *array_begin = "{",
+        const char *array_end = "}", const char *array_sep = ",",
+        int flags = escape_strings);
+};
+
+
+
+/// Return a string containing the data values formatted according
+/// to the type and the optional formatting control arguments.
+OIIO_API std::string
+tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
+
+
+
+/// Given data pointed to by src and described by srctype, copy it to the
+/// memory pointed to by dst and described by dsttype, and return true if a
+/// conversion is possible, false if it is not. If the types are equivalent,
+/// this is a straightforward memory copy. If the types differ, there are
+/// several non-equivalent type conversions that will nonetheless succeed:
+/// * If dsttype is a string (and therefore dst points to a ustring or a
+///   `char*`): it will always succeed, producing a string akin to calling
+///   `tostring()`.
+/// * If dsttype is int32 or uint32: other integer types will do their best
+///   (caveat emptor if you mix signed/unsiged). Also a source string will
+///   convert to int if and only if its characters form a valid integer.
+/// * If dsttype is float: inteegers and other float types will do
+///   their best conversion; strings will convert if and only if their
+///   characters form a valid float number.
+OIIO_API bool
+convert_type (TypeDesc srctype, const void* src,
+              TypeDesc dsttype, void* dst);
 
 
 OIIO_NAMESPACE_END

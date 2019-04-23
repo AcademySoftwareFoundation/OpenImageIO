@@ -2,8 +2,8 @@ Reading out.zfile
 out.zfile            :   64 x   64, 1 channel, float zfile
     SHA-1: 5CFBFC862EC731262ABDDF70D684BAE2E3FC54FC
     channel list: z
-    worldtocamera: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
-    worldtoscreen: 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+    worldtocamera: 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
+    worldtoscreen: 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1
     Stats Min: 0.100000 (float)
     Stats Max: 1.000000 (float)
     Stats Avg: 0.475000 (float)

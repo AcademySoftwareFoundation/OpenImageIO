@@ -454,6 +454,18 @@ public:
                          TypeDesc searchtype=TypeDesc::UNKNOWN,
                          bool casesensitive=false) const;
 
+    /// Search for named attribute, return its type or TypeUnknnown if not
+    /// found.
+    TypeDesc getattributetype (string_view name,
+                               bool casesensitive = false) const;
+
+    /// Retrieve attribute: If found and its data type is reasonably
+    /// convertible to `type`, copy/convert the value into val[...] and
+    /// return true. Otherwise, return false and don't modify what val
+    /// points to.
+    bool getattribute (string_view name, TypeDesc type, void* value,
+                       bool casesensitive = false) const;
+
     /// Simple way to get an integer attribute, with default provided.
     /// Automatically will return an int even if the data is really
     /// unsigned, short, or byte.
@@ -605,6 +617,29 @@ public:
     /// purposefully made.)
     bool undefined () const {
         return nchannels == 0 && format == TypeUnknown;
+    }
+
+    /// Array indexing by string will create a "Delegate" that enables a
+    /// convenient shorthand for adding and retrieving values from the spec:
+    ///
+    /// 1. Assigning to the delegate adds a metadata attribute:
+    ///        ImageSpec spec;
+    ///        spec["compression"] = "zip";
+    ///        spec["PixelAspectRatio"] = 1.0f;
+    ///    Be very careful, the attribute's type will be implied by the C++
+    ///    type of what you assign.
+    ///
+    /// 2. The delegate supports a get<T>() that retrieves an item of type T:
+    ///         std::string colorspace = spec["oiio:ColorSpace"];
+    ///         int dither = spec["oiio:dither"].get<int>();
+    ///
+    AttrDelegate<const ImageSpec> operator[](string_view name) const
+    {
+        return { this, name };
+    }
+    AttrDelegate<ImageSpec> operator[](string_view name)
+    {
+        return { this, name };
     }
 };
 

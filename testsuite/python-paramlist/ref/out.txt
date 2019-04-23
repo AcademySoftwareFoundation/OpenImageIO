@@ -1,0 +1,21 @@
+pl length is 6
+  item i int 1
+  item s string Bob
+  item e float 2.71828174591
+  item j int 42
+  item foo string bar
+  item pi float 3.14159274101
+pl.contains('e') = True
+pl.contains('f') = False
+pl[1] = s string Bob
+pl['e'] = 2.71828174591
+pl['pi'] = 3.14159274101
+pl['foo'] = bar
+after removing 'e', len= 5 pl.contains('e')= False
+after sorting:
+  item foo string bar
+  item i int 1
+  item j int 42
+  item pi float 3.14159274101
+  item s string Bob
+Done.

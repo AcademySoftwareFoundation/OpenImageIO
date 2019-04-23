@@ -535,6 +535,21 @@ value) if not found.
 \end{code}
 \apiend
 
+\apiitem{ImageSpec{\ce [name]}}
+\NEW % 2.1
+Retrieve or set metadata using a dictionary-like syntax, rather than
+{\cf attribute()} and {\cf getattribute()}. This is best illustrated by
+example:
+
+\begin{code}
+    comp = spec["Compression"]
+    # Same as:  comp = spec.getattribute("Compression")
+
+    spec["Compression"] = comp
+    # Same as: spec.attribute("Compression", comp)
+\end{code}
+\apiend
+
 %\apiitem{static ImageSpec.{\ce metadata_val} (paramval, human=False)}
 %For a \ParamValue, format its value as a string.
 %\apiend

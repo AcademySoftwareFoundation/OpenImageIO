@@ -89,6 +89,9 @@ try:
     s.attribute ("foo_vector", oiio.TypeDesc.TypeVector, (1, 0, 11))
     s.attribute ("foo_matrix", oiio.TypeDesc.TypeMatrix,
                  (1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1))
+    s["delfoo_str"] =  "egg"
+    s["delfoo_int"] = 29
+    s["delfoo_float"] = 99.5
     print ("get_int_attribute('foo_int') retrieves", s.get_int_attribute ("foo_int"))
     print ("get_int_attribute('foo_int',21) with default retrieves", s.get_int_attribute ("foo_int", 21))
     print ("get_int_attribute('foo_no',23) retrieves", s.get_int_attribute ("foo_no", 23))
@@ -105,6 +108,9 @@ try:
     print ("getattribute('foo_vector') retrieves", s.getattribute("foo_vector"))
     print ("getattribute('foo_matrix') retrieves", s.getattribute("foo_matrix"))
     print ("getattribute('foo_no') retrieves", s.getattribute("foo_no"))
+    print ("s['delfoo_float'] =", s['delfoo_float'])
+    print ("s['delfoo_int'] =", s['delfoo_int'])
+    print ("s['delfoo_str'] =", s['delfoo_str'])
     print ()
 
     print ("extra_attribs size is", len(s.extra_attribs))

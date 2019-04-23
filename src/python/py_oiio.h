@@ -472,6 +472,60 @@ make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
 }
 
 
+
+inline py::object
+ParamValue_getitem(const ParamValue& self, int n = 0)
+{
+    if (n < 0 || n >= self.nvalues()) {
+        throw std::out_of_range(
+            Strutil::sprintf("ParamValue index out of range %d", n));
+    }
+
+    TypeDesc t = self.type();
+
+#define ParamValue_convert_dispatch(TYPE)                                      \
+case TypeDesc::TYPE:                                                           \
+    return C_to_val_or_tuple((CType<TypeDesc::TYPE>::type*)self.data(), t)
+
+    switch (t.basetype) {
+        // ParamValue_convert_dispatch(UCHAR);
+        // ParamValue_convert_dispatch(CHAR);
+        ParamValue_convert_dispatch(USHORT);
+        ParamValue_convert_dispatch(SHORT);
+        ParamValue_convert_dispatch(UINT);
+        ParamValue_convert_dispatch(INT);
+        // ParamValue_convert_dispatch(ULONGLONG);
+        // ParamValue_convert_dispatch(LONGLONG);
+#ifdef _HALF_H_
+        ParamValue_convert_dispatch(HALF);
+#endif
+        ParamValue_convert_dispatch(FLOAT);
+        ParamValue_convert_dispatch(DOUBLE);
+    case TypeDesc::STRING:
+        return C_to_val_or_tuple((const char**)self.data(), t);
+    default: return py::none();
+    }
+
+#undef ParamValue_convert_dispatch
+}
+
+
+
+template<typename C>
+inline void
+delegate_setitem(C& self, const std::string& key, py::object obj)
+{
+    if (py::isinstance<py::float_>(obj))
+        self[key] = float(obj.template cast<py::float_>());
+    else if (py::isinstance<py::int_>(obj))
+        self[key] = int(obj.template cast<py::int_>());
+    else if (py::isinstance<py::str>(obj))
+        self[key] = std::string(obj.template cast<py::str>());
+    else
+        throw std::invalid_argument("Bad type for __setitem__");
+}
+
+
 }  // namespace PyOpenImageIO
 
 #endif  // PYOPENIMAGEIO_PY_OIIO_H

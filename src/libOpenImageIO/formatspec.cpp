@@ -525,6 +525,31 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
 
 
 
+TypeDesc
+ImageSpec::getattributetype(string_view name, bool casesensitive) const
+{
+    ParamValue pv;
+    auto p = find_attribute(name, pv, TypeUnknown, casesensitive);
+    return p ? p->type() : TypeUnknown;
+}
+
+
+
+bool
+ImageSpec::getattribute(string_view name, TypeDesc type, void* value,
+                        bool casesensitive) const
+{
+    ParamValue pv;
+    auto p = find_attribute(name, pv, TypeUnknown, casesensitive);
+    if (p) {
+        return convert_type(p->type(), p->data(), type, value);
+    } else {
+        return false;
+    }
+}
+
+
+
 int
 ImageSpec::get_int_attribute(string_view name, int defaultval) const
 {
