@@ -1,5 +1,22 @@
-Release 2.0.8 (1 May?, 2019) -- compared to 2.0.7
+Release 2.0.8 (1 May, 2019) -- compared to 2.0.7
 ------------------------------------------------
+* Some minor fixes to JPEG & PNG reading and file error robustness. #2187
+* Fix crash reading certain old nconvert-written TIFF files. #2207
+* Internals: The `OIIO_DISPATCH_COMMON_TYPES2/3` macros used by many
+  ImageBufAlgo functions have been expanded to handle a few more cases
+  "natively" without conversion to/from float. This may make a few cases
+  of odd data type combinations have higher precision. #2203
+* ImageBufAlgo::resize() fixes precision issues for 'double' images. #2211
+* Testing: A new unit test has been backported from master, which tries to
+  perform a series of read/write tests on every file format. In partcular,
+  this tests certain error conditions, like files not existing, or the
+  directory not being writeable, etc. #2181
+* Crashes in the command line utilities now attempt to print a stack trace
+  to aid in debugging (but only if OIIO is built with Boost >= 1.65, because
+  it relies on the Boost stacktrace library). #2229
+* Dev goodies: fmath.h's powwroundup/pow2rounddown have been renamed
+  ceil2/floor2 to reflect future C++ standard. The old names still work, so
+  it's a fully back compatible change. #2199
 
 
 Release 2.0.7 (1 Apr, 2019) -- compared to 2.0.6

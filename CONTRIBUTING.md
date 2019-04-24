@@ -47,7 +47,7 @@ with enough detail that others can reproduce the problem.
 Suspected security vulnerabilities should be reported by the same process.
 
 If confidentiality precludes a public question or issue for any reason, you
-may contact us privately at [info@openimageio.org](info@openimageio.org).
+may contact us privately at [security@openimageio.org](security@openimageio.org).
 
 
 Contributor License Agreement (CLA) and Intellectual Property
