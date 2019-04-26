@@ -31,6 +31,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include <OpenImageIO/export.h>
@@ -185,7 +186,14 @@ public:
         if (t == TypeString) {  // Attrib is a string? Return it.
             s = get<std::string>();
         } else if (t != TypeUnknown) {  // Non-string attrib? Convert.
-            char* buffer = new char[t.size()];
+            const int localsize = 64;   // Small types copy to stack, avoid new
+            char localbuffer[localsize];
+            char* buffer = localbuffer;
+            std::unique_ptr<char[]> allocbuffer;
+            if (t.size() > localsize) {
+                allocbuffer.reset(new char[t.size()]);
+                buffer = allocbuffer.get();
+            }
             if (m_obj->getattribute(m_name, t, buffer))
                 s = tostring(t, buffer);
             else
