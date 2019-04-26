@@ -126,6 +126,7 @@ struct ImageCacheStatistics {
     long long shadow_batches;
     long long environment_queries;
     long long environment_batches;
+    long long imageinfo_queries;
     long long aniso_queries;
     long long aniso_probes;
     float max_aniso;
