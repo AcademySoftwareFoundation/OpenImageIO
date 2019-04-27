@@ -64,7 +64,7 @@ install:
 # before_script:
 
 script:
-    - source src/build-scripts/ci-build-and-test.bash
+    - src/build-scripts/ci-build-and-test.bash
 
 
 

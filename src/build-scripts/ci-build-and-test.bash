@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Important: set -ex causes this whole script to terminate with error if
+# any command in it fails. This is crucial for CI tests.
+set -ex
+
 # This script is run when CI system first starts up.
 # It expects that ci-setenv.bash was run first, so $PLATFORM and $ARCH
 # have been set.
