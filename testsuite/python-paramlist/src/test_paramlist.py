@@ -21,13 +21,16 @@ try:
 
     print ("pl length is", len(pl))
     for p in pl :
-        print ("  item", p.name, p.type, p.value)
+        if type(p.value) == float :
+            print ("  item {} {} {:.6}".format(p.name, p.type, p.value))
+        else :
+            print ("  item {} {} {}".format(p.name, p.type, p.value))
 
     print ("pl.contains('e') =", pl.contains('e'))
     print ("pl.contains('f') =", pl.contains('f'))
     print ("pl[1] =", pl[1].name, pl[1].type, pl[1].value)
-    print ("pl['e'] =", pl['e'])
-    print ("pl['pi'] =", pl['pi'])
+    print ("pl['e'] = {:.6}".format(pl['e']))
+    print ("pl['pi'] = {:.6}".format(pl['pi']))
     print ("pl['foo'] =", pl['foo'])
 
     pl.remove('e')
@@ -36,7 +39,10 @@ try:
     pl.sort()
     print ("after sorting:")
     for p in pl :
-        print ("  item", p.name, p.type, p.value)
+        if type(p.value) == float :
+            print ("  item {} {} {:.6}".format(p.name, p.type, p.value))
+        else :
+            print ("  item {} {} {}".format(p.name, p.type, p.value))
 
     print ("Done.")
 except Exception as detail:
