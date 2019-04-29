@@ -396,7 +396,8 @@ TextureSystemImpl::getstats(int level, bool icstats) const
     std::ostringstream out;
     out.imbue(std::locale::classic());  // Force "C" locale with '.' decimal
     bool anytexture = (stats.texture_queries + stats.texture3d_queries
-                       + stats.shadow_queries + stats.environment_queries);
+                       + stats.shadow_queries + stats.environment_queries
+                       + stats.imageinfo_queries);
     if (level > 0 && anytexture) {
         out << "OpenImageIO Texture statistics\n";
 
@@ -425,6 +426,8 @@ TextureSystemImpl::getstats(int level, bool icstats) const
             << stats.shadow_batches << " batches\n";
         out << "    environment :  " << stats.environment_queries
             << " queries in " << stats.environment_batches << " batches\n";
+        out << "    gettextureinfo :  " << stats.imageinfo_queries
+            << " queries\n";
         out << "  Interpolations :\n";
         out << "    closest  : " << stats.closest_interps << "\n";
         out << "    bilinear : " << stats.bilinear_interps << "\n";

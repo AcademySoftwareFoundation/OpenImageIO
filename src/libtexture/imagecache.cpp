@@ -175,6 +175,7 @@ ImageCacheStatistics::init()
     shadow_batches      = 0;
     environment_queries = 0;
     environment_batches = 0;
+    imageinfo_queries   = 0;
     aniso_queries       = 0;
     aniso_probes        = 0;
     max_aniso           = 1;
@@ -220,6 +221,7 @@ ImageCacheStatistics::merge(const ImageCacheStatistics& s)
     shadow_batches += s.shadow_batches;
     environment_queries += s.environment_queries;
     environment_batches += s.environment_batches;
+    imageinfo_queries += s.imageinfo_queries;
     aniso_queries += s.aniso_queries;
     aniso_probes += s.aniso_probes;
     max_aniso = std::max(max_aniso, s.max_aniso);
@@ -2299,6 +2301,15 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
         ATTR_DECODE("stat:tile_locking_time", float, stats.tile_locking_time);
         ATTR_DECODE("stat:find_file_time", float, stats.find_file_time);
         ATTR_DECODE("stat:find_tile_time", float, stats.find_tile_time);
+        ATTR_DECODE("stat:texture_queries", long long, stats.texture_queries);
+        ATTR_DECODE("stat:texture3d_queries", long long,
+                    stats.texture3d_queries);
+        ATTR_DECODE("stat:environment_queries", long long,
+                    stats.environment_queries);
+        ATTR_DECODE("stat:getimageinfo_queries", long long,
+                    stats.imageinfo_queries);
+        ATTR_DECODE("stat:gettextureinfo_queries", long long,
+                    stats.imageinfo_queries);
     }
 
     return false;
@@ -2544,6 +2555,8 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
         return true;                                                           \
     }
 
+    ImageCacheStatistics& stats(thread_info->m_stats);
+    ++stats.imageinfo_queries;
     file = verify_file(file, thread_info, true);
     if (dataname == s_exists && datatype == TypeInt) {
         // Just check for existence.  Need to do this before the invalid
