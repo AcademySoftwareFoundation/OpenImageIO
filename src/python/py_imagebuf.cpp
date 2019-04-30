@@ -268,15 +268,6 @@ declare_imagebuf(py::module& m)
                 return self.write(filename, dtype, fileformat);
             },
             "filename"_a, "dtype"_a = TypeUnknown, "fileformat"_a = "")
-        // deprecated version:
-        .def(
-            "write",
-            [](ImageBuf& self, const std::string& filename,
-               const std::string& fileformat) {
-                py::gil_scoped_release gil;
-                return self.write(filename, fileformat);
-            },
-            "filename"_a, "fileformat"_a)
         .def(
             "make_writeable",
             [](ImageBuf& self, bool keep_cache_type) {
