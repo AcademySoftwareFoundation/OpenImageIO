@@ -661,6 +661,7 @@ public:
             // Read the inputs
             for (int i = 1; i < nimages(); ++i)
                 ot.read(ir[i]);
+            subimages = compute_subimages();
             // Initialize the output image
             ir[0].reset(new ImageRec(opname(), subimages));
             ot.push(ir[0]);
