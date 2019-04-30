@@ -2555,6 +2555,8 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
         return true;                                                           \
     }
 
+    if (!thread_info)
+        thread_info = get_perthread_info();
     ImageCacheStatistics& stats(thread_info->m_stats);
     ++stats.imageinfo_queries;
     file = verify_file(file, thread_info, true);
