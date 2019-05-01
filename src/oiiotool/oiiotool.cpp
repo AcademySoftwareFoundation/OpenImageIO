@@ -5315,6 +5315,17 @@ do_echo(int argc, const char* argv[])
 
 
 
+static int
+crash_me(int argc, const char* argv[])
+{
+    size_t a   = 37;
+    char* addr = (char*)a;
+    *addr      = 0;  // This should crash
+    return 0;
+}
+
+
+
 // Concatenate the command line into one string, optionally filtering out
 // verbose attribute commands. Escape control chars in the arguments, and
 // double-quote any that contain spaces.
@@ -5620,6 +5631,7 @@ getargs(int argc, char* argv[])
                 "--native %@", set_native, &ot.nativeread, "Keep native pixel data type (bypass cache if necessary)",
                 "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
                 "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
+                "--crash %@", crash_me, nullptr, "", // hidden option
                 "<SEPARATOR>", "Commands that read images:",
                 "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=, printinfo=, autocc=, type=, ch=)",
                 "--iconfig %@ %s %s", set_input_attribute, NULL, NULL, "Sets input config attribute (name, value) (options: type=...)",
