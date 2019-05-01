@@ -1,3 +1,7 @@
+Release 2.0.9 (1 Jun?, 2019) -- compared to 2.0.8
+------------------------------------------------
+
+
 Release 2.0.8 (3 May, 2019) -- compared to 2.0.7
 ------------------------------------------------
 * Fix Windows broken read of JPEG & PNG in some circumstances. #2231
@@ -18,7 +22,6 @@ Release 2.0.8 (3 May, 2019) -- compared to 2.0.7
 * Dev goodies: fmath.h's powwroundup/pow2rounddown have been renamed
   ceil2/floor2 to reflect future C++ standard. The old names still work, so
   it's a fully back compatible change. #2199
-
 
 Release 2.0.7 (1 Apr, 2019) -- compared to 2.0.6
 ------------------------------------------------
