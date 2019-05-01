@@ -5,7 +5,7 @@ New minimum dependencies:
 Major new features and improvements:
 * Support for HEIC/HEIF images. HEIC is the still-image sibling of HEVC
   (a.k.a. H.265), and compresses to about half the size of JPEG but with
-  higher visual quality. (2.1.0)
+  higher visual quality. #2160 #2188 (2.1.0)
 
 Public API changes:
 * Python: define `__version__` for the module. #2096 (2.1.0/2.0.4)
@@ -39,6 +39,19 @@ Public API changes:
   supposed to make it more clear which one to use to match Nuke, which uses
   a different nomenclature (our "3" is radius, their "6" is full width).
   #2136 (2.1.0/2.0.5)
+* ImageSpec new methods `getattribute()` and `getattributetype()`. #2204
+  (2.1.1)
+* ImageSpec and ParamValueList now support operator `["name"]` as a way
+  to set and retrieve attributes. For example,
+      myimagespec["compression"] = "zip";
+      myimagespec["PixelAspectRatio"] = 1.0f;
+      int dither = myimagespec["oiio:dither"].get<int>();
+      std::string cs = myimagespec["colorspace"];
+  See the documentation about "Attribute Delegates" for more information,
+  or the new header `attrdelegate.h`. #2204 (2.1.1)
+* New helper functions in `typedesc.h`: `tostring()` converts nearly any
+  TypeDesc-described data to a readable string, `convert_type()` does data
+  type conversions as instructed by TypeDesc's. #2204 (2.1.1)
 
 Performance improvements:
 
@@ -55,6 +68,15 @@ Fixes and feature enhancements:
     - `-o:all=1` (which outputs all subimages to separate files) fixed a
       crash that would occur if any of the subimages were 0x0 (it could
       happen; now it just skips outputting those subimages). #2171 (2.1.0)
+    - Improved support of files with multiple subimages: Several commands
+      honored `-a` but did not respect individual `allsubimages=` modifiers
+      (--sattrib, --attrib, --caption, --clear-keywords, --iscolorspace,
+      --orientation, --clamp, -fixnan); Several commands always worked on all
+      subimages, but now properly respect `-a` and `allsubimages=` (--origin,
+      --fullpixels, --croptofull, --trim); Several commands were totally
+      unaware of subimages, but now are so and respect `-a` and
+      `allsubimages=` (--crop, --fullsize, --zover, --fill, --resize,
+      --resample). #2202 #2219 (2.1.1)
 * ImageBuf/ImageBufAlgo:
     - `IBA::channel_append()` previously always forced its result to be float,
       if it wasn't previously initialized. Now it uses the uaual type-merging
@@ -65,6 +87,14 @@ Fixes and feature enhancements:
       #2125 (2.1.0/2.0.5)
     - Improve numerical precision of the unpremult/premult part of certain
       color transformations. #2164 (2.1.0)
+    - `ImageBuf::read()` now properly forwards the "progress" parameters
+      to any underlying call to `read_image`. #2196 (2.1.1)
+    - The `OIIO_DISPATCH_COMMON_TYPES2/3` macros used internally by many IBA
+      functions have been expanded to handle a few more cases "natively"
+      without conversion to/from float. This may make a few cases of odd
+      data type combinations have higher precision. #2203 (2.0.8/2.1.1)
+    - IBA `resize()` fix precision issues for 'double' images. #2211
+      (2.0.8/2.1.1)
 * ImageInput read_image/scanline/tile fixed subtle bugs for certain
   combination of strides and channel subset reads. #2108 (2.1.0/2.0.4)
 * ImageCache / TextureSystem / maketx:
@@ -80,19 +110,38 @@ Fixes and feature enhancements:
       they are repeats of earlier commands. #2140 (2.1.0/2.05)
     - Fix possible maketx crash on Windows due to a stack overflow within
       MSVS's implementation of std::regex_replace! #2173 (2.1.0/2.0.6)
+    - TS: New attribute "max_mip_res" limits filtered texture access to MIP
+      levels that are no higher than this resolution in any dimension. The
+      default is 1<<30, meaning no effective limit. #2174 (2.1.1)
+    - Stats now count the number of `TS::get_texture_info/IC::get_image_info`
+      calls, like it did before for texture, etc. #2223 (2.1.1)
 * iv viewer:
     - Image info window now sorts the metadata, in the same manner as
       `iinfo -v` or `oiiotool -info -v`. #2159 (2.1.0/2.0.5)
 * DPX:
     - Now recognizes the new transfer/colorimetric code for ADX. #2119
       (2.1.0/2.0.4)
+    - Fix potential crash when file open fails. #2186 (2.0.7/2.1.1)
+* FITS:
+    - Fix 16 and 32 bit int pixels which FITS spec says are signed, but we
+      were treating as unsigned. #2178 (2.1.0)
+* JPEG:
+    - Read-from-memory is now supported via IOProxy use. #2180. (2.1.1)
+* JPEG-2000:
+    - Disable JPEG-2000 support for the (rare) combination of an older
+      OpenJPEG 1.x and EMBEDPLUGINS=0 mode, which was buggy. The solution if
+      you really need EMBEDPLUGINS and JPEG-2000 support is to please use
+      OpenJPEG >= 2.0. #2183. (2.0.7/2.1.1)
 * OpenEXR:
     - Avoid some OpenEXR/libIlmImf internal errors with DWA compression by
       switching to zip for single channel images with certain small tile
       sizes. #2147 (2.1.0/2.0.5)
+    - Suppress empty string subimage name (fixes a problem with certain
+      V-Ray written multi-part exr images). #2190 (2.1.1/2.0.7)
 * PNG:
-    - More carefu catching and reporting errors and corrupt PNG files.
+    - More careful catching and reporting errors and corrupt PNG files.
       #2167 (2.1.0/2.0.6)
+    - IOProxy reading is now supported. #2180. (2.1.1)
 * PSD:
     - When reading PSD files with multiple PhotoShop "layers", properly set
       ImageSpec x, y to the image plane offset (upper left corner) of the
@@ -111,11 +160,18 @@ Fixes and feature enhancements:
     - More careful check and error reporting when user tries to request
       writing to a TIFF file mixed channel data types (which is not supported
       by the underlying libtiff). #2112 (2.1.0/2.0.5)
+    - Fix crash reading certain old nconvert-written TIFF files.
+      #2207 (2.0.8/2.1.1)
 * WebP: fix bug that gave totally incorrect image read for webp images that
   had a smaller width than height. #2120 (2.1.0/2.0.4)
 * Fix potential threadpool deadlock issue that could happen if you were
   (among possibly other things?) simultaneously calling make_texture from
   multiple application threads. #2132 (2.1.0/2.0.4)
+* ImageInput/ImageOutput `create()` now properly lets you specify the type
+  for reader/writer from the format name itself (versus just the extension,
+  for example "openexr" versus "exr"). #2185 (2.1.1)
+* Make all the various "could not open" messages across the writers use the
+  same phrasing. #2189 (2.1.1)
 
 Build/test system improvements and platform ports:
 * Deprecate "missingmath.h". What little of it is still needed (it mostly
@@ -136,8 +192,27 @@ Build/test system improvements and platform ports:
   the default value of the CMake variable `PYTHON_VERSION`. #2161 (2.0.5/2.1.0)
 * On non-Windows systems, the build now generates a PkgConfig file, installed
   at `CMAKE_INSTALL_PREFIX/lib/pkgconfig/OpenImageIO.pc`. #2158 (2.0.5/2.1.0)
+* A new unit test has been backported from master, which tries to perform a
+  series of read/write tests on every file format. In partcular, this tests
+  certain error conditions, like files not existing, or the directory not
+  being writeable, etc. #2181, #2189 (2.0.8/2.1.1)
+* Support for CI tests on CircleCI. #2194 (2.1.1)
+* New build-time flag `USE_WEBP=0` can be used to disable building WebP
+  format support even on platforms where webp libraries are found.
+  #2200 (2.1.1)
+* Fix compiler warnings on Windows. #2209 #2213 #2214
+* Crashes in the command line utilities now attempt to print a stack trace
+  to aid in debugging (but only if OIIO is built with Boost >= 1.65, because
+  it relies on the Boost stacktrace library). #2229 (2.0.8/2.1.1)
 
 Developer goodies / internals:
+* argparse.h:
+    - Add unit tests. #2192 (2.1.1)
+    - Add "%1" which is like "%*" but its list receives only arguments that
+      come *before* any other dash-led arguments. #2192 (2.1.1)
+* attrdelegate.h:
+    - New header implements "attribute delegates." (Read header for details)
+      #2204 (2.1.1)
 * `string_view` now adds an optional `pos` parameter to the `find_first_of`
   / `find_last_of` family of methods. #2114 (2.1.0/2.0.4)
 * strutil.h:
@@ -148,6 +223,9 @@ Developer goodies / internals:
 * fmath.h:
     - `safe_mod()` does integer modulus but protects against mod-by-zero
       exceptions. #2121 (2.1.0/2.0.5)
+    - powwroundup/pow2rounddown have been renamed ceil2/floor2 to reflect
+      future C++20 standard. The old names still work, so it's a fully back
+      compatible change. #2199 (2.0.8/2.1.1)
 * platform.h:
     - New `OIIO_RETURNS_NONNULL` macro implements an attribute that marks
       a function that returns a pointer as guaranteeing that it's never
@@ -156,12 +234,66 @@ Developer goodies / internals:
     - Added vec4 * matrix44 multiplication. #2165 (2.1.0/2.0.6)
 * strutil.h:
     - Added `excise_string_after_head()`. #2173 (2.1.0/2.0.6)
+* sysutil.h:
+    - Added `stacktrace()` and `setup_crash_stacktrace()`. (Only functional
+      if OIIO is built with Boost >= 1.65, because it relies on the Boost
+      stacktrace library). #2229 (2.0.8/2.1.1)
+
 * Wide use of declaring methods `noexcept` when we want to promise that
   they won't throw exceptions. #2156 (2.1.0)
 
 Notable documentation changes:
 
 
+
+Release 2.0.8 (1 May, 2019) -- compared to 2.0.7
+------------------------------------------------
+* Some minor fixes to JPEG & PNG reading and file error robustness. #2187
+* Fix crash reading certain old nconvert-written TIFF files. #2207
+* Internals: The `OIIO_DISPATCH_COMMON_TYPES2/3` macros used by many
+  ImageBufAlgo functions have been expanded to handle a few more cases
+  "natively" without conversion to/from float. This may make a few cases
+  of odd data type combinations have higher precision. #2203
+* ImageBufAlgo::resize() fixes precision issues for 'double' images. #2211
+* Testing: A new unit test has been backported from master, which tries to
+  perform a series of read/write tests on every file format. In partcular,
+  this tests certain error conditions, like files not existing, or the
+  directory not being writeable, etc. #2181
+* Crashes in the command line utilities now attempt to print a stack trace
+  to aid in debugging (but only if OIIO is built with Boost >= 1.65, because
+  it relies on the Boost stacktrace library). #2229
+* Dev goodies: fmath.h's powwroundup/pow2rounddown have been renamed
+  ceil2/floor2 to reflect future C++ standard. The old names still work, so
+  it's a fully back compatible change. #2199
+
+Release 2.0.7 (1 Apr, 2019) -- compared to 2.0.6
+------------------------------------------------
+* DPX: fix potential crash when file open fails. #2186
+* EXR: Suppress empty string for subimage name (fixes a problem when reading
+  files written by V-Ray). #2190
+* Disable JPEG-2000 support for the (rare) combination of an older OpenJPEG
+  1.x and EMBEDPLUGINS=0 mode, which was buggy. The solution if you really
+  need EMBEDPLUGINS and JPEG-2000 support is to please use OpenJPEG >= 2.0.
+  #2183.
+* New build flag `USE_WEBP=0` can be set to 0 to force disabled support of
+  WebP even when the webp package is found. #2200
+* Bug fix: `ImageInput::create(name)` and `ImageOutput::create(name)` worked
+  if `name` was a filename (such as `foo.exr`), or the extension (such as
+  `exr`), but previously did not work if it was the name of the format
+  (such as `openexr`), despite having been documented as working in that
+  case. #2185
+
+Release 2.0.6 (1 Mar, 2019) -- compared to 2.0.5
+------------------------------------------------
+* PNG: more careful catching of errors and corrupt png files. #2167
+* PSD: read now properly extracts layer/subimage name and data window offset
+  coordinates. #2170
+* ImageBuf: Fix bug in propagating unassociated alpha behavior request. #2172
+* `oiiotool -o:all=1` fix crash when outputting 0x0 subimages. #2171
+* Developer goodies: simd.h ops for vec4 * mat44 multiplication. #2165
+* Developer goodies: `Strutil::excise_string_after_head()` #2173
+* Fix crashes on Windows from certain regex replacement happening as part
+  of MakeTexture (internally avoid MSVS implementation of std::regex). #2173
 
 Release 2.0.5 (1 Feb, 2019) -- compared to 2.0.4
 ------------------------------------------------

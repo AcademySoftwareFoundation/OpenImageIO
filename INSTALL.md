@@ -26,9 +26,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Required dependencies -- OIIO will not build at all without these
 
  * C++11 (also builds with C++14 and C++17)
- * Compilers: gcc 4.8.2 - 8.2, clang 3.3 - 7.0, **MSVS 2015 - 2017**,
+ * Compilers: gcc 4.8.2 - 8.2, clang 3.3 - 7.0, **MSVS 2015 - 2019**,
    icc version 13 or higher
- * Boost >= 1.53 (tested up through 1.68)
+ * Boost >= 1.53 (tested up through 1.70)
  * CMake >= 3.2.2 (tested up through 3.12)
  * OpenEXR >= 2.0 (recommended: 2.2 or 2.3)
  * libTIFF >= 3.9 (recommended: 4.0+)
@@ -48,7 +48,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 2.6 (tested through 4.1)
  * If you want support for jpeg 2000 images:
-     * OpenJpeg >= 1.5 (tested through 2.3; version 1.5 is strongly discouraged)
+     * OpenJpeg >= 1.5 (tested through 2.3; version 2.0+ is strongly recommended)
  * If you want support for Field3D files:
      * Field3D
  * If you want support for OpenVDB files:

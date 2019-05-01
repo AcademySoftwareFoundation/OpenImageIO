@@ -123,8 +123,9 @@ certain is a legit problem in the code, and for which you can give clear
 instructions for how to reproduce, should be [reported as
 issues](https://github.com/OpenImageIO/oiio/issues).
 
-If confidentiality precludes a public question or issue, you may contact
-us privately at [info@openimageio.org](info@openimageio.org).
+If confidentiality precludes a public question or issue, you may contact us
+privately at [info@openimageio.org](info@openimageio.org), or for
+security-related issues [security@openimageio.org](security@openimageio.org).
 
 
 Contributing
