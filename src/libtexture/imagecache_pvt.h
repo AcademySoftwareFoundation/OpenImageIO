@@ -40,7 +40,6 @@
 
 #include <boost/container/flat_map.hpp>
 #include <boost/thread/tss.hpp>
-#include <boost/version.hpp>
 
 #include <OpenEXR/half.h>
 

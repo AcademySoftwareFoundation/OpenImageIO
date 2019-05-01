@@ -37,8 +37,6 @@
 #include <memory>
 #include <sstream>
 
-#include <boost/version.hpp>
-
 #include <OpenEXR/ImathMatrix.h>
 #include <OpenEXR/half.h>
 

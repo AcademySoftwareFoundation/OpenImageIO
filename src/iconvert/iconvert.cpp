@@ -505,6 +505,10 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
 int
 main(int argc, char* argv[])
 {
+    // Helpful for debugging to make sure that any crashes dump a stack
+    // trace.
+    Sysutil::setup_crash_stacktrace("stdout");
+
     Filesystem::convert_native_arguments(argc, (const char**)argv);
     getargs(argc, argv);
 

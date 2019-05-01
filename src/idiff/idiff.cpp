@@ -45,6 +45,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/sysutil.h>
 
 
 using namespace OIIO;
@@ -195,6 +196,10 @@ print_subimage(ImageBuf& img0, int subimage, int miplevel)
 int
 main(int argc, char* argv[])
 {
+    // Helpful for debugging to make sure that any crashes dump a stack
+    // trace.
+    Sysutil::setup_crash_stacktrace("stdout");
+
     Filesystem::convert_native_arguments(argc, (const char**)argv);
     getargs(argc, argv);
 

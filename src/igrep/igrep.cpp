@@ -41,6 +41,7 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 
 #ifdef USE_BOOST_REGEX
 #    include <boost/regex.hpp>
@@ -162,6 +163,10 @@ parse_files(int argc, const char* argv[])
 int
 main(int argc, const char* argv[])
 {
+    // Helpful for debugging to make sure that any crashes dump a stack
+    // trace.
+    Sysutil::setup_crash_stacktrace("stdout");
+
     Filesystem::convert_native_arguments(argc, argv);
     ArgParse ap;
     // clang-format off

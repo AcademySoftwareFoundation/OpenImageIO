@@ -51,6 +51,10 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 
+// Allow client software to know if this version has Sysutil::stacktrace().
+#define OIIO_HAS_STACKTRACE 1
+
+
 
 OIIO_NAMESPACE_BEGIN
 
@@ -115,6 +119,19 @@ physical_concurrency();
 /// Get the maximum number of open file handles allowed on this system.
 OIIO_API size_t
 max_open_files();
+
+/// Return a string containing a readable stack trace from the point where
+/// it was called. Return an empty string if not supported on this platform.
+OIIO_API std::string
+stacktrace();
+
+/// Turn on automatic stacktrace dump to the named file if the program
+/// crashes. Return true if this is properly set up, false if it is not
+/// possible on this platform. The name may be "stdout" or "stderr" to
+/// merely print the trace to stdout or stderr, respectively. If the name
+/// is "", it will disable the auto-stacktrace printing.
+OIIO_API bool
+setup_crash_stacktrace(string_view filename);
 
 /// Try to figure out how many columns wide the terminal window is. May not
 /// be correct on all systems, will default to 80 if it can't figure it out.

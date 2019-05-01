@@ -47,6 +47,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/timer.h>
 
@@ -464,6 +465,10 @@ int
 main(int argc, char* argv[])
 {
     Timer alltimer;
+
+    // Helpful for debugging to make sure that any crashes dump a stack
+    // trace.
+    Sysutil::setup_crash_stacktrace("stdout");
 
     // Globally force classic "C" locale, and turn off all formatting
     // internationalization, for the entire maketx application.
