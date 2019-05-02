@@ -1499,8 +1499,8 @@ OpenEXROutput::write_tiles(int xbegin, int xend, int ybegin, int yend,
     int nytiles = (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height;
 
     std::vector<char> padded;
-    int width           = nxtiles * m_spec.tile_width;
-    int height          = nytiles * m_spec.tile_height;
+    stride_t width      = nxtiles * m_spec.tile_width;
+    stride_t height     = nytiles * m_spec.tile_height;
     stride_t widthbytes = width * pixelbytes;
     if (width != (xend - xbegin) || height != (yend - ybegin)) {
         // If the image region is not an even multiple of the tile size,

@@ -123,7 +123,7 @@ bool dpx::RunLengthEncoding::Read(const Header &dpxHeader, ElementReadStream *fd
 
 
 		// size of the image
-		const size_t imageSize = width * height * numberOfComponents;
+		const size_t imageSize = size_t(width) * size_t(height) * numberOfComponents;
 		const size_t imageByteSize = imageSize * byteCount;
 		
 		// allocate the buffer that will store the entire image
