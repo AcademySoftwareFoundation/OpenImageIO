@@ -420,6 +420,7 @@ protected:
     FILE* m_file      = nullptr;
     size_t m_size     = 0;
     bool m_auto_close = false;
+    std::mutex m_mutex;
 };
 
 
