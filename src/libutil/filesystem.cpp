@@ -988,16 +988,12 @@ Filesystem::IOFile::pread(void* buf, size_t size, int64_t offset)
     if (!m_file || !size || offset < 0 || m_mode != Read)
         return 0;
 #ifdef _WIN32
-    // See MSDN ReadFile docs:
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365467(v=vs.85).aspx
-    HANDLE h = HANDLE(_get_osfhandle(_fileno(m_file)));
-    OVERLAPPED overlapped;
-    memset(&overlapped, 0, sizeof(overlapped));
-    overlapped.Offset     = DWORD(offset);
-    overlapped.OffsetHigh = DWORD(offset >> 32);
-    DWORD bytesread       = 0;
-    return ReadFile(h, buf, DWORD(size), &bytesread, &overlapped) ? bytesread
-                                                                  : 0;
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto origpos = tell();
+    seek(offset);
+    size_t r = read(buf, size);
+    seek(origpos);
+    return r;
 #else /* Non-Windows: assume POSIX pread is available */
     int fd = fileno(m_file);
     return ::pread(fd, buf, size, offset);
@@ -1022,17 +1018,12 @@ Filesystem::IOFile::pwrite(const void* buf, size_t size, int64_t offset)
     if (!m_file || !size || offset < 0 || m_mode != Write)
         return 0;
 #ifdef _WIN32
-    // See MSDN WriteFile docs:
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa365747(v=vs.85).aspx
-    HANDLE h = HANDLE(_get_osfhandle(_fileno(m_file)));
-    OVERLAPPED overlapped;
-    memset(&overlapped, 0, sizeof(overlapped));
-    overlapped.Offset     = DWORD(offset);
-    overlapped.OffsetHigh = DWORD(offset >> 32);
-    DWORD byteswritten    = 0;
-    size_t r = WriteFile(h, buf, DWORD(size), &byteswritten, &overlapped)
-                   ? byteswritten
-                   : 0;
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto origpos = tell();
+    seek(offset);
+    size_t r = write(buf, size);
+    seek(origpos);
+    return r;
 #else /* Non-Windows: assume POSIX pwrite is available */
     int fd   = fileno(m_file);
     size_t r = ::pwrite(fd, buf, size, offset);

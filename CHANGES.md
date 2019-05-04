@@ -1,5 +1,6 @@
-Release 2.0.8 (1 May, 2019) -- compared to 2.0.7
+Release 2.0.8 (3 May, 2019) -- compared to 2.0.7
 ------------------------------------------------
+* Fix Windows broken read of JPEG & PNG in some circumstances. #2231
 * Some minor fixes to JPEG & PNG reading and file error robustness. #2187
 * Fix crash reading certain old nconvert-written TIFF files. #2207
 * Internals: The `OIIO_DISPATCH_COMMON_TYPES2/3` macros used by many
