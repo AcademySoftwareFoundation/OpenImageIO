@@ -33,6 +33,11 @@ if (VISIBILITY_COMMAND)
                            LINK_FLAGS "${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}")
 endif ()
 
+if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 9.0)
+    set_source_files_properties (SHA1.cpp
+                                 PROPERTIES COMPILE_FLAGS -Wno-error=stringop-truncation)
+endif ()
+
 # For consistency with the linux SpComp2s, create Mac OS X SpComp2s
 # with a .so suffix instead of a .dylib suffix.
 if (DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
