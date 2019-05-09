@@ -260,33 +260,33 @@ public:
 
     /// Constructor: given just the data format, set all other fields to
     /// something reasonable.
-    ImageSpec (TypeDesc format = TypeDesc::UNKNOWN);
+    ImageSpec (TypeDesc format = TypeDesc::UNKNOWN) noexcept;
 
     /// Constructor for simple 2D scanline image with nothing special.
     /// If fmt is not supplied, default to unsigned 8-bit data.
-    ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeDesc::UINT8);
+    ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeUInt8) noexcept;
 
     /// Constructor from an ROI that gives x, y, z, and channel range, and
     /// a data format.
-    explicit ImageSpec (const ROI &roi, TypeDesc fmt = TypeDesc::UINT8);
+    explicit ImageSpec (const ROI &roi, TypeDesc fmt = TypeUInt8) noexcept;
 
     /// Set the data format.
-    void set_format (TypeDesc fmt);
+    void set_format (TypeDesc fmt) noexcept;
 
     /// Set the channelnames to reasonable defaults ("R", "G", "B", "A"),
     /// and alpha_channel, based on the number of channels.
-    void default_channel_names ();
+    void default_channel_names () noexcept;
 
     /// Return the number of bytes for each channel datum, assuming they
     /// are all stored using the data format given by this->format.
-    size_t channel_bytes() const { return format.size(); }
+    size_t channel_bytes() const noexcept { return format.size(); }
 
     /// Return the number of bytes needed for the single specified
     /// channel.  If native is false (default), compute the size of one
     /// channel of this->format, but if native is true, compute the size
     /// of the channel in terms of the "native" data format of that
     /// channel as stored in the file.
-    size_t channel_bytes (int chan, bool native=false) const;
+    size_t channel_bytes (int chan, bool native=false) const noexcept;
 
     /// Return the number of bytes for each pixel (counting all channels).
     /// If native is false (default), assume all channels are in 
@@ -295,7 +295,7 @@ public:
     /// the case of per-channel formats).
     /// This will return std::numeric_limits<size_t>::max() in the
     /// event of an overflow where it's not representable in a size_t.
-    size_t pixel_bytes (bool native=false) const;
+    size_t pixel_bytes (bool native=false) const noexcept;
 
     /// Return the number of bytes for just the subset of channels in
     /// each pixel described by [chbegin,chend).
@@ -305,7 +305,7 @@ public:
     /// the case of per-channel formats).
     /// This will return std::numeric_limits<size_t>::max() in the
     /// event of an overflow where it's not representable in a size_t.
-    size_t pixel_bytes (int chbegin, int chend, bool native=false) const;
+    size_t pixel_bytes (int chbegin, int chend, bool native=false) const noexcept;
 
     /// Return the number of bytes for each scanline.  This will return
     /// std::numeric_limits<imagesize_t>::max() in the event of an
@@ -314,12 +314,12 @@ public:
     /// this->format, but if native is true, compute the size of a pixel
     /// in the "native" data format of the file (these may differ in
     /// the case of per-channel formats).
-    imagesize_t scanline_bytes (bool native=false) const;
+    imagesize_t scanline_bytes (bool native=false) const noexcept;
 
     /// Return the number of pixels for a tile.  This will return
     /// std::numeric_limits<imagesize_t>::max() in the event of an
     /// overflow where it's not representable in an imagesize_t.
-    imagesize_t tile_pixels () const;
+    imagesize_t tile_pixels () const noexcept;
 
     /// Return the number of bytes for each a tile of the image.  This
     /// will return std::numeric_limits<imagesize_t>::max() in the event
@@ -328,12 +328,12 @@ public:
     /// this->format, but if native is true, compute the size of a pixel
     /// in the "native" data format of the file (these may differ in
     /// the case of per-channel formats).
-    imagesize_t tile_bytes (bool native=false) const;
+    imagesize_t tile_bytes (bool native=false) const noexcept;
 
     /// Return the number of pixels for an entire image.  This will
     /// return std::numeric_limits<imagesize_t>::max() in the event of
     /// an overflow where it's not representable in an imagesize_t.
-    imagesize_t image_pixels () const;
+    imagesize_t image_pixels () const noexcept;
 
     /// Return the number of bytes for an entire image.  This will
     /// return std::numeric_limits<image size_t>::max() in the event of
@@ -342,14 +342,14 @@ public:
     /// this->format, but if native is true, compute the size of a pixel
     /// in the "native" data format of the file (these may differ in
     /// the case of per-channel formats).
-    imagesize_t image_bytes (bool native=false) const;
+    imagesize_t image_bytes (bool native=false) const noexcept;
 
     /// Verify that on this platform, a size_t is big enough to hold the
     /// number of bytes (and pixels) in a scanline, a tile, and the
     /// whole image.  If this returns false, the image is much too big
     /// to allocate and read all at once, so client apps beware and check
     /// these routines for overflows!
-    bool size_t_safe() const {
+    bool size_t_safe() const noexcept {
         const imagesize_t big = std::numeric_limits<size_t>::max();
         return image_bytes() < big && scanline_bytes() < big &&
             tile_bytes() < big;
@@ -360,7 +360,7 @@ public:
     /// width, height.
     static void auto_stride (stride_t &xstride, stride_t &ystride,
                              stride_t &zstride, stride_t channelsize,
-                             int nchannels, int width, int height) {
+                             int nchannels, int width, int height) noexcept {
         if (xstride == AutoStride)
             xstride = nchannels * channelsize;
         if (ystride == AutoStride)
@@ -374,14 +374,14 @@ public:
     /// width, height.
     static void auto_stride (stride_t &xstride, stride_t &ystride,
                              stride_t &zstride, TypeDesc format,
-                             int nchannels, int width, int height) {
+                             int nchannels, int width, int height) noexcept {
         auto_stride (xstride, ystride, zstride, format.size(),
                      nchannels, width, height);
     }
 
     /// Adjust xstride, if set to AutoStride, to be the right size for
     /// contiguous data with the given format and channels.
-    static void auto_stride (stride_t &xstride, TypeDesc format, int nchannels) {
+    static void auto_stride (stride_t &xstride, TypeDesc format, int nchannels) noexcept {
         if (xstride == AutoStride)
             xstride = nchannels * format.size();
     }
@@ -512,7 +512,7 @@ public:
     /// a set of tiles.  Also returns false if the spec indicates that the
     /// image isn't tiled at all.
     bool valid_tile_range (int xbegin, int xend, int ybegin, int yend,
-                           int zbegin, int zend) {
+                           int zbegin, int zend) noexcept {
         return (tile_width &&
                 ((xbegin-x) % tile_width)  == 0 &&
                 ((ybegin-y) % tile_height) == 0 &&
@@ -550,12 +550,12 @@ public:
     int channelindex (string_view name) const;
 
     /// Return pixel data window for this ImageSpec as a ROI.
-    ROI roi () const {
+    ROI roi () const noexcept {
         return ROI (x, x+width, y, y+height, z, z+depth, 0, nchannels);
     }
 
     /// Return full/display window for this ImageSpec as a ROI.
-    ROI roi_full () const {
+    ROI roi_full () const noexcept {
         return ROI (full_x, full_x+full_width, full_y, full_y+full_height,
                     full_z, full_z+full_depth, 0, nchannels);
     }
@@ -563,7 +563,7 @@ public:
     /// Set pixel data window parameters (x, y, z, width, height, depth)
     /// for this ImageSpec from an ROI.
     /// Does NOT change the channels of the spec, regardless of r.
-    void set_roi (const ROI &r) {
+    void set_roi (const ROI &r) noexcept {
         x = r.xbegin;
         y = r.ybegin;
         z = r.zbegin;
@@ -575,7 +575,7 @@ public:
     /// Set full/display window parameters (full_x, full_y, full_z,
     /// full_width, full_height, full_depth) for this ImageSpec from an ROI.
     /// Does NOT change the channels of the spec, regardless of r.
-    void set_roi_full (const ROI &r) {
+    void set_roi_full (const ROI &r) noexcept {
         full_x = r.xbegin;
         full_y = r.ybegin;
         full_z = r.zbegin;
@@ -615,7 +615,7 @@ public:
     /// undefined data type -- true of the uninitialized state of an
     /// ImageSpec, and presumably not for any ImageSpec that is useful or
     /// purposefully made.)
-    bool undefined () const {
+    bool undefined () const noexcept {
         return nchannels == 0 && format == TypeUnknown;
     }
 

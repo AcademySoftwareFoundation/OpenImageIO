@@ -44,7 +44,7 @@ OIIO_NAMESPACE_BEGIN
 
 void
 ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                         const void* _value, bool _copy)
+                         const void* _value, bool _copy) noexcept
 {
     init_noclear(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
 }
@@ -53,7 +53,8 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
 
 void
 ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                         Interp _interp, const void* _value, bool _copy)
+                         Interp _interp, const void* _value,
+                         bool _copy) noexcept
 {
     m_name      = _name;
     m_type      = _type;
@@ -496,7 +497,7 @@ ParamValue::get_ustring_indexed(int index) const
 
 
 void
-ParamValue::clear_value()
+ParamValue::clear_value() noexcept
 {
     if (m_copy && m_nonlocal && m_data.ptr)
         free((void*)m_data.ptr);

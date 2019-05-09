@@ -478,14 +478,14 @@ Strutil::to_upper(std::string& a)
 
 
 bool
-Strutil::StringIEqual::operator()(const char* a, const char* b) const
+Strutil::StringIEqual::operator()(const char* a, const char* b) const noexcept
 {
     return boost::algorithm::iequals(a, b, std::locale::classic());
 }
 
 
 bool
-Strutil::StringILess::operator()(const char* a, const char* b) const
+Strutil::StringILess::operator()(const char* a, const char* b) const noexcept
 {
     return boost::algorithm::ilexicographical_compare(a, b,
                                                       std::locale::classic());
@@ -634,7 +634,7 @@ Strutil::replace(string_view str, string_view pattern, string_view replacement,
 
 #ifdef _WIN32
 std::wstring
-Strutil::utf8_to_utf16(string_view str)
+Strutil::utf8_to_utf16(string_view str) noexcept
 {
     std::wstring native;
 
@@ -649,7 +649,7 @@ Strutil::utf8_to_utf16(string_view str)
 
 
 std::string
-Strutil::utf16_to_utf8(const std::wstring& str)
+Strutil::utf16_to_utf8(const std::wstring& str) noexcept
 {
     std::string utf8;
 
@@ -665,7 +665,7 @@ Strutil::utf16_to_utf8(const std::wstring& str)
 
 
 char*
-Strutil::safe_strcpy(char* dst, string_view src, size_t size)
+Strutil::safe_strcpy(char* dst, string_view src, size_t size) noexcept
 {
     if (src.size()) {
         size_t end = std::min(size - 1, src.size());
@@ -683,7 +683,7 @@ Strutil::safe_strcpy(char* dst, string_view src, size_t size)
 
 
 void
-Strutil::skip_whitespace(string_view& str)
+Strutil::skip_whitespace(string_view& str) noexcept
 {
     while (str.size() && isspace(str[0]))
         str.remove_prefix(1);
@@ -692,7 +692,8 @@ Strutil::skip_whitespace(string_view& str)
 
 
 bool
-Strutil::parse_char(string_view& str, char c, bool skip_whitespace, bool eat)
+Strutil::parse_char(string_view& str, char c, bool skip_whitespace,
+                    bool eat) noexcept
 {
     string_view p = str;
     if (skip_whitespace)
@@ -710,7 +711,7 @@ Strutil::parse_char(string_view& str, char c, bool skip_whitespace, bool eat)
 
 
 bool
-Strutil::parse_until_char(string_view& str, char c, bool eat)
+Strutil::parse_until_char(string_view& str, char c, bool eat) noexcept
 {
     string_view p = str;
     while (p.size() && p[0] != c)
@@ -723,7 +724,7 @@ Strutil::parse_until_char(string_view& str, char c, bool eat)
 
 
 bool
-Strutil::parse_prefix(string_view& str, string_view prefix, bool eat)
+Strutil::parse_prefix(string_view& str, string_view prefix, bool eat) noexcept
 {
     string_view p = str;
     skip_whitespace(p);
@@ -739,7 +740,7 @@ Strutil::parse_prefix(string_view& str, string_view prefix, bool eat)
 
 
 bool
-Strutil::parse_int(string_view& str, int& val, bool eat)
+Strutil::parse_int(string_view& str, int& val, bool eat) noexcept
 {
     string_view p = str;
     skip_whitespace(p);
@@ -758,7 +759,7 @@ Strutil::parse_int(string_view& str, int& val, bool eat)
 
 
 bool
-Strutil::parse_float(string_view& str, float& val, bool eat)
+Strutil::parse_float(string_view& str, float& val, bool eat) noexcept
 {
     string_view p = str;
     skip_whitespace(p);
@@ -778,7 +779,7 @@ Strutil::parse_float(string_view& str, float& val, bool eat)
 
 bool
 Strutil::parse_string(string_view& str, string_view& val, bool eat,
-                      QuoteBehavior keep_quotes)
+                      QuoteBehavior keep_quotes) noexcept
 {
     string_view p = str;
     skip_whitespace(p);
@@ -815,7 +816,7 @@ Strutil::parse_string(string_view& str, string_view& val, bool eat,
 
 
 string_view
-Strutil::parse_word(string_view& str, bool eat)
+Strutil::parse_word(string_view& str, bool eat) noexcept
 {
     string_view p = str;
     skip_whitespace(p);
@@ -833,7 +834,7 @@ Strutil::parse_word(string_view& str, bool eat)
 
 
 string_view
-Strutil::parse_identifier(string_view& str, bool eat)
+Strutil::parse_identifier(string_view& str, bool eat) noexcept
 {
     string_view p = str;
     skip_whitespace(p);
@@ -854,7 +855,8 @@ Strutil::parse_identifier(string_view& str, bool eat)
 
 
 string_view
-Strutil::parse_identifier(string_view& str, string_view allowed, bool eat)
+Strutil::parse_identifier(string_view& str, string_view allowed,
+                          bool eat) noexcept
 {
     string_view p = str;
     skip_whitespace(p);
@@ -879,7 +881,8 @@ Strutil::parse_identifier(string_view& str, string_view allowed, bool eat)
 
 
 bool
-Strutil::parse_identifier_if(string_view& str, string_view id, bool eat)
+Strutil::parse_identifier_if(string_view& str, string_view id,
+                             bool eat) noexcept
 {
     string_view head = parse_identifier(str, false /* don't eat */);
     if (head == id) {
@@ -893,7 +896,7 @@ Strutil::parse_identifier_if(string_view& str, string_view id, bool eat)
 
 
 string_view
-Strutil::parse_until(string_view& str, string_view sep, bool eat)
+Strutil::parse_until(string_view& str, string_view sep, bool eat) noexcept
 {
     string_view p     = str;
     const char *begin = p.begin(), *end = p.begin();
@@ -910,7 +913,7 @@ Strutil::parse_until(string_view& str, string_view sep, bool eat)
 
 
 string_view
-Strutil::parse_while(string_view& str, string_view set, bool eat)
+Strutil::parse_while(string_view& str, string_view set, bool eat) noexcept
 {
     string_view p     = str;
     const char *begin = p.begin(), *end = p.begin();
@@ -927,7 +930,7 @@ Strutil::parse_while(string_view& str, string_view set, bool eat)
 
 
 string_view
-Strutil::parse_nested(string_view& str, bool eat)
+Strutil::parse_nested(string_view& str, bool eat) noexcept
 {
     // Make sure we have a valid string and ascertain the characters that
     // nest and unnest.
@@ -1214,7 +1217,7 @@ Strutil::stoi(string_view str, size_t* pos, int base)
 
 
 float
-Strutil::strtof(const char* nptr, char** endptr)
+Strutil::strtof(const char* nptr, char** endptr) noexcept
 {
     // Can use strtod_l on platforms that support it
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
@@ -1257,7 +1260,7 @@ Strutil::strtof(const char* nptr, char** endptr)
 
 
 double
-Strutil::strtod(const char* nptr, char** endptr)
+Strutil::strtod(const char* nptr, char** endptr) noexcept
 {
     // Can use strtod_l on platforms that support it
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \

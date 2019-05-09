@@ -118,7 +118,7 @@ const std::string dummy_extension
 #endif
 
 std::string
-Filesystem::filename(const std::string& filepath)
+Filesystem::filename(const std::string& filepath) noexcept
 {
     // To simplify dealing with platform-specific separators and whatnot,
     // just use the Boost routines:
@@ -128,7 +128,7 @@ Filesystem::filename(const std::string& filepath)
 
 
 std::string
-Filesystem::extension(const std::string& filepath, bool include_dot)
+Filesystem::extension(const std::string& filepath, bool include_dot) noexcept
 {
     std::string s = pathstr(u8path(filepath).extension());
     if (!include_dot && !s.empty() && s[0] == '.')
@@ -139,7 +139,7 @@ Filesystem::extension(const std::string& filepath, bool include_dot)
 
 
 std::string
-Filesystem::parent_path(const std::string& filepath)
+Filesystem::parent_path(const std::string& filepath) noexcept
 {
     return pathstr(u8path(filepath).parent_path());
 }
@@ -148,7 +148,7 @@ Filesystem::parent_path(const std::string& filepath)
 
 std::string
 Filesystem::replace_extension(const std::string& filepath,
-                              const std::string& new_extension)
+                              const std::string& new_extension) noexcept
 {
     return pathstr(u8path(filepath).replace_extension(new_extension));
 }
@@ -307,7 +307,7 @@ Filesystem::path_is_absolute(const std::string& path, bool dot_is_absolute)
 
 
 bool
-Filesystem::exists(const std::string& path)
+Filesystem::exists(const std::string& path) noexcept
 {
     bool r = false;
     try {
@@ -321,7 +321,7 @@ Filesystem::exists(const std::string& path)
 
 
 bool
-Filesystem::is_directory(const std::string& path)
+Filesystem::is_directory(const std::string& path) noexcept
 {
     bool r = false;
     try {
@@ -335,7 +335,7 @@ Filesystem::is_directory(const std::string& path)
 
 
 bool
-Filesystem::is_regular(const std::string& path)
+Filesystem::is_regular(const std::string& path) noexcept
 {
     bool r = false;
     try {
@@ -543,7 +543,7 @@ Filesystem::read_bytes(string_view path, void* buffer, size_t n, size_t pos)
 
 
 std::time_t
-Filesystem::last_write_time(const std::string& path)
+Filesystem::last_write_time(const std::string& path) noexcept
 {
     if (!exists(path))
         return 0;
@@ -558,7 +558,7 @@ Filesystem::last_write_time(const std::string& path)
 
 
 void
-Filesystem::last_write_time(const std::string& path, std::time_t time)
+Filesystem::last_write_time(const std::string& path, std::time_t time) noexcept
 {
     if (!exists(path))
         return;
@@ -572,7 +572,7 @@ Filesystem::last_write_time(const std::string& path, std::time_t time)
 
 
 uint64_t
-Filesystem::file_size(string_view path)
+Filesystem::file_size(string_view path) noexcept
 {
     if (!exists(path))
         return 0;
