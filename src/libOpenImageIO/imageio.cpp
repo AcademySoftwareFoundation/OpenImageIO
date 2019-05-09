@@ -665,8 +665,8 @@ pvt::parallel_convert_from_float(const float* src, void* dst, size_t nvals,
 
 
 bool
-convert_types(TypeDesc src_type, const void* src, TypeDesc dst_type, void* dst,
-              int n)
+convert_pixel_values(TypeDesc src_type, const void* src, TypeDesc dst_type,
+                     void* dst, int n)
 {
     // If no conversion is necessary, just memcpy
     if ((src_type == dst_type || dst_type.basetype == TypeDesc::UNKNOWN)) {
@@ -747,15 +747,15 @@ convert_image(int nchannels, int width, int height, int depth, const void* src,
                 // Special case: pixels within each row are contiguous
                 // in both src and dst and we're copying all channels.
                 // Be efficient by converting each scanline as a single
-                // unit.  (Note that within convert_types, a memcpy will
-                // be used if the formats are identical.)
-                result &= convert_types(src_type, f, dst_type, t,
-                                        nchannels * width);
+                // unit.  (Note that within convert_pixel_values, a memcpy
+                // will be used if the formats are identical.)
+                result &= convert_pixel_values(src_type, f, dst_type, t,
+                                               nchannels * width);
             } else {
                 // General case -- anything goes with strides.
                 for (int x = 0; x < width; ++x) {
-                    result &= convert_types(src_type, f, dst_type, t,
-                                            nchannels);
+                    result &= convert_pixel_values(src_type, f, dst_type, t,
+                                                   nchannels);
                     f += src_xstride;
                     t += dst_xstride;
                 }
