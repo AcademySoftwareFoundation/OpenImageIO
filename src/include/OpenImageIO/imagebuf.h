@@ -115,14 +115,17 @@ public:
     ImageBuf(string_view name, ImageCache* imagecache);
 
     /// Construct an Imagebuf given a proposed spec describing the image
-    /// size and type, and allocate storage for the pixels of the image
-    /// (whose values will be uninitialized).
-    explicit ImageBuf(const ImageSpec& spec);
+    /// size and type, and allocate storage for the pixels of the image. The
+    /// pixels will be initialized to black/empty if `zero` is true,
+    /// otherwise the pixel values will remain uninitialized.
+    explicit ImageBuf(const ImageSpec& spec, bool zero=true);
 
     /// Construct an Imagebuf given both a name and a proposed spec
-    /// describing the image size and type, and allocate storage for
-    /// the pixels of the image (whose values will be undefined).
-    ImageBuf(string_view name, const ImageSpec& spec);
+    /// describing the image size and type, and allocate storage for the
+    /// pixels of the image. The pixels will be initialized to black/empty
+    /// if `zero` is true, otherwise the pixel values will remain
+    /// uninitialized.
+    ImageBuf(string_view name, const ImageSpec& spec, bool zero=true);
 
     /// Construct an ImageBuf that "wraps" a memory buffer owned by the
     /// calling application.  It can write pixels to this buffer, but
@@ -170,13 +173,17 @@ public:
     /// that is uninitialized (no pixel values, no size or spec).
     void reset(string_view name, ImageCache* imagecache = NULL);
 
-    /// Forget all previous info, reset this ImageBuf to a blank
-    /// image of the given dimensions.
-    void reset(const ImageSpec& spec);
+    /// Forget all previous info, reset this ImageBuf to a blank image of
+    /// the given dimensions. The pixels will be initialized to black/empty
+    /// if `zero` is true, otherwise the pixel values will remain
+    /// uninitialized.
+    void reset(const ImageSpec& spec, bool zero = true);
 
-    /// Forget all previous info, reset this ImageBuf to a blank
-    /// image of the given name and dimensions.
-    void reset(string_view name, const ImageSpec& spec);
+    /// Forget all previous info, reset this ImageBuf to a blank image of
+    /// the given name and dimensions. The pixels will be set to 0 values if
+    /// `zero` is true, otherwise the pixel values will remain
+    /// uninitialized.
+    void reset(string_view name, const ImageSpec& spec, bool zero = true);
 
     // Copy assignment
     const ImageBuf& operator=(const ImageBuf& src);

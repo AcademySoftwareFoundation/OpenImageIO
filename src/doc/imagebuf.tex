@@ -60,18 +60,23 @@ constructed \ImageBuf using the default constructor.
 
 \subsection*{Constructing and initializing a writeable \ImageBuf}
 
-\apiitem{{\ce ImageBuf} (const ImageSpec \&spec) \\
-{\ce ImageBuf} (string_view name, const ImageSpec \&spec)}
+\apiitem{{\ce ImageBuf} (const ImageSpec \&spec, bool zero = true) \\
+{\ce ImageBuf} (string_view name, const ImageSpec \&spec, bool zero = true)}
 Constructs a writeable \ImageBuf with the given specification (including
-resolution, data type, metadata, etc.), initially set to all black pixels.
+resolution, data type, metadata, etc.).
+The pixels will be initialized to black/empty if `zero` is true, otherwise the
+pixel values will remain uninitialized.
 Optionally, you may name the \ImageBuf.
 \apiend
 
-\apiitem{void {\ce reset} (const ImageSpec \&spec) \\
-void {\ce reset} (string_view name, const ImageSpec \&spec)}
+\apiitem{void {\ce reset} (const ImageSpec \&spec, bool zero = true) \\
+void {\ce reset} (string_view name, const ImageSpec \&spec, bool zero = true)}
 Destroys any previous contents of the \ImageBuf and re-initializes it
 as a writeable all-black \ImageBuf with the given specification (including
-resolution, data type, metadata, etc.).  Optionally, you may name the
+resolution, data type, metadata, etc.).
+The pixels will be initialized to black/empty if `zero` is true, otherwise the
+pixel values will remain uninitialized.
+Optionally, you may name the \ImageBuf.
 \ImageBuf.
 \apiend
 

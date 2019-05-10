@@ -1365,10 +1365,12 @@ Optionally, a specific subimage or MIP level may be specified (defaulting to
 \end{code}
 \apiend
 
-\apiitem{ImageBuf {\ce ImageBuf} (imagespec)}
+\apiitem{ImageBuf {\ce ImageBuf} (imagespec, zero = True)}
 
 Construct a writeable \ImageBuf of the dimensions and data format specified
-by an \ImageSpec.
+by an \ImageSpec. 
+The pixels will be set to 0 values if {\cf zero} is True, otherwise the
+pixel values will remain uninitialized.
 
 \noindent Example:
 \begin{code}
@@ -1378,7 +1380,8 @@ by an \ImageSpec.
 \apiend
 
 \apiitem{ImageBuf.{\ce clear} ()}
-Return the \ImageBuf to its pristine, uninitialized state.
+Resets the \ImageBuf to a pristine state identical to that of a freshly
+constructed \ImageBuf using the default constructor.
 
 \noindent Example:
 \begin{code}
@@ -1396,9 +1399,11 @@ a filename (optionally specifying a subimage, MIP level, and/or
 a ``configuration'' \ImageSpec).
 \apiend
 
-\apiitem{ImageBuf.{\ce reset} (imagespec)}
-Restore the \ImageBuf to the newly-constructed state of a blank, writeable
+\apiitem{ImageBuf.{\ce reset} (imagespec, zero = True)}
+Restore the \ImageBuf to the newly-constructed state of a writeable
 \ImageBuf specified by an \ImageSpec.
+The pixels will be iniialized to black/empty if {\cf zero} is True,
+otherwise the pixel values will remain uninitialized.
 \apiend
 
 \apiitem{bool ImageBuf.{\ce read} (subimage=0, miplevel=0, force=False, convert=oiio.UNKNOWN) \\
