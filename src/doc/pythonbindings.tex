@@ -1368,9 +1368,8 @@ Optionally, a specific subimage or MIP level may be specified (defaulting to
 \apiitem{ImageBuf {\ce ImageBuf} (imagespec, zero = True)}
 
 Construct a writeable \ImageBuf of the dimensions and data format specified
-by an \ImageSpec. 
-The pixels will be set to 0 values if {\cf zero} is True, otherwise the
-pixel values will remain uninitialized.
+by an \ImageSpec. The pixels will be initialized to black/empty values if
+{\cf zero} is True, otherwise the pixel values will remain uninitialized.
 
 \noindent Example:
 \begin{code}
