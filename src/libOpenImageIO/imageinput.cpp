@@ -397,11 +397,11 @@ ImageInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // copies the appropriate subset.
     size_t prefix_bytes   = spec.pixel_bytes(0, chbegin, true);
     size_t subset_bytes   = spec.pixel_bytes(chbegin, chend, true);
-    size_t subset_ystride = spec.width * subset_bytes;
+    size_t subset_ystride = size_t(spec.width) * subset_bytes;
 
     // Read all channels of the scanlines into a temp buffer.
     size_t native_pixel_bytes = spec.pixel_bytes(true);
-    size_t native_ystride     = spec.width * native_pixel_bytes;
+    size_t native_ystride     = size_t(spec.width) * native_pixel_bytes;
     std::unique_ptr<char[]> buf(new char[native_ystride * (yend - ybegin)]);
     yend    = std::min(yend, spec.y + spec.height);
     bool ok = read_native_scanlines(subimage, miplevel, ybegin, yend, z,

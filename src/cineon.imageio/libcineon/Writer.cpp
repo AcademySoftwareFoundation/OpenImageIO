@@ -304,7 +304,7 @@ bool cineon::Writer::WriteElement(const int element, void *data, const DataSize 
 bool cineon::Writer::WriteThrough(void *data, const U32 width, const U32 height, const int noc, const int bytes, const U32 eolnPad, const U32 eoimPad, char *blank)
 {
 	bool status = true;
-	const int count = width * height * noc;
+	const size_t count = size_t(width) * size_t(height) * noc;
 	unsigned int i;
 	unsigned char *imageBuf = reinterpret_cast<unsigned char*>(data);
 

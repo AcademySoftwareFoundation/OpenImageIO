@@ -350,8 +350,8 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
         return data;
     }
 
-    imagesize_t rectangle_pixels       = width * height * depth;
-    imagesize_t rectangle_values       = rectangle_pixels * m_spec.nchannels;
+    imagesize_t rectangle_pixels = stride_t(width) * stride_t(height) * depth;
+    imagesize_t rectangle_values = rectangle_pixels * m_spec.nchannels;
     imagesize_t native_rectangle_bytes = rectangle_pixels * native_pixel_bytes;
 
     // Cases to handle:
@@ -435,10 +435,10 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
     if (do_dither) {
         stride_t pixelsize = m_spec.nchannels * sizeof(float);
         OIIO::add_dither(m_spec.nchannels, width, height, depth, (float*)buf,
-                         pixelsize, pixelsize * width,
-                         pixelsize * width * height, 1.0f / 255.0f,
-                         m_spec.alpha_channel, m_spec.z_channel, dither, 0,
-                         xorigin, yorigin, zorigin);
+                         pixelsize, pixelsize * stride_t(width),
+                         pixelsize * stride_t(width) * stride_t(height),
+                         1.0f / 255.0f, m_spec.alpha_channel, m_spec.z_channel,
+                         dither, 0, xorigin, yorigin, zorigin);
     }
 
     // Convert from float to native format.
@@ -610,7 +610,7 @@ ImageOutput::copy_to_image_buffer(int xbegin, int xend, int ybegin, int yend,
         OIIO::convert_image(spec.nchannels, width, height, depth, data, format,
                             xstride, ystride, zstride, ditherarea.get(),
                             TypeDesc::FLOAT, pixelsize, pixelsize * width,
-                            pixelsize * width * height);
+                            pixelsize * stride_t(width) * stride_t(height));
         data            = ditherarea.get();
         format          = TypeDesc::FLOAT;
         xstride         = pixelsize;
@@ -619,10 +619,10 @@ ImageOutput::copy_to_image_buffer(int xbegin, int xend, int ybegin, int yend,
         float ditheramp = spec.get_float_attribute("oiio:ditheramplitude",
                                                    1.0f / 255.0f);
         OIIO::add_dither(spec.nchannels, width, height, depth, (float*)data,
-                         pixelsize, pixelsize * width,
-                         pixelsize * width * height, ditheramp,
-                         spec.alpha_channel, spec.z_channel, dither, 0, xbegin,
-                         ybegin, zbegin);
+                         pixelsize, pixelsize * stride_t(width),
+                         pixelsize * stride_t(width) * stride_t(height),
+                         ditheramp, spec.alpha_channel, spec.z_channel, dither,
+                         0, xbegin, ybegin, zbegin);
     }
 
     return OIIO::convert_image(spec.nchannels, width, height, depth, data,
