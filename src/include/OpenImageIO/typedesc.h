@@ -498,8 +498,8 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 ///   their best conversion; strings will convert if and only if their
 ///   characters form a valid float number.
 OIIO_API bool
-convert_type (TypeDesc srctype, const void* src,
-              TypeDesc dsttype, void* dst);
+convert_type(TypeDesc srctype, const void* src,
+             TypeDesc dsttype, void* dst, int n = 1);
 
 
 OIIO_NAMESPACE_END

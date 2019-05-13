@@ -629,8 +629,15 @@ to_floats(TypeDesc srctype, const void* src, T* dst, size_t n = 1)
 
 
 bool
-convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst)
+convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
+             int n)
 {
+    if (n > 1) {
+        // Handle multiple values by turning into or expanding array length
+        srctype.arraylen = srctype.numelements() * n;
+        dsttype.arraylen = dsttype.numelements() * n;
+    }
+
     if (srctype.basetype == dsttype.basetype
         && srctype.basevalues() == dsttype.basevalues()) {
         size_t size = srctype.size();

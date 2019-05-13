@@ -1760,13 +1760,25 @@ OIIO_API void declare_imageio_format (const std::string &format_name,
                                       const char **output_extensions,
                                       const char *lib_version);
 
-/// Helper function: convert contiguous arbitrary data between two
-/// arbitrary types (specified by TypeDesc's)
-/// Return true if ok, false if it didn't know how to do the
-/// conversion.  If dst_type is UNKNOWN, it will be assumed to be the
-/// same as src_type.
-OIIO_API bool convert_types (TypeDesc src_type, const void *src,
-                              TypeDesc dst_type, void *dst, int n);
+/// Helper function: convert contiguous data between two arbitrary pixel
+/// data types (specified by TypeDesc's). Return true if ok, false if it
+/// didn't know how to do the conversion.  If dst_type is UNKNOWN, it will
+/// be assumed to be the same as src_type.
+///
+/// The conversion is of normalized (pixel-like) values -- for example
+/// 'UINT8' 255 will convert to float 1.0 and vice versa, not float 255.0.
+/// If you want a straight C-like data cast convertion (e.g., uint8 255 ->
+/// float 255.0), then you should prefer the un-normalized convert_type()
+/// utility function found in typedesc.h.
+OIIO_API bool convert_pixel_values (TypeDesc src_type, const void *src,
+                                    TypeDesc dst_type, void *dst, int n = 1);
+
+/// DEPRECATED(2.1): old name
+inline bool convert_types (TypeDesc src_type, const void *src,
+                           TypeDesc dst_type, void *dst, int n = 1) {
+    return convert_pixel_values (src_type, src, dst_type, dst, n);
+}
+
 
 /// Helper routine for data conversion: Convert an image of nchannels x
 /// width x height x depth from src to dst.  The src and dst may have
