@@ -78,6 +78,7 @@ set_roi_full(ImageSpec& spec, const ROI& newroi);
 
 
 class ImageBufImpl;  // Opaque pointer
+enum class InitializePixels { No = 0, Yes = 1 };
 
 
 
@@ -115,14 +116,19 @@ public:
     ImageBuf(string_view name, ImageCache* imagecache);
 
     /// Construct an Imagebuf given a proposed spec describing the image
-    /// size and type, and allocate storage for the pixels of the image
-    /// (whose values will be uninitialized).
-    explicit ImageBuf(const ImageSpec& spec);
+    /// size and type, and allocate storage for the pixels of the image. The
+    /// `zero` parameter controls whether the pixel values are filled with
+    /// black/empty, or are left uninitialized after being allocated.
+    explicit ImageBuf(const ImageSpec& spec,
+                      InitializePixels zero = InitializePixels::Yes);
 
     /// Construct an Imagebuf given both a name and a proposed spec
-    /// describing the image size and type, and allocate storage for
-    /// the pixels of the image (whose values will be undefined).
-    ImageBuf(string_view name, const ImageSpec& spec);
+    /// describing the image size and type, and allocate storage for the
+    /// pixels of the image. The `zero` parameter controls whether the pixel
+    /// values are filled with black/empty, or are left uninitialized after
+    /// being allocated.
+    ImageBuf(string_view name, const ImageSpec& spec,
+             InitializePixels zero = InitializePixels::Yes);
 
     /// Construct an ImageBuf that "wraps" a memory buffer owned by the
     /// calling application.  It can write pixels to this buffer, but
@@ -170,13 +176,19 @@ public:
     /// that is uninitialized (no pixel values, no size or spec).
     void reset(string_view name, ImageCache* imagecache = NULL);
 
-    /// Forget all previous info, reset this ImageBuf to a blank
-    /// image of the given dimensions.
-    void reset(const ImageSpec& spec);
+    /// Forget all previous info, reset this ImageBuf to a blank image of
+    /// the given dimensions. The `zero` parameter controls whether the
+    /// pixel values are filled with black/empty, or are left uninitialized
+    /// after being allocated.
+    void reset(const ImageSpec& spec,
+               InitializePixels zero = InitializePixels::Yes);
 
-    /// Forget all previous info, reset this ImageBuf to a blank
-    /// image of the given name and dimensions.
-    void reset(string_view name, const ImageSpec& spec);
+    /// Forget all previous info, reset this ImageBuf to a blank image of
+    /// the given name and dimensions. The `zero` parameter controls whether
+    /// the pixel values are filled with black/empty, or are left
+    /// uninitialized after being allocated.
+    void reset(string_view name, const ImageSpec& spec,
+               InitializePixels zero = InitializePixels::Yes);
 
     // Copy assignment
     const ImageBuf& operator=(const ImageBuf& src);

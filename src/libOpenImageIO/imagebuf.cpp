@@ -453,18 +453,23 @@ ImageBuf::ImageBuf(string_view filename, ImageCache* imagecache)
 
 
 
-ImageBuf::ImageBuf(const ImageSpec& spec)
+ImageBuf::ImageBuf(const ImageSpec& spec, InitializePixels zero)
     : m_impl(new ImageBufImpl("", 0, 0, NULL, &spec))
 {
     m_impl->alloc(spec);
+    if (zero == InitializePixels::Yes && !deep())
+        ImageBufAlgo::zero(*this);
 }
 
 
 
-ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec)
+ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec,
+                   InitializePixels zero)
     : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec))
 {
     m_impl->alloc(spec);
+    if (zero == InitializePixels::Yes && !deep())
+        ImageBufAlgo::zero(*this);
 }
 
 
@@ -701,17 +706,22 @@ ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
 
 
 void
-ImageBuf::reset(string_view filename, const ImageSpec& spec)
+ImageBuf::reset(string_view filename, const ImageSpec& spec,
+                InitializePixels zero)
 {
     impl()->reset(filename, spec);
+    if (zero == InitializePixels::Yes && !deep())
+        ImageBufAlgo::zero(*this);
 }
 
 
 
 void
-ImageBuf::reset(const ImageSpec& spec)
+ImageBuf::reset(const ImageSpec& spec, InitializePixels zero)
 {
     impl()->reset("", spec);
+    if (zero == InitializePixels::Yes && !deep())
+        ImageBufAlgo::zero(*this);
 }
 
 

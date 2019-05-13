@@ -210,6 +210,10 @@ declare_imagebuf(py::module& m)
         .def(py::init<const std::string&>())
         .def(py::init<const std::string&, int, int>())
         .def(py::init<const ImageSpec&>())
+        .def(py::init([](const ImageSpec& spec, bool zero) {
+            auto z = zero ? InitializePixels::Yes : InitializePixels::No;
+            return ImageBuf(spec, z);
+        }))
         .def("clear", &ImageBuf::clear)
         .def(
             "reset",
@@ -226,8 +230,11 @@ declare_imagebuf(py::module& m)
             "config"_a = ImageSpec())
         .def(
             "reset",
-            [](ImageBuf& self, const ImageSpec& spec) { self.reset(spec); },
-            "spec"_a)
+            [](ImageBuf& self, const ImageSpec& spec, bool zero) {
+                auto z = zero ? InitializePixels::Yes : InitializePixels::No;
+                self.reset(spec, z);
+            },
+            "spec"_a, "zero"_a = true)
         .def_property_readonly("initialized",
                                [](const ImageBuf& self) {
                                    return self.initialized();
