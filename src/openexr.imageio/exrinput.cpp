@@ -37,7 +37,14 @@
 #include <memory>
 #include <numeric>
 
-#include <boost/math/common_factor_rt.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 106900
+#    include <boost/integer/common_factor_rt.hpp>
+using boost::integer::gcd;
+#else
+#    include <boost/math/common_factor_rt.hpp>
+using boost::math::gcd;
+#endif
 
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
@@ -786,8 +793,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 r[1] = static_cast<int>(d);
                 spec.attribute(oname, TypeRational, r);
             } else if (int f = static_cast<int>(
-                                   boost::math::gcd<long int>(rational[0],
-                                                              rational[1]))
+                                   gcd<long int>(rational[0], rational[1]))
                                > 1) {
                 int r[2];
                 r[0] = n / f;
