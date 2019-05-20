@@ -145,3 +145,5 @@ Comparing "outarrayB.tif" and "ref/outarrayB.tif"
 PASS
 Comparing "outarrayH.tif" and "ref/outarrayH.tif"
 PASS
+Comparing "perchan.exr" and "ref/perchan.exr"
+PASS

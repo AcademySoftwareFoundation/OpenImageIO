@@ -247,11 +247,19 @@ close the file when it's done (and so may be called in a loop to write a
 multi-image file).
 \apiend
 
-\apiitem{void {\ce set_write_format} (TypeDesc format=TypeDesc::UNKNOWN) \\
-void {\ce set_write_tiles} (int width=0, int height=0, int depth=0)}
-These methods allow the caller to override the data format and tile
-sizing when using the {\cf write()} function (the variety that does
-not take an open {\cf ImageOutput*}).
+\apiitem{void {\ce set_write_format} (cspan<TypeDesc> format)}
+Override the pixel data format for subsequent calls to the {\cf write()}
+method (the variety that does not take an open {\cf ImageOutput*}).
+The {\cf format} parameter may be either a single \TypeDesc for all
+channels, or a span giving a separate \TypeDesc for each channel (in order).
+If this call is not made (or if the format is {\cf TypeUnknown}), then the
+data type written will default to be whatever is described in the \ImageSpec
+of the \ImageBuf.
+\apiend
+
+\apiitem{void {\ce set_write_tiles} (int width=0, int height=0, int depth=0)}
+Override the tile sizing for subsequent calls to the {\cf write()} method
+(the variety that does not take an open {\cf ImageOutput*}).
 \apiend
 
 

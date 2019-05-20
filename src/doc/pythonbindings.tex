@@ -1474,6 +1474,9 @@ full read so that the whole image is in local memory.
 \apiitem{bool ImageBuf.{\ce set_write_format} (format=oiio.UNKNOWN) \\
 bool ImageBuf.{\ce set_write_tiles} (width=0, height=0, depth=0)}
 Override the data format or tile size in a subsequent call to {\cf write()}.
+The {\cf format}argument to {\cf set_write_format} may be either a single
+data type description for all channels, or a tuple giving the data type for
+each channel in order.
 
 \noindent Example:
 \begin{code}

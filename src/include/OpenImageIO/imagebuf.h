@@ -249,7 +249,12 @@ public:
     }
 
     /// Inform the ImageBuf what data format you'd like for any subsequent
-    /// write().
+    /// write(). You may pass either a singe TypeDesc for all channels or a
+    /// span that give a data format for each channels, in order. If this
+    /// call is not made (or if the format is TypeUnknown), then the data
+    /// type written will default to be whatever is described in the
+    /// ImageSpec of the ImageBuf.
+    void set_write_format(cspan<TypeDesc> format);
     void set_write_format(TypeDesc format);
 
     /// Inform the ImageBuf what tile size (or no tiling, for 0) for
