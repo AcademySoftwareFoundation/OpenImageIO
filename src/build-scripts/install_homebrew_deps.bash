@@ -24,7 +24,7 @@ brew list --versions
 if [[ "$BUILDTARGET" == "clang-format" ]] ; then
     # If we are running for the sake of clang-format only, just install the
     # bare minimum packages and return.
-    time brew install ilmbase openexr llvm
+    time brew install ilmbase openexr llvm clang-format
 else
     # All cases except for clang-format target, we need the dependencies.
     time brew install gcc
@@ -69,5 +69,5 @@ brew list --versions
 export PATH=/usr/local/opt/qt5/bin:$PATH ;
 export PATH=/usr/local/opt/python/libexec/bin:$PATH ;
 export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
-export PATH=/usr/local/Cellar/llvm/8.0.0/bin:$PATH ;
+export PATH=/usr/local/Cellar/llvm/8.0.0*/bin:$PATH ;
 
