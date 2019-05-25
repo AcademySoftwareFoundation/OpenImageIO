@@ -61,9 +61,9 @@ constructed \ImageBuf using the default constructor.
 \subsection*{Constructing and initializing a writeable \ImageBuf}
 
 \apiitem{{\ce ImageBuf} (const ImageSpec \&spec, \\
-\big\big InitializePixels zero = InitializePixels::Yes) \\
-{\ce ImageBuf} (string_view name, const ImageSpec \&spec,
-\big\big InitializePixels zero = InitializePixels::Yes)}
+\bigspc\bigspc InitializePixels zero = InitializePixels::Yes) \\
+{\ce ImageBuf} (string_view name, const ImageSpec \&spec, \\
+\bigspc\bigspc InitializePixels zero = InitializePixels::Yes) }
 Constructs a writeable \ImageBuf with the given specification (including
 resolution, data type, metadata, etc.).
 The {\cf zero} parameter controls whether the pixel values are filled with
