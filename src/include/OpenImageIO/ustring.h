@@ -29,14 +29,30 @@
 */
 
 
-/// \file
-/// Define the ustring class, unique strings with efficient storage and
-/// very fast copy and comparison.
+#pragma once
+#define OPENIMAGEIO_USTRING_H
+
+#if defined(_MSC_VER)
+// Ignore warnings about DLL exported classes with member variables that are template classes.
+// This happens with the std::string empty_std_string static member variable of ustring below.
+// Also remove a warning about the strncpy function not being safe and deprecated in MSVC.
+// There is no equivalent safe and portable function and trying to fix this is more trouble than
+// its worth. (see http://stackoverflow.com/questions/858252/alternatives-to-ms-strncpy-s)
+#    pragma warning(disable : 4251 4996)
+#endif
+
+#include <OpenImageIO/dassert.h>
+#include <OpenImageIO/export.h>
+#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/string_view.h>
+#include <OpenImageIO/strutil.h>
+#include <cstring>
+#include <iostream>
+#include <string>
 
 
-/////////////////////////////////////////////////////////////////////////////
-/// \class ustring
-///
+OIIO_NAMESPACE_BEGIN
+
 /// A ustring is an alternative to char* or std::string for storing
 /// strings, in which the character sequence is unique (allowing many
 /// speed advantages for assignment, equality testing, and inequality
@@ -115,33 +131,6 @@
 ///   - if you don't need to do a lot of string assignment or equality
 ///     testing, but lots of more complex string manipulation.
 ///
-/////////////////////////////////////////////////////////////////////////////
-
-
-#pragma once
-#define OPENIMAGEIO_USTRING_H
-
-#if defined(_MSC_VER)
-// Ignore warnings about DLL exported classes with member variables that are template classes.
-// This happens with the std::string empty_std_string static member variable of ustring below.
-// Also remove a warning about the strncpy function not being safe and deprecated in MSVC.
-// There is no equivalent safe and portable function and trying to fix this is more trouble than
-// its worth. (see http://stackoverflow.com/questions/858252/alternatives-to-ms-strncpy-s)
-#    pragma warning(disable : 4251 4996)
-#endif
-
-#include <OpenImageIO/dassert.h>
-#include <OpenImageIO/export.h>
-#include <OpenImageIO/oiioversion.h>
-#include <OpenImageIO/string_view.h>
-#include <OpenImageIO/strutil.h>
-#include <cstring>
-#include <iostream>
-#include <string>
-
-
-OIIO_NAMESPACE_BEGIN
-
 class OIIO_API ustring {
 public:
     typedef char value_type;
@@ -154,14 +143,12 @@ public:
     typedef std::string::const_reverse_iterator const_reverse_iterator;
 
     /// Default ctr for ustring -- make an empty string.
-    ///
     ustring(void) noexcept
         : m_chars(nullptr)
     {
     }
 
     /// Construct a ustring from a null-terminated C string (char *).
-    ///
     explicit ustring(const char* str)
     {
         m_chars = str ? make_unique(str) : nullptr;
@@ -183,21 +170,18 @@ public:
     }
 
     /// Construct a ustring from the first n characters of str.
-    ///
     ustring(const char* str, size_type n)
         : m_chars(make_unique(string_view(str, n)))
     {
     }
 
     /// Construct a ustring from n copies of character c.
-    ///
     ustring(size_type n, char c)
         : m_chars(make_unique(std::string(n, c).c_str()))
     {
     }
 
     /// Construct a ustring from an indexed substring of a std::string.
-    ///
     ustring(const std::string& str, size_type pos, size_type n = npos)
     {
         string_view sref(str);
@@ -206,14 +190,12 @@ public:
     }
 
     /// Copy construct a ustring from another ustring.
-    ///
     ustring(const ustring& str) noexcept
         : m_chars(str.m_chars)
     {
     }
 
     /// Construct a ustring from an indexed substring of a ustring.
-    ///
     ustring(const ustring& str, size_type pos, size_type n = npos)
     {
         string_view sref(str);
@@ -222,7 +204,6 @@ public:
     }
 
     /// ustring destructor.
-    ///
     ~ustring() noexcept {}
 
     /// Conversion to string_view
@@ -232,7 +213,6 @@ public:
     }
 
     /// Assign a ustring to *this.
-    ///
     const ustring& assign(const ustring& str)
     {
         m_chars = str.m_chars;
@@ -240,7 +220,6 @@ public:
     }
 
     /// Assign a substring of a ustring to *this.
-    ///
     const ustring& assign(const ustring& str, size_type pos, size_type n = npos)
     {
         *this = ustring(str, pos, n);
@@ -248,7 +227,6 @@ public:
     }
 
     /// Assign a std::string to *this.
-    ///
     const ustring& assign(const std::string& str)
     {
         assign(str.c_str());
@@ -256,7 +234,6 @@ public:
     }
 
     /// Assign a substring of a std::string to *this.
-    ///
     const ustring& assign(const std::string& str, size_type pos,
                           size_type n = npos)
     {
@@ -265,7 +242,6 @@ public:
     }
 
     /// Assign a null-terminated C string (char*) to *this.
-    ///
     const ustring& assign(const char* str)
     {
         m_chars = str ? make_unique(str) : nullptr;
@@ -273,7 +249,6 @@ public:
     }
 
     /// Assign the first n characters of str to *this.
-    ///
     const ustring& assign(const char* str, size_type n)
     {
         *this = ustring(str, n);
@@ -281,7 +256,6 @@ public:
     }
 
     /// Assign n copies of c to *this.
-    ///
     const ustring& assign(size_type n, char c)
     {
         *this = ustring(n, c);
@@ -296,23 +270,18 @@ public:
     }
 
     /// Assign a ustring to another ustring.
-    ///
     const ustring& operator=(const ustring& str) { return assign(str); }
 
     /// Assign a null-terminated C string (char *) to a ustring.
-    ///
     const ustring& operator=(const char* str) { return assign(str); }
 
     /// Assign a C++ std::string to a ustring.
-    ///
     const ustring& operator=(const std::string& str) { return assign(str); }
 
     /// Assign a string_view to a ustring.
-    ///
     const ustring& operator=(string_view str) { return assign(str); }
 
     /// Assign a single char to a ustring.
-    ///
     const ustring& operator=(char c)
     {
         char s[2];
@@ -323,15 +292,12 @@ public:
     }
 
     /// Return a C string representation of a ustring.
-    ///
     const char* c_str() const noexcept { return m_chars; }
 
     /// Return a C string representation of a ustring.
-    ///
     const char* data() const noexcept { return c_str(); }
 
     /// Return a C++ std::string representation of a ustring.
-    ///
     const std::string& string() const noexcept
     {
         if (m_chars) {
@@ -342,11 +308,9 @@ public:
     }
 
     /// Reset to an empty string.
-    ///
     void clear(void) noexcept { m_chars = nullptr; }
 
     /// Return the number of characters in the string.
-    ///
     size_t length(void) const noexcept
     {
         if (!m_chars)
@@ -356,7 +320,6 @@ public:
     }
 
     /// Return a hashed version of the string
-    ///
     size_t hash(void) const noexcept
     {
         if (!m_chars)
@@ -366,7 +329,6 @@ public:
     }
 
     /// Return the number of characters in the string.
-    ///
     size_t size(void) const noexcept { return length(); }
 
     /// Is the string empty -- i.e., is it nullptr or does it point to an
@@ -748,7 +710,6 @@ public:
     }
 
     /// Generic stream output of a ustring.
-    ///
     friend std::ostream& operator<<(std::ostream& out, const ustring& str)
     {
         if (str.c_str() && out.good())
@@ -757,11 +718,9 @@ public:
     }
 
     /// Return the statistics output as a string.
-    ///
     static std::string getstats(bool verbose = true);
 
     /// Return the amount of memory consumed by the ustring table.
-    ///
     static size_t memory();
 
     /// Given a string_view, return a pointer to the unique
