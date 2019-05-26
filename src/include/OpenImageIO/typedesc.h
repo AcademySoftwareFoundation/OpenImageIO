@@ -71,84 +71,114 @@ OIIO_NAMESPACE_BEGIN
 /////////////////////////////////////////////////////////////////////////////
 
 struct OIIO_API TypeDesc {
-    /// BASETYPE is a simple enum for the C/C++ built-in types.
-    ///
-    enum BASETYPE { UNKNOWN, NONE, 
-                    UCHAR, UINT8=UCHAR, CHAR, INT8=CHAR,
-                    USHORT, UINT16=USHORT, SHORT, INT16=SHORT,
-                    UINT, UINT32=UINT, INT, INT32=INT,
-                    ULONGLONG, UINT64=ULONGLONG, LONGLONG, INT64=LONGLONG,
-                    HALF, FLOAT, DOUBLE, STRING, PTR, LASTBASE };
-    /// AGGREGATE describes whether our type is a simple scalar of
-    /// one of the BASETYPE's, or one of several simple aggregates.
-    enum AGGREGATE {
-        SCALAR   = 1,
-        VEC2     = 2,
-        VEC3     = 3,
-        VEC4     = 4,
-        MATRIX33 = 9,
-        MATRIX44 = 16
+    /// BASETYPE is a simple enum describing the base data types that
+    /// correspond (mostly) to the C/C++ built-in types.
+    enum BASETYPE {
+        UNKNOWN,            ///< unknown type
+        NONE,               ///< void/no type
+        UINT8,              ///< 8-bit unsigned int values ranging from 0..255,
+                            ///<   (C/C++ `unsigned char`).
+        UCHAR=UINT8,
+        INT8,               ///< 8-bit int values ranging from -128..127,
+                            ///<   (C/C++ `char`).
+        CHAR=INT8,
+        UINT16,             ///< 16-bit int values ranging from 0..65535,
+                            ///<   (C/C++ `unsigned short`).
+        USHORT=UINT16,
+        INT16,              ///< 16-bit int values ranging from -32768..32767,
+                            ///<   (C/C++ `short`).
+        SHORT=INT16,
+        UINT32,             ///< 32-bit unsigned int values (C/C++ `unsigned int`).
+        UINT=UINT32,
+        INT32,              ///< signed 32-bit int values (C/C++ `int`).
+        INT=INT32,
+        UINT64,             ///< 64-bit unsigned int values (C/C++
+                            ///<   `unsigned long long` on most architectures).
+        ULONGLONG=UINT64,
+        INT64,              ///< signed 64-bit int values (C/C++ `long long`
+                            ///<   on most architectures).
+        LONGLONG=INT64,
+        HALF,               ///< 16-bit IEEE floating point values (OpenEXR `half`).
+        FLOAT,              ///< 32-bit IEEE floating point values, (C/C++ `float`).
+        DOUBLE,             ///< 64-bit IEEE floating point values, (C/C++ `double`).
+        STRING,             ///< Character string.
+        PTR,                ///< A pointer value.
+        LASTBASE
     };
-    /// VECSEMANTICS gives hints about what the data represent (for
-    /// example, if a spatial vector, whether it should transform as
-    /// a point, direction vector, or surface normal).
+
+    /// AGGREGATE describes whether our TypeDesc is a simple scalar of one
+    /// of the BASETYPE's, or one of several simple aggregates.
+    ///
+    /// Note that aggregates and arrays are different. A `TypeDesc(FLOAT,3)`
+    /// is an array of three floats, a `TypeDesc(FLOAT,VEC3)` is a single
+    /// 3-component vector comprised of floats, and `TypeDesc(FLOAT,3,VEC3)`
+    /// is an array of 3 vectors, each of which is comprised of 3 floats.
+    enum AGGREGATE {
+        SCALAR   =  1,  ///< A single scalar value (such as a raw `int` or
+                        ///<   `float` in C).  This is the default.
+        VEC2     =  2,  ///< 2 values representing a 2D vector.
+        VEC3     =  3,  ///< 3 values representing a 3D vector.
+        VEC4     =  4,  ///< 4 values representing a 4D vector.
+        MATRIX33 =  9,  ///< 9 values representing a 3x3 matrix.
+        MATRIX44 = 16   ///< 16 values representing a 4x4 matrix.
+    };
+
+    /// VECSEMANTICS gives hints about what the data represent (for example,
+    /// if a spatial vector quantity should transform as a point, direction
+    /// vector, or surface normal).
     enum VECSEMANTICS {
-        NOXFORM     = 0,
-        NOSEMANTICS = 0,  // no semantic hints
-        COLOR,            // color
-        POINT,            // spatial location
-        VECTOR,           // spatial direction
-        NORMAL,           // surface normal
-        TIMECODE,         // SMPTE timecode (should be int[2])
-        KEYCODE,          // SMPTE keycode (should be int[7])
-        RATIONAL          // paired numerator and denominator
+        NOXFORM     = 0,  ///< No semantic hints.
+        NOSEMANTICS = 0,  ///< No semantic hints.
+        COLOR,            ///< Color
+        POINT,            ///< Point: a spatial location
+        VECTOR,           ///< Vector: a spatial direction
+        NORMAL,           ///< Normal: a surface normal
+        TIMECODE,         ///< indicates an `int[2]` representing the standard
+                          ///<   4-byte encoding of an SMPTE timecode.
+        KEYCODE,          ///< indicates an `int[7]` representing the standard
+                          ///<   28-byte encoding of an SMPTE keycode.
+        RATIONAL          ///< A VEC2 representing a rational number `val[0] / val[1]`
     };
 
     unsigned char basetype;      ///< C data type at the heart of our type
     unsigned char aggregate;     ///< What kind of AGGREGATE is it?
-    unsigned char vecsemantics;  ///< What does the vec represent?
+    unsigned char vecsemantics;  ///< Hint: What does the aggregate represent?
     unsigned char reserved;      ///< Reserved for future expansion
     int arraylen;                ///< Array length, 0 = not array, -1 = unsized
 
-    /// Construct from a BASETYPE and optional aggregateness and
-    /// transformation rules.
+    /// Construct from a BASETYPE and optional aggregateness, semantics,
+    /// and arrayness.
     constexpr TypeDesc (BASETYPE btype=UNKNOWN, AGGREGATE agg=SCALAR,
-                        VECSEMANTICS xform=NOXFORM) noexcept
+                        VECSEMANTICS semantics=NOSEMANTICS,
+                        int arraylen=0) noexcept
         : basetype(static_cast<unsigned char>(btype)),
           aggregate(static_cast<unsigned char>(agg)),
-          vecsemantics(static_cast<unsigned char>(xform)), reserved(0),
-          arraylen(0)
+          vecsemantics(static_cast<unsigned char>(semantics)), reserved(0),
+          arraylen(arraylen)
           { }
 
     /// Construct an array of a non-aggregate BASETYPE.
-    ///
-    constexpr TypeDesc (BASETYPE btype, int arraylength) noexcept
-        : basetype(static_cast<unsigned char>(btype)),
-          aggregate(SCALAR), vecsemantics(NOXFORM),
-          reserved(0), arraylen(arraylength)
-          { }
+    constexpr TypeDesc (BASETYPE btype, int arraylen) noexcept
+        : TypeDesc(btype, SCALAR, NOSEMANTICS, arraylen) {}
 
     /// Construct an array from BASETYPE, AGGREGATE, and array length,
-    /// with unspecified (or moot) vector transformation semantics.
-    constexpr TypeDesc (BASETYPE btype, AGGREGATE agg, int arraylength) noexcept
-        : basetype(static_cast<unsigned char>(btype)),
-          aggregate(static_cast<unsigned char>(agg)),
-          vecsemantics(NOXFORM), reserved(0),
-          arraylen(arraylength)
-          { }
-
-    /// Construct an array from BASETYPE, AGGREGATE, VECSEMANTICS, and
-    /// array length.
-    constexpr TypeDesc (BASETYPE btype, AGGREGATE agg,
-                        VECSEMANTICS xform, int arraylength) noexcept
-        : basetype(static_cast<unsigned char>(btype)),
-          aggregate(static_cast<unsigned char>(agg)),
-          vecsemantics(static_cast<unsigned char>(xform)),
-          reserved(0), arraylen(arraylength)
-          { }
+    /// with unspecified (or moot) semantic hints.
+    constexpr TypeDesc (BASETYPE btype, AGGREGATE agg, int arraylen) noexcept
+        : TypeDesc(btype, agg, NOSEMANTICS, arraylen) {}
 
     /// Construct from a string (e.g., "float[3]").  If no valid
     /// type could be assembled, set base to UNKNOWN.
+    ///
+    /// Examples:
+    /// ```
+    ///      TypeDesc("int") == TypeDesc(TypeDesc::INT)            // C++ int32_t
+    ///      TypeDesc("float") == TypeDesc(TypeDesc::FLOAT)        // C++ float
+    ///      TypeDesc("uint16") == TypeDesc(TypeDesc::UINT16)      // C++ uint16_t
+    ///      TypeDesc("float[4]") == TypeDesc(TypeDesc::FLOAT, 4)  // array
+    ///      TypeDesc("point") == TypeDesc(TypeDesc::FLOAT,
+    ///                                    TypeDesc::VEC3, TypeDesc::POINT)
+    /// ```
+    ///
     TypeDesc (string_view typestring);
 
     /// Copy constructor.
