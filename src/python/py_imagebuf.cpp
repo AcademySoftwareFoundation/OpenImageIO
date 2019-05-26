@@ -201,6 +201,16 @@ ImageBuf_set_pixels_buffer(ImageBuf& self, ROI roi, py::buffer& buffer)
 
 
 void
+ImageBuf_set_write_format(ImageBuf& self, const py::object& py_channelformats)
+{
+    std::vector<TypeDesc> formats;
+    py_to_stdvector(formats, py_channelformats);
+    self.set_write_format(formats);
+}
+
+
+
+void
 declare_imagebuf(py::module& m)
 {
     using namespace pybind11::literals;
@@ -282,7 +292,7 @@ declare_imagebuf(py::module& m)
                 return self.make_writeable(keep_cache_type);
             },
             "keep_cache_type"_a = false)
-        .def("set_write_format", &ImageBuf::set_write_format)
+        .def("set_write_format", &ImageBuf_set_write_format)
         // FIXME -- write(ImageOut&)
         .def("set_write_tiles", &ImageBuf::set_write_tiles, "width"_a = 0,
              "height"_a = 0, "depth"_a = 0)

@@ -282,12 +282,12 @@ private:
     size_t m_scanline_bytes;
     size_t m_plane_bytes;
     size_t m_channel_bytes;
-    ImageCache* m_imagecache;        ///< ImageCache to use
-    TypeDesc m_cachedpixeltype;      ///< Data type stored in the cache
-    DeepData m_deepdata;             ///< Deep data
-    size_t m_allocated_size;         ///< How much memory we've allocated
-    std::vector<char> m_blackpixel;  ///< Pixel-sized zero bytes
-    TypeDesc m_write_format;         /// Format to use for write()
+    ImageCache* m_imagecache;              ///< ImageCache to use
+    TypeDesc m_cachedpixeltype;            ///< Data type stored in the cache
+    DeepData m_deepdata;                   ///< Deep data
+    size_t m_allocated_size;               ///< How much memory we've allocated
+    std::vector<char> m_blackpixel;        ///< Pixel-sized zero bytes
+    std::vector<TypeDesc> m_write_format;  /// Pixel data format to use for write()
     int m_write_tile_width;
     int m_write_tile_height;
     int m_write_tile_depth;
@@ -299,6 +299,15 @@ private:
     char* new_pixels(size_t size, const void* data = nullptr);
     // Private release of m_pixels.
     void free_pixels();
+
+    TypeDesc write_format(int channel = 0) const
+    {
+        if (size_t(channel) < m_write_format.size())
+            return m_write_format[channel];
+        if (m_write_format.size() == 1)
+            return m_write_format[0];
+        return m_nativespec.format;
+    }
 
     const ImageBufImpl operator=(const ImageBufImpl& src);  // unimplemented
     friend class ImageBuf;
@@ -327,7 +336,6 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
     , m_channel_bytes(0)
     , m_imagecache(imagecache)
     , m_allocated_size(0)
-    , m_write_format(TypeDesc::UNKNOWN)
     , m_write_tile_width(0)
     , m_write_tile_height(0)
     , m_write_tile_depth(1)
@@ -390,8 +398,7 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
     , m_cachedpixeltype(src.m_cachedpixeltype)
     , m_deepdata(src.m_deepdata)
     , m_allocated_size(0)
-    ,  // gets fixed up in the body vvv
-    m_blackpixel(src.m_blackpixel)
+    , m_blackpixel(src.m_blackpixel)  // gets fixed up in the body vvv
     , m_write_format(src.m_write_format)
     , m_write_tile_width(src.m_write_tile_width)
     , m_write_tile_height(src.m_write_tile_height)
@@ -633,7 +640,7 @@ ImageBufImpl::clear()
     m_imagecache     = NULL;
     m_deepdata.free();
     m_blackpixel.clear();
-    m_write_format      = TypeDesc::UNKNOWN;
+    m_write_format.clear();
     m_write_tile_width  = 0;
     m_write_tile_height = 0;
     m_write_tile_depth  = 0;
@@ -1039,10 +1046,21 @@ ImageBuf::read(int subimage, int miplevel, int chbegin, int chend, bool force,
 
 
 void
+ImageBuf::set_write_format(cspan<TypeDesc> format)
+{
+    impl()->m_write_format.clear();
+    if (format.size() > 0)
+        impl()->m_write_format.assign(format.data(),
+                                      format.data() + format.size());
+}
+
+
+void
 ImageBuf::set_write_format(TypeDesc format)
 {
-    impl()->m_write_format = format;
+    set_write_format(cspan<TypeDesc>(format));
 }
+
 
 
 void
@@ -1206,16 +1224,30 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
         newspec.tile_height = 0;
         newspec.tile_depth  = 0;
     }
-    // Allow for format override via ImageBuf::set_write_format()
-    if (dtype == TypeUnknown)
-        dtype = impl()->m_write_format;
+
+    // Process pixel data type overrides
     if (dtype != TypeUnknown) {
+        // This call's dtype param, if set, overrides everything else
         newspec.set_format(dtype);
         newspec.channelformats.clear();
+    } else if (impl()->m_write_format.size() != 0) {
+        // If set_write_format was called for the ImageBuf, it overrides
+        if (impl()->m_write_format.size())
+            newspec.set_format(impl()->write_format());
+        else
+            newspec.set_format(nativespec().format);
+        newspec.channelformats = impl()->m_write_format;
+        newspec.channelformats.resize(newspec.nchannels, newspec.format);
+        for (auto& f : newspec.channelformats)
+            if (f == TypeUnknown)
+                f = newspec.format;
     } else {
+        // No override on the ImageBuf, nor on this call to write(), so
+        // we just use what is known from the imagespec.
         newspec.set_format(nativespec().format);
         newspec.channelformats = nativespec().channelformats;
     }
+
     if (!out->open(filename.c_str(), newspec)) {
         error("%s", out->geterror());
         return false;
