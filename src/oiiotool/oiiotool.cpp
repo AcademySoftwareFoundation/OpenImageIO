@@ -6081,6 +6081,10 @@ main(int argc, char* argv[])
                              bad[0], h[0], vf[0]);
     }
 
+    // Helpful for debugging to make sure that any crashes dump a stack
+    // trace.
+    Sysutil::setup_crash_stacktrace("stdout");
+
     // Globally force classic "C" locale, and turn off all formatting
     // internationalization, for the entire oiiotool application.
     std::locale::global(std::locale::classic());
