@@ -14,7 +14,7 @@ endif
 # takes precedence.
 OIIO_SPCOMP2 ?= 0
 OIIO_ARNOLD ?= 1
-OPENIMAGEIO_SPCOMP2_VERSION ?= 48
+OPENIMAGEIO_SPCOMP2_VERSION ?= 49
 ifeq (${OIIO_SPCOMP2},1)
     $(info Building for SpComp2)
     OIIO_ARNOLD := 0
@@ -132,9 +132,11 @@ ifeq (${SP_OS}, rhel7)
             -DBoost_LIBRARIES:STRING="${SPBOOST_LIB_DIR}/${SPBOOST_LIBNAMESTART}_filesystem${SPBOOST_LIBNAMEEND}.so;${SPBOOST_LIB_DIR}/${SPBOOST_LIBNAMESTART}_regex${SPBOOST_LIBNAMEEND}.so;${SPBOOST_LIB_DIR}/${SPBOOST_LIBNAMESTART}_system${SPBOOST_LIBNAMEEND}.so;${SPBOOST_LIB_DIR}/${SPBOOST_LIBNAMESTART}_thread${SPBOOST_LIBNAMEEND}.so"
     else
         # Our Boost >= 1.61 setup is MUCH simpler and more standard
+	SPBOOST_INC_DIR := /usr/include/boostroot/boost${BOOSTVERSSP}.0
+	SPBOOST_LIB_DIR := /usr/lib64/boostroot/boost${BOOSTVERSSP}.0
         MY_CMAKE_FLAGS += \
-            -DBOOST_INCLUDEDIR=/usr/include/boostroot/boost${BOOSTVERSSP} \
-            -DBOOST_LIBRARYDIR=/usr/lib64/boostroot/boost${BOOSTVERSSP}
+            -DBOOST_INCLUDEDIR=${SPBOOST_INC_DIR} \
+            -DBOOST_LIBRARYDIR=${SPBOOST_LIB_DIR}
     endif
 
     #
@@ -152,6 +154,18 @@ ifeq (${SP_OS}, rhel7)
             -DPYTHON_VERSION_STRING=3.6.3 \
             -DPYTHON_VERSION_MAJOR=3 \
             -DPYTHON_VERSION_MINOR=6 \
+            -DPYTHON_VERSION_PATCH=3 \
+            -DPython_ADDITIONAL_VERSIONS="${PYTHON_VERSION}"
+    endif
+    ifeq (${PYTHON_VERSION},3.7)
+        # Special sauce for Python 3.7
+        PYTHON_INCLUDE_DIR := /usr/include/python${PYTHON_VERSION}m
+        PYTHON_LIBRARY := ${PYTHON_LIBRARY_DIR}/libpython${PYTHON_VERSION}m.so
+        MY_CMAKE_FLAGS += \
+            -DPYTHONINTERP_FOUND=1 \
+            -DPYTHON_VERSION_STRING=3.7.3 \
+            -DPYTHON_VERSION_MAJOR=3 \
+            -DPYTHON_VERSION_MINOR=7 \
             -DPYTHON_VERSION_PATCH=3 \
             -DPython_ADDITIONAL_VERSIONS="${PYTHON_VERSION}"
     endif
@@ -173,9 +187,7 @@ ifeq (${SP_OS}, rhel7)
     OCIO_SPCOMP_VERSION ?= 2
     OPENVDB_SPCOMP2_VERSION ?= v5020000
     NUKE_VERSION ?= 11.2v3
-    SPCOMP2_BOOSTVERS_SUFFIX = ${shell echo ${BOOSTVERSSP} | sed "s/\\.//"}
     SPCOMP2_FULLBOOST_SUFFIX = ${SP_OS}-${SPCOMP2_COMPILER}-boost${shell echo ${BOOSTVERSSP} | sed "s/\\.//"}
-    # $(info SPCOMP2_BOOSTVERS_SUFFIX ${SPCOMP2_BOOSTVERS_SUFFIX})
     # $(info SPCOMP2_FULLBOOST_SUFFIX ${SPCOMP2_FULLBOOST_SUFFIX})
     OCIO_PATH ?= ${SPCOMP2_ROOT}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
     ifneq (${OIIO_SPCOMP2},1)
@@ -284,8 +296,8 @@ INSTALL_SPCOMP2_CURRENT = $(SPCOMP2_INSTALL_ROOT)/OpenImageIO/$(SPARCH)/v$(OPENI
 # $(info New rhel7 OIIO_SPCOMP2_PATH is ${OIIO_SPCOMP2_PATH})
 SPCOMP2_LOCAL_PATH ?= /net/soft_scratch/users/$(USER)/SpComp2_test
 
-SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib
-SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${FIELD3D_HOME}/lib/debug:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib/debug:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib
+SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${SPBOOST_LIB_DIR}
+SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${FIELD3D_HOME}/lib/debug:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib/debug:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${SPBOOST_LIB_DIR}
 PYSPCOMP2_RPATH_OPT ?= ${SPCOMP2_RPATH_OPT}:${OIIO_SPCOMP2_PATH}/lib:${PYTHON_LIBRARY_DIR}
 PYSPCOMP2_RPATH_DEBUG ?= ${SPCOMP2_RPATH_DEBUG}:${OIIO_SPCOMP2_PATH}/lib/debug:${PYTHON_LIBRARY_DIR}
 
