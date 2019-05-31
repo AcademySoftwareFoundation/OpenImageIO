@@ -24,7 +24,7 @@ brew list --versions
 if [[ "$OIIOTARGET" == "clang-format" ]] ; then
     # If we are running for the sake of clang-format only, just install the
     # bare minimum packages and return.
-    brew install ilmbase openexr llvm
+    brew install ilmbase openexr llvm clang-format
     exit 0
 fi
 
