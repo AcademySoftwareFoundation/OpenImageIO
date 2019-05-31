@@ -1,0 +1,12 @@
+getNumColorSpaces = 6
+getColorSpaceNames = [u'linear', u'default', u'rgb', u'RGB', u'sRGB', u'Rec709']
+getNumLooks = 0
+getLookNames = []
+getNumDisplays = 0
+getDisplayNames = []
+getDefaultDisplayName = None
+getNumViews = 0
+getViewNames = []
+getDefaultViewName = None
+
+Done.

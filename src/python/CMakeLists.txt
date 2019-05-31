@@ -25,7 +25,7 @@ set (target_name PyOpenImageIO)
 set (python_srcs py_imageinput.cpp py_imageoutput.cpp
      py_imagecache.cpp py_imagespec.cpp py_roi.cpp
      py_imagebuf.cpp py_imagebufalgo.cpp
-     py_typedesc.cpp py_paramvalue.cpp py_deepdata.cpp
+     py_typedesc.cpp py_paramvalue.cpp py_deepdata.cpp py_colorconfig.cpp
      py_oiio.cpp)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

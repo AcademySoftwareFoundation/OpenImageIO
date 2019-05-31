@@ -249,6 +249,7 @@ OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME)
     declare_imagespec(m);
     declare_roi(m);
     declare_deepdata(m);
+    declare_colorconfig(m);
 
     // Main OIIO I/O classes
     declare_imageinput(m);
