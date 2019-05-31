@@ -382,17 +382,17 @@ enum class endian {
 };
 
 
-/// Return true if the architecture we are running on is little endian
+/// Return true if the architecture we are running on is little endian.
 OIIO_FORCEINLINE constexpr bool
-littleendian(void)
+littleendian(void) noexcept
 {
     return endian::native == endian::little;
 }
 
 
-/// Return true if the architecture we are running on is big endian
+/// Return true if the architecture we are running on is big endian.
 OIIO_FORCEINLINE constexpr bool
-bigendian(void)
+bigendian(void) noexcept
 {
     return endian::native == endian::big;
 }

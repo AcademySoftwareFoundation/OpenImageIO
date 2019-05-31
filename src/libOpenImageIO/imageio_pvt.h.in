@@ -76,8 +76,8 @@ inline void errorf (const char* fmt, const Args&... args) {
 void catalog_all_plugins (std::string searchpath);
 
 /// Given the format, set the default quantization range.
-void get_default_quantize (TypeDesc format,
-                           long long &quant_min, long long &quant_max);
+void get_default_quantize (TypeDesc format, long long &quant_min,
+                           long long &quant_max) noexcept;
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values

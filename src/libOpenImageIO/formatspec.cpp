@@ -72,7 +72,7 @@ using namespace pvt;
 // type.
 template<class T>
 inline void
-get_default_quantize_(long long& quant_min, long long& quant_max)
+get_default_quantize_(long long& quant_min, long long& quant_max) noexcept
 {
     if (std::numeric_limits<T>::is_integer) {
         quant_min = (long long)std::numeric_limits<T>::min();
@@ -89,7 +89,7 @@ get_default_quantize_(long long& quant_min, long long& quant_max)
 // Rely on the template version to make life easy.
 void
 pvt::get_default_quantize(TypeDesc format, long long& quant_min,
-                          long long& quant_max)
+                          long long& quant_max) noexcept
 {
     switch (format.basetype) {
     case TypeDesc::UNKNOWN:
@@ -130,7 +130,7 @@ pvt::get_default_quantize(TypeDesc format, long long& quant_min,
 
 
 
-ImageSpec::ImageSpec(TypeDesc format)
+ImageSpec::ImageSpec(TypeDesc format) noexcept
     : x(0)
     , y(0)
     , z(0)
@@ -156,7 +156,7 @@ ImageSpec::ImageSpec(TypeDesc format)
 
 
 
-ImageSpec::ImageSpec(int xres, int yres, int nchans, TypeDesc format)
+ImageSpec::ImageSpec(int xres, int yres, int nchans, TypeDesc format) noexcept
     : x(0)
     , y(0)
     , z(0)
@@ -183,7 +183,7 @@ ImageSpec::ImageSpec(int xres, int yres, int nchans, TypeDesc format)
 
 
 
-ImageSpec::ImageSpec(const ROI& roi, TypeDesc format)
+ImageSpec::ImageSpec(const ROI& roi, TypeDesc format) noexcept
     : x(roi.xbegin)
     , y(roi.ybegin)
     , z(roi.zbegin)
@@ -211,7 +211,7 @@ ImageSpec::ImageSpec(const ROI& roi, TypeDesc format)
 
 
 void
-ImageSpec::set_format(TypeDesc fmt)
+ImageSpec::set_format(TypeDesc fmt) noexcept
 {
     format = fmt;
     channelformats.clear();
@@ -220,7 +220,7 @@ ImageSpec::set_format(TypeDesc fmt)
 
 
 void
-ImageSpec::default_channel_names()
+ImageSpec::default_channel_names() noexcept
 {
     channelnames.clear();
     channelnames.reserve(nchannels);
@@ -248,7 +248,7 @@ ImageSpec::default_channel_names()
 
 
 size_t
-ImageSpec::channel_bytes(int chan, bool native) const
+ImageSpec::channel_bytes(int chan, bool native) const noexcept
 {
     if (chan >= nchannels)
         return 0;
@@ -261,7 +261,7 @@ ImageSpec::channel_bytes(int chan, bool native) const
 
 
 size_t
-ImageSpec::pixel_bytes(bool native) const
+ImageSpec::pixel_bytes(bool native) const noexcept
 {
     if (nchannels < 0)
         return 0;
@@ -278,7 +278,7 @@ ImageSpec::pixel_bytes(bool native) const
 
 
 size_t
-ImageSpec::pixel_bytes(int chbegin, int chend, bool native) const
+ImageSpec::pixel_bytes(int chbegin, int chend, bool native) const noexcept
 {
     if (chbegin < 0)
         return 0;
@@ -296,7 +296,7 @@ ImageSpec::pixel_bytes(int chbegin, int chend, bool native) const
 
 
 imagesize_t
-ImageSpec::scanline_bytes(bool native) const
+ImageSpec::scanline_bytes(bool native) const noexcept
 {
     if (width < 0)
         return 0;
@@ -306,7 +306,7 @@ ImageSpec::scanline_bytes(bool native) const
 
 
 imagesize_t
-ImageSpec::tile_pixels() const
+ImageSpec::tile_pixels() const noexcept
 {
     if (tile_width <= 0 || tile_height <= 0 || tile_depth <= 0)
         return 0;
@@ -320,7 +320,7 @@ ImageSpec::tile_pixels() const
 
 
 imagesize_t
-ImageSpec::tile_bytes(bool native) const
+ImageSpec::tile_bytes(bool native) const noexcept
 {
     return clamped_mult64(tile_pixels(), (imagesize_t)pixel_bytes(native));
 }
@@ -328,7 +328,7 @@ ImageSpec::tile_bytes(bool native) const
 
 
 imagesize_t
-ImageSpec::image_pixels() const
+ImageSpec::image_pixels() const noexcept
 {
     if (width < 0 || height < 0 || depth < 0)
         return 0;
@@ -341,7 +341,7 @@ ImageSpec::image_pixels() const
 
 
 imagesize_t
-ImageSpec::image_bytes(bool native) const
+ImageSpec::image_bytes(bool native) const noexcept
 {
     return clamped_mult64(image_pixels(), (imagesize_t)pixel_bytes(native));
 }

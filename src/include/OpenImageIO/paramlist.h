@@ -66,40 +66,40 @@ public:
         INTERP_VERTEX   = 3   ///< Interpolated like vertices
     };
 
-    ParamValue() { m_data.ptr = nullptr; }
+    ParamValue() noexcept { m_data.ptr = nullptr; }
     ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy = true)
+               const void* _value, bool _copy = true) noexcept
     {
         init_noclear(_name, _type, _nvalues, _value, _copy);
     }
     ParamValue(const ustring& _name, TypeDesc _type, int _nvalues,
-               Interp _interp, const void* _value, bool _copy = true)
+               Interp _interp, const void* _value, bool _copy = true) noexcept
     {
         init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
     }
     ParamValue(string_view _name, TypeDesc _type, int _nvalues,
-               const void* _value, bool _copy = true)
+               const void* _value, bool _copy = true) noexcept
     {
         init_noclear(ustring(_name), _type, _nvalues, _value, _copy);
     }
     ParamValue(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-               const void* _value, bool _copy = true)
+               const void* _value, bool _copy = true) noexcept
     {
         init_noclear(ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
-    ParamValue(string_view _name, int value)
+    ParamValue(string_view _name, int value) noexcept
     {
         init_noclear(ustring(_name), TypeDesc::INT, 1, &value);
     }
-    ParamValue(string_view _name, float value)
+    ParamValue(string_view _name, float value) noexcept
     {
         init_noclear(ustring(_name), TypeDesc::FLOAT, 1, &value);
     }
-    ParamValue(string_view _name, ustring value)
+    ParamValue(string_view _name, ustring value) noexcept
     {
         init_noclear(ustring(_name), TypeDesc::STRING, 1, &value);
     }
-    ParamValue(string_view _name, string_view value)
+    ParamValue(string_view _name, string_view value) noexcept
     {
         ustring u(value);
         init_noclear(ustring(_name), TypeDesc::STRING, 1, &u);
@@ -109,19 +109,19 @@ public:
     ParamValue(string_view _name, TypeDesc type, string_view value);
 
     // Copy constructor
-    ParamValue(const ParamValue& p)
+    ParamValue(const ParamValue& p) noexcept
     {
         init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
                      true);
     }
-    ParamValue(const ParamValue& p, bool _copy)
+    ParamValue(const ParamValue& p, bool _copy) noexcept
     {
         init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
                      _copy);
     }
 
     // Rvalue (move) constructor
-    ParamValue(ParamValue&& p)
+    ParamValue(ParamValue&& p) noexcept
     {
         init_noclear(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
                      false);
@@ -130,39 +130,39 @@ public:
         p.m_data.ptr = nullptr;  // make sure the old one won't free
     }
 
-    ~ParamValue() { clear_value(); }
+    ~ParamValue() noexcept { clear_value(); }
 
     void init(ustring _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy = true)
+              const void* _value, bool _copy = true) noexcept
     {
         clear_value();
         init_noclear(_name, _type, _nvalues, _interp, _value, _copy);
     }
     void init(ustring _name, TypeDesc _type, int _nvalues, const void* _value,
-              bool _copy = true)
+              bool _copy = true) noexcept
     {
         init(_name, _type, _nvalues, INTERP_CONSTANT, _value, _copy);
     }
     void init(string_view _name, TypeDesc _type, int _nvalues,
-              const void* _value, bool _copy = true)
+              const void* _value, bool _copy = true) noexcept
     {
         init(ustring(_name), _type, _nvalues, _value, _copy);
     }
     void init(string_view _name, TypeDesc _type, int _nvalues, Interp _interp,
-              const void* _value, bool _copy = true)
+              const void* _value, bool _copy = true) noexcept
     {
         init(ustring(_name), _type, _nvalues, _interp, _value, _copy);
     }
 
     // Assignment
-    const ParamValue& operator=(const ParamValue& p)
+    const ParamValue& operator=(const ParamValue& p) noexcept
     {
         if (this != &p)
             init(p.name(), p.type(), p.nvalues(), p.interp(), p.data(),
                  p.m_copy);
         return *this;
     }
-    const ParamValue& operator=(ParamValue&& p)
+    const ParamValue& operator=(ParamValue&& p) noexcept
     {
         if (this != &p) {
             init(p.name(), p.type(), p.nvalues(), p.interp(), p.data(), false);
@@ -176,17 +176,23 @@ public:
     // FIXME -- some time in the future (after more cleanup), we should make
     // name() return a string_view, and use uname() for the rare time when
     // the caller truly requires the ustring.
-    const ustring& name() const { return m_name; }
-    const ustring& uname() const { return m_name; }
-    TypeDesc type() const { return m_type; }
-    int nvalues() const { return m_nvalues; }
-    const void* data() const { return m_nonlocal ? m_data.ptr : &m_data; }
-    int datasize() const { return m_nvalues * static_cast<int>(m_type.size()); }
-    Interp interp() const { return (Interp)m_interp; }
-    void interp(Interp i) { m_interp = (unsigned char)i; }
-    bool is_nonlocal() const { return m_nonlocal; }
+    const ustring& name() const noexcept { return m_name; }
+    const ustring& uname() const noexcept { return m_name; }
+    TypeDesc type() const noexcept { return m_type; }
+    int nvalues() const noexcept { return m_nvalues; }
+    const void* data() const noexcept
+    {
+        return m_nonlocal ? m_data.ptr : &m_data;
+    }
+    int datasize() const noexcept
+    {
+        return m_nvalues * static_cast<int>(m_type.size());
+    }
+    Interp interp() const noexcept { return (Interp)m_interp; }
+    void interp(Interp i) noexcept { m_interp = (unsigned char)i; }
+    bool is_nonlocal() const noexcept { return m_nonlocal; }
 
-    friend void swap(ParamValue& a, ParamValue& b)
+    friend void swap(ParamValue& a, ParamValue& b) noexcept
     {
         auto tmp = std::move(a);
         a        = std::move(b);
@@ -197,7 +203,7 @@ public:
     // be really sure you are asking for the right type. Note that for
     // "string" data, you can get<ustring> or get<char*>, but it's not
     // a std::string.
-    template<typename T> const T& get(int i = 0) const
+    template<typename T> const T& get(int i = 0) const noexcept
     {
         return (reinterpret_cast<const T*>(data()))[i];
     }
@@ -242,10 +248,11 @@ private:
     bool m_nonlocal        = false;
 
     void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                      const void* _value, bool _copy = true);
+                      const void* _value, bool _copy = true) noexcept;
     void init_noclear(ustring _name, TypeDesc _type, int _nvalues,
-                      Interp _interp, const void* _value, bool _copy = true);
-    void clear_value();
+                      Interp _interp, const void* _value,
+                      bool _copy = true) noexcept;
+    void clear_value() noexcept;
 };
 
 

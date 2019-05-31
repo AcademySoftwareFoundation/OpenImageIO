@@ -432,8 +432,8 @@ std::string OIIO_API replace (string_view str, string_view pattern,
 /// '.' as the decimal separator. This should be preferred for I/O and other
 /// situations where you want the same standard formatting regardless of
 /// locale.
-float OIIO_API strtof (const char *nptr, char **endptr = nullptr);
-double OIIO_API strtod (const char *nptr, char **endptr = nullptr);
+float OIIO_API strtof (const char *nptr, char **endptr = nullptr) noexcept;
+double OIIO_API strtod (const char *nptr, char **endptr = nullptr) noexcept;
 
 
 // stoi() returns the int conversion of text from a string.
@@ -636,31 +636,31 @@ public:
 
 /// C++ functor for comparing two strings for equality of their characters.
 struct OIIO_API StringEqual {
-    bool operator() (const char *a, const char *b) const { return strcmp (a, b) == 0; }
-    bool operator() (string_view a, string_view b) const { return a == b; }
+    bool operator() (const char *a, const char *b) const noexcept { return strcmp (a, b) == 0; }
+    bool operator() (string_view a, string_view b) const noexcept { return a == b; }
 };
 
 
 /// C++ functor for comparing two strings for equality of their characters
 /// in a case-insensitive and locale-insensitive way.
 struct OIIO_API StringIEqual {
-    bool operator() (const char *a, const char *b) const;
-    bool operator() (string_view a, string_view b) const { return iequals (a, b); }
+    bool operator() (const char *a, const char *b) const noexcept;
+    bool operator() (string_view a, string_view b) const noexcept { return iequals (a, b); }
 };
 
 
 /// C++ functor for comparing the ordering of two strings.
 struct OIIO_API StringLess {
-    bool operator() (const char *a, const char *b) const { return strcmp (a, b) < 0; }
-    bool operator() (string_view a, string_view b) const { return a < b; }
+    bool operator() (const char *a, const char *b) const noexcept { return strcmp (a, b) < 0; }
+    bool operator() (string_view a, string_view b) const noexcept { return a < b; }
 };
 
 
 /// C++ functor for comparing the ordering of two strings in a
 /// case-insensitive and locale-insensitive way.
 struct OIIO_API StringILess {
-    bool operator() (const char *a, const char *b) const;
-    bool operator() (string_view a, string_view b) const { return a < b; }
+    bool operator() (const char *a, const char *b) const noexcept;
+    bool operator() (string_view a, string_view b) const noexcept { return a < b; }
 };
 
 
@@ -699,11 +699,11 @@ struct OIIO_API StringILess {
 
 // Conversion to wide char
 //
-std::wstring OIIO_API utf8_to_utf16 (string_view utf8str);
+std::wstring OIIO_API utf8_to_utf16 (string_view utf8str) noexcept;
 
 // Conversion from wide char
 //
-std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str);
+std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str) noexcept;
 #endif
 
 
@@ -711,46 +711,46 @@ std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str);
 /// src into dst[], filling any remaining characters with 0 values. Returns
 /// dst. Note that this behavior is identical to strncpy, except that it
 /// guarantees that there will be a termining 0 character.
-OIIO_API char * safe_strcpy (char *dst, string_view src, size_t size);
+OIIO_API char * safe_strcpy (char *dst, string_view src, size_t size) noexcept;
 
 
 /// Modify str to trim any whitespace (space, tab, linefeed, cr) from the
 /// front.
-void OIIO_API skip_whitespace (string_view &str);
+void OIIO_API skip_whitespace (string_view &str) noexcept;
 
 /// If str's first character is c (or first non-whitespace char is c, if
 /// skip_whitespace is true), return true and additionally modify str to
 /// skip over that first character if eat is also true. Otherwise, if str
 /// does not begin with character c, return false and don't modify str.
 bool OIIO_API parse_char (string_view &str, char c,
-                          bool skip_whitespace = true, bool eat=true);
+                          bool skip_whitespace = true, bool eat=true) noexcept;
 
 /// Modify str to trim all characters up to (but not including) the first
 /// occurrence of c, and return true if c was found or false if the whole
 /// string was trimmed without ever finding c. But if eat is false, then
 /// don't modify str, just return true if any c is found, false if no c
 /// is found.
-bool OIIO_API parse_until_char (string_view &str, char c, bool eat=true);
+bool OIIO_API parse_until_char (string_view &str, char c, bool eat=true) noexcept;
 
 /// If str's first non-whitespace characters are the prefix, return true and
 /// additionally modify str to skip over that prefix if eat is also true.
 /// Otherwise, if str doesn't start with optional whitespace and the prefix,
 /// return false and don't modify str.
-bool OIIO_API parse_prefix (string_view &str, string_view prefix, bool eat=true);
+bool OIIO_API parse_prefix (string_view &str, string_view prefix, bool eat=true) noexcept;
 
 /// If str's first non-whitespace characters form a valid integer, return
 /// true, place the integer's value in val, and additionally modify str to
 /// skip over the parsed integer if eat is also true. Otherwise, if no
 /// integer is found at the beginning of str, return false and don't modify
 /// val or str.
-bool OIIO_API parse_int (string_view &str, int &val, bool eat=true);
+bool OIIO_API parse_int (string_view &str, int &val, bool eat=true) noexcept;
 
 /// If str's first non-whitespace characters form a valid float, return
 /// true, place the float's value in val, and additionally modify str to
 /// skip over the parsed float if eat is also true. Otherwise, if no float
 /// is found at the beginning of str, return false and don't modify val or
 /// str.
-bool OIIO_API parse_float (string_view &str, float &val, bool eat=true);
+bool OIIO_API parse_float (string_view &str, float &val, bool eat=true) noexcept;
 
 enum QuoteBehavior { DeleteQuotes, KeepQuotes };
 /// If str's first non-whitespace characters form a valid string (either a
@@ -762,20 +762,20 @@ enum QuoteBehavior { DeleteQuotes, KeepQuotes };
 /// and don't modify val or str. If keep_quotes is true, the surrounding
 /// double quotes (if present) will be kept in val.
 bool OIIO_API parse_string (string_view &str, string_view &val, bool eat=true,
-                            QuoteBehavior keep_quotes=DeleteQuotes);
+                            QuoteBehavior keep_quotes=DeleteQuotes) noexcept;
 
 /// Return the first "word" (set of contiguous alphabetical characters) in
 /// str, and additionally modify str to skip over the parsed word if eat is
 /// also true. Otherwise, if no word is found at the beginning of str,
 /// return an empty string_view and don't modify str.
-string_view OIIO_API parse_word (string_view &str, bool eat=true);
+string_view OIIO_API parse_word (string_view &str, bool eat=true) noexcept;
 
 /// If str's first non-whitespace characters form a valid C-like identifier,
 /// return the identifier, and additionally modify str to skip over the
 /// parsed identifier if eat is also true. Otherwise, if no identifier is
 /// found at the beginning of str, return an empty string_view and don't
 /// modify str.
-string_view OIIO_API parse_identifier (string_view &str, bool eat=true);
+string_view OIIO_API parse_identifier (string_view &str, bool eat=true) noexcept;
 
 /// If str's first non-whitespace characters form a valid C-like identifier,
 /// return the identifier, and additionally modify str to skip over the
@@ -787,27 +787,27 @@ string_view OIIO_API parse_identifier (string_view &str, bool eat=true);
 /// containing dollar signs and colons as well as the usual alphanumeric and
 /// underscore characters.
 string_view OIIO_API parse_identifier (string_view &str,
-                                       string_view allowed, bool eat = true);
+                                       string_view allowed, bool eat = true) noexcept;
 
 /// If the C-like identifier at the head of str exactly matches id,
 /// return true, and also advance str if eat is true. If it is not a match
 /// for id, return false and do not alter str.
 bool OIIO_API parse_identifier_if (string_view &str, string_view id,
-                                   bool eat=true);
+                                   bool eat=true) noexcept;
 
 /// Return the characters until any character in sep is found, storing it in
 /// str, and additionally modify str to skip over the parsed section if eat
 /// is also true. Otherwise, if no word is found at the beginning of str,
 /// return an empty string_view and don't modify str.
 string_view OIIO_API parse_until (string_view &str,
-                                  string_view sep=" \t\r\n", bool eat=true);
+                                  string_view sep=" \t\r\n", bool eat=true) noexcept;
 
 /// Return the characters at the head of the string that match any in set,
 /// and additionally modify str to skip over the parsed section if eat is
 /// also true. Otherwise, if no `set` characters are found at the beginning
 /// of str, return an empty string_view and don't modify str.
 string_view OIIO_API parse_while (string_view &str,
-                                  string_view set, bool eat=true);
+                                  string_view set, bool eat=true) noexcept;
 
 /// Assuming the string str starts with either '(', '[', or '{', return the
 /// head, up to and including the corresponding closing character (')', ']',
@@ -817,7 +817,7 @@ string_view OIIO_API parse_while (string_view &str,
 /// doesn't contain a correctly matching nested pair. If eat==true, str will
 /// be modified to trim off the part of the string that is returned as the
 /// match.
-string_view OIIO_API parse_nested (string_view &str, bool eat=true);
+string_view OIIO_API parse_nested (string_view &str, bool eat=true) noexcept;
 
 
 /// Look within `str` for the pattern:
