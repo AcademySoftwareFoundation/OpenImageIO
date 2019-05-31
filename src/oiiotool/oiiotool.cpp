@@ -2245,6 +2245,11 @@ action_channels(int argc, const char* argv[])
     string_view command  = ot.express(argv[0]);
     string_view chanlist = ot.express(argv[1]);
 
+    std::map<std::string, std::string> options;
+    options["allsubimages"] = std::to_string(ot.allsubimages);
+    ot.extract_options(options, command);
+    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+
     ImageRecRef A(ot.pop());
     ot.read(A);
 
@@ -2257,7 +2262,7 @@ action_channels(int argc, const char* argv[])
     // need to describe the new ImageRec with the altered channels.
     std::vector<int> allmiplevels;
     std::vector<ImageSpec> allspecs;
-    for (int s = 0, subimages = ot.allsubimages ? A->subimages() : 1;
+    for (int s = 0, subimages = allsubimages ? A->subimages() : 1;
          s < subimages; ++s) {
         std::vector<std::string> newchannelnames;
         std::vector<int> channels;
