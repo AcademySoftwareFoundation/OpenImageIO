@@ -1392,119 +1392,215 @@ private:
 
 /// ImageOutput abstracts the writing of an image file in a file
 /// format-agnostic manner.
+///
+/// Users don't directly declare these. Instead, you call the `create()`
+/// static method, which will return a `unique_ptr` holding a subclass of
+/// ImageOutput that implements writing the particular format.
+///
 class OIIO_API ImageOutput {
 public:
     /// unique_ptr to an ImageOutput, with custom deleter.
     using unique_ptr = std::unique_ptr<ImageOutput>;
 
-    /// Create an ImageOutput that will write to a file, with the format
-    /// inferred from the extension of the name.  The plugin_searchpath
-    /// parameter is a colon-separated list of directories to search for
-    /// ImageIO plugin DSO/DLL's.  This just creates the ImageOutput, it
-    /// does not open the file.  If the writer could be created, a
-    /// unique_ptr to it will be returned, otherwise an empty pointer will
-    /// be returned and an appropriate error message will be set that can be
-    /// retrieved with OIIO::geterror().
+    /// @{
+    /// @name Creating an ImageOutput
+
+    /// Create an `ImageOutput` that can be used to write an image file.
+    /// The type of image file (and hence, the particular subclass of
+    /// `ImageOutput` returned, and the plugin that contains its methods) is
+    /// inferred from the name.
+    ///
+    /// @param filename The name of the file format (e.g., "openexr"), a
+    ///                 file extension (e.g., "exr"), or a filename from
+    ///                 which the the file format can be inferred from its
+    ///                 extension (e.g., "hawaii.exr").
+    /// @param plugin_searchpath
+    ///                 An optional colon-separated list of directories to
+    ///                 search for OpenImageIO plugin DSO/DLL's.
+    /// @returns        A `unique_ptr` that will close and free the
+    ///                 ImageOutput when it exists scope or is reset.
+    ///                 The pointer will be empty if the requiresd writer
+    ///                 was not able to be created.
     static unique_ptr create (const std::string &filename,
                               const std::string &plugin_searchpath="");
 
-    // Destructor for a raw ImageOutput.
+    /// @}
+
+    /// Destructor for a raw ImageOutput. This is deprecated, do not do
+    /// this! Instead, you should be using `create()` to acquire a
+    /// `unique_ptr` to an `ImageOutput` and it will properly destroy the
+    /// object when it exists scope or is reset.
     static void destroy (ImageOutput *x);
 
+protected:
     ImageOutput ();
+public:
     virtual ~ImageOutput ();
 
     /// Return the name of the format implemented by this class.
-    ///
     virtual const char *format_name (void) const = 0;
 
     // Overrride these functions in your derived output class
     // to inform the client which formats are supported
 
-    /// Given the name of a 'feature', return whether this ImageOutput
+    /// @{
+    /// @name Opening and closing files for output
+
+    /// Given the name of a "feature", return whether this ImageOutput
     /// supports output of images with the given properties. Most queries
-    /// will simply return 0 for "doesn't support" and nonzero for "supports
-    /// it", but it is acceptable to have queries return other nonzero
-    /// integers to indicate varying degrees of support or limits (but
-    /// should be clearly documented as such).
+    /// will simply return 0 for "doesn't support" and 1 for "supports it,"
+    /// but it is acceptable to have queries return other nonzero integers
+    /// to indicate varying degrees of support or limits (but should be
+    /// clearly documented as such).
     ///
     /// Feature names that ImageIO plugins are expected to recognize
     /// include:
-    ///    "tiles"          Is this format able to write tiled images?
-    ///    "rectangles"     Does this plugin accept arbitrary rectangular
-    ///                       pixel regions, not necessarily aligned to
-    ///                       scanlines or tiles?
-    ///    "random_access"  May tiles or scanlines be written in
-    ///                       any order (false indicates that they MUST
-    ///                       be in successive order).
-    ///    "multiimage"     Does this format support multiple subimages
-    ///                       within a file?
-    ///    "appendsubimage" Does this format support adding subimages one at
-    ///                       a time through open(name,spec,AppendSubimage)?
-    ///                       If not, then open(name,subimages,specs) must
-    ///                       be used instead.
-    ///    "mipmap"         Does this format support multiple resolutions
-    ///                       for an image/subimage?
-    ///    "volumes"        Does this format support "3D" pixel arrays?
-    ///    "alpha"          Can this format support an alpha channel?
-    ///    "nchannels"      Can this format support arbitrary number of
-    ///                        channels (beyond RGBA)?
-    ///    "rewrite"        May the same scanline or tile be sent more than
-    ///                       once?  (Generally, this will be true for
-    ///                       plugins that implement interactive display.)
-    ///    "empty"          Does this plugin support passing a NULL data
-    ///                       pointer to write_scanline or write_tile to
-    ///                       indicate that the entire data block is zero?
-    ///    "channelformats" Does the plugin/format support per-channel
-    ///                       data formats?
-    ///    "displaywindow"  Does the format support display ("full") windows
-    ///                        distinct from the pixel data window?
-    ///    "origin"         Does the format support a nonzero x,y,z
-    ///                        origin of the pixel data window?
-    ///    "negativeorigin" Does the format support negative x,y,z
-    ///                        and full_{x,y,z} origin values?
-    ///    "deepdata"       Deep (multi-sample per pixel) data
-    ///    "arbitrary_metadata" Does this format allow metadata with
-    ///                        arbitrary names and types?
-    ///    "exif"           Can this format store Exif camera data?
-    ///    "iptc"           Can this format store IPTC data?
-    ///    "ioproxy"        Does this format writer support IOProxy?
     ///
-    /// Note that main advantage of this approach, versus having
-    /// separate individual supports_foo() methods, is that this allows
-    /// future expansion of the set of possible queries without changing
-    /// the API, adding new entry points, or breaking linkage
-    /// compatibility.
+    ///  - `"tiles"` :
+    ///         Is this format writer able to write tiled images?
+    ///
+    ///  - `"rectangles"` :
+    ///         Does this writer accept arbitrary rectangular pixel regions
+    ///         (via `write_rectangle()`)?  Returning 0 indicates that
+    ///         pixels must be transmitted via `write_scanline()` (if
+    ///         scanline-oriented) or `write_tile()` (if tile-oriented, and
+    ///         only if `supports("tiles")` returns true).
+    ///
+    ///  - `"random_access"` :
+    ///         May tiles or scanlines be written in any order (0 indicates
+    ///         that they *must* be in successive order)?
+    ///
+    ///  - `"multiimage"` :
+    ///         Does this format support multiple subimages within a file?
+    ///
+    ///  - `"appendsubimage"` :
+    ///         Does this format support multiple subimages that can be
+    ///         successively appended at will via
+    ///         `open(name,spec,AppendSubimage)`? A value of 0 means that
+    ///         the format requires pre-declaring the number and
+    ///         specifications of the subimages when the file is first
+    ///         opened, with `open(name,subimages,specs)`.
+    ///
+    ///  - `"mipmap"` :
+    ///         Does this format support multiple resolutions for an
+    ///         image/subimage?
+    ///
+    ///  - `"volumes"` :
+    ///         Does this format support "3D" pixel arrays (a.k.a. volume
+    ///         images)?
+    ///
+    ///  - `"alpha"` :
+    ///         Can this format support an alpha channel?
+    ///
+    ///  - `"nchannels"` :
+    ///         Can this format support arbitrary number of channels (beyond RGBA)?
+    ///
+    ///  - `"rewrite"` :
+    ///         May the same scanline or tile be sent more than once?
+    ///         Generally, this is true for plugins that implement
+    ///         interactive display, rather than a saved image file.
+    ///
+    ///  - `"empty"` :
+    ///         Does this plugin support passing a NULL data pointer to the
+    ///         various `write` routines to indicate that the entire data
+    ///         block is composed of pixels with value zero?  Plugins that
+    ///         support this achieve a speedup when passing blank scanlines
+    ///         or tiles (since no actual data needs to be transmitted or
+    ///         converted).
+    ///
+    ///  - `"channelformats"` :
+    ///         Does this format writer support per-channel data formats,
+    ///         respecting the ImageSpec's `channelformats` field? If not,
+    ///         it only accepts a single data format for all channels and
+    ///         will ignore the `channelformats` field of the spec.
+    ///
+    ///  - `"displaywindow"` :
+    ///         Does the format support display ("full") windows distinct
+    ///         from the pixel data window?
+    ///
+    ///  - `"origin"` :
+    ///         Does the image format support specifying a pixel window
+    ///         origin (i.e., nonzero ImageSpec `x`, `y`, `z`)?
+    ///
+    ///  - `"negativeorigin"` :
+    ///         Does the image format allow pixel and data window origins
+    ///         (i.e., ImageSpec `x`, `y`, `z`, `full_x`, `full_y`, `full_z`)
+    ///         to have negative values?
+    ///
+    ///  - `"deepdata"` :
+    ///        Does the image format allow "deep" data consisting of
+    ///        multiple values per pixel (and potentially a differing number
+    ///        of values from pixel to pixel)?
+    ///
+    ///  - `"arbitrary_metadata"` :
+    ///         Does the image file format allow metadata with arbitrary
+    ///         names (and either arbitrary, or a reasonable set of, data
+    ///         types)? (Versus the file format supporting only a fixed list
+    ///         of specific metadata names/values.)
+    ///
+    ///  - `"exif"`
+    ///         Does the image file format support Exif camera data (either
+    ///         specifically, or via arbitrary named metadata)?
+    ///
+    ///  - `"iptc"`
+    ///         Does the image file format support IPTC data (either
+    ///         specifically, or via arbitrary named metadata)?
+    ///
+    ///  - `"ioproxy"`
+    ///         Does the image file format support writing to an `IOProxy`?
+    ///
+    /// This list of queries may be extended in future releases. Since this
+    /// can be done simply by recognizing new query strings, and does not
+    /// require any new API entry points, addition of support for new
+    /// queries does not break ``link compatibility'' with
+    /// previously-compiled plugins.
     virtual int supports (string_view feature) const { return false; }
 
+    /// Modes passed to the `open()` call.
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
 
     /// Open the file with given name, with resolution and other format
-    /// data as given in newspec.  Open returns true for success, false
-    /// for failure.  Note that it is legal to call open multiple times
-    /// on the same file without a call to close(), if it supports
+    /// data as given in newspec. It is legal to call open multiple times
+    /// on the same file without a call to `close()`, if it supports
     /// multiimage and mode is AppendSubimage, or if it supports
     /// MIP-maps and mode is AppendMIPLevel -- this is interpreted as
     /// appending a subimage, or a MIP level to the current subimage,
     /// respectively.
+    ///
+    /// @param  name        The name of the image file to open.
+    /// @param  newspec     The ImageSpec describing the resolution, data
+    ///                     types, etc.
+    /// @param  mode        Specifies whether the purpose of the `open` is
+    ///                     to create/truncate the file (default: `Create`),
+    ///                     append another subimage (`AppendSubimage`), or
+    ///                     append another MIP level (`AppendMIPLevel`).
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool open (const std::string &name, const ImageSpec &newspec,
                        OpenMode mode=Create) = 0;
 
-    /// Open the file with given name, expecting to have a given total
-    /// number of subimages, described by specs[0..subimages-1].  
-    /// Return true for success, false for failure.  Upon success, the
-    /// first subimage will be open and ready for transmission of
-    /// pixels.  Subsequent subimages will be denoted with the usual
-    /// call of open(name,spec,AppendSubimage) (and MIP levels by
-    /// open(name,spec,AppendMIPLevel)).
+    /// Open a multi-subimage file with given name and specifications for
+    /// each of the subimages.  Upon success, the first subimage will be
+    /// open and ready for transmission of pixels.  Subsequent subimages
+    /// will be denoted with the usual call of
+    /// `open(name,spec,AppendSubimage)` (and MIP levels by
+    /// `open(name,spec,AppendMIPLevel)`).
     ///
     /// The purpose of this call is to accommodate format-writing
     /// libraries that fmust know the number and specifications of the
     /// subimages upon first opening the file; such formats can be
-    /// detected by
+    /// detected by::
     ///     supports("multiimage") && !supports("appendsubimage")
     /// The individual specs passed to the appending open() calls for
-    /// subsequent subimages MUST match the ones originally passed.
+    /// subsequent subimages *must* match the ones originally passed.
+    ///
+    /// @param  name        The name of the image file to open.
+    /// @param  subimages   The number of subimages (and therefore the
+    ///                     length of the `specs[]` array.
+    /// @param  specs[0..subimages-1]
+    ///                      Pointer to an array of `ImageSpec` objects
+    ///                      describing each of the expected subimages.
+    ///
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool open (const std::string &name, int subimages,
                        const ImageSpec *specs) {
         // Default implementation: just a regular open, assume that
@@ -1512,78 +1608,153 @@ public:
         return open (name, specs[0]);
     }
 
-    /// Return a reference to the image format specification of the
-    /// current subimage.  Note that the contents of the spec are
-    /// invalid before open() or after close().
+    /// Return a reference to the image format specification of the current
+    /// subimage.  Note that the contents of the spec are invalid before
+    /// `open()` or after `close()`.
     const ImageSpec &spec (void) const { return m_spec; }
 
-    /// Close an image that we are totally done with.  This should leave
-    /// the plugin in a state where it could open a new file safely,
-    /// without having to destroy the writer.
+    /// Closes the currently open file associated with this ImageOutput and
+    /// frees any memory or resources associated with it.
     virtual bool close () = 0;
+    /// @}
 
-    /// Write a full scanline that includes pixels (*,y,z).  (z is
-    /// ignored for 2D non-volume images.)  The stride value gives the
+    /// @{
+    /// @name Writing pixels
+    ///
+    /// Common features of all the `write` methods:
+    ///
+    /// * The `format` parameter describes the data type of the `data[]`. The
+    ///   write methods automatically convert the data from the specified
+    ///   `format` to the actual output data type of the file (as was
+    ///   specified by the ImageSpec passed to `open()`).  If `format` is
+    ///   `TypeUnknown`, then rather than converting from `format`, it will
+    ///   just copy pixels assumed to already be in the file's native data
+    ///   layout (including, possibly, per-channel data formats as specified
+    ///   by the ImageSpec's `channelfomats` field).
+    ///
+    /// * The `stride` values describe the layout of the `data` buffer:
+    ///   `xstride` is the distance in bytes between successive pixels
+    ///   within each scanline. `ystride` is the distance in bytes between
+    ///   successive scanlines. For volumetric images `zstride` is the
+    ///   distance in bytes between successive "volumetric planes".  Strides
+    ///   set to the special value `AutoStride` imply contiguous data, i.e.,
+    ///
+    ///       xstride = format.size() * nchannels
+    ///       ystride = xstride * width
+    ///       zstride = ystride * height
+    ///
+    /// * Any *range* parameters (such as `ybegin` and `yend`) describe a
+    ///   "half open interval", meaning that `begin` is the first item and
+    ///   `end` is *one past the last item*. That means that the number of
+    ///   items is `end - begin`.
+    ///
+    /// * For ordinary 2D (non-volumetric) imaages, any `z` or `zbegin`
+    ///   coordinates should be 0 and any `zend` should be 1, indicating
+    ///   that only a single image "plane" exists.
+    ///
+    /// * Scanlines or tiles must be presented in successive increasing
+    ///   coordinate order, unless the particular output file driver allows
+    ///   random access (indicated by `supports("random_access")`).
+    ///
+    /// * All write functions return `true` for success, `false` for failure
+    ///   (after which a call to `geterror()` may retrieve a specific error
+    ///   message).
+    ///
+
+    /// Write the full scanline that includes pixels (*,y,z).  For 2D
+    /// non-volume images, *z* should be 0. The xstride value gives the
     /// distance between successive pixels (in bytes).  Strides set to
-    /// AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    /// The data are automatically converted from 'format' to the actual
-    /// output format (as specified to open()) by this method.  
-    /// If format is TypeDesc::UNKNOWN, then rather than converting from
-    /// format, it will just copy pixels in the file's native data layout
-    /// (including, possibly, per-channel data formats).
-    /// Return true for success, false for failure.  It is a failure to
-    /// call write_scanline with an out-of-order scanline if this format
-    /// driver does not support random access.
+    /// `AutoStride` imply "contiguous" data.
+    ///
+    /// @param  y/z         The y & z coordinates of the scanline.
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride     The distance in bytes between successive
+    ///                     pixels in `data` (or `AutoStride`).
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride=AutoStride);
 
-    /// Write multiple scanlines that include pixels (*,y,z) for all
-    /// ybegin <= y < yend, from data.  This is analogous to
-    /// write_scanline except that it may be used to write more than one
-    /// scanline at a time (which, for some formats, may be able to be
-    /// done much more efficiently or in parallel).
+    /// Write multiple scanlines that include pixels (*,y,z) for all ybegin
+    /// <= y < yend, from data.  This is analogous to
+    /// `write_scanline(y,z,format,data,xstride)` repeatedly for each of the
+    /// scanlines in turn (the advantage, though, is that some image file
+    /// types may be able to write multiple scanlines more efficiently or
+    /// in parallel, than it could with one scanline at a time).
+    ///
+    /// @param  ybegin/yend The y range of the scanlines being passed.
+    /// @param  z           The z coordinate of the scanline.
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride/ystride
+    ///                     The distance in bytes between successive pixels
+    ///                     and scanlines (or `AutoStride`).
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool write_scanlines (int ybegin, int yend, int z,
                                   TypeDesc format, const void *data,
                                   stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride);
 
-    /// Write the tile with (x,y,z) as the upper left corner.  (z is
-    /// ignored for 2D non-volume images.)  The three stride values give
-    /// the distance (in bytes) between successive pixels, scanlines,
-    /// and volumetric slices, respectively.  Strides set to AutoStride
-    /// imply 'contiguous' data in the shape of a full tile, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    ///     ystride == xstride*spec.tile_width
-    ///     zstride == ystride*spec.tile_height
-    /// The data are automatically converted from 'format' to the actual
-    /// output format (as specified to open()) by this method.  
-    /// If format is TypeDesc::UNKNOWN, then rather than converting from
-    /// format, it will just copy pixels in the file's native data layout
-    /// (including, possibly, per-channel data formats).
-    /// Return true for success, false for failure.  It is a failure to
-    /// call write_tile with an out-of-order tile if this format driver
-    /// does not support random access.
+    /// Write the tile with (x,y,z) as the upper left corner.  The three
+    /// stride values give the distance (in bytes) between successive
+    /// pixels, scanlines, and volumetric slices, respectively.  Strides set
+    /// to AutoStride imply 'contiguous' data in the shape of a full tile,
+    /// i.e.,
+    ///
+    ///     xstride = spec.nchannels * format.size()
+    ///     ystride = xstride * spec.tile_width
+    ///     zstride = ystride * spec.tile_height
+    ///
+    /// @param  x/y/z       The upper left coordinate of the tile being passed.
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride/ystride/zstride
+    ///                     The distance in bytes between successive pixels,
+    ///                     scanlines, and image planes (or `AutoStride` to
+    ///                     indicate a "contiguous" single tile).
+    /// @returns            `true` upon success, or `false` upen failure.
+    ///
+    /// @note This call will fail if the image is not tiled, or if (x,y,z)
+    /// is not the upper left corner coordinates of a tile.
     virtual bool write_tile (int x, int y, int z, TypeDesc format,
                              const void *data, stride_t xstride=AutoStride,
                              stride_t ystride=AutoStride,
                              stride_t zstride=AutoStride);
 
     /// Write the block of multiple tiles that include all pixels in
-    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  This is analogous to
-    /// write_tile except that it may be used to write more than one tile at
-    /// a time (which, for some formats, may be able to be done much more
-    /// efficiently or in parallel).
+    ///
+    ///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    ///
+    /// This is analogous to calling `write_tile(x,y,z,...)` for each tile
+    /// in turn (but for some file formats, passing multiple tiles may allow
+    /// it to write more efficiently or in parallel).
+    ///
     /// The begin/end pairs must correctly delineate tile boundaries, with
     /// the exception that it may also be the end of the image data if the
-    /// image resolution is not a whole multiple of the tile size.
-    /// The stride values give the data spacing of adjacent pixels,
-    /// scanlines, and volumetric slices (measured in bytes). Strides set to
-    /// AutoStride imply 'contiguous' data in the shape of the [begin,end)
-    /// region, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    ///     ystride == xstride * (xend-xbegin)
-    ///     zstride == ystride * (yend-ybegin)
+    /// image resolution is not a whole multiple of the tile size. The
+    /// stride values give the data spacing of adjacent pixels, scanlines,
+    /// and volumetric slices (measured in bytes). Strides set to AutoStride
+    /// imply contiguous data in the shape of the [begin,end) region, i.e.,
+    ///
+    ///     xstride = format.size() * spec.nchannels
+    ///     ystride = xstride * (xend-xbegin)
+    ///     zstride = ystride * (yend-ybegin)
+    ///
+    /// @param  xbegin/xend The x range of the pixels covered by the group
+    ///                     of tiles passed.
+    /// @param  ybegin/yend The y range of the pixels covered by the tiles.
+    /// @param  zbegin/zend The z range of the pixels covered by the tiles
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride/ystride/zstride
+    ///                     The distance in bytes between successive pixels,
+    ///                     scanlines, and image planes (or `AutoStride`).
+    /// @returns            `true` upon success, or `false` upen failure.
+    ///
+    /// @note The call will fail if the image is not tiled, or if the pixel
+    /// ranges do not fall along tile (or image) boundaries, or if it is not
+    /// a valid tile range.
     virtual bool write_tiles (int xbegin, int xend, int ybegin, int yend,
                               int zbegin, int zend, TypeDesc format,
                               const void *data, stride_t xstride=AutoStride,
@@ -1591,97 +1762,142 @@ public:
                               stride_t zstride=AutoStride);
 
     /// Write a rectangle of pixels given by the range
-    ///   [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    ///
+    ///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    ///
     /// The stride values give the data spacing of adjacent pixels,
     /// scanlines, and volumetric slices (measured in bytes). Strides set to
-    /// AutoStride imply 'contiguous' data in the shape of the [begin,end)
+    /// AutoStride imply contiguous data in the shape of the [begin,end)
     /// region, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    ///     ystride == xstride * (xend-xbegin)
-    ///     zstride == ystride * (yend-ybegin)
-    /// The data are automatically converted from 'format' to the actual
-    /// output format (as specified to open()) by this method.  If
-    /// format is TypeDesc::UNKNOWN, it will just copy pixels assuming
-    /// they are already in the file's native data layout (including,
-    /// possibly, per-channel data formats).
     ///
-    /// Return true for success, false for failure.  It is a failure to
-    /// call write_rectangle for a format plugin that does not return
-    /// true for supports("rectangles").
+    ///     xstride = format.size() * spec.nchannels
+    ///     ystride = xstride * (xend-xbegin)
+    ///     zstride = ystride * (yend-ybegin)
+    ///
+    /// @param  xbegin/xend The x range of the pixels being passed.
+    /// @param  ybegin/yend The y range of the pixels being passed.
+    /// @param  zbegin/zend The z range of the pixels being passed
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride/ystride/zstride
+    ///                     The distance in bytes between successive pixels,
+    ///                     scanlines, and image planes (or `AutoStride`).
+    /// @returns            `true` upon success, or `false` upen failure.
+    ///
+    /// @note The call will fail for a format plugin that does not return
+    /// true for `supports("rectangles")`.
     virtual bool write_rectangle (int xbegin, int xend, int ybegin, int yend,
                                   int zbegin, int zend, TypeDesc format,
                                   const void *data, stride_t xstride=AutoStride,
                                   stride_t ystride=AutoStride,
                                   stride_t zstride=AutoStride);
 
-    /// Write the entire image of spec.width x spec.height x spec.depth
-    /// pixels, with the given strides and in the desired format.
-    /// Strides set to AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    ///     ystride == xstride*spec.width
-    ///     zstride == ystride*spec.height
-    /// Depending on spec, write either all tiles or all scanlines.
-    /// Assume that data points to a layout in row-major order.
-    /// If format is TypeDesc::UNKNOWN, then rather than converting from
-    /// format, it will just copy pixels in the file's native data layout
-    /// (including, possibly, per-channel data formats).
+    /// Write the entire image of `spec.width x spec.height x spec.depth`
+    /// pixels, from a buffer with the given strides and in the desired
+    /// format.
+    ///
+    /// Depending on the spec, this will write either all tiles or all
+    /// scanlines. Assume that data points to a layout in row-major order.
+    ///
     /// Because this may be an expensive operation, a progress callback
     /// may be passed.  Periodically, it will be called as follows:
-    ///   progress_callback (progress_callback_data, float done)
-    /// where 'done' gives the portion of the image
+    ///
+    ///     progress_callback (progress_callback_data, float done);
+    ///
+    /// where `done` gives the portion of the image (between 0.0 and 1.0)
+    /// that has been written thus far.
+    ///
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride/ystride/zstride
+    ///                     The distance in bytes between successive pixels,
+    ///                     scanlines, and image planes (or `AutoStride`).
+    /// @param  progress_callback/progress_callback_data
+    ///                     Optional progress callback.
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool write_image (TypeDesc format, const void *data,
                               stride_t xstride=AutoStride,
                               stride_t ystride=AutoStride,
                               stride_t zstride=AutoStride,
-                              ProgressCallback progress_callback=NULL,
-                              void *progress_callback_data=NULL);
+                              ProgressCallback progress_callback=nullptr,
+                              void *progress_callback_data=nullptr);
 
-    /// Write deep scanlines containing pixels (*,y,z), for all y in
-    /// [ybegin,yend), to a deep file.
+    /// Write deep scanlines containing pixels (*,y,z), for all y in the
+    /// range [ybegin,yend), to a deep file. This will fail if it is not a
+    /// deep file.
+    ///
+    /// @param  ybegin/yend The y range of the scanlines being passed.
+    /// @param  z           The z coordinate of the scanline.
+    /// @param  deepdata    A `DeepData` object with the data for these
+    ///                     scanlines.
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool write_deep_scanlines (int ybegin, int yend, int z,
                                        const DeepData &deepdata);
 
     /// Write the block of deep tiles that include all pixels in
-    /// [xbegin,xend) X [ybegin,yend) X [zbegin,zend).  
-    /// The begin/end pairs must correctly delineate tile boundaries,
-    /// with the exception that it may also be the end of the image data
-    /// if the image resolution is not a whole multiple of the tile size.
+    /// the range
+    ///
+    ///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+    ///
+    /// The begin/end pairs must correctly delineate tile boundaries, with
+    /// the exception that it may also be the end of the image data if the
+    /// image resolution is not a whole multiple of the tile size.
+    ///
+    /// @param  xbegin/xend The x range of the pixels covered by the group
+    ///                     of tiles passed.
+    /// @param  ybegin/yend The y range of the pixels covered by the tiles.
+    /// @param  zbegin/zend The z range of the pixels covered by the tiles
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  deepdata    A `DeepData` object with the data for the tiles.
+    /// @returns            `true` upon success, or `false` upen failure.
+    ///
+    /// @note The call will fail if the image is not tiled, or if the pixel
+    /// ranges do not fall along tile (or image) boundaries, or if it is not
+    /// a valid tile range.
     virtual bool write_deep_tiles (int xbegin, int xend, int ybegin, int yend,
                                    int zbegin, int zend,
                                    const DeepData &deepdata);
 
-    /// Write the entire deep image denoted by data.
+    /// Write the entire deep image described by `deepdata`. Depending on
+    /// the spec, this will write either all tiles or all scanlines.
+    ///
+    /// @param  deepdata    A `DeepData` object with the data for the image.
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool write_deep_image (const DeepData &deepdata);
 
-    /// Read the current subimage of 'in', and write it as the next
-    /// subimage of *this, in a way that is efficient and does not alter
-    /// pixel values, if at all possible.  Both in and this must be a
-    /// properly-opened ImageInput and ImageOutput, respectively, and
+    /// @}
+
+    /// Read the current subimage of `in`, and write it as the next
+    /// subimage of `*this`, in a way that is efficient and does not alter
+    /// pixel values, if at all possible.  Both `in` and `this` must be a
+    /// properly-opened `ImageInput` and `ImageOutput`, respectively, and
     /// their current images must match in size and number of channels.
-    /// Return true if it works ok, false if for some reason the
-    /// operation wasn't possible.
     ///
     /// If a particular ImageOutput implementation does not supply a
-    /// copy_image method, it will inherit the default implementation,
-    /// which is to simply read scanlines or tiles from 'in' and write
-    /// them to *this.  However, some ImageIO implementations may have a
-    /// special technique for directly copying raw pixel data from the
-    /// input to the output, when both input and output are the SAME
-    /// file type and the same data format.  This can be more efficient
-    /// than in->read_image followed by out->write_image, and avoids any
-    /// unintended pixel alterations, especially for formats that use
-    /// lossy compression.
+    /// `copy_image` method, it will inherit the default implementation,
+    /// which is to simply read scanlines or tiles from `in` and write them
+    /// to `*this`.  However, some file format implementations may have a
+    /// special technique for directly copying raw pixel data from the input
+    /// to the output, when both are the same file type and the same pixel
+    /// data type.  This can be more efficient than `in->read_image()`
+    /// followed by `out->write_image()`, and avoids any unintended pixel
+    /// alterations, especially for formats that use lossy compression.
+    ///
+    /// @param  in          A pointer to the open `ImageInput` to read from.
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool copy_image (ImageInput *in);
 
-    /// General message passing between client and image output server
-    ///
+    /// General message passing between client and image output server. This
+    /// is currently undefined and is reserved for future use.
     virtual int send_to_output (const char *format, ...);
+    /// General message passing between client and image output server. This
+    /// is currently undefined and is reserved for future use.
     int send_to_client (const char *format, ...);
 
-    /// If any of the API routines returned false indicating an error,
-    /// this routine will return the error string (and clear any error
-    /// flags).  If no error has occurred since the last time geterror()
-    /// was called, it will return an empty string.
+    /// Returns the current error string describing what went wrong if any
+    /// of the public methods returned `false` indicating an error, and
+    /// clear the error string.
     std::string geterror () const {
         std::string e = m_errmessage;
         m_errmessage.clear ();
@@ -1689,7 +1905,7 @@ public:
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// Strutil::format-like arguments.
+    /// `Strutil::format`-like arguments.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
@@ -1711,13 +1927,22 @@ public:
         append_error(Strutil::fmt::format (fmt, args...));
     }
 
-    /// Set the current thread-spawning policy: the maximum number of
-    /// threads that may be spawned by ImageOutput internals. A value of 1
-    /// means all work will be done by the calling thread; 0 means to use
-    /// the global OIIO::attribute("threads") value.
+    /// Set the threading policy for this ImageOutput, controlling the
+    /// maximum amount of parallelizing thread "fan-out" that might occur
+    /// during large write operations. The default of 0 means that the
+    /// global `attribute("threads")` value should be used (which itself
+    /// defaults to using as many threads as cores; see Section
+    /// `Global Attributes`_).
+    ///
+    /// The main reason to change this value is to set it to 1 to indicate
+    /// that the calling thread should do all the work rather than spawning
+    /// new threads. That is probably the desired behavior in situations
+    /// where the calling application has already spawned multiple worker
+    /// threads.
     void threads (int n) { m_threads = n; }
 
     /// Retrieve the current thread-spawning policy.
+    /// @see  `threads(int)`
     int threads () const { return m_threads; }
 
     // Custom new and delete to ensure that allocations & frees happen in
@@ -1725,7 +1950,8 @@ public:
     void* operator new (size_t size);
     void operator delete (void *ptr);
 
-    /// Call signature of a function that creates and returns an ImageOutput*
+    /// Call signature of a function that creates and returns an
+    /// `ImageOutput*`.
     typedef ImageOutput* (*Creator)();
 
 protected:

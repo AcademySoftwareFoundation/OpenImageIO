@@ -20,8 +20,8 @@ OpenImageIO
 
    imageioapi
 
-.. x  imageoutput
-   x imageinput
+   imageoutput
+..   x imageinput
    x writingplugins
    x builtinplugins
    x imagecache
