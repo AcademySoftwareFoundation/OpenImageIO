@@ -25,23 +25,33 @@ OIIO_NAMESPACE_BEGIN
 constexpr ptrdiff_t dynamic_extent = -1;
 
 
-/// span<T> : a non-owning reference to a contiguous array with known
-/// length.  An span<T> is mutable (the values in the array may be
-/// modified), whereas an span<const T> is not mutable.
+/// span<T> is a non-owning, non-copying, non-allocating reference to a
+/// contiguous array of T objects known length. A 'span` encapsulates both a
+/// pointer and a length, and thus is a safer way of passing pointers around
+/// (because the function called knows how long the array is). A function
+/// that might ordinarily take a `T*` and a length could instead just take a
+/// `span<T>`.
 ///
-/// Background: Functions whose input requires a set of contiguous values
-/// (an array) are faced with a dilemma. If the caller passes just a
-/// pointer, the function has no inherent way to determine how many elements
-/// may safely be accessed. Passing a std::vector& is "safe", but the caller
-/// may not have the data in a vector.  The function could require an
-/// explicit length to be passed (or a begin/end pair of iterators or
-/// pointers). Any way you shake it, there is some awkwardness.
+/// `A span<T>` is mutable (the values in the array may be modified).  A
+/// non-mutable (i.e., read-only) reference would be `span<const T>`. Thus,
+/// a function that might ordinarily take a `const T*` and a length could
+/// instead take a `span<const T>`.
 ///
-/// The span template tries to address this problem by providing
-/// a way to pass array parameters that are non-owning, non-copying,
-/// non-allocating, and contain a length reference (which in many cases
-/// is transparently and automatically computed without additional user
-/// code).
+/// For convenience, we also define `cspan<T>` as equivalent to
+/// `span<const T>`.
+///
+/// A `span` may be initialized explicitly from a pointer and length, by
+/// initializing with a `std::vector<T>`, or by initalizing with a constant
+/// (treated as an array of length 1). For all of these cases, no extra
+/// allocations are performed, and no extra copies of the array contents are
+/// made.
+///
+/// Important caveat: The `span` merely refers to items owned by another
+/// array, so the `span` should not be used beyond the lifetime of the
+/// array it refers to. Thus, `span` is great for parameter passing, but
+/// it's not a good idea to use a `span` to store values in a data
+/// structure (unless you are really sure you know what you're doing).
+///
 
 template <typename T, ptrdiff_t Extent = dynamic_extent>
 class span {
@@ -60,20 +70,21 @@ public:
     using const_reverse_iterator = std::reverse_iterator<const_iterator>;
     static constexpr index_type extent = Extent;
 
-    /// Default ctr -- points to nothing
+    /// Default constructor -- the span points to nothing.
     constexpr span () noexcept { }
 
-    /// Copy constructor
+    /// Copy constructor (copies the span pointer and length, NOT the data).
     template<class U, ptrdiff_t N>
     constexpr span (const span<U,N> &copy) noexcept
         : m_data(copy.data()), m_size(copy.size()) { }
+    /// Copy constructor (copies the span pointer and length, NOT the data).
     constexpr span (const span &copy) noexcept = default;
 
     /// Construct from T* and length.
     constexpr span (pointer data, index_type size) noexcept
         : m_data(data), m_size(size) { }
 
-    /// Construct from begin and end pointers
+    /// Construct from begin and end pointers.
     constexpr span (pointer b, pointer e) noexcept
         : m_data(b), m_size(e-b) { }
 
@@ -90,9 +101,9 @@ public:
         : m_data(v.size() ? &v[0] : nullptr), m_size(v.size()) {
     }
 
-    /// Construct from const std::vector<T>.
-    /// This turns const std::vector<T> into an span<const T> (the
-    /// span isn't const, but the data it points to will be).
+    /// Construct from `const std::vector<T>.` This turns
+    /// `const std::vector<T>` into a `span<const T>` (the span isn't const,
+    /// but the data it points to will be).
     span (const std::vector<value_type> &v)
         : m_data(v.size() ? &v[0] : nullptr), m_size(v.size()) { }
 
@@ -110,18 +121,19 @@ public:
     constexpr span (std::initializer_list<T> il)
         : span (il.begin(), il.size()) { }
 
-    // assignments
+    /// Assignment copies the pointer and length, not the data.
     span& operator= (const span &copy) {
         m_data = copy.data();
         m_size = copy.size();
         return *this;
     }
 
-    // Subviews
+    /// Subview containing the first Count elements of the span.
     template<index_type Count>
     constexpr span<element_type, Count> first () const {
         return { m_data, Count };
     }
+    /// Subview containing the last Count elements of the span.
     template<index_type Count>
     constexpr span<element_type, Count> last () const {
         return { m_data + m_size - Count, Count };

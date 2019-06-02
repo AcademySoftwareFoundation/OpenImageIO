@@ -46,9 +46,9 @@
 OIIO_NAMESPACE_BEGIN
 
 
-/// string_view : a non-owning, non-copying, non-allocating reference to a
-/// sequence of characters.  It encapsulates both a character pointer and a
-/// length.
+/// A `string_view` is a non-owning, non-copying, non-allocating reference
+/// to a sequence of characters.  It encapsulates both a character pointer
+/// and a length.
 ///
 /// A function that takes a string input (but does not need to alter the
 /// string in place) may use a string_view parameter and accept input that
@@ -110,9 +110,12 @@ public:
     string_view(const charT* chars, size_t len) { init(chars, len); }
     /// Construct from char*, use strlen to determine length.
     string_view(const charT* chars) { init(chars, chars ? strlen(chars) : 0); }
-    /// Construct from std::string.
+    /// Construct from std::string. Remember that a string_view doesn't have
+    /// its own copy of the characters, so don't use the `string_view` after
+    /// the original string has been destroyed or altered.
     string_view(const std::string& str) noexcept { init(str.data(), str.size()); }
 
+    /// Convert a string_view to a `std::string`.
     std::string str() const
     {
         return (m_chars ? std::string(m_chars, m_len) : std::string());
@@ -138,13 +141,14 @@ public:
     ///    of c_str(), and thus break the assumption that it's a valid C str.
     const char* c_str() const;
 
-    // assignments
+    // Assignment
     string_view& operator=(const string_view& copy) noexcept
     {
         init(copy.data(), copy.length());
         return *this;
     }
 
+    /// Convert a string_view to a `std::string`.
     operator std::string() const { return str(); }
 
     // iterators
@@ -161,10 +165,13 @@ public:
     size_type size() const noexcept { return m_len; }
     size_type length() const noexcept { return m_len; }
     size_type max_size() const noexcept { return m_len; }
+    /// Is the string_view empty, containing no characters?
     bool empty() const noexcept { return m_len == 0; }
 
-    // element access
+    /// Element access of an individual chracter (beware: no bounds
+    /// checking!).
     const charT& operator[](size_type pos) const { return m_chars[pos]; }
+    /// Element access with bounds checking and exception if out of bounds.
     const charT& at(size_t pos) const
     {
         if (pos >= m_len)

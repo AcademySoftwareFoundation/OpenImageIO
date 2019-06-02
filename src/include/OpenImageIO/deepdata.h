@@ -43,7 +43,9 @@ class ImageSpec;
 
 
 
-/// Structure to hold "deep" data -- multiple samples per pixel.
+/// A `DeepData` holds the contents of an image of ``deep'' pixels (multiple
+/// depth samples per pixel).
+
 class OIIO_API DeepData {
 public:
     /// Construct an empty DeepData.
@@ -60,17 +62,21 @@ public:
     /// Copy assignment
     const DeepData& operator=(const DeepData& d);
 
-    /// Clear the vectors and reset size to 0.
+    /// Reset the `DeepData` to be equivalent to its empty initial state.
     void clear();
-    /// Deallocate all space in the vectors
+    /// In addition to performing the tasks of `clear()`, also ensure that
+    /// all allocated memory has been truly freed.
     void free();
 
-    /// Initialize size and allocate nsamples, pointers.
+    /// Initialize the `DeepData` with the specified number of pixels,
+    /// channels, channel types, and channel names, and allocate memory for
+    /// all the data.
     void init(int npix, int nchan, cspan<TypeDesc> channeltypes,
               cspan<std::string> channelnames);
 
-    /// Initialize size and allocate nsamples based on the number
-    /// of pixels, channels, and channel types in the ImageSpec.
+    /// Initialize the `DeepData` based on the `ImageSpec`'s total number of
+    /// pixels, number and types of channels. At this stage, all pixels are
+    /// assumed to have 0 samples, and no sample data is allocated.
     void init(const ImageSpec& spec);
 
     /// Is the DeepData initialized?
@@ -92,20 +98,24 @@ public:
     int Zback_channel() const;
     // Retrieve the index of the A (alpha) channel.
     int A_channel() const;
-    // Retrieve the index of the AR, AG, AB channel, respectively. If they
-    // don't exist, the A channel (which always exists) will be returned.
+    // Retrieve the index of the AR channel. If it does not exist, the A
+    // channel (which always exists) will be returned.
     int AR_channel() const;
+    // Retrieve the index of the AG channel. If it does not exist, the A
+    // channel (which always exists) will be returned.
     int AG_channel() const;
+    // Retrieve the index of the AB channel. If it does not exist, the A
+    // channel (which always exists) will be returned.
     int AB_channel() const;
 
-    /// The name of channel c.
+    /// Return the name of channel c.
     string_view channelname(int c) const;
 
-    /// Retrieve the channel type of channel c.
+    /// Retrieve the data type of channel `c`.
     TypeDesc channeltype(int c) const;
-    /// The size for each sample of channel c
+    /// Return the size (in bytes) of one sample dadum of channel `c`.
     size_t channelsize(int c) const;
-    /// The size for all channels of one sample.
+    /// Return the size (in bytes) for all channels of one sample.
     size_t samplesize() const;
 
     /// Retrieve the number of samples for the given pixel index.
@@ -127,23 +137,28 @@ public:
     /// pixel index.
     int capacity(int pixel) const;
 
-    /// Insert n samples at the given pixel, starting at the indexed
-    /// position.
+    /// Insert `n` samples of the specified pixel, betinning at the sample
+    /// position index. After insertion, the new samples will have
+    /// uninitialized values.
     void insert_samples(int pixel, int samplepos, int n = 1);
 
-    /// Erase n samples at the given pixel, starting at the indexed
-    /// position.
+    /// Erase `n` samples of the specified pixel, betinning at the sample
+    /// position index.
     void erase_samples(int pixel, int samplepos, int n = 1);
 
-    /// Retrieve deep sample value within a pixel, cast to a float.
+    /// Retrieve the value of the given pixel, channel, and sample index,
+    /// cast to a `float`.
     float deep_value(int pixel, int channel, int sample) const;
-    /// Retrieve deep sample value within a pixel, as an untigned int.
+    /// Retrieve the value of the given pixel, channel, and sample index,
+    /// cast to a `uint32`.
     uint32_t deep_value_uint(int pixel, int channel, int sample) const;
 
-    /// Set deep sample value within a pixel, as a float.
+    /// Set the value of the given pixel, channel, and sample index, for
+    /// floating-point channels.
     void set_deep_value(int pixel, int channel, int sample, float value);
 
-    /// Set deep sample value within a pixel, as a uint32.
+    /// Set the value of the given pixel, channel, and sample index, for
+    /// integer channels.
     void set_deep_value(int pixel, int channel, int sample, uint32_t value);
 
     /// Retrieve the pointer to a given pixel/channel/sample, or NULL if
@@ -161,14 +176,16 @@ public:
     /// channel for each pixel.
     void get_pointers(std::vector<void*>& pointers) const;
 
-    /// Copy the designated sample from a source DeepData into this
-    /// DeepData. The two DeepData structures need to have the same channel
-    /// layout.
+    /// Copy a deep sample from `src` to this `DeepData`. They must have the
+    /// same channel layout. Return `true` if ok, `false` if the operation
+    /// could not be performed.
     bool copy_deep_sample(int pixel, int sample, const DeepData& src,
                           int srcpixel, int srcsample);
 
-    /// Copy the designated pixel from a source DeepData into this DeepData.
-    /// The two DeepData structures need to have the same channel layout.
+    /// Copy an entire deep pixel from `src` to this `DeepData`, completely
+    /// eplacing any pixel data for that pixel. They must have the same
+    /// channel ayout. Return `true` if ok, `false` if the operation could
+    /// not be erformed.
     bool copy_deep_pixel(int pixel, const DeepData& src, int srcpixel);
 
     /// Split all samples of that pixel at the given depth zsplit. Samples
@@ -180,7 +197,7 @@ public:
     /// occurred, false if the pixel was not modified.
     bool split(int pixel, float depth);
 
-    /// Sort the samples of a pixel by Z.
+    /// Sort the samples of the pixel by their `Z` depth.
     void sort(int pixel);
 
     /// Merge any adjacent samples in the pixel that exactly overlap in z
@@ -189,13 +206,15 @@ public:
     /// change the number of samples in the pixel.
     void merge_overlaps(int pixel);
 
-    /// Merge src's samples into dst's samples
+    /// Merge the samples of `src`'s pixel into this `DeepData`'s pixel.
+    /// Return `true` if ok, `false` if the operation could not be
+    /// performed.
     void merge_deep_pixels(int pixel, const DeepData& src, int srcpixel);
 
-    /// Return the z depth at which the pixel becomes opaque.
+    /// Return the z depth at which the pixel reaches full opacity.
     float opaque_z(int pixel) const;
 
-    /// Occlusion cull samples hidden behind opaque samples.
+    /// Remvove any samples hidden behind opaque samples.
     void occlusion_cull(int pixel);
 
 private:

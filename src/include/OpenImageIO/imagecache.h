@@ -54,8 +54,6 @@
 
 OIIO_NAMESPACE_BEGIN
 
-struct ROI;
-
 namespace pvt {
 // Forward declaration
 class ImageCacheImpl;

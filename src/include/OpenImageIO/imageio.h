@@ -108,13 +108,28 @@ typedef ParamValueList ImageIOParameterList;
 
 
 
-/// Helper struct describing a region of interest in an image.
-/// The region is [xbegin,xend) x [begin,yend) x [zbegin,zend),
-/// with the "end" designators signifying one past the last pixel,
-/// a la STL style.
+/// ROI is a small helper struct describing a rectangular region of interest
+/// in an image. The region is [xbegin,xend) x [begin,yend) x [zbegin,zend),
+/// with the "end" designators signifying one past the last pixel in each
+/// dimension, a la STL style.
+///
 struct ROI {
-    int xbegin, xend, ybegin, yend, zbegin, zend;
+    ///@{
+    /// @name ROI data members
+    /// The data members are:
+    /// 
+    ///     int xbegin, xend, ybegin, yend, zbegin, zend;
+    ///     int chbegin, chend;
+    /// 
+    /// These describe the spatial extent
+    ///     [xbegin,xend) x [ybegin,yend) x [zbegin,zend)
+    /// And the channel extent:
+    ///     [chbegin,chend)]
+    int xbegin, xend;
+    int ybegin, yend;
+    int zbegin, zend;
     int chbegin, chend;
+    ///@}
 
     /// Default constructor is an undefined region. Note that this is also
     /// interpreted as All().
@@ -133,10 +148,13 @@ struct ROI {
     /// Is a region defined?
     constexpr bool defined () const noexcept { return (xbegin != std::numeric_limits<int>::min()); }
 
-    // Region dimensions.
-    constexpr int width () const noexcept { return xend - xbegin; }
-    constexpr int height () const noexcept { return yend - ybegin; }
-    constexpr int depth () const noexcept { return zend - zbegin; }
+    ///@{
+    /// @name Spatial size functions.
+    /// The width, height, and depth of the region.
+    constexpr int width () const noexcept { return xend - xbegin; }  ///< Height
+    constexpr int height () const noexcept { return yend - ybegin; } ///< Width
+    constexpr int depth () const noexcept { return zend - zbegin; }  ///< Depth
+    ///@}
 
     /// Number of channels in the region.  Beware -- this defaults to a
     /// huge number, and to be meaningful you must consider
@@ -220,11 +238,54 @@ inline constexpr ROI roi_intersection (const ROI &A, const ROI &B) noexcept {
 
 
 
-/// ImageSpec describes the data format of an image --
-/// dimensions, layout, number and meanings of image channels.
+/// ImageSpec describes the data format of an image -- dimensions, layout,
+/// number and meanings of image channels.
+///
+/// The `width, height, depth` are the size of the data of this image, i.e.,
+/// the number of pixels in each dimension.  A ``depth`` greater than 1
+/// indicates a 3D "volumetric" image. The `x, y, z` fields indicate the
+/// *origin* of the pixel data of the image. These default to (0,0,0), but
+/// setting them differently may indicate that this image is offset from the
+/// usual origin.
+/// Therefore the pixel data are defined over pixel coordinates
+///    [`x` ... `x+width-1`] horizontally,
+///    [`y` ... `y+height-1`] vertically,
+///    and [`z` ... `z+depth-1`] in depth.
+///
+/// The analogous `full_width`, `full_height`, `full_depth` and `full_x`,
+/// `full_y`, `full_z` fields define a "full" or "display" image window over
+/// the region [`full_x` ... `full_x+full_width-1`] horizontally, [`full_y`
+/// ... `full_y+full_height-1`] vertically, and [`full_z`...
+/// `full_z+full_depth-1`] in depth.
+///
+/// Having the full display window different from the pixel data window can
+/// be helpful in cases where you want to indicate that your image is a
+/// *crop window* of a larger image (if the pixel data window is a subset of
+/// the full display window), or that the pixels include *overscan* (if the
+/// pixel data is a superset of the full display window), or may simply
+/// indicate how different non-overlapping images piece together.
+///
+/// For tiled images, `tile_width`, `tile_height`, and `tile_depth` specify
+/// that the image is stored in a file organized into rectangular *tiles*
+/// of these dimensions. The default of 0 value for these fields indicates
+/// that the image is stored in scanline order, rather than as tiles.
+///
+
 class OIIO_API ImageSpec {
 public:
-    int x, y, z;              ///< origin (upper left corner) of pixel data
+    ///@{
+    /// @name ImageSpec data members
+    ///
+    /// The `ImageSpec` contains data fields for the values that are
+    /// required to describe nearly any image, and an extensible list of
+    /// arbitrary attributes that can hold metadata that may be user-defined
+    /// or specific to individual file formats.
+    ///
+    /// Here are the hard-coded data fields:
+
+    int x;                    ///< origin (upper left corner) of pixel data
+    int y;                    ///< origin (upper left corner) of pixel data
+    int z;                    ///< origin (upper left corner) of pixel data
     int width;                ///< width of the pixel data window
     int height;               ///< height of the pixel data window
     int depth;                ///< depth of pixel data, >1 indicates a "volume"
@@ -239,112 +300,140 @@ public:
     int tile_depth;           ///< tile depth (0 for a non-tiled image,
                               ///<             1 for a non-volume image)
     int nchannels;            ///< number of image channels, e.g., 4 for RGBA
-    TypeDesc format;          ///< data format of the channels
-    std::vector<TypeDesc> channelformats;   ///< Optional per-channel formats
-    std::vector<std::string> channelnames;  ///< Names for each channel,
-                                            ///< e.g., {"R","G","B","A"}
-    int alpha_channel;        ///< Index of alpha channel, or -1 if not known
-    int z_channel;            ///< Index of depth channel, or -1 if not known
-    bool deep;                ///< Contains deep data
 
-    /// The above contains all the information that is likely needed for
-    /// every image file, and common to all formats.  Rather than bloat
-    /// this structure, customize it for new formats, or break back
-    /// compatibility as we think of new things, we provide extra_attribs
-    /// as a holder for any other properties of the image.  The public
-    /// functions attribute and find_attribute may be used to access
-    /// these data.  Note, however, that the names and semantics of such
-    /// extra attributes are plugin-dependent and are not enforced by
-    /// the imageio library itself.
-    ParamValueList extra_attribs;  ///< Additional attributes
+    TypeDesc format;          ///< Data format of the channels.
+        ///< Describes the native format of the pixel data values
+        /// themselves, as a `TypeDesc`.  Typical values would be
+        /// `TypeDesc::UINT8` for 8-bit unsigned values, `TypeDesc::FLOAT`
+        /// for 32-bit floating-point values, etc.
+    std::vector<TypeDesc> channelformats;
+        ///< Optional per-channel data formats. If all channels of the image
+        /// have the same data format, that will be described by `format`
+        /// and `channelformats` will be empty (zero length). If there are
+        /// different data formats for each channel, they will be described
+        /// in the `channelformats` vector, and the `format` field will
+        /// indicate a single default data format for applications that
+        /// don't wish to support per-channel formats (usually this will be
+        /// the format of the channel that has the most precision).
+
+    std::vector<std::string> channelnames;
+        ///< The names of each channel, in order. Typically this will be "R",
+        ///< "G", "B", "A" (alpha), "Z" (depth), or other arbitrary names.
+    int alpha_channel;
+        ///< The index of the channel that represents *alpha* (pixel
+        ///< coverage and/or transparency).  It defaults to -1 if no alpha
+        ///< channel is present, or if it is not known which channel
+        ///< represents alpha.
+    int z_channel;
+        ///< The index of the channel that respresents *z* or *depth* (from
+        ///< the camera).  It defaults to -1 if no depth channel is present,
+        ///< or if it is not know which channel represents depth.
+    bool deep;                ///< True if the image contains deep data.
+        ///< If `true`, this indicates that the image describes contains
+        ///< "deep" data consisting of multiple samples per pixel.  If
+        ///< `false`, it's an ordinary image with one data value (per
+        ///< channel) per pixel.
+    ParamValueList extra_attribs;
+        ///< A list of arbitrarily-named and arbitrarily-typed additional
+        /// attributes of the image, for any metadata not described by the
+        /// hard-coded fields described above.  This list may be manipulated
+        /// with the `attribute()` and `find_attribute()` methods.
+
+    ///@}
 
     /// Constructor: given just the data format, set all other fields to
     /// something reasonable.
     ImageSpec (TypeDesc format = TypeDesc::UNKNOWN) noexcept;
 
-    /// Constructor for simple 2D scanline image with nothing special.
-    /// If fmt is not supplied, default to unsigned 8-bit data.
+    /// Constructs an `ImageSpec` with the given x and y resolution, number
+    /// of channels, and pixel data format.
+    ///
+    /// All other fields are set to the obvious defaults -- the image is an
+    /// ordinary 2D image (not a volume), the image is not offset or a crop
+    /// of a bigger image, the image is scanline-oriented (not tiled),
+    /// channel names are "R", "G", "B"' and "A" (up to and including 4
+    /// channels, beyond that they are named "channel *n*"), the fourth
+    /// channel (if it exists) is assumed to be alpha.
     ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeUInt8) noexcept;
 
-    /// Constructor from an ROI that gives x, y, z, and channel range, and
-    /// a data format.
+    /// Construct an `ImageSpec` whose dimensions (both data and "full") and
+    /// number of channels are given by the `ROI`, pixel data type by `fmt`,
+    /// and other fields are set to their default values.
     explicit ImageSpec (const ROI &roi, TypeDesc fmt = TypeUInt8) noexcept;
 
-    /// Set the data format.
+    /// Set the data format, and clear any per-channel format information
+    /// in `channelformats`.
     void set_format (TypeDesc fmt) noexcept;
 
-    /// Set the channelnames to reasonable defaults ("R", "G", "B", "A"),
-    /// and alpha_channel, based on the number of channels.
+    /// Sets the `channelnames` to reasonable defaults for the number of
+    /// channels.  Specifically, channel names are set to "R", "G", "B,"
+    /// and "A" (up to and including 4 channels, beyond that they are named
+    /// "channel*n*".
     void default_channel_names () noexcept;
 
-    /// Return the number of bytes for each channel datum, assuming they
-    /// are all stored using the data format given by this->format.
+    /// Returns the number of bytes comprising each channel of each pixel
+    /// (i.e., the size of a single value of the type described by the
+    /// `format` field).
     size_t channel_bytes() const noexcept { return format.size(); }
 
     /// Return the number of bytes needed for the single specified
     /// channel.  If native is false (default), compute the size of one
-    /// channel of this->format, but if native is true, compute the size
+    /// channel of `this->format`, but if native is true, compute the size
     /// of the channel in terms of the "native" data format of that
     /// channel as stored in the file.
     size_t channel_bytes (int chan, bool native=false) const noexcept;
 
     /// Return the number of bytes for each pixel (counting all channels).
-    /// If native is false (default), assume all channels are in 
-    /// this->format, but if native is true, compute the size of a pixel
+    /// If `native` is false (default), assume all channels are in
+    /// `this->format`, but if `native` is true, compute the size of a pixel
     /// in the "native" data format of the file (these may differ in
     /// the case of per-channel formats).
-    /// This will return std::numeric_limits<size_t>::max() in the
-    /// event of an overflow where it's not representable in a size_t.
     size_t pixel_bytes (bool native=false) const noexcept;
 
-    /// Return the number of bytes for just the subset of channels in
-    /// each pixel described by [chbegin,chend).
-    /// If native is false (default), assume all channels are in 
-    /// this->format, but if native is true, compute the size of a pixel
-    /// in the "native" data format of the file (these may differ in
-    /// the case of per-channel formats).
-    /// This will return std::numeric_limits<size_t>::max() in the
-    /// event of an overflow where it's not representable in a size_t.
+    /// Return the number of bytes for just the subset of channels in each
+    /// pixel described by [chbegin,chend). If native is false (default),
+    /// assume all channels are in this->format, but if native is true,
+    /// compute the size of a pixel in the "native" data format of the file
+    /// (these may differ in the case of per-channel formats).
     size_t pixel_bytes (int chbegin, int chend, bool native=false) const noexcept;
 
-    /// Return the number of bytes for each scanline.  This will return
-    /// std::numeric_limits<imagesize_t>::max() in the event of an
-    /// overflow where it's not representable in an imagesize_t.
-    /// If native is false (default), assume all channels are in 
-    /// this->format, but if native is true, compute the size of a pixel
-    /// in the "native" data format of the file (these may differ in
-    /// the case of per-channel formats).
+    /// Returns the number of bytes comprising each scanline, i.e.,
+    /// `pixel_bytes(native) * width` This will return
+    /// `std::numeric_limits<imagesize_t>::max()` in the event of an
+    /// overflow where it's not representable in an `imagesize_t`.
     imagesize_t scanline_bytes (bool native=false) const noexcept;
 
-    /// Return the number of pixels for a tile.  This will return
-    /// std::numeric_limits<imagesize_t>::max() in the event of an
-    /// overflow where it's not representable in an imagesize_t.
+    /// Return the number of pixels comprising a tile (or 0 if it is not a
+    /// tiled image).  This will return
+    /// `std::numeric_limits<imagesize_t>::max()` in the event of an
+    /// overflow where it's not representable in an `imagesize_t`.
     imagesize_t tile_pixels () const noexcept;
 
-    /// Return the number of bytes for each a tile of the image.  This
-    /// will return std::numeric_limits<imagesize_t>::max() in the event
-    /// of an overflow where it's not representable in an imagesize_t.
-    /// If native is false (default), assume all channels are in 
-    /// this->format, but if native is true, compute the size of a pixel
-    /// in the "native" data format of the file (these may differ in
-    /// the case of per-channel formats).
+    /// Returns the number of bytes comprising an image tile, i.e.,
+    ///     `pixel_bytes(native) * tile_width * tile_height * tile_depth`
+    /// If native is false (default), assume all channels are in
+    /// `this->format`, but if `native` is true, compute the size of a pixel
+    /// in the "native" data format of the file (these may differ in the
+    /// case of per-channel formats).
     imagesize_t tile_bytes (bool native=false) const noexcept;
 
     /// Return the number of pixels for an entire image.  This will
-    /// return std::numeric_limits<imagesize_t>::max() in the event of
-    /// an overflow where it's not representable in an imagesize_t.
+    /// return `std::numeric_limits<imagesize_t>::max()` in the event of
+    /// an overflow where it's not representable in an `imagesize_t`.
     imagesize_t image_pixels () const noexcept;
 
-    /// Return the number of bytes for an entire image.  This will
-    /// return std::numeric_limits<image size_t>::max() in the event of
-    /// an overflow where it's not representable in an imagesize_t.
-    /// If native is false (default), assume all channels are in 
-    /// this->format, but if native is true, compute the size of a pixel
-    /// in the "native" data format of the file (these may differ in
+    /// Returns the number of bytes comprising an entire image of these
+    /// dimensions, i.e.,
+    ///     `pixel_bytes(native) * width * height * depth`
+    /// This will return `std::numeric_limits<image size_t>::max()` in the
+    /// event of an overflow where it's not representable in an
+    /// `imagesize_t`. If `native` is false (default), assume all channels
+    /// are in `this->format`, but if `native` is true, compute the size of
+    /// a pixel in the "native" data format of the file (these may differ in
     /// the case of per-channel formats).
     imagesize_t image_bytes (bool native=false) const noexcept;
 
-    /// Verify that on this platform, a size_t is big enough to hold the
+    /// Verify that on this platform, a `size_t` is big enough to hold the
     /// number of bytes (and pixels) in a scanline, a tile, and the
     /// whole image.  If this returns false, the image is much too big
     /// to allocate and read all at once, so client apps beware and check
@@ -386,54 +475,56 @@ public:
             xstride = nchannels * format.size();
     }
 
-    /// Add an optional attribute to the extra attribute list
-    ///
+    /// Add a metadata attribute to `extra_attribs`, with the given name and
+    /// data type. The `value` pointer specifies the address of the data to
+    /// be copied.
     void attribute (string_view name, TypeDesc type, const void *value);
 
-    /// Add an optional attribute to the extra attribute list.
-    ///
-    void attribute (string_view name, TypeDesc type, string_view value);
-
-    /// Add an unsigned int attribute
-    ///
+    /// Add an `unsigned int` attribute to `extra_attribs`.
     void attribute (string_view name, unsigned int value) {
         attribute (name, TypeDesc::UINT, &value);
     }
 
-    /// Add an int attribute
-    ///
+    /// Add an `int` attribute to `extra_attribs`.
     void attribute (string_view name, int value) {
         attribute (name, TypeDesc::INT, &value);
     }
 
-    /// Add a float attribute
-    ///
+    /// Add a `float` attribute to `extra_attribs`.
     void attribute (string_view name, float value) {
         attribute (name, TypeDesc::FLOAT, &value);
     }
 
-    /// Add a string attribute
-    ///
+    /// Add a string attribute to `extra_attribs`.
     void attribute (string_view name, string_view value) {
         const char *s = value.c_str();
         attribute (name, TypeDesc::STRING, &s);
     }
 
-    /// Remove the specified attribute from the list of extra_attribs. If
-    /// not found, do nothing.  If searchtype is anything but UNKNOWN,
-    /// restrict matches to only those of the given type. If casesensitive
-    /// is true, the name search will be case-sensitive, otherwise the name
-    /// search will be performed without regard to case (this is the
-    /// default).
+    /// Parse a string containing a textual representation of a value of
+    /// the given `type`, and add that as an attribute to `extra_attribs`.
+    /// Example:
+    ///
+    ///     spec.attribute ("temperature", TypeString, "-273.15");
+    ///
+    void attribute (string_view name, TypeDesc type, string_view value);
+
+    /// Searches `extra_attribs` for any attributes matching `name` (as a
+    /// regular expression), removing them entirely from `extra_attribs`. If
+    /// `searchtype` is anything other than `TypeDesc::UNKNOWN`, matches
+    /// will be restricted only to attributes with the given type. The name
+    /// comparison will be case-sensitive if `casesensitive` is true,
+    /// otherwise in a case-insensitive manner.
     void erase_attribute (string_view name,
                           TypeDesc searchtype=TypeDesc::UNKNOWN,
                           bool casesensitive=false);
 
-    /// Search for an attribute of the given name in the list of
-    /// extra_attribs. If searchtype is anything but UNKNOWN, restrict
-    /// matches to only those of the given type. If casesensitive is true,
-    /// the name search will be case-sensitive, otherwise the name search
-    /// will be performed without regard to case (this is the default).
+    /// Searches `extra_attribs` for an attribute matching `name`, returning
+    /// a pointer to the attribute record, or NULL if there was no match.
+    /// If `searchtype` is anything other than `TypeDesc::UNKNOWN`, matches
+    /// will be restricted only to attributes with the given type. The name
+    /// comparison will be exact if `casesensitive` is true, otherwise in a
+    /// case-insensitive manner if `caseinsensitive` is false.
     ParamValue * find_attribute (string_view name,
                                  TypeDesc searchtype=TypeDesc::UNKNOWN,
                                  bool casesensitive=false);
@@ -441,64 +532,145 @@ public:
                                       TypeDesc searchtype=TypeDesc::UNKNOWN,
                                       bool casesensitive=false) const;
 
-    /// Search for the named attribute and return a pointer to an
-    /// ParamValue record, or NULL if not found.  This variety of
-    /// find_attribute() can retrieve items such as "width", which are part
-    /// of the ImageSpec, but not in extra_attribs. The tmpparam is a
-    /// temporary storage area owned by the caller, which is used as
+    /// Search for the named attribute and return the pointer to its
+    /// `ParamValue` record, or NULL if not found.  This variety of
+    /// `find_attribute(}` can retrieve items such as "width", which are
+    /// data members of the `ImageSpec`, but not in `extra_attribs`. The
+    /// 1tmpparam` is a storage area owned by the caller, which is used as
     /// temporary buffer in cases where the information does not correspond
-    /// to an actual extra_attribs (in this case, the return value will be
-    /// &tmpparam).
+    /// to an actual `extra_attribs` (in this case, the return value will be
+    /// `&tmpparam`). The extra names it understands are:
+    ///
+    /// - `"x"` `"y"` `"z"` `"width"` `"height"` `"depth"`
+    ///   `"full_x"` `"full_y"` `"full_z"` `"full_width"` `"full_height"` `"full_depth"`
+    ///
+    ///   Returns the `ImageSpec` fields of those names (despite the
+    ///   fact that they are technically not arbitrary named attributes
+    ///   in `extra_attribs`). All are of type `int`.
+    ///
+    /// - `"datawindow"`
+    ///
+    ///   Without a type, or if requested explicitly as an `int[4]`,
+    ///   returns the OpenEXR-like pixel data min and max coordinates,
+    ///   as a 4-element integer array: `{ x, y, x+width-1, y+height-1
+    ///   }`. If instead you specifically request as an `int[6]`, it
+    ///   will return the volumetric data window, `{ x, y, z, x+width-1,
+    ///   y+height-1, z+depth-1 }`.
+    ///
+    /// - `"displaywindow"`
+    ///
+    ///   Without a type, or if requested explicitly as an `int[4]`,
+    ///   returns the OpenEXR-like pixel display min and max
+    ///   coordinates, as a 4-element integer array: `{ full_x, full_y,
+    ///   full_x+full_width-1, full_y+full_height-1 }`. If instead you
+    ///   specifically request as an `int[6]`, it will return the
+    ///   volumetric display window, `{ full_x, full_y, full_z,
+    ///   full_x+full_width-1, full_y+full_height-1, full_z+full_depth-1 }`.
+    ///
+    /// EXAMPLES
+    ///
+    ///     ImageSpec spec;           // has the info
+    ///     Imath::Box2i dw;          // we want the displaywindow here
+    ///     ParamValue tmp;           // so we can retrieve pseudo-values
+    ///     TypeDesc int4("int[4]");  // Equivalent: TypeDesc int4(TypeDesc::INT,4);
+    ///     const ParamValue* p = spec.find_attribute ("displaywindow", int4);
+    ///     if (p)
+    ///         dw = Imath::Box2i(p->get<int>(0), p->get<int>(1),
+    ///                           p->get<int>(2), p->get<int>(3));
+    ///
+    ///     p = spec.find_attribute("temperature", TypeFloat);
+    ///     if (p)
+    ///         float temperature = p->get<float>();
+    ///
     const ParamValue * find_attribute (string_view name,
                          ParamValue &tmpparam,
                          TypeDesc searchtype=TypeDesc::UNKNOWN,
                          bool casesensitive=false) const;
 
-    /// Search for named attribute, return its type or TypeUnknnown if not
-    /// found.
+    /// If the named attribute can be found in the `ImageSpec`, return its
+    /// data type. If no such attribute exists, return `TypeUnknown`.
+    ///
+    /// This was added in version 2.1.
     TypeDesc getattributetype (string_view name,
                                bool casesensitive = false) const;
 
-    /// Retrieve attribute: If found and its data type is reasonably
-    /// convertible to `type`, copy/convert the value into val[...] and
-    /// return true. Otherwise, return false and don't modify what val
-    /// points to.
+    /// If the `ImageSpec` contains the named attribute and its type matches
+    /// `type`, copy the attribute value into the memory pointed to by `val`
+    /// (it is up to the caller to ensure there is enough space) and return
+    /// `true`. If no such attribute is found, or if it doesn't match the
+    /// type, return `false` and do not modify `val`.
+    /// 
+    /// EXAMPLES:
+    /// 
+    ///     ImageSpec spec;
+    ///     ...
+    ///     // Retrieving an integer attribute:
+    ///     int orientation = 0;
+    ///     spec.getattribute ("orientation", TypeInt, &orientation);
+    /// 
+    ///     // Retrieving a string attribute with a char*:
+    ///     const char* compression = nullptr;
+    ///     spec.getattribute ("compression", TypeString, &compression);
+    /// 
+    ///     // Alternately, retrieving a string with a ustring:
+    ///     ustring compression;
+    ///     spec.getattribute ("compression", TypeString, &compression);
+    /// 
+    /// Note that when passing a string, you need to pass a pointer to the
+    /// `char*`, not a pointer to the first character.  Also, the `char*`
+    /// will end up pointing to characters owned by the `ImageSpec`; the
+    /// caller does not need to ever free the memory that contains the
+    /// characters.
+    ///
+    /// This was added in version 2.1.
     bool getattribute (string_view name, TypeDesc type, void* value,
                        bool casesensitive = false) const;
 
-    /// Simple way to get an integer attribute, with default provided.
-    /// Automatically will return an int even if the data is really
-    /// unsigned, short, or byte.
+    /// Retrieve the named metadata attribute and return its value as an
+    /// `int`. Any integer type will convert to `int` by truncation or
+    /// expansion, string data will parsed into an `int` if its contents
+    /// consist of of the text representation of one integer. Floating point
+    /// data will not succeed in converting to an `int`. If no such metadata
+    /// exists, or are of a type that cannot be converted, the `defaultval`
+    /// will be returned.
     int get_int_attribute (string_view name, int defaultval=0) const;
 
-    /// Simple way to get a float attribute, with default provided.
-    /// Automatically will return a float even if the data is really
-    /// double or half.
+    /// Retrieve the named metadata attribute and return its value as a
+    /// `float`. Any integer or floating point type will convert to `float`
+    /// in the obvious way (like a C cast), and so will string metadata if
+    /// its contents consist of of the text representation of one floating
+    /// point value. If no such metadata exists, or are of a type that cannot
+    /// be converted, the `defaultval` will be returned.
     float get_float_attribute (string_view name, float defaultval=0) const;
 
-    /// Simple way to get a string attribute, with default provided.
-    ///
+    /// Retrieve any metadata attribute, converted to a string.
+    /// If no such metadata exists, the `defaultval` will be returned.
     string_view get_string_attribute (string_view name,
                            string_view defaultval = string_view()) const;
 
-    /// For a given parameter p, format the value nicely as a string.  If
-    /// 'human' is true, use especially human-readable explanations (units,
+    /// For a given parameter `p`, format the value nicely as a string.  If
+    /// `human` is true, use especially human-readable explanations (units,
     /// or decoding of values) for certain known metadata.
     static std::string metadata_val (const ParamValue &p, bool human=false);
 
     enum SerialFormat  { SerialText, SerialXML };
     enum SerialVerbose { SerialBrief, SerialDetailed, SerialDetailedHuman };
 
-    /// Convert ImageSpec class into a serialized string.
+    /// Returns, as a string, a serialized version of the `ImageSpec`. The
+    /// `format` may be either `ImageSpec::SerialText` or
+    /// `ImageSpec::SerialXML`. The `verbose` argument may be one of:
+    /// `ImageSpec::SerialBrief` (just resolution and other vital
+    /// statistics, one line for `SerialText`, `ImageSpec::SerialDetailed`
+    /// (contains all metadata in orginal form), or
+    /// `ImageSpec::SerialDetailedHuman` (contains all metadata, in many
+    /// cases with human-readable explanation).
     std::string serialize (SerialFormat format,
                            SerialVerbose verbose = SerialDetailed) const;
 
-    /// Convert ImageSpec class into XML string.
-    ///
+    /// Converts the contents of the `ImageSpec` as an XML string.
     std::string to_xml () const;
 
-    /// Get an ImageSpec class from XML string.
-    ///
+    /// Populates the fields of the `ImageSpec` based on the XML passed in.
     void from_xml (const char *xml);
 
     /// Hunt for the "Compression" and "CompressionQuality" settings in the
@@ -546,15 +718,16 @@ public:
             formats.resize (nchannels, format);
     }
 
-    /// Return the index of the named channel, or -1 if not found.
+    /// Return the index of the channel with the given name, or -1 if no
+    /// such channel is present in `channelnames`.
     int channelindex (string_view name) const;
 
-    /// Return pixel data window for this ImageSpec as a ROI.
+    /// Return pixel data window for this ImageSpec expressed as a ROI.
     ROI roi () const noexcept {
         return ROI (x, x+width, y, y+height, z, z+depth, 0, nchannels);
     }
 
-    /// Return full/display window for this ImageSpec as a ROI.
+    /// Return full/display window for this ImageSpec expressed as a ROI.
     ROI roi_full () const noexcept {
         return ROI (full_x, full_x+full_width, full_y, full_y+full_height,
                     full_z, full_z+full_depth, 0, nchannels);
@@ -584,9 +757,11 @@ public:
         full_depth = r.depth();
     }
 
-    /// Copy the dimensions (x, y, z, width, height, depth, full*,
-    /// nchannels, format) and types of the other ImageSpec. Be careful,
-    /// this doesn't copy channelnames or the metadata in extra_attribs.
+    /// Copy from `other` the image dimensions (x, y, z, width, height,
+    /// depth, full*, nchannels, format) and data types. It does *not* copy
+    /// arbitrary named metadata or channel names (thus, for an `ImageSpec`
+    /// with lots of metadata, it is much less expensive than copying the
+    /// whole thing with `operator=()`).
     void copy_dimensions (const ImageSpec &other) {
         x = other.x;
         y = other.y;
@@ -611,33 +786,40 @@ public:
         deep = other.deep;
     }
 
-    /// Is this ImageSpec undefined? (Designated by no channels and
-    /// undefined data type -- true of the uninitialized state of an
-    /// ImageSpec, and presumably not for any ImageSpec that is useful or
-    /// purposefully made.)
+    /// Returns `true` for a newly initialized (undefined) `ImageSpec`.
+    /// (Designated by no channels and undefined data type -- true of the
+    /// uninitialized state of an ImageSpec, and presumably not for any
+    /// ImageSpec that is useful or purposefully made.)
     bool undefined () const noexcept {
         return nchannels == 0 && format == TypeUnknown;
     }
 
-    /// Array indexing by string will create a "Delegate" that enables a
+    /// Array indexing by string will create an AttrDelegate that enables a
     /// convenient shorthand for adding and retrieving values from the spec:
     ///
     /// 1. Assigning to the delegate adds a metadata attribute:
+    ///
     ///        ImageSpec spec;
-    ///        spec["compression"] = "zip";
-    ///        spec["PixelAspectRatio"] = 1.0f;
+    ///        spec["foo"] = 42;                   // int
+    ///        spec["pi"] = float(M_PI);           // float
+    ///        spec["oiio:ColorSpace"] = "sRGB";   // string
+    ///        spec["cameratoworld"] = Imath::Matrix44(...);  // matrix
+    ///
     ///    Be very careful, the attribute's type will be implied by the C++
     ///    type of what you assign.
     ///
-    /// 2. The delegate supports a get<T>() that retrieves an item of type T:
+    /// 2. String data may be retrieved directly, and for other types, the
+    ///    delegate supports a get<T>() that retrieves an item of type T:
+    ///
     ///         std::string colorspace = spec["oiio:ColorSpace"];
     ///         int dither = spec["oiio:dither"].get<int>();
     ///
-    AttrDelegate<const ImageSpec> operator[](string_view name) const
+    /// This was added in version 2.1.
+    AttrDelegate<ImageSpec> operator[](string_view name)
     {
         return { this, name };
     }
-    AttrDelegate<ImageSpec> operator[](string_view name)
+    AttrDelegate<const ImageSpec> operator[](string_view name) const
     {
         return { this, name };
     }
@@ -713,13 +895,14 @@ public:
     ///
     /// Feature names that ImageIO plugins are expected to recognize
     /// include:
-    ///    "arbitrary_metadata" Does this format allow metadata with
-    ///                        arbitrary names and types?
-    ///    "exif"           Can this format store Exif camera data?
-    ///    "iptc"           Can this format store IPTC data?
-    ///    "procedural"     Can this format create images without reading
-    ///                        from a disk file?
-    ///    "ioproxy"        Does this format reader support IOProxy?
+    ///
+    /// - `"arbitrary_metadata"` : Does this format allow metadata with
+    ///   arbitrary names and types?
+    /// - `"exif"` : Can this format store Exif camera data?
+    /// - `"iptc"` : Can this format store IPTC data?
+    /// - `"procedural"` : Can this format create images without reading from
+    ///   a disk file?
+    /// - `"ioproxy"` : Does this format reader support IOProxy?
     ///
     /// Note that main advantage of this approach, versus having
     /// separate individual supports_foo() methods, is that this allows
@@ -1614,121 +1797,241 @@ private:
 
 // Utility functions
 
-/// Retrieve the version of OpenImageIO for the library.  This is so
-/// plugins can query to be sure they are linked against an adequate
-/// version of the library.
+/// Returns a numeric value for the version of OpenImageIO, 10000 for each
+/// major version, 100 for each minor version, 1 for each patch.  For
+/// example, OpenImageIO 1.2.3 would return a value of 10203. One example of
+/// how this is useful is for plugins to query the version to be sure they
+/// are linked against an adequate version of the library.
 OIIO_API int openimageio_version ();
 
-/// Special geterror() called after ImageInput::create or
-/// ImageOutput::create, since if create fails, there's no object on
-/// which call obj->geterror().  This function returns the last error
+/// Returns any error string describing what went wrong if
+/// `ImageInput::create()` or `ImageOutput::create()` failed (since in such
+/// cases, the \ImageInput or \ImageOutput itself does not exist to have its
+/// own `geterror()` function called). This function returns the last error
 /// for this particular thread; separate threads will not clobber each
 /// other's global error messages.
 OIIO_API std::string geterror ();
 
-/// Set a global attribute controlling OpenImageIO.  Return true
-/// if the name and type were recognized and the attribute was set.
+/// `OIIO::attribute()` sets an global attribute (i.e., a property or
+/// option) of OpenImageIO. The `name` designates the name of the attribute,
+/// `type` describes the type of data, and `val` is a pointer to memory
+/// containing the new value for the attribute.
 ///
-/// Documented attributes:
-///     int threads
-///             How many threads to use for operations that can be sped
-///             by spawning threads (default=0, meaning to use the full
-///             available hardware concurrency detected).
-///     int exr_threads
-///             The size of the internal OpenEXR thread pool. The default
-///             is to use the full available hardware concurrency detected.
-///             Default is 0 meaning to use full available hardware
-///             concurrency detected, -1 means to disable usage of the OpenEXR
-///             thread pool and execute everything in the caller thread.
-///     string plugin_searchpath
-///             Colon-separated list of directories to search for 
-///             dynamically-loaded format plugins.
-///     int read_chunk
-///             The number of scanlines that will be attempted to read at
-///             once for read_image calls (default: 256).
-///     int debug
-///             When nonzero, various debug messages may be printed.
-///             The default is 0 for release builds, >=1 for DEBUG builds,
-///             but also may be overridden by the OPENIMAGEIO_DEBUG env
-///             variable.
-///     int log_times
-///             When nonzero, various internals will record how much total
-///             time they spend in execution. If the value is >= 2, these
-///             times will be printed upon exit. Thd default is 0, but will
-///             be initialized to the value of the OPENIMAGEIO_LOG_TIMES
-///             environment variable, if it exists.
-///     int tiff:half
-///             When nonzero, allows TIFF to write 'half' pixel data.
-///             N.B. Most apps may not read these correctly, but OIIO will.
-///             That's why the default is not to support it.
+/// If the name is known, valid attribute that matches the type specified,
+/// the attribute will be set to the new value and `attribute()` will return
+/// `true`.  If `name` is not recognized, or if the types do not match
+/// (e.g., `type` is `TypeFloat` but the named attribute is a string), the
+/// attribute will not be modified, and `attribute()` will return `false`.
+///
+/// The following are the recognized attributes:
+///
+/// - `string options`
+///
+///    This catch-all is simply a comma-separated list of `name=value`
+///    settings of named options, which will be parsed and individually set.
+///    For example,
+///
+///        OIIO::attribute ("options", "threads=4,log_times=1");
+///
+///    Note that if an option takes a string value that must itself contain
+///    a comma, it is permissible to enclose the value in either 'single'
+///    or "double" quotes.
+///
+/// - `int threads`
+///
+///    How many threads to use for operations that can be sped up by being
+///    multithreaded. (Examples: simultaneous format conversions of multiple
+///    scanlines read together, or many ImageBufAlgo operations.) The
+///    default is 0, meaning to use the full available hardware concurrency
+///    detected.
+///
+///    Situations where the main application logic is essentially single
+///    threaded (i.e., one top-level call into OIIO at a time) should leave
+///    this at the default value, or some reasonable number of cores, thus
+///    allowing lots of threads to fill the cores when OIIO has big tasks to
+///    complete. But situations where you have many threads at the
+///    application level, each of which is expected to be making separate
+///    OIIO calls simultaneously, should set this to 1, thus having each
+///    calling thread do its own work inside of OIIO rather than spawning
+///    new threads with a high overall "fan out.""
+///
+/// - `int exr_threads`
+///
+///    Sets the internal OpenEXR thread pool size. The default is to use as
+///    many threads as the amount of hardware concurrency detected. Note
+///    that this is separate from the OIIO `"threads"` attribute.
+///
+/// - `string plugin_searchpath`
+///
+///    Colon-separated list of directories to search for dynamically-loaded
+///    format plugins.
+///
+/// - `int read_chunk`
+///
+///    When performing a `read_image()`, this is the number of scanlines it
+///    will attempt to read at a time (some formats are more efficient when
+///    reading and decoding multiple scanlines).  The default is 256. The
+///    special value of 0 indicates that it should try to read the whole
+///    image if possible.
+///
+/// - `float[] missingcolor`, `string missingcolor`
+///
+///    This attribute may either be an array of float values, or a string
+///    containing a comma-separated list of the values. Setting this option
+///    globally is equivalent to always passing an `ImageInput`
+///    open-with-configuration hint `"oiio:missingcolor"` with the value.
+///
+///    When set, it gives some `ImageInput` readers the option of ignoring
+///    any *missing* tiles or scanlines in the file, and instead of treating
+///    the read failure of an individual tile as a full error, will
+///    interpret is as an intentionally missing tile and proceed by simply
+///    filling in the missing pixels with the color specified. If the first
+///    element is negative, it will use the absolute value, but draw
+///    alternating diagonal stripes of the color. For example,
+///
+///        float missing[4] = { -1.0, 0.0, 0.0, 0.0 }; // striped red
+///        OIIO::attribute ("missingcolor", TypeDesc("float[4]"), &missing);
+///
+///    Note that only some file formats support files with missing tiles or
+///    scanlines, and this is only taken as a hint. Please see
+///    chap-bundledplugins_ for details on which formats accept a
+///    `"missingcolor"` configuration hint.
+///
+/// - `int debug`
+///
+///    When nonzero, various debug messages may be printed. The default is 0
+///    for release builds, 1 for DEBUG builds (values > 1 are for OIIO
+///    developers to print even more debugging information), This attribute
+///    but also may be overridden by the OPENIMAGEIO_DEBUG environment
+///    variable.
+///
+/// - `int tiff:half`
+///
+///    When nonzero, allows TIFF to write `half` pixel data. N.B. Most apps
+///    may not read these correctly, but OIIO will. That's why the default
+///    is not to support it.
+///
+/// - `int log_times`
+///
+///    When the `"log_times"` attribute is nonzero, `ImageBufAlgo` functions
+///    are instrumented to record the number of times they were called and
+///    the total amount of time spent executing them. It can be overridden
+///    by environment variable `OPENIMAGEIO_LOG_TIMES`. If the value of
+///    `log_times` is 2 or more when the application terminates, the timing
+///    report will be printed to `stdout` upon exit.
+///
+///    When enabled, there is a slight runtime performance cost due to
+///    checking the time at the start and end of each of those function
+///    calls, and the locking and recording of the data structure that holds
+///    the log information. When the `log_times` attribute is disabled,
+///    there is no additional performance cost.
+///
+///    The report of totals can be retrieved as the value of the
+///    `"timing_report"` attribute, using `OIIO:get_attribute()` call.
+///
+///    
 ///
 OIIO_API bool attribute (string_view name, TypeDesc type, const void *val);
-// Shortcuts for common types
+
+/// Shortcut attribute() for setting a single integer.
 inline bool attribute (string_view name, int val) {
     return attribute (name, TypeInt, &val);
 }
+/// Shortcut attribute() for setting a single float.
 inline bool attribute (string_view name, float val) {
     return attribute (name, TypeFloat, &val);
 }
+/// Shortcut attribute() for setting a single string.
 inline bool attribute (string_view name, string_view val) {
     const char *s = val.c_str();
     return attribute (name, TypeString, &s);
 }
 
-/// Get the named global attribute of OpenImageIO, store it in *val.
-/// Return true if found and it was compatible with the type specified,
-/// otherwise return false and do not modify the contents of *val.  It
-/// is up to the caller to ensure that val points to the right kind and
+/// Get the named global attribute of OpenImageIO, store it in `*val`.
+/// Return `true` if found and it was compatible with the type specified,
+/// otherwise return `false` and do not modify the contents of `*val`.  It
+/// is up to the caller to ensure that `val` points to the right kind and
 /// size of storage for the given type.
 ///
 /// In addition to being able to retrieve all the attributes that are
-/// documented as settable by the attribute() call, getattribute() can
-/// also retrieve the following read-only attributes:
-///     string "format_list"
-///             Comma-separated list of all format names supported
-///             or for which plugins could be found.
-///     string "input_format_list"
-///             Comma-separated list of all format names supported
-///             or for which plugins could be found that can read images.
-///     string "output_format_list"
-///             Comma-separated list of all format names supported
-///             or for which plugins could be found that can write images.
-///     string "extension_list"
-///             For each format, the format name followed by a colon,
-///             followed by comma-separated list of all extensions that
-///             are presumed to be used for that format.  Semicolons
-///             separate the lists for formats.  For example,
-///                "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
-///     string "library_list"
-///             For each format that uses an external expendent library, the
-///             format name followed by a colon, followed by the name of
-///             the library. Semicolons separate the lists for formats. For
-///             example,
-///              "jpeg:jpeg-turbo 1.5.1;png:libpng 1.6.29;gif:gif_lib 5.1.4"
-///     string "timing_report"
-///             A string containing the report of all the log_times.
-///     string "oiio:simd"
-///             Comma-separated list of the SIMD-related capabilities
-///             enabled when the OIIO library was built. For example,
-///                 "sse2,sse3,ssse3,sse41,sse42,avx"
-///     string "hw:simd"
-///             Comma-separated list of the SIMD-related capabilities
-///             detected at runtime at the time of the query (which may not
-///             match the support compiled into the library).
-///     int "resident_memory_used_MB"
-///             Approximate process memory used (resident) by the application,
-///             in MB. This might be helpful in debugging.
+/// documented as settable by the `OIIO::attribute()` call, `getattribute()`
+/// can also retrieve the following read-only attributes:
+///
+/// - `string format_list`
+/// - `string input_format_list`
+/// - `string output_format_list`
+///   
+///   A comma-separated list of all the names of, respectively, all
+///   supported image formats, all formats accepted as inputs, and all
+///   formats accepted as outputs.
+///   
+/// - `string extension_list`
+///   
+///   For each format, the format name, followed by a colon, followed by a
+///   comma-separated list of all extensions that are presumed to be used
+///   for that format.  Semicolons separate the lists for formats.  For
+///   example,
+///
+///        "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
+///
+/// - `string library_list`
+///   
+///   For each format that uses a dependent library, the format name,
+///   followed by a colon, followed by the name and version of the
+///   dependency. Semicolons separate the lists for formats.  For example,
+///
+///        "tiff:LIBTIFF 4.0.4;gif:gif_lib 4.2.3;openexr:OpenEXR 2.2.0"
+///
+/// - string "timing_report"
+///         A string containing the report of all the log_times.
+///
+/// - `string hw:simd`
+/// - `string oiio:simd` (read-only)
+///   
+///   A comma-separated list of hardware CPU features for SIMD (and some
+///   other things). The `"oiio:simd"` attribute is similarly a list of
+///   which features this build of OIIO was compiled to support.
+///
+///   This was added in OpenImageIO 1.8.
+///   
+/// - `float resident_memory_used_MB`
+///
+///   This read-only attribute can be used for debugging purposes to report
+///   the approximate process memory used (resident) by the application, in
+///   MB.
+///
+/// - `string timing_report`
+///
+///    Retrieving this attribute returns the timing report generated by the
+///    `log_timing` attribute (if it was enabled). The report is sorted
+///    alphabetically and for each named instrumentation region, prints the
+///    number of times it executed, the total runtime, and the average per
+///    call, like this:
+///
+///        IBA::computePixelStats        2   2.69ms  (avg   1.34ms)
+///        IBA::make_texture             1  74.05ms  (avg  74.05ms)
+///        IBA::mul                      8   2.42ms  (avg   0.30ms)
+///        IBA::over                    10  23.82ms  (avg   2.38ms)
+///        IBA::resize                  20   0.24s   (avg  12.18ms)
+///        IBA::zero                     8   0.66ms  (avg   0.08ms)
+///
 OIIO_API bool getattribute (string_view name, TypeDesc type, void *val);
-// Shortcuts for common types
+
+/// Shortcut getattribute() for retrieving a single integer.
+/// The value is placed in `val`, and the function returns `true` if the
+/// attribute was found and was legally convertible to an int.
 inline bool getattribute (string_view name, int &val) {
     return getattribute (name, TypeInt, &val);
 }
+/// Shortcut getattribute() for retrieving a single float.
+/// The value is placed in `val`, and the function returns `true` if the
+/// attribute was found and was legally convertible to a float.
 inline bool getattribute (string_view name, float &val) {
     return getattribute (name, TypeFloat, &val);
 }
-inline bool getattribute (string_view name, char **val) {
-    return getattribute (name, TypeString, val);
-}
+/// Shortcut getattribute() for retrieving a single string as a
+/// `std::string`. The value is placed in `val`, and the function returns
+/// `true` if the attribute was found.
 inline bool getattribute (string_view name, std::string &val) {
     ustring s;
     bool ok = getattribute (name, TypeString, &s);
@@ -1736,14 +2039,26 @@ inline bool getattribute (string_view name, std::string &val) {
         val = s.string();
     return ok;
 }
+/// Shortcut getattribute() for retrieving a single string as a `char*`.
+inline bool getattribute (string_view name, char **val) {
+    return getattribute (name, TypeString, val);
+}
+/// Shortcut getattribute() for retrieving a single integer, with a supplied
+/// default value that will be returned if the attribute is not found or
+/// could not legally be converted to an int.
 inline int get_int_attribute (string_view name, int defaultval=0) {
     int val;
     return getattribute (name, TypeInt, &val) ? val : defaultval;
 }
+/// Shortcut getattribute() for retrieving a single float, with a supplied
+/// default value that will be returned if the attribute is not found or
+/// could not legally be converted to a float.
 inline float get_float_attribute (string_view name, float defaultval=0) {
     float val;
     return getattribute (name, TypeFloat, &val) ? val : defaultval;
 }
+/// Shortcut getattribute() for retrieving a single string, with a supplied
+/// default value that will be returned if the attribute is not found.
 inline string_view get_string_attribute (string_view name,
                                  string_view defaultval = string_view()) {
     ustring val;
