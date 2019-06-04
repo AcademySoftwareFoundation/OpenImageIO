@@ -674,7 +674,7 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
 
     string_view comp;
     int qual;
-    std::tie(comp, qual) = m_spec.decode_compression_metadata("zip");
+    std::tie(comp, qual) = spec.decode_compression_metadata("zip");
     // It seems that zips is the only compression that can reliably work
     // on deep files (but allow "none" as well)
     if (spec.deep && comp != "none")
