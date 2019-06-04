@@ -43,7 +43,7 @@ in the outer OpenImageIO scope:
     TypeString TypeTimeCode TypeKeyCode TypeFloat4 TypeRational
 
 The only types commonly used to store \emph{pixel values} in image files
-are scalars of {\cf UINT8}, {\cf UINT16}, {\cf FLOAT}, and {\cf HALF}
+are scalars of {\cf UINT8}, {\cf UINT16}, {\cf FLOAT}, and ``half``
 (the last only used by OpenEXR, to the best of our knowledge).
 
 Note that the ``TypeDesc`` (which is also used for applications other
