@@ -42,8 +42,8 @@ in the outer OpenImageIO scope:
     TypeInt TypeUInt TypeInt16 TypeUInt16 TypeInt8 TypeUInt8
     TypeString TypeTimeCode TypeKeyCode TypeFloat4 TypeRational
 
-The only types commonly used to store \emph{pixel values} in image files
-are scalars of {\cf UINT8}, {\cf UINT16}, {\cf FLOAT}, and ``half``
+The only types commonly used to store *pixel values* in image files
+are scalars of ``UINT8``, ``UINT16``, ``float``, and ``half``
 (the last only used by OpenEXR, to the best of our knowledge).
 
 Note that the ``TypeDesc`` (which is also used for applications other
@@ -302,13 +302,13 @@ inside the source code.
 
 ``OPENIMAGEIO_TEXTURESYSTEM_OPTIONS``
 
-    Allows you to seed the options for any \TextureSystem created.
+    Allows you to seed the options for any TextureSystem created.
 
     The value of the environment variable should be a comma-separated list of
-    \emph{name=value} settings. If a value is a string that itself needs to
+    ``name=value`` settings. If a value is a string that itself needs to
     contain commas, it may be enclosed in single or double quotes.
 
-    Upon creation of any \TextureSystem, the contents of this environment variable
+    Upon creation of any TextureSystem, the contents of this environment variable
     will be passed to a call to::
 
         texturesys->attribute ("options", value);

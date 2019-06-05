@@ -21,9 +21,9 @@ OpenImageIO
    imageioapi
 
    imageoutput
-..   x imageinput
-   x writingplugins
-   x builtinplugins
+   imageinput
+   writingplugins
+.. x builtinplugins
    x imagecache
    x texturesys
    x imagebuf
@@ -60,4 +60,7 @@ OpenImageIO
         http://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cpp-domain
     Breathe docs:
         https://breathe.readthedocs.io/en/latest/directives.htm
-        
+    RST:
+
+    
+

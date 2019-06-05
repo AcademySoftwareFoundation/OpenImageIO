@@ -70,8 +70,6 @@ html_static_path = ['_static']
 breathe_projects = { "oiio": "../../build/doxygen/xml" }
 breathe_default_project = "oiio"
 breathe_domain_by_extension = {'h': 'cpp'}
-
 primary_domain = 'cpp'
 highlight_language = 'cpp'
-
 
