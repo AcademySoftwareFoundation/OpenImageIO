@@ -4118,7 +4118,7 @@ OIIO_FORCEINLINE void vint4::load_mask (int mask, const value_t *values) {
 #elif OIIO_SIMD_AVX >= 2
     m_simd = _mm_maskload_epi32 (values, _mm_castps_si128(vbool_t::from_bitmask(mask)));
 #else
-    SIMD_CONSTRUCT ((mask>>i) & 1 ? values[i] : 0.0f);
+    SIMD_CONSTRUCT ((mask>>i) & 1 ? values[i] : 0);
 #endif
 }
 
@@ -4129,7 +4129,7 @@ OIIO_FORCEINLINE void vint4::load_mask (const vbool_t& mask, const value_t *valu
 #elif OIIO_SIMD_AVX >= 2
     m_simd = _mm_maskload_epi32 (values, _mm_castps_si128(mask));
 #else
-    SIMD_CONSTRUCT (mask[i] ? values[i] : 0.0f);
+    SIMD_CONSTRUCT ( value_t(mask[i] ? values[i] : 0) );
 #endif
 }
 
@@ -4917,7 +4917,7 @@ OIIO_FORCEINLINE void vint8::load_mask (int mask, const int *values) {
 #elif OIIO_SIMD_AVX >= 2
     m_simd = _mm256_maskload_epi32 (values, _mm256_castps_si256(vbool8::from_bitmask(mask)));
 #else
-    SIMD_CONSTRUCT ((mask>>i) & 1 ? values[i] : 0.0f);
+    SIMD_CONSTRUCT ( int((mask>>i) & 1 ? values[i] : 0) );
 #endif
 }
 
@@ -4928,7 +4928,7 @@ OIIO_FORCEINLINE void vint8::load_mask (const vbool8& mask, const int *values) {
 #elif OIIO_SIMD_AVX >= 2
     m_simd = _mm256_maskload_epi32 (values, _mm256_castps_si256(mask));
 #else
-    SIMD_CONSTRUCT (mask[i] ? values[i] : 0.0f);
+    SIMD_CONSTRUCT ( int(mask[i] ? values[i] : 0) );
 #endif
 }
 
