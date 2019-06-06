@@ -1,3 +1,5 @@
+.. _chap-imageoutput:
+
 ImageOutput: Writing Images
 ###########################
 

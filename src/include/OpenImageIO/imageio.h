@@ -835,137 +835,219 @@ public:
     /// unique_ptr to an ImageInput
     using unique_ptr = std::unique_ptr<ImageInput>;
 
+    /// @{
+    /// @name Creating an ImageIntput
+
     /// Create an ImageInput subclass instance that is able to read the
-    /// given file and open it, returning a unique_ptr to the ImageInput if
-    /// successful.  The unique_ptr is set up with an appropriate deleter so
-    /// the ImageInput will be properly deleted when the unique_ptr goes out
-    /// of scope or is reset. If the open fails, return an empty unique_ptr
-    /// and set an error that can be retrieved by OpenImageIO::geterror().
+    /// given file and open it, returning a `unique_ptr` to the ImageInput
+    /// if successful.  The `unique_ptr` is set up with an appropriate
+    /// deleter so the ImageInput will be properly closed and deleted when
+    /// the `unique_ptr` goes out of scope or is reset. If the open fails,
+    /// return an empty `unique_ptr` and set an error that can be retrieved
+    /// by `OIIO::geterror()`.
     ///
-    /// The 'config', if not nullptr, points to an ImageSpec giving
-    /// requests or special instructions.  ImageInput implementations
-    /// are free to not respond to any such requests, so the default
-    /// implementation is just to ignore config.
+    /// The `config`, if not nullptr, points to an ImageSpec giving hints,
+    /// requests, or special instructions.  ImageInput implementations are
+    /// free to not respond to any such requests, so the default
+    /// implementation is just to ignore `config`.
     ///
-    /// open() will first try to make an ImageInput corresponding to
-    /// the format implied by the file extension (for example, "foo.tif"
+    /// `open()` will first try to make an ImageInput corresponding to
+    /// the format implied by the file extension (for example, `"foo.tif"`
     /// will try the TIFF plugin), but if one is not found or if the
     /// inferred one does not open the file, every known ImageInput type
     /// will be tried until one is found that will open the file.
-    static unique_ptr open (const std::string &filename,
+    ///
+    /// @param filename
+    ///         The name of the file to open.
+    ///
+    /// @param config
+    ///         Optional pointer to an ImageSpec whose metadata contains
+    ///         "configuration hints."
+    ///
+    /// @returns
+    ///         A `unique_ptr` that will close and free the ImageInput when
+    ///         it exits scope or is reset. The pointer will be empty if the
+    ///         requiresd writer was not able to be created.
+    static unique_ptr open (const std::string& filename,
                             const ImageSpec *config = nullptr);
 
-    /// Create and return an ImageInput implementation that is able
-    /// to read the given file.  If do_open is true, fully open it if
-    /// possible (using the optional configuration spec, if supplied),
-    /// otherwise just create the ImageInput but don't open it.
-    /// The plugin_searchpath parameter is an override of the searchpath.
+    /// Create and return an ImageInput implementation that is able to read
+    /// the given file.  If `do_open` is true, fully open it if possible
+    /// (using the optional `config` configuration spec, if supplied),
+    /// otherwise just create the ImageInput but don't open it. The
+    /// plugin_searchpath parameter is an override of the searchpath.
     /// colon-separated list of directories to search for ImageIO plugin
     /// DSO/DLL's (not a searchpath for the image itself!).  This will
-    /// actually just try every imageio plugin it can locate, until it
-    /// finds one that's able to open the file without error.
+    /// actually just try every imageio plugin it can locate, until it finds
+    /// one that's able to open the file without error.
     ///
-    /// If the caller intends to immediately open the file, then it is
-    /// often simpler to call static ImageInput::open().
-    static unique_ptr create (const std::string &filename, bool do_open=false,
+    /// If the caller intends to immediately open the file, then it is often
+    /// simpler to call static `ImageInput::open()`.
+    ///
+    /// @param filename
+    ///         The name of the file to open.
+    ///
+    /// @param do_open
+    ///         If `true`, not only create but also open the file.
+    ///
+    /// @param config
+    ///         Optional pointer to an ImageSpec whose metadata contains
+    ///         "configuration hints" for the ImageInput implementation.
+    ///
+    /// @param plugin_searchpath
+    ///                 An optional colon-separated list of directories to
+    ///                 search for OpenImageIO plugin DSO/DLL's.
+    ///
+    /// @returns
+    ///         A `unique_ptr` that will close and free the ImageInput when
+    ///         it exits scope or is reset. The pointer will be empty if the
+    ///         requiresd writer was not able to be created.
+    static unique_ptr create (const std::string& filename, bool do_open=false,
                               const ImageSpec *config=nullptr,
                               string_view plugin_searchpath="");
-    static unique_ptr create (const std::string &filename,
-                              const std::string &plugin_searchpath);
 
-    // Destructor for a raw ImageInput.
+    // DEPRECATED(2.1) This method should no longer be used, it is redundant.
+    static unique_ptr create (const std::string& filename,
+                              const std::string& plugin_searchpath);
+
+    /// @}
+
+    // DEPRECATED(2.1)
     static void destroy (ImageInput *x);
 
+protected:
     ImageInput ();
+public:
     virtual ~ImageInput ();
 
     typedef std::recursive_mutex mutex;
     typedef std::lock_guard<mutex> lock_guard;
 
     /// Return the name of the format implemented by this class.
-    ///
     virtual const char *format_name (void) const = 0;
 
-    /// Given the name of a 'feature', return whether this ImageInput
-    /// supports input of images with the given properties. Most queries
-    /// will simply return 0 for "doesn't support" and nonzero for "supports
-    /// it", but it is acceptable to have queries return other nonzero
-    /// integers to indicate varying degrees of support or limits (but
-    /// should be clearly documented as such).
+    /// Given the name of a "feature", return whether this ImageInput
+    /// supports output of images with the given properties. Most queries
+    /// will simply return 0 for "doesn't support" and 1 for "supports it,"
+    /// but it is acceptable to have queries return other nonzero integers
+    /// to indicate varying degrees of support or limits (but should be
+    /// clearly documented as such).
     ///
-    /// Feature names that ImageIO plugins are expected to recognize
-    /// include:
+    /// Feature names that ImageInput implementations are expected to
+    /// recognize include:
     ///
     /// - `"arbitrary_metadata"` : Does this format allow metadata with
-    ///   arbitrary names and types?
-    /// - `"exif"` : Can this format store Exif camera data?
-    /// - `"iptc"` : Can this format store IPTC data?
-    /// - `"procedural"` : Can this format create images without reading from
-    ///   a disk file?
-    /// - `"ioproxy"` : Does this format reader support IOProxy?
+    ///       arbitrary names and types?
     ///
-    /// Note that main advantage of this approach, versus having
-    /// separate individual supports_foo() methods, is that this allows
-    /// future expansion of the set of possible queries without changing
-    /// the API, adding new entry points, or breaking linkage
-    /// compatibility.
+    /// - `"exif"` :
+    ///       Can this format store Exif camera data?
+    ///
+    /// - `"iptc"` :
+    ///       Can this format store IPTC data?
+    ///
+    /// - `"procedural"` :
+    ///       Can this format create images without reading from a disk
+    ///       file?
+    ///
+    /// - `"ioproxy"` :
+    ///       Does this format reader support reading from an `IOProxy`?
+    ///
+    /// This list of queries may be extended in future releases. Since this
+    /// can be done simply by recognizing new query strings, and does not
+    /// require any new API entry points, addition of support for new
+    /// queries does not break ``link compatibility'' with
+    /// previously-compiled plugins.
     virtual int supports (string_view feature) const { return false; }
 
-    /// Return true if the named file is file of the type for this
+    /// Return true if the `filename` names a file of the type for this
     /// ImageInput.  The implementation will try to determine this as
-    /// efficiently as possible, in most cases much less expensively
-    /// than doing a full open().  Note that a file can appear to be of
-    /// the right type (i.e., valid_file() returning true) but still
-    /// fail a subsequent call to open(), such as if the contents of the
-    /// file are truncated, nonsensical, or otherwise corrupted.
-    virtual bool valid_file (const std::string &filename) const;
+    /// efficiently as possible, in most cases much less expensively than
+    /// doing a full `open()`.  Note that there can be false positives: a
+    /// file can appear to be of the right type (i.e., `valid_file()`
+    /// returning `true`) but still fail a subsequent call to `open()`, such
+    /// as if the contents of the file are truncated, nonsensical, or
+    /// otherwise corrupted.
+    ///
+    /// @returns
+    ///         `true` upon success, or `false` upen failure.
+    virtual bool valid_file (const std::string& filename) const;
 
-    /// Open file with given name.  Various file attributes are put in
-    /// newspec and a copy is also saved in this->spec.  From these
-    /// attributes, you can discern the resolution, if it's tiled,
-    /// number of channels, and native data format.  Return true if the
-    /// file was found and opened okay.
-    virtual bool open (const std::string &name, ImageSpec &newspec) = 0;
+    /// Opens the file with given name and seek to the first subimage in the
+    /// file.  Various file attributes are put in `newspec` and a copy
+    /// is also saved internally to the `ImageInput` (retrievable via
+    /// `spec()`.  From examining `newspec` or `spec()`, you can
+    /// discern the resolution, if it's tiled, number of channels, native
+    /// data format, and other metadata about the image.
+    ///
+    /// @param name
+    ///         Filename to open.
+    ///
+    /// @param newspec
+    ///         Reference to an ImageSpec in which to deposit a full
+    ///         description of the contents of the first subimage of the
+    ///         file.
+    ///
+    /// @returns
+    ///         `true` if the file was found and opened successfully.
+    virtual bool open (const std::string& name, ImageSpec &newspec) = 0;
 
-    /// Open file with given name, similar to open(name,newspec). The
-    /// 'config' is an ImageSpec giving requests or special
-    /// instructions.  ImageInput implementations are free to not
-    /// respond to any such requests, so the default implementation is
-    /// just to ignore config and call regular open(name,newspec).
-    virtual bool open (const std::string &name, ImageSpec &newspec,
-                       const ImageSpec & /*config*/) { return open(name,newspec); }
+    /// Open file with given name, similar to `open(name,newspec)`. The
+    /// `config` is an ImageSpec giving requests or special instructions.
+    /// ImageInput implementations are free to not respond to any such
+    /// requests, so the default implementation is just to ignore config and
+    /// call regular `open(name,newspec)`.
+    ///
+    /// @param name
+    ///         Filename to open.
+    ///
+    /// @param newspec
+    ///         Reference to an ImageSpec in which to deposit a full
+    ///         description of the contents of the first subimage of the
+    ///         file.
+    ///
+    /// @param config
+    ///         An ImageSpec whose metadata contains "configuration hints"
+    ///         for the ImageInput implementation.
+    ///
+    /// @returns
+    ///         `true` if the file was found and opened successfully.
+    virtual bool open (const std::string& name, ImageSpec &newspec,
+                       const ImageSpec& config) { return open(name,newspec); }
 
-    /// Return a reference to the image format specification of the
-    /// current subimage/MIPlevel.  Note that the contents of the spec
-    /// are invalid before open() or after close(), and may change with
-    /// a call to seek_subimage(). It is thus not thread-safe, since the
-    /// spec may change if another thread calls seek_subimage, or any of
-    /// the read_*() functions that take explicit subimage/miplevel.
+    /// Return a reference to the image specification of the current
+    /// subimage/MIPlevel.  Note that the contents of the spec are invalid
+    /// before `open()` or after `close()`, and may change with a call to
+    /// `seek_subimage()`. It is thus not thread-safe, since the spec may
+    /// change if another thread calls `seek_subimage`, or any of the
+    /// `read_*()` functions that take explicit subimage/miplevel.
     virtual const ImageSpec &spec (void) const { return m_spec; }
 
     /// Return a full copy of the ImageSpec of the designated subimage and
     /// MIPlevel. This method is thread-safe, but it is potentially
     /// expensive, due to the work that needs to be done to fully copy an
     /// ImageSpec if there is lots of named metadata to allocate and copy.
-    /// See also the less expensive spec_dimensions(). Errors (such as
+    /// See also the less expensive `spec_dimensions()`. Errors (such as
     /// having requested a nonexistant subimage) are indicated by returning
-    /// an ImageSpec with format==TypeUnknown.
+    /// an ImageSpec with `format==TypeUnknown`.
     virtual ImageSpec spec (int subimage, int miplevel=0);
 
     /// Return a copy of the ImageSpec of the designated subimage and
     /// miplevel, but only the dimension and type fields. Just as with a
-    /// call to ImageSpec::copy_dimensions(), neither the channel names nor
-    /// any of the arbitrary named metadata will be copied, thus this is a
-    /// relatively inexpensive operation if you don't need that information.
-    /// It is guaranteed to be thread-safe. Errors (such as having requested
-    /// a nonexistant subimage) are indicated by returning an ImageSpec with
-    /// format==TypeUnknown.
+    /// call to `ImageSpec::copy_dimensions()`, neither the channel names
+    /// nor any of the arbitrary named metadata will be copied, thus this is
+    /// a relatively inexpensive operation if you don't need that
+    /// information. It is guaranteed to be thread-safe. Errors (such as
+    /// having requested a nonexistant subimage) are indicated by returning
+    /// an ImageSpec with `format==TypeUnknown`.
     virtual ImageSpec spec_dimensions (int subimage, int miplevel=0);
 
-    /// Close an image that we are totally done with. The call to close() is
-    /// not strictly necessary if the ImageInput is destroyed immediately
-    /// afterwards, since it is required for the destructor to close if the
-    /// file is still open.
+    /// Close an open ImageInput. The call to close() is not strictly
+    /// necessary if the ImageInput is destroyed immediately afterwards,
+    /// since it is required for the destructor to close if the file is
+    /// still open.
+    ///
+    /// @returns
+    ///         `true` upon success, or `false` upen failure.
     virtual bool close () = 0;
 
     /// Returns the index of the subimage that is currently being read.
@@ -980,15 +1062,17 @@ public:
 
     /// Seek to the given subimage and MIP-map level within the open image
     /// file.  The first subimage of the file has index 0, the highest-
-    /// resolution MIP level has index 0.  Return true on success, false on
-    /// failure (including that there is not a subimage or MIP level with
-    /// the specified index).  The new subimage's vital statistics are put
-    /// in *newspec (if not NULL) and may also be retrieved by  in
-    /// this->spec()).  The reader is expected to give the appearance of
-    /// random access to subimages and MIP levels -- in other words, if it
-    /// can't randomly seek to the given subimage/level, it should
-    /// transparently close, reopen, and sequentially read through prior
-    /// subimages and levels.
+    /// resolution MIP level has index 0.  The new subimage's vital
+    /// statistics=may be retrieved by `this->spec()`.  The reader is
+    /// expected to give the appearance of random access to subimages and
+    /// MIP levels -- in other words, if it can't randomly seek to the given
+    /// subimage/level, it should transparently close, reopen, and
+    /// sequentially read through prior subimages and levels.
+    ///
+    /// @returns
+    ///         `true` upon success, or `false` upen failure. A failure may
+    ///         indicate that no such subimage or MIP level exists in the
+    ///         file.
     virtual bool seek_subimage (int subimage, int miplevel) {
         // Default implementation assumes no support for subimages or
         // mipmaps, so there is no work to do.
@@ -1004,52 +1088,117 @@ public:
         return ok;
     }
 
+    // DEPRECATED(2.1)
     // Seek to the given subimage -- backwards-compatible call that
     // doesn't worry about MIP-map levels at all.
-    // Some day this will be deprecated.
     bool seek_subimage (int subimage, ImageSpec &newspec) {
         return seek_subimage (subimage, 0 /* miplevel */, newspec);
     }
 
-    /// Read the scanline that includes pixels (*,y,z) into data,
-    /// converting if necessary from the native data format of the file
-    /// into the 'format' specified (z==0 for non-volume images).  The
-    /// stride value gives the data spacing of adjacent pixels (in
-    /// bytes).  Strides set to AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    /// If format is TypeDesc::UNKNOWN, then rather than converting to
-    /// format, it will just copy pixels in the file's native data layout
-    /// (including, possibly, per-channel data formats).
-    /// The reader is expected to give the appearance of random access --
-    /// in other words, if it can't randomly seek to the given scanline,
-    /// it should transparently close, reopen, and sequentially read
-    /// through prior scanlines.  The base ImageInput class has a
-    /// default implementation that calls read_native_scanline and then
-    /// does appropriate format conversion, so there's no reason for
-    /// each format plugin to override this method.
+    /// @{
+    /// @name Reading pixels
+    ///
+    /// Common features of all the `read` methods:
+    ///
+    /// * The `format` parameter describes the data type of the `data[]`
+    ///   buffer. The read methods automatically convert the data from the
+    ///   data type it is stored in the file into the `format` of the `data`
+    ///   buffer.  If `format` is `TypeUnknown` it will just copy pixels of
+    ///   file's native data layout (including, possibly, per-channel data
+    ///   formats as specified by the ImageSpec's `channelfomats` field).
+    ///
+    /// * The `stride` values describe the layout of the `data` buffer:
+    ///   `xstride` is the distance in bytes between successive pixels
+    ///   within each scanline. `ystride` is the distance in bytes between
+    ///   successive scanlines. For volumetric images `zstride` is the
+    ///   distance in bytes between successive "volumetric planes".  Strides
+    ///   set to the special value `AutoStride` imply contiguous data, i.e.,
+    ///
+    ///       xstride = format.size() * nchannels
+    ///       ystride = xstride * width
+    ///       zstride = ystride * height
+    ///
+    /// * Any *range* parameters (such as `ybegin` and `yend`) describe a
+    ///   "half open interval", meaning that `begin` is the first item and
+    ///   `end` is *one past the last item*. That means that the number of
+    ///   items is `end - begin`.
+    ///
+    /// * For ordinary 2D (non-volumetric) imaages, any `z` or `zbegin`
+    ///   coordinates should be 0 and any `zend` should be 1, indicating
+    ///   that only a single image "plane" exists.
+    ///
+    /// * Some read methods take a channel range [chbegin,chend) to allow
+    ///   reading of a contiguous subset of channels (chbegin=0,
+    ///   chend=spec.nchannels reads all channels).
+    ///
+    /// * ImageInput readers are expected to give the appearance of random
+    ///   access -- in other words, if it can't randomly seek to the given
+    ///   scanline or tile, it should transparently close, reopen, and
+    ///   sequentially read through prior scanlines.
+    ///
+    /// * All read functions return `true` for success, `false` for failure
+    ///   (after which a call to `geterror()` may retrieve a specific error
+    ///   message).
+    ///
+
+    /// Read the scanline that includes pixels (*,y,z) from the "current"
+    /// subimage and MIP level.  The `xstride` value gives the distance
+    /// between successive pixels (in bytes).  Strides set to `AutoStride`
+    /// imply "contiguous" data.
+    ///
+    /// @Note This variety of `read_scanline` is not re-entrant nor
+    /// thread-safe. If you require concurrent reads to the same open
+    /// ImageInput, you should use `read_scanlines` that has the `subimage`
+    /// and `miplevel` passed explicitly.
+    ///
+    /// @param  y/z         The y & z coordinates of the scanline. For 2D
+    ///                     images, z should be 0.
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data buffer.
+    /// @param  xstride     The distance in bytes between successive
+    ///                     pixels in `data` (or `AutoStride`).
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool read_scanline (int y, int z, TypeDesc format, void *data,
                                 stride_t xstride=AutoStride);
 
-    ///
-    /// Simple read_scanline reads to contiguous float pixels.
+    /// Simple read_scanline reads into contiguous float pixels.
     bool read_scanline (int y, int z, float *data) {
-        return read_scanline (y, z, TypeDesc::FLOAT, data);
+        return read_scanline (y, z, TypeFloat, data);
     }
 
     /// Read multiple scanlines that include pixels (*,y,z) for all ybegin
-    /// <= y < yend in the specified subimage and mip level, into data,
-    /// using the strides given and converting to the requested data format
-    /// (unless format is TypeDesc::UNKNOWN, in which case pixels will be
-    /// copied in the native data layout, including per-channel data
-    /// formats).  Only channels [chbegin,chend) will be read/copied
+    /// <= y < yend in the specified subimage and mip level, into `data`,
+    /// using the strides given and converting to the requested data
+    /// `format` (TypeUnknown indicates no conversion, just copy native data
+    /// types). Only channels [chbegin,chend) will be read/copied
     /// (chbegin=0, chend=spec.nchannels reads all channels, yielding
-    /// equivalent behavior to the simpler variant of read_scanlines).
+    /// equivalent behavior to the simpler variant of `read_scanlines`).
     ///
     /// This version of read_scanlines, because it passes explicit
     /// subimage/miplevel, does not require a separate call to
     /// seek_subimage, and is guaranteed to be thread-safe against other
     /// concurrent calls to any of the read_* methods that take an explicit
     /// subimage/miplevel (but not against any other ImageInput methods).
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  ybegin/yend The y range of the scanlines being passed.
+    /// @param  z           The z coordinate of the scanline.
+    /// @param  chbegin/chend
+    ///                     The channel range to read.
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride/ystride
+    ///                     The distance in bytes between successive pixels
+    ///                     and scanlines (or `AutoStride`).
+    /// @returns            `true` upon success, or `false` upen failure.
+    ///
+    /// @note This call was changed for OpenImageIO 2.0 to include the
+    ///     explicit subimage and miplevel parameters. The previous
+    ///     versions, which lacked subimage and miplevel parameters (thus
+    ///     were dependent on a prior call to `seek_subimage`) are
+    ///     considered deprecated.
     virtual bool read_scanlines (int subimage, int miplevel,
                                  int ybegin, int yend, int z,
                                  int chbegin, int chend,
@@ -1071,57 +1220,89 @@ public:
                          stride_t xstride=AutoStride,
                          stride_t ystride=AutoStride);
 
-    /// Read the tile whose upper-left origin is (x,y,z) into data,
-    /// converting if necessary from the native data format of the file
-    /// into the 'format' specified. (z==0 for non-volume images.) The
-    /// stride values give the data spacing of adjacent pixels, scanlines,
-    /// and volumetric slices (measured in bytes). Strides set to AutoStride
-    /// imply 'contiguous' data in the shape of a full tile, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    ///     ystride == xstride*spec.tile_width
-    ///     zstride == ystride*spec.tile_height
-    /// If format is TypeDesc::UNKNOWN, then rather than converting to
-    /// format, it will just copy pixels in the file's native data layout
-    /// (including, possibly, per-channel data formats).
-    /// The reader is expected to give the appearance of random access
-    /// -- in other words, if it can't randomly seek to the given tile,
-    /// it should transparently close, reopen, and sequentially read
-    /// through prior tiles.  The base ImageInput class has a default
-    /// implementation that calls read_native_tile and then does
-    /// appropriate format conversion, so there's no reason for each
-    /// format plugin to override this method.
+    /// Read the tile whose upper-left origin is (x,y,z) into `data[]`,
+    /// converting if necessary from the native data format of the file into
+    /// the `format` specified. The stride values give the data spacing of
+    /// adjacent pixels, scanlines, and volumetric slices (measured in
+    /// bytes). Strides set to AutoStride imply 'contiguous' data in the
+    /// shape of a full tile, i.e.,
+    ///
+    ///     xstride = format.size() * spec.nchannels
+    ///     ystride = xstride * spec.tile_width
+    ///     zstride = ystride * spec.tile_height
+    ///
+    /// @Note This variety of `read_tile` is not re-entrant nor thread-safe.
+    /// If you require concurrent reads to the same open ImageInput, you
+    /// should use `read_tiles()` that has the `subimage` and `miplevel`
+    /// passed explicitly.
+    ///
+    /// @param  x/y/z       The upper left coordinate of the tile being passed.
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride/ystride/zstride
+    ///                     The distance in bytes between successive pixels,
+    ///                     scanlines, and image planes (or `AutoStride` to
+    ///                     indicate a "contiguous" single tile).
+    /// @returns            `true` upon success, or `false` upen failure.
+    ///
+    /// @note This call will fail if the image is not tiled, or if (x,y,z)
+    /// is not the upper left corner coordinates of a tile.
     virtual bool read_tile (int x, int y, int z, TypeDesc format,
                             void *data, stride_t xstride=AutoStride,
                             stride_t ystride=AutoStride,
                             stride_t zstride=AutoStride);
 
-    ///
-    /// Simple read_tile reads to contiguous float pixels.
+    /// Simple read_tile reads into contiguous float pixels.
     bool read_tile (int x, int y, int z, float *data) {
         return read_tile (x, y, z, TypeDesc::FLOAT, data,
                           AutoStride, AutoStride, AutoStride);
     }
 
-    /// Read the block of tiles that include all pixels and channels in the
-    /// ROI, at the specified subimage and MIP level. The values are
-    /// converted to the requested data format (unless format is
-    /// TypeDesc::UNKNOWN, in which case pixels will be copied in the native
-    /// data layout, including per-channel data formats), and stored in
-    /// `data` according to the optional stride lengths (in bytes).
+    /// Read the block of multiple tiles that include all pixels in
     ///
-    /// The stride values give the data spacing of adjacent pixels,
-    /// scanlines, and volumetric slices (measured in bytes). Strides set to
-    /// AutoStride imply 'contiguous' data in the shape of the [begin,end)
-    /// region, i.e.,
-    ///     xstride == (chend - chbegin) * format.size()
-    ///     ystride == xstride * (xend - xbegin)
-    ///     zstride == ystride * (yend - ybegin)
+    ///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
     ///
-    /// This version of read_tiles, because it passes explicit
-    /// subimage/miplevel, does not require a separate call to
-    /// seek_subimage, and is guaranteed to be thread-safe against other
-    /// concurrent calls to any of the read_* methods that take an explicit
-    /// subimage/miplevel (but not against any other ImageInput methods).
+    /// This is analogous to calling `read_tile(x,y,z,...)` for each tile
+    /// in turn (but for some file formats, reading multiple tiles may allow
+    /// it to read more efficiently or in parallel).
+    ///
+    /// The begin/end pairs must correctly delineate tile boundaries, with
+    /// the exception that it may also be the end of the image data if the
+    /// image resolution is not a whole multiple of the tile size. The
+    /// stride values give the data spacing of adjacent pixels, scanlines,
+    /// and volumetric slices (measured in bytes). Strides set to AutoStride
+    /// imply contiguous data in the shape of the [begin,end) region, i.e.,
+    ///
+    ///     xstride = format.size() * spec.nchannels
+    ///     ystride = xstride * (xend-xbegin)
+    ///     zstride = ystride * (yend-ybegin)
+    ///
+    /// This version of read_tiles, because it passes explicit subimage and
+    /// miplevel, does not require a separate call to seek_subimage, and is
+    /// guaranteed to be thread-safe against other concurrent calls to any
+    /// of the read_* methods that take an explicit subimage/miplevel (but
+    /// not against any other ImageInput methods).
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  xbegin/xend The x range of the pixels covered by the group
+    ///                     of tiles being read.
+    /// @param  ybegin/yend The y range of the pixels covered by the tiles.
+    /// @param  zbegin/zend The z range of the pixels covered by the tiles
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  chbegin/chend
+    ///                     The channel range to read.
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride/ystride/zstride
+    ///                     The distance in bytes between successive pixels,
+    ///                     scanlines, and image planes (or `AutoStride`).
+    /// @returns            `true` upon success, or `false` upen failure.
+    ///
+    /// @note The call will fail if the image is not tiled, or if the pixel
+    /// ranges do not fall along tile (or image) boundaries, or if it is not
+    /// a valid tile range.
     virtual bool read_tiles (int subimage, int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              int chbegin, int chend, TypeDesc format, void *data,
@@ -1141,35 +1322,40 @@ public:
                      TypeDesc format, void *data, stride_t xstride=AutoStride,
                      stride_t ystride=AutoStride, stride_t zstride=AutoStride);
 
-    /// Read the entire image of spec.width x spec.height x spec.depth
-    /// pixels into data (which must already be sized large enough for
-    /// the entire image) with the given strides and in the desired
-    /// format.  Read tiles or scanlines automatically.  Strides set to
-    /// AutoStride imply 'contiguous' data, i.e.,
-    ///     xstride == spec.nchannels*format.size()
-    ///     ystride == xstride*spec.width
-    ///     zstride == ystride*spec.height
-    /// If format is TypeDesc::UNKNOWN, then rather than converting to
-    /// format, it will just copy pixels in the file's native data layout
-    /// (including, possibly, per-channel data formats).
+    /// Read the entire image of `spec.width x spec.height x spec.depth`
+    /// pixels into a buffer with the given strides and in the desired
+    /// data format.
+    ///
+    /// Depending on the spec, this will read either all tiles or all
+    /// scanlines. Assume that data points to a layout in row-major order.
+    ///
+    /// This version of read_imgage, because it passes explicit subimage and
+    /// miplevel, does not require a separate call to seek_subimage, and is
+    /// guaranteed to be thread-safe against other concurrent calls to any
+    /// of the read_* methods that take an explicit subimage/miplevel (but
+    /// not against any other ImageInput methods).
+    ///
     /// Because this may be an expensive operation, a progress callback
     /// may be passed.  Periodically, it will be called as follows:
-    ///     progress_callback (progress_callback_data, float done)
-    /// where 'done' gives the portion of the image
-    virtual bool read_image (TypeDesc format, void *data,
-                             stride_t xstride=AutoStride,
-                             stride_t ystride=AutoStride,
-                             stride_t zstride=AutoStride,
-                             ProgressCallback progress_callback=NULL,
-                             void *progress_callback_data=NULL);
-
-    /// Read the entire image of spec.width x spec.height x spec.depth
-    /// pixels into data (which must already be sized large enough for
-    /// the entire image) with the given strides and in the desired
-    /// format.  Read tiles or scanlines automatically. Only channels
-    /// [chbegin,chend) will be read/copied (chbegin=0, chend=spec.nchannels
-    /// reads all channels, yielding equivalent behavior to the simpler
-    /// variant of read_image).
+    ///
+    ///     progress_callback (progress_callback_data, float done);
+    ///
+    /// where `done` gives the portion of the image (between 0.0 and 1.0)
+    /// that has been written thus far.
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  chbegin/chend
+    ///                     The channel range to read.
+    /// @param  format      A TypeDesc describing the type of `data`.
+    /// @param  data        Pointer to the pixel data.
+    /// @param  xstride/ystride/zstride
+    ///                     The distance in bytes between successive pixels,
+    ///                     scanlines, and image planes (or `AutoStride`).
+    /// @param  progress_callback/progress_callback_data
+    ///                     Optional progress callback.
+    /// @returns            `true` upon success, or `false` upen failure.
     virtual bool read_image (int subimage, int miplevel,
                              int chbegin, int chend,
                              TypeDesc format, void *data,
@@ -1178,10 +1364,17 @@ public:
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
+
     // DEPRECATED versions of read_image (pre-1.9 OIIO). These will
     // eventually be removed. Try to replace these calls with ones to the
-    // new variety of read_tiles that takes an explicit subimage and
+    // new variety of read_image that takes an explicit subimage and
     // miplevel. These old versions are NOT THREAD-SAFE.
+    virtual bool read_image (TypeDesc format, void *data,
+                             stride_t xstride=AutoStride,
+                             stride_t ystride=AutoStride,
+                             stride_t zstride=AutoStride,
+                             ProgressCallback progress_callback=NULL,
+                             void *progress_callback_data=NULL);
     virtual bool read_image (int chbegin, int chend,
                              TypeDesc format, void *data,
                              stride_t xstride=AutoStride,
@@ -1189,19 +1382,96 @@ public:
                              stride_t zstride=AutoStride,
                              ProgressCallback progress_callback=NULL,
                              void *progress_callback_data=NULL);
-
-    ///
-    /// Simple read_image reads to contiguous float pixels.
     bool read_image (float *data) {
         return read_image (TypeDesc::FLOAT, data);
     }
 
+    /// Read deep scanlines containing pixels (*,y,z), for all y in the
+    /// range [ybegin,yend) into `deepdata`. This will fail if it is not a
+    /// deep file.
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  chbegin/chend
+    ///                     The channel range to read.
+    /// @param  ybegin/yend The y range of the scanlines being passed.
+    /// @param  z           The z coordinate of the scanline.
+    /// @param  deepdata    A `DeepData` object into which the data for
+    ///                     these scanlines will be placed.
+    /// @returns            `true` upon success, or `false` upen failure.
+    virtual bool read_native_deep_scanlines (int subimage, int miplevel,
+                                             int ybegin, int yend, int z,
+                                             int chbegin, int chend,
+                                             DeepData &deepdata);
 
-    ////////////////////////////////////////////////////////////////////////
-    // read_native_* methods are usually not directly called by user code
-    // (except for read_native_deep_* varieties). These are the methods that
-    // are overloaded by the ImageInput subclasses that implement the
-    // individual file format readers.
+    /// Read into `deepdata` the block of native deep data tiles that
+    /// include all pixels and channels specified by pixel range.
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  xbegin/xend The x range of the pixels covered by the group
+    ///                     of tiles being read.
+    /// @param  ybegin/yend The y range of the pixels covered by the tiles.
+    /// @param  zbegin/zend The z range of the pixels covered by the tiles
+    ///                     (for a 2D image, zbegin=0 and zend=1).
+    /// @param  chbegin/chend
+    ///                     The channel range to read.
+    /// @param  deepdata    A `DeepData` object into which the data for
+    ///                     these tiles will be placed.
+    /// @returns            `true` upon success, or `false` upen failure.
+    ///
+    /// @note The call will fail if the image is not tiled, or if the pixel
+    /// ranges do not fall along tile (or image) boundaries, or if it is not
+    /// a valid tile range.
+    virtual bool read_native_deep_tiles (int subimage, int miplevel,
+                                         int xbegin, int xend,
+                                         int ybegin, int yend,
+                                         int zbegin, int zend,
+                                         int chbegin, int chend,
+                                         DeepData &deepdata);
+
+    /// Read the entire deep data image of spec.width x spec.height x
+    /// spec.depth pixels, all channels, into `deepdata`.
+    ///
+    /// @param  subimage    The subimage to read from (starting with 0).
+    /// @param  miplevel    The MIP level to read (0 is the highest
+    ///                     resolution level).
+    /// @param  deepdata    A `DeepData` object into which the data for
+    ///                     the image will be placed.
+    /// @returns            `true` upon success, or `false` upen failure.
+    virtual bool read_native_deep_image (int subimage, int miplevel,
+                                         DeepData &deepdata);
+
+    // DEPRECATED(1.9), Now just used for back compatibility:
+    bool read_native_deep_scanlines (int ybegin, int yend, int z,
+                             int chbegin, int chend, DeepData &deepdata) {
+        return read_native_deep_scanlines (current_subimage(), current_miplevel(),
+                                           ybegin, yend, z,
+                                           chbegin, chend, deepdata);
+    }
+    bool read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
+                                 int zbegin, int zend, int chbegin, int chend,
+                                 DeepData &deepdata) {
+        return read_native_deep_tiles (current_subimage(), current_miplevel(),
+                                       xbegin, xend, ybegin, yend,
+                                       zbegin, zend, chbegin, chend, deepdata);
+    }
+    bool read_native_deep_image (DeepData &deepdata) {
+        return read_native_deep_image (current_subimage(), current_miplevel(),
+                                       deepdata);
+    }
+
+    /// @}
+
+    /// @{
+    /// @name Reading native pixels -- implementation overloads
+    ///
+    /// @note read_native_* methods are usually not directly called by user
+    ///     code (except for read_native_deep_* varieties). These are the
+    ///     methods that are overloaded by the ImageInput subclasses that
+    ///     implement the individual file format readers.
     //
     // The read_native_* methods always read the "native" data types
     // (including per-channel data types) and assume that `data` points to
@@ -1225,13 +1495,17 @@ public:
     // implementaiton will be used instead, which is implemented by reducing
     // the operation to multiple calls to read_scanline or read_tile.
 
-    /// Read a single scanline of native data into contiguous memory.
+    /// Read a single scanline (all channels) of native data into contiguous
+    /// memory.
     virtual bool read_native_scanline (int subimage, int miplevel,
                                        int y, int z, void *data) = 0;
-
+    /// Read a range of scanlines (all channels) of native data into
+    /// contiguous memory.
     virtual bool read_native_scanlines (int subimage, int miplevel,
                                         int ybegin, int yend, int z,
                                         void *data);
+    /// Read a range of scanlines (with optionally a subset of channels) of
+    /// native data into contiguous memory.
     virtual bool read_native_scanlines (int subimage, int miplevel,
                                         int ybegin, int yend, int z,
                                         int chbegin, int chend, void *data);
@@ -1266,61 +1540,18 @@ public:
                                     int xbegin, int xend, int ybegin, int yend,
                                     int zbegin, int zend,
                                     int chbegin, int chend, void *data);
-
-    /// Read into deepdata the block of native deep scanlines corresponding
-    /// to pixels (*,y,z) for all roi.ybegin <= y < roi.yend, into deepdata.
-    /// Only channels [roi.chbegin, chend) will be read (roi.chbegin=0,
-    /// roi.chend=spec.nchannels reads all channels). The x range must be
-    /// the full width of the image data, and the z range must be just one
-    /// depth plane.
-    virtual bool read_native_deep_scanlines (int subimage, int miplevel,
-                                             int ybegin, int yend, int z,
-                                             int chbegin, int chend,
-                                             DeepData &deepdata);
-
-    /// Read into deepdata the block of native deep data tiles that include
-    /// all pixels and channels specified by the ROI.
-    virtual bool read_native_deep_tiles (int subimage, int miplevel,
-                                         int xbegin, int xend,
-                                         int ybegin, int yend,
-                                         int zbegin, int zend,
-                                         int chbegin, int chend,
-                                         DeepData &deepdata);
-
-    /// Read the entire deep data image of spec.width x spec.height x
-    /// spec.depth pixels, all channels, into deepdata.
-    virtual bool read_native_deep_image (int subimage, int miplevel,
-                                         DeepData &deepdata);
-
-    // DEPRECATED(1.9), Now just used for back compatibility:
-    bool read_native_deep_scanlines (int ybegin, int yend, int z,
-                             int chbegin, int chend, DeepData &deepdata) {
-        return read_native_deep_scanlines (current_subimage(), current_miplevel(),
-                                           ybegin, yend, z,
-                                           chbegin, chend, deepdata);
-    }
-    bool read_native_deep_tiles (int xbegin, int xend, int ybegin, int yend,
-                                 int zbegin, int zend, int chbegin, int chend,
-                                 DeepData &deepdata) {
-        return read_native_deep_tiles (current_subimage(), current_miplevel(),
-                                       xbegin, xend, ybegin, yend,
-                                       zbegin, zend, chbegin, chend, deepdata);
-    }
-    bool read_native_deep_image (DeepData &deepdata) {
-        return read_native_deep_image (current_subimage(), current_miplevel(),
-                                       deepdata);
-    }
+    /// @}
 
 
-    /// General message passing between client and image input server
-    ///
+    // General message passing between client and image input server. This
+    // is currently undefined and is reserved for future use.
     virtual int send_to_input (const char *format, ...);
     int send_to_client (const char *format, ...);
 
-    /// If any of the API routines returned false indicating an error,
-    /// this routine will return the error string (and clear any error
-    /// flags).  If no error has occurred since the last time geterror()
-    /// was called, it will return an empty string.
+    /// If any of the API routines returned false indicating an error, this
+    /// method will return the error string (and clear any error flags).  If
+    /// no error has occurred since the last time `geterror()` was called,
+    /// it will return an empty string.
     std::string geterror () const {
         lock_guard lock (m_mutex);
         std::string e = m_errmessage;
@@ -1351,18 +1582,29 @@ public:
         append_error(Strutil::fmt::format (fmt, args...));
     }
 
-    /// Set the current thread-spawning policy: the maximum number of
-    /// threads that may be spawned by ImageInput internals. A value of 1
-    /// means all work will be done by the calling thread; 0 means to use
-    /// the global OIIO::attribute("threads") value.
+    /// Set the threading policy for this ImageInput, controlling the
+    /// maximum amount of parallelizing thread "fan-out" that might occur
+    /// during large read operations. The default of 0 means that the global
+    /// `attribute("threads")` value should be used (which itself defaults
+    /// to using as many threads as cores; see Section `Global Attributes`_).
+    ///
+    /// The main reason to change this value is to set it to 1 to indicate
+    /// that the calling thread should do all the work rather than spawning
+    /// new threads. That is probably the desired behavior in situations
+    /// where the calling application has already spawned multiple worker
+    /// threads.
     void threads (int n) { m_threads = n; }
 
     /// Retrieve the current thread-spawning policy.
+    /// @see  `threads(int)`
     int threads () const { return m_threads; }
 
-    /// Lock, try_lock, and unlock for the internal mutex.
+    /// Lock the internal mutex, block until the lock is acquired.
     void lock () { m_mutex.lock(); }
+    /// Try to loak the internal mutex, returning true if successful, or
+    /// false if the lock could not be immediately acquired.
     bool try_lock () { return m_mutex.try_lock(); }
+    /// Ulock the internal mutex.
     void unlock () { m_mutex.unlock(); }
 
     // Custom new and delete to ensure that allocations & frees happen in
@@ -1370,7 +1612,8 @@ public:
     void* operator new (size_t size);
     void operator delete (void *ptr);
 
-    /// Call signature of a function that creates and returns an ImageInput*
+    /// Call signature of a function that creates and returns an
+    /// `ImageInput*`.
     typedef ImageInput* (*Creator)();
 
 protected:
@@ -1383,8 +1626,8 @@ private:
     int m_threads;    // Thread policy
     void append_error (const std::string& message) const; // add to m_errmessage
     // Deprecated:
-    static unique_ptr create (const std::string &filename, bool do_open,
-                              const std::string &plugin_searchpath);
+    static unique_ptr create (const std::string& filename, bool do_open,
+                              const std::string& plugin_searchpath);
 };
 
 
@@ -1399,7 +1642,7 @@ private:
 ///
 class OIIO_API ImageOutput {
 public:
-    /// unique_ptr to an ImageOutput, with custom deleter.
+    /// unique_ptr to an ImageOutput.
     using unique_ptr = std::unique_ptr<ImageOutput>;
 
     /// @{
@@ -1418,7 +1661,7 @@ public:
     ///                 An optional colon-separated list of directories to
     ///                 search for OpenImageIO plugin DSO/DLL's.
     /// @returns        A `unique_ptr` that will close and free the
-    ///                 ImageOutput when it exists scope or is reset.
+    ///                 ImageOutput when it exits scope or is reset.
     ///                 The pointer will be empty if the requiresd writer
     ///                 was not able to be created.
     static unique_ptr create (const std::string &filename,
@@ -1426,10 +1669,7 @@ public:
 
     /// @}
 
-    /// Destructor for a raw ImageOutput. This is deprecated, do not do
-    /// this! Instead, you should be using `create()` to acquire a
-    /// `unique_ptr` to an `ImageOutput` and it will properly destroy the
-    /// object when it exists scope or is reset.
+    // @deprecated
     static void destroy (ImageOutput *x);
 
 protected:
@@ -1453,8 +1693,8 @@ public:
     /// to indicate varying degrees of support or limits (but should be
     /// clearly documented as such).
     ///
-    /// Feature names that ImageIO plugins are expected to recognize
-    /// include:
+    /// Feature names that ImageOutput implementations are expected to
+    /// recognize include:
     ///
     ///  - `"tiles"` :
     ///         Is this format writer able to write tiled images?
@@ -1599,7 +1839,6 @@ public:
     /// @param  specs[0..subimages-1]
     ///                      Pointer to an array of `ImageSpec` objects
     ///                      describing each of the expected subimages.
-    ///
     /// @returns            `true` upon success, or `false` upen failure.
     virtual bool open (const std::string &name, int subimages,
                        const ImageSpec *specs) {
@@ -1652,7 +1891,7 @@ public:
     ///   coordinates should be 0 and any `zend` should be 1, indicating
     ///   that only a single image "plane" exists.
     ///
-    /// * Scanlines or tiles must be presented in successive increasing
+    /// * Scanlines or tiles must be written in successive increasing
     ///   coordinate order, unless the particular output file driver allows
     ///   random access (indicated by `supports("random_access")`).
     ///
@@ -1662,7 +1901,7 @@ public:
     ///
 
     /// Write the full scanline that includes pixels (*,y,z).  For 2D
-    /// non-volume images, *z* should be 0. The xstride value gives the
+    /// non-volume images, `z` should be 0. The `xstride` value gives the
     /// distance between successive pixels (in bytes).  Strides set to
     /// `AutoStride` imply "contiguous" data.
     ///
@@ -1701,7 +1940,7 @@ public:
     /// to AutoStride imply 'contiguous' data in the shape of a full tile,
     /// i.e.,
     ///
-    ///     xstride = spec.nchannels * format.size()
+    ///     xstride = format.size() * spec.nchannels
     ///     ystride = xstride * spec.tile_width
     ///     zstride = ystride * spec.tile_height
     ///
@@ -1888,16 +2127,15 @@ public:
     /// @returns            `true` upon success, or `false` upen failure.
     virtual bool copy_image (ImageInput *in);
 
-    /// General message passing between client and image output server. This
-    /// is currently undefined and is reserved for future use.
+    // General message passing between client and image output server. This
+    // is currently undefined and is reserved for future use.
     virtual int send_to_output (const char *format, ...);
-    /// General message passing between client and image output server. This
-    /// is currently undefined and is reserved for future use.
     int send_to_client (const char *format, ...);
 
-    /// Returns the current error string describing what went wrong if any
-    /// of the public methods returned `false` indicating an error, and
-    /// clear the error string.
+    /// If any of the API routines returned false indicating an error, this
+    /// method will return the error string (and clear any error flags).  If
+    /// no error has occurred since the last time `geterror()` was called,
+    /// it will return an empty string.
     std::string geterror () const {
         std::string e = m_errmessage;
         m_errmessage.clear ();
