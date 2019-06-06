@@ -850,7 +850,7 @@ iequals(const std::string& a, ustring b)
 // ustring variant stof from OpenImageIO/strutil.h
 namespace Strutil {
 
-inline int
+inline float
 stof(ustring s)
 {
     return Strutil::stof(s.string());
