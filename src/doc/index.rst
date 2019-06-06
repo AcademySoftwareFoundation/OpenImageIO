@@ -23,8 +23,8 @@ OpenImageIO
    imageoutput
    imageinput
    writingplugins
-.. x builtinplugins
-   x imagecache
+   builtinplugins
+.. x imagecache
    x texturesys
    x imagebuf
    x imagebufalgo

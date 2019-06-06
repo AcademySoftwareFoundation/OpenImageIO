@@ -305,12 +305,12 @@ bool OIIO_API get_rest_arguments (const std::string &str, std::string &base,
                                    std::map<std::string, std::string> &result);
 
 /// Take a string that may have embedded newlines, tabs, etc., and turn
-/// those characters into escape sequences like \n, \t, \v, \b, \r, \f,
-/// \a, \\, \".
+/// those characters into escape sequences like `\n`, `\t`, `\v`, `\b`,
+/// `\r`, `\f`, `\a`, `\\`, `\"`.
 std::string OIIO_API escape_chars (string_view unescaped);
 
-/// Take a string that has embedded escape sequences (\\, \", \n, etc.)
-/// and collapse them into the 'real' characters.
+/// Take a string that has embedded escape sequences (`\\`, `\"`, `\n`,
+/// etc.) and collapse them into the 'real' characters.
 std::string OIIO_API unescape_chars (string_view escaped);
 
 /// Word-wrap string `src` to no more than `columns` width, starting with an

@@ -900,10 +900,12 @@ RECURSIVE              = YES
 
 EXCLUDE                = ../../src/include/OpenImageIO/filter.h \
                          ../../src/include/OpenImageIO/plugin.h \
+                         ../../src/include/OpenImageIO/pugixml.cpp \
                          ../../src/include/OpenImageIO/pugixml.hpp \
                          ../../src/include/OpenImageIO/SHA1.h \
                          ../../src/include/OpenImageIO/tinyformat.h \
-                         ../../src/include/OpenImageIO/fmt/ \
+                         ../../src/include/OpenImageIO/fmt \
+                         ../../src/doc \
                          ../../src/libOpenImageIO \
                          ../../src/libtexture \
                          ../../src/libutil \
@@ -2144,7 +2146,7 @@ SEARCH_INCLUDES        = YES
 # preprocessor.
 # This tag requires that the tag SEARCH_INCLUDES is set to YES.
 
-INCLUDE_PATH           = src/doc
+INCLUDE_PATH           = ../../src
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard
 # patterns (like *.h and *.hpp) to filter out the header-files in the

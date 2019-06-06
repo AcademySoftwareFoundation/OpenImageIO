@@ -1146,7 +1146,7 @@ public:
     /// between successive pixels (in bytes).  Strides set to `AutoStride`
     /// imply "contiguous" data.
     ///
-    /// @Note This variety of `read_scanline` is not re-entrant nor
+    /// @note This variety of `read_scanline` is not re-entrant nor
     /// thread-safe. If you require concurrent reads to the same open
     /// ImageInput, you should use `read_scanlines` that has the `subimage`
     /// and `miplevel` passed explicitly.
@@ -1231,7 +1231,7 @@ public:
     ///     ystride = xstride * spec.tile_width
     ///     zstride = ystride * spec.tile_height
     ///
-    /// @Note This variety of `read_tile` is not re-entrant nor thread-safe.
+    /// @note This variety of `read_tile` is not re-entrant nor thread-safe.
     /// If you require concurrent reads to the same open ImageInput, you
     /// should use `read_tiles()` that has the `subimage` and `miplevel`
     /// passed explicitly.
@@ -1836,7 +1836,7 @@ public:
     /// @param  name        The name of the image file to open.
     /// @param  subimages   The number of subimages (and therefore the
     ///                     length of the `specs[]` array.
-    /// @param  specs[0..subimages-1]
+    /// @param  specs[]
     ///                      Pointer to an array of `ImageSpec` objects
     ///                      describing each of the expected subimages.
     /// @returns            `true` upon success, or `false` upen failure.
@@ -2270,7 +2270,7 @@ OIIO_API int openimageio_version ();
 
 /// Returns any error string describing what went wrong if
 /// `ImageInput::create()` or `ImageOutput::create()` failed (since in such
-/// cases, the \ImageInput or \ImageOutput itself does not exist to have its
+/// cases, the ImageInput or ImageOutput itself does not exist to have its
 /// own `geterror()` function called). This function returns the last error
 /// for this particular thread; separate threads will not clobber each
 /// other's global error messages.
@@ -2666,13 +2666,13 @@ OIIO_API bool wrap_mirror (int &coord, int origin, int width);
 typedef bool (*wrap_impl) (int &coord, int origin, int width);
 
 
-/// debug(format, ...) prints debugging message when attribute "debug" is
+/// `debug(format, ...)` prints debugging message when attribute "debug" is
 /// nonzero, which it is by default for DEBUG compiles or when the
 /// environment variable OPENIMAGEIO_DEBUG is set. This is preferred to raw
 /// output to stderr for debugging statements.
 OIIO_API void debug (string_view str);
 
-/// debug output with fmt/std::format conventions.
+/// debug output with `fmt`/`std::format` conventions.
 template<typename T1, typename... Args>
 void fmtdebug (const char* fmt, const T1& v1, const Args&... args)
 {
