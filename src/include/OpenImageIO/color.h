@@ -135,12 +135,22 @@ public:
     /// may be either a color space name or a role.
     OIIO::TypeDesc getColorSpaceDataType(string_view name, int* bits) const;
 
+    /// Retrieve the full list of known color space names, as a vector
+    /// of strings.
+    std::vector<std::string> getColorSpaceNames() const;
+
+    /// Get the name of the color space family of the named color space,
+    /// or NULL if none could be identified.
+    const char* getColorSpaceFamilyByName(string_view name) const;
 
     /// Get the number of Looks defined in this configuration
     int getNumLooks() const;
 
     /// Query the name of the specified Look.
     const char* getLookNameByIndex(int index) const;
+
+    /// Retrieve the full list of known look names, as a vector of strings.
+    std::vector<std::string> getLookNames() const;
 
     /// Given the specified input and output ColorSpace, request a handle to
     /// a ColorProcessor.  It is possible that this will return an empty
@@ -192,17 +202,29 @@ public:
     /// Query the name of the specified display.
     const char* getDisplayNameByIndex(int index) const;
 
-    /// Get the number of views for a given display defined in this configuration
-    int getNumViews(string_view display) const;
+    /// Retrieve the full list of known display names, as a vector of
+    /// strings.
+    std::vector<std::string> getDisplayNames() const;
+
+    /// Get the name of the default display.
+    const char* getDefaultDisplayName() const;
+
+    /// Get the number of views for a given display defined in this
+    /// configuration. If the display is empty or not specified, the default
+    /// display will be used.
+    int getNumViews(string_view display = "") const;
 
     /// Query the name of the specified view for the specified display
     const char* getViewNameByIndex(string_view display, int index) const;
 
-    /// Query the name of the default display
-    const char* getDefaultDisplayName() const;
+    /// Retrieve the full list of known view names for the display, as a
+    /// vector of strings. If the display is empty or not specified, the
+    /// default display will be used.
+    std::vector<std::string> getViewNames(string_view display = "") const;
 
-    /// Query the name of the default view for the specified display
-    const char* getDefaultViewName(string_view display) const;
+    /// Query the name of the default view for the specified display. If the
+    /// display is empty or not specified, the default display will be used.
+    const char* getDefaultViewName(string_view display = "") const;
 
     /// Construct a processor to transform from the given color space
     /// to the color space of the given display and view. You may optionally
