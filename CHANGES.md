@@ -52,6 +52,17 @@ Public API changes:
 * New helper functions in `typedesc.h`: `tostring()` converts nearly any
   TypeDesc-described data to a readable string, `convert_type()` does data
   type conversions as instructed by TypeDesc's. #2204 (2.1.1)
+* ImageBuf:
+    - Construction from an ImageSpec now takes an optional `zero` parameter
+      that directly controls whether the new ImageBuf should have its buffer
+      zeroed out or left uninitialized. #2237 (2.1.2)
+    - `set_write_format()` method has a new flavor that takes a
+      `cspan<TypeDesc>` that can supply per-channel data types. #2239 (2.1.1)
+* ColorConfig:
+    - Added `getColorSpaceFamilyByName()`, `getColorSpaceNames()`,
+      `getLookNames()`, `getDisplayNames()`, `getDefaultDisplayName()`,
+      `getViewNames()`, `getDefaultViewName()`. #2248 (2.1.2)
+    - Added Python bindings for ColorConfig. #2248 (2.1.2)
 
 Performance improvements:
 
@@ -70,13 +81,13 @@ Fixes and feature enhancements:
       happen; now it just skips outputting those subimages). #2171 (2.1.0)
     - Improved support of files with multiple subimages: Several commands
       honored `-a` but did not respect individual `allsubimages=` modifiers
-      (--sattrib, --attrib, --caption, --clear-keywords, --iscolorspace,
-      --orientation, --clamp, -fixnan); Several commands always worked on all
-      subimages, but now properly respect `-a` and `allsubimages=` (--origin,
-      --fullpixels, --croptofull, --trim); Several commands were totally
-      unaware of subimages, but now are so and respect `-a` and
-      `allsubimages=` (--crop, --fullsize, --zover, --fill, --resize,
-      --resample). #2202 #2219 (2.1.1)
+      (--ch, --sattrib, --attrib, --caption, --clear-keywords,
+      --iscolorspace, --orientation, --clamp, -fixnan); Several commands
+      always worked on all subimages, but now properly respect `-a` and
+      `allsubimages=` (--origin, --fullpixels, --croptofull, --trim);
+      Several commands were totally unaware of subimages, but now are so and
+      respect `-a` and `allsubimages=` (--crop, --fullsize, --zover, --fill,
+      --resize, --resample). #2202 #2219, #2242 (2.1.1, 2.1.2)
 * ImageBuf/ImageBufAlgo:
     - `IBA::channel_append()` previously always forced its result to be float,
       if it wasn't previously initialized. Now it uses the uaual type-merging
@@ -138,6 +149,8 @@ Fixes and feature enhancements:
       sizes. #2147 (2.1.0/2.0.5)
     - Suppress empty string subimage name (fixes a problem with certain
       V-Ray written multi-part exr images). #2190 (2.1.1/2.0.7)
+    - Fixed bug that broke th ability to specify compression of multipart
+      OpenEXR files. #2252 (2.1.2)
 * PNG:
     - More careful catching and reporting errors and corrupt PNG files.
       #2167 (2.1.0/2.0.6)
@@ -172,6 +185,8 @@ Fixes and feature enhancements:
   for example "openexr" versus "exr"). #2185 (2.1.1)
 * Make all the various "could not open" messages across the writers use the
   same phrasing. #2189 (2.1.1)
+* Better care in some image readers/writers to avoid errors stemming from
+  integer overflow when compting the size of large images. #2232 (2.1.2)
 
 Build/test system improvements and platform ports:
 * Deprecate "missingmath.h". What little of it is still needed (it mostly
@@ -204,6 +219,7 @@ Build/test system improvements and platform ports:
 * Crashes in the command line utilities now attempt to print a stack trace
   to aid in debugging (but only if OIIO is built with Boost >= 1.65, because
   it relies on the Boost stacktrace library). #2229 (2.0.8/2.1.1)
+* Add gcc9 to Travis tet matrix and fix gcc9 related warnings. #2235 (2.1.2)
 
 Developer goodies / internals:
 * argparse.h:
@@ -234,13 +250,13 @@ Developer goodies / internals:
     - Added vec4 * matrix44 multiplication. #2165 (2.1.0/2.0.6)
 * strutil.h:
     - Added `excise_string_after_head()`. #2173 (2.1.0/2.0.6)
+    - Fixed incorrect return type of `stof()`. #2254 (2.1.2)
 * sysutil.h:
     - Added `stacktrace()` and `setup_crash_stacktrace()`. (Only functional
       if OIIO is built with Boost >= 1.65, because it relies on the Boost
       stacktrace library). #2229 (2.0.8/2.1.1)
-
 * Wide use of declaring methods `noexcept` when we want to promise that
-  they won't throw exceptions. #2156 (2.1.0)
+  they won't throw exceptions. #2156, #2243 (2.1.0, 2.1.2)
 
 Notable documentation changes:
 
