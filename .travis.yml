@@ -195,10 +195,10 @@ matrix:
         env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
         if: branch =~ /(master|RB|travis|san)/ OR type = pull_request
     # One more, just for the heck of it, turn all SIMD off, and also make
-    # sure we're falling back on libjpeg, not jpeg-turbo, and don't embed
-    # the plugins (to make sure that doesn't rust away).  I guess this
-    # should/could be both platforms, but in the interest of making the
-    # tests go faster, don't bother doing it on OSX.
+    # sure we're falling back on libjpeg, not jpeg-turbo, no OCIO support,
+    # and don't embed the plugins (to make sure that doesn't rust away).  I
+    # guess this should/could be both platforms, but in the interest of
+    # making the tests go faster, don't bother doing it on OSX.
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
     # pushes don't need to run this.

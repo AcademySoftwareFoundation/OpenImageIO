@@ -374,6 +374,34 @@ ColorConfig::getColorSpaceNameByIndex(int index) const
 
 
 
+const char*
+ColorConfig::getColorSpaceFamilyByName(string_view name) const
+{
+#ifdef USE_OCIO
+    if (getImpl()->config_) {
+        OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
+            name.c_str());
+        if (c)
+            return c->getFamily();
+    }
+#endif
+    return NULL;
+}
+
+
+
+std::vector<std::string>
+ColorConfig::getColorSpaceNames() const
+{
+    std::vector<std::string> result;
+    result.reserve(getImpl()->colorspaces.size());
+    for (auto& c : getImpl()->colorspaces)
+        result.push_back(c.first);
+    return result;
+}
+
+
+
 int
 ColorConfig::getNumLooks() const
 {
@@ -394,6 +422,17 @@ ColorConfig::getLookNameByIndex(int index) const
         return getImpl()->config_->getLookNameByIndex(index);
 #endif
     return NULL;
+}
+
+
+
+std::vector<std::string>
+ColorConfig::getLookNames() const
+{
+    std::vector<std::string> result;
+    for (int i = 0, e = getNumLooks(); i != e; ++i)
+        result.emplace_back(getLookNameByIndex(i));
+    return result;
 }
 
 
@@ -479,10 +518,23 @@ ColorConfig::getDisplayNameByIndex(int index) const
 
 
 
+std::vector<std::string>
+ColorConfig::getDisplayNames() const
+{
+    std::vector<std::string> result;
+    for (int i = 0, e = getNumDisplays(); i != e; ++i)
+        result.emplace_back(getDisplayNameByIndex(i));
+    return result;
+}
+
+
+
 int
 ColorConfig::getNumViews(string_view display) const
 {
 #ifdef USE_OCIO
+    if (display.empty())
+        display = getDefaultDisplayName();
     if (getImpl()->config_)
         return getImpl()->config_->getNumViews(display.c_str());
 #endif
@@ -495,10 +547,25 @@ const char*
 ColorConfig::getViewNameByIndex(string_view display, int index) const
 {
 #ifdef USE_OCIO
+    if (display.empty())
+        display = getDefaultDisplayName();
     if (getImpl()->config_)
         return getImpl()->config_->getView(display.c_str(), index);
 #endif
     return NULL;
+}
+
+
+
+std::vector<std::string>
+ColorConfig::getViewNames(string_view display) const
+{
+    std::vector<std::string> result;
+    if (display.empty())
+        display = getDefaultDisplayName();
+    for (int i = 0, e = getNumViews(display); i != e; ++i)
+        result.emplace_back(getViewNameByIndex(display, i));
+    return result;
 }
 
 

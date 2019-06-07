@@ -85,6 +85,7 @@ void declare_imageoutput (py::module& m);
 void declare_typedesc (py::module& m);
 void declare_roi (py::module& m);
 void declare_deepdata (py::module& m);
+void declare_colorconfig (py::module& m);
 void declare_imagecache (py::module& m);
 void declare_imagebuf (py::module& m);
 void declare_imagebufalgo (py::module& m);

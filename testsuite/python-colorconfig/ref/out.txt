@@ -1,0 +1,12 @@
+getNumColorSpaces = 14
+getColorSpaceNames = ['linear', 'sRGB', 'sRGBf', 'rec709', 'Cineon', 'Gamma1.8', 'Gamma2.2', 'Panalog', 'REDLog', 'ViperLog', 'AlexaV3LogC', 'PLogLin', 'SLog', 'raw']
+getNumLooks = 0
+getLookNames = []
+getNumDisplays = 1
+getDisplayNames = ['default']
+getDefaultDisplayName = default
+getNumViews = 3
+getViewNames = ['None', 'sRGB', 'rec709']
+getDefaultViewName = 
+
+Done.
