@@ -53,16 +53,6 @@ before_install:
     - source src/build-scripts/ci-startup.bash
     - export WHICHGCC=${WHICHGCC:="4.8"}
     - if [ "$CXX" == "g++" ]; then export CXX="g++-${WHICHGCC}" ; fi
-    - |
-      # If linux and gcc-9 install gcc-9.
-      if [[ "${CXX}" == "g++-9" ]]; then
-        wget http://kayari.org/gcc-latest/gcc-latest.deb
-        sudo dpkg -i gcc-latest.deb
-        sudo ln -s /opt/gcc-latest/bin/gcc /usr/bin/gcc-9
-        sudo ln -s /opt/gcc-latest/bin/g++ /usr/bin/g++-9
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9
-        sudo ldconfig /opt/gcc-latest/lib64
-      fi
 
 install:
     - if [ $TRAVIS_OS_NAME == osx ] ; then
@@ -251,6 +241,7 @@ matrix:
             packages:
               - *common-packages
               - *common-boost-packages
+              - g++-9
         if: branch =~ /(master|RB|travis|gcc|17)/ OR type = pull_request
 
     # Note: builds for AVX2, AVX512 happen on CircleCI
