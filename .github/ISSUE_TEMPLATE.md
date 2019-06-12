@@ -1,8 +1,14 @@
 <!--
-Please ask questions ("how do I...?") on the [oiio-dev](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org) mail list, not by filing issues.
+
+If you have trouble installing, building, or using OpenImageIO, but there's
+not yet reason to suspect you've encountered a genuine bug, start by posting
+a question to the
+[oiio-dev](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org)
+mailing list. This is the place for question such has "How do I...".
 
 Make concrete suggestions for fixing the code ("here is a patch") by filing
 a pull request, not an issue.
+
 -->
 
 ### Problem

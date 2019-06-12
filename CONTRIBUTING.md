@@ -23,15 +23,21 @@ For announcements about major OIIO releases or other important news.
 You can sign up for these mail lists on your own using the links above.
 
 
+How to Ask for Help
+-------------------
+
+If you have trouble installing, building, or using OpenImageIO, but there's
+not yet reason to suspect you've encountered a genuine bug, start by posting
+a question to the
+[oiio-dev](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org)
+mailing list. This is the place for question such has "How do I...".
+
+
 Bug Reports and Issue Tracking
 ------------------------------
 
 We use GitHub's issue tracking system for bugs and enhancements:
 https://github.com/OpenImageIO/oiio/issues
-
-**If you are merely asking a question ("how do I...")**, please do not file
-an issue, but instead ask the question on the
-[OIIO developer mail list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
 
 If you are submitting a bug report, please be sure to note which version of
 OIIO you are using, on what platform (OS/version, which compiler you used,
@@ -42,7 +48,9 @@ give a specific an account of
 * what happened
 * what you expected to happen instead
 
-with enough detail that others can reproduce the problem.
+with enough detail that others can reproduce the problem. Please quote the
+exact error message you received. If you are having trouble building, please
+post the full cmake output of a fresh VERBOSE=1 build.
 
 Suspected security vulnerabilities should be reported by the same process.
 
@@ -234,9 +242,6 @@ For public APIs we tend to use Doxygen-style comments (start with `///`).
 They looks like this:
 
     /// Explanation of a class.  Note THREE slashes!
-    /// Also, you need at least two lines like this.  If you don't have enough
-    /// for two lines, make one line blank like this:
-    ///
     class myclass {
         ....
         float foo;  ///< Doxygen comments on same line look like this
