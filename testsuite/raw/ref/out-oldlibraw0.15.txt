@@ -13,7 +13,7 @@
     Exif:FocalLength: 200 (200 mm)
     Exif:ISOSpeedRatings: 100
     Exif:ShutterSpeedValue: 8.375 (1/331 s)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
@@ -30,7 +30,7 @@
     Exif:FocalLength: 70 (70 mm)
     Exif:ISOSpeedRatings: 100
     Exif:ShutterSpeedValue: 5.64386 (1/49 s)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
     channel list: R, G, B
@@ -46,7 +46,7 @@
     Exif:FocalLength: 8.5 (8.5 mm)
     Exif:ISOSpeedRatings: 200
     Exif:ShutterSpeedValue: 9.7 (1/831 s)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
@@ -63,7 +63,7 @@
     Exif:FocalLength: 70 (70 mm)
     Exif:ISOSpeedRatings: 100
     Exif:ShutterSpeedValue: 5.64386 (1/49 s)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
     channel list: R, G, B
@@ -80,23 +80,7 @@
     Exif:FocalLength: 50 (50 mm)
     Exif:ISOSpeedRatings: 200
     Exif:ShutterSpeedValue: 8.32193 (1/319 s)
-    oiio:ColorSpace: "sRGB"
-    raw:Demosaic: "AHD"
-../../../../../oiio-images/raw/RAW_PANASONIC_G1.RW2 : 4016 x 3016, 3 channel, uint16 raw
-    channel list: R, G, B
-    DateTime: "2008-12-10 15:06:33"
-    ExposureTime: 0.0025
-    FNumber: 6.3
-    Make: "Panasonic"
-    Model: "DMC-G1"
-    Orientation: 1 (normal)
-    PixelAspectRatio: 1
-    Exif:ApertureValue: 5.3107 (f/6.3)
-    Exif:Flash: 0 (no flash)
-    Exif:FocalLength: 14 (14 mm)
-    Exif:ISOSpeedRatings: 100
-    Exif:ShutterSpeedValue: 8.64386 (1/399 s)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
     channel list: R, G, B
@@ -112,7 +96,7 @@
     Exif:FocalLength: 42.5 (42.5 mm)
     Exif:ISOSpeedRatings: 100
     Exif:ShutterSpeedValue: 7.96578 (1/249 s)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
     channel list: R, G, B
@@ -129,7 +113,7 @@
     Exif:FocalLength: 35 (35 mm)
     Exif:ISOSpeedRatings: 400
     Exif:ShutterSpeedValue: 5.90689 (1/59 s)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
 Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
 PASS
@@ -140,8 +124,6 @@ PASS
 Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
 PASS
 Comparing "RAW_OLYMPUS_E3.ORF.tif" and "ref/RAW_OLYMPUS_E3.ORF.tif"
-PASS
-Comparing "RAW_PANASONIC_G1.RW2.tif" and "ref/RAW_PANASONIC_G1.RW2.tif"
 PASS
 Comparing "RAW_PENTAX_K200D.PEF.tif" and "ref/RAW_PENTAX_K200D.PEF.tif"
 PASS

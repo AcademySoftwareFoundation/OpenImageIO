@@ -1,5 +1,11 @@
 Release 2.0.9 (1 Jun?, 2019) -- compared to 2.0.8
 ------------------------------------------------
+* RAW: Clarification about color spaces: The open-with-config hint
+  "raw:ColorSpace" is more careful about color primaries versus transfer
+  curve. Asking for "sRGB" (which is the default) gives you true sRGB --
+  both color primaries and transfer. Asking for "linear" gives you linear
+  transfer with sRGB/Rec709 primaries. The default is true sRGB, because it
+  will behave just like JPEG. #2260 (2.1.2)
 
 
 Release 2.0.8 (3 May, 2019) -- compared to 2.0.7
