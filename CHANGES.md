@@ -160,6 +160,13 @@ Fixes and feature enhancements:
       ImageSpec x, y to the image plane offset (upper left corner) of the
       layer, and set and metadata "oiio:subimagename" to the layer name.
       #2170 (2.1.0)
+* RAW:
+    - Clarification about color spaces: The open-with-config hint
+      "raw:ColorSpace" is more careful about color primaries versus transfer
+      curve. Asking for "sRGB" (which is the default) gives you true sRGB --
+      both color primaries and transfer. Asking for "linear" gives you
+      linear transfer with sRGB/Rec709 primaries. The default is true sRGB,
+      because it will behave just like JPEG. #2260 (2.1.2)
 * TIFF:
     - Fix problems with JPEG compression in some cases. #2117 (2.1.0/2.0.4)
     - Fix error where reading just a subset of channels, if that subset did
