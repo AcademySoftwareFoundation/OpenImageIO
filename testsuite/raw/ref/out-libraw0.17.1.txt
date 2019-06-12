@@ -123,7 +123,7 @@
     Exif:SubsecTimeDigitized: "00"
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
@@ -169,7 +169,7 @@
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 1 (manual)
     Exif:YCbCrPositioning: 2
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
     raw:Orientation: 8
@@ -218,7 +218,7 @@
     Exif:SubjectDistanceRange: 0 (unknown)
     Exif:WhiteBalance: 0 (auto)
     Exif:YCbCrPositioning: 2
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
@@ -265,7 +265,7 @@
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 1 (manual)
     Exif:YCbCrPositioning: 2
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
     raw:Orientation: 8
@@ -308,7 +308,7 @@
     Exif:Sharpness: 1 (soft)
     Exif:ShutterSpeedValue: 8.32193 (1/319 s)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
@@ -345,7 +345,7 @@
     Exif:ShutterSpeedValue: 7.96578 (1/249 s)
     Exif:SubjectDistanceRange: 3 (distant)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
     raw:Orientation: 8
@@ -391,7 +391,7 @@
     Exif:Sharpness: 0 (normal)
     Exif:ShutterSpeedValue: 5.90689 (1/59 s)
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
 Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
