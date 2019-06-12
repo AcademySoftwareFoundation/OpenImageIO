@@ -149,7 +149,7 @@
     Exif:SubsecTimeDigitized: "00"
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
@@ -216,7 +216,7 @@
     Nikon:MaxFocal: 70
     Nikon:MCUVersion: 99
     Nikon:MinFocal: 28
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
     raw:Orientation: 8
@@ -288,7 +288,7 @@
     Fujifilm:Rating: 0
     Fujifilm:ShutterType: 0
     Fujifilm:WB_Preset: 0
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
@@ -356,7 +356,7 @@
     Nikon:MaxFocal: 70
     Nikon:MCUVersion: 99
     Nikon:MinFocal: 28
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
     raw:Orientation: 8
@@ -399,7 +399,7 @@
     Exif:Sharpness: 1 (soft)
     Exif:ShutterSpeedValue: 8.32193 (1/319 s)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     Olympus:AFPoint: 0
     Olympus:AFPointSelected: 0, 0, 0, 0, 0
@@ -450,7 +450,7 @@
     Exif:MaxApertureValue: 925/256 (3.61328)
     Exif:MeteringMode: 5 (pattern)
     Exif:ShutterSpeedValue: 8.64386 (1/399 s)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     Panasonic:AFPoint: -1
     Panasonic:CanonFocalUnits: 1
     Panasonic:EXIF_MaxAp: 3.49827
@@ -491,7 +491,7 @@
     Exif:ShutterSpeedValue: 7.96578 (1/249 s)
     Exif:SubjectDistanceRange: 3 (distant)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     Pentax:AFPoint: -1
     Pentax:BodySerial: "0"
@@ -556,7 +556,7 @@
     Exif:Sharpness: 0 (normal)
     Exif:ShutterSpeedValue: 5.90689 (1/59 s)
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
     Sony:AFPoint: -1

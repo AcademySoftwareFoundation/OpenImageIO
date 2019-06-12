@@ -368,7 +368,6 @@ RawInput::open_raw(bool unpack, const std::string& name,
                    const ImageSpec& config)
 {
     // std::cout << "open_raw " << name << " unpack=" << unpack << "\n";
-    ASSERT(!m_processor);
     m_processor.reset(new LibRaw);
 
     // Temp spec for exif parser callback to dump into
@@ -406,10 +405,6 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
 
-    // Set the gamma curve to Linear
-    m_processor->imgdata.params.gamm[0] = 1.0;
-    m_processor->imgdata.params.gamm[1] = 1.0;
-
     // Disable exposure correction (unless config "raw:auto_bright" == 1)
     m_processor->imgdata.params.no_auto_bright
         = !config.get_int_attribute("raw:auto_bright", 0);
@@ -443,47 +438,66 @@ RawInput::open_raw(bool unpack, const std::string& name,
     m_processor->imgdata.params.use_camera_matrix
         = config.get_int_attribute("raw:use_camera_matrix", 1);
 
-
-    // Check to see if the user has explicitly set the output colorspace primaries.
-    // The default is to ask it to convert to sRGB space.
+    // Check to see if the user has explicitly requested output colorspace
+    // primaries via a configuration hinnt "raw:ColorSpace". The default if
+    // there is no such hint is convert to sRGB, so that if somebody just
+    // naively reads a raw image and slaps it into a framebuffer for
+    // display, it will work just like a jpeg. More sophisticated users
+    // might request a particular color space, like "ACES". Note that a
+    // request for "linear" will give you sRGB primaries with a linear
+    // response.
     std::string cs = config.get_string_attribute("raw:ColorSpace", "sRGB");
-    if (cs.size()) {
-        static const char* colorspaces[]
-            = { "raw",
-                "sRGB",
-                "Adobe",
-                "Wide",
-                "ProPhoto",
-                "XYZ",
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
-                "ACES",
-#endif
-                NULL };
-
-        size_t c;
-        for (c = 0; colorspaces[c]; c++)
-            if (Strutil::iequals(cs, colorspaces[c]))
-                break;
-        if (colorspaces[c])
-            m_processor->imgdata.params.output_color = c;
-        else {
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 18, 0)
-            if (cs == "ACES")
-                error(
-                    "raw:ColorSpace value of \"ACES\" is not supported by libRaw %d.%d.%d",
-                    LIBRAW_MAJOR_VERSION, LIBRAW_MINOR_VERSION,
-                    LIBRAW_PATCH_VERSION);
-            else
-#endif
-                error("raw:ColorSpace set to unknown value");
-            return false;
-        }
-        m_spec.attribute("oiio:ColorSpace", cs);
-    } else {
-        // By default we use sRGB primaries for simplicity
+    if (Strutil::iequals(cs, "raw")) {
+        // Values straight from the chip
+        m_processor->imgdata.params.output_color = 0;
+        m_processor->imgdata.params.gamm[0]      = 1.0;
+        m_processor->imgdata.params.gamm[1]      = 1.0;
+    } else if (Strutil::iequals(cs, "sRGB")) {
+        // Request explicit sRGB, including usual sRGB response
         m_processor->imgdata.params.output_color = 1;
-        m_spec.attribute("oiio:ColorSpace", "sRGB");
+        m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
+        m_processor->imgdata.params.gamm[1]      = 12.92;
+    } else if (Strutil::iequals(cs, "Adobe")) {
+        // Request Adobe color space with 2.2 gamma (no linear toe)
+        m_processor->imgdata.params.output_color = 2;
+        m_processor->imgdata.params.gamm[0]      = 1.0 / 2.2;
+        m_processor->imgdata.params.gamm[1]      = 0.0;
+    } else if (Strutil::iequals(cs, "Wide")) {
+        m_processor->imgdata.params.output_color = 3;
+        m_processor->imgdata.params.gamm[0]      = 1.0;
+        m_processor->imgdata.params.gamm[1]      = 1.0;
+    } else if (Strutil::iequals(cs, "ProPhoto")) {
+        // ProPhoto by convention has gamma 1.8
+        m_processor->imgdata.params.output_color = 4;
+        m_processor->imgdata.params.gamm[0]      = 1.8;
+        m_processor->imgdata.params.gamm[1]      = 0.0;
+    } else if (Strutil::iequals(cs, "XYZ")) {
+        // XYZ linear
+        m_processor->imgdata.params.output_color = 5;
+        m_processor->imgdata.params.gamm[0]      = 1.0;
+        m_processor->imgdata.params.gamm[1]      = 1.0;
+    } else if (Strutil::iequals(cs, "ACES")) {
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
+        // ACES linear
+        m_processor->imgdata.params.output_color = 6;
+        m_processor->imgdata.params.gamm[0]      = 1.0;
+        m_processor->imgdata.params.gamm[1]      = 1.0;
+#else
+        errorf(
+            "raw:ColorSpace value of \"ACES\" is not supported by libRaw %d.%d.%d",
+            LIBRAW_MAJOR_VERSION, LIBRAW_MINOR_VERSION, LIBRAW_PATCH_VERSION);
+        return false;
+#endif
+    } else if (Strutil::iequals(cs, "linear")) {
+        // Request "sRGB" primaries, linear reponse
+        m_processor->imgdata.params.output_color = 1;
+        m_processor->imgdata.params.gamm[0]      = 1.0;
+        m_processor->imgdata.params.gamm[1]      = 1.0;
+    } else {
+        errorf("raw:ColorSpace set to unknown value \"%s\"", cs);
+        return false;
     }
+    m_spec.attribute("oiio:ColorSpace", cs);
 
     // Exposure adjustment
     float exposure = config.get_float_attribute("raw:Exposure", -1.0f);

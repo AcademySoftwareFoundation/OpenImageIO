@@ -29,7 +29,8 @@ if (os.environ.get('CIRCLECI') == 'true' or
 # the ref images small) and compared to the reference.
 for f in files:
     outputname = f+".tif"
-    command += oiiotool ("-i:info=2 " + OIIO_TESTSUITE_IMAGEDIR + "/" + f
+    command += oiiotool ("-iconfig raw:ColorSpace linear "
+                         + "-i:info=2 " + OIIO_TESTSUITE_IMAGEDIR + "/" + f
                          + " -resample '5%' -d uint8 "
                          + "-o " + outputname)
     outputs += [ outputname ]

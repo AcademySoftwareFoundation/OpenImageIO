@@ -74,7 +74,7 @@
     Exif:SubsecTimeDigitized: "00"
     Exif:SubsecTimeOriginal: "00"
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
@@ -159,7 +159,7 @@
     Nikon:PhaseDetectAF: 0
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
@@ -225,7 +225,7 @@
     Fujifilm:Rating: 0
     Fujifilm:ShutterType: 0
     Fujifilm:WB_Preset: 0
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
@@ -310,7 +310,7 @@
     Nikon:PhaseDetectAF: 0
     Nikon:ShootingMode: 0
     Nikon:VRMode: 0
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
@@ -349,7 +349,7 @@
     Exif:Sharpness: 1 (soft)
     Exif:ShutterSpeedValue: 8.32193 (1/319 s)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     Olympus:AFFineTune: 0
     Olympus:AFPoint: 0
@@ -400,7 +400,7 @@
     Exif:MaxApertureValue: 925/256 (3.61328)
     Exif:MeteringMode: 5 (pattern)
     Exif:ShutterSpeedValue: 8.64386 (1/399 s)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     Panasonic:AFPoint: -1
     Panasonic:BlackLevel: 0, 0, 0, 0, 0, 0, 0, 0
     Panasonic:CanonFocalUnits: 1
@@ -440,7 +440,7 @@
     Exif:ShutterSpeedValue: 7.96578 (1/249 s)
     Exif:SubjectDistanceRange: 3 (distant)
     Exif:WhiteBalance: 1 (manual)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     Pentax:AFAdjustment: 0
     Pentax:AFPoint: -1
@@ -507,7 +507,7 @@
     Exif:Sharpness: 0 (normal)
     Exif:ShutterSpeedValue: 5.90689 (1/59 s)
     Exif:WhiteBalance: 0 (auto)
-    oiio:ColorSpace: "sRGB"
+    oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
     Sony:AFMicroAdjOn: 0
