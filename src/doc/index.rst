@@ -24,8 +24,8 @@ OpenImageIO
    imageinput
    writingplugins
    builtinplugins
-.. x imagecache
-   x texturesys
+   imagecache
+..   x texturesys
    x imagebuf
    x imagebufalgo
    x pythonbindings
