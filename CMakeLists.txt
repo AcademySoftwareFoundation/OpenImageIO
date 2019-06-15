@@ -465,3 +465,6 @@ set (CPACK_COMPONENT_DEVELOPER_DESCRIPTION "Include files")
 set (CPACK_COMPONENT_DOCUMENTATION_DESCRIPTION "OpenImageIO documentation")
 set (CPACK_COMPONENT_DEVELOPER_DEPENDS user)
 include (CPack)
+
+#REZ build
+include(RezBuild)
