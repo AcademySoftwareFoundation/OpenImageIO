@@ -31,6 +31,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 
@@ -65,25 +66,28 @@
 
 /// ASSERT(condition) checks if the condition is met, and if not, prints
 /// an error message indicating the module and line where the error
-/// occurred and then aborts.
+/// occurred and then aborts. Beware: this happens even for release/NODEBUG
+/// builds!
 
 #ifndef ASSERT
 #    define ASSERT(x)                                                          \
         (OIIO_LIKELY(x)                                                        \
              ? ((void)0)                                                       \
-             : (std::fprintf(stderr, "%s:%u: failed assertion '%s'\n",         \
-                             __FILE__, __LINE__, #x),                          \
+             : (std::fprintf(stderr, "%s:%u: %s: Assertion '%s' failed.\n",    \
+                             __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x),    \
                 abort()))
 #endif
 
 /// ASSERT_MSG(condition,msg,...) is like ASSERT, but lets you add
 /// formatted output (a la printf) to the failure message.
 #ifndef ASSERT_MSG
-#    define ASSERT_MSG(x, msg, ...)                                             \
-        (OIIO_LIKELY(x)                                                         \
-             ? ((void)0)                                                        \
-             : (std::fprintf(stderr, "%s:%u: failed assertion '%s': " msg "\n", \
-                             __FILE__, __LINE__, #x, __VA_ARGS__),              \
+#    define ASSERT_MSG(x, msg, ...)                                            \
+        (OIIO_LIKELY(x)                                                        \
+             ? ((void)0)                                                       \
+             : (std::fprintf(stderr,                                           \
+                             "%s:%u: %s: Assertion '%s' failed: " msg "\n",    \
+                             __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x,     \
+                             __VA_ARGS__),                                     \
                 abort()))
 #endif
 
@@ -92,11 +96,10 @@
 #endif
 
 
-/// DASSERT(condition) is just like ASSERT, except that it only is
-/// functional in DEBUG mode, but does nothing when in a non-DEBUG
-/// (optimized, shipping) build.
+/// DASSERT(condition) is just an alias for the usual assert() macro.
+/// It does nothing when in a non-DEBUG (optimized, shipping) build.
 #ifndef NDEBUG
-#    define DASSERT(x) ASSERT(x)
+#    define DASSERT(x) assert(x)
 #else
 /* DASSERT does nothing when not debugging; sizeof trick prevents warnings */
 #    define DASSERT(x) ((void)sizeof(x)) /*NOLINT*/

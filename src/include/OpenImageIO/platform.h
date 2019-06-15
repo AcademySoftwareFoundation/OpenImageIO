@@ -363,6 +363,17 @@
 #endif
 
 
+
+// OIIO_PRETTY_FUNCTION gives a text string of the current function
+// declaration.
+#ifndef _MSC_VER
+#    define OIIO_PRETTY_FUNCTION __PRETTY_FUNCTION__ /* gcc, clang */
+#else
+#    define OIIO_PRETTY_FUNCTION __FUNCSIG__ /* MS gotta be different */
+#endif
+
+
+
 OIIO_NAMESPACE_BEGIN
 
 /// Class for describing endianness. Test for endianness as
