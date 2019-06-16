@@ -372,6 +372,25 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
         return missing_texture(options, nchannels, result, dresultds,
                                dresultdt);
 
+    if (!options.subimagename.empty()) {
+        // If subimage was specified by name, figure out its index.
+        int s = m_imagecache->subimage_from_name(texturefile,
+                                                 options.subimagename);
+        if (s < 0) {
+            errorf("Unknown subimage \"%s\" in texture \"%s\"",
+                   options.subimagename, texturefile->filename());
+            return missing_texture(options, nchannels, result, dresultds,
+                                   dresultdt);
+        }
+        options.subimage = s;
+        options.subimagename.clear();
+    }
+    if (options.subimage < 0 || options.subimage >= texturefile->subimages()) {
+        errorf("Unknown subimage \"%s\" in texture \"%s\"",
+               options.subimagename, texturefile->filename());
+        return missing_texture(options, nchannels, result, dresultds,
+                               dresultdt);
+    }
     const ImageSpec& spec(texturefile->spec(options.subimage, 0));
 
     // Environment maps dictate particular wrap modes
