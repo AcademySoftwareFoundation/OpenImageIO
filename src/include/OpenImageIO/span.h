@@ -1,4 +1,4 @@
-// OpenImageIO Copyright 2018 Larry Gritz, et al.  All Rights Reserved.
+// OpenImageIO Copyright Contributors to the OpenImageIO project.
 //  https://github.com/OpenImageIO/oiio
 // BSD 3-clause license:
 //  https://github.com/OpenImageIO/oiio/blob/master/LICENSE
