@@ -20,6 +20,8 @@
 # The master toctree document.
 master_doc = 'index'
 
+default_role = 'code'
+
 project = 'OpenImageIO'
 copyright = 'Contributors to OpenImageIO'
 author = 'Larry Gritz'
@@ -57,7 +59,8 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-# html_theme = 'alabaster'
+#html_theme = 'alabaster'
+#html_theme = 'astropy-sphinx-theme'
 html_theme = 'sphinx_rtd_theme'
 
 # Add any paths that contain custom static files (such as style sheets) here,

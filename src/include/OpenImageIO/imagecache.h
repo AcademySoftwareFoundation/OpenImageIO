@@ -85,7 +85,8 @@ public:
     ///     completely unique ImageCache will be created and returned.
     ///
     /// @returns
-    ///     A raw pointer to an ImageCache.
+    ///     A raw pointer to an ImageCache, which can only be freed with
+    ///     `ImageCache::destroy()`.
     ///
     /// @see    ImageCache::destroy
     static ImageCache* create(bool shared = true);
@@ -266,9 +267,9 @@ public:
     ///           query), and the peak number of tiles in memory at any
     ///           time.
     ///
-    /// - `int stat:open_files_created` :
-    ///           int stat:open_files_current
-    /// int stat:open_files_peak}
+    /// - `int stat:open_files_created` ,
+    ///   `int stat:open_files_current` ,
+    ///   `int stat:open_files_peak` :
     ///           Total number of times a file was opened, number still
     ///           opened (at the time of the query), and the peak number of
     ///           files opened at any time.
@@ -379,7 +380,7 @@ public:
     ///     // There are specialized versions for retrieving a single int,
     ///     // float, or string without needing types or pointers:
     ///     int maxfiles;
-    ///     ic->getattribute ("max_open_files", &maxfiles);
+    ///     ic->getattribute ("max_open_files", maxfiles);
     ///     const char *path;
     ///     ic->getattribute ("searchpath", &path);
     ///
@@ -398,6 +399,7 @@ public:
     ///                 of the correct type).
     virtual bool getattribute (string_view name, TypeDesc type,
                                void *val) const = 0;
+
     /// Specialized `attribute()` for retrieving a single `int` value.
     virtual bool getattribute (string_view name, int &val) const = 0;
     /// Specialized `attribute()` for retrieving a single `float` value.
@@ -417,8 +419,8 @@ public:
     /// @name Opaque data for performance lookups
     ///
     /// The ImageCache implementation needs to maintain certain per-thread
-    /// state, and some ImageCache methods take an opaque `Perthread` pointer
-    /// to this record. There are three options for how to deal with it:
+    /// state, and some methods take an opaque `Perthread` pointer to this
+    /// record. There are three options for how to deal with it:
     ///
     /// 1. Don't worry about it at all: don't use the methods that want
     ///    `Perthread` pointers, or always pass `nullptr` for any
@@ -628,7 +630,7 @@ public:
     ///   the image file will be searched for an item that matches both the
     ///   name and data type.
     ///
-    ///     
+    ///
     ///
     /// @param  filename
     ///             The name of the image.
@@ -845,12 +847,14 @@ public:
     /// since they were first opened.
     virtual void invalidate_all(bool force = false) = 0;
 
-    /// Close any open file handles associated with a named file, or for all
-    /// files, but do not invalidate any image spec information or pixels
-    /// associated with the files.  A client might do this in order to
-    /// release OS file handle resources, or to make it safe for other
-    /// processes to modify cached files.
+    /// Close any open file handles associated with a named file, but do not
+    /// invalidate any image spec information or pixels associated with the
+    /// files.  A client might do this in order to release OS file handle
+    /// resources, or to make it safe for other processes to modify image
+    /// files on disk.
     virtual void close (ustring filename) = 0;
+
+    /// `close()` all files known to the cache.
     virtual void close_all () = 0;
 
     /// An opaque data type that allows us to have a pointer to a tile but

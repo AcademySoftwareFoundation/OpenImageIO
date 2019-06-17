@@ -99,7 +99,7 @@ Let's walk through many of the most common things you might want to do, but
 that are more complex than the simple example above.
 
 Writing individual scanlines, tiles, and rectangles
-----------------------------------------------------
+---------------------------------------------------
 
 The simple example of Section `Image Output Made Simple`_ wrote an entire
 image with one call.  But sometimes you are generating output a little at a
@@ -108,7 +108,7 @@ to write the file.  OpenImageIO allows you to write images one scanline at a
 time, one tile at a time, or by individual rectangles.
 
 Writing individual scanlines
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Individual scanlines may be written using the ``writescanline()`` API call::
 
@@ -141,7 +141,7 @@ The full description of the ``writescanline()`` function may be found
 in Section `ImageOutput Class Reference`_.
 
 Writing individual tiles
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Not all image formats (and therefore not all ``ImageOutput``
 implementations) support tiled images.  If the format does not support
@@ -212,7 +212,7 @@ The full description of the ``writetile()`` function may be found
 in Section `ImageOutput Class Reference`_.
 
 Writing arbitrary rectangles
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Some ``ImageOutput`` implementations --- such as those implementing an
 interactive image display, but probably not any that are outputting
@@ -257,7 +257,7 @@ explained in Section `Data Strides`_).
 
 
 Converting pixel data types
--------------------------
+---------------------------
 
 The code examples of the previous sections all assumed that your
 internal pixel data is stored as unsigned 8-bit integers (i.e., 0-255
@@ -345,7 +345,7 @@ have a parameter that works in a corresponding manner.
 
 
 Data Strides
--------------------------
+------------
 
 In the preceeding examples, we have assumed that the block of data being
 passed to the "write" functions are *contiguous*, that is:
@@ -429,7 +429,7 @@ descriptions of the stride parameters to each "write" function.
 
 
 Writing a crop window or overscan region
--------------------------
+----------------------------------------
 
 The ``ImageSpec`` fields ``width``, ``height``, and ``depth``
 describe the dimensions of the actual pixel data.
@@ -498,7 +498,7 @@ present).
 
 
 Writing metadata
--------------------------
+----------------
 
 The ``ImageSpec`` passed to ``open()`` can specify all the common
 required properties that describe an image: data format, dimensions,
@@ -516,7 +516,7 @@ Individual ``ImageOutput`` implementations should document which metadata
 they respect.
 
 Channel names
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^
 
 In addition to specifying the number of color channels, it is also possible
 to name those channels.  Only a few ``ImageOutput`` implementations have a
@@ -564,11 +564,11 @@ a file format that supports channel names, then any application that
 uses OpenImageIO to read the image back has the option to retain those
 names and use them for helpful purposes.  For example, the :file:`iv`
 image viewer will display the channel names when viewing individual
-channels or displaying numeric pixel values in ``pixel view'' mode.
+channels or displaying numeric pixel values in "pixel view" mode.
 
 
 Specially-designated channels
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``ImageSpec`` contains two fields, ``alpha_channel`` and ``z_channel``,
 which can be used to designate which channel indices are used for alpha and
@@ -593,7 +593,7 @@ particular order, with a particular precision, or the ``ImageOutput`` may in
 some other way need to know about these special channels.
 
 Arbitrary metadata
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 For all other metadata that you wish to save in the file, you can attach the
 data to the ``ImageSpec`` using the ``attribute()`` methods. These come in
@@ -646,7 +646,7 @@ types, and meanings of all metadata attributes that they understand.
 
 
 Color space hints
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
 
 We certainly hope that you are using only modern file formats that
 support high precision and extended range pixels (such as OpenEXR) and
@@ -690,7 +690,7 @@ space to begin with.
 
 
 Random access and repeated transmission of pixels
--------------------------
+-------------------------------------------------
 
 All ``ImageOutput`` implementations that support scanlines and tiles should
 write pixels in strict order of increasing *z* slice, increasing *y*
@@ -714,7 +714,7 @@ queried using::
 
 
 Multi-image files
--------------------------
+-----------------
 
 Some image file formats support storing multiple images within a single
 file.  Given a created ``ImageOutput``, you can query whether multiple
@@ -816,7 +816,7 @@ would expect, on the current subimage.
 .. _sec-imageoutput-mipmap:
 
 MIP-maps
--------------------------
+--------
 
 Some image file formats support multiple copies of an image at successively
 lower resolutions (MIP-map levels, or an "image pyramid").  Given a created
@@ -885,7 +885,7 @@ would expect, on the current MIP level.
 
 
 Per-channel formats
--------------------------
+-------------------
 
 Some image formats allow separate per-channel data formats (for example,
 ``half`` data for colors and ``float`` data for depth).  When this
@@ -937,7 +937,7 @@ a Z channel in ``float``::
 
 
 Writing "deep" data
--------------------------
+-------------------
 
 Some image file formats (OpenEXR only, at this time) support the concept
 of "deep" pixels -- those containing multiple samples per pixel (and a
@@ -1010,7 +1010,7 @@ Here is an example of using these methods to write a deep image::
 
 
 Copying an entire image
--------------------------
+-----------------------
 
 Suppose you want to copy an image, perhaps with alterations to the metadata
 but not to the pixels.  You could open an ``ImageInput`` and perform a
@@ -1059,7 +1059,7 @@ without alteration while modifying the image description metadata::
 
 
 Custom I/O proxies (and writing the file to a memory buffer)
--------------------------
+------------------------------------------------------------
 
 Some file format writers allow you to supply a custom I/O proxy object that
 can allow bypassing the usual file I/O with custom behavior, including the
@@ -1084,7 +1084,7 @@ type and its subclasses). ``IOProxy`` is an abstract type, and concrete
 subclasses include ``IOFile`` (which wraps I/O to an open ``FILE*``) and
 ``IOVecOutput`` (which sends output to a ``std::vector<unsigned char>``).
 
-Here is an example of using a proxy that writes the ``file'' to a
+Here is an example of using a proxy that writes the "file" to a
 ``std::vector<unsigned char>``::
 
     // ImageSpec describing the image we want to write.
@@ -1104,7 +1104,7 @@ Here is an example of using a proxy that writes the ``file'' to a
 
 
 Custom search paths for plugins
--------------------------
+-------------------------------
 
 When you call ``ImageOutput::create()``, the OpenImageIO library will try to
 find a plugin that is able to write the format implied by your filename.
@@ -1136,7 +1136,7 @@ listed.  Here is an example::
 
 
 Error checking
--------------------------
+--------------
 
 Nearly every ``ImageOutput`` API function returns a ``bool`` indicating
 whether the operation succeeded (``true``) or failed (``false``). In the
