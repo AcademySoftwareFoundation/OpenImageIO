@@ -11,7 +11,7 @@ There are two kinds of data that are important to OpenImageIO:
 * *Internal data* is in the memory of the computer, used by an
   application program.
 * *Native file data* is what is stored in an image file itself
-  (i.e., on the ``other side'' of the abstraction layer that OpenImageIO
+  (i.e., on the "other side" of the abstraction layer that OpenImageIO
   provides).
 
 Both internal and file data is stored in a particular *data format*
@@ -82,7 +82,7 @@ Efficient unique strings: ``ustring``
 .. _sec-span:
 
 Non-owning array views: ``span`` / ``cspan``
-==========================================
+============================================
 
 .. doxygenclass:: OIIO::span
     :members:

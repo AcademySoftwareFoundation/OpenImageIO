@@ -794,7 +794,7 @@ per unit of {\cf x} and {\cf y}, respectively.  If it is impossible to
 know the derivatives, you may pass 0 for them, but in that case you will
 not receive an antialiased texture lookup.
 
-Fields within {\cf options} that are honored for 3D texture lookups
+Fields within {\cf options} that are honored for environment lookups
 include the following:
 
 \vspace{-12pt}
@@ -874,7 +874,7 @@ The {\cf RunMask} is defined to be an integer large enough to hold at least
 {\cf i} in the batch, the bit identified by {\cf (1 << i)} controls whether
 that position will be computed.
 
-The defined constant {\cf RunMaskOn} contants the value with all bits
+The defined constant {\cf RunMaskOn} contains the value with all bits
 {\cf 0..BatchWidth-1} set to 1.
 \apiend
 
@@ -946,13 +946,13 @@ bool {\ce texture} (TextureHandle *texture_handle,
 Perform filtered 2D texture lookups on a batch of positions from the
 same texture, all at once.  The parameters {\cf s},
 {\cf t}, {\cf dsdx}, {\cf dtdx}, and {\cf dsdy}, {\cf dtdy} are each
-a pointer to {\cf [BatchSize]} values.  The {\cf mask} determines which
+a pointer to {\cf [BatchWidth]} values.  The {\cf mask} determines which
 of those array elements to actually compute.
 
 The various results are arranged as arrays that behave as if they were
 declared
 
-~~~~ {\cf  float result[channels][BatchSize]}
+~~~~ {\cf  float result[channels][BatchWidth]}
 
 \noindent In other words, all the batch values for channel 0 are
 adjacent, followed by all the batch values for channel 1, etc. (This is
@@ -979,12 +979,12 @@ bool {\ce texture3d} (TextureHandle *texture_handle,
 Perform filtered 3D volumetric texture lookups on a batch of positions from
 the same texture, all at once. The ``point-like'' parameters {\cf P}, {\cf
 dPdx}, {\cf dPdy}, and {\cf dPdz} are each a pointers to arrays of
-{\cf float value[3][BatchSize]}. That is, each one points to all the $x$ values
+{\cf float value[3][BatchWidth]}. That is, each one points to all the $x$ values
 for the batch, immediately followed by all the $y$ values, followed by the
 $z$ values.
 
 The various results arrays are also arranged as arrays that behave as if
-they were declared {\cf  float result[channels][BatchSize]}, where all the
+they were declared {\cf  float result[channels][BatchWidth]}, where all the
 batch values for channel 0 are adjacent, followed by all the batch values
 for channel 1, etc.
 
@@ -1009,12 +1009,12 @@ bool {\ce shadow} (TextureHandle *texture_handle,  Perthread *thread_info, \\
 Perform filtered shadow map lookups on a batch of positions from
 the same texture, all at once. The ``point-like'' parameters {\cf P},
 {\cf dPdx}, and {\cf dPdy} are each a pointers to arrays of
-{\cf float value[3][BatchSize]}. That is, each one points to all the $x$ values
+{\cf float value[3][BatchWidth]}. That is, each one points to all the $x$ values
 for the batch, immediately followed by all the $y$ values, followed by the
 $z$ values.
 
 The various results arrays are also arranged as arrays that behave as if
-they were declared {\cf  float result[channels][BatchSize]}, where all the
+they were declared {\cf  float result[channels][BatchWidth]}, where all the
 batch values for channel 0 are adjacent, followed by all the batch values
 for channel 1, etc.
 
@@ -1039,7 +1039,7 @@ bool {\ce environment} (TextureHandle *texture_handle,
 Perform filtered directional environment map lookups on a batch of positions
 from the same texture, all at once. The ``point-like'' parameters {\cf R},
 {\cf dRdx}, and {\cf dRdy} are each a pointers to arrays of
-{\cf float value[3][BatchSize]}. That is, each one points to all the $x$ values
+{\cf float value[3][BatchWidth]}. That is, each one points to all the $x$ values
 for the batch, immediately followed by all the $y$ values, followed by the
 $z$ values.
 
@@ -1051,7 +1051,7 @@ refer to either a single or an array of values, as are many the fields in
 the {\cf options}.
 
 The various results arrays are also arranged as arrays that behave as if
-they were declared {\cf  float result[channels][BatchSize]}, where all the
+they were declared {\cf  float result[channels][BatchWidth]}, where all the
 batch values for channel 0 are adjacent, followed by all the batch values
 for channel 1, etc.
 

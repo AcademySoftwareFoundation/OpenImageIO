@@ -2,6 +2,11 @@
 
     .. xxx image:: pybind11-logo.png
 
+.. default-role:: code
+
+
+
+
 OpenImageIO
 ==========================================================
 
@@ -25,8 +30,8 @@ OpenImageIO
    writingplugins
    builtinplugins
    imagecache
-..   x texturesys
-   x imagebuf
+   texturesys
+.. x imagebuf
    x imagebufalgo
    x pythonbindings
 
@@ -59,7 +64,8 @@ OpenImageIO
         http://www.sphinx-doc.org/en/master/contents.html
         http://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cpp-domain
     Breathe docs:
-        https://breathe.readthedocs.io/en/latest/directives.htm
+        https://github.com/michaeljones/breathe
+        https://breathe.readthedocs.io/en/latest/directives.html
     RST:
 
     
