@@ -67,8 +67,7 @@ OpenImageIO consists of:
 Licensing
 ---------
 
-OpenImageIO is (c) Copyright 2008-2019 by Larry Gritz et al.
-All Rights Reserved.
+OpenImageIO is (c) Copyright Contributors to the OpenImageIO project.
 
 OpenImageIO is distributed using the [modified BSD license](LICENSE.md)
 (also known as the "new BSD" or "3-clause BSD" license).  The documentation
