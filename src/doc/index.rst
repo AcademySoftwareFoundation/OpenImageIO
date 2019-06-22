@@ -31,8 +31,8 @@ OpenImageIO
    builtinplugins
    imagecache
    texturesys
-.. x imagebuf
-   x imagebufalgo
+   imagebuf
+.. x imagebufalgo
    x pythonbindings
 
 

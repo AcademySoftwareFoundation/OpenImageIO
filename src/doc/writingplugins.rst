@@ -237,7 +237,7 @@ plug-in.
    #. ``supports()`` should return ``true`` if its argument names a feature
       supported by your format plugin, ``false`` if it names a feature not
       supported by your plugin.  See the description of
-      :cpp:ref:`ImageOutput::supports()` for the list of feature names.
+      `ImageOutput::supports()` for the list of feature names.
    #. ``open()`` should open the file and return true, or should return
       false if unable to do so (including if the file was found but turned
       out not to be in the format that your plugin is trying to implement).

@@ -835,7 +835,7 @@ public:
     /// @param  result[]
     ///             The result of the filtered texture lookup will be placed
     ///             into `result[0..nchannels-1]`.
-    /// @param  drestultds/dresultdt
+    /// @param  dresultds/dresultdt
     ///             If non-null, these designate storage locations for the
     ///             derivatives of result, i.e., the rate of change per unit
     ///             s and t, respectively, of the filtered texture. If
@@ -930,7 +930,7 @@ public:
     /// @param  result[]
     ///             The result of the filtered texture lookup will be placed
     ///             into `result[0..nchannels-1]`.
-    /// @param  drestultds/dresultdt/dresultdr
+    /// @param  dresultds/dresultdt/dresultdr
     ///             If non-null, these designate storage locations for the
     ///             derivatives of result, i.e., the rate of change per unit
     ///             s, t, and r, respectively, of the filtered texture. If
@@ -1022,7 +1022,7 @@ public:
     /// @param  result[]
     ///             The result of the filtered texture lookup will be placed
     ///             into `result[0..nchannels-1]`.
-    /// @param  drestultds/dresultdt
+    /// @param  dresultds/dresultdt
     ///             If non-null, these designate storage locations for the
     ///             derivatives of result, i.e., the rate of change per unit
     ///             s and t, respectively, of the filtered texture. If
@@ -1087,7 +1087,7 @@ public:
     ///             The result of the filtered texture lookup will be placed
     ///             here, as `float [nchannels][BatchWidth]`. (Note the
     ///             "SOA" data layout.)
-    /// @param  drestultds/dresultdt
+    /// @param  dresultds/dresultdt
     ///             If non-null, these designate storage locations for the
     ///             derivatives of result, and like `result` are in SOA
     ///             layout: `float [nchannels][BatchWidth]`
@@ -1171,7 +1171,7 @@ public:
     ///             The result of the filtered texture lookup will be placed
     ///             here, as `float [nchannels][BatchWidth]`. (Note the
     ///             "SOA" data layout.)
-    /// @param  drestultds/dresultdt/dresultdr
+    /// @param  dresultds/dresultdt/dresultdr
     ///             If non-null, these designate storage locations for the
     ///             derivatives of result, and like `result` are in SOA
     ///             layout: `float [nchannels][BatchWidth]`
@@ -1259,7 +1259,7 @@ public:
     ///             The result of the filtered texture lookup will be placed
     ///             here, as `float [nchannels][BatchWidth]`. (Note the
     ///             "SOA" data layout.)
-    /// @param  drestultds/dresultdt
+    /// @param  dresultds/dresultdt
     ///             If non-null, these designate storage locations for the
     ///             derivatives of result, and like `result` are in SOA
     ///             layout: `float [nchannels][BatchWidth]`
