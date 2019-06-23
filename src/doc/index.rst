@@ -24,7 +24,6 @@ OpenImageIO
    :maxdepth: 2
 
    imageioapi
-
    imageoutput
    imageinput
    writingplugins
@@ -32,31 +31,23 @@ OpenImageIO
    imagecache
    texturesys
    imagebuf
-.. x imagebufalgo
-   x pythonbindings
+   imagebufalgo
+   pythonbindings
 
 
 .. toctree::
    :caption: Image Utilities
    :maxdepth: 2
 
-.. x   oiiotool
-   x iinfo
-   x iconvert
-   x igrep
-   x idiff
-   x maketx
+   oiiotool
+   iinfo
+   iconvert
+   igrep
+   idiff
+   maketx
 
 
-.. xxdx x.x. toctree:x:
-..   :caption: Extra Information
-..   :maxdepth: 1
-
-..   faq
-..   benchmark
-..   limitations
-..   reference
-
+.. glossary index
 
 .. comment
     Helpful links when writing documentation:
