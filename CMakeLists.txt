@@ -467,4 +467,7 @@ set (CPACK_COMPONENT_DEVELOPER_DEPENDS user)
 include (CPack)
 
 #REZ build
-include(RezBuild)
+option (BUILD_REZ "Build Rez support" OFF)
+if (BUILD_REZ)
+    include(RezBuild)
+endif ()

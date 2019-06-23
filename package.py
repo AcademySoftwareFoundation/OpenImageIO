@@ -3,7 +3,7 @@ name = "oiio"
 version = "3.5.82_spiArn"
 
 authors = [
-    "lg"
+    "lg",
 ]
 
 
@@ -24,9 +24,15 @@ tools = [
 ]
 
 variants = [
-    ['platform-linux'],
+    ['platform-linux', 'python-2'],
 ]
 
+hashed_variants = True
+
 def commands():
-    env.PYTHONPATH.append('{root}/lib/python2.7/site-packages')
+    #https://github.com/nerdvegas/rez/wiki/Building-Packages#passing-arguments
+    if building:
+        env.CMAKE_MODULE_PATH.append("{root}/share/cmake")
+
+    env.PYTHONPATH.append('{root}/lib/python2.7/site-packages') # need to figure out a way to build in a versionless directory
     env.PATH.append('{root}/bin')
