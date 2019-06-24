@@ -1,6 +1,6 @@
 name = "oiio"
 
-version = "3.5.82_spiArn"
+version = "3.5.83"
 
 authors = [
     "lg",
@@ -32,7 +32,9 @@ hashed_variants = True
 def commands():
     #https://github.com/nerdvegas/rez/wiki/Building-Packages#passing-arguments
     if building:
-        env.CMAKE_MODULE_PATH.append("{root}/share/cmake")
+        env.CMAKE_MODULE_PATH.append("{root}/share/cmake/Modules/")
+        env.CPATH.append("{root}/include")
+        env.OPENIMAGEIO_ROOT_DIR = "{root}"
 
     env.PYTHONPATH.append('{root}/lib/python2.7/site-packages') # need to figure out a way to build in a versionless directory
     env.PATH.append('{root}/bin')
