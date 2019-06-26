@@ -1,7 +1,7 @@
 .. _chap-imagebuf:
 
-Image Buffers
-#############
+ImageBuf: Image Buffers
+#######################
 
 
 ImageBuf Introduction and Theory of Operation

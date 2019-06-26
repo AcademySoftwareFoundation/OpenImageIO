@@ -51,6 +51,9 @@ OpenImageIO
 
 .. comment
     Helpful links when writing documentation:
+
+    Doxygen docs:
+        http://www.doxygen.nl/manual/index.html
     Sphinx docs:
         http://www.sphinx-doc.org/en/master/contents.html
         http://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cpp-domain
