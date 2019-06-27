@@ -226,6 +226,15 @@
 #define OIIO_SIMD_HAS_SIMD16 1   /* vfloat16, vint16, vbool16 defined */
 
 
+// Embarrassing hack: Xlib.h #define's True and False!
+#ifdef True
+#    undef True
+#endif
+#ifdef False
+#    undef False
+#endif
+
+
 
 OIIO_NAMESPACE_BEGIN
 
