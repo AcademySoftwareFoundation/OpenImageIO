@@ -252,6 +252,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "missing_math.h"
 
 
+// Embarrassing hack: Xlib.h #define's True and False!
+#ifdef True
+#    undef True
+#endif
+#ifdef False
+#    undef False
+#endif
+
+
+
 OIIO_NAMESPACE_BEGIN
 
 namespace simd {
