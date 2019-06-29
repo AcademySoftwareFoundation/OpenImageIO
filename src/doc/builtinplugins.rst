@@ -375,7 +375,7 @@ Field3d files, and does not write them.
 Fields are comprised of multiple *layers* (which appear to OpenImageIO
 as subimages).  Each layer/subimage may have a different name, resolution,
 and coordinate mapping.  Layers may be scalar (1 channel) or vector (3
-channel) fields, and the data may be ``half``, ``float``, or ``double``.
+channel) fields, and the data may be ``half``, `float`, or ``double``.
 
 OpenImageIO always reports Field3D files as tiled.  If the Field3d file has
 a "block size", the block size will be reported as the tile size. Otherwise,
@@ -877,7 +877,7 @@ OpenEXR
 
 OpenEXR is an image file format developed by Industrial Light & Magic,
 and subsequently open-sourced.  OpenEXR's strengths include support of
-high dynamic range imagery (``half`` and ``float`` pixels), tiled
+high dynamic range imagery (``half`` and `float` pixels), tiled
 images, explicit support of MIPmaps and cubic environment maps,
 arbitrary metadata, and arbitrary numbers of color channels.  OpenEXR
 files use the file extension :file:`.exr`.
@@ -1061,7 +1061,7 @@ does not write them.
 Volumes are comprised of multiple *layers* (which appear to OpenImageIO as
 subimages).  Each layer/subimage may have a different name, resolution, and
 coordinate mapping.  Layers may be scalar (1 channel) or vector (3 channel)
-fields, and the voxel data are always ``float``. OpenVDB files always
+fields, and the voxel data are always `float`. OpenVDB files always
 report as tiled, using the leaf dimension size.
 
 .. list-table::
@@ -1499,7 +1499,7 @@ SGI
 
 The SGI image format was a simple raster format used long ago on SGI
 machines.  SGI files use the file extensions ``sgi``, ``rgb``, ``rgba``,
-``bw``, ``int``, and ``inta``.
+``bw``, `int`, and ``inta``.
 
 The SGI format is sometimes used for legacy apps, but has little merit
 otherwise: no support for tiles, no MIPmaps, no multi-subimage, only 8- and

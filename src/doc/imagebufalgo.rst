@@ -151,7 +151,7 @@ pre-allocated `dst` nor a non-default ROI.
 zero() -- create a black image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. doxygengroup:: zero
+.. doxygenfunction:: zero(ROI, int)
 ..
 
   Examples::
@@ -173,7 +173,12 @@ zero() -- create a black image
     roi.chend = 2;   // one past the end of the channel region
     ImageBufAlgo::zero (A, roi);
 
+  Result-as-parameter version:
 
+    .. doxygenfunction:: zero(ImageBuf&, ROI, int)
+
+
+|
 
 fill() -- fill a region with a solid color or gradient
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -196,11 +201,12 @@ fill() -- fill a region with a solid color or gradient
         :align: center
         :width: 2.0 in
 
+|
 
 checker() -- make a checker pattern
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. doxygengroup:: checker
+.. doxygenfunction:: checker(int, int, int, cspan<float>, cspan<float>, int, int, int, ROI, int)
 ..
 
   Examples::
@@ -216,12 +222,18 @@ checker() -- make a checker pattern
         :align: center
         :width: 2.0in
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: checker(ImageBuf&, int, int, int, cspan<float>, cspan<float>, int, int, int, ROI, int)
+
+
+|
 
 
 noise() -- make a noise pattern
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. doxygengroup:: noise
+.. doxygenfunction:: noise(string_view, float, float, bool, int, ROI, int)
 ..
 
   Examples::
@@ -240,20 +252,28 @@ noise() -- make a noise pattern
     ImageBufAlgo::noise (C, "salt", 0.0f /*value*/, 0.01f /*portion*/,
                          true /*mono*/, 1 /*seed*/);
 
+  ..
 
-.. |noiseimg1| image:: figures/unifnoise1.jpg
-   :height: 1.5 in
-.. |noiseimg2| image:: figures/tahoe-gauss.jpg
-   :height: 1.5 in
-.. |noiseimg3| image:: figures/tahoe-pepper.jpg
-   :height: 1.5 in
-..
+  .. |noiseimg1| image:: figures/unifnoise1.jpg
+     :height: 1.5 in
+  .. |noiseimg2| image:: figures/tahoe-gauss.jpg
+     :height: 1.5 in
+  .. |noiseimg3| image:: figures/tahoe-pepper.jpg
+     :height: 1.5 in
 
-  +-----------------+-----------------+-----------------+
-  | |noiseimg1|     | |noiseimg2|     | |noiseimg3|     |
-  +-----------------+-----------------+-----------------+
+  ..
 
+    +------------------------+------------------------+------------------------+
+    | |noiseimg1|            | |noiseimg2|            | |noiseimg3|            |
+    +------------------------+------------------------+------------------------+
+    | uniform noise          | gaussian noise added   | salt & pepper dropouts |
+    +------------------------+------------------------+------------------------+
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: noise(ImageBuf&, string_view, float, float, bool, int, ROI, int)
+
+|
 
 
 Drawing shapes: points, lines, boxes
@@ -268,6 +288,7 @@ Drawing shapes: points, lines, boxes
     float red[4] = { 1, 0, 0, 1 };
     ImageBufAlgo::render_point (A, 50, 100, red);
 
+|
 
 
 .. doxygenfunction:: render_line
@@ -284,6 +305,7 @@ Drawing shapes: points, lines, boxes
     :align: center
     :width: 2.0 in
 
+|
 
 .. doxygenfunction:: render_box
 ..
@@ -300,6 +322,7 @@ Drawing shapes: points, lines, boxes
     :align: center
     :width: 2.0 in
 
+|
 
 
 Drawing text
@@ -331,6 +354,7 @@ Drawing text
   | |textimg1|      | |textimg2|      |
   +-----------------+-----------------+
 
+|
 
 
 .. doxygenfunction:: text_size
@@ -361,7 +385,7 @@ Image transformations and data movement
 Shuffling channels
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. doxygengroup:: channels
+.. doxygenfunction:: channels(const ImageBuf&, int, cspan<int>, cspan<float>, cspan<std::string>, bool, int)
 ..
 
   Examples::
@@ -392,8 +416,14 @@ Shuffling channels
     // if there is a shortfall)
     ImageBuf out = ImageBufAlgo::channels (RGBA, nchannels, {}, {}, {}, true);
 
+  Result-as-parameter version:
 
-.. doxygengroup:: channel_append
+    .. doxygenfunction:: channels(ImageBuf&, const ImageBuf&, int, cspan<int>, cspan<float>, cspan<std::string>, bool, int)
+
+|
+
+
+.. doxygenfunction:: channel_append(const ImageBuf&, const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -402,9 +432,14 @@ Shuffling channels
     ImageBuf Z (...);      // assume initialized, 1 channel
     ImageBuf RGBAZ = ImageBufAlgo::channel_append (RGBA, Z);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: channel_append(ImageBuf&, const ImageBuf&, const ImageBuf&, ROI, int)
+
+|
 
 
-.. doxygengroup:: copy
+.. doxygenfunction:: copy(const ImageBuf&, TypeDesc, ROI, int)
 ..
 
   Examples::
@@ -413,8 +448,14 @@ Shuffling channels
     ImageBuf A (...);  // Assume initialized
     ImageBuf B = ImageBufAlgo::copy (A, TypeDesc::FLOAT);
 
+  Result-as-parameter version:
 
-.. doxygengroup:: crop
+    .. doxygenfunction:: copy(ImageBuf&, const ImageBuf&, TypeDesc, ROI, int)
+
+|
+
+
+.. doxygenfunction:: crop(const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -423,9 +464,14 @@ Shuffling channels
     ImageBuf A (...);  // Assume initialized
     ImageBuf B = ImageBufAlgo::crop (A, ROI(0,200,0,100));
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: crop(ImageBuf&, const ImageBuf&, ROI, int)
+
+|
 
 
-.. doxygengroup:: cut
+.. doxygenfunction:: cut(const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -434,6 +480,12 @@ Shuffling channels
     ImageBuf A (...);  // Assume initialized
     ImageBuf B = ImageBufAlgo::cut (A, ROI(50,250,200,300));
     // Note: B will have origin 0,0, NOT (50,200).
+
+  Result-as-parameter version:
+
+    .. doxygenfunction:: cut(ImageBuf&, const ImageBuf&, ROI, int)
+
+|
 
 
 .. doxygenfunction:: paste
@@ -475,7 +527,7 @@ Shuffling channels
 
 
 
-.. doxygengroup:: flipflop
+.. doxygengroup:: flip-flop-transpose
 ..
 
   Examples::
@@ -505,7 +557,7 @@ Shuffling channels
 
 
 
-.. doxygengroup:: reorient
+.. doxygenfunction:: reorient(const ImageBuf&, int)
 ..
 
   Examples::
@@ -513,9 +565,15 @@ Shuffling channels
     ImageBuf A ("tahoe.jpg");
     A = ImageBufAlgo::reorient (A);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: reorient(ImageBuf&, const ImageBuf&, int)
+
+|
 
 
-.. doxygengroup:: circular_shift
+
+.. doxygenfunction:: circular_shift(const ImageBuf&, int, int, int, ROI, int)
 ..
 
   Examples::
@@ -533,6 +591,12 @@ Shuffling channels
   | |cshiftimg1|    | |cshiftimg2|    |
   +-----------------+-----------------+
 
+  Result-as-parameter version:
+
+  .. doxygenfunction:: circular_shift(ImageBuf&, const ImageBuf&, int, int, int, ROI, int)
+  ..
+
+|
 
 
 .. doxygengroup:: rotate
@@ -552,6 +616,7 @@ Shuffling channels
   +-----------------+-----------------+
   | |rotimg1|       | |rotimg2|       |
   +-----------------+-----------------+
+|
 
 
 .. doxygengroup:: resize
@@ -564,9 +629,10 @@ Shuffling channels
     ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
     ImageBuf Dst = ImageBufAlgo::resize (Src, "", 0, roi);
 
+|
 
 
-.. doxygengroup:: resample
+.. doxygenfunction:: resample(const ImageBuf&, bool, ROI, int)
 ..
 
   Examples::
@@ -575,6 +641,13 @@ Shuffling channels
     ImageBuf Src ("tahoe.exr");
     ROI roi (0, 320, 0, 240, 0, 1, /*chans:*/ 0, Src.nchannels());
     ImageBuf Dst = ImageBufAlgo::resample (Src, false, roi);
+
+  Result-as-parameter version:
+
+  .. doxygenfunction:: resample(ImageBuf&, const ImageBuf&, bool, ROI, int)
+  ..
+
+|
 
 
 
@@ -588,6 +661,7 @@ Shuffling channels
     ROI roi (0, 640, 0, 480, 0, 1, /*chans:*/ 0, Src.nchannels());
     ImageBuf Dst = ImageBufAlgo::fit (Src, "", 0, true, roi);
 
+|
 
 
 .. doxygengroup:: warp
@@ -601,7 +675,7 @@ Shuffling channels
     ImageBuf Src ("tahoe.exr");
     ImageBuf Dst = ImageBufAlgo::warp (dst, src, M, "lanczos3");
 
-
+|
 
 
 
@@ -611,7 +685,7 @@ Shuffling channels
 Image arithmetic
 ================
 
-.. doxygengroup:: add
+.. doxygenfunction:: add(Image_or_Const, Image_or_Const, ROI, int)
 ..
 
   Examples::
@@ -627,9 +701,15 @@ Image arithmetic
     roi.chbegin = 0;  roi.chend = 3;
     ImageBuf Sum = ImageBufAlgo::add (Sum, A, 0.2f, roi);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: add(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
 
 
-.. doxygengroup:: sub
+
+
+|
+.. doxygenfunction:: sub(Image_or_Const, Image_or_Const, ROI, int)
 ..
 
   Examples::
@@ -638,9 +718,14 @@ Image arithmetic
     ImageBuf B ("b.exr");
     ImageBuf Diff = ImageBufAlgo::sub (A, B);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: sub(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
 
 
-.. doxygengroup:: absdiff
+
+|
+.. doxygenfunction:: absdiff(Image_or_Const, Image_or_Const, ROI, int)
 ..
 
   Examples::
@@ -649,9 +734,13 @@ Image arithmetic
     ImageBuf B ("b.exr");
     ImageBuf Diff = ImageBufAlgo::absdiff (A, B);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: absdiff(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
 
 
-.. doxygengroup:: abs
+|
+.. doxygenfunction:: abs(const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -659,10 +748,14 @@ Image arithmetic
     ImageBuf A ("a.exr");
     ImageBuf Abs = ImageBufAlgo::abs (A);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: abs(ImageBuf&, const ImageBuf&, ROI, int)
 
 
 
-.. doxygengroup:: mul
+|
+.. doxygenfunction:: mul(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
 ..
 
   Examples::
@@ -676,9 +769,14 @@ Image arithmetic
     roi.chbegin = 0;  roi.chend = 3;
     ImageBufAlgo::mul (A, A, 0.5f, roi);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: mul(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
 
 
-.. doxygengroup:: div
+
+|
+.. doxygenfunction:: div(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
 ..
 
   Examples::
@@ -692,9 +790,13 @@ Image arithmetic
     roi.chbegin = 0;  roi.chend = 3;
     ImageBufAlgo::div (A, A, 2.0f, roi);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: div(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
 
 
-.. doxygengroup:: mad
+|
+.. doxygenfunction:: mad(ImageBuf&, Image_or_Const, Image_or_Const, Image_or_Const, ROI, int)
 ..
 
   Examples::
@@ -711,9 +813,13 @@ Image arithmetic
     roi.chbegin = 0;  roi.chend = 3;
     ImageBufAlgo::mad (A, A, -1.0, 1.0, roi);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: mad(ImageBuf&, Image_or_Const, Image_or_Const, Image_or_Const, ROI, int)
 
 
-.. doxygengroup:: over
+|
+.. doxygenfunction:: over(const ImageBuf&, const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -722,9 +828,13 @@ Image arithmetic
     ImageBuf B ("bg.exr");
     ImageBuf Composite = ImageBufAlgo::over (A, B);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: over(ImageBuf&, const ImageBuf&, const ImageBuf&, ROI, int)
 
 
-.. doxygengroup:: zover
+|
+.. doxygenfunction:: zover(const ImageBuf&, const ImageBuf&, bool, ROI, int)
 ..
 
   Examples::
@@ -733,8 +843,13 @@ Image arithmetic
     ImageBuf B ("b.exr");
     ImageBuf Composite = ImageBufAlgo::zover (Composite, A, B);
 
+  Result-as-parameter version:
 
-.. doxygengroup:: invert
+    .. doxygenfunction:: zover(ImageBuf&, const ImageBuf&, const ImageBuf&, bool, ROI, int)
+
+
+|
+.. doxygenfunction:: invert(const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -752,13 +867,23 @@ Image arithmetic
     ImageBufAlgo::invert (Inverse, Inverse, roi);
     ImageBufAlgo::premult (Inverse, Inverse);
 
-..
-  %   \includegraphics[width=1.5in]{figures/tahoe-small.jpg
-  %\raisebox{40pt}{\large $\rightarrow$}
-  %\includegraphics[width=1.5in]{figures/invert.jpg
+  ..
+
+    .. image:: figures/tahoe-small.jpg
+        :width: 2.0 in
+    .. image:: figures/invert.jpg
+        :width: 2.0 in
+
+  |
+
+  Result-as-parameter version:
+
+    .. doxygenfunction:: invert(ImageBuf&, const ImageBuf&, ROI, int)
 
 
-.. doxygengroup:: pow
+|
+
+.. doxygenfunction:: pow(const ImageBuf&, cspan<float>, ROI, int)
 ..
 
   Examples::
@@ -768,10 +893,15 @@ Image arithmetic
     roi.chbegin = 0;  roi.chend = 3;
     ImageBufAlgo::pow (A, A, 1.0f/2.2f, roi);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: pow(ImageBuf&, const ImageBuf&, cspan<float>, ROI, int)
 
 
-.. doxygengroup:: channel_sum
+|
+.. doxygenfunction:: channel_sum(const ImageBuf&, cspan<float>, ROI, int)
 ..
+
   Examples::
 
     // Compute luminance via a weighted sum of R,G,B
@@ -780,9 +910,13 @@ Image arithmetic
     ImageBuf A ("a.exr");
     ImageBuf lum = ImageBufAlgo::channel_sum (A, luma_weights);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: channel_sum(ImageBuf&, const ImageBuf&, cspan<float>, ROI, int)
 
 
-.. doxygengroup:: clamp
+|
+.. doxygenfunction:: clamp(const ImageBuf&, cspan<float>, cspan<float>, bool, ROI, int)
 ..
 
   Examples::
@@ -801,9 +935,13 @@ Image arithmetic
     min[1] = 0.0f;  max[1] = 0.5f;
     ImageBufAlgo::clamp (A, A, &min[0], &max[0], false);
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: clamp(ImageBuf&, const ImageBuf&, cspan<float>, cspan<float>, bool, ROI, int)
 
 
-.. doxygengroup:: contrast_remap
+|
+.. doxygenfunction:: contrast_remap(const ImageBuf&, cspan<float>, cspan<float>, cspan<float>, cspan<float>, cspan<float>, cspan<float>, ROI, int)
 ..
 
   Examples::
@@ -839,7 +977,12 @@ Image arithmetic
   | original    | linstretch  | inverse     | sigmoid     |
   +-------------+-------------+-------------+-------------+
 
+  Result-as-parameter version:
 
+    .. doxygenfunction:: contrast_remap(ImageBuf&, const ImageBuf&, cspan<float>, cspan<float>, cspan<float>, cspan<float>, cspan<float>, cspan<float>, ROI, int)
+
+
+|
 .. doxygengroup:: color_map
 ..
 
@@ -938,6 +1081,7 @@ Image comparison and statistics
     }
 
 
+|
 .. doxygenfunction:: compare(const ImageBuf&, const ImageBuf&, float, float, ROI, int)
 ..
 
@@ -970,6 +1114,12 @@ Image comparison and statistics
     }
 
 
+|
+.. doxygenfunction:: compare_Yee(const ImageBuf&, const ImageBuf&, CompareResults&, float, float, ROI, int)
+..
+
+
+|
 .. doxygenfunction:: isConstantColor(const ImageBuf&, float, span<float>, ROI, int)
 ..
 
@@ -987,6 +1137,7 @@ Image comparison and statistics
     }
 
 
+|
 .. doxygenfunction:: isConstantChannel(const ImageBuf&, int, float, float, ROI, int)
 ..
 
@@ -1002,6 +1153,7 @@ Image comparison and statistics
         std::cout << "The image has alpha < 1 in at least one pixel\n";
 
 
+|
 .. doxygenfunction:: isMonochrome(const ImageBuf&, float, ROI, int)
 ..
 
@@ -1014,7 +1166,7 @@ Image comparison and statistics
         std::cout << "a.exr is really grayscale\n";
 
 
-
+|
 .. doxygenfunction:: color_count(const ImageBuf&, imagesize_t *, int, cspan<float>, cspan<float>, ROI, int)
 ..
 
@@ -1035,6 +1187,7 @@ Image comparison and statistics
     std::cout << "Number of green pixels : " << count[1] << "\n";
 
 
+|
 .. doxygenfunction:: color_range_check(const ImageBuf&, imagesize_t *, imagesize_t *, imagesize_t *, cspan<float>, cspan<float>, ROI, int)
 ..
 
@@ -1056,6 +1209,7 @@ Image comparison and statistics
 
 
 
+|
 .. doxygenfunction:: nonzero_region
 ..
 
@@ -1069,7 +1223,7 @@ Image comparison and statistics
         std::cout << "Non-empty region was " << shrunk << "\n";
 
 
-
+|
 .. doxygenfunction:: computePixelHashSHA1
 ..
 
@@ -1080,7 +1234,7 @@ Image comparison and statistics
     hash = ImageBufAlgo::computePixelHashSHA1 (A, "", ROI::All(), 64);
 
 
-
+|
 .. doxygenfunction:: histogram(const ImageBuf&, int, int, float, float, bool, ROI, int)
 ..
 
@@ -1114,7 +1268,8 @@ Convolutions and frequency-space algorithms
     ImageBuf K = ImageBufAlgo::make_kernel ("gaussian", 5.0f, 5.0f);
 
 
-.. doxygengroup:: convolve
+|
+.. doxygenfunction:: convolve(const ImageBuf&, const ImageBuf&, bool, ROI, int)
 ..
 
   Examples::
@@ -1136,9 +1291,14 @@ Convolutions and frequency-space algorithms
   | original        | blurred         |
   +-----------------+-----------------+
 
+  Result-as-parameter version:
+
+    .. doxygenfunction:: convolve(ImageBuf&, const ImageBuf&, const ImageBuf&, bool, ROI, int)
 
 
-.. doxygengroup:: laplacian
+
+|
+.. doxygenfunction:: laplacian(const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -1158,7 +1318,10 @@ Convolutions and frequency-space algorithms
   | original        | Laplacian image |
   +-----------------+-----------------+
 
+  .. doxygenfunction:: laplacian(ImageBuf&, const ImageBuf&, ROI, int)
 
+
+|
 .. doxygengroup:: fft-ifft
 ..
 
@@ -1174,6 +1337,7 @@ Convolutions and frequency-space algorithms
     ImageBuf Spatial = ImageBufAlgo::ifft (Freq);
 
 
+|
 .. doxygengroup:: complex-polar
 ..
 
@@ -1191,14 +1355,14 @@ Convolutions and frequency-space algorithms
     ImageBuf Spatial = ImageBufAlgo::ifft (Complex);
 
 
-
+|
 
 .. _sec-iba-enhance:
 
 Image Enhancement / Restoration
 ===============================
 
-.. doxygengroup:: fixNonFinite
+.. doxygenfunction:: fixNonFinite(const ImageBuf&, NonFiniteFixMode, int *, ROI, int)
 ..
 
   Examples::
@@ -1209,9 +1373,12 @@ Image Enhancement / Restoration
                                 &pixelsFixed);
     std::cout << "Repaired " << pixelsFixed << " non-finite pixels\n";
 
+  Result-as-parameter version:
+    .. doxygenfunction:: fixNonFinite(ImageBuf&, const ImageBuf&, NonFiniteFixMode, int *, ROI, int)
 
 
-.. doxygengroup:: fillholes-pushpull
+|
+.. doxygenfunction:: fillholes_pushpull(const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -1219,9 +1386,12 @@ Image Enhancement / Restoration
     ImageBuf Src ("holes.exr");
     ImageBuf Filled = ImageBufAlgo::fillholes_pushpull (Src);
 
+  Result-as-parameter version:
+    .. doxygenfunction:: fillholes_pushpull(ImageBuf&, const ImageBuf&, ROI, int)
 
 
-.. doxygengroup:: median
+|
+.. doxygenfunction:: median_filter(ImageBuf&, const ImageBuf&, int, int, ROI, int)
 ..
 
   Examples::
@@ -1231,11 +1401,11 @@ Image Enhancement / Restoration
 ..
 
 .. |medimage1| image:: figures/tahoe-small.jpg
-   :width: 1.5 in
+   :width: 2.0 in
 .. |medimage2| image:: figures/tahoe-pepper.jpg
-   :width: 1.5 in
+   :width: 2.0 in
 .. |medimage3| image:: figures/tahoe-pepper-median.jpg
-   :width: 1.5 in
+   :width: 2.0 in
 ..
 
   +-----------------+-----------------+-----------------+
@@ -1244,8 +1414,12 @@ Image Enhancement / Restoration
   | original        | with dropouts   | median filtered |
   +-----------------+-----------------+-----------------+
 
+  Result-as-parameter version:
+    .. doxygenfunction:: median_filter(ImageBuf&, const ImageBuf&, int, int, ROI, int)
 
-.. doxygengroup:: unsharp
+
+|
+.. doxygenfunction:: unsharp_mask(const ImageBuf&, string_view, float, float, float, ROI, int)
 ..
 
   Examples::
@@ -1253,16 +1427,28 @@ Image Enhancement / Restoration
     ImageBuf Blurry ("tahoe.exr");
     ImageBuf Sharp = ImageBufAlgo::unsharp_mask (Blurry, "gaussian", 5.0f);
 
+  Result-as-parameter version:
+    .. doxygenfunction:: unsharp_mask(ImageBuf&, const ImageBuf&, string_view, float, float, float, ROI, int)
+
+|
 
 
 Morphological filters
 =====================
 
-.. doxygengroup:: dilate
+.. doxygenfunction:: dilate(const ImageBuf&, int, int, ROI, int)
 ..
 
-.. doxygengroup:: erode
+  Result-as-parameter version:
+    .. doxygenfunction:: dilate(ImageBuf&, const ImageBuf&, int, int, ROI, int)
+
+
+|
+.. doxygenfunction:: erode(const ImageBuf&, int, int, ROI, int)
 ..
+
+  Result-as-parameter version:
+    .. doxygenfunction:: erode(ImageBuf&, const ImageBuf&, int, int, ROI, int)
 
 |
 
@@ -1329,7 +1515,7 @@ Examples::
 
 
 
-
+|
 
 
 .. _sec-iba-color:
@@ -1358,8 +1544,8 @@ Color space conversion
     ImageBuf Dst = ImageBufAlgo::colorconvert (Src, "vd8", "lnf", true);
 
 
-
-.. doxygengroup:: colormatrixtransform
+|
+.. doxygenfunction:: colormatrixtransform(const ImageBuf&, const Imath::M44f&, bool, ROI, int)
 ..
 
   Examples::
@@ -1384,9 +1570,12 @@ Color space conversion
   | original        | matrix applied  |
   +-----------------+-----------------+
 
+  Result-as-parameter version:
+    .. doxygenfunction:: colormatrixtransform(ImageBuf&, const ImageBuf&, const Imath::M44f&, bool, ROI, int)
 
 
-.. doxygengroup:: ociolook
+|
+.. doxygenfunction:: ociolook(const ImageBuf&, string_view, string_view, string_view, bool, bool, string_view, string_view, ColorConfig *, ROI, int)
 ..
 
   Examples::
@@ -1395,9 +1584,12 @@ Color space conversion
     ImageBuf Dst = ImageBufAlgo::ociolook (Src, "look", "vd8", "lnf",
                                            true, false, "SHOT", "pe0012");
 
+  Result-as-parameter version:
+    .. doxygenfunction:: ociolook(ImageBuf&, const ImageBuf&, string_view, string_view, string_view, bool, bool, string_view, string_view, ColorConfig *, ROI, int)
 
+|
 
-.. doxygengroup:: ociodisplay
+.. doxygenfunction:: ociodisplay(const ImageBuf&, string_view, string_view, string_view, string_view, bool, string_view, string_view, ColorConfig *, ROI, int)
 ..
 
   Examples::
@@ -1406,9 +1598,12 @@ Color space conversion
     ImageBuf Dst = ImageBufAlgo::ociodisplay (Src, "sRGB", "Film", "lnf",
                                               "", true, "SHOT", "pe0012");
 
+  Result-as-parameter version:
+    .. doxygenfunction:: ociodisplay(ImageBuf&, const ImageBuf&, string_view, string_view, string_view, string_view, bool, string_view, string_view, ColorConfig *, ROI, int)
 
 
-.. doxygengroup:: ociofiletransform
+|
+.. doxygenfunction:: ociofiletransform(const ImageBuf&, string_view, bool, bool, ColorConfig *, ROI, int)
 ..
 
   Examples::
@@ -1417,7 +1612,11 @@ Color space conversion
     ImageBuf Dst = ImageBufAlgo::ociofiletransform (Src, "footransform.csp");
 
 
+  Result-as-parameter version:
+    .. doxygenfunction:: ociofiletransform(ImageBuf&, const ImageBuf&, string_view, bool, bool, ColorConfig *, ROI, int)
 
+
+|
 .. doxygengroup:: premult-unpremult
 ..
 
@@ -1490,7 +1689,8 @@ Functions specific to deep images
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-.. doxygengroup:: deepen
+|
+.. doxygenfunction:: deepen(const ImageBuf&, float, ROI, int)
 ..
 
   Examples::
@@ -1498,8 +1698,12 @@ Functions specific to deep images
     ImageBuf Flat ("RGBAZ.exr");
     ImageBuf Deep = ImageBufAlgo::deepen (Flat);
 
+  Result-as-parameter version:
+    .. doxygenfunction:: deepen(ImageBuf&, const ImageBuf&, float, ROI, int)
 
-.. doxygengroup:: flatten
+
+|
+.. doxygenfunction:: flatten(const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -1507,8 +1711,12 @@ Functions specific to deep images
     ImageBuf Deep ("deepalpha.exr");
     ImageBuf Flat = ImageBufAlgo::flatten (Deep);
 
+  Result-as-parameter version:
+    .. doxygenfunction:: flatten(ImageBuf&, const ImageBuf&, ROI, int)
 
-.. doxygengroup:: deep_merge
+
+|
+.. doxygenfunction:: deep_merge(const ImageBuf&, const ImageBuf&, bool, ROI, int)
 ..
 
   Examples::
@@ -1517,8 +1725,13 @@ Functions specific to deep images
     ImageBuf DeepB ("volume.exr");
     ImageBuf Merged = ImageBufAlgo::deep_merge (DeepA, DeepB);
 
+  Result-as-parameter version:
+    .. doxygenfunction:: deep_merge(ImageBuf&, const ImageBuf&, const ImageBuf&, bool, ROI, int)
 
-.. doxygengroup:: deep_holdout
+
+
+|
+.. doxygenfunction:: deep_holdout(const ImageBuf&, const ImageBuf&, ROI, int)
 ..
 
   Examples::
@@ -1526,7 +1739,11 @@ Functions specific to deep images
     ImageBuf Src ("image.exr");
     ImageBuf Holdout ("holdout.exr");
     ImageBuf Merged = ImageBufAlgo::deep_holdout (Src, Holdout);
-..
+
+  Result-as-parameter version:
+    .. doxygenfunction:: deep_holdout(ImageBuf&, const ImageBuf&, const ImageBuf&, ROI, int)
+
+|
 
 
 General functions that also work for deep images

@@ -234,8 +234,8 @@ plug-in.
    a. ``format_name()`` should return the name of the format, which ought
       to match the name of the plugin and by convention is strictly
       lower-case and contains no whitespace.
-   #. ``supports()`` should return ``true`` if its argument names a feature
-      supported by your format plugin, ``false`` if it names a feature not
+   #. ``supports()`` should return `true` if its argument names a feature
+      supported by your format plugin, `false` if it names a feature not
       supported by your plugin.  See the description of
       `ImageOutput::supports()` for the list of feature names.
    #. ``open()`` should open the file and return true, or should return
@@ -362,7 +362,7 @@ array of values from one format to the native format(s) of the file.
     scratch vector).
 
 
-For ``float`` to 8 bit integer conversions only, if ``dither`` parameter is
+For `float` to 8 bit integer conversions only, if ``dither`` parameter is
 nonzero, random dither will be added to reduce quantization banding
 artifacts; in this case, the specific nonzero ``dither`` value is used as a
 seed for the hash function that produces the per-pixel dither amounts, and
@@ -400,7 +400,7 @@ tips, and rules of thumb that we recommend for image file support.
 * If the file supports thumbnail images in its header, the reader should
   store the thumbnail dimensions in attributes ``"thumbnail_width"``,
   ``"thumbnail_height"``, and ``"thumbnail_nchannels"`` (all of which should
-  be ``int``), and the thumbnail pixels themselves in ``"thumbnail_image"``
+  be `int`), and the thumbnail pixels themselves in ``"thumbnail_image"``
   as an array of channel values (the array length is the total number of
   channel samples in the thumbnail).
 

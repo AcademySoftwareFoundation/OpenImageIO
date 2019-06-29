@@ -124,7 +124,7 @@ Individual scanlines may be read using the ``read_scanline()`` API call::
 The first two arguments to ``read_scanline()`` specify which scanline
 is being read by its vertical (``y``) scanline number (beginning with 0)
 and, for volume images, its slice (``z``) number (the slice number should
-be 0 for 2D non-volume images).  This is followed by a ``TypeDesc``
+be 0 for 2D non-volume images).  This is followed by a `TypeDesc`
 describing the data type of the pixel buffer you are supplying, and a
 pointer to the pixel buffer itself.  Additional optional arguments
 describe the data stride, which can be ignored for contiguous data (use
@@ -181,7 +181,7 @@ scanline image and you should read pixels using ``read_scanline()``, not
 The first three arguments to ``read_tile()`` specify which tile is
 being read by the pixel coordinates of any pixel contained in the
 tile: ``x`` (column), ``y`` (scanline), and ``z`` (slice, which should always
-be 0 for 2D non-volume images).  This is followed by a ``TypeDesc``
+be 0 for 2D non-volume images).  This is followed by a `TypeDesc`
 describing the data format of the pixel buffer you are supplying, and a
 pointer to the pixel buffer.  Pixel data will be written to your buffer
 in order of increasing slice, increasing
@@ -207,14 +207,14 @@ OpenImageIO is significantly more flexible.
 
 You may request that the pixels be stored in any of several formats. This is
 done merely by passing the ``read`` function the data type of your pixel
-buffer, as one of the enumerated type ``TypeDesc``.
+buffer, as one of the enumerated type `TypeDesc`.
 
 It is not required that the pixel data buffer passed to ``read_image()``,
 ``read_scanline()``, or ``read_tile()`` actually be in the same data format
 as the data in the file being read.  OpenImageIO will automatically convert
 from native data type of the file to the internal data format of your
 choice. For example, the following code will open a TIFF and read pixels
-into your internal buffer represented as ``float`` values.  This will work
+into your internal buffer represented as `float` values.  This will work
 regardless of whether the TIFF file itself is using 8-bit, 16-bit, or float
 values.
 
@@ -354,13 +354,13 @@ Arbitrary metadata
 All other metadata found in the file will be stored in the ImageSpec's
 ``extra_attribs`` field, which is a ParamValueList, which is itself
 essentially a vector of ParamValue instances.  Each ParamValue stores one
-meta-datum consisting of a name, type (specified by a ``TypeDesc``), number
+meta-datum consisting of a name, type (specified by a `TypeDesc`), number
 of values, and data pointer.
 
 If you know the name of a specific piece of metadata you want to use, you
 can find it using the ``ImageSpec::find_attribute()`` method, which
 returns a pointer to the matching ParamValue, or ``nullptr`` if no match was
-found.  An optional ``TypeDesc`` argument can narrow the search to only
+found.  An optional `TypeDesc` argument can narrow the search to only
 parameters that match the specified type as well as the name.  Below is an
 example that looks for orientation information, expecting it to consist of a
 single integer::
@@ -485,7 +485,7 @@ The ``seek_subimage()`` function takes three arguments: the index of the
 subimage to switch to (starting with 0), the MIPmap level (starting with 0
 for the highest-resolution level), and a reference to an ImageSpec, into
 which will be stored the spec of the new subimage/miplevel.  The
-``seek_subimage()`` function returns ``true`` upon success, and ``false`` if
+``seek_subimage()`` function returns `true` upon success, and `false` if
 no such subimage or MIP level existed.  It is legal to visit subimages and
 MIP levels out of order; the ImageInput is responsible for making it work
 properly.  It is also possible to find out which subimage and MIP level is
@@ -529,7 +529,7 @@ Per-channel formats
 --------------------------------
 
 Some image formats allow separate per-channel data formats (for example,
-``half`` data for colors and ``float`` data for depth).  If you want to read
+``half`` data for colors and `float` data for depth).  If you want to read
 the pixels in their true native per-channel formats, the following steps are
 necessary:
 
@@ -542,7 +542,7 @@ necessary:
 
 For example, the following code fragment will read a 5-channel image to an
 OpenEXR file, consisting of R/G/B/A channels in ``half`` and a Z channel in
-``float``::
+`float`::
 
 
         ImageInput *in = ImageInput::open (filename);
@@ -569,7 +569,7 @@ Reading "deep" data
 Some image file formats (OpenEXR only, at this time) support the concept of
 "deep" pixels -- those containing multiple samples per pixel (and a
 potentially differing number of them in each pixel). You can tell an image
-is "deep" from its ImageSpec: the ``deep`` field will be ``true``.
+is "deep" from its ImageSpec: the ``deep`` field will be `true`.
 
 Deep files cannot be read with the usual ``read_scanline()``,
 ``read_scanlines()``, ``read_tile()``, ``read_tiles()``, ``read_image()``
@@ -697,7 +697,7 @@ Error checking
 --------------------------------
 
 Nearly every ImageInput API function returns a ``bool`` indicating whether
-the operation succeeded (``true``) or failed (``false``). In the case of a
+the operation succeeded (`true`) or failed (`false`). In the case of a
 failure, the ImageInput will have saved an error message describing in more
 detail what went wrong, and the latest error message is accessible using the
 ImageInput method ``geterror()``, which returns the message as a

@@ -126,7 +126,7 @@ Individual scanlines may be written using the ``writescanline()`` API call::
 The first two arguments to ``writescanline()`` specify which scanline is
 being written by its vertical (*y*) scanline number (beginning with 0)
 and, for volume images, its slice (*z*) number (the slice number should
-be 0 for 2D non-volume images).  This is followed by a ``TypeDesc``
+be 0 for 2D non-volume images).  This is followed by a `TypeDesc`
 describing the data you are supplying, and a pointer to the pixel data
 itself.  Additional optional arguments describe the data stride, which
 can be ignored for contiguous data (use of strides is explained in
@@ -197,7 +197,7 @@ individual plugin.
 The first three arguments to ``writetile()`` specify which tile is being
 written by the pixel coordinates of any pixel contained in the tile: *x*
 (column), *y* (scanline), and *z* (slice, which should always be 0 for 2D
-non-volume images).  This is followed by a ``TypeDesc`` describing the data
+non-volume images).  This is followed by a `TypeDesc` describing the data
 you are supplying, and a pointer to the tile's pixel data itself, which
 should be ordered by increasing slice, increasing scanline within each
 slice, and increasing column within each scanline. Additional optional
@@ -248,7 +248,7 @@ The total number of pixels being transmitted is therefore::
 
         (xend-xbegin) * (yend-ybegin) * (zend-zbegin)
 
-This is followed by a ``TypeDesc`` describing the data you are supplying,
+This is followed by a `TypeDesc` describing the data you are supplying,
 and a pointer to the rectangle's pixel data itself, which should be ordered
 by increasing slice, increasing scanline within each slice, and increasing
 column within each scanline.  Additional optional arguments describe the
@@ -311,7 +311,7 @@ Quantization limits for each integer type is as follows:
   ``UINT16``              0        65535
   ``INT16``          -32768        32767
   ``UINT``                0   4294967295
-  ``INT``       -2147483648   2147483647
+  `int`       -2147483648   2147483647
 ============== ============= ============
 
 
@@ -598,7 +598,7 @@ Arbitrary metadata
 For all other metadata that you wish to save in the file, you can attach the
 data to the ``ImageSpec`` using the ``attribute()`` methods. These come in
 polymorphic varieties that allow you to attach an attribute name and a value
-consisting of a single ``int``, ``unsigned int``, ``float``, ``char*``, or
+consisting of a single `int`, ``unsigned int``, `float`, ``char*``, or
 ``std::string``, as shown in the following examples::
 
         ImageSpec spec (...);
@@ -616,7 +616,7 @@ consisting of a single ``int``, ``unsigned int``, ``float``, ``char*``, or
 These are convenience routines for metadata that consist of a single value
 of one of these common types.  For other data types, or more complex
 arrangements, you can use the more general form of ``attribute()``, which
-takes arguments giving the name, type (as a ``TypeDesc``), number of values
+takes arguments giving the name, type (as a `TypeDesc`), number of values
 (1 for a single value, >1 for an array), and then a pointer to the data
 values.  For example,
 
@@ -769,7 +769,7 @@ called just once, after all subimages are completed.  Here is an example::
     out->close ();
 
 On the other hand, if ``out->supports("appendsubimage")`` returns
-``false``, then you must use a different ``open()`` variety that
+`false`, then you must use a different ``open()`` variety that
 allows you to declare the number of subimages and their specifications
 up front.
 
@@ -888,7 +888,7 @@ Per-channel formats
 -------------------
 
 Some image formats allow separate per-channel data formats (for example,
-``half`` data for colors and ``float`` data for depth).  When this
+``half`` data for colors and `float` data for depth).  When this
 is desired, the following steps are necessary:
 
 1. Verify that the writer supports per-channel formats by checking
@@ -902,7 +902,7 @@ is desired, the following steps are necessary:
 
 For example, the following code fragment will write a 5-channel image
 to an OpenEXR file, consisting of R/G/B/A channels in ``half`` and
-a Z channel in ``float``::
+a Z channel in `float`::
 
         // Mixed data type for the pixel
         struct Pixel { half r,g,b,a; float z; };
@@ -944,7 +944,7 @@ of "deep" pixels -- those containing multiple samples per pixel (and a
 potentially differing number of them in each pixel).  You can tell
 if a format supports deep images by checking ``supports("deepdata")``,
 and you can specify a deep data in an ``ImageSpec`` by setting its ``deep``
-field will be ``true``.
+field will be `true`.
 
 Deep files cannot be written with the usual ``write_scanline()``,
 ``write_scanlines()``, ``write_tile()``, ``write_tiles()``, ``write_image()``
@@ -1139,7 +1139,7 @@ Error checking
 --------------
 
 Nearly every ``ImageOutput`` API function returns a ``bool`` indicating
-whether the operation succeeded (``true``) or failed (``false``). In the
+whether the operation succeeded (`true`) or failed (`false`). In the
 case of a failure, the ``ImageOutput`` will have saved an error message
 describing in more detail what went wrong, and the latest error message is
 accessible using the ``ImageOutput`` method ``geterror()``, which returns

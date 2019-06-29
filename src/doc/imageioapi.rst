@@ -3,7 +3,9 @@ Image I/O API Helper Classes
 
 
 
-Data Type Descriptions: ``TypeDesc``
+.. _sec-typedesc:
+
+Data Type Descriptions: `TypeDesc`
 ====================================
 
 There are two kinds of data that are important to OpenImageIO:
@@ -17,13 +19,13 @@ There are two kinds of data that are important to OpenImageIO:
 Both internal and file data is stored in a particular *data format*
 that describes the numerical encoding of the values.  OpenImageIO
 understands several types of data encodings, and there is
-a special class, ``TypeDesc``, that allows their enumeration and
+a special class, `TypeDesc`, that allows their enumeration and
 is described in the header file ``OpenImageIO/typedesc.h``.
-A ``TypeDesc`` describes a base data format type, aggregation into simple
+A `TypeDesc` describes a base data format type, aggregation into simple
 vector and matrix types, and an array length (if
 it's an array).
 
-The remainder of this section describes the C++ API for ``TypeDesc``.
+The remainder of this section describes the C++ API for `TypeDesc`.
 See Section~\ref{sec:pythontypedesc} for the corresponding Python
 bindings.
 
@@ -43,14 +45,14 @@ in the outer OpenImageIO scope:
     TypeString TypeTimeCode TypeKeyCode TypeFloat4 TypeRational
 
 The only types commonly used to store *pixel values* in image files
-are scalars of ``UINT8``, ``UINT16``, ``float``, and ``half``
+are scalars of ``UINT8``, ``UINT16``, `float`, and ``half``
 (the last only used by OpenEXR, to the best of our knowledge).
 
-Note that the ``TypeDesc`` (which is also used for applications other
+Note that the `TypeDesc` (which is also used for applications other
 than images) can describe many types not used by
 OpenImageIO.  Please ignore this extra complexity; only the above simple types are understood by
 OpenImageIO as pixel storage data types, though a few others, including
-``STRING`` and ``MATRIX44`` aggregates, are occasionally used for
+`string` and ``MATRIX44`` aggregates, are occasionally used for
 *metadata* for certain image file formats (see `sec-imageoutput-metadata`_
 Sections `sec-imageoutput-metadata`_, `sec_imageinput_metadata`_,
 and the documentation of individual ImageIO plugins for details).
