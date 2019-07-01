@@ -293,11 +293,12 @@ TextureSystemImpl::environment(ustring filename, TextureOpt& options,
                                const Imath::V3f& R, const Imath::V3f& dRdx,
                                const Imath::V3f& dRdy, int nchannels,
                                float* result, float* dresultds,
-                               float* dresultdt)
+                               float* dresultdt, Perthread *thread_info)
 {
-    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
-    TextureFile* texturefile   = find_texturefile(filename, thread_info);
-    return environment((TextureHandle*)texturefile, (Perthread*)thread_info,
+    if (thread_info == nullptr)
+        thread_info = (Perthread*) m_imagecache->get_perthread_info();
+    TextureFile* texturefile   = find_texturefile(filename, (PerThreadInfo*) thread_info);
+    return environment((TextureHandle*)texturefile, thread_info,
                        options, R, dRdx, dRdy, nchannels, result, dresultds,
                        dresultdt);
 }
@@ -647,11 +648,12 @@ TextureSystemImpl::environment(ustring filename, TextureOptBatch& options,
                                Tex::RunMask mask, const float* R,
                                const float* dRdx, const float* dRdy,
                                int nchannels, float* result, float* dresultds,
-                               float* dresultdt)
+                               float* dresultdt, Perthread *thread_info)
 {
-    Perthread* thread_info        = get_perthread_info();
-    TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
-    return environment(texture_handle, thread_info, options, mask, R, dRdx,
+    if (thread_info == nullptr)
+        thread_info = (Perthread*) m_imagecache->get_perthread_info();
+    TextureFile* texturefile = find_texturefile(filename, (PerThreadInfo*) thread_info);
+    return environment((TextureHandle*) texturefile, thread_info, options, mask, R, dRdx,
                        dRdy, nchannels, result, dresultds, dresultdt);
 }
 

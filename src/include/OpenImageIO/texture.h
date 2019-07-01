@@ -849,7 +849,8 @@ public:
                           float s, float t, float dsdx, float dtdx,
                           float dsdy, float dtdy,
                           int nchannels, float *result,
-                          float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+                          float *dresultds=nullptr, float *dresultdt=nullptr,
+                          Perthread *thread_info=nullptr) = 0;
 
     /// Slightly faster version of texture() lookup if the app already has a
     /// texture handle and per-thread info.
@@ -945,7 +946,8 @@ public:
                             const Imath::V3f &dPdy, const Imath::V3f &dPdz,
                             int nchannels, float *result,
                             float *dresultds=nullptr, float *dresultdt=nullptr,
-                            float *dresultdr=nullptr) = 0;
+                            float *dresultdr=nullptr,
+                            Perthread *thread_info=nullptr) = 0;
 
     /// Slightly faster version of texture3d() lookup if the app already has
     /// a texture handle and per-thread info.
@@ -1034,7 +1036,8 @@ public:
     virtual bool environment (ustring filename, TextureOpt &options,
                               const Imath::V3f &R, const Imath::V3f &dRdx,
                               const Imath::V3f &dRdy, int nchannels, float *result,
-                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+                              float *dresultds=nullptr, float *dresultdt=nullptr,
+                              Perthread *thread_info=nullptr) = 0;
 
     /// Slightly faster version of environment() if the app already has a
     /// texture handle and per-thread info.
@@ -1102,9 +1105,8 @@ public:
                           const float *dsdy, const float *dtdy,
                           int nchannels, float *result,
                           float *dresultds=nullptr,
-                          float *dresultdt=nullptr) = 0;
-    /// Slightly faster version of texture() lookup if the app already has a
-    /// texture handle and per-thread info.
+                          float *dresultdt=nullptr,
+                          Perthread *thread_info = nullptr) = 0;
     virtual bool texture (TextureHandle *texture_handle,
                           Perthread *thread_info, TextureOptBatch &options,
                           Tex::RunMask mask, const float *s, const float *t,
@@ -1186,7 +1188,8 @@ public:
                             const float *dPdy, const float *dPdz,
                             int nchannels, float *result,
                             float *dresultds=nullptr, float *dresultdt=nullptr,
-                            float *dresultdr=nullptr) = 0;
+                            float *dresultdr=nullptr,
+                            Perthread *thread_info=nullptr) = 0;
     /// Slightly faster version of texture3d() lookup if the app already
     /// has a texture handle and per-thread info.
     virtual bool texture3d (TextureHandle *texture_handle,
@@ -1272,7 +1275,8 @@ public:
                               TextureOptBatch &options, Tex::RunMask mask,
                               const float *R, const float *dRdx, const float *dRdy,
                               int nchannels, float *result,
-                              float *dresultds=nullptr, float *dresultdt=nullptr) = 0;
+                              float *dresultds=nullptr, float *dresultdt=nullptr,
+                              Perthread *thread_info=nullptr) = 0;
     /// Slightly faster version of environment() if the app already has a
     /// texture handle and per-thread info.
     virtual bool environment (TextureHandle *texture_handle, Perthread *thread_info,
@@ -1506,6 +1510,10 @@ public:
     ///             should be stored. It is the caller's responsibility to
     ///             ensure that `data` points to a large enough storage area
     ///             to accommodate the `datatype` requested.
+    /// @param  thread_info
+    ///             Pointer to a pre-allocated thread_info structure to
+    ///             slightly speed up execution. If NULL, an internal copy
+    ///             will be used at a slight performance cost.
     ///
     /// @returns
     ///             `true` if `get_textureinfo()` is able to find the
@@ -1516,7 +1524,8 @@ public:
     ///             exist or could not be read properly as an image also
     ///             constitutes a query failure that will return `false`.
     virtual bool get_texture_info (ustring filename, int subimage,
-                          ustring dataname, TypeDesc datatype, void *data) = 0;
+                          ustring dataname, TypeDesc datatype, void *data,
+                          Perthread *thread_info=nullptr) = 0;
 
     /// A more efficient variety of `get_texture_info()` for cases where you
     /// can use a `TextureHandle*` to specify the image and optionally have
@@ -1666,7 +1675,7 @@ public:
 
     /// @{
     /// @name Errors and statistics
-    
+
     /// If any of the API routines returned false indicating an error,
     /// this routine will return the error string (and clear any error
     /// flags).  If no error has occurred since the last time geterror()

@@ -538,10 +538,11 @@ TextureSystemImpl::resolve_filename(const std::string& filename) const
 bool
 TextureSystemImpl::get_texture_info(ustring filename, int subimage,
                                     ustring dataname, TypeDesc datatype,
-                                    void* data)
+                                    void* data, Perthread* thread_info)
 {
     bool ok = m_imagecache->get_image_info(filename, subimage, 0, dataname,
-                                           datatype, data);
+                                           datatype, data,
+                                           (ImageCache::Perthread*)thread_info);
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
@@ -951,11 +952,13 @@ bool
 TextureSystemImpl::texture(ustring filename, TextureOpt& options, float s,
                            float t, float dsdx, float dtdx, float dsdy,
                            float dtdy, int nchannels, float* result,
-                           float* dresultds, float* dresultdt)
+                           float* dresultds, float* dresultdt,
+                           Perthread* thread_info)
 {
-    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
-    TextureFile* texturefile   = find_texturefile(filename, thread_info);
-    return texture((TextureHandle*)texturefile, (Perthread*)thread_info,
+    if (thread_info == nullptr)
+        thread_info = (Perthread*) m_imagecache->get_perthread_info();
+    TextureFile* texturefile   = find_texturefile(filename, (PerThreadInfo*) thread_info);
+    return texture((TextureHandle*)texturefile, thread_info,
                    options, s, t, dsdx, dtdx, dsdy, dtdy, nchannels, result,
                    dresultds, dresultdt);
 }
@@ -1005,7 +1008,7 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         (PerThreadInfo*)thread_info_);
     TextureFile* texturefile = (TextureFile*)texture_handle_;
     if (texturefile->is_udim())
-        texturefile = m_imagecache->resolve_udim(texturefile, s, t);
+        texturefile = m_imagecache->resolve_udim(texturefile, thread_info, s, t);
 
     texturefile = verify_texturefile(texturefile, thread_info);
 
@@ -1139,11 +1142,13 @@ TextureSystemImpl::texture(ustring filename, TextureOptBatch& options,
                            Tex::RunMask mask, const float* s, const float* t,
                            const float* dsdx, const float* dtdx,
                            const float* dsdy, const float* dtdy, int nchannels,
-                           float* result, float* dresultds, float* dresultdt)
+                           float* result, float* dresultds, float* dresultdt,
+                           Perthread* thread_info)
 {
-    Perthread* thread_info        = get_perthread_info();
-    TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
-    return texture(texture_handle, thread_info, options, mask, s, t, dsdx, dtdx,
+    if (thread_info == nullptr)
+        thread_info = (Perthread*) m_imagecache->get_perthread_info();
+    TextureFile* texturefile = find_texturefile(filename, (PerThreadInfo*) thread_info);
+    return texture((TextureHandle*) texturefile, thread_info, options, mask, s, t, dsdx, dtdx,
                    dsdy, dtdy, nchannels, result, dresultds, dresultdt);
 }
 

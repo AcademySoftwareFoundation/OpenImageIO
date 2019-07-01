@@ -619,6 +619,10 @@ public:
     ///             should be stored. It is the caller's responsibility to
     ///             ensure that `data` points to a large enough storage area
     ///             to accommodate the `datatype` requested.
+    /// @param  thread_info
+    ///             Pointer to a pre-allocated thread_info structure. If this
+    ///             is NULL, one will be created automatically with a modest
+    ///             performance cost.
     ///
     /// @returns
     ///             `true` if `get_image_info()` is able to find the
@@ -629,7 +633,8 @@ public:
     ///             exist or could not be read properly as an image also
     ///             constitutes a query failure that will return `false`.
     virtual bool get_image_info (ustring filename, int subimage, int miplevel,
-                         ustring dataname, TypeDesc datatype, void *data) = 0;
+                         ustring dataname, TypeDesc datatype, void *data,
+                         Perthread *thread_info=nullptr) = 0;
     /// A more efficient variety of `get_image_info()` for cases where you
     /// can use an `ImageHandle*` to specify the image and optionally have a
     /// `Perthread*` for the calling thread.

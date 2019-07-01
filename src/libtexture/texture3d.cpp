@@ -63,11 +63,13 @@ TextureSystemImpl::texture3d(ustring filename, TextureOpt& options,
                              const Imath::V3f& P, const Imath::V3f& dPdx,
                              const Imath::V3f& dPdy, const Imath::V3f& dPdz,
                              int nchannels, float* result, float* dresultds,
-                             float* dresultdt, float* dresultdr)
+                             float* dresultdt, float* dresultdr,
+                             Perthread* thread_info)
 {
-    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
-    TextureFile* texturefile   = find_texturefile(filename, thread_info);
-    return texture3d((TextureHandle*)texturefile, (Perthread*)thread_info,
+    if (thread_info == nullptr)
+        thread_info = (Perthread*) m_imagecache->get_perthread_info();
+    TextureFile* texturefile   = find_texturefile(filename, (PerThreadInfo*) thread_info);
+    return texture3d((TextureHandle*)texturefile, thread_info,
                      options, P, dPdx, dPdy, dPdz, nchannels, result, dresultds,
                      dresultdt);
 }
@@ -873,11 +875,13 @@ TextureSystemImpl::texture3d(ustring filename, TextureOptBatch& options,
                              const float* dPdx, const float* dPdy,
                              const float* dPdz, int nchannels, float* result,
                              float* dresultds, float* dresultdt,
-                             float* dresultdr)
+                             float* dresultdr,
+                             Perthread *thread_info)
 {
-    Perthread* thread_info        = get_perthread_info();
-    TextureHandle* texture_handle = get_texture_handle(filename, thread_info);
-    return texture3d(texture_handle, thread_info, options, mask, P, dPdx, dPdy,
+    if (thread_info == nullptr)
+        thread_info = (Perthread*) m_imagecache->get_perthread_info();
+    TextureFile* texturefile   = find_texturefile(filename, (PerThreadInfo*) thread_info);
+    return texture3d((TextureHandle*) texturefile, thread_info, options, mask, P, dPdx, dPdy,
                      dPdz, nchannels, result, dresultds, dresultdt, dresultdr);
 }
 

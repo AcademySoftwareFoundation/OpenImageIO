@@ -838,7 +838,7 @@ public:
     ///
     virtual bool get_image_info(ustring filename, int subimage, int miplevel,
                                 ustring dataname, TypeDesc datatype,
-                                void* data);
+                                void* data, ImageCachePerThreadInfo* thread_info);
     virtual bool get_image_info(ImageCacheFile* file,
                                 ImageCachePerThreadInfo* thread_info,
                                 int subimage, int miplevel, ustring dataname,
@@ -1074,7 +1074,7 @@ public:
 
     // For virtual UDIM-like files, adjust s and t and return the concrete
     // ImageCacheFile pointer for the tile it's on.
-    ImageCacheFile* resolve_udim(ImageCacheFile* file, float& s, float& t);
+    ImageCacheFile* resolve_udim(ImageCacheFile* file, ImageCachePerThreadInfo* thread_info, float& s, float& t);
 
     int max_mip_res() const noexcept { return m_max_mip_res; }
 
