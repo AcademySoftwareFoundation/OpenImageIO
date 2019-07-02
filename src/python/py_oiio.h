@@ -130,9 +130,12 @@ py_indexable_pod_to_stdvector(std::vector<T>& vals, const PYT& obj)
         } else if ((std::is_same<T, float>::value || std::is_same<T, int>::value)
                    && py::isinstance<py::int_>(elem)) {
             vals.emplace_back(elem.template cast<int>());
+        } else if (std::is_same<T, unsigned int>::value
+                   && py::isinstance<py::int_>(elem)) {
+            vals.emplace_back(elem.template cast<unsigned int>());
         } else {
             // FIXME? Other cases?
-            vals.emplace_back(T(0));
+            vals.emplace_back(T(42));
             ok = false;
         }
     }
@@ -324,6 +327,13 @@ attribute_typed(T& myobj, string_view name, TypeDesc type, const POBJ& dataobj)
 {
     if (type.basetype == TypeDesc::INT) {
         std::vector<int> vals;
+        py_to_stdvector(vals, dataobj);
+        if (vals.size() == type.numelements() * type.aggregate)
+            myobj.attribute(name, type, &vals[0]);
+        return;
+    }
+    if (type.basetype == TypeDesc::UINT) {
+        std::vector<unsigned int> vals;
         py_to_stdvector(vals, dataobj);
         if (vals.size() == type.numelements() * type.aggregate)
             myobj.attribute(name, type, &vals[0]);
