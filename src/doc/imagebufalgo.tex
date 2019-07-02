@@ -2359,7 +2359,9 @@ bool {\ce ociodisplay} (ImageBuf \&dst, const ImageBuf \&src, string_view displa
   \bigspc\spc ROI roi=\{\}, int nthreads=0)}
 \index{ImageBufAlgo!ociodisplay} \indexapi{ociodisplay}
 Return (or copy into {\cf dst}) the pixels of {\cf src} within the ROI,
-applying an OpenColorIO ``display'' transform to the pixel values.
+applying an OpenColorIO ``display'' transform to the pixel values. If the
+{\cf display} or {\cf view} are the empty string, they will use the default
+display or view, respectively.
 
 If {\cf fromspace} is not supplied, it will assume that the source color
 space is whatever is indicated by the source image's metadata or filename,

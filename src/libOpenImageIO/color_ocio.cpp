@@ -1109,6 +1109,10 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                                     ustring context_key,
                                     ustring context_value) const
 {
+    if (display.empty())
+        display = getDefaultDisplayName();
+    if (view.empty())
+        view = getDefaultViewName();
     // First, look up the requested processor in the cache. If it already
     // exists, just return it.
     ColorProcCacheKey prockey(inputColorSpace, ustring() /*outputColorSpace*/,

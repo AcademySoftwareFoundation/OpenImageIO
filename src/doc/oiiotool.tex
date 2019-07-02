@@ -3066,7 +3066,9 @@ looks that \oiiotool knows about.
 \apiitem{\ce --ociodisplay {\rm \emph{displayname viewname}}}
 Replace the current image with a new image whose pixels are transformed
 using the named OpenColorIO ``display'' transformation given by the
-\emph{displayname} and \emph{viewname}.  Optional appended
+\emph{displayname} and \emph{viewname}.  An empty string for \emph{displayname}
+means to use the default display, and an empty string for \emph{viewname}
+means to use the default view on that display. Optional appended
 arguments include:
 
 \begin{tabular}{p{10pt} p{1in} p{3.75in}}
