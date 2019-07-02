@@ -196,11 +196,13 @@ ifeq (${SP_OS}, rhel7)
     endif
     OPENVDB_ROOT_DIR ?= ${SPCOMP2_ROOT}/openvdb/${SPCOMP2_FULLBOOST_SUFFIX}/${OPENVDB_SPCOMP2_VERSION}
     TBB_ROOT_DIR ?= /net/apps/rhel7/intel/tbb
+    TBB_LIBRARY ?= /net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7
     MY_CMAKE_FLAGS += \
         -DOCIO_PATH=${OCIO_PATH} \
         -DFIELD3D_HOME=${FIELD3D_HOME} \
         -DOPENVDB_ROOT_DIR=${OPENVDB_ROOT_DIR} \
         -DTBB_ROOT_DIR=${TBB_ROOT_DIR} \
+	-DTBB_LIBRARY=${TBB_LIBRARY} \
         -DHDF5_CUSTOM=1 \
         -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
         -DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION} \
@@ -296,8 +298,8 @@ INSTALL_SPCOMP2_CURRENT = $(SPCOMP2_INSTALL_ROOT)/OpenImageIO/$(SPARCH)/v$(OPENI
 # $(info New rhel7 OIIO_SPCOMP2_PATH is ${OIIO_SPCOMP2_PATH})
 SPCOMP2_LOCAL_PATH ?= /net/soft_scratch/users/$(USER)/SpComp2_test
 
-SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${SPBOOST_LIB_DIR}
-SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${FIELD3D_HOME}/lib/debug:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib/debug:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${SPBOOST_LIB_DIR}
+SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
+SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${FIELD3D_HOME}/lib/debug:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib/debug:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
 PYSPCOMP2_RPATH_OPT ?= ${SPCOMP2_RPATH_OPT}:${OIIO_SPCOMP2_PATH}/lib:${PYTHON_LIBRARY_DIR}
 PYSPCOMP2_RPATH_DEBUG ?= ${SPCOMP2_RPATH_DEBUG}:${OIIO_SPCOMP2_PATH}/lib/debug:${PYTHON_LIBRARY_DIR}
 
