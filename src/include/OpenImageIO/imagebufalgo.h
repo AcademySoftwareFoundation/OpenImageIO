@@ -1821,9 +1821,11 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src, string_view looks,
 /// operations (`dst` == `src`) are supported.
 ///
 /// @param  display
-///             The OCIO "display" to apply.
+///             The OCIO "display" to apply. If this is the empty string,
+///             the default display will be used.
 /// @param  view
-///             The OCIO "view" to use.
+///             The OCIO "view" to use. If this is the empty string, the
+///             default view for this display will be used.
 /// @param  fromspace
 ///             If `fromspace` is not supplied, it will assume that the
 ///             source color space is whatever is indicated by the source
