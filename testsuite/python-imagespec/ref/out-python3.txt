@@ -87,11 +87,12 @@ getattribute('foo_str') retrieves blah
 getattribute('foo_vector') retrieves (1.0, 0.0, 11.0)
 getattribute('foo_matrix') retrieves (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
 getattribute('foo_no') retrieves None
+getattribute('smpte:TimeCode') retrieves (18356486, 4294967295)
 s['delfoo_float'] = 99.5
 s['delfoo_int'] = 29
 s['delfoo_str'] = egg
 
-extra_attribs size is 8
+extra_attribs size is 9
 0 foo_str string blah
 "blah"
 1 foo_int int 14
@@ -102,11 +103,13 @@ extra_attribs size is 8
 1, 0, 11
 4 foo_matrix matrix (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1
-5 delfoo_str string egg
+5 smpte:TimeCode timecode (18356486, 4294967295)
+01:18:19:06
+6 delfoo_str string egg
 "egg"
-6 delfoo_int int 29
+7 delfoo_int int 29
 29
-7 delfoo_float float 99.5
+8 delfoo_float float 99.5
 99.5
 
 seralize(xml):
@@ -143,6 +146,7 @@ seralize(xml):
 <attrib name="foo_float" type="float">3.14</attrib>
 <attrib name="foo_vector" type="vector">1, 0, 11</attrib>
 <attrib name="foo_matrix" type="matrix">1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1</attrib>
+<attrib name="smpte:TimeCode" type="timecode" description="01:18:19:06">01:18:19:06</attrib>
 <attrib name="delfoo_str" type="string">egg</attrib>
 <attrib name="delfoo_int" type="int">29</attrib>
 <attrib name="delfoo_float" type="float">99.5</attrib>
@@ -163,6 +167,7 @@ serialize(text, human):
     foo_matrix: 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 1, 2, 3, 1
     foo_str: "blah"
     foo_vector: 1, 0, 11
+    smpte:TimeCode: 01:18:19:06
 
 Testing construction from ROI:
   resolution (width,height,depth) =  640 480 1
