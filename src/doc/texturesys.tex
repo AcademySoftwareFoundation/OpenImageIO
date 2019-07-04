@@ -1417,10 +1417,16 @@ coordinates as follows:
 
 \smallskip
 
-Please note that most other calls, including most queries for {\cf
-get_texture_info()}, will fail with one of these special filenames, since
-it's not a real file and the system doesn't know which concrete file you it
-corresponds to in the absence of specific texture coordinates.
+Calls to {\cf get_texture_info()} on UDIM files will retrieve the metadata of
+the first file it finds matching the name template. The call will fail
+(return {\cf nullptr} and not retrieve data) if no concrete texture file can
+be found that matches the udim naming template.
+
+
+Calls to {\cf get_texture_handle()} will always succeed. Withing knowing a
+specific u and v, it has no way to know that the concrete file you will
+eventually ask for would not succeed.
+
 
 
 \index{Texture System|)}
