@@ -87,8 +87,9 @@ getattribute('foo_str') retrieves blah
 getattribute('foo_vector') retrieves (1.0, 0.0, 11.0)
 getattribute('foo_matrix') retrieves (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
 getattribute('foo_no') retrieves None
+getattribute('smpte:TimeCode') retrieves (18356486L, 4294967295L)
 
-extra_attribs size is 5
+extra_attribs size is 6
 0 foo_str string blah
 "blah"
 1 foo_int int 14
@@ -99,6 +100,8 @@ extra_attribs size is 5
 1 0 11
 4 foo_matrix matrix (1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 2.0, 3.0, 1.0)
 1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
+5 smpte:TimeCode timecode (18356486L, 4294967295L)
+01:18:19:06
 
 seralize(xml):
 <ImageSpec version="22">
@@ -134,6 +137,7 @@ seralize(xml):
 <attrib name="foo_float" type="float">3.14</attrib>
 <attrib name="foo_vector" type="vector">1 0 11</attrib>
 <attrib name="foo_matrix" type="matrix">1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1</attrib>
+<attrib name="smpte:TimeCode" type="timecode" description="01:18:19:06">01:18:19:06</attrib>
 </ImageSpec>
 
 serialize(text, human):
@@ -148,6 +152,7 @@ serialize(text, human):
     foo_matrix: 1 0 0 0 0 2 0 0 0 0 1 0 1 2 3 1
     foo_str: "blah"
     foo_vector: 1 0 11
+    smpte:TimeCode: 01:18:19:06
 
 Testing construction from ROI:
   resolution (width,height,depth) =  640 480 1
