@@ -1,3 +1,6 @@
+Release 2.0.10 (?? Aug?, 2019) -- compared to 2.0.9
+------------------------------------------------
+
 Release 2.0.9 (4 Jul, 2019) -- compared to 2.0.8
 ------------------------------------------------
 * RAW: Clarification about color spaces: The open-with-config hint
