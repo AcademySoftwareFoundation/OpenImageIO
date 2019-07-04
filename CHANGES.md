@@ -1,4 +1,4 @@
-Release 2.0.9 (1 Jun?, 2019) -- compared to 2.0.8
+Release 2.0.9 (4 Jul, 2019) -- compared to 2.0.8
 ------------------------------------------------
 * RAW: Clarification about color spaces: The open-with-config hint
   "raw:ColorSpace" is more careful about color primaries versus transfer
@@ -6,7 +6,30 @@ Release 2.0.9 (1 Jun?, 2019) -- compared to 2.0.8
   both color primaries and transfer. Asking for "linear" gives you linear
   transfer with sRGB/Rec709 primaries. The default is true sRGB, because it
   will behave just like JPEG. #2260 (2.1.2)
-
+* Improved oiiotool support of files with multiple subimages: Several
+  commands honored `-a` but did not respect individual `allsubimages=`
+  modifiers (--ch, --sattrib, --attrib, --caption, --clear-keywords,
+  --iscolorspace, --orientation, --clamp, -fixnan); Several commands always
+  worked on all subimages, but now properly respect `-a` and `allsubimages=`
+  (--origin, --fullpixels, --croptofull, --trim); Several commands were
+  totally unaware of subimages, but now are so and respect `-a` and
+  `allsubimages=` (--crop, --fullsize, --zover, --fill, --resize,
+  --resample). #2202 #2219, #2242
+* Fix broken ability to specify compression of multipart exr files. #2252
+* Fix Strutil::stof() return type error and other windows warnings. #2254
+* IBA::colortmatrixtransform() and `oiiotool --ccmatrix` allow you to
+  perform a matrix-based color space transformation. #2168
+* Guard simd.h against shenanigans when Xlib.h having been included and
+  `#define`ing True and False. #2272
+* RAW: Clarification about color spaces: The open-with-config hint
+  "raw:ColorSpace" is more careful about color primaries versus transfer
+  curve. Asking for "sRGB" (which is the default) gives you true sRGB --
+  both color primaries and transfer. Asking for "linear" gives you linear
+  transfer with sRGB/Rec709 primaries. The default is true sRGB, because it
+  will behave just like JPEG. #2260
+* Fix inability for python to set timecode attributes (specifically, it was
+  trouble setting ImageSpec attributes that were unnsigned int arrays).
+  #2279
 
 Release 2.0.8 (3 May, 2019) -- compared to 2.0.7
 ------------------------------------------------
