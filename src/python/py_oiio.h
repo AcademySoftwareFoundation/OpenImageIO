@@ -11,11 +11,13 @@
 #    pragma GCC diagnostic ignored "-Wregister"
 #endif
 
+// clang-format off
 // Must include Python.h first to avoid certain warnings
 #ifdef _POSIX_C_SOURCE
 #  error "You must include Python.h (and therefore py_oiio.h) BEFORE anything that defines _POSIX_C_SOURCE"
 #endif 
 #include <Python.h>
+// clang-format on
 
 #include <memory>
 
