@@ -143,7 +143,8 @@ subimages::
     Verbose output --- prints all metadata of the image files.
 
 .. describe:: -a
-Print information about all subimages in the file(s).
+
+    Print information about all subimages in the file(s).
 
 .. describe:: -f
 

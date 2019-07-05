@@ -148,7 +148,7 @@ DPX files use the file extension :file:`.dpx`.
 **Configuration settings for DPX input**
 
 When opening a DPX ImageInput with a *configuration* (see
-Section~\ref{sec:inputwithconfig}), the following special configuration
+Section :ref:`sec-inputwithconfig`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -551,7 +551,7 @@ preferred except when legacy file access is required.
      - RGBE header data or explanation
    * - ``Orientation``
      - int
-     - encodes the orientation (see Section \ref{metadata:orientation})
+     - encodes the orientation (see Section :ref:`metadata-orientation`)
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section `Color information metadata`_).
@@ -726,14 +726,14 @@ anywhere near the acceptance of the original JPEG/JFIF format.
      - 
      - Extensive Exif, IPTC, XMP, and GPS data are supported by the
        reader/writer, and you should assume that nearly everything described
-       Appendix~\ref{chap:stdmetadata} is properly translated when using
+       Appendix :ref:`chap-stdmetadata` is properly translated when using
        JPEG files.
 
 
 **Limitations**
 
 * JPEG/JFIF only supports 1- (grayscale) and 3-channel (RGB) images. As a
-  special case, OpenImageIO's JPEG writer will accept $n$-channel image
+  special case, OpenImageIO's JPEG writer will accept n-channel image
   data, but will only output the first 3 channels (if n >= 3) or the first
   channel (if n <= 2), silently drop any extra channels from the output.
 * Since JPEG/JFIF only supports 8 bits per channel, OpenImageIO's
@@ -973,7 +973,7 @@ The official OpenEXR site is http://www.openexr.com/.
 **Configuration settings for OpenEXR input**
 
 When opening an OpenEXR ImageInput with a *configuration* (see
-Section~\ref{sec:inputwithconfig}), the following special configuration
+Section :ref:`sec-inputwithconfig`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -1024,7 +1024,7 @@ control aspects of the writing itself:
 
 OpenEXR input and output both support the "custom I/O" feature via the
 special ``"oiio:ioproxy"`` attributes (see
-Sections~\ref{sec:imageoutput:ioproxy} and \ref{sec:imageinput:ioproxy}).
+Sections :ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`).
 
 **A note on channel names**
 
@@ -1141,7 +1141,7 @@ files use the file extension :file:`.png`.
 **Configuration settings for PNG input**
 
 When opening an PNG ImageInput with a *configuration* (see
-Section~\ref{sec:inputwithconfig}), the following special configuration
+Section :ref:`sec-inputwithconfig`), the following special configuration
 attributes are supported:
 
 .. list-table::
@@ -1185,7 +1185,7 @@ control aspects of the writing itself:
 **Custom I/O Overrides**
 
 PNG output supports the "custom I/O" feature via the special
-``"oiio:ioproxy"`` attributes (see Section~\ref{sec:imageoutput:ioproxy}).
+``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageoutput-ioproxy`).
 
 **Limitations**
 
@@ -1261,7 +1261,7 @@ write PSD files.
 **Configuration settings for PSD input**
 
 When opening an ImageInput with a *configuration* (see
-Section~\ref{sec:inputwithconfig}), the following special configuration
+Section :ref:`sec-inputwithconfig`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -1337,7 +1337,7 @@ plugin that is based on the LibRaw library (http://www.libraw.org/).
 **Configuration settings for RAW input**
 
 When opening an ImageInput with a *configuration* (see
-Section~\ref{sec:inputwithconfig}), the following special configuration
+Section :ref:`sec-inputwithconfig`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -1677,7 +1677,7 @@ metadata if present.
 **Configuration settings for TIFF input**
 
 When opening an ImageInput with a *configuration* (see
-Section~\ref{sec:inputwithconfig}), the following special configuration
+Section :ref:`sec-inputwithconfig`), the following special configuration
 options are supported:
 
 .. list-table::
@@ -1725,7 +1725,7 @@ aspects of the writing itself:
        is 1.)
    * - ``tiff:half``
      - int
-     - If nonzero, allow writing TIFF files with `half' (16 bit float)
+     - If nonzero, allow writing TIFF files with `half` (16 bit float)
        pixels. The default of 0 will automatically translate to float
        pixels, since most non-OIIO applications will not properly read half
        TIFF files despite their being legal.
@@ -1901,10 +1901,10 @@ aware of:
      - SubfileType
    * - ``Exif:*``
      -
-     - A wide variety of EXIF data are honored, and are all prefixed with ``Exif:}.
+     - A wide variety of EXIF data are honored, and are all prefixed with `Exif`.
    * - ``oiio:BitsPerSample``
      - int
-     - The actual bits per sample in the file (may differ from {\cf ImageSpec::format}).
+     - The actual bits per sample in the file (may differ from `ImageSpec::format`).
    * - ``oiio:UnassociatedAlpha``
      - int
      - Nonzero if the alpha channel contained "unassociated" alpha.

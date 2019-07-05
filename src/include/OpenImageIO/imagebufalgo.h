@@ -1330,7 +1330,7 @@ bool OIIO_API laplacian (ImageBuf &dst, const ImageBuf &src,
 /// `float` buffer of size `roi.width()` x `roi.height`, with channel 0
 /// being the "real" part and channel 1 being the the "imaginary" part.  The
 /// values returned are actually the unitary DFT, meaning that it is scaled
-/// by 1/\sqrt(npixels).
+/// by 1/sqrt(npixels).
 ///
 /// `ifft()` takes the inverse discrete Fourier transform, transforming a
 /// 2-channel complex (real and imaginary) frequency domain image and into a

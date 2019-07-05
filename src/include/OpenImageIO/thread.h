@@ -601,17 +601,23 @@ private:
 ///
 /// Submitting an asynchronous task to the queue follows the following
 /// pattern:
-///    /* func that takes a thread ID followed possibly by more args */
-///    result_t my_func (int thread_id, Arg1 arg1, ...) { }
-///    pool->push (my_func, arg1, ...);
+///
+///     /* func that takes a thread ID followed possibly by more args */
+///     result_t my_func (int thread_id, Arg1 arg1, ...) { }
+///     pool->push (my_func, arg1, ...);
 ///
 /// If you just want to "fire and forget", then:
-///    pool->push (func, ...args...);
+///
+///     pool->push (func, ...args...);
+///
 /// But if you need a result, or simply need to know when the task has
 /// completed, note that the push() method will return a future<result_t>
 /// that you can check, like this:
+///
 ///     std::future<result_t> f = pool->push (my_task);
+///
 /// And then you can
+///
 ///     find out if it's done:              if (f.valid()) ...
 ///     wait for it to get done:            f.wait();
 ///     get result (waiting if necessary):  result_t r = f.get();
@@ -619,10 +625,12 @@ private:
 /// A common idiom is to fire a bunch of sub-tasks at the queue, and then
 /// wait for them to all complete. We provide a helper class, task_set,
 /// to make this easy:
+///
 ///     task_set tasks (pool);
 ///     for (int i = 0; i < n_subtasks; ++i)
 ///         tasks.push (pool->push (myfunc));
 ///     tasks.wait ();
+///
 /// Note that the tasks.wait() is optional -- it will be called
 /// automatically when the task_set exits its scope.
 ///

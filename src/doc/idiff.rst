@@ -97,7 +97,7 @@ the differences between the two input images::
 
 The `-abs` flag saves the absolute value of the differences (i.e., all
 positive values or zero).  If you omit the `-abs`, pixels in which
-:file:`a.jpg` have smaller values than :file:`b.jpg1 will be negative in the
+:file:`a.jpg` have smaller values than :file:`b.jpg` will be negative in the
 difference image (be careful in this case of using a file format that
 doesn't support negative values).
 

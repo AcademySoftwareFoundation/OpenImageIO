@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -14,6 +16,11 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import sys
+import os
+import shlex
+import subprocess
+
 
 # -- Project information -----------------------------------------------------
 
@@ -23,16 +30,28 @@ master_doc = 'index'
 default_role = 'code'
 
 project = 'OpenImageIO'
-copyright = 'Contributors to OpenImageIO'
+copyright = '2008-present, Contributors to OpenImageIO'
 author = 'Larry Gritz'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
-#
-version = '2.1'
-# The full version, including alpha/beta/rc tags.
-release = '2.1.3'
+
+# LG addition: we search for it in the CMakeLists.txt so we don't need to
+# keep modifying this file:
+version = '0.0'
+release = '0.0.0'
+import re
+version_regex = re.compile(r'project .* VERSION ((\d+\.\d+)\.\d+)')
+f = open('../../CMakeLists.txt')
+for l in f:
+    aa=re.search(version_regex, l)
+    if aa is not None:
+       release = aa.group(1)
+       version = aa.group(2)
+       break
+f.close()
+
 
 
 # -- General configuration ---------------------------------------------------
@@ -76,4 +95,12 @@ breathe_domain_by_extension = {'h': 'cpp'}
 breathe_default_members = ()
 primary_domain = 'cpp'
 highlight_language = 'cpp'
+
+
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+
+if read_the_docs_build:
+    subprocess.call('mkdir -p ../../build/doxygen', shell=True)
+    subprocess.call('echo "Calling Doxygen"', shell=True)
+    subprocess.call('doxygen Doxyfile', shell=True)
 

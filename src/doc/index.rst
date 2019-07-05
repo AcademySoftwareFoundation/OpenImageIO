@@ -1,14 +1,7 @@
-.. only: not latex
-
-    .. xxx image:: pybind11-logo.png
-
-.. default-role:: code
-
-
-
-
 OpenImageIO
 ==========================================================
+
+.. default-role:: code
 
 .. only: not latex
 
@@ -46,8 +39,15 @@ OpenImageIO
    idiff
    maketx
 
+.. toctree::
+   :caption: Appendices
+   :maxdepth: 2
 
-.. glossary index
+   stdmetadata
+   glossary
+
+
+
 
 .. comment
     Helpful links when writing documentation:
@@ -62,5 +62,4 @@ OpenImageIO
         https://breathe.readthedocs.io/en/latest/directives.html
     RST:
 
-    
 
