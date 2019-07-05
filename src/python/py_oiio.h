@@ -38,6 +38,9 @@
 #endif
 
 // Must include Python.h first to avoid certain warnings
+#ifdef _POSIX_C_SOURCE
+#  error "You must include Python.h (and therefore py_oiio.h) BEFORE anything that defines _POSIX_C_SOURCE"
+#endif 
 #include <Python.h>
 
 #include <memory>

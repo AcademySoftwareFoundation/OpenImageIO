@@ -28,10 +28,9 @@
   (This is the Modified BSD License)
 */
 
-#include <utility>
-
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
+#include <utility>
 
 namespace PyOpenImageIO {
 
