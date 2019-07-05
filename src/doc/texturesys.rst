@@ -312,6 +312,8 @@ Batched Texture Lookup Calls
 UDIM and texture atlases
 ========================
 
+**Texture lookups**
+
 The `texture()` call supports virtual filenames that expand per lookup
 for UDIM and other tiled texture atlas techniques. The substitutions will
 occur if the texture filename initially passed to `texture()` does not
@@ -344,8 +346,19 @@ Example::
 
 will retrieve from file :file:`paint.1032.tif` at coordinates (0.4,0.8).
 
-Please note that most other calls, including most queries for
-`get_texture_info()`, will fail with one of these special filenames, since
-it's not a real file and the system doesn't know which concrete file you it
-corresponds to in the absence of specific texture coordinates.
+
+**Retrieving metadata**
+
+Calls to `get_texture_info()` on UDIM files will retrieve the metadata of
+the first file it finds matching the name template. The call will fail
+(return `nullptr` and not retrieve data) if no concrete texture file can
+be found that matches the udim naming template.
+
+
+**Handles of udim files**
+
+Calls to `get_texture_handle()` will always succeed. Withing knowing a
+specific u and v, it has no way to know that the concrete file you will
+eventually ask for would not succeed.
+
 
