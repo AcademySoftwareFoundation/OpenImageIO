@@ -1,20 +1,26 @@
+===========
 OpenImageIO
-==========================================================
+===========
+
 
 .. default-role:: code
 
-.. only: not latex
+
+.. only:: not latex
 
     Contents:
+    ---------
+
+
+.. toctree::
+
+    copyr
 
 .. toctree::
    :maxdepth: 2
+   :numbered:
 
    oiiointro
-
-.. toctree::
-   :caption: The OpenImageIO Library APIs
-   :maxdepth: 2
 
    imageioapi
    imageoutput
@@ -27,21 +33,12 @@ OpenImageIO
    imagebufalgo
    pythonbindings
 
-
-.. toctree::
-   :caption: Image Utilities
-   :maxdepth: 2
-
    oiiotool
    iinfo
    iconvert
    igrep
    idiff
    maketx
-
-.. toctree::
-   :caption: Appendices
-   :maxdepth: 2
 
    stdmetadata
    glossary

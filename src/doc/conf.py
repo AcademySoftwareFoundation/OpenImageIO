@@ -51,6 +51,7 @@ for l in f:
        version = aa.group(2)
        break
 f.close()
+print ("OIIO docs version = {}, release = {}".format(version, release))
 
 
 
@@ -59,13 +60,35 @@ f.close()
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+
+# sphinxtr extensions:
+# https://github.com/jterrace/sphinxtr
+# Copyright (c) 2012, Jeff Terrace
+# BSD 2-clause license.
+
+# add custom extensions directory to python path
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), 'extensions/sphinxtr'))
+#import html_mods
+#import latex_mods
+
 extensions = [
-#'sphinx.ext.pngmath', 
-#'sphinx.ext.todo', 
-'breathe' ]
+              'breathe',
+
+              # sphinxtr extensions:
+              #'fix_equation_ref',
+              #'sphinx.ext.mathjax',
+              #'sphinx.ext.ifconfig',
+              #'subfig',
+              #'numfig',
+              'numsec',
+              #'natbib',
+              #'figtable',
+              #'singlehtml_toc',
+              #'singletext',
+ ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ['templates']
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -100,7 +123,10 @@ highlight_language = 'cpp'
 read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 
 if read_the_docs_build:
-    subprocess.call('mkdir -p ../../build/doxygen', shell=True)
+    if not os.path.exists('../../build/doxygen') :
+        os.mkdir ('../../build/doxygen')
+    print ("cwd =", os.getcwd())
+    print ("checkpoint -- rtd build")
     subprocess.call('echo "Calling Doxygen"', shell=True)
-    subprocess.call('doxygen Doxyfile', shell=True)
-
+    subprocess.call(['doxygen'], shell=True)
+    subprocess.call('echo "Ran Doxygen"', shell=True)

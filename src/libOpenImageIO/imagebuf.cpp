@@ -3,10 +3,6 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 
-/// \file
-/// Implementation of ImageBuf class.
-
-
 #include <iostream>
 #include <memory>
 

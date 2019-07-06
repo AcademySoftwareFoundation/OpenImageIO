@@ -82,6 +82,9 @@ SPHINXBUILDDIR      = ../../build/sphinx
 sphinx : Makefile conf.py
 	# @$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(SPHINXBUILDDIR)" $(SPHINXOPTS) $(O)
 	$(SPHINXBUILD) -b html "$(SOURCEDIR)" "$(SPHINXBUILDDIR)" $(SPHINXOPTS)
+
+sphinxpdf : Makefile conf.py
+	# @$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(SPHINXBUILDDIR)" $(SPHINXOPTS) $(O)
 	$(SPHINXBUILD) -b latex "$(SOURCEDIR)" "$(SPHINXBUILDDIR)/latex" $(SPHINXOPTS)
 	$(MAKE) -C $(SPHINXBUILDDIR)/latex all-pdf
 # 	$(SPHINXBUILD) -b latexpdf "$(SOURCEDIR)" "$(SPHINXBUILDDIR)/latex" $(SPHINXOPTS)

@@ -24,7 +24,7 @@ An ImageBuf can store its pixels in one of several ways:
   ImageCache, but can only be used for read-only ImageBuf's that reference a
   stored image file.
 
-All I/O involving ImageBuf (that is, calls to {\cf read} or {\cf write})
+All I/O involving ImageBuf (that is, calls to `read` or `write`)
 are implemented in terms of ImageCache, ImageInput,
 and ImageOutput underneath, and so support all of the image file
 formats supported by OIIO.
@@ -157,8 +157,7 @@ Copying ImageBuf's and blocks of pixels
 Getting and setting pixel values
 ================================
 
-Getting and setting individual pixels -- slow
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+**Getting and setting individual pixels -- slow**
 
 .. doxygenfunction:: OIIO::ImageBuf::getchannel
 .. doxygenfunction:: OIIO::ImageBuf::getpixel(int, int, int, float *, int, WrapMode) const
@@ -171,8 +170,9 @@ Getting and setting individual pixels -- slow
 .. doxygenfunction:: OIIO::ImageBuf::setpixel(int, int, int, const float *, int)
 .. doxygenfunction:: OIIO::ImageBuf::setpixel(int, const float *, int)
 
-Getting and setting regions of pixels -- fast
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+|
+
+**Getting and setting regions of pixels -- fast**
 
 .. doxygenfunction:: OIIO::ImageBuf::get_pixels
 .. doxygenfunction:: OIIO::ImageBuf::set_pixels
@@ -268,14 +268,14 @@ For the remainder of this section, we will assume that you have a
     buf.read (0, 0, true, TypeDesc::FLOAT);
 
 
-.. cpp:function:: Iterator<BUFT> (ImageBuf \&buf, WrapMode wrap=WrapDefault)
+.. cpp:function:: Iterator<BUFT> (ImageBuf &buf, WrapMode wrap=WrapDefault)
 
     Initialize an iterator that will visit every pixel in the data window
     of `buf`, and start it out pointing to the upper left corner of
     the data window.  The `wrap` describes what values will be retrieved
     if the iterator is positioned outside the data window of the buffer.
 
-.. cpp:function:: Iterator<BUFT> (ImageBuf \&buf, const ROI \&roi, WrapMode wrap=WrapDefault)
+.. cpp:function:: Iterator<BUFT> (ImageBuf &buf, const ROI &roi, WrapMode wrap=WrapDefault)
 
     Initialize an iterator that will visit every pixel of `buf` within the
     region described by `roi`, and start it out pointing to pixel
@@ -283,7 +283,7 @@ For the remainder of this section, we will assume that you have a
     will be retrieved if the iterator is positioned outside the data window
     of the buffer.
 
-.. cpp:function:: Iterator<BUFT> (ImageBuf \&buf, int x, int y, int z, WrapMode wrap=WrapDefault)
+.. cpp:function:: Iterator<BUFT> (ImageBuf &buf, int x, int y, int z, WrapMode wrap=WrapDefault)
 
     Initialize an iterator that will visit every pixel in the data window
     of `buf`, and start it out pointing to pixel (x, y, z).
@@ -334,7 +334,7 @@ For the remainder of this section, we will assume that you have a
     window of the ImageBuf (regardless of where the iterator itself is
     currently pointing).
 
-.. cpp:function:: USERT\& Iterator::operator[] (int i)
+.. cpp:function:: USERT& Iterator::operator[] (int i)
 
     The value of channel `i` of the current pixel.  (The wrap mode, set up
     when the iterator was constructed, determines what value is returned if
@@ -368,7 +368,7 @@ For the remainder of this section, we will assume that you have a
 Example: Visiting all pixels to compute an average color
 --------------------------------------------------------
 
-.. code-block::
+.. code-block:: cpp
 
     void print_channel_averages (const std::string &filename)
     {
@@ -399,7 +399,7 @@ Example: Visiting all pixels to compute an average color
 Example: Set all pixels in a region to black
 --------------------------------------------
 
-.. code-block::
+.. code-block:: cpp
 
     bool make_black (ImageBuf &buf, ROI region)
     {
@@ -454,7 +454,7 @@ internally to the ImageCache:[#]_
        float, half, uint8, uint16, and all other data types are converted to
        these automatically as they are read into the cache.
 
-.. code-block::
+.. code-block:: cpp
 
     ImageBuf buf ("myfile.exr");   // Backed by the shared cache
     buf.read (0, 0, false /* don't force read to local mem */,

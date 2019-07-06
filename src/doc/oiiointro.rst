@@ -3,6 +3,16 @@ Introduction
 
 Welcome to OpenImageIO!
 
+|
+
+    |    I kinda like "Oy-e-oh" with a bit of a groaning Yiddish accent, as in
+    |    "OIIO, did you really write yet another file I/O library?"
+    |
+    |    Dan Wexler
+
+|
+|
+
 
 Overview
 ========
@@ -238,7 +248,7 @@ against dynamic libraries:
 
 * libtiff <http://www.remotesensing.org/libtiff> © 1988-1997 Sam Leffler and 1991-1997 Silicon Graphics, Inc.  http://www.remotesensing.org/libtiff
 * IJG libjpeg © 1991-1998, Thomas G. Lane.  http://www.ijg.org
-* OpenEXR, Ilmbase, and Half © 2006, Industrial Light \& Magic. http://www.openexr.com
+* OpenEXR, Ilmbase, and Half © 2006, Industrial Light & Magic. http://www.openexr.com
 * zlib © 1995-2005 Jean-loup Gailly and Mark Adler. http://www.zlib.net
 * libpng © 1998-2008 Glenn Randers-Pehrson, et al. http://www.libpng.org
 * Boost © various authors. http://www.boost.org
@@ -250,7 +260,7 @@ against dynamic libraries:
 * LibRaw © 2008-2013 LibRaw LLC (LGPL, CDDL, and LibRaw licenses).  http://www.libraw.org/
 * FFmpeg © various authors and distributed under LGPL. https://www.ffmpeg.org
 * FreeType © 1996-2002, 2006 by David Turner, Robert Wilhelm, and Werner Lemberg. Distributed under the FreeType license (BSD compatible).
-* JPEG-Turbo © 2009--2015 D.\ R.\ Commander. Distributed under the BSD license.
+* JPEG-Turbo © 2009--2015 D. R. Commander. Distributed under the BSD license.
 * pybind11 © 2016 Wenzel Jakob. Distributed under the BSD license. https://github.com/pybind/pybind11
 * OpenVDB © 2012-2018 DreamWorks Animation LLC, Mozilla Public License 2.0.
 * Thread Building Blocks © Intel. Apache 2.0 license. https://www.threadingbuildingblocks.org/

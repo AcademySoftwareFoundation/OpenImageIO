@@ -33,7 +33,7 @@ Most ImageBufAlgo functions that produce image data come in two forms:
    error, the result image returned can have any error conditions checked with
    `has_error()` and `geterror()`.
    
-   .. code-block::
+   .. code-block:: cpp
    
        // Method 1: Return an image result
        ImageBuf fg ("fg.exr"), bg ("bg.exr");
@@ -50,7 +50,7 @@ Most ImageBufAlgo functions that produce image data come in two forms:
    destination ImageBuf (the one that is being altered) will have an error
    message set.
    
-   .. code-block::
+   .. code-block:: cpp
    
        // Method 2: Write into an existing image
        ImageBuf fg ("fg.exr"), bg ("bg.exr");

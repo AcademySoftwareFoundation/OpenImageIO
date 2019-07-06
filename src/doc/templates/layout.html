@@ -1,0 +1,31 @@
+{% extends "!layout.html" %}
+{% block extrahead %}
+
+<link rel="stylesheet" type="text/css" href="{{ pathto('_static/custom.css', 1) }}" />
+<link rel="stylesheet" type="text/css" href="{{ pathto('_static/colorbox/colorbox.css', 1) }}" />
+
+<script type="text/javascript" src="{{ pathto('_static/colorbox/jquery.colorbox-min.js', 1) }}"></script>
+
+<script type="text/javascript">
+	function endsWith(str, suffix) {
+	    return str.indexOf(suffix, str.length - suffix.length) !== -1;
+	}
+
+    $(document).ready(function() {
+    	var im, imsrc;
+    	$('img').each(function() {
+    		im = $(this);
+    		imsrc = im.attr('src');
+    		imalt = im.attr('alt');
+    		if (endsWith(imsrc, 'svg')) {
+    			im.wrap($('<a>').attr({'href': imsrc, 'title': imalt}).addClass('svglink'));
+    		}
+    	});
+
+    	$('a.svglink').colorbox({
+    		'width': '95%',
+    		'height': '95%',
+    		'photo': true});
+    });
+</script>
+{% endblock %}
