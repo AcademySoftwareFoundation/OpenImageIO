@@ -12,8 +12,8 @@
 #include <OpenImageIO/strutil.h>
 
 
-IvImage::IvImage(const std::string& filename)
-    : ImageBuf(filename)
+IvImage::IvImage(const std::string& filename, const ImageSpec* input_config)
+    : ImageBuf(filename, 0, 0, nullptr, input_config)
     , m_thumbnail(NULL)
     , m_thumbnail_valid(false)
     , m_gamma(1)
