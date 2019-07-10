@@ -10,8 +10,8 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/imageio.h>
-#include <OpenImageIO/typedesc.h>
 
 #include "rla_pvt.h"
 
@@ -256,22 +256,18 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     }
 
     // pick maximum precision for the time being
-    int maxbytes
-        = (std::max(m_rla.NumOfChannelBits
-                        * (m_rla.NumOfColorChannels > 0 ? 1 : 0),
-                    std::max(m_rla.NumOfMatteBits
-                                 * (m_rla.NumOfMatteChannels > 0 ? 1 : 0),
-                             m_rla.NumOfAuxBits
-                                 * (m_rla.NumOfAuxChannels > 0 ? 1 : 0)))
-           + 7)
-          / 8;
-    int nchannels = m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels
-                    + m_rla.NumOfAuxChannels;
-    TypeDesc maxtype = (maxbytes == 4) ? TypeDesc::FLOAT
-                                       : (maxbytes == 2 ? TypeDesc::UINT16
-                                                        : TypeDesc::UINT8);
-    if (nchannels < 1 || nchannels > 16
-        || (maxbytes != 1 && maxbytes != 2 && maxbytes != 4)) {
+    TypeDesc col_type = get_channel_typedesc(m_rla.ColorChannelType,
+                                             m_rla.NumOfChannelBits);
+    TypeDesc mat_type = m_rla.NumOfMatteChannels
+                            ? get_channel_typedesc(m_rla.MatteChannelType,
+                                                   m_rla.NumOfMatteBits)
+                            : TypeUnknown;
+    TypeDesc aux_type = m_rla.NumOfAuxChannels
+                            ? get_channel_typedesc(m_rla.AuxChannelType,
+                                                   m_rla.NumOfAuxBits)
+                            : TypeUnknown;
+    TypeDesc maxtype = ImageBufAlgo::type_merge(col_type, mat_type, aux_type);
+    if (maxtype == TypeUnknown) {
         error("Failed channel bytes sanity check");
         return false;  // failed sanity check
     }
@@ -295,32 +291,28 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     // set channel formats and stride
     int z_channel = -1;
     m_stride      = 0;
-    TypeDesc t    = get_channel_typedesc(m_rla.ColorChannelType,
-                                      m_rla.NumOfChannelBits);
     for (int i = 0; i < m_rla.NumOfColorChannels; ++i)
-        m_spec.channelformats.push_back(t);
-    m_stride += m_rla.NumOfColorChannels * t.size();
-    t = get_channel_typedesc(m_rla.MatteChannelType, m_rla.NumOfMatteBits);
+        m_spec.channelformats.push_back(col_type);
+    m_stride += m_rla.NumOfColorChannels * col_type.size();
     for (int i = 0; i < m_rla.NumOfMatteChannels; ++i)
-        m_spec.channelformats.push_back(t);
+        m_spec.channelformats.push_back(mat_type);
     if (m_rla.NumOfMatteChannels >= 1)
         m_spec.alpha_channel = m_rla.NumOfColorChannels;
     else
         m_spec.alpha_channel = -1;
-    m_stride += m_rla.NumOfMatteChannels * t.size();
-    t = get_channel_typedesc(m_rla.AuxChannelType, m_rla.NumOfAuxBits);
+    m_stride += m_rla.NumOfMatteChannels * mat_type.size();
     for (int i = 0; i < m_rla.NumOfAuxChannels; ++i) {
-        m_spec.channelformats.push_back(t);
+        m_spec.channelformats.push_back(aux_type);
         // assume first float aux or 32 bit int channel is z
         if (z_channel < 0
-            && (t == TypeDesc::FLOAT || t == TypeDesc::INT32
-                || t == TypeDesc::UINT32)) {
+            && (aux_type == TypeDesc::FLOAT || aux_type == TypeDesc::INT32
+                || aux_type == TypeDesc::UINT32)) {
             z_channel = m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels;
             m_spec.z_channel               = z_channel;
             m_spec.channelnames[z_channel] = "Z";
         }
     }
-    m_stride += m_rla.NumOfAuxChannels * t.size();
+    m_stride += m_rla.NumOfAuxChannels * aux_type.size();
 
     // But if all channels turned out the same, just use 'format' and don't
     // bother sending back channelformats at all.
