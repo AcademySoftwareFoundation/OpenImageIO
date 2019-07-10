@@ -588,8 +588,7 @@ public:
     /// lexicographically after str.
     int compare(string_view str) const
     {
-        return strncmp(c_str() ? c_str() : "", str.data() ? str.data() : "",
-                       str.length());
+        return string_view(*this).compare(str);
     }
 
     /// Return 0 if *this is lexicographically equal to str, -1 if
@@ -605,7 +604,7 @@ public:
     /// after b.
     friend int compare(const std::string& a, const ustring& b)
     {
-        return strcmp(a.c_str(), b.c_str() ? b.c_str() : "");
+        return string_view(a).compare(b);
     }
 
     /// Test two ustrings for equality -- are they comprised of the same
