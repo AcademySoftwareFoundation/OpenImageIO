@@ -100,6 +100,11 @@ else ()
                   COMPONENTS ${Boost_COMPONENTS})
 endif ()
 
+# On Linux, Boost 1.55 and higher seems to need to link against -lrt
+if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND ${Boost_VERSION} GREATER 105499)
+    list (APPEND Boost_LIBRARIES "rt")
+endif ()
+
 message (STATUS "Boost version ${Boost_VERSION}")
 if (NOT Boost_FIND_QUIETLY)
     message (STATUS "Boost found        ${Boost_FOUND} ")
