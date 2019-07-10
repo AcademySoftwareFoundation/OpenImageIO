@@ -1,4 +1,4 @@
-// OpenImageIO Copyright 2008- Contributors to the OpenImageIO project.
+// Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 // clang-format off

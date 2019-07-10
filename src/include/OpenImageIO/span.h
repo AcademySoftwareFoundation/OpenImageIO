@@ -1,4 +1,4 @@
-// OpenImageIO Copyright Contributors to the OpenImageIO project.
+// Copyright 2008-presennt Contributors to the OpenImageIO project.
 //  https://github.com/OpenImageIO/oiio
 // BSD 3-clause license:
 //  https://github.com/OpenImageIO/oiio/blob/master/LICENSE

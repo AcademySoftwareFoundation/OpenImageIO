@@ -1,6 +1,6 @@
 ###########################################################################
 # OpenImageIO   https://www.openimageio.org
-# Copyright Contributors to the OpenImageIO project.
+# Copyright 2008-present Contributors to the OpenImageIO project.
 # BSD 3-clause license:
 #   https://github.com/OpenImageIO/oiio/blob/master/LICENSE
 # For an up-to-date version of this file, see:
