@@ -941,6 +941,43 @@ test_float_formatting()
 
 
 
+template<typename S, typename T>
+void
+test_string_compare_function_impl()
+{
+    S foo("foo");
+    // Test same string
+    OIIO_CHECK_EQUAL(foo.compare(T("foo")), 0);
+    // Test different string of same length
+    OIIO_CHECK_GE(foo.compare(T("bar")), 0);
+    OIIO_CHECK_GE(foo.compare(T("fon")), 0);
+    OIIO_CHECK_LE(foo.compare(T("fop")), 0);
+    // Test against shorter
+    OIIO_CHECK_GE(foo.compare(T("a")), 0);
+    OIIO_CHECK_GE(foo.compare(T("fo")), 0); // common sub, ing
+    OIIO_CHECK_LE(foo.compare(T("foobar")), 0); // common substring
+    OIIO_CHECK_GE(foo.compare(T("bart")), 0);
+    // Test against empty string
+    OIIO_CHECK_GE(foo.compare(""), 0);
+}
+
+
+void
+test_string_compare_function()
+{
+    test_string_compare_function_impl<ustring, const char*>();
+    test_string_compare_function_impl<ustring, string_view>();
+    test_string_compare_function_impl<ustring, ustring>();
+    test_string_compare_function_impl<ustring, std::string>();
+
+    test_string_compare_function_impl<string_view, const char*>();
+    test_string_compare_function_impl<string_view, string_view>();
+    test_string_compare_function_impl<string_view, ustring>();
+    test_string_compare_function_impl<string_view, std::string>();
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -967,6 +1004,7 @@ main(int argc, char* argv[])
     test_parse();
     test_locale();
     // test_float_formatting ();
+    test_string_compare_function();
 
     return unit_test_failures;
 }
