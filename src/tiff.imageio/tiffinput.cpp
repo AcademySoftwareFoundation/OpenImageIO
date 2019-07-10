@@ -1428,7 +1428,8 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
             ImageSpec dummyspec;
             int old_subimage = current_subimage();
             int old_miplevel = current_miplevel();
-            if (!close() || !open(m_filename, dummyspec)
+            close_tif();
+            if (!open(m_filename, dummyspec)
                 || !seek_subimage(old_subimage, old_miplevel)) {
                 return false;  // Somehow, the re-open failed
             }
