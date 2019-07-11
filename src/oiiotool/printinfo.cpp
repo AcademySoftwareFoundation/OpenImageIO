@@ -254,12 +254,13 @@ dump_data(ImageInput* input, const print_info_options& opt)
 // Stats
 
 static bool
-read_input(const std::string& filename, ImageBuf& img, int subimage = 0,
-           int miplevel = 0)
+read_input(Oiiotool& ot, const std::string& filename, ImageBuf& img,
+           int subimage = 0, int miplevel = 0)
 {
     if (img.subimage() >= 0 && img.subimage() == subimage)
         return true;
 
+    img.reset(filename, subimage, miplevel, nullptr, &ot.input_config);
     if (img.init_spec(filename, subimage, miplevel)) {
         // Force a read now for reasonable-sized first images in the
         // file. This can greatly speed up the multithread case for
@@ -353,7 +354,7 @@ print_stats(Oiiotool& ot, const std::string& filename,
     const char* indent = indentmip ? "      " : "    ";
     ImageBuf input;
 
-    if (!read_input(filename, input, subimage, miplevel)) {
+    if (!read_input(ot, filename, input, subimage, miplevel)) {
         ot.error("stats", input.geterror());
         return;
     }
