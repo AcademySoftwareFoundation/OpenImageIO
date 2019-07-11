@@ -6097,7 +6097,7 @@ main(int argc, char* argv[])
     // internationalization, for the entire oiiotool application.
     std::locale::global(std::locale::classic());
 
-    ot.imagecache = ImageCache::create(false);
+    ot.imagecache = ImageCache::create();
     ASSERT(ot.imagecache);
     ot.imagecache->attribute("forcefloat", 1);
     ot.imagecache->attribute("max_memory_MB", float(ot.cachesize));
