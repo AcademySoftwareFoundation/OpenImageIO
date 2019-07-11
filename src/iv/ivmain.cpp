@@ -34,6 +34,7 @@ using namespace OIIO;
 static bool verbose         = false;
 static bool foreground_mode = false;
 static bool autopremult     = true;
+static bool rawcolor        = false;
 static std::vector<std::string> filenames;
 
 
@@ -63,6 +64,8 @@ getargs(int argc, char* argv[])
                 "-F", &foreground_mode, "Foreground mode",
                 "--no-autopremult %!", &autopremult,
                     "Turn off automatic premultiplication of images with unassociated alpha",
+                "--rawcolor", &rawcolor,
+                    "Do not automatically transform to RGB",
                 nullptr);
     // clang-format on
     if (ap.parse(argc, (const char**)argv) < 0) {
@@ -112,6 +115,8 @@ main(int argc, char* argv[])
     imagecache->attribute("deduplicate", (int)0);
     if (!autopremult)
         imagecache->attribute("unassociatedalpha", 1);
+    if (rawcolor)
+        mainWin->rawcolor(true);
 
     // Make sure we are the top window with the focus.
     mainWin->raise();

@@ -51,11 +51,13 @@ class IvInfoWindow;
 class IvPreferenceWindow;
 class IvCanvas;
 class IvGL;
-class IvImage;
+class ImageViewer;
+
 
 class IvImage : public ImageBuf {
 public:
-    IvImage(const std::string& filename);
+    IvImage(const std::string& filename,
+            const ImageSpec* input_config = nullptr);
     virtual ~IvImage();
 
     /// Read the image into ram.
@@ -230,6 +232,9 @@ public:
 
     QPalette palette(void) const { return m_palette; }
 
+    void rawcolor(bool val) { m_rawcolor = val; }
+    bool rawcolor() const { return m_rawcolor; }
+
 private slots:
     void open();                ///< Dialog to open new image from file
     void reload();              ///< Reread current image from disk
@@ -381,6 +386,7 @@ private:
     float m_default_gamma;                    // Default gamma of the display
     QPalette m_palette;                       // Custom palette
     bool m_darkPalette;                       // Use dark palette?
+    bool m_rawcolor = false;                  // Use raw color mode
 
     // The default width and height of the window:
     static const int m_default_width  = 640;
