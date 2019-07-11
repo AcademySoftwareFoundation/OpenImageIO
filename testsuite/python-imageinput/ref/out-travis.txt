@@ -153,4 +153,30 @@ Test read_image into FLOAT:
 Opened "testu16.tif" as a tiff
 Read array typecode float32  [ 12288 ]
 
+Testing write and read of unassociated:
+  writing:  [[[0.5 0.5 0.5 0.5]
+  [0.5 0.5 0.5 0.5]]
+
+ [[0.5 0.5 0.5 0.5]
+  [0.5 0.5 0.5 0.5]]]
+
+  default reading as IB:  [[[0.25 0.25 0.25 0.5 ]
+  [0.25 0.25 0.25 0.5 ]]
+
+ [[0.25 0.25 0.25 0.5 ]
+  [0.25 0.25 0.25 0.5 ]]]
+
+  reading as IB with unassoc hint:  [[[0.5 0.5 0.5 0.5]
+  [0.5 0.5 0.5 0.5]]
+
+ [[0.5 0.5 0.5 0.5]
+  [0.5 0.5 0.5 0.5]]]
+
+  reading as II with hint, read scanlines backward: 
+    [1] =  [[0.5 0.5 0.5 0.5]
+ [0.5 0.5 0.5 0.5]]
+    [0] =  [[0.5 0.5 0.5 0.5]
+ [0.5 0.5 0.5 0.5]]
+
+
 Done.
