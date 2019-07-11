@@ -1425,6 +1425,21 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 
 
+.. py:method:: ImageBuf (filename, subimage, miplevel, config)
+
+    Construct a read-only ImageBuf that will read from the named file,
+    with an ImageSpec `config` giving configuration hints.
+    
+    Example::
+
+        import OpenImageIO as oiio
+        ...
+        config = ImageSpec()
+        config.attribute("oiio:RawColor", 1)
+        buf = ImageBuf ("grid.tif", 0, 0, config)
+
+
+
 .. py:method:: ImageBuf (imagespec, zero = True)
 
     Construct a writeable ImageBuf of the dimensions and data format
