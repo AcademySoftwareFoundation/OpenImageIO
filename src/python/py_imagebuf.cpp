@@ -198,11 +198,11 @@ declare_imagebuf(py::module& m)
             auto z = zero ? InitializePixels::Yes : InitializePixels::No;
             return ImageBuf(spec, z);
         }))
-        .def(py::init([](const std::string& name, int subimage,
-                         int miplevel, const ImageSpec& config) {
-                return ImageBuf(name, subimage, miplevel, nullptr, &config);
-            }),
-            "name"_a, "subimage"_a, "miplevel"_a, "config"_a)
+        .def(py::init([](const std::string& name, int subimage, int miplevel,
+                         const ImageSpec& config) {
+                 return ImageBuf(name, subimage, miplevel, nullptr, &config);
+             }),
+             "name"_a, "subimage"_a, "miplevel"_a, "config"_a)
         .def("clear", &ImageBuf::clear)
         .def(
             "reset",

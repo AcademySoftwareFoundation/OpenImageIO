@@ -765,7 +765,7 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel)
     m_nmiplevels   = 0;
     static ustring s_subimages("subimages"), s_miplevels("miplevels");
     static ustring s_fileformat("fileformat");
-    if (m_configspec) { // Pass configuration options to cache
+    if (m_configspec) {  // Pass configuration options to cache
         // Invalidate the file in the cache, and add with replacement
         // because it might have a different config than last time.
         m_imagecache->invalidate(m_name, true);
