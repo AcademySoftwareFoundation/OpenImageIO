@@ -210,6 +210,11 @@ declare_imagebuf(py::module& m)
         .def(py::init<const std::string&>())
         .def(py::init<const std::string&, int, int>())
         .def(py::init<const ImageSpec&>())
+        .def(py::init([](const std::string& name, int subimage, int miplevel,
+                         const ImageSpec& config) {
+                 return ImageBuf(name, subimage, miplevel, nullptr, &config);
+             }),
+             "name"_a, "subimage"_a, "miplevel"_a, "config"_a)
         .def("clear", &ImageBuf::clear)
         .def(
             "reset",
