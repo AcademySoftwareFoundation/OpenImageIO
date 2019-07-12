@@ -68,8 +68,9 @@ A few commands take optional modifiers for options that are so rarely-used
 or confusing that they should not be required arguments. In these cases,
 they are appended to the command name, after a colon (`:`), and with a
 *name=value* format.  Multiple optional modifiers can be chained together,
-with colon separators. As an example::
+with colon separators. As an example:
 
+.. code-block:: none
 
         oiiotool in.tif --text:x=400:y=600:color=1,0,0 "Hello" -o out.tif
                         \____/\____/\____/\__________/ \____/
@@ -77,6 +78,7 @@ with colon separators. As an example::
            command -------+     |     |        |         +----- required argument
                                 |     |        |
     optional modifiers ---------+-----+--------+
+    (separated by ':')
 
 
 Frame sequences

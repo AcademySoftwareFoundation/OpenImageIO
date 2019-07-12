@@ -665,6 +665,7 @@ public:
     /// image being in RAM somewhere?
     bool cachedpixels() const;
 
+    /// A pointer to the underlying ImageCache.
     ImageCache* imagecache() const;
 
     /// Return the address where pixel `(x,y,z)`, channel `ch`, is stored in
