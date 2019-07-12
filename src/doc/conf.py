@@ -123,10 +123,11 @@ highlight_language = 'cpp'
 read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 
 if read_the_docs_build:
-    if not os.path.exists('../../build/doxygen') :
-        os.mkdir ('../../build/doxygen')
     print ("cwd =", os.getcwd())
     print ("checkpoint -- rtd build")
+    if not os.path.exists('../../build/doxygen') :
+        os.makedirs ('../../build/doxygen')
+    print ("checkpoint 2 -- rtd build")
     subprocess.call('echo "Calling Doxygen"', shell=True)
     subprocess.call(['doxygen'], shell=True)
     subprocess.call('echo "Ran Doxygen"', shell=True)
