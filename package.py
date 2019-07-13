@@ -1,17 +1,19 @@
-name = "oiio"
+name = "OpenImageIO"
 
-version = "3.5.83"
+version = "2.1.3"
 
 authors = [
-    "lg",
+    "Contributors to OpenImageIO",
 ]
 
 
 description = \
 """
-The primary target audience for OIIO is VFX studios and developers of tools such 
-as renderers, compositors, viewers, and other image-related software you'd find 
-in a production pipeline.
+OpenImageIO (OIIO) is a library for reading, writing, and processing images 
+in a wide variety of file formats, using a format-agnostic API. OIIO emphasizes 
+formats and functionality used in professional, large-scale visual effects and 
+feature film animation, and it is used uniquitously by large VFX studios, 
+as well as incorporated into many commercial products.
 """
 
 tools = [
