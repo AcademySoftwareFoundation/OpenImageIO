@@ -2,6 +2,7 @@
 
 #include "DDImage/Row.h"
 #include "DDImage/Thread.h"
+#include "DDImage/Version.h"
 #include "DDImage/Writer.h"
 
 #include <OpenImageIO/filter.h>
@@ -70,11 +71,14 @@ class txWriter : public Writer {
     int txMode_;
     int bitDepth_;
     int filter_;
+    bool highlightComp_;
+    bool detectConstant_;
+    bool detectMonochrome_;
+    bool detectOpaque_;
     bool fixNan_;
     int nanFixType_;
     bool checkNan_;
     bool verbose_;
-    bool stats_;
 
 
     void setChannelNames(ImageSpec& spec, const ChannelSet& channels)
@@ -112,24 +116,25 @@ public:
         , preset_(0)
         , tileW_(64)
         , tileH_(64)
-        , planarMode_(0)
-        , txMode_(0)
-        ,  // ordinary 2d texture
-        bitDepth_(3)
-        ,  // float
-        filter_(0)
+        , planarMode_(0)  // contiguous
+        , txMode_(0)      // ordinary 2d texture
+        , bitDepth_(3)    // float
+        , filter_(0)
+        , highlightComp_(false)
+        , detectConstant_(false)
+        , detectMonochrome_(false)
+        , detectOpaque_(false)
         , fixNan_(false)
         , nanFixType_(0)
         , checkNan_(true)
         , verbose_(false)
-        , stats_(false)
     {
         if (!gTxFiltersInitialized) {
             for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
                 FilterDesc d;
                 Filter2D::get_filterdesc(i, &d);
                 gFilterNames.push_back(d.name);
-            };
+            }
             gFilterNames.push_back(NULL);
             gTxFiltersInitialized = true;
         }
@@ -181,6 +186,31 @@ public:
         Tooltip(cb, "The filter used to resize the image when generating mip "
                     "levels.");
 
+        Bool_knob(cb, &highlightComp_, "highlight_compensation",
+                  "highlight compensation");
+        Tooltip(cb, "Compress dynamic range before resampling for mip levels, "
+                    "and re-expand it afterward, while also clamping negative "
+                    "pixel values to zero. This can help avoid artifacts when "
+                    "using filters with negative lobes.");
+        SetFlags(cb, Knob::STARTLINE);
+
+        Bool_knob(cb, &detectConstant_, "detect_constant", "detect constant");
+        Tooltip(cb, "Detect whether the image is entirely a single color, and "
+                    "write it as a single-tile output file if so.");
+        SetFlags(cb, Knob::STARTLINE);
+
+        Bool_knob(cb, &detectMonochrome_, "detect_monochrome",
+                  "detect monochrome");
+        Tooltip(cb, "Detect whether the image's R, G, and B values are equal "
+                    "everywhere, and write it as a single-channel (grayscale) "
+                    "image if so.");
+        ClearFlags(cb, Knob::STARTLINE);
+
+        Bool_knob(cb, &detectOpaque_, "detect_opaque", "detect opaque");
+        Tooltip(cb, "Detect whether the image's alpha channel is 1.0 "
+                    "everywhere, and drop it from the output file if so (write "
+                    "RGB instead).");
+
         Bool_knob(cb, &fixNan_, "fix_nan", "fix NaN/Inf pixels");
         Tooltip(cb, "Attempt to fix NaN/Inf pixel values in the image.");
         SetFlags(cb, Knob::STARTLINE);
@@ -204,10 +234,6 @@ public:
         Bool_knob(cb, &verbose_, "verbose");
         Tooltip(cb, "Toggle verbose OIIO output.");
         SetFlags(cb, Knob::STARTLINE);
-
-        Bool_knob(cb, &stats_, "oiio_stats", "output stats");
-        Tooltip(cb, "Toggle output of OIIO runtime statistics.");
-        ClearFlags(cb, Knob::STARTLINE);
     }
 
     int knob_changed(Knob* k)
@@ -286,20 +312,29 @@ public:
         } else
             destSpec.attribute("maketx:fixnan", "none");
 
-        destSpec.attribute("maketx:checknan", checkNan_);
-        destSpec.attribute("maketx:verbose", verbose_);
-        destSpec.attribute("maketx:stats", stats_);
+        destSpec.attribute("maketx:highlightcomp", (int)highlightComp_);
+        destSpec.attribute("maketx:constant_color_detect",
+                           (int)detectConstant_);
+        destSpec.attribute("maketx:monochrome_detect", (int)detectMonochrome_);
+        destSpec.attribute("maketx:opaque_detect", (int)detectOpaque_);
+        destSpec.attribute("maketx:checknan", (int)checkNan_);
+        destSpec.attribute("maketx:verbose", (int)verbose_);
 
-        OIIO::attribute("threads", (int)Thread::numCPUs);
+        std::string software = Strutil::sprintf("OpenImageIO %s, Nuke %s",
+                                                OIIO_VERSION_STRING,
+                                                applicationVersion().string());
+        destSpec.attribute("Software", software);
 
         if (aborted())
             return;
 
+        OIIO::attribute("threads", (int)Thread::numCPUs);
+
         iop->progressMessage("Writing %s", filename());
         if (!ImageBufAlgo::make_texture(oiiotxMode[txMode_], srcBuffer,
                                         filename(), destSpec, &std::cout))
-            iop->critical("ImageBufAlgo::make_texture failed to write file %s",
-                          filename());
+            iop->error("ImageBufAlgo::make_texture failed to write file %s",
+                       filename());
     }
 
     const char* help() { return "Tiled, mipmapped texture format"; }
