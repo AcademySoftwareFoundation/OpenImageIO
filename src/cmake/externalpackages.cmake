@@ -96,8 +96,21 @@ else ()
     if (NOT USE_STD_REGEX)
         list (APPEND Boost_COMPONENTS regex)
     endif ()
+    # The FindBoost.cmake interface is broken if it uses boost's installed
+    # cmake output (e.g. boost 1.70.0, cmake <= 3.14). Specifically it fails
+    # to set the expected variables printed below. So until that's fixed
+    # force FindBoost.cmake to use the original brute force path.
+    set (Boost_NO_BOOST_CMAKE ON)
     find_package (Boost 1.53 REQUIRED
                   COMPONENTS ${Boost_COMPONENTS})
+    if (Boost_FOUND)
+        message (STATUS "Boost include      ${Boost_INCLUDE_DIR} ")
+        message (STATUS "Boost lib debug    ${Boost_LIBRARY_DIR_DEBUG} ")
+        message (STATUS "Boost lib release  ${Boost_LIBRARY_DIR_RELEASE} ")
+        message (STATUS "Boost include dirs ${Boost_INCLUDE_DIRS}")
+        message (STATUS "Boost library dirs ${Boost_LIBRARY_DIRS}")
+        message (STATUS "Boost libraries    ${Boost_LIBRARIES}")
+    endif ()
 endif ()
 
 # On Linux, Boost 1.55 and higher seems to need to link against -lrt
