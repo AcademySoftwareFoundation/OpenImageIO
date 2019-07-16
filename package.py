@@ -27,6 +27,7 @@ tools = [
 
 variants = [
     ['platform-linux', 'python-2'],
+    ['platform-linux', 'python-3'],
 ]
 
 hashed_variants = True
@@ -38,5 +39,5 @@ def commands():
         env.CPATH.append("{root}/include")
         env.OPENIMAGEIO_ROOT_DIR = "{root}"
 
-    env.PYTHONPATH.append('{root}/lib/python2.7/site-packages') # need to figure out a way to build in a versionless directory
+    env.PYTHONPATH.append('{root}/python')
     env.PATH.append('{root}/bin')
