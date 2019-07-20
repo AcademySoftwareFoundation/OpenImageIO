@@ -1,3 +1,16 @@
+Reading ../../../../../libtiffpic/caspian.tif
+../../../../../libtiffpic/caspian.tif :  279 x  220, 3 channel, double tiff
+    SHA-1: 53F0C0A71BCACCDA213DA73DC23B0CA0CD629D9A
+    channel list: R, G, B
+    compression: "zip"
+    planarconfig: "separate"
+    oiio:BitsPerSample: 64
+    tiff:Compression: 32946
+    tiff:PhotometricInterpretation: 2
+    tiff:PlanarConfiguration: 2
+    tiff:RowsPerStrip: 3
+Comparing "../../../../../libtiffpic/caspian.tif" and "caspian.tif"
+PASS
 Reading ../../../../../libtiffpic/cramps.tif
 ../../../../../libtiffpic/cramps.tif :  800 x  607, 1 channel, uint8 tiff
     SHA-1: A1CA337CBB22D84410BBE710BB31D5D6646CF839

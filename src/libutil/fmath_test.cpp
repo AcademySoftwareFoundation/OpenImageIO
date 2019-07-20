@@ -252,6 +252,67 @@ test_bit_range_convert()
 
 
 
+void
+test_packbits()
+{
+    std::cout << "test_convert_pack_bits\n";
+
+    {
+        unsigned char foo[3] = { 0, 0, 0 };
+        unsigned char* fp    = foo;
+        int fpf              = 0;
+        bitstring_add_n_bits(fp, fpf, 1, 4);
+        bitstring_add_n_bits(fp, fpf, 2, 8);
+        bitstring_add_n_bits(fp, fpf, 0xffff, 10);
+        // result should be 0x10 0x2f 0xfc
+        Strutil::printf("  bitstring_add_n_bits results %02x %02x %02x\n",
+                        foo[0], foo[1], foo[2]);
+        OIIO_CHECK_EQUAL(foo[0], 0x10);
+        OIIO_CHECK_EQUAL(foo[1], 0x2f);
+        OIIO_CHECK_EQUAL(foo[2], 0xfc);
+    }
+    {
+        unsigned char foo[4] = { 0, 0, 0, 0 };
+        unsigned char* fp    = foo;
+        int fpf              = 0;
+        bitstring_add_n_bits(fp, fpf, 1023, 10);
+        bitstring_add_n_bits(fp, fpf, 0, 10);
+        bitstring_add_n_bits(fp, fpf, 1023, 10);
+        // result should be 1111111111 0000000000 1111111111 00
+        //                     f   f    c   0   0    f   f    c
+        Strutil::printf("  bitstring_add_n_bits results %02x %02x %02x %02x\n",
+                        foo[0], foo[1], foo[2], foo[3]);
+        OIIO_CHECK_EQUAL(foo[0], 0xff);
+        OIIO_CHECK_EQUAL(foo[1], 0xc0);
+        OIIO_CHECK_EQUAL(foo[2], 0x0f);
+        OIIO_CHECK_EQUAL(foo[3], 0xfc);
+    }
+
+    const uint16_t u16vals[8] = { 1, 1, 1, 1, 1, 1, 1, 1 };
+    uint16_t u10[5]           = { 255, 255, 255, 255, 255 };
+    Strutil::printf(
+        " in 16 bit values: %04x %04x %04x %04x %04x %04x %04x %04x\n",
+        u16vals[0], u16vals[1], u16vals[2], u16vals[3], u16vals[4], u16vals[5],
+        u16vals[6], u16vals[7]);
+    bit_pack(cspan<uint16_t>(u16vals, 8), u10, 10);
+    Strutil::printf(
+        " packed to 10 bits, as 16 bit values: %04x %04x %04x %04x %04x\n",
+        u10[0], u10[1], u10[2], u10[3], u10[4]);
+    uint16_t u16[8];
+    bit_unpack(8, (const unsigned char*)u10, 10, u16);
+    Strutil::printf(
+        " unpacked back to 16 bits: %04x %04x %04x %04x %04x %04x %04x %04x\n",
+        u16[0], u16[1], u16[2], u16[3], u16[4], u16[5], u16[6], u16[7]);
+    // Before: 00000000 00000001  00000000 00000001  00000000 00000001...
+    // After:  00000000 01000000  00010000 00000100  00000001 00000000  01000000 00010000  00000100 00000001
+    //       =  00 40  10 04  01 00  40 10  04 01
+    // as little endian 16 bit:  4000 0410 0001 1040 0104
+    for (size_t i = 0; i < 8; ++i)
+        OIIO_CHECK_EQUAL(u16vals[i], u16[i]);
+}
+
+
+
 static void
 test_interpolate_linear()
 {
@@ -413,6 +474,7 @@ main(int argc, char* argv[])
     //    test_convert_type<float,unsigned short> ();
 
     test_bit_range_convert();
+    test_packbits();
 
     test_interpolate_linear();
 

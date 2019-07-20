@@ -155,6 +155,15 @@ private:
                       / m_spec.tile_height;
         return xtile + ytile * nxtiles + ztile * nxtiles * nytiles;
     }
+
+    // Move data to scratch area if not already there.
+    void* move_to_scratch(const void* data, size_t nbytes)
+    {
+        if (m_scratch.empty() || (const unsigned char*)data != m_scratch.data())
+            m_scratch.assign((const unsigned char*)data,
+                             (const unsigned char*)data + nbytes);
+        return m_scratch.data();
+    }
 };
 
 
@@ -394,7 +403,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         sampformat      = SAMPLEFORMAT_INT;
         break;
     case TypeDesc::UINT8:
-        if (m_bitspersample != 2 && m_bitspersample != 4)
+        if (m_bitspersample != 2 && m_bitspersample != 4
+            && m_bitspersample != 6)
             m_bitspersample = 8;
         sampformat = SAMPLEFORMAT_UINT;
         break;
@@ -403,7 +413,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         sampformat      = SAMPLEFORMAT_INT;
         break;
     case TypeDesc::UINT16:
-        if (m_bitspersample != 10 && m_bitspersample != 12)
+        if (m_bitspersample != 10 && m_bitspersample != 12
+            && m_bitspersample != 14)
             m_bitspersample = 16;
         sampformat = SAMPLEFORMAT_UINT;
         break;
@@ -412,8 +423,9 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         sampformat      = SAMPLEFORMAT_INT;
         break;
     case TypeDesc::UINT32:
-        m_bitspersample = 32;
-        sampformat      = SAMPLEFORMAT_UINT;
+        if (m_bitspersample != 24)
+            m_bitspersample = 32;
+        sampformat = SAMPLEFORMAT_UINT;
         break;
     case TypeDesc::HALF:
         // Adobe extension, see http://chriscox.org/TIFFTN3d1.pdf
@@ -527,7 +539,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             if (source_is_rgb(m_spec)) {
                 // Case: RGB -> CMYK, do the conversions per pixel
                 m_convert_rgb_to_cmyk = true;
-                m_outputchans         = 4;  // output 4, not 4 chans
+                m_outputchans         = 4;  // output 4, not 3 chans
                 TIFFSetField(m_tif, TIFFTAG_SAMPLESPERPIXEL, m_outputchans);
                 TIFFSetField(m_tif, TIFFTAG_INKSET, INKSET_CMYK);
             } else if (source_is_cmyk(m_spec)) {
@@ -939,54 +951,6 @@ TIFFOutput::contig_to_separate(int n, int nchans, const char* contig,
 
 
 
-// Convert T data[0..nvals-1] in-place to BITS_TO per sample, *packed*.
-// The bit width of T is definitely wider than BITS_TO. T should be an
-// unsigned type.
-template<typename T, int BITS_TO>
-static void
-convert_pack_bits(T* data, int nvals)
-{
-    const int BITS_FROM = sizeof(T) * 8;
-    T* in               = data;
-    T* out              = in - 1;  // because we'll increment first time through
-
-    int bitstofill = 0;
-    // Invariant: the next value to convert is *in. We're going to write
-    // the result of the conversion starting at *out, which still has
-    // bitstofill bits left before moving on to the next slot.
-    for (int i = 0; i < nvals; ++i) {
-        // Grab the next value and convert it
-        T val = bit_range_convert<BITS_FROM, BITS_TO>(*in++);
-        // If we have no more bits to fill in the slot, move on to the
-        // next slot.
-        if (bitstofill == 0) {
-            ++out;
-            *out       = 0;          // move to next slot and clear its bits
-            bitstofill = BITS_FROM;  // all bits are for the taking
-        }
-        if (bitstofill >= BITS_TO) {
-            // we can fit the whole val in this slot
-            *out |= val << (bitstofill - BITS_TO);
-            bitstofill -= BITS_TO;
-            // printf ("\t\t%d bits left\n", bitstofill);
-        } else {
-            // not enough bits -- will need to split across slots
-            int bitsinnext = BITS_TO - bitstofill;
-            *out |= val >> bitsinnext;
-            val &= (1 << bitsinnext) - 1;  // mask out bits we saved
-            ++out;
-            *out = 0;  // move to next slot and clear its bits
-            *out |= val << (BITS_FROM - bitsinnext);
-            bitstofill = BITS_FROM - bitsinnext;
-        }
-    }
-    // Because we filled in a big-endian way, swap bytes if we need to
-    if (littleendian())
-        swap_endian(data, nvals);
-}
-
-
-
 template<typename T>
 static void
 rgb_to_cmyk(int n, const T* rgb, size_t rgb_stride, T* cmyk, size_t cmyk_stride)
@@ -1035,25 +999,18 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                            stride_t xstride)
 {
     m_spec.auto_stride(xstride, format, spec().nchannels);
-    const void* origdata = data;
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
 
     // Handle weird photometric/color spaces
     std::vector<unsigned char> cmyk;
     if (m_photometric == PHOTOMETRIC_SEPARATED && m_convert_rgb_to_cmyk)
         data = convert_to_cmyk(spec().width, data, cmyk);
+    size_t scanline_vals = spec().width * m_outputchans;
 
     // Handle weird bit depths
     if (spec().format.size() * 8 != m_bitspersample) {
-        // Move to scratch area if not already there
-        imagesize_t nbytes = spec().scanline_bytes();
-        int nvals          = spec().width * m_outputchans;
-        if (data == origdata) {
-            m_scratch.assign((unsigned char*)data,
-                             (unsigned char*)data + nbytes);
-            data = m_scratch.data();
-        }
-        fix_bitdepth(m_scratch.data(), nvals);
+        data = move_to_scratch(data, scanline_vals * spec().format.size());
+        fix_bitdepth(m_scratch.data(), scanline_vals);
     }
 
     y -= m_spec.y;
@@ -1087,13 +1044,7 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         // No contig->separate is necessary.  But we still use scratch
         // space since TIFFWriteScanline is destructive when
         // TIFFTAG_PREDICTOR is used.
-        if (data == origdata) {
-            imagesize_t scanline_bytes = m_spec.width * m_spec.format.size()
-                                         * m_outputchans;
-            m_scratch.assign((unsigned char*)data,
-                             (unsigned char*)data + scanline_bytes);
-            data = m_scratch.data();
-        }
+        data = move_to_scratch(data, scanline_vals * m_spec.format.size());
         if (TIFFWriteScanline(m_tif, (tdata_t)data, y) < 0) {
             std::string err = oiio_tiff_last_error();
             error("TIFFWriteScanline failed writing line y=%d,z=%d (%s)", y, z,
@@ -1272,7 +1223,6 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
         m_checkpointItems = 0;
     }
 
-
     if (y < yend && origdata != data)
         memcpy((void*)data, origdata, (yend - y) * m_spec.scanline_bytes(true));
 
@@ -1299,9 +1249,9 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
     x -= m_spec.x;  // Account for offset, so x,y are file relative, not
     y -= m_spec.y;  // image relative
     z -= m_spec.z;
-    const void* origdata = data;  // Stash original pointer
     data = to_native_tile(format, data, xstride, ystride, zstride, m_scratch,
                           m_dither, x, y, z);
+    size_t tile_vals = spec().tile_pixels() * m_outputchans;
 
     // Handle weird photometric/color spaces
     std::vector<unsigned char> cmyk;
@@ -1310,15 +1260,8 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 
     // Handle weird bit depths
     if (spec().format.size() * 8 != m_bitspersample) {
-        // Move to scratch area if not already there
-        imagesize_t nbytes = spec().scanline_bytes();
-        int nvals          = int(spec().tile_pixels()) * m_outputchans;
-        if (data == origdata) {
-            m_scratch.assign((unsigned char*)data,
-                             (unsigned char*)data + nbytes);
-            data = m_scratch.data();
-        }
-        fix_bitdepth(m_scratch.data(), nvals);
+        data = move_to_scratch(data, tile_vals * spec().format.size());
+        fix_bitdepth(m_scratch.data(), int(tile_vals));
     }
 
     if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
@@ -1353,13 +1296,7 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
         // No contig->separate is necessary.  But we still use scratch
         // space since TIFFWriteTile is destructive when
         // TIFFTAG_PREDICTOR is used.
-        if (data == origdata) {
-            imagesize_t tile_bytes = m_spec.tile_pixels() * m_spec.format.size()
-                                     * m_outputchans;
-            m_scratch.assign((unsigned char*)data,
-                             (unsigned char*)data + tile_bytes);
-            data = m_scratch.data();
-        }
+        data = move_to_scratch(data, tile_vals * m_spec.format.size());
         if (TIFFWriteTile(m_tif, (tdata_t)data, x, y, z, 0) < 0) {
             std::string err = oiio_tiff_last_error();
             error("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
@@ -1595,13 +1532,40 @@ TIFFOutput::fix_bitdepth(void* data, int nvals)
     ASSERT(spec().format.size() * 8 != m_bitspersample);
 
     if (spec().format == TypeDesc::UINT16 && m_bitspersample == 10) {
-        convert_pack_bits<unsigned short, 10>((unsigned short*)data, nvals);
+        unsigned short* v = (unsigned short*)data;
+        for (int i = 0; i < nvals; ++i)
+            v[i] = bit_range_convert<16, 10>(v[i]);
+        bit_pack(cspan<unsigned short>(v, v + nvals), v, 10);
     } else if (spec().format == TypeDesc::UINT16 && m_bitspersample == 12) {
-        convert_pack_bits<unsigned short, 12>((unsigned short*)data, nvals);
+        unsigned short* v = (unsigned short*)data;
+        for (int i = 0; i < nvals; ++i)
+            v[i] = bit_range_convert<16, 12>(v[i]);
+        bit_pack(cspan<unsigned short>(v, v + nvals), v, 12);
+    } else if (spec().format == TypeDesc::UINT16 && m_bitspersample == 14) {
+        unsigned short* v = (unsigned short*)data;
+        for (int i = 0; i < nvals; ++i)
+            v[i] = bit_range_convert<16, 14>(v[i]);
+        bit_pack(cspan<unsigned short>(v, v + nvals), v, 14);
     } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 4) {
-        convert_pack_bits<unsigned char, 4>((unsigned char*)data, nvals);
+        unsigned char* v = (unsigned char*)data;
+        for (int i = 0; i < nvals; ++i)
+            v[i] = bit_range_convert<8, 4>(v[i]);
+        bit_pack(cspan<unsigned char>(v, v + nvals), v, 4);
     } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 2) {
-        convert_pack_bits<unsigned char, 2>((unsigned char*)data, nvals);
+        unsigned char* v = (unsigned char*)data;
+        for (int i = 0; i < nvals; ++i)
+            v[i] = bit_range_convert<8, 2>(v[i]);
+        bit_pack(cspan<unsigned char>(v, v + nvals), v, 2);
+    } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 6) {
+        unsigned char* v = (unsigned char*)data;
+        for (int i = 0; i < nvals; ++i)
+            v[i] = bit_range_convert<8, 6>(v[i]);
+        bit_pack(cspan<unsigned char>(v, v + nvals), v, 6);
+    } else if (spec().format == TypeDesc::UINT32 && m_bitspersample == 24) {
+        unsigned int* v = (unsigned int*)data;
+        for (int i = 0; i < nvals; ++i)
+            v[i] = bit_range_convert<32, 24>(v[i]);
+        bit_pack(cspan<unsigned int>(v, v + nvals), v, 24);
     } else {
         ASSERT(0 && "unsupported bit conversion -- shouldn't reach here");
     }

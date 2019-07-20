@@ -955,6 +955,126 @@ bit_range_convert(unsigned int in, unsigned int FROM_BITS, unsigned int TO_BITS)
 
 
 
+/// Append the `n` LSB bits of `val` into a bit sting `T out[]`, where the
+/// `filled` MSB bits of `*out` are already filled in. Incremennt `out` and
+/// adjust `filled` as required. Type `T` should be uint8_t, uint16_t, or
+/// uint32_t.
+template<typename T>
+inline void
+bitstring_add_n_bits (T* &out, int& filled, uint32_t val, int n)
+{
+    static_assert(std::is_same<T,uint8_t>::value ||
+                  std::is_same<T,uint16_t>::value ||
+                  std::is_same<T,uint32_t>::value,
+                  "bitstring_add_n_bits must be unsigned int 8/16/32");
+    const int Tbits = sizeof(T) * 8;
+    // val:         | don't care     | copy me    |
+    //                                <- n bits ->
+    //
+    // *out:        | don't touch |   fill in here       |
+    //               <- filled  -> <- (Tbits - filled) ->
+    while (n > 0) {
+        // Make sure val doesn't have any cruft in bits > n
+        val &= ~(0xffffffff << n);
+        // Initialize any new byte we're filling in
+        if (filled == 0)
+            *out = 0;
+        // How many bits can we fill in `*out` without having to increment
+        // to the next byte?
+        int bits_left_in_out = Tbits - filled;
+        int b = 0;   // bit pattern to 'or' with *out
+        int nb = 0;  // number of bits to add
+        if (n <= bits_left_in_out) { // can fit completely in this byte
+            b = val << (bits_left_in_out - n);
+            nb = n;
+        } else { // n > bits_left_in_out, will spill to next byte
+            b = val >> (n - bits_left_in_out);
+            nb = bits_left_in_out;
+        }
+        *out |= b;
+        filled += nb;
+        DASSERT (filled <= Tbits);
+        n -= nb;
+        if (filled == Tbits) {
+            ++out;
+            filled = 0;
+        }
+    }
+}
+
+
+
+/// Pack values from `T in[0..n-1]` (where `T` is expected to be a uint8,
+/// uint16, or uint32, into successive raw outbits-bit pieces of `out[]`,
+/// where outbits is expected to be less than the number of bits in a `T`.
+template<typename T>
+inline void
+bit_pack(cspan<T> data, void* out, int outbits)
+{
+    static_assert(std::is_same<T,uint8_t>::value ||
+                  std::is_same<T,uint16_t>::value ||
+                  std::is_same<T,uint32_t>::value,
+                  "bit_pack must be unsigned int 8/16/32");
+    unsigned char* outbuffer = (unsigned char*)out;
+    int filled = 0;
+    for (size_t i = 0, e = data.size(); i < e; ++i)
+        bitstring_add_n_bits (outbuffer, filled, data[i], outbits);
+}
+
+
+
+/// Decode n packed inbits-bits values from in[...] into normal uint8,
+/// uint16, or uint32 representation of `T out[0..n-1]`. In other words,
+/// each successive `inbits` of `in` (allowing spanning of byte boundaries)
+/// will be stored in a successive out[i].
+template<typename T>
+inline void
+bit_unpack(int n, const unsigned char* in, int inbits, T* out)
+{
+    static_assert(std::is_same<T,uint8_t>::value ||
+                  std::is_same<T,uint16_t>::value ||
+                  std::is_same<T,uint32_t>::value,
+                  "bit_unpack must be unsigned int 8/16/32");
+    DASSERT(inbits >= 1 && inbits < 32);  // surely bugs if not
+    // int highest = (1 << inbits) - 1;
+    int B = 0, b = 0;
+    // Invariant:
+    // So far, we have used in[0..B-1] and the high b bits of in[B].
+    for (int i = 0; i < n; ++i) {
+        long long val = 0;
+        int valbits   = 0;  // bits so far we've accumulated in val
+        while (valbits < inbits) {
+            // Invariant: we have already accumulated valbits of the next
+            // needed value (of a total of inbits), living in the valbits
+            // low bits of val.
+            int out_left = inbits - valbits;  // How much more we still need
+            int in_left  = 8 - b;             // Bits still available in in[B].
+            if (in_left <= out_left) {
+                // Eat the rest of this byte:
+                //   |---------|--------|
+                //        b      in_left
+                val <<= in_left;
+                val |= in[B] & ~(0xffffffff << in_left);
+                ++B;
+                b = 0;
+                valbits += in_left;
+            } else {
+                // Eat just the bits we need:
+                //   |--|---------|-----|
+                //    b  out_left  extra
+                val <<= out_left;
+                int extra = 8 - b - out_left;
+                val |= (in[B] >> extra) & ~(0xffffffff << out_left);
+                b += out_left;
+                valbits = inbits;
+            }
+        }
+        out[i] = val; //T((val * 0xff) / highest);
+    }
+}
+
+
+
 /// A DataProxy<I,E> looks like an (E &), but it really holds an (I &)
 /// and does conversions (via convert_type) as it reads in and out.
 /// (I and E are for INTERNAL and EXTERNAL data types, respectively).
