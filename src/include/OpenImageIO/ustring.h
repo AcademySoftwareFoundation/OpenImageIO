@@ -186,6 +186,9 @@ public:
         return string_view(c_str(), length());
     }
 
+    /// Conversion to std::string (explicit only!).
+    explicit operator std::string() const noexcept { return string(); }
+
     /// Assign a ustring to *this.
     const ustring& assign(const ustring& str)
     {

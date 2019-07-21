@@ -613,7 +613,8 @@ ParamValueList::remove(string_view name, TypeDesc type, bool casesensitive)
 
 
 bool
-ParamValueList::contains(string_view name, TypeDesc type, bool casesensitive)
+ParamValueList::contains(string_view name, TypeDesc type,
+                         bool casesensitive) const
 {
     auto p = find(name, type, casesensitive);
     return (p != end());
@@ -662,11 +663,16 @@ bool
 ParamValueList::getattribute(string_view name, std::string& value,
                              bool casesensitive) const
 {
-    ustring s;
-    bool ok = getattribute(name, TypeString, &s, casesensitive);
-    if (ok)
-        value = s.string();
-    return ok;
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        ustring s;
+        bool ok = convert_type(p->type(), p->data(), TypeString, &s);
+        if (ok)
+            value = s.string();
+        return ok;
+    } else {
+        return false;
+    }
 }
 
 

@@ -302,6 +302,9 @@ test_delegates()
     std::string s = pl["foo"];
     OIIO_CHECK_EQUAL(s, "42");
 
+    string_view sv = pl["foo"].get();
+    OIIO_CHECK_EQUAL(sv, "42");
+
     Strutil::printf("Delegate-loaded array is\n");
     for (auto&& p : pl)
         Strutil::printf(" %16s : %s\n", p.name(), p.get_string());

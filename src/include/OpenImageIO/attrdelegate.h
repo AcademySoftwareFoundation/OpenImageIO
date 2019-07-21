@@ -141,13 +141,12 @@ public:
     // Using enable_if, make a slightly different version of get<> for
     // strings, which need to do some ustring magic because we can't
     // directly store in a std::string or string_view.
-    template<typename T,
+    template<typename T = string_view,
              typename std::enable_if<pvt::is_string<T>::value, int>::type = 1>
     inline T get(const T& defaultval = T()) const
     {
         ustring s;
-        return m_obj->getattribute(m_name, TypeString, &s) ? T(s.string())
-                                                           : defaultval;
+        return m_obj->getattribute(m_name, TypeString, &s) ? T(s) : defaultval;
     }
 
     // `Delegate->as_string(defaultval="")` returns the data, no matter its
