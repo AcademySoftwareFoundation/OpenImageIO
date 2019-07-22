@@ -220,7 +220,31 @@ clamped_mult64(uint64_t a, uint64_t b)
 
 
 
-/// Bitwise circular rotation left by k bits (for 32 bit unsigned integers)
+/// Bitwise circular rotation left by `s` bits (for any unsigned integer
+/// type).  For info on the C++20 std::rotl(), see
+/// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0553r4.html
+template<class T>
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE
+constexpr T rotl(T x, int s) noexcept
+{
+    static_assert(std::is_unsigned<T>::value && std::is_integral<T>::value,
+                  "rotl only works for unsigned integer types");
+    return (x << s) | (x >> ((sizeof(T) * 8) - s));
+}
+
+
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 320
+// Cuda has an intrinsic for 32 bit unsigned int rotation
+OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE
+constexpr uint32_t rotl<>(uint32_t x, int s) noexcept
+{
+    return __funnelshift_lc(x, x, s);
+}
+#endif
+
+
+
+// Old names -- DEPRECATED(2.1)
 OIIO_FORCEINLINE OIIO_HOSTDEVICE uint32_t
 rotl32(uint32_t x, int k)
 {
@@ -231,7 +255,6 @@ rotl32(uint32_t x, int k)
 #endif
 }
 
-/// Bitwise circular rotation left by k bits (for 64 bit unsigned integers)
 OIIO_FORCEINLINE OIIO_HOSTDEVICE uint64_t
 rotl64(uint64_t x, int k)
 {
