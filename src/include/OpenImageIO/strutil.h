@@ -390,11 +390,12 @@ void OIIO_API split (string_view str, std::vector<string_view> &result,
 void OIIO_API split (string_view str, std::vector<std::string> &result,
                      string_view sep = string_view(), int maxsplit = -1);
 
-/// Split the contents of `str` using `sep` as the delimiter string (if
-/// `sep` is "", any whitespace string is a separator). If `maxsplit > -1`,
-/// at most `maxsplit` splits are performed. The result is returned as a
-/// vector of std::string (for `splits()`) or a vector of string_view (for
-/// `splitsv()`).
+/// Split the contents of `str` using `sep` as the delimiter string. If
+/// `sep` is "", any whitespace string is a separator. If `maxsplit > -1`,
+/// at most `maxsplit` split fragments will be produced (for example,
+/// maxsplit=2 will split at only the first separator, yielding at most two
+/// fragments). The result is returned as a vector of std::string (for
+/// `splits()`) or a vector of string_view (for `splitsv()`).
 OIIO_API std::vector<std::string>
 splits (string_view str, string_view sep = "", int maxsplit = -1);
 OIIO_API std::vector<string_view>
