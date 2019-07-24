@@ -171,8 +171,8 @@ bool
 DPXOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
 {
     if (subimages > MAX_DPX_IMAGE_ELEMENTS) {
-        error("DPX does not support more than %d subimages",
-              MAX_DPX_IMAGE_ELEMENTS);
+        errorf("DPX does not support more than %d subimages",
+               MAX_DPX_IMAGE_ELEMENTS);
         return false;
     };
     m_subimages_to_write = subimages;
@@ -199,8 +199,8 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
             write_buffer();
         ++m_subimage;
         if (m_subimage >= m_subimages_to_write) {
-            error("Exceeded the pre-declared number of subimages (%d)",
-                  m_subimages_to_write);
+            errorf("Exceeded the pre-declared number of subimages (%d)",
+                   m_subimages_to_write);
             return false;
         }
         return prep_subimage(m_subimage, true);
@@ -231,8 +231,8 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
-        error("Image resolution must be at least 1x1, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     }
 
@@ -296,6 +296,9 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
             spec.get_int_attribute("dpx:EndOfImagePadding", 0));
         std::string desc = spec.get_string_attribute("ImageDescription", "");
         m_dpx.header.SetDescription(s, desc.c_str());
+        // TODO: Writing RLE compressed files seem to be broken.
+        // if (Strutil::iequals(spec.get_string_attribute("compression"),"rle"))
+        //     m_dpx.header.SetImageEncoding(s, dpx::kRLE);
     }
 
     m_dpx.header.SetXScannedSize(
@@ -522,7 +525,7 @@ DPXOutput::prep_subimage(int s, bool allocate)
     if (m_spec.format == TypeDesc::UINT16) {
         m_bitdepth = m_spec.get_int_attribute("oiio:BitsPerSample", 16);
         if (m_bitdepth != 10 && m_bitdepth != 12 && m_bitdepth != 16) {
-            error("Unsupported bit depth %d", m_bitdepth);
+            errorf("Unsupported bit depth %d", m_bitdepth);
             return false;
         }
     }
@@ -531,6 +534,9 @@ DPXOutput::prep_subimage(int s, bool allocate)
     // "filled method A" for 12 bit data.  Does anybody care what
     // packing/filling we use?  Punt and just use "packed".
     if (m_bitdepth == 12)
+        m_packing = dpx::kPacked;
+    // I've also seen problems with 10 bits, but only for 1-channel images.
+    if (m_bitdepth == 10 && m_spec.nchannels == 1)
         m_packing = dpx::kPacked;
 
     if (m_spec.format == TypeDesc::UINT8 || m_spec.format == TypeDesc::INT8)
@@ -555,9 +561,10 @@ DPXOutput::prep_subimage(int s, bool allocate)
                  || m_spec.get_int_attribute("dpx:RawData")  // deprecated
                  || m_spec.get_int_attribute("oiio:RawColor");
 
-    // see if we'll need to convert or not
-    if (m_desc == dpx::kRGB || m_desc == dpx::kRGBA) {
-        // shortcut for RGB(A) that gets the job done
+    // see if we'll need to convert color space or not
+    if (m_desc == dpx::kRGB || m_desc == dpx::kRGBA || m_spec.nchannels == 1) {
+        // shortcut for RGB/RGBA, and for 1-channel images that don't
+        // need to decode color representations.
         m_bytes    = m_spec.scanline_bytes();
         m_rawcolor = true;
     } else {
@@ -594,8 +601,8 @@ DPXOutput::write_buffer()
         ok = m_dpx.WriteElement(m_subimage, &m_buf[0], m_datasize);
         if (!ok) {
             const char* err = strerror(errno);
-            error("DPX write failed (%s)",
-                  (err && err[0]) ? err : "unknown error");
+            errorf("DPX write failed (%s)",
+                   (err && err[0]) ? err : "unknown error");
         }
         m_write_pending = false;
     }

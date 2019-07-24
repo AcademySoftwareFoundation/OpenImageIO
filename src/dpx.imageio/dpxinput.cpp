@@ -77,7 +77,7 @@ private:
             delete m_stream;
             m_stream = nullptr;
         }
-        delete m_dataPtr;
+        delete[] m_dataPtr;
         m_dataPtr = nullptr;
         m_userBuf.clear();
         m_rawcolor = false;
@@ -150,7 +150,7 @@ DPXInput::open(const std::string& name, ImageSpec& newspec)
     // open the image
     m_stream = new InStream();
     if (!m_stream->Open(name.c_str())) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
@@ -240,11 +240,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         m_spec.channelnames.emplace_back("A");
         m_spec.alpha_channel = 0;
         break;
-    case dpx::kLuma:
-        // FIXME: do we treat this as intensity or do we use Y' as per
-        // convention to differentiate it from linear luminance?
-        m_spec.channelnames.emplace_back("Y'");
-        break;
+    case dpx::kLuma: m_spec.channelnames.emplace_back("Y"); break;
     case dpx::kDepth:
         m_spec.channelnames.emplace_back("Z");
         m_spec.z_channel = 0;
@@ -562,7 +558,12 @@ DPXInput::seek_subimage(int subimage, int miplevel)
                          TypeDesc(TypeDesc::UCHAR, m_dpx.header.UserSize()),
                          &m_userBuf[0]);
 
-    dpx::Block block(0, 0, m_dpx.header.Width() - 1, 0);
+    // All of the 1-channel encoding options also behave like "rawcolor",
+    // not needing color space transformations.
+    if (m_spec.nchannels == 1)
+        m_rawcolor = true;
+
+    dpx::Block block(0, 0, m_dpx.header.Width() - 1, m_dpx.header.Height() - 1);
     int bufsize = dpx::QueryRGBBufferSize(m_dpx.header, subimage, block);
     if (bufsize == 0 && !m_rawcolor) {
         error("Unable to deliver RGB data from source data");

@@ -19,3 +19,11 @@ command += (oiio_app("oiiotool") + "ref/L.dpx ref/R.dpx --siappend -o stereo.dpx
 command += info_command("stereo.dpx", safematch=True, hash=False, extraargs="--stats")
 command += oiio_app("idiff") + "-a stereo.dpx ref/stereo.dpx >> out.txt;"
 
+# Test read/write of 1-channel DPX -- take a color image, make it grey,
+# write it as 1-channel DPX, then read it again and compare to a reference.
+# The reference is stored as TIFF rather than DPX just because it has
+# fantastically better compression.
+command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/dpx_nuke_16bits_rgba.dpx"
+                    " -chsum:weight=0.333,0.333,0.333 -chnames Y -ch Y -o grey.dpx")
+command += info_command("grey.dpx", safematch=True)
+command += diff_command("grey.dpx", "ref/grey.tif")

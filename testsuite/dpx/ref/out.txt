@@ -135,3 +135,21 @@ stereo.dpx           :   80 x   60, 3 channel, uint10 dpx
     Monochrome: Yes
 Comparing "stereo.dpx" and "ref/stereo.dpx"
 PASS
+Reading grey.dpx
+grey.dpx             :  512 x  512, 1 channel, uint10 dpx
+    SHA-1: 9D2BC270F3E29585604A1FF8A7EE07436DF48333
+    channel list: Y
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    dpx:Colorimetric: "User defined"
+    dpx:DittoKey: 1
+    dpx:EndOfImagePadding: 0
+    dpx:EndOfLinePadding: 0
+    dpx:ImageDescriptor: "Luma"
+    dpx:Packing: "Packed"
+    dpx:Signal: "Undefined"
+    dpx:Transfer: "Undefined"
+    dpx:Version: "V2.0"
+    oiio:BitsPerSample: 10
+Comparing "grey.dpx" and "ref/grey.tif"
+PASS
