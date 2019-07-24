@@ -141,7 +141,6 @@ grey.dpx             :  512 x  512, 1 channel, uint10 dpx
     channel list: Y
     Orientation: 1 (normal)
     PixelAspectRatio: 1
-    Software: "OpenImageIO 2.1.3dev : ../../src/oiiotool/oiiotool -colorconfig ../../../../testsuite/common/OpenCo"
     dpx:Colorimetric: "User defined"
     dpx:DittoKey: 1
     dpx:EndOfImagePadding: 0

@@ -25,5 +25,5 @@ command += oiio_app("idiff") + "-a stereo.dpx ref/stereo.dpx >> out.txt;"
 # fantastically better compression.
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/dpx_nuke_16bits_rgba.dpx"
                     " -chsum:weight=0.333,0.333,0.333 -chnames Y -ch Y -o grey.dpx")
-command += info_command("grey.dpx")
+command += info_command("grey.dpx", safematch=True)
 command += diff_command("grey.dpx", "ref/grey.tif")
