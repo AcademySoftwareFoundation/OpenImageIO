@@ -2,9 +2,7 @@
 
 
 # caspian.tif	279x220 64-bit floating point (deflate) Caspian Sea from space
-#   I can't get this to work with OIIO, but I can't get it to read with 
-#     ImageMagick or OSX preview, either.
-#   FIXME?
+command += rw_command (OIIO_TESTSUITE_IMAGEDIR, "caspian.tif")
 
 # cramps.tif	800x607 8-bit b&w (packbits) "cramps poster"
 #    This tests 1-bit images, and packbits compression

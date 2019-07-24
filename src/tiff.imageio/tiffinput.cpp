@@ -849,6 +849,8 @@ TIFFInput::readspec(bool read_meta)
         } else
             m_spec.set_format(TypeDesc::UNKNOWN);
         break;
+    case 24:
+        // Make 24 bit look like 32 bit
     case 32:
         if (sampleformat == SAMPLEFORMAT_IEEEFP)
             m_spec.set_format(TypeDesc::FLOAT);
@@ -1303,8 +1305,8 @@ void
 TIFFInput::bit_convert(int n, const unsigned char* in, int inbits, void* out,
                        int outbits)
 {
-    ASSERT(inbits >= 1 && inbits < 31);  // surely bugs if not
-    int highest = (1 << inbits) - 1;
+    ASSERT(inbits >= 1 && inbits < 32);  // surely bugs if not
+    uint32_t highest = (1 << inbits) - 1;
     int B = 0, b = 0;
     // Invariant:
     // So far, we have used in[0..B-1] and the high b bits of in[B].
@@ -1511,6 +1513,16 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                         m_separate ? &m_scratch[plane_bytes * c]
                                    : (unsigned char*)data + plane_bytes * c,
                         16);
+    } else if (m_bitspersample > 16 && m_bitspersample < 32) {
+        // m_scratch now holds nvals n-bit values, contig or separate
+        m_scratch2.resize(input_bytes);
+        m_scratch.swap(m_scratch2);
+        for (int c = 0; c < planes; ++c) /* planes==1 for contig */
+            bit_convert(m_separate ? m_spec.width : nvals,
+                        &m_scratch2[plane_bytes * c], m_bitspersample,
+                        m_separate ? &m_scratch[plane_bytes * c]
+                                   : (unsigned char*)data + plane_bytes * c,
+                        32);
     }
 
     // Handle "separate" planarconfig
