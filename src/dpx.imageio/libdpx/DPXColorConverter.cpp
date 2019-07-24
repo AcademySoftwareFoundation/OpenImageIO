@@ -305,15 +305,17 @@ namespace dpx {
 			case kABGR:		// only needs swapping
 				return pixels * -4 * bytes;
 				
+            // Added by lg, does this work?
+            case kRed:
+            case kGreen:
+            case kBlue:
+            case kAlpha:
+            case kLuma:
+            case kDepth:
+                return pixels * 1 * bytes;
 			// all the rest is either irrelevant, invalid or unsupported
 			/*case kUserDefinedDescriptor:
-			case kRed:
-			case kGreen:
-			case kBlue:
-			case kAlpha:
-			case kLuma:
 			case kColorDifference:
-			case kDepth:
 			case kUserDefined2Comp:
 			case kUserDefined3Comp:
 			case kUserDefined4Comp:
