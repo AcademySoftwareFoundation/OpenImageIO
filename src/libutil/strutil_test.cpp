@@ -741,7 +741,14 @@ void test_parse ()
     s = "";        skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "");
     s = "   ";     skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "");
     s = "foo";     skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "foo");
+    s = "\tfoo\t"; skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "foo\t");
     s = "  foo  "; skip_whitespace(s);  OIIO_CHECK_EQUAL (s, "foo  ");
+
+    s = "";        remove_trailing_whitespace(s);  OIIO_CHECK_EQUAL (s, "");
+    s = "   ";     remove_trailing_whitespace(s);  OIIO_CHECK_EQUAL (s, "");
+    s = "foo";     remove_trailing_whitespace(s);  OIIO_CHECK_EQUAL (s, "foo");
+    s = "\tfoo\t"; remove_trailing_whitespace(s);  OIIO_CHECK_EQUAL (s, "\tfoo");
+    s = "  foo  "; remove_trailing_whitespace(s);  OIIO_CHECK_EQUAL (s, "  foo");
 
     s = "abc"; OIIO_CHECK_ASSERT (! parse_char (s, 'd') && s == "abc");
 

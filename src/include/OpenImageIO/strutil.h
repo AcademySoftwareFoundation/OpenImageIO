@@ -442,7 +442,7 @@ OIIO_API double stod (const char* s, size_t* pos=0);
 
 
 
-/// Return true if the string is exactly (other than leading  and trailing
+/// Return true if the string is exactly (other than leading and trailing
 /// whitespace) a valid int.
 OIIO_API bool string_is_int (string_view s);
 
@@ -688,9 +688,20 @@ std::string OIIO_API utf16_to_utf8(const std::wstring& utf16str) noexcept;
 OIIO_API char * safe_strcpy (char *dst, string_view src, size_t size) noexcept;
 
 
-/// Modify str to trim any whitespace (space, tab, linefeed, cr) from the
-/// front.
+/// Modify str to trim any leading whitespace (space, tab, linefeed, cr)
+/// from the front.
 void OIIO_API skip_whitespace (string_view &str) noexcept;
+
+/// Modify str to trim any trailing whitespace (space, tab, linefeed, cr)
+/// from the back.
+void OIIO_API remove_trailing_whitespace (string_view &str) noexcept;
+
+/// Modify str to trim any whitespace (space, tab, linefeed, cr) from both
+/// the front and back.
+inline void trim_whitespace (string_view &str) noexcept {
+    skip_whitespace(str);
+    remove_trailing_whitespace(str);
+}
 
 /// If str's first character is c (or first non-whitespace char is c, if
 /// skip_whitespace is true), return true and additionally modify str to

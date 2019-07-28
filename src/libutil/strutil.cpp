@@ -659,8 +659,17 @@ Strutil::safe_strcpy(char* dst, string_view src, size_t size) noexcept
 void
 Strutil::skip_whitespace(string_view& str) noexcept
 {
-    while (str.size() && isspace(str[0]))
+    while (str.size() && isspace(str.front()))
         str.remove_prefix(1);
+}
+
+
+
+void
+Strutil::remove_trailing_whitespace(string_view& str) noexcept
+{
+    while (str.size() && isspace(str.back()))
+        str.remove_suffix(1);
 }
 
 
