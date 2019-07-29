@@ -73,7 +73,7 @@ if (NOT OpenImageIO_FIND_QUIETLY)
     message ( STATUS "OpenImageIO includes     = ${OPENIMAGEIO_INCLUDE_DIR}" )
     message ( STATUS "OpenImageIO libraries    = ${OPENIMAGEIO_LIBRARIES}" )
     message ( STATUS "OpenImageIO library_dirs = ${OPENIMAGEIO_LIBRARY_DIRS}" )
-    message ( STATUS "OpenImageIO oiiiotool    = ${OIIOTOOL_BIN}" )
+    message ( STATUS "OpenImageIO oiiotool     = ${OIIOTOOL_BIN}" )
 endif ()
 
 include (FindPackageHandleStandardArgs)
