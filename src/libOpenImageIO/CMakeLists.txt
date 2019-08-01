@@ -160,8 +160,10 @@ if (MSVC)
                   APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif ()
 
-if (WIN32)
+if (MSVC)
     target_link_libraries (OpenImageIO psapi.lib)
+elseif(MINGW)
+    target_link_libraries (OpenImageIO psapi ws2_32)
 endif ()
 
 if (VISIBILITY_MAP_FILE)
