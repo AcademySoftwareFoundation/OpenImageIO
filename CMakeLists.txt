@@ -216,7 +216,7 @@ add_subdirectory (src/fonts)
 add_subdirectory (src/nuke)
 
 # install pkgconfig file
-IF ( NOT WIN32 )
+IF ( NOT MSVC )
    configure_file(src/build-scripts/OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/OpenImageIO.pc" @ONLY) 
    install (FILES "${CMAKE_BINARY_DIR}/OpenImageIO.pc"
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
