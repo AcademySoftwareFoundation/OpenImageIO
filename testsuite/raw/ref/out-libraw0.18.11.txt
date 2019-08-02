@@ -413,7 +413,7 @@
     Olympus:ColorSpace: 0
     Olympus:EXIF_MaxAp: 2
     Olympus:FocusMode: 0, 0
-    Olympus:ImageStabilization: 0
+    Olympus:ImageStabilization: -1
     Olympus:InternalBodySerial: "4031712008217001               "
     Olympus:LensFormat: 8
     Olympus:LensID: 256
