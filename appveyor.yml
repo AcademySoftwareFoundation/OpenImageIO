@@ -1,5 +1,5 @@
 version: '{branch}-{build}'
-image: Visual Studio 2015
+image: Previous Visual Studio 2015
 clone_folder: C:\projects\oiio
 test: off
 configuration:
