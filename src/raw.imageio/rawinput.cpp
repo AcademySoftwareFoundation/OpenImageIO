@@ -368,9 +368,14 @@ RawInput::open_raw(bool unpack, const std::string& name,
     }
     m_processor->adjust_sizes_info_only();
 
+    // Process image at half size if "raw:half_size" is not 0
+    m_processor->imgdata.params.half_size
+        = config.get_int_attribute("raw:half_size", 0);
+    int div = m_processor->imgdata.params.half_size == 0 ? 1 : 2;
+
     // Set file information
-    m_spec = ImageSpec(m_processor->imgdata.sizes.iwidth,
-                       m_processor->imgdata.sizes.iheight,
+    m_spec = ImageSpec(m_processor->imgdata.sizes.iwidth / div,
+                       m_processor->imgdata.sizes.iheight / div,
                        3,  // LibRaw should only give us 3 channels
                        TypeDesc::UINT16);
     // Move the exif attribs we already read into the spec we care about
@@ -400,6 +405,24 @@ RawInput::open_raw(bool unpack, const std::string& name,
         if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 2)) {
             m_processor->imgdata.params.aber[0] = p->get<double>(0);
             m_processor->imgdata.params.aber[2] = p->get<double>(1);
+        }
+    }
+    // Set user white balance coefficients.
+    // Only has effect if "raw:use_camera_wb" is equal to 0,
+    // i.e. we are not using the camera white balance
+    {
+        auto p = config.find_attribute("raw:user_mul");
+        if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
+            m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
+            m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
+            m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
+            m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
+        }
+        if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
+            m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
+            m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
+            m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
+            m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
         }
     }
 

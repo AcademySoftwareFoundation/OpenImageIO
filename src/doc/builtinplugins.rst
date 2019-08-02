@@ -1370,6 +1370,13 @@ options are supported:
        decoding the raw image. The default (1,1) means to perform no
        correction. This is an overall spatial scale, sensible values will be
        very close to 1.0.
+   * - ``raw:half_size``
+     - int
+     - If nonzero, outputs the image in half size. (Default: 0)
+   * - ``raw:user_mul``
+     - float[4]
+     - Sets user white balance coefficients. Only applies if ``raw:use_camera_wb``
+       is not equal to 0.
    * - ``raw:ColorSpace``
      - string
      - Which color primaries to use: ``raw``, ``sRGB``, ``Adobe``, ``Wide``,
