@@ -118,6 +118,10 @@ test_int_helpers()
     OIIO_CHECK_EQUAL(round_to_multiple_of_pow2(size_t(3), size_t(4)), 4);
     OIIO_CHECK_EQUAL(round_to_multiple_of_pow2(size_t(4), size_t(4)), 4);
     OIIO_CHECK_EQUAL(round_to_multiple_of_pow2(size_t(5), size_t(4)), 8);
+
+    OIIO_CHECK_EQUAL(rotl(uint32_t(0x12345678), 4), uint32_t(0x23456781));
+    OIIO_CHECK_EQUAL(rotl(uint64_t(0x123456789abcdef0ULL), 4),
+                     uint64_t(0x23456789abcdef01ULL));
 }
 
 

@@ -1331,6 +1331,7 @@ test_transpose4()
 template<typename T> inline T do_shl (const T &a, int b) { return a<<b; }
 template<typename T> inline T do_shr (const T &a, int b) { return a>>b; }
 template<typename T> inline T do_srl (const T &a, int b) { return srl(a,b); }
+template<typename T> inline T do_rotl (const T &a, int b) { return rotl(a,b); }
 
 
 template<typename VEC>
@@ -1363,10 +1364,18 @@ test_shift()
     i = VEC::Iota (10, 10);   i >>= 1;
     OIIO_CHECK_SIMD_EQUAL (i, VEC::Iota(5, 5));
 
+    // Test rotl
+    {
+        vint4 v (0x12345678, 0xabcdef01, 0x98765432, 0x31415926);
+        vint4 r (0x23456781, 0xbcdef01a, 0x87654329, 0x14159263);
+        OIIO_CHECK_SIMD_EQUAL (rotl(v,4), r);
+    }
+
     // Benchmark
     benchmark2 ("operator<<", do_shl<VEC>, i, 2);
     benchmark2 ("operator>>", do_shr<VEC>, i, 2);
     benchmark2 ("srl       ", do_srl<VEC>, i, 2);
+    benchmark2 ("rotl      ", do_rotl<VEC>, i, 2);
 }
 
 

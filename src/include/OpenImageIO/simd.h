@@ -1134,7 +1134,9 @@ vint4 abs (const vint4& a);
 vint4 min (const vint4& a, const vint4& b);
 vint4 max (const vint4& a, const vint4& b);
 
-// Circular bit rotate by k bits, for N values at once.
+/// Circular bit rotate by s bits, for N values at once.
+vint4 rotl (const vint4& x, const int s);
+// DEPRECATED(2.1)
 vint4 rotl32 (const vint4& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
@@ -1432,7 +1434,9 @@ vint8 abs (const vint8& a);
 vint8 min (const vint8& a, const vint8& b);
 vint8 max (const vint8& a, const vint8& b);
 
-// Circular bit rotate by k bits, for N values at once.
+/// Circular bit rotate by s bits, for N values at once.
+vint8 rotl (const vint8& x, const int s);
+// DEPRECATED(2.1)
 vint8 rotl32 (const vint8& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
@@ -1737,7 +1741,9 @@ vint16 abs (const vint16& a);
 vint16 min (const vint16& a, const vint16& b);
 vint16 max (const vint16& a, const vint16& b);
 
-// Circular bit rotate by k bits, for N values at once.
+/// Circular bit rotate by s bits, for N values at once.
+vint16 rotl (const vint16& x, const int s);
+// DEPRECATED(2.1)
 vint16 rotl32 (const vint16& x, const unsigned int k);
 
 /// andnot(a,b) returns ((~a) & b)
@@ -4711,8 +4717,17 @@ OIIO_FORCEINLINE vint4 max (const vint4& a, const vint4& b) {
 }
 
 
+OIIO_FORCEINLINE vint4 rotl(const vint4& x, int s) {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    return _mm_rol_epi32 (x, s);
+#else
+    return (x<<s) | srl(x,32-s);
+#endif
+}
+
+// DEPRECATED (2.1)
 OIIO_FORCEINLINE vint4 rotl32 (const vint4& x, const unsigned int k) {
-    return (x<<k) | srl(x,32-k);
+    return rotl(x, k);
 }
 
 
@@ -5495,8 +5510,17 @@ OIIO_FORCEINLINE vint8 max (const vint8& a, const vint8& b) {
 }
 
 
+OIIO_FORCEINLINE vint8 rotl(const vint8& x, int s) {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    return _mm256_rol_epi32 (x, s);
+#else
+    return (x<<s) | srl(x,32-s);
+#endif
+}
+
+// DEPRECATED (2.1)
 OIIO_FORCEINLINE vint8 rotl32 (const vint8& x, const unsigned int k) {
-    return (x<<k) | srl(x,32-k);
+    return rotl(x, k);
 }
 
 
@@ -6284,8 +6308,17 @@ OIIO_FORCEINLINE vint16 max (const vint16& a, const vint16& b) {
 }
 
 
+OIIO_FORCEINLINE vint16 rotl(const vint16& x, int s) {
+#if OIIO_SIMD_AVX >= 512 && OIIO_AVX512VL_ENABLED
+    return _mm512_rol_epi32 (x, s);
+#else
+    return (x<<s) | srl(x,32-s);
+#endif
+}
+
+// DEPRECATED (2.1)
 OIIO_FORCEINLINE vint16 rotl32 (const vint16& x, const unsigned int k) {
-    return (x<<k) | srl(x,32-k);
+    return rotl(x, k);
 }
 
 
