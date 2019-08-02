@@ -288,7 +288,7 @@ public:
 
     /// Does the list contain the named attribute?
     bool contains(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
-                  bool casesensitive = true);
+                  bool casesensitive = true) const;
 
     // Add the param to the list, replacing in-place any existing one with
     // the same name.
