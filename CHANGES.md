@@ -88,6 +88,8 @@ Fixes and feature enhancements:
       Several commands were totally unaware of subimages, but now are so and
       respect `-a` and `allsubimages=` (--crop, --fullsize, --zover, --fill,
       --resize, --resample). #2202 #2219, #2242 (2.1.1, 2.1.2)
+    - `--ociodisplay`: empty display or view names imply using the default
+      display or view. #2273 (2.0.10/2.1.3)
 * ImageBuf/ImageBufAlgo:
     - `IBA::channel_append()` previously always forced its result to be float,
       if it wasn't previously initialized. Now it uses the uaual type-merging
@@ -106,6 +108,10 @@ Fixes and feature enhancements:
       data type combinations have higher precision. #2203 (2.0.8/2.1.1)
     - IBA `resize()` fix precision issues for 'double' images. #2211
       (2.0.8/2.1.1)
+    - `IBA::ociodisplay()`: empty display or view names imply using the
+      default display or view. #2273 (2.0.10/2.1.3)
+    - `IBA::fixNonFinite()`: fixed impicit float/double casts to half. #2301
+      (2.0.10/2.1.3)
 * ImageInput read_image/scanline/tile fixed subtle bugs for certain
   combination of strides and channel subset reads. #2108 (2.1.0/2.0.4)
 * ImageCache / TextureSystem / maketx:
@@ -126,13 +132,22 @@ Fixes and feature enhancements:
       default is 1<<30, meaning no effective limit. #2174 (2.1.1)
     - Stats now count the number of `TS::get_texture_info/IC::get_image_info`
       calls, like it did before for texture, etc. #2223 (2.1.1)
+    - `TS::environment()` can resolve subimage by name, as we do for
+      texture() and texture3d(). #2263
+    - Improvements to error message propagation. (2.1.3)
 * iv viewer:
     - Image info window now sorts the metadata, in the same manner as
       `iinfo -v` or `oiiotool -info -v`. #2159 (2.1.0/2.0.5)
+* Python bindings:
+    - Fix inability for Python to set timecode attributes (specifically, it
+      was trouble setting ImageSpec attributes that were unnsigned int
+      arrays). #2279 (2.0.9/2.1.3)
 * DPX:
     - Now recognizes the new transfer/colorimetric code for ADX. #2119
       (2.1.0/2.0.4)
     - Fix potential crash when file open fails. #2186 (2.0.7/2.1.1)
+    - Support for reading and writing 1-channel (luma, etc.) images. #2294
+      (2.0.10/2.1.3)
 * FITS:
     - Fix 16 and 32 bit int pixels which FITS spec says are signed, but we
       were treating as unsigned. #2178 (2.1.0)
@@ -167,6 +182,9 @@ Fixes and feature enhancements:
       both color primaries and transfer. Asking for "linear" gives you
       linear transfer with sRGB/Rec709 primaries. The default is true sRGB,
       because it will behave just like JPEG. #2260 (2.1.2)
+* RLA:
+    - Improved logic for determining the single best data type to report
+      for all channels. #2282 (2.1.3)
 * TIFF:
     - Fix problems with JPEG compression in some cases. #2117 (2.1.0/2.0.4)
     - Fix error where reading just a subset of channels, if that subset did
@@ -182,6 +200,9 @@ Fixes and feature enhancements:
       by the underlying libtiff). #2112 (2.1.0/2.0.5)
     - Fix crash reading certain old nconvert-written TIFF files.
       #2207 (2.0.8/2.1.1)
+    - Fix bugs when reading TIFF "cmyk" files. #2292. (2.0.10/2.1.3)
+    - Correctly handle read and write of 6, 14, and 24 bit per sample
+      images. #2296 (2.1.3)
 * WebP: fix bug that gave totally incorrect image read for webp images that
   had a smaller width than height. #2120 (2.1.0/2.0.4)
 * Fix potential threadpool deadlock issue that could happen if you were
@@ -227,6 +248,12 @@ Build/test system improvements and platform ports:
   to aid in debugging (but only if OIIO is built with Boost >= 1.65, because
   it relies on the Boost stacktrace library). #2229 (2.0.8/2.1.1)
 * Add gcc9 to Travis tet matrix and fix gcc9 related warnings. #2235 (2.1.2)
+* VDB reader pulled in the TBB libraries using the wrong CMake variable.
+  #2274 (2.1.3)
+* The embedded `fmt` implementation has been updated to fix windows
+  warnings. #2280 (2.1.3)
+* Improvements for finding certain new Boost versions. #2293 (2.0.10/2.1.3)
+* Build fixes for MinGW. #2304 (2.0.10/2.1.3)
 
 Developer goodies / internals:
 * argparse.h:
@@ -236,6 +263,9 @@ Developer goodies / internals:
 * attrdelegate.h:
     - New header implements "attribute delegates." (Read header for details)
       #2204 (2.1.1)
+* dassert.h:
+    - Spruce up ASSERT macros: more uniform wording, and use pretty function
+      printing to show what function the failure was in. #2262
 * `string_view` now adds an optional `pos` parameter to the `find_first_of`
   / `find_last_of` family of methods. #2114 (2.1.0/2.0.4)
 * strutil.h:
@@ -255,19 +285,95 @@ Developer goodies / internals:
       NULL. #2150 (2.1.0/2.0.5)
 * simd.h:
     - Added vec4 * matrix44 multiplication. #2165 (2.1.0/2.0.6)
+    - Guard against shenanigans when Xlib.h having been included and
+     `#define`ing True and False. #2272 (2.0.9/2.1.3)
 * strutil.h:
     - Added `excise_string_after_head()`. #2173 (2.1.0/2.0.6)
     - Fixed incorrect return type of `stof()`. #2254 (2.1.2)
+    - Added `remove_trailing_whitespace()` and `trim_whitespace()`. #2298
+      (2.1.3)
 * sysutil.h:
     - Added `stacktrace()` and `setup_crash_stacktrace()`. (Only functional
       if OIIO is built with Boost >= 1.65, because it relies on the Boost
       stacktrace library). #2229 (2.0.8/2.1.1)
+* ustring.h:
+    - Bug fix in `ustring::compare(string_view)`, in cases where the
+      string_view was longer than the ustring, but had the same character
+      sequennce up to the length of the ustring. #2283 (2.0.10/2.1.3)
 * Wide use of declaring methods `noexcept` when we want to promise that
   they won't throw exceptions. #2156, #2243 (2.1.0, 2.1.2)
 
 Notable documentation changes:
+* The whole documentation system has been overhauled. The main docs have
+  been converted from LaTeX to Sphinx (using Doxygen and Breathe) for
+  beautiful HTML as well as PDF docs and automatic hosting on
+  https://openimageio.readthedocs.io  #2247,2250,2253,2255,2268,2265,2270
+* Copyright notices have been changed for clarity and conformance with
+  SPDX conventions. #2264
+* New GitHub issue templates, making separate issue types for bug reports,
+  feature requests, build problems, and questions. #2271
 
 
+
+Release 2.0.10 (1 Aug, 2019) -- compared to 2.0.9
+-------------------------------------------------
+* ColorConfig improvements: (a) new getColorSpaceFamilyByName(); (b) new
+  methods to return the list of all color spaces, looks, displays, or views
+  for a display; (c) all of ColorConfig now exposed to Python. #2248
+* `IBA::ociodisplay()` and `oiiotool --ociodisplay`: empty display or view
+  names imply using the default display or view. #2273
+* Bug fix in `ustring::compare(string_view)`, in cases where the string_view
+  was longer than the ustring, but had the same character sequennce up to
+  the length of the ustring. #2283
+* `oiiotool --stats`: Fixed bug where `-iconfig` hints were not being
+  applied to the file as it was opened to compute the stats. #2288
+* Bug fix: `IBA::computePixelStats()` was not properly controlling the
+  number of threads with the `nthreads` parameter. #2289
+* Bug fix when reading TIFF bugs: In cases where the reader needed to close
+  and re-open the file silently (it could happen for certain scanline
+  traversal patterns), the re-open was not properly honorig any previous
+  "rawcolor" hints from the original open. #2285
+* Nuke txWriter updates that expose additional make_texture controls. #2290
+* Build system: Improvements for finding certain new Boost versions. #2293
+* Build system: Improvements finding OpenEXR installation.
+* Fix bugs when reading TIFF "cmyk" files. #2292.
+* DPX: support for reading and writing 1-channel (luma, etc.) DPX images.
+  #2294
+* `IBA::fixNonFinite()`: fixed impicit float/double casts to half. #2301
+* Build fixes for MinGW. #2304
+
+Release 2.0.9 (4 Jul, 2019) -- compared to 2.0.8
+------------------------------------------------
+* RAW: Clarification about color spaces: The open-with-config hint
+  "raw:ColorSpace" is more careful about color primaries versus transfer
+  curve. Asking for "sRGB" (which is the default) gives you true sRGB --
+  both color primaries and transfer. Asking for "linear" gives you linear
+  transfer with sRGB/Rec709 primaries. The default is true sRGB, because it
+  will behave just like JPEG. #2260 (2.1.2)
+* Improved oiiotool support of files with multiple subimages: Several
+  commands honored `-a` but did not respect individual `allsubimages=`
+  modifiers (--ch, --sattrib, --attrib, --caption, --clear-keywords,
+  --iscolorspace, --orientation, --clamp, -fixnan); Several commands always
+  worked on all subimages, but now properly respect `-a` and `allsubimages=`
+  (--origin, --fullpixels, --croptofull, --trim); Several commands were
+  totally unaware of subimages, but now are so and respect `-a` and
+  `allsubimages=` (--crop, --fullsize, --zover, --fill, --resize,
+  --resample). #2202 #2219, #2242
+* Fix broken ability to specify compression of multipart exr files. #2252
+* Fix Strutil::stof() return type error and other windows warnings. #2254
+* IBA::colortmatrixtransform() and `oiiotool --ccmatrix` allow you to
+  perform a matrix-based color space transformation. #2168
+* Guard simd.h against shenanigans when Xlib.h having been included and
+  `#define`ing True and False. #2272
+* RAW: Clarification about color spaces: The open-with-config hint
+  "raw:ColorSpace" is more careful about color primaries versus transfer
+  curve. Asking for "sRGB" (which is the default) gives you true sRGB --
+  both color primaries and transfer. Asking for "linear" gives you linear
+  transfer with sRGB/Rec709 primaries. The default is true sRGB, because it
+  will behave just like JPEG. #2260
+* Fix inability for python to set timecode attributes (specifically, it was
+  trouble setting ImageSpec attributes that were unnsigned int arrays).
+  #2279
 
 Release 2.0.8 (3 May, 2019) -- compared to 2.0.7
 ------------------------------------------------
