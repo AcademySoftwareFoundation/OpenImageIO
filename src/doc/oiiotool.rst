@@ -1036,9 +1036,10 @@ the reading of just that one file. Optional appended arguments include:
 .. option:: --autotile <tilesize>
 
     For the underlying ImageCache, turn on auto-tiling with the given tile
-    size. Setting *tilesize* to 0 turns off auto-tiling. If auto-tile is
-    turned on, The ImageCache "autoscanline" feature will also be enabled.
-    See Section :ref:`imagecacheattr-autotile` for details.
+    size. Setting *tilesize* to 0 turns off auto-tiling (the default is
+    off). If auto-tile is turned on, The ImageCache "autoscanline" feature
+    will also be enabled. See Section :ref:`imagecacheattr-autotile` for
+    details.
 
 .. option:: --iconfig <name> <value>
 

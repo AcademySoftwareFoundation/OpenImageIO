@@ -5609,7 +5609,7 @@ getargs(int argc, char* argv[])
                 "--noautocc %!", &ot.autocc, "Turn off automatic color conversion",
                 "--native %@", set_native, &ot.nativeread, "Keep native pixel data type (bypass cache if necessary)",
                 "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
-                "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile size for cached images (default=4096)",
+                "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile enable for cached images (the argument is the tile size, default 0 means no autotile)",
                 "--crash %@", crash_me, nullptr, "", // hidden option
                 "<SEPARATOR>", "Commands that read images:",
                 "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=, printinfo=, autocc=, type=, ch=)",
