@@ -1,5 +1,29 @@
-Release 2.0.10 (?? Aug?, 2019) -- compared to 2.0.9
-------------------------------------------------
+Release 2.0.10 (1 Aug, 2019) -- compared to 2.0.9
+-------------------------------------------------
+* ColorConfig improvements: (a) new getColorSpaceFamilyByName(); (b) new
+  methods to return the list of all color spaces, looks, displays, or views
+  for a display; (c) all of ColorConfig now exposed to Python. #2248
+* `IBA::ociodisplay()` and `oiiotool --ociodisplay`: empty display or view
+  names imply using the default display or view. #2273
+* Bug fix in `ustring::compare(string_view)`, in cases where the string_view
+  was longer than the ustring, but had the same character sequennce up to
+  the length of the ustring. #2283
+* `oiiotool --stats`: Fixed bug where `-iconfig` hints were not being
+  applied to the file as it was opened to compute the stats. #2288
+* Bug fix: `IBA::computePixelStats()` was not properly controlling the
+  number of threads with the `nthreads` parameter. #2289
+* Bug fix when reading TIFF bugs: In cases where the reader needed to close
+  and re-open the file silently (it could happen for certain scanline
+  traversal patterns), the re-open was not properly honorig any previous
+  "rawcolor" hints from the original open. #2285
+* Nuke txWriter updates that expose additional make_texture controls. #2290
+* Build system: Improvements for finding certain new Boost versions. #2293
+* Build system: Improvements finding OpenEXR installation.
+* Fix bugs when reading TIFF "cmyk" files. #2292.
+* DPX: support for reading and writing 1-channel (luma, etc.) DPX images.
+  #2294
+* `IBA::fixNonFinite()`: fixed impicit float/double casts to half. #2301
+* Build fixes for MinGW. #2304
 
 Release 2.0.9 (4 Jul, 2019) -- compared to 2.0.8
 ------------------------------------------------
