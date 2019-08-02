@@ -870,7 +870,7 @@ RawInput::get_makernotes_olympus()
     // unsigned     AFAreas[64];
     MAKERF(AFPointSelected);
     MAKERF(AFResult);
-    MAKERF(ImageStabilization);
+    // MAKERF(ImageStabilization);  Removed after 0.19
     MAKERF(ColorSpace);
 #endif
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
@@ -996,7 +996,7 @@ RawInput::get_makernotes_sony()
         MAKERF(ElectronicFrontCurtainShutter);
     MAKER(MeteringMode2, 0);
     add(m_make, "DateTime", mn.SonyDateTime);
-    MAKERF(TimeStamp);
+    // MAKERF(TimeStamp);  Removed after 0.19, is in 'other'
     MAKER(ShotNumberSincePowerUp, 0);
 #endif
 }
