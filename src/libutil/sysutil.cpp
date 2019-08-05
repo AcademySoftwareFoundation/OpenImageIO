@@ -522,7 +522,7 @@ Sysutil::put_in_background(int, char*[])
     return true;
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
     return true;
 #endif
 

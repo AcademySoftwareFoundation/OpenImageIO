@@ -4,7 +4,7 @@
 
 #pragma once
 
-#ifdef WIN32
+#ifdef _WIN32
 //#undef FAR
 #    define XMD_H
 #endif
