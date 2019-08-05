@@ -543,7 +543,7 @@ void cineon::GenericHeader::SetCreationTimeDate(const long sec)
 	struct tm *tm_time;
 	char str[32];
 
-#ifdef WIN32
+#ifdef _WIN32
 	_tzset();
 #endif
 
@@ -560,7 +560,7 @@ void cineon::GenericHeader::SetSourceTimeDate(const long sec)
 	struct tm *tm_time;
 	char str[32];
 
-#ifdef WIN32
+#ifdef _WIN32
 	_tzset();
 #endif
 

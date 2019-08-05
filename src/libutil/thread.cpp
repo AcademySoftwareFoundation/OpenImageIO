@@ -200,7 +200,7 @@ public:
             this->isDone = true;  // give the waiting threads a command to finish
         }
 
-#if defined(WIN32)
+#if defined(_WIN32)
         // When the static variable in default_thread_pool() is destroyed during DLL unloading,
         // the thread_pool destructor is called but the threads are already terminated.
         // So it is illegal to communicate with those other threads at this point.
