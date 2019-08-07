@@ -89,6 +89,7 @@ declare_paramvalue(py::module& m)
             },
             "value"_a, "casesensitive"_a = true)
         .def("sort", &ParamValueList::sort, "casesensitive"_a = true)
+        .def("merge", &ParamValueList::merge, "other"_a, "override"_a = false)
         .def("attribute",
              [](ParamValueList& self, const std::string& name, float val) {
                  self.attribute(name, TypeFloat, &val);

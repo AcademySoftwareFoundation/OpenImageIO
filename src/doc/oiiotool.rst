@@ -731,7 +731,7 @@ output each one to a different file, with names `sub0001.tif`,
     it vertically to preserve the original aspect ratio, and then print a
     message to the console revealing the resolution of the resulting image.
 
-.. option:: =-metamatch <regex>, --no-metamatch <regex>
+.. option:: --metamatch <regex>, --no-metamatch <regex>
 
     Regular expressions to restrict which metadata are output when using
     `oiiotool --info -v`.  The `--metamatch` expression causes only metadata
@@ -1223,7 +1223,7 @@ Writing images
 
 .. option:: --dither
 
-    Turns on *diether* when outputting to 8-bit image files (does not affect
+    Turns on *dither* when outputting to 8-bit image files (does not affect
     other data types). This adds just a bit of noise that reduces visible
     banding artifacts.
 
@@ -1262,6 +1262,15 @@ Writing images
     it writes the minimal data window that contains all the non-zero valued
     pixels.  In other words, trim off any all-black border rows and columns
     before writing the file.
+
+.. option:: --metamerge
+
+    When this flag is used, most image operations will try to merge the
+    metadata found in all of their source input images into the output.
+    The default (if this is not used) is that image oprations with multiple
+    input images will just take metadata from the first source image.
+
+    (This was added for OpenImageIO 2.1.)
 
 
 

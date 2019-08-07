@@ -12,10 +12,23 @@ pl['e'] = 2.71828
 pl['pi'] = 3.14159
 pl['foo'] = bar
 after removing 'e', len= 5 pl.contains('e')= False
+pl2 =
+  item a string aval
+  item m int 1
+After merge, pl =
+  item i int 1
+  item s string Bob
+  item j int 42
+  item foo string bar
+  item pi float 3.14159
+  item a string aval
+  item m int 1
 after sorting:
+  item a string aval
   item foo string bar
   item i int 1
   item j int 42
+  item m int 1
   item pi float 3.14159
   item s string Bob
 Done.

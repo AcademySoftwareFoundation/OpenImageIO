@@ -261,6 +261,39 @@ test_paramlist()
     pl.remove("foo");
     OIIO_CHECK_ASSERT(!pl.contains("foo"));
     OIIO_CHECK_ASSERT(pl.contains("bar"));
+
+    {
+        // Check merge
+        ParamValueList list1, list2;
+        list1.emplace_back("b", 2);
+        list1.emplace_back("c", 3);
+        list1.emplace_back("a", 1);
+        list2.emplace_back("d", 11);
+        list2.emplace_back("c", 10);
+        list1.merge(list2, /*override=*/false);
+        OIIO_CHECK_EQUAL(list1.size(), 4);
+        OIIO_CHECK_EQUAL(list1.get_int("a"), 1);
+        OIIO_CHECK_EQUAL(list1.get_int("b"), 2);
+        OIIO_CHECK_EQUAL(list1.get_int("c"), 3);
+        OIIO_CHECK_EQUAL(list1.get_int("d"), 11);
+        list1.merge(list2, /*override=*/true);
+        OIIO_CHECK_EQUAL(list1.size(), 4);
+        OIIO_CHECK_EQUAL(list1.get_int("a"), 1);
+        OIIO_CHECK_EQUAL(list1.get_int("b"), 2);
+        OIIO_CHECK_EQUAL(list1.get_int("c"), 10);
+        OIIO_CHECK_EQUAL(list1.get_int("d"), 11);
+
+        // Check sort
+        OIIO_CHECK_EQUAL(list1[0].name(), "b");
+        OIIO_CHECK_EQUAL(list1[1].name(), "c");
+        OIIO_CHECK_EQUAL(list1[2].name(), "a");
+        OIIO_CHECK_EQUAL(list1[3].name(), "d");
+        list1.sort();
+        OIIO_CHECK_EQUAL(list1[0].name(), "a");
+        OIIO_CHECK_EQUAL(list1[1].name(), "b");
+        OIIO_CHECK_EQUAL(list1[2].name(), "c");
+        OIIO_CHECK_EQUAL(list1[3].name(), "d");
+    }
 }
 
 

@@ -115,6 +115,16 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         // to fully read it into allocated memory so that we're able
         // to write to it subsequently.
         dst->make_writeable(true);
+
+        // Merge source metadata into destination if requested.
+        if (prepflags & IBAprep_MERGE_METADATA) {
+            if (A && A->initialized())
+                dst->specmod().extra_attribs.merge(A->spec().extra_attribs);
+            if (B && B->initialized())
+                dst->specmod().extra_attribs.merge(B->spec().extra_attribs);
+            if (C && C->initialized())
+                dst->specmod().extra_attribs.merge(C->spec().extra_attribs);
+        }
     } else {
         // Not an initialized destination image!
         ASSERT((A || roi.defined())
@@ -215,6 +225,16 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
             set_roi_full(spec, full_roi);
         else
             set_roi_full(spec, roi);
+
+        // Merge source metadata into destination if requested.
+        if (prepflags & IBAprep_MERGE_METADATA) {
+            if (A && A->initialized())
+                spec.extra_attribs.merge(A->spec().extra_attribs);
+            if (B && B->initialized())
+                spec.extra_attribs.merge(B->spec().extra_attribs);
+            if (C && C->initialized())
+                spec.extra_attribs.merge(C->spec().extra_attribs);
+        }
 
         if (prepflags & IBAprep_NO_COPY_METADATA)
             spec.extra_attribs.clear();

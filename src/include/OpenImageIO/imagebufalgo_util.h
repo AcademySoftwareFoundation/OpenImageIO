@@ -155,6 +155,7 @@ enum IBAprep_flags {
     IBAprep_DST_FLOAT_PIXELS = 1<<13,   // If dst is uninit, make it float
     IBAprep_MINIMIZE_NCHANNELS = 1<<14, // Multi-inputs get min(nchannels)
     IBAprep_REQUIRE_MATCHING_CHANNELS = 1<<15, // Channel names must match
+    IBAprep_MERGE_METADATA = 1 << 16,   // Merge all inputs' metadata
 };
 
 

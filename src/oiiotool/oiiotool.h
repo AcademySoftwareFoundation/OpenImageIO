@@ -56,6 +56,7 @@ public:
     bool autopremult;  // auto premult unassociated alpha input
     bool nativeread;   // force native data type reads
     bool printinfo_verbose;
+    bool metamerge;  // Merge source input metadata into output
     int cachesize;
     int autotile;
     int frame_padding;
@@ -658,6 +659,13 @@ public:
             bool ok = impl(nimages() ? &img[0] : NULL);
             if (!ok)
                 ot.errorf(opname(), "%s", img[0]->geterror());
+
+            // Merge metadata if called for
+            if (ot.metamerge)
+                for (int i = 1; i < nimages(); ++i)
+                    img[0]->specmod().extra_attribs.merge(
+                        img[i]->spec().extra_attribs);
+
             ir[0]->update_spec_from_imagebuf(s);
         }
 
