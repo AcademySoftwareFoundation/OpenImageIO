@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+####################################################################
+# This test exercises oiiotool functionality that is mostly about
+# copying pixels from one image to another.
+####################################################################
+
 
 # Some tests to verify that we are transferring data formats properly.
 #
@@ -19,6 +24,23 @@ command += oiiotool ("uint8.tif copy_uint16.tif -siappend -o tmp.tif " +
 command += oiiotool ("-pattern checker 128x128 3 uint8.tif -add -o tmp.tif " +
                      "-echo '\ncombining images result: ' -metamatch \"width|tile\" -i:info=2 tmp.tif")
 
+# test --crop
+command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --crop 100x400+50+200 -o crop.tif")
+
+# test --cut
+command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --cut 100x400+50+200 -o cut.tif")
+
+# test --paste
+command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif "
+            + "--pattern checker 256x256 3 --paste +150+75 -o pasted.tif")
+
+# test mosaic
+# Purposely test with fewer images than the mosaic array size
+command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
+            + "--pattern constant:color=0,1,0 50x50 3 "
+            + "--pattern constant:color=0,0,1 50x50 3 "
+            + "--mosaic:pad=10 2x2 -d uint8 -o mosaic.tif")
+
 
 # test --metamerge, using chappend as an example
 command += oiiotool ("--create 64x64 3 -chnames R,G,B -attrib a 3.0 -o aimg.exr")
@@ -30,7 +52,11 @@ command += info_command ("metamerge.exr", safematch=True)
 
 
 
+
 # Outputs to check against references
-outputs = [ "out.txt" ]
+outputs = [
+            "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
+            "out.txt"
+          ]
 
 #print "Running this command:\n" + command + "\n"

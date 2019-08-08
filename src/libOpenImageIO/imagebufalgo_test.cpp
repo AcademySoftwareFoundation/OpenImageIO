@@ -294,7 +294,7 @@ void
 test_paste()
 {
     std::cout << "test paste\n";
-    // Create the source image, make it a gradient
+    // Create the source image, make it a color gradient
     ImageSpec Aspec(4, 4, 3, TypeDesc::FLOAT);
     ImageBuf A(Aspec);
     for (ImageBuf::Iterator<float> it(A); !it.done(); ++it) {
@@ -303,14 +303,15 @@ test_paste()
         it[2] = 0.1f;
     }
 
-    // Create destination image -- black it out
+    // Create destination image -- fill with grey
     ImageSpec Bspec(8, 8, 3, TypeDesc::FLOAT);
     ImageBuf B(Bspec);
     float gray[3] = { 0.1f, 0.1f, 0.1f };
     ImageBufAlgo::fill(B, gray);
 
     // Paste a few pixels from A into B -- include offsets
-    ImageBufAlgo::paste(B, 2, 2, 0, 1 /* chan offset */, A, ROI(1, 4, 1, 4));
+    ImageBufAlgo::paste(B, 2, 2, 0, 1 /* chan offset */,
+                        ImageBufAlgo::cut(A, ROI(1, 4, 1, 4)));
 
     // Spot check
     float a[3], b[3];

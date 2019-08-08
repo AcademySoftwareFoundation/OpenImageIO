@@ -57,11 +57,11 @@ Comparing "flat.exr" and "../../../../testsuite/oiiotool-deep/ref/flat.exr"
 PASS
 Comparing "deepen.exr" and "../../../../testsuite/oiiotool-deep/ref/deepen.exr"
 PASS
-Comparing "crop.tif" and "../../../../testsuite/oiiotool/ref/crop.tif"
+Comparing "crop.tif" and "../../../../testsuite/oiiotool-copy/ref/crop.tif"
 PASS
-Comparing "cut.tif" and "../../../../testsuite/oiiotool/ref/cut.tif"
+Comparing "cut.tif" and "../../../../testsuite/oiiotool-copy/ref/cut.tif"
 PASS
-Comparing "pasted.tif" and "../../../../testsuite/oiiotool/ref/pasted.tif"
+Comparing "pasted.tif" and "../../../../testsuite/oiiotool-copy/ref/pasted.tif"
 PASS
 Comparing "rotate90.tif" and "../../../../testsuite/oiiotool-xform/ref/rotate90.tif"
 PASS

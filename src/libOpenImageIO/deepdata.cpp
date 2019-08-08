@@ -516,7 +516,7 @@ DeepData::set_samples(int64_t pixel, int samps)
     ASSERT(m_impl);
     if (m_impl->m_allocated) {
         // Data already allocated. Turn it into an insert or delete
-        int n = (int)samples(pixel);
+        int n = (int)m_impl->m_nsamples[pixel];
         if (samps > n)
             insert_samples(pixel, n, samps - n);
         else if (samps < n)

@@ -1396,11 +1396,11 @@ current top image.
     See the `--rotate90`, `--rotate180`, `--rotate270`, and `--reorient`
     commands for true rotation of the pixels (not just the metadata).
 
-.. option:: --origin <offset>
+.. option:: --origin <neworigin>
 
     Set the pixel data window origin, essentially translating the existing
     pixel data window to a different position on the image plane.
-    The offset is in the form::
+    The new data origin is in the form::
     
          [+-]x[+-]y
 
@@ -1408,6 +1408,21 @@ current top image.
 
         --origin +20+10           x=20, y=10
         --origin +0-40            x=0, y=-40
+
+
+.. option:: --originoffset <offset>
+
+    Alter the data window origin, translating the existing pixel data window
+    by this relative amount.
+    The offset is in the form::
+    
+         [+-]x[+-]y
+
+    Examples::
+
+        # Assuming the old origin was +100+20...
+        --originoffset +20+10           # new x=120, y=30
+        --originoffset +0-40            # new x=100, y=-20
 
 
 .. option:: --fullsize <size>
@@ -1985,9 +2000,44 @@ current top image.
 
     Takes two images -- the first is the "foreground" and the second is the
     "background" -- and uses the pixels of the foreground to replace those
-    of the backgroud beginning at the upper left *location* (expressed as
-    `+xpos+ypos`, e.g., `+100+50`, or of course using `-` for negative
-    offsets).
+    of the backgroud, with foreground pixel (0,0) being pasted to the
+    background at the *location* specified (expressed as `+xpos+ypos`, e.g.,
+    `+100+50`, or of course using `-` for negative offsets). Only pixels
+    within the actual data region of the foreground image are pasted in this
+    manner.
+
+    Note that if location is +0+0, the foreground image's data region will
+    be copied to its same position in the background image (this is useful
+    if you are pasting an image that already knows its correct data window
+    offset).
+
+    Optional appended modifiers include:
+
+    - `mergeroi=1` : If the value is nonzero, the result image will be sized
+      to be the *union* of the input images (versus being the same data
+      window as the background image). (The `mergeroi` modifier was added in
+      OIIO 2.1.)
+
+    - `all=1` : If the value is nonzero, will paste *all* images on the
+      image stack, not just the top two images. This can be useful to
+      paste-merge many images at once, for example, if you have rendered a
+      large image in abutting tiles and wish to re-assemble them into a
+      single image.  (The `all` modifier was added in OIIO 2.1.)
+
+    Examples::
+
+        # Result will be the size of bg, but with fg on top and with an
+        # offset of (100,100).
+        oiiotool fg.exr bg.exr -paste +100+100 -o out.exr
+
+        # Use "merge" mode, so result will be sized to contain both fg
+        # and bg. Also, paste fg into its natural position given by its
+        # data window.
+        oiiotool fg.exr bg.exr -paste:mergeroi=1 +0+0 -o out.exr
+
+        # Merge many non-overlapping "tiles" into one combined image
+        oiiotool img*.exr -paste:mergeroi=1:all=1 +0+0 -o combined.exr
+
 
 .. option:: --mosaic <size>
 
@@ -3143,6 +3193,12 @@ General commands that also work for deep images
 
     Crop (adjust the pixel data window), removing pixels or adding empty
     pixels as needed.
+
+.. option:: --paste <position>
+
+    Replace one image's pixels with another's (at an arbitary offset).
+
+    (This functionality was extended to deep images in OIIO 2.1.)
 
 .. option:: --resample <size>
 

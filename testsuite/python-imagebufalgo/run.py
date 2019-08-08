@@ -3,6 +3,7 @@
 refdirlist = [
     OIIO_TESTSUITE_ROOT + "/oiiotool/ref/",
     OIIO_TESTSUITE_ROOT + "/oiiotool-color/ref/",
+    OIIO_TESTSUITE_ROOT + "/oiiotool-copy/ref/",
     OIIO_TESTSUITE_ROOT + "/oiiotool-composite/ref/",
     OIIO_TESTSUITE_ROOT + "/oiiotool-fixnan/ref/",
     OIIO_TESTSUITE_ROOT + "/oiiotool-deep/ref/",

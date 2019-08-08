@@ -2084,6 +2084,21 @@ ImageBuf::set_deep_value(int x, int y, int z, int c, int s, uint32_t value)
 
 
 
+bool
+ImageBuf::copy_deep_pixel(int x, int y, int z, const ImageBuf& src, int srcx,
+                          int srcy, int srcz)
+{
+    impl()->validate_pixels();
+    src.impl()->validate_pixels();
+    if (!deep() || !src.deep())
+        return false;
+    int p    = pixelindex(x, y, z);
+    int srcp = src.pixelindex(srcx, srcy, srcz);
+    return impl()->m_deepdata.copy_deep_pixel(p, *src.deepdata(), srcp);
+}
+
+
+
 int
 ImageBuf::xbegin() const
 {

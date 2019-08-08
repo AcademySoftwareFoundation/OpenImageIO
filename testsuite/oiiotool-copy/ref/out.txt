@@ -43,3 +43,11 @@ metamerge.exr        :   64 x   64, 6 channel, float openexr
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
     oiio:subimages: 1
+Comparing "crop.tif" and "ref/crop.tif"
+PASS
+Comparing "cut.tif" and "ref/cut.tif"
+PASS
+Comparing "pasted.tif" and "ref/pasted.tif"
+PASS
+Comparing "mosaic.tif" and "ref/mosaic.tif"
+PASS

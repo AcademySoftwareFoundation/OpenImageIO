@@ -21,6 +21,7 @@
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/imagebuf.h>
@@ -263,6 +264,33 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy)
             }
         }
     }
+
+    if (!ok) {
+        errorf("read " + img->name(), "%s", img->geterror());
+    }
+    return ok;
+}
+
+
+
+bool
+Oiiotool::read_nativespec(ImageRecRef img)
+{
+    // If the image is already elaborated, take an early out, both to
+    // save time, but also because we only want to do the format and
+    // tile adjustments below as images are read in fresh from disk.
+    if (img->elaborated())
+        return true;
+
+    // Cause the ImageRec to get read.  Try to compute how long it took.
+    // Subtract out ImageCache time, to avoid double-accounting it later.
+    float pre_ic_time, post_ic_time;
+    imagecache->getattribute("stat:fileio_time", pre_ic_time);
+    total_readtime.start();
+    bool ok = img->read_nativespec();
+    total_readtime.stop();
+    imagecache->getattribute("stat:fileio_time", post_ic_time);
+    total_imagecache_readtime += post_ic_time - pre_ic_time;
 
     if (!ok) {
         errorf("read " + img->name(), "%s", img->geterror());
@@ -925,7 +953,8 @@ Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
 
 bool
 Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
-                          const char* geom, bool allow_scaling) const
+                          const char* geom, bool allow_scaling,
+                          bool allow_size) const
 {
     float scaleX = 1.0f;
     float scaleY = 1.0f;
@@ -939,6 +968,11 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
         h = std::max(0, ymax - yy + 1);
     } else if (sscanf(geom, "%dx%d%d%d", &ww, &hh, &xx, &yy) == 4
                || sscanf(geom, "%dx%d+%d+%d", &ww, &hh, &xx, &yy) == 4) {
+        if (!allow_size) {
+            warning(command,
+                    "can't be used to change the size, only the origin");
+            return false;
+        }
         if (ww == 0 && h != 0)
             ww = int(hh * float(w) / float(h) + 0.5f);
         if (hh == 0 && w != 0)
@@ -948,14 +982,22 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
         x = xx;
         y = yy;
     } else if (sscanf(geom, "%dx%d", &ww, &hh) == 2) {
+        if (!allow_size) {
+            warning(command,
+                    "can't be used to change the size, only the origin");
+            return false;
+        }
         if (ww == 0 && h != 0)
             ww = int(hh * float(w) / float(h) + 0.5f);
         if (hh == 0 && w != 0)
             hh = int(ww * float(h) / float(w) + 0.5f);
         w = ww;
         h = hh;
-    } else if (allow_scaling
-               && sscanf(geom, "%f%%x%f%%", &scaleX, &scaleY) == 2) {
+    } else if (sscanf(geom, "%f%%x%f%%", &scaleX, &scaleY) == 2) {
+        if (!allow_scaling) {
+            warning(command, "can't be used to rescale the size");
+            return false;
+        }
         scaleX = std::max(0.0f, scaleX * 0.01f);
         scaleY = std::max(0.0f, scaleY * 0.01f);
         if (scaleX == 0 && scaleY != 0)
@@ -967,11 +1009,19 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
     } else if (sscanf(geom, "%d%d", &xx, &yy) == 2) {
         x = xx;
         y = yy;
-    } else if (allow_scaling && sscanf(geom, "%f%%", &scaleX) == 1) {
+    } else if (sscanf(geom, "%f%%", &scaleX) == 1) {
+        if (!allow_scaling) {
+            warning(command, "can't be used to rescale the size");
+            return false;
+        }
         scaleX *= 0.01f;
         w = (int)(w * scaleX + 0.5f);
         h = (int)(h * scaleX + 0.5f);
-    } else if (allow_scaling && sscanf(geom, "%f", &scaleX) == 1) {
+    } else if (sscanf(geom, "%f", &scaleX) == 1) {
+        if (!allow_scaling) {
+            warning(command, "can't be used to rescale the size");
+            return false;
+        }
         w = (int)(w * scaleX + 0.5f);
         h = (int)(h * scaleX + 0.5f);
     } else {
@@ -1734,6 +1784,50 @@ set_origin(int argc, const char* argv[])
             // That updated the private spec of the ImageRec. In this case
             // we really need to update the underlying IB as well.
             ib.set_origin(x, y, z);
+            A->metadata_modified(true);
+        }
+    }
+    ot.function_times[command] += timer();
+    return 0;
+}
+
+
+
+static int
+offset_origin(int argc, const char* argv[])
+{
+    if (ot.postpone_callback(1, offset_origin, argc, argv))
+        return 0;
+    Timer timer(ot.enable_function_timing);
+    string_view command = ot.express(argv[0]);
+    string_view origin  = ot.express(argv[1]);
+
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
+
+    ot.read();
+    ImageRecRef A = ot.curimg;
+    int subimages = allsubimages ? A->subimages() : 1;
+    for (int s = 0; s < subimages; ++s) {
+        ImageSpec& spec(*A->spec(s));
+        int x = 0, y = 0, z = 0;  // OFFSETS, not set values
+        int w = spec.width, h = spec.height;
+        ot.adjust_geometry(command, w, h, x, y, origin.c_str(), false, false);
+        if (x != 0 || y != 0) {
+            ImageBuf& ib = (*A)(s);
+            if (ib.storage() == ImageBuf::IMAGECACHE) {
+                // If the image is cached, we will totally screw up the IB/IC
+                // operations if we try to change the origin in place, so in
+                // that case force a full read to convert to a local buffer,
+                // which is safe to diddle the origin.
+                ib.read(0, 0, true /*force*/, spec.format);
+            }
+            spec.x += x;
+            spec.y += y;
+            spec.z += z;
+            // That updated the private spec of the ImageRec. In this case
+            // we really need to update the underlying IB as well.
+            ib.set_origin(spec.x, spec.y, spec.z);
             A->metadata_modified(true);
         }
     }
@@ -3984,24 +4078,94 @@ action_paste(int argc, const char* argv[])
     Timer timer(ot.enable_function_timing);
     string_view command  = ot.express(argv[0]);
     string_view position = ot.express(argv[1]);
+    auto options         = ot.extract_options(command);
+    bool do_merge        = options.get_int("mergeroi");
+    bool merge_all       = options.get_int("all");
 
-    ImageRecRef BG(ot.pop());
-    ImageRecRef FG(ot.pop());
-    ot.read(BG);
-    ot.read(FG);
+    // Because we're popping off the stack, the background image is going
+    // to be FIRST, and the foreground-most image will be LAST.
+    int ninputs = merge_all ? ot.image_stack_depth() : 2;
+    std::vector<ImageRecRef> inputs;
+    for (int i = 0; i < ninputs; ++i)
+        inputs.push_back(ot.pop());
 
-    int x = 0, y = 0;
-    if (sscanf(position.c_str(), "%d%d", &x, &y) != 2) {
+    // Take the metadata from the bg image
+    ot.read(inputs.front());  // FIXME: find a way to avoid this
+    ImageSpec spec = *(inputs.front()->spec());
+
+    // Compute the merged ROIs
+    ROI roi_all, roi_full_all;
+    for (int i = 0; i < ninputs; ++i) {
+        if (ot.debug && ninputs > 4)
+            Strutil::printf("    paste/1 %d (total time %s, mem %s)\n", i,
+                            Strutil::timeintervalformat(ot.total_runtime(), 2),
+                            Strutil::memformat(Sysutil::memory_used()));
+        ot.read(inputs[i]);
+        roi_all      = roi_union(roi_all, inputs[i]->spec()->roi());
+        roi_full_all = roi_union(roi_full_all, inputs[i]->spec()->roi_full());
+    }
+
+    // Create result image
+    ROI roi      = do_merge ? roi_all : inputs[0]->spec()->roi();
+    ROI roi_full = do_merge ? roi_full_all : inputs[0]->spec()->roi_full();
+    spec.set_roi(roi);
+    spec.set_roi_full(roi_full);
+    ImageBufRef Rbuf(new ImageBuf(spec, InitializePixels::No));
+
+    int x = 0, y = 0, z = 0;
+    if (position == "-" || position == "auto") {
+        // Come back to this
+    } else if (sscanf(position.c_str(), "%d%d", &x, &y) != 2) {
         ot.errorf(command, "Invalid offset '%s'", position);
         return 0;
     }
 
-    ImageRecRef R(new ImageRec(*BG, 0, 0, true /* writable*/, true /* copy */));
+    if (spec.deep) {
+        // Special work for deep images -- to make it efficient, we need
+        // to pre-allocate the fully merged set of samples.
+        for (int i = 0; i < ninputs; ++i) {
+            if (ot.debug && ninputs > 4)
+                Strutil::printf("    paste/2 %d (total time %s, mem %s)\n", i,
+                                Strutil::timeintervalformat(ot.total_runtime(),
+                                                            2),
+                                Strutil::memformat(Sysutil::memory_used()));
+            ImageRecRef FG = inputs[i];
+            if (!FG->spec()->deep)
+                break;
+            const ImageBuf& fg((*FG)());
+            const DeepData* fgdd(fg.deepdata());
+            for (ImageBuf::ConstIterator<float> r(fg); !r.done(); ++r) {
+                int srcpixel = fg.pixelindex(r.x(), r.y(), r.z(), true);
+                if (srcpixel < 0)
+                    continue;  // Nothing in this pixel
+                int dstpixel = Rbuf->pixelindex(r.x() + x, r.y() + y,
+                                                r.z() + z);
+                Rbuf->deepdata()->set_samples(dstpixel,
+                                              fgdd->samples(srcpixel));
+            }
+        }
+    }
+
+    // Start by just copying the most background image
+    bool ok = ImageBufAlgo::copy(*Rbuf, (*inputs[0])());
+    if (!ok)
+        ot.error(command, Rbuf->geterror());
+
+    // Now paste the other images, back to front
+    for (int i = 1; i < ninputs && ok; ++i) {
+        if (ot.debug && ninputs > 4)
+            Strutil::printf("    paste/3 %d (total time %s, mem %s)\n", i,
+                            Strutil::timeintervalformat(ot.total_runtime(), 2),
+                            Strutil::memformat(Sysutil::memory_used()));
+        ImageRecRef FG = inputs[i];
+        ok             = ImageBufAlgo::paste(*Rbuf, x, y, 0, 0, (*FG)());
+        if (!ok)
+            ot.error(command, Rbuf->geterror());
+    }
+
+    ImageRecRef R(new ImageRec(Rbuf, /*copy_pixels=*/false));
     ot.push(R);
 
-    bool ok = ImageBufAlgo::paste((*R)(), x, y, 0, 0, (*FG)());
-    if (!ok)
-        ot.error(command, (*R)().geterror());
     ot.function_times[command] += timer();
     return 0;
 }
@@ -5548,6 +5712,8 @@ getargs(int argc, char* argv[])
                 "--rot180 %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
                 "--origin %@ %s:+X+Y", set_origin, NULL,
                     "Set the pixel data window origin (e.g. +20+10, -16-16)",
+                "--originoffset %@ %s:+X+Y", offset_origin, NULL,
+                    "Offset the pixel data window origin from its current position (e.g. +20+10, -16-16)",
                 "--fullsize %@ %s:GEOM", set_fullsize, NULL, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",
                 "--fullpixels %@", set_full_to_pixels, NULL, "Set the 'full' image range to be the pixel data window",
                 "--chnames %@ %s:NAMELIST", set_channelnames, NULL,
@@ -5596,7 +5762,7 @@ getargs(int argc, char* argv[])
                 "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
                 "--trim %@", action_trim, NULL, "Crop to the minimal ROI containing nonzero pixel values",
                 "--cut %@ %s:GEOM", action_cut, NULL, "Cut out the ROI and reposition to the origin (WxH+X+Y or xmin,ymin,xmax,ymax)",
-                "--paste %@ %s:+X+Y", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50)",
+                "--paste %@ %s:+X+Y", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50; '-' or 'auto' indicates using the data window position as-is; options: all=%d, mergeroi=%d)",
                 "--mosaic %@ %s:WxH", action_mosaic, NULL,
                         "Assemble images into a mosaic (arg: WxH; options: pad=0)",
                 "--over %@", action_over, NULL, "'Over' composite of two images",

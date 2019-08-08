@@ -493,7 +493,7 @@ Shuffling channels
 
   Examples::
 
-    // Paste small.exr on top of big.exr at offset (100,100)
+    // Paste small.exr on top of big.exr, offset by (100,100)
     ImageBuf Big ("big.exr");
     ImageBuf Small ("small.exr");
     ImageBufAlgo::paste (Big, 100, 100, 0, 0, Small);
