@@ -72,22 +72,22 @@ getargs(int argc, char* argv[])
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose status messages",
-                "--threads %d", &nthreads, "Number of threads (default 0 = #cores)",
-                "-d %s", &dataformatname, "Set the output data format to one of:"
+                "--threads %d:NTHREADS", &nthreads, "Number of threads (default 0 = #cores)",
+                "-d %s:TYPE", &dataformatname, "Set the output data format to one of:"
                         "uint8, sint8, uint10, uint12, uint16, sint16, half, float, double",
-                "-g %f", &gammaval, "Set gamma correction (default = 1)",
-                "--tile %d %d", &tile[0], &tile[1], "Output as a tiled image",
+                "-g %f:GAMMA", &gammaval, "Set gamma correction (default = 1.0)",
+                "--tile %d:WIDTH %d:HEIGHT", &tile[0], &tile[1], "Output as a tiled image",
                 "--scanline", &scanline, "Output as a scanline image",
-                "--compression %s", &compression, "Set the compression method (default = same as input)."
+                "--compression %s:METHOD", &compression, "Set the compression method (default = same as input)."
                                     " Note: may be in the form \"name:quality\"",
                 "--quality %d", &quality, "", // DEPRECATED(2.1)
                 "--no-copy-image", &no_copy_image, "Do not use ImageOutput copy_image functionality (dbg)",
                 "--adjust-time", &adjust_time, "Adjust file times to match DateTime metadata",
-                "--caption %s", &caption, "Set caption (ImageDescription)",
-                "--keyword %L", &keywords, "Add a keyword",
+                "--caption %s:TEXT", &caption, "Set caption (ImageDescription)",
+                "--keyword %L:NAME", &keywords, "Add a keyword",
                 "--clear-keywords", &clear_keywords, "Clear keywords",
-                "--attrib %L %L", &attribnames, &attribvals, "Set a string attribute (name, value)",
-                "--orientation %d", &orientation, "Set the orientation",
+                "--attrib %L:NAME %L:VALUE", &attribnames, &attribvals, "Set a string attribute",
+                "--orientation %d:ORIENT", &orientation, "Set the orientation",
                 "--rotcw", &rotcw, "Rotate 90 deg clockwise",
                 "--rotccw", &rotccw, "Rotate 90 deg counter-clockwise",
                 "--rot180", &rot180, "Rotate 180 deg",

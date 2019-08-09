@@ -640,7 +640,7 @@ main(int argc, const char* argv[])
                 "%*", parse_files, "",
                 "--help", &help, "Print help message",
                 "-v", &verbose, "Verbose output",
-                "-m %s", &metamatch, "Metadata names to print (default: all)",
+                "-m %s:NAMES", &metamatch, "Metadata names to print (default: all)",
                 "-f", &filenameprefix, "Prefix each line with the filename",
                 "-s", &sum, "Sum the image sizes",
                 "-a", &subimages, "Print info about all subimages",

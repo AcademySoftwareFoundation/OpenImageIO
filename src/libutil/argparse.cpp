@@ -33,6 +33,7 @@ public:
     const std::string& name() const { return m_flag; }
 
     const std::string& fmt() const { return m_format; }
+    const std::string& prettyformat() const { return m_prettyformat; }
 
     bool is_flag() const { return m_type == Flag; }
     bool is_reverse_flag() const { return m_type == ReverseFlag; }
@@ -65,9 +66,10 @@ public:
 private:
     enum OptionType { None, Regular, Flag, ReverseFlag, Sublist };
 
-    std::string m_format;  // original format string
-    std::string m_flag;    // just the -flag_foo part
-    std::string m_code;    // paramter types, eg "df"
+    std::string m_format;        // original format string
+    std::string m_prettyformat;  // human readable format
+    std::string m_flag;          // just the -flag_foo part
+    std::string m_code;          // paramter types, eg "df"
     std::string m_descript;
     OptionType m_type = None;
     int m_count       = 0;       // number of parameters
@@ -115,9 +117,32 @@ public:
 
 // Constructor.  Does not do any parsing or error checking.
 // Make sure to call initialize() right after construction.
+// The format may look like this: "%g:FOO", and in that case split
+// the formatting part (e.g. "%g") from the self-documenting
+// human-readable argument name ("FOO")
 ArgOption::ArgOption(const char* str)
-    : m_format(str)
 {
+    std::vector<string_view> prettyargs;
+    std::vector<string_view> uglyargs;
+    auto args = Strutil::splits(str, " ");
+    for (auto&& a : args) {
+        auto parts     = Strutil::splitsv(a, ":", 2);
+        string_view ug = a, pr = a;
+        if (parts.size() == 2) {
+            ug = parts[0];
+            pr = parts[1];
+        }
+        uglyargs.push_back(ug);
+        if (pr == "%L")
+            pr = "%s";
+        if (pr != "%!" && pr != "%@")
+            prettyargs.push_back(pr);
+    }
+    m_format       = Strutil::join(uglyargs, " ");
+    m_prettyformat = Strutil::join(prettyargs, " ");
+    // std::cout << "Arg str = " << str << "\n";
+    // std::cout << "   pretty = " << m_prettyformat << "\n";
+    // std::cout << "   ugly   = " << m_format << "\n";
 }
 
 
@@ -223,15 +248,6 @@ ArgOption::initialize()
             }
         }
     }
-
-    // A few replacements to tidy up the format string for printing
-    size_t loc;
-    while ((loc = m_format.find("%L")) != std::string::npos)
-        m_format.replace(loc, 2, "%s");
-    while ((loc = m_format.find("%!")) != std::string::npos)
-        m_format.replace(loc, 2, "");
-    while ((loc = m_format.find("%@")) != std::string::npos)
-        m_format.replace(loc, 2, "");
 
     // Allocate space for the parameter pointers and initialize to NULL
     m_param.resize(m_count, NULL);
@@ -374,7 +390,7 @@ ArgParse::Impl::parse(int xargc, const char** xargv)
                     if (j + i + 1 >= m_argc) {
                         error("Missing parameter %d from option "
                               "\"%s\"",
-                              j + 1, option->name().c_str());
+                              j + 1, option->name());
                         return -1;
                     }
                     option->set_parameter(j, m_argv[i + j + 1]);
@@ -519,7 +535,7 @@ ArgParse::usage() const
     size_t maxlen = 0;
 
     for (auto&& opt : m_impl->m_option) {
-        size_t fmtlen = opt->fmt().length();
+        size_t fmtlen = opt->prettyformat().length();
         // Option lists > 40 chars will be split into multiple lines
         if (fmtlen < longline)
             maxlen = std::max(maxlen, fmtlen);
@@ -530,13 +546,13 @@ ArgParse::usage() const
 
     for (auto&& opt : m_impl->m_option) {
         if (opt->description().length()) {
-            size_t fmtlen = opt->fmt().length();
+            size_t fmtlen = opt->prettyformat().length();
             if (opt->is_separator()) {
                 std::cout << Strutil::wordwrap(opt->description(), columns - 2,
                                                0)
                           << '\n';
             } else {
-                std::cout << "    " << opt->fmt();
+                std::cout << "    " << opt->prettyformat();
                 if (fmtlen < longline)
                     std::cout << std::string(maxlen + 2 - fmtlen, ' ');
                 else

@@ -98,6 +98,17 @@ class ArgOption;  // Forward declaration
 ///            encountered (like %*, but only for those prior to the first
 ///            real option.
 ///
+/// The argument type specifier may be followed by an optional colon (:) and
+/// then a human-readable parameter that will be printed in the help
+/// message. For example,
+///
+///     "--foo %d:WIDTH %d:HEIGHT", ...
+///
+/// indicates that `--foo` takes two integer arguments, and the help message
+/// will be rendered as:
+///
+///     --foo WIDTH HEIGHT    Set the foo size
+///
 /// There are several special format tokens:
 ///    - "<SEPARATOR>" - not an option at all, just a description to print
 ///                     in the usage output.
