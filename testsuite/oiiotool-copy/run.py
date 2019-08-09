@@ -20,6 +20,13 @@ command += oiiotool ("-pattern checker 128x128 3 uint8.tif -add -o tmp.tif " +
                      "-echo '\ncombining images result: ' -metamatch \"width|tile\" -i:info=2 tmp.tif")
 
 
+# test --metamerge, using chappend as an example
+command += oiiotool ("--create 64x64 3 -chnames R,G,B -attrib a 3.0 -o aimg.exr")
+command += oiiotool ("--create 64x64 3 -chnames A,Z -attrib b 1.0 -o bimg.exr")
+command += oiiotool ("aimg.exr bimg.exr --chappend -o nometamerge.exr")
+command += oiiotool ("--metamerge aimg.exr bimg.exr --chappend -o metamerge.exr")
+command += info_command ("nometamerge.exr", safematch=True)
+command += info_command ("metamerge.exr", safematch=True)
 
 
 

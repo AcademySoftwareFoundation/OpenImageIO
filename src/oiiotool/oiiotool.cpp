@@ -142,6 +142,7 @@ Oiiotool::clear_options()
     autocc             = false;
     autopremult        = true;
     nativeread         = false;
+    metamerge          = false;
     cachesize          = 4096;
     autotile           = 0;  // was: 4096
     // FIXME: Turned off autotile by default Jan 2018 after thinking that
@@ -2317,6 +2318,13 @@ action_chappend(int argc, const char* argv[])
                                                    (*B)(s, m));
             if (!ok)
                 ot.error(command, (*R)(s, m).geterror());
+            if (ot.metamerge) {
+                (*R)(s, m).specmod().extra_attribs.merge(
+                    A->spec(s, m)->extra_attribs);
+                (*R)(s, m).specmod().extra_attribs.merge(
+                    B->spec(s, m)->extra_attribs);
+            }
+
             // Tricky subtlety: IBA::channels changed the underlying IB,
             // we may need to update the IRR's copy of the spec.
             R->update_spec_from_imagebuf(s, m);
@@ -5381,6 +5389,11 @@ print_help_end(const ArgParse& ap, std::ostream& out)
     // same area is this executable, otherwise just point to the copy on
     // GitHub corresponding to our version of the softare.
     out << "Full OIIO documentation can be found at\n";
+    out << "    https://openimageio.readthedocs.io\n";
+#if 0
+    FIXME -- when we have multiple versions online, return to this and
+    customize the version we have them look up.
+
     std::string path = Sysutil::this_program_path();
     path             = Filesystem::parent_path(path);
     path             = Filesystem::parent_path(path);
@@ -5399,6 +5412,7 @@ print_help_end(const ArgParse& ap, std::ostream& out)
             branch);
         out << "    " << docsurl << "\n";
     }
+#endif
 }
 
 
@@ -5472,6 +5486,7 @@ getargs(int argc, char* argv[])
                 "--native %@", set_native, &ot.nativeread, "Keep native pixel data type (bypass cache if necessary)",
                 "--cache %@ %d", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
                 "--autotile %@ %d", set_autotile, &ot.autotile, "Autotile enable for cached images (the argument is the tile size, default 0 means no autotile)",
+                "--metamerge", &ot.metamerge, "Always merge metadata of all inputs into output",
                 "--crash %@", crash_me, nullptr, "", // hidden option
                 "<SEPARATOR>", "Commands that read images:",
                 "-i %@ %s", input_file, NULL, "Input file (argument: filename) (options: now=, printinfo=, autocc=, type=, ch=)",

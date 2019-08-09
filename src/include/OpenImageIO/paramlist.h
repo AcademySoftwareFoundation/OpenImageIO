@@ -352,11 +352,22 @@ public:
     bool getattribute(string_view name, std::string& value,
                       bool casesensitive = false) const;
 
-    // Sort alphabetically, optionally case-insensitively, locale-
-    // independently, and with all the "un-namespaced" items appearing
-    // first, followed by items with "prefixed namespaces" (e.g. "z" comes
-    // before "foo:a").
+    /// Sort alphabetically, optionally case-insensitively, locale-
+    /// independently, and with all the "un-namespaced" items appearing
+    /// first, followed by items with "prefixed namespaces" (e.g. "z" comes
+    /// before "foo:a").
     void sort(bool casesensitive = true);
+
+    /// Merge items from PVL `other` into `*this`. Note how this differs
+    /// from `operator=` : assignment completely replaces the list with
+    /// the contents of another. But merge() adds the other items without
+    /// erasing any items already in this list.
+    ///
+    /// @param override
+    ///     If true, `other` attributes will replace any identically-named
+    ///     attributes already in this list. If false, only attributes whose
+    ///     names are not already in this list will be appended.
+    void merge(const ParamValueList& other, bool override = false);
 
     /// Even more radical than clear, free ALL memory associated with the
     /// list itself.

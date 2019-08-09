@@ -4,6 +4,12 @@ from __future__ import print_function
 import OpenImageIO as oiio
 
 
+def print_param_list(pl) :
+    for p in pl :
+        if type(p.value) == float :
+            print ("  item {} {} {:.6}".format(p.name, p.type, p.value))
+        else :
+            print ("  item {} {} {}".format(p.name, p.type, p.value))
 
 
 
@@ -36,13 +42,18 @@ try:
     pl.remove('e')
     print ("after removing 'e', len=", len(pl), "pl.contains('e')=", pl.contains('e'))
 
+    pl2 = oiio.ParamValueList()
+    pl2.attribute ("a", "aval")
+    pl2.attribute ("m", 1)
+    print ("pl2 =")
+    print_param_list(pl2)
+    pl.merge(pl2)
+    print ("After merge, pl =")
+    print_param_list(pl)
+
     pl.sort()
     print ("after sorting:")
-    for p in pl :
-        if type(p.value) == float :
-            print ("  item {} {} {:.6}".format(p.name, p.type, p.value))
-        else :
-            print ("  item {} {} {}".format(p.name, p.type, p.value))
+    print_param_list(pl)
 
     print ("Done.")
 except Exception as detail:

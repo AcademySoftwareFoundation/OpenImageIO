@@ -699,4 +699,15 @@ ParamValueList::sort(bool casesensitive)
                   });
 }
 
+
+
+void
+ParamValueList::merge(const ParamValueList& other, bool override)
+{
+    for (const auto& attr : other) {
+        if (override || !contains(attr.name()))
+            add_or_replace(attr);
+    }
+}
+
 OIIO_NAMESPACE_END
