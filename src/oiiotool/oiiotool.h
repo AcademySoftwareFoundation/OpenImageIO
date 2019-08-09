@@ -201,8 +201,11 @@ public:
     //     spec, such as "width", "ImageDescription", etc.
     string_view express(string_view str);
 
-    int extract_options(std::map<std::string, std::string>& options,
-                        std::string command);
+    // Given a command with perhaps optional modifiers (for example,
+    // "--cmd:a=1:pi=3.14"), extract the options and insert them into a
+    // ParamValueList. For example, having attribute "a" with value "1"
+    // and attribute "pi" with value "3.14".
+    static ParamValueList extract_options(string_view command);
 
     // Error base case -- single unformatted string.
     void error(string_view command, string_view message = "") const;
@@ -625,9 +628,9 @@ public:
 
         // Parse the options.
         options.clear();
-        options["allsubimages"] = std::to_string((int)ot.allsubimages);
+        options["allsubimages"] = (int)ot.allsubimages;
         option_defaults();  // this can be customized to set up defaults
-        ot.extract_options(options, args[0]);
+        options = ot.extract_options(args[0]);
 
         // Read all input images, and reserve (and push) the output image.
         int subimages = compute_subimages();
@@ -698,7 +701,7 @@ public:
     virtual bool cleanup() { return true; }
 
     // Override this if the impl uses options and needs any of them set
-    // to defaults. This will be called separate
+    // to defaults. This will be called separately for each subimage.
     virtual void option_defaults() {}
 
     // Default subimage logic: if the global -a flag was set or if this command
@@ -707,7 +710,7 @@ public:
     // the first subimage. Override this is you want another behavior.
     virtual int compute_subimages()
     {
-        int all_subimages = Strutil::from_string<int>(options["allsubimages"]);
+        int all_subimages = options.get_int("allsubimages", ot.allsubimages);
         return all_subimages ? (nimages() > 1 ? ir[1]->subimages() : 1) : 1;
     }
 
@@ -723,7 +726,7 @@ protected:
     std::vector<ImageRecRef> ir;
     std::vector<ImageBuf*> img;
     std::vector<string_view> args;
-    std::map<std::string, std::string> options;
+    ParamValueList options;
 };
 
 

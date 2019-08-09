@@ -339,26 +339,20 @@ Oiiotool::warning(string_view command, string_view explanation) const
 
 
 
-int
-Oiiotool::extract_options(std::map<std::string, std::string>& options,
-                          std::string command)
+ParamValueList
+Oiiotool::extract_options(string_view command)
 {
-    // std::cout << "extract_options '" << command << "'\n";
-    int noptions = 0;
-    size_t pos;
-    while ((pos = command.find_first_of(":")) != std::string::npos) {
-        command  = command.substr(pos + 1, std::string::npos);
-        size_t e = command.find_first_of("=");
-        if (e != std::string::npos) {
-            std::string name  = command.substr(0, e);
-            std::string value = command.substr(e + 1, command.find_first_of(":")
-                                                          - (e + 1));
-            options[name]     = value;
-            ++noptions;
-            // std::cout << "'" << name << "' -> '" << value << "'\n";
-        }
+    ParamValueList optlist;
+    // Separate option list by splitting on ":", the first is the command
+    // itself.
+    auto opts = Strutil::splitsv(command, ":");
+    for (size_t i = 1; i < opts.size(); ++i) {
+        // Split each op on the first "=".
+        auto optpieces = Strutil::splitsv(opts[i], "=", 2);
+        if (optpieces.size() == 2)
+            optlist[optpieces[0]] = optpieces[1];
     }
-    return noptions;
+    return optlist;
 }
 
 
@@ -413,12 +407,10 @@ static int
 set_dumpdata(int argc, const char* argv[])
 {
     ASSERT(argc == 1);
-    string_view command = ot.express(argv[0]);
-    ot.dumpdata         = true;
-    std::map<std::string, std::string> options;
-    options["empty"] = "1";
-    ot.extract_options(options, command);
-    ot.dumpdata_showempty = Strutil::from_string<int>(options["empty"]);
+    string_view command   = ot.express(argv[0]);
+    auto options          = ot.extract_options(command);
+    ot.dumpdata           = true;
+    ot.dumpdata_showempty = options.get_int("empty", 1);
     return 0;
 }
 
@@ -428,12 +420,11 @@ static int
 set_printinfo(int argc, const char* argv[])
 {
     ASSERT(argc == 1);
-    string_view command = ot.express(argv[0]);
-    ot.printinfo        = true;
-    std::map<std::string, std::string> options;
-    ot.extract_options(options, command);
+    string_view command  = ot.express(argv[0]);
+    ot.printinfo         = true;
+    auto options         = ot.extract_options(command);
     ot.printinfo_format  = options["format"];
-    ot.printinfo_verbose = Strutil::from_string<int>(options["verbose"]);
+    ot.printinfo_verbose = options.get_int("verbose");
     return 0;
 }
 
@@ -603,7 +594,7 @@ static void
 adjust_output_options(string_view filename, ImageSpec& spec,
                       const ImageSpec* nativespec, const Oiiotool& ot,
                       bool format_supports_tiles,
-                      std::map<std::string, std::string>& fileoptions,
+                      const ParamValueList& fileoptions,
                       bool was_direct_read = false)
 {
     // What data format and bit depth should we use for the output? Here's
@@ -623,12 +614,13 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     //   that way.
     TypeDesc requested_output_dataformat = ot.output_dataformat;
     auto requested_output_channelformats = ot.output_channelformats;
-    if (fileoptions["datatype"] != "") {
-        requested_output_dataformat.fromstring(fileoptions["datatype"]);
+    if (fileoptions.contains("datatype")) {
+        requested_output_dataformat.fromstring(
+            fileoptions.get_string("datatype"));
         requested_output_channelformats.clear();
     }
-    int requested_output_bits = get_value_override(fileoptions["bits"],
-                                                   ot.output_bitspersample);
+    int requested_output_bits = fileoptions.get_int("bits",
+                                                    ot.output_bitspersample);
 
     if (requested_output_dataformat != TypeUnknown) {
         // Requested an explicit override of datatype
@@ -659,14 +651,14 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     // * Otherwise, just default to scanline.
     int requested_tilewidth  = ot.output_tilewidth;
     int requested_tileheight = ot.output_tileheight;
-    string_view tilesize     = fileoptions["tile"];
+    std::string tilesize     = fileoptions["tile"];
     if (tilesize.size()) {
         int x, y;  // dummy vals for adjust_geometry
         ot.adjust_geometry("-o", requested_tilewidth, requested_tileheight, x,
                            y, tilesize.c_str(), false);
     }
-    bool requested_scanline = get_value_override(fileoptions["scanline"],
-                                                 ot.output_scanline);
+    bool requested_scanline = fileoptions.get_int("scanline",
+                                                  ot.output_scanline);
     if (requested_tilewidth && !requested_scanline && format_supports_tiles) {
         // Explicit request to tile, honor it.
         spec.tile_width  = requested_tilewidth;
@@ -693,9 +685,9 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     if (ot.output_quality > 0)
         spec.attribute("CompressionQuality", ot.output_quality);
 
-    if (get_value_override(fileoptions["separate"]))
+    if (fileoptions.get_int("separate"))
         spec.attribute("planarconfig", "separate");
-    else if (get_value_override(fileoptions["contig"]))
+    else if (fileoptions.get_int("contig"))
         spec.attribute("planarconfig", "contig");
     else if (ot.output_planarconfig == "contig"
              || ot.output_planarconfig == "separate")
@@ -720,7 +712,7 @@ adjust_output_options(string_view filename, ImageSpec& spec,
         spec.attribute("Software", software);
     }
 
-    int dither = get_value_override(fileoptions["dither"], ot.output_dither);
+    int dither = fileoptions.get_int("dither", ot.output_dither);
     if (dither) {
         int h = (int)Strutil::strhash(filename);
         if (!h)
@@ -853,11 +845,8 @@ set_string_attribute(int argc, const char* argv[])
     }
 
     string_view command = ot.express(argv[0]);
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
-
+    auto options        = ot.extract_options(command);
+    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
     set_attribute(ot.curimg, argv[1], TypeString, argv[2], allsubimages);
     // N.B. set_attribute does expression expansion on its args
     return 0;
@@ -875,11 +864,9 @@ set_any_attribute(int argc, const char* argv[])
     }
 
     string_view command = ot.express(argv[0]);
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    TypeDesc type(options["type"]);
-    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options        = ot.extract_options(command);
+    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
+    TypeDesc type(options["type"].as_string());
 
     set_attribute(ot.curimg, argv[1], type, argv[2], allsubimages);
     // N.B. set_attribute does expression expansion on its args
@@ -1059,8 +1046,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                     img = image_stack[image_stack.size() - index];
             } else {
                 string_view name = Strutil::parse_until(s, "]");
-                std::map<std::string, ImageRecRef>::const_iterator found;
-                found = ot.image_labels.find(name);
+                auto found       = ot.image_labels.find(name);
                 if (found != ot.image_labels.end())
                     img = found->second;
                 else
@@ -1354,9 +1340,9 @@ set_input_attribute(int argc, const char* argv[])
 {
     ASSERT(argc == 3);
 
-    std::map<std::string, std::string> options;
-    ot.extract_options(options, argv[0]);
-    TypeDesc type(options["type"]);
+    string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+    TypeDesc type(options["type"].as_string());
     string_view attribname = ot.express(argv[1]);
     string_view value      = ot.express(argv[2]);
 
@@ -1643,10 +1629,8 @@ set_orientation(int argc, const char* argv[])
     }
 
     string_view command = ot.express(argv[0]);
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options        = ot.extract_options(command);
+    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
 
     return set_attribute(ot.curimg, "Orientation", TypeDesc::INT, argv[1],
                          allsubimages);
@@ -1690,10 +1674,8 @@ rotate_orientation(int argc, const char* argv[])
         return 0;
     }
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     apply_spec_mod(*ot.curimg, do_rotate_orientation, command, allsubimages);
     return 0;
@@ -1710,10 +1692,8 @@ set_origin(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view origin  = ot.express(argv[1]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ot.read();
     ImageRecRef A = ot.curimg;
@@ -1759,10 +1739,8 @@ set_fullsize(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view size    = ot.express(argv[1]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ot.read();
     ImageRecRef A = ot.curimg;
@@ -1802,10 +1780,8 @@ set_full_to_pixels(int argc, const char* argv[])
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ot.read();
     ImageRecRef A = ot.curimg;
@@ -1867,11 +1843,6 @@ public:
         fromspace = args[1];
         tospace   = args[2];
     }
-    virtual void option_defaults()
-    {
-        options["strict"]    = "1";
-        options["unpremult"] = "0";
-    }
     virtual bool setup()
     {
         if (fromspace == tospace) {
@@ -1886,10 +1857,10 @@ public:
     }
     virtual int impl(ImageBuf** img)
     {
-        string_view contextkey   = options["key"];
-        string_view contextvalue = options["value"];
-        bool strict              = Strutil::from_string<int>(options["strict"]);
-        bool unpremult = Strutil::from_string<int>(options["unpremult"]);
+        std::string contextkey   = options["key"];
+        std::string contextvalue = options["value"];
+        bool strict              = options.get_int("strict", 1);
+        bool unpremult           = options.get_int("unpremult");
         if (unpremult
             && img[1]->spec().get_int_attribute("oiio:UnassociatedAlpha")
             && img[1]->spec().alpha_channel >= 0) {
@@ -1941,16 +1912,9 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults()
-    {
-        options["M"]         = "1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1";
-        options["unpremult"] = "0";
-        options["transpose"] = "0";
-        options["invert"]    = "0";
-    }
     virtual int impl(ImageBuf** img)
     {
-        bool unpremult = Strutil::from_string<int>(options["unpremult"]);
+        bool unpremult = options.get_int("unpremult");
         auto M         = Strutil::extract_from_list_string<float>(args[1]);
         Imath::M44f MM;
         if (M.size() == 9) {
@@ -1963,10 +1927,9 @@ public:
                      "expected 9 or 16 comma-separatd floats to form a matrix");
             return 0;
         }
-        if (Strutil::from_string<int>(options["transpose"]))
+        if (options.get_int("transpose"))
             MM.transpose();
-        if (Strutil::from_string<int>(options["invert"])
-            || Strutil::from_string<int>(options["inverse"]))
+        if (options.get_int("invert") || options.get_int("inverse"))
             MM.invert();
         return ImageBufAlgo::colormatrixtransform(*img[0], *img[1], MM,
                                                   unpremult);
@@ -1983,21 +1946,15 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults()
-    {
-        options["from"]      = "current";
-        options["to"]        = "current";
-        options["unpremult"] = "0";
-    }
     virtual int impl(ImageBuf** img)
     {
         string_view lookname     = args[1];
-        string_view fromspace    = options["from"];
-        string_view tospace      = options["to"];
-        string_view contextkey   = options["key"];
-        string_view contextvalue = options["value"];
-        bool inverse   = Strutil::from_string<int>(options["inverse"]);
-        bool unpremult = Strutil::from_string<int>(options["unpremult"]);
+        std::string fromspace    = options["from"];
+        std::string tospace      = options["to"];
+        std::string contextkey   = options["key"];
+        std::string contextvalue = options["value"];
+        bool inverse             = options.get_int("inverse");
+        bool unpremult           = options.get_int("unpremult");
         if (fromspace == "current" || fromspace == "")
             fromspace = img[1]->spec().get_string_attribute("oiio:Colorspace",
                                                             "Linear");
@@ -2021,28 +1978,21 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults()
-    {
-        options["from"]      = "current";
-        options["unpremult"] = "0";
-    }
     virtual int impl(ImageBuf** img)
     {
         string_view displayname  = args[1];
         string_view viewname     = args[2];
-        string_view fromspace    = options["from"];
-        string_view contextkey   = options["key"];
-        string_view contextvalue = options["value"];
-        bool override_looks      = options.find("looks") != options.end();
-        bool unpremult = Strutil::from_string<int>(options["unpremult"]);
+        std::string fromspace    = options["from"];
+        std::string contextkey   = options["key"];
+        std::string contextvalue = options["value"];
+        std::string looks        = options["looks"];
+        bool unpremult           = options.get_int("unpremult");
         if (fromspace == "current" || fromspace == "")
             fromspace = img[1]->spec().get_string_attribute("oiio:Colorspace",
                                                             "Linear");
         return ImageBufAlgo::ociodisplay(*img[0], *img[1], displayname,
-                                         viewname, fromspace,
-                                         override_looks ? options["looks"]
-                                                        : std::string(""),
-                                         unpremult, contextkey, contextvalue,
+                                         viewname, fromspace, looks, unpremult,
+                                         contextkey, contextvalue,
                                          &ot.colorconfig);
     }
 };
@@ -2058,12 +2008,11 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults() { options["unpremult"] = "0"; }
     virtual int impl(ImageBuf** img)
     {
         string_view name = args[1];
-        bool inverse     = Strutil::from_string<int>(options["inverse"]);
-        bool unpremult   = Strutil::from_string<int>(options["unpremult"]);
+        bool inverse     = options.get_int("inverse");
+        bool unpremult   = options.get_int("unpremult");
         return ImageBufAlgo::ociofiletransform(*img[0], *img[1], name, inverse,
                                                unpremult, &ot.colorconfig);
     }
@@ -2262,10 +2211,8 @@ action_channels(int argc, const char* argv[])
     string_view command  = ot.express(argv[0]);
     string_view chanlist = ot.express(argv[1]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ImageRecRef A(ot.pop());
     ot.read(A);
@@ -2586,9 +2533,8 @@ action_colorcount(int argc, const char* argv[])
     }
 
     std::vector<float> eps(nchannels, 0.001f);
-    std::map<std::string, std::string> options;
-    ot.extract_options(options, command);
-    Strutil::extract_from_list_string(eps, options["eps"]);
+    auto options = ot.extract_options(command);
+    Strutil::extract_from_list_string(eps, options.get_string("eps"));
 
     imagesize_t* count = ALLOCA(imagesize_t, ncolors);
     bool ok = ImageBufAlgo::color_count((*ot.curimg)(0, 0), count, ncolors,
@@ -2779,40 +2725,27 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults()
-    {
-        options["type"]      = "gaussian";
-        options["min"]       = "0";
-        options["max"]       = "0.1";
-        options["mean"]      = "0";
-        options["stddev"]    = "0.1";
-        options["portion"]   = "0.01";
-        options["value"]     = "0";
-        options["mono"]      = "0";
-        options["seed"]      = "0";
-        options["nchannels"] = "10000";
-    }
     virtual int impl(ImageBuf** img)
     {
         img[0]->copy(*img[1]);
-        string_view type(options["type"]);
+        std::string type = options.get_string("type", "gaussian");
         float A = 0.0f, B = 0.1f;
         if (type == "gaussian") {
-            A = Strutil::from_string<float>(options["mean"]);
-            B = Strutil::from_string<float>(options["stddev"]);
+            A = options.get_float("mean", 0.0f);
+            B = options.get_float("stddev", 0.1f);
         } else if (type == "uniform") {
-            A = Strutil::from_string<float>(options["min"]);
-            B = Strutil::from_string<float>(options["max"]);
+            A = options.get_float("min", 0.0f);
+            B = options.get_float("max", 0.1f);
         } else if (type == "salt") {
-            A = Strutil::from_string<float>(options["value"]);
-            B = Strutil::from_string<float>(options["portion"]);
+            A = options.get_float("value", 0.0f);
+            B = options.get_float("portion", 0.01f);
         } else {
             ot.errorf(opname(), "Unknown noise type \"%s\"", type);
             return 0;
         }
-        bool mono     = Strutil::from_string<int>(options["mono"]);
-        int seed      = Strutil::from_string<int>(options["seed"]);
-        int nchannels = Strutil::from_string<int>(options["nchannels"]);
+        bool mono     = options.get_int("mono");
+        int seed      = options.get_int("seed");
+        int nchannels = options.get_int("nchannels", 10000);
         ROI roi       = img[0]->roi();
         roi.chend     = std::min(roi.chend, nchannels);
         return ImageBufAlgo::noise(*img[0], type, A, B, mono, seed, roi);
@@ -2838,9 +2771,8 @@ action_chsum(int argc, const char* argv[])
 
     for (int s = 0, subimages = R->subimages(); s < subimages; ++s) {
         std::vector<float> weight((*A)(s).nchannels(), 1.0f);
-        std::map<std::string, std::string> options;
-        ot.extract_options(options, command);
-        Strutil::extract_from_list_string(weight, options["weight"]);
+        auto options = ot.extract_options(command);
+        Strutil::extract_from_list_string(weight, options.get_string("weight"));
 
         ImageBuf& Rib((*R)(s));
         const ImageBuf& Aib((*A)(s));
@@ -2944,9 +2876,9 @@ public:
     {
         float angle            = Strutil::from_string<float>(args[1]);
         std::string filtername = options["filter"];
-        bool recompute_roi     = Strutil::from_string<int>(
-            options["recompute_roi"]);
-        string_view center(options["center"]);
+        bool recompute_roi     = options.get_int("recompute_roi");
+        std::string cent       = options["center"];
+        string_view center(cent);
         float center_x = 0.0f, center_y = 0.0f;
         float cx, cy;
         if (center.size() && Strutil::parse_float(center, center_x)
@@ -2979,8 +2911,7 @@ public:
     virtual int impl(ImageBuf** img)
     {
         std::string filtername = options["filter"];
-        bool recompute_roi     = Strutil::from_string<int>(
-            options["recompute_roi"]);
+        bool recompute_roi     = options.get_int("recompute_roi");
         std::vector<float> M(9);
         if (Strutil::extract_from_list_string(M, args[1]) != 9) {
             ot.error(opname(),
@@ -3117,83 +3048,71 @@ action_pattern(int argc, const char* argv[])
     if (Strutil::iequals(pattern, "black")) {
         ok = ImageBufAlgo::zero(ib);
     } else if (Strutil::istarts_with(pattern, "constant")) {
+        auto options = ot.extract_options(pattern);
         std::vector<float> fill(nchans, 1.0f);
-        std::map<std::string, std::string> options;
-        ot.extract_options(options, pattern);
-        Strutil::extract_from_list_string(fill, options["color"]);
+        Strutil::extract_from_list_string(fill, options.get_string("color"));
         ok = ImageBufAlgo::fill(ib, &fill[0]);
     } else if (Strutil::istarts_with(pattern, "fill")) {
+        auto options = ot.extract_options(pattern);
         std::vector<float> topleft(nchans, 1.0f);
         std::vector<float> topright(nchans, 1.0f);
         std::vector<float> bottomleft(nchans, 1.0f);
         std::vector<float> bottomright(nchans, 1.0f);
-        std::map<std::string, std::string> options;
-        ot.extract_options(options, pattern);
-        if (Strutil::extract_from_list_string(topleft, options["topleft"])
-            && Strutil::extract_from_list_string(topright, options["topright"])
-            && Strutil::extract_from_list_string(bottomleft,
-                                                 options["bottomleft"])
-            && Strutil::extract_from_list_string(bottomright,
-                                                 options["bottomright"])) {
+        if (Strutil::extract_from_list_string(topleft,
+                                              options.get_string("topleft"))
+            && Strutil::extract_from_list_string(topright,
+                                                 options.get_string("topright"))
+            && Strutil::extract_from_list_string(bottomleft, options.get_string(
+                                                                 "bottomleft"))
+            && Strutil::extract_from_list_string(
+                bottomright, options.get_string("bottomright"))) {
             ok = ImageBufAlgo::fill(ib, &topleft[0], &topright[0],
                                     &bottomleft[0], &bottomright[0]);
-        } else if (Strutil::extract_from_list_string(topleft, options["top"])
-                   && Strutil::extract_from_list_string(bottomleft,
-                                                        options["bottom"])) {
+        } else if (Strutil::extract_from_list_string(topleft,
+                                                     options.get_string("top"))
+                   && Strutil::extract_from_list_string(
+                       bottomleft, options.get_string("bottom"))) {
             ok = ImageBufAlgo::fill(ib, &topleft[0], &bottomleft[0]);
-        } else if (Strutil::extract_from_list_string(topleft, options["left"])
-                   && Strutil::extract_from_list_string(topright,
-                                                        options["right"])) {
+        } else if (Strutil::extract_from_list_string(topleft,
+                                                     options.get_string("left"))
+                   && Strutil::extract_from_list_string(
+                       topright, options.get_string("right"))) {
             ok = ImageBufAlgo::fill(ib, &topleft[0], &topright[0], &topleft[0],
                                     &topright[0]);
-        } else if (Strutil::extract_from_list_string(topleft,
-                                                     options["color"])) {
+        } else if (Strutil::extract_from_list_string(
+                       topleft, options.get_string("color"))) {
             ok = ImageBufAlgo::fill(ib, &topleft[0]);
         }
     } else if (Strutil::istarts_with(pattern, "checker")) {
-        std::map<std::string, std::string> options;
-        options["width"]  = "8";
-        options["height"] = "8";
-        options["depth"]  = "8";
-        ot.extract_options(options, pattern);
-        int width  = Strutil::from_string<int>(options["width"]);
-        int height = Strutil::from_string<int>(options["height"]);
-        int depth  = Strutil::from_string<int>(options["depth"]);
+        auto options = ot.extract_options(pattern);
+        int width    = options.get_int("width", 8);
+        int height   = options.get_int("height", 8);
+        int depth    = options.get_int("depth", 8);
         std::vector<float> color1(nchans, 0.0f);
         std::vector<float> color2(nchans, 1.0f);
-        Strutil::extract_from_list_string(color1, options["color1"]);
-        Strutil::extract_from_list_string(color2, options["color2"]);
+        Strutil::extract_from_list_string(color1, options.get_string("color1"));
+        Strutil::extract_from_list_string(color2, options.get_string("color2"));
         ok = ImageBufAlgo::checker(ib, width, height, depth, &color1[0],
                                    &color2[0], 0, 0, 0);
     } else if (Strutil::istarts_with(pattern, "noise")) {
-        std::map<std::string, std::string> options;
-        options["type"]    = "gaussian";
-        options["min"]     = "0.5";
-        options["max"]     = "1";
-        options["mean"]    = "0.5";
-        options["stddev"]  = "0.1";
-        options["portion"] = "0.01";
-        options["value"]   = "0";
-        options["mono"]    = "0";
-        options["seed"]    = "0";
-        ot.extract_options(options, pattern);
-        std::string type = options["type"];
+        auto options     = ot.extract_options(pattern);
+        std::string type = options.get_string("type", "gaussian");
         float A = 0, B = 1;
         if (type == "gaussian") {
-            A = Strutil::from_string<float>(options["mean"]);
-            B = Strutil::from_string<float>(options["stddev"]);
+            A = options.get_float("mean", 0.5f);
+            B = options.get_float("stddev", 0.1f);
         } else if (type == "uniform") {
-            A = Strutil::from_string<float>(options["min"]);
-            B = Strutil::from_string<float>(options["max"]);
+            A = options.get_float("min", 0.5f);
+            B = options.get_float("max", 1.0f);
         } else if (type == "salt") {
-            A = Strutil::from_string<float>(options["value"]);
-            B = Strutil::from_string<float>(options["portion"]);
+            A = options.get_float("value", 0.01f);
+            B = options.get_float("portion", 0.0f);
         } else {
             ot.errorf(command, "Unknown noise type \"%s\"", type);
             ok = false;
         }
-        bool mono = Strutil::from_string<int>(options["mono"]);
-        int seed  = Strutil::from_string<int>(options["seed"]);
+        bool mono = options.get_int("mono");
+        int seed  = options.get_int("seed");
         ImageBufAlgo::zero(ib);
         if (ok)
             ok = ImageBufAlgo::noise(ib, type, A, B, mono, seed);
@@ -3236,9 +3155,8 @@ action_capture(int argc, const char* argv[])
     ASSERT(argc == 1);
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    std::map<std::string, std::string> options;
-    ot.extract_options(options, command);
-    int camera = Strutil::from_string<int>(options["camera"]);
+    auto options        = ot.extract_options(command);
+    int camera          = options.get_int("camera");
 
     ImageBuf ib;
     bool ok = ImageBufAlgo::capture_image(ib, camera /*, TypeDesc::FLOAT*/);
@@ -3262,15 +3180,13 @@ action_crop(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view size    = ot.express(argv[1]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int crop_all_subimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ot.read();
     ImageRecRef A     = ot.curimg;
     bool crops_needed = false;
-    int subimages     = crop_all_subimages ? A->subimages() : 1;
+    int subimages     = allsubimages ? A->subimages() : 1;
     for (int s = 0; s < subimages; ++s) {
         ImageSpec& spec(*A->spec(s, 0));
         int w = spec.width, h = spec.height, d = spec.depth;
@@ -3317,10 +3233,8 @@ action_croptofull(int argc, const char* argv[])
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ot.read();
     ImageRecRef A     = ot.curimg;
@@ -3359,10 +3273,8 @@ action_trim(int argc, const char* argv[])
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    bool allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ot.read();
     ImageRecRef A = ot.curimg;
@@ -3415,10 +3327,8 @@ action_cut(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view size    = ot.express(argv[1]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     // Operate on (and replace) the top-of-stack image
     ot.read();
@@ -3462,7 +3372,6 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults() { options["interp"] = "1"; }
     virtual bool setup()
     {
         int subimages = compute_subimages();
@@ -3504,7 +3413,7 @@ public:
     }
     virtual int impl(ImageBuf** img)
     {
-        bool interp = (bool)Strutil::from_string<int>(options["interp"]);
+        bool interp = options.get_int("interp", 1);
         return ImageBufAlgo::resample(*img[0], *img[1], interp);
     }
 };
@@ -3560,7 +3469,7 @@ public:
     }
     virtual int impl(ImageBuf** img)
     {
-        string_view filtername = options["filter"];
+        std::string filtername = options["filter"];
         if (ot.debug) {
             const ImageSpec& newspec(img[0]->spec());
             const ImageSpec& Aspec(img[1]->spec());
@@ -3603,14 +3512,11 @@ action_fit(int argc, const char* argv[])
     ot.adjust_geometry(argv[0], fit_full_width, fit_full_height, fit_full_x,
                        fit_full_y, size.c_str(), false);
 
-    std::map<std::string, std::string> options;
-    options["wrap"]         = "black";
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    bool pad               = Strutil::from_string<int>(options["pad"]);
-    string_view filtername = options["filter"];
-    bool exact             = Strutil::from_string<int>(options["exact"]);
-    bool allsubimages      = Strutil::from_string<int>(options["allsubimages"]);
+    auto options           = ot.extract_options(command);
+    bool allsubimages      = options.get_int("allsubimages", ot.allsubimages);
+    bool pad               = options.get_int("pad");
+    std::string filtername = options["filter"];
+    bool exact             = options.get_int("exact");
 
 #if 1
     // New version: use IBA::fit() for the heavy lifting
@@ -3795,9 +3701,8 @@ action_pixelaspect(int argc, const char* argv[])
     float scale_xres = xres * scaleX;
     float scale_yres = yres * scaleY;
 
-    std::map<std::string, std::string> options;
-    ot.extract_options(options, command);
-    string_view filtername = options["filter"];
+    auto options           = ot.extract_options(command);
+    std::string filtername = options["filter"];
 
     if (ot.debug) {
         std::cout << "  Scaling "
@@ -3859,10 +3764,9 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults() { options["kernel"] = "gaussian"; };
     virtual int impl(ImageBuf** img)
     {
-        string_view kernopt = options["kernel"];
+        string_view kernopt = options.get_string("kernel", "gaussian");
         float w = 1.0f, h = 1.0f;
         if (sscanf(args[1].c_str(), "%fx%f", &w, &h) != 2)
             ot.errorf(opname(), "Unknown size %s", args[1]);
@@ -3943,19 +3847,12 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults()
-    {
-        options["kernel"]    = "gaussian";
-        options["width"]     = "3";
-        options["contrast"]  = "1";
-        options["threshold"] = "0";
-    }
     virtual int impl(ImageBuf** img)
     {
-        string_view kernel = options["kernel"];
-        float width        = Strutil::from_string<float>(options["width"]);
-        float contrast     = Strutil::from_string<float>(options["contrast"]);
-        float threshold    = Strutil::from_string<float>(options["threshold"]);
+        std::string kernel = options.get_string("kernel", "gaussian");
+        float width        = options.get_float("width", 3.0f);
+        float contrast     = options.get_float("contrast", 1.0f);
+        float threshold    = options.get_float("threshold", 0.0f);
         return ImageBufAlgo::unsharp_mask(*img[0], *img[1], kernel, width,
                                           contrast, threshold);
     }
@@ -3996,10 +3893,8 @@ action_fixnan(int argc, const char* argv[])
     string_view command  = ot.express(argv[0]);
     string_view modename = ot.express(argv[1]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     NonFiniteFixMode mode = NONFINITE_BOX3;
     if (modename == "black")
@@ -4132,10 +4027,8 @@ action_mosaic(int argc, const char* argv[])
         nchannels = std::max(nchannels, img->spec()->nchannels);
     }
 
-    std::map<std::string, std::string> options;
-    options["pad"] = "0";
-    ot.extract_options(options, command);
-    int pad = Strutil::stoi(options["pad"]);
+    auto options = ot.extract_options(command);
+    int pad      = options.get_int("pad");
 
     ImageSpec Rspec(ximages * widest + (ximages - 1) * pad,
                     yimages * highest + (yimages - 1) * pad, nchannels,
@@ -4173,7 +4066,7 @@ public:
     }
     virtual int impl(ImageBuf** img)
     {
-        bool zeroisinf = Strutil::from_string<int>(options["zeroisinf"]);
+        bool zeroisinf = options.get_int("zeroisinf");
         return ImageBufAlgo::zover(*img[0], *img[1], *img[2], zeroisinf, ROI(),
                                    0);
     }
@@ -4222,10 +4115,9 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults() { options["z"] = 1.0; }
     virtual int impl(ImageBuf** img)
     {
-        float z = Strutil::from_string<float>(options["z"]);
+        float z = options.get_float("z", 1.0f);
         return ImageBufAlgo::deepen(*img[0], *img[1], z);
     }
 };
@@ -4247,10 +4139,8 @@ action_fill(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view size    = ot.express(argv[1]);
 
-    std::map<std::string, std::string> options;
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     // Read and copy the top-of-stack image
     ImageRecRef A(ot.pop());
@@ -4271,27 +4161,31 @@ action_fill(int argc, const char* argv[])
         std::vector<float> bottomleft(Rspec.nchannels, 1.0f);
         std::vector<float> bottomright(Rspec.nchannels, 1.0f);
         bool ok = true;
-        if (Strutil::extract_from_list_string(topleft, options["topleft"])
-            && Strutil::extract_from_list_string(topright, options["topright"])
-            && Strutil::extract_from_list_string(bottomleft,
-                                                 options["bottomleft"])
-            && Strutil::extract_from_list_string(bottomright,
-                                                 options["bottomright"])) {
+        if (Strutil::extract_from_list_string(topleft,
+                                              options.get_string("topleft"))
+            && Strutil::extract_from_list_string(topright,
+                                                 options.get_string("topright"))
+            && Strutil::extract_from_list_string(bottomleft, options.get_string(
+                                                                 "bottomleft"))
+            && Strutil::extract_from_list_string(
+                bottomright, options.get_string("bottomright"))) {
             ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0],
                                     &bottomleft[0], &bottomright[0],
                                     ROI(x, x + w, y, y + h));
-        } else if (Strutil::extract_from_list_string(topleft, options["top"])
-                   && Strutil::extract_from_list_string(bottomleft,
-                                                        options["bottom"])) {
+        } else if (Strutil::extract_from_list_string(topleft,
+                                                     options.get_string("top"))
+                   && Strutil::extract_from_list_string(
+                       bottomleft, options.get_string("bottom"))) {
             ok = ImageBufAlgo::fill(Rib, &topleft[0], &bottomleft[0],
                                     ROI(x, x + w, y, y + h));
-        } else if (Strutil::extract_from_list_string(topleft, options["left"])
-                   && Strutil::extract_from_list_string(topright,
-                                                        options["right"])) {
+        } else if (Strutil::extract_from_list_string(topleft,
+                                                     options.get_string("left"))
+                   && Strutil::extract_from_list_string(
+                       topright, options.get_string("right"))) {
             ok = ImageBufAlgo::fill(Rib, &topleft[0], &topright[0], &topleft[0],
                                     &topright[0], ROI(x, x + w, y, y + h));
-        } else if (Strutil::extract_from_list_string(topleft,
-                                                     options["color"])) {
+        } else if (Strutil::extract_from_list_string(
+                       topleft, options.get_string("color"))) {
             ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
         } else {
             ot.warning(command,
@@ -4316,11 +4210,8 @@ action_clamp(int argc, const char* argv[])
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
 
-    std::map<std::string, std::string> options;
-    options["clampalpha"]   = "0";
-    options["allsubimages"] = std::to_string(ot.allsubimages);
-    ot.extract_options(options, command);
-    int allsubimages = Strutil::from_string<int>(options["allsubimages"]);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ImageRecRef A = ot.pop();
     ot.read(A);
@@ -4333,9 +4224,9 @@ action_clamp(int argc, const char* argv[])
         const float big = std::numeric_limits<float>::max();
         std::vector<float> min(nchans, -big);
         std::vector<float> max(nchans, big);
-        Strutil::extract_from_list_string(min, options["min"]);
-        Strutil::extract_from_list_string(max, options["max"]);
-        bool clampalpha01 = Strutil::stoi(options["clampalpha"]);
+        Strutil::extract_from_list_string(min, options.get_string("min"));
+        Strutil::extract_from_list_string(max, options.get_string("max"));
+        bool clampalpha01 = options.get_int("clampalpha");
 
         for (int m = 0, miplevels = R->miplevels(s); m < miplevels; ++m) {
             ImageBuf& Rib((*R)(s, m));
@@ -4362,7 +4253,7 @@ public:
     }
     virtual int impl(ImageBuf** img)
     {
-        bool useluma = Strutil::from_string<int>(options["luma"]);
+        bool useluma = options.get_int("luma");
         return ImageBufAlgo::rangecompress(*img[0], *img[1], useluma);
     }
 };
@@ -4380,7 +4271,7 @@ public:
     }
     virtual int impl(ImageBuf** img)
     {
-        bool useluma = Strutil::from_string<int>(options["luma"]);
+        bool useluma = options.get_int("luma");
         return ImageBufAlgo::rangeexpand(*img[0], *img[1], useluma);
     }
 };
@@ -4395,30 +4286,24 @@ public:
         : OiiotoolOp(ot, opname, argc, argv, 1)
     {
     }
-    virtual void option_defaults()
-    {
-        options["black"]     = "0";
-        options["white"]     = "1";
-        options["min"]       = "0";
-        options["max"]       = "1";
-        options["scontrast"] = "1";
-        options["sthresh"]   = "0.5";
-        options["clamp"]     = "0";
-    }
     virtual int impl(ImageBuf** img)
     {
         size_t n   = size_t((*img[0]).nchannels());
-        auto black = Strutil::extract_from_list_string(options["black"], n,
-                                                       0.0f);
-        auto white = Strutil::extract_from_list_string(options["white"], n,
-                                                       1.0f);
-        auto min   = Strutil::extract_from_list_string(options["min"], n, 0.0f);
-        auto max   = Strutil::extract_from_list_string(options["max"], n, 1.0f);
-        auto scontrast = Strutil::extract_from_list_string(options["scontrast"],
-                                                           n, 1.0f);
-        auto sthresh = Strutil::extract_from_list_string(options["sthresh"], n,
-                                                         0.50f);
-        bool clamp   = Strutil::from_string<int>(options["clamp"]);
+        auto black = Strutil::extract_from_list_string(
+            options.get_string("black", "0"), n, 0.0f);
+        auto white = Strutil::extract_from_list_string(
+            options.get_string("white", "1"), n, 1.0f);
+        auto min
+            = Strutil::extract_from_list_string(options.get_string("min", "0"),
+                                                n, 0.0f);
+        auto max
+            = Strutil::extract_from_list_string(options.get_string("max", "1"),
+                                                n, 1.0f);
+        auto scontrast = Strutil::extract_from_list_string(
+            options.get_string("scontrast", "1"), n, 1.0f);
+        auto sthresh = Strutil::extract_from_list_string(
+            options.get_string("sthresh", "0.5"), n, 0.50f);
+        bool clamp = options.get_int("clamp");
         bool ok = ImageBufAlgo::contrast_remap(*img[0], *img[1], black, white,
                                                min, max, scontrast, sthresh);
         if (clamp && ok)
@@ -4448,8 +4333,9 @@ public:
             && Strutil::parse_int(s, x2) && Strutil::parse_char(s, ',')
             && Strutil::parse_int(s, y2)) {
             std::vector<float> color(Rspec.nchannels + 1, 1.0f);
-            Strutil::extract_from_list_string(color, options["color"]);
-            bool fill = Strutil::from_string<int>(options["fill"]);
+            Strutil::extract_from_list_string(color,
+                                              options.get_string("color"));
+            bool fill = options.get_int("fill");
             return ImageBufAlgo::render_box(*img[0], x1, y1, x2, y2, color,
                                             fill);
         }
@@ -4474,7 +4360,7 @@ public:
         std::vector<int> points;
         Strutil::extract_from_list_string(points, args[1]);
         std::vector<float> color(Rspec.nchannels + 1, 1.0f);
-        Strutil::extract_from_list_string(color, options["color"]);
+        Strutil::extract_from_list_string(color, options.get_string("color"));
         bool closed = (points.size() > 4
                        && points[0] == points[points.size() - 2]
                        && points[1] == points[points.size() - 1]);
@@ -4500,16 +4386,13 @@ public:
     {
         img[0]->copy(*img[1]);
         const ImageSpec& Rspec(img[0]->spec());
-        int x = options["x"].size() ? Strutil::from_string<int>(options["x"])
-                                    : (Rspec.x + Rspec.width / 2);
-        int y = options["y"].size() ? Strutil::from_string<int>(options["y"])
-                                    : (Rspec.y + Rspec.height / 2);
-        int fontsize = options["size"].size()
-                           ? Strutil::from_string<int>(options["size"])
-                           : 16;
+        int x            = options.get_int("x", Rspec.x + Rspec.width / 2);
+        int y            = options.get_int("y", Rspec.y + Rspec.height / 2);
+        int fontsize     = options.get_int("size", 16);
         std::string font = options["font"];
         std::vector<float> textcolor(Rspec.nchannels + 1, 1.0f);
-        Strutil::extract_from_list_string(textcolor, options["color"]);
+        Strutil::extract_from_list_string(textcolor,
+                                          options.get_string("color"));
         std::string ax = options["xalign"];
         std::string ay = options["yalign"];
         TextAlignX alignx(TextAlignX::Left);
@@ -4524,7 +4407,7 @@ public:
             aligny = TextAlignY::Bottom;
         if (Strutil::iequals(ay, "center") || Strutil::iequals(ay, "c"))
             aligny = TextAlignY::Center;
-        int shadow = Strutil::from_string<int>(options["shadow"]);
+        int shadow = options.get_int("shadow");
         return ImageBufAlgo::render_text(*img[0], x, y, args[1], fontsize, font,
                                          textcolor, alignx, aligny, shadow);
     }
@@ -4571,9 +4454,8 @@ action_histogram(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view size    = ot.express(argv[1]);
     int channel         = Strutil::from_string<int>(ot.express(argv[2]));
-    std::map<std::string, std::string> options;
-    ot.extract_options(options, command);
-    int cumulative = Strutil::from_string<int>(options["cumulative"]);
+    auto options        = ot.extract_options(command);
+    int cumulative      = options.get_int("cumulative");
 
     // Input image.
     ot.read();
@@ -4626,20 +4508,18 @@ input_file(int argc, const char* argv[])
     } else {
         command = "-i";
     }
-    std::map<std::string, std::string> fileoptions;
-    ot.extract_options(fileoptions, command);
-    int printinfo = get_value_override(fileoptions["info"], int(ot.printinfo));
-    bool readnow  = get_value_override(fileoptions["now"], int(0));
-    bool autocc   = get_value_override(fileoptions["autocc"], int(ot.autocc));
-    std::string infoformat = get_value_override(fileoptions["infoformat"],
-                                                ot.printinfo_format);
-    TypeDesc input_dataformat(fileoptions["type"]);
+    auto fileoptions       = ot.extract_options(command);
+    int printinfo          = fileoptions.get_int("info", ot.printinfo);
+    bool readnow           = fileoptions.get_int("now", 0);
+    bool autocc            = fileoptions.get_int("autocc", ot.autocc);
+    std::string infoformat = fileoptions.get_string("infoformat",
+                                                    ot.printinfo_format);
+    TypeDesc input_dataformat(fileoptions.get_string("type"));
     std::string channel_set = fileoptions["ch"];
 
     for (int i = 0; i < argc; i++) {  // FIXME: this loop is pointless
         string_view filename = ot.express(argv[i]);
-        std::map<std::string, ImageRecRef>::const_iterator found;
-        found = ot.image_labels.find(filename);
+        auto found           = ot.image_labels.find(filename);
         if (found != ot.image_labels.end()) {
             if (ot.debug)
                 std::cout << "Referencing labeled image " << filename << "\n";
@@ -4783,69 +4663,58 @@ input_file(int argc, const char* argv[])
 
 
 static void
-prep_texture_config(ImageSpec& configspec,
-                    std::map<std::string, std::string>& fileoptions)
+prep_texture_config(ImageSpec& configspec, ParamValueList& fileoptions)
 {
     configspec.tile_width  = ot.output_tilewidth ? ot.output_tilewidth : 64;
     configspec.tile_height = ot.output_tileheight ? ot.output_tileheight : 64;
     configspec.tile_depth  = 1;
-    string_view wrap       = get_value_override(fileoptions["wrap"], "black");
-    string_view swrap      = get_value_override(fileoptions["swrap"], wrap);
-    string_view twrap      = get_value_override(fileoptions["twrap"], wrap);
+    std::string wrap       = fileoptions.get_string("wrap", "black");
+    std::string swrap      = fileoptions.get_string("swrap", wrap);
+    std::string twrap      = fileoptions.get_string("twrap", wrap);
     configspec.attribute("wrapmodes", Strutil::sprintf("%s,%s", swrap, twrap));
     configspec.attribute("maketx:verbose", ot.verbose);
     configspec.attribute("maketx:runstats", ot.runstats);
-    configspec.attribute("maketx:resize",
-                         get_value_override(fileoptions["resize"], 0));
-    configspec.attribute("maketx:nomipmap",
-                         get_value_override(fileoptions["nomipmap"], 0));
+    configspec.attribute("maketx:resize", fileoptions.get_int("resize"));
+    configspec.attribute("maketx:nomipmap", fileoptions.get_int("nomipmap"));
     configspec.attribute("maketx:updatemode",
-                         get_value_override(fileoptions["updatemode"], 0));
+                         fileoptions.get_int("updatemode"));
     configspec.attribute("maketx:constant_color_detect",
-                         get_value_override(fileoptions["constant_color_detect"],
-                                            0));
+                         fileoptions.get_int("constant_color_detect"));
     configspec.attribute("maketx:monochrome_detect",
-                         get_value_override(fileoptions["monochrome_detect"],
-                                            0));
+                         fileoptions.get_int("monochrome_detect"));
     configspec.attribute("maketx:opaque_detect",
-                         get_value_override(fileoptions["opaque_detect"], 0));
+                         fileoptions.get_int("opaque_detect"));
     configspec.attribute("maketx:compute_average",
-                         get_value_override(fileoptions["compute_average"], 1));
-    configspec.attribute("maketx:unpremult",
-                         get_value_override(fileoptions["unpremult"], 0));
+                         fileoptions.get_int("compute_average", 1));
+    configspec.attribute("maketx:unpremult", fileoptions.get_int("unpremult"));
     configspec.attribute("maketx:incolorspace",
-                         get_value_override(fileoptions["incolorspace"], ""));
+                         fileoptions.get_string("incolorspace"));
     configspec.attribute("maketx:outcolorspace",
-                         get_value_override(fileoptions["outcolorspace"], ""));
+                         fileoptions.get_string("outcolorspace"));
     configspec.attribute(
         "maketx:highlightcomp",
-        get_value_override(
-            fileoptions["highlightcomp"],
-            get_value_override(fileoptions["hilightcomp"],
-                               get_value_override(fileoptions["hicomp"], 0))));
-    configspec.attribute("maketx:sharpen",
-                         get_value_override(fileoptions["sharpen"], 0.0f));
-    if (fileoptions["filter"].size() || fileoptions["filtername"].size())
-        configspec.attribute(
-            "maketx:filtername",
-            get_value_override(fileoptions["filtername"],
-                               get_value_override(fileoptions["filter"], "")));
-    if (fileoptions["fileformatname"].size())
+        fileoptions.get_int("highlightcomp",
+                            fileoptions.get_int("hilightcomp",
+                                                fileoptions.get_int("hicomp"))));
+    configspec.attribute("maketx:sharpen", fileoptions.get_float("sharpen"));
+    if (fileoptions.contains("filter") || fileoptions.contains("filtername"))
+        configspec.attribute("maketx:filtername",
+                             fileoptions.get_string("filtername",
+                                                    fileoptions.get_string(
+                                                        "filter")));
+    if (fileoptions.contains("fileformatname"))
         configspec.attribute("maketx:fileformatname",
-                             get_value_override(fileoptions["fileformatname"],
-                                                ""));
+                             fileoptions.get_string("fileformatname"));
     configspec.attribute("maketx:prman_metadata",
-                         get_value_override(fileoptions["prman_metadata"], 0));
+                         fileoptions.get_int("prman_metadata"));
     configspec.attribute("maketx:oiio_options",
-                         get_value_override(fileoptions["oiio_options"],
-                                            get_value_override(
-                                                fileoptions["oiio"])));
+                         fileoptions.get_string("oiio_options",
+                                                fileoptions.get_string("oiio")));
     configspec.attribute("maketx:prman_options",
-                         get_value_override(fileoptions["prman_options"],
-                                            get_value_override(
-                                                fileoptions["prman"])));
+                         fileoptions.get_string(
+                             "prman_options", fileoptions.get_string("prman")));
     configspec.attribute("maketx:bumpformat",
-                         get_value_override(fileoptions["bumpformat"], "auto"));
+                         fileoptions.get_string("bumpformat", "auto"));
     // if (mipimages.size())
     //     configspec.attribute ("maketx:mipimages", Strutil::join(mipimages,";"));
 
@@ -4879,8 +4748,7 @@ output_file(int argc, const char* argv[])
     string_view command  = ot.express(argv[0]);
     string_view filename = ot.express(argv[1]);
 
-    std::map<std::string, std::string> fileoptions;
-    ot.extract_options(fileoptions, command);
+    auto fileoptions = ot.extract_options(command);
 
     string_view stripped_command = command;
     Strutil::parse_char(stripped_command, '-');
@@ -4899,12 +4767,12 @@ output_file(int argc, const char* argv[])
         return 0;
     }
 
-    if (fileoptions["all"].size()) {
+    if (fileoptions.contains("all")) {
         // Special case: if they requested outputting all images on the
         // stack, handle it recursively. The filename, then, is the pattern,
         // presumed to have a %d in it somewhere, which we will substitute
         // with the image index.
-        int startnumber = Strutil::from_string<int>(fileoptions["all"]);
+        int startnumber = fileoptions.get_int("all");
         int nimages     = 1 /*curimg*/ + int(ot.image_stack.size());
         const char* new_argv[2];
         // Git rid of the ":all=" part of the command so we don't infinitely
@@ -4936,10 +4804,8 @@ output_file(int argc, const char* argv[])
         ot.warningf(command, "%s already exists, not overwriting.", filename);
         return 0;
     }
-    string_view formatname = fileoptions["fileformatname"];
-    if (formatname.empty())
-        formatname = filename;
-    auto out = ImageOutput::create(formatname);
+    std::string formatname = fileoptions.get_string("fileformatname", filename);
+    auto out               = ImageOutput::create(formatname);
     if (!out) {
         std::string err = OIIO::geterror();
         ot.error(command, err.size() ? err.c_str()
@@ -4975,8 +4841,7 @@ output_file(int argc, const char* argv[])
     }
 
     // Handle --autotrim
-    int autotrim = get_value_override(fileoptions["autotrim"],
-                                      ot.output_autotrim);
+    int autotrim = fileoptions.get_int("autotrim", ot.output_autotrim);
     if (supports_displaywindow && autotrim) {
         ROI origroi = get_roi(*ir->spec(0, 0));
         ROI roi     = ImageBufAlgo::nonzero_region((*ir)(0, 0), origroi);
@@ -5001,8 +4866,7 @@ output_file(int argc, const char* argv[])
 
     // Automatically crop/pad if outputting to a format that doesn't
     // support display windows, unless autocrop is disabled.
-    int autocrop = get_value_override(fileoptions["autocrop"],
-                                      ot.output_autocrop);
+    int autocrop = fileoptions.get_int("autocrop", ot.output_autocrop);
     if (!supports_displaywindow && autocrop
         && (ir->spec()->x != ir->spec()->full_x
             || ir->spec()->y != ir->spec()->full_y
@@ -5018,7 +4882,7 @@ output_file(int argc, const char* argv[])
     // Automatically color convert if --autocc is used and the current
     // color space doesn't match that implied by the filename, and
     // automatically set -d based on the name if --autod is used.
-    int autocc = get_value_override(fileoptions["autocc"], ot.autocc);
+    int autocc                = fileoptions.get_int("autocc", ot.autocc);
     string_view outcolorspace = ot.colorconfig.parseColorSpaceFromString(
         filename);
     if (autocc && outcolorspace.size()) {
@@ -5279,10 +5143,8 @@ do_echo(int argc, const char* argv[])
     string_view command = ot.express(argv[0]);
     string_view message = ot.express(argv[1]);
 
-    std::map<std::string, std::string> options;
-    options["newline"] = "1";
-    ot.extract_options(options, command);
-    int newline = Strutil::from_string<int>(options["newline"]);
+    auto options = ot.extract_options(command);
+    int newline  = options.get_int("newline", 1);
 
     std::cout << message;
     for (int i = 0; i < newline; ++i)
