@@ -1,7 +1,7 @@
 README for OpenImageIO
 ======================
 
-[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg?style=flat-square)](https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md)
 [![Build Status](https://travis-ci.org/OpenImageIO/oiio.svg?branch=master)](https://travis-ci.org/OpenImageIO/oiio)
 [![Windows Build Status](https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/a0l32ti7gcoergtf/branch/master)
 [![CircleCI](https://circleci.com/gh/OpenImageIO/oiio/tree/master.svg?style=svg)](https://circleci.com/gh/OpenImageIO/oiio/tree/master)
@@ -84,7 +84,7 @@ particular licensing terms in your own application.
 Some code and resources are distributed along with OIIO that have highly
 compatible, though slightly different, licenses (generally MIT or Apache).
 See the PDF documentation Acknowledgements section, and the
-[LICENSE-THIRD-PARTY](LICENSE-THIRD-PARTY.md) file for details.
+[THIRD-PARTY](THIRD-PARTY.md) file for details.
 
 
 Building and Installation
@@ -102,10 +102,9 @@ plugins.
 Documentation
 -------------
 
-The primary user and programmer documentation can be found in
-[src/doc/openimageio.pdf](src/doc/openimageio.pdf) (in a source
-distribution) or in the share/doc/OpenImageIO/openimageio.pdf file of an
-installed binary distribution.
+The primary user and programmer documentation can be found
+on [openimageio.readthedocs.io](https://openimageio.readthedocs.io/en/latest/)
+as html or as [PDF](https://readthedocs.org/projects/openimageio/downloads/pdf/latest/).
 
 
 Contact & reporting problems
