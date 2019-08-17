@@ -28,19 +28,22 @@ static int numthreads = 16;
 static int ntrials    = 1;
 static bool verbose   = false;
 static bool wedge     = false;
-
+static std::vector<std::array<char, 16>> strings;
 
 
 static void
 create_lotso_ustrings(int iterations)
 {
+    DASSERT(size_t(iterations) <= strings.size());
     if (verbose)
         Strutil::printf("thread %d\n", std::this_thread::get_id());
+    size_t h = 0;
     for (int i = 0; i < iterations; ++i) {
-        char buf[20];
-        sprintf(buf, "%d", i);
-        ustring s(buf);
+        ustring s(strings[i].data());
+        h += s.hash();
     }
+    if (verbose)
+        Strutil::printf("checksum %08x\n", unsigned(h));
 }
 
 
@@ -88,7 +91,19 @@ main(int argc, char* argv[])
     ustring foo("foo");
     OIIO_CHECK_ASSERT(foo.string() == "foo");
 
-    std::cout << "hw threads = " << Sysutil::hardware_concurrency() << "\n";
+    const int nhw_threads = Sysutil::hardware_concurrency();
+    std::cout << "hw threads = " << nhw_threads << "\n";
+
+    // user wants to max out the number of threads
+    if (numthreads <= 0)
+        numthreads = nhw_threads;
+
+    // prepare the strings we will turn into ustrings to avoid
+    // including snprintf in the benchmark
+    strings.resize(wedge ? iterations : iterations / numthreads);
+    int i = 0;
+    for (auto& s : strings)
+        snprintf(s.data(), s.size(), "%d", i++);
 
     if (wedge) {
         timed_thread_wedge(create_lotso_ustrings, numthreads, iterations,
