@@ -265,7 +265,7 @@ public:
     iterator find(const KEY& key, bool do_lock = true)
     {
         size_t hash = m_hash(key);
-        size_t b = whichbin(hash);
+        size_t b    = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
@@ -292,7 +292,7 @@ public:
     bool retrieve(const KEY& key, VALUE& value, bool do_lock = true)
     {
         size_t hash = m_hash(key);
-        size_t b = whichbin(hash);
+        size_t b    = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
@@ -313,7 +313,7 @@ public:
     bool insert(const KEY& key, const VALUE& value, bool do_lock = true)
     {
         size_t hash = m_hash(key);
-        size_t b = whichbin(hash);
+        size_t b    = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
@@ -334,7 +334,7 @@ public:
     void erase(const KEY& key, bool do_lock = true)
     {
         size_t hash = m_hash(key);
-        size_t b = whichbin(hash);
+        size_t b    = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
@@ -355,7 +355,7 @@ public:
     size_t lock_bin(const KEY& key)
     {
         size_t hash = m_hash(key);
-        size_t b = whichbin(hash);
+        size_t b    = whichbin(hash);
         m_bins[b].lock();
         return b;
     }
