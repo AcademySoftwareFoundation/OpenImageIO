@@ -264,11 +264,12 @@ public:
     /// lock.
     iterator find(const KEY& key, bool do_lock = true)
     {
-        size_t b = whichbin(key);
+        size_t hash = m_hash(key);
+        size_t b = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
-        typename BinMap_t::iterator it = bin.map.find(key);
+        typename BinMap_t::iterator it = bin.map.find(key, hash);
         if (it == bin.map.end()) {
             // not found -- return the 'end' iterator
             if (do_lock)
@@ -290,11 +291,12 @@ public:
     /// already has the bin locked, so do no locking or unlocking.
     bool retrieve(const KEY& key, VALUE& value, bool do_lock = true)
     {
-        size_t b = whichbin(key);
+        size_t hash = m_hash(key);
+        size_t b = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
-        typename BinMap_t::iterator it = bin.map.find(key);
+        typename BinMap_t::iterator it = bin.map.find(key, hash);
         bool found                     = (it != bin.map.end());
         if (found)
             value = it->second;
@@ -310,7 +312,8 @@ public:
     /// has the bin locked, so do no locking or unlocking.
     bool insert(const KEY& key, const VALUE& value, bool do_lock = true)
     {
-        size_t b = whichbin(key);
+        size_t hash = m_hash(key);
+        size_t b = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
@@ -330,11 +333,12 @@ public:
     /// has the bin locked, so do no locking or unlocking.
     void erase(const KEY& key, bool do_lock = true)
     {
-        size_t b = whichbin(key);
+        size_t hash = m_hash(key);
+        size_t b = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
-        bin.map.erase(key);
+        bin.map.erase(key, hash);
         if (do_lock)
             bin.unlock();
     }
@@ -350,7 +354,8 @@ public:
     /// number.
     size_t lock_bin(const KEY& key)
     {
-        size_t b = whichbin(key);
+        size_t hash = m_hash(key);
+        size_t b = whichbin(hash);
         m_bins[b].lock();
         return b;
     }
@@ -408,7 +413,7 @@ private:
     }
 
     // Which bin will this key always appear in?
-    size_t whichbin(const KEY& key)
+    size_t whichbin(size_t hash)
     {
         constexpr int LOG2_BINS = log2(BINS);
         constexpr int BIN_SHIFT = 32 - LOG2_BINS;
@@ -423,7 +428,6 @@ private:
         // To avoid mixups between size_t among platforms, we always cast to a 32-bit
         // integer first. Its quite possible the hash function only gave us a uint32_t
         // even though the API technically wants a size_t.
-        size_t hash  = m_hash(key);
         unsigned bin = uint32_t(hash) >> BIN_SHIFT;
         DASSERT(bin < BINS);
         return bin;
