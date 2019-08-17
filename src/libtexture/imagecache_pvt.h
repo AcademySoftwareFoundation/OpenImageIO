@@ -436,8 +436,7 @@ typedef unordered_map_concurrent<
     ustring, ImageCacheFileRef, ustringHash, std::equal_to<ustring>,
     FILE_CACHE_SHARDS, tsl::robin_map<ustring, ImageCacheFileRef, ustringHash>>
     FilenameMap;
-typedef std::unordered_map<ustring, ImageCacheFileRef, ustringHash>
-    FingerprintMap;
+typedef tsl::robin_map<ustring, ImageCacheFileRef, ustringHash> FingerprintMap;
 
 
 
