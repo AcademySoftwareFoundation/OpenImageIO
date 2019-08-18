@@ -114,8 +114,8 @@ inline uint64_t fasthash64(const std::initializer_list<uint64_t> buf) {
 
 namespace xxhash {
 
-// xxhash:  http://code.google.com/p/xxhash/
-// It's BSD licensed.
+// xxhash:  https://github.com/Cyan4973/xxHash
+// BSD 2-clause license
 
 unsigned int       OIIO_API XXH32 (const void* input, size_t length,
                                    unsigned seed=1771);
@@ -274,7 +274,7 @@ inline uint64_t fmix (uint64_t k)
 namespace farmhash {
 
 // Copyright (c) 2014 Google, Inc.
-// http://code.google.com/p/farmhash/
+// https://github.com/google/farmhash
 // See OpenImageIO's hashes.cpp for the MIT license for this code.
 
 
