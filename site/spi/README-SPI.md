@@ -19,11 +19,11 @@ Variants:
 
     # Python 2.7, Boost 1.55 sp namespaced, C++11/gcc4.8 compat
     make nuke
-    make OIIO_SPIREZ=1 BOOSTVERS=1.55sp
+    make OIIO_SPIREZ=1 BOOSTSPSUFFIX=sp
 
     # Python 3.7, Boost 1.66, C++11/gcc4.8 compat
     make nuke
-    make OIIO_SPIREZ=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7
+    make OIIO_SPIREZ=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3
 
     # Python 3.6, Boost 1.55, C++11/gcc4.8 compat (for Jon Ware)
     make nuke
