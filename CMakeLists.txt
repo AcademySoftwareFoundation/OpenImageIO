@@ -1,13 +1,13 @@
 cmake_minimum_required (VERSION 3.2.2)
 cmake_policy (SET CMP0048 NEW)  # Allow VERSION specifier in project()
-project (OpenImageIO VERSION 2.1.3
+project (OpenImageIO VERSION 2.1.3.0
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
 string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
 set (PROJECT_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
-set (PROJECT_URL "http://openimageio.org")
+set (PROJECT_URL "https://openimageio.org")
 
 message (STATUS "CMake version is ${CMAKE_VERSION}")
 cmake_policy (SET CMP0017 NEW)  # Prefer files from the CMake module directory when including from there.
@@ -16,9 +16,10 @@ cmake_policy (SET CMP0046 OLD)  # Don't error on non-existent dependency in add_
 set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 
 # Alternate names
-set (OIIO_VERSION_PATCH ${PROJECT_VERSION_PATCH})
-set (OIIO_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set (OIIO_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set (OIIO_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set (OIIO_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set (OIIO_VERSION_TWEAK ${PROJECT_VERSION_TWEAK})
 set (OIIO_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 
 # N.B./FIXME - after CMake 3.0 is our minimum, we should change many of the
@@ -63,6 +64,7 @@ include (compiler)   # All the C++ and compiler related options live here
 option (VERBOSE "Print lots of messages while compiling" OFF)
 set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
       "Customized outer namespace base name (version will be added)")
+option (OIIO_NAMESPACE_INCLUDE_PATCH "Should the inner namespace include the patch number" OFF)
 option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 option (OIIO_BUILD_TOOLS "Build the command-line tools" ON)
 option (OIIO_BUILD_TESTS "Build the unit tests" ON)
@@ -130,6 +132,9 @@ endif ()
 # Set the default namespace
 set (PROJ_NAMESPACE "${${PROJ_NAME}_NAMESPACE}")
 set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE}_v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}")
+if (OIIO_NAMESPACE_INCLUDE_PATCH)
+    set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE_V}_${PROJECT_VERSION_PATCH}")
+endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
 
@@ -214,6 +219,11 @@ if (BUILD_DOCS)
 endif ()
 add_subdirectory (src/fonts)
 add_subdirectory (src/nuke)
+
+# Last minute site-specific instructions, if they exist
+if (OIIO_SITE AND EXISTS "${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecustom.cmake")
+    include ("${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecustom.cmake")
+endif ()
 
 # install pkgconfig file
 IF ( NOT MSVC )

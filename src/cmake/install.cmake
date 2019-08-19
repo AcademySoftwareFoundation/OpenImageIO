@@ -10,7 +10,9 @@ if (CMAKE_SKIP_RPATH)
     set (CMAKE_SKIP_RPATH FALSE)
     unset (CMAKE_INSTALL_RPATH)
 else ()
-    set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+    if (NOT CMAKE_INSTALL_RPATH)
+        set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+    endif ()
     # add the automatically determined parts of the RPATH that
     # point to directories outside the build tree to the install RPATH
     set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)

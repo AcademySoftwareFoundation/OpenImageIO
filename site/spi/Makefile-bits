@@ -3,18 +3,30 @@ ifneq (${VERBOSE},)
 $(info Including spi/Makefile-bits)
 endif
 
-# For SpComp2 builds, set env OIIO_SPCOMP2=1, and either
+# For SpComp2 builds, do:
+#
 #     make OIIO_SPCOMP2=1 spcomp2_install
 # or
 #     make OIIO_SPCOMP2=1 SPCOMP2_LOCAL_PATH=/test/path spcomp2_install_local
 #
-# For Arnold builds, set env OIIO_ARNOLD=1 and just do a regular
-# "make". We make this the default, so if you want neither an Arnold nor
-# a SpComp2, you have to set OIIO_ARNOLD=0.  If both are set, SpComp2
-# takes precedence.
+# For Arnold builds, do:
+#
+#     make OIIO_ARNOLD=1
+#
+# For a Rez-bound build, do:
+#
+#     make OIIO_SPIREZ=1
+#
+#     (Options: OIIO_REZ_NAME=blah REZ_PACKAGE_ROOT=path)
+#
+# Otherwise a default 'make' will make a fully generic OIIO build.
 OIIO_SPCOMP2 ?= 0
-OIIO_ARNOLD ?= 1
-OPENIMAGEIO_SPCOMP2_VERSION ?= 49
+OIIO_ARNOLD ?= 0
+OIIO_SPIREZ ?= 0
+OIIO_REZ_NAME ?= OpenImageIO
+OIIO_VERS = $(shell grep "OpenImageIO VERSION" CMakeLists.txt | egrep -o "[0-9.]+")
+ONEVERS = $(shell site/spi/format_version.py ${OIIO_VERS})
+OPENIMAGEIO_SPCOMP2_VERSION ?= ${ONEVERS}
 ifeq (${OIIO_SPCOMP2},1)
     $(info Building for SpComp2)
     OIIO_ARNOLD := 0
@@ -27,13 +39,19 @@ else ifeq (${OIIO_ARNOLD},1)
     NAMESPACE ?= 'OpenImageIO_Arnold'
     PYLIB_LIB_PREFIX ?= 0
     PYLIB_INCLUDE_SONAME ?= 0
+else ifeq (${OIIO_SPIREZ},1)
+    $(info Building OpenImageIO for Rez distribution)
+    NAMESPACE ?= 'OpenImageIO'
+    PYLIB_LIB_PREFIX ?= 0
+    PYLIB_INCLUDE_SONAME ?= 0
+    MY_CMAKE_FLAGS += -DOIIO_SPIREZ=1 -DOIIO_REZ_PACKAGE_NAME=${OIIO_REZ_NAME}
+else
+    $(info Building generic OpenImageIO)
+    NAMESPACE ?= 'OpenImageIO'
+    PYLIB_LIB_PREFIX ?= 0
+    PYLIB_INCLUDE_SONAME ?= 0
 endif
 #$(info MAKECMDGOALS = $(MAKECMDGOALS))
-
-
-MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=SPI
-MY_CMAKE_FLAGS += -DSPI_TESTS=1
-SPCOMP2_ROOT ?= /shots/spi/home/lib/SpComp2
 
 
 ## Detect which SPI platform and set $platform, $COMPILER, $SPCOMP2_COMPILER,
@@ -47,11 +65,20 @@ else ifeq (${platform}, macosx)
     COMPILER ?= clang
     SPCOMP2_COMPILER ?= clang
     PYTHON_VERSION ?= 2.6
+    SP_OS ?= macosx
 else
     $(error Unknown SP_OS=${SP_OS} platform=${platform})
 endif  # endif ${SP_OS}
 
 PYTHON_VERSION ?= 2.7
+SPI_COMPILER_PLATFORM ?= gcc-4.8
+MY_CMAKE_FLAGS += -DSP_OS=${SP_OS}
+MY_CMAKE_FLAGS += -DSPI_COMPILER_PLATFORM=${SPI_COMPILER_PLATFORM}
+MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=spi
+MY_CMAKE_FLAGS += -DSPI_TESTS=1
+MY_CMAKE_FLAGS += -DOIIO_NAMESPACE_INCLUDE_PATCH=1
+SPCOMP2_ROOT ?= /shots/spi/home/lib/SpComp2
+REZ_PACKAGE_ROOT ?= /shots/spi/home/software/packages
 
 
 ## Rhel7 (current)
@@ -68,6 +95,8 @@ ifeq (${SP_OS}, rhel7)
     # Override lib64 and use SPI convention of lib
     MY_CMAKE_FLAGS += -DCMAKE_INSTALL_LIBDIR="${INSTALL_PREFIX}/lib"
     ifeq (${OIIO_SPCOMP2},1)
+        MY_CMAKE_FLAGS += -DPYTHON_SITE_DIR="${INSTALL_PREFIX}/python"
+    else ifeq (${OIIO_SPIREZ},1)
         MY_CMAKE_FLAGS += -DPYTHON_SITE_DIR="${INSTALL_PREFIX}/python"
     else ifeq (${OIIO_ARNOLD},1)
         OIIO_LIBNAME_SUFFIX=_Arnold
@@ -114,6 +143,7 @@ ifeq (${SP_OS}, rhel7)
     BOOSTVERS ?= 1.55
     BOOSTSPSUFFIX ?=
     BOOSTVERSSP=${BOOSTVERS}${BOOSTSPSUFFIX}
+    MY_CMAKE_FLAGS += -DBOOST_VERS_SP=${BOOSTVERSSP}
     # $(info BOOSTVERSSP ${BOOSTVERSSP})
     ifeq (${BOOSTVERS},1.55)
         SPBOOST_INC_DIR ?= /usr/include/boost_${BOOSTVERSSP}
@@ -156,8 +186,7 @@ ifeq (${SP_OS}, rhel7)
             -DPYTHON_VERSION_MINOR=6 \
             -DPYTHON_VERSION_PATCH=3 \
             -DPython_ADDITIONAL_VERSIONS="${PYTHON_VERSION}"
-    endif
-    ifeq (${PYTHON_VERSION},3.7)
+    else ifeq (${PYTHON_VERSION},3.7)
         # Special sauce for Python 3.7
         PYTHON_INCLUDE_DIR := /usr/include/python${PYTHON_VERSION}m
         PYTHON_LIBRARY := ${PYTHON_LIBRARY_DIR}/libpython${PYTHON_VERSION}m.so
@@ -167,6 +196,17 @@ ifeq (${SP_OS}, rhel7)
             -DPYTHON_VERSION_MAJOR=3 \
             -DPYTHON_VERSION_MINOR=7 \
             -DPYTHON_VERSION_PATCH=3 \
+            -DPython_ADDITIONAL_VERSIONS="${PYTHON_VERSION}"
+    else ifeq (${PYTHON_VERSION},2.7)
+        # Special sauce for Python 2.7
+        PYTHON_INCLUDE_DIR := /usr/include/python${PYTHON_VERSION}
+        PYTHON_LIBRARY := ${PYTHON_LIBRARY_DIR}/libpython${PYTHON_VERSION}.so
+        MY_CMAKE_FLAGS += \
+            -DPYTHONINTERP_FOUND=1 \
+            -DPYTHON_VERSION_STRING=2.7.5 \
+            -DPYTHON_VERSION_MAJOR=2 \
+            -DPYTHON_VERSION_MINOR=7 \
+            -DPYTHON_VERSION_PATCH=5 \
             -DPython_ADDITIONAL_VERSIONS="${PYTHON_VERSION}"
     endif
     MY_CMAKE_FLAGS += \
@@ -271,13 +311,29 @@ endif  # endif ${SP_OS}
 
 
 
+ifeq (${OIIO_SPIREZ},1)
+    # Rpath touch-ups
+    # NOTE: This MUST match the order and naming of the Rez variants
+    # set in rez/package.py.in
+    REZ_INSTALL_PATH := ${REZ_PACKAGE_ROOT}/${OIIO_REZ_NAME}/${OIIO_VERS}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}/boost-${BOOSTVERSSP}
+    MY_CMAKE_FLAGS += -DOIIO_REZ_INSTALL_PATH=${REZ_INSTALL_PATH}
+    MY_CMAKE_FLAGS += -DCMAKE_INSTALL_RPATH=${REZ_INSTALL_PATH}/lib
+endif
+
+
+
 ############################################################################
 # SpComp2 magic incantations follow. Here be dragons.
 ############################################################################
 
 
 CPPSTDSUFFIX=
+SPCOMP2_INSTALL_ROOT ?= $(SPCOMP2_ROOT)
+BOOSTVERSSP?=${BOOSTVERS}${BOOSTSPSUFFIX}
 SPARCH=${SP_OS}-$(SPCOMP2_COMPILER)$(CPPSTDSUFFIX)-boost$(subst .,,$(BOOSTVERSSP))
+OIIO_SPCOMP2_PATH := ${SPCOMP2_INSTALL_ROOT}/OpenImageIO/${SPARCH}/v${OPENIMAGEIO_SPCOMP2_VERSION}
+# $(info New rhel7 OIIO_SPCOMP2_PATH is ${OIIO_SPCOMP2_PATH})
+
 PYVERNOSPACE=${shell echo ${PYTHON_VERSION} | sed "s/\\.//"}
 SPPYARCH=$(SPARCH)-py$(PYVERNOSPACE)
 
@@ -285,30 +341,27 @@ SPPYARCH=$(SPARCH)-py$(PYVERNOSPACE)
 
 all: dist
 
+local: dist
+
 .PHONY: spcomp2_install spcomp2_install_local clean all
 
 comma:= ,
 empty:=
 space:= $(empty) $(empty)
 
-INSTALL_BIN_LOCATION = /shots/spi/home/bin/${SP_OS}
-SPCOMP2_INSTALL_ROOT ?= $(SPCOMP2_ROOT)
-OIIO_SPCOMP2_PATH := ${SPCOMP2_INSTALL_ROOT}/OpenImageIO/$(SPARCH)/v${OPENIMAGEIO_SPCOMP2_VERSION}
 INSTALL_SPCOMP2_CURRENT = $(SPCOMP2_INSTALL_ROOT)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
-# $(info New rhel7 OIIO_SPCOMP2_PATH is ${OIIO_SPCOMP2_PATH})
+INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
 SPCOMP2_LOCAL_PATH ?= /net/soft_scratch/users/$(USER)/SpComp2_test
+
+spcomp2_install_local: SPCOMP2_INSTALL_ROOT = $(SPCOMP2_LOCAL_PATH)
+spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
+spcomp2_install_local: spcomp2_install
 
 SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
 SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${FIELD3D_HOME}/lib/debug:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib/debug:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
 PYSPCOMP2_RPATH_OPT ?= ${SPCOMP2_RPATH_OPT}:${OIIO_SPCOMP2_PATH}/lib:${PYTHON_LIBRARY_DIR}
 PYSPCOMP2_RPATH_DEBUG ?= ${SPCOMP2_RPATH_DEBUG}:${OIIO_SPCOMP2_PATH}/lib/debug:${PYTHON_LIBRARY_DIR}
 
-
-spcomp2_install_local: SPCOMP2_INSTALL_ROOT = $(SPCOMP2_LOCAL_PATH)
-spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
-spcomp2_install_local: spcomp2_install
-
-local: dist
 
 spcomp2: MY_CMAKE_FLAGS += \
 		-DCMAKE_SKIP_BUILD_RPATH:BOOL=ON \
@@ -338,6 +391,9 @@ spcomp2_install_fixup_rhel7: spcomp2 spcomp2_debug
 	patchelf --set-rpath ${SPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/lib/libOpenImageIO_Util$(OIIO_LIBNAME_SUFFIX).so
 	patchelf --set-rpath ${PYSPCOMP2_RPATH_OPT} ${dist_dir}/python/libPyOpenImageIO.so
 	patchelf --set-rpath ${PYSPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/python/libPyOpenImageIO.so
+	patchelf --set-rpath $(INSTALL_SPCOMP2_CURRENT)/lib:${SPCOMP2_RPATH_OPT} ${dist_dir}/bin/oiiotool
+	patchelf --set-rpath $(INSTALL_SPCOMP2_CURRENT)/lib:${SPCOMP2_RPATH_OPT} ${dist_dir}/bin/maketx
+	patchelf --set-rpath $(INSTALL_SPCOMP2_CURRENT)/lib:${SPCOMP2_RPATH_OPT} ${dist_dir}/bin/iv
 
 # This goal can't start with 'install' because something elsewhere picks
 # it up and starts doing bad things
@@ -374,4 +430,7 @@ spcomp2_install: spcomp2_install_fixup_${SP_OS}
 	  --srcdir=${dist_dir}/python \
 	  --builddir_o=${dist_dir}/python \
 	  --builddir_d=${dist_dir}.debug/python
-
+	mkdir -p $(INSTALL_BIN_LOCATION)
+	cp ${dist_dir}/bin/oiiotool $(INSTALL_BIN_LOCATION)
+	cp ${dist_dir}/bin/maketx $(INSTALL_BIN_LOCATION)
+	cp ${dist_dir}/bin/iv $(INSTALL_BIN_LOCATION)
