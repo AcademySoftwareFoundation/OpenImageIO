@@ -48,7 +48,7 @@ Public API changes:
       int dither = myimagespec["oiio:dither"].get<int>();
       std::string cs = myimagespec["colorspace"];
   See the documentation about "Attribute Delegates" for more information,
-  or the new header `attrdelegate.h`. #2204 (2.1.1)
+  or the new header `attrdelegate.h`. #2204 (2.1.1) #2297 (2.1.3)
 * New helper functions in `typedesc.h`: `tostring()` converts nearly any
   TypeDesc-described data to a readable string, `convert_type()` does data
   type conversions as instructed by TypeDesc's. #2204 (2.1.1)
@@ -65,6 +65,11 @@ Public API changes:
     - Added Python bindings for ColorConfig. #2248 (2.1.2)
 
 Performance improvements:
+* ImageCache/TextureSystem:
+    - Improved perf of the tile and file cache lookups, especially under
+      heavy thread contention, from improvement in performance and
+      properties of the hashing used by the caches. #2314, #2316 (2.1.3)
+* Improved performance for ustring creation and lookup. #2315 (2.1.3)
 
 Fixes and feature enhancements:
 * oiiotool:
@@ -90,6 +95,9 @@ Fixes and feature enhancements:
       --resize, --resample). #2202 #2219, #2242 (2.1.1, 2.1.2)
     - `--ociodisplay`: empty display or view names imply using the default
       display or view. #2273 (2.0.10/2.1.3)
+    - `--metamerge` option causes binary image operations to try to "merge"
+      the metadata of their inputs, rather than simply copy the metadata
+      from the first input and ignore the others. #2311 (2.1.3)
 * ImageBuf/ImageBufAlgo:
     - `IBA::channel_append()` previously always forced its result to be float,
       if it wasn't previously initialized. Now it uses the uaual type-merging
@@ -182,6 +190,8 @@ Fixes and feature enhancements:
       both color primaries and transfer. Asking for "linear" gives you
       linear transfer with sRGB/Rec709 primaries. The default is true sRGB,
       because it will behave just like JPEG. #2260 (2.1.2)
+    - Added "raw:half_size" and "raw:user_mul" configuration attributes.
+      #2307 (2.1.3)
 * RLA:
     - Improved logic for determining the single best data type to report
       for all channels. #2282 (2.1.3)
@@ -253,13 +263,18 @@ Build/test system improvements and platform ports:
 * The embedded `fmt` implementation has been updated to fix windows
   warnings. #2280 (2.1.3)
 * Improvements for finding certain new Boost versions. #2293 (2.0.10/2.1.3)
-* Build fixes for MinGW. #2304 (2.0.10/2.1.3)
+* Build fixes for MinGW. #2304, #2308 (2.0.10/2.1.3)
+* libraw: Fixes to make it build properly against some changes in the
+  libraw development master. #2306 (2.1.3)
 
 Developer goodies / internals:
 * argparse.h:
     - Add unit tests. #2192 (2.1.1)
     - Add "%1" which is like "%*" but its list receives only arguments that
       come *before* any other dash-led arguments. #2192 (2.1.1)
+    - Allow specifiers such as "%d:WIDTH" the part before the colon is the
+      type specifier, the part after the colon is the name of the parameter
+      for documentation purposes. #2312 (2.1.3)
 * attrdelegate.h:
     - New header implements "attribute delegates." (Read header for details)
       #2204 (2.1.1)
@@ -279,6 +294,8 @@ Developer goodies / internals:
     - powwroundup/pow2rounddown have been renamed ceil2/floor2 to reflect
       future C++20 standard. The old names still work, so it's a fully back
       compatible change. #2199 (2.0.8/2.1.1)
+    - To match C++20 notation, use `rotl()` template innstead of separate
+      rotl32/rotl64 funnctions. #2299, #2309 (2.1.3)
 * platform.h:
     - New `OIIO_RETURNS_NONNULL` macro implements an attribute that marks
       a function that returns a pointer as guaranteeing that it's never
@@ -296,6 +313,10 @@ Developer goodies / internals:
     - Added `stacktrace()` and `setup_crash_stacktrace()`. (Only functional
       if OIIO is built with Boost >= 1.65, because it relies on the Boost
       stacktrace library). #2229 (2.0.8/2.1.1)
+* unordered_map_concurrent.h:
+    - Performance improvement by avoiding redundant hashing of keys, and
+      improving the speed and properties of the hash functionn. #2313, #2316
+      (2.1.3)
 * ustring.h:
     - Bug fix in `ustring::compare(string_view)`, in cases where the
       string_view was longer than the ustring, but had the same character
