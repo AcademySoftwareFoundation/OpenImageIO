@@ -416,19 +416,16 @@ private:
     size_t whichbin(size_t hash)
     {
         constexpr int LOG2_BINS = log2(BINS);
-        constexpr int BIN_SHIFT = 32 - LOG2_BINS;
+        constexpr int BIN_SHIFT = 8 * sizeof(size_t) - LOG2_BINS;
 
         static_assert(1 << LOG2_BINS == BINS,
                       "Number of bins must be a power of two");
-        static_assert(~uint32_t(0) >> BIN_SHIFT == (BINS - 1), "Hash overflow");
+        static_assert(~size_t(0) >> BIN_SHIFT == (BINS - 1), "Hash overflow");
 
         // Use the high order bits of the hash to index the bin. We assume that the
         // low-order bits of the hash will directly be used to index the hash table,
         // so using those would lead to collisions.
-        // To avoid mixups between size_t among platforms, we always cast to a 32-bit
-        // integer first. Its quite possible the hash function only gave us a uint32_t
-        // even though the API technically wants a size_t.
-        unsigned bin = uint32_t(hash) >> BIN_SHIFT;
+        size_t bin = hash >> BIN_SHIFT;
         DASSERT(bin < BINS);
         return bin;
     }

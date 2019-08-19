@@ -442,12 +442,11 @@ typedef tsl::robin_map<ustring, ImageCacheFileRef, ustringHash> FingerprintMap;
 
 /// Compact identifier for a particular tile of a particular image
 ///
-class TileID {
-public:
+struct TileID {
     /// Default constructor
     ///
     TileID()
-        : m_file(NULL)
+        : m_file(nullptr)
     {
     }
 
@@ -502,9 +501,6 @@ public:
     /// Is this an uninitialized tileID?
     bool empty() const { return m_file == nullptr; }
 
-    /// Treating it like a bool says whether it's non-empty.
-    operator bool() const { return m_file != nullptr; }
-
     /// Do the two ID's refer to the same tile?
     ///
     friend bool equal(const TileID& a, const TileID& b)
@@ -517,17 +513,6 @@ public:
                 && a.m_chend == b.m_chend);
     }
 
-    /// Do the two ID's refer to the same tile, given that the
-    /// caller *guarantees* that the two tiles point to the same
-    /// file, subimage, and miplevel (so it only has to compare xyz)?
-    friend bool equal_same_subimage(const TileID& a, const TileID& b)
-    {
-        DASSERT((a.m_file == b.m_file) && a.m_subimage == b.m_subimage
-                && a.m_miplevel == b.m_miplevel);
-        return (a.m_x == b.m_x && a.m_y == b.m_y && a.m_z == b.m_z
-                && a.m_chbegin == b.m_chbegin && a.m_chend == b.m_chend);
-    }
-
     /// Do the two ID's refer to the same tile?
     ///
     bool operator==(const TileID& b) const { return equal(*this, b); }
@@ -536,23 +521,16 @@ public:
     /// Digest the TileID into a size_t to use as a hash key.
     size_t hash() const
     {
-#if 0
-        // original -- turned out not to fill hash buckets evenly
-        return m_x * 53 + m_y * 97 + m_z * 193 +
-               m_subimage * 389 + m_miplevel * 1543 +
-               m_file->filename().hash() * 769;
-#else
-        // Good compromise!
-        return bjhash::bjfinal(m_x + 1543, m_y + 6151 + m_z * 769,
-                               m_miplevel + (m_subimage << 8) + (chbegin() << 4)
-                                   + nchannels())
-               + m_file->filename().hash();
-#endif
+        const uint64_t a = (uint64_t(m_x) << 32) + uint64_t(m_y);
+        const uint64_t b = (uint64_t(m_z) << 32) + uint64_t(m_subimage);
+        const uint64_t c = (uint64_t(m_miplevel) << 32)
+                           + (uint64_t(m_chbegin) << 16) + uint64_t(m_chend);
+        const uint64_t d = m_file->filename().hash();
+        return fasthash::fasthash64({ a, b, c, d });
     }
 
     /// Functor that hashes a TileID
-    class Hasher {
-    public:
+    struct Hasher {
         size_t operator()(const TileID& a) const { return a.hash(); }
     };
 
