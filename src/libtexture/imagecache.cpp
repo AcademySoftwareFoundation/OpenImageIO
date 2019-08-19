@@ -2422,7 +2422,7 @@ ImageCacheImpl::check_max_mem(ImageCachePerThreadInfo* thread_info)
 
     // Get a (locked) iterator for the next tile to be examined.
     TileCache::iterator sweep;
-    if (m_tile_sweep_id) {
+    if (!m_tile_sweep_id.empty()) {
         // We saved the sweep_id. Find the iterator corresponding to it.
         sweep = m_tilecache.find(m_tile_sweep_id);
         // Note: if the sweep_id is no longer in the table, sweep will be an
@@ -2463,7 +2463,7 @@ ImageCacheImpl::check_max_mem(ImageCachePerThreadInfo* thread_info)
             m_tilecache.erase(todelete);
             // 4. Re-establish a locked iterator for the next item, since
             // the old iterator may have been invalidated by the erasure.
-            if (m_tile_sweep_id)
+            if (!m_tile_sweep_id.empty())
                 sweep = m_tilecache.find(m_tile_sweep_id);
         } else {
             ++sweep;
