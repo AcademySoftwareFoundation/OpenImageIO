@@ -34,20 +34,18 @@ typedef null_lock<null_mutex> ustring_read_lock_t;
 typedef null_lock<null_mutex> ustring_write_lock_t;
 #endif
 
+// #define USTRING_TRACK_NUM_LOOKUPS
 
-// NOTE: BASE_CAPACITY must be a power of 2
-template<unsigned BASE_CAPACITY = 1 << 20, unsigned POOL_SIZE = 4 << 20>
-struct TableRepMap {
+template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
+    static_assert((BASE_CAPACITY & (BASE_CAPACITY - 1)) == 0,
+                  "BASE_CAPACITY must be a power of 2");
+
     TableRepMap()
-        : mask(BASE_CAPACITY - 1)
-        , entries(static_cast<ustring::TableRep**>(
-              calloc(BASE_CAPACITY, sizeof(ustring::TableRep*))))
-        , num_entries(0)
+        : entries(static_cast<ustring::TableRep**>(
+            calloc(BASE_CAPACITY, sizeof(ustring::TableRep*))))
         , pool(static_cast<char*>(malloc(POOL_SIZE)))
-        , pool_offset(0)
         , memory_usage(sizeof(*this) + POOL_SIZE
                        + sizeof(ustring::TableRep*) * BASE_CAPACITY)
-        , num_lookups(0)
     {
     }
 
@@ -67,16 +65,18 @@ struct TableRepMap {
         return num_entries;
     }
 
+#ifdef USTRING_TRACK_NUM_LOOKUPS
     size_t get_num_lookups()
     {
         ustring_read_lock_t lock(mutex);
         return num_lookups;
     }
+#endif
 
     const char* lookup(string_view str, size_t hash)
     {
         ustring_read_lock_t lock(mutex);
-#if 0
+#ifdef USTRING_TRACK_NUM_LOOKUPS
         // NOTE: this simple increment adds a substantial amount of overhead
         // so keep it off by default, unless the user really wants it
         // NOTE2: note that in debug, asserts like the one in ustring::from_unique
@@ -156,7 +156,6 @@ private:
     {
         char* repmem = pool_alloc(sizeof(ustring::TableRep) + str.length() + 1);
         return new (repmem) ustring::TableRep(str, hash);
-        ;
     }
 
     char* pool_alloc(size_t len)
@@ -180,19 +179,21 @@ private:
         return result;
     }
 
-    size_t mask;
+    OIIO_CACHE_ALIGN ustring_mutex_t mutex;
+    size_t mask = BASE_CAPACITY - 1;
     ustring::TableRep** entries;
-    size_t num_entries;
+    size_t num_entries = 0;
     char* pool;
-    size_t pool_offset;
+    size_t pool_offset = 0;
     size_t memory_usage;
-    size_t num_lookups;
-    ustring_mutex_t mutex;
+#ifdef USTRING_TRACK_NUM_LOOKUPS
+    size_t num_lookups = 0;
+#endif
 };
 
 #if 0
 // Naive map with a single lock for the whole table
-typedef TableRepMap<1 << 20, 4 << 20> UstringTable;
+typedef TableRepMap<1 << 20, 16 << 20> UstringTable;
 #else
 // Optimized map broken up into chunks by the top bits of the hash.
 // This helps reduce the amount of contention for locks.
@@ -223,6 +224,7 @@ struct UstringTable {
         return num;
     }
 
+#    ifdef USTRING_TRACK_NUM_LOOKUPS
     size_t get_num_lookups()
     {
         size_t num = 0;
@@ -230,16 +232,17 @@ struct UstringTable {
             num += bin.get_num_lookups();
         return num;
     }
+#    endif
 
 private:
     enum {
-        BIN_SHIFT = 5,
-        NUM_BINS
-        = 1 << BIN_SHIFT,  // NOTE: this guarentees NUM_BINS is a power of 2
+        // NOTE: this guarentees NUM_BINS is a power of 2
+        BIN_SHIFT = 12,
+        NUM_BINS  = 1 << BIN_SHIFT,
         TOP_SHIFT = 8 * sizeof(size_t) - BIN_SHIFT
     };
 
-    typedef TableRepMap<(1 << 20) / NUM_BINS, (4 << 20) / NUM_BINS> Bin;
+    typedef TableRepMap<(1 << 20) / NUM_BINS, (16 << 20) / NUM_BINS> Bin;
 
     Bin bins[NUM_BINS];
 
@@ -418,19 +421,19 @@ ustring::getstats(bool verbose)
     UstringTable& table(ustring_table());
     std::ostringstream out;
     out.imbue(std::locale::classic());  // Force "C" locale with '.' decimal
-    size_t n_l = table.get_num_lookups();
     size_t n_e = table.get_num_entries();
     size_t mem = table.get_memory_usage();
     if (verbose) {
         out << "ustring statistics:\n";
-        if (n_l)  // NOTE: see #if 0 above
-            out << "  ustring requests: " << n_l << ", unique " << n_e << "\n";
-        else
-            out << "  unique strings: " << n_e << "\n";
+#ifdef USTRING_TRACK_NUM_LOOKUPS
+        out << "  ustring requests: " << table.get_num_lookups() << "\n";
+#endif
+        out << "  unique strings: " << n_e << "\n";
         out << "  ustring memory: " << Strutil::memformat(mem) << "\n";
     } else {
-        if (n_l)  // NOTE: see #if 0 above
-            out << "requests: " << n_l << ", ";
+#ifdef USTRING_TRACK_NUM_LOOKUPS
+        out << "requests: " << table.get_num_lookups() << ", ";
+#endif
         out << "unique " << n_e << ", " << Strutil::memformat(mem);
     }
     return out.str();
