@@ -2595,7 +2595,8 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
         for (int j = 0; j < 100; ++j) {
             for (int i = 0; i < 10; ++i) {
                 float s = i + 0.5f, t = j + 0.5f;
-                ImageCacheFile* concretefile = resolve_udim(file, s, t);
+                ImageCacheFile* concretefile = resolve_udim(file, thread_info,
+                                                            s, t);
                 concretefile = verify_file(concretefile, thread_info, true);
                 if (concretefile && !concretefile->broken()) {
                     // Recurse to try again with the concrete file
@@ -3392,7 +3393,8 @@ namespace {
 
 
 ImageCacheFile*
-ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, float& s, float& t)
+ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, Perthread* thread_info,
+                             float& s, float& t)
 {
     // Find the u and v tile IDs, and adjust s,t to take their floors
     int utile = std::max(0, int(s));
@@ -3433,7 +3435,7 @@ ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, float& s, float& t)
                                     Strutil::sprintf("u%d", utile + 1), true);
         realname         = Strutil::replace(realname, "<V>",
                                     Strutil::sprintf("v%d", vtile + 1), true);
-        realfile         = find_file(realname, get_perthread_info());
+        realfile         = find_file(realname, thread_info);
         // Now grab the actual write lock, and double check that it hasn't
         // been added by another thread during the brief time when we
         // weren't holding any lock.
