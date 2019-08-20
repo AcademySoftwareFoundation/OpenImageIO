@@ -21,7 +21,7 @@ Variants:
     make nuke
     make OIIO_SPIREZ=1 BOOSTSPSUFFIX=sp
 
-    # Python 3.7, Boost 1.66, C++11/gcc4.8 compat
+    # Python 3.7, Boost 1.66, C++11/gcc6.3 compat
     make nuke
     make OIIO_SPIREZ=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3
 
@@ -76,9 +76,10 @@ SpComp2 build and release
 If you are trying to do an SpComp2 release, forget all the steps above, you
 will need some different flags.
 
-First, to make a TEST build and release to your local spcomp2 mock-up:
+First, to make a TEST build and release to your local spcomp2 mock-up
+in /net/soft_scratch/users/$USER, use this alternate target:
 
-    make OIIO_SPCOMP2=1 SPCOMP2_LOCAL_PATH=/test/path spcomp2_install_local
+    make OIIO_SPCOMP2=1 ... spcomp2_install_local
 
 When you are ready for the real thing, you will want to build each of the
 following variants:
@@ -89,11 +90,11 @@ following variants:
 
     # Python 2.7, Boost 1.55 sp namespaced, C++11/gcc4.8 compat
     make nuke
-    make OIIO_SPCOMP2=1 BOOSTVERS=1.55sp spcomp2_install
+    make OIIO_SPCOMP2=1 BOOSTSPSUFFIX=sp spcomp2_install
 
-    # Python 3.7, Boost 1.66, C++11/gcc4.8 compat
+    # Python 3.7, Boost 1.66, C++11/gcc6.3 compat
     make nuke
-    make OIIO_SPCOMP2=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 spcomp2_install
+    make OIIO_SPCOMP2=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPCOMP2_COMPILER=gcc63m64 spcomp2_install
 
     # Python 3.6, Boost 1.55, C++11/gcc4.8 compat (for Jon Ware)
     make nuke

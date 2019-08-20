@@ -391,9 +391,6 @@ spcomp2_install_fixup_rhel7: spcomp2 spcomp2_debug
 	patchelf --set-rpath ${SPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/lib/libOpenImageIO_Util$(OIIO_LIBNAME_SUFFIX).so
 	patchelf --set-rpath ${PYSPCOMP2_RPATH_OPT} ${dist_dir}/python/libPyOpenImageIO.so
 	patchelf --set-rpath ${PYSPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/python/libPyOpenImageIO.so
-	patchelf --set-rpath $(INSTALL_SPCOMP2_CURRENT)/lib:${SPCOMP2_RPATH_OPT} ${dist_dir}/bin/oiiotool
-	patchelf --set-rpath $(INSTALL_SPCOMP2_CURRENT)/lib:${SPCOMP2_RPATH_OPT} ${dist_dir}/bin/maketx
-	patchelf --set-rpath $(INSTALL_SPCOMP2_CURRENT)/lib:${SPCOMP2_RPATH_OPT} ${dist_dir}/bin/iv
 
 # This goal can't start with 'install' because something elsewhere picks
 # it up and starts doing bad things
@@ -430,7 +427,3 @@ spcomp2_install: spcomp2_install_fixup_${SP_OS}
 	  --srcdir=${dist_dir}/python \
 	  --builddir_o=${dist_dir}/python \
 	  --builddir_d=${dist_dir}.debug/python
-	mkdir -p $(INSTALL_BIN_LOCATION)
-	cp ${dist_dir}/bin/oiiotool $(INSTALL_BIN_LOCATION)
-	cp ${dist_dir}/bin/maketx $(INSTALL_BIN_LOCATION)
-	cp ${dist_dir}/bin/iv $(INSTALL_BIN_LOCATION)
