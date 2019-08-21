@@ -65,7 +65,7 @@ That will make appcfg aware of the release.
 
 To also make this release the new facility default:
 
-    db-any spi/home/OpenImageIO.bin highest /shots/spi/home/lib/app_cfg/OpenImageIO_A.B.C.D.xml
+    db-any spi/home/OpenImageIO.bin highest /shots/spi/home/lib/app_cfg/OpenImageIO/OpenImageIO_A.B.C.D.xml
 
 where A.B.C.D is the version.
 

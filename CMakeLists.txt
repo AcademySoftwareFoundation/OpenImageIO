@@ -64,7 +64,7 @@ include (compiler)   # All the C++ and compiler related options live here
 option (VERBOSE "Print lots of messages while compiling" OFF)
 set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
       "Customized outer namespace base name (version will be added)")
-option (OIIO_NAMESPACE_INCLUDE_PATCH "Should the inner namespace include the patch number" OFF)
+option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH "Should the inner namespace include the patch number" OFF)
 option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 option (OIIO_BUILD_TOOLS "Build the command-line tools" ON)
 option (OIIO_BUILD_TESTS "Build the unit tests" ON)
@@ -107,7 +107,7 @@ set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML lib
 option (USE_DICOM "Use DICOM if DCMTK is found" ON)
 option (USE_HEIF "Support HEIC/HEIF files, if libheif is found)" ON)
 set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
-set (SOVERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}
+set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
 set (OIIO_LIBNAME_SUFFIX "" CACHE STRING
      "Optional name appended to ${PROJECT_NAME} libraries that are built")
