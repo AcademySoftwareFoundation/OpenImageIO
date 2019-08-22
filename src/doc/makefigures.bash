@@ -78,7 +78,7 @@ ${OIIOTOOL} -autocc tahoe-small.jpg --contrast:scontrast=5 -o tahoe-sigmoid.jpg
 
 ${OIIOTOOL} -autocc tahoe-small.jpg --colormap inferno -o colormap-inferno.jpg
 ${OIIOTOOL} -autocc tahoe-small.jpg --colormap viridis -o colormap-viridis.jpg
-${OIIOTOOL} -autocc tahoe-small.jpg --colormap spectrum -o colormap-spectrum.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --colormap turbo -o colormap-turbo.jpg
 ${OIIOTOOL} -autocc tahoe-small.jpg --colormap ".25,.25,.25,0,.5,0,1,0,0" -o colormap-custom.jpg
 
 ${OIIOTOOL} -autocc tahoe-small.jpg --ccmatrix "0.805,0.506,-0.311,0,-0.311,0.805,0.506,0,0.506,-0.311,0.805,0,0,0,0,1" -o tahoe-ccmatrix.jpg

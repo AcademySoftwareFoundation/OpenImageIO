@@ -976,8 +976,10 @@ OIIO_API bool contrast_remap (ImageBuf &dst, const ImageBuf &src,
 /// color map. Recognized map names include: "inferno", "viridis", "magma",
 /// "plasma", all of which are perceptually uniform, strictly increasing in
 /// luminance, look good when converted to grayscale, and work for people
-/// with all types of colorblindness. Also supported are the following color
-/// maps that do not have those desirable qualities (and are this not
+/// with all types of colorblindness. Also "turbo" has most of these
+/// properties (except for being strictly increasing in luminance) and
+/// is a nice rainbow-like pattern. Also supported are the following color
+/// maps that do not have those desirable qualities (and are thus not
 /// recommended, but are present for back-compatibility or for use by
 /// clueless people): "blue-red", "spectrum", and "heat". In all cases, the
 /// implied `channels` is 3.

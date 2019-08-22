@@ -2599,13 +2599,14 @@ Image arithmetic
     given by the tuple `knots[nknots*channels]`.
     
     In the second variant, just the name of a color map is specified.
-    Recognized map names include: "inferno", "viridis","magma", "plasma",
+    Recognized map names include: "inferno", "viridis", "magma", "plasma",
     all of which are perceptually uniform, strictly increasing in luminance,
     look good when converted to grayscale, and work for people with all
-    types of colorblindness. Also supported are the following color maps
-    that do not have those desirable qualities (and are this not
-    recommended): "blue-red", "spectrum", and "heat". In all cases, the
-    implied `channels` is 3.
+    types of colorblindness. The "turbo" color map is also nice in most of
+    these ways (except for being strictly increasing in luminance). Also
+    supported are the following color maps that do not have those desirable
+    qualities (and are this not recommended): "blue-red", "spectrum", and
+    "heat". In all cases, the implied `channels` is 3.
 
     Examples::
 

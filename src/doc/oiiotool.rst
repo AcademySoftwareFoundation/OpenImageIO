@@ -1940,13 +1940,15 @@ current top image.
 .. option:: --colormap <mapname>
 
     Creates an RGB color map based on the luminance of the input image. The
-    `mapname` may be one of: "magma", "inferno", "plasma", "viridis",
+    `mapname` may be one of: "magma", "inferno", "plasma", "viridis", "turbo",
     "blue-red", "spectrum", and "heat". Or, `mapname` may also be a
     comma-separated list of RGB triples, to form a custom color map curve.
     
     Note that "magma", "inferno", "plasma", "viridis" are perceptually
     uniform, strictly increasing in luminance, look good when converted to
-    grayscale, and work for people with all types of colorblindness. These
+    grayscale, and work for people with all types of colorblindness. The
+    "turbo" color map also shares all of these qualities except for being
+    strictly increasing in luminance. These
     are all desirable qualities that are lacking in the other, older,
     crappier maps (blue-red, spectrum, and heat). Don't be fooled by the
     flashy "spectrum" colors --- it is an empirically bad color map compared
@@ -1956,7 +1958,7 @@ current top image.
     
         oiiotool tahoe.jpg --colormap inferno -o inferno.jpg
         oiiotool tahoe.jpg --colormap viridis -o viridis.jpg
-        oiiotool tahoe.jpg --colormap spectrum -o spectrum.jpg
+        oiiotool tahoe.jpg --colormap turbo -o turbo.jpg
         oiiotool tahoe.jpg --colormap .25,.25,.25,0,.5,0,1,0,0 -o custom.jpg
     
     .. |cmimage1| image:: figures/tahoe-small.jpg
@@ -1965,7 +1967,7 @@ current top image.
        :width: 1.25 in
     .. |cmimage3| image:: figures/colormap-viridis.jpg
        :width: 1.25 in
-    .. |cmimage4| image:: figures/colormap-spectrum.jpg
+    .. |cmimage4| image:: figures/colormap-turbo.jpg
        :width: 1.25 in
     .. |cmimage5| image:: figures/colormap-custom.jpg
        :width: 1.25 in
@@ -1974,7 +1976,7 @@ current top image.
     +-----------------+-----------------+-----------------+-----------------+---------------+
     | |cmimage1|      | |cmimage2|      | |cmimage3|      | |cmimage4|      | |cmimage5|    |
     +-----------------+-----------------+-----------------+-----------------+---------------+
-    | original        | inferno         | viridis         | spectrum        | custom values |
+    | original        | inferno         | viridis         | turbo           | custom values |
     +-----------------+-----------------+-----------------+-----------------+---------------+
 
 
