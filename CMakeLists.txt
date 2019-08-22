@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.2.2)
 cmake_policy (SET CMP0048 NEW)  # Allow VERSION specifier in project()
-project (OpenImageIO VERSION 2.1.3.0
+project (OpenImageIO VERSION 2.1.3.1
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
 string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
