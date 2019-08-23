@@ -20,6 +20,7 @@ endif
 #     (Options: OIIO_REZ_NAME=blah REZ_PACKAGE_ROOT=path)
 #
 # Otherwise a default 'make' will make a fully generic OIIO build.
+
 OIIO_SPCOMP2 ?= 0
 OIIO_ARNOLD ?= 0
 OIIO_SPIREZ ?= 0
@@ -27,6 +28,7 @@ OIIO_REZ_NAME ?= OpenImageIO
 OIIO_VERS = $(shell grep "OpenImageIO VERSION" CMakeLists.txt | egrep -o "[0-9.]+")
 ONEVERS = $(shell site/spi/format_version.py ${OIIO_VERS})
 OPENIMAGEIO_SPCOMP2_VERSION ?= ${ONEVERS}
+
 ifeq (${OIIO_SPCOMP2},1)
     $(info Building for SpComp2)
     OIIO_ARNOLD := 0
@@ -40,7 +42,7 @@ else ifeq (${OIIO_ARNOLD},1)
     PYLIB_LIB_PREFIX ?= 0
     PYLIB_INCLUDE_SONAME ?= 0
 else ifeq (${OIIO_SPIREZ},1)
-    $(info Building OpenImageIO for Rez distribution)
+    $(info Building for Rez distribution)
     NAMESPACE ?= 'OpenImageIO'
     PYLIB_LIB_PREFIX ?= 0
     PYLIB_INCLUDE_SONAME ?= 0
@@ -60,25 +62,31 @@ ifeq (${SP_OS}, rhel7)
     # Rhel7 (current)
     platform := rhel7
     SPCOMP2_COMPILER ?= gcc48m64
+    SP_PLATFORM ?= linux
+    SP_PROC ?= x86_64
+    SP_REZ_OS ?= CentOS-7
 else ifeq (${platform}, macosx)
     # Generic OSX machines (including LG's laptop)
     COMPILER ?= clang
     SPCOMP2_COMPILER ?= clang
-    PYTHON_VERSION ?= 2.6
     SP_OS ?= macosx
+    SP_PLATFORM ?= macosx
+    SP_PROC ?= x86_64
+    SP_REZ_OS ?= MacOS
 else
     $(error Unknown SP_OS=${SP_OS} platform=${platform})
 endif  # endif ${SP_OS}
 
 PYTHON_VERSION ?= 2.7
 SPI_COMPILER_PLATFORM ?= gcc-4.8
-MY_CMAKE_FLAGS += -DSP_OS=${SP_OS}
+MY_CMAKE_FLAGS += -DSP_OS=${SP_OS} -DSP_PLATFORM=${SP_PLATFORM}
+MY_CMAKE_FLAGS += -DSP_PROC=${SP_PROC} -DSP_REZ_OS=${SP_REZ_OS}
 MY_CMAKE_FLAGS += -DSPI_COMPILER_PLATFORM=${SPI_COMPILER_PLATFORM}
 MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=spi
 MY_CMAKE_FLAGS += -DSPI_TESTS=1
 MY_CMAKE_FLAGS += -DOIIO_NAMESPACE_INCLUDE_PATCH=1
-SPCOMP2_ROOT ?= /shots/spi/home/lib/SpComp2
 REZ_PACKAGE_ROOT ?= /shots/spi/home/software/packages
+SPCOMP2_ROOT ?= /shots/spi/home/lib/SpComp2
 
 
 ## Rhel7 (current)
@@ -116,7 +124,7 @@ ifeq (${SP_OS}, rhel7)
         LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_7.0.1
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
         MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
-    else ifeq (${COMPILER},clang7)
+    else ifeq (${COMPILER},clang8)
         LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_8.0.0
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
         MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
@@ -134,7 +142,9 @@ ifeq (${SP_OS}, rhel7)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
            -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-        MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
+        MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" \
+                          -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr" \
+			  -DTOOLCHAIN_FLAGS="--gcc-toolchain=/usr"
     endif
 
     #
@@ -318,6 +328,11 @@ ifeq (${OIIO_SPIREZ},1)
     REZ_INSTALL_PATH := ${REZ_PACKAGE_ROOT}/${OIIO_REZ_NAME}/${OIIO_VERS}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}/boost-${BOOSTVERSSP}
     MY_CMAKE_FLAGS += -DOIIO_REZ_INSTALL_PATH=${REZ_INSTALL_PATH}
     MY_CMAKE_FLAGS += -DCMAKE_INSTALL_RPATH=${REZ_INSTALL_PATH}/lib
+endif
+
+
+ifneq (${VERBOSE},)
+    $(info MY_CMAKE_FLAGS: $(MY_CMAKE_FLAGS))
 endif
 
 

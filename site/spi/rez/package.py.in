@@ -4,21 +4,17 @@
 
 name = '@OIIO_REZ_PACKAGE_NAME@'
 
-version = '@OIIO_VERSION_MAJOR@.@OIIO_VERSION_MINOR@.@OIIO_VERSION_PATCH@.@OIIO_VERSION_TWEAK@'
+version = '@PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@.@PROJECT_VERSION_PATCH@.@PROJECT_VERSION_TWEAK@'
 
 description = \
     """
-    Rez package of OpenImageIO
+    Rez package of @PROJECT_NAME@
     """
 
 authors = ['Larry Gritz <lg@imageworks.com>']
 
 # Add dependencies to other Rez packages here
-requires = []
-
-build_command = 'python {root}/build.py'
-
-build_requires = ['buildTools']
+requires = [ 'platform-@SP_PLATFORM@', 'arch-@SP_PROC@', 'os-@SP_REZ_OS@' ]
 
 # Rez has a limitation where it is not possible to add variants to a package that
 # does not have any: https://github.com/nerdvegas/rez/wiki/Variants#single-variants.
@@ -45,8 +41,6 @@ def commands():
     # For SpImport.Packages, append the python directory
     #env.SPIMPORT_PACKAGES.append("{root}/python")
 
-    #if building:
+    if building:
+        env.CMAKE_MODULE_PATH.append('{root}')
     #    Add env vars or custom code you want executed only at build time
-
-
-uuid = '1db87605-b172-4e23-a6cb-7b9ff72a46ae'
