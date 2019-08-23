@@ -938,6 +938,29 @@ static const float viridis_data[] = {
     0.417964f, 0.717561f, 0.029928f, 0.683952f, 0.762557f, 0.009977f, 0.984709f,
     0.799651f, 0.018243f
 };
+
+
+// "Turbo" color map Copyright 2019 Google LLC.
+// SPDX-License-Identifier: Apache-2.0
+// Author: Anton Mikhailov
+// https://gist.github.com/mikhailov-work/6a308c20e494d9e0ccc29036b28faa7a
+// Altered by LG to convert from sRGB to linear and decimate the table to
+// 17 entries.
+//
+// Turbo is also pretty nice, in similar ways to the matplotlib palettes,
+// except for not being monotonically increasing in luminance.
+static const float turbo_data[] = {
+    0.03006f, 0.00619f, 0.04403f,  0.05131f, 0.05183f, 0.35936f,
+    0.06204f, 0.14820f, 0.77017f,  0.05440f, 0.29523f, 0.99718f,
+    0.02160f, 0.50023f, 0.83380f,  0.00892f, 0.72094f, 0.54189f,
+    0.03205f, 0.88790f, 0.31235f,  0.15318f, 0.98683f, 0.12310f,
+    0.37185f, 0.97738f, 0.04454f,  0.61188f, 0.83681f, 0.03455f,
+    0.85432f, 0.62499f, 0.04203f,  0.98447f, 0.41196f, 0.03420f,
+    0.96310f, 0.20754f, 0.01503f,  0.82971f, 0.08083f, 0.00438f,
+    0.63144f, 0.02851f, 0.00140f,  0.39907f, 0.00776f, 0.00033f,
+    0.19564f, 0.00123f, 0.00082f
+};
+
 // clang-format on
 
 
@@ -960,6 +983,8 @@ ImageBufAlgo::color_map(ImageBuf& dst, const ImageBuf& src, int srcchannel,
         knots = cspan<float>(plasma_data);
     } else if (mapname == "viridis") {
         knots = cspan<float>(viridis_data);
+    } else if (mapname == "turbo") {
+        knots = cspan<float>(turbo_data);
     } else if (mapname == "blue-red" || mapname == "red-blue"
                || mapname == "bluered" || mapname == "redblue") {
         static const float k[] = { 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f };

@@ -989,9 +989,9 @@ Image arithmetic
   Examples::
 
     // Use luminance of a.exr (assuming Rec709 primaries and a linear
-    // scale) and map to a color spectrum:
+    // scale) and map to a spectrum-like palette.:
     ImageBuf A ("a.exr");
-    ImageBuf B = ImageBufAlgo::color_map (A, -1, "inferno");
+    ImageBuf B = ImageBufAlgo::color_map (A, -1, "turbo");
 
     float mymap[] = { 0.25, 0.25, 0.25,  0, 0.5, 0,  1, 0, 0 };
     B = ImageBufAlgo::color_map (A, -1 /* use luminance */,
@@ -1004,7 +1004,7 @@ Image arithmetic
    :width: 1.0 in
 .. |cmimage3| image:: figures/colormap-viridis.jpg
    :width: 1.0 in
-.. |cmimage4| image:: figures/colormap-spectrum.jpg
+.. |cmimage4| image:: figures/colormap-turbo.jpg
    :width: 1.0 in
 .. |cmimage5| image:: figures/colormap-custom.jpg
    :width: 1.0 in
@@ -1013,7 +1013,7 @@ Image arithmetic
   +-----------------+-----------------+-----------------+-----------------+---------------+
   | |cmimage1|      | |cmimage2|      | |cmimage3|      | |cmimage4|      | |cmimage5|    |
   +-----------------+-----------------+-----------------+-----------------+---------------+
-  | original        | inferno         | viridis         | spectrum        | custom values |
+  | original        | inferno         | viridis         | turbo           | custom values |
   +-----------------+-----------------+-----------------+-----------------+---------------+
 
 
