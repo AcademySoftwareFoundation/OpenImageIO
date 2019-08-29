@@ -15,13 +15,19 @@ include (FindPackageMessage)
 
 find_path (LIBHEIF_INCLUDE_DIR
     libheif/heif_version.h
-    PATHS
+    HINTS
     ${LIBHEIF_INCLUDE_PATH}
-    ${LIBHEIF_PATH}/include/
+    ENV LIBHEIF_INCLUDE_PATH
+    PATH_SUFFIXES include
     DOC "The directory where libheif headers reside")
 
+message(STATUS "LIBHEIF_PATH ${LIBHEIF_PATH}")
 find_library (LIBHEIF_LIBRARY heif
-              PATHS ${LIBHEIF_PATH}/lib ${LIBHEIF_LIBRARY_PATH})
+              HINTS
+              ${LIBHEIF_LIBRARY_PATH}
+              ENV LIBHEIF_LIBRARY_PATH
+              PATH_SUFFIXES lib
+              DOC "The directory where libheif libraries reside")
 
 message (STATUS "LIBHEIF_INCLUDE_DIR = ${LIBHEIF_INCLUDE_DIR}")
 if (LIBHEIF_INCLUDE_DIR)
@@ -44,13 +50,13 @@ endif()
 
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args (LIBHEIF
-    REQUIRED_VARS   LIBHEIF_INCLUDE_DIR
+    REQUIRED_VARS   LIBHEIF_INCLUDES
                     LIBHEIF_LIBRARIES
     VERSION_VAR     LIBHEIF_VERSION
     )
 
 mark_as_advanced (
-    LIBHEIF_INCLUDE_DIR
+    LIBHEIF_INCLUDES
     LIBHEIF_LIBRARIES
     LIBHEIF_VERSION
     )

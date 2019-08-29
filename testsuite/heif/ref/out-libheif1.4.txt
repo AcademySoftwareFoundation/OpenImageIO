@@ -1,6 +1,6 @@
 Reading ref/IMG_7702_small.heic
 ref/IMG_7702_small.heic :  512 x  300, 3 channel, uint8 heif
-    SHA-1: A189F078254B21C9F918207D6DD5433DD5D2382D
+    SHA-1: C681C957FE12AEFBAED8F40DCC74E276C38D8165
     channel list: R, G, B
     DateTime: "2019:01:21 16:10:54"
     ExposureTime: 0.030303

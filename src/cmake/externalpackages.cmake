@@ -638,6 +638,7 @@ macro (find_or_download_robin_map)
     # locally installed in this tree.
     if (NOT BUILD_ROBINMAP_FORCE)
         find_path (ROBINMAP_INCLUDE_DIR tsl/robin_map.h
+               HINTS
                "${PROJECT_SOURCE_DIR}/ext/robin-map/tsl/"
                "${ROBINMAP_HOME}"
                "$ENV{ROBINMAP_HOME}"
