@@ -3,7 +3,7 @@
 OCIOREPO=${OCIOREPO:=https://github.com/imageworks/OpenColorIO.git}
 OCIOBUILDDIR=${OCIOBUILDDIR:=${PWD}/ext/OpenColorIO}
 OCIOINSTALLDIR=${OCIOINSTALLDIR:=${PWD}/ext/OpenColorIO/dist}
-OCIOBRANCH=${OCIOBRANCH:=v1.1.0}
+OCIOBRANCH=${OCIOBRANCH:=v1.1.1}
 OCIOCXXFLAGS=${OCIOCXXFLAGS:="-Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
 # Just need libs:
 OCIO_BUILDOPTS="-DOCIO_BUILD_APPS=OFF -DOCIO_BUILD_NUKE=OFF \
