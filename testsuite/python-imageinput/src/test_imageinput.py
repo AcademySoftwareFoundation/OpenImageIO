@@ -4,8 +4,8 @@ from __future__ import print_function
 import OpenImageIO as oiio
 import os
 
-OIIO_TESTSUITE_IMAGEDIR = os.environ.get('OIIO_TESTSUITE_IMAGEDIR',
-                                         '../../../../../oiio-images')
+OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR',
+                                    '../../../../../oiio-images')
 
 # Print the contents of an ImageSpec
 def print_imagespec (spec, subimage=0, mip=0, msg="") :

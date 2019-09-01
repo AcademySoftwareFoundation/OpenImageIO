@@ -19,8 +19,8 @@ outputs = []
 # this file, there seems to be unicode in the Software metadata, which
 # sure doesn't help.
 # FIXME -- return to this later
-if (os.environ.get('CIRCLECI') == 'true' or
-    (os.environ.get('TRAVIS') == 'true' and os.environ.get('TRAVIS_OS_NAME') == 'linux')):
+if (os.getenv('CIRCLECI') == 'true' or
+    (os.getenv('TRAVIS') == 'true' and os.getenv('TRAVIS_OS_NAME') == 'linux')):
     failthresh = 0.024
     files.remove ("RAW_PANASONIC_G1.RW2")
 
