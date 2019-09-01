@@ -24,7 +24,7 @@ IF(PKG_CONFIG_FOUND AND NOT LIBRAW_PATH)
    SET(LibRaw_r_DEFINITIONS ${PC_LIBRAW_R_CFLAGS_OTHER})   
 ENDIF()
 
-FIND_PATH(LibRaw_INCLUDE_DIR libraw/libraw.h
+find_path(LibRaw_INCLUDE_DIR libraw/libraw.h
           HINTS
           ${LIBRAW_INCLUDEDIR_HINT}
           ${LIBRAW_PATH}
@@ -33,7 +33,7 @@ FIND_PATH(LibRaw_INCLUDE_DIR libraw/libraw.h
           PATH_SUFFIXES libraw
          )
 
-FIND_LIBRARY(LibRaw_LIBRARIES NAMES raw libraw
+find_library(LibRaw_LIBRARIES NAMES raw libraw
              HINTS
              ${LIBRAW_LIBDIR_HINT}
              ${LIBRAW_PATH}
@@ -41,7 +41,7 @@ FIND_LIBRARY(LibRaw_LIBRARIES NAMES raw libraw
              ${PC_LIBRAW_LIBRARY_DIRS}
             )
 
-FIND_LIBRARY(LibRaw_r_LIBRARIES NAMES raw_r
+find_library(LibRaw_r_LIBRARIES NAMES raw_r
              HINTS
              ${LIBRAW_LIBDIR_HINT}
              ${LIBRAW_PATH}

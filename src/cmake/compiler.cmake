@@ -402,6 +402,11 @@ else ()
     endif ()
 endif ()
 
-if (DEFINED ENV{TRAVIS} OR DEFINED ENV{APPVEYOR} OR DEFINED ENV{CI})
+if (DEFINED ENV{TRAVIS} OR DEFINED ENV{APPVEYOR} OR DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS})
     add_definitions ("-D${PROJ_NAME}_CI=1" "-DBUILD_CI=1")
+    if (APPLE)
+        # Keep Mono framework from being incorrectly searched for include
+        # files on GitHub Actions CI.
+        set(CMAKE_FIND_FRAMEWORK LAST)
+    endif ()
 endif ()
