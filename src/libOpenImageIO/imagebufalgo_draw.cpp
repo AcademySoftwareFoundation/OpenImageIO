@@ -782,7 +782,7 @@ resolve_font(int fontsize, string_view font_, std::string& result)
             std::string path = Filesystem::parent_path(this_program);
             path             = Filesystem::parent_path(path);
             font_search_dirs.push_back(path + "/fonts");
-            font_search_dirs.push_back(path + "/shared/fonts/OpenImageIO");
+            font_search_dirs.push_back(path + "/share/fonts/OpenImageIO");
         }
     }
 
