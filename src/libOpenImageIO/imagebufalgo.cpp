@@ -67,8 +67,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
     ASSERT(dst);
     if ((A && !A->initialized()) || (B && !B->initialized())
         || (C && !C->initialized())) {
-        if (dst)
-            dst->error("Uninitialized input image");
+        dst->error("Uninitialized input image");
         return false;
     }
 
@@ -76,7 +75,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
     if (dst || A || B || C) {
         minchans = 10000;
         maxchans = 1;
-        if (dst && dst->initialized()) {
+        if (dst->initialized()) {
             minchans = std::min(minchans, dst->spec().nchannels);
             maxchans = std::max(maxchans, dst->spec().nchannels);
         }
@@ -127,8 +126,11 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         }
     } else {
         // Not an initialized destination image!
-        ASSERT((A || roi.defined())
-               && "ImageBufAlgo without any guess about region of interest");
+        if (!A && !roi.defined()) {
+            dst->error(
+                "ImageBufAlgo without any guess about region of interest");
+            return false;
+        }
         ROI full_roi;
         if (!roi.defined()) {
             // No ROI -- make it the union of the pixel regions of the inputs
@@ -316,7 +318,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
             return false;
         }
     }
-    if ((dst && dst->deep()) || (A && A->deep()) || (B && B->deep())
+    if (dst->deep() || (A && A->deep()) || (B && B->deep())
         || (C && C->deep())) {
         // At least one image is deep
         if (!(prepflags & IBAprep_SUPPORT_DEEP)) {
@@ -326,7 +328,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         }
         if (!(prepflags & IBAprep_DEEP_MIXED)) {
             // Error if not all images are deep
-            if ((dst && !dst->deep()) || (A && !A->deep()) || (B && !B->deep())
+            if (!dst->deep() || (A && !A->deep()) || (B && !B->deep())
                 || (C && !C->deep())) {
                 dst->error("mixed deep & flat images not supported");
                 return false;
