@@ -414,6 +414,15 @@ thread_pool::push_queue_and_notify(std::function<void(int id)>* f)
 
 
 
+/// DEPRECATED(2.1) -- use is_worker() instead.
+bool
+thread_pool::this_thread_is_in_pool() const
+{
+    return is_worker();
+}
+
+
+
 void
 thread_pool::register_worker(std::thread::id id)
 {

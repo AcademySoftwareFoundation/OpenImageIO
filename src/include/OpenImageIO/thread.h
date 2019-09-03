@@ -716,9 +716,7 @@ public:
     /// can be used to limit a pool thread from inadvisedly adding its own
     /// subtasks to clog up the pool.
     /// DEPRECATED(2.1) -- use is_worker() instead.
-    bool this_thread_is_in_pool() const {
-        return is_worker();
-    }
+    bool this_thread_is_in_pool() const;
 
     /// Register a thread (not already in the thread pool itself) as working
     /// on tasks in the pool. This is used to avoid recursion.
