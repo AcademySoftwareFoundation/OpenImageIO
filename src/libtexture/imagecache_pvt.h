@@ -1051,7 +1051,8 @@ public:
 
     // For virtual UDIM-like files, adjust s and t and return the concrete
     // ImageCacheFile pointer for the tile it's on.
-    ImageCacheFile* resolve_udim(ImageCacheFile* file, float& s, float& t);
+    ImageCacheFile* resolve_udim(ImageCacheFile* file, Perthread* thread_info,
+                                 float& s, float& t);
 
     int max_mip_res() const noexcept { return m_max_mip_res; }
 

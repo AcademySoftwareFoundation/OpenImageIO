@@ -1005,7 +1005,8 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         (PerThreadInfo*)thread_info_);
     TextureFile* texturefile = (TextureFile*)texture_handle_;
     if (texturefile->is_udim())
-        texturefile = m_imagecache->resolve_udim(texturefile, s, t);
+        texturefile = m_imagecache->resolve_udim(texturefile, thread_info, s,
+                                                 t);
 
     texturefile = verify_texturefile(texturefile, thread_info);
 
