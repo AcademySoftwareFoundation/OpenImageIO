@@ -715,6 +715,7 @@ public:
     /// Return true if the calling thread is part of the thread pool. This
     /// can be used to limit a pool thread from inadvisedly adding its own
     /// subtasks to clog up the pool.
+    /// DEPRECATED(2.1) -- use is_worker() instead.
     bool this_thread_is_in_pool() const;
 
     /// Register a thread (not already in the thread pool itself) as working
@@ -725,8 +726,10 @@ public:
     void deregister_worker(std::thread::id id);
     /// Is the thread in the pool or currently engaged in taking tasks from
     /// the pool?
+    bool is_worker(std::thread::id id) const;
+    bool is_worker() const { return is_worker(std::this_thread::get_id()); }
+    // Non-const versions: DEPRECATED(2.1)
     bool is_worker(std::thread::id id);
-    bool is_worker() { return is_worker(std::this_thread::get_id()); }
 
     /// How many jobs are waiting to run?  (Use with caution! Can be out of
     /// date by the time you look at it.)

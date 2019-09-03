@@ -1636,7 +1636,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         && ybegin == m_next_scanline
         // only if we're threading and don't enter the thread pool recursively!
         && pool->size() > 1
-        && !pool->this_thread_is_in_pool()
+        && !pool->is_worker()
         // and not if the feature is turned off
         && m_spec.get_int_attribute("tiff:multithread",
                                     OIIO::get_int_attribute("tiff:multithread"));
@@ -1668,14 +1668,8 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
              y += m_rowsperstrip, ++stripidx) {
             char* cbuf        = compressed_scratch.get() + stripidx * cbound;
             tstrip_t stripnum = (y - m_spec.y) / m_rowsperstrip;
-            tsize_t csize;
-            if (read_raw_strips) {
-                csize = TIFFReadRawStrip(m_tif, stripnum, cbuf,
-                                         tmsize_t(cbound));
-            } else {
-                csize = TIFFReadEncodedStrip(m_tif, stripnum, data,
-                                             tmsize_t(strip_bytes));
-            }
+            tsize_t csize     = TIFFReadRawStrip(m_tif, stripnum, cbuf,
+                                             tmsize_t(cbound));
             if (csize < 0) {
                 std::string err = oiio_tiff_last_error();
                 error("TIFFRead%sStrip failed reading line y=%d,z=%d: %s",
@@ -1684,11 +1678,10 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                 ok = false;
             }
             auto uncompress_etc = [=, &ok](int id) {
-                if (read_raw_strips)
-                    uncompress_one_strip(cbuf, (unsigned long)csize, data,
-                                         strip_bytes, this->m_spec.nchannels,
-                                         this->m_spec.width, m_rowsperstrip,
-                                         m_compression, &ok);
+                uncompress_one_strip(cbuf, (unsigned long)csize, data,
+                                     strip_bytes, this->m_spec.nchannels,
+                                     this->m_spec.width, m_rowsperstrip,
+                                     m_compression, &ok);
                 if (m_photometric == PHOTOMETRIC_MINISWHITE)
                     invert_photometric(stripvals * stripchans, data);
             };
@@ -1896,7 +1889,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
         && !m_use_rgba_interface
         // only if we're threading and don't enter the thread pool recursively!
         && pool->size() > 1
-        && !pool->this_thread_is_in_pool()
+        && !pool->is_worker()
         // and not if the feature is turned off
         && m_spec.get_int_attribute("tiff:multithread",
                                     OIIO::get_int_attribute("tiff:multithread"));

@@ -1128,7 +1128,7 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
         && (m_spec.format == TypeUInt8 || m_spec.format == TypeUInt16)
         // only if we're threading and don't enter the thread pool recursively!
         && pool->size() > 1
-        && !pool->this_thread_is_in_pool()
+        && !pool->is_worker()
         // and not if the feature is turned off
         && m_spec.get_int_attribute("tiff:multithread",
                                     OIIO::get_int_attribute("tiff:multithread"));
@@ -1361,7 +1361,7 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
         && (m_spec.format == TypeUInt8 || m_spec.format == TypeUInt16)
         // only if we're threading and don't enter the thread pool recursively!
         && pool->size() > 1
-        && !pool->this_thread_is_in_pool()
+        && !pool->is_worker()
         // and not if the feature is turned off
         && m_spec.get_int_attribute("tiff:multithread",
                                     OIIO::get_int_attribute("tiff:multithread"));
