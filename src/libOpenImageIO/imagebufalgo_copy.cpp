@@ -254,7 +254,6 @@ ImageBufAlgo::cut(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::cut");
     bool ok = crop(dst, src, roi, nthreads);
-    ASSERT(ok);
     if (!ok)
         return false;
     // Crop did the heavy lifting of copying the roi of pixels from src to
