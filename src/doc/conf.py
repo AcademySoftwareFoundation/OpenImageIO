@@ -120,7 +120,7 @@ primary_domain = 'cpp'
 highlight_language = 'cpp'
 
 
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+read_the_docs_build = os.getenv('READTHEDOCS') == 'True'
 
 if read_the_docs_build:
     print ("cwd =", os.getcwd())

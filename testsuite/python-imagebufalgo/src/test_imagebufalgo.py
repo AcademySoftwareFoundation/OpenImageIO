@@ -6,7 +6,7 @@ import OpenImageIO as oiio
 from OpenImageIO import ImageBuf, ImageSpec, ImageBufAlgo, ROI
 
 
-OIIO_TESTSUITE_IMAGEDIR = os.environ['OIIO_TESTSUITE_IMAGEDIR']
+OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR', '')
 
 def make_constimage (xres, yres, chans=3, format=oiio.UINT8, value=(0,0,0),
                 xoffset=0, yoffset=0) :

@@ -52,19 +52,19 @@ def oiio_relpath (path, start=os.curdir):
 # the cmake tests, but if those aren't set, assume somebody is running
 # this script by hand from inside build/PLATFORM/testsuite/TEST and that
 # the rest of the tree has the standard layout.
-OIIO_TESTSUITE_ROOT = oiio_relpath(os.environ.get('OIIO_TESTSUITE_ROOT',
-                                                  '../../../../testsuite'))
-OIIO_TESTSUITE_IMAGEDIR = os.environ.get('OIIO_TESTSUITE_IMAGEDIR',
-                                         '../../../../../oiio-images')
+OIIO_TESTSUITE_ROOT = oiio_relpath(os.getenv('OIIO_TESTSUITE_ROOT',
+                                             '../../../../testsuite'))
+OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR',
+                                    '../../../../../oiio-images')
 if OIIO_TESTSUITE_IMAGEDIR:
     OIIO_TESTSUITE_IMAGEDIR = oiio_relpath(OIIO_TESTSUITE_IMAGEDIR)
     # Set it back so test's can use it (python-imagebufalgo)
-    os.environ['OIIO_TESTSUITE_IMAGEDIR'] = OIIO_TESTSUITE_IMAGEDIR
+    os.putenv('OIIO_TESTSUITE_IMAGEDIR', OIIO_TESTSUITE_IMAGEDIR)
 refdir = "ref/"
 refdirlist = [ refdir ]
 mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]
-test_source_dir = os.environ.get('OIIO_TESTSUITE_SRC',
-                                 os.path.join(OIIO_TESTSUITE_ROOT, mytest))
+test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
+                            os.path.join(OIIO_TESTSUITE_ROOT, mytest))
 colorconfig_file = os.path.join(OIIO_TESTSUITE_ROOT,
                                 "common", "OpenColorIO", "nuke-default", "config.ocio")
 
@@ -129,7 +129,7 @@ else :
     if not os.path.exists("./data") :
         newsymlink (test_source_dir, "./data")
     if not os.path.exists("../common") :
-        newsymlink (os.path.join(os.environ['OIIO_TESTSUITE_ROOT'], "common"),
+        newsymlink (os.path.join(os.getenv('OIIO_TESTSUITE_ROOT'), "common"),
                     "../common")
 
 
@@ -429,9 +429,7 @@ with open(os.path.join(test_source_dir,"run.py")) as f:
 
 # Allow a little more slop for slight pixel differences when in DEBUG
 # mode or when running on remote Travis-CI or Appveyor machines.
-if (("TRAVIS" in os.environ and os.environ["TRAVIS"]) or
-    ("APPVEYOR" in os.environ and os.environ["APPVEYOR"]) or
-    ("DEBUG" in os.environ and os.environ["DEBUG"])) :
+if (os.getenv('TRAVIS') or os.getenv('APPVEYOR') or os.getenv('DEBUG')) :
     failthresh *= 2.0
     hardfail *= 2.0
     failpercent *= 2.0
