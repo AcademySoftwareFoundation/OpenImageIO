@@ -264,12 +264,6 @@ public:
         return isPop;
     }
 
-    bool this_thread_is_in_pool() const
-    {
-        int* p = m_pool_members.get();
-        return p && (*p);
-    }
-
     void register_worker(std::thread::id id)
     {
         spin_lock lock(m_worker_threadids_mutex);
@@ -280,7 +274,7 @@ public:
         spin_lock lock(m_worker_threadids_mutex);
         m_worker_threadids[id] -= 1;
     }
-    bool is_worker(std::thread::id id)
+    bool is_worker(std::thread::id id) const
     {
         spin_lock lock(m_worker_threadids_mutex);
         return m_worker_threadids[id] != 0;
@@ -301,7 +295,6 @@ private:
         std::shared_ptr<std::atomic<bool>> flag(
             this->flags[i]);  // a copy of the shared ptr to the flag
         auto f = [this, i, flag /* a copy of the shared ptr to the flag */]() {
-            this->m_pool_members.reset(new int(1));  // I'm in the pool
             register_worker(std::this_thread::get_id());
             std::atomic<bool>& _flag = *flag;
             std::function<void(int id)>* _f;
@@ -313,11 +306,10 @@ private:
                     (*_f)(i);
                     if (_flag) {
                         // the thread is wanted to stop, return even if the queue is not empty yet
-                        this->m_pool_members
-                            .reset();  // I'm no longer in the pool
                         return;
-                    } else
+                    } else {
                         isPop = this->q.pop(_f);
+                    }
                 }
                 // the queue is empty here, wait for the next command
                 std::unique_lock<std::mutex> lock(this->mutex);
@@ -330,7 +322,6 @@ private:
                 if (!isPop)
                     break;  // if the queue is empty and this->isDone == true or *flag then return
             }
-            this->m_pool_members.reset();  // I'm no longer in the pool
             deregister_worker(std::this_thread::get_id());
         };
         this->threads[i].reset(
@@ -354,9 +345,8 @@ private:
     int m_size { 0 };           // Number of threads in the queue
     std::mutex mutex;
     std::condition_variable cv;
-    boost::thread_specific_ptr<int> m_pool_members;  // Who's in the pool
-    boost::container::flat_map<std::thread::id, int> m_worker_threadids;
-    spin_mutex m_worker_threadids_mutex;
+    mutable boost::container::flat_map<std::thread::id, int> m_worker_threadids;
+    mutable spin_mutex m_worker_threadids_mutex;
 };
 
 
@@ -423,13 +413,6 @@ thread_pool::push_queue_and_notify(std::function<void(int id)>* f)
 }
 
 
-bool
-thread_pool::this_thread_is_in_pool() const
-{
-    return m_impl->this_thread_is_in_pool();
-}
-
-
 
 void
 thread_pool::register_worker(std::thread::id id)
@@ -443,6 +426,14 @@ thread_pool::deregister_worker(std::thread::id id)
     m_impl->deregister_worker(id);
 }
 
+bool
+thread_pool::is_worker(std::thread::id id) const
+{
+    return m_impl->is_worker(id);
+}
+
+
+// DEPRECATED(2.1)
 bool
 thread_pool::is_worker(std::thread::id id)
 {
