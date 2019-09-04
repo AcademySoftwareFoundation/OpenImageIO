@@ -34,9 +34,6 @@ public:
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
 
-    /*
-        Custom read_image for slurping the whole thing
-    */
     virtual bool read_image(int subimage, int miplevel, int chbegin, int chend,
                             TypeDesc format, void* data, stride_t xstride,
                             stride_t ystride, stride_t zstride,
