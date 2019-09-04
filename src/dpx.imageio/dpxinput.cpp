@@ -34,6 +34,15 @@ public:
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
 
+    /*
+        Custom read_image for slurping the whole thing
+    */
+    virtual bool read_image(int subimage, int miplevel, int chbegin, int chend,
+                            TypeDesc format, void* data, stride_t xstride,
+                            stride_t ystride, stride_t zstride,
+                            ProgressCallback progress_callback,
+                            void* progress_callback_data) override;
+
 private:
     int m_subimage;
     InStream* m_stream = nullptr;
@@ -591,6 +600,58 @@ DPXInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 }
 
 
+bool
+DPXInput::read_image(int subimage, int miplevel, int chbegin, int chend,
+                       TypeDesc format, void* data, stride_t xstride,
+                       stride_t ystride, stride_t zstride,
+                       ProgressCallback progress_callback,
+                       void* progress_callback_data)
+{
+    lock_guard lock(m_mutex);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
+
+    dpx::Block block(0, 0, m_dpx.header.Width() - 1, m_dpx.header.Height() - 1);
+
+    if (m_rawcolor) {
+        if (!m_dpx.ReadBlock(m_subimage, (unsigned char*)data, block))
+        {
+            return false;
+        }
+    } else {
+        std::unique_ptr<unsigned char> storage = nullptr;
+
+        int bufsize = dpx::QueryRGBBufferSize(m_dpx.header, subimage, block);
+
+        if (bufsize == 0 && !m_rawcolor) {
+            error("Unable to deliver RGB data from source data");
+            return false;
+        }
+
+        void *ptr;
+        if (bufsize > 0)
+        {
+            storage.reset(new unsigned char[bufsize]);
+            ptr = (void *)storage.get();
+        }
+        else
+        {
+            ptr = data;
+        }
+
+        if (!m_dpx.ReadBlock(m_subimage, (unsigned char *)ptr, block))
+        {
+            return false;
+        }
+
+        if (!dpx::ConvertToRGB(m_dpx.header, m_subimage, ptr, data, block))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 std::string
 DPXInput::get_characteristic_string(dpx::Characteristic c)
