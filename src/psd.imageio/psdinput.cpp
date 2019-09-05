@@ -638,7 +638,8 @@ PSDInput::seek_subimage(int subimage, int miplevel)
 {
     if (miplevel != 0)
         return false;
-
+    if (subimage == m_subimage)
+        return true;  // Early return when not changing subimages
     if (subimage < 0 || subimage >= m_subimage_count)
         return false;
 
