@@ -223,9 +223,14 @@ clamped_mult64(uint64_t a, uint64_t b)
 /// Bitwise circular rotation left by `s` bits (for any unsigned integer
 /// type).  For info on the C++20 std::rotl(), see
 /// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0553r4.html
+// FIXME: this should be constexpr, but we're leaving that out for now
+// because the Cuda specialization uses an intrinsic that isn't constexpr.
+// Come back to this later when more of the Cuda library is properly
+// constexpr.
 template<class T>
 OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE
-constexpr T rotl(T x, int s) noexcept
+// constexpr
+T rotl(T x, int s) noexcept
 {
     static_assert(std::is_unsigned<T>::value && std::is_integral<T>::value,
                   "rotl only works for unsigned integer types");
@@ -235,8 +240,12 @@ constexpr T rotl(T x, int s) noexcept
 
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 320
 // Cuda has an intrinsic for 32 bit unsigned int rotation
+// FIXME: This should be constexpr, but __funnelshift_lc seems not to be
+// marked as such.
+template<>
 OIIO_NODISCARD OIIO_FORCEINLINE OIIO_HOSTDEVICE
-constexpr uint32_t rotl<>(uint32_t x, int s) noexcept
+// constexpr
+uint32_t rotl(uint32_t x, int s) noexcept
 {
     return __funnelshift_lc(x, x, s);
 }
