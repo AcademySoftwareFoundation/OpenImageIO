@@ -509,6 +509,20 @@ else ()
 endif ()
 
 
+###########################################################################
+# Extra customization for certain Debian distributions
+#
+execute_process(COMMAND dpkg-architecture -qDEB_TARGET_ARCH
+                OUTPUT_VARIABLE DEB_TARGET_ARCH
+                OUTPUT_STRIP_TRAILING_WHITESPACE )
+if ("${DEB_TARGET_ARCH}" MATCHES "armhf" OR
+    "${DEB_TARGET_ARCH}" MATCHES "mipsel")
+    message (STATUS "Debian target architecture detected: ${DEB_TARGET_ARCH}")
+    if (NOT ${GCC_VERSION} VERSION_LESS 9.0)
+        list (APPEND EXTRA_PLATFORM_LIBS "-latomic")
+    endif ()
+endif()
+
 
 ###########################################################################
 # Macro to install targets to the appropriate locations.  Use this instead of

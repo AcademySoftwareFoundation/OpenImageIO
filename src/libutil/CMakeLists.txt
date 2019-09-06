@@ -13,6 +13,7 @@ target_link_libraries (OpenImageIO_Util
             ${SANITIZE_LIBRARIES}
             ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
+            ${EXTRA_PLATFORM_LIBS}
         )
 
 if (WIN32)
