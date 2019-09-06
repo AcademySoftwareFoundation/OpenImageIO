@@ -145,16 +145,23 @@ macro (oiio_add_tests)
 
             # For texture tests, add a second test using batch mode as well.
             if (_testname MATCHES "texture")
-                add_test ( NAME "${_testname}.batch"
+                set (_testname ${_testname}.batch)
+                set (_testdir ${_testdir}.batch)
+                set (_runtest python "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
+                if (MSVC_IDE)
+                    set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
+                                          --solution-path "${CMAKE_BINARY_DIR}" )
+                endif ()
+                file (MAKE_DIRECTORY "${_testdir}")
+                add_test ( NAME "${_testname}"
                            COMMAND env TESTTEX_BATCH=1 ${_runtest} )
 
-                oiio_set_testenv("${_testname}.batch" "${_testsuite}"
-                                 "${_testsrcdir}" "${_testdir}" "${_ats_testdir}")
+                oiio_set_testenv("${_testname}" "${_testsuite}"
+                                 "${_testsrcdir}" "${_testdir}.batch" "${_ats_testdir}")
             endif ()
 
             #if (VERBOSE)
             #    message (STATUS "TEST ${_testname}: ${_runtest}")
-            #    # message (STATUS "TEST ${_testname}: ${_runtest}")
             #endif ()
         endforeach ()
         if (VERBOSE)

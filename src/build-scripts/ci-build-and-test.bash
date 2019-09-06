@@ -13,14 +13,20 @@ if [[ -e src/build-scripts/ci-setenv.bash ]] ; then
 fi
 
 
-if [[ "$TRAVIS" != "" ]] ; then
-    MAKEFLAGS=-j2
-elif [[ "$CIRCLECI" != "" ]] ; then
-    MAKEFLAGS=-j4
+if [[ $TRAVIS == true ]] ; then
+    export PAR_MAKEFLAGS=-j2
+    export CTEST_PARALLEL_LEVEL=2
+elif [[ $CIRCLECI == true ]] ; then
+    export PAR_MAKEFLAGS=-j4
+    export CTEST_PARALLEL_LEVEL=4
+elif [[ $GITHUB_ACTIONS == true ]] ; then
+    export PAR_MAKEFLAGS=-j4
+    export CTEST_PARALLEL_LEVEL=4
 fi
 
 make $MAKEFLAGS VERBOSE=1 $BUILD_FLAGS cmakesetup
-make $MAKEFLAGS $BUILD_FLAGS $BUILDTARGET
+make $MAKEFLAGS $PAR_MAKEFLAGS $BUILD_FLAGS $BUILDTARGET
+
 
 if [[ "$SKIP_TESTS" == "" ]] ; then
     $OPENIMAGEIO_ROOT_DIR/bin/oiiotool --help

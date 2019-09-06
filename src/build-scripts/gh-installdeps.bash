@@ -5,9 +5,9 @@ set -ex
 
 #dpkg --list
 
-time apt-get update
+time sudo apt-get update
 
-time apt-get install -y \
+time sudo apt-get -q install -y \
     git \
     cmake \
     ninja-build \
@@ -36,6 +36,7 @@ time apt-get install -y \
 
 
 # time apt-get install -y g++-4.8
+#time apt-get install -y g++-6
 #time apt-get install -y g++-7
 #time apt-get install -y g++-8
 # time apt-get install -y clang
@@ -51,3 +52,6 @@ time apt-get install -y \
 #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/ext/OpenColorIO/dist/lib
 
 src/build-scripts/install_test_images.bash
+
+CXX="ccache $CXX" source src/build-scripts/build_openexr.bash
+CXX="ccache $CXX" source src/build-scripts/build_ocio.bash

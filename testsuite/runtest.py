@@ -63,6 +63,8 @@ if OIIO_TESTSUITE_IMAGEDIR:
 refdir = "ref/"
 refdirlist = [ refdir ]
 mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]
+if str(mytest).endswith('.batch') :
+    mytest = mytest.split('.')[0]
 test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
                             os.path.join(OIIO_TESTSUITE_ROOT, mytest))
 colorconfig_file = os.path.join(OIIO_TESTSUITE_ROOT,
@@ -128,9 +130,6 @@ else :
         newsymlink (os.path.join (test_source_dir, "src"), "./src")
     if not os.path.exists("./data") :
         newsymlink (test_source_dir, "./data")
-    if not os.path.exists("../common") :
-        newsymlink (os.path.join(os.getenv('OIIO_TESTSUITE_ROOT'), "common"),
-                    "../common")
 
 
 # Disable this test on Travis when using leak sanitizer, because the error

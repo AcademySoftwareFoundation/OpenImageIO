@@ -24,40 +24,27 @@ brew list --versions
 if [[ "$BUILDTARGET" == "clang-format" ]] ; then
     # If we are running for the sake of clang-format only, just install the
     # bare minimum packages and return.
-    time brew install ilmbase openexr llvm clang-format
+    brew install --display-times ilmbase openexr llvm clang-format libtiff libpng boost ninja giflib
 else
     # All cases except for clang-format target, we need the dependencies.
-    time brew install gcc
-    time brew link --overwrite gcc
-    time brew install ccache cmake ninja
-    time brew install ilmbase openexr
-    time brew install opencolorio
-    time brew install freetype
-    time brew install libraw
-    time brew install libpng webp jpeg-turbo
-    time brew install openjpeg
-    time brew install dcmtk
-    time brew install qt
-    time brew install -s field3d
-    # Note: field3d must be build from source to fix boost mismatch as of
-    # Nov 2018. Maybe it will be fixed soon? Check later.
-    time brew install ffmpeg
-    time brew install opencv
-    time brew install tbb
-    time brew install openvdb
-    time brew install pybind11
-    time brew install libheif
+    brew install --display-times gcc ccache cmake ninja boost
+    brew link --overwrite gcc
+    brew install --display-times libtiff ilmbase openexr opencolorio
+    brew install --display-times libpng giflib webp jpeg-turbo openjpeg
+    brew install --display-times freetype libraw dcmtk pybind11 numpy
+    brew install --display-times field3d ffmpeg libheif openvdb tbb
+    # brew install --display-times opencv qt
 fi
 
 if [[ "$LINKSTATIC" == "1" ]] ; then
-    time brew install little-cms2 tinyxml szip
-    time brew install homebrew/dupes/bzip2
-    time brew install yaml-cpp --with-static-lib
+    brew install --display-times little-cms2 tinyxml szip
+    brew install --display-times homebrew/dupes/bzip2
+    brew install --display-times yaml-cpp --with-static-lib
 fi
 if [[ "$CLANG_TIDY" != "" ]] ; then
     # If we are running for the sake of clang-tidy only, we will need
     # a modern clang version not just the xcode one.
-    time brew install llvm
+    brew install --display-times llvm
 fi
 
 echo ""
@@ -70,4 +57,3 @@ export PATH=/usr/local/opt/qt5/bin:$PATH ;
 export PATH=/usr/local/opt/python/libexec/bin:$PATH ;
 export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
 export PATH=/usr/local/Cellar/llvm/8.0.0*/bin:$PATH ;
-

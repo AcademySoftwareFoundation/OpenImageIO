@@ -1,0 +1,94 @@
+name: CI
+on: [push, pull_request]
+
+#  push:
+#    branches:
+#      - master
+#      - RB-*
+#      - action
+#      - 'lg-*'
+#  pull_request:
+#    branches: *
+
+
+jobs:
+  linux-default:
+    name: "Linux default: gcc7, cpp14, avx2, exr2.3"
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      #- uses: docker://aswfstaging/ci-base:2019
+      - name: all
+        env:
+          CXX: g++-7
+          USE_CPP: 14
+          USE_SIMD: avx2,f16c
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
+
+  linux-debug:
+    name: "Linux debug: gcc7, cpp11, sse2, exr2.3"
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      #- uses: docker://aswfstaging/ci-base:2019
+      - name: all
+        env:
+          CXX: g++-7
+          USE_CPP: 11
+          DEBUG: 1
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
+
+  # PITA go get GitHub Actions CI on Mac to do python 2 and I'm just
+  # too lazy to figure it out right now.
+  #  macos-py27:
+  #    name: "Mac py27"
+  #    runs-on: macOS-10.14
+  #    steps:
+  #      - uses: actions/checkout@v1
+  #      - name: all
+  #        env:
+  #          CXX: clang++
+  #          PYTHON_VERSION: 2.7
+  #        run: |
+  #            source src/build-scripts/ci-startup.bash
+  #            source src/build-scripts/install_homebrew_deps.bash
+  #            src/build-scripts/install_test_images.bash
+  #            source src/build-scripts/ci-build-and-test.bash
+
+  macos-py37:
+    name: "Mac py37"
+    runs-on: macOS-10.14
+    steps:
+      - uses: actions/checkout@v1
+      - name: all
+        env:
+          CXX: clang++
+          PYTHON_VERSION: 3.7
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/install_homebrew_deps.bash
+            src/build-scripts/install_test_images.bash
+            source src/build-scripts/ci-build-and-test.bash
+
+  clang-format:
+    name: "clang-format format verification"
+    runs-on: macOS-10.14
+    steps:
+      - uses: actions/checkout@v1
+      - name: all
+        env:
+          CXX: clang++
+          BUILDTARGET: clang-format
+          SKIP_TESTS: 1
+          BUILD_MISSING_DEPS: 0
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/install_homebrew_deps.bash
+            source src/build-scripts/ci-build-and-test.bash
+

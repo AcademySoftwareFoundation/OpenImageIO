@@ -13,6 +13,9 @@ message (STATUS "CMake version is ${CMAKE_VERSION}")
 cmake_policy (SET CMP0017 NEW)  # Prefer files from the CMake module directory when including from there.
 cmake_policy (SET CMP0025 NEW)  # Detect AppleClang for new CMake
 cmake_policy (SET CMP0046 OLD)  # Don't error on non-existent dependency in add_dependencies.
+if (NOT ${CMAKE_VERSION} VERSION_LESS 3.12)
+    cmake_policy (SET CMP0074 NEW)  # Auto search <pkg>_ROOT env for find_* inside find_package(<pkg>)
+endif ()
 set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 
 # Alternate names
@@ -262,6 +265,8 @@ install (FILES src/cmake/modules/FindOpenImageIO.cmake
 # Make a build/platform/testsuite directory, and copy the master runtest.py
 # there. The rest is up to the tests themselves.
 file (MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/testsuite")
+file (COPY "${CMAKE_SOURCE_DIR}/testsuite/common"
+      DESTINATION "${CMAKE_BINARY_DIR}/testsuite")
 add_custom_command (OUTPUT "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
                         "${CMAKE_SOURCE_DIR}/testsuite/runtest.py"
@@ -351,7 +356,7 @@ oiio_add_tests (
                 texture-mip-onelevel
                )
 endif ()
-if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI})
+if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
 oiio_add_tests (texture-icwrite )
 endif ()
 
