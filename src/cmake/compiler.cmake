@@ -405,3 +405,16 @@ endif ()
 if (DEFINED ENV{TRAVIS} OR DEFINED ENV{APPVEYOR} OR DEFINED ENV{CI})
     add_definitions ("-D${PROJ_NAME}_CI=1" "-DBUILD_CI=1")
 endif ()
+
+# Extra customization for certain Debian distributions
+execute_process(COMMAND dpkg-architecture -qDEB_TARGET_ARCH
+                OUTPUT_VARIABLE DEB_TARGET_ARCH
+                OUTPUT_STRIP_TRAILING_WHITESPACE )
+if ("${DEB_TARGET_ARCH}" MATCHES "armhf" OR
+    "${DEB_TARGET_ARCH}" MATCHES "mipsel")
+    message (STATUS "Debian target architecture detected: ${DEB_TARGET_ARCH}")
+    if (NOT ${GCC_VERSION} VERSION_LESS 9.0)
+        set (EXTRA_DSO_LINK_ARGS "${EXTRA_DSO_LINK_ARGS} -latomic")
+    endif ()
+endif()
+

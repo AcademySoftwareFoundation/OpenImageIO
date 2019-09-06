@@ -38,6 +38,10 @@ if (DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
     set_target_properties (OpenImageIO_Util PROPERTIES SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX})
 endif ()
 
+if (EXTRA_DSO_LINK_ARGS)
+    target_link_libraries (OpenImageIO_Util ${EXTRA_DSO_LINK_ARGS})
+endif()
+
 oiio_install_targets (OpenImageIO_Util)
 
 
