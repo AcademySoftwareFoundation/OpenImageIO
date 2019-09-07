@@ -63,13 +63,13 @@ install:
 
   # These are all deps for qt, install these first to isolate from the
   # huge time it takes qt to build
-  - vcpkg install double-conversion:x64-windows
-  - vcpkg install harfbuzz:x64-windows
-  - vcpkg install libpq:x64-windows
-  - vcpkg install openssl:x64-windows
-  - vcpkg install pcre2:x64-windows
-  - vcpkg install ragel:x64-windows
-  - vcpkg install sqlite3:x64-windows
+  #- vcpkg install double-conversion:x64-windows
+  #- vcpkg install harfbuzz:x64-windows
+  #- vcpkg install libpq:x64-windows
+  #- vcpkg install openssl:x64-windows
+  #- vcpkg install pcre2:x64-windows
+  #- vcpkg install ragel:x64-windows
+  #- vcpkg install sqlite3:x64-windows
 
   # Qt
   - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;C:\Qt\5.12
