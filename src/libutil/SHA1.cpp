@@ -9,6 +9,7 @@
 // If compiling with MFC, you might want to add #include "StdAfx.h"
 // clang-format off
 
+#define _CRT_SECURE_NO_WARNINGS
 #include <OpenImageIO/SHA1.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/dassert.h>
