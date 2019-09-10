@@ -205,7 +205,7 @@ if(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
 endif(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
 
 if (EXTRA_DSO_LINK_ARGS)
-    target_link_libraries (OpenImageIO ${EXTRA_DSO_LINK_ARGS})
+    target_link_libraries (OpenImageIO ${EXTRA_PLATFORM_LIBS})
 endif()
 
 oiio_install_targets (OpenImageIO)
@@ -217,37 +217,37 @@ if (OIIO_BUILD_TESTS)
 
     add_executable (imagebuf_test imagebuf_test.cpp)
     set_target_properties (imagebuf_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagebuf_test OpenImageIO ${Boost_LIBRARIES})
+    target_link_libraries (imagebuf_test OpenImageIO ${Boost_LIBRARIES} ${EXTRA_PLATFORM_LIBS})
     add_test (unit_imagebuf imagebuf_test)
 
     add_executable (imagecache_test imagecache_test.cpp)
     set_target_properties (imagecache_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagecache_test OpenImageIO ${Boost_LIBRARIES})
+    target_link_libraries (imagecache_test OpenImageIO ${Boost_LIBRARIES} ${EXTRA_PLATFORM_LIBS})
     add_test (unit_imagecache imagecache_test)
 
     add_executable (imagebufalgo_test imagebufalgo_test.cpp)
     set_target_properties (imagebufalgo_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES})
+    target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES} ${EXTRA_PLATFORM_LIBS})
     add_test (unit_imagebufalgo imagebufalgo_test)
 
     add_executable (imagespec_test imagespec_test.cpp)
     set_target_properties (imagespec_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagespec_test OpenImageIO ${Boost_LIBRARIES})
+    target_link_libraries (imagespec_test OpenImageIO ${Boost_LIBRARIES} ${EXTRA_PLATFORM_LIBS})
     add_test (unit_imagespec imagespec_test)
 
     add_executable (imageinout_test imageinout_test.cpp)
     set_target_properties (imageinout_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imageinout_test OpenImageIO ${Boost_LIBRARIES})
+    target_link_libraries (imageinout_test OpenImageIO ${Boost_LIBRARIES} ${EXTRA_PLATFORM_LIBS})
     add_test (unit_imageinout imageinout_test)
 
     add_executable (imagespeed_test imagespeed_test.cpp)
     set_target_properties (imagespeed_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES})
+    target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES} ${EXTRA_PLATFORM_LIBS})
     #add_test (imagespeed_test imagespeed_test)
 
     add_executable (compute_test compute_test.cpp)
     set_target_properties (compute_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (compute_test OpenImageIO ${Boost_LIBRARIES})
+    target_link_libraries (compute_test OpenImageIO ${Boost_LIBRARIES} ${EXTRA_PLATFORM_LIBS})
     add_test (unit_compute compute_test)
 
 endif (OIIO_BUILD_TESTS)

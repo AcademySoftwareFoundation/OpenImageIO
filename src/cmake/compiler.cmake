@@ -415,6 +415,7 @@ if ("${DEB_TARGET_ARCH}" MATCHES "armhf" OR
     message (STATUS "Debian target architecture detected: ${DEB_TARGET_ARCH}")
     if (NOT ${GCC_VERSION} VERSION_LESS 9.0)
         set (EXTRA_DSO_LINK_ARGS "${EXTRA_DSO_LINK_ARGS} -latomic")
+        set (EXTRA_PLATFORM_LIBS "${EXTRA_PLATFORM_LIBS} -latomic")
     endif ()
 endif()
 
