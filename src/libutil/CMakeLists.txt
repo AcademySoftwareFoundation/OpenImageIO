@@ -33,7 +33,7 @@ if (VISIBILITY_COMMAND)
                            LINK_FLAGS "${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}")
 endif ()
 
-if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 9.0)
+if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 8.0)
     set_source_files_properties (SHA1.cpp
                                  PROPERTIES COMPILE_FLAGS -Wno-stringop-truncation)
 endif ()

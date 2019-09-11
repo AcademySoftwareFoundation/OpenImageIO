@@ -27,7 +27,7 @@ if (NOT MSVC)
                              PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
 endif()
 
-if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 9.0)
+if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 8.0)
     set_source_files_properties (../libutil/SHA1.cpp
                                  PROPERTIES COMPILE_FLAGS -Wno-stringop-truncation)
 endif ()
