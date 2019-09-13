@@ -33,7 +33,7 @@ if (NOT VERBOSE)
     set (TIFF_FIND_QUIETLY true)
     set (WEBP_FIND_QUIETLY true)
     set (ZLIB_FIND_QUIETLY true)
-    set (RedSDK_FIND_QUIETLY true)
+    set (R3DSDK_FIND_QUIETLY true)
 endif ()
 
 include (ExternalProject)
@@ -245,23 +245,23 @@ endif()
 
 
 ###########################################################################
-# RedSDK
+# R3dSDK
 
-if (USE_REDSDK)
+if (USE_R3DSDK)
     find_package (R3DSDK)
-    if (RED_INCLUDE_DIR AND RED_LIBRARIES)
-        set (RED_FOUND TRUE)
-        if (NOT RedSDK_FIND_QUIETLY)
-            message (STATUS "REDSDK includes = ${RED_INCLUDE_DIR}")
-            message (STATUS "REDSDK library = ${RED_LIBRARIES}")
+    if (R3DSDK_INCLUDE_DIR AND R3DSDK_LIBRARIES)
+        set (R3DSDK_FOUND TRUE)
+        if (NOT R3DSDK_FIND_QUIETLY)
+            message (STATUS "R3DSDK includes = ${R3DSDK_INCLUDE_DIR}")
+            message (STATUS "R3DSDK library = ${R3DSDK_LIBRARIES}")
         endif ()
-        include_directories (${RED_INCLUDE_DIR})
+        include_directories (${R3DSDK_INCLUDE_DIR})
     else ()
-        message (STATUS "REDSDK not found")
+        message (STATUS "R3DSDK not found")
     endif ()
 endif()
 
-# end RedSDK setup
+# end R3DSDK setup
 ###########################################################################
 
 
