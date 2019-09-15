@@ -9,6 +9,7 @@ set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 set (PROJECT_URL "https://openimageio.org")
 
+message (STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
 message (STATUS "CMake version is ${CMAKE_VERSION}")
 cmake_policy (SET CMP0017 NEW)  # Prefer files from the CMake module directory when including from there.
 cmake_policy (SET CMP0025 NEW)  # Detect AppleClang for new CMake
@@ -30,22 +31,22 @@ set (OIIO_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 # former is designated for definitions (-Dblah) and the latter is for
 # compile flags (-Wno-foo).
 
-if (VERBOSE)
-    message (STATUS "Project source dir = ${PROJECT_SOURCE_DIR}")
-endif ()
-message (STATUS "Project build dir   = ${CMAKE_BINARY_DIR}")
-message (STATUS "Project install dir = ${CMAKE_INSTALL_PREFIX}")
-
-if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
-    message (FATAL_ERROR "Not allowed to run in-source build!")
-endif ()
-
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
 endif ()
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set (DEBUGMODE ON)
 endif ()
+
+message (STATUS "Project source dir  = ${PROJECT_SOURCE_DIR}")
+message (STATUS "Project build dir   = ${CMAKE_BINARY_DIR}")
+message (STATUS "Project install dir = ${CMAKE_INSTALL_PREFIX}")
+message (STATUS "Build type          = ${CMAKE_BUILD_TYPE}")
+
+if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+    message (FATAL_ERROR "Not allowed to run in-source build!")
+endif ()
+
 
 option (CMAKE_USE_FOLDERS "Use the FOLDER target property to organize targets into folders." ON)
 mark_as_advanced (CMAKE_USE_FOLDERS)
