@@ -61,16 +61,6 @@ install:
   - vcpkg install ptex:"%platform%"-windows
   - vcpkg install libraw:x64-windows
 
-  # These are all deps for qt, install these first to isolate from the
-  # huge time it takes qt to build
-  #- vcpkg install double-conversion:x64-windows
-  #- vcpkg install harfbuzz:x64-windows
-  #- vcpkg install libpq:x64-windows
-  #- vcpkg install openssl:x64-windows
-  #- vcpkg install pcre2:x64-windows
-  #- vcpkg install ragel:x64-windows
-  #- vcpkg install sqlite3:x64-windows
-
   # Qt
   - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;C:\Qt\5.12
 
@@ -109,11 +99,13 @@ build_script:
   - mkdir build\windows64
   - cd build\windows64
   - cmake -G "%CMAKE_PLATFORM%" -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake \
+      -DCMAKE_INSTALL_PREFIX=C:\projects\oiio\dist\windows64 \
       -DPYTHON_INCLUDE_DIR:PATH=%PYTHON_DIR%/include -DPYTHON_LIBRARY:FILEPATH=%PYTHON_DIR%/libs/python27.lib -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe -DCMAKE_LIBRARY_PATH=%CMAKE_LIBRARY_PATH% -DCMAKE_INCLUDE_PATH=%CMAKE_INCLUDE_PATH%  -DCMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH% -DOPENEXR_ROOT_DIR=C:\projects\oiio\ext -DVERBOSE=1 -DBUILD_MISSING_DEPS=1 ../..
   - dir c:\projects\oiio
   - dir c:\projects\oiio\build
   - dir c:\projects\oiio\build\windows64
-  - cmake --build . --config %CONFIGURATION%
+  - cmake --build . --config %CONFIGURATION% --target install
+  - dir c:\projects\oiio\dist\windows64
 
 
 matrix:
