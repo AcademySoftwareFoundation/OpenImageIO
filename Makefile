@@ -384,7 +384,7 @@ cmakesetup:
 		${CMAKE} -E make_directory ${build_dir} ; \
 		cd ${build_dir} ; \
 		${CMAKE} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
-			${MY_CMAKE_FLAGS} -DBOOST_ROOT=${BOOST_HOME} \
+			${MY_CMAKE_FLAGS} \
 			../.. ; \
 	 fi)
 
