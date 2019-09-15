@@ -6,10 +6,19 @@
 EXRREPO=${EXRREPO:=https://github.com/openexr/openexr.git}
 EXRINSTALLDIR=${EXRINSTALLDIR:=${PWD}/ext/openexr-install}
 EXRBRANCH=${EXRBRANCH:=v2.3.0}
+EXR_CMAKE_FLAGS=${EXR_CMAKE_FLAGS:=""}
+EXR_BUILD_TYPE=${EXR_BUILD_TYPE:=Release}
 EXRCXXFLAGS=${EXRCXXFLAGS:=""}
-BASEDIR=`pwd`
+BASEDIR=$PWD
+CMAKE_GENERATOR=${CMAKE_GENERATOR:="Unix Makefiles"}
+
 pwd
 echo "EXR install dir will be: ${EXRINSTALLDIR}"
+echo "CMAKE_PREFIX_PATH is ${CMAKE_PREFIX_PATH}"
+
+if [[ "$CMAKE_GENERATOR" == "" ]] ; then
+    EXRGENERATOR="-G \"$CMAKE_GENERATOR\""
+fi
 
 if [[ ! -e ${EXRINSTALLDIR} ]] ; then
     mkdir -p ${EXRINSTALLDIR}
@@ -39,12 +48,14 @@ if [[ ${EXRBRANCH} == "v2.3.0" ]] ; then
     mkdir OpenEXR/IlmImf
     unzip -d OpenEXR/IlmImf ${BASEDIR}/src/build-scripts/b44ExpLogTable.h.zip
     unzip -d OpenEXR/IlmImf ${BASEDIR}/src/build-scripts/dwaLookups.h.zip
-    cmake --config Release -DCMAKE_INSTALL_PREFIX=${EXRINSTALLDIR} -DILMBASE_PACKAGE_PREFIX=${EXRINSTALLDIR} -DOPENEXR_BUILD_UTILS=0 -DOPENEXR_BUILD_TESTS=0 -DOPENEXR_BUILD_PYTHON_LIBS=0 -DCMAKE_CXX_FLAGS=${EXRCXXFLAGS} .. && make clean && make -j 4 && make install
+    time cmake --config ${EXR_BUILD_TYPE} -G "$CMAKE_GENERATOR" -DCMAKE_INSTALL_PREFIX="${EXRINSTALLDIR}" -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" -DILMBASE_PACKAGE_PREFIX=${EXRINSTALLDIR} -DOPENEXR_BUILD_UTILS=0 -DOPENEXR_BUILD_TESTS=0 -DOPENEXR_BUILD_PYTHON_LIBS=0 -DCMAKE_CXX_FLAGS="${EXRCXXFLAGS}" ${EXR_CMAKE_FLAGS} ..
+    time cmake --build . --target install --config ${EXR_BUILD_TYPE}
 else
     cd IlmBase
     mkdir build
     cd build
-    cmake --config Release -DCMAKE_INSTALL_PREFIX=${EXRINSTALLDIR} -DCMAKE_CXX_FLAGS=${EXRCXXFLAGS} .. && make clean && make -j 4 && make install
+    cmake --config ${EXR_BUILD_TYPE} ${EXRGENERATOR} -DCMAKE_INSTALL_PREFIX="${EXRINSTALLDIR}" -DCMAKE_CXX_FLAGS="${EXRCXXFLAGS}" ..
+    time cmake --build . --target install
     cd ..
     cd ../OpenEXR
     cp ${BASEDIR}/src/build-scripts/OpenEXR-CMakeLists.txt CMakeLists.txt
@@ -54,7 +65,8 @@ else
     cd build
     unzip -d IlmImf ${BASEDIR}/src/build-scripts/b44ExpLogTable.h.zip
     unzip -d IlmImf ${BASEDIR}/src/build-scripts/dwaLookups.h.zip
-    cmake --config Release -DCMAKE_INSTALL_PREFIX=${EXRINSTALLDIR} -DILMBASE_PACKAGE_PREFIX=${EXRINSTALLDIR} -DBUILD_UTILS=0 -DBUILD_TESTS=0 -DCMAKE_CXX_FLAGS=${EXRCXXFLAGS} .. && make clean && make -j 4 && make install
+    cmake --config ${EXR_BUILD_TYPE} ${EXRGENERATOR} -DCMAKE_INSTALL_PREFIX="${EXRINSTALLDIR}" -DILMBASE_PACKAGE_PREFIX=${EXRINSTALLDIR} -DBUILD_UTILS=0 -DBUILD_TESTS=0 -DCMAKE_CXX_FLAGS=${EXRCXXFLAGS} ..
+    time cmake --build . --target install
 fi
 
 popd

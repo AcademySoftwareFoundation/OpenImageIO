@@ -37,6 +37,7 @@ export COMPILER=${COMPILER:=gcc}
 export CXX=${CXX:=g++}
 export CI=true
 export USE_NINJA=1
+export CMAKE_GENERATOR=Ninja
 
 uname -a
 uname -n
