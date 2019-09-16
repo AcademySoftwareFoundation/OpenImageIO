@@ -88,6 +88,7 @@ set (OPENVDB_ROOT_DIR "" CACHE STRING "Custom OpenVDB path")
 option (USE_TBB "Use Intel TBB if found" ON)
 set (TBB_ROOT_DIR "" CACHE STRING "Custom Intel TBB path")
 option (USE_FFMPEG "Use FFmpeg if found" ON)
+option (USE_R3DSDK "Use R3dSDK if found" OFF)
 set (JPEG_PATH "" CACHE STRING "Custom JPEG path")
 option (USE_JPEGTURBO "Use JPEG-Turbo if found" ON)
 set (JPEGTURBO_PATH "" CACHE STRING "Custom JPEG-Turbo path")
@@ -230,7 +231,7 @@ endif ()
 
 # install pkgconfig file
 IF ( NOT MSVC )
-   configure_file(src/build-scripts/OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/OpenImageIO.pc" @ONLY) 
+   configure_file(src/build-scripts/OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/OpenImageIO.pc" @ONLY)
    install (FILES "${CMAKE_BINARY_DIR}/OpenImageIO.pc"
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
             COMPONENT developer)

@@ -111,6 +111,14 @@ ifneq (${USE_FFMPEG},)
 MY_CMAKE_FLAGS += -DUSE_FFMPEG:BOOL=${USE_FFMPEG}
 endif
 
+ifneq (${USE_R3DSDK},)
+MY_CMAKE_FLAGS += -DUSE_R3DSDK:BOOL=${USE_R3DSDK}
+endif
+
+ifneq (${R3DSDK_ROOT},)
+MY_CMAKE_FLAGS += -DR3DSDK_ROOT:STRING=${R3DSDK_ROOT}
+endif
+
 ifneq (${USE_FIELD3D},)
 MY_CMAKE_FLAGS += -DUSE_FIELD3D:BOOL=${USE_FIELD3D}
 endif
@@ -530,6 +538,8 @@ help:
 	@echo "                                  dependencies (USE_OPENVDB=1) will override this"
 	@echo "      TBB_ROOT_DIR=path        Custom Intel TBB installation"
 	@echo "      USE_FFMPEG=0             Don't build the FFmpeg plugin"
+	@echo "      USE_R3DSDK=0             Don't build the R3D plugin"
+	@echo "      R3DSDK_ROOT=path         Custom path for R3dSDK"
 	@echo "      USE_JPEGTURBO=0          Don't build the JPEG-Turbo even if found"
 	@echo "      JPEGTURBO_PATH=path      Custom path for JPEG-Turbo"
 	@echo "      USE_OPENJPEG=0           Don't build the JPEG-2000 plugin"
