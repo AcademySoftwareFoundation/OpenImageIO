@@ -1,29 +1,29 @@
 /*
-	100% free public domain implementation of the SHA-1 algorithm
-	by Dominik Reichl <dominik.reichl@t-online.de>
-	Web: http://www.dominik-reichl.de/
+  100% free public domain implementation of the SHA-1 algorithm
+  by Dominik Reichl <dominik.reichl@t-online.de>
+  Web: http://www.dominik-reichl.de/
 
-	See header file for version history.
+  See header file for version history and test vectors.
 */
 
 // If compiling with MFC, you might want to add #include "StdAfx.h"
 // clang-format off
 
+#define DO_NOT_UNDEFINE_SHA1
+#define _CRT_SECURE_NO_WARNINGS
 #include <OpenImageIO/SHA1.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/strutil.h>
 
-#ifdef SHA1_UTILITY_FUNCTIONS
-#define SHA1_MAX_FILE_BUFFER 8000
-#endif
+#define SHA1_MAX_FILE_BUFFER (32 * 20 * 820)
 
-// Rotate x bits to the left
+// Rotate p_val32 by p_nBits bits to the left
 #ifndef ROL32
 #ifdef _MSC_VER
-#define ROL32(_val32,_nBits) _rotl(_val32,_nBits)
+#define ROL32(p_val32,p_nBits) _rotl(p_val32,p_nBits)
 #else
-#define ROL32(_val32,_nBits) (((_val32)<<(_nBits))|((_val32)>>(32-(_nBits))))
+#define ROL32(p_val32,p_nBits) (((p_val32)<<(p_nBits))|((p_val32)>>(32-(p_nBits))))
 #endif
 #endif
 
@@ -34,16 +34,21 @@
 #define SHABLK0(i) (m_block->l[i])
 #endif
 
-#define SHABLK(i) (m_block->l[i&15] = ROL32(m_block->l[(i+13)&15] ^ m_block->l[(i+8)&15] \
-	^ m_block->l[(i+2)&15] ^ m_block->l[i&15],1))
+#define SHABLK(i) (m_block->l[i&15] = ROL32(m_block->l[(i+13)&15] ^ \
+	m_block->l[(i+8)&15] ^ m_block->l[(i+2)&15] ^ m_block->l[i&15],1))
 
 // SHA-1 rounds
-#define _R0(v,w,x,y,z,i) {z+=((w&(x^y))^y)+SHABLK0(i)+0x5A827999+ROL32(v,5);w=ROL32(w,30);}
-#define _R1(v,w,x,y,z,i) {z+=((w&(x^y))^y)+SHABLK(i)+0x5A827999+ROL32(v,5);w=ROL32(w,30);}
-#define _R2(v,w,x,y,z,i) {z+=(w^x^y)+SHABLK(i)+0x6ED9EBA1+ROL32(v,5);w=ROL32(w,30);}
-#define _R3(v,w,x,y,z,i) {z+=(((w|x)&y)|(w&x))+SHABLK(i)+0x8F1BBCDC+ROL32(v,5);w=ROL32(w,30);}
-#define _R4(v,w,x,y,z,i) {z+=(w^x^y)+SHABLK(i)+0xCA62C1D6+ROL32(v,5);w=ROL32(w,30);}
+#define S_R0(v,w,x,y,z,i) {z+=((w&(x^y))^y)+SHABLK0(i)+0x5A827999+ROL32(v,5);w=ROL32(w,30);}
+#define S_R1(v,w,x,y,z,i) {z+=((w&(x^y))^y)+SHABLK(i)+0x5A827999+ROL32(v,5);w=ROL32(w,30);}
+#define S_R2(v,w,x,y,z,i) {z+=(w^x^y)+SHABLK(i)+0x6ED9EBA1+ROL32(v,5);w=ROL32(w,30);}
+#define S_R3(v,w,x,y,z,i) {z+=(((w|x)&y)|(w&x))+SHABLK(i)+0x8F1BBCDC+ROL32(v,5);w=ROL32(w,30);}
+#define S_R4(v,w,x,y,z,i) {z+=(w^x^y)+SHABLK(i)+0xCA62C1D6+ROL32(v,5);w=ROL32(w,30);}
 
+#ifdef _MSC_VER
+#pragma warning(push)
+// Disable compiler warning 'Conditional expression is constant'
+#pragma warning(disable: 4127)
+#endif
 
 OIIO_NAMESPACE_BEGIN
 
@@ -99,10 +104,12 @@ CSHA1::CSHA1()
 	Reset();
 }
 
+#ifdef SHA1_WIPE_VARIABLES
 CSHA1::~CSHA1()
 {
 	Reset();
 }
+#endif
 
 void CSHA1::Reset()
 {
@@ -123,27 +130,27 @@ void CSHA1::Transform(UINT_32* pState, const UINT_8* pBuffer)
 
 	memcpy(m_block, pBuffer, 64);
 
-	// 4 rounds of 20 operations each. Loop unrolled.
-	_R0(a,b,c,d,e, 0); _R0(e,a,b,c,d, 1); _R0(d,e,a,b,c, 2); _R0(c,d,e,a,b, 3);
-	_R0(b,c,d,e,a, 4); _R0(a,b,c,d,e, 5); _R0(e,a,b,c,d, 6); _R0(d,e,a,b,c, 7);
-	_R0(c,d,e,a,b, 8); _R0(b,c,d,e,a, 9); _R0(a,b,c,d,e,10); _R0(e,a,b,c,d,11);
-	_R0(d,e,a,b,c,12); _R0(c,d,e,a,b,13); _R0(b,c,d,e,a,14); _R0(a,b,c,d,e,15);
-	_R1(e,a,b,c,d,16); _R1(d,e,a,b,c,17); _R1(c,d,e,a,b,18); _R1(b,c,d,e,a,19);
-	_R2(a,b,c,d,e,20); _R2(e,a,b,c,d,21); _R2(d,e,a,b,c,22); _R2(c,d,e,a,b,23);
-	_R2(b,c,d,e,a,24); _R2(a,b,c,d,e,25); _R2(e,a,b,c,d,26); _R2(d,e,a,b,c,27);
-	_R2(c,d,e,a,b,28); _R2(b,c,d,e,a,29); _R2(a,b,c,d,e,30); _R2(e,a,b,c,d,31);
-	_R2(d,e,a,b,c,32); _R2(c,d,e,a,b,33); _R2(b,c,d,e,a,34); _R2(a,b,c,d,e,35);
-	_R2(e,a,b,c,d,36); _R2(d,e,a,b,c,37); _R2(c,d,e,a,b,38); _R2(b,c,d,e,a,39);
-	_R3(a,b,c,d,e,40); _R3(e,a,b,c,d,41); _R3(d,e,a,b,c,42); _R3(c,d,e,a,b,43);
-	_R3(b,c,d,e,a,44); _R3(a,b,c,d,e,45); _R3(e,a,b,c,d,46); _R3(d,e,a,b,c,47);
-	_R3(c,d,e,a,b,48); _R3(b,c,d,e,a,49); _R3(a,b,c,d,e,50); _R3(e,a,b,c,d,51);
-	_R3(d,e,a,b,c,52); _R3(c,d,e,a,b,53); _R3(b,c,d,e,a,54); _R3(a,b,c,d,e,55);
-	_R3(e,a,b,c,d,56); _R3(d,e,a,b,c,57); _R3(c,d,e,a,b,58); _R3(b,c,d,e,a,59);
-	_R4(a,b,c,d,e,60); _R4(e,a,b,c,d,61); _R4(d,e,a,b,c,62); _R4(c,d,e,a,b,63);
-	_R4(b,c,d,e,a,64); _R4(a,b,c,d,e,65); _R4(e,a,b,c,d,66); _R4(d,e,a,b,c,67);
-	_R4(c,d,e,a,b,68); _R4(b,c,d,e,a,69); _R4(a,b,c,d,e,70); _R4(e,a,b,c,d,71);
-	_R4(d,e,a,b,c,72); _R4(c,d,e,a,b,73); _R4(b,c,d,e,a,74); _R4(a,b,c,d,e,75);
-	_R4(e,a,b,c,d,76); _R4(d,e,a,b,c,77); _R4(c,d,e,a,b,78); _R4(b,c,d,e,a,79);
+	// 4 rounds of 20 operations each, loop unrolled
+	S_R0(a,b,c,d,e, 0); S_R0(e,a,b,c,d, 1); S_R0(d,e,a,b,c, 2); S_R0(c,d,e,a,b, 3);
+	S_R0(b,c,d,e,a, 4); S_R0(a,b,c,d,e, 5); S_R0(e,a,b,c,d, 6); S_R0(d,e,a,b,c, 7);
+	S_R0(c,d,e,a,b, 8); S_R0(b,c,d,e,a, 9); S_R0(a,b,c,d,e,10); S_R0(e,a,b,c,d,11);
+	S_R0(d,e,a,b,c,12); S_R0(c,d,e,a,b,13); S_R0(b,c,d,e,a,14); S_R0(a,b,c,d,e,15);
+	S_R1(e,a,b,c,d,16); S_R1(d,e,a,b,c,17); S_R1(c,d,e,a,b,18); S_R1(b,c,d,e,a,19);
+	S_R2(a,b,c,d,e,20); S_R2(e,a,b,c,d,21); S_R2(d,e,a,b,c,22); S_R2(c,d,e,a,b,23);
+	S_R2(b,c,d,e,a,24); S_R2(a,b,c,d,e,25); S_R2(e,a,b,c,d,26); S_R2(d,e,a,b,c,27);
+	S_R2(c,d,e,a,b,28); S_R2(b,c,d,e,a,29); S_R2(a,b,c,d,e,30); S_R2(e,a,b,c,d,31);
+	S_R2(d,e,a,b,c,32); S_R2(c,d,e,a,b,33); S_R2(b,c,d,e,a,34); S_R2(a,b,c,d,e,35);
+	S_R2(e,a,b,c,d,36); S_R2(d,e,a,b,c,37); S_R2(c,d,e,a,b,38); S_R2(b,c,d,e,a,39);
+	S_R3(a,b,c,d,e,40); S_R3(e,a,b,c,d,41); S_R3(d,e,a,b,c,42); S_R3(c,d,e,a,b,43);
+	S_R3(b,c,d,e,a,44); S_R3(a,b,c,d,e,45); S_R3(e,a,b,c,d,46); S_R3(d,e,a,b,c,47);
+	S_R3(c,d,e,a,b,48); S_R3(b,c,d,e,a,49); S_R3(a,b,c,d,e,50); S_R3(e,a,b,c,d,51);
+	S_R3(d,e,a,b,c,52); S_R3(c,d,e,a,b,53); S_R3(b,c,d,e,a,54); S_R3(a,b,c,d,e,55);
+	S_R3(e,a,b,c,d,56); S_R3(d,e,a,b,c,57); S_R3(c,d,e,a,b,58); S_R3(b,c,d,e,a,59);
+	S_R4(a,b,c,d,e,60); S_R4(e,a,b,c,d,61); S_R4(d,e,a,b,c,62); S_R4(c,d,e,a,b,63);
+	S_R4(b,c,d,e,a,64); S_R4(a,b,c,d,e,65); S_R4(e,a,b,c,d,66); S_R4(d,e,a,b,c,67);
+	S_R4(c,d,e,a,b,68); S_R4(b,c,d,e,a,69); S_R4(a,b,c,d,e,70); S_R4(e,a,b,c,d,71);
+	S_R4(d,e,a,b,c,72); S_R4(c,d,e,a,b,73); S_R4(b,c,d,e,a,74); S_R4(a,b,c,d,e,75);
+	S_R4(e,a,b,c,d,76); S_R4(d,e,a,b,c,77); S_R4(c,d,e,a,b,78); S_R4(b,c,d,e,a,79);
 
 	// Add the working vars back into state
 	pState[0] += a;
@@ -154,11 +161,10 @@ void CSHA1::Transform(UINT_32* pState, const UINT_8* pBuffer)
 
 	// Wipe variables
 #ifdef SHA1_WIPE_VARIABLES
-	a = b = c = d = e = 0;   // NOLINT
+	a = b = c = d = e = 0;
 #endif
 }
 
-// Use this function to hash in binary data and strings
 void CSHA1::Update(const UINT_8* pbData, UINT_32 uLen)
 {
 	UINT_32 j = ((m_count[0] >> 3) & 0x3F);
@@ -187,46 +193,34 @@ void CSHA1::Update(const UINT_8* pbData, UINT_32 uLen)
 }
 
 #ifdef SHA1_UTILITY_FUNCTIONS
-// Hash in file contents
-bool CSHA1::HashFile(const char* szFileName)
+bool CSHA1::HashFile(const TCHAR* tszFileName)
 {
-	if(szFileName == NULL) return false;
+	if(tszFileName == NULL) return false;
 
-#ifdef _WIN32
-    std::wstring wf = Strutil::utf8_to_utf16(szFileName);
-    FILE* fpIn = _wfopen(wf.c_str(), L"rb");
-#else
-	FILE* fpIn = fopen(szFileName, "rb");
-#endif
+	FILE* fpIn = _tfopen(tszFileName, _T("rb"));
 	if(fpIn == NULL) return false;
 
-	_fseeki64(fpIn, 0, SEEK_END);
-	const INT_64 lFileSize = _ftelli64(fpIn);
-	_fseeki64(fpIn, 0, SEEK_SET);
+	UINT_8* pbData = new UINT_8[SHA1_MAX_FILE_BUFFER];
+	if(pbData == NULL) { fclose(fpIn); return false; }
 
-	const INT_64 lMaxBuf = SHA1_MAX_FILE_BUFFER;
-	UINT_8 vData[SHA1_MAX_FILE_BUFFER];
-	INT_64 lRemaining = lFileSize;
-
-	while(lRemaining > 0)
+	bool bSuccess = true;
+	while(true)
 	{
-		const size_t uMaxRead = static_cast<size_t>((lRemaining > lMaxBuf) ?
-			lMaxBuf : lRemaining);
+		const size_t uRead = fread(pbData, 1, SHA1_MAX_FILE_BUFFER, fpIn);
 
-		const size_t uRead = fread(vData, 1, uMaxRead, fpIn);
-		if(uRead == 0)
+		if(uRead > 0)
+			Update(pbData, static_cast<UINT_32>(uRead));
+
+		if(uRead < SHA1_MAX_FILE_BUFFER)
 		{
-			fclose(fpIn);
-			return false;
+			if(feof(fpIn) == 0) bSuccess = false;
+			break;
 		}
-
-		Update(vData, static_cast<UINT_32>(uRead));
-
-		lRemaining -= static_cast<INT_64>(uRead);
 	}
 
 	fclose(fpIn);
-	return (lRemaining == 0);
+	delete[] pbData;
+	return bSuccess;
 }
 #endif
 
@@ -234,60 +228,60 @@ void CSHA1::Final()
 {
 	UINT_32 i;
 
-	UINT_8 finalcount[8];
+	UINT_8 pbFinalCount[8];
 	for(i = 0; i < 8; ++i)
-		finalcount[i] = (UINT_8)((m_count[((i >= 4) ? 0 : 1)]
-			>> ((3 - (i & 3)) * 8) ) & 255); // Endian independent
+		pbFinalCount[i] = static_cast<UINT_8>((m_count[((i >= 4) ? 0 : 1)] >>
+			((3 - (i & 3)) * 8) ) & 0xFF); // Endian independent
 
 	Update((UINT_8*)"\200", 1);
 
-	while ((m_count[0] & 504) != 448)
+	while((m_count[0] & 504) != 448)
 		Update((UINT_8*)"\0", 1);
 
-	Update(finalcount, 8); // Cause a SHA1Transform()
+	Update(pbFinalCount, 8); // Cause a Transform()
 
 	for(i = 0; i < 20; ++i)
-		m_digest[i] = (UINT_8)((m_state[i >> 2] >> ((3 - (i & 3)) * 8)) & 0xFF);
+		m_digest[i] = static_cast<UINT_8>((m_state[i >> 2] >> ((3 -
+			(i & 3)) * 8)) & 0xFF);
 
 	// Wipe variables for security reasons
 #ifdef SHA1_WIPE_VARIABLES
 	memset(m_buffer, 0, 64);
 	memset(m_state, 0, 20);
 	memset(m_count, 0, 8);
-	memset(finalcount, 0, 8);
+	memset(pbFinalCount, 0, 8);
 	Transform(m_state, m_buffer);
 #endif
 }
 
 #ifdef SHA1_UTILITY_FUNCTIONS
-// Get the final hash as a pre-formatted string
-bool CSHA1::ReportHash(char* szReport, REPORT_TYPE rtReportType) const
+bool CSHA1::ReportHash(TCHAR* tszReport, REPORT_TYPE rtReportType) const
 {
-	if(szReport == NULL) return false;
+	if(tszReport == NULL) return false;
 
-	char szTemp[16];
+	TCHAR tszTemp[16];
 
 	if((rtReportType == REPORT_HEX) || (rtReportType == REPORT_HEX_SHORT))
 	{
-		_sntprintf(szTemp, 15, "%02X", m_digest[0]);
-		strncpy(szReport, szTemp, 15);
+		_sntprintf(tszTemp, 15, _T("%02X"), m_digest[0]);
+		_tcscpy(tszReport, tszTemp);
 
-		const char* lpFmt = ((rtReportType == REPORT_HEX) ? " %02X" : "%02X");
+		const TCHAR* lpFmt = ((rtReportType == REPORT_HEX) ? _T(" %02X") : _T("%02X"));
 		for(size_t i = 1; i < 20; ++i)
 		{
-			_sntprintf(szTemp, 15, lpFmt, m_digest[i]);
-			strncat(szReport, szTemp, 15);
+			_sntprintf(tszTemp, 15, lpFmt, m_digest[i]);
+			_tcscat(tszReport, tszTemp);
 		}
 	}
 	else if(rtReportType == REPORT_DIGIT)
 	{
-		_sntprintf(szTemp, 15, "%u", m_digest[0]);
-		strncpy(szReport, szTemp, 15);
+		_sntprintf(tszTemp, 15, _T("%u"), m_digest[0]);
+		_tcscpy(tszReport, tszTemp);
 
 		for(size_t i = 1; i < 20; ++i)
 		{
-			_sntprintf(szTemp, 15, " %u", m_digest[i]);
-			strncat(szReport, szTemp, 15);
+			_sntprintf(tszTemp, 15, _T(" %u"), m_digest[i]);
+			_tcscat(tszReport, tszTemp);
 		}
 	}
 	else return false;
@@ -297,21 +291,24 @@ bool CSHA1::ReportHash(char* szReport, REPORT_TYPE rtReportType) const
 #endif
 
 #ifdef SHA1_STL_FUNCTIONS
-bool CSHA1::ReportHashStl(std::string& strOut, REPORT_TYPE rtReportType) const
+bool CSHA1::ReportHashStl(std::basic_string<TCHAR>& strOut, REPORT_TYPE rtReportType) const
 {
-	char szOut[84];
-	const bool bResult = ReportHash(szOut, rtReportType);
-	if(bResult) strOut = szOut;
+	TCHAR tszOut[84];
+	const bool bResult = ReportHash(tszOut, rtReportType);
+	if(bResult) strOut = tszOut;
 	return bResult;
 }
 #endif
 
-// Get the raw message digest
-bool CSHA1::GetHash(UINT_8* pbDest) const
+bool CSHA1::GetHash(UINT_8* pbDest20) const
 {
-	if(pbDest == NULL) return false;
-	memcpy(pbDest, m_digest, 20);
+	if(pbDest20 == NULL) return false;
+	memcpy(pbDest20, m_digest, 20);
 	return true;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 OIIO_NAMESPACE_END
