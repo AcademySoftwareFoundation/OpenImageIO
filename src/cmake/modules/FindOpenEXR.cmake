@@ -50,18 +50,13 @@ set (GENERIC_INCLUDE_PATHS
     /sw/include
     /opt/local/include )
 
-# Find the include file locations. We call find_path twice -- first using
-# only the custom paths, then if that fails, try the default paths only.
-# This seems to be the most robust way I can find to not get confused when
-# both system and custom libraries are present.
+# Find the include file locations.
 find_path (ILMBASE_INCLUDE_PATH OpenEXR/IlmBaseConfig.h
-           PATHS ${ILMBASE_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR}
-                 ${GENERIC_INCLUDE_PATHS} NO_DEFAULT_PATH)
-find_path (ILMBASE_INCLUDE_PATH OpenEXR/IlmBaseConfig.h)
+           HINTS ${ILMBASE_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR}
+                 ${GENERIC_INCLUDE_PATHS} )
 find_path (OPENEXR_INCLUDE_PATH OpenEXR/OpenEXRConfig.h
-           PATHS ${OPENEXR_INCLUDE_DIR}
-                 ${GENERIC_INCLUDE_PATHS} NO_DEFAULT_PATH)
-find_path (OPENEXR_INCLUDE_PATH OpenEXR/OpenEXRConfig.h)
+           HINTS ${OPENEXR_INCLUDE_DIR}
+                 ${GENERIC_INCLUDE_PATHS} )
 
 # Try to figure out version number
 if (DEFINED _OPENEXR_VERSION AND NOT "${_OPENEXR_VERSION}" STREQUAL "")
@@ -114,27 +109,18 @@ if (OpenEXR_USE_STATIC_LIBS)
     endif ()
 endif ()
 
-# Look for the libraries themselves, for all the components. Like with the
-# headers, we do two finds -- first for custom locations, then for default.
+# Look for the libraries themselves, for all the components.
 # This is complicated because the OpenEXR libraries may or may not be
 # built with version numbers embedded.
 set (_openexr_components IlmThread IlmImf Imath Iex Half)
 foreach (COMPONENT ${_openexr_components})
     string (TOUPPER ${COMPONENT} UPPERCOMPONENT)
     # First try with the version embedded
-    set (FULL_COMPONENT_NAME ${COMPONENT}-${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR})
-    find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME}
-                  PATHS ${OPENEXR_LIBRARY_DIR} $ENV{OPENEXR_LIBRARY_DIR}
-                        ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
-    # Again, with no directory restrictions
-    find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME})
-    # Try again without the version
-    set (FULL_COMPONENT_NAME ${COMPONENT})
-    find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME}
-                  PATHS ${OPENEXR_LIBRARY_DIR} $ENV{OPENEXR_LIBRARY_DIR}
-                        ${GENERIC_LIBRARY_PATHS} NO_DEFAULT_PATH)
-    # One more time, with no restrictions
-    find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY ${FULL_COMPONENT_NAME})
+    find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY
+                  NAMES ${COMPONENT}-${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR}
+                        ${COMPONENT}
+                  HINTS ${OPENEXR_LIBRARY_DIR} $ENV{OPENEXR_LIBRARY_DIR}
+                        ${GENERIC_LIBRARY_PATHS} )
 endforeach ()
 
 # Set the FOUND, INCLUDE_DIR, and LIBRARIES variables.
