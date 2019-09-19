@@ -17,6 +17,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     view: "left"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.left"
+    oiio:subimages: 4
     openexr:chunkCount: 1078
  subimage  1: 1918 x 1078, 1 channel, half openexr
     SHA-1: 5FAE17E1E8BDB2E7C3A6B3EBCA8E0CA15A07B80A
@@ -33,6 +34,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     view: "left"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "depth.left"
+    oiio:subimages: 4
     openexr:chunkCount: 1078
  subimage  2: 1918 x 1078, 4 channel, half openexr
     SHA-1: 3CC2362892007C6AACABE356DF93F87408C988B3
@@ -49,6 +51,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     view: "right"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.right"
+    oiio:subimages: 4
     openexr:chunkCount: 1078
  subimage  3: 1918 x 1078, 1 channel, half openexr
     SHA-1: FBB31FC1CD9EC4759703F033C8D0E14E5806AE92
@@ -65,6 +68,7 @@ Reading ../../../../../openexr-images/v2/Stereo/composited.exr
     view: "right"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "depth.right"
+    oiio:subimages: 4
     openexr:chunkCount: 1078
 ../../../../../openexr-images/v2/Stereo/composited.exr : 1918 x 1078, 4 channel, half openexr (4 subimages)
     Stats Min: 0.000000 0.000000 0.000000 0.000000 (float)
@@ -96,6 +100,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     view: "left"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.left"
+    oiio:subimages: 2
     openexr:chunkCount: 761
     openexr:version: 1
  subimage  1: 1452 x  761, 5 channel, deep half/half/half/half/float openexr
@@ -113,6 +118,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     view: "right"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.right"
+    oiio:subimages: 2
     openexr:chunkCount: 761
     openexr:version: 1
 ../../../../../openexr-images/v2/Stereo/Balls.exr : 1431 x  761, 5 channel, deep half/half/half/half/float openexr (2 subimages)
@@ -153,6 +159,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     view: "left"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.left"
+    oiio:subimages: 2
     openexr:chunkCount: 1080
     openexr:version: 1
  subimage  1: 1920 x 1080, 5 channel, deep half/half/half/half/float openexr
@@ -167,6 +174,7 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     view: "right"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.right"
+    oiio:subimages: 2
     openexr:chunkCount: 1080
     openexr:version: 1
 ../../../../../openexr-images/v2/Stereo/Leaves.exr : 1920 x 1080, 5 channel, deep half/half/half/half/float openexr (2 subimages)

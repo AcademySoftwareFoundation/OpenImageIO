@@ -9,5 +9,6 @@ Reading ../../../../../openexr-images/LuminanceChroma/Garden.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
 Comparing "../../../../../openexr-images/LuminanceChroma/Garden.exr" and "Garden.exr"
 PASS

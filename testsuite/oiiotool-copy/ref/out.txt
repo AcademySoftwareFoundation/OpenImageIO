@@ -30,6 +30,7 @@ nometamerge.exr      :   64 x   64, 6 channel, float openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
 Reading metamerge.exr
 metamerge.exr        :   64 x   64, 6 channel, float openexr
     SHA-1: 9F13A523321C66208E90D45F87FA0CD9B370E111
@@ -41,3 +42,4 @@ metamerge.exr        :   64 x   64, 6 channel, float openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1

@@ -17,6 +17,7 @@ chname.exr           :   38 x   38, 5 channel, float openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
 Reading allhalf.exr
 allhalf.exr          :   38 x   38, 5 channel, half openexr
     SHA-1: 1C71682E8D8F6DCDC2A7A7B23842DFEEC51438F2
@@ -30,6 +31,7 @@ allhalf.exr          :   38 x   38, 5 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
 Reading rgbahalf-zfloat.exr
 rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
     SHA-1: 9324AFD44451321A8D87E09F656C7B86E827E5CD
@@ -43,6 +45,7 @@ rgbahalf-zfloat.exr  :   38 x   38, 5 channel, half/half/half/half/float openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
 copyA.0001.jpg       :  128 x   96, 3 channel, uint8 jpeg
 copyA.0002.jpg       :  128 x   96, 3 channel, uint8 jpeg
 copyA.0003.jpg       :  128 x   96, 3 channel, uint8 jpeg
@@ -89,6 +92,7 @@ add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
 Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "autotrim.tif" and "ref/autotrim.tif"

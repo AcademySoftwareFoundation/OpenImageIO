@@ -278,6 +278,7 @@ nan.exr              :   64 x   64, 3 channel, half openexr
     oiio:AverageColor: "0.5,0.5,0.5"
     oiio:ColorSpace: "Linear"
     oiio:SHA-1: "44B96A7C3AFBF8D7621E7C6453266E5DD1962D36"
+    oiio:subimages: 1
     openexr:levelmode: 0
     Stats Min: 0.000000 0.000000 0.000000 (float)
     Stats Max: 1.000000 1.000000 1.000000 (float)
@@ -305,6 +306,7 @@ checker-exr.pdq      :  128 x  128, 4 channel, half openexr
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:ColorSpace: "Linear"
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
+    oiio:subimages: 1
     openexr:roundingmode: 0
 Reading grid.tx
     oiio:SHA-1: "9B24D4CC05313A43973AC384718D81D19183B691"
