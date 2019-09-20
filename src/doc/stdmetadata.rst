@@ -106,6 +106,15 @@ Display hints
     If nonzero, a hint that a multi-image file is meant to be interpreted as
     an animation (i.e., that the subimages are a time sequence).
 
+.. option:: "oiio:subimages" : int
+
+    If nonzero, the number of subimages in the file. Not all image file
+    formats can know this without reading the entire file, and in such
+    cases, this attribute will not be set or will be 0. If the value is
+    present and greater than zero, it can be trusted, but if not, nothing
+    should be inferred and you will have to repeatedly seek to subimages
+    to find out how many there are.
+
 .. option:: "FramesPerSecond" : rational
 
     For a multi-image file intended to be played back as an animation, the

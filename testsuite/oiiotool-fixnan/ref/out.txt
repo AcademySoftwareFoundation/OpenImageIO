@@ -7,6 +7,7 @@ src/bad.exr          :   64 x   64, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
     Stats Min: 0.000000 0.000000 0.000000 (float)
     Stats Max: 1.000000 1.000000 1.000000 (float)
     Stats Avg: 0.500000 0.500000 0.500000 (float)
@@ -25,6 +26,7 @@ black.exr            :   64 x   64, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
     Stats Min: 0.000000 0.000000 0.000000 (float)
     Stats Max: 1.000000 1.000000 1.000000 (float)
     Stats Avg: 0.499756 0.500000 0.500000 (float)
@@ -43,6 +45,7 @@ box3.exr             :   64 x   64, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
     Stats Min: 0.000000 0.000000 0.000000 (float)
     Stats Max: 1.000000 1.000000 1.000000 (float)
     Stats Avg: 0.500000 0.500000 0.500000 (float)

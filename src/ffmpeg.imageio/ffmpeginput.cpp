@@ -409,6 +409,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     int rat[2] = { m_frame_rate.num, m_frame_rate.den };
     m_spec.attribute("FramesPerSecond", TypeRational, &rat);
     m_spec.attribute("oiio:Movie", true);
+    m_spec.attribute("oiio:subimages", int(m_frames));
     m_spec.attribute("oiio:BitsPerSample",
                      m_codec_context->bits_per_raw_sample);
     m_nsubimages = m_frames;

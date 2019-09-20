@@ -799,6 +799,8 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     if (header->hasName() && header->name() != "")
         spec.attribute("oiio:subimagename", header->name());
 
+    spec.attribute("oiio:subimages", in->m_nsubimages);
+
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);
 

@@ -819,6 +819,12 @@ Some special attributes are used for movie files:
    * - ``oiio:Movie``
      - int
      - Nonzero value for movie files
+   * - ``oiio:subimages``
+     - int
+     - The number of frames in the movie, positive if it can be known
+       without reading the entire file. Zero or not present if the number
+       of frames cannot be determinend from reading from just the file
+       header.
    * - ``FramesPerSecond``
      - int[2] (rational)
      - Frames per second

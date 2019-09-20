@@ -13,6 +13,7 @@ Reading ../../../../../openexr-images/MultiResolution/Bonita.exr
     textureformat: "Plain Texture"
     wrapmodes: "clamp,clamp"
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/Bonita.exr" and "Bonita.exr"
 PASS
@@ -31,6 +32,7 @@ Reading ../../../../../openexr-images/MultiResolution/ColorCodedLevels.exr
     textureformat: "Plain Texture"
     wrapmodes: "periodic,periodic"
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/ColorCodedLevels.exr" and "ColorCodedLevels.exr"
 PASS
@@ -50,6 +52,7 @@ Reading ../../../../../openexr-images/MultiResolution/KernerEnvCube.exr
     textureformat: "CubeFace Environment"
     oiio:ColorSpace: "Linear"
     oiio:sampleborder: 1
+    oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/KernerEnvCube.exr" and "KernerEnvCube.exr"
 PASS
@@ -67,6 +70,7 @@ Reading ../../../../../openexr-images/MultiResolution/KernerEnvLatLong.exr
     textureformat: "LatLong Environment"
     oiio:ColorSpace: "Linear"
     oiio:sampleborder: 1
+    oiio:subimages: 1
     oiio:updirection: "y"
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/KernerEnvLatLong.exr" and "KernerEnvLatLong.exr"
@@ -85,6 +89,7 @@ Reading ../../../../../openexr-images/MultiResolution/MirrorPattern.exr
     textureformat: "Plain Texture"
     wrapmodes: "mirror,mirror"
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/MirrorPattern.exr" and "MirrorPattern.exr"
 PASS
@@ -104,6 +109,7 @@ Reading ../../../../../openexr-images/MultiResolution/OrientationCube.exr
     textureformat: "CubeFace Environment"
     oiio:ColorSpace: "Linear"
     oiio:sampleborder: 1
+    oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/OrientationCube.exr" and "OrientationCube.exr"
 PASS
@@ -121,6 +127,7 @@ Reading ../../../../../openexr-images/MultiResolution/OrientationLatLong.exr
     textureformat: "LatLong Environment"
     oiio:ColorSpace: "Linear"
     oiio:sampleborder: 1
+    oiio:subimages: 1
     oiio:updirection: "y"
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/OrientationLatLong.exr" and "OrientationLatLong.exr"
@@ -139,6 +146,7 @@ Reading ../../../../../openexr-images/MultiResolution/PeriodicPattern.exr
     textureformat: "Plain Texture"
     wrapmodes: "periodic,periodic"
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/PeriodicPattern.exr" and "PeriodicPattern.exr"
 PASS
@@ -158,6 +166,7 @@ Reading ../../../../../openexr-images/MultiResolution/StageEnvCube.exr
     textureformat: "CubeFace Environment"
     oiio:ColorSpace: "Linear"
     oiio:sampleborder: 1
+    oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/StageEnvCube.exr" and "StageEnvCube.exr"
 PASS
@@ -175,6 +184,7 @@ Reading ../../../../../openexr-images/MultiResolution/StageEnvLatLong.exr
     textureformat: "LatLong Environment"
     oiio:ColorSpace: "Linear"
     oiio:sampleborder: 1
+    oiio:subimages: 1
     oiio:updirection: "y"
     openexr:roundingmode: 1
 Comparing "../../../../../openexr-images/MultiResolution/StageEnvLatLong.exr" and "StageEnvLatLong.exr"
@@ -195,6 +205,7 @@ Reading ../../../../../openexr-images/MultiResolution/WavyLinesCube.exr
     textureformat: "CubeFace Environment"
     oiio:ColorSpace: "Linear"
     oiio:sampleborder: 1
+    oiio:subimages: 1
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/WavyLinesCube.exr" and "WavyLinesCube.exr"
 PASS
@@ -212,6 +223,7 @@ Reading ../../../../../openexr-images/MultiResolution/WavyLinesLatLong.exr
     textureformat: "LatLong Environment"
     oiio:ColorSpace: "Linear"
     oiio:sampleborder: 1
+    oiio:subimages: 1
     oiio:updirection: "y"
     openexr:roundingmode: 0
 Comparing "../../../../../openexr-images/MultiResolution/WavyLinesLatLong.exr" and "WavyLinesLatLong.exr"
@@ -226,5 +238,6 @@ Reading ../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
 Comparing "../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
 PASS
