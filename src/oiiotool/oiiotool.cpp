@@ -4579,7 +4579,8 @@ input_file(int argc, const char* argv[])
         if (ot.debug || ot.verbose)
             std::cout << "Reading " << filename << "\n";
         ot.push(ImageRecRef(new ImageRec(filename, ot.imagecache)));
-        ot.curimg->configspec(ot.input_config);
+        if (ot.input_config_set)
+            ot.curimg->configspec(ot.input_config);
         ot.curimg->input_dataformat(input_dataformat);
         if (readnow) {
             ot.curimg->read(ReadNoCache, channel_set);
@@ -4796,6 +4797,7 @@ output_file(int argc, const char* argv[])
                 ot.curimg
                     = saved_curimg;  // note: last iteration also restores it!
             // Skip 0x0 images. Yes, this can happen.
+            ot.curimg->read();
             const ImageSpec* spec(ot.curimg->spec());
             if (spec->width < 1 || spec->height < 1 || spec->depth < 1)
                 continue;

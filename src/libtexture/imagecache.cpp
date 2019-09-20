@@ -1025,9 +1025,10 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
         thread_info->m_stats.bytes_read += b;
         m_bytesread += b;
         ++m_tilesread;
-        // If we read the whole image, presumably we're done, so release
-        // the file handle.
-        close();
+        // If we read the whole image (and there are no other subimages),
+        // presumably we're done, so release the file handle.
+        if (subimages() == 1)
+            close();
         // FIXME: ^^^ is that a good idea or not?
     }
 
