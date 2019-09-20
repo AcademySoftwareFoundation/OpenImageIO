@@ -439,9 +439,12 @@ public:
 
     // Get or set the configuration spec that will be used any time the
     // image is opened.
-    const ImageSpec* configspec() const { return &m_configspec; }
-    void configspec(const ImageSpec& spec) { m_configspec = spec; }
-    void clear_configspec() { configspec(ImageSpec()); }
+    const ImageSpec* configspec() const { return m_configspec.get(); }
+    void configspec(const ImageSpec& spec)
+    {
+        m_configspec.reset(new ImageSpec(spec));
+    }
+    void clear_configspec() { m_configspec.reset(); }
 
     /// Error reporting for ImageRec: call this with printf-like arguments.
     /// Note however that this is fully typesafe!
@@ -471,7 +474,7 @@ private:
     TypeDesc m_input_dataformat;
     ImageCache* m_imagecache = nullptr;
     mutable std::string m_err;
-    ImageSpec m_configspec;
+    std::unique_ptr<ImageSpec> m_configspec;
 
     // Add to the error message
     void append_error(string_view message) const;

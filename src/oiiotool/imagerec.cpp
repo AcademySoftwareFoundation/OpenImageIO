@@ -214,19 +214,23 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
         m_subimages[s].m_specs.resize(miplevels);
         m_subimages[s].m_was_direct_read = true;
         for (int m = 0; m < miplevels; ++m) {
-            // Force a read now for reasonable-sized first images in the
+            // Force a read now for reasonable-sized images in the
             // file. This can greatly speed up the multithread case for
             // tiled images by not having multiple threads working on the
             // same image lock against each other on the file handle.
             // We guess that "reasonable size" is 50 MB, that's enough to
             // hold a 2048x1536 RGBA float image.  Larger things will
-            // simply fall back on ImageCache.
-            bool forceread
-                = (s == 0 && m == 0
-                   && m_imagecache->imagespec(uname, s, m)->image_bytes()
-                          < 50 * 1024 * 1024);
+            // simply fall back on ImageCache. By multiplying by the number
+            // of subimages (a.k.a. frames in a movie), we also push movies
+            // relying on the cache to read their frames on demand rather
+            // than reading the whole movie up front, even though each frame
+            // individually would be well below the threshold.
+            imagesize_t imgbytes
+                = m_imagecache->imagespec(uname, s, m)->image_bytes();
+            bool forceread = (s == 0 && m == 0
+                              && imgbytes * subimages < 50 * 1024 * 1024);
             ImageBufRef ib(
-                new ImageBuf(name(), 0, 0, m_imagecache, &m_configspec));
+                new ImageBuf(name(), s, m, m_imagecache, configspec()));
 
             bool post_channel_set_action = false;
             std::vector<std::string> newchannelnames;

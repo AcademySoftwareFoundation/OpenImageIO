@@ -123,6 +123,7 @@ public:
     {
         return "FFmpeg movie";
     }
+    virtual bool valid_file(const std::string& name) const override;
     virtual bool open(const std::string& name, ImageSpec& spec) override;
     virtual bool close(void) override;
     virtual int current_subimage(void) const override
@@ -230,6 +231,19 @@ FFmpegInput::~FFmpegInput() { close(); }
 
 
 bool
+FFmpegInput::valid_file(const std::string& name) const
+{
+    // Quick/naive test -- just make sure the extension is valid for one of
+    // the supported file types supported by this reader.
+    for (int i = 0; ffmpeg_input_extensions[i]; ++i)
+        if (Strutil::ends_with(name, ffmpeg_input_extensions[i]))
+            return true;
+    return false;
+}
+
+
+
+bool
 FFmpegInput::open(const std::string& name, ImageSpec& spec)
 {
     // Temporary workaround: refuse to open a file whose name does not
@@ -255,9 +269,8 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     std::call_once(init_flag, av_register_all);
     const char* file_name = name.c_str();
     av_log_set_level(AV_LOG_FATAL);
-    if (avformat_open_input(&m_format_context, file_name, NULL, NULL)
-        != 0)  // avformat_open_input allocs format_context
-    {
+    if (avformat_open_input(&m_format_context, file_name, NULL, NULL) != 0) {
+        // avformat_open_input allocs format_context
         error("\"%s\" could not open input", file_name);
         return false;
     }
@@ -414,6 +427,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
                      m_codec_context->bits_per_raw_sample);
     m_nsubimages = m_frames;
     spec         = m_spec;
+    m_filename   = name;
     return true;
 }
 
