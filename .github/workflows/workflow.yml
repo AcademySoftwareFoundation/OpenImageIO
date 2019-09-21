@@ -27,7 +27,6 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
-
   linux-debug:
     name: "Linux debug: gcc7, cpp11, sse2, exr2.3"
     runs-on: ubuntu-18.04
@@ -43,7 +42,6 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
-
   # PITA go get GitHub Actions CI on Mac to do python 2 and I'm just
   # too lazy to figure it out right now.
   #  macos-py27:
@@ -60,7 +58,6 @@ jobs:
   #            source src/build-scripts/install_homebrew_deps.bash
   #            src/build-scripts/install_test_images.bash
   #            source src/build-scripts/ci-build-and-test.bash
-
   macos-py37:
     name: "Mac py37"
     runs-on: macOS-10.14
@@ -75,7 +72,22 @@ jobs:
             source src/build-scripts/install_homebrew_deps.bash
             src/build-scripts/install_test_images.bash
             source src/build-scripts/ci-build-and-test.bash
-
+  windows:
+    name: "Windows"
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v1
+      - name: all
+        shell: bash
+        env:
+          PYTHON_VERSION: 3.6
+          CMAKE_GENERATOR: "Visual Studio 16 2019"
+          MY_CMAKE_FLAGS: -DUSE_PYTHON=0
+          SKIP_TESTS: 1
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-win-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
   clang-format:
     name: "clang-format format verification"
     runs-on: macOS-10.14

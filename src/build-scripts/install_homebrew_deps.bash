@@ -27,7 +27,7 @@ if [[ "$BUILDTARGET" == "clang-format" ]] ; then
     brew install --display-times ilmbase openexr llvm clang-format libtiff libpng boost ninja giflib
 else
     # All cases except for clang-format target, we need the dependencies.
-    brew install --display-times gcc ccache cmake ninja boost
+    brew install --display-times gcc ccache cmake ninja boost && true
     brew link --overwrite gcc
     brew install --display-times libtiff ilmbase openexr opencolorio
     brew install --display-times libpng giflib webp jpeg-turbo openjpeg

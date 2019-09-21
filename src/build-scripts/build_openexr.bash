@@ -40,7 +40,24 @@ pushd ./ext/openexr
 echo "git checkout ${EXRBRANCH} --force"
 git checkout ${EXRBRANCH} --force
 
-if [[ ${EXRBRANCH} == "v2.3.0" ]] ; then
+if [[ ${EXRBRANCH} == "v2.4.0" ]] ; then
+    # Simplified setup for 2.4+
+    mkdir build
+    cd build
+    mkdir OpenEXR
+    mkdir OpenEXR/IlmImf
+    time cmake --config ${EXR_BUILD_TYPE} -G "$CMAKE_GENERATOR" \
+            -DCMAKE_INSTALL_PREFIX="${EXRINSTALLDIR}" \
+            -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
+            -DILMBASE_PACKAGE_PREFIX=${EXRINSTALLDIR} \
+            -DOPENEXR_BUILD_UTILS=0 \
+            -DBUILD_TESTING=0 \
+            -DPYILMBASE_ENABLE=0 \
+            -DOPENEXR_VIEWERS_ENABLE=0 \
+            -DCMAKE_CXX_FLAGS="${EXRCXXFLAGS}" \
+            ${EXR_CMAKE_FLAGS} ..
+    time cmake --build . --target install --config ${EXR_BUILD_TYPE}
+elif [[ ${EXRBRANCH} == "v2.3.0" ]] ; then
     # Simplified setup for 2.3+
     mkdir build
     cd build
