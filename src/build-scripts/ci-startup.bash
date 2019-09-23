@@ -11,6 +11,9 @@ fi
 if [[ $TRAVIS_OS_NAME == linux || $RUNNER_OS == Linux || $CIRCLECI == true ]] ; then
       export ARCH=linux64
 fi
+if [[ $RUNNER_OS == Windows ]] ; then
+      export ARCH=windows64
+fi
 export PLATFORM=$ARCH
 
 if [[ "$DEBUG" == 1 ]] ; then
@@ -37,7 +40,20 @@ export COMPILER=${COMPILER:=gcc}
 export CXX=${CXX:=g++}
 export CI=true
 export USE_NINJA=1
-export CMAKE_GENERATOR=Ninja
+export CMAKE_GENERATOR=${CMAKE_GENERATOR:=Ninja}
+export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:=Release}
+
+if [[ $TRAVIS == true ]] ; then
+    export PARALLEL=2
+elif [[ $CIRCLECI == true ]] ; then
+    export PARALLEL=4
+elif [[ $GITHUB_ACTIONS == true ]] ; then
+    export PARALLEL=4
+fi
+export PARALLEL=${PARALLEL:=4}
+export PAR_MAKEFLAGS=-j${PARALLEL}
+export CMAKE_BUILD_PARALLEL_LEVEL=${PARALLEL}
+export CTEST_PARALLEL_LEVEL=${PARALLEL}
 
 uname -a
 uname -n

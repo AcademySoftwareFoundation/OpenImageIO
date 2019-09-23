@@ -5,7 +5,7 @@ if [[ ! -e ../oiio-images ]] ; then
 fi
 
 if [[ ! -e ../libtiffpic ]] ; then
-    wget https://download.osgeo.org/libtiff/pics-3.8.0.tar.gz
+    curl -o pics-3.8.0.tar.gz https://download.osgeo.org/libtiff/pics-3.8.0.tar.gz
     tar xf pics-3.8.0.tar.gz -C ..
 fi
 
