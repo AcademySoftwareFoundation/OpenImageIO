@@ -256,13 +256,15 @@ ifeq (${SP_OS}, rhel7)
         -DFIELD3D_HOME=${FIELD3D_HOME} \
         -DOPENVDB_ROOT_DIR=${OPENVDB_ROOT_DIR} \
         -DTBB_ROOT_DIR=${TBB_ROOT_DIR} \
-	-DTBB_LIBRARY=${TBB_LIBRARY} \
+        -DTBB_LIBRARY=${TBB_LIBRARY} \
         -DHDF5_CUSTOM=1 \
         -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
         -DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION} \
         -DLIBRAW_INCLUDEDIR_HINT=/usr/include/libraw-0.18.11 \
         -DLIBRAW_LIBDIR_HINT=/usr/lib64/libraw-0.18.11 \
         -DLIBHEIF_PATH=/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2 \
+        -DFFMPEG_INCLUDE_DIR=/usr/include/ffmpegroot/ffmpeg34 \
+        -DFFMPEG_LIBRARIES="/usr/lib64/ffmpegroot/ffmpeg345/libavcodec.so;/usr/lib64/ffmpegroot/ffmpeg345/libavformat.so;/usr/lib64/ffmpegroot/ffmpeg345/libavutil.so;/usr/lib64/ffmpegroot/ffmpeg345/libswscale.so;" \
         -DUSE_OPENCV=0 \
         -DHIDE_SYMBOLS=1 \
         -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/hidesymbols.map"

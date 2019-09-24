@@ -152,7 +152,7 @@ private:
     AVCodec* m_codec;
     AVFrame* m_frame;
     AVFrame* m_rgb_frame;
-    size_t m_stride;
+    size_t m_stride;  // scanline width in bytes, a.k.a. scanline stride
     AVPixelFormat m_dst_pix_format;
     SwsContext* m_sws_rgb_context;
     AVRational m_frame_rate;
@@ -376,10 +376,24 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     default: src_pix_format = m_codec_context->pix_fmt; break;
     }
 
-    m_spec = ImageSpec(m_codec_context->width, m_codec_context->height, 3);
-
+    // Assume by default that we're delivering RGB UINT8
+    int nchannels     = 3;
+    TypeDesc datatype = TypeUInt8;
+    m_dst_pix_format  = AV_PIX_FMT_RGB24;
+    // Look for formats that indicate we should save some different number
+    // of channels or bit depth.
     switch (src_pix_format) {
     // support for 10-bit and 12-bit pix_fmts
+    case AV_PIX_FMT_RGB48BE:
+    case AV_PIX_FMT_RGB48LE:
+    case AV_PIX_FMT_BGR48BE:
+    case AV_PIX_FMT_BGR48LE:
+    case AV_PIX_FMT_YUV420P9BE:
+    case AV_PIX_FMT_YUV420P9LE:
+    case AV_PIX_FMT_YUV422P9BE:
+    case AV_PIX_FMT_YUV422P9LE:
+    case AV_PIX_FMT_YUV444P9BE:
+    case AV_PIX_FMT_YUV444P9LE:
     case AV_PIX_FMT_YUV420P10BE:
     case AV_PIX_FMT_YUV420P10LE:
     case AV_PIX_FMT_YUV422P10BE:
@@ -392,16 +406,120 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     case AV_PIX_FMT_YUV422P12LE:
     case AV_PIX_FMT_YUV444P12BE:
     case AV_PIX_FMT_YUV444P12LE:
-        m_spec.set_format(TypeDesc::UINT16);
+    case AV_PIX_FMT_YUV420P14BE:
+    case AV_PIX_FMT_YUV420P14LE:
+    case AV_PIX_FMT_YUV422P14BE:
+    case AV_PIX_FMT_YUV422P14LE:
+    case AV_PIX_FMT_YUV444P14BE:
+    case AV_PIX_FMT_YUV444P14LE:
+    case AV_PIX_FMT_GBRP9BE:
+    case AV_PIX_FMT_GBRP9LE:
+    case AV_PIX_FMT_GBRP10BE:
+    case AV_PIX_FMT_GBRP10LE:
+    case AV_PIX_FMT_GBRP16BE:
+    case AV_PIX_FMT_GBRP16LE:
+    case AV_PIX_FMT_GBRP12BE:
+    case AV_PIX_FMT_GBRP12LE:
+    case AV_PIX_FMT_GBRP14BE:
+    case AV_PIX_FMT_GBRP14LE:
+    case AV_PIX_FMT_BAYER_BGGR16LE:
+    case AV_PIX_FMT_BAYER_BGGR16BE:
+    case AV_PIX_FMT_BAYER_RGGB16LE:
+    case AV_PIX_FMT_BAYER_RGGB16BE:
+    case AV_PIX_FMT_BAYER_GBRG16LE:
+    case AV_PIX_FMT_BAYER_GBRG16BE:
+    case AV_PIX_FMT_BAYER_GRBG16LE:
+    case AV_PIX_FMT_BAYER_GRBG16BE:
+    case AV_PIX_FMT_GBRAP10BE:
+    case AV_PIX_FMT_GBRAP10LE:
+    case AV_PIX_FMT_GBRAP12BE:
+    case AV_PIX_FMT_GBRAP12LE:
+    case AV_PIX_FMT_P016LE:
+    case AV_PIX_FMT_P016BE:
+        datatype         = TypeUInt16;
         m_dst_pix_format = AV_PIX_FMT_RGB48;
-        m_stride         = (size_t)(m_spec.width * 3 * 2);
         break;
-    default:
-        m_spec.set_format(TypeDesc::UINT8);
-        m_dst_pix_format = AV_PIX_FMT_RGB24;
-        m_stride         = (size_t)(m_spec.width * 3);
+    // Grayscale 8 bit
+    case AV_PIX_FMT_GRAY8:
+    case AV_PIX_FMT_MONOWHITE:
+    case AV_PIX_FMT_MONOBLACK:
+        datatype         = TypeUInt8;
+        m_dst_pix_format = AV_PIX_FMT_GRAY8;
         break;
+    // Grayscale 16 bit
+    case AV_PIX_FMT_GRAY9BE:
+    case AV_PIX_FMT_GRAY9LE:
+    case AV_PIX_FMT_GRAY10BE:
+    case AV_PIX_FMT_GRAY10LE:
+    case AV_PIX_FMT_GRAY12BE:
+    case AV_PIX_FMT_GRAY12LE:
+    case AV_PIX_FMT_GRAY16BE:
+    case AV_PIX_FMT_GRAY16LE:
+        datatype         = TypeUInt16;
+        m_dst_pix_format = AV_PIX_FMT_GRAY16;
+        break;
+    // RGBA 8 bit
+    case AV_PIX_FMT_YA8:  // YA, but promote to RGBA because who cares
+    case AV_PIX_FMT_YUVA422P:
+    case AV_PIX_FMT_YUVA444P:
+    case AV_PIX_FMT_GBRAP:
+        nchannels        = 4;
+        datatype         = TypeUInt8;
+        m_dst_pix_format = AV_PIX_FMT_RGBA;
+        break;
+    // RGBA 16 bit
+    case AV_PIX_FMT_YA16:  // YA, but promote to RGBA
+    case AV_PIX_FMT_YUVA420P9BE:
+    case AV_PIX_FMT_YUVA420P9LE:
+    case AV_PIX_FMT_YUVA422P9BE:
+    case AV_PIX_FMT_YUVA422P9LE:
+    case AV_PIX_FMT_YUVA444P9BE:
+    case AV_PIX_FMT_YUVA444P9LE:
+    case AV_PIX_FMT_YUVA420P10BE:
+    case AV_PIX_FMT_YUVA420P10LE:
+    case AV_PIX_FMT_YUVA422P10BE:
+    case AV_PIX_FMT_YUVA422P10LE:
+    case AV_PIX_FMT_YUVA444P10BE:
+    case AV_PIX_FMT_YUVA444P10LE:
+    case AV_PIX_FMT_YUVA420P16BE:
+    case AV_PIX_FMT_YUVA420P16LE:
+    case AV_PIX_FMT_YUVA422P16BE:
+    case AV_PIX_FMT_YUVA422P16LE:
+    case AV_PIX_FMT_YUVA444P16BE:
+    case AV_PIX_FMT_YUVA444P16LE:
+    case AV_PIX_FMT_GBRAP16:
+        nchannels        = 4;
+        datatype         = TypeUInt16;
+        m_dst_pix_format = AV_PIX_FMT_RGBA64;
+        break;
+    // RGB float
+    case AV_PIX_FMT_GBRPF32BE:
+    case AV_PIX_FMT_GBRPF32LE:
+        nchannels        = 3;
+        datatype         = TypeFloat;
+        m_dst_pix_format = AV_PIX_FMT_RGB48;  // ? AV_PIX_FMT_GBRPF32
+        // FIXME: They don't have a type for RGB float, only GBR float.
+        // Yuck. Punt for now and save as uint16 RGB. If people care, we
+        // can return and ask for GBR float and swap order.
+        break;
+    // RGBA float
+    case AV_PIX_FMT_GBRAPF32BE:
+    case AV_PIX_FMT_GBRAPF32LE:
+        nchannels        = 4;
+        datatype         = TypeFloat;
+        m_dst_pix_format = AV_PIX_FMT_RGBA64;  // ? AV_PIX_FMT_GBRAPF32
+        // FIXME: They don't have a type for RGBA float, only GBRA float.
+        // Yuck. Punt for now and save as uint16 RGB. If people care, we
+        // can return and ask for GBRA float and swap order.
+        break;
+
+    // Everything else is regular 8 bit RGB
+    default: break;
     }
+
+    m_spec   = ImageSpec(m_codec_context->width, m_codec_context->height,
+                       nchannels, datatype);
+    m_stride = (size_t)(m_spec.scanline_bytes());
 
     m_rgb_buffer.resize(avpicture_get_size(m_dst_pix_format,
                                            m_codec_context->width,
@@ -425,6 +543,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     m_spec.attribute("oiio:subimages", int(m_frames));
     m_spec.attribute("oiio:BitsPerSample",
                      m_codec_context->bits_per_raw_sample);
+    m_spec.attribute("ffmpeg:codec_name", m_codec_context->codec->long_name);
     m_nsubimages = m_frames;
     spec         = m_spec;
     m_filename   = name;
