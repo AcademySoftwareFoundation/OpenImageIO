@@ -42,10 +42,10 @@ if (VERBOSE)
     message (STATUS "Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
     message (STATUS "Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
     message (STATUS "Python version major: ${PYTHON_VERSION_MAJOR} minor: ${PYTHON_VERSION_MINOR}")
-    message (STATUS "pybind11 headers ${PYBIND11_INCLUDE_DIR}")
+    message (STATUS "pybind11 headers ${PYBIND11_INCLUDES}")
 endif ()
 
-include_directories (${PYTHON_INCLUDE_PATH} ${PYBIND11_INCLUDE_DIR})
+include_directories (${PYTHON_INCLUDE_PATH} ${PYBIND11_INCLUDES})
 
 add_library (${target_name} MODULE ${python_srcs})
 if (APPLE)

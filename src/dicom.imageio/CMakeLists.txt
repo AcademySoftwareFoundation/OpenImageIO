@@ -1,4 +1,4 @@
-if (USE_DICOM AND DCMTK_FOUND)
+if (DCMTK_FOUND)
     add_oiio_plugin (dicominput.cpp
                      INCLUDE_DIRS ${DCMTK_INCLUDE_DIR}
                      LINK_LIBRARIES ${DCMTK_LIBRARIES}

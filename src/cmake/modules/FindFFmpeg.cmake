@@ -19,7 +19,7 @@
 if (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
   # in cache already
   set(FFMPEG_FOUND TRUE)
-else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
+else ()
   # use pkg-config to get the directories and then use these values
   # in the FIND_PATH() and FIND_LIBRARY() calls
   find_package(PkgConfig)
@@ -69,17 +69,15 @@ else (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
       ${FFMPEG_LIBAVUTIL}
       ${FFMPEG_LIBSWSCALE}
     )
+  endif ()
+endif ()
 
-  endif (FFMPEG_FOUND)
+include (FindPackageHandleStandardArgs)
+find_package_handle_standard_args (FFMPEG
+    REQUIRED_VARS   FFMPEG_INCLUDE_DIR
+                    FFMPEG_LIBRARIES
+    )
 
-  if (FFMPEG_FOUND)
-    if (NOT FFmpeg_FIND_QUIETLY)
-      message(STATUS "Found FFMPEG or Libav: ${FFMPEG_LIBRARIES}, ${FFMPEG_INCLUDE_DIR}")
-    endif (NOT FFmpeg_FIND_QUIETLY)
-  else (FFMPEG_FOUND)
-    if (FFMPEG_FIND_REQUIRED)
-      message(FATAL_ERROR "Could not find libavcodec or libavformat or libavutil or libswscale")
-    endif (FFMPEG_FIND_REQUIRED)
-  endif (FFMPEG_FOUND)
-
-endif (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
+mark_as_advanced (
+    FFMPEG_INCLUDES FFMPEG_LIBRARIES
+    )

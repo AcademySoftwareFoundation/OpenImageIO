@@ -1,5 +1,4 @@
-cmake_minimum_required (VERSION 3.2.2)
-cmake_policy (SET CMP0048 NEW)  # Allow VERSION specifier in project()
+cmake_minimum_required (VERSION 3.12)
 project (OpenImageIO VERSION 2.1.5.0
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
@@ -11,13 +10,6 @@ set (PROJECT_URL "https://openimageio.org")
 
 message (STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
 message (STATUS "CMake version is ${CMAKE_VERSION}")
-cmake_policy (SET CMP0017 NEW)  # Prefer files from the CMake module directory when including from there.
-cmake_policy (SET CMP0025 NEW)  # Detect AppleClang for new CMake
-cmake_policy (SET CMP0046 OLD)  # Don't error on non-existent dependency in add_dependencies.
-if (NOT ${CMAKE_VERSION} VERSION_LESS 3.12)
-    cmake_policy (SET CMP0074 NEW)  # Auto search <pkg>_ROOT env for find_* inside find_package(<pkg>)
-endif ()
-set (CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 
 # Alternate names
 set (OIIO_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
@@ -25,11 +17,6 @@ set (OIIO_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set (OIIO_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set (OIIO_VERSION_TWEAK ${PROJECT_VERSION_TWEAK})
 set (OIIO_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
-
-# N.B./FIXME - after CMake 3.0 is our minimum, we should change many of the
-# add_definitions to add_compile_options. In newer cmake versions, the
-# former is designated for definitions (-Dblah) and the latter is for
-# compile flags (-Wno-foo).
 
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
@@ -72,8 +59,6 @@ option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH "Should the inner namespace include
 option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 option (OIIO_BUILD_TOOLS "Build the command-line tools" ON)
 option (OIIO_BUILD_TESTS "Build the unit tests" ON)
-option (USE_OPENGL "Include OpenGL support" ON)
-option (USE_QT "Include Qt support" ON)
 option (USE_PYTHON "Build the Python bindings" ON)
 if (NOT "$ENV{OIIO_PYTHON_VERSION}" STREQUAL "")
     set (PYTHON_VERSION "$ENV{OIIO_PYTHON_VERSION}" CACHE STRING "Target version of python to find")
@@ -83,34 +68,7 @@ endif()
 option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
 option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
 set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namespace")
-option (USE_FIELD3D "Use Field3D if found" ON)
-option (USE_OPENVDB "Use OpenVDB if found" ON)
-set (OPENVDB_ROOT_DIR "" CACHE STRING "Custom OpenVDB path")
-option (USE_TBB "Use Intel TBB if found" ON)
-set (TBB_ROOT_DIR "" CACHE STRING "Custom Intel TBB path")
-option (USE_FFMPEG "Use FFmpeg if found" ON)
-option (USE_R3DSDK "Use R3dSDK if found" OFF)
-set (JPEG_PATH "" CACHE STRING "Custom JPEG path")
-option (USE_JPEGTURBO "Use JPEG-Turbo if found" ON)
-set (JPEGTURBO_PATH "" CACHE STRING "Custom JPEG-Turbo path")
-option (USE_OPENJPEG "Use OpenJpeg if found" ON)
-option (USE_OCIO "Use OpenColorIO for color management if found" ON)
-option (USE_OPENCV "Use OpenCV if found" ON)
-option (USE_FREETYPE "Use Freetype if found" ON)
-option (USE_GIF "Use GIF if found" ON)
-option (USE_PTEX "Use PTex if found" ON)
-option (USE_WEBP "Use WebP if found" ON)
-option (USE_LIBRAW "Use LibRaw if found" ON)
-set (LIBRAW_PATH "" CACHE STRING "Custom LibRaw path")
 option (OIIO_THREAD_ALLOW_DCLP "OIIO threads may use DCLP for speed" ON)
-option (USE_NUKE "Build Nuke plugins, if Nuke is found" ON)
-set (Nuke_ROOT "" CACHE STRING "Where to find Nuke installation")
-set (NUKE_VERSION 7.0)
-set (USE_EXTERNAL_PUGIXML OFF CACHE BOOL
-     "Use an externally built shared library version of the pugixml library")
-set (PUGIXML_HOME "" CACHE STRING "Hint about where to find external PugiXML library")
-option (USE_DICOM "Use DICOM if DCMTK is found" ON)
-option (USE_HEIF "Support HEIC/HEIF files, if libheif is found)" ON)
 set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
 set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
@@ -123,7 +81,7 @@ option (INSTALL_FONTS "If ON, install default fonts" ON)
 option (INSTALL_CMAKE_HELPER "If On, install FindOpenImageIO.cmake" ON)
 set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
 
-set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_SOURCE_DIR}/.." CACHE STRING
+set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_SOURCE_DIR}/.." CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
 if (NOT OIIO_THREAD_ALLOW_DCLP)
@@ -223,7 +181,11 @@ if (BUILD_DOCS)
     add_subdirectory (src/doc)
 endif ()
 add_subdirectory (src/fonts)
-add_subdirectory (src/nuke)
+
+if (NUKE_FOUND)
+    add_subdirectory (src/nuke/txReader)
+    add_subdirectory (src/nuke/txWriter)
+endif ()
 
 # Last minute site-specific instructions, if they exist
 if (OIIO_SITE AND EXISTS "${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecustom.cmake")
@@ -344,7 +306,7 @@ if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
 endif ()
 
 # Add tests that require OCIO
-if (USE_OCIO AND OCIO_FOUND)
+if (OCIO_FOUND)
     oiio_add_tests (oiiotool-color)
 endif ()
 

@@ -1,4 +1,4 @@
-if (USE_HEIF AND LIBHEIF_FOUND)
+if (LIBHEIF_FOUND)
     add_oiio_plugin (heifinput.cpp heifoutput.cpp
                      INCLUDE_DIRS ${LIBHEIF_INCLUDES}
                      LINK_LIBRARIES ${LIBHEIF_LIBRARIES}

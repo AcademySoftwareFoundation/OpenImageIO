@@ -58,6 +58,9 @@ install:
     - if [ $TRAVIS_OS_NAME == osx ] ; then
           source src/build-scripts/install_homebrew_deps.bash ;
       elif [ $TRAVIS_OS_NAME == linux ] ; then
+          if [ "$BUILD_CMAKE" == "1" ] ; then
+              source src/build-scripts/build_cmake.bash ;
+          fi ;
           CXX="ccache $CXX" source src/build-scripts/build_openexr.bash ;
           CXX="ccache $CXX" source src/build-scripts/build_ocio.bash ;
       fi
@@ -90,7 +93,7 @@ matrix:
         os: linux
         dist: trusty
         compiler: gcc
-        env: WHICHGCC=4.8 EXRBRANCH=v2.2.0
+        env: WHICHGCC=4.8 EXRBRANCH=v2.2.0 BUILD_CMAKE=1
         addons:
           apt:
             sources: *add-sources
@@ -159,13 +162,13 @@ matrix:
       # complaining about PIC issues.
       # - os: linux
       #   compiler: gcc
-      #   env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0 MY_CMAKE_FLAGS="-DUSE_fPIC=1"
+      #   env: LINKSTATIC=1 USE_FFMPEG=0 USE_OPENCOLORIO=0 USE_OPENCV=0 MY_CMAKE_FLAGS="-DUSE_fPIC=1"
       ##### TEMPORARILY DISABLED -- Travis upgraded some packages and this
       ##    is having link errors. Look into fixing this later.
       ## - os: osx
       ##  osx_image: xcode8.3
       ##  compiler: clang
-      ##  env: LINKSTATIC=1 USE_FFMPEG=0 USE_OCIO=0 USE_OPENCV=0
+      ##  env: LINKSTATIC=1 USE_FFMPEG=0 USE_OPENCOLORIO=0 USE_OPENCV=0
     # Dynamic analysis: build with sanitizers and run most tests.
     # Because this test takes so long to run, only build for PRs, direct
     # pushes to master or RB branches, or if the branch name includes
@@ -195,7 +198,7 @@ matrix:
         os: linux
         dist: trusty
         compiler: gcc
-        env: WHICHGCC=4.8 USE_SIMD=0 USE_JPEGTURBO=0 USE_OCIO=0 EMBEDPLUGINS=0 EXRBRANCH=v2.2.0
+        env: WHICHGCC=4.8 USE_SIMD=0 USE_JPEGTURBO=0 USE_OPENCOLORIO=0 EMBEDPLUGINS=0 EXRBRANCH=v2.2.0 BUILD_CMAKE=1
         if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
         addons:
           apt:

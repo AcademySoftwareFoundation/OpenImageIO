@@ -1,4 +1,4 @@
-if (USE_WEBP AND WEBP_FOUND)
+if (WEBP_FOUND)
     add_oiio_plugin (webpinput.cpp webpoutput.cpp
                      INCLUDE_DIRS ${WEBP_INCLUDE_DIR}
                      LINK_LIBRARIES ${WEBP_LIBRARY}

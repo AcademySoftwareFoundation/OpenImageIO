@@ -75,9 +75,9 @@ endif ()
 
 # turn on more detailed warnings and consider warnings as errors
 if (NOT MSVC)
-    add_definitions ("-Wall")
+    add_compile_options ("-Wall")
     if (STOP_ON_WARNING OR DEFINED ENV{CI})
-        add_definitions ("-Werror")
+        add_compile_options ("-Werror")
         # N.B. Force CI builds (Travis defines $CI) to use -Werror, even if
         # STOP_ON_WARNING has been switched off by default, which we may do
         # in release branches.
@@ -99,13 +99,13 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     add_definitions ("-D__STDC_LIMIT_MACROS")
     add_definitions ("-D__STDC_CONSTANT_MACROS")
     # this allows native instructions to be used for sqrtf instead of a function call
-    add_definitions ("-fno-math-errno")
+    add_compile_options ("-fno-math-errno")
 endif ()
 
 if (HIDE_SYMBOLS AND NOT DEBUGMODE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     # Turn default symbol visibility to hidden
-    set (VISIBILITY_COMMAND "-fvisibility=hidden -fvisibility-inlines-hidden")
-    add_definitions (${VISIBILITY_COMMAND})
+    set (VISIBILITY_COMMAND -fvisibility=hidden -fvisibility-inlines-hidden)
+    add_compile_options (${VISIBILITY_COMMAND})
     if (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU")
         # Linux/FreeBSD/Hurd: also hide all the symbols of dependent
         # libraries to prevent clashes if an app using OIIO is linked
@@ -124,38 +124,38 @@ endif ()
 if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
     # Disable some warnings for Clang, for some things that are too awkward
     # to change just for the sake of having no warnings.
-    add_definitions ("-Wno-unused-function")
-    add_definitions ("-Wno-overloaded-virtual")
-    add_definitions ("-Wno-unneeded-internal-declaration")
-    add_definitions ("-Wno-unused-private-field")
-    add_definitions ("-Wno-tautological-compare")
+    add_compile_options ("-Wno-unused-function")
+    add_compile_options ("-Wno-overloaded-virtual")
+    add_compile_options ("-Wno-unneeded-internal-declaration")
+    add_compile_options ("-Wno-unused-private-field")
+    add_compile_options ("-Wno-tautological-compare")
     # disable warning about unused command line arguments
-    add_definitions ("-Qunused-arguments")
+    add_compile_options ("-Qunused-arguments")
     # Don't warn if we ask it not to warn about warnings it doesn't know
-    add_definitions ("-Wunknown-warning-option")
+    add_compile_options ("-Wunknown-warning-option")
     if (CLANG_VERSION_STRING VERSION_GREATER 3.5 OR
         APPLECLANG_VERSION_STRING VERSION_GREATER 6.1)
-        add_definitions ("-Wno-unused-local-typedefs")
+        add_compile_options ("-Wno-unused-local-typedefs")
     endif ()
     if (CLANG_VERSION_STRING VERSION_EQUAL 3.9 OR CLANG_VERSION_STRING VERSION_GREATER 3.9)
         # Don't warn about using unknown preprocessor symbols in #if'set
-        add_definitions ("-Wno-expansion-to-defined")
+        add_compile_options ("-Wno-expansion-to-defined")
     endif ()
 endif ()
 
 # gcc specific options
 if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG))
-    add_definitions ("-Wno-unused-local-typedefs")
-    add_definitions ("-Wno-unused-result")
+    add_compile_options ("-Wno-unused-local-typedefs")
+    add_compile_options ("-Wno-unused-result")
     if (NOT ${GCC_VERSION} VERSION_LESS 7.0)
-        add_definitions ("-Wno-aligned-new")
-        add_definitions ("-Wno-noexcept-type")
+        add_compile_options ("-Wno-aligned-new")
+        add_compile_options ("-Wno-noexcept-type")
     endif ()
 endif ()
 
 # Microsoft specific options
 if (MSVC)
-    add_definitions (/W1)
+    add_compile_options (/W1)
     add_definitions (-D_CRT_SECURE_NO_DEPRECATE)
     add_definitions (-D_CRT_SECURE_NO_WARNINGS)
     add_definitions (-D_CRT_NONSTDC_NO_WARNINGS)
@@ -186,10 +186,10 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_INTE
         message (STATUS "Building for C++11")
         set (CSTD_FLAGS "-std=c++11")
     endif ()
-    add_definitions (${CSTD_FLAGS})
+    add_compile_options (${CSTD_FLAGS})
     if (CMAKE_COMPILER_IS_CLANG)
         # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
-        add_definitions ("-Wno-deprecated-register")
+        add_compile_options ("-Wno-deprecated-register")
     endif ()
 endif ()
 
@@ -233,16 +233,16 @@ if (NOT USE_SIMD STREQUAL "")
                 # off by default except when we explicitly use madd. At some
                 # future time, we should look at this again carefully and
                 # see if we want to use it more widely by ffp-contract=fast.
-                add_definitions ("-ffp-contract=off")
+                add_compile_options ("-ffp-contract=off")
             endif ()
         endforeach()
     endif ()
-    add_definitions (${SIMD_COMPILE_FLAGS})
+    add_compile_options (${SIMD_COMPILE_FLAGS})
 endif ()
 
 
 if (USE_fPIC)
-    add_definitions ("-fPIC")
+    add_compile_options ("-fPIC")
 endif ()
 
 
@@ -273,7 +273,8 @@ cmake_pop_check_state ()
 # Code coverage options
 if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for code coverage analysis")
-    add_definitions ("-ftest-coverage -fprofile-arcs -O0 -D${PROJ_NAME}_CODE_COVERAGE=1")
+    add_compile_options ("-ftest-coverage -fprofile-arcs -O0")
+    add_definitions ("-D${PROJ_NAME}_CODE_COVERAGE=1")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
     set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
     set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
@@ -285,17 +286,17 @@ if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     string (REPLACE "," ";" SANITIZE_FEATURE_LIST ${SANITIZE})
     foreach (feature ${SANITIZE_FEATURE_LIST})
         message (STATUS "  sanitize feature: ${feature}")
-        add_definitions (-fsanitize=${feature})
+        add_compile_options (-fsanitize=${feature})
         set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=${feature}")
         set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fsanitize=${feature}")
         set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=${feature}")
     endforeach()
-    add_definitions (-g -fno-omit-frame-pointer)
+    add_compile_options (-g -fno-omit-frame-pointer)
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         set (SANITIZE_ON_LINUX 1)
     endif ()
     if (CMAKE_COMPILER_IS_GNUCC AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-        add_definitions ("-fuse-ld=gold")
+        add_compile_options ("-fuse-ld=gold")
         set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
         set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fuse-ld=gold")
         set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=gold")
@@ -367,7 +368,7 @@ endif ()
 
 if (EXTRA_CPP_ARGS)
     message (STATUS "Extra C++ args: ${EXTRA_CPP_ARGS}")
-    add_definitions ("${EXTRA_CPP_ARGS}")
+    add_compile_options ("${EXTRA_CPP_ARGS}")
 endif()
 
 

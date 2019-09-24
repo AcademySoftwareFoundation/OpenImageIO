@@ -36,7 +36,6 @@ else()
         ${CMAKE_CURRENT_SOURCE_DIR}/../../R3DSDKv*
         ${CMAKE_CURRENT_SOURCE_DIR}/../../../R3DSDKv*
         )
-    message("  in " ${R3DSDK_PATHS})
     find_path(R3DSDK_ROOT Include/R3DSDK.h
               PATHS ${R3DSDK_PATHS}
              )
@@ -48,7 +47,7 @@ find_library(R3DSDK_LIBRARY NAMES ${R3DSDK_LIB_NAME}
                    ${R3DSDK_ROOT}/Lib/win64/
              NO_DEFAULT_PATH
             )
-                   
+
 # handle the QUIETLY and REQUIRED arguments and set R3DSDK_FOUND to TRUE if
 # all listed variables are TRUE
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(R3DSDK DEFAULT_MSG R3DSDK_LIBRARY R3DSDKK_INCLUDE_DIR)
@@ -64,5 +63,4 @@ if(R3DSDK_FOUND)
         set(R3DSDK_RUNTIME_LIBRARIES ${R3DSDK_ROOT}/Redistributable/win)
     endif()
 endif()
-message("Runtime libs: " ${R3DSDK_RUNTIME_LIBRARIES})
 mark_as_advanced(R3DSDK_LIBRARY R3DSDK_INCLUDE_DIR)

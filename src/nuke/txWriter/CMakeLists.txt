@@ -1,5 +1,4 @@
-include_directories (${NUKE_INCLUDE_DIRS})
-link_directories (${NUKE_LIBRARY_DIRS})
+include_directories (${NUKE_INCLUDES})
 
 # Ignore Nuke 10's use of deprecated auto_ptr
 if (NOT MSVC)
@@ -9,8 +8,7 @@ endif ()
 add_library (txWriter SHARED
     txWriter.cpp)
 
-target_link_libraries (txWriter
-    DDImage OpenImageIO)
+target_link_libraries (txWriter ${NUKE_LIBRARIES} OpenImageIO)
 
 if (WIN32)
     add_definitions (/DFN_OS_WINDOWS /DUSE_GLEW)
@@ -19,8 +17,7 @@ if (WIN32)
         COMPILE_FLAGS "/wd4251 /W3 /O2 /MD /GL /GR /GF"
         LINK_FLAGS "/machine:x64 /SUBSYSTEM:WINDOWS /dll")
 elseif (APPLE)
-    target_link_libraries (txWriter
-        GLEW)
+    target_link_libraries (txWriter GLEW)
     add_definitions (-DUSE_GLEW)
     set_target_properties (txWriter PROPERTIES
         PREFIX ""

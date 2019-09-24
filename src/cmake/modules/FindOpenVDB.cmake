@@ -4,7 +4,7 @@
 #  OPENVDB_INCLUDE_DIRS, where to find openvdb.h, Set when
 #                            OPENVDB_INCLUDE_DIR is found.
 #  OPENVDB_LIBRARIES, libraries to link against to use OPENVDB.
-#  OPENVDB_ROOT_DIR, The base directory to search for OPENVDB.
+#  OpenVDB_ROOT, The base directory to search for OPENVDB.
 #                        This can also be an environment variable.
 #  OPENVDB_FOUND, If false, do not try to use OPENVDB.
 #
@@ -22,13 +22,9 @@
 # See the License for more information.
 #=============================================================================
 
-# If OPENVDB_ROOT_DIR was defined in the environment, use it.
-IF(NOT OPENVDB_ROOT_DIR AND NOT $ENV{OPENVDB_ROOT_DIR} STREQUAL "")
-  SET(OPENVDB_ROOT_DIR $ENV{OPENVDB_ROOT_DIR})
-ENDIF()
-
 SET(_openvdb_SEARCH_DIRS
-  ${OPENVDB_ROOT_DIR}
+  ${OpenVDB_ROOT}
+  ENV OpenVDB_ROOT
   /usr/local
   /sw # Fink
   /opt/local # DarwinPorts
@@ -56,7 +52,7 @@ if (OPENVDB_INCLUDE_DIR)
 endif ()
 
 LIST(INSERT oiio_vdblib_search 0 lib)
-IF (DEBUGMODE)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   LIST(INSERT oiio_vdblib_search 0 lib/debug)
 ENDIF ()
 

@@ -119,37 +119,24 @@ endif ()
 target_link_libraries (OpenImageIO
                        ${SANITIZE_LIBRARIES}
                        ${format_plugin_libs} # Add all the target link libraries from the plugins
+                       ${OPENCOLORIO_LIBRARIES}
                        ${Boost_LIBRARIES}
                        ${CMAKE_DL_LIBS})
 
-include_directories (${ROBINMAP_INCLUDE_DIR})
+include_directories (${ROBINMAP_INCLUDES})
 
-# Include OpenColorIO if using it
-if (USE_OCIO AND OCIO_FOUND)
-    if (VERBOSE)
-        message (STATUS "Linking OpenColorIO ${OCIO_LIBRARIES}")
-    endif ()
-    target_link_libraries (OpenImageIO ${OCIO_LIBRARIES})
-endif ()
+target_include_directories (OpenImageIO PRIVATE ${OPENCOLORIO_INCLUDES})
 
 # Include OpenCV if using it
 if (OpenCV_FOUND)
-    include_directories (${OpenCV_INCLUDE_DIR})
-    target_link_libraries (OpenImageIO ${OpenCV_LIBS})
+    include_directories (${OpenCV_INCLUDES})
+    target_link_libraries (OpenImageIO ${OpenCV_LIBRARIES})
 endif ()
 
 # Include Freetype if using it
 if (FREETYPE_FOUND)
     include_directories (${FREETYPE_INCLUDE_DIRS})
     target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES} ${BZIP2_LIBRARIES})
-endif ()
-
-# Include GDCM if using it
-if (GDCM_FOUND)
-    include_directories (${GDCM_INCLUDE_DIRS})
-    target_link_libraries (OpenImageIO ${GDCM_LIBRARIES})
-    # set_property(SOURCE dicominput.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-macro-redefined ")
-    set_property(SOURCE ../dicom.imageio/dicominput.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-macro-redefined ")
 endif ()
 
 
@@ -171,9 +158,10 @@ elseif(MINGW)
     target_link_libraries (OpenImageIO psapi ws2_32)
 endif ()
 
-if (VISIBILITY_MAP_FILE)
-    add_dependencies (OpenImageIO "${VISIBILITY_MAP_FILE}")
-endif ()
+# FIXME: Doesn't work with cmake 3.12? Do we even need this?
+# if (VISIBILITY_MAP_FILE)
+#     add_dependencies (OpenImageIO "${VISIBILITY_MAP_FILE}")
+# endif ()
 
 if (USE_EXTERNAL_PUGIXML)
     target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
@@ -193,14 +181,14 @@ set_target_properties(OpenImageIO
                          OUTPUT_NAME OpenImageIO${OIIO_LIBNAME_SUFFIX}
                      )
 if (VISIBILITY_COMMAND)
-    set_target_properties (OpenImageIO
-                           PROPERTIES
-                           LINK_FLAGS "${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}")
+    set_property (TARGET OpenImageIO
+                  APPEND PROPERTY
+                  LINK_FLAGS ${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND})
 endif ()
 
 # For consistency with the linux SpComp2s, create Mac OS X SpComp2s
 # with a .so suffix instead of a .dylib suffix.
-if(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
+if (DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
   if (VERBOSE)
       message(STATUS "Setting SUFFIX to: ${OVERRIDE_SHARED_LIBRARY_SUFFIX}")
   endif ()
@@ -208,7 +196,7 @@ if(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
                            PROPERTIES
                            SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX}
                        )
-endif(DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
+endif ()
 
 if (EXTRA_DSO_LINK_ARGS)
     set_target_properties (OpenImageIO PROPERTIES LINK_FLAGS ${EXTRA_DSO_LINK_ARGS})
