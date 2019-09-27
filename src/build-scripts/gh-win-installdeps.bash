@@ -48,8 +48,8 @@ EXR_BUILD_TYPE=$CMAKE_BUILD_TYPE
 EXRINSTALLDIR=$DEP_DIR
 EXRBRANCH=v2.4.0
 source src/build-scripts/build_openexr.bash
-#export OpenEXR_ROOT=$OPENEXR_ROOT_DIR
-#export OpenEXR_ROOT=$OPENEXR_ROOT_DIR
+#export OpenEXR_ROOT=$OPENEXR_ROOT
+#export OpenEXR_ROOT=$OPENEXR_ROOT
 export PATH="$EXRINSTALLDIR/bin:$EXRINSTALLDIR/lib:$PATH"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PATH
 # the above line is admittedly sketchy
@@ -101,7 +101,7 @@ ls /c/hostedtoolcache/windows/Python/3.6.8/x64
 
 
 # source src/build-scripts/build_openexr.bash
-# export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$ILMBASE_ROOT_DIR;$OPENEXR_ROOT_DIR"
+# export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$ILMBASE_ROOT;$OPENEXR_ROOT"
 # source src/build-scripts/build_ocio.bash
 
 

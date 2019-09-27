@@ -737,6 +737,13 @@ resolve_font(int fontsize, string_view font_, std::string& result)
         font_search_dirs.emplace_back("/opt/local/share/fonts");
         font_search_dirs.emplace_back("/opt/local/share/fonts/OpenImageIO");
         // Try $OPENIMAGEIO_ROOT_DIR/fonts
+        string_view OpenImageIOrootdir = Sysutil::getenv("OpenImageIO_ROOT");
+        if (OpenImageIOrootdir.size()) {
+            font_search_dirs.push_back(std::string(OpenImageIOrootdir)
+                                       + "/fonts");
+            font_search_dirs.push_back(std::string(OpenImageIOrootdir)
+                                       + "/share/fonts/OpenImageIO");
+        }
         string_view oiiorootdir = Sysutil::getenv("OPENIMAGEIO_ROOT_DIR");
         if (oiiorootdir.size()) {
             font_search_dirs.push_back(std::string(oiiorootdir) + "/fonts");

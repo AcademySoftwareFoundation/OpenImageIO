@@ -37,5 +37,6 @@ ls -R ${OCIOINSTALLDIR}
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
+export OpenColorIO_ROOT=$OCIOINSTALLDIR
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OCIOINSTALLDIR}/lib
 

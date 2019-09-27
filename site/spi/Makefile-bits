@@ -229,7 +229,7 @@ ifeq (${SP_OS}, rhel7)
 
     # Set our preferred OpenEXR path, but allow env variable to override
     # with custom/test version.
-    ifeq (${OPENEXR_ROOT_DIR},)
+    ifeq (${OpenEXR_ROOT},)
         MY_CMAKE_FLAGS += \
             -DOPENEXR_INCLUDE_DIR=/usr/include/OpenEXR2 \
             -DOPENEXR_LIBRARY_DIR=/usr/lib64/OpenEXR2
@@ -243,26 +243,26 @@ ifeq (${SP_OS}, rhel7)
     NUKE_VERSION ?= 11.2v3
     SPCOMP2_FULLBOOST_SUFFIX = ${SP_OS}-${SPCOMP2_COMPILER}-boost${shell echo ${BOOSTVERSSP} | sed "s/\\.//"}
     # $(info SPCOMP2_FULLBOOST_SUFFIX ${SPCOMP2_FULLBOOST_SUFFIX})
-    OCIO_PATH ?= ${SPCOMP2_ROOT}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
+    OpenColorIO_ROOT ?= ${SPCOMP2_ROOT}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
     ifneq (${OIIO_SPCOMP2},1)
         # Anybody remember why we needed Field3d disabled for SpComp2?
-        FIELD3D_HOME ?= ${SPCOMP2_ROOT}/Field3D/${SPCOMP2_FULLBOOST_SUFFIX}/v412
+        Field3D_ROOT ?= ${SPCOMP2_ROOT}/Field3D/${SPCOMP2_FULLBOOST_SUFFIX}/v412
     endif
-    OPENVDB_ROOT_DIR ?= ${SPCOMP2_ROOT}/openvdb/${SPCOMP2_FULLBOOST_SUFFIX}/${OPENVDB_SPCOMP2_VERSION}
-    TBB_ROOT_DIR ?= /net/apps/rhel7/intel/tbb
+    OpenVDB_ROOT ?= ${SPCOMP2_ROOT}/openvdb/${SPCOMP2_FULLBOOST_SUFFIX}/${OPENVDB_SPCOMP2_VERSION}
+    TBB_ROOT ?= /net/apps/rhel7/intel/tbb
     TBB_LIBRARY ?= /net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7
     MY_CMAKE_FLAGS += \
-        -DOCIO_PATH=${OCIO_PATH} \
-        -DFIELD3D_HOME=${FIELD3D_HOME} \
-        -DOPENVDB_ROOT_DIR=${OPENVDB_ROOT_DIR} \
-        -DTBB_ROOT_DIR=${TBB_ROOT_DIR} \
+        -DOpenColorIO_ROOT=${OpenColorIO_ROOT} \
+        -DField3D_ROOT=${Field3D_ROOT} \
+        -DOpenVDB_ROOT=${OpenVDB_ROOT} \
+        -DTBB_ROOT=${TBB_ROOT} \
         -DTBB_LIBRARY=${TBB_LIBRARY} \
         -DHDF5_CUSTOM=1 \
         -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
         -DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION} \
         -DLIBRAW_INCLUDEDIR_HINT=/usr/include/libraw-0.18.11 \
         -DLIBRAW_LIBDIR_HINT=/usr/lib64/libraw-0.18.11 \
-        -DLIBHEIF_PATH=/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2 \
+        -DLibheif_ROOT=/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2 \
         -DFFMPEG_INCLUDE_DIR=/usr/include/ffmpegroot/ffmpeg34 \
         -DFFMPEG_LIBRARIES="/usr/lib64/ffmpegroot/ffmpeg345/libavcodec.so;/usr/lib64/ffmpegroot/ffmpeg345/libavformat.so;/usr/lib64/ffmpegroot/ffmpeg345/libavutil.so;/usr/lib64/ffmpegroot/ffmpeg345/libswscale.so;" \
         -DUSE_OPENCV=0 \
@@ -378,8 +378,8 @@ spcomp2_install_local: SPCOMP2_INSTALL_ROOT = $(SPCOMP2_LOCAL_PATH)
 spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
 spcomp2_install_local: spcomp2_install
 
-SPCOMP2_RPATH_OPT ?= ${OCIO_PATH}/lib:${FIELD3D_HOME}/lib:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
-SPCOMP2_RPATH_DEBUG ?= ${OCIO_PATH}/lib/debug:${FIELD3D_HOME}/lib/debug:/usr/lib64/libraw-0.18.11:${OPENVDB_ROOT_DIR}/lib/debug:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
+SPCOMP2_RPATH_OPT ?= ${OpenColorIO_ROOT}/lib:${Field3D_ROOT}/lib:/usr/lib64/libraw-0.18.11:${OpenVDB_ROOT}/lib:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
+SPCOMP2_RPATH_DEBUG ?= ${OpenColorIO_ROOT}/lib/debug:${Field3D_ROOT}/lib/debug:/usr/lib64/libraw-0.18.11:${OpenVDB_ROOT}/lib/debug:/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
 PYSPCOMP2_RPATH_OPT ?= ${SPCOMP2_RPATH_OPT}:${OIIO_SPCOMP2_PATH}/lib:${PYTHON_LIBRARY_DIR}
 PYSPCOMP2_RPATH_DEBUG ?= ${SPCOMP2_RPATH_DEBUG}:${OIIO_SPCOMP2_PATH}/lib/debug:${PYTHON_LIBRARY_DIR}
 

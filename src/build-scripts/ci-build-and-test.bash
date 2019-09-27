@@ -34,7 +34,7 @@ if [[ "$ARCH" == "windows64" ]] ; then
     echo "post-build PATH = $PATH"
     uname -a
 else
-    make $MAKEFLAGS VERBOSE=1 $BUILD_FLAGS cmakesetup
+    make $MAKEFLAGS VERBOSE=1 $BUILD_FLAGS config
     make $MAKEFLAGS $PAR_MAKEFLAGS $BUILD_FLAGS $BUILDTARGET
 fi
 

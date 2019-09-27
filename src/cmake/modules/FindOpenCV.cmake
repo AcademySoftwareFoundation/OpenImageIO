@@ -2,31 +2,24 @@
 # Find the OpenCV library
 # This module defines
 #  OpenCV_VERSION, the version string of OpenCV
-#  OpenCV_INCLUDE_DIR, where to find header files
+#  OpenCV_INCLUDES, where to find header files
 #  OpenCV_LIBRARIES, the libraries needed to use OpenCV
 #  OpenCV_DEFINITIONS, the definitions needed to use OpenCV
-
-FIND_PACKAGE(PkgConfig)
-
-IF(PKG_CONFIG_FOUND AND NOT LIBRAW_PATH)
-   PKG_CHECK_MODULES(PC_LIBRAW QUIET libraw)
-   SET(LibRaw_DEFINITIONS ${PC_LIBRAW_CFLAGS_OTHER})
-
-   PKG_CHECK_MODULES(PC_LIBRAW_R QUIET libraw_r)
-   SET(LibRaw_r_DEFINITIONS ${PC_LIBRAW_R_CFLAGS_OTHER})   
-ENDIF()
+#
+# You can provide a location hint with OpenCV_ROOT (either a defined CMake
+# variable or an environment variable).
 
 find_path (OpenCV_INCLUDE_DIR
            NAMES opencv4/opencv2/opencv.hpp opencv2/opencv.hpp
+           HINTS
+               "${OpenCV_ROOT}/include"
+               "${OpenCV_ROOT}/include/opencv4"
+               "$ENV{OpenCV_ROOT}/include"
            PATHS
-           "${PROJECT_SOURCE_DIR}/include"
-           "${OpenCV_DIR}/include"
-           "${OpenCV_DIR}/include/opencv4"
-           "$ENV{OpenCV_DIR}/include"
-           /usr/local/include
-           /opt/local/include
-           /usr/local/opt/opencv4/include
-           /usr/local/opt/opencv3/include
+               /usr/local/include
+               /opt/local/include
+               /usr/local/opt/opencv4/include
+               /usr/local/opt/opencv3/include
            PATH_SUFFIXES opencv4
            )
 
@@ -51,12 +44,9 @@ if (EXISTS "${_ocv_version_file}")
     else ()
         set (OpenCV_VERSION "${CV_VERSION_MAJOR}.${CV_VERSION_MINOR}.${CV_VERSION_REVISION}")
     endif ()
-    message (STATUS "Found OpenCV ${OpenCV_VERSION} include in ${OpenCV_INCLUDE_DIR}")
 endif ()
 
 set (libdirs "${PROJECT_SOURCE_DIR}/lib"
-             "${OpenCV_DIR}/lib"
-             "$ENV{OpenCV_DIR}/lib"
              "${_ocv_include_root}/../lib"
              /usr/local/lib
              /opt/local/lib
@@ -74,30 +64,22 @@ endif ()
 foreach (component ${opencv_components})
     find_library (${component}_lib
                   NAMES ${component}
-                  PATHS ${libdirs}
-                  NO_DEFAULT_PATH)
-    # If that didn't work, try again with default paths
-    find_library (${component}_lib
-                  NAMES ${component}
-                  PATHS ${libdirs})
+                  HINTS ${libdirs})
     if (${component}_lib)
         set (OpenCV_LIBS ${OpenCV_LIBS} ${${component}_lib})
     endif ()
 endforeach ()
-
-if (OpenCV_INCLUDE_DIR AND OpenCV_LIBS)
-    set (OpenCV_FOUND TRUE)
-    message (STATUS "Found OpenCV libs: ${OpenCV_LIBS}")
-endif ()
 
 include (FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS (OpenCV
                 REQUIRED_VARS OpenCV_LIBS OpenCV_INCLUDE_DIR OpenCV_VERSION
                 VERSION_VAR   OpenCV_VERSION )
 
-MARK_AS_ADVANCED (OpenCV_VERSION
-                  OpenCV_INCLUDE_DIR
-                  OpenCV_LIBS
-                  OpenCV_DEFINITIONS )
+if (OPENCV_FOUND)
+    set (OpenCV_INCLUDES ${OpenCV_INCLUDE_DIR})
+    set (OpenCV_LIBRARIES ${OpenCV_LIBS})
+endif ()
+
+MARK_AS_ADVANCED (OpenCV_INCLUDE_DIR OpenCV_LIBS)
 unset (_ocv_version_file)
 unset (_ocv_include_root)

@@ -95,9 +95,9 @@ ls -R ${EXRINSTALLDIR}
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
-export ILMBASE_ROOT_DIR=$EXRINSTALLDIR
-export OPENEXR_ROOT_DIR=$EXRINSTALLDIR
+export ILMBASE_ROOT=$EXRINSTALLDIR
+export OPENEXR_ROOT=$EXRINSTALLDIR
 export ILMBASE_LIBRARY_DIR=$EXRINSTALLDIR/lib
 export OPENEXR_LIBRARY_DIR=$EXRINSTALLDIR/lib
-export LD_LIBRARY_PATH=$OPENEXR_ROOT_DIR/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$OPENEXR_ROOT/lib:$LD_LIBRARY_PATH
 

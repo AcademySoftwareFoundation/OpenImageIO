@@ -12,9 +12,9 @@
 # Output variables:
 #  NUKE_FOUND
 #  NUKE_EXECUTABLE
-#  NUKE_INCLUDE_DIRS
-#  NUKE_LIBRARY_DIRS
+#  NUKE_INCLUDES
 #  NUKE_LIBRARIES
+#  NUKE_LIBRARY_DIRS
 #  NUKE_DDIMAGE_LIBRARY
 #  NUKE_VERSION_MAJOR
 #  NUKE_VERSION_MINOR
@@ -130,12 +130,12 @@ find_library(NUKE_DDIMAGE_LIBRARY DDImage
 if(NUKE_DDIMAGE_LIBRARY)
     get_filename_component(NUKE_LIBRARY_DIRS ${NUKE_DDIMAGE_LIBRARY} PATH)
 
-    find_path(NUKE_INCLUDE_DIRS DDImage/Op.h "${NUKE_LIBRARY_DIRS}/include")
+    find_path(NUKE_INCLUDE_DIR DDImage/Op.h "${NUKE_LIBRARY_DIRS}/include")
 
     # Pull version information from header
     # (We could pull the DDImage path apart instead, but this avoids dealing
     # with platform-specific naming.)
-    file(STRINGS "${NUKE_INCLUDE_DIRS}/DDImage/ddImageVersionNumbers.h" _nuke_DDIMAGE_VERSION_H)
+    file(STRINGS "${NUKE_INCLUDE_DIR}/DDImage/ddImageVersionNumbers.h" _nuke_DDIMAGE_VERSION_H)
     string(REGEX REPLACE ".*#define kDDImageVersionMajorNum ([0-9]+).*" "\\1"
         NUKE_VERSION_MAJOR ${_nuke_DDIMAGE_VERSION_H})
     string(REGEX REPLACE ".*#define kDDImageVersionMinorNum ([0-9]+).*" "\\1"
@@ -156,4 +156,9 @@ endif()
 # Finalize search
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Nuke DEFAULT_MSG
-    NUKE_DDIMAGE_LIBRARY NUKE_INCLUDE_DIRS NUKE_LIBRARY_DIRS NUKE_EXECUTABLE)
+    NUKE_DDIMAGE_LIBRARY NUKE_INCLUDE_DIR NUKE_LIBRARY_DIRS NUKE_EXECUTABLE)
+
+if (NUKE_FOUND)
+    set (NUKE_INCLUDES ${NUKE_INCLUDE_DIR})
+    set (NUKE_LIBRARIES ${NUKE_DDIMAGE_LIBRARY})
+endif ()

@@ -127,7 +127,9 @@ find_package_handle_standard_args(PTex
 
 if (PTEX_FOUND)
     set(PTEX_LIBRARIES ${PTEX_LIBRARY})
-endif(PTEX_FOUND)
+else ()
+    set (PTEX_INCLUDE_DIR "")
+endif()
 
 mark_as_advanced(
   PTEX_INCLUDE_DIR

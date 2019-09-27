@@ -2,7 +2,7 @@
 #
 # This module will set
 #   OPENEXR_FOUND          true, if found
-#   OPENEXR_INCLUDE_DIR    directory where headers are found
+#   OPENEXR_INCLUDES       directory where headers are found
 #   OPENEXR_LIBRARIES      libraries for OpenEXR + IlmBase
 #   ILMBASE_LIBRARIES      libraries just IlmBase
 #   OPENEXR_VERSION        OpenEXR version (accurate for >= 2.0.0,
@@ -25,23 +25,23 @@ endif ()
 # Attempt to find OpenEXR with pkgconfig
 find_package(PkgConfig)
 if (PKG_CONFIG_FOUND)
-    if (NOT ILMBASE_ROOT_DIR)
+    if (NOT Ilmbase_ROOT AND NOT ILMBASE_ROOT)
         pkg_check_modules(_ILMBASE QUIET IlmBase>=2.0.0)
     endif ()
-    if (NOT OPENEXR_ROOT_DIR)
+    if (NOT OpenEXR_ROOT AND NOT OPENEXR_ROOT)
         pkg_check_modules(_OPENEXR QUIET OpenEXR>=2.0.0)
     endif ()
 endif (PKG_CONFIG_FOUND)
 
 # List of likely places to find the headers -- note priority override of
-# ${OPENEXR_ROOT_DIR}/include.
+# ${OPENEXR_ROOT}/include.
 # ILMBASE is needed in case ilmbase an openexr are installed in separate
 # directories, like NixOS does
 set (GENERIC_INCLUDE_PATHS
-    ${OPENEXR_ROOT_DIR}/include
-    $ENV{OPENEXR_ROOT_DIR}/include
-    ${ILMBASE_ROOT_DIR}/include
-    $ENV{ILMBASE_ROOT_DIR}/include
+    ${OPENEXR_ROOT}/include
+    $ENV{OPENEXR_ROOT}/include
+    ${ILMBASE_ROOT}/include
+    $ENV{ILMBASE_ROOT}/include
     ${_ILMBASE_INCLUDEDIR}
     ${_OPENEXR_INCLUDEDIR}
     /usr/local/include
@@ -53,10 +53,12 @@ set (GENERIC_INCLUDE_PATHS
 # Find the include file locations.
 find_path (ILMBASE_INCLUDE_PATH OpenEXR/IlmBaseConfig.h
            HINTS ${ILMBASE_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR}
-                 ${GENERIC_INCLUDE_PATHS} )
+                 ${GENERIC_INCLUDE_PATHS}
+           PATH_SUFFIXES include )
 find_path (OPENEXR_INCLUDE_PATH OpenEXR/OpenEXRConfig.h
            HINTS ${OPENEXR_INCLUDE_DIR}
-                 ${GENERIC_INCLUDE_PATHS} )
+                 ${GENERIC_INCLUDE_PATHS}
+           PATH_SUFFIXES include )
 
 # Try to figure out version number
 if (DEFINED _OPENEXR_VERSION AND NOT "${_OPENEXR_VERSION}" STREQUAL "")
@@ -80,10 +82,10 @@ endif ()
 
 
 # List of likely places to find the libraries -- note priority override of
-# ${OPENEXR_ROOT_DIR}/lib.
+# ${OPENEXR_ROOT}/lib.
 set (GENERIC_LIBRARY_PATHS
-    ${OPENEXR_ROOT_DIR}/lib
-    ${ILMBASE_ROOT_DIR}/lib
+    ${OPENEXR_ROOT}/lib
+    ${ILMBASE_ROOT}/lib
     ${OPENEXR_INCLUDE_PATH}/../lib
     ${ILMBASE_INCLUDE_PATH}/../lib
     ${_ILMBASE_LIBDIR}
@@ -123,18 +125,6 @@ foreach (COMPONENT ${_openexr_components})
                         ${GENERIC_LIBRARY_PATHS} )
 endforeach ()
 
-# Set the FOUND, INCLUDE_DIR, and LIBRARIES variables.
-if (ILMBASE_INCLUDE_PATH AND OPENEXR_INCLUDE_PATH AND
-      OPENEXR_IMATH_LIBRARY AND OPENEXR_ILMIMF_LIBRARY AND
-      OPENEXR_IEX_LIBRARY AND OPENEXR_HALF_LIBRARY)
-    set (OPENEXR_FOUND TRUE)
-    set (ILMBASE_FOUND TRUE)
-    set (ILMBASE_INCLUDE_DIR ${ILMBASE_INCLUDE_PATH} CACHE STRING "The include paths needed to use IlmBase")
-    set (OPENEXR_INCLUDE_DIR ${OPENEXR_INCLUDE_PATH} CACHE STRING "The include paths needed to use OpenEXR")
-    set (ILMBASE_LIBRARIES ${OPENEXR_IMATH_LIBRARY} ${OPENEXR_IEX_LIBRARY} ${OPENEXR_HALF_LIBRARY} ${OPENEXR_ILMTHREAD_LIBRARY} ${ILMBASE_PTHREADS} CACHE STRING "The libraries needed to use IlmBase")
-    set (OPENEXR_LIBRARIES ${OPENEXR_ILMIMF_LIBRARY} ${ILMBASE_LIBRARIES} ${ZLIB_LIBRARIES} CACHE STRING "The libraries needed to use OpenEXR")
-endif ()
-
 find_package_handle_standard_args (OpenEXR
     REQUIRED_VARS ILMBASE_INCLUDE_PATH OPENEXR_INCLUDE_PATH
                   OPENEXR_IMATH_LIBRARY OPENEXR_ILMIMF_LIBRARY
@@ -142,11 +132,17 @@ find_package_handle_standard_args (OpenEXR
     VERSION_VAR   OPENEXR_VERSION
     )
 
-MARK_AS_ADVANCED(
-    ILMBASE_INCLUDE_DIR
-    OPENEXR_INCLUDE_DIR
-    ILMBASE_LIBRARIES
-    OPENEXR_LIBRARIES
+if (OPENEXR_FOUND)
+    set (ILMBASE_FOUND TRUE)
+    set (ILMBASE_INCLUDES ${ILMBASE_INCLUDE_PATH})
+    set (OPENEXR_INCLUDES ${OPENEXR_INCLUDE_PATH})
+    set (ILMBASE_INCLUDE_DIR ${ILMBASE_INCLUDE_PATH})
+    set (OPENEXR_INCLUDE_DIR ${OPENEXR_INCLUDE_PATH})
+    set (ILMBASE_LIBRARIES ${OPENEXR_IMATH_LIBRARY} ${OPENEXR_IEX_LIBRARY} ${OPENEXR_HALF_LIBRARY} ${OPENEXR_ILMTHREAD_LIBRARY} ${ILMBASE_PTHREADS} CACHE STRING "The libraries needed to use IlmBase")
+    set (OPENEXR_LIBRARIES ${OPENEXR_ILMIMF_LIBRARY} ${ILMBASE_LIBRARIES} ${ZLIB_LIBRARIES} CACHE STRING "The libraries needed to use OpenEXR")
+endif ()
+
+mark_as_advanced(
     OPENEXR_ILMIMF_LIBRARY
     OPENEXR_IMATH_LIBRARY
     OPENEXR_IEX_LIBRARY
