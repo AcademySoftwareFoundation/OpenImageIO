@@ -25,6 +25,15 @@ OIIO_NAMESPACE_BEGIN
 
 class ImageBuf;
 
+// Opaque type for the unique_ptr.
+class ImageBufImpl;
+class ImageBufImplBase {
+public:
+    virtual ~ImageBufImplBase() {}
+    void operator delete(void* todel) { ::operator delete(todel); }
+};
+
+
 
 /// Return pixel data window for this ImageSpec as a ROI.
 OIIO_API ROI
@@ -45,8 +54,6 @@ OIIO_API void
 set_roi_full(ImageSpec& spec, const ROI& newroi);
 
 
-
-class ImageBufImpl;  // Opaque pointer
 enum class InitializePixels { No = 0, Yes = 1 };
 
 
@@ -1396,10 +1403,13 @@ public:
 
 
 protected:
-    std::unique_ptr<ImageBufImpl> m_impl;  //< PIMPL idiom
+    std::unique_ptr<ImageBufImplBase> m_impl;  //< PIMPL idiom
 
-    ImageBufImpl* impl() { return m_impl.get(); }
-    const ImageBufImpl* impl() const { return m_impl.get(); }
+    ImageBufImpl* impl() { return (ImageBufImpl*)m_impl.get(); }
+    const ImageBufImpl* impl() const
+    {
+        return (const ImageBufImpl*)m_impl.get();
+    }
 
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
