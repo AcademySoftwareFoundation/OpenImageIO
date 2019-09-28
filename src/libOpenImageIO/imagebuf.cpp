@@ -77,7 +77,7 @@ set_roi_full(ImageSpec& spec, const ROI& newroi)
 
 // Expansion of the opaque type that hides all the ImageBuf implementation
 // detail.
-class ImageBufImpl {
+class ImageBufImpl : public ImageBufImplBase {
 public:
     ImageBufImpl(string_view filename, int subimage, int miplevel,
                  ImageCache* imagecache = NULL, const ImageSpec* spec = NULL,
@@ -408,7 +408,7 @@ ImageBufImpl::~ImageBufImpl()
 
 
 ImageBuf::ImageBuf()
-    : m_impl(new ImageBufImpl(std::string(), -1, -1, NULL))
+    : m_impl((ImageBufImplBase*)new ImageBufImpl(std::string(), -1, -1, NULL))
 {
 }
 
@@ -416,24 +416,25 @@ ImageBuf::ImageBuf()
 
 ImageBuf::ImageBuf(string_view filename, int subimage, int miplevel,
                    ImageCache* imagecache, const ImageSpec* config)
-    : m_impl(new ImageBufImpl(filename, subimage, miplevel, imagecache,
-                              NULL /*spec*/, NULL /*buffer*/, config))
+    : m_impl((ImageBufImplBase*)new ImageBufImpl(filename, subimage, miplevel,
+                                                 imagecache, NULL /*spec*/,
+                                                 NULL /*buffer*/, config))
 {
 }
 
 
 
 ImageBuf::ImageBuf(string_view filename, ImageCache* imagecache)
-    : m_impl(new ImageBufImpl(filename, 0, 0, imagecache))
+    : m_impl((ImageBufImplBase*)new ImageBufImpl(filename, 0, 0, imagecache))
 {
 }
 
 
 
 ImageBuf::ImageBuf(const ImageSpec& spec, InitializePixels zero)
-    : m_impl(new ImageBufImpl("", 0, 0, NULL, &spec))
+    : m_impl((ImageBufImplBase*)new ImageBufImpl("", 0, 0, NULL, &spec))
 {
-    m_impl->alloc(spec);
+    impl()->alloc(spec);
     if (zero == InitializePixels::Yes && !deep())
         ImageBufAlgo::zero(*this);
 }
@@ -442,9 +443,9 @@ ImageBuf::ImageBuf(const ImageSpec& spec, InitializePixels zero)
 
 ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec,
                    InitializePixels zero)
-    : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec))
+    : m_impl((ImageBufImplBase*)new ImageBufImpl(filename, 0, 0, NULL, &spec))
 {
-    m_impl->alloc(spec);
+    impl()->alloc(spec);
     if (zero == InitializePixels::Yes && !deep())
         ImageBufAlgo::zero(*this);
 }
@@ -452,21 +453,22 @@ ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec,
 
 
 ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec, void* buffer)
-    : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec, buffer))
+    : m_impl((ImageBufImplBase*)new ImageBufImpl(filename, 0, 0, NULL, &spec,
+                                                 buffer))
 {
 }
 
 
 
 ImageBuf::ImageBuf(const ImageSpec& spec, void* buffer)
-    : m_impl(new ImageBufImpl("", 0, 0, NULL, &spec, buffer))
+    : m_impl((ImageBufImplBase*)new ImageBufImpl("", 0, 0, NULL, &spec, buffer))
 {
 }
 
 
 
 ImageBuf::ImageBuf(const ImageBuf& src)
-    : m_impl(new ImageBufImpl(*src.impl()))
+    : m_impl((ImageBufImplBase*)new ImageBufImpl(*src.impl()))
 {
 }
 
@@ -1160,8 +1162,9 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
     // backed IB, be sure we have completely read the file into memory so we
     // don't clobber the file before we've fully read it.
     if (filename == name() && storage() == IMAGECACHE) {
-        m_impl->read(subimage(), miplevel(), 0, -1, true /*force*/,
-                     spec().format, nullptr, nullptr);
+        const_cast<ImageBufImpl*>(impl())->read(subimage(), miplevel(), 0, -1,
+                                                true /*force*/, spec().format,
+                                                nullptr, nullptr);
         if (storage() != LOCALBUFFER) {
             error("ImageBuf overwriting %s but could not force read", name());
             return false;
@@ -1417,7 +1420,7 @@ ImageBuf::localpixels() const
 stride_t
 ImageBuf::pixel_stride() const
 {
-    return (stride_t)m_impl->m_pixel_bytes;
+    return (stride_t)impl()->m_pixel_bytes;
 }
 
 
@@ -1425,7 +1428,7 @@ ImageBuf::pixel_stride() const
 stride_t
 ImageBuf::scanline_stride() const
 {
-    return (stride_t)m_impl->m_scanline_bytes;
+    return (stride_t)impl()->m_scanline_bytes;
 }
 
 
@@ -1433,7 +1436,7 @@ ImageBuf::scanline_stride() const
 stride_t
 ImageBuf::z_stride() const
 {
-    return (stride_t)m_impl->m_plane_bytes;
+    return (stride_t)impl()->m_plane_bytes;
 }
 
 
@@ -2426,7 +2429,7 @@ ImageBufImpl::do_wrap(int& x, int& y, int& z, ImageBuf::WrapMode wrap) const
 bool
 ImageBuf::do_wrap(int& x, int& y, int& z, WrapMode wrap) const
 {
-    return m_impl->do_wrap(x, y, z, wrap);
+    return impl()->do_wrap(x, y, z, wrap);
 }
 
 
