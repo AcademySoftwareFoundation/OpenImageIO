@@ -9,7 +9,7 @@ endif ()
 set (PYTHON_VERSION_FOUND ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
 
 if (NOT ${PYTHON_VERSION} EQUAL ${PYTHON_VERSION_FOUND} )
-    message (WARNING "The requested version ${PYTHON_VERSION} was not found.") 
+    message (WARNING "The requested version ${PYTHON_VERSION} was not found.")
     message (WARNING "Using ${PYTHON_VERSION_FOUND} instead.")
 endif ()
 
@@ -48,12 +48,15 @@ endif ()
 include_directories (${PYTHON_INCLUDE_PATH} ${PYBIND11_INCLUDES})
 
 add_library (${target_name} MODULE ${python_srcs})
+
+target_link_libraries (${target_name} PRIVATE OpenImageIO)
+
 if (APPLE)
-   target_link_libraries (${target_name} OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
    set_target_properties (${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
 else ()
-   target_link_libraries (${target_name} OpenImageIO ${SANITIZE_LIBRARIES} ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} ${CMAKE_DL_LIBS})
+   target_link_libraries (${target_name} PUBLIC ${PYTHON_LIBRARIES})
 endif ()
+
 
 if(NOT PYLIB_LIB_PREFIX)
     add_definitions("-DOIIO_PYMODULE_NAME=OpenImageIO${PYMODULE_SUFFIX}")

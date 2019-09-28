@@ -10,11 +10,10 @@ if (Qt5_FOUND AND OPENGL_FOUND)
         add_definitions(-DFORCE_OPENGL_1)
     endif()
     add_executable (iv ${iv_srcs})
+    target_link_libraries (iv PRIVATE OpenImageIO
+                                   Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL
+                                   ${OPENGL_LIBRARIES})
     set_target_properties (iv PROPERTIES FOLDER "Tools")
-    target_link_libraries (iv OpenImageIO
-                               Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL
-                               ${OPENGL_LIBRARIES}
-                               ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
     oiio_install_targets (iv)
 
 else ()

@@ -122,8 +122,8 @@ ifneq (${STOP_ON_WARNING},)
 MY_CMAKE_FLAGS += -DSTOP_ON_WARNING:BOOL=${STOP_ON_WARNING}
 endif
 
-ifneq (${BUILDSTATIC},)
-MY_CMAKE_FLAGS += -DBUILDSTATIC:BOOL=${BUILDSTATIC}
+ifneq (${BUILD_SHARED_LIBS},)
+MY_CMAKE_FLAGS += -DBUILD_SHARED_LIBS:BOOL=${BUILD_SHARED_LIBS}
 endif
 
 ifneq (${LINKSTATIC},)
@@ -388,7 +388,7 @@ help:
 	@echo "      SOVERSION=nn             Include the specifed major version number "
 	@echo "                                  in the shared object metadata"
 	@echo "      OIIO_LIBNAME_SUFFIX=name Optional name appended to library names"
-	@echo "      BUILDSTATIC=1            Build static library instead of shared"
+	@echo "      BUILD_SHARED_LIBS=0      Build static library instead of shared"
 	@echo "      LINKSTATIC=1             Link with static external libs when possible"
 	@echo "  Dependency hints:"
 	@echo "      For each dependeny Foo, defining USE_Foo=0 disables it, even"

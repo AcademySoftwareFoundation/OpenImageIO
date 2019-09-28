@@ -5,10 +5,9 @@ if (NOT MSVC)
     set_source_files_properties (txReader.cpp PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
 endif ()
 
-add_library (txReader SHARED
-    txReader.cpp)
+add_library (txReader MODULE txReader.cpp)
 
-target_link_libraries (txReader ${NUKE_LIBRARIES} OpenImageIO)
+target_link_libraries (txReader PUBLIC ${NUKE_LIBRARIES} OpenImageIO)
 
 if (WIN32)
     add_definitions (/DFN_OS_WINDOWS /DUSE_GLEW)
@@ -17,7 +16,7 @@ if (WIN32)
         COMPILE_FLAGS "/wd4251 /W3 /O2 /MD /GL /GR /GF"
         LINK_FLAGS "/machine:x64 /SUBSYSTEM:WINDOWS /dll")
 elseif (APPLE)
-    target_link_libraries (txReader GLEW)
+    target_link_libraries (txReader PRIVATE GLEW)
     add_definitions (-DUSE_GLEW)
     set_target_properties (txReader PROPERTIES
         PREFIX ""
@@ -26,8 +25,7 @@ elseif (APPLE)
 else ()
     add_definitions (-DUSE_GLEW)
     set_target_properties (txReader PROPERTIES
-        PREFIX ""
-        COMPILE_FLAGS "-fPIC -msse")
+        PREFIX "")
 endif ()
 
 oiio_install_targets (txReader)

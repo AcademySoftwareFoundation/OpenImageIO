@@ -88,6 +88,40 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
+
+  linux-sanitizer:
+    name: "Sanitizers"
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      #- uses: docker://aswfstaging/ci-base:2019
+      - name: all
+        if: github.event_name == 'pull_request' || contains(github.ref, 'san')
+        env:
+          CXX: g++-7
+          USE_CPP: 14
+          SANITIZE: address
+          USE_PYTHON: 0
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
+
+  linux-static:
+    name: "Linux static libs default: gcc7, cpp14, exr2.3"
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      #- uses: docker://aswfstaging/ci-base:2019
+      - name: all
+        env:
+          CXX: g++-7
+          USE_CPP: 14
+          BUILD_SHARED_LIBS: OFF
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
   clang-format:
     name: "clang-format format verification"
     runs-on: macOS-10.14

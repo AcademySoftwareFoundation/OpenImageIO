@@ -21,13 +21,11 @@ set (OIIO_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
 endif ()
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set (DEBUGMODE ON)
-endif ()
 
 message (STATUS "Project source dir  = ${PROJECT_SOURCE_DIR}")
 message (STATUS "Project build dir   = ${CMAKE_BINARY_DIR}")
 message (STATUS "Project install dir = ${CMAKE_INSTALL_PREFIX}")
+message (STATUS "Configuration types = ${CMAKE_CONFIGURATION_TYPES}")
 message (STATUS "Build type          = ${CMAKE_BUILD_TYPE}")
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
@@ -47,9 +45,11 @@ list(APPEND CMAKE_MODULE_PATH
      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
      "${PROJECT_SOURCE_DIR}/src/cmake")
 
+# All the C++ and compiler related options and adjustments live here
+include (compiler)
+
+# Helpful macros for our project
 include (oiio_macros)
-include (platform)
-include (compiler)   # All the C++ and compiler related options live here
 
 
 option (VERBOSE "Print lots of messages while compiling" OFF)
@@ -101,7 +101,9 @@ endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
 
+# All the dependency finding and options are here
 include (externalpackages)
+
 include (install)
 
 include_directories (
@@ -109,7 +111,6 @@ include_directories (
     "${CMAKE_SOURCE_DIR}/src/include"
     "${CMAKE_BINARY_DIR}/include"
   )
-
 
 
 # We want CTest for testing
@@ -260,12 +261,12 @@ oiio_add_tests (gpsread
                 texture-missing texture-res texture-maxres
                 texture-udim texture-udim2
                 IMAGEDIR oiio-images
-              )
+               )
 
 #   Tests that require openexr-images:
 oiio_add_tests (oiiotool-deep
                 IMAGEDIR openexr-images
-              )
+               )
 
 #   Remaining freestanding tests:
 oiio_add_tests (nonwhole-tiles
@@ -277,7 +278,7 @@ oiio_add_tests (nonwhole-tiles
                 jpeg-corrupt
                 null psd-colormodes
                 rational
-              )
+               )
 
 # Travis + old libjpeg seems to not catch an error in this test, skip it
 # for that case.
@@ -293,16 +294,14 @@ endif()
 # We also exclude these tests if this is a sanitizer build on Linux,
 # because the Python interpreter itself won't be linked with the right asan
 # libraries to run correctly.
-if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
-    if (NOT SANITIZE_ON_LINUX)
-        oiio_add_tests (
-                python-typedesc python-paramlist
-                python-imagespec python-roi python-deep python-colorconfig
-                python-imageinput python-imageoutput
-                python-imagebuf python-imagebufalgo
-                IMAGEDIR oiio-images
+if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE_ON_LINUX)
+    oiio_add_tests (
+            python-typedesc python-paramlist
+            python-imagespec python-roi python-deep python-colorconfig
+            python-imageinput python-imageoutput
+            python-imagebuf python-imagebufalgo
+            IMAGEDIR oiio-images
             )
-    endif ()
 endif ()
 
 # Add tests that require OCIO
@@ -313,15 +312,15 @@ endif ()
 # Advanced tests that are done by hand and for releases:
 # FIXME -- at some point, try to fix these or provide new ref images
 if (NOT DEFINED ENV{TRAVIS})
-oiio_add_tests (
-                texture-half texture-uint16
-                texture-interp-bilinear
-                texture-interp-closest
-                texture-mip-onelevel
-               )
+    oiio_add_tests (
+                    texture-half texture-uint16
+                    texture-interp-bilinear
+                    texture-interp-closest
+                    texture-mip-onelevel
+                   )
 endif ()
 if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
-oiio_add_tests (texture-icwrite )
+    oiio_add_tests (texture-icwrite)
 endif ()
 
 # List testsuites which need special external reference images from the web
@@ -403,7 +402,7 @@ set (CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set (CPACK_PACKAGE_VENDOR ${PROJECT_AUTHORS})
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities.")
 set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/src/doc/Description.txt")
-set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}-${platform})
+set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR})
 #SET (CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_SOURCE_DIR}")
 file (MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/cpack")
 file (COPY "${PROJECT_SOURCE_DIR}/LICENSE.md" DESTINATION "${CMAKE_BINARY_DIR}/cpack")
