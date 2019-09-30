@@ -29,7 +29,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * Compilers: gcc 4.8.2 - 9.1, clang 3.3 - 9.0, **MSVS 2015 - 2019**,
    icc version 13 or higher
  * Boost >= 1.53 (tested up through 1.71)
- * CMake >= 3.2.2 (tested up through 3.15)
+ * **CMake >= 3.12** (tested up through 3.15)
  * OpenEXR >= 2.0 (recommended: 2.2 or 2.3)
  * libTIFF >= 3.9 (recommended: 4.0+)
 
