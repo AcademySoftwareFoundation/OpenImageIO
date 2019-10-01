@@ -1,6 +1,9 @@
-Release 2.0.10 (Sep???, 2019) -- compared to 2.0.10
+Release 2.0.10 (1 Oct, 2019) -- compared to 2.0.10
 -------------------------------------------------
-
+* Fixes to build against LibRaw master. #2306
+* Fix DPX reading performance regression. #2333
+* Guard against buggy pybind11 versions. #2347
+* Fixes for safe Cuda compilation of `invert<>` in fmath.h. #2197
 
 Release 2.0.10 (1 Aug, 2019) -- compared to 2.0.9
 -------------------------------------------------
