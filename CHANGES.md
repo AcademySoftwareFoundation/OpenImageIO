@@ -1,6 +1,7 @@
 Release 2.1 (?? 2019) -- compared to 2.0
 ----------------------------------------------
 New minimum dependencies:
+* CMake minimum is now 3.12. #2348 (2.1.5)
 
 Major new features and improvements:
 * Support for HEIC/HEIF images. HEIC is the still-image sibling of HEVC
@@ -63,6 +64,18 @@ Public API changes:
       `getLookNames()`, `getDisplayNames()`, `getDefaultDisplayName()`,
       `getViewNames()`, `getDefaultViewName()`. #2248 (2.1.2)
     - Added Python bindings for ColorConfig. #2248 (2.1.2)
+* Formal version numbers are now four parts: MAJOR.MINOR.PATCH.TWEAK.
+  #2313,#2319 (2.1.3)
+* ImageInput now sets "oiio:subimages" attribute to an int representing the
+  number of subimages in a multi-image file -- if known from reading just
+  the header. A positive value can be relied upon (including 1), but a
+  value of 0 or no such metadata does not necessarily mean there are not
+  multiple subimages, it just means it could not be known from inexpensively
+  reading only the header. #2344 (2.1.4)
+* The `imagesize_t` and `stride_t` values now have revised definitions.
+  It should be fully API/ABI compatible (at least for 64 bit systems), but
+  is a simpler, more modern, more platform-independent definition.
+  #2351 (2.1.5)
 
 Performance improvements:
 * ImageCache/TextureSystem:
@@ -70,6 +83,11 @@ Performance improvements:
       heavy thread contention, from improvement in performance and
       properties of the hashing used by the caches. #2314, #2316 (2.1.3)
 * Improved performance for ustring creation and lookup. #2315 (2.1.3)
+* Fix huge DPX reading performance regression. Technically this is a bug
+  fix that restores performance we once had, but it's a huge speedup.
+  #2333 (2.1.4)
+* Reading individual frames from very-multi-image files (movie files) has
+  been greatly sped up (10x or more). #2345 (2.1.4)
 
 Fixes and feature enhancements:
 * oiiotool:
@@ -98,6 +116,7 @@ Fixes and feature enhancements:
     - `--metamerge` option causes binary image operations to try to "merge"
       the metadata of their inputs, rather than simply copy the metadata
       from the first input and ignore the others. #2311 (2.1.3)
+    - `--colormap` now supports a new "turbo" color map option. #2320 (2.1.4)
 * ImageBuf/ImageBufAlgo:
     - `IBA::channel_append()` previously always forced its result to be float,
       if it wasn't previously initialized. Now it uses the uaual type-merging
@@ -120,6 +139,8 @@ Fixes and feature enhancements:
       default display or view. #2273 (2.0.10/2.1.3)
     - `IBA::fixNonFinite()`: fixed impicit float/double casts to half. #2301
       (2.0.10/2.1.3)
+    - `IBA::color_map()`:  now supports a new "turbo" color map option.
+      #2320 (2.1.4)
 * ImageInput read_image/scanline/tile fixed subtle bugs for certain
   combination of strides and channel subset reads. #2108 (2.1.0/2.0.4)
 * ImageCache / TextureSystem / maketx:
@@ -143,6 +164,8 @@ Fixes and feature enhancements:
     - `TS::environment()` can resolve subimage by name, as we do for
       texture() and texture3d(). #2263
     - Improvements to error message propagation. (2.1.3)
+    - Avoid creating a new thread info struct while resolving udims. #2318
+      (2.1.4)
 * iv viewer:
     - Image info window now sorts the metadata, in the same manner as
       `iinfo -v` or `oiiotool -info -v`. #2159 (2.1.0/2.0.5)
@@ -156,6 +179,14 @@ Fixes and feature enhancements:
     - Fix potential crash when file open fails. #2186 (2.0.7/2.1.1)
     - Support for reading and writing 1-channel (luma, etc.) images. #2294
       (2.0.10/2.1.3)
+    - Fix huge DPX reading performance regression. #2333 (2.1.4)
+* ffmpeg/Movie files:
+    - Reading individual frames from very-multi-image files (movie files) has
+      been greatly sped up (10x or more). #2345 (2.1.4)
+    - Support for reading movie files that (a) contain alpha channels, and
+      (b) have bit depths > 8 bits per channel. Previously, such files
+      would be read, but would be presented to the app as a 3-channel
+      8 bit/channel RGB. #2349 (2.1.5)
 * FITS:
     - Fix 16 and 32 bit int pixels which FITS spec says are signed, but we
       were treating as unsigned. #2178 (2.1.0)
@@ -213,6 +244,8 @@ Fixes and feature enhancements:
     - Fix bugs when reading TIFF "cmyk" files. #2292. (2.0.10/2.1.3)
     - Correctly handle read and write of 6, 14, and 24 bit per sample
       images. #2296 (2.1.3)
+    - Fix potential deadlock in TIFF I/O: minor flaw with threadpool method
+      #2327 (2.1.4)
 * WebP: fix bug that gave totally incorrect image read for webp images that
   had a smaller width than height. #2120 (2.1.0/2.0.4)
 * Fix potential threadpool deadlock issue that could happen if you were
@@ -266,6 +299,34 @@ Build/test system improvements and platform ports:
 * Build fixes for MinGW. #2304, #2308 (2.0.10/2.1.3)
 * libraw: Fixes to make it build properly against some changes in the
   libraw development master. #2306 (2.1.3)
+* Phase in use of GitHub Actions CI beta. We anticipate that this may
+  eventually replace both Travis-CI and Appveyor, but for now is still
+  experimental. #2334 (2.1.4)
+* Updated and improved finding of OpenEXR and `build_openexr.bash` script
+  that we use for CI. #2343 (2.1.4)
+* Upgrade the pybind11 verson that we auto-install when not found (to 2.4.2),
+  and add logic to detect the presence of some pybind11 versions that are
+  known to be (buggily) incompatible with C++11. #2347 (2.1.5)
+* Fix errors in very new MSVS versions where it identified a suspicious
+  practice of ImageBuf's use of a unique_ptr of an undefined type. Jump
+  through some hoops to make that legal. #2350 (2.1.5)
+
+* Major overhaul of the CMake build system now that our CMake minimum is
+  3.12. #2348 #2353 (2.1.5) Highlights:
+    - All optional dependencies (e.g. "Pkg") now can be disabled (even if
+      found) with cmake -DUSE_PKG=0 or environment variable USE_PKG=0.
+      Previously, some packages supported this, others did not.
+    - All dependencies can be given find hints via -DPkg_ROOT=path or by
+      setting environment variable Pkg_ROOT=path. Previously, some did, some
+      didn't, and the ones that did had totally inconsistent names for the
+      path hint variable (PKG_HOME, PKG_ROOT_DIR, PKG_PATH, etc).
+    - Nice color coded status messages making it much more clear which
+      dependencies were found, which were not, which were disabled.
+    - Use standard BUILD_SHARED_LIBS to control shared vs static libraries,
+      replacing the old nonstandard BUILDSTATIC name.
+    - Use correct PUBLIC/PRIVATE marks with target_link_libraries and
+      target_include_directories, and rely on cmake properly understanding
+      the transitive dependencies.
 
 Developer goodies / internals:
 * argparse.h:
@@ -300,6 +361,9 @@ Developer goodies / internals:
     - New `OIIO_RETURNS_NONNULL` macro implements an attribute that marks
       a function that returns a pointer as guaranteeing that it's never
       NULL. #2150 (2.1.0/2.0.5)
+* SHA1.h:
+    - Upgraded this embedded code from version 1.8 (2008) to the newest
+      release, 2.1 (2012). This fixes some Windows warnings. #2342 (2.1.4)
 * simd.h:
     - Added vec4 * matrix44 multiplication. #2165 (2.1.0/2.0.6)
     - Guard against shenanigans when Xlib.h having been included and
@@ -332,9 +396,16 @@ Notable documentation changes:
 * Copyright notices have been changed for clarity and conformance with
   SPDX conventions. #2264
 * New GitHub issue templates, making separate issue types for bug reports,
-  feature requests, build problems, and questions. #2271
+  feature requests, build problems, and questions. #2271,#2346
 
 
+
+Release 2.0.11 (1 Oct, 2019) -- compared to 2.0.10
+-------------------------------------------------
+* Fixes to build against LibRaw master. #2306
+* Fix DPX reading performance regression. #2333
+* Guard against buggy pybind11 versions. #2347
+* Fixes for safe Cuda compilation of `invert<>` in fmath.h. #2197
 
 Release 2.0.10 (1 Aug, 2019) -- compared to 2.0.9
 -------------------------------------------------

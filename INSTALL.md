@@ -63,7 +63,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 4.1 (5.0+ is strongly recommended for stability and
        thread safety)
  * If you want support for HEIF/HEIC images:
-     * libheic >= 1.3 (older versions may work, we haven't tested)
+     * libheic >= 1.3 (tested through 1.5; older versions may also work, we
+       haven't tested)
 
 
 Building OpenImageIO on Linux or OS X
