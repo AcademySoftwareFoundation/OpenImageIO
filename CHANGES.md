@@ -1,4 +1,4 @@
-Release 2.0.10 (1 Oct, 2019) -- compared to 2.0.10
+Release 2.0.11 (1 Oct, 2019) -- compared to 2.0.10
 -------------------------------------------------
 * Fixes to build against LibRaw master. #2306
 * Fix DPX reading performance regression. #2333
