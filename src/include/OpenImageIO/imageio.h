@@ -40,26 +40,15 @@
 OIIO_NAMESPACE_BEGIN
 
 class DeepData;
-struct ROI;
 
 
-/// Type we use for stride lengths.  This is only used to designate
-/// pixel, scanline, tile, or image plane sizes in user-allocated memory,
-/// so it doesn't need to represent sizes larger than can be malloced,
-/// therefore ptrdiff_t seemed right.
-typedef ptrdiff_t stride_t;
-
+/// Type we use for stride lengths between pixels, scanlines, or image
+/// planes.
+using stride_t = int64_t;
 
 /// Type we use to express how many pixels (or bytes) constitute an image,
-/// tile, or scanline.  Needs to be large enough to handle very big images
-/// (which we presume could be > 4GB).
-#if defined(LINUX64) || defined(_WIN64) || defined(__x86_64__) /* add others if we know for sure size_t is ok */
-typedef size_t imagesize_t;
-#else
-typedef unsigned long long imagesize_t;
-#endif
-
-
+/// tile, or scanline.
+using imagesize_t = uint64_t;
 
 /// Special value to indicate a stride length that should be
 /// auto-computed.
