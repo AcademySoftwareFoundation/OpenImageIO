@@ -13,8 +13,12 @@ target_link_libraries (OpenImageIO_Util
             ${SANITIZE_LIBRARIES}
             ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
-            $<$<BOOL:${WIN32}>:psapi>
         )
+
+if (WIN32)
+    target_link_libraries (OpenImageIO_Util PRIVATE psapi)
+endif()
+
 
 if (VERBOSE)
     message(STATUS "Setting SOVERSION to: ${SOVERSION}")

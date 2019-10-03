@@ -125,16 +125,27 @@ target_link_libraries (OpenImageIO
             ${SANITIZE_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
             ${OPENCOLORIO_LIBRARIES}
-            $<$<BOOL:${FREETYPE_FOUND}>:${FREETYPE_LIBRARIES}>
-            $<$<BOOL:${USE_EXTERNAL_PUGIXML}>:${PUGIXML_LIBRARIES}>
             ${BZIP2_LIBRARIES}
             ${ZLIB_LIBRARIES}
             ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
-            $<$<BOOL:${WIN32}>:psapi>
-            $<$<BOOL:${MINGW}>:ws2_32>
         )
 
+if (USE_EXTERNAL_PUGIXML)
+    target_link_libraries (OpenImageIO PRIVATE ${PUGIXML_LIBRARIES})
+endif()
+
+if (FREETYPE_FOUND)
+    target_link_libraries (OpenImageIO PRIVATE ${FREETYPE_LIBRARIES})
+endif()
+
+if (WIN32)
+    target_link_libraries (OpenImageIO PRIVATE psapi)
+endif()
+
+if (MINGW)
+    target_link_libraries (OpenImageIO PRIVATE ws2_32)
+endif()
 
 
 
