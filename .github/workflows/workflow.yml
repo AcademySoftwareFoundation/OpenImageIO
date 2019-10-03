@@ -92,11 +92,11 @@ jobs:
   linux-sanitizer:
     name: "Sanitizers"
     runs-on: ubuntu-18.04
+    if: github.event_name == 'pull_request' || contains(github.ref, 'san') || contains(github.ref, 'RB') || contains(github.ref, 'release') || contains(github.ref, 'master')
     steps:
       - uses: actions/checkout@v1
       #- uses: docker://aswfstaging/ci-base:2019
       - name: all
-        if: github.event_name == 'pull_request' || contains(github.ref, 'san')
         env:
           CXX: g++-7
           USE_CPP: 14
