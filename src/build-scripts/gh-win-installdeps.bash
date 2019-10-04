@@ -66,9 +66,10 @@ vcpkg update
 # vcpkg install zlib:x64-windows
 vcpkg install tiff:x64-windows
 vcpkg install libpng:x64-windows
+vcpkg install giflib:x64-windows
+vcpkg install freetype:x64-windows
 # vcpkg install openexr:x64-windows
 # vcpkg install libjpeg-turbo:x64-windows
-# vcpkg install giflib:x64-windows
 
 # webp openjpeg
 #time vcpkg install freetype libraw
