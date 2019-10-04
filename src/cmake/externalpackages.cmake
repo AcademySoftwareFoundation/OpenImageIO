@@ -105,10 +105,12 @@ macro (oiio_find_package pkgname)
             endforeach ()
             message (STATUS "${ColorGreen}Found ${pkgname} ${${pkgname}_VERSION} ${ColorReset}")
             if (VERBOSE)
-                foreach (_v ${pkgname}_INCLUDES ${pkgname_upper}_INCLUDES
-                            ${pkgname_upper}_INCLUDE_DIRS
-                            ${pkgname}_LIBRARIES ${pkgname_upper}_LIBRARIES
-                            ${_pkg_PRINT})
+                set (_vars_to_print ${pkgname}_INCLUDES ${pkgname_upper}_INCLUDES
+                                    ${pkgname_upper}_INCLUDE_DIRS
+                                    ${pkgname}_LIBRARIES ${pkgname_upper}_LIBRARIES
+                                    ${_pkg_PRINT})
+                list (REMOVE_DUPLICATES _vars_to_print)
+                foreach (_v IN LISTS _vars_to_print)
                     if (NOT "${${_v}}" STREQUAL "")
                         message (STATUS "    ${_v} = ${${_v}}")
                     endif ()
@@ -217,6 +219,7 @@ endif ()
 
 oiio_find_package (Freetype
                    DEFINITIONS  -DUSE_FREETYPE=1 )
+
 oiio_find_package (HDF5
                    ISDEPOF      Field3D)
 oiio_find_package (OpenColorIO
@@ -225,9 +228,6 @@ oiio_find_package (OpenCV
                    DEFINITIONS  -DUSE_OPENCV=1)
 
 # Intel TBB
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set (TBB_USE_DEBUG_BUILD ON)
-endif ()
 oiio_find_package (TBB 2017
                    DEFINITIONS  -DUSE_TBB=1
                    ISDEPOF      OpenVDB)

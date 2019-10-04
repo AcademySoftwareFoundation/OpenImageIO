@@ -88,14 +88,10 @@ if(NOT TBB_FOUND)
   # Check the build type
   ##################################
   
-  if(NOT DEFINED TBB_USE_DEBUG_BUILD)
-    if(CMAKE_BUILD_TYPE MATCHES "Debug|DEBUG|debug")
-      set(TBB_USE_DEBUG_BUILD TRUE)
-    else()
-      set(TBB_USE_DEBUG_BUILD FALSE)
-    endif()
+  if (NOT DEFINED TBB_USE_DEBUG_BUILD)
+      set(TBB_USE_DEBUG_BUILD $<CONFIG:Debug>)
   endif()
-  
+
   ##################################
   # Set the TBB search directories
   ##################################

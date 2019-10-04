@@ -105,39 +105,48 @@ endif ()
 source_group ("libutil"    REGULAR_EXPRESSION ".+/libutil/.+")
 source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
 
-if (BUILDSTATIC)
-    add_library (OpenImageIO STATIC ${libOpenImageIO_srcs})
-else ()
-    add_library (OpenImageIO SHARED ${libOpenImageIO_srcs})
-endif ()
+add_library (OpenImageIO ${libOpenImageIO_srcs})
 
-# if (SANITIZE AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-#     # target_link_libraries (OpenImageIO "asan" "ubsan")
-#     target_link_libraries (OpenImageIO ${SANITIZE_LIBRARIES})
-# endif ()
+target_include_directories (OpenImageIO
+                            PUBLIC
+                                ${OpenCV_INCLUDES}
+                            PRIVATE
+                                ${ROBINMAP_INCLUDES}
+                                ${OPENCOLORIO_INCLUDES}
+                                ${FREETYPE_INCLUDE_DIRS}
+                            )
 
 target_link_libraries (OpenImageIO
-                       ${SANITIZE_LIBRARIES}
-                       ${format_plugin_libs} # Add all the target link libraries from the plugins
-                       ${OPENCOLORIO_LIBRARIES}
-                       ${Boost_LIBRARIES}
-                       ${CMAKE_DL_LIBS})
+        PUBLIC
+            ${ILMBASE_LIBRARIES}
+            ${OPENEXR_LIBRARIES}
+            ${OpenCV_LIBRARIES}
+        PRIVATE
+            ${SANITIZE_LIBRARIES}
+            ${format_plugin_libs} # Add all the target link libraries from the plugins
+            ${OPENCOLORIO_LIBRARIES}
+            ${BZIP2_LIBRARIES}
+            ${ZLIB_LIBRARIES}
+            ${Boost_LIBRARIES}
+            ${CMAKE_DL_LIBS}
+        )
 
-include_directories (${ROBINMAP_INCLUDES})
+if (USE_EXTERNAL_PUGIXML)
+    target_link_libraries (OpenImageIO PRIVATE ${PUGIXML_LIBRARIES})
+endif()
 
-target_include_directories (OpenImageIO PRIVATE ${OPENCOLORIO_INCLUDES})
-
-# Include OpenCV if using it
-if (OpenCV_FOUND)
-    include_directories (${OpenCV_INCLUDES})
-    target_link_libraries (OpenImageIO ${OpenCV_LIBRARIES})
-endif ()
-
-# Include Freetype if using it
 if (FREETYPE_FOUND)
-    include_directories (${FREETYPE_INCLUDE_DIRS})
-    target_link_libraries (OpenImageIO ${FREETYPE_LIBRARIES} ${BZIP2_LIBRARIES})
-endif ()
+    target_link_libraries (OpenImageIO PRIVATE ${FREETYPE_LIBRARIES})
+endif()
+
+if (WIN32)
+    target_link_libraries (OpenImageIO PRIVATE psapi)
+endif()
+
+if (MINGW)
+    target_link_libraries (OpenImageIO PRIVATE ws2_32)
+endif()
+
 
 
 if (MSVC)
@@ -152,33 +161,20 @@ if (MSVC)
                   APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif ()
 
-if (MSVC)
-    target_link_libraries (OpenImageIO psapi.lib)
-elseif(MINGW)
-    target_link_libraries (OpenImageIO psapi ws2_32)
-endif ()
-
 # FIXME: Doesn't work with cmake 3.12? Do we even need this?
 # if (VISIBILITY_MAP_FILE)
 #     add_dependencies (OpenImageIO "${VISIBILITY_MAP_FILE}")
 # endif ()
 
-if (USE_EXTERNAL_PUGIXML)
-    target_link_libraries (OpenImageIO ${PUGIXML_LIBRARIES})
-endif ()
-
-target_link_libraries (OpenImageIO ${ILMBASE_LIBRARIES})
-target_link_libraries (OpenImageIO ${OPENEXR_LIBRARIES})
-target_link_libraries (OpenImageIO ${ZLIB_LIBRARIES})
-
 if (VERBOSE)
     message(STATUS "Setting SOVERSION to: ${SOVERSION}")
 endif ()
 set_target_properties(OpenImageIO
-                         PROPERTIES
-                         VERSION ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
-                         SOVERSION ${SOVERSION}
+                      PROPERTIES
+                         VERSION     ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
+                         SOVERSION   ${SOVERSION}
                          OUTPUT_NAME OpenImageIO${OIIO_LIBNAME_SUFFIX}
+                         POSITION_INDEPENDENT_CODE ON
                      )
 if (VISIBILITY_COMMAND)
     set_property (TARGET OpenImageIO
@@ -210,38 +206,38 @@ oiio_install_targets (OpenImageIO)
 if (OIIO_BUILD_TESTS)
 
     add_executable (imagebuf_test imagebuf_test.cpp)
+    target_link_libraries (imagebuf_test PRIVATE OpenImageIO)
     set_target_properties (imagebuf_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagebuf_test OpenImageIO ${Boost_LIBRARIES})
     add_test (unit_imagebuf imagebuf_test)
 
     add_executable (imagecache_test imagecache_test.cpp)
+    target_link_libraries (imagecache_test PRIVATE OpenImageIO)
     set_target_properties (imagecache_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagecache_test OpenImageIO ${Boost_LIBRARIES})
     add_test (unit_imagecache imagecache_test)
 
     add_executable (imagebufalgo_test imagebufalgo_test.cpp)
+    target_link_libraries (imagebufalgo_test PRIVATE OpenImageIO)
     set_target_properties (imagebufalgo_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagebufalgo_test OpenImageIO ${Boost_LIBRARIES})
     add_test (unit_imagebufalgo imagebufalgo_test)
 
     add_executable (imagespec_test imagespec_test.cpp)
+    target_link_libraries (imagespec_test PRIVATE OpenImageIO)
     set_target_properties (imagespec_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagespec_test OpenImageIO ${Boost_LIBRARIES})
     add_test (unit_imagespec imagespec_test)
 
     add_executable (imageinout_test imageinout_test.cpp)
+    target_link_libraries (imageinout_test PRIVATE OpenImageIO)
     set_target_properties (imageinout_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imageinout_test OpenImageIO ${Boost_LIBRARIES})
     add_test (unit_imageinout imageinout_test)
 
     add_executable (imagespeed_test imagespeed_test.cpp)
+    target_link_libraries (imagespeed_test PRIVATE OpenImageIO)
     set_target_properties (imagespeed_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (imagespeed_test OpenImageIO ${Boost_LIBRARIES})
     #add_test (imagespeed_test imagespeed_test)
 
     add_executable (compute_test compute_test.cpp)
+    target_link_libraries (compute_test PRIVATE OpenImageIO)
     set_target_properties (compute_test PROPERTIES FOLDER "Unit Tests")
-    target_link_libraries (compute_test OpenImageIO ${Boost_LIBRARIES})
     add_test (unit_compute compute_test)
 
 endif (OIIO_BUILD_TESTS)

@@ -1,5 +1,5 @@
 set (idiff_srcs idiff.cpp)
 add_executable (idiff ${idiff_srcs})
+target_link_libraries (idiff PRIVATE OpenImageIO)
 set_target_properties (idiff PROPERTIES FOLDER "Tools")
-target_link_libraries (idiff OpenImageIO ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
 oiio_install_targets (idiff)

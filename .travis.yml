@@ -174,18 +174,19 @@ matrix:
     # pushes to master or RB branches, or if the branch name includes
     # "sanitize". Other ordinary work branch pushes don't need to run this
     # every time.
-      - name: "Sanitizers"
-        os: linux
-        compiler: gcc
-        env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
-        if: branch =~ /(master|RB|travis|san)/ OR type = pull_request
-        addons:
-          apt:
-            sources: *add-sources
-            packages:
-              - *common-packages
-              - *common-boost-packages
-              - g++-6
+      # - name: "Sanitizers"
+      #   os: linux
+      #   compiler: gcc
+      #   env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
+      #   if: branch =~ /(master|RB|travis|san)/ OR type = pull_request
+      #   addons:
+      #     apt:
+      #       sources: *add-sources
+      #       packages:
+      #         - *common-packages
+      #         - *common-boost-packages
+      #         - g++-6
+
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo, no OCIO support,
     # and don't embed the plugins (to make sure that doesn't rust away).  I

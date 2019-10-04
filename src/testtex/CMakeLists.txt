@@ -1,5 +1,5 @@
 set (testtex_srcs testtex.cpp)
 add_executable (testtex ${testtex_srcs})
-include_directories (${ROBINMAP_INCLUDES})
+target_include_directories (testtex PRIVATE ${ROBINMAP_INCLUDES})
+target_link_libraries (testtex PRIVATE OpenImageIO)
 set_target_properties (testtex PROPERTIES FOLDER "Tools")
-target_link_libraries (testtex OpenImageIO ${SANITIZE_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})

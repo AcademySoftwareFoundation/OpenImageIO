@@ -128,7 +128,7 @@ Additionally, a few helpful modifiers alter some build-time options:
 | make USE_QT=0 ...         |  Skip anything that needs Qt                   |
 | make MYCC=xx MYCXX=yy ... |  Use custom compilers                          |
 | make USE_PYTHON=0 ...     |  Don't build the Python binding                |
-| make BUILDSTATIC=1 ...    |  Build static library instead of shared        |
+| make BUILD_SHARED_LIBS=0  |  Build static library instead of shared        |
 | make LINKSTATIC=1 ...     |  Link with static external libraries when possible |
 | make SOVERSION=nn ...     |  Include the specifed major version number in the shared object metadata |
 | make NAMESPACE=name       |   Wrap everything in another namespace         |

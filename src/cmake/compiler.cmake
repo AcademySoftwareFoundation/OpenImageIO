@@ -1,8 +1,14 @@
 ###########################################################################
 # Compiler-related detection, options, and actions
 
-message (STATUS "CMAKE_CXX_COMPILER is ${CMAKE_CXX_COMPILER}")
-message (STATUS "CMAKE_CXX_COMPILER_ID is ${CMAKE_CXX_COMPILER_ID}")
+if (VERBOSE)
+    message (STATUS "CMAKE_SYSTEM_NAME      = ${CMAKE_SYSTEM_NAME}")
+    message (STATUS "CMAKE_SYSTEM_VERSION   = ${CMAKE_SYSTEM_VERSION}")
+    message (STATUS "CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
+endif ()
+
+message (STATUS "CMAKE_CXX_COMPILER     = ${CMAKE_CXX_COMPILER}")
+message (STATUS "CMAKE_CXX_COMPILER_ID  = ${CMAKE_CXX_COMPILER_ID}")
 
 set (USE_CPP 11 CACHE STRING "C++ standard to prefer (11, 14, 17, etc.)")
 option (USE_LIBCPLUSPLUS "Compile with clang libc++" OFF)
@@ -10,10 +16,9 @@ set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1
 option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
 option (HIDE_SYMBOLS "Hide symbols not in the public API" OFF)
 option (USE_CCACHE "Use ccache if found" ON)
-option (USE_fPIC "Build with -fPIC")
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
 set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when building DSOs")
-option (BUILDSTATIC "Build static libraries instead of shared" OFF)
+option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
 option (LINKSTATIC  "Link with static external libraries when possible" OFF)
 option (CODECOV "Build code coverage tests" OFF)
 set (SANITIZE "" CACHE STRING "Build code using sanitizer (address, thread)")
@@ -21,7 +26,7 @@ option (CLANG_TIDY "Enable clang-tidy" OFF)
 set (CLANG_TIDY_CHECKS "" CACHE STRING "clang-tidy checks to perform (none='-*')")
 set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
 option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
-set (CLANG_FORMAT_EXE_HINT "" CACHE STRING "clang-format executable's directory (will search if not specified")
+set (CLANG_FORMAT_EXE_HINT "" CACHE PATH "clang-format executable's directory (will search if not specified")
 set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
     CACHE STRING "Glob patterns to include for clang-format")
     # Eventually: want this to be: "src/*.h;src/*.cpp"
@@ -84,7 +89,7 @@ if (NOT MSVC)
     endif ()
 endif ()
 
-if (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+if ($<CONFIG:RelWithDebInfo>)
     # cmake bug workaround -- on some platforms, cmake doesn't set
     # NDEBUG for RelWithDebInfo mode
     add_definitions ("-DNDEBUG")
@@ -92,9 +97,10 @@ endif ()
 
 # Options common to gcc and clang
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
-    # CMake doesn't automatically know what do do with
-    # include_directories(SYSTEM...) when using clang or gcc.
-    set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
+    #   # CMake doesn't automatically know what do do with
+    #   # include_directories(SYSTEM...) when using clang or gcc.
+    #   set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
+
     # Ensure this macro is set for stdint.h
     add_definitions ("-D__STDC_LIMIT_MACROS")
     add_definitions ("-D__STDC_CONSTANT_MACROS")
@@ -102,7 +108,8 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     add_compile_options ("-fno-math-errno")
 endif ()
 
-if (HIDE_SYMBOLS AND NOT DEBUGMODE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
+if (HIDE_SYMBOLS AND NOT $<CONFIG:Debug>
+                 AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     # Turn default symbol visibility to hidden
     set (VISIBILITY_COMMAND -fvisibility=hidden -fvisibility-inlines-hidden)
     add_compile_options (${VISIBILITY_COMMAND})
@@ -118,6 +125,12 @@ if (HIDE_SYMBOLS AND NOT DEBUGMODE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILE
             message (STATUS "VISIBILITY_MAP_COMMAND = ${VISIBILITY_MAP_COMMAND}")
         endif ()
     endif ()
+endif ()
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
+    AND ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
+    # minimum arch of i586 is needed for atomic cpu instructions
+    add_compile_options (-march=i586)
 endif ()
 
 # Clang-specific options
@@ -238,11 +251,6 @@ if (NOT USE_SIMD STREQUAL "")
         endforeach()
     endif ()
     add_compile_options (${SIMD_COMPILE_FLAGS})
-endif ()
-
-
-if (USE_fPIC)
-    add_compile_options ("-fPIC")
 endif ()
 
 
@@ -371,19 +379,6 @@ if (EXTRA_CPP_ARGS)
     add_compile_options ("${EXTRA_CPP_ARGS}")
 endif()
 
-
-if (BUILDSTATIC)
-    message (STATUS "Building static libraries")
-    set (LIBRARY_BUILD_TYPE STATIC)
-    add_definitions(-D${PROJ_NAME}_STATIC_BUILD=1)
-    if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-        # On Linux, the lack of -fPIC when building static libraries seems
-        # incompatible with the dynamic library needed for the Python bindings.
-        set (USE_PYTHON OFF)
-    endif ()
-else ()
-    set (LIBRARY_BUILD_TYPE SHARED)
-endif()
 
 # Use .a files if LINKSTATIC is enabled
 if (LINKSTATIC)

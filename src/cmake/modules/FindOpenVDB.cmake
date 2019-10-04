@@ -12,6 +12,8 @@
 #  OPENVDB_LIBRARY, where to find the OPENVDB library.
 
 #=============================================================================
+# Modified from one with this copyright notice:
+#
 # Copyright 2015 Blender Foundation.
 #
 # Distributed under the OSI-approved BSD License (the "License");
@@ -52,11 +54,11 @@ if (OPENVDB_INCLUDE_DIR)
 endif ()
 
 LIST(INSERT oiio_vdblib_search 0 lib)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  LIST(INSERT oiio_vdblib_search 0 lib/debug)
-ENDIF ()
+if ($<CONFIG:Debug>)
+    list (INSERT oiio_vdblib_search 0 lib/debug)
+endif ()
 
-FIND_LIBRARY(OPENVDB_LIBRARY
+find_library(OPENVDB_LIBRARY
   NAMES
     openvdb
   HINTS
