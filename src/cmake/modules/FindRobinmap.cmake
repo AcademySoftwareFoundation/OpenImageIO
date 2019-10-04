@@ -8,6 +8,7 @@
 find_path (ROBINMAP_INCLUDE_DIR tsl/robin_map.h
            HINTS
                "${PROJECT_SOURCE_DIR}/ext/robin-map"
+           PATH_SUFFIXES include
            )
 
 # Support the REQUIRED and QUIET arguments, and set ROBINMAP_FOUND if found.

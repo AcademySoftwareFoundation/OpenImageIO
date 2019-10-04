@@ -9,6 +9,7 @@
 find_path (PYBIND11_INCLUDE_DIR pybind11/pybind11.h
            HINTS
                "${PROJECT_SOURCE_DIR}/ext/pybind11/include"
+           PATH_SUFFIXES include
            )
 
 if (PYBIND11_INCLUDE_DIR)
