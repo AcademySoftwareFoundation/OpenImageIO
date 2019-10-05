@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+from __future__ import division
 import OpenImageIO as oiio
 
 test_xres = 3
@@ -157,8 +158,8 @@ def test_merge_overlaps () :
             dd.set_deep_value (p, 2, s, 0.0)   # B
             dd.set_deep_value (p, 3, s, 0.5)   # A
             # Make adjacent pairs overlap exactly
-            dd.set_deep_value (p, 4, s, 10.0 + int(s/2))  # Z
-            dd.set_deep_value (p, 5, s, 10.0 + int(s/2) + 0.5)  # Zback
+            dd.set_deep_value (p, 4, s, 10.0 + int(s//2))  # Z
+            dd.set_deep_value (p, 5, s, 10.0 + int(s//2) + 0.5)  # Zback
     print_deep_image (dd, "Before merge_overlaps,")
     dd.merge_overlaps (1)
     print_deep_image (dd, "After merge_overlaps of pixel 1,")
