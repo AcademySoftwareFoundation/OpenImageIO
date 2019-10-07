@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #import OpenImageIO as oiio
 from __future__ import division
+from __future__ import absolute_import
 import shutil
 
 ## This testsuite entry tests oiiotool features related to image
