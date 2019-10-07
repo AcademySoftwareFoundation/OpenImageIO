@@ -22,4 +22,5 @@ rez_install_cmake(
     INCLUDE_DIRS include
     LIBRARY_DIRS lib
     LIBRARIES OpenImageIO OpenImageIO_util
+              OpenImageIO_debug OpenImageIO_util_debug
 )
