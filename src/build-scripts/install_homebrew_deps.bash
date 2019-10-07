@@ -51,6 +51,9 @@ echo ""
 echo "After brew installs:"
 brew list --versions
 
+# Needed on some systems
+pip install numpy
+
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
 export PATH=/usr/local/opt/qt5/bin:$PATH ;
