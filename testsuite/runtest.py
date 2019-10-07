@@ -82,7 +82,7 @@ if OIIO_TESTSUITE_ROOT != "../../../../testsuite":
                     imgdir = "oiio-images/" + imgdir
                 imgdir = "../../../../../" + imgdir
 
-        for i in xrange(len(lines)):
+        for i in range(len(lines)):
             lines[i] = lines[i].replace("../../../../testsuite", OIIO_TESTSUITE_ROOT)
             if imgdir:
                 lines[i] = lines[i].replace(imgdir, OIIO_TESTSUITE_IMAGEDIR)

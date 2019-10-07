@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #import OpenImageIO as oiio
+from __future__ import division
 import shutil
 
 ## This testsuite entry tests oiiotool features related to image
@@ -11,7 +12,7 @@ def make_test_pattern1 (filename, xres=288, yres=216) :
     buf = oiio.ImageBuf (oiio.ImageSpec (xres, yres, 3, oiio.HALF))
     for y in range(yres) :
         for x in range(xres) :
-            b = 0.25 + 0.5 * float (((x/16) & 1) ^ ((y/16) & 1))
+            b = 0.25 + 0.5 * float (((x//16) & 1) ^ ((y//16) & 1))
             if x == 1 or y == 1 or x == xres-2 or y == yres-2 :
                 b = 0.0
             if (((x >= 10 and x <= 20) or (x >= xres-20 and x <= xres-10)) and
