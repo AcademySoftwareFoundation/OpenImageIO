@@ -6,6 +6,7 @@
 # integer SpComp2 version numbers.
 
 from __future__ import print_function
+from __future__ import absolute_import
 import sys
 
 if len(sys.argv) != 2 :
