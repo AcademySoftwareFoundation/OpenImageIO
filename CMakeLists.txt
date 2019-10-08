@@ -1,15 +1,13 @@
 cmake_minimum_required (VERSION 3.12)
 project (OpenImageIO VERSION 2.1.5.0
+         HOMEPAGE_URL "https://openimageio.org"
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
 string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
 set (PROJECT_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
-set (PROJECT_URL "https://openimageio.org")
 
-message (STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
-message (STATUS "CMake version is ${CMAKE_VERSION}")
 
 # Alternate names
 set (OIIO_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
@@ -22,11 +20,15 @@ if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
 endif ()
 
-message (STATUS "Project source dir  = ${PROJECT_SOURCE_DIR}")
-message (STATUS "Project build dir   = ${CMAKE_BINARY_DIR}")
-message (STATUS "Project install dir = ${CMAKE_INSTALL_PREFIX}")
-message (STATUS "Configuration types = ${CMAKE_CONFIGURATION_TYPES}")
-message (STATUS "Build type          = ${CMAKE_BUILD_TYPE}")
+message (STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
+message (STATUS "CMake ${CMAKE_VERSION}")
+message (STATUS "CMake system           = ${CMAKE_SYSTEM}")
+message (STATUS "CMake system name      = ${CMAKE_SYSTEM_NAME}")
+message (STATUS "Project source dir     = ${PROJECT_SOURCE_DIR}")
+message (STATUS "Project build dir      = ${CMAKE_BINARY_DIR}")
+message (STATUS "Project install prefix = ${CMAKE_INSTALL_PREFIX}")
+message (STATUS "Configuration types    = ${CMAKE_CONFIGURATION_TYPES}")
+message (STATUS "Build type             = ${CMAKE_BUILD_TYPE}")
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message (FATAL_ERROR "Not allowed to run in-source build!")
@@ -80,6 +82,7 @@ option (INSTALL_DOCS "If ON, install documentation and man pages." ON)
 option (INSTALL_FONTS "If ON, install default fonts" ON)
 option (INSTALL_CMAKE_HELPER "If On, install FindOpenImageIO.cmake" ON)
 set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
+set (CMAKE_DEBUG_POSTFIX "" CACHE STRING "Library naming postfix for Debug builds (e.g., '_debug')")
 
 set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_SOURCE_DIR}/.." CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )

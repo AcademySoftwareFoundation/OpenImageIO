@@ -38,8 +38,8 @@ set_target_properties(OpenImageIO_Util
 # endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 9.0)
-    set_source_files_properties (SHA1.cpp
-                                 PROPERTIES COMPILE_FLAGS -Wno-stringop-truncation)
+    set_property (SOURCE SHA1.cpp
+                  APPEND PROPERTY COMPILE_OPTIONS -Wno-stringop-truncation)
 endif ()
 
 # For consistency with the linux SpComp2s, create Mac OS X SpComp2s
