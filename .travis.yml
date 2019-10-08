@@ -117,21 +117,7 @@ matrix:
         compiler: clang
         env: PYTHON_VERSION=2.7
         if: branch =~ /(master|RB|travis|python)/ OR type = pull_request
-    # test debug build with default compiler
-      - name: "Linux DEBUG"
-        os: linux
-        compiler: gcc
-        env: DEBUG=1 WHICHGCC=6 USE_CPP=14 USE_SIMD=sse4.2 EXRBRANCH=v2.2.0
-        addons:
-          apt:
-            sources: *add-sources
-            packages:
-              - *common-packages
-              - *common-boost-packages
-              - g++-6
-      # - os: osx
-      #   compiler: clang
-      #   env: DEBUG=1
+
     # test with C++14, gcc 6, SSE 4.2
       - name: "VFX Platform 2018 (gcc6, cpp14, exr2.2), sse4.2"
         os: linux
@@ -144,48 +130,6 @@ matrix:
               - *common-packages
               - *common-boost-packages
               - g++-6
-    # test with C++14, gcc 7, latest SIMD flags supported by TravisCI VMs
-      - name: "gcc7, cpp14, avx, exr2.3"
-        os: linux
-        compiler: gcc
-        env: WHICHGCC=7 USE_CPP=14 USE_SIMD=avx,f16c
-        addons:
-          apt:
-            sources: *add-sources
-            packages:
-              - *common-packages
-              - *common-boost-packages
-              - g++-7
-    # Test LINKSTATIC on both platforms. This is incomplete and to make it
-    # work we still need to disable a bunch of specific plugins.
-      # FIXME: Don't have LINKSTATIC working on Travis for Linux, it's
-      # complaining about PIC issues.
-      # - os: linux
-      #   compiler: gcc
-      #   env: LINKSTATIC=1 USE_FFMPEG=0 USE_OPENCOLORIO=0 USE_OPENCV=0 MY_CMAKE_FLAGS="-DUSE_fPIC=1"
-      ##### TEMPORARILY DISABLED -- Travis upgraded some packages and this
-      ##    is having link errors. Look into fixing this later.
-      ## - os: osx
-      ##  osx_image: xcode8.3
-      ##  compiler: clang
-      ##  env: LINKSTATIC=1 USE_FFMPEG=0 USE_OPENCOLORIO=0 USE_OPENCV=0
-    # Dynamic analysis: build with sanitizers and run most tests.
-    # Because this test takes so long to run, only build for PRs, direct
-    # pushes to master or RB branches, or if the branch name includes
-    # "sanitize". Other ordinary work branch pushes don't need to run this
-    # every time.
-      # - name: "Sanitizers"
-      #   os: linux
-      #   compiler: gcc
-      #   env: WHICHGCC=6 SANITIZE=address USE_PYTHON=0
-      #   if: branch =~ /(master|RB|travis|san)/ OR type = pull_request
-      #   addons:
-      #     apt:
-      #       sources: *add-sources
-      #       packages:
-      #         - *common-packages
-      #         - *common-boost-packages
-      #         - g++-6
 
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo, no OCIO support,
@@ -212,41 +156,6 @@ matrix:
               - libboost-regex1.55
               - libboost-system1.55
               - libboost-thread1.55
-    # test with C++14, gcc 8, latest SIMD flags supported by TravisCI VMs
-    # Since VFXPlatform doesn't bless gcc8 yet, only build this
-    # case for PRs, direct pushes to master or RB branches, or if the branch
-    # name includes "gcc". Other ordinary work branch pushes don't
-    # need to run this.
-      - name: "Linux gcc8 cpp14 avx"
-        os: linux
-        compiler: gcc
-        env: WHICHGCC=8 USE_CPP=14 USE_SIMD=avx,f16c
-        addons:
-          apt:
-            sources: *add-sources
-            packages:
-              - *common-packages
-              - *common-boost-packages
-              - g++-8
-        if: branch =~ /(master|RB|travis|gcc)/ OR type = pull_request
-    # test with C++17, gcc 8, latest SIMD flags supported by TravisCI VMs.
-    # Since VFXPlatform doesn't bless C++17 or gcc8 yet, only build this
-    # case for PRs, direct pushes to master or RB branches, or if the branch
-    # name includes "17" or "gcc". Other ordinary work branch pushes don't
-    # need to run this.
-      - name: "Linux most advanced (gcc9, cpp17, avx/f16c)"
-        os: linux
-        compiler: gcc
-        sudo: required
-        env: WHICHGCC=9 USE_CPP=17 USE_SIMD=avx,f16c
-        addons:
-          apt:
-            sources: *add-sources
-            packages:
-              - *common-packages
-              - *common-boost-packages
-              - g++-9
-        if: branch =~ /(master|RB|travis|gcc|17)/ OR type = pull_request
 
     # Note: builds for AVX2, AVX512 happen on CircleCI
 
@@ -256,6 +165,7 @@ matrix:
         compiler: clang
         env: BUILDTARGET=clang-format SKIP_TESTS=1 BUILD_MISSING_DEPS=0
         #if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
+
     # Static analysis: build with clang-tidy.
     # Disabled -- this takes so long to run, it can't complete in Travis's
     # 50 minute time limit. Left here just to show how it should work.

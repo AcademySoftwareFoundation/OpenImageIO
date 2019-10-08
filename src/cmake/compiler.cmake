@@ -48,6 +48,8 @@ if (CMAKE_COMPILER_IS_GNUCC)
     if (VERBOSE)
         message (STATUS "Using gcc ${GCC_VERSION} as the compiler")
     endif ()
+else ()
+    set (GCC_VERSION 0)
 endif ()
 
 # Figure out which compiler we're using, for tricky cases

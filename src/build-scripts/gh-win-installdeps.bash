@@ -71,8 +71,10 @@ vcpkg install freetype:x64-windows
 # vcpkg install openexr:x64-windows
 # vcpkg install libjpeg-turbo:x64-windows
 
-# webp openjpeg
-#time vcpkg install freetype libraw
+vcpkg install libraw:x64-windows
+vcpkg install openjpeg:x64-windows
+# vcpkg install ffmpeg:x64-windows   # takes FOREVER!
+# vcpkg install webp:x64-windows  # No such vcpkg package?a
 
 echo "$VCPKG_INSTALLATION_ROOT"
 ls "$VCPKG_INSTALLATION_ROOT"
@@ -83,6 +85,13 @@ ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
 echo "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
 ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
 
+# curl --location https://ffmpeg.zeranoe.com/builds/win64/shared/ffmpeg-4.2.1-win64-shared.zip -o ffmpeg-libs.zip
+# unzip ffmpeg-libs.zip
+curl --location https://ffmpeg.zeranoe.com/builds/win64/dev/ffmpeg-4.2.1-win64-dev.zip -o ffmpeg-dev.zip
+unzip ffmpeg-dev.zip
+ls
+ls -R *ffmpeg*
+FFmpeg_ROOT=$PWD/ffmpeg-4.2.1-win64-dev
 
 echo "All VCPkg installs:"
 vcpkg list

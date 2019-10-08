@@ -5,6 +5,7 @@ set -ex
 
 #dpkg --list
 
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
 time sudo apt-get update
 
 time sudo apt-get -q install -y \
@@ -23,7 +24,6 @@ time sudo apt-get -q install -y \
     libraw-dev \
     libwebp-dev \
     libfreetype6-dev \
-    dcmtk \
     libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
     locales \
     opencolorio-tools \
@@ -32,19 +32,38 @@ time sudo apt-get -q install -y \
     libopenvdb-dev \
     libopencv-dev \
     ptex-base \
-    dcmtk
+    dcmtk \
+    libhdf5-dev
 
+# Disable libheif on CI for now... seems to make crashes in CI tests.
+# Works fine for me in real life. Investigate.
+#if [[ "$USE_LIBHEIF" != "0" ]] ; then
+#    sudo add-apt-repository ppa:strukturag/libde265
+#    sudo add-apt-repository ppa:strukturag/libheif
+#    time sudo apt-get -q install -y libheif-dev
+#fi
 
-# time apt-get install -y g++-4.8
-#time apt-get install -y g++-6
-#time apt-get install -y g++-7
-#time apt-get install -y g++-8
-# time apt-get install -y clang
-# time apt-get install -y llvm
-#time apt-get install -y libopenjpeg-dev
-#time apt-get install -y libjpeg-turbo8-dev
+if [[ "$CXX" == "g++-4.8" ]] ; then
+    time sudo apt-get install -y g++-4.8
+elif [[ "$CXX" == "g++-6" ]] ; then
+    time sudo apt-get install -y g++-6
+elif [[ "$CXX" == "g++-7" ]] ; then
+    time sudo apt-get install -y g++-7
+elif [[ "$CXX" == "g++-8" ]] ; then
+    time sudo apt-get install -y g++-8
+elif [[ "$CXX" == "g++-9" ]] ; then
+    time sudo apt-get install -y g++-9
+fi
+
+# time sudo apt-get install -y clang
+# time sudo apt-get install -y llvm
+#time sudo apt-get install -y libopenjpeg-dev
+#time sudo apt-get install -y libjpeg-turbo8-dev
 
 #dpkg --list
+
+CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
+
 
 # I think opencolor-tools package is adequate for now. For more recent
 # versions of OCIO, we could buidl it ourselves:
