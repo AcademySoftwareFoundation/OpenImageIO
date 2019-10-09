@@ -1,3 +1,7 @@
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
 # Attempt to find the desired version, but fall back to other
 # additional versions.
 if (NOT PYTHONINTERP_FOUND)

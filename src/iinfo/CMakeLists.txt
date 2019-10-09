@@ -1,3 +1,7 @@
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
 set (iinfo_srcs iinfo.cpp)
 add_executable (iinfo ${iinfo_srcs})
 target_link_libraries (iinfo PRIVATE OpenImageIO ${Boost_LIBRARIES})

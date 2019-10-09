@@ -1,3 +1,7 @@
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
 file (GLOB public_headers OpenImageIO/*.h)
 
 if (NOT USE_EXTERNAL_PUGIXML)

@@ -1,3 +1,7 @@
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
 if (FIELD3D_FOUND)
     find_library (SZIP_LIBRARY NAMES sz)
     if (NOT SZIP_LIBRARY)

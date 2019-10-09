@@ -8,13 +8,18 @@
 #  FFMPEG_LIBAVFORMAT
 #  FFMPEG_LIBAVUTIL
 #
-#  Copyright (c) 2008 Andreas Schneider <mail@cynapses.org>
-#  Modified for other libraries by Lasse Kärkkäinen <tronic>
-#  Modified for Hedgewars by Stepik777
+# Original:
+#   Copyright (c) 2008 Andreas Schneider <mail@cynapses.org>
+#   Modified for other libraries by Lasse Kärkkäinen <tronic>
+#   Modified for Hedgewars by Stepik777
+#   Redistribution and use is allowed according to the terms of the New
+#   BSD license.
 #
-#  Redistribution and use is allowed according to the terms of the New
-#  BSD license.
-#
+# Modifications:
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
 
 if (FFMPEG_LIBRARIES AND FFMPEG_INCLUDE_DIR)
   # in cache already

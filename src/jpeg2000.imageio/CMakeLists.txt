@@ -1,3 +1,7 @@
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
 if (OPENJPEG_FOUND)
     if (${OPENJPEG_VERSION} VERSION_LESS 2.0)
         # Old OpenJpeg 1.5. Remove this eventually.

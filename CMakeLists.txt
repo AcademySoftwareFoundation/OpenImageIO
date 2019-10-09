@@ -1,3 +1,7 @@
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
 cmake_minimum_required (VERSION 3.12)
 project (OpenImageIO VERSION 2.1.5.0
          HOMEPAGE_URL "https://openimageio.org"
