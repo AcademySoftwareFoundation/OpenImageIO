@@ -47,7 +47,7 @@ else ifeq (${OIIO_SPIREZ},1)
     PYLIB_LIB_PREFIX ?= 0
     PYLIB_INCLUDE_SONAME ?= 0
     MY_CMAKE_FLAGS += -DOIIO_SPIREZ=1 -DOIIO_REZ_PACKAGE_NAME=${OIIO_REZ_NAME}
-    MY_CMAKE_FLAGS += -DCMAKE_DEBUG_POSTFIX=_debug
+    MY_CMAKE_FLAGS += -DCMAKE_DEBUG_POSTFIX=_d
 else
     $(info Building generic OpenImageIO)
     NAMESPACE ?= 'OpenImageIO'
@@ -369,9 +369,9 @@ local: dist
 
 .PHONY: spcomp2_install spcomp2_install_local spi clean all
 
-spi: MY_CMAKE_FLAGS += -DCMAKE_DEBUG_POSTFIX=_debug
+spi: MY_CMAKE_FLAGS += -DCMAKE_DEBUG_POSTFIX=_d
 spi: dist debug
-	cp ${dist_dir}.debug/lib/lib*debug* ${dist_dir}/lib
+	cp ${dist_dir}.debug/lib/lib*_d.* ${dist_dir}/lib
 
 
 comma:= ,
