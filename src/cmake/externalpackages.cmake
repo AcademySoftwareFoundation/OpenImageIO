@@ -205,9 +205,6 @@ option (USE_EXTERNAL_PUGIXML "Use an externally built shared library version of 
 if (USE_EXTERNAL_PUGIXML)
     oiio_find_package (PugiXML REQUIRED
                        DEFINITIONS -DUSE_EXTERNAL_PUGIXML=1)
-    # insert include path to pugixml first, to ensure that the external
-    # pugixml is found, and not the one in OIIO's include directory.
-    include_directories (BEFORE ${PUGIXML_INCLUDES})
 endif()
 
 
@@ -289,7 +286,7 @@ macro (find_or_download_pybind11)
         find_package (Pybind11 ${BUILD_PYBIND11_MINIMUM_VERSION} QUIET)
     endif ()
     # Check for certain buggy versions
-    if (PYBIND11_FOUND AND (${USE_CPP} STREQUAL "11") AND
+    if (PYBIND11_FOUND AND (${CMAKE_CXX_STANDARD} VERSION_LESS_EQUAL 11) AND
         ("${PYBIND11_VERSION}" VERSION_EQUAL "2.4.0" OR
          "${PYBIND11_VERSION}" VERSION_EQUAL "2.4.1"))
         message (WARNING "pybind11 ${PYBIND11_VERSION} is buggy and not compatible with C++11, downloading our own.")

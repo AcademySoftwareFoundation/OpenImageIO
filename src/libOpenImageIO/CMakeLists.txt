@@ -89,12 +89,17 @@ set (libOpenImageIO_srcs
                          )
 
 
+add_library (OpenImageIO ${libOpenImageIO_srcs})
+
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
 if (EMBEDPLUGINS)
-    add_definitions ("-DEMBED_PLUGINS=1"
-                     ${format_plugin_definitions})
-    include_directories (${format_plugin_include_dirs})
+    target_compile_definitions (OpenImageIO
+                                PRIVATE
+                                    EMBED_PLUGINS=1
+                                    ${format_plugin_definitions})
+    target_include_directories (OpenImageIO
+                                PRIVATE ${format_plugin_include_dirs})
 
     # Organize the embedded plugins into source folders
     set (plugin_types "")
@@ -114,8 +119,6 @@ endif ()
 # Source groups for libutil and libtexture
 source_group ("libutil"    REGULAR_EXPRESSION ".+/libutil/.+")
 source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
-
-add_library (OpenImageIO ${libOpenImageIO_srcs})
 
 target_include_directories (OpenImageIO
                             PUBLIC
@@ -142,6 +145,9 @@ target_link_libraries (OpenImageIO
         )
 
 if (USE_EXTERNAL_PUGIXML)
+    # insert include path to pugixml first, to ensure that the external
+    # pugixml is found, and not the one in OIIO's include directory.
+    target_include_directories (OpenImageIO PRIVATE BEFORE ${PUGIXML_INCLUDES})
     target_link_libraries (OpenImageIO PRIVATE ${PUGIXML_LIBRARIES})
 endif()
 

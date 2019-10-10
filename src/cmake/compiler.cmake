@@ -14,7 +14,12 @@ endif ()
 message (STATUS "CMAKE_CXX_COMPILER     = ${CMAKE_CXX_COMPILER}")
 message (STATUS "CMAKE_CXX_COMPILER_ID  = ${CMAKE_CXX_COMPILER_ID}")
 
-set (USE_CPP 11 CACHE STRING "C++ standard to prefer (11, 14, 17, etc.)")
+# Require C++11 and disable extensions for all targets
+set (CMAKE_CXX_STANDARD 11 CACHE STRING "C++ standard to prefer (11, 14, 17, etc.)")
+set (CMAKE_CXX_STANDARD_REQUIRED ON)
+set (CMAKE_CXX_EXTENSIONS OFF)
+message (STATUS "Building for C++${CMAKE_CXX_STANDARD}")
+
 option (USE_LIBCPLUSPLUS "Compile with clang libc++" OFF)
 set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
 option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
@@ -193,23 +198,9 @@ if (CCACHE_FOUND AND USE_CCACHE)
     endif ()
 endif ()
 
-set (CSTD_FLAGS "")
-if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_INTEL)
-    if (USE_CPP VERSION_EQUAL 17)
-        message (STATUS "Building for C++17")
-        set (CSTD_FLAGS "-std=c++17")
-    elseif (USE_CPP VERSION_EQUAL 14)
-        message (STATUS "Building for C++14")
-        set (CSTD_FLAGS "-std=c++14")
-    else ()
-        message (STATUS "Building for C++11")
-        set (CSTD_FLAGS "-std=c++11")
-    endif ()
-    add_compile_options (${CSTD_FLAGS})
-    if (CMAKE_COMPILER_IS_CLANG)
-        # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
-        add_compile_options ("-Wno-deprecated-register")
-    endif ()
+if (CMAKE_COMPILER_IS_CLANG)
+    # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
+    add_compile_options ("-Wno-deprecated-register")
 endif ()
 
 if (USE_LIBCPLUSPLUS AND CMAKE_COMPILER_IS_CLANG)
@@ -269,7 +260,6 @@ include (CheckCXXSourceRuns)
 
 # Find out if it's safe for us to use std::regex or if we need boost.regex
 cmake_push_check_state ()
-set (CMAKE_REQUIRED_DEFINITIONS ${CSTD_FLAGS})
 check_cxx_source_runs("
       #include <regex>
       int main() {

@@ -15,7 +15,7 @@ jobs:
       - name: all
         env:
           CXX: g++-6
-          USE_CPP: 11
+          CMAKE_CXX_STANDARD: 11
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -29,7 +29,7 @@ jobs:
       - name: all
         env:
           CXX: g++-7
-          USE_CPP: 14
+          CMAKE_CXX_STANDARD: 14
           USE_SIMD: avx
           DEBUG: 1
         run: |
@@ -45,7 +45,7 @@ jobs:
       - name: all
         env:
           CXX: g++-8
-          USE_CPP: 14
+          CMAKE_CXX_STANDARD: 14
           USE_SIMD: avx2,f16c
           EXRBRANCH: v2.4.0
         run: |
@@ -61,7 +61,7 @@ jobs:
       - name: all
         env:
           CXX: g++-9
-          USE_CPP: 17
+          CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
           EXRBRANCH: v2.4.0
         run: |
@@ -130,7 +130,7 @@ jobs:
       - name: all
         env:
           CXX: g++-7
-          USE_CPP: 14
+          CMAKE_CXX_STANDARD: 14
           SANITIZE: address
           USE_PYTHON: 0
         run: |
@@ -147,7 +147,7 @@ jobs:
       - name: all
         env:
           CXX: g++-7
-          USE_CPP: 14
+          CMAKE_CXX_STANDARD: 14
           BUILD_SHARED_LIBS: OFF
         run: |
             source src/build-scripts/ci-startup.bash
@@ -182,7 +182,7 @@ jobs:
   #     - name: all
   #       env:
   #         CXX: g++-4.8
-  #         USE_CPP: 11
+  #         CMAKE_CXX_STANDARD: 11
   #         USE_LIBHEIF: 0
   #       run: |
   #           source src/build-scripts/ci-startup.bash
