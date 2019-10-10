@@ -126,7 +126,7 @@ matrix:
       - name: "VFX Platform 2018 (gcc6, cpp14, exr2.2), sse4.2"
         os: linux
         compiler: gcc
-        env: WHICHGCC=6 USE_CPP=14 USE_SIMD=sse4.2 EXRBRANCH=v2.2.0
+        env: WHICHGCC=6 CMAKE_CXX_STANDARD=14 USE_SIMD=sse4.2 EXRBRANCH=v2.2.0
         addons:
           apt:
             sources: *add-sources

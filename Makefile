@@ -169,7 +169,11 @@ MY_CMAKE_FLAGS += -DCMAKE_CXX_COMPILER:STRING="${MYCXX}"
 endif
 
 ifneq (${USE_CPP},)
-MY_CMAKE_FLAGS += -DUSE_CPP=${USE_CPP}
+MY_CMAKE_FLAGS += -DCMAKE_CXX_STANDARD=${USE_CPP}
+endif
+
+ifneq (${CMAKE_CXX_STANDARD},)
+MY_CMAKE_FLAGS += -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
 endif
 
 ifneq (${USE_LIBCPLUSPLUS},)
@@ -374,7 +378,7 @@ help:
 	@echo "      STOP_ON_WARNING=0        Do not stop building if compiler warns"
 	@echo "      OPENIMAGEIO_SITE=xx      Use custom site build mods"
 	@echo "      MYCC=xx MYCXX=yy         Use custom compilers"
-	@echo "      USE_CPP=14               Compile in C++14 mode (default is C++11)"
+	@echo "      CMAKE_CXX_STANDARD=14    Compile in C++14 mode (default is C++11)"
 	@echo "      USE_LIBCPLUSPLUS=1       For clang, use libc++"
 	@echo "      GLIBCXX_USE_CXX11_ABI=1  For gcc, use the new string ABI"
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"

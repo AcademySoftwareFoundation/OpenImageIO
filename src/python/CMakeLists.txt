@@ -49,9 +49,11 @@ if (VERBOSE)
     message (STATUS "pybind11 headers ${PYBIND11_INCLUDES}")
 endif ()
 
-include_directories (${PYTHON_INCLUDE_PATH} ${PYBIND11_INCLUDES})
-
 add_library (${target_name} MODULE ${python_srcs})
+
+target_include_directories (${target_name}
+                            PRIVATE
+                                ${PYTHON_INCLUDE_PATH} ${PYBIND11_INCLUDES})
 
 target_link_libraries (${target_name} PRIVATE OpenImageIO)
 
@@ -63,12 +65,14 @@ endif ()
 
 
 if(NOT PYLIB_LIB_PREFIX)
-    add_definitions("-DOIIO_PYMODULE_NAME=OpenImageIO${PYMODULE_SUFFIX}")
+    target_compile_definitions (${target_name}
+                                PRIVATE OIIO_PYMODULE_NAME=OpenImageIO${PYMODULE_SUFFIX})
     set_target_properties (${target_name} PROPERTIES
                              OUTPUT_NAME OpenImageIO
                              PREFIX "")
 else()
-    add_definitions("-DOIIO_PYMODULE_NAME=PyOpenImageIO${PYMODULE_SUFFIX}")
+    target_compile_definitions (${target_name}
+                                PRIVATE OIIO_PYMODULE_NAME=PyOpenImageIO${PYMODULE_SUFFIX})
     set_target_properties (${target_name} PROPERTIES
                              OUTPUT_NAME PyOpenImageIO
                              PREFIX lib)
