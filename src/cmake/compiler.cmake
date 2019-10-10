@@ -198,13 +198,9 @@ if (CCACHE_FOUND AND USE_CCACHE)
     endif ()
 endif ()
 
-set (CSTD_FLAGS "")
-if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_INTEL)
-    set (CSTD_FLAGS "-std=c++${CMAKE_CXX_STANDARD}")
-    if (CMAKE_COMPILER_IS_CLANG)
-        # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
-        add_compile_options ("-Wno-deprecated-register")
-    endif ()
+if (CMAKE_COMPILER_IS_CLANG)
+    # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
+    add_compile_options ("-Wno-deprecated-register")
 endif ()
 
 if (USE_LIBCPLUSPLUS AND CMAKE_COMPILER_IS_CLANG)
@@ -264,7 +260,6 @@ include (CheckCXXSourceRuns)
 
 # Find out if it's safe for us to use std::regex or if we need boost.regex
 cmake_push_check_state ()
-set (CMAKE_REQUIRED_DEFINITIONS ${CSTD_FLAGS})
 check_cxx_source_runs("
       #include <regex>
       int main() {
