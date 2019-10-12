@@ -101,7 +101,7 @@ public:
         }
     }
 
-    size_t data_offset(int pixel, int channel, int sample)
+    size_t data_offset(int64_t pixel, int channel, int sample)
     {
         DASSERT(int(m_cumcapacity.size()) > pixel);
         DASSERT(m_capacity[pixel] >= m_nsamples[pixel]);
@@ -109,7 +109,7 @@ public:
                + m_channeloffsets[channel];
     }
 
-    void* data_ptr(int pixel, int channel, int sample)
+    void* data_ptr(int64_t pixel, int channel, int sample)
     {
         size_t offset = data_offset(pixel, channel, sample);
         DASSERT(offset < m_data.size());
@@ -195,7 +195,7 @@ DeepData::operator=(const DeepData& d)
 
 
 
-int
+int64_t
 DeepData::pixels() const
 {
     return m_npixels;
@@ -311,7 +311,7 @@ is_or_endswithdot(string_view name, string_view suffix)
 
 
 void
-DeepData::init(int npix, int nchan, cspan<TypeDesc> channeltypes,
+DeepData::init(int64_t npix, int nchan, cspan<TypeDesc> channeltypes,
                cspan<std::string> channelnames)
 {
     clear();
@@ -454,7 +454,7 @@ DeepData::allocated() const
 
 
 int
-DeepData::capacity(int pixel) const
+DeepData::capacity(int64_t pixel) const
 {
     if (pixel < 0 || pixel >= m_npixels)
         return 0;
@@ -465,7 +465,7 @@ DeepData::capacity(int pixel) const
 
 
 void
-DeepData::set_capacity(int pixel, int samps)
+DeepData::set_capacity(int64_t pixel, int samps)
 {
     if (pixel < 0 || pixel >= m_npixels)
         return;
@@ -498,7 +498,7 @@ DeepData::set_capacity(int pixel, int samps)
 
 
 int
-DeepData::samples(int pixel) const
+DeepData::samples(int64_t pixel) const
 {
     if (pixel < 0 || pixel >= m_npixels)
         return 0;
@@ -509,7 +509,7 @@ DeepData::samples(int pixel) const
 
 
 void
-DeepData::set_samples(int pixel, int samps)
+DeepData::set_samples(int64_t pixel, int samps)
 {
     if (pixel < 0 || pixel >= m_npixels)
         return;
@@ -550,7 +550,7 @@ DeepData::set_all_samples(cspan<unsigned int> samples)
 
 
 void
-DeepData::insert_samples(int pixel, int samplepos, int n)
+DeepData::insert_samples(int64_t pixel, int samplepos, int n)
 {
     int oldsamps = samples(pixel);
     if (oldsamps + n > int(m_impl->m_capacity[pixel]))
@@ -576,7 +576,7 @@ DeepData::insert_samples(int pixel, int samplepos, int n)
 
 
 void
-DeepData::erase_samples(int pixel, int samplepos, int n)
+DeepData::erase_samples(int64_t pixel, int samplepos, int n)
 {
     // DON'T reduce the capacity! Just leave holes for speed.
     // Because erase_samples only moves data within a pixel and doesn't
@@ -597,7 +597,7 @@ DeepData::erase_samples(int pixel, int samplepos, int n)
 
 
 void*
-DeepData::data_ptr(int pixel, int channel, int sample)
+DeepData::data_ptr(int64_t pixel, int channel, int sample)
 {
     m_impl->alloc(m_npixels);
     if (pixel < 0 || pixel >= m_npixels || channel < 0 || channel >= m_nchannels
@@ -609,7 +609,7 @@ DeepData::data_ptr(int pixel, int channel, int sample)
 
 
 const void*
-DeepData::data_ptr(int pixel, int channel, int sample) const
+DeepData::data_ptr(int64_t pixel, int channel, int sample) const
 {
     if (pixel < 0 || pixel >= m_npixels || channel < 0 || channel >= m_nchannels
         || !m_impl || !m_impl->m_data.size() || sample < 0
@@ -621,7 +621,7 @@ DeepData::data_ptr(int pixel, int channel, int sample) const
 
 
 float
-DeepData::deep_value(int pixel, int channel, int sample) const
+DeepData::deep_value(int64_t pixel, int channel, int sample) const
 {
     const void* ptr = data_ptr(pixel, channel, sample);
     if (!ptr)
@@ -659,7 +659,7 @@ DeepData::deep_value(int pixel, int channel, int sample) const
 
 
 uint32_t
-DeepData::deep_value_uint(int pixel, int channel, int sample) const
+DeepData::deep_value_uint(int64_t pixel, int channel, int sample) const
 {
     const void* ptr = data_ptr(pixel, channel, sample);
     if (!ptr)
@@ -698,7 +698,7 @@ DeepData::deep_value_uint(int pixel, int channel, int sample) const
 
 
 void
-DeepData::set_deep_value(int pixel, int channel, int sample, float value)
+DeepData::set_deep_value(int64_t pixel, int channel, int sample, float value)
 {
     void* ptr = data_ptr(pixel, channel, sample);
     if (!ptr)
@@ -741,7 +741,7 @@ DeepData::set_deep_value(int pixel, int channel, int sample, float value)
 
 
 void
-DeepData::set_deep_value(int pixel, int channel, int sample, uint32_t value)
+DeepData::set_deep_value(int64_t pixel, int channel, int sample, uint32_t value)
 {
     void* ptr = data_ptr(pixel, channel, sample);
     if (!ptr)
@@ -834,7 +834,7 @@ DeepData::get_pointers(std::vector<void*>& pointers) const
 
 
 bool
-DeepData::copy_deep_sample(int pixel, int sample, const DeepData& src,
+DeepData::copy_deep_sample(int64_t pixel, int sample, const DeepData& src,
                            int srcpixel, int srcsample)
 {
     const void* srcdata = src.data_ptr(srcpixel, 0, srcsample);
@@ -858,7 +858,7 @@ DeepData::copy_deep_sample(int pixel, int sample, const DeepData& src,
 
 
 bool
-DeepData::copy_deep_pixel(int pixel, const DeepData& src, int srcpixel)
+DeepData::copy_deep_pixel(int64_t pixel, const DeepData& src, int srcpixel)
 {
     if (pixel < 0 || pixel >= pixels()) {
         // std::cout << "dst pixel was " << pixel << "\n";
@@ -905,7 +905,7 @@ DeepData::copy_deep_pixel(int pixel, const DeepData& src, int srcpixel)
 
 
 bool
-DeepData::split(int pixel, float depth)
+DeepData::split(int64_t pixel, float depth)
 {
     using std::expm1;
     using std::log1p;
@@ -1017,7 +1017,7 @@ private:
 
 
 void
-DeepData::sort(int pixel)
+DeepData::sort(int64_t pixel)
 {
     int zchan = m_impl->m_z_channel;
     if (zchan < 0)
@@ -1049,7 +1049,7 @@ DeepData::sort(int pixel)
 
 
 void
-DeepData::merge_overlaps(int pixel)
+DeepData::merge_overlaps(int64_t pixel)
 {
     using std::log1p;
     int zchan     = m_impl->m_z_channel;
@@ -1127,7 +1127,7 @@ DeepData::merge_overlaps(int pixel)
 
 
 void
-DeepData::merge_deep_pixels(int pixel, const DeepData& src, int srcpixel)
+DeepData::merge_deep_pixels(int64_t pixel, const DeepData& src, int srcpixel)
 {
     int srcsamples = src.samples(srcpixel);
     if (srcsamples == 0)
@@ -1166,7 +1166,7 @@ DeepData::merge_deep_pixels(int pixel, const DeepData& src, int srcpixel)
 
 
 float
-DeepData::opaque_z(int pixel) const
+DeepData::opaque_z(int64_t pixel) const
 {
     if (pixel < 0)
         return std::numeric_limits<float>::max();
@@ -1211,7 +1211,7 @@ DeepData::opaque_z(int pixel) const
 
 
 void
-DeepData::occlusion_cull(int pixel)
+DeepData::occlusion_cull(int64_t pixel)
 {
     int alpha_channel = m_impl->m_alpha_channel;
     if (alpha_channel < 0)
