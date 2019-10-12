@@ -1174,11 +1174,16 @@ Oiiotool::express_parse_factors(const string_view expr, string_view& s,
         // lval is a number
         lval = Strutil::from_string<float>(atom);
         while (s.size()) {
-            char op;
+            enum class Ops { mul, div, idiv, imod };
+            Ops op;
             if (Strutil::parse_char(s, '*'))
-                op = '*';
+                op = Ops::mul;
+            else if (Strutil::parse_prefix(s, "//"))
+                op = Ops::idiv;
             else if (Strutil::parse_char(s, '/'))
-                op = '/';
+                op = Ops::div;
+            else if (Strutil::parse_char(s, '%'))
+                op = Ops::imod;
             else {
                 // no more factors
                 break;
@@ -1200,10 +1205,17 @@ Oiiotool::express_parse_factors(const string_view expr, string_view& s,
 
             // rval is a number, so we can math
             rval = Strutil::from_string<float>(atom);
-            if (op == '*')
+            if (op == Ops::mul)
                 lval *= rval;
-            else  // op == '/'
+            else if (op == Ops::div)
                 lval /= rval;
+            else if (op == Ops::idiv) {
+                int ilval(lval), irval(rval);
+                lval = float(rval ? ilval / irval : 0);
+            } else if (op == Ops::imod) {
+                int ilval(lval), irval(rval);
+                lval = float(rval ? ilval % irval : 0);
+            }
         }
 
         result = Strutil::sprintf("%g", lval);

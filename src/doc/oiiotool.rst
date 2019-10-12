@@ -227,9 +227,10 @@ contents of an expression may be any of:
 
 * Arithmetic
 
-  Sub-expressions may be joined by `+`, `-`, `*`, or `/` for arithmetic
-  operations. Parentheses are supported, and standard operator precedence
-  applies.
+  Sub-expressions may be joined by `+`, `-`, `*`, `/`, `//`, and `%` for
+  arithmetic operations. (Note that like in Python 3, `/` is floating point
+  division, while `//` signifies integer division.) Parentheses are
+  supported, and standard operator precedence applies.
 
 * Special variables
 
