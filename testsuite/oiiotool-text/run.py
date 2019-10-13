@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+import os
+
+oiiotoolsrcdir = os.path.join(OIIO_TESTSUITE_ROOT, "oiiotool", "src")
 
 # test --text
 command += oiiotool ("--create 320x240 3 "
@@ -20,7 +24,7 @@ command += oiiotool ("--create 320x320 3 "
             "-d uint8 -o aligned.tif >> out.txt")
 
 # test shadow
-command += oiiotool ("../oiiotool/src/tahoe-tiny.tif "
+command += oiiotool (oiiotoolsrcdir + "/tahoe-tiny.tif "
             "--text:x=64:y=20:xalign=center:size=20:shadow=0 'shadow = 0' "
             "--text:x=64:y=40:xalign=center:size=20:shadow=1 'shadow = 1' "
             "--text:x=64:y=60:xalign=center:size=20:shadow=2 'shadow = 2' "
