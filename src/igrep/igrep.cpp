@@ -166,7 +166,7 @@ main(int argc, const char* argv[])
     }
     if (help) {
         ap.usage();
-        exit(EXIT_FAILURE);
+        exit(EXIT_SUCCESS);
     }
 
 #if USE_BOOST_REGEX
