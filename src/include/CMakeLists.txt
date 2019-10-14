@@ -19,18 +19,26 @@ endif ()
 # namespace defined in oiioversion.h
 string (REGEX REPLACE "\\." "_" MANGLED_SOVERSION ${SOVERSION})
 set (OIIO_VERSION_NS "v${MANGLED_SOVERSION}")
-set (OIIO_BUILD_CPP11 1)
-if (${CMAKE_CXX_STANDARD} VERSION_GREATER_EQUAL 14)
-    set (OIIO_BUILD_CPP14 1)
-endif ()
-if (${CMAKE_CXX_STANDARD} VERSION_GREATER_EQUAL 17)
-    set (OIIO_BUILD_CPP17 1)
-endif ()
-if (${CMAKE_CXX_STANDARD} VERSION_GREATER_EQUAL 20)
-    set (OIIO_BUILD_CPP20 1)
-endif ()
-# Note: When our CMake minimum is at least 3.7, we can switch to less
-# complex statements with VERSION_GREATER_EQUAL.
+
+option (USE_GENERATED_EXPORT_HEADER "Use CMake-generated export header" OFF)
+if (USE_GENERATED_EXPORT_HEADER)
+    include (GenerateExportHeader)
+    set (exportextras "\n#define OIIO_EXPORT OIIO_API\n")
+    generate_export_header (OpenImageIO
+          # [BASE_NAME baseName]
+          EXPORT_FILE_NAME export.h
+          EXPORT_MACRO_NAME OIIO_API
+          NO_EXPORT_MACRO_NAME OIIO_LOCAL
+          DEPRECATED_MACRO_NAME OPENIMAGEIO_DEPRECATED
+          # STATIC_DEFINE staticDefine
+          # [NO_DEPRECATED_MACRO_NAME noDeprecatedMacroName]
+          # [DEFINE_NO_DEPRECATED]
+          # [PREFIX_NAME prefix]
+          CUSTOM_CONTENT_FROM_VARIABLE exportextras
+          )
+    list (REMOVE_ITEM public_headers OpenImageIO/export.h)
+    list (APPEND public_headers "${CMAKE_BINARY_DIR}/src/include/export.h")
+endif()
 
 configure_file(OpenImageIO/oiioversion.h.in "${CMAKE_BINARY_DIR}/include/OpenImageIO/oiioversion.h" @ONLY)
 list(APPEND public_headers "${CMAKE_BINARY_DIR}/include/OpenImageIO/oiioversion.h")

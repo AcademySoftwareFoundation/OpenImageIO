@@ -62,7 +62,9 @@ macro (add_oiio_plugin)
         set (_target_name ${CMAKE_CURRENT_SOURCE_DIR})
         get_filename_component (_target_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
         add_library (${_target_name} MODULE ${_plugin_UNPARSED_ARGUMENTS})
-        target_compile_definitions (${_target_name} PRIVATE ${_plugin_DEFINITIONS})
+        target_compile_definitions (${_target_name} PRIVATE
+                                    ${_plugin_DEFINITIONS}
+                                    OpenImageIO_EXPORTS)
         target_include_directories (${_target_name} PRIVATE ${_plugin_INCLUDE_DIRS})
         target_link_libraries (${_target_name} PUBLIC OpenImageIO
                                                PRIVATE ${_plugin_LINK_LIBRARIES})

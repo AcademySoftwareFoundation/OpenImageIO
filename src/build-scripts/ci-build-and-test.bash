@@ -24,7 +24,7 @@ if [[ "$ARCH" == "windows64" ]] ; then
     cmake ../.. -G "$CMAKE_GENERATOR" \
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
         -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
-        -DCMAKE_INSTALL_PREFIX="$OPENIMAGEIO_ROOT_DIR" \
+        -DCMAKE_INSTALL_PREFIX="$OpenImageIO_ROOT" \
         -DPYTHON_VERSION="$PYTHON_VERSION" \
         $MY_CMAKE_FLAGS -DVERBOSE=1
     echo "Parallel build $CMAKE_BUILD_PARALLEL_LEVEL"
@@ -38,11 +38,16 @@ else
     make $MAKEFLAGS $PAR_MAKEFLAGS $BUILD_FLAGS $BUILDTARGET
 fi
 
-echo "OPENIMAGEIO_ROOT_DIR $OPENIMAGEIO_ROOT_DIR"
-ls -R -l "$OPENIMAGEIO_ROOT_DIR"
+echo "OpenImageIO_ROOT $OpenImageIO_ROOT"
+ls -R -l "$OpenImageIO_ROOT"
+
+if [[ -e ./build/$PLATFORM/src/include/export.h ]] ; then
+    echo "export.h is:"
+    cat ./build/$PLATFORM/src/include/export.h
+fi
 
 if [[ "$SKIP_TESTS" == "" ]] ; then
-    $OPENIMAGEIO_ROOT_DIR/bin/oiiotool --help
+    $OpenImageIO_ROOT/bin/oiiotool --help
     make $BUILD_FLAGS test
 fi
 

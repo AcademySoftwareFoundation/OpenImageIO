@@ -49,7 +49,7 @@ endfunction ()
 
 
 
-# oiio_find_package(pkgname ..) is a wrapper for find_package, with the
+# checked_find_package(pkgname ..) is a wrapper for find_package, with the
 # following extra features:
 #   * If either USE_<pkgname> or the all-uppercase USE_PKGNAME exists as
 #     either a CMake or environment variable, is nonempty by contains a
@@ -74,7 +74,7 @@ endfunction ()
 # N.B. This needs to be a macro, not a function, because the find modules
 # will set(blah val PARENT_SCOPE) and we need that to be the global scope,
 # not merely the scope for this function.
-macro (oiio_find_package pkgname)
+macro (checked_find_package pkgname)
     cmake_parse_arguments(_pkg "" "ENABLE;ISDEPOF" "DEFINITIONS;PRINT;DEPS" ${ARGN})
         # Arguments: <prefix> noValueKeywords singleValueKeywords multiValueKeywords argsToParse
     string (TOUPPER ${pkgname} pkgname_upper)
@@ -159,7 +159,7 @@ else ()
     # to set the expected variables printed below. So until that's fixed
     # force FindBoost.cmake to use the original brute force path.
     set (Boost_NO_BOOST_CMAKE ON)
-    oiio_find_package (Boost 1.53 REQUIRED
+    checked_find_package (Boost 1.53 REQUIRED
                        COMPONENTS ${Boost_COMPONENTS}
                        PRINT Boost_INCLUDE_DIRS Boost_LIBRARIES
                       )
@@ -181,21 +181,26 @@ link_directories ("${Boost_LIBRARY_DIRS}")
 # Dependencies for required formats and features. These are so critical
 # that we will not complete the build if they are not found.
 
-oiio_find_package (ZLIB REQUIRED)  # Needed by several packages
-oiio_find_package (PNG REQUIRED)
-oiio_find_package (TIFF 3.0 REQUIRED)
+checked_find_package (ZLIB REQUIRED)  # Needed by several packages
+checked_find_package (PNG REQUIRED)
+checked_find_package (TIFF 3.0 REQUIRED)
 
 # IlmBase & OpenEXR
-oiio_find_package (OpenEXR 2.0 REQUIRED)
+checked_find_package (OpenEXR 2.0 REQUIRED)
 # We use Imath so commonly, may as well include it everywhere.
 include_directories ("${OPENEXR_INCLUDES}" "${ILMBASE_INCLUDES}"
                      "${ILMBASE_INCLUDES}/OpenEXR")
+if (CMAKE_COMPILER_IS_CLANG AND OPENEXR_VERSION VERSION_LESS 2.3)
+    # clang C++ >= 11 doesn't like 'register' keyword in old exr headers
+    add_compile_options (-Wno-deprecated-register)
+endif ()
+
 
 # JPEG -- prefer Turbo-JPEG to regular libjpeg
-oiio_find_package (JPEGTurbo
+checked_find_package (JPEGTurbo
                    DEFINITIONS -DUSE_JPEG_TURBO=1)
 if (NOT JPEG_FOUND) # Try to find the non-turbo version
-    oiio_find_package (JPEG REQUIRED)
+    checked_find_package (JPEG REQUIRED)
 endif ()
 
 # Pugixml setup.  Normally we just use the version bundled with oiio, but
@@ -203,7 +208,7 @@ endif ()
 # allow this to be overridden to use the distro-provided package if desired.
 option (USE_EXTERNAL_PUGIXML "Use an externally built shared library version of the pugixml library" OFF)
 if (USE_EXTERNAL_PUGIXML)
-    oiio_find_package (PugiXML REQUIRED
+    checked_find_package (PugiXML REQUIRED
                        DEFINITIONS -DUSE_EXTERNAL_PUGIXML=1)
 endif()
 
@@ -213,48 +218,48 @@ endif()
 # Dependencies for optional formats and features. If these are not found,
 # we will continue building, but the related functionality will be disabled.
 
-oiio_find_package (BZip2)   # Used by ffmpeg and freetype
+checked_find_package (BZip2)   # Used by ffmpeg and freetype
 if (NOT BZIP2_FOUND)
     set (BZIP2_LIBRARIES "")  # TODO: why does it break without this?
 endif ()
 
-oiio_find_package (Freetype
+checked_find_package (Freetype
                    DEFINITIONS  -DUSE_FREETYPE=1 )
 
-oiio_find_package (HDF5
+checked_find_package (HDF5
                    ISDEPOF      Field3D)
-oiio_find_package (OpenColorIO
+checked_find_package (OpenColorIO
                    DEFINITIONS  -DUSE_OCIO=1 -DUSE_OPENCOLORIO=1)
-oiio_find_package (OpenCV
+checked_find_package (OpenCV
                    DEFINITIONS  -DUSE_OPENCV=1)
 
 # Intel TBB
-oiio_find_package (TBB 2017
+checked_find_package (TBB 2017
                    DEFINITIONS  -DUSE_TBB=1
                    ISDEPOF      OpenVDB)
 
-oiio_find_package (DCMTK 3.6.1)  # For DICOM images
-oiio_find_package (FFmpeg 2.6)
-oiio_find_package (Field3D
+checked_find_package (DCMTK 3.6.1)  # For DICOM images
+checked_find_package (FFmpeg 2.6)
+checked_find_package (Field3D
                    DEPS         HDF5
                    DEFINITIONS  -DUSE_FIELD3D=1)
-oiio_find_package (GIF 4)
-oiio_find_package (Libheif 1.3)  # For HEIF/HEIC format
-oiio_find_package (LibRaw)
-oiio_find_package (OpenJpeg)
-oiio_find_package (OpenVDB 5.0
+checked_find_package (GIF 4)
+checked_find_package (Libheif 1.3)  # For HEIF/HEIC format
+checked_find_package (LibRaw)
+checked_find_package (OpenJpeg)
+checked_find_package (OpenVDB 5.0
                    DEPS         TBB
                    DEFINITIONS  -DUSE_OPENVDB=1)
-oiio_find_package (PTex)
-oiio_find_package (Webp)
+checked_find_package (PTex)
+checked_find_package (Webp)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
-oiio_find_package (R3DSDK)  # RED camera
+checked_find_package (R3DSDK)  # RED camera
 
 set (NUKE_VERSION "7.0" CACHE STRING "Nuke version to target")
-oiio_find_package (Nuke)
+checked_find_package (Nuke)
 
-oiio_find_package (OpenGL)   # used for iv
+checked_find_package (OpenGL)   # used for iv
 
 # Qt -- used for iv
 set (qt5_modules Core Gui Widgets)
@@ -262,7 +267,7 @@ if (OPENGL_FOUND)
     list (APPEND qt5_modules OpenGL)
 endif ()
 option (USE_QT "Use Qt if found" ON)
-oiio_find_package (Qt5 COMPONENTS ${qt5_modules})
+checked_find_package (Qt5 COMPONENTS ${qt5_modules})
 if (USE_QT AND NOT Qt5_FOUND AND APPLE)
     message (STATUS "  If you think you installed qt5 with Homebrew and it still doesn't work,")
     message (STATUS "  try:   export PATH=/usr/local/opt/qt5/bin:$PATH")
@@ -317,7 +322,7 @@ macro (find_or_download_pybind11)
             set (PYBIND11_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/ext/pybind11/include")
         endif ()
     endif ()
-    oiio_find_package (Pybind11 ${BUILD_PYBIND11_MINIMUM_VERSION})
+    checked_find_package (Pybind11 ${BUILD_PYBIND11_MINIMUM_VERSION})
 
     if (NOT PYBIND11_INCLUDES)
         message (FATAL_ERROR "pybind11 is missing! If it's not on your "
@@ -363,5 +368,5 @@ macro (find_or_download_robin_map)
         endif ()
         set (ROBINMAP_INCLUDE_DIR "${ROBINMAP_INSTALL_DIR}")
     endif ()
-    oiio_find_package (Robinmap REQUIRED)
+    checked_find_package (Robinmap REQUIRED)
 endmacro()

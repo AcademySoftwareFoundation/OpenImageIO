@@ -1,8 +1,9 @@
 ###########################################################################
 # OpenImageIO   https://www.openimageio.org
 # Copyright 2008-present Contributors to the OpenImageIO project.
-# BSD 3-clause license:
-#   https://github.com/OpenImageIO/oiio/blob/master/LICENSE
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+#
 # For an up-to-date version of this file, see:
 #   https://github.com/OpenImageIO/oiio/blob/master/src/cmake/Modules/FindOpenImageIO.cmake
 #
@@ -47,16 +48,13 @@ endif ()
 find_library ( OPENIMAGEIO_LIBRARY
                NAMES OpenImageIO${OIIO_LIBNAME_SUFFIX}
                HINTS ${OPENIMAGEIO_ROOT_DIR}
-               PATH_SUFFIXES lib64 lib
-               PATHS "${OPENIMAGEIO_ROOT_DIR}/lib" )
+               PATH_SUFFIXES lib64 lib )
 find_path ( OPENIMAGEIO_INCLUDE_DIR
             NAMES OpenImageIO/imageio.h
-            HINTS ${OPENIMAGEIO_ROOT_DIR}
-            PATH_SUFFIXES include )
+            HINTS ${OPENIMAGEIO_ROOT_DIR} )
 find_program ( OIIOTOOL_BIN
-               NAMES oiiotool oiiotool.exe
-               HINTS ${OPENIMAGEIO_ROOT_DIR}
-               PATH_SUFFIXES bin )
+               NAMES oiiotool
+               HINTS ${OPENIMAGEIO_ROOT_DIR} )
 
 # Try to figure out version number
 set (OIIO_VERSION_HEADER "${OPENIMAGEIO_INCLUDE_DIR}/OpenImageIO/oiioversion.h")
@@ -88,7 +86,7 @@ find_package_handle_standard_args (OpenImageIO
 if (OPENIMAGEIO_FOUND)
     set (OPENIMAGEIO_INCLUDES ${OPENIMAGEIO_INCLUDE_DIR})
     set (OPENIMAGEIO_LIBRARIES ${OPENIMAGEIO_LIBRARY})
-    get_filename_component (OPENIMAGEIO_LIBRARY_DIRS "${OPENIMAGEIO_LIBRARY}")
+    get_filename_component (OPENIMAGEIO_LIBRARY_DIRS "${OPENIMAGEIO_LIBRARY}" DIRECTORY)
     if (NOT OpenImageIO_FIND_QUIETLY)
         message ( STATUS "OpenImageIO includes     = ${OPENIMAGEIO_INCLUDE_DIR}" )
         message ( STATUS "OpenImageIO libraries    = ${OPENIMAGEIO_LIBRARIES}" )

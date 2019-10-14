@@ -5,7 +5,7 @@
 # Attempt to find the desired version, but fall back to other
 # additional versions.
 if (NOT PYTHONINTERP_FOUND)
-find_package (PythonInterp ${PYTHON_VERSION} REQUIRED)
+    find_package (PythonInterp ${PYTHON_VERSION} REQUIRED)
 endif ()
 
 # The version that was found may not be the default or user
@@ -52,8 +52,9 @@ endif ()
 add_library (${target_name} MODULE ${python_srcs})
 
 target_include_directories (${target_name}
-                            PRIVATE
-                                ${PYTHON_INCLUDE_PATH} ${PYBIND11_INCLUDES})
+                            SYSTEM PRIVATE ${PYTHON_INCLUDE_PATH})
+target_include_directories (${target_name}
+                            PRIVATE ${PYBIND11_INCLUDES})
 
 target_link_libraries (${target_name} PRIVATE OpenImageIO)
 

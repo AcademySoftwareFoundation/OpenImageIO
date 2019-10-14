@@ -53,12 +53,10 @@ set (GENERIC_INCLUDE_PATHS
 # Find the include file locations.
 find_path (ILMBASE_INCLUDE_PATH OpenEXR/IlmBaseConfig.h
            HINTS ${ILMBASE_INCLUDE_DIR} ${OPENEXR_INCLUDE_DIR}
-                 ${GENERIC_INCLUDE_PATHS}
-           PATH_SUFFIXES include )
+                 ${GENERIC_INCLUDE_PATHS} )
 find_path (OPENEXR_INCLUDE_PATH OpenEXR/OpenEXRConfig.h
            HINTS ${OPENEXR_INCLUDE_DIR}
-                 ${GENERIC_INCLUDE_PATHS}
-           PATH_SUFFIXES include )
+                 ${GENERIC_INCLUDE_PATHS} )
 
 # Try to figure out version number
 if (DEFINED _OPENEXR_VERSION AND NOT "${_OPENEXR_VERSION}" STREQUAL "")

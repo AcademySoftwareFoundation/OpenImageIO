@@ -19,6 +19,7 @@ if (WIN32)
     target_link_libraries (OpenImageIO_Util PRIVATE psapi)
 endif()
 
+target_compile_definitions(OpenImageIO_Util PRIVATE OpenImageIO_EXPORTS)
 
 if (VERBOSE)
     message(STATUS "Setting SOVERSION to: ${SOVERSION}")
@@ -30,12 +31,6 @@ set_target_properties(OpenImageIO_Util
                          OUTPUT_NAME OpenImageIO_Util${OIIO_LIBNAME_SUFFIX}
                          POSITION_INDEPENDENT_CODE ON
                      )
-
-# if (VISIBILITY_COMMAND)
-#     set_target_properties (OpenImageIO_Util
-#                            PROPERTIES
-#                            LINK_FLAGS "${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND}")
-# endif ()
 
 if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 9.0)
     set_property (SOURCE SHA1.cpp

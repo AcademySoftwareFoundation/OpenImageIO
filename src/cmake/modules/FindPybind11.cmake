@@ -7,9 +7,7 @@
 # PYBIND11_VERSION - version found
 
 find_path (PYBIND11_INCLUDE_DIR pybind11/pybind11.h
-           HINTS
-               "${PROJECT_SOURCE_DIR}/ext/pybind11/include"
-           PATH_SUFFIXES include
+           HINTS "${PROJECT_SOURCE_DIR}/ext/pybind11/include"
            )
 
 if (PYBIND11_INCLUDE_DIR)

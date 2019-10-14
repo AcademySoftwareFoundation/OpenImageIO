@@ -11,15 +11,10 @@
 
 find_path (OpenCV_INCLUDE_DIR
            NAMES opencv4/opencv2/opencv.hpp opencv2/opencv.hpp
-           HINTS
-               "${OpenCV_ROOT}/include"
-               "${OpenCV_ROOT}/include/opencv4"
-               "$ENV{OpenCV_ROOT}/include"
            PATHS
-               /usr/local/include
                /opt/local/include
-               /usr/local/opt/opencv4/include
-               /usr/local/opt/opencv3/include
+               /usr/local/opt/opencv4
+               /usr/local/opt/opencv3
            PATH_SUFFIXES opencv4
            )
 

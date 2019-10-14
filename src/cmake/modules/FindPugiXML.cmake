@@ -8,8 +8,7 @@
 
 find_path (PUGIXML_INCLUDE_DIR
            NAMES pugixml.hpp
-           HINTS /usr/local/include/pugixml-1.8
-           PATH_SUFFIXES include)
+           HINTS /usr/local/include/pugixml-1.8)
 find_library (PUGIXML_LIBRARY
               NAMES pugixml
               HINTS /usr/local/lib/pugixml-1.8)
