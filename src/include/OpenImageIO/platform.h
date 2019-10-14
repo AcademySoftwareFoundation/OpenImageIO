@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <cstdlib>
 #include <utility>  // std::forward
 
 // Make sure all platforms have the explicit sized integer types
@@ -161,11 +162,15 @@
 #endif
 
 
-/// allocates memory, equivalent of C99 type var_name[size]
-#define OIIO_ALLOCA(type, size) ((size) != 0 ? ((type*)alloca((size) * sizeof (type))) : nullptr)
+/// allocates smallish stack memory, equivalent of C99 type var_name[size]
+#if defined(__GNUC__)
+#    define OIIO_ALLOCA(type, size) ((size) != 0 ? ((type*)__builtin_alloca((size) * sizeof(type))) : nullptr)
+#else
+#    define OIIO_ALLOCA(type, size) ((size) != 0 ? ((type*)alloca((size) * sizeof(type))) : nullptr)
+#endif
 
 /// Deprecated (for namespace pollution reasons)
-#define ALLOCA(type, size) ((size) != 0 ? ((type*)alloca((size) * sizeof (type))) : nullptr)
+#define ALLOCA(type, size) OIIO_ALLOCA(type, size)
 
 
 // Define a macro that can be used for memory alignment.
