@@ -571,7 +571,7 @@ color_count_(const ImageBuf& src, atomic_ll* count, int ncolors,
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         int nchannels = src.nchannels();
-        long long* n  = ALLOCA(long long, ncolors);
+        long long* n  = OIIO_ALLOCA(long long, ncolors);
         for (int col = 0; col < ncolors; ++col)
             n[col] = 0;
         for (ImageBuf::ConstIterator<T> p(src, roi); !p.done(); ++p) {

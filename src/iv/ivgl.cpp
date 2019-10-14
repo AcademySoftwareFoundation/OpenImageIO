@@ -752,8 +752,9 @@ IvGL::paint_pixelview()
                                      m_viewer.current_color_mode());
         }
 
-        void* zoombuffer = alloca((xend - xbegin) * (yend - ybegin) * nchannels
-                                  * spec.channel_bytes());
+        void* zoombuffer = OIIO_ALLOCA(char, (xend - xbegin) * (yend - ybegin)
+                                                 * nchannels
+                                                 * spec.channel_bytes());
         if (!m_use_shaders) {
             img->get_pixels(ROI(spec.x + xbegin, spec.x + xend, spec.y + ybegin,
                                 spec.y + yend),
@@ -818,7 +819,7 @@ IvGL::paint_pixelview()
         // values of the pixel that the mouse is over.
         QFont font;
         font.setFixedPitch(true);
-        float* fpixel = (float*)alloca(spec.nchannels * sizeof(float));
+        float* fpixel = OIIO_ALLOCA(float, spec.nchannels);
         int textx, texty;
         if (m_viewer.pixelviewFollowsMouse()) {
             textx = xw + 8;

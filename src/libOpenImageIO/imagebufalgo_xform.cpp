@@ -164,7 +164,7 @@ filtered_sample(const ImageBuf& src, float s, float t, float dsdx, float dtdx,
                                           (int)ceilf(t + filterrad_t), 0, 1,
                                           wrap);
     int nc     = src.nchannels();
-    float* sum = ALLOCA(float, nc);
+    float* sum = OIIO_ALLOCA(float, nc);
     memset(sum, 0, nc * sizeof(float));
     float total_w = 0.0f;
     for (; !samp.done(); ++samp) {
@@ -226,7 +226,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
         int xtaps           = 2 * radi + 1;
         int ytaps           = 2 * radj + 1;
         bool separable      = filter->separable();
-        float* yfiltval     = ALLOCA(float, ytaps);
+        float* yfiltval     = OIIO_ALLOCA(float, ytaps);
         float* xfiltval_all = NULL;
         if (separable) {
             // For separable filters, horizontal tap weights will be the same
@@ -234,7 +234,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
             // x position we'll need. We do the same thing in y, but row by row
             // inside the loop (since we never revisit a y row). This
             // substantially speeds up resize.
-            xfiltval_all = ALLOCA(float, xtaps* roi.width());
+            xfiltval_all = OIIO_ALLOCA(float, xtaps* roi.width());
             for (int x = roi.xbegin; x < roi.xend; ++x) {
                 float* xfiltval = xfiltval_all + (x - roi.xbegin) * xtaps;
                 float s         = (x - dstfx + 0.5f) * dstpixelwidth;
@@ -268,7 +268,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
         // Accumulate the weighted results in pel[]. We select a type big
         // enough to hold with required precision.
         typedef typename Accum_t<DSTTYPE>::type Acc_t;
-        Acc_t* pel = ALLOCA(Acc_t, nchannels);
+        Acc_t* pel = OIIO_ALLOCA(Acc_t, nchannels);
 
 #define USE_SPECIAL 0
 #if USE_SPECIAL
@@ -714,7 +714,7 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
         float dstfh          = dstspec.full_height;
         float dstpixelwidth  = 1.0f / dstfw;
         float dstpixelheight = 1.0f / dstfh;
-        float* pel           = ALLOCA(float, nchannels);
+        float* pel           = OIIO_ALLOCA(float, nchannels);
 
         ImageBuf::Iterator<DSTTYPE> out(dst, roi);
         ImageBuf::ConstIterator<SRCTYPE> srcpel(src);
@@ -850,7 +850,7 @@ warp_(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         int nc     = dst.nchannels();
-        float* pel = ALLOCA(float, nc);
+        float* pel = OIIO_ALLOCA(float, nc);
         memset(pel, 0, nc * sizeof(float));
         Imath::M33f Minv = M.inverse();
         ImageBuf::Iterator<DSTTYPE> out(dst, roi);

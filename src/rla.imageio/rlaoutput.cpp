@@ -81,7 +81,7 @@ private:
         if (littleendian()
             && (is_same<T, uint16_t>::value || is_same<T, int16_t>::value
                 || is_same<T, uint32_t>::value || is_same<T, int32_t>::value)) {
-            T* newbuf = ALLOCA(T, nitems);
+            T* newbuf = OIIO_ALLOCA(T, nitems);
             memcpy(newbuf, buf, nitems * sizeof(T));
             swap_endian(newbuf, nitems);
             buf = newbuf;

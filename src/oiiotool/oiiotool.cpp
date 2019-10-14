@@ -2650,7 +2650,7 @@ action_colorcount(int argc, const char* argv[])
     auto options = ot.extract_options(command);
     Strutil::extract_from_list_string(eps, options.get_string("eps"));
 
-    imagesize_t* count = ALLOCA(imagesize_t, ncolors);
+    imagesize_t* count = OIIO_ALLOCA(imagesize_t, ncolors);
     bool ok = ImageBufAlgo::color_count((*ot.curimg)(0, 0), count, ncolors,
                                         &colorvalues[0], &eps[0]);
     if (ok) {

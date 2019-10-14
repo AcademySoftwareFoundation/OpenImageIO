@@ -78,7 +78,7 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
     // {0, 1, ..., nchannels-1}.
     int* local_channelorder = NULL;
     if (channelorder.empty()) {
-        local_channelorder = ALLOCA(int, nchannels);
+        local_channelorder = OIIO_ALLOCA(int, nchannels);
         for (int c = 0; c < nchannels; ++c)
             local_channelorder[c] = c;
         channelorder = cspan<int>(local_channelorder, nchannels);

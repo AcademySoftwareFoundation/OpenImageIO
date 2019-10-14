@@ -1022,7 +1022,7 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         char* separate            = nullptr;
         imagesize_t separate_size = plane_bytes * m_outputchans;
         if (separate_size <= (1 << 16))
-            separate = ALLOCA(char, separate_size);        // <=64k ? stack
+            separate = OIIO_ALLOCA(char, separate_size);   // <=64k ? stack
         else {                                             // >64k ? heap
             separate_heap.reset(new char[separate_size]);  // will auto-free
             separate = separate_heap.get();
@@ -1274,7 +1274,7 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
         char* separate            = NULL;
         imagesize_t separate_size = plane_bytes * m_outputchans;
         if (separate_size <= (1 << 16))
-            separate = ALLOCA(char, separate_size);        // <=64k ? stack
+            separate = OIIO_ALLOCA(char, separate_size);   // <=64k ? stack
         else {                                             // >64k ? heap
             separate_heap.reset(new char[separate_size]);  // will auto-free
             separate = separate_heap.get();

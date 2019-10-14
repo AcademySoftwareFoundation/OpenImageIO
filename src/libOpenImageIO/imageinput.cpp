@@ -168,7 +168,8 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
 
     // Complex case -- either changing data type or stride
     int scanline_values = m_spec.width * m_spec.nchannels;
-    unsigned char* buf  = (unsigned char*)alloca(m_spec.scanline_bytes(true));
+    unsigned char* buf  = OIIO_ALLOCA(unsigned char,
+                                     m_spec.scanline_bytes(true));
     bool ok = read_native_scanline(current_subimage(), current_miplevel(), y, z,
                                    buf);
     if (!ok)

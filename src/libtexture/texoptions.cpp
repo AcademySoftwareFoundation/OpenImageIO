@@ -150,7 +150,7 @@ void
 Tex::parse_wrapmodes(const char* wrapmodes, Tex::Wrap& swrapcode,
                      Tex::Wrap& twrapcode)
 {
-    char* swrap = (char*)alloca(strlen(wrapmodes) + 1);
+    char* swrap = OIIO_ALLOCA(char, strlen(wrapmodes) + 1);
     const char* twrap;
     int i;
     for (i = 0; wrapmodes[i] && wrapmodes[i] != ','; ++i)

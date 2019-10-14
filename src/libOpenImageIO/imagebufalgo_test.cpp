@@ -277,7 +277,7 @@ test_crop()
     OIIO_CHECK_EQUAL(B.spec().width, xend - xbegin);
     OIIO_CHECK_EQUAL(B.spec().y, ybegin);
     OIIO_CHECK_EQUAL(B.spec().height, yend - ybegin);
-    float* pixel = ALLOCA(float, CHANNELS);
+    float* pixel = OIIO_ALLOCA(float, CHANNELS);
     for (int j = 0; j < B.spec().height; ++j) {
         for (int i = 0; i < B.spec().width; ++i) {
             B.getpixel(i + B.xbegin(), j + B.ybegin(), pixel);

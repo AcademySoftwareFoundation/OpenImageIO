@@ -898,8 +898,8 @@ ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
     // lookups form the next finer subimage.
     const ImageSpec& upspec(
         this->spec(subimage, miplevel - 1));  // next higher level
-    float* bilerppels = (float*)alloca(4 * nchans * sizeof(float));
-    float* resultpel  = (float*)alloca(nchans * sizeof(float));
+    float* bilerppels = OIIO_ALLOCA(float, 4 * nchans);
+    float* resultpel  = OIIO_ALLOCA(float, nchans);
     bool ok           = true;
     // FIXME(volume) -- loop over z, too
     for (int j = y0; j <= y1; ++j) {

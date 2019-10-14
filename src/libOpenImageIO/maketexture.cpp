@@ -149,7 +149,8 @@ interppixel_NDC_clamped(const ImageBuf& buf, float x, float y, float* pixel,
     y      = static_cast<float>(fy) + y * static_cast<float>(fh);
 
     int n     = buf.spec().nchannels;
-    float *p0 = ALLOCA(float, 4 * n), *p1 = p0 + n, *p2 = p1 + n, *p3 = p2 + n;
+    float *p0 = OIIO_ALLOCA(float, 4 * n), *p1 = p0 + n, *p2 = p1 + n,
+          *p3 = p2 + n;
 
     x -= 0.5f;
     y -= 0.5f;
@@ -210,7 +211,7 @@ resize_block_(ImageBuf& dst, const ImageBuf& src, ROI roi, bool envlatlmode)
            || srcspec.z + srcspec.depth < srcspec.full_z + srcspec.full_depth);
 
     const ImageSpec& dstspec(dst.spec());
-    float* pel    = ALLOCA(float, dstspec.nchannels);
+    float* pel    = OIIO_ALLOCA(float, dstspec.nchannels);
     float xoffset = (float)dstspec.full_x;
     float yoffset = (float)dstspec.full_y;
     float xscale  = 1.0f / (float)dstspec.full_width;
@@ -334,7 +335,7 @@ check_nan_block(const ImageBuf& src, ROI roi, int& found_nonfinite)
 {
     int x0 = roi.xbegin, x1 = roi.xend, y0 = roi.ybegin, y1 = roi.yend;
     const ImageSpec& spec(src.spec());
-    float* pel = ALLOCA(float, spec.nchannels);
+    float* pel = OIIO_ALLOCA(float, spec.nchannels);
     for (int y = y0; y < y1; ++y) {
         for (int x = x0; x < x1; ++x) {
             src.getpixel(x, y, pel);
@@ -383,7 +384,7 @@ lightprobe_to_envlatl(ImageBuf& dst, const ImageBuf& src, bool y_is_up,
         int nchannels = dstspec.nchannels;
         ASSERT(dstspec.format == TypeDesc::FLOAT);
 
-        float* pixel = ALLOCA(float, nchannels);
+        float* pixel = OIIO_ALLOCA(float, nchannels);
         float dw = dstspec.width, dh = dstspec.height;
         for (ImageBuf::Iterator<float> d(dst, roi); !d.done(); ++d) {
             Imath::V3f V = latlong_to_dir((d.x() + 0.5f) / dw,
@@ -515,8 +516,8 @@ static void
 fix_latl_edges(ImageBuf& buf)
 {
     int n        = buf.nchannels();
-    float* left  = ALLOCA(float, n);
-    float* right = ALLOCA(float, n);
+    float* left  = OIIO_ALLOCA(float, n);
+    float* right = OIIO_ALLOCA(float, n);
 
     // Make the whole first and last row be solid, since they are exactly
     // on the pole

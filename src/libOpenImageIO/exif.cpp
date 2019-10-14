@@ -659,7 +659,7 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
     }
     if (dirp->tdir_type == TIFF_RATIONAL) {
         int n    = dirp->tdir_count;  // How many
-        float* f = (float*)alloca(n * sizeof(float));
+        float* f = OIIO_ALLOCA(float, n);
         for (int i = 0; i < n; ++i) {
             unsigned int num, den;
             num = ((const unsigned int*)dataptr)[2 * i + 0];
@@ -678,7 +678,7 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
     }
     if (dirp->tdir_type == TIFF_SRATIONAL) {
         int n    = dirp->tdir_count;  // How many
-        float* f = (float*)alloca(n * sizeof(float));
+        float* f = OIIO_ALLOCA(float, n);
         for (int i = 0; i < n; ++i) {
             int num, den;
             num = ((const int*)dataptr)[2 * i + 0];
@@ -938,8 +938,7 @@ encode_exif_entry(const ParamValue& p, int tag, std::vector<TIFFDirEntry>& dirs,
         break;
     case TIFF_RATIONAL:
         if (element == TypeDesc::FLOAT) {
-            unsigned int* rat = (unsigned int*)alloca(2 * count
-                                                      * sizeof(unsigned int));
+            unsigned int* rat = OIIO_ALLOCA(unsigned int, 2 * count);
             const float* f    = (const float*)p.data();
             for (size_t i = 0; i < count; ++i)
                 float_to_rational(f[i], rat[2 * i], rat[2 * i + 1]);
@@ -950,7 +949,7 @@ encode_exif_entry(const ParamValue& p, int tag, std::vector<TIFFDirEntry>& dirs,
         break;
     case TIFF_SRATIONAL:
         if (element == TypeDesc::FLOAT) {
-            int* rat       = (int*)alloca(2 * count * sizeof(int));
+            int* rat       = OIIO_ALLOCA(int, 2 * count);
             const float* f = (const float*)p.data();
             for (size_t i = 0; i < count; ++i)
                 float_to_rational(f[i], rat[2 * i], rat[2 * i + 1]);

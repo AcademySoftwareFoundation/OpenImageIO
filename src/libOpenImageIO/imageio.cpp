@@ -661,7 +661,7 @@ convert_pixel_values(TypeDesc src_type, const void* src, TypeDesc dst_type,
     if (src_type != TypeFloat) {
         // If src is also not float, convert through an intermediate buffer
         if (n <= 4096)  // If < 16k, use the stack
-            buf = ALLOCA(float, n);
+            buf = OIIO_ALLOCA(float, n);
         else {
             tmp.reset(new float[n]);  // Freed when tmp exists its scope
             buf = tmp.get();
