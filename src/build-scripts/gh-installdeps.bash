@@ -65,11 +65,6 @@ fi
 CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
 
 
-# I think opencolor-tools package is adequate for now. For more recent
-# versions of OCIO, we could buidl it ourselves:
-#CXX="ccache $CXX" src/build-scripts/build_ocio.bash
-#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/ext/OpenColorIO/dist/lib
-
 src/build-scripts/install_test_images.bash
 
 CXX="ccache $CXX" source src/build-scripts/build_openexr.bash
