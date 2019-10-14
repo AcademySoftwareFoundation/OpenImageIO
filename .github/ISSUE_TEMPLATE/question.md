@@ -21,7 +21,7 @@ But if you are just asking a question:
 For anything of this nature, the best way to get help using OpenImageIO is
 to ask a question on the [oiio-dev developer mail list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
 
-The [documentation](https://github.com/OpenImageIO/oiio/blob/master/src/doc/openimageio.pdf)
+The [documentation](https://openimageio.readthedocs.org)
 is pretty comprehensive, so please check there first; you may find the answer
 more quickly than you can get your question answered on the mail list.
 
