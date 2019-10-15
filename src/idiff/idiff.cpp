@@ -101,7 +101,7 @@ getargs(int argc, char* argv[])
     }
     if (help) {
         ap.usage ();
-        exit (EXIT_FAILURE);
+        exit (EXIT_SUCCESS);
     }
 
     if (filenames.size() != 2) {

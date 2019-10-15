@@ -281,7 +281,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     }
     if (help) {
         ap.usage();
-        exit(EXIT_FAILURE);
+        exit(EXIT_SUCCESS);
     }
     if (filenames.empty()) {
         ap.briefusage();
