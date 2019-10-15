@@ -126,12 +126,12 @@ public:
         // int nchannels = int (m_channeltypes.size());
         ASSERT(m_channeltypes.size() == m_channelsizes.size());
         ASSERT(m_channeltypes.size() == m_channeloffsets.size());
-        int npixels = int(m_capacity.size());
+        int64_t npixels = int64_t(m_capacity.size());
         ASSERT(m_nsamples.size() == m_capacity.size());
         ASSERT(m_cumcapacity.size() == m_capacity.size());
         if (m_allocated) {
             size_t totalcapacity = 0;
-            for (int p = 0; p < npixels; ++p) {
+            for (int64_t p = 0; p < npixels; ++p) {
                 ASSERT(m_cumcapacity[p] == totalcapacity);
                 totalcapacity += m_capacity[p];
                 ASSERT(m_capacity[p] >= m_nsamples[p]);
@@ -486,7 +486,7 @@ DeepData::set_capacity(int64_t pixel, int samps)
                                       toadd * samplesize(), 0);
             }
             // Adjust the cumulative prefix sum of samples for subsequent pixels
-            for (int p = pixel + 1; p < m_npixels; ++p)
+            for (int64_t p = pixel + 1; p < m_npixels; ++p)
                 m_impl->m_cumcapacity[p] += toadd;
             m_impl->m_capacity[pixel] = samps;
         }
@@ -538,7 +538,7 @@ DeepData::set_all_samples(cspan<unsigned int> samples)
     ASSERT(m_impl);
     if (m_impl->m_allocated) {
         // Data already allocated: set pixels individually
-        for (int p = 0; p < m_npixels; ++p)
+        for (int64_t p = 0; p < m_npixels; ++p)
             set_samples(p, int(samples[p]));
     } else {
         // Data not yet allocated: copy in one shot
@@ -820,7 +820,7 @@ DeepData::get_pointers(std::vector<void*>& pointers) const
     ASSERT(m_impl);
     m_impl->alloc(m_npixels);
     pointers.resize(pixels() * channels());
-    for (int i = 0; i < m_npixels; ++i) {
+    for (int64_t i = 0; i < m_npixels; ++i) {
         if (m_impl->m_nsamples[i])
             for (int c = 0; c < m_nchannels; ++c)
                 pointers[i * m_nchannels + c] = (void*)m_impl->data_ptr(i, c,
