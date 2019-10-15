@@ -93,7 +93,7 @@ command += omaketx_command ("checker.tif", "checker-prman.tx",
 # testsuite/oiiotool-fixnan.  (Use --nomipmap to cut down on stats output)
 # FIXME: would also like to test --checknan, but the problem with that is
 # that is actually FAILS if there's a nan.
-command += omaketx_command ("../oiiotool-fixnan/src/bad.exr", "nan.exr",
+command += omaketx_command (OIIO_TESTSUITE_ROOT+"/oiiotool-fixnan/src/bad.exr", "nan.exr",
                             "--fixnan box3", options=":nomipmap=1",
                             showinfo=True, showinfo_extra="--stats")
 

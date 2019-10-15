@@ -3,6 +3,7 @@
 from __future__ import division
 from __future__ import absolute_import
 import shutil
+import os
 
 ## This testsuite entry tests oiiotool features related to image
 ## transformations (moving pixels around and resampling).
@@ -29,9 +30,10 @@ def make_test_pattern1 (filename, xres=288, yres=216) :
 # No need to do this every time, we stashed it in src
 #make_test_pattern1 ("src/target1.exr", 288, 216)
 
-shutil.copy ("../oiiotool/src/tahoe-tiny.tif", "./tahoe-tiny.tif")
-shutil.copy ("../oiiotool/src/tahoe-small.tif", "./tahoe-small.tif")
-shutil.copy ("../oiiotool/src/image.tif", "./image.tif")
+oiiotoolsrcdir = os.path.join(OIIO_TESTSUITE_ROOT, "oiiotool", "src")
+shutil.copy (oiiotoolsrcdir + "/tahoe-tiny.tif", "./tahoe-tiny.tif")
+shutil.copy (oiiotoolsrcdir + "/tahoe-small.tif", "./tahoe-small.tif")
+shutil.copy (oiiotoolsrcdir + "/image.tif", "./image.tif")
 
 
 # test resample
