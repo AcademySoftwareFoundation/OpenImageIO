@@ -117,6 +117,9 @@ Fixes and feature enhancements:
       the metadata of their inputs, rather than simply copy the metadata
       from the first input and ignore the others. #2311 (2.1.3)
     - `--colormap` now supports a new "turbo" color map option. #2320 (2.1.4)
+    - Expression evaluation has been extended to support operators `//` for
+      integer division (whereas `/` is floating point division), and `%`
+      for integer modulus. #2362 (2.1.5)
 * ImageBuf/ImageBufAlgo:
     - `IBA::channel_append()` previously always forced its result to be float,
       if it wasn't previously initialized. Now it uses the uaual type-merging
