@@ -177,11 +177,6 @@ if (MSVC)
                   APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif ()
 
-# FIXME: Doesn't work with cmake 3.12? Do we even need this?
-# if (VISIBILITY_MAP_FILE)
-#     add_dependencies (OpenImageIO "${VISIBILITY_MAP_FILE}")
-# endif ()
-
 if (VERBOSE)
     message(STATUS "Setting SOVERSION to: ${SOVERSION}")
 endif ()
@@ -192,10 +187,9 @@ set_target_properties(OpenImageIO
                          OUTPUT_NAME OpenImageIO${OIIO_LIBNAME_SUFFIX}
                          POSITION_INDEPENDENT_CODE ON
                      )
-if (VISIBILITY_COMMAND)
+if (VISIBILITY_MAP_COMMAND)
     set_property (TARGET OpenImageIO
-                  APPEND PROPERTY
-                  LINK_FLAGS ${VISIBILITY_COMMAND} ${VISIBILITY_MAP_COMMAND})
+                  APPEND PROPERTY LINK_FLAGS ${VISIBILITY_MAP_COMMAND})
 endif ()
 
 # For consistency with the linux SpComp2s, create Mac OS X SpComp2s

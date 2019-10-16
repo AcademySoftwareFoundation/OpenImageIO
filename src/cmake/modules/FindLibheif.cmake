@@ -17,14 +17,12 @@ find_path (LIBHEIF_INCLUDE_DIR
     HINTS
         ${LIBHEIF_INCLUDE_PATH}
         ENV LIBHEIF_INCLUDE_PATH
-    PATH_SUFFIXES include
     DOC "The directory where libheif headers reside")
 
 find_library (LIBHEIF_LIBRARY heif
               HINTS
                   ${LIBHEIF_LIBRARY_PATH}
                   ENV LIBHEIF_LIBRARY_PATH
-              PATH_SUFFIXES lib
               DOC "The directory where libheif libraries reside")
 
 if (LIBHEIF_INCLUDE_DIR)

@@ -17,7 +17,6 @@ macro (PREFIX_FIND_INCLUDE_DIR prefix includefile libpath_var)
   string (TOUPPER ${prefix}_INCLUDE_DIR tmp_varname)
   find_path(${tmp_varname} ${includefile}
     PATHS ${${libpath_var}}
-    PATH_SUFFIXES include
     NO_DEFAULT_PATH
   )
   if (${tmp_varname})
@@ -32,13 +31,11 @@ macro (PREFIX_FIND_LIB prefix libname libpath_var liblist_var cachelist_var)
   find_library(${tmp_prefix}_LIBRARY_RELEASE
     NAMES ${libname}
     PATHS ${${libpath_var}}
-    PATH_SUFFIXES lib
     NO_DEFAULT_PATH
   )
   find_library(${tmp_prefix}_LIBRARY_DEBUG
     NAMES ${libname}d ${libname}_d ${libname}debug ${libname}_debug
     PATHS ${${libpath_var}}
-    PATH_SUFFIXES lib
     NO_DEFAULT_PATH
   )
   # Properly define ${tmp_prefix}_LIBRARY (cached) and ${tmp_prefix}_LIBRARIES

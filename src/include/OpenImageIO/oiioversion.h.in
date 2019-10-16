@@ -89,13 +89,14 @@ namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
 #define OIIO_PLUGIN_EXPORTS_END }
 #endif
 
-#define OIIO_BUILD_CPP11 1 /* Always build for C++ >= 11 */
-// OIIO_BUILD_CPP14 will be 1 if this OIIO was built using C++14 or higher
-#cmakedefine01 OIIO_BUILD_CPP14
-// OIIO_BUILD_CPP17 will be 1 if this OIIO was built using C++17 or higher
-#cmakedefine01 OIIO_BUILD_CPP17
-// OIIO_BUILD_CPP20 will be 1 if this OIIO was built using C++20 or higher
-#cmakedefine01 OIIO_BUILD_CPP20
+// Which CPP standard (11, 14, etc.) was this copy of OIIO *built* with?
+#define OIIO_BUILD_CPP @CMAKE_CXX_STANDARD@
+
+// DEPRECATED(2.1): old macros separately giving compatibility.
+#define OIIO_BUILD_CPP11 (@CMAKE_CXX_STANDARD@ >= 11)
+#define OIIO_BUILD_CPP14 (@CMAKE_CXX_STANDARD@ >= 14)
+#define OIIO_BUILD_CPP17 (@CMAKE_CXX_STANDARD@ >= 17)
+#define OIIO_BUILD_CPP20 (@CMAKE_CXX_STANDARD@ >= 20)
 
 #endif
 

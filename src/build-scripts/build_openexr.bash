@@ -15,6 +15,7 @@ CMAKE_GENERATOR=${CMAKE_GENERATOR:="Unix Makefiles"}
 pwd
 echo "EXR install dir will be: ${EXRINSTALLDIR}"
 echo "CMAKE_PREFIX_PATH is ${CMAKE_PREFIX_PATH}"
+echo "OpenEXR Build type is ${EXR_BUILD_TYPE}"
 
 if [[ "$CMAKE_GENERATOR" == "" ]] ; then
     EXRGENERATOR="-G \"$CMAKE_GENERATOR\""
@@ -30,22 +31,14 @@ if [[ ! -e ./ext/openexr ]] ; then
     git clone ${EXRREPO} ./ext/openexr
 fi
 
-flags=
-
-if [[ ${LINKSTATIC:=0} == 1 ]] ; then
-    flags=${flags} --enable-static --enable-shared=no --with-pic
-fi
-
 pushd ./ext/openexr
 echo "git checkout ${EXRBRANCH} --force"
 git checkout ${EXRBRANCH} --force
 
 if [[ ${EXRBRANCH} == "v2.4.0" ]] ; then
     # Simplified setup for 2.4+
-    mkdir build
+    mkdir -p build/OpenEXR/IlmImf && true
     cd build
-    mkdir OpenEXR
-    mkdir OpenEXR/IlmImf
     time cmake --config ${EXR_BUILD_TYPE} -G "$CMAKE_GENERATOR" \
             -DCMAKE_INSTALL_PREFIX="${EXRINSTALLDIR}" \
             -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
@@ -59,13 +52,19 @@ if [[ ${EXRBRANCH} == "v2.4.0" ]] ; then
     time cmake --build . --target install --config ${EXR_BUILD_TYPE}
 elif [[ ${EXRBRANCH} == "v2.3.0" ]] ; then
     # Simplified setup for 2.3+
-    mkdir build
+    mkdir -p build/OpenEXR/IlmImf && true
     cd build
-    mkdir OpenEXR
-    mkdir OpenEXR/IlmImf
     unzip -d OpenEXR/IlmImf ${BASEDIR}/src/build-scripts/b44ExpLogTable.h.zip
     unzip -d OpenEXR/IlmImf ${BASEDIR}/src/build-scripts/dwaLookups.h.zip
-    time cmake --config ${EXR_BUILD_TYPE} -G "$CMAKE_GENERATOR" -DCMAKE_INSTALL_PREFIX="${EXRINSTALLDIR}" -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" -DILMBASE_PACKAGE_PREFIX=${EXRINSTALLDIR} -DOPENEXR_BUILD_UTILS=0 -DOPENEXR_BUILD_TESTS=0 -DOPENEXR_BUILD_PYTHON_LIBS=0 -DCMAKE_CXX_FLAGS="${EXRCXXFLAGS}" ${EXR_CMAKE_FLAGS} ..
+    time cmake --config ${EXR_BUILD_TYPE} -G "$CMAKE_GENERATOR" \
+            -DCMAKE_INSTALL_PREFIX="${EXRINSTALLDIR}" \
+            -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
+            -DILMBASE_PACKAGE_PREFIX=${EXRINSTALLDIR} \
+            -DOPENEXR_BUILD_UTILS=0 \
+            -DOPENEXR_BUILD_TESTS=0 \
+            -DOPENEXR_BUILD_PYTHON_LIBS=0 \
+            -DCMAKE_CXX_FLAGS="${EXRCXXFLAGS}" \
+            ${EXR_CMAKE_FLAGS} ..
     time cmake --build . --target install --config ${EXR_BUILD_TYPE}
 else
     cd IlmBase

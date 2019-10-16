@@ -10,14 +10,18 @@ if (Qt5_FOUND AND OPENGL_FOUND)
     set (iv_srcs imageviewer.cpp ivimage.cpp ivgl.cpp ivinfowin.cpp
                  ivpref.cpp ivmain.cpp)
     add_executable (iv ${iv_srcs})
-    target_include_directories (iv PRIVATE ${OPENGL_INCLUDE_DIR})
+    target_include_directories (iv SYSTEM PRIVATE ${OPENGL_INCLUDE_DIR})
     if (FORCE_OPENGL_1)
-        target_compile_definitions(FORCE_OPENGL_1)
+        target_compile_definitions(iv PRIVATE FORCE_OPENGL_1)
     endif()
     target_link_libraries (iv PRIVATE OpenImageIO
                                    Qt5::Core Qt5::Gui Qt5::Widgets Qt5::OpenGL
                                    ${OPENGL_LIBRARIES})
     set_target_properties (iv PROPERTIES FOLDER "Tools")
+
+    # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
+    # target_compile_options (iv PRIVATE -Wno-deprecated-register)
+
     oiio_install_targets (iv)
 
 else ()

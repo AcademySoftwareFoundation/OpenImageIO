@@ -26,15 +26,15 @@ echo "Build platform name is $PLATFORM"
 # Environment variables we always need
 export USE_CCACHE=1
 export CCACHE_CPP2=1
-export OPENIMAGEIO_ROOT_DIR=$PWD/dist/$PLATFORM
-export DYLD_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib:$DYLD_LIBRARY_PATH
-export LD_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib:$LD_LIBRARY_PATH
-export OIIO_LIBRARY_PATH=$OPENIMAGEIO_ROOT_DIR/lib
+export OpenImageIO_ROOT=$PWD/dist/$PLATFORM
+export DYLD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$DYLD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$LD_LIBRARY_PATH
+export OIIO_LIBRARY_PATH=$OpenImageIO_ROOT/lib
 export LSAN_OPTIONS=suppressions=$PWD/src/build-scripts/nosanitize.txt
 export ASAN_OPTIONS=print_suppressions=0
 
 export PYTHON_VERSION=${PYTHON_VERSION:="2.7"}
-export PYTHONPATH=$OPENIMAGEIO_ROOT_DIR/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
+export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
 export BUILD_MISSING_DEPS=${BUILD_MISSING_DEPS:=1}
 export COMPILER=${COMPILER:=gcc}
 export CXX=${CXX:=g++}

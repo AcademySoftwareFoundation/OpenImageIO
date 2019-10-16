@@ -267,7 +267,6 @@ ifeq (${SP_OS}, rhel7)
         -DFFMPEG_INCLUDE_DIR=/usr/include/ffmpegroot/ffmpeg34 \
         -DFFMPEG_LIBRARIES="/usr/lib64/ffmpegroot/ffmpeg345/libavcodec.so;/usr/lib64/ffmpegroot/ffmpeg345/libavformat.so;/usr/lib64/ffmpegroot/ffmpeg345/libavutil.so;/usr/lib64/ffmpegroot/ffmpeg345/libswscale.so;" \
         -DUSE_OPENCV=0 \
-        -DHIDE_SYMBOLS=1 \
         -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/hidesymbols.map"
 
     # Use libtiff I built myself, static, and try to hide its symbols.

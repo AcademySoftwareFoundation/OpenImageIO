@@ -23,7 +23,9 @@ message (STATUS "Building for C++${CMAKE_CXX_STANDARD}")
 option (USE_LIBCPLUSPLUS "Compile with clang libc++" OFF)
 set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
 option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
-option (HIDE_SYMBOLS "Hide symbols not in the public API" OFF)
+set (CXX_VISIBILITY_PRESET "hidden" CACHE STRING "Symbol visibility (hidden or default")
+option (VISIBILITY_INLINES_HIDDEN "Hide symbol visibility of inline functions" ON)
+set (VISIBILITY_MAP_FILE "${PROJECT_SOURCE_DIR}/src/build-scripts/hidesymbols.map" CACHE FILEPATH "Visibility map file")
 option (USE_CCACHE "Use ccache if found" ON)
 set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
 set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when building DSOs")
@@ -108,10 +110,6 @@ endif ()
 
 # Options common to gcc and clang
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
-    #   # CMake doesn't automatically know what do do with
-    #   # include_directories(SYSTEM...) when using clang or gcc.
-    #   set (CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-isystem ")
-
     # Ensure this macro is set for stdint.h
     add_definitions ("-D__STDC_LIMIT_MACROS")
     add_definitions ("-D__STDC_CONSTANT_MACROS")
@@ -119,23 +117,14 @@ if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     add_compile_options ("-fno-math-errno")
 endif ()
 
-if (HIDE_SYMBOLS AND NOT $<CONFIG:Debug>
-                 AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
-    # Turn default symbol visibility to hidden
-    set (VISIBILITY_COMMAND -fvisibility=hidden -fvisibility-inlines-hidden)
-    add_compile_options (${VISIBILITY_COMMAND})
-    if (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU")
-        # Linux/FreeBSD/Hurd: also hide all the symbols of dependent
-        # libraries to prevent clashes if an app using OIIO is linked
-        # against other verions of our dependencies.
-        if (NOT VISIBILITY_MAP_FILE)
-            set (VISIBILITY_MAP_FILE "${PROJECT_SOURCE_DIR}/src/build-scripts/hidesymbols.map")
-        endif ()
-        set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${VISIBILITY_MAP_FILE}")
-        if (VERBOSE)
-            message (STATUS "VISIBILITY_MAP_COMMAND = ${VISIBILITY_MAP_COMMAND}")
-        endif ()
-    endif ()
+set (C_VISIBILITY_PRESET ${CXX_VISIBILITY_PRESET})
+if (${CXX_VISIBILITY_PRESET} STREQUAL "hidden" AND
+    (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG) AND
+    (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU"))
+    # Linux/FreeBSD/Hurd: also hide all the symbols of dependent libraries
+    # to prevent clashes if an app using OIIO is linked against other
+    # verions of our dependencies.
+    set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${VISIBILITY_MAP_FILE}")
 endif ()
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
@@ -196,11 +185,6 @@ if (CCACHE_FOUND AND USE_CCACHE)
         set_property (GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
         set_property (GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
     endif ()
-endif ()
-
-if (CMAKE_COMPILER_IS_CLANG)
-    # C++ >= 11 doesn't like 'register' keyword, which is in Qt headers
-    add_compile_options ("-Wno-deprecated-register")
 endif ()
 
 if (USE_LIBCPLUSPLUS AND CMAKE_COMPILER_IS_CLANG)

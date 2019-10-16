@@ -20,7 +20,6 @@ find_path (OPENCOLORIO_INCLUDE_DIR
     PATHS
         /sw/include
         /opt/local/include
-    PATH_SUFFIXES include
     DOC "The directory where OpenColorIO/OpenColorIO.h resides")
 
 find_library (OPENCOLORIO_LIBRARY

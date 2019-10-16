@@ -30,7 +30,6 @@ find_path (DCMTK_INCLUDE_DIR
     dcmtk/dcmdata/dcuid.h
     HINTS
       ${DCMTK_INCLUDE_PATH}  ENV DCMTK_INCLUDE_PATH
-    PATH_SUFFIXES include
     DOC "The directory where DCMTK headers reside")
 
 foreach (COMPONENT dcmimage dcmimgle dcmdata oflog ofstd iconv)
