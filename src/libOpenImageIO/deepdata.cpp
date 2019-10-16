@@ -835,7 +835,7 @@ DeepData::get_pointers(std::vector<void*>& pointers) const
 
 bool
 DeepData::copy_deep_sample(int64_t pixel, int sample, const DeepData& src,
-                           int srcpixel, int srcsample)
+                           int64_t srcpixel, int srcsample)
 {
     const void* srcdata = src.data_ptr(srcpixel, 0, srcsample);
     int nchans          = channels();
@@ -858,7 +858,7 @@ DeepData::copy_deep_sample(int64_t pixel, int sample, const DeepData& src,
 
 
 bool
-DeepData::copy_deep_pixel(int64_t pixel, const DeepData& src, int srcpixel)
+DeepData::copy_deep_pixel(int64_t pixel, const DeepData& src, int64_t srcpixel)
 {
     if (pixel < 0 || pixel >= pixels()) {
         // std::cout << "dst pixel was " << pixel << "\n";
