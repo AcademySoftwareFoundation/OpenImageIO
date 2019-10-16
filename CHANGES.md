@@ -76,6 +76,9 @@ Public API changes:
   It should be fully API/ABI compatible (at least for 64 bit systems), but
   is a simpler, more modern, more platform-independent definition.
   #2351 (2.1.5)
+* `DeepData` has been altered to make pixel indices and total counts int64_t
+  rather than int, in order to be safe for very large images that have > 2
+  Gpixels. #2363 (2.1.5)
 
 Performance improvements:
 * ImageCache/TextureSystem:
