@@ -54,7 +54,9 @@ list(APPEND CMAKE_MODULE_PATH
 # All the C++ and compiler related options and adjustments live here
 include (compiler)
 
-# Helpful macros for our project
+# Helpful functions and macros for our project
+include (colors)
+include (check_is_enabled)
 include (oiio_macros)
 
 

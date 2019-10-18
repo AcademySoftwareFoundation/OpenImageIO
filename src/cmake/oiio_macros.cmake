@@ -7,31 +7,36 @@
 #
 # Usage:
 #
-#    oiio_install_targets (target1 [target2 ...])
+#    install_targets (target1 [target2 ...])
 #
-macro (oiio_install_targets)
+macro (install_targets)
     install (TARGETS ${ARGN}
              RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
              LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
              ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
 endmacro ()
 
+
 # Macro to add a build target for an IO plugin.
 #
 # Usage:
 #
 # add_oiio_plugin ( source1 [source2 ...]
+#                   [ NAME targetname ... ]
+#                   [ SRC source1 ... ]
 #                   [ INCLUDE_DIRS include_dir1 ... ]
 #                   [ LINK_LIBRARIES external_lib1 ... ]
 #                   [ DEFINITIONS -DFOO=bar ... ])
 #
-# The plugin name is deduced from the name of the current directory and the
-# source is automatically linked against OpenImageIO. Additional include
-# directories (just for this target) may be specified after the optional
-# INCLUDE_DIRS keyword. Additional libraries (for example, libpng) may be
-# specified after the optionl LINK_LIBRARIES keyword. Additional
-# preprocessor definitions may be specified after the optional DEFINITIONS
-# keyword.
+# The plugin name can be specified with NAME, otherwise is inferred from the
+# subdirectory name. The source files of the binary can be specifeied with
+# SRC, otherwise are inferred to be all the .cpp files within the
+# subdirectory. Optional compile DEFINITIONS, private INCLUDE_DIRS, and
+# priviate LINK_LIBRARIES may also be specified. The source is automatically
+# linked against OpenImageIO.
+#
+# The plugin may be disabled individually using any of the usual
+# check_is_enabled() conventions (e.g. -DENABLE_<format>=OFF).
 #
 # What goes on under the covers is quite different depending on whether
 # EMBEDPLUGINS is 0 or 1. If EMBEDPLUGINS is 0 (in which case this is
@@ -43,35 +48,105 @@ endmacro ()
 # be handed off too the setup of the later OpenImageIO target.
 #
 macro (add_oiio_plugin)
-    cmake_parse_arguments (_plugin "" "" "INCLUDE_DIRS;LINK_LIBRARIES;DEFINITIONS" ${ARGN})
+    cmake_parse_arguments (_plugin "" "NAME" "SRC;INCLUDE_DIRS;LINK_LIBRARIES;DEFINITIONS" ${ARGN})
        # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
-    if (EMBEDPLUGINS)
-        set (_target_name OpenImageIO)
-        # Add each source file to the libOpenImageIO_srcs, but it takes some
-        # bending over backwards to change it in the parent scope.
-        set (_plugin_all_source ${libOpenImageIO_srcs})
-        foreach (_plugin_source_file ${_plugin_UNPARSED_ARGUMENTS})
-            list (APPEND _plugin_all_source "${CMAKE_CURRENT_SOURCE_DIR}/${_plugin_source_file}")
-        endforeach ()
-        set (libOpenImageIO_srcs "${_plugin_all_source}" PARENT_SCOPE)
-        set (format_plugin_definitions ${format_plugin_definitions} ${_plugin_DEFINITIONS} PARENT_SCOPE)
-        set (format_plugin_include_dirs ${format_plugin_include_dirs} ${_plugin_INCLUDE_DIRS} PARENT_SCOPE)
-        set (format_plugin_libs ${format_plugin_libs} ${_plugin_LINK_LIBRARIES} PARENT_SCOPE)
+    get_filename_component (_plugin_name ${CMAKE_CURRENT_SOURCE_DIR} NAME_WE)
+    if (NOT _plugin_NAME)
+        # If NAME is not supplied, infer target name (and therefore the
+        # executable name) from the directory name.
+        get_filename_component (_plugin_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+    endif ()
+    # if (NOT _plugin_SRC)
+    #     # If SRC is not supplied, assume local cpp files are its source.
+    #     file (GLOB _plugin_SRC *.cpp)
+    # endif ()
+    check_is_enabled (${_plugin_name} _enable_plugin)
+    if (_enable_plugin)
+        if (EMBEDPLUGINS)
+            # Add each source file to the libOpenImageIO_srcs, but it takes some
+            # bending over backwards to change it in the parent scope.
+            set (_plugin_all_source ${libOpenImageIO_srcs})
+            foreach (_plugin_source_file ${_plugin_UNPARSED_ARGUMENTS} )
+                list (APPEND _plugin_all_source "${CMAKE_CURRENT_SOURCE_DIR}/${_plugin_source_file}")
+            endforeach ()
+            set (libOpenImageIO_srcs "${_plugin_all_source}" PARENT_SCOPE)
+            set (format_plugin_definitions ${format_plugin_definitions} ${_plugin_DEFINITIONS} PARENT_SCOPE)
+            set (format_plugin_include_dirs ${format_plugin_include_dirs} ${_plugin_INCLUDE_DIRS} PARENT_SCOPE)
+            set (format_plugin_libs ${format_plugin_libs} ${_plugin_LINK_LIBRARIES} PARENT_SCOPE)
+        else ()
+            # Get the name of the current directory and use it as the target name.
+            get_filename_component (_plugin_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+            add_library (${_plugin_name} MODULE ${_plugin_UNPARSED_ARGUMENTS})
+            target_compile_definitions (${_plugin_name} PRIVATE
+                                        ${_plugin_DEFINITIONS}
+                                        OpenImageIO_EXPORTS)
+            target_include_directories (${_plugin_name} PRIVATE ${_plugin_INCLUDE_DIRS})
+            target_link_libraries (${_plugin_name} PUBLIC OpenImageIO
+                                                   PRIVATE ${_plugin_LINK_LIBRARIES})
+            set_target_properties (${_plugin_name} PROPERTIES PREFIX "" FOLDER "Plugins")
+            install_targets (${_plugin_name})
+        endif ()
     else ()
-        # Get the name of the current directory and use it as the target name.
-        set (_target_name ${CMAKE_CURRENT_SOURCE_DIR})
-        get_filename_component (_target_name ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-        add_library (${_target_name} MODULE ${_plugin_UNPARSED_ARGUMENTS})
-        target_compile_definitions (${_target_name} PRIVATE
-                                    ${_plugin_DEFINITIONS}
-                                    OpenImageIO_EXPORTS)
-        target_include_directories (${_target_name} PRIVATE ${_plugin_INCLUDE_DIRS})
-        target_link_libraries (${_target_name} PUBLIC OpenImageIO
-                                               PRIVATE ${_plugin_LINK_LIBRARIES})
-        set_target_properties (${_target_name} PROPERTIES PREFIX "" FOLDER "Plugins")
-        oiio_install_targets (${_target_name})
+        message (STATUS "${ColorRed}Disabling ${_plugin_name} ${ColorReset}")
+        string (TOUPPER ${_plugin_name} _plugin_name_upper)
+        set (format_plugin_definitions ${format_plugin_definitions} DISABLE_${_plugin_name_upper} PARENT_SCOPE)
     endif ()
 endmacro ()
+
+
+
+# Macro to add an executable build target. The executable name can be
+# specified with NAME, otherwise is inferred from the subdirectory name. The
+# source files of the binary can be specifeied with SRC, otherwise are
+# inferred to be all the .cpp files within the subdirectory. Optional
+# compile DEFINITIONS, private INCLUDE_DIRS, and priviate LINK_LIBRARIES may
+# also be specified.
+#
+# The executable may be disabled individually using any of the usual
+# check_is_enabled() conventions (e.g. -DENABLE_<executable>=OFF).
+#
+# Usage:
+#
+#   fancy_add_executable ([ NAME targetname ... ]
+#                         [ SRC source1 ... ]
+#                         [ INCLUDE_DIRS include_dir1 ... ]
+#                         [ DEFINITIONS -DFOO=bar ... ])
+#                         [ LINK_LIBRARIES external_lib1 ... ]
+#
+macro (fancy_add_executable)
+    cmake_parse_arguments (_target "" "NAME" "SRC;INCLUDE_DIRS;SYSTEM_INCLUDE_DIRS;LINK_LIBRARIES;DEFINITIONS" ${ARGN})
+       # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
+    if (NOT _target_NAME)
+        # If NAME is not supplied, infer target name (and therefore the
+        # executable name) from the directory name.
+        get_filename_component (_target_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+    endif ()
+    if (NOT _target_SRC)
+        # If SRC is not supplied, assume local cpp files are its source.
+        file (GLOB _target_SRC *.cpp)
+    endif ()
+    check_is_enabled (${_target_NAME} _target_NAME_enabled)
+    if (_target_NAME_enabled)
+        add_executable (${_target_NAME} ${_target_SRC})
+        if (_target_INCLUDE_DIRS)
+            target_include_directories (${_target_NAME} PRIVATE ${_target_INCLUDE_DIRS})
+        endif ()
+        if (_target_SYSTEM_INCLUDE_DIRS)
+            target_include_directories (${_target_NAME} SYSTEM PRIVATE ${_target_SYSTEM_INCLUDE_DIRS})
+        endif ()
+        if (_target_DEFINITIONS)
+            target_compile_definitions (${_target_name} PRIVATE ${_target_DEFINITIONS})
+        endif ()
+        if (_target_LINK_LIBRARIES)
+            target_link_libraries (${_target_NAME} PRIVATE ${_target_LINK_LIBRARIES})
+        endif ()
+        set_target_properties (${_target_NAME} PROPERTIES FOLDER "Tools")
+        install_targets (${_target_NAME})
+    else ()
+        message (STATUS "${ColorRed}Disabling ${_target_NAME} ${ColorReset}")
+    endif ()
+endmacro ()
+
 
 
 # oiio_set_testenv() - add environment variables to a test

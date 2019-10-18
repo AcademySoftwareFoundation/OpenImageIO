@@ -43,7 +43,7 @@ if (DEFINED OVERRIDE_SHARED_LIBRARY_SUFFIX)
     set_target_properties (OpenImageIO_Util PROPERTIES SUFFIX ${OVERRIDE_SHARED_LIBRARY_SUFFIX})
 endif ()
 
-oiio_install_targets (OpenImageIO_Util)
+install_targets (OpenImageIO_Util)
 
 
 

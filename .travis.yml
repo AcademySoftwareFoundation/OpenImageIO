@@ -97,7 +97,7 @@ matrix:
         os: linux
         dist: trusty
         compiler: gcc
-        env: WHICHGCC=4.8 EXRBRANCH=v2.2.0 BUILD_CMAKE=1
+        env: WHICHGCC=4.8 OPENEXR_BRANCH=v2.2.0 BUILD_CMAKE=1
         addons:
           apt:
             sources: *add-sources
@@ -126,7 +126,7 @@ matrix:
       - name: "VFX Platform 2018 (gcc6, cpp14, exr2.2), sse4.2"
         os: linux
         compiler: gcc
-        env: WHICHGCC=6 CMAKE_CXX_STANDARD=14 USE_SIMD=sse4.2 EXRBRANCH=v2.2.0
+        env: WHICHGCC=6 CMAKE_CXX_STANDARD=14 USE_SIMD=sse4.2 OPENEXR_BRANCH=v2.2.0
         addons:
           apt:
             sources: *add-sources
@@ -147,7 +147,7 @@ matrix:
         os: linux
         dist: trusty
         compiler: gcc
-        env: WHICHGCC=4.8 USE_SIMD=0 USE_JPEGTURBO=0 USE_OPENCOLORIO=0 EMBEDPLUGINS=0 EXRBRANCH=v2.2.0 BUILD_CMAKE=1
+        env: WHICHGCC=4.8 USE_SIMD=0 USE_JPEGTURBO=0 USE_OPENCOLORIO=0 EMBEDPLUGINS=0 OPENEXR_BRANCH=v2.2.0 BUILD_CMAKE=1
         if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
         addons:
           apt:

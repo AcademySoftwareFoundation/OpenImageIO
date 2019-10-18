@@ -30,7 +30,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
    icc version 13 or higher
  * Boost >= 1.53 (tested up through 1.71)
  * **CMake >= 3.12** (tested up through 3.15)
- * OpenEXR >= 2.0 (recommended: 2.2 or 2.3)
+ * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.4)
  * libTIFF >= 3.9 (recommended: 4.0+)
 
 ### Optional dependencies -- features may be disabled if not found
@@ -65,6 +65,48 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for HEIF/HEIC images:
      * libheic >= 1.3 (tested through 1.5; older versions may also work, we
        haven't tested)
+
+
+Dependency control and disabling components
+-------------------------------------------
+
+**Hints for finding dependencies**
+
+For each external dependency PkgName, our CMake build system will recognize
+the following optional variable:
+
+    PkgName_ROOT=...
+
+to specify a hint about where the package is installed. It can either be
+a CMake variable (set by `-DPkgName_ROOT=...` on the CMake command line),
+or an environment variable of the same name, or a variable setting on the
+Make wrapper (`make PkgName_ROOT=...`).
+
+**Disabling optional dependencies and individual components**
+
+`USE_PYTHON=0` : Omits building the Python bindings.
+
+`OIIO_BUILD_TESTS=0` : Omits building tests (you probably don't need them
+unless you are a developer of OIIO or want to verify that your build
+passes all tests).
+
+`OIIO_BUILD_TOOLS=0` : Disables building all the command line tools (such
+as iinfo, oiiotool, maketx, etc.).
+
+`ENABLE_toolname=0` : Disables building the named command line tool (iinfo,
+oiiotool, etc.). This works both as a CMake variable and also as an
+environment variable.
+
+`ENABLE_formatname=0` : Disables building support for the particular named
+file format (jpeg, fits, png, etc.). This works both as a CMake variable and
+also as an environment variable.
+
+`ENABLE_PkgName=0` : Disables use of an *optional* dependency (such as
+FFmpeg, Field3D, Webp, etc.) -- even if the dependency is found on the
+system. This will obviously disable any functionality that requires the
+dependency. This works both as a CMake variable and
+also as an environment variable.
+
 
 
 Building OpenImageIO on Linux or OS X
@@ -115,7 +157,6 @@ Make targets you should know about:
 |  make realclean   |  Get rid of both build/PLATFORM and dist/PLATFORM     |
 |  make nuke        |  Get rid of all build/ and dist/, for all platforms   |
 |  make profile     |  Build a profilable version dist/PLATFORM.profile     |
-|  make doxygen     |  Build the Doxygen docs                               |
 |  make help        |  Print all the make options                           |
 
 Additionally, a few helpful modifiers alter some build-time options:

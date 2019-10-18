@@ -3,7 +3,7 @@ add_library (txReader MODULE txReader.cpp)
 
 target_include_directories (txReader PUBLIC ${NUKE_INCLUDES})
 target_link_libraries (txReader PUBLIC ${NUKE_LIBRARIES} OpenImageIO)
-oiio_install_targets (txReader)
+install_targets (txReader)
 
 if (WIN32)
     target_compile_definitions (txReader PRIVATE FN_OS_WINDOWS USE_GLEW)
