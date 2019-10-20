@@ -117,7 +117,7 @@ option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" 
 ###########################################################################
 # Boost setup
 if (LINKSTATIC)
-    set (Boost_USE_STATIC_LIBS   ON)
+    set (Boost_USE_STATIC_LIBS ON)
 endif ()
 if (BOOST_CUSTOM)
     set (Boost_FOUND true)
