@@ -7,6 +7,7 @@ if (Qt5_POSITION_INDEPENDENT_CODE)
     set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
+check_is_enabled (iv iv_enabled)
 if (iv_enabled AND Qt5_FOUND AND OPENGL_FOUND)
     fancy_add_executable (
         SYSTEM_INCLUDE_DIRS
