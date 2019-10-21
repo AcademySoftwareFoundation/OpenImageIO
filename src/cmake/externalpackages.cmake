@@ -14,14 +14,6 @@ if (NOT VERBOSE)
     set (Threads_FIND_QUIETLY true)
 endif ()
 
-# Define color codes for pretty terminal output
-string (ASCII 27 ColorEsc)
-set (ColorReset       "${ColorEsc}[m")
-set (ColorRed         "${ColorEsc}[31m")
-set (ColorGreen       "${ColorEsc}[32m")
-set (ColorYellow      "${ColorEsc}[33m")
-set (ColorBoldWhite   "${ColorEsc}[1;37m")
-
 message (STATUS "${ColorBoldWhite}")
 message (STATUS "* Checking for dependencies...")
 message (STATUS "*   - Missing a dependency 'Package'?")
@@ -29,24 +21,6 @@ message (STATUS "*     Try cmake -DPackage_ROOT=path or set environment var Pack
 message (STATUS "*   - To exclude an optional dependency (even if found),")
 message (STATUS "*     -DUSE_Package=OFF or set environment var USE_Package=OFF ")
 message (STATUS "${ColorReset}")
-
-
-# Is the named package "enabled" via our disabling convention? If either
-# USE_pkgname or the all-uppercase USE_PKGNAME exists as either a CMake or
-# environment variable, is nonempty by contains a non-true/nonnzero value,
-# store false in the variable named by <enablevar>, otherwise store true.
-function (check_is_enabled pkgname enablevar)
-    string (TOUPPER ${pkgname} pkgname_upper)
-    set (${enablevar} true PARENT_SCOPE)
-    if ((NOT "${USE_${pkgname}}" STREQUAL "" AND NOT "${USE_${pkgname}}") OR
-        (NOT "${USE_${pkgname_upper}}" STREQUAL "" AND NOT "${USE_${pkgname_upper}}") OR
-        (NOT "$ENV{USE_${pkgname}}" STREQUAL "" AND NOT "$ENV{USE_${pkgname}}") OR
-        (NOT "$ENV{USE_${pkgname_upper}}" STREQUAL "" AND NOT "$ENV{USE_${pkgname_upper}}") OR
-        (NOT "${_pkg_ENABLE}" STREQUAL "" AND NOT "${_pkg_ENABLE}") )
-        set (${enablevar} false PARENT_SCOPE)
-    endif ()
-endfunction ()
-
 
 
 # checked_find_package(pkgname ..) is a wrapper for find_package, with the
@@ -143,7 +117,7 @@ option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" 
 ###########################################################################
 # Boost setup
 if (LINKSTATIC)
-    set (Boost_USE_STATIC_LIBS   ON)
+    set (Boost_USE_STATIC_LIBS ON)
 endif ()
 if (BOOST_CUSTOM)
     set (Boost_FOUND true)

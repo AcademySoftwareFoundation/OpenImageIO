@@ -45,8 +45,13 @@
 ///
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-#    define OIIO_IMPORT __declspec(dllimport)
-#    define OIIO_EXPORT __declspec(dllexport)
+#    ifndef OIIO_STATIC_DEFINE
+#        define OIIO_IMPORT __declspec(dllimport)
+#        define OIIO_EXPORT __declspec(dllexport)
+#    else
+#        define OIIO_IMPORT
+#        define OIIO_EXPORT
+#    endif
 #    define OIIO_LOCAL
 #else
 #    define OIIO_IMPORT __attribute__((visibility("default")))

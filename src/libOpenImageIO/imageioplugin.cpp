@@ -267,59 +267,121 @@ catalog_builtin_plugins()
             name##_input_extensions, nullptr, nullptr,                   \
             name##_imageio_library_version())
 
+#if !defined(DISABLE_BMP)
     DECLAREPLUG (bmp);
+#endif
+#if !defined(DISABLE_CINEON)
     DECLAREPLUG_RO (cineon);
+#endif
+#if !defined(DISABLE_DDS)
     DECLAREPLUG_RO (dds);
+#endif
 #ifdef USE_DCMTK
+#if !defined(DISABLE_DICOM)
     DECLAREPLUG_RO (dicom);
 #endif
+#endif
+#if !defined(DISABLE_DPX)
     DECLAREPLUG (dpx);
+#endif
 #ifdef USE_FFMPEG
+#if !defined(DISABLE_FFMPEG)
     DECLAREPLUG_RO (ffmpeg);
 #endif
+#endif
 #ifdef USE_FIELD3D
+#if !defined(DISABLE_FIELD3D)
     DECLAREPLUG (field3d);
 #endif
+#endif
+#if !defined(DISABLE_FITS)
     DECLAREPLUG (fits);
+#endif
 #ifdef USE_GIF
+#if !defined(DISABLE_GIF)
     DECLAREPLUG (gif);
 #endif
+#endif
 #ifdef USE_HEIF
+#if !defined(DISABLE_HEIF)
     DECLAREPLUG (heif);
 #endif
+#endif
+#if !defined(DISABLE_HDR)
     DECLAREPLUG (hdr);
+#endif
+#if !defined(DISABLE_ICO)
     DECLAREPLUG (ico);
+#endif
+#if !defined(DISABLE_IFF)
     DECLAREPLUG (iff);
+#endif
+#if !defined(DISABLE_JPEG)
     DECLAREPLUG (jpeg);
+#endif
 #ifdef USE_OPENJPEG
+#if !defined(DISABLE_JPEG2000)
     DECLAREPLUG (jpeg2000);
 #endif
+#endif
+#if !defined(DISABLE_NULL)
     DECLAREPLUG (null);
+#endif
+#if !defined(DISABLE_OPENEXR)
     DECLAREPLUG (openexr);
+#endif
 #ifdef USE_OPENVDB
+#if !defined(DISABLE_OPENVDB)
     DECLAREPLUG_RO (openvdb);
 #endif
+#endif
+#if !defined(DISABLE_PNG)
     DECLAREPLUG (png);
+#endif
+#if !defined(DISABLE_PNM)
     DECLAREPLUG (pnm);
+#endif
+#if !defined(DISABLE_PSD)
     DECLAREPLUG_RO (psd);
+#endif
 #ifdef USE_PTEX
+#if !defined(DISABLE_PTEX)
     DECLAREPLUG_RO (ptex);
 #endif
+#endif
 #ifdef USE_LIBRAW
+#if !defined(DISABLE_RAW)
     DECLAREPLUG_RO (raw);
 #endif
+#endif
+#if !defined(DISABLE_RLA)
     DECLAREPLUG (rla);
+#endif
+#if !defined(DISABLE_SGI)
     DECLAREPLUG (sgi);
+#endif
 #ifdef USE_BOOST_ASIO
+#if !defined(DISABLE_SOCKET)
     DECLAREPLUG (socket);
 #endif
+#endif
+#if !defined(DISABLE_SOFTIMAGE)
     DECLAREPLUG_RO (softimage);
+#endif
+#if !defined(DISABLE_TIFF)
     DECLAREPLUG (tiff);
+#endif
+#if !defined(DISABLE_TARGA)
     DECLAREPLUG (targa);
+#endif
 #ifdef USE_WEBP
+#if !defined(DISABLE_WEBP)
     DECLAREPLUG (webp);
 #endif
+#endif
+#if !defined(DISABLE_ZFILE)
     DECLAREPLUG (zfile);
+#endif
 #endif
 }
 // clang-format on

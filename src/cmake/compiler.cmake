@@ -360,10 +360,14 @@ if (EXTRA_CPP_ARGS)
 endif()
 
 
+if (NOT BUILD_SHARED_LIBS)
+    add_definitions (-DOIIO_STATIC_DEFINE=1)
+endif ()
+
 # Use .a files if LINKSTATIC is enabled
 if (LINKSTATIC)
-    set (_orig_link_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
-    message (STATUS "Statically linking external libraries")
+    #set (_orig_link_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    message (STATUS "Statically linking external libraries when possible")
     if (WIN32)
         set (CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
     else ()

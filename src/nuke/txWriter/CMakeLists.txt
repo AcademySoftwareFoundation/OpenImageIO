@@ -6,7 +6,7 @@ add_library (txWriter MODULE txWriter.cpp)
 
 target_include_directories (txWriter PUBLIC ${NUKE_INCLUDES})
 target_link_libraries (txWriter PUBLIC ${NUKE_LIBRARIES} OpenImageIO)
-oiio_install_targets (txWriter)
+install_targets (txWriter)
 
 if (WIN32)
     target_compile_definitions (txWriter PRIVATE FN_OS_WINDOWS USE_GLEW)

@@ -323,7 +323,7 @@ test: build
 	      cd ${build_dir} ; \
 	      lcov -b . -d . -c -o cov.info ; \
 	      lcov --remove cov.info "/usr*" -o cov.info ; \
-	      genhtml -o ./cov -t "OIIO test coverage" --num-spaces 4 cov.info ; \
+	      genhtml -o ./cov -t "Test coverage" --num-spaces 4 cov.info ; \
 	  fi )
 
 # 'make testall' does a full build and then runs all tests (even the ones
@@ -358,6 +358,7 @@ help:
 	@echo "  make              Build and install optimized binaries and libraries"
 	@echo "  make install      Build and install optimized binaries and libraries"
 	@echo "  make build        Build only (no install) optimized binaries and libraries"
+	@echo "  make config       Just configure cmake, don't build"
 	@echo "  make debug        Build and install unoptimized with symbols"
 	@echo "  make profile      Build and install for profiling"
 	@echo "  make clean        Remove the temporary files in ${build_dir}"
@@ -366,7 +367,6 @@ help:
 	@echo "  make test         Run tests"
 	@echo "  make testall      Run all tests, even broken ones"
 	@echo "  make clang-format Run clang-format on all the source files"
-	@echo "  make doxygen      Build the Doxygen docs in ${top_build_dir}/doxygen"
 	@echo ""
 	@echo "Helpful modifiers:"
 	@echo "  C++ compiler and build process:"
@@ -393,7 +393,7 @@ help:
 	@echo "      BUILD_SHARED_LIBS=0      Build static library instead of shared"
 	@echo "      LINKSTATIC=1             Link with static external libs when possible"
 	@echo "  Dependency hints:"
-	@echo "      For each dependeny Foo, defining USE_Foo=0 disables it, even"
+	@echo "      For each dependeny Foo, defining ENABLE_Foo=0 disables it, even"
 	@echo "      if found. And you can hint where to find it with Foo_ROOT=path"
 	@echo "      Note that it is case sensitive! The list of package names is:"
 	@echo "          DCMTK  FFmpeg  Field3D  Freetype  GIF  JPEGTurbo"
