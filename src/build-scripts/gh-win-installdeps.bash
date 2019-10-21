@@ -30,40 +30,6 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/i
 
 ls -l "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/MSVC"
 
-mkdir ext
-
-# ZLib
-pushd ext
-git clone -b v1.2.11 https://github.com/madler/zlib.git
-cd zlib
-mkdir -p $INT_DIR
-cd $INT_DIR
-cmake ../.. -G "$CMAKE_GENERATOR" -DCMAKE_CONFIGURATION_TYPES="$CMAKE_BUILD_TYPE" -DCMAKE_PREFIX_PATH="$DEP_DIR" -DCMAKE_INSTALL_PREFIX="$DEP_DIR"
-cmake --build . --config $CMAKE_BUILD_TYPE --target install
-popd
-export MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DZLIB_LIBRARY=$DEP_DIR/lib/zlib.lib"
-export OPENEXREXR_CMAKE_FLAGS="$OPENEXREXR_CMAKE_FLAGS -DZLIB_LIBRARY=$DEP_DIR/lib/zlib.lib"
-
-echo "DEP_DIR $DEP_DIR :"
-ls -R -l "$DEP_DIR"
-
-OPENEXR_CXX_FLAGS=" /W1 /EHsc /DWIN32=1 "
-OPENEXR_BUILD_TYPE=$CMAKE_BUILD_TYPE
-OPENEXR_INSTALL_DIR=$DEP_DIR
-OPENEXR_BRANCH=v2.4.0
-source src/build-scripts/build_openexr.bash
-#export OpenEXR_ROOT=$OPENEXR_ROOT
-#export OpenEXR_ROOT=$OPENEXR_ROOT
-export PATH="$OPENEXR_INSTALL_DIR/bin:$OPENEXR_INSTALL_DIR/lib:$PATH"
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PATH
-# the above line is admittedly sketchy
-
-cp $DEP_DIR/lib/*.lib $DEP_DIR/bin
-cp $DEP_DIR/bin/*.dll $DEP_DIR/lib
-echo "DEP_DIR $DEP_DIR :"
-ls -R -l "$DEP_DIR"
-
-
 vcpkg list
 vcpkg update
 
@@ -101,6 +67,34 @@ ls -R *ffmpeg*
 FFmpeg_ROOT=$PWD/ffmpeg-4.2.1-win64-dev
 
 echo "CMAKE_PREFIX_PATH = $CMAKE_PREFIX_PATH"
+
+mkdir ext
+
+# ZLib
+pushd ext
+git clone -b v1.2.11 https://github.com/madler/zlib.git
+cd zlib
+mkdir -p $INT_DIR
+cd $INT_DIR
+cmake ../.. -G "$CMAKE_GENERATOR" -DCMAKE_CONFIGURATION_TYPES="$CMAKE_BUILD_TYPE" -DCMAKE_PREFIX_PATH="$DEP_DIR" -DCMAKE_INSTALL_PREFIX="$DEP_DIR"
+cmake --build . --config $CMAKE_BUILD_TYPE --target install
+popd
+export MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DZLIB_LIBRARY=$DEP_DIR/lib/zlib.lib"
+export OPENEXR_CMAKE_FLAGS="$OPENEXR_CMAKE_FLAGS -DZLIB_LIBRARY=$DEP_DIR/lib/zlib.lib"
+
+OPENEXR_CXX_FLAGS=" /W1 /EHsc /DWIN32=1 "
+#OPENEXR_BUILD_TYPE=$CMAKE_BUILD_TYPE
+OPENEXR_INSTALL_DIR=$DEP_DIR
+OPENEXR_BRANCH=v2.4.0
+source src/build-scripts/build_openexr.bash
+export PATH="$OPENEXR_INSTALL_DIR/bin:$OPENEXR_INSTALL_DIR/lib:$PATH"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PATH
+# the above line is admittedly sketchy
+
+cp $DEP_DIR/lib/*.lib $DEP_DIR/bin
+cp $DEP_DIR/bin/*.dll $DEP_DIR/lib
+echo "DEP_DIR $DEP_DIR :"
+ls -R -l "$DEP_DIR"
 
 
 # export PATH="$PATH:$DEP_DIR/bin:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
