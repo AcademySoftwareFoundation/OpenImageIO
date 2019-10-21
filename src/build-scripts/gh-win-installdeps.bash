@@ -26,7 +26,7 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/bin:$VCPKG_INSTALLATION_ROOT/i
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
 
 # export MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
-# export OPENEXREXR_CMAKE_FLAGS="$OPENEXREXR_CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+# export OPENEXR_CMAKE_FLAGS="$OPENEXR_CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 
 ls -l "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/MSVC"
 
@@ -89,6 +89,9 @@ ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
 echo "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
 ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
 
+echo "All VCPkg installs:"
+vcpkg list
+
 # curl --location https://ffmpeg.zeranoe.com/builds/win64/shared/ffmpeg-4.2.1-win64-shared.zip -o ffmpeg-libs.zip
 # unzip ffmpeg-libs.zip
 curl --location https://ffmpeg.zeranoe.com/builds/win64/dev/ffmpeg-4.2.1-win64-dev.zip -o ffmpeg-dev.zip
@@ -96,9 +99,6 @@ unzip ffmpeg-dev.zip
 ls
 ls -R *ffmpeg*
 FFmpeg_ROOT=$PWD/ffmpeg-4.2.1-win64-dev
-
-echo "All VCPkg installs:"
-vcpkg list
 
 echo "CMAKE_PREFIX_PATH = $CMAKE_PREFIX_PATH"
 

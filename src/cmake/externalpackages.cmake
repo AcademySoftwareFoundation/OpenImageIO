@@ -118,6 +118,10 @@ option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" 
 # Boost setup
 if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS ON)
+else ()
+    if (MSVC)
+        add_definitions (-DBOOST_ALL_DYN_LINK)
+    endif ()
 endif ()
 if (BOOST_CUSTOM)
     set (Boost_FOUND true)
@@ -167,6 +171,9 @@ include_directories ("${OPENEXR_INCLUDES}" "${ILMBASE_INCLUDES}"
 if (CMAKE_COMPILER_IS_CLANG AND OPENEXR_VERSION VERSION_LESS 2.3)
     # clang C++ >= 11 doesn't like 'register' keyword in old exr headers
     add_compile_options (-Wno-deprecated-register)
+endif ()
+if (MSVC AND NOT LINKSTATIC)
+    add_definitions (-DOPENEXR_DLL) # Is this needed for new versions?
 endif ()
 
 
