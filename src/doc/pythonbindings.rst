@@ -3038,8 +3038,8 @@ Color manipulation
 
 
 
-.. py:method:: ImageBuf ImageBufAlgo.ociolook (src, looks, fromspace, tospace, inverse=False, unpremult=True, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
-               bool ImageBufAlgo.ociolook (dst, src, looks, fromspace, tospace, inverse=False, unpremult=True, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.ociolook (src, looks, fromspace, tospace, unpremult=True, inverse=False, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.ociolook (dst, src, looks, fromspace, tospace, unpremult=True, inverse=False, context_key="", context_value="", colorconfig="", roi=ROI.All, nthreads=0)
 
     Apply an OpenColorIO "look" transform to the pixel values.
 
@@ -3064,8 +3064,8 @@ Color manipulation
 
 
 
-.. py:method:: ImageBuf ImageBufAlgo.ociofiletransform (src, name, unpremult=True, invert=False, colorconfig="", roi=ROI.All, nthreads=0)
-               bool ImageBufAlgo.ociofiletransform (dst, src, name, unpremult=True, invert=False, colorconfig="", roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.ociofiletransform (src, name, unpremult=True, inverse=False, colorconfig="", roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.ociofiletransform (dst, src, name, unpremult=True, inverse=False, colorconfig="", roi=ROI.All, nthreads=0)
 
     Apply an OpenColorIO "file" transform to the pixel values.
     In-place operations (`dst` and `src` being the same image)

@@ -28,6 +28,14 @@ namespace OCIO = OCIO_NAMESPACE;
 OIIO_NAMESPACE_BEGIN
 
 
+static std::shared_ptr<ColorConfig> default_colorconfig;  // default color config
+static spin_mutex colorconfig_mutex;
+#ifdef USE_OCIO
+static OCIO::ConstConfigRcPtr ocio_current_config;
+#endif
+
+
+
 // Class used as the key to index color processors in the cache.
 class ColorProcCacheKey {
 public:
@@ -285,9 +293,11 @@ ColorConfig::reset(string_view filename)
     m_impl.reset(new ColorConfig::Impl);
 #ifdef USE_OCIO
     OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
+    if (!ocio_current_config)
+        ocio_current_config = OCIO::GetCurrentConfig();
     try {
         if (filename.empty()) {
-            getImpl()->config_  = OCIO::GetCurrentConfig();
+            getImpl()->config_  = ocio_current_config;
             string_view ocioenv = Sysutil::getenv("OCIO");
             if (ocioenv.size())
                 getImpl()->configname(ocioenv);
@@ -1168,8 +1178,13 @@ ColorConfig::createFileTransform(ustring name, bool inverse) const
 #ifdef USE_OCIO
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
-    if (getImpl()->config_) {
-        OCIO::ConstConfigRcPtr config      = getImpl()->config_;
+    OCIO::ConstConfigRcPtr config = getImpl()->config_;
+    // If no config was found, config_ will be null. But that shouldn't
+    // stop us for a filetransform, which doesn't need color spaces anyway.
+    // Just use the default current config, it'll be freed when we exit.
+    if (!config)
+        config = ocio_current_config;
+    if (config) {
         OCIO::FileTransformRcPtr transform = OCIO::FileTransform::Create();
         transform->setSrc(name.c_str());
         transform->setInterpolation(OCIO::INTERP_BEST);
@@ -1220,11 +1235,6 @@ ColorConfig::parseColorSpaceFromString(string_view str) const
 //////////////////////////////////////////////////////////////////////////
 //
 // Image Processing Implementations
-
-
-static std::shared_ptr<ColorConfig> default_colorconfig;  // default color config
-static spin_mutex colorconfig_mutex;
-
 
 
 bool
