@@ -250,9 +250,11 @@ add_custom_command (OUTPUT "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
 add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_BINARY_DIR}/testsuite/runtest.py" )
 
 # Basic tests that apply even to continuous integration tests:
+
 #   Tests that require oiio-images:
 oiio_add_tests (gpsread
-                oiiotool oiiotool-attribs oiiotool-readerror oiiotool-xform
+                oiiotool oiiotool-attribs  oiiotool-copy
+                oiiotool-readerror oiiotool-xform
                 oiiotool-fixnan ## maketx & oiiotool-maketx depend on this
                 maketx oiiotool-maketx
                 misnamed-file
@@ -280,7 +282,7 @@ oiio_add_tests (oiiotool-deep
 
 #   Remaining freestanding tests:
 oiio_add_tests (nonwhole-tiles
-                oiiotool-composite oiiotool-copy
+                oiiotool-composite
                 oiiotool-pattern
                 oiiotool-subimage oiiotool-text
                 diff

@@ -399,7 +399,7 @@ ImageBufAlgo::deep_holdout(ImageBuf& dst, const ImageBuf& src,
     for (ImageBuf::Iterator<float> r(dst, roi); !r.done(); ++r) {
         int x = r.x(), y = r.y(), z = r.z();
         int srcpixel = src.pixelindex(x, y, z, true);
-        if (srcpixel < 1)
+        if (srcpixel < 0)
             continue;  // Nothing in this pixel
         int dstpixel = dst.pixelindex(x, y, z, true);
         dstdd.copy_deep_pixel(dstpixel, srcdd, srcpixel);

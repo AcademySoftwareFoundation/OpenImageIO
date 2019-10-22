@@ -28,26 +28,79 @@ template<class D, class S>
 static bool
 paste_(ImageBuf& dst, const ImageBuf& src, ROI dstroi, ROI srcroi, int nthreads)
 {
-    // N.B. Punt on parallelizing because of the subtle interplay
-    // between srcroi and dstroi, the parallel_image idiom doesn't
-    // handle that especially well. And it's not worth customizing for
-    // this function which is inexpensive and not commonly used, and so
-    // would benefit little from parallelizing. We can always revisit
-    // this later. But in the mean time, we maintain the 'nthreads'
-    // parameter for uniformity with the rest of IBA.
-    int src_nchans = src.nchannels();
-    int dst_nchans = dst.nchannels();
-    ImageBuf::ConstIterator<S, D> s(src, srcroi);
-    ImageBuf::Iterator<D, D> d(dst, dstroi);
-    for (; !s.done(); ++s, ++d) {
-        if (!d.exists())
-            continue;  // Skip paste-into pixels that don't overlap dst's data
-        for (int c = srcroi.chbegin, c_dst = dstroi.chbegin; c < srcroi.chend;
-             ++c, ++c_dst) {
-            if (c_dst >= 0 && c_dst < dst_nchans)
-                d[c_dst] = c < src_nchans ? s[c] : D(0);
+    int relative_x = dstroi.xbegin - srcroi.xbegin;
+    int relative_y = dstroi.ybegin - srcroi.ybegin;
+    int relative_z = dstroi.zbegin - srcroi.zbegin;
+
+    using namespace ImageBufAlgo;
+    parallel_image(srcroi, nthreads, [&](ROI roi) {
+        ROI droi(roi.xbegin + relative_x, roi.xend + relative_x,
+                 roi.ybegin + relative_y, roi.yend + relative_y,
+                 roi.zbegin + relative_z, roi.zend + relative_z, dstroi.chbegin,
+                 dstroi.chend);
+        int src_nchans = src.nchannels();
+        int dst_nchans = dst.nchannels();
+        ImageBuf::ConstIterator<S, D> s(src, roi);
+        ImageBuf::Iterator<D, D> d(dst, droi);
+        for (; !s.done(); ++s, ++d) {
+            if (!d.exists())
+                continue;  // Skip paste-into pixels that don't overlap dst's data
+            for (int c = roi.chbegin, c_dst = droi.chbegin; c < roi.chend;
+                 ++c, ++c_dst) {
+                if (c_dst >= 0 && c_dst < dst_nchans)
+                    d[c_dst] = c < src_nchans ? s[c] : D(0);
+            }
+        }
+    });
+    return true;
+}
+
+
+
+static bool
+deep_paste_(ImageBuf& dst, const ImageBuf& src, ROI dstroi, ROI srcroi,
+            int nthreads)
+{
+    ASSERT(dst.deep() && src.deep());
+    int relative_x = dstroi.xbegin - srcroi.xbegin;
+    int relative_y = dstroi.ybegin - srcroi.ybegin;
+    int relative_z = dstroi.zbegin - srcroi.zbegin;
+
+    // Timer t;
+
+    // First, make sure dst is allocated with enough samples for both. Note:
+    // this should be fast if dst is uninitialized or already has the right
+    // number of samples in the overlap regions. If not, this will probably
+    // be a slow series of allocations and copies. If this is a problem, we
+    // can return to optimize it somehow.
+    if (!dst.initialized()) {
+        dst.reset(src.spec());
+    }
+    // std::cout << "Reset: " << t.lap() << "\n";
+    for (int z = srcroi.zbegin; z < srcroi.zend; ++z) {
+        for (int y = srcroi.ybegin; y < srcroi.yend; ++y) {
+            // std::cout << "y=" << y << "\n";
+            for (int x = srcroi.xbegin; x < srcroi.xend; ++x) {
+                dst.set_deep_samples(x + relative_x, y + relative_y,
+                                     z + relative_z, src.deep_samples(x, y, z));
+            }
         }
     }
+    // std::cout << "set samples: " << t.lap() << "\n";
+
+    // Now we can do the deep pixel copies in parallel.
+    using namespace ImageBufAlgo;
+    parallel_image(srcroi, nthreads, [&](ROI roi) {
+        for (int z = roi.zbegin; z < roi.zend; ++z) {
+            for (int y = roi.ybegin; y < roi.yend; ++y) {
+                for (int x = roi.xbegin; x < roi.xend; ++x) {
+                    dst.copy_deep_pixel(x + relative_x, y + relative_y,
+                                        z + relative_z, src, x, y, z);
+                }
+            }
+        }
+    });
+    // std::cout << "copy: " << t.lap() << "\n";
     return true;
 }
 
@@ -61,10 +114,17 @@ ImageBufAlgo::paste(ImageBuf& dst, int xbegin, int ybegin, int zbegin,
     if (!srcroi.defined())
         srcroi = get_roi(src.spec());
 
-    ROI dstroi(xbegin, xbegin + srcroi.width(), ybegin,
-               ybegin + srcroi.height(), zbegin, zbegin + srcroi.depth(),
-               chbegin, chbegin + srcroi.nchannels());
+    ROI dstroi(srcroi.xbegin + xbegin, srcroi.xbegin + xbegin + srcroi.width(),
+               srcroi.ybegin + ybegin, srcroi.ybegin + ybegin + srcroi.height(),
+               srcroi.zbegin + zbegin, srcroi.zbegin + zbegin + srcroi.depth(),
+               srcroi.chbegin + chbegin,
+               srcroi.chbegin + chbegin + srcroi.nchannels());
     ROI dstroi_save = dstroi;  // save the original
+
+    // Special case for deep
+    if ((dst.deep() || !dst.initialized()) && src.deep())
+        return deep_paste_(dst, src, dstroi, srcroi, nthreads);
+
     if (!IBAprep(dstroi, &dst))
         return false;
 

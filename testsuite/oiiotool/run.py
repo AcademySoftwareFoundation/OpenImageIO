@@ -85,16 +85,6 @@ command += oiiotool ("ref/histogram_input.png --histogram 256x256 0 "
 command += oiiotool ("ref/histogram_input.png --histogram:cumulative=1 256x256 0 "
             + "-o histogram_cumulative.tif")
 
-# test --crop
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --crop 100x400+50+200 -o crop.tif")
-
-# test --cut
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --cut 100x400+50+200 -o cut.tif")
-
-# test paste
-command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif "
-            + "--pattern checker 256x256 3 --paste +150+75 -o pasted.tif")
-
 # test --trim
 command += oiiotool ("--create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 "
                      + " -rotate 30 -trim -origin +0+0 -fullpixels -d uint8 -o trim.tif")
@@ -103,13 +93,6 @@ command += oiiotool ("--create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 "
 command += oiiotool (  "-a --create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 -rotate 30 "
                      + "--create 320x240 3 -fill:color=.5,.5,.1 100x10+70+70 -rotate 140 "
                      + "--siappend -trim -origin +0+0 -fullpixels -d uint8 -o trimsubimages.tif")
-
-# test mosaic
-# Purposely test with fewer images than the mosaic array size
-command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
-            + "--pattern constant:color=0,1,0 50x50 3 "
-            + "--pattern constant:color=0,0,1 50x50 3 "
-            + "--mosaic:pad=10 2x2 -d uint8 -o mosaic.tif")
 
 # test channel shuffling
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif"
@@ -253,7 +236,6 @@ outputs = [
             "filled.tif",
             "autotrim.tif",
             "histogram_regular.tif", "histogram_cumulative.tif",
-            "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
             "trim.tif", "trimsubimages.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
             "chappend-rgbaz.exr", "chname.exr",

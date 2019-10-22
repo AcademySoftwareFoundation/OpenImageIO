@@ -192,6 +192,49 @@ ImageRec::ImageRec(const std::string& name, const ImageSpec& spec,
 
 
 bool
+ImageRec::read_nativespec()
+{
+    if (elaborated())
+        return true;
+    // If m_subimages has already been resized, we've been here before.
+    if (m_subimages.size())
+        return true;
+
+    static ustring u_subimages("subimages"), u_miplevels("miplevels");
+    int subimages = 0;
+    ustring uname(name());
+    if (!m_imagecache->get_image_info(uname, 0, 0, u_subimages, TypeInt,
+                                      &subimages)) {
+        errorf("file not found: \"%s\"", name());
+        return false;  // Image not found
+    }
+    m_subimages.resize(subimages);
+    bool allok = true;
+    for (int s = 0; s < subimages; ++s) {
+        int miplevels = 0;
+        m_imagecache->get_image_info(uname, s, 0, u_miplevels, TypeInt,
+                                     &miplevels);
+        m_subimages[s].m_miplevels.resize(miplevels);
+        m_subimages[s].m_specs.resize(miplevels);
+        m_subimages[s].m_was_direct_read = true;
+        for (int m = 0; m < miplevels; ++m) {
+            ImageBufRef ib(
+                new ImageBuf(name(), s, m, m_imagecache, m_configspec.get()));
+            bool ok = ib->init_spec(name(), s, m);
+            if (!ok)
+                errorf("%s", ib->geterror());
+            allok &= ok;
+            m_subimages[s].m_miplevels[m] = ib;
+            m_subimages[s].m_specs[m]     = ib->spec();
+        }
+    }
+
+    return allok;
+}
+
+
+
+bool
 ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
 {
     if (elaborated())

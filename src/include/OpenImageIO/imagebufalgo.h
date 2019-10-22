@@ -457,14 +457,15 @@ ImageBuf OIIO_API cut (const ImageBuf &src, ROI roi={}, int nthreads=0);
 bool OIIO_API cut (ImageBuf &dst, const ImageBuf &src, ROI roi={}, int nthreads=0);
 
 
-// paste (copy pixels to a different destination)
-///
-/// Copy into `dst`, beginning at (`xbegin`,`ybegin`,`zbegin`), the pixels
-/// of `src` described by `srcroi`.  If `srcroi` is `ROI::All()`, the
-/// entirety of `src` will be used.  It will copy into
+/// Copy `src` pixels within `srcroi` into the `dst` image, offset so that
+/// source location (0,0,0) will be copied to destination location
+/// (`xbegin`,`ybegin`,`zbegin`). If the `srcroi` is `ROI::All()`, the
+/// entirety of the data window of `src` will be used.  It will copy into
 /// `channels[chbegin...]`, as many channels as are described by srcroi.
-/// Pixels or channels of `dst` outside the range of `roi` will not be
-/// altered.
+/// Pixels or channels of `src` inside `srcroi` will replace the
+/// corresponding destination pixels entirely, whereas `src` pixels outside
+/// of `srcroi` will not be copied and the corresponding offset pixels of
+/// `dst` will not be altered.
 bool OIIO_API paste (ImageBuf &dst, int xbegin, int ybegin,
                      int zbegin, int chbegin, const ImageBuf &src,
                      ROI srcroi={}, int nthreads=0);

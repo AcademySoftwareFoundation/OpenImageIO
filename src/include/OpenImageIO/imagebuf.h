@@ -801,6 +801,11 @@ public:
     /// type).
     void set_deep_value(int x, int y, int z, int c, int s, uint32_t value);
 
+    /// Copy a deep pixel from another ImageBuf -- it is required to have
+    /// the same channels.
+    bool copy_deep_pixel(int x, int y, int z, const ImageBuf& src, int srcx,
+                         int srcy, int srcz);
+
     /// Retrieve the "deep" data.
     DeepData* deepdata();
     const DeepData* deepdata() const;

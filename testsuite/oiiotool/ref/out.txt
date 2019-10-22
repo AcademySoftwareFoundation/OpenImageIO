@@ -107,14 +107,6 @@ Comparing "histogram_regular.tif" and "ref/histogram_regular.tif"
 PASS
 Comparing "histogram_cumulative.tif" and "ref/histogram_cumulative.tif"
 PASS
-Comparing "crop.tif" and "ref/crop.tif"
-PASS
-Comparing "cut.tif" and "ref/cut.tif"
-PASS
-Comparing "pasted.tif" and "ref/pasted.tif"
-PASS
-Comparing "mosaic.tif" and "ref/mosaic.tif"
-PASS
 Comparing "trim.tif" and "ref/trim.tif"
 PASS
 Comparing "trimsubimages.tif" and "ref/trimsubimages.tif"

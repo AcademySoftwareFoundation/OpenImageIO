@@ -133,6 +133,10 @@ public:
         return true;
     }
 
+    /// Force partial read of image (if it hasn't been yet), just enough
+    /// that the nativespec can be examined.
+    bool read_nativespec(ImageRecRef img);
+
     // If required_images are not yet on the stack, then postpone this
     // call by putting it on the 'pending' list and return true.
     // Otherwise (if enough images are on the stack), return false.
@@ -188,7 +192,8 @@ public:
     // existing width and height (rounding to the nearest whole number of
     // pixels.
     bool adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
-                         const char* geom, bool allow_scaling = false) const;
+                         const char* geom, bool allow_scaling = false,
+                         bool allow_size = true) const;
 
     // Expand substitution expressions in string str. Expressions are
     // enclosed in braces: {...}. An expression consists of:
@@ -371,6 +376,9 @@ public:
     // Has the ImageRec been actually read or evaluated?  (Until needed,
     // it's lazily kept as name only, without reading the file.)
     bool elaborated() const { return m_elaborated; }
+
+    // Read just enough to fill in the nativespecs
+    bool read_nativespec();
 
     bool read(ReadPolicy readpolicy   = ReadDefault,
               string_view channel_set = "");
