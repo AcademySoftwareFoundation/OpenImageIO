@@ -39,26 +39,19 @@ CMAKE ?= cmake
 CMAKE_BUILD_TYPE ?= Release
 
 # Site-specific build instructions
-ifndef OPENIMAGEIO_SITE
-    OPENIMAGEIO_SITE := ${shell uname -n}
-endif
+OPENIMAGEIO_SITE ?= ${shell uname -n}
 ifneq (${shell echo ${OPENIMAGEIO_SITE} | grep imageworks.com},)
 include ${working_dir}/site/spi/Makefile-bits
 endif
 
 # Set up variables holding the names of platform-dependent directories --
 # set these after evaluating site-specific instructions
-top_build_dir := build
-build_dir     := ${top_build_dir}/${platform}${variant}
-top_dist_dir  := dist
-dist_dir      := ${top_dist_dir}/${platform}${variant}
+top_build_dir ?= build
+build_dir     ?= ${top_build_dir}/${platform}${variant}
+top_dist_dir  ?= dist
+dist_dir      ?= ${top_dist_dir}/${platform}${variant}
 
-ifndef INSTALL_PREFIX
-INSTALL_PREFIX := ${working_dir}/${dist_dir}
-INSTALL_PREFIX_BRIEF := ${dist_dir}
-else
-INSTALL_PREFIX_BRIEF := ${INSTALL_PREFIX}
-endif
+INSTALL_PREFIX ?= ${working_dir}/${dist_dir}
 
 VERBOSE ?= ${SHOWCOMMANDS}
 ifneq (${VERBOSE},)
@@ -411,7 +404,7 @@ help:
 	@echo "      Nuke_ROOT=path           Custom Nuke installation"
 	@echo "      NUKE_VERSION=ver         Custom Nuke version"
 	@echo "  OIIO build-time options:"
-	@echo "      INSTALL_PREFIX=path      Set installation prefix (default: ./${INSTALL_PREFIX_BRIEF})"
+	@echo "      INSTALL_PREFIX=path      Set installation prefix (default: ./${INSTALL_PREFIX})"
 	@echo "      NAMESPACE=name           Override namespace base name (default: OpenImageIO)"
 	@echo "      EMBEDPLUGINS=0           Don't compile the plugins into libOpenImageIO"
 	@echo "      OIIO_THREAD_ALLOW_DCLP=0 Don't allow threads.h to use DCLP"

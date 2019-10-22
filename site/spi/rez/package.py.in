@@ -14,7 +14,9 @@ description = \
 authors = ['Larry Gritz <lg@imageworks.com>']
 
 # Add dependencies to other Rez packages here
-requires = [ 'platform-@SP_PLATFORM@', 'arch-@SP_PROC@', 'os-@SP_REZ_OS@' ]
+requires = [ 'platform-@SP_PLATFORM@', 'arch-@SP_PROC@', 'os-@SP_REZ_OS@',
+             'OpenEXR-@OPENEXR_VERSION_MAJOR@.@OPENEXR_VERSION_MINOR@'
+           ]
 
 # Rez has a limitation where it is not possible to add variants to a package that
 # does not have any: https://github.com/nerdvegas/rez/wiki/Variants#single-variants.

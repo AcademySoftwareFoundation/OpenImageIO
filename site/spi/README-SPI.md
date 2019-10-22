@@ -13,19 +13,24 @@ to the `make` commands of any of the variants listed below. For example,
 
 Variants:
 
-    # Python 2.7, Boost 1.55, C++11/gcc4.8 compat
+    # C++11/gcc4.8 compat, Python 2.7, Boost 1.55
     make nuke
     make spi OIIO_SPIREZ=1
 
-    # Python 2.7, Boost 1.55 sp namespaced, C++11/gcc4.8 compat
+    # C++11/gcc4.8 compat, Python 2.7, Boost 1.55 sp namespaced
     make nuke
     make spi OIIO_SPIREZ=1 BOOSTSPSUFFIX=sp
 
-    # Python 3.7, Boost 1.66, C++11/gcc6.3 compat
+    # C++11/gcc6.3 compat, Python 3.7, Boost 1.66
     make nuke
-    make spi OIIO_SPIREZ=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3
+    make spi OIIO_SPIREZ=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2
 
-    # Python 3.6, Boost 1.55, C++11/gcc4.8 compat (for Jon Ware)
+    # VFXPlatform 2020-ish: C++14/gcc6.3 compat, Python 3.7, Boost 1.70,
+    # OpenEXR 2.4
+    make nuke
+    make spi OIIO_SPIREZ=1 BOOSTVERS=1.70 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2 OPENEXR_VERSION=2.4.0 ENABLE_OPENVDB=0
+
+    # C++11/gcc4.8 compat, Python 3.6, Boost 1.55 (for Jon Ware)
     make nuke
     make spi OIIO_SPIREZ=1 PYTHON_VERSION=3.6
 
@@ -35,19 +40,12 @@ You can do any of these on your local machine.
 Rez/general release (do for each variant)
 -----------------------------------------
 
-This must be done from compile40 or compile42 (for correct write
-permissions on certain shared directories), even if you did the build
-itself locally.
-
-First:
-
-    ss spi/home
-    cd /the/oiio/src/area
-    cd dist/rhel7
+This must be done from compile40 or compile42 (for correct write permissions
+on certain shared directories), even if you did the build itself locally.
 
 For any of the variants that you built above:
 
-    rez release --skip-repo-errors
+    ( cd dist/rhel7 ; rez release --skip-repo-errors )
 
 That command will release the dist to the studio.
 
@@ -59,7 +57,7 @@ This step is for the ONE general/rez variant that we believe is the
 canonical source of command line oiiotool and maketx. After building and
 releasing as above,
 
-    cp OpenImageIO_*.xml /shots/spi/home/lib/app_cfg/OpenImageIO
+    cp dist/rhel7/OpenImageIO_*.xml /shots/spi/home/lib/app_cfg/OpenImageIO
 
 That will make appcfg aware of the release.
 
@@ -94,7 +92,7 @@ following variants:
 
     # Python 3.7, Boost 1.66, C++11/gcc6.3 compat
     make nuke
-    make OIIO_SPCOMP2=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPCOMP2_COMPILER=gcc63m64 spcomp2_install
+    make OIIO_SPCOMP2=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPCOMP2_COMPILER=gcc63 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2 spcomp2_install
 
     # Python 3.6, Boost 1.55, C++11/gcc4.8 compat (for Jon Ware)
     make nuke
