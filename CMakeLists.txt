@@ -46,20 +46,6 @@ if (CMAKE_USE_FOLDERS)
     set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 endif ()
 
-include (GNUInstallDirs)
-
-list(APPEND CMAKE_MODULE_PATH
-     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
-     "${PROJECT_SOURCE_DIR}/src/cmake")
-
-# All the C++ and compiler related options and adjustments live here
-include (compiler)
-
-# Helpful functions and macros for our project
-include (colors)
-include (check_is_enabled)
-include (oiio_macros)
-
 
 option (VERBOSE "Print lots of messages while compiling" OFF)
 set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
@@ -68,15 +54,6 @@ option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH "Should the inner namespace include
 option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 option (OIIO_BUILD_TOOLS "Build the command-line tools" ON)
 option (OIIO_BUILD_TESTS "Build the unit tests" ON)
-option (USE_PYTHON "Build the Python bindings" ON)
-if (NOT "$ENV{OIIO_PYTHON_VERSION}" STREQUAL "")
-    set (PYTHON_VERSION "$ENV{OIIO_PYTHON_VERSION}" CACHE STRING "Target version of python to find")
-else()
-    set (PYTHON_VERSION "2.7" CACHE STRING "Target version of python to find")
-endif()
-option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
-option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
-set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namespace")
 option (OIIO_THREAD_ALLOW_DCLP "OIIO threads may use DCLP for speed" ON)
 set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
 set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -111,22 +88,38 @@ endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
 
+list(APPEND CMAKE_MODULE_PATH
+     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
+     "${PROJECT_SOURCE_DIR}/src/cmake")
+
+include (GNUInstallDirs)
+
+# All the C++ and compiler related options and adjustments live here
+include (compiler)
+
+# Helpful functions and macros for our project
+include (colors)
+include (check_is_enabled)
+include (oiio_macros)
+
 # All the dependency finding and options are here
 include (externalpackages)
 
+include (pythonutils)
+
 include (install)
+
+# We want CTest for testing
+# N.B. This needs to be added before any of the subdirectories, or
+# their add_test commands will not register.
+include (CTest)
+
 
 include_directories (
     BEFORE
     "${CMAKE_SOURCE_DIR}/src/include"
     "${CMAKE_BINARY_DIR}/include"
   )
-
-
-# We want CTest for testing
-# N.B. This needs to be added before any of the subdirectories, or
-# their add_test commands will not register.
-include (CTest)
 
 
 # Tell CMake to process the sub-directories

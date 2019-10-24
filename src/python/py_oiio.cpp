@@ -215,7 +215,7 @@ oiio_getattribute_typed(const std::string& name, TypeDesc type = TypeUnknown)
 
 #define OIIO_DECLARE_PYMODULE(x) PYBIND11_MODULE(x, m)
 
-OIIO_DECLARE_PYMODULE(OIIO_PYMODULE_NAME)
+OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
 {
     // Basic helper classes
     declare_typedesc(m);
