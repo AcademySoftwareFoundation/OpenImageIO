@@ -93,6 +93,21 @@ if (OPENIMAGEIO_FOUND)
         message ( STATUS "OpenImageIO library_dirs = ${OPENIMAGEIO_LIBRARY_DIRS}" )
         message ( STATUS "OpenImageIO oiiotool     = ${OIIOTOOL_BIN}" )
     endif ()
+
+    if(NOT TARGET OpenImageIO::OpenImageIO)
+        add_library(OpenImageIO::OpenImageIO UNKNOWN IMPORTED)
+        set_target_properties(OpenImageIO::OpenImageIO PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${OPENIMAGEIO_INCLUDES}")
+
+        set_property(TARGET OpenImageIO::OpenImageIO APPEND PROPERTY
+            IMPORTED_LOCATION "${OPENIMAGEIO_LIBRARIES}")
+    endif()
+
+    if(NOT TARGET OpenImageIO::oiiotool AND EXISTS "${OIIOTOOL_BIN}")
+        add_executable(OpenImageIO::oiiotool IMPORTED)
+        set_target_properties(OpenImageIO::oiiotool PROPERTIES
+            IMPORTED_LOCATION "${OIIOTOOL_BIN}")
+    endif()
 endif ()
 
 mark_as_advanced (
