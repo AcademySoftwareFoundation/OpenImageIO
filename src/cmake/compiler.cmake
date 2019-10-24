@@ -3,55 +3,41 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 ###########################################################################
-# Compiler-related detection, options, and actions
+#
+# This file contains compiler-related detection, options, and actions.
+#
+# Each option declaration is kept close to the related logic for that
+# option.
+#
+###########################################################################
 
+
+###########################################################################
+# Print some basic status about the system and compiler
+#
 if (VERBOSE)
     message (STATUS "CMAKE_SYSTEM_NAME      = ${CMAKE_SYSTEM_NAME}")
     message (STATUS "CMAKE_SYSTEM_VERSION   = ${CMAKE_SYSTEM_VERSION}")
     message (STATUS "CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
 endif ()
-
 message (STATUS "CMAKE_CXX_COMPILER     = ${CMAKE_CXX_COMPILER}")
 message (STATUS "CMAKE_CXX_COMPILER_ID  = ${CMAKE_CXX_COMPILER_ID}")
 
-# Require C++11 and disable extensions for all targets
-set (CMAKE_CXX_STANDARD 11 CACHE STRING "C++ standard to prefer (11, 14, 17, etc.)")
+
+###########################################################################
+# C++ language standard
+#
+set (CMAKE_CXX_STANDARD 11 CACHE STRING
+     "C++ standard to prefer (11, 14, 17, 20, etc.)")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 message (STATUS "Building for C++${CMAKE_CXX_STANDARD}")
 
-option (USE_LIBCPLUSPLUS "Compile with clang libc++" OFF)
-set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
-option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
-set (CXX_VISIBILITY_PRESET "hidden" CACHE STRING "Symbol visibility (hidden or default")
-option (VISIBILITY_INLINES_HIDDEN "Hide symbol visibility of inline functions" ON)
-set (VISIBILITY_MAP_FILE "${PROJECT_SOURCE_DIR}/src/build-scripts/hidesymbols.map" CACHE FILEPATH "Visibility map file")
-option (USE_CCACHE "Use ccache if found" ON)
-set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
-set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when building DSOs")
-option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
-option (LINKSTATIC  "Link with static external libraries when possible" OFF)
-option (CODECOV "Build code coverage tests" OFF)
-set (SANITIZE "" CACHE STRING "Build code using sanitizer (address, thread)")
-option (CLANG_TIDY "Enable clang-tidy" OFF)
-set (CLANG_TIDY_CHECKS "" CACHE STRING "clang-tidy checks to perform (none='-*')")
-set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
-option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
-set (CLANG_FORMAT_EXE_HINT "" CACHE PATH "clang-format executable's directory (will search if not specified")
-set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
-    CACHE STRING "Glob patterns to include for clang-format")
-    # Eventually: want this to be: "src/*.h;src/*.cpp"
-set (CLANG_FORMAT_EXCLUDES "src/include/OpenImageIO/fmt/*.h"
-                           "*pugixml*" "*SHA1*" "*/farmhash.cpp" "*/tinyformat.h"
-                           "src/dpx.imageio/libdpx/*"
-                           "src/cineon.imageio/libcineon/*"
-                           "src/dds.imageio/squish/*"
-                           "src/gif.imageio/gif.h"
-                           "src/hdr.imageio/rgbe.cpp"
-     CACHE STRING "Glob patterns to exclude for clang-format")
-set (GLIBCXX_USE_CXX11_ABI "" CACHE STRING "For gcc, use the new C++11 library ABI (0|1)")
 
+###########################################################################
 # Figure out which compiler we're using
+#
+
 if (CMAKE_COMPILER_IS_GNUCC)
     execute_process (COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
                      OUTPUT_VARIABLE GCC_VERSION
@@ -63,7 +49,6 @@ else ()
     set (GCC_VERSION 0)
 endif ()
 
-# Figure out which compiler we're using, for tricky cases
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER MATCHES "[Cc]lang")
     # If using any flavor of clang, set CMAKE_COMPILER_IS_CLANG. If it's
     # Apple's variety, set CMAKE_COMPILER_IS_APPLECLANG and
@@ -91,7 +76,11 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
     endif ()
 endif ()
 
-# turn on more detailed warnings and consider warnings as errors
+
+###########################################################################
+# Turn on more detailed warnings and optionally consider warnings as errors
+#
+option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
 if (NOT MSVC)
     add_compile_options ("-Wall")
     if (STOP_ON_WARNING OR DEFINED ENV{CI})
@@ -102,41 +91,40 @@ if (NOT MSVC)
     endif ()
 endif ()
 
-if ($<CONFIG:RelWithDebInfo>)
-    # cmake bug workaround -- on some platforms, cmake doesn't set
-    # NDEBUG for RelWithDebInfo mode
-    add_definitions ("-DNDEBUG")
-endif ()
 
-# Options common to gcc and clang
-if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
-    # Ensure this macro is set for stdint.h
-    add_definitions ("-D__STDC_LIMIT_MACROS")
-    add_definitions ("-D__STDC_CONSTANT_MACROS")
-    # this allows native instructions to be used for sqrtf instead of a function call
-    add_compile_options ("-fno-math-errno")
-endif ()
-
+###########################################################################
+# Control symbol visibility
+#
+# We try hard to make default symbol visibility be "hidden", except for
+# symbols that are part of the public API, which should be marked in the
+# source code with a special decorator, OIIO_API.
+#
+# Additionally, there is a hidesymbols.map file that on some platforms may
+# give more fine-grained control for hiding symbols, because sometimes
+# dependent libraries may not be well behaved and need extra hiding.
+#
+set (CXX_VISIBILITY_PRESET "hidden" CACHE STRING "Symbol visibility (hidden or default")
+option (VISIBILITY_INLINES_HIDDEN "Hide symbol visibility of inline functions" ON)
+set (VISIBILITY_MAP_FILE "${PROJECT_SOURCE_DIR}/src/build-scripts/hidesymbols.map" CACHE FILEPATH "Visibility map file")
 set (C_VISIBILITY_PRESET ${CXX_VISIBILITY_PRESET})
 if (${CXX_VISIBILITY_PRESET} STREQUAL "hidden" AND
     (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG) AND
     (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU"))
     # Linux/FreeBSD/Hurd: also hide all the symbols of dependent libraries
-    # to prevent clashes if an app using OIIO is linked against other
-    # verions of our dependencies.
+    # to prevent clashes if an app using this project is linked against
+    # other verions of our dependencies.
     set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${VISIBILITY_MAP_FILE}")
 endif ()
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
-    AND ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
-    # minimum arch of i586 is needed for atomic cpu instructions
-    add_compile_options (-march=i586)
-endif ()
 
-# Clang-specific options
+###########################################################################
+# Compiler-specific and platform-specific options.
+#
+# Here is where we add a whole bunch of options for specific compilers or
+# platforms. Usually this is to suppress false-positive compiler warnings.
+#
 if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
-    # Disable some warnings for Clang, for some things that are too awkward
-    # to change just for the sake of having no warnings.
+    # Clang-specific options
     add_compile_options ("-Wno-unused-function")
     add_compile_options ("-Wno-overloaded-virtual")
     add_compile_options ("-Wno-unneeded-internal-declaration")
@@ -146,18 +134,18 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
     add_compile_options ("-Qunused-arguments")
     # Don't warn if we ask it not to warn about warnings it doesn't know
     add_compile_options ("-Wunknown-warning-option")
-    if (CLANG_VERSION_STRING VERSION_GREATER 3.5 OR
+    if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 3.6 OR
         APPLECLANG_VERSION_STRING VERSION_GREATER 6.1)
         add_compile_options ("-Wno-unused-local-typedefs")
     endif ()
-    if (CLANG_VERSION_STRING VERSION_EQUAL 3.9 OR CLANG_VERSION_STRING VERSION_GREATER 3.9)
+    if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 3.9)
         # Don't warn about using unknown preprocessor symbols in #if'set
         add_compile_options ("-Wno-expansion-to-defined")
     endif ()
 endif ()
 
-# gcc specific options
 if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG))
+    # gcc specific options
     add_compile_options ("-Wno-unused-local-typedefs")
     add_compile_options ("-Wno-unused-result")
     if (NOT ${GCC_VERSION} VERSION_LESS 7.0)
@@ -166,8 +154,18 @@ if (CMAKE_COMPILER_IS_GNUCC AND NOT (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_I
     endif ()
 endif ()
 
-# Microsoft specific options
+if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
+    # Options common to gcc and clang
+
+    # Ensure this macro is set for stdint.h
+    add_definitions ("-D__STDC_LIMIT_MACROS")
+    add_definitions ("-D__STDC_CONSTANT_MACROS")
+    # this allows native instructions to be used for sqrtf instead of a function call
+    add_compile_options ("-fno-math-errno")
+endif ()
+
 if (MSVC)
+    # Microsoft specific options
     add_compile_options (/W1)
     add_definitions (-D_CRT_SECURE_NO_DEPRECATE)
     add_definitions (-D_CRT_SECURE_NO_WARNINGS)
@@ -176,7 +174,21 @@ if (MSVC)
     add_definitions (-DJAS_WIN_MSVC_BUILD)
 endif (MSVC)
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
+    AND ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "i386")
+    # For FreeBSD, minimum arch of i586 is needed for atomic cpu instructions
+    add_compile_options (-march=i586)
+endif ()
+
+
+###########################################################################
 # Use ccache if found
+#
+# This can really speed up compilation by caching object files that have
+# been compiled previously with idential arguments and inputs. Putting this
+# logic here makes it work even if the user is unaware of ccache. If it's
+# not found on the system, it will simply be silnetly not used.
+option (USE_CCACHE "Use ccache if found" ON)
 find_program (CCACHE_FOUND ccache)
 if (CCACHE_FOUND AND USE_CCACHE)
     if (CMAKE_COMPILER_IS_CLANG AND USE_QT AND (NOT DEFINED ENV{CCACHE_CPP2}))
@@ -187,25 +199,45 @@ if (CCACHE_FOUND AND USE_CCACHE)
     endif ()
 endif ()
 
+
+###########################################################################
+# Option to force use of libc++ (the LLVM project's alternate C++ standard
+# library). Currently this only has an effect if using clang as the
+# compiler. Maybe it would also work for g++? Investigate.
+option (USE_LIBCPLUSPLUS "Compile with clang libc++" OFF)
 if (USE_LIBCPLUSPLUS AND CMAKE_COMPILER_IS_CLANG)
     message (STATUS "Using libc++")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif ()
 
-# GCC 5+: honor build-time option for whether or not to use new string ABI.
+
+###########################################################################
+# For gcc >= 5, allow an option to force which version of the C++ ABI to
+# use (mostly this affects the implementation of std::string).
+#
 # FIXME: In theory, this should also be needed for clang, if compiling with
 # the gcc libstdc++ toolchain. In practice, I could not get things to build
 # with clang properly when using this option, and I haven't yet seen a case
 # where it's needed. We can return to this and fix for clang if it becomes a
 # legit problem later.
-if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 5.0)
+#
+set (GLIBCXX_USE_CXX11_ABI "" CACHE STRING "For gcc, use the new C++11 library ABI (0|1)")
+if (CMAKE_COMPILER_IS_GNUCC AND ${GCC_VERSION} VERSION_GREATER_EQUAL 5.0)
     if (NOT ${GLIBCXX_USE_CXX11_ABI} STREQUAL "")
         add_definitions ("-D_GLIBCXX_USE_CXX11_ABI=${GLIBCXX_USE_CXX11_ABI}")
     endif ()
 endif ()
 
 
-# SIMD and machine architecture options
+###########################################################################
+# SIMD and machine architecture options.
+#
+# The USE_SIMD optinon may be set to a comma-separated list of machine /
+# instruction set optinos, such as "avx3,f16c". The list will be parsed and
+# the proper compiler directives added to generate code for those ISA
+# capabilities.
+#
+set (USE_SIMD "" CACHE STRING "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
 set (SIMD_COMPILE_FLAGS "")
 if (NOT USE_SIMD STREQUAL "")
     message (STATUS "Compiling with SIMD level ${USE_SIMD}")
@@ -235,14 +267,19 @@ if (NOT USE_SIMD STREQUAL "")
 endif ()
 
 
-# Test for features
+###########################################################################
+# Preparation to test for compiler/language features
 if (NOT VERBOSE)
     set (CMAKE_REQUIRED_QUIET 1)
 endif ()
 include (CMakePushCheckState)
 include (CheckCXXSourceRuns)
 
-# Find out if it's safe for us to use std::regex or if we need boost.regex
+###########################################################################
+# Find out if it's safe for us to use std::regex or if we need boost.regex.
+# This is primarily about gcc 4.8 having a broken regex implementation.
+# This will be obsolete once our minimum supported gcc is >= 4.9.
+#
 cmake_push_check_state ()
 check_cxx_source_runs("
       #include <regex>
@@ -258,7 +295,11 @@ else ()
 endif ()
 cmake_pop_check_state ()
 
+
+###########################################################################
 # Code coverage options
+#
+option (CODECOV "Build code coverage tests" OFF)
 if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for code coverage analysis")
     add_compile_options ("-ftest-coverage -fprofile-arcs -O0")
@@ -268,7 +309,11 @@ if (CODECOV AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -ftest-coverage -fprofile-arcs")
 endif ()
 
+
+###########################################################################
 # Sanitizer options
+#
+set (SANITIZE "" CACHE STRING "Build code using sanitizer (address, thread)")
 if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for sanitizer=${SANITIZE}")
     string (REPLACE "," ";" SANITIZE_FEATURE_LIST ${SANITIZE})
@@ -298,7 +343,22 @@ if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     add_definitions ("-D${PROJECT_NAME}_SANITIZE=1")
 endif ()
 
+
+###########################################################################
 # clang-tidy options
+#
+# clang-tidy is a static analyzer that is part of the LLVM tools. It has a
+# variety of the usual bug and security tests, linting, and also tests for
+# things like finding (and correcting!) use of older language constructs.
+#
+# If clang-tidy is found and enabled, a "clang-tidy" build target will be
+# enabled. The set of tests can be customized both here and through
+# the .clang-tidy file that is part of this project.
+#
+option (CLANG_TIDY "Enable clang-tidy" OFF)
+set (CLANG_TIDY_CHECKS "" CACHE STRING "clang-tidy checks to perform (none='-*')")
+set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
+option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
 if (CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES "clang-tidy"
                  DOC "Path to clang-tidy executable")
@@ -327,7 +387,27 @@ if (CLANG_TIDY)
     # Hint: run with CLANG_TIDY_ARGS=-list-checks to list all the checks
 endif ()
 
-# clang-format
+
+###########################################################################
+# clang-format options
+#
+# clang-format is a source code reformatter that is part of the LLVM tools.
+# It can be used to check adherence to project code formatting rules and
+# correct any deviations. If clang-format is found on the system, a
+# "clang-format" build target will trigger a reformatting.
+#
+set (CLANG_FORMAT_EXE_HINT "" CACHE PATH "clang-format executable's directory (will search if not specified")
+set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
+    CACHE STRING "Glob patterns to include for clang-format")
+    # Eventually: want this to be: "src/*.h;src/*.cpp"
+set (CLANG_FORMAT_EXCLUDES "src/include/OpenImageIO/fmt/*.h"
+                           "*pugixml*" "*SHA1*" "*/farmhash.cpp" "*/tinyformat.h"
+                           "src/dpx.imageio/libdpx/*"
+                           "src/cineon.imageio/libcineon/*"
+                           "src/dds.imageio/squish/*"
+                           "src/gif.imageio/gif.h"
+                           "src/hdr.imageio/rgbe.cpp"
+     CACHE STRING "Glob patterns to exclude for clang-format")
 find_program (CLANG_FORMAT_EXE
               NAMES clang-format bin/clang-format
               HINTS ${CLANG_FORMAT_EXE_HINT} ENV CLANG_FORMAT_EXE_HINT
@@ -354,17 +434,32 @@ else ()
 endif ()
 
 
+###########################################################################
+# Another way to sneak in custom compiler and DSO linking flags.
+#
+set (EXTRA_CPP_ARGS "" CACHE STRING "Extra C++ command line definitions")
 if (EXTRA_CPP_ARGS)
     message (STATUS "Extra C++ args: ${EXTRA_CPP_ARGS}")
     add_compile_options ("${EXTRA_CPP_ARGS}")
 endif()
+set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when building DSOs")
 
 
+###########################################################################
+# BUILD_SHARED_LIBS, if turned off, will disable building of .so/.dll
+# dynamic libraries and instead only build static libraries.
+#
+option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
 if (NOT BUILD_SHARED_LIBS)
-    add_definitions (-DOIIO_STATIC_DEFINE=1)
+    add_definitions (-D${PROJECT_NAME}_STATIC_DEFINE=1)
 endif ()
 
-# Use .a files if LINKSTATIC is enabled
+
+###########################################################################
+# LINKSTATIC, if enabled, will cause us to favor linking static versions
+# of library dependencies, if they are available.
+#
+option (LINKSTATIC  "Link with static external libraries when possible" OFF)
 if (LINKSTATIC)
     #set (_orig_link_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
     message (STATUS "Statically linking external libraries when possible")
@@ -375,6 +470,10 @@ if (LINKSTATIC)
     endif ()
 endif ()
 
+
+###########################################################################
+# Any extra logic to be run only for CI builds goes here.
+#
 if (DEFINED ENV{TRAVIS} OR DEFINED ENV{APPVEYOR} OR DEFINED ENV{CI} OR DEFINED ENV{GITHUB_ACTIONS})
     add_definitions ("-D${PROJ_NAME}_CI=1" "-DBUILD_CI=1")
     if (APPLE)
@@ -383,3 +482,45 @@ if (DEFINED ENV{TRAVIS} OR DEFINED ENV{APPVEYOR} OR DEFINED ENV{CI} OR DEFINED E
         set(CMAKE_FIND_FRAMEWORK LAST)
     endif ()
 endif ()
+
+
+###########################################################################
+# Rpath handling at the install step
+#
+set (MACOSX_RPATH ON)
+if (CMAKE_SKIP_RPATH)
+    # We need to disallow the user from truly setting CMAKE_SKIP_RPATH, since
+    # we want to run the generated executables from the build tree in order to
+    # generate the manual page documentation.  However, we make sure the
+    # install rpath is unset so that the install tree is still free of rpaths
+    # for linux packaging purposes.
+    set (CMAKE_SKIP_RPATH FALSE)
+    unset (CMAKE_INSTALL_RPATH)
+else ()
+    if (NOT CMAKE_INSTALL_RPATH)
+        set (CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+    endif ()
+    # add the automatically determined parts of the RPATH that
+    # point to directories outside the build tree to the install RPATH
+    set (CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    if (VERBOSE)
+        message (STATUS "CMAKE_INSTALL_RPATH = ${CMAKE_INSTALL_RPATH}")
+    endif ()
+endif ()
+
+
+
+###########################################################################
+# Macro to install targets to the appropriate locations.  Use this instead of
+# the install(TARGETS ...) signature.
+#
+# Usage:
+#
+#    install_targets (target1 [target2 ...])
+#
+macro (install_targets)
+    install (TARGETS ${ARGN}
+             RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
+             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
+             ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
+endmacro()

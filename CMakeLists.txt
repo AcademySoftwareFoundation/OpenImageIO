@@ -13,13 +13,8 @@ set (PROJECT_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 
-
-# Alternate names
-set (OIIO_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
-set (OIIO_VERSION_MINOR ${PROJECT_VERSION_MINOR})
-set (OIIO_VERSION_PATCH ${PROJECT_VERSION_PATCH})
-set (OIIO_VERSION_TWEAK ${PROJECT_VERSION_TWEAK})
-set (OIIO_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
+message (STATUS "Building ${PROJECT_NAME} ${PROJECT_VERSION}")
+message (STATUS "CMake version is ${CMAKE_VERSION}")
 
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
@@ -46,39 +41,10 @@ if (CMAKE_USE_FOLDERS)
     set_property (GLOBAL PROPERTY USE_FOLDERS ON)
 endif ()
 
-include (GNUInstallDirs)
-
-list(APPEND CMAKE_MODULE_PATH
-     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
-     "${PROJECT_SOURCE_DIR}/src/cmake")
-
-# All the C++ and compiler related options and adjustments live here
-include (compiler)
-
-# Helpful functions and macros for our project
-include (colors)
-include (check_is_enabled)
-include (oiio_macros)
-
 
 option (VERBOSE "Print lots of messages while compiling" OFF)
-set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
-      "Customized outer namespace base name (version will be added)")
-option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH "Should the inner namespace include the patch number" OFF)
-option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
-option (OIIO_BUILD_TOOLS "Build the command-line tools" ON)
-option (OIIO_BUILD_TESTS "Build the unit tests" ON)
-option (USE_PYTHON "Build the Python bindings" ON)
-if (NOT "$ENV{OIIO_PYTHON_VERSION}" STREQUAL "")
-    set (PYTHON_VERSION "$ENV{OIIO_PYTHON_VERSION}" CACHE STRING "Target version of python to find")
-else()
-    set (PYTHON_VERSION "2.7" CACHE STRING "Target version of python to find")
-endif()
-option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
-option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
-set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namespace")
-option (OIIO_THREAD_ALLOW_DCLP "OIIO threads may use DCLP for speed" ON)
-set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
+option (${PROJ_NAME}_BUILD_TOOLS "Build the command-line tools" ON)
+option (${PROJ_NAME}_BUILD_TESTS "Build the unit tests" ON)
 set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
      CACHE STRING "Set the SO version in the SO name of the output library")
 set (OIIO_LIBNAME_SUFFIX "" CACHE STRING
@@ -88,21 +54,27 @@ option (BUILD_DOCS "If ON, build documentation and man pages." ON)
 option (INSTALL_DOCS "If ON, install documentation and man pages." ON)
 option (INSTALL_FONTS "If ON, install default fonts" ON)
 option (INSTALL_CMAKE_HELPER "If On, install FindOpenImageIO.cmake" ON)
+option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
 set (CMAKE_DEBUG_POSTFIX "" CACHE STRING "Library naming postfix for Debug builds (e.g., '_debug')")
 
 set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_SOURCE_DIR}/.." CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
+option (OIIO_THREAD_ALLOW_DCLP "OIIO threads may use DCLP for speed" ON)
 if (NOT OIIO_THREAD_ALLOW_DCLP)
     add_definitions ("-DOIIO_THREAD_ALLOW_DCLP=0")
 endif ()
 
+set (TEX_BATCH_SIZE "" CACHE STRING "Force TextureSystem SIMD batch size (e.g. 16)")
 if (TEX_BATCH_SIZE)
     add_definitions ("-DOIIO_TEXTURE_SIMD_BATCH_WIDTH=${TEX_BATCH_SIZE}")
 endif ()
 
 # Set the default namespace
+set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
+     "Customized outer namespace base name (version will be added)")
+option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH "Should the inner namespace include the patch number" OFF)
 set (PROJ_NAMESPACE "${${PROJ_NAME}_NAMESPACE}")
 set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE}_v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}")
 if (OIIO_NAMESPACE_INCLUDE_PATCH)
@@ -111,23 +83,37 @@ endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
 
+list(APPEND CMAKE_MODULE_PATH
+     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
+     "${PROJECT_SOURCE_DIR}/src/cmake")
+
+include (GNUInstallDirs)
+
+# All the C++ and compiler related options and adjustments live here
+include (compiler)
+
+# Helpful functions and macros for our project
+include (colors)
+include (check_is_enabled)
+include (oiio_macros)
+
 # All the dependency finding and options are here
 include (externalpackages)
 
-include (install)
+# Utilities related to finding python and making python bindings
+include (pythonutils)
+
+# We want CTest for testing, so this must be added before all the calls to
+# add_subdirectory, or their add_test commands will not register.
+include (CTest)
+
 
 include_directories (
     BEFORE
     "${CMAKE_SOURCE_DIR}/src/include"
+    "${CMAKE_BINARY_DIR}/src/include"
     "${CMAKE_BINARY_DIR}/include"
   )
-
-
-# We want CTest for testing
-# N.B. This needs to be added before any of the subdirectories, or
-# their add_test commands will not register.
-include (CTest)
-
 
 # Tell CMake to process the sub-directories
 add_subdirectory (src/libutil)
