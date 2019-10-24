@@ -2,9 +2,12 @@
 
 # Which OpenEXR to retrieve, how to build it
 OPENEXR_REPO=${OPENEXR_REPO:=https://github.com/openexr/openexr.git}
-OPENEXR_BRANCH=${OPENEXR_BRANCH:=v2.4.0}
+OPENEXR_VERSION=${OPENEXR_VERSION:=2.4.0}
+OPENEXR_BRANCH=${OPENEXR_BRANCH:=v${OPENEXR_VERSION}}
 
 # Where to install the final results
+OPENEXR_SOURCE_DIR=${OPENEXR_SOURCE_DIR:=${PWD}/ext/openexr}
+OPENEXR_BUILD_DIR=${OPENEXR_BUILD_DIR:=${PWD}/ext/openexr-build}
 OPENEXR_INSTALL_DIR=${OPENEXR_INSTALL_DIR:=${PWD}/ext/openexr-install}
 OPENEXR_BUILD_TYPE=${OPENEXR_BUILD_TYPE:=Release}
 CMAKE_GENERATOR=${CMAKE_GENERATOR:="Unix Makefiles"}
@@ -14,6 +17,7 @@ BASEDIR=$PWD
 
 pwd
 echo "Building OpenEXR ${OPENEXR_BRANCH}"
+echo "EXR build dir will be: ${OPENEXR_BUILD_DIR}"
 echo "EXR install dir will be: ${OPENEXR_INSTALL_DIR}"
 echo "CMAKE_PREFIX_PATH is ${CMAKE_PREFIX_PATH}"
 echo "OpenEXR Build type is ${OPENEXR_BUILD_TYPE}"
@@ -22,82 +26,69 @@ if [[ "$CMAKE_GENERATOR" == "" ]] ; then
     OPENEXR_GENERATOR_CMD="-G \"$CMAKE_GENERATOR\""
 fi
 
-if [[ ! -e ${OPENEXR_INSTALL_DIR} ]] ; then
-    mkdir -p ${OPENEXR_INSTALL_DIR}
-fi
-
 # Clone OpenEXR project (including IlmBase) from GitHub and build
-if [[ ! -e ./ext/openexr ]] ; then
-    echo "git clone ${OPENEXR_REPO} ./ext/openexr"
-    git clone ${OPENEXR_REPO} ./ext/openexr
+if [[ ! -e ${OPENEXR_SOURCE_DIR} ]] ; then
+    echo "git clone ${OPENEXR_REPO} ${OPENEXR_SOURCE_DIR}"
+    git clone ${OPENEXR_REPO} ${OPENEXR_SOURCE_DIR}
 fi
 
-pushd ./ext/openexr
+mkdir -p ${OPENEXR_INSTALL_DIR} && true
+mkdir -p ${OPENEXR_BUILD_DIR} && true
+
+pushd ${OPENEXR_SOURCE_DIR}
 git checkout ${OPENEXR_BRANCH} --force
 
 if [[ ${OPENEXR_BRANCH} == "v2.2.0" ]] || [[ ${OPENEXR_BRANCH} == "v2.2.1" ]] ; then
-    cd IlmBase
-    mkdir build
-    cd build
+    mkdir -p ${OPENEXR_BUILD_DIR}/IlmBase && true
+    mkdir -p ${OPENEXR_BUILD_DIR}/OpenEXR && true
+    cd ${OPENEXR_BUILD_DIR}/IlmBase
     cmake --config ${OPENEXR_BUILD_TYPE} ${OPENEXR_GENERATOR_CMD} \
             -DCMAKE_INSTALL_PREFIX="${OPENEXR_INSTALL_DIR}" \
-            -DCMAKE_CXX_FLAGS="${OPENEXR_CXX_FLAGS}" ..
+            -DCMAKE_CXX_FLAGS="${OPENEXR_CXX_FLAGS}" \
+            ${OPENEXR_CMAKE_FLAGS} ${OPENEXR_SOURCE_DIR}/IlmBase
     time cmake --build . --target install --config ${OPENEXR_BUILD_TYPE}
-    cd ../../OpenEXR
-    cp ${BASEDIR}/src/build-scripts/OpenEXR-CMakeLists.txt CMakeLists.txt
-    cp ${BASEDIR}/src/build-scripts/OpenEXR-IlmImf-CMakeLists.txt IlmImf/CMakeLists.txt
-    mkdir -p build/IlmImf
-    cd build
-    unzip -d IlmImf ${BASEDIR}/src/build-scripts/b44ExpLogTable.h.zip
-    unzip -d IlmImf ${BASEDIR}/src/build-scripts/dwaLookups.h.zip
+    cd ${OPENEXR_BUILD_DIR}/OpenEXR
     cmake --config ${OPENEXR_BUILD_TYPE} ${OPENEXR_GENERATOR_CMD} \
+            -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}\;${OPENEXR_INSTALL_DIR}" \
             -DCMAKE_INSTALL_PREFIX="${OPENEXR_INSTALL_DIR}" \
-            -DILMBASE_PACKAGE_PREFIX=${OPENEXR_INSTALL_DIR} \
+            -DILMBASE_PACKAGE_PREFIX="${OPENEXR_INSTALL_DIR}" \
             -DBUILD_UTILS=0 -DBUILD_TESTS=0 \
             -DCMAKE_CXX_FLAGS="${OPENEXR_CXX_FLAGS}" \
-            ${OPENEXR_CMAKE_FLAGS} ..
+            ${OPENEXR_CMAKE_FLAGS} ${OPENEXR_SOURCE_DIR}/OpenEXR
     time cmake --build . --target install --config ${OPENEXR_BUILD_TYPE}
 elif [[ ${OPENEXR_BRANCH} == "v2.3.0" ]] ; then
     # Simplified setup for 2.3+
-    mkdir -p build/OpenEXR/IlmImf && true
-    cd build
-    unzip -d OpenEXR/IlmImf ${BASEDIR}/src/build-scripts/b44ExpLogTable.h.zip
-    unzip -d OpenEXR/IlmImf ${BASEDIR}/src/build-scripts/dwaLookups.h.zip
+    cd ${OPENEXR_BUILD_DIR}
     cmake --config ${OPENEXR_BUILD_TYPE} -G "$CMAKE_GENERATOR" \
             -DCMAKE_INSTALL_PREFIX="${OPENEXR_INSTALL_DIR}" \
             -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
-            -DILMBASE_PACKAGE_PREFIX=${OPENEXR_INSTALL_DIR} \
+            -DILMBASE_PACKAGE_PREFIX="${OPENEXR_INSTALL_DIR}" \
             -DOPENEXR_BUILD_UTILS=0 \
             -DOPENEXR_BUILD_TESTS=0 \
             -DOPENEXR_BUILD_PYTHON_LIBS=0 \
             -DCMAKE_CXX_FLAGS="${OPENEXR_CXX_FLAGS}" \
-            ${OPENEXR_CMAKE_FLAGS} ..
+            ${OPENEXR_CMAKE_FLAGS} ${OPENEXR_SOURCE_DIR}
     time cmake --build . --target install --config ${OPENEXR_BUILD_TYPE}
 else
     # Simplified setup for 2.4+
-    mkdir -p build/OpenEXR/IlmImf && true
-    cd build
-    unzip -d OpenEXR/IlmImf ${BASEDIR}/src/build-scripts/b44ExpLogTable.h.zip
-    unzip -d OpenEXR/IlmImf ${BASEDIR}/src/build-scripts/dwaLookups.h.zip
+    cd ${OPENEXR_BUILD_DIR}
     cmake --config ${OPENEXR_BUILD_TYPE} -G "$CMAKE_GENERATOR" \
             -DCMAKE_INSTALL_PREFIX="${OPENEXR_INSTALL_DIR}" \
             -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
-            -DILMBASE_PACKAGE_PREFIX=${OPENEXR_INSTALL_DIR} \
+            -DILMBASE_PACKAGE_PREFIX="${OPENEXR_INSTALL_DIR}" \
             -DOPENEXR_BUILD_UTILS=0 \
             -DBUILD_TESTING=0 \
             -DPYILMBASE_ENABLE=0 \
             -DOPENEXR_VIEWERS_ENABLE=0 \
+            -DCMAKE_INSTALL_LIBDIR=lib \
             -DCMAKE_CXX_FLAGS="${OPENEXR_CXX_FLAGS}" \
-            ${OPENEXR_CMAKE_FLAGS} ..
+            ${OPENEXR_CMAKE_FLAGS} ${OPENEXR_SOURCE_DIR}
     time cmake --build . --target install --config ${OPENEXR_BUILD_TYPE}
 fi
 
 popd
 
-ls -R ${OPENEXR_INSTALL_DIR}
-
-#echo "listing .."
-#ls ..
+#ls -R ${OPENEXR_INSTALL_DIR}
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
