@@ -26,7 +26,7 @@ if (VERBOSE)
 endif ()
 set_target_properties(OpenImageIO_Util
                       PROPERTIES
-                         VERSION     ${OIIO_VERSION_MAJOR}.${OIIO_VERSION_MINOR}.${OIIO_VERSION_PATCH}
+                         VERSION     ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
                          SOVERSION   ${SOVERSION}
                          OUTPUT_NAME OpenImageIO_Util${OIIO_LIBNAME_SUFFIX}
                          POSITION_INDEPENDENT_CODE ON
