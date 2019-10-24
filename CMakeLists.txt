@@ -107,7 +107,6 @@ include (externalpackages)
 
 include (pythonutils)
 
-include (install)
 
 # We want CTest for testing
 # N.B. This needs to be added before any of the subdirectories, or
