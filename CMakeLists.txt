@@ -202,6 +202,17 @@ install (FILES src/cmake/modules/FindOpenImageIO.cmake
          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/cmake/Modules
          COMPONENT cmake)
 
+# Export the configuration files. There are also library-specific config
+# exports in the CMakeLists.txt of libOpenImageIO.
+include (CMakePackageConfigHelpers)
+write_basic_package_version_file (
+    "${PROJECT_NAME}ConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMinorVersion
+)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
 
 
 #########################################################################

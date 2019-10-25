@@ -6,6 +6,8 @@ set (libOpenImageIO_Util_srcs argparse.cpp benchmark.cpp
                   typedesc.cpp ustring.cpp xxhash.cpp)
 
 add_library (OpenImageIO_Util ${libOpenImageIO_Util_srcs})
+add_library (OpenImageIO::OpenImageIO_Util ALIAS OpenImageIO_Util)
+
 target_link_libraries (OpenImageIO_Util
         PUBLIC
             ${ILMBASE_LIBRARIES}

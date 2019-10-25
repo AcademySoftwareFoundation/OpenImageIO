@@ -90,6 +90,7 @@ set (libOpenImageIO_srcs
 
 
 add_library (OpenImageIO ${libOpenImageIO_srcs})
+add_library (OpenImageIO::OpenImageIO ALIAS OpenImageIO)
 
 # If the 'EMBEDPLUGINS' option is set, we want to compile the source for
 # all the plugins into libOpenImageIO.
@@ -209,6 +210,21 @@ if (EXTRA_DSO_LINK_ARGS)
 endif()
 
 install_targets (OpenImageIO)
+
+
+install (TARGETS OpenImageIO
+         EXPORT OpenImageIO
+         RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
+         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
+         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
+
+
+# write config files
+install (EXPORT OpenImageIO
+         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+         FILE ${PROJECT_NAME}Config.cmake
+         NAMESPACE ${PROJECT_NAME}::
+         )
 
 
 # Testing
