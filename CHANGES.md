@@ -123,6 +123,25 @@ Fixes and feature enhancements:
     - Expression evaluation has been extended to support operators `//` for
       integer division (whereas `/` is floating point division), and `%`
       for integer modulus. #2362 (2.1.5)
+    - New `--originoffset` resets the data window origin relative to its
+      previous value (versus the existing `--origin` that sets it absolutely).
+      #2369 (2.1.5)
+    - `--paste` has two new optional modifiers: `:all=1` pastes the entire
+      stack of images together (versus the default of just pasting the top
+      two images on the stack), and `:mergeroi=1` causes the result to have
+      the merged data window of all inputs, instead of the foreground image
+      clipping against the boundary of the background image data. #2369 (2.1.5)
+    - `--paste` now works with deep images. #2369 (2.1.5)
+    - `--paste` semantics have changed: the meaning of pasting FG into BG at
+      (x,y) now means that the (0,0) origin of FG ends up at (x,y), whereas
+      before it placed the corner of FG's data window at (x,y). This will
+      not change behavior for ordinary images where FG's data window is (0,0),
+      but it makes behavior more sensible for "cropped" or "shrink-wrapped"
+      FG images that have non-zero data window origin. #2369 (2.1.5)
+    - `paste()` is now multithreaded and therefore much faster. #2369 (2.1.5)
+    - `--ociotransform` no longer issues an error message when no valid OCIO
+      configuration is found (because it's not needed for this operation).
+      #2371 (2.1.5)
 * ImageBuf/ImageBufAlgo:
     - `IBA::channel_append()` previously always forced its result to be float,
       if it wasn't previously initialized. Now it uses the uaual type-merging
@@ -147,6 +166,20 @@ Fixes and feature enhancements:
       (2.0.10/2.1.3)
     - `IBA::color_map()`:  now supports a new "turbo" color map option.
       #2320 (2.1.4)
+    - `IBA::paste()` now works with deep images. #2369 (2.1.5)
+    - `paste` semantics have changed: the meaning of pasting FG into BG at
+      (x,y) now means that the (0,0) origin of FG ends up at (x,y), whereas
+      before it placed the corner of FG's data window at (x,y). This will
+      not change behavior for ordinary images where FG's data window is (0,0),
+      but it makes behavior more sensible for "cropped" or "shrink-wrapped"
+      FG images that have non-zero data window origin. #2369 (2.1.5)
+    - `paste()` is now multithreaded and therefore much faster. #2369 (2.1.5)
+    - `ociotransform()` no longer issues an error message when no valid OCIO
+      configuration is found (because it's not needed for this operation).
+      #2371 (2.1.5)
+    - Python `ociotransform` and `ociolook` mixed up the names and orders of
+      the `inverse` and `unpremult` params, making it so that you couldn't
+      properly specify the inverse. #2371 (2.1.5)
 * ImageInput read_image/scanline/tile fixed subtle bugs for certain
   combination of strides and channel subset reads. #2108 (2.1.0/2.0.4)
 * ImageCache / TextureSystem / maketx:
@@ -175,6 +208,9 @@ Fixes and feature enhancements:
 * iv viewer:
     - Image info window now sorts the metadata, in the same manner as
       `iinfo -v` or `oiiotool -info -v`. #2159 (2.1.0/2.0.5)
+* All command line utilities, when run with just `--help`, will exit with
+  return code 0. In other words, `utility --help` is not an error.
+  #2364 (2.1.5)
 * Python bindings:
     - Fix inability for Python to set timecode attributes (specifically, it
       was trouble setting ImageSpec attributes that were unnsigned int
@@ -307,7 +343,7 @@ Build/test system improvements and platform ports:
   libraw development master. #2306 (2.1.3)
 * Phase in use of GitHub Actions CI beta. We anticipate that this may
   eventually replace both Travis-CI and Appveyor, but for now is still
-  experimental. #2334 (2.1.4)
+  experimental. #2334 (2.1.4) #2356 (2.1.5)
 * Updated and improved finding of OpenEXR and `build_openexr.bash` script
   that we use for CI. #2343 (2.1.4)
 * Upgrade the pybind11 verson that we auto-install when not found (to 2.4.2),
@@ -316,9 +352,11 @@ Build/test system improvements and platform ports:
 * Fix errors in very new MSVS versions where it identified a suspicious
   practice of ImageBuf's use of a unique_ptr of an undefined type. Jump
   through some hoops to make that legal. #2350 (2.1.5)
-
+* All Python scripts in the tests have been modified as needed to make them
+  correct for both Python 2.7 and 3.x. #2355, #2358 (2.1.5)
 * Major overhaul of the CMake build system now that our CMake minimum is
-  3.12. #2348 #2353 (2.1.5) Highlights:
+  3.12. #2348 #2352 #2357 #2360 #2368 #2370 #2372 #2373 (2.1.5)
+  Highlights:
     - All optional dependencies (e.g. "Pkg") now can be disabled (even if
       found) with cmake -DUSE_PKG=0 or environment variable USE_PKG=0.
       Previously, some packages supported this, others did not.
@@ -333,6 +371,20 @@ Build/test system improvements and platform ports:
     - Use correct PUBLIC/PRIVATE marks with target_link_libraries and
       target_include_directories, and rely on cmake properly understanding
       the transitive dependencies.
+    - CMAKE_DEBUG_POSTFIX adds an optional suffix to debug libraries.
+    - CMAKE_CXX_STANDARD to control C++ standard (instead of our nonstandard
+      USE_CPP).
+    - CXX_VISIBILITY_PRESET controls symbol visibility defaults now, not
+      our nonstandard HIDE_SYMBOLS. And the default is to keep everything
+      hidden that is not part of the public API.
+    - At config time, `ENABLE_<name>=0` (either as a CMake variable or an
+      env variable) can be used to disable any individual file format or
+      command line utility. E.g., `cmake -DENABLE_PNG=0 -DENABLE_oiiotool=0`
+      This makes it easier to greatly reduce build time if you are 100%
+      sure there are formats or components you don't want or need.
+* Tests are now safe to run in parallel and in unspecified order. Running
+  with env variable CTEST_PARALLEL_LEVEL=[something more than 1] greatly
+  speeds up the full testsuite on multi-core machines. #2365 (2.1.5)
 
 Developer goodies / internals:
 * argparse.h:
