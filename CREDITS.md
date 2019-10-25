@@ -59,7 +59,7 @@ lg@openimageio.org
 * Hanspeter Niederstrasser
 * Heiko Becker
 * Henri Fousse
-* Henry Mallon
+* Harry Mallon
 * Hugh Macdonald
 * Irena Damsky
 * Ismael Cortes
