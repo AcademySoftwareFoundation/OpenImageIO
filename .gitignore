@@ -5,3 +5,5 @@ dist/
 testsuite/runtest.pyc
 .cproject
 .project
+.DS_Store
+
