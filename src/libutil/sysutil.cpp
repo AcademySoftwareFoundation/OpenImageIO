@@ -86,7 +86,9 @@
 
 #include <boost/version.hpp>
 #if BOOST_VERSION >= 106500
-#    define _GNU_SOURCE
+#    ifndef _GNU_SOURCE
+#        define _GNU_SOURCE
+#    endif
 #    include <boost/stacktrace.hpp>
 #endif
 
