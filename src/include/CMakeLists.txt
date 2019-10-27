@@ -12,14 +12,6 @@ if (NOT USE_EXTERNAL_PUGIXML)
 endif ()
 
 
-if (VERBOSE)
-    message(STATUS "Create oiioversion.h from oiioversion.h.in")
-endif ()
-# Mangle the SOVERSION so that it's a valid C++ identifier for the versioning
-# namespace defined in oiioversion.h
-string (REGEX REPLACE "\\." "_" MANGLED_SOVERSION ${SOVERSION})
-set (OIIO_VERSION_NS "v${MANGLED_SOVERSION}")
-
 option (USE_GENERATED_EXPORT_HEADER "Use CMake-generated export header" OFF)
 if (USE_GENERATED_EXPORT_HEADER)
     include (GenerateExportHeader)
@@ -36,18 +28,27 @@ if (USE_GENERATED_EXPORT_HEADER)
           # [PREFIX_NAME prefix]
           CUSTOM_CONTENT_FROM_VARIABLE exportextras
           )
-    list (REMOVE_ITEM public_headers OpenImageIO/export.h)
+    list (REMOVE_ITEM public_headers ${PROJECT_NAME}/export.h)
     list (APPEND public_headers "${CMAKE_BINARY_DIR}/src/include/export.h")
 endif()
 
-configure_file(OpenImageIO/oiioversion.h.in "${CMAKE_BINARY_DIR}/include/OpenImageIO/oiioversion.h" @ONLY)
-list(APPEND public_headers "${CMAKE_BINARY_DIR}/include/OpenImageIO/oiioversion.h")
+
+set (versionfile oiioversion.h)
+if (VERBOSE)
+    message(STATUS "Create ${versionfile} from ${versionfile}.in")
+endif ()
+# Mangle the SOVERSION so that it's a valid C++ identifier for the
+# versioning namespace defined in ${versionfile}
+string (REGEX REPLACE "\\." "_" MANGLED_SOVERSION ${SOVERSION})
+set (OIIO_VERSION_NS "v${MANGLED_SOVERSION}")
+configure_file(${PROJECT_NAME}/${versionfile}.in "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${versionfile}" @ONLY)
+list(APPEND public_headers "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${versionfile}")
 
 install (FILES ${public_headers}
-         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/OpenImageIO
+         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
          COMPONENT developer)
 
-file (GLOB fmt_headers OpenImageIO/fmt/*.h)
+file (GLOB fmt_headers ${PROJECT_NAME}/fmt/*.h)
 install (FILES ${fmt_headers}
-         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/OpenImageIO/fmt
+         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/fmt
          COMPONENT developer)

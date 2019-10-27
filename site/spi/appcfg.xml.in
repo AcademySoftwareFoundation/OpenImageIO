@@ -1,5 +1,5 @@
 <cfg>
-  <version>@OIIO_VERSION_MAJOR@.@OIIO_VERSION_MINOR@.@OIIO_VERSION_PATCH@.@OIIO_VERSION_TWEAK@</version>
+  <version>@PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@.@PROJECT_VERSION_PATCH@.@PROJECT_VERSION_TWEAK@</version>
   <appdir architecture="@SP_OS@">@OIIO_REZ_INSTALL_PATH@</appdir>
   <launchprogram></launchprogram>
   <setup></setup>

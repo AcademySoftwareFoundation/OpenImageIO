@@ -62,8 +62,7 @@ fi
 
 #dpkg --list
 
-CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
-
+export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
 
 src/build-scripts/install_test_images.bash
 

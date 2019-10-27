@@ -124,7 +124,7 @@ if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS ON)
 else ()
     if (MSVC)
-        add_definitions (-DBOOST_ALL_DYN_LINK)
+        add_definitions (-DBOOST_ALL_DYN_LINK=1)
     endif ()
 endif ()
 if (BOOST_CUSTOM)
@@ -148,7 +148,8 @@ else ()
 endif ()
 
 # On Linux, Boost 1.55 and higher seems to need to link against -lrt
-if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND ${Boost_VERSION} GREATER 105499)
+if (CMAKE_SYSTEM_NAME MATCHES "Linux"
+      AND ${Boost_VERSION} VERSION_GREATER_EQUAL 105500)
     list (APPEND Boost_LIBRARIES "rt")
 endif ()
 

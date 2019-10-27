@@ -41,10 +41,6 @@ if (NOT OPENIMAGEIO_ROOT_DIR AND NOT $ENV{OPENIMAGEIO_ROOT_DIR} STREQUAL "")
 endif ()
 
 
-if (NOT OpenImageIO_FIND_QUIETLY)
-    message ( STATUS "OPENIMAGEIO_ROOT_DIR = ${OPENIMAGEIO_ROOT_DIR}" )
-endif ()
-
 find_library ( OPENIMAGEIO_LIBRARY
                NAMES OpenImageIO${OIIO_LIBNAME_SUFFIX}
                HINTS ${OPENIMAGEIO_ROOT_DIR}
@@ -94,20 +90,20 @@ if (OPENIMAGEIO_FOUND)
         message ( STATUS "OpenImageIO oiiotool     = ${OIIOTOOL_BIN}" )
     endif ()
 
-    if(NOT TARGET OpenImageIO::OpenImageIO)
+    if (NOT TARGET OpenImageIO::OpenImageIO)
         add_library(OpenImageIO::OpenImageIO UNKNOWN IMPORTED)
         set_target_properties(OpenImageIO::OpenImageIO PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${OPENIMAGEIO_INCLUDES}")
 
         set_property(TARGET OpenImageIO::OpenImageIO APPEND PROPERTY
             IMPORTED_LOCATION "${OPENIMAGEIO_LIBRARIES}")
-    endif()
+    endif ()
 
-    if(NOT TARGET OpenImageIO::oiiotool AND EXISTS "${OIIOTOOL_BIN}")
+    if (NOT TARGET OpenImageIO::oiiotool AND EXISTS "${OIIOTOOL_BIN}")
         add_executable(OpenImageIO::oiiotool IMPORTED)
         set_target_properties(OpenImageIO::oiiotool PROPERTIES
             IMPORTED_LOCATION "${OIIOTOOL_BIN}")
-    endif()
+    endif ()
 endif ()
 
 mark_as_advanced (
