@@ -28,29 +28,29 @@ if [[ "$OIIOTARGET" == "clang-format" ]] ; then
     exit 0
 fi
 
-brew install gcc
+brew install --display-times gcc
 brew link --overwrite gcc
-brew install ccache cmake ninja
-brew install ilmbase openexr
-brew install opencolorio
-brew install freetype
-brew install libraw
-brew install libpng webp jpeg-turbo
-brew install openjpeg
-brew install dcmtk
-brew install qt
-brew install -s field3d
+brew install --display-times ccache cmake ninja
+brew install --display-times ilmbase openexr
+brew install --display-times opencolorio
+brew install --display-times freetype
+brew install --display-times libraw
+brew install --display-times libpng webp jpeg-turbo
+brew install --display-times openjpeg
+brew install --display-times dcmtk
+brew install --display-times qt
+brew install --display-times -s field3d
 # Note: field3d must be build from source to fix boost mismatch as of
 # Nov 2018. Maybe it will be fixed soon? Check later.
-brew install ffmpeg
-brew install opencv
-brew install tbb
-brew install openvdb
-brew install pybind11
+brew install --display-times ffmpeg
+brew install --display-times opencv
+brew install --display-times tbb
+brew install --display-times openvdb
+brew install --display-times pybind11 numpy
 if [[ "$LINKSTATIC" == "1" ]] ; then
-    brew install little-cms2 tinyxml szip
-    brew install homebrew/dupes/bzip2
-    brew install yaml-cpp --with-static-lib
+    brew install --display-times little-cms2 tinyxml szip
+    brew install --display-times homebrew/dupes/bzip2
+    brew install --display-times yaml-cpp --with-static-lib
 fi
 if [[ "$CLANG_TIDY" != "" ]] ; then
     # If we are running for the sake of clang-tidy only, we will need
