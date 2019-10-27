@@ -199,12 +199,12 @@ BUILDSENTINEL := build.ninja
 endif
 
 ifeq (${CODECOV},1)
-CMAKE_BUILD_TYPE=Debug
-MY_CMAKE_FLAGS += -DCODECOV:BOOL=${CODECOV}
+  CMAKE_BUILD_TYPE=Debug
+  MY_CMAKE_FLAGS += -DCODECOV:BOOL=${CODECOV}
 endif
 
 ifneq (${SANITIZE},)
-MY_CMAKE_FLAGS += -DSANITIZE=${SANITIZE}
+  MY_CMAKE_FLAGS += -DSANITIZE=${SANITIZE}
 endif
 
 ifneq (${CLANG_TIDY},)
@@ -230,7 +230,7 @@ ifneq (${CLANG_FORMAT_EXCLUDES},)
 endif
 
 ifneq (${BUILD_MISSING_DEPS},)
-MY_CMAKE_FLAGS += -DBUILD_MISSING_DEPS:BOOL=${BUILD_MISSING_DEPS}
+  MY_CMAKE_FLAGS += -DBUILD_MISSING_DEPS:BOOL=${BUILD_MISSING_DEPS}
 endif
 
 
@@ -311,7 +311,10 @@ TEST_FLAGS += --force-new-ctest-process --output-on-failure
 # 'make test' does a full build and then runs all tests
 test: build
 	@ ${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
-	@ ( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest -E broken ${TEST_FLAGS} )
+	@ ( cd ${build_dir} ; \
+	    PYTHONPATH=${PWD}/${build_dir}/src/python \
+	    ctest -E broken ${TEST_FLAGS} \
+	  )
 	@ ( if [[ "${CODECOV}" == "1" ]] ; then \
 	      cd ${build_dir} ; \
 	      lcov -b . -d . -c -o cov.info ; \

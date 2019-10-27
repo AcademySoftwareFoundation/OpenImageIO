@@ -356,7 +356,7 @@ endif ()
 # the .clang-tidy file that is part of this project.
 #
 option (CLANG_TIDY "Enable clang-tidy" OFF)
-set (CLANG_TIDY_CHECKS "" CACHE STRING "clang-tidy checks to perform (none='-*')")
+set (CLANG_TIDY_CHECKS "-*" CACHE STRING "clang-tidy checks to perform (none='-*')")
 set (CLANG_TIDY_ARGS "" CACHE STRING "clang-tidy args")
 option (CLANG_TIDY_FIX "Have clang-tidy fix source" OFF)
 if (CLANG_TIDY)
@@ -399,7 +399,6 @@ endif ()
 set (CLANG_FORMAT_EXE_HINT "" CACHE PATH "clang-format executable's directory (will search if not specified")
 set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
     CACHE STRING "Glob patterns to include for clang-format")
-    # Eventually: want this to be: "src/*.h;src/*.cpp"
 set (CLANG_FORMAT_EXCLUDES "src/include/OpenImageIO/fmt/*.h"
                            "*pugixml*" "*SHA1*" "*/farmhash.cpp" "*/tinyformat.h"
                            "src/dpx.imageio/libdpx/*"

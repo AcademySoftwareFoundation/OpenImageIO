@@ -44,6 +44,12 @@ addons:
       - libboost-regex1.58
       - libboost-system1.58
       - libboost-thread1.58
+   packages: &old-boost-packages
+      - libboost1.55-dev
+      - libboost-filesystem1.55
+      - libboost-regex1.55
+      - libboost-system1.55
+      - libboost-thread1.55
 
 cache:
     ccache: true
@@ -59,21 +65,18 @@ before_install:
     - if [ "$CXX" == "g++" ]; then export CXX="g++-${WHICHGCC}" ; fi
 
 install:
-    - if [ $TRAVIS_OS_NAME == osx ] ; then
-          source src/build-scripts/install_homebrew_deps.bash ;
-      elif [ $TRAVIS_OS_NAME == linux ] ; then
-          if [ "$BUILD_CMAKE" == "1" ] ; then
-              source src/build-scripts/build_cmake.bash ;
-          fi ;
-          CXX="ccache $CXX" source src/build-scripts/build_openexr.bash ;
-          CXX="ccache $CXX" source src/build-scripts/build_ocio.bash ;
-      fi
+    - if [ $TRAVIS_OS_NAME == osx ] ; then source src/build-scripts/install_homebrew_deps.bash ; fi
+    - if [ "$BUILD_CMAKE" == "1" ] ; then source src/build-scripts/build_cmake.bash ; fi
+    - if [ $TRAVIS_OS_NAME == linux ] ; then CXX="ccache $CXX" source src/build-scripts/build_openexr.bash ; fi
+    - if [ $TRAVIS_OS_NAME == linux ] ; then CXX="ccache $CXX" source src/build-scripts/build_ocio.bash ; fi
     - src/build-scripts/install_test_images.bash
 
 # before_script:
 
 script:
-    - src/build-scripts/ci-build-and-test.bash
+    - export LD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$LD_LIBRARY_PATH
+    - export DYLD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$DYLD_LIBRARY_PATH
+    - source src/build-scripts/ci-build-and-test.bash
 
 
 
@@ -85,12 +88,6 @@ branches:
 
 matrix:
     fast_finish: true
-    exclude:
-      - os: osx
-        compiler: gcc
-      - os: linux
-        compiler: clang
-
     include:
     # test default compile: C++11, optimized, default compilers, SSE2
       - name: "VFX Platform 2017 (gcc48, py27, exr2.2)"
@@ -103,12 +100,8 @@ matrix:
             sources: *add-sources
             packages:
               - *common-packages
+              - *old-boost-packages
               - g++-4.8
-              - libboost1.55-dev
-              - libboost-filesystem1.55
-              - libboost-regex1.55
-              - libboost-system1.55
-              - libboost-thread1.55
 
       - name: "Mac (latest clang, py37)"
         os: osx
@@ -154,12 +147,8 @@ matrix:
             sources: *add-sources
             packages:
               - *common-packages
+              - *old-boost-packages
               - g++-4.8
-              - libboost1.55-dev
-              - libboost-filesystem1.55
-              - libboost-regex1.55
-              - libboost-system1.55
-              - libboost-thread1.55
 
     # Note: builds for AVX2, AVX512 happen on CircleCI
 

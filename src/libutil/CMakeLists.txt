@@ -19,7 +19,7 @@ if (WIN32)
     target_link_libraries (OpenImageIO_Util PRIVATE psapi)
 endif()
 
-target_compile_definitions(OpenImageIO_Util PRIVATE OpenImageIO_EXPORTS)
+target_compile_definitions (OpenImageIO_Util PRIVATE OpenImageIO_EXPORTS)
 
 if (VERBOSE)
     message(STATUS "Setting SOVERSION to: ${SOVERSION}")

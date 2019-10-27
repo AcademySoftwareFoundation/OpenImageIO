@@ -83,18 +83,18 @@ endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
 
 
-list(APPEND CMAKE_MODULE_PATH
-     "${PROJECT_SOURCE_DIR}/src/cmake/modules"
-     "${PROJECT_SOURCE_DIR}/src/cmake")
+list (APPEND CMAKE_MODULE_PATH
+      "${PROJECT_SOURCE_DIR}/src/cmake/modules"
+      "${PROJECT_SOURCE_DIR}/src/cmake")
 
 include (GNUInstallDirs)
+
+include (colors)
+include (check_is_enabled)
 
 # All the C++ and compiler related options and adjustments live here
 include (compiler)
 
-# Helpful functions and macros for our project
-include (colors)
-include (check_is_enabled)
 include (oiio_macros)
 
 # All the dependency finding and options are here
@@ -149,14 +149,14 @@ if (NOT BUILD_OIIOUTIL_ONLY)
 endif ()
 
 if (OIIO_BUILD_TOOLS AND NOT BUILD_OIIOUTIL_ONLY)
-  add_subdirectory (src/iconvert)
-  add_subdirectory (src/idiff)
-  add_subdirectory (src/igrep)
-  add_subdirectory (src/iinfo)
-  add_subdirectory (src/maketx)
-  add_subdirectory (src/oiiotool)
-  add_subdirectory (src/testtex)
-  add_subdirectory (src/iv)
+    add_subdirectory (src/iconvert)
+    add_subdirectory (src/idiff)
+    add_subdirectory (src/igrep)
+    add_subdirectory (src/iinfo)
+    add_subdirectory (src/maketx)
+    add_subdirectory (src/oiiotool)
+    add_subdirectory (src/testtex)
+    add_subdirectory (src/iv)
 endif ()
 
 # Add IO plugin directories -- if we are not embedding plugins, we need to

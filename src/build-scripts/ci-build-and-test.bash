@@ -28,11 +28,9 @@ if [[ "$ARCH" == "windows64" ]] ; then
         -DPYTHON_VERSION="$PYTHON_VERSION" \
         $MY_CMAKE_FLAGS -DVERBOSE=1
     echo "Parallel build $CMAKE_BUILD_PARALLEL_LEVEL"
-    VERBOSE=1
+    export VERBOSE=1
     time cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
     popd
-    echo "post-build PATH = $PATH"
-    uname -a
 else
     make $MAKEFLAGS VERBOSE=1 $BUILD_FLAGS config
     make $MAKEFLAGS $PAR_MAKEFLAGS $BUILD_FLAGS $BUILDTARGET
