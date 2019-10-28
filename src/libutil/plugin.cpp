@@ -33,8 +33,6 @@ Plugin::plugin_extension(void)
 {
 #if defined(_WIN32)
     return "dll";
-#elif defined(__APPLE__)
-    return "dylib";
 #else
     return "so";
 #endif

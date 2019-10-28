@@ -27,7 +27,7 @@ namespace Plugin {
 typedef void* Handle;
 
 /// Return the platform-dependent suffix for plug-ins ("dll" on
-/// Windows, "so" on Linux, "dylib" on Mac OS X.
+/// Windows, "so" on Linux and Mac OS X.
 OIIO_API const char*
 plugin_extension(void);
 
