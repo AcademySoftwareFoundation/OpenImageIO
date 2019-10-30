@@ -23,6 +23,10 @@
 #   OPENIMAGEIO_VERSION_TWEAK  Version minor tweak
 #   OIIOTOOL_BIN               Path to oiiotool executable
 #
+# Imported targets:
+#   OpenImageIO::OpenImageIO   The libOpenImageIO library.
+#   OpenImageIO::oiiotool      The oiiotool executable.
+#
 # Special inputs:
 #   OpenImageIO_ROOT - if using CMake >= 3.12, will automatically search
 #                          this area for OIIO components.
