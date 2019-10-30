@@ -114,7 +114,6 @@ jobs:
         env:
           PYTHON_VERSION: 3.6
           CMAKE_GENERATOR: "Visual Studio 16 2019"
-          MY_CMAKE_FLAGS: -DUSE_PYTHON=0
           OPENEXR_BRANCH: v2.4.0
           SKIP_TESTS: 1
         run: |
