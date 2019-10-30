@@ -611,6 +611,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
         return false;
     }
 
+    bool verbose = configspec.get_int_attribute("maketx:verbose") != 0;
     bool src_samples_border = false;
 
     // Some special constraints for OpenEXR
@@ -633,6 +634,9 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
         if (outspec.nchannels == 1
             && Strutil::istarts_with(outspec["compression"].get(), "dwa")) {
             outspec.attribute("compression", "zip");
+            if (verbose)
+                outstream
+                    << "WARNING: Changing unsupported DWA compression for this case to zip.\n";
         }
     }
 
@@ -662,7 +666,6 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     }
 
     // Write out the image
-    bool verbose = configspec.get_int_attribute("maketx:verbose") != 0;
     if (verbose) {
         outstream << "  Writing file: " << outputfilename << std::endl;
         outstream << "  Filter \"" << filtername << "\"\n";
