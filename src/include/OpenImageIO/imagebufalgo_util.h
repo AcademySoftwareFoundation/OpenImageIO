@@ -505,7 +505,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
 #define IBA_FIX_PERCHAN_LEN(av,len,missing,zdef)                        \
     if (av.size() < len) {                                              \
         int nc = len;                                                   \
-        float *vals = ALLOCA (float, nc);                               \
+        float *vals = OIIO_ALLOCA(float, nc);                           \
         for (int i = 0;  i < nc;  ++i)                                  \
             vals[i] = i < av.size() ? av[i] : (i ? vals[i-1] : zdef);   \
         av = cspan<float>(vals, nc);                                    \

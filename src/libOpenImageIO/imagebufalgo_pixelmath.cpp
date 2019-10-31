@@ -702,7 +702,7 @@ contrast_remap_(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
                 int nthreads)
 {
     bool same_black_white = (black == white);
-    float* bwdiffinv      = ALLOCA(float, roi.chend);
+    float* bwdiffinv      = OIIO_ALLOCA(float, roi.chend);
     for (int c = roi.chbegin; c < roi.chend; ++c)
         bwdiffinv[c] = 1.0f / (white[c] - black[c]);
     bool use_sigmoid = !allspan(scontrast, 1.0f);
@@ -721,7 +721,7 @@ contrast_remap_(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
         }
 
         // First do the linear stretch
-        float* r = ALLOCA(float, roi.chend);  // temp result
+        float* r = OIIO_ALLOCA(float, roi.chend);  // temp result
         ImageBuf::ConstIterator<S> s(src, roi);
         for (ImageBuf::Iterator<D> d(dst, roi); !d.done(); ++d, ++s) {
             for (int c = roi.chbegin; c < roi.chend; ++c)
@@ -733,8 +733,8 @@ contrast_remap_(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
             if (use_sigmoid) {
                 // Sorry about the lack of clarity, we're working hard to
                 // minimize computation.
-                float* y     = ALLOCA(float, roi.chend);
-                float* denom = ALLOCA(float, roi.chend);
+                float* y     = OIIO_ALLOCA(float, roi.chend);
+                float* denom = OIIO_ALLOCA(float, roi.chend);
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
                     y[c]     = 1.0f / (1.0f + expf(scontrast[c] * sthresh[c]));
                     denom[c] = 1.0f

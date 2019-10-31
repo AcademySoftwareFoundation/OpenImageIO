@@ -42,7 +42,7 @@ fill_const_(ImageBuf& dst, const float* values, ROI roi = ROI(),
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [=, &dst](ROI roi) {
         // Do the data conversion just once, store locally.
-        T* tvalues = ALLOCA(T, roi.chend);
+        T* tvalues = OIIO_ALLOCA(T, roi.chend);
         for (int i = roi.chbegin; i < roi.chend; ++i)
             tvalues[i] = convert_type<float, T>(values[i]);
         int nchannels = roi.nchannels();
@@ -185,7 +185,7 @@ ImageBufAlgo::zero(ImageBuf& dst, ROI roi, int nthreads)
     pvt::LoggedTimer logtime("IBA::zero");
     if (!IBAprep(roi, &dst))
         return false;
-    float* zero = ALLOCA(float, roi.chend);
+    float* zero = OIIO_ALLOCA(float, roi.chend);
     memset(zero, 0, roi.chend * sizeof(float));
     bool ok;
     OIIO_DISPATCH_TYPES(ok, "zero", fill_const_, dst.spec().format, dst, zero,
@@ -990,7 +990,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     roi = roi_intersection(textroi, R.roi());
 
     // Now fill in the pixels of our destination image
-    float* pixelcolor = ALLOCA(float, nchannels);
+    float* pixelcolor = OIIO_ALLOCA(float, nchannels);
     ImageBuf::ConstIterator<float> t(textimg, roi, ImageBuf::WrapBlack);
     ImageBuf::ConstIterator<float> a(alphaimg, roi, ImageBuf::WrapBlack);
     ImageBuf::Iterator<float> r(R, roi);

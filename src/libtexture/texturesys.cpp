@@ -1686,7 +1686,8 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
                       miplevel, levelweight);
 
     float* lineweight
-        = ALLOCA(float, round_to_multiple_of_pow2(2 * options.anisotropic, 4));
+        = OIIO_ALLOCA(float,
+                      round_to_multiple_of_pow2(2 * options.anisotropic, 4));
     float invsamples;
     int nsamples = compute_ellipse_sampling(aspect, theta, majorlength,
                                             minorlength, smajor, tmajor,
@@ -2796,7 +2797,7 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
     float aspect      = TextureSystemImpl::anisotropic_aspect(majorlength,
                                                          minorlength, options,
                                                          trueaspect);
-    float* lineweight = ALLOCA(float, 2 * options.anisotropic);
+    float* lineweight = OIIO_ALLOCA(float, 2 * options.anisotropic);
     float smajor, tmajor, invsamples;
     int nsamples = compute_ellipse_sampling(aspect, theta, majorlength,
                                             minorlength, smajor, tmajor,

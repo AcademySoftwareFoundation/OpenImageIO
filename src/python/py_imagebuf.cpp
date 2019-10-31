@@ -19,7 +19,7 @@ ImageBuf_getpixel(const ImageBuf& buf, int x, int y, int z = 0,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = ALLOCA(float, nchans);
+    float* pixel            = OIIO_ALLOCA(float, nchans);
     buf.getpixel(x, y, z, pixel, nchans, wrap);
     return C_to_tuple(pixel, nchans);
 }
@@ -32,7 +32,7 @@ ImageBuf_interppixel(const ImageBuf& buf, float x, float y,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = ALLOCA(float, nchans);
+    float* pixel            = OIIO_ALLOCA(float, nchans);
     buf.interppixel(x, y, pixel, wrap);
     return C_to_tuple(pixel, nchans);
 }
@@ -45,7 +45,7 @@ ImageBuf_interppixel_NDC(const ImageBuf& buf, float x, float y,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = ALLOCA(float, nchans);
+    float* pixel            = OIIO_ALLOCA(float, nchans);
     buf.interppixel_NDC(x, y, pixel, wrap);
     return C_to_tuple(pixel, nchans);
 }
@@ -58,7 +58,7 @@ ImageBuf_interppixel_bicubic(const ImageBuf& buf, float x, float y,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = ALLOCA(float, nchans);
+    float* pixel            = OIIO_ALLOCA(float, nchans);
     buf.interppixel_bicubic(x, y, pixel, wrap);
     return C_to_tuple(pixel, nchans);
 }
@@ -71,7 +71,7 @@ ImageBuf_interppixel_bicubic_NDC(const ImageBuf& buf, float x, float y,
 {
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
     int nchans              = buf.nchannels();
-    float* pixel            = ALLOCA(float, nchans);
+    float* pixel            = OIIO_ALLOCA(float, nchans);
     buf.interppixel_bicubic_NDC(x, y, pixel, wrap);
     return C_to_tuple(pixel, nchans);
 }

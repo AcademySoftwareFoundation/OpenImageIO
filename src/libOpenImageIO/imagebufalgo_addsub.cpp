@@ -213,7 +213,7 @@ ImageBufAlgo::sub(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         IBA_FIX_PERCHAN_LEN_DEF(b, A.nchannels());
         // Negate b (into a copy)
         int nc      = A.nchannels();
-        float* vals = ALLOCA(float, nc);
+        float* vals = OIIO_ALLOCA(float, nc);
         for (int c = 0; c < nc; ++c)
             vals[c] = -b[c];
         b = cspan<float>(vals, nc);

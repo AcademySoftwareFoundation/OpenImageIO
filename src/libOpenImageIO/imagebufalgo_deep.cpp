@@ -41,7 +41,7 @@ flatten_(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
         int R_channel      = srcspec.channelindex("R");
         int G_channel      = srcspec.channelindex("G");
         int B_channel      = srcspec.channelindex("B");
-        float* val         = ALLOCA(float, nc);
+        float* val         = OIIO_ALLOCA(float, nc);
         float& ARval(val[AR_channel]);
         float& AGval(val[AG_channel]);
         float& ABval(val[AB_channel]);

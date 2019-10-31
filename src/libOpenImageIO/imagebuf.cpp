@@ -1688,7 +1688,7 @@ interppixel_(const ImageBuf& img, float x, float y, float* pixel,
              ImageBuf::WrapMode wrap)
 {
     int n             = img.spec().nchannels;
-    float* localpixel = ALLOCA(float, n * 4);
+    float* localpixel = OIIO_ALLOCA(float, n * 4);
     float* p[4]       = { localpixel, localpixel + n, localpixel + 2 * n,
                     localpixel + 3 * n };
     x -= 0.5f;

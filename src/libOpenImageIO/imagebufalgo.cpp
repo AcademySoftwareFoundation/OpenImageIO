@@ -397,7 +397,7 @@ convolve_(ImageBuf& dst, const ImageBuf& src, const ImageBuf& kernel,
                 scale += k[0];
             scale = 1.0f / scale;
         }
-        float* sum = ALLOCA(float, roi.chend);
+        float* sum = OIIO_ALLOCA(float, roi.chend);
 
         ImageBuf::Iterator<DSTTYPE> d(dst, roi);
         ImageBuf::ConstIterator<SRCTYPE> s(src, roi, ImageBuf::WrapClamp);
@@ -500,14 +500,15 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
             p[0] = (*filter)((float)p.x(), (float)p.y());
     } else if (name == "binomial") {
         // Binomial filter
-        float* wfilter = ALLOCA(float, width);
+        float* wfilter = OIIO_ALLOCA(float, width);
         for (int i = 0; i < width; ++i)
             wfilter[i] = binomial(width - 1, i);
-        float* hfilter = (height == width) ? wfilter : ALLOCA(float, height);
+        float* hfilter = (height == width) ? wfilter
+                                           : OIIO_ALLOCA(float, height);
         if (height != width)
             for (int i = 0; i < height; ++i)
                 hfilter[i] = binomial(height - 1, i);
-        float* dfilter = ALLOCA(float, depth);
+        float* dfilter = OIIO_ALLOCA(float, depth);
         if (depth == 1)
             dfilter[0] = 1;
         else

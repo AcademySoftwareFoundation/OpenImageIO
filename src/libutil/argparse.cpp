@@ -15,6 +15,7 @@
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
@@ -314,7 +315,7 @@ ArgOption::invoke_callback() const
         return 0;
 
     // Convert the argv's to char*[]
-    const char** myargv = (const char**)alloca(argc * sizeof(const char*));
+    const char** myargv = OIIO_ALLOCA(const char*, argc);
     for (int i = 0; i < argc; ++i)
         myargv[i] = m_argv[i].c_str();
     return invoke_callback(argc, myargv);

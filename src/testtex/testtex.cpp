@@ -543,9 +543,9 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
     TextureOpt opt;
     initialize_opt(opt, nchannels);
 
-    float* result    = ALLOCA(float, std::max(3, nchannels));
-    float* dresultds = test_derivs ? ALLOCA(float, nchannels) : NULL;
-    float* dresultdt = test_derivs ? ALLOCA(float, nchannels) : NULL;
+    float* result    = OIIO_ALLOCA(float, std::max(3, nchannels));
+    float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
+    float* dresultdt = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
     for (ImageBuf::Iterator<float> p(image, roi); !p.done(); ++p) {
         float s, t, dsdx, dtdx, dsdy, dtdy;
         mapping(p.x(), p.y(), s, t, dsdx, dtdx, dsdy, dtdy);
@@ -657,9 +657,9 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
     initialize_opt(opt, nchannels);
 
     int nc               = std::max(3, nchannels);
-    FloatWide* result    = ALLOCA(FloatWide, nc);
-    FloatWide* dresultds = test_derivs ? ALLOCA(FloatWide, nc) : nullptr;
-    FloatWide* dresultdt = test_derivs ? ALLOCA(FloatWide, nc) : nullptr;
+    FloatWide* result    = OIIO_ALLOCA(FloatWide, nc);
+    FloatWide* dresultds = test_derivs ? OIIO_ALLOCA(FloatWide, nc) : nullptr;
+    FloatWide* dresultdt = test_derivs ? OIIO_ALLOCA(FloatWide, nc) : nullptr;
     for (int y = roi.ybegin; y < roi.yend; ++y) {
         for (int x = roi.xbegin; x < roi.xend; x += BatchWidth) {
             FloatWide s, t, dsdx, dtdx, dsdy, dtdy;
@@ -782,10 +782,10 @@ tex3d_region(ImageBuf& image, ustring filename, Mapping3D mapping, ROI roi)
     opt.fill = (fill >= 0.0f) ? fill : 0.0f;
     //    opt.swrap = opt.twrap = opt.rwrap = TextureOpt::WrapPeriodic;
 
-    float* result    = ALLOCA(float, nchannels);
-    float* dresultds = test_derivs ? ALLOCA(float, nchannels) : NULL;
-    float* dresultdt = test_derivs ? ALLOCA(float, nchannels) : NULL;
-    float* dresultdr = test_derivs ? ALLOCA(float, nchannels) : NULL;
+    float* result    = OIIO_ALLOCA(float, nchannels);
+    float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
+    float* dresultdt = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
+    float* dresultdr = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
     for (ImageBuf::Iterator<float> p(image, roi); !p.done(); ++p) {
         Imath::V3f P, dPdx, dPdy, dPdz;
         mapping(p.x(), p.y(), P, dPdx, dPdy, dPdz);
@@ -825,10 +825,13 @@ tex3d_region_batch(ImageBuf& image, ustring filename, Mapping3DWide mapping,
     opt.fill = (fill >= 0.0f) ? fill : 0.0f;
     //    opt.swrap = opt.twrap = opt.rwrap = TextureOpt::WrapPeriodic;
 
-    FloatWide* result    = ALLOCA(FloatWide, nchannels);
-    FloatWide* dresultds = test_derivs ? ALLOCA(FloatWide, nchannels) : NULL;
-    FloatWide* dresultdt = test_derivs ? ALLOCA(FloatWide, nchannels) : NULL;
-    FloatWide* dresultdr = test_derivs ? ALLOCA(FloatWide, nchannels) : NULL;
+    FloatWide* result    = OIIO_ALLOCA(FloatWide, nchannels);
+    FloatWide* dresultds = test_derivs ? OIIO_ALLOCA(FloatWide, nchannels)
+                                       : NULL;
+    FloatWide* dresultdt = test_derivs ? OIIO_ALLOCA(FloatWide, nchannels)
+                                       : NULL;
+    FloatWide* dresultdr = test_derivs ? OIIO_ALLOCA(FloatWide, nchannels)
+                                       : NULL;
     for (int y = roi.ybegin; y < roi.yend; ++y) {
         for (int x = roi.xbegin; x < roi.xend; x += BatchWidth) {
             Imath::Vec3<FloatWide> P, dPdx, dPdy, dPdz;
@@ -1123,11 +1126,11 @@ do_tex_thread_workout(int iterations, int mythread)
     int nfiles = (int)filenames.size();
     float s = 0.1f, t = 0.1f;
     int nchannels = nchannels_override ? nchannels_override : 3;
-    float* result = ALLOCA(float, nchannels);
+    float* result = OIIO_ALLOCA(float, nchannels);
     TextureOpt opt;
     initialize_opt(opt, nchannels);
-    float* dresultds = test_derivs ? ALLOCA(float, nchannels) : NULL;
-    float* dresultdt = test_derivs ? ALLOCA(float, nchannels) : NULL;
+    float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
+    float* dresultdt = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
     TextureSystem::Perthread* perthread_info = texsys->get_perthread_info();
     int pixel, whichfile = 0;
 
