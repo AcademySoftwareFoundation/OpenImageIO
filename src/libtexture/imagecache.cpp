@@ -3497,14 +3497,7 @@ ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
         p->tile     = NULL;
         p->lasttile = NULL;
         p->purge    = 0;
-#if FILE_CACHE_USE_PERTHREAD_MAP
         p->m_thread_files.clear();
-#else
-        for (int i = 0; i < ImageCachePerThreadInfo::nlastfile; ++i) {
-            p->last_filename[i] = ustring();
-            p->last_file[i]     = NULL;
-        }
-#endif
     }
     return p;
 }
