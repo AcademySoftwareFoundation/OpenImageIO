@@ -841,8 +841,7 @@ static ExrMeta exr_meta_translation[] = {
     // user or from a file we read.
     ExrMeta("YResolution"), ExrMeta("planarconfig"), ExrMeta("type"),
     ExrMeta("tiles"), ExrMeta("version"), ExrMeta("chunkCount"),
-    ExrMeta("maxSamplesPerPixel"),
-    ExrMeta()  // empty name signifies end of list
+    ExrMeta("maxSamplesPerPixel"), ExrMeta("openexr:roundingmode")
 };
 
 
@@ -857,8 +856,7 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
     std::string xname = name;
     TypeDesc exrtype  = TypeUnknown;
 
-    for (int i = 0; exr_meta_translation[i].oiioname; ++i) {
-        const ExrMeta& e(exr_meta_translation[i]);
+    for (const auto& e : exr_meta_translation) {
         if (Strutil::iequals(xname, e.oiioname)
             || (e.exrname && Strutil::iequals(xname, e.exrname))) {
             xname   = std::string(e.exrname ? e.exrname : "");

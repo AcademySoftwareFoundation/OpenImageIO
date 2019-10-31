@@ -637,22 +637,36 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
         return false;
     }
 
-    if (!mipmap && !strcmp(out->format_name(), "openexr")) {
-        // Send hint to OpenEXR driver that we won't specify a MIPmap
-        outspec.attribute("openexr:levelmode", 0 /* ONE_LEVEL */);
-    }
-
-    if (mipmap && !strcmp(out->format_name(), "openexr")) {
-        outspec.attribute("openexr:roundingmode", 0 /* ROUND_DOWN */);
-    }
-
-    // OpenEXR always uses border sampling for environment maps
+    bool verbose = configspec.get_int_attribute("maketx:verbose") != 0;
     bool src_samples_border = false;
-    if (envlatlmode && !strcmp(out->format_name(), "openexr")) {
-        src_samples_border = true;
-        outspec.attribute("oiio:updirection", "y");
-        outspec.attribute("oiio:sampleborder", 1);
+
+    // Some special constraints for OpenEXR
+    if (!strcmp(out->format_name(), "openexr")) {
+        // Always use "round down" mode
+        outspec.attribute("openexr:roundingmode", 0 /* ROUND_DOWN */);
+        if (!mipmap) {
+            // Send hint to OpenEXR driver that we won't specify a MIPmap
+            outspec.attribute("openexr:levelmode", 0 /* ONE_LEVEL */);
+        }
+        // OpenEXR always uses border sampling for environment maps
+        if (envlatlmode) {
+            src_samples_border = true;
+            outspec.attribute("oiio:updirection", "y");
+            outspec.attribute("oiio:sampleborder", 1);
+        }
+        // For single channel images, dwaa/b compression only seems to work
+        // reliably when size > 16 and size is a power of two. Bug?
+        // FIXME: watch future OpenEXR releases to see if this gets fixed.
+        if (outspec.nchannels == 1
+            && Strutil::istarts_with(outspec.get_string_attribute("compression"),
+                                     "dwa")) {
+            outspec.attribute("compression", "zip");
+            if (verbose)
+                outstream
+                    << "WARNING: Changing unsupported DWA compression for this case to zip.\n";
+        }
     }
+
     if (envlatlmode && src_samples_border)
         fix_latl_edges(*img);
 
@@ -679,7 +693,6 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     }
 
     // Write out the image
-    bool verbose = configspec.get_int_attribute("maketx:verbose") != 0;
     if (verbose) {
         outstream << "  Writing file: " << outputfilename << std::endl;
         outstream << "  Filter \"" << filtername << "\"\n";
@@ -1734,7 +1747,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     double misc_time_5 = alltime.lap();
     STATUS("misc4", misc_time_5);
 
-    // Write out, and compute, the mipmap levels for the speicifed image
+    // Write out, and compute, the mipmap levels for the specified image
     bool nomipmap = configspec.get_int_attribute("maketx:nomipmap") != 0;
     bool ok = write_mipmap(mode, toplevel, dstspec, tmpfilename, out.get(),
                            out_dataformat, !shadowmode && !nomipmap, filtername,
