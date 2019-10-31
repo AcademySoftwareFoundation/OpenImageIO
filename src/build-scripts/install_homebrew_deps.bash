@@ -58,6 +58,9 @@ if [[ "$CLANG_TIDY" != "" ]] ; then
     brew install llvm
 fi
 
+# Needed on some systems
+pip install numpy
+
 echo ""
 echo "After brew installs:"
 brew list --versions
