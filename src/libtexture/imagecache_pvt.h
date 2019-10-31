@@ -43,6 +43,8 @@ namespace pvt {
 #define FILE_CACHE_SHARDS 64
 #define TILE_CACHE_SHARDS 128
 
+#define FILE_CACHE_USE_PERTHREAD_MAP 1
+
 using boost::thread_specific_ptr;
 
 class ImageCacheImpl;
@@ -682,24 +684,35 @@ typedef unordered_map_concurrent<
 /// even if you are using only ImageCache but not TextureSystem.
 class ImageCachePerThreadInfo {
 public:
+#if FILE_CACHE_USE_PERTHREAD_MAP
+    // Keep a per-thread unlocked map of filenames to ImageCacheFile*'s.
+    // Fall back to the shared map only when not found locally.
+    // This is safe because no ImageCacheFile is ever truly deleted from
+    // the shared map, so this map isn't the owner.
+    using ThreadFilenameMap
+        = tsl::robin_map<ustring, ImageCacheFile*, ustringHash>;
+    ThreadFilenameMap m_thread_files;
+#else
     // Store just a few filename/fileptr pairs
     static const int nlastfile = 4;
     ustring last_filename[nlastfile];
     ImageCacheFile* last_file[nlastfile];
-    int next_last_file;
+    int next_last_file = 0;
+#endif
     // We have a two-tile "microcache", storing the last two tiles needed.
     ImageCacheTileRef tile, lasttile;
     atomic_int purge;  // If set, tile ptrs need purging!
     ImageCacheStatistics m_stats;
-    bool shared;  // Pointed to both by the IC and the thread_specific_ptr
+    bool shared
+        = false;  // Pointed to both by the IC and the thread_specific_ptr
 
     ImageCachePerThreadInfo()
-        : next_last_file(0)
-        , shared(false)
     {
         // std::cout << "Creating PerThreadInfo " << (void*)this << "\n";
+#if !FILE_CACHE_USE_PERTHREAD_MAP
         for (auto& f : last_file)
             f = nullptr;
+#endif
         purge = 0;
     }
 
@@ -709,21 +722,30 @@ public:
     }
 
     // Add a new filename/fileptr pair to our microcache
-    void filename(ustring n, ImageCacheFile* f)
+    void remember_filename(ustring n, ImageCacheFile* f)
     {
+#if FILE_CACHE_USE_PERTHREAD_MAP
+        m_thread_files[n] = f;
+#else
         last_filename[next_last_file] = n;
         last_file[next_last_file]     = f;
         ++next_last_file;
         next_last_file %= nlastfile;
+#endif
     }
 
     // See if a filename has a fileptr in the microcache
     ImageCacheFile* find_file(ustring n) const
     {
+#if FILE_CACHE_USE_PERTHREAD_MAP
+        auto f = m_thread_files.find(n);
+        return f == m_thread_files.end() ? nullptr : f->second;
+#else
         for (int i = 0; i < nlastfile; ++i)
             if (last_filename[i] == n)
                 return last_file[i];
         return NULL;
+#endif
     }
 };
 
