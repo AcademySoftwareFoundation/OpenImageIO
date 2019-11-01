@@ -1,9 +1,9 @@
-Release 2.1 (?? 2019) -- compared to 2.0
+Release 2.1 (1 Dec ?? 2019) -- compared to 2.0
 ----------------------------------------------
 New minimum dependencies:
 * CMake minimum is now 3.12. #2348 (2.1.5)
 
-Major new features and improvements:
+New file format support:
 * Support for HEIC/HEIF images. HEIC is the still-image sibling of HEVC
   (a.k.a. H.265), and compresses to about half the size of JPEG but with
   higher visual quality. #2160 #2188 (2.1.0)
@@ -79,6 +79,11 @@ Public API changes:
 * `DeepData` has been altered to make pixel indices and total counts int64_t
   rather than int, in order to be safe for very large images that have > 2
   Gpixels. #2363 (2.1.5)
+* On OSX, we now expect non-embedded plugins to follow the convention of
+  naming runtime-loaded modules `foo.imageio.so` (just like on Linux),
+  whereas we previously used the convention of `foo.imageio.dylib`. Turns
+  out that dylib is supposed to be only for shared libraries, not runtime
+  loadable modules. #2376 (2.1.6)
 
 Performance improvements:
 * ImageCache/TextureSystem:
@@ -205,6 +210,10 @@ Fixes and feature enhancements:
     - Improvements to error message propagation. (2.1.3)
     - Avoid creating a new thread info struct while resolving udims. #2318
       (2.1.4)
+    - Work around bug in OpenEXR, where dwaa/dwab compression can crash when
+      used on 1-channel tiled images with a tile size < 16. This can crop up
+      for MIP-maps (high levels where rez < 16), so we detect this case and
+      switch automatically to "zip" compression. #2378 (2.1.6)
 * iv viewer:
     - Image info window now sorts the metadata, in the same manner as
       `iinfo -v` or `oiiotool -info -v`. #2159 (2.1.0/2.0.5)
@@ -302,6 +311,34 @@ Fixes and feature enhancements:
   integer overflow when compting the size of large images. #2232 (2.1.2)
 
 Build/test system improvements and platform ports:
+* Major overhaul of the CMake build system now that our CMake minimum is
+  3.12. #2348 #2352 #2357 #2360 #2368 #2370 #2372 #2373 (2.1.5)
+  Highlights:
+    - All optional dependencies (e.g. "Pkg") now can be disabled (even if
+      found) with cmake -DUSE_PKG=0 or environment variable USE_PKG=0.
+      Previously, some packages supported this, others did not.
+    - All dependencies can be given find hints via -DPkg_ROOT=path or by
+      setting environment variable Pkg_ROOT=path. Previously, some did, some
+      didn't, and the ones that did had totally inconsistent names for the
+      path hint variable (PKG_HOME, PKG_ROOT_DIR, PKG_PATH, etc).
+    - Nice color coded status messages making it much more clear which
+      dependencies were found, which were not, which were disabled.
+    - Use standard BUILD_SHARED_LIBS to control shared vs static libraries,
+      replacing the old nonstandard BUILDSTATIC name.
+    - Use correct PUBLIC/PRIVATE marks with target_link_libraries and
+      target_include_directories, and rely on cmake properly understanding
+      the transitive dependencies.
+    - CMAKE_DEBUG_POSTFIX adds an optional suffix to debug libraries.
+    - CMAKE_CXX_STANDARD to control C++ standard (instead of our nonstandard
+      USE_CPP).
+    - CXX_VISIBILITY_PRESET controls symbol visibility defaults now, not
+      our nonstandard HIDE_SYMBOLS. And the default is to keep everything
+      hidden that is not part of the public API.
+    - At config time, `ENABLE_<name>=0` (either as a CMake variable or an
+      env variable) can be used to disable any individual file format or
+      command line utility. E.g., `cmake -DENABLE_PNG=0 -DENABLE_oiiotool=0`
+      This makes it easier to greatly reduce build time if you are 100%
+      sure there are formats or components you don't want or need.
 * Deprecate "missingmath.h". What little of it is still needed (it mostly
   addressed shortcomings of old MSVS releases) is now in fmath.h. #2086
 * Remove "osdep.h" header that was no longer needed. #2097
@@ -354,34 +391,6 @@ Build/test system improvements and platform ports:
   through some hoops to make that legal. #2350 (2.1.5)
 * All Python scripts in the tests have been modified as needed to make them
   correct for both Python 2.7 and 3.x. #2355, #2358 (2.1.5)
-* Major overhaul of the CMake build system now that our CMake minimum is
-  3.12. #2348 #2352 #2357 #2360 #2368 #2370 #2372 #2373 (2.1.5)
-  Highlights:
-    - All optional dependencies (e.g. "Pkg") now can be disabled (even if
-      found) with cmake -DUSE_PKG=0 or environment variable USE_PKG=0.
-      Previously, some packages supported this, others did not.
-    - All dependencies can be given find hints via -DPkg_ROOT=path or by
-      setting environment variable Pkg_ROOT=path. Previously, some did, some
-      didn't, and the ones that did had totally inconsistent names for the
-      path hint variable (PKG_HOME, PKG_ROOT_DIR, PKG_PATH, etc).
-    - Nice color coded status messages making it much more clear which
-      dependencies were found, which were not, which were disabled.
-    - Use standard BUILD_SHARED_LIBS to control shared vs static libraries,
-      replacing the old nonstandard BUILDSTATIC name.
-    - Use correct PUBLIC/PRIVATE marks with target_link_libraries and
-      target_include_directories, and rely on cmake properly understanding
-      the transitive dependencies.
-    - CMAKE_DEBUG_POSTFIX adds an optional suffix to debug libraries.
-    - CMAKE_CXX_STANDARD to control C++ standard (instead of our nonstandard
-      USE_CPP).
-    - CXX_VISIBILITY_PRESET controls symbol visibility defaults now, not
-      our nonstandard HIDE_SYMBOLS. And the default is to keep everything
-      hidden that is not part of the public API.
-    - At config time, `ENABLE_<name>=0` (either as a CMake variable or an
-      env variable) can be used to disable any individual file format or
-      command line utility. E.g., `cmake -DENABLE_PNG=0 -DENABLE_oiiotool=0`
-      This makes it easier to greatly reduce build time if you are 100%
-      sure there are formats or components you don't want or need.
 * Tests are now safe to run in parallel and in unspecified order. Running
   with env variable CTEST_PARALLEL_LEVEL=[something more than 1] greatly
   speeds up the full testsuite on multi-core machines. #2365 (2.1.5)
@@ -457,6 +466,14 @@ Notable documentation changes:
   feature requests, build problems, and questions. #2271,#2346
 
 
+
+Release 2.0.12 (1 Nov, 2019) -- compared to 2.0.11
+--------------------------------------------------
+* Fix compiler warnings on some platform. #2375
+* Work around bug in OpenEXR, where dwaa/dwab compression can crash when
+  used on 1-channel tiled images with a tile size < 16. This can crop up for
+  MIP-maps (high levels where rez < 16), so we detect this case and switch
+  automatically to "zip" compression. #2378
 
 Release 2.0.11 (1 Oct, 2019) -- compared to 2.0.10
 -------------------------------------------------
