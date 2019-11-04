@@ -1941,7 +1941,7 @@ Example::
 
 .. py:method:: ImageBuf.set_deep_samples (x, y, z, nsamples)
 
-Set the number of deep samples for pixel (x,y,z).
+    Set the number of deep samples for pixel (x,y,z).
 
 
 .. py:method:: ImageBuf.deep_insert_samples (x, y, z, samplepos, nsamples)
