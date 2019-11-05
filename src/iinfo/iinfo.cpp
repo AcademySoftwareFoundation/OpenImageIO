@@ -651,11 +651,7 @@ main(int argc, const char* argv[])
     if (ap.parse(argc, argv) < 0 || filenames.empty()) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage();
-        return EXIT_FAILURE;
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_SUCCESS);
+        return help ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 
     if (!metamatch.empty()) {
