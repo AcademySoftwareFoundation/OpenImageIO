@@ -40,6 +40,26 @@ command += oiiotool (exrdir+"/Balls.exr -cut 512x288+0+0 " +
 # --resample
 command += oiiotool (exrdir+"/Balls.exr -resample 128x72 -o resampled-balls.exr")
 
+
+
+# Regression test: it used to be that comparing deep image, it would loop
+# only over A's samples, so if A had no samples in a pixel but B had
+# samples, then the comparison would fail to see a difference. Be sure to
+# test both orderings.
+# Compare with both orderings
+command += oiiotool ("--fail 100 src/deep-nosamples.exr src/deep-onesample.exr --diff")
+command += oiiotool ("--fail 100 src/deep-onesample.exr src/deep-nosamples.exr --diff")
+ # Recipe for creating the files:
+ # spec = oiio.ImageSpec (1, 1, 1, oiio.TypeDesc.TypeFloat)
+ # spec.channelnames = ("Z")
+ # spec.deep = True
+ # buf = oiio.ImageBuf (spec)
+ # buf.write ("src/deep-nosamples.exr")  # write a deep image with no samples
+ # buf.set_deep_samples (0, 0, 0, 1)
+ # buf.set_deep_value (0, 0, 0, 0, 0, 42.0)
+ # buf.write ("src/deep-onesample.exr")  # write another deep image with 1 sample
+
+
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
 # below.
