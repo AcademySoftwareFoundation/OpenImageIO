@@ -710,7 +710,7 @@ public:
     // Add a new filename/fileptr pair to our microcache
     void remember_filename(ustring n, ImageCacheFile* f)
     {
-        m_thread_files[n] = f;
+        m_thread_files.emplace(n, f);
     }
 
     // See if a filename has a fileptr in the microcache
