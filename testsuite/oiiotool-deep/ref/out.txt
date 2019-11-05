@@ -1,3 +1,19 @@
+Computing diff of "src/deep-nosamples.exr" vs "src/deep-onesample.exr"
+  Mean error = 42
+  RMS error = 42
+  Peak SNR = 0
+  Max error  = 42 @ (0, 0, Z)
+  1 pixels (100%) over 1e-06
+  0 pixels (0%) over 100
+WARNING
+Computing diff of "src/deep-onesample.exr" vs "src/deep-nosamples.exr"
+  Mean error = 42
+  RMS error = 42
+  Peak SNR = 0
+  Max error  = 42 @ (0, 0, Z)
+  1 pixels (100%) over 1e-06
+  0 pixels (0%) over 100
+WARNING
 Comparing "flat.exr" and "ref/flat.exr"
 PASS
 Comparing "ch.exr" and "ref/ch.exr"
