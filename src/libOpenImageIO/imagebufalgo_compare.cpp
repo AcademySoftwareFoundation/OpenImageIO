@@ -323,8 +323,9 @@ compare_(const ImageBuf& A, const ImageBuf& B, float failthresh,
         if (deep) {
             for (int i = 0; i < batchsize && !a.done(); ++i, ++a, ++b) {
                 bool warned = false, failed = false;  // For this pixel
+                auto nsamps = std::max(a.deep_samples(), b.deep_samples());
                 for (int c = roi.chbegin; c < roi.chend; ++c)
-                    for (int s = 0, e = a.deep_samples(); s < e; ++s) {
+                    for (int s = 0, e = nsamps; s < e; ++s) {
                         compare_value(a, c, a.deep_value(c, s),
                                       b.deep_value(c, s), result, maxval,
                                       batcherror, batch_sqrerror, failed,
