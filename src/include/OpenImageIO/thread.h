@@ -761,10 +761,18 @@ private:
 
 
 /// Return a reference to the "default" shared thread pool. In almost all
-/// ordinary circumstances, you should use this exclusively to get a
-/// single shared thread pool, since creating multiple thread pools
-/// could result in hilariously over-threading your application.
+/// ordinary circumstances, you should use this exclusively to get a single
+/// shared thread pool, since creating multiple thread pools could result in
+/// hilariously over-threading your application. Note that this call may
+/// (safely, and only once) trigger creation of the thread pool and its
+/// worker threads if it has not yet been created.
 OIIO_API thread_pool* default_thread_pool ();
+
+/// If a thread pool has been created, this call will safely terminate its
+/// worker threads. This should presumably be called by an appication
+/// immediately before it exists, when it is confident the thread pool will
+/// no longer be needed.
+OIIO_API void default_thread_pool_shutdown();
 
 
 

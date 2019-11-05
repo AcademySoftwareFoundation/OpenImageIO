@@ -170,6 +170,19 @@ test_empty_thread_pool()
 
 
 
+void
+test_thread_pool_shutdown()
+{
+    // Test that we can shut down the pool before exiting
+    thread_pool* pool(default_thread_pool());
+    pool->resize(3);
+    OIIO_CHECK_EQUAL(pool->size(), 3);
+    default_thread_pool_shutdown();
+    OIIO_CHECK_EQUAL(pool->size(), 0);
+}
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -190,6 +203,7 @@ main(int argc, char** argv)
     time_parallel_for();
     test_thread_pool_recursion();
     test_empty_thread_pool();
+    test_thread_pool_shutdown();
 
     return unit_test_failures;
 }

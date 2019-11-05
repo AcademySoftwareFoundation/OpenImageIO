@@ -458,11 +458,25 @@ thread_pool::very_busy() const
 
 
 
+static atomic_int default_thread_pool_created(0);
+
+
+
 thread_pool*
 default_thread_pool()
 {
     static std::unique_ptr<thread_pool> shared_pool(new thread_pool);
+    default_thread_pool_created = 1;
     return shared_pool.get();
+}
+
+
+
+void
+default_thread_pool_shutdown()
+{
+    if (default_thread_pool_created)
+        default_thread_pool()->resize(0);
 }
 
 
