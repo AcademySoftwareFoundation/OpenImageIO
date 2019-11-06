@@ -77,7 +77,7 @@ set_roi_full(ImageSpec& spec, const ROI& newroi)
 
 // Expansion of the opaque type that hides all the ImageBuf implementation
 // detail.
-class ImageBufImpl : public ImageBufImplBase {
+class ImageBufImpl {
 public:
     ImageBufImpl(string_view filename, int subimage, int miplevel,
                  ImageCache* imagecache = NULL, const ImageSpec* spec = NULL,
@@ -285,6 +285,14 @@ private:
 
 
 
+void
+ImageBuf::impl_deleter(ImageBufImpl* todel)
+{
+    delete todel;
+}
+
+
+
 ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
                            ImageCache* imagecache, const ImageSpec* spec,
                            void* buffer, const ImageSpec* config)
@@ -408,7 +416,7 @@ ImageBufImpl::~ImageBufImpl()
 
 
 ImageBuf::ImageBuf()
-    : m_impl((ImageBufImplBase*)new ImageBufImpl(std::string(), -1, -1, NULL))
+    : m_impl(new ImageBufImpl(std::string(), -1, -1, NULL), &impl_deleter)
 {
 }
 
@@ -416,23 +424,23 @@ ImageBuf::ImageBuf()
 
 ImageBuf::ImageBuf(string_view filename, int subimage, int miplevel,
                    ImageCache* imagecache, const ImageSpec* config)
-    : m_impl((ImageBufImplBase*)new ImageBufImpl(filename, subimage, miplevel,
-                                                 imagecache, NULL /*spec*/,
-                                                 NULL /*buffer*/, config))
+    : m_impl(new ImageBufImpl(filename, subimage, miplevel, imagecache,
+                              NULL /*spec*/, NULL /*buffer*/, config),
+             &impl_deleter)
 {
 }
 
 
 
 ImageBuf::ImageBuf(string_view filename, ImageCache* imagecache)
-    : m_impl((ImageBufImplBase*)new ImageBufImpl(filename, 0, 0, imagecache))
+    : m_impl(new ImageBufImpl(filename, 0, 0, imagecache), &impl_deleter)
 {
 }
 
 
 
 ImageBuf::ImageBuf(const ImageSpec& spec, InitializePixels zero)
-    : m_impl((ImageBufImplBase*)new ImageBufImpl("", 0, 0, NULL, &spec))
+    : m_impl(new ImageBufImpl("", 0, 0, NULL, &spec), &impl_deleter)
 {
     impl()->alloc(spec);
     if (zero == InitializePixels::Yes && !deep())
@@ -443,7 +451,7 @@ ImageBuf::ImageBuf(const ImageSpec& spec, InitializePixels zero)
 
 ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec,
                    InitializePixels zero)
-    : m_impl((ImageBufImplBase*)new ImageBufImpl(filename, 0, 0, NULL, &spec))
+    : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec), &impl_deleter)
 {
     impl()->alloc(spec);
     if (zero == InitializePixels::Yes && !deep())
@@ -453,22 +461,22 @@ ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec,
 
 
 ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec, void* buffer)
-    : m_impl((ImageBufImplBase*)new ImageBufImpl(filename, 0, 0, NULL, &spec,
-                                                 buffer))
+    : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec, buffer),
+             &impl_deleter)
 {
 }
 
 
 
 ImageBuf::ImageBuf(const ImageSpec& spec, void* buffer)
-    : m_impl((ImageBufImplBase*)new ImageBufImpl("", 0, 0, NULL, &spec, buffer))
+    : m_impl(new ImageBufImpl("", 0, 0, NULL, &spec, buffer), &impl_deleter)
 {
 }
 
 
 
 ImageBuf::ImageBuf(const ImageBuf& src)
-    : m_impl((ImageBufImplBase*)new ImageBufImpl(*src.impl()))
+    : m_impl(new ImageBufImpl(*src.impl()), &impl_deleter)
 {
 }
 
