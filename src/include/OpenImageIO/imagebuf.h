@@ -1405,9 +1405,6 @@ protected:
     static void impl_deleter(ImageBufImpl*);
     std::unique_ptr<ImageBufImpl, decltype(&impl_deleter)> m_impl;
 
-    ImageBufImpl* impl() { return m_impl.get(); }
-    const ImageBufImpl* impl() const { return m_impl.get(); }
-
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
     // within the tile.
