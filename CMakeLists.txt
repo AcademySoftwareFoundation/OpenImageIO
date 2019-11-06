@@ -225,15 +225,15 @@ install (FILES src/cmake/modules/FindOpenImageIO.cmake
 
 # Make a build/platform/testsuite directory, and copy the master runtest.py
 # there. The rest is up to the tests themselves.
-file (MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/testsuite")
-file (COPY "${CMAKE_SOURCE_DIR}/testsuite/common"
-      DESTINATION "${CMAKE_BINARY_DIR}/testsuite")
-add_custom_command (OUTPUT "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
+file (MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+file (COPY "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/common"
+      DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+add_custom_command (OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py"
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${CMAKE_SOURCE_DIR}/testsuite/runtest.py"
-                        "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
-                    MAIN_DEPENDENCY "${CMAKE_SOURCE_DIR}/testsuite/runtest.py")
-add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_BINARY_DIR}/testsuite/runtest.py" )
+                        "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/runtest.py"
+                        "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py"
+                    MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/runtest.py")
+add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py" )
 
 # Basic tests that apply even to continuous integration tests:
 
