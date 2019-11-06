@@ -682,24 +682,23 @@ typedef unordered_map_concurrent<
 /// even if you are using only ImageCache but not TextureSystem.
 class ImageCachePerThreadInfo {
 public:
-    // Store just a few filename/fileptr pairs
-    static const int nlastfile = 4;
-    ustring last_filename[nlastfile];
-    ImageCacheFile* last_file[nlastfile];
-    int next_last_file;
+    // Keep a per-thread unlocked map of filenames to ImageCacheFile*'s.
+    // Fall back to the shared map only when not found locally.
+    // This is safe because no ImageCacheFile is ever truly deleted from
+    // the shared map, so this map isn't the owner.
+    using ThreadFilenameMap
+        = tsl::robin_map<ustring, ImageCacheFile*, ustringHash>;
+    ThreadFilenameMap m_thread_files;
+
     // We have a two-tile "microcache", storing the last two tiles needed.
     ImageCacheTileRef tile, lasttile;
     atomic_int purge;  // If set, tile ptrs need purging!
     ImageCacheStatistics m_stats;
-    bool shared;  // Pointed to both by the IC and the thread_specific_ptr
+    bool shared = false;  // Pointed to by the IC and thread_specific_ptr
 
     ImageCachePerThreadInfo()
-        : next_last_file(0)
-        , shared(false)
     {
         // std::cout << "Creating PerThreadInfo " << (void*)this << "\n";
-        for (auto& f : last_file)
-            f = nullptr;
         purge = 0;
     }
 
@@ -709,21 +708,16 @@ public:
     }
 
     // Add a new filename/fileptr pair to our microcache
-    void filename(ustring n, ImageCacheFile* f)
+    void remember_filename(ustring n, ImageCacheFile* f)
     {
-        last_filename[next_last_file] = n;
-        last_file[next_last_file]     = f;
-        ++next_last_file;
-        next_last_file %= nlastfile;
+        m_thread_files.emplace(n, f);
     }
 
     // See if a filename has a fileptr in the microcache
     ImageCacheFile* find_file(ustring n) const
     {
-        for (int i = 0; i < nlastfile; ++i)
-            if (last_filename[i] == n)
-                return last_file[i];
-        return NULL;
+        auto f = m_thread_files.find(n);
+        return f == m_thread_files.end() ? nullptr : f->second;
     }
 };
 

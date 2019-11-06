@@ -1197,7 +1197,7 @@ ImageCacheImpl::find_file(ustring filename,
             if (!tf->duplicate())
                 ++thread_info->m_stats.unique_files;
         }
-        thread_info->filename(filename, tf);  // add to the microcache
+        thread_info->remember_filename(filename, tf);  // add to the microcache
 #if IMAGECACHE_TIME_STATS
         thread_info->m_stats.find_file_time += timer();
 #endif
@@ -3497,10 +3497,7 @@ ImageCacheImpl::get_perthread_info(ImageCachePerThreadInfo* p)
         p->tile     = NULL;
         p->lasttile = NULL;
         p->purge    = 0;
-        for (int i = 0; i < ImageCachePerThreadInfo::nlastfile; ++i) {
-            p->last_filename[i] = ustring();
-            p->last_file[i]     = NULL;
-        }
+        p->m_thread_files.clear();
     }
     return p;
 }
