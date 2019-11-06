@@ -158,15 +158,11 @@ main(int argc, const char* argv[])
                 "-a", &all_subimages, "Search all subimages of each file",
                 "--help", &help, "Print help message",
                 NULL);
-    // clang-format off
+    // clang-format on
     if (ap.parse(argc, argv) < 0 || pattern.empty() || filenames.empty()) {
         std::cerr << ap.geterror() << std::endl;
-        ap.usage ();
-        return EXIT_FAILURE;
-    }
-    if (help) {
         ap.usage();
-        exit(EXIT_SUCCESS);
+        return help ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 
 #if USE_BOOST_REGEX
