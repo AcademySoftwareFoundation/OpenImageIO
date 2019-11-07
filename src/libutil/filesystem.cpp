@@ -283,13 +283,8 @@ Filesystem::path_is_absolute(const std::string& path, bool dot_is_absolute)
 bool
 Filesystem::exists(const std::string& path) noexcept
 {
-    bool r = false;
-    try {
-        r = filesystem::exists(u8path(path));
-    } catch (...) {
-        r = false;
-    }
-    return r;
+    boost::system::error_code ec;
+    return filesystem::exists(u8path(path), ec);
 }
 
 
@@ -297,13 +292,8 @@ Filesystem::exists(const std::string& path) noexcept
 bool
 Filesystem::is_directory(const std::string& path) noexcept
 {
-    bool r = false;
-    try {
-        r = filesystem::is_directory(u8path(path));
-    } catch (...) {
-        r = false;
-    }
-    return r;
+    boost::system::error_code ec;
+    return filesystem::is_directory(u8path(path), ec);
 }
 
 
@@ -311,13 +301,8 @@ Filesystem::is_directory(const std::string& path) noexcept
 bool
 Filesystem::is_regular(const std::string& path) noexcept
 {
-    bool r = false;
-    try {
-        r = filesystem::is_regular_file(u8path(path));
-    } catch (...) {
-        r = false;
-    }
-    return r;
+    boost::system::error_code ec;
+    return filesystem::is_regular_file(u8path(path), ec);
 }
 
 
@@ -519,14 +504,9 @@ Filesystem::read_bytes(string_view path, void* buffer, size_t n, size_t pos)
 std::time_t
 Filesystem::last_write_time(const std::string& path) noexcept
 {
-    if (!exists(path))
-        return 0;
-    try {
-        return filesystem::last_write_time(u8path(path));
-    } catch (...) {
-        // File doesn't exist
-        return 0;
-    }
+    boost::system::error_code ec;
+    std::time_t t = filesystem::last_write_time(u8path(path), ec);
+    return ec ? 0 : t;
 }
 
 
@@ -534,13 +514,8 @@ Filesystem::last_write_time(const std::string& path) noexcept
 void
 Filesystem::last_write_time(const std::string& path, std::time_t time) noexcept
 {
-    if (!exists(path))
-        return;
-    try {
-        filesystem::last_write_time(u8path(path), time);
-    } catch (...) {
-        // File doesn't exist
-    }
+    boost::system::error_code ec;
+    filesystem::last_write_time(u8path(path), time, ec);
 }
 
 
@@ -548,14 +523,9 @@ Filesystem::last_write_time(const std::string& path, std::time_t time) noexcept
 uint64_t
 Filesystem::file_size(string_view path) noexcept
 {
-    if (!exists(path))
-        return 0;
-    try {
-        return filesystem::file_size(u8path(path));
-    } catch (...) {
-        // File doesn't exist
-        return 0;
-    }
+    boost::system::error_code ec;
+    uint64_t sz = filesystem::file_size(u8path(path), ec);
+    return ec ? 0 : sz;
 }
 
 

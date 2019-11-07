@@ -298,14 +298,12 @@ ImageCacheFile::ImageCacheFile(ImageCacheImpl& imagecache,
     // reflected by the fact that m_validspec is false.
 
     // Figure out if it's a UDIM-like virtual texture
-    if (!Filesystem::exists(m_filename.string())
-        && (m_filename.find("<UDIM>") != m_filename.npos
-            || m_filename.find("<U>") != m_filename.npos
-            || m_filename.find("<V>") != m_filename.npos
-            || m_filename.find("<u>") != m_filename.npos
-            || m_filename.find("<v>") != m_filename.npos)) {
-        m_is_udim = true;
-    }
+    m_is_udim = (m_filename.find("<UDIM>") != m_filename.npos
+                 || m_filename.find("<U>") != m_filename.npos
+                 || m_filename.find("<V>") != m_filename.npos
+                 || m_filename.find("<u>") != m_filename.npos
+                 || m_filename.find("<v>") != m_filename.npos)
+                && !Filesystem::exists(m_filename.string());
 }
 
 
@@ -664,11 +662,7 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
     } while (inp->seek_subimage(nsubimages, 0, nativespec));
     ASSERT((size_t)nsubimages == m_subimages.size());
 
-    if (Filesystem::exists(m_filename.string()))
-        m_total_imagesize_ondisk = imagesize_t(
-            Filesystem::file_size(m_filename));
-    else
-        m_total_imagesize_ondisk = 0;
+    m_total_imagesize_ondisk = imagesize_t(Filesystem::file_size(m_filename));
 
     thread_info->m_stats.files_totalsize -= old_total_imagesize;
     thread_info->m_stats.files_totalsize += m_total_imagesize;
@@ -2495,7 +2489,10 @@ ImageCacheImpl::resolve_filename(const std::string& filename) const
     bool procedural = input ? input->supports("procedural") : false;
     if (procedural)
         return filename;
-
+    // don't bother with the searchpath_find call since it will do an existence
+    // check that we don't need
+    if (m_searchdirs.empty())
+        return filename;
     std::string s = Filesystem::searchpath_find(filename, m_searchdirs, true);
     return s.empty() ? filename : s;
 }
