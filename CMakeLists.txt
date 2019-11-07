@@ -202,6 +202,50 @@ install (FILES src/cmake/modules/FindOpenImageIO.cmake
          DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/cmake/Modules
          COMPONENT cmake)
 
+# Export the configuration files. There are also library-specific config
+# exports in the CMakeLists.txt of libOpenImageIO.
+include (CMakePackageConfigHelpers)
+
+# the file containing the exported targets
+set(OIIO_TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets.cmake")
+# the version file
+set(OIIO_VERSION_CONFIG "${CMAKE_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
+# the config file that is actually looked for by find_package
+set(OIIO_PROJECT_CONFIG "${CMAKE_BINARY_DIR}/${PROJECT_NAME}Config.cmake")
+# where all these files will be installed
+set(OIIO_CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+
+# first generate the version file in the binary dir
+write_basic_package_version_file (
+        ${OIIO_VERSION_CONFIG}
+        VERSION ${PROJECT_VERSION}
+        COMPATIBILITY SameMinorVersion
+)
+
+# generate the Targets file in the binary dir
+export(TARGETS OpenImageIO OpenImageIO_Util FILE "${CMAKE_BINARY_DIR}/${OIIO_TARGETS_EXPORT_NAME}")
+
+install (TARGETS OpenImageIO OpenImageIO_Util
+        EXPORT OpenImageIO
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
+
+# generate the config file from the template in the binary dir
+configure_package_config_file("${PROJECT_SOURCE_DIR}/src/cmake/Config.cmake.in"
+        "${OIIO_PROJECT_CONFIG}"
+        INSTALL_DESTINATION "${OIIO_CONFIG_INSTALL_DIR}")
+
+# generate the config file from the template in the binary dir
+install(FILES "${OIIO_PROJECT_CONFIG}" "${OIIO_VERSION_CONFIG}"
+        DESTINATION "${OIIO_CONFIG_INSTALL_DIR}")
+
+# write targets files
+install (EXPORT OpenImageIO
+        DESTINATION ${OIIO_CONFIG_INSTALL_DIR}
+        FILE ${OIIO_TARGETS_EXPORT_NAME}
+        NAMESPACE ${PROJECT_NAME}::
+        )
 
 
 #########################################################################
