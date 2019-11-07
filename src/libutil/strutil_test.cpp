@@ -166,11 +166,20 @@ test_get_rest_arguments()
 
 
 void
+test_escape(string_view raw, string_view escaped)
+{
+    Strutil::printf ("escape '%s' <-> '%s'\n", raw, escaped);
+    OIIO_CHECK_EQUAL(Strutil::escape_chars(raw), escaped);
+    OIIO_CHECK_EQUAL(Strutil::unescape_chars(escaped), raw);
+}
+
+
+
+void
 test_escape_sequences()
 {
-    OIIO_CHECK_EQUAL(Strutil::unescape_chars("\\\\ \\n \\r \\017"),
-                     "\\ \n \r \017");
-    OIIO_CHECK_EQUAL(Strutil::escape_chars("\\ \n \r"), "\\\\ \\n \\r");
+    test_escape ("\\ \n \r \t", "\\\\ \\n \\r \\t");
+    test_escape (" \"quoted\" ",  " \\\"quoted\\\" ");
 }
 
 
@@ -789,6 +798,17 @@ void test_parse ()
     parse_string (s, ss, true, DeleteQuotes);
     OIIO_CHECK_EQUAL (ss, "foo bar");
     OIIO_CHECK_EQUAL (s, " baz");
+    s = "'foo bar' baz";
+
+    s = "\"foo \\\"bar\\\" baz\" blort";
+    parse_string (s, ss, true, DeleteQuotes);
+    OIIO_CHECK_EQUAL (ss, "foo \\\"bar\\\" baz");
+    OIIO_CHECK_EQUAL (s, " blort");
+    s = "\"foo \\\"bar\\\" baz\" blort";
+    parse_string (s, ss, true, KeepQuotes);
+    OIIO_CHECK_EQUAL (ss, "\"foo \\\"bar\\\" baz\"");
+    OIIO_CHECK_EQUAL (s, " blort");
+
     s = "'foo bar' baz";
     parse_string (s, ss, true, KeepQuotes);
     OIIO_CHECK_EQUAL (ss, "'foo bar'");
