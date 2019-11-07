@@ -150,8 +150,6 @@ matrix:
               - *old-boost-packages
               - g++-4.8
 
-    # Note: builds for AVX2, AVX512 happen on CircleCI
-
     # Just run clang-format, this test only checks formatting rule conformance
       - name: "clang-format format verification"
         os: osx
