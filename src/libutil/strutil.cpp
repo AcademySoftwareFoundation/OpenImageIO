@@ -771,13 +771,13 @@ Strutil::parse_string(string_view& str, string_view& val, bool eat,
     char lead_char    = p.front();
     bool quoted       = parse_char(p, '\"') || parse_char(p, '\'');
     const char *begin = p.begin(), *end = p.begin();
-    bool escaped = false;
+    bool escaped = false;  // was the prior character a backslash
     while (end != p.end()) {
         if (isspace(*end) && !quoted)
             break;  // not quoted and we hit whitespace: we're done
         if (quoted && *end == lead_char && !escaped)
-            break;  // closing quite -- we're done (beware embedded quote)
-        escaped = (p[0] == '\\');
+            break;  // closing quote -- we're done (beware embedded quote)
+        escaped = (end[0] == '\\') && (!escaped);
         ++end;
     }
     if (quoted && keep_quotes == KeepQuotes) {
