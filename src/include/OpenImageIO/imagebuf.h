@@ -24,14 +24,7 @@
 OIIO_NAMESPACE_BEGIN
 
 class ImageBuf;
-
-// Opaque type for the unique_ptr.
-class ImageBufImpl;
-class ImageBufImplBase {
-public:
-    virtual ~ImageBufImplBase() {}
-    void operator delete(void* todel) { ::operator delete(todel); }
-};
+class ImageBufImpl;  // Opaque type for the unique_ptr.
 
 
 
@@ -1408,13 +1401,9 @@ public:
 
 
 protected:
-    std::unique_ptr<ImageBufImplBase> m_impl;  //< PIMPL idiom
-
-    ImageBufImpl* impl() { return (ImageBufImpl*)m_impl.get(); }
-    const ImageBufImpl* impl() const
-    {
-        return (const ImageBufImpl*)m_impl.get();
-    }
+    // PIMPL idiom
+    static void impl_deleter(ImageBufImpl*);
+    std::unique_ptr<ImageBufImpl, decltype(&impl_deleter)> m_impl;
 
     // Reset the ImageCache::Tile * to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
