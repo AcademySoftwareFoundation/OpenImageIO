@@ -22,6 +22,8 @@ if (VERBOSE)
 endif ()
 message (STATUS "CMAKE_CXX_COMPILER     = ${CMAKE_CXX_COMPILER}")
 message (STATUS "CMAKE_CXX_COMPILER_ID  = ${CMAKE_CXX_COMPILER_ID}")
+string (TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE_UPPER)
+message (STATUS "Default CMAKE_CXX_FLAGS_${BUILD_TYPE_UPPER} = ${CMAKE_CXX_FLAGS_${BUILD_TYPE_UPPER}}")
 
 
 ###########################################################################
@@ -157,6 +159,11 @@ endif ()
 if (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG)
     # Options common to gcc and clang
 
+    # Guarantee that Release mode uses -O3, not -O2, for gcc and clang
+    if (CMAKE_BUILD_TYPE STREQUAL "Release" AND NOT CMAKE_CXX_FLAGS_RELEASE MATCHES "-O3")
+        string (APPEND CMAKE_CXX_FLAGS_RELEASE " -O3")
+        message (STATUS "Changing CMAKE_CXX_FLAGS_RELEASE = ${CMAKE_CXX_FLAGS_RELEASE}")
+    endif ()
     # Ensure this macro is set for stdint.h
     add_definitions ("-D__STDC_LIMIT_MACROS")
     add_definitions ("-D__STDC_CONSTANT_MACROS")
