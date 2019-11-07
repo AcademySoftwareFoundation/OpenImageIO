@@ -119,21 +119,21 @@ OIIO_API bool get_directory_entries (const std::string &dirname,
 
 /// Return true if the path is an "absolute" (not relative) path.
 /// If 'dot_is_absolute' is true, consider "./foo" absolute.
-OIIO_API bool path_is_absolute (const std::string &path,
+OIIO_API bool path_is_absolute (string_view path,
                                 bool dot_is_absolute=false);
 
 /// Return true if the file exists.
 ///
-OIIO_API bool exists (const std::string &path) noexcept;
+OIIO_API bool exists (string_view path) noexcept;
 
 
 /// Return true if the file exists and is a directory.
 ///
-OIIO_API bool is_directory (const std::string &path) noexcept;
+OIIO_API bool is_directory (string_view path) noexcept;
 
 /// Return true if the file exists and is a regular file.
 ///
-OIIO_API bool is_regular (const std::string &path) noexcept;
+OIIO_API bool is_regular (string_view path) noexcept;
 
 /// Create the directory. Return true for success, false for failure and
 /// place an error message in err.
@@ -218,11 +218,11 @@ OIIO_API size_t read_bytes (string_view path, void *buffer, size_t n,
 
 /// Get last modified time of file
 ///
-OIIO_API std::time_t last_write_time (const std::string& path) noexcept;
+OIIO_API std::time_t last_write_time (string_view path) noexcept;
 
 /// Set last modified time on file
 ///
-OIIO_API void last_write_time (const std::string& path, std::time_t time) noexcept;
+OIIO_API void last_write_time (string_view path, std::time_t time) noexcept;
 
 /// Return the size of the file (in bytes), or uint64_t(-1) if there is any
 /// error.

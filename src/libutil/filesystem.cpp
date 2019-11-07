@@ -40,6 +40,7 @@ using std::regex_search;
 
 #include <boost/filesystem.hpp>
 namespace filesystem = boost::filesystem;
+using error_code     = boost::system::error_code;
 // FIXME: use std::filesystem when available
 
 
@@ -58,7 +59,7 @@ u8path(string_view name)
 #ifdef _WIN32
     return filesystem::path(Strutil::utf8_to_utf16(name));
 #else
-    return filesystem::path(name.str());
+    return filesystem::path(name.begin(), name.end());
 #endif
 }
 
@@ -195,14 +196,16 @@ Filesystem::searchpath_find(const std::string& filename_utf8,
         // std::cerr << "\tPath = '" << d << "'\n";
         const filesystem::path d(u8path(d_utf8));
         filesystem::path f = d / filename;
-        if (is_regular(pathstr(f))) {
+        error_code ec;
+        if (filesystem::is_regular(f, ec)) {
             return pathstr(f);
         }
 
-        if (recursive && is_directory(pathstr(d))) {
+
+        if (recursive && filesystem::is_directory(d, ec)) {
             std::vector<std::string> subdirs;
-            filesystem::directory_iterator end_iter;
-            for (filesystem::directory_iterator s(d); s != end_iter; ++s) {
+            for (filesystem::directory_iterator s(d), end_iter; s != end_iter;
+                 ++s) {
                 if (filesystem::is_directory(s->status())) {
                     subdirs.push_back(pathstr(s->path()));
                 }
@@ -257,7 +260,7 @@ Filesystem::get_directory_entries(const std::string& dirname,
 
 
 bool
-Filesystem::path_is_absolute(const std::string& path, bool dot_is_absolute)
+Filesystem::path_is_absolute(string_view path, bool dot_is_absolute)
 {
     // "./foo" is considered absolute if dot_is_absolute is true.
     // Don't get confused by ".foo", which is not absolute!
@@ -281,27 +284,27 @@ Filesystem::path_is_absolute(const std::string& path, bool dot_is_absolute)
 
 
 bool
-Filesystem::exists(const std::string& path) noexcept
+Filesystem::exists(string_view path) noexcept
 {
-    boost::system::error_code ec;
+    error_code ec;
     return filesystem::exists(u8path(path), ec);
 }
 
 
 
 bool
-Filesystem::is_directory(const std::string& path) noexcept
+Filesystem::is_directory(string_view path) noexcept
 {
-    boost::system::error_code ec;
+    error_code ec;
     return filesystem::is_directory(u8path(path), ec);
 }
 
 
 
 bool
-Filesystem::is_regular(const std::string& path) noexcept
+Filesystem::is_regular(string_view path) noexcept
 {
-    boost::system::error_code ec;
+    error_code ec;
     return filesystem::is_regular_file(u8path(path), ec);
 }
 
@@ -310,7 +313,7 @@ Filesystem::is_regular(const std::string& path) noexcept
 bool
 Filesystem::create_directory(string_view path, std::string& err)
 {
-    boost::system::error_code ec;
+    error_code ec;
     bool ok = filesystem::create_directory(u8path(path), ec);
     if (ok)
         err.clear();
@@ -323,7 +326,7 @@ Filesystem::create_directory(string_view path, std::string& err)
 bool
 Filesystem::copy(string_view from, string_view to, std::string& err)
 {
-    boost::system::error_code ec;
+    error_code ec;
     filesystem::copy(u8path(from), u8path(to), ec);
     if (!ec) {
         err.clear();
@@ -339,7 +342,7 @@ Filesystem::copy(string_view from, string_view to, std::string& err)
 bool
 Filesystem::rename(string_view from, string_view to, std::string& err)
 {
-    boost::system::error_code ec;
+    error_code ec;
     filesystem::rename(u8path(from), u8path(to), ec);
     if (!ec) {
         err.clear();
@@ -355,7 +358,7 @@ Filesystem::rename(string_view from, string_view to, std::string& err)
 bool
 Filesystem::remove(string_view path, std::string& err)
 {
-    boost::system::error_code ec;
+    error_code ec;
     bool ok = filesystem::remove(u8path(path), ec);
     if (ok)
         err.clear();
@@ -369,7 +372,7 @@ Filesystem::remove(string_view path, std::string& err)
 unsigned long long
 Filesystem::remove_all(string_view path, std::string& err)
 {
-    boost::system::error_code ec;
+    error_code ec;
     unsigned long long n = filesystem::remove_all(u8path(path), ec);
     if (!ec)
         err.clear();
@@ -383,7 +386,7 @@ Filesystem::remove_all(string_view path, std::string& err)
 std::string
 Filesystem::temp_directory_path()
 {
-    boost::system::error_code ec;
+    error_code ec;
     filesystem::path p = filesystem::temp_directory_path(ec);
     return ec ? std::string() : pathstr(p);
 }
@@ -393,7 +396,7 @@ Filesystem::temp_directory_path()
 std::string
 Filesystem::unique_path(string_view model)
 {
-    boost::system::error_code ec;
+    error_code ec;
     filesystem::path p = filesystem::unique_path(u8path(model), ec);
     return ec ? std::string() : pathstr(p);
 }
@@ -403,7 +406,7 @@ Filesystem::unique_path(string_view model)
 std::string
 Filesystem::current_path()
 {
-    boost::system::error_code ec;
+    error_code ec;
     filesystem::path p = filesystem::current_path(ec);
     return ec ? std::string() : pathstr(p);
 }
@@ -502,9 +505,9 @@ Filesystem::read_bytes(string_view path, void* buffer, size_t n, size_t pos)
 
 
 std::time_t
-Filesystem::last_write_time(const std::string& path) noexcept
+Filesystem::last_write_time(string_view path) noexcept
 {
-    boost::system::error_code ec;
+    error_code ec;
     std::time_t t = filesystem::last_write_time(u8path(path), ec);
     return ec ? 0 : t;
 }
@@ -512,9 +515,9 @@ Filesystem::last_write_time(const std::string& path) noexcept
 
 
 void
-Filesystem::last_write_time(const std::string& path, std::time_t time) noexcept
+Filesystem::last_write_time(string_view path, std::time_t time) noexcept
 {
-    boost::system::error_code ec;
+    error_code ec;
     filesystem::last_write_time(u8path(path), time, ec);
 }
 
@@ -523,7 +526,7 @@ Filesystem::last_write_time(const std::string& path, std::time_t time) noexcept
 uint64_t
 Filesystem::file_size(string_view path) noexcept
 {
-    boost::system::error_code ec;
+    error_code ec;
     uint64_t sz = filesystem::file_size(u8path(path), ec);
     return ec ? 0 : sz;
 }
@@ -828,11 +831,11 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
     try {
         regex pattern_re(pattern_re_str);
 
-        filesystem::directory_iterator end_it;
-        for (filesystem::directory_iterator it(u8path(directory)); it != end_it;
-             ++it) {
-            const std::string f = pathstr(it->path());
-            if (is_regular(f)) {
+        for (filesystem::directory_iterator it(u8path(directory)), end_it;
+             it != end_it; ++it) {
+            error_code ec;
+            if (filesystem::is_regular(it->path(), ec)) {
+                const std::string f = pathstr(it->path());
                 match_results<std::string::const_iterator> frame_match;
                 if (regex_match(f, frame_match, pattern_re)) {
                     std::string thenumber(frame_match[1].first,

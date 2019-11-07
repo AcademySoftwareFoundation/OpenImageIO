@@ -303,7 +303,7 @@ ImageCacheFile::ImageCacheFile(ImageCacheImpl& imagecache,
                  || m_filename.find("<V>") != m_filename.npos
                  || m_filename.find("<u>") != m_filename.npos
                  || m_filename.find("<v>") != m_filename.npos)
-                && !Filesystem::exists(m_filename.string());
+                && !Filesystem::exists(m_filename);
 }
 
 
@@ -752,7 +752,7 @@ ImageCacheFile::init_from_spec()
     if (fing.length())
         m_fingerprint = ustring(fing);
 
-    m_mod_time = Filesystem::last_write_time(m_filename.string());
+    m_mod_time = Filesystem::last_write_time(m_filename);
 
     // Set all mipmap level read counts to zero
     int maxmip = 1;
@@ -1502,8 +1502,7 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
     } else {
         // (! m_valid)
         m_used = false;  // Don't let it hold mem if invalid
-        if (file.mod_time()
-            != Filesystem::last_write_time(file.filename().string()))
+        if (file.mod_time() != Filesystem::last_write_time(file.filename()))
             file.imagecache().errorf(
                 "File \"%s\" was modified after being opened by OIIO",
                 file.filename());
@@ -3239,7 +3238,7 @@ ImageCacheImpl::invalidate(ustring filename, bool force)
         // If not in force mode, we don't do anything if the modification
         // time of the file has not changed since we opened it.
         recursive_lock_guard guard(file->m_input_mutex);
-        if (file->mod_time() == Filesystem::last_write_time(filename.string())
+        if (file->mod_time() == Filesystem::last_write_time(filename)
             && !file->broken())
             return;
     }
@@ -3314,13 +3313,13 @@ ImageCacheImpl::invalidate_all(bool force)
         f->m_mutex_wait_time += input_mutex_timer();
         // If the file was broken when we opened it, or if it no longer
         // exists, definitely invalidate it.
-        if (f->broken() || !Filesystem::exists(name.string())) {
+        if (f->broken() || !Filesystem::exists(name)) {
             all_files.push_back(name);
             continue;
         }
         // Invalidate the file if it has been modified since it was
         // last opened.
-        std::time_t t = Filesystem::last_write_time(name.string());
+        std::time_t t = Filesystem::last_write_time(name);
         if (t != f->mod_time()) {
             all_files.push_back(name);
             continue;
