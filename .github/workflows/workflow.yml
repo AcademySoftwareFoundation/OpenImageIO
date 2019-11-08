@@ -73,7 +73,7 @@ jobs:
   # too lazy to figure it out right now.
   #  macos-py27:
   #    name: "Mac py27"
-  #    runs-on: macOS-10.14
+  #    runs-on: macOS-latest
   #    steps:
   #      - uses: actions/checkout@v1
   #      - name: all
@@ -87,7 +87,7 @@ jobs:
   #            source src/build-scripts/ci-build-and-test.bash
   macos-py37:
     name: "Mac py37"
-    runs-on: macOS-10.14
+    runs-on: macOS-latest
     steps:
       - uses: actions/checkout@v1
       - name: all
