@@ -94,6 +94,8 @@ jobs:
         env:
           CXX: clang++
           PYTHON_VERSION: 3.7
+          ENABLE_WEBP: OFF
+          #  ^^ webp seems broken on GH CI Mac. Investigate later.
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/install_homebrew_deps.bash
