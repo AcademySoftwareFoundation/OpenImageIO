@@ -1224,7 +1224,7 @@ Strutil::strtof(const char* nptr, char** endptr) noexcept
         = std::use_facet<std::numpunct<char>>(native).decimal_point();
     // If the native locale uses decimal, just directly use strtof.
     if (nativepoint == '.')
-        return strtof(nptr, endptr);
+        return ::strtof(nptr, endptr);
     // Complex case -- CHEAT by making a copy of the string and replacing
     // the decimal, then use system strtof!
     std::string s(nptr);
@@ -1237,7 +1237,7 @@ Strutil::strtof(const char* nptr, char** endptr) noexcept
         return d;
     }
     // No decimal point at all -- use regular strtof
-    return strtof(s.c_str(), endptr);
+    return ::strtof(s.c_str(), endptr);
 #endif
 }
 
@@ -1262,7 +1262,7 @@ Strutil::strtod(const char* nptr, char** endptr) noexcept
         = std::use_facet<std::numpunct<char>>(native).decimal_point();
     // If the native locale uses decimal, just directly use strtod.
     if (nativepoint == '.')
-        return strtod(nptr, endptr);
+        return ::strtod(nptr, endptr);
     // Complex case -- CHEAT by making a copy of the string and replacing
     // the decimal, then use system strtod!
     std::string s(nptr);
@@ -1275,7 +1275,7 @@ Strutil::strtod(const char* nptr, char** endptr) noexcept
         return d;
     }
     // No decimal point at all -- use regular strtod
-    return strtod(s.c_str(), endptr);
+    return ::strtod(s.c_str(), endptr);
 #endif
 }
 
