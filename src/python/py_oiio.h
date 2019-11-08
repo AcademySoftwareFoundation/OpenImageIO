@@ -106,13 +106,13 @@ py_indexable_pod_to_stdvector(std::vector<T>& vals, const PYT& obj)
     for (size_t i = 0; i < length; ++i) {
         auto elem = obj[i];
         if (std::is_same<T, float>::value && py::isinstance<py::float_>(elem)) {
-            vals.emplace_back(elem.template cast<float>());
+            vals.emplace_back(T(elem.template cast<float>()));
         } else if ((std::is_same<T, float>::value || std::is_same<T, int>::value)
                    && py::isinstance<py::int_>(elem)) {
-            vals.emplace_back(elem.template cast<int>());
+            vals.emplace_back(T(elem.template cast<int>()));
         } else if (std::is_same<T, unsigned int>::value
                    && py::isinstance<py::int_>(elem)) {
-            vals.emplace_back(elem.template cast<unsigned int>());
+            vals.emplace_back(T(elem.template cast<unsigned int>()));
         } else {
             // FIXME? Other cases?
             vals.emplace_back(T(42));
