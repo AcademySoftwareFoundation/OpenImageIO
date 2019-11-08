@@ -223,13 +223,12 @@ write_basic_package_version_file (
 )
 
 # generate the Targets file in the binary dir
-export(TARGETS OpenImageIO OpenImageIO_Util FILE "${CMAKE_BINARY_DIR}/${OIIO_TARGETS_EXPORT_NAME}")
+export(EXPORT OIIO_EXPORTED_TARGETS FILE "${CMAKE_BINARY_DIR}/${OIIO_TARGETS_EXPORT_NAME}")
 
-install (TARGETS OpenImageIO OpenImageIO_Util
-        EXPORT OpenImageIO
-        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
-        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
-        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
+#install (TARGETS OIIO_EXPORTED_TARGETS
+#        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
+#        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
+#        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
 
 # generate the config file from the template in the binary dir
 configure_package_config_file("${PROJECT_SOURCE_DIR}/src/cmake/Config.cmake.in"
@@ -241,11 +240,10 @@ install(FILES "${OIIO_PROJECT_CONFIG}" "${OIIO_VERSION_CONFIG}"
         DESTINATION "${OIIO_CONFIG_INSTALL_DIR}")
 
 # write targets files
-install (EXPORT OpenImageIO
+install (EXPORT OIIO_EXPORTED_TARGETS
         DESTINATION ${OIIO_CONFIG_INSTALL_DIR}
         FILE ${OIIO_TARGETS_EXPORT_NAME}
-        NAMESPACE ${PROJECT_NAME}::
-        )
+        NAMESPACE ${PROJECT_NAME}::)
 
 
 #########################################################################
