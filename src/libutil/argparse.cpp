@@ -112,6 +112,11 @@ public:
     {
         m_errmessage = Strutil::sprintf(fmt, args...);
     }
+    template<typename... Args>
+    void errorf(const char* fmt, const Args&... args) const
+    {
+        m_errmessage = Strutil::sprintf(fmt, args...);
+    }
 };
 
 
@@ -375,7 +380,7 @@ ArgParse::Impl::parse(int xargc, const char** xargv)
                 argname.erase(colon, std::string::npos);
             ArgOption* option = find_option(argname.c_str());
             if (option == NULL) {
-                error("Invalid option \"%s\"", m_argv[i]);
+                errorf("Invalid option \"%s\"", m_argv[i]);
                 return -1;
             }
 
@@ -389,9 +394,9 @@ ArgParse::Impl::parse(int xargc, const char** xargv)
                 ASSERT(option->is_regular());
                 for (int j = 0; j < option->parameter_count(); j++) {
                     if (j + i + 1 >= m_argc) {
-                        error("Missing parameter %d from option "
-                              "\"%s\"",
-                              j + 1, option->name());
+                        errorf("Missing parameter %d from option "
+                               "\"%s\"",
+                               j + 1, option->name());
                         return -1;
                     }
                     option->set_parameter(j, m_argv[i + j + 1]);
@@ -410,9 +415,9 @@ ArgParse::Impl::parse(int xargc, const char** xargv)
             else if (m_global)
                 m_global->invoke_callback(1, m_argv + i);
             else {
-                error("Argument \"%s\" does not have an associated "
-                      "option",
-                      m_argv[i]);
+                errorf("Argument \"%s\" does not have an associated "
+                       "option",
+                       m_argv[i]);
                 return -1;
             }
         }
@@ -440,7 +445,7 @@ ArgParse::options(const char* intro, ...)
     m_impl->m_intro += intro;
     for (const char* cur = va_arg(ap, char*); cur; cur = va_arg(ap, char*)) {
         if (m_impl->find_option(cur) && strcmp(cur, "<SEPARATOR>")) {
-            m_impl->error("Option \"%s\" is multiply defined", cur);
+            m_impl->errorf("Option \"%s\" is multiply defined", cur);
             return -1;
         }
 

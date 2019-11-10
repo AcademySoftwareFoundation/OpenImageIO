@@ -51,24 +51,24 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
 
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (!m_fd) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
     // we read header of the file that we think is BMP file
     if (!m_bmp_header.read_header(m_fd)) {
-        error("\"%s\": wrong bmp header size", m_filename.c_str());
+        errorf("\"%s\": wrong bmp header size", m_filename);
         close();
         return false;
     }
     if (!m_bmp_header.isBmp()) {
-        error("\"%s\" is not a BMP file, magic number doesn't match",
-              m_filename.c_str());
+        errorf("\"%s\" is not a BMP file, magic number doesn't match",
+               m_filename);
         close();
         return false;
     }
     if (!m_dib_header.read_header(m_fd)) {
-        error("\"%s\": wrong bitmap header size", m_filename.c_str());
+        errorf("\"%s\": wrong bitmap header size", m_filename);
         close();
         return false;
     }
@@ -144,9 +144,9 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     size_t n = fread(&fscanline[0], 1, m_padded_scanline_size, m_fd);
     if (n != (size_t)m_padded_scanline_size) {
         if (feof(m_fd))
-            error("Hit end of file unexpectedly");
+            errorf("Hit end of file unexpectedly");
         else
-            error("read error");
+            errorf("read error");
         return false;  // Read failed
     }
 
@@ -245,9 +245,10 @@ BmpInput::read_color_table(void)
         size_t n = fread(&m_colortable[i], 1, entry_size, m_fd);
         if (n != entry_size) {
             if (feof(m_fd))
-                error("Hit end of file unexpectedly while reading color table");
+                errorf(
+                    "Hit end of file unexpectedly while reading color table");
             else
-                error("read error while reading color table");
+                errorf("read error while reading color table");
             return false;  // Read failed
         }
     }

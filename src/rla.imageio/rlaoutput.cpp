@@ -71,7 +71,7 @@ private:
     {
         size_t n = ::fwrite(buf, itemsize, nitems, m_file);
         if (n != nitems)
-            error("Write error: wrote %d records of %d", (int)n, (int)nitems);
+            errorf("Write error: wrote %d records of %d", (int)n, (int)nitems);
         return n == nitems;
     }
 
@@ -148,7 +148,7 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
         // FIXME -- the RLA format supports subimages, but our writer
         // doesn't.  I'm not sure if it's worth worrying about for an
@@ -169,12 +169,12 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
-        error("Image resolution must be at least 1x1, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.width > 65535 || m_spec.height > 65535) {
-        error(
+        errorf(
             "Image resolution %d x %d too large for RLA (maxiumum 65535x65535)",
             m_spec.width, m_spec.height);
         return false;
@@ -183,7 +183,7 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     else if (m_spec.depth > 1) {
-        error("%s does not support volume images (depth > 1)", format_name());
+        errorf("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
 

@@ -97,7 +97,7 @@ private:
     {
         size_t n = ::fread(buf, itemsize, nitems, m_file);
         if (n != nitems)
-            error("Read error");
+            errorf("Read error");
         return n == nitems;
     }
 };
@@ -134,7 +134,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
 
     m_file = Filesystem::fopen(name, "rb");
     if (!m_file) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
@@ -223,7 +223,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
                  && m_dds.flags & DDS_DEPTH))
         || (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP
             && !(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX))) {
-        error("Invalid DDS header, possibly corrupt file");
+        errorf("Invalid DDS header, possibly corrupt file");
         return false;
     }
 
@@ -236,7 +236,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
             && !((m_dds.fmt.flags & DDS_PF_RGB)
                  | (m_dds.fmt.flags & DDS_PF_LUMINANCE)
                  | (m_dds.fmt.flags & DDS_PF_ALPHA)))) {
-        error("Image with no data");
+        errorf("Image with no data");
         return false;
     }
 
@@ -246,7 +246,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         && m_dds.fmt.fourCC != DDS_4CC_DXT2 && m_dds.fmt.fourCC != DDS_4CC_DXT3
         && m_dds.fmt.fourCC != DDS_4CC_DXT4
         && m_dds.fmt.fourCC != DDS_4CC_DXT5) {
-        error("Unsupported compression type");
+        errorf("Unsupported compression type");
         return false;
     }
 

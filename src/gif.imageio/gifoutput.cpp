@@ -88,7 +88,7 @@ GIFOutput::open(const std::string& name, const ImageSpec& newspec,
     }
 
     if (mode == AppendMIPLevel) {
-        error("%s does not support MIP levels", format_name());
+        errorf("%s does not support MIP levels", format_name());
         return false;
     }
 
@@ -110,7 +110,7 @@ bool
 GIFOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
 {
     if (subimages < 1) {
-        error("%s does not support %d subimages.", format_name(), subimages);
+        errorf("%s does not support %d subimages.", format_name(), subimages);
         return false;
     }
 
@@ -144,19 +144,19 @@ GIFOutput::start_subimage()
 {
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
-        error("Image resolution must be at least 1x1, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     if (m_spec.depth > 1) {
-        error("%s does not support volume images (depth > 1)", format_name());
+        errorf("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
     if (m_spec.nchannels != 3 && m_spec.nchannels != 4) {
-        error("%s does not support %d-channel images", format_name(),
-              m_spec.nchannels);
+        errorf("%s does not support %d-channel images", format_name(),
+               m_spec.nchannels);
         return false;
     }
 

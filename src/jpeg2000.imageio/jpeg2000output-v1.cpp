@@ -92,7 +92,7 @@ Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
                      OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -101,21 +101,21 @@ Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
-        error("Image resolution must be at least 1x1, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     if (m_spec.depth > 1) {
-        error("%s does not support volume images (depth > 1)", format_name());
+        errorf("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
 
     if (m_spec.nchannels != 1 && m_spec.nchannels != 3
         && m_spec.nchannels != 4) {
-        error("%s does not support %d-channel images\n", format_name(),
-              m_spec.nchannels);
+        errorf("%s does not support %d-channel images\n", format_name(),
+               m_spec.nchannels);
         return false;
     }
 
@@ -183,7 +183,7 @@ Jpeg2000Output::write_scanline(int y, int z, TypeDesc format, const void* data,
 {
     y -= m_spec.y;
     if (y > m_spec.height) {
-        error("Attempt to write too many scanlines to %s", m_filename);
+        errorf("Attempt to write too many scanlines to %s", m_filename);
         return false;
     }
 
@@ -280,7 +280,7 @@ Jpeg2000Output::save_image()
 
     size_t wb = fwrite(cio->buffer, 1, cio_tell(cio), m_file);
     if (wb != (size_t)cio_tell(cio)) {
-        error("Failed write jpeg2000::save_image (err: %d)", wb);
+        errorf("Failed write jpeg2000::save_image (err: %d)", wb);
         return false;
     }
 

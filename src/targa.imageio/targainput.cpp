@@ -68,7 +68,7 @@ private:
     {
         size_t n = ::fread(buf, itemsize, nitems, m_file);
         if (n != nitems)
-            error("Read error");
+            errorf("Read error");
         return n == nitems;
     }
 };
@@ -105,7 +105,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
 
     m_file = Filesystem::fopen(name, "rb");
     if (!m_file) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
@@ -147,18 +147,18 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
 
     if (m_tga.bpp != 8 && m_tga.bpp != 15 && m_tga.bpp != 16 && m_tga.bpp != 24
         && m_tga.bpp != 32) {
-        error("Illegal pixel size: %d bits per pixel", m_tga.bpp);
+        errorf("Illegal pixel size: %d bits per pixel", m_tga.bpp);
         return false;
     }
 
     if (m_tga.type == TYPE_NODATA) {
-        error("Image with no data");
+        errorf("Image with no data");
         return false;
     }
     if (m_tga.type != TYPE_PALETTED && m_tga.type != TYPE_RGB
         && m_tga.type != TYPE_GRAY && m_tga.type != TYPE_PALETTED_RLE
         && m_tga.type != TYPE_RGB_RLE && m_tga.type != TYPE_GRAY_RLE) {
-        error("Illegal image type: %d", m_tga.type);
+        errorf("Illegal image type: %d", m_tga.type);
         return false;
     }
 
@@ -166,14 +166,14 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         && (m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE)) {
         // it should be an error for TYPE_RGB* as well, but apparently some
         // *very* old TGAs can be this way, so we'll hack around it
-        error("Palette defined for grayscale image");
+        errorf("Palette defined for grayscale image");
         return false;
     }
 
     if (m_tga.cmap_type
         && (m_tga.cmap_size != 15 && m_tga.cmap_size != 16
             && m_tga.cmap_size != 24 && m_tga.cmap_size != 32)) {
-        error("Illegal palette entry size: %d bits", m_tga.cmap_size);
+        errorf("Illegal palette entry size: %d bits", m_tga.cmap_size);
         return false;
     }
 

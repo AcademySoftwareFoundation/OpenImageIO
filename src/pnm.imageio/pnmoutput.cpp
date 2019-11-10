@@ -131,7 +131,7 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -144,8 +144,8 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
                    : 0;
 
     if (m_spec.nchannels != 1 && m_spec.nchannels != 3) {
-        error("%s does not support %d-channel images\n", format_name(),
-              m_spec.nchannels);
+        errorf("%s does not support %d-channel images\n", format_name(),
+               m_spec.nchannels);
         return false;
     }
 

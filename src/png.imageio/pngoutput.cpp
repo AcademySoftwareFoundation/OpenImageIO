@@ -73,7 +73,7 @@ private:
         DASSERT(pngoutput);
         size_t bytes = pngoutput->m_io->write(data, length);
         if (bytes != length) {
-            pngoutput->error("Write error");
+            pngoutput->errorf("Write error");
             pngoutput->m_err = true;
         }
     }
@@ -287,7 +287,7 @@ PNGOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         swap_endian((unsigned short*)data, m_spec.width * m_spec.nchannels);
 
     if (!PNG_pvt::write_row(m_png, (png_byte*)data)) {
-        error("PNG library error");
+        errorf("PNG library error");
         return false;
     }
 

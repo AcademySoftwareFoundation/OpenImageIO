@@ -249,7 +249,7 @@ ImageBufAlgo::copy(const ImageBuf& src, TypeDesc convert, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = copy(result, src, convert, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::copy() error");
+        result.errorf("ImageBufAlgo::copy() error");
     return result;
 }
 
@@ -303,7 +303,7 @@ ImageBufAlgo::crop(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = crop(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::crop() error");
+        result.errorf("ImageBufAlgo::crop() error");
     return result;
 }
 
@@ -334,7 +334,7 @@ ImageBufAlgo::cut(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = cut(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::cut() error");
+        result.errorf("ImageBufAlgo::cut() error");
     return result;
 }
 
@@ -393,7 +393,7 @@ ImageBufAlgo::circular_shift(const ImageBuf& src, int xshift, int yshift,
     bool ok = circular_shift(result, src, xshift, yshift, zshift, roi,
                              nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::circular_shift() error");
+        result.errorf("ImageBufAlgo::circular_shift() error");
     return result;
 }
 

@@ -135,7 +135,7 @@ ImageBufAlgo::add(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         return ok;
     }
     // Remaining cases: error
-    dst.error("ImageBufAlgo::add(): at least one argument must be an image");
+    dst.errorf("ImageBufAlgo::add(): at least one argument must be an image");
     return false;
 }
 
@@ -147,7 +147,7 @@ ImageBufAlgo::add(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = add(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::add() error");
+        result.errorf("ImageBufAlgo::add() error");
     return result;
 }
 
@@ -228,7 +228,7 @@ ImageBufAlgo::sub(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         return ok;
     }
     // Remaining cases: error
-    dst.error("ImageBufAlgo::sub(): at least one argument must be an image");
+    dst.errorf("ImageBufAlgo::sub(): at least one argument must be an image");
     return false;
 }
 
@@ -240,7 +240,7 @@ ImageBufAlgo::sub(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = sub(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::sub() error");
+        result.errorf("ImageBufAlgo::sub() error");
     return result;
 }
 

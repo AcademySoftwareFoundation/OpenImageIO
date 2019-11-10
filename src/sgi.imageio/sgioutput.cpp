@@ -32,7 +32,7 @@ bool
 SgiOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -201,7 +201,7 @@ SgiOutput::create_and_write_header()
         || !fwrite(&sgi_header.pixmax) || !fwrite(&sgi_header.dummy)
         || !fwrite(sgi_header.imagename, 1, 80) || !fwrite(&sgi_header.colormap)
         || !fwrite(dummy, 404, 1)) {
-        error("Error writing to \"%s\"", m_filename);
+        errorf("Error writing to \"%s\"", m_filename);
         return false;
     }
     return true;

@@ -58,7 +58,7 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     //       ...
 
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -116,7 +116,7 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_iff_header.date           = m_spec.get_string_attribute("DateTime");
 
     if (!write_header(m_iff_header)) {
-        error("\"%s\": could not write iff header", m_filename.c_str());
+        errorf("\"%s\": could not write iff header", m_filename);
         close();
         return false;
     }

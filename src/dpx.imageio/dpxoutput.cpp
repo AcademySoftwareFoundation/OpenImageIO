@@ -181,7 +181,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
         // Nothing else to do, the header taken care of when we opened with
         // Create.
     } else if (mode == AppendMIPLevel) {
-        error("DPX does not support MIP-maps");
+        errorf("DPX does not support MIP-maps");
         return false;
     }
 
@@ -213,7 +213,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     else if (m_spec.depth > 1) {
-        error("DPX does not support volume images (depth > 1)");
+        errorf("DPX does not support volume images (depth > 1)");
         return false;
     }
 
@@ -413,14 +413,14 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // commit!
     if (!m_dpx.WriteHeader()) {
-        error("Failed to write DPX header");
+        errorf("Failed to write DPX header");
         return false;
     }
 
     // write the user data
     if (user && user->datasize() > 0 && user->datasize() <= 1024 * 1024) {
         if (!m_dpx.WriteUserData((void*)user->data())) {
-            error("Failed to write user data");
+            errorf("Failed to write user data");
             return false;
         }
     }
@@ -545,7 +545,7 @@ DPXOutput::prep_subimage(int s, bool allocate)
         m_bytes = dpx::QueryNativeBufferSize(m_desc, m_datasize, m_spec.width,
                                              1);
         if (m_bytes == 0 && !m_rawcolor) {
-            error("Unable to deliver native format data from source data");
+            errorf("Unable to deliver native format data from source data");
             return false;
         } else if (m_bytes < 0) {
             // no need to allocate another buffer

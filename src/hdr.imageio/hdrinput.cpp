@@ -112,7 +112,7 @@ HdrInput::seek_subimage(int subimage, int miplevel)
     // Check that file exists and can be opened
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (m_fd == NULL) {
-        error("Could not open file \"%s\"", m_filename.c_str());
+        errorf("Could not open file \"%s\"", m_filename);
         return false;
     }
 
@@ -120,7 +120,7 @@ HdrInput::seek_subimage(int subimage, int miplevel)
     int width, height;
     int r = RGBE_ReadHeader(m_fd, &width, &height, &h, rgbe_error);
     if (r != RGBE_RETURN_SUCCESS) {
-        error("%s", rgbe_error);
+        errorf("%s", rgbe_error);
         close();
         return false;
     }
@@ -183,7 +183,7 @@ HdrInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                                     rgbe_error);
         ++m_next_scanline;
         if (r != RGBE_RETURN_SUCCESS) {
-            error("%s", rgbe_error);
+            errorf("%s", rgbe_error);
             return false;
         }
     }

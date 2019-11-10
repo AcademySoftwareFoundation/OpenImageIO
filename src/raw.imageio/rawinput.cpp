@@ -353,16 +353,16 @@ RawInput::open_raw(bool unpack, const std::string& name,
 
     int ret;
     if ((ret = m_processor->open_file(name.c_str())) != LIBRAW_SUCCESS) {
-        error("Could not open file \"%s\", %s", m_filename,
-              libraw_strerror(ret));
+        errorf("Could not open file \"%s\", %s", m_filename,
+               libraw_strerror(ret));
         return false;
     }
 
     ASSERT(!m_unpacked);
     if (unpack) {
         if ((ret = m_processor->unpack()) != LIBRAW_SUCCESS) {
-            error("Could not unpack \"%s\", %s", m_filename,
-                  libraw_strerror(ret));
+            errorf("Could not unpack \"%s\", %s", m_filename,
+                   libraw_strerror(ret));
             return false;
         }
     }
@@ -500,7 +500,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     float exposure = config.get_float_attribute("raw:Exposure", -1.0f);
     if (exposure >= 0.0f) {
         if (exposure < 0.25f || exposure > 8.0f) {
-            error("raw:Exposure invalid value. range 0.25f - 8.0f");
+            errorf("raw:Exposure invalid value. range 0.25f - 8.0f");
             return false;
         }
         m_processor->imgdata.params.exp_correc
@@ -515,7 +515,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     int highlight_mode = config.get_int_attribute("raw:HighlightMode", 0);
     if (highlight_mode != 0) {
         if (highlight_mode < 0 || highlight_mode > 9) {
-            error("raw:HighlightMode invalid value. range 0-9");
+            errorf("raw:HighlightMode invalid value. range 0-9");
             return false;
         }
         m_processor->imgdata.params.highlight = highlight_mode;
@@ -559,8 +559,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
             libraw_decoder_info_t decoder_info;
             m_processor->get_decoder_info(&decoder_info);
             if (!(decoder_info.decoder_flags & LIBRAW_DECODER_FLATFIELD)) {
-                error("Unable to extract unbayered data from file \"%s\"",
-                      name.c_str());
+                errorf("Unable to extract unbayered data from file \"%s\"",
+                       name);
                 return false;
             }
 
@@ -578,7 +578,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.erase_attribute("raw:Colorspace");
             m_spec.erase_attribute("raw:Exposure");
         } else {
-            error("raw:Demosaic set to unknown value");
+            errorf("raw:Demosaic set to unknown value");
             return false;
         }
         // Set the attribute in the output spec
@@ -1130,23 +1130,23 @@ RawInput::process()
     if (!m_image) {
         int ret = m_processor->dcraw_process();
         if (ret != LIBRAW_SUCCESS) {
-            error("Processing image failed, %s", libraw_strerror(ret));
+            errorf("Processing image failed, %s", libraw_strerror(ret));
             return false;
         }
 
         m_image = m_processor->dcraw_make_mem_image(&ret);
         if (!m_image) {
-            error("LibRaw failed to create in memory image");
+            errorf("LibRaw failed to create in memory image");
             return false;
         }
 
         if (m_image->type != LIBRAW_IMAGE_BITMAP) {
-            error("LibRaw did not return expected image type");
+            errorf("LibRaw did not return expected image type");
             return false;
         }
 
         if (m_image->colors != 3) {
-            error("LibRaw did not return 3 channel image");
+            errorf("LibRaw did not return 3 channel image");
             return false;
         }
     }

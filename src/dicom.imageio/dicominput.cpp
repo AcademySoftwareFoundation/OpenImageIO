@@ -154,7 +154,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         m_subimage = 0;
         if (m_img->getStatus() != EIS_Normal) {
             m_img.reset();
-            error("Unable to open DICOM file %s", m_filename);
+            errorf("Unable to open DICOM file %s", m_filename);
             return false;
         }
         m_framecount = m_img->getFrameCount();
@@ -162,7 +162,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (subimage >= m_firstframe + m_framecount) {
-        error("Unable to seek to subimage %d", subimage);
+        errorf("Unable to seek to subimage %d", subimage);
         return false;
     }
 
@@ -171,7 +171,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         m_img->processNextFrames(1);
         if (m_img->getStatus() != EIS_Normal) {
             m_img.reset();
-            error("Unable to seek to subimage %d", subimage);
+            errorf("Unable to seek to subimage %d", subimage);
             return false;
         }
         ++m_subimage;

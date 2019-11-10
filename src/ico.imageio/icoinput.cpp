@@ -75,7 +75,7 @@ private:
     {
         size_t n = ::fread(buf, itemsize, nitems, m_file);
         if (n != nitems)
-            error("Read error");
+            errorf("Read error");
         return n == nitems;
     }
 };
@@ -112,7 +112,7 @@ ICOInput::open(const std::string& name, ImageSpec& newspec)
 
     m_file = Filesystem::fopen(name, "rb");
     if (!m_file) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
@@ -126,7 +126,7 @@ ICOInput::open(const std::string& name, ImageSpec& newspec)
         swap_endian(&m_ico.count);
     }
     if (m_ico.reserved != 0 || m_ico.type != 1) {
-        error("File failed ICO header check");
+        errorf("File failed ICO header check");
         return false;
     }
 
@@ -188,7 +188,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
     if (temp[1] == 'P' && temp[2] == 'N' && temp[3] == 'G') {
         // standard PNG initalization
         if (png_sig_cmp((png_bytep)temp, 0, 7)) {
-            error("Subimage failed PNG signature check");
+            errorf("Subimage failed PNG signature check");
             return false;
         }
 
@@ -196,7 +196,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
 
         std::string s = PNG_pvt::create_read_struct(m_png, m_info, this);
         if (s.length()) {
-            error("%s", s.c_str());
+            errorf("%s", s);
             return false;
         }
 
@@ -243,7 +243,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
         && m_bpp != 8
         /*&& m_bpp != 16*/
         && m_bpp != 24 && m_bpp != 32) {
-        error("Unsupported image color depth, probably corrupt file");
+        errorf("Unsupported image color depth, probably corrupt file");
         return false;
     }
     m_offset        = subimg.ofs;
@@ -280,7 +280,7 @@ ICOInput::readimg()
         //std::cerr << "[ico] PNG buffer size = " << m_buf.size () << "\n";
 
         if (s.length()) {
-            error("%s", s.c_str());
+            errorf("%s", s);
             return false;
         }
 

@@ -102,7 +102,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
                 OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -112,14 +112,14 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
-        error("Image resolution must be at least 1x1, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     if (m_spec.depth > 1) {
-        error("%s does not support volume images (depth > 1)", format_name());
+        errorf("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
 
@@ -347,12 +347,11 @@ JpgOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 {
     y -= m_spec.y;
     if (y != m_next_scanline) {
-        error("Attempt to write scanlines out of order to %s",
-              m_filename.c_str());
+        errorf("Attempt to write scanlines out of order to %s", m_filename);
         return false;
     }
     if (y >= (int)m_cinfo.image_height) {
-        error("Attempt to write too many scanlines to %s", m_filename.c_str());
+        errorf("Attempt to write too many scanlines to %s", m_filename);
         return false;
     }
     assert(y == (int)m_cinfo.next_scanline);

@@ -61,7 +61,7 @@ HdrOutput::open(const std::string& name, const ImageSpec& newspec,
                 OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -72,18 +72,18 @@ HdrOutput::open(const std::string& name, const ImageSpec& newspec,
 
     // Check for things HDR can't support
     if (m_spec.nchannels != 3) {
-        error("HDR can only support 3-channel images");
+        errorf("HDR can only support 3-channel images");
         return false;
     }
     if (m_spec.width < 1 || m_spec.height < 1) {
-        error("Image resolution must be at least 1x1, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     if (m_spec.depth > 1) {
-        error("%s does not support volume images (depth > 1)", format_name());
+        errorf("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
 
@@ -115,7 +115,7 @@ HdrOutput::open(const std::string& name, const ImageSpec& newspec,
 
     int r = RGBE_WriteHeader(m_fd, m_spec.width, m_spec.height, &h, rgbe_error);
     if (r != RGBE_RETURN_SUCCESS)
-        error("%s", rgbe_error);
+        errorf("%s", rgbe_error);
 
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
@@ -135,7 +135,7 @@ HdrOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     int r = RGBE_WritePixels_RLE(m_fd, (float*)data, m_spec.width, 1,
                                  rgbe_error);
     if (r != RGBE_RETURN_SUCCESS)
-        error("%s", rgbe_error);
+        errorf("%s", rgbe_error);
     return (r == RGBE_RETURN_SUCCESS);
 }
 

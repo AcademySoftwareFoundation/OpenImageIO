@@ -76,7 +76,7 @@ private:
     {
         size_t n = ::fwrite(buf, itemsize, nitems, m_file);
         if (n != nitems)
-            error("Write error");
+            errorf("Write error");
         return n == nitems;
     }
 
@@ -87,7 +87,7 @@ private:
     {
         size_t n = ::fread(buf, itemsize, nitems, m_file);
         if (n != nitems)
-            error("Read error");
+            errorf("Read error");
         return n == nitems;
     }
 };
@@ -128,7 +128,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
     if (mode == AppendMIPLevel) {
-        error("%s does not support MIP levels", format_name());
+        errorf("%s does not support MIP levels", format_name());
         return false;
     }
 
@@ -139,18 +139,18 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
-        error("Image resolution must be at least 1x1, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     } else if (m_spec.width > 256 || m_spec.height > 256) {
-        error("Image resolution must be at most 256x256, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at most 256x256, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     if (m_spec.depth > 1) {
-        error("%s does not support volume images (depth > 1)", format_name());
+        errorf("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
 
@@ -165,7 +165,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
         std::string s = PNG_pvt::create_write_struct(m_png, m_info,
                                                      m_color_type, m_spec);
         if (s.length()) {
-            error("%s", s.c_str());
+            errorf("%s", s);
             return false;
         }
     } else {
@@ -176,7 +176,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
         case 3: m_color_type = PNG_COLOR_TYPE_RGB; break;
         case 4: m_color_type = PNG_COLOR_TYPE_RGB_ALPHA; break;
         default:
-            error("ICO only supports 1-4 channels, not %d", m_spec.nchannels);
+            errorf("ICO only supports 1-4 channels, not %d", m_spec.nchannels);
             return false;
         }
 
@@ -236,7 +236,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
                   << ico.type << " count = " << ico.count << "\n";*/
 
         if (ico.reserved != 0 || ico.type != 1) {
-            error("File failed ICO header check");
+            errorf("File failed ICO header check");
             return false;
         }
 
@@ -444,7 +444,7 @@ ICOOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
     if (m_want_png) {
         if (!PNG_pvt::write_row(m_png, (png_byte*)data)) {
-            error("PNG library error");
+            errorf("PNG library error");
             return false;
         }
     } else {

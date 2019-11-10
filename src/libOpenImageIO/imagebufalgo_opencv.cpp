@@ -54,7 +54,7 @@ ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
     pvt::LoggedTimer logtime("IBA::from_IplImage");
     ImageBuf dst;
     if (!ipl) {
-        dst.error("Passed NULL source IplImage");
+        dst.errorf("Passed NULL source IplImage");
         return dst;
     }
 #ifdef USE_OPENCV
@@ -67,7 +67,7 @@ ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
     case int(IPL_DEPTH_32F): srcformat = TypeDesc::FLOAT; break;
     case int(IPL_DEPTH_64F): srcformat = TypeDesc::DOUBLE; break;
     default:
-        dst.error("Unsupported IplImage depth %d", (int)ipl->depth);
+        dst.errorf("Unsupported IplImage depth %d", (int)ipl->depth);
         return dst;
     }
 
@@ -78,7 +78,7 @@ ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
 
     if (ipl->dataOrder != IPL_DATA_ORDER_PIXEL) {
         // We don't handle separate color channels, and OpenCV doesn't either
-        dst.error("Unsupported IplImage data order %d", (int)ipl->dataOrder);
+        dst.errorf("Unsupported IplImage data order %d", (int)ipl->dataOrder);
         return dst;
     }
 
@@ -112,7 +112,7 @@ ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
     // probably templated by type.
 
 #else
-    dst.error(
+    dst.errorf(
         "fromIplImage not supported -- no OpenCV support at compile time");
 #endif
 
@@ -263,7 +263,7 @@ ImageBufAlgo::from_OpenCV(const cv::Mat& mat, TypeDesc convert, ROI roi,
     }
 
 #else
-    dst.error(
+    dst.errorf(
         "from_OpenCV() not supported -- no OpenCV support at compile time");
 #endif
 
@@ -389,12 +389,12 @@ ImageBufAlgo::capture_image(int cameranum, TypeDesc convert)
         lock_guard lock(opencv_mutex);
         auto cvcam = cameras[cameranum];
         if (!cvcam) {
-            dst.error("Could not create a capture camera (OpenCV error)");
+            dst.errorf("Could not create a capture camera (OpenCV error)");
             return dst;  // failed somehow
         }
         (*cvcam) >> frame;
         if (frame.empty()) {
-            dst.error("Could not cvQueryFrame (OpenCV error)");
+            dst.errorf("Could not cvQueryFrame (OpenCV error)");
             return dst;  // failed somehow
         }
     }
@@ -415,7 +415,7 @@ ImageBufAlgo::capture_image(int cameranum, TypeDesc convert)
         dst.specmod().attribute("DateTime", datetime);
     }
 #else
-    dst.error(
+    dst.errorf(
         "capture_image not supported -- no OpenCV support at compile time");
 #endif
     return dst;

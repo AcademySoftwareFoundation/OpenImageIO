@@ -128,7 +128,7 @@ ImageBufAlgo::flip(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = flip(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::flip() error");
+        result.errorf("ImageBufAlgo::flip() error");
     return result;
 }
 
@@ -140,7 +140,7 @@ ImageBufAlgo::flop(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = flop(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::flop() error");
+        result.errorf("ImageBufAlgo::flop() error");
     return result;
 }
 
@@ -326,7 +326,7 @@ ImageBufAlgo::rotate90(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = rotate90(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::rotate90() error");
+        result.errorf("ImageBufAlgo::rotate90() error");
     return result;
 }
 
@@ -338,7 +338,7 @@ ImageBufAlgo::rotate180(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = rotate180(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::rotate180() error");
+        result.errorf("ImageBufAlgo::rotate180() error");
     return result;
 }
 
@@ -350,7 +350,7 @@ ImageBufAlgo::rotate270(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = rotate270(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::rotate270() error");
+        result.errorf("ImageBufAlgo::rotate270() error");
     return result;
 }
 
@@ -371,7 +371,7 @@ ImageBufAlgo::reorient(ImageBuf& dst, const ImageBuf& src, int nthreads)
         if (ok)
             ok = ImageBufAlgo::flop(dst, tmp);
         else
-            dst.error("%s", tmp.geterror());
+            dst.errorf("%s", tmp.geterror());
         break;
     case 6: ok = ImageBufAlgo::rotate90(dst, src); break;
     case 7:
@@ -379,7 +379,7 @@ ImageBufAlgo::reorient(ImageBuf& dst, const ImageBuf& src, int nthreads)
         if (ok)
             ok = ImageBufAlgo::rotate90(dst, tmp);
         else
-            dst.error("%s", tmp.geterror());
+            dst.errorf("%s", tmp.geterror());
         break;
     case 8: ok = ImageBufAlgo::rotate270(dst, src); break;
     }
@@ -395,7 +395,7 @@ ImageBufAlgo::reorient(const ImageBuf& src, int nthreads)
     ImageBuf result;
     bool ok = reorient(result, src, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::reorient() error");
+        result.errorf("ImageBufAlgo::reorient() error");
     return result;
 }
 
@@ -459,7 +459,7 @@ ImageBufAlgo::transpose(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = transpose(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::transpose() error");
+        result.errorf("ImageBufAlgo::transpose() error");
     return result;
 }
 

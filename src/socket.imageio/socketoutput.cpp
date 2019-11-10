@@ -66,10 +66,10 @@ SocketOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     try {
         socket_pvt::socket_write(socket, format, data, m_spec.scanline_bytes());
     } catch (boost::system::system_error& err) {
-        error("Error while writing: %s", err.what());
+        errorf("Error while writing: %s", err.what());
         return false;
     } catch (...) {
-        error("Error while writing: unknown exception");
+        errorf("Error while writing: unknown exception");
         return false;
     }
 
@@ -89,10 +89,10 @@ SocketOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
     try {
         socket_pvt::socket_write(socket, format, data, m_spec.tile_bytes());
     } catch (boost::system::system_error& err) {
-        error("Error while writing: %s", err.what());
+        errorf("Error while writing: %s", err.what());
         return false;
     } catch (...) {
-        error("Error while writing: unknown exception");
+        errorf("Error while writing: unknown exception");
         return false;
     }
 
@@ -130,10 +130,10 @@ SocketOutput::send_spec_to_server(const ImageSpec& spec)
                                   sizeof(boost::uint32_t)));
         boost::asio::write(socket, buffer(spec_xml.c_str(), spec_xml.length()));
     } catch (boost::system::system_error& err) {
-        error("Error while send_spec_to_server: %s", err.what());
+        errorf("Error while send_spec_to_server: %s", err.what());
         return false;
     } catch (...) {
-        error("Error while send_spec_to_server: unknown exception");
+        errorf("Error while send_spec_to_server: unknown exception");
         return false;
     }
 
@@ -151,7 +151,7 @@ SocketOutput::connect_to_server(const std::string& name)
     rest_args["host"] = socket_pvt::default_host;
 
     if (!Strutil::get_rest_arguments(name, baseurl, rest_args)) {
-        error("Invalid 'open ()' argument: %s", name.c_str());
+        errorf("Invalid 'open ()' argument: %s", name);
         return false;
     }
 
@@ -168,14 +168,14 @@ SocketOutput::connect_to_server(const std::string& name)
             socket.connect(*endpoint_iterator++, err);
         }
         if (err) {
-            error("Host \"%s\" not found", rest_args["host"].c_str());
+            errorf("Host \"%s\" not found", rest_args["host"]);
             return false;
         }
     } catch (boost::system::system_error& err) {
-        error("Error while connecting: %s", err.what());
+        errorf("Error while connecting: %s", err.what());
         return false;
     } catch (...) {
-        error("Error while connecting: unknown exception");
+        errorf("Error while connecting: unknown exception");
         return false;
     }
 

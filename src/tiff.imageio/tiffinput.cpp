@@ -629,7 +629,7 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
 #endif
         if (m_tif == NULL) {
             std::string e = oiio_tiff_last_error();
-            error("Could not open file: %s", e.length() ? e : m_filename);
+            errorf("Could not open file: %s", e.length() ? e : m_filename);
             return false;
         }
         m_is_byte_swapped = TIFFIsByteSwapped(m_tif);
@@ -670,13 +670,13 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
                 .undefined())  // haven't cached this spec yet
             m_subimage_specs[subimage] = m_spec;
         if (m_spec.format == TypeDesc::UNKNOWN) {
-            error("No support for data format of \"%s\"", m_filename);
+            errorf("No support for data format of \"%s\"", m_filename);
             return false;
         }
         return true;
     } else {
         std::string e = oiio_tiff_last_error();
-        error("%s", e.length() ? e : m_filename);
+        errorf("%s", e.length() ? e : m_filename);
         m_subimage = -1;
         return false;
     }
@@ -1407,7 +1407,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                                                 m_spec.height, &m_rgbadata[0],
                                                 ORIENTATION_TOPLEFT, 0);
             if (!ok) {
-                error("Unknown error trying to read TIFF as RGBA");
+                errorf("Unknown error trying to read TIFF as RGBA");
                 return false;
             }
         }
@@ -1453,7 +1453,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         while (m_next_scanline < y) {
             // Keep reading until we're read the scanline we really need
             if (TIFFReadScanline(m_tif, &m_scratch[0], m_next_scanline) < 0) {
-                error("%s", oiio_tiff_last_error());
+                errorf("%s", oiio_tiff_last_error());
                 return false;
             }
             ++m_next_scanline;
@@ -1466,7 +1466,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadScanline(m_tif, &m_scratch[0], y) < 0) {
-            error("%s", oiio_tiff_last_error());
+            errorf("%s", oiio_tiff_last_error());
             return false;
         }
         palette_to_rgb(m_spec.width, &m_scratch[0], (unsigned char*)data);
@@ -1487,7 +1487,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     // only do one TIFFReadScanline.
     for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
         if (TIFFReadScanline(m_tif, &readbuf[plane_bytes * c], y, c) < 0) {
-            error("%s", oiio_tiff_last_error());
+            errorf("%s", oiio_tiff_last_error());
             return false;
         }
     }
@@ -1556,7 +1556,7 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                         m_inputchannels, (unsigned short*)data,
                         m_spec.nchannels);
         } else {
-            error("CMYK only supported for UINT8, UINT16");
+            errorf("CMYK only supported for UINT8, UINT16");
             return false;
         }
     }
@@ -1672,9 +1672,9 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                              tmsize_t(cbound));
             if (csize < 0) {
                 std::string err = oiio_tiff_last_error();
-                error("TIFFRead%sStrip failed reading line y=%d,z=%d: %s",
-                      read_raw_strips ? "Raw" : "Encoded", y, z,
-                      err.size() ? err.c_str() : "unknown error");
+                errorf("TIFFRead%sStrip failed reading line y=%d,z=%d: %s",
+                       read_raw_strips ? "Raw" : "Encoded", y, z,
+                       err.size() ? err.c_str() : "unknown error");
                 ok = false;
             }
             auto uncompress_etc = [=, &ok](int id) {
@@ -1712,7 +1712,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                                      tmsize_t(strip_bytes));
                 if (csize < 0) {
                     std::string err = oiio_tiff_last_error();
-                    error(
+                    errorf(
                         "TIFFReadEncodedStrip failed reading line y=%d,z=%d: %s",
                         y, z, err.size() ? err.c_str() : "unknown error");
                     ok = false;
@@ -1765,7 +1765,7 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         m_rgbadata.resize(m_spec.tile_pixels() * 4);
         bool ok = TIFFReadRGBATile(m_tif, x, y, &m_rgbadata[0]);
         if (!ok) {
-            error("Unknown error trying to read TIFF as RGBA");
+            errorf("Unknown error trying to read TIFF as RGBA");
             return false;
         }
         // Copy, and use stride magic to reverse top-to-bottom
@@ -1787,7 +1787,7 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     if (m_photometric == PHOTOMETRIC_PALETTE) {
         // Convert from palette to RGB
         if (TIFFReadTile(m_tif, &m_scratch[0], x, y, z, 0) < 0) {
-            error("%s", oiio_tiff_last_error());
+            errorf("%s", oiio_tiff_last_error());
             return false;
         }
         palette_to_rgb(tile_pixels, &m_scratch[0], (unsigned char*)data);
@@ -1807,7 +1807,7 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             if (TIFFReadTile(m_tif, &readbuf[plane_bytes * c], x, y, z, c)
                 < 0) {
-                error("%s", oiio_tiff_last_error());
+                errorf("%s", oiio_tiff_last_error());
                 return false;
             }
         if (m_bitspersample < 8) {
@@ -1930,7 +1930,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                                              tmsize_t(cbound));
                 if (csize < 0) {
                     std::string err = oiio_tiff_last_error();
-                    error(
+                    errorf(
                         "TIFFReadRawTile failed reading tile x=%d,y=%d,z=%d: %s",
                         x, y, z, err.size() ? err.c_str() : "unknown error");
                     return false;
