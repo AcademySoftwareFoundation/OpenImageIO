@@ -33,7 +33,7 @@ const uint32_t BLACK   = 0x00000010;
 class IffFileHeader {
 public:
     // reads information about IFF file
-    bool read_header(FILE* fd);
+    bool read_header(FILE* fd, std::string& err);
 
     // header information
     uint32_t x;
@@ -58,7 +58,29 @@ public:
 
     // for4 start
     uint32_t for4_start;
+
+private:
+    bool read(FILE* fd, uint32_t& data)
+    {
+        bool ok = (fread(&data, 1, sizeof(data), fd) == sizeof(data));
+        if (littleendian())
+            swap_endian(&data);
+        return ok;
+    }
+    bool read(FILE* fd, uint16_t& data)
+    {
+        bool ok = (fread(&data, 1, sizeof(data), fd) == sizeof(data));
+        if (littleendian())
+            swap_endian(&data);
+        return ok;
+    }
+    bool read_typesize(FILE* fd, uint8_t type[4], uint32_t& size)
+    {
+        return (fread(type, 1, 4, fd) == 4) && read(fd, size);
+    }
 };
+
+
 
 // align size
 inline uint32_t

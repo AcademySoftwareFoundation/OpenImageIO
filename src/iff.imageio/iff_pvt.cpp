@@ -8,10 +8,13 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace iff_pvt;
 
+#define STRINGIZE2(a) #a
+#define STRINGIZE(a) STRINGIZE2(a)
+
 
 
 bool
-IffFileHeader::read_header(FILE* fd)
+IffFileHeader::read_header(FILE* fd, std::string& err)
 {
     uint8_t type[4];
     uint32_t size;
@@ -23,37 +26,34 @@ IffFileHeader::read_header(FILE* fd)
     uint16_t prden;
 
     // read FOR4 <size> CIMG.
+    err.clear();
     for (;;) {
-        // get type
-        if (!fread(&type, 1, sizeof(type), fd) ||
-            // get length
-            !fread(&size, 1, sizeof(size), fd))
+        // get type and length
+        if (!read_typesize(fd, type, size)) {
+            err = "could not read type/size @ L" STRINGIZE(__LINE__);
             return false;
-
-        if (littleendian())
-            swap_endian(&size);
+        }
 
         chunksize = align_size(size, 4);
 
         if (type[0] == 'F' && type[1] == 'O' && type[2] == 'R'
             && type[3] == '4') {
             // get type
-            if (!fread(&type, 1, sizeof(type), fd))
+            if (!fread(&type, 1, sizeof(type), fd)) {
+                err = "could not read FDR4 type @ L" STRINGIZE(__LINE__);
                 return false;
+            }
 
             // check if CIMG
             if (type[0] == 'C' && type[1] == 'I' && type[2] == 'M'
                 && type[3] == 'G') {
                 // read TBHD.
                 for (;;) {
-                    // get type
-                    if (!fread(&type, 1, sizeof(type), fd) ||
-                        // get length
-                        !fread(&size, 1, sizeof(size), fd))
+                    if (!read_typesize(fd, type, size)) {
+                        err = "could not read CIMG length @ L" STRINGIZE(
+                            __LINE__);
                         return false;
-
-                    if (littleendian())
-                        swap_endian(&size);
+                    }
 
                     chunksize = align_size(size, 4);
 
@@ -62,56 +62,48 @@ IffFileHeader::read_header(FILE* fd)
                         tbhdsize = size;
 
                         // test if table header size is correct
-                        if (tbhdsize != 24 && tbhdsize != 32)
-                            return false;  // bad table header size
+                        if (tbhdsize != 24 && tbhdsize != 32) {
+                            err = "bad table header @ L" STRINGIZE(__LINE__);
+                            return false;  // bad table header
+                        }
 
                         // get width and height
-                        if (!fread(&width, 1, sizeof(width), fd)
-                            || !fread(&height, 1, sizeof(height), fd) ||
-
-                            // get prnum and prdeb
-                            !fread(&prnum, 1, sizeof(prnum), fd)
-                            || !fread(&prden, 1, sizeof(prden), fd) ||
-
-                            // get flags, bytes, tiles and compressed
-                            !fread(&flags, 1, sizeof(flags), fd)
-                            || !fread(&bytes, 1, sizeof(bytes), fd)
-                            || !fread(&tiles, 1, sizeof(tiles), fd)
-                            || !fread(&compression, 1, sizeof(compression), fd))
+                        if (!read(fd, width) || !read(fd, height)
+                            || !read(fd, prnum) || !read(fd, prden)
+                            || !read(fd, flags) || !read(fd, bytes)
+                            || !read(fd, tiles) || !read(fd, compression)) {
+                            err = "@ L" STRINGIZE(__LINE__);
                             return false;
+                        }
 
                         // get xy
                         if (tbhdsize == 32) {
-                            if (!fread(&x, 1, sizeof(x), fd)
-                                || !fread(&y, 1, sizeof(y), fd))
+                            if (!read(fd, x) || !read(fd, y)) {
+                                err = "could not get xy @ L" STRINGIZE(
+                                    __LINE__);
                                 return false;
+                            }
                         } else {
                             x = 0;
                             y = 0;
                         }
 
-                        // swap endianness
-                        if (littleendian()) {
-                            swap_endian(&width);
-                            swap_endian(&height);
-                            swap_endian(&prnum);
-                            swap_endian(&prden);
-                            swap_endian(&flags);
-                            swap_endian(&bytes);
-                            swap_endian(&tiles);
-                            swap_endian(&compression);
-                        }
-
                         // tiles
-                        if (tiles == 0)
-                            return false;  // non-tiles not supported
+                        if (tiles == 0) {
+                            err = "non-tiles not supported @ L" STRINGIZE(
+                                __LINE__);
+                            return false;
+                        }  // non-tiles not supported
 
                         // 0 no compression
                         // 1 RLE compression
                         // 2 QRL (not supported)
                         // 3 QR4 (not supported)
-                        if (compression > 1)
+                        if (compression > 1) {
+                            err = "only RLE compression is supported @ L" STRINGIZE(
+                                __LINE__);
                             return false;
+                        }
 
                         // test format.
                         if (flags & RGBA) {
@@ -119,21 +111,16 @@ IffFileHeader::read_header(FILE* fd)
                             DASSERT(!(flags & BLACK));
 
                             // test for RGB channels.
-                            if (flags & RGB) {
+                            if (flags & RGB)
                                 pixel_channels = 3;
-                            }
 
                             // test for alpha channel
-                            if (flags & ALPHA) {
+                            if (flags & ALPHA)
                                 pixel_channels++;
-                            }
 
                             // test pixel bits
-                            if (!bytes) {
-                                pixel_bits = 8;  // 8bit
-                            } else {
-                                pixel_bits = 16;  // 16bit
-                            }
+                            if (!bytes)
+                                pixel_bits = bytes ? 16 : 8;
                         }
 
                         // Z format.
@@ -148,37 +135,39 @@ IffFileHeader::read_header(FILE* fd)
 
                         for (;;) {
                             // get type
-                            if (!fread(&type, 1, sizeof(type), fd) ||
-                                // get length
-                                !fread(&size, 1, sizeof(size), fd))
+                            if (!read_typesize(fd, type, size)) {
+                                err = "could not read type/size @ L" STRINGIZE(
+                                    __LINE__);
                                 return false;
-
-                            if (littleendian())
-                                swap_endian(&size);
+                            }
 
                             chunksize = align_size(size, 4);
 
                             if (type[0] == 'A' && type[1] == 'U'
                                 && type[2] == 'T' && type[3] == 'H') {
                                 std::vector<char> str(chunksize);
-                                if (!fread(&str[0], 1, chunksize, fd))
+                                if (!fread(&str[0], 1, chunksize, fd)) {
+                                    err = "could not read author @ L" STRINGIZE(
+                                        __LINE__);
                                     return false;
-
-                                // get author
+                                }
                                 author = std::string(&str[0], size);
                             } else if (type[0] == 'D' && type[1] == 'A'
                                        && type[2] == 'T' && type[3] == 'E') {
                                 std::vector<char> str(chunksize);
-                                if (!fread(&str[0], 1, chunksize, fd))
+                                if (!fread(&str[0], 1, chunksize, fd)) {
+                                    err = "could not read date @ L" STRINGIZE(
+                                        __LINE__);
                                     return false;
-
-                                // get date
+                                }
                                 date = std::string(&str[0], size);
                             } else if (type[0] == 'F' && type[1] == 'O'
                                        && type[2] == 'R' && type[3] == '4') {
-                                // get type
-                                if (!fread(&type, 1, sizeof(type), fd))
+                                if (!fread(&type, 1, sizeof(type), fd)) {
+                                    err = "could not read FOR4 type @ L" STRINGIZE(
+                                        __LINE__);
                                     return false;
+                                }
 
                                 // check if CIMG
                                 if (type[0] == 'T' && type[1] == 'B'
@@ -191,16 +180,10 @@ IffFileHeader::read_header(FILE* fd)
                                     // read first RGBA block to detect tile size.
 
                                     for (unsigned int t = 0; t < tiles; t++) {
-                                        // get type
-                                        if (!fread(&type, 1, sizeof(type), fd)
-                                            ||
-                                            // get length
-                                            !fread(&size, 1, sizeof(size), fd))
+                                        if (!read_typesize(fd, type, size)) {
+                                            err = "xxx @ L" STRINGIZE(__LINE__);
                                             return false;
-
-                                        if (littleendian())
-                                            swap_endian(&size);
-
+                                        }
                                         chunksize = align_size(size, 4);
 
                                         // check if RGBA
@@ -209,28 +192,21 @@ IffFileHeader::read_header(FILE* fd)
                                             && type[3] == 'A') {
                                             // get tile coordinates.
                                             uint16_t xmin, xmax, ymin, ymax;
-                                            if (!fread(&xmin, 1, sizeof(xmin),
-                                                       fd)
-                                                || !fread(&ymin, 1,
-                                                          sizeof(ymin), fd)
-                                                || !fread(&xmax, 1,
-                                                          sizeof(xmax), fd)
-                                                || !fread(&ymax, 1,
-                                                          sizeof(ymax), fd))
+                                            if (!read(fd, xmin)
+                                                || !read(fd, ymin)
+                                                || !read(fd, xmax)
+                                                || !read(fd, ymax)) {
+                                                err = "xxx @ L" STRINGIZE(
+                                                    __LINE__);
                                                 return false;
-
-                                            // swap endianness
-                                            if (littleendian()) {
-                                                swap_endian(&xmin);
-                                                swap_endian(&ymin);
-                                                swap_endian(&xmax);
-                                                swap_endian(&ymax);
                                             }
 
                                             // check tile
                                             if (xmin > xmax || ymin > ymax
                                                 || xmax >= width
                                                 || ymax >= height) {
+                                                err = "tile min/max nonsensical @ L" STRINGIZE(
+                                                    __LINE__);
                                                 return false;
                                             }
 
@@ -243,18 +219,27 @@ IffFileHeader::read_header(FILE* fd)
                                         }
 
                                         // skip to the next block.
-                                        if (fseek(fd, chunksize, SEEK_CUR))
+                                        if (fseek(fd, chunksize, SEEK_CUR)) {
+                                            err = "could not fseek @ L" STRINGIZE(
+                                                __LINE__);
                                             return false;
+                                        }
                                     }
                                 } else {
                                     // skip to the next block.
-                                    if (fseek(fd, chunksize, SEEK_CUR))
+                                    if (fseek(fd, chunksize, SEEK_CUR)) {
+                                        err = "could not fseek @ L" STRINGIZE(
+                                            __LINE__);
                                         return false;
+                                    }
                                 }
                             } else {
                                 // skip to the next block.
-                                if (fseek(fd, chunksize, SEEK_CUR))
+                                if (fseek(fd, chunksize, SEEK_CUR)) {
+                                    err = "could not fseek @ L" STRINGIZE(
+                                        __LINE__);
                                     return false;
+                                }
                             }
                         }
                         // TBHD done, break
@@ -262,16 +247,20 @@ IffFileHeader::read_header(FILE* fd)
                     }
 
                     // skip to the next block.
-                    if (fseek(fd, chunksize, SEEK_CUR))
+                    if (fseek(fd, chunksize, SEEK_CUR)) {
+                        err = "could not fseek @ L" STRINGIZE(__LINE__);
                         return false;
+                    }
                 }
             }
         }
         // skip to the next block.
-        if (fseek(fd, chunksize, SEEK_CUR))
+        if (fseek(fd, chunksize, SEEK_CUR)) {
+            err = "could not fseek @ L" STRINGIZE(__LINE__);
             return false;
+        }
     }
-
+    err = "unknown error, ended early @ L" STRINGIZE(__LINE__);
     return false;
 }
 
