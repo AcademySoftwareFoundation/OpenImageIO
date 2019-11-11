@@ -1905,7 +1905,7 @@ Example::
 
 .. py:attribute:: ImageBuf.has_error
 
-    This fiels will be `True` if an error has occurred in the ImageBuf.
+    This field will be `True` if an error has occurred in the ImageBuf.
 
 .. py:method::  ImageBuf.geterror ()
 
