@@ -159,6 +159,11 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
                m_spec.width, m_spec.height);
         return false;
     }
+    if (m_spec.width > 65535 || m_spec.height > 65535) {
+        errorf("TGA image resolution maximum is 65535, you asked for %d x %d",
+               m_spec.width, m_spec.height);
+        return false;
+    }
 
     if (m_spec.depth < 1)
         m_spec.depth = 1;
@@ -169,6 +174,15 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
 
     if (m_spec.nchannels < 1 || m_spec.nchannels > 4) {
         errorf("TGA only supports 1-4 channels, not %d", m_spec.nchannels);
+        return false;
+    }
+
+    // Offsets within the file are 32 bits. Guard against creating a TGA
+    // file that (even counting the file footer or header) might exceed
+    // this.
+    if (m_spec.image_bytes() + sizeof(tga_header) + sizeof(tga_footer)
+        >= (int64_t(1) << 32)) {
+        errorf("Too large a TGA file");
         return false;
     }
 
@@ -241,7 +255,7 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
         swap_endian(&tga.attr);
     }
     // due to struct packing, we may get a corrupt header if we just dump the
-    // struct to the file; to adress that, write every member individually
+    // struct to the file; to address that, write every member individually
     // save some typing
     if (!fwrite(&tga.idlen) || !fwrite(&tga.cmap_type) || !fwrite(&tga.type)
         || !fwrite(&tga.cmap_first) || !fwrite(&tga.cmap_length)
@@ -282,7 +296,7 @@ TGAOutput::write_tga20_data_fields()
         // it's probably safe to ignore it altogether until someone complains
         // that it's missing :)
 
-        fseek(m_file, 0, SEEK_END);
+        Filesystem::fseek(m_file, 0, SEEK_END);
 
         // write out the thumbnail, if there is one
         uint32_t ofs_thumb = 0;
@@ -522,8 +536,9 @@ deassociateAlpha(T* data, int size, int channels, int alpha_channel,
         for (int x = 0; x < size; ++x, data += channels)
             if (data[alpha_channel]) {
                 // See associateAlpha() for an explanation.
-                float alpha_deassociate = pow((float)max / data[alpha_channel],
-                                              gamma);
+                float alpha_deassociate
+                    = OIIO::fast_pow_pos((float)max / data[alpha_channel],
+                                         gamma);
                 for (int c = 0; c < channels; c++)
                     if (c != alpha_channel)
                         data[c] = static_cast<T>(std::min(
@@ -667,9 +682,11 @@ TGAOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     } else {
         // raw, non-compressed data
         // seek to the correct scanline
-        int n = m_spec.nchannels;
-        int w = m_spec.width;
-        fseek(m_file, 18 + m_idlen + (m_spec.height - y - 1) * w * n, SEEK_SET);
+        int n     = m_spec.nchannels;
+        int64_t w = m_spec.width;
+        Filesystem::fseek(m_file,
+                          18 + m_idlen + int64_t(m_spec.height - y - 1) * w * n,
+                          SEEK_SET);
         if (n <= 2) {
             // 1- and 2-channels can write directly
             if (!fwrite(bdata, n, w)) {
