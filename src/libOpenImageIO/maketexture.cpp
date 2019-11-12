@@ -1668,47 +1668,33 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     STATUS("SHA-1 hash", stat_hashtime);
 
     if (isConstantColor) {
-        std::ostringstream os;             // Emulate a JSON array
-        os.imbue(std::locale::classic());  // Force "C" locale with '.' decimal
-        for (int i = 0; i < dstspec.nchannels; ++i) {
-            if (i != 0)
-                os << ",";
-            os << (i < (int)constantColor.size() ? constantColor[i] : 0.0f);
-        }
+        std::string colstr = Strutil::join(constantColor, ",",
+                                           dstspec.nchannels);
         if (out->supports("arbitrary_metadata")) {
-            dstspec.attribute("oiio:ConstantColor", os.str());
+            dstspec.attribute("oiio:ConstantColor", colstr);
         } else {
-            if (desc.length())
-                desc += " ";
-            desc += "oiio:ConstantColor=";
-            desc += os.str();
+            desc += Strutil::sprintf("%soiio:ConstantColor=%s",
+                                     desc.length() ? " " : "", colstr);
             updatedDesc = true;
         }
         if (verbose)
-            outstream << "  ConstantColor: " << os.str() << std::endl;
+            outstream << "  ConstantColor: " << colstr << std::endl;
     }
 
     if (compute_average_color) {
-        std::ostringstream os;             // Emulate a JSON array
-        os.imbue(std::locale::classic());  // Force "C" locale with '.' decimal
-        for (int i = 0; i < dstspec.nchannels; ++i) {
-            if (i != 0)
-                os << ",";
-            os << (i < (int)pixel_stats.avg.size() ? pixel_stats.avg[i] : 0.0f);
-        }
+        std::string avgstr = Strutil::join(pixel_stats.avg, ",",
+                                           dstspec.nchannels);
         if (out->supports("arbitrary_metadata")) {
-            dstspec.attribute("oiio:AverageColor", os.str());
+            dstspec.attribute("oiio:AverageColor", avgstr);
         } else {
             // if arbitrary metadata is not supported, cram it into the
             // ImageDescription.
-            if (desc.length())
-                desc += " ";
-            desc += "oiio:AverageColor=";
-            desc += os.str();
+            desc += Strutil::sprintf("%soiio:AverageColor=%s",
+                                     desc.length() ? " " : "", avgstr);
             updatedDesc = true;
         }
         if (verbose)
-            outstream << "  AverageColor: " << os.str() << std::endl;
+            outstream << "  AverageColor: " << avgstr << std::endl;
     }
 
     if (updatedDesc) {
