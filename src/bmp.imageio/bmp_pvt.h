@@ -129,7 +129,7 @@ public:
                                       void* data) override;
 
 private:
-    int m_padded_scanline_size;
+    int64_t m_padded_scanline_size;
     int m_pad_size;
     FILE* m_fd;
     bmp_pvt::BmpFileHeader m_bmp_header;
@@ -167,7 +167,7 @@ public:
                             stride_t ystride, stride_t zstride) override;
 
 private:
-    int m_padded_scanline_size;
+    int64_t m_padded_scanline_size;
     FILE* m_fd;
     std::string m_filename;
     bmp_pvt::BmpFileHeader m_bmp_header;

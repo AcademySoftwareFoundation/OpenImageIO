@@ -136,12 +136,13 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     // if the height is positive scanlines are stored bottom-up
     if (m_dib_header.width >= 0)
         y = m_spec.height - y - 1;
-    const int scanline_off = y * m_padded_scanline_size;
+    const int64_t scanline_off = y * m_padded_scanline_size;
 
-    std::vector<unsigned char> fscanline(m_padded_scanline_size);
+    std::unique_ptr<unsigned char[]> fscanline(
+        new unsigned char[m_padded_scanline_size]);
     fsetpos(m_fd, &m_image_start);
-    fseek(m_fd, scanline_off, SEEK_CUR);
-    size_t n = fread(&fscanline[0], 1, m_padded_scanline_size, m_fd);
+    Filesystem::fseek(m_fd, scanline_off, SEEK_CUR);
+    size_t n = fread(fscanline.get(), 1, m_padded_scanline_size, m_fd);
     if (n != (size_t)m_padded_scanline_size) {
         if (feof(m_fd))
             errorf("Hit end of file unexpectedly");
@@ -157,17 +158,18 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         for (unsigned int i = 0; i < m_spec.scanline_bytes();
              i += m_spec.nchannels)
             std::swap(fscanline[i], fscanline[i + 2]);
-        memcpy(data, &fscanline[0], m_spec.scanline_bytes());
+        memcpy(data, fscanline.get(), m_spec.scanline_bytes());
         return true;
     }
 
-    std::vector<unsigned char> mscanline(m_spec.scanline_bytes());
+    size_t scanline_bytes = m_spec.scanline_bytes();
+    std::unique_ptr<unsigned char[]> mscanline(
+        new unsigned char[scanline_bytes]);
     if (m_dib_header.bpp == 16) {
         const uint16_t RED   = 0x7C00;
         const uint16_t GREEN = 0x03E0;
         const uint16_t BLUE  = 0x001F;
-        for (unsigned int i = 0, j = 0; j < m_spec.scanline_bytes();
-             i += 2, j += 3) {
+        for (unsigned int i = 0, j = 0; j < scanline_bytes; i += 2, j += 3) {
             uint16_t pixel   = (uint16_t) * (&fscanline[i]);
             mscanline[j]     = (uint8_t)((pixel & RED) >> 8);
             mscanline[j + 1] = (uint8_t)((pixel & GREEN) >> 4);
@@ -175,16 +177,14 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         }
     }
     if (m_dib_header.bpp == 8) {
-        for (unsigned int i = 0, j = 0; j < m_spec.scanline_bytes();
-             ++i, j += 3) {
+        for (unsigned int i = 0, j = 0; j < scanline_bytes; ++i, j += 3) {
             mscanline[j]     = m_colortable[fscanline[i]].r;
             mscanline[j + 1] = m_colortable[fscanline[i]].g;
             mscanline[j + 2] = m_colortable[fscanline[i]].b;
         }
     }
     if (m_dib_header.bpp == 4) {
-        for (unsigned int i = 0, j = 0; j + 6 < m_spec.scanline_bytes();
-             ++i, j += 6) {
+        for (unsigned int i = 0, j = 0; j + 6 < scanline_bytes; ++i, j += 6) {
             uint8_t mask     = 0xF0;
             mscanline[j]     = m_colortable[(fscanline[i] & mask) >> 4].r;
             mscanline[j + 1] = m_colortable[(fscanline[i] & mask) >> 4].g;
@@ -196,9 +196,9 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         }
     }
     if (m_dib_header.bpp == 1) {
-        for (unsigned int i = 0, k = 0; i < fscanline.size(); ++i) {
+        for (int64_t i = 0, k = 0; i < m_padded_scanline_size; ++i) {
             for (int j = 7; j >= 0; --j, k += 3) {
-                if (k + 2 >= mscanline.size())
+                if (size_t(k + 2) >= scanline_bytes)
                     break;
                 int index = 0;
                 if (fscanline[i] & (1 << j))
@@ -209,7 +209,7 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
             }
         }
     }
-    memcpy(data, &mscanline[0], m_spec.scanline_bytes());
+    memcpy(data, &mscanline[0], scanline_bytes);
     return true;
 }
 
