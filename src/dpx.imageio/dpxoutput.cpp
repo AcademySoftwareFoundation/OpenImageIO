@@ -88,7 +88,7 @@ private:
     int m_bitdepth;
     bool m_rawcolor;
     bool m_wantSwap;
-    int m_bytes;
+    int64_t m_bytes;
     int m_subimage;
     int m_subimages_to_write;
     std::vector<ImageSpec> m_subimage_specs;
