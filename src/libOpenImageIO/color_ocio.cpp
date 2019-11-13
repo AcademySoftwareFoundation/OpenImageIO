@@ -1378,6 +1378,8 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
                         vfloat4 v(0.0f);
                         for (int c = 0; c < channelsToCopy; ++c)
                             v[c] = a[c];
+                        if (channelsToCopy == 1)
+                            v[2] = v[1] = v[0];
                         scanline[i] = v;
                     }
 
