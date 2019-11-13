@@ -468,6 +468,30 @@ Filesystem::fopen(string_view path, string_view mode)
 
 
 
+int
+Filesystem::fseek(FILE* file, int64_t offset, int whence)
+{
+#ifdef _MSC_VER
+    return _fseeki64(file, __int64(offset), whence);
+#else
+    return fseeko(file, offset, whence);
+#endif
+}
+
+
+
+int64_t
+Filesystem::ftell(FILE* file)
+{
+#ifdef _MSC_VER
+    return _ftelli64(file);
+#else
+    return ftello(file);
+#endif
+}
+
+
+
 void
 Filesystem::open(OIIO::ifstream& stream, string_view path,
                  std::ios_base::openmode mode)
@@ -529,11 +553,7 @@ Filesystem::read_bytes(string_view path, void* buffer, size_t n, size_t pos)
 {
     size_t ret = 0;
     if (FILE* file = Filesystem::fopen(path, "rb")) {
-#ifdef _MSC_VER
-        _fseeki64(file, __int64(pos), SEEK_SET);
-#else
-        fseeko(file, pos, SEEK_SET);
-#endif
+        Filesystem::fseek(file, pos, SEEK_SET);
         ret = fread(buffer, 1, n, file);
         fclose(file);
     }
@@ -936,10 +956,10 @@ Filesystem::IOFile::IOFile(FILE* file, Mode mode)
     , m_file(file)
 {
     if (m_mode == Read) {
-        m_pos = ftell(m_file);           // save old position
-        fseek(m_file, 0, SEEK_END);      // seek to end
-        m_size = size_t(ftell(m_file));  // size is end position
-        fseek(m_file, m_pos, SEEK_SET);  // restore old position
+        m_pos = Filesystem::ftell(m_file);           // save old position
+        Filesystem::fseek(m_file, 0, SEEK_END);      // seek to end
+        m_size = size_t(Filesystem::ftell(m_file));  // size is end position
+        Filesystem::fseek(m_file, m_pos, SEEK_SET);  // restore old position
     }
 }
 
@@ -965,11 +985,7 @@ Filesystem::IOFile::seek(int64_t offset)
     if (!m_file)
         return false;
     m_pos = offset;
-#ifdef _MSC_VER
-    return _fseeki64(m_file, __int64(offset), SEEK_SET) == 0;
-#else
-    return fseeko(m_file, offset, SEEK_SET) == 0;
-#endif
+    return Filesystem::fseek(m_file, offset, SEEK_SET) == 0;
 }
 
 size_t

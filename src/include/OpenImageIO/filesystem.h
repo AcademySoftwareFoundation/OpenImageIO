@@ -215,6 +215,12 @@ OIIO_API std::string unique_path (string_view model="%%%%-%%%%-%%%%-%%%%");
 ///
 OIIO_API FILE *fopen (string_view path, string_view mode);
 
+/// Version of fseek that works with 64 bit offsets on all systems.
+OIIO_API int fseek (FILE *file, int64_t offset, int whence);
+
+/// Version of ftell that works with 64 bit offsets on all systems.
+OIIO_API int64_t ftell (FILE *file);
+
 /// Return the current (".") directory path.
 ///
 OIIO_API std::string current_path ();
