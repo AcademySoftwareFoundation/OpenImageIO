@@ -1492,6 +1492,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         }
 
         if (isConstantColor) {
+            if (constantColor.size() < 3)
+                constantColor.resize(3, constantColor[0]);
             if (!ImageBufAlgo::colorconvert(
                     &constantColor[0], static_cast<int>(constantColor.size()),
                     processor.get(), unpremult)) {
@@ -1502,6 +1504,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         }
 
         if (compute_average_color) {
+            if (pixel_stats.avg.size() < 3)
+                pixel_stats.avg.resize(3, pixel_stats.avg[0]);
             if (!ImageBufAlgo::colorconvert(&pixel_stats.avg[0],
                                             static_cast<int>(
                                                 pixel_stats.avg.size()),
