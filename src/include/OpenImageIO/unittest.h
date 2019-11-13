@@ -225,3 +225,22 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
                        << "\tvalues were '" << (x) << "' and '" << (y)         \
                        << "'\n"),                                              \
             (void)++unit_test_failures))
+
+
+// Test if ImageBuf operation got an error. It's a lot like simply testing
+// OIIO_CHECK_ASSERT(x), but if x is false, it will get an error message
+// from the buffer and incorporate it into the failure message.
+// Call like this, for example:
+//    ImageBuf buf;
+//    OIIO_CHECK_IMAGEBUF_STATUS(buf,
+//        ImageBufAlgo::Func (buf, ...)
+//    );
+#define OIIO_CHECK_IMAGEBUF_STATUS(buf, x)                                     \
+    ((x && !buf.has_error())                                                   \
+         ? ((void)0)                                                           \
+         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")      \
+                       << __FILE__ << ":" << __LINE__ << ":\n"                 \
+                       << "FAILED: "                                           \
+                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x  \
+                       << ": " << buf.geterror() << "\n"),                     \
+            (void)++unit_test_failures))
