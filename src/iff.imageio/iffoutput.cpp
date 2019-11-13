@@ -94,13 +94,22 @@ IffOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_iff_header.compression
         = (m_spec.get_string_attribute("compression") == "none") ? NONE : RLE;
 
+    uint64_t xtiles = tile_width_size(m_spec.width);
+    uint64_t ytiles = tile_height_size(m_spec.height);
+    if (xtiles * ytiles >= (1 << 16)) {  // The format can't store it!
+        errorf(
+            "Too high a resolution (%dx%d), exceeds maximum of 64k tiles in the image\n",
+            m_spec.width, m_spec.height);
+        close();
+        return false;
+    }
+
     // we write the header of the file
-    m_iff_header.x      = m_spec.x;
-    m_iff_header.y      = m_spec.y;
-    m_iff_header.width  = m_spec.width;
-    m_iff_header.height = m_spec.height;
-    m_iff_header.tiles  = tile_width_size(m_spec.width)
-                         * tile_height_size(m_spec.height);
+    m_iff_header.x              = m_spec.x;
+    m_iff_header.y              = m_spec.y;
+    m_iff_header.width          = m_spec.width;
+    m_iff_header.height         = m_spec.height;
+    m_iff_header.tiles          = xtiles * ytiles;
     m_iff_header.pixel_bits     = m_spec.format == TypeDesc::UINT8 ? 8 : 16;
     m_iff_header.pixel_channels = m_spec.nchannels;
     m_iff_header.author         = m_spec.get_string_attribute("Artist");
@@ -177,7 +186,7 @@ IffOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 inline bool
 IffOutput::close(void)
 {
-    if (m_fd) {
+    if (m_fd && m_buf.size()) {
         // flip buffer to make write tile easier,
         // from tga.imageio:
 
@@ -501,6 +510,10 @@ IffOutput::close(void)
         if (!fwrite(&p1, sizeof(p1), 1, m_fd))
             return false;
 
+        m_buf.resize(0);
+        m_buf.shrink_to_fit();
+    }
+    if (m_fd) {
         // close the stream
         fclose(m_fd);
         m_fd = NULL;
