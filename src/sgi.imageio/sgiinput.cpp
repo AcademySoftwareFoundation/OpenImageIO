@@ -181,7 +181,8 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
                                  unsigned char* out)
 {
     int bpc = m_sgi_header.bpc;
-    std::vector<unsigned char> rle_scanline(scanline_len);
+    std::unique_ptr<unsigned char[]> rle_scanline(
+        new unsigned char[scanline_len]);
     Filesystem::fseek(m_fd, scanline_off, SEEK_SET);
     if (!fread(&rle_scanline[0], 1, scanline_len))
         return false;

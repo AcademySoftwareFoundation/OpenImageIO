@@ -88,7 +88,8 @@ SgiOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     // attempt to write with RLE encoding.
 
     size_t bpc = m_spec.format.size();  // bytes per channel
-    std::vector<unsigned char> channeldata(m_spec.width * bpc);
+    std::unique_ptr<unsigned char[]> channeldata(
+        new unsigned char[m_spec.width * bpc]);
 
     for (int64_t c = 0; c < m_spec.nchannels; ++c) {
         unsigned char* cdata = (unsigned char*)data + c * bpc;
