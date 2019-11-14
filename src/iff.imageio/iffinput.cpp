@@ -67,8 +67,10 @@ IffInput::open(const std::string& name, ImageSpec& spec)
     }
 
     // we read header of the file that we think is IFF file
-    if (!m_iff_header.read_header(m_fd)) {
-        error("\"%s\": could not read iff header", m_filename.c_str());
+    std::string err;
+    if (!m_iff_header.read_header(m_fd, err)) {
+        errorf("\"%s\": could not read iff header (%s)", m_filename,
+               err.size() ? err : std::string("unknown"));
         close();
         return false;
     }
