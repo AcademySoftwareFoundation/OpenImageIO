@@ -106,6 +106,28 @@ float2rgbe(unsigned char rgbe[4], float red, float green, float blue)
   }
 }
 
+
+inline void
+float2rgbe(unsigned char* rgbe, const float* rgb)
+{
+    float red = rgb[0], green = rgb[1], blue = rgb[2];
+    float v = red;
+    if (green > v) v = green;
+    if (blue > v) v = blue;
+    if (v < 1e-32) {
+        rgbe[0] = rgbe[1] = rgbe[2] = rgbe[3] = 0;
+    } else {
+        int e;
+        v = frexpf(v,&e) * 256.0f/v;
+        rgbe[0] = (unsigned char) (red * v);
+        rgbe[1] = (unsigned char) (green * v);
+        rgbe[2] = (unsigned char) (blue * v);
+        rgbe[3] = (unsigned char) (e + 128);
+    }
+}
+
+
+
 /* standard conversion from rgbe to float pixels */
 /* note: Ward uses ldexp(col+0.5,exp-(128+8)).  However we wanted pixels */
 /*       in the range [0,1] to map back into the range [0,1].            */
@@ -123,6 +145,22 @@ rgbe2float(float *red, float *green, float *blue, unsigned char rgbe[4])
   else
     *red = *green = *blue = 0.0;
 }
+
+
+inline void
+rgbe2float(float* rgb, unsigned char* rgbe)
+{
+    if (rgbe[3]) {   /*nonzero pixel*/
+        float f = ldexpf(1.0f,rgbe[3]-(int)(128+8));
+        rgb[0] = rgbe[0] * f;
+        rgb[1] = rgbe[1] * f;
+        rgb[2] = rgbe[2] * f;
+    } else {
+      rgb[0] = rgb[1] = rgb[2] = 0.0;
+    }
+}
+
+
 
 /* default minimal header. modify if you want more information in header */
 int RGBE_WriteHeader(FILE *fp, int width, int height, rgbe_header_info *info,
@@ -265,35 +303,28 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info,
 /* simple write routine that does not use run length encoding */
 /* These routines can be made faster by allocating a larger buffer and
    fread-ing and fwrite-ing the data in larger chunks */
-int RGBE_WritePixels(FILE *fp, float *data, int numpixels,
+int RGBE_WritePixels(FILE *fp, float *data, int64_t numpixels,
                      std::string &errbuf)
 {
-  unsigned char rgbe[4];
-
-  while (numpixels-- > 0) {
-    float2rgbe(rgbe,data[RGBE_DATA_RED],
-	       data[RGBE_DATA_GREEN],data[RGBE_DATA_BLUE]);
-    data += RGBE_DATA_SIZE;
-    if (fwrite(rgbe, sizeof(rgbe), 1, fp) < 1)
-      return rgbe_error(rgbe_write_error,NULL, errbuf);
-  }
-  return RGBE_RETURN_SUCCESS;
+    std::unique_ptr<unsigned char[]> rgbe(new unsigned char [4*numpixels]);
+    for (int64_t i = 0; i < numpixels; ++i)
+        float2rgbe(&rgbe[4*i], data+3*i);
+    if (fwrite(rgbe.get(), 4, numpixels, fp) != size_t(numpixels))
+        return rgbe_error(rgbe_write_error, nullptr, errbuf);
+    return RGBE_RETURN_SUCCESS;
 }
+
 
 /* simple read routine.  will not correctly handle run length encoding */
 int RGBE_ReadPixels(FILE *fp, float *data, int numpixels,
                     std::string &errbuf)
 {
-  unsigned char rgbe[4];
-
-  while(numpixels-- > 0) {
-    if (fread(rgbe, sizeof(rgbe), 1, fp) < 1)
-      return rgbe_error(rgbe_read_error,NULL, errbuf);
-    rgbe2float(&data[RGBE_DATA_RED],&data[RGBE_DATA_GREEN],
-	       &data[RGBE_DATA_BLUE],rgbe);
-    data += RGBE_DATA_SIZE;
-  }
-  return RGBE_RETURN_SUCCESS;
+    std::unique_ptr<unsigned char[]> rgbe(new unsigned char [4*numpixels]);
+    if (fread(rgbe.get(), 4, numpixels, fp) != size_t(numpixels))
+        return rgbe_error(rgbe_read_error,NULL, errbuf);
+    for (int64_t i = 0; i < numpixels; ++i)
+        rgbe2float(&data[3*i], &rgbe[4*i]);
+    return RGBE_RETURN_SUCCESS;
 }
 
 /* The code below is only needed for the run-length encoded files. */
