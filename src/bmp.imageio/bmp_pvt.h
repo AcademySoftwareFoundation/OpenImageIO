@@ -136,7 +136,7 @@ private:
     bmp_pvt::DibInformationHeader m_dib_header;
     std::string m_filename;
     std::vector<bmp_pvt::color_table> m_colortable;
-    fpos_t m_image_start;
+    int64_t m_image_start;
     void init(void)
     {
         m_padded_scanline_size = 0;
@@ -172,7 +172,7 @@ private:
     std::string m_filename;
     bmp_pvt::BmpFileHeader m_bmp_header;
     bmp_pvt::DibInformationHeader m_dib_header;
-    fpos_t m_image_start;
+    int64_t m_image_start;
     unsigned int m_dither;
     std::vector<unsigned char> m_tilebuffer;
 

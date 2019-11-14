@@ -114,7 +114,7 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
 
     // file pointer is set to the beginning of image data
     // we save this position - it will be helpfull in read_native_scanline
-    fgetpos(m_fd, &m_image_start);
+    m_image_start = Filesystem::ftell(m_fd);
 
     spec = m_spec;
     return true;
@@ -140,8 +140,7 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
     std::unique_ptr<unsigned char[]> fscanline(
         new unsigned char[m_padded_scanline_size]);
-    fsetpos(m_fd, &m_image_start);
-    Filesystem::fseek(m_fd, scanline_off, SEEK_CUR);
+    Filesystem::fseek(m_fd, m_image_start + scanline_off, SEEK_SET);
     size_t n = fread(fscanline.get(), 1, m_padded_scanline_size, m_fd);
     if (n != (size_t)m_padded_scanline_size) {
         if (feof(m_fd))

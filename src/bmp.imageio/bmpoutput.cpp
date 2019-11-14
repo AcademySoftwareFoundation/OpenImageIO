@@ -73,7 +73,7 @@ BmpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     // Scanline size is rounded up to align to 4-byte boundary
     m_padded_scanline_size = ((m_spec.width * m_spec.nchannels) + 3) & ~3;
-    fgetpos(m_fd, &m_image_start);
+    m_image_start          = Filesystem::ftell(m_fd);
 
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
@@ -98,8 +98,7 @@ BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     if (m_spec.width >= 0)
         y = (m_spec.height - y - 1);
     int64_t scanline_off = y * m_padded_scanline_size;
-    fsetpos(m_fd, &m_image_start);
-    Filesystem::fseek(m_fd, scanline_off, SEEK_CUR);
+    Filesystem::fseek(m_fd, m_image_start + scanline_off, SEEK_SET);
 
     std::vector<unsigned char> scratch;
     data = to_native_scanline(format, data, xstride, scratch, m_dither, y, z);
