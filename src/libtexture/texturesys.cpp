@@ -2147,7 +2147,7 @@ TextureSystemImpl::sample_bilinear(
         if (onetile && all(stvalid)) {
             // Shortcut if all the texels we need are on the same tile
             id.xy(sttex[S0] - tile_st[S0], sttex[T0] - tile_st[T0]);
-            bool ok = find_tile(id, thread_info);
+            bool ok = find_tile(id, thread_info, sample == 0);
             if (!ok)
                 errorf("%s", m_imagecache->geterror());
             TileRef& tile(thread_info->tile);
@@ -2208,7 +2208,7 @@ TextureSystemImpl::sample_bilinear(
                     // iteration, as long as we aren't using mirror wrap mode!
                     if (i == 0 || tile_s == 0 || noreusetile) {
                         id.xy(tile_edge[S0 + i], tile_edge[T0 + j]);
-                        bool ok = find_tile(id, thread_info);
+                        bool ok = find_tile(id, thread_info, sample == 0);
                         if (!ok)
                             errorf("%s", m_imagecache->geterror());
                         if (!thread_info->tile->valid()) {

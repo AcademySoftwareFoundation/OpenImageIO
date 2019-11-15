@@ -374,16 +374,12 @@ private:
         return texturefile;
     }
 
-    /// Find the tile specified by id.  If found, return true and place
-    /// the tile ref in thread_info->tile; if not found, return false.
-    /// This is more efficient than find_tile_main_cache() because it
-    /// avoids looking to the big cache (and locking) most of the time
-    /// for fairly coherent tile access patterns, by using the
-    /// per-thread microcache to boost our hit rate over the big cache.
-    /// Inlined for speed.
-    bool find_tile(const TileID& id, PerThreadInfo* thread_info)
+    /// Find the tile specified by id.  Just a pass-through to the
+    /// underlying ImageCache.
+    bool find_tile(const TileID& id, PerThreadInfo* thread_info,
+                   bool mark_same_tile_used = true)
     {
-        return m_imagecache->find_tile(id, thread_info);
+        return m_imagecache->find_tile(id, thread_info, mark_same_tile_used);
     }
 
     // Define a prototype of a member function pointer for texture
