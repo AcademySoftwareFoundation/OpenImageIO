@@ -41,6 +41,11 @@ SgiOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_filename = name;
     m_spec     = spec;
 
+    if (m_spec.width >= 65535 || m_spec.height >= 65535) {
+        errorf("Exceeds the maximum resolution (65535)");
+        return false;
+    }
+
     m_fd = Filesystem::fopen(m_filename, "wb");
     if (!m_fd) {
         errorf("Could not open \"%s\"", name);
@@ -82,12 +87,13 @@ SgiOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     // content ourselves with only writing uncompressed data, and don't
     // attempt to write with RLE encoding.
 
-    int bpc = m_spec.format.size();  // bytes per channel
-    std::vector<unsigned char> channeldata(m_spec.width * bpc);
+    size_t bpc = m_spec.format.size();  // bytes per channel
+    std::unique_ptr<unsigned char[]> channeldata(
+        new unsigned char[m_spec.width * bpc]);
 
-    for (int c = 0; c < m_spec.nchannels; ++c) {
+    for (int64_t c = 0; c < m_spec.nchannels; ++c) {
         unsigned char* cdata = (unsigned char*)data + c * bpc;
-        for (int x = 0; x < m_spec.width; ++x) {
+        for (int64_t x = 0; x < m_spec.width; ++x) {
             channeldata[x * bpc] = cdata[0];
             if (bpc == 2)
                 channeldata[x * bpc + 1] = cdata[1];
@@ -95,9 +101,10 @@ SgiOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         }
         if (bpc == 2 && littleendian())
             swap_endian((unsigned short*)&channeldata[0], m_spec.width);
-        long scanline_offset = sgi_pvt::SGI_HEADER_LEN
-                               + (c * m_spec.height + y) * m_spec.width * bpc;
-        fseek(m_fd, scanline_offset, SEEK_SET);
+        ptrdiff_t scanline_offset = sgi_pvt::SGI_HEADER_LEN
+                                    + ptrdiff_t(c * m_spec.height + y)
+                                          * m_spec.width * bpc;
+        Filesystem::fseek(m_fd, scanline_offset, SEEK_SET);
         if (!fwrite(&channeldata[0], 1, m_spec.width * bpc)) {
             return false;
         }

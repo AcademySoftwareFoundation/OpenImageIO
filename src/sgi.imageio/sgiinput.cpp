@@ -126,15 +126,15 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
     y = m_spec.height - y - 1;
 
-    int bpc = m_sgi_header.bpc;
+    ptrdiff_t bpc = m_sgi_header.bpc;
     std::vector<std::vector<unsigned char>> channeldata(m_spec.nchannels);
     if (m_sgi_header.storage == sgi_pvt::RLE) {
         // reading and uncompressing first channel (red in RGBA images)
         for (int c = 0; c < m_spec.nchannels; ++c) {
-            int off = y
-                      + c * m_spec.height;  // offset for this scanline/channel
-            int scanline_offset = start_tab[off];
-            int scanline_length = length_tab[off];
+            // offset for this scanline/channel
+            ptrdiff_t off             = y + c * m_spec.height;
+            ptrdiff_t scanline_offset = start_tab[off];
+            ptrdiff_t scanline_length = length_tab[off];
             channeldata[c].resize(m_spec.width * bpc);
             uncompress_rle_channel(scanline_offset, scanline_length,
                                    &(channeldata[c][0]));
@@ -142,11 +142,11 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     } else {
         // non-RLE case -- just read directly into our channel data
         for (int c = 0; c < m_spec.nchannels; ++c) {
-            int off = y
-                      + c * m_spec.height;  // offset for this scanline/channel
-            int scanline_offset = sgi_pvt::SGI_HEADER_LEN
-                                  + off * m_spec.width * bpc;
-            fseek(m_fd, scanline_offset, SEEK_SET);
+            // offset for this scanline/channel
+            ptrdiff_t off             = y + c * m_spec.height;
+            ptrdiff_t scanline_offset = sgi_pvt::SGI_HEADER_LEN
+                                        + off * m_spec.width * bpc;
+            Filesystem::fseek(m_fd, scanline_offset, SEEK_SET);
             channeldata[c].resize(m_spec.width * bpc);
             if (!fread(&(channeldata[c][0]), 1, m_spec.width * bpc))
                 return false;
@@ -181,8 +181,9 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
                                  unsigned char* out)
 {
     int bpc = m_sgi_header.bpc;
-    std::vector<unsigned char> rle_scanline(scanline_len);
-    fseek(m_fd, scanline_off, SEEK_SET);
+    std::unique_ptr<unsigned char[]> rle_scanline(
+        new unsigned char[scanline_len]);
+    Filesystem::fseek(m_fd, scanline_off, SEEK_SET);
     if (!fread(&rle_scanline[0], 1, scanline_len))
         return false;
     int limit = m_spec.width;
@@ -288,7 +289,7 @@ SgiInput::read_header()
         return false;
 
     //don't read dummy bytes
-    fseek(m_fd, 404, SEEK_CUR);
+    Filesystem::fseek(m_fd, 404, SEEK_CUR);
 
     if (littleendian()) {
         swap_endian(&m_sgi_header.magic);
