@@ -486,9 +486,19 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
 
     if (m_inputcreator)
         inp.reset(m_inputcreator());
-    else
-        inp = ImageInput::create(m_filename.string(), false, &configspec,
+    else {
+        // If we are trusting extensions and this isn't a special "REST-ful"
+        // name construction, just open with the extension in order to skip
+        // an unnecessary file open.
+        std::string fmt;
+        if (m_imagecache.trust_file_extensions()
+            && m_filename.find('?') != m_filename.npos)
+            fmt = OIIO::Filesystem::extension(fmt, false);
+        else
+            fmt = m_filename.string();
+        inp = ImageInput::create(fmt, false, &configspec,
                                  m_imagecache.plugin_searchpath());
+    }
     if (!inp) {
         mark_broken(OIIO::geterror());
         invalidate_spec();
@@ -2150,6 +2160,8 @@ ImageCacheImpl::attribute(string_view name, TypeDesc type, const void* val)
         }
     } else if (name == "failure_retries" && type == TypeDesc::INT) {
         m_failure_retries = *(const int*)val;
+    } else if (name == "trust_file_extensions" && type == TypeDesc::INT) {
+        m_trust_file_extensions = *(const int*)val;
     } else if (name == "latlong_up" && type == TypeDesc::STRING) {
         bool y_up = !strcmp("y", *(const char**)val);
         if (y_up != m_latlong_y_up_default) {
@@ -2196,6 +2208,7 @@ ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
     ATTR_DECODE("accept_unmipped", int, m_accept_unmipped);
     ATTR_DECODE("deduplicate", int, m_deduplicate);
     ATTR_DECODE("unassociatedalpha", int, m_unassociatedalpha);
+    ATTR_DECODE("trust_file_extensions", int, m_trust_file_extensions);
     ATTR_DECODE("failure_retries", int, m_failure_retries);
     ATTR_DECODE("total_files", int, m_files.size());
     ATTR_DECODE("max_mip_res", int, m_max_mip_res);

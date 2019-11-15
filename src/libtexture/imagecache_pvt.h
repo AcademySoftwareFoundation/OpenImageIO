@@ -795,6 +795,7 @@ public:
     bool accept_untiled() const { return m_accept_untiled; }
     bool accept_unmipped() const { return m_accept_unmipped; }
     bool unassociatedalpha() const { return m_unassociatedalpha; }
+    bool trust_file_extensions() const { return m_trust_file_extensions; }
     int failure_retries() const { return m_failure_retries; }
     bool latlong_y_up_default() const { return m_latlong_y_up_default; }
     void get_commontoworld(Imath::M44f& result) const { result = m_Mc2w; }
@@ -1105,8 +1106,9 @@ private:
     bool m_accept_unmipped;    ///< Accept unmipped images?
     bool m_deduplicate;        ///< Detect duplicate files?
     bool m_unassociatedalpha;  ///< Keep unassociated alpha files as they are?
-    int m_failure_retries;     ///< Times to re-try disk failures
     bool m_latlong_y_up_default;  ///< Is +y the default "up" for latlong?
+    bool m_trust_file_extensions = false;  ///< Assume file extensions don't lie?
+    int m_failure_retries;                 ///< Times to re-try disk failures
     int m_max_mip_res = 1 << 30;  ///< Don't use MIP levels higher than this
     Imath::M44f m_Mw2c;           ///< world-to-"common" matrix
     Imath::M44f m_Mc2w;           ///< common-to-world matrix
