@@ -171,7 +171,7 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     ZfileHeader header;
-    ASSERT(sizeof(header) == 136);
+    static_assert(sizeof(header) == 136, "header size does not match");
     gzread(m_gz, &header, sizeof(header));
 
     if (header.magic != zfile_magic && header.magic != zfile_magic_endian) {
@@ -269,6 +269,11 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
               m_spec.width, m_spec.height);
         return false;
     }
+    if (m_spec.width > 32767 || m_spec.height > 32767) {
+        errorf("zfile image resolution maximum is 32767, you asked for %d x %d",
+               m_spec.width, m_spec.height);
+        return false;
+    }
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     if (m_spec.depth > 1) {
@@ -282,8 +287,7 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     // Force float
-    if (m_spec.format != TypeDesc::FLOAT)
-        m_spec.format = TypeDesc::FLOAT;
+    m_spec.format = TypeDesc::FLOAT;
 
     ZfileHeader header;
     header.magic  = zfile_magic;
