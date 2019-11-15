@@ -3033,7 +3033,8 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
             // int ty = y - ((y - spec.y) % spec.tile_height);
             char* xptr       = yptr;
             const char* data = NULL;
-            for (int x = xbegin; x < xend; ++x, xptr += xstride) {
+            for (int x = xbegin; x < xend;
+                 ++x, xptr += xstride, ++npixelsread) {
                 if (x < spec.x || x >= (spec.x + spec.width)) {
                     // nonexistant columns
                     memset(xptr, 0, result_pixelsize);
@@ -3048,7 +3049,6 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
                     ok &= find_tile(tileid, thread_info, npixelsread == 0);
                     if (!ok)
                         return false;  // Just stop if file read failed
-                    ++npixelsread;
                     old_tx = tx;
                     old_ty = ty;
                     old_tz = tz;

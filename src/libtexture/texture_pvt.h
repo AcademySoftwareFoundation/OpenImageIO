@@ -377,7 +377,7 @@ private:
     /// Find the tile specified by id.  Just a pass-through to the
     /// underlying ImageCache.
     bool find_tile(const TileID& id, PerThreadInfo* thread_info,
-                   bool mark_same_tile_used = true)
+                   bool mark_same_tile_used)
     {
         return m_imagecache->find_tile(id, thread_info, mark_same_tile_used);
     }
