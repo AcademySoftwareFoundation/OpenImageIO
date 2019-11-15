@@ -153,14 +153,14 @@ ImageBufAlgo::mad(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_,
     // Get pointers to any image. At least one of A or B must be an image.
     const ImageBuf *A = A_.imgptr(), *B = B_.imgptr(), *C = C_.imgptr();
     if (!A && !B) {
-        dst.error(
+        dst.errorf(
             "ImageBufAlgo::mad(): at least one of the first two arguments must be an image");
         return false;
     }
     // All of the arguments that are images need to be initialized
     if ((A && !A->initialized()) || (B && !B->initialized())
         || (C && !C->initialized())) {
-        dst.error("Uninitialized input image");
+        dst.errorf("Uninitialized input image");
         return false;
     }
 
@@ -228,7 +228,7 @@ ImageBufAlgo::mad(Image_or_Const A, Image_or_Const B, Image_or_Const C, ROI roi,
     ImageBuf result;
     bool ok = mad(result, A, B, C, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::mad() error");
+        result.errorf("ImageBufAlgo::mad() error");
     return result;
 }
 
@@ -248,7 +248,7 @@ ImageBufAlgo::invert(const ImageBuf& A, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = invert(result, A, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("invert error");
+        result.errorf("invert error");
     return result;
 }
 

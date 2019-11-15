@@ -147,7 +147,7 @@ Field3DOutput::open(const std::string& name, const ImageSpec& userspec,
         return open(name, 1, &userspec);
 
     if (mode == AppendMIPLevel) {
-        error("%s does not support MIP-mapping", format_name());
+        errorf("%s does not support MIP-mapping", format_name());
         return false;
     }
 
@@ -157,8 +157,8 @@ Field3DOutput::open(const std::string& name, const ImageSpec& userspec,
 
     ++m_subimage;
     if (m_subimage >= m_nsubimages) {
-        error("Appending past the pre-declared number of subimages (%d)",
-              m_nsubimages);
+        errorf("Appending past the pre-declared number of subimages (%d)",
+               m_nsubimages);
         return false;
     }
 
@@ -178,7 +178,7 @@ Field3DOutput::open(const std::string& name, int subimages,
         close();
 
     if (subimages < 1) {
-        error("%s does not support %d subimages.", format_name(), subimages);
+        errorf("%s does not support %d subimages.", format_name(), subimages);
         return false;
     }
 
@@ -212,8 +212,8 @@ Field3DOutput::open(const std::string& name, int subimages,
             spec.format = TypeDesc::FLOAT;
         }
         if (spec.nchannels != 1 && spec.nchannels != 3) {
-            error("%s does not allow %d channels in a field (subimage %d)",
-                  format_name(), spec.nchannels, s);
+            errorf("%s does not allow %d channels in a field (subimage %d)",
+                   format_name(), spec.nchannels, s);
             return false;
         }
     }
@@ -309,7 +309,7 @@ Field3DOutput::write_scanline_specialized(int y, int z, const T* data)
         return true;
     }
 
-    error("Unknown field type");
+    errorf("Unknown field type");
     return false;
 }
 
@@ -386,7 +386,7 @@ Field3DOutput::write_tile_specialized(int x, int y, int z, const T* data)
         return true;
     }
 
-    error("Unknown field type");
+    errorf("Unknown field type");
     return false;
 }
 

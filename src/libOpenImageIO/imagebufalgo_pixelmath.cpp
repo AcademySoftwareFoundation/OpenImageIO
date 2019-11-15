@@ -76,7 +76,7 @@ ImageBufAlgo::clamp(const ImageBuf& src, cspan<float> min, cspan<float> max,
     ImageBuf result;
     bool ok = clamp(result, src, min, max, clampalpha01, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::clamp error");
+        result.errorf("ImageBufAlgo::clamp error");
     return result;
 }
 
@@ -161,7 +161,7 @@ ImageBufAlgo::absdiff(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_,
         return ok;
     }
     // Remaining cases: error
-    dst.error(
+    dst.errorf(
         "ImageBufAlgo::absdiff(): at least one argument must be an image");
     return false;
 }
@@ -174,7 +174,7 @@ ImageBufAlgo::absdiff(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = absdiff(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::absdiff() error");
+        result.errorf("ImageBufAlgo::absdiff() error");
     return result;
 }
 
@@ -195,7 +195,7 @@ ImageBufAlgo::abs(const ImageBuf& A, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = abs(result, A, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("abs error");
+        result.errorf("abs error");
     return result;
 }
 
@@ -236,7 +236,7 @@ ImageBufAlgo::pow(const ImageBuf& A, cspan<float> b, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = pow(result, A, b, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("pow error");
+        result.errorf("pow error");
     return result;
 }
 
@@ -293,7 +293,7 @@ ImageBufAlgo::channel_sum(const ImageBuf& src, cspan<float> weights, ROI roi,
     ImageBuf result;
     bool ok = channel_sum(result, src, weights, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("channel_sum error");
+        result.errorf("channel_sum error");
     return result;
 }
 
@@ -519,7 +519,7 @@ ImageBufAlgo::rangecompress(const ImageBuf& src, bool useluma, ROI roi,
     ImageBuf result;
     bool ok = rangecompress(result, src, useluma, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::rangecompress() error");
+        result.errorf("ImageBufAlgo::rangecompress() error");
     return result;
 }
 
@@ -532,7 +532,7 @@ ImageBufAlgo::rangeexpand(const ImageBuf& src, bool useluma, ROI roi,
     ImageBuf result;
     bool ok = rangeexpand(result, src, useluma, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::rangeexpand() error");
+        result.errorf("ImageBufAlgo::rangeexpand() error");
     return result;
 }
 
@@ -609,7 +609,7 @@ ImageBufAlgo::unpremult(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = unpremult(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::unpremult() error");
+        result.errorf("ImageBufAlgo::unpremult() error");
     return result;
 }
 
@@ -676,7 +676,7 @@ ImageBufAlgo::premult(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = premult(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::premult() error");
+        result.errorf("ImageBufAlgo::premult() error");
     return result;
 }
 
@@ -804,7 +804,7 @@ ImageBufAlgo::contrast_remap(const ImageBuf& src, cspan<float> black,
     bool ok = contrast_remap(result, src, black, white, min, max, scontrast,
                              sthresh, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::contrast_remap error");
+        result.errorf("ImageBufAlgo::contrast_remap error");
     return result;
 }
 
@@ -843,11 +843,11 @@ ImageBufAlgo::color_map(ImageBuf& dst, const ImageBuf& src, int srcchannel,
 {
     pvt::LoggedTimer logtime("IBA::color_map");
     if (srcchannel >= src.nchannels()) {
-        dst.error("invalid source channel selected");
+        dst.errorf("invalid source channel selected");
         return false;
     }
     if (nknots < 2 || knots.size() < (nknots * channels)) {
-        dst.error("not enough knot values supplied");
+        dst.errorf("not enough knot values supplied");
         return false;
     }
     if (!roi.defined())
@@ -877,7 +877,7 @@ ImageBufAlgo::color_map(const ImageBuf& src, int srcchannel, int nknots,
     bool ok = color_map(result, src, srcchannel, nknots, channels, knots, roi,
                         nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::color_map() error");
+        result.errorf("ImageBufAlgo::color_map() error");
     return result;
 }
 
@@ -971,7 +971,7 @@ ImageBufAlgo::color_map(ImageBuf& dst, const ImageBuf& src, int srcchannel,
 {
     pvt::LoggedTimer logtime("IBA::color_map");
     if (srcchannel >= src.nchannels()) {
-        dst.error("invalid source channel selected");
+        dst.errorf("invalid source channel selected");
         return false;
     }
     cspan<float> knots;
@@ -1000,7 +1000,7 @@ ImageBufAlgo::color_map(ImageBuf& dst, const ImageBuf& src, int srcchannel,
                                    0.75f, 0.0f,  1.0f, 1.0f,  1.0f };
         knots                  = cspan<float>(k);
     } else {
-        dst.error("Unknown map name \"%s\"", mapname);
+        dst.errorf("Unknown map name \"%s\"", mapname);
         return false;
     }
     return color_map(dst, src, srcchannel, int(knots.size() / 3), 3, knots, roi,
@@ -1015,7 +1015,7 @@ ImageBufAlgo::color_map(const ImageBuf& src, int srcchannel,
     ImageBuf result;
     bool ok = color_map(result, src, srcchannel, mapname, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::color_map() error");
+        result.errorf("ImageBufAlgo::color_map() error");
     return result;
 }
 
@@ -1188,7 +1188,7 @@ ImageBufAlgo::fixNonFinite(ImageBuf& dst, const ImageBuf& src,
         && mode != ImageBufAlgo::NONFINITE_BOX3
         && mode != ImageBufAlgo::NONFINITE_ERROR) {
         // Something went wrong
-        dst.error("fixNonFinite: unknown repair mode");
+        dst.errorf("fixNonFinite: unknown repair mode");
         return false;
     }
 
@@ -1218,7 +1218,7 @@ ImageBufAlgo::fixNonFinite(ImageBuf& dst, const ImageBuf& src,
     // pixel values, so the copy was enough.
 
     if (mode == ImageBufAlgo::NONFINITE_ERROR && *pixelsFixed) {
-        dst.error("Nonfinite pixel values found");
+        dst.errorf("Nonfinite pixel values found");
         ok = false;
     }
     return ok;
@@ -1233,7 +1233,7 @@ ImageBufAlgo::fixNonFinite(const ImageBuf& src, NonFiniteFixMode mode,
     ImageBuf result;
     bool ok = fixNonFinite(result, src, mode, pixelsFixed, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::fixNonFinite() error");
+        result.errorf("ImageBufAlgo::fixNonFinite() error");
     return result;
 }
 
@@ -1400,7 +1400,7 @@ ImageBufAlgo::over(const ImageBuf& A, const ImageBuf& B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = over(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::over() error");
+        result.errorf("ImageBufAlgo::over() error");
     return result;
 }
 
@@ -1431,7 +1431,7 @@ ImageBufAlgo::zover(const ImageBuf& A, const ImageBuf& B, bool z_zeroisinf,
     ImageBuf result;
     bool ok = zover(result, A, B, z_zeroisinf, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::zover() error");
+        result.errorf("ImageBufAlgo::zover() error");
     return result;
 }
 

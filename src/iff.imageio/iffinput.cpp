@@ -62,7 +62,7 @@ IffInput::open(const std::string& name, ImageSpec& spec)
 
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (!m_fd) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
@@ -95,7 +95,7 @@ IffInput::open(const std::string& name, ImageSpec& spec)
         // only 1 subimage for IFF
         m_spec.tile_depth = 1;
     } else {
-        error("\"%s\": wrong tile size", m_filename.c_str());
+        errorf("\"%s\": wrong tile size", m_filename);
         close();
         return false;
     }
@@ -421,8 +421,8 @@ IffInput::readimg()
                 }
 
             } else {
-                error("\"%s\": unsupported number of bits per pixel for tile",
-                      m_filename.c_str());
+                errorf("\"%s\": unsupported number of bits per pixel for tile",
+                       m_filename);
                 return false;
             }
 

@@ -106,7 +106,7 @@ PtexInput::open(const std::string& name, ImageSpec& newspec)
             m_ptex->release();
             m_ptex = NULL;
         }
-        error("%s", perr.c_str());
+        errorf("%s", perr);
         return false;
     }
 
@@ -145,7 +145,7 @@ PtexInput::seek_subimage(int subimage, int miplevel)
     case Ptex::dt_uint16: format = TypeDesc::UINT16; break;
     case Ptex::dt_half: format = TypeDesc::HALF; break;
     case Ptex::dt_float: format = TypeDesc::FLOAT; break;
-    default: error("Ptex with unknown data format"); return false;
+    default: errorf("Ptex with unknown data format"); return false;
     }
 
     m_spec = ImageSpec(std::max(1, m_faceres.u() >> miplevel),

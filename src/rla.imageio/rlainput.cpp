@@ -59,8 +59,8 @@ private:
     {
         size_t n = ::fread(buf, itemsize, nitems, m_file);
         if (n != nitems)
-            error("Read error: read %d records but %d expected %s", (int)n,
-                  (int)nitems, feof(m_file) ? " (hit EOF)" : "");
+            errorf("Read error: read %d records but %d expected %s", (int)n,
+                   (int)nitems, feof(m_file) ? " (hit EOF)" : "");
         return n == nitems;
     }
 
@@ -158,7 +158,7 @@ RLAInput::open(const std::string& name, ImageSpec& newspec)
 
     m_file = Filesystem::fopen(name, "rb");
     if (!m_file) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
@@ -179,14 +179,14 @@ RLAInput::read_header()
     // the m_rla structure (except for endianness issues).
     ASSERT(sizeof(m_rla) == 740 && "Bad RLA struct size");
     if (!read(&m_rla)) {
-        error("RLA could not read the image header");
+        errorf("RLA could not read the image header");
         return false;
     }
     m_rla.rla_swap_endian();  // fix endianness
 
     if (m_rla.Revision != (int16_t)0xFFFE
         && m_rla.Revision != 0 /* for some reason, this can happen */) {
-        error("RLA header Revision number unrecognized: %d", m_rla.Revision);
+        errorf("RLA header Revision number unrecognized: %d", m_rla.Revision);
         return false;  // unknown file revision
     }
     if (m_rla.NumOfChannelBits == 0)
@@ -198,7 +198,7 @@ RLAInput::read_header()
     // scanline of this subimage.
     m_sot.resize(std::abs(m_rla.ActiveBottom - m_rla.ActiveTop) + 1, 0);
     if (!read(&m_sot[0], m_sot.size())) {
-        error("RLA could not read the scanline offset table");
+        errorf("RLA could not read the scanline offset table");
         return false;
     }
     return true;
@@ -235,7 +235,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         --diff;
     }
     if (diff > 0 && m_rla.NextOffset == 0) {  // no more subimages to read
-        error("Unknown subimage");
+        errorf("Unknown subimage");
         return false;
     }
 
@@ -243,15 +243,15 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     // to fill out our ImageSpec.
 
     if (m_rla.ColorChannelType > CT_FLOAT) {
-        error("Illegal color channel type: %d", m_rla.ColorChannelType);
+        errorf("Illegal color channel type: %d", m_rla.ColorChannelType);
         return false;
     }
     if (m_rla.MatteChannelType > CT_FLOAT) {
-        error("Illegal matte channel type: %d", m_rla.MatteChannelType);
+        errorf("Illegal matte channel type: %d", m_rla.MatteChannelType);
         return false;
     }
     if (m_rla.AuxChannelType > CT_FLOAT) {
-        error("Illegal auxiliary channel type: %d", m_rla.AuxChannelType);
+        errorf("Illegal auxiliary channel type: %d", m_rla.AuxChannelType);
         return false;
     }
 
@@ -268,7 +268,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
                             : TypeUnknown;
     TypeDesc maxtype = ImageBufAlgo::type_merge(col_type, mat_type, aux_type);
     if (maxtype == TypeUnknown) {
-        error("Failed channel bytes sanity check");
+        errorf("Failed channel bytes sanity check");
         return false;  // failed sanity check
     }
 
@@ -472,7 +472,7 @@ RLAInput::decode_rle_span(unsigned char* buf, int n, int stride,
         }
     }
     if (n != 0) {
-        error("Read error: malformed RLE record");
+        errorf("Read error: malformed RLE record");
         return 0;
     }
     return e;
@@ -515,13 +515,13 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         // Read the length
         uint16_t length;  // number of encoded bytes
         if (!read(&length)) {
-            error("Read error: couldn't read RLE record length");
+            errorf("Read error: couldn't read RLE record length");
             return false;
         }
         // Read the encoded RLE record
         encoded.resize(length);
         if (!read(&encoded[0], length)) {
-            error("Read error: couldn't read RLE data span");
+            errorf("Read error: couldn't read RLE data span");
             return false;
         }
 

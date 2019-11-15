@@ -527,49 +527,49 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
     Filesystem::open(m_file, name, std::ios::binary);
 
     if (!m_file) {
-        error("\"%s\": failed to open file", name);
+        errorf("\"%s\": failed to open file", name);
         return false;
     }
 
     // File Header
     if (!load_header()) {
-        error("failed to open \"%s\": failed load_header", name);
+        errorf("failed to open \"%s\": failed load_header", name);
         return false;
     }
 
     // Color Mode Data
     if (!load_color_data()) {
-        error("failed to open \"%s\": failed load_color_data", name);
+        errorf("failed to open \"%s\": failed load_color_data", name);
         return false;
     }
 
     // Image Resources
     if (!load_resources()) {
-        error("failed to open \"%s\": failed load_resources", name);
+        errorf("failed to open \"%s\": failed load_resources", name);
         return false;
     }
 
     // Layers
     if (!load_layers()) {
-        error("failed to open \"%s\": failed load_layers", name);
+        errorf("failed to open \"%s\": failed load_layers", name);
         return false;
     }
 
     // Global Mask Info
     if (!load_global_mask_info()) {
-        error("failed to open \"%s\": failed load_global_mask_info", name);
+        errorf("failed to open \"%s\": failed load_global_mask_info", name);
         return false;
     }
 
     // Global Additional Layer Info
     if (!load_global_additional()) {
-        error("failed to open \"%s\": failed load_global_additional", name);
+        errorf("failed to open \"%s\": failed load_global_additional", name);
         return false;
     }
 
     // Image Data
     if (!load_image_data()) {
-        error("failed to open \"%s\": failed load_image_data", name);
+        errorf("failed to open \"%s\": failed load_image_data", name);
         return false;
     }
 
@@ -881,15 +881,15 @@ bool
 PSDInput::validate_header()
 {
     if (std::memcmp(m_header.signature, "8BPS", 4) != 0) {
-        error("[Header] invalid signature");
+        errorf("[Header] invalid signature");
         return false;
     }
     if (m_header.version != 1 && m_header.version != 2) {
-        error("[Header] invalid version");
+        errorf("[Header] invalid version");
         return false;
     }
     if (m_header.channel_count < 1 || m_header.channel_count > 56) {
-        error("[Header] invalid channel count");
+        errorf("[Header] invalid channel count");
         return false;
     }
     switch (m_header.version) {
@@ -897,11 +897,11 @@ PSDInput::validate_header()
         // PSD
         // width/height range: [1,30000]
         if (m_header.height < 1 || m_header.height > 30000) {
-            error("[Header] invalid image height");
+            errorf("[Header] invalid image height");
             return false;
         }
         if (m_header.width < 1 || m_header.width > 30000) {
-            error("[Header] invalid image width");
+            errorf("[Header] invalid image width");
             return false;
         }
         break;
@@ -909,11 +909,11 @@ PSDInput::validate_header()
         // PSB (Large Document Format)
         // width/height range: [1,300000]
         if (m_header.height < 1 || m_header.height > 300000) {
-            error("[Header] invalid image height");
+            errorf("[Header] invalid image height");
             return false;
         }
         if (m_header.width < 1 || m_header.width > 300000) {
-            error("[Header] invalid image width");
+            errorf("[Header] invalid image width");
             return false;
         }
         break;
@@ -921,7 +921,7 @@ PSDInput::validate_header()
     // Valid depths are 1,8,16,32
     if (m_header.depth != 1 && m_header.depth != 8 && m_header.depth != 16
         && m_header.depth != 32) {
-        error("[Header] invalid depth");
+        errorf("[Header] invalid depth");
         return false;
     }
     if (m_WantRaw)
@@ -936,8 +936,8 @@ PSDInput::validate_header()
     case ColorMode_CMYK:
     case ColorMode_Multichannel: break;
     case ColorMode_Duotone:
-    case ColorMode_Lab: error("[Header] unsupported color mode"); return false;
-    default: error("[Header] unrecognized color mode"); return false;
+    case ColorMode_Lab: errorf("[Header] unsupported color mode"); return false;
+    default: errorf("[Header] unrecognized color mode"); return false;
     }
     return true;
 }
@@ -967,13 +967,13 @@ bool
 PSDInput::validate_color_data()
 {
     if (m_header.color_mode == ColorMode_Duotone && m_color_data.length == 0) {
-        error(
+        errorf(
             "[Color Mode Data] color mode data should be present for duotone image");
         return false;
     }
     if (m_header.color_mode == ColorMode_Indexed
         && m_color_data.length != 768) {
-        error("[Color Mode Data] length should be 768 for indexed color mode");
+        errorf("[Color Mode Data] length should be 768 for indexed color mode");
         return false;
     }
     return true;
@@ -1037,7 +1037,7 @@ bool
 PSDInput::validate_resource(ImageResourceBlock& block)
 {
     if (std::memcmp(block.signature, "8BIM", 4) != 0) {
-        error("[Image Resource] invalid signature");
+        errorf("[Image Resource] invalid signature");
         return false;
     }
     return true;
@@ -1088,7 +1088,7 @@ PSDInput::load_resource_1005(uint32_t length)
     // if it can, perhaps we should be using ResolutionUnitH/ResolutionUnitV or
     // something similar.
     if (resinfo.hResUnit != resinfo.vResUnit) {
-        error(
+        errorf(
             "[Image Resource] [ResolutionInfo] Resolutions must have the same unit");
         return false;
     }
@@ -1096,7 +1096,8 @@ PSDInput::load_resource_1005(uint32_t length)
     // Note: This relies on the above check that the units are the same.
     if (resinfo.hResUnit != ResolutionInfo::PixelsPerInch
         && resinfo.hResUnit != ResolutionInfo::PixelsPerCentimeter) {
-        error("[Image Resource] [ResolutionInfo] Unrecognized resolution unit");
+        errorf(
+            "[Image Resource] [ResolutionInfo] Unrecognized resolution unit");
         return false;
     }
     common_attribute("XResolution", resinfo.hRes);
@@ -1170,7 +1171,7 @@ PSDInput::load_resource_1047(uint32_t length)
 {
     read_bige<int16_t>(m_transparency_index);
     if (m_transparency_index < 0 || m_transparency_index >= 768) {
-        error("[Image Resource] [Transparency Index] index is out of range");
+        errorf("[Image Resource] [Transparency Index] index is out of range");
         return false;
     }
     return true;
@@ -1187,7 +1188,7 @@ PSDInput::load_resource_1058(uint32_t length)
 
     if (!decode_exif(data, m_composite_attribs)
         || !decode_exif(data, m_common_attribs)) {
-        error("Failed to decode Exif data");
+        errorf("Failed to decode Exif data");
         return false;
     }
     return true;
@@ -1214,7 +1215,7 @@ PSDInput::load_resource_1060(uint32_t length)
     // Store the XMP data for the composite and all other subimages
     if (!decode_xmp(data, m_composite_attribs)
         || !decode_xmp(data, m_common_attribs)) {
-        error("Failed to decode XMP data");
+        errorf("Failed to decode XMP data");
         return false;
     }
     return true;
@@ -1230,7 +1231,7 @@ PSDInput::load_resource_1064(uint32_t length)
         return false;
 
     if (version != 1 && version != 2) {
-        error("[Image Resource] [Pixel Aspect Ratio] Unrecognized version");
+        errorf("[Image Resource] [Pixel Aspect Ratio] Unrecognized version");
         return false;
     }
     double aspect_ratio;
@@ -1275,7 +1276,7 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
     // We only support kJpegRGB since I don't have any test images with
     // kRawRGB
     if (format != kJpegRGB || bpp != 24 || planes != 1) {
-        error(
+        errorf(
             "[Image Resource] [JPEG Thumbnail] invalid or unsupported format");
         return false;
     }
@@ -1284,7 +1285,7 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
     jerr.pub.error_exit = thumbnail_error_exit;
     if (setjmp(jerr.setjmp_buffer)) {
         jpeg_destroy_decompress(&cinfo);
-        error("[Image Resource] [JPEG Thumbnail] libjpeg error");
+        errorf("[Image Resource] [JPEG Thumbnail] libjpeg error");
         return false;
     }
     std::string jpeg_data(jpeg_length, '\0');
@@ -1306,7 +1307,7 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
         if (jpeg_read_scanlines(&cinfo, buffer, 1) != 1) {
             jpeg_finish_decompress(&cinfo);
             jpeg_destroy_decompress(&cinfo);
-            error("[Image Resource] [JPEG Thumbnail] libjpeg error");
+            errorf("[Image Resource] [JPEG Thumbnail] libjpeg error");
             return false;
         }
         std::memcpy(&thumbnail_image[(cinfo.output_scanline - 1) * stride],
@@ -1424,7 +1425,7 @@ PSDInput::load_layer(Layer& layer)
         return false;
 
     if (std::memcmp(bm_signature, "8BIM", 4) != 0) {
-        error("[Layer Record] Invalid blend mode signature");
+        errorf("[Layer Record] Invalid blend mode signature");
         return false;
     }
     m_file.read(layer.bm_key, 4);
@@ -1482,7 +1483,7 @@ PSDInput::load_layer(Layer& layer)
         m_file.read(info.key, 4);
         if (std::memcmp(signature, "8BIM", 4) != 0
             && std::memcmp(signature, "8B64", 4) != 0) {
-            error("[Additional Layer Info] invalid signature");
+            errorf("[Additional Layer Info] invalid signature");
             return false;
         }
         extra_remaining -= 8;
@@ -1578,7 +1579,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     case Compression_ZIP:
     case Compression_ZIP_Predict:
     default:
-        error("[Layer Channel] unsupported compression");
+        errorf("[Layer Channel] unsupported compression");
         return false;
         ;
     }
@@ -1661,7 +1662,7 @@ PSDInput::load_global_additional()
         // the spec supports 8BIM, and 8B64 (presumably for psb support)
         if (std::memcmp(signature, "8BIM", 4) != 0
             && std::memcmp(signature, "8B64", 4) != 0) {
-            error("[Global Additional Layer Info] invalid signature");
+            errorf("[Global Additional Layer Info] invalid signature");
             return false;
         }
         m_file.read(key, 4);
@@ -1703,7 +1704,7 @@ PSDInput::load_image_data()
         return false;
 
     if (compression != Compression_Raw && compression != Compression_RLE) {
-        error("[Image Data Section] unsupported compression");
+        errorf("[Image Data Section] unsupported compression");
         return false;
     }
     m_image_data.channel_info.resize(m_header.channel_count);
@@ -1975,7 +1976,7 @@ bool
 PSDInput::check_io()
 {
     if (!m_file) {
-        error("\"%s\": I/O error", m_filename.c_str());
+        errorf("\"%s\": I/O error", m_filename);
         return false;
     }
     return true;

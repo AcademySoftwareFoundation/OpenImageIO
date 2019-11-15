@@ -302,7 +302,7 @@ PNMInput::read_file_scanline(void* data, int y)
         return good;
 
     } catch (const std::exception& e) {
-        error("PNM exception: %s", e.what());
+        errorf("PNM exception: %s", e.what());
         return false;
     }
 }
@@ -405,7 +405,7 @@ PNMInput::read_file_header()
             return true;
         }
     } catch (const std::exception& e) {
-        error("PNM exception: %s", e.what());
+        errorf("PNM exception: %s", e.what());
         return false;
     }
 }

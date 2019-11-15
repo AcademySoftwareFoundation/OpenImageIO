@@ -175,7 +175,7 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
     gzread(m_gz, &header, sizeof(header));
 
     if (header.magic != zfile_magic && header.magic != zfile_magic_endian) {
-        error("Not a valid Zfile");
+        errorf("Not a valid Zfile");
         return false;
     }
 
@@ -254,7 +254,7 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
                   OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -265,8 +265,8 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
-        error("Image resolution must be at least 1x1, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.width > 32767 || m_spec.height > 32767) {
@@ -277,12 +277,12 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
     if (m_spec.depth < 1)
         m_spec.depth = 1;
     if (m_spec.depth > 1) {
-        error("%s does not support volume images (depth > 1)", format_name());
+        errorf("%s does not support volume images (depth > 1)", format_name());
         return false;
     }
 
     if (m_spec.nchannels != 1) {
-        error("Zfile only supports 1 channel, not %d", m_spec.nchannels);
+        errorf("Zfile only supports 1 channel, not %d", m_spec.nchannels);
         return false;
     }
 
@@ -323,7 +323,7 @@ ZfileOutput::open(const std::string& name, const ImageSpec& userspec,
         b = fwrite(&header, sizeof(header), 1, m_file);
     }
     if (!b) {
-        error("Failed write zfile::open (err: %d)", b);
+        errorf("Failed write zfile::open (err: %d)", b);
         return false;
     }
 
@@ -383,7 +383,7 @@ ZfileOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     else {
         size_t b = fwrite(data, sizeof(float), m_spec.width, m_file);
         if (b != (size_t)m_spec.width) {
-            error("Failed write zfile::open (err: %d)", b);
+            errorf("Failed write zfile::open (err: %d)", b);
             return false;
         }
     }

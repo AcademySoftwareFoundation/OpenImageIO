@@ -78,13 +78,13 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     // open the image
     m_stream = new InStream();
     if (!m_stream->Open(name.c_str())) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
     m_cin.SetInStream(m_stream);
     if (!m_cin.ReadHeader()) {
-        error("Could not read header");
+        errorf("Could not read header");
         return false;
     }
 
@@ -100,7 +100,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     case 2: typedesc = TypeDesc::UINT16; break;
     case 3:
     case 4: typedesc = TypeDesc::UINT32; break;
-    default: error("Unsupported bit depth %d", maxbits); return false;
+    default: errorf("Unsupported bit depth %d", maxbits); return false;
     }
     m_spec = ImageSpec(m_cin.header.Width(), m_cin.header.Height(),
                        m_cin.header.NumberOfElements(), typedesc);

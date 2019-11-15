@@ -104,13 +104,13 @@ ImageBufAlgo::flatten(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
                  IBAprep_SUPPORT_DEEP | IBAprep_DEEP_MIXED))
         return false;
     if (dst.spec().deep) {
-        dst.error("Cannot flatten to a deep image");
+        dst.errorf("Cannot flatten to a deep image");
         return false;
     }
 
     const DeepData* dd = src.deepdata();
     if (dd->AR_channel() < 0 || dd->AG_channel() < 0 || dd->AB_channel() < 0) {
-        dst.error("No alpha channel could be identified");
+        dst.errorf("No alpha channel could be identified");
         return false;
     }
 
@@ -128,7 +128,7 @@ ImageBufAlgo::flatten(const ImageBuf& src, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = flatten(result, src, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::flatten error");
+        result.errorf("ImageBufAlgo::flatten error");
     return result;
 }
 
@@ -173,7 +173,7 @@ ImageBufAlgo::deepen(ImageBuf& dst, const ImageBuf& src, float zvalue, ROI roi,
                  IBAprep_SUPPORT_DEEP | IBAprep_DEEP_MIXED))
         return false;
     if (!dst.deep()) {
-        dst.error("Cannot deepen to a flat image");
+        dst.errorf("Cannot deepen to a flat image");
         return false;
     }
 
@@ -232,7 +232,7 @@ ImageBufAlgo::deepen(const ImageBuf& src, float zvalue, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = deepen(result, src, zvalue, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::deepen error");
+        result.errorf("ImageBufAlgo::deepen error");
     return result;
 }
 
@@ -245,14 +245,14 @@ ImageBufAlgo::deep_merge(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
     pvt::LoggedTimer logtime("IBA::deep_merge");
     if (!A.deep() || !B.deep()) {
         // For some reason, we were asked to merge a flat image.
-        dst.error("deep_merge can only be performed on deep images");
+        dst.errorf("deep_merge can only be performed on deep images");
         return false;
     }
     if (!IBAprep(roi, &dst, &A, &B, NULL,
                  IBAprep_SUPPORT_DEEP | IBAprep_REQUIRE_MATCHING_CHANNELS))
         return false;
     if (!dst.deep()) {
-        dst.error("Cannot deep_merge to a flat image");
+        dst.errorf("Cannot deep_merge to a flat image");
         return false;
     }
 
@@ -356,7 +356,7 @@ ImageBufAlgo::deep_merge(const ImageBuf& A, const ImageBuf& B,
     ImageBuf result;
     bool ok = deep_merge(result, A, B, occlusion_cull, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::deep_merge error");
+        result.errorf("ImageBufAlgo::deep_merge error");
     return result;
 }
 
@@ -368,13 +368,13 @@ ImageBufAlgo::deep_holdout(ImageBuf& dst, const ImageBuf& src,
 {
     pvt::LoggedTimer logtime("IBA::deep_holdout");
     if (!src.deep() || !thresh.deep()) {
-        dst.error("deep_holdout can only be performed on deep images");
+        dst.errorf("deep_holdout can only be performed on deep images");
         return false;
     }
     if (!IBAprep(roi, &dst, &src, &thresh, NULL, IBAprep_SUPPORT_DEEP))
         return false;
     if (!dst.deep()) {
-        dst.error("Cannot deep_holdout into a flat image");
+        dst.errorf("Cannot deep_holdout into a flat image");
         return false;
     }
 
@@ -439,7 +439,7 @@ ImageBufAlgo::deep_holdout(const ImageBuf& src, const ImageBuf& thresh, ROI roi,
     ImageBuf result;
     bool ok = deep_holdout(result, src, thresh, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::deep_holdout error");
+        result.errorf("ImageBufAlgo::deep_holdout error");
     return result;
 }
 

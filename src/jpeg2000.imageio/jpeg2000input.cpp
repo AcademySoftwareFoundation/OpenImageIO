@@ -24,7 +24,7 @@ openjpeg_error_callback(const char* msg, void* data)
     if (ImageInput* input = (ImageInput*)data) {
         if (!msg || !msg[0])
             msg = "Unknown OpenJpeg error";
-        input->error("%s", msg);
+        input->errorf("%s", msg);
     }
 }
 
@@ -186,13 +186,13 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
 {
     m_filename = p_name;
     if (!Filesystem::exists(m_filename)) {
-        error("Could not open file \"%s\"", m_filename);
+        errorf("Could not open file \"%s\"", m_filename);
         return false;
     }
 
     m_codec = create_decompressor();
     if (!m_codec) {
-        error("Could not create Jpeg2000 stream decompressor");
+        errorf("Could not create Jpeg2000 stream decompressor");
         close();
         return false;
     }
@@ -212,14 +212,14 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     m_stream = opj_stream_create_default_file_stream(m_file, true);
 #endif
     if (!m_stream) {
-        error("Could not open Jpeg2000 stream");
+        errorf("Could not open Jpeg2000 stream");
         close();
         return false;
     }
 
     ASSERT(m_image == NULL);
     if (!opj_read_header(m_stream, m_codec, &m_image)) {
-        error("Could not read Jpeg2000 header");
+        errorf("Could not read Jpeg2000 header");
         close();
         return false;
     }
@@ -231,7 +231,7 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     // we support only one, three or four components in image
     const int channelCount = m_image->numcomps;
     if (channelCount != 1 && channelCount != 3 && channelCount != 4) {
-        error("Only images with one, three or four components are supported");
+        errorf("Only images with one, three or four components are supported");
         close();
         return false;
     }
@@ -373,7 +373,7 @@ Jpeg2000Input::create_decompressor()
     int magic[3];
     size_t r = Filesystem::read_bytes(m_filename, magic, sizeof(magic));
     if (r != 3 * sizeof(int)) {
-        error("Empty file \"%s\"", m_filename);
+        errorf("Empty file \"%s\"", m_filename);
         return NULL;
     }
 

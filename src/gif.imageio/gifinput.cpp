@@ -292,7 +292,7 @@ GIFInput::read_subimage_data()
     } else if (m_gif_file->SColorMap) {  // global colormap
         colormap = m_gif_file->SColorMap->Colors;
     } else {
-        error("Neither local nor global colormap present.");
+        errorf("Neither local nor global colormap present.");
         return false;
     }
 
@@ -361,12 +361,12 @@ GIFInput::seek_subimage(int subimage, int miplevel)
         int giflib_error;
         if (!(m_gif_file = DGifOpenFileName(m_filename.c_str(),
                                             &giflib_error))) {
-            error(GifErrorString(giflib_error));
+            errorf("%s", GifErrorString(giflib_error));
             return false;
         }
 #else
         if (!(m_gif_file = DGifOpenFileName(m_filename.c_str()))) {
-            error("Error trying to open the file.");
+            errorf("Error trying to open the file.");
             return false;
         }
 #endif
@@ -421,13 +421,13 @@ GIFInput::report_last_error(void)
     // error was for *this* file.  So if you're using giflib prior to
     // version 5, beware.
 #if GIFLIB_MAJOR >= 5
-    error("%s", GifErrorString(m_gif_file->Error));
+    errorf("%s", GifErrorString(m_gif_file->Error));
 #elif GIFLIB_MAJOR == 4 && GIFLIB_MINOR >= 2
     spin_lock lock(gif_error_mutex);
-    error("%s", GifErrorString());
+    errorf("%s", GifErrorString());
 #else
     spin_lock lock(gif_error_mutex);
-    error("GIF error %d", GifLastError());
+    errorf("GIF error %d", GifLastError());
 #endif
 }
 
@@ -442,7 +442,7 @@ GIFInput::close(void)
 #else
         if (DGifCloseFile(m_gif_file) == GIF_ERROR) {
 #endif
-            error("Error trying to close the file.");
+            errorf("Error trying to close the file.");
             return false;
         }
         m_gif_file = NULL;

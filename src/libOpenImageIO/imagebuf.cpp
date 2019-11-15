@@ -871,12 +871,12 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     if (m_spec.deep) {
         auto input = ImageInput::open(m_name.string(), m_configspec.get());
         if (!input) {
-            error("%s", OIIO::geterror());
+            errorf("%s", OIIO::geterror());
             return false;
         }
         input->threads(threads());  // Pass on our thread policy
         if (!input->read_native_deep_image(subimage, miplevel, m_deepdata)) {
-            error("%s", input->geterror());
+            errorf("%s", input->geterror());
             return false;
         }
         m_spec         = m_nativespec;  // Deep images always use native data
@@ -982,11 +982,11 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                 m_pixels_valid = true;
             } else {
                 m_pixels_valid = false;
-                error("%s", in->geterror());
+                errorf("%s", in->geterror());
             }
         } else {
             m_pixels_valid = false;
-            error("%s", OIIO::geterror());
+            errorf("%s", OIIO::geterror());
         }
         return m_pixels_valid;
     }
@@ -1001,7 +1001,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         m_pixels_valid = true;
     } else {
         m_pixels_valid = false;
-        error("%s", m_imagecache->geterror());
+        errorf("%s", m_imagecache->geterror());
     }
 
     return m_pixels_valid;
@@ -1144,7 +1144,7 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
         }
     }
     if (!ok)
-        error("%s", out->geterror());
+        errorf("%s", out->geterror());
     return ok;
 }
 
@@ -1158,7 +1158,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
     string_view filename   = _filename.size() ? _filename : name();
     string_view fileformat = _fileformat.size() ? _fileformat : filename;
     if (filename.size() == 0) {
-        error("ImageBuf::write() called with no filename");
+        errorf("ImageBuf::write() called with no filename");
         return false;
     }
     m_impl->validate_pixels();
@@ -1172,7 +1172,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
         m_impl->read(subimage(), miplevel(), 0, -1, true /*force*/,
                      spec().format, nullptr, nullptr);
         if (storage() != LOCALBUFFER) {
-            error("ImageBuf overwriting %s but could not force read", name());
+            errorf("ImageBuf overwriting %s but could not force read", name());
             return false;
         }
     }
@@ -1190,7 +1190,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
 
     auto out = ImageOutput::create(fileformat.c_str(), "" /* searchpath */);
     if (!out) {
-        error("%s", geterror());
+        errorf("%s", geterror());
         return false;
     }
     out->threads(threads());  // Pass on our thread policy
@@ -1233,7 +1233,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
     }
 
     if (!out->open(filename.c_str(), newspec)) {
-        error("%s", out->geterror());
+        errorf("%s", out->geterror());
         return false;
     }
     if (!write(out.get(), progress_callback, progress_callback_data))
@@ -1968,7 +1968,7 @@ ImageBuf::set_pixels(ROI roi, TypeDesc format, const void* data,
                      stride_t xstride, stride_t ystride, stride_t zstride)
 {
     if (!initialized()) {
-        error("Cannot set_pixels() on an uninitialized ImageBuf");
+        errorf("Cannot set_pixels() on an uninitialized ImageBuf");
         return false;
     }
     bool ok;
@@ -2504,7 +2504,7 @@ ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
         if (!tile) {
             // Even though tile is NULL, ensure valid black pixel data
             std::string e = m_imagecache->geterror();
-            error("%s", e.size() ? e : "unspecified ImageCache error");
+            errorf("%s", e.size() ? e : "unspecified ImageCache error");
             return &m_blackpixel[0];
         }
     }

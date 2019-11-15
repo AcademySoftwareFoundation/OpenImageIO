@@ -85,22 +85,22 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
 
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (!m_fd) {
-        error("Could not open file \"%s\"", name.c_str());
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
 
     // Try read the header
     if (!m_pic_header.read_header(m_fd)) {
-        error("\"%s\": failed to read header", m_filename.c_str());
+        errorf("\"%s\": failed to read header", m_filename);
         close();
         return false;
     }
 
     // Check whether it has the pic magic number
     if (m_pic_header.magic != 0x5380f634) {
-        error(
+        errorf(
             "\"%s\" is not a Softimage Pic file, magic number of 0x%X is not Pic",
-            m_filename.c_str(), m_pic_header.magic);
+            m_filename, m_pic_header.magic);
         close();
         return false;
     }
@@ -112,7 +112,7 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
         // Read the next packet into curPacket and store it off
         if (fread(&curPacket, 1, sizeof(ChannelPacket), m_fd)
             != sizeof(ChannelPacket)) {
-            error("Unexpected end of file \"%s\".", m_filename.c_str());
+            errorf("Unexpected end of file \"%s\".", m_filename);
             close();
             return false;
         }
@@ -189,8 +189,7 @@ SoftimageInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
         // Let's seek to the scanline's data
         if (fsetpos(m_fd, &m_scanline_markers[y])) {
-            error("Failed to seek to scanline %d in \"%s\"", y,
-                  m_filename.c_str());
+            errorf("Failed to seek to scanline %d in \"%s\"", y, m_filename);
             close();
             return false;
         }
@@ -201,9 +200,9 @@ SoftimageInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         if (m_scanline_markers.size() < m_pic_header.height) {
             if (fsetpos(m_fd,
                         &m_scanline_markers[m_scanline_markers.size() - 1])) {
-                error("Failed to restore to scanline %llu in \"%s\"",
-                      (long long unsigned int)m_scanline_markers.size() - 1,
-                      m_filename.c_str());
+                errorf("Failed to restore to scanline %llu in \"%s\"",
+                       (long long unsigned int)m_scanline_markers.size() - 1,
+                       m_filename);
                 close();
                 return false;
             }
@@ -236,24 +235,24 @@ SoftimageInput::read_next_scanline(void* data)
     for (auto& cp : m_channel_packets) {
         if (cp.type & UNCOMPRESSED) {
             if (!read_pixels_uncompressed(cp, data)) {
-                error("Failed to read uncompressed pixel data from \"%s\"",
-                      m_filename.c_str());
+                errorf("Failed to read uncompressed pixel data from \"%s\"",
+                       m_filename);
                 close();
                 return false;
             }
         } else if (cp.type & PURE_RUN_LENGTH) {
             if (!read_pixels_pure_run_length(cp, data)) {
-                error(
+                errorf(
                     "Failed to read pure run length encoded pixel data from \"%s\"",
-                    m_filename.c_str());
+                    m_filename);
                 close();
                 return false;
             }
         } else if (cp.type & MIXED_RUN_LENGTH) {
             if (!read_pixels_mixed_run_length(cp, data)) {
-                error(
+                errorf(
                     "Failed to read mixed run length encoded pixel data from \"%s\"",
-                    m_filename.c_str());
+                    m_filename);
                 close();
                 return false;
             }

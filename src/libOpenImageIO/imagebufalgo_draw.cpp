@@ -149,7 +149,7 @@ ImageBufAlgo::fill(cspan<float> pixel, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = fill(result, pixel, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("fill error");
+        result.errorf("fill error");
     return result;
 }
 
@@ -160,7 +160,7 @@ ImageBufAlgo::fill(cspan<float> top, cspan<float> bottom, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = fill(result, top, bottom, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("fill error");
+        result.errorf("fill error");
     return result;
 }
 
@@ -174,7 +174,7 @@ ImageBufAlgo::fill(cspan<float> topleft, cspan<float> topright,
     bool ok = fill(result, topleft, topright, bottomleft, bottomright, roi,
                    nthreads);
     if (!ok && !result.has_error())
-        result.error("fill error");
+        result.errorf("fill error");
     return result;
 }
 
@@ -201,7 +201,7 @@ ImageBufAlgo::zero(ROI roi, int nthreads)
     ImageBuf result;
     bool ok = zero(result, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("zero error");
+        result.errorf("zero error");
     return result;
 }
 
@@ -509,7 +509,7 @@ ImageBufAlgo::checker(int width, int height, int depth, cspan<float> color1,
     bool ok = checker(result, width, height, depth, color1, color2, xoffset,
                       yoffset, zoffset, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("checker error");
+        result.errorf("checker error");
     return result;
 }
 
@@ -634,7 +634,7 @@ ImageBufAlgo::noise(ImageBuf& dst, string_view noisetype, float A, float B,
                                    roi, nthreads);
     } else {
         ok = false;
-        dst.error("noise", "unknown noise type \"%s\"", noisetype);
+        dst.errorf("noise", "unknown noise type \"%s\"", noisetype);
     }
     return ok;
 }
@@ -649,7 +649,7 @@ ImageBufAlgo::noise(string_view noisetype, float A, float B, bool mono,
     bool ok         = true;
     ok              = noise(result, noisetype, A, B, mono, seed, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("noise error");
+        result.errorf("noise error");
     return result;
 }
 
@@ -885,7 +885,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
 {
     pvt::LoggedTimer logtime("IBA::render_text");
     if (R.spec().depth > 1) {
-        R.error("ImageBufAlgo::render_text does not support volume images");
+        R.errorf("ImageBufAlgo::render_text does not support volume images");
         return false;
     }
 
@@ -897,7 +897,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     bool ok = resolve_font(fontsize, font_, font);
     if (!ok) {
         std::string err = font.size() ? font : "Font error";
-        R.error("%s", err);
+        R.errorf("%s", err);
         return false;
     }
 
@@ -905,7 +905,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     FT_Face face;  // handle to face object
     error = FT_New_Face(ft_library, font.c_str(), 0 /* face index */, &face);
     if (error) {
-        R.error("Could not set font face to \"%s\"", font);
+        R.errorf("Could not set font face to \"%s\"", font);
         return false;  // couldn't open the face
     }
 
@@ -913,7 +913,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
                                fontsize /*height*/);
     if (error) {
         FT_Done_Face(face);
-        R.error("Could not set font size to %d", fontsize);
+        R.errorf("Could not set font size to %d", fontsize);
         return false;  // couldn't set the character size
     }
 
@@ -1007,7 +1007,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     return true;
 
 #else
-    R.error("OpenImageIO was not compiled with FreeType for font rendering");
+    R.errorf("OpenImageIO was not compiled with FreeType for font rendering");
     return false;  // Font rendering not supported
 #endif
 }

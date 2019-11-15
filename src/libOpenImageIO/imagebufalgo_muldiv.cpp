@@ -119,7 +119,7 @@ ImageBufAlgo::mul(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         return ok;
     }
     // Remaining cases: error
-    dst.error("ImageBufAlgo::mul(): at least one argument must be an image");
+    dst.errorf("ImageBufAlgo::mul(): at least one argument must be an image");
     return false;
 }
 
@@ -131,7 +131,7 @@ ImageBufAlgo::mul(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = mul(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::mul() error");
+        result.errorf("ImageBufAlgo::mul() error");
     return result;
 }
 
@@ -199,7 +199,7 @@ ImageBufAlgo::div(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         return ok;
     }
     // Remaining cases: error
-    dst.error("ImageBufAlgo::div(): at least one argument must be an image");
+    dst.errorf("ImageBufAlgo::div(): at least one argument must be an image");
     return false;
 }
 
@@ -211,7 +211,7 @@ ImageBufAlgo::div(Image_or_Const A, Image_or_Const B, ROI roi, int nthreads)
     ImageBuf result;
     bool ok = div(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.error("ImageBufAlgo::div() error");
+        result.errorf("ImageBufAlgo::div() error");
     return result;
 }
 

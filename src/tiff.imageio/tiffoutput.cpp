@@ -322,7 +322,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                  OpenMode mode)
 {
     if (mode == AppendMIPLevel) {
-        error("%s does not support MIP levels", format_name());
+        errorf("%s does not support MIP levels", format_name());
         return false;
     }
 
@@ -331,15 +331,15 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // Check for things this format doesn't support
     if (m_spec.width < 1 || m_spec.height < 1) {
-        error("Image resolution must be at least 1x1, you asked for %d x %d",
-              m_spec.width, m_spec.height);
+        errorf("Image resolution must be at least 1x1, you asked for %d x %d",
+               m_spec.width, m_spec.height);
         return false;
     }
     if (m_spec.tile_width) {
         if (m_spec.tile_width % 16 != 0 || m_spec.tile_height % 16 != 0
             || m_spec.tile_height == 0) {
-            error("Tile size must be a multiple of 16, you asked for %d x %d",
-                  m_spec.tile_width, m_spec.tile_height);
+            errorf("Tile size must be a multiple of 16, you asked for %d x %d",
+                   m_spec.tile_width, m_spec.tile_height);
             return false;
         }
     }
@@ -865,13 +865,13 @@ TIFFOutput::write_exif_data()
 
     // First, finish writing the current directory
     if (!TIFFWriteDirectory(m_tif)) {
-        error("failed TIFFWriteDirectory()");
+        errorf("failed TIFFWriteDirectory()");
         return false;
     }
 
     // Create an Exif directory
     if (TIFFCreateEXIFDirectory(m_tif) != 0) {
-        error("failed TIFFCreateEXIFDirectory()");
+        errorf("failed TIFFCreateEXIFDirectory()");
         return false;
     }
 
@@ -908,7 +908,7 @@ TIFFOutput::write_exif_data()
     // Now write the directory of Exif data
     uint64 dir_offset = 0;
     if (!TIFFWriteCustomDirectory(m_tif, &dir_offset)) {
-        error("failed TIFFWriteCustomDirectory() of the Exif data");
+        errorf("failed TIFFWriteCustomDirectory() of the Exif data");
         return false;
     }
     // Go back to the first directory, and add the EXIFIFD pointer.
@@ -1035,8 +1035,8 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                                   c)
                 < 0) {
                 std::string err = oiio_tiff_last_error();
-                error("TIFFWriteScanline failed writing line y=%d,z=%d (%s)", y,
-                      z, err.size() ? err.c_str() : "unknown error");
+                errorf("TIFFWriteScanline failed writing line y=%d,z=%d (%s)",
+                       y, z, err.size() ? err.c_str() : "unknown error");
                 return false;
             }
         }
@@ -1047,8 +1047,8 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         data = move_to_scratch(data, scanline_vals * m_spec.format.size());
         if (TIFFWriteScanline(m_tif, (tdata_t)data, y) < 0) {
             std::string err = oiio_tiff_last_error();
-            error("TIFFWriteScanline failed writing line y=%d,z=%d (%s)", y, z,
-                  err.size() ? err.c_str() : "unknown error");
+            errorf("TIFFWriteScanline failed writing line y=%d,z=%d (%s)", y, z,
+                   err.size() ? err.c_str() : "unknown error");
             return false;
         }
     }
@@ -1198,15 +1198,15 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
         // it needs is not yet done.
         tasks.wait_for_task(stripidx);
         if (!ok) {
-            error("Compression error");
+            errorf("Compression error");
             return false;
         }
         if (TIFFWriteRawStrip(m_tif, stripnum, (tdata_t)cbuf,
                               tmsize_t(compressed_len[stripidx]))
             < 0) {
             std::string err = oiio_tiff_last_error();
-            error("TIFFWriteRawStrip failed writing line y=%d,z=%d: %s", y, z,
-                  err.size() ? err.c_str() : "unknown error");
+            errorf("TIFFWriteRawStrip failed writing line y=%d,z=%d: %s", y, z,
+                   err.size() ? err.c_str() : "unknown error");
             return false;
         }
     }
@@ -1286,9 +1286,9 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                               z, c)
                 < 0) {
                 std::string err = oiio_tiff_last_error();
-                error("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
-                      x + m_spec.x, y + m_spec.y, z + m_spec.z,
-                      err.size() ? err.c_str() : "unknown error");
+                errorf("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
+                       x + m_spec.x, y + m_spec.y, z + m_spec.z,
+                       err.size() ? err.c_str() : "unknown error");
                 return false;
             }
         }
@@ -1299,9 +1299,9 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
         data = move_to_scratch(data, tile_vals * m_spec.format.size());
         if (TIFFWriteTile(m_tif, (tdata_t)data, x, y, z, 0) < 0) {
             std::string err = oiio_tiff_last_error();
-            error("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
-                  x + m_spec.x, y + m_spec.y, z + m_spec.z,
-                  err.size() ? err.c_str() : "unknown error");
+            errorf("TIFFWriteTile failed writing tile x=%d,y=%d,z=%d (%s)",
+                   x + m_spec.x, y + m_spec.y, z + m_spec.z,
+                   err.size() ? err.c_str() : "unknown error");
             return false;
         }
     }
@@ -1459,14 +1459,14 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                 tasks.wait_for_task(tileno);
                 char* cbuf = compressed_scratch.get() + tileno * cbound;
                 if (!ok) {
-                    error("Compression error");
+                    errorf("Compression error");
                     return false;
                 }
                 if (TIFFWriteRawTile(m_tif, uint32_t(tile_index(x, y, z)), cbuf,
                                      compressed_len[tileno])
                     < 0) {
                     std::string err = oiio_tiff_last_error();
-                    error(
+                    errorf(
                         "TIFFWriteRawTile failed writing tile %d (x=%d,y=%d,z=%d): %s",
                         tile_index(x, y, z), x, y, z,
                         err.size() ? err.c_str() : "unknown error");

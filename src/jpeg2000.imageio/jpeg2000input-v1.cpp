@@ -138,7 +138,7 @@ private:
     {
         size_t n = ::fread(p_buf, p_itemSize, p_nitems, m_file);
         if (n != p_nitems)
-            error("Read error");
+            errorf("Read error");
         return n == p_nitems;
     }
 };
@@ -179,13 +179,13 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     m_filename = p_name;
     m_file     = Filesystem::fopen(m_filename, "rb");
     if (!m_file) {
-        error("Could not open file \"%s\"", m_filename.c_str());
+        errorf("Could not open file \"%s\"", m_filename);
         return false;
     }
 
     opj_dinfo_t* decompressor = create_decompressor();
     if (!decompressor) {
-        error("Could not create Jpeg2000 stream decompressor");
+        errorf("Could not create Jpeg2000 stream decompressor");
         close();
         return false;
     }
@@ -204,7 +204,7 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     opj_cio_t* cio = opj_cio_open((opj_common_ptr)decompressor, &fileContent[0],
                                   (int)fileLength);
     if (!cio) {
-        error("Could not open Jpeg2000 stream");
+        errorf("Could not open Jpeg2000 stream");
         opj_destroy_decompress(decompressor);
         close();
         return false;
@@ -214,7 +214,7 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     opj_cio_close(cio);
     opj_destroy_decompress(decompressor);
     if (!m_image) {
-        error("Could not decode Jpeg2000 stream");
+        errorf("Could not decode Jpeg2000 stream");
         close();
         return false;
     }
@@ -222,7 +222,7 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
     // we support only one, three or four components in image
     const int channelCount = m_image->numcomps;
     if (channelCount != 1 && channelCount != 3 && channelCount != 4) {
-        error("Only images with one, three or four components are supported");
+        errorf("Only images with one, three or four components are supported");
         close();
         return false;
     }
@@ -361,7 +361,7 @@ Jpeg2000Input::create_decompressor()
 {
     int magic[3];
     if (::fread(&magic, 4, 3, m_file) != 3) {
-        error("Empty file \"%s\"", m_filename.c_str());
+        errorf("Empty file \"%s\"", m_filename);
         return NULL;
     }
     opj_dinfo_t* dinfo = NULL;

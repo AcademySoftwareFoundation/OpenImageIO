@@ -76,7 +76,7 @@ bool
 WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorf("%s does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -85,8 +85,8 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_spec     = spec;
 
     if (m_spec.nchannels != 3 && m_spec.nchannels != 4) {
-        error("%s does not support %d-channel images\n", format_name(),
-              m_spec.nchannels);
+        errorf("%s does not support %d-channel images\n", format_name(),
+               m_spec.nchannels);
         return false;
     }
 
@@ -97,7 +97,7 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     }
 
     if (!WebPPictureInit(&m_webp_picture)) {
-        error("Couldn't initialize WebPPicture\n");
+        errorf("Couldn't initialize WebPPicture\n");
         close();
         return false;
     }
@@ -108,7 +108,7 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_webp_picture.custom_ptr = (void*)m_file;
 
     if (!WebPConfigInit(&m_webp_config)) {
-        error("Couldn't initialize WebPPicture\n");
+        errorf("Couldn't initialize WebPPicture\n");
         close();
         return false;
     }
@@ -140,7 +140,7 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                            stride_t xstride)
 {
     if (y > m_spec.height) {
-        error("Attempt to write too many scanlines to %s", m_filename.c_str());
+        errorf("Attempt to write too many scanlines to %s", m_filename);
         close();
         return false;
     }
@@ -165,7 +165,7 @@ WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                                  m_scanline_size);
         }
         if (!WebPEncode(&m_webp_config, &m_webp_picture)) {
-            error("Failed to encode %s as WebP image", m_filename.c_str());
+            errorf("Failed to encode %s as WebP image", m_filename);
             close();
             return false;
         }
