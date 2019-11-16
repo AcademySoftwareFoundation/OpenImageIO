@@ -52,6 +52,16 @@ BmpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
         return false;
     }
 
+    // Only support 8 bit channels for now.
+    m_spec.set_format(TypeDesc::UINT8);
+    m_dither = m_spec.get_int_attribute("oiio:dither", 0);
+
+    int64_t file_size = m_spec.image_bytes() + BMP_HEADER_SIZE + WINDOWS_V3;
+    if (file_size >= int64_t(1) << 32) {
+        errorf("%s does not support files over 4GB in size\n", format_name());
+        return false;
+    }
+
     m_fd = Filesystem::fopen(m_filename, "wb");
     if (!m_fd) {
         errorf("Could not open \"%s\"", m_filename);
@@ -63,11 +73,7 @@ BmpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     // Scanline size is rounded up to align to 4-byte boundary
     m_padded_scanline_size = ((m_spec.width * m_spec.nchannels) + 3) & ~3;
-    fgetpos(m_fd, &m_image_start);
-
-    // Only support 8 bit channels for now.
-    m_spec.set_format(TypeDesc::UINT8);
-    m_dither = m_spec.get_int_attribute("oiio:dither", 0);
+    m_image_start          = Filesystem::ftell(m_fd);
 
     // If user asked for tiles -- which this format doesn't support, emulate
     // it by buffering the whole image.
@@ -91,14 +97,14 @@ BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
     if (m_spec.width >= 0)
         y = (m_spec.height - y - 1);
-    int scanline_off = y * m_padded_scanline_size;
-    fsetpos(m_fd, &m_image_start);
-    fseek(m_fd, scanline_off, SEEK_CUR);
+    int64_t scanline_off = y * m_padded_scanline_size;
+    Filesystem::fseek(m_fd, m_image_start + scanline_off, SEEK_SET);
 
     std::vector<unsigned char> scratch;
     data = to_native_scanline(format, data, xstride, scratch, m_dither, y, z);
-    std::vector<unsigned char> buf(m_padded_scanline_size);
-    memcpy(&buf[0], data, m_spec.scanline_bytes());
+    std::vector<unsigned char> buf((const unsigned char*)data,
+                                   (const unsigned char*)data
+                                       + m_padded_scanline_size);
 
     // Swap RGB pixels into BGR format
     if (m_spec.nchannels >= 3)
@@ -148,9 +154,10 @@ BmpOutput::close(void)
 void
 BmpOutput::create_and_write_file_header(void)
 {
-    m_bmp_header.magic  = MAGIC_BM;
-    const int data_size = m_spec.width * m_spec.height * m_spec.nchannels;
-    const int file_size = data_size + BMP_HEADER_SIZE + WINDOWS_V3;
+    m_bmp_header.magic = MAGIC_BM;
+    int64_t data_size  = int64_t(m_spec.width) * m_spec.height
+                        * m_spec.nchannels;
+    int64_t file_size   = data_size + BMP_HEADER_SIZE + WINDOWS_V3;
     m_bmp_header.fsize  = file_size;
     m_bmp_header.res1   = 0;
     m_bmp_header.res2   = 0;
