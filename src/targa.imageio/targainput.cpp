@@ -223,7 +223,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         m_spec.attribute("targa:ImageID", id);
     }
 
-    int ofs = ftell(m_file);
+    int64_t ofs = Filesystem::ftell(m_file);
     // now try and see if it's a TGA 2.0 image
     // TGA 2.0 files are identified by a nifty "TRUEVISION-XFILE.\0" signature
     fseek(m_file, -26, SEEK_END);
@@ -238,7 +238,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         }
 
         // read the extension area
-        fseek(m_file, m_foot.ofs_ext, SEEK_SET);
+        Filesystem::fseek(m_file, m_foot.ofs_ext, SEEK_SET);
         // check if this is a TGA 2.0 extension area
         // according to the 2.0 spec, the size for valid 2.0 files is exactly
         // 495 bytes, and the reader should only read as much as it understands
@@ -381,7 +381,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 return false;
             if (bigendian())
                 swap_endian(&buf.l);
-            unsigned int ofs_thumb = buf.l;
+            int64_t ofs_thumb = buf.l;
 
             // offset to scan-line table
             if (!fread(&buf.l, 4, 1))
@@ -397,7 +397,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
 
             // now load the thumbnail
             if (ofs_thumb) {
-                fseek(m_file, ofs_thumb, SEEK_SET);
+                Filesystem::fseek(m_file, ofs_thumb, SEEK_SET);
 
                 // most of this code is a dupe of readimg(); according to the
                 // spec, the thumbnail is in the same format as the main image
@@ -432,8 +432,8 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 }
                 unsigned char pixel[4];
                 unsigned char in[4];
-                for (int y = buf.c[1] - 1; y >= 0; y--) {
-                    for (int x = 0; x < buf.c[0]; x++) {
+                for (int64_t y = buf.c[1] - 1; y >= 0; y--) {
+                    for (int64_t x = 0; x < buf.c[0]; x++) {
                         if (!fread(in, bytespp, 1))
                             return false;
                         decode_pixel(in, pixel, palette.get(), bytespp,
@@ -574,11 +574,12 @@ TGAInput::decode_pixel(unsigned char* in, unsigned char* out,
 
 template<class T>
 static void
-associateAlpha(T* data, int size, int channels, int alpha_channel, float gamma)
+associateAlpha(T* data, int64_t size, int channels, int alpha_channel,
+               float gamma)
 {
     T max = std::numeric_limits<T>::max();
     if (gamma == 1) {
-        for (int x = 0; x < size; ++x, data += channels)
+        for (int64_t x = 0; x < size; ++x, data += channels)
             for (int c = 0; c < channels; c++)
                 if (c != alpha_channel) {
                     unsigned int f = data[c];
@@ -586,8 +587,9 @@ associateAlpha(T* data, int size, int channels, int alpha_channel, float gamma)
                 }
     } else {  //With gamma correction
         float inv_max = 1.0 / max;
-        for (int x = 0; x < size; ++x, data += channels) {
-            float alpha_associate = pow(data[alpha_channel] * inv_max, gamma);
+        for (int64_t x = 0; x < size; ++x, data += channels) {
+            float alpha_associate
+                = OIIO::fast_pow_pos(data[alpha_channel] * inv_max, gamma);
             // We need to transform to linear space, associate the alpha, and
             // then transform back.  That is, if D = data[c], we want
             //
@@ -636,8 +638,8 @@ TGAInput::readimg()
     if (m_tga.type < TYPE_PALETTED_RLE) {
         // uncompressed image data
         unsigned char in[4];
-        for (int y = m_spec.height - 1; y >= 0; y--) {
-            for (int x = 0; x < m_spec.width; x++) {
+        for (int64_t y = m_spec.height - 1; y >= 0; y--) {
+            for (int64_t x = 0; x < m_spec.width; x++) {
                 if (!fread(in, bytespp, 1))
                     return false;
                 decode_pixel(in, pixel, palette, bytespp, palbytespp,
@@ -651,8 +653,8 @@ TGAInput::readimg()
         // Run Length Encoded image
         unsigned char in[5];
         int packet_size;
-        for (int y = m_spec.height - 1; y >= 0; y--) {
-            for (int x = 0; x < m_spec.width; x++) {
+        for (int64_t y = m_spec.height - 1; y >= 0; y--) {
+            for (int64_t x = 0; x < m_spec.width; x++) {
                 if (!fread(in, 1 + bytespp, 1))
                     return false;
                 packet_size = 1 + (in[0] & 0x7f);
@@ -732,7 +734,7 @@ TGAInput::readimg()
 
         std::vector<unsigned char> flip(bytespp * m_spec.width / 2);
         unsigned char *src, *dst, *tmp = &flip[0];
-        for (int y = 0; y < m_spec.height; y++) {
+        for (int64_t y = 0; y < m_spec.height; y++) {
             src = &m_buf[y * m_spec.width * bytespp];
             dst = &m_buf[(y * m_spec.width + m_spec.width / 2) * bytespp];
 
@@ -745,8 +747,8 @@ TGAInput::readimg()
     if (m_alpha != TGA_ALPHA_PREMULTIPLIED) {
         // Convert to associated unless we were requested not to do so
         if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
-            int size    = m_spec.width * m_spec.height;
-            float gamma = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
+            int64_t size = m_spec.image_pixels();
+            float gamma  = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
 
             associateAlpha((unsigned char*)&m_buf[0], size, m_spec.nchannels,
                            m_spec.alpha_channel, gamma);
