@@ -184,6 +184,6 @@ private:
 // Define symbols that let client applications determine if newly added
 // features are supported.
 #define OIIO_ARGPARSE_SUPPORTS_BRIEFUSAGE 1
-
+#define OIIO_ARGPARSE_SUPPORTS_HUMAN_PARAMNAME 1
 
 OIIO_NAMESPACE_END
