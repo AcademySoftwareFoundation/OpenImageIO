@@ -53,9 +53,9 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info,
 
 /* read or write pixels */
 /* can read or write pixels in chunks of any size including single pixels*/
-int RGBE_WritePixels(FILE *fp, float *data, int numpixels,
+int RGBE_WritePixels(FILE *fp, float *data, int64_t numpixels,
                      std::string &errbuf);
-int RGBE_ReadPixels(FILE *fp, float *data, int numpixels,
+int RGBE_ReadPixels(FILE *fp, float *data, int64_t numpixels,
                     std::string &errbuf);
 
 /* read or write run length encoded files */
