@@ -36,7 +36,16 @@ OIIO_NAMESPACE_BEGIN
 
 namespace {
 static std::mutex output_mutex;
-};
+
+// On systems that support it, get a location independent locale.
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
+    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
+static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+#elif defined(_WIN32)
+static _locale_t c_loc = _create_locale(LC_ALL, "C");
+#endif
+
+};  // namespace
 
 
 
@@ -146,7 +155,21 @@ Strutil::vsprintf(const char* fmt, va_list ap)
 #else
         apsave = ap;
 #endif
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+        // On systems with vsnprintf_l, use it for locale independence
+        int needed = vsnprintf_l(buf, size, c_loc, fmt, ap);
+#elif defined(_WIN32)
+        // Windows has vsnprintf_l also, helpful as always by using a
+        // slightly different name and argument order.
+        int needed = _vsnprintf_l(buf, size, fmt, c_loc, ap);
+#else
+        // Punt on systems without vsnprintf_l... no locale indpendence for
+        // you!
+        // FIXME: It really bugs me that we don't have a solution for Linux.
         int needed = vsnprintf(buf, size, fmt, ap);
+#endif
+
         va_end(ap);
 
         // NB. C99 says vsnprintf returns -1 on an encoding error. Otherwise
@@ -168,7 +191,7 @@ Strutil::vsprintf(const char* fmt, va_list ap)
 #ifdef va_copy
         va_copy(ap, apsave);
 #else
-        ap     = apsave;
+        ap         = apsave;
 #endif
     }
 }
@@ -1203,19 +1226,14 @@ float
 Strutil::strtof(const char* nptr, char** endptr) noexcept
 {
     // Can use strtod_l on platforms that support it
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
-    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
-    // static initialization inside function is thread-safe by C++11 rules!
-    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
-#    ifdef __APPLE__
+#ifdef __APPLE__
     // On OSX, strtod_l is for some reason drastically faster than strtof_l.
     return static_cast<float>(strtod_l(nptr, endptr, c_loc));
-#    else
+#elif defined(__linux__) || defined(__FreeBSD__)                               \
+    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
     return strtof_l(nptr, endptr, c_loc);
-#    endif
 #elif defined(_WIN32)
     // Windows has _strtod_l
-    static _locale_t c_loc = _create_locale(LC_ALL, "C");
     return static_cast<float>(_strtod_l(nptr, endptr, c_loc));
 #else
     // On platforms without strtof_l...
@@ -1249,11 +1267,9 @@ Strutil::strtod(const char* nptr, char** endptr) noexcept
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
     || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
     // static initialization inside function is thread-safe by C++11 rules!
-    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
     return strtod_l(nptr, endptr, c_loc);
 #elif defined(_WIN32)
     // Windows has _strtod_l
-    static _locale_t c_loc = _create_locale(LC_ALL, "C");
     return _strtod_l(nptr, endptr, c_loc);
 #else
     // On platforms without strtod_l...
@@ -1269,7 +1285,7 @@ Strutil::strtod(const char* nptr, char** endptr) noexcept
     const char* pos = strchr(nptr, nativepoint);
     if (pos) {
         s[pos - nptr] = nativepoint;
-        auto d        = ::strtod(s.c_str(), endptr);
+        auto d = ::strtod(s.c_str(), endptr);
         if (endptr)
             *endptr = (char*)nptr + (*endptr - s.c_str());
         return d;

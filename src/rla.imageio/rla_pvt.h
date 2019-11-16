@@ -145,6 +145,18 @@ rla_type(TypeDesc t)
     return CT_BYTE;
 }
 
+
+
+/// Version of snprintf that is type safe and locale independent.
+template<typename... Args>
+inline int
+safe_snprintf(char* str, size_t size, const char* fmt, const Args&... args)
+{
+    std::string s = Strutil::sprintf(fmt, args...);
+    return snprintf(str, size, "%s", s.c_str());
+}
+
+
 }  // namespace RLA_pvt
 
 
