@@ -45,12 +45,12 @@
 ///
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-#    ifndef OIIO_STATIC_DEFINE
-#        define OIIO_IMPORT __declspec(dllimport)
-#        define OIIO_EXPORT __declspec(dllexport)
-#    else
+#    ifdef OIIO_STATIC_DEFINE
 #        define OIIO_IMPORT
 #        define OIIO_EXPORT
+#    else
+#        define OIIO_IMPORT __declspec(dllimport)
+#        define OIIO_EXPORT __declspec(dllexport)
 #    endif
 #    define OIIO_LOCAL
 #else
