@@ -410,11 +410,44 @@ template<class Sequence>
 std::string join (const Sequence& seq, string_view sep="")
 {
     std::ostringstream out;
+    out.imbue(std::locale::classic());  // Force "C" locale
     bool first = true;
     for (auto&& s : seq) {
         if (! first && sep.size())
             out << sep;
         out << s;
+        first = false;
+    }
+    return out.str();
+}
+
+/// Join all the strings in 'seq' into one big string, separated by the
+/// 'sep' string. The Sequence can be any iterable collection of items that
+/// are able to convert to string via stream output. Examples include:
+/// std::vector<string_view>, std::vector<std::string>, std::set<ustring>,
+/// std::vector<int>, etc. Values will be rendered into the string in a
+/// locale-independent manner (i.e., '.' for decimal in floats). If the
+/// optional `len` is nonzero, exactly that number of elements will be
+/// output (truncating or default-value-padding the sequence).
+template<class Sequence>
+std::string join (const Sequence& seq, string_view sep /*= ""*/, size_t len)
+{
+    using E = typename std::remove_reference<decltype(*std::begin(seq))>::type;
+    std::ostringstream out;
+    out.imbue(std::locale::classic());  // Force "C" locale
+    bool first = true;
+    for (auto&& s : seq) {
+        if (! first)
+            out << sep;
+        out << s;
+        first = false;
+        if (len && (--len == 0))
+            break;
+    }
+    while (len--) {
+        if (! first)
+            out << sep;
+        out << E();
         first = false;
     }
     return out.str();

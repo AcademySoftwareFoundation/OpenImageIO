@@ -398,6 +398,11 @@ test_join()
 
     int intarr[] = { 4, 2 };
     OIIO_CHECK_EQUAL(Strutil::join(intarr, ","), "4,2");
+
+    // Test join's `len` parameter.
+    float farr[] = { 1, 2, 3.5, 4, 5 };
+    OIIO_CHECK_EQUAL(Strutil::join(farr, ",", 3), "1,2,3.5");
+    OIIO_CHECK_EQUAL(Strutil::join(farr, ",", 7), "1,2,3.5,4,5,0,0");
 }
 
 
