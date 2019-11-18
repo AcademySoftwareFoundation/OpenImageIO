@@ -30,6 +30,16 @@
 #endif
 
 
+// We use the public domain stb implementation of vsnprintf because
+// not all platforms support a locale-independent version of vsnprintf.
+// See: https://github.com/nothings/stb/blob/master/stb_sprintf.h
+#define STB_SPRINTF_DECORATE(name) oiio_stbsp_##name
+#define STB_SPRINTF_IMPLEMENTATION 1
+#if defined(__GNUG__) && !defined(__clang__)
+#    pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#endif
+#include "stb_sprintf.h"
+
 
 OIIO_NAMESPACE_BEGIN
 
@@ -156,20 +166,7 @@ Strutil::vsprintf(const char* fmt, va_list ap)
         apsave = ap;
 #endif
 
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-        // On systems with vsnprintf_l, use it for locale independence
-        int needed = vsnprintf_l(buf, size, c_loc, fmt, ap);
-#elif defined(_WIN32)
-        // Windows has vsnprintf_l also, helpful as always by using a
-        // slightly different name and argument order.
-        int needed = _vsnprintf_l(buf, size, fmt, c_loc, ap);
-#else
-        // Punt on systems without vsnprintf_l... no locale indpendence for
-        // you!
-        // FIXME: It really bugs me that we don't have a solution for Linux.
-        int needed = vsnprintf(buf, size, fmt, ap);
-#endif
-
+        int needed = oiio_stbsp_vsnprintf(buf, size, fmt, ap);
         va_end(ap);
 
         // NB. C99 says vsnprintf returns -1 on an encoding error. Otherwise
@@ -191,7 +188,7 @@ Strutil::vsprintf(const char* fmt, va_list ap)
 #ifdef va_copy
         va_copy(ap, apsave);
 #else
-        ap         = apsave;
+        ap     = apsave;
 #endif
     }
 }
@@ -1285,7 +1282,7 @@ Strutil::strtod(const char* nptr, char** endptr) noexcept
     const char* pos = strchr(nptr, nativepoint);
     if (pos) {
         s[pos - nptr] = nativepoint;
-        auto d = ::strtod(s.c_str(), endptr);
+        auto d        = ::strtod(s.c_str(), endptr);
         if (endptr)
             *endptr = (char*)nptr + (*endptr - s.c_str());
         return d;
