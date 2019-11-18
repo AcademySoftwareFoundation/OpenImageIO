@@ -174,7 +174,7 @@ public:
 
     string_view substr(size_type pos, size_type n = npos) const noexcept
     {
-        if (pos > size())
+        if (pos >= size())
             return string_view();  // start past end -> return empty
         if (n == npos || pos + n > size())
             n = size() - pos;
