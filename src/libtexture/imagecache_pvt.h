@@ -916,14 +916,18 @@ public:
     /// Try to avoid looking to the big cache (and locking) most of the
     /// time for fairly coherent tile access patterns, by using the
     /// per-thread microcache to boost our hit rate over the big cache.
-    /// Inlined for speed.  The tile is marked as 'used'.
-    bool find_tile(const TileID& id, ImageCachePerThreadInfo* thread_info)
+    /// Inlined for speed.  The tile is marked as 'used' if it wasn't the
+    /// very last one used, or if it was the same as the last used and
+    /// mark_same_tile_used is true.
+    bool find_tile(const TileID& id, ImageCachePerThreadInfo* thread_info,
+                   bool mark_same_tile_used)
     {
         ++thread_info->m_stats.find_tile_calls;
         ImageCacheTileRef& tile(thread_info->tile);
         if (tile) {
             if (tile->id() == id) {
-                tile->use();
+                if (mark_same_tile_used)
+                    tile->use();
                 return true;  // already have the tile we want
             }
             // Tile didn't match, maybe lasttile will?  Swap tile

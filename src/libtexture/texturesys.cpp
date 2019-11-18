@@ -708,6 +708,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     size_t formatpixelsize   = nchannels * formatchannelsize;
     size_t scanlinesize      = (xend - xbegin) * formatpixelsize;
     size_t zplanesize        = (yend - ybegin) * scanlinesize;
+    imagesize_t npixelsread  = 0;
     bool ok                  = true;
     for (int z = zbegin; z < zend; ++z) {
         if (z < spec.z || z >= (spec.z + std::max(spec.depth, 1))) {
@@ -725,7 +726,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
                 continue;
             }
             tileid.y(y - ((y - spec.y) % spec.tile_height));
-            for (int x = xbegin; x < xend; ++x) {
+            for (int x = xbegin; x < xend; ++x, ++npixelsread) {
                 if (x < spec.x || x >= (spec.x + spec.width)) {
                     // nonexistant columns
                     memset(result, 0, formatpixelsize);
@@ -733,7 +734,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
                     continue;
                 }
                 tileid.x(x - ((x - spec.x) % spec.tile_width));
-                ok &= find_tile(tileid, thread_info);
+                ok &= find_tile(tileid, thread_info, npixelsread == 0);
                 TileRef& tile(thread_info->tile);
                 const char* data;
                 if (tile
@@ -1962,7 +1963,7 @@ TextureSystemImpl::sample_closest(
         int tile_s = (stex - spec.x) % spec.tile_width;
         int tile_t = (ttex - spec.y) % spec.tile_height;
         id.xy(stex - tile_s, ttex - tile_t);
-        bool ok = find_tile(id, thread_info);
+        bool ok = find_tile(id, thread_info, sample == 0);
         if (!ok)
             errorf("%s", m_imagecache->geterror());
         TileRef& tile(thread_info->tile);
@@ -2147,7 +2148,7 @@ TextureSystemImpl::sample_bilinear(
         if (onetile && all(stvalid)) {
             // Shortcut if all the texels we need are on the same tile
             id.xy(sttex[S0] - tile_st[S0], sttex[T0] - tile_st[T0]);
-            bool ok = find_tile(id, thread_info);
+            bool ok = find_tile(id, thread_info, sample == 0);
             if (!ok)
                 errorf("%s", m_imagecache->geterror());
             TileRef& tile(thread_info->tile);
@@ -2208,7 +2209,7 @@ TextureSystemImpl::sample_bilinear(
                     // iteration, as long as we aren't using mirror wrap mode!
                     if (i == 0 || tile_s == 0 || noreusetile) {
                         id.xy(tile_edge[S0 + i], tile_edge[T0 + j]);
-                        bool ok = find_tile(id, thread_info);
+                        bool ok = find_tile(id, thread_info, sample == 0);
                         if (!ok)
                             errorf("%s", m_imagecache->geterror());
                         if (!thread_info->tile->valid()) {
@@ -2512,7 +2513,7 @@ TextureSystemImpl::sample_bicubic(
         if (onetile & allvalid) {
             // Shortcut if all the texels we need are on the same tile
             id.xy(stex[0] - tile_s, ttex[0] - tile_t);
-            bool ok = find_tile(id, thread_info);
+            bool ok = find_tile(id, thread_info, sample == 0);
             if (!ok)
                 errorf("%s", m_imagecache->geterror());
             TileRef& tile(thread_info->tile);
@@ -2582,7 +2583,7 @@ TextureSystemImpl::sample_bicubic(
                     if (i == 0 || tile_s[i] == 0
                         || options.swrap == TextureOpt::WrapMirror) {
                         id.xy(tile_s_edge[i], tile_t_edge[j]);
-                        bool ok = find_tile(id, thread_info);
+                        bool ok = find_tile(id, thread_info, sample == 0);
                         if (!ok)
                             errorf("%s", m_imagecache->geterror());
                         DASSERT(thread_info->tile->id() == id);

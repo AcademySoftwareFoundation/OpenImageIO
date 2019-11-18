@@ -366,7 +366,7 @@ TextureSystemImpl::accum3d_sample_closest(
     int tile_r = (rtex - spec.z) % spec.tile_depth;
     TileID id(texturefile, options.subimage, miplevel, stex - tile_s,
               ttex - tile_t, rtex - tile_r, tile_chbegin, tile_chend);
-    bool ok = find_tile(id, thread_info);
+    bool ok = find_tile(id, thread_info, true);
     if (!ok)
         errorf("%s", m_imagecache->geterror());
     TileRef& tile(thread_info->tile);
@@ -506,7 +506,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
     if (onetile && valid_storage.ivalid == all_valid) {
         // Shortcut if all the texels we need are on the same tile
         id.xyz(stex[0] - tile_s, ttex[0] - tile_t, rtex[0] - tile_r);
-        bool ok = find_tile(id, thread_info);
+        bool ok = find_tile(id, thread_info, true);
         if (!ok)
             errorf("%s", m_imagecache->geterror());
         TileRef& tile(thread_info->tile);
@@ -530,6 +530,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
         texel[1][1][0] = b + pixelsize * spec.tile_width;
         texel[1][1][1] = b + pixelsize * spec.tile_width + pixelsize;
     } else {
+        bool firstsample = true;
         for (int k = 0; k < 2; ++k) {
             for (int j = 0; j < 2; ++j) {
                 for (int i = 0; i < 2; ++i) {
@@ -542,9 +543,10 @@ TextureSystemImpl::accum3d_sample_bilinear(
                     tile_r = (rtex[k] - spec.z) % spec.tile_depth;
                     id.xyz(stex[i] - tile_s, ttex[j] - tile_t,
                            rtex[k] - tile_r);
-                    bool ok = find_tile(id, thread_info);
+                    bool ok = find_tile(id, thread_info, firstsample);
                     if (!ok)
                         errorf("%s", m_imagecache->geterror());
+                    firstsample = false;
                     TileRef& tile(thread_info->tile);
                     if (!tile->valid())
                         return false;

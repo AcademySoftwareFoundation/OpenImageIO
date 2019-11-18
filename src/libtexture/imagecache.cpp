@@ -2988,7 +2988,8 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
     stride_t zplanesize         = (yend - ybegin) * scanlinesize;
     DASSERT(spec.depth >= 1 && spec.tile_depth >= 1);
 
-    char* zptr = (char*)result;
+    imagesize_t npixelsread = 0;
+    char* zptr              = (char*)result;
     for (int z = zbegin; z < zend; ++z, zptr += zstride) {
         if (z < spec.z || z >= (spec.z + spec.depth)) {
             // nonexistant planes
@@ -3032,7 +3033,8 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
             // int ty = y - ((y - spec.y) % spec.tile_height);
             char* xptr       = yptr;
             const char* data = NULL;
-            for (int x = xbegin; x < xend; ++x, xptr += xstride) {
+            for (int x = xbegin; x < xend;
+                 ++x, xptr += xstride, ++npixelsread) {
                 if (x < spec.x || x >= (spec.x + spec.width)) {
                     // nonexistant columns
                     memset(xptr, 0, result_pixelsize);
@@ -3044,7 +3046,7 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
                     // pointer when we move across a tile boundary.
                     TileID tileid(*file, subimage, miplevel, tx, ty, tz,
                                   cache_chbegin, cache_chend);
-                    ok &= find_tile(tileid, thread_info);
+                    ok &= find_tile(tileid, thread_info, npixelsread == 0);
                     if (!ok)
                         return false;  // Just stop if file read failed
                     old_tx = tx;
@@ -3114,7 +3116,7 @@ ImageCacheImpl::get_tile(ImageHandle* file, Perthread* thread_info,
     if (chend < chbegin)
         chend = spec.nchannels;
     TileID id(*file, subimage, miplevel, x, y, z, chbegin, chend);
-    if (find_tile(id, thread_info)) {
+    if (find_tile(id, thread_info, true)) {
         ImageCacheTileRef tile(thread_info->tile);
         tile->_incref();  // Fake an extra reference count
         return (ImageCache::Tile*)tile.get();
