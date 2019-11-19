@@ -30,13 +30,33 @@
 #endif
 
 
+// We use the public domain stb implementation of vsnprintf because
+// not all platforms support a locale-independent version of vsnprintf.
+// See: https://github.com/nothings/stb/blob/master/stb_sprintf.h
+#define STB_SPRINTF_DECORATE(name) oiio_stbsp_##name
+#define STB_SPRINTF_IMPLEMENTATION 1
+#if defined(__GNUG__) && !defined(__clang__)
+#    pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#    define STBI__ASAN OIIO_NO_SANITIZE_ADDRESS
+#endif
+#include "stb_sprintf.h"
+
 
 OIIO_NAMESPACE_BEGIN
 
 
 namespace {
 static std::mutex output_mutex;
-};
+
+// On systems that support it, get a location independent locale.
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
+    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
+static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
+#elif defined(_WIN32)
+static _locale_t c_loc = _create_locale(LC_ALL, "C");
+#endif
+
+};  // namespace
 
 
 
@@ -146,7 +166,8 @@ Strutil::vsprintf(const char* fmt, va_list ap)
 #else
         apsave = ap;
 #endif
-        int needed = vsnprintf(buf, size, fmt, ap);
+
+        int needed = oiio_stbsp_vsnprintf(buf, size, fmt, ap);
         va_end(ap);
 
         // NB. C99 says vsnprintf returns -1 on an encoding error. Otherwise
@@ -1203,19 +1224,14 @@ float
 Strutil::strtof(const char* nptr, char** endptr) noexcept
 {
     // Can use strtod_l on platforms that support it
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
-    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
-    // static initialization inside function is thread-safe by C++11 rules!
-    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
-#    ifdef __APPLE__
+#ifdef __APPLE__
     // On OSX, strtod_l is for some reason drastically faster than strtof_l.
     return static_cast<float>(strtod_l(nptr, endptr, c_loc));
-#    else
+#elif defined(__linux__) || defined(__FreeBSD__)                               \
+    || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
     return strtof_l(nptr, endptr, c_loc);
-#    endif
 #elif defined(_WIN32)
     // Windows has _strtod_l
-    static _locale_t c_loc = _create_locale(LC_ALL, "C");
     return static_cast<float>(_strtod_l(nptr, endptr, c_loc));
 #else
     // On platforms without strtof_l...
@@ -1249,11 +1265,9 @@ Strutil::strtod(const char* nptr, char** endptr) noexcept
 #if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
     || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
     // static initialization inside function is thread-safe by C++11 rules!
-    static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
     return strtod_l(nptr, endptr, c_loc);
 #elif defined(_WIN32)
     // Windows has _strtod_l
-    static _locale_t c_loc = _create_locale(LC_ALL, "C");
     return _strtod_l(nptr, endptr, c_loc);
 #else
     // On platforms without strtod_l...

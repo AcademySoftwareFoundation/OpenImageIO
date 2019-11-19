@@ -240,6 +240,7 @@ OpenImageIO incorporates, distributes, or contains derived works of:
 * fmt library © Victor Zverovich. BSD 2-clause license. https://github.com/fmtlib/fmt
 * UTF-8 decoder © 2008-2009 Bjoern Hoehrmann, MIT license. http://bjoern.hoehrmann.de/utf-8/decoder/dfa
 * Base-64 encoder © René Nyffenegger, Zlib license. http://www.adp-gmbh.ch/cpp/common/base64.html
+* stb_sprintf © 2017 Sean Barrett, public domain (or MIT license where that   may not apply). https://github.com/nothings/stb
 
 OpenImageIO Has the following build-time dependencies (using
 system installs, referencing as git submodules, or downloading as part of
