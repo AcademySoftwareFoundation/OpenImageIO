@@ -265,7 +265,7 @@ config:
 		cd ${build_dir} ; \
 		${CMAKE} -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE} \
 			 -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
-			 ${MY_CMAKE_FLAGS} ../.. ; \
+			 ${MY_CMAKE_FLAGS} ${MY_CMAKE_CONFIG_FLAGS} ../.. ; \
 	 fi)
 
 
