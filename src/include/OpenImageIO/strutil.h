@@ -356,6 +356,17 @@ void OIIO_API to_upper (std::string &a);
 /// empty, it will be interpreted as " \t\n\r\f\v" (whitespace).
 string_view OIIO_API strip (string_view str, string_view chars=string_view());
 
+/// Return a reference to the section of str that has all consecutive
+/// characters in chars removed from the beginning (left side).  If chars is
+/// empty, it will be interpreted as " \t\n\r\f\v" (whitespace).
+string_view OIIO_API lstrip (string_view str, string_view chars=string_view());
+
+/// Return a reference to the section of str that has all consecutive
+/// characters in chars removed from the ending (right side).  If chars is
+/// empty, it will be interpreted as " \t\n\r\f\v" (whitespace).
+string_view OIIO_API rstrip (string_view str, string_view chars=string_view());
+
+
 /// Fills the "result" list with the words in the string, using sep as
 /// the delimiter string.  If maxsplit is > -1, at most maxsplit splits
 /// are done. If sep is "", any whitespace string is a separator.

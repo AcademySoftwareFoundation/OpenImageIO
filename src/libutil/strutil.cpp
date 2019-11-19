@@ -489,6 +489,28 @@ Strutil::StringILess::operator()(const char* a, const char* b) const noexcept
 
 
 string_view
+Strutil::lstrip(string_view str, string_view chars)
+{
+    if (chars.empty())
+        chars = string_view(" \t\n\r\f\v", 6);
+    size_t b = str.find_first_not_of(chars);
+    return str.substr(b, string_view::npos);
+}
+
+
+
+string_view
+Strutil::rstrip(string_view str, string_view chars)
+{
+    if (chars.empty())
+        chars = string_view(" \t\n\r\f\v", 6);
+    size_t e = str.find_last_not_of(chars);
+    return e != string_view::npos ? str.substr(0, e + 1) : string_view();
+}
+
+
+
+string_view
 Strutil::strip(string_view str, string_view chars)
 {
     if (chars.empty())
