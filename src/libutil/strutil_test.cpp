@@ -340,6 +340,18 @@ test_strip()
     OIIO_CHECK_EQUAL(Strutil::strip("  \tHello, world\n"), "Hello, world");
     OIIO_CHECK_EQUAL(Strutil::strip(" \t"), "");
     OIIO_CHECK_EQUAL(Strutil::strip(""), "");
+
+    OIIO_CHECK_EQUAL(Strutil::lstrip("abcdefbac", "abc"), "defbac");
+    OIIO_CHECK_EQUAL(Strutil::lstrip("defghi", "abc"), "defghi");
+    OIIO_CHECK_EQUAL(Strutil::lstrip("  \tHello, world\n"), "Hello, world\n");
+    OIIO_CHECK_EQUAL(Strutil::lstrip(" \t"), "");
+    OIIO_CHECK_EQUAL(Strutil::lstrip(""), "");
+
+    OIIO_CHECK_EQUAL(Strutil::rstrip("abcdefbac", "abc"), "abcdef");
+    OIIO_CHECK_EQUAL(Strutil::rstrip("defghi", "abc"), "defghi");
+    OIIO_CHECK_EQUAL(Strutil::rstrip("  \tHello, world\n"), "  \tHello, world");
+    OIIO_CHECK_EQUAL(Strutil::rstrip(" \t"), "");
+    OIIO_CHECK_EQUAL(Strutil::rstrip(""), "");
 }
 
 
@@ -611,6 +623,7 @@ test_to_string()
 void
 test_extract()
 {
+    std::cout << "Testing extract_from_list_string\n";
     std::vector<int> vals;
     int n;
 
@@ -672,6 +685,7 @@ test_extract()
 void
 test_safe_strcpy()
 {
+    std::cout << "Testing safe_strcpy\n";
     {  // test in-bounds copy
         char result[4] = { '0', '1', '2', '3' };
         Strutil::safe_strcpy(result, "A", 3);
@@ -712,8 +726,18 @@ test_safe_strcpy()
 void
 test_string_view()
 {
+    std::cout << "Testing string_view methods\n";
     std::string s("0123401234");
     string_view sr(s);
+
+    OIIO_CHECK_EQUAL(sr.substr(0), sr); // whole string
+    OIIO_CHECK_EQUAL(sr.substr(2), "23401234"); // nonzero pos, default n
+    OIIO_CHECK_EQUAL(sr.substr(2, 3), "234"); // true substrng
+    OIIO_CHECK_EQUAL(sr.substr(string_view::npos, 3), ""); // npos start
+    OIIO_CHECK_EQUAL(sr.substr(3, 0), ""); // zero length
+    OIIO_CHECK_EQUAL(sr.substr(10, 3), ""); // start at end
+    OIIO_CHECK_EQUAL(sr.substr(18, 3), ""); // start past end
+    OIIO_CHECK_EQUAL(sr.substr(4, 18), "401234"); // end too big
 
     OIIO_CHECK_EQUAL(sr.find("123"), s.find("123"));
     OIIO_CHECK_EQUAL(sr.find("123"), 1);
@@ -768,7 +792,8 @@ test_string_view()
     OIIO_CHECK_EQUAL(sr.find_last_not_of("234"), 6);
     OIIO_CHECK_EQUAL(sr.find_last_not_of('4', 5), 3);
     OIIO_CHECK_EQUAL(sr.find_last_not_of("234", 5), 1);
-    OIIO_CHECK_EQUAL(sr.find_last_of("xyz"), string_view::npos);
+    OIIO_CHECK_EQUAL(sr.find_last_not_of("xyz"), 9);
+    OIIO_CHECK_EQUAL(sr.find_last_not_of("01234"), string_view::npos);
 }
 
 
