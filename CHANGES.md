@@ -17,9 +17,9 @@ Public API changes:
 * "Compression" names (where applicable) can now have the quality appended
   to the name (e.g., `"jpeg:85"`) insead of requiring quality to be passed
   as a separate piece of metadata. #2111 (2.1.0/2.0.5)
-* Python error reporting for `ImageOutput` and `ImageBuf.set_pixels` involving
-  transferring pixel arrays have changed from throwing exceptions to reporting
-  errors through the usual OIIO error return codes and queries.
+* Python error reporting for `ImageOutput` and `ImageBuf.set_pixels`
+  involving transferring pixel arrays have changed from throwing exceptions
+  to reporting errors through the usual OIIO error return codes and queries.
   #2127 (2.1.0/2.0.5)
 * New shell environment variable `OPENIMAGEIO_OPTIONS` can now be used to
   set global `OIIO::attribute()` settings upon startup (comma separated
@@ -44,10 +44,12 @@ Public API changes:
   (2.1.1)
 * ImageSpec and ParamValueList now support operator `["name"]` as a way
   to set and retrieve attributes. For example,
+
       myimagespec["compression"] = "zip";
       myimagespec["PixelAspectRatio"] = 1.0f;
       int dither = myimagespec["oiio:dither"].get<int>();
       std::string cs = myimagespec["colorspace"];
+
   See the documentation about "Attribute Delegates" for more information,
   or the new header `attrdelegate.h`. #2204 (2.1.1) #2297 (2.1.3)
 * New helper functions in `typedesc.h`: `tostring()` converts nearly any
@@ -87,9 +89,10 @@ Public API changes:
 
 Performance improvements:
 * ImageCache/TextureSystem:
-    - Improved perf of the tile and file cache lookups, especially under
-      heavy thread contention, from improvement in performance and
-      properties of the hashing used by the caches. #2314, #2316 (2.1.3)
+    - Improved perf of the tile and file caches under heavy thread
+      contention. In the context of a renderer, we have seen improvements of
+      around 7% in overall render time, averaged across a suite of typical
+      production scenes.  #2314, #2316 (2.1.3) #2381 #2407 (2.1.8)
 * Improved performance for ustring creation and lookup. #2315 (2.1.3)
 * Fix huge DPX reading performance regression. Technically this is a bug
   fix that restores performance we once had, but it's a huge speedup.
@@ -147,6 +150,8 @@ Fixes and feature enhancements:
     - `--ociotransform` no longer issues an error message when no valid OCIO
       configuration is found (because it's not needed for this operation).
       #2371 (2.1.5)
+    - `--compare` would fail to notice differences in deep images where the
+      corresponding pixels had differing numbers of samples. #2381 (2.1.8)
 * ImageBuf/ImageBufAlgo:
     - `IBA::channel_append()` previously always forced its result to be float,
       if it wasn't previously initialized. Now it uses the uaual type-merging
@@ -185,6 +190,8 @@ Fixes and feature enhancements:
     - Python `ociotransform` and `ociolook` mixed up the names and orders of
       the `inverse` and `unpremult` params, making it so that you couldn't
       properly specify the inverse. #2371 (2.1.5)
+    - `IBA::compare()` would fail to notice differences in deep images where
+      the corresponding pixels had differing numbers of samples. #2381 (2.1.8)
 * ImageInput read_image/scanline/tile fixed subtle bugs for certain
   combination of strides and channel subset reads. #2108 (2.1.0/2.0.4)
 * ImageCache / TextureSystem / maketx:
@@ -214,16 +221,23 @@ Fixes and feature enhancements:
       used on 1-channel tiled images with a tile size < 16. This can crop up
       for MIP-maps (high levels where rez < 16), so we detect this case and
       switch automatically to "zip" compression. #2378 (2.1.6)
+    - When converting images to texture (via maketx or IBA::make_texture),
+      correctly handle color space conversions for greyscale images.
+      #2400 (2.1.8)
 * iv viewer:
     - Image info window now sorts the metadata, in the same manner as
       `iinfo -v` or `oiiotool -info -v`. #2159 (2.1.0/2.0.5)
 * All command line utilities, when run with just `--help`, will exit with
   return code 0. In other words, `utility --help` is not an error.
-  #2364 (2.1.5)
+  #2364 (2.1.5) #2383 (2.1.8)
 * Python bindings:
     - Fix inability for Python to set timecode attributes (specifically, it
       was trouble setting ImageSpec attributes that were unnsigned int
       arrays). #2279 (2.0.9/2.1.3)
+* BMP:
+    - Fix bugs related to files with very high resolution (mostly 32 bit
+      int overflow issues and care to use 64 bit fseeks). Also speed up
+      reading and writing very large files. #2404 (2.1.8)
 * DPX:
     - Now recognizes the new transfer/colorimetric code for ADX. #2119
       (2.1.0/2.0.4)
@@ -231,6 +245,8 @@ Fixes and feature enhancements:
     - Support for reading and writing 1-channel (luma, etc.) images. #2294
       (2.0.10/2.1.3)
     - Fix huge DPX reading performance regression. #2333 (2.1.4)
+    - Fix bugs related to int32 math that would lead to incorrect
+      behavior in very high-resolution files. #2396 (2.1.3)
 * ffmpeg/Movie files:
     - Reading individual frames from very-multi-image files (movie files) has
       been greatly sped up (10x or more). #2345 (2.1.4)
@@ -241,6 +257,14 @@ Fixes and feature enhancements:
 * FITS:
     - Fix 16 and 32 bit int pixels which FITS spec says are signed, but we
       were treating as unsigned. #2178 (2.1.0)
+* HDR/RGBE:
+    - Fix bugs related to files with very high resolution (mostly 32 bit
+      int overflow issues and care to use 64 bit fseeks). Also speed up
+      reading and writing very large files. #2406 (2.1.8)
+* IFF
+    - Detect and error requests to open files for writing with resolutions
+      too high to be properly supported by IFF files. #2397 (2.1.8)
+    - Improve error messages when a file can't be opened. #2398 (2.1.8)
 * JPEG:
     - Read-from-memory is now supported via IOProxy use. #2180. (2.1.1)
 * JPEG-2000:
@@ -277,6 +301,13 @@ Fixes and feature enhancements:
 * RLA:
     - Improved logic for determining the single best data type to report
       for all channels. #2282 (2.1.3)
+* SGI:
+    - Fix bugs when writing extremely high resolution images, due to
+      internal 32 bit arithmetic on file offsets. #2402 (2.1.8)
+    - Speed up reading and writing of SGI files. #2402 (2.1.8)
+* Targa:
+    - Put in checks to detect and error requests to write Targa with
+      resolutions too high to be supported by the format. #2405 (2.1.8)
 * TIFF:
     - Fix problems with JPEG compression in some cases. #2117 (2.1.0/2.0.4)
     - Fix error where reading just a subset of channels, if that subset did
@@ -297,8 +328,12 @@ Fixes and feature enhancements:
       images. #2296 (2.1.3)
     - Fix potential deadlock in TIFF I/O: minor flaw with threadpool method
       #2327 (2.1.4)
-* WebP: fix bug that gave totally incorrect image read for webp images that
-  had a smaller width than height. #2120 (2.1.0/2.0.4)
+* WebP:
+    - Fix bug that gave totally incorrect image read for webp images that
+      had a smaller width than height. #2120 (2.1.0/2.0.4)
+* zfile:
+    - Put in checks to detect and error requests to write zfiles with
+      resolutions too high to be supported by the format. #2403 (2.1.8)
 * Fix potential threadpool deadlock issue that could happen if you were
   (among possibly other things?) simultaneously calling make_texture from
   multiple application threads. #2132 (2.1.0/2.0.4)
@@ -312,7 +347,7 @@ Fixes and feature enhancements:
 
 Build/test system improvements and platform ports:
 * Major overhaul of the CMake build system now that our CMake minimum is
-  3.12. #2348 #2352 #2357 #2360 #2368 #2370 #2372 #2373 (2.1.5)
+  3.12. #2348 #2352 #2357 #2360 #2368 #2370 #2372 #2373 (2.1.5) #2392 (2.1.8)
   Highlights:
     - All optional dependencies (e.g. "Pkg") now can be disabled (even if
       found) with cmake -DUSE_PKG=0 or environment variable USE_PKG=0.
@@ -339,6 +374,7 @@ Build/test system improvements and platform ports:
       command line utility. E.g., `cmake -DENABLE_PNG=0 -DENABLE_oiiotool=0`
       This makes it easier to greatly reduce build time if you are 100%
       sure there are formats or components you don't want or need.
+    - Config based install and usage.
 * Deprecate "missingmath.h". What little of it is still needed (it mostly
   addressed shortcomings of old MSVS releases) is now in fmath.h. #2086
 * Remove "osdep.h" header that was no longer needed. #2097
@@ -361,11 +397,11 @@ Build/test system improvements and platform ports:
   series of read/write tests on every file format. In partcular, this tests
   certain error conditions, like files not existing, or the directory not
   being writeable, etc. #2181, #2189 (2.0.8/2.1.1)
-* Support for CI tests on CircleCI. #2194 (2.1.1)
+* Support for CI tests on CircleCI. #2194 (2.1.1) Retired in #2389 (2.1.8).
 * New build-time flag `USE_WEBP=0` can be used to disable building WebP
   format support even on platforms where webp libraries are found.
   #2200 (2.1.1)
-* Fix compiler warnings on Windows. #2209 #2213 #2214
+* Fix compiler warnings on Windows. #2209 #2213 #2214 #2392
 * Crashes in the command line utilities now attempt to print a stack trace
   to aid in debugging (but only if OIIO is built with Boost >= 1.65, because
   it relies on the Boost stacktrace library). #2229 (2.0.8/2.1.1)
@@ -378,9 +414,8 @@ Build/test system improvements and platform ports:
 * Build fixes for MinGW. #2304, #2308 (2.0.10/2.1.3)
 * libraw: Fixes to make it build properly against some changes in the
   libraw development master. #2306 (2.1.3)
-* Phase in use of GitHub Actions CI beta. We anticipate that this may
-  eventually replace both Travis-CI and Appveyor, but for now is still
-  experimental. #2334 (2.1.4) #2356 (2.1.5)
+* Use GitHub Actions CI. Eliminate Appveyor and some Travis tests.
+  #2334 (2.1.4) #2356 (2.1.5) #2395 (2.1.8)
 * Updated and improved finding of OpenEXR and `build_openexr.bash` script
   that we use for CI. #2343 (2.1.4)
 * Upgrade the pybind11 verson that we auto-install when not found (to 2.4.2),
@@ -394,6 +429,7 @@ Build/test system improvements and platform ports:
 * Tests are now safe to run in parallel and in unspecified order. Running
   with env variable CTEST_PARALLEL_LEVEL=[something more than 1] greatly
   speeds up the full testsuite on multi-core machines. #2365 (2.1.5)
+* Bump robin map version to latest release (v0.6.2) #2401 (2.1.8)
 
 Developer goodies / internals:
 * argparse.h:
@@ -409,13 +445,10 @@ Developer goodies / internals:
 * dassert.h:
     - Spruce up ASSERT macros: more uniform wording, and use pretty function
       printing to show what function the failure was in. #2262
-* `string_view` now adds an optional `pos` parameter to the `find_first_of`
-  / `find_last_of` family of methods. #2114 (2.1.0/2.0.4)
-* strutil.h:
-    - `Strutil::wordwrap()` now lets you specify the separation characters
-      more flexibly (rather than being hard-coded to spaces as separators).
-      #2116 (2.1.0/2.0.4)
-    - `Strutil::parse_while()`.  #2139 (2.1.0/2.0.5)
+* filesystem.h:
+    - Change many filesystem calls to take string_view arguments. #2388 (2.1.8)
+    - New `fseek()` and `ftell()` that always use 64 bit offsets to be safe
+      for very large files. #2399 (2.1.8)
 * fmath.h:
     - `safe_mod()` does integer modulus but protects against mod-by-zero
       exceptions. #2121 (2.1.0/2.0.5)
@@ -440,10 +473,28 @@ Developer goodies / internals:
     - Fixed incorrect return type of `stof()`. #2254 (2.1.2)
     - Added `remove_trailing_whitespace()` and `trim_whitespace()`. #2298
       (2.1.3)
+    - `Strutil::wordwrap()` now lets you specify the separation characters
+      more flexibly (rather than being hard-coded to spaces as separators).
+      #2116 (2.1.0/2.0.4)
+    - `Strutil::parse_while()`.  #2139 (2.1.0/2.0.5)
+    - Added a variety of `join()` that allows you to set the number of items
+      joined, truncating or padding with default values as needed. #2408
+      (2.1.8)
+    - Fix `join` to produce a joined string of float-like values with
+      locale-independent formatting. #2408 (2.1.8)
+    - Fix `vsnprintf` to be locale independent. #2410 (2.1.8)
+    - New `lstrip()` and `rstrip()` are just like the existing `strip()`,
+      but operate only on the beginning/left side or ending/right side of
+      the string, respectively. #2409 (2.1.8)
+* string_view.h:
+    - `string_view` now adds an optional `pos` parameter to the `find_first_of`
+      / `find_last_of` family of methods. #2114 (2.1.0/2.0.4)
 * sysutil.h:
     - Added `stacktrace()` and `setup_crash_stacktrace()`. (Only functional
       if OIIO is built with Boost >= 1.65, because it relies on the Boost
       stacktrace library). #2229 (2.0.8/2.1.1)
+* unittest.h:
+    - Add `OIIO_CHECK_IMAGEBUF_STATUS()` test macro. #2394 (2.1.8)
 * unordered_map_concurrent.h:
     - Performance improvement by avoiding redundant hashing of keys, and
       improving the speed and properties of the hash functionn. #2313, #2316
@@ -454,6 +505,10 @@ Developer goodies / internals:
       sequennce up to the length of the ustring. #2283 (2.0.10/2.1.3)
 * Wide use of declaring methods `noexcept` when we want to promise that
   they won't throw exceptions. #2156, #2243 (2.1.0, 2.1.2)
+* Changed all (we think) internal string formatting that expects printf
+  formatting notation to use the errorf/sprintf style calls, in anticipation
+  of the error/format (no trailing -f) calls to eventually follow the
+  std::format/python formatting notation. #2393 (2.1.8)
 
 Notable documentation changes:
 * The whole documentation system has been overhauled. The main docs have
@@ -1208,6 +1263,8 @@ Developer goodies / internals:
       substitutions. #1931 (1.9.3)
     * Proper UTF-8 filenames for unique_path() and temp_directory(), and
       general UTF-8 cleanup/simplification. #1940 (1.9.3, 1.8.12, 1.7.19)
+    * Remove extraneous calls to exists() that were doubling the number
+      of stat syscalls. #2385 (2.1.8)
 * fmath.h:
     * Now defines preprocessor symbol `OIIO_FMATH_H` so other files can
       easily detect if it has been included. (1.9.0/1.8.6)
@@ -1275,6 +1332,8 @@ Developer goodies / internals:
       to enclose a quoted string. #2066 (2.0beta2)
     * Fix Strutil::vsnprintf detection of encoding errors on Windows. #2082
       (1.8.17/2.0.1)
+    * `parse_string()` - fix bugs that would fail for escaped quotes within
+      the string. #2386 (2.1.8)
 * thread.h:
     * Reimplementaiton of `spin_rw_mutex` has much better performance when
       many threads are accessing at once, especially if most of them are
