@@ -139,11 +139,11 @@ PERFORMANCE vs MSVC 2008 32-/64-bit (GCC is even slower than MSVC):
 "...512 char string..." ( 35.0x/32.5x faster!)
 */
 
-#if defined(__has_feature)
-   #if __has_feature(address_sanitizer)
-      #define STBI__ASAN __attribute__((no_sanitize("address")))
-   #endif
-#endif
+// #if defined(__has_feature)
+//    #if __has_feature(address_sanitizer)
+//       #define STBI__ASAN __attribute__((no_sanitize("address")))
+//    #endif
+// #endif
 #ifndef STBI__ASAN
 #define STBI__ASAN
 #endif

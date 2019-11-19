@@ -37,6 +37,7 @@
 #define STB_SPRINTF_IMPLEMENTATION 1
 #if defined(__GNUG__) && !defined(__clang__)
 #    pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#    define STBI__ASAN OIIO_NO_SANITIZE_ADDRESS
 #endif
 #include "stb_sprintf.h"
 
