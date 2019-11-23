@@ -183,7 +183,7 @@
 #elif defined(__INTEL_COMPILER)
 #    define OIIO_ALIGN(size) __declspec(align((size)))
 #else
-#    error "Don't know how to define OIIO_ALIGN"
+#    define OIIO_ALIGN(size) alignas(size)
 #endif
 
 // Cache line size is 64 on all modern x86 CPUs. If this changes or we
