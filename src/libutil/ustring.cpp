@@ -285,6 +285,8 @@ namespace {
 // Definitions to let us access libc++ string internals.
 // See libc++ <string> file for details.
 
+// clang-format off
+#ifdef _LIBCPP_VERSION
 #ifdef _LIBCPP_ALTERNATE_STRING_LAYOUT
 struct libcpp_string__long {
     std::string::pointer __data_;
@@ -315,7 +317,9 @@ enum {
           ? (sizeof(libcpp_string__long) - 1) / sizeof(std::string::value_type)
           : 2
 };
+#endif
 
+// clang-format on
 }  // namespace
 
 
