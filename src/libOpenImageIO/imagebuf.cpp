@@ -265,7 +265,8 @@ private:
     mutable std::string m_err;                ///< Last error message
 
     // Private reset m_pixels to new allocation of new size, copy if
-    // data is not nullptr.
+    // data is not nullptr. Return nullptr if an allocation of that size
+    // was not possible.
     char* new_pixels(size_t size, const void* data = nullptr);
     // Private release of m_pixels.
     void free_pixels();
@@ -516,16 +517,27 @@ ImageBufImpl::new_pixels(size_t size, const void* data)
 {
     if (m_allocated_size)
         free_pixels();
+    try {
+        m_pixels.reset(size ? new char[size] : nullptr);
+    } catch (const std::exception& e) {
+        // Could not allocate enough memory. So don't allocate anything,
+        // consider this an uninitialized ImageBuf, issue an error, and hope
+        // it's handled well downstream.
+        m_pixels.reset();
+        OIIO::debugf("ImageBuf unable to allocate %d bytes (%s)\n", size,
+                     e.what());
+        errorf("ImageBuf unable to allocate %d bytes (%s)\n", size, e.what());
+        size = 0;
+    }
     m_allocated_size = size;
-    m_pixels.reset(size ? new char[size] : nullptr);
     IB_local_mem_current += m_allocated_size;
     if (data && size)
         memcpy(m_pixels.get(), data, size);
     m_localpixels = m_pixels.get();
     m_storage     = size ? ImageBuf::LOCALBUFFER : ImageBuf::UNINITIALIZED;
     if (pvt::oiio_print_debug > 1)
-        OIIO::debug("IB allocated %d MB, global IB memory now %d MB\n",
-                    size >> 20, IB_local_mem_current >> 20);
+        OIIO::debugf("IB allocated %d MB, global IB memory now %d MB\n",
+                     size >> 20, IB_local_mem_current >> 20);
     return m_localpixels;
 }
 
