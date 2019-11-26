@@ -7,6 +7,41 @@
 namespace PyOpenImageIO {
 
 
+static ParamValue
+ParamValue_from_tuple(string_view name, TypeDesc type, int nvalues,
+                      ParamValue::Interp interp, const py::tuple& obj)
+{
+    ParamValue pv;
+    if (type.basetype == TypeDesc::INT) {
+        std::vector<int> vals;
+        py_to_stdvector(vals, obj);
+        if (vals.size() == type.numelements() * type.aggregate * nvalues)
+            pv.init(name, type, nvalues, interp, &vals[0]);
+    } else if (type.basetype == TypeDesc::UINT) {
+        std::vector<unsigned int> vals;
+        py_to_stdvector(vals, obj);
+        if (vals.size() == type.numelements() * type.aggregate * nvalues)
+            pv.init(name, type, nvalues, interp, &vals[0]);
+    } else if (type.basetype == TypeDesc::FLOAT) {
+        std::vector<float> vals;
+        py_to_stdvector(vals, obj);
+        if (vals.size() == type.numelements() * type.aggregate * nvalues)
+            pv.init(name, type, nvalues, interp, &vals[0]);
+    } else if (type.basetype == TypeDesc::STRING) {
+        std::vector<std::string> vals;
+        py_to_stdvector(vals, obj);
+        if (vals.size() == type.numelements() * type.aggregate * nvalues) {
+            std::vector<ustring> u;
+            for (auto& val : vals)
+                u.emplace_back(val);
+            pv.init(name, type, nvalues, interp, &u[0]);
+        }
+    }
+    return pv;
+}
+
+
+
 void
 declare_paramvalue(py::module& m)
 {
@@ -29,13 +64,24 @@ declare_paramvalue(py::module& m)
                                })
         .def_property_readonly("value",
                                [](const ParamValue& p) {
-                                   return ParamValue_getitem(p, 0);
+                                   return ParamValue_getitem(p, true);
                                })
         // .def("__getitem__",       &ParamValue_getitem)
         .def_property_readonly("__len__", &ParamValue::nvalues)
         .def(py::init<const std::string&, int>())
         .def(py::init<const std::string&, float>())
-        .def(py::init<const std::string&, const std::string&>());
+        .def(py::init<const std::string&, const std::string&>())
+        .def(py::init([](const std::string& name, TypeDesc type,
+                         const py::tuple& obj) {
+                 return ParamValue_from_tuple(name, type, 1,
+                                              ParamValue::INTERP_CONSTANT, obj);
+             }),
+             "name"_a, "type"_a, "value"_a)
+        .def(py::init([](const std::string& name, TypeDesc type, int nvalues,
+                         ParamValue::Interp interp, const py::tuple& obj) {
+                 return ParamValue_from_tuple(name, type, nvalues, interp, obj);
+             }),
+             "name"_a, "type"_a, "nvalues"_a, "interp"_a, "value"_a);
 
     py::class_<ParamValueList>(m, "ParamValueList")
         .def(py::init<>())
