@@ -40,8 +40,8 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/tiffutils.h>
 
-#if OIIO_GNUC_VERSION >= 80000 || OIIO_CLANG_VERSION >= 50000
-// fix gcc8 warnings in libraw headers: use of auto_ptr
+#if OIIO_GNUC_VERSION || OIIO_CLANG_VERSION >= 50000
+// fix warnings in libraw headers: use of auto_ptr
 #    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
