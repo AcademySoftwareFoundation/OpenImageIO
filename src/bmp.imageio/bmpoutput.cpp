@@ -102,9 +102,11 @@ BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
     std::vector<unsigned char> scratch;
     data = to_native_scanline(format, data, xstride, scratch, m_dither, y, z);
-    std::vector<unsigned char> buf((const unsigned char*)data,
-                                   (const unsigned char*)data
-                                       + m_padded_scanline_size);
+    std::vector<unsigned char> buf;
+    buf.reserve(m_padded_scanline_size);  // reserve enough for padded scanline
+    buf.assign((const unsigned char*)data,
+               (const unsigned char*)data + m_spec.scanline_bytes());
+    buf.resize(m_padded_scanline_size, 0);  // pad with zeroes if needed
 
     // Swap RGB pixels into BGR format
     if (m_spec.nchannels >= 3)
