@@ -345,10 +345,12 @@
 
 // OIIO_PRETTY_FUNCTION gives a text string of the current function
 // declaration.
-#ifndef _MSC_VER
+#if defined(__PRETTY_FUNCTION__)
 #    define OIIO_PRETTY_FUNCTION __PRETTY_FUNCTION__ /* gcc, clang */
-#else
+#elif defined(__FUNCSIG__)
 #    define OIIO_PRETTY_FUNCTION __FUNCSIG__ /* MS gotta be different */
+#else
+#    define OIIO_PRETTY_FUNCTION __FUNCTION__
 #endif
 
 
