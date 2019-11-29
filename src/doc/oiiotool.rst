@@ -1074,7 +1074,7 @@ Writing images
 
     Optional appended arguments include:
     
-    - `datatype=` *name* : Set the pixel data type (like `-d`) for this
+    - `type=` *name* : Set the pixel data type (like `-d`) for this
       output image (e.g., `uint8`, `uint16`, `half`, `float`, etc.).
     - `bits=` *int* : Set the bits per pixel (if nonstandard for the
       datatype) for this output image.
@@ -1565,12 +1565,17 @@ current top image.
     
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
 
-    If the offset is omitted, it will be x=0, y=0.
+    If the offset is omitted, it will be x=0, y=0. Optional appended
+    arguments include:
+
+    - `type=` *name* : Create the image in memory with the named data type
+      (default: float).
 
     Examples::
 
         --create 1920x1080 3         # RGB with w=1920, h=1080, x=0, y=0
         --create 1024x768+100+0 4    # RGBA with w=1024, h=768, x=100, y=0
+        --create:type=uint8 1920x1080 3  # RGB, store internally as uint8
 
 
 .. option:: --pattern <patternname> <size> <channels>
@@ -1583,7 +1588,11 @@ current top image.
 
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
 
-    If the offset is omitted, it will be x=0, y=0.
+    If the offset is omitted, it will be x=0, y=0. Optional appended
+    arguments include:
+
+    - `type=` *name* : Create the image in memory with the named data type
+      (default: float).
 
     The patterns recognized include the following:
 
