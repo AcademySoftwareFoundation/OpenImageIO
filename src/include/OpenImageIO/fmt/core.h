@@ -16,7 +16,7 @@
 #include <type_traits>
 
 // The fmt library version in the form major * 10000 + minor * 100 + patch.
-#define FMT_VERSION 50301
+#define FMT_VERSION 60000
 
 #ifdef __has_feature
 #  define FMT_HAS_FEATURE(x) __has_feature(x)
@@ -144,12 +144,12 @@
 #    define FMT_INLINE_NAMESPACE namespace
 #    define FMT_END_NAMESPACE \
       }                       \
-      using namespace v5;     \
+      using namespace v6;     \
       }
 #  endif
 #  define FMT_BEGIN_NAMESPACE \
     namespace fmt {           \
-    FMT_INLINE_NAMESPACE v5 {
+    FMT_INLINE_NAMESPACE v6 {
 #endif
 
 #if !defined(FMT_HEADER_ONLY) && defined(_WIN32)
@@ -198,6 +198,8 @@ using conditional_t = typename std::conditional<B, T, F>::type;
 template <bool B> using bool_constant = std::integral_constant<bool, B>;
 template <typename T>
 using remove_reference_t = typename std::remove_reference<T>::type;
+template <typename T>
+using remove_const_t = typename std::remove_const<T>::type;
 
 struct monostate {};
 
@@ -207,6 +209,9 @@ struct monostate {};
 #define FMT_ENABLE_IF(...) enable_if_t<(__VA_ARGS__), int> = 0
 
 namespace internal {
+
+// A workaround for gcc 4.8 to make void_t work in a SFINAE context.
+template <typename... Ts> struct void_t_impl { using type = void; };
 
 #if defined(FMT_USE_STRING_VIEW)
 template <typename Char> using std_string_view = std::basic_string_view<Char>;
@@ -224,6 +229,9 @@ FMT_CONSTEXPR typename std::make_unsigned<Int>::type to_unsigned(Int value) {
   return static_cast<typename std::make_unsigned<Int>::type>(value);
 }
 }  // namespace internal
+
+template <typename... Ts>
+using void_t = typename internal::void_t_impl<Ts...>::type;
 
 /**
   An implementation of ``std::basic_string_view`` for pre-C++17. It provides a
@@ -381,7 +389,7 @@ constexpr basic_string_view<typename S::char_type> to_string_view(const S& s) {
 
 namespace internal {
 void to_string_view(...);
-using fmt::v5::to_string_view;
+using fmt::v6::to_string_view;
 
 // Specifies whether S is a string type convertible to fmt::basic_string_view.
 // It should be a constexpr function but MSVC 2017 fails to compile it in
@@ -439,13 +447,13 @@ class basic_parse_context : private ErrorHandler {
   }
 
   // Returns the next argument index.
-  FMT_CONSTEXPR unsigned next_arg_id() {
-    if (next_arg_id_ >= 0) return internal::to_unsigned(next_arg_id_++);
+  FMT_CONSTEXPR int next_arg_id() {
+    if (next_arg_id_ >= 0) return next_arg_id_++;
     on_error("cannot switch from manual to automatic argument indexing");
     return 0;
   }
 
-  FMT_CONSTEXPR bool check_arg_id(unsigned) {
+  FMT_CONSTEXPR bool check_arg_id(int) {
     if (next_arg_id_ > 0) {
       on_error("cannot switch from automatic to manual argument indexing");
       return false;
@@ -653,13 +661,13 @@ FMT_TYPE_CONSTANT(basic_string_view<Char>, string_type);
 FMT_TYPE_CONSTANT(const void*, pointer_type);
 
 FMT_CONSTEXPR bool is_integral(type t) {
-  FMT_ASSERT(t != internal::named_arg_type, "invalid argument type");
-  return t > internal::none_type && t <= internal::last_integer_type;
+  FMT_ASSERT(t != named_arg_type, "invalid argument type");
+  return t > none_type && t <= last_integer_type;
 }
 
 FMT_CONSTEXPR bool is_arithmetic(type t) {
-  FMT_ASSERT(t != internal::named_arg_type, "invalid argument type");
-  return t > internal::none_type && t <= internal::last_numeric_type;
+  FMT_ASSERT(t != named_arg_type, "invalid argument type");
+  return t > none_type && t <= last_numeric_type;
 }
 
 template <typename Char> struct string_value {
@@ -936,13 +944,6 @@ FMT_CONSTEXPR auto visit_format_arg(Visitor&& vis,
   return vis(monostate());
 }
 
-template <typename Visitor, typename Context>
-FMT_DEPRECATED FMT_CONSTEXPR auto visit(Visitor&& vis,
-                                        const basic_format_arg<Context>& arg)
-    -> decltype(vis(0)) {
-  return visit_format_arg(std::forward<Visitor>(vis), arg);
-}
-
 namespace internal {
 // A map from argument names to their values for named arguments.
 template <typename Context> class arg_map {
@@ -1050,7 +1051,7 @@ template <typename OutputIt, typename Char> class basic_format_context {
                        internal::locale_ref loc = internal::locale_ref())
       : out_(out), args_(ctx_args), loc_(loc) {}
 
-  format_arg arg(unsigned id) const { return args_.get(id); }
+  format_arg arg(int id) const { return args_.get(id); }
 
   // Checks if manual indexing is used and returns the argument with the
   // specified name.
@@ -1061,7 +1062,6 @@ template <typename OutputIt, typename Char> class basic_format_context {
 
   // Returns an iterator to the beginning of the output range.
   iterator out() { return out_; }
-  FMT_DEPRECATED iterator begin() { return out_; }
 
   // Advances the begin iterator to ``it``.
   void advance_to(iterator it) { out_ = it; }
@@ -1092,7 +1092,7 @@ template <typename Context, typename... Args> class format_arg_store {
                                    basic_format_arg<Context>>;
 
   // If the arguments are not packed, add one more element to mark the end.
-  value_type data_[num_args + (!is_packed || num_args == 0 ? 1 : 0)];
+  value_type data_[num_args + (num_args == 0 ? 1 : 0)];
 
   friend class basic_format_args<Context>;
 
@@ -1123,7 +1123,7 @@ inline format_arg_store<Context, Args...> make_format_args(
 /** Formatting arguments. */
 template <typename Context> class basic_format_args {
  public:
-  using size_type = unsigned;
+  using size_type = int;
   using format_arg = basic_format_arg<Context>;
 
  private:
@@ -1142,8 +1142,8 @@ template <typename Context> class basic_format_args {
 
   bool is_packed() const { return (types_ & internal::is_unpacked_bit) == 0; }
 
-  internal::type type(unsigned index) const {
-    unsigned shift = index * 4;
+  internal::type type(int index) const {
+    int shift = index * 4;
     return static_cast<internal::type>((types_ & (0xfull << shift)) >> shift);
   }
 
@@ -1152,7 +1152,7 @@ template <typename Context> class basic_format_args {
   void set_data(const internal::value<Context>* values) { values_ = values; }
   void set_data(const format_arg* args) { args_ = args; }
 
-  format_arg do_get(size_type index) const {
+  format_arg do_get(int index) const {
     format_arg arg;
     if (!is_packed()) {
       auto num_args = max_size();
@@ -1186,23 +1186,23 @@ template <typename Context> class basic_format_args {
    Constructs a `basic_format_args` object from a dynamic set of arguments.
    \endrst
    */
-  basic_format_args(const format_arg* args, size_type count)
-      : types_(internal::is_unpacked_bit | count) {
+  basic_format_args(const format_arg* args, int count)
+      : types_(internal::is_unpacked_bit | internal::to_unsigned(count)) {
     set_data(args);
   }
 
   /** Returns the argument at specified index. */
-  format_arg get(size_type index) const {
+  format_arg get(int index) const {
     format_arg arg = do_get(index);
     if (arg.type_ == internal::named_arg_type)
       arg = arg.value_.named_arg->template deserialize<Context>();
     return arg;
   }
 
-  size_type max_size() const {
+  int max_size() const {
     unsigned long long max_packed = internal::max_packed_args;
-    return static_cast<size_type>(
-        is_packed() ? max_packed : types_ & ~internal::is_unpacked_bit);
+    return static_cast<int>(is_packed() ? max_packed
+                                        : types_ & ~internal::is_unpacked_bit);
   }
 };
 
@@ -1258,14 +1258,30 @@ template <typename T, typename Char> struct named_arg : named_arg_base<Char> {
 };
 
 template <typename..., typename S, FMT_ENABLE_IF(!is_compile_string<S>::value)>
-inline void check_format_string(const S&) {}
+inline void check_format_string(const S&) {
+#if defined(FMT_ENFORCE_COMPILE_STRING)
+  static_assert(is_compile_string<S>::value,
+                "FMT_ENFORCE_COMPILE_STRING requires all format strings to "
+                "utilize FMT_STRING() or fmt().");
+#endif
+}
 template <typename..., typename S, FMT_ENABLE_IF(is_compile_string<S>::value)>
 void check_format_string(S);
 
-template <typename S, typename... Args, typename Char = char_t<S>>
-inline format_arg_store<buffer_context<Char>, Args...> make_args_checked(
-    const S& format_str, const Args&... args) {
-  check_format_string<Args...>(format_str);
+struct view {};
+template <bool...> struct bool_pack;
+template <bool... Args>
+using all_true =
+    std::is_same<bool_pack<Args..., true>, bool_pack<true, Args...>>;
+
+template <typename... Args, typename S, typename Char = char_t<S>>
+inline format_arg_store<buffer_context<Char>, remove_reference_t<Args>...>
+make_args_checked(const S& format_str,
+                  const remove_reference_t<Args>&... args) {
+  static_assert(all_true<(!std::is_base_of<view, remove_reference_t<Args>>() ||
+                          !std::is_reference<Args>())...>::value,
+                "passing views as lvalues is disallowed");
+  check_format_string<remove_const_t<remove_reference_t<Args>>...>(format_str);
   return {args...};
 }
 
@@ -1323,9 +1339,10 @@ template <typename Container, typename S, typename... Args,
               is_contiguous<Container>::value&& internal::is_string<S>::value)>
 inline std::back_insert_iterator<Container> format_to(
     std::back_insert_iterator<Container> out, const S& format_str,
-    const Args&... args) {
-  return vformat_to(out, to_string_view(format_str),
-                    {internal::make_args_checked(format_str, args...)});
+    Args&&... args) {
+  return vformat_to(
+      out, to_string_view(format_str),
+      {internal::make_args_checked<Args...>(format_str, args...)});
 }
 
 template <typename S, typename Char = char_t<S>>
@@ -1347,10 +1364,10 @@ inline std::basic_string<Char> vformat(
 // Pass char_t as a default template parameter instead of using
 // std::basic_string<char_t<S>> to reduce the symbol size.
 template <typename S, typename... Args, typename Char = char_t<S>>
-inline std::basic_string<Char> format(const S& format_str,
-                                      const Args&... args) {
-  return internal::vformat(to_string_view(format_str),
-                           {internal::make_args_checked(format_str, args...)});
+inline std::basic_string<Char> format(const S& format_str, Args&&... args) {
+  return internal::vformat(
+      to_string_view(format_str),
+      {internal::make_args_checked<Args...>(format_str, args...)});
 }
 
 FMT_API void vprint(std::FILE* f, string_view format_str, format_args args);
@@ -1369,9 +1386,9 @@ FMT_API void vprint(std::FILE* f, wstring_view format_str, wformat_args args);
  */
 template <typename S, typename... Args,
           FMT_ENABLE_IF(internal::is_string<S>::value)>
-inline void print(std::FILE* f, const S& format_str, const Args&... args) {
+inline void print(std::FILE* f, const S& format_str, Args&&... args) {
   vprint(f, to_string_view(format_str),
-         internal::make_args_checked(format_str, args...));
+         internal::make_args_checked<Args...>(format_str, args...));
 }
 
 FMT_API void vprint(string_view format_str, format_args args);
@@ -1388,9 +1405,9 @@ FMT_API void vprint(wstring_view format_str, wformat_args args);
  */
 template <typename S, typename... Args,
           FMT_ENABLE_IF(internal::is_string<S>::value)>
-inline void print(const S& format_str, const Args&... args) {
+inline void print(const S& format_str, Args&&... args) {
   vprint(to_string_view(format_str),
-         internal::make_args_checked(format_str, args...));
+         internal::make_args_checked<Args...>(format_str, args...));
 }
 FMT_END_NAMESPACE
 

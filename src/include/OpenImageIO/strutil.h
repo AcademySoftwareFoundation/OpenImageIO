@@ -38,6 +38,7 @@
 #ifndef FMT_HEADER_ONLY
 #    define FMT_HEADER_ONLY
 #endif
+#define FMT_USE_GRISU 1
 #include "fmt/ostream.h"
 #include "fmt/format.h"
 #include "fmt/printf.h"
@@ -54,14 +55,19 @@
 #define OIIO_FORMAT_IS_FMT 0
 
 // Allow client software to know that at this moment, the fmt-based string
-// formatting is not correctly locale-independent. We will change this value
-// to 1 when the fmt bugs are fixed.
-#define OIIO_FMT_LOCALE_INDEPENDENT 0
+// formatting is locale-independent. This was 0 in older versions when fmt
+// was locale dependent.
+#define OIIO_FMT_LOCALE_INDEPENDENT 1
 
-#ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
-#    define TINYFORMAT_USE_VARIADIC_TEMPLATES
+// Use fmt rather than tinyformat, even for printf-style formatting
+#define OIIO_USE_FMT_FOR_SPRINTF 0
+
+#if !OIIO_USE_FMT_FOR_SPRINTF
+#    ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
+#        define TINYFORMAT_USE_VARIADIC_TEMPLATES
+#    endif
+#    include <OpenImageIO/tinyformat.h>
 #endif
-#include <OpenImageIO/tinyformat.h>
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS
 #   ifndef __GNUC__
@@ -113,10 +119,10 @@ inline std::string sprintf (const char* fmt, const Args&... args)
     // fmt::format is not correctly locale-independent for floating point
     // values. As soon as they fix it, we will upgrade, then change this
     // implementation to use `::fmt::sprintf(fmt, args...)` if it is faster.
-#if 1
-    return tinyformat::format (fmt, args...);
-#else
+#if OIIO_USE_FMT_FOR_SPRINTF
     return ::fmt::sprintf (fmt, args...);
+#else
+    return tinyformat::format (fmt, args...);
 #endif
 }
 
