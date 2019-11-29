@@ -60,7 +60,7 @@
 #define OIIO_FMT_LOCALE_INDEPENDENT 1
 
 // Use fmt rather than tinyformat, even for printf-style formatting
-#define OIIO_USE_FMT_FOR_SPRINTF 0
+#define OIIO_USE_FMT_FOR_SPRINTF 1
 
 #if !OIIO_USE_FMT_FOR_SPRINTF
 #    ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
@@ -526,26 +526,30 @@ template<> inline float from_string<float> (string_view s) {
 
 
 
-// Template function to convert any type to a string. The default
-// implementation is just to use sprintf. The template can be
-// overloaded if there is a better method for particular types.
-// Eventually, we want this to use fmt::to_string, but for now that doesn't
-// work because {fmt} doesn't correctly support locale-independent
-// formatting of floating-point types.
+/// Template function to convert any type to a string. The default
+/// implementation is just to use sprintf or fmt::to_string. The template
+/// can be overloaded if there is a better method for particular types.
 template<typename T>
 inline std::string to_string (const T& value) {
+#if OIIO_USE_FMT_FOR_SPRINTF
+    return ::fmt::to_string(value);
+#else
     return Strutil::sprintf("%s",value);
+#endif
 }
 
-template<> inline std::string to_string (const std::string& value) { return value; }
-template<> inline std::string to_string (const string_view& value) { return value; }
+// Some special pass-through cases
+inline std::string to_string (const std::string& value) { return value; }
+inline std::string to_string (string_view value) { return value; }
 inline std::string to_string (const char* value) { return value; }
 
-// Int types are SO much faster with fmt than tinyformat, specialize. Can't
-// do it for floats yet because of the locale-dependence.
+
+#if !OIIO_USE_FMT_FOR_SPRINTF
+// When not using fmt, nonetheless fmt::to_string is incredibly faster than
+// tinyformat for ints, so speciaize to use the fast one.
 inline std::string to_string (int value) { return ::fmt::to_string(value); }
 inline std::string to_string (size_t value) { return ::fmt::to_string(value); }
-
+#endif
 
 
 
