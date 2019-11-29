@@ -643,7 +643,10 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     //   that way.
     TypeDesc requested_output_dataformat = ot.output_dataformat;
     auto requested_output_channelformats = ot.output_channelformats;
-    if (fileoptions.contains("datatype")) {
+    if (fileoptions.contains("type")) {
+        requested_output_dataformat.fromstring(fileoptions.get_string("type"));
+        requested_output_channelformats.clear();
+    } else if (fileoptions.contains("datatype")) {
         requested_output_dataformat.fromstring(
             fileoptions.get_string("datatype"));
         requested_output_channelformats.clear();
@@ -3105,13 +3108,15 @@ action_create(int argc, const char* argv[])
     ASSERT(argc == 3);
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
     string_view size    = ot.express(argv[1]);
     int nchans          = Strutil::from_string<int>(ot.express(argv[2]));
     if (nchans < 1 || nchans > 1024) {
         ot.warningf(argv[0], "Invalid number of channels: %d", nchans);
         nchans = 3;
     }
-    ImageSpec spec(64, 64, nchans, TypeDesc::FLOAT);
+    ImageSpec spec(64, 64, nchans,
+                   TypeDesc(options["type"].as_string("float")));
     ot.adjust_geometry(argv[0], spec.width, spec.height, spec.x, spec.y,
                        size.c_str());
     spec.full_x      = spec.x;
@@ -3139,6 +3144,7 @@ action_pattern(int argc, const char* argv[])
     ASSERT(argc == 4);
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
     std::string pattern = ot.express(argv[1]);
     std::string size    = ot.express(argv[2]);
     int nchans          = Strutil::from_string<int>(ot.express(argv[3]));
@@ -3146,7 +3152,8 @@ action_pattern(int argc, const char* argv[])
         ot.warningf(argv[0], "Invalid number of channels: %d", nchans);
         nchans = 3;
     }
-    ImageSpec spec(64, 64, nchans, TypeDesc::FLOAT);
+    ImageSpec spec(64, 64, nchans,
+                   TypeDesc(options["type"].as_string("float")));
     ot.adjust_geometry(argv[0], spec.width, spec.height, spec.x, spec.y,
                        size.c_str());
     spec.full_x      = spec.x;
