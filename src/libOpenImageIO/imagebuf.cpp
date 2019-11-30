@@ -548,8 +548,8 @@ ImageBufImpl::free_pixels()
     IB_local_mem_current -= m_allocated_size;
     m_pixels.reset();
     if (m_allocated_size && pvt::oiio_print_debug > 1)
-        OIIO::debug("IB freed %d MB, global IB memory now %d MB\n",
-                    m_allocated_size >> 20, IB_local_mem_current >> 20);
+        OIIO::debugf("IB freed %d MB, global IB memory now %d MB\n",
+                     m_allocated_size >> 20, IB_local_mem_current >> 20);
     m_allocated_size = 0;
     m_storage        = ImageBuf::UNINITIALIZED;
 }
