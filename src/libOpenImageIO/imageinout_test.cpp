@@ -26,12 +26,15 @@ make_test_image(string_view formatname)
     ImageBuf buf;
     auto out = ImageOutput::create(formatname);
     ASSERT(out);
+    ImageSpec spec(64, 64, 4, TypeFloat);
     if (formatname == "zfile" || formatname == "fits")
-        buf.reset(ImageSpec(64, 64, 1, TypeFloat));
+        spec.nchannels = 1;  // these formats are single channel
     else if (!out->supports("alpha"))
-        buf.reset(ImageSpec(64, 64, 3, TypeFloat));
-    else
-        buf.reset(ImageSpec(64, 64, 4, TypeFloat));
+        spec.nchannels = 3;  // this channel doesn't support alpha
+    // Force a fixed datetime metadata so it can't differ between writes
+    // and make different file patterns for these tests.
+    spec.attribute("DateTime", "01/01/2000 00:00:00");
+    buf.reset(spec);
     ImageBufAlgo::fill(buf, { 1.0f, 1.0f, 1.0f, 1.0f });
     return buf;
 }
