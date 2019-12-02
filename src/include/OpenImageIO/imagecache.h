@@ -204,6 +204,12 @@ public:
     ///           aren't getting any helpful additional information, this
     ///           can cut down on the clutter and the runtime. (default:
     ///           100)
+    /// - `int trust_file_extensions` :
+    ///           When nonzero, assume that the file extensions of any
+    ///           texture requests correctly indicates the file format (when
+    ///           enabled, this reduces the number of file opens, at the
+    ///           expense of not being able to open files if their format do
+    ///           not actually match their filename extension). Default: 0
     ///
     /// - `string options`
     ///           This catch-all is simply a comma-separated list of
