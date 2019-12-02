@@ -776,7 +776,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 spec.attribute(oname, TypeRational, r);
             } else {
                 // TODO: find a way to allow the client to accept "close" rational values
-                OIIO::debug(
+                OIIO::debugf(
                     "Don't know what to do with OpenEXR Rational attribute %s with value %d / %u that we cannot represent exactly",
                     oname, n, d);
             }
