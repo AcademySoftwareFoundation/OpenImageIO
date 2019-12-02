@@ -87,7 +87,7 @@ template<typename T>
 static void
 print_nums(int n, const T* val, string_view sep = " ")
 {
-    if (std::is_floating_point<T>::value) {
+    if (std::is_floating_point<T>::value || std::is_same<T, half>::value) {
         // Ensure uniform printing of NaN and Inf on all platforms
         for (int i = 0; i < n; ++i) {
             if (i)
@@ -103,7 +103,8 @@ print_nums(int n, const T* val, string_view sep = " ")
     } else {
         // not floating point -- print the int values, then float equivalents
         for (int i = 0; i < n; ++i) {
-            Strutil::printf("%s%d", i ? sep : "", int64_t(val[i]));
+            Strutil::printf(std::is_signed<T>::value ? "%s%d" : "%s%u",
+                            i ? sep : "", val[i]);
         }
         Strutil::printf(" (");
         for (int i = 0; i < n; ++i) {

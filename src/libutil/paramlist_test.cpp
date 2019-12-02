@@ -92,10 +92,29 @@ test_value_types()
     }
 
     {
+        double val = 2.25;
+        ret        = test_numeric(&val, 1, TypeDesc::DOUBLE);
+        OIIO_CHECK_EQUAL(ret, "2.25");
+    }
+
+    {
+        half val = 2.25;
+        ret      = test_numeric(&val, 1, TypeDesc::HALF);
+        OIIO_CHECK_EQUAL(ret, "2.25");
+    }
+
+    {
         const char* val = "hello";
         ParamValue p("name", val);
         OIIO_CHECK_EQUAL(p.get<ustring>(), "hello");
         OIIO_CHECK_EQUAL(p.get_string(), "hello");
+    }
+
+    {
+        const int* ptr = (const int*)0xdeadbeef;
+        ParamValue p("name", TypeDesc::PTR, 1, &ptr);
+        OIIO_CHECK_EQUAL(p.get<void*>(), ptr);
+        OIIO_CHECK_EQUAL(p.get_string(), "0xdeadbeef");
     }
 
     {

@@ -365,7 +365,7 @@ static constexpr TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::
 
 
 
-// DEPRECATED
+// DEPRECATED(2.1)
 OIIO_API
 std::string tostring (TypeDesc type, const void *data,
                       const char *float_fmt,                // E.g. "%g"
@@ -444,7 +444,8 @@ template<> struct CType<(int)TypeDesc::DOUBLE> { typedef double type; };
 
 /// Helper class for tostring() that contains a whole bunch of parameters
 /// that control exactly how all the data types that can be described as
-/// TypeDesc ought to be formatted as a string.
+/// TypeDesc ought to be formatted as a string. Uses printf-like
+/// conventions. This will someday be deprecated.
 struct tostring_formatting {
     // Printf-like formatting specs for int, float, string, pointer data.
     const char *int_fmt = "%d";
@@ -465,7 +466,7 @@ struct tostring_formatting {
     enum Flags { None=0, escape_strings=1, quote_single_string=2 };
     int flags = escape_strings;
     // Reserved space for future expansion without breaking the ABI.
-    const char *reserved1 = "";
+    const char *uint_fmt = "%u";
     const char *reserved2 = "";
     const char *reserved3 = "";
 
@@ -475,7 +476,8 @@ struct tostring_formatting {
         const char *aggregate_begin = "(", const char *aggregate_end = ")",
         const char *aggregate_sep = ",", const char *array_begin = "{",
         const char *array_end = "}", const char *array_sep = ",",
-        int flags = escape_strings);
+        int flags = escape_strings,
+        const char *uint_fmt = "%u");
 };
 
 
