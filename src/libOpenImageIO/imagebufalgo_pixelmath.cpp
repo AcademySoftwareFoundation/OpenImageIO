@@ -1023,17 +1023,11 @@ ImageBufAlgo::color_map(const ImageBuf& src, int srcchannel,
 
 namespace {
 
-template<typename T>
-inline bool
-isfinite_(T v)
-{
-    return std::isfinite(v);
-}
+using std::isfinite;
 
 // Make sure isfinite is defined for 'half'
-template<>
 inline bool
-isfinite_<half>(half h)
+isfinite(half h)
 {
     return h.isFinite();
 }
@@ -1055,7 +1049,7 @@ fixNonFinite_(ImageBuf& dst, ImageBufAlgo::NonFiniteFixMode mode,
                  ++pixel) {
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
                     T value = pixel[c];
-                    if (!isfinite_(value)) {
+                    if (!isfinite(value)) {
                         ++count;
                         break;  // only count one per pixel
                     }
@@ -1068,7 +1062,7 @@ fixNonFinite_(ImageBuf& dst, ImageBufAlgo::NonFiniteFixMode mode,
                 bool fixed = false;
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
                     T value = pixel[c];
-                    if (!isfinite_(value)) {
+                    if (!isfinite(value)) {
                         pixel[c] = T(0.0);
                         fixed    = true;
                     }
@@ -1084,7 +1078,7 @@ fixNonFinite_(ImageBuf& dst, ImageBufAlgo::NonFiniteFixMode mode,
                 bool fixed = false;
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
                     T value = pixel[c];
-                    if (!isfinite_(value)) {
+                    if (!isfinite(value)) {
                         int numvals = 0;
                         T sum(0.0);
                         ROI roi2(pixel.x() - 1, pixel.x() + 2, pixel.y() - 1,
@@ -1093,7 +1087,7 @@ fixNonFinite_(ImageBuf& dst, ImageBufAlgo::NonFiniteFixMode mode,
                         for (ImageBuf::Iterator<T, T> i(dst, roi2); !i.done();
                              ++i) {
                             T v = i[c];
-                            if (isfinite_(v)) {
+                            if (isfinite(v)) {
                                 sum += v;
                                 ++numvals;
                             }
@@ -1135,7 +1129,7 @@ fixNonFinite_deep_(ImageBuf& dst, ImageBufAlgo::NonFiniteFixMode mode,
                 for (int samp = 0; samp < samples && !bad; ++samp)
                     for (int c = roi.chbegin; c < roi.chend; ++c) {
                         float value = pixel.deep_value(c, samp);
-                        if (!isfinite_(value)) {
+                        if (!isfinite(value)) {
                             ++count;
                             bad = true;
                             break;
@@ -1154,7 +1148,7 @@ fixNonFinite_deep_(ImageBuf& dst, ImageBufAlgo::NonFiniteFixMode mode,
                 for (int samp = 0; samp < samples; ++samp)
                     for (int c = roi.chbegin; c < roi.chend; ++c) {
                         float value = pixel.deep_value(c, samp);
-                        if (!isfinite_(value)) {
+                        if (!isfinite(value)) {
                             pixel.set_deep_value(c, samp, 0.0f);
                             fixed = true;
                         }
