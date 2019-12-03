@@ -30,12 +30,33 @@ test_format()
     OIIO_CHECK_EQUAL(Strutil::sprintf("%+d%+d%+d", 3, -3, 0), "+3-3+0");
     OIIO_CHECK_EQUAL(Strutil::sprintf("foo"), "foo");
     OIIO_CHECK_EQUAL(Strutil::sprintf("%%foo"), "%foo");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%d", int16_t(0xffff)), "-1");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%u", uint16_t(0xffff)), "65535");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%d", int32_t(0xffffffff)), "-1");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%u", uint32_t(0xffffffff)), "4294967295");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%d", int64_t(0xffffffffffffffff)), "-1");
+    OIIO_CHECK_EQUAL(Strutil::sprintf("%u", uint64_t(0xffffffffffffffff)), "18446744073709551615");
 
     // spot check that Strutil::old::format() is sprintf:
     OIIO_CHECK_EQUAL(Strutil::old::format("%d",1), "1");
 
     // Test formatting with Strutil::fmt::format(), which uses the
     // Python conventions:
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{} {:f} {}", int(3), 3.14f, 3.14f),
+                     "3 3.140000 3.14");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("'{}' '{}'", "foo", std::string("foo")),
+                     "'foo' 'foo'");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("'{:3d}' '{:03d}' '{:<3d}'", 3, 3, 3),
+                     "'  3' '003' '3  '");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{:+d}{:+d}{:+d}", 3, -3, 0), "+3-3+0");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("foo"), "foo");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("%foo"), "%foo");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", short(0xffff)), "-1");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", uint16_t(0xffff)), "65535");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", int32_t(0xffffffff)), "-1");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", uint32_t(0xffffffff)), "4294967295");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", int64_t(0xffffffffffffffff)), "-1");
+    OIIO_CHECK_EQUAL(Strutil::fmt::format("{}", uint64_t(0xffffffffffffffff)), "18446744073709551615");
     OIIO_CHECK_EQUAL(Strutil::fmt::format("{} {:f} {:g}", int(3), 3.14f, 3.14f),
                      "3 3.140000 3.14");
 
@@ -53,7 +74,7 @@ test_format()
     bench ("Strutil::to_string(float)", [&](){ DoNotOptimize (Strutil::to_string(123.45f)); });
 
     bench ("std::sprintf(\"%d\")", [&](){ DoNotOptimize (std::sprintf(buffer,"%d",123)); });
-    bench ("Strutil::sprintf(\"%d\")", [&](){ DoNotOptimize (Strutil::sprintf("%g",123)); });
+    bench ("Strutil::sprintf(\"%d\")", [&](){ DoNotOptimize (Strutil::sprintf("%g",123.0f)); });
     bench ("Strutil::fmt::format(\"{}\")", [&](){ DoNotOptimize (Strutil::fmt::format("{}",123)); });
     bench ("Strutil::to_string(int)", [&](){ DoNotOptimize (Strutil::to_string(123)); });
 
@@ -61,7 +82,7 @@ test_format()
                DoNotOptimize (std::sprintf(buffer,"%g %d %s %d %s %g", 123.45f, 1234, "foobar", 42, "kablooey", 3.14159f));
            });
     bench ("Strutil::sprintf(\"%g %d %s %d %s %g\")", [&](){
-               DoNotOptimize (Strutil::sprintf("%g %d %s %d %s %g", 123.45f, 1234, "foobar", "kablooey", 42, 3.14159f));
+               DoNotOptimize (Strutil::sprintf("%g %d %s %d %s %g", 123.45f, 1234, "foobar", 42, "kablooey", 3.14159f));
            });
     bench ("Strutil::fmt::format(\"{} {} {} {} {} {}\")", [&](){
                DoNotOptimize (Strutil::fmt::format("{} {} {} {} {} {}", 123.45f, 1234, "foobar", 42, "kablooey", 3.14159f));

@@ -303,7 +303,7 @@ tostring_formatting::tostring_formatting(
     const char* int_fmt, const char* float_fmt, const char* string_fmt,
     const char* ptr_fmt, const char* aggregate_begin, const char* aggregate_end,
     const char* aggregate_sep, const char* array_begin, const char* array_end,
-    const char* array_sep, int flags)
+    const char* array_sep, int flags, const char* uint_fmt)
     : int_fmt(int_fmt)
     , float_fmt(float_fmt)
     , string_fmt(string_fmt)
@@ -315,6 +315,7 @@ tostring_formatting::tostring_formatting(
     , array_end(array_end)
     , array_sep(array_sep)
     , flags(flags)
+    , uint_fmt(uint_fmt)
 {
 }
 
@@ -409,10 +410,12 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
         return sprintt(type, fmt.ptr_fmt, fmt, (void**)data);
     case TypeDesc::NONE: return sprintt(type, "None", fmt, (void**)data);
     case TypeDesc::UCHAR:
-        return sprintt(type, fmt.int_fmt, fmt, (unsigned char*)data);
+        return sprintt(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                       (unsigned char*)data);
     case TypeDesc::CHAR: return sprintt(type, fmt.int_fmt, fmt, (char*)data);
     case TypeDesc::USHORT:
-        return sprintt(type, fmt.int_fmt, fmt, (uint16_t*)data);
+        return sprintt(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                       (uint16_t*)data);
     case TypeDesc::SHORT: return sprintt(type, fmt.int_fmt, fmt, (short*)data);
     case TypeDesc::UINT:
         if (type.vecsemantics == TypeDesc::RATIONAL
@@ -422,7 +425,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             for (size_t i = 0, e = type.numelements(); i < e; ++i, val += 2) {
                 if (i)
                     out += ", ";
-                out += Strutil::sprintf("%d/%d", val[0], val[1]);
+                out += Strutil::sprintf("%u/%u", val[0], val[1]);
             }
             return out;
         } else if (type == TypeTimeCode) {
@@ -436,7 +439,8 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             return Strutil::sprintf("%02d:%02d:%02d:%02d", hours, minutes,
                                     seconds, frame);
         }
-        return sprintt(type, fmt.int_fmt, fmt, (unsigned int*)data);
+        return sprintt(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                       (unsigned int*)data);
     case TypeDesc::INT:
         if (type.elementtype() == TypeRational) {
             std::string out;
@@ -449,9 +453,10 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             return out;
         }
         return sprintt(type, fmt.int_fmt, fmt, (int*)data);
-    case TypeDesc::ULONGLONG:
-        return sprintt(type, fmt.int_fmt, fmt, (const uint64_t*)data);
-    case TypeDesc::LONGLONG:
+    case TypeDesc::UINT64:
+        return sprintt(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                       (const uint64_t*)data);
+    case TypeDesc::INT64:
         return sprintt(type, fmt.int_fmt, fmt, (const int64_t*)data);
     case TypeDesc::HALF:
         return sprintt(type, fmt.float_fmt, fmt, (const half*)data);

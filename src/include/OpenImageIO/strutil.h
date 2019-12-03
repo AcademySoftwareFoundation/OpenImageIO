@@ -38,6 +38,7 @@
 #ifndef FMT_HEADER_ONLY
 #    define FMT_HEADER_ONLY
 #endif
+#define FMT_USE_GRISU 1
 #include "fmt/ostream.h"
 #include "fmt/format.h"
 #include "fmt/printf.h"
@@ -54,14 +55,19 @@
 #define OIIO_FORMAT_IS_FMT 0
 
 // Allow client software to know that at this moment, the fmt-based string
-// formatting is not correctly locale-independent. We will change this value
-// to 1 when the fmt bugs are fixed.
-#define OIIO_FMT_LOCALE_INDEPENDENT 0
+// formatting is locale-independent. This was 0 in older versions when fmt
+// was locale dependent.
+#define OIIO_FMT_LOCALE_INDEPENDENT 1
 
-#ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
-#    define TINYFORMAT_USE_VARIADIC_TEMPLATES
+// Use fmt rather than tinyformat, even for printf-style formatting
+#define OIIO_USE_FMT_FOR_SPRINTF 1
+
+#if !OIIO_USE_FMT_FOR_SPRINTF
+#    ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
+#        define TINYFORMAT_USE_VARIADIC_TEMPLATES
+#    endif
+#    include <OpenImageIO/tinyformat.h>
 #endif
-#include <OpenImageIO/tinyformat.h>
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS
 #   ifndef __GNUC__
@@ -113,10 +119,10 @@ inline std::string sprintf (const char* fmt, const Args&... args)
     // fmt::format is not correctly locale-independent for floating point
     // values. As soon as they fix it, we will upgrade, then change this
     // implementation to use `::fmt::sprintf(fmt, args...)` if it is faster.
-#if 1
-    return tinyformat::format (fmt, args...);
-#else
+#if OIIO_USE_FMT_FOR_SPRINTF
     return ::fmt::sprintf (fmt, args...);
+#else
+    return tinyformat::format (fmt, args...);
 #endif
 }
 
@@ -520,26 +526,30 @@ template<> inline float from_string<float> (string_view s) {
 
 
 
-// Template function to convert any type to a string. The default
-// implementation is just to use sprintf. The template can be
-// overloaded if there is a better method for particular types.
-// Eventually, we want this to use fmt::to_string, but for now that doesn't
-// work because {fmt} doesn't correctly support locale-independent
-// formatting of floating-point types.
+/// Template function to convert any type to a string. The default
+/// implementation is just to use sprintf or fmt::to_string. The template
+/// can be overloaded if there is a better method for particular types.
 template<typename T>
 inline std::string to_string (const T& value) {
+#if OIIO_USE_FMT_FOR_SPRINTF
+    return ::fmt::to_string(value);
+#else
     return Strutil::sprintf("%s",value);
+#endif
 }
 
-template<> inline std::string to_string (const std::string& value) { return value; }
-template<> inline std::string to_string (const string_view& value) { return value; }
+// Some special pass-through cases
+inline std::string to_string (const std::string& value) { return value; }
+inline std::string to_string (string_view value) { return value; }
 inline std::string to_string (const char* value) { return value; }
 
-// Int types are SO much faster with fmt than tinyformat, specialize. Can't
-// do it for floats yet because of the locale-dependence.
+
+#if !OIIO_USE_FMT_FOR_SPRINTF
+// When not using fmt, nonetheless fmt::to_string is incredibly faster than
+// tinyformat for ints, so speciaize to use the fast one.
 inline std::string to_string (int value) { return ::fmt::to_string(value); }
 inline std::string to_string (size_t value) { return ::fmt::to_string(value); }
-
+#endif
 
 
 
