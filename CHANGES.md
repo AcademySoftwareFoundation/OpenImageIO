@@ -1,3 +1,7 @@
+Release 2.0.14 (???) -- compared to 2.0.13
+--------------------------------------------------
+
+
 Release 2.0.13 (1 Dec 2019) -- compared to 2.0.12
 --------------------------------------------------
 * Bug fix in deep image compare (`IBA::compare()` or `oiiotool --compare`)
