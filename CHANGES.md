@@ -1,5 +1,26 @@
-Release 2.0.13 (??) -- compared to 2.0.12
+Release 2.0.13 (1 Dec 2019) -- compared to 2.0.12
 --------------------------------------------------
+* Bug fix in deep image compare (`IBA::compare()` or `oiiotool --compare`)
+  would fail to notice differences in deep images where the corresponding
+  pixels had differing numbers of samples. #2381 (2.1.8/2.0.13)
+* DPX: Fix bugs related to int32 math that would lead to incorrect behavior
+  in very high-resolution files. #2396 (2.1.3/2.0.13)
+* When converting images to texture (via maketx or IBA::make_texture),
+  correctly handle color space conversions for greyscale images. #2400
+  (2.1.8/2.0.13)
+* Build: suppress warnings with libraw for certain gcc versions.
+* Build: Fix compiler warnings in ustring.h when `_LIBCPP_VERSION` is not
+  defined. #2415 (2.1.8.1/2.0.13)
+* filesystem.h: New `fseek()` and `ftell()` that always use 64 bit offsets
+  to be safe for very large files. #2399 (2.1.8/2.0.13)
+* `Strutil::parse_string()` - fix bugs that would fail for escaped quotes
+  within the string. #2386 (2.1.8/2.0.13)
+* `Strutil::join()` added a variety that allows you to set the number of
+  items joined, truncating or padding with default values as needed. #2408
+  (2.1.8/2.0.13)
+* New `Strutil::lstrip()` and `rstrip()` are just like the existing `strip()`,
+  but operate only on the beginning/left side or ending/right side of
+  the string, respectively. #2409 (2.1.8/2.0.13)
 
 Release 2.0.12 (1 Nov, 2019) -- compared to 2.0.11
 --------------------------------------------------
