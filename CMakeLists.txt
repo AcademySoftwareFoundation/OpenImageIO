@@ -3,13 +3,13 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 cmake_minimum_required (VERSION 3.12)
-project (OpenImageIO VERSION 2.1.8.0
+project (OpenImageIO VERSION 2.1.8.1
          HOMEPAGE_URL "https://openimageio.org"
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
 string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
 string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
-set (PROJECT_VERSION_RELEASE_TYPE "RC1")   # "dev", "betaX", "RCY", ""
+set (PROJECT_VERSION_RELEASE_TYPE "RC2")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 
