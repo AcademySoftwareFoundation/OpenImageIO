@@ -1,3 +1,11 @@
+Testing individual ParamValue:
+  item a int 42
+  item b float 3.5
+  item c string xyzpdq
+  item d float[4] (3.5, 4.5, 5.5, 6.5)
+  item e float (1.0, 3.0, 5.0, 7.0)
+
+Testing ParamValueList:
 pl length is 6
   item i int 1
   item s string Bob

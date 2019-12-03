@@ -5,12 +5,15 @@ from __future__ import absolute_import
 import OpenImageIO as oiio
 
 
+def print_param_value(p) :
+    if type(p.value) == float :
+        print ("  item {} {} {:.6}".format(p.name, p.type, p.value))
+    else :
+        print ("  item {} {} {}".format(p.name, p.type, p.value))
+
 def print_param_list(pl) :
     for p in pl :
-        if type(p.value) == float :
-            print ("  item {} {} {:.6}".format(p.name, p.type, p.value))
-        else :
-            print ("  item {} {} {}".format(p.name, p.type, p.value))
+        print_param_value(p)
 
 
 
@@ -18,6 +21,20 @@ def print_param_list(pl) :
 # main test starts here
 
 try:
+    print ("Testing individual ParamValue:")
+    pv = oiio.ParamValue("a", 42)
+    print_param_value(pv)
+    pv = oiio.ParamValue("b", 3.5)
+    print_param_value(pv)
+    pv = oiio.ParamValue("c", "xyzpdq")
+    print_param_value(pv)
+    pv = oiio.ParamValue("d", "float[4]", (3.5, 4.5, 5.5, 6.5))
+    print_param_value(pv)
+    pv = oiio.ParamValue("e", "float", 4, oiio.Interp.INTERP_LINEAR, (1, 3, 5, 7))
+    print_param_value(pv)
+    print ("")
+
+    print ("Testing ParamValueList:")
     pl = oiio.ParamValueList()
     pl.attribute ("i", 1)
     pl.attribute ("s", "Bob")
@@ -27,11 +44,7 @@ try:
     pl["pi"] = 3.141592653589793
 
     print ("pl length is", len(pl))
-    for p in pl :
-        if type(p.value) == float :
-            print ("  item {} {} {:.6}".format(p.name, p.type, p.value))
-        else :
-            print ("  item {} {} {}".format(p.name, p.type, p.value))
+    print_param_list (pl)
 
     print ("pl.contains('e') =", pl.contains('e'))
     print ("pl.contains('f') =", pl.contains('f'))

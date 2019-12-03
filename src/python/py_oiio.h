@@ -290,9 +290,9 @@ C_to_tuple<TypeDesc>(cspan<TypeDesc> vals)
 // Python tuple.
 template<typename T>
 inline py::object
-C_to_val_or_tuple(const T* vals, TypeDesc type)
+C_to_val_or_tuple(const T* vals, TypeDesc type, int nvalues = 1)
 {
-    size_t n = type.numelements() * type.aggregate;
+    size_t n = type.numelements() * type.aggregate * nvalues;
     if (n == 1 && !type.arraylen)
         return typename PyTypeForCType<T>::type(vals[0]);
     else
@@ -464,18 +464,15 @@ make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
 
 
 inline py::object
-ParamValue_getitem(const ParamValue& self, int n = 0)
+ParamValue_getitem(const ParamValue& self, bool allitems = false)
 {
-    if (n < 0 || n >= self.nvalues()) {
-        throw std::out_of_range(
-            Strutil::sprintf("ParamValue index out of range %d", n));
-    }
-
     TypeDesc t = self.type();
+    int nvals  = allitems ? self.nvalues() : 1;
 
 #define ParamValue_convert_dispatch(TYPE)                                      \
 case TypeDesc::TYPE:                                                           \
-    return C_to_val_or_tuple((CType<TypeDesc::TYPE>::type*)self.data(), t)
+    return C_to_val_or_tuple((CType<TypeDesc::TYPE>::type*)self.data(), t,     \
+                             nvals)
 
     switch (t.basetype) {
         // ParamValue_convert_dispatch(UCHAR);
@@ -492,7 +489,7 @@ case TypeDesc::TYPE:                                                           \
         ParamValue_convert_dispatch(FLOAT);
         ParamValue_convert_dispatch(DOUBLE);
     case TypeDesc::STRING:
-        return C_to_val_or_tuple((const char**)self.data(), t);
+        return C_to_val_or_tuple((const char**)self.data(), t, nvals);
     default: return py::none();
     }
 
