@@ -3,10 +3,20 @@ Release 2.1 (8? Dec 2019) -- compared to 2.0
 New minimum dependencies:
 * CMake minimum is now 3.12. #2348 (2.1.5)
 
-New file format support:
+Major new features and performance improvements:
 * Support for HEIC/HEIF images. HEIC is the still-image sibling of HEVC
   (a.k.a. H.265), and compresses to about half the size of JPEG but with
   higher visual quality. #2160 #2188 (2.1.0)
+* oiiotool new commands: `-evaloff` `-evalon` `--metamerge` `--originoffset`
+* ImageCache/TextureSystem improved perf of the tile and file caches under
+  heavy thread contention. In the context of a renderer, we have seen
+  improvements of around 7% in overall render time, averaged across a suite
+  of typical production scenes.  #2314, #2316 (2.1.3) #2381 #2407 (2.1.8)
+* Fix huge DPX reading performance regression. Technically this is a bug
+  fix that restores performance we once had, but it's a huge speedup.
+  #2333 (2.1.4)
+* Reading individual frames from very-multi-image files (movie files) has
+  been greatly sped up (10x or more). #2345 (2.1.4)
 
 Public API changes:
 * Python: define `__version__` for the module. #2096 (2.1.0/2.0.4)
@@ -86,19 +96,6 @@ Public API changes:
   whereas we previously used the convention of `foo.imageio.dylib`. Turns
   out that dylib is supposed to be only for shared libraries, not runtime
   loadable modules. #2376 (2.1.6)
-
-Performance improvements:
-* ImageCache/TextureSystem:
-    - Improved perf of the tile and file caches under heavy thread
-      contention. In the context of a renderer, we have seen improvements of
-      around 7% in overall render time, averaged across a suite of typical
-      production scenes.  #2314, #2316 (2.1.3) #2381 #2407 (2.1.8)
-* Improved performance for ustring creation and lookup. #2315 (2.1.3)
-* Fix huge DPX reading performance regression. Technically this is a bug
-  fix that restores performance we once had, but it's a huge speedup.
-  #2333 (2.1.4)
-* Reading individual frames from very-multi-image files (movie files) has
-  been greatly sped up (10x or more). #2345 (2.1.4)
 
 Fixes and feature enhancements:
 * oiiotool:
@@ -234,6 +231,7 @@ Fixes and feature enhancements:
     - Fix inability for Python to set timecode attributes (specifically, it
       was trouble setting ImageSpec attributes that were unnsigned int
       arrays). #2279 (2.0.9/2.1.3)
+* Improved performance for ustring creation and lookup. #2315 (2.1.3)
 * BMP:
     - Fix bugs related to files with very high resolution (mostly 32 bit
       int overflow issues and care to use 64 bit fseeks). Also speed up
