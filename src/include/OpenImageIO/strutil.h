@@ -26,9 +26,9 @@
 #include <OpenImageIO/string_view.h>
 
 // For now, let a prior set of OIIO_USE_FMT=0 cause us to fall back to
-// tinyformat.
+// tinyformat and/or disable its functionality. Use with caution!
 #ifndef OIIO_USE_FMT
-#    define OIIO_USE_FMT
+#    define OIIO_USE_FMT 1
 #endif
 
 #if OIIO_GNUC_VERSION >= 70000
@@ -39,9 +39,11 @@
 #    define FMT_HEADER_ONLY
 #endif
 #define FMT_USE_GRISU 1
-#include "fmt/ostream.h"
-#include "fmt/format.h"
-#include "fmt/printf.h"
+#if OIIO_USE_FMT
+#    include "fmt/ostream.h"
+#    include "fmt/format.h"
+#    include "fmt/printf.h"
+#endif
 #if OIIO_GNUC_VERSION >= 70000
 #    pragma GCC diagnostic pop
 #endif
@@ -60,7 +62,9 @@
 #define OIIO_FMT_LOCALE_INDEPENDENT 1
 
 // Use fmt rather than tinyformat, even for printf-style formatting
-#define OIIO_USE_FMT_FOR_SPRINTF 0
+#ifndef OIIO_USE_FMT_FOR_SPRINTF
+#    define OIIO_USE_FMT_FOR_SPRINTF 0
+#endif
 
 #if !OIIO_USE_FMT_FOR_SPRINTF
 #    ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
@@ -115,10 +119,6 @@ void OIIO_API sync_output (std::ostream &file, string_view str);
 template<typename... Args>
 inline std::string sprintf (const char* fmt, const Args&... args)
 {
-    // Have to fall back on tinyformat rather than fmt::format, because
-    // fmt::format is not correctly locale-independent for floating point
-    // values. As soon as they fix it, we will upgrade, then change this
-    // implementation to use `::fmt::sprintf(fmt, args...)` if it is faster.
 #if OIIO_USE_FMT_FOR_SPRINTF
     return ::fmt::sprintf (fmt, args...);
 #else
@@ -136,7 +136,7 @@ inline std::string sprintf (const char* fmt, const Args&... args)
 ///    std::string s = Strutil::old::sprintf ("blah %d %g", (int)foo, (float)bar);
 ///
 /// Strutil::fmt::format() uses "Python" conventions, in the style of string
-/// formatting being planned for C++20 and implemented today in the {fmt}
+/// formatting used by C++20 std::format and implemented today in the {fmt}
 /// package (https://github.com/fmtlib/fmt). For example:
 ///
 ///    std::string s = Strutil::format ("blah {}  {}", (int)foo, (float)bar);
@@ -152,16 +152,17 @@ inline std::string sprintf (const char* fmt, const Args&... args)
 ///   currently equivalent to sprintf, but beware that some point it will
 ///   switch to the future-standard formatting rules.
 ///
-/// Caveat: BEWARE using fmt::format on floating point values if there is
-/// any chance you could be running with a global non-C locale, because fmt
-/// does not yet correctly produce locale-independent output! We will
-/// upgrade as soon as they get that fixed.
 
 namespace fmt {
 template<typename... Args>
 inline std::string format (const char* fmt, const Args&... args)
 {
+#if OIIO_USE_FMT
     return ::fmt::format (fmt, args...);
+#else
+    // Disabled for some reason
+    return std::string(fmt);
+#endif
 }
 } // namespace fmt
 
@@ -541,11 +542,13 @@ template<> inline std::string to_string (const std::string& value) { return valu
 template<> inline std::string to_string (const string_view& value) { return value; }
 inline std::string to_string (const char* value) { return value; }
 
-// Int types are SO much faster with fmt than tinyformat, specialize. Can't
-// do it for floats yet because of the locale-dependence.
+
+#if !OIIO_USE_FMT_FOR_SPRINTF && OIIO_USE_FMT
+// When not using fmt, nonetheless fmt::to_string is incredibly faster than
+// tinyformat for ints, so speciaize to use the fast one.
 inline std::string to_string (int value) { return ::fmt::to_string(value); }
 inline std::string to_string (size_t value) { return ::fmt::to_string(value); }
-
+#endif
 
 
 
