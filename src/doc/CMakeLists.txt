@@ -5,7 +5,6 @@
 project(documentation)
 
 set (public_docs
-     openimageio.pdf
      "${OpenImageIO_SOURCE_DIR}/LICENSE.md"
      "${OpenImageIO_SOURCE_DIR}/LICENSE-THIRD-PARTY.md"
      "${OpenImageIO_SOURCE_DIR}/CHANGES.md"

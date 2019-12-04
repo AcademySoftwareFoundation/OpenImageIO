@@ -5568,29 +5568,6 @@ print_help_end(const ArgParse& ap, std::ostream& out)
     // GitHub corresponding to our version of the softare.
     out << "Full OIIO documentation can be found at\n";
     out << "    https://openimageio.readthedocs.io\n";
-#if 0
-    FIXME -- when we have multiple versions online, return to this and
-    customize the version we have them look up.
-
-    std::string path = Sysutil::this_program_path();
-    path             = Filesystem::parent_path(path);
-    path             = Filesystem::parent_path(path);
-    path += "/share/doc/OpenImageIO/openimageio.pdf";
-    if (Filesystem::exists(path))
-        out << "    " << path << "\n";
-    else {
-        std::string branch;
-        if (Strutil::ends_with(OIIO_VERSION_STRING, "dev"))
-            branch = "master";
-        else
-            branch = Strutil::sprintf("RB-%d.%d", OIIO_VERSION_MAJOR,
-                                      OIIO_VERSION_MINOR);
-        std::string docsurl = Strutil::sprintf(
-            "https://github.com/OpenImageIO/oiio/blob/%s/src/doc/openimageio.pdf",
-            branch);
-        out << "    " << docsurl << "\n";
-    }
-#endif
 }
 
 
