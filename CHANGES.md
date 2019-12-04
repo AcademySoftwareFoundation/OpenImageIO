@@ -1,9 +1,55 @@
 Release 2.2 (???) -- compared to 2.1
 ----------------------------------------------
+New minimum dependencies:
+
+New file format support:
+
+Public API changes:
+* Python bindings have been added for missing ParamValue constructors. We
+  previously exposed the PV constructors from just a plain int, float, or
+  string, but there wasn't an easy way to construct from arbitrary data like
+  there is in C++. Now there is. #2417 (2.2.0)
+
+Performance improvements:
+
+Fixes and feature enhancements:
+* oiiotool:
+    - Intelligible error messages (rather than crashes) if you attempt to
+      create an image too big to fit in memory. #2414 (2.2.0)
+    - `--create` and `--proxy` take an additional optional modifier:
+      `:type=name` that specifies the type of buffer to be created (the
+      default, as usual is to create an internal float-based buffer). #2414
+      (2.2.0)
+    - `-o` optional argument `:type=name` is a new (and preferred) synonym
+      for what used to be `:datatype=`. #2414 (2.2.0)
+* ImageBuf / ImageBufAlgo:
+    - Huge ImageBuf allocation failures (more than available RAM) now are
+      caught and treated as an ImageBuf error, rather than crashing with an
+      uncaught exception. #2414 (2.2.0)
+* ImageCache / TextureSystem / maketx:
+    - New IC/TS attribute "trust_file_extensions", if nonzero, is a promise
+      that all files can be counted on for their formats to match their
+      extensions, which eliminates some redundant opens and format checks
+      in the IC/TS and can reduce needless network/filesystem work. Use
+      with caution! #2421 (2.2.0)
+
+Developer goodies / internals:
+* platform.h:
+    - `OIIO_PRETTY_FUNCTION` definition is more robust for weird compilers
+      (will fall back to `__FUNCTION__` if all else fails). #2413 (2.2.0)
+    - `OIIO_ALIGN` definition is more robust, will fall back to C++11
+      alignas when not a compiler with special declspecs (instead of being
+      a compile time error!). #2412 (2.2.0)
+* More reshuffling of printf-style vs fmt-style string formatting. #2424
+  (2.2.0)
+
+Build/test system improvements and platform ports:
+
+Notable documentation changes:
 
 
 
-Release 2.1 (1 Dec ?? 2019) -- compared to 2.0
+Release 2.1 (8? Dec 2019) -- compared to 2.0
 ----------------------------------------------
 New minimum dependencies:
 * CMake minimum is now 3.12. #2348 (2.1.5)
@@ -435,6 +481,9 @@ Build/test system improvements and platform ports:
   with env variable CTEST_PARALLEL_LEVEL=[something more than 1] greatly
   speeds up the full testsuite on multi-core machines. #2365 (2.1.5)
 * Bump robin map version to latest release (v0.6.2) #2401 (2.1.8)
+* Fix compiler warnings in ustring.h when `_LIBCPP_VERSION` is not defined.
+  #2415 (2.1.8.1)
+* Bump fmt library to v6.1.0. #2423 (2.1.8.1)
 
 Developer goodies / internals:
 * argparse.h:
@@ -448,8 +497,16 @@ Developer goodies / internals:
     - New header implements "attribute delegates." (Read header for details)
       #2204 (2.1.1)
 * dassert.h:
-    - Spruce up ASSERT macros: more uniform wording, and use pretty function
-      printing to show what function the failure was in. #2262
+    - Spruce up assrtion macros: more uniform wording, and use pretty
+      function printing to show what function the failure was in. #2262
+    - The new preferred assertion macros are `OIIO_ASSERT` and `OIIO_DASSERT`.
+      The `OIIO_ASSERT` always tests and prints an error message if the test
+      fails, but now only aborts when compiled without NDEBUG defined (i.e.
+      no abort for release builds), whereas `OIIO_DASSERT` is for debug mode
+      only and does nothing at all (not even perform the test) in release
+      mode. These names and behaviors are preferred over the old `ASSERT`
+      and `DASSERT`, though those deprecated names will continue for at least
+      another major release. #2411 (2.1.8.1)
 * filesystem.h:
     - Change many filesystem calls to take string_view arguments. #2388 (2.1.8)
     - New `fseek()` and `ftell()` that always use 64 bit offsets to be safe
@@ -526,6 +583,30 @@ Notable documentation changes:
   feature requests, build problems, and questions. #2271,#2346
 
 
+
+Release 2.0.13 (1 Dec 2019) -- compared to 2.0.12
+--------------------------------------------------
+* Bug fix in deep image compare (`IBA::compare()` or `oiiotool --compare`)
+  would fail to notice differences in deep images where the corresponding
+  pixels had differing numbers of samples. #2381 (2.1.8/2.0.13)
+* DPX: Fix bugs related to int32 math that would lead to incorrect behavior
+  in very high-resolution files. #2396 (2.1.3/2.0.13)
+* When converting images to texture (via maketx or IBA::make_texture),
+  correctly handle color space conversions for greyscale images. #2400
+  (2.1.8/2.0.13)
+* Build: suppress warnings with libraw for certain gcc versions.
+* Build: Fix compiler warnings in ustring.h when `_LIBCPP_VERSION` is not
+  defined. #2415 (2.1.8.1/2.0.13)
+* filesystem.h: New `fseek()` and `ftell()` that always use 64 bit offsets
+  to be safe for very large files. #2399 (2.1.8/2.0.13)
+* `Strutil::parse_string()` - fix bugs that would fail for escaped quotes
+  within the string. #2386 (2.1.8/2.0.13)
+* `Strutil::join()` added a variety that allows you to set the number of
+  items joined, truncating or padding with default values as needed. #2408
+  (2.1.8/2.0.13)
+* New `Strutil::lstrip()` and `rstrip()` are just like the existing `strip()`,
+  but operate only on the beginning/left side or ending/right side of
+  the string, respectively. #2409 (2.1.8/2.0.13)
 
 Release 2.0.12 (1 Nov, 2019) -- compared to 2.0.11
 --------------------------------------------------
