@@ -80,7 +80,7 @@ endif ()
 ###########################################################################
 # Turn on more detailed warnings and optionally consider warnings as errors
 #
-option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
+option (STOP_ON_WARNING "Stop building if there are any compiler warnings" OFF)
 if (NOT MSVC)
     add_compile_options ("-Wall")
     if (STOP_ON_WARNING OR DEFINED ENV{CI})
