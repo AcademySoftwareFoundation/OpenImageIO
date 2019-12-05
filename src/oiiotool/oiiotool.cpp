@@ -5021,7 +5021,7 @@ output_file(int argc, const char* argv[])
         const char* argv[] = { "channels", chanlist.c_str() };
         int action_channels(int argc, const char* argv[]);  // forward decl
         action_channels(2, argv);
-        ot.warningf(command, "Can't save %d channels to %f... saving only %s",
+        ot.warningf(command, "Can't save %d channels to %s... saving only %s",
                     ir->spec()->nchannels, out->format_name(), chanlist);
         ir = ot.curimg;
     }
