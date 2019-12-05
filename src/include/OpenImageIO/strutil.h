@@ -38,6 +38,9 @@
 #ifndef FMT_HEADER_ONLY
 #    define FMT_HEADER_ONLY
 #endif
+#ifndef FMT_EXCEPTIONS
+#    define FMT_EXCEPTIONS 0
+#endif
 #define FMT_USE_GRISU 1
 #if OIIO_USE_FMT
 #    include "fmt/ostream.h"
