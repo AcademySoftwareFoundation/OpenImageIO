@@ -17,7 +17,7 @@ addons:
   apt:
    sources: &add-sources
       - ubuntu-toolchain-r-test
-      - sourceline: 'ppa:jonathonf/ffmpeg-3'
+      - sourceline: 'ppa:jonathonf/ffmpeg-4'
    packages: &common-packages
       - libgif-dev
       - libopenjpeg-dev
