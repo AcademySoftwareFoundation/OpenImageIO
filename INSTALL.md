@@ -26,10 +26,10 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Required dependencies -- OIIO will not build at all without these
 
  * C++11 (also builds with C++14 and C++17)
- * Compilers: gcc 4.8.2 - 9.1, clang 3.3 - 9.0, **MSVS 2015 - 2019**,
+ * Compilers: gcc 4.8.2 - 9.1, clang 3.3 - 9.0, MSVS 2015 - 2019,
    icc version 13 or higher
  * Boost >= 1.53 (tested up through 1.71)
- * **CMake >= 3.12** (tested up through 3.15)
+ * CMake >= 3.12 (tested up through 3.15)
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.4)
  * libTIFF >= 3.9 (recommended: 4.0+)
 
@@ -40,8 +40,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.6, 3.7)
-     * **NumPy**
-     * **pybind11 >= 2.2.0** (Tested through 2.4.2. It is known that 2.4.0
+     * NumPy
+     * pybind11 >= 2.2.0 (Tested through 2.4.2. It is known that 2.4.0
        and 2.4.1 have bugs and don't build properly for C++11. For this
        case, or if no pybind11 is found already on the system, OIIO will
        auto-download it.)
@@ -63,7 +63,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 4.1 (5.0+ is strongly recommended for stability and
        thread safety)
  * If you want support for HEIF/HEIC images:
-     * libheic >= 1.3 (tested through 1.5; older versions may also work, we
+     * libheif >= 1.3 (tested through 1.6; older versions may also work, we
        haven't tested)
 
 
