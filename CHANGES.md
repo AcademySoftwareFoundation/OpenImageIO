@@ -1,4 +1,4 @@
-Release 2.1 (8? Dec 2019) -- compared to 2.0
+Release 2.1 (8 Dec 2019) -- compared to 2.0
 ----------------------------------------------
 New minimum dependencies:
 * CMake minimum is now 3.12. #2348 (2.1.5)
