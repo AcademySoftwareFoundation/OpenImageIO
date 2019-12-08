@@ -10,7 +10,7 @@ addons:
   apt:
    sources:
       - ubuntu-toolchain-r-test
-      - sourceline: 'ppa:jonathonf/ffmpeg-3'
+      - sourceline: 'ppa:jonathonf/ffmpeg-4'
    packages:
       - g++-6
       - g++-7
