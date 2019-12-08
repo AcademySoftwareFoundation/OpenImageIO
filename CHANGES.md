@@ -19,7 +19,18 @@ Major new features and performance improvements:
   been greatly sped up (10x or more). #2345 (2.1.4)
 
 Public API changes:
-* Python: define `__version__` for the module. #2096 (2.1.0/2.0.4)
+* ImageSpec new methods `getattribute()` and `getattributetype()`. #2204
+  (2.1.1)
+* ImageSpec and ParamValueList now support operator `["name"]` as a way
+  to set and retrieve attributes. For example,
+
+      myimagespec["compression"] = "zip";
+      myimagespec["PixelAspectRatio"] = 1.0f;
+      int dither = myimagespec["oiio:dither"].get<int>();
+      std::string cs = myimagespec["colorspace"];
+
+  See the documentation about "Attribute Delegates" for more information,
+  or the new header `attrdelegate.h`. #2204 (2.1.1) #2297 (2.1.3)
 * ImageSpec::find_attribute now will retrive "datawindow" and "displaywindow"
   (type int[4] for images int[6] for volumes) giving the OpenEXR-like bounds
   even though there is no such named metadata for OIIO (the results will
@@ -27,6 +38,7 @@ Public API changes:
 * "Compression" names (where applicable) can now have the quality appended
   to the name (e.g., `"jpeg:85"`) insead of requiring quality to be passed
   as a separate piece of metadata. #2111 (2.1.0/2.0.5)
+* Python: define `__version__` for the module. #2096 (2.1.0/2.0.4)
 * Python error reporting for `ImageOutput` and `ImageBuf.set_pixels`
   involving transferring pixel arrays have changed from throwing exceptions
   to reporting errors through the usual OIIO error return codes and queries.
@@ -50,18 +62,6 @@ Public API changes:
   supposed to make it more clear which one to use to match Nuke, which uses
   a different nomenclature (our "3" is radius, their "6" is full width).
   #2136 (2.1.0/2.0.5)
-* ImageSpec new methods `getattribute()` and `getattributetype()`. #2204
-  (2.1.1)
-* ImageSpec and ParamValueList now support operator `["name"]` as a way
-  to set and retrieve attributes. For example,
-
-      myimagespec["compression"] = "zip";
-      myimagespec["PixelAspectRatio"] = 1.0f;
-      int dither = myimagespec["oiio:dither"].get<int>();
-      std::string cs = myimagespec["colorspace"];
-
-  See the documentation about "Attribute Delegates" for more information,
-  or the new header `attrdelegate.h`. #2204 (2.1.1) #2297 (2.1.3)
 * New helper functions in `typedesc.h`: `tostring()` converts nearly any
   TypeDesc-described data to a readable string, `convert_type()` does data
   type conversions as instructed by TypeDesc's. #2204 (2.1.1)
