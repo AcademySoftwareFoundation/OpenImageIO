@@ -659,6 +659,8 @@ array_to_spec (ImageSpec& spec,                 // spec to put attribs into
         ASSERT(0 && "unsupported type");
     }
     const T *s = (const T *) pvt::dataptr (dir, buf, offset_adjustment);
+    if (!s)
+        return;
     for (auto&& attr : indices) {
         if (attr.value < int(dir.tdir_count)) {
             T ival = int (s[attr.value]);
