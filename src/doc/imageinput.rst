@@ -328,7 +328,7 @@ channel names follow the default convention of being named ``"R"``, ``"G"``,
 
 Here is example code that prints the names of the channels in an image::
 
-        ImageInput *in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
         const ImageSpec &spec = in->spec();
         for (int i = 0;  i < spec.nchannels;  ++i)
             std::cout << "Channel " << i << " is "
@@ -365,7 +365,7 @@ parameters that match the specified type as well as the name.  Below is an
 example that looks for orientation information, expecting it to consist of a
 single integer::
 
-        ImageInput *in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
         const ImageSpec &spec = in->spec();
         ...
         ParamValue *p = spec.find_attribute ("Orientation", TypeInt);
@@ -392,7 +392,6 @@ the metadata::
     int i = spec.get_int_attribute ("Orientation", 0);
     float f = spec.get_float_attribute ("PixelAspectRatio", 1.0f);
     std::string s = spec.get_string_attribute ("ImageDescription", "");
-
 
 This method simply returns the value.  The second argument is the default
 value to use if the attribute named is not found.  These versions will do
@@ -469,12 +468,11 @@ resolution (level 0) MIP-map level.  You can switch to viewing another
 subimage or MIP-map level using the ``seek_subimage()`` function::
 
 
-        ImageInput *in = ImageInput::open (filename);
-        const ImageSpec &spec = in->spec();
+        auto in = ImageInput::open (filename);
         ...
         int subimage = 1;
         int miplevel = 0;
-        if (in->seek_subimage (subimage, miplevel, spec)) {
+        if (in->seek_subimage (subimage, miplevel)) {
             ...
         } else {
             ... no such subimage/miplevel ...
@@ -545,7 +543,7 @@ OpenEXR file, consisting of R/G/B/A channels in ``half`` and a Z channel in
 `float`::
 
 
-        ImageInput *in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
         const ImageSpec &spec = in->spec();
 
         // Allocate enough space
@@ -646,10 +644,8 @@ Only some input format readers support this feature. To find out if a
 particular file format supports this feature, you can create an ImageInput
 of the right type, and check if it supports the feature name ``"ioproxy"``::
 
-    ImageInput *in = ImageInput::create (filename);
+    auto in = ImageInput::create(filename);
     if (! in  ||  ! in->supports ("ioproxy")) {
-        ImageInput::destroy (in);
-        in = nullptr;
         return;
     }
 
@@ -673,9 +669,9 @@ buffer::
     config.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
 
     ImageSpec spec;
-    ImageInput *in = ImageInput::open ("in.exr", spec, &config);
+    auto in = ImageInput::open ("in.exr", spec, &config);
     in->read_image (...);
-    ImageInput::destroy (in);
+    in->close();
 
     // That will have read the "file" from the memory buffer
 
@@ -689,7 +685,7 @@ search path via the ``attribute()`` function. For example::
 
         std::string mysearch = "/usr/myapp/lib:${HOME}/plugins";
         OIIO::attribute ("plugin_searchpath", mysearch);
-        ImageInput *in = ImageInput::open (filename);
+        auto in = ImageInput::open (filename);
         ...
 
 

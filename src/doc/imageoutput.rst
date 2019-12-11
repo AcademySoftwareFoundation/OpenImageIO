@@ -1070,10 +1070,8 @@ Only some output format writers support this feature. To find out if a
 particular file format supports this feature, you can create an ``ImageOutput``
 of the right type, and check if it supports the feature name ``"ioproxy"``::
 
-    ImageOutput *out = ImageOutput::create (filename);
+    auto out = ImageOutput::create (filename);
     if (! out  ||  ! out->supports ("ioproxy")) {
-        ImageOutput::destroy (out);
-        out = nullptr;
         return;
     }
 
@@ -1095,9 +1093,10 @@ Here is an example of using a proxy that writes the "file" to a
     void *ptr = &vecout;
     spec.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
 
-    ImageOutput *out = ImageOutput::open ("out.exr", spec);
+    auto out = ImageOutput::create ("out.exr");
+    out->open ("out.exr", spec);
     out->write_image (...);
-    ImageOutput::destroy (out);
+    out->close ();
 
     // At this point, file_buffer will contain the "file"
 
