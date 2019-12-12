@@ -7,8 +7,8 @@ on: [push, pull_request]
 
 
 jobs:
-  linux-gcc6:
-    name: "Linux VFX 2019-ish: gcc6, C++11, sse2, exr2.3"
+  linux-gcc6-cpp11:
+    name: "Linux VFX 2019-ish: gcc6/C++11, sse2, exr2.3"
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
@@ -16,6 +16,21 @@ jobs:
         env:
           CXX: g++-6
           CMAKE_CXX_STANDARD: 11
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
+
+  linux-gcc6-cpp14:
+    name: "Linux VFX 2019-ish: gcc6/C++14, sse4.2, exr2.3"
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: all
+        env:
+          CXX: g++-6
+          CMAKE_CXX_STANDARD: 14
+          USE_SIMD: sse4.2
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
