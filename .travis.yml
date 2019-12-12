@@ -17,7 +17,6 @@ addons:
   apt:
    sources: &add-sources
       - ubuntu-toolchain-r-test
-      - sourceline: 'ppa:jonathonf/ffmpeg-4'
    packages: &common-packages
       - libgif-dev
       - libopenjpeg-dev
@@ -25,10 +24,6 @@ addons:
       - libfreetype6-dev
       - libjpeg-turbo8-dev
       - dcmtk
-      - libavcodec-dev
-      - libavformat-dev
-      - libswscale-dev
-      - libavutil-dev
       - locales
       - python-numpy
       - libraw-dev
@@ -115,19 +110,6 @@ matrix:
         env: PYTHON_VERSION=2.7
         if: branch =~ /(master|RB|travis|python)/ OR type = pull_request
 
-    # test with C++14, gcc 6, SSE 4.2
-      - name: "VFX Platform 2018 (gcc6, cpp14, exr2.2), sse4.2"
-        os: linux
-        compiler: gcc
-        env: WHICHGCC=6 CMAKE_CXX_STANDARD=14 USE_SIMD=sse4.2 OPENEXR_BRANCH=v2.2.0
-        addons:
-          apt:
-            sources: *add-sources
-            packages:
-              - *common-packages
-              - *common-boost-packages
-              - g++-6
-
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo, no OCIO support,
     # and don't embed the plugins (to make sure that doesn't rust away).  I
@@ -149,13 +131,6 @@ matrix:
               - *common-packages
               - *old-boost-packages
               - g++-4.8
-
-    # Just run clang-format, this test only checks formatting rule conformance
-      - name: "clang-format format verification"
-        os: osx
-        compiler: clang
-        env: BUILDTARGET=clang-format SKIP_TESTS=1 BUILD_MISSING_DEPS=0
-        #if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
 
     # Static analysis: build with clang-tidy.
     # Disabled -- this takes so long to run, it can't complete in Travis's
