@@ -146,8 +146,16 @@ type 'TypeKeyCode'
     c_str "keycode"
 type 'TypeRational'
     c_str "rational2i"
+type 'TypeFloat2'
+    c_str "float2"
+type 'TypeVector2'
+    c_str "vector2"
 type 'TypeFloat4'
     c_str "float4"
+type 'TypeVector4'
+    c_str "float4"
+type 'TypeVector2i'
+    c_str "float2i"
 type 'TypeHalf'
     c_str "half"
 
@@ -189,8 +197,16 @@ type 'TypeTimeCode'
     c_str "timecode"
 type 'TypeKeyCode'
     c_str "keycode"
+type 'TypeFloat2'
+    c_str "float2"
+type 'TypeVector2'
+    c_str "vector2"
 type 'TypeFloat4'
     c_str "float4"
+type 'TypeVector4'
+    c_str "float4"
+type 'TypeVector2i'
+    c_str "float2i"
 type 'TypeHalf'
     c_str "half"
 type 'TypeRational'

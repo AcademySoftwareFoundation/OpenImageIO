@@ -42,7 +42,9 @@ in the outer OpenImageIO scope:
     TypeUnknown TypeFloat TypeColor TypePoint TypeVector TypeNormal
     TypeMatrix33 TypeMatrix44 TypeMatrix TypeHalf
     TypeInt TypeUInt TypeInt16 TypeUInt16 TypeInt8 TypeUInt8
-    TypeString TypeTimeCode TypeKeyCode TypeFloat4 TypeRational
+    TypeFloat2 TypeVector2 TypeFloat4 TypeVector2i
+    TypeString TypeTimeCode TypeKeyCode
+    TypeRational TypePointer
 
 The only types commonly used to store *pixel values* in image files
 are scalars of ``UINT8``, ``UINT16``, `float`, and ``half``

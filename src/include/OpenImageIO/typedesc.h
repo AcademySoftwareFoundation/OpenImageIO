@@ -27,6 +27,11 @@
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/string_view.h>
 
+// Define symbols that let client applications determine if newly added
+// features are supported.
+#define OIIO_TYPEDESC_VECTOR2 1
+
+
 
 OIIO_NAMESPACE_BEGIN
 
@@ -292,6 +297,11 @@ struct OIIO_API TypeDesc {
                                              || (this->is_sized_array()   && b.is_unsized_array()));
     }
 
+    /// Is this a 2-vector aggregate (of the given type, float by default)?
+    constexpr bool is_vec2 (BASETYPE b=FLOAT) const noexcept {
+        return this->aggregate == VEC2 && this->basetype == b && !is_array();
+    }
+
     /// Is this a 3-vector aggregate (of the given type, float by default)?
     constexpr bool is_vec3 (BASETYPE b=FLOAT) const noexcept {
         return this->aggregate == VEC3 && this->basetype == b && !is_array();
@@ -348,6 +358,10 @@ static constexpr TypeDesc TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc:
 static constexpr TypeDesc TypeMatrix33 (TypeDesc::FLOAT, TypeDesc::MATRIX33);
 static constexpr TypeDesc TypeMatrix44 (TypeDesc::FLOAT, TypeDesc::MATRIX44);
 static constexpr TypeDesc TypeMatrix = TypeMatrix44;
+static constexpr TypeDesc TypeFloat2 (TypeDesc::FLOAT, TypeDesc::VEC2);
+static constexpr TypeDesc TypeVector2 (TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::VECTOR);
+static constexpr TypeDesc TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
+static constexpr TypeDesc TypeVector4 = TypeFloat4;
 static constexpr TypeDesc TypeString (TypeDesc::STRING);
 static constexpr TypeDesc TypeInt (TypeDesc::INT);
 static constexpr TypeDesc TypeUInt (TypeDesc::UINT);
@@ -357,11 +371,12 @@ static constexpr TypeDesc TypeInt16 (TypeDesc::INT16);
 static constexpr TypeDesc TypeUInt16 (TypeDesc::UINT16);
 static constexpr TypeDesc TypeInt8 (TypeDesc::INT8);
 static constexpr TypeDesc TypeUInt8 (TypeDesc::UINT8);
+static constexpr TypeDesc TypeVector2i(TypeDesc::INT, TypeDesc::VEC2);
 static constexpr TypeDesc TypeHalf (TypeDesc::HALF);
 static constexpr TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
 static constexpr TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
-static constexpr TypeDesc TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
 static constexpr TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
+static constexpr TypeDesc TypePointer(TypeDesc::PTR);
 
 
 
@@ -413,6 +428,9 @@ template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDe
 template<size_t S> struct TypeDescFromC<const char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
 #ifdef INCLUDED_IMATHVEC_H
 template<> struct TypeDescFromC<Imath::V3f> { static const constexpr TypeDesc value() { return TypeVector; } };
+template<> struct TypeDescFromC<Imath::V2f> { static const constexpr TypeDesc value() { return TypeVector2; } };
+template<> struct TypeDescFromC<Imath::V4f> { static const constexpr TypeDesc value() { return TypeVector4; } };
+template<> struct TypeDescFromC<Imath::V2i> { static const constexpr TypeDesc value() { return TypeVector2i; } };
 #endif
 #ifdef INCLUDED_IMATHCOLOR_H
 template<> struct TypeDescFromC<Imath::Color3f> { static const constexpr TypeDesc value() { return TypeColor; } };
