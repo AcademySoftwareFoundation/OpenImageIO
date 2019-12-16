@@ -8,7 +8,13 @@
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
 
-#include <boost/thread/tss.hpp>
+// Experimental: can we substitute C++11 thread_local for boost::tsp
+// reliably on all platforms?
+#define USE_CPP11_TLS 1
+
+#ifndef USE_CPP11_TLS
+#    include <boost/thread/tss.hpp>
+#endif
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
@@ -217,19 +223,27 @@ openimageio_version()
 
 // To avoid thread oddities, we have the storage area buffering error
 // messages for seterror()/geterror() be thread-specific.
+#ifdef USE_CPP11_TLS
+static thread_local std::string thread_error_msg;
+#else
 static boost::thread_specific_ptr<std::string> thread_error_msg;
+#endif
 
 // Return a reference to the string for this thread's error messages,
 // creating it if none exists for this thread thus far.
 static std::string&
 error_msg()
 {
+#ifdef USE_CPP11_TLS
+    return thread_error_msg;
+#else
     std::string* e = thread_error_msg.get();
     if (!e) {
         e = new std::string;
         thread_error_msg.reset(e);
     }
     return *e;
+#endif
 }
 
 
