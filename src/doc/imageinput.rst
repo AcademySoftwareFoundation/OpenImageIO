@@ -668,8 +668,7 @@ buffer::
     void *ptr = &memreader;
     config.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
 
-    ImageSpec spec;
-    auto in = ImageInput::open ("in.exr", spec, &config);
+    auto in = ImageInput::open ("in.exr", &config);
     in->read_image (...);
     in->close();
 
