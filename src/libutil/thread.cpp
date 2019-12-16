@@ -29,7 +29,6 @@
 #include <OpenImageIO/thread.h>
 
 #include <boost/container/flat_map.hpp>
-#include <boost/thread/tss.hpp>
 
 #if 0
 

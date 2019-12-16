@@ -8,8 +8,6 @@
 #include <OpenEXR/ImathFun.h>
 #include <OpenEXR/half.h>
 
-#include <boost/thread/tss.hpp>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
@@ -217,27 +215,13 @@ openimageio_version()
 
 // To avoid thread oddities, we have the storage area buffering error
 // messages for seterror()/geterror() be thread-specific.
-static boost::thread_specific_ptr<std::string> thread_error_msg;
-
-// Return a reference to the string for this thread's error messages,
-// creating it if none exists for this thread thus far.
-static std::string&
-error_msg()
-{
-    std::string* e = thread_error_msg.get();
-    if (!e) {
-        e = new std::string;
-        thread_error_msg.reset(e);
-    }
-    return *e;
-}
-
+static thread_local std::string error_msg;
 
 
 void
 pvt::seterror(string_view message)
 {
-    error_msg() = message;
+    error_msg = message;
 }
 
 
@@ -245,8 +229,8 @@ pvt::seterror(string_view message)
 std::string
 geterror()
 {
-    std::string e = error_msg();
-    error_msg().clear();
+    std::string e = error_msg;
+    error_msg.clear();
     return e;
 }
 

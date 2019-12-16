@@ -8,8 +8,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <boost/thread/tss.hpp>
-
 #include <tiffio.h>
 #include <zlib.h>
 
@@ -427,7 +425,7 @@ OIIO_PLUGIN_EXPORTS_END
 // Someplace to store an error message from the TIFF error handler
 // To avoid thread oddities, we have the storage area buffering error
 // messages for seterror()/geterror() be thread-specific.
-static boost::thread_specific_ptr<std::string> thread_error_msg;
+static thread_local std::string thread_error_msg;
 static atomic_int handler_set;
 static spin_mutex handler_mutex;
 
@@ -436,12 +434,7 @@ static spin_mutex handler_mutex;
 std::string&
 oiio_tiff_last_error()
 {
-    std::string* e = thread_error_msg.get();
-    if (!e) {
-        e = new std::string;
-        thread_error_msg.reset(e);
-    }
-    return *e;
+    return thread_error_msg;
 }
 
 
