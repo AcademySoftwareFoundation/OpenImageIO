@@ -1618,6 +1618,11 @@ main(int argc, const char* argv[])
     std::cout << texsys->getstats(verbose ? 2 : 0) << "\n";
     TextureSystem::destroy(texsys);
 
+    // Force all files to close, ugh, it's the only way I can find to solve
+    // an occasional problem with static destructor order fiasco with
+    // field3dwhen building with EMBEDPLUGINS=0 on MacOS.
+    ImageCache::create()->close_all();
+
     if (verbose)
         std::cout << "\nustrings: " << ustring::getstats(false) << "\n\n";
     return 0;
