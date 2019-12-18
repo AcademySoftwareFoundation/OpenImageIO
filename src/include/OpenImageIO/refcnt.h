@@ -149,6 +149,15 @@ public:
     /// Cast to bool to detect whether it points to anything
     operator bool() const noexcept { return m_ptr != NULL; }
 
+    friend bool operator==(const intrusive_ptr& a, const T* b)
+    {
+        return a.get() == b;
+    }
+    friend bool operator==(const T* b, const intrusive_ptr& a)
+    {
+        return a.get() == b;
+    }
+
 private:
     T* m_ptr;  // the raw pointer
 };

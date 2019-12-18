@@ -158,8 +158,8 @@ public:
         /// finish the last bin of the map, return the end() iterator.
         void operator++()
         {
-            DASSERT(m_umc);
-            DASSERT(m_bin >= 0);
+            OIIO_DASSERT(m_umc);
+            OIIO_DASSERT(m_bin >= 0);
             ++m_biniterator;
             while (m_biniterator == m_umc->m_bins[m_bin].map.end()) {
                 if (m_bin == BINS - 1) {
@@ -216,7 +216,7 @@ public:
         // the bin it previously referred to.
         void rebin(int newbin)
         {
-            DASSERT(m_umc);
+            OIIO_DASSERT(m_umc);
             unbin();
             m_bin = newbin;
             lock();
@@ -295,13 +295,13 @@ public:
         size_t b    = whichbin(hash);
         Bin& bin(m_bins[b]);
         if (do_lock)
-            bin.lock();
+            bin.read_lock();
         typename BinMap_t::iterator it = bin.map.find(key, hash);
         bool found                     = (it != bin.map.end());
         if (found)
             value = it->second;
         if (do_lock)
-            bin.unlock();
+            bin.read_unlock();
         return found;
     }
 
@@ -366,38 +366,66 @@ public:
 
 private:
     struct Bin {
-        OIIO_CACHE_ALIGN               // align bin to cache line
-            mutable spin_mutex mutex;  // mutex for this bin
-        BinMap_t map;                  // hash map for this bin
+        OIIO_CACHE_ALIGN                  // align bin to cache line
+            mutable spin_rw_mutex mutex;  // mutex for this bin
+        BinMap_t map;                     // hash map for this bin
 #ifndef NDEBUG
-        mutable atomic_int m_nlocks;  // for debugging
+        mutable atomic_int m_nrlocks;  // for debugging
+        mutable atomic_int m_nwlocks;  // for debugging
 #endif
 
         Bin()
         {
 #ifndef NDEBUG
-            m_nlocks = 0;
+            m_nrlocks = 0;
+            m_nwlocks = 0;
 #endif
         }
         ~Bin()
         {
 #ifndef NDEBUG
-            DASSERT(m_nlocks == 0);
+            OIIO_DASSERT(m_nrlocks == 0 && m_nwlocks == 0);
 #endif
         }
+
+        void read_lock() const
+        {
+            mutex.read_lock();
+#ifndef NDEBUG
+            ++m_nrlocks;
+            OIIO_DASSERT_MSG(m_nwlocks == 0,
+                             "oops, m_nrlocks = %d, m_nwlocks = %d",
+                             (int)m_nrlocks, (int)m_nwlocks);
+#endif
+        }
+        void read_unlock() const
+        {
+#ifndef NDEBUG
+            OIIO_DASSERT_MSG(m_nwlocks == 0 && m_nrlocks >= 1,
+                             "oops, m_nrlocks = %d, m_nwlocks = %d",
+                             (int)m_nrlocks, (int)m_nwlocks);
+            --m_nrlocks;
+#endif
+            mutex.read_unlock();
+        }
+
         void lock() const
         {
             mutex.lock();
 #ifndef NDEBUG
-            ++m_nlocks;
-            DASSERT_MSG(m_nlocks == 1, "oops, m_nlocks = %d", (int)m_nlocks);
+            ++m_nwlocks;
+            OIIO_DASSERT_MSG(m_nwlocks == 1 && m_nrlocks == 0,
+                             "oops, m_nrlocks = %d, m_nwlocks = %d",
+                             (int)m_nrlocks, (int)m_nwlocks);
 #endif
         }
         void unlock() const
         {
 #ifndef NDEBUG
-            DASSERT_MSG(m_nlocks == 1, "oops, m_nlocks = %d", (int)m_nlocks);
-            --m_nlocks;
+            OIIO_DASSERT_MSG(m_nwlocks == 1 && m_nrlocks == 0,
+                             "oops, m_nrlocks = %d, m_nwlocks = %d",
+                             (int)m_nrlocks, (int)m_nwlocks);
+            --m_nwlocks;
 #endif
             mutex.unlock();
         }
@@ -426,7 +454,7 @@ private:
         // low-order bits of the hash will directly be used to index the hash table,
         // so using those would lead to collisions.
         size_t bin = hash >> BIN_SHIFT;
-        DASSERT(bin < BINS);
+        OIIO_DASSERT(bin < BINS);
         return bin;
     }
 };

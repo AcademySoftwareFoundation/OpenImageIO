@@ -2312,13 +2312,11 @@ ImageCacheImpl::find_tile_main_cache(const TileID& id, ImageCacheTileRef& tile,
 #if IMAGECACHE_TIME_STATS
         Timer timer1;
 #endif
-        TileCache::iterator found = m_tilecache.find(id);
+        bool found = m_tilecache.retrieve(id, tile);
 #if IMAGECACHE_TIME_STATS
         stats.find_tile_time += timer1();
 #endif
         if (found) {
-            tile = (*found).second;
-            found.unlock();  // release the lock
             // We found the tile in the cache, but we need to make sure we
             // wait until the pixels are ready to read.  We purposely have
             // released the lock (above) before calling wait_pixels_ready,
@@ -2361,25 +2359,22 @@ ImageCacheImpl::add_tile_to_cache(ImageCacheTileRef& tile,
     {
         // Protect us from using too much memory if another thread added the
         // same tile just before us
-        TileCache::iterator found = m_tilecache.find(tile->id());
-        if (found != m_tilecache.end()) {
-            // Already added!  Use the other one, discard ours.
-            tile = (*found).second;
-            found.unlock();
-            ourtile = false;  // Don't need to add it
+        if (m_tilecache.retrieve(tile->id(), tile)) {
+            // Already added!  Use the other one, discard ours. And the
+            // call to retrieve just changed 'tile' to point to the one
+            // already in the table.
+            ourtile = false;
         } else {
-            // Still not in cache, add ours to the cache.
+            // It wasn't in the cache already. Add ours.
             // N.B. at this time, we do not hold any locks.
             check_max_mem(thread_info);
             m_tilecache.insert(tile->id(), tile);
         }
     }
 
-    // At this point, we no longer have the write lock, and we are no
-    // longer modifying the cache itself.  However, if we added a new
-    // tile to the cache, we may still need to read the pixels; and if
-    // we found the tile in cache, we may need to wait for somebody else
-    // to read the pixels.
+    // If we added a new tile to the cache, we may still need to read the
+    // pixels; and if we found the tile in cache, we may need to wait for
+    // somebody else to read the pixels.
     if (ourtile) {
         if (!tile->pixels_ready()) {
             Timer timer;
@@ -2389,6 +2384,9 @@ ImageCacheImpl::add_tile_to_cache(ImageCacheTileRef& tile,
             tile->id().file().iotime() += readtime;
         }
     } else {
+        // Somebody else already added the tile to the cache before we
+        // could, so we'll use their reference, but we need to wait until it
+        // has read in the pixels.
         tile->wait_pixels_ready();
     }
 }
@@ -3240,12 +3238,10 @@ ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
 void
 ImageCacheImpl::invalidate(ustring filename, bool force)
 {
-    ImageCacheFile* file = NULL;
+    ImageCacheFileRef file;
     {
-        FilenameMap::iterator fileit = m_files.find(filename);
-        if (fileit != m_files.end())
-            file = fileit->second.get();
-        else
+        bool found = m_files.retrieve(filename, file);
+        if (!found)
             return;  // no such file
     }
 
