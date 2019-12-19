@@ -6166,5 +6166,10 @@ main(int argc, char* argv[])
         std::cout << "\n" << ot.imagecache->getstats(2) << "\n";
     }
 
+    // Force all files to close, ugh, it's the only way I can find to solve
+    // an occasional problem with static destructor order fiasco with
+    // field3dwhen building with EMBEDPLUGINS=0 on MacOS.
+    ot.imagecache->close_all();
+
     return ot.return_value;
 }
