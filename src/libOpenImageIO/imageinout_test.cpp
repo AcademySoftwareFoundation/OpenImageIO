@@ -56,13 +56,14 @@ make_test_image(string_view formatname)
 static bool
 checked_write(ImageOutput* out, string_view filename, const ImageSpec& spec,
               TypeDesc type, const void* data, bool do_asserts = true,
-              std::string* errmsg = nullptr)
+              std::string* errmsg          = nullptr,
+              Filesystem::IOProxy* ioproxy = nullptr)
 {
     if (errmsg)
         *errmsg = "";
     std::unique_ptr<ImageOutput> out_local;
     if (!out) {
-        out_local = ImageOutput::create(filename);
+        out_local = ImageOutput::create(filename, ioproxy);
         out       = out_local.get();
     }
     OIIO_CHECK_ASSERT(out && "Failed to create output");
@@ -108,15 +109,14 @@ static bool
 test_write_proxy(string_view formatname, string_view extension,
                  const std::string& disk_filename, const ImageBuf& buf)
 {
+    std::cout << "    Writing Proxy " << formatname << " ... ";
+    std::cout.flush();
     bool ok = true;
     Sysutil::Term term(stdout);
     Filesystem::IOVecOutput outproxy;
-    ImageSpec proxyspec(buf.spec());
-    void* ptr = &outproxy;
-    proxyspec.attribute("oiio:ioproxy", TypeDesc::PTR, &ptr);
     std::string memname = Strutil::sprintf("mem.%s", extension);
-    ok = checked_write(nullptr, memname, proxyspec, buf.spec().format,
-                       buf.localpixels());
+    ok = checked_write(nullptr, memname, buf.spec(), buf.spec().format,
+                       buf.localpixels(), true, nullptr, &outproxy);
 
     // The in-memory vector we wrote should match, byte-for-byte,
     // the version we wrote to disk earlier.
@@ -151,11 +151,8 @@ test_read_proxy(string_view formatname, string_view extension,
     std::cout << "    Reading Proxy " << formatname << " ... ";
     std::cout.flush();
     Filesystem::IOMemReader inproxy(readbuf);
-    void* ptr = &inproxy;
-    ImageSpec config;
-    config.attribute("oiio:ioproxy", TypeDesc::PTR, &ptr);
     std::string memname = Strutil::sprintf("mem.%s", extension);
-    auto in             = ImageInput::open(memname, &config);
+    auto in             = ImageInput::open(memname, nullptr, &inproxy);
     OIIO_CHECK_ASSERT(in && "Failed to open input with proxy");
     if (in) {
         readbuf.clear();

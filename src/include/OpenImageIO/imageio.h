@@ -70,6 +70,11 @@ typedef ParamValue ImageIOParameter;
 typedef ParamValueList ImageIOParameterList;
 
 
+// Forward declaration of IOProxy
+namespace Filesystem {
+    class IOProxy;
+}
+
 
 /// ROI is a small helper struct describing a rectangular region of interest
 /// in an image. The region is [xbegin,xend) x [begin,yend) x [zbegin,zend),
@@ -827,12 +832,18 @@ public:
     ///         Optional pointer to an ImageSpec whose metadata contains
     ///         "configuration hints."
     ///
+    /// @param ioproxy
+    ///         Optional pointer to an IOProxy to use (not supported by all
+    ///         formats, see `supports("ioproxy")`). The caller retains
+    ///         ownership of the proxy.
+    ///
     /// @returns
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
     ///         requiresd writer was not able to be created.
     static unique_ptr open (const std::string& filename,
-                            const ImageSpec *config = nullptr);
+                            const ImageSpec *config = nullptr,
+                            Filesystem::IOProxy* ioproxy = nullptr);
 
     /// Create and return an ImageInput implementation that is able to read
     /// the given file.  If `do_open` is true, fully open it if possible
@@ -857,18 +868,30 @@ public:
     ///         Optional pointer to an ImageSpec whose metadata contains
     ///         "configuration hints" for the ImageInput implementation.
     ///
+    /// @param ioproxy
+    ///         Optional pointer to an IOProxy to use (not supported by all
+    ///         formats, see `supports("ioproxy")`). The caller retains
+    ///         ownership of the proxy. If this is not supplied, it is still
+    ///         possible to set the proxy with a call to `set_proxy()` prior
+    ///         to `open()`.
+    ///
     /// @param plugin_searchpath
-    ///                 An optional colon-separated list of directories to
-    ///                 search for OpenImageIO plugin DSO/DLL's.
+    ///         An optional colon-separated list of directories to search
+    ///         for OpenImageIO plugin DSO/DLL's.
     ///
     /// @returns
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
     ///         requiresd writer was not able to be created.
-    static unique_ptr create (const std::string& filename, bool do_open=false,
+    static unique_ptr create (string_view filename, bool do_open=false,
                               const ImageSpec *config=nullptr,
-                              string_view plugin_searchpath="");
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              string_view plugin_searchpath = "");
 
+    // DEPRECATED(2.2): back compatible version
+    static unique_ptr create (const std::string& filename, bool do_open,
+                              const ImageSpec *config,
+                              string_view plugin_searchpath);
     // DEPRECATED(2.1) This method should no longer be used, it is redundant.
     static unique_ptr create (const std::string& filename,
                               const std::string& plugin_searchpath);
@@ -1511,6 +1534,15 @@ public:
     virtual int send_to_input (const char *format, ...);
     int send_to_client (const char *format, ...);
 
+    /// Set an IOProxy for this reader. This must be called prior to
+    /// `open()`, and only for readers that support them
+    /// (`supports("ioproxy")`). The caller retains ownership of the proxy.
+    ///
+    /// @returns `true` for success, `false` for failure.
+    virtual bool set_ioproxy (Filesystem::IOProxy* ioproxy) {
+        return (ioproxy == nullptr);
+    }
+
     /// If any of the API routines returned false indicating an error, this
     /// method will return the error string (and clear any error flags).  If
     /// no error has occurred since the last time `geterror()` was called,
@@ -1616,19 +1648,32 @@ public:
     /// `ImageOutput` returned, and the plugin that contains its methods) is
     /// inferred from the name.
     ///
-    /// @param filename The name of the file format (e.g., "openexr"), a
-    ///                 file extension (e.g., "exr"), or a filename from
-    ///                 which the the file format can be inferred from its
-    ///                 extension (e.g., "hawaii.exr").
+    /// @param filename
+    ///         The name of the file format (e.g., "openexr"), a file
+    ///         extension (e.g., "exr"), or a filename from which the the
+    ///         file format can be inferred from its extension (e.g.,
+    ///         "hawaii.exr").
+    ///
     /// @param plugin_searchpath
-    ///                 An optional colon-separated list of directories to
-    ///                 search for OpenImageIO plugin DSO/DLL's.
-    /// @returns        A `unique_ptr` that will close and free the
-    ///                 ImageOutput when it exits scope or is reset.
-    ///                 The pointer will be empty if the requiresd writer
-    ///                 was not able to be created.
+    ///         An optional colon-separated list of directories to search
+    ///         for OpenImageIO plugin DSO/DLL's.
+    ///
+    /// @param ioproxy
+    ///         Optional pointer to an IOProxy to use (not supported by all
+    ///         formats, see `supports("ioproxy")`). The caller retains
+    ///         ownership of the proxy.
+    ///
+    /// @returns
+    ///         A `unique_ptr` that will close and free the ImageOutput when
+    ///         it exits scope or is reset. The pointer will be empty if the
+    ///         requiresd writer was not able to be created.
+    static unique_ptr create (string_view filename,
+                              Filesystem::IOProxy* ioproxy = nullptr,
+                              string_view plugin_searchpath = "");
+
+    // DEPRECATED(2.2)
     static unique_ptr create (const std::string &filename,
-                              const std::string &plugin_searchpath="");
+                              const std::string &plugin_searchpath);
 
     /// @}
 
@@ -2094,6 +2139,15 @@ public:
     // is currently undefined and is reserved for future use.
     virtual int send_to_output (const char *format, ...);
     int send_to_client (const char *format, ...);
+
+    /// Set an IOProxy for this writer. This must be called prior to
+    /// `open()`, and only for writers that support them
+    /// (`supports("ioproxy")`). The caller retains ownership of the proxy.
+    ///
+    /// @returns `true` for success, `false` for failure.
+    virtual bool set_ioproxy (Filesystem::IOProxy* ioproxy) {
+        return (ioproxy == nullptr);
+    }
 
     /// If any of the API routines returned false indicating an error, this
     /// method will return the error string (and clear any error flags).  If

@@ -169,7 +169,8 @@ JpgInput::open(const std::string& name, ImageSpec& newspec,
     auto p = config.find_attribute("_jpeg:raw", TypeInt);
     m_raw  = p && *(int*)p->data();
     p      = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    m_io   = p ? p->get<Filesystem::IOProxy*>() : nullptr;
+    if (p)
+        m_io = p->get<Filesystem::IOProxy*>();
     return open(name, newspec);
 }
 

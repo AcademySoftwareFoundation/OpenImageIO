@@ -448,8 +448,8 @@ pvt::catalog_all_plugins(std::string searchpath)
 
 
 std::unique_ptr<ImageOutput>
-ImageOutput::create(const std::string& filename,
-                    const std::string& plugin_searchpath)
+ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
+                    string_view plugin_searchpath)
 {
     std::unique_ptr<ImageOutput> out;
     if (filename.empty()) {  // Can't even guess if no filename given
@@ -475,7 +475,7 @@ ImageOutput::create(const std::string& filename,
         if (found == output_formats.end()) {
             catalog_all_plugins(plugin_searchpath.size()
                                     ? plugin_searchpath
-                                    : pvt::plugin_searchpath.string());
+                                    : string_view(pvt::plugin_searchpath));
             found = output_formats.find(format);
         }
         if (found != output_formats.end()) {
@@ -504,7 +504,27 @@ ImageOutput::create(const std::string& filename,
         // Safety in case the ctr throws an exception
         out.reset();
     }
+    if (out && ioproxy) {
+        if (!out->supports("ioproxy")) {
+            out.reset();
+            OIIO::pvt::errorf(
+                "ImageOutput::create called with IOProxy, but format %s does not support IOProxy",
+                out->format_name());
+        } else {
+            out->set_ioproxy(ioproxy);
+        }
+    }
     return out;
+}
+
+
+
+// DEPRECATED(2.2)
+std::unique_ptr<ImageOutput>
+ImageOutput::create(const std::string& filename,
+                    const std::string& plugin_searchpath)
+{
+    return create(filename, nullptr, plugin_searchpath);
 }
 
 
@@ -517,6 +537,7 @@ ImageOutput::destroy(ImageOutput* x)
 
 
 
+// DEPRECATED(2.1)
 std::unique_ptr<ImageInput>
 ImageInput::create(const std::string& filename,
                    const std::string& plugin_searchpath)
@@ -526,6 +547,7 @@ ImageInput::create(const std::string& filename,
 
 
 
+// DEPRECATED(2.1)
 std::unique_ptr<ImageInput>
 ImageInput::create(const std::string& filename, bool do_open,
                    const std::string& plugin_searchpath)
@@ -535,9 +557,19 @@ ImageInput::create(const std::string& filename, bool do_open,
 
 
 
+// DEPRECATED(2.2)
 std::unique_ptr<ImageInput>
 ImageInput::create(const std::string& filename, bool do_open,
                    const ImageSpec* config, string_view plugin_searchpath)
+{
+    return create(filename, do_open, config, nullptr, plugin_searchpath);
+}
+
+
+
+std::unique_ptr<ImageInput>
+ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
+                   Filesystem::IOProxy* ioproxy, string_view plugin_searchpath)
 {
     // In case the 'filename' was really a REST-ful URI with query/config
     // details tacked on to the end, strip them off so we can correctly
@@ -603,10 +635,13 @@ ImageInput::create(const std::string& filename, bool do_open,
         }
         ImageSpec tmpspec;
         bool ok = false;
-        if (in && config)
-            ok = in->open(filename, tmpspec, *config);
-        else if (in)
-            ok = in->open(filename, tmpspec);
+        if (in) {
+            in->set_ioproxy(ioproxy);
+            if (config)
+                ok = in->open(filename, tmpspec, *config);
+            else
+                ok = in->open(filename, tmpspec);
+        }
         if (ok) {
             // It worked
             if (!do_open)
@@ -652,7 +687,7 @@ ImageInput::create(const std::string& filename, bool do_open,
             }
             if (!in)
                 continue;
-            if (!do_open && !in->valid_file(filename)) {
+            if (!do_open && !ioproxy && !in->valid_file(filename)) {
                 // Since we didn't need to open it, we just checked whether
                 // it was a valid file, and it's not.  Try the next one.
                 in.reset();
@@ -660,6 +695,7 @@ ImageInput::create(const std::string& filename, bool do_open,
             }
             // We either need to open it, or we already know it appears
             // to be a file of the right type.
+            in->set_ioproxy(ioproxy);
             bool ok = in->open(filename, tmpspec, myconfig);
             if (ok) {
                 if (!do_open)

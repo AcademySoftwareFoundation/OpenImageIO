@@ -662,13 +662,9 @@ buffer::
 
     const void *buf = ...;   // pointer to memory block
     size_t size = ...;       // length of memory block
-
-    ImageSpec config; // ImageSpec describing input configuration options
     Filesystem::IOMemReader memreader (buf, size);  // I/O proxy object
-    void *ptr = &memreader;
-    config.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
 
-    auto in = ImageInput::open ("in.exr", &config);
+    auto in = ImageInput::open ("in.exr", nullptr, &memreader);
     in->read_image (...);
     in->close();
 
