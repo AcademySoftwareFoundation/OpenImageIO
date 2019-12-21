@@ -285,7 +285,7 @@ read_into_buffer(png_structp& sp, png_infop& ip, ImageSpec& spec,
     // }
 #endif
 
-    DASSERT(spec.scanline_bytes() == png_get_rowbytes(sp, ip));
+    OIIO_DASSERT(spec.scanline_bytes() == png_get_rowbytes(sp, ip));
     buffer.resize(spec.image_bytes());
 
     std::vector<unsigned char*> row_pointers(spec.height);

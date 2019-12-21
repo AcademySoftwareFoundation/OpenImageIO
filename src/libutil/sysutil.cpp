@@ -131,7 +131,7 @@ Sysutil::memory_used(bool resident)
     return 0;  // Punt
 #else
     // No idea what platform this is
-    ASSERT(0 && "Need to implement Sysutil::memory_used on this platform");
+    OIIO_ASSERT(0 && "Need to implement Sysutil::memory_used on this platform");
     return 0;  // Punt
 #endif
 }
@@ -196,7 +196,8 @@ Sysutil::physical_memory()
 
 #else
     // No idea what platform this is
-    ASSERT(0 && "Need to implement Sysutil::physical_memory on this platform");
+    OIIO_ASSERT(
+        0 && "Need to implement Sysutil::physical_memory on this platform");
     return 0;  // Punt
 #endif
 }
@@ -232,7 +233,7 @@ Sysutil::this_program_path()
     unsigned int size = sizeof(filename);
     int r             = readlink("/proc/self/exe", filename, size);
     // user won't get the right answer if the filename is too long to store
-    ASSERT(r < int(size));
+    OIIO_ASSERT(r < int(size));
     if (r > 0)
         filename[r] = 0;  // readlink does not fill in the 0 byte
 #elif defined(__APPLE__)

@@ -90,7 +90,7 @@ public:
     }
     virtual bool read(char c[], int n)
     {
-        ASSERT(m_io);
+        OIIO_DASSERT(m_io);
         if (m_io->read(c, n) != size_t(n))
             throw Iex::IoExc("Unexpected end of file.");
         return n;
@@ -510,7 +510,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         return ok;
 
     ImageInput::lock_guard lock(in->m_mutex);
-    ASSERT(header);
+    OIIO_DASSERT(header);
     spec = ImageSpec();
 
     top_datawindow    = header->dataWindow();
@@ -827,7 +827,9 @@ TypeDesc_from_ImfPixelType(Imf::PixelType ptype)
     case Imf::UINT: return TypeDesc::UINT; break;
     case Imf::HALF: return TypeDesc::HALF; break;
     case Imf::FLOAT: return TypeDesc::FLOAT; break;
-    default: ASSERT_MSG(0, "Unknown Imf::PixelType %d", int(ptype));
+    default:
+        OIIO_ASSERT_MSG(0, "Unknown Imf::PixelType %d", int(ptype));
+        return TypeUnknown;
     }
 }
 
@@ -896,7 +898,7 @@ bool
 OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
                                        const Imf::Header* header)
 {
-    ASSERT(!initialized);
+    OIIO_DASSERT(!initialized);
     bool ok        = true;
     spec.nchannels = 0;
     const Imf::ChannelList& channels(header->channels());
@@ -936,8 +938,8 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
             // FIXME: Some day, we should handle channel subsampling.
         }
     }
-    ASSERT((int)spec.channelnames.size() == spec.nchannels);
-    ASSERT(spec.format != TypeDesc::UNKNOWN);
+    OIIO_DASSERT((int)spec.channelnames.size() == spec.nchannels);
+    OIIO_DASSERT(spec.format != TypeDesc::UNKNOWN);
     if (all_one_format)
         spec.channelformats.clear();
     return ok;
@@ -971,7 +973,7 @@ OpenEXRInput::PartInfo::compute_mipres(int miplevel, ImageSpec& spec) const
     } else if (levelmode == Imf::RIPMAP_LEVELS) {
         // FIXME
     } else {
-        ASSERT_MSG(0, "Unknown levelmode %d", int(levelmode));
+        OIIO_ASSERT_MSG(0, "Unknown levelmode %d", int(levelmode));
     }
 
     spec.width  = w;

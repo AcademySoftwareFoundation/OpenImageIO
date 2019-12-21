@@ -63,7 +63,7 @@ void
 Benchmarker::compute_stats(std::vector<double>& times, size_t iterations)
 {
     size_t trials = times.size();
-    ASSERT(trials >= 1);
+    OIIO_ASSERT(trials >= 1);
 #if 0
     // Debugging: print all the trial times
     for (auto v : times)

@@ -46,7 +46,7 @@ ImageBufAlgo::PixelStats::reset(int nchannels)
 void
 ImageBufAlgo::PixelStats::merge(const ImageBufAlgo::PixelStats& p)
 {
-    ASSERT(min.size() == p.min.size());
+    OIIO_DASSERT(min.size() == p.min.size());
     for (size_t c = 0, e = min.size(); c < e; ++c) {
         min[c] = std::min(min[c], p.min[c]);
         max[c] = std::max(max[c], p.max[c]);
@@ -696,7 +696,7 @@ ImageBufAlgo::color_range_check(const ImageBuf& src, imagesize_t* lowcount,
 static ROI
 deep_nonempty_region(const ImageBuf& src, ROI roi)
 {
-    DASSERT(src.deep());
+    OIIO_DASSERT(src.deep());
     ROI r;  // Initially undefined
     for (int z = roi.zbegin; z < roi.zend; ++z)
         for (int y = roi.ybegin; y < roi.yend; ++y)
@@ -792,7 +792,7 @@ simplePixelHashSHA1(const ImageBuf& src, string_view extrainfo, ROI roi)
 
     bool localpixels           = src.localpixels();
     imagesize_t scanline_bytes = roi.width() * src.spec().pixel_bytes();
-    ASSERT(scanline_bytes < std::numeric_limits<unsigned int>::max());
+    OIIO_ASSERT(scanline_bytes < std::numeric_limits<unsigned int>::max());
     // Do it a few scanlines at a time
     int chunk = std::max(1, int(16 * 1024 * 1024 / scanline_bytes));
 
@@ -846,7 +846,7 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf& src, string_view extrainfo,
 
     // clang-format off
     int nblocks = (roi.height() + blocksize - 1) / blocksize;
-    ASSERT(nblocks > 1);
+    OIIO_ASSERT(nblocks > 1);
     std::vector<std::string> results(nblocks);
     parallel_for_chunked(roi.ybegin, roi.yend, blocksize,
                          [&](int64_t ybegin, int64_t yend) {

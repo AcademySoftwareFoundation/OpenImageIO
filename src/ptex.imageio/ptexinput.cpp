@@ -207,7 +207,7 @@ PtexInput::seek_subimage(int subimage, int miplevel)
             const char* key = NULL;
             Ptex::MetaDataType ptype;
             pmeta->getKey(i, key, ptype);
-            ASSERT(key);
+            OIIO_DASSERT(key);
             const char* vchar;
             const void* value;
             TypeDesc typedesc;

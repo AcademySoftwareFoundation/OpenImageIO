@@ -358,7 +358,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
         return false;
     }
 
-    ASSERT(!m_unpacked);
+    OIIO_ASSERT(!m_unpacked);
     if (unpack) {
         if ((ret = m_processor->unpack()) != LIBRAW_SUCCESS) {
             errorf("Could not unpack \"%s\", %s", m_filename,

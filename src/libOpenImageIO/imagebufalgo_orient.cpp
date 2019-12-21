@@ -58,8 +58,8 @@ ImageBufAlgo::flip(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
     int start        = src_roi_full.yend - offset - src_roi.height();
     ROI dst_roi(src_roi.xbegin, src_roi.xend, start, start + src_roi.height(),
                 src_roi.zbegin, src_roi.zend, src_roi.chbegin, src_roi.chend);
-    ASSERT(dst_roi.width() == src_roi.width()
-           && dst_roi.height() == src_roi.height());
+    OIIO_DASSERT(dst_roi.width() == src_roi.width()
+                 && dst_roi.height() == src_roi.height());
 
     // Compute the destination ROI, it's the source ROI reflected across
     // the midline of the display window.
@@ -107,8 +107,8 @@ ImageBufAlgo::flop(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
     int start        = src_roi_full.xend - offset - src_roi.width();
     ROI dst_roi(start, start + src_roi.width(), src_roi.ybegin, src_roi.yend,
                 src_roi.zbegin, src_roi.zend, src_roi.chbegin, src_roi.chend);
-    ASSERT(dst_roi.width() == src_roi.width()
-           && dst_roi.height() == src_roi.height());
+    OIIO_DASSERT(dst_roi.width() == src_roi.width()
+                 && dst_roi.height() == src_roi.height());
 
     // Compute the destination ROI, it's the source ROI reflected across
     // the midline of the display window.
@@ -189,8 +189,8 @@ ImageBufAlgo::rotate90(ImageBuf& dst, const ImageBuf& src, ROI roi,
                 src_roi_full.yend - src_roi.ybegin, src_roi.xbegin,
                 src_roi.xend, src_roi.zbegin, src_roi.zend, src_roi.chbegin,
                 src_roi.chend);
-    ASSERT(dst_roi.width() == src_roi.height()
-           && dst_roi.height() == src_roi.width());
+    OIIO_DASSERT(dst_roi.width() == src_roi.height()
+                 && dst_roi.height() == src_roi.width());
 
     bool dst_initialized = dst.initialized();
     if (!IBAprep(dst_roi, &dst, &src))
@@ -245,8 +245,8 @@ ImageBufAlgo::rotate180(ImageBuf& dst, const ImageBuf& src, ROI roi,
     ROI dst_roi(xstart, xstart + src_roi.width(), ystart,
                 ystart + src_roi.height(), src_roi.zbegin, src_roi.zend,
                 src_roi.chbegin, src_roi.chend);
-    ASSERT(dst_roi.width() == src_roi.width()
-           && dst_roi.height() == src_roi.height());
+    OIIO_DASSERT(dst_roi.width() == src_roi.width()
+                 && dst_roi.height() == src_roi.height());
 
     // Compute the destination ROI, it's the source ROI reflected across
     // the midline of the display window.
@@ -303,8 +303,8 @@ ImageBufAlgo::rotate270(ImageBuf& dst, const ImageBuf& src, ROI roi,
                 src_roi_full.xend - src_roi.xbegin, src_roi.zbegin,
                 src_roi.zend, src_roi.chbegin, src_roi.chend);
 
-    ASSERT(dst_roi.width() == src_roi.height()
-           && dst_roi.height() == src_roi.width());
+    OIIO_DASSERT(dst_roi.width() == src_roi.height()
+                 && dst_roi.height() == src_roi.width());
 
     bool dst_initialized = dst.initialized();
     if (!IBAprep(dst_roi, &dst, &src))

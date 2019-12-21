@@ -34,7 +34,7 @@ static std::vector<std::array<char, 16>> strings;
 static void
 create_lotso_ustrings(int iterations)
 {
-    DASSERT(size_t(iterations) <= strings.size());
+    OIIO_DASSERT(size_t(iterations) <= strings.size());
     if (verbose)
         Strutil::printf("thread %d\n", std::this_thread::get_id());
     size_t h = 0;

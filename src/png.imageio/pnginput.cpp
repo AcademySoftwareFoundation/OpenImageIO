@@ -84,7 +84,7 @@ private:
                                 png_size_t length)
     {
         PNGInput* pnginput = (PNGInput*)png_get_io_ptr(png_ptr);
-        DASSERT(pnginput);
+        OIIO_DASSERT(pnginput);
         size_t bytes = pnginput->m_io->read(data, length);
         if (bytes != length) {
             pnginput->errorf("Read error: requested %d got %d", length, bytes);

@@ -245,7 +245,9 @@ debug(string_view message)
             const char* filename = getenv("OPENIMAGEIO_DEBUG_FILE");
             oiio_debug_file = filename && filename[0] ? fopen(filename, "a")
                                                       : stderr;
-            ASSERT(oiio_debug_file);
+            OIIO_ASSERT(oiio_debug_file);
+            if (!oiio_debug_file)
+                return;
         }
         Strutil::fprintf(oiio_debug_file, "OIIO DEBUG: %s", message);
     }
@@ -498,7 +500,7 @@ pvt::contiguize(const void* src, int nchannels, stride_t xstride,
     case TypeDesc::UINT8:
         return _contiguize((const char*)src, nchannels, xstride, ystride,
                            zstride, (char*)dst, width, height, depth);
-    case TypeDesc::HALF: DASSERT(sizeof(half) == sizeof(short));
+    case TypeDesc::HALF: OIIO_DASSERT(sizeof(half) == sizeof(short));
     case TypeDesc::INT16:
     case TypeDesc::UINT16:
         return _contiguize((const short*)src, nchannels, xstride, ystride,
@@ -514,7 +516,9 @@ pvt::contiguize(const void* src, int nchannels, stride_t xstride,
     case TypeDesc::DOUBLE:
         return _contiguize((const double*)src, nchannels, xstride, ystride,
                            zstride, (double*)dst, width, height, depth);
-    default: ASSERT(0 && "OpenImageIO::contiguize : bad format"); return NULL;
+    default:
+        OIIO_ASSERT(0 && "OpenImageIO::contiguize : bad format");
+        return NULL;
     }
 }
 
@@ -545,7 +549,7 @@ pvt::convert_to_float(const void* src, float* dst, int nvals, TypeDesc format)
         convert_type((const unsigned long long*)src, dst, nvals);
         break;
     case TypeDesc::DOUBLE: convert_type((const double*)src, dst, nvals); break;
-    default: ASSERT(0 && "ERROR to_float: bad format"); return NULL;
+    default: OIIO_ASSERT(0 && "ERROR to_float: bad format"); return NULL;
     }
     return dst;
 }
@@ -601,7 +605,7 @@ pvt::convert_from_float(const float* src, void* dst, size_t nvals,
     case TypeDesc::INT64: return _from_float(src, (long long*)dst, nvals);
     case TypeDesc::UINT64:
         return _from_float(src, (unsigned long long*)dst, nvals);
-    default: ASSERT(0 && "ERROR from_float: bad format"); return NULL;
+    default: OIIO_ASSERT(0 && "ERROR from_float: bad format"); return NULL;
     }
 }
 
@@ -926,7 +930,7 @@ premult(int nchannels, int width, int height, int depth, int chbegin, int chend,
                      (double*)data, xstride, ystride, zstride, alpha_channel,
                      z_channel);
         break;
-    default: ASSERT(0 && "OIIO::premult() of an unsupported type"); break;
+    default: OIIO_ASSERT(0 && "OIIO::premult() of an unsupported type"); break;
     }
 }
 
@@ -965,7 +969,7 @@ wrap_periodic(int& coord, int origin, int width)
 bool
 wrap_periodic_pow2(int& coord, int origin, int width)
 {
-    DASSERT(ispow2(width));
+    OIIO_DASSERT(ispow2(width));
     coord -= origin;
     coord &= (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
     coord += origin;
@@ -983,8 +987,8 @@ wrap_mirror(int& coord, int origin, int width)
     coord -= iter * width;
     if (iter & 1)  // Odd iterations -- flip the sense
         coord = width - 1 - coord;
-    DASSERT_MSG(coord >= 0 && coord < width, "width=%d, origin=%d, result=%d",
-                width, origin, coord);
+    OIIO_DASSERT_MSG(coord >= 0 && coord < width,
+                     "width=%d, origin=%d, result=%d", width, origin, coord);
     coord += origin;
     return true;
 }

@@ -980,7 +980,7 @@ public:
                 m_x = x_;
                 pos_xincr();
                 // Not necessary? m_exists = (x_ < m_img_xend);
-                DASSERT((x_ < m_img_xend) == m_exists);
+                OIIO_DASSERT((x_ < m_img_xend) == m_exists);
                 return;
             }
             bool v = valid(x_, y_, z_);
@@ -1132,8 +1132,8 @@ public:
         // Note: called *after* m_x was incremented!
         OIIO_FORCEINLINE void pos_xincr()
         {
-            DASSERT(m_exists && m_valid);   // precondition
-            DASSERT(valid(m_x, m_y, m_z));  // should be true by definition
+            OIIO_DASSERT(m_exists && m_valid);   // precondition
+            OIIO_DASSERT(valid(m_x, m_y, m_z));  // should be true by definition
             m_proxydata += m_pixel_bytes;
             if (m_localpixels) {
                 if (OIIO_UNLIKELY(m_x >= m_img_xend)) {
@@ -1180,7 +1180,7 @@ public:
         {
             if (!m_localpixels) {
                 const_cast<ImageBuf*>(m_ib)->make_writeable(true);
-                DASSERT(m_ib->storage() != IMAGECACHE);
+                OIIO_DASSERT(m_ib->storage() != IMAGECACHE);
                 m_tile      = NULL;
                 m_proxydata = NULL;
                 init_ib(m_wrap);

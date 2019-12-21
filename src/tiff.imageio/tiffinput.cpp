@@ -357,8 +357,8 @@ private:
                               int channels, int width, int height,
                               int compression, bool* ok)
     {
-        ASSERT (compression == COMPRESSION_ADOBE_DEFLATE /*||
-                compression == COMPRESSION_NONE*/);
+        OIIO_DASSERT (compression == COMPRESSION_ADOBE_DEFLATE /*||
+                      compression == COMPRESSION_NONE*/);
         if (compression == COMPRESSION_NONE) {
             // just copy if there's no compression
             memcpy(uncompressed_buf, compressed_buf, csize);
@@ -942,7 +942,7 @@ TIFFInput::readspec(bool read_meta)
                 if (m_keep_unassociated_alpha)
                     m_spec.attribute("oiio:UnassociatedAlpha", 1);
             } else {
-                DASSERT(sampleinfo[i] == EXTRASAMPLE_UNSPECIFIED);
+                OIIO_DASSERT(sampleinfo[i] == EXTRASAMPLE_UNSPECIFIED);
                 // This extra channel is not alpha at all.  Undo any
                 // assumptions we previously made about this channel.
                 if (m_spec.alpha_channel == c) {
@@ -1219,7 +1219,7 @@ TIFFInput::readspec_photometric()
         // Read the color map
         unsigned short *r = NULL, *g = NULL, *b = NULL;
         TIFFGetField(m_tif, TIFFTAG_COLORMAP, &r, &g, &b);
-        ASSERT(r != NULL && g != NULL && b != NULL);
+        OIIO_ASSERT(r != NULL && g != NULL && b != NULL);
         m_colormap.clear();
         m_colormap.insert(m_colormap.end(), r, r + (1 << m_bitspersample));
         m_colormap.insert(m_colormap.end(), g, g + (1 << m_bitspersample));
@@ -1280,8 +1280,8 @@ TIFFInput::palette_to_rgb(int n, const unsigned char* palettepels,
     size_t vals_per_byte = 8 / m_bitspersample;
     size_t entries       = 1 << m_bitspersample;
     int highest          = entries - 1;
-    DASSERT(m_spec.nchannels == 3);
-    DASSERT(m_colormap.size() == 3 * entries);
+    OIIO_DASSERT(m_spec.nchannels == 3);
+    OIIO_DASSERT(m_colormap.size() == 3 * entries);
     for (int x = 0; x < n; ++x) {
         int i = palettepels[x / vals_per_byte];
         i >>= (m_bitspersample * (vals_per_byte - 1 - (x % vals_per_byte)));
@@ -1298,7 +1298,7 @@ void
 TIFFInput::bit_convert(int n, const unsigned char* in, int inbits, void* out,
                        int outbits)
 {
-    ASSERT(inbits >= 1 && inbits < 32);  // surely bugs if not
+    OIIO_DASSERT(inbits >= 1 && inbits < 32);  // surely bugs if not
     uint32_t highest = (1 << inbits) - 1;
     int B = 0, b = 0;
     // Invariant:
@@ -1440,8 +1440,9 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                 || !seek_subimage(old_subimage, old_miplevel)) {
                 return false;  // Somehow, the re-open failed
             }
-            ASSERT(m_next_scanline == 0 && current_subimage() == old_subimage
-                   && current_miplevel() == old_miplevel);
+            OIIO_DASSERT(m_next_scanline == 0
+                         && current_subimage() == old_subimage
+                         && current_miplevel() == old_miplevel);
         }
         while (m_next_scanline < y) {
             // Keep reading until we're read the scanline we really need
@@ -1858,7 +1859,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     // bother trying to handle any of the uncommon cases with strips. This
     // covers most real-world cases.
     thread_pool* pool = default_thread_pool();
-    ASSERT(m_spec.tile_depth >= 1);
+    OIIO_DASSERT(m_spec.tile_depth >= 1);
     size_t ntiles = size_t(
         (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
         * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height

@@ -187,7 +187,10 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
         // transforms procedurally, but we have to use a back door.
         auto input                   = texturefile->open(thread_info);
         Field3DInput_Interface* f3di = (Field3DInput_Interface*)input.get();
-        ASSERT(f3di);
+        if (!f3di) {
+            errorf("Unable to open texture \"%s\"", texturefile->filename());
+            return false;
+        }
         f3di->worldToLocal(P, Plocal, options.time);
     } else {
         // If no world-to-local matrix could be discerned, just use the
@@ -276,7 +279,7 @@ TextureSystemImpl::texture3d_lookup_nomip(
     for (int c = 0; c < nchannels_result; ++c)
         result[c] = 0;
     if (dresultds) {
-        DASSERT(dresultdt && dresultdr);
+        OIIO_DASSERT(dresultdt && dresultdr);
         for (int c = 0; c < nchannels_result; ++c)
             dresultds[c] = 0;
         for (int c = 0; c < nchannels_result; ++c)
@@ -376,7 +379,7 @@ TextureSystemImpl::accum3d_sample_closest(
                   + tile_s;
     int startchan_in_tile = options.firstchannel - id.chbegin();
     int offset            = spec.nchannels * tilepel + startchan_in_tile;
-    DASSERT((size_t)offset < spec.nchannels * spec.tile_pixels());
+    OIIO_DASSERT((size_t)offset < spec.nchannels * spec.tile_pixels());
     if (pixeltype == TypeDesc::UINT8) {
         const unsigned char* texel = tile->bytedata() + offset;
         for (int c = 0; c < actualchannels; ++c)
@@ -390,7 +393,7 @@ TextureSystemImpl::accum3d_sample_closest(
         for (int c = 0; c < actualchannels; ++c)
             accum[c] += weight * half2float(texel[c]);
     } else {
-        DASSERT(pixeltype == TypeDesc::FLOAT);
+        OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
         const float* texel = tile->floatdata() + offset;
         for (int c = 0; c < actualchannels; ++c)
             accum[c] += weight * texel[c];
@@ -452,7 +455,7 @@ TextureSystemImpl::accum3d_sample_bilinear(
         unsigned long long ivalid;
     } valid_storage;
     valid_storage.ivalid = 0;
-    DASSERT(sizeof(valid_storage) == 8);
+    OIIO_DASSERT(sizeof(valid_storage) == 8);
     const unsigned long long none_valid = 0;
     const unsigned long long all_valid  = littleendian() ? 0x010101010101LL
                                                         : 0x01010101010100LL;
@@ -516,8 +519,8 @@ TextureSystemImpl::accum3d_sample_bilinear(
                          + tile_s;
         size_t offset = (spec.nchannels * tilepel + startchan_in_tile)
                         * channelsize;
-        DASSERT((size_t)offset < spec.tile_width * spec.tile_height
-                                     * spec.tile_depth * pixelsize);
+        OIIO_DASSERT((size_t)offset < spec.tile_width * spec.tile_height
+                                          * spec.tile_depth * pixelsize);
 
         const unsigned char* b = tile->bytedata() + offset;
         texel[0][0][0]         = b;
@@ -565,10 +568,11 @@ TextureSystemImpl::accum3d_sample_bilinear(
                                   << ' ' << spec.tile_depth << " pixsize "
                                   << pixelsize << "\n";
 #endif
-                    DASSERT((size_t)offset < spec.tile_width * spec.tile_height
-                                                 * spec.tile_depth * pixelsize);
+                    OIIO_DASSERT((size_t)offset
+                                 < spec.tile_width * spec.tile_height
+                                       * spec.tile_depth * pixelsize);
                     texel[k][j][i] = tile->bytedata() + offset;
-                    DASSERT(tile->id() == id);
+                    OIIO_DASSERT(tile->id() == id);
                 }
             }
         }

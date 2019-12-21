@@ -699,7 +699,7 @@ public:
     /// again. Use with extreme caution!!!
     static ustring from_unique(const char* unique)
     {
-        DASSERT(is_unique(unique));  // DEBUG builds -- check it!
+        OIIO_DASSERT(is_unique(unique));  // DEBUG builds -- check it!
         ustring u;
         u.m_chars = unique;
         return u;

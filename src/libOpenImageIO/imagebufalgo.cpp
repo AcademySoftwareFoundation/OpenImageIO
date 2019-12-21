@@ -64,7 +64,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
                       const ImageBuf* B, const ImageBuf* C,
                       ImageSpec* force_spec, int prepflags)
 {
-    ASSERT(dst);
+    OIIO_DASSERT(dst);
     if ((A && !A->initialized()) || (B && !B->initialized())
         || (C && !C->initialized())) {
         dst->errorf("Uninitialized input image");
@@ -385,9 +385,9 @@ convolve_(ImageBuf& dst, const ImageBuf& src, const ImageBuf& kernel,
           bool normalize, ROI roi, int nthreads)
 {
     using namespace ImageBufAlgo;
+    OIIO_DASSERT(kernel.spec().format == TypeDesc::FLOAT && kernel.localpixels()
+                 && "kernel should be float and in local memory");
     parallel_image(roi, nthreads, [&](ROI roi) {
-        ASSERT(kernel.spec().format == TypeDesc::FLOAT && kernel.localpixels()
-               && "kernel should be float and in local memory");
         ROI kroi   = kernel.roi();
         int kchans = kernel.nchannels();
 
@@ -549,7 +549,7 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
 static bool
 threshold_to_zero(ImageBuf& dst, float threshold, ROI roi, int nthreads)
 {
-    ASSERT(dst.spec().format.basetype == TypeDesc::FLOAT);
+    OIIO_DASSERT(dst.spec().format.basetype == TypeDesc::FLOAT);
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         for (ImageBuf::Iterator<float> p(dst, roi); !p.done(); ++p)
@@ -783,7 +783,7 @@ morph_impl(ImageBuf& R, const ImageBuf& A, int width, int height, MorphOp op,
                     }
                 }
             } else {
-                ASSERT(0 && "Unknown morphological operator");
+                OIIO_ASSERT(0 && "Unknown morphological operator");
             }
             for (int c = 0; c < nchannels; ++c)
                 r[c] = vals[c];
@@ -861,14 +861,14 @@ static bool
 hfft_(ImageBuf& dst, const ImageBuf& src, bool inverse, bool unitary, ROI roi,
       int nthreads)
 {
-    ASSERT(dst.spec().format.basetype == TypeDesc::FLOAT
-           && src.spec().format.basetype == TypeDesc::FLOAT
-           && dst.spec().nchannels == 2 && src.spec().nchannels == 2
-           && dst.roi() == src.roi()
-           && (dst.storage() == ImageBuf::LOCALBUFFER
-               || dst.storage() == ImageBuf::APPBUFFER)
-           && (src.storage() == ImageBuf::LOCALBUFFER
-               || src.storage() == ImageBuf::APPBUFFER));
+    OIIO_ASSERT(dst.spec().format.basetype == TypeDesc::FLOAT
+                && src.spec().format.basetype == TypeDesc::FLOAT
+                && dst.spec().nchannels == 2 && src.spec().nchannels == 2
+                && dst.roi() == src.roi()
+                && (dst.storage() == ImageBuf::LOCALBUFFER
+                    || dst.storage() == ImageBuf::APPBUFFER)
+                && (src.storage() == ImageBuf::LOCALBUFFER
+                    || src.storage() == ImageBuf::APPBUFFER));
 
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         int width     = roi.width();
@@ -1166,9 +1166,9 @@ ImageBufAlgo::complex_to_polar(const ImageBuf& src, ROI roi, int nthreads)
 static bool
 divide_by_alpha(ImageBuf& dst, ROI roi, int nthreads)
 {
+    OIIO_ASSERT(dst.spec().format == TypeDesc::FLOAT);
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& spec(dst.spec());
-        ASSERT(spec.format == TypeDesc::FLOAT);
         int nc = spec.nchannels;
         int ac = spec.alpha_channel;
         for (ImageBuf::Iterator<float> d(dst, roi); !d.done(); ++d) {

@@ -521,7 +521,7 @@ Strutil::strip(string_view str, string_view chars)
     if (b == std::string::npos)
         return string_view();
     size_t e = str.find_last_not_of(chars);
-    DASSERT(e != std::string::npos);
+    OIIO_DASSERT(e != std::string::npos);
     return str.substr(b, e - b + 1);
 }
 
@@ -990,7 +990,7 @@ Strutil::parse_nested(string_view& str, bool eat) noexcept
     if (nesting)
         return string_view();  // No proper closing
 
-    ASSERT(p[len - 1] == closing);
+    OIIO_ASSERT(p[len - 1] == closing);
 
     // The result is the first len characters
     string_view result = str.substr(0, len);

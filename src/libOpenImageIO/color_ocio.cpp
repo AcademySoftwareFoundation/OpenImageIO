@@ -1418,9 +1418,9 @@ colorconvert_impl_float_rgba(ImageBuf& R, const ImageBuf& A,
 {
     using namespace ImageBufAlgo;
     using namespace simd;
-    ASSERT(R.localpixels() && A.localpixels() && R.spec().format == TypeFloat
-           && A.spec().format == TypeFloat && R.nchannels() == 4
-           && A.nchannels() == 4);
+    OIIO_ASSERT(R.localpixels() && A.localpixels()
+                && R.spec().format == TypeFloat && A.spec().format == TypeFloat
+                && R.nchannels() == 4 && A.nchannels() == 4);
     parallel_image(roi, parallel_image_options(nthreads), [&](ROI roi) {
         int width = roi.width();
         // Temporary space to hold one RGBA scanline
