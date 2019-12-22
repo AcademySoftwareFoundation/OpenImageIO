@@ -57,7 +57,7 @@ endmacro()
 
 option (BUILD_PYBIND11_FORCE "Force local download/build of Pybind11 even if installed" OFF)
 option (BUILD_MISSING_PYBIND11 "Local download/build of Pybind11 if not installed" ON)
-set (BUILD_PYBIND11_VERSION "v2.4.2" CACHE STRING "Preferred pybind11 version, of downloading/building our own")
+set (BUILD_PYBIND11_VERSION "v2.4.3" CACHE STRING "Preferred pybind11 version, of downloading/building our own")
 set (BUILD_PYBIND11_MINIMUM_VERSION "2.2.0")
 
 macro (find_or_download_pybind11)
