@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
+import numpy
 import OpenImageIO as oiio
 
 
@@ -22,16 +23,27 @@ def print_param_list(pl) :
 
 try:
     print ("Testing individual ParamValue:")
+    # Construct from scalars
     pv = oiio.ParamValue("a", 42)
     print_param_value(pv)
     pv = oiio.ParamValue("b", 3.5)
     print_param_value(pv)
     pv = oiio.ParamValue("c", "xyzpdq")
     print_param_value(pv)
+    # Construct from tuple
     pv = oiio.ParamValue("d", "float[4]", (3.5, 4.5, 5.5, 6.5))
     print_param_value(pv)
-    pv = oiio.ParamValue("e", "float", 4, oiio.Interp.INTERP_LINEAR, (1, 3, 5, 7))
+    # Construct from tuple with nvalues/interp
+    pv = oiio.ParamValue("e", "float", 4, oiio.Interp.LINEAR, (1, 3, 5, 7))
     print_param_value(pv)
+    # Construct from a list
+    pv = oiio.ParamValue("f", "point", [3.5, 4.5, 5.5, 6.5])
+    print_param_value(pv)
+    # Construct from a numpy array
+    pv = oiio.ParamValue("g", "color",
+                         numpy.array([0.25, 0.5, 0.75], dtype='f'))
+    print_param_value(pv)
+
     print ("")
 
     print ("Testing ParamValueList:")
@@ -39,6 +51,8 @@ try:
     pl.attribute ("i", 1)
     pl.attribute ("s", "Bob")
     pl.attribute ("e", 2.718281828459045)
+    pl.attribute ("P", "point", (2.0, 42.0, 1.0))
+    pl.attribute ("pressure", "float", 4, [98.0, 98.5, 99.0, 99.5])
     pl["j"] = 42
     pl["foo"] = "bar"
     pl["pi"] = 3.141592653589793
