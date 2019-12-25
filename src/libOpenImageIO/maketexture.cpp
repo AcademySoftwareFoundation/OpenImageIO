@@ -484,7 +484,7 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
             && !ImageBufAlgo::isMonochrome(src))  // maybe it's a normal map?
             bump_filter = &normal_gradient;
     } else {
-        outstream << "maketx ERROR: Unknow input bump format " << bumpformat
+        outstream << "maketx ERROR: Unknown input bump format " << bumpformat
                   << ". Valid formats are height, normal or auto\n";
         return false;
     }

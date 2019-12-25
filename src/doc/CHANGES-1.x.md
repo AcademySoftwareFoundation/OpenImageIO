@@ -2283,7 +2283,7 @@ Fixes, minor enhancements, and performance improvements:
    * oiiotool --stats of "deep" files prints a histogram of samples/pixel
      (1.5.6).
    * oiiotool -subimage has better error detection and reporting for
-     requests for nonexistant subimages. #1005 (1.5.7)
+     requests for nonexistent subimages. #1005 (1.5.7)
    * oiiotool --ch is a bit more flexible in its channel-shuffling syntax:
      you are now able to say newchannel=oldchannel, both shuffling and
      renaming channels simultaneously, thus removing a frequent necessity
@@ -3310,7 +3310,7 @@ Fixes, minor enhancements, and performance improvements:
 * ImageBufAlgo improvements:
   * Internal overhaul of IBA::resize to greatly speed it up.
   * Improve IBA::resize to handle the image edge better -- instead of 
-    clamping, just don't consider nonexistant pixels.
+    clamping, just don't consider nonexistent pixels.
   * More careful selection of filter when resizing (IBA::resize, oiiotool
     --resize and --fit, and maketx).
   * Fix IBA::paste() error when the foreground image runs off the end of

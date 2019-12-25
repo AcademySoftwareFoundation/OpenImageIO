@@ -498,7 +498,7 @@ A sum of:
     4    strobe return light was not detected
     6    strobe return light was detected
     8    compulsary flash firing
-    16   compulsary flash supression
+    16   compulsary flash suppression
     24   auto-flash mode
     32   no flash function (0 if flash function present)
     64   red-eye reduction supported (0 if no red-eye reduction mode)

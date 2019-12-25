@@ -174,7 +174,7 @@ test_read_proxy(string_view formatname, string_view extension,
 
 
 // Test writer's ability to detect and recover from errors when asked to
-// write an unwriteable file (such as in a nonexistant directory).
+// write an unwriteable file (such as in a nonexistent directory).
 static bool
 test_write_unwriteable(string_view formatname, string_view extension,
                        const ImageBuf& buf)
@@ -277,7 +277,7 @@ test_all_formats()
             test_read_proxy(formatname, extensions[0], filename, buf);
 
         //
-        // Test what happens when we write to an unwriteable or nonexistant
+        // Test what happens when we write to an unwriteable or nonexistent
         // directory. It should not crash! But appropriately return some
         // error.
         //

@@ -990,7 +990,7 @@ public:
     /// expensive, due to the work that needs to be done to fully copy an
     /// ImageSpec if there is lots of named metadata to allocate and copy.
     /// See also the less expensive `spec_dimensions()`. Errors (such as
-    /// having requested a nonexistant subimage) are indicated by returning
+    /// having requested a nonexistent subimage) are indicated by returning
     /// an ImageSpec with `format==TypeUnknown`.
     virtual ImageSpec spec (int subimage, int miplevel=0);
 
@@ -1000,7 +1000,7 @@ public:
     /// nor any of the arbitrary named metadata will be copied, thus this is
     /// a relatively inexpensive operation if you don't need that
     /// information. It is guaranteed to be thread-safe. Errors (such as
-    /// having requested a nonexistant subimage) are indicated by returning
+    /// having requested a nonexistent subimage) are indicated by returning
     /// an ImageSpec with `format==TypeUnknown`.
     virtual ImageSpec spec_dimensions (int subimage, int miplevel=0);
 

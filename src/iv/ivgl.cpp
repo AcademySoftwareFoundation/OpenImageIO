@@ -323,7 +323,7 @@ IvGL::create_shaders(void)
     // extension-based shaders won't work.
     m_shader_program = glCreateProgram();
 
-    GLERRPRINT("create progam");
+    GLERRPRINT("create program");
 
     // This holds the compilation status
     GLint status;
@@ -938,7 +938,7 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 
     loc = glGetUniformLocation(m_shader_program, "height");
     glUniform1i(loc, tex_height);
-    GLERRPRINT("After settting uniforms");
+    GLERRPRINT("After setting uniforms");
 }
 
 
