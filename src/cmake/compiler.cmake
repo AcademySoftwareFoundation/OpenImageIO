@@ -451,7 +451,7 @@ set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when bu
 #
 option (BUILD_SHARED_LIBS "Build shared libraries (set to OFF to build static libs)" ON)
 if (NOT BUILD_SHARED_LIBS)
-    add_definitions (-D${PROJECT_NAME}_STATIC_DEFINE=1)
+    add_definitions (-D${PROJ_NAME}_STATIC_DEFINE=1)
 endif ()
 
 
