@@ -677,13 +677,13 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     }
     int subimage = options.subimage;
     if (subimage < 0 || subimage >= texfile->subimages()) {
-        errorf("get_texel asked for nonexistant subimage %d of \"%s\"",
+        errorf("get_texel asked for nonexistent subimage %d of \"%s\"",
                subimage, texfile->filename());
         return false;
     }
     if (miplevel < 0 || miplevel >= texfile->miplevels(subimage)) {
         if (texfile->errors_should_issue())
-            errorf("get_texel asked for nonexistant MIP level %d of \"%s\"",
+            errorf("get_texel asked for nonexistent MIP level %d of \"%s\"",
                    miplevel, texfile->filename());
         return false;
     }
@@ -712,7 +712,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     bool ok                  = true;
     for (int z = zbegin; z < zend; ++z) {
         if (z < spec.z || z >= (spec.z + std::max(spec.depth, 1))) {
-            // nonexistant planes
+            // nonexistent planes
             memset(result, 0, zplanesize);
             result = (void*)((char*)result + zplanesize);
             continue;
@@ -720,7 +720,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
         tileid.z(z - ((z - spec.z) % std::max(1, spec.tile_depth)));
         for (int y = ybegin; y < yend; ++y) {
             if (y < spec.y || y >= (spec.y + spec.height)) {
-                // nonexistant scanlines
+                // nonexistent scanlines
                 memset(result, 0, scanlinesize);
                 result = (void*)((char*)result + scanlinesize);
                 continue;
@@ -728,7 +728,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
             tileid.y(y - ((y - spec.y) % spec.tile_height));
             for (int x = xbegin; x < xend; ++x, ++npixelsread) {
                 if (x < spec.x || x >= (spec.x + spec.width)) {
-                    // nonexistant columns
+                    // nonexistent columns
                     memset(result, 0, formatpixelsize);
                     result = (void*)((char*)result + formatpixelsize);
                     continue;

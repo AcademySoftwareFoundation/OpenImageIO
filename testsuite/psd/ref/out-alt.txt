@@ -288,7 +288,7 @@ Reading ../../../../../oiio-images/psd_bitmap.psd
     Exif:ExifVersion: "0220"
     Exif:ExposureBiasValue: 0
     Exif:ExposureMode: 0 (auto)
-    Exif:Flash: 16 (no flash, flash supression)
+    Exif:Flash: 16 (no flash, flash suppression)
     Exif:FlashPixVersion: "0100"
     Exif:FocalLength: 7.3 (7.3 mm)
     Exif:FocalPlaneResolutionUnit: 2 (inches)
@@ -357,7 +357,7 @@ Reading ../../../../../oiio-images/psd_indexed_trans.psd
     Exif:ExifVersion: "0220"
     Exif:ExposureBiasValue: 0
     Exif:ExposureMode: 0 (auto)
-    Exif:Flash: 16 (no flash, flash supression)
+    Exif:Flash: 16 (no flash, flash suppression)
     Exif:FlashPixVersion: "0100"
     Exif:FocalLength: 7.3 (7.3 mm)
     Exif:FocalPlaneResolutionUnit: 2 (inches)
@@ -428,7 +428,7 @@ Reading ../../../../../oiio-images/psd_rgb_8.psd
     Exif:ExifVersion: "0220"
     Exif:ExposureBiasValue: 0
     Exif:ExposureMode: 0 (auto)
-    Exif:Flash: 16 (no flash, flash supression)
+    Exif:Flash: 16 (no flash, flash suppression)
     Exif:FlashPixVersion: "0100"
     Exif:FocalLength: 7.3 (7.3 mm)
     Exif:FocalPlaneResolutionUnit: 2 (inches)
@@ -499,7 +499,7 @@ Reading ../../../../../oiio-images/psd_rgb_16.psd
     Exif:ExifVersion: "0220"
     Exif:ExposureBiasValue: 0
     Exif:ExposureMode: 0 (auto)
-    Exif:Flash: 16 (no flash, flash supression)
+    Exif:Flash: 16 (no flash, flash suppression)
     Exif:FlashPixVersion: "0100"
     Exif:FocalLength: 7.3 (7.3 mm)
     Exif:FocalPlaneResolutionUnit: 2 (inches)
@@ -570,7 +570,7 @@ Reading ../../../../../oiio-images/psd_rgb_32.psd
     Exif:ExifVersion: "0220"
     Exif:ExposureBiasValue: 0
     Exif:ExposureMode: 0 (auto)
-    Exif:Flash: 16 (no flash, flash supression)
+    Exif:Flash: 16 (no flash, flash suppression)
     Exif:FlashPixVersion: "0100"
     Exif:FocalLength: 7.3 (7.3 mm)
     Exif:FocalPlaneResolutionUnit: 2 (inches)

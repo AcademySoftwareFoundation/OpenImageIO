@@ -132,7 +132,7 @@
     Exif:ExposureBiasValue: 0/1 (0)
     Exif:ExposureMode: 0 (auto)
     Exif:ExposureProgram: 3 (aperture priority)
-    Exif:Flash: 16 (no flash, flash supression)
+    Exif:Flash: 16 (no flash, flash suppression)
     Exif:FlashPixVersion: ""
     Exif:FocalLength: 200 (200 mm)
     Exif:FocalPlaneResolutionUnit: 2 (inches)
@@ -444,7 +444,7 @@
     Exif:ExifVersion: ""
     Exif:ExposureBiasValue: -33/100 (-0.33)
     Exif:ExposureProgram: 3 (aperture priority)
-    Exif:Flash: 16 (no flash, flash supression)
+    Exif:Flash: 16 (no flash, flash suppression)
     Exif:FocalLength: 14 (14 mm)
     Exif:ISOSpeedRatings: 100
     Exif:MaxApertureValue: 925/256 (3.61328)
@@ -478,7 +478,7 @@
     Exif:ExposureBiasValue: 0/167772160 (0)
     Exif:ExposureMode: 0 (auto)
     Exif:ExposureProgram: 2 (normal program)
-    Exif:Flash: 16 (no flash, flash supression)
+    Exif:Flash: 16 (no flash, flash suppression)
     Exif:FocalLength: 42.5 (42.5 mm)
     Exif:FocalLengthIn35mmFilm: 64
     Exif:ISOSpeedRatings: 100

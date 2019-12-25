@@ -1146,8 +1146,8 @@ Fixes and feature enhancements:
       hash collisions. #1819 (1.9.2)
     * IC/TS performance improvements by changing the underlying hash table
       implementation. #1823,1824,1825,1826,1830 (1.9.2)
-    * texture()/texture3d(): when requesting a nonexistant "subimage",
-      return the fill color, like we do when requesting nonexistant channels
+    * texture()/texture3d(): when requesting a nonexistent "subimage",
+      return the fill color, like we do when requesting nonexistent channels
       (rather than nondeterministically simply not filling in the result).
       #1917 (1.9.2)
     * Relying on some changes to the ImageInput API, there is now much less
