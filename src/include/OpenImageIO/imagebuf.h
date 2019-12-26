@@ -458,6 +458,31 @@ public:
                                  WrapMode wrap = WrapBlack) const;
 
 
+    /// Set the pixel with coordinates (x,y,0) to have the values in span
+    /// `pixel[]`.  The number of channels copied is the minimum of the span
+    /// length and the actual number of channels in the image.
+    void setpixel(int x, int y, cspan<float> pixel)
+    {
+        setpixel(x, y, 0, pixel);
+    }
+
+    /// Set the pixel with coordinates (x,y,z) to have the values in span
+    /// `pixel[]`.  The number of channels copied is the minimum of the span
+    /// length and the actual number of channels in the image.
+    void setpixel(int x, int y, int z, cspan<float> pixel)
+    {
+        setpixel(x, y, z, pixel.data(), int(pixel.size()));
+    }
+
+    /// Set the `i`-th pixel value of the image (out of width*height*depth),
+    /// from floating-point values in span `pixel[]`.  The number of
+    /// channels copied is the minimum of the span length and the actual
+    /// number of channels in the image.
+    void setpixel(int i, cspan<float> pixel)
+    {
+        setpixel(i, pixel.data(), int(pixel.size()));
+    }
+
     /// Set the pixel with coordinates (x,y,0) to have the values in
     /// pixel[0..n-1].  The number of channels copied, n, is the minimum
     /// of maxchannels and the actual number of channels in the image.
