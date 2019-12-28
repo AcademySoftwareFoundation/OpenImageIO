@@ -2222,8 +2222,12 @@ public:
     const vfloat3 & operator/= (const vfloat3& a);
     const vfloat3 & operator/= (float a);
 
+    /// Return a normalized version of the vector.
     vfloat3 normalized () const;
+    /// Return a fast, approximate normalized version of the vector.
     vfloat3 normalized_fast () const;
+    /// Normalize in place.
+    void normalize() { *this = normalized(); }
 
     /// Stream output
     friend inline std::ostream& operator<< (std::ostream& cout, const vfloat3& val);
