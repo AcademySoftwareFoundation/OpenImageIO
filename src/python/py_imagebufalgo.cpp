@@ -1220,6 +1220,23 @@ IBA_unpremult_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
 }
 
 
+bool
+IBA_repremult(ImageBuf& dst, const ImageBuf& src, ROI roi = ROI::All(),
+              int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::repremult(dst, src, roi, nthreads);
+}
+
+
+ImageBuf
+IBA_repremult_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::repremult(src, roi, nthreads);
+}
+
+
 
 bool
 IBA_contrast_remap(ImageBuf& dst, const ImageBuf& src, py::object black_,
@@ -2475,6 +2492,11 @@ declare_imagebufalgo(py::module& m)
         .def_static("unpremult", &IBA_unpremult, "dst"_a, "src"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("unpremult", &IBA_unpremult_ret, "src"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+
+        .def_static("repremult", &IBA_repremult, "dst"_a, "src"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("repremult", &IBA_repremult_ret, "src"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("clamp", &IBA_clamp, "dst"_a, "src"_a, "min"_a, "max"_a,

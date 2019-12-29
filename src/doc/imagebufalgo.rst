@@ -1622,13 +1622,20 @@ Color space conversion
 
   Examples::
 
-    // Convert in-place from associated alpha to unassociated alpha
-    ImageBuf A ("a.exr");
+    // Convert from unassociated alpha to associated alpha by
+    // straightforward multiplication of color by alpha.
+    ImageBuf Unassoc;  // Assume somehow this has unassociated alpha
+    ImageBuf Assoc = ImageBufAlgo::premult (Unassoc);
+
+    // Convert in-place from associated alpha to unassociated alpha,
+    // preserving the color of alpha==0 pixels.
+    ImageBuf A;
     ImageBufAlgo::unpremult (A, A);
 
-    // Convert in-place from unassociated alpha to associated alpha
-    ImageBufAlgo::premult (A, A);
-
+    // Finish the round-trip back to associated, still preserving the
+    // color of alpha==0 pixels. This should result in exactly the same
+    // pixel values we started with (within precision limits).
+    ImageBufAlgo::repremult (A, A);
 
 
 .. _sec-iba-importexport:

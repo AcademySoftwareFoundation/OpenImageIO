@@ -617,7 +617,8 @@ ImageBufAlgo::unpremult(const ImageBuf& src, ROI roi, int nthreads)
 
 template<class Rtype, class Atype>
 static bool
-premult_(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
+premult_(ImageBuf& R, const ImageBuf& A, bool preserve_alpha0, ROI roi,
+         int nthreads)
 {
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         int alpha_channel = A.spec().alpha_channel;
@@ -625,7 +626,7 @@ premult_(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
         if (&R == &A) {
             for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r) {
                 float alpha = r[alpha_channel];
-                if (alpha == 1.0f)
+                if (alpha == 1.0f || (preserve_alpha0 && alpha == 0.0f))
                     continue;
                 for (int c = roi.chbegin; c < roi.chend; ++c)
                     if (c != alpha_channel && c != z_channel)
@@ -634,7 +635,14 @@ premult_(ImageBuf& R, const ImageBuf& A, ROI roi, int nthreads)
         } else {
             ImageBuf::ConstIterator<Atype> a(A, roi);
             for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r, ++a) {
-                float alpha = a[alpha_channel];
+                float alpha   = a[alpha_channel];
+                bool justcopy = alpha == 1.0f
+                                || (preserve_alpha0 && alpha == 0.0f);
+                if (justcopy) {
+                    for (int c = roi.chbegin; c < roi.chend; ++c)
+                        r[c] = a[c];
+                    continue;
+                }
                 for (int c = roi.chbegin; c < roi.chend; ++c)
                     if (c != alpha_channel && c != z_channel)
                         r[c] = a[c] * alpha;
@@ -662,7 +670,8 @@ ImageBufAlgo::premult(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
     }
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2(ok, "premult", premult_, dst.spec().format,
-                                src.spec().format, dst, src, roi, nthreads);
+                                src.spec().format, dst, src, false, roi,
+                                nthreads);
     // Clear the output of any prior marking of associated alpha
     dst.specmod().erase_attribute("oiio:UnassociatedAlpha");
     return ok;
@@ -677,6 +686,42 @@ ImageBufAlgo::premult(const ImageBuf& src, ROI roi, int nthreads)
     bool ok = premult(result, src, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorf("ImageBufAlgo::premult() error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::repremult(ImageBuf& dst, const ImageBuf& src, ROI roi,
+                        int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::repremult");
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+        return false;
+    if (src.spec().alpha_channel < 0) {
+        if (&dst != &src)
+            return paste(dst, src.spec().x, src.spec().y, src.spec().z,
+                         roi.chbegin, src, roi, nthreads);
+        return true;
+    }
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2(ok, "repremult", premult_, dst.spec().format,
+                                src.spec().format, dst, src, true, roi,
+                                nthreads);
+    // Clear the output of any prior marking of associated alpha
+    dst.specmod().erase_attribute("oiio:UnassociatedAlpha");
+    return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::repremult(const ImageBuf& src, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = repremult(result, src, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorf("ImageBufAlgo::repremult() error");
     return result;
 }
 

@@ -3082,9 +3082,16 @@ Color manipulation
                bool ImageBufAlgo.unpremult (dst, src, roi=ROI.All, nthreads=0)
                ImageBuf ImageBufAlgo.premult (src, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.premult (dst, src, roi=ROI.All, nthreads=0)
+               ImageBuf ImageBufAlgo.repremult (src, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.repremult (dst, src, roi=ROI.All, nthreads=0)
 
-    Copy pixels from `src` to `dst`, and un-premultiply (or
-    premultiply) the colors by alpha.
+    Copy pixels from `src` to `dst`, and un-premultiply, premultiply, or
+    re-premultiply the colors by alpha.
+
+    `unpremult` divides colors by alpha, but preserves original color if
+    alpha is 0. `premult` multiplies colors by alpha (even if alpha is 0).
+    `repreumlt` is the true inverse of `unpremult`, multiplying color by
+    alpha, but preserving color values in the alpha = 0 case.
 
     Examples::
 

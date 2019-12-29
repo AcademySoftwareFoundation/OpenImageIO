@@ -1539,9 +1539,9 @@ bool OIIO_API erode (ImageBuf &dst, const ImageBuf &src,
 ///             object created by a `ColorConfig` (see `OpenImageIO/color.h`
 ///             for details).
 /// @param  unpremult
-///             If true, divide the RGB channels by alpha (if it exists and
-///             is nonzero) before color conversion, then re-multiply by
-///             alpha after the after the color conversion. Passing
+///             If true, unpremultiply the image (divide the RGB channels by
+///             alpha if it exists and is nonzero) before color conversion,
+///             then repremult after the after the color conversion. Passing
 ///             unpremult=false skips this step, which may be desirable if
 ///             you know that the image is "unassociated alpha" (a.k.a.,
 ///             "not pre-multiplied colors").
@@ -1600,9 +1600,9 @@ inline bool colorconvert (float *color, int nchannels,
 ///             elements [12..14] (matching the memory layout of OpenGL or
 ///             RenderMan), so the math is `color * Matrix` (NOT `M*c`).
 /// @param  unpremult
-///             If true, divide the RGB channels by alpha (if it exists and
-///             is nonzero) before color conversion, then re-multiply by
-///             alpha after the after the color conversion. Passing
+///             If true, unpremultiply the image (divide the RGB channels by
+///             alpha if it exists and is nonzero) before color conversion,
+///             then repremult after the after the color conversion. Passing
 ///             unpremult=false skips this step, which may be desirable if
 ///             you know that the image is "unassociated alpha" (a.k.a.,
 ///             "not pre-multiplied colors").
@@ -1627,9 +1627,9 @@ bool OIIO_API colormatrixtransform (ImageBuf &dst, const ImageBuf &src,
 ///             For the varieties of `colorconvert()` that use named color
 ///             spaces, these specify the color spaces by name.
 /// @param  unpremult
-///             If true, divide the RGB channels by alpha (if it exists and
-///             is nonzero) before color conversion, then re-multiply by
-///             alpha after the after the color conversion. Passing
+///             If true, unpremultiply the image (divide the RGB channels by
+///             alpha if it exists and is nonzero) before color conversion,
+///             then repremult after the after the color conversion. Passing
 ///             unpremult=false skips this step, which may be desirable if
 ///             you know that the image is "unassociated alpha" (a.k.a.,
 ///             "not pre-multiplied colors").
@@ -1678,9 +1678,9 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src, string_view looks,
 ///             The looks to apply (comma-separated). This may be empty,
 ///             in which case no "look" is used.
 /// @param  unpremult
-///             If true, divide the RGB channels by alpha (if it exists and
-///             is nonzero) before color conversion, then re-multiply by
-///             alpha after the after the color conversion. Passing
+///             If true, unpremultiply the image (divide the RGB channels by
+///             alpha if it exists and is nonzero) before color conversion,
+///             then repremult after the after the color conversion. Passing
 ///             unpremult=false skips this step, which may be desirable if
 ///             you know that the image is "unassociated alpha" (a.k.a.,
 ///             "not pre-multiplied colors").
@@ -1718,9 +1718,9 @@ bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
 /// @param  name
 ///             The name of the file containing the transform information.
 /// @param  unpremult
-///             If true, divide the RGB channels by alpha (if it exists and
-///             is nonzero) before color conversion, then re-multiply by
-///             alpha after the after the color conversion. Passing
+///             If true, unpremultiply the image (divide the RGB channels by
+///             alpha if it exists and is nonzero) before color conversion,
+///             then repremult after the after the color conversion. Passing
 ///             unpremult=false skips this step, which may be desirable if
 ///             you know that the image is "unassociated alpha" (a.k.a.,
 ///             "not pre-multiplied colors").
@@ -1751,16 +1751,26 @@ bool OIIO_API ociofiletransform (ImageBuf &dst, const ImageBuf &src,
 /// `src` within the ROI, and in the process divides all color channels
 /// (those not alpha or z) by the alpha value, to "un-premultiply" them.
 /// This presumes that the image starts of as "associated alpha" a.k.a.
-/// "premultipled."
-/// 
+/// "premultipled," and you are converting to "unassociated alpha." For
+/// pixels with alpha == 0, the color values are not modified.
+///
 /// The `premult` operation returns (or copies into `dst`) the pixels of
 /// `src` within the ROI, and in the process multiplies all color channels
 /// (those not alpha or z) by the alpha value, to "premultiply" them.  This
 /// presumes that the image starts of as "unassociated alpha" a.k.a.
-/// "non-premultipled."
-/// 
-/// Both operations are simply a copy if there is no identified alpha channel
-/// (and a no-op if `dst` and `src` are the same image).
+/// "non-premultipled" and converts it to "associated alpha / premultipled."
+///
+/// The `repremult` operation is like `premult`, but preserves the color
+/// values of pixels whose alpha is 0. This is intended for cases where you
+/// unpremult, do an operation (such as color transforms), then want to
+/// return to associated/premultiplied alpha -- in that case, you want to
+/// make sure that "glow" pixels (those with alpha=0 but RGB > 0) are
+/// preserved for the round trip, and not crushed to black. This use case is
+/// distinct from a simple `premult` that is a one-time conversion from
+/// unassociated to associated alpha.
+///
+/// All three operations are simply a copy if there is no identified alpha
+/// channel (and a no-op if `dst` and `src` are the same image).
 
 ImageBuf OIIO_API unpremult (const ImageBuf &src, ROI roi={}, int nthreads=0);
 bool OIIO_API unpremult (ImageBuf &dst, const ImageBuf &src,
@@ -1768,6 +1778,9 @@ bool OIIO_API unpremult (ImageBuf &dst, const ImageBuf &src,
 ImageBuf OIIO_API premult (const ImageBuf &src, ROI roi={}, int nthreads=0);
 bool OIIO_API premult (ImageBuf &dst, const ImageBuf &src,
                        ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API repremult (const ImageBuf &src, ROI roi={}, int nthreads=0);
+bool OIIO_API repremult (ImageBuf &dst, const ImageBuf &src,
+                         ROI roi={}, int nthreads=0);
 /// @}
 
 

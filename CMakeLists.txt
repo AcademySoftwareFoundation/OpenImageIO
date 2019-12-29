@@ -340,7 +340,7 @@ if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE_ON_LINUX)
 endif ()
 
 # Add tests that require OCIO
-if (OCIO_FOUND)
+if (OPENCOLORIO_FOUND)
     oiio_add_tests (oiiotool-color)
 endif ()
 
