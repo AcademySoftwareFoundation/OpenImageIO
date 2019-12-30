@@ -219,7 +219,7 @@ set (OIIO_CONFIG_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 write_basic_package_version_file (
         ${OIIO_VERSION_CONFIG}
         VERSION ${PROJECT_VERSION}
-        COMPATIBILITY SameMinorVersion)
+        COMPATIBILITY SameMajorVersion)
 
 # generate the Targets file in the binary dir using the targets collected in OIIO_EXPORTED_TARGETS
 # each target is added to OIIO_EXPORTED_TARGETS through the oiio macro install_target()
