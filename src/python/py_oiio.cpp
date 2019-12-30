@@ -51,11 +51,26 @@ typedesc_from_python_array_code(char code)
 
 
 
-std::string
-object_classname(const py::object& obj)
+oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf)
 {
-    return obj.attr("__class__").attr("__name__").cast<py::str>();
+    if (pybuf.format.size())
+        format = typedesc_from_python_array_code(pybuf.format[0]);
+    if (format != TypeUnknown) {
+        data    = pybuf.ptr;
+        xstride = format.size();
+        size    = 1;
+        for (int i = pybuf.ndim - 1; i >= 0; --i) {
+            if (pybuf.strides[i] != ssize_t(size * xstride)) {
+                // Just can't handle non-contiguous strides
+                format = TypeUnknown;
+                size   = 0;
+                break;
+            }
+            size *= pybuf.shape[i];
+        }
+    }
 }
+
 
 
 oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
