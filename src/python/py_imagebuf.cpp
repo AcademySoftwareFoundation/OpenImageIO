@@ -84,7 +84,7 @@ ImageBuf_setpixel(ImageBuf& buf, int x, int y, int z, py::object p)
     std::vector<float> pixel;
     py_to_stdvector(pixel, p);
     if (pixel.size())
-        buf.setpixel(x, y, z, &pixel[0], pixel.size());
+        buf.setpixel(x, y, z, pixel);
 }
 
 void
@@ -100,7 +100,7 @@ ImageBuf_setpixel1(ImageBuf& buf, int i, py::object p)
     std::vector<float> pixel;
     py_to_stdvector(pixel, p);
     if (pixel.size())
-        buf.setpixel(i, &pixel[0], pixel.size());
+        buf.setpixel(i, pixel);
 }
 
 
