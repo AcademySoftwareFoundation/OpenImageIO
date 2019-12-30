@@ -1,6 +1,23 @@
-Release 2.1.10 (1 Jan? 2020?) -- compared to 2.1.9
+Release 2.1.10 (1 Jan 2020) -- compared to 2.1.9
 --------------------------------------------------
-
+* Suppress warnings with old libraw on earlier gcc versions. #2413
+* Exif read: guard better against out of range offests, fixes crashes when
+  reading jpeg files with malformed exif blocks. #2429
+* Python: add binding for missing ParamValue constructors. #2417
+* oiiotool & ImageBuf better error messages (rather than mysterious crash)
+  for certain out of memory conditions. #2414
+* oiiotool --create and --pattern take a new optional parameter:
+  `:type=name` that overrides the default behavior of allocating all
+  internal buffers as float. #2414
+* Lots of typo fixes in docs, comments, and error messages. #2438
+* Fix broken version in the built openimageio.pc PkgConfig file. #2441
+* Fix typo in build script that caused it to fail to set the right symbol
+  definition when building static libs. #2442.
+* More robust OIIO_PRETTY_FUNCTION definition. #2413
+* Better fallback for OIIO_ALIGN, rely on C++11. #2412
+* Docs: fix some II and IO chapter examples that used old open() API.
+* Build: bump default version of pybind11 to 2.4.3. #2436
+* Add ImageBuf::setpixel() methods that use cspan instead of ptr/len. #2443
 
 
 Release 2.1 (8 Dec 2019) -- compared to 2.0
