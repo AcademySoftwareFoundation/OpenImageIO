@@ -2222,6 +2222,11 @@ public:
     const vfloat3 & operator/= (const vfloat3& a);
     const vfloat3 & operator/= (float a);
 
+    /// Square of the length of the vector
+    float length2() const;
+    /// Length of the vector
+    float length() const;
+
     /// Return a normalized version of the vector.
     vfloat3 normalized () const;
     /// Return a fast, approximate normalized version of the vector.
@@ -7805,8 +7810,10 @@ OIIO_FORCEINLINE vfloat3 vdot (const vfloat3 &a, const vfloat3 &b) {
 OIIO_FORCEINLINE float dot (const vfloat3 &a, const vfloat3 &b) {
 #if OIIO_SIMD_SSE >= 4
     return _mm_cvtss_f32 (_mm_dp_ps (a.simd(), b.simd(), 0x77));
-#else
+#elif OIIO_SIMD
     return reduce_add (a*b);
+#else
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
 #endif
 }
 
@@ -7818,6 +7825,19 @@ OIIO_FORCEINLINE vfloat3 vdot3 (const vfloat3 &a, const vfloat3 &b) {
     return vfloat3 (vreduce_add((a*b).xyz0()).xyz0());
 #endif
 }
+
+
+OIIO_FORCEINLINE float vfloat3::length2 () const
+{
+    return dot(*this, *this);
+}
+
+
+OIIO_FORCEINLINE float vfloat3::length () const
+{
+    return sqrtf(dot(*this, *this));
+}
+
 
 OIIO_FORCEINLINE vfloat3 vfloat3::normalized () const
 {
