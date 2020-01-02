@@ -6,6 +6,9 @@ set (libOpenImageIO_Util_srcs argparse.cpp benchmark.cpp
                   typedesc.cpp ustring.cpp xxhash.cpp)
 
 add_library (OpenImageIO_Util ${libOpenImageIO_Util_srcs})
+target_include_directories (OpenImageIO_Util
+        PUBLIC ${CMAKE_INSTALL_FULL_INCLUDEDIR}
+        )
 target_link_libraries (OpenImageIO_Util
         PUBLIC
             ${ILMBASE_LIBRARIES}
@@ -20,6 +23,9 @@ if (WIN32)
 endif()
 
 target_compile_definitions (OpenImageIO_Util PRIVATE OpenImageIO_EXPORTS)
+if (NOT BUILD_SHARED_LIBS)
+    target_compile_definitions (OpenImageIO_Util PUBLIC OIIO_STATIC_DEFINE=1)
+endif ()
 
 if (VERBOSE)
     message(STATUS "Setting SOVERSION to: ${SOVERSION}")

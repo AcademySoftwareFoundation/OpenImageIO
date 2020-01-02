@@ -15,14 +15,14 @@ endif ()
 option (USE_GENERATED_EXPORT_HEADER "Use CMake-generated export header" OFF)
 if (USE_GENERATED_EXPORT_HEADER)
     include (GenerateExportHeader)
-    set (exportextras "\n#define OIIO_EXPORT OIIO_API\n")
-    generate_export_header (OpenImageIO
+    set (exportextras "\n#define ${PROJ_NAME}_EXPORT ${PROJ_NAME}_API\n")
+    generate_export_header (${PROJECT_NAME}
           # [BASE_NAME baseName]
           EXPORT_FILE_NAME export.h
-          EXPORT_MACRO_NAME OIIO_API
-          NO_EXPORT_MACRO_NAME OIIO_LOCAL
-          STATIC_DEFINE OIIO_STATIC_DEFINE
-          DEPRECATED_MACRO_NAME OPENIMAGEIO_DEPRECATED
+          EXPORT_MACRO_NAME ${PROJ_NAME}_API
+          NO_EXPORT_MACRO_NAME ${PROJ_NAME}_LOCAL
+          STATIC_DEFINE ${PROJ_NAME}_STATIC_DEFINE
+          DEPRECATED_MACRO_NAME ${PROJ_NAME}_DEPRECATED
           # [NO_DEPRECATED_MACRO_NAME noDeprecatedMacroName]
           # [DEFINE_NO_DEPRECATED]
           # [PREFIX_NAME prefix]
@@ -33,16 +33,20 @@ if (USE_GENERATED_EXPORT_HEADER)
 endif()
 
 
-set (versionfile oiioversion.h)
-if (VERBOSE)
-    message(STATUS "Create ${versionfile} from ${versionfile}.in")
-endif ()
 # Mangle the SOVERSION so that it's a valid C++ identifier for the
 # versioning namespace defined in ${versionfile}
 string (REGEX REPLACE "\\." "_" MANGLED_SOVERSION ${SOVERSION})
 set (OIIO_VERSION_NS "v${MANGLED_SOVERSION}")
-configure_file(${PROJECT_NAME}/${versionfile}.in "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${versionfile}" @ONLY)
-list(APPEND public_headers "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${versionfile}")
+
+
+# Generate version.h
+set (versionfile oiioversion.h)
+if (VERBOSE)
+    message(STATUS "Create ${versionfile} from ${versionfile}.in")
+endif ()
+configure_file (${PROJECT_NAME}/${versionfile}.in "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${versionfile}" @ONLY)
+list (APPEND public_headers "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${versionfile}")
+
 
 install (FILES ${public_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}

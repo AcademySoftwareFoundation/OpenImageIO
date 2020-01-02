@@ -122,12 +122,17 @@ source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
 
 target_include_directories (OpenImageIO
                             PUBLIC
+                                ${CMAKE_INSTALL_FULL_INCLUDEDIR}
                                 ${OpenCV_INCLUDES}
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
                                 ${OPENCOLORIO_INCLUDES}
                                 ${FREETYPE_INCLUDE_DIRS}
                             )
+
+if (NOT BUILD_SHARED_LIBS)
+    target_compile_definitions (OpenImageIO PUBLIC OIIO_STATIC_DEFINE=1)
+endif ()
 
 target_link_libraries (OpenImageIO
         PUBLIC

@@ -18,6 +18,7 @@ Release 2.1.10 (1 Jan 2020) -- compared to 2.1.9
 * Docs: fix some II and IO chapter examples that used old open() API.
 * Build: bump default version of pybind11 to 2.4.3. #2436
 * Add ImageBuf::setpixel() methods that use cspan instead of ptr/len. #2443
+* Fixes to cmake config generation. #2448
 
 
 Release 2.1 (8 Dec 2019) -- compared to 2.0
