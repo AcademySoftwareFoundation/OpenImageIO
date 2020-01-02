@@ -1,3 +1,6 @@
+Release 2.1.11 (1 Feb? 2020) -- compared to 2.1.10
+--------------------------------------------------
+
 Release 2.1.10 (1 Jan 2020) -- compared to 2.1.9
 --------------------------------------------------
 * Suppress warnings with old libraw on earlier gcc versions. #2413
