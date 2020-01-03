@@ -301,3 +301,13 @@ macro (find_or_download_robin_map)
     endif ()
     checked_find_package (Robinmap REQUIRED)
 endmacro()
+
+
+###########################################################################
+# libsquish
+
+option (USE_EMBEDDED_LIBSQUISH
+        "Force use of embedded Libsquish, even if external is found" OFF)
+if (NOT USE_EMBEDDED_LIBSQUISH)
+    checked_find_package (Libsquish)
+endif ()
