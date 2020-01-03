@@ -1368,13 +1368,14 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
                         scanline[i] = v;
                     }
 
-                    // Optionally unpremult
+                    // Optionally unpremult. Be careful of alpha==0 pixels,
+                    // preserve their color rather than div-by-zero.
                     if (unpremult) {
                         for (int i = 0; i < width; ++i) {
                             float a  = extract<3>(scanline[i]);
-                            a        = a >= fltmin ? a : 1.0f;
                             alpha[i] = a;
-                            scanline[i] /= a;
+                            a        = a >= fltmin ? a : 1.0f;
+                            scanline[i] /= vfloat4(a,a,a,1.0f);
                         }
                     }
 
@@ -1383,10 +1384,14 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
                                      sizeof(float), 4 * sizeof(float),
                                      width * 4 * sizeof(float));
 
-                    // Optionally re-premult
+                    // Optionally re-premult. Be careful of alpha==0 pixels,
+                    // preserve their value rather than crushing to black.
                     if (unpremult) {
-                        for (int i = 0; i < width; ++i)
-                            scanline[i] *= alpha[i];
+                        for (int i = 0; i < width; ++i) {
+                            float a  = alpha[i];
+                            a        = a >= fltmin ? a : 1.0f;
+                            scanline[i] *= vfloat4(a,a,a,1.0f);
+                        }
                     }
 
                     // Store the scanline
@@ -1432,12 +1437,12 @@ colorconvert_impl_float_rgba(ImageBuf& R, const ImageBuf& A,
                     for (int i = 0; i < width; ++i) {
                         vfloat4 p(scanline[i]);
                         float a  = extract<3>(p);
-                        a        = a >= fltmin ? a : 1.0f;
                         alpha[i] = a;
+                        a        = a >= fltmin ? a : 1.0f;
                         if (a == 1.0f)
                             scanline[i] = p;
                         else
-                            scanline[i] = p / a;
+                            scanline[i] = p / vfloat4(a, a, a, 1.0f);
                     }
                 }
 
@@ -1448,8 +1453,13 @@ colorconvert_impl_float_rgba(ImageBuf& R, const ImageBuf& A,
 
                 // Optionally premult
                 if (unpremult) {
-                    for (int i = 0; i < width; ++i)
-                        scanline[i] *= alpha[i];
+                    for (int i = 0; i < width; ++i) {
+                        vfloat4 p(scanline[i]);
+                        float a = alpha[i];
+                        a       = a >= fltmin ? a : 1.0f;
+                        p *= vfloat4(a, a, a, 1.0f);
+                        scanline[i] = p;
+                    }
                 }
                 memcpy(R.pixeladdr(roi.xbegin, j, k), scanline,
                        width * 4 * sizeof(float));
