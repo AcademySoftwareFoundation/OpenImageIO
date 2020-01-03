@@ -274,6 +274,7 @@ if (NOT VERBOSE)
 endif ()
 include (CMakePushCheckState)
 include (CheckCXXSourceRuns)
+include (CheckLibraryExists)
 
 ###########################################################################
 # Find out if it's safe for us to use std::regex or if we need boost.regex.
@@ -288,12 +289,43 @@ check_cxx_source_runs("
           return r == \"a c\" ? 0 : -1;
       }"
       USE_STD_REGEX)
+cmake_pop_check_state ()
 if (USE_STD_REGEX)
     add_definitions (-DUSE_STD_REGEX)
 else ()
     add_definitions (-DUSE_BOOST_REGEX)
 endif ()
-cmake_pop_check_state ()
+
+###########################################################################
+# Check if we need libatomic on this platform.  We shouldn't on mainstream
+# x86/x86_64, but might on some other platforms.
+#
+if (NOT MSVC)
+    cmake_push_check_state ()
+    check_cxx_source_runs(
+       "#include <atomic>
+        #include <cstdint>
+        std::atomic<uint64_t> x {0};
+        int main() {
+            uint64_t i = x.load(std::memory_order_relaxed);
+            return 0;
+        }"
+        COMPILER_SUPPORTS_ATOMIC_WITHOUT_LIBATOMIC)
+    cmake_pop_check_state ()
+    if (NOT COMPILER_SUPPORTS_ATOMIC_WITHOUT_LIBATOMIC)
+        check_library_exists (atomic __atomic_load_8 "" LIBATOMIC_WORKS)
+        if (LIBATOMIC_WORKS)
+            list (APPEND GCC_ATOMIC_LIBRARIES "-latomic")
+            message (STATUS "Compiler needs libatomic, added")
+        else ()
+            message (FATAL_ERROR "Compiler needs libatomic, but not found")
+        endif ()
+    else ()
+        if (VERBOSE)
+            message (STATUS "Compiler supports std::atomic, no libatomic necessary")
+        endif ()
+    endif ()
+endif ()
 
 
 ###########################################################################
