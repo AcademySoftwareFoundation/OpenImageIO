@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstdarg>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -39,6 +40,7 @@
 #    pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #    define STBI__ASAN OIIO_NO_SANITIZE_ADDRESS
 #endif
+#define stbsp__uintptr std::uintptr_t
 #include "stb_sprintf.h"
 
 

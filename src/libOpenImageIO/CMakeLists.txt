@@ -147,6 +147,7 @@ target_link_libraries (OpenImageIO
             ${ZLIB_LIBRARIES}
             ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
+            ${GCC_ATOMIC_LIBRARIES}
         )
 
 if (USE_EXTERNAL_PUGIXML)
