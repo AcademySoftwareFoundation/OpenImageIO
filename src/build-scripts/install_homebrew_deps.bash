@@ -40,7 +40,8 @@ else
     brew install --display-times libtiff ilmbase openexr opencolorio
     brew install --display-times libpng giflib webp jpeg-turbo openjpeg
     brew install --display-times freetype libraw dcmtk pybind11 numpy
-    brew install --display-times field3d ffmpeg libheif openvdb tbb
+    brew install --display-times field3d ffmpeg libheif libsquish
+    brew install --display-times openvdb tbb
     brew install --display-times opencv qt ptex
 fi
 
