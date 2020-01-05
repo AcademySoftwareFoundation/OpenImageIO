@@ -37,6 +37,16 @@
 #   OIIO_LIBNAME_SUFFIX - if set, optional nonstandard library suffix
 #
 ###########################################################################
+#
+# NOTE: This file is deprecated.
+#
+# In OIIO 2.1+, we generate OpenImageIOConfig.cmake files that are now the
+# preferred way for downstream projecs to find an installed OIIO. There
+# should be no need to copy this FindOpenImageIO.cmake file into downstream
+# projects, *unless* they need to work with a range of OIIO vesions that
+# may include <2.1, which would lack the generated config files.
+#
+###########################################################################
 
 
 # If 'OPENIMAGE_HOME' not set, use the env variable of that name if available
