@@ -12,6 +12,54 @@
 OIIO_NAMESPACE_BEGIN
 
 
+namespace pvt {
+
+// SFINAE test for whether class T has method `iterator find(key,hash)`.
+// As described here: https://www.bfilipek.com/2016/02/sfinae-followup.html
+// clang-format off
+template <typename T>
+class has_find_with_hash {
+    using key_type = typename T::key_type;
+    using iterator_type = typename T::iterator;
+    template <typename U>
+      static constexpr std::false_type test(...) { return {}; }
+    template <typename U>
+      static constexpr auto test(U* u) ->
+        typename std::is_same<iterator_type, decltype(u->find(key_type(), size_t(0)))>::type { return {}; }
+public:
+    static constexpr bool value = test<T>(nullptr);
+};
+// clang-format on
+
+}  // namespace pvt
+
+
+// Helper function: find_with_hash.
+//
+// Calls `map.find(key, hash)` if a method with that signature exists for
+// the Map type, otherwise just calls `map.find(key)`.
+//
+// This lets us use unordered_map_concurrent with underlying bin map types
+// that do (e.g., robin_map) or do not (e.g., std::unordered_map) support a
+// find method taking a precomputed hash.
+template<class Map, class Key,
+         OIIO_ENABLE_IF(pvt::has_find_with_hash<Map>::value)>
+typename Map::iterator
+find_with_hash(Map& map, const Key& key, size_t hash)
+{
+    return map.find(key, hash);
+}
+
+template<class Map, class Key,
+         OIIO_ENABLE_IF(!pvt::has_find_with_hash<Map>::value)>
+typename Map::iterator
+find_with_hash(Map& map, const Key& key, size_t hash)
+{
+    return map.find(key);
+}
+
+
+
 /// unordered_map_concurrent provides an unordered_map replacement that
 /// is optimized for concurrent access.  Its principle of operation is
 /// similar to Java's ConcurrentHashMap.
@@ -46,11 +94,12 @@ OIIO_NAMESPACE_BEGIN
 
 template<class KEY, class VALUE, class HASH = std::hash<KEY>,
          class PRED = std::equal_to<KEY>, size_t BINS = 16,
-         class BINMAP = unordered_map<KEY, VALUE, HASH, PRED>>
+         class BINMAP = std::unordered_map<KEY, VALUE, HASH, PRED>>
 class unordered_map_concurrent {
 public:
     typedef BINMAP BinMap_t;
     typedef typename BINMAP::iterator BinMap_iterator_t;
+    using key_type = KEY;
 
 public:
     unordered_map_concurrent() { m_size = 0; }
@@ -269,7 +318,7 @@ public:
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.lock();
-        typename BinMap_t::iterator it = bin.map.find(key, hash);
+        auto it = find_with_hash(bin.map, key, hash);
         if (it == bin.map.end()) {
             // not found -- return the 'end' iterator
             if (do_lock)
@@ -296,8 +345,8 @@ public:
         Bin& bin(m_bins[b]);
         if (do_lock)
             bin.read_lock();
-        typename BinMap_t::iterator it = bin.map.find(key, hash);
-        bool found                     = (it != bin.map.end());
+        auto it    = find_with_hash(bin.map, key, hash);
+        bool found = (it != bin.map.end());
         if (found)
             value = it->second;
         if (do_lock)
