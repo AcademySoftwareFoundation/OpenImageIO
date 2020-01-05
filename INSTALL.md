@@ -41,10 +41,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.6, 3.7)
      * NumPy
-     * pybind11 >= 2.2.0 (Tested through 2.4.2. It is known that 2.4.0
-       and 2.4.1 have bugs and don't build properly for C++11. For this
-       case, or if no pybind11 is found already on the system, OIIO will
-       auto-download it.)
+     * pybind11 >= 2.4.2 (Tested through 2.4.3. If no adequate pybind11 is
+       found already on the system, OIIO will auto-download it.
  * If you want support for camera "RAW" formats:
      * libRaw >= 0.15 (tested 0.15 - 0.19; libRaw >= 0.18 is necessary for
        ACES support and much better recognition of camera metadata)

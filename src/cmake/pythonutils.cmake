@@ -67,19 +67,10 @@ macro (find_or_download_pybind11)
     if (NOT BUILD_PYBIND11_FORCE)
         find_package (Pybind11 ${BUILD_PYBIND11_MINIMUM_VERSION} QUIET)
     endif ()
-    # Check for certain buggy versions
-    if (PYBIND11_FOUND AND (${CMAKE_CXX_STANDARD} VERSION_LESS_EQUAL 11) AND
-        ("${PYBIND11_VERSION}" VERSION_EQUAL "2.4.0" OR
-         "${PYBIND11_VERSION}" VERSION_EQUAL "2.4.1"))
-        message (WARNING "pybind11 ${PYBIND11_VERSION} is buggy and not compatible with C++11, downloading our own.")
-        unset (PYBIND11_INCLUDES)
-        unset (PYBIND11_INCLUDE_DIR)
-        unset (PYBIND11_FOUND)
-    endif ()
-    # If an external copy wasn't found and we requested that missing
-    # packages be built, or we we are forcing a local copy to be built, then
-    # download and build it.
-    if ((BUILD_MISSING_PYBIND11 AND NOT PYBIND11_INCLUDES) OR BUILD_PYBIND11_FORCE)
+    # If an external copy wasn't found (and of an adequate version) and we
+    # requested that missing packages be built, or we we are forcing a local
+    # copy to be built unconditionally, then download and build it.
+    if ((BUILD_MISSING_PYBIND11 AND NOT PYBIND11_FOUND) OR BUILD_PYBIND11_FORCE)
         message (STATUS "Building local Pybind11")
         set (PYBIND11_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/pybind11")
         set (PYBIND11_GIT_REPOSITORY "https://github.com/pybind/pybind11")
@@ -101,7 +92,14 @@ macro (find_or_download_pybind11)
     endif ()
     checked_find_package (Pybind11 ${BUILD_PYBIND11_MINIMUM_VERSION})
 
-    if (NOT PYBIND11_INCLUDES)
+    if (NOT PYBIND11_FOUND)
+        if (PYBIND11_INCLUDE_DIR)
+            message (STATUS "Pybind11 was found in ${PYBIND11_INCLUDE_DIR}")
+            message (STATUS "... but was version ${PYBIND11_VERSION} (minimum is ${BUILD_PYBIND11_MINIMUM_VERSION})")
+            if (PYBIND11_INCLUDE_DIR MATCHES "/ext/pybind11")
+                message (STATUS "Try removing ext/pybind11 and let me download a newer version.")
+            endif ()
+        endif ()
         message (FATAL_ERROR "pybind11 is missing! If it's not on your "
                  "system, you need to install it, or build with either "
                  "-DBUILD_MISSING_DEPS=ON or -DBUILD_PYBIND11_FORCE=ON. "
