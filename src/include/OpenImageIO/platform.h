@@ -51,9 +51,9 @@
 #include <OpenImageIO/oiioversion.h>
 
 // Detect which C++ standard we're using, and handy macros.
+// See https://en.cppreference.com/w/cpp/compiler_support
 //
-// OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (3, 11, 14, ...)
-// OIIO_USING_CPP11 : (deprecated) defined and 1 if using C++11 or newer.
+// OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (11, 14, ...)
 // OIIO_CONSTEXPR14 : constexpr for C++ >= 14, otherwise nothing (this is
 //                      useful for things that can only be constexpr for 14)
 // OIIO_CONSTEXPR17 : constexpr for C++ >= 17, otherwise nothing (this is
@@ -65,15 +65,20 @@
 // OIIO_CPLUSPLUS_VERSION defined below will be set to the right number for
 // the C++ standard being compiled RIGHT NOW. These two things may be the
 // same when compiling OIIO, but they may not be the same if another
-// packages is compiling against OIIO and using these headers (OIIO may be
-// C++11 but the client package may be older, or vice versa -- use these two
+// package is compiling against OIIO and using these headers (OIIO may be
+// C++11 but the client package may be newer, or vice versa -- use these two
 // symbols to differentiate these cases, when important).
-#if (__cplusplus >= 201703L)
+#if (__cplusplus >= 202001L)
+#    define OIIO_CPLUSPLUS_VERSION 20
+#    define OIIO_CONSTEXPR14 constexpr
+#    define OIIO_CONSTEXPR17 constexpr
+#    define OIIO_CONSTEXPR20 constexpr
+#elif (__cplusplus >= 201703L)
 #    define OIIO_CPLUSPLUS_VERSION 17
 #    define OIIO_CONSTEXPR14 constexpr
 #    define OIIO_CONSTEXPR17 constexpr
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
-#elif (__cplusplus >= 201402L)
+#elif (__cplusplus >= 201402L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
 #    define OIIO_CPLUSPLUS_VERSION 14
 #    define OIIO_CONSTEXPR14 constexpr
 #    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
