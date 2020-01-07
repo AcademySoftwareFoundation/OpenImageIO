@@ -12,11 +12,11 @@ target_include_directories (OpenImageIO_Util
 target_link_libraries (OpenImageIO_Util
         PUBLIC
             ${ILMBASE_LIBRARIES}
+            ${GCC_ATOMIC_LIBRARIES}
         PRIVATE
             ${SANITIZE_LIBRARIES}
             ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
-            ${GCC_ATOMIC_LIBRARIES}
         )
 
 if (WIN32)
