@@ -195,7 +195,7 @@ WebpOutput::close()
     bool ok = true;
     if (m_spec.tile_width) {
         // We've been emulating tiles; now dump as scanlines.
-        ASSERT(m_uncompressed_image.size());
+        OIIO_DASSERT(m_uncompressed_image.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_uncompressed_image[0]);
         std::vector<uint8_t>().swap(m_uncompressed_image);

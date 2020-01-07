@@ -101,12 +101,12 @@ public:
     }
     virtual Perthread* create_thread_info()
     {
-        ASSERT(m_imagecache);
+        OIIO_ASSERT(m_imagecache);
         return (Perthread*)m_imagecache->create_thread_info();
     }
     virtual void destroy_thread_info(Perthread* threadinfo)
     {
-        ASSERT(m_imagecache);
+        OIIO_ASSERT(m_imagecache);
         m_imagecache->destroy_thread_info((ImageCachePerThreadInfo*)threadinfo);
     }
 

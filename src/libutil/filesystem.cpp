@@ -712,7 +712,7 @@ Filesystem::enumerate_file_sequence(const std::string& pattern,
                                     const std::vector<string_view>& views,
                                     std::vector<std::string>& filenames)
 {
-    ASSERT(views.size() == 0 || views.size() == numbers.size());
+    OIIO_ASSERT(views.size() == 0 || views.size() == numbers.size());
     filenames.clear();
     for (size_t i = 0, e = numbers.size(); i < e; ++i) {
         std::string f = pattern;

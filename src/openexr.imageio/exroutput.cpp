@@ -575,7 +575,7 @@ OpenEXROutput::compute_pixeltypes(const ImageSpec& spec)
         }
         m_pixeltype.push_back(ptype);
     }
-    ASSERT(m_pixeltype.size() == size_t(spec.nchannels));
+    OIIO_ASSERT(m_pixeltype.size() == size_t(spec.nchannels));
 }
 
 

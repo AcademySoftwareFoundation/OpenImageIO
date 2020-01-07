@@ -807,7 +807,7 @@ public:
     // of this task set.
     void push(std::future<void>&& f)
     {
-        DASSERT(
+        OIIO_DASSERT(
             std::this_thread::get_id() == submitter()
             && "All tasks in a tast_set should be added by the same thread");
         m_futures.emplace_back(std::move(f));
@@ -832,7 +832,7 @@ public:
     {
         const std::chrono::milliseconds wait_time(0);
         for (auto&& f : m_futures)
-            ASSERT(f.wait_for(wait_time) == std::future_status::ready);
+            OIIO_ASSERT(f.wait_for(wait_time) == std::future_status::ready);
     }
 
 private:

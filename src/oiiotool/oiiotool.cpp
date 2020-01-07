@@ -73,7 +73,7 @@ static Oiiotool ot;
         const int nargs = 1, ninputs = 1;                                      \
         if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
             return 0;                                                          \
-        ASSERT(argc == nargs);                                                 \
+        OIIO_ASSERT(argc == nargs);                                            \
         OiiotoolSimpleUnaryOp<IBAunary> op(impl, ot, #name, argc, argv,        \
                                            ninputs);                           \
         return op();                                                           \
@@ -86,7 +86,7 @@ static Oiiotool ot;
         const int nargs = 1, ninputs = 2;                                      \
         if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
             return 0;                                                          \
-        ASSERT(argc == nargs);                                                 \
+        OIIO_ASSERT(argc == nargs);                                            \
         OiiotoolSimpleBinaryOp<IBAbinary> op(impl, ot, #name, argc, argv,      \
                                              ninputs);                         \
         return op();                                                           \
@@ -99,7 +99,7 @@ static Oiiotool ot;
         const int nargs = 1, ninputs = 2;                                      \
         if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
             return 0;                                                          \
-        ASSERT(argc == nargs);                                                 \
+        OIIO_ASSERT(argc == nargs);                                            \
         OiiotoolSimpleBinaryOp<IBAbinary_> op(impl, ot, #name, argc, argv,     \
                                               ninputs);                        \
         return op();                                                           \
@@ -112,7 +112,7 @@ static Oiiotool ot;
         const int nargs = 2, ninputs = 1;                                      \
         if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
             return 0;                                                          \
-        ASSERT(argc == nargs);                                                 \
+        OIIO_ASSERT(argc == nargs);                                            \
         OiiotoolImageColorOp<IBAbinary_img_col> op(impl, ot, #name, argc,      \
                                                    argv, ninputs);             \
         return op();                                                           \
@@ -389,7 +389,7 @@ Oiiotool::extract_options(string_view command)
 static int
 set_threads(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     int nthreads = Strutil::stoi(argv[1]);
     OIIO::attribute("threads", nthreads);
     OIIO::attribute("exr_threads", nthreads);
@@ -401,7 +401,7 @@ set_threads(int argc, const char* argv[])
 static int
 set_cachesize(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     ot.cachesize = Strutil::stoi(argv[1]);
     ot.imagecache->attribute("max_memory_MB", float(ot.cachesize));
     return 0;
@@ -412,7 +412,7 @@ set_cachesize(int argc, const char* argv[])
 static int
 set_autotile(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     ot.autotile = Strutil::stoi(argv[1]);
     ot.imagecache->attribute("autotile", ot.autotile);
     ot.imagecache->attribute("autoscanline", int(ot.autotile ? 1 : 0));
@@ -424,7 +424,7 @@ set_autotile(int argc, const char* argv[])
 static int
 set_native(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     ot.nativeread = true;
     ot.imagecache->attribute("forcefloat", 0);
     return 0;
@@ -435,7 +435,7 @@ set_native(int argc, const char* argv[])
 static int
 set_dumpdata(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     string_view command   = ot.express(argv[0]);
     auto options          = ot.extract_options(command);
     ot.dumpdata           = true;
@@ -448,7 +448,7 @@ set_dumpdata(int argc, const char* argv[])
 static int
 set_printinfo(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     string_view command  = ot.express(argv[0]);
     ot.printinfo         = true;
     auto options         = ot.extract_options(command);
@@ -462,7 +462,7 @@ set_printinfo(int argc, const char* argv[])
 static int
 set_autopremult(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     ot.autopremult = true;
     ot.imagecache->attribute("unassociatedalpha", 0);
     ot.input_config.erase_attribute("oiio:UnassociatedAlpha");
@@ -474,7 +474,7 @@ set_autopremult(int argc, const char* argv[])
 static int
 unset_autopremult(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     ot.autopremult = false;
     ot.imagecache->attribute("unassociatedalpha", 1);
     ot.input_config.attribute("oiio:UnassociatedAlpha", 1);
@@ -487,7 +487,7 @@ unset_autopremult(int argc, const char* argv[])
 static int
 enable_eval(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     ot.eval_enable = true;
     return 0;
 }
@@ -497,7 +497,7 @@ enable_eval(int argc, const char* argv[])
 static int
 disable_eval(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     ot.eval_enable = false;
     return 0;
 }
@@ -828,7 +828,7 @@ parse_channels(const ImageSpec& spec, string_view chanlist,
 static int
 set_dataformat(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     string_view command = ot.express(argv[0]);
     std::vector<std::string> chans;
     Strutil::split(ot.express(argv[1]), chans, ",");
@@ -870,7 +870,7 @@ set_dataformat(int argc, const char* argv[])
 static int
 set_string_attribute(int argc, const char* argv[])
 {
-    ASSERT(argc == 3);
+    OIIO_DASSERT(argc == 3);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -889,7 +889,7 @@ set_string_attribute(int argc, const char* argv[])
 static int
 set_any_attribute(int argc, const char* argv[])
 {
-    ASSERT(argc == 3);
+    OIIO_DASSERT(argc == 3);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -919,7 +919,7 @@ do_erase_attribute(ImageSpec& spec, string_view attribname)
 static int
 erase_attribute(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -1387,7 +1387,7 @@ Oiiotool::express(string_view str)
     if (expr.empty())
         return str;  // No corresponding close brace found -- give up
     // eg. prefix="ab", expr="{cde}", s="fg", prefix="ab"
-    ASSERT(expr.front() == '{' && expr.back() == '}');
+    OIIO_ASSERT(expr.front() == '{' && expr.back() == '}');
     expr.remove_prefix(1);
     expr.remove_suffix(1);
     // eg. expr="cde"
@@ -1404,7 +1404,7 @@ Oiiotool::express(string_view str)
 static int
 set_input_attribute(int argc, const char* argv[])
 {
-    ASSERT(argc == 3);
+    OIIO_DASSERT(argc == 3);
 
     string_view command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
@@ -1625,7 +1625,7 @@ OiioTool::set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
 static int
 set_caption(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     const char* newargs[3] = { argv[0], "ImageDescription", argv[1] };
     return set_string_attribute(3, newargs);
     // N.B. set_string_attribute does expression expansion on its args
@@ -1657,7 +1657,7 @@ do_set_keyword(ImageSpec& spec, const std::string& keyword)
 static int
 set_keyword(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -1675,7 +1675,7 @@ set_keyword(int argc, const char* argv[])
 static int
 clear_keywords(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     const char* newargs[3];
     newargs[0] = argv[0];
     newargs[1] = "Keywords";
@@ -1688,7 +1688,7 @@ clear_keywords(int argc, const char* argv[])
 static int
 set_orientation(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -1733,7 +1733,7 @@ do_rotate_orientation(ImageSpec& spec, string_view cmd)
 static int
 rotate_orientation(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     string_view command = ot.express(argv[0]);
     if (!ot.curimg.get()) {
         ot.warning(command, "no current image available to modify");
@@ -1926,7 +1926,7 @@ set_full_to_pixels(int argc, const char* argv[])
 static int
 set_colorconfig(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     ot.colorconfig.reset(argv[1]);
     return 0;
 }
@@ -1936,7 +1936,7 @@ set_colorconfig(int argc, const char* argv[])
 static int
 set_colorspace(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     const char* args[3] = { argv[0], "oiio:ColorSpace", argv[1] };
     return set_string_attribute(3, args);
     // N.B. set_string_attribute does expression expansion on its args
@@ -2004,7 +2004,7 @@ static int
 action_tocolorspace(int argc, const char* argv[])
 {
     // Don't time -- let it get accounted by colorconvert
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -3069,7 +3069,7 @@ OP_CUSTOMCLASS(cshift, OpCshift, 1);
 static int
 action_pop(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     ot.pop();
     return 0;
 }
@@ -3079,7 +3079,7 @@ action_pop(int argc, const char* argv[])
 static int
 action_dup(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     ot.push(ot.curimg);
     return 0;
 }
@@ -3088,7 +3088,7 @@ action_dup(int argc, const char* argv[])
 static int
 action_swap(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     string_view command = ot.express(argv[0]);
     if (ot.image_stack.size() < 1) {
         ot.errorf(command, "requires at least two loaded images");
@@ -3105,7 +3105,7 @@ action_swap(int argc, const char* argv[])
 static int
 action_create(int argc, const char* argv[])
 {
-    ASSERT(argc == 3);
+    OIIO_DASSERT(argc == 3);
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
@@ -3141,7 +3141,7 @@ action_create(int argc, const char* argv[])
 static int
 action_pattern(int argc, const char* argv[])
 {
-    ASSERT(argc == 4);
+    OIIO_DASSERT(argc == 4);
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
@@ -3273,7 +3273,7 @@ OP_CUSTOMCLASS(kernel, OpKernel, 0);
 static int
 action_capture(int argc, const char* argv[])
 {
-    ASSERT(argc == 1);
+    OIIO_DASSERT(argc == 1);
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
@@ -4638,7 +4638,7 @@ OP_CUSTOMCLASS(text, OpText, 1);
 static int
 action_histogram(int argc, const char* argv[])
 {
-    ASSERT(argc == 3);
+    OIIO_DASSERT(argc == 3);
     if (ot.postpone_callback(1, action_histogram, argc, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
@@ -5331,7 +5331,7 @@ output_file(int argc, const char* argv[])
 static int
 do_echo(int argc, const char* argv[])
 {
-    ASSERT(argc == 2);
+    OIIO_DASSERT(argc == 2);
 
     string_view command = ot.express(argv[0]);
     string_view message = ot.express(argv[1]);
@@ -6110,7 +6110,7 @@ main(int argc, char* argv[])
     std::locale::global(std::locale::classic());
 
     ot.imagecache = ImageCache::create();
-    ASSERT(ot.imagecache);
+    OIIO_DASSERT(ot.imagecache);
     ot.imagecache->attribute("forcefloat", 1);
     ot.imagecache->attribute("max_memory_MB", float(ot.cachesize));
     ot.imagecache->attribute("autotile", ot.autotile);

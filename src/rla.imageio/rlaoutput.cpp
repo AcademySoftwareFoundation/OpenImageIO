@@ -415,7 +415,7 @@ RLAOutput::close()
     bool ok = true;
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
-        ASSERT(m_tilebuffer.size());
+        OIIO_DASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);
@@ -493,7 +493,7 @@ RLAOutput::encode_channel(unsigned char* data, stride_t xstride,
             } else {  // Have not been repeating
                 if (newval == lastval) {
                     // starting a repetition?  Output previous
-                    ASSERT(count > 1);
+                    OIIO_DASSERT(count > 1);
                     // write everything but the last char
                     --count;
                     m_rle.push_back(-count);
@@ -523,7 +523,7 @@ RLAOutput::encode_channel(unsigned char* data, stride_t xstride,
             }
             lastval = newval;
         }
-        ASSERT(count == 0);
+        OIIO_ASSERT(count == 0);
     }
 
     // Now that we know the size of the encoded buffer, save it at the
@@ -545,7 +545,7 @@ RLAOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     m_spec.auto_stride(xstride, format, spec().nchannels);
     const void* origdata = data;
     data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
-    ASSERT(data != NULL);
+    OIIO_DASSERT(data != nullptr);
     if (data == origdata) {
         m_scratch.assign((unsigned char*)data,
                          (unsigned char*)data + m_spec.scanline_bytes());

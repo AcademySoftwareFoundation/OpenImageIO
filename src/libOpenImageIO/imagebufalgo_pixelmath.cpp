@@ -137,7 +137,7 @@ ImageBufAlgo::absdiff(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_,
             // the bigger of them, but adjusted roi to be the lesser. Now handle
             // the channels that got left out because they were not common to
             // all the inputs.
-            ASSERT(roi.chend <= dst.nchannels());
+            OIIO_DASSERT(roi.chend <= dst.nchannels());
             roi.chbegin = roi.chend;
             roi.chend   = origroi.chend;
             if (A.nchannels() > B.nchannels()) {  // A exists
@@ -1332,11 +1332,11 @@ over_impl_rgbafloat(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
                     int nthreads)
 {
     using namespace simd;
-    ASSERT(A.localpixels() && B.localpixels() && A.spec().format == TypeFloat
-           && A.nchannels() == 4 && B.spec().format == TypeFloat
-           && B.nchannels() == 4 && A.spec().alpha_channel == 3
-           && A.spec().z_channel < 0 && B.spec().alpha_channel == 3
-           && B.spec().z_channel < 0);
+    OIIO_DASSERT(A.localpixels() && B.localpixels()
+                 && A.spec().format == TypeFloat && A.nchannels() == 4
+                 && B.spec().format == TypeFloat && B.nchannels() == 4
+                 && A.spec().alpha_channel == 3 && A.spec().z_channel < 0
+                 && B.spec().alpha_channel == 3 && B.spec().z_channel < 0);
     // const int nchannels = 4, alpha_channel = 3;
     ImageBufAlgo::parallel_image(roi, nthreads, [=, &R, &A, &B](ROI roi) {
         vfloat4 zero = vfloat4::Zero();

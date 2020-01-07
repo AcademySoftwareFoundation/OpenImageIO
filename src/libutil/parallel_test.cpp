@@ -161,7 +161,7 @@ test_empty_thread_pool()
     task_set ts(pool);
     for (int i = 0; i < ntasks; ++i)
         ts.push(pool->push([&](int id) {
-            ASSERT(id == -1 && "Must be run by calling thread");
+            OIIO_ASSERT(id == -1 && "Must be run by calling thread");
             count += 1;
         }));
     ts.wait();

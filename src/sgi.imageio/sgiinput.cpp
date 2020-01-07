@@ -200,7 +200,7 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             // If the high bit is set, we just copy the next 'count' values
             if (value & 0x80) {
                 while (count--) {
-                    DASSERT(i < scanline_len && limit > 0);
+                    OIIO_DASSERT(i < scanline_len && limit > 0);
                     *(out++) = rle_scanline[i++];
                     --limit;
                 }
@@ -209,15 +209,14 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             else {
                 value = rle_scanline[i++];
                 while (count--) {
-                    DASSERT(limit > 0);
+                    OIIO_DASSERT(limit > 0);
                     *(out++) = value;
                     --limit;
                 }
             }
         }
-    } else {
+    } else if (bpc == 2) {
         // 2 bits per channel
-        ASSERT(bpc == 2);
         while (i < scanline_len) {
             // Read a byte, it is the count.
             unsigned short value = (rle_scanline[i] << 8) | rle_scanline[i + 1];
@@ -229,7 +228,7 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             // If the high bit is set, we just copy the next 'count' values
             if (value & 0x80) {
                 while (count--) {
-                    DASSERT(i + 1 < scanline_len && limit > 0);
+                    OIIO_DASSERT(i + 1 < scanline_len && limit > 0);
                     *(out++) = rle_scanline[i++];
                     *(out++) = rle_scanline[i++];
                     --limit;
@@ -238,7 +237,7 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             // If the high bit is zero, we copy the NEXT value, count times
             else {
                 while (count--) {
-                    DASSERT(limit > 0);
+                    OIIO_DASSERT(limit > 0);
                     *(out++) = rle_scanline[i];
                     *(out++) = rle_scanline[i + 1];
                     --limit;
@@ -246,6 +245,9 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
                 i += 2;
             }
         }
+    } else {
+        errorf("Unknown bytes per channel %d", bpc);
+        return false;
     }
     if (i != scanline_len || limit != 0) {
         errorf("Corrupt RLE data");

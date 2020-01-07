@@ -129,7 +129,8 @@ template<typename T, typename PYT>
 inline bool
 py_indexable_pod_to_stdvector(std::vector<T>& vals, const PYT& obj)
 {
-    ASSERT(py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj));
+    OIIO_ASSERT(py::isinstance<py::tuple>(obj)
+                || py::isinstance<py::list>(obj));
     bool ok             = true;
     const size_t length = py::len(obj);
     vals.reserve(length);
@@ -158,7 +159,8 @@ template<typename PYT>
 inline bool
 py_indexable_pod_to_stdvector(std::vector<std::string>& vals, const PYT& obj)
 {
-    ASSERT(py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj));
+    OIIO_ASSERT(py::isinstance<py::tuple>(obj)
+                || py::isinstance<py::list>(obj));
     bool ok             = true;
     const size_t length = py::len(obj);
     vals.reserve(length);
@@ -181,7 +183,8 @@ template<typename PYT>
 inline bool
 py_indexable_pod_to_stdvector(std::vector<TypeDesc>& vals, const PYT& obj)
 {
-    ASSERT(py::isinstance<py::tuple>(obj) || py::isinstance<py::list>(obj));
+    OIIO_ASSERT(py::isinstance<py::tuple>(obj)
+                || py::isinstance<py::list>(obj));
     bool ok             = true;
     const size_t length = py::len(obj);
     vals.reserve(length);

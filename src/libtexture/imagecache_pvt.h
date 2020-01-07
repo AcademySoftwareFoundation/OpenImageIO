@@ -290,22 +290,22 @@ public:
 
     const LevelInfo& levelinfo(int subimage, int miplevel) const
     {
-        DASSERT((int)m_subimages.size() > subimage);
-        DASSERT((int)m_subimages[subimage].levels.size() > miplevel);
+        OIIO_DASSERT((int)m_subimages.size() > subimage);
+        OIIO_DASSERT((int)m_subimages[subimage].levels.size() > miplevel);
         return m_subimages[subimage].levels[miplevel];
     }
     LevelInfo& levelinfo(int subimage, int miplevel)
     {
-        DASSERT((int)m_subimages.size() > subimage);
-        DASSERT((int)m_subimages[subimage].levels.size() > miplevel);
+        OIIO_DASSERT((int)m_subimages.size() > subimage);
+        OIIO_DASSERT((int)m_subimages[subimage].levels.size() > miplevel);
         return m_subimages[subimage].levels[miplevel];
     }
 
     /// Do we currently have a valid spec?
     bool validspec() const
     {
-        DASSERT((m_validspec == false || m_subimages.size() > 0)
-                && "validspec is true, but subimages are empty");
+        OIIO_DASSERT((m_validspec == false || m_subimages.size() > 0)
+                     && "validspec is true, but subimages are empty");
         return m_validspec;
     }
 
@@ -1009,7 +1009,7 @@ public:
     {
         --m_stat_tiles_current;
         m_mem_used -= size;
-        DASSERT(m_mem_used >= 0);
+        OIIO_DASSERT(m_mem_used >= 0);
     }
 
     /// Internal error reporting routine, with printf-like arguments.

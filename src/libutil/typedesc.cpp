@@ -56,7 +56,7 @@ TypeDesc::basesize() const noexcept
 {
     if (basetype >= TypeDesc::LASTBASE)
         return 0;
-    DASSERT(basetype < TypeDesc::LASTBASE);
+    OIIO_DASSERT(basetype < TypeDesc::LASTBASE);
     return basetype_size[basetype];
 }
 
@@ -82,7 +82,7 @@ TypeDesc::is_floating_point() const noexcept
         0,  // STRING
         0   // PTR
     };
-    DASSERT(basetype < TypeDesc::LASTBASE);
+    OIIO_DASSERT(basetype < TypeDesc::LASTBASE);
     return isfloat[basetype];
 }
 
@@ -108,7 +108,7 @@ TypeDesc::is_signed() const noexcept
         0,  // STRING
         0   // PTR
     };
-    DASSERT(basetype < TypeDesc::LASTBASE);
+    OIIO_DASSERT(basetype < TypeDesc::LASTBASE);
     return issigned[basetype];
 }
 
@@ -195,7 +195,7 @@ TypeDesc::c_str() const
         case VECTOR: vec = "vector"; break;
         case NORMAL: vec = "normal"; break;
         case RATIONAL: vec = "rational"; break;
-        default: DASSERT(0 && "Invalid vector semantics");
+        default: OIIO_DASSERT(0 && "Invalid vector semantics");
         }
         const char* agg = "";
         switch (aggregate) {

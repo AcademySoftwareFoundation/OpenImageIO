@@ -261,7 +261,7 @@ DICOMInput::read_metadata()
         DcmStack stack;
         while (dcm->nextObject(stack, OFTrue).good()) {
             DcmObject* object = stack.top();
-            ASSERT(object);
+            OIIO_ASSERT(object);
             DcmTag& tag         = const_cast<DcmTag&>(object->getTag());
             std::string tagname = tag.getTagName();
             if (ignore_tags.find(tagname) != ignore_tags.end())
@@ -329,7 +329,7 @@ DICOMInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
 
-    ASSERT(m_internal_data);
+    OIIO_DASSERT(m_internal_data);
     size_t size = m_spec.scanline_bytes();
     memcpy(data, m_internal_data + y * size, size);
 

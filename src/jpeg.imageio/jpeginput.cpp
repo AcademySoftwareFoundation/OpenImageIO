@@ -445,7 +445,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         if (!close() || !open(m_filename, dummyspec)
             || !seek_subimage(subimage, 0))
             return false;  // Somehow, the re-open failed
-        assert(m_next_scanline == 0 && current_subimage() == subimage);
+        OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
 
     // Set up our custom error handler
@@ -460,7 +460,7 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         // we'll have to convert.
         m_cmyk_buf.resize(m_spec.width * 4);
         readdata = &m_cmyk_buf[0];
-        ASSERT(m_spec.nchannels == 3);
+        OIIO_DASSERT(m_spec.nchannels == 3);
     }
 
     for (; m_next_scanline <= y; ++m_next_scanline) {

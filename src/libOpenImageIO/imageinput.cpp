@@ -184,7 +184,7 @@ ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
                                         xstride, AutoStride, AutoStride);
     } else {
         // Per-channel formats -- have to convert/copy channels individually
-        ASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
+        OIIO_DASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         size_t offset = 0;
         for (int c = 0; ok && c < m_spec.nchannels; ++c) {
             TypeDesc chanformat = m_spec.channelformats[c];
@@ -457,7 +457,7 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
                                         xstride, ystride, zstride);
     } else {
         // Per-channel formats -- have to convert/copy channels individually
-        ASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
+        OIIO_DASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         size_t offset = 0;
         for (int c = 0; c < m_spec.nchannels; ++c) {
             TypeDesc chanformat = m_spec.channelformats[c];
@@ -999,8 +999,9 @@ void
 ImageInput::append_error(const std::string& message) const
 {
     lock_guard lock(m_mutex);
-    ASSERT(m_errmessage.size() < 1024 * 1024 * 16
-           && "Accumulated error messages > 16MB. Try checking return codes!");
+    OIIO_DASSERT(
+        m_errmessage.size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
     if (m_errmessage.size())
         m_errmessage += '\n';
     m_errmessage += message;

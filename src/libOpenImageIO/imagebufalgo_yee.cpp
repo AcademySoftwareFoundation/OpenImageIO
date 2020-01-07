@@ -59,13 +59,13 @@ public:
 
     ImageBuf& operator[](int lev)
     {
-        DASSERT(lev < PYRAMID_MAX_LEVELS);
+        OIIO_DASSERT(lev < PYRAMID_MAX_LEVELS);
         return level[lev];
     }
 
     float operator()(int x, int y, int lev) const
     {
-        DASSERT(lev < PYRAMID_MAX_LEVELS);
+        OIIO_DASSERT(lev < PYRAMID_MAX_LEVELS);
         return level[lev].getchannel(x, y, 0, 1);
     }
 

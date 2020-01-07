@@ -67,7 +67,7 @@ SHA1::~SHA1 ()
 void
 SHA1::append (const void *data, size_t size)
 {
-    ASSERT (!m_final && "Called SHA1() after already getting digest");
+    OIIO_ASSERT (!m_final && "Called SHA1() after already getting digest");
     if (data && size)
         m_csha1->Update ((const unsigned char *)data, (unsigned int)size);
 }

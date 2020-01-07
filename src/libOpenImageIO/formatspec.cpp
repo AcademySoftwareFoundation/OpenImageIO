@@ -98,7 +98,7 @@ pvt::get_default_quantize(TypeDesc format, long long& quant_min,
     case TypeDesc::DOUBLE:
         get_default_quantize_<double>(quant_min, quant_max);
         break;
-    default: ASSERT_MSG(0, "Unknown data format %d", format.basetype);
+    default: OIIO_ASSERT_MSG(0, "Unknown data format %d", format.basetype);
     }
 }
 
@@ -560,7 +560,7 @@ ImageSpec::get_string_attribute(string_view name, string_view defaultval) const
 int
 ImageSpec::channelindex(string_view name) const
 {
-    ASSERT(nchannels == int(channelnames.size()));
+    OIIO_DASSERT(nchannels == int(channelnames.size()));
     for (int i = 0; i < nchannels; ++i)
         if (channelnames[i] == name)
             return i;

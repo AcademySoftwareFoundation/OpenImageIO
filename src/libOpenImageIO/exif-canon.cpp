@@ -631,7 +631,8 @@ array_to_spec (ImageSpec& spec,                 // spec to put attribs into
             return;
     }
     else {
-        ASSERT(0 && "unsupported type");
+        OIIO_ASSERT(0 && "unsupported type");
+        return;
     }
     const T *s = (const T *) pvt::dataptr (dir, buf, offset_adjustment);
     if (!s)

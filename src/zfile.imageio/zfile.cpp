@@ -235,7 +235,7 @@ ZfileInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         if (!close() || !open(m_filename, dummyspec)
             || !seek_subimage(subimage, miplevel))
             return false;  // Somehow, the re-open failed
-        ASSERT(m_next_scanline == 0 && current_subimage() == subimage);
+        OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
     while (m_next_scanline <= y) {
         // Keep reading until we're read the scanline we really need
@@ -343,7 +343,7 @@ ZfileOutput::close()
     bool ok = true;
     if (m_spec.tile_width) {
         // We've been emulating tiles; now dump as scanlines.
-        ASSERT(m_tilebuffer.size());
+        OIIO_DASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);

@@ -25,7 +25,7 @@ make_test_image(string_view formatname)
 {
     ImageBuf buf;
     auto out = ImageOutput::create(formatname);
-    ASSERT(out);
+    OIIO_DASSERT(out);
     ImageSpec spec(64, 64, 4, TypeFloat);
     if (formatname == "zfile" || formatname == "fits")
         spec.nchannels = 1;  // these formats are single channel

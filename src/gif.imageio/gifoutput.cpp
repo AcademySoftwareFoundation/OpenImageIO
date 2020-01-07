@@ -100,7 +100,7 @@ GIFOutput::open(const std::string& name, const ImageSpec& newspec,
         return start_subimage();
     }
 
-    ASSERTMSG(0, "Unknown open mode %d", int(mode));
+    OIIO_ASSERT_MSG(0, "Unknown open mode %d", int(mode));
     return false;
 }
 

@@ -649,9 +649,11 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
         filename);
     int nchannels_img = image.nchannels();
     int nchannels = nchannels_override ? nchannels_override : image.nchannels();
-    DASSERT(image.spec().format == TypeDesc::FLOAT);
-    DASSERT(image_ds == nullptr || image_ds->spec().format == TypeDesc::FLOAT);
-    DASSERT(image_dt == nullptr || image_dt->spec().format == TypeDesc::FLOAT);
+    OIIO_DASSERT(image.spec().format == TypeDesc::FLOAT);
+    OIIO_DASSERT(image_ds == nullptr
+                 || image_ds->spec().format == TypeDesc::FLOAT);
+    OIIO_DASSERT(image_dt == nullptr
+                 || image_dt->spec().format == TypeDesc::FLOAT);
 
     TextureOptBatch opt;
     initialize_opt(opt, nchannels);
@@ -1215,7 +1217,8 @@ do_tex_thread_workout(int iterations, int mythread)
                 pixel += 57557 * mythread;
             }
             break;
-        default: ASSERT_MSG(0, "Unkonwn thread work pattern %d", threadtimes);
+        default:
+            OIIO_ASSERT_MSG(0, "Unkonwn thread work pattern %d", threadtimes);
         }
         if (!ok && spec0.width && spec0.height) {
             s = (((2 * pixel) % spec0.width) + 0.5f) / spec0.width;
@@ -1245,7 +1248,7 @@ do_tex_thread_workout(int iterations, int mythread)
     }
     // Force the compiler to not optimize away the "other work"
     for (int c = 0; c < nchannels; ++c)
-        ASSERT(!isnan(result[c]));
+        OIIO_ASSERT(!isnan(result[c]));
 }
 
 
@@ -1261,7 +1264,7 @@ launch_tex_threads(int numthreads, int iterations)
     for (int i = 0; i < numthreads; ++i) {
         threads.create_thread(std::bind(do_tex_thread_workout, iterations, i));
     }
-    ASSERT((int)threads.size() == numthreads);
+    OIIO_ASSERT((int)threads.size() == numthreads);
     threads.join_all();
 }
 
@@ -1365,9 +1368,10 @@ test_icwrite(int testicwrite)
     spec.tile_depth  = 1;
     ustring filename(filenames[0]);
     bool ok = ic->add_file(filename, make_grid_input);
-    if (!ok)
+    if (!ok) {
         std::cout << "ic->add_file error: " << ic->geterror() << "\n";
-    ASSERT(ok);
+        OIIO_ASSERT(ok);
+    }
 
     // Now add all the tiles if it's a seeded map
     // testicwrite == 1 means to seed the first MIP level using add_tile.
@@ -1395,7 +1399,6 @@ test_icwrite(int testicwrite)
                                      ic->geterror());
                     return;
                 }
-                ASSERT(ok);
             }
         }
     }

@@ -151,7 +151,7 @@ Field3DOutput::open(const std::string& name, const ImageSpec& userspec,
         return false;
     }
 
-    ASSERT(mode == AppendSubimage && "invalid open() mode");
+    OIIO_ASSERT(mode == AppendSubimage && "invalid open() mode");
 
     write_current_subimage();
 
@@ -342,7 +342,7 @@ Field3DOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
             return write_scanline_specialized(
                 y, z, (const FIELD3D_VEC3_T<FIELD3D_NS::half>*)data);
     } else {
-        ASSERT(0 && "Unsupported data format for field3d");
+        OIIO_ASSERT(0 && "Unsupported data format for field3d");
     }
 
     return false;
@@ -422,7 +422,7 @@ Field3DOutput::write_tile(int x, int y, int z, TypeDesc format,
             return write_tile_specialized(
                 x, y, z, (const FIELD3D_VEC3_T<FIELD3D_NS::half>*)data);
     } else {
-        ASSERT(0 && "Unsupported data format for field3d");
+        OIIO_ASSERT(0 && "Unsupported data format for field3d");
     }
 
     return false;
@@ -435,7 +435,7 @@ bool
 Field3DOutput::prep_subimage_specialized()
 {
     m_spec = m_specs[m_subimage];
-    ASSERT(m_spec.nchannels == 1 || m_spec.nchannels == 3);
+    OIIO_ASSERT(m_spec.nchannels == 1 || m_spec.nchannels == 3);
 
     Box3i extents(V3i(m_spec.full_x, m_spec.full_y, m_spec.full_z),
                   V3i(m_spec.full_x + m_spec.full_width - 1,
@@ -453,7 +453,7 @@ Field3DOutput::prep_subimage_specialized()
         m_field.reset(f);
     } else if (Strutil::iequals(fieldtype, "MAC")) {
         // FIXME
-        ASSERT(0 && "MAC fields not yet supported");
+        OIIO_ASSERT(0 && "MAC fields not yet supported");
     } else {
         // Dense
         DenseField<T>* f(new DenseField<T>);
@@ -518,7 +518,7 @@ bool
 Field3DOutput::prep_subimage()
 {
     m_spec = m_specs[m_subimage];
-    ASSERT(m_spec.nchannels == 1 || m_spec.nchannels == 3);
+    OIIO_ASSERT(m_spec.nchannels == 1 || m_spec.nchannels == 3);
     if (m_spec.format == TypeDesc::FLOAT) {
         if (m_spec.nchannels == 1)
             prep_subimage_specialized<float>();
@@ -535,7 +535,7 @@ Field3DOutput::prep_subimage()
         else
             prep_subimage_specialized<FIELD3D_VEC3_T<FIELD3D_NS::half>>();
     } else {
-        ASSERT(0 && "Unsupported data format for field3d");
+        OIIO_ASSERT(0 && "Unsupported data format for field3d");
     }
 
     m_writepending = true;

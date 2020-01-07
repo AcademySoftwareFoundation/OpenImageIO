@@ -340,7 +340,7 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
         }
         m_spec_valid = true;
     } else if (filename.length() > 0) {
-        ASSERT(buffer == NULL);
+        OIIO_DASSERT(buffer == nullptr);
         // If a filename was given, read the spec and set it up as an
         // ImageCache-backed image.  Reallocate later if an explicit read()
         // is called to force read into a local buffer.
@@ -350,7 +350,7 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
         // FIXME: investigate if the above read is really necessary, or if
         // it can be eliminated and done fully lazily.
     } else {
-        ASSERT(buffer == NULL);
+        OIIO_DASSERT(buffer == nullptr);
     }
 }
 
@@ -583,8 +583,9 @@ void
 ImageBufImpl::error(const std::string& message) const
 {
     spin_lock lock(err_mutex);
-    ASSERT(m_err.size() < 1024 * 1024 * 16
-           && "Accumulated error messages > 16MB. Try checking return codes!");
+    OIIO_ASSERT(
+        m_err.size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
     if (m_err.size() && m_err[m_err.size() - 1] != '\n')
         m_err += '\n';
     m_err += message;
@@ -1194,7 +1195,6 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
     // cache holds an open file handle for reading, we will not be able to
     // open the same file for writing.
     ImageCache* shared_imagecache = ImageCache::create(true);
-    ASSERT(shared_imagecache);
     ustring ufilename(filename);
     shared_imagecache->invalidate(ufilename);  // the shared IC
     if (imagecache() && imagecache() != shared_imagecache)
@@ -1544,7 +1544,7 @@ copy_pixels_impl(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 0)
                         D* draw       = (D*)dst.pixeladdr(roi.xbegin, y, z);
                         const S* sraw = (const S*)src.pixeladdr(roi.xbegin, y,
                                                                 z);
-                        DASSERT(draw && sraw);
+                        OIIO_DASSERT(draw && sraw);
                         for (int x = 0; x < nxvalues; ++x)
                             draw[x] = sraw[x];
                     }
@@ -1879,8 +1879,8 @@ ImageBuf::setpixel(int x, int y, int z, const float* pixel, int maxchannels)
         break;
     case TypeDesc::INT64: setpixel_<long long>(*this, x, y, z, pixel, n); break;
     default:
-        ASSERTMSG(0, "Unknown/unsupported data type %d",
-                  spec().format.basetype);
+        OIIO_ASSERT_MSG(0, "Unknown/unsupported data type %d",
+                        spec().format.basetype);
     }
 }
 
@@ -2416,9 +2416,9 @@ ImageBufImpl::do_wrap(int& x, int& y, int& z, ImageBuf::WrapMode wrap) const
 
     // Double check that we're outside the data window -- supposedly a
     // precondition of calling this method.
-    DASSERT(!(x >= m_spec.x && x < m_spec.x + m_spec.width && y >= m_spec.y
-              && y < m_spec.y + m_spec.height && z >= m_spec.z
-              && z < m_spec.z + m_spec.depth));
+    OIIO_DASSERT(!(x >= m_spec.x && x < m_spec.x + m_spec.width && y >= m_spec.y
+                   && y < m_spec.y + m_spec.height && z >= m_spec.z
+                   && z < m_spec.z + m_spec.depth));
 
     // Wrap based on the display window
     if (wrap == ImageBuf::WrapBlack) {
@@ -2440,7 +2440,7 @@ ImageBufImpl::do_wrap(int& x, int& y, int& z, ImageBuf::WrapMode wrap) const
         wrap_mirror(y, m_spec.full_y, m_spec.full_height);
         wrap_mirror(z, m_spec.full_z, m_spec.full_depth);
     } else {
-        ASSERT_MSG(0, "unknown wrap mode %d", (int)wrap);
+        OIIO_ASSERT_MSG(0, "unknown wrap mode %d", (int)wrap);
     }
 
     // Now determine if the new position is within the data window
@@ -2491,14 +2491,14 @@ ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
         // tile.
     }
 
-    DASSERT(x >= m_spec.x && x < m_spec.x + m_spec.width && y >= m_spec.y
-            && y < m_spec.y + m_spec.height && z >= m_spec.z
-            && z < m_spec.z + m_spec.depth);
+    OIIO_DASSERT(x >= m_spec.x && x < m_spec.x + m_spec.width && y >= m_spec.y
+                 && y < m_spec.y + m_spec.height && z >= m_spec.z
+                 && z < m_spec.z + m_spec.depth);
 
     int tw = m_spec.tile_width, th = m_spec.tile_height;
     int td = m_spec.tile_depth;
-    DASSERT(m_spec.tile_depth >= 1);
-    DASSERT(tile == NULL || tilexend == (tilexbegin + tw));
+    OIIO_DASSERT(m_spec.tile_depth >= 1);
+    OIIO_DASSERT(tile == NULL || tilexend == (tilexbegin + tw));
     if (tile == NULL || x < tilexbegin || x >= tilexend || y < tileybegin
         || y >= (tileybegin + th) || z < tilezbegin || z >= (tilezbegin + td)) {
         // not the same tile as before
@@ -2525,8 +2525,8 @@ ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
                         * (size_t)tw
                     + (x - tilexbegin);
     offset *= m_spec.pixel_bytes();
-    DASSERTMSG(m_spec.pixel_bytes() == m_pixel_bytes, "%d vs %d",
-               (int)m_spec.pixel_bytes(), (int)m_pixel_bytes);
+    OIIO_DASSERT_MSG(m_spec.pixel_bytes() == m_pixel_bytes, "%d vs %d",
+                     (int)m_spec.pixel_bytes(), (int)m_pixel_bytes);
 
     TypeDesc format;
     const void* pixeldata = m_imagecache->tile_pixels(tile, format);

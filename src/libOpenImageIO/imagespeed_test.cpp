@@ -93,7 +93,7 @@ time_read_image()
 {
     for (ustring filename : input_filename) {
         auto in = ImageInput::open(filename.c_str());
-        ASSERT(in);
+        OIIO_ASSERT(in);
         in->read_image(conversion, &buffer[0]);
         in->close();
     }
@@ -106,7 +106,7 @@ time_read_scanline_at_a_time()
 {
     for (ustring filename : input_filename) {
         auto in = ImageInput::open(filename.c_str());
-        ASSERT(in);
+        OIIO_ASSERT(in);
         const ImageSpec& spec(in->spec());
         size_t pixelsize = spec.nchannels * conversion.size();
         if (!pixelsize)
@@ -127,7 +127,7 @@ time_read_64_scanlines_at_a_time()
 {
     for (ustring filename : input_filename) {
         auto in = ImageInput::open(filename.c_str());
-        ASSERT(in);
+        OIIO_ASSERT(in);
         const ImageSpec& spec(in->spec());
         size_t pixelsize = spec.nchannels * conversion.size();
         if (!pixelsize)
@@ -191,9 +191,9 @@ static void
 time_write_image()
 {
     auto out = ImageOutput::create(output_filename);
-    ASSERT(out);
+    OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
-    ASSERT(ok);
+    OIIO_ASSERT(ok);
     out->write_image(bufspec.format, &buffer[0]);
 }
 
@@ -203,9 +203,9 @@ static void
 time_write_scanline_at_a_time()
 {
     auto out = ImageOutput::create(output_filename);
-    ASSERT(out);
+    OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
-    ASSERT(ok);
+    OIIO_ASSERT(ok);
 
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
@@ -221,9 +221,9 @@ static void
 time_write_64_scanlines_at_a_time()
 {
     auto out = ImageOutput::create(output_filename);
-    ASSERT(out);
+    OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
-    ASSERT(ok);
+    OIIO_ASSERT(ok);
 
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
@@ -242,9 +242,9 @@ static void
 time_write_tile_at_a_time()
 {
     auto out = ImageOutput::create(output_filename);
-    ASSERT(out);
+    OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
-    ASSERT(ok);
+    OIIO_ASSERT(ok);
 
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
@@ -267,9 +267,9 @@ static void
 time_write_tiles_row_at_a_time()
 {
     auto out = ImageOutput::create(output_filename);
-    ASSERT(out);
+    OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
-    ASSERT(ok);
+    OIIO_ASSERT(ok);
 
     size_t pixelsize         = outspec.nchannels * sizeof(float);
     imagesize_t scanlinesize = outspec.width * pixelsize;
@@ -291,9 +291,9 @@ time_write_imagebuf()
 {
     ImageBuf ib(output_filename, bufspec, &buffer[0]);  // wrap the buffer
     auto out = ImageOutput::create(output_filename);
-    ASSERT(out);
+    OIIO_ASSERT(out);
     bool ok = out->open(output_filename, outspec);
-    ASSERT(ok);
+    OIIO_ASSERT(ok);
     ib.write(out.get());
 }
 
@@ -317,14 +317,14 @@ test_write(const std::string& explanation, void (*func)(), int tilesize = 0)
 static float
 time_loop_pixels_1D(ImageBuf& ib, int iters)
 {
-    ASSERT(ib.localpixels() && ib.pixeltype() == TypeFloat);
+    OIIO_ASSERT(ib.localpixels() && ib.pixeltype() == TypeFloat);
     const ImageSpec& spec(ib.spec());
     imagesize_t npixels = spec.image_pixels();
     int nchannels       = spec.nchannels;
     double sum          = 0.0f;
     for (int i = 0; i < iters; ++i) {
         const float* f = (const float*)ib.pixeladdr(spec.x, spec.y, spec.z);
-        ASSERT(f);
+        OIIO_DASSERT(f);
         for (imagesize_t p = 0; p < npixels; ++p) {
             sum += f[0];
             f += nchannels;
@@ -339,14 +339,14 @@ time_loop_pixels_1D(ImageBuf& ib, int iters)
 static float
 time_loop_pixels_3D(ImageBuf& ib, int iters)
 {
-    ASSERT(ib.localpixels() && ib.pixeltype() == TypeFloat);
+    OIIO_ASSERT(ib.localpixels() && ib.pixeltype() == TypeFloat);
     const ImageSpec& spec(ib.spec());
     imagesize_t npixels = spec.image_pixels();
     int nchannels       = spec.nchannels;
     double sum          = 0.0f;
     for (int i = 0; i < iters; ++i) {
         const float* f = (const float*)ib.pixeladdr(spec.x, spec.y, spec.z);
-        ASSERT(f);
+        OIIO_DASSERT(f);
         for (int z = spec.z, ze = spec.z + spec.depth; z < ze; ++z) {
             for (int y = spec.y, ye = spec.y + spec.height; y < ye; ++y) {
                 for (int x = spec.x, xe = spec.x + spec.width; x < xe; ++x) {
@@ -365,7 +365,7 @@ time_loop_pixels_3D(ImageBuf& ib, int iters)
 static float
 time_loop_pixels_3D_getchannel(ImageBuf& ib, int iters)
 {
-    ASSERT(ib.pixeltype() == TypeFloat);
+    OIIO_DASSERT(ib.pixeltype() == TypeFloat);
     const ImageSpec& spec(ib.spec());
     imagesize_t npixels = spec.image_pixels();
     double sum          = 0.0f;
@@ -387,7 +387,7 @@ time_loop_pixels_3D_getchannel(ImageBuf& ib, int iters)
 static float
 time_iterate_pixels(ImageBuf& ib, int iters)
 {
-    ASSERT(ib.pixeltype() == TypeFloat);
+    OIIO_DASSERT(ib.pixeltype() == TypeFloat);
     const ImageSpec& spec(ib.spec());
     imagesize_t npixels = spec.image_pixels();
     double sum          = 0.0f;
@@ -405,7 +405,7 @@ time_iterate_pixels(ImageBuf& ib, int iters)
 static float
 time_iterate_pixels_slave_pos(ImageBuf& ib, int iters)
 {
-    ASSERT(ib.pixeltype() == TypeFloat);
+    OIIO_DASSERT(ib.pixeltype() == TypeFloat);
     const ImageSpec& spec(ib.spec());
     imagesize_t npixels = spec.image_pixels();
     double sum          = 0.0f;
@@ -425,7 +425,7 @@ time_iterate_pixels_slave_pos(ImageBuf& ib, int iters)
 static float
 time_iterate_pixels_slave_incr(ImageBuf& ib, int iters)
 {
-    ASSERT(ib.pixeltype() == TypeFloat);
+    OIIO_DASSERT(ib.pixeltype() == TypeFloat);
     const ImageSpec& spec(ib.spec());
     imagesize_t npixels = spec.image_pixels();
     double sum          = 0.0f;
@@ -559,7 +559,7 @@ main(int argc, char** argv)
     if (output_filename.size()) {
         // Use the first image
         auto in = ImageInput::open(input_filename[0].c_str());
-        ASSERT(in);
+        OIIO_ASSERT(in);
         bufspec = in->spec();
         in->read_image(conversion, &buffer[0]);
         in->close();
@@ -567,7 +567,7 @@ main(int argc, char** argv)
         std::cout << "Timing ways of writing images:\n";
         // imagecache->get_imagespec (input_filename[0], bufspec, 0, 0, true);
         auto out = ImageOutput::create(output_filename);
-        ASSERT(out);
+        OIIO_ASSERT(out);
         bool supports_tiles = out->supports("tiles");
         out.reset();
         outspec = bufspec;

@@ -288,7 +288,7 @@ ICOInput::readimg()
     }
 
     // otherwise we're dealing with a DIB
-    DASSERT(m_spec.scanline_bytes() == ((size_t)m_spec.width * 4));
+    OIIO_DASSERT(m_spec.scanline_bytes() == ((size_t)m_spec.width * 4));
     m_buf.resize(m_spec.image_bytes());
 
     //std::cerr << "[ico] DIB buffer size = " << m_buf.size () << "\n";

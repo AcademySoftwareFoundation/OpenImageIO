@@ -497,7 +497,7 @@ ImageOutput::create(const std::string& filename,
         }
     }
 
-    ASSERT(create_function != nullptr);
+    OIIO_ASSERT(create_function != nullptr);
     try {
         out = std::unique_ptr<ImageOutput>(create_function());
     } catch (...) {
@@ -693,7 +693,7 @@ ImageInput::create(const std::string& filename, bool do_open,
             OIIO::pvt::errorf(
                 "Image \"%s\" does not exist. Also, it is not the name of an image format that OpenImageIO recognizes.\n",
                 filename);
-        DASSERT(!in);
+        OIIO_DASSERT(!in);
         return in;
     }
 

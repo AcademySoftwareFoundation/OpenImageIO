@@ -132,7 +132,7 @@ ImageBufAlgo::to_IplImage(const ImageBuf& src)
 
     // Make sure the image buffer is initialized.
     if (!tmp.initialized() && !tmp.read(tmp.subimage(), tmp.miplevel(), true)) {
-        DASSERT(0 && "Could not initialize ImageBuf.");
+        OIIO_DASSERT(0 && "Could not initialize ImageBuf.");
         return NULL;
     }
 
@@ -161,13 +161,13 @@ ImageBufAlgo::to_IplImage(const ImageBuf& src)
         dstFormat     = IPL_DEPTH_64F;
         dstSpecFormat = spec.format;
     } else {
-        DASSERT(0 && "Unknown data format in ImageBuf.");
+        OIIO_DASSERT(0 && "Unknown data format in ImageBuf.");
         return NULL;
     }
     IplImage* ipl = cvCreateImage(cvSize(spec.width, spec.height), dstFormat,
                                   spec.nchannels);
     if (!ipl) {
-        DASSERT(0 && "Unable to create IplImage.");
+        OIIO_DASSERT(0 && "Unable to create IplImage.");
         return NULL;
     }
 
@@ -183,7 +183,7 @@ ImageBufAlgo::to_IplImage(const ImageBuf& src)
                                    linestep, 0);
 
     if (!converted) {
-        DASSERT(0 && "convert_image failed.");
+        OIIO_DASSERT(0 && "convert_image failed.");
         cvReleaseImage(&ipl);
         return NULL;
     }
@@ -307,12 +307,12 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
     } else if (spec.format == TypeDesc(TypeDesc::DOUBLE)) {
         dstFormat = CV_MAKETYPE(CV_64F, chans);
     } else {
-        DASSERT(0 && "Unknown data format in ImageBuf.");
+        OIIO_DASSERT(0 && "Unknown data format in ImageBuf.");
         return false;
     }
     cv::Mat mat(roi.height(), roi.width(), dstFormat);
     if (mat.empty()) {
-        DASSERT(0 && "Unable to create cv::Mat.");
+        OIIO_DASSERT(0 && "Unable to create cv::Mat.");
         return false;
     }
 
@@ -325,7 +325,7 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
         dstSpecFormat, pixelsize, linestep, 0, -1, -1, nthreads);
 
     if (!converted) {
-        DASSERT(0 && "convert_image failed.");
+        OIIO_DASSERT(0 && "convert_image failed.");
         return false;
     }
 

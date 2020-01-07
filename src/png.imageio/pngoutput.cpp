@@ -70,7 +70,7 @@ private:
                                  png_size_t length)
     {
         PNGOutput* pngoutput = (PNGOutput*)png_get_io_ptr(png_ptr);
-        DASSERT(pngoutput);
+        OIIO_DASSERT(pngoutput);
         size_t bytes = pngoutput->m_io->write(data, length);
         if (bytes != length) {
             pngoutput->errorf("Write error");
@@ -81,7 +81,7 @@ private:
     static void PngFlushCallback(png_structp png_ptr)
     {
         PNGOutput* pngoutput = (PNGOutput*)png_get_io_ptr(png_ptr);
-        DASSERT(pngoutput);
+        OIIO_DASSERT(pngoutput);
         pngoutput->m_io->flush();
     }
 };
@@ -211,7 +211,7 @@ PNGOutput::close()
     bool ok = true;
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
-        ASSERT(m_tilebuffer.size());
+        OIIO_ASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);

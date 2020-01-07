@@ -103,7 +103,7 @@ private:
     // debugging aid
     void preview(std::ostream& out)
     {
-        ASSERT(!feof(m_file));
+        OIIO_DASSERT(!feof(m_file));
         long pos = ftell(m_file);
         out << "@" << pos << ", next 4 bytes are ";
         union {  // trickery to avoid punned pointer warnings
@@ -177,7 +177,7 @@ RLAInput::read_header()
 {
     // Read the image header, which should have the same exact layout as
     // the m_rla structure (except for endianness issues).
-    ASSERT(sizeof(m_rla) == 740 && "Bad RLA struct size");
+    static_assert(sizeof(m_rla) == 740, "Bad RLA struct size");
     if (!read(&m_rla)) {
         errorf("RLA could not read the image header");
         return false;
@@ -678,14 +678,14 @@ RLAInput::get_channel_typedesc(short chan_type, short chan_bits)
             case 2: return TypeDesc::UINT16;
             case 3:
             case 4: return TypeDesc::UINT32;
-            default: ASSERT(!"Invalid colour channel type");
+            default: OIIO_ASSERT(!"Invalid colour channel type");
             }
         } else
             return TypeDesc::UINT8;
     case CT_WORD: return TypeDesc::UINT16;
     case CT_DWORD: return TypeDesc::UINT32;
     case CT_FLOAT: return TypeDesc::FLOAT;
-    default: ASSERT(!"Invalid colour channel type");
+    default: OIIO_ASSERT(!"Invalid colour channel type");
     }
     // shut up compiler
     return TypeDesc::UINT8;
