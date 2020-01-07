@@ -281,7 +281,7 @@ macro (find_or_download_robin_map)
     # packages be built, or we we are forcing a local copy to be built, then
     # download and build it.
     # Download the headers from github
-    if ((BUILD_MISSING_ROBINMAP AND NOT ROBINMAP_INCLUDES) OR BUILD_ROBINMAP_FORCE)
+    if ((BUILD_MISSING_ROBINMAP AND NOT ROBINMAP_FOUND) OR BUILD_ROBINMAP_FORCE)
         message (STATUS "Downloading local Tessil/robin-map")
         set (ROBINMAP_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/robin-map")
         set (ROBINMAP_GIT_REPOSITORY "https://github.com/Tessil/robin-map")
