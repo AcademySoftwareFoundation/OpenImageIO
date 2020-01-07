@@ -63,6 +63,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for HEIF/HEIC images:
      * libheif >= 1.3 (tested through 1.6; older versions may also work, we
        haven't tested)
+* If you want support for DDS files:
+     * libsquish >= 1.13
+     * But... if not found on the system, an embedded version will be used.
 
 
 Dependency control and disabling components
