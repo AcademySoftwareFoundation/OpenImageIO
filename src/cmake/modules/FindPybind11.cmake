@@ -11,7 +11,6 @@ find_path (PYBIND11_INCLUDE_DIR pybind11/pybind11.h
            )
 
 if (PYBIND11_INCLUDE_DIR)
-    set (PYBIND11_INCLUDES ${PYBIND11_INCLUDE_DIR})
     set (PYBIND11_COMMON_FILE "${PYBIND11_INCLUDE_DIR}/pybind11/detail/common.h")
     IF (NOT EXISTS ${PYBIND11_COMMON_FILE})
         set (PYBIND11_COMMON_FILE "${PYBIND11_INCLUDE_DIR}/pybind11/common.h")
@@ -31,4 +30,9 @@ include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args (Pybind11
                                    VERSION_VAR   PYBIND11_VERSION
                                    REQUIRED_VARS PYBIND11_INCLUDE_DIR)
+
+if (PYBIND11_FOUND)
+    set (PYBIND11_INCLUDES ${PYBIND11_INCLUDE_DIR})
+endif ()
+
 mark_as_advanced (PYBIND11_INCLUDE_DIR)
