@@ -108,7 +108,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                         // test format.
                         if (flags & RGBA) {
                             // test if black is set
-                            DASSERT(!(flags & BLACK));
+                            OIIO_DASSERT(!(flags & BLACK));
 
                             // test for RGB channels.
                             if (flags & RGB)
@@ -128,7 +128,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                             pixel_channels = 1;
                             pixel_bits     = 32;  // 32bit
                             // NOTE: Z_F32 support - not supported
-                            DASSERT(bytes == 0);
+                            OIIO_DASSERT(bytes == 0);
                         }
 
                         // read AUTH, DATE or FOR4

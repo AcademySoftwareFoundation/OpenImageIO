@@ -244,7 +244,7 @@ main(int argc, char* argv[])
                         * img0.spec().depth;
             if (npels == 0)
                 npels = 1;  // Avoid divide by zero for 0x0 images
-            ASSERT(img0.spec().format == TypeFloat);
+            OIIO_ASSERT(img0.spec().format == TypeFloat);
 
             // Compare the two images.
             //

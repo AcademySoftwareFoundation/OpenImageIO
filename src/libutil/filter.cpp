@@ -844,7 +844,7 @@ Filter1D::num_filters()
 const FilterDesc&
 Filter1D::get_filterdesc(int filternum)
 {
-    ASSERT(filternum >= 0 && filternum < num_filters());
+    OIIO_DASSERT(filternum >= 0 && filternum < num_filters());
     return filter1d_list[filternum];
 }
 
@@ -937,7 +937,7 @@ Filter2D::num_filters()
 const FilterDesc&
 Filter2D::get_filterdesc(int filternum)
 {
-    ASSERT(filternum >= 0 && filternum < num_filters());
+    OIIO_DASSERT(filternum >= 0 && filternum < num_filters());
     return filter2d_list[filternum];
 }
 

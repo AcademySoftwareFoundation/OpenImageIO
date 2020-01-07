@@ -223,7 +223,7 @@ wrap_periodic_pow2_simd(simd::vint4& coord_, const simd::vint4& origin,
                         const simd::vint4& width)
 {
     simd::vint4 coord(coord_);
-    //    DASSERT (ispow2(width));
+    // OIIO_DASSERT (ispow2(width));
     coord = coord - origin;
     coord = coord
             & (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
@@ -244,7 +244,7 @@ wrap_mirror_simd(simd::vint4& coord_, const simd::vint4& origin,
     coord -= iter * width;
     // Odd iterations -- flip the sense
     coord = blend(coord, (width - 1) - coord, (iter & 1) != 0);
-    // DASSERT_MSG (coord >= 0 && coord < width,
+    // OIIO_DASSERT_MSG (coord >= 0 && coord < width,
     //              "width=%d, origin=%d, result=%d", width, origin, coord);
     coord += origin;
     coord_ = coord;
@@ -437,7 +437,7 @@ TextureSystemImpl::printstats() const
 void
 TextureSystemImpl::reset_stats()
 {
-    ASSERT(m_imagecache);
+    OIIO_DASSERT(m_imagecache);
     m_imagecache->reset_stats();
 }
 
@@ -783,9 +783,9 @@ TextureSystemImpl::append_error(const std::string& message) const
         errptr = new std::string;
         m_errormessage.reset(errptr);
     }
-    ASSERT(errptr != NULL);
-    ASSERT(errptr->size() < 1024 * 1024 * 16
-           && "Accumulated error messages > 16MB. Try checking return codes!");
+    OIIO_DASSERT(
+        errptr->size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
     if (errptr->size())
         *errptr += '\n';
     *errptr += message;
@@ -1214,7 +1214,7 @@ TextureSystemImpl::texture_lookup_nomip(
     float* dresultdt)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
-    DASSERT((dresultds == NULL) == (dresultdt == NULL));
+    OIIO_DASSERT((dresultds == NULL) == (dresultdt == NULL));
     ((simd::vfloat4*)result)->clear();
     if (dresultds) {
         ((simd::vfloat4*)dresultds)->clear();
@@ -1329,7 +1329,7 @@ adjust_blur(float& majorlength, float& minorlength, float& theta, float sblur,
         // Carefully add blur to the right derivative components in the
         // right proportions -- merely adding the same amount of blur
         // to all four derivatives blurs too much at some angles.
-        DASSERT(majorlength > 0.0f && minorlength > 0.0f);
+        OIIO_DASSERT(majorlength > 0.0f && minorlength > 0.0f);
         float sintheta, costheta;
 #ifdef TEX_FAST_MATH
         fast_sincos(theta, &sintheta, &costheta);
@@ -1444,7 +1444,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap(
     float* dresultdt)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
-    DASSERT((dresultds == NULL) == (dresultdt == NULL));
+    OIIO_DASSERT((dresultds == NULL) == (dresultdt == NULL));
     ((simd::vfloat4*)result)->clear();
     if (dresultds) {
         ((simd::vfloat4*)dresultds)->clear();
@@ -1650,7 +1650,7 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
                                   float dtdy, float* result, float* dresultds,
                                   float* dresultdt)
 {
-    DASSERT((dresultds == NULL) == (dresultdt == NULL));
+    OIIO_DASSERT((dresultds == NULL) == (dresultdt == NULL));
 
     // Compute the natural resolution we want for the bare derivs, this
     // will be the threshold for knowing we're maxifying (and therefore
@@ -1830,10 +1830,10 @@ TextureSystemImpl::pole_color(TextureFile& texturefile,
         static spin_mutex mutex;  // Protect everybody's polecolor
         spin_lock lock(mutex);
         if (!levelinfo.polecolorcomputed) {
-            DASSERT(levelinfo.polecolor.size() == 0);
+            OIIO_DASSERT(levelinfo.polecolor.size() == 0);
             levelinfo.polecolor.resize(2 * spec.nchannels);
-            ASSERT(tile->id().nchannels() == spec.nchannels
-                   && "pole_color doesn't work for channel subsets");
+            OIIO_DASSERT(tile->id().nchannels() == spec.nchannels
+                         && "pole_color doesn't work for channel subsets");
             int pixelsize                = tile->pixelsize();
             TypeDesc::BASETYPE pixeltype = texturefile.pixeltype(subimage);
             // We store north and south poles adjacently in polecolor
@@ -1856,7 +1856,7 @@ TextureSystemImpl::pole_color(TextureFile& texturefile,
                         else if (pixeltype == TypeDesc::HALF)
                             p[c] += ((const half*)texel)[c];
                         else {
-                            DASSERT(pixeltype == TypeDesc::FLOAT);
+                            OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
                             p[c] += ((const float*)texel)[c];
                         }
                     }
@@ -1973,7 +1973,7 @@ TextureSystemImpl::sample_closest(
         }
         int offset = id.nchannels() * (tile_t * spec.tile_width + tile_s)
                      + (firstchannel - id.chbegin());
-        DASSERT((size_t)offset < spec.nchannels * spec.tile_pixels());
+        OIIO_DASSERT((size_t)offset < spec.nchannels * spec.tile_pixels());
         simd::vfloat4 texel_simd;
         if (pixeltype == TypeDesc::UINT8) {
             // special case for 8-bit tiles
@@ -1983,7 +1983,7 @@ TextureSystemImpl::sample_closest(
         } else if (pixeltype == TypeDesc::HALF) {
             texel_simd = half2float4(tile->halfdata() + offset);
         } else {
-            DASSERT(pixeltype == TypeDesc::FLOAT);
+            OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
             texel_simd.load(tile->floatdata() + offset);
         }
 
@@ -2179,7 +2179,7 @@ TextureSystemImpl::sample_bilinear(
                 texel_simd[1][0] = half2float4((half*)p);
                 texel_simd[1][1] = half2float4((half*)(p + pixelsize));
             } else {
-                DASSERT(pixeltype == TypeDesc::FLOAT);
+                OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
                 texel_simd[0][0].load((const float*)p);
                 texel_simd[0][1].load((const float*)(p + pixelsize));
                 p += pixelsize * spec.tile_width;
@@ -2215,15 +2215,15 @@ TextureSystemImpl::sample_bilinear(
                         if (!thread_info->tile->valid()) {
                             return false;
                         }
-                        DASSERT(thread_info->tile->id() == id);
+                        OIIO_DASSERT(thread_info->tile->id() == id);
                     }
                     TileRef& tile(thread_info->tile);
                     int pixelsize = tile->pixelsize();
                     int offset    = pixelsize
                                  * (tile_t * spec.tile_width + tile_s);
                     offset += (firstchannel - id.chbegin()) * channelsize;
-                    DASSERT(offset < spec.tile_width * spec.tile_height
-                                         * spec.tile_depth * pixelsize);
+                    OIIO_DASSERT(offset < spec.tile_width * spec.tile_height
+                                              * spec.tile_depth * pixelsize);
                     if (pixeltype == TypeDesc::UINT8)
                         texel_simd[j][i] = uchar2float4(
                             (const unsigned char*)(tile->bytedata() + offset));
@@ -2234,7 +2234,7 @@ TextureSystemImpl::sample_bilinear(
                         texel_simd[j][i] = half2float4(
                             (const half*)(tile->bytedata() + offset));
                     else {
-                        DASSERT(pixeltype == TypeDesc::FLOAT);
+                        OIIO_DASSERT(pixeltype == TypeDesc::FLOAT);
                         texel_simd[j][i].load(
                             (const float*)(tile->bytedata() + offset));
                     }
@@ -2525,7 +2525,7 @@ TextureSystemImpl::sample_bicubic(
             int offset = pixelsize * (tile_t * spec.tile_width + tile_s);
             const unsigned char* base = tile->bytedata() + offset
                                         + firstchannel_offset_bytes;
-            DASSERT(tile->data());
+            OIIO_DASSERT(tile->data());
             if (pixeltype == TypeDesc::UINT8) {
                 for (int j = 0, j_offset = 0; j < 4;
                      ++j, j_offset += pixelsize * spec.tile_width)
@@ -2586,12 +2586,12 @@ TextureSystemImpl::sample_bicubic(
                         bool ok = find_tile(id, thread_info, sample == 0);
                         if (!ok)
                             errorf("%s", m_imagecache->geterror());
-                        DASSERT(thread_info->tile->id() == id);
+                        OIIO_DASSERT(thread_info->tile->id() == id);
                         if (!thread_info->tile->valid())
                             return false;
                     }
                     TileRef& tile(thread_info->tile);
-                    DASSERT(tile->data());
+                    OIIO_DASSERT(tile->data());
                     int offset = row_offset_bytes + column_offset_bytes[i];
                     // const unsigned char *pixelptr = tile->bytedata() + offset[i];
                     if (pixeltype == TypeDesc::UINT8)

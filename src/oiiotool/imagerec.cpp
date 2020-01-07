@@ -84,7 +84,7 @@ ImageRec::ImageRec(ImageRec& img, int subimage_to_copy, int miplevel_to_copy,
                 ib      = new ImageBuf(img.name(), srcib.imagecache());
                 bool ok = ib->read(srcsub, srcmip, false /*force*/,
                                    img.m_input_dataformat /*convert*/);
-                ASSERT(ok);
+                OIIO_ASSERT(ok);
             }
             m_subimages[s].m_miplevels[m].reset(ib);
             m_subimages[s].m_specs[m] = srcspec;
@@ -395,8 +395,9 @@ void
 ImageRec::append_error(string_view message) const
 {
     spin_lock lock(err_mutex);
-    ASSERT(m_err.size() < 1024 * 1024 * 16
-           && "Accumulated error messages > 16MB. Try checking return codes!");
+    OIIO_ASSERT(
+        m_err.size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
     if (m_err.size() && m_err[m_err.size() - 1] != '\n')
         m_err += '\n';
     m_err += message;

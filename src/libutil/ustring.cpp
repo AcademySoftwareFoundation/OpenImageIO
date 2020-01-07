@@ -358,7 +358,7 @@ ustring::TableRep::TableRep(string_view strref, size_t hash)
     dummy_capacity      = length;
     dummy_refcount      = 1;  // so it never frees
     *(const char**)&str = c_str();
-    DASSERT(str.c_str() == c_str() && str.size() == length);
+    OIIO_DASSERT(str.c_str() == c_str() && str.size() == length);
     return;
 
 #elif defined(_LIBCPP_VERSION)
@@ -378,7 +378,7 @@ ustring::TableRep::TableRep(string_view strref, size_t hash)
                                                | (length + 1);
         ((libcpp_string__long*)&str)->__size_ = length;
         ((libcpp_string__long*)&str)->__data_ = (char*)c_str();
-        DASSERT(str.c_str() == c_str() && str.size() == length);
+        OIIO_DASSERT(str.c_str() == c_str() && str.size() == length);
         return;
     }
 #endif

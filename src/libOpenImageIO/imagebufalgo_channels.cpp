@@ -140,7 +140,7 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
 
     if (dst.deep()) {
         // Deep case:
-        ASSERT(src.deep() && src.deepdata() && dst.deepdata());
+        OIIO_DASSERT(src.deep() && src.deepdata() && dst.deepdata());
         const DeepData& srcdata(*src.deepdata());
         DeepData& dstdata(*dst.deepdata());
         // The earlier dst.alloc() already called dstdata.init()

@@ -183,12 +183,12 @@ inline OIIO_HOSTDEVICE V round_to_multiple (V value, M multiple)
 /// Round up to the next whole multiple of m, for the special case where
 /// m is definitely a power of 2 (somewhat simpler than the more general
 /// round_to_multiple). This is a template that should work for any
-// integer type.
+/// integer type.
 template<typename T>
 inline OIIO_HOSTDEVICE T
 round_to_multiple_of_pow2(T x, T m)
 {
-    DASSERT(ispow2(m));
+    OIIO_DASSERT(ispow2(m));
     return (x + m - 1) & (~(m - 1));
 }
 
@@ -1025,7 +1025,7 @@ bitstring_add_n_bits (T* &out, int& filled, uint32_t val, int n)
         }
         *out |= b;
         filled += nb;
-        DASSERT (filled <= Tbits);
+        OIIO_DASSERT (filled <= Tbits);
         n -= nb;
         if (filled == Tbits) {
             ++out;
@@ -1067,7 +1067,7 @@ bit_unpack(int n, const unsigned char* in, int inbits, T* out)
                   std::is_same<T,uint16_t>::value ||
                   std::is_same<T,uint32_t>::value,
                   "bit_unpack must be unsigned int 8/16/32");
-    DASSERT(inbits >= 1 && inbits < 32);  // surely bugs if not
+    OIIO_DASSERT(inbits >= 1 && inbits < 32);  // surely bugs if not
     // int highest = (1 << inbits) - 1;
     int B = 0, b = 0;
     // Invariant:

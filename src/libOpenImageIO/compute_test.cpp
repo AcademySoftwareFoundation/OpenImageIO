@@ -47,11 +47,11 @@ static void
 test_arrays(ROI roi)
 {
     const float* a = (const float*)imgA.localpixels();
-    ASSERT(a);
+    OIIO_DASSERT(a);
     const float* b = (const float*)imgB.localpixels();
-    ASSERT(b);
+    OIIO_DASSERT(b);
     float* r = (float*)imgR.localpixels();
-    ASSERT(r);
+    OIIO_DASSERT(r);
     for (int x = 0; x < size; ++x)
         r[x] = a[x] * a[x] + b[x];
 }
@@ -62,11 +62,11 @@ static void
 test_arrays_like_image(ROI roi)
 {
     const float* a = (const float*)imgA.localpixels();
-    ASSERT(a);
+    OIIO_DASSERT(a);
     const float* b = (const float*)imgB.localpixels();
-    ASSERT(b);
+    OIIO_DASSERT(b);
     float* r = (float*)imgR.localpixels();
-    ASSERT(r);
+    OIIO_DASSERT(r);
     int nchannels = imgA.nchannels();
     for (int y = roi.ybegin; y < roi.yend; ++y) {
         for (int x = roi.xbegin; x < roi.xend; ++x) {
@@ -83,11 +83,11 @@ static void
 test_arrays_simd4(ROI roi)
 {
     const float* a = (const float*)imgA.localpixels();
-    ASSERT(a);
+    OIIO_DASSERT(a);
     const float* b = (const float*)imgB.localpixels();
-    ASSERT(b);
+    OIIO_DASSERT(b);
     float* r = (float*)imgR.localpixels();
-    ASSERT(r);
+    OIIO_DASSERT(r);
     int x, end4 = size - (size & 3);
     for (x = 0; x < end4; x += 4, a += 4, b += 4, r += 4) {
         simd::vfloat4 a_simd(a), b_simd(b);
@@ -104,11 +104,11 @@ static void
 test_arrays_like_image_simd(ROI roi)
 {
     const float* a = (const float*)imgA.localpixels();
-    ASSERT(a);
+    OIIO_DASSERT(a);
     const float* b = (const float*)imgB.localpixels();
-    ASSERT(b);
+    OIIO_DASSERT(b);
     float* r = (float*)imgR.localpixels();
-    ASSERT(r);
+    OIIO_DASSERT(r);
     int nchannels = imgA.nchannels();
     for (int y = roi.ybegin; y < roi.yend; ++y) {
         for (int x = roi.xbegin; x < roi.xend; ++x) {

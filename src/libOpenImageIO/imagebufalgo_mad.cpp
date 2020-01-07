@@ -55,7 +55,7 @@ mad_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, const ImageBuf& C,
                         = (const ABCtype*)B.pixeladdr(roi.xbegin, y, z);
                     const ABCtype* craw
                         = (const ABCtype*)C.pixeladdr(roi.xbegin, y, z);
-                    DASSERT(araw && braw && craw);
+                    OIIO_DASSERT(araw && braw && craw);
                     // The straightforward loop auto-vectorizes very well,
                     // there's no benefit to using explicit SIMD here.
                     for (int x = 0; x < nxvalues; ++x)

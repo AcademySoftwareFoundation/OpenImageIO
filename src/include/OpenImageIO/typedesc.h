@@ -173,8 +173,8 @@ struct OIIO_API TypeDesc {
     /// Return the number of elements: 1 if not an array, or the array
     /// length. Invalid to call this for arrays of undetermined size.
     OIIO_CONSTEXPR14 size_t numelements () const noexcept {
-        DASSERT_MSG (arraylen >= 0, "Called numelements() on TypeDesc "
-                     "of array with unspecified length (%d)", arraylen);
+        OIIO_DASSERT_MSG (arraylen >= 0, "Called numelements() on TypeDesc "
+                          "of array with unspecified length (%d)", arraylen);
         return (arraylen >= 1 ? arraylen : 1);
     }
 
@@ -198,8 +198,8 @@ struct OIIO_API TypeDesc {
     /// Return the size, in bytes, of this type.
     ///
     size_t size () const noexcept {
-        DASSERT_MSG (arraylen >= 0, "Called size() on TypeDesc "
-                     "of array with unspecified length (%d)", arraylen);
+        OIIO_DASSERT_MSG (arraylen >= 0, "Called size() on TypeDesc "
+                          "of array with unspecified length (%d)", arraylen);
         size_t a = (size_t) (arraylen > 0 ? arraylen : 1);
         if (sizeof(size_t) > sizeof(int)) {
             // size_t has plenty of room for this multiplication

@@ -111,7 +111,7 @@ public:
     // get the number of running threads in the pool
     int size() const
     {
-        DASSERT(m_size == static_cast<int>(this->threads.size()));
+        OIIO_DASSERT(m_size == static_cast<int>(this->threads.size()));
         return m_size;
     }
 
@@ -251,14 +251,14 @@ public:
         std::function<void(int)>* f = nullptr;
         bool isPop                  = this->q.pop(f);
         if (isPop) {
-            DASSERT(f);
+            OIIO_DASSERT(f);
             std::unique_ptr<std::function<void(int id)>> func(
                 f);  // at return, delete the function even if an exception occurred
             register_worker(id);
             (*f)(-1);
             deregister_worker(id);
         } else {
-            DASSERT(f == nullptr);
+            OIIO_DASSERT(f == nullptr);
         }
         return isPop;
     }
@@ -469,7 +469,7 @@ default_thread_pool()
 void
 task_set::wait_for_task(size_t taskindex, bool block)
 {
-    DASSERT(submitter() == std::this_thread::get_id());
+    OIIO_DASSERT(submitter() == std::this_thread::get_id());
     if (taskindex >= m_futures.size())
         return;  // nothing to wait for
     auto& f(m_futures[taskindex]);
@@ -507,7 +507,7 @@ task_set::wait_for_task(size_t taskindex, bool block)
 void
 task_set::wait(bool block)
 {
-    DASSERT(submitter() == std::this_thread::get_id());
+    OIIO_DASSERT(submitter() == std::this_thread::get_id());
     const std::chrono::milliseconds wait_time(0);
     if (m_pool->is_worker(m_submitter_thread))
         block = true;  // don't get into recursive work stealing

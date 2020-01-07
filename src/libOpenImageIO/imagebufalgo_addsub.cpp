@@ -62,7 +62,7 @@ static bool
 add_impl_deep(ImageBuf& R, const ImageBuf& A, cspan<float> b, ROI roi,
               int nthreads)
 {
-    ASSERT(R.deep());
+    OIIO_ASSERT(R.deep());
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         cspan<TypeDesc> channeltypes(R.deepdata()->all_channeltypes());
         ImageBuf::Iterator<float> r(R, roi);
@@ -104,7 +104,7 @@ ImageBufAlgo::add(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
             // the bigger of them, but adjusted roi to be the lesser. Now handle
             // the channels that got left out because they were not common to
             // all the inputs.
-            ASSERT(roi.chend <= dst.nchannels());
+            OIIO_ASSERT(roi.chend <= dst.nchannels());
             roi.chbegin = roi.chend;
             roi.chend   = origroi.chend;
             if (A.nchannels() > B.nchannels()) {  // A exists
@@ -191,7 +191,7 @@ ImageBufAlgo::sub(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
             // the bigger of them, but adjusted roi to be the lesser. Now handle
             // the channels that got left out because they were not common to
             // all the inputs.
-            ASSERT(roi.chend <= dst.nchannels());
+            OIIO_ASSERT(roi.chend <= dst.nchannels());
             roi.chbegin = roi.chend;
             roi.chend   = origroi.chend;
             if (A.nchannels() > B.nchannels()) {  // A exists

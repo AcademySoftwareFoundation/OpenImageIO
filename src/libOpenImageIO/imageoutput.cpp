@@ -225,8 +225,9 @@ ImageOutput::send_to_client(const char* format, ...)
 void
 ImageOutput::append_error(const std::string& message) const
 {
-    ASSERT(m_errmessage.size() < 1024 * 1024 * 16
-           && "Accumulated error messages > 16MB. Try checking return codes!");
+    OIIO_ASSERT(
+        m_errmessage.size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
     if (m_errmessage.size())
         m_errmessage += '\n';
     m_errmessage += message;
@@ -339,12 +340,11 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
     // Handle the per-channel format case (#2) where the user is passing
     // a non-native buffer.
     if (perchanfile) {
-        if (native_data) {
-            ASSERT(contiguous
-                   && "Per-channel native output requires contiguous strides");
-        }
-        ASSERT(format != TypeDesc::UNKNOWN);
-        ASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
+        OIIO_DASSERT(
+            (contiguous || !native_data)
+            && "Per-channel native output requires contiguous strides");
+        OIIO_DASSERT(format != TypeDesc::UNKNOWN);
+        OIIO_DASSERT(m_spec.channelformats.size() == (size_t)m_spec.nchannels);
         scratch.resize(native_rectangle_bytes);
         size_t offset = 0;
         for (int c = 0; c < m_spec.nchannels; ++c) {
@@ -366,7 +366,7 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
                                      : rectangle_values * input_pixel_bytes;
     contiguoussize = (contiguoussize + 3)
                      & (~3);  // Round up to 4-byte boundary
-    DASSERT((contiguoussize & 3) == 0);
+    OIIO_DASSERT((contiguoussize & 3) == 0);
     imagesize_t floatsize = rectangle_values * sizeof(float);
     bool do_dither        = (dither && format.is_floating_point()
                       && m_spec.format.basetype == TypeDesc::UINT8);

@@ -635,7 +635,7 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
                       const TIFFDirEntry* dirp, cspan<uint8_t> buf, bool swab,
                       int offset_adjustment = 0)
 {
-    ASSERT(dirp);
+    OIIO_ASSERT(dirp);
     const uint8_t* dataptr = (const uint8_t*)pvt::dataptr(*dirp, buf,
                                                           offset_adjustment);
     if (!dataptr)
@@ -1352,7 +1352,7 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
 
     // If any Maker info was found, add a MakerNote tag to the Exif dirs
     if (makerdirs.size()) {
-        ASSERT(exifdirs.size());
+        OIIO_ASSERT(exifdirs.size());
         // unsigned int size = (unsigned int) makerdirs_offset;
         append_tiff_dir_entry(exifdirs, blob, EXIF_MAKERNOTE, TIFF_BYTE,
                               makerdirs_size, nullptr, 0, makerdirs_offset,
@@ -1395,19 +1395,19 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
     appendvec(blob, tiffdirs);                           // tiff dirs
     append(blob, uint32_t(0));  // addr of next IFD (none)
     if (exifdirs.size()) {
-        ASSERT(blob.size() == exifdirs_offset + tiffstart);
+        OIIO_ASSERT(blob.size() == exifdirs_offset + tiffstart);
         append(blob, uint16_t(exifdirs.size()), endianreq);  // ndirs for exif
         appendvec(blob, exifdirs);                           // exif dirs
         append(blob, uint32_t(0));  // addr of next IFD (none)
     }
     if (gpsdirs.size()) {
-        ASSERT(blob.size() == gpsdirs_offset + tiffstart);
+        OIIO_ASSERT(blob.size() == gpsdirs_offset + tiffstart);
         append(blob, uint16_t(gpsdirs.size()), endianreq);  // ndirs for gps
         appendvec(blob, gpsdirs);                           // gps dirs
         append(blob, uint32_t(0));  // addr of next IFD (none)
     }
     if (makerdirs.size()) {
-        ASSERT(blob.size() == makerdirs_offset + tiffstart);
+        OIIO_ASSERT(blob.size() == makerdirs_offset + tiffstart);
         append(blob, uint16_t(makerdirs.size()), endianreq);  // ndirs for canon
         appendvec(blob, makerdirs);                           // canon dirs
         append(blob, uint32_t(0));  // addr of next IFD (none)

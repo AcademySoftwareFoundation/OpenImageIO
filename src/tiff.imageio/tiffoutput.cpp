@@ -987,7 +987,7 @@ TIFFOutput::convert_to_cmyk(int npixels, const void* data,
         rgb_to_cmyk(npixels, (unsigned short*)data, m_spec.nchannels,
                     (unsigned short*)&cmyk[0], m_outputchans);
     } else {
-        ASSERT(0 && "CMYK should be forced to UINT8 or UINT16");
+        OIIO_ASSERT(0 && "CMYK should be forced to UINT8 or UINT16");
     }
     return cmyk.data();
 }
@@ -1268,7 +1268,7 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
         imagesize_t tile_pixels = m_spec.tile_pixels();
         imagesize_t plane_bytes = tile_pixels * m_spec.format.size();
-        DASSERT(plane_bytes * m_spec.nchannels == m_spec.tile_bytes());
+        OIIO_DASSERT(plane_bytes * m_spec.nchannels == m_spec.tile_bytes());
 
         std::unique_ptr<char[]> separate_heap;
         char* separate            = NULL;
@@ -1339,7 +1339,7 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
     // (compressed) strips. Don't bother trying to handle any of the
     // uncommon cases with strips. This covers most real-world cases.
     thread_pool* pool = default_thread_pool();
-    ASSERT(m_spec.tile_depth >= 1);
+    OIIO_DASSERT(m_spec.tile_depth >= 1);
     size_t ntiles = size_t(
         (xend - xbegin + m_spec.tile_width - 1) / m_spec.tile_width
         * (yend - ybegin + m_spec.tile_height - 1) / m_spec.tile_height
@@ -1529,7 +1529,7 @@ TIFFOutput::source_is_rgb(const ImageSpec& spec)
 void
 TIFFOutput::fix_bitdepth(void* data, int nvals)
 {
-    ASSERT(spec().format.size() * 8 != m_bitspersample);
+    OIIO_DASSERT(spec().format.size() * 8 != m_bitspersample);
 
     if (spec().format == TypeDesc::UINT16 && m_bitspersample == 10) {
         unsigned short* v = (unsigned short*)data;
@@ -1567,7 +1567,7 @@ TIFFOutput::fix_bitdepth(void* data, int nvals)
             v[i] = bit_range_convert<32, 24>(v[i]);
         bit_pack(cspan<unsigned int>(v, v + nvals), v, 24);
     } else {
-        ASSERT(0 && "unsupported bit conversion -- shouldn't reach here");
+        OIIO_ASSERT(0 && "unsupported bit conversion -- shouldn't reach here");
     }
 }
 

@@ -245,7 +245,7 @@ test_empty_iterator()
 void
 print(const ImageBuf& A)
 {
-    ASSERT(A.spec().format == TypeDesc::FLOAT);
+    OIIO_DASSERT(A.spec().format == TypeDesc::FLOAT);
     for (ImageBuf::ConstIterator<float> p(A); !p.done(); ++p) {
         std::cout << "   @" << p.x() << ',' << p.y() << "=(";
         for (int c = 0; c < A.nchannels(); ++c)

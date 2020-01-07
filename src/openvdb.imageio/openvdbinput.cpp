@@ -8,6 +8,10 @@
 
 #include <OpenEXR/ImathMatrix.h>
 
+#if OIIO_GNUC_VERSION >= 60000
+#    pragma GCC diagnostic ignored "-Wstrict-overflow"
+#endif
+
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/Dense.h>
 
@@ -50,7 +54,7 @@ class OpenVDBInput final : public ImageInput {
 
     void init()
     {
-        ASSERT(!m_input);
+        OIIO_DASSERT(!m_input);
         std::string().swap(m_name);
         std::vector<layerrecord>().swap(m_layers);
         m_subimage   = -1;
@@ -204,6 +208,7 @@ template<typename GridType> struct VDBReader {
     {
         // Probe for a cell-centered voxel
         enum { kOffset = LeafType::DIM / 2 };
+        // const int kOffset = LeafType::DIM / 2;
         const openvdb::Coord xyz(x + kOffset, y + kOffset, z + kOffset);
         const RootType& root = grid.tree().root();
         // Use the GridType::ConstAccessor so only one query needs to be done.
@@ -211,11 +216,9 @@ template<typename GridType> struct VDBReader {
         typename GridType::ConstAccessor cache = grid.getConstAccessor();
         if (auto* leaf = root.probeConstLeafAndCache(xyz, cache)) {
             CoordBBox bbox = leaf->getNodeBoundingBox();
-            ASSERT((bbox.min().x() == x && bbox.min().y() == y
-                    && bbox.min().z() == z)
-                   && "Tile access unaligned");
-            ASSERT((bbox.dim() == Coord(LeafType::DIM))
-                   && "Unexpected tile dimensions");
+            if (bbox.min().x() != x || bbox.min().y() != y
+                || bbox.min().z() != z || bbox.dim() != Coord(LeafType::DIM))
+                return false;  // unaligned or unexpected tile dimensions
             // Have OpenVDB fill the dense block, into the values pointer
             DenseT dense(bbox, values);
             leaf->copyToDense(bbox, dense);
@@ -481,7 +484,6 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
     auto file = openVDB(filename, this);
     if (!file)
         return false;
-    ASSERT(file->isOpen());
 
     try {
         for (io::File::NameIterator name = file->beginName(),
@@ -514,7 +516,7 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
 
             channelnames.resize(layerspec.nchannels);
             if (layerspec.nchannels > 1) {
-                ASSERT(layerspec.nchannels <= 4);
+                OIIO_DASSERT(layerspec.nchannels <= 4);
                 const bool iscolor = layer.name == "Cd"
                                      || layer.name == "color";
                 const char kChanName[4]

@@ -150,7 +150,7 @@ filtered_sample(const ImageBuf& src, float s, float t, float dsdx, float dtdx,
                 float dsdy, float dtdy, const Filter2D* filter,
                 ImageBuf::WrapMode wrap, float* result)
 {
-    DASSERT(filter);
+    OIIO_DASSERT(filter);
     // Just use isotropic filtering
     float ds          = std::max(1.0f, std::max(fabsf(dsdx), fabsf(dsdy)));
     float dt          = std::max(1.0f, std::max(fabsf(dtdx), fabsf(dtdy)));
@@ -354,7 +354,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
                         }
                     }
                     // Copy the pixel value (already normalized) to the output.
-                    DASSERT(out.x() == x && out.y() == y);
+                    OIIO_DASSERT(out.x() == x && out.y() == y);
                     if (totalweight_y == 0.0f) {
                         // zero it out
                         for (int c = 0; c < nchannels; ++c)
@@ -387,7 +387,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
                                    src_y + radi + 1, 0, 1, ImageBuf::WrapClamp);
                     for (int j = -radj; j <= radj; ++j) {
                         for (int i = -radi; i <= radi; ++i, ++srcpel) {
-                            DASSERT(!srcpel.done());
+                            OIIO_DASSERT(!srcpel.done());
                             float w
                                 = (*filter)(xratio * (i - (src_xf_frac - 0.5f)),
                                             yratio
@@ -399,10 +399,10 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
                             }
                         }
                     }
-                    DASSERT(srcpel.done());
+                    OIIO_DASSERT(srcpel.done());
                     // Rescale pel to normalize the filter and write it to the
                     // output image.
-                    DASSERT(out.x() == x && out.y() == y);
+                    OIIO_DASSERT(out.x() == x && out.y() == y);
                     if (totalweight == 0.0f) {
                         // zero it out
                         for (int c = 0; c < nchannels; ++c)
@@ -695,12 +695,12 @@ static bool
 resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
           int nthreads)
 {
+    OIIO_ASSERT(src.deep() == dst.deep());
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& srcspec(src.spec());
         const ImageSpec& dstspec(dst.spec());
         int nchannels = src.nchannels();
         bool deep     = src.deep();
-        ASSERT(deep == dst.deep());
 
         // Local copies of the source image window, converted to float
         float srcfx = srcspec.full_x;
@@ -732,8 +732,8 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                 if (deep) {
                     srcpel.pos(src_x, src_y, 0);
                     int nsamps = srcpel.deep_samples();
-                    ASSERT(nsamps == out.deep_samples());
-                    if (!nsamps)
+                    OIIO_DASSERT(nsamps == out.deep_samples());
+                    if (!nsamps || nsamps != out.deep_samples())
                         continue;
                     for (int c = 0; c < nchannels; ++c) {
                         if (dstspec.channelformat(c) == TypeDesc::UINT32)

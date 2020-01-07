@@ -336,10 +336,10 @@ ImageBufAlgo::deep_merge(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
             for (int x = roi.xbegin; x < roi.xend; ++x) {
                 int dstpixel = dst.pixelindex(x, y, z, true);
                 int Bpixel   = B.pixelindex(x, y, z, true);
-                DASSERT(dstpixel >= 0);
+                OIIO_DASSERT(dstpixel >= 0);
                 // OIIO_UNUSED_OK int oldcap = dstdd.capacity (dstpixel);
                 dstdd.merge_deep_pixels(dstpixel, Bdd, Bpixel);
-                // DASSERT (oldcap == dstdd.capacity(dstpixel) &&
+                // OIIO_DASSERT (oldcap == dstdd.capacity(dstpixel) &&
                 //          "Broken: we did not preallocate enough capacity");
                 if (occlusion_cull)
                     dstdd.occlusion_cull(dstpixel);

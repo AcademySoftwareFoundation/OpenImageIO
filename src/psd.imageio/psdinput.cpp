@@ -724,7 +724,7 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         m_channel_buffers.resize(m_channels[m_subimage].size());
 
     int bps = (m_header.depth + 7) / 8;  // bytes per sample
-    ASSERT(bps == 1 || bps == 2 || bps == 4);
+    OIIO_DASSERT(bps == 1 || bps == 2 || bps == 4);
     std::vector<ChannelInfo*>& channels = m_channels[m_subimage];
     int channel_count                   = (int)channels.size();
     for (int c = 0; c < channel_count; ++c) {
@@ -784,7 +784,8 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         if (!bitmap_to_rgb(dst))
             return false;
     } else {
-        ASSERT(0 && "unknown color mode");
+        OIIO_ASSERT(0 && "unknown color mode");
+        return false;
     }
 
     // PSD specifically dictates unassociated (un-"premultiplied") alpha.
@@ -1896,7 +1897,7 @@ template<typename T>
 void
 PSDInput::interleave_row(T* dst, size_t nchans)
 {
-    ASSERT(nchans <= m_channels[m_subimage].size());
+    OIIO_DASSERT(nchans <= m_channels[m_subimage].size());
     for (size_t c = 0; c < nchans; ++c) {
         const T* cbuf = (const T*)&(m_channel_buffers[c][0]);
         for (int x = 0; x < m_spec.width; ++x)

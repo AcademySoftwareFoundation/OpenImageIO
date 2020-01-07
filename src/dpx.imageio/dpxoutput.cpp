@@ -186,7 +186,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     // From here out, all the heavy lifting is done for Create
-    ASSERT(mode == Create);
+    OIIO_DASSERT(mode == Create);
 
     if (is_opened())
         close();  // Close any already-opened file
@@ -596,7 +596,7 @@ DPXOutput::close()
     bool ok = true;
     if (m_spec.tile_width) {
         // Handle tile emulation -- output the buffered pixels
-        ASSERT(m_tilebuffer.size());
+        OIIO_DASSERT(m_tilebuffer.size());
         ok &= write_scanlines(m_spec.y, m_spec.y + m_spec.height, 0,
                               m_spec.format, &m_tilebuffer[0]);
         std::vector<unsigned char>().swap(m_tilebuffer);

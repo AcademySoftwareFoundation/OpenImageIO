@@ -61,7 +61,7 @@ static bool
 deep_paste_(ImageBuf& dst, const ImageBuf& src, ROI dstroi, ROI srcroi,
             int nthreads)
 {
-    ASSERT(dst.deep() && src.deep());
+    OIIO_ASSERT(dst.deep() && src.deep());
     int relative_x = dstroi.xbegin - srcroi.xbegin;
     int relative_y = dstroi.ybegin - srcroi.ybegin;
     int relative_z = dstroi.zbegin - srcroi.zbegin;
@@ -159,7 +159,7 @@ copy_(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 1)
 static bool
 copy_deep(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 1)
 {
-    ASSERT(dst.deep() && src.deep());
+    OIIO_ASSERT(dst.deep() && src.deep());
     using namespace ImageBufAlgo;
     parallel_image(roi, nthreads, [&](ROI roi) {
         DeepData& dstdeep(*dst.deepdata());
@@ -170,7 +170,7 @@ copy_deep(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads = 1)
             // The caller should ALREADY have set the samples, since that
             // is not thread-safe against the copying below.
             // d.set_deep_samples (samples);
-            DASSERT(d.deep_samples() == samples);
+            OIIO_DASSERT(d.deep_samples() == samples);
             if (samples == 0)
                 continue;
             for (int c = roi.chbegin; c < roi.chend; ++c) {

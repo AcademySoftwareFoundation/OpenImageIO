@@ -391,7 +391,7 @@ ArgParse::Impl::parse(int xargc, const char** xargv)
                 if (option->has_callback())
                     option->invoke_callback(1, m_argv + i);
             } else {
-                ASSERT(option->is_regular());
+                assert(option->is_regular());
                 for (int j = 0; j < option->parameter_count(); j++) {
                     if (j + i + 1 >= m_argc) {
                         errorf("Missing parameter %d from option "

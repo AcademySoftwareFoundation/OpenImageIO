@@ -217,7 +217,7 @@ Jpeg2000Input::open(const std::string& p_name, ImageSpec& p_spec)
         return false;
     }
 
-    ASSERT(m_image == NULL);
+    OIIO_ASSERT(m_image == nullptr);
     if (!opj_read_header(m_stream, m_codec, &m_image)) {
         errorf("Could not read Jpeg2000 header");
         close();

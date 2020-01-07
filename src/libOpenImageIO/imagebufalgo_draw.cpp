@@ -800,7 +800,6 @@ resolve_font(int fontsize, string_view font_, std::string& result)
         font = f;
     }
 
-    ASSERT(!font.empty());
     if (!Filesystem::is_regular(font)) {
         result = Strutil::sprintf("Could not find font \"%s\"", font);
         return false;
