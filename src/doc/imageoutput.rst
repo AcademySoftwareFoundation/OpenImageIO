@@ -1090,10 +1090,8 @@ Here is an example of using a proxy that writes the "file" to a
 
     std::vector<unsigned char> file_buffer;  // bytes will go here
     Filesystem::IOVecOutput vecout (file_buffer);  // I/O proxy object
-    void *ptr = &vecout;
-    spec.attribute ("oiio:ioproxy", TypeDesc::PTR, &ptr);
 
-    auto out = ImageOutput::create ("out.exr");
+    auto out = ImageOutput::create ("out.exr", &vecout);
     out->open ("out.exr", spec);
     out->write_image (...);
     out->close ();

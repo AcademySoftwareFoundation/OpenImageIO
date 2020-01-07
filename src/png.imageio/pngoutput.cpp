@@ -31,6 +31,11 @@ public:
     virtual bool write_tile(int x, int y, int z, TypeDesc format,
                             const void* data, stride_t xstride,
                             stride_t ystride, stride_t zstride) override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
     std::string m_filename;  ///< Stash the filename
@@ -126,7 +131,6 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
         return false;
     }
 
-    close();            // Close any already-opened file
     m_spec = userspec;  // Stash the spec
 
     // If not uint8 or uint16, default to uint8
@@ -136,7 +140,8 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
     // See if we were requested to write to a memory buffer, and if so,
     // extract the pointer.
     auto ioparam = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    m_io         = ioparam ? ioparam->get<Filesystem::IOProxy*>() : nullptr;
+    if (ioparam)
+        m_io = ioparam->get<Filesystem::IOProxy*>();
     if (!m_io) {
         // If no proxy was supplied, create a file writer
         m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Write);

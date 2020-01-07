@@ -72,11 +72,13 @@ namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
 ///     subimage,miplevel params to many read_*() methods; changed thread
 ///     safety expectations; removed newspec param from seek_subimage;
 ///     added spec(subimage,miplevel) and spec_dimensions(subimage,miplevel).
-///     (OIIO 1.9)
+///     (OIIO 2.0)
 /// Version 22 changed the signatures of ImageInput/ImageOutput create()
-///     to return unique_ptr. (OIIO 1.9)
+///     to return unique_ptr. (OIIO 2.0)
+/// Version 23 added set_ioproxy() methods to ImageInput & ImageOutput
+///     (OIIO 2.2).
 
-#define OIIO_PLUGIN_VERSION 22
+#define OIIO_PLUGIN_VERSION 23
 
 #define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_BEGIN
 #define OIIO_PLUGIN_NAMESPACE_END OIIO_NAMESPACE_END

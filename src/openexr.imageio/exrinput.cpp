@@ -159,6 +159,12 @@ public:
                                         int zbegin, int zend, int chbegin,
                                         int chend, DeepData& deepdata) override;
 
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
+
 private:
     struct PartInfo {
         std::atomic_bool initialized;
@@ -396,7 +402,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
 {
     const ParamValue* param = config.find_attribute("oiio:ioproxy",
                                                     TypeDesc::PTR);
-    m_io = param ? param->get<Filesystem::IOProxy*>() : nullptr;
+    if (param)
+        m_io = param->get<Filesystem::IOProxy*>();
 
     // Quick check to reject non-exr files. Don't perform these tests for
     // the IOProxy case.

@@ -34,6 +34,11 @@ public:
     }
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
     std::string m_filename;            ///< Stash the filename
@@ -59,6 +64,7 @@ private:
         m_subimage = -1;
         m_png      = nullptr;
         m_info     = nullptr;
+        m_io       = nullptr;
         m_buf.clear();
         m_next_scanline           = 0;
         m_keep_unassociated_alpha = false;
@@ -184,9 +190,10 @@ PNGInput::open(const std::string& name, ImageSpec& newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
-    auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
     m_io_local.reset();
-    m_io = ioparam ? ioparam->get<Filesystem::IOProxy*>() : nullptr;
+    auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+    if (ioparam)
+        m_io = ioparam->get<Filesystem::IOProxy*>();
     return open(name, newspec);
 }
 

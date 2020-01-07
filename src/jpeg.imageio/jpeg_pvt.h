@@ -61,6 +61,11 @@ public:
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
     virtual bool close() override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
     const std::string& filename() const { return m_filename; }
     void* coeffs() const { return m_coeffs; }
     struct my_error_mgr {

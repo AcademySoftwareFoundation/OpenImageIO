@@ -117,6 +117,11 @@ public:
     virtual bool write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
                                   int zbegin, int zend,
                                   const DeepData& deepdata) override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
     std::unique_ptr<OpenEXROutputStream>
@@ -320,7 +325,8 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
         sanity_check_channelnames();
         const ParamValue* param = m_spec.find_attribute("oiio:ioproxy",
                                                         TypeDesc::PTR);
-        m_io = param ? param->get<Filesystem::IOProxy*>() : nullptr;
+        if (param)
+            m_io = param->get<Filesystem::IOProxy*>();
 
         if (!spec_to_header(m_spec, m_subimage, m_headers[m_subimage]))
             return false;

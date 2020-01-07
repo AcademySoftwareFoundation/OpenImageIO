@@ -10,6 +10,7 @@
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/parallel.h>
@@ -73,15 +74,16 @@ ImageInput::valid_file(const std::string& filename) const
 
 
 std::unique_ptr<ImageInput>
-ImageInput::open(const std::string& filename, const ImageSpec* config)
+ImageInput::open(const std::string& filename, const ImageSpec* config,
+                 Filesystem::IOProxy* ioproxy)
 {
     if (!config) {
         // Without config, this is really just a call to create-with-open.
-        return ImageInput::create(filename, true, nullptr, std::string());
+        return ImageInput::create(filename, true, nullptr, ioproxy);
     }
 
     // With config, create without open, then try to open with config.
-    auto in = ImageInput::create(filename, false, config, std::string());
+    auto in = ImageInput::create(filename, false, config, ioproxy);
     if (!in)
         return in;  // create() failed, return the empty ptr
     ImageSpec newspec;
