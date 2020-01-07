@@ -139,6 +139,7 @@ target_link_libraries (OpenImageIO
             ${ILMBASE_LIBRARIES}
             ${OPENEXR_LIBRARIES}
             ${OpenCV_LIBRARIES}
+            ${GCC_ATOMIC_LIBRARIES}
         PRIVATE
             ${SANITIZE_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
@@ -147,7 +148,6 @@ target_link_libraries (OpenImageIO
             ${ZLIB_LIBRARIES}
             ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
-            ${GCC_ATOMIC_LIBRARIES}
         )
 
 if (USE_EXTERNAL_PUGIXML)
