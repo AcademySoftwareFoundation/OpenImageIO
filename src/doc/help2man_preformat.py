@@ -23,7 +23,7 @@ for i,line in enumerate(lines[2:]):
 
 print('''DESCRIPTION
 This program is part of the OpenImageIO (http://www.openimageio.org) tool suite.
-Detailed documentation is avaliable in pdf format with the OpenImageIO
+Detailed documentation is available in pdf format with the OpenImageIO
 distribution.
 ''')
 
