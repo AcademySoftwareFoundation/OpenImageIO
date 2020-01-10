@@ -1,3 +1,22 @@
+Release 2.1.10.1 (10 Jan 2019)
+------------------------------
+* Automatically detect the need to link against libatomic (fixes build on
+  some less common platforms, should not affect Windows, MacOS, or Linux on
+  x86/x86_64 users). #2450 #2455
+* Fixes to unordered_map_concurrent.h that affect some users who it for
+  things other than OIIO per se (recent changes to the internals broke its
+  use for the default underlying std::unordered_map). #2454
+* Bump the minimum pybind11 vesion that we auto-download, and also be sure
+  to auto-download if pybind11 is found on the system already but is not an
+  adequately new version. #2453
+* If libsquish is found on the system at build time, use it, rather than
+  the "embedded" copy. This can improve build times of OIIO, and also helps
+  us comply with Debian packaging rules that forbid using embedded versions
+  of other Debian packages that can be used as simple dependencies. #2451
+* Fixes to formatting of man page generation (resolves warnings on Debian
+  build process).
+
+
 Release 2.1.10 (1 Jan 2020) -- compared to 2.1.9
 --------------------------------------------------
 * Suppress warnings with old libraw on earlier gcc versions. #2413
