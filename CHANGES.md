@@ -1,6 +1,7 @@
 Release 2.2 (???) -- compared to 2.1
 ----------------------------------------------
 New minimum dependencies:
+* pybind11 >= 2.4.2
 
 New file format support:
 
@@ -9,8 +10,27 @@ Public API changes:
   previously exposed the PV constructors from just a plain int, float, or
   string, but there wasn't an easy way to construct from arbitrary data like
   there is in C++. Now there is. #2417 (2.2.0)
+* Python bindings for `ParamValueList.attribute()`, when being passed
+  attributes containing multiple values, now can have those values passed
+  as Python lists and numpy arrays (previously they had to be tuples).
+  #2437 (2.1.11/2.2.0)
+* ImageBuf:
+    - Add `ImageBuf::setpixel()` methods that use cspan instead of ptr/len.
+      #2443 (2.1.10/2.2.0)
+* ImageBufAlgo:
+    - New `repremult()` is like premult, but will not premult when alpha is
+      zero. #2447 (2.2.0)
+* ImageInput and ImageOutput now have direct API level support for IOProxy
+  in their `open()` and `create()` calls, as well as a new `set_ioproxy()`
+  method in these classes.
 
 Performance improvements:
+* Greatly improved TextureSystem/ImageCache performance in highly threaded
+  situations where access to the cache was a main bottlenecks. In renders of
+  scenes with lots of texture access, with dozens of threads all contending
+  for the cache, we are seeing some cases of 30-40% reduction in total
+  render time. In scenes that are less texture-bottlenecked, or that don't
+  use huge numbers of threads, the improvement is more modest. #2433 (2.2.0)
 
 Fixes and feature enhancements:
 * oiiotool:
@@ -32,6 +52,9 @@ Fixes and feature enhancements:
       extensions, which eliminates some redundant opens and format checks
       in the IC/TS and can reduce needless network/filesystem work. Use
       with caution! #2421 (2.2.0)
+* Exif read: guard better against out of range offests, fixes crashes when
+  reading jpeg files with malformed exif blocks. #2429 (2.1.10/2.2.0)
+
 
 Developer goodies / internals:
 * platform.h:
@@ -40,16 +63,80 @@ Developer goodies / internals:
     - `OIIO_ALIGN` definition is more robust, will fall back to C++11
       alignas when not a compiler with special declspecs (instead of being
       a compile time error!). #2412 (2.2.0)
+* simd.h:
+    - vfloat3 has added a `normalize()`, `length()`, and `length2()` methods, to more closely match the syntax of Imath::Vec3f. #2437 (2.1.11/2.2.0)
 * More reshuffling of printf-style vs fmt-style string formatting. #2424
   (2.2.0)
+* Internals: changed a lot of assertions to only happen in debug build mode,
+  and changed a lot that happen in release builds to only print the error
+  but not force a termination. #2435 (2.1.11/2.2.0)
+* Internals: Replaced most uses of `boost::thread_specific_ptr` with C++11
+  `thread_local`. #2431 (2.2.0)
 
 Build/test system improvements and platform ports:
+* Bump the minimum pybind11 vesion that we auto-download, and also be sure
+  to auto-download if pybind11 is found on the system already but is not an
+  adequately new version. #2453 (2.1.10.1/2.2.0)
 
 Notable documentation changes:
 
 
 
-Release 2.1 (8? Dec 2019) -- compared to 2.0
+Release 2.1.11 (1 Feb? 2020) -- compared to 2.1.10
+--------------------------------------------------
+* Python bindings for `ParamValueList.attribute()`, when being passed
+  attributes containing multiple values, now can have those values passed
+  as Python lists and numpy arrays (previously they had to be tuples).
+  #2437
+* Developer goody: simd.h vfloat3 has added a `normalize()`, `length()`,
+  and `length2()` methods, to more closely match the syntax of Imath::Vec3f.
+  #2437
+* Internals: changed a lot of assertions to only happen in debug build mode,
+  and changed a lot that happen in release builds to only print the error
+  but not force a termination. #2435
+
+Release 2.1.10.1 (10 Jan 2019)
+------------------------------
+* Automatically detect the need to link against libatomic (fixes build on
+  some less common platforms, should not affect Windows, MacOS, or Linux on
+  x86/x86_64 users). #2450 #2455
+* Fixes to unordered_map_concurrent.h that affect some users who it for
+  things other than OIIO per se (recent changes to the internals broke its
+  use for the default underlying std::unordered_map). #2454
+* Bump the minimum pybind11 vesion that we auto-download, and also be sure
+  to auto-download if pybind11 is found on the system already but is not an
+  adequately new version. #2453
+* If libsquish is found on the system at build time, use it, rather than
+  the "embedded" copy. This can improve build times of OIIO, and also helps
+  us comply with Debian packaging rules that forbid using embedded versions
+  of other Debian packages that can be used as simple dependencies. #2451
+* Fixes to formatting of man page generation (resolves warnings on Debian
+  build process).
+
+Release 2.1.10 (1 Jan 2020) -- compared to 2.1.9
+--------------------------------------------------
+* Suppress warnings with old libraw on earlier gcc versions. #2413
+* Exif read: guard better against out of range offests, fixes crashes when
+  reading jpeg files with malformed exif blocks. #2429
+* Python: add binding for missing ParamValue constructors. #2417
+* oiiotool & ImageBuf better error messages (rather than mysterious crash)
+  for certain out of memory conditions. #2414
+* oiiotool --create and --pattern take a new optional parameter:
+  `:type=name` that overrides the default behavior of allocating all
+  internal buffers as float. #2414
+* Lots of typo fixes in docs, comments, and error messages. #2438
+* Fix broken version in the built openimageio.pc PkgConfig file. #2441
+* Fix typo in build script that caused it to fail to set the right symbol
+  definition when building static libs. #2442.
+* More robust OIIO_PRETTY_FUNCTION definition. #2413
+* Better fallback for OIIO_ALIGN, rely on C++11. #2412
+* Docs: fix some II and IO chapter examples that used old open() API.
+* Build: bump default version of pybind11 to 2.4.3. #2436
+* Add ImageBuf::setpixel() methods that use cspan instead of ptr/len. #2443
+* Fixes to cmake config generation. #2448
+
+
+Release 2.1 (8 Dec 2019) -- compared to 2.0
 ----------------------------------------------
 New minimum dependencies:
 * CMake minimum is now 3.12. #2348 (2.1.5)
