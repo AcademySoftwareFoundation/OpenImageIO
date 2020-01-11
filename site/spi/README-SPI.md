@@ -15,20 +15,24 @@ Variants:
 
     # C++11/gcc4.8 compat, Python 2.7, Boost 1.55
     make nuke
-    make spi OIIO_SPIREZ=1
+    make spi OIIO_SPIREZ=1 OPENEXR_VERSION=2.2.0
 
     # C++11/gcc4.8 compat, Python 2.7, Boost 1.55 sp namespaced
     make nuke
-    make spi OIIO_SPIREZ=1 BOOSTSPSUFFIX=sp
+    make spi OIIO_SPIREZ=1 BOOSTSPSUFFIX=sp OPENEXR_VERSION=2.2.0
 
     # C++11/gcc6.3 compat, Python 3.7, Boost 1.66
     make nuke
-    make spi OIIO_SPIREZ=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2
+    make spi OIIO_SPIREZ=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3 OPENEXR_VERSION=2.2.0 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2
+
+    # C++11/gcc6.3 compat, Python 2.7, Boost 1.70 (Maya 2020 & Houdini 18)
+    make nuke
+    make spi OIIO_SPIREZ=1 BOOSTVERS=1.70 PYTHON_VERSION=2.7 SPI_COMPILER_PLATFORM=gcc-6.3 OPENEXR_VERSION=2.4.0 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2
 
     # VFXPlatform 2020-ish: C++14/gcc6.3 compat, Python 3.7, Boost 1.70,
     # OpenEXR 2.4
     make nuke
-    make spi OIIO_SPIREZ=1 BOOSTVERS=1.70 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2 OPENEXR_VERSION=2.4.0 ENABLE_OPENVDB=0
+    make spi OIIO_SPIREZ=1 BOOSTVERS=1.70 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2 OPENEXR_VERSION=2.4.0
 
     # C++11/gcc4.8 compat, Python 3.6, Boost 1.55 (for Jon Ware)
     make nuke

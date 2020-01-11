@@ -234,22 +234,15 @@ ifeq (${SP_OS}, rhel7)
 
     # Set our preferred OpenEXR path, but allow env variable to override
     # with custom/test version.
-    ifneq (${OPENEXR_VERSION},)
-        # If OPENEXR_VERSION is set, grab from the rez area
+    OPENEXR_VERSION ?= 2.2.0
     OpenEXR_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenEXR/${OPENEXR_VERSION}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}
-        MY_CMAKE_FLAGS += -DOpenEXR_ROOT=${OpenEXR_ROOT}
-    else ifeq (${OpenEXR_ROOT},)
-        # If not getting from rez, get from the system install
-        MY_CMAKE_FLAGS += \
-            -DOPENEXR_INCLUDE_DIR=/usr/include/OpenEXR2 \
-            -DOPENEXR_LIBRARY_DIR=/usr/lib64/OpenEXR2
-    endif
+    MY_CMAKE_FLAGS += -DOpenEXR_ROOT=${OpenEXR_ROOT}
 
     #
     # SpComp2 and other weird SPI-installed packages
     #
     OCIO_SPCOMP_VERSION ?= 2
-    OPENVDB_SPCOMP2_VERSION ?= v5020000
+    OPENVDB_SPCOMP2_VERSION ?= v6020001
     NUKE_VERSION ?= 11.2v3
     SPCOMP2_FULLBOOST_SUFFIX = ${SP_OS}-${SPCOMP2_COMPILER}-boost${shell echo ${BOOSTVERSSP} | sed "s/\\.//"}
     # $(info SPCOMP2_FULLBOOST_SUFFIX ${SPCOMP2_FULLBOOST_SUFFIX})
