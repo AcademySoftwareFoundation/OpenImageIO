@@ -58,124 +58,201 @@ enum class InitializePixels { No = 0, Yes = 1 };
 /// to/from float automatically).
 class OIIO_API ImageBuf {
 public:
+    /// An ImageBuf can store its pixels in one of several ways (each
+    /// identified by an `IBStorage` enumerated value):
+    enum IBStorage {
+        // clang-format off
+        UNINITIALIZED,
+            ///< An ImageBuf that doesn't represent any image at all
+            /// (either because it is newly constructed with the default
+            /// constructor, or had an error during construction).
+        LOCALBUFFER,
+            ///< "Local storage" is allocated to hold the image pixels
+            /// internal to the ImageBuf.  This memory will be freed when
+            /// the ImageBuf is destroyed.
+        APPBUFFER,
+            ///< The ImageBuf "wraps" pixel memory already allocated and
+            /// owned by the calling application. The caller will continue
+            /// to own that memory and be responsible for freeing it after
+            /// the ImageBuf is destroyed.
+        IMAGECACHE
+            ///< The ImageBuf is "backed" by an ImageCache, which will
+            /// automatically be used to retreive pixels when requested, but
+            /// the ImageBuf will not allocate separate storage for it. 
+            /// This brings all the advantages of the ImageCache, but can
+            /// only be used for read-only ImageBuf's that reference a
+            /// stored image file.
+        // clang-format on
+    };
+
     /// @{
     /// @name Constructing and destructing an ImageBuf.
 
     /// Default constructor makes an empty/uninitialized ImageBuf.  There
     /// isn't much you can do with an uninitialized buffer until you call
-    /// `reset()`.
+    /// `reset()`. The storage type of a default-constructed ImageBuf is
+    /// `IBStorage::UNINITIALIZED`.
     ImageBuf();
 
     /// Destructor for an ImageBuf.
     ~ImageBuf();
 
-    /// Construct an ImageBuf that will be used to read the named file (at
-    /// the given subimage and MIP-level, defaulting to the first in the
-    /// file).  But don't read it yet!  The image will actually be read when
-    /// other methods need to access the spec and/or pixels, or when an
-    /// explicit call to `init_spec()` or `read()` is made, whichever comes
-    /// first. If `IMAGECACHE` is non-NULL, the custom ImageCache will be
-    /// used (if applicable); otherwise, a NULL imagecache indicates that
-    /// the global/shared ImageCache should be used. If `config` is not
-    /// NULL, it points to an ImageSpec giving requests or special
-    /// instructions to be passed on to the eventual `ImageInput::open()`
-    /// call.
+    /// Construct a read-only ImageBuf that will be used to read the named
+    /// file (at the given subimage and MIP-level, defaulting to the first
+    /// in the file).  But don't read it yet!  The image will actually be
+    /// read lazily, only when other methods need to access the spec and/or
+    /// pixels, or when an explicit call to `init_spec()` or `read()` is
+    /// made, whichever comes first.
+    ///
+    /// The implementation may end up either reading the entire image
+    /// internally owned memory (if so, the storage will be `LOCALBUFFER`),
+    /// or it may rely on being backed by an ImageCache (in this case, the
+    /// storage will be `IMAGECACHE`) -- depending on the image size and
+    /// other factors.
+    ///
+    /// @param name
+    ///             The image to read.
+    /// @param subimage/miplevel
+    ///             The subimage and MIP level to read (defaults to the
+    ///             first subimage of the file, highest-res MIP level).
+    /// @param imagecache
+    ///             Optionally, a particular ImageCache to use. If nullptr,
+    ///             the default global/shared image cache will be used.
+    /// @param config
+    ///             Optionally, a pointer to an ImageSpec whose metadata
+    ///             contains configuration hints that set options related
+    ///             to the opening and reading of the file.
+    ///
     explicit ImageBuf(string_view name, int subimage = 0, int miplevel = 0,
-                      ImageCache* imagecache  = NULL,
-                      const ImageSpec* config = NULL);
+                      ImageCache* imagecache  = nullptr,
+                      const ImageSpec* config = nullptr);
 
-    /// Construct an ImageBuf to read the named image -- but don't actually
-    /// read it yet!  The image will actually be read when other methods
-    /// need to access the spec and/or pixels, or when an explicit call to
-    /// init_spec() or read() is made, whichever comes first. If a non-NULL
-    /// imagecache is supplied, it will specifiy a custom ImageCache to use;
-    /// if otherwise, the global/shared ImageCache will be used.
+    // Deprecated synonym for `ImageBuf(name, 0, 0, imagecache, nullptr)`.
     ImageBuf(string_view name, ImageCache* imagecache);
 
     /// Construct a writeable ImageBuf with the given specification
-    /// (including resolution, data type, metadata, etc.). The optional
-    /// `zero` parameter controls whether the pixel values are filled with
-    /// black/empty, or are left uninitialized after being allocated (if set
-    /// to `InitializePixels::No`).
+    /// (including resolution, data type, metadata, etc.). The ImageBuf will
+    /// allocate and own its own pixel memory and will free that memory
+    /// automatically upon destruction, clear(), or reset(). Upon successful
+    /// initialization, the storage will be reported as `LOCALBUFFER`.
+    ///
+    /// @param spec
+    ///             An ImageSpec describing the image and its metadata. If
+    ///             not enough information is given to know how much memory
+    ///             to allocate (width, height, depth, channels, and data
+    ///             format), the ImageBuf will remain in an UNINITIALIZED
+    ///             state and will have no local pixel storage.
+    /// @param zero
+    ///             After a successful allocation of the local pixel
+    ///             storage, this parameteter controls whether the pixels
+    ///             will be initialized to hold zero (black) values
+    ///             (`InitializePixels::Yes`) or if the pixel memory will
+    ///             remain uninitialized (`InitializePixels::No`) and thus
+    ///             may hold nonsensical values. Choosing `No` may save the
+    ///             time of writing to the pixel memory if you know for sure
+    ///             that you are about to overwrite it completely before you
+    ///             will need to read any pixel values.
+    ///
     explicit ImageBuf(const ImageSpec& spec,
                       InitializePixels zero = InitializePixels::Yes);
 
-
-    /// Construct an Imagebuf given both a name and a proposed spec. The
-    /// `zero` parameter controls whether the pixel values are filled with
-    /// black/empty, or are left uninitialized after being allocated.
+    // Deprecated/useless synonym for `ImageBuf(spec,zero)` but also gives
+    // it an internal name.
     ImageBuf(string_view name, const ImageSpec& spec,
              InitializePixels zero = InitializePixels::Yes);
 
-    /// Construct an ImageBuf that "wraps" a memory buffer owned by the
-    /// calling application.  It can write pixels to this buffer, but
-    /// can't change its resolution or data type.
+    /// Construct a writeable ImageBuf that "wraps" existing pixel memory
+    /// owned by the calling application. The ImageBuf does not own the
+    /// pixel storage and will will not free/delete that memory, even when
+    /// the ImageBuf is destroyed. Upon successful initialization, the
+    /// storage will be reported as `APPBUFFER`.
+    ///
+    /// @param spec
+    ///             An ImageSpec describing the image and its metadata. If
+    ///             not enough information is given to know the "shape" of
+    ///             the image (width, height, depth, channels, and data
+    ///             format), the ImageBuf will remain in an UNINITIALIZED
+    ///             state.
+    /// @param buffer
+    ///             A pointer to the caller-owned memory containing the
+    ///             storage for the pixels. It must be already allocated
+    ///             with enough space to hold a full image as described by
+    ///             `spec`.
+    ///
     ImageBuf(const ImageSpec& spec, void* buffer);
 
-    /// Construct an ImageBuf that "wraps" a memory buffer owned by the
-    /// calling application.  It can write pixels to this buffer, but
-    /// can't change its resolution or data type.
+    // Deprecated/useless synonym for `ImageBuf(spec,buffer)` but also gives
+    // it an internal name.
     ImageBuf(string_view name, const ImageSpec& spec, void* buffer);
 
     /// Construct a copy of an ImageBuf.
-    ///
     ImageBuf(const ImageBuf& src);
 
-    /// Move a copy of an ImageBuf.
-    ///
+    /// Move the contents of an ImageBuf to another ImageBuf.
     ImageBuf(ImageBuf&& src);
 
-    /// Restores the ImageBuf to an uninitialized state identical to that of
-    /// a freshly constructed ImageBuf using the default constructor.
+    // Old name for reset().
     void clear();
 
-    /// Forget all previous info, reset this ImageBuf to a new image
-    /// that is uninitialized (no pixel values, no size or spec).
-    void reset(string_view name, ImageCache* imagecache = NULL);
+    /// Destroy any previous contents of the ImageBuf and re-initialize it
+    /// to resemble a freshly constructed ImageBuf using the default
+    /// constructor (holding no image, with storage
+    /// `IBStorage::UNINITIALIZED`).
+    void reset() { clear(); }
 
-    /// Destroys any previous contents of the ImageBuf and re-initializes it
-    /// to read the named file (but doesn't actually read yet). If `config`
-    /// is not NULL, it points to an ImageSpec giving requests or special
-    /// instructions to be passed on to the eventual `ImageInput::open()`
-    /// call.
+    // Deprecated/useless synonym for `reset(name, 0, 0, imageache, nullptr)`
+    void reset(string_view name, ImageCache* imagecache = nullptr);
+
+    /// Destroy any previous contents of the ImageBuf and re-initialize it
+    /// as if newly constructed with the same arguments, as a read-only
+    /// representation of an existing image file.
     void reset(string_view name, int subimage, int miplevel,
-               ImageCache* imagecache = NULL, const ImageSpec* config = NULL);
+               ImageCache* imagecache  = nullptr,
+               const ImageSpec* config = nullptr);
 
-    /// Re-initialize as a writeable ImageBuf with the given specification
-    /// (including resolution, data type, metadata, etc.). The optional
-    /// `zero` parameter controls whether the pixel values are filled with
-    /// black/empty, or are left uninitialized after being allocated (if set
-    /// to `InitializePixels::No`).
+    /// Destroy any previous contents of the ImageBuf and re-initialize it
+    /// as if newly constructed with the same arguments, as a read/write
+    /// image with locally allocated storage that can hold an image as
+    /// described by `spec`. The optional `zero` parameter controls whether
+    /// the pixel values are filled with black/empty, or are left
+    /// uninitialized after being allocated.
+    ///
+    /// Note that if the ImageSpec does not contain enough information to
+    /// specify how much memory to allocate (width, height, channels, and
+    /// data format), the ImageBuf will remain uninitialized (regardless of
+    /// how `zero` is set).
     void reset(const ImageSpec& spec,
                InitializePixels zero = InitializePixels::Yes);
 
-    /// Re-initialize as a writeable ImageBuf with the given specification,
-    /// and also give it a name.
+    // Deprecated/useless synonym for `reset(spec, spec, zero)` and also
+    // give it an internal name.
     void reset(string_view name, const ImageSpec& spec,
                InitializePixels zero = InitializePixels::Yes);
 
-    /// Force the ImageBuf to be writeable. That means that if it was
-    /// previously backed by an ImageCache (storage was `IMAGECACHE`), it
-    /// will force a full read so that the whole image is in local memory.
-    /// This will invalidate any current iterators on the image. It has no
-    /// effect if the image storage is not `IMAGECACHE`.  Return `true` if
-    /// it works (including if no read was necessary), `false` if something
-    /// went horribly wrong. If `keep_cache_type` is true, it preserves any
-    /// IC- forced data types (you might want to do this if it is critical
-    /// that the apparent data type doesn't change, for example if you are
-    /// calling `make_writeable()` from within a type-specialized function).
+    /// Destroy any previous contents of the ImageBuf and re-initialize it
+    /// as if newly constructed with the same arguments, to "wrap" existing
+    /// pixel memory owned by the calling application.
+    void reset(const ImageSpec& spec, void* buffer);
+
+    /// Make the ImageBuf be writeable. That means that if it was previously
+    /// backed by an ImageCache (storage was `IMAGECACHE`), it will force a
+    /// full read so that the whole image is in local memory. This will
+    /// invalidate any current iterators on the image. It has no effect if
+    /// the image storage is not `IMAGECACHE`.
+    ///
+    /// @param keep_cache_type
+    ///             If true, preserve any ImageCache-forced data types (you
+    ///             might want to do this if it is critical that the
+    ///             apparent data type doesn't change, for example if you
+    ///             are calling `make_writeable()` from within a
+    ///             type-specialized function).
+    /// @returns
+    ///             Return `true` if it works (including if no read was
+    ///             necessary), `false` if something went horribly wrong.
     bool make_writeable(bool keep_cache_type = false);
 
     /// @}
 
-
-    /// Description of where the pixels live for this ImageBuf.
-    enum IBStorage {
-        UNINITIALIZED,  // no pixel memory
-        LOCALBUFFER,    // The IB owns the memory
-        APPBUFFER,      // The IB wraps app's memory
-        IMAGECACHE      // Backed by ImageCache
-    };
 
     /// Wrap mode describes what happens when an iterator points to
     /// a value outside the usual data range of an image.
@@ -197,12 +274,10 @@ public:
     /// into the ImageBuf (at the specified subimage and MIP level).  It
     /// will clear and re-allocate memory if the previously allocated space
     /// was not appropriate for the size or data type of the image being
-    /// read. If `convert` is set to a specific type (not`UNKNOWN`), the
-    /// ImageBuf memory will be allocated for that type specifically and
-    /// converted upon read.
+    /// read.
     ///
     /// In general, `read()` will try not to do any I/O at the time of the
-    /// `read()` call, but rather to have the ImageBuf `backed" by an
+    /// `read()` call, but rather to have the ImageBuf "backed" by an
     /// ImageCache, which will do the file I/O on demand, as pixel values
     /// are needed, and in that case the ImageBuf doesn't actually allocate
     /// memory for the pixels (the data lives in the ImageCache).  However,
@@ -212,49 +287,77 @@ public:
     /// `read()` call: (a) if the `force` parameter is `true`; (b) if the
     /// `convert` parameter requests a data format conversion to a type that
     /// is not the native file type and also is not one of the internal
-    /// types supported by the `IMAGECACHE` (specifically, `float` and
+    /// types supported by the ImageCache (specifically, `float` and
     /// `UINT8`); (c) if the ImageBuf already has local pixel memory
     /// allocated, or "wraps" an application buffer.
-    ///
-    /// If progress_callback` is non-NULL, the underlying read, if
-    /// expensive, may make several calls to
-    ///
-    ///     progress_callback(progress_callback_data, portion_done);
-    ///
-    /// which allows you to implement some sort or progress meter. Note that
-    /// if the ImageBuf is backed by an ImageCache, the progress callback
-    /// will never be called, since no actual file I/O will occur at this
-    /// time (ImageCache will load tiles or scanlines on demand, as
-    /// individual pixel values are needed).
     ///
     /// Note that `read()` is not strictly necessary. If you are happy with
     /// the filename, subimage and MIP level specified by the ImageBuf
     /// constructor (or the last call to `reset()`), and you want the
-    /// storage to be backed by the `IMAGECACHE` (including storing the
+    /// storage to be backed by the ImageCache (including storing the
     /// pixels in whatever data format that implies), then the file contents
     /// will be automatically read the first time you make any other
     /// ImageBuf API call that requires the spec or pixel values.  The only
     /// reason to call `read()` yourself is if you are changing the
     /// filename, subimage, or MIP level, or if you want to use `force =
     /// true` or a specific `convert` value to force data format conversion.
+    ///
+    /// @param  subimage/miplevel
+    ///             The subimage and MIP level to read.
+    /// @param  force
+    ///             If `true`, will force an immediate full read into
+    ///             ImageBuf-owned local pixel memory (yielding a
+    ///             `LOCALPIXELS` storage buffer). Otherwise, it is up to
+    ///             the implementation whether to immediately read or have
+    ///             the image backed by an ImageCache (storage
+    ///             `IMAGECACHE`.)
+    /// @param  convert
+    ///             If set to a specific type (not`UNKNOWN`), the ImageBuf
+    ///             memory will be allocated for that type specifically and
+    ///             converted upon read.
+    /// @param  progress_callback/progress_callback_data
+    ///             If `progress_callback` is non-NULL, the underlying
+    ///             read, if expensive, may make several calls to
+    ///                 `progress_callback(progress_callback_data, portion_done)`
+    ///             which allows you to implement some sort of progress
+    ///             meter. Note that if the ImageBuf is backed by an
+    ///             ImageCache, the progress callback will never be called,
+    ///             since no actual file I/O will occur at this time
+    ///             (ImageCache will load tiles or scanlines on demand, as
+    ///             individual pixel values are needed).
+    ///
+    /// @returns
+    ///             `true` upon success, or `false` if the read failed (in
+    ///             which case, you should be able to retrieve an error
+    ///             message via `geterror()`).
+    ///
     bool read(int subimage = 0, int miplevel = 0, bool force = false,
               TypeDesc convert                   = TypeDesc::UNKNOWN,
-              ProgressCallback progress_callback = NULL,
-              void* progress_callback_data       = NULL);
+              ProgressCallback progress_callback = nullptr,
+              void* progress_callback_data       = nullptr);
 
     /// Read the file, if possible only allocating and reading a subset of
     /// channels, `[chbegin..chend-1]`. This can be a performance and memory
-    /// improvement if you know that any use of the ImageBuf will only
-    /// access a subset of channels from a many-channel file. If `chbegin`
-    /// is 0 and `chend` is either negative or greater than the number of
-    /// channels in the file, all channels will be read. Please note that it
-    /// is "advisory" and not guaranteed to be honored by the underlying
-    /// implementation.
+    /// improvement for some image file formats, if you know that any use of
+    /// the ImageBuf will only access a subset of channels from a
+    /// many-channel file.
+    ///
+    /// Additional parameters:
+    ///
+    /// @param  chbegin/chend
+    ///             The subset (a range with "exclusive end") of channels to
+    ///             read, if the implementation is able to read only a
+    ///             subset of channels and have a performance advantage by
+    ///             doing so. If `chbegin` is 0 and `chend` is either
+    ///             negative or greater than the number of channels in the
+    ///             file, all channels will be read. Please note that it is
+    ///             "advisory" and not guaranteed to be honored by the
+    ///             underlying implementation.
     bool read(int subimage, int miplevel, int chbegin, int chend, bool force,
-              TypeDesc convert, ProgressCallback progress_callback = NULL,
-              void* progress_callback_data = NULL);
+              TypeDesc convert, ProgressCallback progress_callback = nullptr,
+              void* progress_callback_data = nullptr);
 
-    /// read the ImageSpec for the given file, subimage, and MIP level into
+    /// Read the ImageSpec for the given file, subimage, and MIP level into
     /// the ImageBuf, but will not read the pixels or allocate any local
     /// storage (until a subsequent call to `read()`).  This is helpful if
     /// you have an ImageBuf and you need to know information about the
@@ -269,19 +372,60 @@ public:
     /// if you are changing the filename, subimage, or MIP level, or if you
     /// want to use `force=true` or a specific `convert` value to force
     /// data format conversion.
+    ///
+    /// @param  filename
+    ///             The filename to read from (should be the same as the
+    ///             filename used when the ImageBuf was constructed or
+    ///             reset.)
+    /// @param  subimage/miplevel
+    ///             The subimage and MIP level to read.
+    ///
+    /// @returns
+    ///             `true` upon success, or `false` if the read failed (in
+    ///             which case, you should be able to retrieve an error
+    ///             message via `geterror()`).
+    ///
     bool init_spec(string_view filename, int subimage, int miplevel);
 
     /// Write the image to the named file, converted to the specified pixel
     /// data type `dtype` (`TypeUnknown` signifies to use the data type of
     /// the buffer), and file format (an empty `fileformat` means to infer
-    /// the type from the filename extension). Return `true` if all went ok,
-    /// `false` if there were errors writing.
+    /// the type from the filename extension).
     ///
-    /// By default, it will always write a scanline-oriented file, unless
-    /// the `set_write_tiles()` method has been used to override this. Also,
-    /// it will use the data format of the buffer itself, unless the
-    /// `set_write_format()` method has been used to override the data
-    /// format.
+    /// By default, it will always try to write a scanline-oriented file,
+    /// unless the `set_write_tiles()` method has been used to override
+    /// this.
+    ///
+    /// @param  filename
+    ///             The filename to write to.
+    /// @param  dtype
+    ///             Optional override of the pixel data format to use in the
+    ///             file being written. The default (`UNKNOWN`) means to try
+    ///             writing the same data format that as pixels are stored
+    ///             within the ImageBuf memory (or whatever type was
+    ///             specified by a prior call to `set_write_format()`). In
+    ///             either case, if the file format does not support that
+    ///             data type, another will be automatically chosen that is
+    ///             supported by the file type and loses as little precision
+    ///             as possible.
+    /// @param  fileformat
+    ///             Optional override of the file format to write. The
+    ///             default (empty string) means to infer the file format
+    ///             from the extension of the `filename` (for
+    ///             example, "foo.tif" will write a TIFF file).
+    /// @param  progress_callback/progress_callback_data
+    ///             If `progress_callback` is non-NULL, the underlying
+    ///             write, if expensive, may make several calls to
+    ///                 `progress_callback(progress_callback_data, portion_done)`
+    ///             which allows you to implement some sort of progress
+    ///             meter.
+    ///
+    /// @returns
+    ///             `true` upon success, or `false` if the write failed (in
+    ///             which case, you should be able to retrieve an error
+    ///             message via `geterror()`).
+    ///
+
     bool write(string_view filename, TypeDesc dtype = TypeUnknown,
                string_view fileformat             = string_view(),
                ProgressCallback progress_callback = nullptr,
@@ -296,15 +440,19 @@ public:
                      progress_callback_data);
     }
 
-    /// Override the pixel data format for subsequent calls to the `write()`
-    /// method (the variety that does not take an open `ImageOutput*`).
+    /// Set the pixel data format that will be used for subsequent `write()`
+    /// calls that do not themselves request a specific data type request.
+    ///
+    /// Note that this does not affect the variety of `write()` that takes
+    /// an open `ImageOutput*` as a parameter.
     ///
     /// @param  format
     ///             The data type to be used for all channels.
     void set_write_format(TypeDesc format);
 
-    /// Set the per-channel pixel data format for subsequent `write()`
-    /// calls.
+    /// Set the per-channel pixel data format that will be used for
+    /// subsequent `write()` calls that do not themselves request a specific
+    /// data type request.
     ///
     /// @param  format
     ///             The type of each channel (in order). Any channel's
@@ -315,14 +463,43 @@ public:
 
     /// Override the tile sizing for subsequent calls to the `write()`
     /// method (the variety that does not take an open `ImageOutput*`).
+    /// Setting all three dimensions to 0 indicates that the output should
+    /// be a scanline-oriented file.
+    ///
+    /// This lets you write a tiled file from an ImageBuf that may have been
+    /// read orginally from a scanline file, or change the dimensions of a
+    /// tiled file, or to force the file written to be scanline even if it
+    /// was originally read from a tiled file.
+    ///
+    /// In all cases, if the file format ultimately written does not support
+    /// tiling, or the tile dimensions requested, a suitable supported
+    /// tiling choice will be made automatically.
     void set_write_tiles(int width = 0, int height = 0, int depth = 0);
 
-    /// Write the image to the open ImageOutput `out`.  Return `true` if all
-    /// went ok, `false` if there were errors writing.  It does NOT close
-    /// the file when it's done (and so may be called in a loop to write a
-    /// multi-image file).
-    bool write(ImageOutput* out, ProgressCallback progress_callback = NULL,
-               void* progress_callback_data = NULL) const;
+    /// Write the pixels of the ImageBuf to an open ImageOutput. The
+    /// ImageOutput must have already been opened with a spec that indicates
+    /// a resolution identical to that of this ImageBuf (but it may have
+    /// specified a different pixel data type, in which case data
+    /// conversions will happen automatically).
+    ///
+    /// Note that since this uses an already-opened `ImageOutput`, which is
+    /// too late to change how it was opened, it does not honor any prior
+    /// calls to `set_write_format` or `set_write_tiles`.
+    ///
+    /// @param  out
+    ///             A pointer to an already-opened `ImageOutput` to which
+    ///             the pixels of the ImageBuf will be written.
+    /// @param  progress_callback/progress_callback_data
+    ///             If `progress_callback` is non-NULL, the underlying
+    ///             write, if expensive, may make several calls to
+    ///                 `progress_callback(progress_callback_data, portion_done)`
+    ///             which allows you to implement some sort of progress
+    ///             meter.
+    /// @returns  `true` if all went ok, `false` if there were errors
+    ///           writing.  It does NOT close the file when it's done (and
+    ///           so may be called in a loop to write a multi-image file).
+    bool write(ImageOutput* out, ProgressCallback progress_callback = nullptr,
+               void* progress_callback_data = nullptr) const;
 
     /// @}
 
@@ -347,20 +524,32 @@ public:
     bool copy_pixels(const ImageBuf& src);
 
     /// Try to copy the pixels and metadata from `src` to `*this`
-    /// (optionally with an explicit data format conversion), returning true
-    /// upon success and false upon error/failure.
+    /// (optionally with an explicit data format conversion).
     ///
     /// If the previous state of `*this` was uninitialized, owning its own
     /// local pixel memory, or referring to a read-only image backed by
     /// ImageCache, then local pixel memory will be allocated to hold the
     /// new pixels and the call always succeeds unless the memory cannot be
-    /// allocated.
+    /// allocated. In this case, the `format` parameter may request a pixel
+    /// data type that is different from that of the source buffer.
     ///
     /// If `*this` previously referred to an app-owned memory buffer, the
     /// memory cannot be re-allocated, so the call will only succeed if the
     /// app-owned buffer is already the correct resolution and number of
     /// channels.  The data type of the pixels will be converted
     /// automatically to the data type of the app buffer.
+    ///
+    /// @param  src
+    ///             Another ImageBuf from which to copy the pixels and
+    ///             metadata.
+    /// @param  format
+    ///             Optionally request the pixel data type to be used. The
+    ///             default of `TypeUnknown` means to use whatever data type
+    ///             is used by the `src`. If `*this` is already initialized
+    ///             and has `APPBUFFER` storage ("wrapping" an application
+    ///             buffer), this parameter is ignored.
+    /// @returns
+    ///             `true` upon success or `false` upon error/failure.
     bool copy(const ImageBuf& src, TypeDesc format = TypeUnknown);
 
     /// Return a full copy of `this` ImageBuf (optionally with an explicit
@@ -904,7 +1093,7 @@ public:
         {
             if (m_tile)
                 m_ib->imagecache()->release_tile(m_tile);
-            m_tile      = NULL;
+            m_tile      = nullptr;
             m_proxydata = i.m_proxydata;
             m_ib        = i.m_ib;
             init_ib(i.m_wrap);
@@ -1099,7 +1288,7 @@ public:
         {
             const ImageSpec& spec(m_ib->spec());
             m_deep        = spec.deep;
-            m_localpixels = (m_ib->localpixels() != NULL);
+            m_localpixels = (m_ib->localpixels() != nullptr);
             m_img_xbegin  = spec.x;
             m_img_xend    = spec.x + spec.width;
             m_img_ybegin  = spec.y;
@@ -1150,7 +1339,7 @@ public:
                     }
                 }
             } else if (m_deep) {
-                m_proxydata = NULL;
+                m_proxydata = nullptr;
             } else {
                 // Cached image
                 bool e = m_x < m_img_xend;
@@ -1181,8 +1370,8 @@ public:
             if (!m_localpixels) {
                 const_cast<ImageBuf*>(m_ib)->make_writeable(true);
                 OIIO_DASSERT(m_ib->storage() != IMAGECACHE);
-                m_tile      = NULL;
-                m_proxydata = NULL;
+                m_tile      = nullptr;
+                m_proxydata = nullptr;
                 init_ib(m_wrap);
             }
         }
