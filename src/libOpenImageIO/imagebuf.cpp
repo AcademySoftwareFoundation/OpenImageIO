@@ -92,7 +92,7 @@ public:
     // supplied, use it for the "native" spec, otherwise make the nativespec
     // just copy the regular spec.
     void reset(string_view name, const ImageSpec& spec,
-               const ImageSpec* nativespec = nullptr);
+               const ImageSpec* nativespec = nullptr, void* buffer = nullptr);
     void alloc(const ImageSpec& spec, const ImageSpec* nativespec = nullptr);
     void realloc();
     bool init_spec(string_view filename, int subimage, int miplevel);
@@ -692,13 +692,26 @@ ImageBuf::reset(string_view filename, ImageCache* imagecache)
 
 void
 ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
-                    const ImageSpec* nativespec)
+                    const ImageSpec* nativespec, void* buffer)
 {
     clear();
+    if (!spec.image_bytes()) {
+        m_storage = ImageBuf::UNINITIALIZED;
+        error(
+            "Could not initialize ImageBuf: the provided ImageSpec needs a valid width, height, depth, nchannels, format.");
+        return;
+    }
     m_name             = ustring(filename);
     m_current_subimage = 0;
     m_current_miplevel = 0;
-    alloc(spec);
+    if (buffer) {
+        m_localpixels  = (char*)buffer;
+        m_storage      = ImageBuf::APPBUFFER;
+        m_pixels_valid = true;
+    } else {
+        m_storage = ImageBuf::LOCALBUFFER;
+        alloc(spec);
+    }
     if (nativespec)
         m_nativespec = *nativespec;
 }
@@ -710,7 +723,7 @@ ImageBuf::reset(string_view filename, const ImageSpec& spec,
                 InitializePixels zero)
 {
     m_impl->reset(filename, spec);
-    if (zero == InitializePixels::Yes && !deep())
+    if (initialized() && zero == InitializePixels::Yes && !deep())
         ImageBufAlgo::zero(*this);
 }
 
@@ -722,6 +735,14 @@ ImageBuf::reset(const ImageSpec& spec, InitializePixels zero)
     m_impl->reset("", spec);
     if (zero == InitializePixels::Yes && !deep())
         ImageBufAlgo::zero(*this);
+}
+
+
+
+void
+ImageBuf::reset(const ImageSpec& spec, void* buffer)
+{
+    m_impl->reset("", spec, nullptr, buffer);
 }
 
 
@@ -739,8 +760,10 @@ ImageBufImpl::realloc()
                                           OIIO_SIMD_MAX_SIZE_BYTES),
                         0);
     // NB make it big enough for SSE
-    if (m_allocated_size)
+    if (m_allocated_size) {
         m_pixels_valid = true;
+        m_storage      = ImageBuf::LOCALBUFFER;
+    }
     if (m_spec.deep) {
         m_deepdata.init(m_spec);
         m_storage = ImageBuf::LOCALBUFFER;
