@@ -11,38 +11,32 @@ ImageBuf is a utility class that stores an entire image.  It provides a
 nice API for reading, writing, and manipulating images as a single unit,
 without needing to worry about any of the details of storage or I/O.
 
-An ImageBuf can store its pixels in one of several ways:
-
-* Allocate "local storage" to hold the image pixels internal to the
-  ImageBuf.  This storage will be freed when the ImageBuf is destroyed.
-* "Wrap" pixel memory already allocated by the calling application, which
-  will continue to own that memory and be responsible for freeing it after
-  the ImageBuf is destroyed.
-* Be "backed" by an ImageCache, which will automatically be used to
-  retreive pixels when requested, but the ImageBuf will not allocate
-  separate storage for it.  This brings all the advantages of the
-  ImageCache, but can only be used for read-only ImageBuf's that reference a
-  stored image file.
-
-All I/O involving ImageBuf (that is, calls to `read` or `write`)
-are implemented in terms of ImageCache, ImageInput,
-and ImageOutput underneath, and so support all of the image file
-formats supported by OIIO.
+All I/O involving ImageBuf (that is, calls to `read` or `write`) are
+implemented underneath in terms of ImageCache, ImageInput, and ImageOutput,
+and so support all of the image file formats supported by OIIO.
 
 The ImageBuf class definition requires that you::
 
     #include <OpenImageIO/imagebuf.h>
 
 
+.. doxygenenum:: OIIO::ImageBuf::IBStorage
+
 
 Constructing, destructing, resetting an ImageBuf
 ================================================
+
+There are several ways to construct an ImageBuf. Each constructor has a
+corresponding `reset` method that takes the same arguments. Calling `reset`
+on an existing ImageBuf is equivalent to constructing a new ImageBuf from
+scratch (even if the ImageBuf, prior to reset, previously held an image).
+
 
 Making an empty or uninitialized ImageBuf
 -----------------------------------------
 
 .. doxygenfunction:: OIIO::ImageBuf::ImageBuf()
-.. doxygenfunction:: OIIO::ImageBuf::clear()
+.. doxygenfunction:: OIIO::ImageBuf::reset()
 
 
 Constructing a readable ImageBuf
@@ -64,6 +58,7 @@ Constructing an ImageBuf that "wraps" an application buffer
 -------------------------------------------------------------
 
 .. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec&, void *)
+.. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec&, void *)
 
 
 
@@ -531,5 +526,5 @@ chapter).  You could rewrite the example even more simply::
     }
 
 This other type-dispatching helper macros will be discussed in more
-detail in Chapter `Image Processing`_.
+detail in Chapter :ref:`chap-imagebufalgo`.
 
