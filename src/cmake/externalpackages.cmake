@@ -311,3 +311,45 @@ option (USE_EMBEDDED_LIBSQUISH
 if (NOT USE_EMBEDDED_LIBSQUISH)
     checked_find_package (Libsquish)
 endif ()
+
+
+###########################################################################
+# fmtlib
+
+option (BUILD_FMT_FORCE "Force local download/build of fmt even if installed" OFF)
+option (BUILD_MISSING_FMT "Local download/build of fmt if not installed" ON)
+set (BUILD_FMT_VERSION "6.1.2" CACHE STRING "Preferred fmtlib/fmt version, when downloading/building our own")
+
+macro (find_or_download_fmt)
+    # If we weren't told to force our own download/build of fmt, look
+    # for an installed version. Still prefer a copy that seems to be
+    # locally installed in this tree.
+    if (NOT BUILD_FMT_FORCE)
+        find_package (fmt QUIET)
+    endif ()
+    # If an external copy wasn't found and we requested that missing
+    # packages be built, or we we are forcing a local copy to be built, then
+    # download and build it.
+    if ((BUILD_MISSING_FMT AND NOT FMT_FOUND) OR BUILD_FMT_FORCE)
+        message (STATUS "Downloading local fmtlib/fmt")
+        set (FMT_INSTALL_DIR "${PROJECT_SOURCE_DIR}/ext/fmt")
+        set (FMT_GIT_REPOSITORY "https://github.com/fmtlib/fmt")
+        if (NOT IS_DIRECTORY ${FMT_INSTALL_DIR}/include/fmt)
+            find_package (Git REQUIRED)
+            execute_process(COMMAND             ${GIT_EXECUTABLE} clone    ${FMT_GIT_REPOSITORY} -n ${FMT_INSTALL_DIR})
+            execute_process(COMMAND             ${GIT_EXECUTABLE} checkout ${BUILD_FMT_VERSION}
+                            WORKING_DIRECTORY   ${FMT_INSTALL_DIR})
+            if (IS_DIRECTORY ${FMT_INSTALL_DIR}/include/fmt)
+                message (STATUS "DOWNLOADED fmtlib/fmt to ${FMT_INSTALL_DIR}.\n"
+                         "Remove that dir to get rid of it.")
+            else ()
+                message (FATAL_ERROR "Could not download fmtlib/fmt")
+            endif ()
+        endif ()
+        set (FMT_INCLUDE_DIR "${FMT_INSTALL_DIR}/include")
+    endif ()
+    checked_find_package (fmt REQUIRED)
+endmacro()
+
+find_or_download_fmt()
+include_directories (${FMT_INCLUDES})

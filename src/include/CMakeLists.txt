@@ -52,7 +52,12 @@ install (FILES ${public_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
          COMPONENT developer)
 
-file (GLOB fmt_headers ${PROJECT_NAME}/fmt/*.h)
+set (fmt_headers
+        ${FMT_INCLUDES}/fmt/core.h
+        ${FMT_INCLUDES}/fmt/format-inl.h
+        ${FMT_INCLUDES}/fmt/format.h
+        ${FMT_INCLUDES}/fmt/ostream.h
+        ${FMT_INCLUDES}/fmt/printf.h )
 install (FILES ${fmt_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/fmt
          COMPONENT developer)

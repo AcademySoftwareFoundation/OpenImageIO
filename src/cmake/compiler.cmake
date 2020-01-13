@@ -431,8 +431,7 @@ endif ()
 set (CLANG_FORMAT_EXE_HINT "" CACHE PATH "clang-format executable's directory (will search if not specified")
 set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
     CACHE STRING "Glob patterns to include for clang-format")
-set (CLANG_FORMAT_EXCLUDES "src/include/OpenImageIO/fmt/*.h"
-                           "*pugixml*" "*SHA1*" "*/farmhash.cpp" "*/tinyformat.h"
+set (CLANG_FORMAT_EXCLUDES "*pugixml*" "*SHA1*" "*/farmhash.cpp" "*/tinyformat.h"
                            "src/dpx.imageio/libdpx/*"
                            "src/cineon.imageio/libcineon/*"
                            "src/dds.imageio/squish/*"
