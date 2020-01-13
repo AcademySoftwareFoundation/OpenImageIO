@@ -2,21 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
-# Macro to install targets to the appropriate locations.  Use this instead of
-# the install(TARGETS ...) signature.
-#
-# Usage:
-#
-#    install_targets (target1 [target2 ...])
-#
-macro (install_targets)
-    install (TARGETS ${ARGN}
-             EXPORT OIIO_EXPORTED_TARGETS
-             RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT user
-             LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT user
-             ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT developer)
-endmacro ()
-
 
 # Macro to add a build target for an IO plugin.
 #

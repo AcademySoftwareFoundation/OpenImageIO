@@ -221,8 +221,9 @@ write_basic_package_version_file (
         VERSION ${PROJECT_VERSION}
         COMPATIBILITY SameMajorVersion)
 
-# generate the Targets file in the binary dir using the targets collected in OIIO_EXPORTED_TARGETS
-# each target is added to OIIO_EXPORTED_TARGETS through the oiio macro install_target()
+# generate the Targets file in the binary dir using the targets collected in
+# OIIO_EXPORTED_TARGETS each target is added to OIIO_EXPORTED_TARGETS
+# through the macro install_target().
 export (EXPORT OIIO_EXPORTED_TARGETS FILE "${CMAKE_BINARY_DIR}/${OIIO_TARGETS_EXPORT_NAME}")
 
 # generate the config file from the template in the binary dir
