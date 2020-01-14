@@ -312,7 +312,7 @@ TEST_FLAGS += --force-new-ctest-process --output-on-failure
 test: build
 	@ ${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests ${TEST_FLAGS}..."
 	@ ( cd ${build_dir} ; \
-	    PYTHONPATH=${PWD}/${build_dir}/src/python \
+	    PYTHONPATH=${PWD}/${build_dir}/lib/python/site-packages \
 	    ctest -E broken ${TEST_FLAGS} \
 	  )
 	@ ( if [[ "${CODECOV}" == "1" ]] ; then \
@@ -326,7 +326,7 @@ test: build
 # that are expected to fail on some platforms)
 testall: build
 	${CMAKE} -E cmake_echo_color --switch=$(COLOR) --cyan "Running all tests ${TEST_FLAGS}..."
-	( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/src/python ctest ${TEST_FLAGS} )
+	( cd ${build_dir} ; PYTHONPATH=${PWD}/${build_dir}/lib/python/site-packages ctest ${TEST_FLAGS} )
 
 # 'make clean' clears out the build directory for this platform
 clean:

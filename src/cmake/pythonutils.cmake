@@ -164,6 +164,14 @@ macro (setup_python_module)
                                SUFFIX ".pyd")
     endif()
 
+    # In the build area, put it in lib/python so it doesn't clash with the
+    # non-python libraries of the same name (which aren't prefixed by "lib"
+    # on Windows).
+    set_target_properties (${target_name} PROPERTIES
+            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/site-packages
+            ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/site-packages
+            )
+
     install (TARGETS ${target_name}
              RUNTIME DESTINATION ${PYTHON_SITE_DIR} COMPONENT user
              LIBRARY DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
