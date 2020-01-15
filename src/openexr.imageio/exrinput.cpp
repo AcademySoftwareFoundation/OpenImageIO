@@ -42,6 +42,7 @@ using boost::math::gcd;
 #include <OpenEXR/ImfDoubleAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
+#include <OpenEXR/ImfFloatVectorAttribute.h>
 #include <OpenEXR/ImfInputPart.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
@@ -628,6 +629,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         const Imf::KeyCodeAttribute* kcattr;
         const Imf::ChromaticitiesAttribute* crattr;
         const Imf::RationalAttribute* rattr;
+        const Imf::FloatVectorAttribute* fvattr;
         const Imf::StringVectorAttribute* svattr;
         const Imf::DoubleAttribute* dattr;
         const Imf::V2dAttribute* v2dattr;
@@ -690,6 +692,19 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 ustrvec[i] = strvec[i];
             TypeDesc sv(TypeDesc::STRING, ustrvec.size());
             spec.attribute(oname, sv, &ustrvec[0]);
+#if defined(OPENEXR_VERSION_MAJOR)
+#    if (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100           \
+         + OPENEXR_VERSION_PATCH)                                              \
+        >= 20200
+        } else if (type == "floatvector"
+                   && (fvattr
+                       = header->findTypedAttribute<Imf::FloatVectorAttribute>(
+                           name))) {
+            std::vector<float> fvec = fvattr->value();
+            TypeDesc fv(TypeDesc::FLOAT, fvec.size());
+            spec.attribute(oname, fv, &fvec[0]);
+#    endif
+#endif
         } else if (type == "double"
                    && (dattr = header->findTypedAttribute<Imf::DoubleAttribute>(
                            name))) {
