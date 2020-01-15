@@ -17,6 +17,8 @@ Public API changes:
 * ImageBuf:
     - Add `ImageBuf::setpixel()` methods that use cspan instead of ptr/len.
       #2443 (2.1.10/2.2.0)
+    - Add "missing" `reset()` varieties so that every IB constructor has a
+      corresponding `reset()` with the same parameters and vice versa. #2460
 * ImageBufAlgo:
     - New `repremult()` is like premult, but will not premult when alpha is
       zero. #2447 (2.2.0)
@@ -46,6 +48,11 @@ Fixes and feature enhancements:
     - Huge ImageBuf allocation failures (more than available RAM) now are
       caught and treated as an ImageBuf error, rather than crashing with an
       uncaught exception. #2414 (2.2.0)
+    - ImageBuf constructors that are passed an ImageSpec (for creating an
+      allocated writable IB or "wrapping" a user buffer) now check that the
+      spec passed has enough information to know the size of the buffer
+      (i.e., it will be recognized as an error if the width, height, depth,
+      channels, or data type have not been set validly). #2460
 * ImageCache / TextureSystem / maketx:
     - New IC/TS attribute "trust_file_extensions", if nonzero, is a promise
       that all files can be counted on for their formats to match their
@@ -54,7 +61,8 @@ Fixes and feature enhancements:
       with caution! #2421 (2.2.0)
 * Exif read: guard better against out of range offests, fixes crashes when
   reading jpeg files with malformed exif blocks. #2429 (2.1.10/2.2.0)
-
+* OpenEXR:
+    - Add support for reading and writing float vector metadata. #2459
 
 Developer goodies / internals:
 * platform.h:
@@ -77,9 +85,11 @@ Build/test system improvements and platform ports:
 * Bump the minimum pybind11 vesion that we auto-download, and also be sure
   to auto-download if pybind11 is found on the system already but is not an
   adequately new version. #2453 (2.1.10.1/2.2.0)
+* Un-embed fmt headers. If they are not found on the system at build time,
+  they will be auto-downloaded. #2439 (2.2.0)
 
 Notable documentation changes:
-
+* Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
 
 
 Release 2.1.11 (1 Feb? 2020) -- compared to 2.1.10
@@ -94,6 +104,9 @@ Release 2.1.11 (1 Feb? 2020) -- compared to 2.1.10
 * Internals: changed a lot of assertions to only happen in debug build mode,
   and changed a lot that happen in release builds to only print the error
   but not force a termination. #2435
+* Add "missing" `ImagBuf::reset()` varieties so that every IB constructor
+  has a corresponding `reset()` with the same parameters and vice versa.
+  #2460
 
 Release 2.1.10.1 (10 Jan 2019)
 ------------------------------
