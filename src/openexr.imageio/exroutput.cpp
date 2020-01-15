@@ -28,6 +28,7 @@
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
+#include <OpenEXR/ImfFloatVectorAttribute.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
@@ -719,10 +720,8 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
                                  Imf::LevelRoundingMode(m_roundingmode)));
 
     // Deal with all other params
-    for (size_t p = 0; p < spec.extra_attribs.size(); ++p)
-        put_parameter(spec.extra_attribs[p].name().string(),
-                      spec.extra_attribs[p].type(),
-                      spec.extra_attribs[p].data(), header);
+    for (const auto& p : spec.extra_attribs)
+        put_parameter(p.name().string(), p.type(), p.data(), header);
 
     // Multi-part EXR files required to have a name. Make one up if not
     // supplied.
@@ -1202,14 +1201,25 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
             }
             // String Vector
             if (type.basetype == TypeDesc::STRING) {
-                Imf::StringVector v;
-                for (int i = 0; i < type.arraylen; i++) {
-                    v.emplace_back(((const char**)data)[i]);
-                }
+                Imf::StringVector v((const char**)data,
+                                    (const char**)data + type.basevalues());
                 header.insert(xname.c_str(), Imf::StringVectorAttribute(v));
                 return true;
             }
+#if defined(OPENEXR_VERSION_MAJOR)
+#    if (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100           \
+         + OPENEXR_VERSION_PATCH)                                              \
+        >= 20200
+            // float Vector -- only supported in OpenEXR >= 2.2
+            if (type.basetype == TypeDesc::FLOAT) {
+                Imf::FloatVector v((const float*)data,
+                                   (const float*)data + type.basevalues());
+                header.insert(xname.c_str(), Imf::FloatVectorAttribute(v));
+                return true;
+            }
         }
+#    endif
+#endif
     } catch (const std::exception& e) {
         OIIO::debug("Caught OpenEXR exception: %s\n", e.what());
     } catch (...) {  // catch-all for edge cases or compiler bugs
