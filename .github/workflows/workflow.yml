@@ -154,6 +154,25 @@ jobs:
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
 
+  linux-clang:
+    name: "Linux clang: clang9, C++14, avx2, exr2.4"
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: all
+        env:
+          CXX: clang++
+          LLVM_VERSION: 9.0.0
+          CMAKE_CXX_STANDARD: 14
+          USE_SIMD: avx2,f16c
+          OPENEXR_BRANCH: v2.4.0
+          OCIO_BRANCH: 1c624651b7
+          # Pick an OCIO commit that includes a warning fix we need for clang
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
+
   linux-static:
     name: "Linux static libs: gcc7, C++14, exr2.3"
     runs-on: ubuntu-18.04

@@ -1,42 +1,44 @@
 #!/bin/bash
 
-OCIOREPO=${OCIOREPO:=https://github.com/imageworks/OpenColorIO.git}
-OCIOBUILDDIR=${OCIOBUILDDIR:=${PWD}/ext/OpenColorIO}
-OCIOINSTALLDIR=${OCIOINSTALLDIR:=${PWD}/ext/OpenColorIO/dist}
-OCIOBRANCH=${OCIOBRANCH:=v1.1.1}
-OCIOCXXFLAGS=${OCIOCXXFLAGS:="-Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
+OCIO_REPO=${OCIO_REPO:=https://github.com/imageworks/OpenColorIO.git}
+OCIO_BUILD_DIR=${OCIO_BUILD_DIR:=${PWD}/ext/OpenColorIO}
+OCIO_INSTALL_DIR=${OCIO_INSTALL_DIR:=${PWD}/ext/OpenColorIO/dist}
+OCIO_VERSION=${OCIO_VERSION:=1.1.1}
+OCIO_BRANCH=${OCIO_BRANCH:=v${OCIO_VERSION}}
+OCIO_CXX_FLAGS=${OCIO_CXX_FLAGS:="-Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
 # Just need libs:
 OCIO_BUILDOPTS="-DOCIO_BUILD_APPS=OFF -DOCIO_BUILD_NUKE=OFF \
                -DOCIO_BUILD_DOCS=OFF -DOCIO_BUILD_TESTS=OFF \
                -DOCIO_BUILD_PYTHON=OFF -DOCIO_BUILD_PYGLUE=OFF \
-               -DOCIO_BUILD_JAVA=OFF"
+               -DOCIO_BUILD_JAVA=OFF \
+               -DOCIO_BUILD_STATIC=${OCIO_BUILD_STATIC:=OFF}"
 BASEDIR=`pwd`
 pwd
-echo "OpenColorIO install dir will be: ${OCIOINSTALLDIR}"
+echo "OpenColorIO install dir will be: ${OCIO_INSTALL_DIR}"
 
 mkdir -p ./ext
 pushd ./ext
 
 # Clone OpenColorIO project from GitHub and build
 if [[ ! -e OpenColorIO ]] ; then
-    echo "git clone ${OCIOREPO} OpenColorIO"
-    git clone ${OCIOREPO} OpenColorIO
+    echo "git clone ${OCIO_REPO} OpenColorIO"
+    git clone ${OCIO_REPO} OpenColorIO
 fi
 cd OpenColorIO
 
-echo "git checkout ${OCIOBRANCH} --force"
-git checkout ${OCIOBRANCH} --force
+echo "git checkout ${OCIO_BRANCH} --force"
+git checkout ${OCIO_BRANCH} --force
 mkdir -p build
-time (cd build ; cmake --config Release -DCMAKE_INSTALL_PREFIX=${OCIOINSTALLDIR} -DCMAKE_CXX_FLAGS="${OCIOCXXFLAGS}" ${OCIO_BUILDOPTS} .. && make clean && make -j 4 && make install)
+time (cd build ; cmake --config Release -DCMAKE_INSTALL_PREFIX=${OCIO_INSTALL_DIR} -DCMAKE_CXX_FLAGS="${OCIO_CXX_FLAGS}" ${OCIO_BUILDOPTS} .. && make clean && make -j 4 && make install)
 popd
 
-ls -R ${OCIOINSTALLDIR}
+ls -R ${OCIO_INSTALL_DIR}
 
 #echo "listing .."
 #ls ..
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
-export OpenColorIO_ROOT=$OCIOINSTALLDIR
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OCIOINSTALLDIR}/lib
+export OpenColorIO_ROOT=$OCIO_INSTALL_DIR
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${OCIO_INSTALL_DIR}/lib
 
