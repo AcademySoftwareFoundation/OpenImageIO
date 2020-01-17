@@ -3894,7 +3894,7 @@ OIIO_FORCEINLINE vbool16 operator== (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kxnor (a.simd(), b.simd());
 #else
-    return vbool16 (!(a.m_bits ^ a.m_bits));
+    return vbool16 (!(a.m_bits ^ b.m_bits));
 #endif
 }
 
@@ -3902,7 +3902,7 @@ OIIO_FORCEINLINE vbool16 operator!= (const vbool16 & a, const vbool16 & b) {
 #if OIIO_SIMD_AVX >= 512
     return _mm512_kxor (a.simd(), b.simd());
 #else
-    return vbool16 (a.m_bits ^ a.m_bits);
+    return vbool16 (a.m_bits ^ b.m_bits);
 #endif
 }
 
