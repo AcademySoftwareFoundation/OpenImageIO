@@ -31,7 +31,7 @@ void OIIO_API
 #if __has_attribute(__optnone__)
     __attribute__((__optnone__))
 #endif
-    clobber(void* p)
+    clobber(void*)
 {
 }
 

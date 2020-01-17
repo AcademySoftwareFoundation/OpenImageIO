@@ -210,7 +210,7 @@ ImageBufAlgo::zero(ROI roi, int nthreads)
 template<typename T>
 static bool
 render_point_(ImageBuf& dst, int x, int y, const float* color, float alpha,
-              ROI roi, int nthreads)
+              ROI roi, int /*nthreads*/)
 {
     ImageBuf::Iterator<T> r(dst, x, y);
     for (int c = roi.chbegin; c < roi.chend; ++c)
@@ -334,7 +334,7 @@ template<typename T> struct IB_drawer {
 template<typename T>
 static bool
 render_line_(ImageBuf& dst, int x1, int y1, int x2, int y2, cspan<float> color,
-             float alpha, bool skip_first, ROI roi, int nthreads)
+             float alpha, bool skip_first, ROI roi, int /*nthreads*/)
 {
     ImageBuf::Iterator<T> r(dst, roi);
     IB_drawer<T> draw(r, color, alpha, roi);
@@ -880,7 +880,8 @@ bool
 ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
                           int fontsize, string_view font_,
                           cspan<float> textcolor, TextAlignX alignx,
-                          TextAlignY aligny, int shadow, ROI roi, int nthreads)
+                          TextAlignY aligny, int shadow, ROI roi,
+                          int /*nthreads*/)
 {
     pvt::LoggedTimer logtime("IBA::render_text");
     if (R.spec().depth > 1) {

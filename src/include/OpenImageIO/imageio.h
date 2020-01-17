@@ -943,7 +943,9 @@ public:
     /// require any new API entry points, addition of support for new
     /// queries does not break ``link compatibility'' with
     /// previously-compiled plugins.
-    virtual int supports (string_view feature) const { return false; }
+    virtual int supports (string_view feature OIIO_MAYBE_UNUSED) const {
+        return false;
+    }
 
     /// Return true if the `filename` names a file of the type for this
     /// ImageInput.  The implementation will try to determine this as
@@ -998,7 +1000,9 @@ public:
     /// @returns
     ///         `true` if the file was found and opened successfully.
     virtual bool open (const std::string& name, ImageSpec &newspec,
-                       const ImageSpec& config) { return open(name,newspec); }
+                       const ImageSpec& config OIIO_MAYBE_UNUSED) {
+        return open(name,newspec);
+    }
 
     /// Return a reference to the image specification of the current
     /// subimage/MIPlevel.  Note that the contents of the spec are invalid
@@ -1802,7 +1806,9 @@ public:
     /// require any new API entry points, addition of support for new
     /// queries does not break ``link compatibility'' with
     /// previously-compiled plugins.
-    virtual int supports (string_view feature) const { return false; }
+    virtual int supports (string_view feature OIIO_MAYBE_UNUSED) const {
+        return false;
+    }
 
     /// Modes passed to the `open()` call.
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };

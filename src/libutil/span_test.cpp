@@ -308,7 +308,7 @@ test_image_view_mutable()
 
 
 int
-main(int argc, char* argv[])
+main(int /*argc*/, char* /*argv*/[])
 {
     test_span();
     test_span_mutable();

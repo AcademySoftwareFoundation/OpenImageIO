@@ -74,7 +74,7 @@ public:
 /// overhead is associated with a particular lock.
 template<typename T> class null_lock {
 public:
-    null_lock(T& m) noexcept {}
+    null_lock(T& /*m*/) noexcept {}
 };
 
 

@@ -375,7 +375,7 @@ test_read_tricky_sizes()
 
 
 int
-main(int argc, char** argv)
+main(int /*argc*/, char** /*argv*/)
 {
     test_all_formats();
     test_read_tricky_sizes();

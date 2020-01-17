@@ -93,8 +93,8 @@ public:
         = nullptr;  // option for pre-switch cmd line arguments
     std::string m_intro;
     std::vector<std::unique_ptr<ArgOption>> m_option;
-    callback_t m_preoption_help  = [](const ArgParse& ap, std::ostream&) {};
-    callback_t m_postoption_help = [](const ArgParse& ap, std::ostream&) {};
+    callback_t m_preoption_help  = [](const ArgParse&, std::ostream&) {};
+    callback_t m_postoption_help = [](const ArgParse&, std::ostream&) {};
 
     Impl(int argc, const char** argv)
         : m_argc(argc)

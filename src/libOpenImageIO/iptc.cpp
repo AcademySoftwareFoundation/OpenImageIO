@@ -159,7 +159,7 @@ decode_iptc_iim(const void* iptc, int length, ImageSpec& spec)
 
 
 static void
-encode_iptc_iim_one_tag(int tag, const char* name, TypeDesc type,
+encode_iptc_iim_one_tag(int tag, const char* /*name*/, TypeDesc type,
                         const void* data, std::vector<char>& iptc)
 {
     if (type == TypeDesc::STRING) {

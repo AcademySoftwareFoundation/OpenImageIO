@@ -212,14 +212,14 @@ mkvec(typename VEC::value_t a, typename VEC::value_t b, typename VEC::value_t c,
 
 template<>
 inline vbool4
-mkvec<vbool4>(bool a, bool b, bool c, bool d, bool e, bool f, bool g, bool h)
+mkvec<vbool4>(bool a, bool b, bool c, bool d, bool, bool, bool, bool)
 {
     return vbool4(a, b, c, d);
 }
 
 template<>
 inline vint4
-mkvec<vint4>(int a, int b, int c, int d, int e, int f, int g, int h)
+mkvec<vint4>(int a, int b, int c, int d, int, int, int, int)
 {
     return vint4(a, b, c, d);
 }
@@ -234,16 +234,14 @@ mkvec<vint16>(int a, int b, int c, int d, int e, int f, int g, int h)
 
 template<>
 inline vfloat4
-mkvec<vfloat4>(float a, float b, float c, float d, float e, float f, float g,
-               float h)
+mkvec<vfloat4>(float a, float b, float c, float d, float, float, float, float)
 {
     return vfloat4(a, b, c, d);
 }
 
 template<>
 inline vfloat3
-mkvec<vfloat3>(float a, float b, float c, float d, float e, float f, float g,
-               float h)
+mkvec<vfloat3>(float a, float b, float c, float, float, float, float, float)
 {
     return vfloat3(a, b, c);
 }

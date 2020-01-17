@@ -293,7 +293,8 @@ py_buffer_to_stdvector(std::vector<T>& vals, const py::buffer& obj)
 // Specialization for reading strings
 template<>
 inline bool
-py_buffer_to_stdvector(std::vector<std::string>& vals, const py::buffer& obj)
+py_buffer_to_stdvector(std::vector<std::string>& /*vals*/,
+                       const py::buffer& /*obj*/)
 {
     return false;  // not supported
 }
@@ -302,7 +303,8 @@ py_buffer_to_stdvector(std::vector<std::string>& vals, const py::buffer& obj)
 // Specialization for reading TypeDesc
 template<>
 inline bool
-py_buffer_to_stdvector(std::vector<TypeDesc>& vals, const py::buffer& obj)
+py_buffer_to_stdvector(std::vector<TypeDesc>& /*vals*/,
+                       const py::buffer& /*obj*/)
 {
     return false;  // not supported
 }

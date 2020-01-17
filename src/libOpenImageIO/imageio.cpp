@@ -753,7 +753,7 @@ parallel_convert_image(int nchannels, int width, int height, int depth,
 
     int blocksize = std::max(1, height / nthreads);
     parallel_for_chunked(
-        0, height, blocksize, [=](int id, int64_t ybegin, int64_t yend) {
+        0, height, blocksize, [=](int /*id*/, int64_t ybegin, int64_t yend) {
             convert_image(nchannels, width, yend - ybegin, depth,
                           (const char*)src + src_ystride * ybegin, src_type,
                           src_xstride, src_ystride, src_zstride,

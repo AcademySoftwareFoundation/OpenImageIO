@@ -74,7 +74,7 @@ time_parallel_for()
         // make a lambda function that spawns a bunch of threads, calls a
         // trivial function, then waits for them to finish and tears down
         // the group.
-        auto func = [=]() { parallel_for(0, nt, [](int64_t i) { /*empty*/ }); };
+        auto func = [=]() { parallel_for(0, nt, [](int64_t) { /*empty*/ }); };
 
         double range;
         double t = time_trial(func, ntrials, its, &range);

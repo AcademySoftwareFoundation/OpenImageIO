@@ -136,7 +136,7 @@ ImageBufAlgo::flatten(const ImageBuf& src, ROI roi, int nthreads)
 
 bool
 ImageBufAlgo::deepen(ImageBuf& dst, const ImageBuf& src, float zvalue, ROI roi,
-                     int nthreads)
+                     int /*nthreads*/)
 {
     pvt::LoggedTimer logtime("IBA::deepen");
     if (src.deep()) {
@@ -364,7 +364,7 @@ ImageBufAlgo::deep_merge(const ImageBuf& A, const ImageBuf& B,
 
 bool
 ImageBufAlgo::deep_holdout(ImageBuf& dst, const ImageBuf& src,
-                           const ImageBuf& thresh, ROI roi, int nthreads)
+                           const ImageBuf& thresh, ROI roi, int /*nthreads*/)
 {
     pvt::LoggedTimer logtime("IBA::deep_holdout");
     if (!src.deep() || !thresh.deep()) {
