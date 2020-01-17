@@ -62,7 +62,7 @@ inline void*
 getsym(Handle plugin_handle, const std::string& symbol_name,
        bool report_error = true)
 {
-    return getsym(plugin_handle, symbol_name.c_str());
+    return getsym(plugin_handle, symbol_name.c_str(), report_error);
 }
 
 /// Return any error messages associated with the last call to any of

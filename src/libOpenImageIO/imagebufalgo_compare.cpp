@@ -855,7 +855,7 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf& src, string_view extrainfo,
         broi.ybegin = ybegin;
         broi.yend   = yend;
         results[b]  = simplePixelHashSHA1(src, "", broi);
-    });
+    }, nthreads);
     // clang-format on
 
     // If there are multiple blocks, hash the block digests to get a final
