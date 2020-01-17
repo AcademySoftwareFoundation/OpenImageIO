@@ -33,6 +33,8 @@ time sudo apt-get -q install -y \
     libopencv-dev \
     ptex-base \
     dcmtk \
+    libsquish-dev \
+    qt5-default \
     libhdf5-dev
 
 # Disable libheif on CI for now... seems to make crashes in CI tests.
@@ -42,6 +44,8 @@ time sudo apt-get -q install -y \
 #    sudo add-apt-repository ppa:strukturag/libheif
 #    time sudo apt-get -q install -y libheif-dev
 #fi
+
+export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
 
 if [[ "$CXX" == "g++-4.8" ]] ; then
     time sudo apt-get install -y g++-4.8
@@ -62,7 +66,10 @@ fi
 
 #dpkg --list
 
-export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
+if [[ "$CXX" == "clang++" ]] ; then
+    source src/build-scripts/build_llvm.bash
+fi
+
 
 src/build-scripts/install_test_images.bash
 
