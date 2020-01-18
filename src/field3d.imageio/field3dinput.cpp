@@ -459,10 +459,11 @@ Field3DInput::close()
 
 
 bool
-Field3DInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                                   void* data)
+Field3DInput::read_native_scanline(int /*subimage*/, int /*miplevel*/,
+                                   int /*y*/, int /*z*/, void* /*data*/)
 {
     // scanlines not supported
+    error("Field3D does not support scanline I/O");
     return false;
 }
 

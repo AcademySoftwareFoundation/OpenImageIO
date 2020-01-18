@@ -272,7 +272,7 @@ test_imagespec_from_ROI()
 
 
 int
-main(int argc, char* argv[])
+main(int /*argc*/, char* /*argv*/[])
 {
     test_imagespec_pixels();
     test_imagespec_metadata_val();

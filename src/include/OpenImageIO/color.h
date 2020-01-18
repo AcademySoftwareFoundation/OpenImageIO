@@ -268,7 +268,9 @@ public:
     std::string configname() const;
 
     // DEPRECATED(1.9) -- no longer necessary, because it's a shared ptr
-    static void deleteColorProcessor(const ColorProcessorHandle& processor) {}
+    static void deleteColorProcessor(const ColorProcessorHandle& /*processor*/)
+    {
+    }
 
     /// Return if OpenImageIO was built with OCIO support
     static bool supportsOpenColorIO();

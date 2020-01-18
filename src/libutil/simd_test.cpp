@@ -151,7 +151,7 @@ mkvec(typename VEC::value_t a, typename VEC::value_t b, typename VEC::value_t c,
 
 template<>
 inline vfloat3
-mkvec<vfloat3>(float a, float b, float c, float d)
+mkvec<vfloat3>(float a, float b, float c, float /*d*/)
 {
     return vfloat3(a, b, c);
 }
@@ -259,7 +259,7 @@ mkvec<vfloat16>(float a, float b, float c, float d, float e, float f, float g,
 
 template<typename VEC>
 inline int
-loadstore_vec(int dummy)
+loadstore_vec(int /*dummy*/)
 {
     typedef typename VEC::value_t ELEM;
     ELEM B[VEC::elements];
@@ -274,7 +274,7 @@ loadstore_vec(int dummy)
 
 template<typename VEC>
 inline VEC
-load_vec(int dummy)
+load_vec(int /*dummy*/)
 {
     typedef typename VEC::value_t ELEM;
     VEC v;
@@ -293,7 +293,7 @@ store_vec(const VEC& v)
 
 template<typename VEC, int N>
 inline VEC
-load_vec_N(typename VEC::value_t* B)
+load_vec_N(typename VEC::value_t* /*B*/)
 {
     typedef typename VEC::value_t ELEM;
     VEC v;
@@ -771,10 +771,10 @@ test_component_access()
 #endif
 
     benchmark2 ("operator[i]", [&](const VEC& v, int i){ return v[i]; },  b, 2, 1 /*work*/);
-    benchmark2 ("operator[2]", [&](const VEC& v, int i){ return v[2]; },  b, 2, 1 /*work*/);
-    benchmark2 ("operator[0]", [&](const VEC& v, int i){ return v[0]; },  b, 0, 1 /*work*/);
-    benchmark2 ("extract<2> ", [&](const VEC& v, int i){ return extract<2>(v); },  b, 2, 1 /*work*/);
-    benchmark2 ("extract<0> ", [&](const VEC& v, int i){ return extract<0>(v); },  b, 0, 1 /*work*/);
+    benchmark2 ("operator[2]", [&](const VEC& v, int /*i*/){ return v[2]; },  b, 2, 1 /*work*/);
+    benchmark2 ("operator[0]", [&](const VEC& v, int /*i*/){ return v[0]; },  b, 0, 1 /*work*/);
+    benchmark2 ("extract<2> ", [&](const VEC& v, int /*i*/){ return extract<2>(v); },  b, 2, 1 /*work*/);
+    benchmark2 ("extract<0> ", [&](const VEC& v, int /*i*/){ return extract<0>(v); },  b, 0, 1 /*work*/);
     benchmark2 ("insert<2> ", [&](const VEC& v, ELEM i){ return insert<2>(v, i); }, b, ELEM(1), 1 /*work*/);
 }
 

@@ -554,7 +554,8 @@ Filesystem::file_size(string_view path) noexcept
 
 
 void
-Filesystem::convert_native_arguments(int argc, const char* argv[])
+Filesystem::convert_native_arguments(int argc OIIO_MAYBE_UNUSED,
+                                     const char* argv OIIO_MAYBE_UNUSED[])
 {
 #ifdef _WIN32
     // Windows only, standard main() entry point does not accept unicode file

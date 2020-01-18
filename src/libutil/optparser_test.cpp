@@ -89,7 +89,7 @@ test_optparser()
 
 
 int
-main(int argc, char* argv[])
+main(int /*argc*/, char* /*argv*/[])
 {
     test_optparser();
 

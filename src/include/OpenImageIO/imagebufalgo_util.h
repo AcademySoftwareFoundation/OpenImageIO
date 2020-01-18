@@ -82,7 +82,7 @@ parallel_image (ROI roi, parallel_image_options opt,
         xchunk = ychunk = std::max (int64_t(1), int64_t(std::sqrt(opt.maxthreads))/2);
     }
 
-    auto task = [&](int id, int64_t xbegin, int64_t xend,
+    auto task = [&](int /*id*/, int64_t xbegin, int64_t xend,
                     int64_t ybegin, int64_t yend) {
         f (ROI (xbegin, xend, ybegin, yend, roi.zbegin, roi.zend,
                 roi.chbegin, roi.chend));

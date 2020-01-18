@@ -1031,7 +1031,7 @@ test_string_compare_function()
 
 
 int
-main(int argc, char* argv[])
+main(int /*argc*/, char* /*argv*/[])
 {
     test_format();
     test_memformat();

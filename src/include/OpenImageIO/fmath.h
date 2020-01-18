@@ -781,7 +781,7 @@ void convert_type (const S *src, D *dst, size_t n, D _min, D _max)
 template<>
 inline void convert_type<uint8_t,float> (const uint8_t *src,
                                          float *dst, size_t n,
-                                         float _min, float _max)
+                                         float /*_min*/, float /*_max*/)
 {
     float scale (1.0f/std::numeric_limits<uint8_t>::max());
     simd::vfloat4 scale_simd (scale);
@@ -799,7 +799,7 @@ inline void convert_type<uint8_t,float> (const uint8_t *src,
 template<>
 inline void convert_type<uint16_t,float> (const uint16_t *src,
                                           float *dst, size_t n,
-                                          float _min, float _max)
+                                          float /*_min*/, float /*_max*/)
 {
     float scale (1.0f/std::numeric_limits<uint16_t>::max());
     simd::vfloat4 scale_simd (scale);
@@ -817,7 +817,7 @@ inline void convert_type<uint16_t,float> (const uint16_t *src,
 template<>
 inline void convert_type<half,float> (const half *src,
                                       float *dst, size_t n,
-                                      float _min, float _max)
+                                      float /*_min*/, float /*_max*/)
 {
 #if OIIO_SIMD >= 8 && OIIO_F16C_ENABLED
     // If f16c ops are enabled, it's worth doing this by 8's
@@ -842,7 +842,7 @@ inline void convert_type<half,float> (const half *src,
 template<>
 inline void
 convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
-                              uint16_t _min, uint16_t _max)
+                              uint16_t /*_min*/, uint16_t /*_max*/)
 {
     float min = std::numeric_limits<uint16_t>::min();
     float max = std::numeric_limits<uint16_t>::max();
@@ -863,7 +863,7 @@ convert_type<float,uint16_t> (const float *src, uint16_t *dst, size_t n,
 template<>
 inline void
 convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
-                             uint8_t _min, uint8_t _max)
+                             uint8_t /*_min*/, uint8_t /*_max*/)
 {
     float min = std::numeric_limits<uint8_t>::min();
     float max = std::numeric_limits<uint8_t>::max();
@@ -885,7 +885,7 @@ convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
 template<>
 inline void
 convert_type<float,half> (const float *src, half *dst, size_t n,
-                          half _min, half _max)
+                          half /*_min*/, half /*_max*/)
 {
 #if OIIO_SIMD >= 8 && OIIO_F16C_ENABLED
     // If f16c ops are enabled, it's worth doing this by 8's
