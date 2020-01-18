@@ -328,12 +328,12 @@ public:
     virtual bool opened () const { return mode() != Closed; }
     virtual int64_t tell () { return m_pos; }
     virtual bool seek (int64_t offset) { m_pos = offset; return true; }
-    virtual size_t read (void *buf, size_t size) { return 0; }
-    virtual size_t write (const void *buf, size_t size) { return 0; }
+    virtual size_t read (void *buf, size_t size);
+    virtual size_t write (const void *buf, size_t size);
     // pread(), pwrite() are stateless, do not alter the current file
     // position, and are thread-safe (against each other).
-    virtual size_t pread (void *buf, size_t size, int64_t offset) { return 0; }
-    virtual size_t pwrite (const void *buf, size_t size, int64_t offset) { return 0; }
+    virtual size_t pread (void *buf, size_t size, int64_t offset);
+    virtual size_t pwrite (const void *buf, size_t size, int64_t offset);
     virtual size_t size () const { return 0; }
     virtual void flush () const { }
 

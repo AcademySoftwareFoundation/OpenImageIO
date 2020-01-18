@@ -86,7 +86,7 @@ FitsOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
 
 bool
-FitsOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+FitsOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                            stride_t xstride)
 {
     if (m_spec.width == 0 && m_spec.height == 0)

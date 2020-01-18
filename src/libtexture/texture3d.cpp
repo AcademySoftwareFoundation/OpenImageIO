@@ -272,8 +272,9 @@ bool
 TextureSystemImpl::texture3d_lookup_nomip(
     TextureFile& texturefile, PerThreadInfo* thread_info, TextureOpt& options,
     int nchannels_result, int actualchannels, const Imath::V3f& P,
-    const Imath::V3f& dPdx, const Imath::V3f& dPdy, const Imath::V3f& dPdz,
-    float* result, float* dresultds, float* dresultdt, float* dresultdr)
+    const Imath::V3f& /*dPdx*/, const Imath::V3f& /*dPdy*/,
+    const Imath::V3f& /*dPdz*/, float* result, float* dresultds,
+    float* dresultdt, float* dresultdr)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
     for (int c = 0; c < nchannels_result; ++c)

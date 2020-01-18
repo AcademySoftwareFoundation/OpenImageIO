@@ -161,7 +161,7 @@ GIFInput::decode_line_number(int line_number, int height)
 
 
 bool
-GIFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+GIFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     lock_guard lock(m_mutex);

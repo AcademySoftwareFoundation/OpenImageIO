@@ -120,7 +120,7 @@ comp_info_to_attr(const jpeg_decompress_struct& cinfo)
 
 
 void
-JpgInput::jpegerror(my_error_ptr myerr, bool fatal)
+JpgInput::jpegerror(my_error_ptr /*myerr*/, bool fatal)
 {
     // Send the error message to the ImageInput
     char errbuf[JMSG_LENGTH_MAX];
@@ -429,7 +429,7 @@ cmyk_to_rgb(int n, const unsigned char* cmyk, size_t cmyk_stride,
 
 
 bool
-JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+JpgInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     if (!seek_subimage(subimage, miplevel))

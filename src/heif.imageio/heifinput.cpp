@@ -105,7 +105,7 @@ HeifInput::open(const std::string& name, ImageSpec& newspec)
 
 bool
 HeifInput::open(const std::string& name, ImageSpec& newspec,
-                const ImageSpec& config)
+                const ImageSpec& /*config*/)
 {
     m_filename = name;
     m_subimage = -1;
@@ -235,7 +235,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
 
 
 bool
-HeifInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                 void* data)
 {
     lock_guard lock(m_mutex);

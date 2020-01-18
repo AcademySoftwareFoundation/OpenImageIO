@@ -153,7 +153,7 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
 
 
 bool
-HeifOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+HeifOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                            stride_t xstride)
 {
     data           = to_native_scanline(format, data, xstride, scratch);

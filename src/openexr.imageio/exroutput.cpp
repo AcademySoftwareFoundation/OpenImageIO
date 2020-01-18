@@ -1286,8 +1286,8 @@ OpenEXROutput::close()
 
 
 bool
-OpenEXROutput::write_scanline(int y, int z, TypeDesc format, const void* data,
-                              stride_t xstride)
+OpenEXROutput::write_scanline(int y, int /*z*/, TypeDesc format,
+                              const void* data, stride_t xstride)
 {
     if (!(m_output_scanline || m_scanline_output_part)) {
         errorf("called OpenEXROutput::write_scanline without an open file");
@@ -1545,7 +1545,7 @@ OpenEXROutput::write_tiles(int xbegin, int xend, int ybegin, int yend,
 
 
 bool
-OpenEXROutput::write_deep_scanlines(int ybegin, int yend, int z,
+OpenEXROutput::write_deep_scanlines(int ybegin, int yend, int /*z*/,
                                     const DeepData& deepdata)
 {
     if (m_deep_scanline_output_part == NULL) {

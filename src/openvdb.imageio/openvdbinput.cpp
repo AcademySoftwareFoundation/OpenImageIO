@@ -546,8 +546,8 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
 
 
 bool
-OpenVDBInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                                   void* data)
+OpenVDBInput::read_native_scanline(int /*subimage*/, int /*miplevel*/,
+                                   int /*y*/, int /*z*/, void* /*data*/)
 {
     // scanlines not supported
     return false;

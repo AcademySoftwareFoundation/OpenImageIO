@@ -270,7 +270,7 @@ associateAlpha(T* data, int size, int channels, int alpha_channel, float gamma)
 
 
 bool
-PNGInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+PNGInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     lock_guard lock(m_mutex);

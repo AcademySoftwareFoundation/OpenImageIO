@@ -88,8 +88,8 @@ SocketInput::open(const std::string& name, ImageSpec& newspec,
 
 
 bool
-SocketInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                                  void* data)
+SocketInput::read_native_scanline(int subimage, int miplevel, int /*y*/,
+                                  int /*z*/, void* data)
 {
     lock_guard lock(m_mutex);
     if (!seek_subimage(subimage, miplevel))
@@ -111,8 +111,8 @@ SocketInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 
 bool
-SocketInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
-                              void* data)
+SocketInput::read_native_tile(int subimage, int miplevel, int /*x*/, int /*y*/,
+                              int /*z*/, void* data)
 {
     lock_guard lock(m_mutex);
     if (!seek_subimage(subimage, miplevel))

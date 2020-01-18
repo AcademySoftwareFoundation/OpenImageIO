@@ -255,8 +255,8 @@ PtexInput::close()
 
 
 bool
-PtexInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                                void* data)
+PtexInput::read_native_scanline(int /*subimage*/, int /*miplevel*/, int /*y*/,
+                                int /*z*/, void* /*data*/)
 {
     return false;  // Not scanline oriented
 }
@@ -264,7 +264,7 @@ PtexInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 
 bool
-PtexInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
+PtexInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
                             void* data)
 {
     lock_guard lock(m_mutex);

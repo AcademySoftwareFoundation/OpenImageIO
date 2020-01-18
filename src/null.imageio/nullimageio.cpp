@@ -24,22 +24,27 @@ public:
     NullOutput() {}
     virtual ~NullOutput() {}
     virtual const char* format_name(void) const override { return "null"; }
-    virtual int supports(string_view feature) const override { return true; }
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode = Create) override
+    virtual int supports(string_view /*feature*/) const override
+    {
+        return true;
+    }
+    virtual bool open(const std::string& /*name*/, const ImageSpec& spec,
+                      OpenMode /*mode*/) override
     {
         m_spec = spec;
         return true;
     }
     virtual bool close() override { return true; }
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override
+    virtual bool write_scanline(int /*y*/, int /*z*/, TypeDesc /*format*/,
+                                const void* /*data*/,
+                                stride_t /*xstride*/) override
     {
         return true;
     }
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override
+    virtual bool write_tile(int /*x*/, int /*y*/, int /*z*/,
+                            TypeDesc /*format*/, const void* /*data*/,
+                            stride_t /*xstride*/, stride_t /*ystride*/,
+                            stride_t /*zstride*/) override
     {
         return true;
     }
@@ -56,7 +61,10 @@ public:
     virtual ~NullInput() {}
     virtual const char* format_name(void) const override { return "null"; }
     virtual bool valid_file(const std::string& filename) const override;
-    virtual int supports(string_view feature) const override { return true; }
+    virtual int supports(string_view /*feature*/) const override
+    {
+        return true;
+    }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
                       const ImageSpec& config) override;
@@ -362,8 +370,8 @@ NullInput::seek_subimage(int subimage, int miplevel)
 
 
 bool
-NullInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                                void* data)
+NullInput::read_native_scanline(int /*subimage*/, int /*miplevel*/, int /*y*/,
+                                int /*z*/, void* data)
 {
     if (m_value.size()) {
         size_t s = m_spec.pixel_bytes();
@@ -378,8 +386,8 @@ NullInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 
 bool
-NullInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
-                            void* data)
+NullInput::read_native_tile(int /*subimage*/, int /*miplevel*/, int /*x*/,
+                            int /*y*/, int /*z*/, void* data)
 {
     if (m_value.size()) {
         size_t s = m_spec.pixel_bytes();

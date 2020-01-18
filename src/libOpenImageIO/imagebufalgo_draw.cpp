@@ -696,7 +696,7 @@ text_size_from_unicode(std::vector<uint32_t>& utext, FT_Face face)
 // If not found, return false and put an error message in result.
 // Not thread-safe! The caller must use the mutex.
 static bool
-resolve_font(int fontsize, string_view font_, std::string& result)
+resolve_font(string_view font_, std::string& result)
 {
     result.clear();
 
@@ -825,7 +825,7 @@ ImageBufAlgo::text_size(string_view text, int fontsize, string_view font_)
     lock_guard ft_lock(ft_mutex);
 
     std::string font;
-    bool ok = resolve_font(fontsize, font_, font);
+    bool ok = resolve_font(font_, font);
     if (!ok) {
         return size;
     }
@@ -894,7 +894,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     lock_guard ft_lock(ft_mutex);
 
     std::string font;
-    bool ok = resolve_font(fontsize, font_, font);
+    bool ok = resolve_font(font_, font);
     if (!ok) {
         std::string err = font.size() ? font : "Font error";
         R.errorf("%s", err);

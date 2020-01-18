@@ -709,7 +709,7 @@ PSDInput::unassalpha_to_assocalpha(int n, void* data)
 
 
 bool
-PSDInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     lock_guard lock(m_mutex);
@@ -1067,8 +1067,7 @@ PSDInput::handle_resources(ImageResourceMap& resources)
     return true;
 }
 
-bool
-PSDInput::load_resource_1005(uint32_t length)
+bool PSDInput::load_resource_1005(uint32_t /*length*/)
 {
     ResolutionInfo resinfo;
     // Fixed 16.16
@@ -1131,8 +1130,7 @@ PSDInput::load_resource_1006(uint32_t length)
 
 
 
-bool
-PSDInput::load_resource_1010(uint32_t length)
+bool PSDInput::load_resource_1010(uint32_t /*length*/)
 {
     const double int8_to_dbl = 1.0 / 0xFF;
     int8_t color_id;
@@ -1167,8 +1165,7 @@ PSDInput::load_resource_1036(uint32_t length)
 
 
 
-bool
-PSDInput::load_resource_1047(uint32_t length)
+bool PSDInput::load_resource_1047(uint32_t /*length*/)
 {
     read_bige<int16_t>(m_transparency_index);
     if (m_transparency_index < 0 || m_transparency_index >= 768) {
@@ -1224,8 +1221,7 @@ PSDInput::load_resource_1060(uint32_t length)
 
 
 
-bool
-PSDInput::load_resource_1064(uint32_t length)
+bool PSDInput::load_resource_1064(uint32_t /*length*/)
 {
     uint32_t version;
     if (!read_bige<uint32_t>(version))

@@ -196,7 +196,7 @@ GIFOutput::finish_subimage()
 
 
 bool
-GIFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+GIFOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                           stride_t xstride)
 {
     return convert_image(spec().nchannels, spec().width, 1 /*1 scanline*/, 1,

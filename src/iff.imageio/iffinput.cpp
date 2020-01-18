@@ -128,8 +128,8 @@ IffInput::open(const std::string& name, ImageSpec& spec)
 
 
 bool
-IffInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                               void* data)
+IffInput::read_native_scanline(int /*subimage*/, int /*miplevel*/, int /*y*/,
+                               int /*z*/, void* /*data*/)
 {
     // scanline not used for Maya IFF, uses tiles instead.
     return false;
@@ -138,7 +138,7 @@ IffInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 
 bool
-IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
+IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
                            void* data)
 {
     lock_guard lock(m_mutex);

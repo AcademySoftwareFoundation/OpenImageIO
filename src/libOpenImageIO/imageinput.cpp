@@ -681,8 +681,8 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
 
 
 bool
-ImageInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
-                             void* data)
+ImageInput::read_native_tile(int /*subimage*/, int /*miplevel*/, int /*x*/,
+                             int /*y*/, int /*z*/, void* /*data*/)
 {
     // The base class read_native_tile fails. A format reader that supports
     // tiles MUST overload this virtual method that reads a single tile
@@ -926,9 +926,10 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
 
 
 bool
-ImageInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
-                                       int yend, int z, int chbegin, int chend,
-                                       DeepData& deepdata)
+ImageInput::read_native_deep_scanlines(int /*subimage*/, int /*miplevel*/,
+                                       int /*ybegin*/, int /*yend*/, int /*z*/,
+                                       int /*chbegin*/, int /*chend*/,
+                                       DeepData& /*deepdata*/)
 {
     return false;  // default: doesn't support deep images
 }
@@ -936,10 +937,11 @@ ImageInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
 
 
 bool
-ImageInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
-                                   int xend, int ybegin, int yend, int zbegin,
-                                   int zend, int chbegin, int chend,
-                                   DeepData& deepdata)
+ImageInput::read_native_deep_tiles(int /*subimage*/, int /*miplevel*/,
+                                   int /*xbegin*/, int /*xend*/, int /*ybegin*/,
+                                   int /*yend*/, int /*zbegin*/, int /*zend*/,
+                                   int /*chbegin*/, int /*chend*/,
+                                   DeepData& /*deepdata*/)
 {
     return false;  // default: doesn't support deep images
 }
@@ -980,7 +982,7 @@ ImageInput::read_native_deep_image(int subimage, int miplevel,
 
 
 int
-ImageInput::send_to_input(const char* format, ...)
+ImageInput::send_to_input(const char* /*format*/, ...)
 {
     // FIXME -- I can't remember how this is supposed to work
     return 0;
@@ -989,7 +991,7 @@ ImageInput::send_to_input(const char* format, ...)
 
 
 int
-ImageInput::send_to_client(const char* format, ...)
+ImageInput::send_to_client(const char* /*format*/, ...)
 {
     // FIXME -- I can't remember how this is supposed to work
     return 0;

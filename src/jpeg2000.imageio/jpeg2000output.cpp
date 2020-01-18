@@ -26,7 +26,7 @@ openjpeg_error_callback(const char* msg, void* data)
 
 
 static void
-openjpeg_dummy_callback(const char* msg, void* data)
+openjpeg_dummy_callback(const char* /*msg*/, void* /*data*/)
 {
 }
 
@@ -421,7 +421,7 @@ Jpeg2000Output::create_compressor()
 
 template<typename T>
 void
-Jpeg2000Output::write_scanline(int y, int z, const void* data)
+Jpeg2000Output::write_scanline(int y, int /*z*/, const void* data)
 {
     int bits                  = sizeof(T) * 8;
     const T* scanline         = static_cast<const T*>(data);

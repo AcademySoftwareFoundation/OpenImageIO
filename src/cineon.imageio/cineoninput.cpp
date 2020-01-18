@@ -365,7 +365,7 @@ CineonInput::close()
 
 
 bool
-CineonInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+CineonInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                   void* data)
 {
     lock_guard lock(m_mutex);

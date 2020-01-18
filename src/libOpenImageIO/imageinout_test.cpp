@@ -173,8 +173,7 @@ test_read_proxy(string_view formatname, string_view extension,
 // Test writer's ability to detect and recover from errors when asked to
 // write an unwriteable file (such as in a nonexistent directory).
 static bool
-test_write_unwriteable(string_view formatname, string_view extension,
-                       const ImageBuf& buf)
+test_write_unwriteable(string_view extension, const ImageBuf& buf)
 {
     bool ok = true;
     Sysutil::Term term(stdout);
@@ -278,7 +277,7 @@ test_all_formats()
         // directory. It should not crash! But appropriately return some
         // error.
         //
-        test_write_unwriteable(formatname, extensions[0], buf);
+        test_write_unwriteable(extensions[0], buf);
 
         Filesystem::remove(filename);
     }
