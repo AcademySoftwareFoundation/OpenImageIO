@@ -202,8 +202,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec,
 bool
 PNGInput::readimg()
 {
-    std::string s = PNG_pvt::read_into_buffer(m_png, m_info, m_spec,
-                                              m_bit_depth, m_color_type, m_buf);
+    std::string s = PNG_pvt::read_into_buffer(m_png, m_info, m_spec, m_buf);
     if (s.length()) {
         close();
         errorf("%s", s);

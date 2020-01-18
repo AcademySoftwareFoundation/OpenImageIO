@@ -4814,9 +4814,8 @@ input_file(int argc, const char* argv[])
             pio.metamatch          = ot.printinfo_metamatch;
             pio.nometamatch        = ot.printinfo_nometamatch;
             pio.infoformat         = infoformat;
-            long long totalsize    = 0;
             std::string error;
-            bool ok = OiioTool::print_info(ot, filename, pio, totalsize, error);
+            bool ok = OiioTool::print_info(ot, filename, pio, error);
             if (!ok)
                 ot.error("read", error);
             ot.printed_info = true;

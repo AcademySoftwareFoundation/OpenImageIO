@@ -274,8 +274,7 @@ ICOInput::readimg()
 {
     if (m_png) {
         // subimage is a PNG
-        std::string s = PNG_pvt::read_into_buffer(m_png, m_info, m_spec, m_bpp,
-                                                  m_color_type, m_buf);
+        std::string s = PNG_pvt::read_into_buffer(m_png, m_info, m_spec, m_buf);
 
         //std::cerr << "[ico] PNG buffer size = " << m_buf.size () << "\n";
 

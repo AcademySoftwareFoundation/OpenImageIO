@@ -59,8 +59,8 @@ private:
 
     /// Helper function: decode a pixel.
     inline void decode_pixel(unsigned char* in, unsigned char* out,
-                             unsigned char* palette, int& bytespp,
-                             int& palbytespp, int& alphabits);
+                             unsigned char* palette, int bytespp,
+                             int palbytespp);
 
     /// Helper: read, with error detection
     ///
@@ -437,7 +437,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                         if (!fread(in, bytespp, 1))
                             return false;
                         decode_pixel(in, pixel, palette.get(), bytespp,
-                                     palbytespp, alphabits);
+                                     palbytespp);
                         memcpy(&m_buf[y * buf.c[0] * m_spec.nchannels
                                       + x * m_spec.nchannels],
                                pixel, m_spec.nchannels);
@@ -483,8 +483,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec,
 
 inline void
 TGAInput::decode_pixel(unsigned char* in, unsigned char* out,
-                       unsigned char* palette, int& bytespp, int& palbytespp,
-                       int& alphabits)
+                       unsigned char* palette, int bytespp, int palbytespp)
 {
     unsigned int k = 0;
     // I hate nested switches...
@@ -642,8 +641,7 @@ TGAInput::readimg()
             for (int64_t x = 0; x < m_spec.width; x++) {
                 if (!fread(in, bytespp, 1))
                     return false;
-                decode_pixel(in, pixel, palette, bytespp, palbytespp,
-                             alphabits);
+                decode_pixel(in, pixel, palette, bytespp, palbytespp);
                 memcpy(&m_buf[y * m_spec.width * m_spec.nchannels
                               + x * m_spec.nchannels],
                        pixel, m_spec.nchannels);
@@ -658,8 +656,7 @@ TGAInput::readimg()
                 if (!fread(in, 1 + bytespp, 1))
                     return false;
                 packet_size = 1 + (in[0] & 0x7f);
-                decode_pixel(&in[1], pixel, palette, bytespp, palbytespp,
-                             alphabits);
+                decode_pixel(&in[1], pixel, palette, bytespp, palbytespp);
                 if (in[0] & 0x80) {  // run length packet
                     /*std::cerr << "[tga] run length packet "
                               << packet_size << "\n";*/
@@ -700,7 +697,7 @@ TGAInput::readimg()
                             if (!fread(&in[1], bytespp, 1))
                                 return false;
                             decode_pixel(&in[1], pixel, palette, bytespp,
-                                         palbytespp, alphabits);
+                                         palbytespp);
                         }
                     }
                 }

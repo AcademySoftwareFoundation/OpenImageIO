@@ -409,9 +409,9 @@ private:
     /// Load the requested tile, from a file that's not really MIPmapped.
     /// Preconditions: the ImageInput is already opened, and we already did
     /// a seek_subimage to the right subimage.
-    bool read_unmipped(ImageCachePerThreadInfo* thread_info, ImageInput* inp,
-                       int subimage, int miplevel, int x, int y, int z,
-                       int chbegin, int chend, TypeDesc format, void* data);
+    bool read_unmipped(ImageCachePerThreadInfo* thread_info, int subimage,
+                       int miplevel, int x, int y, int z, int chbegin,
+                       int chend, TypeDesc format, void* data);
 
     // Initialize a bunch of fields based on the ImageSpec.
     // FIXME -- this is actually deeply flawed, many of these things only
@@ -868,10 +868,11 @@ public:
     /// If header_only is true, we are finding the file only for the sake
     /// of header information (e.g., called by get_image_info).
     /// A call to verify_file() is still needed after find_file().
-    ImageCacheFile*
-    find_file(ustring filename, ImageCachePerThreadInfo* thread_info,
-              ImageInput::Creator creator = nullptr, bool header_only = false,
-              const ImageSpec* config = nullptr, bool replace = false);
+    ImageCacheFile* find_file(ustring filename,
+                              ImageCachePerThreadInfo* thread_info,
+                              ImageInput::Creator creator = nullptr,
+                              const ImageSpec* config     = nullptr,
+                              bool replace                = false);
 
     /// Verify & prep the ImageCacheFile record for the named image,
     /// return the pointer (which may have changed for deduplication),

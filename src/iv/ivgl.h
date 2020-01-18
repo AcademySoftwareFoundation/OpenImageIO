@@ -193,7 +193,7 @@ private:
 
     /// Loads the given patch of the image, but first figures if it's already
     /// been loaded.
-    void load_texture(int x, int y, int width, int height, float percent);
+    void load_texture(int x, int y, int width, int height);
 
     /// Destroys shaders and selects fixed-function pipeline
     void create_shaders_abort(void);

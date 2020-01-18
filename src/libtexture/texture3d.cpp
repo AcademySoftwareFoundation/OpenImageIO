@@ -69,7 +69,7 @@ TextureSystemImpl::texture3d(ustring filename, TextureOpt& options,
     TextureFile* texturefile   = find_texturefile(filename, thread_info);
     return texture3d((TextureHandle*)texturefile, (Perthread*)thread_info,
                      options, P, dPdx, dPdy, dPdz, nchannels, result, dresultds,
-                     dresultdt);
+                     dresultdt, dresultdr);
 }
 
 
@@ -406,6 +406,14 @@ TextureSystemImpl::accum3d_sample_closest(
         float f = weight * options.fill;
         for (int c = actualchannels; c < nchannels_result; ++c)
             accum[c] += f;
+        if (OIIO_UNLIKELY(daccumds)) {
+            OIIO_DASSERT(daccumdt && daccumdr);
+            for (int c = actualchannels; c < nchannels_result; ++c) {
+                daccumds[c] = 0.0f;
+                daccumdt[c] = 0.0f;
+                daccumdr[c] = 0.0f;
+            }
+        }
     }
     return true;
 }
@@ -836,7 +844,7 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle,
     bool ok          = true;
     Tex::RunMask bit = 1;
     for (int i = 0; i < Tex::BatchWidth; ++i, bit <<= 1) {
-        float r[4], drds[4], drdt[4];  // temp result
+        float r[4], drds[4], drdt[4], drdr[4];  // temp result
         if (mask & bit) {
             opt.sblur  = options.sblur[i];
             opt.tblur  = options.tblur[i];
@@ -854,11 +862,12 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle,
                              dPdz[i + 2 * Tex::BatchWidth]);
             if (dresultds) {
                 ok &= texture3d(texture_handle, thread_info, opt, P_, dPdx_,
-                                dPdy_, dPdz_, nchannels, r, drds, drdt);
+                                dPdy_, dPdz_, nchannels, r, drds, drdt, drdr);
                 for (int c = 0; c < nchannels; ++c) {
                     result[c * Tex::BatchWidth + i]    = r[c];
                     dresultds[c * Tex::BatchWidth + i] = drds[c];
                     dresultdt[c * Tex::BatchWidth + i] = drdt[c];
+                    dresultdr[c * Tex::BatchWidth + i] = drdr[c];
                 }
             } else {
                 ok &= texture3d(texture_handle, thread_info, opt, P_, dPdx_,

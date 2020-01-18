@@ -782,9 +782,6 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
                           int chend, TypeDesc format, void* data)
 {
     OIIO_DASSERT(chend > chbegin);
-    std::shared_ptr<ImageInput> inp = open(thread_info);
-    if (!inp)
-        return false;
 
     // Mark if we ever use a mip level that's not the first
     if (miplevel > 0)
@@ -797,8 +794,12 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
 
     // Special case for un-MIP-mapped
     if (subinfo.unmipped && miplevel != 0)
-        return read_unmipped(thread_info, inp.get(), subimage, miplevel, x, y,
-                             z, chbegin, chend, format, data);
+        return read_unmipped(thread_info, subimage, miplevel, x, y, z, chbegin,
+                             chend, format, data);
+
+    std::shared_ptr<ImageInput> inp = open(thread_info);
+    if (!inp)
+        return false;
 
     // Special case for untiled images -- need to do tile emulation
     if (subinfo.untiled)
@@ -843,9 +844,9 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
 
 bool
 ImageCacheFile::read_unmipped(ImageCachePerThreadInfo* thread_info,
-                              ImageInput* inp, int subimage, int miplevel,
-                              int x, int y, int z, int chbegin, int chend,
-                              TypeDesc format, void* data)
+                              int subimage, int miplevel, int x, int y, int z,
+                              int chbegin, int chend, TypeDesc format,
+                              void* data)
 {
     // We need a tile from an unmipmapped file, and it doesn't really
     // exist.  So generate it out of thin air by interpolating pixels
@@ -1159,8 +1160,8 @@ ImageCacheFile::mark_broken(string_view error)
 ImageCacheFile*
 ImageCacheImpl::find_file(ustring filename,
                           ImageCachePerThreadInfo* thread_info,
-                          ImageInput::Creator creator, bool header_only,
-                          const ImageSpec* config, bool replace)
+                          ImageInput::Creator creator, const ImageSpec* config,
+                          bool replace)
 {
     // Debugging aid: attribute "substitute_image" forces all image
     // references to be to one named file.
@@ -2513,7 +2514,7 @@ ImageCacheImpl::get_image_info(ustring filename, int subimage, int miplevel,
                                ustring dataname, TypeDesc datatype, void* data)
 {
     ImageCachePerThreadInfo* thread_info = get_perthread_info();
-    ImageCacheFile* file = find_file(filename, thread_info, nullptr, true);
+    ImageCacheFile* file = find_file(filename, thread_info, nullptr);
     if (!file && dataname != s_exists) {
         errorf("Invalid image file \"%s\"", filename);
         return false;
@@ -2819,7 +2820,7 @@ ImageCacheImpl::imagespec(ustring filename, int subimage, int miplevel,
                           bool native)
 {
     ImageCachePerThreadInfo* thread_info = get_perthread_info();
-    ImageCacheFile* file = find_file(filename, thread_info, nullptr, true);
+    ImageCacheFile* file = find_file(filename, thread_info, nullptr);
     if (!file) {
         errorf("Image file \"%s\" not found", filename);
         return NULL;
@@ -3189,8 +3190,8 @@ ImageCacheImpl::add_file(ustring filename, ImageInput::Creator creator,
                          const ImageSpec* config, bool replace)
 {
     ImageCachePerThreadInfo* thread_info = get_perthread_info();
-    ImageCacheFile* file = find_file(filename, thread_info, creator, false,
-                                     config, replace);
+    ImageCacheFile* file = find_file(filename, thread_info, creator, config,
+                                     replace);
     file                 = verify_file(file, thread_info);
     if (!file || file->broken() || file->is_udim())
         return false;

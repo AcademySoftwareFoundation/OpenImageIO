@@ -266,7 +266,6 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
 ///
 inline const std::string
 read_into_buffer(png_structp& sp, png_infop& ip, ImageSpec& spec,
-                 int& bit_depth, int& color_type,
                  std::vector<unsigned char>& buffer)
 {
     // Must call this setjmp in every function that does PNG reads

@@ -204,7 +204,7 @@ getargs(int argc, const char* argv[])
 
 
 static void
-initialize_opt(TextureOpt& opt, int nchannels)
+initialize_opt(TextureOpt& opt)
 {
     opt.sblur  = sblur;
     opt.tblur  = tblur >= 0.0f ? tblur : sblur;
@@ -212,8 +212,7 @@ initialize_opt(TextureOpt& opt, int nchannels)
     opt.swidth = width;
     opt.twidth = width;
     opt.rwidth = width;
-    //    opt.nchannels = nchannels;
-    opt.fill = (fill >= 0.0f) ? fill : 1.0f;
+    opt.fill   = (fill >= 0.0f) ? fill : 1.0f;
     if (missing[0] >= 0)
         opt.missingcolor = (float*)&missing;
     TextureOpt::parse_wrapmodes(wrapmodes.c_str(), opt.swrap, opt.twrap);
@@ -226,7 +225,7 @@ initialize_opt(TextureOpt& opt, int nchannels)
 
 
 static void
-initialize_opt(TextureOptBatch& opt, int nchannels)
+initialize_opt(TextureOptBatch& opt)
 {
     using namespace Tex;
     FloatWide sb(sblur);
@@ -541,7 +540,7 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
     int nchannels = nchannels_override ? nchannels_override : image.nchannels();
 
     TextureOpt opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
 
     float* result    = OIIO_ALLOCA(float, std::max(3, nchannels));
     float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
@@ -656,7 +655,7 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
                  || image_dt->spec().format == TypeDesc::FLOAT);
 
     TextureOptBatch opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
 
     int nc               = std::max(3, nchannels);
     FloatWide* result    = OIIO_ALLOCA(FloatWide, nc);
@@ -780,7 +779,7 @@ tex3d_region(ImageBuf& image, ustring filename, Mapping3D mapping, ROI roi)
     int nchannels = nchannels_override ? nchannels_override : image.nchannels();
 
     TextureOpt opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
     opt.fill = (fill >= 0.0f) ? fill : 0.0f;
     //    opt.swrap = opt.twrap = opt.rwrap = TextureOpt::WrapPeriodic;
 
@@ -823,7 +822,7 @@ tex3d_region_batch(ImageBuf& image, ustring filename, Mapping3DWide mapping,
     int nchannels = nchannels_override ? nchannels_override : image.nchannels();
 
     TextureOptBatch opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
     opt.fill = (fill >= 0.0f) ? fill : 0.0f;
     //    opt.swrap = opt.twrap = opt.rwrap = TextureOpt::WrapPeriodic;
 
@@ -967,7 +966,7 @@ test_getimagespec_gettexels(ustring filename)
     ImageSpec postagespec(w, h, nchannels, TypeDesc::FLOAT);
     ImageBuf buf(postagespec);
     TextureOpt opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
     std::vector<float> tmp(w * h * nchannels);
     int x = spec.x + spec.width / 2 - w / 2;
     int y = spec.y + spec.height / 2 - h / 2;
@@ -1130,7 +1129,7 @@ do_tex_thread_workout(int iterations, int mythread)
     int nchannels = nchannels_override ? nchannels_override : 3;
     float* result = OIIO_ALLOCA(float, nchannels);
     TextureOpt opt;
-    initialize_opt(opt, nchannels);
+    initialize_opt(opt);
     float* dresultds = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
     float* dresultdt = test_derivs ? OIIO_ALLOCA(float, nchannels) : NULL;
     TextureSystem::Perthread* perthread_info = texsys->get_perthread_info();
