@@ -2645,7 +2645,10 @@ OIIO_API void add_dither (int nchannels, int width, int height, int depth,
                           int yorigin=0, int zorigin=0);
 
 /// Convert unassociated to associated alpha by premultiplying all color
-/// (non-alpha, non-z) channels by alpha.
+/// (non-alpha, non-z) channels by alpha. The nchannels, width, height, and
+/// depth parameters describe the "shape" of the image data (along with
+/// optional stride overrides). The chbegin/chend describe which range of
+/// channels to actually premultiply.
 OIIO_API void premult (int nchannels, int width, int height, int depth,
                        int chbegin, int chend,
                        TypeDesc datatype, void *data, stride_t xstride,
