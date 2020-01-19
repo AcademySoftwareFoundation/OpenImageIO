@@ -231,6 +231,7 @@ OpenImageIO incorporates, distributes, or contains derived works of:
 * lookup3 code by Bob Jenkins, Public Domain. http://burtleburtle.net/bob/c/lookup3.c
 * xxhash © 2014 Yann Collet, BSD 2-clause license. https://github.com/Cyan4973/xxHash
 * farmhash © 2014 Google, Inc., MIT license. https://github.com/google/farmhash
+* gif.h by Charlie Tangora, public domain. https://github.com/ginsweater/gif-h
 * KissFFT © 2003--2010 Mark Borgerding, 3-clause BSD license. https://github.com/mborgerding/kissfft
 * CTPL thread pool © 2014 Vitaliy Vitsentiy, Apache License. https://github.com/vit-vit/CTPL
 * Droid fonts from the Android SDK are distributed under the Apache license.  http://www.droidfonts.com
