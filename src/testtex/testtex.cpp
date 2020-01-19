@@ -930,17 +930,11 @@ test_texture3d_batch(ustring filename, Mapping3DWide mapping)
 
 
 
-static void
-test_shadow(ustring filename)
-{
-}
+static void test_shadow(ustring /*filename*/) {}
 
 
 
-static void
-test_environment(ustring filename)
-{
-}
+static void test_environment(ustring /*filename*/) {}
 
 
 
@@ -1277,11 +1271,11 @@ public:
     }
     virtual ~GridImageInput() { close(); }
     virtual const char* format_name(void) const final { return "grid"; }
-    virtual bool valid_file(const std::string& filename) const final
+    virtual bool valid_file(const std::string& /*filename*/) const final
     {
         return true;
     }
-    virtual bool open(const std::string& name, ImageSpec& newspec) final
+    virtual bool open(const std::string& /*name*/, ImageSpec& newspec) final
     {
         bool ok = seek_subimage(0, 0);
         newspec = spec();
@@ -1308,8 +1302,9 @@ public:
         m_miplevel         = miplevel;
         return true;
     }
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) final
+    virtual bool read_native_scanline(int /*subimage*/, int /*miplevel*/,
+                                      int /*y*/, int /*z*/,
+                                      void* /*data*/) final
     {
         return false;
     }

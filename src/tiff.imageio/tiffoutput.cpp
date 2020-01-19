@@ -1174,7 +1174,7 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     for (size_t stripidx = 0; y + m_rowsperstrip <= yend;
          y += m_rowsperstrip, ++stripidx) {
         char* cbuf = compressed_scratch.get() + stripidx * cbound;
-        tasks.push(pool->push([=, &ok](int id) {
+        tasks.push(pool->push([=, &ok](int /*id*/) {
             memcpy((void*)data, origdata, strip_bytes);
             this->compress_one_strip((void*)data, strip_bytes, cbuf, cbound,
                                      this->m_spec.nchannels, this->m_spec.width,
@@ -1396,7 +1396,7 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
         for (int y = ybegin; y < yend; y += m_spec.tile_height) {
             for (int x = xbegin; ok && x < xend;
                  x += m_spec.tile_width, ++tileno) {
-                tasks.push(pool->push([&, x, y, z, tileno](int id) {
+                tasks.push(pool->push([&, x, y, z, tileno](int /*id*/) {
                     const unsigned char* tilestart
                         = ((unsigned char*)data + (x - xbegin) * xstride
                            + (z - zbegin) * zstride + (y - ybegin) * ystride);

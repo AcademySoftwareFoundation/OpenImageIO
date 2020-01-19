@@ -37,6 +37,9 @@
 #include "ElementReadStream.h"
 #include "ReaderInternal.h"
 
+#if defined(__GNUC__)
+#    pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
 
 
 // Basic size of a packet is the number of bytes that all data packing methods will fit into that are whole and complete

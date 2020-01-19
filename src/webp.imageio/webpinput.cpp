@@ -133,8 +133,8 @@ WebpInput::open(const std::string& name, ImageSpec& spec)
 
 
 bool
-WebpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                                void* data)
+WebpInput::read_native_scanline(int /*subimage*/, int /*miplevel*/, int y,
+                                int /*z*/, void* data)
 {
     // Not necessary to lock and seek -- no subimages in Webp, and since
     // the only thing we're doing here is a memcpy, it's already threadsafe.

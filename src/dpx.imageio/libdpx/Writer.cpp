@@ -35,6 +35,10 @@
 #include <cstring>
 #include <ctime>
 
+#if defined(__GNUC__)
+#    pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include "DPX.h"
 #include "DPXStream.h"
 #include "EndianSwap.h"

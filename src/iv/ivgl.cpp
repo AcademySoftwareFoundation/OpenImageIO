@@ -615,7 +615,7 @@ IvGL::paintGL()
 
 
 void
-IvGL::shadowed_text(float x, float y, float z, const std::string& s,
+IvGL::shadowed_text(float x, float y, float /*z*/, const std::string& s,
                     const QFont& font)
 {
     /*

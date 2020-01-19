@@ -20,6 +20,8 @@ using boost::integer::gcd;
 using boost::math::gcd;
 #endif
 
+#include <OpenImageIO/platform.h>
+
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
 #include <OpenEXR/ImfInputFile.h>
@@ -28,9 +30,9 @@ using boost::math::gcd;
 
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
-#ifdef __GNUC__
-#    pragma GCC visibility push(default)
-#endif
+OIIO_PRAGMA_VISIBILITY_PUSH
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #include <OpenEXR/ImfBoxAttribute.h>
@@ -55,10 +57,8 @@ using boost::math::gcd;
 #include <OpenEXR/ImfTiledInputPart.h>
 #include <OpenEXR/ImfTimeCodeAttribute.h>
 #include <OpenEXR/ImfVecAttribute.h>
-
-#ifdef __GNUC__
-#    pragma GCC visibility pop
-#endif
+OIIO_PRAGMA_WARNING_POP
+OIIO_PRAGMA_VISIBILITY_POP
 
 #include <OpenEXR/ImfCRgbaFile.h>
 
@@ -1424,7 +1424,7 @@ OpenEXRInput::read_native_tiles_individually(int subimage, int miplevel,
 
 void
 OpenEXRInput::fill_missing(int xbegin, int xend, int ybegin, int yend,
-                           int zbegin, int zend, int chbegin, int chend,
+                           int /*zbegin*/, int /*zend*/, int chbegin, int chend,
                            void* data, stride_t xstride, stride_t ystride)
 {
     std::vector<float> missingcolor = m_missingcolor;
@@ -1455,7 +1455,7 @@ OpenEXRInput::fill_missing(int xbegin, int xend, int ybegin, int yend,
 
 bool
 OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
-                                         int yend, int z, int chbegin,
+                                         int yend, int /*z*/, int chbegin,
                                          int chend, DeepData& deepdata)
 {
     lock_guard lock(m_mutex);
@@ -1526,9 +1526,9 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
 
 bool
 OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
-                                     int xend, int ybegin, int yend, int zbegin,
-                                     int zend, int chbegin, int chend,
-                                     DeepData& deepdata)
+                                     int xend, int ybegin, int yend,
+                                     int /*zbegin*/, int /*zend*/, int chbegin,
+                                     int chend, DeepData& deepdata)
 {
     lock_guard lock(m_mutex);
     if (!seek_subimage(subimage, miplevel))

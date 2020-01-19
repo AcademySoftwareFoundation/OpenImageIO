@@ -1448,7 +1448,7 @@ namespace dpx
 		 * \brief Returns the size of the header
 		 * \return 2048 as defined by the standard
 		 */
-		const U32			Size() const;
+		U32			Size() const;
 
 		/*!
 		 * \brief Calculate all of the offset members in the header
@@ -1509,7 +1509,7 @@ namespace dpx
 		return this->DetermineByteSwap(this->magicNumber);
 	}
 
-	inline const U32 Header::Size() const
+	inline U32 Header::Size() const
 	{
 		return 2048;
 	}

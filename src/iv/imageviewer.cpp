@@ -1273,7 +1273,7 @@ ImageViewer::gammaPlus()
 
 
 void
-ImageViewer::slide(long t, bool b)
+ImageViewer::slide(long /*t*/, bool b)
 {
     slideLoopAct->setChecked(b == true);
     slideNoLoopAct->setChecked(b == false);
