@@ -121,6 +121,16 @@
 
 // Detect which compiler and version we're using
 
+// Notes:
+//   __GNUC__ is defined for gcc and all clang varieties
+//   __clang__ is defined for all clang varieties (generic and Apple)
+//   __apple_build_version__ is only defined for Apple clang
+//   __INTEL_COMPILER is defined only for icc
+//   _MSC_VER is defined for MSVS compiler (not gcc/clang/icc even on Windows)
+//   _WIN32 is defined on Windows regardless of compiler
+//   __CUDACC__ is defined for nvcc and clang during Cuda compilation.
+
+
 // Define OIIO_GNUC_VERSION to hold an encoded gcc version (e.g. 40802 for
 // 4.8.2), or 0 if not a GCC release. N.B.: This will be 0 for clang.
 #if defined(__GNUC__) && !defined(__clang__)
@@ -166,6 +176,56 @@
 #  define OIIO_MSVS_AT_LEAST_2017 0
 #  define OIIO_MSVS_BEFORE_2017   0
 #endif
+
+
+// Pragma control
+//
+// OIIO_PRAGMA(x)  make a pragma for *unquoted* x
+// OIIO_PRAGMA_WARNING_PUSH/POP -- push/pop warning state
+// OIIO_VISIBILITY_PUSH/POP -- push/pop symbol visibility state
+// OIIO_GCC_PRAGMA(x) -- pragma on gcc/clang/icc only
+// OIIO_CLANG_PRAGMA(x) -- pragma on clang only (not gcc or icc)
+// OIIO_MSVS_PRAGMA(x) -- pragma on MSVS only
+
+// Generic pragma definition
+#if defined(_MSC_VER)
+    // Of couse MS does it in a quirky way
+    #define OIIO_PRAGMA(UnQuotedPragma) __pragma(UnQuotedPragma)
+#else
+    // All other compilers seem to support C99 _Pragma
+    #define OIIO_PRAGMA(UnQuotedPragma) _Pragma(#UnQuotedPragma)
+#endif
+
+#if defined(__GNUC__) /* gcc, clang, icc */
+#    define OIIO_PRAGMA_WARNING_PUSH    OIIO_PRAGMA(GCC diagnostic push)
+#    define OIIO_PRAGMA_WARNING_POP     OIIO_PRAGMA(GCC diagnostic pop)
+#    define OIIO_PRAGMA_VISIBILITY_PUSH OIIO_PRAGMA(GCC visibility push(default))
+#    define OIIO_PRAGMA_VISIBILITY_POP  OIIO_PRAGMA(GCC visibility pop)
+#    define OIIO_GCC_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
+#    if defined(__clang__)
+#        define OIIO_CLANG_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
+#    else
+#        define OIIO_CLANG_PRAGMA(UnQuotedPragma)
+#    endif
+#    define OIIO_MSVS_PRAGMA(UnQuotedPragma)
+#elif defined(_MSC_VER)
+#    define OIIO_PRAGMA_WARNING_PUSH __pragma(warning(push))
+#    define OIIO_PRAGMA_WARNING_POP  __pragma(warning(pop))
+#    define OIIO_PRAGMA_VISIBILITY_PUSH /* N/A on MSVS */
+#    define OIIO_PRAGMA_VISIBILITY_POP  /* N/A on MSVS */
+#    define OIIO_GCC_PRAGMA(UnQuotedPragma)
+#    define OIIO_CLANG_PRAGMA(UnQuotedPragma)
+#    define OIIO_MSVS_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
+#else
+#    define OIIO_PRAGMA_WARNING_PUSH
+#    define OIIO_PRAGMA_WARNING_POP
+#    define OIIO_PRAGMA_VISIBILITY_PUSH
+#    define OIIO_PRAGMA_VISIBILITY_POP
+#    define OIIO_GCC_PRAGMA(UnQuotedPragma)
+#    define OIIO_CLANG_PRAGMA(UnQuotedPragma)
+#    define OIIO_MSVS_PRAGMA(UnQuotedPragma)
+#endif
+
 
 
 /// allocates smallish stack memory, equivalent of C99 type var_name[size]
