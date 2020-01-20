@@ -13,6 +13,17 @@ set (PROJECT_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 
+# If the user wants to use Conan to build dependencies, they will have done
+# this prior to the cmake config:
+#   cd <build area>
+#   conan install <source area>
+# and that will leave a conanbuildinfo.cmake in the build area for us.
+if (EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    include (${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    message (STATUS "Using Conan for dependencies")
+    conan_basic_setup()
+endif()
+
 message (STATUS "Building ${PROJECT_NAME} ${PROJECT_VERSION}")
 message (STATUS "CMake version is ${CMAKE_VERSION}")
 
@@ -29,6 +40,11 @@ message (STATUS "Project build dir      = ${CMAKE_BINARY_DIR}")
 message (STATUS "Project install prefix = ${CMAKE_INSTALL_PREFIX}")
 message (STATUS "Configuration types    = ${CMAKE_CONFIGURATION_TYPES}")
 message (STATUS "Build type             = ${CMAKE_BUILD_TYPE}")
+
+# Make the build area layout look a bit more like the final dist layout
+set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message (FATAL_ERROR "Not allowed to run in-source build!")
