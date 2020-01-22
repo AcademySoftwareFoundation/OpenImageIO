@@ -81,8 +81,12 @@ endif ()
 # Turn on more detailed warnings and optionally consider warnings as errors
 #
 option (STOP_ON_WARNING "Stop building if there are any compiler warnings" ON)
+option (EXTRA_WARNINGS "Enable lots of extra pedantic warnings" OFF)
 if (NOT MSVC)
     add_compile_options ("-Wall")
+    if (EXTRA_WARNINGS)
+        add_compile_options ("-Wextra")
+    endif ()
     if (STOP_ON_WARNING OR DEFINED ENV{CI})
         add_compile_options ("-Werror")
         # N.B. Force CI builds (Travis defines $CI) to use -Werror, even if

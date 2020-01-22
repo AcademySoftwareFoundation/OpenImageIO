@@ -104,7 +104,7 @@ parallel_for_chunked(int64_t start, int64_t end, int64_t chunksize,
                      std::function<void(int64_t, int64_t)>&& task,
                      parallel_options opt = parallel_options(0, Split_Y, 1))
 {
-    auto wrapper = [&](int id, int64_t b, int64_t e) { task(b, e); };
+    auto wrapper = [&](int /*id*/, int64_t b, int64_t e) { task(b, e); };
     parallel_for_chunked(start, end, chunksize, wrapper, opt);
 }
 
@@ -128,7 +128,7 @@ parallel_for (int64_t start, int64_t end,
               std::function<void(int64_t index)>&& task,
               parallel_options opt=parallel_options(0,Split_Y,1))
 {
-    parallel_for_chunked (start, end, 0, [&task](int id, int64_t i, int64_t e) {
+    parallel_for_chunked (start, end, 0, [&task](int /*id*/, int64_t i, int64_t e) {
         for ( ; i < e; ++i)
             task (i);
     }, opt);
@@ -170,7 +170,7 @@ parallel_for_each (InputIt first, InputIt last, UnaryFunction f,
             // queue or handing off between threads.
             f (*first);
         } else {
-            ts.push (opt.pool->push ([&](int id){ f(*first); }));
+            ts.push (opt.pool->push ([&](int /*id*/){ f(*first); }));
         }
     }
     return std::move(f);
@@ -212,7 +212,7 @@ parallel_for_chunked_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
                                             int64_t, int64_t)>&& task,
                          parallel_options opt=0)
 {
-    auto wrapper = [&](int id, int64_t xb, int64_t xe,
+    auto wrapper = [&](int /*id*/, int64_t xb, int64_t xe,
                        int64_t yb, int64_t ye) { task(xb,xe,yb,ye); };
     parallel_for_chunked_2D (xstart, xend, xchunksize,
                              ystart, yend, ychunksize, wrapper, opt);
@@ -261,7 +261,7 @@ parallel_for_2D (int64_t xstart, int64_t xend,
                  parallel_options opt=0)
 {
     parallel_for_chunked_2D (xstart, xend, 0, ystart, yend, 0,
-            [&task](int id, int64_t xb, int64_t xe, int64_t yb, int64_t ye) {
+            [&task](int /*id*/, int64_t xb, int64_t xe, int64_t yb, int64_t ye) {
         for (auto y = yb; y < ye; ++y)
             for (auto x = xb; x < xe; ++x)
                 task (x, y);
@@ -274,8 +274,8 @@ parallel_for_2D (int64_t xstart, int64_t xend,
 // weren't used. Preserve for a version to not break 3rd party apps.
 OIIO_DEPRECATED("Use the version without chunk sizes (1.8)")
 inline void
-parallel_for_2D (int64_t xstart, int64_t xend, int64_t xchunksize,
-                 int64_t ystart, int64_t yend, int64_t ychunksize,
+parallel_for_2D (int64_t xstart, int64_t xend, int64_t /*xchunksize*/,
+                 int64_t ystart, int64_t yend, int64_t /*ychunksize*/,
                  std::function<void(int id, int64_t i, int64_t j)>&& task)
 {
     parallel_for_2D (xstart, xend, ystart, yend,

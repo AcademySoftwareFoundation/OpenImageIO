@@ -554,7 +554,8 @@ Filesystem::file_size(string_view path) noexcept
 
 
 void
-Filesystem::convert_native_arguments(int argc, const char* argv[])
+Filesystem::convert_native_arguments(int argc OIIO_MAYBE_UNUSED,
+                                     const char* argv[])
 {
 #ifdef _WIN32
     // Windows only, standard main() entry point does not accept unicode file
@@ -572,6 +573,12 @@ Filesystem::convert_native_arguments(int argc, const char* argv[])
         std::string utf8_arg = Strutil::utf16_to_utf8(native_argv[i]);
         argv[i]              = ustring(utf8_arg).c_str();
     }
+#else
+    // I hate that we have to do this, but gcc gets confused about the
+    //    const char* argv OIIO_MAYBE_UNUSED []
+    // This seems to be the way around the problem, make it look like it's
+    // used.
+    (void)argv;
 #endif
 }
 

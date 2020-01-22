@@ -133,7 +133,8 @@ public:
     /// This will not produce any output if not in DEBUG mode, or
     /// if verbosity is QUIET.
     template<typename... Args>
-    void debug(const char* format, const Args&... args)
+    void debug(const char* format OIIO_MAYBE_UNUSED,
+               const Args&... args OIIO_MAYBE_UNUSED)
     {
 #ifndef NDEBUG
         debug(Strutil::format(format, args...));
@@ -179,7 +180,8 @@ public:
     }
 
     template<typename... Args>
-    void debugf(const char* format, const Args&... args)
+    void debugf(const char* format OIIO_MAYBE_UNUSED,
+                const Args&... args OIIO_MAYBE_UNUSED)
     {
 #ifndef NDEBUG
         debug(Strutil::sprintf(format, args...));

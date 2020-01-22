@@ -1371,7 +1371,7 @@ static char *stbsp__clamp_callback(char *buf, void *user, int len)
    return (c->count >= STB_SPRINTF_MIN) ? c->buf : c->tmp; // go direct into buffer if you can
 }
 
-static char * stbsp__count_clamp_callback( char * buf, void * user, int len )
+static char * stbsp__count_clamp_callback( char * /*buf*/, void * user, int len )
 {
    stbsp__context * c = (stbsp__context*)user;
 

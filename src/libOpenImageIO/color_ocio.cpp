@@ -785,9 +785,9 @@ public:
     {
     }
     ~ColorProcessor_Ident() {}
-    virtual void apply(float* data, int width, int height, int channels,
-                       stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const
+    virtual void apply(float* /*data*/, int /*width*/, int /*height*/,
+                       int /*channels*/, stride_t /*chanstride*/,
+                       stride_t /*xstride*/, stride_t /*ystride*/) const
     {
     }
 };

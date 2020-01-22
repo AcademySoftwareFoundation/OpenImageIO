@@ -1920,7 +1920,7 @@ ImageBuf::setpixel(int i, const float* pixel, int maxchannels)
 
 template<typename D, typename S>
 static bool
-get_pixels_(const ImageBuf& buf, const ImageBuf& dummyarg, ROI whole_roi,
+get_pixels_(const ImageBuf& buf, const ImageBuf& /*dummy*/, ROI whole_roi,
             ROI roi, void* r_, stride_t xstride, stride_t ystride,
             stride_t zstride, int nthreads = 0)
 {

@@ -600,7 +600,7 @@ namespace {  // make an anon namespace
 // clang-format off
 
 static std::string
-explain_shutterapex(const ParamValue& p, const void* extradata)
+explain_shutterapex(const ParamValue& p, const void* /*extradata*/)
 {
     if (p.type() == TypeDesc::FLOAT) {
         double val = pow(2.0, -(double)*(float*)p.data());
@@ -613,7 +613,7 @@ explain_shutterapex(const ParamValue& p, const void* extradata)
 }
 
 static std::string
-explain_apertureapex(const ParamValue& p, const void* extradata)
+explain_apertureapex(const ParamValue& p, const void* /*extradata*/)
 {
     if (p.type() == TypeDesc::FLOAT)
         return Strutil::sprintf("f/%2.1f", powf(2.0f, *(float*)p.data() / 2.0f));
@@ -621,7 +621,7 @@ explain_apertureapex(const ParamValue& p, const void* extradata)
 }
 
 static std::string
-explain_ExifFlash(const ParamValue& p, const void* extradata)
+explain_ExifFlash(const ParamValue& p, const void* /*extradata*/)
 {
     int val = p.get_int();
     return Strutil::sprintf("%s%s%s%s%s%s%s%s",

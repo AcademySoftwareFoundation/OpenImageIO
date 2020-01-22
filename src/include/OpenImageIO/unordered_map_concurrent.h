@@ -53,7 +53,7 @@ find_with_hash(Map& map, const Key& key, size_t hash)
 template<class Map, class Key,
          OIIO_ENABLE_IF(!pvt::has_find_with_hash<Map>::value)>
 typename Map::iterator
-find_with_hash(Map& map, const Key& key, size_t hash)
+find_with_hash(Map& map, const Key& key, size_t /*hash*/)
 {
     return map.find(key);
 }

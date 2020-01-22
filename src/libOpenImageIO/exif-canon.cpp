@@ -126,7 +126,7 @@ static LabelIndex canon_exposuremode_table[] = {
 };
 
 static std::string
-explain_canon_flashbits (const ParamValue &p, const void *extradata)
+explain_canon_flashbits (const ParamValue &p, const void* /*extradata*/)
 {
     int val = p.get_int();
     if (val == 0)
@@ -688,7 +688,7 @@ static LabelIndex canon_camerasettings_indices[] = {
 };
 
 static void
-canon_camerasettings_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
+canon_camerasettings_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                               cspan<uint8_t> buf, ImageSpec& spec,
                               bool swapendian, int offset_adjustment)
 {
@@ -706,7 +706,7 @@ static LabelIndex canon_focallength_indices[] = {
 
 
 static void
-canon_focallength_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
+canon_focallength_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                            cspan<uint8_t> buf, ImageSpec& spec,
                            bool swapendian, int offset_adjustment)
 {

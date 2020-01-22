@@ -135,7 +135,7 @@ test_app_buffer()
 
 
 int
-main(int argc, char** argv)
+main(int /*argc*/, char* /*argv*/[])
 {
     test_get_pixels_cachechannels(0, 10);
     test_get_pixels_cachechannels(0, 4);

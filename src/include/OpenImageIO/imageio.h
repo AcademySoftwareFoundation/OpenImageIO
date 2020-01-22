@@ -943,7 +943,9 @@ public:
     /// require any new API entry points, addition of support for new
     /// queries does not break ``link compatibility'' with
     /// previously-compiled plugins.
-    virtual int supports (string_view feature) const { return false; }
+    virtual int supports (string_view feature OIIO_MAYBE_UNUSED) const {
+        return false;
+    }
 
     /// Return true if the `filename` names a file of the type for this
     /// ImageInput.  The implementation will try to determine this as
@@ -998,7 +1000,9 @@ public:
     /// @returns
     ///         `true` if the file was found and opened successfully.
     virtual bool open (const std::string& name, ImageSpec &newspec,
-                       const ImageSpec& config) { return open(name,newspec); }
+                       const ImageSpec& config OIIO_MAYBE_UNUSED) {
+        return open(name,newspec);
+    }
 
     /// Return a reference to the image specification of the current
     /// subimage/MIPlevel.  Note that the contents of the spec are invalid
@@ -1802,7 +1806,9 @@ public:
     /// require any new API entry points, addition of support for new
     /// queries does not break ``link compatibility'' with
     /// previously-compiled plugins.
-    virtual int supports (string_view feature) const { return false; }
+    virtual int supports (string_view feature OIIO_MAYBE_UNUSED) const {
+        return false;
+    }
 
     /// Modes passed to the `open()` call.
     enum OpenMode { Create, AppendSubimage, AppendMIPLevel };
@@ -1848,7 +1854,8 @@ public:
     ///                      Pointer to an array of `ImageSpec` objects
     ///                      describing each of the expected subimages.
     /// @returns            `true` upon success, or `false` upen failure.
-    virtual bool open (const std::string &name, int subimages,
+    virtual bool open (const std::string &name,
+                       int subimages OIIO_MAYBE_UNUSED,
                        const ImageSpec *specs) {
         // Default implementation: just a regular open, assume that
         // appending will work.
@@ -2598,7 +2605,7 @@ inline bool convert_image(int nchannels, int width, int height, int depth,
             stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
             void *dst, TypeDesc dst_type,
             stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int alpha_channel, int z_channel = -1)
+            int /*alpha_channel*/, int /*z_channel*/ = -1)
 {
     return convert_image(nchannels, width, height, depth, src, src_type,
                          src_xstride, src_ystride, src_zstride, dst, dst_type,
@@ -2623,7 +2630,7 @@ inline bool parallel_convert_image(
             stride_t src_xstride, stride_t src_ystride, stride_t src_zstride,
             void *dst, TypeDesc dst_type,
             stride_t dst_xstride, stride_t dst_ystride, stride_t dst_zstride,
-            int alpha_channel, int z_channel, int nthreads=0)
+            int /*alpha_channel*/, int /*z_channel*/, int nthreads=0)
 {
     return parallel_convert_image (nchannels, width, height, depth,
            src, src_type, src_xstride, src_ystride, src_zstride,

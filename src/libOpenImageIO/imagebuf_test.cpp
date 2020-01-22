@@ -380,7 +380,7 @@ test_roi()
 
 
 int
-main(int argc, char** argv)
+main(int /*argc*/, char* /*argv*/[])
 {
     test_wrapmodes();
     test_roi();

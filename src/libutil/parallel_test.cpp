@@ -74,7 +74,7 @@ time_parallel_for()
         // make a lambda function that spawns a bunch of threads, calls a
         // trivial function, then waits for them to finish and tears down
         // the group.
-        auto func = [=]() { parallel_for(0, nt, [](int64_t i) { /*empty*/ }); };
+        auto func = [=]() { parallel_for(0, nt, [](int64_t) { /*empty*/ }); };
 
         double range;
         double t = time_trial(func, ntrials, its, &range);
@@ -132,13 +132,13 @@ test_thread_pool_recursion()
     static spin_mutex print_mutex;
     thread_pool* pool(default_thread_pool());
     pool->resize(2);
-    parallel_for(0, 10, [&](int id, int64_t i) {
+    parallel_for(0, 10, [&](int /*id*/, int64_t /*i*/) {
         // sleep long enough that we can push all the jobs before any get
         // done.
         Sysutil::usleep(10);
         // then run something else that itself will push jobs onto the
         // thread pool queue.
-        parallel_for(0, 10, [&](int id, int64_t i) {
+        parallel_for(0, 10, [&](int /*id*/, int64_t /*i*/) {
             Sysutil::usleep(2);
             spin_lock lock(print_mutex);
             // std::cout << "  recursive running thread " << id << std::endl;

@@ -18,7 +18,7 @@ using namespace OIIO;
 
 
 static int
-parse_files(int argc, const char* argv[])
+parse_files(int /*argc*/, const char* /*argv*/[])
 {
     //    input_filename = ustring(argv[0]);
     return 0;

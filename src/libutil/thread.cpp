@@ -44,7 +44,7 @@ namespace {
 
 template<typename T> class Queue {
 public:
-    Queue(int size) {}
+    Queue(int /*size*/) {}
     bool push(T const& value)
     {
         std::unique_lock<Mutex> lock(this->mutex);

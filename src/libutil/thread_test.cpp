@@ -61,7 +61,7 @@ getargs(int argc, char* argv[])
 
 
 void
-do_nothing(int thread_id)
+do_nothing(int /*thread_id*/)
 {
 }
 

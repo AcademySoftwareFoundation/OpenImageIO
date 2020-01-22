@@ -366,7 +366,7 @@ test_delegates()
 
 
 int
-main(int argc, char* argv[])
+main(int /*argc*/, char* /*argv*/[])
 {
     std::cout << "ParamValue size = " << sizeof(ParamValue) << "\n";
     test_value_types();

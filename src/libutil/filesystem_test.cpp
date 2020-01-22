@@ -510,7 +510,7 @@ test_mem_proxies()
 
 
 int
-main(int argc, char* argv[])
+main(int /*argc*/, char* /*argv*/[])
 {
     test_filename_decomposition();
     test_filename_searchpath_find();
