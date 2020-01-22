@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OCIO_REPO=${OCIO_REPO:=https://github.com/imageworks/OpenColorIO.git}
+OCIO_REPO=${OCIO_REPO:=https://github.com/AcademySoftwareFoundation/OpenColorIO.git}
 OCIO_BUILD_DIR=${OCIO_BUILD_DIR:=${PWD}/ext/OpenColorIO}
 OCIO_INSTALL_DIR=${OCIO_INSTALL_DIR:=${PWD}/ext/OpenColorIO/dist}
 OCIO_VERSION=${OCIO_VERSION:=1.1.1}
@@ -29,7 +29,9 @@ cd OpenColorIO
 echo "git checkout ${OCIO_BRANCH} --force"
 git checkout ${OCIO_BRANCH} --force
 mkdir -p build
-time (cd build ; cmake --config Release -DCMAKE_INSTALL_PREFIX=${OCIO_INSTALL_DIR} -DCMAKE_CXX_FLAGS="${OCIO_CXX_FLAGS}" ${OCIO_BUILDOPTS} .. && make clean && make -j 4 && make install)
+cd build
+time cmake --config Release -DCMAKE_INSTALL_PREFIX=${OCIO_INSTALL_DIR} -DCMAKE_CXX_FLAGS="${OCIO_CXX_FLAGS}" ${OCIO_BUILDOPTS} ..
+time cmake --build . --config Release --target install
 popd
 
 ls -R ${OCIO_INSTALL_DIR}
