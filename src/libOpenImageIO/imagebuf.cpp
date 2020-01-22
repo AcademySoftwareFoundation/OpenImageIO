@@ -1669,7 +1669,7 @@ static inline float
 getchannel_(const ImageBuf& buf, int x, int y, int z, int c,
             ImageBuf::WrapMode wrap)
 {
-    ImageBuf::ConstIterator<T> pixel(buf, x, y, z);
+    ImageBuf::ConstIterator<T> pixel(buf, x, y, z, wrap);
     return pixel[c];
 }
 

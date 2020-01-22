@@ -374,7 +374,8 @@ ImageSpec::erase_attribute(string_view name, TypeDesc searchtype,
 #endif
         regex re     = regex(name.str(), flag);
         auto matcher = [&](const ParamValue& p) {
-            return regex_match(p.name().string(), re);
+            return regex_match(p.name().string(), re)
+                   && (searchtype == TypeUnknown || searchtype == p.type());
         };
         auto del = std::remove_if(extra_attribs.begin(), extra_attribs.end(),
                                   matcher);
