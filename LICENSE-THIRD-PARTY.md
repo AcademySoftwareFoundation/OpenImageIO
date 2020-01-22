@@ -494,5 +494,13 @@ René Nyffenegger rene.nyffenegger@adp-gmbh.ch
 
 -------------------------------------------------------------------------
 
+gif.h by Charlie Tangora. Public domain / Unlicense.
+https://github.com/ginsweater/gif-h
+https://github.com/charlietangora/gif-h/blob/master/LICENSE
+
+SPDX-License-Identifier: Unlicense
+
+-------------------------------------------------------------------------
+
 If we have left anything out, it is unintentional. Please let us know.
 
