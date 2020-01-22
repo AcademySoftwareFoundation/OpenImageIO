@@ -75,9 +75,9 @@ ParamValue::init_noclear(ustring _name, TypeDesc _type, int _nvalues,
 // helper to parse a list from a string
 template<class T>
 static void
-parse_elements(string_view name, TypeDesc type, const char* type_code,
-               string_view value, ParamValue& p)
+parse_elements(const char* type_code, string_view value, ParamValue& p)
 {
+    TypeDesc type = p.type();
     int num_items = type.numelements() * type.aggregate;
     T* data       = (T*)p.data();
     // Erase any leading whitespace
@@ -103,21 +103,21 @@ ParamValue::ParamValue(string_view name, TypeDesc type, string_view value)
     : ParamValue(name, type, 1, nullptr)
 {
     if (type.basetype == TypeDesc::INT) {
-        parse_elements<int>(name, type, "%d", value, *this);
+        parse_elements<int>("%d", value, *this);
     } else if (type.basetype == TypeDesc::UINT) {
-        parse_elements<unsigned int>(name, type, "%u", value, *this);
+        parse_elements<unsigned int>("%u", value, *this);
     } else if (type.basetype == TypeDesc::FLOAT) {
-        parse_elements<float>(name, type, "%f", value, *this);
+        parse_elements<float>("%f", value, *this);
     } else if (type.basetype == TypeDesc::DOUBLE) {
-        parse_elements<double>(name, type, "%lf", value, *this);
+        parse_elements<double>("%lf", value, *this);
     } else if (type.basetype == TypeDesc::INT64) {
-        parse_elements<long long>(name, type, "%lld", value, *this);
+        parse_elements<long long>("%lld", value, *this);
     } else if (type.basetype == TypeDesc::UINT64) {
-        parse_elements<unsigned long long>(name, type, "%llu", value, *this);
+        parse_elements<unsigned long long>("%llu", value, *this);
     } else if (type.basetype == TypeDesc::INT16) {
-        parse_elements<short>(name, type, "%hd", value, *this);
+        parse_elements<short>("%hd", value, *this);
     } else if (type.basetype == TypeDesc::UINT16) {
-        parse_elements<unsigned short>(name, type, "%hu", value, *this);
+        parse_elements<unsigned short>("%hu", value, *this);
     } else if (type == TypeDesc::STRING) {
         ustring s(value);
         init(name, type, 1, &s);

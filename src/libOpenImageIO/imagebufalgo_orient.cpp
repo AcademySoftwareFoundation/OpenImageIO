@@ -363,25 +363,25 @@ ImageBufAlgo::reorient(ImageBuf& dst, const ImageBuf& src, int nthreads)
     bool ok = false;
     switch (src.orientation()) {
     case 1: ok = dst.copy(src); break;
-    case 2: ok = ImageBufAlgo::flop(dst, src); break;
-    case 3: ok = ImageBufAlgo::rotate180(dst, src); break;
-    case 4: ok = ImageBufAlgo::flip(dst, src); break;
+    case 2: ok = ImageBufAlgo::flop(dst, src, ROI(), nthreads); break;
+    case 3: ok = ImageBufAlgo::rotate180(dst, src, ROI(), nthreads); break;
+    case 4: ok = ImageBufAlgo::flip(dst, src, ROI(), nthreads); break;
     case 5:
-        ok = ImageBufAlgo::rotate270(tmp, src);
+        ok = ImageBufAlgo::rotate270(tmp, src, ROI(), nthreads);
         if (ok)
-            ok = ImageBufAlgo::flop(dst, tmp);
+            ok = ImageBufAlgo::flop(dst, tmp, ROI(), nthreads);
         else
             dst.errorf("%s", tmp.geterror());
         break;
-    case 6: ok = ImageBufAlgo::rotate90(dst, src); break;
+    case 6: ok = ImageBufAlgo::rotate90(dst, src, ROI(), nthreads); break;
     case 7:
-        ok = ImageBufAlgo::flip(tmp, src);
+        ok = ImageBufAlgo::flip(tmp, src, ROI(), nthreads);
         if (ok)
-            ok = ImageBufAlgo::rotate90(dst, tmp);
+            ok = ImageBufAlgo::rotate90(dst, tmp, ROI(), nthreads);
         else
             dst.errorf("%s", tmp.geterror());
         break;
-    case 8: ok = ImageBufAlgo::rotate270(dst, src); break;
+    case 8: ok = ImageBufAlgo::rotate270(dst, src, ROI(), nthreads); break;
     }
     dst.set_orientation(1);
     return ok;
