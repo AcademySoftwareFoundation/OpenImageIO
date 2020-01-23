@@ -916,6 +916,30 @@ Image arithmetic
 
 
 |
+.. doxygenfunction:: max(Image_or_Const, Image_or_Const, ROI, int)
+.. doxygenfunction:: min(Image_or_Const, Image_or_Const, ROI, int)
+..
+
+  Examples::
+
+    // min of images A and B, assign to MinMimage
+    ImageBuf A ("a.exr");
+    ImageBuf B ("b.exr");
+    ImageBuf MinImage = ImageBufAlgo::min (Sum, A, B);
+
+    // Squash negative values in A by taking max(A, 0.0) for channels 0-2 of A
+    ImageBuf A ("a.exr");
+    ROI roi = get_roi (A.spec());
+    roi.chbegin = 0;  roi.chend = 3;
+    ImageBuf Sum = ImageBufAlgo::max (Sum, A, 0.0f, roi);
+
+  Result-as-parameter version:
+
+    .. doxygenfunction:: max(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
+    .. doxygenfunction:: min(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
+
+
+|
 .. doxygenfunction:: clamp(const ImageBuf&, cspan<float>, cspan<float>, bool, ROI, int)
 ..
 

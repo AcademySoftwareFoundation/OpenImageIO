@@ -173,6 +173,18 @@ Comparing "rangecompress-luma.tif" and "ref/rangecompress-luma.tif"
 PASS
 Comparing "rangeexpand-luma.tif" and "ref/rangeexpand-luma.tif"
 PASS
+Comparing "min.exr" and "ref/min.exr"
+PASS
+Comparing "cmin1.exr" and "ref/cmin1.exr"
+PASS
+Comparing "cmin2.exr" and "ref/cmin2.exr"
+PASS
+Comparing "max.exr" and "ref/max.exr"
+PASS
+Comparing "cmax1.exr" and "ref/cmax1.exr"
+PASS
+Comparing "cmax2.exr" and "ref/cmax2.exr"
+PASS
 Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
 PASS
 Comparing "bsplinekernel.exr" and "ref/bsplinekernel.exr"

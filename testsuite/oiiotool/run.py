@@ -123,6 +123,24 @@ command += oiiotool ("ref/hole.tif --fillholes -o tahoe-filled.tif")
 # test hole filling for a cropped image
 command += oiiotool ("-pattern checker 64x64+32+32 3 -ch R,G,B,A=1.0 -fullsize 128x128+0+0 --croptofull -fillholes -d uint8 -o growholes.tif")
 
+# Test --min/--max
+command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 64x64 3 "
+                   + "--pattern fill:left=0,0,0:right=1,1,1 64x64 3 "
+                   + "--min -d uint8 -o min.exr")
+command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 64x64 3 "
+                   + "--pattern fill:left=0,0,0:right=1,1,1 64x64 3 "
+                   + "--max -d uint8 -o max.exr")
+# Test --minc/maxc val (min to all channels the same scalar)
+command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 64x64 3 "
+                   + "--minc 0.25 -o cmin1.exr")
+command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 64x64 3 "
+                   + "--maxc 0.75 -o cmax1.exr")
+# Test --minc/maxc val,val,val... (min per-channel scalars)
+command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 64x64 3 "
+                   + "--minc 0.75,0.5,0.25 -o cmin2.exr")
+command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 64x64 3 "
+                   + "--maxc 0.75,0.5,0.25 -o cmax2.exr")
+
 # test clamping
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --resize 50%"
             + " --clamp:min=0.2:max=,,0.5,1 -o grid-clamped.tif")
@@ -251,6 +269,8 @@ outputs = [
             "tahoe-filled.tif", "growholes.tif",
             "rangecompress.tif", "rangeexpand.tif",
             "rangecompress-luma.tif", "rangeexpand-luma.tif",
+            "min.exr", "cmin1.exr", "cmin2.exr",
+            "max.exr", "cmax1.exr", "cmax2.exr",
             "grid-clamped.tif",
             "bsplinekernel.exr", "bspline-blur.tif",
             "gauss5x5-blur.tif", "tahoe-median.tif",

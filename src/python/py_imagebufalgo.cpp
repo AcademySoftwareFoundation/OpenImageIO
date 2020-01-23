@@ -1003,6 +1003,116 @@ IBA_pow_color_ret(const ImageBuf& A, py::object values_tuple,
 
 
 bool
+IBA_min_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+              ROI roi = ROI::All(), int nthreads = 0)
+{
+    std::vector<float> values;
+    py_to_stdvector(values, values_tuple);
+    if (roi.defined())
+        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
+    else if (A.initialized())
+        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
+    else
+        return false;
+    OIIO_ASSERT(values.size() > 0);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::min(dst, A, values, roi, nthreads);
+}
+
+bool
+IBA_min_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
+               ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::min(dst, A, B, roi, nthreads);
+}
+
+ImageBuf
+IBA_min_color_ret(const ImageBuf& A, py::object values_tuple,
+                  ROI roi = ROI::All(), int nthreads = 0)
+{
+    ImageBuf result;
+    std::vector<float> values;
+    py_to_stdvector(values, values_tuple);
+    if (roi.defined())
+        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
+    else if (A.initialized())
+        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
+    else
+        return result;
+    OIIO_ASSERT(values.size() > 0);
+    py::gil_scoped_release gil;
+    result = ImageBufAlgo::min(A, values, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_min_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
+                   int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::min(A, B, roi, nthreads);
+    return result;
+}
+
+
+
+bool
+IBA_max_color(ImageBuf& dst, const ImageBuf& A, py::object values_tuple,
+              ROI roi = ROI::All(), int nthreads = 0)
+{
+    std::vector<float> values;
+    py_to_stdvector(values, values_tuple);
+    if (roi.defined())
+        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
+    else if (A.initialized())
+        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
+    else
+        return false;
+    OIIO_ASSERT(values.size() > 0);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::max(dst, A, values, roi, nthreads);
+}
+
+bool
+IBA_max_images(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
+               ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::max(dst, A, B, roi, nthreads);
+}
+
+ImageBuf
+IBA_max_color_ret(const ImageBuf& A, py::object values_tuple,
+                  ROI roi = ROI::All(), int nthreads = 0)
+{
+    ImageBuf result;
+    std::vector<float> values;
+    py_to_stdvector(values, values_tuple);
+    if (roi.defined())
+        values.resize(roi.nchannels(), values.size() ? values.back() : 0.0f);
+    else if (A.initialized())
+        values.resize(A.nchannels(), values.size() ? values.back() : 0.0f);
+    else
+        return result;
+    OIIO_ASSERT(values.size() > 0);
+    py::gil_scoped_release gil;
+    result = ImageBufAlgo::max(A, values, roi, nthreads);
+    return result;
+}
+
+ImageBuf
+IBA_max_images_ret(const ImageBuf& A, const ImageBuf& B, ROI roi = ROI::All(),
+                   int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    ImageBuf result = ImageBufAlgo::max(A, B, roi, nthreads);
+    return result;
+}
+
+
+
+bool
 IBA_clamp(ImageBuf& dst, const ImageBuf& src, py::object min_, py::object max_,
           bool clampalpha01 = false, ROI roi = ROI::All(), int nthreads = 0)
 {
@@ -2497,6 +2607,24 @@ declare_imagebufalgo(py::module& m)
         .def_static("repremult", &IBA_repremult, "dst"_a, "src"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("repremult", &IBA_repremult_ret, "src"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+
+        .def_static("min", &IBA_min_images, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("min", IBA_min_color, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("min", &IBA_min_images_ret, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("min", IBA_min_color_ret, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+
+        .def_static("max", &IBA_max_images, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("max", IBA_max_color, "dst"_a, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("max", &IBA_max_images_ret, "A"_a, "B"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("max", IBA_max_color_ret, "A"_a, "B"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("clamp", &IBA_clamp, "dst"_a, "src"_a, "min"_a, "max"_a,

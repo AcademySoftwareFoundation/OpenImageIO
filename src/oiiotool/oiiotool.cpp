@@ -113,6 +113,18 @@ static Oiiotool ot;
         if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
             return 0;                                                          \
         OIIO_ASSERT(argc == nargs);                                            \
+        OiiotoolImageColorOp<IBAbinary_> op(impl, ot, #name, argc, argv,       \
+                                            ninputs);                          \
+        return op();                                                           \
+    }
+
+#define BINARY_IMAGE_COLOR2_OP(name, impl, defaultval)                         \
+    static int action_##name(int argc, const char* argv[])                     \
+    {                                                                          \
+        const int nargs = 2, ninputs = 1;                                      \
+        if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
+            return 0;                                                          \
+        OIIO_ASSERT(argc == nargs);                                            \
         OiiotoolImageColorOp<IBAbinary_img_col> op(impl, ot, #name, argc,      \
                                                    argv, ninputs);             \
         return op();                                                           \
@@ -2759,7 +2771,7 @@ BINARY_IMAGE_COLOR_OP(subc, ImageBufAlgo::sub, 0);
 BINARY_IMAGE_COLOR_OP(mulc, ImageBufAlgo::mul, 1);
 BINARY_IMAGE_COLOR_OP(divc, ImageBufAlgo::div, 1);
 BINARY_IMAGE_COLOR_OP(absdiffc, ImageBufAlgo::absdiff, 0);
-BINARY_IMAGE_COLOR_OP(powc, ImageBufAlgo::pow, 1.0f);
+BINARY_IMAGE_COLOR2_OP(powc, ImageBufAlgo::pow, 1.0f);
 
 UNARY_IMAGE_OP(abs, ImageBufAlgo::abs);
 
@@ -4393,6 +4405,13 @@ action_fill(int argc, const char* argv[])
 
 
 
+BINARY_IMAGE2_OP(max, ImageBufAlgo::max);
+BINARY_IMAGE_COLOR_OP(maxc, ImageBufAlgo::max, 0);
+BINARY_IMAGE2_OP(min, ImageBufAlgo::min);
+BINARY_IMAGE_COLOR_OP(minc, ImageBufAlgo::min, 0);
+
+
+
 static int
 action_clamp(int argc, const char* argv[])
 {
@@ -5794,6 +5813,10 @@ getargs(int argc, char* argv[])
                 "--fixnan %@ %s:STRATEGY", action_fixnan, NULL, "Fix NaN/Inf values in the image (choices: none, black, box3, error)",
                 "--fillholes %@", action_fillholes, NULL,
                     "Fill in holes (where alpha is not 1)",
+                "--max %@", action_max, NULL, "Pixel-by-pixel max of two images",
+                "--maxc %s:VAL %@", action_maxc, NULL, "Max all values with a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
+                "--min %@", action_min, NULL, "Pixel-by-pixel min of two images",
+                "--minc %s:VAL %@", action_minc, NULL, "Min all values with a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
                 "--clamp %@", action_clamp, NULL, "Clamp values (options: min=..., max=..., clampalpha=0)",
                 "--contrast %@", action_contrast, NULL, "Remap values (options: black=0..., white=1..., sthresh=0.5..., scontrast=1.0..., gamma=1, clamp=0|1)",
                 "--rangecompress %@", action_rangecompress, NULL,

@@ -2679,7 +2679,33 @@ current top image.
     be left alone, but it will result in an error that will terminate
     :program:`oiiotool`.
 
-    
+
+.. option:: --max
+            --maxc <value>
+            --maxc <value0,value1,value2...>
+            --min
+            --minc <value>
+            --minc <value0,value1,value2...>
+
+    Replace the *two* top images with a new image that is the pixel-by-pixel
+    maximum of those images (`--max`) or minimum (`--min`) of the
+    corresponding pixels of each image, or the min/max of each pixel of one
+    image with a constant color (`--maxc`, `--minc`).
+
+    For `--maxc` and `--minc`, if a single constant value is given, it will
+    be used for all color channels. Alternatively, a series of
+    comma-separated constant values (with no spaces) may be used to specifiy
+    a different value to add to each channel in the image.
+
+    Examples:
+
+        oiiotool imageA.tif imageB.tif --min -o minimum.tif
+
+        # Clamp all channels to a mimimum of 0 (all negative values are
+        # changed to 0).
+        oiiotool input.exr --minc 0.0 -o nonegatives.exr
+
+
 .. option:: --clamp
 
     Replace the top image with a copy in which pixel values have been

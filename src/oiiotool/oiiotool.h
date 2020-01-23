@@ -754,7 +754,7 @@ typedef bool (*IBAunary)(ImageBuf& dst, const ImageBuf& A, ROI roi,
 typedef bool (*IBAbinary)(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
                           ROI roi, int nthreads);
 typedef bool (*IBAbinary_img_col)(ImageBuf& dst, const ImageBuf& A,
-                                  const float* B, ROI roi, int nthreads);
+                                  cspan<float> B, ROI roi, int nthreads);
 typedef bool (*IBAbinary_)(ImageBuf& dst, Image_or_Const A, Image_or_Const B,
                            ROI roi, int nthreads);
 
@@ -794,7 +794,7 @@ protected:
     IBLIMPL opimpl;
 };
 
-template<typename IBLIMPL = IBAbinary_img_col>
+template<typename IBLIMPL = IBAbinary_>
 class OiiotoolImageColorOp : public OiiotoolOp {
 public:
     OiiotoolImageColorOp(IBLIMPL opimpl, Oiiotool& ot, string_view opname,
@@ -812,7 +812,7 @@ public:
         int nvals = Strutil::extract_from_list_string(val, args[1]);
         val.resize(nvals);
         val.resize(nchans, val.size() == 1 ? val.back() : defaultval);
-        return opimpl(*img[0], *img[1], &val[0], ROI(), 0);
+        return opimpl(*img[0], *img[1], val, ROI(), 0);
     }
 
 protected:
