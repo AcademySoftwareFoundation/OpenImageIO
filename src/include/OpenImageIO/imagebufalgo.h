@@ -416,7 +416,7 @@ bool OIIO_API channels (ImageBuf &dst, const ImageBuf &src,
 /// it will be resized to be big enough for the region.
 ImageBuf OIIO_API channel_append (const ImageBuf &A, const ImageBuf &B,
                                   ROI roi={}, int nthreads=0);
-/// `channelWrite to an exsisting image `dst` (allocating if it is uninitialized).
+/// Write to an exsisting image `dst` (allocating if it is uninitialized).
 bool OIIO_API channel_append (ImageBuf &dst, const ImageBuf &A,
                               const ImageBuf &B, ROI roi={}, int nthreads=0);
 
@@ -536,7 +536,7 @@ bool OIIO_API reorient (ImageBuf &dst, const ImageBuf &src, int nthreads=0);
 ImageBuf OIIO_API circular_shift (const ImageBuf &src,
                                   int xshift, int yshift, int zshift=0,
                                   ROI roi={}, int nthreads=0);
-/// `circularWrite to an exsisting image `dst` (allocating if it is uninitialized).
+/// Write to an exsisting image `dst` (allocating if it is uninitialized).
 bool OIIO_API circular_shift (ImageBuf &dst, const ImageBuf &src,
                               int xshift, int yshift, int zshift=0,
                               ROI roi={}, int nthreads=0);
@@ -761,7 +761,7 @@ bool OIIO_API sub (ImageBuf &dst, Image_or_Const A, Image_or_Const B,
 /// channels. (But at least one must be an image.)
 ImageBuf OIIO_API absdiff (Image_or_Const A, Image_or_Const B,
                            ROI roi={}, int nthreads=0);
-/// `absdifWrite to an exsisting image `dst` (allocating if it is uninitialized).
+/// Write to an exsisting image `dst` (allocating if it is uninitialized).
 bool OIIO_API absdiff (ImageBuf &dst, Image_or_Const A, Image_or_Const B,
                        ROI roi={}, int nthreads=0);
 
@@ -779,7 +779,7 @@ bool OIIO_API abs (ImageBuf &dst, const ImageBuf &A, ROI roi={}, int nthreads=0)
 /// used for all channels.
 ImageBuf OIIO_API mul (Image_or_Const A, Image_or_Const B,
                        ROI roi={}, int nthreads=0);
-/// `rite to an exsisting image `dst` (allocating if it is uninitialized).
+/// Write to an exsisting image `dst` (allocating if it is uninitialized).
 bool OIIO_API mul (ImageBuf &dst, Image_or_Const A, Image_or_Const B,
                    ROI roi={}, int nthreads=0);
 
