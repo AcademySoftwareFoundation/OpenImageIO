@@ -53,10 +53,7 @@ rderr_handler(png_structp png, png_const_charp data)
 }
 
 
-static void
-rdwarn_handler(png_structp png, png_const_charp data)
-{
-}
+static void rdwarn_handler(png_structp /*png*/, png_const_charp /*data*/) {}
 
 
 
@@ -332,8 +329,8 @@ destroy_read_struct(png_structp& sp, png_infop& ip)
 }
 
 
-inline void
-null_png_errhandler(png_structp png, png_const_charp message)
+inline void null_png_errhandler(png_structp /*png*/,
+                                png_const_charp /*message*/)
 {
     // ignore
 }

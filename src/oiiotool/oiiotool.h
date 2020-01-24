@@ -762,7 +762,7 @@ template<typename IBLIMPL = IBAunary>
 class OiiotoolSimpleUnaryOp : public OiiotoolOp {
 public:
     OiiotoolSimpleUnaryOp(IBLIMPL opimpl, Oiiotool& ot, string_view opname,
-                          int argc, const char* argv[], int ninputs)
+                          int argc, const char* argv[], int /*ninputs*/)
         : OiiotoolOp(ot, opname, argc, argv, 1)
         , opimpl(opimpl)
     {
@@ -780,7 +780,7 @@ template<typename IBLIMPL = IBAbinary>
 class OiiotoolSimpleBinaryOp : public OiiotoolOp {
 public:
     OiiotoolSimpleBinaryOp(IBLIMPL opimpl, Oiiotool& ot, string_view opname,
-                           int argc, const char* argv[], int ninputs)
+                           int argc, const char* argv[], int /*ninputs*/)
         : OiiotoolOp(ot, opname, argc, argv, 2)
         , opimpl(opimpl)
     {
@@ -798,7 +798,7 @@ template<typename IBLIMPL = IBAbinary_>
 class OiiotoolImageColorOp : public OiiotoolOp {
 public:
     OiiotoolImageColorOp(IBLIMPL opimpl, Oiiotool& ot, string_view opname,
-                         int argc, const char* argv[], int ninputs,
+                         int argc, const char* argv[], int /*ninputs*/,
                          float defaultval = 0.0f)
         : OiiotoolOp(ot, opname, argc, argv, 1)
         , opimpl(opimpl)

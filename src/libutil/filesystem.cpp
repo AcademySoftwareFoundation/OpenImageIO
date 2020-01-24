@@ -891,6 +891,36 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
 
 
 
+size_t
+Filesystem::IOProxy::read(void* /*buf*/, size_t /*size*/)
+{
+    return 0;
+}
+
+
+size_t
+Filesystem::IOProxy::write(const void* /*buf*/, size_t /*size*/)
+{
+    return 0;
+}
+
+
+size_t
+Filesystem::IOProxy::pread(void* /*buf*/, size_t /*size*/, int64_t /*offset*/)
+{
+    return 0;
+}
+
+
+size_t
+Filesystem::IOProxy::pwrite(const void* /*buf*/, size_t /*size*/,
+                            int64_t /*offset*/)
+{
+    return 0;
+}
+
+
+
 Filesystem::IOFile::IOFile(string_view filename, Mode mode)
     : IOProxy(filename, mode)
 {

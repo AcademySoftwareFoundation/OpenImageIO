@@ -52,6 +52,15 @@ struct XMPtag {
     const char* oiioname;  // Attribute name we use
     TypeDesc oiiotype;     // Type we use
     int special;           // Special handling
+
+    XMPtag(const char* xname, const char* oname, TypeDesc type = TypeUnknown,
+           int spec = 0)
+        : xmpname(xname)
+        , oiioname(oname)
+        , oiiotype(type)
+        , special(spec)
+    {
+    }
 };
 
 static XMPtag xmptag[] = {
@@ -390,7 +399,7 @@ extract_middle(string_view str, size_t pos, string_view startmarker,
 
 static void
 decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
-                const char* parentname = NULL, bool isList = false)
+                const char* parentname = NULL, bool /*isList*/ = false)
 {
     std::string mylist;  // will accumulate for list items
     for (; node; node = node.next_sibling()) {

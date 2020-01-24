@@ -110,7 +110,7 @@ private:
             m_spec.attribute(prefixedname(prefix, name), data);
     }
     void add(string_view prefix, std::string name, string_view data,
-             bool force = true, int ignval = 0)
+             bool force = true, int /*ignval*/ = 0)
     {
         if (force || (data.size() && data[0]))
             m_spec.attribute(prefixedname(prefix, name), data);
@@ -1156,7 +1156,7 @@ RawInput::process()
 
 
 bool
-RawInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     lock_guard lock(m_mutex);

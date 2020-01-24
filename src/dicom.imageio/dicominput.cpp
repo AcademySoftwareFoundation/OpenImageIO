@@ -37,7 +37,10 @@ public:
     DICOMInput() {}
     virtual ~DICOMInput() { close(); }
     virtual const char* format_name(void) const override { return "dicom"; }
-    virtual int supports(string_view feature) const override { return false; }
+    virtual int supports(string_view /*feature*/) const override
+    {
+        return false;  // we don't support any optional features
+    }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
                       const ImageSpec& config) override;
@@ -95,7 +98,7 @@ DICOMInput::open(const std::string& name, ImageSpec& newspec)
 
 bool
 DICOMInput::open(const std::string& name, ImageSpec& newspec,
-                 const ImageSpec& config)
+                 const ImageSpec& /*config*/)
 {
     m_filename = name;
     m_subimage = -1;
@@ -211,7 +214,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         { EPI_YBR_Full, "YBR_Full", 3 },                /// YCbCr full
         { EPI_YBR_Full_422, "YBR_Full_422", 3 },        /// YCbCr full 4:2:2
         { EPI_YBR_Partial_422, "YBR_Partial_422", 3 },  /// YCbCr partial 4:2:2
-        { EPI_Unknown, NULL }
+        { EPI_Unknown, NULL, 0 }
     };
     int nchannels         = 1;
     const char* photoname = NULL;
@@ -320,7 +323,7 @@ DICOMInput::read_metadata()
 
 
 bool
-DICOMInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+DICOMInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                  void* data)
 {
     lock_guard lock(m_mutex);

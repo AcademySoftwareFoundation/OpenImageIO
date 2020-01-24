@@ -1190,7 +1190,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
 bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                    int yend, int z, int chbegin, int chend,
+                                    int yend, int /*z*/, int chbegin, int chend,
                                     void* data)
 {
     lock_guard lock(m_mutex);

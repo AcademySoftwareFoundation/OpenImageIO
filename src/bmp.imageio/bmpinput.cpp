@@ -123,7 +123,7 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
 
 
 bool
-BmpInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     lock_guard lock(m_mutex);

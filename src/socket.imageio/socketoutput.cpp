@@ -41,7 +41,7 @@ SocketOutput::supports(string_view feature) const
 
 bool
 SocketOutput::open(const std::string& name, const ImageSpec& newspec,
-                   OpenMode mode)
+                   OpenMode /*mode*/)
 {
     if (!(connect_to_server(name) && send_spec_to_server(newspec))) {
         return false;
@@ -58,8 +58,8 @@ SocketOutput::open(const std::string& name, const ImageSpec& newspec,
 
 
 bool
-SocketOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
-                             stride_t xstride)
+SocketOutput::write_scanline(int /*y*/, int /*z*/, TypeDesc format,
+                             const void* data, stride_t xstride)
 {
     data = to_native_scanline(format, data, xstride, m_scratch);
 
@@ -81,8 +81,9 @@ SocketOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
 
 bool
-SocketOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                         stride_t xstride, stride_t ystride, stride_t zstride)
+SocketOutput::write_tile(int /*x*/, int /*y*/, int /*z*/, TypeDesc format,
+                         const void* data, stride_t xstride, stride_t ystride,
+                         stride_t zstride)
 {
     data = to_native_tile(format, data, xstride, ystride, zstride, m_scratch);
 
@@ -111,7 +112,7 @@ SocketOutput::close()
 
 
 bool
-SocketOutput::copy_image(ImageInput* in)
+SocketOutput::copy_image(ImageInput* /*in*/)
 {
     return true;
 }

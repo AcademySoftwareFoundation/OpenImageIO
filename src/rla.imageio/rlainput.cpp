@@ -482,7 +482,7 @@ RLAInput::decode_rle_span(unsigned char* buf, int n, int stride,
 
 bool
 RLAInput::decode_channel_group(int first_channel, short num_channels,
-                               short num_bits, int y)
+                               short num_bits, int /*y*/)
 {
     // Some preliminaries -- figure out various sizes and offsets
     int chsize;         // size of the channels in this group, in bytes
@@ -608,7 +608,7 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
 
 
 bool
-RLAInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+RLAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     lock_guard lock(m_mutex);

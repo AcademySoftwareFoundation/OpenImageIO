@@ -327,7 +327,7 @@ dumpdata(cspan<uint8_t> blob, cspan<size_t> ifdoffsets, size_t start,
 static void
 version4char_handler(const TagInfo& taginfo, const TIFFDirEntry& dir,
                      cspan<uint8_t> buf, ImageSpec& spec,
-                     bool swapendian = false, int offset_adjustment = 0)
+                     bool /*swapendian*/ = false, int offset_adjustment = 0)
 {
     const char* data = (const char*)dataptr(dir, buf, offset_adjustment);
     if (tiff_data_size(dir) == 4 && data != nullptr)  // sanity check
@@ -338,7 +338,7 @@ version4char_handler(const TagInfo& taginfo, const TIFFDirEntry& dir,
 static void
 version4uint8_handler(const TagInfo& taginfo, const TIFFDirEntry& dir,
                       cspan<uint8_t> buf, ImageSpec& spec,
-                      bool swapendian = false, int offset_adjustment = 0)
+                      bool /*swapendian*/ = false, int offset_adjustment = 0)
 {
     const char* data = (const char*)dataptr(dir, buf, offset_adjustment);
     if (tiff_data_size(dir) == 4 && data != nullptr)  // sanity check
@@ -348,7 +348,7 @@ version4uint8_handler(const TagInfo& taginfo, const TIFFDirEntry& dir,
 
 
 static void
-makernote_handler(const TagInfo& taginfo, const TIFFDirEntry& dir,
+makernote_handler(const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                   cspan<uint8_t> buf, ImageSpec& spec, bool swapendian = false,
                   int offset_adjustment = 0)
 {

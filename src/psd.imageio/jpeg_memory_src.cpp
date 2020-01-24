@@ -11,17 +11,11 @@
 
 namespace {
 
-void
-init_memory_source(j_decompress_ptr cinfo)
-{
-}
+void init_memory_source(j_decompress_ptr /*cinfo*/) {}
 
 
 
-void
-term_memory_source(j_decompress_ptr cinfo)
-{
-}
+void term_memory_source(j_decompress_ptr /*cinfo*/) {}
 
 
 

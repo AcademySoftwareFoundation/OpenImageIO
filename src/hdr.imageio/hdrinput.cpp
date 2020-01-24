@@ -158,7 +158,7 @@ HdrInput::seek_subimage(int subimage, int miplevel)
 
 
 bool
-HdrInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+HdrInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     lock_guard lock(m_mutex);

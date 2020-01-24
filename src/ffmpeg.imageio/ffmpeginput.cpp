@@ -569,7 +569,7 @@ FFmpegInput::seek_subimage(int subimage, int miplevel)
 
 
 bool
-FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                   void* data)
 {
     lock_guard lock(m_mutex);

@@ -901,7 +901,8 @@ public:
     }
 
     /// Is the tile specified by the TileID already in the cache?
-    bool tile_in_cache(const TileID& id, ImageCachePerThreadInfo* thread_info)
+    bool tile_in_cache(const TileID& id,
+                       ImageCachePerThreadInfo* /*thread_info*/)
     {
         TileCache::iterator found = m_tilecache.find(id);
         return (found != m_tilecache.end());

@@ -35,6 +35,10 @@
 #include <cstring>
 #include <ctime>
 
+#if defined(__GNUC__)
+#    pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include "Cineon.h"
 #include "CineonStream.h"
 #include "EndianSwap.h"

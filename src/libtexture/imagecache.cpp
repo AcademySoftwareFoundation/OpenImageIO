@@ -261,7 +261,7 @@ ImageCacheFile::LevelInfo::LevelInfo(const LevelInfo& src)
 
 
 ImageCacheFile::ImageCacheFile(ImageCacheImpl& imagecache,
-                               ImageCachePerThreadInfo* thread_info,
+                               ImageCachePerThreadInfo* /*thread_info*/,
                                ustring filename, ImageInput::Creator creator,
                                const ImageSpec* config)
     : m_filename(filename)
@@ -322,7 +322,7 @@ ImageCacheFile::reset(ImageInput::Creator creator, const ImageSpec* config)
 
 
 std::shared_ptr<ImageInput>
-ImageCacheFile::get_imageinput(ImageCachePerThreadInfo* thread_info)
+ImageCacheFile::get_imageinput(ImageCachePerThreadInfo* /*thread_info*/)
 {
 #if defined(__GLIBCXX__) && __GLIBCXX__ < 20160822
     // Older gcc libstdc++ does not properly support std::atomic
@@ -1325,7 +1325,7 @@ ImageCacheImpl::clear_fingerprints()
 
 
 void
-ImageCacheImpl::check_max_files(ImageCachePerThreadInfo* thread_info)
+ImageCacheImpl::check_max_files(ImageCachePerThreadInfo* /*thread_info*/)
 {
 #if 0
     if (! (m_stat_open_files_created % 16) || m_stat_open_files_current >= m_max_open_files) {
@@ -2393,7 +2393,7 @@ ImageCacheImpl::add_tile_to_cache(ImageCacheTileRef& tile,
 
 
 void
-ImageCacheImpl::check_max_mem(ImageCachePerThreadInfo* thread_info)
+ImageCacheImpl::check_max_mem(ImageCachePerThreadInfo* /*thread_info*/)
 {
     OIIO_DASSERT(m_mem_used < (long long)m_max_memory_bytes * 10);  // sanity
 #if 0

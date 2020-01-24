@@ -56,8 +56,8 @@ ImageOutput::~ImageOutput() {}
 
 
 bool
-ImageOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
-                            stride_t xstride)
+ImageOutput::write_scanline(int /*y*/, int /*z*/, TypeDesc /*format*/,
+                            const void* /*data*/, stride_t /*xstride*/)
 {
     // Default implementation: don't know how to write scanlines
     return false;
@@ -88,8 +88,9 @@ ImageOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
 
 bool
-ImageOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
-                        stride_t xstride, stride_t ystride, stride_t zstride)
+ImageOutput::write_tile(int /*x*/, int /*y*/, int /*z*/, TypeDesc /*format*/,
+                        const void* /*data*/, stride_t /*xstride*/,
+                        stride_t /*ystride*/, stride_t /*zstride*/)
 {
     // Default implementation: don't know how to write tiles
     return false;
@@ -152,10 +153,11 @@ ImageOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 
 
 bool
-ImageOutput::write_rectangle(int xbegin, int xend, int ybegin, int yend,
-                             int zbegin, int zend, TypeDesc format,
-                             const void* data, stride_t xstride,
-                             stride_t ystride, stride_t zstride)
+ImageOutput::write_rectangle(int /*xbegin*/, int /*xend*/, int /*ybegin*/,
+                             int /*yend*/, int /*zbegin*/, int /*zend*/,
+                             TypeDesc /*format*/, const void* /*data*/,
+                             stride_t /*xstride*/, stride_t /*ystride*/,
+                             stride_t /*zstride*/)
 {
     return false;
 }
@@ -163,8 +165,8 @@ ImageOutput::write_rectangle(int xbegin, int xend, int ybegin, int yend,
 
 
 bool
-ImageOutput::write_deep_scanlines(int ybegin, int yend, int z,
-                                  const DeepData& deepdata)
+ImageOutput::write_deep_scanlines(int /*ybegin*/, int /*yend*/, int /*z*/,
+                                  const DeepData& /*deepdata*/)
 {
     return false;  // default: doesn't support deep images
 }
@@ -172,8 +174,9 @@ ImageOutput::write_deep_scanlines(int ybegin, int yend, int z,
 
 
 bool
-ImageOutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
-                              int zbegin, int zend, const DeepData& deepdata)
+ImageOutput::write_deep_tiles(int /*xbegin*/, int /*xend*/, int /*ybegin*/,
+                              int /*yend*/, int /*zbegin*/, int /*zend*/,
+                              const DeepData& /*deepdata*/)
 {
     return false;  // default: doesn't support deep images
 }
@@ -205,7 +208,7 @@ ImageOutput::write_deep_image(const DeepData& deepdata)
 
 
 int
-ImageOutput::send_to_output(const char* format, ...)
+ImageOutput::send_to_output(const char* /*format*/, ...)
 {
     // FIXME -- I can't remember how this is supposed to work
     return 0;
@@ -214,7 +217,7 @@ ImageOutput::send_to_output(const char* format, ...)
 
 
 int
-ImageOutput::send_to_client(const char* format, ...)
+ImageOutput::send_to_client(const char* /*format*/, ...)
 {
     // FIXME -- I can't remember how this is supposed to work
     return 0;

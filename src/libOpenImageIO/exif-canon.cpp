@@ -747,7 +747,7 @@ static LabelIndex canon_shotinfo_indices[] = {
 };
 
 static void
-canon_shotinfo_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
+canon_shotinfo_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                         cspan<uint8_t> buf, ImageSpec& spec,
                         bool swapendian, int offset_adjustment)
 {
@@ -761,7 +761,7 @@ static LabelIndex canon_panorama_indices[] = {
 };
 
 static void
-canon_panorama_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
+canon_panorama_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                         cspan<uint8_t> buf, ImageSpec& spec,
                         bool swapendian, int offset_adjustment)
 {
@@ -782,7 +782,7 @@ static LabelIndex canon_sensorinfo_indices[] = {
 };
 
 static void
-canon_sensorinfo_handler (const TagInfo& taginfo, const TIFFDirEntry& dir,
+canon_sensorinfo_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                           cspan<uint8_t> buf, ImageSpec& spec,
                           bool swapendian, int offset_adjustment)
 {

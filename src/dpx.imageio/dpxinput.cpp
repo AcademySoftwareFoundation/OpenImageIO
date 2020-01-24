@@ -565,7 +565,7 @@ DPXInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 bool
 DPXInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                int yend, int z, void* data)
+                                int yend, int /*z*/, void* data)
 {
     lock_guard lock(m_mutex);
     if (!seek_subimage(subimage, miplevel))

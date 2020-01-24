@@ -205,50 +205,54 @@ public:
                            float* result, float* dresultds = NULL,
                            float* dresultdt = NULL, float* dresultdr = NULL);
 
-    virtual bool shadow(ustring filename, TextureOpt& options,
-                        const Imath::V3f& P, const Imath::V3f& dPdx,
-                        const Imath::V3f& dPdy, float* result,
-                        float* dresultds = NULL, float* dresultdt = NULL)
+    virtual bool shadow(ustring /*filename*/, TextureOpt& /*options*/,
+                        const Imath::V3f& /*P*/, const Imath::V3f& /*dPdx*/,
+                        const Imath::V3f& /*dPdy*/, float* /*result*/,
+                        float* /*dresultds*/, float* /*dresultdt*/)
     {
         return false;
     }
-    virtual bool shadow(TextureHandle* texture_handle, Perthread* thread_info,
-                        TextureOpt& options, const Imath::V3f& P,
-                        const Imath::V3f& dPdx, const Imath::V3f& dPdy,
-                        float* result, float* dresultds = NULL,
-                        float* dresultdt = NULL)
+    virtual bool shadow(TextureHandle* /*texture_handle*/,
+                        Perthread* /*thread_info*/, TextureOpt& /*options*/,
+                        const Imath::V3f& /*P*/, const Imath::V3f& /*dPdx*/,
+                        const Imath::V3f& /*dPdy*/, float* /*result*/,
+                        float* /*dresultds*/, float* /*dresultdt*/)
     {
         return false;
     }
-    virtual bool shadow(ustring filename, TextureOptBatch& options,
-                        Tex::RunMask mask, const float* P, const float* dPdx,
-                        const float* dPdy, float* result,
-                        float* dresultds = nullptr, float* dresultdt = nullptr)
+    virtual bool shadow(ustring /*filename*/, TextureOptBatch& /*options*/,
+                        Tex::RunMask /*mask*/, const float* /*P*/,
+                        const float* /*dPdx*/, const float* /*dPdy*/,
+                        float* /*result*/, float* /*dresultds*/,
+                        float* /*dresultdt*/)
     {
         return false;
     }
-    virtual bool shadow(TextureHandle* texture_handle, Perthread* thread_info,
-                        TextureOptBatch& options, Tex::RunMask mask,
-                        const float* P, const float* dPdx, const float* dPdy,
-                        float* result, float* dresultds = nullptr,
-                        float* dresultdt = nullptr)
+    virtual bool shadow(TextureHandle* /*texture_handle*/,
+                        Perthread* /*thread_info*/,
+                        TextureOptBatch& /*options*/, Tex::RunMask /*mask*/,
+                        const float* /*P*/, const float* /*dPdx*/,
+                        const float* /*dPdy*/, float* /*result*/,
+                        float* /*dresultds*/, float* /*dresultdt*/)
     {
         return false;
     }
-    virtual bool shadow(ustring filename, TextureOptions& options,
-                        Runflag* runflags, int beginactive, int endactive,
-                        VaryingRef<Imath::V3f> P, VaryingRef<Imath::V3f> dPdx,
-                        VaryingRef<Imath::V3f> dPdy, float* result,
-                        float* dresultds = NULL, float* dresultdt = NULL)
+    virtual bool shadow(ustring /*filename*/, TextureOptions& /*options*/,
+                        Runflag* /*runflags*/, int /*beginactive*/,
+                        int /*endactive*/, VaryingRef<Imath::V3f> /*P*/,
+                        VaryingRef<Imath::V3f> /*dPdx*/,
+                        VaryingRef<Imath::V3f> /*dPdy*/, float* /*result*/,
+                        float* /*dresultds*/, float* /*dresultdt*/)
     {
         return false;
     }
-    virtual bool shadow(TextureHandle* texture_handle, Perthread* thread_info,
-                        TextureOptions& options, Runflag* runflags,
-                        int beginactive, int endactive,
-                        VaryingRef<Imath::V3f> P, VaryingRef<Imath::V3f> dPdx,
-                        VaryingRef<Imath::V3f> dPdy, float* result,
-                        float* dresultds = NULL, float* dresultdt = NULL)
+    virtual bool shadow(TextureHandle* /*texture_handle*/,
+                        Perthread* /*thread_info*/, TextureOptions& /*options*/,
+                        Runflag* /*runflags*/, int /*beginactive*/,
+                        int /*endactive*/, VaryingRef<Imath::V3f> /*P*/,
+                        VaryingRef<Imath::V3f> /*dPdx*/,
+                        VaryingRef<Imath::V3f> /*dPdy*/, float* /*result*/,
+                        float* /*dresultds*/, float* /*dresultdt*/)
     {
         return false;
     }
