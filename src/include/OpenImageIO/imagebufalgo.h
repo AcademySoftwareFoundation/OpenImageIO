@@ -892,7 +892,30 @@ ImageBuf OIIO_API channel_sum (const ImageBuf &src, cspan<float> weights=1.0f,
 bool OIIO_API channel_sum (ImageBuf &dst, const ImageBuf &src,
                            cspan<float> weights=1.0f,
                            ROI roi={}, int nthreads=0);
-/// @}
+
+
+/// Compute per-pixel `max(A, B)`, returning the result image.
+///
+/// Either both `A` and `B` are images, or one is an image and the other is
+/// a `cspan<float>` giving a per-channel constant or a single constant
+/// used for all channels.
+ImageBuf OIIO_API max (Image_or_Const A, Image_or_Const B,
+                       ROI roi={}, int nthreads=0);
+/// Write to an exsisting image `dst` (allocating if it is uninitialized).
+bool OIIO_API max (ImageBuf &dst, Image_or_Const A, Image_or_Const B,
+                   ROI roi={}, int nthreads=0);
+
+/// Compute per-pixel `min(A, B)`, returning the result image.
+///
+/// Either both `A` and `B` are images, or one is an image and the other is
+/// a `cspan<float>` giving a per-channel constant or a single constant
+/// used for all channels.
+ImageBuf OIIO_API min (Image_or_Const A, Image_or_Const B,
+                       ROI roi={}, int nthreads=0);
+/// Write to an exsisting image `dst` (allocating if it is uninitialized).
+bool OIIO_API min (ImageBuf &dst, Image_or_Const A, Image_or_Const B,
+                   ROI roi={}, int nthreads=0);
+
 
 
 /// Return pixels of `src` with pixel values clamped as follows:
