@@ -122,10 +122,14 @@ public:
     ///             Optionally, a pointer to an ImageSpec whose metadata
     ///             contains configuration hints that set options related
     ///             to the opening and reading of the file.
+    /// @param ioproxy
+    ///         Optional pointer to an IOProxy to use when reading from the
+    ///         file. The caller retains ownership of the proxy.
     ///
     explicit ImageBuf(string_view name, int subimage = 0, int miplevel = 0,
-                      ImageCache* imagecache  = nullptr,
-                      const ImageSpec* config = nullptr);
+                      ImageCache* imagecache       = nullptr,
+                      const ImageSpec* config      = nullptr,
+                      Filesystem::IOProxy* ioproxy = nullptr);
 
     // Deprecated synonym for `ImageBuf(name, 0, 0, imagecache, nullptr)`.
     ImageBuf(string_view name, ImageCache* imagecache);
@@ -207,8 +211,9 @@ public:
     /// as if newly constructed with the same arguments, as a read-only
     /// representation of an existing image file.
     void reset(string_view name, int subimage, int miplevel,
-               ImageCache* imagecache  = nullptr,
-               const ImageSpec* config = nullptr);
+               ImageCache* imagecache       = nullptr,
+               const ImageSpec* config      = nullptr,
+               Filesystem::IOProxy* ioproxy = nullptr);
 
     /// Destroy any previous contents of the ImageBuf and re-initialize it
     /// as if newly constructed with the same arguments, as a read/write
@@ -475,6 +480,13 @@ public:
     /// tiling, or the tile dimensions requested, a suitable supported
     /// tiling choice will be made automatically.
     void set_write_tiles(int width = 0, int height = 0, int depth = 0);
+
+    /// Supply an IOProxy to use for a subsequent call to `write()`.
+    ///
+    /// If a proxy is set but it later turns out that the file format
+    /// selected does not support write proxies, then `write()` will fail
+    /// with an error.
+    void set_write_ioproxy(Filesystem::IOProxy* ioproxy);
 
     /// Write the pixels of the ImageBuf to an open ImageOutput. The
     /// ImageOutput must have already been opened with a spec that indicates

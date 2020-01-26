@@ -80,14 +80,17 @@ set_roi_full(ImageSpec& spec, const ROI& newroi)
 class ImageBufImpl {
 public:
     ImageBufImpl(string_view filename, int subimage, int miplevel,
-                 ImageCache* imagecache = NULL, const ImageSpec* spec = NULL,
-                 void* buffer = NULL, const ImageSpec* config = NULL);
+                 ImageCache* imagecache = nullptr,
+                 const ImageSpec* spec = nullptr, void* buffer = nullptr,
+                 const ImageSpec* config      = nullptr,
+                 Filesystem::IOProxy* ioproxy = nullptr);
     ImageBufImpl(const ImageBufImpl& src);
     ~ImageBufImpl();
 
     void clear();
     void reset(string_view name, int subimage, int miplevel,
-               ImageCache* imagecache, const ImageSpec* config);
+               ImageCache* imagecache, const ImageSpec* config,
+               Filesystem::IOProxy* ioproxy);
     // Reset the buf to blank, given the spec. If nativespec is also
     // supplied, use it for the "native" spec, otherwise make the nativespec
     // just copy the regular spec.
@@ -262,7 +265,9 @@ private:
     int m_write_tile_height;
     int m_write_tile_depth;
     std::unique_ptr<ImageSpec> m_configspec;  // Configuration spec
-    mutable std::string m_err;                ///< Last error message
+    Filesystem::IOProxy* m_rioproxy = nullptr;
+    Filesystem::IOProxy* m_wioproxy = nullptr;
+    mutable std::string m_err;  ///< Last error message
 
     // Private reset m_pixels to new allocation of new size, copy if
     // data is not nullptr. Return nullptr if an allocation of that size
@@ -296,7 +301,8 @@ ImageBuf::impl_deleter(ImageBufImpl* todel)
 
 ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
                            ImageCache* imagecache, const ImageSpec* spec,
-                           void* buffer, const ImageSpec* config)
+                           void* buffer, const ImageSpec* config,
+                           Filesystem::IOProxy* ioproxy)
     : m_storage(ImageBuf::UNINITIALIZED)
     , m_name(filename)
     , m_nsubimages(0)
@@ -346,6 +352,11 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
         // is called to force read into a local buffer.
         if (config)
             m_configspec.reset(new ImageSpec(*config));
+        m_rioproxy = ioproxy;
+        if (m_rioproxy) {
+            add_configspec();
+            m_configspec->attribute("oiio:ioproxy", TypeDesc::PTR, &m_rioproxy);
+        }
         read(subimage, miplevel);
         // FIXME: investigate if the above read is really necessary, or if
         // it can be eliminated and done fully lazily.
@@ -382,6 +393,8 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
     , m_write_tile_width(src.m_write_tile_width)
     , m_write_tile_height(src.m_write_tile_height)
     , m_write_tile_depth(src.m_write_tile_depth)
+// NO -- copy ctr does not transfer proxy   , m_rioproxy(src.m_rioproxy)
+// NO -- copy ctr does not transfer proxy   , m_wioproxy(src.m_wioproxy)
 {
     m_spec_valid   = src.m_spec_valid;
     m_pixels_valid = src.m_pixels_valid;
@@ -424,9 +437,11 @@ ImageBuf::ImageBuf()
 
 
 ImageBuf::ImageBuf(string_view filename, int subimage, int miplevel,
-                   ImageCache* imagecache, const ImageSpec* config)
+                   ImageCache* imagecache, const ImageSpec* config,
+                   Filesystem::IOProxy* ioproxy)
     : m_impl(new ImageBufImpl(filename, subimage, miplevel, imagecache,
-                              NULL /*spec*/, NULL /*buffer*/, config),
+                              nullptr /*spec*/, nullptr /*buffer*/, config,
+                              ioproxy),
              &impl_deleter)
 {
 }
@@ -637,6 +652,8 @@ ImageBufImpl::clear()
     m_write_tile_width  = 0;
     m_write_tile_height = 0;
     m_write_tile_depth  = 0;
+    m_rioproxy          = nullptr;
+    m_wioproxy          = nullptr;
     m_configspec.reset();
 }
 
@@ -652,7 +669,8 @@ ImageBuf::clear()
 
 void
 ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
-                    ImageCache* imagecache, const ImageSpec* config)
+                    ImageCache* imagecache, const ImageSpec* config,
+                    Filesystem::IOProxy* ioproxy)
 {
     clear();
     m_name             = ustring(filename);
@@ -662,6 +680,11 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
         m_imagecache = imagecache;
     if (config)
         m_configspec.reset(new ImageSpec(*config));
+    m_rioproxy = ioproxy;
+    if (m_rioproxy) {
+        add_configspec();
+        m_configspec->attribute("oiio:ioproxy", TypeDesc::PTR, &m_rioproxy);
+    }
 
     if (m_name.length() > 0) {
         // If a filename was given, read the spec and set it up as an
@@ -675,9 +698,10 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
 
 void
 ImageBuf::reset(string_view filename, int subimage, int miplevel,
-                ImageCache* imagecache, const ImageSpec* config)
+                ImageCache* imagecache, const ImageSpec* config,
+                Filesystem::IOProxy* ioproxy)
 {
-    m_impl->reset(filename, subimage, miplevel, imagecache, config);
+    m_impl->reset(filename, subimage, miplevel, imagecache, config, ioproxy);
 }
 
 
@@ -685,7 +709,7 @@ ImageBuf::reset(string_view filename, int subimage, int miplevel,
 void
 ImageBuf::reset(string_view filename, ImageCache* imagecache)
 {
-    m_impl->reset(filename, 0, 0, imagecache, NULL);
+    m_impl->reset(filename, 0, 0, imagecache, nullptr, nullptr);
 }
 
 
@@ -905,7 +929,8 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     bool use_channel_subset = (chbegin != 0 || chend != nativespec().nchannels);
 
     if (m_spec.deep) {
-        auto input = ImageInput::open(m_name.string(), m_configspec.get());
+        auto input = ImageInput::open(m_name.string(), m_configspec.get(),
+                                      m_rioproxy);
         if (!input) {
             errorf("%s", OIIO::geterror());
             return false;
@@ -976,7 +1001,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     m_spec.tile_height = m_nativespec.tile_height;
     m_spec.tile_depth  = m_nativespec.tile_depth;
 
-    if (force
+    if (force || m_rioproxy
         || (convert != TypeDesc::UNKNOWN && convert != m_cachedpixeltype
             && convert.size() >= m_cachedpixeltype.size()
             && convert.size() >= m_nativespec.format.size())) {
@@ -999,7 +1024,8 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                 m_configspec->attribute("oiio:UnassociatedAlpha", unassoc);
             }
         }
-        auto in = ImageInput::open(m_name.string(), m_configspec.get());
+        auto in = ImageInput::open(m_name.string(), m_configspec.get(),
+                                   m_rioproxy);
         bool ok = true;
         if (in) {
             in->threads(threads());  // Pass on our thread policy
@@ -1090,6 +1116,14 @@ ImageBuf::set_write_tiles(int width, int height, int depth)
     m_impl->m_write_tile_width  = width;
     m_impl->m_write_tile_height = height;
     m_impl->m_write_tile_depth  = std::max(1, depth);
+}
+
+
+
+void
+ImageBuf::set_write_ioproxy(Filesystem::IOProxy* ioproxy)
+{
+    m_impl->m_wioproxy = ioproxy;
 }
 
 
@@ -1223,7 +1257,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
     if (imagecache() && imagecache() != shared_imagecache)
         imagecache()->invalidate(ufilename);  // *our* IC
 
-    auto out = ImageOutput::create(fileformat.c_str(), "" /* searchpath */);
+    auto out = ImageOutput::create(fileformat);
     if (!out) {
         errorf("%s", geterror());
         return false;
@@ -1265,6 +1299,15 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
         // we just use what is known from the imagespec.
         newspec.set_format(nativespec().format);
         newspec.channelformats = nativespec().channelformats;
+    }
+
+    if (m_impl->m_wioproxy) {
+        if (!out->supports("ioproxy")
+            || !out->set_ioproxy(m_impl->m_wioproxy)) {
+            errorf("Format %s does not support writing via IOProxy",
+                   out->format_name());
+            return false;
+        }
     }
 
     if (!out->open(filename.c_str(), newspec)) {

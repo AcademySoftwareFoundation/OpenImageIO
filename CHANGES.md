@@ -6,6 +6,21 @@ New minimum dependencies:
 New file format support:
 
 Public API changes:
+* ImageInput and ImageOutput now have direct API level support for IOProxy
+  in their `open()` and `create()` calls, as well as a new `set_ioproxy()`
+  method in these classes.
+* ImageBuf:
+    - Easier direct use of IOProxy with ImageBuf: constructor and reset()
+      for file-reading ImageBuf now take an optional `IProxy*` parameter,
+      and a new `set_write_ioproxy()` method can supply an IOProxy for
+      subsequent `write()`. #2477 (2.2.1)
+    - Add `ImageBuf::setpixel()` methods that use cspan instead of ptr/len.
+      #2443 (2.1.10/2.2.0)
+    - Add "missing" `reset()` varieties so that every IB constructor has a
+      corresponding `reset()` with the same parameters and vice versa. #2460
+* ImageBufAlgo:
+    - New `repremult()` is like premult, but will not premult when alpha is
+      zero. #2447 (2.2.0)
 * Python bindings have been added for missing ParamValue constructors. We
   previously exposed the PV constructors from just a plain int, float, or
   string, but there wasn't an easy way to construct from arbitrary data like
@@ -14,17 +29,6 @@ Public API changes:
   attributes containing multiple values, now can have those values passed
   as Python lists and numpy arrays (previously they had to be tuples).
   #2437 (2.1.11/2.2.0)
-* ImageBuf:
-    - Add `ImageBuf::setpixel()` methods that use cspan instead of ptr/len.
-      #2443 (2.1.10/2.2.0)
-    - Add "missing" `reset()` varieties so that every IB constructor has a
-      corresponding `reset()` with the same parameters and vice versa. #2460
-* ImageBufAlgo:
-    - New `repremult()` is like premult, but will not premult when alpha is
-      zero. #2447 (2.2.0)
-* ImageInput and ImageOutput now have direct API level support for IOProxy
-  in their `open()` and `create()` calls, as well as a new `set_ioproxy()`
-  method in these classes.
 
 Performance improvements:
 * Greatly improved TextureSystem/ImageCache performance in highly threaded
