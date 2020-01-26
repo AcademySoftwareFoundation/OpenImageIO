@@ -92,8 +92,8 @@ class Filter2D;  // forward declaration
 ///
 /// Most ImageBufAlgo functions take an optional ROI parameter that
 /// restricts the operation to a range in x, y, z, and channels. The default
-/// ROI (also known as `ROI::All()) means no region restriction -- the whole
-/// image will be copied or altered.
+/// ROI (also known as `ROI::All()`) means no region restriction -- the
+/// whole image will be copied or altered.
 ///
 /// For ImageBufAlgo functions that write into a destination ImageBuf
 /// parameter and it is already initialized (i.e. allocated with a
