@@ -665,6 +665,12 @@ public:
         return ustring(Strutil::format(fmt, args...));
     }
 
+    /// Concatenate two strings, returning a ustring, implemented carefully
+    /// to not perform any redundant copies or allocations. This is
+    /// semantically equivalent to `ustring::sprintf("%s%s", s, t)`, but is
+    /// more efficient.
+    static ustring concat(string_view s, string_view t);
+
     /// Generic stream output of a ustring.
     friend std::ostream& operator<<(std::ostream& out, const ustring& str)
     {

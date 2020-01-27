@@ -415,6 +415,18 @@ test_join()
 
 
 void
+test_concat()
+{
+    std::cout << "Testing concat\n";
+    OIIO_CHECK_EQUAL(Strutil::concat("foo", "bar"), "foobar");
+    OIIO_CHECK_EQUAL(Strutil::concat("foo", ""), "foo");
+    OIIO_CHECK_EQUAL(Strutil::concat("", "foo"), "foo");
+    OIIO_CHECK_EQUAL(Strutil::concat("", ""), "");
+}
+
+
+
+void
 test_repeat()
 {
     std::cout << "Testing repeat\n";
@@ -1045,6 +1057,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_strip();
     test_split();
     test_join();
+    test_concat();
     test_repeat();
     test_replace();
     test_excise_string_after_head();

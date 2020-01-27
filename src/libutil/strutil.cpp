@@ -615,12 +615,40 @@ Strutil::split(string_view str, std::vector<string_view>& result,
 
 
 std::string
+Strutil::concat(string_view s, string_view t)
+{
+    size_t sl  = s.size();
+    size_t tl  = t.size();
+    size_t len = sl + tl;
+    std::unique_ptr<char[]> heap_buf;
+    char local_buf[256];
+    char* buf = local_buf;
+    if (len > sizeof(local_buf)) {
+        heap_buf.reset(new char[len]);
+        buf = heap_buf.get();
+    }
+    memcpy(buf, s.data(), sl);
+    memcpy(buf + sl, t.data(), tl);
+    return std::string(local_buf, len);
+}
+
+
+
+std::string
 Strutil::repeat(string_view str, int n)
 {
-    std::ostringstream out;
-    while (n-- > 0)
-        out << str;
-    return out.str();
+    size_t sl  = str.size();
+    size_t len = sl * std::max(0, n);
+    std::unique_ptr<char[]> heap_buf;
+    char local_buf[256];
+    char* buf = local_buf;
+    if (len > sizeof(local_buf)) {
+        heap_buf.reset(new char[len]);
+        buf = heap_buf.get();
+    }
+    for (int i = 0; i < n; ++i)
+        memcpy(buf + i * sl, str.data(), sl);
+    return std::string(local_buf, len);
 }
 
 
