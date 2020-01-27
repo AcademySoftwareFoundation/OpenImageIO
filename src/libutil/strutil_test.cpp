@@ -422,6 +422,9 @@ test_concat()
     OIIO_CHECK_EQUAL(Strutil::concat("foo", ""), "foo");
     OIIO_CHECK_EQUAL(Strutil::concat("", "foo"), "foo");
     OIIO_CHECK_EQUAL(Strutil::concat("", ""), "");
+    std::string longstring(Strutil::repeat("01234567890", 100));
+    OIIO_CHECK_EQUAL(Strutil::concat(longstring, longstring),
+                     Strutil::sprintf("%s%s", longstring, longstring));
 }
 
 
@@ -434,6 +437,8 @@ test_repeat()
     OIIO_CHECK_EQUAL(Strutil::repeat("foo", 1), "foo");
     OIIO_CHECK_EQUAL(Strutil::repeat("foo", 0), "");
     OIIO_CHECK_EQUAL(Strutil::repeat("foo", -1), "");
+    OIIO_CHECK_EQUAL(Strutil::repeat("0123456789", 100),
+                     Strutil::repeat("01234567890123456789", 50));
 }
 
 

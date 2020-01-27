@@ -629,7 +629,7 @@ Strutil::concat(string_view s, string_view t)
     }
     memcpy(buf, s.data(), sl);
     memcpy(buf + sl, t.data(), tl);
-    return std::string(local_buf, len);
+    return std::string(buf, len);
 }
 
 
@@ -648,7 +648,7 @@ Strutil::repeat(string_view str, int n)
     }
     for (int i = 0; i < n; ++i)
         memcpy(buf + i * sl, str.data(), sl);
-    return std::string(local_buf, len);
+    return std::string(buf, len);
 }
 
 

@@ -436,7 +436,7 @@ ustring::concat(string_view s, string_view t)
     }
     memcpy(buf, s.data(), sl);
     memcpy(buf + sl, t.data(), tl);
-    return ustring(local_buf, len);
+    return ustring(buf, len);
 }
 
 
