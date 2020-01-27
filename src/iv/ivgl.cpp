@@ -589,7 +589,7 @@ IvGL::paintGL()
             // FIXME: This can get too slow. Some ideas: avoid sending the tex
             // images more than necessary, figure an optimum texture size, use
             // multiple texture objects.
-            load_texture(xstart, ystart, tile_width, tile_height, percent);
+            load_texture(xstart, ystart, tile_width, tile_height);
             gl_rect(xstart, ystart, xstart + tile_width, ystart + tile_height,
                     0, smin, tmin, smax, tmax);
             percent += tile_advance;
@@ -1440,7 +1440,7 @@ IvGL::typespec_to_opengl(const ImageSpec& spec, int nchannels, GLenum& gltype,
 
 
 void
-IvGL::load_texture(int x, int y, int width, int height, float percent)
+IvGL::load_texture(int x, int y, int width, int height)
 {
     const ImageSpec& spec = m_current_image->spec();
     // Find if this has already been loaded.
@@ -1452,11 +1452,6 @@ IvGL::load_texture(int x, int y, int width, int height, float percent)
         }
     }
 
-    // Disabling progress report. Seems clear after some research that we cannot
-    // update the bar (not even with a signal) within a paint function without
-    // messing up the openGL context
-    //m_viewer.statusProgress->setValue ((int)(percent*100));
-    //m_viewer.statusProgress->update ();
     setCursor(Qt::WaitCursor);
 
     int nchannels = spec.nchannels;

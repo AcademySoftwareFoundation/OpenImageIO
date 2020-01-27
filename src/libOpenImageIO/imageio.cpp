@@ -841,9 +841,9 @@ add_dither(int nchannels, int width, int height, int depth, float* data,
 
 template<typename T>
 static void
-premult_impl(int nchannels, int width, int height, int depth, int chbegin,
-             int chend, T* data, stride_t xstride, stride_t ystride,
-             stride_t zstride, int alpha_channel, int z_channel)
+premult_impl(int width, int height, int depth, int chbegin, int chend, T* data,
+             stride_t xstride, stride_t ystride, stride_t zstride,
+             int alpha_channel, int z_channel)
 {
     char* plane = (char*)data;
     for (int z = 0; z < depth; ++z, plane += zstride) {
@@ -876,59 +876,49 @@ premult(int nchannels, int width, int height, int depth, int chbegin, int chend,
                            nchannels, width, height);
     switch (datatype.basetype) {
     case TypeDesc::FLOAT:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (float*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (float*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::UINT8:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (unsigned char*)data, xstride, ystride, zstride,
-                     alpha_channel, z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (unsigned char*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::UINT16:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
+        premult_impl(width, height, depth, chbegin, chend,
                      (unsigned short*)data, xstride, ystride, zstride,
                      alpha_channel, z_channel);
         break;
     case TypeDesc::HALF:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (half*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (half*)data, xstride,
+                     ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::INT8:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (char*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (char*)data, xstride,
+                     ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::INT16:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (short*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (short*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::INT:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (int*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (int*)data, xstride,
+                     ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::UINT:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (unsigned int*)data, xstride, ystride, zstride,
-                     alpha_channel, z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (unsigned int*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::INT64:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (int64_t*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (int64_t*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::UINT64:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (uint64_t*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (uint64_t*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     case TypeDesc::DOUBLE:
-        premult_impl(nchannels, width, height, depth, chbegin, chend,
-                     (double*)data, xstride, ystride, zstride, alpha_channel,
-                     z_channel);
+        premult_impl(width, height, depth, chbegin, chend, (double*)data,
+                     xstride, ystride, zstride, alpha_channel, z_channel);
         break;
     default: OIIO_ASSERT(0 && "OIIO::premult() of an unsupported type"); break;
     }

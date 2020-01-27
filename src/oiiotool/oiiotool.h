@@ -526,8 +526,7 @@ struct print_info_options {
 // an error (in which case the error message will be stored in 'error').
 bool
 print_info(Oiiotool& ot, const std::string& filename,
-           const print_info_options& opt, long long& totalsize,
-           std::string& error);
+           const print_info_options& opt, std::string& error);
 
 
 // Set an attribute of the given image.  The type should be one of

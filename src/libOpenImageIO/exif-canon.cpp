@@ -619,6 +619,7 @@ array_to_spec (ImageSpec& spec,                 // spec to put attribs into
                cspan<uint8_t> buf,              // raw buffer blob
                cspan<LabelIndex> indices,       // LabelIndex table
                int offset_adjustment,
+               bool swapendian,
                int na_value = std::numeric_limits<int>::max())
 {
     // Make sure it's the right tag type. Be tolerant of signed/unsigned
@@ -639,7 +640,9 @@ array_to_spec (ImageSpec& spec,                 // spec to put attribs into
         return;
     for (auto&& attr : indices) {
         if (attr.value < int(dir.tdir_count)) {
-            T ival = int (s[attr.value]);
+            T ival = s[attr.value];
+            if (swapendian)
+                swap_endian(&ival, 1);
             if (ival != na_value)
                 spec.attribute (attr.label, ival);
         }
@@ -693,7 +696,7 @@ canon_camerasettings_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& di
                               bool swapendian, int offset_adjustment)
 {
     array_to_spec<int16_t> (spec, dir, buf, canon_camerasettings_indices,
-                            offset_adjustment, -1);
+                            offset_adjustment, swapendian, -1);
 }
 
 
@@ -710,7 +713,8 @@ canon_focallength_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                            cspan<uint8_t> buf, ImageSpec& spec,
                            bool swapendian, int offset_adjustment)
 {
-    array_to_spec<uint16_t> (spec, dir, buf, canon_focallength_indices, offset_adjustment);
+    array_to_spec<uint16_t> (spec, dir, buf, canon_focallength_indices,
+                             offset_adjustment, swapendian);
 }
 
 
@@ -751,7 +755,8 @@ canon_shotinfo_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                         cspan<uint8_t> buf, ImageSpec& spec,
                         bool swapendian, int offset_adjustment)
 {
-    array_to_spec<int16_t> (spec, dir, buf, canon_shotinfo_indices, offset_adjustment);
+    array_to_spec<int16_t> (spec, dir, buf, canon_shotinfo_indices,
+                            offset_adjustment, swapendian);
 }
 
 
@@ -765,7 +770,8 @@ canon_panorama_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                         cspan<uint8_t> buf, ImageSpec& spec,
                         bool swapendian, int offset_adjustment)
 {
-    array_to_spec<int16_t> (spec, dir, buf, canon_panorama_indices, offset_adjustment);
+    array_to_spec<int16_t> (spec, dir, buf, canon_panorama_indices,
+                            offset_adjustment, swapendian);
 }
 
 static LabelIndex canon_sensorinfo_indices[] = {
@@ -786,7 +792,8 @@ canon_sensorinfo_handler (const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                           cspan<uint8_t> buf, ImageSpec& spec,
                           bool swapendian, int offset_adjustment)
 {
-    array_to_spec<uint16_t> (spec, dir, buf, canon_sensorinfo_indices, offset_adjustment);
+    array_to_spec<uint16_t> (spec, dir, buf, canon_sensorinfo_indices,
+                             offset_adjustment, swapendian);
 }
 
 

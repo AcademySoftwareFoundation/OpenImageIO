@@ -723,8 +723,7 @@ print_info_subimage(Oiiotool& ot, int current_subimage, int num_of_subimages,
 
 bool
 OiioTool::print_info(Oiiotool& ot, const std::string& filename,
-                     const print_info_options& opt, long long& totalsize,
-                     std::string& error)
+                     const print_info_options& opt, std::string& error)
 {
     error.clear();
     auto input = ImageInput::open(filename, &ot.input_config);

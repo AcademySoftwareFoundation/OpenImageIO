@@ -632,7 +632,7 @@ public:
     {
         if (channels > 3)
             channels = 3;
-        if (channels == 3) {
+        if (channels == 3 && chanstride == sizeof(float)) {
             for (int y = 0; y < height; ++y) {
                 char* d = (char*)data + y * ystride;
                 for (int x = 0; x < width; ++x, d += xstride) {
@@ -645,9 +645,11 @@ public:
         } else {
             for (int y = 0; y < height; ++y) {
                 char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride)
-                    for (int c = 0; c < channels; ++c)
-                        ((float*)d)[c] = sRGB_to_linear(((float*)d)[c]);
+                for (int x = 0; x < width; ++x, d += xstride) {
+                    char* dc = d;
+                    for (int c = 0; c < channels; ++c, dc += chanstride)
+                        ((float*)dc)[c] = sRGB_to_linear(((float*)dc)[c]);
+                }
             }
         }
     }
@@ -667,7 +669,7 @@ public:
     {
         if (channels > 3)
             channels = 3;
-        if (channels == 3) {
+        if (channels == 3 && chanstride == sizeof(float)) {
             for (int y = 0; y < height; ++y) {
                 char* d = (char*)data + y * ystride;
                 for (int x = 0; x < width; ++x, d += xstride) {
@@ -680,9 +682,11 @@ public:
         } else {
             for (int y = 0; y < height; ++y) {
                 char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride)
-                    for (int c = 0; c < channels; ++c)
-                        ((float*)d)[c] = linear_to_sRGB(((float*)d)[c]);
+                for (int x = 0; x < width; ++x, d += xstride) {
+                    char* dc = d;
+                    for (int c = 0; c < channels; ++c, dc += chanstride)
+                        ((float*)dc)[c] = linear_to_sRGB(((float*)dc)[c]);
+                }
             }
         }
     }
@@ -705,9 +709,11 @@ public:
             channels = 3;
         for (int y = 0; y < height; ++y) {
             char* d = (char*)data + y * ystride;
-            for (int x = 0; x < width; ++x, d += xstride)
-                for (int c = 0; c < channels; ++c)
+            for (int x = 0; x < width; ++x, d += xstride) {
+                char* dc = d;
+                for (int c = 0; c < channels; ++c, dc += chanstride)
                     ((float*)d)[c] = Rec709_to_linear(((float*)d)[c]);
+            }
         }
     }
 };
@@ -728,9 +734,11 @@ public:
             channels = 3;
         for (int y = 0; y < height; ++y) {
             char* d = (char*)data + y * ystride;
-            for (int x = 0; x < width; ++x, d += xstride)
-                for (int c = 0; c < channels; ++c)
+            for (int x = 0; x < width; ++x, d += xstride) {
+                char* dc = d;
+                for (int c = 0; c < channels; ++c, dc += chanstride)
                     ((float*)d)[c] = linear_to_Rec709(((float*)d)[c]);
+            }
         }
     }
 };
@@ -751,7 +759,7 @@ public:
     {
         if (channels > 3)
             channels = 3;
-        if (channels == 3) {
+        if (channels == 3 && chanstride == sizeof(float)) {
             simd::vfloat4 g = m_gamma;
             for (int y = 0; y < height; ++y) {
                 char* d = (char*)data + y * ystride;
@@ -765,9 +773,11 @@ public:
         } else {
             for (int y = 0; y < height; ++y) {
                 char* d = (char*)data + y * ystride;
-                for (int x = 0; x < width; ++x, d += xstride)
-                    for (int c = 0; c < channels; ++c)
+                for (int x = 0; x < width; ++x, d += xstride) {
+                    char* dc = d;
+                    for (int c = 0; c < channels; ++c, dc += chanstride)
                         ((float*)d)[c] = powf(((float*)d)[c], m_gamma);
+                }
             }
         }
     }
@@ -811,7 +821,7 @@ public:
                        stride_t ystride) const
     {
         using namespace simd;
-        if (channels == 3) {
+        if (channels == 3 && chanstride == sizeof(float)) {
             for (int y = 0; y < height; ++y) {
                 char* d = (char*)data + y * ystride;
                 for (int x = 0; x < width; ++x, d += xstride) {
@@ -821,7 +831,7 @@ public:
                     xcolor.store((float*)d, 3);
                 }
             }
-        } else if (channels >= 4) {
+        } else if (channels >= 4 && chanstride == sizeof(float)) {
             for (int y = 0; y < height; ++y) {
                 char* d = (char*)data + y * ystride;
                 for (int x = 0; x < width; ++x, d += xstride) {
@@ -829,6 +839,20 @@ public:
                     color.load((float*)d);
                     vfloat4 xcolor = color * m_M;
                     xcolor.store((float*)d);
+                }
+            }
+        } else {
+            channels = std::min(channels, 4);
+            for (int y = 0; y < height; ++y) {
+                char* d = (char*)data + y * ystride;
+                for (int x = 0; x < width; ++x, d += xstride) {
+                    vfloat4 color;
+                    char* dc = d;
+                    for (int c = 0; c < channels; ++c, dc += chanstride)
+                        color[c] = *(float*)dc;
+                    vfloat4 xcolor = color * m_M;
+                    for (int c = 0; c < channels; ++c, dc += chanstride)
+                        *(float*)dc = xcolor[c];
                 }
             }
         }
