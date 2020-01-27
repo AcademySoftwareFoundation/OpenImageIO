@@ -607,15 +607,16 @@ Shuffling channels
     ImageBuf Src ("tahoe.exr");
     ImageBuf Dst = ImageBufAlgo::rotate (Src, 45.0);
 
-.. |rotimg1| image:: figures/grid-small.jpg
+.. |rotateimg1| image:: figures/grid-small.jpg
    :width: 2.0 in
-.. |rotimg2| image:: figures/rotate45.jpg
+.. |rotateimg2| image:: figures/rotate45.jpg
    :width: 2.0 in
 ..
 
   +-----------------+-----------------+
-  | |rotimg1|       | |rotimg2|       |
+  | |rotateimg1|    | |rotateimg2|    |
   +-----------------+-----------------+
+
 |
 
 
@@ -709,6 +710,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: sub(Image_or_Const, Image_or_Const, ROI, int)
 ..
 
@@ -725,6 +727,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: absdiff(Image_or_Const, Image_or_Const, ROI, int)
 ..
 
@@ -740,6 +743,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: abs(const ImageBuf&, ROI, int)
 ..
 
@@ -755,6 +759,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: mul(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
 ..
 
@@ -776,6 +781,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: div(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
 ..
 
@@ -796,6 +802,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: mad(ImageBuf&, Image_or_Const, Image_or_Const, Image_or_Const, ROI, int)
 ..
 
@@ -819,6 +826,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: over(const ImageBuf&, const ImageBuf&, ROI, int)
 ..
 
@@ -1599,6 +1607,7 @@ Color space conversion
 
 
 |
+
 .. doxygenfunction:: ociolook(const ImageBuf&, string_view, string_view, string_view, bool, bool, string_view, string_view, ColorConfig *, ROI, int)
 ..
 
@@ -1747,6 +1756,7 @@ Functions specific to deep images
 
 
 |
+
 .. doxygenfunction:: deep_merge(const ImageBuf&, const ImageBuf&, bool, ROI, int)
 ..
 
@@ -1762,6 +1772,7 @@ Functions specific to deep images
 
 
 |
+
 .. doxygenfunction:: deep_holdout(const ImageBuf&, const ImageBuf&, ROI, int)
 ..
 

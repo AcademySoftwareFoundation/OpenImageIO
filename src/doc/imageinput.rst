@@ -89,7 +89,7 @@ but that are more complex than the simple example above.
 Reading individual scanlines and tiles
 --------------------------------------
 
-The simple example of Section `Image Input Made Simple`_ read an entire
+The simple example of Section :ref:`Image Input Made Simple` read an entire
 image with one call.  But sometimes you want to read a large image a little
 at a time and do not wish to retain the entire image in memory as you
 process it.  OpenImageIO allows you to read images one scanline at a time or
@@ -128,7 +128,7 @@ be 0 for 2D non-volume images).  This is followed by a `TypeDesc`
 describing the data type of the pixel buffer you are supplying, and a
 pointer to the pixel buffer itself.  Additional optional arguments
 describe the data stride, which can be ignored for contiguous data (use
-of strides is explained in Section `Data Strides`_).
+of strides is explained in Section :ref:`Data Strides`).
 
 Nearly all ImageInput implementations will be most efficient reading
 scanlines in strict order (starting with scanline 0, then 1, up to
@@ -145,7 +145,7 @@ but some image format readers may be able to read a contiguous block of
 scanlines more efficiently than reading each one individually.
 
 The full descriptions of the ``read_scanline()`` and ``read_scanlines()``
-functions may be found in Section `ImageInput Class Reference`_.
+functions may be found in Section :ref:`ImageInput Class Reference`.
 
 Reading tiles
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -188,14 +188,14 @@ in order of increasing slice, increasing
 scanline within each slice, and increasing column within each scanline.
 Additional optional arguments describe the data stride, which can be
 ignored for contiguous data (use of strides is explained in
-Section `Data Strides`_).
+Section :ref:`Data Strides`).
 
 All ImageInput implementations are required to support reading tiles in
 arbitrary order (i.e., not in strict order of increasing ``y`` rows, and
 within each row, increasing ``x`` column, without missing any tiles).
 
 The full description of the ``read_tile()`` function may be found
-in Section `ImageInput Class Reference`_.
+in Section :ref:`ImageInput Class Reference`.
 
 
 Converting formats
@@ -295,7 +295,7 @@ flexible functionality.  A few representative examples follow:
                    pixelsize,
                    scanlinesize);
 
-Please consult Section `ImageInput Class Reference`_ for detailed
+Please consult Section :ref:`ImageInput Class Reference` for detailed
 descriptions of the stride parameters to each ``read`` function.
 
 
@@ -442,7 +442,7 @@ values.
 
 The ``ImageSpec::extra_attribs`` field may store metadata that reveals the
 color space the image file in the ``"oiio:ColorSpace"`` attribute (see
-Section `Color information metadata`_ for explanations of particular values).
+Section :ref:`Color information metadata` for explanations of particular values).
 
 The ImageInput sets the ``"oiio:ColorSpace"`` metadata in a purely advisory
 capacity --- the ``read`` will not convert pixel values among color spaces.
@@ -561,6 +561,8 @@ OpenEXR file, consisting of R/G/B/A channels in ``half`` and a Z channel in
 
 
 
+.. _sec-imageinput-deepdata:
+
 Reading "deep" data
 --------------------------------
 
@@ -593,7 +595,7 @@ It is only possible to read "native" data types from deep files; that is,
 there is no automatic translation into arbitrary data types as there is for
 ordinary images.  All three of these functions store the resulting deep data
 in a special DeepData structure, described in detail in
-Section `Reading "deep" data`_.
+Section :ref:`Reading "deep" data`.
 
 Here is an example of using these methods to read a deep image from a file
 and print all its values::
@@ -631,6 +633,9 @@ and print all its values::
     in->close ();
 
 
+
+.. _sec-imageinput-readfilefrommemory:
+.. _sec-imageinput-ioproxy:
 
 Custom I/O proxies (and reading the file from a memory buffer)
 --------------------------------------------------------------
@@ -675,7 +680,7 @@ buffer::
 Custom search paths for plugins
 --------------------------------
 
-Please see Section `Global Attributes`_ for discussion about setting the plugin
+Please see Section :ref:`Global Attributes` for discussion about setting the plugin
 search path via the ``attribute()`` function. For example::
 
         std::string mysearch = "/usr/myapp/lib:${HOME}/plugins";
@@ -704,7 +709,7 @@ the latest error message resulting from a call to static ``open()`` or
 ``create()``.
 
 Here is another version of the simple image reading code from
-Section `Image Input Made Simple`_, but this time it is fully
+Section :ref:`Image Input Made Simple`, but this time it is fully
 elaborated with error checking and reporting::
 
         #include <OpenImageIO/imageio.h>

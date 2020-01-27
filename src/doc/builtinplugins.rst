@@ -551,10 +551,10 @@ preferred except when legacy file access is required.
      - RGBE header data or explanation
    * - ``Orientation``
      - int
-     - encodes the orientation (see Section :ref:`metadata-orientation`)
+     - encodes the orientation (see Section :ref:`sec-metadata-orientation`)
    * - ``oiio:ColorSpace``
      - string
-     - Color space (see Section `Color information metadata`_).
+     - Color space (see Section :ref:`sec-metadata-color`).
    * - ``oiio:Gamma``
      - float
      - the gamma correction specified in the RGBE header (if it's gamma corrected).
@@ -1136,7 +1136,7 @@ files use the file extension :file:`.png`.
      - resolution and units from the PNG header.
    * - ``oiio:ColorSpace``
      - string
-     - Color space (see Section `Color information metadata`_).
+     - Color space (see Section :ref:`sec-metadata-color`).
    * - ``oiio:Gamma``
      - float
      - the gamma correction value (if specified).
@@ -1489,7 +1489,7 @@ software developed at Wavefront.  RLA files commonly use the file extension
      - white point XY (vec2) or XYZ (vec3) coordinates.
    * - ``oiio:ColorSpace``
      - string
-     - Color space (see Section `Color information metadata`_).
+     - Color space (see Section :ref:`sec-metadata-color`).
    * - ``oiio:Gamma``
      - float
      - the gamma correction value (if specified).
@@ -1623,7 +1623,7 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
      - the true bits per sample of the PIC file.
    * - ``oiio:ColorSpace``
      - string
-     - Color space (see Section `Color information metadata`_).
+     - Color space (see Section :ref:`sec-metadata-color`).
    * - ``oiio:Gamma``
      - float
      - the gamma correction value (if specified).

@@ -712,7 +712,7 @@ output each one to a different file, with names `sub0001.tif`,
     - `verbose=1` : If nonzero, the information will contain all metadata,
       not just the minimal amount.
 
-.. optino:: --echo <message>
+.. option:: --echo <message>
 
     Prints the message to the console, at that point in the left-to-right
     execution of command line arguments. The message may contain expressions
@@ -1032,15 +1032,14 @@ the reading of just that one file. Optional appended arguments include:
 .. option:: --cache <size>
 
     Set the underlying ImageCache size (in MB). See Section
-    :ref:`imagecacheattr-autotile`.
+    :ref:`sec-imagecache-api`.
 
 .. option:: --autotile <tilesize>
 
     For the underlying ImageCache, turn on auto-tiling with the given tile
     size. Setting *tilesize* to 0 turns off auto-tiling (the default is
     off). If auto-tile is turned on, The ImageCache "autoscanline" feature
-    will also be enabled. See Section :ref:`imagecacheattr-autotile` for
-    details.
+    will also be enabled. See Section :ref:`sec-imagecache-api` for details.
 
 .. option:: --iconfig <name> <value>
 
@@ -1376,7 +1375,7 @@ current top image.
 .. option:: --orientation <orient>
 
     Explicitly sets the image's `"Orientation"` metadata to a numeric value
-    (see Section :ref:`metadata-orientation` for the numeric codes). This
+    (see Section :ref:`sec-metadata-displayhints` for the numeric codes). This
     only changes the metadata field that specifies how the image should be
     displayed, it does NOT alter the pixels themselves, and so has no effect
     for image formats that don't support some kind of orientation metadata.
@@ -1460,6 +1459,8 @@ current top image.
     will rename channel 3 to be "A" and channel 4 to be
     "Z", but will leave channels 0--3 with their old names.
 
+
+.. _sec-oiiotool-shuffle-channels-or-subimages:
 
 :program:`oiiotool` commands that shuffle channels or subimages
 ===============================================================
@@ -3221,7 +3222,7 @@ General commands that also work for deep images
 .. option:: --ch <channellist>
 
     Reorder, rename, remove, or add channels to a deep image.
-    See Section :ref:`sec-oiiotool-ch`
+    See Section :ref:`sec-oiiotool-shuffle-channels-or-subimages`
 
 
 .. option:: --crop <size>

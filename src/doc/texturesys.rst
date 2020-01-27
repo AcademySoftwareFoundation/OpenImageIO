@@ -178,9 +178,9 @@ OpenImageIO) and may be accessed with the following constant:
 All of the batched calls take a *run mask*, which describes which subset of
 "lanes" should be computed by the batched lookup:
 
-.. doxygentypedef::
+.. doxygentypedef:: RunMask
 
-.. cpp:var:: RunMaskOn
+.. cpp:enumerator:: RunMaskOn
 
     The defined constant `RunMaskOn` contains the value with all bits
     `0..BatchWidth-1` set to 1.

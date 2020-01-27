@@ -363,6 +363,8 @@ public:
     /// the contents of another. But merge() adds the other items without
     /// erasing any items already in this list.
     ///
+    /// @param other
+    ///     The ParamValueList whose entries will be merged into this one.
     /// @param override
     ///     If true, `other` attributes will replace any identically-named
     ///     attributes already in this list. If false, only attributes whose
