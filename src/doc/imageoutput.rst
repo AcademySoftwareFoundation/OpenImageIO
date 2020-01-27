@@ -3,6 +3,8 @@
 ImageOutput: Writing Images
 ###########################
 
+.. _sec-image-output-made-simple:
+
 Image Output Made Simple
 ========================
 
@@ -49,11 +51,11 @@ This little bit of code does a surprising amount of useful work:
   if they had been different, ``write_image()`` would do all the conversions
   for us).
   ::
-        out->write_image (TypeDesc::UINT8, &pixels);
+      out->write_image (TypeDesc::UINT8, &pixels);
 
 * Close the file.
   ::
-       out->close ();
+      out->close ();
 
 
 **What happens when the file format doesn't support the spec?**
@@ -101,7 +103,7 @@ that are more complex than the simple example above.
 Writing individual scanlines, tiles, and rectangles
 ---------------------------------------------------
 
-The simple example of Section `Image Output Made Simple`_ wrote an entire
+The simple example of Section :ref:`sec-image-output-made-simple` wrote an entire
 image with one call.  But sometimes you are generating output a little at a
 time and do not wish to retain the entire image in memory until it is time
 to write the file.  OpenImageIO allows you to write images one scanline at a
@@ -130,15 +132,15 @@ be 0 for 2D non-volume images).  This is followed by a `TypeDesc`
 describing the data you are supplying, and a pointer to the pixel data
 itself.  Additional optional arguments describe the data stride, which
 can be ignored for contiguous data (use of strides is explained in
-Section `Data Strides`_).
+Section :ref:`sec-datastrides`).
 
 All ``ImageOutput`` implementations will accept scanlines in strict order
 (starting with scanline 0, then 1, up to ``yres-1``, without skipping
-any).  See Section `Random access and repeated transmission of pixels`_ for details
+any).  See Section :ref:`sec-imageoutput-random-access-pixels` for details
 on out-of-order or repeated scanlines.
 
 The full description of the ``writescanline()`` function may be found
-in Section `ImageOutput Class Reference`_.
+in Section :ref:`sec-imageoutput-class-reference`.
 
 Writing individual tiles
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -202,14 +204,14 @@ you are supplying, and a pointer to the tile's pixel data itself, which
 should be ordered by increasing slice, increasing scanline within each
 slice, and increasing column within each scanline. Additional optional
 arguments describe the data stride, which can be ignored for contiguous data
-(use of strides is explained in Section `Data Strides`_).
+(use of strides is explained in Section :ref:`sec-datastrides`).
 
 All ``ImageOutput`` implementations that support tiles will accept tiles in
 strict order of increasing *y* rows, and within each row, increasing *x*
 column, without missing any tiles.  See
 
 The full description of the ``writetile()`` function may be found
-in Section `ImageOutput Class Reference`_.
+in Section :ref:`sec-imageoutput-class-reference`.
 
 Writing arbitrary rectangles
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -253,7 +255,7 @@ and a pointer to the rectangle's pixel data itself, which should be ordered
 by increasing slice, increasing scanline within each slice, and increasing
 column within each scanline.  Additional optional arguments describe the
 data stride, which can be ignored for contiguous data (use of strides is
-explained in Section `Data Strides`_).
+explained in Section :ref:`sec-datastrides`).
 
 
 Converting pixel data types
@@ -311,7 +313,7 @@ Quantization limits for each integer type is as follows:
   ``UINT16``              0        65535
   ``INT16``          -32768        32767
   ``UINT``                0   4294967295
-  `int`       -2147483648   2147483647
+  ``int``       -2147483648   2147483647
 ============== ============= ============
 
 
@@ -343,6 +345,8 @@ file that stores pixel data as 16-bit unsigned integers (values ranging from
 Note that ``writescanline()``, ``writetile()``, and ``write_rectangle()``
 have a parameter that works in a corresponding manner.
 
+
+.. _sec-datastrides:
 
 Data Strides
 ------------
@@ -424,7 +428,7 @@ flexible functionality.  A few representative examples follow:
     ...
 
 
-Please consult Section `ImageOutput Class Reference`_ for detailed
+Please consult Section :ref:`sec-imageoutput-class-reference` for detailed
 descriptions of the stride parameters to each "write" function.
 
 
@@ -663,7 +667,7 @@ not).
 
 The ``ImageSpec::extra_attribs`` field should store metadata that reveals
 the color space of the pixels you are sending the ImageOutput (see Section
-`Color information metadata`_ for explanations of particular values).
+`Color information metadata` for explanations of particular values).
 
 The color space hints only describe color channels.  You should always pass
 alpha, depth, or other non-color channels with linear values.
@@ -688,6 +692,8 @@ transformed, since the plugin can't be sure that it's not in the correct
 space to begin with.
 
 
+
+.. _sec-imageoutput-random-access-pixels:
 
 Random access and repeated transmission of pixels
 -------------------------------------------------
@@ -737,7 +743,7 @@ go.  You can detect this by checking
 In this case, all you have to do is, after writing all the pixels of one
 image but before calling ``close()``, call ``open()`` again for the next
 subimage and pass ``AppendSubimage`` as the value for the *mode* argument
-(see Section `ImageOutput Class Reference`_ for the full technical
+(see Section :ref:`sec-imageoutput-class-reference` for the full technical
 description of the arguments to ``open()``).  The ``close()`` routine is
 called just once, after all subimages are completed.  Here is an example::
 
@@ -830,10 +836,10 @@ If you are working with an ``ImageOutput`` that supports MIP-map levels, it
 is easy to write these levels.  After writing all the pixels of one MIP-map
 level, call ``open()`` again for the next MIP level and pass
 ``ImageInput::AppendMIPLevel`` as the value for the *mode* argument, and
-then write the pixels of the subsequent MIP level. (See Section `ImageOutput
-Class Reference`_ for the full technical description of the arguments to
-``open()``.)  The ``close()`` routine is called just once, after all
-subimages and MIP levels are completed.
+then write the pixels of the subsequent MIP level. (See Section
+:ref:`sec-imageoutput-class-reference` for the full technical description of
+the arguments to ``open()``.)  The ``close()`` routine is called just once,
+after all subimages and MIP levels are completed.
 
 Below is pseudocode for writing a MIP-map (a multi-resolution image
 used for texture mapping)::
@@ -964,7 +970,7 @@ It is only possible to write "native" data types to deep files; that
 is, there is no automatic translation into arbitrary data types as there
 is for ordinary images.  All three of these functions are passed
 deep data in a special DeepData structure, described in
-detail in Section sec-DeepData_.
+detail in Section :ref:`sec-DeepData`.
 
 
 Here is an example of using these methods to write a deep image::
@@ -1057,6 +1063,8 @@ without alteration while modifying the image description metadata::
     in->close ();
 
 
+
+.. _sec-imageoutput-writefiletomemory:
 
 Custom I/O proxies (and writing the file to a memory buffer)
 ------------------------------------------------------------
@@ -1152,7 +1160,7 @@ the ``OpenImageIO`` namespace) that retrieves the latest error message
 resulting from a call to ``create()``.
 
 Here is another version of the simple image writing code from Section
-`Image Output Made Simple`_, but this time it is fully elaborated with
+:ref:`sec-image-output-made-simple`, but this time it is fully elaborated with
 error checking and reporting::
 
     #include <OpenImageIO/imageio.h>
@@ -1193,6 +1201,8 @@ error checking and reporting::
 
 
 
+
+.. _sec-imageoutput-class-reference:
 
 ImageOutput Class Reference
 =============================

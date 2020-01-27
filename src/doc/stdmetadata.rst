@@ -63,8 +63,12 @@ Description of the image
 
 
 
+.. _sec-metadata-displayhints:
+.. _sec-metadata-orientation:
+
 Display hints
 =============
+
 
 .. option:: "Orientation" : int
 
@@ -122,6 +126,8 @@ Display hints
     retrieved as a float also, if you are ok with imprecision.)
 
 
+
+.. _sec-metadata-color:
 
 Color information
 =================
@@ -235,8 +241,8 @@ behavior is controlled by a special attributes
     Pointer to a `Filesystem::IOProxy` that will handle the I/O.
 
 An explanation of how this feature is used may be found in Sections
-:ref:`sec`imageoutput-readfilefrommemory` and
-:ref:`sec`imageoutput-writefiletomemory`.
+:ref:`sec-imageinput-readfilefrommemory` and
+:ref:`sec-imageoutput-writefiletomemory`.
 
 
 Photographs or scanned images
@@ -351,6 +357,8 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
 
 
 
+.. _sec-metadata-exif:
+
 Exif metadata
 =============
 
@@ -375,7 +383,7 @@ FNumber         `FNumber`
 ==============  ==================================================
 
 
-The other remaining Exif metadata tags all include the ``Exif:'' prefix
+The other remaining Exif metadata tags all include the ``Exif:`` prefix
 to keep it from clashing with other names that may be used for other
 purposes.
 

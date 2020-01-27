@@ -317,6 +317,8 @@ enum class TextAlignY { Baseline, Top, Bottom, Center };
 /// existing image by essentially doing an "over" of the character into the
 /// existing pixel data.
 ///
+/// @param dst
+///             Destination ImageBuf -- text is rendered into this image.
 /// @param x/y
 ///             The position to place the text.
 /// @param text

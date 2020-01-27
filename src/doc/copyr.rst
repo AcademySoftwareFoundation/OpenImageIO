@@ -22,6 +22,7 @@ are licensed under the Creative Commons Attribution 3.0
 Unported License.
 
 .. image::  figures/CC-30BY.png
+
 http://creativecommons.org/licenses/by/3.0/
 
 |

@@ -53,8 +53,8 @@ than images) can describe many types not used by
 OpenImageIO.  Please ignore this extra complexity; only the above simple types are understood by
 OpenImageIO as pixel storage data types, though a few others, including
 `string` and ``MATRIX44`` aggregates, are occasionally used for
-*metadata* for certain image file formats (see `sec-imageoutput-metadata`_
-Sections `sec-imageoutput-metadata`_, `sec_imageinput_metadata`_,
+*metadata* for certain image file formats (see `sec-imageoutput-metadata`
+Sections `sec-imageoutput-metadata`, `sec-imageinput-metadata`,
 and the documentation of individual ImageIO plugins for details).
 
 
@@ -92,7 +92,7 @@ Non-owning array views: ``span`` / ``cspan``
 
 Additionally, there is a convenience template:
 
-.. cpp:function:: template <typename T> using cspan = span<const T>;
+.. cpp:type:: template<typename T> cspan = span<const T>
 
     `cspan<T>` is a synonym for a non-mutable `span<const T>`.
 
@@ -157,7 +157,7 @@ format specification of a single image.  It contains:
 
 
 The remainder of this section describes the C++ API for ``ImageSpec``.
-See Section sec-pythonimagespec_ for the corresponding Python
+See Section :ref:`sec-pythonimagespec` for the corresponding Python
 bindings.
 
 
@@ -189,7 +189,7 @@ Global Attributes
 
 These helper functions are not part of any other OpenImageIO class, they
 just exist in the OpenImageIO namespace as general utilities. (See
-sec-pythonmiscapi_ for the corresponding Python bindings.)
+:ref:`sec-pythonmiscapi` for the corresponding Python bindings.)
 
 .. doxygenfunction:: OIIO::attribute(string_view, TypeDesc, const void *)
 
@@ -244,13 +244,13 @@ Miscellaneous Utilities
 ==========================================
 
 These helper functions are not part of any other OpenImageIO class, they
-just exist in the OpenImageIO namespace as general utilities. (See
-sec-pythonmiscapi_ for the corresponding Python bindings.)
+just exist in the OIIO namespace as general utilities. (See
+:ref:`sec-pythonmiscapi` for the corresponding Python bindings.)
 
 .. doxygenfunction:: openimageio_version
 
 
-.. cpp:function:: std::string geterror ()
+.. cpp:function:: std::string OIIO::geterror ()
 
     Returns any error string describing what went wrong if
     `ImageInput::create()` or `ImageOutput::create()` failed (since in such
