@@ -347,6 +347,9 @@ test_delegates()
     OIIO_CHECK_EQUAL(pl["bar4"].get<std::string>(), "barbarbar?");
     OIIO_CHECK_EQUAL(pl["red"].get<Imath::Color3f>(),
                      Imath::Color3f(1.0f, 0.0f, 0.0f));
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(0), 1.0f);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(1), 0.0f);
+    OIIO_CHECK_EQUAL(pl["red"].get_indexed<float>(2), 0.0f);
     OIIO_CHECK_EQUAL(pl["xy"].get<Imath::V3f>(), Imath::V3f(0.5f, 0.5f, 0.0f));
     OIIO_CHECK_EQUAL(pl["Tx"].get<Imath::M44f>(),
                      Imath::M44f(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 42, 0, 0,
