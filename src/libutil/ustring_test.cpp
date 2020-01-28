@@ -90,6 +90,14 @@ main(int argc, char* argv[])
     OIIO_CHECK_ASSERT(ustring("bar") != ustring("foo"));
     ustring foo("foo");
     OIIO_CHECK_ASSERT(foo.string() == "foo");
+    ustring bar("bar");
+    OIIO_CHECK_EQUAL(ustring::concat(foo, bar), "foobar");
+    OIIO_CHECK_EQUAL(ustring::concat(foo, "bar"), "foobar");
+    OIIO_CHECK_EQUAL(ustring::concat(foo, ""), "foo");
+    OIIO_CHECK_EQUAL(ustring::concat("", foo), "foo");
+    ustring longstring(Strutil::repeat("01234567890", 100));
+    OIIO_CHECK_EQUAL(ustring::concat(longstring, longstring),
+                     ustring::sprintf("%s%s", longstring, longstring));
 
     const int nhw_threads = Sysutil::hardware_concurrency();
     std::cout << "hw threads = " << nhw_threads << "\n";

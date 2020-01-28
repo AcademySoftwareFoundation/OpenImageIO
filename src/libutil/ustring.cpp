@@ -419,6 +419,28 @@ ustring::make_unique(string_view strref)
     return result ? result : table.insert(strref, hash);
 }
 
+
+
+ustring
+ustring::concat(string_view s, string_view t)
+{
+    size_t sl  = s.size();
+    size_t tl  = t.size();
+    size_t len = sl + tl;
+    std::unique_ptr<char[]> heap_buf;
+    char local_buf[256];
+    char* buf = local_buf;
+    if (len > sizeof(local_buf)) {
+        heap_buf.reset(new char[len]);
+        buf = heap_buf.get();
+    }
+    memcpy(buf, s.data(), sl);
+    memcpy(buf + sl, t.data(), tl);
+    return ustring(buf, len);
+}
+
+
+
 std::string
 ustring::getstats(bool verbose)
 {
