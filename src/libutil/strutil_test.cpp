@@ -394,6 +394,21 @@ test_join()
 
 
 void
+test_concat()
+{
+    std::cout << "Testing concat\n";
+    OIIO_CHECK_EQUAL(Strutil::concat("foo", "bar"), "foobar");
+    OIIO_CHECK_EQUAL(Strutil::concat("foo", ""), "foo");
+    OIIO_CHECK_EQUAL(Strutil::concat("", "foo"), "foo");
+    OIIO_CHECK_EQUAL(Strutil::concat("", ""), "");
+    std::string longstring(Strutil::repeat("01234567890", 100));
+    OIIO_CHECK_EQUAL(Strutil::concat(longstring, longstring),
+                     Strutil::sprintf("%s%s", longstring, longstring));
+}
+
+
+
+void
 test_repeat()
 {
     std::cout << "Testing repeat\n";
@@ -401,6 +416,8 @@ test_repeat()
     OIIO_CHECK_EQUAL(Strutil::repeat("foo", 1), "foo");
     OIIO_CHECK_EQUAL(Strutil::repeat("foo", 0), "");
     OIIO_CHECK_EQUAL(Strutil::repeat("foo", -1), "");
+    OIIO_CHECK_EQUAL(Strutil::repeat("0123456789", 100),
+                     Strutil::repeat("01234567890123456789", 50));
 }
 
 
@@ -1024,6 +1041,7 @@ main(int argc, char* argv[])
     test_strip();
     test_split();
     test_join();
+    test_concat();
     test_repeat();
     test_replace();
     test_excise_string_after_head();
