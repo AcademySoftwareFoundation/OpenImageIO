@@ -772,7 +772,7 @@ TGAInput::close()
 
 
 bool
-TGAInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+TGAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     lock_guard lock(m_mutex);

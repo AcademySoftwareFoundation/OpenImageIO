@@ -1209,9 +1209,9 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
 bool
 TextureSystemImpl::texture_lookup_nomip(
     TextureFile& texturefile, PerThreadInfo* thread_info, TextureOpt& options,
-    int nchannels_result, int actualchannels, float s, float t, float dsdx,
-    float dtdx, float dsdy, float dtdy, float* result, float* dresultds,
-    float* dresultdt)
+    int nchannels_result, int actualchannels, float s, float t, float /*dsdx*/,
+    float /*dtdx*/, float /*dsdy*/, float /*dtdy*/, float* result,
+    float* dresultds, float* dresultdt)
 {
     // Initialize results to 0.  We'll add from here on as we sample.
     OIIO_DASSERT((dresultds == NULL) == (dresultdt == NULL));
@@ -1818,9 +1818,9 @@ TextureSystemImpl::texture_lookup(TextureFile& texturefile,
 
 const float*
 TextureSystemImpl::pole_color(TextureFile& texturefile,
-                              PerThreadInfo* thread_info,
+                              PerThreadInfo* /*thread_info*/,
                               const ImageCacheFile::LevelInfo& levelinfo,
-                              TileRef& tile, int subimage, int miplevel,
+                              TileRef& tile, int subimage, int /*miplevel*/,
                               int pole)
 {
     if (!levelinfo.onetile)

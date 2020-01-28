@@ -213,7 +213,8 @@ private:
     // program!  Ick.  So to avoid this, we always push a pointer, which
     // we expect NOT to be altered, and if it is, it's a danger sign (plus
     // we didn't crash).
-    bool safe_tiffgetfield(string_view name, int tag, void* dest)
+    bool safe_tiffgetfield(string_view name OIIO_MAYBE_UNUSED, int tag,
+                           void* dest)
     {
         void* ptr = NULL;  // dummy -- expect it to stay NULL
         bool ok   = TIFFGetField(m_tif, tag, dest, &ptr);
@@ -440,7 +441,7 @@ oiio_tiff_last_error()
 
 
 static void
-my_error_handler(const char* str, const char* format, va_list ap)
+my_error_handler(const char* /*str*/, const char* format, va_list ap)
 {
     oiio_tiff_last_error() = Strutil::vformat(format, ap);
 }
@@ -1382,7 +1383,7 @@ cmyk_to_rgb(int n, const T* cmyk, size_t cmyk_stride, T* rgb, size_t rgb_stride)
 
 
 bool
-TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                 void* data)
 {
     lock_guard lock(m_mutex);
@@ -1671,7 +1672,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                        err.size() ? err.c_str() : "unknown error");
                 ok = false;
             }
-            auto uncompress_etc = [=, &ok](int id) {
+            auto uncompress_etc = [=, &ok](int /*id*/) {
                 uncompress_one_strip(cbuf, (unsigned long)csize, data,
                                      strip_bytes, this->m_spec.nchannels,
                                      this->m_spec.width, m_rowsperstrip,
@@ -1930,7 +1931,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                     return false;
                 }
                 // Push the rest of the work onto the thread pool queue
-                tasks.push(pool->push([=, &ok](int id) {
+                tasks.push(pool->push([=, &ok](int /*id*/) {
                     uncompress_one_strip(cbuf, (unsigned long)csize, ubuf,
                                          tile_bytes, this->m_spec.nchannels,
                                          this->m_spec.tile_width,

@@ -220,7 +220,7 @@ ZfileInput::close()
 
 
 bool
-ZfileInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+ZfileInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                  void* data)
 {
     lock_guard lock(m_mutex);
@@ -365,7 +365,7 @@ ZfileOutput::close()
 
 
 bool
-ZfileOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
+ZfileOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
                             stride_t xstride)
 {
     y -= m_spec.y;

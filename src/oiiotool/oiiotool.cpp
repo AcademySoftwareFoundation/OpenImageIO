@@ -434,7 +434,7 @@ set_autotile(int argc, const char* argv[])
 
 
 static int
-set_native(int argc, const char* argv[])
+set_native(int argc, const char* /*argv*/[])
 {
     OIIO_DASSERT(argc == 1);
     ot.nativeread = true;
@@ -472,7 +472,7 @@ set_printinfo(int argc, const char* argv[])
 
 
 static int
-set_autopremult(int argc, const char* argv[])
+set_autopremult(int argc, const char* /*argv*/[])
 {
     OIIO_DASSERT(argc == 1);
     ot.autopremult = true;
@@ -484,7 +484,7 @@ set_autopremult(int argc, const char* argv[])
 
 
 static int
-unset_autopremult(int argc, const char* argv[])
+unset_autopremult(int argc, const char* /*argv*/[])
 {
     OIIO_DASSERT(argc == 1);
     ot.autopremult = false;
@@ -497,7 +497,7 @@ unset_autopremult(int argc, const char* argv[])
 
 
 static int
-enable_eval(int argc, const char* argv[])
+enable_eval(int argc, const char* /*argv*/[])
 {
     OIIO_DASSERT(argc == 1);
     ot.eval_enable = true;
@@ -507,7 +507,7 @@ enable_eval(int argc, const char* argv[])
 
 
 static int
-disable_eval(int argc, const char* argv[])
+disable_eval(int argc, const char* /*argv*/[])
 {
     OIIO_DASSERT(argc == 1);
     ot.eval_enable = false;
@@ -517,7 +517,7 @@ disable_eval(int argc, const char* argv[])
 
 
 static int
-action_label(int argc, const char* argv[])
+action_label(int argc OIIO_MAYBE_UNUSED, const char* argv[])
 {
     string_view labelname      = ot.express(argv[1]);
     ot.image_labels[labelname] = ot.curimg;
@@ -2145,7 +2145,7 @@ OP_CUSTOMCLASS(ociofiletransform, OpOcioFileTransform, 1);
 
 
 static int
-output_tiles(int /*argc*/, const char* argv[])
+output_tiles(int /*argc*/, const char* /*argv*/[])
 {
     // the ArgParse will have set the tile size, but we need this routine
     // to clear the scanline flag
@@ -3079,7 +3079,7 @@ OP_CUSTOMCLASS(cshift, OpCshift, 1);
 
 
 static int
-action_pop(int argc, const char* argv[])
+action_pop(int argc, const char* /*argv*/[])
 {
     OIIO_DASSERT(argc == 1);
     ot.pop();
@@ -3089,7 +3089,7 @@ action_pop(int argc, const char* argv[])
 
 
 static int
-action_dup(int argc, const char* argv[])
+action_dup(int argc, const char* /*argv*/[])
 {
     OIIO_DASSERT(argc == 1);
     ot.push(ot.curimg);
@@ -4192,7 +4192,7 @@ action_paste(int argc, const char* argv[])
 
 
 static int
-action_mosaic(int argc, const char* argv[])
+action_mosaic(int /*argc*/, const char* argv[])
 {
     Timer timer(ot.enable_function_timing);
 
@@ -4951,7 +4951,7 @@ remove_all_cmd(std::string& str)
 
 
 static int
-output_file(int argc, const char* argv[])
+output_file(int /*argc*/, const char* argv[])
 {
     Timer timer(ot.enable_function_timing);
     ot.total_writetime.start();
@@ -5368,7 +5368,7 @@ do_echo(int argc, const char* argv[])
 
 
 static int
-crash_me(int argc, const char* argv[])
+crash_me(int /*argc*/, const char* /*argv*/[])
 {
     size_t a   = 37;
     char* addr = (char*)a;
@@ -5436,7 +5436,7 @@ formatted_format_list(string_view format_typename, string_view attr)
 
 
 static void
-print_usage_tips(const ArgParse& ap, std::ostream& out)
+print_usage_tips(const ArgParse& /*ap*/, std::ostream& out)
 {
     int columns = Sysutil::terminal_columns() - 2;
 
@@ -5484,7 +5484,7 @@ print_usage_tips(const ArgParse& ap, std::ostream& out)
 
 
 static void
-print_help_end(const ArgParse& ap, std::ostream& out)
+print_help_end(const ArgParse& /*ap*/, std::ostream& out)
 {
     out << "\n";
     int columns = Sysutil::terminal_columns() - 2;

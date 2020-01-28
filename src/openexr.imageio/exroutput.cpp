@@ -11,6 +11,8 @@
 #include <map>
 #include <memory>
 
+#include <OpenImageIO/platform.h>
+
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
 #include <OpenEXR/ImfOutputFile.h>
@@ -18,9 +20,9 @@
 
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
-#ifdef __GNUC__
-#    pragma GCC visibility push(default)
-#endif
+OIIO_PRAGMA_VISIBILITY_PUSH
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/IexBaseExc.h>
 #include <OpenEXR/ImfBoxAttribute.h>
 #include <OpenEXR/ImfCRgbaFile.h>  // JUST to get symbols to figure out version!
@@ -37,10 +39,6 @@
 #include <OpenEXR/ImfTimeCodeAttribute.h>
 #include <OpenEXR/ImfVecAttribute.h>
 
-#ifdef __GNUC__
-#    pragma GCC visibility pop
-#endif
-
 #include <OpenEXR/ImfDeepScanLineOutputPart.h>
 #include <OpenEXR/ImfDeepTiledOutputPart.h>
 #include <OpenEXR/ImfDoubleAttribute.h>
@@ -49,6 +47,8 @@
 #include <OpenEXR/ImfPartType.h>
 #include <OpenEXR/ImfStringVectorAttribute.h>
 #include <OpenEXR/ImfTiledOutputPart.h>
+OIIO_PRAGMA_WARNING_POP
+OIIO_PRAGMA_VISIBILITY_POP
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
