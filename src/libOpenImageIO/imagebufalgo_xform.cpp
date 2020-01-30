@@ -541,7 +541,7 @@ ImageBufAlgo::resize(const ImageBuf& src, string_view filtername,
 
 bool
 ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
-                  bool exact, ROI roi, int nthreads)
+                  bool exact, ROI roi, ImageBuf::WrapMode wrap, int nthreads)
 {
     // No time logging, it will be accounted in the underlying warp/resize
     if (!IBAprep(roi, &dst, &src,
@@ -606,7 +606,6 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
         newspec.set_roi(newroi);
         newspec.set_roi_full(newroi);
         dst.reset(newspec);
-        ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string("black");
         ok &= ImageBufAlgo::warp(dst, src, M, filter, false, wrap, {},
                                  nthreads);
     } else {
@@ -641,7 +640,8 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
 
 bool
 ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
-                  float fwidth, bool exact, ROI roi, int nthreads)
+                  float fwidth, bool exact, ROI roi, ImageBuf::WrapMode wrap,
+                  int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::fit");
     if (!IBAprep(roi, &dst, &src,
@@ -660,17 +660,17 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
         return false;  // error issued in get_resize_filter
 
     logtime.stop();  // it will be picked up again by the next call...
-    return fit(dst, src, filter.get(), exact, roi, nthreads);
+    return fit(dst, src, filter.get(), exact, roi, wrap, nthreads);
 }
 
 
 
 ImageBuf
 ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, bool exact, ROI roi,
-                  int nthreads)
+                  ImageBuf::WrapMode wrap, int nthreads)
 {
     ImageBuf result;
-    bool ok = fit(result, src, filter, exact, roi, nthreads);
+    bool ok = fit(result, src, filter, exact, roi, wrap, nthreads);
     if (!ok && !result.has_error())
         result.errorf("ImageBufAlgo::fit() error");
     return result;
@@ -679,10 +679,12 @@ ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, bool exact, ROI roi,
 
 ImageBuf
 ImageBufAlgo::fit(const ImageBuf& src, string_view filtername,
-                  float filterwidth, bool exact, ROI roi, int nthreads)
+                  float filterwidth, bool exact, ROI roi,
+                  ImageBuf::WrapMode wrap, int nthreads)
 {
     ImageBuf result;
-    bool ok = fit(result, src, filtername, filterwidth, exact, roi, nthreads);
+    bool ok = fit(result, src, filtername, filterwidth, exact, roi, wrap,
+                  nthreads);
     if (!ok && !result.has_error())
         result.errorf("ImageBufAlgo::fit() error");
     return result;
@@ -693,7 +695,7 @@ ImageBufAlgo::fit(const ImageBuf& src, string_view filtername,
 template<typename DSTTYPE, typename SRCTYPE>
 static bool
 resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
-          int nthreads)
+          ImageBuf::WrapMode wrap, int nthreads)
 {
     OIIO_ASSERT(src.deep() == dst.deep());
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
@@ -747,7 +749,7 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                     }
                 } else if (interpolate) {
                     // Non-deep image, bilinearly interpolate
-                    src.interppixel(src_xf, src_yf, pel);
+                    src.interppixel(src_xf, src_yf, pel, wrap);
                     for (int c = roi.chbegin; c < roi.chend; ++c)
                         out[c] = pel[c];
                 } else {
@@ -766,7 +768,7 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
 
 bool
 ImageBufAlgo::resample(ImageBuf& dst, const ImageBuf& src, bool interpolate,
-                       ROI roi, int nthreads)
+                       ROI roi, ImageBuf::WrapMode wrap, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::resample");
     if (!IBAprep(roi, &dst, &src,
@@ -801,7 +803,7 @@ ImageBufAlgo::resample(ImageBuf& dst, const ImageBuf& src, bool interpolate,
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2(ok, "resample", resample_, dst.spec().format,
                                 src.spec().format, dst, src, interpolate, roi,
-                                nthreads);
+                                wrap, nthreads);
     return ok;
 }
 
@@ -809,10 +811,10 @@ ImageBufAlgo::resample(ImageBuf& dst, const ImageBuf& src, bool interpolate,
 
 ImageBuf
 ImageBufAlgo::resample(const ImageBuf& src, bool interpolate, ROI roi,
-                       int nthreads)
+                       ImageBuf::WrapMode wrap, int nthreads)
 {
     ImageBuf result;
-    bool ok = resample(result, src, interpolate, roi, nthreads);
+    bool ok = resample(result, src, interpolate, roi, wrap, nthreads);
     if (!ok && !result.has_error())
         result.errorf("ImageBufAlgo::resample() error");
     return result;

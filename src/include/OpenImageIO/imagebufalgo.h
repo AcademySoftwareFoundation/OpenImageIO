@@ -649,10 +649,23 @@ bool OIIO_API resize (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
 /// needed, rather than attempting to interpolate deep pixels (regardless of
 /// the value of `interpolate`).
 ImageBuf OIIO_API resample (const ImageBuf &src, bool interpolate = true,
-                        ROI roi={}, int nthreads=0);
+                            ROI roi={},
+                            ImageBuf::WrapMode wrap=ImageBuf::WrapDefault,
+                            int nthreads=0);
 /// Write to an exsisting image `dst` (allocating if it is uninitialized).
 bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
-                        bool interpolate = true, ROI roi={}, int nthreads=0);
+                        bool interpolate = true, ROI roi={},
+                        ImageBuf::WrapMode wrap=ImageBuf::WrapDefault,
+                        int nthreads=0);
+inline ImageBuf OIIO_API resample (const ImageBuf &src, bool interpolate,
+                                   ROI roi, int nthreads) {
+    return resample(src, interpolate, roi, ImageBuf::WrapDefault, nthreads);
+}
+inline bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
+                               bool interpolate, ROI roi, int nthreads) {
+    return resample(dst, src, interpolate, roi, ImageBuf::WrapDefault,
+                    nthreads);
+}
 
 
 /// @defgroup fit (fit: resize the image with filtering, into a fixed size)
@@ -680,14 +693,45 @@ bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
 ///
 ImageBuf OIIO_API fit (const ImageBuf &src,
                        string_view filtername = "", float filterwidth=0.0f,
-                       bool exact=false, ROI roi={}, int nthreads=0);
+                       bool exact=false, ROI roi={},
+                       ImageBuf::WrapMode wrap=ImageBuf::WrapDefault,
+                       int nthreads=0);
 ImageBuf OIIO_API fit (const ImageBuf &src, Filter2D *filter,
-                       bool exact=false, ROI roi={}, int nthreads=0);
+                       bool exact=false, ROI roi={},
+                       ImageBuf::WrapMode wrap=ImageBuf::WrapDefault,
+                       int nthreads=0);
 bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
                    string_view filtername = "", float filterwidth=0.0f,
-                   bool exact=false, ROI roi={}, int nthreads=0);
+                   bool exact=false, ROI roi={},
+                   ImageBuf::WrapMode wrap=ImageBuf::WrapDefault,
+                   int nthreads=0);
 bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
-                   bool exact=false, ROI roi={}, int nthreads=0);
+                   bool exact=false, ROI roi={},
+                   ImageBuf::WrapMode wrap=ImageBuf::WrapDefault,
+                   int nthreads=0);
+inline ImageBuf OIIO_API fit (const ImageBuf &src, string_view filtername,
+                              float filterwidth, bool exact, ROI roi,
+                              int nthreads) {
+  return fit(src, filtername, filterwidth, exact, roi, ImageBuf::WrapDefault,
+             nthreads);
+}
+inline ImageBuf OIIO_API fit (const ImageBuf &src, Filter2D *filter,
+                              bool exact, ROI roi, int nthreads) {
+  return fit(src, filter, exact, roi, ImageBuf::WrapDefault,
+             nthreads);
+}
+inline bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
+                          string_view filtername, float filterwidth, bool exact,
+                          ROI roi, int nthreads) {
+  return fit(dst, src, filtername, filterwidth, exact, roi,
+             ImageBuf::WrapDefault, nthreads);
+}
+inline bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
+                          Filter2D *filter, bool exact,
+                          ROI roi, int nthreads) {
+  return fit(dst, src, filter, exact, roi, ImageBuf::WrapDefault,
+             nthreads);
+}
 /// @}
 
 
