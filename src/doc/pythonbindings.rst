@@ -3390,7 +3390,7 @@ Import / export
         config = ImageSpec()
         config.attribute ("maketx:highlightcomp", 1)
         config.attribute ("maketx:filtername", "lanczos3")
-        config.attribute ("maketx:opaquedetect", 1)
+        config.attribute ("maketx:opaque_detect", 1)
         ImageBufAlgo.make_texture (oiio.MakeTxTexture, Input,
                                    "texture.exr", config)
 

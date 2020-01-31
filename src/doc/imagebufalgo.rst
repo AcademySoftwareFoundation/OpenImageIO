@@ -1690,7 +1690,7 @@ Import / export
     ImageSpec config;
     config.attribute ("maketx:highlightcomp", 1);
     config.attribute ("maketx:filtername", "lanczos3");
-    config.attribute ("maketx:opaquedetect", 1);
+    config.attribute ("maketx:opaque_detect", 1);
     stringstream s;
     bool ok = ImageBufAlgo::make_texture (ImageBufAlgo::MakeTxTexture,
                                           Input, "texture.exr", config, &s);
