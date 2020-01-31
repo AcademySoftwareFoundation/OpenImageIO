@@ -1535,62 +1535,69 @@ IBA_rotate2_ret(const ImageBuf& src, float angle, float center_x,
 bool
 IBA_resize(ImageBuf& dst, const ImageBuf& src,
            const std::string& filtername = "", float filterwidth = 0.0f,
-           ROI roi = ROI::All(), int nthreads = 0)
+           const std::string& wrapname = "clamp", ROI roi = ROI::All(),
+           int nthreads = 0)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::resize(dst, src, filtername, filterwidth, roi,
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
+    return ImageBufAlgo::resize(dst, src, filtername, filterwidth, wrap, roi,
                                 nthreads);
 }
 
 ImageBuf
 IBA_resize_ret(const ImageBuf& src, const std::string& filtername = "",
-               float filterwidth = 0.0f, ROI roi = ROI::All(), int nthreads = 0)
+               float filterwidth = 0.0f, const std::string& wrapname = "clamp",
+               ROI roi = ROI::All(), int nthreads = 0)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::resize(src, filtername, filterwidth, roi, nthreads);
+    ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
+    return ImageBufAlgo::resize(src, filtername, filterwidth, wrap, roi,
+                                nthreads);
 }
 
 
 
 bool
-IBA_resample(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
-             const std::string& wrapname, int nthreads)
+IBA_resample(ImageBuf& dst, const ImageBuf& src, bool interpolate,
+             const std::string& wrapname, ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
-    return ImageBufAlgo::resample(dst, src, interpolate, roi, wrap, nthreads);
+    return ImageBufAlgo::resample(dst, src, interpolate, wrap, roi, nthreads);
 }
 
 ImageBuf
-IBA_resample_ret(const ImageBuf& src, bool interpolate, ROI roi,
-                 const std::string& wrapname, int nthreads)
+IBA_resample_ret(const ImageBuf& src, bool interpolate,
+                 const std::string& wrapname, ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
-    return ImageBufAlgo::resample(src, interpolate, roi, wrap, nthreads);
+    return ImageBufAlgo::resample(src, interpolate, wrap, roi, nthreads);
 }
 
 
 
 bool
 IBA_fit(ImageBuf& dst, const ImageBuf& src, const std::string& filtername = "",
-        float filterwidth = 0.0f, bool exact = false, ROI roi = ROI::All(),
-        const std::string& wrapname = "default", int nthreads = 0)
+        float filterwidth = 0.0f, bool exact = false,
+        const std::string& wrapname = "default", ROI roi = ROI::All(),
+        int nthreads = 0)
 {
     py::gil_scoped_release gil;
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
-    return ImageBufAlgo::fit(dst, src, filtername, filterwidth, exact, roi,
-                             wrap, nthreads);
+    return ImageBufAlgo::fit(dst, src, filtername, filterwidth, exact, wrap,
+                             roi, nthreads);
 }
 
 ImageBuf
 IBA_fit_ret(const ImageBuf& src, const std::string& filtername = "",
-            float filterwidth = 0.0f, bool exact = false, ROI roi = ROI::All(),
-            const std::string& wrapname = "default", int nthreads = 0)
+            float filterwidth = 0.0f, bool exact = false,
+            const std::string& wrapname = "default", ROI roi = ROI::All(),
+            int nthreads = 0)
 {
     py::gil_scoped_release gil;
     ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string(wrapname);
-    return ImageBufAlgo::fit(src, filtername, filterwidth, exact, roi, wrap,
+    return ImageBufAlgo::fit(src, filtername, filterwidth, exact, wrap, roi,
                              nthreads);
 }
 
@@ -2793,25 +2800,25 @@ declare_imagebufalgo(py::module& m)
 
         .def_static("resize", &IBA_resize, "dst"_a, "src"_a,
                     "filtername"_a = "", "filterwidth"_a = 0.0f,
-                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+                    "wrap"_a = "clamp", "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("resize", &IBA_resize_ret, "src"_a, "filtername"_a = "",
-                    "filterwidth"_a = 0.0f, "roi"_a = ROI::All(),
-                    "nthreads"_a = 0)
+                    "filterwidth"_a = 0.0f, "wrap"_a = "clamp",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("resample", &IBA_resample, "dst"_a, "src"_a,
-                    "interpolate"_a = true, "roi"_a = ROI::All(),
-                    "wrapname"_a = "default", "nthreads"_a = 0)
+                    "interpolate"_a = true, "wrap"_a = "default",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("resample", &IBA_resample_ret, "src"_a,
-                    "interpolate"_a = true, "roi"_a = ROI::All(),
-                    "wrapname"_a = "default", "nthreads"_a = 0)
+                    "interpolate"_a = true, "wrap"_a = "default",
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("fit", &IBA_fit, "dst"_a, "src"_a, "filtername"_a = "",
                     "filterwidth"_a = 0.0f, "exact"_a = false,
-                    "roi"_a = ROI::All(), "wrapname"_a = "default",
+                    "wrap"_a = "default", "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
         .def_static("fit", &IBA_fit_ret, "src"_a, "filtername"_a = "",
                     "filterwidth"_a = 0.0f, "exact"_a = false,
-                    "roi"_a = ROI::All(), "wrapname"_a = "default",
+                    "wrap"_a = "default", "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
 
         .def_static("make_kernel", &IBA_make_kernel, "dst"_a, "name"_a,
@@ -2937,3 +2944,4 @@ declare_imagebufalgo(py::module& m)
 }
 
 }  // namespace PyOpenImageIO
+
