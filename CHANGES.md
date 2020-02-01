@@ -1,3 +1,7 @@
+Release 2.1.12 (? Mar 2020) -- compared to 2.1.11
+-------------------------------------------------
+
+
 Release 2.1.11 (1 Feb 2020) -- compared to 2.1.10
 -------------------------------------------------
 * Python bindings for `ParamValueList.attribute()`, when being passed
