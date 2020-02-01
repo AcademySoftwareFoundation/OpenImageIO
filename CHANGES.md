@@ -1,15 +1,20 @@
-Release 2.1.11 (1 Feb? 2020) -- compared to 2.1.10
---------------------------------------------------
+Release 2.1.11 (1 Feb 2020) -- compared to 2.1.10
+-------------------------------------------------
 * Python bindings for `ParamValueList.attribute()`, when being passed
   attributes containing multiple values, now can have those values passed
   as Python lists and numpy arrays (previously they had to be tuples).
   #2437
+* OpenEXR support is extended to handle float vector metadata. #2459
 * Developer goody: simd.h vfloat3 has added a `normalize()`, `length()`,
   and `length2()` methods, to more closely match the syntax of Imath::Vec3f.
   #2437
 * Internals: changed a lot of assertions to only happen in debug build mode,
   and changed a lot that happen in release builds to only print the error
   but not force a termination. #2435
+* simd.h fix errors in vbool == and !=. #2463
+* Make sure the embedded 'farmhash' implementation is completely hidden
+  behind proper namespaces. #2473
+* Many docs fixes.
 
 Release 2.1.10.1 (10 Jan 2019)
 ------------------------------
