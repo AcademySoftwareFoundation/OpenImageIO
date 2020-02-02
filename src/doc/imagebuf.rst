@@ -42,8 +42,8 @@ Making an empty or uninitialized ImageBuf
 Constructing a readable ImageBuf
 --------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view, int, int, ImageCache *, const ImageSpec *)
-.. doxygenfunction:: OIIO::ImageBuf::reset(string_view, int, int, ImageCache *, const ImageSpec *)
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view, int, int, ImageCache *, const ImageSpec *, Filesystem::IOProxy *)
+.. doxygenfunction:: OIIO::ImageBuf::reset(string_view, int, int, ImageCache *, const ImageSpec *, Filesystem::IOProxy *)
 
 
 Constructing a writeable ImageBuf
@@ -74,6 +74,7 @@ Reading and Writing disk images
 .. doxygenfunction:: OIIO::ImageBuf::set_write_format(TypeDesc)
 .. doxygenfunction:: OIIO::ImageBuf::set_write_format(cspan<TypeDesc>)
 .. doxygenfunction:: OIIO::ImageBuf::set_write_tiles
+.. doxygenfunction:: OIIO::ImageBuf::set_write_ioproxy
 
 
 

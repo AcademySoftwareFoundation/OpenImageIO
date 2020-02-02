@@ -148,7 +148,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         errorf("Could not open file \"%s\"", name);
         return false;
     }
-    m_io_offset = m_io->tell();
+    m_io->seek(0);
 
     unsigned char sig[8];
     if (m_io->pread(sig, sizeof(sig), 0) != sizeof(sig)
@@ -222,11 +222,6 @@ PNGInput::close()
         // If we allocated our own ioproxy, close it.
         m_io_local.reset();
         m_io = nullptr;
-    } else if (m_io) {
-        // We were passed an ioproxy from the user. Don't actually close it,
-        // just reset it to the original position. This makes it possible to
-        // "re-open".
-        m_io->seek(m_io_offset);
     }
     init();  // Reset to initial state
     return true;
