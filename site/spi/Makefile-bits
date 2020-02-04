@@ -254,7 +254,8 @@ ifeq (${SP_OS}, rhel7)
     OpenVDB_ROOT ?= ${SPCOMP2_ROOT}/openvdb/${SPCOMP2_FULLBOOST_SUFFIX}/${OPENVDB_SPCOMP2_VERSION}
     TBB_ROOT ?= /net/apps/rhel7/intel/tbb
     TBB_LIBRARY ?= /net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7
-    LIBRAW_LIBDIR=/usr/lib64/libraw-0.18.11
+    LIBRAW_LIBDIR ?= /usr/lib64/libraw-0.18.11
+    LIBRAW_INCLUDEDIR ?= /usr/include/libraw-0.18.11
     Libheif_ROOT=/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2
     MY_CMAKE_FLAGS += \
         -DOpenColorIO_ROOT=${OpenColorIO_ROOT} \
@@ -265,7 +266,7 @@ ifeq (${SP_OS}, rhel7)
         -DHDF5_CUSTOM=1 \
         -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
         -DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION} \
-        -DLIBRAW_INCLUDEDIR_HINT=/usr/include/libraw-0.18.11 \
+        -DLIBRAW_INCLUDEDIR_HINT=${LIBRAW_INCLUDEDIR} \
         -DLIBRAW_LIBDIR_HINT=${LIBRAW_LIBDIR} \
         -DLibheif_ROOT=${Libheif_ROOT} \
         -DFFMPEG_INCLUDE_DIR=/usr/include/ffmpegroot/ffmpeg34 \
@@ -391,7 +392,7 @@ spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
 spcomp2_install_local: spcomp2_install
 
 SPCOMP2_RPATH_OPT ?= ${OpenColorIO_ROOT}/lib:${Field3D_ROOT}/lib:${LIBRAW_LIBDIR}:${OpenVDB_ROOT}/lib:${Libheif_ROOT}/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${TBB_ROOT}/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
-SPCOMP2_RPATH_DEBUG ?= ${OpenColorIO_ROOT}/lib/debug:${Field3D_ROOT}/lib/debug:/usr/lib64/libraw-0.18.11:${OpenVDB_ROOT}/lib/debug:${Libheif_ROOT}/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${TBB_ROOT}/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
+SPCOMP2_RPATH_DEBUG ?= ${OpenColorIO_ROOT}/lib/debug:${Field3D_ROOT}/lib/debug:${LIBRAW_LIBDIR}:${OpenVDB_ROOT}/lib/debug:${Libheif_ROOT}/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${TBB_ROOT}/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
 PYSPCOMP2_RPATH_OPT ?= ${SPCOMP2_RPATH_OPT}:${OIIO_SPCOMP2_PATH}/lib:${PYTHON_LIBRARY_DIR}
 PYSPCOMP2_RPATH_DEBUG ?= ${SPCOMP2_RPATH_DEBUG}:${OIIO_SPCOMP2_PATH}/lib/debug:${PYTHON_LIBRARY_DIR}
 

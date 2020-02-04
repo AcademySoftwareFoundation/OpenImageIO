@@ -218,11 +218,15 @@ raw_input_imageio_create()
 }
 
 OIIO_EXPORT const char* raw_input_extensions[]
-    = { "bay", "bmq",  "cr2", "crw", "cs1", "dc2", "dcr", "dng", "erf",
-        "fff", "hdr",  "k25", "kdc", "mdc", "mos", "mrw", "nef", "orf",
-        "pef", "pxn",  "raf", "raw", "rdc", "sr2", "srf", "x3f", "arw",
-        "3fr", "cine", "ia",  "kc2", "mef", "nrw", "qtk", "rw2", "sti",
-        "rwl", "srw",  "drf", "dsc", "ptx", "cap", "iiq", "rwz", nullptr };
+    = { "bay", "bmq", "cr2",
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+        "cr3",
+#endif
+        "crw", "cs1", "dc2", "dcr", "dng", "erf", "fff",  "hdr",  "k25",
+        "kdc", "mdc", "mos", "mrw", "nef", "orf", "pef",  "pxn",  "raf",
+        "raw", "rdc", "sr2", "srf", "x3f", "arw", "3fr",  "cine", "ia",
+        "kc2", "mef", "nrw", "qtk", "rw2", "sti", "rwl",  "srw",  "drf",
+        "dsc", "ptx", "cap", "iiq", "rwz", "cr3", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -654,7 +658,26 @@ RawInput::open_raw(bool unpack, const std::string& name,
             false);
     }
 #endif
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+    const libraw_makernotes_t& makernotes(m_processor->imgdata.makernotes);
+    const libraw_metadata_common_t& common(makernotes.common);
+    // float FlashEC;
+    // float FlashGN;
+    // float CameraTemperature;
+    // float SensorTemperature;
+    // float SensorTemperature2;
+    // float LensTemperature;
+    // float AmbientTemperature;
+    // float BatteryTemperature;
+    // float exifAmbientTemperature;
+    add("Exif", "Humidity", common.exifHumidity, false, 0.0f);
+    add("Exif", "Pressure", common.exifPressure, false, 0.0f);
+    add("Exif", "WaterDepth", common.exifWaterDepth, false, 0.0f);
+    add("Exif", "Acceleration", common.exifAcceleration, false, 0.0f);
+    add("Exif", "CameraElevactionAngle", common.exifCameraElevationAngle, false,
+        0.0f);
+    // float real_ISO;
+#elif LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     // float FlashEC;
     // float FlashGN;
     // float CameraTemperature;
@@ -858,9 +881,13 @@ RawInput::get_makernotes_olympus()
 {
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     auto const& mn(m_processor->imgdata.makernotes.olympus);
+#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+    MAKERF(SensorCalibration);
+#    else
     MAKERF(OlympusCropID);
     MAKERF(OlympusFrame); /* upper left XY, lower right XY */
     MAKERF(OlympusSensorCalibration);
+#    endif
     MAKERF(FocusMode);
     MAKERF(AutoFocus);
     MAKERF(AFPoint);
@@ -935,12 +962,23 @@ RawInput::get_makernotes_fuji()
 {
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     auto const& mn(m_processor->imgdata.makernotes.fuji);
+
+#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+    add(m_make, "ExpoMidPointShift", mn.ExpoMidPointShift);
+    add(m_make, "DynamicRange", mn.DynamicRange);
+    add(m_make, "FilmMode", mn.FilmMode);
+    add(m_make, "DynamicRangeSetting", mn.DynamicRangeSetting);
+    add(m_make, "DevelopmentDynamicRange", mn.DevelopmentDynamicRange);
+    add(m_make, "AutoDynamicRange", mn.AutoDynamicRange);
+#    else
     add(m_make, "ExpoMidPointShift", mn.FujiExpoMidPointShift);
     add(m_make, "DynamicRange", mn.FujiDynamicRange);
     add(m_make, "FilmMode", mn.FujiFilmMode);
     add(m_make, "DynamicRangeSetting", mn.FujiDynamicRangeSetting);
     add(m_make, "DevelopmentDynamicRange", mn.FujiDevelopmentDynamicRange);
     add(m_make, "AutoDynamicRange", mn.FujiAutoDynamicRange);
+#    endif
+
     MAKERF(FocusMode);
     MAKERF(AFMode);
     MAKERF(FocusPixel);
@@ -964,8 +1002,14 @@ RawInput::get_makernotes_sony()
 {
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     auto const& mn(m_processor->imgdata.makernotes.sony);
+#endif
+
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+    MAKERF(CameraType);
+#elif LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 18, 0)
     MAKERF(SonyCameraType);
 #endif
+
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 19, 0)
     // uchar Sony0x9400_version; /* 0 if not found/deciphered, 0xa, 0xb, 0xc following exiftool convention */
     // uchar Sony0x9400_ReleaseMode2;
@@ -973,12 +1017,14 @@ RawInput::get_makernotes_sony()
     // uchar Sony0x9400_SequenceLength1;
     // unsigned Sony0x9400_SequenceFileNumber;
     // uchar Sony0x9400_SequenceLength2;
+#    if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 20, 0)
     if (mn.raw_crop.cwidth || mn.raw_crop.cheight) {
         add(m_make, "cropleft", mn.raw_crop.cleft, true);
         add(m_make, "croptop", mn.raw_crop.ctop, true);
         add(m_make, "cropwidth", mn.raw_crop.cwidth, true);
         add(m_make, "cropheight", mn.raw_crop.cheight, true);
     }
+#    endif
     MAKERF(AFMicroAdjValue);
     MAKERF(AFMicroAdjOn);
     MAKER(AFMicroAdjRegisteredLenses, 0);
@@ -1051,17 +1097,29 @@ RawInput::get_lensinfo()
         MAKER(Adapter, 0);
         MAKER(AttachmentID, 0ULL);
         MAKER(Attachment, 0);
+#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+        MAKER(FocalUnits, 0);
+#    else
         MAKER(CanonFocalUnits, 0);
+#    endif
         MAKER(FocalLengthIn35mmFormat, 0.0f);
     }
 
     if (Strutil::iequals(m_make, "Nikon")) {
         auto const& mn(m_processor->imgdata.lens.nikon);
+#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+        add(m_make, "EffectiveMaxAp", mn.EffectiveMaxAp);
+        add(m_make, "LensIDNumber", mn.LensIDNumber);
+        add(m_make, "LensFStops", mn.LensFStops);
+        add(m_make, "MCUVersion", mn.MCUVersion);
+        add(m_make, "LensType", mn.LensType);
+#    else
         add(m_make, "EffectiveMaxAp", mn.NikonEffectiveMaxAp);
         add(m_make, "LensIDNumber", mn.NikonLensIDNumber);
         add(m_make, "LensFStops", mn.NikonLensFStops);
         add(m_make, "MCUVersion", mn.NikonMCUVersion);
         add(m_make, "LensType", mn.NikonLensType);
+#    endif
     }
     if (Strutil::iequals(m_make, "DNG")) {
         auto const& mn(m_processor->imgdata.lens.dng);
