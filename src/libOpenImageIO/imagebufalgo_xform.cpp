@@ -747,7 +747,7 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                     }
                 } else if (interpolate) {
                     // Non-deep image, bilinearly interpolate
-                    src.interppixel(src_xf, src_yf, pel);
+                    src.interppixel(src_xf, src_yf, pel, ImageBuf::WrapClamp);
                     for (int c = roi.chbegin; c < roi.chend; ++c)
                         out[c] = pel[c];
                 } else {
