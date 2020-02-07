@@ -39,20 +39,14 @@ ifeq (${OIIO_SPCOMP2},1)
 else ifeq (${OIIO_ARNOLD},1)
     $(info Building for Arnold)
     NAMESPACE ?= 'OpenImageIO_Arnold'
-    PYLIB_LIB_PREFIX ?= 0
-    PYLIB_INCLUDE_SONAME ?= 0
 else ifeq (${OIIO_SPIREZ},1)
     $(info Building for Rez distribution)
-    NAMESPACE ?= 'OpenImageIO'
-    PYLIB_LIB_PREFIX ?= 0
-    PYLIB_INCLUDE_SONAME ?= 0
+    # NAMESPACE ?= 'OpenImageIO'
     MY_CMAKE_FLAGS += -DOIIO_SPIREZ=1 -DOIIO_REZ_PACKAGE_NAME=${OIIO_REZ_NAME}
     MY_CMAKE_FLAGS += -DCMAKE_DEBUG_POSTFIX=_d
 else
     $(info Building generic OpenImageIO)
-    NAMESPACE ?= 'OpenImageIO'
-    PYLIB_LIB_PREFIX ?= 0
-    PYLIB_INCLUDE_SONAME ?= 0
+    # NAMESPACE ?= 'OpenImageIO'
 endif
 #$(info MAKECMDGOALS = $(MAKECMDGOALS))
 
@@ -120,7 +114,7 @@ ifeq (${SP_OS}, rhel7)
     #
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
-    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_8.0.0
+    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_9.0.0/${SPI_COMPILER_PLATFORM}
     ifeq (${COMPILER},clang6)
 	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_6.0.1
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++

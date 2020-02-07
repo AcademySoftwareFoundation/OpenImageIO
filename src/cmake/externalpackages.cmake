@@ -233,7 +233,8 @@ checked_find_package (Field3D
                    DEFINITIONS  -DUSE_FIELD3D=1)
 checked_find_package (GIF 4)
 checked_find_package (Libheif 1.3)  # For HEIF/HEIC format
-checked_find_package (LibRaw)
+checked_find_package (LibRaw
+                    PRINT LibRaw_r_LIBRARIES)
 checked_find_package (OpenJpeg)
 checked_find_package (OpenVDB 5.0
                    DEPS         TBB

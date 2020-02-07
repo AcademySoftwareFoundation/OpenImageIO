@@ -1,57 +1,21 @@
-Build a variant for Rez/general use
------------------------------------
+Build for Rez/general use
+-------------------------
 
-Skip this section if you are instead building for SpComp2.
+Either locally (if you already have any dependencies in ext/* checked out),
+or on compile42 (if it needs internet access to download dependency repos):
 
-Note: For testing or to make your own local rez package, you can customize
-either the rez package name, or the rez install location name, with make
-flags `OIIO_REZ_NAME=blah REZ_PACKAGE_ROOT=/path/to/my/rez/pkgs` appended
-to the `make` commands of any of the variants listed below. For example,
+    cd site/spi/rez
+    rez build -i
 
-    make OIIO_SPIREZ=1 OIIO_REZ_NAME=oiio_test REZ_PACKAGE_ROOT=/path/to/my/rez/pkgs
+That locally installs to `/shots/spi/home/dev/$USER/software/packages`
 
+If it looks good, then you can do this (must be on compile42):
 
-Variants:
+    rez release --skip-repo-errors
 
-    # C++11/gcc4.8 compat, Python 2.7, Boost 1.55
-    make nuke
-    make spi OIIO_SPIREZ=1 OPENEXR_VERSION=2.2.0
+(also from the rez subdirectory)
 
-    # C++11/gcc4.8 compat, Python 2.7, Boost 1.55 sp namespaced
-    make nuke
-    make spi OIIO_SPIREZ=1 BOOSTSPSUFFIX=sp OPENEXR_VERSION=2.2.0
-
-    # C++11/gcc6.3 compat, Python 3.7, Boost 1.66
-    make nuke
-    make spi OIIO_SPIREZ=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3 OPENEXR_VERSION=2.2.0 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2
-
-    # C++11/gcc6.3 compat, Python 2.7, Boost 1.70 (Maya 2020 & Houdini 18)
-    make nuke
-    make spi OIIO_SPIREZ=1 BOOSTVERS=1.70 PYTHON_VERSION=2.7 SPI_COMPILER_PLATFORM=gcc-6.3 OPENEXR_VERSION=2.4.0 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2
-
-    # VFXPlatform 2020-ish: C++14/gcc6.3 compat, Python 3.7, Boost 1.70,
-    # OpenEXR 2.4
-    make nuke
-    make spi OIIO_SPIREZ=1 BOOSTVERS=1.70 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2 OPENEXR_VERSION=2.4.0
-
-    # C++11/gcc4.8 compat, Python 3.6, Boost 1.55 (for Jon Ware)
-    make nuke
-    make spi OIIO_SPIREZ=1 PYTHON_VERSION=3.6
-
-You can do any of these on your local machine.
-
-
-Rez/general release (do for each variant)
------------------------------------------
-
-This must be done from compile40 or compile42 (for correct write permissions
-on certain shared directories), even if you did the build itself locally.
-
-For any of the variants that you built above:
-
-    ( cd dist/rhel7 ; rez release --skip-repo-errors )
-
-That command will release the dist to the studio.
+That command will release the dists to the studio.
 
 
 Appwrapper binary releases
@@ -59,9 +23,9 @@ Appwrapper binary releases
 
 This step is for the ONE general/rez variant that we believe is the
 canonical source of command line oiiotool and maketx. After building and
-releasing as above,
+releasing all rez distros as above,
 
-    cp dist/rhel7/OpenImageIO_*.xml /shots/spi/home/lib/app_cfg/OpenImageIO
+    cp build/release/gcc-6.3/python-2.7/boost-1.70/OpenImageIO_*.xml /shots/spi/home/lib/app_cfg/OpenImageIO
 
 That will make appcfg aware of the release.
 
