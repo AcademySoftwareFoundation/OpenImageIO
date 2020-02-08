@@ -98,7 +98,8 @@ macro (checked_find_package pkgname)
             message (STATUS "${ColorGreen}Found ${pkgname} ${${pkgname}_VERSION} ${ColorReset}")
             if (VERBOSE)
                 set (_vars_to_print ${pkgname}_INCLUDES ${pkgname_upper}_INCLUDES
-                                    ${pkgname_upper}_INCLUDE_DIRS
+                                    ${pkgname}_INCLUDE_DIR ${pkgname_upper}_INCLUDE_DIR
+                                    ${pkgname}_INCLUDE_DIRS ${pkgname_upper}_INCLUDE_DIRS
                                     ${pkgname}_LIBRARIES ${pkgname_upper}_LIBRARIES
                                     ${_pkg_PRINT})
                 list (REMOVE_DUPLICATES _vars_to_print)
