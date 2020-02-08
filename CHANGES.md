@@ -5,10 +5,21 @@ New minimum dependencies:
 
 New file format support:
 
-Public API changes:
-* ImageInput and ImageOutput now have direct API level support for IOProxy
-  in their `open()` and `create()` calls, as well as a new `set_ioproxy()`
-  method in these classes.
+New major features and public API changes:
+* New IOProxy support: ImageInput and ImageOutput now have direct API level
+  support for IOProxy in their `open()` and `create()` calls, as well as a
+  new `set_ioproxy()` method in these classes. ImageBuf similarly can specify
+  a proxy upon construction for reading, and for writing via a
+  `set_write_ioproxy()` method that applies to subsequent `write` call.
+  #2434 (2.2.0), #2477 (2.2.1).
+* Python bindings have been added for missing ParamValue constructors. We
+  previously exposed the PV constructors from just a plain int, float, or
+  string, but there wasn't an easy way to construct from arbitrary data like
+  there is in C++. Now there is. #2417 (2.2.0)
+* Python bindings for `ParamValueList.attribute()`, when being passed
+  attributes containing multiple values, now can have those values passed
+  as Python lists and numpy arrays (previously they had to be tuples).
+  #2437 (2.1.11/2.2.0)
 * ImageBuf:
     - Easier direct use of IOProxy with ImageBuf: constructor and reset()
       for file-reading ImageBuf now take an optional `IProxy*` parameter,
@@ -21,14 +32,8 @@ Public API changes:
 * ImageBufAlgo:
     - New `repremult()` is like premult, but will not premult when alpha is
       zero. #2447 (2.2.0)
-* Python bindings have been added for missing ParamValue constructors. We
-  previously exposed the PV constructors from just a plain int, float, or
-  string, but there wasn't an easy way to construct from arbitrary data like
-  there is in C++. Now there is. #2417 (2.2.0)
-* Python bindings for `ParamValueList.attribute()`, when being passed
-  attributes containing multiple values, now can have those values passed
-  as Python lists and numpy arrays (previously they had to be tuples).
-  #2437 (2.1.11/2.2.0)
+    - New `max()` and `min()` functions take the pixel-by-pixel maximum
+      or minimum of two images. #2470 (2.2.1)
 
 Performance improvements:
 * Greatly improved TextureSystem/ImageCache performance in highly threaded
@@ -57,16 +62,32 @@ Fixes and feature enhancements:
       spec passed has enough information to know the size of the buffer
       (i.e., it will be recognized as an error if the width, height, depth,
       channels, or data type have not been set validly). #2460
+    - Fix: `ImageBuf::getchannel()` did not honor its `wrap` parameter.
+      #2465 (2.2.1/2.1.12)
+    - Fix: `IBA::reorient()` and `IBA::computePixelHashSHA1()` did not
+      honor their `nthreads` parameter. #2465 (2.2.1/2.1.12)
+    - `resample()` has been modified to more closely match `resize` by using
+      clamp wrap mode to avoid a black fade at the outer edge of the
+      resampled area. #2481
 * ImageCache / TextureSystem / maketx:
     - New IC/TS attribute "trust_file_extensions", if nonzero, is a promise
       that all files can be counted on for their formats to match their
       extensions, which eliminates some redundant opens and format checks
       in the IC/TS and can reduce needless network/filesystem work. Use
       with caution! #2421 (2.2.0)
+    - texture3d() fixed some cases where derivative results were not
+      correctly copied to the outputs. #2475 (2.2.1)
 * Exif read: guard better against out of range offests, fixes crashes when
   reading jpeg files with malformed exif blocks. #2429 (2.1.10/2.2.0)
+* Fix: `ImageSpec::erase_attribute()` did not honor its `searchtype`
+  parameter. #2465 (2.2.1/2.1.12)
+* Fix: Some ColorProcessor::apply() methods were not using their `chanstride`
+  parameters correctly. #2475 (2.1.12)
 * OpenEXR:
     - Add support for reading and writing float vector metadata. #2459
+* Raw images:
+    - Support for new Canon .cr3 file, but only if you build against
+      libraw >= 0.20.0 developer snapshot. #2484 (2.2.1)
 
 Developer goodies / internals:
 * platform.h:
@@ -75,8 +96,20 @@ Developer goodies / internals:
     - `OIIO_ALIGN` definition is more robust, will fall back to C++11
       alignas when not a compiler with special declspecs (instead of being
       a compile time error!). #2412 (2.2.0)
+    - A variety of `OIIO_PRAGMA_...` macros have been added to help deal
+      with compiler-specific pragmas. #2467 (2.2.1)
 * simd.h:
-    - vfloat3 has added a `normalize()`, `length()`, and `length2()` methods, to more closely match the syntax of Imath::Vec3f. #2437 (2.1.11/2.2.0)
+    - vfloat3 has added a `normalize()`, `length()`, and `length2()`
+      methods, to more closely match the syntax of Imath::Vec3f. #2437
+      (2.1.11/2.2.0)
+    - fix errors in vbool == and !=. #2463 (2.1.11/2.2.1)
+* strutil.h / ustring.h:
+    - New `Strutil::concat()` and `ustring::concat()` concatenate two
+      strings, more efficiently than `sprintf("%s%s")` by avoiding any
+      unnecessary copies or temporary heap allocations. #2478 (2.2.1)
+    - `Strutil::repeat()` has been internally rewritten to more efficient by
+      avoiding any unnecessary copies or temporary heap allocations. #2478
+      (2.2.1)
 * More reshuffling of printf-style vs fmt-style string formatting. #2424
   (2.2.0)
 * Internals: changed a lot of assertions to only happen in debug build mode,
@@ -91,26 +124,45 @@ Build/test system improvements and platform ports:
   adequately new version. #2453 (2.1.10.1/2.2.0)
 * Un-embed fmt headers. If they are not found on the system at build time,
   they will be auto-downloaded. #2439 (2.2.0)
+* Progress on support for using Conan for dependency installation. This is
+  experimental, it can't yet build all dependencies. Work in progress.
+  #2461 (2.2.1)
+* The version of gif.h that we embed for GIF output has been updated.
+  #2466 (2.2.1)
+* New non-default CMake build flag `EXTRA_WARNINGS`, when turned on, will
+  cause gcc and clang to compile with -Wextra. This identified many new
+  warnings (mostly about unused parameters) and fixes were applied in #2464,
+  #2465, #2471, #2475, #2476. (2.2.1)
+* The `farmhash` functions have been cleaned up to be more careful that none
+  of their internal symbols are left visible to the linker. #2473 (2.2.1)
+* Support for building against libraw 0.20. #2484 (2.2.1)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
+* The `LICENSE-THIRD-PARTY.md` file has been reorganized to be clearer,
+  grouping parts with identical licenses. #2469
+* Many fixes to the new readthedocs documentation, especially fixes to
+  section cross-references and links.
 
 
-Release 2.1.11 (1 Feb? 2020) -- compared to 2.1.10
---------------------------------------------------
+
+Release 2.1.11 (1 Feb 2020) -- compared to 2.1.10
+-------------------------------------------------
 * Python bindings for `ParamValueList.attribute()`, when being passed
   attributes containing multiple values, now can have those values passed
   as Python lists and numpy arrays (previously they had to be tuples).
   #2437
+* OpenEXR support is extended to handle float vector metadata. #2459
 * Developer goody: simd.h vfloat3 has added a `normalize()`, `length()`,
   and `length2()` methods, to more closely match the syntax of Imath::Vec3f.
   #2437
 * Internals: changed a lot of assertions to only happen in debug build mode,
   and changed a lot that happen in release builds to only print the error
   but not force a termination. #2435
-* Add "missing" `ImagBuf::reset()` varieties so that every IB constructor
-  has a corresponding `reset()` with the same parameters and vice versa.
-  #2460
+* simd.h fix errors in vbool == and !=. #2463
+* Make sure the embedded 'farmhash' implementation is completely hidden
+  behind proper namespaces. #2473
+* Many docs fixes.
 
 Release 2.1.10.1 (10 Jan 2019)
 ------------------------------

@@ -29,14 +29,14 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * Compilers: gcc 4.8.2 - 9.1, clang 3.3 - 9.0, MSVS 2015 - 2019,
    icc version 13 or higher
  * Boost >= 1.53 (tested up through 1.71)
- * CMake >= 3.12 (tested up through 3.15)
+ * CMake >= 3.12 (tested up through 3.16)
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.4)
  * libTIFF >= 3.9 (recommended: 4.0+)
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt >= 5.6
+     * Qt >= 5.6 (tested through 5.14)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.6, 3.7)
@@ -47,7 +47,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * libRaw >= 0.15 (tested 0.15 - 0.19; libRaw >= 0.18 is necessary for
        ACES support and much better recognition of camera metadata)
  * If you want support for a wide variety of video formats:
-     * ffmpeg >= 2.6 (tested through 4.1)
+     * ffmpeg >= 2.6 (tested through 4.2)
  * If you want support for jpeg 2000 images:
      * OpenJpeg >= 1.5 (tested through 2.3; version 2.0+ is strongly recommended)
  * If you want support for Field3D files:
@@ -66,6 +66,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 * If you want support for DDS files:
      * libsquish >= 1.13
      * But... if not found on the system, an embedded version will be used.
+* If you want support for DICOM medical image files:
+     * DCMTK >= 3.6.1
+
 
 
 Dependency control and disabling components
