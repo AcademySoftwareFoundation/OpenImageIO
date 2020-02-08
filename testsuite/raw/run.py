@@ -25,6 +25,9 @@ if (os.getenv('CIRCLECI') == 'true' or os.getenv('GITHUB_ACTIONS') == 'true' or
     failthresh = 0.024
     files.remove ("RAW_PANASONIC_G1.RW2")
 
+# Fairly high hard fail, since libraw seems to diddle with its debayering
+# from version to version, it's hard to make a single reference image.
+hardfail = 0.017
 
 # For each test image, read it and print all metadata, resize it (to make
 # the ref images small) and compared to the reference.
