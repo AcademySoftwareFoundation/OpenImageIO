@@ -18,6 +18,21 @@
 #include <OpenEXR/ImfOutputFile.h>
 #include <OpenEXR/ImfTiledOutputFile.h>
 
+#ifdef OPENEXR_VERSION_MAJOR
+#    define OPENEXR_CODED_VERSION                                              \
+        (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100           \
+         + OPENEXR_VERSION_PATCH)
+#else
+#    define OPENEXR_CODED_VERSION 20000
+#endif
+
+#if OPENEXR_CODED_VERSION >= 20400                                             \
+    || __has_include(<OpenEXR/ImfFloatVectorAttribute.h>)
+#    define OPENEXR_HAS_FLOATVECTOR 1
+#else
+#    define OPENEXR_HAS_FLOATVECTOR 0
+#endif
+
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
 OIIO_PRAGMA_VISIBILITY_PUSH
@@ -30,7 +45,9 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfCompressionAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
-#include <OpenEXR/ImfFloatVectorAttribute.h>
+#if OPENEXR_HAS_FLOATVECTOR
+#    include <OpenEXR/ImfFloatVectorAttribute.h>
+#endif
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
 #include <OpenEXR/ImfMatrixAttribute.h>
@@ -1212,10 +1229,7 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 header.insert(xname.c_str(), Imf::StringVectorAttribute(v));
                 return true;
             }
-#if defined(OPENEXR_VERSION_MAJOR)
-#    if (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100           \
-         + OPENEXR_VERSION_PATCH)                                              \
-        >= 20200
+#if OPENEXR_HAS_FLOATVECTOR
             // float Vector -- only supported in OpenEXR >= 2.2
             if (type.basetype == TypeDesc::FLOAT) {
                 Imf::FloatVector v((const float*)data,
@@ -1223,9 +1237,8 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
                 header.insert(xname.c_str(), Imf::FloatVectorAttribute(v));
                 return true;
             }
-        }
-#    endif
 #endif
+        }
     } catch (const std::exception& e) {
         OIIO::debugf("Caught OpenEXR exception: %s\n", e.what());
     } catch (...) {  // catch-all for edge cases or compiler bugs

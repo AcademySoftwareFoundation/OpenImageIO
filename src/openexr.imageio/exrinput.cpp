@@ -28,6 +28,21 @@ using boost::math::gcd;
 #include <OpenEXR/ImfTestFile.h>
 #include <OpenEXR/ImfTiledInputFile.h>
 
+#ifdef OPENEXR_VERSION_MAJOR
+#    define OPENEXR_CODED_VERSION                                              \
+        (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100           \
+         + OPENEXR_VERSION_PATCH)
+#else
+#    define OPENEXR_CODED_VERSION 20000
+#endif
+
+#if OPENEXR_CODED_VERSION >= 20400                                             \
+    || __has_include(<OpenEXR/ImfFloatVectorAttribute.h>)
+#    define OPENEXR_HAS_FLOATVECTOR 1
+#else
+#    define OPENEXR_HAS_FLOATVECTOR 0
+#endif
+
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
 OIIO_PRAGMA_VISIBILITY_PUSH
@@ -44,7 +59,9 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfDoubleAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
-#include <OpenEXR/ImfFloatVectorAttribute.h>
+#if OPENEXR_HAS_FLOATVECTOR
+#    include <OpenEXR/ImfFloatVectorAttribute.h>
+#endif
 #include <OpenEXR/ImfInputPart.h>
 #include <OpenEXR/ImfIntAttribute.h>
 #include <OpenEXR/ImfKeyCodeAttribute.h>
@@ -629,7 +646,9 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         const Imf::KeyCodeAttribute* kcattr;
         const Imf::ChromaticitiesAttribute* crattr;
         const Imf::RationalAttribute* rattr;
+#if OPENEXR_HAS_FLOATVECTOR
         const Imf::FloatVectorAttribute* fvattr;
+#endif
         const Imf::StringVectorAttribute* svattr;
         const Imf::DoubleAttribute* dattr;
         const Imf::V2dAttribute* v2dattr;
@@ -692,10 +711,8 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 ustrvec[i] = strvec[i];
             TypeDesc sv(TypeDesc::STRING, ustrvec.size());
             spec.attribute(oname, sv, &ustrvec[0]);
-#if defined(OPENEXR_VERSION_MAJOR)
-#    if (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100           \
-         + OPENEXR_VERSION_PATCH)                                              \
-        >= 20200
+#if OPENEXR_HAS_FLOATVECTOR
+
         } else if (type == "floatvector"
                    && (fvattr
                        = header->findTypedAttribute<Imf::FloatVectorAttribute>(
@@ -703,7 +720,6 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
             std::vector<float> fvec = fvattr->value();
             TypeDesc fv(TypeDesc::FLOAT, fvec.size());
             spec.attribute(oname, fv, &fvec[0]);
-#    endif
 #endif
         } else if (type == "double"
                    && (dattr = header->findTypedAttribute<Imf::DoubleAttribute>(
