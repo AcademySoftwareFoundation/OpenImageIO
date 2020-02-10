@@ -91,15 +91,16 @@ if [[ "${REZ_BOOST_VERSION}" == "1.55" ]] ; then
         -DBoost_VERSION=${REZ_BOOST_VERSION} \
         -DBoost_INCLUDE_DIRS=/usr/include/boost_${REZ_BOOST_VERSION} \
         -DBoost_LIBRARY_DIRS=/usr/lib64/boost_${REZ_BOOST_VERSION} \
-        -DBoost_LIBRARIES:STRING=\"/usr/lib64/boost_${REZ_BOOST_VERSION}/libboost_filesystem-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libboost_regex-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libboost_system-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libboost_thread-gcc48-mt-1_55.so\" \
+        -DBoost_LIBRARIES:STRING='/usr/lib64/boost_${REZ_BOOST_VERSION}/libboost_filesystem-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libboost_regex-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libboost_system-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libboost_thread-gcc48-mt-1_55.so' \
         "
 elif [[ "${REZ_BOOST_VERSION}" == "1.55sp" ]] ; then
+    # This may be unused. Excise soon?
     CMAKE_ARGS+=" \
         -DBOOST_CUSTOM=1 \
         -DBoost_VERSION=${REZ_BOOST_VERSION} \
         -DBoost_INCLUDE_DIRS=/usr/include/boost_${REZ_BOOST_VERSION} \
         -DBoost_LIBRARY_DIRS=/usr/lib64/boost_${REZ_BOOST_VERSION} \
-        -DBoost_LIBRARIES:STRING=\"/usr/lib64/boost_${REZ_BOOST_VERSION}/libspboost_filesystem-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libspboost_regex-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libspboost_system-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libspboost_thread-gcc48-mt-1_55.so\" \
+        -DBoost_LIBRARIES:STRING='/usr/lib64/boost_${REZ_BOOST_VERSION}/libspboost_filesystem-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libspboost_regex-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libspboost_system-gcc48-mt-1_55.so;/usr/lib64/boost_${REZ_BOOST_VERSION}/libspboost_thread-gcc48-mt-1_55.so' \
         "
 else
     CMAKE_ARGS+=" \
@@ -120,23 +121,19 @@ case "$REZ_BUILD_VARIANT_INDEX" in
     # 0: gcc 6.4/C++14 compat, python 2.7, boost 1.70
     # This is the variant needed by Maya 2020 & Houdini 18 & Roman
     OPENEXR_VERSION=2.4.0
-    # exit
     ;;
 1)
     # 1: gcc 6.4/C++14 compat, python 3.7, boost 1.70
     # VFX Platform 2020-ish
     OPENEXR_VERSION=2.4.0
-    # exit
     ;;
 2)
     # 2: Legacy SPI: gcc 4.8, boost 1.55, python 2.7
     OPENEXR_VERSION=2.2.0
-    exit
     ;;
 3)
     # 3: Special for Jon Ware/Substance: legacy SPI, but python 3.6,
     OPENEXR_VERSION=2.2.0
-    exit
     ;;
 *)
     echo "Bad REZ_BUILD_VARIANT_INDEX = ${REZ_BUILD_VARIANT_INDEX}"
