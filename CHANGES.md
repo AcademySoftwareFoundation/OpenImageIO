@@ -1,3 +1,11 @@
+Release 2.1.11.1 (11 Feb 2020)
+------------------------------
+* Fix build break against OpenEXR 2.2 & 2.3, when OpenEXR was built with
+  'autotools' and because of a bug in their build systems, neglected to
+  install a certain OpenEXR header. It was fine if you were building
+  against an OpenEXR that was built using CMake, which included all the
+  headers. #2486
+
 Release 2.1.11 (1 Feb 2020) -- compared to 2.1.10
 -------------------------------------------------
 * Python bindings for `ParamValueList.attribute()`, when being passed
