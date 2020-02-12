@@ -1,3 +1,9 @@
+Release 2.1.11.2 (12 Feb 2020)
+------------------------------
+* Another fix to the OpenEXR 2.2/2.3 problem, I didn't realize that the
+  build was still breaking and needed an OIIO header included earlier to
+  ensure that `__has_include` is defined before it is used.
+
 Release 2.1.11.1 (11 Feb 2020)
 ------------------------------
 * Fix build break against OpenEXR 2.2 & 2.3, when OpenEXR was built with

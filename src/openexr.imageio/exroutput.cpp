@@ -11,6 +11,8 @@
 #include <map>
 #include <memory>
 
+#include <OpenImageIO/platform.h>
+
 #include <OpenEXR/ImfChannelList.h>
 #include <OpenEXR/ImfEnvmap.h>
 #include <OpenEXR/ImfOutputFile.h>
