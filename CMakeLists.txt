@@ -12,6 +12,7 @@ string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
 set (PROJECT_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
+set (${PROJECT_NAME}_SUPPORTED_RELEASE 0)  # Change to 1 after release branch
 
 # If the user wants to use Conan to build dependencies, they will have done
 # this prior to the cmake config:
@@ -61,8 +62,6 @@ endif ()
 option (VERBOSE "Print lots of messages while compiling" OFF)
 option (${PROJ_NAME}_BUILD_TOOLS "Build the command-line tools" ON)
 option (${PROJ_NAME}_BUILD_TESTS "Build the unit tests" ON)
-set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-     CACHE STRING "Set the SO version in the SO name of the output library")
 set (OIIO_LIBNAME_SUFFIX "" CACHE STRING
      "Optional name appended to ${PROJECT_NAME} libraries that are built")
 option (BUILD_OIIOUTIL_ONLY "If ON, will build *only* libOpenImageIO_Util" OFF)

@@ -28,9 +28,6 @@ if (NOT BUILD_SHARED_LIBS)
     target_compile_definitions (OpenImageIO_Util PUBLIC OIIO_STATIC_DEFINE=1)
 endif ()
 
-if (VERBOSE)
-    message(STATUS "Setting SOVERSION to: ${SOVERSION}")
-endif ()
 set_target_properties(OpenImageIO_Util
                       PROPERTIES
                          VERSION     ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
