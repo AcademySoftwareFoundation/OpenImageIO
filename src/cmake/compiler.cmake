@@ -481,6 +481,25 @@ set (EXTRA_DSO_LINK_ARGS "" CACHE STRING "Extra command line definitions when bu
 
 
 ###########################################################################
+# Set the versioning for shared libraries.
+#
+if (${PROJECT_NAME}_SUPPORTED_RELEASE)
+    # Supported releases guarantee ABI back-compatibility within the release
+    # family, so SO versioning is major.minor.
+    set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+         CACHE STRING "Set the SO version for dynamic libraries")
+else ()
+    # Development master makes no ABI stability guarantee, so we make the
+    # SO naming capture down to the major.minor.patch level.
+    set (SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
+         CACHE STRING "Set the SO version for dynamic libraries")
+endif ()
+if (VERBOSE)
+    message(STATUS "Setting SOVERSION to: ${SOVERSION}")
+endif ()
+
+
+###########################################################################
 # BUILD_SHARED_LIBS, if turned off, will disable building of .so/.dll
 # dynamic libraries and instead only build static libraries.
 #

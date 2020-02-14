@@ -183,9 +183,6 @@ if (MSVC)
                   APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif ()
 
-if (VERBOSE)
-    message(STATUS "Setting SOVERSION to: ${SOVERSION}")
-endif ()
 set_target_properties(OpenImageIO
                       PROPERTIES
                          VERSION     ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
