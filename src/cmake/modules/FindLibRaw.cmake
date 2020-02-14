@@ -16,7 +16,7 @@
 
 find_package(PkgConfig)
 
-if(PKG_CONFIG_FOUND AND NOT LIBRAW_PATH)
+if(PKG_CONFIG_FOUND AND NOT LibRaw_ROOT AND NOT $ENV{LibRaw_ROOT})
    PKG_CHECK_MODULES(PC_LIBRAW QUIET libraw)
    SET(LibRaw_DEFINITIONS ${PC_LIBRAW_CFLAGS_OTHER})
 
@@ -27,16 +27,13 @@ endif()
 find_path(LibRaw_INCLUDE_DIR libraw/libraw.h
           HINTS
           ${LIBRAW_INCLUDEDIR_HINT}
-          ${LIBRAW_PATH}
           ${PC_LIBRAW_INCLUDEDIR}
           ${PC_LibRaw_INCLUDE_DIRS}
           PATH_SUFFIXES libraw
          )
-
 find_library(LibRaw_LIBRARIES NAMES raw libraw
              HINTS
              ${LIBRAW_LIBDIR_HINT}
-             ${LIBRAW_PATH}
              ${PC_LIBRAW_LIBDIR}
              ${PC_LIBRAW_LIBRARY_DIRS}
             )
@@ -44,7 +41,6 @@ find_library(LibRaw_LIBRARIES NAMES raw libraw
 find_library(LibRaw_r_LIBRARIES NAMES raw_r
              HINTS
              ${LIBRAW_LIBDIR_HINT}
-             ${LIBRAW_PATH}
              ${PC_LIBRAW_R_LIBDIR}
              ${PC_LIBRAW_R_LIBRARY_DIRS}
             )

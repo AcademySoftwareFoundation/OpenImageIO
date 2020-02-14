@@ -4,7 +4,7 @@
 
 name = 'OpenImageIO'
 
-version = '2.2.1.0'
+version = '2.2.1.1'
 # NOTE: must keep this in sync with the master CMakeLists.txt
 # TODO: can we auto-substitute?
 # @PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@.@PROJECT_VERSION_PATCH@.@PROJECT_VERSION_TWEAK@'
@@ -27,7 +27,13 @@ build_command = 'bash {root}/build.sh'
 requires = [
     #  'OpenEXR-2.4.0'
     # , 'OpenColorIO-1.1'
-    'LibRaw-0.20.0-dev'
+]
+
+build_requires = [
+    'LibRaw-0.20.0-dev1',
+    'Field3D-0.413',
+    'tbb',
+    'openvdb-0.6020001',
 ]
 
 variants = [
@@ -39,7 +45,7 @@ variants = [
     # VFX Platform 2020-ish
     , [ 'gcc-6.3', 'python-3.7', 'boost-1.70' ]  # OpenEXR-2.4
 
-    # 2: Legacy SPI
+    # 2: Legacy SPI / Maya 2019
     , [ 'gcc-4.8', 'python-2.7', 'boost-1.55' ]  # OpenEXR-2.2
 
     # 3: Special for Jon Ware/Substance: legacy SPI, but python 3.6,

@@ -248,8 +248,6 @@ ifeq (${SP_OS}, rhel7)
     OpenVDB_ROOT ?= ${SPCOMP2_ROOT}/openvdb/${SPCOMP2_FULLBOOST_SUFFIX}/${OPENVDB_SPCOMP2_VERSION}
     TBB_ROOT ?= /net/apps/rhel7/intel/tbb
     TBB_LIBRARY ?= /net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7
-    LIBRAW_LIBDIR ?= /usr/lib64/libraw-0.18.11
-    LIBRAW_INCLUDEDIR ?= /usr/include/libraw-0.18.11
     Libheif_ROOT=/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2
     MY_CMAKE_FLAGS += \
         -DOpenColorIO_ROOT=${OpenColorIO_ROOT} \
@@ -260,13 +258,15 @@ ifeq (${SP_OS}, rhel7)
         -DHDF5_CUSTOM=1 \
         -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
         -DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION} \
-        -DLIBRAW_INCLUDEDIR_HINT=${LIBRAW_INCLUDEDIR} \
-        -DLIBRAW_LIBDIR_HINT=${LIBRAW_LIBDIR} \
         -DLibheif_ROOT=${Libheif_ROOT} \
         -DFFMPEG_INCLUDE_DIR=/usr/include/ffmpegroot/ffmpeg34 \
         -DFFMPEG_LIBRARIES="/usr/lib64/ffmpegroot/ffmpeg345/libavcodec.so;/usr/lib64/ffmpegroot/ffmpeg345/libavformat.so;/usr/lib64/ffmpegroot/ffmpeg345/libavutil.so;/usr/lib64/ffmpegroot/ffmpeg345/libswscale.so;" \
         -DUSE_OPENCV=0 \
         -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/hidesymbols.map"
+
+    LibRaw_ROOT ?= /shots/spi/home/software/packages/LibRaw/0.20.0-dev1/${SPI_COMPILER_PLATFORM}
+    REZ_LIBRAW_ROOT ?= ${LibRaw_ROOT}
+    MY_CMAKE_FLAGS += -DLibRaw_ROOT=${REZ_LIBRAW_ROOT}
 
     # Use libtiff I built myself, static, and try to hide its symbols.
     MY_CMAKE_FLAGS += \

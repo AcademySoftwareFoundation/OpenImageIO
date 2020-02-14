@@ -6,11 +6,15 @@ set -e
 
 #env
 #echo " "
-env | grep -i rez | sort
+#env | grep -i rez | sort
 
 
 GCCVER=${REZ_GCC_MAJOR_VERSION}.${REZ_GCC_MINOR_VERSION}
 GCCXY=gcc${REZ_GCC_MAJOR_VERSION}${REZ_GCC_MINOR_VERSION}
+GCCXYSP=${GCCXY}
+if [[ "${GCCXY}" == "gcc48" ]] ; then
+    GCCXYSP=${GCCXY}m64
+fi
 BOOSTXY=boost${REZ_BOOST_MAJOR_VERSION}${REZ_BOOST_MINOR_VERSION}
 
 Boost_ROOT=
@@ -33,11 +37,10 @@ CMAKE_ARGS=" \
     -DCMAKE_C_FLAGS=--gcc-toolchain=/usr \
     -DCMAKE_CXX_FLAGS=--gcc-toolchain=/usr \
     -DTOOLCHAIN_FLAGS=--gcc-toolchain=/usr \
+    -DPYTHON_VERSION=${REZ_PYTHON_VERSION} \
     -DOpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2 \
-    -DField3D_ROOT=/shots/spi/home/lib/SpComp2/Field3D/rhel7-${GCCXY}-${BOOSTXY}/v412 \
-    -DOpenVDB_ROOT=/shots/spi/home/lib/SpComp2/openvdb/rhel7-${GCCXY}-${BOOSTXY}/v6020001 \
-    -DTBB_ROOT=/net/apps/rhel7/intel/tbb \
-    -DTBB_LIBRARY=/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7 \
+    -DxTBB_ROOT=/net/apps/rhel7/intel/tbb \
+    -DxTBB_LIBRARY=/net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7 \
     -DHDF5_CUSTOM=1 \
     -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
     -DNuke_ROOT=/net/apps/rhel7/foundry/nuke11.2v3 \
@@ -49,14 +52,19 @@ CMAKE_ARGS=" \
     -DTIFF_INCLUDE_DIR:STRING=/usr/include \
     -DTIFF_LIBRARIES:STRING=/net/soft_scratch/users/lg/tiff-4.0.3/rhel7/lib/libtiff.a \
     -DEXTRA_DSO_LINK_ARGS:STRING='-Wl,--exclude-libs,libtiff.a' \
-    -DLibRaw_ROOT=${REZ_LIBRAW_ROOT} \
-    -DLibRaw_INCLUDE_DIR=${REZ_LIBRAW_ROOT}/include \
-    -DLIBRAW_LIBDIR_HINT=${REZ_LIBRAW_ROOT}/lib \
-    -DLibRaw_r_LIBRARIES=${REZ_LIBRAW_ROOT}/lib/libraw_r.so \
     -DCMAKE_INSTALL_RPATH=${REZ_BUILD_INSTALL_PATH}/lib \
     -DOIIO_REZ_INSTALL_PATH=${REZ_BUILD_INSTALL_PATH} \
     -DCMAKE_BUILD_WITH_INSTALL_RPATH=1 \
+    -DTBB_ROOT=${REZ_TBB_ROOT} \
+    -DOpenVDB_ROOT=/shots/spi/home/lib/SpComp2/openvdb/rhel7-${GCCXYSP}-${BOOSTXY}/v6020001 \
+    -DField3D_ROOT=/shots/spi/home/lib/SpComp2/Field3D/rhel7-${GCCXYSP}-${BOOSTXY}/v413 \
     "
+
+# Unneeded:
+#CMAKE_ARGS+="-DOpenVDB_ROOT=/shots/spi/home/lib/SpComp2/openvdb/rhel7-${GCCXY}-${BOOSTXY}/v6020001 "
+#    -DField3D_ROOT=/shots/spi/home/lib/SpComp2/Field3D/rhel7-${GCCXY}-${BOOSTXY}/v412 
+
+
 
 #BOGUS+=\
 #    -g3 \
@@ -65,24 +73,23 @@ CMAKE_ARGS=" \
 #    -DSP_REZ_OS=CentOS-7 \
 #    -DSPI_COMPILER_PLATFORM=gcc-6.3 \
 #    -DPYTHONINTERP_FOUND=1 \
-#    -DPYTHON_VERSION_STRING=3.7.3 \
-#    -DPYTHON_VERSION_MAJOR=3 \
-#    -DPYTHON_VERSION_MINOR=7 \
-#    -DPYTHON_VERSION_PATCH=3 \
-#    -DPython_ADDITIONAL_VERSIONS="3.7" \
-#    -DPYTHON_INCLUDE_DIR:STRING=/usr/include/python3.7m \
-#    -DPYTHON_LIBRARY:STRING=/usr/lib64/libpython3.7m.so \
 #    -DOpenEXR_ROOT=/shots/spi/home/software/packages/OpenEXR/2.2.0/gcc-${REZ_GCC_VERSION}/python-3.7 \
-#    -DLIBRAW_INCLUDEDIR_HINT=/usr/include/libraw-0.18.11 \
-#    -DLIBRAW_LIBDIR_HINT=/usr/lib64/libraw-0.18.11 \
 #    -DOIIO_REZ_INSTALL_PATH=/shots/spi/home/software/packages/OpenImageIO/2.2.1.0/gcc-6.3/python-3.7/boost-1.66 \
 #    -DCMAKE_INSTALL_RPATH=/shots/spi/home/software/packages/OpenImageIO/2.2.1.0/gcc-6.3/python-3.7/boost-1.66/lib \
 #    -DCMAKE_INSTALL_LIBDIR="${REZ_BUILD_INSTALL_PATH}/lib" \
 
 
 
-#if [[ "${REZ_GCC_VERSION}" == "6.3" ]] ; then
-#fi
+if [[ "${GCCVER}" == "4.8" ]] ; then
+#    CMAKE_ARGS+="-DField3D_ROOT=/shots/spi/home/lib/SpComp2/Field3D/rhel7-${GCCXYSP}-${BOOSTXY}/v413 "
+#    CMAKE_ARGS+="-DOpenVDB_ROOT=/shots/spi/home/lib/SpComp2/openvdb/rhel7-${GCCXYSP}-${BOOSTXY}/v6020001 "
+    CMAKE_ARGS+="-DLIBRAW_INCLUDEDIR_HINT=/usr/include/libraw-0.18.11 "
+    CMAKE_ARGS+="-DLIBRAW_LIBDIR_HINT=/usr/lib64/libraw-0.18.11 "
+fi
+if [[ "${GCCVER}" == "6.3" ]] ; then
+    CMAKE_ARGS+="-DLibRaw_ROOT=${REZ_LIBRAW_ROOT} "
+    #/shots/spi/home/software/packages/LibRaw/0.20.0-dev1/gcc-6.3 "
+fi
 
 
 if [[ "${REZ_BOOST_VERSION}" == "1.55" ]] ; then
