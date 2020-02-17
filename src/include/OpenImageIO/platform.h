@@ -4,9 +4,15 @@
 
 
 /////////////////////////////////////////////////////////////////////////
-/// @file  platform.h
-///
-/// @brief Platform-related macros.
+// \file
+// platform.h is where we put all the platform-specific macros.
+// Things like:
+//
+//   * Detecting which compiler is being used.
+//   * Detecting which C++ standard is being used and what features are
+//     available.
+//   * Various helpers that need to be defined differently per compiler,
+//     language version, OS, etc.
 /////////////////////////////////////////////////////////////////////////
 
 // clang-format off
