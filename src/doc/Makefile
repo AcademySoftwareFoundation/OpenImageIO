@@ -3,10 +3,10 @@
 include ../make/detectplatform.mk
 BUILDDIR := ../../build/${platform}
 ifeq (${OIIOTOOL},)
-  ifneq (${shell ls ${BUILDDIR}/src/oiiotool/oiiotool},)
-    OIIOTOOL := "${BUILDDIR}/src/oiiotool/oiiotool"
+  ifneq (${shell ls ${BUILDDIR}/bin/oiiotool},)
+    OIIOTOOL := "${BUILDDIR}/bin/oiiotool"
   else
-    OIIOTOOL := "../../build/src/oiiotool/oiiotool"
+    OIIOTOOL := "../../build/bin/oiiotool"
   endif
 endif
 
