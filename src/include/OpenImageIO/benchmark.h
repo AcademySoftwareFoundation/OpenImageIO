@@ -51,6 +51,15 @@ OIIO_FORCEINLINE void clobber (const void* p) { clobber ((void*)p); }
 template<typename T>
 OIIO_FORCEINLINE T& clobber (T& p) { clobber(&p); return p; }
 
+// Multi-argument clobber, added in OIIO 2.2.2
+template<typename T, typename ...Ts>
+OIIO_FORCEINLINE void clobber (T& p, Ts&... ps)
+{
+    clobber(&p);
+    if (sizeof...(Ts) > 0)
+        clobber(ps...);
+}
+
 
 
 
