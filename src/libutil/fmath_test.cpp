@@ -165,6 +165,21 @@ test_math_functions()
     OIIO_CHECK_EQUAL(sign(3.1f), 1.0f);
     OIIO_CHECK_EQUAL(sign(-3.1f), -1.0f);
     OIIO_CHECK_EQUAL(sign(0.0f), 0.0f);
+    {
+        float a = 2.5f, b = 1.5f, c = 8.5f;
+        OIIO_CHECK_EQUAL(clamp(2.5f, 1.5f, 8.5f), 2.5f);
+        OIIO_CHECK_EQUAL(clamp(1.5f, 2.5f, 8.5f), 2.5f);
+        OIIO_CHECK_EQUAL(clamp(8.5f, 1.5f, 2.5f), 2.5f);
+        clobber(a);
+        clobber(b);
+        clobber(c);
+        bench("clamp(f,f,f) middle",
+              [&]() { return DoNotOptimize(clamp(a, b, c)); });
+        bench("clamp(f,f,f) low",
+              [&]() { return DoNotOptimize(clamp(b, a, c)); });
+        bench("clamp(f,f,f) high",
+              [&]() { return DoNotOptimize(clamp(c, b, a)); });
+    }
 }
 
 
