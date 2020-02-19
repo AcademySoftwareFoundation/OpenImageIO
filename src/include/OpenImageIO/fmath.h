@@ -296,23 +296,46 @@ safe_mod(T a, T b)
 
 /// clamp a to bounds [low,high].
 template <class T>
-inline OIIO_HOSTDEVICE T
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 clamp (const T& a, const T& low, const T& high)
 {
+#if 1
+    // This looks clunky, but it generates minimal code. For float, it
+    // should result in just a max and min instruction, thats it.
+    // This implementation is courtesy of Alex Wells, Intel, via OSL.
+    T val = a;
+    if (!(low < val))  // Forces clamp(NaN,low,high) to return low
+        val = low;
+    if (val > high)
+        val = high;
+    return val;
+#else
+    // The naive implementation we originally had, below, only does the 2nd
+    // comparison in the else block, which will generate extra code in a
+    // SIMD masking scenario. I (LG) can confirm that benchmarks show that
+    // the above implementation is indeed faster than the one below, even
+    // for non-SIMD use.
     return (a >= low) ? ((a <= high) ? a : high) : low;
+#endif
 }
 
 
 #ifndef __CUDA_ARCH__
 // Specialization of clamp for vfloat4
-template<> inline simd::vfloat4
+template<> OIIO_FORCEINLINE simd::vfloat4
 clamp (const simd::vfloat4& a, const simd::vfloat4& low, const simd::vfloat4& high)
 {
     return simd::min (high, simd::max (low, a));
 }
 
-template<> inline simd::vfloat8
+template<> OIIO_FORCEINLINE simd::vfloat8
 clamp (const simd::vfloat8& a, const simd::vfloat8& low, const simd::vfloat8& high)
+{
+    return simd::min (high, simd::max (low, a));
+}
+
+template<> OIIO_FORCEINLINE simd::vfloat16
+clamp (const simd::vfloat16& a, const simd::vfloat16& low, const simd::vfloat16& high)
 {
     return simd::min (high, simd::max (low, a));
 }
