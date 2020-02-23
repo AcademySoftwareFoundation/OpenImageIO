@@ -343,37 +343,42 @@ clamp (const simd::vfloat16& a, const simd::vfloat16& low, const simd::vfloat16&
 
 
 
+// For the multply+add (or sub) operations below, note that the results may
+// differ slightly on different hardware, depending on whether true fused
+// multiply and add is available or if the code generated just does an old
+// fashioned multiply followed by a separate add. So please interpret these
+// as "do a multiply and add as fast as possible for this hardware, with at
+// least as much precision as a multiply followed by a separate add."
+
 /// Fused multiply and add: (a*b + c)
-inline OIIO_HOSTDEVICE float madd (float a, float b, float c) {
-#if OIIO_FMA_ENABLED
-    // C++11 defines std::fma, which we assume is implemented using an
-    // intrinsic.
-    return std::fma (a, b, c);
-#else
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float madd (float a, float b, float c) {
     // NOTE: GCC/ICC will turn this (for float) into a FMA unless
     // explicitly asked not to, clang will do so if -ffp-contract=fast.
+    OIIO_CLANG_PRAGMA(clang fp contract(fast))
     return a * b + c;
-#endif
 }
 
 
-/// Fused multiply and subtract: -(a*b - c)
-inline OIIO_HOSTDEVICE float msub (float a, float b, float c) {
-    return a * b - c; // Hope for the best
+/// Fused multiply and subtract: (a*b - c)
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float msub (float a, float b, float c) {
+    OIIO_CLANG_PRAGMA(clang fp contract(fast))
+    return a * b - c;
 }
 
 
 
 /// Fused negative multiply and add: -(a*b) + c
-inline OIIO_HOSTDEVICE float nmadd (float a, float b, float c) {
-    return c - (a * b); // Hope for the best
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float nmadd (float a, float b, float c) {
+    OIIO_CLANG_PRAGMA(clang fp contract(fast))
+    return c - (a * b);
 }
 
 
 
 /// Negative fused multiply and subtract: -(a*b) - c
-inline OIIO_HOSTDEVICE float nmsub (float a, float b, float c) {
-    return -(a * b) - c; // Hope for the best
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float nmsub (float a, float b, float c) {
+    OIIO_CLANG_PRAGMA(clang fp contract(fast))
+    return -(a * b) - c;
 }
 
 
