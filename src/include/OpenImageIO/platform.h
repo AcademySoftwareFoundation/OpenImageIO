@@ -163,6 +163,22 @@
 #  define OIIO_APPLE_CLANG_VERSION 0
 #endif
 
+// Define OIIO_INTEL_COMPILER_VERSION to hold an encoded Intel compiler
+// version (e.g. 1900), or 0 if not an Intel compiler.
+#if defined(__INTEL_COMPILER)
+#  define OIIO_INTEL_COMPILER_VERSION __INTEL_COMPILER
+#else
+#  define OIIO_INTEL_COMPILER_VERSION 0
+#endif
+
+// Intel's compiler on OSX may still define __clang__ and we have need to
+// know when using a true clang compiler.
+#if !defined(__INTEL_COMPILER) && defined(__clang__)
+#  define OIIO_NON_INTEL_CLANG  __clang__
+#else
+#  define OIIO_NON_INTEL_CLANG  0
+#endif
+
 // Tests for MSVS versions, always 0 if not MSVS at all.
 #if defined(_MSC_VER)
 #  if _MSC_VER < 1900
