@@ -323,6 +323,13 @@ test_case()
     s = "abcDEF,*1";
     Strutil::to_upper(s);
     OIIO_CHECK_EQUAL(s, "ABCDEF,*1");
+
+    s = "abcDEF,*1";
+    OIIO_CHECK_EQUAL(Strutil::lower(s), "abcdef,*1");
+    OIIO_CHECK_EQUAL (s, "abcDEF,*1");  // make sure it's nondestructive
+    Strutil::to_upper(s);
+    OIIO_CHECK_EQUAL(Strutil::upper(s), "ABCDEF,*1");
+    Strutil::to_upper(s);
 }
 
 
