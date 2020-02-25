@@ -665,17 +665,56 @@ inline OIIO_HOSTDEVICE float sign (float x)
 
 
 template <typename IN_TYPE, typename OUT_TYPE>
-inline OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE in) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE in) {
     // NOTE: this is the only standards compliant way of doing this type of casting,
     // luckily the compilers we care about know how to optimize away this idiom.
+    static_assert(sizeof(IN_TYPE) == sizeof(OUT_TYPE),
+                  "bit_cast must be between objects of the same size");
     OUT_TYPE out;
     memcpy ((void *)&out, &in, sizeof(IN_TYPE));
     return out;
 }
 
+#if defined(__INTEL_COMPILER)
+    // On x86/x86_64 for certain compilers we can use Intel CPU intrinsics
+    // for some common bit_cast cases that might be even more understandable
+    // to the compiler and generate better code without its getting confused
+    // about the memcpy in the general case.
+    // FIXME: The intrinsics are not in clang <= 9 nor gcc <= 9.1. Check
+    // future releases.
+    template<> OIIO_FORCEINLINE uint32_t bit_cast<float, uint32_t> (const float val) {
+          return static_cast<uint32_t>(_castf32_u32(val));
+    }
+    template<> OIIO_FORCEINLINE int32_t bit_cast<float, int32_t> (const float val) {
+          return static_cast<int32_t>(_castf32_u32(val));
+    }
+    template<> OIIO_FORCEINLINE float bit_cast<uint32_t, float> (const uint32_t val) {
+          return _castu32_f32(val);
+    }
+    template<> OIIO_FORCEINLINE float bit_cast<int32_t, float> (const int32_t val) {
+          return _castu32_f32(val);
+    }
+    template<> OIIO_FORCEINLINE uint64_t bit_cast<double, uint64_t> (const double val) {
+          return static_cast<uint64_t>(_castf64_u64(val));
+    }
+    template<> OIIO_FORCEINLINE int64_t bit_cast<double, int64_t> (const double val) {
+          return static_cast<int64_t>(_castf64_u64(val));
+    }
+    template<> OIIO_FORCEINLINE double bit_cast<uint64_t, double> (const uint64_t val) {
+          return _castu64_f64(val);
+    }
+    template<> OIIO_FORCEINLINE double bit_cast<int64_t, double> (const int64_t val) {
+          return _castu64_f64(val);
+    }
+#endif
 
-inline OIIO_HOSTDEVICE int bitcast_to_int (float x) { return bit_cast<float,int>(x); }
-inline OIIO_HOSTDEVICE float bitcast_to_float (int x) { return bit_cast<int,float>(x); }
+
+OIIO_FORCEINLINE OIIO_HOSTDEVICE int bitcast_to_int (float x) {
+    return bit_cast<float,int>(x);
+}
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float bitcast_to_float (int x) {
+    return bit_cast<int,float>(x);
+}
 
 
 
