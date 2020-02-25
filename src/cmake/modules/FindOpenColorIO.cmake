@@ -34,9 +34,16 @@ find_library (OPENCOLORIO_LIBRARY
         /opt/local/lib
     DOC "The OCIO library")
 
+if (EXISTS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h")
+    file(STRINGS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h" TMP
+         REGEX "^#define OCIO_VERSION[ \t].*$")
+    string (REGEX MATCHALL "[0-9]+[.0-9]+" OPENCOLORIO_VERSION ${TMP})
+endif ()
+
 find_package_handle_standard_args (OpenColorIO
     REQUIRED_VARS   OPENCOLORIO_INCLUDE_DIR OPENCOLORIO_LIBRARY
     FOUND_VAR       OPENCOLORIO_FOUND
+    VERSION_VAR     OPENCOLORIO_VERSION
     )
 
 if (OPENCOLORIO_FOUND)
