@@ -125,12 +125,12 @@ echo ""
 # The Rez variant order MUST match what's in package.py !!!
 case "$REZ_BUILD_VARIANT_INDEX" in
 0)
-    # 0: gcc 6.4/C++14 compat, python 2.7, boost 1.70
+    # 0: gcc 6.3/C++14 compat, python 2.7, boost 1.70
     # This is the variant needed by Maya 2020 & Houdini 18 & Roman
     OPENEXR_VERSION=2.4.0
     ;;
 1)
-    # 1: gcc 6.4/C++14 compat, python 3.7, boost 1.70
+    # 1: gcc 6.3/C++14 compat, python 3.7, boost 1.70
     # VFX Platform 2020-ish
     OPENEXR_VERSION=2.4.0
     ;;

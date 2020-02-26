@@ -54,16 +54,18 @@ following variants:
     make nuke
     make OIIO_SPCOMP2=1 spcomp2_install
 
+    # Python 2.7, Boost 1.70, C++11/gcc6.3 compat
+    make nuke
+    make OIIO_SPCOMP2=1 BOOSTVERS=1.70 PYTHON_VERSION=2.7 OPENEXR_VERSION=2.4.0 SPI_COMPILER_PLATFORM=gcc-6.3 spcomp2_install
+
+    # DOES ANYONE NEED THIS?
     # Python 2.7, Boost 1.55 sp namespaced, C++11/gcc4.8 compat
-    make nuke
-    make OIIO_SPCOMP2=1 BOOSTSPSUFFIX=sp spcomp2_install
+    # make nuke
+    # make OIIO_SPCOMP2=1 BOOSTSPSUFFIX=sp spcomp2_install
 
+    # DOES ANYONE NEED THIS?
     # Python 3.7, Boost 1.66, C++11/gcc6.3 compat
-    make nuke
-    make OIIO_SPCOMP2=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPCOMP2_COMPILER=gcc63 OpenColorIO_ROOT=/shots/spi/home/lib/SpComp2/OpenColorIO/rhel7-gcc48m64/v2 spcomp2_install
-
-    # Python 3.6, Boost 1.55, C++11/gcc4.8 compat (for Jon Ware)
-    make nuke
-    make OIIO_SPCOMP2=1 PYTHON_VERSION=3.6 spcomp2_install
+    # make nuke
+    # make OIIO_SPCOMP2=1 BOOSTVERS=1.66 PYTHON_VERSION=3.7 SPI_COMPILER_PLATFORM=gcc-6.3 spcomp2_install
 
 Nobody should do this but lg, except in extraordinary circumstances.

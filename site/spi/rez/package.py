@@ -37,11 +37,11 @@ build_requires = [
 ]
 
 variants = [
-    # 0: gcc 6.4/C++14 compat, python 2.7, boost 1.70
+    # 0: gcc 6.3/C++14 compat, python 2.7, boost 1.70
     # This is the variant needed by Maya 2020 & Houdini 18 & Roman
       [ 'gcc-6.3', 'python-2.7', 'boost-1.70' ]  # OpenEXR-2.4
 
-    # 1: gcc 6.4/C++14 compat, python 3.7, boost 1.70, OpenEXR 2.4
+    # 1: gcc 6.3/C++14 compat, python 3.7, boost 1.70, OpenEXR 2.4
     # VFX Platform 2020-ish
     , [ 'gcc-6.3', 'python-3.7', 'boost-1.70' ]  # OpenEXR-2.4
 
@@ -54,7 +54,7 @@ variants = [
     # 4: Legacy SPI with sp-namespaced boost
     # , [ 'gcc-4.8', 'python-2.7', 'boost-1.55sp' ]  # OpenEXR-2.2
 
-    # 5: gcc 6.4/C++14 compat, python 3.7, intermediate boost 1.66
+    # 5: gcc 6.3/C++14 compat, python 3.7, intermediate boost 1.66
     # Does anybody need this?
     # , [ 'gcc-6.3', 'python-3.7', 'boost-1.66' ]  # OpenEXR-2.2
 
