@@ -310,8 +310,10 @@ catalog_builtin_plugins()
 #if !defined(DISABLE_HDR)
     DECLAREPLUG (hdr);
 #endif
+#ifdef USE_PNG
 #if !defined(DISABLE_ICO)
     DECLAREPLUG (ico);
+#endif
 #endif
 #if !defined(DISABLE_IFF)
     DECLAREPLUG (iff);
@@ -335,8 +337,10 @@ catalog_builtin_plugins()
     DECLAREPLUG_RO (openvdb);
 #endif
 #endif
+#ifdef USE_PNG
 #if !defined(DISABLE_PNG)
     DECLAREPLUG (png);
+#endif
 #endif
 #if !defined(DISABLE_PNM)
     DECLAREPLUG (pnm);
