@@ -114,7 +114,8 @@ ifeq (${SP_OS}, rhel7)
     #
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
-    LLVM_DIRECTORY ?= /shots/spi/home/lib/arnold/rhel7/llvm_9.0.0/${SPI_COMPILER_PLATFORM}
+    LLVM_VERSION ?= 9.0.0
+    LLVM_DIRECTORY ?= /shots/spi/home/software/packages/llvm/${LLVM_VERSION}/${SPI_COMPILER_PLATFORM}
     ifeq (${COMPILER},clang6)
 	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_6.0.1
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
@@ -240,7 +241,8 @@ ifeq (${SP_OS}, rhel7)
     NUKE_VERSION ?= 11.2v3
     SPCOMP2_FULLBOOST_SUFFIX = ${SP_OS}-${SPCOMP2_COMPILER}-boost${shell echo ${BOOSTVERSSP} | sed "s/\\.//"}
     # $(info SPCOMP2_FULLBOOST_SUFFIX ${SPCOMP2_FULLBOOST_SUFFIX})
-    OpenColorIO_ROOT ?= ${SPCOMP2_ROOT}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
+    OpenColorIO_ROOT ?= /shots/spi/home/software/packages/OpenColorIO/1.1.1/${SPI_COMPILER_PLATFORM}
+    #OpenColorIO_ROOT ?= ${SPCOMP2_ROOT}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
     ifneq (${OIIO_SPCOMP2},1)
         # Anybody remember why we needed Field3d disabled for SpComp2?
         Field3D_ROOT ?= ${SPCOMP2_ROOT}/Field3D/${SPCOMP2_FULLBOOST_SUFFIX}/v412
@@ -264,9 +266,16 @@ ifeq (${SP_OS}, rhel7)
         -DUSE_OPENCV=0 \
         -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/hidesymbols.map"
 
-    LibRaw_ROOT ?= /shots/spi/home/software/packages/LibRaw/0.20.0-dev1/${SPI_COMPILER_PLATFORM}
-    REZ_LIBRAW_ROOT ?= ${LibRaw_ROOT}
-    MY_CMAKE_FLAGS += -DLibRaw_ROOT=${REZ_LIBRAW_ROOT}
+    # LibRaw
+    ifeq (${SPI_COMPILER_PLATFORM},gcc-4.8)
+        MY_CMAKE_FLAGS += -DLIBRAW_INCLUDEDIR_HINT=/usr/include/libraw-0.18.11
+        MY_CMAKE_FLAGS += -DLIBRAW_LIBDIR_HINT=/usr/lib64/libraw-0.18.11
+        LIBRAW_LIBDIR = /usr/lib64/libraw-0.18.11
+    else
+        LibRaw_ROOT ?= /shots/spi/home/software/packages/LibRaw/0.20.0-dev1/${SPI_COMPILER_PLATFORM}
+        MY_CMAKE_FLAGS += -DLibRaw_ROOT=${LibRaw_ROOT}
+        LIBRAW_LIBDIR = ${LibRaw_ROOT}/lib
+    endif
 
     # Use libtiff I built myself, static, and try to hide its symbols.
     MY_CMAKE_FLAGS += \
@@ -385,8 +394,8 @@ spcomp2_install_local: SPCOMP2_INSTALL_ROOT = $(SPCOMP2_LOCAL_PATH)
 spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
 spcomp2_install_local: spcomp2_install
 
-SPCOMP2_RPATH_OPT ?= ${OpenColorIO_ROOT}/lib:${Field3D_ROOT}/lib:${LIBRAW_LIBDIR}:${OpenVDB_ROOT}/lib:${Libheif_ROOT}/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${TBB_ROOT}/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
-SPCOMP2_RPATH_DEBUG ?= ${OpenColorIO_ROOT}/lib/debug:${Field3D_ROOT}/lib/debug:${LIBRAW_LIBDIR}:${OpenVDB_ROOT}/lib/debug:${Libheif_ROOT}/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${TBB_ROOT}/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
+SPCOMP2_RPATH_OPT ?= ${OpenEXR_ROOT}/lib:${OpenColorIO_ROOT}/lib:${Field3D_ROOT}/lib:${LIBRAW_LIBDIR}:${OpenVDB_ROOT}/lib:${Libheif_ROOT}/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${TBB_ROOT}/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
+SPCOMP2_RPATH_DEBUG ?= ${OpenEXR_ROOT}/lib:${OpenColorIO_ROOT}/lib:${Field3D_ROOT}/lib/debug:${LIBRAW_LIBDIR}:${OpenVDB_ROOT}/lib/debug:${Libheif_ROOT}/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${TBB_ROOT}/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
 PYSPCOMP2_RPATH_OPT ?= ${SPCOMP2_RPATH_OPT}:${OIIO_SPCOMP2_PATH}/lib:${PYTHON_LIBRARY_DIR}
 PYSPCOMP2_RPATH_DEBUG ?= ${SPCOMP2_RPATH_DEBUG}:${OIIO_SPCOMP2_PATH}/lib/debug:${PYTHON_LIBRARY_DIR}
 
