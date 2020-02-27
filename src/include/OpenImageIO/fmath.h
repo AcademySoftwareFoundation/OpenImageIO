@@ -46,6 +46,28 @@
 
 OIIO_NAMESPACE_BEGIN
 
+/// Occasionally there may be a tradeoff where the best/fastest
+/// implementation of a math function in an ordinary scalar context does
+/// things that prevent autovectorization (or OMP pragma vectorization) of a
+/// loop containing that operation, and the only way to make it SIMD
+/// friendly slows it down as a scalar op.
+///
+/// By default, we always prefer doing it as correctly and quickly as
+/// possible in scalar mode, but if OIIO_FMATH_SIMD_FRIENDLY is defined to
+/// be nonzero, we prefer ensuring that the SIMD loops are as efficient as
+/// possible, even at the expense of scalar performance.
+///
+/// Because everything here consists of inline functions, and it doesn't
+/// really matter for OIIO internals themselves, this is primarily intended
+/// for the sake of 3rd party apps that happen to have OIIO as a dependency
+/// and use the fmath.h functions. Such a downstream dependency just needs
+/// to ensure that OIIO_FMATH_SIMD_FRIENDLY is defined to 1 prior to
+/// including fmath.h.
+///
+#ifndef OIIO_FMATH_SIMD_FRIENDLY
+#    define OIIO_FMATH_SIMD_FRIENDLY 0
+#endif
+
 
 // Helper template to let us tell if two types are the same.
 // C++11 defines this, keep in OIIO namespace for back compat.
@@ -274,7 +296,7 @@ rotl64(uint64_t x, int k)
 
 // safe_mod is like integer a%b, but safely returns 0 when b==0.
 template <class T>
-inline OIIO_HOSTDEVICE T
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 safe_mod(T a, T b)
 {
     return b ? (a % b) : T(0);
@@ -386,7 +408,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float nmsub (float a, float b, float c) {
 /// Linearly interpolate values v0-v1 at x: v0*(1-x) + v1*x.
 /// This is a template, and so should work for any types.
 template <class T, class Q>
-inline OIIO_HOSTDEVICE T
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 lerp (const T& v0, const T& v1, const Q& x)
 {
     // NOTE: a*(1-x) + b*x is much more numerically stable than a+x*(b-a)
@@ -399,7 +421,7 @@ lerp (const T& v0, const T& v1, const Q& x)
 /// v2 lower left, v3 lower right) at coordinates (s,t) and return the
 /// result.  This is a template, and so should work for any types.
 template <class T, class Q>
-inline OIIO_HOSTDEVICE T
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 bilerp(const T& v0, const T& v1, const T& v2, const T& v3, const Q& s, const Q& t)
 {
     // NOTE: a*(t-1) + b*t is much more numerically stable than a+t*(b-a)
@@ -451,7 +473,7 @@ bilerp_mad (const T *v0, const T *v1,
 /// upper right top, ...) at coordinates (s,t,r), and return the
 /// result.  This is a template, and so should work for any types.
 template <class T, class Q>
-inline OIIO_HOSTDEVICE T
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T
 trilerp (T v0, T v1, T v2, T v3, T v4, T v5, T v6, T v7, Q s, Q t, Q r)
 {
     // NOTE: a*(t-1) + b*t is much more numerically stable than a+t*(b-a)
@@ -555,7 +577,7 @@ bicubic_interp (const T **val, T s, T t, int n, T *result)
 
 
 /// Return floor(x) cast to an int.
-inline OIIO_HOSTDEVICE int
+OIIO_FORCEINLINE OIIO_HOSTDEVICE int
 ifloor (float x)
 {
     return (int)floorf(x);
@@ -607,11 +629,36 @@ inline simd::vfloat16 floorfrac (const simd::vfloat16& x, simd::vint16 *xint) {
 
 /// Convert degrees to radians.
 template <typename T>
-inline OIIO_HOSTDEVICE T radians (T deg) { return deg * T(M_PI / 180.0); }
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T radians (T deg) { return deg * T(M_PI / 180.0); }
 
 /// Convert radians to degrees
 template <typename T>
-inline OIIO_HOSTDEVICE T degrees (T rad) { return rad * T(180.0 / M_PI); }
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T degrees (T rad) { return rad * T(180.0 / M_PI); }
+
+
+/// Faster floating point negation, in cases where you aren't too picky
+/// about the difference between +0 and -0. (Courtesy of Alex Wells, Intel,
+/// via code in OSL.)
+///
+/// Beware: fast_neg(0.0f) returns 0.0f, NOT -0.0f. All other values,
+/// including -0.0 and +/- Inf, work identically to `-x`. For many use
+/// cases, that's fine. (When was the last time you wanted a -0.0f anyway?)
+///
+/// The reason it's faster is that `-x` (for float x) is implemented by
+/// compilers by xor'ing x against a bitmask that flips the sign bit, and
+/// that bitmask had to come from somewhere -- memory! -- which can be
+/// expensive, depending on whether/where it is in cache. But  `0 - x`
+/// generates a zero in a register (with xor, no memory access needed) and
+/// then subtracts, so that's sometimes faster because there is no memory
+/// read. This works for SIMD types as well!
+///
+/// It's also safe (though pointless) to use fast_neg for integer types,
+/// where both `-x` and `0-x` are implemented as a `neg` instruction.
+template <typename T>
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T
+fast_neg(const T &x) {
+    return T(0) - x;
+}
 
 
 
@@ -649,6 +696,8 @@ inline OIIO_HOSTDEVICE float sign (float x)
 {
     return x < 0.0f ? -1.0f : (x==0.0f ? 0.0f : 1.0f);
 }
+
+
 
 
 // (end of float helper functions)
@@ -1323,20 +1372,20 @@ float_to_rational (float f, int &num, int &den)
 
 /// Safe (clamping) sqrt: safe_sqrt(x<0) returns 0, not NaN.
 template <typename T>
-inline OIIO_HOSTDEVICE T safe_sqrt (T x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T safe_sqrt (T x) {
     return x >= T(0) ? std::sqrt(x) : T(0);
 }
 
 /// Safe (clamping) inverse sqrt: safe_inversesqrt(x<=0) returns 0.
 template <typename T>
-inline OIIO_HOSTDEVICE T safe_inversesqrt (T x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T safe_inversesqrt (T x) {
     return x > T(0) ? T(1) / std::sqrt(x) : T(0);
 }
 
 
 /// Safe (clamping) arcsine: clamp to the valid domain.
 template <typename T>
-inline OIIO_HOSTDEVICE T safe_asin (T x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T safe_asin (T x) {
     if (x <= T(-1)) return T(-M_PI_2);
     if (x >= T(+1)) return T(+M_PI_2);
     return std::asin(x);
@@ -1344,7 +1393,7 @@ inline OIIO_HOSTDEVICE T safe_asin (T x) {
 
 /// Safe (clamping) arccosine: clamp to the valid domain.
 template <typename T>
-inline OIIO_HOSTDEVICE T safe_acos (T x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T safe_acos (T x) {
     if (x <= T(-1)) return T(M_PI);
     if (x >= T(+1)) return T(0);
     return std::acos(x);
@@ -1353,7 +1402,7 @@ inline OIIO_HOSTDEVICE T safe_acos (T x) {
 
 /// Safe log2: clamp to valid domain.
 template <typename T>
-inline OIIO_HOSTDEVICE T safe_log2 (T x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T safe_log2 (T x) {
     // match clamping from fast version
     if (x < std::numeric_limits<T>::min()) x = std::numeric_limits<T>::min();
     if (x > std::numeric_limits<T>::max()) x = std::numeric_limits<T>::max();
@@ -1362,7 +1411,7 @@ inline OIIO_HOSTDEVICE T safe_log2 (T x) {
 
 /// Safe log: clamp to valid domain.
 template <typename T>
-inline OIIO_HOSTDEVICE T safe_log (T x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T safe_log (T x) {
     // slightly different than fast version since clamping happens before scaling
     if (x < std::numeric_limits<T>::min()) x = std::numeric_limits<T>::min();
     if (x > std::numeric_limits<T>::max()) x = std::numeric_limits<T>::max();
@@ -1371,7 +1420,7 @@ inline OIIO_HOSTDEVICE T safe_log (T x) {
 
 /// Safe log10: clamp to valid domain.
 template <typename T>
-inline OIIO_HOSTDEVICE T safe_log10 (T x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T safe_log10 (T x) {
     // slightly different than fast version since clamping happens before scaling
     if (x < std::numeric_limits<T>::min()) x = std::numeric_limits<T>::min();
     if (x > std::numeric_limits<T>::max()) x = std::numeric_limits<T>::max();
@@ -1380,14 +1429,14 @@ inline OIIO_HOSTDEVICE T safe_log10 (T x) {
 
 /// Safe logb: clamp to valid domain.
 template <typename T>
-inline OIIO_HOSTDEVICE T safe_logb (T x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T safe_logb (T x) {
     return (x != T(0)) ? std::logb(x) : -std::numeric_limits<T>::max();
 }
 
 /// Safe pow: clamp the domain so it never returns Inf or NaN or has divide
 /// by zero error.
 template <typename T>
-inline OIIO_HOSTDEVICE T safe_pow (T x, T y) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T safe_pow (T x, T y) {
     if (y == T(0)) return T(1);
     if (x == T(0)) return T(0);
     // if x is negative, only deal with integer powers
@@ -1398,6 +1447,30 @@ inline OIIO_HOSTDEVICE T safe_pow (T x, T y) {
     const T big = std::numeric_limits<T>::max();
     return clamp (r, -big, big);
 }
+
+
+/// Safe fmod: guard against b==0.0 (in which case, return 0.0). Also, it
+/// seems that this is much faster than std::fmod!
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float safe_fmod (float a, float b)
+{
+    if (OIIO_LIKELY(b != 0.0f)) {
+#if 0
+        return std::fmod (a,b);
+        // std::fmod was getting called serially instead of vectorizing, so
+        // we will just do the calculation ourselves.
+#else
+        // This formulation is equivalent but much faster in our benchmarks,
+        // also vectorizes better.
+        // The floating-point remainder of the division operation
+        // a/b is a - N*b, where N = a/b with its fractional part truncated.
+        int N = static_cast<int>(a/b);
+        return a - N*b;
+#endif
+    }
+    return 0.0f;
+}
+
+#define OIIO_FMATH_HAS_SAFE_FMOD 1
 
 // (end of safe_* functions)
 ////////////////////////////////////////////////////////////////////////////
@@ -1413,10 +1486,17 @@ inline OIIO_HOSTDEVICE T safe_pow (T x, T y) {
 // are much faster at the expense of some accuracy and robust handling of
 // extreme values. One design goal for these approximation was to avoid
 // branches as much as possible and operate on single precision values only
-// so that SIMD versions should be straightforward ports We also try to
+// so that SIMD versions should be straightforward ports. We also try to
 // implement "safe" semantics (ie: clamp to valid range where possible)
 // natively since wrapping these inline calls in another layer would be
 // wasteful.
+//
+// The "fast_*" functions are not only possibly differing in value
+// (slightly) from the std versions of these functions, but also we do not
+// guarantee that the results of "fast" will exactly match from platform to
+// platform. This is because if a particular platform (HW, library, or
+// compiler) provides an intrinsic that is even faster than our usual "fast"
+// implementation, we may substitute it.
 //
 // Some functions are fast_safe_*, which is both a faster approximation as
 // well as clamped input domain to ensure no NaN, Inf, or divide by zero.
@@ -1431,7 +1511,10 @@ inline OIIO_HOSTDEVICE T safe_pow (T x, T y) {
 
 
 /// Round to nearest integer, returning as an int.
-inline OIIO_HOSTDEVICE int fast_rint (float x) {
+/// Note that this differs from std::rint, which returns a float; it's more
+/// akin to std::lrint, which returns a long (int). Sorry for the naming
+/// confusion.
+OIIO_FORCEINLINE OIIO_HOSTDEVICE int fast_rint (float x) {
     // used by sin/cos/tan range reduction
 #if OIIO_SIMD_SSE >= 4
     // single roundps instruction on SSE4.1+ (for gcc/clang at least)
@@ -1443,13 +1526,13 @@ inline OIIO_HOSTDEVICE int fast_rint (float x) {
 }
 
 #ifndef __CUDA_ARCH__
-inline simd::vint4 fast_rint (const simd::vfloat4& x) {
+OIIO_FORCEINLINE simd::vint4 fast_rint (const simd::vfloat4& x) {
     return simd::rint (x);
 }
 #endif
 
 
-inline OIIO_HOSTDEVICE float fast_sin (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_sin (float x) {
 #ifndef __CUDA_ARCH__
     // very accurate argument reduction from SLEEF
     // starts failing around x=262000
@@ -1471,18 +1554,17 @@ inline OIIO_HOSTDEVICE float fast_sin (float x) {
     u = madd(u, s, +0.00833307858556509017944336f);
     u = madd(u, s, -0.166666597127914428710938f);
     u = madd(s, u * x, x);
-    // For large x, the argument reduction can fail and the polynomial can be
-    // evaluated with arguments outside the valid internal. Just clamp the bad
-    // values away (setting to 0.0f means no branches need to be generated).
-    if (fabsf(u) > 1.0f) u = 0.0f;
-    return u;
+    // For large x, the argument reduction can fail and the polynomial can
+    // be evaluated with arguments outside the valid internal. Just clamp
+    // the bad values away.
+    return clamp(u, -1.0f, 1.0f);
 #else
     return __sinf(x);
 #endif
 }
 
 
-inline OIIO_HOSTDEVICE float fast_cos (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_cos (float x) {
 #ifndef __CUDA_ARCH__
     // same argument reduction as fast_sin
     int q = fast_rint (x * float(M_1_PI));
@@ -1502,15 +1584,14 @@ inline OIIO_HOSTDEVICE float fast_cos (float x) {
     u = madd(u, s, -0.5f);
     u = madd(u, s, +1.0f);
     if ((q & 1) != 0) u = -u;
-    if (fabsf(u) > 1.0f) u = 0.0f;
-    return u;
+    return clamp(u, -1.0f, 1.0f);
 #else
     return __cosf(x);
 #endif
 }
 
 
-inline OIIO_HOSTDEVICE void fast_sincos (float x, float* sine, float* cosine) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE void fast_sincos (float x, float* sine, float* cosine) {
 #ifndef __CUDA_ARCH__
     // same argument reduction as fast_sin
     int q = fast_rint (x * float(M_1_PI));
@@ -1535,10 +1616,8 @@ inline OIIO_HOSTDEVICE void fast_sincos (float x, float* sine, float* cosine) {
     cu = madd(cu, s, -0.5f);
     cu = madd(cu, s, +1.0f);
     if ((q & 1) != 0) cu = -cu;
-    if (fabsf(su) > 1.0f) su = 0.0f;
-    if (fabsf(cu) > 1.0f) cu = 0.0f;
-    *sine   = su;
-    *cosine = cu;
+    *sine   = clamp(su, -1.0f, 1.0f);;
+    *cosine = clamp(cu, -1.0f, 1.0f);;
 #else
     __sincosf(x, sine, cosine);
 #endif
@@ -1546,7 +1625,7 @@ inline OIIO_HOSTDEVICE void fast_sincos (float x, float* sine, float* cosine) {
 
 // NOTE: this approximation is only valid on [-8192.0,+8192.0], it starts becoming
 // really poor outside of this range because the reciprocal amplifies errors
-inline OIIO_HOSTDEVICE float fast_tan (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_tan (float x) {
 #ifndef __CUDA_ARCH__
     // derived from SLEEF implementation
     // note that we cannot apply the "denormal crush" trick everywhere because
@@ -1558,7 +1637,7 @@ inline OIIO_HOSTDEVICE float fast_tan (float x) {
     x = madd(qf, -3.7747668102383613586e-08f*2, x);
     x = madd(qf, -1.2816720341285448015e-12f*2, x);
     if ((q & 1) == 0)
-    x = float(M_PI_4) - (float(M_PI_4) - x); // crush denormals (only if we aren't inverting the result later)
+        x = float(M_PI_4) - (float(M_PI_4) - x); // crush denormals (only if we aren't inverting the result later)
     float s = x * x;
     float u = 0.00927245803177356719970703f;
     u = madd(u, s, 0.00331984995864331722259521f);
@@ -1567,7 +1646,8 @@ inline OIIO_HOSTDEVICE float fast_tan (float x) {
     u = madd(u, s, 0.133383005857467651367188f);
     u = madd(u, s, 0.333331853151321411132812f);
     u = madd(s, u * x, x);
-    if ((q & 1) != 0) u = -1.0f / u;
+    if ((q & 1) != 0)
+        u = -1.0f / u;
     return u;
 #else
     return __tanf(x);
@@ -1577,7 +1657,7 @@ inline OIIO_HOSTDEVICE float fast_tan (float x) {
 /// Fast, approximate sin(x*M_PI) with maximum absolute error of 0.000918954611.
 /// Adapted from http://devmaster.net/posts/9648/fast-and-accurate-sine-cosine#comment-76773
 /// Note that this is MUCH faster, but much less accurate than fast_sin.
-inline OIIO_HOSTDEVICE float fast_sinpi (float x)
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_sinpi (float x)
 {
 #ifndef __CUDA_ARCH__
 	// Fast trick to strip the integral part off, so our domain is [-1,1]
@@ -1615,7 +1695,7 @@ inline OIIO_HOSTDEVICE float fast_sinpi (float x)
 
 /// Fast approximate cos(x*M_PI) with ~0.1% absolute error.
 /// Note that this is MUCH faster, but much less accurate than fast_cos.
-inline OIIO_HOSTDEVICE float fast_cospi (float x)
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_cospi (float x)
 {
 #ifndef __CUDA_ARCH__
     return fast_sinpi (x+0.5f);
@@ -1624,7 +1704,7 @@ inline OIIO_HOSTDEVICE float fast_cospi (float x)
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_acos (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_acos (float x) {
 #ifndef __CUDA_ARCH__
     const float f = fabsf(x);
     const float m = (f < 1.0f) ? 1.0f - (1.0f - f) : 1.0f; // clamp and crush denormals
@@ -1639,7 +1719,7 @@ inline OIIO_HOSTDEVICE float fast_acos (float x) {
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_asin (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_asin (float x) {
 #ifndef __CUDA_ARCH__
     // based on acosf approximation above
     // max error is 4.51133e-05 (ulps are higher because we are consistently off by a little amount)
@@ -1652,7 +1732,7 @@ inline OIIO_HOSTDEVICE float fast_asin (float x) {
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_atan (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_atan (float x) {
 #ifndef __CUDA_ARCH__
     const float a = fabsf(x);
     const float k = a > 1.0f ? 1 / a : a;
@@ -1671,21 +1751,35 @@ inline OIIO_HOSTDEVICE float fast_atan (float x) {
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_atan2 (float y, float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_atan2 (float y, float x) {
 #ifndef __CUDA_ARCH__
     // based on atan approximation above
     // the special cases around 0 and infinity were tested explicitly
     // the only case not handled correctly is x=NaN,y=0 which returns 0 instead of nan
     const float a = fabsf(x);
     const float b = fabsf(y);
+    bool b_is_greater_than_a = b > a;
 
+#if OIIO_FMATH_SIMD_FRIENDLY
+    // When applying to all lanes in SIMD, we end up doing extra masking and
+    // 2 divides. So lets just do 1 divide and swap the parameters instead.
+    // And if we are going to do a doing a divide anyway, when a == b it
+    // should be 1.0f anyway so lets not bother special casing it.
+    float sa = b_is_greater_than_a ? b : a;
+    float sb = b_is_greater_than_a ? a : b;
+    const float k = (b == 0) ? 0.0f : sb/sa;
+#else
     const float k = (b == 0) ? 0.0f : ((a == b) ? 1.0f : (b > a ? a / b : b / a));
+#endif
+
     const float s = 1.0f - (1.0f - k); // crush denormals
     const float t = s * s;
 
     float r = s * madd(0.430165678f, t, 1.0f) / madd(madd(0.0579354987f, t, 0.763007998f), t, 1.0f);
 
-    if (b > a) r = 1.570796326794896557998982f - r; // account for arg reduction
+    if (b_is_greater_than_a)
+        r = 1.570796326794896557998982f - r; // account for arg reduction
+    // TODO:  investigate if testing x < 0.0f is more efficient
     if (bit_cast<float, unsigned>(x) & 0x80000000u) // test sign bit of x
         r = float(M_PI) - r;
     return copysignf(r, y);
@@ -1696,7 +1790,7 @@ inline OIIO_HOSTDEVICE float fast_atan2 (float y, float x) {
 
 
 template<typename T>
-inline OIIO_HOSTDEVICE T fast_log2 (const T& xval) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_log2 (const T& xval) {
     using namespace simd;
     typedef typename T::int_t intN;
     // See float fast_log2 for explanations
@@ -1717,7 +1811,7 @@ inline OIIO_HOSTDEVICE T fast_log2 (const T& xval) {
 
 
 template<>
-inline OIIO_HOSTDEVICE float fast_log2 (const float& xval) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_log2 (const float& xval) {
 #ifndef __CUDA_ARCH__
     // NOTE: clamp to avoid special cases and make result "safe" from large negative values/nans
     float x = clamp (xval, std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
@@ -1747,14 +1841,14 @@ inline OIIO_HOSTDEVICE float fast_log2 (const float& xval) {
 
 
 template<typename T>
-inline OIIO_HOSTDEVICE T fast_log (const T& x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_log (const T& x) {
     // Examined 2130706432 values of logf on [1.17549435e-38,3.40282347e+38]: 0.313865375 avg ulp diff, 5148137 max ulp, 7.62939e-06 max error
     return fast_log2(x) * T(M_LN2);
 }
 
 #ifdef __CUDA_ARCH__
 template<>
-inline OIIO_HOSTDEVICE float fast_log(const float& x)
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_log(const float& x)
 {
      return __logf(x);
 }
@@ -1762,20 +1856,20 @@ inline OIIO_HOSTDEVICE float fast_log(const float& x)
 
 
 template<typename T>
-inline OIIO_HOSTDEVICE T fast_log10 (const T& x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_log10 (const T& x) {
     // Examined 2130706432 values of log10f on [1.17549435e-38,3.40282347e+38]: 0.631237033 avg ulp diff, 4471615 max ulp, 3.8147e-06 max error
     return fast_log2(x) * T(M_LN2 / M_LN10);
 }
 
 #ifdef __CUDA_ARCH__
 template<>
-inline OIIO_HOSTDEVICE float fast_log10(const float& x)
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_log10(const float& x)
 {
      return __log10f(x);
 }
 #endif
 
-inline OIIO_HOSTDEVICE float fast_logb (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_logb (float x) {
 #ifndef __CUDA_ARCH__
     // don't bother with denormals
     x = fabsf(x);
@@ -1788,7 +1882,7 @@ inline OIIO_HOSTDEVICE float fast_logb (float x) {
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_log1p (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_log1p (float x) {
 #ifndef __CUDA_ARCH__
     if (fabsf(x) < 0.01f) {
         float y = 1.0f - (1.0f - x); // crush denormals
@@ -1804,7 +1898,7 @@ inline OIIO_HOSTDEVICE float fast_log1p (float x) {
 
 
 template<typename T>
-inline OIIO_HOSTDEVICE T fast_exp2 (const T& xval) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_exp2 (const T& xval) {
     using namespace simd;
     typedef typename T::int_t intN;
 #if OIIO_SIMD_SSE
@@ -1837,8 +1931,12 @@ inline OIIO_HOSTDEVICE T fast_exp2 (const T& xval) {
 
 
 template<>
-inline OIIO_HOSTDEVICE float fast_exp2 (const float& xval) {
-#ifndef __CUDA_ARCH__
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_exp2 (const float& xval) {
+#if OIIO_NON_INTEL_CLANG && OIIO_FMATH_SIMD_FRIENDLY
+    // Clang was unhappy using the bitcast/memcpy/reinter_cast/union inside
+    // an explicit SIMD loop, so revert to calling the standard version.
+    return std::exp2(xval);
+#elif !defined(__CUDA_ARCH__)
     // clamp to safe range for final addition
     float x = clamp (xval, -126.0f, 126.0f);
     // range reduction
@@ -1858,6 +1956,10 @@ inline OIIO_HOSTDEVICE float fast_exp2 (const float& xval) {
     // multiply by 2 ^ m by adding in the exponent
     // NOTE: left-shift of negative number is undefined behavior
     return bit_cast<unsigned, float>(bit_cast<float, unsigned>(r) + (unsigned(m) << 23));
+    // Clang: loop not vectorized: unsafe dependent memory operations in loop.
+    // This is why we special case the OIIO_FMATH_SIMD_FRIENDLY above.
+    // FIXME: as clang releases continue to improve, periodically check if
+    // this is still the case.
 #else
     return exp2f(xval);
 #endif
@@ -1867,14 +1969,14 @@ inline OIIO_HOSTDEVICE float fast_exp2 (const float& xval) {
 
 
 template <typename T>
-inline OIIO_HOSTDEVICE T fast_exp (const T& x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_exp (const T& x) {
     // Examined 2237485550 values of exp on [-87.3300018,87.3300018]: 2.6666452 avg ulp diff, 230 max ulp
     return fast_exp2(x * T(1 / M_LN2));
 }
 
 #ifdef __CUDA_ARCH__
 template<>
-inline OIIO_HOSTDEVICE float fast_exp (const float& x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_exp (const float& x) {
     return __expf(x);
 }
 #endif
@@ -1882,7 +1984,7 @@ inline OIIO_HOSTDEVICE float fast_exp (const float& x) {
 
 
 /// Faster float exp than is in libm, but still 100% accurate
-inline OIIO_HOSTDEVICE float fast_correct_exp (float x)
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_correct_exp (float x)
 {
 #if defined(__x86_64__) && defined(__GNU_LIBRARY__) && defined(__GLIBC__ ) && defined(__GLIBC_MINOR__) && __GLIBC__ <= 2 && __GLIBC_MINOR__ < 16
     // On x86_64, versions of glibc < 2.16 have an issue where expf is
@@ -1894,7 +1996,7 @@ inline OIIO_HOSTDEVICE float fast_correct_exp (float x)
 }
 
 
-inline OIIO_HOSTDEVICE float fast_exp10 (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_exp10 (float x) {
 #ifndef __CUDA_ARCH__
     // Examined 2217701018 values of exp10 on [-37.9290009,37.9290009]: 2.71732409 avg ulp diff, 232 max ulp
     return fast_exp2(x * float(M_LN10 / M_LN2));
@@ -1903,7 +2005,7 @@ inline OIIO_HOSTDEVICE float fast_exp10 (float x) {
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_expm1 (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_expm1 (float x) {
 #ifndef __CUDA_ARCH__
     if (fabsf(x) < 0.03f) {
         float y = 1.0f - (1.0f - x); // crush denormals
@@ -1915,7 +2017,7 @@ inline OIIO_HOSTDEVICE float fast_expm1 (float x) {
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_sinh (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_sinh (float x) {
 #ifndef __CUDA_ARCH__
     float a = fabsf(x);
     if (a > 1.0f) {
@@ -1938,7 +2040,7 @@ inline OIIO_HOSTDEVICE float fast_sinh (float x) {
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_cosh (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_cosh (float x) {
 #ifndef __CUDA_ARCH__
     // Examined 2237485550 values of cosh on [-87.3300018,87.3300018]: 1.78256726 avg ulp diff, 178 max ulp
     float e = fast_exp(fabsf(x));
@@ -1948,7 +2050,7 @@ inline OIIO_HOSTDEVICE float fast_cosh (float x) {
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_tanh (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_tanh (float x) {
 #ifndef __CUDA_ARCH__
     // Examined 4278190080 values of tanh on [-3.40282347e+38,3.40282347e+38]: 3.12924e-06 max error
     // NOTE: ulp error is high because of sub-optimal handling around the origin
@@ -1959,7 +2061,7 @@ inline OIIO_HOSTDEVICE float fast_tanh (float x) {
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_safe_pow (float x, float y) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_safe_pow (float x, float y) {
     if (y == 0) return 1.0f; // x^0=1
     if (x == 0) return 0.0f; // 0^y=0
     // be cheap & exact for special case of squaring and identity
@@ -1973,7 +2075,7 @@ inline OIIO_HOSTDEVICE float fast_safe_pow (float x, float y) {
 #endif
     }
     float sign = 1.0f;
-    if (x < 0) {
+    if (OIIO_UNLIKELY(x < 0.0f)) {
         // if x is negative, only deal with integer powers
         // powf returns NaN for non-integers, we will return 0 instead
         int ybits = bit_cast<float, int>(y) & 0x7fffffff;
@@ -1997,13 +2099,13 @@ inline OIIO_HOSTDEVICE float fast_safe_pow (float x, float y) {
 
 // Fast simd pow that only needs to work for positive x
 template<typename T, typename U>
-inline OIIO_HOSTDEVICE T fast_pow_pos (const T& x, const U& y) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE T fast_pow_pos (const T& x, const U& y) {
     return fast_exp2(y * fast_log2(x));
 }
 
 
 // Fast cube root (performs better that using fast_pow's above with y=1/3)
-inline OIIO_HOSTDEVICE float fast_cbrt (float x) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_cbrt (float x) {
 #ifndef __CUDA_ARCH__
     float x0 = fabsf(x);
     // from hacker's delight
@@ -2020,7 +2122,7 @@ inline OIIO_HOSTDEVICE float fast_cbrt (float x) {
 }
 
 
-inline OIIO_HOSTDEVICE float fast_erf (float x)
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_erf (float x)
 {
 #ifndef __CUDA_ARCH__
     // Examined 1082130433 values of erff on [0,4]: 1.93715e-06 max error
@@ -2044,7 +2146,7 @@ inline OIIO_HOSTDEVICE float fast_erf (float x)
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_erfc (float x)
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_erfc (float x)
 {
 #ifndef __CUDA_ARCH__
     // Examined 2164260866 values of erfcf on [-4,4]: 1.90735e-06 max error
@@ -2056,7 +2158,7 @@ inline OIIO_HOSTDEVICE float fast_erfc (float x)
 #endif
 }
 
-inline OIIO_HOSTDEVICE float fast_ierf (float x)
+OIIO_FORCEINLINE OIIO_HOSTDEVICE float fast_ierf (float x)
 {
     // from: Approximating the erfinv function by Mike Giles
     // to avoid trouble at the limit, clamp input to 1-eps
