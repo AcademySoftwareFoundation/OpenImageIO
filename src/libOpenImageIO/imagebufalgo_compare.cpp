@@ -283,7 +283,14 @@ compare_(const ImageBuf& A, const ImageBuf& B, float failthresh,
     result.maxerror      = 0;
     result.maxx = 0, result.maxy = 0, result.maxz = 0, result.maxc = 0;
     result.nfail = 0, result.nwarn = 0;
-    float maxval = 1.0;  // max possible value
+
+    float maxval = 1.0;
+    // N.B. [PSNR](https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio)
+    // formula requires the max possible value. We assume a normalized 1.0,
+    // but for an HDR image with potentially values > 1.0, there is no true
+    // max value, so we punt and use the highest value found in either
+    // image. The compare_value() function we call on every pixel value will
+    // check and adjust our max as needed.
 
     ImageBuf::ConstIterator<Atype> a(A, roi, ImageBuf::WrapBlack);
     ImageBuf::ConstIterator<Btype> b(B, roi, ImageBuf::WrapBlack);
