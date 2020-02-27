@@ -3398,24 +3398,16 @@ action_croptofull(int argc, const char* argv[])
 
 
 
-int
-action_trim(int argc, const char* argv[])
+// Even though OpenEXR technically allows each "part" (what we call a
+// subimage) to have a different data window, it seems that many apps
+// get flummoxed by such input files, so for their sake we ensure that
+// all parts share a single data window. This helper function computes
+// a shared nonzero region for all subimages of A.
+static ROI
+nonzero_region_all_subimages(ImageRecRef A)
 {
-    if (ot.postpone_callback(1, action_trim, argc, argv))
-        return 0;
-    Timer timer(ot.enable_function_timing);
-    string_view command = ot.express(argv[0]);
-
-    auto options      = ot.extract_options(command);
-    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
-
-    ot.read();
-    ImageRecRef A = ot.curimg;
-    int subimages = allsubimages ? A->subimages() : 1;
-
-    // First, figure out shared nonzero region
     ROI nonzero_region;
-    for (int s = 0; s < subimages; ++s) {
+    for (int s = 0; s < A->subimages(); ++s) {
         ROI roi = ImageBufAlgo::nonzero_region((*A)(s));
         if (roi.npixels() == 0) {
             // Special case -- all zero; but doctor to make it 1 zero pixel
@@ -3426,6 +3418,28 @@ action_trim(int argc, const char* argv[])
         }
         nonzero_region = roi_union(nonzero_region, roi);
     }
+    return nonzero_region;
+}
+
+
+
+int
+action_trim(int argc, const char* argv[])
+{
+    if (ot.postpone_callback(1, action_trim, argc, argv))
+        return 0;
+    Timer timer(ot.enable_function_timing);
+    string_view command = ot.express(argv[0]);
+
+    // auto options      = ot.extract_options(command);
+    // bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
+
+    ot.read();
+    ImageRecRef A = ot.curimg;
+    int subimages = A->subimages();
+
+    // First, figure out shared nonzero region.
+    ROI nonzero_region = nonzero_region_all_subimages(A);
 
     // Now see if any subimges need cropping
     bool crops_needed = false;
@@ -5054,25 +5068,23 @@ output_file(int /*argc*/, const char* argv[])
     // Handle --autotrim
     int autotrim = fileoptions.get_int("autotrim", ot.output_autotrim);
     if (supports_displaywindow && autotrim) {
-        ROI origroi = get_roi(*ir->spec(0, 0));
-        ROI roi     = ImageBufAlgo::nonzero_region((*ir)(0, 0), origroi);
-        if (roi.npixels() == 0) {
-            // Special case -- all zero; but doctor to make it 1 zero pixel
-            roi      = origroi;
-            roi.xend = roi.xbegin + 1;
-            roi.yend = roi.ybegin + 1;
-            roi.zend = roi.zbegin + 1;
+        ROI roi           = nonzero_region_all_subimages(ir);
+        bool crops_needed = false;
+        for (int s = 0; s < ir->subimages(); ++s)
+            crops_needed |= (roi != (*ir)(s).roi());
+        if (crops_needed) {
+            std::string crop
+                = (ir->spec(0, 0)->depth == 1)
+                      ? format_resolution(roi.width(), roi.height(), roi.xbegin,
+                                          roi.ybegin)
+                      : format_resolution(roi.width(), roi.height(),
+                                          roi.depth(), roi.xbegin, roi.ybegin,
+                                          roi.zbegin);
+            const char* argv[] = { "crop", crop.c_str() };
+            int action_crop(int argc, const char* argv[]);  // forward decl
+            action_crop(2, argv);
+            ir = ot.curimg;
         }
-        std::string crop = (ir->spec(0, 0)->depth == 1)
-                               ? format_resolution(roi.width(), roi.height(),
-                                                   roi.xbegin, roi.ybegin)
-                               : format_resolution(roi.width(), roi.height(),
-                                                   roi.depth(), roi.xbegin,
-                                                   roi.ybegin, roi.zbegin);
-        const char* argv[] = { "crop", crop.c_str() };
-        int action_crop(int argc, const char* argv[]);  // forward decl
-        action_crop(2, argv);
-        ir = ot.curimg;
     }
 
     // Automatically crop/pad if outputting to a format that doesn't
