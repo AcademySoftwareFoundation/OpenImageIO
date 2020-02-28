@@ -2,6 +2,7 @@
 branches/
 build/
 dist/
+ext/
 testsuite/runtest.pyc
 .cproject
 .project
