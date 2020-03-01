@@ -2169,7 +2169,14 @@ PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_API:= \
                          OIIO_NAMESPACE_BEGIN="namespace OIIO {" \
                          OIIO_NAMESPACE_END="}" \
-                         OIIO_CONSTEXPR14=constexpr
+                         OIIO_CONSTEXPR14=constexpr \
+                         OIIO_CONSTEXPR20=constexpr \
+                         OIIO_PURE_FUNC= \
+                         OIIO_CONST_FUNC= \
+                         OIIO_MAYBE_UNUSED= \
+                         OIIO_NODISCARD=[[nodiscard]] \
+                         OIIO_FORCEINLINE=inline
+
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The
