@@ -41,7 +41,9 @@
 #ifndef FMT_EXCEPTIONS
 #    define FMT_EXCEPTIONS 0
 #endif
-#define FMT_USE_GRISU 1
+#ifndef FMT_USE_GRISU
+#    define FMT_USE_GRISU 1
+#endif
 #if OIIO_USE_FMT
 #    include "fmt/ostream.h"
 #    include "fmt/format.h"
