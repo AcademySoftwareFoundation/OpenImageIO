@@ -1,11 +1,6 @@
 Installation instructions for OpenImageIO
 =========================================
 
-For the most up-to-date build instructions (and in any case somewhat
-more detailed than here), please see our wiki:
-
-https://sites.google.com/site/openimageio/checking-out-and-building-openimageio
-
 Supported platforms at present include Linux (32 and 64 bit),
 Mac OS X, and Windows.
 
@@ -29,9 +24,25 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * Compilers: gcc 4.8.2 - 9.1, clang 3.3 - 9.0, MSVS 2015 - 2019,
    icc version 13 or higher
  * Boost >= 1.53 (tested up through 1.71)
+    * conan
+    * vckpg
+    * macport
+    * homebrew
  * CMake >= 3.12 (tested up through 3.16)
+    * conon
+    * macport
+    * homebrew
+    * fink
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.4)
+    * conan
+    * vckpg
+    * macport
+    * homebrew
+    * fink
  * libTIFF >= 3.9 (recommended: 4.0+)
+    * conan
+    * homebrew
+    * fink
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
@@ -140,9 +151,7 @@ directories must notify the CMake system using environment variables.
 For example, set QTDIR to point at the root of the Qt library location
 so that CMake can find it (see CMake configuration output).
 
-On Linux and OS X, you can build from source from the top-level
-directory by just typing 'make'.  (Yes, we have a 'make' wrapper around
-our CMake build, it simplifies things.)
+**On Linux and OS X, you can build from source from the top-level directory by just typing 'make'.  (Yes, we have a 'make' wrapper around our CMake build, it simplifies things.)**
 
 During the make, various temporary files (object files, etc.) will
 be put in build/PLATFORM, where 'PLATFORM' will be the name of the
@@ -188,7 +197,7 @@ CMake directly:
     cd build
     cmake ..
 
-If the compile stops because of warnings, try again with 
+If the compile stops because of warnings, try again with
 
     make nuke
     make STOP_ON_WARNING=0
@@ -204,8 +213,7 @@ or, if you are using CMake directly,
 Building on Windows
 -------------------
 
-See the latest Windows build docs on our web site:
-https://sites.google.com/site/openimageio/building-oiio-on-windows
+**Method 1 - Default**
 
 1. Check out the trunk or a branch of your choice.  The remainder of
    these instructions assume that you checked out the trunk to the
@@ -291,6 +299,13 @@ D:\OIIO\external\dist\windows\zlib-1.2.3 directory. If it can't find
 ZLIB and PNG, add
 D:\OIIO\external\dist\windows\zlib-1.2.3;D:\OIIO\external\dist\windows\libpng-1.2.3.
 
+**Method 2 - Using vcpkg**
+
+1. Visit Microsoft's vcpkg GitHub page: https://github.com/Microsoft/vcpkg. Also note that the openimageio package is located here: https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
+
+2. Follow vcpkg installation instructions and complete the install. Please note vcpkg has its own list of prerequisites listed on their page.
+
+3. Execute the PowerShell command from where vcpkg is located in directory. ``.\vcpkg install openimageio``
 
 Test Images
 -----------
