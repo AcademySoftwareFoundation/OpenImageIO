@@ -133,8 +133,8 @@ enum TIFFTAG {
 
 
 /// Given a TIFF data type code (defined in tiff.h) and a count, return the
-/// equivalent TypeDesc where one exists. .Return TypeUndefined if there
-/// is no obvious equivalent.
+/// equivalent TypeDesc where one exists. Return TypeUnknown if there is no
+/// obvious equivalent.
 OIIO_API TypeDesc tiff_datatype_to_typedesc (TIFFDataType tifftype, size_t tiffcount=1);
 
 inline TypeDesc tiff_datatype_to_typedesc (const TIFFDirEntry& dir) {

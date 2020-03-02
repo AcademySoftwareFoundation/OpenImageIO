@@ -205,46 +205,99 @@ private:
 
     void invert_photometric(int n, void* data);
 
-    // Calling TIFFGetField (tif, tag, &dest) is supposed to work fine for
-    // simple types... as long as the tag types in the file are the correct
-    // advertised types.  But for some types -- which we never expect, but
-    // it turns out can sometimes happen, TIFFGetField will try to pull
-    // a second argument (a void**) off the stack, and that can crash the
-    // program!  Ick.  So to avoid this, we always push a pointer, which
-    // we expect NOT to be altered, and if it is, it's a danger sign (plus
-    // we didn't crash).
-    bool safe_tiffgetfield(string_view name OIIO_MAYBE_UNUSED, int tag,
-                           void* dest)
+#ifdef TIFF_VERSION_BIG
+    const TIFFField* find_field(int tifftag, TIFFDataType tifftype = TIFF_ANY)
     {
-        void* ptr = NULL;  // dummy -- expect it to stay NULL
-        bool ok   = TIFFGetField(m_tif, tag, dest, &ptr);
-        if (ptr) {
-#ifndef NDEBUG
-            std::cerr << "Error safe_tiffgetfield : did not expect ptr set on "
-                      << name << " " << (void*)ptr << "\n";
+        return TIFFFindField(m_tif, tifftag, tifftype);
+    }
+#else
+    const TIFFFieldInfo* find_field(int tifftag,
+                                    TIFFDataType tifftype = TIFF_ANY)
+    {
+        return TIFFFindFieldInfo(m_tif, tifftag, tifftype);
+    }
 #endif
+
+    OIIO_NODISCARD
+    TypeDesc tiffgetfieldtype(string_view name OIIO_MAYBE_UNUSED, int tag)
+    {
+        auto field = find_field(tag);
+        if (!field)
+            return TypeUnknown;
+        TIFFDataType tiffdatatype = TIFFFieldDataType(field);
+        int passcount             = TIFFFieldPassCount(field);
+        int readcount             = TIFFFieldReadCount(field);
+        if (!passcount && readcount > 0)
+            return tiff_datatype_to_typedesc(tiffdatatype, readcount);
+        return TypeUnknown;
+    }
+
+    OIIO_NODISCARD
+    bool safe_tiffgetfield(string_view name OIIO_MAYBE_UNUSED, int tag,
+                           TypeDesc expected, void* dest)
+    {
+        TypeDesc type = tiffgetfieldtype(name, tag);
+        // Caller expects a specific type and the tag doesn't match? Punt.
+        if (expected != TypeUnknown && !equivalent(expected, type))
             return false;
+        auto field = find_field(tag);
+        if (!field)
+            return false;
+
+        // TIFFDataType tiffdatatype = TIFFFieldDataType(field);
+        int passcount = TIFFFieldPassCount(field);
+        int readcount = TIFFFieldReadCount(field);
+        if (!passcount && readcount > 0) {
+            return TIFFGetField(m_tif, tag, dest);
         }
-        return ok;
+        // OIIO::debugf(" stgf %s tag %d %s datatype %d passcount %d readcount %d\n",
+        //              name, tag, type, int(TIFFFieldDataType(field)), passcount, readcount);
+        return false;
     }
 
     // Get a string tiff tag field and save it it as a string_view. The
     // return value will be true if the tag was found, otherwise false.
-    bool tiff_get_string_field(int tag, string_view& result)
+    OIIO_NODISCARD
+    bool tiff_get_string_field(int tag, string_view name OIIO_MAYBE_UNUSED,
+                               string_view& result)
     {
-        char* s   = NULL;
-        void* ptr = NULL;  // dummy -- expect it to stay NULL
-        bool ok   = TIFFGetField(m_tif, tag, &s, &ptr);
-        if (ok && ptr) {
-            // Oy, some tags need 2 args, which are count, then ptr.
-            // There's no way to know ahead of time which ones, so we send
-            // a second pointer. If it gets overwritten, then we understand
-            // and try it again with 2 args, first one is count.
-            unsigned short count;
-            ok     = TIFFGetField(m_tif, tag, &count, &s);
+        auto field = find_field(tag);
+        if (!field)
+            return false;
+        TIFFDataType tiffdatatype = TIFFFieldDataType(field);
+        int passcount             = TIFFFieldPassCount(field);
+        int readcount             = TIFFFieldReadCount(field);
+        // Strutil::printf(" tgsf %s tag %d datatype %d passcount %d readcount %d\n",
+        //                 name, tag, int(tiffdatatype), passcount, readcount);
+        char* s        = nullptr;
+        uint32_t count = 0;
+        bool ok        = false;
+        if (tiffdatatype == TIFF_ASCII && passcount
+            && readcount == TIFF_VARIABLE) {
+            uint16_t shortcount = 0;
+            ok                  = TIFFGetField(m_tif, tag, &shortcount, &s);
+            count               = shortcount;
+        } else if (tiffdatatype == TIFF_ASCII && passcount
+                   && readcount == TIFF_VARIABLE2) {
+            ok = TIFFGetField(m_tif, tag, &count, &s);
+        } else if (readcount > 0) {
+            ok    = TIFFGetField(m_tif, tag, &s);
+            count = readcount;
+        } else if (tiffdatatype == TIFF_ASCII) {
+            ok = TIFFGetField(m_tif, tag, &s);
+            if (ok && s && *s)
+                count = strlen(s);
+        } else {
+            // Some other type, we should not have been asking for this
+            // as ASCII, or maybe the tag is just the wrong data type in
+            // the file. Punt.
+        }
+        if (ok && s && *s) {
             result = string_view(s, count);
-        } else if (ok && s && *s)
-            result = string_view(s);
+            // Strip off sometimes-errant extra null characters
+            while (result.size() && result.back() == '\0')
+                result.remove_suffix(1);
+        }
         return ok;
     }
 
@@ -252,15 +305,18 @@ private:
     void get_string_attribute(string_view name, int tag)
     {
         string_view s;
-        if (tiff_get_string_field(tag, s))
+        if (tiff_get_string_field(tag, name, s)) {
             m_spec.attribute(name, s);
+            // TODO: If the length is 0, erase the attrib rather than
+            // setting it to the empty string.
+        }
     }
 
     // Get a matrix tiff tag field and put it into extra_params
     void get_matrix_attribute(string_view name, int tag)
     {
-        float* f = NULL;
-        if (safe_tiffgetfield(name, tag, &f) && f)
+        float* f = nullptr;
+        if (safe_tiffgetfield(name, tag, TypeUnknown, &f) && f)
             m_spec.attribute(name, TypeMatrix, f);
     }
 
@@ -268,15 +324,15 @@ private:
     void get_float_attribute(string_view name, int tag)
     {
         float f[16];
-        if (safe_tiffgetfield(name, tag, f))
+        if (safe_tiffgetfield(name, tag, TypeUnknown, f))
             m_spec.attribute(name, f[0]);
     }
 
     // Get an int tiff tag field and put it into extra_params
     void get_int_attribute(string_view name, int tag)
     {
-        int i;
-        if (safe_tiffgetfield(name, tag, &i))
+        int i = 0;
+        if (safe_tiffgetfield(name, tag, TypeUnknown, &i))
             m_spec.attribute(name, i);
     }
 
@@ -286,23 +342,11 @@ private:
         // Make room for two shorts, in case the tag is not the type we
         // expect, and libtiff writes a long instead.
         unsigned short s[2] = { 0, 0 };
-        if (safe_tiffgetfield(name, tag, &s)) {
+        if (safe_tiffgetfield(name, tag, TypeUInt16, &s)) {
             int i = s[0];
             m_spec.attribute(name, i);
         }
     }
-
-#ifdef TIFF_VERSION_BIG
-    const TIFFField* find_field(int tifftag, TIFFDataType tifftype)
-    {
-        return TIFFFindField(m_tif, tifftag, tifftype);
-    }
-#else
-    const TIFFFieldInfo* find_field(int tifftag, TIFFDataType tifftype)
-    {
-        return TIFFFindFieldInfo(m_tif, tifftag, tifftype);
-    }
-#endif
 
     // Search for TIFF tag having type 'tifftype', and if found,
     // add it in the obvious way to m_spec under the name 'oiioname'.
@@ -754,7 +798,7 @@ TIFFInput::readspec(bool read_meta)
         // misinterpreting the image offset.
         int oiio_write_version = 0;
         string_view software;
-        if (tiff_get_string_field(TIFFTAG_SOFTWARE, software)
+        if (tiff_get_string_field(TIFFTAG_SOFTWARE, "Software", software)
             && Strutil::parse_prefix(software, "OpenImageIO")) {
             int major = 0, minor = 0, patch = 0;
             if (Strutil::parse_int(software, major)
@@ -894,7 +938,8 @@ TIFFInput::readspec(bool read_meta)
     if (const char* compressname = tiff_compression_name(m_compression))
         m_spec.attribute("compression", compressname);
     m_predictor = PREDICTOR_NONE;
-    if (!safe_tiffgetfield("Predictor", TIFFTAG_PREDICTOR, &m_predictor))
+    if (!safe_tiffgetfield("Predictor", TIFFTAG_PREDICTOR, TypeUInt16,
+                           &m_predictor))
         m_predictor = PREDICTOR_NONE;
 
     m_rowsperstrip = -1;
@@ -1178,8 +1223,9 @@ TIFFInput::readspec_photometric()
             m_spec.attribute("oiio:ColorSpace", "color separated");
             m_raw_color = true;  // Conversion to RGB doesn't make sense
             const char* inknames = NULL;
-            safe_tiffgetfield("tiff:InkNames", TIFFTAG_INKNAMES, &inknames);
-            if (inknames && inknames[0] && numberofinks) {
+            if (safe_tiffgetfield("tiff:InkNames", TIFFTAG_INKNAMES,
+                                  TypeUnknown, &inknames)
+                && inknames && inknames[0] && numberofinks) {
                 m_spec.channelnames.clear();
                 // Decode the ink names, which are all concatenated together.
                 for (int i = 0; i < int(numberofinks); ++i) {
