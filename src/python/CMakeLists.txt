@@ -4,6 +4,8 @@
 
 # from pythonutils.cmake
 find_python ()
+checked_find_package (pybind11 2.4.2 REQUIRED)
+
 
 file (GLOB python_srcs *.cpp)
 setup_python_module (TARGET    PyOpenImageIO

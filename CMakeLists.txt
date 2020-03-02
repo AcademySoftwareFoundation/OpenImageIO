@@ -50,6 +50,7 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message (FATAL_ERROR "Not allowed to run in-source build!")
 endif ()
+list (APPEND CMAKE_PREFIX_PATH ${CMAKE_SOURCE_DIR}/ext/dist)
 
 
 option (CMAKE_USE_FOLDERS "Use the FOLDER target property to organize targets into folders." ON)
@@ -184,7 +185,6 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
 endif ()
 
 if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
-    find_or_download_pybind11 ()
     add_subdirectory (src/python)
 endif ()
 

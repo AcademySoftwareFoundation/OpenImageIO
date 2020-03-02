@@ -64,6 +64,7 @@ install:
     - if [ "$BUILD_CMAKE" == "1" ] ; then source src/build-scripts/build_cmake.bash ; fi
     - if [ $TRAVIS_OS_NAME == linux ] ; then CXX="ccache $CXX" source src/build-scripts/build_openexr.bash ; fi
     - if [ $TRAVIS_OS_NAME == linux ] ; then CXX="ccache $CXX" source src/build-scripts/build_ocio.bash ; fi
+    - if [ $TRAVIS_OS_NAME == linux ] ; then source src/build-scripts/build_pybind11.bash ; fi
     - src/build-scripts/install_test_images.bash
 
 # before_script:

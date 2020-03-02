@@ -25,7 +25,7 @@ if [[ "$BUILDTARGET" == "clang-format" ]] ; then
     # If we are running for the sake of clang-format only, just install the
     # bare minimum packages and return.
     brew install --display-times ilmbase openexr llvm clang-format libtiff libpng boost ninja giflib
-    brew install --display-times python && true
+    brew install --display-times python pybind11 && true
     brew upgrade --display-times python && true
     brew link --overwrite python
     brew upgrade --display-times cmake && true

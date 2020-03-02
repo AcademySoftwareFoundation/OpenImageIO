@@ -73,6 +73,7 @@ fi
 
 src/build-scripts/install_test_images.bash
 
+CXX="ccache $CXX" source src/build-scripts/build_pybind11.bash
 CXX="ccache $CXX" source src/build-scripts/build_openexr.bash
 
 # Temporary (?) fix: GH ninja having problems, fall back to make
