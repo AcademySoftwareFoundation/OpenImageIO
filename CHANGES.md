@@ -1,3 +1,7 @@
+Release 2.1.13 (Apr? 2020) -- compared to 2.1.12
+-------------------------------------------------
+
+
 Release 2.1.12 (2 Mar 2020) -- compared to 2.1.11
 -------------------------------------------------
 * Fix: plugin.h getsym() didn't pass along its report_error param. #2465
