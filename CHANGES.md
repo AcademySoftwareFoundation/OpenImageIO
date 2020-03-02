@@ -1,6 +1,23 @@
-Release 2.1.12 (? Mar 2020) -- compared to 2.1.11
+Release 2.1.12 (2 Mar 2020) -- compared to 2.1.11
 -------------------------------------------------
-
+* Fix: plugin.h getsym() didn't pass along its report_error param. #2465
+* Fix: ImageBuf::getchannel() did not honor its wrap parameter. #2465
+* Fix: ImageSpec::erase_attribute() did not honor its `searchtype` param. #2465
+* Fix: IBA::reorient() and IBA::computePixelsHashSHA1() did not honor their
+  `nthreads` parameter. #2465.
+* IBA::resample() now uses the clamp wrap mode to avoid black fringing and
+  match the behavior of resize(). #2481
+* Fix: ImageBuf::get_pixels() did not honor the stride parameters. #2487.
+* fmath.h perf improvements: clamp() is 2x faster; madd() is improved
+  especially on platforms without fma hardware; perf improvements in
+  `fast_sin`, `fast_cos`; new `safe_fmod` is faster than std::fmod, new
+  `fast_neg` is faster than simple negation in many cases, if you don't care
+  that -(0.0) is 0.0 (rather than a true -0.0). #2491 #2492 #2494
+* strutil: New function: concat(). #2478
+* Build: un-embed the 'fmt' headers, instead auto-download if not found.
+  #2439
+* Build: Protect against certain compiler preprocessor errors for user
+  programs that include strutil.h but also inculde `fmt` on its own. #2498.
 
 Release 2.1.11 (1 Feb 2020) -- compared to 2.1.10
 -------------------------------------------------
