@@ -53,6 +53,9 @@ Fixes and feature enhancements:
       (2.2.0)
     - `-o` optional argument `:type=name` is a new (and preferred) synonym
       for what used to be `:datatype=`. #2414 (2.2.0)
+    - `--autotrim` now correctly trims to the union of the nonzero regions
+      of all subimages, instead of incorrectly trimming all subimages to the
+      nonzero region of the first subimage. #2497 (2.2.1.2)
 * ImageBuf / ImageBufAlgo:
     - Huge ImageBuf allocation failures (more than available RAM) now are
       caught and treated as an ImageBuf error, rather than crashing with an
@@ -69,6 +72,8 @@ Fixes and feature enhancements:
     - `resample()` has been modified to more closely match `resize` by using
       clamp wrap mode to avoid a black fade at the outer edge of the
       resampled area. #2481
+    - Fix: `ImageBuf::get_pixels()` did not honor the stride parameters.
+      #2487. (2.1.12/2.2.1)
 * ImageCache / TextureSystem / maketx:
     - New IC/TS attribute "trust_file_extensions", if nonzero, is a promise
       that all files can be counted on for their formats to match their
@@ -84,12 +89,21 @@ Fixes and feature enhancements:
 * Fix: Some ColorProcessor::apply() methods were not using their `chanstride`
   parameters correctly. #2475 (2.1.12)
 * OpenEXR:
-    - Add support for reading and writing float vector metadata. #2459
+    - Add support for reading and writing float vector metadata. #2459 #2486
 * Raw images:
     - Support for new Canon .cr3 file, but only if you build against
       libraw >= 0.20.0 developer snapshot. #2484 (2.2.1)
 
 Developer goodies / internals:
+* fmath.h:
+    - clamp() is 2x faster. #2491 (2.1.12/2.2.2)
+    - madd() is improved especially on platforms without fma hardware
+      #2492 (2.1.12/2.2.2)
+    - Perf improvements to `fast_sin`, `fast_cos` #2495 (2.1.12/2.2.2)
+    - New `safe_fmod()` is faster than std::fmod. #2495 (2.1.12/2.2.2)
+    - New `fast_neg` is faster than simple negation in many cases, if you
+      don't care that -(0.0) is 0.0 (rather than a true -0.0). #2495
+      (2.1.12/2.2.2)
 * platform.h:
     - `OIIO_PRETTY_FUNCTION` definition is more robust for weird compilers
       (will fall back to `__FUNCTION__` if all else fails). #2413 (2.2.0)
@@ -122,6 +136,9 @@ Build/test system improvements and platform ports:
 * Bump the minimum pybind11 vesion that we auto-download, and also be sure
   to auto-download if pybind11 is found on the system already but is not an
   adequately new version. #2453 (2.1.10.1/2.2.0)
+* Pybind11 is no longer auto-downloaded. It is assumed to be pre-installed.
+  A script `src/build-scripts/build_pybind11.bash` is provided for
+  convenience if you lack a system install. #2503 (2.2.2)
 * Un-embed fmt headers. If they are not found on the system at build time,
   they will be auto-downloaded. #2439 (2.2.0)
 * Progress on support for using Conan for dependency installation. This is
@@ -136,6 +153,13 @@ Build/test system improvements and platform ports:
 * The `farmhash` functions have been cleaned up to be more careful that none
   of their internal symbols are left visible to the linker. #2473 (2.2.1)
 * Support for building against libraw 0.20. #2484 (2.2.1)
+* Clarification about .so name versioning: In supported releases, .so
+  contains major.minor, but in master (where ABI is not guaranteed stable,
+  we name major.minor.patch). #2488 (2.2.1)
+* FindOpenColorIO.cmake now correctly discerns the OCIO version. (2.2.1)
+* Build: Protect against certain compiler preprocessor errors for user
+  programs that include strutil.h but also inculde `fmt` on its own. #2498.
+  (2.1.12/2.2.2)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
@@ -145,6 +169,27 @@ Notable documentation changes:
   section cross-references and links.
 
 
+
+Release 2.1.12 (2 Mar 2020) -- compared to 2.1.11
+-------------------------------------------------
+* Fix: plugin.h getsym() didn't pass along its report_error param. #2465
+* Fix: ImageBuf::getchannel() did not honor its wrap parameter. #2465
+* Fix: ImageSpec::erase_attribute() did not honor its `searchtype` param. #2465
+* Fix: IBA::reorient() and IBA::computePixelsHashSHA1() did not honor their
+  `nthreads` parameter. #2465.
+* IBA::resample() now uses the clamp wrap mode to avoid black fringing and
+  match the behavior of resize(). #2481
+* Fix: ImageBuf::get_pixels() did not honor the stride parameters. #2487.
+* fmath.h perf improvements: clamp() is 2x faster; madd() is improved
+  especially on platforms without fma hardware; perf improvements in
+  `fast_sin`, `fast_cos`; new `safe_fmod` is faster than std::fmod, new
+  `fast_neg` is faster than simple negation in many cases, if you don't care
+  that -(0.0) is 0.0 (rather than a true -0.0). #2491 #2492 #2494
+* strutil: New function: concat(). #2478
+* Build: un-embed the 'fmt' headers, instead auto-download if not found.
+  #2439
+* Build: Protect against certain compiler preprocessor errors for user
+  programs that include strutil.h but also inculde `fmt` on its own. #2498.
 
 Release 2.1.11 (1 Feb 2020) -- compared to 2.1.10
 -------------------------------------------------
