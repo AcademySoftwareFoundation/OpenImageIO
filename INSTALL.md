@@ -24,25 +24,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * Compilers: gcc 4.8.2 - 9.1, clang 3.3 - 9.0, MSVS 2015 - 2019,
    icc version 13 or higher
  * Boost >= 1.53 (tested up through 1.71)
-    * conan
-    * vckpg
-    * macport
-    * homebrew
  * CMake >= 3.12 (tested up through 3.16)
-    * conon
-    * macport
-    * homebrew
-    * fink
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.4)
-    * conan
-    * vckpg
-    * macport
-    * homebrew
-    * fink
  * libTIFF >= 3.9 (recommended: 4.0+)
-    * conan
-    * homebrew
-    * fink
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
@@ -123,13 +107,37 @@ dependency. This works both as a CMake variable and
 also as an environment variable.
 
 
+**Package managers**
+
+The following are known library managers which
+either have the OIIO package ready and/or some of its dependencies.
+
+* vckpg (https://github.com/Microsoft/vcpkg)
+    * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
+    * ``.\vcpkg install openimageio``
+* macport (https://github.com/macports/macports-ports)
+    * https://www.macports.org/ports.php?by=name&substr=openimageio
+    * ``port install openimageio``
+* homebrew (https://github.com/Homebrew/brew)
+    * https://formulae.brew.sh/formula/openimageio
+    * ``brew install openimageio``
+* fink (https://github.com/fink/fink)
+    * http://pdb.finkproject.org/pdb/package.php/libopenimageio2.1-shlibs
+    * ``fink install openimageio``
+* conan (https://github.com/conan-io/conan)
 
 Building OpenImageIO on Linux or OS X
 -------------------------------------
 
 The following dependencies must be installed to build the core of
-OpenImageIO: Boost, libjpeg, libtiff, libpng and OpenEXR.  These can be
-installed using the standard package managers on your system.
+OpenImageIO:
+* Boost
+* libjpeg
+* libtiff
+* libpng
+* OpenEXR.
+
+These can be installed using the standard package managers on your system.
 Optionally, to build the image viewing tools, you will need Qt and OpenGL.
 
 On OS X, these dependencies can be installed using Fink, MacPorts or
@@ -151,7 +159,9 @@ directories must notify the CMake system using environment variables.
 For example, set QTDIR to point at the root of the Qt library location
 so that CMake can find it (see CMake configuration output).
 
-**On Linux and OS X, you can build from source from the top-level directory by just typing 'make'.  (Yes, we have a 'make' wrapper around our CMake build, it simplifies things.)**
+**On Linux and OS X, you can build from source from the top-level
+directory by just typing 'make'.  (Yes, we have a 'make' wrapper around
+our CMake build, it simplifies things.)**
 
 During the make, various temporary files (object files, etc.) will
 be put in build/PLATFORM, where 'PLATFORM' will be the name of the
