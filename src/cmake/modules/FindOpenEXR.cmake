@@ -121,6 +121,8 @@ foreach (COMPONENT ${_openexr_components})
     find_library (OPENEXR_${UPPERCOMPONENT}_LIBRARY
                   NAMES ${COMPONENT}-${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR}
                         ${COMPONENT}
+                        ${COMPONENT}-${OPENEXR_VERSION_MAJOR}_${OPENEXR_VERSION_MINOR}_d
+                        ${COMPONENT}_d
                   HINTS ${OPENEXR_LIBRARY_DIR} $ENV{OPENEXR_LIBRARY_DIR}
                         ${GENERIC_LIBRARY_PATHS} )
 endforeach ()
