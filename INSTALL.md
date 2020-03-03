@@ -1,11 +1,6 @@
 Installation instructions for OpenImageIO
 =========================================
 
-For the most up-to-date build instructions (and in any case somewhat
-more detailed than here), please see our wiki:
-
-https://sites.google.com/site/openimageio/checking-out-and-building-openimageio
-
 Supported platforms at present include Linux (32 and 64 bit),
 Mac OS X, and Windows.
 
@@ -110,13 +105,37 @@ dependency. This works both as a CMake variable and
 also as an environment variable.
 
 
+**Package managers**
+
+The following are known library managers which
+either have the OIIO package ready and/or some of its dependencies.
+
+* vckpg (https://github.com/Microsoft/vcpkg)
+    * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
+    * ``.\vcpkg install openimageio``
+* macport (https://github.com/macports/macports-ports)
+    * https://www.macports.org/ports.php?by=name&substr=openimageio
+    * ``port install openimageio``
+* homebrew (https://github.com/Homebrew/brew)
+    * https://formulae.brew.sh/formula/openimageio
+    * ``brew install openimageio``
+* fink (https://github.com/fink/fink)
+    * http://pdb.finkproject.org/pdb/package.php/libopenimageio2.1-shlibs
+    * ``fink install openimageio``
+* conan (https://github.com/conan-io/conan)
 
 Building OpenImageIO on Linux or OS X
 -------------------------------------
 
 The following dependencies must be installed to build the core of
-OpenImageIO: Boost, libjpeg, libtiff, libpng and OpenEXR.  These can be
-installed using the standard package managers on your system.
+OpenImageIO:
+* Boost
+* libjpeg
+* libtiff
+* libpng
+* OpenEXR.
+
+These can be installed using the standard package managers on your system.
 Optionally, to build the image viewing tools, you will need Qt and OpenGL.
 
 On OS X, these dependencies can be installed using Fink, MacPorts or
@@ -138,9 +157,9 @@ directories must notify the CMake system using environment variables.
 For example, set QTDIR to point at the root of the Qt library location
 so that CMake can find it (see CMake configuration output).
 
-On Linux and OS X, you can build from source from the top-level
+**On Linux and OS X, you can build from source from the top-level
 directory by just typing 'make'.  (Yes, we have a 'make' wrapper around
-our CMake build, it simplifies things.)
+our CMake build, it simplifies things.)**
 
 During the make, various temporary files (object files, etc.) will
 be put in build/PLATFORM, where 'PLATFORM' will be the name of the
@@ -186,7 +205,7 @@ CMake directly:
     cd build
     cmake ..
 
-If the compile stops because of warnings, try again with 
+If the compile stops because of warnings, try again with
 
     make nuke
     make STOP_ON_WARNING=0
@@ -202,8 +221,7 @@ or, if you are using CMake directly,
 Building on Windows
 -------------------
 
-See the latest Windows build docs on our web site:
-https://sites.google.com/site/openimageio/building-oiio-on-windows
+**Method 1 - Default**
 
 1. Check out the trunk or a branch of your choice.  The remainder of
    these instructions assume that you checked out the trunk to the
@@ -289,6 +307,13 @@ D:\OIIO\external\dist\windows\zlib-1.2.3 directory. If it can't find
 ZLIB and PNG, add
 D:\OIIO\external\dist\windows\zlib-1.2.3;D:\OIIO\external\dist\windows\libpng-1.2.3.
 
+**Method 2 - Using vcpkg**
+
+1. Visit Microsoft's vcpkg GitHub page: https://github.com/Microsoft/vcpkg. Also note that the openimageio package is located here: https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
+
+2. Follow vcpkg installation instructions and complete the install. Please note vcpkg has its own list of prerequisites listed on their page.
+
+3. Execute the PowerShell command from where vcpkg is located in directory. ``.\vcpkg install openimageio``
 
 Test Images
 -----------
