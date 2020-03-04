@@ -8,5 +8,6 @@ if (PNG_FOUND)
                      LINK_LIBRARIES ${PNG_LIBRARIES} ${ZLIB_LIBRARIES})
 else ()
     message (WARNING "libpng not found, so ICO support will not work")
+    set (format_plugin_definitions ${format_plugin_definitions} DISABLE_ICO=1 PARENT_SCOPE)
 endif ()
 
