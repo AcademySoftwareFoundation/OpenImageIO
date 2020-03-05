@@ -21,6 +21,11 @@ message (STATUS "*   - To exclude an optional dependency (even if found),")
 message (STATUS "*     -DUSE_Package=OFF or set environment var USE_Package=OFF ")
 message (STATUS "${ColorReset}")
 
+set (REQUIED_DEPS "" CACHE STRING
+     "Additional dependencies to consider required (semicolon-separated list, or ALL)")
+set (OPTIONAL_DEPS "" CACHE STRING
+     "Additional dependencies to consider optional (semicolon-separated list, or ALL)")
+
 
 # checked_find_package(pkgname ..) is a wrapper for find_package, with the
 # following extra features:
@@ -55,12 +60,19 @@ macro (checked_find_package pkgname)
         set (${pkgname}_FIND_QUIETLY true)
         set (${pkgname_upper}_FIND_QUIETLY true)
     endif ()
+    if ("${pkgname}" IN_LIST REQUIRED_DEPS OR "ALL" IN_LIST REQUIRED_DEPS)
+        set (_pkg_REQUIRED 1)
+    endif ()
+    if ("${pkgname}" IN_LIST OPTIONAL_DEPS OR "ALL" IN_LIST OPTIONAL_DEPS)
+        set (_pkg_REQUIRED 0)
+    endif ()
     set (_quietskip false)
     check_is_enabled (${pkgname} _enable)
     set (_disablereason "")
     foreach (_dep ${_pkg_DEPS})
         if (_enable AND NOT ${_dep}_FOUND)
             set (_enable false)
+            set (${pkgname}_ENABLED OFF PARENT_SCOPE)
             set (_disablereason "(because ${_dep} was not found)")
         endif ()
     endforeach ()
@@ -173,7 +185,6 @@ link_directories ("${Boost_LIBRARY_DIRS}")
 # that we will not complete the build if they are not found.
 
 checked_find_package (ZLIB REQUIRED)  # Needed by several packages
-checked_find_package (PNG REQUIRED)
 checked_find_package (TIFF 3.0 REQUIRED)
 
 # IlmBase & OpenEXR
@@ -212,6 +223,8 @@ endif()
 ###########################################################################
 # Dependencies for optional formats and features. If these are not found,
 # we will continue building, but the related functionality will be disabled.
+
+checked_find_package (PNG)
 
 checked_find_package (BZip2)   # Used by ffmpeg and freetype
 if (NOT BZIP2_FOUND)
