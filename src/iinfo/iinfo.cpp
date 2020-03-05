@@ -670,6 +670,7 @@ main(int argc, const char* argv[])
         longestname = std::max(longestname, s.length());
     longestname = std::min(longestname, (size_t)40);
 
+    int returncode      = EXIT_SUCCESS;
     long long totalsize = 0;
     for (auto&& s : filenames) {
         auto in = ImageInput::open(s);
@@ -678,6 +679,7 @@ main(int argc, const char* argv[])
             if (err.empty())
                 err = Strutil::sprintf("Could not open \"%s\"", s);
             std::cerr << "iinfo ERROR: " << err << "\n";
+            returncode = EXIT_FAILURE;
             continue;
         }
         ImageSpec spec = in->spec();
@@ -692,5 +694,5 @@ main(int argc, const char* argv[])
             printf("Total size: %.2f MB\n", t);
     }
 
-    return 0;
+    return returncode;
 }
