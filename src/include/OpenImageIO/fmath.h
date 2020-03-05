@@ -1518,7 +1518,7 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE int fast_rint (float x) {
     // used by sin/cos/tan range reduction
 #if OIIO_SIMD_SSE >= 4
     // single roundps instruction on SSE4.1+ (for gcc/clang at least)
-    return static_cast<int>(rintf(x));
+    return static_cast<int>(std::rint(x));
 #else
     // emulate rounding by adding/substracting 0.5
     return static_cast<int>(x + copysignf(0.5f, x));
