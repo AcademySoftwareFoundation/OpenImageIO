@@ -465,7 +465,8 @@ public:
 
     /// Add a string attribute to `extra_attribs`.
     void attribute (string_view name, string_view value) {
-        const char *s = value.c_str();
+        std::string str(value);
+        const char *s = str.c_str();
         attribute (name, TypeDesc::STRING, &s);
     }
 
