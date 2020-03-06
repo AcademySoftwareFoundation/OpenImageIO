@@ -225,7 +225,8 @@ ifeq (${SP_OS}, rhel7)
     endif
     MY_CMAKE_FLAGS += \
         -DPYTHON_INCLUDE_DIR:STRING=${PYTHON_INCLUDE_DIR} \
-        -DPYTHON_LIBRARY:STRING=${PYTHON_LIBRARY}
+        -DPYTHON_LIBRARY:STRING=${PYTHON_LIBRARY} \
+        -Dpybind11_ROOT:STRING=${REZ_PACKAGE_ROOT}/pybind11/2.4.3/python-${PYTHON_VERSION}
 
     # Set our preferred OpenEXR path, but allow env variable to override
     # with custom/test version.
