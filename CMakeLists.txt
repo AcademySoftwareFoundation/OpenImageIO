@@ -298,7 +298,7 @@ oiio_add_tests (gpsread
                 maketx oiiotool-maketx
                 misnamed-file
                 missingcolor
-                dpx ico iff png psd rla sgi zfile
+                dpx ico iff png pnm psd rla sgi targa-tgautils zfile
                 texture-interp-bicubic
                 texture-blurtube
                 texture-crop texture-cropover
@@ -312,6 +312,7 @@ oiio_add_tests (gpsread
                 texture-missing texture-res texture-maxres
                 texture-udim texture-udim2
                 IMAGEDIR oiio-images
+                URL "Recent checkout of oiio-images"
                )
 
 #   Tests that require openexr-images:
@@ -398,18 +399,10 @@ oiio_add_tests (jpeg2000
     IMAGEDIR j2kp4files_v1_5
     URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
 
-oiio_add_tests (pnm
-    IMAGEDIR oiio-images/pnm
-    URL "Recent checkout of oiio-images")
-
 oiio_add_tests (raw
     FOUNDVAR LIBRAW_FOUND
     IMAGEDIR oiio-images/raw
     URL "Recent checkout of oiio-images")
-
-oiio_add_tests (targa-tgautils
-    IMAGEDIR TGAUTILS
-    URL http://tgautils.inequation.org/)
 
 oiio_add_tests (fits
     IMAGEDIR fits-images
