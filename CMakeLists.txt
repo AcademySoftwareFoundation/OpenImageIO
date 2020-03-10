@@ -3,7 +3,7 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 cmake_minimum_required (VERSION 3.12)
-project (OpenImageIO VERSION 2.2.1.3
+project (OpenImageIO VERSION 2.2.1.4
          HOMEPAGE_URL "https://openimageio.org"
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
