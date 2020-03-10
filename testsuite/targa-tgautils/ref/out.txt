@@ -1,5 +1,5 @@
-Reading ../../../../../TGAUTILS/CBW8.TGA
-../../../../../TGAUTILS/CBW8.TGA :  128 x  128, 1 channel, uint8 targa
+Reading ../../../../../oiio-images/targa/CBW8.TGA
+../../../../../oiio-images/targa/CBW8.TGA :  128 x  128, 1 channel, uint8 targa
     SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
     channel list: Y
     Artist: "Ricky True"
@@ -14,10 +14,10 @@ Reading ../../../../../TGAUTILS/CBW8.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/CBW8.TGA" and "CBW8.TGA"
+Comparing "../../../../../oiio-images/targa/CBW8.TGA" and "CBW8.TGA"
 PASS
-Reading ../../../../../TGAUTILS/CCM8.TGA
-../../../../../TGAUTILS/CCM8.TGA :  128 x  128, 3 channel, uint2 targa
+Reading ../../../../../oiio-images/targa/CCM8.TGA
+../../../../../oiio-images/targa/CCM8.TGA :  128 x  128, 3 channel, uint2 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     Artist: "Ricky True"
@@ -32,10 +32,10 @@ Reading ../../../../../TGAUTILS/CCM8.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 2
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/CCM8.TGA" and "CCM8.TGA"
+Comparing "../../../../../oiio-images/targa/CCM8.TGA" and "CCM8.TGA"
 PASS
-Reading ../../../../../TGAUTILS/CTC16.TGA
-../../../../../TGAUTILS/CTC16.TGA :  128 x  128, 3 channel, uint5 targa
+Reading ../../../../../oiio-images/targa/CTC16.TGA
+../../../../../oiio-images/targa/CTC16.TGA :  128 x  128, 3 channel, uint5 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     Artist: "Ricky True"
@@ -50,10 +50,10 @@ Reading ../../../../../TGAUTILS/CTC16.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 5
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/CTC16.TGA" and "CTC16.TGA"
+Comparing "../../../../../oiio-images/targa/CTC16.TGA" and "CTC16.TGA"
 PASS
-Reading ../../../../../TGAUTILS/CTC24.TGA
-../../../../../TGAUTILS/CTC24.TGA :  128 x  128, 3 channel, uint8 targa
+Reading ../../../../../oiio-images/targa/CTC24.TGA
+../../../../../oiio-images/targa/CTC24.TGA :  128 x  128, 3 channel, uint8 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     Artist: "Ricky True"
@@ -68,10 +68,10 @@ Reading ../../../../../TGAUTILS/CTC24.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/CTC24.TGA" and "CTC24.TGA"
+Comparing "../../../../../oiio-images/targa/CTC24.TGA" and "CTC24.TGA"
 PASS
-Reading ../../../../../TGAUTILS/CTC32.TGA
-../../../../../TGAUTILS/CTC32.TGA :  128 x  128, 4 channel, uint8 targa
+Reading ../../../../../oiio-images/targa/CTC32.TGA
+../../../../../oiio-images/targa/CTC32.TGA :  128 x  128, 4 channel, uint8 targa
     SHA-1: 1ADC95BEBE9EEA8C112D40CD04AB7A8D75C4F961
     channel list: R, G, B, A
     Artist: "Ricky True"
@@ -86,10 +86,10 @@ Reading ../../../../../TGAUTILS/CTC32.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/CTC32.TGA" and "CTC32.TGA"
+Comparing "../../../../../oiio-images/targa/CTC32.TGA" and "CTC32.TGA"
 PASS
-Reading ../../../../../TGAUTILS/UBW8.TGA
-../../../../../TGAUTILS/UBW8.TGA :  128 x  128, 1 channel, uint8 targa
+Reading ../../../../../oiio-images/targa/UBW8.TGA
+../../../../../oiio-images/targa/UBW8.TGA :  128 x  128, 1 channel, uint8 targa
     SHA-1: E157488A1D82536C6CC5F38CA2BF3CAA397BE69A
     channel list: Y
     Artist: "Ricky True"
@@ -103,10 +103,10 @@ Reading ../../../../../TGAUTILS/UBW8.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/UBW8.TGA" and "UBW8.TGA"
+Comparing "../../../../../oiio-images/targa/UBW8.TGA" and "UBW8.TGA"
 PASS
-Reading ../../../../../TGAUTILS/UCM8.TGA
-../../../../../TGAUTILS/UCM8.TGA :  128 x  128, 3 channel, uint2 targa
+Reading ../../../../../oiio-images/targa/UCM8.TGA
+../../../../../oiio-images/targa/UCM8.TGA :  128 x  128, 3 channel, uint2 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     Artist: "Ricky True"
@@ -120,10 +120,10 @@ Reading ../../../../../TGAUTILS/UCM8.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 2
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/UCM8.TGA" and "UCM8.TGA"
+Comparing "../../../../../oiio-images/targa/UCM8.TGA" and "UCM8.TGA"
 PASS
-Reading ../../../../../TGAUTILS/UTC16.TGA
-../../../../../TGAUTILS/UTC16.TGA :  128 x  128, 3 channel, uint5 targa
+Reading ../../../../../oiio-images/targa/UTC16.TGA
+../../../../../oiio-images/targa/UTC16.TGA :  128 x  128, 3 channel, uint5 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     Artist: "Ricky True"
@@ -137,10 +137,10 @@ Reading ../../../../../TGAUTILS/UTC16.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 5
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/UTC16.TGA" and "UTC16.TGA"
+Comparing "../../../../../oiio-images/targa/UTC16.TGA" and "UTC16.TGA"
 PASS
-Reading ../../../../../TGAUTILS/UTC24.TGA
-../../../../../TGAUTILS/UTC24.TGA :  128 x  128, 3 channel, uint8 targa
+Reading ../../../../../oiio-images/targa/UTC24.TGA
+../../../../../oiio-images/targa/UTC24.TGA :  128 x  128, 3 channel, uint8 targa
     SHA-1: C3CFE6424C5A9D88BB212BFE230F5B9875F434C4
     channel list: R, G, B
     Artist: "Ricky True"
@@ -154,10 +154,10 @@ Reading ../../../../../TGAUTILS/UTC24.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/UTC24.TGA" and "UTC24.TGA"
+Comparing "../../../../../oiio-images/targa/UTC24.TGA" and "UTC24.TGA"
 PASS
-Reading ../../../../../TGAUTILS/UTC32.TGA
-../../../../../TGAUTILS/UTC32.TGA :  128 x  128, 4 channel, uint8 targa
+Reading ../../../../../oiio-images/targa/UTC32.TGA
+../../../../../oiio-images/targa/UTC32.TGA :  128 x  128, 4 channel, uint8 targa
     SHA-1: 1ADC95BEBE9EEA8C112D40CD04AB7A8D75C4F961
     channel list: R, G, B, A
     Artist: "Ricky True"
@@ -171,5 +171,5 @@ Reading ../../../../../TGAUTILS/UTC32.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
-Comparing "../../../../../TGAUTILS/UTC32.TGA" and "UTC32.TGA"
+Comparing "../../../../../oiio-images/targa/UTC32.TGA" and "UTC32.TGA"
 PASS
