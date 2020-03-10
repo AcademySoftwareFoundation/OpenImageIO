@@ -4,7 +4,8 @@ echo "Building cmake"
 uname
 
 CMAKE_VERSION=${CMAKE_VERSION:=3.12.4}
-CMAKE_INSTALL_DIR=${CMAKE_INSTALL_DIR:=${PWD}/ext/cmake}
+LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
+CMAKE_INSTALL_DIR=${CMAKE_INSTALL_DIR:=${LOCAL_DEPS_DIR}/cmake}
 
 if [[ `uname` == "Linux" ]] ; then
     mkdir -p ${CMAKE_INSTALL_DIR} && true

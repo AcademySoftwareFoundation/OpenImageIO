@@ -1,8 +1,9 @@
 #!/bin/bash
 
 OCIO_REPO=${OCIO_REPO:=https://github.com/AcademySoftwareFoundation/OpenColorIO.git}
-OCIO_BUILD_DIR=${OCIO_BUILD_DIR:=${PWD}/ext/OpenColorIO}
-OCIO_INSTALL_DIR=${OCIO_INSTALL_DIR:=${PWD}/ext/OpenColorIO/dist}
+LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
+OCIO_BUILD_DIR=${OCIO_BUILD_DIR:=${LOCAL_DEPS_DIR}/OpenColorIO}
+OCIO_INSTALL_DIR=${OCIO_INSTALL_DIR:=${LOCAL_DEPS_DIR}/OpenColorIO/dist}
 OCIO_VERSION=${OCIO_VERSION:=1.1.1}
 OCIO_BRANCH=${OCIO_BRANCH:=v${OCIO_VERSION}}
 OCIO_CXX_FLAGS=${OCIO_CXX_FLAGS:="-Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
