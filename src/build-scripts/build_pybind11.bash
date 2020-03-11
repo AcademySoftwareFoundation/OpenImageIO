@@ -14,7 +14,8 @@ PYBIND11_SRC_DIR=${PYBIND11_SRC_DIR:=${PWD}/ext/pybind11}
 # Temp build area (default to a build/ subdir under source)
 PYBIND11_BUILD_DIR=${PYBIND11_BUILD_DIR:=${PYBIND11_SRC_DIR}/build}
 # Install area for pybind11 (default to ext/dist)
-PYBIND11_INSTALL_DIR=${PYBIND11_INSTALL_DIR:=${PWD}/ext/dist}
+LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
+PYBIND11_INSTALL_DIR=${PYBIND11_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist}
 #PYBIND11_BUILD_OPTS=${PYBIND11_BUILD_OPTS:=}
 
 if [[ "${PYTHON_VERSION}" != "" ]] ; then
