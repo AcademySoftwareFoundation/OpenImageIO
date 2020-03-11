@@ -50,7 +50,6 @@ if ("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message (FATAL_ERROR "Not allowed to run in-source build!")
 endif ()
 
-
 option (CMAKE_USE_FOLDERS "Use the FOLDER target property to organize targets into folders." ON)
 mark_as_advanced (CMAKE_USE_FOLDERS)
 if (CMAKE_USE_FOLDERS)
