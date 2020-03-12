@@ -148,16 +148,6 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         m_cinfo.in_color_space   = JCS_GRAYSCALE;
     }
 
-    string_view resunit = m_spec.get_string_attribute("ResolutionUnit");
-    if (Strutil::iequals(resunit, "none"))
-        m_cinfo.density_unit = 0;
-    else if (Strutil::iequals(resunit, "in"))
-        m_cinfo.density_unit = 1;
-    else if (Strutil::iequals(resunit, "cm"))
-        m_cinfo.density_unit = 2;
-    else
-        m_cinfo.density_unit = 0;
-
     resmeta_to_density();
 
     m_cinfo.write_JFIF_header = TRUE;
@@ -308,6 +298,16 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
 void
 JpgOutput::resmeta_to_density()
 {
+    string_view resunit = m_spec.get_string_attribute("ResolutionUnit");
+    if (Strutil::iequals(resunit, "none"))
+        m_cinfo.density_unit = 0;
+    else if (Strutil::iequals(resunit, "in"))
+        m_cinfo.density_unit = 1;
+    else if (Strutil::iequals(resunit, "cm"))
+        m_cinfo.density_unit = 2;
+    else
+        m_cinfo.density_unit = 0;
+
     int X_density = int(m_spec.get_float_attribute("XResolution"));
     int Y_density = int(m_spec.get_float_attribute("YResolution", X_density));
     const float aspect = m_spec.get_float_attribute("PixelAspectRatio", 1.0f);
