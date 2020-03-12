@@ -1,16 +1,10 @@
 Installation instructions for OpenImageIO
 =========================================
 
-Supported platforms at present include Linux (32 and 64 bit),
-Mac OS X, and Windows.
-
-Our build system is based upon 'CMake'.  If you don't already have it
-installed on your system, you can get it from http://www.cmake.org
-
-After you build OpenImageIO, if you compiled with the `EMBEDPLUGINS=0` flag
-you will need to set the environment variable `OIIO_LIBRARY_PATH` to point
-to the 'lib' directory where OpenImageIO is installed, or else it will
-not be able to find the plugins.
+# Table of Contents
+1. [OpenImageIO's Dependences](#dependencies)
+2. [Installing binaries from package managers](#installingfrompackagemanagers)
+3. [Building OIIO from source](#buildingfromsource)
 
 
 Dependencies
@@ -66,6 +60,47 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 
 
 
+Supported platforms at present include Linux (32 and 64 bit),
+Mac OS X, and Windows.
+
+Our build system is based upon 'CMake'.  If you don't already have it
+installed on your system, you can get it from http://www.cmake.org
+
+After you build OpenImageIO, if you compiled with the `EMBEDPLUGINS=0` flag
+you will need to set the environment variable `OIIO_LIBRARY_PATH` to point
+to the 'lib' directory where OpenImageIO is installed, or else it will
+not be able to find the plugins.
+
+
+Installing from package managers
+================================
+
+If all you want to do is install the OIIO libraries, headers, and command
+line tools as quickly as possible (don't need OIIO source or any custom
+build options), maybe one of these packages managers will do it for you:
+
+* vckpg (https://github.com/Microsoft/vcpkg)
+    * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
+    * `.\vcpkg install openimageio [tools]`
+* homebrew (https://github.com/Homebrew/brew)
+    * https://formulae.brew.sh/formula/openimageio
+    * `brew install openimageio`
+* macports (https://github.com/macports/macports-ports)
+    * https://www.macports.org/ports.php?by=name&substr=openimageio
+    * `port install openimageio`
+* fink (https://github.com/fink/fink)
+    * http://pdb.finkproject.org/pdb/package.php/libopenimageio2.1-shlibs
+    * `fink install openimageio`
+* conan (https://github.com/conan-io/conan)
+
+If these work for you and it's all you need, bingo! You are done.
+
+
+
+Building from source
+====================
+
+
 Dependency control and disabling components
 -------------------------------------------
 
@@ -106,25 +141,6 @@ system. This will obviously disable any functionality that requires the
 dependency. This works both as a CMake variable and
 also as an environment variable.
 
-
-**Package managers**
-
-The following are known library managers which
-either have the OIIO package ready and/or some of its dependencies.
-
-* vckpg (https://github.com/Microsoft/vcpkg)
-    * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
-    * `.\vcpkg install openimageio [tools]`
-* macports (https://github.com/macports/macports-ports)
-    * https://www.macports.org/ports.php?by=name&substr=openimageio
-    * `port install openimageio`
-* homebrew (https://github.com/Homebrew/brew)
-    * https://formulae.brew.sh/formula/openimageio
-    * `brew install openimageio`
-* fink (https://github.com/fink/fink)
-    * http://pdb.finkproject.org/pdb/package.php/libopenimageio2.1-shlibs
-    * `fink install openimageio`
-* conan (https://github.com/conan-io/conan)
 
 
 Building OpenImageIO on Linux or OS X
