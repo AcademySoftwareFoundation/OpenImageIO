@@ -112,17 +112,18 @@ either have the OIIO package ready and/or some of its dependencies.
 
 * vckpg (https://github.com/Microsoft/vcpkg)
     * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
-    * ``.\vcpkg install openimageio``
-* macport (https://github.com/macports/macports-ports)
+    * `.\vcpkg install openimageio [tools]`
+* macports (https://github.com/macports/macports-ports)
     * https://www.macports.org/ports.php?by=name&substr=openimageio
-    * ``port install openimageio``
+    * `port install openimageio`
 * homebrew (https://github.com/Homebrew/brew)
     * https://formulae.brew.sh/formula/openimageio
-    * ``brew install openimageio``
+    * `brew install openimageio`
 * fink (https://github.com/fink/fink)
     * http://pdb.finkproject.org/pdb/package.php/libopenimageio2.1-shlibs
-    * ``fink install openimageio``
+    * `fink install openimageio`
 * conan (https://github.com/conan-io/conan)
+
 
 Building OpenImageIO on Linux or OS X
 -------------------------------------
