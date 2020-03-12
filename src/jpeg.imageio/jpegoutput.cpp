@@ -307,7 +307,7 @@ JpgOutput::resmeta_to_density()
         m_cinfo.density_unit = 2;
     else
         m_cinfo.density_unit = 0;
-    
+
     int X_density = int(m_spec.get_float_attribute("XResolution"));
     int Y_density = int(m_spec.get_float_attribute("YResolution", X_density));
     const float aspect = m_spec.get_float_attribute("PixelAspectRatio", 1.0f);
