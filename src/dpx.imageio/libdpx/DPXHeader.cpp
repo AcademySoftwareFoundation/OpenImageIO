@@ -166,9 +166,9 @@ dpx::ImageElement::ImageElement()
 {
 	this->dataSign = 0xffffffff;
 	this->lowData = 0xffffffff;
-	this->lowQuantity = 0xffffffff;
+	this->lowQuantity = R32(0xffffffff);
 	this->highData = 0xffffffff;
-	this->highQuantity = 0xffffffff;
+	this->highQuantity = R32(0xffffffff);
 	this->descriptor = kUndefinedDescriptor;
 	this->transfer = kUndefinedCharacteristic;	
 	this->colorimetric = kUndefinedCharacteristic;

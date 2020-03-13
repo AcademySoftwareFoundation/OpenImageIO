@@ -1714,7 +1714,7 @@ namespace dpx
 	inline R32 GenericHeader::LowQuantity(const int i) const
 	{
 		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
+			return R32(0xffffffff);
 		return this->chan[i].lowQuantity;
 	}
 
@@ -1742,7 +1742,7 @@ namespace dpx
 	inline R32 GenericHeader::HighQuantity(const int i) const
 	{
 		if (i < 0 || i >= MAX_ELEMENTS)
-			return 0xffffffff;
+			return R32(0xffffffff);
 		return this->chan[i].highQuantity;
 	}
 

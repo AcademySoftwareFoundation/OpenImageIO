@@ -304,7 +304,7 @@ private:
     {
         // RGB = CompRGB - (1 - alpha) * Background;
         double scale = std::numeric_limits<T>::is_integer
-                           ? 1.0 / std::numeric_limits<T>::max()
+                           ? 1.0 / double(std::numeric_limits<T>::max())
                            : 1.0;
 
         for (; size; --size, data += nchannels)
@@ -323,7 +323,7 @@ private:
     {
         // RGB = (CompRGB - (1 - alpha) * Background) / alpha
         double scale = std::numeric_limits<T>::is_integer
-                           ? 1.0 / std::numeric_limits<T>::max()
+                           ? 1.0 / double(std::numeric_limits<T>::max())
                            : 1.0;
 
         for (; size; --size, data += nchannels)
@@ -345,7 +345,7 @@ private:
     void associateAlpha(T* data, int size, int nchannels, int alpha_channel)
     {
         double scale = std::numeric_limits<T>::is_integer
-                           ? 1.0 / std::numeric_limits<T>::max()
+                           ? 1.0 / double(std::numeric_limits<T>::max())
                            : 1.0;
         for (; size; --size, data += nchannels)
             for (int c = 0; c < nchannels; c++)
