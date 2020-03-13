@@ -159,10 +159,10 @@ void cineon::IndustryHeader::Reset()
 
 cineon::ImageElement::ImageElement()
 {
-	this->lowData = 0xffffffff;
-	this->lowQuantity = 0xffffffff;
-	this->highData = 0xffffffff;
-	this->highQuantity = 0xffffffff;
+	this->lowData = R32(0xffffffff);
+	this->lowQuantity = R32(0xffffffff);
+	this->highData = R32(0xffffffff);
+	this->highQuantity = R32(0xffffffff);
 	this->bitDepth = 0xff;
 }
 
