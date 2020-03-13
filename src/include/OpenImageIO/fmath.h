@@ -838,7 +838,7 @@ void convert_type (const S *src, D *dst, size_t n, D _min, D _max)
     }
     typedef typename big_enough_float<D>::float_t F;
     F scale = std::numeric_limits<S>::is_integer ?
-        ((F)1.0)/std::numeric_limits<S>::max() : (F)1.0;
+        (F(1)) / F(std::numeric_limits<S>::max()) : F(1);
     if (std::numeric_limits<D>::is_integer) {
         // Converting to an integer-like type.
         F min = (F)_min;  // std::numeric_limits<D>::min();
@@ -1050,7 +1050,7 @@ convert_type (const S &src)
     }
     typedef typename big_enough_float<D>::float_t F;
     F scale = std::numeric_limits<S>::is_integer ?
-        ((F)1.0)/std::numeric_limits<S>::max() : (F)1.0;
+        F(1) / F(std::numeric_limits<S>::max()) : F(1);
     if (std::numeric_limits<D>::is_integer) {
         // Converting to an integer-like type.
         F min = (F) std::numeric_limits<D>::min();
