@@ -127,7 +127,6 @@ target_include_directories (OpenImageIO
                                 ${OpenCV_INCLUDES}
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
-                                ${OPENCOLORIO_INCLUDES}
                                 ${FREETYPE_INCLUDE_DIRS}
                             )
 
@@ -144,7 +143,7 @@ target_link_libraries (OpenImageIO
         PRIVATE
             ${SANITIZE_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
-            ${OPENCOLORIO_LIBRARIES}
+            $<$<BOOL:${OpenColorIO_FOUND}>:OpenColorIO::OpenColorIO>
             ${BZIP2_LIBRARIES}
             ${ZLIB_LIBRARIES}
             ${Boost_LIBRARIES}

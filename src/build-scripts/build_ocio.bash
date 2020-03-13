@@ -22,8 +22,8 @@ BASEDIR=`pwd`
 pwd
 echo "OpenColorIO install dir will be: ${OCIO_INSTALL_DIR}"
 
-mkdir -p ./ext
-pushd ./ext
+mkdir -p ${LOCAL_DEPS_DIR}
+pushd ${LOCAL_DEPS_DIR}
 
 # Clone OpenColorIO project from GitHub and build
 if [[ ! -e OpenColorIO ]] ; then
