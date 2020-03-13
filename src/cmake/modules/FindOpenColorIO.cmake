@@ -49,6 +49,14 @@ find_package_handle_standard_args (OpenColorIO
 if (OPENCOLORIO_FOUND)
     set (OPENCOLORIO_INCLUDES ${OPENCOLORIO_INCLUDE_DIR})
     set (OPENCOLORIO_LIBRARIES ${OPENCOLORIO_LIBRARY})
+    if (NOT TARGET OpenColorIO::OpenColorIO)
+        add_library(OpenColorIO::OpenColorIO UNKNOWN IMPORTED)
+        set_target_properties(OpenColorIO::OpenColorIO PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${OPENCOLORIO_INCLUDES}")
+
+        set_property(TARGET OpenColorIO::OpenColorIO APPEND PROPERTY
+            IMPORTED_LOCATION "${OPENCOLORIO_LIBRARIES}")
+    endif ()
 endif ()
 
 if (OpenColorIO_FOUND AND LINKSTATIC)
