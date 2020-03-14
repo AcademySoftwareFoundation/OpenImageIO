@@ -15,12 +15,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Required dependencies -- OIIO will not build at all without these
 
  * C++11 (also builds with C++14 and C++17)
- * Compilers: gcc 4.8.2 - 9.1, clang 3.3 - 9.0, MSVS 2015 - 2019,
+ * Compilers: gcc 4.8.2 - 9.2, clang 3.3 - 10.0, MSVS 2015 - 2019,
    icc version 13 or higher
- * Boost >= 1.53 (tested up through 1.71)
  * CMake >= 3.12 (tested up through 3.16)
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.4)
- * libTIFF >= 3.9 (recommended: 4.0+)
+ * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.1.0)
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
@@ -29,9 +28,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.6, 3.7)
+     * pybind11 >= 2.4.2 (Tested through 2.4.3.)
      * NumPy
-     * pybind11 >= 2.4.2 (Tested through 2.4.3. If no adequate pybind11 is
-       found already on the system, OIIO will auto-download it.
  * If you want support for camera "RAW" formats:
      * libRaw >= 0.15 (tested 0.15 - 0.19; libRaw >= 0.18 is necessary for
        ACES support and much better recognition of camera metadata)
@@ -42,21 +40,22 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for Field3D files:
      * Field3D
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 and Intel TBB >= 2018
+     * OpenVDB >= 5.0 (tested through 7.0) and Intel TBB >= 2018 (tested
+       through 2020_U1)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * OpenCV 2.x, 3.x, or 4.x
+     * OpenCV 2.x, 3.x, or 4.x (tested through 4.2)
  * If you want support for GIF images:
-     * giflib >= 4.1 (5.0+ is strongly recommended for stability and
-       thread safety)
+     * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
+       stability and thread safety)
  * If you want support for HEIF/HEIC images:
      * libheif >= 1.3 (tested through 1.6; older versions may also work, we
        haven't tested)
 * If you want support for DDS files:
-     * libsquish >= 1.13
+     * libsquish >= 1.13 (tested through 1.15)
      * But... if not found on the system, an embedded version will be used.
 * If you want support for DICOM medical image files:
-     * DCMTK >= 3.6.1
+     * DCMTK >= 3.6.1 (tested through 3.6.5)
 
 
 
