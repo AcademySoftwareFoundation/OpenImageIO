@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Utility script to download and build pybind11 if it doesn't exist on the
-# system.
+# Utility script to download and build pybind11
 
+# Exit the whole sscript if any command fails.
+set -ex
 
 # Repo and branch/tag/commit of pybind11 to download if we don't have it yet
 PYBIND11_REPO=${PYBIND11_REPO:=https://github.com/pybind/pybind11.git}

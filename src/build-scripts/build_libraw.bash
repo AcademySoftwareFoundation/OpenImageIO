@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Utility script to download and build LibRaw
+
+# Exit the whole sscript if any command fails.
+set -ex
+
 # Which LibRaw to retrieve, how to build it
 LIBRAW_REPO=${LIBRAW_REPO:=https://github.com/LibRaw/LibRaw.git}
 LIBRAW_VERSION=${LIBRAW_VERSION:=0.19.5}
