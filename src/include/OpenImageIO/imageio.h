@@ -1776,7 +1776,7 @@ public:
     ///         origin (i.e., nonzero ImageSpec `x`, `y`, `z`)?
     ///
     ///  - `"negativeorigin"` :
-    ///         Does the image format allow pixel and data window origins
+    ///         Does the image format allow data and display window origins
     ///         (i.e., ImageSpec `x`, `y`, `z`, `full_x`, `full_y`, `full_z`)
     ///         to have negative values?
     ///
