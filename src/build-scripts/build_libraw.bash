@@ -2,7 +2,7 @@
 
 # Utility script to download and build LibRaw
 
-# Exit the whole sscript if any command fails.
+# Exit the whole script if any command fails.
 set -ex
 
 # Which LibRaw to retrieve, how to build it

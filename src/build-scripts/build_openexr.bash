@@ -2,7 +2,7 @@
 
 # Utility script to download and build OpenEXR & IlmBase
 
-# Exit the whole sscript if any command fails.
+# Exit the whole script if any command fails.
 set -ex
 
 # Which OpenEXR to retrieve, how to build it

@@ -2,7 +2,7 @@
 
 # Utility script to download and build LLVM & clang
 
-# Exit the whole sscript if any command fails.
+# Exit the whole script if any command fails.
 set -ex
 
 echo "Building LLVM"
