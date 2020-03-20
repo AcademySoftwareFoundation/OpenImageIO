@@ -2,7 +2,7 @@
 
 # Utility script to download and build OpenColorIO
 
-# Exit the whole sscript if any command fails.
+# Exit the whole script if any command fails.
 set -ex
 
 OCIO_REPO=${OCIO_REPO:=https://github.com/AcademySoftwareFoundation/OpenColorIO.git}

@@ -2,7 +2,7 @@
 
 # Utility script to download and build pybind11
 
-# Exit the whole sscript if any command fails.
+# Exit the whole script if any command fails.
 set -ex
 
 # Repo and branch/tag/commit of pybind11 to download if we don't have it yet
