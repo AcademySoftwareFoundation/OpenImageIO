@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Utility script to download and build OpenColorIO
+
+# Exit the whole sscript if any command fails.
+set -ex
+
 OCIO_REPO=${OCIO_REPO:=https://github.com/AcademySoftwareFoundation/OpenColorIO.git}
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
 OCIO_BUILD_DIR=${OCIO_BUILD_DIR:=${LOCAL_DEPS_DIR}/OpenColorIO}

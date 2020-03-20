@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Utility script to download and build OpenEXR & IlmBase
+
+# Exit the whole sscript if any command fails.
+set -ex
+
 # Which OpenEXR to retrieve, how to build it
 OPENEXR_REPO=${OPENEXR_REPO:=https://github.com/openexr/openexr.git}
 OPENEXR_VERSION=${OPENEXR_VERSION:=2.4.0}
