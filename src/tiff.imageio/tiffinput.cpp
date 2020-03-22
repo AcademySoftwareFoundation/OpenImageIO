@@ -470,7 +470,6 @@ OIIO_PLUGIN_EXPORTS_END
 // Someplace to store an error message from the TIFF error handler
 // To avoid thread oddities, we have the storage area buffering error
 // messages for seterror()/geterror() be thread-specific.
-static thread_local std::string thread_error_msg;
 static atomic_int handler_set;
 static spin_mutex handler_mutex;
 
@@ -479,7 +478,10 @@ static spin_mutex handler_mutex;
 std::string&
 oiio_tiff_last_error()
 {
-    return thread_error_msg;
+    static thread_local std::unique_ptr<std::string> thread_error_msg;
+    if (!thread_error_msg)
+        thread_error_msg.reset(new std::string);
+    return *thread_error_msg;
 }
 
 

@@ -215,13 +215,21 @@ openimageio_version()
 
 // To avoid thread oddities, we have the storage area buffering error
 // messages for seterror()/geterror() be thread-specific.
-static thread_local std::string error_msg;
+
+static std::string&
+error_msg()
+{
+    static thread_local std::unique_ptr<std::string> thread_error_msg;
+    if (!thread_error_msg)
+        thread_error_msg.reset(new std::string);
+    return *thread_error_msg;
+}
 
 
 void
 pvt::seterror(string_view message)
 {
-    error_msg = message;
+    error_msg() = message;
 }
 
 
@@ -229,8 +237,8 @@ pvt::seterror(string_view message)
 std::string
 geterror()
 {
-    std::string e = error_msg;
-    error_msg.clear();
+    std::string e = error_msg();
+    error_msg().clear();
     return e;
 }
 
