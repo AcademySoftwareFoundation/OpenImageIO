@@ -33,13 +33,13 @@ set (OPTIONAL_DEPS "" CACHE STRING
 
 # checked_find_package(pkgname ..) is a wrapper for find_package, with the
 # following extra features:
-#   * If either USE_<pkgname> or the all-uppercase USE_PKGNAME exists as
-#     either a CMake or environment variable, is nonempty by contains a
-#     non-true/nonnzero value, do not search for or use the package. The
-#     optional ENABLE <var> arguments allow you to override the name of the
-#     enabling variable. In other words, support for the dependency is
-#     presumed to be ON, unless turned off explicitly from one of these
-#     sources.
+#   * If either `USE_pkgname` or the all-uppercase `USE_PKGNAME` (or
+#     `ENABLE_pkgname` or `ENABLE_PKGNAME`) exists as either a CMake or
+#     environment variable, is nonempty by contains a non-true/nonnzero
+#     value, do not search for or use the package. The optional ENABLE <var>
+#     arguments allow you to override the name of the enabling variable. In
+#     other words, support for the dependency is presumed to be ON, unless
+#     turned off explicitly from one of these sources.
 #   * Print a message if the package is enabled but not found. This is based
 #     on ${pkgname}_FOUND or $PKGNNAME_FOUND.
 #   * Optional DEFINITIONS <string> are passed to add_definitions if the
@@ -76,7 +76,7 @@ macro (checked_find_package pkgname)
     foreach (_dep ${_pkg_DEPS})
         if (_enable AND NOT ${_dep}_FOUND)
             set (_enable false)
-            set (${pkgname}_ENABLED OFF PARENT_SCOPE)
+            set (ENABLE_${pkgname} OFF PARENT_SCOPE)
             set (_disablereason "(because ${_dep} was not found)")
         endif ()
     endforeach ()
