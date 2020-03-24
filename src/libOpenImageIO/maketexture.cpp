@@ -603,7 +603,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     bool envlatlmode       = (mode == ImageBufAlgo::MakeTxEnvLatl);
     bool orig_was_overscan = (img->spec().x || img->spec().y || img->spec().z
                               || img->spec().full_x || img->spec().full_y
-                              || img->spec().full_z);
+                              || img->spec().full_z
+                              || img->spec().roi() != img->spec().roi_full());
     ImageSpec outspec      = outspec_template;
     outspec.set_format(outputdatatype);
 
@@ -1555,12 +1556,12 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             || Strutil::iends_with(outputfilename, ".exr")))
         do_resize = true;
 
-    if (do_resize && orig_was_overscan && out
-        && !out->supports("displaywindow")) {
-        outstream << "maketx ERROR: format " << out->format_name()
-                  << " does not support separate display windows,\n"
-                  << "              which is necessary when combining resizing"
-                  << " and an input image with overscan.";
+    if (orig_was_overscan && out && !out->supports("displaywindow")) {
+        outstream << Strutil::sprintf(
+            "maketx ERROR: format \"%s\" does not support separate display "
+            "windows, which is necessary for textures with overscan. OpenEXR "
+            " is a format that allows overscan textures.\n",
+            out->format_name());
         return false;
     }
     std::string filtername
