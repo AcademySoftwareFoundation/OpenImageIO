@@ -353,13 +353,27 @@ bool OIIO_API contains (string_view a, string_view b);
 /// comparison?
 bool OIIO_API icontains (string_view a, string_view b);
 
-/// Convert to upper case, faster than std::toupper because we use
+/// Convert to upper case in place, faster than std::toupper because we use
 /// a static locale that doesn't require a mutex lock.
 void OIIO_API to_lower (std::string &a);
 
-/// Convert to upper case, faster than std::toupper because we use
+/// Convert to upper case in place, faster than std::toupper because we use
 /// a static locale that doesn't require a mutex lock.
 void OIIO_API to_upper (std::string &a);
+
+/// Return an all-upper case version of `a` (locale-independent).
+inline std::string OIIO_API lower (string_view a) {
+    std::string result(a);
+    to_lower(result);
+    return result;
+}
+
+/// Return an all-upper case version of `a` (locale-independent).
+inline std::string OIIO_API upper (string_view a) {
+    std::string result(a);
+    to_upper(result);
+    return result;
+}
 
 
 
