@@ -286,8 +286,8 @@ TIFFOutput::supports(string_view feature) const
         return true;
     if (feature == "nchannels")
         return true;
-    if (feature == "displaywindow")
-        return true;
+    // N.B. TIFF doesn't support "displaywindow", since it has no tags for
+    // the equivalent of full_x, full_y.
     if (feature == "origin")
         return true;
     // N.B. TIFF doesn't support "negativeorigin"
