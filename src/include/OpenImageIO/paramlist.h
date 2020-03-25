@@ -258,6 +258,22 @@ public:
     const_iterator find(ustring name, TypeDesc type = TypeDesc::UNKNOWN,
                         bool casesensitive = true) const;
 
+    /// Search for the first entry with matching name, etc., and return
+    /// a pointer to it, or nullptr if it is not found.
+    ParamValue* find_pv(string_view name, TypeDesc type = TypeDesc::UNKNOWN,
+                        bool casesensitive = true)
+    {
+        iterator f = find(name, type, casesensitive);
+        return f != end() ? &(*f) : nullptr;
+    }
+    const ParamValue* find_pv(string_view name,
+                              TypeDesc type      = TypeDesc::UNKNOWN,
+                              bool casesensitive = true) const
+    {
+        const_iterator f = find(name, type, casesensitive);
+        return f != cend() ? &(*f) : nullptr;
+    }
+
     /// Case insensitive search for an integer, with default if not found.
     /// Automatically will return an int even if the data is really
     /// unsigned, short, or byte, but not float. It will retrive from a

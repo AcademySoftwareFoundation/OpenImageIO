@@ -625,7 +625,7 @@ ParamValueList::contains(string_view name, TypeDesc type,
 void
 ParamValueList::add_or_replace(const ParamValue& pv, bool casesensitive)
 {
-    iterator p = find(pv.name(), pv.type(), casesensitive);
+    iterator p = find(pv.name(), TypeUnknown, casesensitive);
     if (p != end())
         *p = pv;
     else
@@ -636,7 +636,7 @@ ParamValueList::add_or_replace(const ParamValue& pv, bool casesensitive)
 void
 ParamValueList::add_or_replace(ParamValue&& pv, bool casesensitive)
 {
-    iterator p = find(pv.name(), pv.type(), casesensitive);
+    iterator p = find(pv.name(), TypeUnknown, casesensitive);
     if (p != end())
         *p = pv;
     else
