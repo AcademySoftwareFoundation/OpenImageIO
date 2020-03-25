@@ -149,6 +149,33 @@ public:
         return m_obj->getattribute(m_name, TypeString, &s) ? T(s) : defaultval;
     }
 
+    // `Delegate->get_indexed<T>(int index, defaultval=T())` retrieves the
+    // index-th base value in the data as type T, or the defaultval if no
+    // such named data exists or is not the designated type.
+    template<typename T,
+             typename std::enable_if<!pvt::is_string<T>::value, int>::type = 0>
+    inline T get_indexed(int index, const T& defaultval = T()) const
+    {
+        T result;
+        if (!m_obj->getattribute_indexed(m_name, index,
+                                         TypeDescFromC<T>::value(), &result))
+            result = defaultval;
+        return result;
+    }
+
+    // Using enable_if, make a slightly different version of get_indexed<>
+    // for strings, which need to do some ustring magic because we can't
+    // directly store in a std::string or string_view.
+    template<typename T = string_view,
+             typename std::enable_if<pvt::is_string<T>::value, int>::type = 1>
+    inline T get_indexed(int index, const T& defaultval = T()) const
+    {
+        ustring s;
+        return m_obj->getattribute_indexed(m_name, index, TypeString, &s)
+                   ? T(s)
+                   : defaultval;
+    }
+
     // `Delegate->as_string(defaultval="")` returns the data, no matter its
     // type, as a string. Returns the defaultval if no such data exists at
     // all.
