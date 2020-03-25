@@ -222,9 +222,9 @@ struct OIIO_API TypeDesc {
     /// ignoring whether it's an array).
     size_t elementsize () const noexcept { return aggregate * basesize(); }
 
-    // /// Return just the underlying C scalar type, i.e., strip out the
-    // /// array-ness and the aggregateness.
-//    BASETYPE basetype () const { return TypeDesc(base); }
+    /// Return just the underlying C scalar type, i.e., strip out the
+    /// array-ness and the aggregateness.
+    constexpr TypeDesc scalartype() const { return TypeDesc(BASETYPE(basetype)); }
 
     /// Return the base type size, i.e., stripped of both array-ness
     /// and aggregateness.
@@ -240,7 +240,7 @@ struct OIIO_API TypeDesc {
     /// Shortcut: is it UNKNOWN?
     constexpr bool is_unknown () const noexcept { return (basetype == UNKNOWN); }
 
-    /// if (typespec) is the same as asking whether it's not UNKNOWN.
+    /// if (typedesc) is the same as asking whether it's not UNKNOWN.
     constexpr operator bool () const noexcept { return (basetype != UNKNOWN); }
 
     /// Set *this to the type described in the string.  Return the

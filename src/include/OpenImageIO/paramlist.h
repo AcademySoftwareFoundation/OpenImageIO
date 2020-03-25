@@ -368,6 +368,15 @@ public:
     bool getattribute(string_view name, std::string& value,
                       bool casesensitive = false) const;
 
+    /// Retrieve from list: If found its data type is reasonably convertible
+    /// to `type`, copy/convert the value into val[...] and return true.
+    /// Otherwise, return false and don't modify what val points to.
+    bool getattribute_indexed(string_view name, int index, TypeDesc type,
+                              void* value, bool casesensitive = false) const;
+    /// Shortcut for retrieving a single string via getattribute.
+    bool getattribute_indexed(string_view name, int index, std::string& value,
+                              bool casesensitive = false) const;
+
     /// Sort alphabetically, optionally case-insensitively, locale-
     /// independently, and with all the "un-namespaced" items appearing
     /// first, followed by items with "prefixed namespaces" (e.g. "z" comes

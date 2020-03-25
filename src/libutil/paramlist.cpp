@@ -677,6 +677,49 @@ ParamValueList::getattribute(string_view name, std::string& value,
 
 
 
+bool
+ParamValueList::getattribute_indexed(string_view name, int index, TypeDesc type,
+                                     void* value, bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        if (index >= int(p->type().basevalues()))
+            return false;
+        TypeDesc basetype = p->type().scalartype();
+        return convert_type(basetype,
+                            (const char*)p->data() + index * basetype.size(),
+                            type, value);
+    } else {
+        return false;
+    }
+}
+
+
+
+bool
+ParamValueList::getattribute_indexed(string_view name, int index,
+                                     std::string& value,
+                                     bool casesensitive) const
+{
+    auto p = find(name, TypeUnknown, casesensitive);
+    if (p != cend()) {
+        if (index >= int(p->type().basevalues()))
+            return false;
+        TypeDesc basetype = p->type().scalartype();
+        ustring s;
+        bool ok = convert_type(basetype,
+                               (const char*)p->data() + index * basetype.size(),
+                               TypeString, &s);
+        if (ok)
+            value = s.string();
+        return ok;
+    } else {
+        return false;
+    }
+}
+
+
+
 void
 ParamValueList::sort(bool casesensitive)
 {
