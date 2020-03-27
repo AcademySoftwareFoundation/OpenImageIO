@@ -330,6 +330,24 @@ Oiiotool::postpone_callback(int required_images, CallbackFunction func,
 
 
 
+bool
+Oiiotool::postpone_callback(int required_images, ArgParse::Action func,
+                            cspan<const char*> argv)
+{
+    if (image_stack_depth() < required_images) {
+        // Not enough have inputs been specified so far, so put this
+        // function on the "pending" list.
+        m_pending_action = func;
+        m_pending_argc   = int(argv.size());
+        for (int i = 0; i < m_pending_argc; ++i)
+            m_pending_argv[i] = ustring(argv[i]).c_str();
+        return true;
+    }
+    return false;
+}
+
+
+
 void
 Oiiotool::process_pending()
 {
@@ -398,14 +416,13 @@ Oiiotool::extract_options(string_view command)
 
 
 
-static int
-set_threads(int argc, const char* argv[])
+static void
+set_threads(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     int nthreads = Strutil::stoi(argv[1]);
     OIIO::attribute("threads", nthreads);
     OIIO::attribute("exr_threads", nthreads);
-    return 0;
 }
 
 
@@ -444,74 +461,50 @@ set_native(int argc, const char* /*argv*/[])
 
 
 
-static int
-set_dumpdata(int argc, const char* argv[])
+static void
+set_dumpdata(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     string_view command   = ot.express(argv[0]);
     auto options          = ot.extract_options(command);
     ot.dumpdata           = true;
     ot.dumpdata_showempty = options.get_int("empty", 1);
-    return 0;
 }
 
 
 
-static int
-set_printinfo(int argc, const char* argv[])
+static void
+set_printinfo(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     string_view command  = ot.express(argv[0]);
     ot.printinfo         = true;
     auto options         = ot.extract_options(command);
     ot.printinfo_format  = options["format"];
     ot.printinfo_verbose = options.get_int("verbose");
-    return 0;
 }
 
 
 
-static int
-set_autopremult(int argc, const char* /*argv*/[])
+static void
+set_autopremult(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     ot.autopremult = true;
     ot.imagecache->attribute("unassociatedalpha", 0);
     ot.input_config.erase_attribute("oiio:UnassociatedAlpha");
-    return 0;
 }
 
 
 
-static int
-unset_autopremult(int argc, const char* /*argv*/[])
+static void
+unset_autopremult(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     ot.autopremult = false;
     ot.imagecache->attribute("unassociatedalpha", 1);
     ot.input_config.attribute("oiio:UnassociatedAlpha", 1);
     ot.input_config_set = true;
-    return 0;
-}
-
-
-
-static int
-enable_eval(int argc, const char* /*argv*/[])
-{
-    OIIO_DASSERT(argc == 1);
-    ot.eval_enable = true;
-    return 0;
-}
-
-
-
-static int
-disable_eval(int argc, const char* /*argv*/[])
-{
-    OIIO_DASSERT(argc == 1);
-    ot.eval_enable = false;
-    return 0;
 }
 
 
@@ -2632,11 +2625,11 @@ action_subimage_append_all(int argc, const char* argv[])
 
 
 
-static int
-action_colorcount(int argc, const char* argv[])
+static void
+action_colorcount(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_colorcount, argc, argv))
-        return 0;
+    if (ot.postpone_callback(1, action_colorcount, argv))
+        return;
     Timer timer(ot.enable_function_timing);
     string_view command  = ot.express(argv[0]);
     string_view colorarg = ot.express(argv[1]);
@@ -2676,16 +2669,16 @@ action_colorcount(int argc, const char* argv[])
     }
 
     ot.function_times[command] += timer();
-    return 0;
+    return;
 }
 
 
 
-static int
-action_rangecheck(int argc, const char* argv[])
+static void
+action_rangecheck(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_rangecheck, argc, argv))
-        return 0;
+    if (ot.postpone_callback(1, action_rangecheck, argv))
+        return;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
     string_view lowarg  = ot.express(argv[1]);
@@ -2712,7 +2705,6 @@ action_rangecheck(int argc, const char* argv[])
     }
 
     ot.function_times[command] += timer();
-    return 0;
 }
 
 
@@ -5358,10 +5350,10 @@ output_file(int /*argc*/, const char* argv[])
 
 
 
-static int
-do_echo(int argc, const char* argv[])
+static void
+do_echo(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
 
     string_view command = ot.express(argv[0]);
     string_view message = ot.express(argv[1]);
@@ -5374,18 +5366,16 @@ do_echo(int argc, const char* argv[])
         std::cout << '\n';
     std::cout.flush();
     ot.printed_info = true;
-    return 0;
 }
 
 
 
-static int
-crash_me(int /*argc*/, const char* /*argv*/[])
+static void
+crash_me()
 {
     size_t a   = 37;
     char* addr = (char*)a;
     *addr      = 0;  // This should crash
-    return 0;
 }
 
 
@@ -5447,11 +5437,12 @@ formatted_format_list(string_view format_typename, string_view attr)
 
 
 
-static void
-print_usage_tips(const ArgParse& /*ap*/, std::ostream& out)
+static std::string
+print_usage_tips()
 {
     int columns = Sysutil::terminal_columns() - 2;
 
+    std::stringstream out;
     out << "Important usage tips:\n"
         << Strutil::wordwrap(
                "  * The oiiotool command line is processed in order, LEFT to RIGHT.\n",
@@ -5489,14 +5480,14 @@ print_usage_tips(const ArgParse& /*ap*/, std::ostream& out)
                "{} are replaced by evaluating their contents as expressions. Simple "
                "math is allowed as well as retrieving metadata such as {TOP.'foo:bar'}, "
                "{IMG[0].filename}, or {FRAME_NUMBER/24.0}.\n",
-               columns, 4)
-        << "\n";
+               columns, 4);
+    return out.str();
 }
 
 
 
 static void
-print_help_end(const ArgParse& /*ap*/, std::ostream& out)
+print_help_end(std::ostream& out)
 {
     out << "\n";
     int columns = Sysutil::terminal_columns() - 2;
@@ -5612,10 +5603,8 @@ print_help_end(const ArgParse& /*ap*/, std::ostream& out)
 static void
 print_help(ArgParse& ap)
 {
-    ap.set_preoption_help(print_usage_tips);
-    ap.set_postoption_help(print_help_end);
-
-    ap.usage();
+    ap.print_help();
+    print_help_end(std::cout);
 }
 
 
@@ -5632,284 +5621,556 @@ getargs(int argc, char* argv[])
     ot.full_command_line = command_line_string(argc, argv, sansattrib);
 
     // clang-format off
-    ArgParse ap (argc, (const char **)argv);
-    ap.options ("oiiotool -- simple image processing operations\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  oiiotool [filename|command]...\n",
-                "%*", input_file, "",
-                "<SEPARATOR>", "Options (general):",
-                "--help", &help, "Print help message",
-                "-v", &ot.verbose, "Verbose status messages",
-                "-q %!", &ot.verbose, "Quiet mode (turn verbose off)",
-                "-n", &ot.dryrun, "No saved output (dry run)",
-                "-a", &ot.allsubimages, "Do operations on all subimages/miplevels",
-                "--debug", &ot.debug, "Debug mode",
-                "--runstats", &ot.runstats, "Print runtime statistics",
-                "--info %@", set_printinfo, NULL, "Print resolution and basic info on all inputs, detailed metadata if -v is also used (options: format=xml:verbose=1)",
-                "--echo %@ %s:TEXT", do_echo, NULL, "Echo message to console (options: newline=0)",
-                "--metamatch %s:REGEX", &ot.printinfo_metamatch,
-                    "Which metadata is printed with -info -v",
-                "--no-metamatch %s:REGEX", &ot.printinfo_nometamatch,
-                    "Which metadata is excluded with -info -v",
-                "--stats", &ot.printstats, "Print pixel statistics on all inputs",
-                "--dumpdata %@", set_dumpdata, NULL, "Print all pixel data values (options: empty=0)",
-                "--hash", &ot.hash, "Print SHA-1 hash of each input image",
-                "--colorcount %@ %s:COLORLIST", action_colorcount, NULL,
-                    "Count of how many pixels have the given color (argument: color;color;...) (options: eps=color)",
-                "--rangecheck %@ %s:MIN %s:MAX", action_rangecheck, NULL, NULL,
-                    "Count of how many pixels are outside the min/max color range (each is a comma-separated color value list)",
-//                "-u", &ot.updatemode, "Update mode: skip outputs when the file exists and is newer than all inputs",
-                "--no-clobber", &ot.noclobber, "Do not overwrite existing files",
-                "--noclobber", &ot.noclobber, "", // synonym
-                "--threads %@ %d:N", set_threads, NULL, "Number of threads (default 0 == #cores)",
-                "--frames %s:FRAMERANGE", NULL, "Frame range for '#' or printf-style wildcards",
-                "--framepadding %d:NDIGITS", &ot.frame_padding, "Frame number padding digits (ignored when using printf-style wildcards)",
-                "--views %s:VIEWNAMES", NULL, "Views for %V/%v wildcards (comma-separated, defaults to \"left,right\")",
-                "--wildcardoff", NULL, "Disable numeric wildcard expansion for subsequent command line arguments",
-                "--wildcardon", NULL, "Enable numeric wildcard expansion for subsequent command line arguments",
-                "--evaloff %@", disable_eval, nullptr, "Disable {expression} evaluation for subsequent command line arguments",
-                "--evalon %@", enable_eval, nullptr, "Enable {expression} evaluation for subsequent command line arguments",
-                "--no-autopremult %@", unset_autopremult, NULL, "Turn off automatic premultiplication of images with unassociated alpha",
-                "--autopremult %@", set_autopremult, NULL, "Turn on automatic premultiplication of images with unassociated alpha",
-                "--autoorient", &ot.autoorient, "Automatically --reorient all images upon input",
-                "--auto-orient", &ot.autoorient, "", // symonym for --autoorient
-                "--autocc", &ot.autocc, "Automatically color convert based on filename",
-                "--noautocc %!", &ot.autocc, "Turn off automatic color conversion",
-                "--native %@", set_native, &ot.nativeread, "Keep native pixel data type (bypass cache if necessary)",
-                "--cache %@ %d:MB", set_cachesize, &ot.cachesize, "ImageCache size (in MB: default=4096)",
-                "--autotile %@ %d:TILESIZE", set_autotile, &ot.autotile, "Autotile enable for cached images (the argument is the tile size, default 0 means no autotile)",
-                "--metamerge", &ot.metamerge, "Always merge metadata of all inputs into output",
-                "--crash %@", crash_me, nullptr, "", // hidden option
-                "<SEPARATOR>", "Commands that read images:",
-                "-i %@ %s:FILENAME", input_file, NULL, "Input file (options: now=, printinfo=, autocc=, type=, ch=)",
-                "--iconfig %@ %s:NAME %s:VALUE", set_input_attribute, NULL, NULL, "Sets input config attribute (options: type=...)",
-                "<SEPARATOR>", "Commands that write images:",
-                "-o %@ %s:FILENAME", output_file, NULL, "Output the current image to the named file",
-                "-otex %@ %s:FILENAME", output_file, NULL, "Output the current image as a texture",
-                "-oenv %@ %s:FILENAME", output_file, NULL, "Output the current image as a latlong env map",
-                "-obump %@ %s:FILENAME", output_file, NULL, "Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto)",
-                "<SEPARATOR>", "Options that affect subsequent image output:",
-                "-d %@ %s:TYPE", set_dataformat, NULL,
-                    "'-d TYPE' sets the output data format of all channels, "
-                    "'-d CHAN=TYPE' overrides a single named channel (multiple -d args are allowed). "
-                    "Data types include: uint8, sint8, uint10, uint12, uint16, sint16, uint32, sint32, half, float, double",
-                "--scanline", &ot.output_scanline, "Output scanline images",
-                "--tile %@ %d:WIDTH %d:HEIGHT", output_tiles, &ot.output_tilewidth, &ot.output_tileheight,
-                    "Output tiled images with this tile size",
-                "--force-tiles", &ot.output_force_tiles, "", // undocumented
-                "--compression %s:NAME", &ot.output_compression, "Set the compression method (in the form \"name\" or \"name:quality\")",
-                "--quality %d:QUALITY", &ot.output_quality, "", // DEPRECATED(2.1)
-                "--dither", &ot.output_dither, "Add dither to 8-bit output",
-                "--planarconfig %s:CONFIG", &ot.output_planarconfig,
-                    "Force planarconfig (contig, separate, default)",
-                "--adjust-time", &ot.output_adjust_time,
-                    "Adjust file times to match DateTime metadata",
-                "--noautocrop %!", &ot.output_autocrop, 
-                    "Do not automatically crop images whose formats don't support separate pixel data and full/display windows",
-                "--autotrim", &ot.output_autotrim, 
-                    "Automatically trim black borders upon output to file formats that support separate pixel data and full/display windows",
-                "<SEPARATOR>", "Options that change current image metadata (but not pixel values):",
-                "--attrib %@ %s:NAME %s:VALUE", set_any_attribute, NULL, NULL, "Sets metadata attribute (options: type=...)",
-                "--sattrib %@ %s:NAME %s:VALUE", set_string_attribute, NULL, NULL, "Sets string metadata attribute",
-                "--eraseattrib %@ %s:REGEX", erase_attribute, NULL, "Erase attributes matching regex",
-                "--caption %@ %s:TEXT", set_caption, NULL, "Sets caption (ImageDescription metadata)",
-                "--keyword %@ %s:KEYWORD", set_keyword, NULL, "Add a keyword",
-                "--clear-keywords %@", clear_keywords, NULL, "Clear all keywords",
-                "--nosoftwareattrib", &ot.metadata_nosoftwareattrib, "Do not write command line into Exif:ImageHistory, Software metadata attributes",
-                "--sansattrib", &sansattrib, "Write command line into Software & ImageHistory but remove --sattrib and --attrib options",
-                "--orientation %@ %d:ORIENT", set_orientation, NULL, "Set the assumed orientation",
-                "--orientcw %@", rotate_orientation, NULL, "Rotate orientation metadata 90 deg clockwise",
-                "--orientccw %@", rotate_orientation, NULL, "Rotate orientation metadata 90 deg counter-clockwise",
-                "--orient180 %@", rotate_orientation, NULL, "Rotate orientation metadata 180 deg",
-                "--rotcw %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
-                "--rotccw %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
-                "--rot180 %@", rotate_orientation, NULL, "", // DEPRECATED(1.5), back compatibility
-                "--origin %@ %s:+X+Y", set_origin, NULL,
-                    "Set the pixel data window origin (e.g. +20+10, -16-16)",
-                "--originoffset %@ %s:+X+Y", offset_origin, NULL,
-                    "Offset the pixel data window origin from its current position (e.g. +20+10, -16-16)",
-                "--fullsize %@ %s:GEOM", set_fullsize, NULL, "Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)",
-                "--fullpixels %@", set_full_to_pixels, NULL, "Set the 'full' image range to be the pixel data window",
-                "--chnames %@ %s:NAMELIST", set_channelnames, NULL,
-                    "Set the channel names (comma-separated)",
-                "<SEPARATOR>", "Options that affect subsequent actions:",
-                "--fail %g:THRESH", &ot.diff_failthresh, "Failure threshold difference (0.000001)",
-                "--failpercent %g:PCNT", &ot.diff_failpercent, "Allow this percentage of failures in diff (0)",
-                "--hardfail %g:THRESH", &ot.diff_hardfail, "Fail diff if any one pixel exceeds this error (infinity)",
-                "--warn %g:THRESH", &ot.diff_warnthresh, "Warning threshold difference (0.00001)",
-                "--warnpercent %g:PCNT", &ot.diff_warnpercent, "Allow this percentage of warnings in diff (0)",
-                "--hardwarn %g:THRESH", &ot.diff_hardwarn, "Warn if any one pixel difference exceeds this error (infinity)",
-                "<SEPARATOR>", "Actions:",
-                "--create %@ %s:GEOM %d:NCHANS", action_create, NULL, NULL,
-                        "Create a blank image",
-                "--pattern %@ %s:NAME %s:GEOM %d:NCHANS", action_pattern, NULL, NULL, NULL,
-                        "Create a patterned image. Pattern name choices: black, constant, fill, checker, noise",
-                "--kernel %@ %s:NAME %s:GEOM", action_kernel, NULL, NULL,
-                        "Create a centered convolution kernel",
-                "--capture %@", action_capture, NULL,
-                        "Capture an image (options: camera=%d)",
-                "--diff %@", action_diff, NULL, "Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
-                "--pdiff %@", action_pdiff, NULL, "Print report on the perceptual difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)",
-                "--add %@", action_add, NULL, "Add two images",
-                "--addc %s:VAL %@", action_addc, NULL, "Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
-                "--cadd %s:VAL %@", action_addc, NULL, "", // Deprecated synonym
-                "--sub %@", action_sub, NULL, "Subtract two images",
-                "--subc %s:VAL %@", action_subc, NULL, "Subtract from all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
-                "--csub %s:VAL %@", action_subc, NULL, "", // Deprecated synonym
-                "--mul %@", action_mul, NULL, "Multiply two images",
-                "--mulc %s:VAL %@", action_mulc, NULL, "Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
-                "--cmul %s:VAL %@", action_mulc, NULL, "", // Deprecated synonym
-                "--div %@", action_div, NULL, "Divide first image by second image",
-                "--divc %s:VAL %@", action_divc, NULL, "Divide the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
-                "--mad %@", action_mad, NULL, "Multiply two images, add a third",
-                "--invert %@", action_invert, NULL, "Take the color inverse (subtract from 1)",
-                "--abs %@", action_abs, NULL, "Take the absolute value of the image pixels",
-                "--absdiff %@", action_absdiff, NULL, "Absolute difference between two images",
-                "--absdiffc %s:VAL %@", action_absdiffc, NULL, "Absolute difference versus a scalar or per-channel constant (e.g.: 0.5 or 1,1.25,0.5)",
-                "--powc %s:VAL %@", action_powc, NULL, "Raise the image values to a scalar or per-channel power (e.g.: 2.2 or 2.2,2.2,2.2,1.0)",
-                "--cpow %s:VAL %@", action_powc, NULL, "", // Depcrcated synonym
-                "--noise %@", action_noise, NULL, "Add noise to an image (options: type=gaussian:mean=0:stddev=0.1, type=uniform:min=0:max=0.1, type=salt:value=0:portion=0.1, seed=0",
-                "--chsum %@", action_chsum, NULL,
-                    "Turn into 1-channel image by summing channels (options: weight=r,g,...)",
-                "--colormap %s:MAPNAME %@", action_colormap, NULL, "Color map based on channel 0 (arg: \"inferno\", \"viridis\", \"magma\", \"turbo\", \"plasma\", \"blue-red\", \"spectrum\", \"heat\", or comma-separated list of RGB triples)",
-                "--crop %@ %s:GEOM", action_crop, NULL, "Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)",
-                "--croptofull %@", action_croptofull, NULL, "Crop or pad to make pixel data region match the \"full\" region",
-                "--trim %@", action_trim, NULL, "Crop to the minimal ROI containing nonzero pixel values",
-                "--cut %@ %s:GEOM", action_cut, NULL, "Cut out the ROI and reposition to the origin (WxH+X+Y or xmin,ymin,xmax,ymax)",
-                "--paste %@ %s:+X+Y", action_paste, NULL, "Paste fg over bg at the given position (e.g., +100+50; '-' or 'auto' indicates using the data window position as-is; options: all=%d, mergeroi=%d)",
-                "--mosaic %@ %s:WxH", action_mosaic, NULL,
-                        "Assemble images into a mosaic (arg: WxH; options: pad=0)",
-                "--over %@", action_over, NULL, "'Over' composite of two images",
-                "--zover %@", action_zover, NULL, "Depth composite two images with Z channels (options: zeroisinf=%d)",
-                "--deepmerge %@", action_deepmerge, NULL, "Merge/composite two deep images",
-                "--deepholdout %@", action_deepholdout, NULL, "Hold out one deep image by another",
-                "--histogram %@ %s:BINSxHEIGHT %d:CHAN", action_histogram, NULL, NULL, "Histogram one channel (options: cumulative=0)",
-                "--rotate90 %@", action_rotate90, NULL, "Rotate the image 90 degrees clockwise",
-                "--rotate180 %@", action_rotate180, NULL, "Rotate the image 180 degrees",
-                "--flipflop %@", action_rotate180, NULL, "", // Deprecated synonym for --rotate180
-                "--rotate270 %@", action_rotate270, NULL, "Rotate the image 270 degrees clockwise (or 90 degrees CCW)",
-                "--flip %@", action_flip, NULL, "Flip the image vertically (top<->bottom)",
-                "--flop %@", action_flop, NULL, "Flop the image horizontally (left<->right)",
-                "--reorient %@", action_reorient, NULL, "Rotate and/or flop the image to transform the pixels to match the Orientation metadata",
-                "--transpose %@", action_transpose, NULL, "Transpose the image",
-                "--cshift %@ %s:+X+Y", action_cshift, NULL, "Circular shift the image (e.g.: +20-10)",
-                "--resample %@ %s:GEOM", action_resample, NULL, "Resample (640x480, 50%) (options: interp=0)",
-                "--resize %@ %s:GEOM", action_resize, NULL, "Resize (640x480, 50%) (options: filter=%s)",
-                "--fit %@ %s:GEOM", action_fit, NULL, "Resize to fit within a window size (options: filter=%s, pad=%d, exact=%d)",
-                "--pixelaspect %@ %g:ASPECT", action_pixelaspect, NULL, "Scale up the image's width or height to match the given pixel aspect ratio (options: filter=%s)",
-                "--rotate %@ %g:DEGREES", action_rotate, NULL, "Rotate pixels (degrees clockwise) around the center of the display window (options: filter=%s, center=%f,%f, recompute_roi=%d",
-                "--warp %@ %s:MATRIX", action_warp, NULL, "Warp pixels (argument is a 3x3 matrix, separated by commas) (options: filter=%s, recompute_roi=%d)",
-                "--convolve %@", action_convolve, NULL,
-                    "Convolve with a kernel",
-                "--blur %@ %s:WxH", action_blur, NULL,
-                    "Blur the image (options: kernel=name)",
-                "--median %@ %s:WxH", action_median, NULL,
-                    "Median filter the image",
-                "--dilate %@ %s:WxH", action_dilate, NULL,
-                    "Dilate (area maximum) the image",
-                "--erode %@ %s:WxH", action_erode, NULL,
-                    "Erode (area minimum) the image",
-                "--unsharp %@", action_unsharp, NULL,
-                    "Unsharp mask (options: kernel=gaussian, width=3, contrast=1, threshold=0)",
-                "--laplacian %@", action_laplacian, NULL,
-                    "Laplacian filter the image",
-                "--fft %@", action_fft, NULL,
-                    "Take the FFT of the image",
-                "--ifft %@", action_ifft, NULL,
-                    "Take the inverse FFT of the image",
-                "--polar %@", action_polar, NULL,
-                    "Convert complex (real,imag) to polar (amplitude,phase)",
-                "--unpolar %@", action_unpolar, NULL,
-                    "Convert polar (amplitude,phase) to complex (real,imag)",
-                "--fixnan %@ %s:STRATEGY", action_fixnan, NULL, "Fix NaN/Inf values in the image (choices: none, black, box3, error)",
-                "--fillholes %@", action_fillholes, NULL,
-                    "Fill in holes (where alpha is not 1)",
-                "--max %@", action_max, NULL, "Pixel-by-pixel max of two images",
-                "--maxc %s:VAL %@", action_maxc, NULL, "Max all values with a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
-                "--min %@", action_min, NULL, "Pixel-by-pixel min of two images",
-                "--minc %s:VAL %@", action_minc, NULL, "Min all values with a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)",
-                "--clamp %@", action_clamp, NULL, "Clamp values (options: min=..., max=..., clampalpha=0)",
-                "--contrast %@", action_contrast, NULL, "Remap values (options: black=0..., white=1..., sthresh=0.5..., scontrast=1.0..., gamma=1, clamp=0|1)",
-                "--rangecompress %@", action_rangecompress, NULL,
-                    "Compress the range of pixel values with a log scale (options: luma=0|1)",
-                "--rangeexpand %@", action_rangeexpand, NULL,
-                    "Un-rangecompress pixel values back to a linear scale (options: luma=0|1)",
-                "--line %@ %s:X1,Y1,X2,Y2,...", action_line, NULL,
-                    "Render a poly-line (options: color=)",
-                "--box %@ %s:X1,Y1,X2,Y2", action_box, NULL,
-                    "Render a box (options: color=)",
-                "--fill %@ %s:GEOM", action_fill, NULL, "Fill a region (options: color=)",
-                "--text %@ %s:TEXT", action_text, NULL,
-                    "Render text into the current image (options: x=, y=, size=, color=)",
-                // "--noise_uniform %@", action_noise_uniform, NULL, "Add uniform noise to the image (options: min=, max=)",
-                // "--noise_gaussian %@", action_noise_gaussian, NULL, "Add Gaussian noise to the image (options: mean=, stddev=)",
-                // "--noise_salt %@", action_noise_saltpepp, NULL, "Add 'salt & pepper' noise to the image (options: min=, max=)",
-                "<SEPARATOR>", "Manipulating channels or subimages:",
-                "--ch %@ %s:CHANLIST", action_channels, NULL,
-                    "Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")",
-                "--chappend %@", action_chappend, NULL,
-                    "Append the channels of the last two images",
-                "--unmip %@", action_unmip, NULL, "Discard all but the top level of a MIPmap",
-                "--selectmip %@ %d:MIPLEVEL", action_selectmip, NULL,
-                    "Select just one MIP level (0 = highest res)",
-                "--subimage %@ %s:SUBIMAGEINDEX", action_select_subimage, NULL, "Select just one subimage (by index or name)",
-                "--sisplit %@", action_subimage_split, NULL,
-                    "Split the top image's subimges into separate images",
-                "--siappend %@", action_subimage_append, NULL,
-                    "Append the last two images into one multi-subimage image",
-                "--siappendall %@", action_subimage_append_all, NULL,
-                    "Append all images on the stack into a single multi-subimage image",
-                "--deepen %@", action_deepen, NULL, "Deepen normal 2D image to deep",
-                "--flatten %@", action_flatten, NULL, "Flatten deep image to non-deep",
-                "<SEPARATOR>", "Image stack manipulation:",
-                "--dup %@", action_dup, NULL,
-                    "Duplicate the current image (push a copy onto the stack)",
-                "--swap %@", action_swap, NULL,
-                    "Swap the top two images on the stack.",
-                "--pop %@", action_pop, NULL,
-                    "Throw away the current image",
-                "--label %@ %s", action_label, NULL,
-                    "Label the top image",
-                "<SEPARATOR>", "Color management:",
-                "--colorconfig %@ %s:FILENAME", set_colorconfig, NULL,
-                    "Explicitly specify an OCIO configuration file",
-                "--iscolorspace %@ %s:COLORSPACE", set_colorspace, NULL,
-                    "Set the assumed color space (without altering pixels)",
-                "--tocolorspace %@ %s:COLORSPACE", action_tocolorspace, NULL,
-                    "Convert the current image's pixels to a named color space",
-                "--colorconvert %@ %s:SRC %s:DST", action_colorconvert, NULL, NULL,
-                    "Convert pixels from 'src' to 'dst' color space (options: key=, value=, unpremult=, strict=)",
-                "--ccmatrix %@ %s:MATRIXVALS", action_ccmatrix, NULL,
-                    "Color convert pixels with a 3x3 or 4x4 matrix (options: unpremult=,transpose=)",
-                "--ociolook %@ %s:LOOK", action_ociolook, NULL,
-                    "Apply the named OCIO look (options: from=, to=, inverse=, key=, value=, unpremult=)",
-                "--ociodisplay %@ %s:DISPLAY %s:VIEW", action_ociodisplay, NULL, NULL,
-                    "Apply the named OCIO display and view (options: from=, looks=, key=, value=, unpremult=)",
-                "--ociofiletransform %@ %s:FILENAME", action_ociofiletransform, NULL,
-                    "Apply the named OCIO filetransform (options: inverse=, unpremult=)",
-                "--unpremult %@", action_unpremult, NULL,
-                    "Divide all color channels of the current image by the alpha to \"un-premultiply\"",
-                "--premult %@", action_premult, NULL,
-                    "Multiply all color channels of the current image by the alpha",
-                NULL);
-    // clang-format off
+    ArgParse ap;
+    ap.intro("oiiotool -- simple image processing operations\n"
+              OIIO_INTRO_STRING)
+      .usage("oiiotool [filename|command]...")
+      .description(print_usage_tips())
+      .add_help(false)
+      .exit_on_error(false);
 
-    if (ap.parse(argc, (const char**)argv) < 0) {
+    ap.arg("filename")
+      .hidden()
+      .action(input_file);
+    ap.separator("Options (general):");
+    ap.arg("--help", &help)
+      .help("Print help message");
+    ap.arg("-v", &ot.verbose)
+      .help("Verbose status messages");
+    ap.arg("-q %!", &ot.verbose)
+      .help("Quiet mode (turn verbose off)");
+    ap.arg("-n", &ot.dryrun)
+      .help("No saved output (dry run)");
+    ap.arg("-a", &ot.allsubimages)
+      .help("Do operations on all subimages/miplevels");
+    ap.arg("--debug", &ot.debug)
+      .help("Debug mode");
+    ap.arg("--runstats", &ot.runstats)
+      .help("Print runtime statistics");
+    ap.arg("--info")
+      .help("Print resolution and basic info on all inputs, detailed metadata if -v is also used (options: format=xml:verbose=1)")
+      .action(set_printinfo);
+    ap.arg("--echo %s:TEXT")
+      .help("Echo message to console (options: newline=0)")
+      .action(do_echo);
+    ap.arg("--metamatch %s:REGEX", &ot.printinfo_metamatch)
+      .help("Which metadata is printed with -info -v");
+    ap.arg("--no-metamatch %s:REGEX", &ot.printinfo_nometamatch)
+      .help("Which metadata is excluded with -info -v");
+    ap.arg("--stats", &ot.printstats)
+      .help("Print pixel statistics on all inputs");
+    ap.arg("--dumpdata")
+      .help("Print all pixel data values (options: empty=0)")
+      .action(set_dumpdata);
+    ap.arg("--hash", &ot.hash)
+      .help("Print SHA-1 hash of each input image");
+    ap.arg("--colorcount %s:COLORLIST")
+       .help("Count of how many pixels have the given color (argument: color;color;...) (options: eps=color)")
+       .action(action_colorcount);
+    ap.arg("--rangecheck %s:MIN %s:MAX")
+       .help("Count of how many pixels are outside the min/max color range (each is a comma-separated color value list)")
+       .action(action_rangecheck);
+    ap.arg("-u", &ot.updatemode)
+      .help("Update mode: skip outputs when the file exists and is newer than all inputs");
+    ap.arg("--no-clobber", &ot.noclobber)
+      .help("Do not overwrite existing files");
+    ap.arg("--noclobber", &ot.noclobber)
+      .hidden(); // synonym
+    ap.arg("--threads %d:N")
+      .help("Number of threads (default 0 == #cores)")
+      .action(set_threads);
+    ap.arg("--frames %s:FRAMERANGE")
+      .help("Frame range for '#' or printf-style wildcards");
+    ap.arg("--framepadding %d:NDIGITS", &ot.frame_padding)
+      .help("Frame number padding digits (ignored when using printf-style wildcards)");
+    ap.arg("--views %s:VIEWNAMES")
+      .help("Views for %V/%v wildcards (comma-separated, defaults to \"left,right\")");
+    ap.arg("--wildcardoff")
+      .help("Disable numeric wildcard expansion for subsequent command line arguments");
+    ap.arg("--wildcardon")
+      .help("Enable numeric wildcard expansion for subsequent command line arguments");
+    ap.arg("--evaloff")
+      .help("Disable {expression} evaluation for subsequent command line arguments")
+      .action([&](cspan<const char*>){ ot.eval_enable = false; });
+    ap.arg("--evalon")
+      .help("Enable {expression} evaluation for subsequent command line arguments")
+      .action([&](cspan<const char*>){ ot.eval_enable = true; });
+    ap.arg("--no-autopremult")
+      .help("Turn off automatic premultiplication of images with unassociated alpha")
+      .action(unset_autopremult);
+    ap.arg("--autopremult")
+      .help("Turn on automatic premultiplication of images with unassociated alpha")
+      .action(set_autopremult);
+    ap.arg("--autoorient", &ot.autoorient)
+      .help("Automatically --reorient all images upon input");
+    ap.arg("--auto-orient", &ot.autoorient)
+      .hidden(); // symonym for --autoorient
+    ap.arg("--autocc", &ot.autocc)
+      .help("Automatically color convert based on filename");
+    ap.arg("--noautocc %!", &ot.autocc)
+      .help("Turn off automatic color conversion");
+    ap.arg("--native")
+      .help("Keep native pixel data type (bypass cache if necessary)")
+      .action(set_native);
+    ap.arg("--cache %d:MB")
+      .help("ImageCache size (in MB: default=4096)")
+      .action(set_cachesize);
+    ap.arg("--autotile %d:TILESIZE")
+      .help("Autotile enable for cached images (the argument is the tile size, default 0 means no autotile)")
+      .action(set_autotile);
+    ap.arg("--metamerge", &ot.metamerge)
+      .help("Always merge metadata of all inputs into output");
+    ap.arg("--crash")
+      .action(crash_me)
+      .hidden();
+    ap.separator("Commands that read images:");
+    ap.arg("-i %s:FILENAME")
+      .help("Input file (options: now=, printinfo=, autocc=, type=, ch=)")
+      .action(input_file);
+    ap.arg("--iconfig %s:NAME %s:VALUE")
+      .help("Sets input config attribute (options: type=...)")
+      .action(set_input_attribute);
+    ap.separator("Commands that write images:");
+    ap.arg("-o %s:FILENAME")
+      .help("Output the current image to the named file")
+      .action(output_file);
+    ap.arg("-otex %s:FILENAME")
+      .help("Output the current image as a texture")
+      .action(output_file);
+    ap.arg("-oenv %s:FILENAME")
+      .help("Output the current image as a latlong env map")
+      .action(output_file);
+    ap.arg("-obump %s:FILENAME")
+      .help("Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto)")
+      .action(output_file);
+    ap.separator("Options that affect subsequent image output:");
+    ap.arg("-d %s:TYPE")
+      .help("'-d TYPE' sets the output data format of all channels, "
+            "'-d CHAN=TYPE' overrides a single named channel (multiple -d args are allowed). "
+            "Data types include: uint8, sint8, uint10, uint12, uint16, sint16, uint32, sint32, half, float, double")
+      .action(set_dataformat);
+    ap.arg("--scanline", &ot.output_scanline)
+      .help("Output scanline images");
+    ap.arg("--tile %d:WIDTH %d:HEIGHT", &ot.output_tilewidth, &ot.output_tileheight)
+      .help("Output tiled images with this tile size")
+      .action(output_tiles);
+    ap.arg("--force-tiles", &ot.output_force_tiles)
+      .hidden(); // undocumented
+    ap.arg("--compression %s:NAME", &ot.output_compression)
+      .help("Set the compression method (in the form \"name\" or \"name:quality\")");
+    ap.arg("--quality %d:QUALITY", &ot.output_quality)
+      .hidden(); // DEPRECATED(2.1)
+    ap.arg("--dither", &ot.output_dither)
+      .help("Add dither to 8-bit output");
+    ap.arg("--planarconfig %s:CONFIG", &ot.output_planarconfig)
+      .help("Force planarconfig (contig, separate, default)");
+    ap.arg("--adjust-time", &ot.output_adjust_time)
+      .help("Adjust file times to match DateTime metadata");
+    ap.arg("--noautocrop %!", &ot.output_autocrop)
+      .help("Do not automatically crop images whose formats don't support separate pixel data and full/display windows");
+    ap.arg("--autotrim", &ot.output_autotrim)
+      .help("Automatically trim black borders upon output to file formats that support separate pixel data and full/display windows");
+    ap.separator("Options that change current image metadata (but not pixel values):");
+    ap.arg("--attrib %s:NAME %s:VALUE")
+      .help("Sets metadata attribute (options: type=...)")
+      .action(set_any_attribute);
+    ap.arg("--sattrib %s:NAME %s:VALUE")
+      .help("Sets string metadata attribute")
+      .action(set_string_attribute);
+    ap.arg("--eraseattrib %s:REGEX")
+      .help("Erase attributes matching regex")
+      .action(erase_attribute);
+    ap.arg("--caption %s:TEXT")
+      .help("Sets caption (ImageDescription metadata)")
+      .action(set_caption);
+    ap.arg("--keyword %s:KEYWORD")
+      .help("Add a keyword")
+      .action(set_keyword);
+    ap.arg("--clear-keywords")
+      .help("Clear all keywords")
+      .action(clear_keywords);
+    ap.arg("--nosoftwareattrib", &ot.metadata_nosoftwareattrib)
+      .help("Do not write command line into Exif:ImageHistory, Software metadata attributes");
+    ap.arg("--sansattrib", &sansattrib)
+      .help("Write command line into Software & ImageHistory but remove --sattrib and --attrib options");
+    ap.arg("--orientation %d:ORIENT")
+      .help("Set the assumed orientation")
+      .action(set_orientation);
+    ap.arg("--orientcw")
+      .help("Rotate orientation metadata 90 deg clockwise")
+      .action(rotate_orientation);
+    ap.arg("--orientccw")
+      .help("Rotate orientation metadata 90 deg counter-clockwise")
+      .action(rotate_orientation);
+    ap.arg("--orient180")
+      .help("Rotate orientation metadata 180 deg")
+      .action(rotate_orientation);
+    ap.arg("--rotcw")
+      .hidden() // DEPRECATED(1.5), back compatibility
+      .action(rotate_orientation);
+    ap.arg("--rotccw")
+      .hidden() // DEPRECATED(1.5), back compatibility
+      .action(rotate_orientation);
+    ap.arg("--rot180")
+      .hidden() // DEPRECATED(1.5), back compatibility
+      .action(rotate_orientation);
+    ap.arg("--origin %s:+X+Y")
+      .help("Set the pixel data window origin (e.g. +20+10, -16-16)")
+      .action(set_origin);
+    ap.arg("--originoffset %s:+X+Y")
+      .help("Offset the pixel data window origin from its current position (e.g. +20+10, -16-16)")
+      .action(offset_origin);
+    ap.arg("--fullsize %s:GEOM")
+      .help("Set the display window (e.g., 1920x1080, 1024x768+100+0, -20-30)")
+      .action(set_fullsize);
+    ap.arg("--fullpixels")
+      .help("Set the 'full' image range to be the pixel data window")
+      .action(set_full_to_pixels);
+    ap.arg("--chnames %s:NAMELIST")
+      .help("Set the channel names (comma-separated)")
+      .action(set_channelnames);
+    ap.separator("Options that affect subsequent actions:");
+    ap.arg("--fail %g:THRESH", &ot.diff_failthresh)
+      .help("Failure threshold difference (0.000001)");
+    ap.arg("--failpercent %g:PCNT", &ot.diff_failpercent)
+      .help("Allow this percentage of failures in diff (0)");
+    ap.arg("--hardfail %g:THRESH", &ot.diff_hardfail)
+      .help("Fail diff if any one pixel exceeds this error (infinity)");
+    ap.arg("--warn %g:THRESH", &ot.diff_warnthresh)
+      .help("Warning threshold difference (0.00001)");
+    ap.arg("--warnpercent %g:PCNT", &ot.diff_warnpercent)
+      .help("Allow this percentage of warnings in diff (0)");
+    ap.arg("--hardwarn %g:THRESH", &ot.diff_hardwarn)
+      .help("Warn if any one pixel difference exceeds this error (infinity)");
+    ap.separator("Actions:");
+    ap.arg("--create %s:GEOM %d:NCHANS")
+      .help("Create a blank image")
+      .action( action_create);
+    ap.arg("--pattern %s:NAME %s:GEOM %d:NCHANS")
+      .help("Create a patterned image. Pattern name choices: black, constant, fill, checker, noise")
+      .action( action_pattern);
+    ap.arg("--kernel %s:NAME %s:GEOM")
+      .help("Create a centered convolution kernel")
+      .action( action_kernel);
+    ap.arg("--capture")
+          .help("Capture an image (options: camera=%d)")
+      .action(action_capture);
+    ap.arg("--diff")
+      .help("Print report on the difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)")
+      .action(action_diff);
+    ap.arg("--pdiff")
+      .help("Print report on the perceptual difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)")
+      .action(action_pdiff);
+    ap.arg("--add")
+      .help("Add two images")
+      .action(action_add);
+    ap.arg("--addc %s:VAL")
+      .help("Add to all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)")
+      .action(action_addc);
+    ap.arg("--cadd %s:VAL")
+      .hidden() // Deprecated synonym
+      .action(action_addc);
+    ap.arg("--sub")
+      .help("Subtract two images")
+      .action(action_sub);
+    ap.arg("--subc %s:VAL")
+      .help("Subtract from all channels a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)")
+      .action(action_subc);
+    ap.arg("--csub %s:VAL")
+      .hidden() // Deprecated synonym
+      .action(action_subc);
+    ap.arg("--mul")
+      .help("Multiply two images")
+      .action(action_mul);
+    ap.arg("--mulc %s:VAL")
+      .help("Multiply the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)")
+      .action(action_mulc);
+    ap.arg("--cmul %s:VAL")
+      .hidden() // Deprecated synonym
+      .action(action_mulc);
+    ap.arg("--div")
+      .help("Divide first image by second image")
+      .action(action_div);
+    ap.arg("--divc %s:VAL")
+      .help("Divide the image values by a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)")
+      .action(action_divc);
+    ap.arg("--mad")
+      .help("Multiply two images, add a third")
+      .action(action_mad);
+    ap.arg("--invert")
+      .help("Take the color inverse (subtract from 1)")
+      .action(action_invert);
+    ap.arg("--abs")
+      .help("Take the absolute value of the image pixels")
+      .action(action_abs);
+    ap.arg("--absdiff")
+      .help("Absolute difference between two images")
+      .action(action_absdiff);
+    ap.arg("--absdiffc %s:VAL")
+      .help("Absolute difference versus a scalar or per-channel constant (e.g.: 0.5 or 1,1.25,0.5)")
+      .action(action_absdiffc);
+    ap.arg("--powc %s:VAL")
+      .help("Raise the image values to a scalar or per-channel power (e.g.: 2.2 or 2.2,2.2,2.2,1.0)")
+      .action(action_powc);
+    ap.arg("--cpow %s:VAL")
+      .hidden() // Depcrcated synonym
+      .action(action_powc);
+    ap.arg("--noise")
+      .help("Add noise to an image (options: type=gaussian:mean=0:stddev=0.1, type=uniform:min=0:max=0.1, type=salt:value=0:portion=0.1, seed=0")
+      .action(action_noise);
+    ap.arg("--chsum")
+      .help("Turn into 1-channel image by summing channels (options: weight=r,g,...)")
+      .action(action_chsum);
+    ap.arg("--colormap %s:MAPNAME")
+      .help("Color map based on channel 0 (arg: \"inferno\", \"viridis\", \"magma\", \"turbo\", \"plasma\", \"blue-red\", \"spectrum\", \"heat\", or comma-separated list of RGB triples)")
+      .action(action_colormap);
+    ap.arg("--crop %s:GEOM")
+      .help("Set pixel data resolution and offset, cropping or padding if necessary (WxH+X+Y or xmin,ymin,xmax,ymax)")
+      .action(action_crop);
+    ap.arg("--croptofull")
+      .help("Crop or pad to make pixel data region match the \"full\" region")
+      .action(action_croptofull);
+    ap.arg("--trim")
+      .help("Crop to the minimal ROI containing nonzero pixel values")
+      .action(action_trim);
+    ap.arg("--cut %s:GEOM")
+      .help("Cut out the ROI and reposition to the origin (WxH+X+Y or xmin,ymin,xmax,ymax)")
+      .action(action_cut);
+    ap.arg("--paste %s:+X+Y")
+      .help("Paste fg over bg at the given position (e.g., +100+50; '-' or 'auto' indicates using the data window position as-is; options: all=%d, mergeroi=%d)")
+      .action(action_paste);
+    ap.arg("--mosaic %s:WxH")
+      .help("Assemble images into a mosaic (arg: WxH; options: pad=0)")
+      .action(action_mosaic);
+    ap.arg("--over")
+      .help("'Over' composite of two images")
+      .action(action_over);
+    ap.arg("--zover")
+      .help("Depth composite two images with Z channels (options: zeroisinf=%d)")
+      .action(action_zover);
+    ap.arg("--deepmerge")
+      .help("Merge/composite two deep images")
+      .action(action_deepmerge);
+    ap.arg("--deepholdout")
+      .help("Hold out one deep image by another")
+      .action(action_deepholdout);
+    ap.arg("--histogram %s:BINSxHEIGHT %d:CHAN")
+      .help("Histogram one channel (options: cumulative=0)")
+      .action(action_histogram);
+    ap.arg("--rotate90")
+      .help("Rotate the image 90 degrees clockwise")
+      .action(action_rotate90);
+    ap.arg("--rotate180")
+      .help("Rotate the image 180 degrees")
+      .action(action_rotate180);
+    ap.arg("--flipflop")
+      .hidden() // Deprecated synonym for --rotate180
+      .action(action_rotate180);
+    ap.arg("--rotate270")
+      .help("Rotate the image 270 degrees clockwise (or 90 degrees CCW)")
+      .action(action_rotate270);
+    ap.arg("--flip")
+      .help("Flip the image vertically (top<->bottom)")
+      .action(action_flip);
+    ap.arg("--flop")
+      .help("Flop the image horizontally (left<->right)")
+      .action(action_flop);
+    ap.arg("--reorient")
+      .help("Rotate and/or flop the image to transform the pixels to match the Orientation metadata")
+      .action(action_reorient);
+    ap.arg("--transpose")
+      .help("Transpose the image")
+      .action(action_transpose);
+    ap.arg("--cshift %s:+X+Y")
+      .help("Circular shift the image (e.g.: +20-10)")
+      .action(action_cshift);
+    ap.arg("--resample %s:GEOM")
+      .help("Resample (640x480, 50%) (options: interp=0)")
+      .action(action_resample);
+    ap.arg("--resize %s:GEOM")
+      .help("Resize (640x480, 50%) (options: filter=%s)")
+      .action(action_resize);
+    ap.arg("--fit %s:GEOM")
+      .help("Resize to fit within a window size (options: filter=%s, pad=%d, exact=%d)")
+      .action(action_fit);
+    ap.arg("--pixelaspect %g:ASPECT")
+      .help("Scale up the image's width or height to match the given pixel aspect ratio (options: filter=%s)")
+      .action(action_pixelaspect);
+    ap.arg("--rotate %g:DEGREES")
+      .help("Rotate pixels (degrees clockwise) around the center of the display window (options: filter=%s, center=%f,%f, recompute_roi=%d")
+      .action(action_rotate);
+    ap.arg("--warp %s:MATRIX")
+      .help("Warp pixels (argument is a 3x3 matrix, separated by commas) (options: filter=%s, recompute_roi=%d)")
+      .action(action_warp);
+    ap.arg("--convolve")
+      .help("Convolve with a kernel")
+      .action(action_convolve);
+    ap.arg("--blur %s:WxH")
+      .help("Blur the image (options: kernel=name)")
+      .action(action_blur);
+    ap.arg("--median %s:WxH")
+      .help("Median filter the image")
+      .action(action_median);
+    ap.arg("--dilate %s:WxH")
+      .help("Dilate (area maximum) the image")
+      .action(action_dilate);
+    ap.arg("--erode %s:WxH")
+      .help("Erode (area minimum) the image")
+      .action(action_erode);
+    ap.arg("--unsharp")
+      .help("Unsharp mask (options: kernel=gaussian, width=3, contrast=1, threshold=0)")
+      .action(action_unsharp);
+    ap.arg("--laplacian")
+      .help("Laplacian filter the image")
+      .action(action_laplacian);
+    ap.arg("--fft")
+      .help("Take the FFT of the image")
+      .action(action_fft);
+    ap.arg("--ifft")
+      .help("Take the inverse FFT of the image")
+      .action(action_ifft);
+    ap.arg("--polar")
+      .help("Convert complex (real,imag) to polar (amplitude,phase)")
+      .action(action_polar);
+    ap.arg("--unpolar")
+      .help("Convert polar (amplitude,phase) to complex (real,imag)")
+      .action(action_unpolar);
+    ap.arg("--fixnan %s:STRATEGY")
+      .help("Fix NaN/Inf values in the image (choices: none, black, box3, error)")
+      .action(action_fixnan);
+    ap.arg("--fillholes")
+      .help("Fill in holes (where alpha is not 1)")
+      .action(action_fillholes);
+    ap.arg("--max")
+      .help("Pixel-by-pixel max of two images")
+      .action(action_max);
+    ap.arg("--maxc %s:VAL")
+      .help("Max all values with a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)")
+      .action(action_maxc);
+    ap.arg("--min")
+      .help("Pixel-by-pixel min of two images")
+      .action(action_min);
+    ap.arg("--minc %s:VAL")
+      .help("Min all values with a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)")
+      .action(action_minc);
+    ap.arg("--clamp")
+      .help("Clamp values (options: min=..., max=..., clampalpha=0)")
+      .action(action_clamp);
+    ap.arg("--contrast")
+      .help("Remap values (options: black=0..., white=1..., sthresh=0.5..., scontrast=1.0..., gamma=1, clamp=0|1)")
+      .action(action_contrast);
+    ap.arg("--rangecompress")
+      .help("Compress the range of pixel values with a log scale (options: luma=0|1)")
+      .action(action_rangecompress);
+    ap.arg("--rangeexpand")
+      .help("Un-rangecompress pixel values back to a linear scale (options: luma=0|1)")
+      .action(action_rangeexpand);
+    ap.arg("--line %s:X1,Y1,X2,Y2,...")
+      .help("Render a poly-line (options: color=)")
+      .action(action_line);
+    ap.arg("--box %s:X1,Y1,X2,Y2")
+      .help("Render a box (options: color=)")
+      .action(action_box);
+    ap.arg("--fill %s:GEOM")
+      .help("Fill a region (options: color=)")
+      .action(action_fill);
+    ap.arg("--text %s:TEXT")
+      .help("Render text into the current image (options: x=, y=, size=, color=)")
+      .action(action_text);
+    ap.separator("Manipulating channels or subimages:");
+    ap.arg("--ch %s:CHANLIST")
+      .help("Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")")
+      .action(action_channels);
+    ap.arg("--chappend")
+      .help("Append the channels of the last two images")
+      .action(action_chappend);
+    ap.arg("--unmip")
+      .help("Discard all but the top level of a MIPmap")
+      .action(action_unmip);
+    ap.arg("--selectmip %d:MIPLEVEL")
+      .help("Select just one MIP level (0 = highest res)")
+      .action(action_selectmip);
+    ap.arg("--subimage %s:SUBIMAGEINDEX")
+      .help("Select just one subimage (by index or name)")
+      .action(action_select_subimage);
+    ap.arg("--sisplit")
+      .help("Split the top image's subimges into separate images")
+      .action(action_subimage_split);
+    ap.arg("--siappend")
+      .help("Append the last two images into one multi-subimage image")
+      .action(action_subimage_append);
+    ap.arg("--siappendall")
+      .help("Append all images on the stack into a single multi-subimage image")
+      .action(action_subimage_append_all);
+    ap.arg("--deepen")
+      .help("Deepen normal 2D image to deep")
+      .action(action_deepen);
+    ap.arg("--flatten")
+      .help("Flatten deep image to non-deep")
+      .action(action_flatten);
+    ap.separator("Image stack manipulation:");
+    ap.arg("--dup")
+      .help("Duplicate the current image (push a copy onto the stack)")
+      .action(action_dup);
+    ap.arg("--swap")
+      .help("Swap the top two images on the stack.")
+      .action(action_swap);
+    ap.arg("--pop")
+      .help("Throw away the current image")
+      .action(action_pop);
+    ap.arg("--label %s")
+      .help("Label the top image")
+      .action(action_label);
+    ap.separator("Color management:");
+    ap.arg("--colorconfig %s:FILENAME")
+      .help("Explicitly specify an OCIO configuration file")
+      .action(set_colorconfig);
+    ap.arg("--iscolorspace %s:COLORSPACE")
+      .help("Set the assumed color space (without altering pixels)")
+      .action(set_colorspace);
+    ap.arg("--tocolorspace %s:COLORSPACE")
+      .help("Convert the current image's pixels to a named color space")
+      .action(action_tocolorspace);
+    ap.arg("--colorconvert %s:SRC %s:DST")
+      .help("Convert pixels from 'src' to 'dst' color space (options: key=, value=, unpremult=, strict=)")
+      .action(action_colorconvert);
+    ap.arg("--ccmatrix %s:MATRIXVALS")
+      .help("Color convert pixels with a 3x3 or 4x4 matrix (options: unpremult=,transpose=)")
+      .action(action_ccmatrix);
+    ap.arg("--ociolook %s:LOOK")
+      .help("Apply the named OCIO look (options: from=, to=, inverse=, key=, value=, unpremult=)")
+      .action(action_ociolook);
+    ap.arg("--ociodisplay %s:DISPLAY %s:VIEW")
+      .help("Apply the named OCIO display and view (options: from=, looks=, key=, value=, unpremult=)")
+      .action(action_ociodisplay);
+    ap.arg("--ociofiletransform %s:FILENAME")
+      .help("Apply the named OCIO filetransform (options: inverse=, unpremult=)")
+      .action(action_ociofiletransform);
+    ap.arg("--unpremult")
+      .help("Divide all color channels of the current image by the alpha to \"un-premultiply\"")
+      .action(action_unpremult);
+    ap.arg("--premult")
+      .help("Multiply all color channels of the current image by the alpha")
+      .action(action_premult);
+    // clang-format on
+
+    if (ap.parse_args(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
-        print_help (ap);
+        print_help(ap);
         // Repeat the command line, so if oiiotool is being called from a
         // script, it's easy to debug how the command was mangled.
-        std::cerr << "\nFull command line was:\n> " << ot.full_command_line << "\n";
-        exit (EXIT_FAILURE);
+        std::cerr << "\nFull command line was:\n> " << ot.full_command_line
+                  << "\n";
+        exit(EXIT_FAILURE);
     }
-    if (help) {
-        print_help (ap);
-        exit (EXIT_SUCCESS);
+    if (help || ap["help"].get<int>()) {
+        print_help(ap);
+        exit(EXIT_SUCCESS);
     }
     if (argc <= 1) {
-        ap.briefusage ();
+        ap.briefusage();
         std::cout << "\nFor detailed help: oiiotool --help\n";
-        exit (EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
     }
 }
 
@@ -6035,9 +6296,10 @@ handle_sequence(int argc, const char** argv)
                                                              frame_views[a],
                                                              filenames[a]);
             if (!result) {
-                ot.errorf("",
+                ot.errorf(
+                    "",
                     "No filenames found matching pattern: \"%s\" (did you intend to use --wildcardoff?)",
-                        argv[a]);
+                    argv[a]);
                 return true;
             }
         }
@@ -6045,10 +6307,11 @@ handle_sequence(int argc, const char** argv)
         if (i == 0) {
             nfilenames = filenames[a].size();
         } else if (nfilenames != filenames[a].size()) {
-            ot.errorf("",
-                     "Not all sequence specifications matched: %s (%d frames) vs. %s (%d frames)",
-                     argv[sequence_args[0]], nfilenames, argv[a],
-                     filenames[a].size());
+            ot.errorf(
+                "",
+                "Not all sequence specifications matched: %s (%d frames) vs. %s (%d frames)",
+                argv[sequence_args[0]], nfilenames, argv[a],
+                filenames[a].size());
             return true;
         }
     }
@@ -6083,7 +6346,8 @@ handle_sequence(int argc, const char** argv)
 
         ot.process_pending();
         if (ot.pending_callback())
-            ot.warning(ot.pending_callback_name(), "pending command never executed");
+            ot.warning(ot.pending_callback_name(),
+                       "pending command never executed");
         // Clear the stack at the end of each iteration
         ot.curimg.reset();
         ot.image_stack.clear();
@@ -6159,14 +6423,16 @@ main(int argc, char* argv[])
         getargs(argc, argv);
         ot.process_pending();
         if (ot.pending_callback())
-            ot.warning(ot.pending_callback_name(), "pending command never executed");
+            ot.warning(ot.pending_callback_name(),
+                       "pending command never executed");
     }
 
     if (!ot.printinfo && !ot.printstats && !ot.dumpdata && !ot.dryrun
         && !ot.printed_info) {
         if (ot.curimg && !ot.curimg->was_output()
             && (ot.curimg->metadata_modified() || ot.curimg->pixels_modified()))
-            ot.warning("",
+            ot.warning(
+                "",
                 "modified images without outputting them. Did you forget -o?");
         else if (ot.num_outputs == 0)
             ot.warning("", "oiiotool produced no output. Did you forget -o?");
@@ -6190,8 +6456,7 @@ main(int argc, char* argv[])
             Strutil::printf(timeformat, func->first, t);
             unaccounted -= t;
         }
-        Strutil::printf(timeformat, "unaccounted",
-                                     std::max(unaccounted, 0.0));
+        Strutil::printf(timeformat, "unaccounted", std::max(unaccounted, 0.0));
         ot.check_peak_memory();
         std::cout << "  Peak memory:    " << Strutil::memformat(ot.peak_memory)
                   << "\n";

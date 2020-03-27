@@ -31,15 +31,13 @@ using namespace std::regex_constants;
 
 using namespace OIIO;
 
-static bool help           = false;
-static bool invert_match   = false;
-static bool ignore_case    = false;
-static bool list_files     = false;
-static bool recursive      = false;
-static bool file_match     = false;
-static bool print_dirs     = false;
-static bool all_subimages  = false;
-static bool extended_regex = false;
+static bool help          = false;
+static bool invert_match  = false;
+static bool list_files    = false;
+static bool recursive     = false;
+static bool file_match    = false;
+static bool print_dirs    = false;
+static bool all_subimages = false;
 static std::string pattern;
 static std::vector<std::string> filenames;
 
@@ -142,24 +140,34 @@ main(int argc, const char* argv[])
     Sysutil::setup_crash_stacktrace("stdout");
 
     Filesystem::convert_native_arguments(argc, argv);
-    ArgParse ap;
     // clang-format off
-    ap.options ("igrep -- search images for matching metadata\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  igrep [options] pattern filename...",
-                "%*", parse_files, "",
-                "-i", &ignore_case, "Ignore upper/lower case distinctions",
-                "-v", &invert_match, "Invert match (select non-matching files)",
-                "-E", &extended_regex, "Pattern is an extended regular expression",
-                "-f", &file_match, "Match against file name as well as metadata",
-                "-l", &list_files, "List the matching files (no detail)",
-                "-r", &recursive, "Recurse into directories",
-                "-d", &print_dirs, "Print directories (when recursive)",
-                "-a", &all_subimages, "Search all subimages of each file",
-                "--help", &help, "Print help message",
-                NULL);
+    ArgParse ap;
+    ap.intro("igrep -- search images for matching metadata\n"
+             OIIO_INTRO_STRING)
+      .usage("igrep [options] pattern filename...");
+    ap.arg("filename")
+      .hidden()
+      .action(parse_files);
+    ap.arg("-i")
+      .help("Ignore upper/lower case distinctions");
+    ap.arg("-v", &invert_match)
+      .help("Invert match (select non-matching files)");
+    ap.arg("-E")
+      .help( "Pattern is an extended regular expression");
+    ap.arg("-f", &file_match)
+      .help("Match against file name as well as metadata");
+    ap.arg("-l", &list_files)
+      .help("List the matching files (no detail)");
+    ap.arg("-r", &recursive)
+      .help("Recurse into directories");
+    ap.arg("-d", &print_dirs)
+      .help("Print directories (when recursive)");
+    ap.arg("-a", &all_subimages)
+      .help("Search all subimages of each file");
+
     // clang-format on
-    if (ap.parse(argc, argv) < 0 || pattern.empty() || filenames.empty()) {
+    ap.parse(argc, argv);
+    if (pattern.empty() || filenames.empty()) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage();
         return help ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -168,15 +176,15 @@ main(int argc, const char* argv[])
 #if USE_BOOST_REGEX
     boost::regex_constants::syntax_option_type flag
         = boost::regex_constants::grep;
-    if (extended_regex)
+    if (ap["E"].get<int>())
         flag = boost::regex::extended;
-    if (ignore_case)
+    if (ap["i"].get<int>())
         flag |= boost::regex_constants::icase;
 #else
     auto flag = std::regex_constants::grep;
-    if (extended_regex)
+    if (ap["E"].get<int>())
         flag = std::regex_constants::extended;
-    if (ignore_case)
+    if (ap["i"].get<int>())
         flag |= std::regex_constants::icase;
 #endif
     regex re(pattern, flag);

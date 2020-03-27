@@ -103,16 +103,6 @@ colorconvert_help_string()
 
 
 
-static int
-parse_files(int argc, const char* argv[])
-{
-    for (int i = 0; i < argc; i++)
-        filenames.emplace_back(argv[i]);
-    return 0;
-}
-
-
-
 // Concatenate the command line into one string, optionally filtering out
 // verbose attribute commands. Escape control chars in the arguments, and
 // double-quote any that contain spaces.
@@ -155,7 +145,6 @@ command_line_string(int argc, char* argv[], bool sansattrib)
 static void
 getargs(int argc, char* argv[], ImageSpec& configspec)
 {
-    bool help = false;
     // Basic runtime options
     std::string dataformatname = "";
     std::string fileformatname = "";
@@ -198,91 +187,131 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     std::vector<std::string> any_attrib_names, any_attrib_values;
     filenames.clear();
 
-    ArgParse ap;
     // clang-format off
-    ap.options ("maketx -- convert images to tiled, MIP-mapped textures\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  maketx [options] file...",
-                  "%*", parse_files, "",
-                  "--help", &help, "Print help message",
-                  "-v", &verbose, "Verbose status messages",
-                  "-o %s", &outputfilename, "Output filename",
-                  "--threads %d", &nthreads, "Number of threads (default: #cores)",
-                  "-u", &updatemode, "Update mode",
-                  "--format %s", &fileformatname, "Specify output file format (default: guess from extension)",
-                  "--nchannels %d", &nchannels, "Specify the number of output image channels.",
-                  "--chnames %s", &channelnames, "Rename channels (comma-separated)",
-                  "-d %s", &dataformatname, "Set the output data format to one of: "
-                          "uint8, sint8, uint16, sint16, half, float",
-                  "--tile %d %d", &tile[0], &tile[1], "Specify tile size",
-                  "--separate", &separate, "Use planarconfig separate (default: contiguous)",
-                  "--compression %s", &compression, "Set the compression method (default = zip, if possible)",
-                  "--fovcot %f", &fovcot, "Override the frame aspect ratio. Default is width/height.",
-                  "--wrap %s", &wrap, "Specify wrap mode (black, clamp, periodic, mirror)",
-                  "--swrap %s", &swrap, "Specific s wrap mode separately",
-                  "--twrap %s", &twrap, "Specific t wrap mode separately",
-                  "--resize", &doresize, "Resize textures to power of 2 (default: no)",
-                  "--noresize %!", &doresize, "Do not resize textures to power of 2 (deprecated)",
-                  "--filter %s", &filtername, filter_help_string().c_str(),
-                  "--hicomp", &do_highlight_compensation,
-                          "Compress HDR range before resize, expand after.",
-                  "--sharpen %f", &sharpen, "Sharpen MIP levels (default = 0.0 = no)",
-                  "--nomipmap", &nomipmap, "Do not make multiple MIP-map levels",
-                  "--checknan", &checknan, "Check for NaN/Inf values (abort if found)",
-                  "--fixnan %s", &fixnan, "Attempt to fix NaN/Inf values in the image (options: none, black, box3)",
-                  "--fullpixels", &set_full_to_pixels, "Set the 'full' image range to be the pixel data window",
-                  "--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-                          &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3], 
-                          &Mcam[1][0], &Mcam[1][1], &Mcam[1][2], &Mcam[1][3], 
-                          &Mcam[2][0], &Mcam[2][1], &Mcam[2][2], &Mcam[2][3], 
-                          &Mcam[3][0], &Mcam[3][1], &Mcam[3][2], &Mcam[3][3], 
-                          "Set the camera matrix",
-                  "--Mscreen %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-                          &Mscr[0][0], &Mscr[0][1], &Mscr[0][2], &Mscr[0][3], 
-                          &Mscr[1][0], &Mscr[1][1], &Mscr[1][2], &Mscr[1][3], 
-                          &Mscr[2][0], &Mscr[2][1], &Mscr[2][2], &Mscr[2][3], 
-                          &Mscr[3][0], &Mscr[3][1], &Mscr[3][2], &Mscr[3][3], 
-                          "Set the screen matrix",
-                  "--prman-metadata", &prman_metadata, "Add prman specific metadata",
-                  "--attrib %L %L", &any_attrib_names, &any_attrib_values, "Sets metadata attribute (name, value)",
-                  "--sattrib %L %L", &string_attrib_names, &string_attrib_values, "Sets string metadata attribute (name, value)",
-                  "--sansattrib", &sansattrib, "Write command line into Software & ImageHistory but remove --sattrib and --attrib options",
-                  "--constant-color-detect", &constant_color_detect, "Create 1-tile textures from constant color inputs",
-                  "--monochrome-detect", &monochrome_detect, "Create 1-channel textures from monochrome inputs",
-                  "--opaque-detect", &opaque_detect, "Drop alpha channel that is always 1.0",
-                  "--no-compute-average %!", &compute_average, "Don't compute and store average color",
-                  "--ignore-unassoc", &ignore_unassoc, "Ignore unassociated alpha tags in input (don't autoconvert)",
-                  "--runstats", &runstats, "Print runtime statistics",
-                  "--stats", &runstats, "", // DEPRECATED 1.6
-                  "--mipimage %L", &mipimages, "Specify an individual MIP level",
-                  "<SEPARATOR>", "Basic modes (default is plain texture):",
-                  "--shadow", &shadowmode, "Create shadow map",
-                  "--envlatl", &envlatlmode, "Create lat/long environment map",
-                  "--lightprobe", &lightprobemode, "Create lat/long environment map from a light probe",
-                  "--bumpslopes", &bumpslopesmode, "Create a 6 channels bump-map with height, derivatives and square derivatives from an height or a normal map",
-                  "--bumpformat %s", &bumpformat, "Specify the interpretation of a 3-channel input image for --bumpslopes: \"height\", \"normal\" or \"auto\" (default).",
+    ArgParse ap;
+    ap.intro("maketx -- convert images to tiled, MIP-mapped textures\n"
+             OIIO_INTRO_STRING);
+    ap.usage("maketx [options] file...");
+
+    ap.arg("filename")
+      .hidden()
+      .action([&](cspan<const char*> argv){ filenames.emplace_back(argv[0]); });
+    ap.arg("-v", &verbose)
+      .help("Verbose status messages");
+    ap.arg("-o %s:FILENAME", &outputfilename)
+      .help("Output filename");
+    ap.arg("--threads %d:NUMTHREADS", &nthreads)
+      .help("Number of threads (default: #cores)");
+    ap.arg("-u", &updatemode)
+      .help("Update mode");
+    ap.arg("--format %s:FILEFORMAT", &fileformatname)
+      .help("Specify output file format (default: guess from extension)");
+    ap.arg("--nchannels %d:N", &nchannels)
+      .help("Specify the number of output image channels.");
+    ap.arg("--chnames %s:CHANNELNAMES", &channelnames)
+      .help("Rename channels (comma-separated)");
+    ap.arg("-d %s:TYPE", &dataformatname)
+      .help("Set the output data format to one of: uint8, sint8, uint16, sint16, half, float");
+    ap.arg("--tile %d:WIDTH %d:HEIGHT", &tile[0], &tile[1])
+      .help("Specify tile size");
+    ap.arg("--separate", &separate)
+      .help("Use planarconfig separate (default: contiguous)");
+    ap.arg("--compression %s:NAME", &compression)
+      .help("Set the compression method (default = zip, if possible)");
+    ap.arg("--fovcot %f:FOVCAT", &fovcot)
+      .help("Override the frame aspect ratio. Default is width/height.");
+    ap.arg("--wrap %s:WRAP", &wrap)
+      .help("Specify wrap mode (black, clamp, periodic, mirror)");
+    ap.arg("--swrap %s:WRAP", &swrap)
+      .help("Specific s wrap mode separately");
+    ap.arg("--twrap %s:WRAP", &twrap)
+      .help("Specific t wrap mode separately");
+    ap.arg("--resize", &doresize)
+      .help("Resize textures to power of 2 (default: no)");
+    ap.arg("--noresize %!", &doresize)
+      .help("Do not resize textures to power of 2 (deprecated)");
+    ap.arg("--filter %s:FILTERNAME", &filtername)
+      .help(filter_help_string());
+    ap.arg("--hicomp", &do_highlight_compensation)
+      .help("Compress HDR range before resize, expand after.");
+    ap.arg("--sharpen %f:SHARPEN", &sharpen)
+      .help("Sharpen MIP levels (default = 0.0 = no)");
+    ap.arg("--nomipmap", &nomipmap)
+      .help("Do not make multiple MIP-map levels");
+    ap.arg("--checknan", &checknan)
+      .help("Check for NaN/Inf values (abort if found)");
+    ap.arg("--fixnan %s:STRATEGY", &fixnan)
+      .help("Attempt to fix NaN/Inf values in the image (options: none, black, box3)");
+    ap.arg("--fullpixels", &set_full_to_pixels)
+      .help("Set the 'full' image range to be the pixel data window");
+    ap.arg("--Mcamera %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+                          &Mcam[0][0], &Mcam[0][1], &Mcam[0][2], &Mcam[0][3],
+                          &Mcam[1][0], &Mcam[1][1], &Mcam[1][2], &Mcam[1][3],
+                          &Mcam[2][0], &Mcam[2][1], &Mcam[2][2], &Mcam[2][3],
+                          &Mcam[3][0], &Mcam[3][1], &Mcam[3][2], &Mcam[3][3])
+      .help("Set the camera matrix");
+    ap.arg("--Mscreen %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+                          &Mscr[0][0], &Mscr[0][1], &Mscr[0][2], &Mscr[0][3],
+                          &Mscr[1][0], &Mscr[1][1], &Mscr[1][2], &Mscr[1][3],
+                          &Mscr[2][0], &Mscr[2][1], &Mscr[2][2], &Mscr[2][3],
+                          &Mscr[3][0], &Mscr[3][1], &Mscr[3][2], &Mscr[3][3])
+      .help("Set the screen matrix");
+    ap.arg("--prman-metadata", &prman_metadata)
+      .help("Add prman specific metadata");
+    ap.arg("--attrib %L:NAME %L:VALUE", &any_attrib_names, &any_attrib_values)
+      .help("Sets metadata attribute (name, value)");
+    ap.arg("--sattrib %L:NAME %L:VALUE", &string_attrib_names, &string_attrib_values)
+      .help("Sets string metadata attribute (name, value)");
+    ap.arg("--sansattrib", &sansattrib)
+      .help("Write command line into Software & ImageHistory but remove --sattrib and --attrib options");
+    ap.arg("--constant-color-detect", &constant_color_detect)
+      .help("Create 1-tile textures from constant color inputs");
+    ap.arg("--monochrome-detect", &monochrome_detect)
+      .help("Create 1-channel textures from monochrome inputs");
+    ap.arg("--opaque-detect", &opaque_detect)
+      .help("Drop alpha channel that is always 1.0");
+    ap.arg("--no-compute-average %!", &compute_average)
+      .help("Don't compute and store average color");
+    ap.arg("--ignore-unassoc", &ignore_unassoc)
+      .help("Ignore unassociated alpha tags in input (don't autoconvert)");
+    ap.arg("--runstats", &runstats)
+      .help("Print runtime statistics");
+    ap.arg("--stats", &runstats)
+      .hidden(); // DEPRECATED 1.6
+    ap.arg("--mipimage %L:FILENAME", &mipimages)
+      .help("Specify an individual MIP level");
+
+    ap.separator("Basic modes (default is plain texture):");
+    ap.arg("--shadow", &shadowmode)
+      .help("Create shadow map");
+    ap.arg("--envlatl", &envlatlmode)
+      .help("Create lat/long environment map");
+    ap.arg("--lightprobe", &lightprobemode)
+      .help("Create lat/long environment map from a light probe");
+    ap.arg("--bumpslopes", &bumpslopesmode)
+      .help("Create a 6 channels bump-map with height, derivatives and square derivatives from an height or a normal map");
+    ap.arg("--bumpformat %s:NAME", &bumpformat)
+      .help("Specify the interpretation of a 3-channel input image for --bumpslopes: \"height\", \"normal\" or \"auto\" (default).");
 //                  "--envcube", &envcubemode, "Create cubic env map (file order: px, nx, py, ny, pz, nz) (UNIMP)",
-                  "<SEPARATOR>", colortitle_help_string().c_str(),
-                  "--colorconfig %s", &colorconfigname, "Explicitly specify an OCIO configuration file",
-                  "--colorconvert %s %s", &incolorspace, &outcolorspace,
-                          colorconvert_help_string().c_str(),
-                  "--unpremult", &unpremult, "Unpremultiply before color conversion, then premultiply "
-                          "after the color conversion.  You'll probably want to use this flag "
-                          "if your image contains an alpha channel.",
-                  "<SEPARATOR>", "Configuration Presets",
-                  "--prman", &prman, "Use PRMan-safe settings for tile size, planarconfig, and metadata.",
-                  "--oiio", &oiio, "Use OIIO-optimized settings for tile size, planarconfig, metadata.",
-                  nullptr);
+
+    ap.separator(colortitle_help_string());
+    ap.arg("--colorconfig %s:FILENAME", &colorconfigname)
+      .help("Explicitly specify an OCIO configuration file");
+    ap.arg("--colorconvert %s:IN %s:OUT", &incolorspace, &outcolorspace)
+      .help(colorconvert_help_string());
+    ap.arg("--unpremult", &unpremult)
+      .help("Unpremultiply before color conversion, then premultiply "
+            "after the color conversion.  You'll probably want to use this flag "
+            "if your image contains an alpha channel.");
+
+    ap.separator("Configuration Presets");
+    ap.arg("--prman", &prman)
+      .help("Use PRMan-safe settings for tile size, planarconfig, and metadata.");
+    ap.arg("--oiio", &oiio)
+      .help("Use OIIO-optimized settings for tile size, planarconfig, metadata.");
+
     // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_SUCCESS);
-    }
+    ap.parse(argc, (const char**)argv);
     if (filenames.empty()) {
         ap.briefusage();
         std::cout << "\nFor detailed help: maketx --help\n";

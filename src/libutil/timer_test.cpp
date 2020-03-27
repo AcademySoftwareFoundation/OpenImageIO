@@ -17,44 +17,16 @@ using namespace OIIO;
 
 
 
-static int
-parse_files(int /*argc*/, const char* /*argv*/[])
-{
-    //    input_filename = ustring(argv[0]);
-    return 0;
-}
-
-
-
-static void
-getargs(int argc, char* argv[])
-{
-    bool help = false;
-    ArgParse ap;
-    // clang-format off
-    ap.options("timer_test\n" OIIO_INTRO_STRING "\n"
-               "Usage:  timer_test [options]",
-               "%*", parse_files, "",
-               "--help", &help, "Print help message",
-               NULL);
-    // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-}
-
-
-
 int
 main(int argc, char** argv)
 {
-    getargs(argc, argv);
+    ArgParse ap;
+    // clang-format off
+    ap.intro("timer_test\n" OIIO_INTRO_STRING)
+      .usage("timer_test [options]");
+    // clang-format on
+
+    ap.parse(argc, (const char**)argv);
 
     // First, just compute and print how expensive a Timer begin/end is,
     // in cycles per second.

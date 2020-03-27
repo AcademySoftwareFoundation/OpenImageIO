@@ -31,7 +31,6 @@ using namespace OIIO::simd;
 
 static int iterations = 1000000;
 static int ntrials    = 5;
-static bool verbose   = false;
 static Sysutil::Term term(std::cout);
 OIIO_SIMD16_ALIGN float dummy_float[16];
 OIIO_SIMD16_ALIGN float dummy_float2[16];
@@ -42,26 +41,17 @@ OIIO_SIMD16_ALIGN float dummy_int[16];
 static void
 getargs(int argc, char* argv[])
 {
-    bool help = false;
     ArgParse ap;
-    ap.options("simd_test\n" OIIO_INTRO_STRING "\n"
-        "Usage:  simd_test [options]",
-        // "%*", parse_files, "",
-        "--help", &help, "Print help message",
-        "-v", &verbose, "Verbose mode",
-        "--iterations %d", &iterations,
-            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
-        "--trials %d", &ntrials, "Number of trials",
-        nullptr);
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
+    ap.intro("simd_test -- unit test and benchmarks for OpenImageIO/simd.h\n"
+             OIIO_INTRO_STRING)
+      .usage("simd_test [options]");
+
+    ap.arg("--iterations %d", &iterations)
+      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+    ap.arg("--trials %d", &ntrials)
+      .help("Number of trials");
+
+    ap.parse_args(argc, (const char**)argv);
 }
 
 
