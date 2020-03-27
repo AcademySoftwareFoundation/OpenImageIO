@@ -204,6 +204,21 @@ public:
         return s;
     }
 
+    // Return the entire attribute (even if an array or aggregate) as a
+    // `std::vector<T>`, calling `get_indexed` on each base element.
+    template<typename T, typename Allocator = std::allocator<T>>
+    inline std::vector<T, Allocator> as_vec() const
+    {
+        TypeDesc t      = m_obj->getattributetype(m_name);
+        size_t basevals = t.basevalues();
+        using Vec       = std::vector<T, Allocator>;
+        Vec result;
+        result.reserve(basevals);
+        for (size_t i = 0; i < basevals; ++i)
+            result.push_back(get_indexed<T>(int(i)));
+        return result;
+    }
+
     // Allow direct assignment to string, equivalent to calling as_string().
     inline operator std::string() { return as_string(); }
 
