@@ -625,11 +625,12 @@ public:
             ParamValue* pv = pl.find_pv(arg.dest());
             // TypeDesc t = pv ? pv->type() : TypeUnknown;
             int nold = pv ? pv->type().basevalues() : 0;
-            int n    = int(myarg.size()) + nold;
+            int nnew = int(myarg.size());
+            int n    = nold + nnew;
             T* vals  = OIIO_ALLOCA(T, n);
             for (int i = 0; i < nold; ++i)
                 vals[i] = Strutil::from_string<T>(pv->get_string_indexed(i));
-            for (int i = 0; i < n; ++i)
+            for (int i = 0; i < nnew; ++i)
                 vals[i + nold] = Strutil::from_string<T>(myarg[i]);
             if (n == 1) {
                 pl[arg.dest()] = vals[0];
