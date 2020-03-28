@@ -389,7 +389,7 @@ public:
     ///       .help("Verbose mode")
     ///       .action(Arg::store_true());
     ///
-    class Arg {
+    class OIIO_API Arg {
     public:
         // Arg constructor. This should only be called by
         // ArgParse::add_argument().
