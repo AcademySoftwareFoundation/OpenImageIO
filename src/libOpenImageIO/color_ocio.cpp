@@ -591,12 +591,39 @@ ColorConfig::configname() const
 
 
 #ifdef USE_OCIO
+
+#    if OCIO_VERSION_HEX >= 0x02000000
+inline OCIO::BitDepth
+ocio_bitdepth(TypeDesc type)
+{
+    if (type == TypeDesc::UINT8)
+        return OCIO::BIT_DEPTH_UINT8;
+    if (type == TypeDesc::UINT16)
+        return OCIO::BIT_DEPTH_UINT16;
+    if (type == TypeDesc::UINT32)
+        return OCIO::BIT_DEPTH_UINT32;
+    // N.B.: OCIOv2 also supports 10, 12, and 14 bit int, but we won't
+    // ever have data in that format at this stage.
+    if (type == TypeDesc::HALF)
+        return OCIO::BIT_DEPTH_F16;
+    if (type == TypeDesc::FLOAT)
+        return OCIO::BIT_DEPTH_F32;
+    return OCIO::BIT_DEPTH_UNKNOWN;
+}
+#    endif
+
+
 // Custom ColorProcessor that wraps an OpenColorIO Processor.
 class ColorProcessor_OCIO : public ColorProcessor {
 public:
     ColorProcessor_OCIO(OCIO::ConstProcessorRcPtr p)
-        : m_p(p) {};
-    virtual ~ColorProcessor_OCIO(void) {};
+        : m_p(p)
+#    if OCIO_VERSION_HEX >= 0x02000000
+        , m_cpuproc(p->getDefaultCPUProcessor())
+#    endif
+    {
+    }
+    virtual ~ColorProcessor_OCIO(void) {}
 
     virtual bool isNoOp() const { return m_p->isNoOp(); }
     virtual bool hasChannelCrosstalk() const
@@ -607,13 +634,23 @@ public:
                        stride_t chanstride, stride_t xstride,
                        stride_t ystride) const
     {
+#    if OCIO_VERSION_HEX >= 0x02000000
+        OCIO::PackedImageDesc pid(data, width, height, channels,
+                                  OCIO::BIT_DEPTH_F32,  // For now, only float
+                                  chanstride, xstride, ystride);
+        m_cpuproc->apply(pid);
+#    else
         OCIO::PackedImageDesc pid(data, width, height, channels, chanstride,
                                   xstride, ystride);
         m_p->apply(pid);
+#    endif
     }
 
 private:
     OCIO::ConstProcessorRcPtr m_p;
+#    if OCIO_VERSION_HEX >= 0x02000000
+    OCIO::ConstCPUProcessorRcPtr m_cpuproc;
+#    endif
 };
 #endif
 
