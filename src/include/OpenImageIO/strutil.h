@@ -611,8 +611,8 @@ template <> inline bool string_is<float> (string_view s) {
 ///
 /// This can work for type T = int, float, or any type for that has
 /// an explicit constructor from a std::string.
-template<class T>
-int extract_from_list_string (std::vector<T> &vals,
+template<class T, class Allocator>
+int extract_from_list_string (std::vector<T, Allocator> &vals,
                               string_view list,
                               string_view sep = ",")
 {
