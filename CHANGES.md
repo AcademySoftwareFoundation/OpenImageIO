@@ -1,5 +1,36 @@
-Release 2.1.13 (Apr? 2020) -- compared to 2.1.12
+Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
 -------------------------------------------------
+* Fix: iinfo return code now properly indicates failures for files that
+  can't be opened. #2511
+* Fix: Catch previously uncaught exceptions that could happen in certain
+  Filesystem utility calls. #2522
+* Fi: Some `span<>` methods involving `std::vector` now will work properly
+  with vectors that have custom allocators. #2533
+* Fix: ParamValueList `add_or_replace()` was failing to "replace" if the new
+  attribute had a different type than the existing one. #2527
+* Fix: Fix resolution unit metadata that was not propery set in JPEG output.
+  #2516
+* Build: Additional cmake controls to customize required vs optional
+  dependencies -- `REQUIRED_DEPS` (list of dependencies normally optional
+  that should be treated as required) and `OPTIONAL_DEPS` (list of
+  dependencies normally required that should be optional). The main use case
+  is to force certain optional deps to be required for your studio, to be
+  sure that missing deps are a full build break, and not a successful build
+  that silently lacks features you need. #2507
+* Build: Fix exported config file, it was not ensuring that the Imath
+  headers properly ended up in the config iclude path. #2515
+* Build: Ensure compatibility and clean builds with clang 10. #2518
+* Build: All the `build_foo.bash` helper scripts now use `set -ex` to ensure
+  that if any individual commands in the script fails, the whole thing will
+  exit with a failure. #2520
+* Build correctly against the current master branch of OpenColorIO
+  (previously we were only testing and properly building against the 1.1
+  release). #2530
+* Added Strutil::upper() and lower() functions. #2525
+* ParamValueList enhancement: new `find_pv()` method that is similar to
+  `find()` but returns a pointer rather than an iterator and nullptr if the
+  attribute is not found. #2527
+* Add `get_indexed()` method to ParamValueList and AttrDelegate. #2526
 
 
 Release 2.1.12 (2 Mar 2020) -- compared to 2.1.11
