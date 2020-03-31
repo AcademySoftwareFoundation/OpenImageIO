@@ -36,79 +36,70 @@ enum idiffErrors {
 
 
 
-static bool verbose     = false;
-static bool quiet       = false;
-static bool outdiffonly = false;
-static std::string diffimage;
-static float diffscale   = 1.0;
-static bool diffabs      = false;
-static float warnthresh  = 1.0e-6f;
-static float warnpercent = 0;
-static float hardwarn    = std::numeric_limits<float>::max();
-static float failthresh  = 1.0e-6f;
-static float failpercent = 0;
-static bool perceptual   = false;
-static float hardfail    = std::numeric_limits<float>::max();
-static std::vector<std::string> filenames;
-//static bool comparemeta = false;
-static bool compareall = false;
-
-
-
-static int
-parse_files(int argc, const char* argv[])
-{
-    for (int i = 0; i < argc; i++)
-        filenames.emplace_back(argv[i]);
-    return 0;
-}
-
-
-
-static void
+static ArgParse
 getargs(int argc, char* argv[])
 {
     // clang-format off
-    bool help = false;
     ArgParse ap;
-    ap.options ("idiff -- compare two images\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  idiff [options] image1 image2",
-                  "%*", parse_files, "",
-                  "--help", &help, "Print help message",
-                  "-v", &verbose, "Verbose status messages",
-                  "-q", &quiet, "Quiet (minimal messages)",
-                  "-a", &compareall, "Compare all subimages/miplevels",
-                  "<SEPARATOR>", "Thresholding and comparison options",
-                  "-fail %g", &failthresh, "Failure threshold difference (0.000001)",
-                  "-failpercent %g", &failpercent, "Allow this percentage of failures (0)",
-                  "-hardfail %g", &hardfail, "Fail if any one pixel exceeds this error (infinity)",
-                  "-warn %g", &warnthresh, "Warning threshold difference (0.00001)",
-                  "-warnpercent %g", &warnpercent, "Allow this percentage of warnings (0)",
-                  "-hardwarn %g", &hardwarn, "Warn if any one pixel exceeds this error (infinity)",
-                  "-p", &perceptual, "Perform perceptual (rather than numeric) comparison",
-                  "<SEPARATOR>", "Difference image options",
-                  "-o %s", &diffimage, "Output difference image",
-                  "-od", &outdiffonly, "Output image only if nonzero difference",
-                  "-abs", &diffabs, "Output image of absolute value, not signed difference",
-                  "-scale %g", &diffscale, "Scale the output image by this factor",
-//                  "-meta", &comparemeta, "Compare metadata",
-                  NULL);
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage ();
-        exit (EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage ();
-        exit (EXIT_SUCCESS);
-    }
+    ap.intro("idiff -- compare two images\n"
+             OIIO_INTRO_STRING)
+      .usage("idiff [options] image1 image2")
+      .print_defaults(true);
 
-    if (filenames.size() != 2) {
-        std::cerr << "idiff: Must have two input filenames.\n";
-        ap.usage();
-        exit (EXIT_FAILURE);
-    }
+    ap.arg("filename")
+      .hidden()
+      .action(ArgParse::append());
+    ap.arg("-v")
+      .help("Verbose status messages");
+    ap.arg("-q")
+      .help("Quiet (minimal messages)");
+    ap.arg("-a")
+      .help("Compare all subimages/miplevels");
+
+    ap.separator("Thresholding and comparison options");
+    ap.arg("-fail")
+      .help("Failure threshold difference")
+      .metavar("VAL")
+      .defaultval(1.0e-6f);
+    ap.arg("-failpercent")
+      .help("Allow this percentage of failures")
+      .metavar("PERCENT")
+      .defaultval(0.0f);
+    ap.arg("-hardfail")
+      .help("Fail if any one pixel exceeds this error")
+      .metavar("VAL")
+      .defaultval(std::numeric_limits<float>::infinity());
+    ap.arg("-warn")
+      .help("Warning threshold difference")
+      .metavar("VAL")
+      .defaultval(1.0e-6f);
+    ap.arg("-warnpercent")
+      .help("Allow this percentage of warnings")
+      .metavar("PERCENT")
+      .defaultval(0.0f);
+    ap.arg("-hardwarn")
+      .help("Warn if any one pixel exceeds this error")
+      .metavar("VAL")
+      .defaultval(std::numeric_limits<float>::infinity());
+    ap.arg("-p")
+      .help("Perform perceptual (rather than numeric) comparison");
+
+    ap.separator("Difference image options");
+    ap.arg("-o")
+      .help("Output difference image")
+      .metavar("FILENAME");
+    ap.arg("-od")
+      .help("Output image only if nonzero difference");
+    ap.arg("-abs")
+      .help("Output image of absolute value, not signed difference");
+    ap.arg("-scale")
+      .help("Scale the output image by this factor")
+      .defaultval(1.0f)
+      .metavar("FACTOR");
+
+    ap.parse(argc, (const char**)argv);
+
+    return ap;
     // clang-format on
 }
 
@@ -175,7 +166,29 @@ main(int argc, char* argv[])
     Sysutil::setup_crash_stacktrace("stdout");
 
     Filesystem::convert_native_arguments(argc, (const char**)argv);
-    getargs(argc, argv);
+    ArgParse ap = getargs(argc, argv);
+
+    std::vector<std::string> filenames = ap["filename"].as_vec<std::string>();
+    if (filenames.size() != 2) {
+        std::cerr << "idiff: Must have two input filenames.\n";
+        std::cout << "> " << Strutil::join(filenames, ", ") << "\n";
+        ap.usage();
+        exit(EXIT_FAILURE);
+    }
+    bool verbose          = ap["v"].get<int>();
+    bool quiet            = ap["q"].get<int>();
+    bool compareall       = ap["a"].get<int>();
+    bool outdiffonly      = ap["od"].get<int>();
+    bool diffabs          = ap["abs"].get<int>();
+    bool perceptual       = ap["p"].get<int>();
+    std::string diffimage = ap["o"].get();
+    float diffscale       = ap["scale"].get<float>();
+    float failthresh      = ap["fail"].get<float>();
+    float failpercent     = ap["failpercent"].get<float>();
+    float hardfail        = ap["hardfail"].get<float>();
+    float warnthresh      = ap["warn"].get<float>();
+    float warnpercent     = ap["warnpercent"].get<float>();
+    float hardwarn        = ap["hardwarn"].get<float>();
 
     if (!quiet)
         std::cout << "Comparing \"" << filenames[0] << "\" and \""

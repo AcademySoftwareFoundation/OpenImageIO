@@ -142,12 +142,16 @@ public:
     // Otherwise (if enough images are on the stack), return false.
     bool postpone_callback(int required_images, CallbackFunction func, int argc,
                            const char* argv[]);
+    bool postpone_callback(int required_images, ArgParse::Action func,
+                           cspan<const char*> argv);
 
     // Process any pending commands.
     void process_pending();
 
     CallbackFunction pending_callback() const { return m_pending_callback; }
     const char* pending_callback_name() const { return m_pending_argv[0]; }
+    ArgParse::Action pending_action() const { return m_pending_action; }
+    const char* pending_action_name() const { return m_pending_argv[0]; }
 
     void push(const ImageRecRef& img)
     {
@@ -240,6 +244,7 @@ public:
 
 private:
     CallbackFunction m_pending_callback;
+    ArgParse::Action m_pending_action;
     int m_pending_argc;
     const char* m_pending_argv[4];
 

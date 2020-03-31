@@ -31,31 +31,20 @@ static bool verbose   = false;
 static void
 getargs(int argc, char* argv[])
 {
-    bool help = false;
     ArgParse ap;
     // clang-format off
-    ap.options(
-        "fmath_test\n" OIIO_INTRO_STRING "\n"
-        "Usage:  fmath_test [options]",
-        // "%*", parse_files, "",
-        "--help", &help, "Print help message",
-        "-v", &verbose, "Verbose mode",
-        // "--threads %d", &numthreads,
-        //     ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
-        "--iterations %d", &iterations,
-            ustring::sprintf("Number of values to convert for benchmarks (default: %d)", iterations).c_str(),
-        "--trials %d", &ntrials, "Number of trials",
-        nullptr);
+    ap.intro("fmath_test\n" OIIO_INTRO_STRING)
+      .usage("fmath_test [options]");
+
+    ap.arg("-v", &verbose)
+      .help("Verbose mode");
+    ap.arg("--iters %d", &iterations)
+      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+    ap.arg("--trials %d", &ntrials)
+      .help("Number of trials");
     // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
+
+    ap.parse(argc, (const char**)argv);
 }
 
 

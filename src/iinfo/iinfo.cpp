@@ -614,16 +614,6 @@ print_info(const std::string& filename, size_t namefieldlength,
 
 
 
-static int
-parse_files(int argc, const char* argv[])
-{
-    for (int i = 0; i < argc; i++)
-        filenames.emplace_back(argv[i]);
-    return 0;
-}
-
-
-
 int
 main(int argc, const char* argv[])
 {
@@ -634,23 +624,32 @@ main(int argc, const char* argv[])
     Filesystem::convert_native_arguments(argc, (const char**)argv);
     ArgParse ap;
     // clang-format off
-    ap.options ("iinfo -- print information about images\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  iinfo [options] filename...",
-                "%*", parse_files, "",
-                "--help", &help, "Print help message",
-                "-v", &verbose, "Verbose output",
-                "-m %s:NAMES", &metamatch, "Metadata names to print (default: all)",
-                "-f", &filenameprefix, "Prefix each line with the filename",
-                "-s", &sum, "Sum the image sizes",
-                "-a", &subimages, "Print info about all subimages",
-                "--hash", &compute_sha1, "Print SHA-1 hash of pixel values",
-                "--stats", &compute_stats, "Print image pixel statistics (data window)",
-                NULL);
+    ap.intro("iinfo -- print information about images\n"
+             OIIO_INTRO_STRING);
+    ap.usage("iinfo [options] filename...");
+    ap.arg("filename")
+      .hidden()
+      .action([&](cspan<const char*> argv){ filenames.emplace_back(argv[0]); });
+    ap.arg("-v", &verbose)
+      .help("Verbose output");
+    ap.arg("-m %s:NAMES", &metamatch)
+      .help("Metadata names to print (default: all)");
+    ap.arg("-f", &filenameprefix)
+      .help("Prefix each line with the filename");
+    ap.arg("-s", &sum)
+      .help("Sum the image sizes");
+    ap.arg("-a", &subimages)
+      .help("Print info about all subimages")
+      .action(ArgParse::store_true());
+    ap.arg("--hash", &compute_sha1)
+      .help("Print SHA-1 hash of pixel values")
+      .action(ArgParse::store_true());
+    ap.arg("--stats", &compute_stats)
+      .help("Print image pixel statistics (data window)");
     // clang-format on
     if (ap.parse(argc, argv) < 0 || filenames.empty()) {
         std::cerr << ap.geterror() << std::endl;
-        ap.usage();
+        ap.print_help();
         return help ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 

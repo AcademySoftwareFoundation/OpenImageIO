@@ -39,51 +39,42 @@ static float cache_size               = 0;
 
 
 
-static int
-parse_files(int /*argc*/, const char* argv[])
-{
-    input_filename.emplace_back(argv[0]);
-    return 0;
-}
-
-
-
 static void
 getargs(int argc, char* argv[])
 {
-    bool help = false;
     ArgParse ap;
     // clang-format off
-    ap.options(
-        "imagespeed_test\n" OIIO_INTRO_STRING "\n"
-        "Usage:  imagespeed_test [options] filename...",
-        "%*", parse_files, "",
-        "--help", &help, "Print help message",
-        "-v", &verbose, "Verbose mode",
-        "--threads %d", &numthreads,
-            ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
-        "--iters %d", &iterations,
-            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
-        "--trials %d", &ntrials, "Number of trials",
-        "--autotile %d", &autotile_size,
-            ustring::sprintf("Autotile size (when used; default: %d)", autotile_size).c_str(),
-        "--iteronly", &iter_only, "Run ImageBuf iteration tests only (not read tests)",
-        "--noiter", &no_iter, "Don't run ImageBuf iteration tests",
-        "--convert %s", &conversionname, "Convert to named type upon read (default: native)",
-        "--cache %f", &cache_size, "Specify ImageCache size, in MB",
-        "-o %s", &output_filename, "Test output by writing to this file",
-        "-od %s", &output_format, "Requested output format",
-        nullptr);
+    ap.intro("imagespeed_test\n" OIIO_INTRO_STRING)
+      .usage("imagespeed_test [options]");
+
+    ap.arg("filename")
+      .hidden()
+      .action([&](cspan<const char*> argv){ input_filename.emplace_back(argv[0]); });
+    ap.arg("-v", &verbose)
+      .help("Verbose mode");
+    ap.arg("--threads %d", &numthreads)
+      .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+    ap.arg("--iters %d", &iterations)
+      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+    ap.arg("--trials %d", &ntrials)
+      .help("Number of trials");
+    ap.arg("--autotile %d", &autotile_size)
+      .help(Strutil::sprintf("Autotile size (when used; default: %d)", autotile_size));
+    ap.arg("--iteronly", &iter_only)
+      .help("Run ImageBuf iteration tests only (not read tests)");
+    ap.arg("--noiter", &no_iter)
+      .help("Don't run ImageBuf iteration tests");
+    ap.arg("--convert %s", &conversionname)
+      .help("Convert to named type upon read (default: native)");
+    ap.arg("--cache %f", &cache_size)
+      .help("Specify ImageCache size, in MB");
+    ap.arg("-o %s", &output_filename)
+      .help("Test output by writing to this file");
+    ap.arg("-od %s", &output_format)
+      .help("Requested output format");
     // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
+
+    ap.parse(argc, (const char**)argv);
 }
 
 

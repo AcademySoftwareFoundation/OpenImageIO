@@ -30,32 +30,24 @@ static float graphunit = 200;
 static void
 getargs(int argc, char* argv[])
 {
-    bool help = false;
-    ArgParse ap;
     // clang-format off
-    ap.options(
-        "filter_test\n" OIIO_INTRO_STRING "\n"
-        "Usage:  filter_test [options]",
-        // "%*", parse_files, "",
-        "--help", &help, "Print help message",
-        "-v", &verbose, "Verbose mode",
-        // "--threads %d", &numthreads,
-        //     ustring::sprintf("Number of threads (default: %d)", numthreads).c_str(),
-        "--iterations %d", &iterations,
-            ustring::sprintf("Number of iterations (default: %d)", iterations).c_str(),
-        "--trials %d", &ntrials, "Number of trials",
-        "--normalize", &normalize, "Normalize/rescale all filters to peak at 1",
-        nullptr);
+    ArgParse ap;
+    ap.intro("filter_test\n" OIIO_INTRO_STRING)
+      .usage("filter_test [options]");
+
+    ap.arg("-v", &verbose)
+      .help("Verbose mode");
+    // ap.arg("--threads %d", &numthreads)
+    //   .help(Strutil::sprintf("Number of threads (default: %d)", numthreads));
+    ap.arg("--iters %d", &iterations)
+      .help(Strutil::sprintf("Number of iterations (default: %d)", iterations));
+    ap.arg("--trials %d", &ntrials)
+      .help("Number of trials");
+    ap.arg("--normalize", &normalize)
+      .help("Normalize/rescale all filters to peak at 1");
     // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
+
+    ap.parse(argc, (const char**)argv);
 }
 
 
