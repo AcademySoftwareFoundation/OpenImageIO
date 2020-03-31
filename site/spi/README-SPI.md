@@ -52,7 +52,7 @@ following variants:
 
     # Python 2.7, Boost 1.55, C++11/gcc4.8 compat
     make nuke
-    make OIIO_SPCOMP2=1 spcomp2_install
+    make OIIO_SPCOMP2=1 BOOSTVERS=1.55 SPI_COMPILER_PLATFORM=gcc-4.8 spcomp2_install
 
     # Python 2.7, Boost 1.70, C++11/gcc6.3 compat
     make nuke
@@ -61,7 +61,7 @@ following variants:
     # DOES ANYONE NEED THIS?
     # Python 2.7, Boost 1.55 sp namespaced, C++11/gcc4.8 compat
     # make nuke
-    # make OIIO_SPCOMP2=1 BOOSTSPSUFFIX=sp spcomp2_install
+    # make OIIO_SPCOMP2=1 BOOSTVERS=1.55 BOOSTSPSUFFIX=sp SPI_COMPILER_PLATFORM=gcc-4.8 spcomp2_install
 
     # DOES ANYONE NEED THIS?
     # Python 3.7, Boost 1.66, C++11/gcc6.3 compat

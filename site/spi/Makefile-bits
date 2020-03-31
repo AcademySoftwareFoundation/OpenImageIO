@@ -56,11 +56,13 @@ endif
 ifeq (${SP_OS}, rhel7)
     # Rhel7 (current)
     platform := rhel7
-    SPI_COMPILER_PLATFORM ?= gcc-4.8
-    ifeq (${SPI_COMPILER_PLATFORM},gcc-6.3)
-        SPCOMP2_COMPILER ?= gcc63
-    else
+    SPI_COMPILER_PLATFORM ?= gcc-6.3
+    ifeq (${SPI_COMPILER_PLATFORM},gcc-4.8)
         SPCOMP2_COMPILER ?= gcc48m64
+        CMAKE_CXX_STANDARD ?= 11
+    else
+        SPCOMP2_COMPILER ?= gcc63
+        CMAKE_CXX_STANDARD ?= 14
     endif
     SP_PLATFORM ?= linux
     SP_PROC ?= x86_64
@@ -90,7 +92,6 @@ SPCOMP2_ROOT ?= /shots/spi/home/lib/SpComp2
 
 ## Rhel7 (current)
 ifeq (${SP_OS}, rhel7)
-    CMAKE_CXX_STANDARD ?= 11
     USE_SIMD ?= sse4.1,aes
     CMAKE ?= cmake
     USE_NINJA ?= 1
@@ -114,27 +115,22 @@ ifeq (${SP_OS}, rhel7)
     #
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
-    LLVM_VERSION ?= 9.0.0
+    LLVM_VERSION ?= 10.0.0
     LLVM_DIRECTORY ?= /shots/spi/home/software/packages/llvm/${LLVM_VERSION}/${SPI_COMPILER_PLATFORM}
-    ifeq (${COMPILER},clang6)
-	    LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_6.0.1
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-        MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
-    else ifeq (${COMPILER},clang7)
+    ifeq (${COMPILER},clang7)
         LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_7.0.1
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-        MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER},clang8)
         LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_8.0.0
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-        MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER},clang9)
-        LLVM_DIRECTORY := /shots/spi/home/software/packages/llvm/9.0.0/${SPI_COMPILER_PLATFORM}
+        LLVM_DIRECTORY := /shots/spi/home/software/packages/llvm/9.0.1-1/${SPI_COMPILER_PLATFORM}
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-        MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
+    else ifeq (${COMPILER},clang10)
+        LLVM_DIRECTORY := /shots/spi/home/software/packages/llvm/10.0.0-1/${SPI_COMPILER_PLATFORM}
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-        MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr"
     else ifeq (${COMPILER}, gcc6)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=/opt/rh/devtoolset-6/root/usr/bin/gcc \
@@ -146,9 +142,11 @@ ifeq (${SP_OS}, rhel7)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang \
            -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
-        MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" \
-                          -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr" \
-			  -DTOOLCHAIN_FLAGS="--gcc-toolchain=/usr"
+    endif
+    ifeq (${SPI_COMPILER_PLATFORM},gcc-4.8)
+            MY_CMAKE_FLAGS += -DCMAKE_C_FLAGS="--gcc-toolchain=/usr" \
+                              -DCMAKE_CXX_FLAGS="--gcc-toolchain=/usr" \
+                              -DTOOLCHAIN_FLAGS="--gcc-toolchain=/usr"
     endif
 
     #
@@ -312,13 +310,20 @@ else ifeq (${platform}, macosx)
            -DCMAKE_C_COMPILER=gcc-8 -DCMAKE_CXX_COMPILER=g++-8
         USE_LIBCPLUSPLUS := 0
     else ifeq (${COMPILER},clang6)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm@6/6.0.1_1/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm@6/6.0.1_1/bin/clang++
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm@6/6.0.1_2/bin/clang \
+        				  -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm@6/6.0.1_1/bin/clang++
     else ifeq (${COMPILER},clang7)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm@7/7.0.1/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm@7/7.0.1/bin/clang++
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm@7/7.1.0_1/bin/clang \
+        				  -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm@7/7.1.0_1/bin/clang++
     else ifeq (${COMPILER},clang8)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm/8.0.1/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm/8.0.1/bin/clang++
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm@8/8.0.1_1/bin/clang \
+        				  -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm@8/8.0.1_1/bin/clang++
     else ifeq (${COMPILER},clang9)
-        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm/9.0.0/bin/clang -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm/9.0.0/bin/clang++
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm@9/9.0.1/bin/clang \
+        				  -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm@9/9.0.1/bin/clang++
+    else ifeq (${COMPILER},clang10)
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/Cellar/llvm/10.0.0/bin/clang \
+        				  -DCMAKE_CXX_COMPILER=/usr/local/Cellar/llvm/10.0.0/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER},gcc)
