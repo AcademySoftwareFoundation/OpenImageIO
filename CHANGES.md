@@ -82,19 +82,41 @@ Fixes and feature enhancements:
       with caution! #2421 (2.2.0)
     - texture3d() fixed some cases where derivative results were not
       correctly copied to the outputs. #2475 (2.2.1)
+    - `maketx`/`IBA::make_texture`: better error detection and messages
+      when using "overscan" textures with formats that can't support it
+      properly. (Punchline: only OpenEXR textures can do it.) #2521 (2.2.0)
 * Exif read: guard better against out of range offests, fixes crashes when
   reading jpeg files with malformed exif blocks. #2429 (2.1.10/2.2.0)
 * Fix: `ImageSpec::erase_attribute()` did not honor its `searchtype`
   parameter. #2465 (2.2.1/2.1.12)
 * Fix: Some ColorProcessor::apply() methods were not using their `chanstride`
   parameters correctly. #2475 (2.1.12)
+* Fix: iinfo return code now properly indicates failures for files that
+  can't be opened. #2511 (2.2.2/2.1.13)
+* JPEG:
+    - Fix resolution unit metadata that was not propery set in JPEG output.
+      #2516 (2.2.2/2.1.13)
 * OpenEXR:
     - Add support for reading and writing float vector metadata. #2459 #2486
 * Raw images:
     - Support for new Canon .cr3 file, but only if you build against
       libraw >= 0.20.0 developer snapshot. #2484 (2.2.1)
+* TIFF:
+    - Internal improvements to handling metadata retrieval for certain
+      unusual tags. #2504 (2.2.2/2.1.13)
 
 Developer goodies / internals:
+* argparse.h:
+    - Complete overhaul of ArgParse to make it more like Python argparse.
+      Please read the extensive comments in argparse.h for documentation.
+      For now, the old ArgParse interface still works, but is considered
+      deprecated. #2531 (2.2.2)
+* attrdelegate.h:
+    - New `as_vec<>` method returns the whole attribute as a std::vector.
+      #2528 (2.2.2)
+* filesystem.h:
+    - Catch previously uncaught exceptions that could happen in certain
+      Filesystem utility calls. #2522 (2.2.2/2.1.13)
 * fmath.h:
     - clamp() is 2x faster. #2491 (2.1.12/2.2.2)
     - madd() is improved especially on platforms without fma hardware
@@ -104,6 +126,12 @@ Developer goodies / internals:
     - New `fast_neg` is faster than simple negation in many cases, if you
       don't care that -(0.0) is 0.0 (rather than a true -0.0). #2495
       (2.1.12/2.2.2)
+* paramlist.h:
+    - New `ParamValueList::find_pv()` method that is similar to `find()` but
+      returns a pointer rather than an iterator and nullptr if the attribute
+      is not found. #2527 (2.2.2/2.1.13)
+    - Add `get_indexed()` method to ParamValueList and AttrDelegate. #2526
+     (2.2.2/2.1.13)
 * platform.h:
     - `OIIO_PRETTY_FUNCTION` definition is more robust for weird compilers
       (will fall back to `__FUNCTION__` if all else fails). #2413 (2.2.0)
@@ -117,10 +145,16 @@ Developer goodies / internals:
       methods, to more closely match the syntax of Imath::Vec3f. #2437
       (2.1.11/2.2.0)
     - fix errors in vbool == and !=. #2463 (2.1.11/2.2.1)
+* span.h:
+    - Allow the constructor from `std::vector` to allow vectors with custom
+      allocators. #2533 (2.2.2)
 * strutil.h / ustring.h:
     - New `Strutil::concat()` and `ustring::concat()` concatenate two
       strings, more efficiently than `sprintf("%s%s")` by avoiding any
       unnecessary copies or temporary heap allocations. #2478 (2.2.1)
+    - Strutil::upper() and lower() return all-upper and all-lowercase
+      versions of a string (like `to_lower` and `to_upper`, but not in-place
+      modifications of the existing string). #2525 (2.2.2/2.1.13)
     - `Strutil::repeat()` has been internally rewritten to more efficient by
       avoiding any unnecessary copies or temporary heap allocations. #2478
       (2.2.1)
@@ -157,9 +191,31 @@ Build/test system improvements and platform ports:
   contains major.minor, but in master (where ABI is not guaranteed stable,
   we name major.minor.patch). #2488 (2.2.1)
 * FindOpenColorIO.cmake now correctly discerns the OCIO version. (2.2.1)
-* Build: Protect against certain compiler preprocessor errors for user
-  programs that include strutil.h but also inculde `fmt` on its own. #2498.
+* FindOpenColorIO.cmake now sets up a true imported target. #2529 (2.2.2)
+* Protect against certain compiler preprocessor errors for user programs
+  that include strutil.h but also inculde `fmt` on its own. #2498.
   (2.1.12/2.2.2)
+* FindOpenEXR.cmake has better detection of debug openexr libraries. #2505
+  (2.2.2/2.1.13)
+* Additional cmake controls to customize required vs optional dependencies:
+  `REQUIRED_DEPS` (list of dependencies normally optional that should be
+  treated as required) and `OPTIONAL_DEPS` (list of dependencies normally
+  required that should be optional). The main use case is to force certain
+  optional deps to be required for your studio, to be sure that missing deps
+  are a full build break, and not a successful build that silently lacks
+  features you need. #2507 (2.2.2/2.1.13)
+* Testing of TGA now assumes the test images are in the oiio-images project,
+  not separately downloaded (the download location disappered from the net).
+  #2512 (2.2.2)
+* Fix exported cmake config file, it was not ensuring that the Imath headers
+  properly ended up in the config iclude path. #2515 (2.2.2/2.1.13)
+* Ensure compatibility and clean builds with clang 10. #2518 (2.2.2/2.1.3)
+* Build: All the `build_foo.bash` helper scripts now use `set -ex` to ensure
+  that if any individual commands in the script fails, the whole thing will
+  exit with a failure. #2520 (2.2.2/2.1.3)
+* Build properly against OpenColorIO's current master (which is the
+  in-progress work on OCIO v2). #2530 (2.2.2)
+* Fix static boost to not overlink on Windows. #2537 (2.2.2)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
@@ -167,8 +223,43 @@ Notable documentation changes:
   grouping parts with identical licenses. #2469
 * Many fixes to the new readthedocs documentation, especially fixes to
   section cross-references and links.
+* Improved INSTALL instructions. (2.2.2/2.1.13)
 
 
+
+Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
+-------------------------------------------------
+* Fix: iinfo return code now properly indicates failures for files that
+  can't be opened. #2511
+* Fix: Catch previously uncaught exceptions that could happen in certain
+  Filesystem utility calls. #2522
+* Fi: Some `span<>` methods involving `std::vector` now will work properly
+  with vectors that have custom allocators. #2533
+* Fix: ParamValueList `add_or_replace()` was failing to "replace" if the new
+  attribute had a different type than the existing one. #2527
+* Fix: Fix resolution unit metadata that was not propery set in JPEG output.
+  #2516
+* Build: Additional cmake controls to customize required vs optional
+  dependencies -- `REQUIRED_DEPS` (list of dependencies normally optional
+  that should be treated as required) and `OPTIONAL_DEPS` (list of
+  dependencies normally required that should be optional). The main use case
+  is to force certain optional deps to be required for your studio, to be
+  sure that missing deps are a full build break, and not a successful build
+  that silently lacks features you need. #2507
+* Build: Fix exported config file, it was not ensuring that the Imath
+  headers properly ended up in the config iclude path. #2515
+* Build: Ensure compatibility and clean builds with clang 10. #2518
+* Build: All the `build_foo.bash` helper scripts now use `set -ex` to ensure
+  that if any individual commands in the script fails, the whole thing will
+  exit with a failure. #2520
+* Build correctly against the current master branch of OpenColorIO
+  (previously we were only testing and properly building against the 1.1
+  release). #2530
+* Added Strutil::upper() and lower() functions. #2525
+* ParamValueList enhancement: new `find_pv()` method that is similar to
+  `find()` but returns a pointer rather than an iterator and nullptr if the
+  attribute is not found. #2527
+* Add `get_indexed()` method to ParamValueList and AttrDelegate. #2526
 
 Release 2.1.12 (2 Mar 2020) -- compared to 2.1.11
 -------------------------------------------------
