@@ -1,3 +1,7 @@
+Release 2.1.14 (?? May? 2020) -- compared to 2.1.13
+-------------------------------------------------
+
+
 Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
 -------------------------------------------------
 * Fix: iinfo return code now properly indicates failures for files that
