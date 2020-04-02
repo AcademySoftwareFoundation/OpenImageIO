@@ -69,7 +69,7 @@ jobs:
             source src/build-scripts/ci-build-and-test.bash
 
   linux-bleeding:
-    name: "Linux bleeding edge: gcc9, C++17, avx2, exr 2.4, OCIO master"
+    name: "Linux bleeding edge: gcc9, C++17, avx2, OCIO/libtiff/exr master"
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
@@ -78,8 +78,9 @@ jobs:
           CXX: g++-9
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
-          OPENEXR_BRANCH: v2.4.0
+          OPENEXR_BRANCH: master
           OCIO_BRANCH: master
+          LIBTIFF_BRANCH: master
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
