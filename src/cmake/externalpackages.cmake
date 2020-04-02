@@ -138,6 +138,9 @@ option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" 
 # Boost setup
 if (LINKSTATIC)
     set (Boost_USE_STATIC_LIBS ON)
+    if (MSVC)
+        add_definitions (-DBOOST_ALL_NO_LIB=1)
+    endif ()
 else ()
     if (MSVC)
         add_definitions (-DBOOST_ALL_DYN_LINK=1)
