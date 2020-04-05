@@ -1580,14 +1580,15 @@ public:
                                         int subimage=0) = 0;
 
     /// For a texture specified by name, retrieve the rectangle of raw
-    /// unfiltered texels from the designated subimage and MIP level,
-    /// storing the pixel values beginning at the address specified by
-    /// `result` and with the given strides.  The pixel values will be
-    /// converted to the data type specified by `format`. The rectangular
-    /// region to be retrieved includes `begin` but does not include `end`
-    /// (much like STL begin/end usage). Requested pixels that are not part
-    /// of the valid pixel data region of the image file will be filled with
-    /// zero values.
+    /// unfiltered texels from the subimage specified in `options` and at
+    /// the designated `miplevel`, storing the pixel values beginning at the
+    /// address specified by `result`.  The pixel values will be converted
+    /// to the data type specified by `format`. The rectangular region to be
+    /// retrieved includes `begin` but does not include `end` (much like STL
+    /// begin/end usage). Requested pixels that are not part of the valid
+    /// pixel data region of the image file will be filled with zero values.
+    /// Channels requested but not present in the file will get the
+    /// `options.fill` value.
     ///
     /// @param  filename
     ///             The name of the image.
@@ -1603,8 +1604,8 @@ public:
     ///             include the begin value but not the end value (much like
     ///             STL begin/end usage).
     /// @param  chbegin/chend
-    ///             Channel range to retrieve. For all channels, use
-    ///             `chbegin = 0`, `chend = spec.nchannels`.
+    ///             Channel range to retrieve. To retrieve all channels, use
+    ///             `chbegin = 0`, `chend = nchannels`.
     /// @param  format
     ///             TypeDesc describing the data type of the values you want
     ///             to retrieve into `result`. The pixel values will be
