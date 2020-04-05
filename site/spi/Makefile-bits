@@ -152,7 +152,7 @@ ifeq (${SP_OS}, rhel7)
     #
     # Boost
     #
-    BOOSTVERS ?= 1.55
+    BOOSTVERS ?= 1.70
     BOOSTSPSUFFIX ?=
     BOOSTVERSSP=${BOOSTVERS}${BOOSTSPSUFFIX}
     MY_CMAKE_FLAGS += -DBOOST_VERS_SP=${BOOSTVERSSP}
@@ -228,25 +228,30 @@ ifeq (${SP_OS}, rhel7)
 
     # Set our preferred OpenEXR path, but allow env variable to override
     # with custom/test version.
-    OPENEXR_VERSION ?= 2.2.0
+    OPENEXR_VERSION ?= 2.4.0
     OpenEXR_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenEXR/${OPENEXR_VERSION}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}
     MY_CMAKE_FLAGS += -DOpenEXR_ROOT=${OpenEXR_ROOT}
 
     #
     # SpComp2 and other weird SPI-installed packages
     #
-    OCIO_SPCOMP_VERSION ?= 2
-    OPENVDB_SPCOMP2_VERSION ?= v6020001
     NUKE_VERSION ?= 11.2v3
     SPCOMP2_FULLBOOST_SUFFIX = ${SP_OS}-${SPCOMP2_COMPILER}-boost${shell echo ${BOOSTVERSSP} | sed "s/\\.//"}
     # $(info SPCOMP2_FULLBOOST_SUFFIX ${SPCOMP2_FULLBOOST_SUFFIX})
-    OpenColorIO_ROOT ?= /shots/spi/home/software/packages/OpenColorIO/1.1.1/${SPI_COMPILER_PLATFORM}
-    #OpenColorIO_ROOT ?= ${SPCOMP2_ROOT}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
-    ifneq (${OIIO_SPCOMP2},1)
+    ifeq (${OIIO_SPCOMP2},1)
+        OCIO_SPCOMP_VERSION ?= 2
+        OpenColorIO_ROOT ?= ${SPCOMP2_ROOT}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
+        OPENVDB_SPCOMP2_VERSION ?= v6020001
+        OpenVDB_ROOT ?= ${SPCOMP2_ROOT}/openvdb/${SPCOMP2_FULLBOOST_SUFFIX}/${OPENVDB_SPCOMP2_VERSION}
+    else
+        OPENCOLORIO_VERSION ?= 1.1.1-1
+        OpenColorIO_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenColorIO/${OPENCOLORIO_VERSION}/${SPI_COMPILER_PLATFORM}
+        MY_CMAKE_FLAGS += -DOPENCOLORIO_LIBRARY=${OpenColorIO_ROOT}/lib/libOpenColorIO_SPI.so
         # Anybody remember why we needed Field3d disabled for SpComp2?
         Field3D_ROOT ?= ${SPCOMP2_ROOT}/Field3D/${SPCOMP2_FULLBOOST_SUFFIX}/v412
-    endif
-    OpenVDB_ROOT ?= ${SPCOMP2_ROOT}/openvdb/${SPCOMP2_FULLBOOST_SUFFIX}/${OPENVDB_SPCOMP2_VERSION}
+        OPENVDB_VERSION ?= 6.2.2-1
+        OpenVDB_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenVDB/${OPENVDB_VERSION}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}/boost-${BOOSTVERS}
+	endif
     TBB_ROOT ?= /net/apps/rhel7/intel/tbb
     TBB_LIBRARY ?= /net/apps/rhel7/intel/tbb/lib/intel64/gcc4.7
     Libheif_ROOT=/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2
