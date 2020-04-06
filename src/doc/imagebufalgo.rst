@@ -760,7 +760,7 @@ Image arithmetic
 
 |
 
-.. doxygenfunction:: mul(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
+.. doxygenfunction:: mul(Image_or_Const, Image_or_Const, ROI, int)
 ..
 
   Examples::
@@ -782,7 +782,7 @@ Image arithmetic
 
 |
 
-.. doxygenfunction:: div(ImageBuf&, Image_or_Const, Image_or_Const, ROI, int)
+.. doxygenfunction:: div(Image_or_Const, Image_or_Const, ROI, int)
 ..
 
   Examples::
@@ -803,7 +803,7 @@ Image arithmetic
 
 |
 
-.. doxygenfunction:: mad(ImageBuf&, Image_or_Const, Image_or_Const, Image_or_Const, ROI, int)
+.. doxygenfunction:: mad(Image_or_Const, Image_or_Const, Image_or_Const, ROI, int)
 ..
 
   Examples::
@@ -1026,7 +1026,7 @@ Image arithmetic
 
 
 
-.. doxygengroup:: rangecompress-rangeexpand
+.. doxygengroup:: range
 ..
 
   Examples::
@@ -1626,7 +1626,7 @@ Color space conversion
 
 
 |
-.. doxygengroup:: premult-unpremult
+.. doxygengroup:: premult
 ..
 
   Examples::
