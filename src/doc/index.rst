@@ -15,7 +15,7 @@ OpenImageIO |version|
     images in a wide variety of file formats, using a format-agnostic API.
     OIIO emphasizes formats and functionality used in professional,
     large-scale visual effects and feature film animation, and it is used
-    uniquitously by large VFX studios, as well as incorporated into many
+    ubiquitously by large VFX studios, as well as incorporated into many
     commercial products.
 
     Quick Links:
