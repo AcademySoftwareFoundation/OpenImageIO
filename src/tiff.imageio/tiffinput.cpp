@@ -1020,43 +1020,31 @@ TIFFInput::readspec(bool read_meta)
         m_spec.attribute(ICC_PROFILE_ATTR,
                          TypeDesc(TypeDesc::UINT8, icc_datasize), icc_buf);
 
-        // Search for an EXIF IFD in the TIFF file, and if found, rummage
-        // around for Exif fields.
 #if TIFFLIB_VERSION > 20050912 /* compat with old TIFF libs - skip Exif */
+    // Search for an EXIF IFD in the TIFF file, and if found, rummage
+    // around for Exif fields.
     toff_t exifoffset = 0;
-    if (TIFFGetField(m_tif, TIFFTAG_EXIFIFD, &exifoffset)
-        && TIFFReadEXIFDirectory(m_tif, exifoffset)) {
-        for (const auto& tag : tag_table("Exif"))
-            find_tag(tag.tifftag, tag.tifftype, tag.name);
-        // Look for a Makernote
-        auto makerfield = find_field(EXIF_MAKERNOTE, TIFF_UNDEFINED);
-        // std::unique_ptr<uint32_t[]> buf (new uint32_t[]);
-        if (makerfield) {
-            // bool ok = TIFFGetField (m_tif, tag, dest, &ptr);
-            unsigned int mn_datasize = 0;
-            unsigned char* mn_buf    = NULL;
-            TIFFGetField(m_tif, EXIF_MAKERNOTE, &mn_datasize, &mn_buf);
-        }
-        // I'm not sure what state TIFFReadEXIFDirectory leaves us.
-        // So to be safe, close and re-seek.
-        TIFFClose(m_tif);
-#    ifdef _WIN32
-        std::wstring wfilename = Strutil::utf8_to_utf16(m_filename);
-        m_tif                  = TIFFOpenW(wfilename.c_str(), "rm");
-#    else
-        m_tif = TIFFOpen(m_filename.c_str(), "rm");
-#    endif
-        if (m_subimage)
-            TIFFSetDirectory(m_tif, m_subimage);
-
-        // A few tidbits to look for
-        ParamValue* p;
-        if ((p = m_spec.find_attribute("Exif:ColorSpace", TypeDesc::INT))) {
+    if (TIFFGetField(m_tif, TIFFTAG_EXIFIFD, &exifoffset)) {
+        if (TIFFReadEXIFDirectory(m_tif, exifoffset)) {
+            for (const auto& tag : tag_table("Exif"))
+                find_tag(tag.tifftag, tag.tifftype, tag.name);
+            // Look for a Makernote
+            auto makerfield = find_field(EXIF_MAKERNOTE, TIFF_UNDEFINED);
+            // std::unique_ptr<uint32_t[]> buf (new uint32_t[]);
+            if (makerfield) {
+                // bool ok = TIFFGetField (m_tif, tag, dest, &ptr);
+                unsigned int mn_datasize = 0;
+                unsigned char* mn_buf    = NULL;
+                TIFFGetField(m_tif, EXIF_MAKERNOTE, &mn_datasize, &mn_buf);
+            }
             // Exif spec says that anything other than 0xffff==uncalibrated
             // should be interpreted to be sRGB.
-            if (*(const int*)p->data() != 0xffff)
+            if (m_spec.get_int_attribute("Exif:ColorSpace") != 0xffff)
                 m_spec.attribute("oiio:ColorSpace", "sRGB");
         }
+        // TIFFReadEXIFDirectory seems to do something to the internal state
+        // that requires a TIFFSetDirectory to set things straight again.
+        TIFFSetDirectory(m_tif, m_subimage);
     }
 #endif
 
