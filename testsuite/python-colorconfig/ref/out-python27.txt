@@ -8,5 +8,7 @@ getDefaultDisplayName = default
 getNumViews = 3
 getViewNames = [u'None', u'sRGB', u'rec709']
 getDefaultViewName = 
+getNumRoles = 9
+getRoles = [u'color_picking', u'color_timing', u'compositing_log', u'data', u'default', u'matte_paint', u'reference', u'scene_linear', u'texture_paint']
 
 Done.

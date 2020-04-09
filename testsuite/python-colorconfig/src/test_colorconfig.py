@@ -22,6 +22,9 @@ try:
     print ("getViewNames =", config.getViewNames())
     print ("getDefaultViewName =", config.getDefaultViewName())
 
+    print ("getNumRoles =", config.getNumRoles())
+    print ("getRoles =", config.getRoles())
+
     print ("")
 
     print ("Done.")
