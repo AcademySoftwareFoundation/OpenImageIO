@@ -57,6 +57,9 @@ declare_colorconfig(py::module& m)
                 return self.getColorSpaceNameByRole(role);
             },
             "role"_a)
+        .def("getNumRoles", &ColorConfig::getNumRoles)
+        .def("getRoleByIndex", &ColorConfig::getRoleByIndex)
+        .def("getRoles", &ColorConfig::getRoles)
         .def(
             "getColorSpaceDataType",
             [](const ColorConfig& self, const std::string& name) {

@@ -8,5 +8,7 @@ getDefaultDisplayName = None
 getNumViews = 0
 getViewNames = []
 getDefaultViewName = None
+getNumRoles = 0
+getRoles = []
 
 Done.
