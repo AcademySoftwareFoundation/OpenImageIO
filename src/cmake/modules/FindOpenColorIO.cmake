@@ -8,6 +8,7 @@
 # OPENCOLORIO_FOUND       - True if OpenColorIO was found.
 # OPENCOLORIO_INCLUDES    - where to find OpenColorIO.h
 # OPENCOLORIO_LIBRARIES   - list of libraries to link against when using OpenColorIO
+# OPENCOLORIO_DEFINITIONS - Definitions needed when using OpenColorIO
 
 include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
@@ -49,6 +50,7 @@ find_package_handle_standard_args (OpenColorIO
 if (OPENCOLORIO_FOUND)
     set (OPENCOLORIO_INCLUDES ${OPENCOLORIO_INCLUDE_DIR})
     set (OPENCOLORIO_LIBRARIES ${OPENCOLORIO_LIBRARY})
+    set (OPENCOLORIO_DEFINITIONS "")
     if (NOT TARGET OpenColorIO::OpenColorIO)
         add_library(OpenColorIO::OpenColorIO UNKNOWN IMPORTED)
         set_target_properties(OpenColorIO::OpenColorIO PROPERTIES
@@ -56,11 +58,16 @@ if (OPENCOLORIO_FOUND)
 
         set_property(TARGET OpenColorIO::OpenColorIO APPEND PROPERTY
             IMPORTED_LOCATION "${OPENCOLORIO_LIBRARIES}")
+        if (LINKSTATIC)
+            set_target_properties(OpenColorIO::OpenColorIO PROPERTIES
+                INTERFACE_COMPILE_DEFINITIONS "-DOpenColorIO_STATIC")
+        endif()
     endif ()
 endif ()
 
 if (OpenColorIO_FOUND AND LINKSTATIC)
     # Is this necessary?
+    set (OPENCOLORIO_DEFINITIONS "-DOpenColorIO_STATIC")
     find_library (TINYXML_LIBRARY NAMES tinyxml)
     if (TINYXML_LIBRARY)
         set (OPENCOLORIO_LIBRARIES "${OPENCOLORIO_LIBRARIES};${TINYXML_LIBRARY}" CACHE STRING "" FORCE)
