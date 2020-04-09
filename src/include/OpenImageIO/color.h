@@ -117,6 +117,15 @@ public:
     /// or NULL if none could be identified.
     const char* getColorSpaceFamilyByName(string_view name) const;
 
+    // Get the number of Roles defined in this configuration
+    int getNumRoles() const;
+
+    /// Query the name of the specified Role.
+    const char* getRoleByIndex(int index) const;
+
+    /// Retrieve the full list of known Roles, as a vector of strings.
+    std::vector<std::string> getRoles() const;
+
     /// Get the number of Looks defined in this configuration
     int getNumLooks() const;
 
