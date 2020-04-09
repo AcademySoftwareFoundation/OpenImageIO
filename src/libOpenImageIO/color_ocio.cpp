@@ -384,6 +384,36 @@ ColorConfig::getColorSpaceNames() const
     return result;
 }
 
+int
+ColorConfig::getNumRoles() const
+{
+#ifdef USE_OCIO
+    if (getImpl()->config_)
+        return getImpl()->config_->getNumRoles();
+#endif
+    return 0;
+}
+
+const char*
+ColorConfig::getRoleByIndex(int index) const
+{
+#ifdef USE_OCIO
+    if (getImpl()->config_)
+        return getImpl()->config_->getRoleName(index);
+#endif
+    return NULL;
+}
+
+
+std::vector<std::string>
+ColorConfig::getRoles() const
+{
+    std::vector<std::string> result;
+    for (int i = 0, e = getNumRoles(); i != e; ++i)
+        result.emplace_back(getRoleByIndex(i));
+    return result;
+}
+
 
 
 int
