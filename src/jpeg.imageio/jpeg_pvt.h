@@ -92,6 +92,7 @@ private:
     std::vector<unsigned char> m_cmyk_buf;  // For CMYK translation
     Filesystem::IOProxy* m_io = nullptr;
     std::unique_ptr<Filesystem::IOProxy> m_local_io;
+    std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
 
     void init()
     {
@@ -104,6 +105,7 @@ private:
         m_jerr.jpginput = this;
         m_io            = nullptr;
         m_local_io.reset();
+        m_config.reset();
     }
 
     // Rummage through the JPEG "APP1" marker pointed to by buf, decoding

@@ -53,6 +53,7 @@ private:
     int m_next_scanline;
     bool m_keep_unassociated_alpha;  ///< Do not convert unassociated alpha
     std::unique_ptr<Filesystem::IOProxy> m_io_local;
+    std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
     Filesystem::IOProxy* m_io = nullptr;
     int64_t m_io_offset       = 0;
     bool m_err                = false;
@@ -69,6 +70,7 @@ private:
         m_next_scanline           = 0;
         m_keep_unassociated_alpha = false;
         m_err                     = false;
+        m_config.reset();
     }
 
     /// Helper function: read the image.
@@ -194,6 +196,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec,
     auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
     if (ioparam)
         m_io = ioparam->get<Filesystem::IOProxy*>();
+    m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
 }
 
@@ -286,9 +289,13 @@ PNGInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         if (m_next_scanline > y) {
             // User is trying to read an earlier scanline than the one we're
             // up to.  Easy fix: close the file and re-open.
+            // Don't forget to save and restore any configuration settings.
+            ImageSpec configsave;
+            if (m_config)
+                configsave = *m_config;
             ImageSpec dummyspec;
             int subimage = current_subimage();
-            if (!close() || !open(m_filename, dummyspec)
+            if (!close() || !open(m_filename, dummyspec, configsave)
                 || !seek_subimage(subimage, miplevel))
                 return false;  // Somehow, the re-open failed
             assert(m_next_scanline == 0 && current_subimage() == subimage);
