@@ -2355,22 +2355,7 @@ void
 ImageCacheImpl::add_tile_to_cache(ImageCacheTileRef& tile,
                                   ImageCachePerThreadInfo* thread_info)
 {
-    bool ourtile = true;
-    {
-        // Protect us from using too much memory if another thread added the
-        // same tile just before us
-        if (m_tilecache.retrieve(tile->id(), tile)) {
-            // Already added!  Use the other one, discard ours. And the
-            // call to retrieve just changed 'tile' to point to the one
-            // already in the table.
-            ourtile = false;
-        } else {
-            // It wasn't in the cache already. Add ours.
-            // N.B. at this time, we do not hold any locks.
-            check_max_mem(thread_info);
-            m_tilecache.insert(tile->id(), tile);
-        }
-    }
+    bool ourtile = m_tilecache.insert_retrieve(tile->id(), tile, tile);
 
     // If we added a new tile to the cache, we may still need to read the
     // pixels; and if we found the tile in cache, we may need to wait for
@@ -2383,6 +2368,7 @@ ImageCacheImpl::add_tile_to_cache(ImageCacheTileRef& tile,
             thread_info->m_stats.fileio_time += readtime;
             tile->id().file().iotime() += readtime;
         }
+        check_max_mem(thread_info);
     } else {
         // Somebody else already added the tile to the cache before we
         // could, so we'll use their reference, but we need to wait until it
