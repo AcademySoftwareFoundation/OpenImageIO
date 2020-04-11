@@ -169,7 +169,9 @@ JpgInput::open(const std::string& name, ImageSpec& newspec,
     auto p = config.find_attribute("_jpeg:raw", TypeInt);
     m_raw  = p && *(int*)p->data();
     p      = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
-    m_io   = p ? p->get<Filesystem::IOProxy*>() : nullptr;
+    if (p)
+        m_io = p->get<Filesystem::IOProxy*>();
+    m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
 }
 
@@ -440,9 +442,13 @@ JpgInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (m_next_scanline > y) {
         // User is trying to read an earlier scanline than the one we're
         // up to.  Easy fix: close the file and re-open.
+        // Don't forget to save and restore any configuration settings.
+        ImageSpec configsave;
+        if (m_config)
+            configsave = *m_config;
         ImageSpec dummyspec;
         int subimage = current_subimage();
-        if (!close() || !open(m_filename, dummyspec)
+        if (!close() || !open(m_filename, dummyspec, configsave)
             || !seek_subimage(subimage, 0))
             return false;  // Somehow, the re-open failed
         OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
