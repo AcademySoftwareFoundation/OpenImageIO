@@ -847,20 +847,37 @@ public:
                             Filesystem::IOProxy* ioproxy = nullptr);
 
     /// Create and return an ImageInput implementation that is able to read
-    /// the given file.  If `do_open` is true, fully open it if possible
+    /// the given file or format.  If `do_open` is true (and the `filename`
+    /// is the name of a file, not just a format), fully open it if possible
     /// (using the optional `config` configuration spec, if supplied),
     /// otherwise just create the ImageInput but don't open it. The
     /// plugin_searchpath parameter is an override of the searchpath.
     /// colon-separated list of directories to search for ImageIO plugin
-    /// DSO/DLL's (not a searchpath for the image itself!).  This will
-    /// actually just try every imageio plugin it can locate, until it finds
-    /// one that's able to open the file without error.
+    /// DSO/DLL's (not a searchpath for the image itself!).
+    ///
+    /// If the `filename` parameter is the name of a file format (such as
+    /// "openexr"), it will create an ImageInput that reads that particular
+    /// format. If the name is a file extension (such as "exr" or ".exr"),
+    /// it will guess the file format from the extension and return that
+    /// type of ImageInput.
+    ///
+    /// If `filename` is a full file name (such as "hawaii.exr"), it will
+    /// create an ImageInput that reads the format implied by the file
+    /// extension (".tif") and try to open the file with that reader. If the
+    /// file can be opened and appears to be of the correct type, then that
+    /// ImageInput (after being closed) will be returned to the caller. But
+    /// if it fails (say, because the file type does not match the
+    /// extension), then every known kind of image reader will be tried in
+    /// turn, until one can be found that succeeds in opening that file. The
+    /// `create()` file will fail entirely only if no known image reader
+    /// type succeeds.
     ///
     /// If the caller intends to immediately open the file, then it is often
     /// simpler to call static `ImageInput::open()`.
     ///
     /// @param filename
-    ///         The name of the file to open.
+    ///         The name of an image file, or a file extension, or the name
+    ///         of a file format.
     ///
     /// @param do_open
     ///         If `true`, not only create but also open the file.
@@ -1651,7 +1668,8 @@ public:
     /// Create an `ImageOutput` that can be used to write an image file.
     /// The type of image file (and hence, the particular subclass of
     /// `ImageOutput` returned, and the plugin that contains its methods) is
-    /// inferred from the name.
+    /// inferred from the name, if it appears to be a full filename, or it
+    /// may also name the format.
     ///
     /// @param filename
     ///         The name of the file format (e.g., "openexr"), a file
