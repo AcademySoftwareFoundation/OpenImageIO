@@ -262,7 +262,7 @@ checked_find_package (GIF 4)
 checked_find_package (Libheif 1.3)  # For HEIF/HEIC format
 checked_find_package (LibRaw
                     PRINT LibRaw_r_LIBRARIES)
-checked_find_package (OpenJpeg)
+checked_find_package (OpenJpeg 2.0)
 checked_find_package (OpenVDB 5.0
                    DEPS         TBB
                    DEFINITIONS  -DUSE_OPENVDB=1)
