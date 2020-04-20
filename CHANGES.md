@@ -2,6 +2,7 @@ Release 2.2 (???) -- compared to 2.1
 ----------------------------------------------
 New minimum dependencies:
 * pybind11 >= 2.4.2
+* openjpeg >= 2.0 (if JPEG-2000 support is desired)
 
 New file format support:
 

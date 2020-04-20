@@ -36,7 +36,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 2.6 (tested through 4.2)
  * If you want support for jpeg 2000 images:
-     * OpenJpeg >= 1.5 (tested through 2.3; version 2.0+ is strongly recommended)
+     * **OpenJpeg >= 2.0** (tested through 2.3)
  * If you want support for Field3D files:
      * Field3D
  * If you want support for OpenVDB files:
