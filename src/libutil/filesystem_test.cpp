@@ -31,6 +31,8 @@ test_filename_decomposition()
     std::cout << "Testing filename, extension, parent_path\n";
     OIIO_CHECK_EQUAL(Filesystem::filename(test), "filename.ext");
     OIIO_CHECK_EQUAL(Filesystem::extension(test), ".ext");
+    OIIO_CHECK_EQUAL(Filesystem::extension("./foo.dir/../blah/./bar/file.ext"),
+                     ".ext");
     OIIO_CHECK_EQUAL(Filesystem::extension("/directory/filename"), "");
     OIIO_CHECK_EQUAL(Filesystem::extension("/directory/filename."), ".");
     OIIO_CHECK_EQUAL(Filesystem::parent_path(test), "/directoryA/directory");
