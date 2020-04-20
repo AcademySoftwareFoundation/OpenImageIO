@@ -6394,7 +6394,7 @@ main(int argc, char* argv[])
         simd::vfloat4 vf(h);
         if (vf[0] == 0.0f || *h != vf[0])
             Strutil::fprintf(stderr,
-                             "Bad half conversion, code %s %f -> %f "
+                             "Bad half conversion, code %d %f -> %f "
                              "(suspect badly set DENORMS_ZERO_MODE)\n",
                              bad[0], h[0], vf[0]);
     }
