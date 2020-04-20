@@ -16,6 +16,7 @@ jobs:
         env:
           CXX: g++-6
           CMAKE_CXX_STANDARD: 11
+          PYBIND11_VERSION: 2.4.2
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -62,7 +63,8 @@ jobs:
           CXX: g++-8
           CMAKE_CXX_STANDARD: 14
           USE_SIMD: avx2,f16c
-          OPENEXR_BRANCH: v2.4.0
+          OPENEXR_BRANCH: v2.4.1
+          PYBIND11_VERSION: 2.5.0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -81,6 +83,7 @@ jobs:
           OPENEXR_BRANCH: master
           OCIO_BRANCH: master
           LIBTIFF_BRANCH: master
+          PYBIND11_BRANCH: master
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
