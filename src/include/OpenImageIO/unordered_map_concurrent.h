@@ -356,6 +356,34 @@ public:
 
     /// Insert <key,value> into the hash map if it's not already there.
     /// Return true if added, false if it was already present.
+    /// If it was already present in the map, replace `value` with the
+    /// value stored in the map.
+    /// If do_lock is true, lock the bin containing key while doing this
+    /// operation; if do_lock is false, assume that the caller already
+    /// has the bin locked, so do no locking or unlocking.
+    bool insert_retrieve(const KEY& key, VALUE& value, VALUE& mapvalue,
+                         bool do_lock = true)
+    {
+        size_t hash = m_hash(key);
+        size_t b    = whichbin(hash);
+        Bin& bin(m_bins[b]);
+        if (do_lock)
+            bin.lock();
+        auto result = bin.map.emplace(key, value);
+        if (result.second) {
+            // the insert was succesful!
+            ++m_size;
+        } else {
+            // Replace caller's value with the one already in the table.
+            value = result.first->second;
+        }
+        if (do_lock)
+            bin.unlock();
+        return result.second;
+    }
+
+    /// Insert <key,value> into the hash map if it's not already there.
+    /// Return true if added, false if it was already present.
     /// If do_lock is true, lock the bin containing key while doing this
     /// operation; if do_lock is false, assume that the caller already
     /// has the bin locked, so do no locking or unlocking.
