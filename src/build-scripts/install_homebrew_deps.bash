@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script, which assumes it is runnign on a Mac OSX with Homebrew
 # installed, does a "brew install" in all packages reasonably needed by
