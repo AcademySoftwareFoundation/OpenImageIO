@@ -24,11 +24,12 @@ echo "Architecture is $ARCH"
 echo "Build platform name is $PLATFORM"
 
 # Environment variables we always need
-export USE_CCACHE=1
+export USE_CCACHE=${USE_CCACHE:=1}
 export CCACHE_CPP2=1
 export OpenImageIO_ROOT=$PWD/dist/$PLATFORM
 export DYLD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$DYLD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$OpenImageIO_ROOT/lib64:$LD_LIBRARY_PATH
 export OIIO_LIBRARY_PATH=$OpenImageIO_ROOT/lib
 export LSAN_OPTIONS=suppressions=$PWD/src/build-scripts/nosanitize.txt
 export ASAN_OPTIONS=print_suppressions=0
@@ -39,7 +40,7 @@ export BUILD_MISSING_DEPS=${BUILD_MISSING_DEPS:=1}
 export COMPILER=${COMPILER:=gcc}
 export CXX=${CXX:=g++}
 export CI=true
-export USE_NINJA=1
+export USE_NINJA=${USE_NINJA:=1}
 export CMAKE_GENERATOR=${CMAKE_GENERATOR:=Ninja}
 export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:=Release}
 
@@ -56,6 +57,9 @@ export CMAKE_BUILD_PARALLEL_LEVEL=${PARALLEL}
 export CTEST_PARALLEL_LEVEL=${PARALLEL}
 
 export LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=$HOME/ext}
+export PATH=${LOCAL_DEPS_DIR}/bin:$PATH
+export LD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/lib:$LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/lib:$DYLD_LIBRARY_PATH
 
 uname -a
 uname -n

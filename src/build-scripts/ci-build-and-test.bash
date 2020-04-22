@@ -58,6 +58,6 @@ if [[ "$BUILDTARGET" == clang-format ]] ; then
     fi
 fi
 
-if [[ "$CODECOV" == 1 ]] ; then
-    bash <(curl -s https://codecov.io/bash)
-fi
+# if [[ "$CODECOV" == 1 ]] ; then
+#     bash <(curl -s https://codecov.io/bash)
+# fi

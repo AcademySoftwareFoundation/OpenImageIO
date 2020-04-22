@@ -3,50 +3,69 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+    # Skip jobs when only documentation files are changed
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+  schedule:
+    # Full nightly build
+    - cron: "0 0 * * *"
 
 
 jobs:
-  linux-gcc6-cpp11:
-    name: "Linux VFX 2019-ish: gcc6/C++11, sse2, exr2.3"
-    runs-on: ubuntu-18.04
+  vfxplatform-2019:
+    name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost-1.66 exr-2.3"
+    runs-on: ubuntu-latest
+    container:
+      #image: aswf/ci-base:2019
+      image: aswf/ci-vfxall:2019
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: all
         env:
-          CXX: g++-6
-          CMAKE_CXX_STANDARD: 11
-          PYBIND11_VERSION: 2.4.2
-        run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
-            source src/build-scripts/ci-build-and-test.bash
-
-  linux-gcc6-cpp14:
-    name: "Linux VFX 2019-ish: gcc6/C++14, sse4.2, exr2.3"
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v1
-      - name: all
-        env:
-          CXX: g++-6
+          CXX: g++
+          CC: gcc
           CMAKE_CXX_STANDARD: 14
-          USE_SIMD: sse4.2
         run: |
             source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
 
-  linux-debug-gcc7:
-    name: "Linux debug, gcc7, C++14, avx, exr2.3"
+  linux-gcc48:
+    name: "Linux 2017-ish: gcc4.8/C++11 py2.7 boost-1.66 exr-2.3"
+    runs-on: ubuntu-latest
+    container:
+      #image: aswf/ci-base:2019
+      image: aswf/ci-vfxall:2019
+    steps:
+      - uses: actions/checkout@v2
+      - name: all
+        env:
+          CXX: /usr/bin/g++
+          CC: /usr/bin/gcc
+          CMAKE_CXX_STANDARD: 11
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps-centos.bash
+            source src/build-scripts/ci-build-and-test.bash
+
+  linux-gcc7-cpp14-debug:
+    name: "Linux debug gcc7/C++14, sse4.2, exr2.4"
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: all
         env:
           CXX: g++-7
           CMAKE_CXX_STANDARD: 14
-          USE_SIMD: avx
+          USE_SIMD: sse4.2
           DEBUG: 1
         run: |
             source src/build-scripts/ci-startup.bash
@@ -54,27 +73,26 @@ jobs:
             source src/build-scripts/ci-build-and-test.bash
 
   linux-gcc8:
-    name: "Linux next: gcc8, C++14, avx2, exr2.4"
+    name: "Linux next/VFXP2021: gcc8 C++17 avx exr2.4"
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: all
         env:
           CXX: g++-8
-          CMAKE_CXX_STANDARD: 14
-          USE_SIMD: avx2,f16c
+          CMAKE_CXX_STANDARD: 17
+          USE_SIMD: avx
           OPENEXR_BRANCH: v2.4.1
-          PYBIND11_VERSION: 2.5.0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
 
-  linux-bleeding:
-    name: "Linux bleeding edge: gcc9, C++17, avx2, OCIO/libtiff/exr master"
+  linux-bleeding-edge:
+    name: "Linux bleeding edge: gcc9 C++17 avx2 OCIO/libtiff/exr master"
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: all
         env:
           CXX: g++-9
@@ -89,27 +107,36 @@ jobs:
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
 
-  # PITA go get GitHub Actions CI on Mac to do python 2 and I'm just
-  # too lazy to figure it out right now.
-  #  macos-py27:
-  #    name: "Mac py27"
-  #    runs-on: macOS-latest
-  #    steps:
-  #      - uses: actions/checkout@v1
-  #      - name: all
-  #        env:
-  #          CXX: clang++
-  #          PYTHON_VERSION: 2.7
-  #        run: |
-  #            source src/build-scripts/ci-startup.bash
-  #            source src/build-scripts/install_homebrew_deps.bash
-  #            src/build-scripts/install_test_images.bash
-  #            source src/build-scripts/ci-build-and-test.bash
+  linux-oldest:
+    # Oldest versions of the dependencies that we can muster, and various
+    # things disabled (no SSE, no OCIO available, don't embed plugins)
+    name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
+    runs-on: ubuntu-latest
+    container:
+      #image: aswf/ci-base:2019
+      image: aswf/ci-vfxall:2019
+    steps:
+      - uses: actions/checkout@v2
+      - name: all
+        env:
+          CXX: /usr/bin/g++
+          CC: /usr/bin/gcc
+          CMAKE_CXX_STANDARD: 11
+          USE_SIMD: 0
+          USE_JPEGTURBO: 0
+          USE_OPENCOLORIO: 0
+          EMBEDPLUGINS: 0
+          OPENEXR_BRANCH: v2.2.0
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps-centos.bash
+            source src/build-scripts/ci-build-and-test.bash
+
   macos-py37:
     name: "Mac py37"
     runs-on: macOS-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: all
         env:
           CXX: clang++
@@ -128,7 +155,7 @@ jobs:
     name: "Windows"
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Setup Nuget.exe
         uses: warrenbuckley/Setup-Nuget@v1
       - name: all
@@ -148,7 +175,7 @@ jobs:
     runs-on: ubuntu-18.04
     if: github.event_name == 'pull_request' || contains(github.ref, 'san') || contains(github.ref, 'RB') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       #- uses: docker://aswfstaging/ci-base:2019
       - name: all
         env:
@@ -162,10 +189,10 @@ jobs:
             source src/build-scripts/ci-build-and-test.bash
 
   linux-clang:
-    name: "Linux clang: clang9, C++14, avx2, exr2.4"
+    name: "Linux clang: clang9 C++14 avx2 exr2.4"
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: all
         env:
           CXX: clang++
@@ -181,10 +208,10 @@ jobs:
             source src/build-scripts/ci-build-and-test.bash
 
   linux-static:
-    name: "Linux static libs: gcc7, C++14, exr2.3"
+    name: "Linux static libs: gcc7 C++14 exr2.4"
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       #- uses: docker://aswfstaging/ci-base:2019
       - name: all
         env:
@@ -200,7 +227,7 @@ jobs:
     name: "clang-format verification"
     runs-on: macOS-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: all
         env:
           CXX: clang++
@@ -211,22 +238,3 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/install_homebrew_deps.bash
             source src/build-scripts/ci-build-and-test.bash
-
-  # I want to build a gcc48 version, but it's really hard to do, all the
-  # libraries are built against gcc 6+ and have incompatibilites (incluing
-  # boost).
-  #
-  # linux-gcc48:
-  #   name: "Linux VP 2017-ish: gcc4.8, C++11, sse4.2, exr2.3"
-  #   runs-on: ubuntu-16.04
-  #   steps:
-  #     - uses: actions/checkout@v1
-  #     - name: all
-  #       env:
-  #         CXX: g++-4.8
-  #         CMAKE_CXX_STANDARD: 11
-  #         USE_LIBHEIF: 0
-  #       run: |
-  #           source src/build-scripts/ci-startup.bash
-  #           source src/build-scripts/gh-installdeps.bash
-  #           source src/build-scripts/ci-build-and-test.bash
