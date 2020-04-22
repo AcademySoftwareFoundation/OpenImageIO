@@ -63,6 +63,8 @@ fi
 # time sudo apt-get install -y llvm
 #time sudo apt-get install -y libopenjpeg-dev
 #time sudo apt-get install -y libjpeg-turbo8-dev
+echo "Which python3 " `which python3`
+python3 --version && true
 
 #dpkg --list
 
