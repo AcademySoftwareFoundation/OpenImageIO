@@ -407,11 +407,11 @@ oiio_add_tests (fits
     URL http://www.cv.nrao.edu/fits/data/tests/)
 
 oiio_add_tests (heif
-    FOUNDVAR LIBHEIF_FOUND
+    FOUNDVAR Libheif_FOUND
     URL https://github.com/nokiatech/heif/tree/gh-pages/content)
 
 oiio_add_tests (webp
-    FOUNDVAR WEBP_FOUND
+    FOUNDVAR Webp_FOUND
     IMAGEDIR oiio-images/webp
     URL "Recent checkout of oiio-images")
 
@@ -419,11 +419,11 @@ oiio_add_tests (ptex
     FOUNDVAR PTEX_FOUND)
 
 oiio_add_tests (texture-field3d field3d
-    FOUNDVAR FIELD3D_FOUND)
+    FOUNDVAR Field3D_FOUND)
 
 
 oiio_add_tests (openvdb
-    FOUNDVAR OPENVDB_FOUND)
+    FOUNDVAR OpenVDB_FOUND)
 
 if (SPI_TESTS)
   oiio_add_tests (oiiotool-spi

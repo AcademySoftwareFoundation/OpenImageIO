@@ -5,7 +5,7 @@
 #
 # This module defines the following variables:
 #
-# LIBSQUISH_FOUND            True if Libsquish was found.
+# Libsquish_FOUND            True if Libsquish was found.
 # LIBSQUISH_INCLUDES         Where to find Libsquish headers
 # LIBSQUISH_LIBRARIES        List of libraries to link against when using Libsquish
 # LIBSQUISH_VERSION          Version of Libsquish (e.g., 3.6.2)
@@ -24,13 +24,13 @@ find_library (LIBSQUISH_LIBRARY squish
                   ENV LIBSQUISH_LIBRARY_PATH
               DOC "The Libsquish libraries")
 
-find_package_handle_standard_args (LIBSQUISH
+find_package_handle_standard_args (Libsquish
     REQUIRED_VARS
         LIBSQUISH_INCLUDE_DIR
         LIBSQUISH_LIBRARY
     )
 
-if (LIBSQUISH_FOUND)
+if (Libsquish_FOUND)
     set (LIBSQUISH_INCLUDES ${LIBSQUISH_INCLUDE_DIR})
     set (LIBSQUISH_LIBRARIES ${LIBSQUISH_LIBRARY})
 

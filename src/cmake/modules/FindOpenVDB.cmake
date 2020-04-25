@@ -6,7 +6,7 @@
 #  OPENVDB_LIBRARIES, libraries to link against to use OPENVDB.
 #  OpenVDB_ROOT, The base directory to search for OPENVDB.
 #                        This can also be an environment variable.
-#  OPENVDB_FOUND, If false, do not try to use OPENVDB.
+#  OpenVDB_FOUND, If false, do not try to use OPENVDB.
 #
 # also defined, but not for general use are
 #  OPENVDB_LIBRARY, where to find the OPENVDB library.
@@ -67,18 +67,26 @@ find_library(OPENVDB_LIBRARY
     ${oiio_vdblib_search}
 )
 
-# handle the QUIETLY and REQUIRED arguments and set OPENVDB_FOUND to TRUE if
+# handle the QUIETLY and REQUIRED arguments and set OpenVDB_FOUND to TRUE if
 # all listed variables are TRUE
 INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(OPENVDB
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenVDB
     REQUIRED_VARS OPENVDB_LIBRARY OPENVDB_INCLUDE_DIR
     VERSION_VAR  OPENVDB_VERSION
     )
 
-IF(OPENVDB_FOUND)
-  SET(OPENVDB_LIBRARIES ${OPENVDB_LIBRARY})
-  SET(OPENVDB_INCLUDE_DIRS ${OPENVDB_INCLUDE_DIR})
-ENDIF(OPENVDB_FOUND)
+if (OpenVDB_FOUND)
+    set(OPENVDB_LIBRARIES ${OPENVDB_LIBRARY})
+    set(OPENVDB_INCLUDE_DIRS ${OPENVDB_INCLUDE_DIR})
+
+    if (NOT TARGET OpenVDB::OpenVDB)
+        add_library(OpenVDB::OpenVDB UNKNOWN IMPORTED)
+        set_target_properties(OpenVDB::OpenVDB PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${OPENVDB_INCLUDES}")
+        set_property(TARGET OpenVDB::OpenVDB APPEND PROPERTY
+            IMPORTED_LOCATION "${OPENVDB_LIBRARIES}")
+    endif ()
+endif ()
 
 MARK_AS_ADVANCED(
   OPENVDB_INCLUDE_DIR
