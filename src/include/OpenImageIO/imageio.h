@@ -132,7 +132,7 @@ struct ROI {
     }
 
     /// All() is an alias for the default constructor, which indicates that
-    /// it means "all" of the image, or no region restruction.  For example,
+    /// it means "all" of the image, or no region restriction.  For example,
     ///     float myfunc (ImageBuf &buf, ROI roi = ROI::All());
     /// Note that this is equivalent to:
     ///     float myfunc (ImageBuf &buf, ROI roi = {});
@@ -288,7 +288,7 @@ public:
         ///< channel is present, or if it is not known which channel
         ///< represents alpha.
     int z_channel;
-        ///< The index of the channel that respresents *z* or *depth* (from
+        ///< The index of the channel that represents *z* or *depth* (from
         ///< the camera).  It defaults to -1 if no depth channel is present,
         ///< or if it is not know which channel represents depth.
     bool deep;                ///< True if the image contains deep data.
@@ -499,7 +499,7 @@ public:
     /// `ParamValue` record, or NULL if not found.  This variety of
     /// `find_attribute(}` can retrieve items such as "width", which are
     /// data members of the `ImageSpec`, but not in `extra_attribs`. The
-    /// 1tmpparam` is a storage area owned by the caller, which is used as
+    /// `tmpparam` is a storage area owned by the caller, which is used as
     /// temporary buffer in cases where the information does not correspond
     /// to an actual `extra_attribs` (in this case, the return value will be
     /// `&tmpparam`). The extra names it understands are:
@@ -830,7 +830,7 @@ public:
     /// @returns
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
-    ///         requiresd writer was not able to be created.
+    ///         required writer was not able to be created.
     static unique_ptr open (const std::string& filename,
                             const ImageSpec *config = nullptr);
 
@@ -864,7 +864,7 @@ public:
     /// @returns
     ///         A `unique_ptr` that will close and free the ImageInput when
     ///         it exits scope or is reset. The pointer will be empty if the
-    ///         requiresd writer was not able to be created.
+    ///         required writer was not able to be created.
     static unique_ptr create (const std::string& filename, bool do_open=false,
                               const ImageSpec *config=nullptr,
                               string_view plugin_searchpath="");
@@ -932,7 +932,7 @@ public:
     /// otherwise corrupted.
     ///
     /// @returns
-    ///         `true` upon success, or `false` upen failure.
+    ///         `true` upon success, or `false` upon failure.
     virtual bool valid_file (const std::string& filename) const;
 
     /// Opens the file with given name and seek to the first subimage in the
@@ -1010,7 +1010,7 @@ public:
     /// still open.
     ///
     /// @returns
-    ///         `true` upon success, or `false` upen failure.
+    ///         `true` upon success, or `false` upon failure.
     virtual bool close () = 0;
 
     /// Returns the index of the subimage that is currently being read.
@@ -1033,7 +1033,7 @@ public:
     /// sequentially read through prior subimages and levels.
     ///
     /// @returns
-    ///         `true` upon success, or `false` upen failure. A failure may
+    ///         `true` upon success, or `false` upon failure. A failure may
     ///         indicate that no such subimage or MIP level exists in the
     ///         file.
     virtual bool seek_subimage (int subimage, int miplevel) {
@@ -1120,7 +1120,7 @@ public:
     /// @param  data        Pointer to the pixel data buffer.
     /// @param  xstride     The distance in bytes between successive
     ///                     pixels in `data` (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool read_scanline (int y, int z, TypeDesc format, void *data,
                                 stride_t xstride=AutoStride);
 
@@ -1155,7 +1155,7 @@ public:
     /// @param  xstride/ystride
     ///                     The distance in bytes between successive pixels
     ///                     and scanlines (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note This call was changed for OpenImageIO 2.0 to include the
     ///     explicit subimage and miplevel parameters. The previous
@@ -1206,7 +1206,7 @@ public:
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride` to
     ///                     indicate a "contiguous" single tile).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note This call will fail if the image is not tiled, or if (x,y,z)
     /// is not the upper left corner coordinates of a tile.
@@ -1261,7 +1261,7 @@ public:
     /// @param  xstride/ystride/zstride
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
@@ -1292,7 +1292,7 @@ public:
     /// Depending on the spec, this will read either all tiles or all
     /// scanlines. Assume that data points to a layout in row-major order.
     ///
-    /// This version of read_imgage, because it passes explicit subimage and
+    /// This version of read_image, because it passes explicit subimage and
     /// miplevel, does not require a separate call to seek_subimage, and is
     /// guaranteed to be thread-safe against other concurrent calls to any
     /// of the read_* methods that take an explicit subimage/miplevel (but
@@ -1318,7 +1318,7 @@ public:
     ///                     scanlines, and image planes (or `AutoStride`).
     /// @param  progress_callback/progress_callback_data
     ///                     Optional progress callback.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool read_image (int subimage, int miplevel,
                              int chbegin, int chend,
                              TypeDesc format, void *data,
@@ -1362,7 +1362,7 @@ public:
     /// @param  z           The z coordinate of the scanline.
     /// @param  deepdata    A `DeepData` object into which the data for
     ///                     these scanlines will be placed.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool read_native_deep_scanlines (int subimage, int miplevel,
                                              int ybegin, int yend, int z,
                                              int chbegin, int chend,
@@ -1383,7 +1383,7 @@ public:
     ///                     The channel range to read.
     /// @param  deepdata    A `DeepData` object into which the data for
     ///                     these tiles will be placed.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
@@ -1403,7 +1403,7 @@ public:
     ///                     resolution level).
     /// @param  deepdata    A `DeepData` object into which the data for
     ///                     the image will be placed.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool read_native_deep_image (int subimage, int miplevel,
                                          DeepData &deepdata);
 
@@ -1625,7 +1625,7 @@ public:
     ///                 search for OpenImageIO plugin DSO/DLL's.
     /// @returns        A `unique_ptr` that will close and free the
     ///                 ImageOutput when it exits scope or is reset.
-    ///                 The pointer will be empty if the requiresd writer
+    ///                 The pointer will be empty if the required writer
     ///                 was not able to be created.
     static unique_ptr create (const std::string &filename,
                               const std::string &plugin_searchpath="");
@@ -1777,7 +1777,7 @@ public:
     ///                     to create/truncate the file (default: `Create`),
     ///                     append another subimage (`AppendSubimage`), or
     ///                     append another MIP level (`AppendMIPLevel`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool open (const std::string &name, const ImageSpec &newspec,
                        OpenMode mode=Create) = 0;
 
@@ -1802,7 +1802,7 @@ public:
     /// @param  specs[]
     ///                      Pointer to an array of `ImageSpec` objects
     ///                      describing each of the expected subimages.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool open (const std::string &name, int subimages,
                        const ImageSpec *specs) {
         // Default implementation: just a regular open, assume that
@@ -1873,7 +1873,7 @@ public:
     /// @param  data        Pointer to the pixel data.
     /// @param  xstride     The distance in bytes between successive
     ///                     pixels in `data` (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_scanline (int y, int z, TypeDesc format,
                                  const void *data, stride_t xstride=AutoStride);
 
@@ -1891,7 +1891,7 @@ public:
     /// @param  xstride/ystride
     ///                     The distance in bytes between successive pixels
     ///                     and scanlines (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_scanlines (int ybegin, int yend, int z,
                                   TypeDesc format, const void *data,
                                   stride_t xstride=AutoStride,
@@ -1914,7 +1914,7 @@ public:
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride` to
     ///                     indicate a "contiguous" single tile).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note This call will fail if the image is not tiled, or if (x,y,z)
     /// is not the upper left corner coordinates of a tile.
@@ -1952,7 +1952,7 @@ public:
     /// @param  xstride/ystride/zstride
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
@@ -1985,7 +1985,7 @@ public:
     /// @param  xstride/ystride/zstride
     ///                     The distance in bytes between successive pixels,
     ///                     scanlines, and image planes (or `AutoStride`).
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail for a format plugin that does not return
     /// true for `supports("rectangles")`.
@@ -2017,7 +2017,7 @@ public:
     ///                     scanlines, and image planes (or `AutoStride`).
     /// @param  progress_callback/progress_callback_data
     ///                     Optional progress callback.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_image (TypeDesc format, const void *data,
                               stride_t xstride=AutoStride,
                               stride_t ystride=AutoStride,
@@ -2033,7 +2033,7 @@ public:
     /// @param  z           The z coordinate of the scanline.
     /// @param  deepdata    A `DeepData` object with the data for these
     ///                     scanlines.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_deep_scanlines (int ybegin, int yend, int z,
                                        const DeepData &deepdata);
 
@@ -2052,7 +2052,7 @@ public:
     /// @param  zbegin/zend The z range of the pixels covered by the tiles
     ///                     (for a 2D image, zbegin=0 and zend=1).
     /// @param  deepdata    A `DeepData` object with the data for the tiles.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     ///
     /// @note The call will fail if the image is not tiled, or if the pixel
     /// ranges do not fall along tile (or image) boundaries, or if it is not
@@ -2065,7 +2065,7 @@ public:
     /// the spec, this will write either all tiles or all scanlines.
     ///
     /// @param  deepdata    A `DeepData` object with the data for the image.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool write_deep_image (const DeepData &deepdata);
 
     /// @}
@@ -2087,7 +2087,7 @@ public:
     /// alterations, especially for formats that use lossy compression.
     ///
     /// @param  in          A pointer to the open `ImageInput` to read from.
-    /// @returns            `true` upon success, or `false` upen failure.
+    /// @returns            `true` upon success, or `false` upon failure.
     virtual bool copy_image (ImageInput *in);
 
     // General message passing between client and image output server. This

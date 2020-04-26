@@ -77,7 +77,7 @@ public:
             /// the ImageBuf is destroyed.
         IMAGECACHE
             ///< The ImageBuf is "backed" by an ImageCache, which will
-            /// automatically be used to retreive pixels when requested, but
+            /// automatically be used to retrieve pixels when requested, but
             /// the ImageBuf will not allocate separate storage for it. 
             /// This brings all the advantages of the ImageCache, but can
             /// only be used for read-only ImageBuf's that reference a
@@ -130,7 +130,7 @@ public:
     // Deprecated synonym for `ImageBuf(name, 0, 0, imagecache, nullptr)`.
     ImageBuf(string_view name, ImageCache* imagecache);
 
-    /// Construct a writeable ImageBuf with the given specification
+    /// Construct a writable ImageBuf with the given specification
     /// (including resolution, data type, metadata, etc.). The ImageBuf will
     /// allocate and own its own pixel memory and will free that memory
     /// automatically upon destruction, clear(), or reset(). Upon successful
@@ -144,7 +144,7 @@ public:
     ///             state and will have no local pixel storage.
     /// @param zero
     ///             After a successful allocation of the local pixel
-    ///             storage, this parameteter controls whether the pixels
+    ///             storage, this parameter controls whether the pixels
     ///             will be initialized to hold zero (black) values
     ///             (`InitializePixels::Yes`) or if the pixel memory will
     ///             remain uninitialized (`InitializePixels::No`) and thus
@@ -161,7 +161,7 @@ public:
     ImageBuf(string_view name, const ImageSpec& spec,
              InitializePixels zero = InitializePixels::Yes);
 
-    /// Construct a writeable ImageBuf that "wraps" existing pixel memory
+    /// Construct a writable ImageBuf that "wraps" existing pixel memory
     /// owned by the calling application. The ImageBuf does not own the
     /// pixel storage and will will not free/delete that memory, even when
     /// the ImageBuf is destroyed. Upon successful initialization, the
@@ -200,7 +200,7 @@ public:
     /// `IBStorage::UNINITIALIZED`).
     void reset() { clear(); }
 
-    // Deprecated/useless synonym for `reset(name, 0, 0, imageache, nullptr)`
+    // Deprecated/useless synonym for `reset(name, 0, 0, imagecache, nullptr)`
     void reset(string_view name, ImageCache* imagecache = nullptr);
 
     /// Destroy any previous contents of the ImageBuf and re-initialize it
@@ -234,7 +234,7 @@ public:
     /// pixel memory owned by the calling application.
     void reset(const ImageSpec& spec, void* buffer);
 
-    /// Make the ImageBuf be writeable. That means that if it was previously
+    /// Make the ImageBuf be writable. That means that if it was previously
     /// backed by an ImageCache (storage was `IMAGECACHE`), it will force a
     /// full read so that the whole image is in local memory. This will
     /// invalidate any current iterators on the image. It has no effect if
@@ -467,7 +467,7 @@ public:
     /// be a scanline-oriented file.
     ///
     /// This lets you write a tiled file from an ImageBuf that may have been
-    /// read orginally from a scanline file, or change the dimensions of a
+    /// read originally from a scanline file, or change the dimensions of a
     /// tiled file, or to force the file written to be scanline even if it
     /// was originally read from a tiled file.
     ///
@@ -627,8 +627,8 @@ public:
     /// the upper left corner of the display window, (1,1) the lower
     /// right corner of the display window.
     ///
-    /// @note `interppixel()` uses pixel coordiantes (ranging 0..resolution)
-    /// whereas `interppixel_NDC()` uses NDC coordiantes (ranging 0..1).
+    /// @note `interppixel()` uses pixel coordinates (ranging 0..resolution)
+    /// whereas `interppixel_NDC()` uses NDC coordinates (ranging 0..1).
     void interppixel_NDC(float s, float t, float* pixel,
                          WrapMode wrap = WrapBlack) const;
 
@@ -640,7 +640,7 @@ public:
     void interppixel_bicubic(float x, float y, float* pixel,
                              WrapMode wrap = WrapBlack) const;
 
-    /// Bicubic interpolattion at NDC space coordinates (s,t), where (0,0)
+    /// Bicubic interpolation at NDC space coordinates (s,t), where (0,0)
     /// is the upper left corner of the display (a.k.a. "full") window,
     /// (1,1) the lower right corner of the display window.
     void interppixel_bicubic_NDC(float s, float t, float* pixel,
@@ -1364,7 +1364,7 @@ public:
             m_z     = m_rng_zend;
         }
 
-        // Make sure it's writeable. Use with caution!
+        // Make sure it's writable. Use with caution!
         void make_writeable()
         {
             if (!m_localpixels) {
