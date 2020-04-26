@@ -249,11 +249,15 @@ public:
     ///             If true, preserve any ImageCache-forced data types (you
     ///             might want to do this if it is critical that the
     ///             apparent data type doesn't change, for example if you
-    ///             are calling `make_writeable()` from within a
+    ///             are calling `make_writable()` from within a
     ///             type-specialized function).
     /// @returns
     ///             Return `true` if it works (including if no read was
     ///             necessary), `false` if something went horribly wrong.
+    bool make_writable(bool keep_cache_type = false);
+
+    // DEPRECATED(2.2): This is an alternate, and less common, spelling.
+    // Let's standardize on "writable". We will eventuall remove this.
     bool make_writeable(bool keep_cache_type = false);
 
     /// @}
@@ -1377,10 +1381,10 @@ public:
         }
 
         // Make sure it's writable. Use with caution!
-        void make_writeable()
+        void make_writable()
         {
             if (!m_localpixels) {
-                const_cast<ImageBuf*>(m_ib)->make_writeable(true);
+                const_cast<ImageBuf*>(m_ib)->make_writable(true);
                 OIIO_DASSERT(m_ib->storage() != IMAGECACHE);
                 m_tile      = nullptr;
                 m_proxydata = nullptr;
@@ -1415,7 +1419,7 @@ public:
         Iterator(ImageBuf& ib, WrapMode wrap = WrapDefault)
             : IteratorBase(ib, wrap)
         {
-            make_writeable();
+            make_writable();
             pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
             if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
                 || m_rng_zbegin == m_rng_zend)
@@ -1427,14 +1431,14 @@ public:
                  WrapMode wrap = WrapDefault)
             : IteratorBase(ib, wrap)
         {
-            make_writeable();
+            make_writable();
             pos(x, y, z);
         }
         /// Construct read-write iteration region from ImageBuf and ROI.
         Iterator(ImageBuf& ib, const ROI& roi, WrapMode wrap = WrapDefault)
             : IteratorBase(ib, roi, wrap)
         {
-            make_writeable();
+            make_writable();
             pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
             if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
                 || m_rng_zbegin == m_rng_zend)
@@ -1446,7 +1450,7 @@ public:
                  int zbegin = 0, int zend = 1, WrapMode wrap = WrapDefault)
             : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap)
         {
-            make_writeable();
+            make_writable();
             pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
             if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
                 || m_rng_zbegin == m_rng_zend)
@@ -1457,7 +1461,7 @@ public:
         Iterator(Iterator& i)
             : IteratorBase(i.m_ib, i.m_wrap)
         {
-            make_writeable();
+            make_writable();
             pos(i.m_x, i.m_y, i.m_z);
         }
 

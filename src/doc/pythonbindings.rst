@@ -1528,7 +1528,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 .. py:method:: ImageBuf (imagespec, zero = True)
 
-    Construct a writeable ImageBuf of the dimensions and data format
+    Construct a writable ImageBuf of the dimensions and data format
     specified by an ImageSpec. The pixels will be initialized to black/empty
     values if `zero` is True, otherwise the pixel values will remain
     uninitialized.
@@ -1568,7 +1568,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 .. py:method:: ImageBuf.reset (imagespec, zero = True)
 
-    Restore the ImageBuf to the newly-constructed state of a writeable
+    Restore the ImageBuf to the newly-constructed state of a writable
     ImageBuf specified by an ImageSpec. The pixels will be iniialized to
     black/empty if `zero` is True, otherwise the pixel values will remain
     uninitialized.
@@ -1641,9 +1641,9 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 
 
-.. py:method:: ImageBuf.make_writeable (keep_cache_type = False)
+.. py:method:: ImageBuf.make_writable (keep_cache_type = False)
 
-    Force the ImageBuf to be writeable. That means that if it was previously
+    Force the ImageBuf to be writable. That means that if it was previously
     backed by an ImageCache (storage was `IMAGECACHE`), it will force a full
     read so that the whole image is in local memory.
 
@@ -1692,7 +1692,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 .. py:method:: ImageBuf.specmod()
 
-    `ImageBuf.specmod()` provides a reference to the writeable ImageSpec
+    `ImageBuf.specmod()` provides a reference to the writable ImageSpec
     inside the ImageBuf.  Be very careful!  It is safe to modify certain
     metadata, but if you change the data format or resolution fields, you
     will get the chaos you deserve.
@@ -1809,7 +1809,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 .. py:attribute:: ImageBuf.pixels_valid
 
     Will be `True` if the file has already been read and the pixels are
-    valid. (It is always `True` for writeable ImageBuf's.) There should be
+    valid. (It is always `True` for writable ImageBuf's.) There should be
     few good reasons to access these, since the spec and pixels will be
     automatically be read when they are needed.
 

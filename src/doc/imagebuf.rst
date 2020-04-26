@@ -46,12 +46,12 @@ Constructing a readable ImageBuf
 .. doxygenfunction:: OIIO::ImageBuf::reset(string_view, int, int, ImageCache *, const ImageSpec *, Filesystem::IOProxy *)
 
 
-Constructing a writeable ImageBuf
+Constructing a writable ImageBuf
 --------------------------------------------------
 
 .. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec&, InitializePixels)
 .. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec&, InitializePixels)
-.. doxygenfunction:: OIIO::ImageBuf::make_writeable
+.. doxygenfunction:: OIIO::ImageBuf::make_writable
 
 
 Constructing an ImageBuf that "wraps" an application buffer

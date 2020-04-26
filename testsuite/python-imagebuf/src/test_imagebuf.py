@@ -60,10 +60,10 @@ def write (image, filename, format=oiio.UNKNOWN) :
 
 try:
 
-    print ("Constructing to be a writeable 320x240,4 UINT16:")
+    print ("Constructing to be a writable 320x240,4 UINT16:")
     b = oiio.ImageBuf (oiio.ImageSpec(320,240,4,oiio.UINT16))
     print_imagespec (b.spec())
-    print ("Resetting to be a writeable 640x480,3 Float:")
+    print ("Resetting to be a writable 640x480,3 Float:")
     b.reset (oiio.ImageSpec(640,480,3,oiio.FLOAT))
     print_imagespec (b.spec())
     print ("")

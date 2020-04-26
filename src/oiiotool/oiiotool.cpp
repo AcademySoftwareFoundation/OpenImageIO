@@ -4355,7 +4355,7 @@ action_fill(int argc, const char* argv[])
     ImageRecRef A(ot.pop());
     ot.read(A);
     ot.push(new ImageRec(*A, allsubimages ? -1 : 0, allsubimages ? -1 : 0,
-                         /*writeable=*/true, /*copy_pixels=*/true));
+                         /*writable=*/true, /*copy_pixels=*/true));
 
     int subimages = allsubimages ? A->subimages() : 1;
     for (int s = 0; s < subimages; ++s) {
@@ -4433,7 +4433,7 @@ action_clamp(int argc, const char* argv[])
     ot.read(A);
     int subimages = allsubimages ? A->subimages() : 1;
     ImageRecRef R(new ImageRec(*A, allsubimages ? -1 : 0, allsubimages ? -1 : 0,
-                               true /*writeable*/, false /*copy_pixels*/));
+                               true /*writable*/, false /*copy_pixels*/));
     ot.push(R);
     for (int s = 0; s < subimages; ++s) {
         int nchans      = (*R)(s, 0).nchannels();

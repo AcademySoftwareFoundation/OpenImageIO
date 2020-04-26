@@ -1325,13 +1325,21 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
 
 
 bool
-ImageBuf::make_writeable(bool keep_cache_type)
+ImageBuf::make_writable(bool keep_cache_type)
 {
     if (storage() == IMAGECACHE) {
         return read(subimage(), miplevel(), 0, -1, true /*force*/,
                     keep_cache_type ? m_impl->m_cachedpixeltype : TypeDesc());
     }
     return true;
+}
+
+
+
+bool
+ImageBuf::make_writeable(bool keep_cache_type)
+{
+    return make_writable(keep_cache_type);
 }
 
 

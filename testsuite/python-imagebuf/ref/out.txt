@@ -1,4 +1,4 @@
-Constructing to be a writeable 320x240,4 UINT16:
+Constructing to be a writable 320x240,4 UINT16:
   resolution 320x240+0+0
   untiled
   4 channels: ('R', 'G', 'B', 'A')
@@ -6,7 +6,7 @@ Constructing to be a writeable 320x240,4 UINT16:
   alpha channel =  3
   z channel =  -1
   deep =  False
-Resetting to be a writeable 640x480,3 Float:
+Resetting to be a writable 640x480,3 Float:
   resolution 640x480+0+0
   untiled
   3 channels: ('R', 'G', 'B')

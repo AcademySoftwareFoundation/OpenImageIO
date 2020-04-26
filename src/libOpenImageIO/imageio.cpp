@@ -44,7 +44,7 @@ int tiff_multithread(1);
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
 std::string input_format_list;   // comma-separated list of readable formats
-std::string output_format_list;  // comma-separated list of writeable formats
+std::string output_format_list;  // comma-separated list of writable formats
 std::string extension_list;      // list of all extensions for all formats
 std::string library_list;        // list of all libraries for all formats
 static const char* oiio_debug_env = getenv("OPENIMAGEIO_DEBUG");

@@ -898,8 +898,8 @@ public:
     /// Once created, the ImageCache owns the ImageInput and is responsible
     /// for destroying it when done. Custom ImageInputs allow "procedural"
     /// images, among other things.  Also, this is the method you use to set
-    /// up a "writeable" ImageCache images (perhaps with a type of
-    /// ImageInput that's just a stub that does as little as possible).
+    /// up a "writable" ImageCache images (perhaps with a type of ImageInput
+    /// that's just a stub that does as little as possible).
     ///
     /// If `config` is not NULL, it points to an ImageSpec with configuration
     /// options/hints that will be passed to the underlying

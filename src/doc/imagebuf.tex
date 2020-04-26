@@ -58,13 +58,13 @@ constructed \ImageBuf using the default constructor.
 \apiend
 
 
-\subsection*{Constructing and initializing a writeable \ImageBuf}
+\subsection*{Constructing and initializing a writable \ImageBuf}
 
 \apiitem{{\ce ImageBuf} (const ImageSpec \&spec, \\
 \bigspc\bigspc InitializePixels zero = InitializePixels::Yes) \\
 {\ce ImageBuf} (string_view name, const ImageSpec \&spec, \\
 \bigspc\bigspc InitializePixels zero = InitializePixels::Yes) }
-Constructs a writeable \ImageBuf with the given specification (including
+Constructs a writable \ImageBuf with the given specification (including
 resolution, data type, metadata, etc.).
 The {\cf zero} parameter controls whether the pixel values are filled with
 black/empty, or are left uninitialized after being allocated (if set to
@@ -75,7 +75,7 @@ Optionally, you may name the \ImageBuf.
 \apiitem{void {\ce reset} (const ImageSpec \&spec, bool zero = true) \\
 void {\ce reset} (string_view name, const ImageSpec \&spec, bool zero = true)}
 Destroys any previous contents of the \ImageBuf and re-initializes it
-as a writeable all-black \ImageBuf with the given specification (including
+as a writable all-black \ImageBuf with the given specification (including
 resolution, data type, metadata, etc.).
 The {\cf zero} parameter controls whether the pixel values are filled with
 black/empty, or are left uninitialized after being allocated (if set to
@@ -84,8 +84,8 @@ Optionally, you may name the \ImageBuf.
 \ImageBuf.
 \apiend
 
-\apiitem{bool make_writeable (bool keep_cache_type = false)}
-Force the \ImageBuf to be writeable. That means that if it was previously
+\apiitem{bool make_writable (bool keep_cache_type = false)}
+Force the \ImageBuf to be writable. That means that if it was previously
 backed by an \ImageCache (storage was {\cf IMAGECACHE}), it will force a
 full read so that the whole image is in local memory.
 This will invalidate any current iterators on the image. It has
@@ -94,7 +94,7 @@ it works (including if no read was necessary), {\cf false} if something went
 horribly wrong. If {\cf keep_cache_type} is true, it preserves any
 \ImageCache-forced data types (you might want to do this if it is critical
 that the apparent data type doesn't change, for example if you are calling
-make_writeable from within a type-specialized function).
+make_writable from within a type-specialized function).
 \apiend
 
 \subsection*{Constructing a readable \ImageBuf and reading from a file}
@@ -382,7 +382,7 @@ of the pixel data window.
 \apiend
 
 \apiitem{ImageSpec \& {\ce specmod} ()}
-This returns a \emph{writeable} reference to the \ImageSpec describing
+This returns a \emph{writable} reference to the \ImageSpec describing
 the buffer.  It's ok to modify most of the metadata, but if you modify
 the spec's {\cf format}, {\cf width}, {\cf height}, or {\cf depth}
 fields, you get the pain you deserve, as the \ImageBuf will no longer
