@@ -2,7 +2,7 @@ Release 2.2 (???) -- compared to 2.1
 ----------------------------------------------
 New minimum dependencies:
 * pybind11 >= 2.4.2
-* openjpeg >= 2.0 (if JPEG-2000 support is desired)
+* openjpeg >= 2.0 (if JPEG-2000 support is desired) #2555 (2.2.2)
 
 New file format support:
 
@@ -35,6 +35,7 @@ New major features and public API changes:
       zero. #2447 (2.2.0)
     - New `max()` and `min()` functions take the pixel-by-pixel maximum
       or minimum of two images. #2470 (2.2.1)
+* ColorConfig: add OCIO "role" accessors. #2548
 
 Performance improvements:
 * Greatly improved TextureSystem/ImageCache performance in highly threaded
@@ -86,6 +87,8 @@ Fixes and feature enhancements:
     - `maketx`/`IBA::make_texture`: better error detection and messages
       when using "overscan" textures with formats that can't support it
       properly. (Punchline: only OpenEXR textures can do it.) #2521 (2.2.0)
+    - Fix possible redundant tile reads in multithread situations (harmless,
+      but makes for redundant I/O). #2557 (2.2.2)
 * Exif read: guard better against out of range offests, fixes crashes when
   reading jpeg files with malformed exif blocks. #2429 (2.1.10/2.2.0)
 * Fix: `ImageSpec::erase_attribute()` did not honor its `searchtype`
@@ -97,14 +100,19 @@ Fixes and feature enhancements:
 * JPEG:
     - Fix resolution unit metadata that was not propery set in JPEG output.
       #2516 (2.2.2/2.1.13)
+    - Fix loss of 'config' info upon close/reopen. #2549 (2.2.2)
 * OpenEXR:
     - Add support for reading and writing float vector metadata. #2459 #2486
+* PNG:
+    - Fix loss of 'config' info upon close/reopen. #2549 (2.2.2)
 * Raw images:
     - Support for new Canon .cr3 file, but only if you build against
       libraw >= 0.20.0 developer snapshot. #2484 (2.2.1)
 * TIFF:
     - Internal improvements to handling metadata retrieval for certain
       unusual tags. #2504 (2.2.2/2.1.13)
+    - Fix subtle bug when reading Exif directory in the header. #2540
+      (2.2.2)
 
 Developer goodies / internals:
 * argparse.h:
@@ -217,6 +225,20 @@ Build/test system improvements and platform ports:
 * Build properly against OpenColorIO's current master (which is the
   in-progress work on OCIO v2). #2530 (2.2.2)
 * Fix static boost to not overlink on Windows. #2537 (2.2.2)
+* Fix build breaks against TOT libtiff master, which had `#define` clashes
+  with our GPSTag enum values. #2539 (2.2.2)
+* Our CI tests now have a "bleeding edge" matrix entry that tests against
+  the current TOT master build of libtiff, openexr (#2549), and pybind11
+  (#2556). (2.2.2)
+* Fix compiler warnign about incorrect extra braces. #2554 (2.2.2)
+* All build-scripts bash scripts now use /usr/bin/env to find bash. #2558
+  (2.2.2)
+* Retire TravisCI, now we rely on GitHub Actions CI. Nightly test added.
+  Start to use ASWF docker images for some tests. #2563 (2.2.2)
+* Avoid possible link errors by fully hiding IBA functions taking IplImage
+  parameters, when no OpenCV headers are encountered. #2568 (2.2.2)
+* Change all CMake references to PACKAGE_FOUND to Package_Found (or whatever
+  capitalization matches the actual package name). #2569 (2.2.2)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
