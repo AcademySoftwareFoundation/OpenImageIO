@@ -51,6 +51,7 @@ jobs:
           CXX: /usr/bin/g++
           CC: /usr/bin/gcc
           CMAKE_CXX_STANDARD: 11
+          USE_OPENJPEG: 0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
