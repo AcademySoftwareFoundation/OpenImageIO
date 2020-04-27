@@ -13,7 +13,7 @@ endif()
 
 if (FFmpeg_FOUND)
     add_oiio_plugin (ffmpeginput.cpp
-                     INCLUDE_DIRS ${FFMPEG_INCLUDE_DIR}
+                     INCLUDE_DIRS ${FFMPEG_INCLUDES}
                      LINK_LIBRARIES ${FFMPEG_LIBRARIES}
                                     ${BZIP2_LIBRARIES}
                      DEFINITIONS "-DUSE_FFMPEG")
