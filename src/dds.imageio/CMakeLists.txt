@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
-if (LIBSQUISH_FOUND)
+if (Libsquish_FOUND)
     # External libsquish was found -- use it
     add_oiio_plugin (ddsinput.cpp
                      LINK_LIBRARIES Libsquish::Libsquish
