@@ -46,10 +46,11 @@
 OIIO_NAMESPACE_BEGIN
 
 
+namespace ImageBufAlgo {
 
 // Note: DEPRECATED(2.0)
 ImageBuf
-ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
+from_IplImage(const IplImage* ipl, TypeDesc convert)
 {
     pvt::LoggedTimer logtime("IBA::from_IplImage");
     ImageBuf dst;
@@ -123,7 +124,7 @@ ImageBufAlgo::from_IplImage(const IplImage* ipl, TypeDesc convert)
 
 // Note: DEPRECATED(2.0)
 IplImage*
-ImageBufAlgo::to_IplImage(const ImageBuf& src)
+to_IplImage(const ImageBuf& src)
 {
     pvt::LoggedTimer logtime("IBA::to_IplImage");
 #ifdef USE_OPENCV
@@ -219,6 +220,7 @@ RBswap(ImageBuf& R, ROI roi, int nthreads)
     return true;
 }
 
+}  // end namespace ImageBufAlgo
 
 
 ImageBuf

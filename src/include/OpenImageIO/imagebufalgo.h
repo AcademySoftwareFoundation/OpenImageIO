@@ -2053,6 +2053,12 @@ inline bool capture_image (ImageBuf &dst, int cameranum = 0,
     return !dst.has_error();
 }
 
+
+
+#if defined(__OPENCV_CORE_TYPES_H__) || defined(OPENCV_CORE_TYPES_H)
+// These declarations are only visible if the OpenCV headers have already
+// been encountered.
+
 // DEPRECATED(2.0). The OpenCV 1.x era IplImage-based functions should be
 // avoided, giving preference to from_OpenCV.
 ImageBuf OIIO_API from_IplImage (const IplImage *ipl,
@@ -2068,6 +2074,7 @@ inline bool from_IplImage (ImageBuf &dst, const IplImage *ipl,
 // avoided, giving preference to from_OpenCV.
 OIIO_API IplImage* to_IplImage (const ImageBuf &src);
 
+#endif
 
 
 

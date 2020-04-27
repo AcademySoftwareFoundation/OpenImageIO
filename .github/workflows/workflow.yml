@@ -109,7 +109,7 @@ jobs:
 
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
-    # things disabled (no SSE, no OCIO available, don't embed plugins)
+    # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins)
     name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
     runs-on: ubuntu-latest
     container:
@@ -125,6 +125,7 @@ jobs:
           USE_SIMD: 0
           USE_JPEGTURBO: 0
           USE_OPENCOLORIO: 0
+          USE_OPENCV: 0
           EMBEDPLUGINS: 0
           OPENEXR_BRANCH: v2.2.0
         run: |
