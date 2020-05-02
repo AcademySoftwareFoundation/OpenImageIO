@@ -1,3 +1,6 @@
+Release 2.1.15 (?? Jun? 2020) -- compared to 2.1.14
+-------------------------------------------------
+
 Release 2.1.14 (1 May 2020) -- compared to 2.1.13
 -------------------------------------------------
 * JPEG & PNG: Fix loss of 'config' hints upon close and reopen that could
