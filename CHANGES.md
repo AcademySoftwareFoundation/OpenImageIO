@@ -1,6 +1,17 @@
-Release 2.1.14 (?? May? 2020) -- compared to 2.1.13
+Release 2.1.14 (1 May 2020) -- compared to 2.1.13
 -------------------------------------------------
-
+* JPEG & PNG: Fix loss of 'config' hints upon close and reopen that could
+  happen in cases where scanlines were accessed out of order. #2549
+* TIFF: Fix subtle bug when reading certain Exif directories in the header.
+  #2540
+* Added OCIO role accessors to the ColorConfig class. #2548
+* Improve error messages when overscan textures are not possible. #2521
+* Build: fix problems when compiling against current libtiff master (symbol
+  clash on GPSTAG values). #2539
+* Build: Fix static boost to not overlink. #2537.
+* Fix some problems with the docs. #2541
+* `AttrDelegate::as_vec<>` returns the whole attribute as a std::vector.
+  #2528
 
 Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
 -------------------------------------------------
@@ -8,7 +19,7 @@ Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
   can't be opened. #2511
 * Fix: Catch previously uncaught exceptions that could happen in certain
   Filesystem utility calls. #2522
-* Fi: Some `span<>` methods involving `std::vector` now will work properly
+* Fix: Some `span<>` methods involving `std::vector` now will work properly
   with vectors that have custom allocators. #2533
 * Fix: ParamValueList `add_or_replace()` was failing to "replace" if the new
   attribute had a different type than the existing one. #2527
@@ -35,7 +46,6 @@ Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
   `find()` but returns a pointer rather than an iterator and nullptr if the
   attribute is not found. #2527
 * Add `get_indexed()` method to ParamValueList and AttrDelegate. #2526
-
 
 Release 2.1.12 (2 Mar 2020) -- compared to 2.1.11
 -------------------------------------------------
