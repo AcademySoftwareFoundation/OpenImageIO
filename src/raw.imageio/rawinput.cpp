@@ -592,6 +592,15 @@ RawInput::open_raw(bool unpack, const std::string& name,
 
     const libraw_image_sizes_t& sizes(m_processor->imgdata.sizes);
     m_spec.attribute("PixelAspectRatio", (float)sizes.pixel_aspect);
+    
+    // Libraw rotate the pixels automatically. 
+    // The "flip" field gives the information about this rotation.
+    // This rotation is dependent on the camera orientation sensor.
+    // This information may be important for the user.
+    if (sizes.flip != 0) {
+        m_spec.attribute("raw:flip", sizes.flip);
+    }
+
     // FIXME: sizes. top_margin, left_margin, raw_pitch, mask?
 
     const libraw_iparams_t& idata(m_processor->imgdata.idata);
