@@ -601,7 +601,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // The "flip" field gives the information about this rotation.
     // This rotation is dependent on the camera orientation sensor.
     // This information may be important for the user.
-    m_spec.attribute("raw:flip", sizes.flip);
+    if (sizes.flip != 0) {
+        m_spec.attribute("raw:flip", sizes.flip);
+    }
 
     // FIXME: sizes. top_margin, left_margin, raw_pitch, mask?
 
