@@ -12,6 +12,15 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+//
+// Documentation on the PNM formats can be found at:
+// http://netpbm.sourceforge.net/doc/pbm.html  (B&W)
+// http://netpbm.sourceforge.net/doc/ppm.html  (grey)
+// http://netpbm.sourceforge.net/doc/pgm.html  (color)
+// http://netpbm.sourceforge.net/doc/pam.html  (base format)
+//
+
+
 class PNMInput final : public ImageInput {
 public:
     PNMInput() {}
