@@ -60,9 +60,11 @@ ifeq (${SP_OS}, rhel7)
     ifeq (${SPI_COMPILER_PLATFORM},gcc-4.8)
         SPCOMP2_COMPILER ?= gcc48m64
         CMAKE_CXX_STANDARD ?= 11
+        LLVM_VERSION ?= 9.0.1-1
     else
         SPCOMP2_COMPILER ?= gcc63
         CMAKE_CXX_STANDARD ?= 14
+        LLVM_VERSION ?= 10.0.0-1
     endif
     SP_PLATFORM ?= linux
     SP_PROC ?= x86_64
@@ -115,7 +117,6 @@ ifeq (${SP_OS}, rhel7)
     #
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
-    LLVM_VERSION ?= 10.0.0
     LLVM_DIRECTORY ?= /shots/spi/home/software/packages/llvm/${LLVM_VERSION}/${SPI_COMPILER_PLATFORM}
     ifeq (${COMPILER},clang7)
         LLVM_DIRECTORY := /shots/spi/home/lib/arnold/rhel7/llvm_7.0.1
@@ -241,15 +242,17 @@ ifeq (${SP_OS}, rhel7)
     ifeq (${OIIO_SPCOMP2},1)
         OCIO_SPCOMP_VERSION ?= 2
         OpenColorIO_ROOT ?= ${SPCOMP2_ROOT}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
-        OPENVDB_SPCOMP2_VERSION ?= v6020001
-        OpenVDB_ROOT ?= ${SPCOMP2_ROOT}/openvdb/${SPCOMP2_FULLBOOST_SUFFIX}/${OPENVDB_SPCOMP2_VERSION}
+        # OPENVDB_SPCOMP2_VERSION ?= v6020001
+        # OpenVDB_ROOT ?= ${SPCOMP2_ROOT}/openvdb/${SPCOMP2_FULLBOOST_SUFFIX}/${OPENVDB_SPCOMP2_VERSION}
+        OPENVDB_VERSION ?= 6.2.2-3
+        OpenVDB_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenVDB/${OPENVDB_VERSION}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}/boost-${BOOSTVERS}
     else
         OPENCOLORIO_VERSION ?= 1.1.1-1
         OpenColorIO_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenColorIO/${OPENCOLORIO_VERSION}/${SPI_COMPILER_PLATFORM}
         MY_CMAKE_FLAGS += -DOPENCOLORIO_LIBRARY=${OpenColorIO_ROOT}/lib/libOpenColorIO_SPI.so
         # Anybody remember why we needed Field3d disabled for SpComp2?
         Field3D_ROOT ?= ${SPCOMP2_ROOT}/Field3D/${SPCOMP2_FULLBOOST_SUFFIX}/v412
-        OPENVDB_VERSION ?= 6.2.2-1
+        OPENVDB_VERSION ?= 6.2.2-3
         OpenVDB_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenVDB/${OPENVDB_VERSION}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}/boost-${BOOSTVERS}
 	endif
     TBB_ROOT ?= /net/apps/rhel7/intel/tbb
