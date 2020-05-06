@@ -113,7 +113,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         // If the dst is initialized but is a cached image, we'll need
         // to fully read it into allocated memory so that we're able
         // to write to it subsequently.
-        dst->make_writeable(true);
+        dst->make_writable(true);
 
         // Merge source metadata into destination if requested.
         if (prepflags & IBAprep_MERGE_METADATA) {
@@ -1198,7 +1198,7 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
     // auto-deleted when the function exits.
     std::vector<std::shared_ptr<ImageBuf>> pyramid;
 
-    // First, make a writeable copy of the original image (converting
+    // First, make a writable copy of the original image (converting
     // to float as a convenience) as the top level of the pyramid.
     ImageSpec topspec = src.spec();
     topspec.set_format(TypeDesc::FLOAT);

@@ -1367,7 +1367,7 @@ Optionally, a specific subimage or MIP level may be specified (defaulting to
 
 \apiitem{ImageBuf {\ce ImageBuf} (imagespec, zero = True)}
 
-Construct a writeable \ImageBuf of the dimensions and data format specified
+Construct a writable \ImageBuf of the dimensions and data format specified
 by an \ImageSpec. The pixels will be initialized to black/empty values if
 {\cf zero} is True, otherwise the pixel values will remain uninitialized.
 
@@ -1399,7 +1399,7 @@ a ``configuration'' \ImageSpec).
 \apiend
 
 \apiitem{ImageBuf.{\ce reset} (imagespec, zero = True)}
-Restore the \ImageBuf to the newly-constructed state of a writeable
+Restore the \ImageBuf to the newly-constructed state of a writable
 \ImageBuf specified by an \ImageSpec.
 The pixels will be iniialized to black/empty if {\cf zero} is True,
 otherwise the pixel values will remain uninitialized.
@@ -1464,8 +1464,8 @@ name).
 \end{code}
 \apiend
 
-\apiitem{bool ImageBuf.{\ce make_writeable} (keep_cache_type = false)}
-Force the \ImageBuf to be writeable. That means that if it was previously
+\apiitem{bool ImageBuf.{\ce make_writable} (keep_cache_type = false)}
+Force the \ImageBuf to be writable. That means that if it was previously
 backed by an \ImageCache (storage was {\cf IMAGECACHE}), it will force a
 full read so that the whole image is in local memory.
 \apiend
@@ -1508,7 +1508,7 @@ describes the original file it came from.
 \apiend
 
 \apiitem{ImageSpec ImageBuf.{\ce specmod}()}
-{\cf ImageBuf.specmod()} provides writeable access to the \ImageSpec that
+{\cf ImageBuf.specmod()} provides writable access to the \ImageSpec that
 describes the contents of the \ImageBuf.  Be very careful!  It is safe
 to modify certain metadata, but if you change the data format or resolution
 fields, you will get the chaos you deserve.
@@ -1606,7 +1606,7 @@ Changes the ``full'' (a.k.a. ``display'') window to the specified ROI.
 
 \apiitem{bool ImageBuf.{\ce pixels_valid}}
 Will be {\cf True} if the file has already been read and the pixels are
-valid. (It is always {\cf True} for writeable \ImageBuf's.)
+valid. (It is always {\cf True} for writable \ImageBuf's.)
 There should be few good reasons to access these, since the spec and pixels
 will be automatically be read when they are needed. 
 \apiend

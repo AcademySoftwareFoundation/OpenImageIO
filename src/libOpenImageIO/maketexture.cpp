@@ -1237,7 +1237,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     if (channelnames.size()) {
         std::vector<std::string> newchannelnames;
         Strutil::split(channelnames, newchannelnames, ",");
-        ImageSpec& spec(src->specmod());  // writeable version
+        ImageSpec& spec(src->specmod());  // writable version
         for (int c = 0; c < spec.nchannels; ++c) {
             if (c < (int)newchannelnames.size() && newchannelnames[c].size()) {
                 std::string name     = newchannelnames[c];

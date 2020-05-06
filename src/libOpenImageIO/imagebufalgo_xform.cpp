@@ -278,7 +278,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
             = ((is_same<DSTTYPE, float>::value || is_same<DSTTYPE, half>::value)
                && (is_same<SRCTYPE, float>::value
                    || is_same<SRCTYPE, half>::value)
-               // && dst.localpixels() // has to be, because it's writeable
+               // && dst.localpixels() // has to be, because it's writable
                && src.localpixels()
                // && R.contains_roi(roi)  // has to be, because IBAPrep
                && src.contains_roi(roi) && roi.chbegin == 0

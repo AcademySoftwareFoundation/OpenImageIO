@@ -760,7 +760,7 @@ Build/test system improvements and platform ports:
 * A new unit test has been backported from master, which tries to perform a
   series of read/write tests on every file format. In partcular, this tests
   certain error conditions, like files not existing, or the directory not
-  being writeable, etc. #2181, #2189 (2.0.8/2.1.1)
+  being writable, etc. #2181, #2189 (2.0.8/2.1.1)
 * Support for CI tests on CircleCI. #2194 (2.1.1) Retired in #2389 (2.1.8).
 * New build-time flag `USE_WEBP=0` can be used to disable building WebP
   format support even on platforms where webp libraries are found.
@@ -1009,7 +1009,7 @@ Release 2.0.8 (3 May, 2019) -- compared to 2.0.7
 * Testing: A new unit test has been backported from master, which tries to
   perform a series of read/write tests on every file format. In partcular,
   this tests certain error conditions, like files not existing, or the
-  directory not being writeable, etc. #2181
+  directory not being writable, etc. #2181
 * Crashes in the command line utilities now attempt to print a stack trace
   to aid in debugging (but only if OIIO is built with Boost >= 1.65, because
   it relies on the Boost stacktrace library). #2229
