@@ -407,14 +407,14 @@ public:
         return string().rfind(c, pos);
     }
 
-    size_type find_first_of(const ustring& str, size_type pos = 0) const
-        noexcept
+    size_type find_first_of(const ustring& str,
+                            size_type pos = 0) const noexcept
     {
         return string().find_first_of(str.string(), pos);
     }
 
-    size_type find_first_of(const std::string& str, size_type pos = 0) const
-        noexcept
+    size_type find_first_of(const std::string& str,
+                            size_type pos = 0) const noexcept
     {
         return string().find_first_of(str, pos);
     }
@@ -434,14 +434,14 @@ public:
         return string().find_first_of(c, pos);
     }
 
-    size_type find_last_of(const ustring& str, size_type pos = npos) const
-        noexcept
+    size_type find_last_of(const ustring& str,
+                           size_type pos = npos) const noexcept
     {
         return string().find_last_of(str.string(), pos);
     }
 
-    size_type find_last_of(const std::string& str, size_type pos = npos) const
-        noexcept
+    size_type find_last_of(const std::string& str,
+                           size_type pos = npos) const noexcept
     {
         return string().find_last_of(str, pos);
     }
@@ -461,14 +461,14 @@ public:
         return string().find_last_of(c, pos);
     }
 
-    size_type find_first_not_of(const ustring& str, size_type pos = 0) const
-        noexcept
+    size_type find_first_not_of(const ustring& str,
+                                size_type pos = 0) const noexcept
     {
         return string().find_first_not_of(str.string(), pos);
     }
 
-    size_type find_first_not_of(const std::string& str, size_type pos = 0) const
-        noexcept
+    size_type find_first_not_of(const std::string& str,
+                                size_type pos = 0) const noexcept
     {
         return string().find_first_not_of(str, pos);
     }
@@ -488,8 +488,8 @@ public:
         return string().find_first_not_of(c, pos);
     }
 
-    size_type find_last_not_of(const ustring& str, size_type pos = npos) const
-        noexcept
+    size_type find_last_not_of(const ustring& str,
+                               size_type pos = npos) const noexcept
     {
         return string().find_last_not_of(str.string(), pos);
     }
