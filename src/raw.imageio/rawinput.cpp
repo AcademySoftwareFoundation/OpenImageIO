@@ -592,8 +592,8 @@ RawInput::open_raw(bool unpack, const std::string& name,
 
     const libraw_image_sizes_t& sizes(m_processor->imgdata.sizes);
     m_spec.attribute("PixelAspectRatio", (float)sizes.pixel_aspect);
-    
-    // Libraw rotate the pixels automatically. 
+
+    // Libraw rotate the pixels automatically.
     // The "flip" field gives the information about this rotation.
     // This rotation is dependent on the camera orientation sensor.
     // This information may be important for the user.
