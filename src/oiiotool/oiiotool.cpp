@@ -2484,6 +2484,7 @@ action_select_subimage(int argc, const char* argv[])
     ot.read();
 
     string_view command       = ot.express(argv[0]);
+    auto options              = ot.extract_options(command);
     int subimage              = 0;
     std::string whichsubimage = ot.express(argv[1]);
     string_view w(whichsubimage);
@@ -2517,8 +2518,14 @@ action_select_subimage(int argc, const char* argv[])
     if (ot.curimg->subimages() == 1 && subimage == 0)
         return 0;  // asking for the only subimage is a no-op
 
-    ImageRecRef A = ot.pop();
-    ot.push(new ImageRec(*A, subimage));
+    if (options["delete"].get<int>()) {
+        // Delete mode: remove the specified subimage
+        ot.top()->erase_subimage(subimage);
+    } else {
+        // Select mode: select just the one specified subimage
+        ImageRecRef A = ot.pop();
+        ot.push(new ImageRec(*A, subimage));
+    }
     ot.function_times[command] += timer();
     return 0;
 }
@@ -6091,7 +6098,7 @@ getargs(int argc, char* argv[])
       .help("Select just one MIP level (0 = highest res)")
       .action(action_selectmip);
     ap.arg("--subimage %s:SUBIMAGEINDEX")
-      .help("Select just one subimage (by index or name)")
+      .help("Select just one subimage by index or name (options: delete=1)")
       .action(action_select_subimage);
     ap.arg("--sisplit")
       .help("Split the top image's subimges into separate images")
