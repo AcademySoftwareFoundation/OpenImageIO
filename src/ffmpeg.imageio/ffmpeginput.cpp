@@ -612,6 +612,9 @@ FFmpegInput::read_frame(int frame)
     int ret      = 0;
     while ((ret = av_read_frame(m_format_context, &pkt)) == 0
            || m_codec_cap_delay) {
+        if (ret == AVERROR_EOF) {
+            break;
+        }
         if (pkt.stream_index == m_video_stream) {
             if (ret < 0 && m_codec_cap_delay) {
                 pkt.data = NULL;
