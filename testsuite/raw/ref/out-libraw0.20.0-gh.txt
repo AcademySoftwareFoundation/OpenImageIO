@@ -385,39 +385,6 @@
     Olympus:MinFocal: 50
     Olympus:SensorCalibration: 0, 0
     raw:Demosaic: "AHD"
-../../../../../oiio-images/raw/RAW_PANASONIC_G1.RW2 : 4016 x 3016, 3 channel, uint16 raw
-    channel list: R, G, B
-    DateTime: "2008-12-10 15:06:33"
-    ExposureTime: 0.0025
-    FNumber: 6.3
-    Make: "Panasonic"
-    Model: "DMC-G1"
-    Orientation: 1 (normal)
-    PixelAspectRatio: 1
-    Exif:ApertureValue: 5.3107 (f/6.3)
-    Exif:DateTimeDigitized: "2008:12:10 15:06:33"
-    Exif:DateTimeOriginal: "2008:12:10 15:06:33"
-    Exif:ExifVersion: ""
-    Exif:ExposureBiasValue: -33/100 (-0.33)
-    Exif:ExposureProgram: 3 (aperture priority)
-    Exif:Flash: 16 (no flash, flash suppression)
-    Exif:FocalLength: 14 (14 mm)
-    Exif:ISOSpeedRatings: 100
-    Exif:MaxApertureValue: 925/256 (3.61328)
-    Exif:MeteringMode: 5 (pattern)
-    Exif:ShutterSpeedValue: 8.64386 (1/399 s)
-    oiio:ColorSpace: "linear"
-    Panasonic:AFPoint: -1
-    Panasonic:BlackLevel: 0, 0, 0, 0, 0, 0, 0, 0
-    Panasonic:CameraFormat: 8
-    Panasonic:CameraMount: 10
-    Panasonic:Compression: 34316
-    Panasonic:EXIF_MaxAp: 3.49827
-    Panasonic:FocalUnits: 1
-    Panasonic:ImageStabilization: -1
-    Panasonic:LensID: 18446744073709551615
-    Panasonic:LensMount: 41
-    raw:Demosaic: "AHD"
 ../../../../../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-08-02 16:46:42"
@@ -549,8 +516,6 @@ PASS
 Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
 PASS
 Comparing "RAW_OLYMPUS_E3.ORF.tif" and "ref/RAW_OLYMPUS_E3.ORF.tif"
-PASS
-Comparing "RAW_PANASONIC_G1.RW2.tif" and "ref/RAW_PANASONIC_G1.RW2.tif"
 PASS
 Comparing "RAW_PENTAX_K200D.PEF.tif" and "ref/RAW_PENTAX_K200D.PEF.tif"
 PASS

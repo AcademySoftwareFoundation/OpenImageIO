@@ -119,6 +119,7 @@ jobs:
           OCIO_BRANCH: master
           LIBTIFF_BRANCH: master
           PYBIND11_BRANCH: master
+          LIBRAW_BRANCH: master
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash

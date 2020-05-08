@@ -39,7 +39,7 @@ git checkout ${LIBRAW_BRANCH} --force
 aclocal
 autoreconf --install
 ./configure --prefix=${LIBRAW_INSTALL_DIR}
-make -j ${PARALLEL:=4} && make install
+time make -j ${PARALLEL:=4} && make install
 
 popd
 
