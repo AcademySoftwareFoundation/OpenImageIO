@@ -12,7 +12,7 @@
 # CMake module to find OpenImageIO
 #
 # This module will set
-#   OPENIMAGEIO_FOUND          True, if found
+#   OpenImageIO_FOUND          True, if found
 #   OPENIMAGEIO_INCLUDES       directory where headers are found
 #   OPENIMAGEIO_LIBRARIES      libraries for OIIO
 #   OPENIMAGEIO_LIBRARY_DIRS   library dirs for OIIO
@@ -87,13 +87,14 @@ endif ()
 
 include (FindPackageHandleStandardArgs)
 find_package_handle_standard_args (OpenImageIO
-    FOUND_VAR     OPENIMAGEIO_FOUND
+    FOUND_VAR     OpenImageIO_FOUND
     REQUIRED_VARS OPENIMAGEIO_INCLUDE_DIR OPENIMAGEIO_LIBRARY
                   OPENIMAGEIO_VERSION
     VERSION_VAR   OPENIMAGEIO_VERSION
     )
+set (OPENIMAGEIO_FOUND ${OpenImageIO_FOUND})  # Old name
 
-if (OPENIMAGEIO_FOUND)
+if (OpenImageIO_FOUND)
     set (OPENIMAGEIO_INCLUDES ${OPENIMAGEIO_INCLUDE_DIR})
     set (OPENIMAGEIO_LIBRARIES ${OPENIMAGEIO_LIBRARY})
     get_filename_component (OPENIMAGEIO_LIBRARY_DIRS "${OPENIMAGEIO_LIBRARY}" DIRECTORY)
