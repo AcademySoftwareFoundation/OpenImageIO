@@ -34,7 +34,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        case, or if no pybind11 is found already on the system, OIIO will
        auto-download it.)
  * If you want support for camera "RAW" formats:
-     * libRaw >= 0.15 (tested 0.15 - 0.19; libRaw >= 0.18 is necessary for
+     * LibRaw >= 0.15 (tested 0.15 - 0.20; LibRaw >= 0.18 is necessary for
        ACES support and much better recognition of camera metadata)
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 2.6 (tested through 4.1)
