@@ -1481,10 +1481,14 @@ current top image.
 
 .. option:: --subimage <n>
 
-    If the current image has multiple subimages, extract the specified
-    subimage. The subimage specifier *n* is either an integer giving the
-    index of the subimage to extract (starting with 0), or the *name* of the
-    subimage to extract (comparing to the `"oiio:subimagename"` metadata).
+    If the current image has multiple subimages, replace it with just the
+    specified subimage. The subimage specifier *n* is either an integer
+    giving the index of the subimage to extract (starting with 0), or the
+    *name* of the subimage to extract (comparing to the
+    `"oiio:subimagename"` metadata).
+
+    Additionally, this command can be used to remove one subimage (leaving
+    the others) by using the optional modifier `--subimage:delete=1`.
 
 .. option:: --sisplit
 

@@ -205,6 +205,7 @@ command += oiiotool ("--pattern constant:color=0.5,0.0,0.0 64x64 3 --text A -att
                      "--siappendall -d half -o subimages-4.exr")
 command += oiiotool ("subimages-4.exr --subimage 3 -o subimageD3.exr")
 command += oiiotool ("subimages-4.exr --subimage layerB -o subimageB1.exr")
+command += oiiotool ("subimages-4.exr --subimage:delete=1 layerB -o subimage-noB.exr")
 command += oiiotool ("subimages-2.exr --sisplit -o subimage2.exr " +
                      "--pop -o subimage1.exr")
 
@@ -278,6 +279,12 @@ outputs = [
             "unsharp.tif", "unsharp-median.tif", "tahoe-laplacian.tif",
             "fft.exr", "ifft.exr",
             "polar.exr", "unpolar.exr",
+            "subimages-2.exr",
+            "subimages-4.exr",
+            "subimageD3.exr",
+            "subimageB1.exr",
+            "subimage-noB.exr",
+            "subimage1.exr",
             "labeladd.exr",
             "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
             "tahoe-contraststretch.tif",

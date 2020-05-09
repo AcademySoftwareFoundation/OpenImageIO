@@ -213,6 +213,18 @@ Comparing "polar.exr" and "ref/polar.exr"
 PASS
 Comparing "unpolar.exr" and "ref/unpolar.exr"
 PASS
+Comparing "subimages-2.exr" and "ref/subimages-2.exr"
+PASS
+Comparing "subimages-4.exr" and "ref/subimages-4.exr"
+PASS
+Comparing "subimageD3.exr" and "ref/subimageD3.exr"
+PASS
+Comparing "subimageB1.exr" and "ref/subimageB1.exr"
+PASS
+Comparing "subimage-noB.exr" and "ref/subimage-noB.exr"
+PASS
+Comparing "subimage1.exr" and "ref/subimage1.exr"
+PASS
 Comparing "labeladd.exr" and "ref/labeladd.exr"
 PASS
 Comparing "exprgradient.tif" and "ref/exprgradient.tif"

@@ -376,6 +376,9 @@ public:
     SubimageRec& operator[](int i) { return m_subimages[i]; }
     const SubimageRec& operator[](int i) const { return m_subimages[i]; }
 
+    // Remove a subimage from the list
+    void erase_subimage(int i) { m_subimages.erase(m_subimages.begin() + i); }
+
     std::string name() const { return m_name; }
 
     // Has the ImageRec been actually read or evaluated?  (Until needed,
