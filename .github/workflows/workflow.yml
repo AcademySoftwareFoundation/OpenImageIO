@@ -24,8 +24,7 @@ jobs:
     name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost-1.66 exr-2.3"
     runs-on: ubuntu-latest
     container:
-      #image: aswf/ci-base:2019
-      image: aswf/ci-vfxall:2019
+      image: aswf/ci-osl:2019
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -38,12 +37,30 @@ jobs:
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
 
+  vfxplatform-2020:
+    name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost-1.70 exr-2.4"
+    runs-on: ubuntu-latest
+    container:
+      #image: aswf/ci-base:2020
+      image: aswf/ci-osl:2020
+    steps:
+      - uses: actions/checkout@v2
+      - name: all
+        env:
+          CXX: g++
+          CC: gcc
+          CMAKE_CXX_STANDARD: 14
+          PYTHON_VERSION: 3.7
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps-centos.bash
+            source src/build-scripts/ci-build-and-test.bash
+
   linux-gcc48:
     name: "Linux 2017-ish: gcc4.8/C++11 py2.7 boost-1.66 exr-2.3"
     runs-on: ubuntu-latest
     container:
-      #image: aswf/ci-base:2019
-      image: aswf/ci-vfxall:2019
+      image: aswf/ci-osl:2019
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -72,8 +89,8 @@ jobs:
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
 
-  linux-gcc8:
-    name: "Linux next/VFXP2021: gcc8 C++17 avx exr2.4"
+  linux-2021ish-gcc8:
+    name: "Linux next/VFXP2021: gcc8 C++17 avx exr2.5"
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -82,7 +99,7 @@ jobs:
           CXX: g++-8
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx
-          OPENEXR_BRANCH: v2.4.1
+          OPENEXR_BRANCH: v2.5.0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -113,8 +130,7 @@ jobs:
     name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
     runs-on: ubuntu-latest
     container:
-      #image: aswf/ci-base:2019
-      image: aswf/ci-vfxall:2019
+      image: aswf/ci-osl:2019
     steps:
       - uses: actions/checkout@v2
       - name: all
