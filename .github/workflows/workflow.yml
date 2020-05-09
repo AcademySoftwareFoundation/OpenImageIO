@@ -24,7 +24,7 @@ jobs:
     name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost-1.66 exr-2.3"
     runs-on: ubuntu-latest
     container:
-      image: aswftesting/ci-osl:2019
+      image: aswf/ci-osl:2019
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       #image: aswf/ci-base:2020
-      image: aswftesting/ci-osl:2020
+      image: aswf/ci-osl:2020
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -60,7 +60,7 @@ jobs:
     name: "Linux 2017-ish: gcc4.8/C++11 py2.7 boost-1.66 exr-2.3"
     runs-on: ubuntu-latest
     container:
-      image: aswftesting/ci-osl:2019
+      image: aswf/ci-osl:2019
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -130,7 +130,7 @@ jobs:
     name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
     runs-on: ubuntu-latest
     container:
-      image: aswftesting/ci-osl:2019
+      image: aswf/ci-osl:2019
     steps:
       - uses: actions/checkout@v2
       - name: all
