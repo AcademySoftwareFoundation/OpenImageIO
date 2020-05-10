@@ -1949,6 +1949,7 @@ set_colorspace(int argc, const char* argv[])
 
 
 
+// --colorconvert
 class OpColorConvert : public OiiotoolOp {
 public:
     OpColorConvert(Oiiotool& ot, string_view opname, int argc,
