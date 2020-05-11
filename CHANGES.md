@@ -1,3 +1,6 @@
+Release 2.1.16 (??  2020) -- compared to 2.1.15
+--------------------------------------------------
+
 Release 2.1.15 (11 May 2020) -- compared to 2.1.14
 --------------------------------------------------
 * RAW input: the "raw:flip" attribute if the underlying libraw did a
