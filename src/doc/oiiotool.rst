@@ -5,6 +5,12 @@
 
 .. highlight:: bash
 
+.. |nbsp| unicode:: U+00A0 .. NO-BREAK SPACE
+
+.. |spc| replace:: |nbsp| |nbsp| |nbsp|
+
+
+
 Overview
 ========
 
@@ -705,7 +711,7 @@ output each one to a different file, with names `sub0001.tif`,
     verbose mode is not turned on, only the resolution and data format are
     printed.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
     - `format=name` : The format name may be one of: `text` (default) for
       readable text, or `xml` for an XML description of the image metadata.
@@ -718,7 +724,7 @@ output each one to a different file, with names `sub0001.tif`,
     execution of command line arguments. The message may contain expressions
     for substitution.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
     - `newline=n` : The number of newlines to print after the message
       (default is 1, but 0 will suppress the newline, and a larger number
@@ -755,7 +761,7 @@ output each one to a different file, with names `sub0001.tif`,
 
     Print to the console detailed information about the values in every pixel.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
     - `empty=` *verbose* : If 0, will cause deep images to skip printing of
       information about pixels with no samples.
@@ -795,7 +801,7 @@ output each one to a different file, with names `sub0001.tif`,
     all pixels of the current image and print a short report of how many
     pixels matched each of the colors.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
     - `eps=r,g,b,...` : Tolerance for matching colors (default:
       0.001 for all channels).
@@ -919,24 +925,29 @@ read and will become the new *current image*, with the previous current
 image pushed onto the image stack.
 
 The `-i` command may be used, which allows additional options that control
-the reading of just that one file. Optional appended arguments include:
+the reading of just that one file.
 
-- `now=` *int* : If 1, read the image now, before proceding to the next
-  command.
-- `autocc=` *int* : Enable or disable `--autocc` for this input image.
-- `info=` *int* : Print info about this file (even if the global `--info`
-  was not used) if nonzero. If the value is 2, print full verbose info (like
-  `--info -v`).
-- `infoformat=` *name* : When printing info, the format may be one of:
-  `text` (default) for readable text, or `xml` for an XML description of the
-  image metadata.
-- `type=` *name* : Upon reading, convert the pixel data to the named type.
-  This can override the default behavior of internally storing whatever type
-  is the most precise one found in the file.
-- `ch=` *name...* : Causes the input to read only the specified channels.
-  This is equivalent to following the input with a `--ch` command,
-  except that by integrating into the `-i`, it potentially can avoid the I/O
-  of the unneeded channels.
+Optional appended modifiers include:
+
+  `:now=` *int*
+    If 1, read the image now, before proceding to the next command.
+  `:autocc=` *int*
+    Enable or disable `--autocc` for this input image.
+  `:info=` *int*
+    Print info about this file (even if the global `--info` was not used) if
+    nonzero. If the value is 2, print full verbose info (like `--info -v`).
+  `:infoformat=` *name*
+    When printing info, the format may be one of: `text` (default) for
+    readable text, or `xml` for an XML description of the image metadata.
+  `:type=` *name*
+    Upon reading, convert the pixel data to the named type. This can
+    override the default behavior of internally storing whatever type is the
+    most precise one found in the file.
+  `:ch=` *name...*
+    Causes the input to read only the specified channels. This is equivalent
+    to following the input with a `--ch` command, except that by integrating
+    into the `-i`, it potentially can avoid the I/O of the unneeded
+    channels.
 
 
 
@@ -1045,7 +1056,7 @@ the reading of just that one file. Optional appended arguments include:
 
     Sets configuration metadata that will apply to the next input file read.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
     - `type=` *typename* : Specify the metadata type.
 
@@ -1071,25 +1082,34 @@ Writing images
     Outputs the current image to the named file.  This does not remove the
     current image from the image stack, it merely saves a copy of it.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
     
-    - `type=` *name* : Set the pixel data type (like `-d`) for this
-      output image (e.g., `uint8`, `uint16`, `half`, `float`, etc.).
-    - `bits=` *int* : Set the bits per pixel (if nonstandard for the
-      datatype) for this output image.
-    - `dither=` *int* : Turn dither on or off for this output. (default: 0)
-    - `autocc=` *int* : Enable or disable `--autocc` for this output image.
-    - `autocrop=` *int* : Enable or disable autocrop for this output image.
-    - `autotrim=` *int* : Enable or disable `--autotrim` for this output
-      image.
-    - `separate=` *int*, `contig=` *int* : Set separate or contiguous planar
-      configuration for this output.
-    - `fileformatname=` *string* : Specify the desired output file format,
-      overriding any guess based on file name extension.
-    - `scanline=` *int* : If nonzero, force scanline output.
-    - `tile=` *int* `x` *int* :  Force tiling with given size.
-    - `all=` *n* : Output all images currently on the stack using a pattern.
-      See further explanation below.
+      `:type=` *name*
+        Set the pixel data type (like `-d`) for this output image (e.g.,
+        `:uint8`, `uint16`, `half`, `float`, etc.).
+      `:bits=` *int*
+        Set the bits per pixel (if nonstandard for the datatype) for this
+        output image.
+      `:dither=` *int*
+        Turn dither on or off for this output. (default: 0)
+      `:autocc=` *int*
+        Enable or disable `--autocc` for this output image.
+      `:autocrop=` *int*
+        Enable or disable autocrop for this output image.
+      `:autotrim=` *int*
+        Enable or disable `--autotrim` for this output image.
+      `:separate=` *int*, `contig=` *int*
+        Set separate or contiguous planar configuration for this output.
+      `:fileformatname=` *string*
+        Specify the desired output file format, overriding any guess based
+        on file name extension.
+      `:scanline=` *int*
+        If nonzero, force scanline output.
+      `:tile=` *int* `x` *int*
+        Force tiling with given size.
+      `:all=` *n*
+        Output all images currently on the stack using a pattern.
+        See further explanation below.
 
     The `all=n` option causes *all* images on the image stack to be output,
     with the filename argument used as a pattern assumed to contain a `%d`,
@@ -1118,40 +1138,51 @@ Writing images
     In addition to all the optional arguments of `-o`, optional appended
     arguments for `-otex`, `-oenv`, and `-obump` also include:
     
-    - `wrap=` *string* & Set the default $s$ and $t$ wrap modes of the
-      texture, to one of: `black`, `clamp`, `periodic`, `mirror`.
-    - `swrap=` *string* & Set the default $s$ wrap mode of the texture.
-    - `twrap=` *string* & Set the default $t$ wrap mode of the
-      texture.
-    - `resize=` *int* & If nonzero, resize to a power of 2 before starting
-      to create the MIPpmap levels. (default: 0)
-    - `nomipmap=` *int* & If nonzero, do not create MIP-map levels at all.
-      (default: 0)
-    - `updatemode=` *int* & If nonzero, do not create and overwrite the
-      existing texture if it appears to already match the source pixels.
-      (default: 0)
-    - `monochrome_detect=` *int* & Detect monochrome (R=G=B) images and turn
-      them into 1-channel textures. (default: 0)
-    - `opaque_detect=` *int* & Detect opaque (A=1) images and drop the alpha
-      channel from the texture. (default: 0)
-    - `unpremult=` *int* & Unpremultiply colors before any per-MIP-level
-      color conversions, and re-premultiply after. (default: 0)
-    - `incolorspace=` *string* & Specify color space conversion.
-    - `outcolorspace=` *string* & ...
-    - `highlightcomp=` *int* & Use highlight compensation for HDR images
-      when resizing for MIP-map levels. (default: 0)
-    - `sharpen=` *float* & Additional sharpening factor when resizing for
-      MIP-map levels. (default: 0.0)
-    - `filter=` *string* & Specify the filter for MIP-map level resizing.
-      (default: box)
-    - `prman_metadata=` *int* & Turn all all options required to make the
-      resulting texture file compatible with PRMan (particular tile sizes,
-      formats, options, and metadata). (default: 0)
-    - `prman_options=` *int* & Include the metadata that PRMan's texture
-      system wants. (default: 0)
-    - `bumpformat=` *string* & For `-obump` only, specifies the
-      interpretation of 3-channel source images as one of: `height`,
-      `normal`, `auto` (default).
+      `:wrap=` *string*
+        Set the default $s$ and $t$ wrap modes of the texture, to one of:
+        `:black`, `clamp`, `periodic`, `mirror`.
+      `:swrap=` *string*
+        Set the default $s$ wrap mode of the texture.
+      `:twrap=` *string*
+        Set the default $t$ wrap mode of the texture.
+      `:resize=` *int*
+        If nonzero, resize to a power of 2 before starting to create the
+        MIPpmap levels. (default: 0)
+      `:nomipmap=` *int*
+        If nonzero, do not create MIP-map levels at all. (default: 0)
+      `:updatemode=` *int*
+        If nonzero, do not create and overwrite the existing texture if it
+        appears to already match the source pixels. (default: 0)
+      `:monochrome_detect=` *int*
+        Detect monochrome (R=G=B) images and turn them into 1-channel
+        textures. (default: 0)
+      `:opaque_detect=` *int*
+        Detect opaque (A=1) images and drop the alpha channel from the
+        texture. (default: 0)
+      `:unpremult=` *int*
+        Unpremultiply colors before any per-MIP-level color conversions, and
+        re-premultiply after. (default: 0)
+      `:incolorspace=` *string*
+        Specify color space conversion.
+      `:outcolorspace=` *string*
+        ...
+      `:highlightcomp=` *int*
+        Use highlight compensation for HDR images when resizing for MIP-map
+        levels. (default: 0)
+      `:sharpen=` *float*
+        Additional sharpening factor when resizing for MIP-map levels.
+        (default: 0.0)
+      `:filter=` *string*
+        Specify the filter for MIP-map level resizing. (default: box)
+      `:prman_metadata=` *int*
+        Turn all all options required to make the resulting texture file
+        compatible with PRMan (particular tile sizes, formats, options, and
+        metadata). (default: 0)
+      `:prman_options=` *int*
+        Include the metadata that PRMan's texture system wants. (default: 0)
+      `:bumpformat=` *string*
+        For `-obump` only, specifies the interpretation of 3-channel source
+        images as one of: `height`, `normal`, `auto` (default).
 
 
     Examples::
@@ -1293,7 +1324,7 @@ current top image.
     Adds or replaces metadata with the given *name* to have the specified
     *value*.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
     - `type=` *typename* : Specify the metadata type.
     
@@ -1867,11 +1898,17 @@ current top image.
     (default: 0.1) is replaced with value given by option `value=` (default:
     0).
     
-    For any of these noise types, the option `seed=` can be used to change
-    the random number seed, `mono=1` can be used to make monochromatic noise
-    (same value in all channels), and `nchannels=` can be used to limit
-    which channels are affected by the noise
-    
+    Optional appended modifiers include:
+
+      `:seed=` *int*
+        Can be used to change the random number seed.
+
+      `:mono=1`
+        Make monochromatic noise (same value in all channels).
+
+      `:nchannels=` *int*
+        Limit which channels are affected by the noise.
+
     Example::
     
         # Add color gaussian noise to an image
@@ -1927,18 +1964,25 @@ current top image.
     Remap pixel values from [black, white] to [min, max], with an optional
     smooth sigmoidal contrast stretch as well.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
-    - `black=` *vals* : Specify black value(s), default 0.0.
-    - `white=` *vals* : Specify white value(s), default 1.0.
-    - `min=` *vals* : Specify the minimum range value(s), default 0.0.
-    - `max=` *vals* : Specify the maximum range value(s), default 1.0.
-    - `scontrast=` *vals* : Specify sigmoidal contrast slope value(s),
+      `black=` *vals*
+        Specify black value(s), default 0.0.
+      `white=` *vals*
+        Specify white value(s), default 1.0.
+      `min=` *vals*
+        Specify the minimum range value(s), default 0.0.
+      `max=` *vals*
+        Specify the maximum range value(s), default 1.0.
+      `scontrast=` *vals*
+        Specify sigmoidal contrast slope value(s),
       default 1.0.
-    - `sthresh=` *vals* : Specify sigmoidal threshold value(s) giving the
-      position of maximum slope, default 0.5.
-    - `clamp=` *on* : If *on* is nonzero, will optionally clamp all result
-      channels to [min,max].
+      `sthresh=` *vals*
+        Specify sigmoidal threshold value(s) giving the position of maximum
+        slope, default 0.5.
+      `clamp=` *on*
+        If *on* is nonzero, will optionally clamp all result channels to
+        [min,max].
     
     Each *vals* may be either a single floating point value for all
     channels, or a comma-separated list of per-channel values.
@@ -2056,7 +2100,7 @@ current top image.
 .. option:: --mosaic <size>
 
     Removes :math:`w \times h` images, dictated by the *size*, and turns
-    them into a single image mosaic. Optional appended arguments include:
+    them into a single image mosaic. Optional appended modifiers include:
 
     - `pad=` *num* : Select the number of pixels of black padding to add
       between images (default: 0).
@@ -2083,11 +2127,12 @@ current top image.
     images is the foreground and which background, depending on the "Z"
     channel values for that pixel (larger Z means farther away). Both input
     images must have the same number and order of channels and must contain
-    both depth/Z and alpha channels. Optional appended arguments include:
+    both depth/Z and alpha channels. Optional appended modifiers include:
     
-    - `zeroisinf=` *num* : If nonzero, indicates that z=0 pixels should be
-      treated as if they were infinitely far away. (The default is 0,
-      meaning that "zero means zero."").
+      `zeroisinf=` *num*
+        If nonzero, indicates that z=0 pixels should be treated as if they
+        were infinitely far away. (The default is 0, meaning that "zero
+        means zero."").
 
 
 .. option:: --rotate90
@@ -2319,11 +2364,11 @@ current top image.
     if `width` or `height` is 0, that dimension will be automatically
     computed so as to preserve the original aspect ratio.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
-    - `interp=` *bool* : If set to zero, it will just copy the "closest"
-      pixel; if nonzero, bilinear interpolation of the surrounding 4 pixels
-      will be used.
+      `interp=` *bool*
+        If set to zero, it will just copy the "closest" pixel; if nonzero,
+        bilinear interpolation of the surrounding 4 pixels will be used.
     
     
     Examples (suppose that the original image is 640x480)::
@@ -2350,10 +2395,11 @@ current top image.
     if `width` or `height` is 0, that dimension will be
     automatically computed so as to preserve the original aspect ratio.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
-    - `filter=` *name* : Filter name. The default is `blackman-harris` when
-      increasing resolution, `lanczos3` when decreasing resolution.
+      `filter=` *name*
+        Filter name. The default is `blackman-harris` when increasing
+        resolution, `lanczos3` when decreasing resolution.
     
     Examples (suppose that the original image is 640x480)::
     
@@ -2374,7 +2420,7 @@ current top image.
 
             *width* x *height* [+-] *xoffset* [+-] *yoffset*
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
     - `filter=` *name* : Filter name. The default is `blackman-harris` when
       increasing resolution, `lanczos3` when decreasing resolution.
@@ -2409,7 +2455,7 @@ current top image.
     `--pixelaspect 2.0` will result in a 512x1024 image that has
     "PixelAspectRatio" metadata set to 2.0.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
       - `filter=` *name* : Filter name. The default is `lanczos3`.
 
@@ -2426,12 +2472,18 @@ current top image.
     the exact center of the display window (a.k.a. "full" image), but can be
     explicitly set with the optional `center=x,y` option.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
-    - `center=` *x,y* : Alternate center of rotation.
-    - `filter=` *name* : Filter name. The default is `lanczos3`.
-    - `recompute_roi=` *val* & If nonzero, recompute the pixel data window
-      to exactly hold the transformed image (default=0).
+      `center=` *x,y*
+        Alternate center of rotation.
+
+      `filter=` *name*
+        Filter name. The default is `lanczos3`.
+
+      `recompute_roi=` *val*
+        If nonzero, recompute the pixel data window to exactly hold the
+        transformed image (default=0).
+
 
     Examples::
 
@@ -2451,11 +2503,15 @@ current top image.
     3x3 matrix (presented as a comma-separated list of values, without
     any spaces).
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
-    - `filter=` *name* : Filter name. The default is `lanczos3`.
-    - `recompute_roi=` *val* & If nonzero, recompute the pixel data window to
-      exactly hold the transformed image (default=0).
+      `filter=` *name*
+        Filter name. The default is `lanczos3`.
+
+      `recompute_roi=` *val*
+        If nonzero, recompute the pixel data window to exactly hold the
+        transformed image (default=0).
+
 
     Examples::
 
@@ -2481,9 +2537,11 @@ current top image.
     Blur the top image with a blur kernel of the given size expressed as *width*
     x *height*.  (The sizes may be floating point numbers.)
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
-    - `kernel=` *name* : Kernel name. The default is `gaussian`.
+      `kernel=` *name*
+        Kernel name. The default is `gaussian`.
+
 
     Examples::
 
@@ -2608,15 +2666,18 @@ current top image.
 
     Unblur the top image using an "unsharp mask.""
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
     
-    - `kernel=` *name* : Name of the blur kernel (default: `gaussian`). If
-      the kernel name is `median`, the unsarp mask algorithm will use a
-      median filter rather than a blurring filter in order to compute the
-      low-frequency image.
-    - `width=` *w* : Width of the blur kernel (default: 3).
-    - `contrast=` *c* : Contrast scale (default: 1.0)
-    - `threshold=` *t* : Threshold for applying the difference (default: 0)
+      `kernel=` *name*
+        Name of the blur kernel (default: `gaussian`). If the kernel name is
+        `median`, the unsarp mask algorithm will use a median filter rather
+        than a blurring filter in order to compute the low-frequency image.
+      `width=` *w*
+        Width of the blur kernel (default: 3).
+      `contrast=` *c*
+        Contrast scale (default: 1.0)
+      `threshold=` *t*
+        Threshold for applying the difference (default: 0)
 
     Examples::
 
@@ -2716,7 +2777,7 @@ current top image.
     Replace the top image with a copy in which pixel values have been
     clamped.  Optional arguments include:
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
     - `min=` *val* : Specify a minimum value for all channels.
     - `min=` *val0,val1,...* : Specify minimum value for each channel
@@ -2757,9 +2818,10 @@ current top image.
     done using the luminance and applied equally to all color channels. This
     can help to preserve color even when remapping intensity.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
-    - `luma=` *val* : *val* is 0, turns off the luma behavior.
+      `luma=` *val*
+        *val* is 0, turns off the luma behavior.
 
     Range compression and expansion can be useful in cases where high
     contrast super-white (> 1) pixels (such as very bright highlights in HDR
@@ -2784,9 +2846,10 @@ current top image.
     Draw (rasterize) an open polyline connecting the list of pixel
     positions, as a comma-separated list of alternating *x* and *y* values.
     Additional optional arguments include:
-    
-    - `color=` *r,g,b,...* : specify the color of the line
-    
+
+      `color=` *r,g,b,...*
+        specify the color of the line
+
     The default color, if not supplied, is opaque white.
 
     Examples::
@@ -2803,8 +2866,10 @@ current top image.
     Draw (rasterize) a filled or unfilled a box with opposite corners
     `(x1,y1)` and `(x2,y2)`. Additional optional arguments include:
     
-    - `color=` *r,g,b,...* : specify the color of the lines
-    - `fill=` *bool* : if nonzero, fill in the box
+      `color=` *r,g,b,...*
+        specify the color of the lines
+      `fill=` *bool*
+        if nonzero, fill in the box
     
     The default color, if not supplied, is opaque white.
 
@@ -2824,26 +2889,35 @@ current top image.
     be a constant color, vertical gradient, horizontal gradient, or
     four-corner gradient.
     
-    Optional arguments for constant color:
+    Optional modifiers for constant color:
 
-     - `color=` *r,g,b,...* : the color of the constant
+       `color=` *r,g,b,...*
+         the color of the constant
     
-    Optional arguments for vertical gradient:
+    Optional modifiers for vertical gradient:
 
-     - `top=` *r,g,b,...*    : the color for the top edge of the region
-     - `bottom=` *r,g,b,...* : the color for the bottom edge of the region
+       `top=` *r,g,b,...*
+         the color for the top edge of the region
+       `bottom=` *r,g,b,...*
+         the color for the bottom edge of the region
     
-    Optional arguments for horizontal gradient:
+    Optional modifiers for horizontal gradient:
 
-     - `left=` *r,g,b,...*  : the color for the left edge of the region
-     - `right=` *r,g,b,...* : the color for the right edge of the region
+       `left=` *r,g,b,...*
+         the color for the left edge of the region
+       `right=` *r,g,b,...*
+         the color for the right edge of the region
     
-    Optional arguments for 4-corner gradient:
+    Optional modifiers for 4-corner gradient:
 
-     - `topleft=` *r,g,b,...*     : the color for the top left corner of the region
-     - `topright=` *r,g,b,...*    : the color for the top right corner of the region
-     - `bottomleft=` *r,g,b,...*  : the color for the bottom left corner of the region
-     - `bottomright=` *r,g,b,...* : the color for the bottom right corner of the region
+       `topleft=` *r,g,b,...*
+         the color for the top left corner of the region
+       `topright=` *r,g,b,...*
+         the color for the top right corner of the region
+       `bottomleft=` *r,g,b,...*
+         the color for the bottom left corner of the region
+       `bottomright=` *r,g,b,...*
+         the color for the bottom right corner of the region
 
     Examples::
 
@@ -2873,20 +2947,30 @@ current top image.
 .. option:: --text <words>
 
     Draw (rasterize) text overtop of the current image.
-    
-    - `x=` *xpos* & *x* position (in pixel coordinates) of the text
-    - `y=` *ypos* & *y* position (in pixel coordinates) of the text
-    - `size=` *size* & font size (height, in pixels)
-    - `font=` *name* & font name, full path to the font file on disk (use
-      double quotes `"name"` if the path name includes spaces)
-    - `color=` *r,g,b,...* : specify the color of the text
-    - `xalign=` *val* & controls horizontal text alignment: `left`
-      (default), `right`, `center`.
-    - `yalign=` *val* & controls vertical text alignment: `base` (default),
-      `top`, `bottom`, `center`.
-    - `shadow=` *size* & if nonzero, will make a dark shadow halo to make
-      the text more clear on bright backgrounds.
-    
+
+    Optional appended modifiers include:
+
+      `x=` *xpos*
+        *x* position (in pixel coordinates) of the text
+      `y=` *ypos*
+        *y* position (in pixel coordinates) of the text
+      `size=` *size*
+        font size (height, in pixels)
+      `font=` *name*
+        font name, full path to the font file on disk (use double quotes
+        `"name"` if the path name includes spaces)
+      `color=` *r,g,b,...*
+        specify the color of the text
+      `xalign=` *val*
+        controls horizontal text alignment: `left` (default), `right`,
+        `center`.
+      `yalign=` *val*
+        controls vertical text alignment: `base` (default), `top`, `bottom`,
+        `center`.
+      `shadow=` *size*
+        if nonzero, will make a dark shadow halo to make the text more clear
+        on bright backgrounds.
+
     The default positions the text starting at the center of the image,
     drawn 16 pixels high in opaque white in all channels (1,1,1,...), and
     using a default font (which may be system dependent).
@@ -2958,7 +3042,7 @@ bottom you will see the list of all color spaces, looks, and displays that
     Replace the current image with a new image whose pixels are transformed
     from the named *fromspace* color space into the named *tospace*
     (disregarding any notion it may have previously had about the color
-    space of the current image). Optional appended arguments include:
+    space of the current image). Optional appended modifiers include:
 
     - `key=` *name*, `value=` *str* :
 
@@ -3002,7 +3086,7 @@ bottom you will see the list of all color spaces, looks, and displays that
     etc. This means that colors are treated as "row vectors" that are
     post-multiplied by the matrix (`C*M`).
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
     - `unpremult=` *val* :
 
@@ -3083,27 +3167,26 @@ bottom you will see the list of all color spaces, looks, and displays that
     using the named OpenColorIO "display" transformation given by the
     *displayname* and *viewname*.  An empty string for *displayname*
     means to use the default display, and an empty string for *viewname*
-    means to use the default view on that display. Optional appended
-    arguments include:
+    means to use the default view on that display.
+
+    Optional appended modifiers include:
     
-    - `from=` *val* & Assume the image is in the named color
-      space. If no `from=` is supplied, it will try to deduce it
-      from the image's metadata or previous `--iscolorspace`
-      directives.
-
-    - `key=` *name*, `value=` *str*
-
-      Adds a key/value pair to the "context" that OpenColorIO will used
-      when applying the look. Multiple key/value pairs may be specified by
-      making each one a comma-separated list.
-
-    - `unpremult=` *val* :
+      `from=` *val*
+        Assume the image is in the named color space. If no `from=` is
+        supplied, it will try to deduce it from the image's metadata or
+        previous `--iscolorspace` directives.
     
-      If the numeric *val* is nonzero, the pixel values will be
-      "un-premultipled" (divided by alpha) prior to the actual color
-      conversion, and then re-multipled by alpha afterwards. The default is
-      0, meaning the color transformation not will be automatically
-      bracketed by divide-by-alpha / mult-by-alpha operations.
+      `key=` *name*, `value=` *str*
+        Adds a key/value pair to the "context" that OpenColorIO will used
+        when applying the look. Multiple key/value pairs may be specified by
+        making each one a comma-separated list.
+    
+      `unpremult=` *val* :
+        If the numeric *val* is nonzero, the pixel values will be
+        "un-premultipled" (divided by alpha) prior to the actual color
+        conversion, and then re-multipled by alpha afterwards. The default
+        is 0, meaning the color transformation not will be automatically
+        bracketed by divide-by-alpha / mult-by-alpha operations.
     
     This command is only meaningful if OIIO was compiled with OCIO support
     and the environment variable `$OCIO` is set to point to a valid
@@ -3182,10 +3265,11 @@ Commands specific to deep images
     $z$ value indicating an infinite distance, will result in a pixel with
     no depth samples.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
 
-      - `z=` *val* : The depth to use for deep samples if the source
-        image did not have a "Z" channel. (The default is 1.0.)
+      `z=` *val*
+        The depth to use for deep samples if the source image did not have a
+        "Z" channel. (The default is 1.0.)
 
 
 .. option:: --flatten
@@ -3253,7 +3337,7 @@ General commands that also work for deep images
 
     Print to the console detailed information about the values in every pixel.
 
-    Optional appended arguments include:
+    Optional appended modifiers include:
     
     - `empty=` *val* :  If 0, will cause deep images to skip printing of
       information about pixels with no samples, and cause non-deep images to
