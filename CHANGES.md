@@ -1,5 +1,10 @@
-Release 2.1.15 (?? Jun? 2020) -- compared to 2.1.14
--------------------------------------------------
+Release 2.1.15 (11 May 2020) -- compared to 2.1.14
+--------------------------------------------------
+* RAW input: the "raw:flip" attribute if the underlying libraw did a
+  reorientation. #2572
+* Movie files: Fix posible infinite loop in the FFMpeg-based reader. #2576
+* Fixes to allow building against the forthcoming LibRaw 0.20 release. #2484
+* Documentation fixes. #2581
 
 Release 2.1.14 (1 May 2020) -- compared to 2.1.13
 -------------------------------------------------
