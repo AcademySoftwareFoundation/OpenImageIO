@@ -62,30 +62,14 @@ print ("OIIO docs version = {}, release = {}".format(version, release))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 
-# sphinxtr extensions:
-# https://github.com/jterrace/sphinxtr
-# Copyright (c) 2012, Jeff Terrace
-# BSD 2-clause license.
-
 # add custom extensions directory to python path
 sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), 'extensions/sphinxtr'))
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../ext/breathe'))
 #import html_mods
 #import latex_mods
 
 extensions = [
               'breathe',
-
-              # sphinxtr extensions:
-              #'fix_equation_ref',
-              #'sphinx.ext.mathjax',
-              #'sphinx.ext.ifconfig',
-              #'subfig',
-              #'numfig',
-              'numsec',
-              #'natbib',
-              #'figtable',
-              #'singlehtml_toc',
-              #'singletext',
  ]
 
 # Add any paths that contain templates here, relative to this directory.
