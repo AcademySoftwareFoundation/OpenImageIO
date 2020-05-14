@@ -7,6 +7,8 @@
 
 #include <memory>
 
+#include <boost/container/flat_set.hpp>
+
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
@@ -676,17 +678,22 @@ public:
             for (int i = 0; i < nimages(); ++i)
                 img[i] = &((*ir[i])(std::min(s, ir[i]->subimages() - 1)));
 
-            // Call the impl kernel for this subimage
-            bool ok = impl(nimages() ? &img[0] : NULL);
-            if (!ok)
-                ot.errorf(opname(), "%s", img[0]->geterror());
+            if (subimage_is_active(s)) {
+                // Call the impl kernel for this subimage
+                bool ok = impl(nimages() ? &img[0] : NULL);
+                if (!ok)
+                    ot.errorf(opname(), "%s", img[0]->geterror());
 
-            // Merge metadata if called for
-            if (ot.metamerge)
-                for (int i = 1; i < nimages(); ++i)
-                    img[0]->specmod().extra_attribs.merge(
-                        img[i]->spec().extra_attribs);
-
+                // Merge metadata if called for
+                if (ot.metamerge)
+                    for (int i = 1; i < nimages(); ++i)
+                        img[0]->specmod().extra_attribs.merge(
+                            img[i]->spec().extra_attribs);
+            } else {
+                // Inactive subimage, just copy.
+                if (nimages() >= 2)
+                    img[0]->copy(*img[1]);
+            }
             ir[0]->update_spec_from_imagebuf(s);
         }
 
@@ -730,14 +737,76 @@ public:
     // to defaults. This will be called separately for each subimage.
     virtual void option_defaults() {}
 
-    // Default subimage logic: if the global -a flag was set or if this command
-    // had ":allsubimages=1" option set, then apply the command to all subimages
-    // (of the first input image). Otherwise, we'll only apply the command to
-    // the first subimage. Override this is you want another behavior.
+    // Default subimage logic: if the global -a flag was set or if this
+    // command had ":allsubimages=1" option set, then apply the command to
+    // all subimages (of the first input image). Otherwise, we'll only apply
+    // the command to the first subimage. Override this if is you want
+    // another behavior. Also, this sets up the include/exclude list for
+    // subimages based on optional ":subimages=...". The subimage list is
+    // comma separate list of "all", subimage index, or negative subimage
+    // index (which meant to exclude that index). If a subimage list is
+    // supplied, it also implies "allsubimages".
     virtual int compute_subimages()
     {
-        int all_subimages = options.get_int("allsubimages", ot.allsubimages);
+        subimage_includes.clear();
+        subimage_excludes.clear();
+        int all_subimages = 0;
+        auto sispec = Strutil::splitsv(options.get_string("subimages"), ",");
+        for (auto s : sispec) {
+            Strutil::trim_whitespace(s);
+            bool exclude       = Strutil::parse_char(s, '-');
+            int named_subimage = -1;
+            if (Strutil::string_is_int(s)) {
+                int si = Strutil::from_string<int>(s);
+                if (exclude)
+                    subimage_excludes.insert(si);
+                else
+                    subimage_includes.insert(si);
+                all_subimages = 1;
+            } else if ((named_subimage = subimage_index(s)) >= 0) {
+                if (exclude)
+                    subimage_excludes.insert(named_subimage);
+                else
+                    subimage_includes.insert(named_subimage);
+                all_subimages = 1;
+            } else if (s == "all") {
+                subimage_includes.clear();
+                subimage_excludes.clear();
+                all_subimages = 1;
+            }
+        }
+        all_subimages |= options.get_int("allsubimages", ot.allsubimages);
         return all_subimages ? (nimages() > 1 ? ir[1]->subimages() : 1) : 1;
+    }
+
+    // Is the given subimage in the active set to be operated on by this op?
+    // It is if it's in the include set, but not the exclude set. Empty
+    // include set means "include all", empty exclude set means "exclude
+    // none."
+    virtual bool subimage_is_active(int s)
+    {
+        return (subimage_includes.size() == 0
+                || subimage_includes.find(s) != subimage_includes.end())
+               && (subimage_excludes.size() == 0
+                   || subimage_excludes.find(s) == subimage_excludes.end());
+        return true;
+    }
+
+    int subimage_index(string_view name)
+    {
+        // For each image on the stack, check if the names of any of its
+        // subimages is a match.
+        for (int i = 0; i < nimages(); ++i) {
+            if (!ir[i])
+                continue;
+            for (int s = 0; s < ir[i]->subimages(); ++s) {
+                const ImageSpec* spec = ir[i]->spec(s);
+                if (spec
+                    && spec->get_string_attribute("oiio:subimagename") == name)
+                    return s;
+            }
+        }
+        return -1;
     }
 
     int nargs() const { return m_nargs; }
@@ -753,6 +822,9 @@ protected:
     std::vector<ImageBuf*> img;
     std::vector<string_view> args;
     ParamValueList options;
+    typedef boost::container::flat_set<int> FastIntSet;
+    FastIntSet subimage_includes;  // Subimages to operate on (empty == all)
+    FastIntSet subimage_excludes;  // Subimages to skip for the op
 };
 
 

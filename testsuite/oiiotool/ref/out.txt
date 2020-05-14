@@ -223,6 +223,8 @@ Comparing "subimageB1.exr" and "ref/subimageB1.exr"
 PASS
 Comparing "subimage-noB.exr" and "ref/subimage-noB.exr"
 PASS
+Comparing "subimage-individual.exr" and "ref/subimage-individual.exr"
+PASS
 Comparing "subimage1.exr" and "ref/subimage1.exr"
 PASS
 Comparing "labeladd.exr" and "ref/labeladd.exr"

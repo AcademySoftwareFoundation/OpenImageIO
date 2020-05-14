@@ -45,6 +45,10 @@ Glossary
     that an image was scanned, the camera settings used when a photograph
     was taken, etc.
 
+  Multi-part image / multi-part file
+
+    This is what OpenEXR calls a file containing multiple subimages.
+
   Native data format
 
     The *data format* used in the disk file representing an image. Note that
@@ -69,6 +73,12 @@ Glossary
     An image whose data layout on disk is organized by breaking the image up
     into horizontal scanlines, typically with the ability to read or write
     an entire scanline at once.  See also :term:`tiled image`.
+
+  Subimage
+
+    Some image file formats allow the storage of multiple images in each
+    file. These are called *subimages* in OpenImageIO. Note that in OpenEXR,
+    these are called :term:`multi-part` files.
 
   Tile
 

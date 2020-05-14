@@ -208,6 +208,7 @@ command += oiiotool ("subimages-4.exr --subimage layerB -o subimageB1.exr")
 command += oiiotool ("subimages-4.exr --subimage:delete=1 layerB -o subimage-noB.exr")
 command += oiiotool ("subimages-2.exr --sisplit -o subimage2.exr " +
                      "--pop -o subimage1.exr")
+command += oiiotool ("subimages-4.exr -cmul:subimages=0,2 0.5 -o subimage-individual.exr")
 
 # test sequences
 command += oiiotool ("src/tahoe-tiny.tif -o copyA.1-10#.jpg")
@@ -284,6 +285,7 @@ outputs = [
             "subimageD3.exr",
             "subimageB1.exr",
             "subimage-noB.exr",
+            "subimage-individual.exr",
             "subimage1.exr",
             "labeladd.exr",
             "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
