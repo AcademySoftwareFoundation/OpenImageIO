@@ -613,7 +613,7 @@ apply_spec_mod(ImageRec& img, Action act, const Type& t, bool allsubimages)
 class OiiotoolOp {
 public:
     using setup_func_t = std::function<bool(OiiotoolOp& op)>;
-    using impl_func_t  = std::function<bool(OiiotoolOp& op, ImageBuf** img)>;
+    using impl_func_t = std::function<bool(OiiotoolOp& op, span<ImageBuf*> img)>;
 
     // The constructor records the arguments (including running them
     // through expression substitution) and pops the input images off the
@@ -691,7 +691,7 @@ public:
 
             if (subimage_is_active(s)) {
                 // Call the impl kernel for this subimage
-                bool ok = impl(nimages() ? &img[0] : NULL);
+                bool ok = impl(img);
                 if (!ok)
                     ot.errorf(opname(), "%s", img[0]->geterror());
 
@@ -709,10 +709,9 @@ public:
         }
 
         // Make sure to forward any errors missed by the impl
-        for (int i = 0; i < nimages(); ++i) {
-            if (img[i]->has_error())
-                ot.errorf(opname(), "%s", img[i]->geterror());
-        }
+        for (auto& im : img)
+            if (im->has_error())
+                ot.errorf(opname(), "%s", im->geterror());
 
         if (ot.debug || ot.runstats)
             ot.check_peak_memory();
@@ -735,7 +734,7 @@ public:
     // THIS is the method that needs to be separately overloaded for each
     // different op. This is called once for each subimage, generally with
     // img[0] the destination ImageBuf, and img[1..] as the inputs.
-    virtual bool impl(ImageBuf** img)
+    virtual bool impl(span<ImageBuf*> img)
     {
         return m_impl_func ? m_impl_func(*this, img) : 0;
     }

@@ -56,9 +56,9 @@ static Oiiotool ot;
 
 
 // Macro to fully set up the "action" function that straightforwardly calls
-// a lambda for each subimage. Beware, you may need to enclose the lambda
-// itself in parenthesis () if there it contains commas that are not inside
-// other parentheses.
+// a lambda for each subimage. Beware, the macro expansion rules may require
+// you may need to enclose the lambda itself in parenthesis () if there it
+// contains commas that are not inside other parentheses.
 #define OIIOTOOL_OP(name, ninputs, ...)                                        \
     static int action_##name(int argc, const char* argv[])                     \
     {                                                                          \
@@ -70,20 +70,20 @@ static Oiiotool ot;
 
 // Canned setup for an op that uses one image on the stack.
 #define UNARY_IMAGE_OP(name, impl)                                             \
-    OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, ImageBuf** img) {                  \
+    OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {             \
         return impl(*img[0], *img[1]);                                         \
     })
 
 // Canned setup for an op that uses two images on the stack.
 #define BINARY_IMAGE_OP(name, impl)                                            \
-    OIIOTOOL_OP(name, 2, [](OiiotoolOp& op, ImageBuf** img) {                  \
+    OIIOTOOL_OP(name, 2, [](OiiotoolOp& op, span<ImageBuf*> img) {             \
         return impl(*img[0], *img[1], *img[2]);                                \
     })
 
 // Canned setup for an op that uses one image on the stack and one color
 // on the command line.
 #define BINARY_IMAGE_COLOR_OP(name, impl, defaultval)                          \
-    OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, ImageBuf** img) {                  \
+    OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {             \
         int nchans = img[1]->spec().nchannels;                                 \
         std::vector<float> val(nchans, defaultval);                            \
         int nvals = Strutil::extract_from_list_string(val, op.args(1));        \
@@ -1944,7 +1944,7 @@ public:
         }
         return true;
     }
-    virtual bool impl(ImageBuf** img) override
+    virtual bool impl(span<ImageBuf*> img) override
     {
         std::string contextkey   = options()["key"];
         std::string contextvalue = options()["value"];
@@ -1995,7 +1995,7 @@ action_tocolorspace(int argc, const char* argv[])
 
 
 // --ccmatrix
-OIIOTOOL_OP(ccmatrix, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(ccmatrix, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     bool unpremult = op.options().get_int("unpremult");
     auto M         = Strutil::extract_from_list_string<float>(op.args(1));
     Imath::M44f MM;
@@ -2019,7 +2019,7 @@ OIIOTOOL_OP(ccmatrix, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --ociolook
-OIIOTOOL_OP(ociolook, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(ociolook, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view lookname     = op.args(1);
     std::string fromspace    = op.options()["from"];
     std::string tospace      = op.options()["to"];
@@ -2041,7 +2041,7 @@ OIIOTOOL_OP(ociolook, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --ociodisplay
-OIIOTOOL_OP(ociodisplay, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(ociodisplay, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view displayname  = op.args(1);
     string_view viewname     = op.args(2);
     std::string fromspace    = op.options()["from"];
@@ -2060,7 +2060,7 @@ OIIOTOOL_OP(ociodisplay, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --ociofiletransform
-OIIOTOOL_OP(ociofiletransform, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(ociofiletransform, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view name = op.args(1);
     bool inverse     = op.options().get_int("inverse");
     bool unpremult   = op.options().get_int("unpremult");
@@ -2710,7 +2710,7 @@ UNARY_IMAGE_OP(abs, ImageBufAlgo::abs);  // --abs
 UNARY_IMAGE_OP(premult, ImageBufAlgo::premult);  // --premult
 
 // --unpremult
-OIIOTOOL_OP(unpremult, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(unpremult, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     if (img[1]->spec().get_int_attribute("oiio:UnassociatedAlpha")
         && img[1]->spec().alpha_channel >= 0) {
         ot.warning(
@@ -2722,13 +2722,13 @@ OIIOTOOL_OP(unpremult, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --mad
-OIIOTOOL_OP(mad, 3, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(mad, 3, [](OiiotoolOp& op, span<ImageBuf*> img) {
     return ImageBufAlgo::mad(*img[0], *img[1], *img[2], *img[3]);
 });
 
 
 // --invert
-OIIOTOOL_OP(invert, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(invert, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     // invert the first three channels only, spare alpha
     ROI roi   = img[1]->roi();
     roi.chend = std::min(3, roi.chend);
@@ -2738,7 +2738,7 @@ OIIOTOOL_OP(invert, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --noise
-OIIOTOOL_OP(noise, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(noise, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     img[0]->copy(*img[1]);
     std::string type = op.options().get_string("type", "gaussian");
     float A          = 0.0f;
@@ -2800,7 +2800,7 @@ action_chsum(int argc, const char* argv[])
 
 
 // --colormap
-OIIOTOOL_OP(colormap, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(colormap, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     if (isalpha(op.args(1)[0])) {
         // Named color map
         return ImageBufAlgo::color_map(*img[0], *img[1], -1, op.args(1),
@@ -2870,7 +2870,7 @@ action_reorient(int argc, const char* argv[])
 
 
 // --rotate
-OIIOTOOL_OP(rotate, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(rotate, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     float angle            = Strutil::from_string<float>(op.args(1));
     std::string filtername = op.options()["filter"];
     bool recompute_roi     = op.options().get_int("recompute_roi");
@@ -2894,7 +2894,7 @@ OIIOTOOL_OP(rotate, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --warp
-OIIOTOOL_OP(warp, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(warp, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     std::string filtername = op.options()["filter"];
     bool recompute_roi     = op.options().get_int("recompute_roi");
     std::vector<float> M(9);
@@ -2911,7 +2911,7 @@ OIIOTOOL_OP(warp, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --cshift
-OIIOTOOL_OP(cshift, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(cshift, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     int x = 0;
     int y = 0;
     int z = 0;
@@ -3113,7 +3113,7 @@ action_pattern(int argc, const char* argv[])
 
 
 // --kernel
-OIIOTOOL_OP(kernel, 0, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(kernel, 0, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view kernelname(op.args(1));
     string_view kernelsize(op.args(2));
     float w = 1.0f;
@@ -3407,7 +3407,7 @@ public:
             (*ir[0])(s).reset(newspecs[s]);
         return true;
     }
-    virtual bool impl(ImageBuf** img) override
+    virtual bool impl(span<ImageBuf*> img) override
     {
         bool interp = options().get_int("interp", 1);
         return ImageBufAlgo::resample(*img[0], *img[1], interp);
@@ -3464,7 +3464,7 @@ public:
             (*ir[0])(s).reset(newspecs[s]);
         return true;
     }
-    virtual bool impl(ImageBuf** img) override
+    virtual bool impl(span<ImageBuf*> img) override
     {
         std::string filtername = options()["filter"];
         if (ot.debug) {
@@ -3648,7 +3648,7 @@ BINARY_IMAGE_OP(convolve, ImageBufAlgo::convolve);
 
 
 // --blur
-OIIOTOOL_OP(blur, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(blur, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view kernopt = op.options().get_string("kernel", "gaussian");
     float w             = 1.0f;
     float h             = 1.0f;
@@ -3663,7 +3663,7 @@ OIIOTOOL_OP(blur, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --median
-OIIOTOOL_OP(median, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(median, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view size(op.args(1));
     int w = 3;
     int h = 3;
@@ -3675,7 +3675,7 @@ OIIOTOOL_OP(median, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --dilate
-OIIOTOOL_OP(dilate, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(dilate, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view size(op.args(1));
     int w = 3;
     int h = 3;
@@ -3687,7 +3687,7 @@ OIIOTOOL_OP(dilate, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --erode
-OIIOTOOL_OP(erode, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(erode, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view size(op.args(1));
     int w = 3;
     int h = 3;
@@ -3699,7 +3699,7 @@ OIIOTOOL_OP(erode, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --unsharp
-OIIOTOOL_OP(unsharp, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(unsharp, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     std::string kernel = op.options().get_string("kernel", "gaussian");
     float width        = op.options().get_float("width", 3.0f);
     float contrast     = op.options().get_float("contrast", 1.0f);
@@ -3968,7 +3968,7 @@ BINARY_IMAGE_OP(over, ImageBufAlgo::over);
 
 
 // --zover
-OIIOTOOL_OP(zover, 2, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(zover, 2, [](OiiotoolOp& op, span<ImageBuf*> img) {
     bool zeroisinf = op.options().get_int("zeroisinf");
     return ImageBufAlgo::zover(*img[0], *img[1], *img[2], zeroisinf, ROI(), 0);
 });
@@ -3981,7 +3981,7 @@ BINARY_IMAGE_OP(deepholdout, ImageBufAlgo::deep_holdout);  // --deepholdout
 
 
 // --deepen
-OIIOTOOL_OP(deepen, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(deepen, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     float z = op.options().get_float("z", 1.0f);
     return ImageBufAlgo::deepen(*img[0], *img[1], z);
 });
@@ -4115,13 +4115,13 @@ action_clamp(int argc, const char* argv[])
 
 
 // --rangecompress
-OIIOTOOL_OP(rangecompress, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(rangecompress, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     bool useluma = op.options().get_int("luma");
     return ImageBufAlgo::rangecompress(*img[0], *img[1], useluma);
 });
 
 // --rangeexpand
-OIIOTOOL_OP(rangeexpand, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(rangeexpand, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     bool useluma = op.options().get_int("luma");
     return ImageBufAlgo::rangeexpand(*img[0], *img[1], useluma);
 });
@@ -4129,7 +4129,7 @@ OIIOTOOL_OP(rangeexpand, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --contrast
-OIIOTOOL_OP(contrast, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(contrast, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     size_t n   = size_t((*img[0]).nchannels());
     auto black = Strutil::extract_from_list_string(
         op.options().get_string("black", "0"), n, 0.0f);
@@ -4156,7 +4156,7 @@ OIIOTOOL_OP(contrast, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 // --box
 // clang-format off
-OIIOTOOL_OP(box, 1, ([](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(box, 1, ([](OiiotoolOp& op, span<ImageBuf*> img) {
     img[0]->copy(*img[1]);
     const ImageSpec& Rspec(img[0]->spec());
     int x1, y1, x2, y2;
@@ -4179,7 +4179,7 @@ OIIOTOOL_OP(box, 1, ([](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --line
-OIIOTOOL_OP(line, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(line, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     img[0]->copy(*img[1]);
     const ImageSpec& Rspec(img[0]->spec());
     std::vector<int> points;
@@ -4199,7 +4199,7 @@ OIIOTOOL_OP(line, 1, [](OiiotoolOp& op, ImageBuf** img) {
 
 
 // --text
-OIIOTOOL_OP(text, 1, [](OiiotoolOp& op, ImageBuf** img) {
+OIIOTOOL_OP(text, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     img[0]->copy(*img[1]);
     const ImageSpec& Rspec(img[0]->spec());
     int x            = op.options().get_int("x", Rspec.x + Rspec.width / 2);
