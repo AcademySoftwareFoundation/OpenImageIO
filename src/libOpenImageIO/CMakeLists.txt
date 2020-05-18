@@ -5,7 +5,6 @@
 if (VERBOSE)
    message (STATUS "Create imagio_pvt.h from imageio_pvt.h.in")
 endif ()
-file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
 configure_file (imageio_pvt.h.in "${CMAKE_BINARY_DIR}/include/imageio_pvt.h" @ONLY)
 
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
