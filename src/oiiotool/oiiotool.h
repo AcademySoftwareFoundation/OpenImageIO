@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 
 #include <boost/container/flat_set.hpp>
@@ -611,22 +612,32 @@ apply_spec_mod(ImageRec& img, Action act, const Type& t, bool allsubimages)
 ///
 class OiiotoolOp {
 public:
+    using setup_func_t = std::function<bool(OiiotoolOp& op)>;
+    using impl_func_t = std::function<bool(OiiotoolOp& op, span<ImageBuf*> img)>;
+
     // The constructor records the arguments (including running them
     // through expression substitution) and pops the input images off the
     // stack.
     OiiotoolOp(Oiiotool& ot, string_view opname, int argc, const char* argv[],
-               int ninputs)
+               int ninputs, setup_func_t setup_func, impl_func_t impl_func)
         : ot(ot)
         , m_opname(opname)
         , m_nargs(argc)
         , m_nimages(ninputs + 1)
+        , m_setup_func(setup_func)
+        , m_impl_func(impl_func)
     {
-        args.reserve(argc);
+        m_args.reserve(argc);
         for (int i = 0; i < argc; ++i)
-            args.push_back(ot.express(argv[i]));
+            m_args.push_back(ot.express(argv[i]));
         ir.resize(ninputs + 1);  // including reserving a spot for result
         for (int i = 0; i < ninputs; ++i)
             ir[ninputs - i] = ot.pop();
+    }
+    OiiotoolOp(Oiiotool& ot, string_view opname, int argc, const char* argv[],
+               int ninputs, impl_func_t impl_func = {})
+        : OiiotoolOp(ot, opname, argc, argv, ninputs, {}, impl_func)
+    {
     }
     virtual ~OiiotoolOp() {}
 
@@ -643,15 +654,15 @@ public:
             if (nargs() > 1)
                 std::cout << " with args: ";
             for (int i = 0; i < nargs(); ++i)
-                std::cout << (i > 0 ? ", \"" : " \"") << args[i] << "\"";
+                std::cout << (i > 0 ? ", \"" : " \"") << m_args[i] << "\"";
             std::cout << "\n";
         }
 
         // Parse the options.
-        options.clear();
-        options["allsubimages"] = (int)ot.allsubimages;
+        m_options.clear();
+        m_options["allsubimages"] = (int)ot.allsubimages;
         option_defaults();  // this can be customized to set up defaults
-        options = ot.extract_options(args[0]);
+        m_options = ot.extract_options(m_args[0]);
 
         // Read all input images, and reserve (and push) the output image.
         int subimages = compute_subimages();
@@ -680,7 +691,7 @@ public:
 
             if (subimage_is_active(s)) {
                 // Call the impl kernel for this subimage
-                bool ok = impl(nimages() ? &img[0] : NULL);
+                bool ok = impl(img);
                 if (!ok)
                     ot.errorf(opname(), "%s", img[0]->geterror());
 
@@ -698,10 +709,9 @@ public:
         }
 
         // Make sure to forward any errors missed by the impl
-        for (int i = 0; i < nimages(); ++i) {
-            if (img[i]->has_error())
-                ot.errorf(opname(), "%s", img[i]->geterror());
-        }
+        for (auto& im : img)
+            if (im->has_error())
+                ot.errorf(opname(), "%s", im->geterror());
 
         if (ot.debug || ot.runstats)
             ot.check_peak_memory();
@@ -724,11 +734,14 @@ public:
     // THIS is the method that needs to be separately overloaded for each
     // different op. This is called once for each subimage, generally with
     // img[0] the destination ImageBuf, and img[1..] as the inputs.
-    virtual int impl(ImageBuf** img) = 0;
+    virtual bool impl(span<ImageBuf*> img)
+    {
+        return m_impl_func ? m_impl_func(*this, img) : 0;
+    }
 
     // Extra place to inject customization before the subimages are
     // traversed.
-    virtual bool setup() { return true; }
+    virtual bool setup() { return m_setup_func ? m_setup_func(*this) : true; }
 
     // Extra place to inject customization after the subimges are traversed.
     virtual bool cleanup() { return true; }
@@ -751,7 +764,7 @@ public:
         subimage_includes.clear();
         subimage_excludes.clear();
         int all_subimages = 0;
-        auto sispec = Strutil::splitsv(options.get_string("subimages"), ",");
+        auto sispec = Strutil::splitsv(m_options.get_string("subimages"), ",");
         for (auto s : sispec) {
             Strutil::trim_whitespace(s);
             bool exclude       = Strutil::parse_char(s, '-');
@@ -775,7 +788,7 @@ public:
                 all_subimages = 1;
             }
         }
-        all_subimages |= options.get_int("allsubimages", ot.allsubimages);
+        all_subimages |= m_options.get_int("allsubimages", ot.allsubimages);
         return all_subimages ? (nimages() > 1 ? ir[1]->subimages() : 1) : 1;
     }
 
@@ -810,8 +823,10 @@ public:
     }
 
     int nargs() const { return m_nargs; }
+    string_view args(int i) const { return m_args[i]; }
     int nimages() const { return m_nimages; }
     string_view opname() const { return m_opname; }
+    const ParamValueList& options() const { return m_options; }
 
 protected:
     Oiiotool& ot;
@@ -820,83 +835,13 @@ protected:
     int m_nimages;
     std::vector<ImageRecRef> ir;
     std::vector<ImageBuf*> img;
-    std::vector<string_view> args;
-    ParamValueList options;
+    std::vector<string_view> m_args;
+    ParamValueList m_options;
     typedef boost::container::flat_set<int> FastIntSet;
     FastIntSet subimage_includes;  // Subimages to operate on (empty == all)
     FastIntSet subimage_excludes;  // Subimages to skip for the op
-};
-
-
-typedef bool (*IBAunary)(ImageBuf& dst, const ImageBuf& A, ROI roi,
-                         int nthreads);
-typedef bool (*IBAbinary)(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
-                          ROI roi, int nthreads);
-typedef bool (*IBAbinary_img_col)(ImageBuf& dst, const ImageBuf& A,
-                                  cspan<float> B, ROI roi, int nthreads);
-typedef bool (*IBAbinary_)(ImageBuf& dst, Image_or_Const A, Image_or_Const B,
-                           ROI roi, int nthreads);
-
-template<typename IBLIMPL = IBAunary>
-class OiiotoolSimpleUnaryOp : public OiiotoolOp {
-public:
-    OiiotoolSimpleUnaryOp(IBLIMPL opimpl, Oiiotool& ot, string_view opname,
-                          int argc, const char* argv[], int /*ninputs*/)
-        : OiiotoolOp(ot, opname, argc, argv, 1)
-        , opimpl(opimpl)
-    {
-    }
-    virtual int impl(ImageBuf** img)
-    {
-        return opimpl(*img[0], *img[1], ROI(), 0);
-    }
-
-protected:
-    IBLIMPL opimpl;
-};
-
-template<typename IBLIMPL = IBAbinary>
-class OiiotoolSimpleBinaryOp : public OiiotoolOp {
-public:
-    OiiotoolSimpleBinaryOp(IBLIMPL opimpl, Oiiotool& ot, string_view opname,
-                           int argc, const char* argv[], int /*ninputs*/)
-        : OiiotoolOp(ot, opname, argc, argv, 2)
-        , opimpl(opimpl)
-    {
-    }
-    virtual int impl(ImageBuf** img)
-    {
-        return opimpl(*img[0], *img[1], *img[2], ROI(), 0);
-    }
-
-protected:
-    IBLIMPL opimpl;
-};
-
-template<typename IBLIMPL = IBAbinary_>
-class OiiotoolImageColorOp : public OiiotoolOp {
-public:
-    OiiotoolImageColorOp(IBLIMPL opimpl, Oiiotool& ot, string_view opname,
-                         int argc, const char* argv[], int /*ninputs*/,
-                         float defaultval = 0.0f)
-        : OiiotoolOp(ot, opname, argc, argv, 1)
-        , opimpl(opimpl)
-        , defaultval(defaultval)
-    {
-    }
-    virtual int impl(ImageBuf** img)
-    {
-        int nchans = img[1]->spec().nchannels;
-        std::vector<float> val(nchans, defaultval);
-        int nvals = Strutil::extract_from_list_string(val, args[1]);
-        val.resize(nvals);
-        val.resize(nchans, val.size() == 1 ? val.back() : defaultval);
-        return opimpl(*img[0], *img[1], val, ROI(), 0);
-    }
-
-protected:
-    IBLIMPL opimpl;
-    float defaultval;
+    setup_func_t m_setup_func;
+    impl_func_t m_impl_func;
 };
 
 
