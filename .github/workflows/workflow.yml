@@ -41,7 +41,6 @@ jobs:
     name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost-1.70 exr-2.4"
     runs-on: ubuntu-latest
     container:
-      #image: aswf/ci-base:2020
       image: aswf/ci-osl:2020
     steps:
       - uses: actions/checkout@v2
@@ -120,6 +119,7 @@ jobs:
           LIBTIFF_BRANCH: master
           PYBIND11_BRANCH: master
           LIBRAW_BRANCH: master
+          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -181,7 +181,7 @@ jobs:
         env:
           PYTHON_VERSION: 3.6
           CMAKE_GENERATOR: "Visual Studio 16 2019"
-          OPENEXR_BRANCH: v2.4.0
+          OPENEXR_BRANCH: v2.4.1
           SKIP_TESTS: 1
         run: |
             source src/build-scripts/ci-startup.bash
@@ -191,16 +191,19 @@ jobs:
   sanitizer:
     name: "Sanitizers"
     runs-on: ubuntu-18.04
-    if: github.event_name == 'pull_request' || contains(github.ref, 'san') || contains(github.ref, 'RB') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'san') || contains(github.ref, 'RB') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
+    container:
+      image: aswf/ci-osl:2020
     steps:
       - uses: actions/checkout@v2
-      #- uses: docker://aswfstaging/ci-base:2019
       - name: all
         env:
-          CXX: g++-7
+          CXX: g++
+          CC: gcc
           CMAKE_CXX_STANDARD: 14
-          SANITIZE: address
+          PYTHON_VERSION: 3.7
           USE_PYTHON: 0
+          SANITIZE: address
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -217,7 +220,7 @@ jobs:
           LLVM_VERSION: 9.0.0
           CMAKE_CXX_STANDARD: 14
           USE_SIMD: avx2,f16c
-          OPENEXR_BRANCH: v2.4.0
+          OPENEXR_BRANCH: v2.4.1
           OCIO_BRANCH: 1c624651b7
           # Pick an OCIO commit that includes a warning fix we need for clang
         run: |
@@ -230,7 +233,6 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      #- uses: docker://aswfstaging/ci-base:2019
       - name: all
         env:
           CXX: g++-7

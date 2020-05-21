@@ -304,7 +304,7 @@ endif ()
 # Check if we need libatomic on this platform.  We shouldn't on mainstream
 # x86/x86_64, but might on some other platforms.
 #
-if (NOT MSVC)
+if (NOT MSVC AND NOT APPLE)
     cmake_push_check_state ()
     check_cxx_source_runs(
        "#include <atomic>
