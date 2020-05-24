@@ -24,8 +24,7 @@ jobs:
     name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost-1.66 exr-2.3"
     runs-on: ubuntu-latest
     container:
-      #image: aswf/ci-base:2019
-      image: aswf/ci-vfxall:2019
+      image: aswf/ci-osl:2019
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -38,12 +37,29 @@ jobs:
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
 
+  vfxplatform-2020:
+    name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost-1.70 exr-2.4"
+    runs-on: ubuntu-latest
+    container:
+      image: aswf/ci-osl:2020
+    steps:
+      - uses: actions/checkout@v2
+      - name: all
+        env:
+          CXX: g++
+          CC: gcc
+          CMAKE_CXX_STANDARD: 14
+          PYTHON_VERSION: 3.7
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps-centos.bash
+            source src/build-scripts/ci-build-and-test.bash
+
   linux-gcc48:
     name: "Linux 2017-ish: gcc4.8/C++11 py2.7 boost-1.66 exr-2.3"
     runs-on: ubuntu-latest
     container:
-      #image: aswf/ci-base:2019
-      image: aswf/ci-vfxall:2019
+      image: aswf/ci-osl:2019
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -51,7 +67,6 @@ jobs:
           CXX: /usr/bin/g++
           CC: /usr/bin/gcc
           CMAKE_CXX_STANDARD: 11
-          USE_OPENJPEG: 0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
@@ -73,8 +88,8 @@ jobs:
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
 
-  linux-gcc8:
-    name: "Linux next/VFXP2021: gcc8 C++17 avx exr2.4"
+  linux-2021ish-gcc8:
+    name: "Linux next/VFXP2021: gcc8 C++17 avx exr2.5"
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -83,7 +98,7 @@ jobs:
           CXX: g++-8
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx
-          OPENEXR_BRANCH: v2.4.1
+          OPENEXR_BRANCH: v2.5.0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -104,6 +119,7 @@ jobs:
           LIBTIFF_BRANCH: master
           PYBIND11_BRANCH: master
           LIBRAW_BRANCH: master
+          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -111,12 +127,11 @@ jobs:
 
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
-    # things disabled (no SSE, no OCIO available, don't embed plugins)
+    # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins)
     name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
     runs-on: ubuntu-latest
     container:
-      #image: aswf/ci-base:2019
-      image: aswf/ci-vfxall:2019
+      image: aswf/ci-osl:2019
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -127,6 +142,7 @@ jobs:
           USE_SIMD: 0
           USE_JPEGTURBO: 0
           USE_OPENCOLORIO: 0
+          USE_OPENCV: 0
           EMBEDPLUGINS: 0
           OPENEXR_BRANCH: v2.2.0
         run: |
@@ -165,7 +181,7 @@ jobs:
         env:
           PYTHON_VERSION: 3.6
           CMAKE_GENERATOR: "Visual Studio 16 2019"
-          OPENEXR_BRANCH: v2.4.0
+          OPENEXR_BRANCH: v2.4.1
           SKIP_TESTS: 1
         run: |
             source src/build-scripts/ci-startup.bash
@@ -175,16 +191,19 @@ jobs:
   sanitizer:
     name: "Sanitizers"
     runs-on: ubuntu-18.04
-    if: github.event_name == 'pull_request' || contains(github.ref, 'san') || contains(github.ref, 'RB') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'san') || contains(github.ref, 'RB') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
+    container:
+      image: aswf/ci-osl:2020
     steps:
       - uses: actions/checkout@v2
-      #- uses: docker://aswfstaging/ci-base:2019
       - name: all
         env:
-          CXX: g++-7
+          CXX: g++
+          CC: gcc
           CMAKE_CXX_STANDARD: 14
-          SANITIZE: address
+          PYTHON_VERSION: 3.7
           USE_PYTHON: 0
+          SANITIZE: address
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -201,7 +220,7 @@ jobs:
           LLVM_VERSION: 9.0.0
           CMAKE_CXX_STANDARD: 14
           USE_SIMD: avx2,f16c
-          OPENEXR_BRANCH: v2.4.0
+          OPENEXR_BRANCH: v2.4.1
           OCIO_BRANCH: 1c624651b7
           # Pick an OCIO commit that includes a warning fix we need for clang
         run: |
@@ -214,7 +233,6 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
-      #- uses: docker://aswfstaging/ci-base:2019
       - name: all
         env:
           CXX: g++-7
