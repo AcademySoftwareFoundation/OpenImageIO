@@ -29,21 +29,21 @@ using namespace ImageBufAlgo;
 
 
 ImageRec::ImageRec(const std::string& name, int nsubimages,
-                   const int* miplevels, const ImageSpec* specs)
+                   cspan<int> miplevels, cspan<ImageSpec> specs)
     : m_name(name)
     , m_elaborated(true)
 {
     int specnum = 0;
     m_subimages.resize(nsubimages);
     for (int s = 0; s < nsubimages; ++s) {
-        int nmips = miplevels ? miplevels[s] : 1;
+        int nmips = miplevels.size() ? miplevels[s] : 1;
         m_subimages[s].m_miplevels.resize(nmips);
         m_subimages[s].m_specs.resize(nmips);
         for (int m = 0; m < nmips; ++m) {
-            ImageBuf* ib = specs ? new ImageBuf(specs[specnum])
-                                 : new ImageBuf();
+            ImageBuf* ib = specs.size() ? new ImageBuf(specs[specnum])
+                                        : new ImageBuf();
             m_subimages[s].m_miplevels[m].reset(ib);
-            if (specs)
+            if (specs.size())
                 m_subimages[s].m_specs[m] = specs[specnum];
             ++specnum;
         }

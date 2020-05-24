@@ -1542,6 +1542,12 @@ current top image.
     will rename channel 3 to be "A" and channel 4 to be
     "Z", but will leave channels 0--3 with their old names.
 
+    Optional appended modifiers include:
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+        Only included subimages will have their channels renamed.
+
 
 .. _sec-oiiotool-shuffle-channels-or-subimages:
 
@@ -1613,6 +1619,12 @@ current top image.
 
     Replaces the top two images on the stack with a new image comprised of
     the channels of both images appended together.
+
+    Optional appended modifiers include:
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
 
 
 :program:`oiiotool` commands that adjust the image stack
@@ -2044,11 +2056,17 @@ current top image.
     whose value at each pixel is the sum of all channels of the original
     image.  Using the optional weight allows you to customize the
     weight of each channel in the sum.
-    
-    - `weight=` *r,g,...* : Specify the weight of each channel (default: 1).
-    
+
+    Optional appended modifiers include:
+
+      `weight=` *r,g,...*
+        Specify the weight of each channel (default: 1).
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
     Example::
-    
+
         oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
 
     ..
