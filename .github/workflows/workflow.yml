@@ -105,7 +105,12 @@ jobs:
             source src/build-scripts/ci-build-and-test.bash
 
   linux-bleeding-edge:
+    # Test against development master for relevant dependencies, latest
+    # supported releases of everything else. We don't need to run this on
+    # every push or PR -- only run on on nightly test, or if the branch name
+    # contains "gh" or "release".
     name: "Linux bleeding edge: gcc9 C++17 avx2 OCIO/libtiff/exr master"
+    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh')
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -206,7 +211,7 @@ jobs:
           SANITIZE: address
         run: |
             source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
 
   linux-clang:
@@ -245,16 +250,20 @@ jobs:
 
   clang-format:
     name: "clang-format verification"
-    runs-on: macOS-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - name: all
         env:
           CXX: clang++
+          LLVM_VERSION: 9.0.0
           BUILDTARGET: clang-format
           SKIP_TESTS: 1
           BUILD_MISSING_DEPS: 0
+          CMAKE_CXX_STANDARD: 14
+          OCIO_BRANCH: 1c624651b7
+          # Pick an OCIO commit that includes a warning fix we need for clang
         run: |
             source src/build-scripts/ci-startup.bash
-            source src/build-scripts/install_homebrew_deps.bash
+            source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
