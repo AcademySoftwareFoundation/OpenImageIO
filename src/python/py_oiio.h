@@ -324,7 +324,9 @@ py_to_stdvector(std::vector<T>& vals, const py::object& obj)
     if (py::isinstance<py::list>(obj)) {  // if it's a Python list
         return py_indexable_pod_to_stdvector(vals, obj.cast<py::list>());
     }
-    if (py::isinstance<py::buffer>(obj)) {
+    // Apparently a str can masquerade as a buffer object, so make sure to
+    // exclude that from teh buffer case.
+    if (py::isinstance<py::buffer>(obj) && ! py::isinstance<py::str>(obj)) {
         return py_buffer_to_stdvector(vals, obj.cast<py::buffer>());
     }
 
