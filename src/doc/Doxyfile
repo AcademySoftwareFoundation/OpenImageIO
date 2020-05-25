@@ -2161,6 +2161,7 @@ INCLUDE_FILE_PATTERNS  = *.h
 PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_NO_SANITIZE_ADDRESS:= \
                          OIIO_API:= \
+                         OIIO_HOSTDEVICE= \
                          OIIO_NAMESPACE_BEGIN="namespace OIIO {" \
                          OIIO_NAMESPACE_END="}" \
                          OIIO_CONSTEXPR14=constexpr \

@@ -42,8 +42,8 @@ Making an empty or uninitialized ImageBuf
 Constructing a readable ImageBuf
 --------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view, int, int, ImageCache *, const ImageSpec *)
-.. doxygenfunction:: OIIO::ImageBuf::reset(string_view, int, int, ImageCache *, const ImageSpec *)
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(string_view, int, int, ImageCache*, const ImageSpec*)
+.. doxygenfunction:: OIIO::ImageBuf::reset(string_view, int, int, ImageCache*, const ImageSpec*)
 
 
 Constructing a writeable ImageBuf
@@ -57,20 +57,20 @@ Constructing a writeable ImageBuf
 Constructing an ImageBuf that "wraps" an application buffer
 -------------------------------------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec&, void *)
-.. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec&, void *)
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec&, void*)
+.. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec&, void*)
 
 
 
 Reading and Writing disk images
 -------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::read(int, int, bool, TypeDesc, ProgressCallback, void *)
-.. doxygenfunction:: OIIO::ImageBuf::read(int, int, int, int, bool, TypeDesc, ProgressCallback, void *)
+.. doxygenfunction:: OIIO::ImageBuf::read(int, int, bool, TypeDesc, ProgressCallback, void*)
+.. doxygenfunction:: OIIO::ImageBuf::read(int, int, int, int, bool, TypeDesc, ProgressCallback, void*)
 .. doxygenfunction:: OIIO::ImageBuf::init_spec
 
-.. doxygenfunction:: OIIO::ImageBuf::write(string_view, TypeDesc, string_view, ProgressCallback, void *) const
-.. doxygenfunction:: OIIO::ImageBuf::write(ImageOutput *, ProgressCallback, void *) const
+.. doxygenfunction:: OIIO::ImageBuf::write(string_view, TypeDesc, string_view, ProgressCallback, void*) const
+.. doxygenfunction:: OIIO::ImageBuf::write(ImageOutput*, ProgressCallback, void*) const
 .. doxygenfunction:: OIIO::ImageBuf::set_write_format(TypeDesc)
 .. doxygenfunction:: OIIO::ImageBuf::set_write_format(cspan<TypeDesc>)
 .. doxygenfunction:: OIIO::ImageBuf::set_write_tiles
@@ -155,15 +155,15 @@ Getting and setting pixel values
 **Getting and setting individual pixels -- slow**
 
 .. doxygenfunction:: OIIO::ImageBuf::getchannel
-.. doxygenfunction:: OIIO::ImageBuf::getpixel(int, int, int, float *, int, WrapMode) const
+.. doxygenfunction:: OIIO::ImageBuf::getpixel(int, int, int, float*, int, WrapMode) const
 
 .. doxygenfunction:: OIIO::ImageBuf::interppixel
 .. doxygenfunction:: OIIO::ImageBuf::interppixel_bicubic
 .. doxygenfunction:: OIIO::ImageBuf::interppixel_NDC
 .. doxygenfunction:: OIIO::ImageBuf::interppixel_bicubic_NDC
 
-.. doxygenfunction:: OIIO::ImageBuf::setpixel(int, int, int, const float *, int)
-.. doxygenfunction:: OIIO::ImageBuf::setpixel(int, const float *, int)
+.. doxygenfunction:: OIIO::ImageBuf::setpixel(int, int, int, const float*, int)
+.. doxygenfunction:: OIIO::ImageBuf::setpixel(int, const float*, int)
 
 |
 

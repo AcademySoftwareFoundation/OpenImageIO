@@ -958,7 +958,7 @@ OIIO_API bool contrast_remap (ImageBuf &dst, const ImageBuf &src,
                     ROI={}, int nthreads=0);
 
 
-/// @defgroup color_map
+/// @defgroup color_map (Remap value range by spline or name)
 /// @{
 ///
 /// Remap value range by spline or name
@@ -1002,7 +1002,7 @@ bool OIIO_API color_map (ImageBuf &dst, const ImageBuf &src, int srcchannel,
 /// @}
 
 
-/// @defgroup range
+/// @defgroup range (Nonlinear range remapping for contrast preservation)
 /// @{
 ///
 /// Nonlinear range remapping for contrast preservation
@@ -1322,7 +1322,7 @@ bool OIIO_API laplacian (ImageBuf &dst, const ImageBuf &src,
                          ROI roi={}, int nthreads=0);
 
 
-/// @defgroup fft-ifft
+/// @defgroup fft-ifft (Fast Fourier Transform and inverse)
 /// @{
 ///
 /// Fast Fourier Transform and inverse
@@ -1358,7 +1358,7 @@ bool OIIO_API ifft (ImageBuf &dst, const ImageBuf &src, ROI roi={}, int nthreads
 /// @}
 
 
-/// @defgroup complex-polar
+/// @defgroup complex-polar (Converting complex to polar and back)
 /// @{
 ///
 /// Converting complex to polar and back
@@ -1520,7 +1520,7 @@ bool OIIO_API erode (ImageBuf &dst, const ImageBuf &src,
 
 
 
-/// @defgroup colorconvert
+/// @defgroup colorconvert (Color space conversions)
 /// @{
 ///
 /// Convert between color spaces
@@ -1755,7 +1755,7 @@ bool OIIO_API ociofiletransform (ImageBuf &dst, const ImageBuf &src,
                                  ROI roi={}, int nthreads=0);
 
 
-/// @defgroup premult
+/// @defgroup premult (Premultiply or un-premultiply color by alpha)
 /// @{
 ///
 /// Premultiply or un-premultiply color by alpha
