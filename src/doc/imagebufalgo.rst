@@ -152,6 +152,7 @@ zero() -- create a black image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. doxygenfunction:: zero(ROI, int)
+
 ..
 
   Examples::
@@ -842,6 +843,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: zover(const ImageBuf&, const ImageBuf&, bool, ROI, int)
 ..
 
@@ -857,6 +859,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: invert(const ImageBuf&, ROI, int)
 ..
 
@@ -907,6 +910,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: channel_sum(const ImageBuf&, cspan<float>, ROI, int)
 ..
 
@@ -924,6 +928,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: clamp(const ImageBuf&, cspan<float>, cspan<float>, bool, ROI, int)
 ..
 
@@ -949,6 +954,7 @@ Image arithmetic
 
 
 |
+
 .. doxygenfunction:: contrast_remap(const ImageBuf&, cspan<float>, cspan<float>, cspan<float>, cspan<float>, cspan<float>, cspan<float>, ROI, int)
 ..
 
@@ -991,6 +997,7 @@ Image arithmetic
 
 
 |
+
 .. doxygengroup:: color_map
 ..
 
@@ -1090,6 +1097,7 @@ Image comparison and statistics
 
 
 |
+
 .. doxygenfunction:: compare(const ImageBuf&, const ImageBuf&, float, float, ROI, int)
 ..
 
@@ -1123,11 +1131,13 @@ Image comparison and statistics
 
 
 |
+
 .. doxygenfunction:: compare_Yee(const ImageBuf&, const ImageBuf&, CompareResults&, float, float, ROI, int)
 ..
 
 
 |
+
 .. doxygenfunction:: isConstantColor(const ImageBuf&, float, span<float>, ROI, int)
 ..
 
@@ -1146,6 +1156,7 @@ Image comparison and statistics
 
 
 |
+
 .. doxygenfunction:: isConstantChannel(const ImageBuf&, int, float, float, ROI, int)
 ..
 
@@ -1162,6 +1173,7 @@ Image comparison and statistics
 
 
 |
+
 .. doxygenfunction:: isMonochrome(const ImageBuf&, float, ROI, int)
 ..
 
@@ -1175,7 +1187,8 @@ Image comparison and statistics
 
 
 |
-.. doxygenfunction:: color_count(const ImageBuf&, imagesize_t *, int, cspan<float>, cspan<float>, ROI, int)
+
+.. doxygenfunction:: color_count(const ImageBuf&, imagesize_t*, int, cspan<float>, cspan<float>, ROI, int)
 ..
 
   Examples::
@@ -1196,7 +1209,8 @@ Image comparison and statistics
 
 
 |
-.. doxygenfunction:: color_range_check(const ImageBuf&, imagesize_t *, imagesize_t *, imagesize_t *, cspan<float>, cspan<float>, ROI, int)
+
+.. doxygenfunction:: color_range_check(const ImageBuf&, imagesize_t*, imagesize_t*, imagesize_t*, cspan<float>, cspan<float>, ROI, int)
 ..
 
   Examples::
@@ -1218,6 +1232,7 @@ Image comparison and statistics
 
 
 |
+
 .. doxygenfunction:: nonzero_region
 ..
 
@@ -1232,6 +1247,7 @@ Image comparison and statistics
 
 
 |
+
 .. doxygenfunction:: computePixelHashSHA1
 ..
 
@@ -1243,6 +1259,7 @@ Image comparison and statistics
 
 
 |
+
 .. doxygenfunction:: histogram(const ImageBuf&, int, int, float, float, bool, ROI, int)
 ..
 
@@ -1277,6 +1294,7 @@ Convolutions and frequency-space algorithms
 
 
 |
+
 .. doxygenfunction:: convolve(const ImageBuf&, const ImageBuf&, bool, ROI, int)
 ..
 
@@ -1306,6 +1324,7 @@ Convolutions and frequency-space algorithms
 
 
 |
+
 .. doxygenfunction:: laplacian(const ImageBuf&, ROI, int)
 ..
 
@@ -1330,6 +1349,7 @@ Convolutions and frequency-space algorithms
 
 
 |
+
 .. doxygengroup:: fft-ifft
 ..
 
@@ -1346,6 +1366,7 @@ Convolutions and frequency-space algorithms
 
 
 |
+
 .. doxygengroup:: complex-polar
 ..
 
@@ -1370,7 +1391,7 @@ Convolutions and frequency-space algorithms
 Image Enhancement / Restoration
 ===============================
 
-.. doxygenfunction:: fixNonFinite(const ImageBuf&, NonFiniteFixMode, int *, ROI, int)
+.. doxygenfunction:: fixNonFinite(const ImageBuf&, NonFiniteFixMode, int*, ROI, int)
 ..
 
   Examples::
@@ -1382,10 +1403,11 @@ Image Enhancement / Restoration
     std::cout << "Repaired " << pixelsFixed << " non-finite pixels\n";
 
   Result-as-parameter version:
-    .. doxygenfunction:: fixNonFinite(ImageBuf&, const ImageBuf&, NonFiniteFixMode, int *, ROI, int)
+    .. doxygenfunction:: fixNonFinite(ImageBuf&, const ImageBuf&, NonFiniteFixMode, int*, ROI, int)
 
 
 |
+
 .. doxygenfunction:: fillholes_pushpull(const ImageBuf&, ROI, int)
 ..
 
@@ -1399,6 +1421,7 @@ Image Enhancement / Restoration
 
 
 |
+
 .. doxygenfunction:: median_filter(ImageBuf&, const ImageBuf&, int, int, ROI, int)
 ..
 
@@ -1406,6 +1429,7 @@ Image Enhancement / Restoration
 
     ImageBuf Noisy ("tahoe.exr");
     ImageBuf Clean = ImageBufAlgo::median_filter (Noisy, 3, 3);
+
 ..
 
 .. |medimage1| image:: figures/tahoe-small.jpg
@@ -1427,6 +1451,7 @@ Image Enhancement / Restoration
 
 
 |
+
 .. doxygenfunction:: unsharp_mask(const ImageBuf&, string_view, float, float, float, ROI, int)
 ..
 
@@ -1452,6 +1477,7 @@ Morphological filters
 
 
 |
+
 .. doxygenfunction:: erode(const ImageBuf&, int, int, ROI, int)
 ..
 
@@ -1553,6 +1579,7 @@ Color space conversion
 
 
 |
+
 .. doxygenfunction:: colormatrixtransform(const ImageBuf&, const Imath::M44f&, bool, ROI, int)
 ..
 
@@ -1584,7 +1611,7 @@ Color space conversion
 
 |
 
-.. doxygenfunction:: ociolook(const ImageBuf&, string_view, string_view, string_view, bool, bool, string_view, string_view, ColorConfig *, ROI, int)
+.. doxygenfunction:: ociolook(const ImageBuf&, string_view, string_view, string_view, bool, bool, string_view, string_view, ColorConfig*, ROI, int)
 ..
 
   Examples::
@@ -1594,11 +1621,11 @@ Color space conversion
                                            true, false, "SHOT", "pe0012");
 
   Result-as-parameter version:
-    .. doxygenfunction:: ociolook(ImageBuf&, const ImageBuf&, string_view, string_view, string_view, bool, bool, string_view, string_view, ColorConfig *, ROI, int)
+    .. doxygenfunction:: ociolook(ImageBuf&, const ImageBuf&, string_view, string_view, string_view, bool, bool, string_view, string_view, ColorConfig*, ROI, int)
 
 |
 
-.. doxygenfunction:: ociodisplay(const ImageBuf&, string_view, string_view, string_view, string_view, bool, string_view, string_view, ColorConfig *, ROI, int)
+.. doxygenfunction:: ociodisplay(const ImageBuf&, string_view, string_view, string_view, string_view, bool, string_view, string_view, ColorConfig*, ROI, int)
 ..
 
   Examples::
@@ -1608,11 +1635,12 @@ Color space conversion
                                               "", true, "SHOT", "pe0012");
 
   Result-as-parameter version:
-    .. doxygenfunction:: ociodisplay(ImageBuf&, const ImageBuf&, string_view, string_view, string_view, string_view, bool, string_view, string_view, ColorConfig *, ROI, int)
+    .. doxygenfunction:: ociodisplay(ImageBuf&, const ImageBuf&, string_view, string_view, string_view, string_view, bool, string_view, string_view, ColorConfig*, ROI, int)
 
 
 |
-.. doxygenfunction:: ociofiletransform(const ImageBuf&, string_view, bool, bool, ColorConfig *, ROI, int)
+
+.. doxygenfunction:: ociofiletransform(const ImageBuf&, string_view, bool, bool, ColorConfig*, ROI, int)
 ..
 
   Examples::
@@ -1622,10 +1650,11 @@ Color space conversion
 
 
   Result-as-parameter version:
-    .. doxygenfunction:: ociofiletransform(ImageBuf&, const ImageBuf&, string_view, bool, bool, ColorConfig *, ROI, int)
+    .. doxygenfunction:: ociofiletransform(ImageBuf&, const ImageBuf&, string_view, bool, bool, ColorConfig*, ROI, int)
 
 
 |
+
 .. doxygengroup:: premult
 ..
 
@@ -1699,6 +1728,7 @@ Functions specific to deep images
 
 
 |
+
 .. doxygenfunction:: deepen(const ImageBuf&, float, ROI, int)
 ..
 
@@ -1712,6 +1742,7 @@ Functions specific to deep images
 
 
 |
+
 .. doxygenfunction:: flatten(const ImageBuf&, ROI, int)
 ..
 
