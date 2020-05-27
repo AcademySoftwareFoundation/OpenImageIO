@@ -57,6 +57,8 @@ elif [[ "$CXX" == "g++-8" ]] ; then
     time sudo apt-get install -y g++-8
 elif [[ "$CXX" == "g++-9" ]] ; then
     time sudo apt-get install -y g++-9
+elif [[ "$CXX" == "g++-10" ]] ; then
+    time sudo apt-get install -y g++-10
 fi
 
 # time sudo apt-get install -y clang

@@ -16,10 +16,27 @@ on:
       - '**.rst'
   schedule:
     # Full nightly build
-    - cron: "0 0 * * *"
+    - cron: "0 4 * * *"
 
 
 jobs:
+  linux-gcc48:
+    name: "Linux 2017-ish: gcc4.8/C++11 py2.7 boost-1.66 exr-2.3"
+    runs-on: ubuntu-latest
+    container:
+      image: aswf/ci-osl:2019
+    steps:
+      - uses: actions/checkout@v2
+      - name: all
+        env:
+          CXX: /usr/bin/g++
+          CC: /usr/bin/gcc
+          CMAKE_CXX_STANDARD: 11
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps-centos.bash
+            source src/build-scripts/ci-build-and-test.bash
+
   vfxplatform-2019:
     name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost-1.66 exr-2.3"
     runs-on: ubuntu-latest
@@ -55,24 +72,8 @@ jobs:
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
 
-  linux-gcc48:
-    name: "Linux 2017-ish: gcc4.8/C++11 py2.7 boost-1.66 exr-2.3"
-    runs-on: ubuntu-latest
-    container:
-      image: aswf/ci-osl:2019
-    steps:
-      - uses: actions/checkout@v2
-      - name: all
-        env:
-          CXX: /usr/bin/g++
-          CC: /usr/bin/gcc
-          CMAKE_CXX_STANDARD: 11
-        run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
-
   linux-gcc7-cpp14-debug:
+    # Test against gcc7, and also at the same time, do a Debug build.
     name: "Linux debug gcc7/C++14, sse4.2, exr2.4"
     runs-on: ubuntu-18.04
     steps:
@@ -89,6 +90,8 @@ jobs:
             source src/build-scripts/ci-build-and-test.bash
 
   linux-2021ish-gcc8:
+    # Test as close as we can get to what's anticipated to be VFX Platform
+    # 2021 -- mainly, that means gcc8 and C++17.
     name: "Linux next/VFXP2021: gcc8 C++17 avx exr2.5"
     runs-on: ubuntu-18.04
     steps:
@@ -104,19 +107,55 @@ jobs:
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
 
-  linux-bleeding-edge:
-    # Test against development master for relevant dependencies, latest
-    # supported releases of everything else. We don't need to run this on
-    # every push or PR -- only run on on nightly test, or if the branch name
-    # contains "gh" or "release".
-    name: "Linux bleeding edge: gcc9 C++17 avx2 OCIO/libtiff/exr master"
-    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh')
+  linux-2021ish-gcc9:
+    # Test against gcc9. This will probably never be a VFX Platform
+    # compiler, but lots of people use it.
+    name: "Linux gcc9"
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - name: all
         env:
           CXX: g++-9
+          CMAKE_CXX_STANDARD: 17
+          USE_SIMD: avx
+          OPENEXR_BRANCH: v2.5.0
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
+
+  linux-latest-releases:
+    # Test against latest supported releases of toolchain and dependencies.
+    name: "Linux latest releases: gcc10 C++17 avx2 exr2.5"
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: all
+        env:
+          CXX: g++-10
+          CMAKE_CXX_STANDARD: 17
+          USE_SIMD: avx2
+          OPENEXR_BRANCH: v2.5.0
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
+
+  linux-bleeding-edge:
+    # Test against development master for relevant dependencies, latest
+    # supported releases of everything else.
+    # We don't need to run this on every push or PR -- only run on nightly
+    # test, or if the branch name contains certain substring: gh, release,
+    # bleeding.
+    name: "Linux bleeding edge: gcc10 C++17 avx2 OCIO/libtiff/exr master"
+    runs-on: ubuntu-18.04
+    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'bleeding')
+    steps:
+      - uses: actions/checkout@v2
+      - name: all
+        env:
+          CXX: g++-10
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
           OPENEXR_BRANCH: master
@@ -132,8 +171,12 @@ jobs:
 
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
-    # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins)
+    # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
+    # We don't need to run this on every push or PR -- only run on nightly
+    # test, or if the branch name contains certain substrings: gh, release,
+    # old.
     name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
+    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh')
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
@@ -150,6 +193,7 @@ jobs:
           USE_OPENCV: 0
           EMBEDPLUGINS: 0
           OPENEXR_BRANCH: v2.2.0
+          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.1.2
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
@@ -194,6 +238,9 @@ jobs:
             source src/build-scripts/ci-build-and-test.bash
 
   sanitizer:
+    # Run sanitizers. These don't need to run on every push. Just PRs, nightly
+    # builds, or if the branch name contains one of several tokens: san,
+    # gh, RB, release, or master.
     name: "Sanitizers"
     runs-on: ubuntu-18.04
     if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'san') || contains(github.ref, 'RB') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
@@ -214,7 +261,8 @@ jobs:
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
 
-  linux-clang:
+  linux-clang9:
+    # Test compiling with clang9 on Linux.
     name: "Linux clang: clang9 C++14 avx2 exr2.4"
     runs-on: ubuntu-18.04
     steps:
@@ -234,7 +282,11 @@ jobs:
             source src/build-scripts/ci-build-and-test.bash
 
   linux-static:
+    # Test building static libs.  We don't need to run this on every push --
+    # only run on PRs, nightly test, or if the branch name contains
+    # "gh", "master", "release", or "static".
     name: "Linux static libs: gcc7 C++14 exr2.4"
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'static') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
