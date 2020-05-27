@@ -972,6 +972,11 @@ void test_arithmetic ()
     { VEC r = a; r *= b; OIIO_CHECK_SIMD_EQUAL (r, mul); }
     { VEC r = a; r /= b; OIIO_CHECK_SIMD_EQUAL (r, div); }
     { VEC r = a; r *= ELEM(2); OIIO_CHECK_SIMD_EQUAL (r, a*ELEM(2)); }
+    // Test to make sure * works for negative 32 bit ints on all SIMD levels,
+    // because it's a different code path for sse2.
+    VEC negA = mkvec<VEC>(-1, 1, -2, 2);
+    VEC negB = mkvec<VEC>(2, 2, -2, -2);
+    OIIO_CHECK_SIMD_EQUAL(negA * negB, mkvec<VEC>(-2, 2, 4, -4));
 
     OIIO_CHECK_EQUAL (reduce_add(b), bsum);
     OIIO_CHECK_SIMD_EQUAL (vreduce_add(b), VEC(bsum));
