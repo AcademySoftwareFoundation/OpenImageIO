@@ -389,6 +389,7 @@ Oiiotool::extract_options(string_view command)
 
 
 
+// --threads
 static void
 set_threads(cspan<const char*> argv)
 {
@@ -400,6 +401,7 @@ set_threads(cspan<const char*> argv)
 
 
 
+// --cache
 static int
 set_cachesize(int argc, const char* argv[])
 {
@@ -411,6 +413,7 @@ set_cachesize(int argc, const char* argv[])
 
 
 
+// --autotile
 static int
 set_autotile(int argc, const char* argv[])
 {
@@ -423,6 +426,7 @@ set_autotile(int argc, const char* argv[])
 
 
 
+// --native
 static int
 set_native(int argc, const char* /*argv*/[])
 {
@@ -434,6 +438,7 @@ set_native(int argc, const char* /*argv*/[])
 
 
 
+// --dumpdata
 static void
 set_dumpdata(cspan<const char*> argv)
 {
@@ -446,6 +451,7 @@ set_dumpdata(cspan<const char*> argv)
 
 
 
+// --info
 static void
 set_printinfo(cspan<const char*> argv)
 {
@@ -459,6 +465,7 @@ set_printinfo(cspan<const char*> argv)
 
 
 
+// --autopremult
 static void
 set_autopremult(cspan<const char*> argv)
 {
@@ -470,6 +477,7 @@ set_autopremult(cspan<const char*> argv)
 
 
 
+// --no-autopremult
 static void
 unset_autopremult(cspan<const char*> argv)
 {
@@ -482,6 +490,7 @@ unset_autopremult(cspan<const char*> argv)
 
 
 
+// --labl
 static int
 action_label(int argc OIIO_MAYBE_UNUSED, const char* argv[])
 {
@@ -803,6 +812,7 @@ parse_channels(const ImageSpec& spec, string_view chanlist,
 
 
 
+// -d
 static int
 set_dataformat(int argc, const char* argv[])
 {
@@ -894,6 +904,7 @@ do_erase_attribute(ImageSpec& spec, string_view attribname)
 
 
 
+// --eraseattrib
 static int
 erase_attribute(int argc, const char* argv[])
 {
@@ -1379,6 +1390,7 @@ Oiiotool::express(string_view str)
 
 
 
+// --iconfig
 static int
 set_input_attribute(int argc, const char* argv[])
 {
@@ -1600,6 +1612,7 @@ OiioTool::set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
 
 
 
+// --caption
 static int
 set_caption(int argc, const char* argv[])
 {
@@ -1632,6 +1645,7 @@ do_set_keyword(ImageSpec& spec, const std::string& keyword)
 
 
 
+// --keyword
 static int
 set_keyword(int argc, const char* argv[])
 {
@@ -1650,6 +1664,7 @@ set_keyword(int argc, const char* argv[])
 
 
 
+// --clear-keywords
 static int
 clear_keywords(int argc, const char* argv[])
 {
@@ -1663,6 +1678,7 @@ clear_keywords(int argc, const char* argv[])
 
 
 
+// --orientation
 static int
 set_orientation(int argc, const char* argv[])
 {
@@ -1708,6 +1724,7 @@ do_rotate_orientation(ImageSpec& spec, string_view cmd)
 
 
 
+// --orientcw --orientccw --orient180 --rotcw --rotccw --rot180
 static int
 rotate_orientation(int argc, const char* argv[])
 {
@@ -1727,6 +1744,7 @@ rotate_orientation(int argc, const char* argv[])
 
 
 
+// --origin
 static int
 set_origin(int argc, const char* argv[])
 {
@@ -1774,6 +1792,7 @@ set_origin(int argc, const char* argv[])
 
 
 
+// --originoffset
 static int
 offset_origin(int argc, const char* argv[])
 {
@@ -1818,6 +1837,7 @@ offset_origin(int argc, const char* argv[])
 
 
 
+// --fullsize
 static int
 set_fullsize(int argc, const char* argv[])
 {
@@ -1860,6 +1880,7 @@ set_fullsize(int argc, const char* argv[])
 
 
 
+// --fullpixels
 static int
 set_full_to_pixels(int argc, const char* argv[])
 {
@@ -1901,6 +1922,7 @@ set_full_to_pixels(int argc, const char* argv[])
 
 
 
+// --colorconfig
 static int
 set_colorconfig(int argc, const char* argv[])
 {
@@ -1911,6 +1933,7 @@ set_colorconfig(int argc, const char* argv[])
 
 
 
+// --iscolorspace
 static int
 set_colorspace(int argc, const char* argv[])
 {
@@ -1939,7 +1962,7 @@ public:
             // pushed on the stack, replace it with the original image, and
             // signal that we're done.
             ot.pop();
-            ot.push(ir[1]);
+            ot.push(ir(1));
             return false;
         }
         return true;
@@ -1979,6 +2002,7 @@ OP_CUSTOMCLASS(colorconvert, OpColorConvert, 1);
 
 
 
+// --tocolorspace
 static int
 action_tocolorspace(int argc, const char* argv[])
 {
@@ -2081,74 +2105,83 @@ output_tiles(int /*argc*/, const char* /*argv*/[])
 
 
 
+// --unmip
+// N.B.: This unmips all subimages and does not honor the ':subimages='
+// modifier.
 static int
 action_unmip(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_unmip, argc, argv))
         return 0;
+
+    // Special case -- detect if there are no MIP-mapped subimages at all,
+    // in which case this is a no-op (avoid any copies or allocations).
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-
     ot.read();
     bool mipmapped = false;
     for (int s = 0, send = ot.curimg->subimages(); s < send; ++s)
         mipmapped |= (ot.curimg->miplevels(s) > 1);
     if (!mipmapped) {
+        ot.function_times[command] += timer();
         return 0;  // --unmip on an unmipped image is a no-op
     }
 
-    ImageRecRef newimg(new ImageRec(*ot.curimg, -1, 0, true, true));
-    ot.curimg = newimg;
-    ot.function_times[command] += timer();
-    return 0;
+    // If there is work to be done, fall back on the OiiotoolOp.
+    // No subclass needed, default OiiotoolOp removes MIP levels and
+    // copies the first input image by default.
+    OiiotoolOp op(ot, "unmip", argc, argv, 1);
+    return op();
 }
 
 
 
-static int
-set_channelnames(int argc, const char* argv[])
-{
-    if (ot.postpone_callback(1, set_channelnames, argc, argv))
-        return 0;
-    Timer timer(ot.enable_function_timing);
-    string_view command    = ot.express(argv[0]);
-    string_view channelarg = ot.express(argv[1]);
-
-    ImageRecRef A = ot.curimg;
-    ot.read(A);
-
-    std::vector<std::string> newchannelnames;
-    Strutil::split(channelarg, newchannelnames, ",");
-
-    for (int s = 0; s < A->subimages(); ++s) {
-        int miplevels = A->miplevels(s);
-        for (int m = 0; m < miplevels; ++m) {
-            ImageSpec* spec = &(*A)(s, m).specmod();
-            spec->channelnames.resize(spec->nchannels);
-            for (int c = 0; c < spec->nchannels; ++c) {
-                if (c < (int)newchannelnames.size()
-                    && newchannelnames[c].size()) {
-                    std::string name = newchannelnames[c];
-                    ot.output_channelformats[name]
-                        = ot.output_channelformats[spec->channelnames[c]];
-                    spec->channelnames[c] = name;
-                    if (Strutil::iequals(name, "A")
-                        || Strutil::iends_with(name, ".A")
-                        || Strutil::iequals(name, "Alpha")
-                        || Strutil::iends_with(name, ".Alpha"))
-                        spec->alpha_channel = c;
-                    if (Strutil::iequals(name, "Z")
-                        || Strutil::iends_with(name, ".Z")
-                        || Strutil::iequals(name, "Depth")
-                        || Strutil::iends_with(name, ".Depth"))
-                        spec->z_channel = c;
-                }
-            }
-            A->update_spec_from_imagebuf(s, m);
-        }
+// --chnames
+class OpChnames : public OiiotoolOp {
+public:
+    OpChnames(Oiiotool& ot, string_view opname, int argc, const char* argv[])
+        : OiiotoolOp(ot, opname, argc, argv, 1)
+    {
+        preserve_miplevels(true);
     }
-    ot.function_times[command] += timer();
-    return 0;
+    // Custom creation of new ImageRec result: don't copy, just change in
+    // place.
+    virtual ImageRecRef new_output_imagerec() override { return ir(1); }
+    virtual bool impl(span<ImageBuf*> img) override
+    {
+        string_view channelarg = ot.express(args(1));
+        auto newchannelnames   = Strutil::splits(channelarg, ",");
+        ImageSpec& spec        = img[0]->specmod();
+        spec.channelnames.resize(spec.nchannels);
+        for (int c = 0; c < spec.nchannels; ++c) {
+            if (c < (int)newchannelnames.size() && newchannelnames[c].size()) {
+                std::string name = newchannelnames[c];
+                ot.output_channelformats[name]
+                    = ot.output_channelformats[spec.channelnames[c]];
+                spec.channelnames[c] = name;
+                if (Strutil::iequals(name, "A")
+                    || Strutil::iends_with(name, ".A")
+                    || Strutil::iequals(name, "Alpha")
+                    || Strutil::iends_with(name, ".Alpha"))
+                    spec.alpha_channel = c;
+                if (Strutil::iequals(name, "Z")
+                    || Strutil::iends_with(name, ".Z")
+                    || Strutil::iequals(name, "Depth")
+                    || Strutil::iends_with(name, ".Depth"))
+                    spec.z_channel = c;
+            }
+        }
+        return true;
+    }
+};
+
+static int
+action_set_channelnames(int argc, const char* argv[])
+{
+    if (ot.postpone_callback(1, action_set_channelnames, argc, argv))
+        return 0;
+    OpChnames op(ot, "chnames", argc, argv);
+    return op();
 }
 
 
@@ -2250,6 +2283,7 @@ OiioTool::decode_channel_set(const ImageSpec& spec, string_view chanlist,
 
 
 
+// --channels
 int
 action_channels(int argc, const char* argv[])
 {
@@ -2300,7 +2334,7 @@ action_channels(int argc, const char* argv[])
 
     // Create the replacement ImageRec
     ImageRecRef R(new ImageRec(A->name(), (int)allmiplevels.size(),
-                               &allmiplevels[0], &allspecs[0]));
+                               allmiplevels, allspecs));
     ot.push(R);
 
     // Subimage by subimage, MIP level by MIP level, copy/shuffle the
@@ -2331,58 +2365,31 @@ action_channels(int argc, const char* argv[])
 
 
 
+// --chappend
 static int
 action_chappend(int argc, const char* argv[])
 {
     if (ot.postpone_callback(2, action_chappend, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
-    string_view command = ot.express(argv[0]);
-
-    ImageRecRef B(ot.pop());
-    ImageRecRef A(ot.pop());
-    ot.read(A);
-    ot.read(B);
-
-    std::vector<int> allmiplevels;
-    for (int s = 0, subimages = ot.allsubimages ? A->subimages() : 1;
-         s < subimages; ++s) {
-        int miplevels = ot.allsubimages ? A->miplevels(s) : 1;
-        allmiplevels.push_back(miplevels);
-    }
-
-    // Create the replacement ImageRec
-    ImageRecRef R(
-        new ImageRec(A->name(), (int)allmiplevels.size(), &allmiplevels[0]));
-    ot.push(R);
-
-    // Subimage by subimage, MIP level by MIP level, channel_append the
-    // two images.
-    for (int s = 0, subimages = R->subimages(); s < subimages; ++s) {
-        for (int m = 0, miplevels = R->miplevels(s); m < miplevels; ++m) {
-            // Shuffle the indexed/named channels
-            bool ok = ImageBufAlgo::channel_append((*R)(s, m), (*A)(s, m),
-                                                   (*B)(s, m));
-            if (!ok)
-                ot.error(command, (*R)(s, m).geterror());
-            if (ot.metamerge) {
-                (*R)(s, m).specmod().extra_attribs.merge(
-                    A->spec(s, m)->extra_attribs);
-                (*R)(s, m).specmod().extra_attribs.merge(
-                    B->spec(s, m)->extra_attribs);
-            }
-
-            // Tricky subtlety: IBA::channels changed the underlying IB,
-            // we may need to update the IRR's copy of the spec.
-            R->update_spec_from_imagebuf(s, m);
+    OiiotoolOp op(ot, "chappend", argc, argv, 2);
+    op.preserve_miplevels(true);
+    op.set_impl([](OiiotoolOp& op, span<ImageBuf*> img) {
+        // Shuffle the indexed/named channels
+        bool ok = ImageBufAlgo::channel_append(*img[0], *img[1], *img[2]);
+        if (!ok)
+            ot.error(op.opname(), img[0]->geterror());
+        if (ot.metamerge) {
+            img[0]->specmod().extra_attribs.merge(img[1]->spec().extra_attribs);
+            img[0]->specmod().extra_attribs.merge(img[2]->spec().extra_attribs);
         }
-    }
-    ot.function_times[command] += timer();
-    return 0;
+        return ok;
+    });
+    return op();
 }
 
 
 
+// --selectmip
 static int
 action_selectmip(int argc, const char* argv[])
 {
@@ -2408,6 +2415,7 @@ action_selectmip(int argc, const char* argv[])
 
 
 
+// --subimage
 static int
 action_select_subimage(int argc, const char* argv[])
 {
@@ -2457,7 +2465,7 @@ action_select_subimage(int argc, const char* argv[])
     } else {
         // Select mode: select just the one specified subimage
         ImageRecRef A = ot.pop();
-        ot.push(new ImageRec(*A, subimage));
+        ot.push(new ImageRec(*A, subimage, -1, true));
     }
     ot.function_times[command] += timer();
     return 0;
@@ -2465,6 +2473,7 @@ action_select_subimage(int argc, const char* argv[])
 
 
 
+// --sisplit
 static int
 action_subimage_split(int argc, const char* argv[])
 {
@@ -2478,7 +2487,7 @@ action_subimage_split(int argc, const char* argv[])
 
     // Push the individual subimages onto the stack
     for (int subimage = 0; subimage < A->subimages(); ++subimage)
-        ot.push(new ImageRec(*A, subimage));
+        ot.push(new ImageRec(*A, subimage, -1, true));
 
     ot.function_times[command] += timer();
     return 0;
@@ -2507,7 +2516,7 @@ action_subimage_append_n(int n, string_view command)
 
     // Create the replacement ImageRec
     ImageRecRef R(new ImageRec(images[0]->name(), (int)allmiplevels.size(),
-                               &allmiplevels[0]));
+                               allmiplevels));
     ot.push(R);
 
     // Subimage by subimage, MIP level by MIP level, copy
@@ -2533,6 +2542,7 @@ action_subimage_append_n(int n, string_view command)
 
 
 
+// --siappend
 static int
 action_subimage_append(int argc, const char* argv[])
 {
@@ -2549,6 +2559,7 @@ action_subimage_append(int argc, const char* argv[])
 
 
 
+// --siappendall
 static int
 action_subimage_append_all(int argc, const char* argv[])
 {
@@ -2565,6 +2576,7 @@ action_subimage_append_all(int argc, const char* argv[])
 
 
 
+// --colorcount
 static void
 action_colorcount(cspan<const char*> argv)
 {
@@ -2614,6 +2626,7 @@ action_colorcount(cspan<const char*> argv)
 
 
 
+// --rangecheck
 static void
 action_rangecheck(cspan<const char*> argv)
 {
@@ -2649,6 +2662,7 @@ action_rangecheck(cspan<const char*> argv)
 
 
 
+// --diff
 static int
 action_diff(int argc, const char* argv[])
 {
@@ -2671,6 +2685,7 @@ action_diff(int argc, const char* argv[])
 
 
 
+// --pdiff
 static int
 action_pdiff(int argc, const char* argv[])
 {
@@ -2767,35 +2782,12 @@ OIIOTOOL_OP(noise, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 // --chsum
-static int
-action_chsum(int argc, const char* argv[])
-{
-    if (ot.postpone_callback(1, action_chsum, argc, argv))
-        return 0;
-    Timer timer(ot.enable_function_timing);
-    string_view command = ot.express(argv[0]);
-
-    ImageRecRef A(ot.pop());
-    ot.read(A);
-    ImageRecRef R(new ImageRec("chsum", ot.allsubimages ? A->subimages() : 1));
-    ot.push(R);
-
-    for (int s = 0, subimages = R->subimages(); s < subimages; ++s) {
-        std::vector<float> weight((*A)(s).nchannels(), 1.0f);
-        auto options = ot.extract_options(command);
-        Strutil::extract_from_list_string(weight, options.get_string("weight"));
-
-        ImageBuf& Rib((*R)(s));
-        const ImageBuf& Aib((*A)(s));
-        bool ok = ImageBufAlgo::channel_sum(Rib, Aib, &weight[0]);
-        if (!ok)
-            ot.error(command, Rib.geterror());
-        R->update_spec_from_imagebuf(s);
-    }
-
-    ot.function_times[command] += timer();
-    return 0;
-}
+OIIOTOOL_OP(chsum, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
+    std::vector<float> weight(img[1]->nchannels(), 1.0f);
+    Strutil::extract_from_list_string(weight,
+                                      op.options().get_string("weight"));
+    return ImageBufAlgo::channel_sum(*img[0], *img[1], weight);
+});
 
 
 
@@ -3176,7 +3168,7 @@ action_crop(int argc, const char* argv[])
 
     if (crops_needed) {
         ot.pop();
-        ImageRecRef R(new ImageRec(A->name(), subimages, 0));
+        ImageRecRef R(new ImageRec(A->name(), subimages));
         ot.push(R);
         for (int s = 0; s < subimages; ++s) {
             ImageSpec& spec(*A->spec(s, 0));
@@ -3225,7 +3217,7 @@ action_croptofull(int argc, const char* argv[])
 
     if (crops_needed) {
         ot.pop();
-        ImageRecRef R(new ImageRec(A->name(), A->subimages(), 0));
+        ImageRecRef R(new ImageRec(A->name(), A->subimages()));
         ot.push(R);
         for (int s = 0; s < subimages; ++s) {
             const ImageBuf& Aib((*A)(s, 0));
@@ -3295,7 +3287,7 @@ action_trim(int argc, const char* argv[])
     }
     if (crops_needed) {
         ot.pop();
-        ImageRecRef R(new ImageRec(A->name(), subimages, 0));
+        ImageRecRef R(new ImageRec(A->name(), subimages));
         ot.push(R);
         for (int s = 0; s < subimages; ++s) {
             const ImageBuf& Aib((*A)(s, 0));
@@ -3340,7 +3332,7 @@ action_cut(int argc, const char* argv[])
     }
 
     // Make a new ImageRec sized according to the new set of specs
-    ImageRecRef R(new ImageRec(A->name(), subimages, nullptr, newspecs.data()));
+    ImageRecRef R(new ImageRec(A->name(), subimages, {}, newspecs));
 
     // Crop and populate the new ImageRec
     for (int s = 0; s < subimages; ++s) {
@@ -3375,7 +3367,7 @@ public:
         std::vector<ImageSpec> newspecs(subimages);
         for (int s = 0; s < subimages; ++s) {
             // The size argument will be the resulting display (full) window.
-            const ImageSpec& Aspec(*ir[1]->spec(s));
+            const ImageSpec& Aspec(*ir(1)->spec(s));
             ImageSpec& newspec(newspecs[s]);
             newspec = Aspec;
             ot.adjust_geometry(args(0), newspec.full_width, newspec.full_height,
@@ -3400,11 +3392,11 @@ public:
         if (nochange) {
             // No change -- pop the temp result and restore the original
             ot.pop();
-            ot.push(ir[1]);
+            ot.push(ir(1));
             return false;  // nothing more to do
         }
         for (int s = 0; s < subimages; ++s)
-            (*ir[0])(s).reset(newspecs[s]);
+            (*ir(0))(s).reset(newspecs[s]);
         return true;
     }
     virtual bool impl(span<ImageBuf*> img) override
@@ -3432,7 +3424,7 @@ public:
         std::vector<ImageSpec> newspecs(subimages);
         for (int s = 0; s < subimages; ++s) {
             // The size argument will be the resulting display (full) window.
-            const ImageSpec& Aspec(*ir[1]->spec(s));
+            const ImageSpec& Aspec(*ir(1)->spec(s));
             ImageSpec& newspec(newspecs[s]);
             newspec = Aspec;
             ot.adjust_geometry(args(0), newspec.full_width, newspec.full_height,
@@ -3457,11 +3449,11 @@ public:
         if (nochange) {
             // No change -- pop the temp result and restore the original
             ot.pop();
-            ot.push(ir[1]);
+            ot.push(ir(1));
             return false;  // nothing more to do
         }
         for (int s = 0; s < subimages; ++s)
-            (*ir[0])(s).reset(newspecs[s]);
+            (*ir(0))(s).reset(newspecs[s]);
         return true;
     }
     virtual bool impl(span<ImageBuf*> img) override
@@ -5425,7 +5417,7 @@ getargs(int argc, char* argv[])
       .action(set_full_to_pixels);
     ap.arg("--chnames %s:NAMELIST")
       .help("Set the channel names (comma-separated)")
-      .action(set_channelnames);
+      .action(action_set_channelnames);
     ap.separator("Options that affect subsequent actions:");
     ap.arg("--fail %g:THRESH", &ot.diff_failthresh)
       .help("Failure threshold difference (0.000001)");

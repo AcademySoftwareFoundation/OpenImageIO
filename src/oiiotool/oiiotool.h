@@ -324,8 +324,13 @@ public:
     // contains the specs for all the MIP levels of subimage 0, followed
     // by all the specs for the MIP levels of subimage 1, and so on.
     // If spec == NULL, the IB's will not be fully allocated/initialized.
-    ImageRec(const std::string& name, int nsubimages = 1,
-             const int* miplevels = NULL, const ImageSpec* specs = NULL);
+    ImageRec(const std::string& name, int nsubimages, cspan<int> miplevels,
+             cspan<ImageSpec> specs = {});
+
+    ImageRec(const std::string& name, int nsubimages = 1)
+        : ImageRec(name, nsubimages, cspan<int>(), cspan<ImageSpec>())
+    {
+    }
 
     // Copy an existing ImageRec.  Copy just the single subimage_to_copy
     // if >= 0, or all subimages if <0.  Copy just the single
@@ -333,9 +338,8 @@ public:
     // is true, we expect to need to alter the pixels of the resulting
     // ImageRec.  If copy_pixels is false, just make the new image big
     // enough, no need to initialize the pixel values.
-    ImageRec(ImageRec& img, int subimage_to_copy = -1,
-             int miplevel_to_copy = -1, bool writable = true,
-             bool copy_pixels = true);
+    ImageRec(ImageRec& img, int subimage_to_copy, int miplevel_to_copy,
+             bool writable, bool copy_pixels = true);
 
     // Create an ImageRef that consists of the ImageBuf img.  Copy img
     // if copy_pixels==true, otherwise just take ownership of img (it's
@@ -614,6 +618,8 @@ class OiiotoolOp {
 public:
     using setup_func_t = std::function<bool(OiiotoolOp& op)>;
     using impl_func_t = std::function<bool(OiiotoolOp& op, span<ImageBuf*> img)>;
+    using new_output_imagerec_func_t
+        = std::function<ImageRecRef(OiiotoolOp& op)>;
 
     // The constructor records the arguments (including running them
     // through expression substitution) and pops the input images off the
@@ -621,18 +627,20 @@ public:
     OiiotoolOp(Oiiotool& ot, string_view opname, int argc, const char* argv[],
                int ninputs, setup_func_t setup_func, impl_func_t impl_func)
         : ot(ot)
-        , m_opname(opname)
         , m_nargs(argc)
         , m_nimages(ninputs + 1)
         , m_setup_func(setup_func)
         , m_impl_func(impl_func)
     {
+        if (Strutil::starts_with(opname, "--"))
+            opname.remove_prefix(1);  // canonicalize to one dash
+        m_opname = opname.substr(0, opname.find_first_of(':'));  // and no :
         m_args.reserve(argc);
         for (int i = 0; i < argc; ++i)
             m_args.push_back(ot.express(argv[i]));
-        ir.resize(ninputs + 1);  // including reserving a spot for result
+        m_ir.resize(ninputs + 1);  // including reserving a spot for result
         for (int i = 0; i < ninputs; ++i)
-            ir[ninputs - i] = ot.pop();
+            m_ir[ninputs - i] = ot.pop();
     }
     OiiotoolOp(Oiiotool& ot, string_view opname, int argc, const char* argv[],
                int ninputs, impl_func_t impl_func = {})
@@ -643,7 +651,7 @@ public:
 
     // The operator(), function-call mode, does most of the work. Although
     // it's virtual, in general you shouldn't need to override it. Instead,
-    // just override impl(), and maybe option_defaults.
+    // just override impl() or supply an impl_func at construction.
     virtual int operator()()
     {
         // Set up a timer to automatically record how much time is spent in
@@ -661,57 +669,34 @@ public:
         // Parse the options.
         m_options.clear();
         m_options["allsubimages"] = (int)ot.allsubimages;
-        option_defaults();  // this can be customized to set up defaults
-        m_options = ot.extract_options(m_args[0]);
+        m_options                 = ot.extract_options(m_args[0]);
 
         // Read all input images, and reserve (and push) the output image.
         int subimages = compute_subimages();
+        for (int i = 1; i < nimages(); ++i)
+            ot.read(m_ir[i]);
         if (nimages()) {
             // Read the inputs
-            for (int i = 1; i < nimages(); ++i)
-                ot.read(ir[i]);
             subimages = compute_subimages();
             // Initialize the output image
-            ir[0].reset(new ImageRec(opname(), subimages));
-            ot.push(ir[0]);
+            m_ir[0] = new_output_imagerec();
+            ot.push(m_ir[0]);
         }
 
         // Give a chance for customization before we walk the subimages.
         // If the setup method returns false, we're done.
-        if (!setup())
+        if (!setup()) {
             return 0;
-
-        // For each subimage, find the ImageBuf's for input and output
-        // images, and call impl().
-        for (int s = 0; s < subimages; ++s) {
-            // Get pointers for the ImageBufs for this subimage
-            img.resize(nimages());
-            for (int i = 0; i < nimages(); ++i)
-                img[i] = &((*ir[i])(std::min(s, ir[i]->subimages() - 1)));
-
-            if (subimage_is_active(s)) {
-                // Call the impl kernel for this subimage
-                bool ok = impl(img);
-                if (!ok)
-                    ot.errorf(opname(), "%s", img[0]->geterror());
-
-                // Merge metadata if called for
-                if (ot.metamerge)
-                    for (int i = 1; i < nimages(); ++i)
-                        img[0]->specmod().extra_attribs.merge(
-                            img[i]->spec().extra_attribs);
+        } else {
+            if (skip_impl()) {
+                // setup must have asked to skip the rest of the impl.
+                // Just copy the input instead.
+                if (nimages())
+                    m_ir[0] = m_ir[1];
             } else {
-                // Inactive subimage, just copy.
-                if (nimages() >= 2)
-                    img[0]->copy(*img[1]);
+                traverse_subimages(subimages);
             }
-            ir[0]->update_spec_from_imagebuf(s);
         }
-
-        // Make sure to forward any errors missed by the impl
-        for (auto& im : img)
-            if (im->has_error())
-                ot.errorf(opname(), "%s", im->geterror());
 
         if (ot.debug || ot.runstats)
             ot.check_peak_memory();
@@ -731,24 +716,91 @@ public:
         return 0;
     }
 
+    virtual void traverse_subimages(int subimages)
+    {
+        // For each subimage, find the ImageBuf's for input and output
+        // images, and call impl().
+        for (int s = 0; s < subimages; ++s) {
+            // Get pointers for the ImageBufs for this subimage
+            m_img.resize(nimages());
+            for (int m = 0, nmip = ir(0)->miplevels(); m < nmip; ++m) {
+                for (int i = 0; i < nimages(); ++i)
+                    m_img[i] = &((*ir(i))(std::min(s, ir(i)->subimages() - 1),
+                                          std::min(m, ir(i)->miplevels(s))));
+
+                if (subimage_is_active(s)) {
+                    // Call the impl kernel for this subimage
+                    bool ok = impl(m_img);
+                    if (!ok)
+                        ot.errorf(opname(), "%s", m_img[0]->geterror());
+
+                    // Merge metadata if called for
+                    if (ot.metamerge)
+                        for (int i = 1; i < nimages(); ++i)
+                            m_img[0]->specmod().extra_attribs.merge(
+                                m_img[i]->spec().extra_attribs);
+                } else {
+                    // Inactive subimage, just copy.
+                    if (nimages() >= 2)
+                        m_img[0]->copy(*m_img[1]);
+                }
+                m_ir[0]->update_spec_from_imagebuf(s, m);
+            }
+
+            // Make sure to forward any errors missed by the impl
+            for (auto& im : m_img)
+                if (im->has_error())
+                    ot.errorf(opname(), "%s", im->geterror());
+        }
+    }
+
     // THIS is the method that needs to be separately overloaded for each
     // different op. This is called once for each subimage, generally with
-    // img[0] the destination ImageBuf, and img[1..] as the inputs.
+    // img[0] the destination ImageBuf, and img[1..] as the inputs. It's
+    // also possible to override just this by supplying the impl_func,
+    // without needing to subclass at all. The default is to copy the first
+    // input image.
     virtual bool impl(span<ImageBuf*> img)
     {
-        return m_impl_func ? m_impl_func(*this, img) : 0;
+        if (m_impl_func) {
+            return m_impl_func(*this, img);
+        } else {
+            return m_img.size() > 1 ? img[0]->copy(*img[1]) : false;
+        }
     }
 
     // Extra place to inject customization before the subimages are
-    // traversed.
+    // traversed. It's also possible to override just this by supplying the
+    // setup_func, without needing to subclass at all.
     virtual bool setup() { return m_setup_func ? m_setup_func(*this) : true; }
+
+    // Return an ImageRecRef of the new output image. The default just
+    // makes an ImageRecRef with enough slots for the number of subimages
+    // that can be discerned from the inputs. This can be overloaded for
+    // custom behavior of subclasses.
+    virtual ImageRecRef new_output_imagerec()
+    {
+        if (m_new_output_imagerec_func) {
+            // Callback supplied -- use it.
+            return m_new_output_imagerec_func(*this);
+        }
+        // No callback, we're on our own
+        if (preserve_miplevels()) {
+            std::vector<int> allmiplevels;
+            for (int s = 0, se = compute_subimages(); s < se; ++s)
+                allmiplevels.push_back(ir(1)->miplevels(s));
+            return std::make_shared<ImageRec>(ir(1)->name(),
+                                              (int)allmiplevels.size(),
+                                              allmiplevels);
+        } else {
+            // Not instructed to preserve MIP levels. Just copy from the
+            // input image.
+            return std::make_shared<ImageRec>(opname(), compute_subimages());
+        }
+    }
 
     // Extra place to inject customization after the subimges are traversed.
     virtual bool cleanup() { return true; }
-
-    // Override this if the impl uses options and needs any of them set
-    // to defaults. This will be called separately for each subimage.
-    virtual void option_defaults() {}
 
     // Default subimage logic: if the global -a flag was set or if this
     // command had ":allsubimages=1" option set, then apply the command to
@@ -789,7 +841,7 @@ public:
             }
         }
         all_subimages |= m_options.get_int("allsubimages", ot.allsubimages);
-        return all_subimages ? (nimages() > 1 ? ir[1]->subimages() : 1) : 1;
+        return all_subimages ? (nimages() > 1 ? ir(1)->subimages() : 1) : 1;
     }
 
     // Is the given subimage in the active set to be operated on by this op?
@@ -810,10 +862,10 @@ public:
         // For each image on the stack, check if the names of any of its
         // subimages is a match.
         for (int i = 0; i < nimages(); ++i) {
-            if (!ir[i])
+            if (!ir(i))
                 continue;
-            for (int s = 0; s < ir[i]->subimages(); ++s) {
-                const ImageSpec* spec = ir[i]->spec(s);
+            for (int s = 0; s < ir(i)->subimages(); ++s) {
+                const ImageSpec* spec = ir(i)->spec(s);
                 if (spec
                     && spec->get_string_attribute("oiio:subimagename") == name)
                     return s;
@@ -827,14 +879,43 @@ public:
     int nimages() const { return m_nimages; }
     string_view opname() const { return m_opname; }
     const ParamValueList& options() const { return m_options; }
+    ImageBuf* img(int i) const { return m_img[i]; }
+
+    // Retrieve an ImageRec we're working on. (Note: [0] is the output.)
+    ImageRecRef& ir(int i) { return m_ir[i]; }
+    const ImageRecRef& ir(int i) const { return m_ir[i]; }
+
+    // Set a customized setup() function
+    void set_setup(setup_func_t func) { m_setup_func = func; }
+
+    // Set a customized impl() function
+    void set_impl(impl_func_t func) { m_impl_func = func; }
+
+    // Set a customized new_output_imagerec() function
+    void set_new_output_imagerec(new_output_imagerec_func_t func)
+    {
+        m_new_output_imagerec_func = func;
+    }
+
+    // Call preserve_miplevels(true) if the impl should traverse all MIP
+    // levels.
+    void preserve_miplevels(bool val) { m_preserve_miplevels = val; }
+    bool preserve_miplevels() const { return m_preserve_miplevels; }
+
+    // Call skip_impl(true) if the impl should skipped entirely and just
+    // leave the stack unchanged. This can be set by a custom setup method.
+    void skip_impl(bool val) { m_skip_impl = val; }
+    bool skip_impl() const { return m_skip_impl; }
 
 protected:
     Oiiotool& ot;
     std::string m_opname;
     int m_nargs;
     int m_nimages;
-    std::vector<ImageRecRef> ir;
-    std::vector<ImageBuf*> img;
+    bool m_preserve_miplevels = false;
+    bool m_skip_impl          = false;
+    std::vector<ImageRecRef> m_ir;
+    std::vector<ImageBuf*> m_img;
     std::vector<string_view> m_args;
     ParamValueList m_options;
     typedef boost::container::flat_set<int> FastIntSet;
@@ -842,6 +923,7 @@ protected:
     FastIntSet subimage_excludes;  // Subimages to skip for the op
     setup_func_t m_setup_func;
     impl_func_t m_impl_func;
+    new_output_imagerec_func_t m_new_output_imagerec_func;
 };
 
 
