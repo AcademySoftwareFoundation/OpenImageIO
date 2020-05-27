@@ -264,6 +264,7 @@ ifeq (${SP_OS}, rhel7)
         -DOpenVDB_ROOT=${OpenVDB_ROOT} \
         -DTBB_ROOT=${TBB_ROOT} \
         -DTBB_LIBRARY=${TBB_LIBRARY} \
+        -DTBB_USE_DEBUG_BUILD=0 \
         -DHDF5_CUSTOM=1 \
         -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
         -DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION} \
