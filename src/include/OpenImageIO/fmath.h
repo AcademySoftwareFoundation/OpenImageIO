@@ -326,7 +326,7 @@ clamp (const T& a, const T& low, const T& high)
     // should result in just a max and min instruction, thats it.
     // This implementation is courtesy of Alex Wells, Intel, via OSL.
     T val = a;
-    if (!(low < val))  // Forces clamp(NaN,low,high) to return low
+    if (!(low <= val))  // Forces clamp(NaN,low,high) to return low
         val = low;
     if (val > high)
         val = high;
