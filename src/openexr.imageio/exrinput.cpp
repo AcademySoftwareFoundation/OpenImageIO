@@ -866,13 +866,29 @@ TypeDesc_from_ImfPixelType(Imf::PixelType ptype)
 
 
 
+// Split a full channel name into layer and suffix.
+static void
+split_name(string_view fullname, string_view& layer, string_view& suffix)
+{
+    size_t dot = fullname.find_last_of('.');
+    if (dot == string_view::npos) {
+        suffix = fullname;
+        layer  = string_view();
+    } else {
+        layer  = string_view(fullname.data(), dot + 1);
+        suffix = string_view(fullname.data() + dot + 1,
+                             fullname.size() - dot - 1);
+    }
+}
+
+
 // Used to hold channel information for sorting into canonical order
 struct ChanNameHolder {
-    string_view fullname;
+    string_view fullname;    // layer.suffix
+    string_view layer;       // just layer
+    string_view suffix;      // just suffix (or the fillname, if no layer)
     int exr_channel_number;  // channel index in the exr (sorted by name)
-    string_view layer;
-    string_view suffix;
-    int special_index;
+    int special_index;       // sort order for special reserved names
     Imf::PixelType exr_data_type;
     TypeDesc datatype;
     int xSampling;
@@ -881,31 +897,52 @@ struct ChanNameHolder {
     ChanNameHolder(string_view fullname, int n, const Imf::Channel& exrchan)
         : fullname(fullname)
         , exr_channel_number(n)
+        , special_index(10000)
         , exr_data_type(exrchan.type)
         , datatype(TypeDesc_from_ImfPixelType(exrchan.type))
         , xSampling(exrchan.xSampling)
         , ySampling(exrchan.ySampling)
     {
-        size_t dot = fullname.find_last_of('.');
-        if (dot == string_view::npos) {
-            suffix = fullname;
-        } else {
-            layer  = string_view(fullname.data(), dot + 1);
-            suffix = string_view(fullname.data() + dot + 1,
-                                 fullname.size() - dot - 1);
-        }
+        split_name(fullname, layer, suffix);
+    }
+
+    // Compute canoninical channel list sort priority
+    void compute_special_index()
+    {
         static const char* special[]
             = { "R",    "Red",  "G",  "Green", "B",     "Blue",  "Y",
                 "real", "imag", "A",  "Alpha", "AR",    "RA",    "AG",
                 "GA",   "AB",   "BA", "Z",     "Depth", "Zback", nullptr };
-        special_index = 10000;
         for (int i = 0; special[i]; ++i)
             if (Strutil::iequals(suffix, special[i])) {
                 special_index = i;
-                break;
+                return;
             }
     }
 
+    // Compute alternate channel sort priority for layers that contain
+    // x,y,z.
+    void compute_special_index_xyz()
+    {
+        static const char* special[]
+            = { "R",    "Red",  "G",  "Green", "B", "Blue", /* "Y", */
+                "X",  "Y",  "Z", "real", "imag",
+                "A",  "Alpha", "AR", "RA", "AG",
+                "GA",   "AB",   "BA", "Depth", "Zback", nullptr };
+        for (int i = 0; special[i]; ++i)
+            if (Strutil::iequals(suffix, special[i])) {
+                special_index = i;
+                return;
+            }
+    }
+
+    // Partial sort on layer only
+    static bool compare_layer(const ChanNameHolder& a, const ChanNameHolder& b)
+    {
+        return (a.layer < b.layer);
+    }
+
+    // Full sort on layer name, special index, suffix
     static bool compare_cnh(const ChanNameHolder& a, const ChanNameHolder& b)
     {
         if (a.layer < b.layer)
@@ -920,6 +957,18 @@ struct ChanNameHolder {
         return a.suffix < b.suffix;
     }
 };
+
+
+// Is the channel name (suffix only) in the list?
+static bool
+suffixfound(string_view name, cspan<ChanNameHolder> chans)
+{
+    for (auto& c : chans)
+        if (Strutil::iequals(name, c.suffix))
+            return true;
+    return false;
+}
+
 
 }  // namespace
 
@@ -939,9 +988,43 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
     for (auto ci = channels.begin(); ci != channels.end(); ++c, ++ci)
         cnh.emplace_back(ci.name(), c, ci.channel());
     spec.nchannels = int(cnh.size());
-    std::sort(cnh.begin(), cnh.end(), ChanNameHolder::compare_cnh);
+
+    // First, do a partial sort by layername. EXR should already be in that
+    // order, but take no chances.
+    std::sort(cnh.begin(), cnh.end(), ChanNameHolder::compare_layer);
+
+    // Now, within each layer, sort by channel name
+    for (auto layerbegin = cnh.begin(); layerbegin != cnh.end();) {
+        // Identify the subrange that comprises a layer
+        auto layerend = layerbegin + 1;
+        while (layerend != cnh.end() && layerbegin->layer == layerend->layer)
+            ++layerend;
+
+        span<ChanNameHolder> layerspan(&(*layerbegin), layerend - layerbegin);
+        // Strutil::printf("layerspan:\n");
+        // for (auto& c : layerspan)
+        //     Strutil::printf("  %s = %s . %s\n", c.fullname, c.layer, c.suffix);
+        if (suffixfound("X", layerspan) && (suffixfound("Y", layerspan)
+                                            || suffixfound("Z", layerspan))) {
+            // If "X", and at least one of "Y" and "Z", are found among the
+            // channel names of this layer, it must encode some kind of
+            // position or normal. The usual sort order will give a weird
+            // result. Choose a different sort order to reflect this.
+            for (auto& ch : layerspan)
+                ch.compute_special_index_xyz();
+        } else {
+            // Use the usual sort order.
+            for (auto& ch : layerspan)
+                ch.compute_special_index();
+        }
+        std::sort(layerbegin, layerend, ChanNameHolder::compare_cnh);
+
+        layerbegin = layerend;  // next set of layers
+    }
+
     // Now we should have cnh sorted into the order that we want to present
     // to the OIIO client.
+
     spec.format         = TypeDesc::UNKNOWN;
     bool all_one_format = true;
     for (int c = 0; c < spec.nchannels; ++c) {
