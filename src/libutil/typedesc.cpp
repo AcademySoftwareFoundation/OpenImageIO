@@ -170,22 +170,24 @@ TypeDesc::c_str() const
     std::string result;
     if (aggregate == SCALAR)
         result = basetype_name[basetype];
-    else if (aggregate == MATRIX44 && basetype == FLOAT)
-        result = "matrix";
-    else if (aggregate == MATRIX33 && basetype == FLOAT)
-        result = "matrix33";
-    else if (aggregate == VEC4 && basetype == FLOAT && vecsemantics == NOXFORM)
-        result = "float4";
+    // else if (aggregate == MATRIX44 && basetype == FLOAT)
+    //     result = "matrix";
+    // else if (aggregate == MATRIX33 && basetype == FLOAT)
+    //     result = "matrix33";
+    // else if (aggregate == VEC2 && basetype == FLOAT && vecsemantics == NOXFORM)
+    //     result = "float2";
+    // else if (aggregate == VEC4 && basetype == FLOAT && vecsemantics == NOXFORM)
+    //     result = "float4";
     else if (vecsemantics == NOXFORM) {
-        const char* agg = "";
         switch (aggregate) {
-        case VEC2: agg = "vec2"; break;
-        case VEC3: agg = "vec3"; break;
-        case VEC4: agg = "vec4"; break;
-        case MATRIX33: agg = "matrix33"; break;
-        case MATRIX44: agg = "matrix"; break;
+        case VEC2: result = "float2"; break;
+        case VEC3: result = "float3"; break;
+        case VEC4: result = "float4"; break;
+        case MATRIX33: result = "matrix33"; break;
+        case MATRIX44: result = "matrix"; break;
         }
-        result = std::string(agg) + basetype_code[basetype];
+        if (basetype != FLOAT)
+            result += basetype_code[basetype];
     } else {
         // Special names for vector semantics
         const char* vec = "";
@@ -276,6 +278,10 @@ TypeDesc::fromstring(string_view typestring)
         t = TypeMatrix33;
     else if (type == "matrix" || type == "matrix44")
         t = TypeMatrix44;
+    else if (type == "vector2")
+        t = TypeVector2;
+    else if (type == "vector4")
+        t = TypeVector4;
     else if (type == "timecode")
         t = TypeTimeCode;
     else if (type == "rational")
