@@ -36,6 +36,9 @@ New major features and public API changes:
     - New `max()` and `min()` functions take the pixel-by-pixel maximum
       or minimum of two images. #2470 (2.2.1)
 * ColorConfig: add OCIO "role" accessors. #2548
+* oiiotool: Nearly all operations now allow an optional `:subimages=...`
+  modifier that restricts the operation to be performed on only a subset
+  of named or indexed subimages. See docs for details. #2582
 
 Performance improvements:
 * Greatly improved TextureSystem/ImageCache performance in highly threaded
@@ -58,6 +61,10 @@ Fixes and feature enhancements:
     - `--autotrim` now correctly trims to the union of the nonzero regions
       of all subimages, instead of incorrectly trimming all subimages to the
       nonzero region of the first subimage. #2497 (2.2.1.2)
+    - `--subimage` now has an optional `:delete=1` modifier that causes the
+      operation to delete one named or indexed subimage (versus the default
+      behavior of extracing one subimage and deleting the others). #2575
+      (2.2.3)
 * ImageBuf / ImageBufAlgo:
     - Huge ImageBuf allocation failures (more than available RAM) now are
       caught and treated as an ImageBuf error, rather than crashing with an
@@ -103,16 +110,24 @@ Fixes and feature enhancements:
     - Fix loss of 'config' info upon close/reopen. #2549 (2.2.2)
 * OpenEXR:
     - Add support for reading and writing float vector metadata. #2459 #2486
+    - Fix bug in the channel sorting order when channels are "X" and
+      "Y" (was reversing the order by confusing "Y" for "luminance"). #2595
+      (2.1.16/2.2.3)
 * PNG:
     - Fix loss of 'config' info upon close/reopen. #2549 (2.2.2)
 * Raw images:
     - Support for new Canon .cr3 file, but only if you build against
       libraw >= 0.20.0 developer snapshot. #2484 (2.2.1)
+    - RAW input: set the "raw:flip" attribute if the underlying libraw did a
+      reorientation. #2572 (2.1.15/2.2.3)
 * TIFF:
     - Internal improvements to handling metadata retrieval for certain
       unusual tags. #2504 (2.2.2/2.1.13)
     - Fix subtle bug when reading Exif directory in the header. #2540
       (2.2.2)
+* Video files:
+    - Fix posible infinite loop in the FFMpeg-based reader. #2576
+      (2.1.15/2.2.3)
 
 Developer goodies / internals:
 * argparse.h:
@@ -128,6 +143,8 @@ Developer goodies / internals:
       Filesystem utility calls. #2522 (2.2.2/2.1.13)
 * fmath.h:
     - clamp() is 2x faster. #2491 (2.1.12/2.2.2)
+    - Very minor fix to OIIO::clamp(), shouldn't affect normal use with
+      floats at all, but fixed a subtle quasi-bug in OSL. #2594 (2.1.15/2.2.3)
     - madd() is improved especially on platforms without fma hardware
       #2492 (2.1.12/2.2.2)
     - Perf improvements to `fast_sin`, `fast_cos` #2495 (2.1.12/2.2.2)
@@ -167,6 +184,9 @@ Developer goodies / internals:
     - `Strutil::repeat()` has been internally rewritten to more efficient by
       avoiding any unnecessary copies or temporary heap allocations. #2478
       (2.2.1)
+* typedesc.h:
+    - TypeDesc has additional helpers of constexpr values TypeFloat2,
+      TypeVector2, TypeVector4, TypeVector2i, TypePointer. #2592 (2.1.16/2.2.3)
 * More reshuffling of printf-style vs fmt-style string formatting. #2424
   (2.2.0)
 * Internals: changed a lot of assertions to only happen in debug build mode,
@@ -174,6 +194,9 @@ Developer goodies / internals:
   but not force a termination. #2435 (2.1.11/2.2.0)
 * Internals: Replaced most uses of `boost::thread_specific_ptr` with C++11
   `thread_local`. #2431 (2.2.0)
+* Python: Fixed a bug that lost certain string arguments, especially when
+  passing a TypeDesc as its string equivalent. #2587 (2.1.16/2.2.3)
+* oiiotool: Big overhaul and simplification of internals. #2586 #2589 (2.2.3)
 
 Build/test system improvements and platform ports:
 * Bump the minimum pybind11 vesion that we auto-download, and also be sure
@@ -195,7 +218,7 @@ Build/test system improvements and platform ports:
   #2465, #2471, #2475, #2476. (2.2.1)
 * The `farmhash` functions have been cleaned up to be more careful that none
   of their internal symbols are left visible to the linker. #2473 (2.2.1)
-* Support for building against libraw 0.20. #2484 (2.2.1)
+* Support for building against libraw 0.20. #2484 (2.2.1) #2580 (2.2.3)
 * Clarification about .so name versioning: In supported releases, .so
   contains major.minor, but in master (where ABI is not guaranteed stable,
   we name major.minor.patch). #2488 (2.2.1)
@@ -234,11 +257,17 @@ Build/test system improvements and platform ports:
 * All build-scripts bash scripts now use /usr/bin/env to find bash. #2558
   (2.2.2)
 * Retire TravisCI, now we rely on GitHub Actions CI. Nightly test added.
-  Start to use ASWF docker images for some tests. #2563 (2.2.2)
+  Use ASWF docker images to test exactly against VFX Platform 2019 and
+  2020 configurations. #2563 (2.2.2) #2579 (2.2.3)
 * Avoid possible link errors by fully hiding IBA functions taking IplImage
   parameters, when no OpenCV headers are encountered. #2568 (2.2.2)
 * Change all CMake references to PACKAGE_FOUND to Package_Found (or whatever
   capitalization matches the actual package name). #2569 (2.2.2)
+* In (obsolete) FindOpenImageIO.cmake, avoid CMake warnings by changing
+  the name `OPENIMAGEIO_FOUND` -> `OpenImageIO_FOUND`. #2578 (2.2.3)
+* The exported CMake config files now set cmake variable
+  `OpenImageIO_PLUGIN_SEARCH_PATH` #2584 (2.1.16/2.2.3)
+* Support verified for gcc 10, added to CI tests. #2590 (2.2.3)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
@@ -247,8 +276,46 @@ Notable documentation changes:
 * Many fixes to the new readthedocs documentation, especially fixes to
   section cross-references and links.
 * Improved INSTALL instructions. (2.2.2/2.1.13)
+* Fix a variety of breaks on ReadTheDocs. #2581
+* Improve the way we discuss optional modifiers.
 
 
+Release 2.1.16 1 Jun  2020) -- compared to 2.1.15
+--------------------------------------------------
+* OpenEXR: Fix bug in the channel sorting order when channels are "X" and
+  "Y" (was reversing the order by confusing "Y" for "luminance"). #2595
+* Python: Fixed a bug that lost certain string arguments, especially when
+  passing a TypeDesc as its string equivalent. #2587
+* fmath: Very minor fix to OIIO::clamp(), shouldn't affect normal use with
+  floats at all, but fixed a subtle quasi-bug in OSL. #2594
+* TypeDesc has additional helpers of constexpr values TypeFloat2,
+  TypeVector2, TypeVector4, TypeVector2i, TypePointer. #2592
+* Build: The exported CMake config files now set cmake variable
+  `OpenImageIO_PLUGIN_SEARCH_PATH` #2584
+* Docs: improvements and fixes to broken page rendering.
+
+Release 2.1.15 (11 May 2020) -- compared to 2.1.14
+--------------------------------------------------
+* RAW input: set the "raw:flip" attribute if the underlying libraw did a
+  reorientation. #2572
+* Movie files: Fix posible infinite loop in the FFMpeg-based reader. #2576
+* Fixes to allow building against the forthcoming LibRaw 0.20 release. #2484
+* Documentation fixes. #2581
+
+Release 2.1.14 (1 May 2020) -- compared to 2.1.13
+-------------------------------------------------
+* JPEG & PNG: Fix loss of 'config' hints upon close and reopen that could
+  happen in cases where scanlines were accessed out of order. #2549
+* TIFF: Fix subtle bug when reading certain Exif directories in the header.
+  #2540
+* Added OCIO role accessors to the ColorConfig class. #2548
+* Improve error messages when overscan textures are not possible. #2521
+* Build: fix problems when compiling against current libtiff master (symbol
+  clash on GPSTAG values). #2539
+* Build: Fix static boost to not overlink. #2537.
+* Fix some problems with the docs. #2541
+* `AttrDelegate::as_vec<>` returns the whole attribute as a std::vector.
+  #2528
 
 Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
 -------------------------------------------------

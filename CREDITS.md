@@ -49,6 +49,7 @@ lg@openimageio.org
 * Eloi Du Bois
 * Elvic Liang
 * Fabien Castan
+* Fabien Servant
 * Frédéric Devernay
 * Fredrik Averpil
 * Ghislain Antony Vaillant
@@ -107,6 +108,7 @@ lg@openimageio.org
 * Nandan Dubey
 * Nathan Rusch
 * Nicholas Yue
+* Nick Black
 * Nicolas Burtnyk
 * Nixon Kwok
 * Nuno Cardoso
