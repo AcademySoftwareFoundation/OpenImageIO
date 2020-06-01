@@ -1,5 +1,16 @@
-Release 2.1.16 (??  2020) -- compared to 2.1.15
+Release 2.1.16 1 Jun  2020) -- compared to 2.1.15
 --------------------------------------------------
+* OpenEXR: Fix bug in the channel sorting order when channels are "X" and
+  "Y" (was reversing the order by confusing "Y" for "luminance"). #2595
+* Python: Fixed a bug that lost certain string arguments, especially when
+  passing a TypeDesc as its string equivalent. #2587
+* fmath: Very minor fix to OIIO::clamp(), shouldn't affect normal use with
+  floats at all, but fixed a subtle quasi-bug in OSL. #2594
+* TypeDesc has additional helpers of constexpr values TypeFloat2,
+  TypeVector2, TypeVector4, TypeVector2i, TypePointer. #2592
+* Build: The exported CMake config files now set cmake variable
+  `OpenImageIO_PLUGIN_SEARCH_PATH` #2584
+* Docs: improvements and fixes to broken page rendering.
 
 Release 2.1.15 (11 May 2020) -- compared to 2.1.14
 --------------------------------------------------
