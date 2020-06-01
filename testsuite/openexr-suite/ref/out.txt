@@ -276,3 +276,21 @@ Reading ../../../../../openexr-images/Tiles/Spirals.exr
     oiio:subimages: 1
 Comparing "../../../../../openexr-images/Tiles/Spirals.exr" and "Spirals.exr"
 PASS
+Reading ../../../../../openexr-images/Beachball/singlepart.0001.exr
+../../../../../openexr-images/Beachball/singlepart.0001.exr :  911 x  876, 20 channel, half openexr
+    SHA-1: C946B18AE0C85563D82394D763541A9F61767C27
+    channel list: R, G, B, A, Z, disparityL.x, disparityL.y, disparityR.x, disparityR.y, forward.left.u, forward.left.v, forward.right.u, forward.right.v, left.R, left.G, left.B, left.A, left.Z, whitebarmask.left.mask, whitebarmask.right.mask
+    pixel data origin: x=654, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    multiView: "right", "left"
+    name: "rgba"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "rgba"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/Beachball/singlepart.0001.exr" and "singlepart.0001.exr"
+PASS

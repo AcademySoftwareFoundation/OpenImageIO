@@ -39,3 +39,10 @@ imagedir = OIIO_TESTSUITE_IMAGEDIR + "/Tiles"
 files = [ "GoldenGate.exr", "Ocean.exr", "Spirals.exr" ]
 for f in files:
     command += rw_command (imagedir, f)
+
+
+# Check a complicated channel and layer ordering example
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/Beachball"
+files = [ "singlepart.0001.exr" ]
+for f in files:
+    command += rw_command (imagedir, f)
