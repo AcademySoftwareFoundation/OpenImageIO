@@ -1,4 +1,8 @@
-Release 2.1.16 1 Jun  2020) -- compared to 2.1.15
+Release 2.1.16 (?  2020) -- compared to 2.1.16
+--------------------------------------------------
+
+
+Release 2.1.16 (1 Jun  2020) -- compared to 2.1.15
 --------------------------------------------------
 * OpenEXR: Fix bug in the channel sorting order when channels are "X" and
   "Y" (was reversing the order by confusing "Y" for "luminance"). #2595
