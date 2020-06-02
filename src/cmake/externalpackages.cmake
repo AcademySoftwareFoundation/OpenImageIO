@@ -242,6 +242,7 @@ checked_find_package (OpenCV
                    DEFINITIONS  -DUSE_OPENCV=1)
 
 # Intel TBB
+set (TBB_USE_DEBUG_BUILD OFF)
 checked_find_package (TBB 2017
                    DEFINITIONS  -DUSE_TBB=1
                    ISDEPOF      OpenVDB)
