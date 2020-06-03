@@ -117,6 +117,10 @@ test_file_status()
 
     std::cout << "Testing read_text_file\n";
     OIIO_CHECK_EQUAL(my_read_text_file("testfile"), testtext);
+    std::cout << "Testing write_text_file\n";
+    Filesystem::write_text_file("testfile4", testtext);
+    OIIO_CHECK_EQUAL(my_read_text_file("testfile4"), testtext);
+
 
     std::cout << "Testing read_bytes:\n";
     char buf[3];
@@ -153,10 +157,12 @@ test_file_status()
     OIIO_CHECK_EQUAL(my_read_text_file("testfile3"), testtext);
     Filesystem::remove("testfile");
     Filesystem::remove("testfile3");
+    Filesystem::remove("testfile4");
     Filesystem::remove("testdir");
     OIIO_CHECK_ASSERT(!Filesystem::exists("testfile"));
     OIIO_CHECK_ASSERT(!Filesystem::exists("testfile2"));
     OIIO_CHECK_ASSERT(!Filesystem::exists("testfile3"));
+    OIIO_CHECK_ASSERT(!Filesystem::exists("testfile4"));
     OIIO_CHECK_ASSERT(!Filesystem::exists("testdir"));
 }
 
@@ -401,10 +407,9 @@ test_frame_sequences()
 
 
 void
-create_test_file(const string_view& fn)
+create_test_file(string_view fn)
 {
-    std::ofstream f(fn.c_str());
-    f.close();
+    Filesystem::write_text_file(fn, "");
 }
 
 
