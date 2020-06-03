@@ -214,6 +214,11 @@ OIIO_API void open (OIIO::ofstream &stream, string_view path,
 /// returning true on success, false on failure.
 OIIO_API bool read_text_file (string_view filename, std::string &str);
 
+/// Write the entire contents of the string `str` to the file, overwriting
+/// any prior contents of the file (if it existed), returning true on
+/// success, false on failure.
+OIIO_API bool write_text_file (string_view filename, string_view str);
+
 /// Read a maximum of n bytes from the named file, starting at position pos
 /// (which defaults to the start of the file), storing results in
 /// buffer[0..n-1]. Return the number of bytes read, which will be n for

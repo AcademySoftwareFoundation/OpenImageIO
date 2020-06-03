@@ -509,6 +509,19 @@ Filesystem::read_text_file(string_view filename, std::string& str)
 
 
 
+bool
+Filesystem::write_text_file(string_view filename, string_view str)
+{
+    OIIO::ofstream out;
+    Filesystem::open(out, filename);
+    // N.B. for binary write: open(out, filename, std::ios::out|std::ios::binary);
+    if (out)
+        out << str;
+    return out.good();
+}
+
+
+
 /// Read the entire contents of the named file and place it in str,
 /// returning true on success, false on failure.
 size_t
