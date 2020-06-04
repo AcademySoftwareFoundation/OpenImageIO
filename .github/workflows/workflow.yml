@@ -49,6 +49,7 @@ jobs:
           CXX: g++
           CC: gcc
           CMAKE_CXX_STANDARD: 14
+          USE_SIMD: sse4.2
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
@@ -67,6 +68,7 @@ jobs:
           CC: gcc
           CMAKE_CXX_STANDARD: 14
           PYTHON_VERSION: 3.7
+          USE_SIMD: avx
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
@@ -89,34 +91,15 @@ jobs:
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
 
-  linux-2021ish-gcc8:
-    # Test as close as we can get to what's anticipated to be VFX Platform
-    # 2021 -- mainly, that means gcc8 and C++17.
-    name: "Linux next/VFXP2021: gcc8 C++17 avx exr2.5"
+  linux-gcc8:
+    # Test against gcc8.
+    name: "Linux gcc8: gcc8 C++17 avx exr2.5"
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - name: all
         env:
           CXX: g++-8
-          CMAKE_CXX_STANDARD: 17
-          USE_SIMD: avx
-          OPENEXR_BRANCH: v2.5.0
-        run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
-            source src/build-scripts/ci-build-and-test.bash
-
-  linux-2021ish-gcc9:
-    # Test against gcc9. This will probably never be a VFX Platform
-    # compiler, but lots of people use it.
-    name: "Linux gcc9"
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v2
-      - name: all
-        env:
-          CXX: g++-9
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx
           OPENEXR_BRANCH: v2.5.0
@@ -135,7 +118,7 @@ jobs:
         env:
           CXX: g++-10
           CMAKE_CXX_STANDARD: 17
-          USE_SIMD: avx2
+          USE_SIMD: avx2,f16c
           OPENEXR_BRANCH: v2.5.0
         run: |
             source src/build-scripts/ci-startup.bash
@@ -208,6 +191,8 @@ jobs:
         env:
           CXX: clang++
           PYTHON_VERSION: 3.7
+          CMAKE_CXX_STANDARD: 14
+          ENABLE_FIELD3D: OFF
           ENABLE_WEBP: OFF
           #  ^^ webp seems broken on GH CI Mac. Investigate later.
         run: |

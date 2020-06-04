@@ -43,6 +43,7 @@ export CI=true
 export USE_NINJA=${USE_NINJA:=1}
 export CMAKE_GENERATOR=${CMAKE_GENERATOR:=Ninja}
 export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:=Release}
+export CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD:=11}
 
 if [[ $TRAVIS == true ]] ; then
     export PARALLEL=2

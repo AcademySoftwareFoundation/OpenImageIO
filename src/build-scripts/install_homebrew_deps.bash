@@ -43,7 +43,6 @@ else
     brew install --display-times ffmpeg libheif libsquish
     brew install --display-times openvdb tbb
     brew install --display-times opencv qt ptex
-    # N.B.: seems that Homebrew has removed field3d, allow failure
     brew install --display-times field3d && true
 fi
 
