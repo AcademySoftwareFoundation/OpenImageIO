@@ -189,6 +189,12 @@ RLAInput::read_header()
         errorf("RLA header Revision number unrecognized: %d", m_rla.Revision);
         return false;  // unknown file revision
     }
+    if (m_rla.NumOfChannelBits < 0 || m_rla.NumOfChannelBits > 32
+        || m_rla.NumOfMatteBits < 0 || m_rla.NumOfMatteBits > 32
+        || m_rla.NumOfAuxBits < 0 || m_rla.NumOfAuxBits > 32) {
+        errorf("Unsupported bit depth, or maybe corrupted file.");
+        return false;
+    }
     if (m_rla.NumOfChannelBits == 0)
         m_rla.NumOfChannelBits = 8;  // apparently, this can happen
 
@@ -229,7 +235,10 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     }
     // forward scrolling -- skip subimages until we're at the right place
     while (diff > 0 && m_rla.NextOffset != 0) {
-        fseek(m_file, m_rla.NextOffset, SEEK_SET);
+        if (!fseek(m_file, m_rla.NextOffset, SEEK_SET)) {
+            errorf("Could not seek to header offset. Corrupted file?");
+            return false;
+        }
         if (!read_header())
             return false;  // read_header always calls error()
         --diff;
@@ -242,15 +251,15 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     // Now m_rla holds the header of the requested subimage.  Examine it
     // to fill out our ImageSpec.
 
-    if (m_rla.ColorChannelType > CT_FLOAT) {
+    if (m_rla.ColorChannelType < 0 || m_rla.ColorChannelType > CT_FLOAT) {
         errorf("Illegal color channel type: %d", m_rla.ColorChannelType);
         return false;
     }
-    if (m_rla.MatteChannelType > CT_FLOAT) {
+    if (m_rla.MatteChannelType < 0 || m_rla.MatteChannelType > CT_FLOAT) {
         errorf("Illegal matte channel type: %d", m_rla.MatteChannelType);
         return false;
     }
-    if (m_rla.AuxChannelType > CT_FLOAT) {
+    if (m_rla.AuxChannelType < 0 || m_rla.AuxChannelType > CT_FLOAT) {
         errorf("Illegal auxiliary channel type: %d", m_rla.AuxChannelType);
         return false;
     }
@@ -272,6 +281,15 @@ RLAInput::seek_subimage(int subimage, int miplevel)
         return false;  // failed sanity check
     }
 
+    if (m_rla.NumOfColorChannels < 1 || m_rla.NumOfColorChannels > 3
+        || m_rla.NumOfMatteChannels < 0 || m_rla.NumOfMatteChannels > 3
+        || m_rla.NumOfAuxChannels < 0 || m_rla.NumOfAuxChannels > 256) {
+        errorf(
+            "Invalid number of channels (%d color, %d matte, %d aux), or corrupted header.",
+            m_rla.NumOfColorChannels, m_rla.NumOfMatteChannels,
+            m_rla.NumOfAuxChannels);
+        return false;
+    }
     m_spec = ImageSpec(m_rla.ActiveRight - m_rla.ActiveLeft + 1,
                        (m_rla.ActiveTop - m_rla.ActiveBottom + 1)
                            / (m_rla.FieldRendered ? 2 : 1),  // interlaced image?
