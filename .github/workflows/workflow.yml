@@ -74,6 +74,28 @@ jobs:
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
 
+  vfxplatform-2021:
+    # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
+    # gcc9 and C++17.
+    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.70 exr-2.5"
+    runs-on: ubuntu-18.04
+    container:
+      image: aswf/ci-osl:2021
+    steps:
+      - uses: actions/checkout@v2
+      - name: all
+        env:
+          CXX: g++
+          CC: gcc
+          CMAKE_CXX_STANDARD: 17
+          PYTHON_VERSION: 3.7
+          USE_SIMD: avx2,f16c
+          OPENEXR_BRANCH: v2.5.0
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps-centos.bash
+            source src/build-scripts/ci-build-and-test.bash
+
   linux-gcc7-cpp14-debug:
     # Test against gcc7, and also at the same time, do a Debug build.
     name: "Linux debug gcc7/C++14, sse4.2, exr2.4"
