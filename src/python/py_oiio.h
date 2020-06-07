@@ -90,6 +90,7 @@ template<> struct PyTypeForCType<int> { typedef py::int_ type; };
 template<> struct PyTypeForCType<unsigned int> { typedef py::int_ type; };
 template<> struct PyTypeForCType<short> { typedef py::int_ type; };
 template<> struct PyTypeForCType<unsigned short> { typedef py::int_ type; };
+template<> struct PyTypeForCType<int64_t> { typedef py::int_ type; };
 template<> struct PyTypeForCType<float> { typedef py::float_ type; };
 template<> struct PyTypeForCType<half> { typedef py::float_ type; };
 template<> struct PyTypeForCType<double> { typedef py::float_ type; };

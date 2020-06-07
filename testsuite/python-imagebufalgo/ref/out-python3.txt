@@ -27,6 +27,7 @@ isConstantColor on pink image is (1 0.50196 0.50196)
 isConstantColor on checker is  None
 Is cmul1.exr monochrome?  True
 Is cmul2.exr monochrome?  False
+color range counts =  (4, 8, 4)
 Nonzero region is:  100 180 100 180 0 1 0 3
 SHA-1 of bsplinekernel.exr is: D5826B66A5313F9A32D42C5CF49C90EC4E7F84BF
 R hist:  (10000, 0, 0, 0)

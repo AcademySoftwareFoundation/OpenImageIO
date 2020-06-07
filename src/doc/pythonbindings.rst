@@ -3023,6 +3023,25 @@ Image comparison and statistics
 
 
 
+.. py:method:: bool ImageBufAlgo.color_range_check (src, low, high, roi=ROI.All, nthreads=0)
+
+    Count how many pixels in the `src` image (within the `roi`) are outside
+    the value range described by `low` and `hi` (which each may be either
+    one value or a tuple with per-channel values for each of `roi.chbegin
+    ... roi.chend`. The result returned is a tuple containing three values:
+    the number of values less than `low`, the number of values greater then
+    `hi`, and the number of values within the range.
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf ("a.exr")
+        counts = ImageBufAlgo.color_range_check (A, 0.5, 0.75)
+        print ('{} values < 0.5, {} values > 0.75'.format(counts[0], counts[1])
+
+
+
 .. py:method:: ROI ImageBufAlgo.nonzero_region (src, roi=ROI.All, nthreads=0)
 
     Returns an ROI that tightly encloses the minimal region within `roi`
