@@ -3020,7 +3020,20 @@ Image comparison and statistics
         roi.chend = min (3, roi.chend)  # only test RGB, not alpha
         if ImageBufAlgo.isMonochrome (A, roi) :
             print "a.exr is really grayscale"
-    
+
+
+
+.. py:method:: ROI ImageBufAlgo.nonzero_region (src, roi=ROI.All, nthreads=0)
+
+    Returns an ROI that tightly encloses the minimal region within `roi`
+    that contains all pixels with nonzero values.
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf ("a.exr")
+        nonzero_roi = ImageBufAlgo.nonzero_region(A)
 
 
 
