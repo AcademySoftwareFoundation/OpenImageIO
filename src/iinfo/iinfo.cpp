@@ -677,8 +677,8 @@ main(int argc, const char* argv[])
         if (!in) {
             std::string err = geterror();
             if (err.empty())
-                err = Strutil::sprintf("Could not open \"%s\"", s);
-            std::cerr << "iinfo ERROR: " << err << "\n";
+                err = Strutil::sprintf("Could not open file.");
+            std::cerr << "iinfo ERROR: \"" << s << "\" : " << err << "\n";
             returncode = EXIT_FAILURE;
             continue;
         }
