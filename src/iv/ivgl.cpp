@@ -1227,14 +1227,15 @@ void
 IvGL::wheelEvent(QWheelEvent* event)
 {
     m_mouse_activation = false;
-    if (event->orientation() == Qt::Vertical) {
-        // TODO: Update this to keep the zoom centered on the event .x, .y
+    QPoint angdelta    = event->angleDelta() / 8;  // div by 8 to get degrees
+    if (abs(angdelta.y()) > abs(angdelta.x())      // predominantly vertical
+        && abs(angdelta.y()) > 2) {                // suppress tiny motions
         float oldzoom = m_viewer.zoom();
-        float newzoom = (event->delta() > 0) ? ceil2f(oldzoom)
-                                             : floor2f(oldzoom);
+        float newzoom = (angdelta.y() > 0) ? ceil2f(oldzoom) : floor2f(oldzoom);
         m_viewer.zoom(newzoom);
         event->accept();
     }
+    // TODO: Update this to keep the zoom centered on the event .x, .y
 }
 
 

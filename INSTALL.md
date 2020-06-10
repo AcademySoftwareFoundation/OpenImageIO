@@ -36,7 +36,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt >= 5.6
+     * Qt >= 5.6 (tested through 5.15)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.6, 3.7)
