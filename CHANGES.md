@@ -13,14 +13,16 @@ New major features and public API changes:
   a proxy upon construction for reading, and for writing via a
   `set_write_ioproxy()` method that applies to subsequent `write` call.
   #2434 (2.2.0), #2477 (2.2.1).
-* Python bindings have been added for missing ParamValue constructors. We
-  previously exposed the PV constructors from just a plain int, float, or
-  string, but there wasn't an easy way to construct from arbitrary data like
-  there is in C++. Now there is. #2417 (2.2.0)
-* Python bindings for `ParamValueList.attribute()`, when being passed
-  attributes containing multiple values, now can have those values passed
-  as Python lists and numpy arrays (previously they had to be tuples).
-  #2437 (2.1.11/2.2.0)
+* Python bindings:
+    - Python bindings have been added for missing ParamValue constructors.
+      We previously exposed the PV constructors from just a plain int, float,
+      or string, but there wasn't an easy way to construct from arbitrary
+      data like there is in C++. Now there is. #2417 (2.2.0)
+    - `ParamValueList.attribute()`, when being passed attributes containing
+      multiple values, now can have those values passed as Python lists and
+      numpy arrays (previously they had to be tuples). #2437 (2.1.11/2.2.0)
+    - `ImageBufAlgo.color_range_check()` is now available to the Python
+      bindings (was previously only C++). #2602 (2.2.3)
 * ImageBuf:
     - Easier direct use of IOProxy with ImageBuf: constructor and reset()
       for file-reading ImageBuf now take an optional `IProxy*` parameter,
@@ -65,6 +67,8 @@ Fixes and feature enhancements:
       operation to delete one named or indexed subimage (versus the default
       behavior of extracing one subimage and deleting the others). #2575
       (2.2.3)
+    - The report of dependent libraries (part of `oiiotool --help`) now
+      correctly reports the OpenEXR version. #2604 (2.2.3)
 * ImageBuf / ImageBufAlgo:
     - Huge ImageBuf allocation failures (more than available RAM) now are
       caught and treated as an ImageBuf error, rather than crashing with an
@@ -120,6 +124,10 @@ Fixes and feature enhancements:
       libraw >= 0.20.0 developer snapshot. #2484 (2.2.1)
     - RAW input: set the "raw:flip" attribute if the underlying libraw did a
       reorientation. #2572 (2.1.15/2.2.3)
+* RLA:
+    - Additional sanity checks and error checks/messages for detecting files
+      that might be first mistaken for RLA files, but actually are not.
+      #2600 (2.2.3)
 * TIFF:
     - Internal improvements to handling metadata retrieval for certain
       unusual tags. #2504 (2.2.2/2.1.13)
@@ -141,6 +149,8 @@ Developer goodies / internals:
 * filesystem.h:
     - Catch previously uncaught exceptions that could happen in certain
       Filesystem utility calls. #2522 (2.2.2/2.1.13)
+    - New `write_text_file()` convenience function for opening, writing, and
+      closing a text file all in one step. #2597 (2.2.3)
 * fmath.h:
     - clamp() is 2x faster. #2491 (2.1.12/2.2.2)
     - Very minor fix to OIIO::clamp(), shouldn't affect normal use with
@@ -268,6 +278,7 @@ Build/test system improvements and platform ports:
 * The exported CMake config files now set cmake variable
   `OpenImageIO_PLUGIN_SEARCH_PATH` #2584 (2.1.16/2.2.3)
 * Support verified for gcc 10, added to CI tests. #2590 (2.2.3)
+* Support for Qt 5.15. #2605 (2.2.3)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
