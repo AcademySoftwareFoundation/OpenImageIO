@@ -224,8 +224,8 @@ OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 openexr_imageio_library_version()
 {
-#ifdef OPENEXR_PACKAGE_STRING
-    return OPENEXR_PACKAGE_STRING;
+#ifdef OPENEXR_VERSION_STRING
+    return "OpenEXR " OPENEXR_VERSION_STRING;
 #else
     return "OpenEXR 1.x";
 #endif
