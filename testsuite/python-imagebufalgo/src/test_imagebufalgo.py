@@ -314,7 +314,11 @@ try:
     print ("Is", b.name, "monochrome? ", ImageBufAlgo.isMonochrome(b))
 
 
-    # color_count, color_range_check
+    # color_count
+
+    b = ImageBufAlgo.fill (top=(0,0,0), bottom=(1,1,1), roi=ROI(0,4,0,4,0,1,0,3))
+    counts = ImageBufAlgo.color_range_check (b, low=0.25, high=(0.5,0.5,0.5))
+    print ('color range counts = ', counts)
 
     # nonzero_region
     b = make_constimage (256,256,3,oiio.UINT8,(0,0,0))
