@@ -200,3 +200,166 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     Maximum depth was 954.393 at (716, 324)
 Comparing "../../../../../openexr-images/v2/Stereo/Leaves.exr" and "Leaves.exr"
 PASS
+Reading ../../../../../openexr-images/Beachball/multipart.0001.exr
+../../../../../openexr-images/Beachball/multipart.0001.exr :  877 x  876, 4 channel, half openexr
+    10 subimages: 877x876 [h,h,h,h], 877x876 [h], 877x876 [h,h], 385x769 [h], 877x876 [h,h,h,h], 877x876 [h], 877x876 [h,h], 911x876 [h,h], 911x876 [h,h], 386x769 [h]
+ subimage  0:  877 x  876, 4 channel, half openexr
+    SHA-1: C0E144BF97015C7019B09F07B7B15793FADD212E
+    channel list: R, G, B, A
+    pixel data origin: x=654, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "rgba_right"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    view: "right"
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "rgba_right"
+    oiio:subimages: 10
+    openexr:chunkCount: 876
+ subimage  1:  877 x  876, 1 channel, half openexr
+    SHA-1: 464AC3E30615481DB6F60B0D90E46B44868EF541
+    channel list: Z
+    pixel data origin: x=688, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "depth_left"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    view: "left"
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "depth_left"
+    oiio:subimages: 10
+    openexr:chunkCount: 876
+ subimage  2:  877 x  876, 2 channel, half openexr
+    SHA-1: 3F41E3E55E1549C689E41624DDF76FDD387E6C06
+    channel list: forward.u, forward.v
+    pixel data origin: x=688, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "forward_left"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    view: "left"
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "forward_left"
+    oiio:subimages: 10
+    openexr:chunkCount: 876
+ subimage  3:  385 x  769, 1 channel, half openexr
+    SHA-1: 07435B6A85DCB4DBC15B8D3CC7B15496A29F7B65
+    channel list: whitebarmask.mask
+    pixel data origin: x=1106, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "whitebarmask_left"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    view: "left"
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "whitebarmask_left"
+    oiio:subimages: 10
+    openexr:chunkCount: 769
+ subimage  4:  877 x  876, 4 channel, half openexr
+    SHA-1: D7866F11339F2EB9C8D9DB432D0EC6AA22872DD1
+    channel list: R, G, B, A
+    pixel data origin: x=688, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "rgba_left"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    view: "left"
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "rgba_left"
+    oiio:subimages: 10
+    openexr:chunkCount: 876
+ subimage  5:  877 x  876, 1 channel, half openexr
+    SHA-1: E8A3A031B7043016F0BDFD450E684587536E5571
+    channel list: Z
+    pixel data origin: x=654, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "depth_right"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    view: "right"
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "depth_right"
+    oiio:subimages: 10
+    openexr:chunkCount: 876
+ subimage  6:  877 x  876, 2 channel, half openexr
+    SHA-1: AF0F404B734D696163E2B175AD423AF637394DE6
+    channel list: forward.u, forward.v
+    pixel data origin: x=654, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "forward_right"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    view: "right"
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "forward_right"
+    oiio:subimages: 10
+    openexr:chunkCount: 876
+ subimage  7:  911 x  876, 2 channel, half openexr
+    SHA-1: 246B79EF99645956E5315E8C7726431FA82A5BC4
+    channel list: disparityL.x, disparityL.y
+    pixel data origin: x=654, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "disparityL"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "disparityL"
+    oiio:subimages: 10
+    openexr:chunkCount: 876
+ subimage  8:  911 x  876, 2 channel, half openexr
+    SHA-1: 538EEB9BDE9ABD3672892052B67773BBF1BCA31B
+    channel list: disparityR.x, disparityR.y
+    pixel data origin: x=654, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "disparityR"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "disparityR"
+    oiio:subimages: 10
+    openexr:chunkCount: 876
+ subimage  9:  386 x  769, 1 channel, half openexr
+    SHA-1: 110206AA3541F5FF372F9A0A0940F2572C81DCEB
+    channel list: whitebarmask.mask
+    pixel data origin: x=1070, y=245
+    full/display size: 2048 x 1556
+    full/display origin: 0, 0
+    compression: "zips"
+    name: "whitebarmask_right"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    view: "right"
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "whitebarmask_right"
+    oiio:subimages: 10
+    openexr:chunkCount: 769
+Comparing "../../../../../openexr-images/Beachball/multipart.0001.exr" and "multipart.0001.exr"
+PASS

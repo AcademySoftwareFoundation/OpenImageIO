@@ -384,7 +384,8 @@ oiio_add_tests (tiff-suite tiff-depths tiff-misc
     IMAGEDIR libtiffpic
     URL http://www.simplesystems.org/libtiff/images.html)
 
-oiio_add_tests (openexr-suite openexr-multires openexr-chroma openexr-v2 perchannel
+oiio_add_tests (openexr-suite openexr-multires openexr-chroma
+                openexr-v2 openexr-window openexr-damaged perchannel
     IMAGEDIR openexr-images
     URL http://www.openexr.com/downloads.html)
 

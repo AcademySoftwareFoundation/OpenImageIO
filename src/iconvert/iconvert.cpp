@@ -333,7 +333,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
     if (!out) {
         std::cerr
             << "iconvert ERROR: Could not find an ImageIO plugin to write \""
-            << out_filename << "\" :" << geterror() << "\n";
+            << out_filename << "\" : " << geterror() << "\n";
         return false;
     }
 

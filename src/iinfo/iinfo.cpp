@@ -52,13 +52,17 @@ static bool compute_stats = false;
 static void
 print_sha1(ImageInput* input)
 {
+    using Strutil::printf;
     SHA1 sha;
     const ImageSpec& spec(input->spec());
     if (spec.deep) {
         // Special handling of deep data
         DeepData dd;
         if (!input->read_native_deep_image(dd)) {
-            printf("    SHA-1: unable to compute, could not read image\n");
+            std::string err = input->geterror();
+            if (err.empty())
+                err = "could not read image";
+            printf("    SHA-1: %s\n", err);
             return;
         }
         // Hash both the sample counds and the data block
@@ -72,7 +76,10 @@ print_sha1(ImageInput* input)
         }
         std::unique_ptr<char[]> buf(new char[size]);
         if (!input->read_image(TypeDesc::UNKNOWN /*native*/, &buf[0])) {
-            printf("    SHA-1: unable to compute, could not read image\n");
+            std::string err = input->geterror();
+            if (err.empty())
+                err = "could not read image";
+            printf("    SHA-1: %s\n", err);
             return;
         }
         sha.append(&buf[0], size);

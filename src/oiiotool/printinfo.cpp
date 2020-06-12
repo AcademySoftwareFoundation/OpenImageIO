@@ -56,7 +56,10 @@ compute_sha1(Oiiotool& ot, ImageInput* input)
         // Special handling of deep data
         DeepData dd;
         if (!input->read_native_deep_image(dd)) {
-            ot.error("-info", "SHA-1: unable to compute, could not read image");
+            std::string err = input->geterror();
+            if (err.empty())
+                err = "could not read image";
+            ot.errorf("-info", "SHA-1: %s", err);
             return std::string();
         }
         // Hash both the sample counts and the data block
@@ -65,13 +68,15 @@ compute_sha1(Oiiotool& ot, ImageInput* input)
     } else {
         imagesize_t size = input->spec().image_bytes(true /*native*/);
         if (size >= std::numeric_limits<size_t>::max()) {
-            ot.error("-info", "SHA-1: unable to compute, image is too big");
+            ot.errorf("-info", "SHA-1: unable to compute, image is too big");
             return std::string();
         } else if (size != 0) {
             std::unique_ptr<char[]> buf(new char[size]);
             if (!input->read_image(TypeDesc::UNKNOWN /*native*/, &buf[0])) {
-                ot.error("-info",
-                         "SHA-1: unable to compute, could not read image");
+                std::string err = input->geterror();
+                if (err.empty())
+                    err = "could not read image";
+                ot.errorf("-info", "SHA-1: %s", err);
                 return std::string();
             }
             sha.append(&buf[0], size);

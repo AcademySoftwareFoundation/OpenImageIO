@@ -2,8 +2,13 @@
 
 # ../openexr-images/Chromaticities:
 # README         Rec709.exr     Rec709_YC.exr  XYZ.exr        XYZ_YC.exr
-imagedir = OIIO_TESTSUITE_IMAGEDIR + "/Chromaciticies"
-# FIXME - we don't currently understand chromaticities
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/Chromaticities"
+files = [
+    "Rec709.exr", "XYZ.exr"
+]
+for f in files:
+    command += rw_command (imagedir, f)
+# FIXME - we don't currently subsampled images (Rec709_YC.exr and XYZ_YC.exr)
 
 # ../openexr-images/LuminanceChroma:
 # CrissyField.exr  Garden.exr       StarField.exr

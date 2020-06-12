@@ -1,0 +1,223 @@
+Reading ../../../../../openexr-images/DisplayWindow/t01.exr
+../../../../../openexr-images/DisplayWindow/t01.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t01.exr" and "t01.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t02.exr
+../../../../../openexr-images/DisplayWindow/t02.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 400 x 300
+    full/display origin: 1, 1
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t02.exr" and "t02.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t03.exr
+../../../../../openexr-images/DisplayWindow/t03.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 370 x 280
+    full/display origin: 30, 20
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t03.exr" and "t03.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t04.exr
+../../../../../openexr-images/DisplayWindow/t04.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 370 x 280
+    full/display origin: 0, 0
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t04.exr" and "t04.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t05.exr
+../../../../../openexr-images/DisplayWindow/t05.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 340 x 260
+    full/display origin: 30, 20
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t05.exr" and "t05.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t06.exr
+../../../../../openexr-images/DisplayWindow/t06.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 402 x 302
+    full/display origin: -1, -1
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t06.exr" and "t06.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t07.exr
+../../../../../openexr-images/DisplayWindow/t07.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 481 x 371
+    full/display origin: -40, -40
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t07.exr" and "t07.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t08.exr
+../../../../../openexr-images/DisplayWindow/t08.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    pixel data origin: x=30, y=40
+    full/display size: 501 x 401
+    full/display origin: 0, 0
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t08.exr" and "t08.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t09.exr
+../../../../../openexr-images/DisplayWindow/t09.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 200 x 300
+    full/display origin: 400, 0
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t09.exr" and "t09.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t10.exr
+../../../../../openexr-images/DisplayWindow/t10.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 100 x 300
+    full/display origin: -100, 0
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t10.exr" and "t10.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t11.exr
+../../../../../openexr-images/DisplayWindow/t11.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 400 x 200
+    full/display origin: 0, 300
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t11.exr" and "t11.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t12.exr
+../../../../../openexr-images/DisplayWindow/t12.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 400 x 100
+    full/display origin: 0, -100
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t12.exr" and "t12.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t13.exr
+../../../../../openexr-images/DisplayWindow/t13.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 101 x 101
+    full/display origin: 399, 299
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t13.exr" and "t13.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t14.exr
+../../../../../openexr-images/DisplayWindow/t14.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 101 x 101
+    full/display origin: -100, -100
+    compression: "piz"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t14.exr" and "t14.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t15.exr
+../../../../../openexr-images/DisplayWindow/t15.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 481 x 371
+    full/display origin: -40, -40
+    compression: "piz"
+    PixelAspectRatio: 1.5
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t15.exr" and "t15.exr"
+PASS
+Reading ../../../../../openexr-images/DisplayWindow/t16.exr
+../../../../../openexr-images/DisplayWindow/t16.exr :  400 x  300, 3 channel, half openexr
+    SHA-1: 829439C4520AA6F19D88FE1630B2E90A52A522D3
+    channel list: R, G, B
+    full/display size: 481 x 371
+    full/display origin: -40, -40
+    compression: "piz"
+    PixelAspectRatio: 0.666667
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/DisplayWindow/t16.exr" and "t16.exr"
+PASS
