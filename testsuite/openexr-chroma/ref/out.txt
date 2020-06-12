@@ -1,3 +1,30 @@
+Reading ../../../../../openexr-images/Chromaticities/Rec709.exr
+../../../../../openexr-images/Chromaticities/Rec709.exr :  610 x  406, 3 channel, half openexr
+    SHA-1: 8C8D4705DB92D12D9B70F7514BF7AB6B6C783E84
+    channel list: R, G, B
+    compression: "piz"
+    Copyright: "Copyright 2006 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/Chromaticities/Rec709.exr" and "Rec709.exr"
+PASS
+Reading ../../../../../openexr-images/Chromaticities/XYZ.exr
+../../../../../openexr-images/Chromaticities/XYZ.exr :  610 x  406, 3 channel, half openexr
+    SHA-1: AEF6776DB3557A4A3A4B09BEB583C48B56AA82BE
+    channel list: R, G, B
+    chromaticities: 1, 0, 0, 1, 0, 0, 0.333333, 0.333333
+    compression: "piz"
+    Copyright: "Copyright 2006 Industrial Light & Magic"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/Chromaticities/XYZ.exr" and "XYZ.exr"
+PASS
 Reading ../../../../../openexr-images/LuminanceChroma/Garden.exr
 ../../../../../openexr-images/LuminanceChroma/Garden.exr :  874 x  493, 1 channel, half openexr
     SHA-1: FDC1BE9592AD4B1FE4EF2FF431783BAC83E619DE

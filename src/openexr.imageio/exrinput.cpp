@@ -988,6 +988,10 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
     for (auto ci = channels.begin(); ci != channels.end(); ++c, ++ci)
         cnh.emplace_back(ci.name(), c, ci.channel());
     spec.nchannels = int(cnh.size());
+    if (! spec.nchannels) {
+        in->errorf("No channels found");
+        return false;
+    }
 
     // First, do a partial sort by layername. EXR should already be in that
     // order, but take no chances.

@@ -245,6 +245,15 @@ public:
         return mem;
     }
 
+    static std::string format_read_error(string_view filename, std::string err)
+    {
+        if (!err.size())
+            err = "unknown error";
+        if (!Strutil::contains(err, filename))
+            err = Strutil::sprintf("\"%s\": %s", filename, err);
+        return err;
+    }
+
 private:
     CallbackFunction m_pending_callback;
     ArgParse::Action m_pending_action;

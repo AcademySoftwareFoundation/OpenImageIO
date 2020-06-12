@@ -250,9 +250,8 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy)
         }
     }
 
-    if (!ok) {
-        errorf("read " + img->name(), "%s", img->geterror());
-    }
+    if (!ok)
+        error("read", format_read_error(img->name(), img->geterror()));
     return ok;
 }
 
@@ -277,9 +276,8 @@ Oiiotool::read_nativespec(ImageRecRef img)
     imagecache->getattribute("stat:fileio_time", post_ic_time);
     total_imagecache_readtime += post_ic_time - pre_ic_time;
 
-    if (!ok) {
-        errorf("read " + img->name(), "%s", img->geterror());
-    }
+    if (!ok)
+        error("read", format_read_error(img->name(), img->geterror()));
     return ok;
 }
 
@@ -4302,6 +4300,7 @@ action_histogram(int argc, const char* argv[])
 
 
 
+// -i
 static int
 input_file(int argc, const char* argv[])
 {
@@ -4341,8 +4340,9 @@ input_file(int argc, const char* argv[])
             ot.imagecache->invalidate(fn, true);
             bool ok = ot.imagecache->add_file(fn, nullptr, &ot.input_config);
             if (!ok) {
-                std::string err = ot.imagecache->geterror();
-                ot.error("read", err.size() ? err : "(unknown error)");
+                ot.error("read",
+                         ot.format_read_error(filename,
+                                              ot.imagecache->geterror()));
                 exit(1);
             }
         }
@@ -4356,14 +4356,9 @@ input_file(int argc, const char* argv[])
             if (!Filesystem::exists(filename) && !procedural)
                 ot.errorf("read", "File does not exist: \"%s\"", filename);
             else {
-                std::string err;
-                auto in = ImageInput::open(filename);
-                if (in) {
-                    err = in->geterror();
-                } else {
-                    err = OIIO::geterror();
-                }
-                ot.error("read", err.size() ? err : "(unknown error)");
+                auto in         = ImageInput::open(filename);
+                std::string err = in ? in->geterror() : OIIO::geterror();
+                ot.error("read", ot.format_read_error(filename, err));
             }
             exit(1);
         }
@@ -4412,7 +4407,8 @@ input_file(int argc, const char* argv[])
             std::string error;
             bool ok = OiioTool::print_info(ot, filename, pio, error);
             if (!ok)
-                ot.error("read", error);
+                ot.errorf("read", "\"%s\" : %s", filename,
+                          error.size() ? error : "unknown error");
             ot.printed_info = true;
         }
         ot.function_times["input"] += timer();
@@ -4545,6 +4541,7 @@ remove_all_cmd(std::string& str)
 
 
 
+// -o
 static int
 output_file(int /*argc*/, const char* argv[])
 {

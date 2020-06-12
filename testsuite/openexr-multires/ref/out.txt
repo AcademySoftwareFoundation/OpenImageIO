@@ -241,3 +241,98 @@ Reading ../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr
     oiio:subimages: 1
 Comparing "../../../../../openexr-images/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
 PASS
+Reading ../../../../../openexr-images/MultiView/Adjuster.exr
+../../../../../openexr-images/MultiView/Adjuster.exr :  775 x  678, 9 channel, half openexr
+    SHA-1: 3528BD22E1C079B85E694685D80FBBFB7D1B3B9F
+    channel list: R, G, B, left.R, left.G, left.B, right.R, right.G, right.B
+    compression: "b44a"
+    ImageDescription: "Plane blade adjustment mechanism"
+    multiView: "center", "left", "right"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/MultiView/Adjuster.exr" and "Adjuster.exr"
+PASS
+Reading ../../../../../openexr-images/MultiView/Balls.exr
+../../../../../openexr-images/MultiView/Balls.exr : 1000 x  784, 6 channel, half openexr
+    SHA-1: A9E6D430F81F0407D7530B5DBD2379036F227377
+    channel list: R, G, B, right.R, right.G, right.B
+    compression: "piz"
+    multiView: "left", "right"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/MultiView/Balls.exr" and "Balls.exr"
+PASS
+Reading ../../../../../openexr-images/MultiView/Fog.exr
+../../../../../openexr-images/MultiView/Fog.exr : 1000 x  672, 2 channel, half openexr
+    SHA-1: 558BF1D0FD1934388AC24AF7B7ABF1DBA2618119
+    channel list: Y, right.Y
+    compression: "piz"
+    ilut: "log"
+    ImageDescription: "Fog in the Presidio of San Francisco"
+    latitude: 37.7973
+    longitude: -122.476
+    multiView: "left", "right"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/MultiView/Fog.exr" and "Fog.exr"
+PASS
+Reading ../../../../../openexr-images/MultiView/Impact.exr
+../../../../../openexr-images/MultiView/Impact.exr :  554 x  699, 6 channel, half openexr
+    MIP-map levels: 554x699 277x349 138x174 69x87 34x43 17x21 8x10 4x5 2x2 1x1
+    SHA-1: A878ABDBB1C4F1F9DC17C6D31938E9EBFF76930B
+    channel list: R, G, B, right.R, right.G, right.B
+    tile size: 64 x 64
+    compression: "zip"
+    ilut: "log"
+    ImageDescription: "Steel ball breaking a wine glass"
+    multiView: "left", "right"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    wrapmodes: "clamp,clamp"
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+    openexr:roundingmode: 0
+Comparing "../../../../../openexr-images/MultiView/Impact.exr" and "Impact.exr"
+PASS
+Reading ../../../../../openexr-images/MultiView/LosPadres.exr
+../../../../../openexr-images/MultiView/LosPadres.exr :  689 x 1000, 6 channel, half openexr
+    SHA-1: 489178A1FBE480DCA649EE24B3FAA408351E4EE3
+    channel list: R, G, B, left.R, left.G, left.B
+    compression: "piz"
+    ImageDescription: "Los Padres National Forest from above"
+    latitude: 34.53
+    longitude: -119.05
+    multiView: "right", "left"
+    PixelAspectRatio: 1
+    ResolutionUnit: "in"
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    XResolution: 100
+    YResolution: 100
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Comparing "../../../../../openexr-images/MultiView/LosPadres.exr" and "LosPadres.exr"
+PASS

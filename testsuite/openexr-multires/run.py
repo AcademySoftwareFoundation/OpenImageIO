@@ -13,6 +13,13 @@ files = [ "Bonita.exr", "ColorCodedLevels.exr",
           "OrientationCube.exr", "OrientationLatLong.exr",
           "PeriodicPattern.exr", "StageEnvCube.exr", "StageEnvLatLong.exr",
           "WavyLinesCube.exr", "WavyLinesLatLong.exr", "WavyLinesSphere.exr" ]
+for f in files:
+    command += rw_command (imagedir, f)
 
+
+# ../openexr-images/MultiView
+# Adjuster.exr  Balls.exr  Fog.exr  Impact.exr  LosPadres.exr
+imagedir = OIIO_TESTSUITE_IMAGEDIR + "/MultiView"
+files = [ "Adjuster.exr", "Balls.exr", "Fog.exr", "Impact.exr", "LosPadres.exr" ]
 for f in files:
     command += rw_command (imagedir, f)
