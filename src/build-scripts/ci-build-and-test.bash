@@ -45,6 +45,7 @@ popd
 
 if [[ "$SKIP_TESTS" == "" ]] ; then
     $OpenImageIO_ROOT/bin/oiiotool --help
+    TESTSUITE_CLEANUP_ON_SUCCESS=1
     make $BUILD_FLAGS test
 fi
 

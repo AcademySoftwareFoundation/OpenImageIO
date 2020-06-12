@@ -36,6 +36,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   vfxplatform-2019:
     name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost-1.66 exr-2.3"
@@ -54,6 +59,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   vfxplatform-2020:
     name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost-1.70 exr-2.4"
@@ -73,6 +83,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   vfxplatform-2021:
     # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
@@ -95,6 +110,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   linux-gcc7-cpp14-debug:
     # Test against gcc7, and also at the same time, do a Debug build.
@@ -112,6 +132,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   linux-gcc8:
     # Test against gcc8.
@@ -129,6 +154,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
@@ -147,6 +177,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
@@ -174,6 +209,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
@@ -204,6 +244,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   macos-py37:
     name: "Mac py37"
@@ -225,6 +270,11 @@ jobs:
             src/build-scripts/install_test_images.bash
             export PYTHONPATH=/usr/local/lib/python3.7/site-packages:$PYTHONPATH
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   windows:
     name: "Windows"
@@ -244,6 +294,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   sanitizer:
     # Run sanitizers. These don't need to run on every push. Just PRs, nightly
@@ -268,6 +323,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   linux-clang9:
     # Test compiling with clang9 on Linux.
@@ -288,6 +348,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   linux-static:
     # Test building static libs.  We don't need to run this on every push --
@@ -307,6 +372,11 @@ jobs:
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
 
   clang-format:
     # Test formatting. This test entry doesn't do a full build, it just runs
