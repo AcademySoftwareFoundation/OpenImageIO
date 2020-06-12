@@ -99,9 +99,13 @@ failthresh = 0.004
 hardfail = 0.012
 failpercent = 0.02
 anymatch = False
+cleanup_on_success = False
+if int(os.getenv('TESTSUITE_CLEANUP_ON_SUCCESS', '0')) :
+    cleanup_on_success = True;
 
 image_extensions = [ ".tif", ".tx", ".exr", ".jpg", ".png", ".rla",
-                     ".dpx", ".iff", ".psd" ]
+                     ".dpx", ".iff", ".psd", ".bmp", ".fits", ".ico",
+                     ".jp2", ".sgi", ".tga", ".TGA" ]
 
 # print ("srcdir = " + srcdir)
 # print ("tmpdir = " + tmpdir)
@@ -439,4 +443,11 @@ if (os.getenv('TRAVIS') or os.getenv('APPVEYOR') or os.getenv('DEBUG')) :
 
 # Run the test and check the outputs
 ret = runtest (command, outputs, failureok=failureok)
+
+if ret == 0 and cleanup_on_success :
+    for ext in image_extensions + [ ".txt", ".diff" ] :
+        for f in glob.iglob (srcdir + '/*' + ext) :
+            os.remove(f)
+            #print('REMOVED ', f)
+
 sys.exit (ret)
