@@ -81,6 +81,7 @@ build options), maybe one of these packages managers will do it for you:
 * vckpg (https://github.com/Microsoft/vcpkg)
     * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
     * `.\vcpkg install openimageio [tools]`
+    * For a full list of supported build features: `.\vcpkg search openimageio`
 * homebrew (https://github.com/Homebrew/brew)
     * https://formulae.brew.sh/formula/openimageio
     * `brew install openimageio`
