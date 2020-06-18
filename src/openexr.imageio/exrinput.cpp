@@ -311,8 +311,6 @@ private:
     {
         // Ones whose name we change to our convention
         m_map["cameraTransform"]  = "worldtocamera";
-        m_map["worldToCamera"]    = "worldtocamera";
-        m_map["worldToNDC"]       = "worldtoscreen";
         m_map["capDate"]          = "DateTime";
         m_map["comments"]         = "ImageDescription";
         m_map["owner"]            = "Copyright";

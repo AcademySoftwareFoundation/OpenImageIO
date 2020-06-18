@@ -1849,6 +1849,7 @@ enum OIIO_API MakeTextureMode {
 ///    - `planarconfig` (string) :  Default: "separate"
 ///    - `worldtocamera` (matrix) : World-to-camera matrix of the view.
 ///    - `worldtoscreen` (matrix) : World-to-screen space matrix of the view.
+///    - `worldtoNDC` (matrix) :    World-to-NDC space matrix of the view.
 ///    - `wrapmodes` (string) :     Default: "black,black"
 ///    - `maketx:verbose` (int) :   How much detail should go to outstream (0).
 ///    - `maketx:runstats` (int) :  If nonzero, print run stats to outstream (0).

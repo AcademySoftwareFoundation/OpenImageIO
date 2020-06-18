@@ -1425,8 +1425,15 @@ public:
     ///         The projection matrix, which is a 4x4 matrix (an
     ///         `Imath::M44f`, described as `TypeMatrix44`) giving the
     ///         matrix that projected points from world space into a 2D
-    ///         screen coordinate system where *x* and *y* range from $-1$
-    ///         to $+1$.  Generally, only rendered images will have this.
+    ///         screen coordinate system where *x* and *y* range from -1 to
+    ///         +1.  Generally, only rendered images will have this.
+    ///
+    ///   - `worldtoNDC` (matrix) :
+    ///         The projection matrix, which is a 4x4 matrix (an
+    ///         `Imath::M44f`, described as `TypeMatrix44`) giving the
+    ///         matrix that projected points from world space into a 2D
+    ///         screen coordinate system where *x* and *y* range from 0 to
+    ///         +1.  Generally, only rendered images will have this.
     ///
     ///   - `averagecolor` (float[nchannels]) :
     ///         If available in the metadata (generally only for files that

@@ -551,6 +551,12 @@ public:
     ///   coordinate system where $x$ and $y$ range from -1 to +1.
     ///   Generally, only rendered images will have this.
     ///
+    /// - `"worldtoNDC"` : The projection matrix, which is a 4x4 matrix
+    ///   (an `Imath::M44f`, described as `TypeDesc(FLOAT,MATRIX)`), giving
+    ///   the matrix that projected points from world space into a 2D NDC
+    ///   coordinate system where $x$ and $y$ range from 0 to +1. Generally,
+    ///   only rendered images will have this.
+    ///
     /// - `"averagecolor"` : If available in the metadata (generally only
     ///   for files that have been processed by `maketx`), this will return
     ///   the average color of the texture (into an array of `float`).
