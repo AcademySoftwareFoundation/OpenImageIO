@@ -163,7 +163,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     std::string swrap;
     std::string twrap;
     bool doresize = false;
-    Imath::M44f Mcam(0.0f), Mscr(0.0f);  // Initialize to 0
+    Imath::M44f Mcam(0.0f), Mscr(0.0f), MNDC(0.0f);  // Initialize to 0
     bool separate              = false;
     bool nomipmap              = false;
     bool prman_metadata        = false;
@@ -256,6 +256,12 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
                           &Mscr[2][0], &Mscr[2][1], &Mscr[2][2], &Mscr[2][3],
                           &Mscr[3][0], &Mscr[3][1], &Mscr[3][2], &Mscr[3][3])
       .help("Set the screen matrix");
+    ap.arg("--MNDC %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
+                          &MNDC[0][0], &MNDC[0][1], &MNDC[0][2], &MNDC[0][3],
+                          &MNDC[1][0], &MNDC[1][1], &MNDC[1][2], &MNDC[1][3],
+                          &MNDC[2][0], &MNDC[2][1], &MNDC[2][2], &MNDC[2][3],
+                          &MNDC[3][0], &MNDC[3][1], &MNDC[3][2], &MNDC[3][3])
+      .help("Set the NDC matrix");
     ap.arg("--prman-metadata", &prman_metadata)
       .help("Add prman specific metadata");
     ap.arg("--attrib %L:NAME %L:VALUE", &any_attrib_names, &any_attrib_values)
@@ -381,6 +387,8 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
         configspec.attribute("worldtocamera", TypeMatrix, &Mcam);
     if (Mscr != Imath::M44f(0.0f))
         configspec.attribute("worldtoscreen", TypeMatrix, &Mscr);
+    if (MNDC != Imath::M44f(0.0f))
+        configspec.attribute("worldtoNDC", TypeMatrix, &MNDC);
     std::string wrapmodes = (swrap.size() ? swrap : wrap) + ','
                             + (twrap.size() ? twrap : wrap);
     configspec.attribute("wrapmodes", wrapmodes);

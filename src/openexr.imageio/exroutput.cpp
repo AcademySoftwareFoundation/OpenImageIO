@@ -818,7 +818,8 @@ struct ExrMeta {
 static ExrMeta exr_meta_translation[] = {
     // Translate OIIO standard metadata names to OpenEXR standard names
     ExrMeta("worldtocamera", "worldToCamera", TypeMatrix),
-    ExrMeta("worldtoscreen", "worldToNDC", TypeMatrix),
+    ExrMeta("worldtoNDC", "worldToNDC", TypeMatrix),
+    ExrMeta("worldtoscreen", "worldToScreen", TypeMatrix),
     ExrMeta("DateTime", "capDate", TypeString),
     ExrMeta("ImageDescription", "comments", TypeString),
     ExrMeta("description", "comments", TypeString),

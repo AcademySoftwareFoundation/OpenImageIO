@@ -318,6 +318,13 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
     projection of the 3D view onto a :math:`[-1...1] \times [-1...1]` 2D
     domain.
 
+.. option:: "worldtoNDC" : matrix44
+
+    For shadow maps or rendered images this item (of type
+    `TypeDesc::PT_MATRIX`) is the world-to-NDC matrix describing the full
+    projection of the 3D view onto a :math:`[0...1] \times [0...1]` 2D
+    domain.
+
 .. option:: "oiio:updirection" : string
 
     For environment maps, indicates which direction is "up" (valid values
