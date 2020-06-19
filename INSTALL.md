@@ -48,7 +48,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Note that OpenVDB 8.0+ requires C++14 or higher.
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * OpenCV 2.x, 3.x, or 4.x (tested through 4.5)
+     * OpenCV 3.x, or 4.x (tested through 4.5)
  * If you want support for GIF images:
      * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
        stability and thread safety)
