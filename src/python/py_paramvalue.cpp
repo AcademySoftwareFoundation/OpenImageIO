@@ -162,13 +162,15 @@ declare_paramvalue(py::module& m)
                 return self[i];
             },
             py::return_value_policy::reference_internal)
-        .def("__getitem__",
-             [](const ParamValueList& self, const std::string& key) {
-                 auto p = self.find(key);
-                 if (p == self.end())
-                     throw py::key_error("key '" + key + "' does not exist");
-                 return ParamValue_getitem(*p);
-             })
+        .def(
+            "__getitem__",
+            [](const ParamValueList& self, const std::string& key) {
+                auto p = self.find(key);
+                if (p == self.end())
+                    throw py::key_error("key '" + key + "' does not exist");
+                return ParamValue_getitem(*p);
+            },
+            py::return_value_policy::reference_internal)
         .def("__setitem__",
              [](ParamValueList& self, const std::string& key, py::object val) {
                  delegate_setitem(self, key, val);
