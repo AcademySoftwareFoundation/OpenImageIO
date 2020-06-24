@@ -226,8 +226,10 @@
 #    define OIIO_GCC_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
 #    if defined(__clang__)
 #        define OIIO_CLANG_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
+#        define OIIO_GCC_ONLY_PRAGMA(UnQuotedPragma)
 #    else
 #        define OIIO_CLANG_PRAGMA(UnQuotedPragma)
+#        define OIIO_GCC_ONLY_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
 #    endif
 #    define OIIO_MSVS_PRAGMA(UnQuotedPragma)
 #elif defined(_MSC_VER)
@@ -236,6 +238,7 @@
 #    define OIIO_PRAGMA_VISIBILITY_PUSH /* N/A on MSVS */
 #    define OIIO_PRAGMA_VISIBILITY_POP  /* N/A on MSVS */
 #    define OIIO_GCC_PRAGMA(UnQuotedPragma)
+#    define OIIO_GCC_ONLY_PRAGMA(UnQuotedPragma)
 #    define OIIO_CLANG_PRAGMA(UnQuotedPragma)
 #    define OIIO_MSVS_PRAGMA(UnQuotedPragma) OIIO_PRAGMA(UnQuotedPragma)
 #else
@@ -244,6 +247,7 @@
 #    define OIIO_PRAGMA_VISIBILITY_PUSH
 #    define OIIO_PRAGMA_VISIBILITY_POP
 #    define OIIO_GCC_PRAGMA(UnQuotedPragma)
+#    define OIIO_GCC_ONLY_PRAGMA(UnQuotedPragma)
 #    define OIIO_CLANG_PRAGMA(UnQuotedPragma)
 #    define OIIO_MSVS_PRAGMA(UnQuotedPragma)
 #endif

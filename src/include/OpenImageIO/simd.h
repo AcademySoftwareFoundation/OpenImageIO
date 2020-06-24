@@ -2064,12 +2064,20 @@ vfloat4 floor (const vfloat4& a);
 vint4 ifloor (const vfloat4& a);    ///< (int)floor
 inline vint4 floori (const vfloat4& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
-/// Per-element round to nearest integer (rounding away from 0 in cases
-/// that are exactly half way).
+/// Per-element round to nearest integer.
+/// CAVEAT: the rounding when mid-way between integers may differ depending
+/// on hardware. Intel SSE/AVX does "banker's founding" (to nearest even
+/// integer) but std::round() says to round away from 0 regardless of
+/// current rounding mode (but that is multiple instructions on x64).
+/// USE WITH CAUTION, and maybe avoid this if it is critical to exactly
+/// match std::round().
 vfloat4 round (const vfloat4& a);
 
-/// Per-element round to nearest integer (rounding away from 0 in cases
-/// that are exactly half way).
+/// Per-element round to nearest integer (equivalent to vint(round(a))).
+/// CAVEAT: On SSE/AVX this uses banker's rounding, which may differ from
+/// C++ std::rint() which says to use the current rounding mode.
+/// USE WITH CAUTION, and maybe avoid this if it is critical to exactly
+/// match std::rint().
 vint4 rint (const vfloat4& a);
 
 vfloat4 rcp_fast (const vfloat4 &a);  ///< Fast, approximate 1/a
@@ -2238,6 +2246,14 @@ public:
     friend inline std::ostream& operator<< (std::ostream& cout, const vfloat3& val);
 };
 
+
+
+// Per-element math on float3
+vfloat3 abs (const vfloat3& a);
+vfloat3 sign (const vfloat3& a);
+vfloat3 ceil (const vfloat3& a);
+vfloat3 floor (const vfloat3& a);
+vfloat3 round (const vfloat3& a);
 
 
 
@@ -2659,12 +2675,20 @@ vfloat8 floor (const vfloat8& a);
 vint8 ifloor (const vfloat8& a);    ///< (int)floor
 inline vint8 floori (const vfloat8& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
-/// Per-element round to nearest integer (rounding away from 0 in cases
-/// that are exactly half way).
+/// Per-element round to nearest integer.
+/// CAVEAT: the rounding when mid-way between integers may differ depending
+/// on hardware. Intel SSE/AVX does "banker's founding" (to nearest even
+/// integer) but std::round() says to round away from 0 regardless of
+/// current rounding mode (but that is multiple instructions on x64).
+/// USE WITH CAUTION, and maybe avoid this if it is critical to exactly
+/// match std::round().
 vfloat8 round (const vfloat8& a);
 
-/// Per-element round to nearest integer (rounding away from 0 in cases
-/// that are exactly half way).
+/// Per-element round to nearest integer (equivalent to vint(round(a))).
+/// CAVEAT: On SSE/AVX this uses banker's rounding, which may differ from
+/// C++ std::rint() which says to use the current rounding mode.
+/// USE WITH CAUTION, and maybe avoid this if it is critical to exactly
+/// match std::rint().
 vint8 rint (const vfloat8& a);
 
 vfloat8 rcp_fast (const vfloat8 &a);  ///< Fast, approximate 1/a
@@ -2970,12 +2994,20 @@ vfloat16 floor (const vfloat16& a);
 vint16 ifloor (const vfloat16& a);    ///< (int)floor
 inline vint16 floori (const vfloat16& a) { return ifloor(a); }  // DEPRECATED(1.8) alias
 
-/// Per-element round to nearest integer (rounding away from 0 in cases
-/// that are exactly half way).
+/// Per-element round to nearest integer.
+/// CAVEAT: the rounding when mid-way between integers may differ depending
+/// on hardware. Intel SSE/AVX does "banker's founding" (to nearest even
+/// integer) but std::round() says to round away from 0 regardless of
+/// current rounding mode (but that is multiple instructions on x64).
+/// USE WITH CAUTION, and maybe avoid this if it is critical to exactly
+/// match std::round().
 vfloat16 round (const vfloat16& a);
 
-/// Per-element round to nearest integer (rounding away from 0 in cases
-/// that are exactly half way).
+/// Per-element round to nearest integer (equivalent to vint(round(a))).
+/// CAVEAT: On SSE/AVX this uses banker's rounding, which may differ from
+/// C++ std::rint() which says to use the current rounding mode.
+/// USE WITH CAUTION, and maybe avoid this if it is critical to exactly
+/// match std::rint().
 vint16 rint (const vfloat16& a);
 
 vfloat16 rcp_fast (const vfloat16 &a);  ///< Fast, approximate 1/a
@@ -7786,6 +7818,54 @@ inline std::ostream& operator<< (std::ostream& cout, const vfloat3& val) {
     for (int i = 1; i < val.elements; ++i)
         cout << ' ' << val[i];
     return cout;
+}
+
+
+OIIO_FORCEINLINE vfloat3 abs (const vfloat3& a)
+{
+#if OIIO_SIMD_SSE
+    // Just clear the sign bit for cheap fabsf
+    return vfloat3(_mm_and_ps (a.simd(), _mm_castsi128_ps(_mm_set1_epi32(0x7fffffff))));
+#elif OIIO_SIMD_NEON
+    return vfloat3(vabsq_f32(a.simd()));
+#else
+    SIMD_RETURN (vfloat3, fabsf(a[i]));
+#endif
+}
+
+
+OIIO_FORCEINLINE vfloat3 sign (const vfloat3& a)
+{
+    vfloat3 one(1.0f);
+    return vfloat3(blend (one, -one, a < vfloat3::Zero()));
+}
+
+
+OIIO_FORCEINLINE vfloat3 ceil (const vfloat3& a)
+{
+#if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
+    return vfloat3(_mm_ceil_ps (a));
+#else
+    SIMD_RETURN (vfloat3, ceilf(a[i]));
+#endif
+}
+
+OIIO_FORCEINLINE vfloat3 floor (const vfloat3& a)
+{
+#if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
+    return vfloat3(_mm_floor_ps (a));
+#else
+    SIMD_RETURN (vfloat3, floorf(a[i]));
+#endif
+}
+
+OIIO_FORCEINLINE vfloat3 round (const vfloat3& a)
+{
+#if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
+    return vfloat3(_mm_round_ps (a, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC)));
+#else
+    SIMD_RETURN (vfloat3, roundf(a[i]));
+#endif
 }
 
 

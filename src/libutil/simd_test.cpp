@@ -281,6 +281,19 @@ store_vec(const VEC& v)
     return 0;
 }
 
+template<typename VEC>
+inline VEC
+load_scalar(int /*dummy*/)
+{
+    typedef typename VEC::value_t ELEM;
+    VEC v;
+OIIO_PRAGMA_WARNING_PUSH
+OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wstrict-aliasing")
+    v.load(*(ELEM*)dummy_float);
+OIIO_PRAGMA_WARNING_POP
+    return v;
+}
+
 template<typename VEC, int N>
 inline VEC
 load_vec_N(typename VEC::value_t* /*B*/)
@@ -368,10 +381,15 @@ inverse_simd(const matrix44& M)
 
 template<typename VEC>
 void
-test_partial_loadstore()
+test_loadstore()
 {
     typedef typename VEC::value_t ELEM;
-    test_heading("partial loadstore ", VEC::type_name());
+    test_heading("load/store ", VEC::type_name());
+    OIIO_SIMD16_ALIGN ELEM oneval[]
+        = { 101, 101, 101, 101, 101, 101, 101, 101,
+            101, 101, 101, 101, 101, 101, 101, 101 };
+    OIIO_CHECK_SIMD_EQUAL(VEC(oneval), VEC(oneval[0]));
+    { VEC a = oneval[0]; OIIO_CHECK_SIMD_EQUAL(VEC(oneval), a); }
     OIIO_SIMD16_ALIGN VEC C1234 = VEC::Iota(1);
     OIIO_SIMD16_ALIGN ELEM partial[]
         = { 101, 102, 103, 104, 105, 106, 107, 108,
@@ -393,8 +411,9 @@ test_partial_loadstore()
         std::cout << std::endl;
     }
 
-    benchmark("load", load_vec<VEC>, 0, VEC::elements);
-    benchmark("store", store_vec<VEC>, 0, VEC::elements);
+    benchmark("load scalar", load_scalar<VEC>, 0, VEC::elements);
+    benchmark("load vec", load_vec<VEC>, 0, VEC::elements);
+    benchmark("store vec", store_vec<VEC>, 0, VEC::elements);
     OIIO_SIMD16_ALIGN ELEM tmp[VEC::elements];
     if (VEC::elements == 16) {
         benchmark("load 16 comps", load_vec_N<VEC, 16>, tmp, 16);
@@ -440,7 +459,7 @@ void
 test_conversion_loadstore_float()
 {
     typedef typename VEC::value_t ELEM;
-    test_heading("loadstore with conversion", VEC::type_name());
+    test_heading("load/store with conversion", VEC::type_name());
     VEC C1234      = VEC::Iota(1);
     ELEM partial[] = { 101, 102, 103, 104, 105, 106, 107, 108,
                        109, 110, 111, 112, 113, 114, 115, 116 };
@@ -472,7 +491,7 @@ template<typename VEC>
 void test_conversion_loadstore_int ()
 {
     typedef typename VEC::value_t ELEM;
-    test_heading ("loadstore with conversion", VEC::type_name());
+    test_heading ("load/store with conversion", VEC::type_name());
     VEC C1234 = VEC::Iota(1);
     ELEM partial[] = { 101, 102, 103, 104, 105, 106, 107, 108,
                        109, 110, 111, 112, 113, 114, 115, 116 };
@@ -935,6 +954,7 @@ test_component_access<vbool16>()
 
 
 
+template<typename T> inline T do_neg (const T &a) { return -a; }
 template<typename T> inline T do_add (const T &a, const T &b) { return a+b; }
 template<typename T> inline T do_sub (const T &a, const T &b) { return a-b; }
 template<typename T> inline T do_mul (const T &a, const T &b) { return a*b; }
@@ -943,6 +963,7 @@ template<typename T> inline T do_safe_div (const T &a, const T &b) { return T(sa
 inline Imath::V3f add_vec_simd (const Imath::V3f &a, const Imath::V3f &b) {
     return (vfloat3(a)+vfloat3(b)).V3f();
 }
+template<typename T> inline T do_abs (const T &a) { return abs(a); }
 
 
 template<typename VEC>
@@ -984,8 +1005,10 @@ void test_arithmetic ()
 
     benchmark2 ("operator+", do_add<VEC>, a, b);
     benchmark2 ("operator-", do_sub<VEC>, a, b);
+    benchmark  ("operator- (neg)", do_neg<VEC>, a);
     benchmark2 ("operator*", do_mul<VEC>, a, b);
     benchmark2 ("operator/", do_div<VEC>, a, b);
+    benchmark  ("abs", do_abs<VEC>, a);
     benchmark  ("reduce_add", [](const VEC& a){ return vreduce_add(a); }, a);
     if (is_same<VEC,vfloat3>::value) {  // For vfloat3, compare to Imath
         Imath::V3f a(2.51f,1.0f,1.0f), b(3.1f,1.0f,1.0f);
@@ -1551,6 +1574,18 @@ void test_mathfuncs ()
     typedef typename VEC::vint_t vint_t;
     test_heading ("mathfuncs", VEC::type_name());
 
+    VEC F = mkvec<VEC> (-1.5f, 0.0f, 1.9f, 4.1f);
+    OIIO_CHECK_SIMD_EQUAL (abs(F), mkvec<VEC>(std::abs(F[0]), std::abs(F[1]), std::abs(F[2]), std::abs(F[3])));
+    // OIIO_CHECK_SIMD_EQUAL (sign(F), mkvec<VEC>(std::sign(F[0]), std::sign(F[1]), std::sign(F[2]), std::sign(F[3])));
+    OIIO_CHECK_SIMD_EQUAL (ceil(F), mkvec<VEC>(std::ceil(F[0]), std::ceil(F[1]), std::ceil(F[2]), std::ceil(F[3])));
+    OIIO_CHECK_SIMD_EQUAL (floor(F), mkvec<VEC>(std::floor(F[0]), std::floor(F[1]), std::floor(F[2]), std::floor(F[3])));
+    OIIO_CHECK_SIMD_EQUAL (round(F), mkvec<VEC>(std::round(F[0]), std::round(F[1]), std::round(F[2]), std::round(F[3])));
+    benchmark ("simd abs", [](const VEC& v){ return abs(v); }, 1.1f);
+    benchmark ("simd sign", [](const VEC& v){ return sign(v); }, 1.1f);
+    benchmark ("simd ceil", [](const VEC& v){ return ceil(v); }, 1.1f);
+    benchmark ("simd floor", [](const VEC& v){ return floor(v); }, 1.1f);
+    benchmark ("simd round", [](const VEC& v){ return round(v); }, 1.1f);
+
     VEC A = mkvec<VEC> (-1.0f, 0.0f, 1.0f, 4.5f);
     VEC expA = mkvec<VEC> (0.367879441171442f, 1.0f, 2.718281828459045f, 90.0171313005218f);
     OIIO_CHECK_SIMD_EQUAL (exp(A), expA);
@@ -1895,7 +1930,7 @@ main(int argc, char* argv[])
     benchmark("null benchmark 8", [](const vint8&) { return int(0); }, dummy8);
 
     category_heading("vfloat4");
-    test_partial_loadstore<vfloat4>();
+    test_loadstore<vfloat4>();
     test_conversion_loadstore_float<vfloat4>();
     test_masked_loadstore<vfloat4>();
     test_gatherscatter<vfloat4>();
@@ -1911,7 +1946,7 @@ main(int argc, char* argv[])
     test_mathfuncs<vfloat4>();
 
     category_heading("vfloat3");
-    test_partial_loadstore<vfloat3>();
+    test_loadstore<vfloat3>();
     test_conversion_loadstore_float<vfloat3>();
     test_component_access<vfloat3>();
     test_arithmetic<vfloat3>();
@@ -1926,7 +1961,7 @@ main(int argc, char* argv[])
     // test_mathfuncs<vfloat3>();
 
     category_heading("vfloat8");
-    test_partial_loadstore<vfloat8>();
+    test_loadstore<vfloat8>();
     test_conversion_loadstore_float<vfloat8>();
     test_masked_loadstore<vfloat8>();
     test_gatherscatter<vfloat8>();
@@ -1939,7 +1974,7 @@ main(int argc, char* argv[])
     test_mathfuncs<vfloat8>();
 
     category_heading("vfloat16");
-    test_partial_loadstore<vfloat16>();
+    test_loadstore<vfloat16>();
     test_conversion_loadstore_float<vfloat16>();
     test_masked_loadstore<vfloat16>();
     test_gatherscatter<vfloat16>();
@@ -1952,7 +1987,7 @@ main(int argc, char* argv[])
     test_mathfuncs<vfloat16>();
 
     category_heading("vint4");
-    test_partial_loadstore<vint4>();
+    test_loadstore<vint4>();
     test_conversion_loadstore_int<vint4>();
     test_masked_loadstore<vint4>();
     test_gatherscatter<vint4>();
@@ -1968,7 +2003,7 @@ main(int argc, char* argv[])
     test_transpose4<vint4>();
 
     category_heading("vint8");
-    test_partial_loadstore<vint8>();
+    test_loadstore<vint8>();
     test_conversion_loadstore_int<vint8>();
     test_masked_loadstore<vint8>();
     test_gatherscatter<vint8>();
@@ -1983,7 +2018,7 @@ main(int argc, char* argv[])
     test_shift<vint8>();
 
     category_heading("vint16");
-    test_partial_loadstore<vint16>();
+    test_loadstore<vint16>();
     test_conversion_loadstore_int<vint16>();
     test_masked_loadstore<vint16>();
     test_gatherscatter<vint16>();
