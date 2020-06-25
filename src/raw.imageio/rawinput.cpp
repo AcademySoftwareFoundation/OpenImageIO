@@ -653,8 +653,12 @@ RawInput::open_raw(bool unpack, const std::string& name,
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 17, 0)
     if (other.parsed_gps.gpsparsed) {
         add("GPS", "Latitude", other.parsed_gps.latitude, false, 0.0f);
+#    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
+        add("GPS", "Longitude", other.parsed_gps.longitude, false, 0.0f);
+#    else
         add("GPS", "Longitude", other.parsed_gps.longtitude, false,
             0.0f);  // N.B. wrong spelling!
+#    endif
         add("GPS", "TimeStamp", other.parsed_gps.gpstimestamp, false, 0.0f);
         add("GPS", "Altitude", other.parsed_gps.altitude, false, 0.0f);
         add("GPS", "LatitudeRef", string_view(&other.parsed_gps.latref, 1),
