@@ -5307,8 +5307,8 @@ getargs(int argc, char* argv[])
     ap.arg("--metamerge", &ot.metamerge)
       .help("Always merge metadata of all inputs into output");
     ap.arg("--crash")
-      .action(crash_me)
-      .hidden();
+      .hidden()
+      .action(crash_me);
     ap.separator("Commands that read images:");
     ap.arg("-i %s:FILENAME")
       .help("Input file (options: now=, printinfo=, autocc=, type=, ch=)")
