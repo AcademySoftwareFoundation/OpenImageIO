@@ -17,6 +17,9 @@ environment:
       tbs_arch: "x64"
       tbs_tools: "msvc14"
       tbs_static_runtime: 0
+      MY_CMAKE_FLAGS: -DUSE_PYTHON=0
+      USE_PYTHON: 0
+
 
 cache:
   - C:\tools\vcpkg\installed
@@ -60,6 +63,7 @@ install:
   - vcpkg install openjpeg:"%platform%"-windows
   - vcpkg install ptex:"%platform%"-windows
   - vcpkg install libraw:x64-windows
+  - vcpkg install pybind11:x64-windows
 
   # Qt
   - set CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH%;C:\Qt\5.12
@@ -100,6 +104,7 @@ build_script:
   - cd build\windows64
   - cmake -G "%CMAKE_PLATFORM%" -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake \
       -DCMAKE_INSTALL_PREFIX=C:\projects\oiio\dist\windows64 \
+      -DUSE_PYTHON=0 -DUSE_PTEX=0 \
       -DPYTHON_INCLUDE_DIR:PATH=%PYTHON_DIR%/include -DPYTHON_LIBRARY:FILEPATH=%PYTHON_DIR%/libs/python27.lib -DPYTHON_EXECUTABLE:FILEPATH=%PYTHON_DIR%/python.exe -DCMAKE_LIBRARY_PATH=%CMAKE_LIBRARY_PATH% -DCMAKE_INCLUDE_PATH=%CMAKE_INCLUDE_PATH%  -DCMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH% -DOPENEXR_ROOT_DIR=C:\projects\oiio\ext -DVERBOSE=1 -DBUILD_MISSING_DEPS=1 ../..
   - dir c:\projects\oiio
   - dir c:\projects\oiio\build

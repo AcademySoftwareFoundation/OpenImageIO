@@ -153,7 +153,7 @@ public:
 
     CallbackFunction pending_callback() const { return m_pending_callback; }
     const char* pending_callback_name() const { return m_pending_argv[0]; }
-    ArgParse::Action pending_action() const { return m_pending_action; }
+    const ArgParse::Action& pending_action() const { return m_pending_action; }
     const char* pending_action_name() const { return m_pending_argv[0]; }
 
     void push(const ImageRecRef& img)
