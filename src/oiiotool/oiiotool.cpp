@@ -60,11 +60,11 @@ static Oiiotool ot;
 // you may need to enclose the lambda itself in parenthesis () if there it
 // contains commas that are not inside other parentheses.
 #define OIIOTOOL_OP(name, ninputs, ...)                                        \
-    static int action_##name(int argc, const char* argv[])                     \
+    static int action_##name(cspan<const char*> argv)                          \
     {                                                                          \
-        if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
+        if (ot.postpone_action(ninputs, action_##name, argv))                  \
             return 0;                                                          \
-        OiiotoolOp op(ot, #name, argc, argv, ninputs, __VA_ARGS__);            \
+        OiiotoolOp op(ot, #name, argv, ninputs, __VA_ARGS__);                  \
         return op();                                                           \
     }
 
@@ -95,11 +95,11 @@ static Oiiotool ot;
 // Macro to fully set up the "action" function that straightforwardly
 // calls a custom OiiotoolOp class.
 #define OP_CUSTOMCLASS(name, opclass, ninputs)                                 \
-    static int action_##name(int argc, const char* argv[])                     \
+    static int action_##name(cspan<const char*> argv)                          \
     {                                                                          \
-        if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
+        if (ot.postpone_action(ninputs, action_##name, argv))                  \
             return 0;                                                          \
-        opclass op(ot, #name, argc, argv);                                     \
+        opclass op(ot, #name, argv);                                           \
         return op();                                                           \
     }
 
@@ -163,7 +163,7 @@ Oiiotool::clear_options()
     diff_failthresh             = 1.0e-6f;
     diff_failpercent            = 0;
     diff_hardfail               = std::numeric_limits<float>::max();
-    m_pending_callback          = NULL;
+    m_pending_action            = nullptr;
     m_pending_argc              = 0;
     frame_number                = 0;
     frame_padding               = 0;
@@ -284,26 +284,8 @@ Oiiotool::read_nativespec(ImageRecRef img)
 
 
 bool
-Oiiotool::postpone_callback(int required_images, CallbackFunction func,
-                            int argc, const char* argv[])
-{
-    if (image_stack_depth() < required_images) {
-        // Not enough have inputs been specified so far, so put this
-        // function on the "pending" list.
-        m_pending_callback = func;
-        m_pending_argc     = argc;
-        for (int i = 0; i < argc; ++i)
-            m_pending_argv[i] = ustring(argv[i]).c_str();
-        return true;
-    }
-    return false;
-}
-
-
-
-bool
-Oiiotool::postpone_callback(int required_images, ArgParse::Action func,
-                            cspan<const char*> argv)
+Oiiotool::postpone_action(int required_images, ArgParse::Action func,
+                          cspan<const char*> argv)
 {
     if (image_stack_depth() < required_images) {
         // Not enough have inputs been specified so far, so put this
@@ -325,15 +307,15 @@ Oiiotool::process_pending()
     // Process any pending command -- this is a case where the
     // command line had prefix 'oiiotool --action file1 file2'
     // instead of infix 'oiiotool file1 --action file2'.
-    if (m_pending_callback) {
+    if (m_pending_action) {
         int argc = m_pending_argc;
         const char* argv[4];
         for (int i = 0; i < argc; ++i)
             argv[i] = m_pending_argv[i];
-        CallbackFunction callback = m_pending_callback;
-        m_pending_callback        = NULL;
-        m_pending_argc            = 0;
-        (*callback)(argc, argv);
+        auto callback    = m_pending_action;
+        m_pending_action = nullptr;
+        m_pending_argc   = 0;
+        callback(cspan<const char*>(argv, argc));
     }
 }
 
@@ -401,9 +383,9 @@ set_threads(cspan<const char*> argv)
 
 // --cache
 static int
-set_cachesize(int argc, const char* argv[])
+set_cachesize(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     ot.cachesize = Strutil::stoi(argv[1]);
     ot.imagecache->attribute("max_memory_MB", float(ot.cachesize));
     return 0;
@@ -413,9 +395,9 @@ set_cachesize(int argc, const char* argv[])
 
 // --autotile
 static int
-set_autotile(int argc, const char* argv[])
+set_autotile(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     ot.autotile = Strutil::stoi(argv[1]);
     ot.imagecache->attribute("autotile", ot.autotile);
     ot.imagecache->attribute("autoscanline", int(ot.autotile ? 1 : 0));
@@ -426,9 +408,8 @@ set_autotile(int argc, const char* argv[])
 
 // --native
 static int
-set_native(int argc, const char* /*argv*/[])
+set_native(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
     ot.nativeread = true;
     ot.imagecache->attribute("forcefloat", 0);
     return 0;
@@ -490,7 +471,7 @@ unset_autopremult(cspan<const char*> argv)
 
 // --labl
 static int
-action_label(int argc OIIO_MAYBE_UNUSED, const char* argv[])
+action_label(cspan<const char*> argv)
 {
     string_view labelname      = ot.express(argv[1]);
     ot.image_labels[labelname] = ot.curimg;
@@ -812,9 +793,9 @@ parse_channels(const ImageSpec& spec, string_view chanlist,
 
 // -d
 static int
-set_dataformat(int argc, const char* argv[])
+set_dataformat(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     string_view command = ot.express(argv[0]);
     std::vector<std::string> chans;
     Strutil::split(ot.express(argv[1]), chans, ",");
@@ -854,9 +835,9 @@ set_dataformat(int argc, const char* argv[])
 
 
 static int
-set_string_attribute(int argc, const char* argv[])
+set_string_attribute(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 3);
+    OIIO_DASSERT(argv.size() == 3);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -873,9 +854,9 @@ set_string_attribute(int argc, const char* argv[])
 
 
 static int
-set_any_attribute(int argc, const char* argv[])
+set_any_attribute(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 3);
+    OIIO_DASSERT(argv.size() == 3);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -904,9 +885,9 @@ do_erase_attribute(ImageSpec& spec, string_view attribname)
 
 // --eraseattrib
 static int
-erase_attribute(int argc, const char* argv[])
+erase_attribute(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -1390,9 +1371,9 @@ Oiiotool::express(string_view str)
 
 // --iconfig
 static int
-set_input_attribute(int argc, const char* argv[])
+set_input_attribute(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 3);
+    OIIO_DASSERT(argv.size() == 3);
 
     string_view command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
@@ -1612,11 +1593,11 @@ OiioTool::set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
 
 // --caption
 static int
-set_caption(int argc, const char* argv[])
+set_caption(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     const char* newargs[3] = { argv[0], "ImageDescription", argv[1] };
-    return set_string_attribute(3, newargs);
+    return set_string_attribute(newargs);
     // N.B. set_string_attribute does expression expansion on its args
 }
 
@@ -1645,9 +1626,9 @@ do_set_keyword(ImageSpec& spec, const std::string& keyword)
 
 // --keyword
 static int
-set_keyword(int argc, const char* argv[])
+set_keyword(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -1664,23 +1645,23 @@ set_keyword(int argc, const char* argv[])
 
 // --clear-keywords
 static int
-clear_keywords(int argc, const char* argv[])
+clear_keywords(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     const char* newargs[3];
     newargs[0] = argv[0];
     newargs[1] = "Keywords";
     newargs[2] = "";
-    return set_string_attribute(3, newargs);
+    return set_string_attribute(newargs);
 }
 
 
 
 // --orientation
 static int
-set_orientation(int argc, const char* argv[])
+set_orientation(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
@@ -1724,9 +1705,9 @@ do_rotate_orientation(ImageSpec& spec, string_view cmd)
 
 // --orientcw --orientccw --orient180 --rotcw --rotccw --rot180
 static int
-rotate_orientation(int argc, const char* argv[])
+rotate_orientation(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     string_view command = ot.express(argv[0]);
     if (!ot.curimg.get()) {
         ot.warning(command, "no current image available to modify");
@@ -1744,9 +1725,9 @@ rotate_orientation(int argc, const char* argv[])
 
 // --origin
 static int
-set_origin(int argc, const char* argv[])
+set_origin(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, set_origin, argc, argv))
+    if (ot.postpone_action(1, set_origin, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -1792,9 +1773,9 @@ set_origin(int argc, const char* argv[])
 
 // --originoffset
 static int
-offset_origin(int argc, const char* argv[])
+offset_origin(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, offset_origin, argc, argv))
+    if (ot.postpone_action(1, offset_origin, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -1837,9 +1818,9 @@ offset_origin(int argc, const char* argv[])
 
 // --fullsize
 static int
-set_fullsize(int argc, const char* argv[])
+set_fullsize(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, set_fullsize, argc, argv))
+    if (ot.postpone_action(1, set_fullsize, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -1880,9 +1861,9 @@ set_fullsize(int argc, const char* argv[])
 
 // --fullpixels
 static int
-set_full_to_pixels(int argc, const char* argv[])
+set_full_to_pixels(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, set_full_to_pixels, argc, argv))
+    if (ot.postpone_action(1, set_full_to_pixels, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -1922,9 +1903,9 @@ set_full_to_pixels(int argc, const char* argv[])
 
 // --colorconfig
 static int
-set_colorconfig(int argc, const char* argv[])
+set_colorconfig(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     ot.colorconfig.reset(argv[1]);
     return 0;
 }
@@ -1933,11 +1914,11 @@ set_colorconfig(int argc, const char* argv[])
 
 // --iscolorspace
 static int
-set_colorspace(int argc, const char* argv[])
+set_colorspace(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     const char* args[3] = { argv[0], "oiio:ColorSpace", argv[1] };
-    return set_string_attribute(3, args);
+    return set_string_attribute(args);
     // N.B. set_string_attribute does expression expansion on its args
 }
 
@@ -1946,9 +1927,8 @@ set_colorspace(int argc, const char* argv[])
 // --colorconvert
 class OpColorConvert : public OiiotoolOp {
 public:
-    OpColorConvert(Oiiotool& ot, string_view opname, int argc,
-                   const char* argv[])
-        : OiiotoolOp(ot, opname, argc, argv, 1)
+    OpColorConvert(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
     {
         fromspace = args(1);
         tospace   = args(2);
@@ -2002,16 +1982,16 @@ OP_CUSTOMCLASS(colorconvert, OpColorConvert, 1);
 
 // --tocolorspace
 static int
-action_tocolorspace(int argc, const char* argv[])
+action_tocolorspace(cspan<const char*> argv)
 {
     // Don't time -- let it get accounted by colorconvert
-    OIIO_DASSERT(argc == 2);
+    OIIO_DASSERT(argv.size() == 2);
     if (!ot.curimg.get()) {
         ot.warning(argv[0], "no current image available to modify");
         return 0;
     }
     const char* args[3] = { argv[0], "current", argv[1] };
-    return action_colorconvert(3, args);
+    return action_colorconvert(args);
 }
 
 
@@ -2092,8 +2072,7 @@ OIIOTOOL_OP(ociofiletransform, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 
-static int
-output_tiles(int /*argc*/, const char* /*argv*/[])
+static int output_tiles(cspan<const char*> /*argv*/)
 {
     // the ArgParse will have set the tile size, but we need this routine
     // to clear the scanline flag
@@ -2107,9 +2086,9 @@ output_tiles(int /*argc*/, const char* /*argv*/[])
 // N.B.: This unmips all subimages and does not honor the ':subimages='
 // modifier.
 static int
-action_unmip(int argc, const char* argv[])
+action_unmip(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_unmip, argc, argv))
+    if (ot.postpone_action(1, action_unmip, argv))
         return 0;
 
     // Special case -- detect if there are no MIP-mapped subimages at all,
@@ -2128,7 +2107,7 @@ action_unmip(int argc, const char* argv[])
     // If there is work to be done, fall back on the OiiotoolOp.
     // No subclass needed, default OiiotoolOp removes MIP levels and
     // copies the first input image by default.
-    OiiotoolOp op(ot, "unmip", argc, argv, 1);
+    OiiotoolOp op(ot, "unmip", argv, 1);
     return op();
 }
 
@@ -2137,8 +2116,8 @@ action_unmip(int argc, const char* argv[])
 // --chnames
 class OpChnames : public OiiotoolOp {
 public:
-    OpChnames(Oiiotool& ot, string_view opname, int argc, const char* argv[])
-        : OiiotoolOp(ot, opname, argc, argv, 1)
+    OpChnames(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
     {
         preserve_miplevels(true);
     }
@@ -2174,11 +2153,11 @@ public:
 };
 
 static int
-action_set_channelnames(int argc, const char* argv[])
+action_set_channelnames(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_set_channelnames, argc, argv))
+    if (ot.postpone_action(1, action_set_channelnames, argv))
         return 0;
-    OpChnames op(ot, "chnames", argc, argv);
+    OpChnames op(ot, "chnames", argv);
     return op();
 }
 
@@ -2283,9 +2262,9 @@ OiioTool::decode_channel_set(const ImageSpec& spec, string_view chanlist,
 
 // --channels
 int
-action_channels(int argc, const char* argv[])
+action_channels(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_channels, argc, argv))
+    if (ot.postpone_action(1, action_channels, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command  = ot.express(argv[0]);
@@ -2365,11 +2344,11 @@ action_channels(int argc, const char* argv[])
 
 // --chappend
 static int
-action_chappend(int argc, const char* argv[])
+action_chappend(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(2, action_chappend, argc, argv))
+    if (ot.postpone_action(2, action_chappend, argv))
         return 0;
-    OiiotoolOp op(ot, "chappend", argc, argv, 2);
+    OiiotoolOp op(ot, "chappend", argv, 2);
     op.preserve_miplevels(true);
     op.set_impl([](OiiotoolOp& op, span<ImageBuf*> img) {
         // Shuffle the indexed/named channels
@@ -2389,9 +2368,9 @@ action_chappend(int argc, const char* argv[])
 
 // --selectmip
 static int
-action_selectmip(int argc, const char* argv[])
+action_selectmip(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_selectmip, argc, argv))
+    if (ot.postpone_action(1, action_selectmip, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -2415,9 +2394,9 @@ action_selectmip(int argc, const char* argv[])
 
 // --subimage
 static int
-action_select_subimage(int argc, const char* argv[])
+action_select_subimage(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_select_subimage, argc, argv))
+    if (ot.postpone_action(1, action_select_subimage, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     ot.read();
@@ -2473,9 +2452,9 @@ action_select_subimage(int argc, const char* argv[])
 
 // --sisplit
 static int
-action_subimage_split(int argc, const char* argv[])
+action_subimage_split(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_subimage_split, argc, argv))
+    if (ot.postpone_action(1, action_subimage_split, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -2542,9 +2521,9 @@ action_subimage_append_n(int n, string_view command)
 
 // --siappend
 static int
-action_subimage_append(int argc, const char* argv[])
+action_subimage_append(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(2, action_subimage_append, argc, argv))
+    if (ot.postpone_action(2, action_subimage_append, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -2559,9 +2538,9 @@ action_subimage_append(int argc, const char* argv[])
 
 // --siappendall
 static int
-action_subimage_append_all(int argc, const char* argv[])
+action_subimage_append_all(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_subimage_append_all, argc, argv))
+    if (ot.postpone_action(1, action_subimage_append_all, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -2578,7 +2557,7 @@ action_subimage_append_all(int argc, const char* argv[])
 static void
 action_colorcount(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_colorcount, argv))
+    if (ot.postpone_action(1, action_colorcount, argv))
         return;
     Timer timer(ot.enable_function_timing);
     string_view command  = ot.express(argv[0]);
@@ -2628,7 +2607,7 @@ action_colorcount(cspan<const char*> argv)
 static void
 action_rangecheck(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_rangecheck, argv))
+    if (ot.postpone_action(1, action_rangecheck, argv))
         return;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -2662,9 +2641,9 @@ action_rangecheck(cspan<const char*> argv)
 
 // --diff
 static int
-action_diff(int argc, const char* argv[])
+action_diff(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(2, action_diff, argc, argv))
+    if (ot.postpone_action(2, action_diff, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -2685,9 +2664,9 @@ action_diff(int argc, const char* argv[])
 
 // --pdiff
 static int
-action_pdiff(int argc, const char* argv[])
+action_pdiff(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(2, action_pdiff, argc, argv))
+    if (ot.postpone_action(2, action_pdiff, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -2817,9 +2796,9 @@ UNARY_IMAGE_OP(transpose, ImageBufAlgo::transpose);  // --transpose
 
 // --reorient
 int
-action_reorient(int argc, const char* argv[])
+action_reorient(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_reorient, argc, argv))
+    if (ot.postpone_action(1, action_reorient, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -2916,9 +2895,9 @@ OIIOTOOL_OP(cshift, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --pop
 static int
-action_pop(int argc, const char* /*argv*/[])
+action_pop(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     ot.pop();
     return 0;
 }
@@ -2927,9 +2906,9 @@ action_pop(int argc, const char* /*argv*/[])
 
 // --dup
 static int
-action_dup(int argc, const char* /*argv*/[])
+action_dup(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     ot.push(ot.curimg);
     return 0;
 }
@@ -2937,9 +2916,9 @@ action_dup(int argc, const char* /*argv*/[])
 
 // --swap
 static int
-action_swap(int argc, const char* argv[])
+action_swap(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     string_view command = ot.express(argv[0]);
     if (ot.image_stack.size() < 1) {
         ot.errorf(command, "requires at least two loaded images");
@@ -2955,9 +2934,9 @@ action_swap(int argc, const char* argv[])
 
 // --create
 static int
-action_create(int argc, const char* argv[])
+action_create(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 3);
+    OIIO_DASSERT(argv.size() == 3);
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
@@ -2992,9 +2971,9 @@ action_create(int argc, const char* argv[])
 
 // --pattern
 static int
-action_pattern(int argc, const char* argv[])
+action_pattern(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 4);
+    OIIO_DASSERT(argv.size() == 4);
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
@@ -3117,9 +3096,9 @@ OIIOTOOL_OP(kernel, 0, [](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --capture
 static int
-action_capture(int argc, const char* argv[])
+action_capture(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 1);
+    OIIO_DASSERT(argv.size() == 1);
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
@@ -3140,9 +3119,9 @@ action_capture(int argc, const char* argv[])
 
 // --crop
 int
-action_crop(int argc, const char* argv[])
+action_crop(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_crop, argc, argv))
+    if (ot.postpone_action(1, action_crop, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -3195,9 +3174,9 @@ action_crop(int argc, const char* argv[])
 
 // --croptofull
 int
-action_croptofull(int argc, const char* argv[])
+action_croptofull(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_croptofull, argc, argv))
+    if (ot.postpone_action(1, action_croptofull, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -3261,9 +3240,9 @@ nonzero_region_all_subimages(ImageRecRef A)
 
 // --trim
 int
-action_trim(int argc, const char* argv[])
+action_trim(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_trim, argc, argv))
+    if (ot.postpone_action(1, action_trim, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -3304,9 +3283,9 @@ action_trim(int argc, const char* argv[])
 
 // --cut
 int
-action_cut(int argc, const char* argv[])
+action_cut(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_cut, argc, argv))
+    if (ot.postpone_action(1, action_cut, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -3354,8 +3333,8 @@ action_cut(int argc, const char* argv[])
 // --resample
 class OpResample : public OiiotoolOp {
 public:
-    OpResample(Oiiotool& ot, string_view opname, int argc, const char* argv[])
-        : OiiotoolOp(ot, opname, argc, argv, 1)
+    OpResample(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
     {
     }
     virtual bool setup() override
@@ -3411,8 +3390,8 @@ OP_CUSTOMCLASS(resample, OpResample, 1);
 // --resize
 class OpResize : public OiiotoolOp {
 public:
-    OpResize(Oiiotool& ot, string_view opname, int argc, const char* argv[])
-        : OiiotoolOp(ot, opname, argc, argv, 1)
+    OpResize(Oiiotool& ot, string_view opname, cspan<const char*> argv)
+        : OiiotoolOp(ot, opname, argv, 1)
     {
     }
     virtual bool setup() override
@@ -3477,9 +3456,9 @@ OP_CUSTOMCLASS(resize, OpResize, 1);
 
 // --fit
 static int
-action_fit(int argc, const char* argv[])
+action_fit(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_fit, argc, argv))
+    if (ot.postpone_action(1, action_fit, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     bool old_enable_function_timing = ot.enable_function_timing;
@@ -3531,7 +3510,7 @@ action_fit(int argc, const char* argv[])
         if (ot.debug)
             std::cout << "   performing a croptofull\n";
         const char* argv[] = { "croptofull" };
-        action_croptofull(1, argv);
+        action_croptofull(argv);
     }
 
     ot.function_times[command] += timer();
@@ -3543,9 +3522,9 @@ action_fit(int argc, const char* argv[])
 
 // --pixelaspect
 static int
-action_pixelaspect(int argc, const char* argv[])
+action_pixelaspect(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_pixelaspect, argc, argv))
+    if (ot.postpone_action(1, action_pixelaspect, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     bool old_enable_function_timing = ot.enable_function_timing;
@@ -3611,7 +3590,7 @@ action_pixelaspect(int argc, const char* argv[])
         if (filtername.size())
             command += Strutil::sprintf(":filter=%s", filtername);
         const char* newargv[2] = { command.c_str(), resize.c_str() };
-        action_resize(2, newargv);
+        action_resize(newargv);
         A                         = ot.top();
         A->spec(0, 0)->full_width = (*A)(0, 0).specmod().full_width
             = scale_full_width;
@@ -3710,9 +3689,9 @@ UNARY_IMAGE_OP(unpolar, ImageBufAlgo::polar_to_complex);  // --unpolar
 
 // --fixnan
 int
-action_fixnan(int argc, const char* argv[])
+action_fixnan(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_fixnan, argc, argv))
+    if (ot.postpone_action(1, action_fixnan, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command  = ot.express(argv[0]);
@@ -3757,9 +3736,9 @@ action_fixnan(int argc, const char* argv[])
 
 // --fillholes
 static int
-action_fillholes(int argc, const char* argv[])
+action_fillholes(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_fillholes, argc, argv))
+    if (ot.postpone_action(1, action_fillholes, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -3784,9 +3763,9 @@ action_fillholes(int argc, const char* argv[])
 
 // --paste
 static int
-action_paste(int argc, const char* argv[])
+action_paste(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(2, action_paste, argc, argv))
+    if (ot.postpone_action(2, action_paste, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command  = ot.express(argv[0]);
@@ -3887,7 +3866,7 @@ action_paste(int argc, const char* argv[])
 
 // --mosaic
 static int
-action_mosaic(int /*argc*/, const char* argv[])
+action_mosaic(cspan<const char*> argv)
 {
     Timer timer(ot.enable_function_timing);
 
@@ -3983,9 +3962,9 @@ UNARY_IMAGE_OP(flatten, ImageBufAlgo::flatten);
 
 
 static int
-action_fill(int argc, const char* argv[])
+action_fill(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_fill, argc, argv))
+    if (ot.postpone_action(1, action_fill, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -4063,9 +4042,9 @@ BINARY_IMAGE_COLOR_OP(minc, ImageBufAlgo::min, 0);  // --minc
 
 // --clamp
 static int
-action_clamp(int argc, const char* argv[])
+action_clamp(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_clamp, argc, argv))
+    if (ot.postpone_action(1, action_clamp, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -4248,10 +4227,10 @@ OIIOTOOL_OP(text, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
 ///                   histogram is created, instead of a regular one.
 /// --------------------------------------------------------------------------
 static int
-action_histogram(int argc, const char* argv[])
+action_histogram(cspan<const char*> argv)
 {
-    OIIO_DASSERT(argc == 3);
-    if (ot.postpone_callback(1, action_histogram, argc, argv))
+    OIIO_DASSERT(argv.size() == 3);
+    if (ot.postpone_action(1, action_histogram, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
@@ -4302,13 +4281,12 @@ action_histogram(int argc, const char* argv[])
 
 // -i
 static int
-input_file(int argc, const char* argv[])
+input_file(cspan<const char*> argv)
 {
     ot.total_readtime.start();
     string_view command = ot.express(argv[0]);
-    if (argc > 1 && Strutil::starts_with(command, "-i")) {
-        --argc;
-        ++argv;
+    if (argv.size() > 1 && Strutil::starts_with(command, "-i")) {
+        argv = argv.subspan(1);
     } else {
         command = "-i";
     }
@@ -4321,8 +4299,8 @@ input_file(int argc, const char* argv[])
     TypeDesc input_dataformat(fileoptions.get_string("type"));
     std::string channel_set = fileoptions["ch"];
 
-    for (int i = 0; i < argc; i++) {  // FIXME: this loop is pointless
-        string_view filename = ot.express(argv[i]);
+    for (auto a : argv) {  // FIXME: this loop is pointless
+        string_view filename = ot.express(a);
         auto found           = ot.image_labels.find(filename);
         if (found != ot.image_labels.end()) {
             if (ot.debug)
@@ -4413,9 +4391,9 @@ input_file(int argc, const char* argv[])
         }
         ot.function_times["input"] += timer();
         if (ot.autoorient) {
-            int action_reorient(int argc, const char* argv[]);
+            int action_reorient(cspan<const char*> argv);
             const char* argv[] = { "--reorient" };
-            action_reorient(1, argv);
+            action_reorient(argv);
         }
 
         if (autocc) {
@@ -4447,7 +4425,7 @@ input_file(int argc, const char* argv[])
                 if (ot.debug)
                     std::cout << "  Converting " << filename << " from "
                               << colorspace << " to " << linearspace << "\n";
-                action_colorconvert(3, argv);
+                action_colorconvert(argv);
             }
         }
 
@@ -4543,7 +4521,7 @@ remove_all_cmd(std::string& str)
 
 // -o
 static int
-output_file(int /*argc*/, const char* argv[])
+output_file(cspan<const char*> argv)
 {
     Timer timer(ot.enable_function_timing);
     ot.total_writetime.start();
@@ -4598,7 +4576,7 @@ output_file(int /*argc*/, const char* argv[])
             new_argv[1]
                 = ustring::sprintf(filename.c_str(), i + startnumber).c_str();
             // recurse for this file
-            output_file(2, new_argv);
+            output_file(new_argv);
         }
         return 0;
     }
@@ -4636,8 +4614,8 @@ output_file(int /*argc*/, const char* argv[])
         if (!found)
             chanlist = alpha ? "0,1,2,3" : "0,1,2";
         const char* argv[] = { "channels", chanlist.c_str() };
-        int action_channels(int argc, const char* argv[]);  // forward decl
-        action_channels(2, argv);
+        int action_channels(cspan<const char*> argv);  // forward decl
+        action_channels(argv);
         ot.warningf(command, "Can't save %d channels to %s... saving only %s",
                     ir->spec()->nchannels, out->format_name(), chanlist);
         ir = ot.curimg;
@@ -4659,8 +4637,8 @@ output_file(int /*argc*/, const char* argv[])
                                           roi.depth(), roi.xbegin, roi.ybegin,
                                           roi.zbegin);
             const char* argv[] = { "crop", crop.c_str() };
-            int action_crop(int argc, const char* argv[]);  // forward decl
-            action_crop(2, argv);
+            int action_crop(cspan<const char*> argv);  // forward decl
+            action_crop(argv);
             ir = ot.curimg;
         }
     }
@@ -4674,8 +4652,8 @@ output_file(int /*argc*/, const char* argv[])
             || ir->spec()->width != ir->spec()->full_width
             || ir->spec()->height != ir->spec()->full_height)) {
         const char* argv[] = { "croptofull" };
-        int action_croptofull(int argc, const char* argv[]);  // forward decl
-        action_croptofull(1, argv);
+        int action_croptofull(cspan<const char*> argv);  // forward decl
+        action_croptofull(argv);
         ir = ot.curimg;
     }
 
@@ -4729,7 +4707,7 @@ output_file(int /*argc*/, const char* argv[])
             const char* argv[] = { "colorconvert:strict=0",
                                    currentspace.c_str(),
                                    outcolorspace.c_str() };
-            action_colorconvert(3, argv);
+            action_colorconvert(argv);
             ir = ot.curimg;
         }
     }
@@ -4749,8 +4727,8 @@ output_file(int /*argc*/, const char* argv[])
                                                    roi.depth(), roi.xbegin,
                                                    roi.ybegin, roi.zbegin);
         const char* argv[] = { "crop", crop.c_str() };
-        int action_crop(int argc, const char* argv[]);  // forward decl
-        action_crop(2, argv);
+        int action_crop(cspan<const char*> argv);  // forward decl
+        action_crop(argv);
         ir = ot.curimg;
     }
 
@@ -5931,8 +5909,8 @@ handle_sequence(int argc, const char** argv)
         getargs(argc, (char**)&seq_argv[0]);
 
         ot.process_pending();
-        if (ot.pending_callback())
-            ot.warning(ot.pending_callback_name(),
+        if (ot.pending_action())
+            ot.warning(ot.pending_action_name(),
                        "pending command never executed");
         // Clear the stack at the end of each iteration
         ot.curimg.reset();
@@ -6008,8 +5986,8 @@ main(int argc, char* argv[])
         // Not a sequence
         getargs(argc, argv);
         ot.process_pending();
-        if (ot.pending_callback())
-            ot.warning(ot.pending_callback_name(),
+        if (ot.pending_action())
+            ot.warning(ot.pending_action_name(),
                        "pending command never executed");
     }
 

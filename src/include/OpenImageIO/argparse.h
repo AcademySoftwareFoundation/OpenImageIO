@@ -511,14 +511,6 @@ public:
             return action([=](Arg&, cspan<const char*>) { func(); });
         }
 
-        // Old style action for compatibility
-        Arg& action(int (*func)(int, const char**))
-        {
-            return action([=](Arg&, cspan<const char*> a) {
-                func(int(a.size()), (const char**)a.data());
-            });
-        }
-
         /// Return the name of the argument.
         string_view name() const;
 

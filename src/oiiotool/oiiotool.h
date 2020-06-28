@@ -18,8 +18,6 @@
 OIIO_NAMESPACE_BEGIN
 namespace OiioTool {
 
-typedef int (*CallbackFunction)(int argc, const char* argv[]);
-
 class ImageRec;
 typedef std::shared_ptr<ImageRec> ImageRecRef;
 
@@ -143,16 +141,12 @@ public:
     // If required_images are not yet on the stack, then postpone this
     // call by putting it on the 'pending' list and return true.
     // Otherwise (if enough images are on the stack), return false.
-    bool postpone_callback(int required_images, CallbackFunction func, int argc,
-                           const char* argv[]);
-    bool postpone_callback(int required_images, ArgParse::Action func,
-                           cspan<const char*> argv);
+    bool postpone_action(int required_images, ArgParse::Action func,
+                         cspan<const char*> argv);
 
     // Process any pending commands.
     void process_pending();
 
-    CallbackFunction pending_callback() const { return m_pending_callback; }
-    const char* pending_callback_name() const { return m_pending_argv[0]; }
     ArgParse::Action pending_action() const { return m_pending_action; }
     const char* pending_action_name() const { return m_pending_argv[0]; }
 
@@ -255,7 +249,6 @@ public:
     }
 
 private:
-    CallbackFunction m_pending_callback;
     ArgParse::Action m_pending_action;
     int m_pending_argc;
     const char* m_pending_argv[4];
@@ -633,10 +626,10 @@ public:
     // The constructor records the arguments (including running them
     // through expression substitution) and pops the input images off the
     // stack.
-    OiiotoolOp(Oiiotool& ot, string_view opname, int argc, const char* argv[],
+    OiiotoolOp(Oiiotool& ot, string_view opname, cspan<const char*> argv,
                int ninputs, setup_func_t setup_func, impl_func_t impl_func)
         : ot(ot)
-        , m_nargs(argc)
+        , m_nargs(int(argv.size()))
         , m_nimages(ninputs + 1)
         , m_setup_func(setup_func)
         , m_impl_func(impl_func)
@@ -644,16 +637,22 @@ public:
         if (Strutil::starts_with(opname, "--"))
             opname.remove_prefix(1);  // canonicalize to one dash
         m_opname = opname.substr(0, opname.find_first_of(':'));  // and no :
-        m_args.reserve(argc);
-        for (int i = 0; i < argc; ++i)
-            m_args.push_back(ot.express(argv[i]));
+        m_args.reserve(argv.size());
+        for (auto a : argv)
+            m_args.push_back(ot.express(a));
         m_ir.resize(ninputs + 1);  // including reserving a spot for result
         for (int i = 0; i < ninputs; ++i)
             m_ir[ninputs - i] = ot.pop();
     }
+    OiiotoolOp(Oiiotool& ot, string_view opname, cspan<const char*> argv,
+               int ninputs, impl_func_t impl_func = {})
+        : OiiotoolOp(ot, opname, argv, ninputs, {}, impl_func)
+    {
+    }
     OiiotoolOp(Oiiotool& ot, string_view opname, int argc, const char* argv[],
                int ninputs, impl_func_t impl_func = {})
-        : OiiotoolOp(ot, opname, argc, argv, ninputs, {}, impl_func)
+        : OiiotoolOp(ot, opname, cspan<const char*>(argv, argc), ninputs, {},
+                     impl_func)
     {
     }
     virtual ~OiiotoolOp() {}

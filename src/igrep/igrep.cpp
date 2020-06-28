@@ -119,13 +119,13 @@ grep_file(const std::string& filename, regex& re,
 
 
 static int
-parse_files(int argc, const char* argv[])
+parse_files(cspan<const char*> argv)
 {
-    for (int i = 0; i < argc; i++) {
+    for (auto a : argv) {
         if (pattern.empty())
-            pattern = argv[i];
+            pattern = a;
         else
-            filenames.emplace_back(argv[i]);
+            filenames.emplace_back(a);
     }
     return 0;
 }
