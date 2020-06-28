@@ -494,7 +494,7 @@ public:
             return *this;
         }
 
-        /// Add an arbitrary action:   `func(Act&, cspan<const char*>)`
+        /// Add an arbitrary action:   `func(Arg&, cspan<const char*>)`
         Arg& action(ArgAction&& func);
 
         /// Add an arbitrary action:   `func(cspan<const char*>)`
@@ -502,7 +502,7 @@ public:
         {
             // Implemented with a lambda that applies a wrapper to turn
             // it into func(Arg&,cspan<const char*>).
-            return action([=](Arg&, cspan<const char*> a) { func(a); });
+            return action(ArgAction([=](Arg&, cspan<const char*> a) { func(a); }));
         }
 
         /// Add an arbitrary action:  `func()`
@@ -514,9 +514,10 @@ public:
         // Old style action for compatibility
         Arg& action(int (*func)(int, const char**))
         {
-            return action([=](Arg&, cspan<const char*> a) {
+            ArgAction wrapped = [=](Arg&, cspan<const char*> a) {
                 func(int(a.size()), (const char**)a.data());
-            });
+            };
+            return action(std::move(wrapped));
         }
 
         /// Return the name of the argument.
@@ -585,6 +586,13 @@ public:
     /// Return an action that stores a constant value into its destination
     /// attribute.
     template<typename T> static ArgAction store_const(const T& value)
+    {
+        return [&, value](Arg& arg, cspan<const char*> myarg) {
+            arg.argparse().params()[arg.dest()] = value;
+        };
+    }
+
+    static ArgAction store_const(string_view value)
     {
         return [&, value](Arg& arg, cspan<const char*> myarg) {
             arg.argparse().params()[arg.dest()] = value;
