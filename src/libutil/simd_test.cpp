@@ -957,7 +957,7 @@ test_component_access<vbool16>()
 template<typename T> inline T do_neg (const T &a) { return -a; }
 template<typename T> inline T do_add (const T &a, const T &b) { return a+b; }
 template<typename T> inline T do_sub (const T &a, const T &b) { return a-b; }
-template<typename T> inline T do_mul (const T &a, const T &b) { return a*b; }
+template<typename T, typename U=T> inline auto do_mul (const T &a, const U &b) -> decltype(a*b) { return a*b; }
 template<typename T> inline T do_div (const T &a, const T &b) { return a/b; }
 template<typename T> inline T do_safe_div (const T &a, const T &b) { return T(safe_div(a,b)); }
 inline Imath::V3f add_vec_simd (const Imath::V3f &a, const Imath::V3f &b) {
@@ -988,6 +988,7 @@ void test_arithmetic ()
     OIIO_CHECK_SIMD_EQUAL (a*b, mul);
     OIIO_CHECK_SIMD_EQUAL (a/b, div);
     OIIO_CHECK_SIMD_EQUAL (a*ELEM(2), a*VEC(ELEM(2)));
+    OIIO_CHECK_SIMD_EQUAL (ELEM(2)*a, a*VEC(ELEM(2)));
     { VEC r = a; r += b; OIIO_CHECK_SIMD_EQUAL (r, add); }
     { VEC r = a; r -= b; OIIO_CHECK_SIMD_EQUAL (r, sub); }
     { VEC r = a; r *= b; OIIO_CHECK_SIMD_EQUAL (r, mul); }
@@ -1007,6 +1008,7 @@ void test_arithmetic ()
     benchmark2 ("operator-", do_sub<VEC>, a, b);
     benchmark  ("operator- (neg)", do_neg<VEC>, a);
     benchmark2 ("operator*", do_mul<VEC>, a, b);
+    benchmark2 ("operator* (scalar)", do_mul<VEC,ELEM>, a, ELEM(2));
     benchmark2 ("operator/", do_div<VEC>, a, b);
     benchmark  ("abs", do_abs<VEC>, a);
     benchmark  ("reduce_add", [](const VEC& a){ return vreduce_add(a); }, a);
