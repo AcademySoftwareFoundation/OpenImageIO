@@ -206,6 +206,10 @@ catalog_plugin(const std::string& format_name,
         ImageInput* name##_input_imageio_create();                             \
         extern const char* name##_input_extensions[];                          \
         extern const char* name##_imageio_library_version();
+#    define PLUGENTRY_WO(name)                                                 \
+        ImageOutput* name##_output_imageio_create();                           \
+        extern const char* name##_output_extensions[];                         \
+        extern const char* name##_imageio_library_version();
 
 PLUGENTRY(bmp);
 PLUGENTRY(cineon);
@@ -234,6 +238,7 @@ PLUGENTRY(rla);
 PLUGENTRY(sgi);
 PLUGENTRY(socket);
 PLUGENTRY_RO(softimage);
+PLUGENTRY_WO(term);
 PLUGENTRY(tiff);
 PLUGENTRY(targa);
 PLUGENTRY(webp);
@@ -265,6 +270,12 @@ catalog_builtin_plugins()
         declare_imageio_format(                                          \
             #name, (ImageInput::Creator)name##_input_imageio_create,     \
             name##_input_extensions, nullptr, nullptr,                   \
+            name##_imageio_library_version())
+#define DECLAREPLUG_WO(name)                                             \
+        declare_imageio_format(                                          \
+            #name, nullptr, nullptr,                                     \
+            (ImageOutput::Creator)name##_output_imageio_create,          \
+            name##_output_extensions,                                    \
             name##_imageio_library_version())
 
 #if !defined(DISABLE_BMP)
@@ -373,6 +384,9 @@ catalog_builtin_plugins()
 #endif
 #if !defined(DISABLE_TARGA)
     DECLAREPLUG (targa);
+#endif
+#if !defined(DISABLE_TERM)
+    DECLAREPLUG_WO (term);
 #endif
 #ifdef USE_WEBP
 #if !defined(DISABLE_WEBP)
