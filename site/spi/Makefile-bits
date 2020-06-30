@@ -280,7 +280,7 @@ ifeq (${SP_OS}, rhel7)
         MY_CMAKE_FLAGS += -DLIBRAW_LIBDIR_HINT=/usr/lib64/libraw-0.18.11
         LIBRAW_LIBDIR = /usr/lib64/libraw-0.18.11
     else
-        LibRaw_ROOT ?= /shots/spi/home/software/packages/LibRaw/0.20.0-dev1/${SPI_COMPILER_PLATFORM}
+        LibRaw_ROOT ?= /shots/spi/home/software/packages/LibRaw/0.20.0-dev3/${SPI_COMPILER_PLATFORM}
         MY_CMAKE_FLAGS += -DLibRaw_ROOT=${LibRaw_ROOT}
         LIBRAW_LIBDIR = ${LibRaw_ROOT}/lib
     endif
