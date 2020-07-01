@@ -1,9 +1,21 @@
-Release 2.1.16 (?  2020) -- compared to 2.1.16
---------------------------------------------------
+Release 2.1.17 (1 Jul 2020) -- compared to 2.1.16
+-------------------------------------------------
+* Build: Use the discovered python binary name, to address the Fedora
+  retriction that you must use "python2" or "python3" by name. #2598
+* Docs: ImageBufAlgo::nonzero_region had been inadvertently left out of the
+  Python chapter.
+* Improve RLA reader's ability to detect corrupt or non-RLA files, which
+  fixes crashes you could get from trying to read non-image files. #2600
+* Support for building against Qt 5.15. (Note: Qt support is only needed
+  for the "iv" viewer.) #2605
+* Fixes to support LibRaw 0.20 (which is currently in beta3). Note that this
+  will make it incompatible with 0.20 beta1 and beta2, due to a fixed typo
+  of a struct field in one of the LibRaw's headers. #2613
+* oiioversion.h: fix typo that left the OIIO_VERSION_RELEASE_TYPE symbol
+  undefined. #2616
 
-
-Release 2.1.16 (1 Jun  2020) -- compared to 2.1.15
---------------------------------------------------
+Release 2.1.16 (1 Jun 2020) -- compared to 2.1.15
+-------------------------------------------------
 * OpenEXR: Fix bug in the channel sorting order when channels are "X" and
   "Y" (was reversing the order by confusing "Y" for "luminance"). #2595
 * Python: Fixed a bug that lost certain string arguments, especially when
