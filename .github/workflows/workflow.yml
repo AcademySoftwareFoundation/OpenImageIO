@@ -275,8 +275,8 @@ jobs:
           name: ${{ github.job }}
           path: build/*/testsuite/*/*.*
 
-  windows:
-    name: "Windows"
+  windows-vs2019:
+    name: "Windows VS2019"
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
@@ -289,6 +289,32 @@ jobs:
           CMAKE_GENERATOR: "Visual Studio 16 2019"
           OPENEXR_BRANCH: v2.4.1
           SKIP_TESTS: 1
+        run: |
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-win-installdeps.bash
+            source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
+
+  windows-vs2017:
+    name: "Windows VS2017"
+    runs-on: windows-2016
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Nuget.exe
+        uses: warrenbuckley/Setup-Nuget@v1
+      - name: all
+        shell: bash
+        env:
+          PYTHON_VERSION: 3.6
+          CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
+          OPENEXR_BRANCH: v2.4.1
+          SKIP_TESTS: 1
+          #MY_CMAKE_FLAGS: -DUSE_PYTHON=0
+          USE_NINJA: 0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash

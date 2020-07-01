@@ -494,7 +494,7 @@ public:
             return *this;
         }
 
-        /// Add an arbitrary action:   `func(Act&, cspan<const char*>)`
+        /// Add an arbitrary action:   `func(Arg&, cspan<const char*>)`
         Arg& action(ArgAction&& func);
 
         /// Add an arbitrary action:   `func(cspan<const char*>)`
@@ -504,9 +504,15 @@ public:
             // it into func(Arg&,cspan<const char*>).
             return action([=](Arg&, cspan<const char*> a) { func(a); });
         }
+#if OIIO_MSVS_BEFORE_2017
+        // MSVS 2015 seems to need this, fixed in later versions.
+        Arg& action(void(*func)(cspan<const char*> myargs)) {
+            return action([=](Arg&, cspan<const char*> a) { func(a); });
+        }
+#endif
 
         /// Add an arbitrary action:  `func()`
-        Arg& action(std::function<void()>&& func)
+        Arg& action(void(*func)())
         {
             return action([=](Arg&, cspan<const char*>) { func(); });
         }
@@ -588,6 +594,13 @@ public:
     {
         return [&, value](Arg& arg, cspan<const char*> myarg) {
             arg.argparse().params()[arg.dest()] = value;
+        };
+    }
+
+    static ArgAction store_const(const char* value)
+    {
+        return [&, value](Arg& arg, cspan<const char*> myarg) {
+            arg.argparse().params()[arg.dest()] = string_view(value);
         };
     }
 

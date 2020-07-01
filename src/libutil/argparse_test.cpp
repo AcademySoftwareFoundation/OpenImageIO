@@ -226,10 +226,10 @@ test_new()
     ap.parse(int(args.size()), args.data());
     ap.print_help();
 
-    OIIO_CHECK_EQUAL(ap["f"].get<int>(), true);
-    OIIO_CHECK_EQUAL(ap["f2"].get<int>(), false);
-    OIIO_CHECK_EQUAL(ap["u"].get<int>(), false);
-    OIIO_CHECK_EQUAL(ap["u2"].get<int>(), true);
+    OIIO_CHECK_EQUAL(ap["f"].get<int>(), 1);
+    OIIO_CHECK_EQUAL(ap["f2"].get<int>(), 0);
+    OIIO_CHECK_EQUAL(ap["u"].get<int>(), 0);
+    OIIO_CHECK_EQUAL(ap["u2"].get<int>(), 1);
     OIIO_CHECK_EQUAL(ap["ci"].get<int>(), 42);
     OIIO_CHECK_EQUAL(ap["cf"].get<float>(), 3.14159f);
     OIIO_CHECK_EQUAL(ap["cfdef"].get<float>(), 42.0f);
