@@ -1,3 +1,7 @@
+Release 2.1.18 (??? 2020) -- compared to 2.1.17
+-------------------------------------------------
+
+
 Release 2.1.17 (1 Jul 2020) -- compared to 2.1.16
 -------------------------------------------------
 * Build: Use the discovered python binary name, to address the Fedora
