@@ -416,6 +416,7 @@ public:
         if (do_lock)
             bin.lock();
         bin.map.erase(key, hash);
+        --m_size;
         if (do_lock)
             bin.unlock();
     }
