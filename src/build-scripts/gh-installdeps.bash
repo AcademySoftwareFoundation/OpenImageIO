@@ -26,7 +26,7 @@ time sudo apt-get -q install -y \
     libfreetype6-dev \
     libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
     locales \
-    opencolorio-tools \
+    libopencolorio-dev \
     wget \
     libtbb-dev \
     libopenvdb-dev \
@@ -79,14 +79,16 @@ src/build-scripts/install_test_images.bash
 
 CXX="ccache $CXX" source src/build-scripts/build_openexr.bash
 
-if [[ "$LIBTIFF_BRANCH" != ""  || "$LIBTIFF_VERSION" != "" ]] ; then
+if [[ "$LIBTIFF_BRANCH" || "$LIBTIFF_VERSION" ]] ; then
     CXX="ccache $CXX" source src/build-scripts/build_libtiff.bash
 fi
 
-if [[ "$LIBRAW_BRANCH" != "" || "$LIBRAW_VERSION" != "" ]] ; then
+if [[ "$LIBRAW_BRANCH" || "$LIBRAW_VERSION" ]] ; then
     CXX="ccache $CXX" source src/build-scripts/build_libraw.bash
 fi
 
-# Temporary (?) fix: GH ninja having problems, fall back to make
-CMAKE_GENERATOR="Unix Makefiles" \
-CXX="ccache $CXX" source src/build-scripts/build_ocio.bash
+if [[ "$OCIO_BRANCH" || "$OCIO_VERSION" ]] ; then
+    # Temporary (?) fix: GH ninja having problems, fall back to make
+    CMAKE_GENERATOR="Unix Makefiles" \
+    source src/build-scripts/build_ocio.bash
+fi

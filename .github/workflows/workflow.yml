@@ -308,21 +308,27 @@ jobs:
             source src/build-scripts/ci-build-and-test.bash
 
   clang-format:
+    # Test formatting. This test entry doesn't do a full build, it just runs
+    # clang-format on everything, and passes if nothing is misformatted.
+    # Upon failure, the build artifact will be the full source code with the
+    # formatting fixed (diffs will also appear in the console output).
     name: "clang-format verification"
     runs-on: ubuntu-18.04
+    container:
+      image: aswf/ci-osl:2021
     steps:
       - uses: actions/checkout@v2
       - name: all
         env:
-          CXX: clang++
-          LLVM_VERSION: 9.0.0
           BUILDTARGET: clang-format
+          PYTHON_VERSION: 3.7
           SKIP_TESTS: 1
-          BUILD_MISSING_DEPS: 0
-          CMAKE_CXX_STANDARD: 14
-          OCIO_BRANCH: 1c624651b7
-          # Pick an OCIO commit that includes a warning fix we need for clang
         run: |
             source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: src/*/*.{cpp,h}

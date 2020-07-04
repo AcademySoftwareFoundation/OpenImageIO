@@ -35,7 +35,7 @@ cmake ../.. -G "$CMAKE_GENERATOR" \
         -DCMAKE_INSTALL_LIBDIR="$OpenImageIO_ROOT/lib" \
         -DCMAKE_CXX_STANDARD="$CMAKE_CXX_STANDARD" \
         $MY_CMAKE_FLAGS -DVERBOSE=1
-time cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
+time cmake --build . --target ${BUILDTARGET:=install} --config ${CMAKE_BUILD_TYPE}
 popd
 #make $MAKEFLAGS VERBOSE=1 $BUILD_FLAGS config
 #make $MAKEFLAGS $PAR_MAKEFLAGS $BUILD_FLAGS $BUILDTARGET
