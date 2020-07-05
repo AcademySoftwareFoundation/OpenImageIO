@@ -2157,12 +2157,12 @@ IBA_color_range_check(ImageBuf& src, const py::object& low,
                       const py::object& high, ROI roi, int nthreads)
 {
     py::gil_scoped_release gil;
-    std::vector<int64_t> counts { 0, 0, 0};
+    std::vector<int64_t> counts { 0, 0, 0 };
     imagesize_t lowcount = 0, highcount = 0, inrangecount = 0;
     std::vector<float> lowvec, highvec;
     py_to_stdvector(lowvec, low);
     py_to_stdvector(highvec, high);
-    bool ok = ImageBufAlgo::color_range_check(src, &lowcount, &highcount,
+    bool ok   = ImageBufAlgo::color_range_check(src, &lowcount, &highcount,
                                               &inrangecount, lowvec, highvec,
                                               roi, nthreads);
     counts[0] = lowcount;
@@ -2779,9 +2779,8 @@ declare_imagebufalgo(py::module& m)
 
         // color_count
 
-        .def_static("color_range_check", &IBA_color_range_check,
-                    "src"_a, "low"_a, "high"_a,
-                     "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("color_range_check", &IBA_color_range_check, "src"_a,
+                    "low"_a, "high"_a, "roi"_a = ROI::All(), "nthreads"_a = 0)
 
         .def_static("nonzero_region", &IBA_nonzero_region, "src"_a,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)

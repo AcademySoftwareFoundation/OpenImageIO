@@ -923,10 +923,9 @@ struct ChanNameHolder {
     void compute_special_index_xyz()
     {
         static const char* special[]
-            = { "R",    "Red",  "G",  "Green", "B", "Blue", /* "Y", */
-                "X",  "Y",  "Z", "real", "imag",
-                "A",  "Alpha", "AR", "RA", "AG",
-                "GA",   "AB",   "BA", "Depth", "Zback", nullptr };
+            = { "R",  "Red", "G",  "Green", "B",    "Blue", /* "Y", */
+                "X",  "Y",   "Z",  "real",  "imag", "A",     "Alpha", "AR",
+                "RA", "AG",  "GA", "AB",    "BA",   "Depth", "Zback", nullptr };
         for (int i = 0; special[i]; ++i)
             if (Strutil::iequals(suffix, special[i])) {
                 special_index = i;
@@ -986,7 +985,7 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
     for (auto ci = channels.begin(); ci != channels.end(); ++c, ++ci)
         cnh.emplace_back(ci.name(), c, ci.channel());
     spec.nchannels = int(cnh.size());
-    if (! spec.nchannels) {
+    if (!spec.nchannels) {
         in->errorf("No channels found");
         return false;
     }
@@ -1006,8 +1005,8 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
         // Strutil::printf("layerspan:\n");
         // for (auto& c : layerspan)
         //     Strutil::printf("  %s = %s . %s\n", c.fullname, c.layer, c.suffix);
-        if (suffixfound("X", layerspan) && (suffixfound("Y", layerspan)
-                                            || suffixfound("Z", layerspan))) {
+        if (suffixfound("X", layerspan)
+            && (suffixfound("Y", layerspan) || suffixfound("Z", layerspan))) {
             // If "X", and at least one of "Y" and "Z", are found among the
             // channel names of this layer, it must encode some kind of
             // position or normal. The usual sort order will give a weird

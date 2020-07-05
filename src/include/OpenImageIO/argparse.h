@@ -506,13 +506,14 @@ public:
         }
 #if OIIO_MSVS_BEFORE_2017
         // MSVS 2015 seems to need this, fixed in later versions.
-        Arg& action(void(*func)(cspan<const char*> myargs)) {
+        Arg& action(void (*func)(cspan<const char*> myargs))
+        {
             return action([=](Arg&, cspan<const char*> a) { func(a); });
         }
 #endif
 
         /// Add an arbitrary action:  `func()`
-        Arg& action(void(*func)())
+        Arg& action(void (*func)())
         {
             return action([=](Arg&, cspan<const char*>) { func(); });
         }
