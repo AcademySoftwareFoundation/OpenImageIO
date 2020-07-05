@@ -287,8 +287,6 @@ add_custom_command (OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py"
                     MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/runtest.py")
 add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py" )
 
-# Basic tests that apply even to continuous integration tests:
-
 #   Tests that require oiio-images:
 oiio_add_tests (gpsread
                 oiiotool oiiotool-attribs  oiiotool-copy
@@ -297,7 +295,6 @@ oiio_add_tests (gpsread
                 maketx oiiotool-maketx
                 misnamed-file
                 missingcolor
-                dpx ico iff png pnm psd rla sgi targa-tgautils zfile
                 texture-interp-bicubic
                 texture-blurtube
                 texture-crop texture-cropover
@@ -310,13 +307,7 @@ oiio_add_tests (gpsread
                 texture-fat texture-skinny texture-wrapfill
                 texture-missing texture-res texture-maxres
                 texture-udim texture-udim2
-                IMAGEDIR oiio-images
-                URL "Recent checkout of oiio-images"
-               )
-
-#   Tests that require openexr-images:
-oiio_add_tests (oiiotool-deep
-                IMAGEDIR openexr-images
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images"
                )
 
 #   Remaining freestanding tests:
@@ -327,7 +318,7 @@ oiio_add_tests (nonwhole-tiles
                 diff
                 dither dup-channels
                 jpeg-corrupt
-                null psd-colormodes
+                null
                 rational
                )
 
@@ -355,10 +346,8 @@ if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE_ON_LINUX)
             )
 endif ()
 
-# Add tests that require OCIO
-if (OPENCOLORIO_FOUND)
-    oiio_add_tests (oiiotool-color)
-endif ()
+oiio_add_tests (oiiotool-color
+                FOUNDVAR OPENCOLORIO_FOUND)
 
 # Advanced tests that are done by hand and for releases:
 # FIXME -- at some point, try to fix these or provide new ref images
@@ -374,58 +363,78 @@ if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI} AND NOT DEFINED ENV{GI
     oiio_add_tests (texture-icwrite)
 endif ()
 
-# List testsuites which need special external reference images from the web
-# here:
+# List testsuites for specific formats or features which might be not found
+# or be intentionally disabled, or which need special external reference
+# images from the web that if not found, should skip the tests:
+
 oiio_add_tests (bmp
-    IMAGEDIR bmpsuite
-    URL http://entropymine.com/jason/bmpsuite/bmpsuite.zip)
-
-oiio_add_tests (tiff-suite tiff-depths tiff-misc
-    IMAGEDIR libtiffpic
-    URL http://www.simplesystems.org/libtiff/images.html)
-
+                ENABLEVAR ENABLE_BMP
+                IMAGEDIR bmpsuite
+                URL http://entropymine.com/jason/bmpsuite/bmpsuite.zip)
+oiio_add_tests (dpx
+                ENABLEVAR ENABLE_DPX
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (field3d texture-field3d
+                FOUNDVAR Field3D_FOUND ENABLEVAR ENABLE_FIELD3D)
+oiio_add_tests (fits
+                ENABLEVAR ENABLE_FITS
+                IMAGEDIR fits-images
+                URL http://www.cv.nrao.edu/fits/data/tests/)
+oiio_add_tests (gif
+                FOUNDVAR GIF_FOUND ENABLEVAR ENABLE_GIF
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (heif
+                FOUNDVAR Libheif_FOUND ENABLEVAR ENABLE_Libheif
+                URL https://github.com/nokiatech/heif/tree/gh-pages/content)
+oiio_add_tests (ico
+                ENABLEVAR ENABLE_ICO
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (iff
+                ENABLEVAR ENABLE_IFF
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (jpeg2000
+                FOUNDVAR OPENJPEG_FOUND
+                IMAGEDIR j2kp4files_v1_5
+                URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
 oiio_add_tests (openexr-suite openexr-multires openexr-chroma
                 openexr-v2 openexr-window openexr-damaged perchannel
-    IMAGEDIR openexr-images
-    URL http://www.openexr.com/downloads.html)
-
-oiio_add_tests (gif
-    FOUNDVAR GIF_FOUND
-    IMAGEDIR oiio-images
-    URL "Recent checkout of oiio-images")
-
-oiio_add_tests (jpeg2000
-    FOUNDVAR OPENJPEG_FOUND
-    IMAGEDIR j2kp4files_v1_5
-    URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
-
-oiio_add_tests (raw
-    FOUNDVAR LIBRAW_FOUND
-    IMAGEDIR oiio-images/raw
-    URL "Recent checkout of oiio-images")
-
-oiio_add_tests (fits
-    IMAGEDIR fits-images
-    URL http://www.cv.nrao.edu/fits/data/tests/)
-
-oiio_add_tests (heif
-    FOUNDVAR Libheif_FOUND
-    URL https://github.com/nokiatech/heif/tree/gh-pages/content)
-
-oiio_add_tests (webp
-    FOUNDVAR Webp_FOUND
-    IMAGEDIR oiio-images/webp
-    URL "Recent checkout of oiio-images")
-
-oiio_add_tests (ptex
-    FOUNDVAR PTEX_FOUND)
-
-oiio_add_tests (texture-field3d field3d
-    FOUNDVAR Field3D_FOUND)
-
-
+                oiiotool-deep
+                IMAGEDIR openexr-images
+                URL http://www.openexr.com/downloads.html)
 oiio_add_tests (openvdb
-    FOUNDVAR OpenVDB_FOUND)
+                FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
+oiio_add_tests (png
+                ENABLEVAR ENABLE_PNG
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (pnm
+                ENABLEVAR ENABLE_PNM
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (psd psd-colormodes
+                ENABLEVAR ENABLE_PSD
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (ptex
+                FOUNDVAR PTEX_FOUND ENABLEVAR ENABLE_PTEX)
+oiio_add_tests (raw
+                FOUNDVAR LIBRAW_FOUND ENABLEVAR ENABLE_LIBRAW
+                IMAGEDIR oiio-images/raw
+                URL "Recent checkout of oiio-images")
+oiio_add_tests (rla
+                ENABLEVAR ENABLE_RLA
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (sgi
+                ENABLEVAR ENABLE_SGI
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (targa-tgautils
+                ENABLEVAR ENABLE_TARGA
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+oiio_add_tests (tiff-suite tiff-depths tiff-misc
+                IMAGEDIR libtiffpic
+                URL http://www.simplesystems.org/libtiff/images.html)
+oiio_add_tests (webp
+                FOUNDVAR Webp_FOUND ENABLEVAR ENABLE_Webp
+                IMAGEDIR oiio-images/webp URL "Recent checkout of oiio-images")
+oiio_add_tests (zfile ENABLEVAR ENABLE_ZFILE
+                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
 
 if (SPI_TESTS)
   oiio_add_tests (oiiotool-spi
