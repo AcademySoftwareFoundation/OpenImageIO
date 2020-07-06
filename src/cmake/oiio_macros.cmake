@@ -161,22 +161,39 @@ endmacro ()
 # Usage:
 #   oiio_add_tests ( test1 [ test2 ... ]
 #                    [ IMAGEDIR name_of_reference_image_directory ]
-#                    [ URL http://find.reference.cases.here.com ] )
+#                    [ URL http://find.reference.cases.here.com ]
+#                    [ FOUNDVAR variable_name ... ]
+#                    [ ENABLEVAR variable_name ... ]
+#                  )
 #
 # The optional argument IMAGEDIR is used to check whether external test images
 # (not supplied with OIIO) are present, and to disable the test cases if
 # they're not.  If IMAGEDIR is present, URL should also be included to tell
 # the user where to find such tests.
 #
+# The optional FOUNDVAR introduces variables (typically Foo_FOUND) that if
+# not existing and true, will skip the test.
+#
+# The optional ENABLEVAR introduces variables (typically ENABLE_Foo) that
+# if existing and yet false, will skip the test.
+#
 macro (oiio_add_tests)
-    cmake_parse_arguments (_ats "" "" "URL;IMAGEDIR;LABEL;FOUNDVAR;TESTNAME" ${ARGN})
+    cmake_parse_arguments (_ats "" "" "URL;IMAGEDIR;LABEL;FOUNDVAR;ENABLEVAR;TESTNAME" ${ARGN})
        # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
     set (_ats_testdir "${OIIO_TESTSUITE_IMAGEDIR}/${_ats_IMAGEDIR}")
     # If there was a FOUNDVAR param specified and that variable name is
     # not defined, mark the test as broken.
-    if (_ats_FOUNDVAR AND NOT ${_ats_FOUNDVAR})
-        set (_ats_LABEL "broken")
-    endif ()
+    foreach (_var ${_ats_FOUNDVAR})
+        if (NOT ${_var})
+            set (_ats_LABEL "broken")
+        endif ()
+    endforeach ()
+    foreach (_var ${_ats_ENABLEVAR})
+        if ((NOT "${${_var}}" STREQUAL "" AND NOT "${${_var}}") OR
+            (NOT "$ENV{${_var}}" STREQUAL "" AND NOT "$ENV{${_var}}"))
+            set (_ats_LABEL "broken")
+        endif ()
+    endforeach ()
     if (_ats_IMAGEDIR AND NOT EXISTS ${_ats_testdir})
         # If the directory containig reference data (images) for the test
         # isn't found, point the user at the URL.
