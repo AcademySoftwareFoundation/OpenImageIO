@@ -346,7 +346,16 @@ RawInput::open_raw(bool unpack, const std::string& name,
                    const ImageSpec& config)
 {
     // std::cout << "open_raw " << name << " unpack=" << unpack << "\n";
-    m_processor.reset(new LibRaw);
+    {
+        // See https://github.com/OpenImageIO/oiio/issues/2630
+        // Something inside LibRaw constructor is not thread safe. Use a
+        // static mutex here to make sure only one thread is constructing a
+        // LibRaw at a time. Cross fingers and hope all the rest of LibRaw
+        // is re-entrant.
+        static std::mutex libraw_ctr_mutex;
+        std::lock_guard<std::mutex> lock(libraw_ctr_mutex);
+        m_processor.reset(new LibRaw);
+    }
 
     // Temp spec for exif parser callback to dump into
     ImageSpec exifspec;
