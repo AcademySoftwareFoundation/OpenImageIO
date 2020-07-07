@@ -924,9 +924,12 @@ erase_attribute(int argc, const char* argv[])
         ot.warning(argv[0], "no current image available to modify");
         return 0;
     }
+    string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
     string_view pattern = ot.express(argv[1]);
     return apply_spec_mod(*ot.curimg, do_erase_attribute, pattern,
-                          ot.allsubimages);
+                          allsubimages);
 }
 
 
