@@ -53,3 +53,59 @@ noattribs.jpg        : 2048 x 1536, 3 channel, uint8 jpeg
     Exif:FlashPixVersion: "0100"
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "sRGB"
+Reading attrib2.exr
+attrib2.exr          :   64 x   64, 3 channel, half openexr
+    2 subimages: 64x64 [h,h,h], 64x64 [h,h,h]
+ subimage  0:   64 x   64, 3 channel, half openexr
+    SHA-1: EBDD38B69CD5B9F2D00D273C981E16960FBBB4F7
+    channel list: R, G, B
+    compression: "zip"
+    foo: "bar"
+    name: "subimage00"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "subimage00"
+    oiio:subimages: 2
+    openexr:chunkCount: 4
+ subimage  1:   64 x   64, 3 channel, half openexr
+    SHA-1: EBDD38B69CD5B9F2D00D273C981E16960FBBB4F7
+    channel list: R, G, B
+    compression: "zip"
+    foo: "bar"
+    name: "subimage01"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "subimage01"
+    oiio:subimages: 2
+    openexr:chunkCount: 4
+Reading attrib0.exr
+attrib0.exr          :   64 x   64, 3 channel, half openexr
+    2 subimages: 64x64 [h,h,h], 64x64 [h,h,h]
+ subimage  0:   64 x   64, 3 channel, half openexr
+    SHA-1: EBDD38B69CD5B9F2D00D273C981E16960FBBB4F7
+    channel list: R, G, B
+    compression: "zip"
+    name: "subimage00"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "subimage00"
+    oiio:subimages: 2
+    openexr:chunkCount: 4
+ subimage  1:   64 x   64, 3 channel, half openexr
+    SHA-1: EBDD38B69CD5B9F2D00D273C981E16960FBBB4F7
+    channel list: R, G, B
+    compression: "zip"
+    name: "subimage01"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimagename: "subimage01"
+    oiio:subimages: 2
+    openexr:chunkCount: 4
