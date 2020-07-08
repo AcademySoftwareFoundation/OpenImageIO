@@ -665,7 +665,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
 #    if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
         add("GPS", "Longitude", other.parsed_gps.longitude, false, 0.0f);
 #    else
-        add("GPS", "Longitude", other.parsed_gps.longtitude, false,
+        add("GPS", "Longitude", other.parsed_gps.longitude, false,
             0.0f);  // N.B. wrong spelling!
 #    endif
         add("GPS", "TimeStamp", other.parsed_gps.gpstimestamp, false, 0.0f);
