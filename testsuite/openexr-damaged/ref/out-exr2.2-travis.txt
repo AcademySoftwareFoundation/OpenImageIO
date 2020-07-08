@@ -1,6 +1,6 @@
 tmpsrc/asan_heap-oob_4cb169_255_cc7ac9cde4b8634b31cb41c8fe89b92d_exr.exr :   64 x   64, 2 channel, deep half openexr
-oiiotool ERROR: read : Failed OpenEXR read: Error reading sample count data from image file "tmpsrc/asan_heap-oob_4cb169_255_cc7ac9cde4b8634b31cb41c8fe89b92d_exr.exr". Deep scanline sampleCount data corrupt at chunk 0 (negative sample count detected)
-Failed OpenEXR read: Error reading sample count data from image file "tmpsrc/asan_heap-oob_4cb169_255_cc7ac9cde4b8634b31cb41c8fe89b92d_exr.exr". Deep scanline sampleCount data corrupt at chunk 0 (negative sample count detected)
+oiiotool ERROR: read : Failed OpenEXR read: Error reading sample count data from image file "tmpsrc/asan_heap-oob_4cb169_255_cc7ac9cde4b8634b31cb41c8fe89b92d_exr.exr". Data decoding (rle) failed.
+Failed OpenEXR read: Error reading sample count data from image file "tmpsrc/asan_heap-oob_4cb169_255_cc7ac9cde4b8634b31cb41c8fe89b92d_exr.exr". Data decoding (rle) failed.
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_4cb169_255_cc7ac9cde4b8634b31cb41c8fe89b92d_exr.exr -o out.exr
 
@@ -12,7 +12,7 @@ oiiotool ERROR: read : "tmpsrc/asan_heap-oob_7efd58fcbf3d_356_668b128c27c62e0d83
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7efd58fcbf3d_356_668b128c27c62e0d8314c503831fde88_exr.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/asan_heap-oob_7efd9bd346a5_639_9e0b30ed499cdf9e8802dd64e16a9508_exr.exr": Subsampled channels are not supported (channel "H" has sampling 192,1).
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/asan_heap-oob_7efd9bd346a5_639_9e0b30ed499cdf9e8802dd64e16a9508_exr.exr". The x subsampling factor for the "H" channel is not 1.
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7efd9bd346a5_639_9e0b30ed499cdf9e8802dd64e16a9508_exr.exr -o out.exr
 
@@ -54,8 +54,7 @@ oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image 
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f35311a1426_780_4871d40882e0fe7fae1427a82319e144_exr.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/asan_heap-oob_7f479f9536bd_391_5953693841a7931caf3d4592f8b9c90b_exr.exr": Subsampled channels are not supported (channel "R" has sampling 1,2).
-Subsampled channels are not supported (channel "" has sampling 4,1).
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/asan_heap-oob_7f479f9536bd_391_5953693841a7931caf3d4592f8b9c90b_exr.exr". The x subsampling factor for the "" channel is not 1.
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f479f9536bd_391_5953693841a7931caf3d4592f8b9c90b_exr.exr -o out.exr
 
@@ -69,7 +68,8 @@ oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image 
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f4d5072b39d_561_5f5e4ef49a581edaf7bf0858fbfcfdd1_exr.exr -o out.exr
 
-tmpsrc/asan_heap-oob_7f4f5558d00e_414_ec6445a8638a21c93ce8feb5a2e71981_exr.exr : 536910914 x    2, 3 channel, uint/half/half openexr
+oiiotool: IlmThreadMutexPosix.cpp:63: virtual IlmThread_2_2::Mutex::~Mutex(): Assertion `error == 0' failed.
+Aborted (core dumped)
 
 oiiotool ERROR: read : "tmpsrc/asan_heap-oob_7f54ed80df53_321_19490ab1841d3854eec557f3c23d0db0_exr.exr": Subsampled channels are not supported (channel "" has sampling 64,1).
 Full command line was:
@@ -84,6 +84,9 @@ Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f58e8d75e8b_186_4bb7b1de93e9e44ea921c301b29a8026_exr.exr -o out.exr
 
 tmpsrc/asan_heap-oob_7f5a5030cdca_702_045a76649e773c9c18b706c9853f18d9_exr.exr :  517 x  517, 3 channel, half openexr (+mipmap)
+oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "tmpsrc/asan_heap-oob_7f5a5030cdca_702_045a76649e773c9c18b706c9853f18d9_exr.exr". Data decoding (rle) failed.
+Full command line was:
+> ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f5a5030cdca_702_045a76649e773c9c18b706c9853f18d9_exr.exr -o out.exr
 
 tmpsrc/asan_heap-oob_7f5c18182f27_369_1fb4dae7654c77cd79646d3aa049d5dd_exr.exr :   64 x   64, 1 channel, half openexr
 oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "tmpsrc/asan_heap-oob_7f5c18182f27_369_1fb4dae7654c77cd79646d3aa049d5dd_exr.exr". Scan line 32 is missing.
@@ -119,7 +122,7 @@ oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image 
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f6f881fa398_561_20ecb7f5a431d03a1502c28cab1214ad_exr.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/asan_heap-oob_7f730474b07c_543_fb506af38c88894d92ba0d433cf41abc_exr.exr": No channels found
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/asan_heap-oob_7f730474b07c_543_fb506af38c88894d92ba0d433cf41abc_exr.exr". Invalid tile size in image header.
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f730474b07c_543_fb506af38c88894d92ba0d433cf41abc_exr.exr -o out.exr
 
@@ -127,9 +130,11 @@ oiiotool ERROR: read : "tmpsrc/asan_heap-oob_7f76b2c2cefb_196_ea4f8db8b4f2c11e02
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f76b2c2cefb_196_ea4f8db8b4f2c11e02428c08e9bbbbb8_exr.exr -o out.exr
 
-tmpsrc/asan_heap-oob_7f7a75f9abf5_577_a2b8668cc6069643543cb80fedca3ee4_exr.exr : 536871041 x    1, 3 channel, uint/half/half openexr
+oiiotool: IlmThreadMutexPosix.cpp:63: virtual IlmThread_2_2::Mutex::~Mutex(): Assertion `error == 0' failed.
+Aborted (core dumped)
 
-tmpsrc/asan_heap-oob_7f8170c1abfa_115_8c6e33969541bf432ef7e68cc369728c_exr.exr : 788520991 x    1, 2 channel, half/float openexr
+oiiotool: IlmThreadMutexPosix.cpp:63: virtual IlmThread_2_2::Mutex::~Mutex(): Assertion `error == 0' failed.
+Aborted (core dumped)
 
 tmpsrc/asan_heap-oob_7f8a69d8339d_829_381ccc69dc6bd21c43a1deb0965bf5ab_exr.exr :  400 x  300, 3 channel, half openexr
 oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "tmpsrc/asan_heap-oob_7f8a69d8339d_829_381ccc69dc6bd21c43a1deb0965bf5ab_exr.exr". Unexpected data block y coordinate.
@@ -148,7 +153,7 @@ oiiotool ERROR: read : "tmpsrc/asan_heap-oob_7f9acb068ee5_177_ec645ad270202d39ba
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f9acb068ee5_177_ec645ad270202d39ba5e80c826bbf13d_exr.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/asan_heap-oob_7f9cc08a96a5_942_e708072e479264a7808c055094a0fed9_exr.exr": Subsampled channels are not supported (channel "B" has sampling 128,1).
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/asan_heap-oob_7f9cc08a96a5_942_e708072e479264a7808c055094a0fed9_exr.exr". The x subsampling factor for the "B" channel is not 1.
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7f9cc08a96a5_942_e708072e479264a7808c055094a0fed9_exr.exr -o out.exr
 
@@ -164,7 +169,7 @@ oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image 
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7faf9aba03ac_414_75af58c21b9b9e994747f9d6a5fc46d4_exr.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/asan_heap-oob_7fb3a7c6fc99_871_52d1f03c515bc91cc894515beea56a4f_exr.exr": Subsampled channels are not supported (channel "B" has sampling 128,1).
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/asan_heap-oob_7fb3a7c6fc99_871_52d1f03c515bc91cc894515beea56a4f_exr.exr". The x subsampling factor for the "B" channel is not 1.
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7fb3a7c6fc99_871_52d1f03c515bc91cc894515beea56a4f_exr.exr -o out.exr
 
@@ -249,9 +254,8 @@ oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/openexr
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/openexr_2.2.0_memory_allocation_error_1_exr.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/openexr_2.2.0_memory_allocation_error_3_exr.exr": OpenEXR exception: std::bad_alloc
-Full command line was:
-> ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/openexr_2.2.0_memory_allocation_error_3_exr.exr -o out.exr
+oiiotool: IlmThreadMutexPosix.cpp:63: virtual IlmThread_2_2::Mutex::~Mutex(): Assertion `error == 0' failed.
+Aborted (core dumped)
 
 oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-099125d15685ef30feae813ddae15406b3f539d7cc4aa399176a50dcfe9be95c.exr". Unexpected end of file.
 Full command line was:
@@ -310,7 +314,7 @@ oiiotool ERROR: read : "tmpsrc/poc-d545cd0db4595a1c05504ab53d83cc8c6fce02387545a
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-d545cd0db4595a1c05504ab53d83cc8c6fce02387545aa49e979ee087c1ddf8f_min.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/poc-df1fefc5fb459cb12183eae34dc696cd0e77b0b8deb4cd1ef3dc25279b7a6bde_min.exr": OpenEXR exception: vector::_M_fill_insert
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-df1fefc5fb459cb12183eae34dc696cd0e77b0b8deb4cd1ef3dc25279b7a6bde_min.exr". Data window [ (0, 0) - (8388607, 8388607) ] offset / size will overflow pointer calculations
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-df1fefc5fb459cb12183eae34dc696cd0e77b0b8deb4cd1ef3dc25279b7a6bde_min.exr -o out.exr
 
