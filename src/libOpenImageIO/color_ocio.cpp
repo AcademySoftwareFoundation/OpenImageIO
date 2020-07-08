@@ -19,11 +19,19 @@
 
 #include "imageio_pvt.h"
 
+#define MAKE_OCIO_VERSION_HEX(maj, min, patch)                                 \
+    (((maj) << 24) | ((min) << 16) | (patch))
+
 #ifdef USE_OCIO
 #    include <OpenColorIO/OpenColorIO.h>
+#    if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 0, 0)
+#        define OCIO_v2 1
+#        include <OpenColorIO/apphelpers/ColorSpaceHelpers.h>
+#        include <OpenColorIO/apphelpers/DisplayViewHelpers.h>
+#        include <OpenColorIO/apphelpers/ViewingPipeline.h>
+#    endif
 namespace OCIO = OCIO_NAMESPACE;
 #endif
-
 
 OIIO_NAMESPACE_BEGIN
 
@@ -1176,21 +1184,29 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
     if (getImpl()->config_) {
-        OCIO::ConstConfigRcPtr config         = getImpl()->config_;
-        OCIO::DisplayTransformRcPtr transform = OCIO::DisplayTransform::Create();
+        OCIO::ConstConfigRcPtr config = getImpl()->config_;
+#    ifdef OCIO_v2
+        auto transform = OCIO::DisplayViewTransform::Create();
+        transform->setSrc(inputColorSpace.c_str());
+        if (looks.size()) {
+            getImpl()->error(
+                "createDisplayTransform: looks overrides are not allowed in OpenColorIO v2");
+        }
+#    else
+        auto transform = OCIO::DisplayTransform::Create();
         transform->setInputColorSpaceName(inputColorSpace.c_str());
-        transform->setDisplay(display.c_str());
-        transform->setView(view.c_str());
         if (looks.size()) {
             transform->setLooksOverride(looks.c_str());
             transform->setLooksOverrideEnabled(true);
         } else {
             transform->setLooksOverrideEnabled(false);
         }
-        OCIO::ConstContextRcPtr context = config->getCurrentContext();
-        std::vector<string_view> keys, values;
-        Strutil::split(context_key, keys, ",");
-        Strutil::split(context_value, values, ",");
+#    endif
+        transform->setDisplay(display.c_str());
+        transform->setView(view.c_str());
+        auto context = config->getCurrentContext();
+        auto keys    = Strutil::splits(context_key, ",");
+        auto values  = Strutil::splits(context_value, ",");
         if (keys.size() && values.size() && keys.size() == values.size()) {
             OCIO::ContextRcPtr ctx = context->createEditableCopy();
             for (size_t i = 0; i < keys.size(); ++i)

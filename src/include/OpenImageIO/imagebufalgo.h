@@ -1687,7 +1687,8 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src, string_view looks,
 ///             it will be assumed to be scene linear.
 /// @param  looks
 ///             The looks to apply (comma-separated). This may be empty,
-///             in which case no "look" is used.
+///             in which case no "look" is used. Note: this parameter value
+///             is not used when building against OpenColorIO 2.x.
 /// @param  unpremult
 ///             If true, divide the RGB channels by alpha (if it exists and
 ///             is nonzero) before color conversion, then re-multiply by
