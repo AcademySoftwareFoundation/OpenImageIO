@@ -3400,7 +3400,7 @@ bottom you will see the list of all color spaces, looks, and displays that
 
 
 
-.. option:: --ociodisplay <displayname viewname>
+.. option:: --ociodisplay <displayname> <viewname>
 
     Replace the current image with a new image whose pixels are transformed
     using the named OpenColorIO "display" transformation given by the
