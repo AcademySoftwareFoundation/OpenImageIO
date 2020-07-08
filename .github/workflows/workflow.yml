@@ -172,6 +172,7 @@ jobs:
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
           OPENEXR_BRANCH: v2.5.0
+          PYBIND11_VERSION: 2.5.0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash

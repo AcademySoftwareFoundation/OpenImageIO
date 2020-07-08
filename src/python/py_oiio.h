@@ -368,7 +368,7 @@ C_to_tuple<TypeDesc>(cspan<TypeDesc> vals)
     size_t size = vals.size();
     py::tuple result(size);
     for (size_t i = 0; i < size; ++i)
-        result[i] = py::cast<TypeDesc>(vals[i]);
+        result[i] = py::cast(vals[i]);
     return result;
 }
 
