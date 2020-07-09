@@ -1654,6 +1654,64 @@ is the total number of channel samples in the thumbnail).
 
 |
 
+.. _sec-bundledplugins-term:
+
+Term (Terminal)
+===============================================
+
+This *experimental* output-only "format" is actually a procedural output
+that writes a low-res representation of the image to the console output. It
+requires a terminal application that supports Unicode and 24 bit color
+extensions.
+
+The `term` ImageOutput supports the following special metadata tokens to
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``term:method``
+     - string
+     - May be one of `iterm2`, `24bit` (default), `24bit-space`, `256color`,
+       or `dither`.
+   * - ``term:fit``
+     - int
+     - If 1 (the default), the image will be resized to fit on the console
+       window.
+
+
+
+The `iterm2` mode is the best quality and is the default mode when actually
+running on a Mac and launching using iTerm2 as the terminal. This mode uses
+iTerm2's nonstandard extension to directly output an pixel array to be
+visible in the terminal.
+
+The default in other circumstances is the `24bit` mode, which displays two
+approximately square pixels vertically in each character cell, by outputting
+the Unicode "upper half block" glyph (`\u2508`) with the foreground color
+set to the top pixel's color and the background color set to the bottom
+pixel's color.
+
+If this doesn't look right, or your terminal doesn't support Unicode,
+the `24bit-space` is an alternate mode that displays one elongated pixel
+in each character cell, writing a space character with the correct color.
+
+There's also a `256color` method that just uses the 6x6x6 color space in the
+256 color palette -- which looks horrible -- and an experimental `dither`
+which does a half-assed Floyd-Steinberg dithering, horizontally only, and
+frankly is not an improvement unless you squint really hard. These may
+change or be eliminted in the future.
+
+In all cases, the image will automatically be resized to fit in the terminal
+and keep approximately the correct aspect ratio, as well as converted to
+sRGB so it looks kinda ok.
+
+|
+
 .. _sec-bundledplugins-tiff:
 
 TIFF

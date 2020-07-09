@@ -1820,6 +1820,10 @@ public:
     ///  - `"ioproxy"`
     ///         Does the image file format support writing to an `IOProxy`?
     ///
+    /// - `"procedural"` :
+    ///       Is this a purely procedural output that doesn't write an
+    ///       actual file?
+    ///
     /// This list of queries may be extended in future releases. Since this
     /// can be done simply by recognizing new query strings, and does not
     /// require any new API entry points, addition of support for new

@@ -4621,6 +4621,7 @@ output_file(int /*argc*/, const char* argv[])
     bool supports_displaywindow  = out->supports("displaywindow");
     bool supports_negativeorigin = out->supports("negativeorigin");
     bool supports_tiles = out->supports("tiles") || ot.output_force_tiles;
+    bool procedural     = out->supports("procedural");
     ot.read();
     ImageRecRef saveimg = ot.curimg;
     ImageRecRef ir(ot.curimg);
@@ -4893,7 +4894,7 @@ output_file(int /*argc*/, const char* argv[])
 
         // We wrote to a temporary file, so now atomically move it to the
         // original desired location.
-        if (ok) {
+        if (ok && !procedural) {
             std::string err;
             ok = Filesystem::rename(tmpfilename, filename, err);
             if (!ok)
