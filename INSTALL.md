@@ -27,8 +27,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt >= 5.6 (tested through 5.15)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 2.7 (tested against 2.7, 3.6, 3.7)
-     * pybind11 >= 2.4.2 (Tested through 2.4.3.)
+     * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8)
+     * pybind11 >= 2.4.2 (Tested through 2.5.)
      * NumPy
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.15 (tested 0.15 - 0.20; LibRaw >= 0.18 is necessary for

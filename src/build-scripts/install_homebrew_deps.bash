@@ -69,7 +69,7 @@ pip install numpy
 export PATH=/usr/local/opt/qt5/bin:$PATH ;
 export PATH=/usr/local/opt/python/libexec/bin:$PATH ;
 export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
-export PATH=/usr/local/Cellar/llvm/9.0.0*/bin:$PATH ;
+export PATH=/usr/local/opt/llvm/bin:$PATH ;
 
 # If field3d and hdf5 get even slightly out of sync, hdf5 will throw fits.
 # This is unnecessary, so we disable the step to make CI more likely to
