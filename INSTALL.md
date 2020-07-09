@@ -28,9 +28,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt >= 5.6 (tested through 5.15)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 2.7 (tested against 2.7, 3.6, 3.7)
+     * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8)
      * NumPy
-     * **pybind11 >= 2.4.2** (Tested through 2.4.2. For this
+     * **pybind11 >= 2.4.2** (Tested through 2.5. For this
        case, or if no pybind11 is found already on the system, OIIO will
        auto-download it.)
  * If you want support for camera "RAW" formats:
