@@ -25,7 +25,9 @@ ifneq (${hw},x86)
   ifneq (${hw},x86_64)
     ifneq (${hw},i386)
       ifneq (${hw},i686)
-        $(error "ERROR: Unknown hardware architecture")
+        ifneq (${hw},aarch64)
+          $(error "ERROR: Unknown hardware architecture")
+        endif
       endif
     endif
   endif
@@ -43,6 +45,9 @@ ifeq (${platform},unknown)
     platform := linux
     ifeq (${hw},x86_64)
       platform := linux64
+    endif
+    ifeq (${hw},aarch64)
+      platform := aarch64
     endif
   endif
 

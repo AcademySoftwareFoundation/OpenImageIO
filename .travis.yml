@@ -18,6 +18,9 @@ addons:
    sources: &add-sources
       - ubuntu-toolchain-r-test
    packages: &common-packages
+      - libilmbase-dev
+      - libopenexr-dev
+      - libopencolorio-dev
       - libgif-dev
       - libopenjpeg-dev
       - libwebp-dev
@@ -60,11 +63,11 @@ before_install:
     - if [ "$CXX" == "g++" ]; then export CXX="g++-${WHICHGCC}" ; fi
 
 install:
-    - if [ $TRAVIS_OS_NAME == osx ] ; then source src/build-scripts/install_homebrew_deps.bash ; fi
-    - if [ "$BUILD_CMAKE" == "1" ] ; then source src/build-scripts/build_cmake.bash ; fi
-    - if [ $TRAVIS_OS_NAME == linux ] ; then CXX="ccache $CXX" source src/build-scripts/build_openexr.bash ; fi
-    - if [ $TRAVIS_OS_NAME == linux ] ; then CXX="ccache $CXX" source src/build-scripts/build_ocio.bash ; fi
-    - if [ $TRAVIS_OS_NAME == linux ] ; then source src/build-scripts/build_pybind11.bash ; fi
+    - if [[ $TRAVIS_OS_NAME == osx ]] ; then source src/build-scripts/install_homebrew_deps.bash ; fi
+    - if [[ "$BUILD_CMAKE" == "1" ]] ; then source src/build-scripts/build_cmake.bash ; fi
+    - if [[ "$OPENEXR_VERSION" || "$OPENEXR_BRANCH" ]] ; then CXX="ccache $CXX" source src/build-scripts/build_openexr.bash ; fi
+    - if [[ "$OCIO_VERSION" || "$OCIO_BRANCH" ]] ; then CXX="ccache $CXX" source src/build-scripts/build_ocio.bash ; fi
+    - if [[ $TRAVIS_OS_NAME == linux ]] ; then source src/build-scripts/build_pybind11.bash ; fi
     - src/build-scripts/install_test_images.bash
 
 # before_script:
@@ -82,34 +85,36 @@ branches:
     - /RB-/
     - /lg-/
 
-matrix:
+jobs:
     fast_finish: true
+    allow_failures:
+      - name: "Linux ARM64"
     include:
     # test default compile: C++11, optimized, default compilers, SSE2
-      - name: "VFX Platform 2017 (gcc48, py27, exr2.2)"
-        os: linux
-        dist: trusty
-        compiler: gcc
-        env: WHICHGCC=4.8 OPENEXR_BRANCH=v2.2.0 BUILD_CMAKE=1
-        addons:
-          apt:
-            sources: *add-sources
-            packages:
-              - *common-packages
-              - *old-boost-packages
-              - g++-4.8
+      # - name: "VFX Platform 2017 (gcc48, py27, exr2.2)"
+      #   os: linux
+      #   dist: trusty
+      #   compiler: gcc
+      #   env: WHICHGCC=4.8 OPENEXR_BRANCH=v2.2.0 BUILD_CMAKE=1
+      #   addons:
+      #     apt:
+      #       sources: *add-sources
+      #       packages:
+      #         - *common-packages
+      #         - *old-boost-packages
+      #         - g++-4.8
 
-      - name: "Mac (latest clang, py37)"
-        os: osx
-        compiler: clang
-        env: PYTHON_VERSION=3.7
+      # - name: "Mac (latest clang, py37)"
+      #   os: osx
+      #   compiler: clang
+      #   env: PYTHON_VERSION=3.7
     # Make sure Python 2.7 still works on OSX, but only for PRs, master/RB
     # pushes, or if the branch name includes "python".
-      - name: "Mac py27 (latest clang)"
-        os: osx
-        compiler: clang
-        env: PYTHON_VERSION=2.7
-        # if: branch =~ /(master|RB|travis|python)/ OR type = pull_request
+      # - name: "Mac py27 (latest clang)"
+      #   os: osx
+      #   compiler: clang
+      #   env: PYTHON_VERSION=2.7
+      #   # if: branch =~ /(master|RB|travis|python)/ OR type = pull_request
 
     # One more, just for the heck of it, turn all SIMD off, and also make
     # sure we're falling back on libjpeg, not jpeg-turbo, no OCIO support,
@@ -119,19 +124,56 @@ matrix:
     # Only build this case for PRs, direct pushes to master or RB branches,
     # or if the branch name includes "simd". Other ordinary work branch
     # pushes don't need to run this.
-      - name: "Oldest everything: gcc4.8, boost 1.55, no simd, no jpegturbo, no OCIO, dso plugins, exr2.2"
+      # - name: "Oldest everything: gcc4.8, boost 1.55, no simd, no jpegturbo, no OCIO, dso plugins, exr2.2"
+      #   os: linux
+      #   dist: trusty
+      #   compiler: gcc
+      #   env: WHICHGCC=4.8 USE_SIMD=0 USE_JPEGTURBO=0 USE_OPENCOLORIO=0 EMBEDPLUGINS=0 OPENEXR_BRANCH=v2.2.0 BUILD_CMAKE=1
+      #   # if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
+      #   addons:
+      #     apt:
+      #       sources: *add-sources
+      #       packages:
+      #         - *common-packages
+      #         - *old-boost-packages
+      #         - g++-4.8
+
+    # test ARM64 architecture
+      - name: "Linux ARM64"
         os: linux
-        dist: trusty
+        arch: arm64
+        dist: bionic
         compiler: gcc
-        env: WHICHGCC=4.8 USE_SIMD=0 USE_JPEGTURBO=0 USE_OPENCOLORIO=0 EMBEDPLUGINS=0 OPENEXR_BRANCH=v2.2.0 BUILD_CMAKE=1
-        # if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
+        env: WHICHGCC=7 BUILD_CMAKE=1
         addons:
           apt:
-            sources: *add-sources
+            #sources: *add-sources
             packages:
-              - *common-packages
-              - *old-boost-packages
-              - g++-4.8
+              - libuv1
+              - rhash
+              - libstdc++6
+              - libboost-all-dev
+              - libtiff-dev
+              - libilmbase-dev
+              - libopenexr-dev
+              - libjpeg-turbo8-dev
+              - libgif-dev
+              - libopencolorio-dev
+              #- libopenjpeg-dev
+              - libwebp-dev
+              - libheif-dev
+              #- libfreetype6-dev
+              #- libjpeg-turbo8-dev
+              - libdcmtk-dev
+              #- locales
+              #- python-numpy
+              - libraw-dev
+              - ninja-build
+              - python3
+              - libpython3-dev
+              - libopenvdb-dev
+              - libsquish-dev
+              - qt5-default
 
     # Static analysis: build with clang-tidy.
     # Disabled -- this takes so long to run, it can't complete in Travis's

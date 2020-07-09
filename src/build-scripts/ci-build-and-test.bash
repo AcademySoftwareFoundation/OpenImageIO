@@ -35,7 +35,10 @@ cmake ../.. -G "$CMAKE_GENERATOR" \
         -DCMAKE_INSTALL_LIBDIR="$OpenImageIO_ROOT/lib" \
         -DCMAKE_CXX_STANDARD="$CMAKE_CXX_STANDARD" \
         $MY_CMAKE_FLAGS -DVERBOSE=1
-time cmake --build . --target ${BUILDTARGET:=install} --config ${CMAKE_BUILD_TYPE}
+if [[ "$BUILDTARGET" != "none" ]] ; then
+    echo "Parallel build " ${CMAKE_BUILD_PARALLEL_LEVEL}
+    time cmake --build . --target ${BUILDTARGET:=install} --config ${CMAKE_BUILD_TYPE}
+fi
 popd
 #make $MAKEFLAGS VERBOSE=1 $BUILD_FLAGS config
 #make $MAKEFLAGS $PAR_MAKEFLAGS $BUILD_FLAGS $BUILDTARGET
@@ -43,9 +46,10 @@ popd
 #echo "OpenImageIO_ROOT $OpenImageIO_ROOT"
 #ls -R -l "$OpenImageIO_ROOT"
 
-if [[ "$SKIP_TESTS" == "" ]] ; then
-    $OpenImageIO_ROOT/bin/oiiotool --help
+if [[ "${SKIP_TESTS:=0}" == "0" ]] ; then
+    $OpenImageIO_ROOT/bin/oiiotool --help || true
     TESTSUITE_CLEANUP_ON_SUCCESS=1
+    echo "Parallel test " ${CTEST_PARALLEL_LEVEL}
     make $BUILD_FLAGS test
 fi
 

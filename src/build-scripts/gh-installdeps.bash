@@ -78,7 +78,10 @@ fi
 src/build-scripts/install_test_images.bash
 
 CXX="ccache $CXX" source src/build-scripts/build_pybind11.bash
-CXX="ccache $CXX" source src/build-scripts/build_openexr.bash
+
+if [[ "$OPENEXR_BRANCH" || "$OPENEXR_VERSION" ]] ; then
+    CXX="ccache $CXX" source src/build-scripts/build_openexr.bash
+fi
 
 if [[ "$LIBTIFF_BRANCH" || "$LIBTIFF_VERSION" ]] ; then
     CXX="ccache $CXX" source src/build-scripts/build_libtiff.bash
