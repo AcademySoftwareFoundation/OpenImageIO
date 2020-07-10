@@ -293,8 +293,9 @@ ParamValue::get_string(int maxsize) const
                                              "",   ", ", true,     "%u" };
     std::string out                      = tostring(t, data(), fmt);
     if (n < nfull)
-        out += Strutil::sprintf(", ... [%d x %s]", nfull,
-                                TypeDesc(TypeDesc::BASETYPE(type().basetype)));
+        out += Strutil::sprintf(
+            ", ... [%d x %s]", nfull,
+            TypeDesc(TypeDesc::BASETYPE(type().basetype)).c_str());
     return out;
 }
 

@@ -1037,7 +1037,7 @@ ImageSpec::serialize(SerialFormat fmt, SerialVerbose verbose) const
                    depth > 1 ? "volume " : "");
     if (channelformats.size()) {
         for (size_t c = 0; c < channelformats.size(); ++c)
-            out << sprintf("%s%s", c ? "/" : "", channelformats[c]);
+            out << sprintf("%s%s", c ? "/" : "", channelformats[c].c_str());
     } else {
         int bits = get_int_attribute("oiio:BitsPerSample", 0);
         out << extended_format_name(this->format, bits);
@@ -1052,7 +1052,7 @@ ImageSpec::serialize(SerialFormat fmt, SerialVerbose verbose) const
             else
                 out << "unknown";
             if (i < (int)channelformats.size())
-                out << sprintf(" (%s)", channelformats[i]);
+                out << " (" << channelformats[i] << ")";
             if (i < nchannels - 1)
                 out << ", ";
         }
