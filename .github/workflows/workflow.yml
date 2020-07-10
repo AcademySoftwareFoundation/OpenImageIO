@@ -191,7 +191,7 @@ jobs:
     # bleeding.
     name: "Linux bleeding edge: gcc10 C++17 avx2 OCIO/libtiff/exr master"
     runs-on: ubuntu-18.04
-    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'bleeding')
+    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'bleeding') || contains(github.ref, 'RB') || contains(github.ref, 'master')
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -222,7 +222,7 @@ jobs:
     # test, or if the branch name contains certain substrings: gh, release,
     # old.
     name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
-    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh')
+    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'RB') || contains(github.ref, 'master')
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
@@ -385,7 +385,7 @@ jobs:
     # only run on PRs, nightly test, or if the branch name contains
     # "gh", "master", "release", or "static".
     name: "Linux static libs: gcc7 C++14 exr2.4"
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'static') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'static') || contains(github.ref, 'release') || contains(github.ref, 'RB') || contains(github.ref, 'master') || contains(github.ref, 'gh')
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
