@@ -284,7 +284,7 @@ Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-66e4d1f68a3112b9aaa93831afbf8e283fd39be5e4591708bad917e6886c0ebb.mini.exr -o out.exr
 
 tmpsrc/poc-89f7735a7cc9dcee59bfce4da70ad12e35a8809945b01b975d1a52ec15dbeccc.exr :   64 x   64, 5 channel, half/half/half/float/half openexr
-oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "tmpsrc/poc-89f7735a7cc9dcee59bfce4da70ad12e35a8809945b01b975d1a52ec15dbeccc.exr". File input failed.
+oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "tmpsrc/poc-89f7735a7cc9dcee59bfce4da70ad12e35a8809945b01b975d1a52ec15dbeccc.exr". Invalid scan line 0 requested or missing.
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-89f7735a7cc9dcee59bfce4da70ad12e35a8809945b01b975d1a52ec15dbeccc.exr -o out.exr
 
@@ -292,6 +292,7 @@ oiiotool ERROR: read : "tmpsrc/poc-9651abd6ee953b9f669db5927f8832f1b1eab028fa6ae
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-9651abd6ee953b9f669db5927f8832f1b1eab028fa6ae7b4176a701aeea0ec90.exr -o out.exr
 
+PtexReader error: read failed (EOF) PtexFile: tmpsrc/poc-a905d63836959293bed720ab7d242bd07b7b7ec81ee3ee1e14e89853344dafbf_min.exr
 oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-a905d63836959293bed720ab7d242bd07b7b7ec81ee3ee1e14e89853344dafbf_min.exr". Invalid size field in header attribute
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-a905d63836959293bed720ab7d242bd07b7b7ec81ee3ee1e14e89853344dafbf_min.exr -o out.exr
@@ -300,6 +301,7 @@ oiiotool ERROR: read : "tmpsrc/poc-af451a11e18ad9ca6ddc098bfd8b42f803bec2be8fafa
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-af451a11e18ad9ca6ddc098bfd8b42f803bec2be8fafa6e648b8a7adcfdd0c06_min.exr -o out.exr
 
+PtexReader error: read failed (EOF) PtexFile: tmpsrc/poc-bd9579c640a6ee867d140c2a4d3bbd6f0452d4726f3f25ed53bf666f558ed245_min.exr
 oiiotool ERROR: read : OpenImageIO could not find a format reader for "tmpsrc/poc-bd9579c640a6ee867d140c2a4d3bbd6f0452d4726f3f25ed53bf666f558ed245_min.exr". Is it a file format that OpenImageIO doesn't know about?
 
 Full command line was:
