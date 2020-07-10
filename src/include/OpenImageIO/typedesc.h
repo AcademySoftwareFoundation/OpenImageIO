@@ -171,7 +171,7 @@ struct OIIO_API TypeDesc {
     /// "float", "int[5]", "normal"
     const char *c_str() const;
 
-    friend std::ostream& operator<< (std::ostream& o, TypeDesc t) {
+    friend std::ostream& operator<< (std::ostream& o, const TypeDesc& t) {
         o << t.c_str();  return o;
     }
 
@@ -525,3 +525,34 @@ convert_type(TypeDesc srctype, const void* src,
 
 
 OIIO_NAMESPACE_END
+
+
+
+#if OIIO_USE_FMT
+// Supply a fmtlib compatible custom formatter for TypeDesc.
+FMT_BEGIN_NAMESPACE
+template <>
+struct formatter<OIIO::TypeDesc> {
+    // Parses format specification
+    // C++14: constexpr auto parse(format_parse_context& ctx) {
+    auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) // c++11
+    {
+        // Get the presentation type, if any. Required to be 's'.
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && (*it == 's')) ++it;
+        // Check if reached the end of the range:
+        if (it != end && *it != '}')
+            throw format_error("invalid format");
+        // Return an iterator past the end of the parsed range:
+        return it;
+    }
+
+    template <typename FormatContext>
+    auto format(const OIIO::TypeDesc& t, FormatContext& ctx) -> decltype(ctx.out()){
+        // C++14:   auto format(const point& p, FormatContext& ctx) {
+        // ctx.out() is an output iterator to write to.
+        return format_to(ctx.out(), "{}", t.c_str());
+    }
+};
+FMT_END_NAMESPACE
+#endif

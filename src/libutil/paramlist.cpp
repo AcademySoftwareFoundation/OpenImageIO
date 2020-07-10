@@ -294,7 +294,8 @@ ParamValue::get_string(int maxsize) const
     std::string out = tostring(t, data(), fmt);
     if (n < nfull)
         out += Strutil::sprintf(", ... [%d x %s]", nfull,
-                                TypeDesc(TypeDesc::BASETYPE(type().basetype)));
+                                TypeDesc(TypeDesc::BASETYPE(type().basetype)))
+                   .c_str();
 #else
     std::string out;
     TypeDesc element = type().elementtype();

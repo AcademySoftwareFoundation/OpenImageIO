@@ -32,6 +32,7 @@ jobs:
           CXX: /usr/bin/g++
           CC: /usr/bin/gcc
           CMAKE_CXX_STANDARD: 11
+          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.2.1
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
@@ -173,6 +174,7 @@ jobs:
           USE_SIMD: avx2,f16c
           OPENEXR_BRANCH: v2.5.0
           PYBIND11_VERSION: 2.5.0
+          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
