@@ -1132,6 +1132,10 @@ bool
 ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
                 void* progress_callback_data) const
 {
+    if (!out) {
+        error("Empty ImageOutput passed to ImageBuf::write()");
+        return false;
+    }
     stride_t as = AutoStride;
     bool ok     = true;
     ok &= m_impl->validate_pixels();
