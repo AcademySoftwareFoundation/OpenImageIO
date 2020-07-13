@@ -1182,6 +1182,11 @@ control aspects of the writing itself:
    * - Output Configuration Attribute
      - Type
      - Meaning
+   * - ``png:compressionLevel``
+     - int
+     - Compression level for zip/deflate compression, on a scale from 0
+       (fastest, minimal compression) to 9 (slowest, maximal compression).
+       The default is 6. PNG compression is always lossless.
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
