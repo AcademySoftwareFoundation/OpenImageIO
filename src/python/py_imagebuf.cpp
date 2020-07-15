@@ -272,7 +272,7 @@ declare_imagebuf(py::module& m)
             },
             "out"_a)
         .def(
-            "make_writeble",
+            "make_writable",
             [](ImageBuf& self, bool keep_cache_type) {
                 py::gil_scoped_release gil;
                 return self.make_writable(keep_cache_type);
