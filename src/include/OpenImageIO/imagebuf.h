@@ -480,11 +480,17 @@ public:
     /// ImageOutput must have already been opened with a spec that indicates
     /// a resolution identical to that of this ImageBuf (but it may have
     /// specified a different pixel data type, in which case data
-    /// conversions will happen automatically).
+    /// conversions will happen automatically). This method does NOT close
+    /// the file when it's done (and so may be called in a loop to write a
+    /// multi-image file).
     ///
     /// Note that since this uses an already-opened `ImageOutput`, which is
     /// too late to change how it was opened, it does not honor any prior
     /// calls to `set_write_format` or `set_write_tiles`.
+    ///
+    /// The main application of this method is to allow an ImageBuf (which
+    /// by design may hold only a *single* image) to be used for the output
+    /// of one image of a multi-subimage and/or MIP-mapped image file.
     ///
     /// @param  out
     ///             A pointer to an already-opened `ImageOutput` to which
@@ -496,8 +502,7 @@ public:
     ///             which allows you to implement some sort of progress
     ///             meter.
     /// @returns  `true` if all went ok, `false` if there were errors
-    ///           writing.  It does NOT close the file when it's done (and
-    ///           so may be called in a loop to write a multi-image file).
+    ///           writing.
     bool write(ImageOutput* out, ProgressCallback progress_callback = nullptr,
                void* progress_callback_data = nullptr) const;
 

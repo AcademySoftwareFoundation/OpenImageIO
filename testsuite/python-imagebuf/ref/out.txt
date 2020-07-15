@@ -133,6 +133,7 @@ Sample 2
 	c 2 : 0.000
 	c 3 : 0.000
 	c 4 : 43.000
+Writing multi-image file
 
 Done.
 Comparing "out.tif" and "ref/out.tif"
@@ -146,4 +147,6 @@ PASS
 Comparing "outarrayH.tif" and "ref/outarrayH.tif"
 PASS
 Comparing "perchan.exr" and "ref/perchan.exr"
+PASS
+Comparing "multipart.exr" and "ref/multipart.exr"
 PASS
