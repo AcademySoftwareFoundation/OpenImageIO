@@ -221,22 +221,22 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
 
         // radi,radj is the filter radius, as an integer, in source pixels.  We
         // will filter the source over [x-radi, x+radi] X [y-radj,y+radj].
-        int radi            = (int)ceilf(filterrad / xratio);
-        int radj            = (int)ceilf(filterrad / yratio);
-        int xtaps           = 2 * radi + 1;
-        int ytaps           = 2 * radj + 1;
-        bool separable      = filter->separable();
-        float* yfiltval     = OIIO_ALLOCA(float, ytaps);
-        float* xfiltval_all = NULL;
+        int radi        = (int)ceilf(filterrad / xratio);
+        int radj        = (int)ceilf(filterrad / yratio);
+        int xtaps       = 2 * radi + 1;
+        int ytaps       = 2 * radj + 1;
+        bool separable  = filter->separable();
+        float* yfiltval = OIIO_ALLOCA(float, ytaps);
+        std::unique_ptr<float[]> xfiltval_all;
         if (separable) {
             // For separable filters, horizontal tap weights will be the same
             // for every column. So we precompute all the tap weights for every
             // x position we'll need. We do the same thing in y, but row by row
             // inside the loop (since we never revisit a y row). This
             // substantially speeds up resize.
-            xfiltval_all = OIIO_ALLOCA(float, xtaps* roi.width());
+            xfiltval_all.reset(new float[xtaps * roi.width()]);
             for (int x = roi.xbegin; x < roi.xend; ++x) {
-                float* xfiltval = xfiltval_all + (x - roi.xbegin) * xtaps;
+                float* xfiltval = xfiltval_all.get() + (x - roi.xbegin) * xtaps;
                 float s         = (x - dstfx + 0.5f) * dstpixelwidth;
                 float src_xf    = srcfx + s * srcfw;
                 int src_x;
@@ -328,7 +328,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, Filter2D* filter, ROI roi,
                     int src_x    = ifloor(src_xf);
                     for (int c = 0; c < nchannels; ++c)
                         pel[c] = 0.0f;
-                    const float* xfiltval = xfiltval_all
+                    const float* xfiltval = xfiltval_all.get()
                                             + (x - roi.xbegin) * xtaps;
                     float totalweight_x = 0.0f;
                     for (int i = 0; i < xtaps; ++i)
