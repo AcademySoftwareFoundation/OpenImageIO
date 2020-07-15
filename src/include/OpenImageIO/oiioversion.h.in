@@ -7,16 +7,61 @@
 #define OPENIMAGEIO_VERSION_H
 
 
-// Versioning of the OpenImageIO software
+// Versioning of the OpenImageIO software. For *releases*:
+//
+// MAJOR is a major architectural change or a step that does not preserve
+// backwards compatibility of source code (an app designed for an older
+// major version may not compile successfully against newer version of the
+// heades and libraries, and will need to have its source modified).
+// Examples of changes that necessitate major version changes are removal of
+// API calls or classes, or renaming of class members.
+//
+// MINOR is an addition of significant new features and may change the
+// definition of public data structures or functions in a way that is
+// backwards compatible for source code, but is not back compatible for ABI
+// or linkage (i.e. you don't need to modify your app's source, but you do
+// need to recompile it). Examples of changes that necessitate a minor
+// version change would be adding new data fields to a structure, adding new
+// virtual member functions to a class, or adding new optional parameters to
+// the end of a function call.
+//
+// PATCH is a minor change that preserves ABI and link back-compatibility,
+// where an app built for the older version can simply have the newer
+// library substituted without recompilation. Generally, this is only for
+// bug fixes, though sometimes we may add new minor features if they only
+// involve addition of static/global function calls or data (since this does
+// not break back-compatibility).
+//
+// TWEAK is just a rebuild/re-version that is both forward and backward
+// compatible. Usually this involves only a change to the build system
+// itself (such as fixing a build break on a particular platform), a change
+// in documentation, or fixing some other minor unintentional flaw in a
+// prior release.
+//
+// Note that these designations only apply to released branches. Changes
+// in the main development branch ("master") do not make any compatibility
+// guarantees at all.
+//
 #define OIIO_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
 #define OIIO_VERSION_MINOR @PROJECT_VERSION_MINOR@
 #define OIIO_VERSION_PATCH @PROJECT_VERSION_PATCH@
 #define OIIO_VERSION_TWEAK @PROJECT_VERSION_TWEAK@
 #define OIIO_VERSION_RELEASE_TYPE @PROJECT_VERSION_RELEASE_TYPE@
 
-#define OIIO_VERSION (10000 * OIIO_VERSION_MAJOR + \
-                        100 * OIIO_VERSION_MINOR + \
-                              OIIO_VERSION_PATCH)
+// Construct a single integer version number from major, minor, patch.
+// Example of its use:
+//
+//     #if OIIO_VERSION >= OIIO_MAKE_VERSION(2,3,0)
+//         ... use a feature introduced in version 2.3.0 ...
+//     #endif
+//
+#define OIIO_MAKE_VERSION(major,minor,patch) \
+                        (10000 * (major) + 100 * (minor) + (patch))
+
+// Single version designation of this release
+#define OIIO_VERSION OIIO_MAKE_VERSION(OIIO_VERSION_MAJOR, \
+                        OIIO_VERSION_MINOR, OIIO_VERSION_PATCH)
+
 // We also define the old name for backwards compatibility purposes.
 #define OPENIMAGEIO_VERSION OIIO_VERSION
 
