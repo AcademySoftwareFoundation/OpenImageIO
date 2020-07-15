@@ -1273,7 +1273,7 @@ ImageOutput class APIs. The Python APIs are very similar.
 .. py:method:: ImageOutput.open (filename, spec, mode="Create")
 
     Opens the named output file, with an ImageSpec describing the image to
-    be output.  The `mode` may be one of "create", "AppendSubimage", or
+    be output.  The `mode` may be one of "Create", "AppendSubimage", or
     "AppendMIPLevel". See Section :ref:`sec-imageoutput-class-reference` for
     details. Returns `True` upon success, `False` upon failure (error
     messages retrieved via `ImageOutput.geterror()`.)
@@ -1639,6 +1639,25 @@ awaiting a call to `reset()` or `copy()` before it is useful.
         # Convert to uint16 TIFF
         buf = ImageBuf ("in.exr")
         buf.write ("out.tif", "uint16")
+
+
+
+.. py:method:: ImageBuf.write (imageoutput)
+
+    Write the contents of the ImageBuf as the next subimage to an open
+    ImageOutput.
+
+    Example:
+
+    .. code-block:: python
+
+        buf = ImageBuf (...)   # Existing ImageBuf
+
+        out = ImageOutput.create("out.exr")
+        out.open ("out.exr", buf.spec())
+
+        buf.write (out)
+        out.close()
 
 
 
@@ -3828,3 +3847,21 @@ add an alpha channel that is 1 everywhere**
     comp = ImageBufAlgo.over (fg, bg)
     write_image (comp, "composite.exr")
 
+
+|
+
+**Write multiple ImageBufs into one multi-subimage file**
+
+.. code-block:: python
+
+    bufs = (...)   # Suppose that bufs is a tuple of ImageBuf
+    specs = (...)  # specs is a tuple of the specs that describe them
+
+    # Open with intent to write the subimages
+    out = ImageOutput.create ("multipart.exr")
+    out.open ("multipart.exr", specs)
+    for s in range(len(bufs)) :
+        if s > 0 :
+            out.open ("multipart.exr", specs[s], "AppendSubimage")
+        bufs[s].write (out)
+    out.close ()

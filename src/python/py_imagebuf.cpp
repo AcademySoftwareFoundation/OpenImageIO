@@ -265,6 +265,13 @@ declare_imagebuf(py::module& m)
             },
             "filename"_a, "dtype"_a = TypeUnknown, "fileformat"_a = "")
         .def(
+            "write",
+            [](ImageBuf& self, ImageOutput& out) {
+                py::gil_scoped_release gil;
+                return self.write(&out);
+            },
+            "out"_a)
+        .def(
             "make_writeble",
             [](ImageBuf& self, bool keep_cache_type) {
                 py::gil_scoped_release gil;
