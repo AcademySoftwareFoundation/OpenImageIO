@@ -51,11 +51,14 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for HEIF/HEIC images:
      * libheif >= 1.3 (tested through 1.6; older versions may also work, we
        haven't tested)
-* If you want support for DDS files:
+ * If you want support for DDS files:
      * libsquish >= 1.13 (tested through 1.15)
      * But... if not found on the system, an embedded version will be used.
-* If you want support for DICOM medical image files:
+ * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.5)
+ * If you want support for OpenColorIO color transformations:
+     * OpenColorIO >= 1.1 (also tested against the current master that will
+       become OCIO 2.0).
 
 
 

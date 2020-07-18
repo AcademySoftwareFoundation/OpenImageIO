@@ -1,10 +1,8 @@
-Release 2.2 (???) -- compared to 2.1
+Release 2.2 (1 Sept 2020??) -- compared to 2.1
 ----------------------------------------------
 New minimum dependencies:
 * pybind11 >= 2.4.2
 * openjpeg >= 2.0 (if JPEG-2000 support is desired) #2555 (2.2.2)
-
-New file format support:
 
 New major features and public API changes:
 * New IOProxy support: ImageInput and ImageOutput now have direct API level
@@ -23,6 +21,9 @@ New major features and public API changes:
       numpy arrays (previously they had to be tuples). #2437 (2.1.11/2.2.0)
     - `ImageBufAlgo.color_range_check()` is now available to the Python
       bindings (was previously only C++). #2602 (2.2.3)
+    - Add a version of `ImageBuf.write()` that takes an open `ImageOutput`.
+      This is the key to writing a multi-subimage file (such as a multi-part
+      OpenEXR) using the Python ImageBuf interface. #2640 (2.2.4)
 * ImageBuf:
     - Easier direct use of IOProxy with ImageBuf: constructor and reset()
       for file-reading ImageBuf now take an optional `IProxy*` parameter,
@@ -38,9 +39,16 @@ New major features and public API changes:
     - New `max()` and `min()` functions take the pixel-by-pixel maximum
       or minimum of two images. #2470 (2.2.1)
 * ColorConfig: add OCIO "role" accessors. #2548
-* oiiotool: Nearly all operations now allow an optional `:subimages=...`
-  modifier that restricts the operation to be performed on only a subset
-  of named or indexed subimages. See docs for details. #2582
+* oiiotool subimage support:
+    - Nearly all operations now allow an optional `:subimages=...`
+      modifier that restricts the operation to be performed on only a subset
+      of named or indexed subimages. See docs for details. #2582
+* Low-re I/O of images to terminals that support full color and Unicode
+  characters. Just output to a file ending in ".term", and it will convert
+  (on certain terminals) to an image displayed directly in the terminal.
+  #2631 (2.2.4)
+  Try:
+      `oiiotool myfile.exr -o out.term`
 
 Performance improvements:
 * Greatly improved TextureSystem/ImageCache performance in highly threaded
@@ -56,7 +64,7 @@ Fixes and feature enhancements:
       create an image too big to fit in memory. #2414 (2.2.0)
     - `--create` and `--proxy` take an additional optional modifier:
       `:type=name` that specifies the type of buffer to be created (the
-      default, as usual is to create an internal float-based buffer). #2414
+      default, as usual, is to create an internal float-based buffer). #2414
       (2.2.0)
     - `-o` optional argument `:type=name` is a new (and preferred) synonym
       for what used to be `:datatype=`. #2414 (2.2.0)
@@ -67,8 +75,10 @@ Fixes and feature enhancements:
       operation to delete one named or indexed subimage (versus the default
       behavior of extracing one subimage and deleting the others). #2575
       (2.2.3)
-    - The report of dependent libraries (part of `oiiotool --help`) now
+    - The list of dependent libraries (part of `oiiotool --help`) now
       correctly reports the OpenEXR version. #2604 (2.2.3)
+    - Fix: `--eraseattrib` did not correctly apply to all subimages when
+      `-a` or `:allsubimages=1` were used. #2632 (2.2.4)
 * ImageBuf / ImageBufAlgo:
     - Huge ImageBuf allocation failures (more than available RAM) now are
       caught and treated as an ImageBuf error, rather than crashing with an
@@ -80,24 +90,26 @@ Fixes and feature enhancements:
       channels, or data type have not been set validly). #2460
     - Fix: `ImageBuf::getchannel()` did not honor its `wrap` parameter.
       #2465 (2.2.1/2.1.12)
-    - Fix: `IBA::reorient()` and `IBA::computePixelHashSHA1()` did not
-      honor their `nthreads` parameter. #2465 (2.2.1/2.1.12)
+    - Fix: `IBA::reorient()` and `IBA::computePixelHashSHA1()` did not honor
+      their `nthreads` parameter. #2465 (2.2.1/2.1.12)
     - `resample()` has been modified to more closely match `resize` by using
       clamp wrap mode to avoid a black fade at the outer edge of the
       resampled area. #2481
     - Fix: `ImageBuf::get_pixels()` did not honor the stride parameters.
       #2487. (2.1.12/2.2.1)
+    - Fix `resize()` to avoid a crash / stack overflow in certain cases of
+      very big images and very large filter kernels. #2643 (2.2.4)
 * ImageCache / TextureSystem / maketx:
     - New IC/TS attribute "trust_file_extensions", if nonzero, is a promise
       that all files can be counted on for their formats to match their
       extensions, which eliminates some redundant opens and format checks
-      in the IC/TS and can reduce needless network/filesystem work. Use
-      with caution! #2421 (2.2.0)
+      in the IC/TS and can reduce needless network/filesystem work. Use with
+      caution! #2421 (2.2.0)
     - texture3d() fixed some cases where derivative results were not
       correctly copied to the outputs. #2475 (2.2.1)
-    - `maketx`/`IBA::make_texture`: better error detection and messages
-      when using "overscan" textures with formats that can't support it
-      properly. (Punchline: only OpenEXR textures can do it.) #2521 (2.2.0)
+    - `maketx`/`IBA::make_texture`: better error detection and messages when
+      using "overscan" textures with formats that can't support it properly.
+      (Punchline: only OpenEXR textures can do it.) #2521 (2.2.0)
     - Fix possible redundant tile reads in multithread situations (harmless,
       but makes for redundant I/O). #2557 (2.2.2)
 * Exif read: guard better against out of range offests, fixes crashes when
@@ -117,13 +129,17 @@ Fixes and feature enhancements:
     - Fix bug in the channel sorting order when channels are "X" and
       "Y" (was reversing the order by confusing "Y" for "luminance"). #2595
       (2.1.16/2.2.3)
+    - We no longer automatically rename the "worldToNDC" attribute to
+      "worldtoscreen" and vice versa. #2609 (2.2.4)
 * PNG:
     - Fix loss of 'config' info upon close/reopen. #2549 (2.2.2)
 * Raw images:
     - Support for new Canon .cr3 file, but only if you build against
-      libraw >= 0.20.0 developer snapshot. #2484 (2.2.1)
+      libraw >= 0.20.0 developer snapshot. #2484 (2.2.1) #2613 (2.2.4)
     - RAW input: set the "raw:flip" attribute if the underlying libraw did a
       reorientation. #2572 (2.1.15/2.2.3)
+    - Avoid errors (in libraw) that resulted from multiple threads opening
+      raw files at the same time. #2633 (2.2.4)
 * RLA:
     - Additional sanity checks and error checks/messages for detecting files
       that might be first mistaken for RLA files, but actually are not.
@@ -142,7 +158,7 @@ Developer goodies / internals:
     - Complete overhaul of ArgParse to make it more like Python argparse.
       Please read the extensive comments in argparse.h for documentation.
       For now, the old ArgParse interface still works, but is considered
-      deprecated. #2531 (2.2.2)
+      deprecated. #2531 (2.2.2) #2618 #2622 (2.2.4)
 * attrdelegate.h:
     - New `as_vec<>` method returns the whole attribute as a std::vector.
       #2528 (2.2.2)
@@ -162,6 +178,12 @@ Developer goodies / internals:
     - New `fast_neg` is faster than simple negation in many cases, if you
       don't care that -(0.0) is 0.0 (rather than a true -0.0). #2495
       (2.1.12/2.2.2)
+    - Add vint4, vint8, and vint16 versions of `clamp()`. #2617 (2.2.4)
+* oiioversion.h:
+    - Fix typo that left the OIIO_VERSION_RELEASE_TYPE symbol undefined.
+      #2616 (2.2.4/2.1.16)
+    - Add new `OIIO_MAKE_VERSION(maj,min,patch)` macro that constructs the
+      proper single integer code for a release version. #2641 (2.2.4/2.1.17)
 * paramlist.h:
     - New `ParamValueList::find_pv()` method that is similar to `find()` but
       returns a pointer rather than an iterator and nullptr if the attribute
@@ -181,6 +203,13 @@ Developer goodies / internals:
       methods, to more closely match the syntax of Imath::Vec3f. #2437
       (2.1.11/2.2.0)
     - fix errors in vbool == and !=. #2463 (2.1.11/2.2.1)
+    - Add float3 versions of abs, sign, ceil, floor, and round (they already
+      existed for float4, float8, float16, but not float4). #2612 (2.2.4)
+    - Improved support for ARM NEON SIMD (caveat: this is still not well
+      tested). #2614 (2.2.4)
+    - Improve performance for many float8/int8 functions and operators when
+      running on only 4-wide hardware, by using two 4-wide instructions
+      instead of reverting to scalar. #2621
 * span.h:
     - Allow the constructor from `std::vector` to allow vectors with custom
       allocators. #2533 (2.2.2)
@@ -197,6 +226,8 @@ Developer goodies / internals:
 * typedesc.h:
     - TypeDesc has additional helpers of constexpr values TypeFloat2,
       TypeVector2, TypeVector4, TypeVector2i, TypePointer. #2592 (2.1.16/2.2.3)
+* unordered_map_concurrent.h:
+    - Fix missing decrement of `size()` after `erase()`. #2624 (2.2.4)
 * More reshuffling of printf-style vs fmt-style string formatting. #2424
   (2.2.0)
 * Internals: changed a lot of assertions to only happen in debug build mode,
@@ -209,76 +240,92 @@ Developer goodies / internals:
 * oiiotool: Big overhaul and simplification of internals. #2586 #2589 (2.2.3)
 
 Build/test system improvements and platform ports:
-* Bump the minimum pybind11 vesion that we auto-download, and also be sure
-  to auto-download if pybind11 is found on the system already but is not an
-  adequately new version. #2453 (2.1.10.1/2.2.0)
-* Pybind11 is no longer auto-downloaded. It is assumed to be pre-installed.
-  A script `src/build-scripts/build_pybind11.bash` is provided for
-  convenience if you lack a system install. #2503 (2.2.2)
-* Un-embed fmt headers. If they are not found on the system at build time,
-  they will be auto-downloaded. #2439 (2.2.0)
+* CMake build system and scripts:
+    - New non-default CMake build flag `EXTRA_WARNINGS`, when turned on, will
+      cause gcc and clang to compile with -Wextra. This identified many new
+      warnings (mostly about unused parameters) and fixes were applied in
+      #2464, #2465, #2471, #2475, #2476. (2.2.1)
+    - FindOpenColorIO.cmake now correctly discerns the OCIO version (2.2.1),
+      and now sets up a true imported target. #2529 (2.2.2)
+    - FindOpenEXR.cmake has better detection of debug openexr libraries.
+      #2505 (2.2.2/2.1.13)
+    - Additional cmake controls to customize required vs optional
+      dependencies: `REQUIRED_DEPS` (list of dependencies normally optional
+      that should be treated as required) and `OPTIONAL_DEPS` (list of
+      dependencies normally required that should be optional). The main use
+      case is to force certain optional deps to be required for your studio,
+      to be sure that missing deps are a full build break, and not a
+      successful build that silently lacks features you need. #2507
+      (2.2.2/2.1.13)
+    - Fix exported cmake config file, it was not ensuring that the Imath
+      headers properly ended up in the config include path. #2515
+      (2.2.2/2.1.13)
+    - Change all CMake references to PACKAGE_FOUND to Package_Found (or
+      whatever capitalization matches the actual package name). #2569 (2.2.2)
+    - The exported CMake config files now set cmake variable
+      `OpenImageIO_PLUGIN_SEARCH_PATH` #2584 (2.1.16/2.2.3)
+* Continuous integration (CI) systems:
+    - Mostly retire TravisCI for ordinary Linux x64 and Mac builds, now we
+      rely on GitHub Actions CI. Nightly test added. Use ASWF docker images
+      to test exactly against VFX Platform 2019 and 2020 configurations.
+      #2563 (2.2.2) #2579 (2.2.3)
+    - Add Travis test for arm64 (aka aarch64) builds. This is still a work
+      in progress, and not all testsuite tests pass. #2634 (2.2.4)
+    - Our CI tests now have a "bleeding edge" matrix entry that tests against
+      the current TOT master build of libtiff, openexr (#2549), and pybind11
+      (#2556). (2.2.2)
+    - GitHub CI tests, when they fail, leave behind an "artifact" tar file
+      containing the output of the tests, so that they can be easily
+      downloaded and inspected (or used to create new reference output).
+      #2606 (2.2.4)
+    - CI Mac tests switch to Python 3.8. (2.2.4)
+* Dependency version support:
+    - Pybind11 is no longer auto-downloaded. It is assumed to be
+      pre-installed. A script `src/build-scripts/build_pybind11.bash` is
+      provided for convenience if you lack a system install. #2503 (2.2.2)
+      Bump the minimum pybind11 version that we accept, to 2.4.2 #2453,
+      and add fixes to allow support of pybind11 2.5. #2637 (2.2.4)
+    - fmt libray: Un-embed fmt headers. If they are not found on the system
+      at build time, they will be auto-downloaded. #2439 (2.2.0)
+    - Support for building against libraw 0.20. #2484 (2.2.1) #2580 (2.2.3)
+    - Build properly against OpenColorIO's current master (which is the
+      in-progress work on OCIO v2). #2530 (2.2.2)
+    - Fix static boost to not overlink on Windows. #2537 (2.2.2)
+    - Fix build breaks against TOT libtiff master, which had `#define`
+      clashes with our GPSTag enum values. #2539 (2.2.2)
+    - Ensure compatibility and clean builds with clang 10. #2518 (2.2.2/2.1.3)
+    - Support verified for gcc 10, added to CI tests. #2590 (2.2.3)
+    - Support for Qt 5.15. #2605 (2.2.3)
+    - Fixes to support OpenColorIO 2.0. #2636 (2.2.4)
+    - Build against more recent versions of fmtlib. #2639 (2.2.4)
 * Progress on support for using Conan for dependency installation. This is
   experimental, it can't yet build all dependencies. Work in progress.
   #2461 (2.2.1)
 * The version of gif.h that we embed for GIF output has been updated.
   #2466 (2.2.1)
-* New non-default CMake build flag `EXTRA_WARNINGS`, when turned on, will
-  cause gcc and clang to compile with -Wextra. This identified many new
-  warnings (mostly about unused parameters) and fixes were applied in #2464,
-  #2465, #2471, #2475, #2476. (2.2.1)
 * The `farmhash` functions have been cleaned up to be more careful that none
   of their internal symbols are left visible to the linker. #2473 (2.2.1)
-* Support for building against libraw 0.20. #2484 (2.2.1) #2580 (2.2.3)
 * Clarification about .so name versioning: In supported releases, .so
   contains major.minor, but in master (where ABI is not guaranteed stable,
   we name major.minor.patch). #2488 (2.2.1)
-* FindOpenColorIO.cmake now correctly discerns the OCIO version. (2.2.1)
-* FindOpenColorIO.cmake now sets up a true imported target. #2529 (2.2.2)
 * Protect against certain compiler preprocessor errors for user programs
   that include strutil.h but also inculde `fmt` on its own. #2498.
   (2.1.12/2.2.2)
-* FindOpenEXR.cmake has better detection of debug openexr libraries. #2505
-  (2.2.2/2.1.13)
-* Additional cmake controls to customize required vs optional dependencies:
-  `REQUIRED_DEPS` (list of dependencies normally optional that should be
-  treated as required) and `OPTIONAL_DEPS` (list of dependencies normally
-  required that should be optional). The main use case is to force certain
-  optional deps to be required for your studio, to be sure that missing deps
-  are a full build break, and not a successful build that silently lacks
-  features you need. #2507 (2.2.2/2.1.13)
 * Testing of TGA now assumes the test images are in the oiio-images project,
   not separately downloaded (the download location disappered from the net).
   #2512 (2.2.2)
-* Fix exported cmake config file, it was not ensuring that the Imath headers
-  properly ended up in the config iclude path. #2515 (2.2.2/2.1.13)
-* Ensure compatibility and clean builds with clang 10. #2518 (2.2.2/2.1.3)
 * Build: All the `build_foo.bash` helper scripts now use `set -ex` to ensure
   that if any individual commands in the script fails, the whole thing will
   exit with a failure. #2520 (2.2.2/2.1.3)
-* Build properly against OpenColorIO's current master (which is the
-  in-progress work on OCIO v2). #2530 (2.2.2)
-* Fix static boost to not overlink on Windows. #2537 (2.2.2)
-* Fix build breaks against TOT libtiff master, which had `#define` clashes
-  with our GPSTag enum values. #2539 (2.2.2)
-* Our CI tests now have a "bleeding edge" matrix entry that tests against
-  the current TOT master build of libtiff, openexr (#2549), and pybind11
-  (#2556). (2.2.2)
-* Fix compiler warnign about incorrect extra braces. #2554 (2.2.2)
+* Fix compiler warning about incorrect extra braces. #2554 (2.2.2)
 * All build-scripts bash scripts now use /usr/bin/env to find bash. #2558
   (2.2.2)
-* Retire TravisCI, now we rely on GitHub Actions CI. Nightly test added.
-  Use ASWF docker images to test exactly against VFX Platform 2019 and
-  2020 configurations. #2563 (2.2.2) #2579 (2.2.3)
 * Avoid possible link errors by fully hiding IBA functions taking IplImage
   parameters, when no OpenCV headers are encountered. #2568 (2.2.2)
-* Change all CMake references to PACKAGE_FOUND to Package_Found (or whatever
-  capitalization matches the actual package name). #2569 (2.2.2)
 * In (obsolete) FindOpenImageIO.cmake, avoid CMake warnings by changing
   the name `OPENIMAGEIO_FOUND` -> `OpenImageIO_FOUND`. #2578 (2.2.3)
-* The exported CMake config files now set cmake variable
-  `OpenImageIO_PLUGIN_SEARCH_PATH` #2584 (2.1.16/2.2.3)
-* Support verified for gcc 10, added to CI tests. #2590 (2.2.3)
-* Support for Qt 5.15. #2605 (2.2.3)
+* Beef up OpenEXR compliance tests, many more examples from openexr-images,
+  including many corrupted image failure cases. #2607 (2.2.4)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
@@ -289,9 +336,26 @@ Notable documentation changes:
 * Improved INSTALL instructions. (2.2.2/2.1.13)
 * Fix a variety of breaks on ReadTheDocs. #2581
 * Improve the way we discuss optional modifiers.
+* Document the PNG output controls for compression level. #2642 (2.2.4)
 
 
-Release 2.1.16 1 Jun  2020) -- compared to 2.1.15
+Release 2.1.17 (1 Jul 2020) -- compared to 2.1.16
+-------------------------------------------------
+* Build: Use the discovered python binary name, to address the Fedora
+  retriction that you must use "python2" or "python3" by name. #2598
+* Docs: ImageBufAlgo::nonzero_region had been inadvertently left out of the
+  Python chapter.
+* Improve RLA reader's ability to detect corrupt or non-RLA files, which
+  fixes crashes you could get from trying to read non-image files. #2600
+* Support for building against Qt 5.15. (Note: Qt support is only needed
+  for the "iv" viewer.) #2605
+* Fixes to support LibRaw 0.20 (which is currently in beta3). Note that this
+  will make it incompatible with 0.20 beta1 and beta2, due to a fixed typo
+  of a struct field in one of the LibRaw's headers. #2613
+* oiioversion.h: fix typo that left the OIIO_VERSION_RELEASE_TYPE symbol
+  undefined. #2616
+
+Release 2.1.16 (1 Jun  2020) -- compared to 2.1.15
 --------------------------------------------------
 * OpenEXR: Fix bug in the channel sorting order when channels are "X" and
   "Y" (was reversing the order by confusing "Y" for "luminance"). #2595
