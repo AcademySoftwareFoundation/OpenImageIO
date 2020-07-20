@@ -11,6 +11,7 @@
 #include <set>
 #include <vector>
 
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/tiffutils.h>

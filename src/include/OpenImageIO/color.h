@@ -9,7 +9,6 @@
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
-#include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 

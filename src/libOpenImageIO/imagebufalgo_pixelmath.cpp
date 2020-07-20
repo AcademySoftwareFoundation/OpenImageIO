@@ -12,7 +12,6 @@
 #include <iostream>
 #include <limits>
 
-#include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/imagebuf.h>

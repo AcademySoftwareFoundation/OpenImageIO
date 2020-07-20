@@ -5,7 +5,6 @@
 #include <string>
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/texture.h>
 #include <OpenImageIO/typedesc.h>

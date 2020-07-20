@@ -3,7 +3,6 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/unittest.h>

@@ -11,6 +11,7 @@
 #pragma once
 
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/simd.h>
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/varyingref.h>
 

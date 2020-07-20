@@ -8,6 +8,8 @@
 
 #include "fits_pvt.h"
 
+#include <OpenImageIO/fmath.h>
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

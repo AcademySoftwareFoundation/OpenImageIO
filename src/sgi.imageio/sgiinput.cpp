@@ -3,6 +3,7 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 #include "sgi_pvt.h"
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/fmath.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

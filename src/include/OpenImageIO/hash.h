@@ -22,9 +22,14 @@
 
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/export.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/string_view.h>
+
+// We should never have included fmath.h here. But we did, oops. Once we're
+// allowed to break back compatibility, remove it.
+#if OIIO_VERSION < OIIO_MAKE_VERSION(3,0,0)
+#    include <OpenImageIO/fmath.h>
+#endif
 
 
 
@@ -142,6 +147,22 @@ namespace bjhash {
 
 // Bob Jenkins "lookup3" hashes:  http://burtleburtle.net/bob/c/lookup3.c
 // It's in the public domain.
+
+OIIO_FORCEINLINE OIIO_HOSTDEVICE uint32_t
+rotl32(uint32_t x, int k)
+{
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 320
+    return __funnelshift_lc(x, x, k);
+#else
+    return (x << k) | (x >> (32 - k));
+#endif
+}
+
+OIIO_FORCEINLINE OIIO_HOSTDEVICE uint64_t
+rotl64(uint64_t x, int k)
+{
+    return (x << k) | (x >> (64 - k));
+}
 
 // Mix up the bits of a, b, and c (changing their values in place).
 inline OIIO_HOSTDEVICE void bjmix (uint32_t &a, uint32_t &b, uint32_t &c)

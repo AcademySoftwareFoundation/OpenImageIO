@@ -9,7 +9,6 @@
 #    include <endian.h> /* attempt to define endianness */
 #endif
 
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/platform.h>
 

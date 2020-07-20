@@ -10,6 +10,7 @@
 
 #include <boost/container/flat_set.hpp>
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>

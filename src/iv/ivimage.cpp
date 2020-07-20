@@ -8,7 +8,6 @@
 #include <OpenEXR/half.h>
 
 #include "imageviewer.h"
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
 
 

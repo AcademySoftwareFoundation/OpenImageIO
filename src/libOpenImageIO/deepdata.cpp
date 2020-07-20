@@ -11,6 +11,7 @@
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
