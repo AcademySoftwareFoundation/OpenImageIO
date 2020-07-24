@@ -4,8 +4,7 @@
 
 #pragma once
 
-#include <OpenImageIO/filesystem.h>
-#include <OpenImageIO/fmath.h>
+#include <OpenImageIO/oiioversion.h>
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

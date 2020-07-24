@@ -11,13 +11,11 @@
 #include <OpenEXR/ImathMatrix.h>
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/filter.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/texture.h>
-#include <OpenImageIO/thread.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/varyingref.h>

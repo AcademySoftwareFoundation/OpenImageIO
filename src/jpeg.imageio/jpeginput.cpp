@@ -6,7 +6,6 @@
 #include <cassert>
 #include <cstdio>
 
-#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>

@@ -5,7 +5,6 @@
 #include <Ptexture.h>
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/typedesc.h>
 

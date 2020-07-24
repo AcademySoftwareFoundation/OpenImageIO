@@ -17,7 +17,6 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/fmath.h>
-#include <OpenImageIO/color.h>
 #include <OpenImageIO/parallel.h>
 #include <OpenImageIO/span.h>
 
@@ -36,7 +35,10 @@ namespace cv {
 
 OIIO_NAMESPACE_BEGIN
 
-class Filter2D;  // forward declaration
+// forward declarations
+class ColorConfig;
+class ColorProcessor;
+class Filter2D;
 
 
 /// @defgroup ImageBufAlgo_intro (ImageBufAlgo common principles)

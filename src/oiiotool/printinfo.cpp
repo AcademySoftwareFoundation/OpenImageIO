@@ -19,7 +19,6 @@
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/deepdata.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
+#include <cmath>
 #include <iomanip>
 
 #include <OpenEXR/ImfTimeCode.h>  //For TimeCode support
@@ -11,7 +12,6 @@
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
@@ -301,7 +301,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         break;
     case dpx::kITUR709: m_spec.attribute("oiio:ColorSpace", "Rec709"); break;
     case dpx::kUserDefined:
-        if (!isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
+        if (!std::isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
             float g = float(m_dpx.header.Gamma());
             m_spec.attribute("oiio:ColorSpace",
                              Strutil::sprintf("GammaCorrected%.2g", g));
@@ -381,10 +381,10 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     if (m_dpx.header.x() != 0xFFFFFFFF)                                        \
     DPX_SET_ATTRIB(x, )
 #define DPX_SET_ATTRIB_FLOAT_N(x)                                              \
-    if (!isnan(m_dpx.header.x(subimage)))                                      \
+    if (!std::isnan(m_dpx.header.x(subimage)))                                 \
     DPX_SET_ATTRIB(x, subimage)
 #define DPX_SET_ATTRIB_FLOAT(x)                                                \
-    if (!isnan(m_dpx.header.x()))                                              \
+    if (!std::isnan(m_dpx.header.x()))                                         \
     DPX_SET_ATTRIB(x, )
     // see comment above Copyright, Software and DocumentName
 #define DPX_SET_ATTRIB_STR(X, x)                                               \

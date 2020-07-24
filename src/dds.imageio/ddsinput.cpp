@@ -6,13 +6,13 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "dds_pvt.h"
-
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "dds_pvt.h"
 #include "squish.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

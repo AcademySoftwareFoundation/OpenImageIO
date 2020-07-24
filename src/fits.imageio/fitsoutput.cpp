@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
-#include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/fmath.h>
 
 #include "fits_pvt.h"
 

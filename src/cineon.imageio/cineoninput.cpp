@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
+#include <cmath>
+
 #include "libcineon/Cineon.h"
 
 #include <OpenImageIO/dassert.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
@@ -180,7 +181,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     case cineon::kRec709Blue: m_spec.attribute("oiio:ColorSpace", "Rec709");
     default:
         // either grayscale or printing density
-        if (!isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
+        if (!std::isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
             // actual gamma value is read later on
             m_spec.attribute("oiio:ColorSpace",
                              Strutil::sprintf("GammaCorrected%.2g", g));
@@ -188,7 +189,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     // gamma exponent
-    if (!isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
+    if (!std::isinf(m_cin.header.Gamma()) && m_cin.header.Gamma() != 0.0f)
         m_spec.attribute("oiio:Gamma", (float)m_cin.header.Gamma());
 #endif
 
@@ -229,11 +230,11 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     if (static_cast<unsigned int>(m_cin.header.x()) != 0xFFFFFFFF)             \
     CINEON_SET_ATTRIB(x, )
 #define CINEON_SET_ATTRIB_FLOAT(x)                                             \
-    if (!isinf(m_cin.header.x()))                                              \
+    if (!std::isinf(m_cin.header.x()))                                         \
     CINEON_SET_ATTRIB(x, )
 #define CINEON_SET_ATTRIB_COORDS(x)                                            \
     m_cin.header.x(floats);                                                    \
-    if (!isinf(floats[0]) && !isinf(floats[1])                                 \
+    if (!std::isinf(floats[0]) && !std::isinf(floats[1])                       \
         && !(floats[0] == 0. && floats[1] == 0.))                              \
     m_spec.attribute("cineon:" #x, TypeDesc(TypeDesc::FLOAT, 2), &floats[0])
 #define CINEON_SET_ATTRIB_STR(X, x)                                            \
@@ -248,7 +249,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.attribute("cineon:" #x,                                             \
                      TypeDesc(TypeDesc::t, m_cin.header.NumberOfElements()),   \
                      &a)
-#define CINEON_CHECK_ATTRIB_FLOAT(x) if (!isinf(m_cin.header.x(i)))
+#define CINEON_CHECK_ATTRIB_FLOAT(x) if (!std::isinf(m_cin.header.x(i)))
 #define CINEON_SET_ATTRIB_FLOAT_N(x)                                           \
     CINEON_SET_ATTRIB_N(x, floats, FLOAT, CINEON_CHECK_ATTRIB_FLOAT)
 #define CINEON_CHECK_ATTRIB_INT(x) if (m_cin.header.x(i) != 0xFFFFFFFF)

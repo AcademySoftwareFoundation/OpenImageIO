@@ -16,7 +16,6 @@
 #include <QProgressBar>
 
 #include "ivutils.h"
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
 

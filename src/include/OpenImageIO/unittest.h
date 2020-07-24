@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <iostream>
 
+#include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 

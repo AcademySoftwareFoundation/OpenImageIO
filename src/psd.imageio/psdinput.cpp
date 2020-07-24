@@ -16,6 +16,7 @@
 #include <memory>
 #include <vector>
 
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include "jpeg_memory_src.h"

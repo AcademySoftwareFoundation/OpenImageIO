@@ -9,7 +9,6 @@
 #include <sstream>
 
 #include <OpenImageIO/filesystem.h>
-#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
 // This represent the size of ONE header unit in FITS file.
