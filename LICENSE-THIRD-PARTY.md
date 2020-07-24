@@ -183,10 +183,6 @@ SPDX-License-Identifier: BSL-1.0
   Copyright Naoki Shibata and contributors 2010 - 2017.
   https://github.com/shibatch/sleef/blob/master/LICENSE.txt
 
-* tinyformat.h  http://github.com/c42f/tinyformat
-  Copyright (C) 2011, Chris Foster.
-
-
 Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
