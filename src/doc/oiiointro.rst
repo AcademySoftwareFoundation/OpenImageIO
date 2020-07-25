@@ -227,7 +227,6 @@ OpenImageIO incorporates, distributes, or contains derived works of:
 * Squish © 2006 Simon Brown, MIT license. http://sjbrown.co.uk/?code=squish
 * PugiXML © 2006-2009 by Arseny Kapoulkine (based on work © 2003 Kristen Wegner), MIT license. http://pugixml.org/
 * DPX reader/writer © 2009 Patrick A. Palmer, BSD 3-clause license. https://github.com/patrickpalmer/dpx}
-* tinyformat.h © 2011 Chris Foster, Boost license. http://github.com/c42f/tinyformat
 * lookup3 code by Bob Jenkins, Public Domain. http://burtleburtle.net/bob/c/lookup3.c
 * xxhash © 2014 Yann Collet, BSD 2-clause license. https://github.com/Cyan4973/xxHash
 * farmhash © 2014 Google, Inc., MIT license. https://github.com/google/farmhash

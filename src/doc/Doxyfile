@@ -897,7 +897,6 @@ EXCLUDE                = ../../src/include/OpenImageIO/filter.h \
                          ../../src/include/OpenImageIO/pugixml.cpp \
                          ../../src/include/OpenImageIO/pugixml.hpp \
                          ../../src/include/OpenImageIO/SHA1.h \
-                         ../../src/include/OpenImageIO/tinyformat.h \
                          ../../src/include/OpenImageIO/fmt \
                          ../../src/doc \
                          ../../src/libOpenImageIO \

@@ -26,12 +26,6 @@
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 
-// For now, let a prior set of OIIO_USE_FMT=0 cause us to fall back to
-// tinyformat and/or disable its functionality. Use with caution!
-#ifndef OIIO_USE_FMT
-#    define OIIO_USE_FMT 1
-#endif
-
 #if OIIO_GNUC_VERSION >= 70000
 #    pragma GCC diagnostic push
 #    pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -45,11 +39,9 @@
 #ifndef FMT_USE_GRISU
 #    define FMT_USE_GRISU 1
 #endif
-#if OIIO_USE_FMT
-#    include "fmt/ostream.h"
-#    include "fmt/format.h"
-#    include "fmt/printf.h"
-#endif
+#include "fmt/ostream.h"
+#include "fmt/format.h"
+#include "fmt/printf.h"
 #if OIIO_GNUC_VERSION >= 70000
 #    pragma GCC diagnostic pop
 #endif
@@ -66,18 +58,6 @@
 // formatting is locale-independent. This was 0 in older versions when fmt
 // was locale dependent.
 #define OIIO_FMT_LOCALE_INDEPENDENT 1
-
-// Use fmt rather than tinyformat, even for printf-style formatting
-#ifndef OIIO_USE_FMT_FOR_SPRINTF
-#    define OIIO_USE_FMT_FOR_SPRINTF OIIO_USE_FMT
-#endif
-
-#if !OIIO_USE_FMT_FOR_SPRINTF
-#    ifndef TINYFORMAT_USE_VARIADIC_TEMPLATES
-#        define TINYFORMAT_USE_VARIADIC_TEMPLATES
-#    endif
-#    include <OpenImageIO/tinyformat.h>
-#endif
 
 #ifndef OPENIMAGEIO_PRINTF_ARGS
 #   ifndef __GNUC__
@@ -118,18 +98,14 @@ void OIIO_API sync_output (std::ostream &file, string_view str);
 ///
 ///    std::string s = Strutil::sprintf ("blah %d %g", (int)foo, (float)bar);
 ///
-/// Uses the tinyformat or fmt library underneath, so it's fully type-safe, and
+/// Uses the fmt library underneath, so it's fully type-safe, and
 /// works with any types that understand stream output via '<<'.
 /// The formatting of the string will always use the classic "C" locale
 /// conventions (in particular, '.' as decimal separator for float values).
 template<typename... Args>
 inline std::string sprintf (const char* fmt, const Args&... args)
 {
-#if OIIO_USE_FMT_FOR_SPRINTF
     return ::fmt::sprintf (fmt, args...);
-#else
-    return tinyformat::format (fmt, args...);
-#endif
 }
 
 
@@ -163,12 +139,7 @@ namespace fmt {
 template<typename... Args>
 inline std::string format (const char* fmt, const Args&... args)
 {
-#if OIIO_USE_FMT
     return ::fmt::format (fmt, args...);
-#else
-    // Disabled for some reason
-    return std::string(fmt);
-#endif
 }
 } // namespace fmt
 
@@ -558,25 +529,13 @@ template<> inline float from_string<float> (string_view s) {
 /// can be overloaded if there is a better method for particular types.
 template<typename T>
 inline std::string to_string (const T& value) {
-#if OIIO_USE_FMT_FOR_SPRINTF
     return ::fmt::to_string(value);
-#else
-    return Strutil::sprintf("%s",value);
-#endif
 }
 
 // Some special pass-through cases
 inline std::string to_string (const std::string& value) { return value; }
 inline std::string to_string (string_view value) { return value; }
 inline std::string to_string (const char* value) { return value; }
-
-
-#if !OIIO_USE_FMT_FOR_SPRINTF && OIIO_USE_FMT
-// When not using fmt, nonetheless fmt::to_string is incredibly faster than
-// tinyformat for ints, so speciaize to use the fast one.
-inline std::string to_string (int value) { return ::fmt::to_string(value); }
-inline std::string to_string (size_t value) { return ::fmt::to_string(value); }
-#endif
 
 
 
