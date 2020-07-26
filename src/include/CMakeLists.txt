@@ -4,14 +4,6 @@
 
 file (GLOB public_headers OpenImageIO/*.h)
 
-if (NOT USE_EXTERNAL_PUGIXML)
-    list (APPEND public_headers
-          OpenImageIO/pugixml.hpp
-          OpenImageIO/pugiconfig.hpp
-          OpenImageIO/pugixml.cpp)
-endif ()
-
-
 option (USE_GENERATED_EXPORT_HEADER "Use CMake-generated export header" OFF)
 if (USE_GENERATED_EXPORT_HEADER)
     include (GenerateExportHeader)
@@ -58,6 +50,20 @@ set (fmt_headers
         ${FMT_INCLUDES}/fmt/format.h
         ${FMT_INCLUDES}/fmt/ostream.h
         ${FMT_INCLUDES}/fmt/printf.h )
+file (COPY ${fmt_headers}
+      DESTINATION ${CMAKE_BINARY_DIR}/include/detail/fmt)
 install (FILES ${fmt_headers}
-         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/fmt
+         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail/fmt
          COMPONENT developer)
+
+if (NOT USE_EXTERNAL_PUGIXML)
+    set (pugixml_headers
+          OpenImageIO/detail/pugixml/pugixml.hpp
+          OpenImageIO/detail/pugixml/pugiconfig.hpp
+          OpenImageIO/detail/pugixml/pugixml.cpp)
+    file (COPY ${pugixml_headers}
+          DESTINATION ${CMAKE_BINARY_DIR}/include/detail/pugixml)
+    install (FILES ${pugixml_headers}
+             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail/pugixml
+             COMPONENT developer)
+endif ()
