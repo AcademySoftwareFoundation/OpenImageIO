@@ -1187,6 +1187,14 @@ control aspects of the writing itself:
      - Compression level for zip/deflate compression, on a scale from 0
        (fastest, minimal compression) to 9 (slowest, maximal compression).
        The default is 6. PNG compression is always lossless.
+   * - ``png:filter``
+     - int
+     - Controls the "row filters" that prepare the image for optimal
+       compression. The default is 0 (``PNG_NO_FILTERS``), but other values
+       (which may be "or-ed" or summed to combine their effects) are 8
+       (``PNG_FILTER_NONE``), 16 (``PNG_FILTER_SUB``), 32
+       (``PNG_FILTER_UP``), 64 (``PNG_FILTER_AVG``), or 128
+       (``PNG_FILTER_PAETH``).
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
