@@ -221,8 +221,8 @@ endif ()
 # allow this to be overridden to use the distro-provided package if desired.
 option (USE_EXTERNAL_PUGIXML "Use an externally built shared library version of the pugixml library" OFF)
 if (USE_EXTERNAL_PUGIXML)
-    checked_find_package (PugiXML REQUIRED
-                       DEFINITIONS -DUSE_EXTERNAL_PUGIXML=1)
+    checked_find_package (pugixml REQUIRED
+                          DEFINITIONS -DUSE_EXTERNAL_PUGIXML=1)
 endif()
 
 

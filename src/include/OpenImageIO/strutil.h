@@ -39,9 +39,9 @@
 #ifndef FMT_USE_GRISU
 #    define FMT_USE_GRISU 1
 #endif
-#include "fmt/ostream.h"
-#include "fmt/format.h"
-#include "fmt/printf.h"
+#include "detail/fmt/ostream.h"
+#include "detail/fmt/format.h"
+#include "detail/fmt/printf.h"
 #if OIIO_GNUC_VERSION >= 70000
 #    pragma GCC diagnostic pop
 #endif

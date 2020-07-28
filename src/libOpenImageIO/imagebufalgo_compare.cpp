@@ -12,8 +12,8 @@
 #include <iostream>
 #include <limits>
 
-#include <OpenImageIO/SHA1.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/hash.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -807,33 +807,25 @@ simplePixelHashSHA1(const ImageBuf& src, string_view extrainfo, ROI roi)
     if (!localpixels)
         tmp.resize(chunk * scanline_bytes);
 
-    CSHA1 sha;
-    sha.Reset();
-
+    SHA1 sha;
     for (int z = roi.zbegin, zend = roi.zend; z < zend; ++z) {
         for (int y = roi.ybegin, yend = roi.yend; y < yend; y += chunk) {
             int y1 = std::min(y + chunk, yend);
             if (localpixels) {
-                sha.Update((const unsigned char*)src.pixeladdr(roi.xbegin, y, z),
-                           (unsigned int)scanline_bytes * (y1 - y));
+                sha.append(src.pixeladdr(roi.xbegin, y, z),
+                           size_t(scanline_bytes * (y1 - y)));
             } else {
                 src.get_pixels(ROI(roi.xbegin, roi.xend, y, y1, z, z + 1),
                                src.spec().format, &tmp[0]);
-                sha.Update(&tmp[0], (unsigned int)scanline_bytes * (y1 - y));
+                sha.append(&tmp[0], size_t(scanline_bytes) * (y1 - y));
             }
         }
     }
 
     // If extra info is specified, also include it in the sha computation
-    if (!extrainfo.empty()) {
-        sha.Update((const unsigned char*)extrainfo.data(), extrainfo.size());
-    }
+    sha.append(extrainfo.data(), extrainfo.size());
 
-    sha.Final();
-    std::string hash_digest;
-    sha.ReportHashStl(hash_digest, CSHA1::REPORT_HEX_SHORT);
-
-    return hash_digest;
+    return sha.digest();
 }
 
 }  // namespace
@@ -868,16 +860,11 @@ ImageBufAlgo::computePixelHashSHA1(const ImageBuf& src, string_view extrainfo,
     // If there are multiple blocks, hash the block digests to get a final
     // hash. (This makes the parallel loop safe, because the order that the
     // blocks computed doesn't matter.)
-    CSHA1 sha;
-    sha.Reset();
+    SHA1 sha;
     for (int b = 0; b < nblocks; ++b)
-        sha.Update((const unsigned char*)results[b].c_str(), results[b].size());
-    if (extrainfo.size())
-        sha.Update((const unsigned char*)extrainfo.c_str(), extrainfo.size());
-    sha.Final();
-    std::string hash_digest;
-    sha.ReportHashStl(hash_digest, CSHA1::REPORT_HEX_SHORT);
-    return hash_digest;
+        sha.append(results[b].c_str(), results[b].size());
+    sha.append(extrainfo.c_str(), extrainfo.size());
+    return sha.digest();
 }
 
 

@@ -894,10 +894,7 @@ RECURSIVE              = YES
 
 EXCLUDE                = ../../src/include/OpenImageIO/filter.h \
                          ../../src/include/OpenImageIO/plugin.h \
-                         ../../src/include/OpenImageIO/pugixml.cpp \
-                         ../../src/include/OpenImageIO/pugixml.hpp \
-                         ../../src/include/OpenImageIO/SHA1.h \
-                         ../../src/include/OpenImageIO/fmt \
+                         ../../src/include/OpenImageIO/detail \
                          ../../src/doc \
                          ../../src/libOpenImageIO \
                          ../../src/libtexture \

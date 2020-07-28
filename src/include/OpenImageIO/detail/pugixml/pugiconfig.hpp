@@ -37,7 +37,7 @@
 // In absence of PUGIXML_CLASS/PUGIXML_FUNCTION definitions PUGIXML_API is used instead
 
 // OIIO: use already defined OIIO_API
-#include "export.h"
+#include <OpenImageIO/export.h>
 #define PUGIXML_API OIIO_API
 
 // Tune these constants to adjust memory-related behavior

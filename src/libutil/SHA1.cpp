@@ -11,10 +11,10 @@
 
 #define DO_NOT_UNDEFINE_SHA1
 #define _CRT_SECURE_NO_WARNINGS
-#include <OpenImageIO/SHA1.h>
-#include <OpenImageIO/hash.h>
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/hash.h>
 #include <OpenImageIO/strutil.h>
+#include "SHA1.h"
 
 #define SHA1_MAX_FILE_BUFFER (32 * 20 * 820)
 

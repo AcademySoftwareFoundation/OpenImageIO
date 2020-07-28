@@ -21,7 +21,7 @@
 #if USE_EXTERNAL_PUGIXML
 #    include "pugixml.hpp"
 #else
-#    include <OpenImageIO/pugixml.hpp>
+#    include <OpenImageIO/detail/pugixml/pugixml.hpp>
 #endif
 
 #ifdef USE_BOOST_REGEX

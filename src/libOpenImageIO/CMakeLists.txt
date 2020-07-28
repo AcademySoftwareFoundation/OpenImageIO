@@ -11,9 +11,9 @@ file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
 if (NOT USE_EXTERNAL_PUGIXML)
     list (APPEND libOpenImageIO_hdrs
-          ../include/OpenImageIO/pugiconfig.hpp
-          ../include/OpenImageIO/pugixml.hpp
-          ../include/OpenImageIO/pugixml.cpp
+          ../include/OpenImageIO/detail/pugixml/pugiconfig.hpp
+          ../include/OpenImageIO/detail/pugixml/pugixml.hpp
+          ../include/OpenImageIO/detail/pugixml/pugixml.cpp
     )
     if (CMAKE_COMPILER_IS_GNUCC AND NOT ${GCC_VERSION} VERSION_LESS 6.0)
         set_source_files_properties (formatspec.cpp xmp.cpp
