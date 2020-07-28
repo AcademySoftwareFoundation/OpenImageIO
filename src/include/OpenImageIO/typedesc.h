@@ -489,6 +489,9 @@ struct tostring_formatting {
     const char *uint_fmt = "%u";
     const char *reserved2 = "";
     const char *reserved3 = "";
+    bool use_sprintf = true;
+
+    enum Notation { STDFORMAT };
 
     tostring_formatting() = default;
     tostring_formatting(const char *int_fmt, const char *float_fmt = "%g",
@@ -498,12 +501,24 @@ struct tostring_formatting {
         const char *array_end = "}", const char *array_sep = ",",
         int flags = escape_strings,
         const char *uint_fmt = "%u");
+
+    // Alternative ctr for std::format notation. You must pass STDFORMAT
+    // as the first argument.
+    tostring_formatting(Notation notation,
+        const char *int_fmt = "{}", const char *uint_fmt = "{}",
+        const char *float_fmt = "{}",
+        const char *string_fmt = "\"{}\"", const char *ptr_fmt = "{}",
+        const char *aggregate_begin = "(", const char *aggregate_end = ")",
+        const char *aggregate_sep = ",", const char *array_begin = "{",
+        const char *array_end = "}", const char *array_sep = ",",
+        int flags = escape_strings);
 };
 
 
 
 /// Return a string containing the data values formatted according
-/// to the type and the optional formatting control arguments.
+/// to the type and the optional formatting control arguments. Will be
+/// deprecated someday as printf formatting falls out of favor.
 OIIO_API std::string
 tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 

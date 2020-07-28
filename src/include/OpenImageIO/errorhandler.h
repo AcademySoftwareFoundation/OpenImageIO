@@ -144,7 +144,7 @@ public:
     //
     // Formatted output with printf notation. Use these if you specifically
     // want printf-notation, even after format() changes to python notation
-    // for OIIO 2.1.
+    // in some future OIIO release.
     //
     template<typename... Args>
     void infof(const char* format, const Args&... args)
@@ -185,6 +185,52 @@ public:
     {
 #ifndef NDEBUG
         debug(Strutil::sprintf(format, args...));
+#endif
+    }
+
+    //
+    // Formatted output with std::format notation. Use these if you
+    // specifically want std::format-notation, even before format() changes
+    // to the new notation in some future OIIO release.
+    //
+    template<typename... Args>
+    void infofmt(const char* format, const Args&... args)
+    {
+        if (verbosity() >= VERBOSE)
+            info(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void warningfmt(const char* format, const Args&... args)
+    {
+        if (verbosity() >= NORMAL)
+            warning(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void errorfmt(const char* format, const Args&... args)
+    {
+        error(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void severefmt(const char* format, const Args&... args)
+    {
+        severe(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void messagefmt(const char* format, const Args&... args)
+    {
+        if (verbosity() > QUIET)
+            message(Strutil::fmt::format(format, args...));
+    }
+
+    template<typename... Args>
+    void debugfmt(const char* format, const Args&... args)
+    {
+#ifndef NDEBUG
+        debug(Strutil::fmt::format(format, args...));
 #endif
     }
 

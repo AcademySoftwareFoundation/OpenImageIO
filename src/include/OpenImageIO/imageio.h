@@ -1595,6 +1595,14 @@ public:
     /// Error reporting for the plugin implementation: call this with
     /// fmt::format-like arguments.
     template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
+    }
+
+    // Error reporting for the plugin implementation: call this with
+    // fmt::format-like arguments.
+    template<typename... Args>
+    OIIO_DEPRECATED("use `errorfmt` instead")
     void fmterror(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
@@ -2208,6 +2216,14 @@ public:
     /// Error reporting for the plugin implementation: call this with
     /// fmt::format-like arguments.
     template<typename... Args>
+    void errorfmt(const char* fmt, const Args&... args) const {
+        append_error(Strutil::fmt::format (fmt, args...));
+    }
+
+    // Error reporting for the plugin implementation: call this with
+    // fmt::format-like arguments.
+    template<typename... Args>
+    OIIO_DEPRECATED("use `errorfmt` instead")
     void fmterror(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
@@ -2722,8 +2738,16 @@ typedef bool (*wrap_impl) (int &coord, int origin, int width);
 /// output to stderr for debugging statements.
 OIIO_API void debug (string_view str);
 
-/// debug output with `fmt`/`std::format` conventions.
+/// debug output with `std::format` conventions.
 template<typename T1, typename... Args>
+void debugfmt (const char* fmt, const T1& v1, const Args&... args)
+{
+    debug (Strutil::fmt::format(fmt, v1, args...));
+}
+
+// (Unfortunate old synonym)
+template<typename T1, typename... Args>
+OIIO_DEPRECATED("use `debugfmt` instead")
 void fmtdebug (const char* fmt, const T1& v1, const Args&... args)
 {
     debug (Strutil::fmt::format(fmt, v1, args...));

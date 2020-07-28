@@ -351,8 +351,8 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
         int s = m_imagecache->subimage_from_name(texturefile,
                                                  options.subimagename);
         if (s < 0) {
-            errorf("Unknown subimage \"%s\" in texture \"%s\"",
-                   options.subimagename, texturefile->filename());
+            error("Unknown subimage \"{}\" in texture \"{}\"",
+                  options.subimagename, texturefile->filename());
             return missing_texture(options, nchannels, result, dresultds,
                                    dresultdt);
         }
@@ -360,8 +360,8 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
         options.subimagename.clear();
     }
     if (options.subimage < 0 || options.subimage >= texturefile->subimages()) {
-        errorf("Unknown subimage \"%s\" in texture \"%s\"",
-               options.subimagename, texturefile->filename());
+        error("Unknown subimage \"{}\" in texture \"{}\"", options.subimagename,
+              texturefile->filename());
         return missing_texture(options, nchannels, result, dresultds,
                                dresultdt);
     }
