@@ -246,11 +246,11 @@ matrix:
         env: WHICHGCC=7 USE_SIMD=avx2,avx512f,f16c SKIP_TESTS=1
         if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
     # Just run clang-format, this test only checks formatting rule conformance
-      - name: "clang-format format verification"
-        os: osx
-        compiler: clang
-        env: OIIOTARGET=clang-format SKIP_TESTS=1 BUILD_MISSING_DEPS=0
-        #if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
+    #  - name: "clang-format format verification"
+    #    os: osx
+    #    compiler: clang
+    #    env: OIIOTARGET=clang-format SKIP_TESTS=1 BUILD_MISSING_DEPS=0
+    #    #if: branch =~ /(master|RB|travis|simd)/ OR type = pull_request
     # Static analysis: build with clang-tidy.
     # Disabled -- this takes so long to run, it can't complete in Travis's
     # 50 minute time limit. Left here just to show how it should work.
