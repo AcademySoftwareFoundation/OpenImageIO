@@ -1,6 +1,17 @@
-Release 2.1.18 (??? 2020) -- compared to 2.1.17
+Release 2.1.18 (1 Aug 2020) -- compared to 2.1.17
 -------------------------------------------------
-
+* Python `ImageBuf.write()` added a variety that takes an open ImageOutput.
+  This is the key to writing multi-subimage files from Python. #2640
+* `oiiotool --eraseattrib` fixed: was not applying to all subimages. #2632
+* RAW: Improve thread safety when more than one thread might be opening
+  different raw files at the same time. #2633
+* unordered_map_concurrent fixed a missing size decrement upon erase(). #2624
+* Fixes to support certain recent pybind11 changes. #2637
+* Fixes to support OpenColorIO v2. #2636
+* Fixes to support more recent fmtlib versions. #2639
+* PNG: document the "png:compressionLevel" output hint. #2642
+* In oiioversion.h, add a `OIIO_MAKE_VERSION` macro that constructs the
+  integer code for a particular major/minor/patch release. #2641
 
 Release 2.1.17 (1 Jul 2020) -- compared to 2.1.16
 -------------------------------------------------
