@@ -327,10 +327,25 @@ tostring_formatting::tostring_formatting(
 
 
 
+tostring_formatting::tostring_formatting(
+    Notation notation, const char* int_fmt, const char* uint_fmt,
+    const char* float_fmt, const char* string_fmt, const char* ptr_fmt,
+    const char* aggregate_begin, const char* aggregate_end,
+    const char* aggregate_sep, const char* array_begin, const char* array_end,
+    const char* array_sep, int flags)
+    : tostring_formatting(int_fmt, float_fmt, string_fmt, ptr_fmt,
+                          aggregate_begin, aggregate_end, aggregate_sep,
+                          array_begin, array_end, array_sep, flags, uint_fmt)
+{
+    use_sprintf = false;
+}
+
+
+
 template<class T>
-inline std::string
-sprintt(TypeDesc type, const char* format, const tostring_formatting& fmt,
-        const T* v)
+static std::string
+sprint_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
+            const T* v)
 {
     std::string val;
     if (type.arraylen)
@@ -356,9 +371,9 @@ sprintt(TypeDesc type, const char* format, const tostring_formatting& fmt,
 
 
 
-inline std::string
-sprintt(TypeDesc type, const char* format, const tostring_formatting& fmt,
-        const char** v)
+static std::string
+sprint_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
+            const char** v)
 {
     std::string val;
     if (type.arraylen)
@@ -373,6 +388,68 @@ sprintt(TypeDesc type, const char* format, const tostring_formatting& fmt,
                                                    : std::string());
             else
                 val += Strutil::sprintf(format, *v ? *v : "");
+            if (type.aggregate > 1 && j < type.aggregate - 1)
+                val += fmt.aggregate_sep;
+        }
+        if (type.aggregate > 1)
+            val += fmt.aggregate_end;
+        if (i < n - 1)
+            val += fmt.array_sep;
+    }
+    if (type.arraylen)
+        val += fmt.array_end;
+    return val;
+}
+
+
+
+template<class T>
+static std::string
+format_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
+            const T* v)
+{
+    std::string val;
+    if (type.arraylen)
+        val += fmt.array_begin;
+    const size_t n = type.arraylen ? type.arraylen : 1;
+    for (size_t i = 0; i < n; ++i) {
+        if (type.aggregate > 1)
+            val += fmt.aggregate_begin;
+        for (int j = 0; j < (int)type.aggregate; ++j, ++v) {
+            val += Strutil::fmt::format(format, *v);
+            if (type.aggregate > 1 && j < type.aggregate - 1)
+                val += fmt.aggregate_sep;
+        }
+        if (type.aggregate > 1)
+            val += fmt.aggregate_end;
+        if (i < n - 1)
+            val += fmt.array_sep;
+    }
+    if (type.arraylen)
+        val += fmt.array_end;
+    return val;
+}
+
+
+
+static std::string
+format_type(TypeDesc type, const char* format, const tostring_formatting& fmt,
+            const char** v)
+{
+    std::string val;
+    if (type.arraylen)
+        val += fmt.array_begin;
+    const size_t n = type.arraylen ? type.arraylen : 1;
+    for (size_t i = 0; i < n; ++i) {
+        if (type.aggregate > 1)
+            val += fmt.aggregate_begin;
+        for (int j = 0; j < (int)type.aggregate; ++j, ++v) {
+            if (fmt.flags & tostring_formatting::escape_strings)
+                val += Strutil::fmt::format(format,
+                                            *v ? Strutil::escape_chars(*v)
+                                               : std::string());
+            else
+                val += Strutil::fmt::format(format, *v ? *v : "");
             if (type.aggregate > 1 && j < type.aggregate - 1)
                 val += fmt.aggregate_sep;
         }
@@ -413,16 +490,32 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
     // Perhaps there is a way to use CType<> with a dynamic argument?
     switch (type.basetype) {
     case TypeDesc::UNKNOWN:
-        return sprintt(type, fmt.ptr_fmt, fmt, (void**)data);
-    case TypeDesc::NONE: return sprintt(type, "None", fmt, (void**)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.ptr_fmt, fmt, (void**)data)
+                   : format_type(type, fmt.ptr_fmt, fmt, (void**)data);
+    case TypeDesc::NONE:
+        return fmt.use_sprintf ? sprint_type(type, "None", fmt, (void**)data)
+                               : format_type(type, "None", fmt, (void**)data);
     case TypeDesc::UCHAR:
-        return sprintt(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
-                       (unsigned char*)data);
-    case TypeDesc::CHAR: return sprintt(type, fmt.int_fmt, fmt, (char*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (unsigned char*)data)
+                   : format_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (unsigned char*)data);
+    case TypeDesc::CHAR:
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.int_fmt, fmt, (char*)data)
+                   : format_type(type, fmt.int_fmt, fmt, (char*)data);
     case TypeDesc::USHORT:
-        return sprintt(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
-                       (uint16_t*)data);
-    case TypeDesc::SHORT: return sprintt(type, fmt.int_fmt, fmt, (short*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (uint16_t*)data)
+                   : format_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (uint16_t*)data);
+    case TypeDesc::SHORT:
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.int_fmt, fmt, (short*)data)
+                   : format_type(type, fmt.int_fmt, fmt, (short*)data);
     case TypeDesc::UINT:
         if (type.vecsemantics == TypeDesc::RATIONAL
             && type.aggregate == TypeDesc::VEC2) {
@@ -445,8 +538,11 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             return Strutil::sprintf("%02d:%02d:%02d:%02d", hours, minutes,
                                     seconds, frame);
         }
-        return sprintt(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
-                       (unsigned int*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (unsigned int*)data)
+                   : format_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (unsigned int*)data);
     case TypeDesc::INT:
         if (type.elementtype() == TypeRational) {
             std::string out;
@@ -458,24 +554,42 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt)
             }
             return out;
         }
-        return sprintt(type, fmt.int_fmt, fmt, (int*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.int_fmt, fmt, (int*)data)
+                   : format_type(type, fmt.int_fmt, fmt, (int*)data);
     case TypeDesc::UINT64:
-        return sprintt(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
-                       (const uint64_t*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (const uint64_t*)data)
+                   : format_type(type, fmt.uint_fmt ? fmt.uint_fmt : "%u", fmt,
+                                 (const uint64_t*)data);
     case TypeDesc::INT64:
-        return sprintt(type, fmt.int_fmt, fmt, (const int64_t*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.int_fmt, fmt, (const int64_t*)data)
+                   : format_type(type, fmt.int_fmt, fmt, (const int64_t*)data);
     case TypeDesc::HALF:
-        return sprintt(type, fmt.float_fmt, fmt, (const half*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.float_fmt, fmt, (const half*)data)
+                   : format_type(type, fmt.float_fmt, fmt, (const half*)data);
     case TypeDesc::FLOAT:
-        return sprintt(type, fmt.float_fmt, fmt, (const float*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.float_fmt, fmt, (const float*)data)
+                   : format_type(type, fmt.float_fmt, fmt, (const float*)data);
     case TypeDesc::DOUBLE:
-        return sprintt(type, fmt.float_fmt, fmt, (const double*)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.float_fmt, fmt, (const double*)data)
+                   : format_type(type, fmt.float_fmt, fmt, (const double*)data);
     case TypeDesc::STRING:
         if (!type.is_array()
             && !(fmt.flags & tostring_formatting::quote_single_string))
             return *(const char**)data;
-        return sprintt(type, fmt.string_fmt, fmt, (const char**)data);
-    case TypeDesc::PTR: return sprintt(type, fmt.ptr_fmt, fmt, (void**)data);
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.string_fmt, fmt, (const char**)data)
+                   : format_type(type, fmt.string_fmt, fmt, (const char**)data);
+    case TypeDesc::PTR:
+        return fmt.use_sprintf
+                   ? sprint_type(type, fmt.ptr_fmt, fmt, (void**)data)
+                   : format_type(type, fmt.ptr_fmt, fmt, (void**)data);
     default:
 #ifndef NDEBUG
         return Strutil::sprintf("<unknown data type> (base %d, agg %d vec %d)",

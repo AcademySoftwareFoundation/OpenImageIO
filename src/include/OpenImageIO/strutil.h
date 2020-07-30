@@ -236,6 +236,7 @@ std::string OIIO_API vsprintf (const char *fmt, va_list ap)
 /// Return a std::string formatted like Strutil::format, but passed
 /// already as a va_list.  This is not guaranteed type-safe and is not
 /// extensible like format(). Use with caution!
+OIIO_DEPRECATED("use `vsprintf` instead")
 std::string OIIO_API vformat (const char *fmt, va_list ap)
                                          OPENIMAGEIO_PRINTF_ARGS(1,0);
 

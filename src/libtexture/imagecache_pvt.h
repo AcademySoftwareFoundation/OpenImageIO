@@ -1021,6 +1021,12 @@ public:
     {
         append_error(Strutil::sprintf(fmt, args...));
     }
+    /// Internal error reporting routine, with std::format-like arguments.
+    template<typename... Args>
+    void error(const char* fmt, const Args&... args) const
+    {
+        append_error(Strutil::fmt::format(fmt, args...));
+    }
     void error(const char* msg) const { append_error(msg); }
 
     /// Append a string to the current error message

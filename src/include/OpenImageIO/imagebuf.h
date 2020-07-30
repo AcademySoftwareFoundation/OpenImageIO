@@ -940,7 +940,7 @@ public:
     /// Error reporting for ImageBuf: call this with Python / {fmt} /
     /// std::format style formatting specification.
     template<typename... Args>
-    void fmterror(const char* fmt, const Args&... args) const
+    void errorfmt(const char* fmt, const Args&... args) const
     {
         error(Strutil::fmt::format(fmt, args...));
     }
@@ -960,6 +960,15 @@ public:
     void error(const char* fmt, const Args&... args) const
     {
         error(Strutil::format(fmt, args...));
+    }
+
+    // Error reporting for ImageBuf: call this with Python / {fmt} /
+    // std::format style formatting specification.
+    template<typename... Args>
+    OIIO_DEPRECATED("use `errorfmt` instead")
+    void fmterror(const char* fmt, const Args&... args) const
+    {
+        error(Strutil::fmt::format(fmt, args...));
     }
 
     /// Returns `true` if the ImageBuf has had an error and has an error

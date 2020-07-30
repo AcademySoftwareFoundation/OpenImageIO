@@ -487,7 +487,7 @@ oiio_tiff_last_error()
 static void
 my_error_handler(const char* /*str*/, const char* format, va_list ap)
 {
-    oiio_tiff_last_error() = Strutil::vformat(format, ap);
+    oiio_tiff_last_error() = Strutil::vsprintf(format, ap);
 }
 
 

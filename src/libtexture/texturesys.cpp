@@ -545,7 +545,7 @@ TextureSystemImpl::get_texture_info(ustring filename, int subimage,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
@@ -565,7 +565,7 @@ TextureSystemImpl::get_texture_info(TextureHandle* texture_handle,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
@@ -580,7 +580,7 @@ TextureSystemImpl::get_imagespec(ustring filename, int subimage,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
@@ -599,7 +599,7 @@ TextureSystemImpl::get_imagespec(TextureHandle* texture_handle,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
@@ -611,7 +611,7 @@ TextureSystemImpl::imagespec(ustring filename, int subimage)
 {
     const ImageSpec* spec = m_imagecache->imagespec(filename, subimage);
     if (!spec)
-        errorf("%s", m_imagecache->geterror());
+        error("{}", m_imagecache->geterror());
     return spec;
 }
 
@@ -628,7 +628,7 @@ TextureSystemImpl::imagespec(TextureHandle* texture_handle,
     if (!spec) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return spec;
 }
@@ -644,7 +644,7 @@ TextureSystemImpl::get_texels(ustring filename, TextureOpt& options,
     PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
     TextureFile* texfile       = find_texturefile(filename, thread_info);
     if (!texfile) {
-        errorf("Texture file \"%s\" not found", filename);
+        error("Texture file \"{}\" not found", filename);
         return false;
     }
     return get_texels((TextureHandle*)texfile, (Perthread*)thread_info, options,
@@ -666,25 +666,25 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     TextureFile* texfile = verify_texturefile((TextureFile*)texture_handle_,
                                               thread_info);
     if (!texfile) {
-        errorf("Invalid texture handle NULL");
+        error("Invalid texture handle NULL");
         return false;
     }
 
     if (texfile->broken()) {
         if (texfile->errors_should_issue())
-            errorf("Invalid texture file \"%s\"", texfile->filename());
+            error("Invalid texture file \"{}\"", texfile->filename());
         return false;
     }
     int subimage = options.subimage;
     if (subimage < 0 || subimage >= texfile->subimages()) {
-        errorf("get_texel asked for nonexistent subimage %d of \"%s\"",
-               subimage, texfile->filename());
+        error("get_texel asked for nonexistent subimage {} of \"{}\"", subimage,
+              texfile->filename());
         return false;
     }
     if (miplevel < 0 || miplevel >= texfile->miplevels(subimage)) {
         if (texfile->errors_should_issue())
-            errorf("get_texel asked for nonexistent MIP level %d of \"%s\"",
-                   miplevel, texfile->filename());
+            error("get_texel asked for nonexistent MIP level {} of \"{}\"",
+                  miplevel, texfile->filename());
         return false;
     }
     const ImageSpec& spec(texfile->spec(subimage, miplevel));
@@ -754,7 +754,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     if (!ok) {
         std::string err = m_imagecache->geterror();
         if (!err.empty())
-            errorf("%s", err);
+            error("{}", err);
     }
     return ok;
 }
@@ -1024,8 +1024,8 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         int s = m_imagecache->subimage_from_name(texturefile,
                                                  options.subimagename);
         if (s < 0) {
-            errorf("Unknown subimage \"%s\" in texture \"%s\"",
-                   options.subimagename, texturefile->filename());
+            error("Unknown subimage \"{}\" in texture \"{}\"",
+                  options.subimagename, texturefile->filename());
             return missing_texture(options, nchannels, result, dresultds,
                                    dresultdt);
         }
@@ -1965,7 +1965,7 @@ TextureSystemImpl::sample_closest(
         id.xy(stex - tile_s, ttex - tile_t);
         bool ok = find_tile(id, thread_info, sample == 0);
         if (!ok)
-            errorf("%s", m_imagecache->geterror());
+            error("{}", m_imagecache->geterror());
         TileRef& tile(thread_info->tile);
         if (!tile || !ok) {
             allok = false;
@@ -2150,7 +2150,7 @@ TextureSystemImpl::sample_bilinear(
             id.xy(sttex[S0] - tile_st[S0], sttex[T0] - tile_st[T0]);
             bool ok = find_tile(id, thread_info, sample == 0);
             if (!ok)
-                errorf("%s", m_imagecache->geterror());
+                error("{}", m_imagecache->geterror());
             TileRef& tile(thread_info->tile);
             if (!tile->valid())
                 return false;
@@ -2211,7 +2211,7 @@ TextureSystemImpl::sample_bilinear(
                         id.xy(tile_edge[S0 + i], tile_edge[T0 + j]);
                         bool ok = find_tile(id, thread_info, sample == 0);
                         if (!ok)
-                            errorf("%s", m_imagecache->geterror());
+                            error("{}", m_imagecache->geterror());
                         if (!thread_info->tile->valid()) {
                             return false;
                         }
@@ -2515,7 +2515,7 @@ TextureSystemImpl::sample_bicubic(
             id.xy(stex[0] - tile_s, ttex[0] - tile_t);
             bool ok = find_tile(id, thread_info, sample == 0);
             if (!ok)
-                errorf("%s", m_imagecache->geterror());
+                error("{}", m_imagecache->geterror());
             TileRef& tile(thread_info->tile);
             if (!tile) {
                 return false;
@@ -2585,8 +2585,8 @@ TextureSystemImpl::sample_bicubic(
                         id.xy(tile_s_edge[i], tile_t_edge[j]);
                         bool ok = find_tile(id, thread_info, sample == 0);
                         if (!ok)
-                            errorf("%s", m_imagecache->geterror());
-                        OIIO_DASSERT(thread_info->tile->id() == id);
+                            error("{}", m_imagecache->geterror());
+                        DASSERT(thread_info->tile->id() == id);
                         if (!thread_info->tile->valid())
                             return false;
                     }
