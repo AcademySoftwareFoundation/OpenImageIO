@@ -1,3 +1,6 @@
+Release 2.1.19 (?? 2020) -- compared to 2.1.18
+-------------------------------------------------
+
 Release 2.1.18 (1 Aug 2020) -- compared to 2.1.17
 -------------------------------------------------
 * Python `ImageBuf.write()` added a variety that takes an open ImageOutput.
