@@ -43,7 +43,7 @@ New major features and public API changes:
     - Nearly all operations now allow an optional `:subimages=...`
       modifier that restricts the operation to be performed on only a subset
       of named or indexed subimages. See docs for details. #2582
-* Low-re I/O of images to terminals that support full color and Unicode
+* Low-res I/O of images to terminals that support full color and Unicode
   characters. Just output to a file ending in ".term", and it will convert
   (on certain terminals) to an image displayed directly in the terminal.
   #2631 (2.2.4)
@@ -229,7 +229,7 @@ Developer goodies / internals:
 * unordered_map_concurrent.h:
     - Fix missing decrement of `size()` after `erase()`. #2624 (2.2.4)
 * More reshuffling of printf-style vs fmt-style string formatting. #2424
-  (2.2.0)
+  (2.2.0) #2649 (2.2.4)
 * Internals: changed a lot of assertions to only happen in debug build mode,
   and changed a lot that happen in release builds to only print the error
   but not force a termination. #2435 (2.1.11/2.2.0)
@@ -326,6 +326,12 @@ Build/test system improvements and platform ports:
   the name `OPENIMAGEIO_FOUND` -> `OpenImageIO_FOUND`. #2578 (2.2.3)
 * Beef up OpenEXR compliance tests, many more examples from openexr-images,
   including many corrupted image failure cases. #2607 (2.2.4)
+* "tinyformat" is no longer used, even optionally. We have switched entirely
+  to fmtlib, which is more similar to the upcoming C++20 std::format.
+  #2647 (2.2.4)
+* Moved headers that are not part of OIIO's supported public API, but that
+  still must be installed to be transitively included, do a "detail"
+  subdirectory. #2648 (2.2.4)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
@@ -338,6 +344,21 @@ Notable documentation changes:
 * Improve the way we discuss optional modifiers.
 * Document the PNG output controls for compression level. #2642 (2.2.4)
 
+
+Release 2.1.18 (1 Aug 2020) -- compared to 2.1.17
+-------------------------------------------------
+* Python `ImageBuf.write()` added a variety that takes an open ImageOutput.
+  This is the key to writing multi-subimage files from Python. #2640
+* `oiiotool --eraseattrib` fixed: was not applying to all subimages. #2632
+* RAW: Improve thread safety when more than one thread might be opening
+  different raw files at the same time. #2633
+* unordered_map_concurrent fixed a missing size decrement upon erase(). #2624
+* Fixes to support certain recent pybind11 changes. #2637
+* Fixes to support OpenColorIO v2. #2636
+* Fixes to support more recent fmtlib versions. #2639
+* PNG: document the "png:compressionLevel" output hint. #2642
+* In oiioversion.h, add a `OIIO_MAKE_VERSION` macro that constructs the
+  integer code for a particular major/minor/patch release. #2641
 
 Release 2.1.17 (1 Jul 2020) -- compared to 2.1.16
 -------------------------------------------------
