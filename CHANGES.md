@@ -1,4 +1,22 @@
-Release 2.2 (1 Sept 2020??) -- compared to 2.1
+Release 2.3 (??) -- compared to 2.2
+----------------------------------------------
+New minimum dependencies:
+
+New major features and public API changes:
+
+Performance improvements:
+
+Fixes and feature enhancements:
+
+Developer goodies / internals:
+
+Build/test system improvements and platform ports:
+
+Notable documentation changes:
+
+
+
+Release 2.2 (1 Sept 2020) -- compared to 2.1
 ----------------------------------------------
 New minimum dependencies:
 * pybind11 >= 2.4.2
