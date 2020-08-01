@@ -12,6 +12,8 @@ Release 2.1.18 (1 Aug 2020) -- compared to 2.1.17
 * PNG: document the "png:compressionLevel" output hint. #2642
 * In oiioversion.h, add a `OIIO_MAKE_VERSION` macro that constructs the
   integer code for a particular major/minor/patch release. #2641
+* 2.1.18.1: Fix version number which for 2.1.18.0 unfortunately still
+  said it was 2.1.17.
 
 Release 2.1.17 (1 Jul 2020) -- compared to 2.1.16
 -------------------------------------------------
