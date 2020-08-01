@@ -1,5 +1,9 @@
-Release 2.0.14 (???) -- compared to 2.0.13
+Release 2.0.14 (1 Aug 2020) -- compared to 2.0.13
 --------------------------------------------------
+This is an "unannounced" release, since 2.0 is no longer supported. But
+for testing purposes, we are making one more tag with the following fixes:
+* Support for building against Qt 5.15. #2605
+* Exif read: guard better against out of range offsets. #2429
 
 
 Release 2.0.13 (1 Dec 2019) -- compared to 2.0.12
