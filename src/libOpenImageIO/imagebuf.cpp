@@ -106,7 +106,7 @@ public:
     void copy_metadata(const ImageBufImpl& src);
 
     template<typename... Args>
-    void error(const char* fmt, const Args&... args) const
+    void errorfmt(const char* fmt, const Args&... args) const
     {
         error(Strutil::fmt::format(fmt, args...));
     }
@@ -932,12 +932,12 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         auto input = ImageInput::open(m_name.string(), m_configspec.get(),
                                       m_rioproxy);
         if (!input) {
-            error("{}", OIIO::geterror());
+            error(OIIO::geterror());
             return false;
         }
         input->threads(threads());  // Pass on our thread policy
         if (!input->read_native_deep_image(subimage, miplevel, m_deepdata)) {
-            error("{}", input->geterror());
+            error(input->geterror());
             return false;
         }
         m_spec         = m_nativespec;  // Deep images always use native data
@@ -1044,11 +1044,11 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                 m_pixels_valid = true;
             } else {
                 m_pixels_valid = false;
-                error("{}", in->geterror());
+                error(in->geterror());
             }
         } else {
             m_pixels_valid = false;
-            error("{}", OIIO::geterror());
+            error(OIIO::geterror());
         }
         return m_pixels_valid;
     }
@@ -1063,7 +1063,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         m_pixels_valid = true;
     } else {
         m_pixels_valid = false;
-        error("{}", m_imagecache->geterror());
+        error(m_imagecache->geterror());
     }
 
     return m_pixels_valid;
@@ -1218,7 +1218,7 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
         }
     }
     if (!ok)
-        error("{}", out->geterror());
+        error(out->geterror());
     return ok;
 }
 
@@ -1263,7 +1263,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
 
     auto out = ImageOutput::create(fileformat);
     if (!out) {
-        error("{}", geterror());
+        error(geterror());
         return false;
     }
     out->threads(threads());  // Pass on our thread policy
@@ -1315,7 +1315,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
     }
 
     if (!out->open(filename.c_str(), newspec)) {
-        error("{}", out->geterror());
+        error(out->geterror());
         return false;
     }
     if (!write(out.get(), progress_callback, progress_callback_data))
