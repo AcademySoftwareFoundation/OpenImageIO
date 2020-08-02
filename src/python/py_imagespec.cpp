@@ -226,8 +226,13 @@ declare_imagespec(py::module& m)
             "name"_a, "defaultval"_a = "")
         .def("getattribute", &ImageSpec_getattribute_typed, "name"_a,
              "type"_a = TypeUnknown)
-        .def("erase_attribute", &ImageSpec::erase_attribute, "name"_a = "",
-             "type"_a = TypeUnknown, "casesensitive"_a = false)
+        .def(
+            "erase_attribute",
+            [](ImageSpec& spec, const std::string& name, TypeDesc type,
+               bool casesensitive = false) {
+                return spec.erase_attribute(name, type, casesensitive);
+            },
+            "name"_a = "", "type"_a = TypeUnknown, "casesensitive"_a = false)
 
         .def_static(
             "metadata_val",

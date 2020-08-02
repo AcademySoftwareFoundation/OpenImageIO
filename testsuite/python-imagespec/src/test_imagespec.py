@@ -125,6 +125,13 @@ try:
     print (s.serialize("xml"))
     print ("serialize(text, human):")
     print (s.serialize("text", "detailedhuman"))
+    print ()
+
+    s.attribute("dog", "Spot")
+    print ("Added dog: ", s.getattribute("dog"))
+    s.erase_attribute("dog")
+    print ("After erasing dog, dog = ", s.getattribute("dog"))
+    print()
 
     # test initialization from ROI
     print ("Testing construction from ROI:")
