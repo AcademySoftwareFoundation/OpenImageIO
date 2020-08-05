@@ -347,6 +347,8 @@ Oiiotool::error(string_view command, string_view explanation) const
         std::cerr << ": " << command;
     if (explanation.size())
         std::cerr << " : " << explanation;
+    else
+        std::cerr << " (unknown error)";
     std::cerr << "\n";
     // Repeat the command line, so if oiiotool is being called from a
     // script, it's easy to debug how the command was mangled.
@@ -364,6 +366,8 @@ Oiiotool::warning(string_view command, string_view explanation) const
         std::cerr << ": " << command;
     if (explanation.size())
         std::cerr << " : " << explanation;
+    else
+        std::cerr << " (unknown warning)";
     std::cerr << "\n";
 }
 
@@ -1988,7 +1992,7 @@ public:
             // The color transform failed, but we were told not to be
             // strict, so ignore the error and just copy destination to
             // source.
-            ot.warningf(opname(), "%s", img[0]->geterror());
+            ot.warning(opname(), img[0]->geterror());
             // ok = ImageBufAlgo::copy (*img[0], *img[1], TypeDesc);
             ok = img[0]->copy(*img[1]);
         }
@@ -4830,14 +4834,12 @@ output_file(int /*argc*/, const char* argv[])
         ImageOutput::OpenMode mode = ImageOutput::Create;
         if (ir->subimages() > 1 && out->supports("multiimage")) {
             if (!out->open(tmpfilename, ir->subimages(), &subimagespecs[0])) {
-                std::string err = out->geterror();
-                ot.error(command, err.size() ? err.c_str() : "unknown error");
+                ot.error(command, out->geterror());
                 return 0;
             }
         } else {
             if (!out->open(tmpfilename, subimagespecs[0], mode)) {
-                std::string err = out->geterror();
-                ot.error(command, err.size() ? err.c_str() : "unknown error");
+                ot.error(command, out->geterror());
                 return 0;
             }
         }
@@ -4851,9 +4853,7 @@ output_file(int /*argc*/, const char* argv[])
                                       (*ir)[s].was_direct_read());
                 if (s > 0 || m > 0) {  // already opened first subimage/level
                     if (!out->open(tmpfilename, spec, mode)) {
-                        std::string err = out->geterror();
-                        ot.error(command,
-                                 err.size() ? err.c_str() : "unknown error");
+                        ot.error(command, out->geterror());
                         ok = false;
                         break;
                     }
