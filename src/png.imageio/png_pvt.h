@@ -49,11 +49,20 @@ rderr_handler(png_structp png, png_const_charp data)
 {
     ImageInput* inp = (ImageInput*)png_get_error_ptr(png);
     if (inp && data)
-        inp->errorf("PNG read error: %s", data);
+        inp->errorfmt("PNG read error: {}", data);
 }
 
 
-static void rdwarn_handler(png_structp /*png*/, png_const_charp /*data*/) {}
+static void
+wrerr_handler(png_structp png, png_const_charp data)
+{
+    ImageOutput* outp = (ImageOutput*)png_get_error_ptr(png);
+    if (outp && data)
+        outp->errorfmt("PNG write error: {}", data);
+}
+
+
+static void null_png_handler(png_structp /*png*/, png_const_charp /*data*/) {}
 
 
 
@@ -64,11 +73,11 @@ inline const std::string
 create_read_struct(png_structp& sp, png_infop& ip, ImageInput* inp = nullptr)
 {
     sp = png_create_read_struct(PNG_LIBPNG_VER_STRING, inp, rderr_handler,
-                                rdwarn_handler);
+                                null_png_handler);
     if (!sp)
         return "Could not create PNG read structure";
 
-    png_set_error_fn(sp, inp, rderr_handler, rdwarn_handler);
+    png_set_error_fn(sp, inp, rderr_handler, null_png_handler);
     ip = png_create_info_struct(sp);
     if (!ip)
         return "Could not create PNG info structure";
@@ -328,20 +337,13 @@ destroy_read_struct(png_structp& sp, png_infop& ip)
 }
 
 
-inline void null_png_errhandler(png_structp /*png*/,
-                                png_const_charp /*message*/)
-{
-    // ignore
-}
-
-
 
 /// Initializes a PNG write struct.
 /// \return empty string on success, C-string error message on failure.
 ///
 inline const std::string
 create_write_struct(png_structp& sp, png_infop& ip, int& color_type,
-                    ImageSpec& spec)
+                    ImageSpec& spec, ImageOutput* outp = nullptr)
 {
     // Check for things this format doesn't support
     if (spec.width < 1 || spec.height < 1)
@@ -377,8 +379,8 @@ create_write_struct(png_structp& sp, png_infop& ip, int& color_type,
     // N.B. PNG is very rigid about the meaning of the channels, so enforce
     // which channel is alpha, that's the only way PNG can do it.
 
-    sp = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr,
-                                 null_png_errhandler, nullptr);
+    sp = png_create_write_struct(PNG_LIBPNG_VER_STRING, outp, wrerr_handler,
+                                 null_png_handler);
     if (!sp)
         return "Could not create PNG write structure";
 
