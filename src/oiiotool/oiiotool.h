@@ -239,6 +239,21 @@ public:
         warning(command, Strutil::sprintf(fmt, args...));
     }
 
+    // Formatted errors with std::format-like notation
+    template<typename... Args>
+    void errorfmt(string_view command, const char* fmt,
+                  const Args&... args) const
+    {
+        error(command, Strutil::fmt::format(fmt, args...));
+    }
+
+    template<typename... Args>
+    void warningfmt(string_view command, const char* fmt,
+                    const Args&... args) const
+    {
+        warning(command, Strutil::fmt::format(fmt, args...));
+    }
+
     size_t check_peak_memory()
     {
         size_t mem  = Sysutil::memory_used();
