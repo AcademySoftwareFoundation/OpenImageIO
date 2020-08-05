@@ -169,6 +169,10 @@ serialize(text, human):
     foo_vector: 1, 0, 11
     smpte:TimeCode: 01:18:19:06
 
+
+Added dog:  Spot
+After erasing dog, dog =  None
+
 Testing construction from ROI:
   resolution (width,height,depth) =  640 480 1
   origin (x,y,z) =  0 0 0
