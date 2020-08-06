@@ -209,7 +209,8 @@ public:
             = std::any_of(this->threads.begin(), this->threads.end(),
                           [](std::unique_ptr<std::thread>& t) {
                               DWORD rcode;
-                              GetExitCodeThread(t->native_handle(), &rcode);
+                              GetExitCodeThread((HANDLE)t->native_handle(),
+                                                &rcode);
                               return rcode != STILL_ACTIVE;
                           });
 
