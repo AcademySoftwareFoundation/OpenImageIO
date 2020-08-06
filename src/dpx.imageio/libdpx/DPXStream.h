@@ -45,7 +45,7 @@
 
 /*!
  * \class InStream
- * \brief Input Stream for reading files
+ * \brief Input Stream abstract class for reading
  */
 class InStream 
 {
@@ -65,31 +65,34 @@ class InStream
 
 	
 	/*!
-	 * \brief Constructor
-	 */	
-	InStream();
-	
-	/*!
 	 * \brief Destructor 
 	 */	
-	virtual ~InStream();
+	virtual ~InStream() = default;
 
 	/*!
-	 * \brief Open file
+	 * \brief Open stream from file
 	 * \param fn File name
 	 * \return success true/false
 	 */
-	virtual bool Open(const char * fn);
-	
+	virtual bool Open(const char * fn) = 0;
+
+	/*!
+	 * \brief Open stream from memory
+	 * \param buf Memory buffer
+	 * \param size Size of memory buffer
+	 * \return success true/false
+	 */
+	virtual bool Open(const void * memBuf, const size_t memSize) = 0;
+
 	/*!
 	 * \brief Close file
 	 */	
-	virtual void Close();
+	virtual void Close() = 0;
 	
 	/*!
 	 * \brief Rewind file pointer to beginning of file
 	 */	
-	virtual void Rewind();
+	virtual void Rewind() = 0;
 
 	/*!
 	 * \brief Read data from file
@@ -97,7 +100,7 @@ class InStream
 	 * \param size bytes to read
 	 * \return number of bytes read
 	 */
-	virtual size_t Read(void * buf, const size_t size);
+	virtual size_t Read(void * buf, const size_t size) = 0;
 
 
 	/*!
@@ -106,13 +109,13 @@ class InStream
 	 * \param size bytes to read
 	 * \return number of bytes read
 	 */
-	virtual size_t ReadDirect(void * buf, const size_t size);
+	virtual size_t ReadDirect(void * buf, const size_t size) = 0;
 	
 	/*!
 	 * \brief Query if end of file has been reached
 	 * \return end of file true/false
 	 */	
-	virtual bool EndOfFile() const;
+	virtual bool EndOfFile() const = 0;
 	
 	/*!
 	 * \brief Seek to a position in the file
@@ -120,10 +123,13 @@ class InStream
 	 * \param origin originating position
 	 * \return success true/false
 	 */ 	
-	virtual bool Seek(long offset, Origin origin);
+	virtual bool Seek(long offset, Origin origin) = 0;
 
-  protected:
-	FILE *fp;
+	/*!
+	* \brief Tells the current position in the file
+	* \return The current file position on success, or -1 on failure
+	*/
+	virtual long Tell() = 0;
 };
 
 

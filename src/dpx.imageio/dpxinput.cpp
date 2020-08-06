@@ -11,6 +11,7 @@
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
@@ -24,6 +25,10 @@ public:
     DPXInput() { init(); }
     virtual ~DPXInput() { close(); }
     virtual const char* format_name(void) const override { return "dpx"; }
+    virtual int supports(string_view feature) const override
+    {
+        return (feature == "ioproxy");
+    }
     virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
@@ -43,6 +48,8 @@ private:
     std::vector<unsigned char> m_userBuf;
     bool m_rawcolor;
     std::vector<unsigned char> m_decodebuf;  // temporary decode buffer
+    int64_t m_io_offset       = 0;
+    Filesystem::IOProxy* m_io = nullptr;
 
     /// Reset everything to initial state
     ///
@@ -56,6 +63,7 @@ private:
         }
         m_userBuf.clear();
         m_rawcolor = false;
+        m_io       = nullptr;
     }
 
     /// Helper function - retrieve string for libdpx characteristic
@@ -103,7 +111,7 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 DPXInput::valid_file(const std::string& filename) const
 {
-    InStream* stream = new InStream();
+    InStream* stream = new InStreamFile();
     if (!stream)
         return false;
     bool ok = false;
@@ -122,11 +130,33 @@ DPXInput::valid_file(const std::string& filename) const
 bool
 DPXInput::open(const std::string& name, ImageSpec& newspec)
 {
+    if (m_io) {
+        // If a proxy was supplied, check if it is a memory reader
+        if (strcmp(m_io->proxytype(), "memreader") != 0) {
+            errorf(
+                "Could not open file \"%s\", supplied ioproxy is not a memory reader",
+                name);
+            return false;
+        }
+        m_io_offset = m_io->tell();
+    }
+
     // open the image
-    m_stream = new InStream();
-    if (!m_stream->Open(name.c_str())) {
-        errorf("Could not open file \"%s\"", name);
-        return false;
+    if (m_io) {
+        auto buf = static_cast<Filesystem::IOMemReader*>(m_io)->buffer();
+        m_stream = new InStreamMem();
+        if (!m_stream || m_io_offset >= buf.size()
+            || !m_stream->Open(buf.data() + m_io_offset,
+                               buf.size() - m_io_offset)) {
+            errorf("Could not open file \"%s\"", name);
+            return false;
+        }
+    } else {
+        m_stream = new InStreamFile();
+        if (!m_stream || !m_stream->Open(name.c_str())) {
+            errorf("Could not open file \"%s\"", name);
+            return false;
+        }
     }
 
     m_dpx.SetInStream(m_stream);
@@ -154,6 +184,9 @@ DPXInput::open(const std::string& name, ImageSpec& newspec,
     m_rawcolor = config.get_int_attribute("dpx:RawColor")
                  || config.get_int_attribute("dpx:RawData")  // deprecated
                  || config.get_int_attribute("oiio:RawColor");
+    auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+    if (ioparam)
+        m_io = ioparam->get<Filesystem::IOProxy*>();
     return open(name, newspec);
 }
 
@@ -548,6 +581,12 @@ DPXInput::seek_subimage(int subimage, int miplevel)
 bool
 DPXInput::close()
 {
+    if (m_io) {
+        // We were passed an ioproxy from the user. Don't actually close it,
+        // just reset it to the original position. This makes it possible to
+        // "re-open".
+        m_io->seek(m_io_offset);
+    }
     init();  // Reset to initial state
     return true;
 }
@@ -565,7 +604,7 @@ DPXInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 bool
 DPXInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                int yend, int z, void* data)
+                                int yend, int /*z*/, void* data)
 {
     lock_guard lock(m_mutex);
     if (!seek_subimage(subimage, miplevel))

@@ -33,24 +33,24 @@
  */
  
 
+#include "InStreamFile.h"
+
 #include <cstdio>
 
 #include <OpenImageIO/filesystem.h>
 
-#include "DPXStream.h"
 
-
-InStream::InStream() : fp(0)
+InStreamFile::InStreamFile() : fp(0)
 {
 }
 
 
-InStream::~InStream()
+InStreamFile::~InStreamFile()
 {
 }
 
 
-bool InStream::Open(const char *f)
+bool InStreamFile::Open(const char *f)
 {
 	if (this->fp)
 		this->Close();
@@ -60,8 +60,13 @@ bool InStream::Open(const char *f)
 	return true;
 }
 
+bool InStreamFile::Open(const void * memBuf, const size_t memSize)
+{
+	return false;
+}
 
-void InStream::Close()
+
+void InStreamFile::Close()
 {
 	if (this->fp)
 	{
@@ -71,14 +76,14 @@ void InStream::Close()
 }
 
 
-void InStream::Rewind()
+void InStreamFile::Rewind()
 {
 	if (this->fp)
-		::rewind(fp);
+		::rewind(this->fp);
 }
 
 
-bool InStream::Seek(long offset, Origin origin)
+bool InStreamFile::Seek(long offset, Origin origin)
 {
 	int o = 0;
 	switch (origin)
@@ -101,7 +106,7 @@ bool InStream::Seek(long offset, Origin origin)
 
 
 
-size_t InStream::Read(void *buf, const size_t size)
+size_t InStreamFile::Read(void *buf, const size_t size)
 {
 	if (this->fp == 0)
 		return 0;
@@ -109,19 +114,25 @@ size_t InStream::Read(void *buf, const size_t size)
 }
 
 
-size_t InStream::ReadDirect(void *buf, const size_t size)
+size_t InStreamFile::ReadDirect(void *buf, const size_t size)
 {
 	return this->Read(buf, size);
 }
 
 
-bool InStream::EndOfFile() const 
+bool InStreamFile::EndOfFile() const 
 {
 	if (this->fp == 0)
 		return true;
 	return ::feof(this->fp);
 }
 
+long InStreamFile::Tell()
+{
+	if (this->fp == 0)
+		return -1;
+	return ::ftell(this->fp);
+}
 
 
 
