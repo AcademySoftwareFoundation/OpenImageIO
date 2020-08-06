@@ -7,7 +7,7 @@
 
 #include "InStreamMem.h"
 
-#include <memory.h>
+#include <string.h>
 
 
 InStreamMem::InStreamMem() : memBuf(nullptr), memSize(0)
