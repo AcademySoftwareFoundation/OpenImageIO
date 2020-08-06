@@ -80,7 +80,7 @@ size_t InStreamMem::Read(void *buf, const size_t size)
 	auto remSize	= this->memSize - this->curPos;
 	auto cpySize	= (remSize < size) ? remSize : size;
 	auto srcBuf		= static_cast<void*>((unsigned char*) this->memBuf + this->curPos);
-	memcpy_s(buf, size, srcBuf, cpySize);
+	memcpy(buf, srcBuf, cpySize);
 	this->curPos	+= cpySize;
 	return cpySize;
 }
