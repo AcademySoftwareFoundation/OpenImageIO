@@ -105,7 +105,7 @@ PtexInput::open(const std::string& name, ImageSpec& newspec)
             m_ptex->release();
             m_ptex = NULL;
         }
-        errorf("%s", perr);
+        errorf("%s", perr.c_str());
         return false;
     }
 
