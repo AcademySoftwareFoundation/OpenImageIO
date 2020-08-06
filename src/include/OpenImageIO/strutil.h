@@ -362,14 +362,14 @@ void OIIO_API to_lower (std::string &a);
 void OIIO_API to_upper (std::string &a);
 
 /// Return an all-upper case version of `a` (locale-independent).
-inline std::string OIIO_API lower (string_view a) {
+inline std::string lower (string_view a) {
     std::string result(a);
     to_lower(result);
     return result;
 }
 
 /// Return an all-upper case version of `a` (locale-independent).
-inline std::string OIIO_API upper (string_view a) {
+inline std::string upper (string_view a) {
     std::string result(a);
     to_upper(result);
     return result;

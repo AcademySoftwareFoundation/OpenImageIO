@@ -1397,7 +1397,7 @@ bool OIIO_API polar_to_complex (ImageBuf &dst, const ImageBuf &src,
 
 
 
-enum OIIO_API NonFiniteFixMode
+enum NonFiniteFixMode
 {
     NONFINITE_NONE = 0,     ///< Do not alter the pixels (but do count the
                             ///< number of nonfinite pixels in *pixelsFixed,
@@ -1786,7 +1786,7 @@ bool OIIO_API premult (ImageBuf &dst, const ImageBuf &src,
 
 
 
-enum OIIO_API MakeTextureMode {
+enum MakeTextureMode {
     MakeTxTexture, MakeTxShadow, MakeTxEnvLatl,
     MakeTxEnvLatlFromLightProbe,
     MakeTxBumpWithSlopes,
