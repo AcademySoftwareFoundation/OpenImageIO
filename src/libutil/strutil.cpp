@@ -265,7 +265,7 @@ Strutil::get_rest_arguments(const std::string& str, std::string& base,
                             std::map<std::string, std::string>& result)
 {
     // Disregard the Windows long path question style prefix "\\?\"
-    const char longPathQPrefix[]    = "\\\\?\\";
+    const char longPathQPrefix[] = "\\\\?\\";
     const size_t longPathQPrefixLen
         = sizeof(longPathQPrefix) / sizeof(longPathQPrefix[0]) - 1;
     std::string::size_type find_start_pos
