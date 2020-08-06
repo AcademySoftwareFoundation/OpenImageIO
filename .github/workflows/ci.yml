@@ -106,7 +106,7 @@ jobs:
           CMAKE_CXX_STANDARD: 17
           PYTHON_VERSION: 3.7
           USE_SIMD: avx2,f16c
-          OPENEXR_BRANCH: v2.5.0
+          OPENEXR_VERSION: v2.5.0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
@@ -150,7 +150,7 @@ jobs:
           CXX: g++-8
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx
-          OPENEXR_BRANCH: v2.5.0
+          OPENEXR_VERSION: v2.5.0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -172,8 +172,8 @@ jobs:
           CXX: g++-10
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
-          OPENEXR_BRANCH: v2.5.0
-          PYBIND11_VERSION: 2.5.0
+          OPENEXR_VERSION: v2.5.0
+          PYBIND11_VERSION: v2.5.0
           LIBRAW_BRANCH: 0.20.0
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
         run: |
@@ -202,7 +202,7 @@ jobs:
           CXX: g++-10
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
-          OPENEXR_BRANCH: master
+          OPENEXR_VERSION: master
           OCIO_BRANCH: master
           LIBTIFF_BRANCH: master
           PYBIND11_BRANCH: master
@@ -241,7 +241,7 @@ jobs:
           USE_OPENCOLORIO: 0
           USE_OPENCV: 0
           EMBEDPLUGINS: 0
-          OPENEXR_BRANCH: v2.2.0
+          OPENEXR_VERSION: v2.2.0
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.1.2
         run: |
             source src/build-scripts/ci-startup.bash
@@ -291,7 +291,7 @@ jobs:
         env:
           PYTHON_VERSION: 3.6
           CMAKE_GENERATOR: "Visual Studio 16 2019"
-          OPENEXR_BRANCH: v2.4.1
+          OPENEXR_VERSION: v2.4.1
           SKIP_TESTS: 1
         run: |
             source src/build-scripts/ci-startup.bash
@@ -315,7 +315,7 @@ jobs:
         env:
           PYTHON_VERSION: 3.6
           CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
-          OPENEXR_BRANCH: v2.4.1
+          OPENEXR_VERSION: v2.4.1
           SKIP_TESTS: 1
           #MY_CMAKE_FLAGS: -DUSE_PYTHON=0
           USE_NINJA: 0
@@ -370,7 +370,7 @@ jobs:
           LLVM_VERSION: 9.0.0
           CMAKE_CXX_STANDARD: 14
           USE_SIMD: avx2,f16c
-          OPENEXR_BRANCH: v2.4.1
+          OPENEXR_VERSION: v2.4.1
           OCIO_BRANCH: 1c624651b7
           # Pick an OCIO commit that includes a warning fix we need for clang
         run: |

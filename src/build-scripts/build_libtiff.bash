@@ -8,10 +8,11 @@ set -ex
 LIBTIFF_REPO=${LIBTIFF_REPO:=https://gitlab.com/libtiff/libtiff.git}
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
 LIBTIFF_BUILD_DIR=${LIBTIFF_BUILD_DIR:=${LOCAL_DEPS_DIR}/libtiff}
-LIBTIFF_INSTALL_DIR=${LIBTIFF_INSTALL_DIR:=${LOCAL_DEPS_DIR}/libtiff/dist}
-LIBTIFF_VERSION=${LIBTIFF_VERSION:=4.1.0}
-LIBTIFF_BRANCH=${LIBTIFF_BRANCH:=v${LIBTIFF_VERSION}}
-LIBTIFF_CXX_FLAGS=${LIBTIFF_CXX_FLAGS:="-Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
+LIBTIFF_INSTALL_DIR=${LIBTIFF_INSTALL_DIR:=${PWD}/ext/dist}
+LIBTIFF_VERSION=${LIBTIFF_VERSION:=v4.1.0}
+if [[ `uname` == `Linux` ]] ; then
+    LIBTIFF_CXX_FLAGS=${LIBTIFF_CXX_FLAGS:="-O3 -Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
+fi
 LIBTIFF_BUILDOPTS="${LIBTIFF_BUILDOPTS}"
 BASEDIR=`pwd`
 pwd
@@ -27,11 +28,15 @@ if [[ ! -e libtiff ]] ; then
 fi
 cd libtiff
 
-echo "git checkout ${LIBTIFF_BRANCH} --force"
-git checkout ${LIBTIFF_BRANCH} --force
+echo "git checkout ${LIBTIFF_VERSION} --force"
+git checkout ${LIBTIFF_VERSION} --force
 mkdir -p build
 cd build
-time cmake --config Release -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" ${LIBTIFF_BUILDOPTS} ..
+time cmake --config Release \
+           -DCMAKE_BUILD_TYPE=Release \
+           -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} \
+           -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" \
+           ${LIBTIFF_BUILDOPTS} ..
 time cmake --build . --config Release --target install
 popd
 
