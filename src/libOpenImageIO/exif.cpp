@@ -786,7 +786,7 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
         unsigned int offset = dirp->tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian(&offset);
-        if (offset >= buf.size()) {
+        if (offset >= size_t(buf.size())) {
 #if DEBUG_EXIF_READ
             unsigned int off2 = offset;
             swap_endian(&off2);
