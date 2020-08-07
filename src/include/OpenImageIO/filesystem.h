@@ -356,7 +356,7 @@ public:
     bool seek (int64_t offset, int origin) {
         return seek ((origin == SEEK_SET ? offset : 0) +
                      (origin == SEEK_CUR ? offset+tell() : 0) +
-                     (origin == SEEK_END ? size() : 0));
+                     (origin == SEEK_END ? offset+int64_t(size()) : 0));
     }
 
 #if OIIO_VERSION >= 20101
