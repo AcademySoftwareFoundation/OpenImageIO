@@ -182,6 +182,30 @@ test_get_rest_arguments()
     OIIO_CHECK_EQUAL(base, "atext");
     OIIO_CHECK_EQUAL(result["arg1"], "value1");
     OIIO_CHECK_EQUAL(result["arg2"], "somevalue");
+
+    result.clear();
+    url            = "\\\\?\\C:\\WindowsLongPathNoRestArgs";
+    ret            = Strutil::get_rest_arguments(url, base, result);
+    OIIO_CHECK_EQUAL(ret, true);
+    OIIO_CHECK_EQUAL(base, "\\\\?\\C:\\WindowsLongPathNoRestArgs");
+    OIIO_CHECK_EQUAL(result["arg1"], "");
+
+    result.clear();
+    url            = "\\\\?\\C:\\WindowsLongPathWithGoodRestArgs?arg1=value1&arg2=value2";
+    ret            = Strutil::get_rest_arguments(url, base, result);
+    OIIO_CHECK_EQUAL(ret, true);
+    OIIO_CHECK_EQUAL(base, "\\\\?\\C:\\WindowsLongPathWithGoodRestArgs");
+    OIIO_CHECK_EQUAL(result["arg1"], "value1");
+    OIIO_CHECK_EQUAL(result["arg2"], "value2");
+
+    result.clear();
+    url            = "\\\\?\\C:\\WindowsLongPathWithBadRestArgs?arg1=value1&arg2value2";
+    result["arg2"] = "somevalue";
+    ret            = Strutil::get_rest_arguments(url, base, result);
+    OIIO_CHECK_EQUAL(ret, false);
+    OIIO_CHECK_EQUAL(base, "\\\\?\\C:\\WindowsLongPathWithBadRestArgs");
+    OIIO_CHECK_EQUAL(result["arg1"], "value1");
+    OIIO_CHECK_EQUAL(result["arg2"], "somevalue");
 }
 
 
