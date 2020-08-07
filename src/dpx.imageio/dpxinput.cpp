@@ -3,6 +3,7 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 #include <iomanip>
+#include <memory>
 
 #include <OpenEXR/ImfTimeCode.h>  //For TimeCode support
 
@@ -40,6 +41,13 @@ public:
                                       void* data) override;
     virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
                                        int yend, int z, void* data) override;
+#if OIIO_VERSION >= 20200
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
+#endif
 
 private:
     int m_subimage;
@@ -112,14 +120,14 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 DPXInput::valid_file(const std::string& filename) const
 {
-    auto io = (Filesystem::IOProxy*)new Filesystem::IOFile(
-        filename, Filesystem::IOProxy::Mode::Read);
+    Filesystem::IOProxy* io
+        = new Filesystem::IOFile(filename, Filesystem::IOProxy::Mode::Read);
     std::unique_ptr<Filesystem::IOProxy> io_uptr(io);
     if (!io || io->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
 
-    auto stream_uptr = std::make_unique<InStream>(io);
-    if (stream_uptr == nullptr)
+    std::unique_ptr<InStream> stream_uptr(new InStream(io));
+    if (!stream_uptr)
         return false;
 
     dpx::Reader dpx;
