@@ -26,6 +26,7 @@ bool InStream::Seek(long offset, Origin origin)
     case kStart: ioOrigin = SEEK_SET; break;
     case kCurrent: ioOrigin = SEEK_CUR; break;
     case kEnd: ioOrigin = SEEK_END; break;
+    default: ioOrigin = SEEK_SET; break;
     }
 
     return m_io->seek(offset, ioOrigin);
@@ -43,7 +44,7 @@ size_t InStream::ReadDirect(void *buf, const size_t size)
 
 bool InStream::EndOfFile() const
 {
-    return IsValid() ? (m_io->tell() >= m_io->size()) : true;
+    return IsValid() ? (size_t(m_io->tell()) >= m_io->size()) : true;
 }
 
 long InStream::Tell()
