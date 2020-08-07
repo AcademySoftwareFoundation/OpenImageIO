@@ -265,13 +265,10 @@ Strutil::get_rest_arguments(const std::string& str, std::string& base,
                             std::map<std::string, std::string>& result)
 {
     // Disregard the Windows long path question style prefix "\\?\"
-    const char longPathQPrefix[] = "\\\\?\\";
-    const size_t longPathQPrefixLen
-        = sizeof(longPathQPrefix) / sizeof(longPathQPrefix[0]) - 1;
-    std::string::size_type find_start_pos
-        = (str.compare(0, longPathQPrefixLen, longPathQPrefix) == 0)
-              ? longPathQPrefixLen
-              : 0;
+    static const std::string longPathQPrefix("\\\\?\\");
+    auto find_start_pos = starts_with(str, longPathQPrefix)
+                              ? longPathQPrefix.size()
+                              : size_t(0);
 
     std::string::size_type mark_pos = str.find_first_of("?", find_start_pos);
     if (mark_pos == std::string::npos) {
