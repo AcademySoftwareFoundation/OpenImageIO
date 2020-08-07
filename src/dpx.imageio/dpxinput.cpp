@@ -48,8 +48,9 @@ private:
     std::vector<unsigned char> m_userBuf;
     bool m_rawcolor;
     std::vector<unsigned char> m_decodebuf;  // temporary decode buffer
-    int64_t m_io_offset       = 0;
+    std::unique_ptr<Filesystem::IOProxy> m_io_local;
     Filesystem::IOProxy* m_io = nullptr;
+    int64_t m_io_offset       = 0;
 
     /// Reset everything to initial state
     ///
@@ -57,9 +58,9 @@ private:
     {
         m_subimage = -1;
         if (m_stream) {
-            m_stream->Close();
             delete m_stream;
             m_stream = nullptr;
+            m_dpx.SetInStream(nullptr);
         }
         m_userBuf.clear();
         m_rawcolor = false;
@@ -111,18 +112,19 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 DPXInput::valid_file(const std::string& filename) const
 {
-    InStream* stream = new InStreamFile();
-    if (!stream)
+    auto io = (Filesystem::IOProxy*)new Filesystem::IOFile(
+        filename, Filesystem::IOProxy::Mode::Read);
+    std::unique_ptr<Filesystem::IOProxy> io_uptr(io);
+    if (!io || io->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
-    bool ok = false;
-    if (stream->Open(filename.c_str())) {
-        dpx::Reader dpx;
-        dpx.SetInStream(stream);
-        ok = dpx.ReadHeader();
-        stream->Close();
-    }
-    delete stream;
-    return ok;
+
+    auto stream_uptr = std::make_unique<InStream>(io);
+    if (stream_uptr == nullptr)
+        return false;
+
+    dpx::Reader dpx;
+    dpx.SetInStream(stream_uptr.get());
+    return dpx.ReadHeader();  // IOFile is automatically closed when destructed
 }
 
 
@@ -130,33 +132,21 @@ DPXInput::valid_file(const std::string& filename) const
 bool
 DPXInput::open(const std::string& name, ImageSpec& newspec)
 {
-    if (m_io) {
-        // If a proxy was supplied, check if it is a memory reader
-        if (strcmp(m_io->proxytype(), "memreader") != 0) {
-            errorf(
-                "Could not open file \"%s\", supplied ioproxy is not a memory reader",
-                name);
-            return false;
-        }
-        m_io_offset = m_io->tell();
+    if (!m_io) {
+        // If no proxy was supplied, create a file reader
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
+        m_io_local.reset(m_io);
     }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
+        errorf("Could not open file \"%s\"", name);
+        return false;
+    }
+    m_io_offset = m_io->tell();
 
-    // open the image
-    if (m_io) {
-        auto buf = static_cast<Filesystem::IOMemReader*>(m_io)->buffer();
-        m_stream = new InStreamMem();
-        if (!m_stream || m_io_offset >= buf.size()
-            || !m_stream->Open(buf.data() + m_io_offset,
-                               buf.size() - m_io_offset)) {
-            errorf("Could not open file \"%s\"", name);
-            return false;
-        }
-    } else {
-        m_stream = new InStreamFile();
-        if (!m_stream || !m_stream->Open(name.c_str())) {
-            errorf("Could not open file \"%s\"", name);
-            return false;
-        }
+    m_stream = new InStream(m_io);
+    if (!m_stream) {
+        errorf("Could not open file \"%s\"", name);
+        return false;
     }
 
     m_dpx.SetInStream(m_stream);
@@ -581,7 +571,11 @@ DPXInput::seek_subimage(int subimage, int miplevel)
 bool
 DPXInput::close()
 {
-    if (m_io) {
+    if (m_io_local) {
+        // If we allocated our own ioproxy, close it.
+        m_io_local.reset();
+        m_io = nullptr;
+    } else if (m_io) {
         // We were passed an ioproxy from the user. Don't actually close it,
         // just reset it to the original position. This makes it possible to
         // "re-open".

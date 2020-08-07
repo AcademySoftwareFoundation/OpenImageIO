@@ -41,6 +41,7 @@
 
 #include <cstdio>
 
+#include <OpenImageIO/filesystem.h>
 
 
 /*!
@@ -63,36 +64,20 @@ class InStream
 		kEnd							//!< end of the file
 	};	
 
-	
+	/*!
+	 * \brief Constructor
+	 */
+	InStream(OIIO::Filesystem::IOProxy* io) : m_io(io) { }
+
 	/*!
 	 * \brief Destructor 
 	 */	
 	virtual ~InStream() = default;
 
 	/*!
-	 * \brief Open stream from file
-	 * \param fn File name
-	 * \return success true/false
-	 */
-	virtual bool Open(const char * fn) = 0;
-
-	/*!
-	 * \brief Open stream from memory
-	 * \param buf Memory buffer
-	 * \param size Size of memory buffer
-	 * \return success true/false
-	 */
-	virtual bool Open(const void * memBuf, const size_t memSize) = 0;
-
-	/*!
-	 * \brief Close file
-	 */	
-	virtual void Close() = 0;
-	
-	/*!
 	 * \brief Rewind file pointer to beginning of file
 	 */	
-	virtual void Rewind() = 0;
+	virtual void Rewind();
 
 	/*!
 	 * \brief Read data from file
@@ -100,7 +85,7 @@ class InStream
 	 * \param size bytes to read
 	 * \return number of bytes read
 	 */
-	virtual size_t Read(void * buf, const size_t size) = 0;
+	virtual size_t Read(void * buf, const size_t size);
 
 
 	/*!
@@ -109,13 +94,13 @@ class InStream
 	 * \param size bytes to read
 	 * \return number of bytes read
 	 */
-	virtual size_t ReadDirect(void * buf, const size_t size) = 0;
+	virtual size_t ReadDirect(void * buf, const size_t size);
 	
 	/*!
 	 * \brief Query if end of file has been reached
 	 * \return end of file true/false
 	 */	
-	virtual bool EndOfFile() const = 0;
+	virtual bool EndOfFile() const;
 	
 	/*!
 	 * \brief Seek to a position in the file
@@ -123,13 +108,26 @@ class InStream
 	 * \param origin originating position
 	 * \return success true/false
 	 */ 	
-	virtual bool Seek(long offset, Origin origin) = 0;
+	virtual bool Seek(long offset, Origin origin);
 
 	/*!
 	* \brief Tells the current position in the file
 	* \return The current file position on success, or -1 on failure
 	*/
-	virtual long Tell() = 0;
+	virtual long Tell();
+
+	/*!
+	* \brief Tells the current position in the file
+	* \return True if the stream is valid (exists and is opened), or false otherwise
+	*/
+	virtual bool IsValid() const { return m_io && m_io->opened(); }
+
+  protected:
+	/*!
+	* This is a weak pointer, so opening and closing is done by the caller. Therefore, be carefull
+	* to delete an instance of this class after `m_io` is closed or deleted externally
+	*/
+	OIIO::Filesystem::IOProxy* m_io;
 };
 
 

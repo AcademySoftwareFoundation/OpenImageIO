@@ -42,8 +42,6 @@
 
 #include "DPXHeader.h"
 #include "DPXStream.h"
-#include "InStreamFile.h"
-#include "InStreamMem.h"
 
 
 /*!
