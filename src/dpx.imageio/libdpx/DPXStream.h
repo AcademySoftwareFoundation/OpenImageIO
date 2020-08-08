@@ -41,11 +41,12 @@
 
 #include <cstdio>
 
+#include <OpenImageIO/filesystem.h>
 
 
 /*!
  * \class InStream
- * \brief Input Stream for reading files
+ * \brief Input Stream abstract class for reading
  */
 class InStream 
 {
@@ -63,29 +64,16 @@ class InStream
 		kEnd							//!< end of the file
 	};	
 
-	
 	/*!
 	 * \brief Constructor
-	 */	
-	InStream();
-	
+	 */
+	InStream(OIIO::Filesystem::IOProxy* io) : m_io(io) { }
+
 	/*!
 	 * \brief Destructor 
 	 */	
-	virtual ~InStream();
+	virtual ~InStream() = default;
 
-	/*!
-	 * \brief Open file
-	 * \param fn File name
-	 * \return success true/false
-	 */
-	virtual bool Open(const char * fn);
-	
-	/*!
-	 * \brief Close file
-	 */	
-	virtual void Close();
-	
 	/*!
 	 * \brief Rewind file pointer to beginning of file
 	 */	
@@ -122,8 +110,24 @@ class InStream
 	 */ 	
 	virtual bool Seek(long offset, Origin origin);
 
+	/*!
+	* \brief Tells the current position in the file
+	* \return The current file position on success, or -1 on failure
+	*/
+	virtual long Tell();
+
+	/*!
+	* \brief Tells the current position in the file
+	* \return True if the stream is valid (exists and is opened), or false otherwise
+	*/
+	virtual bool IsValid() const { return m_io && m_io->opened(); }
+
   protected:
-	FILE *fp;
+	/*!
+	* This is a weak pointer, so opening and closing is done by the caller. Therefore, be
+	* carefull to delete this object after `m_io` is deleted externally
+	*/
+	OIIO::Filesystem::IOProxy* m_io;
 };
 
 
