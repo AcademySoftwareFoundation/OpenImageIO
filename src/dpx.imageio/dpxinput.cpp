@@ -3,6 +3,7 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 #include <iomanip>
+#include <memory>
 
 #include <OpenEXR/ImfTimeCode.h>  //For TimeCode support
 
@@ -11,6 +12,7 @@
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
@@ -24,6 +26,10 @@ public:
     DPXInput() { init(); }
     virtual ~DPXInput() { close(); }
     virtual const char* format_name(void) const override { return "dpx"; }
+    virtual int supports(string_view feature) const override
+    {
+        return (feature == "ioproxy");
+    }
     virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
@@ -35,6 +41,13 @@ public:
                                       void* data) override;
     virtual bool read_native_scanlines(int subimage, int miplevel, int ybegin,
                                        int yend, int z, void* data) override;
+#if OIIO_VERSION >= 20200
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
+#endif
 
 private:
     int m_subimage;
@@ -43,6 +56,9 @@ private:
     std::vector<unsigned char> m_userBuf;
     bool m_rawcolor;
     std::vector<unsigned char> m_decodebuf;  // temporary decode buffer
+    std::unique_ptr<Filesystem::IOProxy> m_io_local;
+    Filesystem::IOProxy* m_io = nullptr;
+    int64_t m_io_offset       = 0;
 
     /// Reset everything to initial state
     ///
@@ -50,12 +66,13 @@ private:
     {
         m_subimage = -1;
         if (m_stream) {
-            m_stream->Close();
             delete m_stream;
             m_stream = nullptr;
+            m_dpx.SetInStream(nullptr);
         }
         m_userBuf.clear();
         m_rawcolor = false;
+        m_io       = nullptr;
     }
 
     /// Helper function - retrieve string for libdpx characteristic
@@ -103,18 +120,19 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 DPXInput::valid_file(const std::string& filename) const
 {
-    InStream* stream = new InStream();
-    if (!stream)
+    Filesystem::IOProxy* io
+        = new Filesystem::IOFile(filename, Filesystem::IOProxy::Mode::Read);
+    std::unique_ptr<Filesystem::IOProxy> io_uptr(io);
+    if (!io || io->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
-    bool ok = false;
-    if (stream->Open(filename.c_str())) {
-        dpx::Reader dpx;
-        dpx.SetInStream(stream);
-        ok = dpx.ReadHeader();
-        stream->Close();
-    }
-    delete stream;
-    return ok;
+
+    std::unique_ptr<InStream> stream_uptr(new InStream(io));
+    if (!stream_uptr)
+        return false;
+
+    dpx::Reader dpx;
+    dpx.SetInStream(stream_uptr.get());
+    return dpx.ReadHeader();  // IOFile is automatically closed when destructed
 }
 
 
@@ -122,9 +140,19 @@ DPXInput::valid_file(const std::string& filename) const
 bool
 DPXInput::open(const std::string& name, ImageSpec& newspec)
 {
-    // open the image
-    m_stream = new InStream();
-    if (!m_stream->Open(name.c_str())) {
+    if (!m_io) {
+        // If no proxy was supplied, create a file reader
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
+        m_io_local.reset(m_io);
+    }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
+        errorf("Could not open file \"%s\"", name);
+        return false;
+    }
+    m_io_offset = m_io->tell();
+
+    m_stream = new InStream(m_io);
+    if (!m_stream) {
         errorf("Could not open file \"%s\"", name);
         return false;
     }
@@ -154,6 +182,9 @@ DPXInput::open(const std::string& name, ImageSpec& newspec,
     m_rawcolor = config.get_int_attribute("dpx:RawColor")
                  || config.get_int_attribute("dpx:RawData")  // deprecated
                  || config.get_int_attribute("oiio:RawColor");
+    auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+    if (ioparam)
+        m_io = ioparam->get<Filesystem::IOProxy*>();
     return open(name, newspec);
 }
 
@@ -548,6 +579,16 @@ DPXInput::seek_subimage(int subimage, int miplevel)
 bool
 DPXInput::close()
 {
+    if (m_io_local) {
+        // If we allocated our own ioproxy, close it.
+        m_io_local.reset();
+        m_io = nullptr;
+    } else if (m_io) {
+        // We were passed an ioproxy from the user. Don't actually close it,
+        // just reset it to the original position. This makes it possible to
+        // "re-open".
+        m_io->seek(m_io_offset);
+    }
     init();  // Reset to initial state
     return true;
 }
@@ -565,7 +606,7 @@ DPXInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 bool
 DPXInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                int yend, int z, void* data)
+                                int yend, int /*z*/, void* data)
 {
     lock_guard lock(m_mutex);
     if (!seek_subimage(subimage, miplevel))
