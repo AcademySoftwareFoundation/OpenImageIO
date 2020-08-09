@@ -336,6 +336,7 @@ private:
     ustring m_filename;            ///< Filename
     bool m_used;                   ///< Recently used (in the LRU sense)
     bool m_broken;                 ///< has errors; can't be used properly
+    bool m_allow_release = true;   ///< Allow the file to release()?
     std::string m_broken_message;  ///< Error message for why it's broken
     std::shared_ptr<ImageInput> m_input;  ///< Open ImageInput, NULL if closed
         // Note that m_input, the shared pointer itself, is NOT safe to
