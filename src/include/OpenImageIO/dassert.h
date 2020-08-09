@@ -29,11 +29,11 @@
 ///
 /// OIIO_ASSERT_MSG(condition,msg,...) lets you add formatted output (a la
 /// printf) to the failure message.
-#define OIIO_ASSERT(x)                                                         \
-    (OIIO_LIKELY(x)                                                            \
-         ? ((void)0)                                                           \
-         : (std::fprintf(stderr, "%s:%u: %s: Assertion '%s' failed.\n",        \
-                         __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x),        \
+#define OIIO_ASSERT(x)                                                  \
+    (OIIO_LIKELY(x)                                                     \
+         ? ((void)0)                                                    \
+         : (std::fprintf(stderr, "%s:%u: %s: Assertion '%s' failed.\n", \
+                         __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x), \
             OIIO_ABORT_IF_DEBUG))
 #define OIIO_ASSERT_MSG(x, msg, ...)                                            \
     (OIIO_LIKELY(x)                                                             \
@@ -70,22 +70,22 @@
 /// DASSERT and DASSERT_MSG also are considered deprecated for the namespace
 /// reasons.
 #ifndef ASSERT
-#    define ASSERT(x)                                                          \
-        (OIIO_LIKELY(x)                                                        \
-             ? ((void)0)                                                       \
-             : (std::fprintf(stderr, "%s:%u: %s: Assertion '%s' failed.\n",    \
-                             __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x),    \
+#    define ASSERT(x)                                                       \
+        (OIIO_LIKELY(x)                                                     \
+             ? ((void)0)                                                    \
+             : (std::fprintf(stderr, "%s:%u: %s: Assertion '%s' failed.\n", \
+                             __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x), \
                 abort()))
 #endif
 
 #ifndef ASSERT_MSG
-#    define ASSERT_MSG(x, msg, ...)                                            \
-        (OIIO_LIKELY(x)                                                        \
-             ? ((void)0)                                                       \
-             : (std::fprintf(stderr,                                           \
-                             "%s:%u: %s: Assertion '%s' failed: " msg "\n",    \
-                             __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x,     \
-                             __VA_ARGS__),                                     \
+#    define ASSERT_MSG(x, msg, ...)                                         \
+        (OIIO_LIKELY(x)                                                     \
+             ? ((void)0)                                                    \
+             : (std::fprintf(stderr,                                        \
+                             "%s:%u: %s: Assertion '%s' failed: " msg "\n", \
+                             __FILE__, __LINE__, OIIO_PRETTY_FUNCTION, #x,  \
+                             __VA_ARGS__),                                  \
                 abort()))
 #endif
 

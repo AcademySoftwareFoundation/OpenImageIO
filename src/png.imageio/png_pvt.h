@@ -19,8 +19,8 @@
 #include <OpenImageIO/typedesc.h>
 
 
-#define OIIO_LIBPNG_VERSION                                                    \
-    (PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100                 \
+#define OIIO_LIBPNG_VERSION                                    \
+    (PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100 \
      + PNG_LIBPNG_VER_RELEASE)
 
 

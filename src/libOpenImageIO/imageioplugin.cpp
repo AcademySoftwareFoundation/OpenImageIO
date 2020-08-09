@@ -196,19 +196,19 @@ catalog_plugin(const std::string& format_name,
 // list of file extensions, for the standard plugins that come with OIIO.
 // These won't be used unless EMBED_PLUGINS is defined.  Use the PLUGENTRY
 // macro to make the declaration compact and easy to read.
-#    define PLUGENTRY(name)                                                    \
-        ImageInput* name##_input_imageio_create();                             \
-        ImageOutput* name##_output_imageio_create();                           \
-        extern const char* name##_output_extensions[];                         \
-        extern const char* name##_input_extensions[];                          \
+#    define PLUGENTRY(name)                            \
+        ImageInput* name##_input_imageio_create();     \
+        ImageOutput* name##_output_imageio_create();   \
+        extern const char* name##_output_extensions[]; \
+        extern const char* name##_input_extensions[];  \
         extern const char* name##_imageio_library_version();
-#    define PLUGENTRY_RO(name)                                                 \
-        ImageInput* name##_input_imageio_create();                             \
-        extern const char* name##_input_extensions[];                          \
+#    define PLUGENTRY_RO(name)                        \
+        ImageInput* name##_input_imageio_create();    \
+        extern const char* name##_input_extensions[]; \
         extern const char* name##_imageio_library_version();
-#    define PLUGENTRY_WO(name)                                                 \
-        ImageOutput* name##_output_imageio_create();                           \
-        extern const char* name##_output_extensions[];                         \
+#    define PLUGENTRY_WO(name)                         \
+        ImageOutput* name##_output_imageio_create();   \
+        extern const char* name##_output_extensions[]; \
         extern const char* name##_imageio_library_version();
 
 PLUGENTRY(bmp);

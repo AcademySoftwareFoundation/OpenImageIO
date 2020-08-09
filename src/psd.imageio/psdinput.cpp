@@ -462,10 +462,10 @@ private:
 // 1) Add ADD_LOADER(<ResourceID>) below
 // 2) Add a method in PSDInput:
 //    bool load_resource_<ResourceID> (uint32_t length);
-#define ADD_LOADER(id)                                                         \
-    {                                                                          \
-        id, std::bind(&PSDInput::load_resource_##id, std::placeholders::_1,    \
-                      std::placeholders::_2)                                   \
+#define ADD_LOADER(id)                                                      \
+    {                                                                       \
+        id, std::bind(&PSDInput::load_resource_##id, std::placeholders::_1, \
+                      std::placeholders::_2)                                \
     }
 const PSDInput::ResourceLoader PSDInput::resource_loaders[]
     = { ADD_LOADER(1005), ADD_LOADER(1006), ADD_LOADER(1010), ADD_LOADER(1033),

@@ -548,9 +548,9 @@ ParamValue_getitem(const ParamValue& self, bool allitems = false)
     TypeDesc t = self.type();
     int nvals  = allitems ? self.nvalues() : 1;
 
-#define ParamValue_convert_dispatch(TYPE)                                      \
-case TypeDesc::TYPE:                                                           \
-    return C_to_val_or_tuple((CType<TypeDesc::TYPE>::type*)self.data(), t,     \
+#define ParamValue_convert_dispatch(TYPE)                                  \
+case TypeDesc::TYPE:                                                       \
+    return C_to_val_or_tuple((CType<TypeDesc::TYPE>::type*)self.data(), t, \
                              nvals)
 
     switch (t.basetype) {
