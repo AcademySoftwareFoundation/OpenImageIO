@@ -205,7 +205,7 @@ jobs:
           OPENEXR_VERSION: master
           OCIO_BRANCH: master
           LIBTIFF_BRANCH: master
-          PYBIND11_BRANCH: master
+          PYBIND11_VERSION: master
           LIBRAW_BRANCH: master
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
         run: |
