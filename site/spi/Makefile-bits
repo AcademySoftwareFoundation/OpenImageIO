@@ -318,6 +318,14 @@ else ifeq (${platform}, macosx)
         MY_CMAKE_FLAGS += \
            -DCMAKE_C_COMPILER=gcc-8 -DCMAKE_CXX_COMPILER=g++-8
         USE_LIBCPLUSPLUS := 0
+    else ifeq (${COMPILER}, gcc9)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=gcc-9 -DCMAKE_CXX_COMPILER=g++-9
+        USE_LIBCPLUSPLUS := 0
+    else ifeq (${COMPILER}, gcc10)
+        MY_CMAKE_FLAGS += \
+           -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10
+        USE_LIBCPLUSPLUS := 0
     else ifeq (${COMPILER},clang7)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=/usr/local/opt/llvm@7/bin/clang \
         				  -DCMAKE_CXX_COMPILER=/usr/local/llvm@7/bin/clang++
