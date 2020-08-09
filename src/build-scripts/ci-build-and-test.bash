@@ -40,17 +40,16 @@ if [[ "$BUILDTARGET" != "none" ]] ; then
     time cmake --build . --target ${BUILDTARGET:=install} --config ${CMAKE_BUILD_TYPE}
 fi
 popd
-#make $MAKEFLAGS VERBOSE=1 $BUILD_FLAGS config
-#make $MAKEFLAGS $PAR_MAKEFLAGS $BUILD_FLAGS $BUILDTARGET
 
-#echo "OpenImageIO_ROOT $OpenImageIO_ROOT"
-#ls -R -l "$OpenImageIO_ROOT"
 
 if [[ "${SKIP_TESTS:=0}" == "0" ]] ; then
     $OpenImageIO_ROOT/bin/oiiotool --help || true
     TESTSUITE_CLEANUP_ON_SUCCESS=1
     echo "Parallel test " ${CTEST_PARALLEL_LEVEL}
-    make $BUILD_FLAGS test
+    # make $BUILD_FLAGS test
+    pushd build/$PLATFORM
+    ctest -C ${CMAKE_BUILD_TYPE} -E broken --force-new-ctest-process --output-on-failure
+    popd
 fi
 
 if [[ "$BUILDTARGET" == clang-format ]] ; then
