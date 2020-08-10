@@ -51,7 +51,7 @@ set (fmt_headers
         ${FMT_INCLUDES}/fmt/ostream.h
         ${FMT_INCLUDES}/fmt/printf.h )
 file (COPY ${fmt_headers}
-      DESTINATION ${CMAKE_BINARY_DIR}/include/detail/fmt)
+      DESTINATION ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt)
 install (FILES ${fmt_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail/fmt
          COMPONENT developer)
@@ -62,7 +62,7 @@ if (NOT USE_EXTERNAL_PUGIXML)
           OpenImageIO/detail/pugixml/pugiconfig.hpp
           OpenImageIO/detail/pugixml/pugixml.cpp)
     file (COPY ${pugixml_headers}
-          DESTINATION ${CMAKE_BINARY_DIR}/include/detail/pugixml)
+          DESTINATION ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/pugixml)
     install (FILES ${pugixml_headers}
              DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/detail/pugixml
              COMPONENT developer)
