@@ -5,12 +5,26 @@ New minimum dependencies:
 * openjpeg >= 2.0 (if JPEG-2000 support is desired) #2555 (2.2.2)
 
 New major features and public API changes:
-* New IOProxy support: ImageInput and ImageOutput now have direct API level
-  support for IOProxy in their `open()` and `create()` calls, as well as a
-  new `set_ioproxy()` method in these classes. ImageBuf similarly can specify
-  a proxy upon construction for reading, and for writing via a
-  `set_write_ioproxy()` method that applies to subsequent `write` call.
-  #2434 (2.2.0), #2477 (2.2.1).
+* Improved IOProxy support:
+    - ImageInput and ImageOutput now have direct API level support for IOProxy
+      in their `open()` and `create()` calls, as well as a new `set_ioproxy()`
+      method in these classes. #2434 (2.2.0)
+    - ImageBuf can now specify a proxy upon construction for reading, and for
+      writing via a `set_write_ioproxy()` method that applies to subsequent
+      `write` call.  #2477 (2.2.1).
+    - DPX input now supports IOProxy. #2659 #2665 (2.2.5)
+    - ImageCache (and ImageBuf backed by ImageCache) entries that use IOProxy
+      are careful not to fully "close" their proxies when trying to reclaim
+      space in the file cache (that would be bad, since the proxy can't be
+      re-opened). #2666 (2.2.5)
+* Improved support for multi-subimage files:
+    - oiiotool: Nearly all operations now allow an optional `:subimages=...`
+      modifier that restricts the operation to be performed on only a subset
+      of named or indexed subimages. See docs for details. #2582
+    - Python `ImageBuf.write()` variety added that takes an open
+      `ImageOutput`.  This is the key to writing a multi-subimage file (such
+      as a multi-part OpenEXR) using the Python ImageBuf interface. #2640
+      (2.2.4)
 * Python bindings:
     - Python bindings have been added for missing ParamValue constructors.
       We previously exposed the PV constructors from just a plain int, float,
@@ -21,7 +35,7 @@ New major features and public API changes:
       numpy arrays (previously they had to be tuples). #2437 (2.1.11/2.2.0)
     - `ImageBufAlgo.color_range_check()` is now available to the Python
       bindings (was previously only C++). #2602 (2.2.3)
-    - Add a version of `ImageBuf.write()` that takes an open `ImageOutput`.
+    - New variety of `ImageBuf.write()` that takes an open `ImageOutput`.
       This is the key to writing a multi-subimage file (such as a multi-part
       OpenEXR) using the Python ImageBuf interface. #2640 (2.2.4)
 * ImageBuf:
@@ -39,10 +53,6 @@ New major features and public API changes:
     - New `max()` and `min()` functions take the pixel-by-pixel maximum
       or minimum of two images. #2470 (2.2.1)
 * ColorConfig: add OCIO "role" accessors. #2548
-* oiiotool subimage support:
-    - Nearly all operations now allow an optional `:subimages=...`
-      modifier that restricts the operation to be performed on only a subset
-      of named or indexed subimages. See docs for details. #2582
 * Low-res I/O of images to terminals that support full color and Unicode
   characters. Just output to a file ending in ".term", and it will convert
   (on certain terminals) to an image displayed directly in the terminal.
@@ -99,6 +109,7 @@ Fixes and feature enhancements:
       #2487. (2.1.12/2.2.1)
     - Fix `resize()` to avoid a crash / stack overflow in certain cases of
       very big images and very large filter kernels. #2643 (2.2.4)
+    - Minor improvements to ImageBuf error formatting. #2653 (2.2.5)
 * ImageCache / TextureSystem / maketx:
     - New IC/TS attribute "trust_file_extensions", if nonzero, is a promise
       that all files can be counted on for their formats to match their
@@ -120,6 +131,12 @@ Fixes and feature enhancements:
   parameters correctly. #2475 (2.1.12)
 * Fix: iinfo return code now properly indicates failures for files that
   can't be opened. #2511 (2.2.2/2.1.13)
+* DPX:
+    - IOProxy reading is now supported. #2659 (2.2.5)
+* HDR files:
+    - Improve performance when reading HDR files out of order (when combined
+      with ImageCache, observed to speed up out-of-order HDR reading by 18x).
+      #2662 (2.2.5)
 * JPEG:
     - Fix resolution unit metadata that was not propery set in JPEG output.
       #2516 (2.2.2/2.1.13)
@@ -133,6 +150,11 @@ Fixes and feature enhancements:
       "worldtoscreen" and vice versa. #2609 (2.2.4)
 * PNG:
     - Fix loss of 'config' info upon close/reopen. #2549 (2.2.2)
+    - Add output configuration hint "png:filter" to control PNG filter
+      options. #2650 (2.2.5)
+    - Improved propagation of PNG write errors. #2655 (2.2.5)
+    - Tell libpng to turn off sRGB profile check, which has a known problem of
+      false positives. #2655 (2.2.5)
 * Raw images:
     - Support for new Canon .cr3 file, but only if you build against
       libraw >= 0.20.0 developer snapshot. #2484 (2.2.1) #2613 (2.2.4)
@@ -235,8 +257,10 @@ Developer goodies / internals:
   but not force a termination. #2435 (2.1.11/2.2.0)
 * Internals: Replaced most uses of `boost::thread_specific_ptr` with C++11
   `thread_local`. #2431 (2.2.0)
-* Python: Fixed a bug that lost certain string arguments, especially when
-  passing a TypeDesc as its string equivalent. #2587 (2.1.16/2.2.3)
+* Python:
+    - Fixed a bug that lost certain string arguments, especially when passing
+      a TypeDesc as its string equivalent. #2587 (2.1.16/2.2.3)
+    - Fixed broken bindings of ImageSpec.erase_attribute. #2654 (2.2.5)
 * oiiotool: Big overhaul and simplification of internals. #2586 #2589 (2.2.3)
 
 Build/test system improvements and platform ports:
@@ -279,6 +303,8 @@ Build/test system improvements and platform ports:
       downloaded and inspected (or used to create new reference output).
       #2606 (2.2.4)
     - CI Mac tests switch to Python 3.8. (2.2.4)
+    - Windows CI switched from using Vcpkg to building its own dependencies.
+      #2663 (2.2.5)
 * Dependency version support:
     - Pybind11 is no longer auto-downloaded. It is assumed to be
       pre-installed. A script `src/build-scripts/build_pybind11.bash` is
@@ -298,6 +324,10 @@ Build/test system improvements and platform ports:
     - Support for Qt 5.15. #2605 (2.2.3)
     - Fixes to support OpenColorIO 2.0. #2636 (2.2.4)
     - Build against more recent versions of fmtlib. #2639 (2.2.4)
+    - Included scripts to download and build libtiff #2543 (2.1.13/2.2.2),
+      PugiXML #2648 (2.2.4), zlib, libpng, libjpeg-turbo. #2663 (2.2.5)
+* Add a build_libtiff.bash script to make it easy to build the libtiff
+  dependency. #2543 (2.1.13/2.2.2)
 * Progress on support for using Conan for dependency installation. This is
   experimental, it can't yet build all dependencies. Work in progress.
   #2461 (2.2.1)
@@ -332,6 +362,8 @@ Build/test system improvements and platform ports:
 * Moved headers that are not part of OIIO's supported public API, but that
   still must be installed to be transitively included, do a "detail"
   subdirectory. #2648 (2.2.4)
+* Fix many Mingw compiler warnings. #2657 (2.2.5)
+* Fix Windows extended length / long paths when opening files. #2662 (2.2.5)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
@@ -412,6 +444,8 @@ Release 2.1.14 (1 May 2020) -- compared to 2.1.13
 * Fix some problems with the docs. #2541
 * `AttrDelegate::as_vec<>` returns the whole attribute as a std::vector.
   #2528
+* Add a build_libtiff.bash script to make it easy to build the libtiff
+  dependency. #2543
 
 Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
 -------------------------------------------------

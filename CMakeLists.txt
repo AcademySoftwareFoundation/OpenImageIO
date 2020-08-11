@@ -3,7 +3,7 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 cmake_minimum_required (VERSION 3.12)
-project (OpenImageIO VERSION 2.2.4.1
+project (OpenImageIO VERSION 2.2.5.0
          HOMEPAGE_URL "https://openimageio.org"
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
@@ -12,7 +12,7 @@ string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
 set (PROJECT_VERSION_RELEASE_TYPE "beta2")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
-set (${PROJECT_NAME}_SUPPORTED_RELEASE 0)  # Change to 1 after release branch
+set (${PROJECT_NAME}_SUPPORTED_RELEASE 1)  # Change to 1 after release branch
 
 # If the user wants to use Conan to build dependencies, they will have done
 # this prior to the cmake config:
