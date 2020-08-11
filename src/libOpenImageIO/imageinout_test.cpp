@@ -41,15 +41,15 @@ make_test_image(string_view formatname)
 
 
 
-#define CHECKED(obj, call)                                                     \
-    if (!obj->call) {                                                          \
-        if (do_asserts)                                                        \
-            OIIO_CHECK_ASSERT(false && #call);                                 \
-        if (errmsg)                                                            \
-            *errmsg = obj->geterror();                                         \
-        else                                                                   \
-            std::cout << "      " << obj->geterror() << "\n";                  \
-        return false;                                                          \
+#define CHECKED(obj, call)                                    \
+    if (!obj->call) {                                         \
+        if (do_asserts)                                       \
+            OIIO_CHECK_ASSERT(false && #call);                \
+        if (errmsg)                                           \
+            *errmsg = obj->geterror();                        \
+        else                                                  \
+            std::cout << "      " << obj->geterror() << "\n"; \
+        return false;                                         \
     }
 
 

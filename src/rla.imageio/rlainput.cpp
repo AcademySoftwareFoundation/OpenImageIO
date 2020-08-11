@@ -363,11 +363,11 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     }
 
     // save some typing by using macros
-#define FIELD(x, name)                                                         \
-    if (m_rla.x > 0)                                                           \
+#define FIELD(x, name) \
+    if (m_rla.x > 0)   \
     m_spec.attribute(name, m_rla.x)
-#define STRING_FIELD(x, name)                                                  \
-    if (m_rla.x[0])                                                            \
+#define STRING_FIELD(x, name) \
+    if (m_rla.x[0])           \
     m_spec.attribute(name, m_rla.x)
 
     STRING_FIELD(Description, "ImageDescription");

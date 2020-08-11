@@ -10,12 +10,12 @@
 #ifdef USE_OPENCV
 #    include <opencv2/core/version.hpp>
 #    ifdef CV_VERSION_EPOCH
-#        define OIIO_OPENCV_VERSION                                            \
-            (10000 * CV_VERSION_EPOCH + 100 * CV_VERSION_MAJOR                 \
+#        define OIIO_OPENCV_VERSION                            \
+            (10000 * CV_VERSION_EPOCH + 100 * CV_VERSION_MAJOR \
              + CV_VERSION_MINOR)
 #    else
-#        define OIIO_OPENCV_VERSION                                            \
-            (10000 * CV_VERSION_MAJOR + 100 * CV_VERSION_MINOR                 \
+#        define OIIO_OPENCV_VERSION                            \
+            (10000 * CV_VERSION_MAJOR + 100 * CV_VERSION_MINOR \
              + CV_VERSION_REVISION)
 #    endif
 #    include <opencv2/opencv.hpp>

@@ -19,7 +19,7 @@
 #    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-#if OIIO_CPLUSPLUS_VERSION >= 17                                               \
+#if OIIO_CPLUSPLUS_VERSION >= 17 \
     && (OIIO_CLANG_VERSION || OIIO_APPLE_CLANG_VERSION)
 // libraw uses auto_ptr, which is not in C++17 at all for clang, though
 // it does seem to be for gcc. So for clang, alias it to unique_ptr.

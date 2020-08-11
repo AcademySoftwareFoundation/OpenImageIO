@@ -796,17 +796,17 @@ test_IBAprep()
     ImageBuf rgb(ImageSpec(256, 256, 3));   // Basic RGB uint8 image
     ImageBuf rgba(ImageSpec(256, 256, 4));  // Basic RGBA uint8 image
 
-#define CHECK(...)                                                             \
-    {                                                                          \
-        ImageBuf dst;                                                          \
-        ROI roi;                                                               \
-        OIIO_CHECK_ASSERT(IBAprep(__VA_ARGS__));                               \
+#define CHECK(...)                               \
+    {                                            \
+        ImageBuf dst;                            \
+        ROI roi;                                 \
+        OIIO_CHECK_ASSERT(IBAprep(__VA_ARGS__)); \
     }
-#define CHECK0(...)                                                            \
-    {                                                                          \
-        ImageBuf dst;                                                          \
-        ROI roi;                                                               \
-        OIIO_CHECK_ASSERT(!IBAprep(__VA_ARGS__));                              \
+#define CHECK0(...)                               \
+    {                                             \
+        ImageBuf dst;                             \
+        ROI roi;                                  \
+        OIIO_CHECK_ASSERT(!IBAprep(__VA_ARGS__)); \
     }
 
     // Test REQUIRE_ALPHA

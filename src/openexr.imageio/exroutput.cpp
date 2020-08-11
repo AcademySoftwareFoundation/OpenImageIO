@@ -19,14 +19,14 @@
 #include <OpenEXR/ImfTiledOutputFile.h>
 
 #ifdef OPENEXR_VERSION_MAJOR
-#    define OPENEXR_CODED_VERSION                                              \
-        (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100           \
+#    define OPENEXR_CODED_VERSION                                    \
+        (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100 \
          + OPENEXR_VERSION_PATCH)
 #else
 #    define OPENEXR_CODED_VERSION 20000
 #endif
 
-#if OPENEXR_CODED_VERSION >= 20400                                             \
+#if OPENEXR_CODED_VERSION >= 20400 \
     || __has_include(<OpenEXR/ImfFloatVectorAttribute.h>)
 #    define OPENEXR_HAS_FLOATVECTOR 1
 #else
@@ -891,9 +891,9 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
             else if (Strutil::iequals(str, "b44a"))
                 header.compression() = Imf::B44A_COMPRESSION;
 #endif
-#if defined(OPENEXR_VERSION_MAJOR)                                             \
-    && (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100            \
-        + OPENEXR_VERSION_PATCH)                                               \
+#if defined(OPENEXR_VERSION_MAJOR)                                  \
+    && (OPENEXR_VERSION_MAJOR * 10000 + OPENEXR_VERSION_MINOR * 100 \
+        + OPENEXR_VERSION_PATCH)                                    \
            >= 20200
             else if (Strutil::iequals(str, "dwaa"))
                 header.compression() = Imf::DWAA_COMPRESSION;

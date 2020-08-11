@@ -51,7 +51,7 @@ namespace {
 static std::mutex output_mutex;
 
 // On systems that support it, get a location independent locale.
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
     || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
 static locale_t c_loc = newlocale(LC_ALL_MASK, "C", nullptr);
 #elif defined(_WIN32)
@@ -1285,7 +1285,7 @@ Strutil::strtof(const char* nptr, char** endptr) noexcept
 #ifdef __APPLE__
     // On OSX, strtod_l is for some reason drastically faster than strtof_l.
     return static_cast<float>(strtod_l(nptr, endptr, c_loc));
-#elif defined(__linux__) || defined(__FreeBSD__)                               \
+#elif defined(__linux__) || defined(__FreeBSD__) \
     || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
     return strtof_l(nptr, endptr, c_loc);
 #elif defined(_WIN32)
@@ -1320,7 +1320,7 @@ double
 Strutil::strtod(const char* nptr, char** endptr) noexcept
 {
     // Can use strtod_l on platforms that support it
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
     || defined(__FreeBSD_kernel__) || defined(__GLIBC__)
     // static initialization inside function is thread-safe by C++11 rules!
     return strtod_l(nptr, endptr, c_loc);

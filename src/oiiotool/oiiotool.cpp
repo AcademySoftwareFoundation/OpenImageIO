@@ -59,48 +59,48 @@ static Oiiotool ot;
 // a lambda for each subimage. Beware, the macro expansion rules may require
 // you may need to enclose the lambda itself in parenthesis () if there it
 // contains commas that are not inside other parentheses.
-#define OIIOTOOL_OP(name, ninputs, ...)                                        \
-    static int action_##name(int argc, const char* argv[])                     \
-    {                                                                          \
-        if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
-            return 0;                                                          \
-        OiiotoolOp op(ot, #name, argc, argv, ninputs, __VA_ARGS__);            \
-        return op();                                                           \
+#define OIIOTOOL_OP(name, ninputs, ...)                               \
+    static int action_##name(int argc, const char* argv[])            \
+    {                                                                 \
+        if (ot.postpone_callback(ninputs, action_##name, argc, argv)) \
+            return 0;                                                 \
+        OiiotoolOp op(ot, #name, argc, argv, ninputs, __VA_ARGS__);   \
+        return op();                                                  \
     }
 
 // Canned setup for an op that uses one image on the stack.
-#define UNARY_IMAGE_OP(name, impl)                                             \
-    OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {             \
-        return impl(*img[0], *img[1]);                                         \
+#define UNARY_IMAGE_OP(name, impl)                                 \
+    OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, span<ImageBuf*> img) { \
+        return impl(*img[0], *img[1]);                             \
     })
 
 // Canned setup for an op that uses two images on the stack.
-#define BINARY_IMAGE_OP(name, impl)                                            \
-    OIIOTOOL_OP(name, 2, [](OiiotoolOp& op, span<ImageBuf*> img) {             \
-        return impl(*img[0], *img[1], *img[2]);                                \
+#define BINARY_IMAGE_OP(name, impl)                                \
+    OIIOTOOL_OP(name, 2, [](OiiotoolOp& op, span<ImageBuf*> img) { \
+        return impl(*img[0], *img[1], *img[2]);                    \
     })
 
 // Canned setup for an op that uses one image on the stack and one color
 // on the command line.
-#define BINARY_IMAGE_COLOR_OP(name, impl, defaultval)                          \
-    OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {             \
-        int nchans = img[1]->spec().nchannels;                                 \
-        std::vector<float> val(nchans, defaultval);                            \
-        int nvals = Strutil::extract_from_list_string(val, op.args(1));        \
-        val.resize(nvals);                                                     \
-        val.resize(nchans, val.size() == 1 ? val.back() : defaultval);         \
-        return impl(*img[0], *img[1], val, ROI(), 0);                          \
+#define BINARY_IMAGE_COLOR_OP(name, impl, defaultval)                   \
+    OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {      \
+        int nchans = img[1]->spec().nchannels;                          \
+        std::vector<float> val(nchans, defaultval);                     \
+        int nvals = Strutil::extract_from_list_string(val, op.args(1)); \
+        val.resize(nvals);                                              \
+        val.resize(nchans, val.size() == 1 ? val.back() : defaultval);  \
+        return impl(*img[0], *img[1], val, ROI(), 0);                   \
     })
 
 // Macro to fully set up the "action" function that straightforwardly
 // calls a custom OiiotoolOp class.
-#define OP_CUSTOMCLASS(name, opclass, ninputs)                                 \
-    static int action_##name(int argc, const char* argv[])                     \
-    {                                                                          \
-        if (ot.postpone_callback(ninputs, action_##name, argc, argv))          \
-            return 0;                                                          \
-        opclass op(ot, #name, argc, argv);                                     \
-        return op();                                                           \
+#define OP_CUSTOMCLASS(name, opclass, ninputs)                        \
+    static int action_##name(int argc, const char* argv[])            \
+    {                                                                 \
+        if (ot.postpone_callback(ninputs, action_##name, argc, argv)) \
+            return 0;                                                 \
+        opclass op(ot, #name, argc, argv);                            \
+        return op();                                                  \
     }
 
 
@@ -5779,10 +5779,10 @@ handle_sequence(int argc, const char** argv)
 #define ONERANGE_SPEC "-?[0-9]+(--?[0-9]+((x|y)-?[0-9]+)?)?"
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
 #define VIEW_SPEC "%[Vv]"
-#define SEQUENCE_SPEC                                                          \
-    "((" MANYRANGE_SPEC ")?"                                                   \
-    "((#|@)+|(%[0-9]*d)))"                                                     \
-    "|"                                                                        \
+#define SEQUENCE_SPEC        \
+    "((" MANYRANGE_SPEC ")?" \
+    "((#|@)+|(%[0-9]*d)))"   \
+    "|"                      \
     "(" VIEW_SPEC ")"
     static regex sequence_re(SEQUENCE_SPEC);
     std::string framespec = "";

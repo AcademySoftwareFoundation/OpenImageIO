@@ -951,15 +951,15 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     size_t peak_mem              = 0;
     Timer alltime;
 
-#define STATUS(task, timer)                                                    \
-    {                                                                          \
-        size_t mem = Sysutil::memory_used(true);                               \
-        peak_mem   = std::max(peak_mem, mem);                                  \
-        if (verbose)                                                           \
-            outstream << Strutil::sprintf("  %-25s %s   (%s)\n", task,         \
-                                          Strutil::timeintervalformat(timer,   \
-                                                                      2),      \
-                                          Strutil::memformat(mem));            \
+#define STATUS(task, timer)                                                  \
+    {                                                                        \
+        size_t mem = Sysutil::memory_used(true);                             \
+        peak_mem   = std::max(peak_mem, mem);                                \
+        if (verbose)                                                         \
+            outstream << Strutil::sprintf("  %-25s %s   (%s)\n", task,       \
+                                          Strutil::timeintervalformat(timer, \
+                                                                      2),    \
+                                          Strutil::memformat(mem));          \
     }
 
     ImageSpec configspec = _configspec;

@@ -112,8 +112,8 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
     // due to struct packing, we may get a corrupt header if we just load the
     // struct from file; to adress that, read every member individually
     // save some typing
-#define RH(memb)                                                               \
-    if (!fread(&m_tga.memb, sizeof(m_tga.memb), 1))                            \
+#define RH(memb)                                    \
+    if (!fread(&m_tga.memb, sizeof(m_tga.memb), 1)) \
     return false
 
     RH(idlen);

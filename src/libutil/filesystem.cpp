@@ -658,8 +658,8 @@ Filesystem::parse_pattern(const char* pattern_, int framepadding_override,
     // string (e.g. "%04d").
 #define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
-#define SEQUENCE_SPEC                                                          \
-    "(" MANYRANGE_SPEC ")?"                                                    \
+#define SEQUENCE_SPEC       \
+    "(" MANYRANGE_SPEC ")?" \
     "((#|@)+|(%[0-9]*d))"
     static regex sequence_re(SEQUENCE_SPEC);
     // std::cout << "pattern >" << (SEQUENCE_SPEC) << "<\n";

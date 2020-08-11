@@ -295,7 +295,7 @@ Sysutil::terminal_columns()
 {
     int columns = 80;  // a decent guess, if we have nothing more to go on
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
     || defined(__FreeBSD_kernel__) || defined(__GNU__)
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);
@@ -319,7 +319,7 @@ Sysutil::terminal_rows()
 {
     int rows = 24;  // a decent guess, if we have nothing more to go on
 
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)           \
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) \
     || defined(__FreeBSD_kernel__) || defined(__GNU__)
     struct winsize w;
     ioctl(0, TIOCGWINSZ, &w);

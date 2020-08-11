@@ -317,15 +317,15 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     set_chromaticity(p, m_rla.WhitePoint, sizeof(m_rla.WhitePoint),
                      "0.31 0.316");
 
-#define STRING_FIELD(rlafield, name)                                           \
-    {                                                                          \
-        std::string s = m_spec.get_string_attribute(name);                     \
-        if (s.length()) {                                                      \
-            strncpy(m_rla.rlafield, s.c_str(), sizeof(m_rla.rlafield));        \
-            m_rla.rlafield[sizeof(m_rla.rlafield) - 1] = 0;                    \
-        } else {                                                               \
-            m_rla.rlafield[0] = 0;                                             \
-        }                                                                      \
+#define STRING_FIELD(rlafield, name)                                    \
+    {                                                                   \
+        std::string s = m_spec.get_string_attribute(name);              \
+        if (s.length()) {                                               \
+            strncpy(m_rla.rlafield, s.c_str(), sizeof(m_rla.rlafield)); \
+            m_rla.rlafield[sizeof(m_rla.rlafield) - 1] = 0;             \
+        } else {                                                        \
+            m_rla.rlafield[0] = 0;                                      \
+        }                                                               \
     }
 
     m_rla.JobNumber = m_spec.get_int_attribute("rla:JobNumber", 0);

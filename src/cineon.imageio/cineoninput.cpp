@@ -223,40 +223,40 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
 // per-file attribs
 #define CINEON_SET_ATTRIB_S(x, n, s) m_spec.attribute(s, m_cin.header.x(n))
 #define CINEON_SET_ATTRIB(x, n) CINEON_SET_ATTRIB_S(x, n, "cineon:" #x)
-#define CINEON_SET_ATTRIB_BYTE(x)                                              \
-    if (m_cin.header.x() != 0xFF)                                              \
+#define CINEON_SET_ATTRIB_BYTE(x) \
+    if (m_cin.header.x() != 0xFF) \
     CINEON_SET_ATTRIB(x, )
-#define CINEON_SET_ATTRIB_INT(x)                                               \
-    if (static_cast<unsigned int>(m_cin.header.x()) != 0xFFFFFFFF)             \
+#define CINEON_SET_ATTRIB_INT(x)                                   \
+    if (static_cast<unsigned int>(m_cin.header.x()) != 0xFFFFFFFF) \
     CINEON_SET_ATTRIB(x, )
-#define CINEON_SET_ATTRIB_FLOAT(x)                                             \
-    if (!std::isinf(m_cin.header.x()))                                         \
+#define CINEON_SET_ATTRIB_FLOAT(x)     \
+    if (!std::isinf(m_cin.header.x())) \
     CINEON_SET_ATTRIB(x, )
-#define CINEON_SET_ATTRIB_COORDS(x)                                            \
-    m_cin.header.x(floats);                                                    \
-    if (!std::isinf(floats[0]) && !std::isinf(floats[1])                       \
-        && !(floats[0] == 0. && floats[1] == 0.))                              \
+#define CINEON_SET_ATTRIB_COORDS(x)                      \
+    m_cin.header.x(floats);                              \
+    if (!std::isinf(floats[0]) && !std::isinf(floats[1]) \
+        && !(floats[0] == 0. && floats[1] == 0.))        \
     m_spec.attribute("cineon:" #x, TypeDesc(TypeDesc::FLOAT, 2), &floats[0])
-#define CINEON_SET_ATTRIB_STR(X, x)                                            \
-    if (m_cin.header.x[0] && m_cin.header.x[0] != char(-1))                    \
+#define CINEON_SET_ATTRIB_STR(X, x)                         \
+    if (m_cin.header.x[0] && m_cin.header.x[0] != char(-1)) \
     m_spec.attribute("cineon:" #X, m_cin.header.x)
 
 // per-element attribs
-#define CINEON_SET_ATTRIB_N(x, a, t, c)                                        \
-    for (int i = 0; i < m_cin.header.NumberOfElements(); i++) {                \
-        c(x) a[i] = m_cin.header.x(i);                                         \
-    }                                                                          \
-    m_spec.attribute("cineon:" #x,                                             \
-                     TypeDesc(TypeDesc::t, m_cin.header.NumberOfElements()),   \
+#define CINEON_SET_ATTRIB_N(x, a, t, c)                                      \
+    for (int i = 0; i < m_cin.header.NumberOfElements(); i++) {              \
+        c(x) a[i] = m_cin.header.x(i);                                       \
+    }                                                                        \
+    m_spec.attribute("cineon:" #x,                                           \
+                     TypeDesc(TypeDesc::t, m_cin.header.NumberOfElements()), \
                      &a)
 #define CINEON_CHECK_ATTRIB_FLOAT(x) if (!std::isinf(m_cin.header.x(i)))
-#define CINEON_SET_ATTRIB_FLOAT_N(x)                                           \
+#define CINEON_SET_ATTRIB_FLOAT_N(x) \
     CINEON_SET_ATTRIB_N(x, floats, FLOAT, CINEON_CHECK_ATTRIB_FLOAT)
 #define CINEON_CHECK_ATTRIB_INT(x) if (m_cin.header.x(i) != 0xFFFFFFFF)
-#define CINEON_SET_ATTRIB_INT_N(x)                                             \
+#define CINEON_SET_ATTRIB_INT_N(x) \
     CINEON_SET_ATTRIB_N(x, ints, UINT32, CINEON_CHECK_ATTRIB_INT)
 #define CINEON_CHECK_ATTRIB_BYTE(x) if (m_cin.header.x(i) != 0xFF)
-#define CINEON_SET_ATTRIB_BYTE_N(x)                                            \
+#define CINEON_SET_ATTRIB_BYTE_N(x) \
     CINEON_SET_ATTRIB_N(x, ints, UINT32, CINEON_CHECK_ATTRIB_BYTE)
 
     CINEON_SET_ATTRIB_STR(Version, version);

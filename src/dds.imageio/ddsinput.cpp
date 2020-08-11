@@ -141,8 +141,8 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
 // due to struct packing, we may get a corrupt header if we just load the
 // struct from file; to adress that, read every member individually
 // save some typing
-#define RH(memb)                                                               \
-    if (!fread(&m_dds.memb, sizeof(m_dds.memb), 1))                            \
+#define RH(memb)                                    \
+    if (!fread(&m_dds.memb, sizeof(m_dds.memb), 1)) \
     return false
 
     RH(fourCC);

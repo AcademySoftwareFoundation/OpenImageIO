@@ -19,7 +19,7 @@
 
 #include "imageio_pvt.h"
 
-#define MAKE_OCIO_VERSION_HEX(maj, min, patch)                                 \
+#define MAKE_OCIO_VERSION_HEX(maj, min, patch) \
     (((maj) << 24) | ((min) << 16) | (patch))
 
 #ifdef USE_OCIO
