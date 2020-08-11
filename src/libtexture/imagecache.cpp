@@ -304,6 +304,11 @@ ImageCacheFile::ImageCacheFile(ImageCacheImpl& imagecache,
                  || m_filename.find("<u>") != m_filename.npos
                  || m_filename.find("<v>") != m_filename.npos)
                 && !Filesystem::exists(m_filename);
+
+    // If the config has an IOProxy, remember that we should never actually
+    // release() it, because the proxy can't be reopened.
+    if (config && config->find_attribute("oiio:ioproxy", TypeDesc::PTR))
+        m_allow_release = false;
 }
 
 
@@ -1060,7 +1065,7 @@ ImageCacheFile::release()
     m_mutex_wait_time += input_mutex_timer();
     if (m_used)
         m_used = false;
-    else
+    else if (m_allow_release)
         close();
 }
 
