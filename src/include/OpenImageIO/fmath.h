@@ -733,7 +733,7 @@ inline OIIO_HOSTDEVICE float sign (float x)
 
 
 template <typename IN_TYPE, typename OUT_TYPE>
-OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE in) {
+OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
     // NOTE: this is the only standards compliant way of doing this type of casting,
     // luckily the compilers we care about know how to optimize away this idiom.
     static_assert(sizeof(IN_TYPE) == sizeof(OUT_TYPE),
