@@ -580,12 +580,14 @@ DPXInput::close()
         // If we allocated our own ioproxy, close it.
         m_io_local.reset();
         m_io = nullptr;
-    } else if (m_io) {
-        // We were passed an ioproxy from the user. Don't actually close it,
-        // just reset it to the original position. This makes it possible to
-        // "re-open".
-        m_io->seek(m_io_offset);
     }
+    // N.B. If we were passed an ioproxy from the user (m_io != nullptr, but
+    // m_io_local was not set), don't actually close it, it belongs to the
+    // caller. And in the case of an ImageCache file, it's possible that the
+    // IC won't close this ImageInput until after the owner of the IOProxy
+    // destroyed it. So don't mess with it here in close() at all, because
+    // we just can't be sure if it's still alive or not.
+
     init();  // Reset to initial state
     return true;
 }
