@@ -128,6 +128,7 @@ include_directories (
     "${CMAKE_SOURCE_DIR}/src/include"
     "${CMAKE_BINARY_DIR}/src/include"
     "${CMAKE_BINARY_DIR}/include"
+    "${CMAKE_BINARY_DIR}/include/OpenImageIO"
   )
 
 # Tell CMake to process the sub-directories
