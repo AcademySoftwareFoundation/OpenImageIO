@@ -161,18 +161,18 @@ dump_flat_data(ImageInput* input, const print_info_options& opt)
 
 
 // Macro to call a type-specialzed version func<type>(R,...)
-#define OIIO_DISPATCH_TYPES(ret, name, func, type, R, ...)                     \
-    switch (type.basetype) {                                                   \
-    case TypeDesc::FLOAT: ret = func<float>(R, __VA_ARGS__); break;            \
-    case TypeDesc::UINT8: ret = func<unsigned char>(R, __VA_ARGS__); break;    \
-    case TypeDesc::HALF: ret = func<half>(R, __VA_ARGS__); break;              \
-    case TypeDesc::UINT16: ret = func<unsigned short>(R, __VA_ARGS__); break;  \
-    case TypeDesc::INT8: ret = func<char>(R, __VA_ARGS__); break;              \
-    case TypeDesc::INT16: ret = func<short>(R, __VA_ARGS__); break;            \
-    case TypeDesc::UINT: ret = func<unsigned int>(R, __VA_ARGS__); break;      \
-    case TypeDesc::INT: ret = func<int>(R, __VA_ARGS__); break;                \
-    case TypeDesc::DOUBLE: ret = func<double>(R, __VA_ARGS__); break;          \
-    default: ret = false;                                                      \
+#define OIIO_DISPATCH_TYPES(ret, name, func, type, R, ...)                    \
+    switch (type.basetype) {                                                  \
+    case TypeDesc::FLOAT: ret = func<float>(R, __VA_ARGS__); break;           \
+    case TypeDesc::UINT8: ret = func<unsigned char>(R, __VA_ARGS__); break;   \
+    case TypeDesc::HALF: ret = func<half>(R, __VA_ARGS__); break;             \
+    case TypeDesc::UINT16: ret = func<unsigned short>(R, __VA_ARGS__); break; \
+    case TypeDesc::INT8: ret = func<char>(R, __VA_ARGS__); break;             \
+    case TypeDesc::INT16: ret = func<short>(R, __VA_ARGS__); break;           \
+    case TypeDesc::UINT: ret = func<unsigned int>(R, __VA_ARGS__); break;     \
+    case TypeDesc::INT: ret = func<int>(R, __VA_ARGS__); break;               \
+    case TypeDesc::DOUBLE: ret = func<double>(R, __VA_ARGS__); break;         \
+    default: ret = false;                                                     \
     }
 
 

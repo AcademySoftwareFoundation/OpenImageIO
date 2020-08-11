@@ -337,7 +337,7 @@ ustring::TableRep::TableRep(string_view strref, size_t hash)
     // the std::string to make it point to our chars!  In such a case, the
     // destructor will be careful not to allow a deallocation.
 
-#if defined(__GNUC__) && !defined(_LIBCPP_VERSION)                             \
+#if defined(__GNUC__) && !defined(_LIBCPP_VERSION) \
     && defined(_GLIBCXX_USE_CXX11_ABI) && _GLIBCXX_USE_CXX11_ABI
     // NEW gcc ABI
     // FIXME -- do something smart with this.

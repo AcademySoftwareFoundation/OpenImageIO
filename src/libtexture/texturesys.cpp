@@ -376,12 +376,12 @@ TextureSystemImpl::getstats(int level, bool icstats) const
         out << "OpenImageIO Texture statistics\n";
 
         std::string opt;
-#define BOOLOPT(name)                                                          \
-    if (m_##name)                                                              \
+#define BOOLOPT(name) \
+    if (m_##name)     \
     opt += #name " "
 #define INTOPT(name) opt += Strutil::sprintf(#name "=%d ", m_##name)
-#define STROPT(name)                                                           \
-    if (m_##name.size())                                                       \
+#define STROPT(name)     \
+    if (m_##name.size()) \
     opt += Strutil::sprintf(#name "=\"%s\" ", m_##name)
         INTOPT(gray_to_rgb);
         INTOPT(flip_t);

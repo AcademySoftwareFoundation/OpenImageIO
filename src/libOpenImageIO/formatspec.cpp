@@ -418,14 +418,14 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
     if (iter != extra_attribs.end())
         return &(*iter);
         // Check named items in the ImageSpec structs, not in extra_attrubs
-#define MATCH(n, t)                                                            \
-    (((!casesensitive && Strutil::iequals(name, n))                            \
-      || (casesensitive && name == n))                                         \
+#define MATCH(n, t)                                 \
+    (((!casesensitive && Strutil::iequals(name, n)) \
+      || (casesensitive && name == n))              \
      && (searchtype == TypeDesc::UNKNOWN || searchtype == t))
-#define GETINT(n)                                                              \
-    if (MATCH(#n, TypeInt)) {                                                  \
-        tmpparam.init(#n, TypeInt, 1, &this->n);                               \
-        return &tmpparam;                                                      \
+#define GETINT(n)                                \
+    if (MATCH(#n, TypeInt)) {                    \
+        tmpparam.init(#n, TypeInt, 1, &this->n); \
+        return &tmpparam;                        \
     }
     GETINT(nchannels);
     GETINT(width);

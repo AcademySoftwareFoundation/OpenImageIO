@@ -36,9 +36,9 @@ gl_err_to_string(GLenum err)
 }
 
 
-#define GLERRPRINT(msg)                                                        \
-    for (GLenum err = glGetError(); err != GL_NO_ERROR; err = glGetError())    \
-        std::cerr << "GL error " << msg << " " << (int)err << " - "            \
+#define GLERRPRINT(msg)                                                     \
+    for (GLenum err = glGetError(); err != GL_NO_ERROR; err = glGetError()) \
+        std::cerr << "GL error " << msg << " " << (int)err << " - "         \
                   << gl_err_to_string(err) << "\n";
 
 

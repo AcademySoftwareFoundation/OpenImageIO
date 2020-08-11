@@ -1788,12 +1788,12 @@ ImageCacheImpl::getstats(int level) const
         out << ") ver " << OIIO_VERSION_STRING << "\n";
 
         std::string opt;
-#define BOOLOPT(name)                                                          \
-    if (m_##name)                                                              \
+#define BOOLOPT(name) \
+    if (m_##name)     \
     opt += #name " "
 #define INTOPT(name) opt += Strutil::sprintf(#name "=%d ", m_##name)
-#define STROPT(name)                                                           \
-    if (m_##name.size())                                                       \
+#define STROPT(name)     \
+    if (m_##name.size()) \
     opt += Strutil::sprintf(#name "=\"%s\" ", m_##name)
         opt += Strutil::sprintf("max_memory_MB=%0.1f ",
                                 m_max_memory_bytes / (1024.0 * 1024.0));
@@ -2189,10 +2189,10 @@ ImageCacheImpl::attribute(string_view name, TypeDesc type, const void* val)
 bool
 ImageCacheImpl::getattribute(string_view name, TypeDesc type, void* val) const
 {
-#define ATTR_DECODE(_name, _ctype, _src)                                       \
-    if (name == _name && type == BaseTypeFromC<_ctype>::value) {               \
-        *(_ctype*)(val) = (_ctype)(_src);                                      \
-        return true;                                                           \
+#define ATTR_DECODE(_name, _ctype, _src)                         \
+    if (name == _name && type == BaseTypeFromC<_ctype>::value) { \
+        *(_ctype*)(val) = (_ctype)(_src);                        \
+        return true;                                             \
     }
 
     ATTR_DECODE("max_open_files", int, m_max_open_files);
@@ -2517,10 +2517,10 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
                                int subimage, int miplevel, ustring dataname,
                                TypeDesc datatype, void* data)
 {
-#define ATTR_DECODE(_name, _ctype, _src)                                       \
-    if (dataname == _name && datatype == BaseTypeFromC<_ctype>::value) {       \
-        *(_ctype*)(data) = (_ctype)(_src);                                     \
-        return true;                                                           \
+#define ATTR_DECODE(_name, _ctype, _src)                                 \
+    if (dataname == _name && datatype == BaseTypeFromC<_ctype>::value) { \
+        *(_ctype*)(data) = (_ctype)(_src);                               \
+        return true;                                                     \
     }
 
     if (!thread_info)
