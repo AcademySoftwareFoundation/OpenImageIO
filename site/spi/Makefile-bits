@@ -130,6 +130,9 @@ ifeq (${SP_OS}, rhel7)
     else ifeq (${COMPILER},clang10)
         LLVM_DIRECTORY := /shots/spi/home/software/packages/llvm/10.0.0-1/${SPI_COMPILER_PLATFORM}
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
+    else ifeq (${COMPILER},clang11)
+        LLVM_DIRECTORY := /shots/spi/home/software/packages/llvm/11.0.0/${SPI_COMPILER_PLATFORM}
+        MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=${LLVM_DIRECTORY}/bin/clang -DCMAKE_CXX_COMPILER=${LLVM_DIRECTORY}/bin/clang++
     else ifeq (${COMPILER},clang)
         MY_CMAKE_FLAGS += -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
     else ifeq (${COMPILER}, gcc6)
