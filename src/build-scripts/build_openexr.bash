@@ -43,13 +43,15 @@ mkdir -p ${OPENEXR_BUILD_DIR} && true
 pushd ${OPENEXR_SOURCE_DIR}
 git checkout ${OPENEXR_VERSION} --force
 
-if [[ ${OPENEXR_VERSION} == "v2.2.0" ]] || [[ ${OPENEXR_VERSION} == "v2.2.1" ]] ; then
+if [[ ${OPENEXR_VERSION} == "v2.2.0" ]] || [[ ${OPENEXR_VERSION} == "v2.2.1" ]] \
+        || [[ ${OPENEXR_VERSION} == "v2.2.2" ]] ; then
     mkdir -p ${OPENEXR_BUILD_DIR}/IlmBase && true
     mkdir -p ${OPENEXR_BUILD_DIR}/OpenEXR && true
     cd ${OPENEXR_BUILD_DIR}/IlmBase
     cmake --config ${OPENEXR_BUILD_TYPE} ${OPENEXR_GENERATOR_CMD} \
             -DCMAKE_INSTALL_PREFIX="${OPENEXR_INSTALL_DIR}" \
             -DCMAKE_CXX_FLAGS="${OPENEXR_CXX_FLAGS}" \
+            -DCMAKE_CXX_STANDARD=11 \
             ${OPENEXR_CMAKE_FLAGS} ${OPENEXR_SOURCE_DIR}/IlmBase
     time cmake --build . --target install --config ${OPENEXR_BUILD_TYPE}
     cd ${OPENEXR_BUILD_DIR}/OpenEXR

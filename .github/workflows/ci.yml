@@ -225,7 +225,7 @@ jobs:
     # test, or if the branch name contains certain substrings: gh, release,
     # old.
     name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
-    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'RB') || contains(github.ref, 'master')
+    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'RB') || contains(github.ref, 'master') || contains(github.ref, 'old')
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
@@ -241,9 +241,11 @@ jobs:
           USE_OPENCOLORIO: 0
           USE_OPENCV: 0
           EMBEDPLUGINS: 0
-          OPENEXR_VERSION: v2.2.0
-          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.1.2
+          OPENEXR_VERSION: v2.2.1
+          PYBIND11_VERSION: v2.4.2
+          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.1.2 
         run: |
+            sudo rm -rf /usr/local/include/OpenEXR
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
