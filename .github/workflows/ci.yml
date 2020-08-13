@@ -106,7 +106,7 @@ jobs:
           CMAKE_CXX_STANDARD: 17
           PYTHON_VERSION: 3.7
           USE_SIMD: avx2,f16c
-          OPENEXR_VERSION: v2.5.0
+          OPENEXR_VERSION: v2.5.3
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
@@ -150,7 +150,7 @@ jobs:
           CXX: g++-8
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx
-          OPENEXR_VERSION: v2.5.0
+          OPENEXR_VERSION: v2.5.3
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -172,7 +172,7 @@ jobs:
           CXX: g++-10
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
-          OPENEXR_VERSION: v2.5.0
+          OPENEXR_VERSION: v2.5.3
           PYBIND11_VERSION: v2.5.0
           LIBRAW_BRANCH: 0.20.0
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
