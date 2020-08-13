@@ -41,6 +41,13 @@ if [[ "$BUILDTARGET" != "none" ]] ; then
 fi
 popd
 
+if [[ "${DEBUG_CI:=0}" != "0" ]] ; then
+    echo "PATH=$PATH"
+    echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+    echo "PYTHONPATH=$PYTHONPATH"
+    echo "ldd oiiotool"
+    ldd $OpenImageIO_ROOT/bin/oiiotool
+fi
 
 if [[ "${SKIP_TESTS:=0}" == "0" ]] ; then
     $OpenImageIO_ROOT/bin/oiiotool --help || true
