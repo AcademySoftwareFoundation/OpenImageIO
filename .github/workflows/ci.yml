@@ -255,7 +255,7 @@ jobs:
           name: ${{ github.job }}
           path: build/*/testsuite/*/*.*
 
-  macos-py37:
+  macos-py38:
     name: "Mac py38"
     runs-on: macOS-latest
     steps:
