@@ -26,6 +26,7 @@
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/string_view.h>
+#include <OpenImageIO/strutil.h>
 
 // Define symbols that let client applications determine if newly added
 // features are supported.
@@ -547,7 +548,6 @@ OIIO_NAMESPACE_END
 
 
 
-#if OIIO_USE_FMT
 // Supply a fmtlib compatible custom formatter for TypeDesc.
 FMT_BEGIN_NAMESPACE
 template <>
@@ -574,4 +574,3 @@ struct formatter<OIIO::TypeDesc> {
     }
 };
 FMT_END_NAMESPACE
-#endif
