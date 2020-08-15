@@ -125,6 +125,15 @@ declare_paramvalue(py::module& m)
                                [](const ParamValue& p) {
                                    return PY_STR(p.name().string());
                                })
+        // FIXME: This implementation of `type` is almost certainly a
+        // mistake. This should return p.type(), just a TypeDesc, not a
+        // string. I think this was an error introduced in the Python
+        // binding overhaul of OIIO 2.0.  We can't break back compatibility
+        // by changing it until 3.0. It should really look like this:
+        //   .def_property_readonly("type",
+        //                          [](const ParamValue& p) {
+        //                              return p.type();
+        //                          })
         .def_property_readonly("type",
                                [](const ParamValue& p) {
                                    return PY_STR(p.type().c_str());
