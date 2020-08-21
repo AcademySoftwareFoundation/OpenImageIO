@@ -1015,13 +1015,13 @@ the Python versions allocate and return an array holding the pixel values
 
 
 
-.. py:method:: ImageInput.read_image (format="float")
-               ImageInput.read_image (chbegin, chend, format="float")
-               ImageInput.read_image (subimage, miplevel, chbegin, chend, format="float")
+.. py:method:: ImageInput.read_image (format='float')
+               ImageInput.read_image (chbegin, chend, format='float')
+               ImageInput.read_image (subimage, miplevel, chbegin, chend, format='float')
 
     Read the entire image and return the pixels as a NumPy array of values
-    of the given `type` (described by a `TypeDesc` or a string, float by
-    default). If the `type` is `TypeUnknown`, the pixels will be returned in
+    of the given `format` (described by a `TypeDesc` or a string, float by
+    default). If the `format` is `unknown`, the pixels will be returned in
     the native format of the file. If an error occurs, `None` will be
     returned.
     
