@@ -251,6 +251,14 @@ declare_imageinput(py::module& m)
             "format"_a = TypeFloat)
         .def(
             "read_image",
+            [](ImageInput& self, int chbegin, int chend,
+               TypeDesc format) -> py::object {
+                return ImageInput_read_image(self, 0, 0, chbegin, chend,
+                                             format);
+            },
+            "chbegin"_a, "chend"_a, "format"_a = TypeFloat)
+        .def(
+            "read_image",
             [](ImageInput& self, TypeDesc format) -> py::object {
                 return ImageInput_read_image(self, self.current_subimage(),
                                              self.current_miplevel(), 0, 10000,
