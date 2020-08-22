@@ -185,13 +185,13 @@ public:
     /// Retrive an integer, with converstions from a wide variety of type
     /// cases, including unsigned, short, byte. Not float. It will retrive
     /// from a string, but only if the string is entirely a valid int
-    /// format. Unconvertable types return the default value.
+    /// format. Unconvertible types return the default value.
     int get_int(int defaultval = 0) const;
     int get_int_indexed(int index, int defaultval = 0) const;
 
     /// Retrive a float, with converstions from a wide variety of type
     /// cases, including integers. It will retrive from a string, but only
-    /// if the string is entirely a valid float format. Unconvertable types
+    /// if the string is entirely a valid float format. Unconvertible types
     /// return the default value.
     float get_float(float defaultval = 0) const;
     float get_float_indexed(int index, float defaultval = 0) const;
@@ -350,7 +350,7 @@ public:
         attribute(name, TypeString, 1, &v);
     }
 
-    /// Search list for named item, return its type or TypeUnknnown if not
+    /// Search list for named item, return its type or TypeUnknown if not
     /// found.
     TypeDesc getattributetype(string_view name,
                               bool casesensitive = false) const

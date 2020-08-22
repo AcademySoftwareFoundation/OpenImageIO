@@ -444,7 +444,7 @@ handle_orientation(int orientation, int width, int height, float& scale_x,
             // substract 1 to get the right index.
             --point_x;
         break;
-    case 3:  // bottom up, rigth to left (rotated 180).
+    case 3:  // bottom up, right to left (rotated 180).
         scale_x = -1;
         scale_y = -1;
         point_x = width - point_x;

@@ -113,7 +113,7 @@ Simple "how do I...", "I'm having trouble", or "is this a bug" questions are
 best asked on the [oiio-dev developer mail
 list](http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org).
 That's where the most people will see it and potentially be able to answer
-your question quickly (moreso than a GH "issue").
+your question quickly (more so than a GH "issue").
 
 Bugs, build problems, and discovered vulnerabilities that you are relatively
 certain is a legit problem in the code, and for which you can give clear

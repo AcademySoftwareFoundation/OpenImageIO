@@ -312,7 +312,7 @@ public:
         return i < miplevels() ? &m_specs[i] : NULL;
     }
 
-    // was_direct_read describes whether this subimage has is unomdified in
+    // was_direct_read describes whether this subimage has is unmodified in
     // content and pixel format (i.e. data type) since it was read from a
     // preexisting file on disk. We set it to true upon first read, and a
     // handful of operations that should preserve it, but for almost
@@ -824,7 +824,7 @@ public:
         }
     }
 
-    // Extra place to inject customization after the subimges are traversed.
+    // Extra place to inject customization after the subimages are traversed.
     virtual bool cleanup() { return true; }
 
     // Default subimage logic: if the global -a flag was set or if this

@@ -23,7 +23,7 @@ OIIO_NAMESPACE_BEGIN
 // samples currently used. Erasing samples only reduces the samples in the
 // pixels without changing the capacity, so there is no reallocation or data
 // movement except for that pixel. Samples can be added without any
-// reallocation or copying data (other than that one pixel) unles the
+// reallocation or copying data (other than that one pixel) unless the
 // capacity of the pixel is exceeded. Furthermore, only changes in capacity
 // need to lock the mutex. As long as capacity is not changing, threads may
 // change number of samples (inserting or deleting) as well as altering

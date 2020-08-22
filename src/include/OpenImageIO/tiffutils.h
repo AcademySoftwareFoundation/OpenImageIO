@@ -207,7 +207,7 @@ OIIO_API bool decode_xmp (const char* xml, ImageSpec &spec);
 OIIO_API bool decode_xmp (const std::string& xml, ImageSpec &spec);
 
 
-/// Find all the relavant metadata (IPTC, Exif, etc.) in spec and
+/// Find all the relevant metadata (IPTC, Exif, etc.) in spec and
 /// assemble it into an XMP XML string.  This is a utility function to
 /// make it easy for multiple format plugins to support embedding XMP
 /// metadata without having to duplicate functionality within each

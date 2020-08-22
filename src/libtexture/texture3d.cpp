@@ -107,7 +107,7 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
 #if 0
     // FIXME: currently, no support of actual MIPmapping.  No rush,
     // since the only volume format we currently support, Field3D,
-    // doens't support MIPmapping.
+    // doesn't support MIPmapping.
     static const texture3d_lookup_prototype lookup_functions[] = {
         // Must be in the same order as Mipmode enum
         &TextureSystemImpl::texture3d_lookup,
@@ -334,7 +334,7 @@ TextureSystemImpl::accum3d_sample_closest(
     float s = P[0] * spec.full_width + spec.full_x;
     float t = P[1] * spec.full_height + spec.full_y;
     float r = P[2] * spec.full_depth + spec.full_z;
-    int stex, ttex, rtex;       // Texel coordintes
+    int stex, ttex, rtex;       // Texel coordinates
     (void)floorfrac(s, &stex);  // don't need fractional result
     (void)floorfrac(t, &ttex);
     (void)floorfrac(r, &rtex);

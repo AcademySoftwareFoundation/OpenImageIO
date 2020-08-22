@@ -534,7 +534,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 ///   `char*`): it will always succeed, producing a string akin to calling
 ///   `tostring()`.
 /// * If dsttype is int32 or uint32: other integer types will do their best
-///   (caveat emptor if you mix signed/unsiged). Also a source string will
+///   (caveat emptor if you mix signed/unsigned). Also a source string will
 ///   convert to int if and only if its characters form a valid integer.
 /// * If dsttype is float: inteegers and other float types will do
 ///   their best conversion; strings will convert if and only if their

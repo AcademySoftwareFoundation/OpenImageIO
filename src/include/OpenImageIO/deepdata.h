@@ -88,7 +88,7 @@ public:
 
     /// Retrieve the data type of channel `c`.
     TypeDesc channeltype(int c) const;
-    /// Return the size (in bytes) of one sample dadum of channel `c`.
+    /// Return the size (in bytes) of one sample datum of channel `c`.
     size_t channelsize(int c) const;
     /// Return the size (in bytes) for all channels of one sample.
     size_t samplesize() const;
@@ -139,7 +139,7 @@ public:
     /// Retrieve the pointer to a given pixel/channel/sample, or NULL if
     /// there are no samples for that pixel. Use with care, and note that
     /// calls to insert_samples and erase_samples can invalidate pointers
-    /// returend by prior calls to data_ptr.
+    /// returned by prior calls to data_ptr.
     void* data_ptr(int64_t pixel, int channel, int sample);
     const void* data_ptr(int64_t pixel, int channel, int sample) const;
 
@@ -158,9 +158,9 @@ public:
                           int64_t srcpixel, int srcsample);
 
     /// Copy an entire deep pixel from `src` to this `DeepData`, completely
-    /// eplacing any pixel data for that pixel. They must have the same
-    /// channel ayout. Return `true` if ok, `false` if the operation could
-    /// not be erformed.
+    /// replacing any pixel data for that pixel. They must have the same
+    /// channel layout. Return `true` if ok, `false` if the operation could
+    /// not be performed.
     bool copy_deep_pixel(int64_t pixel, const DeepData& src, int64_t srcpixel);
 
     /// Split all samples of that pixel at the given depth zsplit. Samples
@@ -189,7 +189,7 @@ public:
     /// Return the z depth at which the pixel reaches full opacity.
     float opaque_z(int64_t pixel) const;
 
-    /// Remvove any samples hidden behind opaque samples.
+    /// Remove any samples hidden behind opaque samples.
     void occlusion_cull(int64_t pixel);
 
 private:

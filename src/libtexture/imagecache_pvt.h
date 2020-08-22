@@ -991,7 +991,7 @@ public:
     }
 
     /// Called when a file is closed, so that the system can track
-    /// the number of simultyaneously-opened files.
+    /// the number of simultaneously-opened files.
     void decr_open_files(void) { --m_stat_open_files_current; }
 
     /// Called when a new tile is created, to update all the stats.

@@ -1003,7 +1003,7 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
         // Read the image from disk or from the ImageCache if available.
         if (img->read_iv(subimage, miplevel, false, read_format,
                          image_progress_callback, this, allow_transforms)) {
-            // The image was read succesfully.
+            // The image was read successfully.
             // Check if we've got to do sRGB to linear (ie, when not supported
             // by OpenGL).
             // Do the first pixel transform to fill-in the secondary image

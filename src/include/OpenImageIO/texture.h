@@ -364,7 +364,7 @@ public:
     TextureOptions();
 
     /// Convert a TextureOpt for one point into a TextureOptions with
-    /// uninform values.
+    /// uniform values.
     TextureOptions(const TextureOpt& opt);
 
     // Options that must be the same for all points we're texturing at once
@@ -1488,7 +1488,7 @@ public:
     ///
     ///   - `stat:mipsused` (int) :
     ///         Stores 1 if any MIP levels beyond the highest resolution
-    ///         were accesed, otherwise 0.
+    ///         were accessed, otherwise 0.
     ///
     ///   - `stat:is_duplicate` (int) :
     ///         Stores 1 if this file was a duplicate of another image,
@@ -1693,7 +1693,7 @@ public:
     virtual std::string getstats (int level=1, bool icstats=true) const = 0;
 
     /// Reset most statistics to be as they were with a fresh TextureSystem.
-    /// Caveat emptor: this does not flush the cache itelf, so the resulting
+    /// Caveat emptor: this does not flush the cache itself, so the resulting
     /// statistics from the next set of texture requests will not match the
     /// number of tile reads, etc., that would have resulted from a new
     /// TextureSystem.

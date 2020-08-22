@@ -163,7 +163,7 @@ ParamValue::get_int_indexed(int index, int defaultval) const
         return get<unsigned long long>(index);
     if (base == TypeDesc::STRING) {
         // Only succeed for a string if it exactly holds something that
-        // excatly parses to an int value.
+        // exactly parses to an int value.
         string_view str = get<ustring>(index);
         int val         = defaultval;
         if (Strutil::parse_int(str, val) && str.empty())
@@ -225,7 +225,7 @@ ParamValue::get_float_indexed(int index, float defaultval) const
         return get<unsigned long long>(index);
     if (base == TypeDesc::STRING) {
         // Only succeed for a string if it exactly holds something
-        // that excatly parses to a float value.
+        // that exactly parses to a float value.
         string_view str = get<ustring>(index);
         float val       = defaultval;
         if (Strutil::parse_float(str, val) && str.empty())

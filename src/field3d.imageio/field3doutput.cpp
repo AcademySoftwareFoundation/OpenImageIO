@@ -280,7 +280,7 @@ Field3DOutput::close()
     if (m_output) {
         write_current_subimage();
         m_output->close();
-        delete m_output;  // implicity closes
+        delete m_output;  // implicitly closes
         m_output = NULL;
     }
 

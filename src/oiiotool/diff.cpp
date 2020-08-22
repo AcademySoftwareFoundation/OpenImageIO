@@ -27,7 +27,7 @@ using namespace ImageBufAlgo;
 
 
 
-// function that standarize printing NaN and Inf values on
+// function that standardize printing NaN and Inf values on
 // Windows (where they are in 1.#INF, 1.#NAN format) and all
 // others platform
 inline void

@@ -257,7 +257,7 @@ public:
     bool make_writable(bool keep_cache_type = false);
 
     // DEPRECATED(2.2): This is an alternate, and less common, spelling.
-    // Let's standardize on "writable". We will eventuall remove this.
+    // Let's standardize on "writable". We will eventually remove this.
     bool make_writeable(bool keep_cache_type = false);
 
     /// @}
@@ -653,7 +653,7 @@ public:
     void interppixel_NDC(float s, float t, float* pixel,
                          WrapMode wrap = WrapBlack) const;
 
-    // DEPCRECATED (1.5) synonym for interppixel_NDC.
+    // DEPRECATED (1.5) synonym for interppixel_NDC.
     void interppixel_NDC_full(float s, float t, float* pixel,
                               WrapMode wrap = WrapBlack) const;
 

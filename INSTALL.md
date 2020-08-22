@@ -2,7 +2,7 @@ Installation instructions for OpenImageIO
 =========================================
 
 # Table of Contents
-1. [OpenImageIO's Dependences](#dependencies)
+1. [OpenImageIO's Dependencies](#dependencies)
 2. [Installing binaries from package managers](#installingfrompackagemanagers)
 3. [Building OIIO from source](#buildingfromsource)
 
@@ -81,7 +81,7 @@ If all you want to do is install the OIIO libraries, headers, and command
 line tools as quickly as possible (don't need OIIO source or any custom
 build options), maybe one of these packages managers will do it for you:
 
-* vckpg (https://github.com/Microsoft/vcpkg)
+* vcpkg (https://github.com/Microsoft/vcpkg)
     * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
     * `.\vcpkg install openimageio [tools]`
     * For a full list of supported build features: `.\vcpkg search openimageio`
@@ -215,7 +215,7 @@ Additionally, a few helpful modifiers alter some build-time options:
 | make USE_PYTHON=0 ...     |  Don't build the Python binding                |
 | make BUILD_SHARED_LIBS=0  |  Build static library instead of shared        |
 | make LINKSTATIC=1 ...     |  Link with static external libraries when possible |
-| make SOVERSION=nn ...     |  Include the specifed major version number in the shared object metadata |
+| make SOVERSION=nn ...     |  Include the specified major version number in the shared object metadata |
 | make NAMESPACE=name       |   Wrap everything in another namespace         |
 
 The command 'make help' will list all possible options.
@@ -292,7 +292,7 @@ http://www.openimageio.org/external.zip
    Install it on your system. Choose two versions: Multithread Debug, DLL
    and Multithread, DLL for Your Visual Studio version.
 
-6. Download precompiled BOOST 1.53 or newer libraries from here (unfficial
+6. Download precompiled BOOST 1.53 or newer libraries from here (unofficial
    mirror) or from here (unofficial mirror, registration required). Install
    it on Your system. Choose two versions: Multithread Debug, DLL and
    Multithread, DLL for Your Visual Studio version.

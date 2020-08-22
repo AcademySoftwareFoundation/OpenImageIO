@@ -71,8 +71,8 @@ public:
     int32_t isize;        // size of the raw image data
     int32_t hres;         // horizontal resolution in pixels per meter
     int32_t vres;         // vertical resolutions in pixels per meter
-    int32_t cpalete;      // number of entries in the color palete
-    int32_t important;    // number of importatn color used,
+    int32_t cpalete;      // number of entries in the color palette
+    int32_t important;    // number of important color used,
                           // 0 - all colors are important,
                           // in most cases ignored
 

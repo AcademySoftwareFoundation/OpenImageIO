@@ -523,7 +523,7 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
     }
 
     // Read the big-endian values into the buffer.
-    // The channels are simply contatenated together in order.
+    // The channels are simply concatenated together in order.
     // Each channel starts with a length, from which we know how many
     // bytes of encoded RLE data to read.  Then there are RLE
     // spans for each 8-bit slice of the channel.

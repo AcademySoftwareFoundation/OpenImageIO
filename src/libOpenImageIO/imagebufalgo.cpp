@@ -50,7 +50,7 @@
 // * Use the iterator Black or Clamp wrap modes to avoid lots of special
 //   cases inside the pixel loops.
 // * Use OIIO_DISPATCH_* macros to call type-specialized templated
-//   implemenations.  It is permissible to use OIIO_DISPATCH_COMMON_TYPES_*
+//   implementations.  It is permissible to use OIIO_DISPATCH_COMMON_TYPES_*
 //   to tame the cross-product of types, especially for binary functions
 //   (A,B inputs as well as R output).
 ///////////////////////////////////////////////////////////////////////////

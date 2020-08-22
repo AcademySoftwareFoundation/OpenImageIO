@@ -152,7 +152,7 @@ namespace dpx
 			offset += block.x1 * numberOfComponents / 3 * 4;
 			
 			
-			// get the read count in bytes, round to the 32-bit boundry
+			// get the read count in bytes, round to the 32-bit boundary
 			int readSize = (block.x2 - block.x1 + 1) * numberOfComponents;
 			readSize += readSize % 3;
 			readSize = readSize / 3 * 4;

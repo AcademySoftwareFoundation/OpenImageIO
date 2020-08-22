@@ -607,7 +607,7 @@ public:
     ///   (`float`).
     ///
     /// - `"stat:mipsused"` : Stores 1 if any MIP levels beyond the highest
-    ///   resolution were accesed, otherwise 0. (`int`)
+    ///   resolution were accessed, otherwise 0. (`int`)
     ///
     /// - `"stat:is_duplicate"` : Stores 1 if this file was a duplicate of
     ///   another image, otherwise 0. (`int`)

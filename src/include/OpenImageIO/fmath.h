@@ -8,7 +8,7 @@
      Copyright 2004 NVIDIA Corporation. All Rights Reserved.
 
   Some parts of this file were first open-sourced in Open Shading Language,
-  also 3-Clause BSD licesne, then later moved here. The original copyright
+  also 3-Clause BSD license, then later moved here. The original copyright
   notice was:
      Copyright (c) 2009-2014 Sony Pictures Imageworks Inc., et al.
 
@@ -1123,7 +1123,7 @@ bit_range_convert(unsigned int in, unsigned int FROM_BITS, unsigned int TO_BITS)
 
 
 /// Append the `n` LSB bits of `val` into a bit sting `T out[]`, where the
-/// `filled` MSB bits of `*out` are already filled in. Incremennt `out` and
+/// `filled` MSB bits of `*out` are already filled in. Increment `out` and
 /// adjust `filled` as required. Type `T` should be uint8_t, uint16_t, or
 /// uint32_t.
 template<typename T>
@@ -2249,7 +2249,7 @@ T invert (Func &func, T y, T xmin=0.0, T xmax=1.0,
         *brack = bracketed;
     if (! bracketed) {
         // If our bounds don't bracket the zero, just give up, and
-        // return the approprate "edge" of the interval
+        // return the appropriate "edge" of the interval
         return ((y < vmin) == increasing) ? xmin : xmax;
     }
     if (fabs(v0-v1) < eps)   // already close enough

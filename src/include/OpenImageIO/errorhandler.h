@@ -15,7 +15,7 @@ OIIO_NAMESPACE_BEGIN
 /// ErrorHandler is a simple class that accepts error messages
 /// (classified as errors, severe errors, warnings, info, messages, or
 /// debug output) and handles them somehow.  By default it just prints
-/// the messages to stdout and/or stderr (and supresses some based on a
+/// the messages to stdout and/or stderr (and suppresses some based on a
 /// "verbosity" level).
 ///
 /// The basic idea is that your library code has no idea whether some

@@ -116,7 +116,7 @@ if (${CXX_VISIBILITY_PRESET} STREQUAL "hidden" AND
     (CMAKE_SYSTEM_NAME MATCHES "Linux|kFreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "GNU"))
     # Linux/FreeBSD/Hurd: also hide all the symbols of dependent libraries
     # to prevent clashes if an app using this project is linked against
-    # other verions of our dependencies.
+    # other versions of our dependencies.
     set (VISIBILITY_MAP_COMMAND "-Wl,--version-script=${VISIBILITY_MAP_FILE}")
 endif ()
 
@@ -143,7 +143,7 @@ if (CMAKE_COMPILER_IS_CLANG OR CMAKE_COMPILER_IS_APPLECLANG)
         add_compile_options ("-Wno-unused-local-typedefs")
     endif ()
     if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 3.9)
-        # Don't warn about using unknown preprocessor symbols in #if'set
+        # Don't warn about using unknown preprocessor symbols in `#if`
         add_compile_options ("-Wno-expansion-to-defined")
     endif ()
 endif ()
@@ -189,9 +189,9 @@ endif ()
 # Use ccache if found
 #
 # This can really speed up compilation by caching object files that have
-# been compiled previously with idential arguments and inputs. Putting this
+# been compiled previously with identical arguments and inputs. Putting this
 # logic here makes it work even if the user is unaware of ccache. If it's
-# not found on the system, it will simply be silnetly not used.
+# not found on the system, it will simply be silently not used.
 option (USE_CCACHE "Use ccache if found" ON)
 find_program (CCACHE_FOUND ccache)
 if (CCACHE_FOUND AND USE_CCACHE)
@@ -236,8 +236,8 @@ endif ()
 ###########################################################################
 # SIMD and machine architecture options.
 #
-# The USE_SIMD optinon may be set to a comma-separated list of machine /
-# instruction set optinos, such as "avx3,f16c". The list will be parsed and
+# The USE_SIMD option may be set to a comma-separated list of machine /
+# instruction set options, such as "avx3,f16c". The list will be parsed and
 # the proper compiler directives added to generate code for those ISA
 # capabilities.
 #
