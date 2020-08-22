@@ -83,7 +83,7 @@ particular licensing terms in your own application.
 Some code and resources are distributed along with OIIO that have highly
 compatible, though slightly different, licenses (generally MIT or Apache).
 See the PDF documentation Acknowledgements section, and the
-[LICENSE-THIRD-PARTY](LICENSE-THIRD-PARTY.md) file for details.
+[THIRD-PARTY](THIRD-PARTY.md) file for details.
 
 
 Building and Installation

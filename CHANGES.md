@@ -367,7 +367,7 @@ Build/test system improvements and platform ports:
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
-* The `LICENSE-THIRD-PARTY.md` file has been reorganized to be clearer,
+* The `THIRD-PARTY.md` file has been reorganized to be clearer,
   grouping parts with identical licenses. #2469
 * Many fixes to the new readthedocs documentation, especially fixes to
   section cross-references and links.
@@ -1951,7 +1951,7 @@ Developer goodies / internals:
   #1904 (1.9.2)
 
 Notable documentation changes:
-* A new LICENSE-THIRD-PARTY.md file reproduces the full open source licenses
+* A new THIRD-PARTY.md file reproduces the full open source licenses
   of all code that we distribute with OIIO, incorporate, or derive code from.
   They are have very similar license terms to the main OIIO license
   ("New BSD") -- MIT, Mozilla, Apache 2.0, or public domain. OIIO does not

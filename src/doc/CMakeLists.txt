@@ -6,7 +6,7 @@ project(documentation)
 
 set (public_docs
      "${OpenImageIO_SOURCE_DIR}/LICENSE.md"
-     "${OpenImageIO_SOURCE_DIR}/LICENSE-THIRD-PARTY.md"
+     "${OpenImageIO_SOURCE_DIR}/THIRD-PARTY.md"
      "${OpenImageIO_SOURCE_DIR}/CHANGES.md"
      CHANGES-0.x.md
      CHANGES-1.x.md
