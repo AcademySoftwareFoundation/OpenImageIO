@@ -261,7 +261,7 @@ oiiotool ERROR: read : "tmpsrc/openexr_2.2.0_memory_allocation_error_3_exr.exr":
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/openexr_2.2.0_memory_allocation_error_3_exr.exr -o out.exr
 
-oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-099125d15685ef30feae813ddae15406b3f539d7cc4aa399176a50dcfe9be95c.exr". Maximum number of tiles exceeded
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-099125d15685ef30feae813ddae15406b3f539d7cc4aa399176a50dcfe9be95c.exr". Invalid size.
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-099125d15685ef30feae813ddae15406b3f539d7cc4aa399176a50dcfe9be95c.exr -o out.exr
 

@@ -221,7 +221,7 @@ Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7fe4c4caa975_277_153f78ec07237d01e8902143da28c7ec_exr.exr -o out.exr
 
 tmpsrc/asan_heap-oob_7fe667eb33a2_999_31f64961e47968656f00573f7db5c67d_exr.exr :  400 x  300, 3 channel, float/half/half openexr
-oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "tmpsrc/asan_heap-oob_7fe667eb33a2_999_31f64961e47968656f00573f7db5c67d_exr.exr". Huffman decode error (Overrun).
+oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "tmpsrc/asan_heap-oob_7fe667eb33a2_999_31f64961e47968656f00573f7db5c67d_exr.exr". Error decoding Huffman table (Run beyond end of table).
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7fe667eb33a2_999_31f64961e47968656f00573f7db5c67d_exr.exr -o out.exr
 
