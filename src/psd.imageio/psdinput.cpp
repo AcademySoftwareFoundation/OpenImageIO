@@ -1613,7 +1613,7 @@ PSDInput::load_global_mask_info()
     uint32_t length;
 
     // This section should be at least 17 bytes, but some files lack
-    // global mask info and additional layer info, not convered in the spec
+    // global mask info and additional layer info, not covered in the spec
     if (remaining < 17) {
         m_file.seekg(m_layer_mask_info.end);
         return true;

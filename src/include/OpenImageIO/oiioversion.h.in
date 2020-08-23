@@ -12,7 +12,7 @@
 // MAJOR is a major architectural change or a step that does not preserve
 // backwards compatibility of source code (an app designed for an older
 // major version may not compile successfully against newer version of the
-// heades and libraries, and will need to have its source modified).
+// headers and libraries, and will need to have its source modified).
 // Examples of changes that necessitate major version changes are removal of
 // API calls or classes, or renaming of class members.
 //

@@ -121,7 +121,7 @@ parallel_for_chunked(int64_t start, int64_t end, int64_t chunksize,
 /// Using the default thread pool, spawn parallel jobs. Conceptually, it
 /// behaves as if each index gets called separately, but actually each
 /// thread will iterate over some chunk of adjacent indices (to aid data
-/// coherence and minimuize the amount of thread queue diddling). The chunk
+/// coherence and minimize the amount of thread queue diddling). The chunk
 /// size is chosen automatically.
 inline void
 parallel_for (int64_t start, int64_t end,

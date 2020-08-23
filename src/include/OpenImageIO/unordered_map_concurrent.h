@@ -371,7 +371,7 @@ public:
             bin.lock();
         auto result = bin.map.emplace(key, value);
         if (result.second) {
-            // the insert was succesful!
+            // the insert was successful!
             ++m_size;
         } else {
             // Replace caller's value with the one already in the table.
@@ -396,7 +396,7 @@ public:
             bin.lock();
         auto result = bin.map.emplace(key, value);
         if (result.second) {
-            // the insert was succesful!
+            // the insert was successful!
             ++m_size;
         }
         if (do_lock)
@@ -427,7 +427,7 @@ public:
     /// Return the total number of entries in the map.
     size_t size() { return size_t(m_size); }
 
-    /// Expliticly lock the bin that will contain the key (regardless of
+    /// Explicitly lock the bin that will contain the key (regardless of
     /// whether there is such an entry in the map), and return its bin
     /// number.
     size_t lock_bin(const KEY& key)

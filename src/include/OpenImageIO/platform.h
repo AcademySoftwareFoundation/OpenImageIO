@@ -211,7 +211,7 @@
 
 // Generic pragma definition
 #if defined(_MSC_VER)
-    // Of couse MS does it in a quirky way
+    // Of course MS does it in a quirky way
     #define OIIO_PRAGMA(UnQuotedPragma) __pragma(UnQuotedPragma)
 #else
     // All other compilers seem to support C99 _Pragma

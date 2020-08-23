@@ -1093,7 +1093,7 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
     // then copy back when we're done.
     // FIXME -- is this necessary at all? Can we eliminate the conditional
     // and the duplicated code by always doing the simd copy thing? Come
-    // back here and time whether for 4-channnel textures it really matters.
+    // back here and time whether for 4-channel textures it really matters.
     bool simd_copy = (nchannels != 4 || ((size_t)result & 0x0f)
                       || ((size_t)dresultds & 0x0f) || /* FIXME -- necessary? */
                       ((size_t)dresultdt & 0x0f));
@@ -1578,7 +1578,7 @@ ellipse_axes(float dsdx, float dtdx, float dsdy, float dtdy, float& majorlength,
     // derivatives, then majorlength/minorlength are the (diameter) axes
     // of the ellipse; if the derivs are the "to edge of pixel" 1/2
     // length derivs, then majorlength/minorlength are the major and
-    // minur radii of the elipse.  We do the former!  So it's important
+    // minor radii of the ellipse.  We do the former!  So it's important
     // to consider that factor of 2 in compute_ellipse_sampling.
 }
 
@@ -1936,7 +1936,7 @@ TextureSystemImpl::sample_closest(
         float s = s_[sample], t = t_[sample];
         float weight = weight_[sample];
 
-        int stex, ttex;  // Texel coordintes
+        int stex, ttex;  // Texel coordinates
         float sfrac, tfrac;
         st_to_texel(s, t, texturefile, spec, stex, ttex, sfrac, tfrac);
 
@@ -2081,7 +2081,7 @@ TextureSystemImpl::sample_bilinear(
     // N.B. What's up with "nofill"? We need to consider fill only when we
     // are inside the valid texture region. Outside, i.e. in the black wrap
     // region, black takes precedence over fill. By keeping track of when
-    // we don't need to worry about fill, which is the comparitively rare
+    // we don't need to worry about fill, which is the comparatively rare
     // case, we do a lot less math and have fewer rounding errors.
 
     vfloat4 accum, daccumds, daccumdt;
@@ -2419,7 +2419,7 @@ TextureSystemImpl::sample_bicubic(
     // N.B. What's up with "nofill"? We need to consider fill only when we
     // are inside the valid texture region. Outside, i.e. in the black wrap
     // region, black takes precedence over fill. By keeping track of when
-    // we don't need to worry about fill, which is the comparitively rare
+    // we don't need to worry about fill, which is the comparatively rare
     // case, we do a lot less math and have fewer rounding errors.
 
     // need_pole: do we potentially need to fade to special pole color?

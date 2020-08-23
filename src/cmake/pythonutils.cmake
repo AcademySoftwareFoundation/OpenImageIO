@@ -15,7 +15,7 @@ set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namesp
 # Variables set by this macro:
 #    PYTHON_INCLUDES_PATH - directory where python headers are found
 #    PYTHON_LIBRARIES     - python libraries to link
-#    PYTHON_SITE_DIR      - our own install dir where our python moduels go
+#    PYTHON_SITE_DIR      - our own install dir where our python modules go
 macro (find_python)
     if (NOT VERBOSE)
         set (PythonInterp_FIND_QUIETLY true)

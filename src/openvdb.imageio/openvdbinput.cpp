@@ -350,7 +350,7 @@ OpenVDBInput::readMetaData(const openvdb::GridBase& grid,
                            const layerrecord& layer, ImageSpec& spec)
 {
     // If two grids of the same name exist in a VDB, then there will be an
-    // object name & a grid name that get concated to make a unique name
+    // object name & a grid name that get concatenated to make a unique name
     // "density[0].density", "density[1].density" for lookup.
     // Otherwise, just use the grid name; so one can do texture3d("Cd") instead
     // of texture3d("Cd.Cd")

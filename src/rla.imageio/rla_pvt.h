@@ -8,7 +8,7 @@
 /*
   Brief documentation about the RLA format:
 
-  * The file consists of multiple subimages, merely contatenated together.
+  * The file consists of multiple subimages, merely concatenated together.
     Each subimage starts with a RLAHeader, and within the header is a
     NextOffset field that gives the absolute offset (relative to the start
     of the file) of the beginning of the next subimage, or 0 if there

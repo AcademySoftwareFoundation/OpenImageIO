@@ -492,7 +492,7 @@ unset_autopremult(cspan<const char*> argv)
 
 
 
-// --labl
+// --label
 static int
 action_label(int argc OIIO_MAYBE_UNUSED, const char* argv[])
 {
@@ -4690,7 +4690,7 @@ output_file(int /*argc*/, const char* argv[])
     // See if the filename appears to contain a color space name embedded.
     // Automatically color convert if --autocc is used and the current
     // color space doesn't match that implied by the filename, and
-    // automatically set -d based on the name if --autod is used.
+    // automatically set -d based on the name if --autocc is used.
     int autocc                = fileoptions.get_int("autocc", ot.autocc);
     string_view outcolorspace = ot.colorconfig.parseColorSpaceFromString(
         filename);
@@ -5294,7 +5294,7 @@ getargs(int argc, char* argv[])
     ap.arg("--autoorient", &ot.autoorient)
       .help("Automatically --reorient all images upon input");
     ap.arg("--auto-orient", &ot.autoorient)
-      .hidden(); // symonym for --autoorient
+      .hidden(); // synonym for --autoorient
     ap.arg("--autocc", &ot.autocc)
       .help("Automatically color convert based on filename");
     ap.arg("--noautocc %!", &ot.autocc)
@@ -5503,7 +5503,7 @@ getargs(int argc, char* argv[])
       .help("Raise the image values to a scalar or per-channel power (e.g.: 2.2 or 2.2,2.2,2.2,1.0)")
       .action(action_powc);
     ap.arg("--cpow %s:VAL")
-      .hidden() // Depcrcated synonym
+      .hidden() // Deprecated synonym
       .action(action_powc);
     ap.arg("--noise")
       .help("Add noise to an image (options: type=gaussian:mean=0:stddev=0.1, type=uniform:min=0:max=0.1, type=salt:value=0:portion=0.1, seed=0")
@@ -6057,7 +6057,7 @@ main(int argc, char* argv[])
 
     // Force all files to close, ugh, it's the only way I can find to solve
     // an occasional problem with static destructor order fiasco with
-    // field3dwhen building with EMBEDPLUGINS=0 on MacOS.
+    // field3d when building with EMBEDPLUGINS=0 on MacOS.
     ot.imagecache->close_all();
 
     return ot.return_value;

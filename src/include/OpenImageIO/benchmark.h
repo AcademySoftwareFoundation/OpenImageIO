@@ -41,7 +41,7 @@ OIIO_FORCEINLINE void clobber_all_memory();
 /// A call to clobber(p) fools the compiler into thinking that p (or *p, for
 /// the pointer version) might potentially have its memory altered. The
 /// implementation actually does nothing, but it's in another module, so the
-/// compiler won't know this and will be conservative about any assupmtions
+/// compiler won't know this and will be conservative about any assumptions
 /// of what's in p. This is helpful for benchmarking, to help erase any
 /// preconceptions the optimizer has about what might be in a variable.
 
@@ -75,7 +75,7 @@ OIIO_FORCEINLINE void clobber (T& p, Ts&... ps)
 /// iterations based on their timing. For most use cases, it's fire and
 /// forget.
 ///
-/// Generally, the most and least expesive trials will be discarded (all
+/// Generally, the most and least expensive trials will be discarded (all
 /// sorts of things can happen to give you a few spurious results) and then
 /// the remainder of trials will be used to compute the average, standard
 /// deviation, range, and median value, in ns per iteration as well as
@@ -316,7 +316,7 @@ time_trial(FUNC func, int ntrials = 1, int nrepeats = 1, double* range = NULL)
     while (ntrials-- > 0) {
         Timer timer;
         for (int i = 0; i < nrepeats; ++i) {
-            // Be sure that the repeated calls to func aren't optimzed away:
+            // Be sure that the repeated calls to func aren't optimized away:
             clobber_all_memory();
             func();
         }

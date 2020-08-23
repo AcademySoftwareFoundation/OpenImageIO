@@ -53,6 +53,6 @@ private:
 	bool m_transparent;
 };
 
-} // namespace sqish
+} // namespace squish
 
 #endif // ndef SQUISH_COLOURSET_H

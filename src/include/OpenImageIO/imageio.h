@@ -630,7 +630,7 @@ public:
     /// `ImageSpec::SerialXML`. The `verbose` argument may be one of:
     /// `ImageSpec::SerialBrief` (just resolution and other vital
     /// statistics, one line for `SerialText`, `ImageSpec::SerialDetailed`
-    /// (contains all metadata in orginal form), or
+    /// (contains all metadata in original form), or
     /// `ImageSpec::SerialDetailedHuman` (contains all metadata, in many
     /// cases with human-readable explanation).
     std::string serialize (SerialFormat format,
@@ -1131,7 +1131,7 @@ public:
     ///   `end` is *one past the last item*. That means that the number of
     ///   items is `end - begin`.
     ///
-    /// * For ordinary 2D (non-volumetric) imaages, any `z` or `zbegin`
+    /// * For ordinary 2D (non-volumetric) images, any `z` or `zbegin`
     ///   coordinates should be 0 and any `zend` should be 1, indicating
     ///   that only a single image "plane" exists.
     ///
@@ -1519,7 +1519,7 @@ public:
                                         int chbegin, int chend, void *data);
 
     /// Read a single tile (all channels) of native data into contiguous
-    /// mamory. The base class read_native_tile fails. A format reader that
+    /// memory. The base class read_native_tile fails. A format reader that
     /// supports tiles MUST overload this virtual method that reads a single
     /// tile (all channels).
     virtual bool read_native_tile (int subimage, int miplevel,
@@ -1626,7 +1626,7 @@ public:
 
     /// Lock the internal mutex, block until the lock is acquired.
     void lock () { m_mutex.lock(); }
-    /// Try to loak the internal mutex, returning true if successful, or
+    /// Try to lock the internal mutex, returning true if successful, or
     /// false if the lock could not be immediately acquired.
     bool try_lock () { return m_mutex.try_lock(); }
     /// Ulock the internal mutex.
@@ -1719,7 +1719,7 @@ public:
     /// Return the name of the format implemented by this class.
     virtual const char *format_name (void) const = 0;
 
-    // Overrride these functions in your derived output class
+    // Override these functions in your derived output class
     // to inform the client which formats are supported
 
     /// @{
@@ -1871,7 +1871,7 @@ public:
     /// `open(name,spec,AppendMIPLevel)`).
     ///
     /// The purpose of this call is to accommodate format-writing
-    /// libraries that fmust know the number and specifications of the
+    /// libraries that must know the number and specifications of the
     /// subimages upon first opening the file; such formats can be
     /// detected by::
     ///     supports("multiimage") && !supports("appendsubimage")
@@ -1933,7 +1933,7 @@ public:
     ///   `end` is *one past the last item*. That means that the number of
     ///   items is `end - begin`.
     ///
-    /// * For ordinary 2D (non-volumetric) imaages, any `z` or `zbegin`
+    /// * For ordinary 2D (non-volumetric) images, any `z` or `zbegin`
     ///   coordinates should be 0 and any `zend` should be 1, indicating
     ///   that only a single image "plane" exists.
     ///

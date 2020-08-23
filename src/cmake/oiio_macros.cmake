@@ -15,10 +15,10 @@
 #                   [ DEFINITIONS -DFOO=bar ... ])
 #
 # The plugin name can be specified with NAME, otherwise is inferred from the
-# subdirectory name. The source files of the binary can be specifeied with
+# subdirectory name. The source files of the binary can be specified with
 # SRC, otherwise are inferred to be all the .cpp files within the
 # subdirectory. Optional compile DEFINITIONS, private INCLUDE_DIRS, and
-# priviate LINK_LIBRARIES may also be specified. The source is automatically
+# private LINK_LIBRARIES may also be specified. The source is automatically
 # linked against OpenImageIO.
 #
 # The plugin may be disabled individually using any of the usual
@@ -30,7 +30,7 @@
 # create a new target to build the full plugin. On the other hand, if
 # EMBEDPLUGINS is 1 (in which case this should be called *before* the
 # OpenImageIO target is declared), it will merely append the required
-# definitions, includs, and libraries to lists format_plugin_blah that will
+# definitions, includes, and libraries to lists format_plugin_blah that will
 # be handed off too the setup of the later OpenImageIO target.
 #
 macro (add_oiio_plugin)
@@ -83,9 +83,9 @@ endmacro ()
 
 # Macro to add an executable build target. The executable name can be
 # specified with NAME, otherwise is inferred from the subdirectory name. The
-# source files of the binary can be specifeied with SRC, otherwise are
+# source files of the binary can be specified with SRC, otherwise are
 # inferred to be all the .cpp files within the subdirectory. Optional
-# compile DEFINITIONS, private INCLUDE_DIRS, and priviate LINK_LIBRARIES may
+# compile DEFINITIONS, private INCLUDE_DIRS, and private LINK_LIBRARIES may
 # also be specified.
 #
 # The executable may be disabled individually using any of the usual
@@ -195,7 +195,7 @@ macro (oiio_add_tests)
         endif ()
     endforeach ()
     if (_ats_IMAGEDIR AND NOT EXISTS ${_ats_testdir})
-        # If the directory containig reference data (images) for the test
+        # If the directory containing reference data (images) for the test
         # isn't found, point the user at the URL.
         message (STATUS "\n\nDid not find ${_ats_testdir}")
         message (STATUS "  -> Will not run tests ${_ats_UNPARSED_ARGUMENTS}")

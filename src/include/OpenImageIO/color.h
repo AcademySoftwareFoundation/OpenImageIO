@@ -41,7 +41,7 @@ public:
 };
 
 // Preprocessor symbol to allow conditional compilation depending on
-// whether the ColorProcesor class is exposed (it was not prior to OIIO 1.9).
+// whether the ColorProcessor class is exposed (it was not prior to OIIO 1.9).
 #define OIIO_HAS_COLORPROCESSOR 1
 
 
@@ -136,7 +136,7 @@ public:
 
     /// Given the specified input and output ColorSpace, request a handle to
     /// a ColorProcessor.  It is possible that this will return an empty
-    /// handle, if the inputColorSpace doesnt exist, the outputColorSpace
+    /// handle, if the inputColorSpace doesn't exist, the outputColorSpace
     /// doesn't exist, or if the specified transformation is illegal (for
     /// example, it may require the inversion of a 3D-LUT, etc).
     ///

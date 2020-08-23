@@ -658,10 +658,10 @@ public:
     /// NOTE: avoid this unsafe construct. It will go away some day.
     int& operator[] (int i);
 
-    /// Extract the lower percision vbool4
+    /// Extract the lower precision vbool4
     vbool4 lo () const;
 
-    /// Extract the higher percision vbool4
+    /// Extract the higher precision vbool4
     vbool4 hi () const;
 
     /// Helper: load a single value into all components.
@@ -807,10 +807,10 @@ public:
     /// Component access (set).
     void setcomp (int i, bool value);
 
-    /// Extract the lower percision vbool8
+    /// Extract the lower precision vbool8
     vbool8 lo () const;
 
-    /// Extract the higher percision vbool8
+    /// Extract the higher precision vbool8
     vbool8 hi () const;
 
     /// Helper: load a single value into all components.
@@ -1268,10 +1268,10 @@ public:
     void set_z (value_t val);
     void set_w (value_t val);
 
-    /// Extract the lower percision vint4
+    /// Extract the lower precision vint4
     vint4 lo () const;
 
-    /// Extract the higher percision vint4
+    /// Extract the higher precision vint4
     vint4 hi () const;
 
     /// Helper: load a single int into all components
@@ -1564,10 +1564,10 @@ public:
     void set_z (value_t val);
     void set_w (value_t val);
 
-    /// Extract the lower percision vint8
+    /// Extract the lower precision vint8
     vint8 lo () const;
 
-    /// Extract the higher percision vint8
+    /// Extract the higher precision vint8
     vint8 hi () const;
 
     /// Helper: load a single int into all components
@@ -2513,10 +2513,10 @@ public:
     void set_z (value_t val);
     void set_w (value_t val);
 
-    /// Extract the lower percision vfloat4
+    /// Extract the lower precision vfloat4
     vfloat4 lo () const;
 
-    /// Extract the higher percision vfloat4
+    /// Extract the higher precision vfloat4
     vfloat4 hi () const;
 
     /// Helper: load a single value into all components
@@ -2835,10 +2835,10 @@ public:
     void set_z (value_t val);
     void set_w (value_t val);
 
-    /// Extract the lower percision vfloat8
+    /// Extract the lower precision vfloat8
     vfloat8 lo () const;
 
-    /// Extract the higher percision vfloat8
+    /// Extract the higher precision vfloat8
     vfloat8 hi () const;
 
     /// Helper: load a single value into all components

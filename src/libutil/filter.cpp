@@ -13,7 +13,7 @@
 // lanczos3: oiio, katana, imagemagick match.  prman is far sharper
 //   (perhaps lanczos2?). Note that Nuke calls this filter "lanczos6" (they
 //   measure full width).
-// sinc: oiio, prman match.  Katana is slighly softer. imagemagick is much softer
+// sinc: oiio, prman match.  Katana is slightly softer. imagemagick is much softer
 // blackman harris:  all differ. In order of decreasing sharpness... imagemagick, oiio, prman
 // catrom: oiio, imagemagick, prman match
 // gaussian: prman, katana match (gaussian3).  imgmagick, oiio are sharper (gaussian2)
@@ -319,7 +319,7 @@ public:
         return A0 + A1 * cosf(2.f * m_pi * x) 
              + A2 * cosf(4.f * m_pi * x) + A3 * cosf(6.f * m_pi * x);
 #else
-        // Use trig identintities to reduce to just one cos.
+        // Use trig identities to reduce to just one cos.
         // https://en.wikipedia.org/wiki/List_of_trigonometric_identities
         // cos(2x) = 2 cos^2(x) - 1
         // cos(3x) = 4 cos^3(x) − 3 cos(x)
@@ -532,7 +532,7 @@ public:
         x = fabsf(x);
         if (x > 1.0f)
             return 0.0f;
-        // Computation stright out of the classic Mitchell paper.
+        // Computation straight out of the classic Mitchell paper.
         // In the paper, the range is -2 to 2, so we rescale:
         x *= 2.0f;
         float x2          = x * x;

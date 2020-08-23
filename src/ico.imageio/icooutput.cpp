@@ -498,7 +498,7 @@ ICOOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         // drawing at colour depths lower than 24-bit. If it's not present,
         // Windows will read out-of-bounds, treating any data that it
         // encounters as the AND mask, resulting in ugly transparency effects.
-        // Only need to do this for images with alpha, becasue 0 is opaque,
+        // Only need to do this for images with alpha, because 0 is opaque,
         // and we've already filled the file with zeros.
         if (m_color_type != PNG_COLOR_TYPE_GRAY
             && m_color_type != PNG_COLOR_TYPE_RGB) {

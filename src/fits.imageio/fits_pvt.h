@@ -60,11 +60,11 @@ private:
     std::string m_filename;
     int m_cur_subimage;
     int m_bitpix;              // number of bits that represents data value;
-    int m_naxes;               // number of axses of the image (e.g dimensions)
+    int m_naxes;               // number of axes of the image (e.g dimensions)
     std::vector<int> m_naxis;  // axis sizes of each dimension
     fpos_t m_filepos;          // current position in the file
     // here we store informations how many times COMMENT, HISTORY, HIERARCH
-    // keywords has occured
+    // keywords have occurred
     std::map<std::string, int> keys;
     // here we store informations about subimages,
     // eg. subimage number and subimage offset
