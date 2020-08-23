@@ -65,7 +65,7 @@ print_sha1(ImageInput* input)
             printf("    SHA-1: %s\n", err);
             return;
         }
-        // Hash both the sample counds and the data block
+        // Hash both the sample counts and the data block
         sha.append(dd.all_samples());
         sha.append(dd.all_data());
     } else {

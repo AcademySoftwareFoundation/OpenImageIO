@@ -358,7 +358,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
             OIIO_DISPATCH_COMMON_TYPES2_HELP(ret,name,func,uint16_t,Atype,R,A,__VA_ARGS__); \
             break;                                                      \
         default: {                                                      \
-            /* other combinationd: convert to float, then copy back */  \
+            /* other combinations: convert to float, then copy back */  \
             ImageBuf Rtmp;                                              \
             if ((R).initialized())                                      \
                 Rtmp.copy (R, TypeDesc::FLOAT);                         \

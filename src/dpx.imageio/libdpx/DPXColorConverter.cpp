@@ -293,14 +293,14 @@ namespace dpx {
 			case kCbYCrY:	// 4:2:2 -> RGB, requires allocation
 				return pixels * 3 * bytes;
 				
-			case kCbYCr:	// 4:4:4 -> RGB, can get away with sviweling
+			case kCbYCr:	// 4:4:4 -> RGB, can get away with swiveling
 			case kRGB:		// redundant
 				return pixels * -3 * bytes;
 				
 			case kCbYACrYA:	// 4:2:2:4 -> RGBA, requires allocation
 				return pixels * 4 * bytes;
 				
-			case kCbYCrA:	// 4:4:4:4 -> RGBA, can get away with sviweling
+			case kCbYCrA:	// 4:4:4:4 -> RGBA, can get away with swiveling
 			case kRGBA:		// redundant
 			case kABGR:		// only needs swapping
 				return pixels * -4 * bytes;
@@ -592,14 +592,14 @@ namespace dpx {
 			case kCbYCrY:	// RGB -> 4:2:2, requires allocation
 				return pixels * 2 * bytes;
 			
-			case kCbYCr:	// RGB -> 4:4:4, can get away with sviweling
+			case kCbYCr:	// RGB -> 4:4:4, can get away with swiveling
 			case kRGB:		// redundant
 				return pixels * -3 * bytes;
 			
 			case kCbYACrYA:	// RGBA -> 4:2:2:4, requires allocation
 				return pixels * 4 * bytes;
 			
-			case kCbYCrA:	// RGBA -> 4:4:4:4, can get away with sviweling
+			case kCbYCrA:	// RGBA -> 4:4:4:4, can get away with swiveling
 			case kRGBA:		// redundant
 			case kABGR:		// only needs swapping
 				return pixels * -4 * bytes;

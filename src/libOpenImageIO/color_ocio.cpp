@@ -879,7 +879,7 @@ public:
 
 
 
-// ColorProcessor that implements a matrix multiply color transfomation.
+// ColorProcessor that implements a matrix multiply color transformation.
 class ColorProcessor_Matrix : public ColorProcessor {
 public:
     ColorProcessor_Matrix(const Imath::M44f& Matrix, bool inverse)
@@ -1078,7 +1078,7 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
 
 #ifdef USE_OCIO
     if (!handle && p) {
-        // If we found a procesor from OCIO, even if it was a NoOp, and we
+        // If we found a processor from OCIO, even if it was a NoOp, and we
         // still don't have a better idea, return it.
         handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
     }

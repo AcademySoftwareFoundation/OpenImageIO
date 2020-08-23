@@ -81,7 +81,7 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
     m_spec.attribute("YResolution", (int)m_dib_header.vres);
     m_spec.attribute("ResolutionUnit", "m");
 
-    // comupting size of one scanline - this is the size of one scanline that
+    // computing size of one scanline - this is the size of one scanline that
     // is stored in the file, not in the memory
     int swidth = 0;
     switch (m_dib_header.bpp) {

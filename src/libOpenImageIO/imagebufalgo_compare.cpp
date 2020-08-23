@@ -3,7 +3,7 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 /// \file
-/// Implementation of ImageBufAlgo algorithms that analize or compare
+/// Implementation of ImageBufAlgo algorithms that analyze or compare
 /// images.
 
 #include <OpenEXR/half.h>
@@ -386,7 +386,7 @@ isConstantColor_(const ImageBuf& src, float threshold, span<float> color,
     atomic_int result(true);
     if (threshold == 0.0f) {
         // For 0.0 threshold, use shortcut of avoiding the conversion
-        // to float, juse compare original type values.
+        // to float, just compare original type values.
         std::vector<T> constval(roi.nchannels());
         ImageBuf::ConstIterator<T, T> s(src, roi);
         for (int c = roi.chbegin; c < roi.chend; ++c)
@@ -468,7 +468,7 @@ isConstantChannel_(const ImageBuf& src, int channel, float val, float threshold,
             return;  // another parallel bucket already failed, don't bother
         if (threshold == 0.0f) {
             // For 0.0 threshold, use shortcut of avoiding the conversion
-            // to float, juse compare original type values.
+            // to float, just compare original type values.
             T constvalue = convert_type<float, T>(val);
             for (ImageBuf::ConstIterator<T, T> s(src, roi); !s.done(); ++s) {
                 if (s[channel] != constvalue) {
@@ -526,7 +526,7 @@ isMonochrome_(const ImageBuf& src, float threshold, ROI roi, int nthreads)
             return;  // another parallel bucket already failed, don't bother
         if (threshold == 0.0f) {
             // For 0.0 threshold, use shortcut of avoiding the conversion
-            // to float, juse compare original type values.
+            // to float, just compare original type values.
             for (ImageBuf::ConstIterator<T, T> s(src, roi); !s.done(); ++s) {
                 T constvalue = s[roi.chbegin];
                 for (int c = roi.chbegin + 1; c < roi.chend; ++c)

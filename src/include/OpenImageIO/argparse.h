@@ -58,7 +58,7 @@ OIIO_NAMESPACE_BEGIN
 ///       .defaultval(Imath::V3f(0.0f, 0.0f, -1.0f))
 ///       .action(ArgParse::store<float>());
 ///
-///     // Potitional argument -- append strings
+///     // Positional argument -- append strings
 ///     ap.arg("filename")
 ///       .action(ArgParse::append())
 ///       .hidden();
@@ -409,7 +409,7 @@ public:
         Arg& nargs(int n);
 
         // TODO:
-        // Set the number of subequent parameters to this arguments. "?"
+        // Set the number of subsequent parameters to this arguments. "?"
         // means a single optional value, "*" means any number of optional
         // values (and implies action(append)), "+" means one or more
         // optional values (just like "*", but will be an error if none are
@@ -441,7 +441,7 @@ public:
         ///
         Arg& metavar(string_view name);
 
-        /// Override the destination attribtute name (versus the default
+        /// Override the destination attribute name (versus the default
         /// which is simply the name of the command line option with the
         /// leading dashes stripped away). The main use case is if you want
         /// two differently named command line options to both store values
@@ -460,7 +460,7 @@ public:
         Arg& dest(string_view dest);
 
         /// Initialize the destination attribute with a default value. Do
-        /// not call `.dest("name")` on the agrument after calling
+        /// not call `.dest("name")` on the argument after calling
         /// defaultval, of it will end up with the default value in the
         /// wrong attribute.
         template<typename T> Arg& defaultval(const T& val)
@@ -474,7 +474,7 @@ public:
 
         /// Set the action for this argument to store 1 in the destination
         /// attribute. Initialize the destination attribute to 0 now. Do not
-        /// call `.dest("name")` on the agrument after calling store_true,
+        /// call `.dest("name")` on the argument after calling store_true,
         /// you must override the destination first!
         Arg& store_true()
         {
@@ -485,7 +485,7 @@ public:
 
         /// Set the action for this argument to store 0 in the destination
         /// attribute. Initialize the destination attribute to 1 now. Do not
-        /// call `.dest("name")` on the agrument after calling store_false,
+        /// call `.dest("name")` on the argument after calling store_false,
         /// you must override the destination first!
         Arg& store_false()
         {

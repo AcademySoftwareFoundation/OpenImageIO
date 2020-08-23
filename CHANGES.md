@@ -141,7 +141,7 @@ Fixes and feature enhancements:
       (Punchline: only OpenEXR textures can do it.) #2521 (2.2.0)
     - Fix possible redundant tile reads in multithread situations (harmless,
       but makes for redundant I/O). #2557 (2.2.2)
-* Exif read: guard better against out of range offests, fixes crashes when
+* Exif read: guard better against out of range offsets, fixes crashes when
   reading jpeg files with malformed exif blocks. #2429 (2.1.10/2.2.0)
 * Fix: `ImageSpec::erase_attribute()` did not honor its `searchtype`
   parameter. #2465 (2.2.1/2.1.12)
@@ -156,7 +156,7 @@ Fixes and feature enhancements:
       with ImageCache, observed to speed up out-of-order HDR reading by 18x).
       #2662 (2.2.5)
 * JPEG:
-    - Fix resolution unit metadata that was not propery set in JPEG output.
+    - Fix resolution unit metadata that was not properly set in JPEG output.
       #2516 (2.2.2/2.1.13)
     - Fix loss of 'config' info upon close/reopen. #2549 (2.2.2)
 * OpenEXR:
@@ -190,7 +190,7 @@ Fixes and feature enhancements:
     - Fix subtle bug when reading Exif directory in the header. #2540
       (2.2.2)
 * Video files:
-    - Fix posible infinite loop in the FFMpeg-based reader. #2576
+    - Fix possible infinite loop in the FFMpeg-based reader. #2576
       (2.1.15/2.2.3)
 
 Developer goodies / internals:
@@ -357,10 +357,10 @@ Build/test system improvements and platform ports:
   contains major.minor, but in master (where ABI is not guaranteed stable,
   we name major.minor.patch). #2488 (2.2.1)
 * Protect against certain compiler preprocessor errors for user programs
-  that include strutil.h but also inculde `fmt` on its own. #2498.
+  that include strutil.h but also include `fmt` on its own. #2498.
   (2.1.12/2.2.2)
 * Testing of TGA now assumes the test images are in the oiio-images project,
-  not separately downloaded (the download location disappered from the net).
+  not separately downloaded (the download location disappeared from the net).
   #2512 (2.2.2)
 * Build: All the `build_foo.bash` helper scripts now use `set -ex` to ensure
   that if any individual commands in the script fails, the whole thing will
@@ -413,7 +413,7 @@ Release 2.1.18 (1 Aug 2020) -- compared to 2.1.17
 Release 2.1.17 (1 Jul 2020) -- compared to 2.1.16
 -------------------------------------------------
 * Build: Use the discovered python binary name, to address the Fedora
-  retriction that you must use "python2" or "python3" by name. #2598
+  restriction that you must use "python2" or "python3" by name. #2598
 * Docs: ImageBufAlgo::nonzero_region had been inadvertently left out of the
   Python chapter.
 * Improve RLA reader's ability to detect corrupt or non-RLA files, which
@@ -444,7 +444,7 @@ Release 2.1.15 (11 May 2020) -- compared to 2.1.14
 --------------------------------------------------
 * RAW input: set the "raw:flip" attribute if the underlying libraw did a
   reorientation. #2572
-* Movie files: Fix posible infinite loop in the FFMpeg-based reader. #2576
+* Movie files: Fix possible infinite loop in the FFMpeg-based reader. #2576
 * Fixes to allow building against the forthcoming LibRaw 0.20 release. #2484
 * Documentation fixes. #2581
 
@@ -475,7 +475,7 @@ Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
   with vectors that have custom allocators. #2533
 * Fix: ParamValueList `add_or_replace()` was failing to "replace" if the new
   attribute had a different type than the existing one. #2527
-* Fix: Fix resolution unit metadata that was not propery set in JPEG output.
+* Fix: Fix resolution unit metadata that was not properly set in JPEG output.
   #2516
 * Build: Additional cmake controls to customize required vs optional
   dependencies -- `REQUIRED_DEPS` (list of dependencies normally optional
@@ -485,7 +485,7 @@ Release 2.1.13 (1 Apr 2020) -- compared to 2.1.12
   sure that missing deps are a full build break, and not a successful build
   that silently lacks features you need. #2507
 * Build: Fix exported config file, it was not ensuring that the Imath
-  headers properly ended up in the config iclude path. #2515
+  headers properly ended up in the config include path. #2515
 * Build: Ensure compatibility and clean builds with clang 10. #2518
 * Build: All the `build_foo.bash` helper scripts now use `set -ex` to ensure
   that if any individual commands in the script fails, the whole thing will
@@ -518,7 +518,7 @@ Release 2.1.12 (2 Mar 2020) -- compared to 2.1.11
 * Build: un-embed the 'fmt' headers, instead auto-download if not found.
   #2439
 * Build: Protect against certain compiler preprocessor errors for user
-  programs that include strutil.h but also inculde `fmt` on its own. #2498.
+  programs that include strutil.h but also include `fmt` on its own. #2498.
 
 Release 2.1.11 (1 Feb 2020) -- compared to 2.1.10
 -------------------------------------------------
@@ -546,7 +546,7 @@ Release 2.1.10.1 (10 Jan 2019)
 * Fixes to unordered_map_concurrent.h that affect some users who it for
   things other than OIIO per se (recent changes to the internals broke its
   use for the default underlying std::unordered_map). #2454
-* Bump the minimum pybind11 vesion that we auto-download, and also be sure
+* Bump the minimum pybind11 version that we auto-download, and also be sure
   to auto-download if pybind11 is found on the system already but is not an
   adequately new version. #2453
 * If libsquish is found on the system at build time, use it, rather than
@@ -617,7 +617,7 @@ Public API changes:
   even though there is no such named metadata for OIIO (the results will
   assembled from x, y, width, height, etc.). #2110 (2.1.0/2.0.4)
 * "Compression" names (where applicable) can now have the quality appended
-  to the name (e.g., `"jpeg:85"`) insead of requiring quality to be passed
+  to the name (e.g., `"jpeg:85"`) instead of requiring quality to be passed
   as a separate piece of metadata. #2111 (2.1.0/2.0.5)
 * Python: define `__version__` for the module. #2096 (2.1.0/2.0.4)
 * Python error reporting for `ImageOutput` and `ImageBuf.set_pixels`
@@ -686,7 +686,7 @@ Fixes and feature enhancements:
       interpreted literally, not evaluated as an expression). #2100 (2.1.0/2.0.4)
     - `--dumpdata` has more intelligible output for uint8 images. #2124
        (2.1.0/2.0.4)
-    - Fixed but that could prevent `-iconvert oiio:UnassociatedApha 1` from
+    - Fixed but that could prevent `-iconvert oiio:UnassociatedAlpha 1` from
       correctly propagating to the input reader. #2172 (2.1.0/2.0.6)
     - `-o:all=1` (which outputs all subimages to separate files) fixed a
       crash that would occur if any of the subimages were 0x0 (it could
@@ -732,11 +732,11 @@ Fixes and feature enhancements:
       corresponding pixels had differing numbers of samples. #2381 (2.1.8)
 * ImageBuf/ImageBufAlgo:
     - `IBA::channel_append()` previously always forced its result to be float,
-      if it wasn't previously initialized. Now it uses the uaual type-merging
+      if it wasn't previously initialized. Now it uses the usual type-merging
       logic, making the result the "widest" type of the inputs. #2095
       (2.1.0/2.0.4)
     - IBA `resize()`, `fit()`, and `resample()` are no longer restricted to
-      source and destination images having the same numer of channels.
+      source and destination images having the same number of channels.
       #2125 (2.1.0/2.0.5)
     - Improve numerical precision of the unpremult/premult part of certain
       color transformations. #2164 (2.1.0)
@@ -810,7 +810,7 @@ Fixes and feature enhancements:
   #2364 (2.1.5) #2383 (2.1.8)
 * Python bindings:
     - Fix inability for Python to set timecode attributes (specifically, it
-      was trouble setting ImageSpec attributes that were unnsigned int
+      was trouble setting ImageSpec attributes that were unsigned int
       arrays). #2279 (2.0.9/2.1.3)
 * Improved performance for ustring creation and lookup. #2315 (2.1.3)
 * BMP:
@@ -838,7 +838,7 @@ Fixes and feature enhancements:
       were treating as unsigned. #2178 (2.1.0)
 * HDR/RGBE:
     - Fix bugs related to files with very high resolution (mostly 32 bit
-      int overflow issues and care to use 64 bit fseeks). Also speed up
+      int overflow issues and care to use 64 bit fseek). Also speed up
       reading and writing very large files. #2406 (2.1.8)
 * IFF
     - Detect and error requests to open files for writing with resolutions
@@ -973,7 +973,7 @@ Build/test system improvements and platform ports:
 * On non-Windows systems, the build now generates a PkgConfig file, installed
   at `CMAKE_INSTALL_PREFIX/lib/pkgconfig/OpenImageIO.pc`. #2158 (2.0.5/2.1.0)
 * A new unit test has been backported from master, which tries to perform a
-  series of read/write tests on every file format. In partcular, this tests
+  series of read/write tests on every file format. In particular, this tests
   certain error conditions, like files not existing, or the directory not
   being writable, etc. #2181, #2189 (2.0.8/2.1.1)
 * Support for CI tests on CircleCI. #2194 (2.1.1) Retired in #2389 (2.1.8).
@@ -997,7 +997,7 @@ Build/test system improvements and platform ports:
   #2334 (2.1.4) #2356 (2.1.5) #2395 (2.1.8)
 * Updated and improved finding of OpenEXR and `build_openexr.bash` script
   that we use for CI. #2343 (2.1.4)
-* Upgrade the pybind11 verson that we auto-install when not found (to 2.4.2),
+* Upgrade the pybind11 version that we auto-install when not found (to 2.4.2),
   and add logic to detect the presence of some pybind11 versions that are
   known to be (buggily) incompatible with C++11. #2347 (2.1.5)
 * Fix errors in very new MSVS versions where it identified a suspicious
@@ -1025,7 +1025,7 @@ Developer goodies / internals:
     - New header implements "attribute delegates." (Read header for details)
       #2204 (2.1.1)
 * dassert.h:
-    - Spruce up assrtion macros: more uniform wording, and use pretty
+    - Spruce up assertion macros: more uniform wording, and use pretty
       function printing to show what function the failure was in. #2262
     - The new preferred assertion macros are `OIIO_ASSERT` and `OIIO_DASSERT`.
       The `OIIO_ASSERT` always tests and prints an error message if the test
@@ -1042,11 +1042,11 @@ Developer goodies / internals:
 * fmath.h:
     - `safe_mod()` does integer modulus but protects against mod-by-zero
       exceptions. #2121 (2.1.0/2.0.5)
-    - powwroundup/pow2rounddown have been renamed ceil2/floor2 to reflect
+    - pow2roundup/pow2rounddown have been renamed ceil2/floor2 to reflect
       future C++20 standard. The old names still work, so it's a fully back
       compatible change. #2199 (2.0.8/2.1.1)
     - To match C++20 notation, use `rotl()` template innstead of separate
-      rotl32/rotl64 funnctions. #2299, #2309 (2.1.3)
+      rotl32/rotl64 functions. #2299, #2309 (2.1.3)
 * platform.h:
     - New `OIIO_RETURNS_NONNULL` macro implements an attribute that marks
       a function that returns a pointer as guaranteeing that it's never
@@ -1087,12 +1087,12 @@ Developer goodies / internals:
     - Add `OIIO_CHECK_IMAGEBUF_STATUS()` test macro. #2394 (2.1.8)
 * unordered_map_concurrent.h:
     - Performance improvement by avoiding redundant hashing of keys, and
-      improving the speed and properties of the hash functionn. #2313, #2316
+      improving the speed and properties of the hash function. #2313, #2316
       (2.1.3)
 * ustring.h:
     - Bug fix in `ustring::compare(string_view)`, in cases where the
       string_view was longer than the ustring, but had the same character
-      sequennce up to the length of the ustring. #2283 (2.0.10/2.1.3)
+      sequence up to the length of the ustring. #2283 (2.0.10/2.1.3)
 * Wide use of declaring methods `noexcept` when we want to promise that
   they won't throw exceptions. #2156, #2243 (2.1.0, 2.1.2)
 * Changed all (we think) internal string formatting that expects printf
@@ -1159,7 +1159,7 @@ Release 2.0.10 (1 Aug, 2019) -- compared to 2.0.9
 * `IBA::ociodisplay()` and `oiiotool --ociodisplay`: empty display or view
   names imply using the default display or view. #2273
 * Bug fix in `ustring::compare(string_view)`, in cases where the string_view
-  was longer than the ustring, but had the same character sequennce up to
+  was longer than the ustring, but had the same character sequence up to
   the length of the ustring. #2283
 * `oiiotool --stats`: Fixed bug where `-iconfig` hints were not being
   applied to the file as it was opened to compute the stats. #2288

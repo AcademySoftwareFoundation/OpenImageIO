@@ -350,7 +350,7 @@ void GifSplitPalette(uint8_t* image, int numPixels, int firstElt, int lastElt, i
 }
 
 // Finds all pixels that have changed from the previous image and
-// moves them to the fromt of th buffer.
+// moves them to the front of the buffer.
 // This allows us to build a palette optimized for the colors of the
 // changed pixels only.
 int GifPickChangedPixels( const uint8_t* lastFrame, uint8_t* frame, int numPixels )
@@ -454,7 +454,7 @@ void GifDitherImage( const uint8_t* lastFrame, const uint8_t* nextFrame, uint8_t
             int32_t bestDiff = 1000000;
             int32_t bestInd = kGifTransIndex;
 
-            // Search the palete
+            // Search the palette
             GifGetClosestPaletteColor(pPal, rr, gg, bb, bestInd, bestDiff);
 
             // Write the result to the temp buffer

@@ -329,7 +329,7 @@ RawInput::open(const std::string& name, ImageSpec& newspec,
     m_config   = config;
 
     // For a fresh open, we are concerned with just reading all the
-    // meatadata quickly, because maybe that's all that will be needed. So
+    // metadata quickly, because maybe that's all that will be needed. So
     // call open_raw passing unpack=false. This will not read the pixels! We
     // will need to close and re-open with unpack=true if and when we need
     // the actual pixel values.
@@ -449,7 +449,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
         = config.get_int_attribute("raw:use_camera_matrix", 1);
 
     // Check to see if the user has explicitly requested output colorspace
-    // primaries via a configuration hinnt "raw:ColorSpace". The default if
+    // primaries via a configuration hint "raw:ColorSpace". The default if
     // there is no such hint is convert to sRGB, so that if somebody just
     // naively reads a raw image and slaps it into a framebuffer for
     // display, it will work just like a jpeg. More sophisticated users

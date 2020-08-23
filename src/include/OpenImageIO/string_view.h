@@ -99,7 +99,7 @@ public:
     /// be just data(), with no significant added expense (because most uses
     /// of string_view are simple wrappers of C strings, C++ std::string, or
     /// ustring -- all of which are 0-terminated). But in the more rare case
-    /// that the string_view represetns a non-0-terminated substring, it
+    /// that the string_view represents a non-0-terminated substring, it
     /// will force an allocation and copy underneath.
     ///
     /// Caveats:
@@ -142,7 +142,7 @@ public:
     /// Is the string_view empty, containing no characters?
     bool empty() const noexcept { return m_len == 0; }
 
-    /// Element access of an individual chracter (beware: no bounds
+    /// Element access of an individual character (beware: no bounds
     /// checking!).
     const charT& operator[](size_type pos) const { return m_chars[pos]; }
     /// Element access with bounds checking and exception if out of bounds.

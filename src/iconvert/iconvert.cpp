@@ -499,7 +499,7 @@ main(int argc, char* argv[])
 
     // Force all files to close, ugh, it's the only way I can find to solve
     // an occasional problem with static destructor order fiasco with
-    // field3dwhen building with EMBEDPLUGINS=0 on MacOS.
+    // field3d when building with EMBEDPLUGINS=0 on MacOS.
     ImageCache::create()->close_all();
 
     return ok ? EXIT_SUCCESS : EXIT_FAILURE;

@@ -67,9 +67,9 @@ OIIO_NAMESPACE_BEGIN
 ///     no allocation, no character copying, no reference counting.
 ///   - Equality testing (do the strings contain the same characters) is
 ///     a single operation, the comparison of the pointer.
-///   - Memory allocation only occurs when a new ustring is construted from
+///   - Memory allocation only occurs when a new ustring is constructed from
 ///     raw characters the FIRST time -- subsequent constructions of the
-///     same string just finds it in the canonial string set, but doesn't
+///     same string just finds it in the canonical string set, but doesn't
 ///     need to allocate new storage.  Destruction of a ustring is trivial,
 ///     there is no de-allocation because the canonical version stays in
 ///     the set.  Also, therefore, no user code mistake can lead to

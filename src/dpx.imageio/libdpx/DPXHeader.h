@@ -1171,13 +1171,13 @@ namespace dpx
 		
 		/*!
 		 * \brief Get the shutter angle of the motion picture camera
-		 * \return degress of the temporal sampling aperture
+		 * \return degrees of the temporal sampling aperture
 		 */
 		inline R32			ShutterAngle() const;
 		
 		/*!
 		 * \brief Set the shutter angle of the motion picture camera
-		 * \param angle degress of the temporal sampling aperture
+		 * \param angle degrees of the temporal sampling aperture
 		 */
 		inline void			SetShutterAngle(const R32 angle);
 		
@@ -1262,25 +1262,25 @@ namespace dpx
 		inline void			SetFieldNumber(const U8 fn);
 		
 		/*!
-		 * \brief Get the video sournce
+		 * \brief Get the video source
 		 * \return signal
 		 */
 		inline VideoSignal	Signal() const;
 		
 		/*!
-		 * \brief Set the video sournce
+		 * \brief Set the video source
 		 * \param vs signal
 		 */
 		inline void			SetSignal(const VideoSignal vs);
 		
 		/*!
-		 * \brief Get the clock rate at which samples were aquired
+		 * \brief Get the clock rate at which samples were acquired
 		 * \return rate
 		 */
 		inline R32			HorizontalSampleRate() const;
 		
 		/*!
-		 * \brief Set the clock rate at which samples were aquired
+		 * \brief Set the clock rate at which samples were acquired
 		 * \param rate rate
 		 */
 		inline void			SetHorizontalSampleRate(const R32 rate);

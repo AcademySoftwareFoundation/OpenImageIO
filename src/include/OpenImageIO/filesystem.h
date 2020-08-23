@@ -254,7 +254,7 @@ OIIO_API void convert_native_arguments (int argc, const char *argv[]);
 ///                           NOT have been selected by 'x'.
 ///     Note that START may be > FINISH, or STEP may be negative.
 ///  * Multiple values or ranges, separated by a comma (e.g., "3,4,10-20x2")
-/// Retrn true upon success, false if the description was too malformed
+/// Return true upon success, false if the description was too malformed
 /// to generate a sequence.
 OIIO_API bool enumerate_sequence (string_view desc,
                                   std::vector<int> &numbers);

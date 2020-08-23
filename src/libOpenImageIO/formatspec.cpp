@@ -1173,7 +1173,7 @@ pvt::check_texture_metadata_sanity(ImageSpec& spec)
     string_view software      = spec.get_string_attribute("Software");
     string_view textureformat = spec.get_string_attribute("textureformat");
     if (textureformat == "" ||   // no `textureformat` tag -- not a texture
-        spec.tile_width == 0 ||  // scanline file -- definitly not a texture
+        spec.tile_width == 0 ||  // scanline file -- definitely not a texture
         (!Strutil::istarts_with(software, "OpenImageIO")
          && !Strutil::istarts_with(software, "maketx"))
         // assume not maketx output if it doesn't say so in the software field

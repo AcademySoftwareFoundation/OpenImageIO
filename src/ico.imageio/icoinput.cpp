@@ -186,7 +186,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
     if (!fread(temp, 1, sizeof(temp)))
         return false;
     if (temp[1] == 'P' && temp[2] == 'N' && temp[3] == 'G') {
-        // standard PNG initalization
+        // standard PNG initialization
         if (png_sig_cmp((png_bytep)temp, 0, 7)) {
             errorf("Subimage failed PNG signature check");
             return false;

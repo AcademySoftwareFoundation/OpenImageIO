@@ -39,7 +39,7 @@ public:
     /// Get the width of the filter
     float width(void) const { return m_w; }
 
-    /// Evalutate the filter at an x position (relative to filter center)
+    /// Evaluate the filter at an x position (relative to filter center)
     virtual float operator()(float x) const = 0;
 
     /// Return the name of the filter, e.g., "box", "gaussian"
@@ -88,7 +88,7 @@ public:
     ///
     virtual bool separable() const { return false; }
 
-    /// Evalutate the filter at an x and y position (relative to filter
+    /// Evaluate the filter at an x and y position (relative to filter
     /// center).
     virtual float operator()(float x, float y) const = 0;
 

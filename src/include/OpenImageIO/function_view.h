@@ -61,7 +61,7 @@ OIIO_NAMESPACE_BEGIN
 /// function_view.
 ///
 /// In contrast, a full std::function<> is an owning container for a
-/// callable object. It's more robust, especially with restpect to object
+/// callable object. It's more robust, especially with respect to object
 /// lifetimes, but the call overhead is quite high. So use a function_view
 /// when you can.
 ///

@@ -110,7 +110,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     // due to struct packing, we may get a corrupt header if we just load the
-    // struct from file; to adress that, read every member individually
+    // struct from file; to address that, read every member individually
     // save some typing
 #define RH(memb)                                    \
     if (!fread(&m_tga.memb, sizeof(m_tga.memb), 1)) \
@@ -252,7 +252,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         //std::cerr << "[tga] extension area size: " << s << "\n";
         if (s >= 495) {
             union {
-                unsigned char c[324];  // so as to accomodate the comments
+                unsigned char c[324];  // so as to accommodate the comments
                 uint16_t s[6];
                 uint32_t l;
             } buf;

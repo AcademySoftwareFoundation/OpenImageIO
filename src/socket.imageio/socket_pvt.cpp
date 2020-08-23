@@ -23,7 +23,7 @@ socket_write(ip::tcp::socket& s, TypeDesc& /*type*/, const void* data, int size)
 {
     std::size_t bytes;
 
-    // TODO: Translate data to correct endianesss.
+    // TODO: Translate data to correct endianess.
     bytes = write(s, buffer(reinterpret_cast<const char*>(data), size));
 
     return bytes;

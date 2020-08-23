@@ -35,7 +35,7 @@ set (OPTIONAL_DEPS "" CACHE STRING
 # following extra features:
 #   * If either `USE_pkgname` or the all-uppercase `USE_PKGNAME` (or
 #     `ENABLE_pkgname` or `ENABLE_PKGNAME`) exists as either a CMake or
-#     environment variable, is nonempty by contains a non-true/nonnzero
+#     environment variable, is nonempty by contains a non-true/nonzero
 #     value, do not search for or use the package. The optional ENABLE <var>
 #     arguments allow you to override the name of the enabling variable. In
 #     other words, support for the dependency is presumed to be ON, unless

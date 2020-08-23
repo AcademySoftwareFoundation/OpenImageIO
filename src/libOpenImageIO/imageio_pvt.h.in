@@ -38,7 +38,7 @@ extern int oiio_log_times;
 // For internal use - use error() below for a nicer interface.
 void seterror (string_view message);
 
-/// Use error() privately only.  Protoype is conceptually printf-like, but
+/// Use error() privately only.  Prototype is conceptually printf-like, but
 /// also fully typesafe:
 template<typename... Args>
 inline void errorf (const char* fmt, const Args&... args) {

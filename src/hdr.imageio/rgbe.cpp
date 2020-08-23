@@ -30,7 +30,7 @@
  2. Correctly read and write images of all 8 orientations (not just -Y+X)
     and specify the orientation in the rgbe_header_info structure.
  3. Change the default programtype string from "RGBE" to "RADIANCE" since
-    I noticed that some hdr/rgbe readers (including OS X's preivew util)
+    I noticed that some hdr/rgbe readers (including OS X's preview util)
     will only accept "RADIANCE" as the programtype.
 
 Further changes by LG, 2018:
