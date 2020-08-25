@@ -243,91 +243,10 @@ or, if you are using CMake directly,
 Building on Windows
 -------------------
 
-**Method 1 - Default**
+**Method 1 - from source**
 
-1. Check out the trunk or a branch of your choice.  The remainder of
-   these instructions assume that you checked out the trunk to the
-   D:\OIIO\trunk directory.
-
-2. Download the package with precompiled external libraries from
-http://www.openimageio.org/external.zip
-
-   Next, unpack it. The directory with downloaded code from the repository
-   and the directory with unpacked libraries should be siblings. For example,
-
-   ```
-   D:
-       \OIIO
-           \trunk          // this is my tree
-               \src        // directory with src files for OIIO
-               \build      // directory that is created by cmake
-           \external       // this is extracted external package
-               \dist
-                   \windows
-                       \glew-1.5.1
-                       \ilmbase-1.0.1
-                       \jpeg-6b
-                       \libpng-1.2.3
-                       \openexr-1.6.1
-                       \tbb-21_20080605oss
-                       \zlib-1.2.3
-                       \tiff-3.8.2
-   ```
-
-3. Download precompiled Qt4 binaries for Windows from here:
-   http://qt.windows.binaries.googlepages.com/index.html
-
-   Unpack it (it doesn't matter where). After unpacking, add the path to
-   the Qt bin directory to the PATH variable. For example, if you unpacked
-   this package to the D:\qt-win directory, you should add D:\qt-win\bin to
-   your PATH. It's important to add the Qt bin directory to PATH because
-   the FindQt4 module uses it to search for qmake applications.
-
-4. Also, just to be safe, add QTDIR to the environment variables. It
-   should point to directory where you unpacked Qt.
-
-5. Download precompiled BOOST 1.53 or newer libraries from
-   http://www.boostpro.com/download
-
-   Install it on your system. Choose two versions: Multithread Debug, DLL
-   and Multithread, DLL for Your Visual Studio version.
-
-6. Download precompiled BOOST 1.53 or newer libraries from here (unofficial
-   mirror) or from here (unofficial mirror, registration required). Install
-   it on Your system. Choose two versions: Multithread Debug, DLL and
-   Multithread, DLL for Your Visual Studio version.
-
-7. Install cmake. You can download precompiled binaries from here:
-   http://www.cmake.org/cmake/resources/software.html
-   After installing, run cmake-gui. Set the field that specifies the source
-   code location (for example, to D:\OIIO\trunk\src). Then set the field
-   that specifies where to build binaries to the directory you want to
-   build project for OIIO (for example, D:\OIIO\trunk\build).
-
-8. Set the THIRD_PARTY_TOOLS_HOME environment variable to the directory
-   where are stored unpacked external libraries (for example,
-   D:\OIIO\external\dist\windows). You can add variables by clicking Add
-   entry button.
-
-9. Hit the Configure button. Cmake should automatically find externals
-   libraries and prepare the environment for creating the OIIO project. If
-   the configuration process ends without errors go to next step. If not,
-   read the instructions from the end of this tutorial.
-
-10. Hit the Generate button. Cmake will build Visual Studio a solution in
-the build directory.
-
-11. That's all. You can open the OpenImageIO solution and start developing
-OIIO! Potential problems:
-
-
-It may happen that cmake won't find zlib, png, tiff or jpeg
-libraries. If so you have to set CMAKE_PREFIX_PATH to point to the
-directory where the missing libraries are stored. For example, if cmake
-can't find ZLIB, add to CMAKE_PREFIX_PATH the
-D:\OIIO\external\dist\windows\zlib-1.2.3 directory. If it can't find
-ZLIB and PNG, add
-D:\OIIO\external\dist\windows\zlib-1.2.3;D:\OIIO\external\dist\windows\libpng-1.2.3.
+I really need someone to write correct, modern docs about how to build
+from source on Windows.
 
 **Method 2 - Using vcpkg**
 
