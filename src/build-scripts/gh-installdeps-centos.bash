@@ -33,7 +33,7 @@ src/build-scripts/install_test_images.bash
 
 source src/build-scripts/build_pybind11.bash
 
-if [[ "$OPENEXR_BRANCH" || "$OPENEXR_VERSION" ]] ; then
+if [[ "$OPENEXR_VERSION" ]] ; then
     source src/build-scripts/build_openexr.bash
 fi
 
@@ -41,8 +41,8 @@ if [[ "$LIBTIFF_BRANCH" || "$LIBTIFF_VERSION" ]] ; then
     source src/build-scripts/build_libtiff.bash
 fi
 
-if [[ "$OCIO_BRANCH" || "$OCIO_VERSION" ]] ; then
+if [[ "$OPENCOLORIO_VERSION" ]] ; then
     # Temporary (?) fix: GH ninja having problems, fall back to make
     CMAKE_GENERATOR="Unix Makefiles" \
-    source src/build-scripts/build_ocio.bash
+    source src/build-scripts/build_opencolorio.bash
 fi
