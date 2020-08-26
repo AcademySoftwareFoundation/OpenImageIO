@@ -1,0 +1,38 @@
+# Reformatting via clang-format (part 1) (#2059)
+5e76177f6850a8d04c544dc98128bcdfe55ca40a
+
+# clang-format stage 2: src/libutil (#2064)
+1a5b7aa00dd34883a8829875ee05c55b2a1f6736
+
+# clang-format stage 3 -- src/*.imageio/* (#2065)
+22e1af2ff0caa2c9aa31c0d7a69eb7762c04302d
+
+# clang-format of src/libtexture and src/libOpenImageIO (#2067)
+400e2340cf12ae84792f9a0146426b6022474dc9
+
+# clang-format, final-ish update (#2069)
+5af338158ad47fc84e7b0d03086fece04e0e2d24
+
+# Adjustments from clang-format update
+3e106c35845715875c3b3ce7b1621cb62ea41f0d
+
+# clang-format fixes (#2137)
+e536411711367ed7309ca884ebc9de4cea4d0da0
+c31816192691562e96b4ebc10dd7e5fd2e9c801b
+
+# Minor formatting changes in ustring with new clang-format (#2574)
+9e911bddf275206867643d0009f0bd7b9a20e463
+9fa2a5d42465870ae370afe5e3298433b2ecb56c
+
+# Fix broken clang-format test (#2627)
+7e5b841a80ed63b38f6d343889de615ef8cc4316
+
+# Adjustments from clang-format update with clang 8
+e83809b77e4d895dbf48fb6c2b5fb914a5f8eb06
+
+# Touch up formatting with clang-format
+f701a76b745b6ddba41c77b24a1ea7e1f48ae0b4
+
+# clang-format: Adjust alignment of line continuation backslashes (#2664)
+742173e39588e07cf43cbe7b49dd22d624a48388
+d8810c5365ea88e2b1bce6155b7b495c18f2f9bc
