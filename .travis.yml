@@ -66,7 +66,7 @@ install:
     - if [[ $TRAVIS_OS_NAME == osx ]] ; then source src/build-scripts/install_homebrew_deps.bash ; fi
     - if [[ "$BUILD_CMAKE" == "1" ]] ; then source src/build-scripts/build_cmake.bash ; fi
     - if [[ "$OPENEXR_VERSION" || "$OPENEXR_BRANCH" ]] ; then CXX="ccache $CXX" source src/build-scripts/build_openexr.bash ; fi
-    - if [[ "$OCIO_VERSION" || "$OCIO_BRANCH" ]] ; then CXX="ccache $CXX" source src/build-scripts/build_ocio.bash ; fi
+    - if [[ "$OPENCOLORIO_VERSION" ]] ; then CXX="ccache $CXX" source src/build-scripts/build_opencolorio.bash ; fi
     - if [[ $TRAVIS_OS_NAME == linux ]] ; then source src/build-scripts/build_pybind11.bash ; fi
     - src/build-scripts/install_test_images.bash
 

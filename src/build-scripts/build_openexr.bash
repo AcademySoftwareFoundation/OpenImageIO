@@ -22,8 +22,8 @@ BASEDIR=$PWD
 
 pwd
 echo "Building OpenEXR ${OPENEXR_VERSION}"
-echo "EXR build dir will be: ${OPENEXR_BUILD_DIR}"
-echo "EXR install dir will be: ${OPENEXR_INSTALL_DIR}"
+echo "OpenEXR build dir will be: ${OPENEXR_BUILD_DIR}"
+echo "OpenEXR install dir will be: ${OPENEXR_INSTALL_DIR}"
 echo "CMAKE_PREFIX_PATH is ${CMAKE_PREFIX_PATH}"
 echo "OpenEXR Build type is ${OPENEXR_BUILD_TYPE}"
 

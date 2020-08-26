@@ -129,7 +129,7 @@ ls /c/hostedtoolcache/windows/Python/3.6.8/x64
 
 # source src/build-scripts/build_openexr.bash
 # export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$ILMBASE_ROOT;$OPENEXR_ROOT"
-# source src/build-scripts/build_ocio.bash
+# source src/build-scripts/build_opencolorio.bash
 
 
 if [[ "$PYTHON_VERSION" == "3.6" ]] ; then

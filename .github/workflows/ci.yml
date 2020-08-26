@@ -203,7 +203,7 @@ jobs:
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
           OPENEXR_VERSION: master
-          OCIO_BRANCH: master
+          OPENCOLORIO_VERSION: master
           LIBTIFF_BRANCH: master
           PYBIND11_VERSION: master
           LIBRAW_BRANCH: master
@@ -373,7 +373,7 @@ jobs:
           CMAKE_CXX_STANDARD: 14
           USE_SIMD: avx2,f16c
           OPENEXR_VERSION: v2.4.1
-          OCIO_BRANCH: 1c624651b7
+          OPENCOLORIO_VERSION: 1c624651b7
           # Pick an OCIO commit that includes a warning fix we need for clang
         run: |
             source src/build-scripts/ci-startup.bash
