@@ -106,6 +106,7 @@ include (GNUInstallDirs)
 
 include (colors)
 include (check_is_enabled)
+include (checked_find_package)
 
 # All the C++ and compiler related options and adjustments live here
 include (compiler)
@@ -491,7 +492,7 @@ set (CPACK_COMPONENT_USER_DISPLAY_NAME "Applications")
 set (CPACK_COMPONENT_DEVELOPER_DISPLAY_NAME "Developer files")
 set (CPACK_COMPONENT_DOCUMENTATION_DISPLAY_NAME "Documentation")
 set (CPACK_COMPONENT_USER_DESCRIPTION
-     "Applications: oiotool, iv, iinfo, iconvert, idiff, igrep, maketx and libraries")
+     "Applications: oiiotool, iv, iinfo, iconvert, idiff, igrep, maketx and libraries")
 set (CPACK_COMPONENT_DEVELOPER_DESCRIPTION "Include files")
 set (CPACK_COMPONENT_DOCUMENTATION_DESCRIPTION "OpenImageIO documentation")
 set (CPACK_COMPONENT_DEVELOPER_DEPENDS user)
