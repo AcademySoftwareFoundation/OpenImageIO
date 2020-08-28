@@ -27,15 +27,23 @@ make_test_image(string_view formatname)
     auto out = ImageOutput::create(formatname);
     OIIO_DASSERT(out);
     ImageSpec spec(64, 64, 4, TypeFloat);
+    float pval = 1.0f;
+    // Fill with 0 for lossy HEIF
+    if (formatname == "heif")
+        pval = 0.0f;
+
+    // Accommodate limited numbers of channels
     if (formatname == "zfile" || formatname == "fits")
         spec.nchannels = 1;  // these formats are single channel
     else if (!out->supports("alpha"))
-        spec.nchannels = 3;  // this channel doesn't support alpha
+        spec.nchannels = std::min(spec.nchannels, 3);
+
     // Force a fixed datetime metadata so it can't differ between writes
     // and make different file patterns for these tests.
     spec.attribute("DateTime", "01/01/2000 00:00:00");
+
     buf.reset(spec);
-    ImageBufAlgo::fill(buf, { 1.0f, 1.0f, 1.0f, 1.0f });
+    ImageBufAlgo::fill(buf, { pval, pval, pval, 1.0f });
     return buf;
 }
 
