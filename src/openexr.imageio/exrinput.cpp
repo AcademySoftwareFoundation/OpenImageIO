@@ -415,13 +415,15 @@ bool
 OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
                    const ImageSpec& config)
 {
+    // First thing's first. See if we're been given an IOProxy. We have to
+    // do this before the check for non-exr files, that's why it's here and
+    // not where the rest of the configuration hints are handled.
     const ParamValue* param = config.find_attribute("oiio:ioproxy",
                                                     TypeDesc::PTR);
     if (param)
         m_io = param->get<Filesystem::IOProxy*>();
 
-    // Quick check to reject non-exr files. Don't perform these tests for
-    // the IOProxy case.
+    // Quick check to immediately reject nonexistant or non-exr files.
     if (!m_io && !Filesystem::is_regular(name)) {
         errorf("Could not open file \"%s\"", name);
         return false;
@@ -430,7 +432,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
         errorf("\"%s\" is not an OpenEXR file", name);
         return false;
     }
-    pvt::set_exr_threads();
+
+    // Check any other configuration hints
 
     // "missingcolor" gives fill color for missing scanlines or tiles.
     if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
@@ -453,8 +456,15 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
             m_missingcolor = Strutil::extract_from_list_string<float>(mc);
     }
 
-    m_spec = ImageSpec();  // Clear everything with default constructor
+    // Before engaging further with OpenEXR, make sure it is using the right
+    // number of threads.
+    pvt::set_exr_threads();
 
+    // Clear the spec with default constructor
+    m_spec = ImageSpec();
+
+    // Establish an input stream. If we weren't given an IOProxy, create one
+    // now that just reads from the file.
     try {
         if (!m_io) {
             m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Read);
@@ -472,6 +482,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
         return false;
     }
 
+    // Read the header by constructing a MultiPartInputFile from the input
+    // stream.
     try {
         m_input_multipart = new Imf::MultiPartInputFile(*m_input_stream);
     } catch (const std::exception& e) {
@@ -490,6 +502,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     m_subimage = -1;
     m_miplevel = -1;
 
+    // Set up for the first subimage ("part"). This will trigger reading
+    // information about all the parts.
     bool ok = seek_subimage(0, 0);
     if (ok)
         newspec = m_spec;
