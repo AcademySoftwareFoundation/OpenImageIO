@@ -25,6 +25,7 @@ New major features and public API changes:
       `ImageOutput`.  This is the key to writing a multi-subimage file (such
       as a multi-part OpenEXR) using the Python ImageBuf interface. #2640
       (2.2.4)
+    - Fixes to `--croptofull` and `-o` with multi-subimages. #2684 (2.2.6)
 * Python bindings:
     - Python bindings have been added for missing ParamValue constructors.
       We previously exposed the PV constructors from just a plain int, float,
@@ -123,6 +124,12 @@ Fixes and feature enhancements:
       (Punchline: only OpenEXR textures can do it.) #2521 (2.2.0)
     - Fix possible redundant tile reads in multithread situations (harmless,
       but makes for redundant I/O). #2557 (2.2.2)
+* Python:
+    - Fixed a bug that lost certain string arguments, especially when passing
+      a TypeDesc as its string equivalent. #2587 (2.1.16/2.2.3)
+    - Fixed broken bindings of ImageSpec.erase_attribute. #2654
+      (2.1.19/2.2.6)
+    - Fix missing ImageInput.read_image(). #2677 (2.1.19/2.2.6)
 * Exif read: guard better against out of range offsets, fixes crashes when
   reading jpeg files with malformed exif blocks. #2429 (2.1.10/2.2.0)
 * Fix: `ImageSpec::erase_attribute()` did not honor its `searchtype`
@@ -133,6 +140,8 @@ Fixes and feature enhancements:
   can't be opened. #2511 (2.2.2/2.1.13)
 * DPX:
     - IOProxy reading is now supported. #2659 (2.2.5)
+    - DPX: Add support for reading DPX files from IOProxy (such as from a
+      memory buffer). #2659 #2665 (2.1.19/2.2.6)
 * HDR files:
     - Improve performance when reading HDR files out of order (when combined
       with ImageCache, observed to speed up out-of-order HDR reading by 18x).
@@ -155,6 +164,8 @@ Fixes and feature enhancements:
     - Improved propagation of PNG write errors. #2655 (2.2.5)
     - Tell libpng to turn off sRGB profile check, which has a known problem of
       false positives. #2655 (2.2.5)
+    - New output option "png:filter" allows control of the PNG filter
+      options. #2650 (2.1.19/2.2.6)
 * Raw images:
     - Support for new Canon .cr3 file, but only if you build against
       libraw >= 0.20.0 developer snapshot. #2484 (2.2.1) #2613 (2.2.4)
@@ -257,10 +268,6 @@ Developer goodies / internals:
   but not force a termination. #2435 (2.1.11/2.2.0)
 * Internals: Replaced most uses of `boost::thread_specific_ptr` with C++11
   `thread_local`. #2431 (2.2.0)
-* Python:
-    - Fixed a bug that lost certain string arguments, especially when passing
-      a TypeDesc as its string equivalent. #2587 (2.1.16/2.2.3)
-    - Fixed broken bindings of ImageSpec.erase_attribute. #2654 (2.2.5)
 * oiiotool: Big overhaul and simplification of internals. #2586 #2589 (2.2.3)
 
 Build/test system improvements and platform ports:
@@ -288,6 +295,7 @@ Build/test system improvements and platform ports:
       whatever capitalization matches the actual package name). #2569 (2.2.2)
     - The exported CMake config files now set cmake variable
       `OpenImageIO_PLUGIN_SEARCH_PATH` #2584 (2.1.16/2.2.3)
+    - Improved hints printed about missing dependencies. #2682 (2.2.6)
 * Continuous integration (CI) systems:
     - Mostly retire TravisCI for ordinary Linux x64 and Mac builds, now we
       rely on GitHub Actions CI. Nightly test added. Use ASWF docker images
@@ -326,6 +334,7 @@ Build/test system improvements and platform ports:
     - Build against more recent versions of fmtlib. #2639 (2.2.4)
     - Included scripts to download and build libtiff #2543 (2.1.13/2.2.2),
       PugiXML #2648 (2.2.4), zlib, libpng, libjpeg-turbo. #2663 (2.2.5)
+    - Minor fixes for libheif 1.8. #2685 (2.2.6)
 * Add a build_libtiff.bash script to make it easy to build the libtiff
   dependency. #2543 (2.1.13/2.2.2)
 * Progress on support for using Conan for dependency installation. This is
@@ -362,20 +371,44 @@ Build/test system improvements and platform ports:
 * Moved headers that are not part of OIIO's supported public API, but that
   still must be installed to be transitively included, do a "detail"
   subdirectory. #2648 (2.2.4)
-* Fix many Mingw compiler warnings. #2657 (2.2.5)
-* Fix Windows extended length / long paths when opening files. #2662 (2.2.5)
+* Fix many Mingw compiler warnings. #2657 (2.1.19/2.2.5)
+* Windows: Improve Strutil::get_rest_arguments() handling of long path
+  syntax (`"\\?\"` style). #2661 (2.1.19/2.2.6)
+* Fix compilation error with armv7 + x86. #2660 (2.2.6)
 
 Notable documentation changes:
 * Many enhancements in the ImageBuf chapter. #2460 (2.1.11/2.2.0)
-* The `THIRD-PARTY.md` file has been reorganized to be clearer,
-  grouping parts with identical licenses. #2469
+* The `LICENSE-THIRD-PARTY.md` file has been reorganized to be clearer,
+  grouping parts with identical licenses. #2469 (2.2.1) And renamed to
+  "THIRD-PARTY.md" to avoid confusing GitHub's reporting of the project's
+  license. (2.2.6)
 * Many fixes to the new readthedocs documentation, especially fixes to
   section cross-references and links.
 * Improved INSTALL instructions. (2.2.2/2.1.13)
 * Fix a variety of breaks on ReadTheDocs. #2581
 * Improve the way we discuss optional modifiers.
 * Document the PNG output controls for compression level. #2642 (2.2.4)
+* Lots of spell check / typo fixes in docs and comments. #2678 (2.2.6)
+* INSTALL.md: remove misleading old Windows build instructions. #2679 (2.2.6)
+* New file .git-blame-ignore-revs lists the hashes of commits that only
+  performed bulk reformatting, so that they don't misattribute authorship
+  or modification date. Everybody do this in your local repo:
+  `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+  #2683 (2.2.6)
 
+
+Release 2.1.19 (1 Sep 2020) -- compared to 2.1.18
+-------------------------------------------------
+* DPX: Add support for reading DPX files from IOProxy (such as from a memory
+  buffer). #2659 #2665
+* PNG: New output option "png:filter" allows control of the PNG filter
+  options. #2650
+* Python: Fix binding of ImageSpec.erase_attribute. #2654
+* Python: Fix missing ImageInput.read_image(). #2677
+* Windows: Improve Strutil::get_rest_arguments() handling of long path
+  syntax (`"\\?\"` style). #2661
+* MinGW: Fix a variety of compiler warnings on this platform. #2657
+* Fix build on Elbrus 2000 architecture. #2671
 
 Release 2.1.18 (1 Aug 2020) -- compared to 2.1.17
 -------------------------------------------------
@@ -391,6 +424,8 @@ Release 2.1.18 (1 Aug 2020) -- compared to 2.1.17
 * PNG: document the "png:compressionLevel" output hint. #2642
 * In oiioversion.h, add a `OIIO_MAKE_VERSION` macro that constructs the
   integer code for a particular major/minor/patch release. #2641
+* 2.1.18.1: Fix version number which for 2.1.18.0 unfortunately still
+  said it was 2.1.17.
 
 Release 2.1.17 (1 Jul 2020) -- compared to 2.1.16
 -------------------------------------------------
@@ -408,8 +443,8 @@ Release 2.1.17 (1 Jul 2020) -- compared to 2.1.16
 * oiioversion.h: fix typo that left the OIIO_VERSION_RELEASE_TYPE symbol
   undefined. #2616
 
-Release 2.1.16 (1 Jun  2020) -- compared to 2.1.15
---------------------------------------------------
+Release 2.1.16 (1 Jun 2020) -- compared to 2.1.15
+-------------------------------------------------
 * OpenEXR: Fix bug in the channel sorting order when channels are "X" and
   "Y" (was reversing the order by confusing "Y" for "luminance"). #2595
 * Python: Fixed a bug that lost certain string arguments, especially when
