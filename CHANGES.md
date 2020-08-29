@@ -1,5 +1,15 @@
-Release 2.1.19 (?? 2020) -- compared to 2.1.18
+Release 2.1.19 (1 Sep 2020) -- compared to 2.1.18
 -------------------------------------------------
+* DPX: Add support for reading DPX files from IOProxy (such as from a memory
+  buffer). #2659 #2665
+* PNG: New output option "png:filter" allows control of the PNG filter
+  options. #2650
+* Python: Fix binding of ImageSpec.erase_attribute. #2654
+* Python: Fix missing ImageInput.read_image(). #2677
+* Windows: Improve Strutil::get_rest_arguments() handling of long path
+  syntax (`"\\?\"` style). #2661
+* MinGW: Fix a variety of compiler warnings on this platform. #2657
+* Fix build on Elbrus 2000 architecture. #2671
 
 Release 2.1.18 (1 Aug 2020) -- compared to 2.1.17
 -------------------------------------------------
