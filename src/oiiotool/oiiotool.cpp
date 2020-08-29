@@ -3222,7 +3222,7 @@ action_croptofull(int argc, const char* argv[])
 
     if (crops_needed) {
         ot.pop();
-        ImageRecRef R(new ImageRec(A->name(), A->subimages()));
+        ImageRecRef R(new ImageRec(A->name(), subimages));
         ot.push(R);
         for (int s = 0; s < subimages; ++s) {
             const ImageBuf& Aib((*A)(s, 0));
@@ -4643,7 +4643,7 @@ output_file(int /*argc*/, const char* argv[])
         bool found = parse_channels(*ir->spec(), chanlist, channels);
         if (!found)
             chanlist = alpha ? "0,1,2,3" : "0,1,2";
-        const char* argv[] = { "channels", chanlist.c_str() };
+        const char* argv[] = { "channels:allsubimages=1", chanlist.c_str() };
         int action_channels(int argc, const char* argv[]);  // forward decl
         action_channels(2, argv);
         ot.warningf(command, "Can't save %d channels to %s... saving only %s",
@@ -4666,7 +4666,7 @@ output_file(int /*argc*/, const char* argv[])
                       : format_resolution(roi.width(), roi.height(),
                                           roi.depth(), roi.xbegin, roi.ybegin,
                                           roi.zbegin);
-            const char* argv[] = { "crop", crop.c_str() };
+            const char* argv[] = { "crop:allsubimages=1", crop.c_str() };
             int action_crop(int argc, const char* argv[]);  // forward decl
             action_crop(2, argv);
             ir = ot.curimg;
@@ -4681,7 +4681,7 @@ output_file(int /*argc*/, const char* argv[])
             || ir->spec()->y != ir->spec()->full_y
             || ir->spec()->width != ir->spec()->full_width
             || ir->spec()->height != ir->spec()->full_height)) {
-        const char* argv[] = { "croptofull" };
+        const char* argv[] = { "croptofull:allsubimages=1" };
         int action_croptofull(int argc, const char* argv[]);  // forward decl
         action_croptofull(1, argv);
         ir = ot.curimg;
@@ -4734,7 +4734,7 @@ output_file(int /*argc*/, const char* argv[])
                 std::cout << "  Converting from " << currentspace << " to "
                           << outcolorspace << " for output to " << filename
                           << "\n";
-            const char* argv[] = { "colorconvert:strict=0",
+            const char* argv[] = { "colorconvert:strict=0:allsubimages=1",
                                    currentspace.c_str(),
                                    outcolorspace.c_str() };
             action_colorconvert(3, argv);
@@ -4756,7 +4756,7 @@ output_file(int /*argc*/, const char* argv[])
                                : format_resolution(roi.width(), roi.height(),
                                                    roi.depth(), roi.xbegin,
                                                    roi.ybegin, roi.zbegin);
-        const char* argv[] = { "crop", crop.c_str() };
+        const char* argv[] = { "crop:allsubimages=1", crop.c_str() };
         int action_crop(int argc, const char* argv[]);  // forward decl
         action_crop(2, argv);
         ir = ot.curimg;
