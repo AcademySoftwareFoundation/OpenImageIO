@@ -204,7 +204,7 @@ jobs:
           USE_SIMD: avx2,f16c
           OPENEXR_VERSION: master
           OPENCOLORIO_VERSION: master
-          LIBTIFF_BRANCH: master
+          LIBTIFF_VERSION: master
           PYBIND11_VERSION: master
           LIBRAW_BRANCH: master
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master

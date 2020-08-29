@@ -10,7 +10,7 @@ dist: xenial
 
 
 # Add-ons: specify apt packages for Linux
-# We actaully specify packages per-matrix-entry, so these don't do anything
+# We actually specify packages per-matrix-entry, so these don't do anything
 # except to tag them (&add-sources, &common-packages, &common-boost-packages)
 # so they can be referened later ('*') to save repetition.
 addons:
