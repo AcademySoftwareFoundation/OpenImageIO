@@ -548,7 +548,7 @@ Comparing "RAW_FUJI_F700.RAF.tif" and "ref/RAW_FUJI_F700.RAF-libraw0.20.tif"
 PASS
 Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
 PASS
-Comparing "RAW_OLYMPUS_E3.ORF.tif" and "ref/RAW_OLYMPUS_E3.ORF.tif"
+Comparing "RAW_OLYMPUS_E3.ORF.tif" and "ref/RAW_OLYMPUS_E3.ORF-libraw0.20.0.tif"
 PASS
 Comparing "RAW_PANASONIC_G1.RW2.tif" and "ref/RAW_PANASONIC_G1.RW2.tif"
 PASS
