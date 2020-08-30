@@ -1,4 +1,4 @@
-Release 2.2 (1 Sept 2020??) -- compared to 2.1
+Release 2.2 (1 Sept 2020) -- compared to 2.1
 ----------------------------------------------
 New minimum dependencies:
 * pybind11 >= 2.4.2
@@ -296,23 +296,6 @@ Build/test system improvements and platform ports:
     - The exported CMake config files now set cmake variable
       `OpenImageIO_PLUGIN_SEARCH_PATH` #2584 (2.1.16/2.2.3)
     - Improved hints printed about missing dependencies. #2682 (2.2.6)
-* Continuous integration (CI) systems:
-    - Mostly retire TravisCI for ordinary Linux x64 and Mac builds, now we
-      rely on GitHub Actions CI. Nightly test added. Use ASWF docker images
-      to test exactly against VFX Platform 2019 and 2020 configurations.
-      #2563 (2.2.2) #2579 (2.2.3)
-    - Add Travis test for arm64 (aka aarch64) builds. This is still a work
-      in progress, and not all testsuite tests pass. #2634 (2.2.4)
-    - Our CI tests now have a "bleeding edge" matrix entry that tests against
-      the current TOT master build of libtiff, openexr (#2549), and pybind11
-      (#2556). (2.2.2)
-    - GitHub CI tests, when they fail, leave behind an "artifact" tar file
-      containing the output of the tests, so that they can be easily
-      downloaded and inspected (or used to create new reference output).
-      #2606 (2.2.4)
-    - CI Mac tests switch to Python 3.8. (2.2.4)
-    - Windows CI switched from using Vcpkg to building its own dependencies.
-      #2663 (2.2.5)
 * Dependency version support:
     - Pybind11 is no longer auto-downloaded. It is assumed to be
       pre-installed. A script `src/build-scripts/build_pybind11.bash` is
@@ -335,8 +318,34 @@ Build/test system improvements and platform ports:
     - Included scripts to download and build libtiff #2543 (2.1.13/2.2.2),
       PugiXML #2648 (2.2.4), zlib, libpng, libjpeg-turbo. #2663 (2.2.5)
     - Minor fixes for libheif 1.8. #2685 (2.2.6)
-* Add a build_libtiff.bash script to make it easy to build the libtiff
-  dependency. #2543 (2.1.13/2.2.2)
+    - Add a build_libtiff.bash script to make it easy to build the libtiff
+      dependency. #2543 (2.1.13/2.2.2)
+    - "tinyformat" is no longer used, even optionally. We have switched
+      entirely to fmtlib, which is more similar to the upcoming C++20
+      std::format. #2647 (2.2.4)
+* Testing and Continuous integration (CI) systems:
+    - Mostly retire TravisCI for ordinary Linux x64 and Mac builds, now we
+      rely on GitHub Actions CI. Nightly test added. Use ASWF docker images
+      to test exactly against VFX Platform 2019 and 2020 configurations.
+      #2563 (2.2.2) #2579 (2.2.3)
+    - Add Travis test for arm64 (aka aarch64) builds. This is still a work
+      in progress, and not all testsuite tests pass. #2634 (2.2.4)
+    - Our CI tests now have a "bleeding edge" matrix entry that tests against
+      the current TOT master build of libtiff, openexr (#2549), and pybind11
+      (#2556). (2.2.2)
+    - GitHub CI tests, when they fail, leave behind an "artifact" tar file
+      containing the output of the tests, so that they can be easily
+      downloaded and inspected (or used to create new reference output).
+      #2606 (2.2.4)
+    - CI Mac tests switch to Python 3.8. (2.2.4)
+    - Windows CI switched from using Vcpkg to building its own dependencies.
+      #2663 (2.2.5)
+    - Testing of TGA now assumes the test images are in the oiio-images
+      project, not separately downloaded (the download location disappeared
+      from the net). #2512 (2.2.2)
+    - Beef up OpenEXR compliance tests, many more examples from
+      openexr-images, including many corrupted image failure cases. #2607
+      (2.2.4)
 * Progress on support for using Conan for dependency installation. This is
   experimental, it can't yet build all dependencies. Work in progress.
   #2461 (2.2.1)
@@ -350,9 +359,6 @@ Build/test system improvements and platform ports:
 * Protect against certain compiler preprocessor errors for user programs
   that include strutil.h but also include `fmt` on its own. #2498.
   (2.1.12/2.2.2)
-* Testing of TGA now assumes the test images are in the oiio-images project,
-  not separately downloaded (the download location disappeared from the net).
-  #2512 (2.2.2)
 * Build: All the `build_foo.bash` helper scripts now use `set -ex` to ensure
   that if any individual commands in the script fails, the whole thing will
   exit with a failure. #2520 (2.2.2/2.1.3)
@@ -363,11 +369,6 @@ Build/test system improvements and platform ports:
   parameters, when no OpenCV headers are encountered. #2568 (2.2.2)
 * In (obsolete) FindOpenImageIO.cmake, avoid CMake warnings by changing
   the name `OPENIMAGEIO_FOUND` -> `OpenImageIO_FOUND`. #2578 (2.2.3)
-* Beef up OpenEXR compliance tests, many more examples from openexr-images,
-  including many corrupted image failure cases. #2607 (2.2.4)
-* "tinyformat" is no longer used, even optionally. We have switched entirely
-  to fmtlib, which is more similar to the upcoming C++20 std::format.
-  #2647 (2.2.4)
 * Moved headers that are not part of OIIO's supported public API, but that
   still must be installed to be transitively included, do a "detail"
   subdirectory. #2648 (2.2.4)
