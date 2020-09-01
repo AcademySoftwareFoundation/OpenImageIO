@@ -1,3 +1,6 @@
+Release 2.1.20 (??) -- compared to 2.1.19
+-------------------------------------------------
+
 Release 2.1.19 (1 Sep 2020) -- compared to 2.1.18
 -------------------------------------------------
 * DPX: Add support for reading DPX files from IOProxy (such as from a memory
