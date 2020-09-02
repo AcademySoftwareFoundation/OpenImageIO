@@ -4414,8 +4414,7 @@ input_file(int argc, const char* argv[])
             std::string error;
             bool ok = OiioTool::print_info(ot, filename, pio, error);
             if (!ok)
-                ot.errorf("read", "\"%s\" : %s", filename,
-                          error.size() ? error : "unknown error");
+                ot.error("read", ot.format_read_error(filename, error));
             ot.printed_info = true;
         }
         ot.function_times["input"] += timer();
