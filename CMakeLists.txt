@@ -399,10 +399,15 @@ oiio_add_tests (jpeg2000
                 IMAGEDIR j2kp4files_v1_5
                 URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
 oiio_add_tests (openexr-suite openexr-multires openexr-chroma
-                openexr-v2 openexr-window openexr-damaged perchannel
+                openexr-v2 openexr-window perchannel
                 oiiotool-deep
                 IMAGEDIR openexr-images
                 URL http://www.openexr.com/downloads.html)
+if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
+    oiio_add_tests (openexr-damaged
+                    IMAGEDIR openexr-images
+                    URL http://www.openexr.com/downloads.html)
+endif ()
 oiio_add_tests (openvdb
                 FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
 oiio_add_tests (png
