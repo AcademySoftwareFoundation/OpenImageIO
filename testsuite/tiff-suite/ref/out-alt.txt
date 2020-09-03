@@ -88,7 +88,7 @@ Reading ../../../../../libtiffpic/dscf0013.tif
     tiff:PlanarConfiguration: 1
     tiff:RowsPerStrip: 15
  subimage  1:  160 x  120, 3 channel, uint8 tiff
-    SHA-1: D7C5E398DC47C1FF619F62650EE2F8B303ADCDDC
+    SHA-1: A273D70F123360DE64EB07748E7EED98486C7F4B
     channel list: R, G, B
     compression: "none"
     Orientation: 1 (normal)
