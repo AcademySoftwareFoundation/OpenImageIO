@@ -151,7 +151,7 @@ checked_find_package (FFmpeg 2.6)
 checked_find_package (Field3D
                    DEPS         HDF5
                    DEFINITIONS  -DUSE_FIELD3D=1)
-checked_find_package (GIF 4.1
+checked_find_package (GIF 4
                       RECOMMEND_MIN 5.0
                       RECOMMEND_MIN_REASON "for stability and thread safety")
 checked_find_package (Libheif 1.3)  # For HEIF/HEIC format
