@@ -150,10 +150,12 @@ target_link_libraries (OpenImageIO
         )
 
 if (USE_EXTERNAL_PUGIXML)
-    # insert include path to pugixml first, to ensure that the external
-    # pugixml is found, and not the one in OIIO's include directory.
-    target_include_directories (OpenImageIO PRIVATE BEFORE ${PUGIXML_INCLUDES})
-    target_link_libraries (OpenImageIO PRIVATE ${PUGIXML_LIBRARIES})
+    if(TARGET pugixml)
+        target_link_libraries (OpenImageIO PRIVATE pugixml)
+    else()
+        target_include_directories (OpenImageIO PRIVATE ${PUGIXML_INCLUDES})
+        target_link_libraries (OpenImageIO PRIVATE ${PUGIXML_LIBRARIES})
+    endif()
 endif()
 
 if (FREETYPE_FOUND)
