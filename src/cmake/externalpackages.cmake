@@ -80,10 +80,14 @@ link_directories ("${Boost_LIBRARY_DIRS}")
 # that we will not complete the build if they are not found.
 
 checked_find_package (ZLIB REQUIRED)  # Needed by several packages
-checked_find_package (TIFF 3.0 REQUIRED)
+checked_find_package (TIFF 3.0 REQUIRED
+                      RECOMMEND_MIN 4.0
+                      RECOMMEND_MIN_REASON "to support >4GB files")
 
 # IlmBase & OpenEXR
-checked_find_package (OpenEXR 2.0 REQUIRED)
+checked_find_package (OpenEXR 2.0 REQUIRED
+                      RECOMMEND_MIN 2.2
+                      RECOMMEND_MIN_REASON "for DWA compression")
 # We use Imath so commonly, may as well include it everywhere.
 include_directories ("${OPENEXR_INCLUDES}" "${ILMBASE_INCLUDES}"
                      "${ILMBASE_INCLUDES}/OpenEXR")
@@ -147,10 +151,14 @@ checked_find_package (FFmpeg 2.6)
 checked_find_package (Field3D
                    DEPS         HDF5
                    DEFINITIONS  -DUSE_FIELD3D=1)
-checked_find_package (GIF 4)
+checked_find_package (GIF 4
+                      RECOMMEND_MIN 5.0
+                      RECOMMEND_MIN_REASON "for stability and thread safety")
 checked_find_package (Libheif 1.3)  # For HEIF/HEIC format
 checked_find_package (LibRaw
-                    PRINT LibRaw_r_LIBRARIES)
+                      PRINT LibRaw_r_LIBRARIES
+                      RECOMMEND_MIN 0.18
+                      RECOMMEND_MIN_REASON "for ACES support")
 checked_find_package (OpenJpeg 2.0)
 checked_find_package (OpenVDB 5.0
                    DEPS         TBB
