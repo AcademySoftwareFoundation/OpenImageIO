@@ -176,8 +176,8 @@ private:
         if (m_tif) {
             TIFFClose(m_tif);
             m_tif = NULL;
-            if (m_rgbadata.size())
-                std::vector<uint32_t>().swap(m_rgbadata);  // release
+            m_rgbadata.clear();
+            m_rgbadata.shrink_to_fit();
         }
     }
 
@@ -680,14 +680,16 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
         readspec(read_meta);
         // OK, some edge cases we just don't handle. For those, fall back on
         // the TIFFRGBA interface.
-        bool is_jpeg        = (m_compression == COMPRESSION_JPEG
+        bool is_jpeg         = (m_compression == COMPRESSION_JPEG
                         || m_compression == COMPRESSION_OJPEG);
-        bool is_nonspectral = (m_photometric == PHOTOMETRIC_YCBCR
+        bool is_nonspectral  = (m_photometric == PHOTOMETRIC_YCBCR
                                || m_photometric == PHOTOMETRIC_CIELAB
                                || m_photometric == PHOTOMETRIC_ICCLAB
                                || m_photometric == PHOTOMETRIC_ITULAB
                                || m_photometric == PHOTOMETRIC_LOGL
                                || m_photometric == PHOTOMETRIC_LOGLUV);
+        m_use_rgba_interface = false;
+        m_rgbadata.clear();
         if ((is_jpeg && m_spec.nchannels != 3)
             || (is_nonspectral && !m_raw_color)) {
             char emsg[1024];
