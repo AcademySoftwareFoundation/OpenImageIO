@@ -45,10 +45,10 @@
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    define DEFINE_CONSOLEV2_PROPERTIES
-#    include <Psapi.h>
 #    include <cstdio>
 #    include <io.h>
 #    include <malloc.h>
+#    include <psapi.h>
 #else
 #    include <sys/resource.h>
 #endif
@@ -211,7 +211,7 @@ Sysutil::physical_memory()
 void
 Sysutil::get_local_time(const time_t* time, struct tm* converted_time)
 {
-#ifdef _MSC_VER
+#ifdef _WIN32
     localtime_s(converted_time, time);
 #else
     localtime_r(time, converted_time);
@@ -486,10 +486,10 @@ Term::ansi_bgcolor(int r, int g, int b)
 
 
 bool
-#if !defined(_MSC_VER)
-Sysutil::put_in_background(int argc, char* argv[])
-#else
+#ifdef _WIN32
 Sysutil::put_in_background(int, char*[])
+#else
+Sysutil::put_in_background(int argc, char* argv[])
 #endif
 {
     // You would think that this would be sufficient:

@@ -18,9 +18,9 @@
 #include <ostream>
 
 #if defined(_WIN32) && defined(__GLIBCXX__)
-#    include <Share.h>
 #    include <ext/stdio_filebuf.h>  // __gnu_cxx::stdio_filebuf
 #    include <fcntl.h>
+#    include <share.h>
 #    include <sys/stat.h>
 
 
