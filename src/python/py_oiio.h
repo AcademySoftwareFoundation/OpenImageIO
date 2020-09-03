@@ -50,6 +50,35 @@ namespace py = pybind11;
 #endif
 
 
+namespace pybind11 {
+namespace detail {
+
+    // This half casting support for numpy was all derived from discussions
+    // here: https://github.com/pybind/pybind11/issues/1776
+
+    // Similar to enums in `pybind11/numpy.h`. Determined by doing:
+    // python3 -c 'import numpy as np; print(np.dtype(np.float16).num)'
+    constexpr int NPY_FLOAT16 = 23;
+
+    template<> struct npy_format_descriptor<half> {
+        static pybind11::dtype dtype()
+        {
+            handle ptr = npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16);
+            return reinterpret_borrow<pybind11::dtype>(ptr);
+        }
+        static std::string format()
+        {
+            // following: https://docs.python.org/3/library/struct.html#format-characters
+            return "e";
+        }
+        static constexpr auto name = _("float16");
+    };
+
+}  // namespace detail
+}  // namespace pybind11
+
+
+
 namespace PyOpenImageIO {
 
 //using namespace boost::python;
@@ -74,7 +103,7 @@ void declare_global (py::module& m);
 // bool PyProgressCallback(void*, float);
 // object C_array_to_Python_array (const char *data, TypeDesc type, size_t size);
 const char * python_array_code (TypeDesc format);
-TypeDesc typedesc_from_python_array_code (char code);
+TypeDesc typedesc_from_python_array_code (string_view code);
 
 
 inline std::string
@@ -529,8 +558,7 @@ make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
         return make_numpy_array((double*)data, dims, chans, width, height,
                                 depth);
     if (format == TypeDesc::HALF)
-        return make_numpy_array((unsigned short*)data, dims, chans, width,
-                                height, depth);
+        return make_numpy_array((half*)data, dims, chans, width, height, depth);
     if (format == TypeDesc::UINT)
         return make_numpy_array((unsigned int*)data, dims, chans, width, height,
                                 depth);
