@@ -11,15 +11,15 @@ const char*
 python_array_code(TypeDesc format)
 {
     switch (format.basetype) {
-    case TypeDesc::UINT8: return "B";
-    case TypeDesc::INT8: return "b";
-    case TypeDesc::UINT16: return "H";
-    case TypeDesc::INT16: return "h";
-    case TypeDesc::UINT32: return "I";
-    case TypeDesc::INT32: return "i";
-    case TypeDesc::FLOAT: return "f";
-    case TypeDesc::DOUBLE: return "d";
-    case TypeDesc::HALF: return "e";
+    case TypeDesc::UINT8: return "uint8";
+    case TypeDesc::INT8: return "int8";
+    case TypeDesc::UINT16: return "uint16";
+    case TypeDesc::INT16: return "int16";
+    case TypeDesc::UINT32: return "uint32";
+    case TypeDesc::INT32: return "int32";
+    case TypeDesc::FLOAT: return "float";
+    case TypeDesc::DOUBLE: return "double";
+    case TypeDesc::HALF: return "half";
     default:
         // For any other type, including UNKNOWN, pack it into an
         // unsigned byte array.
@@ -30,22 +30,34 @@ python_array_code(TypeDesc format)
 
 
 TypeDesc
-typedesc_from_python_array_code(char code)
+typedesc_from_python_array_code(string_view code)
 {
-    switch (code) {
-    case 'b':
-    case 'c': return TypeDesc::INT8;
-    case 'B': return TypeDesc::UINT8;
-    case 'h': return TypeDesc::INT16;
-    case 'H': return TypeDesc::UINT16;
-    case 'i': return TypeDesc::INT;
-    case 'I': return TypeDesc::UINT;
-    case 'l': return TypeDesc::INT64;
-    case 'L': return TypeDesc::UINT64;
-    case 'f': return TypeDesc::FLOAT;
-    case 'd': return TypeDesc::DOUBLE;
-    case 'e': return TypeDesc::HALF;
-    }
+    TypeDesc t(code);
+    if (!t.is_unknown())
+        return t;
+
+    if (code == "b" || code == "c")
+        return TypeDesc::INT8;
+    if (code == "B")
+        return TypeDesc::UINT8;
+    if (code == "h")
+        return TypeDesc::INT16;
+    if (code == "H")
+        return TypeDesc::UINT16;
+    if (code == "i")
+        return TypeDesc::INT;
+    if (code == "I")
+        return TypeDesc::UINT;
+    if (code == "l")
+        return TypeDesc::INT64;
+    if (code == "L")
+        return TypeDesc::UINT64;
+    if (code == "f")
+        return TypeDesc::FLOAT;
+    if (code == "d")
+        return TypeDesc::DOUBLE;
+    if (code == "float16" || code == "e")
+        return TypeDesc::HALF;
     return TypeDesc::UNKNOWN;
 }
 
@@ -54,7 +66,7 @@ typedesc_from_python_array_code(char code)
 oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf)
 {
     if (pybuf.format.size())
-        format = typedesc_from_python_array_code(pybuf.format[0]);
+        format = typedesc_from_python_array_code(pybuf.format);
     if (format != TypeUnknown) {
         data    = pybuf.ptr;
         xstride = format.size();
@@ -77,7 +89,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
                            int height, int depth, int pixeldims)
 {
     if (pybuf.format.size())
-        format = typedesc_from_python_array_code(pybuf.format[0]);
+        format = typedesc_from_python_array_code(pybuf.format);
     if (size_t(pybuf.itemsize) != format.size()
         || pybuf.size
                != int64_t(width) * int64_t(height) * int64_t(depth * nchans)) {

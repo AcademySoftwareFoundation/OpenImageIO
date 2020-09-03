@@ -1,10 +1,11 @@
-Copied scanline.tif to grid-image.tif as image
-Copied scanline.tif to grid-scanline.tif as scanline
-Copied scanline.tif to grid-scanlines.tif as scanlines
-Copied tiled.tif to grid-timage.tif as image
-Copied tiled.tif to grid-tile.tif as tile
-Copied tiled.tif to grid-tiles.tif as tiles
-Copied scanline.tif to grid-image.tif as image
+Copied scanline.tif to grid-image.tif as image (memformat float outformat unknown )
+Copied scanline.tif to grid-scanline.tif as scanline (memformat float outformat unknown )
+Copied scanline.tif to grid-scanlines.tif as scanlines (memformat float outformat unknown )
+Copied tiled.tif to grid-timage.tif as image (memformat float outformat unknown )
+Copied tiled.tif to grid-tile.tif as tile (memformat float outformat unknown )
+Copied tiled.tif to grid-tiles.tif as tiles (memformat float outformat unknown )
+Copied scanline.tif to grid-image.tif as image (memformat uint8 outformat uint16 )
+Copied scanline.tif to grid-half.exr as image (memformat half outformat half )
 Done.
 Comparing "grid-image.tif" and "../../../../../oiio-images/grid.tif"
 PASS
@@ -17,6 +18,8 @@ PASS
 Comparing "grid-tile.tif" and "../../../../../oiio-images/grid.tif"
 PASS
 Comparing "grid-tiles.tif" and "../../../../../oiio-images/grid.tif"
+PASS
+Comparing "grid-half.exr" and "../../../../../oiio-images/grid.tif"
 PASS
 Comparing "multipart.exr" and "ref/multipart.exr"
 PASS

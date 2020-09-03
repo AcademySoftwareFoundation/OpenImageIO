@@ -143,11 +143,11 @@ Read array typecode uint16  [ 12288 ]
 
 Test read_tiles native half:
 Opened "testf16.exr" as a openexr
-Read array typecode uint16  [ 12288 ]
+Read array typecode float16  [ 12288 ]
 
 Test read_image into half:
 Opened "testu16.tif" as a tiff
-Read array typecode uint16  [ 12288 ]
+Read array typecode float16  [ 12288 ]
 
 Test read_image into FLOAT:
 Opened "testu16.tif" as a tiff
