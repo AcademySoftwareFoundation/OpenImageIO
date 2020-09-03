@@ -578,8 +578,14 @@ FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (!m_read_frame) {
         read_frame(m_subimage);
     }
-    memcpy(data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0], m_stride);
-    return true;
+    if (m_rgb_frame->data[0]) {
+        memcpy(data, m_rgb_frame->data[0] + y * m_rgb_frame->linesize[0],
+               m_stride);
+        return true;
+    } else {
+        errorf("Error reading frame");
+        return false;
+    }
 }
 
 
