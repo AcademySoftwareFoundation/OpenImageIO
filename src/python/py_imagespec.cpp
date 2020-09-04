@@ -198,7 +198,7 @@ declare_imagespec(py::module& m)
                 const std::string& val) { spec.attribute(name, val); })
         .def("attribute",
              [](ImageSpec& spec, const std::string& name, TypeDesc type,
-                const py::tuple& obj) {
+                const py::object& obj) {
                  attribute_typed(spec, name, type, obj);
              })
         // .def("attribute", [](ImageSpec &spec, const std::string &name, TypeDesc type, const py::list &obj) {

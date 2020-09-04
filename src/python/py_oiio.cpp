@@ -185,7 +185,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
 
 bool
 oiio_attribute_typed(const std::string& name, TypeDesc type,
-                     const py::tuple& obj)
+                     const py::object& obj)
 {
     if (type.basetype == TypeDesc::INT) {
         std::vector<int> vals;
@@ -271,7 +271,7 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
         OIIO::attribute(name, val);
     });
     m.def("attribute",
-          [](const std::string& name, TypeDesc type, const py::tuple& obj) {
+          [](const std::string& name, TypeDesc type, const py::object& obj) {
               oiio_attribute_typed(name, type, obj);
           });
 
