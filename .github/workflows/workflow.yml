@@ -174,7 +174,8 @@ jobs:
           USE_SIMD: avx2,f16c
           OPENEXR_BRANCH: v2.5.0
           PYBIND11_VERSION: 2.5.0
-          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
+          LIBRAW_BRANCH: 0.20.0
+          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.3 -DSTOP_ON_WARNING=OFF
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
@@ -206,7 +207,9 @@ jobs:
           LIBTIFF_BRANCH: master
           PYBIND11_BRANCH: master
           LIBRAW_BRANCH: master
-          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master -DSTOP_ON_WARNING=OFF
+          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.3 -DSTOP_ON_WARNING=OFF
+          # note: fmt master seems to have trouble with gcc10 in this
+          # branch of OIIO. Because 2.1 is obsolete, just ignore.
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
