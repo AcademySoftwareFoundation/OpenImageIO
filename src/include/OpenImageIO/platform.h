@@ -49,6 +49,7 @@
 #endif
 
 #include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/export.h>
 
 // Detect which C++ standard we're using, and handy macros.
 // See https://en.cppreference.com/w/cpp/compiler_support
@@ -521,8 +522,8 @@ inline bool cpu_has_avx512bw() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<30)) 
 inline bool cpu_has_avx512vl() {int i[4]; cpuid(i,7,0); return (i[1] & (0x80000000 /*1<<31*/)) != 0; }
 
 // portable aligned malloc
-void* aligned_malloc(std::size_t size, std::size_t align);
-void  aligned_free(void* ptr);
+OIIO_API void* aligned_malloc(std::size_t size, std::size_t align);
+OIIO_API void  aligned_free(void* ptr);
 
 // basic wrappers to new/delete over-aligned types since this isn't guaranteed to be supported until C++17
 template <typename T, class... Args>
