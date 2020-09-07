@@ -206,7 +206,7 @@ jobs:
           LIBTIFF_BRANCH: master
           PYBIND11_BRANCH: master
           LIBRAW_BRANCH: master
-          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
+          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master -DSTOP_ON_WARNING=OFF
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps.bash
