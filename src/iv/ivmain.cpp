@@ -31,53 +31,37 @@
 using namespace OIIO;
 
 
-static bool verbose         = false;
-static bool foreground_mode = false;
-static bool autopremult     = true;
-static bool rawcolor        = false;
-static std::vector<std::string> filenames;
 
-
-
-static int
-parse_files(int argc, const char* argv[])
-{
-    for (int i = 0; i < argc; i++)
-        filenames.emplace_back(argv[i]);
-    return 0;
-}
-
-
-
-static void
+static ArgParse
 getargs(int argc, char* argv[])
 {
-    bool help = false;
     ArgParse ap;
     // clang-format off
-    ap.options ("iv -- image viewer\n"
-                OIIO_INTRO_STRING "\n"
-                "Usage:  iv [options] [filename...]",
-                "%*", parse_files, "",
-                "--help", &help, "Print help message",
-                "-v", &verbose, "Verbose status messages",
-                "-F", &foreground_mode, "Foreground mode",
-                "--no-autopremult %!", &autopremult,
-                    "Turn off automatic premultiplication of images with unassociated alpha",
-                "--rawcolor", &rawcolor,
-                    "Do not automatically transform to RGB",
-                nullptr);
-    // clang-format on
-    if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
-        ap.usage();
-        exit(EXIT_FAILURE);
-    }
-    if (help) {
-        ap.usage();
-        exit(EXIT_SUCCESS);
-    }
+    ap.intro("iv -- image viewer\n"
+             OIIO_INTRO_STRING)
+      .usage("iv [options] [filename...]");
+
+    ap.arg("filename")
+      .action(ArgParse::append())
+      .hidden();
+    ap.arg("-v")
+      .help("Verbose status messages")
+      .dest("verbose");
+    ap.arg("-F")
+      .help("Foreground mode")
+      .dest("foreground_mode")
+      .store_true();
+    ap.arg("--no-autopremult")
+      .help("Turn off automatic premultiplication of images with unassociated alpha")
+      .store_true();
+    ap.arg("--rawcolor")
+      .help("Do not automatically transform to RGB");
+
+    ap.parse(argc, (const char**)argv);
+    return ap;
 }
+
+
 
 #ifdef _MSC_VER
 // if we are not in DEBUG mode this code switch the app to
@@ -98,9 +82,9 @@ main(int argc, char* argv[])
     Sysutil::setup_crash_stacktrace("stdout");
 
     Filesystem::convert_native_arguments(argc, (const char**)argv);
-    getargs(argc, argv);
+    ArgParse ap = getargs(argc, argv);
 
-    if (!foreground_mode)
+    if (!ap["foreground_mode"].get<int>())
         Sysutil::put_in_background(argc, argv);
 
     // LG
@@ -113,9 +97,9 @@ main(int argc, char* argv[])
     ImageCache* imagecache = ImageCache::create(true);
     imagecache->attribute("autotile", 256);
     imagecache->attribute("deduplicate", (int)0);
-    if (!autopremult)
+    if (ap["no-autopremult"].get<int>())
         imagecache->attribute("unassociatedalpha", 1);
-    if (rawcolor)
+    if (ap["rawcolor"].get<int>())
         mainWin->rawcolor(true);
 
     // Make sure we are the top window with the focus.
@@ -123,15 +107,15 @@ main(int argc, char* argv[])
     mainWin->activateWindow();
 
     // Add the images
-    for (const auto& s : filenames) {
-        mainWin->add_image(s);
-    }
+    for (auto& f : ap["filename"].as_vec<std::string>())
+        mainWin->add_image(f);
 
     mainWin->current_image(0);
 
     int r = app.exec();
     // OK to clean up here
 
+    int verbose = ap["verbose"].get<int>();
 #ifdef NDEBUG
     if (verbose)
 #endif
