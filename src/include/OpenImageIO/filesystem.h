@@ -66,33 +66,33 @@ namespace Filesystem {
 
 /// Return the filename (excluding any directories, but including the
 /// file extension, if any) of a filepath.
-OIIO_API std::string filename (const std::string &filepath) noexcept;
+OIIO_UTIL_API std::string filename (const std::string &filepath) noexcept;
 
 /// Return the file extension (including the last '.' if
 /// include_dot=true) of a filename or filepath.
-OIIO_API std::string extension (const std::string &filepath,
+OIIO_UTIL_API std::string extension (const std::string &filepath,
                                 bool include_dot=true) noexcept;
 
 /// Return all but the last part of the path, for example,
 /// parent_path("foo/bar") returns "foo", and parent_path("foo")
 /// returns "".
-OIIO_API std::string parent_path (const std::string &filepath) noexcept;
+OIIO_UTIL_API std::string parent_path (const std::string &filepath) noexcept;
 
 /// Replace the file extension of a filename or filepath. Does not alter
 /// filepath, just returns a new string.  Note that the new_extension
 /// should contain a leading '.' dot.
-OIIO_API std::string replace_extension (const std::string &filepath, 
+OIIO_UTIL_API std::string replace_extension (const std::string &filepath, 
                                         const std::string &new_extension) noexcept;
 
 /// Return the filepath in generic format, not any OS-specific conventions.
-OIIO_API std::string generic_filepath (string_view filepath) noexcept;
+OIIO_UTIL_API std::string generic_filepath (string_view filepath) noexcept;
 
 /// Turn a searchpath (multiple directory paths separated by ':' or ';')
 /// into a vector<string> containing each individual directory.  If
 /// validonly is true, only existing and readable directories will end
 /// up in the list.  N.B., the directory names will not have trailing
 /// slashes.
-OIIO_API void searchpath_split (const std::string &searchpath,
+OIIO_UTIL_API void searchpath_split (const std::string &searchpath,
                                 std::vector<std::string> &dirs,
                                 bool validonly = false);
 
@@ -105,7 +105,7 @@ OIIO_API void searchpath_split (const std::string &searchpath,
 /// recursive is true, the directories will be searched recursively,
 /// finding a matching file in any subdirectory of the directories
 /// listed in dirs; otherwise.
-OIIO_API std::string searchpath_find (const std::string &filename,
+OIIO_UTIL_API std::string searchpath_find (const std::string &filename,
                                       const std::vector<std::string> &dirs,
                                       bool testcwd = true,
                                       bool recursive = false);
@@ -117,32 +117,32 @@ OIIO_API std::string searchpath_find (const std::string &filename,
 /// filenames matching the regular expression will be returned.  Return
 /// true if ok, false if there was an error (such as dirname not being
 /// found or not actually being a directory).
-OIIO_API bool get_directory_entries (const std::string &dirname,
+OIIO_UTIL_API bool get_directory_entries (const std::string &dirname,
                                std::vector<std::string> &filenames,
                                bool recursive = false,
                                const std::string &filter_regex=std::string());
 
 /// Return true if the path is an "absolute" (not relative) path.
 /// If 'dot_is_absolute' is true, consider "./foo" absolute.
-OIIO_API bool path_is_absolute (string_view path,
+OIIO_UTIL_API bool path_is_absolute (string_view path,
                                 bool dot_is_absolute=false);
 
 /// Return true if the file exists.
 ///
-OIIO_API bool exists (string_view path) noexcept;
+OIIO_UTIL_API bool exists (string_view path) noexcept;
 
 
 /// Return true if the file exists and is a directory.
 ///
-OIIO_API bool is_directory (string_view path) noexcept;
+OIIO_UTIL_API bool is_directory (string_view path) noexcept;
 
 /// Return true if the file exists and is a regular file.
 ///
-OIIO_API bool is_regular (string_view path) noexcept;
+OIIO_UTIL_API bool is_regular (string_view path) noexcept;
 
 /// Create the directory. Return true for success, false for failure and
 /// place an error message in err.
-OIIO_API bool create_directory (string_view path, std::string &err);
+OIIO_UTIL_API bool create_directory (string_view path, std::string &err);
 inline bool create_directory (string_view path) {
     std::string err;
     return create_directory (path, err);
@@ -151,7 +151,7 @@ inline bool create_directory (string_view path) {
 /// Copy a file, directory, or link. It is an error if 'to' already exists.
 /// Return true upon success, false upon failure and place an error message
 /// in err.
-OIIO_API bool copy (string_view from, string_view to, std::string &err);
+OIIO_UTIL_API bool copy (string_view from, string_view to, std::string &err);
 inline bool copy (string_view from, string_view to) {
     std::string err;
     return copy (from, to, err);
@@ -159,7 +159,7 @@ inline bool copy (string_view from, string_view to) {
 
 /// Rename (or move) a file, directory, or link.  Return true upon success,
 /// false upon failure and place an error message in err.
-OIIO_API bool rename (string_view from, string_view to, std::string &err);
+OIIO_UTIL_API bool rename (string_view from, string_view to, std::string &err);
 inline bool rename (string_view from, string_view to) {
     std::string err;
     return rename (from, to, err);
@@ -167,7 +167,7 @@ inline bool rename (string_view from, string_view to) {
 
 /// Remove the file or directory. Return true for success, false for
 /// failure and place an error message in err.
-OIIO_API bool remove (string_view path, std::string &err);
+OIIO_UTIL_API bool remove (string_view path, std::string &err);
 inline bool remove (string_view path) {
     std::string err;
     return remove (path, err);
@@ -176,7 +176,7 @@ inline bool remove (string_view path) {
 /// Remove the file or directory, including any children (recursively).
 /// Return the number of files removed.  Place an error message (if
 /// applicable in err.
-OIIO_API unsigned long long remove_all (string_view path, std::string &err);
+OIIO_UTIL_API unsigned long long remove_all (string_view path, std::string &err);
 inline unsigned long long remove_all (string_view path) {
     std::string err;
     return remove_all (path, err);
@@ -184,34 +184,34 @@ inline unsigned long long remove_all (string_view path) {
 
 /// Return a directory path where temporary files can be made.
 ///
-OIIO_API std::string temp_directory_path ();
+OIIO_UTIL_API std::string temp_directory_path ();
 
 /// Return a unique filename suitable for making a temporary file or
 /// directory.
-OIIO_API std::string unique_path (string_view model="%%%%-%%%%-%%%%-%%%%");
+OIIO_UTIL_API std::string unique_path (string_view model="%%%%-%%%%-%%%%-%%%%");
 
 /// Version of fopen that can handle UTF-8 paths even on Windows
 ///
-OIIO_API FILE *fopen (string_view path, string_view mode);
+OIIO_UTIL_API FILE *fopen (string_view path, string_view mode);
 
 /// Version of fseek that works with 64 bit offsets on all systems.
-OIIO_API int fseek (FILE *file, int64_t offset, int whence);
+OIIO_UTIL_API int fseek (FILE *file, int64_t offset, int whence);
 
 /// Version of ftell that works with 64 bit offsets on all systems.
-OIIO_API int64_t ftell (FILE *file);
+OIIO_UTIL_API int64_t ftell (FILE *file);
 
 /// Return the current (".") directory path.
 ///
-OIIO_API std::string current_path ();
+OIIO_UTIL_API std::string current_path ();
 
 /// Version of std::ifstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (OIIO::ifstream &stream, string_view path,
+OIIO_UTIL_API void open (OIIO::ifstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::in);
 
 /// Version of std::ofstream.open that can handle UTF-8 paths
 ///
-OIIO_API void open (OIIO::ofstream &stream, string_view path,
+OIIO_UTIL_API void open (OIIO::ofstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::out);
 
 /// Version of C open() that can handle UTF-8 paths, returning an integer
@@ -220,40 +220,40 @@ OIIO_API void open (OIIO::ofstream &stream, string_view path,
 /// you want more OS-agnostic file opening, prefer the FILE or stream
 /// methods of IO. (N.B.: use of this function requires the caller to
 /// `#include <fcntl.h>` in order to get the definitions of the flags.)
-OIIO_API int open (string_view path, int flags);
+OIIO_UTIL_API int open (string_view path, int flags);
 
 /// Read the entire contents of the named text file and place it in str,
 /// returning true on success, false on failure.
-OIIO_API bool read_text_file (string_view filename, std::string &str);
+OIIO_UTIL_API bool read_text_file (string_view filename, std::string &str);
 
 /// Write the entire contents of the string `str` to the file, overwriting
 /// any prior contents of the file (if it existed), returning true on
 /// success, false on failure.
-OIIO_API bool write_text_file (string_view filename, string_view str);
+OIIO_UTIL_API bool write_text_file (string_view filename, string_view str);
 
 /// Read a maximum of n bytes from the named file, starting at position pos
 /// (which defaults to the start of the file), storing results in
 /// buffer[0..n-1]. Return the number of bytes read, which will be n for
 /// full success, less than n if the file was fewer than n+pos bytes long,
 /// or 0 if the file did not exist or could not be read.
-OIIO_API size_t read_bytes (string_view path, void *buffer, size_t n,
+OIIO_UTIL_API size_t read_bytes (string_view path, void *buffer, size_t n,
                             size_t pos=0);
 
 /// Get last modified time of file
 ///
-OIIO_API std::time_t last_write_time (string_view path) noexcept;
+OIIO_UTIL_API std::time_t last_write_time (string_view path) noexcept;
 
 /// Set last modified time on file
 ///
-OIIO_API void last_write_time (string_view path, std::time_t time) noexcept;
+OIIO_UTIL_API void last_write_time (string_view path, std::time_t time) noexcept;
 
 /// Return the size of the file (in bytes), or uint64_t(-1) if there is any
 /// error.
-OIIO_API uint64_t file_size (string_view path) noexcept;
+OIIO_UTIL_API uint64_t file_size (string_view path) noexcept;
 
 /// Ensure command line arguments are UTF-8 everywhere
 ///
-OIIO_API void convert_native_arguments (int argc, const char *argv[]);
+OIIO_UTIL_API void convert_native_arguments (int argc, const char *argv[]);
 
 /// Turn a sequence description string into a vector of integers.
 /// The sequence description can be any of the following
@@ -268,7 +268,7 @@ OIIO_API void convert_native_arguments (int argc, const char *argv[]);
 ///  * Multiple values or ranges, separated by a comma (e.g., "3,4,10-20x2")
 /// Return true upon success, false if the description was too malformed
 /// to generate a sequence.
-OIIO_API bool enumerate_sequence (string_view desc,
+OIIO_UTIL_API bool enumerate_sequence (string_view desc,
                                   std::vector<int> &numbers);
 
 /// Given a pattern (such as "foo.#.tif" or "bar.1-10#.exr"), return a
@@ -280,7 +280,7 @@ OIIO_API bool enumerate_sequence (string_view desc,
 ///
 /// Return true upon success, false if the description was too malformed
 /// to generate a sequence.
-OIIO_API bool parse_pattern (const char *pattern,
+OIIO_UTIL_API bool parse_pattern (const char *pattern,
                              int framepadding_override,
                              std::string &normalized_pattern,
                              std::string &framespec);
@@ -291,7 +291,7 @@ OIIO_API bool parse_pattern (const char *pattern,
 ///
 /// Return true upon success, false if the description was too malformed
 /// to generate a sequence.
-OIIO_API bool enumerate_file_sequence (const std::string &pattern,
+OIIO_UTIL_API bool enumerate_file_sequence (const std::string &pattern,
                                        const std::vector<int> &numbers,
                                        std::vector<std::string> &filenames);
 
@@ -302,7 +302,7 @@ OIIO_API bool enumerate_file_sequence (const std::string &pattern,
 ///
 /// Return true upon success, false if the description was too malformed
 /// to generate a sequence.
-OIIO_API bool enumerate_file_sequence (const std::string &pattern,
+OIIO_UTIL_API bool enumerate_file_sequence (const std::string &pattern,
                                        const std::vector<int> &numbers,
                                        const std::vector<string_view> &views,
                                        std::vector<std::string> &filenames);
@@ -314,7 +314,7 @@ OIIO_API bool enumerate_file_sequence (const std::string &pattern,
 ///
 /// Return true upon success, false if the directory doesn't exist or the
 /// pattern can't be parsed.
-OIIO_API bool scan_for_matching_filenames (const std::string &pattern,
+OIIO_UTIL_API bool scan_for_matching_filenames (const std::string &pattern,
                                            const std::vector<string_view> &views,
                                            std::vector<int> &frame_numbers,
                                            std::vector<string_view> &frame_views,
@@ -325,7 +325,7 @@ OIIO_API bool scan_for_matching_filenames (const std::string &pattern,
 ///
 /// Return true upon success, false if the directory doesn't exist or the
 /// pattern can't be parsed.
-OIIO_API bool scan_for_matching_filenames (const std::string &pattern,
+OIIO_UTIL_API bool scan_for_matching_filenames (const std::string &pattern,
                                            std::vector<int> &numbers,
                                            std::vector<std::string> &filenames);
 
@@ -333,7 +333,7 @@ OIIO_API bool scan_for_matching_filenames (const std::string &pattern,
 
 /// Proxy class for I/O. This provides a simplified interface for file I/O
 /// that can have custom overrides.
-class OIIO_API IOProxy {
+class OIIO_UTIL_API IOProxy {
 public:
     enum Mode { Closed = 0, Read = 'r', Write = 'w' };
     IOProxy () {}
@@ -385,7 +385,7 @@ protected:
 
 /// IOProxy subclass for reading or writing (but not both) that wraps C
 /// stdio 'FILE'.
-class OIIO_API IOFile : public IOProxy {
+class OIIO_UTIL_API IOFile : public IOProxy {
 public:
     // Construct from a filename, open, own the FILE*.
     IOFile(string_view filename, Mode mode);
@@ -416,7 +416,7 @@ protected:
 
 /// IOProxy subclass for writing that wraps a std::vector<char> that will
 /// grow as we write.
-class OIIO_API IOVecOutput : public IOProxy {
+class OIIO_UTIL_API IOVecOutput : public IOProxy {
 public:
     // Construct, IOVecOutput owns its own vector.
     IOVecOutput()
@@ -447,7 +447,7 @@ protected:
 
 
 /// IOProxy subclass for reading that wraps an cspan<char>.
-class OIIO_API IOMemReader : public IOProxy {
+class OIIO_UTIL_API IOMemReader : public IOProxy {
 public:
     IOMemReader(void* buf, size_t size)
         : IOProxy("", Read)

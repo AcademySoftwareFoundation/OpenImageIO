@@ -59,10 +59,16 @@
 #    define OIIO_LOCAL __attribute__((visibility("hidden")))
 #endif
 
-#if defined(OpenImageIO_EXPORTS) || defined(OpenImageIO_Util_EXPORTS)
+#if defined(OpenImageIO_EXPORTS)
 #    define OIIO_API OIIO_EXPORT
 #else
 #    define OIIO_API OIIO_IMPORT
+#endif
+
+#if defined(OpenImageIO_Util_EXPORTS)
+#    define OIIO_UTIL_API OIIO_EXPORT
+#else
+#    define OIIO_UTIL_API OIIO_IMPORT
 #endif
 
 #if defined(OpenImageIO_C_EXPORTS)

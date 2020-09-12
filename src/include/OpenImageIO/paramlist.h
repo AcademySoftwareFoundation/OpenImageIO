@@ -29,7 +29,7 @@ OIIO_NAMESPACE_BEGIN
 ///  - Each value has an array of 4 ELEMENTS, each of which is a color
 ///  - A color has 3 COMPONENTS (R, G, B)
 ///
-class OIIO_API ParamValue {
+class OIIO_UTIL_API ParamValue {
 public:
     /// Interpolation types
     ///
@@ -234,7 +234,7 @@ private:
 /// A list of ParamValue entries, that can be iterated over or searched.
 /// It's really just a std::vector<ParamValue>, but with a few more handy
 /// methods.
-class OIIO_API ParamValueList : public std::vector<ParamValue> {
+class OIIO_UTIL_API ParamValueList : public std::vector<ParamValue> {
 public:
     ParamValueList() {}
 
