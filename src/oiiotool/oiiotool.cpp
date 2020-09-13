@@ -3892,6 +3892,15 @@ action_paste(int argc, const char* argv[])
 
 
 
+// --pastemeta
+OIIOTOOL_OP(pastemeta, 2, [](OiiotoolOp& op, span<ImageBuf*> img) {
+    *img[0] = *img[2];
+    img[0]->copy_metadata(*img[1]);
+    return true;
+});
+
+
+
 // --mosaic
 static int
 action_mosaic(int /*argc*/, const char* argv[])
@@ -5528,6 +5537,9 @@ getargs(int argc, char* argv[])
     ap.arg("--paste %s:+X+Y")
       .help("Paste fg over bg at the given position (e.g., +100+50; '-' or 'auto' indicates using the data window position as-is; options: all=%d, mergeroi=%d)")
       .action(action_paste);
+    ap.arg("--pastemeta")
+      .help("Copy the metadata from the first image to the second image and write the combined result.")
+      .action(action_pastemeta);
     ap.arg("--mosaic %s:WxH")
       .help("Assemble images into a mosaic (arg: WxH; options: pad=0)")
       .action(action_mosaic);

@@ -20,6 +20,29 @@ tmp.tif              :  128 x  128, 3 channel, uint8 tiff
 combining images result: 
 tmp.tif              :  128 x  128, 3 channel, uint8 tiff
     tile size: 16 x 16
+Reading green.exr
+green.exr            :   64 x   64, 3 channel, half openexr
+    SHA-1: 8B61993247469F3C208CA894D71856727B11606A
+    channel list: R, G, B
+    compression: "zip"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
+Reading greenmeta.exr
+greenmeta.exr        :   64 x   64, 3 channel, half openexr
+    SHA-1: 8B61993247469F3C208CA894D71856727B11606A
+    channel list: R, G, B
+    compression: "zip"
+    eyes: 2
+    hair: "brown"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    weight: 20.5
+    oiio:ColorSpace: "Linear"
+    oiio:subimages: 1
 Reading nometamerge.exr
 nometamerge.exr      :   64 x   64, 6 channel, float openexr
     SHA-1: 9F13A523321C66208E90D45F87FA0CD9B370E111
@@ -50,4 +73,6 @@ PASS
 Comparing "pasted.tif" and "ref/pasted.tif"
 PASS
 Comparing "mosaic.tif" and "ref/mosaic.tif"
+PASS
+Comparing "greenmeta.exr" and "ref/greenmeta.exr"
 PASS
