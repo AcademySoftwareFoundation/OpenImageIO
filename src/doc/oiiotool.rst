@@ -627,6 +627,17 @@ it "Z" so it will be recognized as a depth channel::
 
 
 
+Copy metadata from one image to another
+---------------------------------------
+
+Suppose you have a (non-OIIO) application that consumes input Exr files and
+produces output Exr files, but along the way loses crucial metadata from
+the input files that you want carried along. This command will add all the
+metadata from the first image to the pixels of the second image:
+
+    oiiotool metaonly.exr pixelsonly.exr --pastemeta -o combined.exr
+
+
 Fade between two images
 -----------------------
 
@@ -2221,6 +2232,23 @@ current top image.
 
         # Merge many non-overlapping "tiles" into one combined image
         oiiotool img*.exr -paste:mergeroi=1:all=1 +0+0 -o combined.exr
+
+
+.. option:: --pastemeta <location>
+
+    Takes two images -- the first will be a source of metadata only, and the
+    second the source of pixels -- and produces a new copy of the second
+    image with the metadata from the first image added.
+
+    The output image's pixels will come only from the second input. Metadata
+    from the second input will be preserved if no identically-named metadata
+    was present in the first input image.
+
+    Examples::
+
+        # Add all the metadata from meta.exr to pixels.exr and write the
+        # combined image to out.exr.
+        oiiotool meta.exr pixels.exr --pastemeta -o out.exr
 
 
 .. option:: --mosaic <size>
