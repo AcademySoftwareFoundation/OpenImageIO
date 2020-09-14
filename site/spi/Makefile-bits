@@ -81,7 +81,6 @@ else
     $(error Unknown SP_OS=${SP_OS} platform=${platform})
 endif  # endif ${SP_OS}
 
-PYTHON_VERSION ?= 2.7
 MY_CMAKE_FLAGS += -DSP_OS=${SP_OS} -DSP_PLATFORM=${SP_PLATFORM}
 MY_CMAKE_FLAGS += -DSP_PROC=${SP_PROC} -DSP_REZ_OS=${SP_REZ_OS}
 MY_CMAKE_FLAGS += -DSPI_COMPILER_PLATFORM=${SPI_COMPILER_PLATFORM}
@@ -94,6 +93,7 @@ SPCOMP2_ROOT ?= /shots/spi/home/lib/SpComp2
 
 ## Rhel7 (current)
 ifeq (${SP_OS}, rhel7)
+    PYTHON_VERSION ?= 2.7
     USE_SIMD ?= sse4.1,aes
     CMAKE ?= cmake
     USE_NINJA ?= 1

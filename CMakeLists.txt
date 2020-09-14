@@ -113,11 +113,12 @@ include (compiler)
 
 include (oiio_macros)
 
+# Utilities related to finding python and making python bindings
+include (pythonutils)
+
 # All the dependency finding and options are here
 include (externalpackages)
 
-# Utilities related to finding python and making python bindings
-include (pythonutils)
 
 # We want CTest for testing, so this must be added before all the calls to
 # add_subdirectory, or their add_test commands will not register.
@@ -185,7 +186,7 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     endforeach ()
 endif ()
 
-if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
+if (USE_PYTHON AND Python_Development_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
 endif ()
 

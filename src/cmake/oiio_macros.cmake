@@ -214,7 +214,7 @@ macro (oiio_add_tests)
                 set (_testname "${_testname}-broken")
             endif ()
 
-            set (_runtest ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
+            set (_runtest ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
             if (MSVC_IDE)
                 set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
                                           --solution-path "${CMAKE_BINARY_DIR}" )
@@ -232,7 +232,7 @@ macro (oiio_add_tests)
             if (_testname MATCHES "texture")
                 set (_testname ${_testname}.batch)
                 set (_testdir ${_testdir}.batch)
-                set (_runtest ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
+                set (_runtest ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
                 if (MSVC_IDE)
                     set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
                                           --solution-path "${CMAKE_BINARY_DIR}" )
