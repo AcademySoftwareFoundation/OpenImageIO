@@ -117,7 +117,10 @@ public:
     ///             first subimage of the file, highest-res MIP level).
     /// @param imagecache
     ///             Optionally, a particular ImageCache to use. If nullptr,
-    ///             the default global/shared image cache will be used.
+    ///             the default global/shared image cache will be used. If
+    ///             a custom ImageCache (not the global/shared one), it is
+    ///             important that the IC should not be destroyed while the
+    ///             ImageBuf is still alive.
     /// @param config
     ///             Optionally, a pointer to an ImageSpec whose metadata
     ///             contains configuration hints that set options related

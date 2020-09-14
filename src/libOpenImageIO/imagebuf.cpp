@@ -233,6 +233,17 @@ public:
         return (z * m_spec.height + y) * m_spec.width + x;
     }
 
+    // Invalidate the file in our imagecache and the shared one
+    void invalidate(ustring filename, bool force)
+    {
+        ImageCache* shared_imagecache = ImageCache::create(true);
+        OIIO_DASSERT(shared_imagecache);
+        if (m_imagecache)
+            m_imagecache->invalidate(filename, force);  // *our* IC
+        if (m_imagecache != shared_imagecache)
+            shared_imagecache->invalidate(filename, force);  // the shared IC
+    }
+
 private:
     ImageBuf::IBStorage m_storage;  ///< Pixel storage class
     ustring m_name;                 ///< Filename of the image
@@ -347,6 +358,9 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
         m_spec_valid = true;
     } else if (filename.length() > 0) {
         OIIO_DASSERT(buffer == nullptr);
+        // Invalidate the image in cache. Do so unconditionally if there's
+        // a chance that configuration hints may have changed.
+        invalidate(m_name, config || m_configspec);
         // If a filename was given, read the spec and set it up as an
         // ImageCache-backed image.  Reallocate later if an explicit read()
         // is called to force read into a local buffer.
@@ -424,7 +438,7 @@ ImageBufImpl::~ImageBufImpl()
     // externally and passed to the ImageBuf ctr or reset() method, or
     // else init_spec requested the system-wide shared cache, which
     // does not need to be destroyed.
-    free_pixels();
+    clear();
 }
 
 
@@ -560,13 +574,17 @@ ImageBufImpl::new_pixels(size_t size, const void* data)
 void
 ImageBufImpl::free_pixels()
 {
-    IB_local_mem_current -= m_allocated_size;
+    if (m_allocated_size) {
+        if (pvt::oiio_print_debug > 1)
+            OIIO::debug("IB freed %d MB, global IB memory now %d MB\n",
+                        m_allocated_size >> 20, IB_local_mem_current >> 20);
+        IB_local_mem_current -= m_allocated_size;
+        m_allocated_size = 0;
+    }
     m_pixels.reset();
-    if (m_allocated_size && pvt::oiio_print_debug > 1)
-        OIIO::debugf("IB freed %d MB, global IB memory now %d MB\n",
-                     m_allocated_size >> 20, IB_local_mem_current >> 20);
-    m_allocated_size = 0;
-    m_storage        = ImageBuf::UNINITIALIZED;
+    m_deepdata.free();
+    m_storage = ImageBuf::UNINITIALIZED;
+    m_blackpixel.clear();
 }
 
 
@@ -627,7 +645,11 @@ ImageBuf::storage() const
 void
 ImageBufImpl::clear()
 {
-    m_storage = ImageBuf::UNINITIALIZED;
+    if (storage() == ImageBuf::IMAGECACHE && m_imagecache && !m_name.empty()) {
+        m_imagecache->close(m_name);
+        invalidate(m_name, false);
+    }
+    free_pixels();
     m_name.clear();
     m_fileformat.clear();
     m_nsubimages       = 0;
@@ -636,7 +658,7 @@ ImageBufImpl::clear()
     m_spec             = ImageSpec();
     m_nativespec       = ImageSpec();
     m_pixels.reset();
-    m_localpixels    = NULL;
+    m_localpixels    = nullptr;
     m_spec_valid     = false;
     m_pixels_valid   = false;
     m_badfile        = false;
@@ -645,7 +667,7 @@ ImageBufImpl::clear()
     m_scanline_bytes = 0;
     m_plane_bytes    = 0;
     m_channel_bytes  = 0;
-    m_imagecache     = NULL;
+    m_imagecache     = nullptr;
     m_deepdata.free();
     m_blackpixel.clear();
     m_write_format.clear();
@@ -673,7 +695,8 @@ ImageBufImpl::reset(string_view filename, int subimage, int miplevel,
                     Filesystem::IOProxy* ioproxy)
 {
     clear();
-    m_name             = ustring(filename);
+    m_name = ustring(filename);
+    invalidate(m_name, false);
     m_current_subimage = subimage;
     m_current_miplevel = miplevel;
     if (imagecache)
@@ -825,12 +848,15 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel)
         && m_current_subimage == subimage && m_current_miplevel == miplevel)
         return true;  // Already done
 
-    if (!m_imagecache) {
+    m_name = filename;
+
+    // Make sure we have access to an imagecache. Also invalidate any cache
+    // info for the file just in case it has changed on disk.
+    if (!m_imagecache)
         m_imagecache = ImageCache::create(true /* shared cache */);
-    }
+    invalidate(m_name, false);
 
     m_pixels_valid = false;
-    m_name         = filename;
     m_nsubimages   = 0;
     m_nmiplevels   = 0;
     static ustring s_subimages("subimages"), s_miplevels("miplevels");
@@ -1060,6 +1086,7 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                                  m_spec.y + m_spec.height, m_spec.z,
                                  m_spec.z + m_spec.depth, chbegin, chend,
                                  m_spec.format, m_localpixels)) {
+        m_imagecache->close(m_name);
         m_pixels_valid = true;
     } else {
         m_pixels_valid = false;
@@ -1255,11 +1282,7 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
     // pixels in the cache will then be likely wrong; (b) on Windows, if the
     // cache holds an open file handle for reading, we will not be able to
     // open the same file for writing.
-    ImageCache* shared_imagecache = ImageCache::create(true);
-    ustring ufilename(filename);
-    shared_imagecache->invalidate(ufilename);  // the shared IC
-    if (imagecache() && imagecache() != shared_imagecache)
-        imagecache()->invalidate(ufilename);  // *our* IC
+    m_impl->invalidate(ustring(filename), true);
 
     auto out = ImageOutput::create(fileformat);
     if (!out) {
