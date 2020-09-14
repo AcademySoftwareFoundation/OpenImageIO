@@ -222,6 +222,9 @@ test_open_with_config()
     ImageBuf A("A_imagebuf_test.tif", 0, 0, ic, &config);
     OIIO_CHECK_EQUAL(A.spec().get_int_attribute("oiio:DebugOpenConfig!", 0),
                      42);
+    // Clear A because it would be unwise to let the ImageBuf outlive the
+    // custom ImageCache we passed it to use.
+    A.clear();
     ic->destroy(ic);
 }
 
@@ -379,6 +382,43 @@ test_roi()
 
 
 
+// Test what happens when we read, replace the image on disk, then read
+// again.
+void
+test_write_over()
+{
+    // Write two images
+    {
+        ImageBuf img(ImageSpec(16, 16, 3, TypeUInt8));
+        ImageBufAlgo::fill(img, { 0.0f, 1.0f, 0.0f });
+        img.write("tmp-green.tif");
+        Sysutil::usleep(1000000);  // make sure times are different
+        ImageBufAlgo::fill(img, { 1.0f, 0.0f, 0.0f });
+        img.write("tmp-red.tif");
+    }
+
+    // Read the image
+    float pixel[3];
+    ImageBuf A("tmp-green.tif");
+    A.getpixel(4, 4, pixel);
+    OIIO_CHECK_ASSERT(pixel[0] == 0 && pixel[1] == 1 && pixel[2] == 0);
+
+    // Replace the green image with red, under the nose of the ImageBuf.
+    Filesystem::remove("tmp-green.tif");
+    Filesystem::copy("tmp-red.tif", "tmp-green.tif");
+
+    // Read the image again -- different ImageBuf.
+    // We expect it to have the new color, not have the underlying
+    // ImageCache misremember the old color!
+    ImageBuf B("tmp-green.tif");
+    B.getpixel(4, 4, pixel);
+    OIIO_CHECK_ASSERT(pixel[0] == 1 && pixel[1] == 0 && pixel[2] == 0);
+
+    Filesystem::remove("tmp-green.tif");
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -405,6 +445,8 @@ main(int /*argc*/, char* /*argv*/[])
 
     test_set_get_pixels();
     time_get_pixels();
+
+    test_write_over();
 
     Filesystem::remove("A_imagebuf_test.tif");
     return unit_test_failures;
