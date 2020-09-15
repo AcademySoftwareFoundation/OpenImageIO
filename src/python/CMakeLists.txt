@@ -3,7 +3,6 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 # from pythonutils.cmake
-find_python ()
 checked_find_package (pybind11 2.4.2 REQUIRED)
 
 

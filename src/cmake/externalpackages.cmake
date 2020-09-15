@@ -117,6 +117,8 @@ if (USE_EXTERNAL_PUGIXML)
                           DEFINITIONS -DUSE_EXTERNAL_PUGIXML=1)
 endif()
 
+# From pythonutils.cmake
+find_python()
 
 
 ###########################################################################
