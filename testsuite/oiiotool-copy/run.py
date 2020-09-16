@@ -57,6 +57,11 @@ command += oiiotool ("--metamerge aimg.exr bimg.exr --chappend -o metamerge.exr"
 command += info_command ("nometamerge.exr", safematch=True)
 command += info_command ("metamerge.exr", safematch=True)
 
+# test --chappend of multiple images
+command += oiiotool ("--pattern constant:color=0.5 64x64 1 --text R --chnames R " +
+                     "--pattern constant:color=0.25,0.75 64x64 2 --text G,B --chnames G,B " +
+                     "--pattern constant:color=1.0 64x64 1 --text A --chnames A " +
+                     "--chappend:n=3 -d half -o chappend-3images.exr")
 
 
 
@@ -64,6 +69,7 @@ command += info_command ("metamerge.exr", safematch=True)
 outputs = [
             "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
             "greenmeta.exr",
+            "chappend-3images.exr",
             "out.txt"
           ]
 
