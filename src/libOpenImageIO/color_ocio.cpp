@@ -1457,8 +1457,10 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
         [&, unpremult, channelsToCopy, processor](ROI roi) {
             int width = roi.width();
             // Temporary space to hold one RGBA scanline
-            vfloat4* scanline  = OIIO_ALLOCA(vfloat4, width);
-            float* alpha       = OIIO_ALLOCA(float, width);
+            vfloat4* scanline;
+            OIIO_ALLOCATE_STACK_OR_HEAP(scanline, vfloat4, width);
+            float* alpha;
+            OIIO_ALLOCATE_STACK_OR_HEAP(alpha, float, width);
             const float fltmin = std::numeric_limits<float>::min();
             ImageBuf::ConstIterator<Atype> a(A, roi);
             ImageBuf::Iterator<Rtype> r(R, roi);
@@ -1531,8 +1533,10 @@ colorconvert_impl_float_rgba(ImageBuf& R, const ImageBuf& A,
     parallel_image(roi, parallel_image_options(nthreads), [&](ROI roi) {
         int width = roi.width();
         // Temporary space to hold one RGBA scanline
-        vfloat4* scanline  = OIIO_ALLOCA(vfloat4, width);
-        float* alpha       = OIIO_ALLOCA(float, width);
+        vfloat4* scanline;
+        OIIO_ALLOCATE_STACK_OR_HEAP(scanline, vfloat4, width);
+        float* alpha;
+        OIIO_ALLOCATE_STACK_OR_HEAP(alpha, float, width);
         const float fltmin = std::numeric_limits<float>::min();
         for (int k = roi.zbegin; k < roi.zend; ++k) {
             for (int j = roi.ybegin; j < roi.yend; ++j) {
