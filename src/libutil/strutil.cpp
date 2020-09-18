@@ -566,8 +566,8 @@ Strutil::splits(string_view str, string_view sep, int maxsplit)
     auto sr_result = splitsv(str, sep, maxsplit);
     std::vector<std::string> result;
     result.reserve(sr_result.size());
-    for (size_t i = 0, e = sr_result.size(); i != e; ++i)
-        result.push_back(sr_result[i]);
+    for (auto& s : sr_result)
+        result.push_back(s);
     return result;
 }
 
@@ -586,6 +586,8 @@ std::vector<string_view>
 Strutil::splitsv(string_view str, string_view sep, int maxsplit)
 {
     std::vector<string_view> result;
+    if (str.size() == 0)
+        return result;  // No source string --> no pieces
 
     // Implementation inspired by Pystring
     if (maxsplit < 0)
