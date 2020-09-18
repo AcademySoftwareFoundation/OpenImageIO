@@ -321,6 +321,11 @@ struct OIIO_API TypeDesc {
     /// containers and algorithms.
     bool operator< (const TypeDesc &x) const noexcept;
 
+    /// Given base data types of a and b, return a basetype that is a best
+    /// guess for one that can handle both without any loss of range or
+    /// precision.
+    static BASETYPE basetype_merge(TypeDesc a, TypeDesc b);
+
     // DEPRECATED(1.8): These static const member functions were mildly
     // problematic because they required external linkage (and possibly
     // even static initialization order fiasco) and were a memory reference

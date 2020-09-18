@@ -62,26 +62,27 @@ void
 test_type_merge()
 {
     std::cout << "test type_merge\n";
-    using namespace OIIO::ImageBufAlgo;
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT8, TypeDesc::UINT8),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT8, TypeDesc::UINT8),
                      TypeDesc::UINT8);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT8, TypeDesc::FLOAT),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT8, TypeDesc::FLOAT),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::FLOAT, TypeDesc::UINT8),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::FLOAT, TypeDesc::UINT8),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT8, TypeDesc::UINT16),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT8, TypeDesc::UINT16),
                      TypeDesc::UINT16);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT16, TypeDesc::FLOAT),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT16, TypeDesc::FLOAT),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::HALF, TypeDesc::FLOAT),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::HALF, TypeDesc::FLOAT),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::HALF, TypeDesc::UINT8),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::HALF, TypeDesc::UINT8),
                      TypeDesc::HALF);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::HALF, TypeDesc::UNKNOWN),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::HALF, TypeDesc::UNKNOWN),
                      TypeDesc::HALF);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::FLOAT, TypeDesc::UNKNOWN),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::FLOAT,
+                                              TypeDesc::UNKNOWN),
                      TypeDesc::FLOAT);
-    OIIO_CHECK_EQUAL(type_merge(TypeDesc::UINT8, TypeDesc::UNKNOWN),
+    OIIO_CHECK_EQUAL(TypeDesc::basetype_merge(TypeDesc::UINT8,
+                                              TypeDesc::UNKNOWN),
                      TypeDesc::UINT8);
 }
 

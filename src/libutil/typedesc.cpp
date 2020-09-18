@@ -820,6 +820,41 @@ TypeDesc::operator<(const TypeDesc& x) const noexcept
 
 
 
+TypeDesc::BASETYPE
+TypeDesc::basetype_merge(TypeDesc at, TypeDesc bt)
+{
+    BASETYPE a = (BASETYPE)at.basetype;
+    BASETYPE b = (BASETYPE)bt.basetype;
+
+    // Same type already? done.
+    if (a == b)
+        return a;
+    if (a == UNKNOWN)
+        return b;
+    if (b == UNKNOWN)
+        return a;
+    // Canonicalize so a's size (in bytes) is >= b's size in bytes. This
+    // unclutters remaining cases.
+    if (TypeDesc(a).size() < TypeDesc(b).size())
+        std::swap(a, b);
+    // Double or float trump anything else
+    if (a == DOUBLE || a == FLOAT)
+        return a;
+    if (a == UINT32 && (b == UINT16 || b == UINT8))
+        return a;
+    if (a == INT32 && (b == INT16 || b == UINT16 || b == INT8 || b == UINT8))
+        return a;
+    if ((a == UINT16 || a == HALF) && b == UINT8)
+        return a;
+    if ((a == INT16 || a == HALF) && (b == INT8 || b == UINT8))
+        return a;
+    // Out of common cases. For all remaining edge cases, punt and say that
+    // we prefer float.
+    return FLOAT;
+}
+
+
+
 const TypeDesc TypeDesc::TypeFloat(TypeDesc::FLOAT);
 const TypeDesc TypeDesc::TypeColor(TypeDesc::FLOAT, TypeDesc::VEC3,
                                    TypeDesc::COLOR);
