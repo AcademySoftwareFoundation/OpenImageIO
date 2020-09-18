@@ -846,6 +846,8 @@ public:
             Strutil::trim_whitespace(s);
             bool exclude       = Strutil::parse_char(s, '-');
             int named_subimage = -1;
+            if (s.size() == 0)
+                continue;
             if (Strutil::string_is_int(s)) {
                 int si = Strutil::from_string<int>(s);
                 if (exclude)
