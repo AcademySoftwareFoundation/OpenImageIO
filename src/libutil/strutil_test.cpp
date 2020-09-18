@@ -362,41 +362,109 @@ test_strip()
 
 
 void
-test_split()
+test_splits()
 {
     std::string s("Now\nis the  time!");
-    std::vector<string_view> splits;
+    {   // test default -- split at whitespace
+        auto pieces = Strutil::splits(s);
+        OIIO_CHECK_EQUAL(pieces.size(), 4);
+        OIIO_CHECK_EQUAL(pieces[0], "Now");
+        OIIO_CHECK_EQUAL(pieces[1], "is");
+        OIIO_CHECK_EQUAL(pieces[2], "the");
+        OIIO_CHECK_EQUAL(pieces[3], "time!");
+    }
+    {   // test custom split string
+        auto pieces = Strutil::splits(s, " t");
+        OIIO_CHECK_EQUAL(pieces.size(), 3);
+        OIIO_CHECK_EQUAL(pieces[0], "Now\nis");
+        OIIO_CHECK_EQUAL(pieces[1], "he ");
+        OIIO_CHECK_EQUAL(pieces[2], "ime!");
+    }
+    {   // test maxsplit
+        auto pieces = Strutil::splits(s, "", 2);
+        OIIO_CHECK_EQUAL(pieces.size(), 2);
+        OIIO_CHECK_EQUAL(pieces[0], "Now");
+        OIIO_CHECK_EQUAL(pieces[1], "is the  time!");
+    }
+    {   // test maxsplit with non-default sep
+        auto pieces = Strutil::splits(s, " ", 2);
+        OIIO_CHECK_EQUAL(pieces.size(), 2);
+        OIIO_CHECK_EQUAL(pieces[0], "Now\nis");
+        OIIO_CHECK_EQUAL(pieces[1], "the  time!");
+    }
+    {   // test split against a substring that is not present
+        auto pieces = Strutil::splits("blah", "!");
+        OIIO_CHECK_EQUAL(pieces.size(), 1);
+        OIIO_CHECK_EQUAL(pieces[0], "blah");
+    }
+    {   // test splitting empty string
+        auto pieces = Strutil::splits("", ",");
+        OIIO_CHECK_EQUAL(pieces.size(), 0);
+    }
+    {   // test splitting with empty pieces
+        auto pieces = Strutil::splits(",foo,,,bar,", ",");
+        OIIO_CHECK_EQUAL(pieces.size(), 6);
+        OIIO_CHECK_EQUAL(pieces[0], "");
+        OIIO_CHECK_EQUAL(pieces[1], "foo");
+        OIIO_CHECK_EQUAL(pieces[2], "");
+        OIIO_CHECK_EQUAL(pieces[3], "");
+        OIIO_CHECK_EQUAL(pieces[4], "bar");
+        OIIO_CHECK_EQUAL(pieces[5], "");
+    }
+}
 
-    // test default -- split at whitespace
-    Strutil::split(s, splits);
-    OIIO_CHECK_EQUAL(splits.size(), 4);
-    OIIO_CHECK_EQUAL(splits[0], "Now");
-    OIIO_CHECK_EQUAL(splits[1], "is");
-    OIIO_CHECK_EQUAL(splits[2], "the");
-    OIIO_CHECK_EQUAL(splits[3], "time!");
 
-    // test custom split string
-    Strutil::split(s, splits, " t");
-    OIIO_CHECK_EQUAL(splits.size(), 3);
-    OIIO_CHECK_EQUAL(splits[0], "Now\nis");
-    OIIO_CHECK_EQUAL(splits[1], "he ");
-    OIIO_CHECK_EQUAL(splits[2], "ime!");
 
-    // test maxsplit
-    Strutil::split(s, splits, "", 2);
-    OIIO_CHECK_EQUAL(splits.size(), 2);
-    OIIO_CHECK_EQUAL(splits[0], "Now");
-    OIIO_CHECK_EQUAL(splits[1], "is the  time!");
-
-    // test maxsplit with non-default sep
-    Strutil::split(s, splits, " ", 2);
-    OIIO_CHECK_EQUAL(splits.size(), 2);
-    OIIO_CHECK_EQUAL(splits[0], "Now\nis");
-    OIIO_CHECK_EQUAL(splits[1], "the  time!");
-
-    Strutil::split("blah", splits, "!");
-    OIIO_CHECK_EQUAL(splits.size(), 1);
-    OIIO_CHECK_EQUAL(splits[0], "blah");
+void
+test_splitsv()
+{
+    std::string s("Now\nis the  time!");
+    {   // test default -- split at whitespace
+        auto pieces = Strutil::splitsv(s);
+        OIIO_CHECK_EQUAL(pieces.size(), 4);
+        OIIO_CHECK_EQUAL(pieces[0], "Now");
+        OIIO_CHECK_EQUAL(pieces[1], "is");
+        OIIO_CHECK_EQUAL(pieces[2], "the");
+        OIIO_CHECK_EQUAL(pieces[3], "time!");
+    }
+    {   // test custom split string
+        auto pieces = Strutil::splitsv(s, " t");
+        OIIO_CHECK_EQUAL(pieces.size(), 3);
+        OIIO_CHECK_EQUAL(pieces[0], "Now\nis");
+        OIIO_CHECK_EQUAL(pieces[1], "he ");
+        OIIO_CHECK_EQUAL(pieces[2], "ime!");
+    }
+    {   // test maxsplit
+        auto pieces = Strutil::splitsv(s, "", 2);
+        OIIO_CHECK_EQUAL(pieces.size(), 2);
+        OIIO_CHECK_EQUAL(pieces[0], "Now");
+        OIIO_CHECK_EQUAL(pieces[1], "is the  time!");
+    }
+    {   // test maxsplit with non-default sep
+        auto pieces = Strutil::splitsv(s, " ", 2);
+        OIIO_CHECK_EQUAL(pieces.size(), 2);
+        OIIO_CHECK_EQUAL(pieces[0], "Now\nis");
+        OIIO_CHECK_EQUAL(pieces[1], "the  time!");
+    }
+    {   // test split against a substring that is not present
+        auto pieces = Strutil::splitsv("blah", "!");
+        OIIO_CHECK_EQUAL(pieces.size(), 1);
+        OIIO_CHECK_EQUAL(pieces[0], "blah");
+    }
+    {   // test splitting empty string
+        auto pieces = Strutil::splitsv("", ",");
+        OIIO_CHECK_EQUAL(pieces.size(), 0);
+    }
+    {   // test splitting with empty pieces
+        auto pieces = Strutil::splitsv(",foo,,,bar,", ",");
+        OIIO_CHECK_EQUAL(pieces.size(), 6);
+        OIIO_CHECK_EQUAL(pieces[0], "");
+        OIIO_CHECK_EQUAL(pieces[1], "foo");
+        OIIO_CHECK_EQUAL(pieces[2], "");
+        OIIO_CHECK_EQUAL(pieces[3], "");
+        OIIO_CHECK_EQUAL(pieces[4], "bar");
+        OIIO_CHECK_EQUAL(pieces[5], "");
+    }
 }
 
 
@@ -1070,7 +1138,8 @@ main(int argc, char* argv[])
     test_comparisons();
     test_case();
     test_strip();
-    test_split();
+    test_splits();
+    test_splitsv();
     test_join();
     test_concat();
     test_repeat();
