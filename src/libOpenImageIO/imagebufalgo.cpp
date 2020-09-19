@@ -341,40 +341,11 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
 
 
 
-/// Given data types a and b, return a type that is a best guess for one
-/// that can handle both without any loss of range or precision.
+// DEPRECATED(2.3): Replaced by TypeDesc::type_merge(BASETYPE,BASETYPE)
 TypeDesc::BASETYPE
 ImageBufAlgo::type_merge(TypeDesc::BASETYPE a, TypeDesc::BASETYPE b)
 {
-    // Same type already? done.
-    if (a == b)
-        return a;
-    if (a == TypeDesc::UNKNOWN)
-        return b;
-    if (b == TypeDesc::UNKNOWN)
-        return a;
-    // Canonicalize so a's size (in bytes) is >= b's size in bytes. This
-    // unclutters remaining cases.
-    if (TypeDesc(a).size() < TypeDesc(b).size())
-        std::swap(a, b);
-    // Double or float trump anything else
-    if (a == TypeDesc::DOUBLE || a == TypeDesc::FLOAT)
-        return a;
-    if (a == TypeDesc::UINT32
-        && (b == TypeDesc::UINT16 || b == TypeDesc::UINT8))
-        return a;
-    if (a == TypeDesc::INT32
-        && (b == TypeDesc::INT16 || b == TypeDesc::UINT16 || b == TypeDesc::INT8
-            || b == TypeDesc::UINT8))
-        return a;
-    if ((a == TypeDesc::UINT16 || a == TypeDesc::HALF) && b == TypeDesc::UINT8)
-        return a;
-    if ((a == TypeDesc::INT16 || a == TypeDesc::HALF)
-        && (b == TypeDesc::INT8 || b == TypeDesc::UINT8))
-        return a;
-    // Out of common cases. For all remaining edge cases, punt and say that
-    // we prefer float.
-    return TypeDesc::FLOAT;
+    return TypeDesc::basetype_merge(a, b);
 }
 
 
