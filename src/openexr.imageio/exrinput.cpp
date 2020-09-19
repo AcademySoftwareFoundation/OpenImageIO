@@ -1044,9 +1044,7 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
     for (int c = 0; c < spec.nchannels; ++c) {
         spec.channelnames.push_back(cnh[c].fullname);
         spec.channelformats.push_back(cnh[c].datatype);
-        spec.format = TypeDesc(ImageBufAlgo::type_merge(
-            TypeDesc::BASETYPE(spec.format.basetype),
-            TypeDesc::BASETYPE(cnh[c].datatype.basetype)));
+        spec.format = TypeDesc::basetype_merge(spec.format, cnh[c].datatype);
         pixeltype.push_back(cnh[c].exr_data_type);
         chanbytes.push_back(cnh[c].datatype.size());
         all_one_format &= (cnh[c].datatype == cnh[0].datatype);

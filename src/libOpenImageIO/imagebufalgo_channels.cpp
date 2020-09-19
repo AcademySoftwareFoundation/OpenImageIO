@@ -236,7 +236,8 @@ ImageBufAlgo::channel_append(ImageBuf& dst, const ImageBuf& A,
     // make it a type that can hold both A's and B's type.
     if (!dst.pixels_valid()) {
         ImageSpec dstspec = A.spec();
-        dstspec.set_format(type_merge(A.spec().format, B.spec().format));
+        dstspec.set_format(
+            TypeDesc::basetype_merge(A.spec().format, B.spec().format));
         // Append the channel descriptions
         dstspec.nchannels = A.spec().nchannels + B.spec().nchannels;
         for (int c = 0; c < B.spec().nchannels; ++c) {
