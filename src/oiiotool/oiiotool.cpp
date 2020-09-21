@@ -202,6 +202,26 @@ format_resolution(int w, int h, int d, int x, int y, int z)
 }
 
 
+
+// Helper: Remove an optional modifier ":NAME=value" from command string str
+static std::string
+remove_modifier(string_view str, string_view name)
+{
+    std::string sentinel = Strutil::fmt::format(":{}=", name);
+    std::string result;
+    size_t start = str.find(sentinel);
+    if (start != string_view::npos) {
+        size_t end = start + sentinel.size();
+        end        = std::min(str.find(":", end), str.size());
+        result     = Strutil::concat(str.substr(0, start), str.substr(end));
+    } else {
+        result = str;
+    }
+    return result;
+}
+
+
+
 // FIXME -- lots of things we skimped on so far:
 // FIXME: reject volume images?
 // FIXME: do all ops respect -a (or lack thereof?)
@@ -2376,20 +2396,33 @@ action_chappend(int argc, const char* argv[])
 {
     if (ot.postpone_callback(2, action_chappend, argc, argv))
         return 0;
-    OiiotoolOp op(ot, "chappend", argc, argv, 2);
-    op.preserve_miplevels(true);
-    op.set_impl([](OiiotoolOp& op, span<ImageBuf*> img) {
-        // Shuffle the indexed/named channels
-        bool ok = ImageBufAlgo::channel_append(*img[0], *img[1], *img[2]);
-        if (!ok)
-            ot.error(op.opname(), img[0]->geterror());
-        if (ot.metamerge) {
-            img[0]->specmod().extra_attribs.merge(img[1]->spec().extra_attribs);
-            img[0]->specmod().extra_attribs.merge(img[2]->spec().extra_attribs);
-        }
-        return ok;
-    });
-    return op();
+    std::string command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+    int n               = OIIO::clamp(options["n"].get<int>(2), 2,
+                        int(ot.image_stack.size() + 1));
+    command             = remove_modifier(command, "n");
+    bool ok             = true;
+
+    // two at a time
+    for (; n >= 2; --n) {
+        OiiotoolOp op(ot, "chappend", argc, argv, 2);
+        op.preserve_miplevels(true);
+        op.set_impl([](OiiotoolOp& op, span<ImageBuf*> img) {
+            // Shuffle the indexed/named channels
+            bool ok = ImageBufAlgo::channel_append(*img[0], *img[1], *img[2]);
+            if (!ok)
+                ot.error(op.opname(), img[0]->geterror());
+            if (ot.metamerge) {
+                img[0]->specmod().extra_attribs.merge(
+                    img[1]->spec().extra_attribs);
+                img[0]->specmod().extra_attribs.merge(
+                    img[2]->spec().extra_attribs);
+            }
+            return ok;
+        });
+        ok &= op();
+    }
+    return ok;
 }
 
 
@@ -2555,8 +2588,11 @@ action_subimage_append(int argc, const char* argv[])
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+    int n               = OIIO::clamp(options["n"].get<int>(2), 2,
+                        int(ot.image_stack.size() + 1));
 
-    action_subimage_append_n(2, command);
+    action_subimage_append_n(n, command);
 
     ot.function_times[command] += timer();
     return 0;
@@ -4545,7 +4581,6 @@ prep_texture_config(ImageSpec& configspec, ParamValueList& fileoptions)
 static void
 remove_all_cmd(std::string& str)
 {
-    std::string result;
     size_t start = str.find(":all=");
     if (start != std::string::npos) {
         size_t end = start + 5;  // : a l l =

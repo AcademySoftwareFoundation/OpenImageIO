@@ -1597,8 +1597,16 @@ current top image.
 
 .. option:: --siappend
 
-    Replaces the top two images on the stack with a single new image
-    comprised of the subimages of both images appended together.
+    Replaces the top two (or more) images on the stack with a single new
+    multi-subimage comprised of the original images appended together as
+    subimages within the same single image.
+
+    Optional appended modifiers include:
+
+      `:n=` *number-of-subimages*
+        Specify the number (if more than 2) of images to combine into a
+        single multi-subimage image. This will be clamped between 2 and the
+        total number of images on the stack.
 
 .. option:: --siappendall
 
@@ -1628,10 +1636,15 @@ current top image.
 
 .. option:: --chappend
 
-    Replaces the top two images on the stack with a new image comprised of
-    the channels of both images appended together.
+    Replaces the top two (or more) images on the stack with a single new
+    image comprised of the channels of the input images appended together.
 
     Optional appended modifiers include:
+
+      `:n=` *number-of-subimages*
+        Specify the number (if more than 2) of images whose channels should
+        be combined into a single image. This will be clamped between 2 and
+        the total number of images on the stack.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
