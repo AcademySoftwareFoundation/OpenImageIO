@@ -3,14 +3,61 @@ Release 2.3 (??) -- compared to 2.2
 New minimum dependencies:
 
 New major features and public API changes:
+* oiiotool new commands:
+    - `--pastemeta` takes two images as arguments, and appends all the
+      metadata (only) from the first image onto the second image's pixels
+      and metadata, producing a combined image. #2708 (2.3.0.0)
+* Python bindings:
+    - When transferring blocks of pixels (e.g., `ImageInput.read_image()`
+      or `ImageOutput.write_scanline()`), "half" pixels ended up mangled
+      into uint16, but now they use the correct numpy.float16 type. #2694
+      (2.3.0.0)
+    - The value passed to `attribute(name, typedesc, value)` can now be a
+      tuple, list, numpy array, or scalar value. #2695 (2.3.0.0)
 
 Performance improvements:
 
 Fixes and feature enhancements:
+* Fix a situation where if an ImageBuf backed by an ImageCache reads an
+  image, then the image changes on disk, then another ImageBuf or ImageCache
+  tries to read it, it could end up with the old version. This involved some
+  strategic cache invalidation when ImageBuf's write images to disk. #2696
+  (2.3.0.0)
+* ImageBuf/ImageBufAlgo:
+    - `IBA::contrast_remap()` fixes bug that could crash for very large
+      images #2704 (2.3.0.0)
+* oiiotool:
+    - `--resize` of images with multi-subimages could crash. #2711 (2.3.0.0)
+    - `--chappend` and `--siappend` both allow an optional modifier `:n=`
+      to specify the number of images from the stack to be combined
+      (default n=2). #2709 (2.3.0.0)
+* FFMpeg/movies:
+    - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
+* TIFF:
+    - Fix broken reads of multi-subimage non-spectral files (such as
+      photometric YCbCr mode). #2692 (2.3.0.0)
 
 Developer goodies / internals:
+* strutil.h:
+    - Strutil `splits()` and `splitsv()` should return no pieces when passed
+      an empty string. (It previously erroneously returned one piece
+      consisting of an empty string.) #2712 (2.3.0.0)
+* typedesc.h:
+    - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
+      precision and range to hold the basetypes of either `a` or `b`.
+      #2715 (2.3.0.0)
 
 Build/test system improvements and platform ports:
+* CMake build system and scripts:
+    - Instead of defaulting to looking for Python 2.7, the OIIO build now
+      defaults to whatever Python is found (though a specific one can still
+      be requested via the PYTHON_VERSION variable). #2705 (2.3.0.0)
+* Dependency version support:
+* Testing and Continuous integration (CI) systems:
+* Platform support:
+    - Fixes for mingw. #2698 (2.3.0.0)
+    - Windows fix: correct OIIO_API declaration on aligned_malloc,
+      aligned_free of platform.h. #2701 (2.3.0.0)
 
 Notable documentation changes:
 
