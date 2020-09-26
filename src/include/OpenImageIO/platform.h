@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <cassert>
 #include <cstdlib>
 #include <type_traits>
 #include <utility>  // std::forward
@@ -255,15 +256,44 @@
 
 
 
-/// allocates smallish stack memory, equivalent of C99 type var_name[size]
+/// OIIO_ALLOCA is used to allocate smallish amount of memory on the stack,
+/// equivalent of C99 type var_name[size].
+///
+/// NOTE: in a debug build, this will assert for allocations >= 1MB, which
+/// is much too big. Hopefully this will keep us from abusing alloca and
+/// having stack overflows. The rule of thumb is that it's ok to use alloca
+/// for small things of bounded size (like, one float per channel), but
+/// not for anything that could be arbitrarily big (like a full scanline or
+/// image, because sooner or later somebody will give you an image big
+/// enough to cause trouble). Consider using the OIIO_ALLOCATE_STACK_OR_HEAP
+/// idiom rather than a direct OIIO_ALLOCA if you aren't sure the item will
+/// be small.
 #if defined(__GNUC__)
-#    define OIIO_ALLOCA(type, size) ((size) != 0 ? ((type*)__builtin_alloca((size) * sizeof(type))) : nullptr)
+#    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)__builtin_alloca((size) * sizeof(type))) : nullptr)
 #else
-#    define OIIO_ALLOCA(type, size) ((size) != 0 ? ((type*)alloca((size) * sizeof(type))) : nullptr)
+#    define OIIO_ALLOCA(type, size) (assert(size < (1<<20)), (size) != 0 ? ((type*)alloca((size) * sizeof(type))) : nullptr)
 #endif
 
 /// Deprecated (for namespace pollution reasons)
 #define ALLOCA(type, size) OIIO_ALLOCA(type, size)
+
+
+/// Try to allocate T* var to point to T[size] elements of temporary storage
+/// that will automatically free when the local scope is exited. Allocate
+/// the space on the stack with alloca if it's small, but if it's big (> 64
+/// KB), allocate on the heap with a new[], stored as a std::unique_ptr. In
+/// both cases, the memory will be freed automatically upon exit of scope.
+/// That threshold is big enough for one scanline of a 4096 x 4 channel x
+/// float image, or one 64x64 tile of a 4xfloat image.
+#define OIIO_ALLOCATE_STACK_OR_HEAP(var, T, size)   \
+    size_t var##___size = size_t(size);             \
+    std::unique_ptr<T[]> var##___heap;              \
+    if (var##___size * sizeof(T) <= (1 << 16)) {    \
+        var = OIIO_ALLOCA(T, var##___size);         \
+    } else {                                        \
+        var##___heap.reset(new T[var##___size]);    \
+        var = var##___heap.get();                   \
+    }
 
 
 // Define a macro that can be used for memory alignment.
