@@ -728,7 +728,20 @@ ImageSpec
 TIFFInput::spec(int subimage, int miplevel)
 {
     ImageSpec ret;
-    int s = m_emulate_mipmap ? miplevel : subimage;
+
+    // s == index of the spec list to retrieve. Start by presuming it's
+    // the sublevel number.
+    int s = subimage;
+    if (m_emulate_mipmap) {
+        // This is the kind of TIFF file where we are emulating MIPmap
+        // levels with TIFF subimages.
+        if (subimage != 0)
+            return ret;  // Invalid subimage request, return the empty spec
+        // Index into the spec list by miplevel instead, because that's
+        // what it really contains.
+        s = miplevel;
+    }
+
     lock_guard lock(m_mutex);
     if (s >= 0 && s < int(m_subimage_specs.size())
         && !m_subimage_specs[s].undefined()) {
@@ -747,7 +760,20 @@ ImageSpec
 TIFFInput::spec_dimensions(int subimage, int miplevel)
 {
     ImageSpec ret;
-    int s = m_emulate_mipmap ? miplevel : subimage;
+
+    // s == index of the spec list to retrieve. Start by presuming it's
+    // the sublevel number.
+    int s = subimage;
+    if (m_emulate_mipmap) {
+        // This is the kind of TIFF file where we are emulating MIPmap
+        // levels with TIFF subimages.
+        if (subimage != 0)
+            return ret;  // Invalid subimage request, return the empty spec
+        // Index into the spec list by miplevel instead, because that's
+        // what it really contains.
+        s = miplevel;
+    }
+
     lock_guard lock(m_mutex);
     if (s >= 0 && s < int(m_subimage_specs.size())
         && !m_subimage_specs[s].undefined()) {
