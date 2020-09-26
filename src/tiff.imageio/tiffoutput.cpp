@@ -403,8 +403,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         sampformat      = SAMPLEFORMAT_INT;
         break;
     case TypeDesc::UINT8:
-        if (m_bitspersample != 2 && m_bitspersample != 4
-            && m_bitspersample != 6)
+        if (m_bitspersample != 2 && m_bitspersample != 4 && m_bitspersample != 6
+            && m_bitspersample != 1)
             m_bitspersample = 8;
         sampformat = SAMPLEFORMAT_UINT;
         break;
@@ -1548,6 +1548,11 @@ TIFFOutput::fix_bitdepth(void* data, int nvals)
         for (int i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<8, 6>(v[i]);
         bit_pack(cspan<unsigned char>(v, v + nvals), v, 6);
+    } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 1) {
+        unsigned char* v = (unsigned char*)data;
+        for (int i = 0; i < nvals; ++i)
+            v[i] = bit_range_convert<8, 1>(v[i]);
+        bit_pack(cspan<unsigned char>(v, v + nvals), v, 1);
     } else if (spec().format == TypeDesc::UINT32 && m_bitspersample == 24) {
         unsigned int* v = (unsigned int*)data;
         for (int i = 0; i < nvals; ++i)
