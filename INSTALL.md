@@ -51,7 +51,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 4.1 (5.0+ is strongly recommended for stability and
        thread safety)
  * If you want support for HEIF/HEIC images:
-     * libheif >= 1.3 (tested through 1.8; older versions may also work, we
+     * libheif >= 1.3 (tested through 1.9; older versions may also work, we
        haven't tested)
 * If you want support for DDS files:
      * libsquish >= 1.13
