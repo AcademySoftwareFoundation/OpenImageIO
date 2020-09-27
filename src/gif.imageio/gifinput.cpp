@@ -210,6 +210,7 @@ GIFInput::read_gif_extension(int ext_code, GifByteType* ext, ImageSpec& newspec)
         // http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#application_extension_block
         if (ext[0] == 3) {
             newspec.attribute("gif:LoopCount", (ext[3] << 8) | ext[2]);
+            newspec.attribute("oiio:LoopCount", (ext[3] << 8) | ext[2]);
         }
     }
 }
