@@ -60,13 +60,11 @@ ls "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
 echo "All VCPkg installs:"
 vcpkg list
 
-# curl --location https://ffmpeg.zeranoe.com/builds/win64/shared/ffmpeg-4.2.1-win64-shared.zip -o ffmpeg-libs.zip
-# unzip ffmpeg-libs.zip
-curl --location https://ffmpeg.zeranoe.com/builds/win64/dev/ffmpeg-4.2.1-win64-dev.zip -o ffmpeg-dev.zip
-unzip ffmpeg-dev.zip
-ls
-ls -R *ffmpeg*
-FFmpeg_ROOT=$PWD/ffmpeg-4.2.1-win64-dev
+# curl --location https://ffmpeg.zeranoe.com/builds/win64/dev/ffmpeg-4.2.1-win64-dev.zip -o ffmpeg-dev.zip
+# unzip ffmpeg-dev.zip
+# ls
+# ls -R *ffmpeg*
+# FFmpeg_ROOT=$PWD/ffmpeg-4.2.1-win64-dev
 
 echo "CMAKE_PREFIX_PATH = $CMAKE_PREFIX_PATH"
 
