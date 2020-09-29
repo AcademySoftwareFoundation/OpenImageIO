@@ -1,5 +1,28 @@
-Release 2.2.7 (1 Oct? 2020) -- compared to 2.2.6
+Release 2.2.7 (1 Oct 2020) -- compared to 2.2.6
 -------------------------------------------------
+* oiiotool new command: `--pastemeta` takes two images as arguments, and
+  appends all the metadata (only) from the first image onto the second
+  image's pixels and metadata, producing a combined image. #2708
+* TIFF: Fix broken reads of multi-subimage non-spectral files (such as
+  photometric YCbCr mode). #2692
+* Python: When transferring blocks of pixels (e.g., `ImageInput.read_image()`
+  or `ImageOutput.write_scanline()`), "half" pixels ended up mangled into
+  uint16, but now they use the correct numpy.float16 type. #2694
+* Python: The value passed to `attribute(name, typedesc, value)` can now be
+  a tuple, list, numpy array, or scalar value. #2695
+* `IBA::contrast_remap()` fixes bug that could crash for very large images
+  #2704
+* Warn about recommended minimum versions of some dependencies.
+* Windows fix: correct OIIO_API declaration on aligned_malloc, aligned_free
+  of platform.h. #2701
+* Fix oiiotool crash when --resize was used with multi-subimage files. #2711
+* Bug fix in Strutil::splits and splitsv: when input is the empty string,
+  the split should return no pieces. #2712
+* Support for libheif 1.9. #2724
+* TIFF: Fix spec() and spec_dimensions() for MIPmapped TIFF files, they
+  did not recognize being asked to return the specs for invalid subimage
+  indices. #2723
+* TIFF: add ability to output 1bpp TIFF files. #2722
 
 
 Release 2.2 (1 Sept 2020) -- compared to 2.1
@@ -401,6 +424,15 @@ Notable documentation changes:
   `git config blame.ignoreRevsFile .git-blame-ignore-revs`
   #2683 (2.2.6)
 
+
+Release 2.1.20 (1 Oct 2020) -- compared to 2.1.19
+-------------------------------------------------
+* Windows: make sure aligned_malloc and aligned_free are properly declared
+  as OIIO_API. #2701
+* Support for libheif 1.8 and 1.9. #2685 #2724
+* Fix crash in IBA::contrast_remap for very large images. #2704
+* Bug fix in Strutil::splits and splitsv: when input is the empty string,
+  the split should return no pieces. #2712
 
 Release 2.1.19 (1 Sep 2020) -- compared to 2.1.18
 -------------------------------------------------
