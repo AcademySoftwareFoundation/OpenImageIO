@@ -1,5 +1,11 @@
-Release 2.1.20 (??) -- compared to 2.1.19
+Release 2.1.20 (1 Oct 2020) -- compared to 2.1.19
 -------------------------------------------------
+* Windows: make sure aligned_malloc and aligned_free are properly declared
+  as OIIO_API. #2701
+* Support for libheif 1.8 and 1.9. #2685 #2724
+* Fix crash in IBA::contrast_remap for very large images. #2704
+* Bug fix in Strutil::splits and splitsv: when input is the empty string,
+  the split should return no pieces. #2712
 
 Release 2.1.19 (1 Sep 2020) -- compared to 2.1.18
 -------------------------------------------------
