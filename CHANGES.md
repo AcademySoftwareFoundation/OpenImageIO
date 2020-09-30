@@ -1,3 +1,7 @@
+Release 2.2.8 (1? Nov? 2020) -- compared to 2.2.7
+-------------------------------------------------
+
+
 Release 2.2.7 (1 Oct 2020) -- compared to 2.2.6
 -------------------------------------------------
 * oiiotool new command: `--pastemeta` takes two images as arguments, and
