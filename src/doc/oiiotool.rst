@@ -1261,19 +1261,25 @@ Writing images
 
 .. option:: -d <datatype>
             -d <channelname>=<datatype>
+            -d <subimagename>.*=<datatype>
+            -d <subimagename>.<channelname>=<datatype>
 
     Attempts to set the pixel data type of all subsequent outputs.  If no
-    channel is named, sets *all* channels to be the specified data type.  If
-    a specific channel is named, then the data type will be overridden for
-    just that channel (multiple `-d` commands may be used).
+    channel or subimage name is given, sets *all* channels to be the
+    specified data type.  If a specific channel is named, then the data type
+    will be overridden for just that channel (multiple `-d` commands may be
+    used). If both a subimage name and channel name are specified, the hint
+    is only for the named channel when encountered in a named subimage. And
+    if the specification is of the form `subimagename.*=type`, then all
+    channels of that subimage will be output with the given type.
     
-    Valid types are: `UINT8`, `sint8`, `uint16`, `sint16`, `half`, `float`,
+    Valid types are: `uint8`, `sint8`, `uint16`, `sint16`, `half`, `float`,
     `double`. The types `uint10` and `uint12` may be used to request 10- or
     12-bit unsigned integers.  If the output file format does not support
     them, `uint16` will be substituted.
     
-    If the `-d` option is not supplied, the output data type will be the
-    same as the data format of the input files, if possible.
+    If the `-d` option is not supplied, the output data type will be
+    deduced from the data format of the input files, if possible.
     
     In any case, if the output file type does not support the requested data
     type, it will instead use whichever supported data type results in the
