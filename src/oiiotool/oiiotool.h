@@ -116,9 +116,9 @@ public:
     bool input_config_set       = false;
     bool printed_info           = false;  // printed info at some point
     // Remember the first input dataformats we encountered
-    TypeDesc first_input_dataformat;
-    int first_input_dataformat_bits = 0;
-    std::map<std::string, std::string> first_input_channelformats;
+    TypeDesc input_dataformat;
+    int input_bitspersample = 0;
+    std::map<std::string, std::string> input_channelformats;
 
     Oiiotool();
 
@@ -128,18 +128,23 @@ public:
     /// Force img to be read at this point.  Use this wrapper, don't directly
     /// call img->read(), because there's extra work done here specific to
     /// oiiotool.
-    bool read(ImageRecRef img, ReadPolicy readpolicy = ReadDefault);
+    bool read(ImageRecRef img, ReadPolicy readpolicy = ReadDefault,
+              string_view channel_set = "");
     // Read the current image
-    bool read(ReadPolicy readpolicy = ReadDefault)
+    bool read(ReadPolicy readpolicy = ReadDefault, string_view channel_set = "")
     {
         if (curimg)
-            return read(curimg, readpolicy);
+            return read(curimg, readpolicy, channel_set);
         return true;
     }
 
     /// Force partial read of image (if it hasn't been yet), just enough
     /// that the nativespec can be examined.
     bool read_nativespec(ImageRecRef img);
+
+    // If this is the first input image, remember the various formats used
+    // so we can use them as the default for later outputs.
+    void remember_input_channelformats(ImageRecRef img);
 
     // If required_images are not yet on the stack, then postpone this
     // call by putting it on the 'pending' list and return true.
@@ -324,8 +329,8 @@ public:
 private:
     std::vector<ImageBufRef> m_miplevels;
     std::vector<ImageSpec> m_specs;
-    bool m_was_direct_read
-        = false;  ///< Guaranteed pixel data type unmodified since read
+    bool m_was_direct_read = false;
+    // ^^ Guaranteed pixel data type unmodified since read
     friend class ImageRec;
 };
 
