@@ -126,7 +126,7 @@ struct ImageCacheStatistics {
 /// However, a few of them require passing in a pointer to the
 /// thread-specific IC data including microcache and statistics.
 ///
-class OIIO_API ImageCacheFile : public RefCnt {
+class OIIO_API ImageCacheFile final : public RefCnt {
 public:
     ImageCacheFile(ImageCacheImpl& imagecache,
                    ImageCachePerThreadInfo* thread_info, ustring filename,
@@ -557,7 +557,7 @@ private:
 
 /// Record for a single image tile.
 ///
-class ImageCacheTile : public RefCnt {
+class ImageCacheTile final : public RefCnt {
 public:
     /// Construct a new tile, pixels will be read when calling read()
     ImageCacheTile(const TileID& id);
@@ -729,7 +729,7 @@ public:
 /// Some of the methods require a pointer to the thread-specific IC data
 /// including microcache and statistics.
 ///
-class ImageCacheImpl : public ImageCache {
+class ImageCacheImpl final : public ImageCache {
 public:
     ImageCacheImpl();
     virtual ~ImageCacheImpl();

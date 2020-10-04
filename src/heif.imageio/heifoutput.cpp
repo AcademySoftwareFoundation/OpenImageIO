@@ -44,7 +44,7 @@ private:
 
 namespace {
 
-class MyHeifWriter : public heif::Context::Writer {
+class MyHeifWriter final : public heif::Context::Writer {
 public:
     MyHeifWriter(Filesystem::IOProxy* ioproxy)
         : m_ioproxy(ioproxy)

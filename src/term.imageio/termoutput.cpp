@@ -16,7 +16,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 namespace term_pvt {
 
 
-class TermOutput : public ImageOutput {
+class TermOutput final : public ImageOutput {
 public:
     TermOutput() { init(); }
     virtual ~TermOutput() { close(); }
