@@ -32,11 +32,12 @@ option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" 
 
 ###########################################################################
 # Boost setup
+if (MSVC)
+    # Disable automatic linking using pragma comment(lib,...) of boost libraries upon including of a header
+    add_definitions (-DBOOST_ALL_NO_LIB=1)
+endif ()
 if (LINKSTATIC)
-    set (Boost_USE_STATIC_LIBS ON)
-    if (MSVC)
-        add_definitions (-DBOOST_ALL_NO_LIB=1)
-    endif ()
+    set (Boost_USE_STATIC_LIBS ON)    
 else ()
     if (MSVC)
         add_definitions (-DBOOST_ALL_DYN_LINK=1)
@@ -47,7 +48,7 @@ if (BOOST_CUSTOM)
     # N.B. For a custom version, the caller had better set up the variables
     # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
-    set (Boost_COMPONENTS filesystem system thread date_time)
+    set (Boost_COMPONENTS filesystem system thread)
     if (NOT USE_STD_REGEX)
         list (APPEND Boost_COMPONENTS regex)
     endif ()
