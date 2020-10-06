@@ -140,4 +140,9 @@ if (OIIO_BUILD_TESTS)
     set_target_properties (paramlist_test PROPERTIES FOLDER "Unit Tests")
     add_test (unit_paramlist ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/paramlist_test)
 
+    add_executable (strongparam_test strongparam_test.cpp)
+    target_link_libraries (strongparam_test PRIVATE OpenImageIO)
+    set_target_properties (strongparam_test PROPERTIES FOLDER "Unit Tests")
+    add_test (unit_strongparam ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/strongparam_test)
+
 endif ()
