@@ -119,8 +119,7 @@ IffFileHeader::read_header(FILE* fd, std::string& err)
                                 pixel_channels++;
 
                             // test pixel bits
-                            if (!bytes)
-                                pixel_bits = bytes ? 16 : 8;
+                            pixel_bits = bytes ? 16 : 8;
                         }
 
                         // Z format.
