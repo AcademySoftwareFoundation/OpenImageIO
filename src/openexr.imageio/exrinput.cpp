@@ -96,7 +96,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Custom file input stream, copying code from the class StdIFStream in OpenEXR,
 // which would have been used if we just provided a filename. The difference is
 // that this can handle UTF-8 file paths on all platforms.
-class OpenEXRInputStream : public Imf::IStream {
+class OpenEXRInputStream final : public Imf::IStream {
 public:
     OpenEXRInputStream(const char* filename, Filesystem::IOProxy* io)
         : Imf::IStream(filename)

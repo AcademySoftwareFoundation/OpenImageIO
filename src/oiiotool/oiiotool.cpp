@@ -2021,7 +2021,7 @@ set_colorspace(int argc, const char* argv[])
 
 
 // --colorconvert
-class OpColorConvert : public OiiotoolOp {
+class OpColorConvert final : public OiiotoolOp {
 public:
     OpColorConvert(Oiiotool& ot, string_view opname, int argc,
                    const char* argv[])
@@ -2212,7 +2212,7 @@ action_unmip(int argc, const char* argv[])
 
 
 // --chnames
-class OpChnames : public OiiotoolOp {
+class OpChnames final : public OiiotoolOp {
 public:
     OpChnames(Oiiotool& ot, string_view opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
@@ -3445,7 +3445,7 @@ action_cut(int argc, const char* argv[])
 
 
 // --resample
-class OpResample : public OiiotoolOp {
+class OpResample final : public OiiotoolOp {
 public:
     OpResample(Oiiotool& ot, string_view opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
@@ -3502,7 +3502,7 @@ OP_CUSTOMCLASS(resample, OpResample, 1);
 
 
 // --resize
-class OpResize : public OiiotoolOp {
+class OpResize final : public OiiotoolOp {
 public:
     OpResize(Oiiotool& ot, string_view opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)

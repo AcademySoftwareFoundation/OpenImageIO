@@ -652,7 +652,7 @@ ocio_bitdepth(TypeDesc type)
 
 
 // Custom ColorProcessor that wraps an OpenColorIO Processor.
-class ColorProcessor_OCIO : public ColorProcessor {
+class ColorProcessor_OCIO final : public ColorProcessor {
 public:
     ColorProcessor_OCIO(OCIO::ConstProcessorRcPtr p)
         : m_p(p)
@@ -695,7 +695,7 @@ private:
 
 
 // ColorProcessor that hard-codes sRGB-to-linear
-class ColorProcessor_sRGB_to_linear : public ColorProcessor {
+class ColorProcessor_sRGB_to_linear final : public ColorProcessor {
 public:
     ColorProcessor_sRGB_to_linear()
         : ColorProcessor() {};
@@ -732,7 +732,7 @@ public:
 
 
 // ColorProcessor that hard-codes linear-to-sRGB
-class ColorProcessor_linear_to_sRGB : public ColorProcessor {
+class ColorProcessor_linear_to_sRGB final : public ColorProcessor {
 public:
     ColorProcessor_linear_to_sRGB()
         : ColorProcessor() {};
@@ -770,7 +770,7 @@ public:
 
 
 // ColorProcessor that hard-codes Rec709-to-linear
-class ColorProcessor_Rec709_to_linear : public ColorProcessor {
+class ColorProcessor_Rec709_to_linear final : public ColorProcessor {
 public:
     ColorProcessor_Rec709_to_linear()
         : ColorProcessor() {};
@@ -795,7 +795,7 @@ public:
 
 
 // ColorProcessor that hard-codes linear-to-Rec709
-class ColorProcessor_linear_to_Rec709 : public ColorProcessor {
+class ColorProcessor_linear_to_Rec709 final : public ColorProcessor {
 public:
     ColorProcessor_linear_to_Rec709()
         : ColorProcessor() {};
@@ -821,7 +821,7 @@ public:
 
 
 // ColorProcessor that performs gamma correction
-class ColorProcessor_gamma : public ColorProcessor {
+class ColorProcessor_gamma final : public ColorProcessor {
 public:
     ColorProcessor_gamma(float gamma)
         : ColorProcessor()
@@ -863,7 +863,7 @@ private:
 
 
 // ColorProcessor that does nothing (identity transform)
-class ColorProcessor_Ident : public ColorProcessor {
+class ColorProcessor_Ident final : public ColorProcessor {
 public:
     ColorProcessor_Ident()
         : ColorProcessor()
@@ -880,7 +880,7 @@ public:
 
 
 // ColorProcessor that implements a matrix multiply color transformation.
-class ColorProcessor_Matrix : public ColorProcessor {
+class ColorProcessor_Matrix final : public ColorProcessor {
 public:
     ColorProcessor_Matrix(const Imath::M44f& Matrix, bool inverse)
         : ColorProcessor()

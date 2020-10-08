@@ -36,7 +36,7 @@ class ImageViewer;
 
 
 
-class IvGL : public QOpenGLWidget, protected QOpenGLFunctions {
+class IvGL final : public QOpenGLWidget, protected QOpenGLFunctions {
     Q_OBJECT
 public:
     IvGL(QWidget* parent, ImageViewer& viewer);

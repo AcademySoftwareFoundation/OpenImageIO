@@ -23,7 +23,7 @@
 
 OIIO_NAMESPACE_BEGIN
 
-class ArgOption : public ArgParse::Arg {
+class ArgOption final : public ArgParse::Arg {
 public:
     typedef int (*callback_t)(int, const char**);
 

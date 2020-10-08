@@ -33,7 +33,7 @@ class ImageCacheTileRef;
 
 /// Working implementation of the abstract TextureSystem class.
 ///
-class TextureSystemImpl : public TextureSystem {
+class TextureSystemImpl final : public TextureSystem {
 public:
     typedef ImageCacheFile TextureFile;
 

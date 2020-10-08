@@ -64,7 +64,7 @@ bool gTxFiltersInitialized = false;
 static std::vector<const char*> gFilterNames;
 
 
-class txWriter : public Writer {
+class txWriter final : public Writer {
     int preset_;
     int tileW_, tileH_;
     int planarMode_;
