@@ -963,6 +963,15 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     }
 
     ImageSpec configspec = _configspec;
+
+    // Set default tile size if no specific one was requested via config
+    if (!configspec.tile_width)
+        configspec.tile_width = 64;
+    if (!configspec.tile_height)
+        configspec.tile_height = 64;
+    if (!configspec.tile_depth)
+        configspec.tile_depth = 1;
+
     std::stringstream localstream;  // catch output when user doesn't want it
     std::ostream& outstream(outstream_ptr ? *outstream_ptr : localstream);
 
