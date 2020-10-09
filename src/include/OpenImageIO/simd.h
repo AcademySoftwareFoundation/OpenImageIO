@@ -300,9 +300,9 @@ template<> struct simd_bool_t<16> { typedef uint16_t type; };
 #endif
 
 #if OIIO_SIMD_NEON
-template<> struct simd_raw_t<int,4> { typedef int32x4 type; };
+template<> struct simd_raw_t<int,4> { typedef int32x4_t type; };
 template<> struct simd_raw_t<float,4> { typedef float32x4_t type; };
-template<> struct simd_bool_t<4> { typedef uint32x4 type; };
+template<> struct simd_bool_t<4> { typedef uint32x4_t type; };
 #endif
 
 
@@ -4759,7 +4759,8 @@ OIIO_FORCEINLINE vint4 blend (const vint4& a, const vint4& b, const vbool4& mask
     return _mm_or_si128 (_mm_and_si128(_mm_castps_si128(mask.simd()), b.simd()),
                          _mm_andnot_si128(_mm_castps_si128(mask.simd()), a.simd()));
 #elif OIIO_SIMD_NEON
-    return vbslq_s32 (mask.simd(), a.simd(), b.simd());
+    //return vbslq_s32 (mask.simd(), a.simd(), b.simd());
+    return vbslq_s32 (mask.simd(), b.simd(), a.simd());
 #else
     SIMD_RETURN (vint4, mask[i] ? b[i] : a[i]);
 #endif
@@ -6618,7 +6619,8 @@ OIIO_FORCEINLINE void vfloat4::load (const float *values, int n) {
     }
 #elif OIIO_SIMD_NEON
     switch (n) {
-    case 1: m_simd = vdupq_n_f32 (val);                    break;
+    //case 1: load (values[0], 0.0f, 0.0f, 0.0f);		break;
+    case 1: m_simd = vdupq_n_f32(0); m_simd[0] = values[0]; break;
     case 2: load (values[0], values[1], 0.0f, 0.0f);      break;
     case 3: load (values[0], values[1], values[2], 0.0f); break;
     case 4: m_simd = vld1q_f32 (values);                   break;
@@ -6937,7 +6939,7 @@ OIIO_FORCEINLINE vfloat4 operator* (const vfloat4& a, float b) {
 #if OIIO_SIMD_SSE
     return _mm_mul_ps (a.m_simd, _mm_set1_ps(b));
 #elif OIIO_SIMD_NEON
-    return vmulq_n_f32 (m_simd, b)
+    return vmulq_n_f32 (a.m_simd, b);
 #else
     SIMD_RETURN (vfloat4, a[i] * b);
 #endif
@@ -7128,16 +7130,16 @@ template<int i> OIIO_FORCEINLINE vfloat4 shuffle (const vfloat4& a) { return shu
 
 #if OIIO_SIMD_NEON
 template<> OIIO_FORCEINLINE vfloat4 shuffle<0> (const vfloat4& a) {
-    vfloat32x2_t t = vget_low_f32(a.m_simd); return vdupq_lane_f32(t,0);
+    float32x2_t t = vget_low_f32(a.simd()); return vdupq_lane_f32(t,0);
 }
 template<> OIIO_FORCEINLINE vfloat4 shuffle<1> (const vfloat4& a) {
-    vfloat32x2_t t = vget_low_f32(a.m_simd); return vdupq_lane_f32(t,1);
+    float32x2_t t = vget_low_f32(a.simd()); return vdupq_lane_f32(t,1);
 }
 template<> OIIO_FORCEINLINE vfloat4 shuffle<2> (const vfloat4& a) {
-    vfloat32x2_t t = vget_high_f32(a.m_simd); return vdupq_lane_f32(t,0);
+    float32x2_t t = vget_high_f32(a.simd()); return vdupq_lane_f32(t,0);
 }
 template<> OIIO_FORCEINLINE vfloat4 shuffle<3> (const vfloat4& a) {
-    vfloat32x2_t t = vget_high_f32(a.m_simd); return vdupq_lane_f32(t,1);
+    float32x2_t t = vget_high_f32(a.simd()); return vdupq_lane_f32(t,1);
 }
 #endif
 
@@ -7299,7 +7301,7 @@ OIIO_FORCEINLINE vfloat4 blend (const vfloat4& a, const vfloat4& b, const vbool4
     return _mm_or_ps (_mm_and_ps(mask.simd(), b.simd()),
                       _mm_andnot_ps(mask.simd(), a.simd()));
 #elif OIIO_SIMD_NEON
-    return vbslq_f32 (mask.simd(), a.simd(), b.simd());
+    return vbslq_f32 (mask.simd(), b.simd(), a.simd());
 #else
     return vfloat4 (mask[0] ? b[0] : a[0],
                    mask[1] ? b[1] : a[1],
@@ -7528,7 +7530,7 @@ OIIO_FORCEINLINE vfloat4 madd (const simd::vfloat4& a, const simd::vfloat4& b,
     // If we are sure _mm_fmadd_ps intrinsic is available, use it.
     return _mm_fmadd_ps (a, b, c);
 #elif OIIO_SIMD_NEON
-    return vmlaq_f32(v3.sid(), v1.simd(), v2.simd());
+    return vmlaq_f32(c.simd(), a.simd(), b.simd());
 #elif OIIO_SIMD_SSE && !defined(_MSC_VER)
     // If we directly access the underlying __m128, on some platforms and
     // compiler flags, it will turn into fma anyway, even if we don't use
