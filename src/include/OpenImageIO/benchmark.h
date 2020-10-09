@@ -26,8 +26,6 @@ OIIO_NAMESPACE_BEGIN
 /// * Google Benchmark https://github.com/google/benchmark/blob/master/include/benchmark/benchmark_api.h
 
 template <class T>
-//Do not use always_inline with optnone attribute
-//OIIO_FORCEINLINE T const& DoNotOptimize (T const &val);
 T const& DoNotOptimize (T const &val);
 
 

@@ -4759,7 +4759,6 @@ OIIO_FORCEINLINE vint4 blend (const vint4& a, const vint4& b, const vbool4& mask
     return _mm_or_si128 (_mm_and_si128(_mm_castps_si128(mask.simd()), b.simd()),
                          _mm_andnot_si128(_mm_castps_si128(mask.simd()), a.simd()));
 #elif OIIO_SIMD_NEON
-    //return vbslq_s32 (mask.simd(), a.simd(), b.simd());
     return vbslq_s32 (mask.simd(), b.simd(), a.simd());
 #else
     SIMD_RETURN (vint4, mask[i] ? b[i] : a[i]);
@@ -6619,7 +6618,6 @@ OIIO_FORCEINLINE void vfloat4::load (const float *values, int n) {
     }
 #elif OIIO_SIMD_NEON
     switch (n) {
-    //case 1: load (values[0], 0.0f, 0.0f, 0.0f);		break;
     case 1: m_simd = vdupq_n_f32(0); m_simd[0] = values[0]; break;
     case 2: load (values[0], values[1], 0.0f, 0.0f);      break;
     case 3: load (values[0], values[1], values[2], 0.0f); break;
