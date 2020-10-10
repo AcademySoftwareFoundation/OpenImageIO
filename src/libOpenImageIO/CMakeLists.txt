@@ -143,20 +143,12 @@ target_link_libraries (OpenImageIO
             ${SANITIZE_LIBRARIES}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
             $<$<BOOL:${OpenColorIO_FOUND}>:OpenColorIO::OpenColorIO>
+            $<$<BOOL:${pugixml_FOUND}>:pugixml::pugixml>
             ${BZIP2_LIBRARIES}
             ${ZLIB_LIBRARIES}
             ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
         )
-
-if (USE_EXTERNAL_PUGIXML)
-    if(TARGET pugixml)
-        target_link_libraries (OpenImageIO PRIVATE pugixml)
-    else()
-        target_include_directories (OpenImageIO PRIVATE ${PUGIXML_INCLUDES})
-        target_link_libraries (OpenImageIO PRIVATE ${PUGIXML_LIBRARIES})
-    endif()
-endif()
 
 if (FREETYPE_FOUND)
     target_link_libraries (OpenImageIO PRIVATE ${FREETYPE_LIBRARIES})

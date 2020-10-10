@@ -59,6 +59,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for OpenColorIO color transformations:
      * OpenColorIO >= 1.1 (also tested against the current master that will
        become OCIO 2.0).
+ * We use PugiXML for XML parsing. There is a version embedded in the OIIO
+   tree, but if you want to use an external, system-installed version (as
+   may be required by some software distrbutions with policies against
+   embedding other projects), then just build with `-DUSE_EXTERNAL_PUGIXML=1`.
+   Any PugiXML >= 1.8 should be fine.
 
 
 

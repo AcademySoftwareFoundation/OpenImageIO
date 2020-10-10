@@ -1111,7 +1111,7 @@ void
 ImageSpec::from_xml(const char* xml)
 {
     xml_document doc;
-    doc.load(xml);
+    doc.load_string(xml);
     xml_node n = doc.child("ImageSpec");
 
     //int version = n.attribute ("version").as_int();

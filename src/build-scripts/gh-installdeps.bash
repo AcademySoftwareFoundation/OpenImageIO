@@ -91,6 +91,11 @@ if [[ "$LIBRAW_VERSION" != "" ]] ; then
     CXX="ccache $CXX" source src/build-scripts/build_libraw.bash
 fi
 
+if [[ "$PUGIXML_VERSION" != "" ]] ; then
+    CXX="ccache $CXX" source src/build-scripts/build_pugixml.bash
+    export MY_CMAKE_FLAGS+=" -DUSE_EXTERNAL_PUGIXML=1 "
+fi
+
 if [[ "$OPENCOLORIO_VERSION" != "" ]] ; then
     # Temporary (?) fix: GH ninja having problems, fall back to make
     CMAKE_GENERATOR="Unix Makefiles" \
