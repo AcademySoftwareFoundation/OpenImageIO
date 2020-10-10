@@ -892,11 +892,20 @@ ArgParse::Impl::found(const char* option_name)
 
 
 
+bool
+ArgParse::has_error() const
+{
+    return !m_impl->m_errmessage.empty();
+}
+
+
+
 std::string
-ArgParse::geterror() const
+ArgParse::geterror(bool clear) const
 {
     std::string e = m_impl->m_errmessage;
-    m_impl->m_errmessage.clear();
+    if (clear)
+        m_impl->m_errmessage.clear();
     return e;
 }
 

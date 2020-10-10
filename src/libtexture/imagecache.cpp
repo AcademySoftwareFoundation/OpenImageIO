@@ -3557,14 +3557,24 @@ ImageCacheImpl::purge_perthread_microcaches()
 
 
 
+bool
+ImageCacheImpl::has_error() const
+{
+    std::string* errptr = m_errormessage.get();
+    return (errptr && errptr->size());
+}
+
+
+
 std::string
-ImageCacheImpl::geterror() const
+ImageCacheImpl::geterror(bool clear) const
 {
     std::string e;
     std::string* errptr = m_errormessage.get();
     if (errptr) {
         e = *errptr;
-        errptr->clear();
+        if (clear)
+            errptr->clear();
     }
     return e;
 }
@@ -3572,8 +3582,10 @@ ImageCacheImpl::geterror() const
 
 
 void
-ImageCacheImpl::append_error(const std::string& message) const
+ImageCacheImpl::append_error(string_view message) const
 {
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
     std::string* errptr = m_errormessage.get();
     if (!errptr) {
         errptr = new std::string;
@@ -3583,7 +3595,7 @@ ImageCacheImpl::append_error(const std::string& message) const
     OIIO_DASSERT(
         errptr->size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size())
+    if (errptr->size() && errptr->back() != '\n')
         *errptr += '\n';
     *errptr += message;
 }

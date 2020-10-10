@@ -328,7 +328,8 @@ public:
                             int yend, int zbegin, int zend, int chbegin,
                             int chend, TypeDesc format, void* result);
 
-    virtual std::string geterror() const;
+    virtual bool has_error() const;
+    virtual std::string geterror(bool clear = true) const;
     virtual std::string getstats(int level = 1, bool icstats = true) const;
     virtual void reset_stats();
 
@@ -550,7 +551,7 @@ private:
     }
 
     /// Append a string to the current error message
-    void append_error(const std::string& message) const;
+    void append_error(string_view message) const;
 
     void printstats() const;
 

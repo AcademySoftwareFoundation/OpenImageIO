@@ -1003,13 +1003,15 @@ ImageInput::send_to_client(const char* /*format*/, ...)
 
 
 void
-ImageInput::append_error(const std::string& message) const
+ImageInput::append_error(string_view message) const
 {
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
     lock_guard lock(m_mutex);
     OIIO_DASSERT(
         m_errmessage.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (m_errmessage.size())
+    if (m_errmessage.size() && m_errmessage.back() != '\n')
         m_errmessage += '\n';
     m_errmessage += message;
 }

@@ -968,7 +968,8 @@ public:
     /// subimage matches its name.
     int subimage_from_name(ImageCacheFile* file, ustring subimagename);
 
-    virtual std::string geterror() const;
+    virtual bool has_error() const;
+    virtual std::string geterror(bool clear = true) const;
     virtual std::string getstats(int level = 1) const;
     virtual void reset_stats();
     virtual void invalidate(ustring filename, bool force);
@@ -1031,7 +1032,7 @@ public:
     void error(const char* msg) const { append_error(msg); }
 
     /// Append a string to the current error message
-    void append_error(const std::string& message) const;
+    void append_error(string_view message) const;
 
     virtual Perthread* get_perthread_info(Perthread* thread_info = NULL);
     virtual Perthread* create_thread_info();

@@ -248,8 +248,13 @@ declare_imageoutput(py::module& m)
         .def("write_deep_image", &ImageOutput_write_deep_image)
         .def("copy_image", [](ImageOutput& self,
                               ImageInput& in) { return self.copy_image(&in); })
-        .def("geterror",
-             [](ImageOutput& self) { return PY_STR(self.geterror()); });
+        .def_property_readonly("has_error", &ImageOutput::has_error)
+        .def(
+            "geterror",
+            [](ImageOutput& self, bool clear) {
+                return PY_STR(self.geterror(clear));
+            },
+            "clear"_a = true);
 }
 
 }  // namespace PyOpenImageIO

@@ -257,10 +257,14 @@ public:
     /// ok, -1 if it's a malformed command line.
     int parse_args(int argc, const char** argv);
 
+    /// Is there a pending error message waiting to be retrieved?
+    bool has_error() const;
+
     /// Return any error messages generated during the course of parse()
-    /// (and clear any error flags).  If no error has occurred since the
-    /// last time geterror() was called, it will return an empty string.
-    std::string geterror() const;
+    /// (and by default, clear any error flags).  If no error has occurred
+    /// since the last time geterror() was called, it will return an empty
+    /// string.
+    std::string geterror(bool clear = true) const;
 
     /// Return the name of the program. This will be either derived from the
     /// original command line that launched this application, or else

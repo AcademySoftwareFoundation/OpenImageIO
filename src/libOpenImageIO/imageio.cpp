@@ -214,23 +214,47 @@ openimageio_version()
 
 
 // To avoid thread oddities, we have the storage area buffering error
-// messages for seterror()/geterror() be thread-specific.
+// messages for append_error()/geterror() be thread-specific.
 static thread_local std::string error_msg;
 
 
 void
-pvt::seterror(string_view message)
+pvt::append_error(string_view message)
 {
+    // Remove a single trailing newline
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
+    OIIO_ASSERT(
+        error_msg.size() < 1024 * 1024 * 16
+        && "Accumulated error messages > 16MB. Try checking return codes!");
+    // If we are appending to existing error messages, separate them with
+    // a single newline.
+    if (error_msg.size() && error_msg.back() != '\n')
+        error_msg += '\n';
+    error_msg += message;
+
+    // Remove a single trailing newline
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
     error_msg = message;
 }
 
 
 
+bool
+has_error()
+{
+    return !error_msg.empty();
+}
+
+
+
 std::string
-geterror()
+geterror(bool clear)
 {
     std::string e = error_msg;
-    error_msg.clear();
+    if (clear)
+        error_msg.clear();
     return e;
 }
 

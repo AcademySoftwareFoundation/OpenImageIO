@@ -23,7 +23,7 @@ using namespace Plugin;
 namespace {
 
 static mutex plugin_mutex;
-static std::string last_error;
+static thread_local std::string last_error;
 
 }  // namespace
 
@@ -130,11 +130,11 @@ Plugin::getsym(Handle plugin_handle, const char* symbol_name, bool report_error)
 
 
 std::string
-Plugin::geterror(void)
+Plugin::geterror(bool clear)
 {
-    lock_guard guard(plugin_mutex);
     std::string e = last_error;
-    last_error.clear();
+    if (clear)
+        last_error.clear();
     return e;
 }
 
