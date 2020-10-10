@@ -56,6 +56,7 @@ jobs:
           CC: gcc
           CMAKE_CXX_STANDARD: 14
           USE_SIMD: sse4.2
+          PUGIXML_VERSION: v1.9
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
@@ -175,6 +176,7 @@ jobs:
           OPENEXR_VERSION: v2.5.3
           PYBIND11_VERSION: v2.5.0
           LIBRAW_BRANCH: 0.20.0
+          PUGIXML_VERSION: v1.10
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
         run: |
             source src/build-scripts/ci-startup.bash
@@ -207,6 +209,7 @@ jobs:
           LIBTIFF_VERSION: master
           PYBIND11_VERSION: master
           LIBRAW_BRANCH: master
+          PUGIXML_VERSION: master
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
         run: |
             source src/build-scripts/ci-startup.bash
