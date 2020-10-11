@@ -24,9 +24,9 @@ sudo yum install -y ffmpeg ffmpeg-devel && true
 
 
 
-if [[ "$CXX" == "clang++" ]] ; then
-    source src/build-scripts/build_llvm.bash
-fi
+# if [[ "$CXX" == "clang++" ]] ; then
+#     source src/build-scripts/build_llvm.bash
+# fi
 
 
 src/build-scripts/install_test_images.bash
