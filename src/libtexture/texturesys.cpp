@@ -761,14 +761,24 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
 
 
 
+bool
+TextureSystemImpl::has_error() const
+{
+    std::string* errptr = m_errormessage.get();
+    return (errptr && errptr->size());
+}
+
+
+
 std::string
-TextureSystemImpl::geterror() const
+TextureSystemImpl::geterror(bool clear) const
 {
     std::string e;
     std::string* errptr = m_errormessage.get();
     if (errptr) {
         e = *errptr;
-        errptr->clear();
+        if (clear)
+            errptr->clear();
     }
     return e;
 }
@@ -776,8 +786,10 @@ TextureSystemImpl::geterror() const
 
 
 void
-TextureSystemImpl::append_error(const std::string& message) const
+TextureSystemImpl::append_error(string_view message) const
 {
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
     std::string* errptr = m_errormessage.get();
     if (!errptr) {
         errptr = new std::string;
@@ -786,7 +798,7 @@ TextureSystemImpl::append_error(const std::string& message) const
     OIIO_DASSERT(
         errptr->size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size())
+    if (errptr->size() && errptr->back() != '\n')
         *errptr += '\n';
     *errptr += message;
 }

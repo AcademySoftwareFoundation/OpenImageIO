@@ -937,11 +937,13 @@ public:
     /// @{
     /// @name Error handling
 
-    /// Add simple string to the error message list for this IB.
-    void error(const std::string& message) const;
+    /// Add simple string to the error message list for this IB. It is not
+    /// necessary to have the error message contain a trailing newline.
+    void error(string_view message) const;
 
-    /// Error reporting for ImageBuf: call this with Python / {fmt} /
-    /// std::format style formatting specification.
+    /// Error reporting for ImageBuf: call this with std::format style
+    /// formatting specification. It is not necessary to have the error
+    /// message contain a trailing newline.
     template<typename... Args>
     void errorfmt(const char* fmt, const Args&... args) const
     {
@@ -949,7 +951,8 @@ public:
     }
 
     /// Error reporting for ImageBuf: call this with printf-like arguments
-    /// to report an error.
+    /// to report an error. It is not necessary to have the error message
+    /// contain a trailing newline.
     template<typename... Args>
     void errorf(const char* fmt, const Args&... args) const
     {
@@ -957,8 +960,9 @@ public:
     }
 
     /// Error reporting for ImageBuf: call this with Strutil::format
-    /// formatting conventions. Beware, this is in transition, is currently
-    /// printf-like but will someday change to python-like!
+    /// formatting conventions.  It is not necessary to have the error
+    /// message contain a trailing newline.Beware, this is in transition, is
+    /// currently printf-like but will someday change to python-like!
     template<typename... Args>
     void error(const char* fmt, const Args&... args) const
     {
@@ -978,10 +982,11 @@ public:
     /// message ready to retrieve via `geterror()`.
     bool has_error(void) const;
 
-    /// Return the text of all error messages issued since `geterror()` was
-    /// called (or an empty string if no errors are pending).  This also
-    /// clears the error message for next time.
-    std::string geterror(void) const;
+    /// Return the text of all pending error messages issued against this
+    /// ImageBuf, and clear the pending error message unless `clear` is
+    /// false. If no error message is pending, it will return an empty
+    /// string.
+    std::string geterror(bool clear = true) const;
 
     /// @}
 

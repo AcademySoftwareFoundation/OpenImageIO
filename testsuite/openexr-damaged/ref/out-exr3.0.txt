@@ -301,7 +301,6 @@ Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-af451a11e18ad9ca6ddc098bfd8b42f803bec2be8fafa6e648b8a7adcfdd0c06_min.exr -o out.exr
 
 oiiotool ERROR: read : OpenImageIO could not find a format reader for "tmpsrc/poc-bd9579c640a6ee867d140c2a4d3bbd6f0452d4726f3f25ed53bf666f558ed245_min.exr". Is it a file format that OpenImageIO doesn't know about?
-
 Full command line was:
 > ../../bin/oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-bd9579c640a6ee867d140c2a4d3bbd6f0452d4726f3f25ed53bf666f558ed245_min.exr -o out.exr
 

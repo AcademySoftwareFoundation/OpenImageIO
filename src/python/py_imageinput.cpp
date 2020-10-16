@@ -361,8 +361,13 @@ declare_imageinput(py::module& m)
             "chbegin"_a, "chend"_a)
         .def("read_native_deep_image", &ImageInput_read_native_deep_image,
              "subimage"_a = 0, "miplevel"_a = 0)
-        .def("geterror",
-             [](ImageInput& self) { return PY_STR(self.geterror()); });
+        .def_property_readonly("has_error", &ImageInput::has_error)
+        .def(
+            "geterror",
+            [](ImageInput& self, bool clear) {
+                return PY_STR(self.geterror(clear));
+            },
+            "clear"_a = true);
 }
 
 }  // namespace PyOpenImageIO

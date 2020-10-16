@@ -117,7 +117,7 @@ public:
         error(Strutil::sprintf(fmt, args...));
     }
 
-    void error(const std::string& message) const;
+    void error(string_view message) const;
 
     ImageBuf::IBStorage storage() const { return m_storage; }
 
@@ -602,24 +602,30 @@ ImageBuf::has_error() const
 
 
 std::string
-ImageBuf::geterror(void) const
+ImageBuf::geterror(bool clear) const
 {
     spin_lock lock(err_mutex);
     std::string e = m_impl->m_err;
-    m_impl->m_err.clear();
+    if (clear)
+        m_impl->m_err.clear();
     return e;
 }
 
 
 
 void
-ImageBufImpl::error(const std::string& message) const
+ImageBufImpl::error(string_view message) const
 {
+    // Remove a single trailing newline
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
     spin_lock lock(err_mutex);
     OIIO_ASSERT(
         m_err.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (m_err.size() && m_err[m_err.size() - 1] != '\n')
+    // If we are appending to existing error messages, separate them with
+    // a single newline.
+    if (m_err.size() && m_err.back() != '\n')
         m_err += '\n';
     m_err += message;
 }
@@ -627,7 +633,7 @@ ImageBufImpl::error(const std::string& message) const
 
 
 void
-ImageBuf::error(const std::string& message) const
+ImageBuf::error(string_view message) const
 {
     m_impl->error(message);
 }

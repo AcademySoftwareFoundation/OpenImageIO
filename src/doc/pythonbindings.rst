@@ -1147,7 +1147,7 @@ the Python versions allocate and return an array holding the pixel values
     explicit subimage/miplevel.
 
 
-.. py:method:: ImageInput.geterror ()
+.. py:method:: ImageInput.geterror (clear = True)
 
     Retrieves the error message from the latest failed operation on an
     ImageInput.
@@ -1454,7 +1454,7 @@ ImageOutput class APIs. The Python APIs are very similar.
         input.close ()
 
 
-.. py:method:: ImageOuput.geterror ()
+.. py:method:: ImageOuput.geterror (clear = True)
 
     Retrieves the error message from the latest failed operation on an open
     file.
@@ -2053,7 +2053,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
     This field will be `True` if an error has occurred in the ImageBuf.
 
-.. py:method::  ImageBuf.geterror ()
+.. py:method::  ImageBuf.geterror (clear = True)
 
     Retrieve the error message (and clear the `has_error` flag).
 
@@ -3568,7 +3568,7 @@ details.
     OpenImageIO 1.2.3 would return a value of 10203.
 
 
-.. py:method:: geterror()
+.. py:method:: geterror(clear = True)
 
     Retrieves the latest global error, as a string.
 

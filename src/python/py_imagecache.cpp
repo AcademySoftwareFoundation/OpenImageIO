@@ -119,8 +119,16 @@ declare_imagecache(py::module& m)
         // .def("release_tile", &ImageCacheWrap::release_tile)
         // .def("tile_pixels", &ImageCacheWrap::tile_pixels)
 
-        .def("geterror",
-             [](ImageCacheWrap& ic) { return PY_STR(ic.m_cache->geterror()); })
+        .def_property_readonly("has_error",
+                               [](ImageCacheWrap& self) {
+                                   return self.m_cache->has_error();
+                               })
+        .def(
+            "geterror",
+            [](ImageCacheWrap& self, bool clear) {
+                return PY_STR(self.m_cache->geterror(clear));
+            },
+            "clear"_a = true)
         .def(
             "getstats",
             [](ImageCacheWrap& ic, int level) {

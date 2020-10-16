@@ -343,9 +343,9 @@ ColorConfig::error() const
 
 
 std::string
-ColorConfig::geterror()
+ColorConfig::geterror(bool clear)
 {
-    return getImpl()->geterror(true /*clear*/);
+    return getImpl()->geterror(clear);
 }
 
 

@@ -944,11 +944,14 @@ public:
     /// @{
     /// @name Errors and statistics
 
-    /// If any of the API routines returned `false` indicating an error,
-    /// this routine will return the error string (and clear any error
-    /// flags).  If no error has occurred since the last time `geterror()`
-    /// was called, it will return an empty string.
-    virtual std::string geterror() const = 0;
+    /// Is there a pending error message waiting to be retrieved?
+    virtual bool has_error() const = 0;
+
+    /// Return the text of all pending error messages issued against this
+    /// ImageCache, and clear the pending error message unless `clear` is
+    /// false. If no error message is pending, it will return an empty
+    /// string.
+    virtual std::string geterror(bool clear = true) const = 0;
 
     /// Returns a big string containing useful statistics about the
     /// ImageCache operations, suitable for saving to a file or outputting
