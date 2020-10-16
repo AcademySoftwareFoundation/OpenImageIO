@@ -3115,8 +3115,10 @@ ImageCacheImpl::get_tile(ImageHandle* file, Perthread* thread_info,
     x         = spec.x + xtile * spec.tile_width;
     y         = spec.y + ytile * spec.tile_height;
     z         = spec.z + ztile * spec.tile_depth;
-    if (chend < chbegin)
-        chend = spec.nchannels;
+    if (chend < chbegin) {  // chend < chbegin means "all channels."
+        chbegin = 0;
+        chend   = spec.nchannels;
+    }
     TileID id(*file, subimage, miplevel, x, y, z, chbegin, chend);
     if (find_tile(id, thread_info, true)) {
         ImageCacheTileRef tile(thread_info->tile);
@@ -3210,8 +3212,10 @@ ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
         error("Cannot add_tile to a UDIM-like virtual file");
         return false;
     }
-    if (chend < chbegin)
-        chend = file->spec(subimage, miplevel).nchannels;
+    if (chend < chbegin) {  // chend < chbegin means "all channels."
+        chbegin = 0;
+        chend   = file->spec(subimage, miplevel).nchannels;
+    }
     TileID tileid(*file, subimage, miplevel, x, y, z, chbegin, chend);
     ImageCacheTileRef tile = new ImageCacheTile(tileid, buffer, format, xstride,
                                                 ystride, zstride, copy);
