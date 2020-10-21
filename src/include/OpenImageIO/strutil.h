@@ -59,24 +59,6 @@
 // was locale dependent.
 #define OIIO_FMT_LOCALE_INDEPENDENT 1
 
-#ifndef OPENIMAGEIO_PRINTF_ARGS
-#   ifndef __GNUC__
-#       define __attribute__(x)
-#   endif
-    // Enable printf-like warnings with gcc by attaching
-    // OPENIMAGEIO_PRINTF_ARGS to printf-like functions.  Eg:
-    //
-    // void foo (const char* fmt, ...) OPENIMAGEIO_PRINTF_ARGS(1,2);
-    //
-    // The arguments specify the positions of the format string and the the
-    // beginning of the varargs parameter list respectively.
-    //
-    // For member functions with arguments like the example above, you need
-    // OPENIMAGEIO_PRINTF_ARGS(2,3) instead.  (gcc includes the implicit this
-    // pointer when it counts member function arguments.)
-#   define OPENIMAGEIO_PRINTF_ARGS(fmtarg_pos, vararg_pos) \
-        __attribute__ ((format (printf, fmtarg_pos, vararg_pos) ))
-#endif
 
 
 OIIO_NAMESPACE_BEGIN
@@ -231,14 +213,20 @@ inline void print (std::ostream &file, const char* fmt, const Args&... args)
 /// already as a va_list.  This is not guaranteed type-safe and is not
 /// extensible like format(). Use with caution!
 std::string OIIO_API vsprintf (const char *fmt, va_list ap)
-                                         OPENIMAGEIO_PRINTF_ARGS(1,0);
+#if defined(__GNUC__) && !defined(__CUDACC__)
+    __attribute__ ((format (printf, 1, 0) ))
+#endif
+    ;
 
 /// Return a std::string formatted like Strutil::format, but passed
 /// already as a va_list.  This is not guaranteed type-safe and is not
 /// extensible like format(). Use with caution!
 OIIO_DEPRECATED("use `vsprintf` instead")
 std::string OIIO_API vformat (const char *fmt, va_list ap)
-                                         OPENIMAGEIO_PRINTF_ARGS(1,0);
+#if defined(__GNUC__) && !defined(__CUDACC__)
+    __attribute__ ((format (printf, 1, 0) ))
+#endif
+    ;
 
 /// Return a string expressing a number of bytes, in human readable form.
 ///  - memformat(153)           -> "153 B"
