@@ -3429,6 +3429,10 @@ Import / export
     of supported configuration options is given in
     Section :ref:`sec-iba-importexport`.
 
+    The return value is True for success, False if errors occurred, in which
+    case the error message will be retrievable from the global
+    `oiio.geterror()`.
+
     Example:
 
     .. code-block:: python
@@ -3436,15 +3440,19 @@ Import / export
         # This command line:
         #    maketx in.exr --hicomp --filter lanczos3 --opaque-detect \
         #             -o texture.exr
-        # is equivalent to:
-    
-        Input = ImageBuf ("in.exr")
-        config = ImageSpec()
+        # performs the same operations as:
+
+        import OpenImageIO as oiio
+
+        Input = oiio.ImageBuf ("in.exr")
+        config = oiio.ImageSpec()
         config.attribute ("maketx:highlightcomp", 1)
         config.attribute ("maketx:filtername", "lanczos3")
         config.attribute ("maketx:opaque_detect", 1)
-        ImageBufAlgo.make_texture (oiio.MakeTxTexture, Input,
-                                   "texture.exr", config)
+        ok = oiio.ImageBufAlgo.make_texture (oiio.MakeTxTexture, Input,
+                                        "texture.exr", config)
+        if not ok :
+            print("error:", oiio.geterror())
 
 
 

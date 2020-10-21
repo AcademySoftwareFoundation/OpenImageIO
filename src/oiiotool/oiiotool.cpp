@@ -4874,7 +4874,8 @@ output_file(int /*argc*/, const char* argv[])
         ok = ImageBufAlgo::make_texture(mode, (*ir)(0, 0), filename, configspec,
                                         &std::cout);
         if (!ok)
-            ot.errorf(command, "Could not make texture");
+            ot.errorfmt(command, "Could not make texture: {}",
+                        OIIO::geterror());
         // N.B. make_texture already internally writes to a temp file and
         // then atomically moves it to the final destination, so we don't
         // need to explicitly do that here.
