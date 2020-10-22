@@ -1,0 +1,7 @@
+Dimensions are 64x64
+Channels are:
+    R
+    G
+    B
+test_int_attr: 17
+test_str_attr: the quick brown fox...
