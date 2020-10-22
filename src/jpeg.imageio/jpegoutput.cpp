@@ -186,8 +186,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         DBG std::cout << "out open: set_colorspace\n";
 
         // Save as a progressive jpeg if requested by the user
-        ParamValue* progressive = m_spec.find_attribute("jpeg:progressive", TypeDesc::INT);
-        if (progressive && *(int*)progressive->data() != 0) {
+        if (m_spec.get_int_attribute("jpeg:progressive")) {
             jpeg_simple_progression(&m_cinfo);
         }
 
