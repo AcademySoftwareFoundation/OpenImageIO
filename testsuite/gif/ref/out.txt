@@ -89,6 +89,7 @@ Reading ../../../../../oiio-images/gif_test_loop_count.gif
     gif:Interlacing: 0
     gif:LoopCount: 12345
     oiio:ColorSpace: "sRGB"
+    oiio:LoopCount: 12345
 Reading tahoe-tiny.gif
 tahoe-tiny.gif       :  128 x   96, 4 channel, uint8 gif
     SHA-1: B05CB30B2108904DAAD7B39E1BD7AA68D1D844CC
@@ -97,4 +98,5 @@ tahoe-tiny.gif       :  128 x   96, 4 channel, uint8 gif
     gif:Interlacing: 0
     gif:LoopCount: 0
     oiio:ColorSpace: "sRGB"
+    oiio:LoopCount: 0
     oiio:Movie: 1
