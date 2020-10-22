@@ -169,7 +169,7 @@ checked_find_package (OpenVDB 5.0
                    DEPS         TBB
                    DEFINITIONS  -DUSE_OPENVDB=1)
 checked_find_package (PTex)
-checked_find_package (Webp)
+checked_find_package (WebP)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
 checked_find_package (R3DSDK)  # RED camera

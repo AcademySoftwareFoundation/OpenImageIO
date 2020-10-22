@@ -439,7 +439,7 @@ oiio_add_tests (tiff-suite tiff-depths tiff-misc
                 IMAGEDIR libtiffpic
                 URL http://www.simplesystems.org/libtiff/images.html)
 oiio_add_tests (webp
-                FOUNDVAR Webp_FOUND ENABLEVAR ENABLE_Webp
+                FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
                 IMAGEDIR oiio-images/webp URL "Recent checkout of oiio-images")
 oiio_add_tests (zfile ENABLEVAR ENABLE_ZFILE
                 IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
