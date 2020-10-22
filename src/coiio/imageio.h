@@ -40,7 +40,7 @@ extern "C" {
 /// that the image is stored in scanline order, rather than as tiles.
 ///
 
-struct ImageSpec;
+typedef struct ImageSpec ImageSpec;
 
 /// Create a new ImageSpec
 OIIO_API ImageSpec*
@@ -116,7 +116,7 @@ ImageSpec_getattribute(const ImageSpec* is, const char* name, TypeDesc type,
 
 /// ImageInput abstracts the reading of an image file in a file
 /// format-agnostic manner.
-struct ImageInput;
+typedef struct ImageInput ImageInput;
 
 /// @{
 /// @name Creating an ImageInput
@@ -237,7 +237,7 @@ ImageInput_geterror(const ImageInput* ii);
 /// ImageOutput abstracts the writing of an image file in a file
 /// format-agnostic manner.
 ///
-struct ImageOutput;
+typedef struct ImageOutput ImageOutput;
 
 OIIO_API ImageOutput*
 ImageOutput_create(const char* filename, void* ioproxy,
