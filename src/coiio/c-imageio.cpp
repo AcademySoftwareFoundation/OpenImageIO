@@ -1,8 +1,13 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause
+// https://github.com/OpenImageIO/oiio
+
+
 #include <OpenImageIO/imageio.h>
 
-#include "imageio_defines.h"
-#include "typedesc.h"
-#include "util.hpp"
+#include "c-imageio_defines.h"
+#include "c-typedesc.h"
+#include "util.h"
 
 using ImageInput  = OIIO::ImageInput;
 using ImageOutput = OIIO::ImageOutput;
@@ -16,17 +21,23 @@ ImageSpec_new()
     return new ImageSpec;
 }
 
+
+
 void
 ImageSpec_delete(const ImageSpec* is)
 {
     delete is;
 }
 
+
+
 ImageSpec*
 ImageSpec_new_with_dimensions(int xres, int yres, int nchans, TypeDesc fmt)
 {
-    return new ImageSpec(xres, yres, nchans, pun<OIIO::TypeDesc>(fmt));
+    return new ImageSpec(xres, yres, nchans, bit_cast<OIIO::TypeDesc>(fmt));
 }
+
+
 
 ImageSpec*
 ImageSpec_copy(const ImageSpec* ii)
@@ -34,12 +45,16 @@ ImageSpec_copy(const ImageSpec* ii)
     return new ImageSpec(*ii);
 }
 
+
+
 void
 ImageSpec_attribute(ImageSpec* is, const char* name, TypeDesc fmt,
                     const void* value)
 {
-    is->attribute(name, pun<OIIO::TypeDesc>(fmt), value);
+    is->attribute(name, bit_cast<OIIO::TypeDesc>(fmt), value);
 }
+
+
 
 int
 ImageSpec_width(const ImageSpec* is)
@@ -47,11 +62,15 @@ ImageSpec_width(const ImageSpec* is)
     return is->width;
 }
 
+
+
 int
 ImageSpec_height(const ImageSpec* is)
 {
     return is->height;
 }
+
+
 
 int
 ImageSpec_nchannels(const ImageSpec* is)
@@ -59,19 +78,25 @@ ImageSpec_nchannels(const ImageSpec* is)
     return is->nchannels;
 }
 
+
+
 const char*
 ImageSpec_channel_name(const ImageSpec* is, int chan)
 {
     return is->channel_name(chan).c_str();
 }
 
+
+
 bool
 ImageSpec_getattribute(const ImageSpec* is, const char* name, TypeDesc type,
                        void* value, bool casesensitive)
 {
-    return is->getattribute(name, pun<OIIO::TypeDesc>(type), value,
+    return is->getattribute(name, bit_cast<OIIO::TypeDesc>(type), value,
                             casesensitive);
 }
+
+
 
 // FIXME: add Filesystem::IOProxy
 ImageInput*
@@ -81,11 +106,15 @@ ImageInput_open(const char* filename, const ImageSpec* config, void* _ioproxy)
     return ii.release();
 }
 
+
+
 bool
 ImageInput_close(ImageInput* ii)
 {
     return ii->close();
 }
+
+
 
 void
 ImageInput_delete(ImageInput* ii)
@@ -93,11 +122,15 @@ ImageInput_delete(ImageInput* ii)
     delete ii;
 }
 
+
+
 const ImageSpec*
 ImageInput_spec(ImageInput* ii)
 {
     return &ii->spec();
 }
+
+
 
 bool
 ImageInput_read_image(ImageInput* ii, int subimage, int miplevel, int chbegin,
@@ -107,15 +140,20 @@ ImageInput_read_image(ImageInput* ii, int subimage, int miplevel, int chbegin,
                       void* progress_callback_data)
 {
     return ii->read_image(subimage, miplevel, chbegin, chend,
-                          pun<OIIO::TypeDesc>(format), data, xstride, ystride,
-                          zstride, progress_callback, progress_callback_data);
+                          bit_cast<OIIO::TypeDesc>(format), data, xstride,
+                          ystride, zstride, progress_callback,
+                          progress_callback_data);
 }
 
-OIIO_API bool
+
+
+bool
 ImageInput_has_error(const ImageInput* ii)
 {
     return ii->has_error();
 }
+
+
 
 const char*
 ImageInput_geterror(const ImageInput* ii)
@@ -130,6 +168,8 @@ ImageInput_geterror(const ImageInput* ii)
     return errorstring.c_str();
 }
 
+
+
 ImageOutput*
 ImageOutput_create(const char* filename, void* ioproxy,
                    const char* plugin_search_path)
@@ -137,11 +177,15 @@ ImageOutput_create(const char* filename, void* ioproxy,
     return ImageOutput::create(filename, nullptr, plugin_search_path).release();
 }
 
+
+
 void
 ImageOutput_delete(ImageOutput* io)
 {
     delete io;
 }
+
+
 
 bool
 ImageOutput_open(ImageOutput* io, const char* name, const ImageSpec* newspec,
@@ -151,11 +195,15 @@ ImageOutput_open(ImageOutput* io, const char* name, const ImageSpec* newspec,
                     (OIIO::ImageOutput::OpenMode)mode);
 }
 
-OIIO_API bool
+
+
+bool
 ImageOutput_has_error(const ImageOutput* io)
 {
     return io->has_error();
 }
+
+
 
 const char*
 ImageOutput_geterror(const ImageOutput* io)
@@ -170,14 +218,17 @@ ImageOutput_geterror(const ImageOutput* io)
     return errorstring.c_str();
 }
 
+
+
 bool
 ImageOutput_write_image(ImageOutput* io, TypeDesc format, const void* data,
                         stride_t xstride, stride_t ystride, stride_t zstride,
                         ProgressCallback progress_callback,
                         void* progress_callback_data)
 {
-    return io->write_image(pun<OIIO::TypeDesc>(format), data, xstride, ystride,
-                           zstride, progress_callback, progress_callback_data);
+    return io->write_image(bit_cast<OIIO::TypeDesc>(format), data, xstride,
+                           ystride, zstride, progress_callback,
+                           progress_callback_data);
 }
 int
 openimageio_version()
@@ -185,11 +236,15 @@ openimageio_version()
     return OIIO::openimageio_version();
 }
 
+
+
 bool
 openimageio_haserror()
 {
     return OIIO::has_error();
 }
+
+
 
 const char*
 openimageio_geterror(bool clear)

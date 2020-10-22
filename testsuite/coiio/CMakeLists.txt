@@ -1,7 +1,8 @@
-project(coiiotest)
 cmake_minimum_required(VERSION 3.12)
+project(coiiotest C)
 
 find_package(OpenImageIO REQUIRED)
 
-add_executable(coiiotest coiiotest.cpp)
+add_executable(coiiotest coiiotest.c)
 target_link_libraries(coiiotest OpenImageIO::coiio)
+set_property(TARGET coiiotest PROPERTY C_STANDARD 99)

@@ -1,9 +1,13 @@
+# Copyright 2008-present Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: BSD-3-Clause
+# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
 add_library(coiio SHARED 
-    imageio.cpp
-    imageio.h
-    imageio_defines.h
-    typedesc.cpp
-    typedesc.h
+    c-imageio.cpp
+    c-imageio.h
+    c-imageio_defines.h
+    c-typedesc.cpp
+    c-typedesc.h
 )
 
 target_link_libraries(coiio PUBLIC OpenImageIO)
@@ -15,9 +19,9 @@ set_target_properties(coiio
 )
 
 set(public_headers
-    imageio.h
-    imageio_defines.h
-    typedesc.h
+    c-imageio.h
+    c-imageio_defines.h
+    c-typedesc.h
 )
 
 install_targets(coiio)
