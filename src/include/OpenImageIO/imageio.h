@@ -924,9 +924,6 @@ protected:
 public:
     virtual ~ImageInput ();
 
-    typedef std::recursive_mutex mutex;
-    typedef std::lock_guard<mutex> lock_guard;
-
     /// Return the name of the format implemented by this class.
     virtual const char *format_name (void) const = 0;
 
@@ -1565,23 +1562,23 @@ public:
         return (ioproxy == nullptr);
     }
 
-    /// Is there a pending error message waiting to be retrieved?
-    bool has_error() const {
-        lock_guard lock (m_mutex);
-        return !m_errmessage.empty();
-    }
+    /// Is there a pending error message waiting to be retrieved, that
+    /// resulted from an ImageInput API call made by the this thread?
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    bool has_error() const;
 
     /// Return the text of all pending error messages issued against this
-    /// ImageInput, and clear the pending error message unless `clear` is
-    /// false. If no error message is pending, it will return an empty
-    /// string.
-    std::string geterror(bool clear = true) const {
-        lock_guard lock (m_mutex);
-        std::string e = m_errmessage;
-        if (clear)
-            m_errmessage.clear ();
-        return e;
-    }
+    /// ImageInput by the calling thread, and clear the pending error
+    /// message unless `clear` is false. If no error message is pending, it
+    /// will return an empty string.
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
     /// Strutil::format-like arguments. It is not necessary to have the
@@ -1629,19 +1626,23 @@ public:
     /// new threads. That is probably the desired behavior in situations
     /// where the calling application has already spawned multiple worker
     /// threads.
-    void threads (int n) { m_threads = n; }
+    void threads(int n);
 
     /// Retrieve the current thread-spawning policy.
     /// @see  `threads(int)`
-    int threads () const { return m_threads; }
+    int threads() const;
 
-    /// Lock the internal mutex, block until the lock is acquired.
-    void lock () { m_mutex.lock(); }
-    /// Try to lock the internal mutex, returning true if successful, or
-    /// false if the lock could not be immediately acquired.
-    bool try_lock () { return m_mutex.try_lock(); }
-    /// Ulock the internal mutex.
-    void unlock () { m_mutex.unlock(); }
+    /// There is a (hidden) internal recursive mutex to each ImageInput
+    /// that can be used by the II to enforce thread safety. This is exposed
+    /// via the obvious lock()/unlock()/try_lock() semantics.
+    void lock() const;
+    void unlock() const;
+    bool try_lock() const;
+
+    /// The presence of lock() and unlock() establish an ImageInput itself
+    /// as having the BasicLockable concept and therefore can be used by
+    /// std::lock_guard.
+    typedef std::lock_guard<const ImageInput&> lock_guard;
 
     // Custom new and delete to ensure that allocations & frees happen in
     // the OpenImageIO library, not in the app or plugins (because Windows).
@@ -1653,14 +1654,18 @@ public:
     typedef ImageInput* (*Creator)();
 
 protected:
-    mutable mutex m_mutex;   // lock of the thread-safe methods
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
                        // BEWARE using m_spec directly -- not thread-safe
 
 private:
-    mutable std::string m_errmessage;  // private storage of error message
-    int m_threads;    // Thread policy
-    void append_error(string_view message) const; // add to m_errmessage
+    // PIMPL idiom -- this lets us hide details of the internals of the
+    // ImageInput parent class so that changing them does not break the
+    // ABI.
+    class Impl;
+    static void impl_deleter(Impl*);
+    std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
+
+    void append_error(string_view message) const; // add to error message
     // Deprecated:
     static unique_ptr create (const std::string& filename, bool do_open,
                               const std::string& plugin_searchpath);
@@ -2198,27 +2203,23 @@ public:
         return (ioproxy == nullptr);
     }
 
-    /// Is there a pending error message waiting to be retrieved?
-    bool has_error() const {
-        // lock_guard lock (m_mutex);
-        // N.B. No mutex because unlike file readers, writers are not
-        // used simultaneously by multiple threads.
-        return !m_errmessage.empty();
-    }
+    /// Is there a pending error message waiting to be retrieved, that
+    /// resulted from an ImageOutput API call made by the this thread?
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    bool has_error() const;
 
     /// Return the text of all pending error messages issued against this
-    /// ImageOutput, and clear the pending error message unless `clear` is
-    /// false. If no error message is pending, it will return an empty
-    /// string.
-    std::string geterror(bool clear = true) const {
-        // lock_guard lock (m_mutex);
-        // N.B. No mutex because unlike file readers, writers are not
-        // used simultaneously by multiple threads.
-        std::string e = m_errmessage;
-        if (clear)
-            m_errmessage.clear ();
-        return e;
-    }
+    /// ImageOutput by the calling thread, and clear the pending error
+    /// message unless `clear` is false. If no error message is pending, it
+    /// will return an empty string.
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
     /// `Strutil::format`-like arguments. It is not necessary to have the
@@ -2267,11 +2268,11 @@ public:
     /// new threads. That is probably the desired behavior in situations
     /// where the calling application has already spawned multiple worker
     /// threads.
-    void threads (int n) { m_threads = n; }
+    void threads(int n);
 
     /// Retrieve the current thread-spawning policy.
     /// @see  `threads(int)`
-    int threads () const { return m_threads; }
+    int threads() const;
 
     // Custom new and delete to ensure that allocations & frees happen in
     // the OpenImageIO library, not in the app or plugins (because Windows).
@@ -2342,9 +2343,14 @@ protected:
     ImageSpec m_spec;           ///< format spec of the currently open image
 
 private:
+    // PIMPL idiom -- this lets us hide details of the internals of the
+    // ImageInput parent class so that changing them does not break the
+    // ABI.
+    class Impl;
+    static void impl_deleter(Impl*);
+    std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
+
     void append_error(string_view message) const; // add to m_errmessage
-    mutable std::string m_errmessage;   ///< private storage of error message
-    int m_threads;    // Thread policy
 };
 
 

@@ -19,8 +19,31 @@
 
 #include "imageio_pvt.h"
 
+#include <boost/thread/tss.hpp>
+using boost::thread_specific_ptr;
+
+
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
+
+
+
+class ImageInput::Impl {
+public:
+    // So we can lock this ImageInput for the thread-safe methods.
+    std::recursive_mutex m_mutex;
+    // Thread-specific error message for this ImageInput.
+    thread_specific_ptr<std::string> m_errormessage;
+    int m_threads = 0;
+};
+
+
+
+void
+ImageInput::impl_deleter(Impl* impl)
+{
+    delete impl;
+}
 
 
 
@@ -46,7 +69,7 @@ ImageInput::operator delete(void* ptr)
 
 
 ImageInput::ImageInput()
-    : m_threads(0)
+    : m_impl(new Impl, impl_deleter)
 {
 }
 
@@ -110,7 +133,7 @@ ImageInput::spec(int subimage, int miplevel)
     // already internally cache all of the subimage specs and thus don't
     // need a seek.
     ImageSpec ret;
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (seek_subimage(subimage, miplevel))
         ret = m_spec;
     return ret;
@@ -128,7 +151,7 @@ ImageInput::spec_dimensions(int subimage, int miplevel)
     // already internally cache all of the subimage specs and thus don't
     // need a seek.
     ImageSpec ret;
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (seek_subimage(subimage, miplevel))
         ret.copy_dimensions(m_spec);
     return ret;
@@ -141,7 +164,7 @@ bool
 ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
                           stride_t xstride)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
 
     // native_pixel_bytes is the size of a pixel in the FILE, including
     // the per-channel format.
@@ -214,7 +237,7 @@ bool
 ImageInput::read_scanlines(int ybegin, int yend, int z, TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
                           z, 0, m_spec.nchannels, format, data, xstride,
                           ystride);
@@ -227,7 +250,7 @@ ImageInput::read_scanlines(int ybegin, int yend, int z, int chbegin, int chend,
                            TypeDesc format, void* data, stride_t xstride,
                            stride_t ystride)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     return read_scanlines(current_subimage(), current_miplevel(), ybegin, yend,
                           z, chbegin, chend, format, data, xstride, ystride);
 }
@@ -345,7 +368,7 @@ ImageInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // calls read_native_scanline, which is supplied by every plugin.
     // Only the hardcore ones will overload read_native_scanlines with
     // their own implementation.
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     size_t ystride = m_spec.scanline_bytes(true);
     yend           = std::min(yend, spec().y + spec().height);
     for (int y = ybegin; y < yend; ++y) {
@@ -410,7 +433,7 @@ bool
 ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
                       stride_t xstride, stride_t ystride, stride_t zstride)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!m_spec.tile_width || ((x - m_spec.x) % m_spec.tile_width) != 0
         || ((y - m_spec.y) % m_spec.tile_height) != 0
         || ((z - m_spec.z) % m_spec.tile_depth) != 0)
@@ -491,7 +514,7 @@ ImageInput::read_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 {
     int subimage, miplevel, chend;
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         subimage = current_subimage();
         miplevel = current_miplevel();
         chend    = spec().nchannels;
@@ -510,7 +533,7 @@ ImageInput::read_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 {
     int subimage, miplevel;
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         subimage = current_subimage();
         miplevel = current_miplevel();
     }
@@ -641,7 +664,7 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
                 if (full_x && full_y && full_z && allchans && !perchanfile) {
                     // Full tile, either native data or not needing
                     // per-tile data format conversion.
-                    lock_guard lock(m_mutex);
+                    lock_guard lock(*this);
                     if (!seek_subimage(subimage, miplevel))
                         return false;
                     ok &= read_tile(x, y, z, format, tilestart, xstride,
@@ -652,7 +675,7 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
                     if (buf.size() < size_t(full_tilebytes))
                         buf.resize(full_tilebytes);
                     {
-                        lock_guard lock(m_mutex);
+                        lock_guard lock(*this);
                         if (!seek_subimage(subimage, miplevel))
                             return false;
                         ok &= read_tile(x, y, z, format, &buf[0],
@@ -828,7 +851,7 @@ ImageInput::read_image(int chbegin, int chend, TypeDesc format, void* data,
 {
     int subimage, miplevel;
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         subimage = current_subimage();
         miplevel = current_miplevel();
     }
@@ -849,7 +872,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     ImageSpec spec;
     int rps = 0;
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         if (!seek_subimage(subimage, miplevel))
             return false;
         // Copying the dimensions of the designated subimage/miplevel to a
@@ -1007,13 +1030,82 @@ ImageInput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    lock_guard lock(m_mutex);
+    std::string* errptr = m_impl->m_errormessage.get();
+    if (!errptr) {
+        errptr = new std::string;
+        m_impl->m_errormessage.reset(errptr);
+    }
     OIIO_DASSERT(
-        m_errmessage.size() < 1024 * 1024 * 16
+        errptr->size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (m_errmessage.size() && m_errmessage.back() != '\n')
-        m_errmessage += '\n';
-    m_errmessage += message;
+    if (errptr->size() && errptr->back() != '\n')
+        *errptr += '\n';
+    *errptr += message;
 }
+
+
+
+bool
+ImageInput::has_error() const
+{
+    std::string* errptr = m_impl->m_errormessage.get();
+    return (errptr && errptr->size());
+}
+
+
+
+std::string
+ImageInput::geterror(bool clear) const
+{
+    std::string e;
+    std::string* errptr = m_impl->m_errormessage.get();
+    if (errptr) {
+        e = *errptr;
+        if (clear)
+            errptr->clear();
+    }
+    return e;
+}
+
+
+
+void
+ImageInput::threads(int n)
+{
+    m_impl->m_threads = n;
+}
+
+
+
+int
+ImageInput::threads() const
+{
+    return m_impl->m_threads;
+}
+
+
+
+void
+ImageInput::lock() const
+{
+    m_impl->m_mutex.lock();
+}
+
+
+
+bool
+ImageInput::try_lock() const
+{
+    return m_impl->m_mutex.try_lock();
+}
+
+
+
+void
+ImageInput::unlock() const
+{
+    m_impl->m_mutex.unlock();
+}
+
 
 OIIO_NAMESPACE_END

@@ -42,7 +42,7 @@ public:
     virtual bool close() override;
     virtual int current_subimage(void) const override
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_subimage;
     }
     virtual bool seek_subimage(int subimage, int miplevel) override;

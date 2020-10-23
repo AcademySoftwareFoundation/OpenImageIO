@@ -538,7 +538,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     if (initialized)
         return ok;
 
-    ImageInput::lock_guard lock(in->m_mutex);
+    ImageInput::lock_guard lock(*in);
     OIIO_DASSERT(header);
     spec = ImageSpec();
 
@@ -1224,7 +1224,7 @@ OpenEXRInput::spec(int subimage, int miplevel)
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         if (!part.initialized) {
             if (!seek_subimage(subimage, miplevel))
                 return ret;
@@ -1249,7 +1249,7 @@ OpenEXRInput::spec_dimensions(int subimage, int miplevel)
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         if (!seek_subimage(subimage, miplevel))
             return ret;
     }
@@ -1304,7 +1304,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                     int yend, int /*z*/, int chbegin, int chend,
                                     void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
@@ -1362,7 +1362,7 @@ bool
 OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     return read_native_tiles(subimage, miplevel, x, x + m_spec.tile_width, y,
@@ -1377,7 +1377,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                 int xend, int ybegin, int yend, int zbegin,
                                 int zend, void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
@@ -1391,7 +1391,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                 int xend, int ybegin, int yend, int zbegin,
                                 int zend, int chbegin, int chend, void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
@@ -1569,7 +1569,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
                                          int yend, int /*z*/, int chbegin,
                                          int chend, DeepData& deepdata)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (m_deep_scanline_input_part == NULL) {
@@ -1641,7 +1641,7 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                                      int /*zbegin*/, int /*zend*/, int chbegin,
                                      int chend, DeepData& deepdata)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (m_deep_tiled_input_part == NULL) {
