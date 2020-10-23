@@ -181,12 +181,21 @@ ImageInput_read_image(ImageInput* ii, int subimage, int miplevel, int chbegin,
 OIIO_API bool
 ImageInput_has_error(const ImageInput* ii);
 
-/// Return the text of all pending error messages issued against this ImageInput,
-/// and clear the pending error message.
+/// Return the text of all pending error messages issued against this ImageInput
+/// that have been raised from this thread and optionally clear the pending error 
+/// message.
 /// If no error message is pending, it will return an empty string.
+/// 
+/// @param ii               ImageInput to get the error message for.
+/// @param msg              Caller-allocated storage for the error message string.
+/// @param buffer_length    The size of the provided string storage, including 
+///                         the terminating null character. If the returned error 
+///                         string is longer than this, it will be truncated.
+/// @param clear            If true, clear the internal error message before returning.
 ///
-OIIO_API const char*
-ImageInput_geterror(const ImageInput* ii);
+OIIO_API void
+ImageInput_geterror(const ImageInput* ii, char* msg, int buffer_length,
+                    bool clear);
 
 /// ImageOutput abstracts the writing of an image file in a file
 /// format-agnostic manner.
@@ -232,11 +241,18 @@ OIIO_API bool
 ImageOutput_has_error(const ImageOutput* io);
 
 /// Return the text of all pending error messages issued against this ImageOutput,
-/// and clear the pending error message.
+/// and optionally clear the pending error message.
 /// If no error message is pending, it will return an empty string.
+/// 
+/// @param io               ImageOutput to get the error message for.
+/// @param msg              Caller-allocated storage for the error message string.
+/// @param buffer_length    The size of the provided string storage, including 
+///                         the terminating null character. If the returned error 
+///                         string is longer than this, it will be truncated.
+/// @param clear            If true, clear the internal error message before returning.
 ///
 OIIO_API const char*
-ImageOutput_geterror(const ImageOutput* io);
+ImageOutput_geterror(const ImageOutput* io, char* msg, int buffer_length, bool clear);
 
 /// Write the entire image of `spec.width x spec.height x spec.depth`
 /// pixels, from a buffer with the given strides and in the desired
@@ -275,8 +291,15 @@ openimageio_haserror();
 /// for this particular thread, and clear the pending error message unless
 /// `clear` is false; separate threads will not clobber each other's global
 /// error messages.
+/// 
+/// @param msg              Caller-allocated storage for the error message string.
+/// @param buffer_length    The size of the provided string storage, including 
+///                         the terminating null character. If the returned error 
+///                         string is longer than this, it will be truncated.
+/// @param clear            If true, clear the internal error message before returning.
+///
 OIIO_API const char*
-openimageio_geterror(bool clear);
+openimageio_geterror(char* msg, int buffer_length, bool clear);
 
 #ifdef __cplusplus
 }

@@ -106,43 +106,43 @@ typedef struct {
 ///
 /// Examples:
 /// ```
-///      TypeDesc_from_string("int") == OIIO_TYPE_INT            // C++ int32_t
-///      TypeDesc_from_string("float") == OIIO_TYPE_FLOAT        // C++ float
-///      TypeDesc_from_string("uint16") == OIIO_TYPE_UINT16      // C++ uint16_t
+///      TypeDesc_from_string("int") == OIIO_TypeInt            // C++ int32_t
+///      TypeDesc_from_string("float") == OIIO_TypeFloat        // C++ float
+///      TypeDesc_from_string("uint16") == OIIO_TYPEUInt16      // C++ uint16_t
 ///      TypeDesc_from_string("float[4]") == FIXME: unimplemented!
 /// ```
 ///
 TypeDesc
 TypeDesc_from_string(const char* typestring);
 
-extern TypeDesc OIIO_TYPE_UNKNOWN;
-extern TypeDesc OIIO_TYPE_FLOAT;
-extern TypeDesc OIIO_TYPE_COLOR;
-extern TypeDesc OIIO_TYPE_POINT;
-extern TypeDesc OIIO_TYPE_VECTOR;
-extern TypeDesc OIIO_TYPE_NORMAL;
-extern TypeDesc OIIO_TYPE_MATRIX33;
-extern TypeDesc OIIO_TYPE_MATRIX44;
-extern TypeDesc OIIO_TYPE_MATRIX;
-extern TypeDesc OIIO_TYPE_FLOAT2;
-extern TypeDesc OIIO_TYPE_VECTOR2;
-extern TypeDesc OIIO_TYPE_FLOAT4;
-extern TypeDesc OIIO_TYPE_VECTOR4;
-extern TypeDesc OIIO_TYPE_STRING;
-extern TypeDesc OIIO_TYPE_INT;
-extern TypeDesc OIIO_TYPE_UINT;
-extern TypeDesc OIIO_TYPE_INT32;
-extern TypeDesc OIIO_TYPE_UINT32;
-extern TypeDesc OIIO_TYPE_INT16;
-extern TypeDesc OIIO_TYPE_UINT16;
-extern TypeDesc OIIO_TYPE_INT8;
-extern TypeDesc OIIO_TYPE_UINT8;
-extern TypeDesc OIIO_TYPE_VECTOR2I;
-extern TypeDesc OIIO_TYPE_HALF;
-extern TypeDesc OIIO_TYPE_TIMECODE;
-extern TypeDesc OIIO_TYPE_KEYCODE;
-extern TypeDesc OIIO_TYPE_RATIONAL;
-extern TypeDesc OIIO_TYPE_POINTER;
+extern TypeDesc OIIO_TypeUnknown;
+extern TypeDesc OIIO_TypeFloat;
+extern TypeDesc OIIO_TypeColor;
+extern TypeDesc OIIO_TypePoint;
+extern TypeDesc OIIO_TypeVector;
+extern TypeDesc OIIO_TypeNormal;
+extern TypeDesc OIIO_TypeMatrix33;
+extern TypeDesc OIIO_TypeMatrix44;
+extern TypeDesc OIIO_TypeMatrix;
+extern TypeDesc OIIO_TypeFloat2;
+extern TypeDesc OIIO_TypeVector2;
+extern TypeDesc OIIO_TypeFloat4;
+extern TypeDesc OIIO_TypeVector4;
+extern TypeDesc OIIO_TypeString;
+extern TypeDesc OIIO_TypeInt;
+extern TypeDesc OIIO_TypeUInt;
+extern TypeDesc OIIO_TypeInt32;
+extern TypeDesc OIIO_TypeUInt32;
+extern TypeDesc OIIO_TypeInt16;
+extern TypeDesc OIIO_TypeUInt16;
+extern TypeDesc OIIO_TypeInt8;
+extern TypeDesc OIIO_TypeUInt8;
+extern TypeDesc OIIO_TypeVector2i;
+extern TypeDesc OIIO_TypeHalf;
+extern TypeDesc OIIO_TypeTimecode;
+extern TypeDesc OIIO_TypeKeycode;
+extern TypeDesc OIIO_TypeRational;
+extern TypeDesc OIIO_TypePointer;
 
 #ifdef __cplusplus
 }

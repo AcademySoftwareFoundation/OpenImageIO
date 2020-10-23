@@ -1,17 +1,22 @@
-#include <coiio/c-imageio.h>
+#include <OpenImageIO-C/c-imageio.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int
 main(void)
 {
+    // storage we'll use for error messages
+    const int errmsglen = 256;
+    char errmsg[errmsglen];
+
     // open the test image
     const char* infile = "data/checker.tif";
     ImageInput* ii     = ImageInput_open(infile, NULL, NULL);
     if (!ii) {
         fprintf(stderr, "Could not open file \"%s\"\n", infile);
         if (openimageio_haserror()) {
-            fprintf(stderr, "    %s\n", openimageio_geterror(true));
+            openimageio_geterror(errmsg, errmsglen, true);
+            fprintf(stderr, "    %s\n", errmsg);
         }
         return -1;
     }
@@ -35,11 +40,11 @@ main(void)
                                         0,          // miplevel
                                         0,          // chbegin
                                         nchannels,  // chend
-                                        OIIO_TYPE_FLOAT,  //format
+                                        OIIO_TypeFloat,  //format
                                         data,        // pixel storage
-                                        OIIO_AUTOSTRIDE,  // xstride
-                                        OIIO_AUTOSTRIDE,  // ystride
-                                        OIIO_AUTOSTRIDE,  // zstride
+                                        OIIO_AutoStride,  // xstride
+                                        OIIO_AutoStride,  // ystride
+                                        OIIO_AutoStride,  // zstride
                                         NULL,     // progress_callback
                                         NULL      // progress_callback_data
     );
@@ -47,7 +52,8 @@ main(void)
     if (!result) {
         fprintf(stderr, "Error loading \"%s\" because:\n", infile);
         if (ImageInput_has_error(ii)) {
-            fprintf(stderr, "    %s\n", ImageInput_geterror(ii));
+            ImageInput_geterror(ii, errmsg, errmsglen, true);
+            fprintf(stderr, "    %s\n", errmsg);
         } else {
             fprintf(stderr, "    unknown: no errors on ImageInput\n");
         }
@@ -58,28 +64,30 @@ main(void)
 
     // set a couple of test attributes
     int test_int_attr = 17;
-    ImageSpec_attribute(out_spec, "test_int_attr", OIIO_TYPE_INT,
+    ImageSpec_attribute(out_spec, "test_int_attr", OIIO_TypeInt,
                         &test_int_attr);
 
     const char* test_str_attr = "the quick brown fox...";
     ImageSpec_attribute(out_spec, "test_str_attr",
-                        OIIO_TYPE_STRING, &test_str_attr);
+                        OIIO_TypeString, &test_str_attr);
 
     // create the output image
     ImageOutput* io = ImageOutput_create("out.exr", NULL, "");
     if (!io) {
         fprintf(stderr, "could not open out.exr\n");
         if (openimageio_haserror()) {
-            fprintf(stderr, "    %s\n", openimageio_geterror(true));
+            openimageio_geterror(errmsg, errmsglen, true);
+            fprintf(stderr, "    %s\n", errmsg);
         }
         return -2;
     }
 
-    result = ImageOutput_open(io, "out.exr", out_spec, OIIO_OPENMODE_CREATE);
+    result = ImageOutput_open(io, "out.exr", out_spec, OIIO_OpenMode_Create);
     if (!result) {
         fprintf(stderr, "Error opening \"out.exr\" because:\n");
         if (ImageOutput_has_error(io)) {
-            fprintf(stderr, "    %s\n", ImageOutput_geterror(io));
+            ImageOutput_geterror(io, errmsg, errmsglen, true);
+            fprintf(stderr, "    %s\n", errmsg);
         } else {
             fprintf(stderr, "    unknown: no errors on ImageOutput\n");
         }
@@ -87,11 +95,11 @@ main(void)
 
     // write the image
     result = ImageOutput_write_image(io,
-                                     OIIO_TYPE_FLOAT,  // format
+                                     OIIO_TypeFloat,  // format
                                      data,                           // data
-                                     OIIO_AUTOSTRIDE,                     // xstride
-                                     OIIO_AUTOSTRIDE,                     // ystride
-                                     OIIO_AUTOSTRIDE,                     // zstride
+                                     OIIO_AutoStride,                     // xstride
+                                     OIIO_AutoStride,                     // ystride
+                                     OIIO_AutoStride,                     // zstride
                                      NULL,  // progress_callback
                                      NULL   // progress_callback_data
     );
@@ -99,7 +107,8 @@ main(void)
     if (!result) {
         fprintf(stderr, "Error writing \"out.exr\" because:\n");
         if (ImageOutput_has_error(io)) {
-            fprintf(stderr, "    %s\n", ImageOutput_geterror(io));
+            ImageOutput_geterror(io, errmsg, errmsglen, true);
+            fprintf(stderr, "    %s\n", errmsg);
         } else {
             fprintf(stderr, "    unknown: no errors on ImageOutput\n");
         }
@@ -116,7 +125,8 @@ main(void)
     if (!ii) {
         fprintf(stderr, "Could not open file \"out.exr\"\n");
         if (openimageio_haserror()) {
-            fprintf(stderr, "    %s\n", openimageio_geterror(true));
+            openimageio_geterror(errmsg, errmsglen, true);
+            fprintf(stderr, "    %s\n", errmsg);
         }
         return -1;
     }
@@ -126,7 +136,7 @@ main(void)
 
     int o_int_attr = 0;
     if (ImageSpec_getattribute(in_spec, "test_int_attr",
-                               OIIO_TYPE_INT, &o_int_attr,
+                               OIIO_TypeInt, &o_int_attr,
                                true)) {
         printf("test_int_attr: %d\n", o_int_attr);
     } else {
@@ -135,7 +145,7 @@ main(void)
 
     char* o_str_attr;
     if (ImageSpec_getattribute(in_spec, "test_str_attr",
-                               OIIO_TYPE_STRING, &o_str_attr,
+                               OIIO_TypeString, &o_str_attr,
                                true)) {
         printf("test_str_attr: %s\n", o_str_attr);
     } else {

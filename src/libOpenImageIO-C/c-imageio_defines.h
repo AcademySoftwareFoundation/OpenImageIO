@@ -13,7 +13,15 @@
 typedef int64_t stride_t;
 typedef uint64_t imagesize_t;
 
-#define OIIO_AUTOSTRIDE 0x8000000000000000L
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern stride_t OIIO_AutoStride;
+
+#ifdef __cplusplus
+}
+#endif
 
 /// Pointer to a function called periodically by read_image and
 /// write_image.  This can be used to implement progress feedback, etc.
@@ -22,8 +30,8 @@ typedef uint64_t imagesize_t;
 /// bool, which if 'true' will STOP the read or write.
 typedef bool (*ProgressCallback)(void* opaque_data, float portion_done);
 
-enum OIIOOpenMode {
-    OIIO_OPENMODE_CREATE,
-    OIIO_OPENMODE_APPENDSUBIMAGE,
-    OIIO_OPENMODE_APPENDMIPLEVEL,
+enum OIIO_OpenMode {
+    OIIO_OpenMode_Create,
+    OIIO_OpenMode_AppendSubImage,
+    OIIO_OpenMode_AppendMipLevel,
 };

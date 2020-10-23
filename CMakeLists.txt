@@ -203,7 +203,7 @@ if (NUKE_FOUND)
 endif ()
 
 if (BUILD_COIIO)
-    add_subdirectory(src/coiio)
+    add_subdirectory(src/libOpenImageIO-C)
     oiio_add_tests(coiio)
 endif ()
 

@@ -16,6 +16,10 @@ using OIIO::bit_cast;
 
 extern "C" {
 
+stride_t OIIO_AutoStride = 0x8000000000000000L;
+
+
+
 ImageSpec*
 ImageSpec_new()
 {
@@ -157,17 +161,14 @@ ImageInput_has_error(const ImageInput* ii)
 
 
 
-const char*
-ImageInput_geterror(const ImageInput* ii)
+void
+ImageInput_geterror(const ImageInput* ii, char* msg, int buffer_length,
+                    bool clear)
 {
-    // If we have multiple ImageInputs that we want to get errors for, we're
-    // still passing through this one function. We have to cache the string
-    // in order to return a char*, so it needs to be thread_local to avoid issues.
-    // We force clear here so that multiple calls from different ImageInputs
-    // don't get each others' errors.
-    thread_local std::string errorstring;
-    errorstring = ii->geterror(true);
-    return errorstring.c_str();
+    std::string errorstring = ii->geterror(clear);
+    int length = std::min(buffer_length, (int)errorstring.size() + 1);
+    memcpy(msg, errorstring.c_str(), length);
+    msg[length - 1] = '\0';
 }
 
 
@@ -207,17 +208,14 @@ ImageOutput_has_error(const ImageOutput* io)
 
 
 
-const char*
-ImageOutput_geterror(const ImageOutput* io)
+void
+ImageOutput_geterror(const ImageOutput* io, char* msg, int buffer_length,
+                     bool clear)
 {
-    // If we have multiple ImageOutputs that we want to get errors for, we're
-    // still passing through this one function. We have to cache the string
-    // in order to return a char*, so it needs to be thread_local to avoid issues.
-    // We force clear here so that multiple calls from different ImageOutputs
-    // don't get each others' errors.
-    thread_local std::string errorstring;
-    errorstring = io->geterror(true);
-    return errorstring.c_str();
+    std::string errorstring = io->geterror(clear);
+    int length = std::min(buffer_length, (int)errorstring.size() + 1);
+    memcpy(msg, errorstring.c_str(), length);
+    msg[length - 1] = '\0';
 }
 
 
@@ -248,11 +246,12 @@ openimageio_haserror()
 
 
 
-const char*
-openimageio_geterror(bool clear)
+void
+openimageio_geterror(char* msg, int buffer_length, bool clear)
 {
-    thread_local std::string errorstring;
-    errorstring = OIIO::geterror(clear);
-    return errorstring.c_str();
+    std::string errorstring = OIIO::geterror(clear);
+    int length = std::min(buffer_length, (int)errorstring.size() + 1);
+    memcpy(msg, errorstring.c_str(), length);
+    msg[length - 1] = '\0';
 }
 }

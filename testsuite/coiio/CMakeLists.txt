@@ -4,5 +4,5 @@ project(coiiotest C)
 find_package(OpenImageIO REQUIRED)
 
 add_executable(coiiotest coiiotest.c)
-target_link_libraries(coiiotest OpenImageIO::coiio)
+target_link_libraries(coiiotest OpenImageIO::OpenImageIO-C)
 set_property(TARGET coiiotest PROPERTY C_STANDARD 99)
