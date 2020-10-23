@@ -3,15 +3,16 @@
 // https://github.com/OpenImageIO/oiio
 
 
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
 #include "c-imageio_defines.h"
 #include "c-typedesc.h"
-#include "util.h"
 
 using ImageInput  = OIIO::ImageInput;
 using ImageOutput = OIIO::ImageOutput;
 using ImageSpec   = OIIO::ImageSpec;
+using OIIO::bit_cast;
 
 extern "C" {
 
@@ -34,7 +35,8 @@ ImageSpec_delete(const ImageSpec* is)
 ImageSpec*
 ImageSpec_new_with_dimensions(int xres, int yres, int nchans, TypeDesc fmt)
 {
-    return new ImageSpec(xres, yres, nchans, bit_cast<OIIO::TypeDesc>(fmt));
+    return new ImageSpec(xres, yres, nchans,
+                         bit_cast<TypeDesc, OIIO::TypeDesc>(fmt));
 }
 
 
@@ -51,7 +53,7 @@ void
 ImageSpec_attribute(ImageSpec* is, const char* name, TypeDesc fmt,
                     const void* value)
 {
-    is->attribute(name, bit_cast<OIIO::TypeDesc>(fmt), value);
+    is->attribute(name, bit_cast<TypeDesc, OIIO::TypeDesc>(fmt), value);
 }
 
 
@@ -92,8 +94,8 @@ bool
 ImageSpec_getattribute(const ImageSpec* is, const char* name, TypeDesc type,
                        void* value, bool casesensitive)
 {
-    return is->getattribute(name, bit_cast<OIIO::TypeDesc>(type), value,
-                            casesensitive);
+    return is->getattribute(name, bit_cast<TypeDesc, OIIO::TypeDesc>(type),
+                            value, casesensitive);
 }
 
 
@@ -140,8 +142,8 @@ ImageInput_read_image(ImageInput* ii, int subimage, int miplevel, int chbegin,
                       void* progress_callback_data)
 {
     return ii->read_image(subimage, miplevel, chbegin, chend,
-                          bit_cast<OIIO::TypeDesc>(format), data, xstride,
-                          ystride, zstride, progress_callback,
+                          bit_cast<TypeDesc, OIIO::TypeDesc>(format), data,
+                          xstride, ystride, zstride, progress_callback,
                           progress_callback_data);
 }
 
@@ -226,8 +228,8 @@ ImageOutput_write_image(ImageOutput* io, TypeDesc format, const void* data,
                         ProgressCallback progress_callback,
                         void* progress_callback_data)
 {
-    return io->write_image(bit_cast<OIIO::TypeDesc>(format), data, xstride,
-                           ystride, zstride, progress_callback,
+    return io->write_image(bit_cast<TypeDesc, OIIO::TypeDesc>(format), data,
+                           xstride, ystride, zstride, progress_callback,
                            progress_callback_data);
 }
 int

@@ -7,7 +7,8 @@
 #include <OpenImageIO/typedesc.h>
 
 #include "c-typedesc.h"
-#include "util.h"
+
+using OIIO::bit_cast;
 
 // Sanity check that our types are equivalent
 OIIO_STATIC_ASSERT(sizeof(TypeDesc) == sizeof(OIIO::TypeDesc));
@@ -28,7 +29,7 @@ extern "C" {
 TypeDesc
 TypeDesc_from_string(const char* typestring)
 {
-    return bit_cast<TypeDesc>(OIIO::TypeDesc(typestring));
+    return bit_cast<OIIO::TypeDesc, TypeDesc>(OIIO::TypeDesc(typestring));
 }
 
 
