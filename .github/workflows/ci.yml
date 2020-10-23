@@ -421,7 +421,7 @@ jobs:
     name: "clang-format verification"
     runs-on: ubuntu-18.04
     container:
-      image: aswf/ci-osl:2021
+      image: aswf/ci-osl:2021-clang10
     steps:
       - uses: actions/checkout@v2
       - name: all
