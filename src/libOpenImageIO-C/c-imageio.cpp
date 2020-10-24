@@ -5,6 +5,7 @@
 
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
 
 #include "c-imageio_defines.h"
 #include "c-typedesc.h"
@@ -13,6 +14,7 @@ using ImageInput  = OIIO::ImageInput;
 using ImageOutput = OIIO::ImageOutput;
 using ImageSpec   = OIIO::ImageSpec;
 using OIIO::bit_cast;
+using OIIO::Strutil::safe_strcpy;
 
 extern "C" {
 
@@ -166,9 +168,7 @@ ImageInput_geterror(const ImageInput* ii, char* msg, int buffer_length,
                     bool clear)
 {
     std::string errorstring = ii->geterror(clear);
-    int length = std::min(buffer_length, (int)errorstring.size() + 1);
-    memcpy(msg, errorstring.c_str(), length);
-    msg[length - 1] = '\0';
+    safe_strcpy(msg, errorstring, buffer_length);
 }
 
 
@@ -213,9 +213,7 @@ ImageOutput_geterror(const ImageOutput* io, char* msg, int buffer_length,
                      bool clear)
 {
     std::string errorstring = io->geterror(clear);
-    int length = std::min(buffer_length, (int)errorstring.size() + 1);
-    memcpy(msg, errorstring.c_str(), length);
-    msg[length - 1] = '\0';
+    safe_strcpy(msg, errorstring, buffer_length);
 }
 
 
@@ -250,8 +248,6 @@ void
 openimageio_geterror(char* msg, int buffer_length, bool clear)
 {
     std::string errorstring = OIIO::geterror(clear);
-    int length = std::min(buffer_length, (int)errorstring.size() + 1);
-    memcpy(msg, errorstring.c_str(), length);
-    msg[length - 1] = '\0';
+    safe_strcpy(msg, errorstring, buffer_length);
 }
 }
