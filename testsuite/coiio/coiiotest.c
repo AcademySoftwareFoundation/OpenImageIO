@@ -1,3 +1,7 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: BSD-3-Clause
+// https://github.com/OpenImageIO/oiio
+
 #include <OpenImageIO-C/c-imageio.h>
 #include <stdio.h>
 #include <stdlib.h>
