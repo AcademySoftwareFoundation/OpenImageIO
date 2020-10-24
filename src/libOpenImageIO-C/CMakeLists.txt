@@ -2,30 +2,27 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
-add_library(OpenImageIO-C SHARED 
+set(PUBLIC_HEADER_DIR ${PROJECT_SOURCE_DIR}/src/include/OpenImageIO)
+set(COIIO_HEADERS
+    ${PUBLIC_HEADER_DIR}/c-imageio.h
+    ${PUBLIC_HEADER_DIR}/c-typedesc.h
+    ${PUBLIC_HEADER_DIR}/c-paramlist.h
+)
+
+add_library(OpenImageIO-C SHARED
     c-imageio.cpp
-    c-imageio.h
-    c-imageio_defines.h
     c-typedesc.cpp
-    c-typedesc.h
+    c-paramlist.cpp
+    util.h
+    ${COIIO_HEADERS}
 )
 
 target_link_libraries(OpenImageIO-C PUBLIC OpenImageIO)
-set_target_properties(OpenImageIO-C 
+set_target_properties(OpenImageIO-C
     PROPERTIES
         VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
         SOVERSION ${SOVERSION}
         POSITION_INDEPENDENT_CODE ON
 )
 
-set(public_headers
-    c-imageio.h
-    c-imageio_defines.h
-    c-typedesc.h
-)
-
 install_targets(OpenImageIO-C)
-install(FILES ${public_headers}
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/OpenImageIO-C
-    COMPONENT developer
-)

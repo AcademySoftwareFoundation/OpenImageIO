@@ -99,7 +99,7 @@ typedef struct {
     unsigned char vecsemantics;
     unsigned char reserved;
     int arraylen;
-} TypeDesc;
+} OIIO_TypeDesc;
 
 /// Construct from a string (e.g., "float[3]").  If no valid
 /// type could be assembled, set basetype to OIIO_BASETYPE_UNKNOWN.
@@ -112,37 +112,37 @@ typedef struct {
 ///      TypeDesc_from_string("float[4]") == FIXME: unimplemented!
 /// ```
 ///
-TypeDesc
-TypeDesc_from_string(const char* typestring);
+OIIO_TypeDesc
+OIIO_TypeDesc_from_string(const char* typestring);
 
-extern TypeDesc OIIO_TypeUnknown;
-extern TypeDesc OIIO_TypeFloat;
-extern TypeDesc OIIO_TypeColor;
-extern TypeDesc OIIO_TypePoint;
-extern TypeDesc OIIO_TypeVector;
-extern TypeDesc OIIO_TypeNormal;
-extern TypeDesc OIIO_TypeMatrix33;
-extern TypeDesc OIIO_TypeMatrix44;
-extern TypeDesc OIIO_TypeMatrix;
-extern TypeDesc OIIO_TypeFloat2;
-extern TypeDesc OIIO_TypeVector2;
-extern TypeDesc OIIO_TypeFloat4;
-extern TypeDesc OIIO_TypeVector4;
-extern TypeDesc OIIO_TypeString;
-extern TypeDesc OIIO_TypeInt;
-extern TypeDesc OIIO_TypeUInt;
-extern TypeDesc OIIO_TypeInt32;
-extern TypeDesc OIIO_TypeUInt32;
-extern TypeDesc OIIO_TypeInt16;
-extern TypeDesc OIIO_TypeUInt16;
-extern TypeDesc OIIO_TypeInt8;
-extern TypeDesc OIIO_TypeUInt8;
-extern TypeDesc OIIO_TypeVector2i;
-extern TypeDesc OIIO_TypeHalf;
-extern TypeDesc OIIO_TypeTimecode;
-extern TypeDesc OIIO_TypeKeycode;
-extern TypeDesc OIIO_TypeRational;
-extern TypeDesc OIIO_TypePointer;
+extern OIIO_TypeDesc OIIO_TypeUnknown;
+extern OIIO_TypeDesc OIIO_TypeFloat;
+extern OIIO_TypeDesc OIIO_TypeColor;
+extern OIIO_TypeDesc OIIO_TypePoint;
+extern OIIO_TypeDesc OIIO_TypeVector;
+extern OIIO_TypeDesc OIIO_TypeNormal;
+extern OIIO_TypeDesc OIIO_TypeMatrix33;
+extern OIIO_TypeDesc OIIO_TypeMatrix44;
+extern OIIO_TypeDesc OIIO_TypeMatrix;
+extern OIIO_TypeDesc OIIO_TypeFloat2;
+extern OIIO_TypeDesc OIIO_TypeVector2;
+extern OIIO_TypeDesc OIIO_TypeFloat4;
+extern OIIO_TypeDesc OIIO_TypeVector4;
+extern OIIO_TypeDesc OIIO_TypeString;
+extern OIIO_TypeDesc OIIO_TypeInt;
+extern OIIO_TypeDesc OIIO_TypeUInt;
+extern OIIO_TypeDesc OIIO_TypeInt32;
+extern OIIO_TypeDesc OIIO_TypeUInt32;
+extern OIIO_TypeDesc OIIO_TypeInt16;
+extern OIIO_TypeDesc OIIO_TypeUInt16;
+extern OIIO_TypeDesc OIIO_TypeInt8;
+extern OIIO_TypeDesc OIIO_TypeUInt8;
+extern OIIO_TypeDesc OIIO_TypeVector2i;
+extern OIIO_TypeDesc OIIO_TypeHalf;
+extern OIIO_TypeDesc OIIO_TypeTimecode;
+extern OIIO_TypeDesc OIIO_TypeKeycode;
+extern OIIO_TypeDesc OIIO_TypeRational;
+extern OIIO_TypeDesc OIIO_TypePointer;
 
 #ifdef __cplusplus
 }

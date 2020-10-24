@@ -85,10 +85,10 @@ struct ROI {
     ///@{
     /// @name ROI data members
     /// The data members are:
-    /// 
+    ///
     ///     int xbegin, xend, ybegin, yend, zbegin, zend;
     ///     int chbegin, chend;
-    /// 
+    ///
     /// These describe the spatial extent
     ///     [xbegin,xend) x [ybegin,yend) x [zbegin,zend)
     /// And the channel extent:
@@ -568,23 +568,23 @@ public:
     /// (it is up to the caller to ensure there is enough space) and return
     /// `true`. If no such attribute is found, or if it doesn't match the
     /// type, return `false` and do not modify `val`.
-    /// 
+    ///
     /// EXAMPLES:
-    /// 
+    ///
     ///     ImageSpec spec;
     ///     ...
     ///     // Retrieving an integer attribute:
     ///     int orientation = 0;
     ///     spec.getattribute ("orientation", TypeInt, &orientation);
-    /// 
+    ///
     ///     // Retrieving a string attribute with a char*:
     ///     const char* compression = nullptr;
     ///     spec.getattribute ("compression", TypeString, &compression);
-    /// 
+    ///
     ///     // Alternately, retrieving a string with a ustring:
     ///     ustring compression;
     ///     spec.getattribute ("compression", TypeString, &compression);
-    /// 
+    ///
     /// Note that when passing a string, you need to pass a pointer to the
     /// `char*`, not a pointer to the first character.  Also, the `char*`
     /// will end up pointing to characters owned by the `ImageSpec`; the
@@ -2487,7 +2487,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///    The report of totals can be retrieved as the value of the
 ///    `"timing_report"` attribute, using `OIIO:get_attribute()` call.
 ///
-///    
+///
 ///
 OIIO_API bool attribute (string_view name, TypeDesc type, const void *val);
 
@@ -2518,13 +2518,13 @@ inline bool attribute (string_view name, string_view val) {
 /// - `string format_list`
 /// - `string input_format_list`
 /// - `string output_format_list`
-///   
+///
 ///   A comma-separated list of all the names of, respectively, all
 ///   supported image formats, all formats accepted as inputs, and all
 ///   formats accepted as outputs.
-///   
+///
 /// - `string extension_list`
-///   
+///
 ///   For each format, the format name, followed by a colon, followed by a
 ///   comma-separated list of all extensions that are presumed to be used
 ///   for that format.  Semicolons separate the lists for formats.  For
@@ -2533,7 +2533,7 @@ inline bool attribute (string_view name, string_view val) {
 ///        "tiff:tif;jpeg:jpg,jpeg;openexr:exr"
 ///
 /// - `string library_list`
-///   
+///
 ///   For each format that uses a dependent library, the format name,
 ///   followed by a colon, followed by the name and version of the
 ///   dependency. Semicolons separate the lists for formats.  For example,
@@ -2545,13 +2545,13 @@ inline bool attribute (string_view name, string_view val) {
 ///
 /// - `string hw:simd`
 /// - `string oiio:simd` (read-only)
-///   
+///
 ///   A comma-separated list of hardware CPU features for SIMD (and some
 ///   other things). The `"oiio:simd"` attribute is similarly a list of
 ///   which features this build of OIIO was compiled to support.
 ///
 ///   This was added in OpenImageIO 1.8.
-///   
+///
 /// - `float resident_memory_used_MB`
 ///
 ///   This read-only attribute can be used for debugging purposes to report

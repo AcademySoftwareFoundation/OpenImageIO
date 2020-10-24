@@ -2,232 +2,997 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio
 
+#include <limits>
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/deepdata.h>
 
-#include "c-imageio_defines.h"
-#include "c-typedesc.h"
+#include <OpenImageIO/c-imageio.h>
+#include <OpenImageIO/c-typedesc.h>
 
-using ImageInput  = OIIO::ImageInput;
-using ImageOutput = OIIO::ImageOutput;
-using ImageSpec   = OIIO::ImageSpec;
+#include "util.h"
+
 using OIIO::bit_cast;
 using OIIO::Strutil::safe_strcpy;
 
+namespace {
+
+// Some small utility functions to make casting between the C++ and C types
+// less obtuse
+DEFINE_POINTER_CASTS(ImageSpec)
+DEFINE_POINTER_CASTS(ImageInput)
+DEFINE_POINTER_CASTS(ImageOutput)
+DEFINE_POINTER_CASTS(ParamValue)
+DEFINE_POINTER_CASTS(DeepData)
+
+#undef DEFINE_POINTER_CASTS
+
+}  // namespace
+
 extern "C" {
 
-stride_t OIIO_AutoStride = 0x8000000000000000L;
+stride_t OIIO_AutoStride = std::numeric_limits<int>::min();
+
+// Check ROI is bit-equivalent
+OIIO_STATIC_ASSERT(sizeof(OIIO_ROI) == sizeof(OIIO::ROI));
+OIIO_STATIC_ASSERT(alignof(OIIO_ROI) == alignof(OIIO::ROI));
+OIIO_STATIC_ASSERT(offsetof(OIIO_ROI, xbegin) == offsetof(OIIO::ROI, xbegin));
+OIIO_STATIC_ASSERT(offsetof(OIIO_ROI, xend) == offsetof(OIIO::ROI, xend));
+OIIO_STATIC_ASSERT(offsetof(OIIO_ROI, ybegin) == offsetof(OIIO::ROI, ybegin));
+OIIO_STATIC_ASSERT(offsetof(OIIO_ROI, yend) == offsetof(OIIO::ROI, yend));
+OIIO_STATIC_ASSERT(offsetof(OIIO_ROI, zbegin) == offsetof(OIIO::ROI, zbegin));
+OIIO_STATIC_ASSERT(offsetof(OIIO_ROI, zend) == offsetof(OIIO::ROI, zend));
+OIIO_STATIC_ASSERT(offsetof(OIIO_ROI, chbegin) == offsetof(OIIO::ROI, chbegin));
+OIIO_STATIC_ASSERT(offsetof(OIIO_ROI, chend) == offsetof(OIIO::ROI, chend));
 
 
 
-ImageSpec*
-ImageSpec_new()
+OIIO_ROI
+OIIO_ROI_All()
 {
-    return new ImageSpec;
+    return OIIO_ROI { std::numeric_limits<int>::min(), 0, 0, 0, 0, 0, 0, 0 };
+}
+
+
+
+bool
+OIIO_ROI_defined(const OIIO_ROI* roi)
+{
+    return roi->xbegin != std::numeric_limits<int>::min();
+}
+
+
+
+int
+OIIO_ROI_width(const OIIO_ROI* roi)
+{
+    return roi->xend - roi->xbegin;
+}
+
+
+
+int
+OIIO_ROI_height(const OIIO_ROI* roi)
+{
+    return roi->yend - roi->ybegin;
+}
+
+
+
+int
+OIIO_ROI_depth(const OIIO_ROI* roi)
+{
+    return roi->zend - roi->zbegin;
+}
+
+
+
+int
+OIIO_ROI_nchannels(const OIIO_ROI* roi)
+{
+    return roi->chend - roi->chbegin;
+}
+
+
+
+imagesize_t
+OIIO_ROI_npixels(const OIIO_ROI* roi)
+{
+    if (roi->xbegin != std::numeric_limits<int>::min()) {
+        return OIIO_ROI_width(roi) * OIIO_ROI_height(roi) * OIIO_ROI_depth(roi);
+    } else {
+        return 0;
+    }
+}
+
+
+
+bool
+OIIO_ROI_contains(const OIIO_ROI* roi, int x, int y, int z, int ch)
+{
+    return x >= roi->xbegin && x < roi->xend && y >= roi->ybegin
+           && y < roi->yend && z >= roi->zbegin && z < roi->zend
+           && ch >= roi->chbegin && ch < roi->chend;
+}
+
+
+
+bool
+OIIO_ROI_contains_roi(const OIIO_ROI* a, OIIO_ROI* b)
+{
+    return b->xbegin >= a->xbegin && b->xend <= a->xend
+           && b->ybegin >= a->ybegin && b->yend <= a->yend
+           && b->zbegin >= a->zbegin && b->zend <= a->zend
+           && b->chbegin >= a->chbegin && b->chend <= a->chend;
+}
+
+
+
+OIIO_ImageSpec*
+OIIO_ImageSpec_new()
+{
+    return to_c(new OIIO::ImageSpec);
 }
 
 
 
 void
-ImageSpec_delete(const ImageSpec* is)
+OIIO_ImageSpec_delete(const OIIO_ImageSpec* is)
 {
-    delete is;
+    delete to_cpp(is);
 }
 
 
 
-ImageSpec*
-ImageSpec_new_with_dimensions(int xres, int yres, int nchans, TypeDesc fmt)
+OIIO_ImageSpec*
+OIIO_ImageSpec_new_with_dimensions(int xres, int yres, int nchans,
+                                   OIIO_TypeDesc fmt)
 {
-    return new ImageSpec(xres, yres, nchans,
-                         bit_cast<TypeDesc, OIIO::TypeDesc>(fmt));
+    return to_c(
+        new OIIO::ImageSpec(xres, yres, nchans,
+                            bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(fmt)));
 }
 
 
 
-ImageSpec*
-ImageSpec_copy(const ImageSpec* ii)
+OIIO_ImageSpec*
+OIIO_ImageSpec_copy(const OIIO_ImageSpec* ii)
 {
-    return new ImageSpec(*ii);
+    const OIIO::ImageSpec* oii = to_cpp(ii);
+    return to_c(new OIIO::ImageSpec(*oii));
 }
 
 
 
 void
-ImageSpec_attribute(ImageSpec* is, const char* name, TypeDesc fmt,
-                    const void* value)
+OIIO_ImageSpec_attribute(OIIO_ImageSpec* is, const char* name,
+                         OIIO_TypeDesc fmt, const void* value)
 {
-    is->attribute(name, bit_cast<TypeDesc, OIIO::TypeDesc>(fmt), value);
+    to_cpp(is)->attribute(name, bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(fmt),
+                          value);
 }
 
 
 
 int
-ImageSpec_width(const ImageSpec* is)
+OIIO_ImageSpec_x(const OIIO_ImageSpec* is)
 {
-    return is->width;
+    return to_cpp(is)->x;
+}
+
+
+
+void
+OIIO_ImageSpec_set_x(OIIO_ImageSpec* is, int x)
+{
+    to_cpp(is)->x = x;
 }
 
 
 
 int
-ImageSpec_height(const ImageSpec* is)
+OIIO_ImageSpec_y(const OIIO_ImageSpec* is)
 {
-    return is->height;
+    return to_cpp(is)->y;
+}
+
+
+
+void
+OIIO_ImageSpec_set_y(OIIO_ImageSpec* is, int y)
+{
+    to_cpp(is)->y = y;
 }
 
 
 
 int
-ImageSpec_nchannels(const ImageSpec* is)
+OIIO_ImageSpec_z(const OIIO_ImageSpec* is)
 {
-    return is->nchannels;
+    return to_cpp(is)->z;
+}
+
+
+
+void
+OIIO_ImageSpec_set_z(OIIO_ImageSpec* is, int z)
+{
+    to_cpp(is)->z = z;
+}
+
+
+
+int
+OIIO_ImageSpec_width(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->width;
+}
+
+
+
+void
+OIIO_ImageSpec_set_width(OIIO_ImageSpec* is, int width)
+{
+    to_cpp(is)->width = width;
+}
+
+
+
+int
+OIIO_ImageSpec_height(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->height;
+}
+
+
+
+void
+OIIO_ImageSpec_set_height(OIIO_ImageSpec* is, int height)
+{
+    to_cpp(is)->height = height;
+}
+
+
+
+int
+OIIO_ImageSpec_depth(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->depth;
+}
+
+
+
+void
+OIIO_ImageSpec_set_depth(OIIO_ImageSpec* is, int depth)
+{
+    to_cpp(is)->depth = depth;
+}
+
+
+
+int
+OIIO_ImageSpec_full_x(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->full_x;
+}
+
+
+
+void
+OIIO_ImageSpec_set_full_x(OIIO_ImageSpec* is, int full_x)
+{
+    to_cpp(is)->full_x = full_x;
+}
+
+
+
+int
+OIIO_ImageSpec_full_y(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->full_y;
+}
+
+
+
+void
+OIIO_ImageSpec_set_full_y(OIIO_ImageSpec* is, int full_y)
+{
+    to_cpp(is)->full_y = full_y;
+}
+
+
+
+int
+OIIO_ImageSpec_full_z(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->full_z;
+}
+
+
+
+void
+OIIO_ImageSpec_set_full_z(OIIO_ImageSpec* is, int full_z)
+{
+    to_cpp(is)->full_z = full_z;
+}
+
+
+
+int
+OIIO_ImageSpec_full_width(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->full_width;
+}
+
+
+
+void
+OIIO_ImageSpec_set_full_width(OIIO_ImageSpec* is, int full_width)
+{
+    to_cpp(is)->full_width = full_width;
+}
+
+
+
+int
+OIIO_ImageSpec_full_height(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->full_height;
+}
+
+
+
+void
+OIIO_ImageSpec_set_full_height(OIIO_ImageSpec* is, int full_height)
+{
+    to_cpp(is)->full_height = full_height;
+}
+
+
+
+int
+OIIO_ImageSpec_full_depth(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->full_depth;
+}
+
+
+
+void
+OIIO_ImageSpec_set_full_depth(OIIO_ImageSpec* is, int full_depth)
+{
+    to_cpp(is)->full_depth = full_depth;
+}
+
+
+
+int
+OIIO_ImageSpec_tile_width(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->tile_width;
+}
+
+
+
+void
+OIIO_ImageSpec_set_tile_width(OIIO_ImageSpec* is, int tile_width)
+{
+    to_cpp(is)->tile_width = tile_width;
+}
+
+
+
+int
+OIIO_ImageSpec_tile_height(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->tile_height;
+}
+
+
+
+void
+OIIO_ImageSpec_set_tile_height(OIIO_ImageSpec* is, int tile_height)
+{
+    to_cpp(is)->tile_height = tile_height;
+}
+
+
+
+int
+OIIO_ImageSpec_tile_depth(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->tile_depth;
+}
+
+
+
+void
+OIIO_ImageSpec_set_tile_depth(OIIO_ImageSpec* is, int tile_depth)
+{
+    to_cpp(is)->tile_depth = tile_depth;
+}
+
+
+
+OIIO_TypeDesc
+OIIO_ImageSpec_format(const OIIO_ImageSpec* is)
+{
+    return bit_cast<OIIO::TypeDesc, OIIO_TypeDesc>(to_cpp(is)->format);
+}
+
+
+
+void
+OIIO_ImageSpec_set_format(OIIO_ImageSpec* is, OIIO_TypeDesc fmt)
+{
+    to_cpp(is)->set_format(bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(fmt));
+}
+
+
+int
+OIIO_ImageSpec_alpha_channel(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->alpha_channel;
+}
+
+
+
+void
+OIIO_ImageSpec_set_alpha_channel(OIIO_ImageSpec* is, int alpha_channel)
+{
+    to_cpp(is)->alpha_channel = alpha_channel;
+}
+
+
+
+int
+OIIO_ImageSpec_z_channel(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->z_channel;
+}
+
+
+
+void
+OIIO_ImageSpec_set_z_channel(OIIO_ImageSpec* is, int z_channel)
+{
+    to_cpp(is)->z_channel = z_channel;
+}
+
+
+
+bool
+OIIO_ImageSpec_deep(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->deep;
+}
+
+
+
+void
+OIIO_ImageSpec_set_deep(OIIO_ImageSpec* is, bool deep)
+{
+    to_cpp(is)->deep = deep;
+}
+
+
+
+void
+OIIO_ImageSpec_default_channel_names(OIIO_ImageSpec* is)
+{
+    to_cpp(is)->default_channel_names();
+}
+
+
+
+size_t
+OIIO_ImageSpec_channel_bytes(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->channel_bytes();
+}
+
+
+
+size_t
+OIIO_ImageSpec_channel_bytes_at(const OIIO_ImageSpec* is, int chan, bool native)
+{
+    return to_cpp(is)->channel_bytes(chan, native);
+}
+
+
+
+size_t
+OIIO_ImageSpec_pixel_bytes(const OIIO_ImageSpec* is, bool native)
+{
+    return to_cpp(is)->pixel_bytes(native);
+}
+
+
+
+size_t
+OIIO_ImageSpec_pixel_bytes_for_channels(const OIIO_ImageSpec* is, int chbegin,
+                                        int chend, bool native)
+{
+    return to_cpp(is)->pixel_bytes(chbegin, chend, native);
+}
+
+
+
+imagesize_t
+OIIO_ImageSpec_scanline_bytes(const OIIO_ImageSpec* is, bool native)
+{
+    return to_cpp(is)->scanline_bytes(native);
+}
+
+
+
+imagesize_t
+OIIO_ImageSpec_tile_pixels(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->tile_pixels();
+}
+
+
+
+imagesize_t
+OIIO_ImageSpec_tile_bytes(const OIIO_ImageSpec* is, bool native)
+{
+    return to_cpp(is)->tile_bytes(native);
+}
+
+
+
+imagesize_t
+OIIO_ImageSpec_image_pixels(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->image_pixels();
+}
+
+
+
+imagesize_t
+OIIO_ImageSpec_image_bytes(const OIIO_ImageSpec* is, bool native)
+{
+    return to_cpp(is)->image_bytes(native);
+}
+
+
+
+void
+OIIO_ImageSpec_auto_stride(stride_t* xstride, stride_t* ystride,
+                           stride_t* zstride, stride_t channelsize,
+                           int nchannels, int width, int height)
+{
+    OIIO::ImageSpec::auto_stride(*xstride, *ystride, *zstride, channelsize,
+                                 nchannels, width, height);
+}
+
+
+
+void
+OIIO_ImageSpec_erase_attribute(OIIO_ImageSpec* is, const char* name,
+                               OIIO_TypeDesc searchtype, bool casesensitive)
+{
+    to_cpp(is)->erase_attribute(name,
+                                bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                    searchtype),
+                                casesensitive);
+}
+
+
+
+OIIO_ParamValue*
+OIIO_ImageSpec_find_attribute(OIIO_ImageSpec* is, const char* name,
+                              OIIO_TypeDesc searchtype, bool casesensitive)
+{
+    OIIO::ParamValue* pv = to_cpp(is)->find_attribute(
+        name, bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(searchtype),
+        casesensitive);
+    return to_c(pv);
+}
+
+
+
+void
+OIIO_ImageSpec_metadata_val(const OIIO_ImageSpec* is, const OIIO_ParamValue* p,
+                            bool human, char* string_buffer, int buffer_length)
+{
+    std::string s = to_cpp(is)->metadata_val(*to_cpp(p), human);
+    safe_strcpy(string_buffer, s, buffer_length);
+}
+
+
+
+OIIO_API void
+OIIO_ImageSpec_serialize(const OIIO_ImageSpec* is,
+                         OIIO_ImageSpec_SerialFormat format,
+                         OIIO_ImageSpec_SerialVerbose verbose,
+                         char* string_buffer, int buffer_length)
+{
+    std::string s
+        = to_cpp(is)->serialize((OIIO::ImageSpec::SerialFormat)format,
+                                (OIIO::ImageSpec::SerialVerbose)verbose);
+    safe_strcpy(string_buffer, s, buffer_length);
+}
+
+
+
+OIIO_API void
+OIIO_ImageSpec_to_xml(const OIIO_ImageSpec* is, char* string_buffer,
+                      int buffer_length)
+{
+    std::string s = to_cpp(is)->to_xml();
+    safe_strcpy(string_buffer, s, buffer_length);
+}
+
+
+
+void
+OIIO_ImageSpec_from_xml(OIIO_ImageSpec* is, const char* xml)
+{
+    to_cpp(is)->from_xml(xml);
+}
+
+
+
+bool
+OIIO_ImageSpec_valid_tile_range(OIIO_ImageSpec* is, int xbegin, int xend,
+                                int ybegin, int yend, int zbegin, int zend)
+{
+    return to_cpp(is)->valid_tile_range(xbegin, xend, ybegin, yend, zbegin,
+                                        zend);
+}
+
+
+
+int
+OIIO_ImageSpec_nchannels(const OIIO_ImageSpec* is)
+{
+    return to_cpp(is)->nchannels;
+}
+
+
+
+OIIO_TypeDesc
+OIIO_ImageSpec_channelformat(const OIIO_ImageSpec* is, int chan)
+{
+    return bit_cast<OIIO::TypeDesc, OIIO_TypeDesc>(
+        to_cpp(is)->channelformat(chan));
+}
+
+
+
+OIIO_API void
+OIIO_ImageSpec_get_channelformats(const OIIO_ImageSpec* is,
+                                  OIIO_TypeDesc* formats)
+{
+    const OIIO::ImageSpec* ois = to_cpp(is);
+    memcpy(formats, ois->channelformats.data(),
+           sizeof(OIIO_TypeDesc) * ois->channelformats.size());
+    for (int i = ois->channelformats.size(); i < ois->nchannels; ++i) {
+        formats[i] = bit_cast<OIIO::TypeDesc, OIIO_TypeDesc>(ois->format);
+    }
+}
+
+
+
+int
+OIIO_ImageSpec_channelindex(const OIIO_ImageSpec* is, const char* name)
+{
+    return to_cpp(is)->channelindex(name);
+}
+
+
+
+OIIO_ROI
+OIIO_ImageSpec_roi(const OIIO_ImageSpec* is)
+{
+    return bit_cast<OIIO::ROI, OIIO_ROI>(to_cpp(is)->roi());
+}
+
+
+
+OIIO_ROI
+OIIO_ImageSpec_roi_full(const OIIO_ImageSpec* is)
+{
+    return bit_cast<OIIO::ROI, OIIO_ROI>(to_cpp(is)->roi_full());
 }
 
 
 
 const char*
-ImageSpec_channel_name(const ImageSpec* is, int chan)
+OIIO_ImageSpec_channel_name(const OIIO_ImageSpec* is, int chan)
 {
-    return is->channel_name(chan).c_str();
+    return to_cpp(is)->channel_name(chan).c_str();
 }
 
 
 
 bool
-ImageSpec_getattribute(const ImageSpec* is, const char* name, TypeDesc type,
-                       void* value, bool casesensitive)
+OIIO_ImageSpec_getattribute(const OIIO_ImageSpec* is, const char* name,
+                            OIIO_TypeDesc type, void* value, bool casesensitive)
 {
-    return is->getattribute(name, bit_cast<TypeDesc, OIIO::TypeDesc>(type),
-                            value, casesensitive);
+    return to_cpp(is)->getattribute(name,
+                                    bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                        type),
+                                    value, casesensitive);
 }
 
 
 
 // FIXME: add Filesystem::IOProxy
-ImageInput*
-ImageInput_open(const char* filename, const ImageSpec* config, void* _ioproxy)
+OIIO_ImageInput*
+OIIO_ImageInput_open(const char* filename, const OIIO_ImageSpec* config,
+                     OIIO_Filesystem_IOProxy* ioproxy)
 {
-    auto ii = ImageInput::open(filename, config, nullptr);
-    return ii.release();
-}
-
-
-
-bool
-ImageInput_close(ImageInput* ii)
-{
-    return ii->close();
+    auto ii = OIIO::ImageInput::open(
+        filename, to_cpp(config),
+        reinterpret_cast<OIIO::Filesystem::IOProxy*>(ioproxy));
+    return to_c(ii.release());
 }
 
 
 
 void
-ImageInput_delete(ImageInput* ii)
+OIIO_ImageInput_delete(OIIO_ImageInput* ii)
 {
-    delete ii;
+    delete to_cpp(ii);
 }
 
 
 
-const ImageSpec*
-ImageInput_spec(ImageInput* ii)
+const OIIO_ImageSpec*
+OIIO_ImageInput_spec(OIIO_ImageInput* ii)
 {
-    return &ii->spec();
+    const OIIO::ImageSpec& spec = to_cpp(ii)->spec();
+    return to_c(&spec);
+}
+
+
+
+OIIO_ImageSpec*
+OIIO_ImageInput_spec_copy(OIIO_ImageInput* ii, int subimage, int miplevel)
+{
+    return to_c(new OIIO::ImageSpec(to_cpp(ii)->spec(subimage, miplevel)));
+}
+
+
+
+OIIO_ImageSpec*
+OIIO_ImageInput_spec_dimensions(OIIO_ImageInput* ii, int subimage, int miplevel)
+{
+    return to_c(
+        new OIIO::ImageSpec(to_cpp(ii)->spec_dimensions(subimage, miplevel)));
 }
 
 
 
 bool
-ImageInput_read_image(ImageInput* ii, int subimage, int miplevel, int chbegin,
-                      int chend, TypeDesc format, void* data, stride_t xstride,
-                      stride_t ystride, stride_t zstride,
-                      ProgressCallback progress_callback,
-                      void* progress_callback_data)
+OIIO_ImageInput_close(OIIO_ImageInput* ii)
 {
-    return ii->read_image(subimage, miplevel, chbegin, chend,
-                          bit_cast<TypeDesc, OIIO::TypeDesc>(format), data,
-                          xstride, ystride, zstride, progress_callback,
-                          progress_callback_data);
+    return to_cpp(ii)->close();
+}
+
+
+
+int
+OIIO_ImageInput_current_subimage(OIIO_ImageInput* ii)
+{
+    return to_cpp(ii)->current_subimage();
+}
+
+
+
+int
+OIIO_ImageInput_current_miplevel(OIIO_ImageInput* ii)
+{
+    return to_cpp(ii)->current_miplevel();
+}
+
+
+
+OIIO_API bool
+OIIO_ImageInput_seek_subimage(OIIO_ImageInput* ii, int subimage, int miplevel)
+{
+    return to_cpp(ii)->seek_subimage(subimage, miplevel);
+}
+
+
+
+OIIO_API bool
+OIIO_ImageInput_read_scanline(OIIO_ImageInput* ii, int y, int z,
+                              OIIO_TypeDesc format, void* data,
+                              stride_t xstride)
+{
+    return to_cpp(ii)->read_scanline(
+        y, z, bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(format), data, xstride);
+}
+
+
+
+OIIO_API bool
+OIIO_ImageInput_read_scanlines(OIIO_ImageInput* ii, int subimage, int miplevel,
+                               int ybegin, int yend, int z, int chbegin,
+                               int chend, OIIO_TypeDesc format, void* data,
+                               stride_t xstride, stride_t ystride)
+{
+    return to_cpp(ii)->read_scanlines(subimage, miplevel, ybegin, yend, z,
+                                      chbegin, chend,
+                                      bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                          format),
+                                      data, xstride, ystride);
+}
+
+
+
+OIIO_API bool
+OIIO_ImageInput_read_tile(OIIO_ImageInput* ii, int x, int y, int z,
+                          OIIO_TypeDesc format, void* data, stride_t xstride,
+                          stride_t ystride, stride_t zstride)
+{
+    return to_cpp(ii)->read_tile(x, y, z,
+                                 bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(format),
+                                 data, xstride, ystride, zstride);
+}
+
+
+
+OIIO_API bool
+OIIO_ImageInput_read_tiles(OIIO_ImageInput* ii, int subimage, int miplevel,
+                           int xbegin, int xend, int ybegin, int yend,
+                           int zbegin, int zend, int chbegin, int chend,
+                           OIIO_TypeDesc format, void* data, stride_t xstride,
+                           stride_t ystride, stride_t zstride)
+{
+    return to_cpp(ii)->read_tiles(subimage, miplevel, xbegin, xend, ybegin,
+                                  yend, zbegin, zend, chbegin, chend,
+                                  bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                      format),
+                                  data, xstride, ystride, zstride);
 }
 
 
 
 bool
-ImageInput_has_error(const ImageInput* ii)
+OIIO_ImageInput_read_image(OIIO_ImageInput* ii, int subimage, int miplevel,
+                           int chbegin, int chend, OIIO_TypeDesc format,
+                           void* data, stride_t xstride, stride_t ystride,
+                           stride_t zstride,
+                           OIIO_ProgressCallback progress_callback,
+                           void* progress_callback_data)
 {
-    return ii->has_error();
+    return to_cpp(ii)->read_image(subimage, miplevel, chbegin, chend,
+                                  bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                      format),
+                                  data, xstride, ystride, zstride,
+                                  progress_callback, progress_callback_data);
+}
+
+
+
+bool
+OIIO_ImageInput_read_native_deep_scanlines(OIIO_ImageInput* ii, int subimage,
+                                           int miplevel, int ybegin, int yend,
+                                           int z, int chbegin, int chend,
+                                           OIIO_DeepData* deepdata)
+{
+    return to_cpp(ii)->read_native_deep_scanlines(subimage, miplevel, ybegin,
+                                                  yend, z, chbegin, chend,
+                                                  *to_cpp(deepdata));
+}
+
+
+
+bool
+OIIO_ImageInput_read_native_deep_tiles(OIIO_ImageInput* ii, int subimage,
+                                       int miplevel, int xbegin, int xend,
+                                       int ybegin, int yend, int zbegin,
+                                       int zend, int chbegin, int chend,
+                                       OIIO_DeepData* deepdata)
+{
+    return to_cpp(ii)->read_native_deep_tiles(subimage, miplevel, xbegin, xend,
+                                              ybegin, yend, zbegin, zend,
+                                              chbegin, chend,
+                                              *to_cpp(deepdata));
+}
+
+
+
+bool
+OIIO_ImageInput_read_native_deep_image(OIIO_ImageInput* ii, int subimage,
+                                       int miplevel, OIIO_DeepData* deepdata)
+{
+    return to_cpp(ii)->read_native_deep_image(subimage, miplevel,
+                                              *to_cpp(deepdata));
+}
+
+
+
+bool
+OIIO_ImageInput_has_error(const OIIO_ImageInput* ii)
+{
+    return to_cpp(ii)->has_error();
 }
 
 
 
 void
-ImageInput_geterror(const ImageInput* ii, char* msg, int buffer_length,
-                    bool clear)
+OIIO_ImageInput_geterror(const OIIO_ImageInput* ii, char* msg,
+                         int buffer_length, bool clear)
 {
-    std::string errorstring = ii->geterror(clear);
+    std::string errorstring = to_cpp(ii)->geterror(clear);
     safe_strcpy(msg, errorstring, buffer_length);
 }
 
 
 
-ImageOutput*
-ImageOutput_create(const char* filename, void* ioproxy,
-                   const char* plugin_search_path)
+OIIO_ImageOutput*
+OIIO_ImageOutput_create(const char* filename, OIIO_Filesystem_IOProxy* ioproxy,
+                        const char* plugin_search_path)
 {
-    return ImageOutput::create(filename, nullptr, plugin_search_path).release();
+    return to_c(OIIO::ImageOutput::create(
+                    filename,
+                    reinterpret_cast<OIIO::Filesystem::IOProxy*>(ioproxy),
+                    plugin_search_path)
+                    .release());
 }
 
 
 
 void
-ImageOutput_delete(ImageOutput* io)
+OIIO_ImageOutput_delete(OIIO_ImageOutput* io)
 {
-    delete io;
+    delete to_cpp(io);
 }
 
 
 
 bool
-ImageOutput_open(ImageOutput* io, const char* name, const ImageSpec* newspec,
-                 int mode)
+OIIO_ImageOutput_open(OIIO_ImageOutput* io, const char* name,
+                      const OIIO_ImageSpec* newspec, int mode)
 {
-    return io->open(std::string(name), *newspec,
-                    (OIIO::ImageOutput::OpenMode)mode);
+    return to_cpp(io)->open(std::string(name), *to_cpp(newspec),
+                            (OIIO::ImageOutput::OpenMode)mode);
 }
 
 
 
 bool
-ImageOutput_has_error(const ImageOutput* io)
+OIIO_ImageOutput_has_error(const OIIO_ImageOutput* io)
 {
-    return io->has_error();
+    return to_cpp(io)->has_error();
 }
 
 
 
 void
-ImageOutput_geterror(const ImageOutput* io, char* msg, int buffer_length,
-                     bool clear)
+OIIO_ImageOutput_geterror(const OIIO_ImageOutput* io, char* msg,
+                          int buffer_length, bool clear)
 {
-    std::string errorstring = io->geterror(clear);
+    std::string errorstring = to_cpp(io)->geterror(clear);
     safe_strcpy(msg, errorstring, buffer_length);
 }
 
 
 
 bool
-ImageOutput_write_image(ImageOutput* io, TypeDesc format, const void* data,
-                        stride_t xstride, stride_t ystride, stride_t zstride,
-                        ProgressCallback progress_callback,
-                        void* progress_callback_data)
+OIIO_ImageOutput_write_image(OIIO_ImageOutput* io, OIIO_TypeDesc format,
+                             const void* data, stride_t xstride,
+                             stride_t ystride, stride_t zstride,
+                             OIIO_ProgressCallback progress_callback,
+                             void* progress_callback_data)
 {
-    return io->write_image(bit_cast<TypeDesc, OIIO::TypeDesc>(format), data,
-                           xstride, ystride, zstride, progress_callback,
-                           progress_callback_data);
+    return to_cpp(io)->write_image(bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                       format),
+                                   data, xstride, ystride, zstride,
+                                   progress_callback, progress_callback_data);
 }
+
+
+
 int
 openimageio_version()
 {
