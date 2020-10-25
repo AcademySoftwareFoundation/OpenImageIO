@@ -34,7 +34,7 @@ DEFINE_POINTER_CASTS(DeepData)
 
 extern "C" {
 
-stride_t OIIO_AutoStride = std::numeric_limits<int>::min();
+stride_t OIIO_AutoStride = std::numeric_limits<stride_t>::min();
 
 // Check ROI is bit-equivalent
 OIIO_STATIC_ASSERT(sizeof(OIIO_ROI) == sizeof(OIIO::ROI));
@@ -562,12 +562,23 @@ OIIO_ImageSpec_image_bytes(const OIIO_ImageSpec* is, bool native)
 
 
 void
-OIIO_ImageSpec_auto_stride(stride_t* xstride, stride_t* ystride,
-                           stride_t* zstride, stride_t channelsize,
-                           int nchannels, int width, int height)
+OIIO_ImageSpec_auto_stride_xyz(stride_t* xstride, stride_t* ystride,
+                               stride_t* zstride, OIIO_TypeDesc format,
+                               int nchannels, int width, int height)
 {
-    OIIO::ImageSpec::auto_stride(*xstride, *ystride, *zstride, channelsize,
+    OIIO::ImageSpec::auto_stride(*xstride, *ystride, *zstride,
+                                 bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(format),
                                  nchannels, width, height);
+}
+
+
+
+OIIO_API void
+OIIO_ImageSpec_auto_stride(stride_t* xstride, OIIO_TypeDesc format,
+                           int nchannels)
+{
+    OIIO::ImageSpec::auto_stride(
+        *xstride, bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(format), nchannels);
 }
 
 
@@ -607,9 +618,7 @@ OIIO_ImageSpec_metadata_val(const OIIO_ImageSpec* is, const OIIO_ParamValue* p,
 
 
 OIIO_API void
-OIIO_ImageSpec_serialize(const OIIO_ImageSpec* is,
-                         OIIO_ImageSpec_SerialFormat format,
-                         OIIO_ImageSpec_SerialVerbose verbose,
+OIIO_ImageSpec_serialize(const OIIO_ImageSpec* is, int format, int verbose,
                          char* string_buffer, int buffer_length)
 {
     std::string s
@@ -637,6 +646,16 @@ OIIO_ImageSpec_from_xml(OIIO_ImageSpec* is, const char* xml)
 }
 
 
+
+void
+OIIO_ImageSpec_decode_compression_metadata(OIIO_ImageSpec* is,
+                                           const char* default_comp, char* comp,
+                                           int comp_length, int* qual)
+{
+    auto p = to_cpp(is)->decode_compression_metadata(default_comp, *qual);
+    safe_strcpy(comp, p.first.c_str(), comp_length);
+    *qual = p.second;
+}
 
 bool
 OIIO_ImageSpec_valid_tile_range(OIIO_ImageSpec* is, int xbegin, int xend,
@@ -950,12 +969,183 @@ OIIO_ImageOutput_delete(OIIO_ImageOutput* io)
 
 
 
+const char*
+OIIO_ImageOutput_format_name(OIIO_ImageOutput* io)
+{
+    return to_cpp(io)->format_name();
+}
+
+
+
+int
+OIIO_ImageOutput_supports(OIIO_ImageOutput* io, const char* feature)
+{
+    return to_cpp(io)->supports(feature);
+}
+
+
+
 bool
 OIIO_ImageOutput_open(OIIO_ImageOutput* io, const char* name,
                       const OIIO_ImageSpec* newspec, int mode)
 {
     return to_cpp(io)->open(std::string(name), *to_cpp(newspec),
                             (OIIO::ImageOutput::OpenMode)mode);
+}
+
+
+
+bool
+OIIO_ImageOutput_open_multiimage(OIIO_ImageOutput* io, const char* name,
+                                 int subimages, const OIIO_ImageSpec* specs)
+{
+    std::string sname(name);
+    return to_cpp(io)->open(sname, subimages, to_cpp(specs));
+}
+
+
+
+const OIIO_ImageSpec*
+OIIO_ImageOutput_spec(const OIIO_ImageOutput* io)
+{
+    return to_c(&to_cpp(io)->spec());
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_close(OIIO_ImageOutput* io);
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_write_scanline(OIIO_ImageOutput* io, int y, int z,
+                                OIIO_TypeDesc format, const void* data,
+                                stride_t xstride)
+{
+    return to_cpp(io)->write_scanline(
+        y, z, bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(format), data, xstride);
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_write_scanlines(OIIO_ImageOutput* io, int ybegin, int yend,
+                                 int z, OIIO_TypeDesc format, const void* data,
+                                 stride_t xstride, stride_t ystride)
+{
+    return to_cpp(io)->write_scanlines(ybegin, yend, z,
+                                       bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                           format),
+                                       data, xstride, ystride);
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOuptut_write_tile(OIIO_ImageOutput* io, int x, int y, int z,
+                            OIIO_TypeDesc format, const void* data,
+                            stride_t xstride, stride_t ystride,
+                            stride_t zstride)
+{
+    return to_cpp(io)->write_tile(x, y, z,
+                                  bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                      format),
+                                  data, xstride, ystride, zstride);
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_write_tiles(OIIO_ImageOutput* io, int xbegin, int xend,
+                             int ybegin, int yend, int zbegin, int zend,
+                             OIIO_TypeDesc format, const void* data,
+                             stride_t xstride, stride_t ystride,
+                             stride_t zstride)
+{
+    return to_cpp(io)->write_tiles(xbegin, xend, ybegin, yend, zbegin, zend,
+                                   bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                       format),
+                                   data, xstride, ystride, zstride);
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_write_rectangle(OIIO_ImageOutput* io, int xbegin, int xend,
+                                 int ybegin, int yend, int zbegin, int zend,
+                                 OIIO_TypeDesc format, const void* data,
+                                 stride_t xstride, stride_t ystride,
+                                 stride_t zstride)
+{
+    return to_cpp(io)->write_rectangle(xbegin, xend, ybegin, yend, zbegin, zend,
+                                       bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(
+                                           format),
+                                       data, xstride, ystride, zstride);
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_write_deep_scanlines(OIIO_ImageOutput* io, int ybegin,
+                                      int yend, int z,
+                                      const OIIO_DeepData* deepdata)
+{
+    return to_cpp(io)->write_deep_scanlines(ybegin, yend, z, *to_cpp(deepdata));
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_write_deep_tiles(OIIO_ImageOutput* io, int xbegin, int xend,
+                                  int ybegin, int yend, int zbegin, int zend,
+                                  const OIIO_DeepData* deepdata)
+{
+    return to_cpp(io)->write_deep_tiles(xbegin, xend, ybegin, yend, zbegin,
+                                        zend, *to_cpp(deepdata));
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_write_deep_image(OIIO_ImageOutput* io,
+                                  const OIIO_DeepData* deepdata)
+{
+    return to_cpp(io)->write_deep_image(*to_cpp(deepdata));
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_copy_image(OIIO_ImageOutput* io, OIIO_ImageInput* in)
+{
+    return to_cpp(io)->copy_image(to_cpp(in));
+}
+
+
+
+OIIO_API bool
+OIIO_ImageOutput_set_ioproxy(OIIO_ImageOutput* io,
+                             OIIO_Filesystem_IOProxy* ioproxy)
+{
+    return to_cpp(io)->set_ioproxy(
+        reinterpret_cast<OIIO::Filesystem::IOProxy*>(ioproxy));
+}
+
+
+
+OIIO_API void
+OIIO_ImageOutput_set_threads(OIIO_ImageOutput* io, int n)
+{
+    to_cpp(io)->threads(n);
+}
+
+
+
+OIIO_API int
+OIIO_ImageOutput_threads(const OIIO_ImageOutput* io)
+{
+    return to_cpp(io)->threads();
 }
 
 
@@ -994,7 +1184,7 @@ OIIO_ImageOutput_write_image(OIIO_ImageOutput* io, OIIO_TypeDesc format,
 
 
 int
-openimageio_version()
+OIIO_openimageio_version()
 {
     return OIIO::openimageio_version();
 }
@@ -1002,7 +1192,7 @@ openimageio_version()
 
 
 bool
-openimageio_haserror()
+OIIO_haserror()
 {
     return OIIO::has_error();
 }
@@ -1010,9 +1200,158 @@ openimageio_haserror()
 
 
 void
-openimageio_geterror(char* msg, int buffer_length, bool clear)
+OIIO_geterror(char* msg, int buffer_length, bool clear)
 {
     std::string errorstring = OIIO::geterror(clear);
     safe_strcpy(msg, errorstring, buffer_length);
+}
+
+
+
+OIIO_API bool
+OIIO_attribute(const char* name, OIIO_TypeDesc type, const void* val)
+{
+    return OIIO::attribute(name, bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(type),
+                           val);
+}
+
+
+
+OIIO_API bool
+OIIO_getattribute(const char* name, OIIO_TypeDesc type, void* val)
+{
+    return OIIO::getattribute(name,
+                              bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(type),
+                              val);
+}
+
+
+
+OIIO_API bool
+OIIO_convert_pixel_values(OIIO_TypeDesc src_type, const void* src,
+                          OIIO_TypeDesc dst_type, void* dst, int n)
+{
+    return OIIO::convert_pixel_values(
+        bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(src_type), src,
+        bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(dst_type), dst, n);
+}
+
+
+
+OIIO_API
+bool
+OIIO_convert_image(int nchannels, int width, int height, int depth,
+                   const void* src, OIIO_TypeDesc src_type,
+                   stride_t src_xstride, stride_t src_ystride,
+                   stride_t src_zstride, void* dst, OIIO_TypeDesc dst_type,
+                   stride_t dst_xstride, stride_t dst_ystride,
+                   stride_t dst_zstride)
+{
+    return OIIO::convert_image(nchannels, width, height, depth, src,
+                               bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(src_type),
+                               src_xstride, src_ystride, src_zstride, dst,
+                               bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(dst_type),
+                               dst_xstride, dst_ystride, dst_zstride);
+}
+
+
+
+OIIO_API bool
+OIIO_parallel_convert_image(int nchannels, int width, int height, int depth,
+                            const void* src, OIIO_TypeDesc src_type,
+                            stride_t src_xstride, stride_t src_ystride,
+                            stride_t src_zstride, void* dst,
+                            OIIO_TypeDesc dst_type, stride_t dst_xstride,
+                            stride_t dst_ystride, stride_t dst_zstride,
+                            int nthreads)
+{
+    return OIIO::parallel_convert_image(
+        nchannels, width, height, depth, src,
+        bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(src_type), src_xstride,
+        src_ystride, src_zstride, dst,
+        bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(dst_type), dst_xstride,
+        dst_ystride, dst_zstride, nthreads);
+}
+
+
+
+OIIO_API void
+OIIO_add_dither(int nchannels, int width, int height, int depth, float* data,
+                stride_t xstride, stride_t ystride, stride_t zstride,
+                float ditheramplitude, int alpha_channel, int z_channel,
+                unsigned int ditherseed, int chorigin, int xorigin, int yorigin,
+                int zorigin)
+{
+    return OIIO::add_dither(nchannels, width, height, depth, data, xstride,
+                            ystride, zstride, ditheramplitude, alpha_channel,
+                            z_channel, ditherseed, chorigin, xorigin, yorigin,
+                            zorigin);
+}
+
+
+
+OIIO_API void
+OIIO_premult(int nchannels, int width, int height, int depth, int chbegin,
+             int chend, OIIO_TypeDesc datatype, void* data, stride_t xstride,
+             stride_t ystride, stride_t zstride, int alpha_channel,
+             int z_channel)
+{
+    return OIIO::premult(nchannels, width, height, depth, chbegin, chend,
+                         bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(datatype),
+                         data, xstride, ystride, zstride, alpha_channel,
+                         z_channel);
+}
+
+
+
+OIIO_API bool
+OIIO_copy_image(int nchannels, int width, int height, int depth,
+                const void* src, stride_t pixelsize, stride_t src_xstride,
+                stride_t src_ystride, stride_t src_zstride, void* dst,
+                stride_t dst_xstride, stride_t dst_ystride,
+                stride_t dst_zstride)
+{
+    return OIIO::copy_image(nchannels, width, height, depth, src, pixelsize,
+                            src_xstride, src_ystride, src_zstride, dst,
+                            dst_xstride, dst_ystride, dst_zstride);
+}
+
+
+OIIO_API bool
+OIIO_wrap_black(int* coord, int origin, int width)
+{
+    return OIIO::wrap_black(*coord, origin, width);
+}
+
+
+
+OIIO_API bool
+OIIO_wrap_clamp(int* coord, int origin, int width)
+{
+    return OIIO::wrap_clamp(*coord, origin, width);
+}
+
+
+
+OIIO_API bool
+OIIO_wrap_periodic(int* coord, int origin, int width)
+{
+    return OIIO::wrap_periodic(*coord, origin, width);
+}
+
+
+
+OIIO_API bool
+OIIO_wrap_periodic_pow2(int* coord, int origin, int width)
+{
+    return OIIO::wrap_periodic_pow2(*coord, origin, width);
+}
+
+
+
+OIIO_API bool
+OIIO_wrap_mirror(int* coord, int origin, int width)
+{
+    return OIIO::wrap_mirror(*coord, origin, width);
 }
 }

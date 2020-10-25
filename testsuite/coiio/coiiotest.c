@@ -14,12 +14,12 @@ main(void)
     char errmsg[errmsglen];
 
     // open the test image
-    const char* infile = "data/checker.tif";
-    OIIO_ImageInput* ii     = OIIO_ImageInput_open(infile, NULL, NULL);
+    const char* infile  = "data/checker.tif";
+    OIIO_ImageInput* ii = OIIO_ImageInput_open(infile, NULL, NULL);
     if (!ii) {
         fprintf(stderr, "Could not open file \"%s\"\n", infile);
-        if (openimageio_haserror()) {
-            openimageio_geterror(errmsg, errmsglen, true);
+        if (OIIO_haserror()) {
+            OIIO_geterror(errmsg, errmsglen, true);
             fprintf(stderr, "    %s\n", errmsg);
         }
         return -1;
@@ -27,8 +27,8 @@ main(void)
 
     // Get the image dimensions
     const OIIO_ImageSpec* in_spec = OIIO_ImageInput_spec(ii);
-    int w                    = OIIO_ImageSpec_width(in_spec);
-    int h                    = OIIO_ImageSpec_height(in_spec);
+    int w                         = OIIO_ImageSpec_width(in_spec);
+    int h                         = OIIO_ImageSpec_height(in_spec);
     printf("Dimensions are %dx%d\n", w, h);
 
     printf("Channels are:\n");
@@ -40,17 +40,17 @@ main(void)
     // read image data
     float* data = (float*)malloc(sizeof(float) * w * h * nchannels);
     bool result = OIIO_ImageInput_read_image(ii,
-                                        0,          // subimage
-                                        0,          // miplevel
-                                        0,          // chbegin
-                                        nchannels,  // chend
-                                        OIIO_TypeFloat,  //format
-                                        data,        // pixel storage
-                                        OIIO_AutoStride,  // xstride
-                                        OIIO_AutoStride,  // ystride
-                                        OIIO_AutoStride,  // zstride
-                                        NULL,     // progress_callback
-                                        NULL      // progress_callback_data
+                                             0,                // subimage
+                                             0,                // miplevel
+                                             0,                // chbegin
+                                             nchannels,        // chend
+                                             OIIO_TypeFloat,   //format
+                                             data,             // pixel storage
+                                             OIIO_AutoStride,  // xstride
+                                             OIIO_AutoStride,  // ystride
+                                             OIIO_AutoStride,  // zstride
+                                             NULL,  // progress_callback
+                                             NULL   // progress_callback_data
     );
 
     if (!result) {
@@ -69,24 +69,25 @@ main(void)
     // set a couple of test attributes
     int test_int_attr = 17;
     OIIO_ImageSpec_attribute(out_spec, "test_int_attr", OIIO_TypeInt,
-                        &test_int_attr);
+                             &test_int_attr);
 
     const char* test_str_attr = "the quick brown fox...";
-    OIIO_ImageSpec_attribute(out_spec, "test_str_attr",
-                        OIIO_TypeString, &test_str_attr);
+    OIIO_ImageSpec_attribute(out_spec, "test_str_attr", OIIO_TypeString,
+                             &test_str_attr);
 
     // create the output image
     OIIO_ImageOutput* io = OIIO_ImageOutput_create("out.exr", NULL, "");
     if (!io) {
         fprintf(stderr, "could not open out.exr\n");
-        if (openimageio_haserror()) {
-            openimageio_geterror(errmsg, errmsglen, true);
+        if (OIIO_haserror()) {
+            OIIO_geterror(errmsg, errmsglen, true);
             fprintf(stderr, "    %s\n", errmsg);
         }
         return -2;
     }
 
-    result = OIIO_ImageOutput_open(io, "out.exr", out_spec, OIIO_OpenMode_Create);
+    result = OIIO_ImageOutput_open(io, "out.exr", out_spec,
+                                   OIIO_ImageOutput_OpenMode_Create);
     if (!result) {
         fprintf(stderr, "Error opening \"out.exr\" because:\n");
         if (OIIO_ImageOutput_has_error(io)) {
@@ -99,13 +100,13 @@ main(void)
 
     // write the image
     result = OIIO_ImageOutput_write_image(io,
-                                     OIIO_TypeFloat,  // format
-                                     data,                           // data
-                                     OIIO_AutoStride,                     // xstride
-                                     OIIO_AutoStride,                     // ystride
-                                     OIIO_AutoStride,                     // zstride
-                                     NULL,  // progress_callback
-                                     NULL   // progress_callback_data
+                                          OIIO_TypeFloat,   // format
+                                          data,             // data
+                                          OIIO_AutoStride,  // xstride
+                                          OIIO_AutoStride,  // ystride
+                                          OIIO_AutoStride,  // zstride
+                                          NULL,             // progress_callback
+                                          NULL  // progress_callback_data
     );
 
     if (!result) {
@@ -128,8 +129,8 @@ main(void)
     ii = OIIO_ImageInput_open("out.exr", NULL, NULL);
     if (!ii) {
         fprintf(stderr, "Could not open file \"out.exr\"\n");
-        if (openimageio_haserror()) {
-            openimageio_geterror(errmsg, errmsglen, true);
+        if (OIIO_haserror()) {
+            OIIO_geterror(errmsg, errmsglen, true);
             fprintf(stderr, "    %s\n", errmsg);
         }
         return -1;
@@ -139,18 +140,16 @@ main(void)
     in_spec = OIIO_ImageInput_spec(ii);
 
     int o_int_attr = 0;
-    if (OIIO_ImageSpec_getattribute(in_spec, "test_int_attr",
-                               OIIO_TypeInt, &o_int_attr,
-                               true)) {
+    if (OIIO_ImageSpec_getattribute(in_spec, "test_int_attr", OIIO_TypeInt,
+                                    &o_int_attr, true)) {
         printf("test_int_attr: %d\n", o_int_attr);
     } else {
         fprintf(stderr, "Could not get test_int_attr\n");
     }
 
     char* o_str_attr;
-    if (OIIO_ImageSpec_getattribute(in_spec, "test_str_attr",
-                               OIIO_TypeString, &o_str_attr,
-                               true)) {
+    if (OIIO_ImageSpec_getattribute(in_spec, "test_str_attr", OIIO_TypeString,
+                                    &o_str_attr, true)) {
         printf("test_str_attr: %s\n", o_str_attr);
     } else {
         fprintf(stderr, "Could not get test_str_attr\n");

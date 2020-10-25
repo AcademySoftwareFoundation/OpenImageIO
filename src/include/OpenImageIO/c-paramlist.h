@@ -31,8 +31,7 @@ enum OIIO_ParamValue_Interp {
 /// Construct a new OIIO_ParamValue
 OIIO_API OIIO_ParamValue*
 OIIO_ParamValue_new(const char* name, OIIO_TypeDesc type, int nvalues,
-                    OIIO_ParamValue_Interp interp, const void* value,
-                    bool copy);
+                    int interp, const void* value, bool copy);
 
 /// Construct a new OIIO_ParamValue by parsing the given string
 ///
@@ -55,6 +54,126 @@ OIIO_ParamValue_copy(OIIO_ParamValue* pv);
 ///
 OIIO_API void
 OIIO_ParamValue_delete(const OIIO_ParamValue* pv);
+
+///
+/// Equivalent C++: `pv->init(name, type, nvalues, interp, value, copy)`
+///
+OIIO_API void
+OIIO_ParamValue_init(OIIO_ParamValue* pv, const char* name, OIIO_TypeDesc type,
+                     int nvalues, int interp, const void* value, bool copy);
+
+///
+/// Equivalent C++: `pv->name()`
+///
+OIIO_API const char*
+OIIO_ParamValue_name(const OIIO_ParamValue* pv);
+
+///
+/// Equivalent C++: `pv->type()`
+///
+OIIO_API OIIO_TypeDesc
+OIIO_ParamValue_type(const OIIO_ParamValue* pv);
+
+///
+/// Equivalent C++: `pv->nvalues()`
+///
+OIIO_API int
+OIIO_ParamValue_nvalues(const OIIO_ParamValue* pv);
+
+///
+/// Equivalent C++: `pv->data()`
+///
+OIIO_API const void*
+OIIO_ParamValue_data(const OIIO_ParamValue* pv);
+
+///
+/// Equivalent C++: `pv->datasize()`
+///
+OIIO_API int
+OIIO_ParamValue_datasize(const OIIO_ParamValue* pv);
+
+///
+/// Equivalent C++: `pv->interp()`
+///
+OIIO_API int
+OIIO_ParamValue_interp(const OIIO_ParamValue* pv);
+
+///
+/// Equivalent C++: `pv->is_nonlocal()`
+///
+OIIO_API bool
+OIIO_ParamValue_is_nonlocal(const OIIO_ParamValue* pv);
+
+/// Retrive an integer, with converstions from a wide variety of type
+/// cases, including unsigned, short, byte. Not float. It will retrive
+/// from a string, but only if the string is entirely a valid int
+/// format. Unconvertible types return the default value.
+///
+/// Equivalent C++: `pv->get_int(defaultval)`
+///
+OIIO_API int
+OIIO_ParamValue_get_int(const OIIO_ParamValue* pv, int defaultval);
+
+/// Retrive an integer, with converstions from a wide variety of type
+/// cases, including unsigned, short, byte. Not float. It will retrive
+/// from a string, but only if the string is entirely a valid int
+/// format. Unconvertible types return the default value.
+///
+/// Equivalent C++: `pv->get_int_indexed(index, defaultval)`
+///
+OIIO_API int
+OIIO_ParamValue_get_int_indexed(const OIIO_ParamValue* pv, int index,
+                                int defaultval);
+
+/// Retrive a float, with converstions from a wide variety of type
+/// cases, including integers. It will retrive from a string, but only
+/// if the string is entirely a valid float format. Unconvertible types
+/// return the default value.
+///
+/// Equivalent C++: `pv->get_float(defaultval)`
+///
+OIIO_API float
+OIIO_ParamValue_get_float(const OIIO_ParamValue* pv, float defaultval);
+
+/// Retrive a float, with converstions from a wide variety of type
+/// cases, including integers. It will retrive from a string, but only
+/// if the string is entirely a valid float format. Unconvertible types
+/// return the default value.
+///
+/// Equivalent C++: `pv->get_float_indexed(index, defaultval)`
+///
+OIIO_API float
+OIIO_ParamValue_get_float_indexed(const OIIO_ParamValue* pv, int index,
+                                  float defaultval);
+
+/// Convert any type to a string value. An optional maximum number of
+/// elements is also passed. In the case of a single string, just the
+/// string directly is returned. But for an array of strings, the array
+/// is returned as one string that's a comma-separated list of double-
+/// quoted, escaped strings.
+/// @param pv The ParamValue to get the string from
+/// @param max_num_strings The maximum number of strings to get
+/// @param buffer Caller-provided storage to put the string(s) into
+/// @param buffer_len The length of the string storage. If the generated string
+///                     is longer than buffer_len it will be truncated to fit.
+OIIO_API void
+OIIO_ParamValue_get_string(const OIIO_ParamValue* pv, int max_num_strings,
+                           char* buffer, int buffer_len);
+
+/// Convert any type to a string value. An optional maximum number of
+/// elements is also passed. In the case of a single string, just the
+/// string directly is returned. But for an array of strings, the array
+/// is returned as one string that's a comma-separated list of double-
+/// quoted, escaped strings.
+/// @param pv The ParamValue to get the string from
+/// @param index The index into the array to get the string for
+/// @param buffer Caller-provided storage to put the string(s) into
+/// @param buffer_len The length of the string storage. If the generated string
+///                     is longer than buffer_len it will be truncated to fit.
+OIIO_API void
+OIIO_ParamValue_get_string_indexed(const OIIO_ParamValue* pv, int index,
+                                   char* buffer, int buffer_len);
+
 
 #ifdef __cplusplus
 }

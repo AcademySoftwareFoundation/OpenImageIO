@@ -6,6 +6,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include <OpenImageIO/export.h>
@@ -508,13 +509,21 @@ OIIO_ImageSpec_size_t_safe(const OIIO_ImageSpec* is);
 /// width, height.
 ///
 /// Equivalent C++: `ImageSpec::auto_stride(*xstride, *ystride, *zstride,
-///                                         channelsize, nchannels, width, height)`
+///                                         format, nchannels, width, height)`
 ///
-/// TODO: (AL) other two overloads of this - which is the most general
 OIIO_API void
-OIIO_ImageSpec_auto_stride(stride_t* xstride, stride_t* ystride,
-                           stride_t* zstride, stride_t channelsize,
-                           int nchannels, int width, int height);
+OIIO_ImageSpec_auto_stride_xyz(stride_t* xstride, stride_t* ystride,
+                               stride_t* zstride, OIIO_TypeDesc format,
+                               int nchannels, int width, int height);
+
+/// Adjust xstride, if set to AutoStride, to be the right size for
+/// contiguous data with the given format and channels.
+///
+/// Equivalent C++: `ImageSpec::auto_stride(*xstride, format, nchannels)`
+///
+OIIO_API void
+OIIO_ImageSpec_auto_stride(stride_t* xstride, OIIO_TypeDesc format,
+                           int nchannels);
 
 /// Add a metadata attribute to `extra_attribs`, with the given name and
 /// data type. The `value` pointer specifies the address of the data to
@@ -602,9 +611,7 @@ enum OIIO_ImageSpec_SerialVerbose {
 ///                      generated string, the string will be truncated to fit.
 ///
 OIIO_API void
-OIIO_ImageSpec_serialize(const OIIO_ImageSpec* is,
-                         OIIO_ImageSpec_SerialFormat format,
-                         OIIO_ImageSpec_SerialVerbose verbose,
+OIIO_ImageSpec_serialize(const OIIO_ImageSpec* is, int format, int verbose,
                          char* string_buffer, int buffer_length);
 
 /// Converts the contents of the ImageSpec to an XML string
@@ -627,7 +634,23 @@ OIIO_API void
 OIIO_ImageSpec_from_xml(OIIO_ImageSpec* is, const char* xml);
 
 
-/// TODO: (AL) decode_compression_metadata
+/// Hunt for the "Compression" and "CompressionQuality" settings in the
+/// spec and turn them into the compression name and quality. This
+/// handles compression name/qual combos of the form "name:quality".
+/// @param is the ImageSpec to serialize
+/// @param default_comp Default compression name if not found.
+/// @param comp Caller-provided storage for the compression name string. If not
+///             found, this will be unchanged.
+/// @param comp_length Size of the provided string buffer. If the size of the
+///                      provided storage is not large enough to hold the entire
+///                      string, the string will be truncated to fit.
+/// @param qual Pointer to an int to receive the found quality value. If not
+///             found, this will be unchanged.
+///
+OIIO_API void
+OIIO_ImageSpec_decode_compression_metadata(OIIO_ImageSpec* is,
+                                           const char* default_comp, char* comp,
+                                           int comp_length, int* qual);
 
 
 /// Helper function to verify that the given pixel range exactly covers
@@ -961,6 +984,21 @@ OIIO_ImageOutput_create(const char* filename, OIIO_Filesystem_IOProxy* ioproxy,
 OIIO_API void
 OIIO_ImageOutput_delete(OIIO_ImageOutput* io);
 
+/// Return the name of the format implemented by this class.
+///
+/// Equivalent C++: `io->format_name()`
+///
+OIIO_API const char*
+OIIO_ImageOutput_format_name(OIIO_ImageOutput* io);
+
+/// Given the name of a "feature", return whether this ImageOutput
+/// supports output of images with the given properties.
+///
+/// Equivalent C++: `io->support(feature)`
+///
+OIIO_API int
+OIIO_ImageOutput_supports(OIIO_ImageOutput* io, const char* feature);
+
 /// Open the file with given name, with resolution and other format
 /// data as given in newspec.
 ///
@@ -969,6 +1007,188 @@ OIIO_ImageOutput_delete(OIIO_ImageOutput* io);
 OIIO_API bool
 OIIO_ImageOutput_open(OIIO_ImageOutput* io, const char* name,
                       const OIIO_ImageSpec* newspec, int mode);
+
+/// Open a multi-subimage file with given name and specifications for
+/// each of the subimages.  Upon success, the first subimage will be
+/// open and ready for transmission of pixels.  Subsequent subimages
+/// will be denoted with the usual call of
+/// `open(name,spec,AppendSubimage)` (and MIP levels by
+/// `open(name,spec,AppendMIPLevel)`).
+///
+/// Equivalent C++: `io->open(name, subimages, specs)`
+///
+OIIO_API bool
+OIIO_ImageOutput_open_multiimage(OIIO_ImageOutput* io, const char* name,
+                                 int subimages, const OIIO_ImageSpec* specs);
+
+/// Return a reference to the image format specification of the current
+/// subimage.  Note that the contents of the spec are invalid before
+/// `open()` or after `close()`.
+///
+/// Equivalent C++: `io->spec()`
+///
+OIIO_API
+const OIIO_ImageSpec*
+OIIO_ImageOutput_spec(const OIIO_ImageOutput* io);
+
+/// Closes the currently open file associated with this ImageOutput and
+/// frees any memory or resources associated with it.
+///
+/// Equivalent C++: `io->close()`
+///
+OIIO_API bool
+OIIO_ImageOutput_close(OIIO_ImageOutput* io);
+
+/// Write the full scanline that includes pixels (*,y,z).  For 2D
+/// non-volume images, `z` should be 0. The `xstride` value gives the
+/// distance between successive pixels (in bytes).  Strides set to
+/// `AutoStride` imply "contiguous" data.
+///
+/// Equivalent C++: `io->write_scanline(y, z, format, data, xstride)`
+///
+OIIO_API bool
+OIIO_ImageOutput_write_scanline(OIIO_ImageOutput* io, int y, int z,
+                                OIIO_TypeDesc format, const void* data,
+                                stride_t xstride);
+
+/// Write multiple scanlines that include pixels (*,y,z) for all ybegin
+/// <= y < yend, from data.  This is analogous to
+/// `write_scanline(y,z,format,data,xstride)` repeatedly for each of the
+/// scanlines in turn (the advantage, though, is that some image file
+/// types may be able to write multiple scanlines more efficiently or
+/// in parallel, than it could with one scanline at a time).
+///
+/// Equivalent C++: `io->write_scanlines(ybegin, yend, z, format, data, xstride, ystride)`
+///
+OIIO_API bool
+OIIO_ImageOutput_write_scanlines(OIIO_ImageOutput* io, int ybegin, int yend,
+                                 int z, OIIO_TypeDesc format, const void* data,
+                                 stride_t xstride, stride_t ystride);
+
+/// Write the tile with (x,y,z) as the upper left corner.  The three
+/// stride values give the distance (in bytes) between successive
+/// pixels, scanlines, and volumetric slices, respectively.  Strides set
+/// to AutoStride imply 'contiguous' data in the shape of a full tile,
+///
+/// Equivalent C++: `io->write_tile(x, y, z, format, data, xstride, ystride, zstride)`
+///
+OIIO_API bool
+OIIO_ImageOuptut_write_tile(OIIO_ImageOutput* io, int x, int y, int z,
+                            OIIO_TypeDesc format, const void* data,
+                            stride_t xstride, stride_t ystride,
+                            stride_t zstride);
+
+/// Write the block of multiple tiles that include all pixels in
+///
+///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+///
+/// This is analogous to calling `write_tile(x,y,z,...)` for each tile
+/// in turn (but for some file formats, passing multiple tiles may allow
+/// it to write more efficiently or in parallel).
+///
+/// Equivalent C++: `io->write_tiles(xbegin, xend, ybegin, yend, zbegin, zend, format, data, xstride, ystride, zstride)`
+///
+OIIO_API bool
+OIIO_ImageOutput_write_tiles(OIIO_ImageOutput* io, int xbegin, int xend,
+                             int ybegin, int yend, int zbegin, int zend,
+                             OIIO_TypeDesc format, const void* data,
+                             stride_t xstride, stride_t ystride,
+                             stride_t zstride);
+
+/// Write a rectangle of pixels given by the range
+///
+///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+///
+/// The stride values give the data spacing of adjacent pixels,
+/// scanlines, and volumetric slices (measured in bytes). Strides set to
+/// AutoStride imply contiguous data in the shape of the [begin,end)
+/// region.
+///
+/// Equivalent C++: `io->write_rectangle(xbegin, xend, ybegin, yend, zbegin, zend, format, data, xstride, ystride, zstride)`
+///
+OIIO_API bool
+OIIO_ImageOutput_write_rectangle(OIIO_ImageOutput* io, int xbegin, int xend,
+                                 int ybegin, int yend, int zbegin, int zend,
+                                 OIIO_TypeDesc format, const void* data,
+                                 stride_t xstride, stride_t ystride,
+                                 stride_t zstride);
+
+/// Write the entire image of `spec.width x spec.height x spec.depth`
+/// pixels, from a buffer with the given strides and in the desired
+/// format.
+///
+/// Depending on the spec, this will write either all tiles or all
+/// scanlines. Assume that data points to a layout in row-major order.
+///
+/// Equivalent C++: `io->write_image(format, data, xstride, ystride, zstride,
+///                                     progress_callback, progress_callback_data)`
+///
+OIIO_API bool
+OIIO_ImageOutput_write_image(OIIO_ImageOutput* io, OIIO_TypeDesc format,
+                             const void* data, stride_t xstride,
+                             stride_t ystride, stride_t zstride,
+                             OIIO_ProgressCallback progress_callback,
+                             void* progress_callback_data);
+
+/// Write deep scanlines containing pixels (*,y,z), for all y in the
+/// range [ybegin,yend), to a deep file. This will fail if it is not a
+/// deep file.
+///
+/// Equivalent C++: `io->write_deep_scanlines(ybegin, yend, z, *deepdata)`
+///
+OIIO_API bool
+OIIO_ImageOutput_write_deep_scanlines(OIIO_ImageOutput* io, int ybegin,
+                                      int yend, int z,
+                                      const OIIO_DeepData* deepdata);
+
+/// Write the block of deep tiles that include all pixels in
+/// the range
+///
+///     [xbegin,xend) X [ybegin,yend) X [zbegin,zend)
+///
+/// The begin/end pairs must correctly delineate tile boundaries, with
+/// the exception that it may also be the end of the image data if the
+/// image resolution is not a whole multiple of the tile size.
+///
+/// Equivalent C++: `io->write_deep_tiles(xbegin, xend, ybegin, yend, zbegin, zend, *deepdata)`
+///
+OIIO_API bool
+OIIO_ImageOutput_write_deep_tiles(OIIO_ImageOutput* io, int xbegin, int xend,
+                                  int ybegin, int yend, int zbegin, int zend,
+                                  const OIIO_DeepData* deepdata);
+
+/// Write the entire deep image described by `deepdata`. Depending on
+/// the spec, this will write either all tiles or all scanlines.
+///
+/// Equivalent C++: `io->write_deep_image(*deepdata)`
+///
+OIIO_API bool
+OIIO_ImageOutput_write_deep_image(OIIO_ImageOutput* io,
+                                  const OIIO_DeepData* deepdata);
+
+/// Read the current subimage of `in`, and write it as the next
+/// subimage of `*this`, in a way that is efficient and does not alter
+/// pixel values, if at all possible.  Both `in` and `this` must be a
+/// properly-opened `ImageInput` and `ImageOutput`, respectively, and
+/// their current images must match in size and number of channels.
+///
+///
+/// Equivalent C++: `io->copy_image(in)`
+///
+OIIO_API bool
+OIIO_ImageOutput_copy_image(OIIO_ImageOutput* io, OIIO_ImageInput* in);
+
+/// Set an IOProxy for this writer. This must be called prior to
+/// `open()`, and only for writers that support them
+/// (`supports("ioproxy")`). The caller retains ownership of the proxy.
+///
+///
+/// Equivalent C++: `io->set_ioproxy(ioproxy)`
+///
+OIIO_API bool
+OIIO_ImageOutput_set_ioproxy(OIIO_ImageOutput* io,
+                             OIIO_Filesystem_IOProxy* ioproxy);
+
 
 /// Is there a pending error message waiting to be retrieved?
 ///
@@ -992,22 +1212,24 @@ OIIO_API void
 OIIO_ImageOutput_geterror(const OIIO_ImageOutput* io, char* msg,
                           int buffer_length, bool clear);
 
-/// Write the entire image of `spec.width x spec.height x spec.depth`
-/// pixels, from a buffer with the given strides and in the desired
-/// format.
+/// Set the threading policy for this ImageOutput, controlling the
+/// maximum amount of parallelizing thread "fan-out" that might occur
+/// during large write operations. The default of 0 means that the
+/// global `attribute("threads")` value should be used (which itself
+/// defaults to using as many threads as cores; see Section
+/// `Global Attributes`_).
 ///
-/// Depending on the spec, this will write either all tiles or all
-/// scanlines. Assume that data points to a layout in row-major order.
+/// Equivalent C++: `io->threads(n)`
 ///
-/// Equivalent C++: `io->write_image(format, data, xstride, ystride, zstride,
-///                                     progress_callback, progress_callback_data)`
+OIIO_API void
+OIIO_ImageOutput_set_threads(OIIO_ImageOutput* io, int n);
+
+/// Retrieve the current thread-spawning policy.
 ///
-OIIO_API bool
-OIIO_ImageOutput_write_image(OIIO_ImageOutput* io, OIIO_TypeDesc format,
-                             const void* data, stride_t xstride,
-                             stride_t ystride, stride_t zstride,
-                             OIIO_ProgressCallback progress_callback,
-                             void* progress_callback_data);
+/// Equivalent C++: `io->threads()`
+///
+OIIO_API int
+OIIO_ImageOutput_threads(const OIIO_ImageOutput* io);
 
 // Global utility functions
 
@@ -1016,12 +1238,18 @@ OIIO_ImageOutput_write_image(OIIO_ImageOutput* io, OIIO_TypeDesc format,
 /// example, OpenImageIO 1.2.3 would return a value of 10203. One example of
 /// how this is useful is for plugins to query the version to be sure they
 /// are linked against an adequate version of the library.
+///
+/// Equivalent C++: `OIIO::openimageio_version()`
+///
 OIIO_API int
-openimageio_version();
+OIIO_openimageio_version();
 
 /// Is there a pending global error message waiting to be retrieved?
+///
+/// Equivalent C++: `OIIO::haserror()`
+///
 OIIO_API bool
-openimageio_haserror();
+OIIO_haserror();
 
 /// Returns any error string describing what went wrong if
 /// `ImageInput_create()` or `ImageOutput_create()` failed (since in such
@@ -1038,7 +1266,137 @@ openimageio_haserror();
 /// @param clear            If true, clear the internal error message before returning.
 ///
 OIIO_API void
-openimageio_geterror(char* msg, int buffer_length, bool clear);
+OIIO_geterror(char* msg, int buffer_length, bool clear);
+
+/// `OIIO::attribute()` sets an global attribute (i.e., a property or
+/// option) of OpenImageIO. The `name` designates the name of the attribute,
+/// `type` describes the type of data, and `val` is a pointer to memory
+/// containing the new value for the attribute.
+///
+/// Equivalent C++: `OIIO::attribute(name, type, val)`
+///
+OIIO_API bool
+OIIO_attribute(const char* name, OIIO_TypeDesc type, const void* val);
+
+/// Get the named global attribute of OpenImageIO, store it in `*val`.
+/// Return `true` if found and it was compatible with the type specified,
+/// otherwise return `false` and do not modify the contents of `*val`.  It
+/// is up to the caller to ensure that `val` points to the right kind and
+/// size of storage for the given type.
+///
+/// Equivalent C++: `OIIO::getattribute(name, type, val)`
+///
+OIIO_API bool
+OIIO_getattribute(const char* name, OIIO_TypeDesc type, void* val);
+
+/// Helper function: convert contiguous data between two arbitrary pixel
+/// data types (specified by TypeDesc's). Return true if ok, false if it
+/// didn't know how to do the conversion.  If dst_type is UNKNOWN, it will
+/// be assumed to be the same as src_type.
+///
+/// Equivalent C++: `OIIO::convert_pixel_values(src_type, src, dst_type, dst, n)`
+///
+OIIO_API bool
+OIIO_convert_pixel_values(OIIO_TypeDesc src_type, const void* src,
+                          OIIO_TypeDesc dst_type, void* dst, int n);
+
+
+/// Helper routine for data conversion: Convert an image of nchannels x
+/// width x height x depth from src to dst.  The src and dst may have
+/// different data formats and layouts.
+///
+/// Equivalent C++: `OIIO::convert_image(nchannels, width, height, depth,
+///                     src, src_type, src_xstride, src_ystride, src_zstride,
+///                     dst, dst_type, dsst_xstride, dst_ystride, dst_zstride)`
+///
+OIIO_API bool
+OIIO_convert_image(int nchannels, int width, int height, int depth,
+                   const void* src, OIIO_TypeDesc src_type,
+                   stride_t src_xstride, stride_t src_ystride,
+                   stride_t src_zstride, void* dst, OIIO_TypeDesc dst_type,
+                   stride_t dst_xstride, stride_t dst_ystride,
+                   stride_t dst_zstride);
+
+
+/// A version of convert_image that will break up big jobs into multiple
+/// threads.
+///
+/// Equivalent C++: `OIIO::parallel_convert_image(nchannels, width, height, depth,
+///                             src, src_type, src_xstride, src_ystride, src_zstride,
+///                             dst, dst_type, dsst_xstride, dst_ystride, dst_zstride,
+///                             nthreads)`
+///
+OIIO_API bool
+OIIO_parallel_convert_image(int nchannels, int width, int height, int depth,
+                            const void* src, OIIO_TypeDesc src_type,
+                            stride_t src_xstride, stride_t src_ystride,
+                            stride_t src_zstride, void* dst,
+                            OIIO_TypeDesc dst_type, stride_t dst_xstride,
+                            stride_t dst_ystride, stride_t dst_zstride,
+                            int nthreads);
+
+
+
+/// Add random [-theramplitude,ditheramplitude] dither to the color channels
+/// of the image.  Dither will not be added to the alpha or z channel.
+///
+/// Equivalent C++: `OIIO::add_dither(nchannels, width, height, depth, data,
+///                         xstride, ystride, zstride, ditheramplitude,
+///                         alpha_channel, z_channel, ditherseed, chorigin,
+///                         xorigin, yorigin, zorigin)`
+///
+OIIO_API void
+OIIO_add_dither(int nchannels, int width, int height, int depth, float* data,
+                stride_t xstride, stride_t ystride, stride_t zstride,
+                float ditheramplitude, int alpha_channel, int z_channel,
+                unsigned int ditherseed, int chorigin, int xorigin, int yorigin,
+                int zorigin);
+
+/// Convert unassociated to associated alpha by premultiplying all color
+/// (non-alpha, non-z) channels by alpha.
+///
+/// Equivalent C++: `OIIO::premult(nchannels, width, height, depth, data,
+///                         chbegin, chend, datatype, data, xstride, ystride,
+///                         zstride, alpha_channel, z_channel)`
+///
+OIIO_API void
+OIIO_premult(int nchannels, int width, int height, int depth, int chbegin,
+             int chend, OIIO_TypeDesc datatype, void* data, stride_t xstride,
+             stride_t ystride, stride_t zstride, int alpha_channel,
+             int z_channel);
+
+/// Helper routine for data conversion: Copy an image of nchannels x
+/// width x height x depth from src to dst.  The src and dst may have
+/// different data layouts, but must have the same data type.
+///
+/// Equivalent C++: `OIIO::copy_image(nchannels, width, height, depth, src,
+///                         pixelsize, src_xstride, src_ystride, src_zstride,
+///                         dst, dst_xstride, dst_ystride, dst_zstride)`
+///
+OIIO_API bool
+OIIO_copy_image(int nchannels, int width, int height, int depth,
+                const void* src, stride_t pixelsize, stride_t src_xstride,
+                stride_t src_ystride, stride_t src_zstride, void* dst,
+                stride_t dst_xstride, stride_t dst_ystride,
+                stride_t dst_zstride);
+
+
+OIIO_API bool
+OIIO_wrap_black(int* coord, int origin, int width);
+
+OIIO_API bool
+OIIO_wrap_clamp(int* coord, int origin, int width);
+
+OIIO_API bool
+OIIO_wrap_periodic(int* coord, int origin, int width);
+
+OIIO_API bool
+OIIO_wrap_periodic_pow2(int* coord, int origin, int width);
+
+OIIO_API bool
+OIIO_wrap_mirror(int* coord, int origin, int width);
+
+
 
 #ifdef __cplusplus
 }
