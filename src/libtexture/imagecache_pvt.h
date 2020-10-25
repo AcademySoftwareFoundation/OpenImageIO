@@ -254,6 +254,7 @@ public:
         bool untiled             = false;  ///< Not tiled
         bool unmipped            = false;  ///< Not really MIP-mapped
         bool volume              = false;  ///< It's a volume image
+        bool autotiled           = false;  ///< We are autotiling this image
         bool full_pixel_range
             = false;  ///< pixel data window matches image window
         bool is_constant_image = false;    ///< Is the image a constant color?

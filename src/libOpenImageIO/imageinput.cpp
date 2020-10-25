@@ -262,9 +262,21 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                            int z, int chbegin, int chend, TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride)
 {
-    ImageSpec spec = spec_dimensions(subimage, miplevel);  // thread-safe
-    if (spec.undefined())
-        return false;
+    ImageSpec spec;
+    int rps = 0;
+    {
+        // We need to lock briefly to retrieve rps from the spec
+        lock_guard lock(*this);
+        if (!seek_subimage(subimage, miplevel))
+            return false;
+        // Copying the dimensions of the designated subimage/miplevel to a
+        // local `spec` means that we can release the lock!  (Calls to
+        // read_native_* will internally lock again if necessary.)
+        spec.copy_dimensions(m_spec);
+        // For scanline files, we also need one piece of metadata
+        if (!spec.tile_width)
+            rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+    }
 
     chend                     = clamp(chend, chbegin + 1, spec.nchannels);
     int nchans                = chend - chbegin;
@@ -300,8 +312,8 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
 
     // Split into reasonable chunks -- try to use around 64 MB, but
     // round up to a multiple of the TIFF rows per strip (or 64).
-    int rps   = spec.get_int_attribute("tiff:RowsPerStrip", 64);
     int chunk = std::max(1, (1 << 26) / int(spec.scanline_bytes(true)));
+    chunk     = std::max(chunk, int(oiio_read_chunk));
     chunk     = round_to_multiple(chunk, rps);
     std::unique_ptr<char[]> buf(new char[chunk * native_scanline_bytes]);
 
@@ -872,6 +884,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     ImageSpec spec;
     int rps = 0;
     {
+        // We need to lock briefly to retrieve rps from the spec
         lock_guard lock(*this);
         if (!seek_subimage(subimage, miplevel))
             return false;
