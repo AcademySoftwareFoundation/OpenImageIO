@@ -4,11 +4,11 @@
 
 #include <limits>
 
+#include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
-#include <OpenImageIO/deepdata.h>
 
 #include <OpenImageIO/c-imageio.h>
 #include <OpenImageIO/c-typedesc.h>
