@@ -1837,6 +1837,11 @@ enum MakeTextureMode {
 /// The `make_texture()` function turns an image into a tiled, MIP-mapped,
 /// texture file and write it to disk (outputfilename).
 ///
+/// The return value is `true` for success, `false` if an error occurred. If
+/// there was an error, any error message will be retrievable via the global
+/// `OIIO::geterror()` call (since there is no destination `ImageBuf` in
+/// which to store it).
+///
 /// Named fields in config:
 ///
 ///    - format : Data format of the texture file (default: UNKNOWN = same
@@ -1991,8 +1996,9 @@ enum MakeTextureMode {
 /// @param  outstream
 ///     If not `nullptr`, it should point to a stream (for example,
 ///     `&std::out`, or a pointer to a local `std::stringstream` to capture
-///     output), which is where console output and error messages will be
-///     deposited.
+///     output), which is where console output and errors will be
+///     deposited. Note that error messages will also be retrievable from
+///     OIIO::geterror().
 ///
 ///
 
