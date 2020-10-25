@@ -128,7 +128,7 @@ public:
     virtual bool close(void) override;
     virtual int current_subimage(void) const override
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_subimage;
     }
     virtual bool seek_subimage(int subimage, int miplevel) override;
@@ -572,7 +572,7 @@ bool
 FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                   void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (!m_read_frame) {

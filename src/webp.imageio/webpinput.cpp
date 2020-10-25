@@ -208,7 +208,7 @@ WebpInput::open(const std::string& name, ImageSpec& spec)
 bool
 WebpInput::seek_subimage(int subimage, int miplevel)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (miplevel != 0 || subimage < 0)
         return false;
 
@@ -339,7 +339,7 @@ bool
 WebpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                 void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!read_subimage(subimage, true))
         return false;
     if (y < 0 || y >= m_spec.height)  // out of range scanline

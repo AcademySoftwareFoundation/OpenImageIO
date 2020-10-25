@@ -21,9 +21,33 @@
 
 #include "imageio_pvt.h"
 
+#include <boost/thread/tss.hpp>
+using boost::thread_specific_ptr;
+
 
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
+
+
+
+class ImageOutput::Impl {
+public:
+    // Unneeded?
+    //  // So we can lock this ImageOutput for the thread-safe methods.
+    //  std::recursive_mutex m_mutex;
+
+    // Thread-specific error message for this ImageOutput.
+    thread_specific_ptr<std::string> m_errormessage;
+    int m_threads = 0;
+};
+
+
+
+void
+ImageOutput::impl_deleter(Impl* impl)
+{
+    delete impl;
+}
 
 
 
@@ -46,7 +70,7 @@ ImageOutput::operator delete(void* ptr)
 
 
 ImageOutput::ImageOutput()
-    : m_threads(0)
+    : m_impl(new Impl, impl_deleter)
 {
 }
 
@@ -231,12 +255,17 @@ ImageOutput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    OIIO_ASSERT(
-        m_errmessage.size() < 1024 * 1024 * 16
+    std::string* errptr = m_impl->m_errormessage.get();
+    if (!errptr) {
+        errptr = new std::string;
+        m_impl->m_errormessage.reset(errptr);
+    }
+    OIIO_DASSERT(
+        errptr->size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (m_errmessage.size() && m_errmessage.back() != '\n')
-        m_errmessage += '\n';
-    m_errmessage += message;
+    if (errptr->size() && errptr->back() != '\n')
+        *errptr += '\n';
+    *errptr += message;
 }
 
 
@@ -632,6 +661,46 @@ ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
     return copy_to_image_buffer(x, xend, y, yend, z, zend, format, data,
                                 xstride, ystride, zstride, image_buffer,
                                 buf_format);
+}
+
+
+
+bool
+ImageOutput::has_error() const
+{
+    std::string* errptr = m_impl->m_errormessage.get();
+    return (errptr && errptr->size());
+}
+
+
+
+std::string
+ImageOutput::geterror(bool clear) const
+{
+    std::string e;
+    std::string* errptr = m_impl->m_errormessage.get();
+    if (errptr) {
+        e = *errptr;
+        if (clear)
+            errptr->clear();
+    }
+    return e;
+}
+
+
+
+void
+ImageOutput::threads(int n)
+{
+    m_impl->m_threads = n;
+}
+
+
+
+int
+ImageOutput::threads() const
+{
+    return m_impl->m_threads;
 }
 
 

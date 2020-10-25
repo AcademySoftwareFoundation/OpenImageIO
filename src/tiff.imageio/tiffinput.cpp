@@ -86,13 +86,13 @@ public:
     virtual int current_subimage(void) const override
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_emulate_mipmap ? 0 : m_subimage;
     }
     virtual int current_miplevel(void) const override
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_emulate_mipmap ? m_subimage : 0;
     }
     virtual bool seek_subimage(int subimage, int miplevel) override;
@@ -742,7 +742,7 @@ TIFFInput::spec(int subimage, int miplevel)
         s = miplevel;
     }
 
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (s >= 0 && s < int(m_subimage_specs.size())
         && !m_subimage_specs[s].undefined()) {
         // If we've cached this spec, we don't need to seek and read
@@ -774,7 +774,7 @@ TIFFInput::spec_dimensions(int subimage, int miplevel)
         s = miplevel;
     }
 
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (s >= 0 && s < int(m_subimage_specs.size())
         && !m_subimage_specs[s].undefined()) {
         // If we've cached this spec, we don't need to seek and read
@@ -1448,7 +1448,7 @@ bool
 TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                 void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     y -= m_spec.y;
@@ -1637,7 +1637,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // parallelize by reading raw (compressed) strips then making calls to
     // zlib ourselves to decompress. Don't bother trying to handle any of
     // the uncommon cases with strips. This covers most real-world cases.
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     yend        = std::min(yend, spec().y + spec().height);
@@ -1809,7 +1809,7 @@ bool
 TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                             void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     x -= m_spec.x;
@@ -1908,7 +1908,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
@@ -2033,7 +2033,7 @@ TIFFInput::read_scanline(int y, int z, TypeDesc format, void* data,
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             if (format
                 == TypeUnknown)  // unknown means retrieve the native type
                 format = m_spec.format;
@@ -2065,7 +2065,7 @@ TIFFInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         // read_native_blah.
         int nchannels, alpha_channel, z_channel, width;
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             seek_subimage(subimage, miplevel);
             nchannels     = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;
@@ -2103,7 +2103,7 @@ TIFFInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             if (format
                 == TypeUnknown)  // unknown means retrieve the native type
                 format = m_spec.format;
@@ -2136,7 +2136,7 @@ TIFFInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
         // read_native_blah.
         int nchannels, alpha_channel, z_channel;
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             seek_subimage(subimage, miplevel);
             nchannels     = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;

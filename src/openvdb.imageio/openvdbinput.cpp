@@ -61,7 +61,6 @@ class OpenVDBInput final : public ImageInput {
         m_nsubimages = 0;
     }
 
-    mutex& vdbMutex() { return m_mutex; }
     void readMetaData(const openvdb::GridBase& grid, const layerrecord& layer,
                       ImageSpec& spec);
 
@@ -138,7 +137,7 @@ OpenVDBInput::spec_dimensions(int subimage, int miplevel)
 int
 OpenVDBInput::current_subimage(void) const
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     return m_subimage;
 }
 
@@ -147,7 +146,7 @@ OpenVDBInput::current_subimage(void) const
 bool
 OpenVDBInput::seek_subimage(int subimage, int miplevel)
 {
-    lock_guard lock(vdbMutex());
+    lock_guard lock(*this);
     return seek_subimage_nolock(subimage, miplevel);
 }
 
@@ -559,7 +558,7 @@ bool
 OpenVDBInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                void* data)
 {
-    lock_guard lock(vdbMutex());
+    lock_guard lock(*this);
     if (!seek_subimage_nolock(subimage, miplevel))
         return false;
 
