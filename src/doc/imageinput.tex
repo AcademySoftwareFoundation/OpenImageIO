@@ -318,6 +318,39 @@ Please consult Section~\ref{sec:imageinput:reference} for detailed
 descriptions of the stride parameters to each {\cf read} function.
 
 
+\subsection{Reading channels to separate buffers}
+\label{sec:imageinput:separate}
+
+While specifying data strides allows writing entire pixels to buffers with
+arbitrary layouts, it is not possible to separate those pixels into multiple
+buffers (i.e. to write image data to a separate or planar memory layout:
+RRRRGGGGBBBB instead of the interleaved RGBRGBRGBRGB).
+
+A workaround for this is to call {\cf read_scanlines}, {\cf read_tiles} or
+{\cf read_image} repeatedly with arguments {\cf chbegin} and {\cf chend} of
+{\cf 0 <= chbegin < spec.nchannels} and {\cf chend == chbegin + 1}:
+
+\begin{code}
+  // one buffer for all three channels
+  unsigned char pixels[spec.width * spec.height * spec.nchannels];
+
+  for (int channel = 0; channel < spec.nchannels; ++channel) {
+      file->read_image(
+          // reading one channel at a time
+          channel, channel + 1,
+          TypeDesc::UINT8,
+          // writing the data to offsets spaced `spec.width * spec.height`
+          // apart
+          &pixels[spec.width * spec.height * channel]);
+  }
+\end{code}
+
+For many formats, this is nearly as fast as reading the image with
+interleaved pixel data if the format stores the pixels in an interleaved
+layout and even slightly faster if the pixels are stored in separate planes
+in the file.
+
+
 \subsection{Reading metadata}
 \label{sec:imageinput:metadata}
 
