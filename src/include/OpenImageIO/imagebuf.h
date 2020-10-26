@@ -786,21 +786,32 @@ public:
     /// read from disk).
     string_view name(void) const;
 
-    /// Return the name of the image file format of the disk file we read
-    /// into this image, for example `"openexr"`.  Returns an empty string
-    /// if this image was not the result of a read().
+    /// Return the name of the image file format of the file this ImageBuf
+    /// refers to (for example `"openexr"`).  Returns an empty string for an
+    /// ImageBuf that was not constructed as a direct reference to a file.
     string_view file_format_name(void) const;
 
-    /// Return the index of the subimage the ImageBuf is currently holding.
+    /// Return the index of the subimage within the file that the ImageBuf
+    /// refers to. This will always be 0 for an ImageBuf that was not
+    /// constructed as a direct reference to a file, or if the file
+    /// contained only one image.
     int subimage() const;
 
-    /// Return the number of subimages in the file.
+    /// Return the number of subimages in the file this ImageBuf refers to.
+    /// This will always be 1 for an ImageBuf that was not constructed as a
+    /// direct reference to a file.
     int nsubimages() const;
 
-    /// Return the index of the miplevel the ImageBuf is currently holding.
+    /// Return the index of the miplevel with a file's subimage that the
+    /// ImageBuf is currently holding. This will always be 0 for an ImageBuf
+    /// that was not constructed as a direct reference to a file, or if the
+    /// subimage within that file was not MIP-mapped.
     int miplevel() const;
 
-    /// Return the number of miplevels of the current subimage.
+    /// Return the number of MIP levels of the current subimage within the
+    /// file this ImageBuf refers to. This will always be 1 for an ImageBuf
+    /// that was not constructed as a direct reference to a file, or if this
+    /// subimage within the file was not MIP-mapped.
     int nmiplevels() const;
 
     /// Return the number of color channels in the image. This is equivalent
