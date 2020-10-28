@@ -1,6 +1,37 @@
-Release 2.2.8 (1? Nov? 2020) -- compared to 2.2.7
+Release 2.2.8 (1 Nov 2020) -- compared to 2.2.7
 -------------------------------------------------
-
+* Fix that ImageBuf images backed by ImageCache, could hold an outdated copy
+  of the image if it was in the imagecache once, then changed on disk. #2696
+* Fix stack overflow crash in IBA::colorconvert of unusually wide images.
+  #2716
+* Fix boost linkage problem on Windows. #2727
+* Fix broken reads of 16 bit iff files. #2736
+* Fix make_texture incorrectly setting tile sizes. #2737
+* Fix incorrect ARM NEON code in simd.h. #2739
+* Improve oiiotool --chappend and --siappend, allowing an optional modifier
+  ":n=" to specify the number of images from the stack to be combined by
+  having their channels or subimages appended. #2709
+* WebP: add support for requesting compression "lossless". #2726
+* Improve build system for finding Python, now if a specific version is not
+  requested, default to whichever is found rather than always defaulting to
+  Python 2.7. #2705 #2764
+* Fix deprecation warnings when building with very new PugiXML versions.
+  #2733
+* Fix ImageCache bug: add_tile/get_tile not properly honoring when
+  `chend < chbegin` it should get all channels. #2742
+* Fix build break when strutil.h was included in Cuda 10.1 code. #2743
+* Docs: Make readthedocs generate downloadable htm as well as pdf. #2746
+* Improve oiiotool's guessing about the desired output format based on
+  inputs (in the absence of `-d` to specify the format). #2717
+* JPEG output: add support for writing progressive JPEGS (set the
+  attribute "jpeg:progressive" to 1). #2749
+* WebP input improvements including: RGB images are kept as RGB instead of
+  always adding alpha; more efficient by skipping alpha premultiplication
+  when it's unnecessary; now can read animated WebP images as multi-subimage
+  files. #2730
+* Docs: ImageInput chapter now has an example of reading image data into
+  separate per-channel buffers. #2756
+* Fixes to build against recent changes in OpenColorIO v2 master. #2765
 
 Release 2.2.7 (1 Oct 2020) -- compared to 2.2.6
 -------------------------------------------------
