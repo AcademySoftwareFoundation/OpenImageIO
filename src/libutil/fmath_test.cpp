@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
+#include <algorithm>
+#include <array>
 #include <iostream>
 #include <vector>
 
@@ -520,6 +522,42 @@ test_half_convert_accuracy()
 
 
 
+template<typename T>
+static void
+test_swap_endian(T val, T swapval)
+{
+    std::string type     = TypeDescFromC<T>::value().c_str();
+    static const int len = 100;
+    Benchmarker bench;
+    std::array<T, len> v;
+    std::fill(v.begin(), v.end(), val);
+    swap_endian(&(v[0]));
+    OIIO_CHECK_EQUAL(v[0], swapval);
+    swap_endian(&(v[0]), len);
+    OIIO_CHECK_EQUAL(v[37], swapval);
+    clobber(v[0]);
+    bench(Strutil::fmt::format("swap_endian({})", type),
+          [&]() { swap_endian(&v[0]); });
+    bench.work(len);
+    bench(Strutil::fmt::format("swap_endian({}, {})", type, len),
+          [&]() { swap_endian(v.data(), len); });
+}
+
+
+static void
+test_swap_endian()
+{
+    test_swap_endian<short>(0x1234, 0x3412);
+    test_swap_endian<unsigned short>(0x1234, 0x3412);
+    test_swap_endian<int>(0x12345678, 0x78563412);
+    test_swap_endian<unsigned int>(0x12345678, 0x78563412);
+    test_swap_endian<long long>(0x123456789abcdef0LL, 0xf0debc9a78563412LL);
+    test_swap_endian<unsigned long long>(0x123456789abcdef0ULL,
+                                         0xf0debc9a78563412ULL);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -580,6 +618,7 @@ main(int argc, char* argv[])
 
     test_bit_range_convert();
     test_packbits();
+    test_swap_endian();
 
     test_interpolate_linear();
 

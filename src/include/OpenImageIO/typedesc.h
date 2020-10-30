@@ -427,7 +427,7 @@ template<size_t S> struct BaseTypeFromC<const char[S]> { static const TypeDesc::
 /// A template mechanism for getting the TypeDesc from a C type.
 /// The default for simple types is just the TypeDesc based on BaseTypeFromC.
 /// But we can specialize more complex types.
-template<typename T> struct TypeDescFromC { static const constexpr TypeDesc value() { return BaseTypeFromC<T>::value; } };
+template<typename T> struct TypeDescFromC { static const constexpr TypeDesc value() { return TypeDesc(BaseTypeFromC<T>::value); } };
 template<> struct TypeDescFromC<int> { static const constexpr TypeDesc value() { return TypeDesc::INT; } };
 template<> struct TypeDescFromC<float> { static const constexpr TypeDesc value() { return TypeDesc::FLOAT; } };
 template<size_t S> struct TypeDescFromC<char[S]> { static const constexpr TypeDesc value() { return TypeDesc::STRING; } };
