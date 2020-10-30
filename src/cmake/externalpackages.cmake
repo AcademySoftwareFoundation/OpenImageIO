@@ -163,7 +163,7 @@ checked_find_package (Libheif 1.3)  # For HEIF/HEIC format
 checked_find_package (LibRaw
                       PRINT LibRaw_r_LIBRARIES
                       RECOMMEND_MIN 0.18
-                      RECOMMEND_MIN_REASON "for ACES support")
+                      RECOMMEND_MIN_REASON "for ACES support and better camera metadata")
 checked_find_package (OpenJpeg 2.0)
 checked_find_package (OpenVDB 5.0
                    DEPS         TBB
