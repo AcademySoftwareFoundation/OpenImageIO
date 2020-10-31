@@ -208,12 +208,12 @@ public:
     void reset() { clear(); }
 
     // Deprecated/useless synonym for `reset(name, 0, 0, imagecache, nullptr)`
-    void reset(string_view name, ImageCache* imagecache = nullptr);
+    void reset(string_view name, ImageCache* imagecache);
 
     /// Destroy any previous contents of the ImageBuf and re-initialize it
     /// as if newly constructed with the same arguments, as a read-only
     /// representation of an existing image file.
-    void reset(string_view name, int subimage, int miplevel,
+    void reset(string_view name, int subimage = 0, int miplevel = 0,
                ImageCache* imagecache       = nullptr,
                const ImageSpec* config      = nullptr,
                Filesystem::IOProxy* ioproxy = nullptr);
@@ -443,6 +443,7 @@ public:
                ProgressCallback progress_callback = nullptr,
                void* progress_callback_data       = nullptr) const;
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
     // DEPRECATED(1.9): old version did not have the data type
     bool write(string_view filename, string_view fileformat,
                ProgressCallback progress_callback = nullptr,
@@ -451,6 +452,7 @@ public:
         return write(filename, TypeUnknown, fileformat, progress_callback,
                      progress_callback_data);
     }
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
     /// Set the pixel data format that will be used for subsequent `write()`
     /// calls that do not themselves request a specific data type request.
