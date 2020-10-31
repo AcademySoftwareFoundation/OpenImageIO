@@ -337,6 +337,8 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
     , m_write_tile_depth(1)
 {
     if (spec) {
+        // spec != nullptr means we're constructing an ImageBuf that either
+        // wraps a buffer or owns its own memory.
         m_spec           = *spec;
         m_nativespec     = *spec;
         m_channel_bytes  = spec->format.size();
@@ -425,6 +427,17 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
         // Source was cache-based or deep
         // nothing else to do
         m_localpixels = nullptr;
+    }
+    if (m_localpixels || m_spec.deep) {
+        // A copied ImageBuf is no longer a direct file reference, so clear
+        // some of the fields that are only meaningful for file references.
+        m_fileformat.clear();
+        m_nsubimages       = 1;
+        m_current_subimage = 0;
+        m_current_miplevel = 0;
+        m_nmiplevels       = 0;
+        m_spec.erase_attribute("oiio:subimages");
+        m_nativespec.erase_attribute("oiio:subimages");
     }
     if (src.m_configspec)
         m_configspec.reset(new ImageSpec(*src.m_configspec));
@@ -1705,6 +1718,17 @@ ImageBuf::copy_pixels(const ImageBuf& src)
     // on copy() to convert from rare types to common types, eventually
     // we need to bottom out with something that handles all types, and
     // this is the place where that happens.
+
+    // A copied ImageBuf is no longer a direct file reference, so clear some
+    // of the fields that are only meaningful for file references.
+    m_impl->m_fileformat.clear();
+    m_impl->m_nsubimages       = 1;
+    m_impl->m_current_subimage = 0;
+    m_impl->m_current_miplevel = 0;
+    m_impl->m_nmiplevels       = 0;
+    m_impl->m_spec.erase_attribute("oiio:subimages");
+    m_impl->m_nativespec.erase_attribute("oiio:subimages");
+
     return ok;
 }
 
