@@ -3,6 +3,30 @@ Release 2.3 (??) -- compared to 2.2
 New minimum dependencies:
 
 New major features and public API changes:
+* Changes and clarifications to `geterror()` in all classes that have one:
+    - `geterror()` now take an optional `clear` parameter controls if the
+      pending error is cleared as well as retrieved (default `true`).
+    - All classes with `geterror()` are ensured to have `has_error()`.
+    - `geterror()` appends to the pending error message, if one is already
+      present but not retrieved. Appending errors will be automatically
+      separated by newlines, also any newline at the end of a geterror
+      call will be stripped. #2740 (2.3.0.1)
+* ImageInput error messages are now thread-specific. This prevents multiple
+  threads simultaneously reading from the same ImageInput from getting the
+  other thread's error messages. But it means you must always retrieve an
+  error with `getmessage()` from the same thread that made the read call
+  that generated the error. #2752 (2.3.0.1)
+* ImageInput and ImageOutput have removed several fields (like the m_mutex)
+  and instead now use a PIMPL idiom that hides internals better from the
+  ABI. If you had a custom ImageInput/Output class that directly accessed
+  the m_mutex, replace it instead with calls to ImageInput::lock() and
+  unlock() (and ImageOutput). #2752 (2.3.1.0)
+* Clarify that ImageBuf methods `subimage()`, `nsubimages()`, `miplevel()`,
+  `nmipevels()`, and `file_format_name()` refer to the file that an ImageBuf
+  was read from, and are thus only meaningful for ImageBuf's that directly
+  read from files. "Computed" or copied ImageBuf's are solo images in memory
+  that no longer correspond to a file even if the input to the computation
+  was from a file. #2759 (2.3.0.1/2.2.9)
 * oiiotool new commands:
     - `--pastemeta` takes two images as arguments, and appends all the
       metadata (only) from the first image onto the second image's pixels
@@ -26,41 +50,143 @@ Fixes and feature enhancements:
 * ImageBuf/ImageBufAlgo:
     - `IBA::contrast_remap()` fixes bug that could crash for very large
       images #2704 (2.3.0.0)
+    - Fix stack overflow crash in IBA::colorconvert of unusually wide images.
+      #2716 (2.3.0.1/2.2.8)
+    - Fix `IBA::make_texture()` incorrectly setting tile sizes. #2737
+      (2.3.0.1/2.2.8)
+    - `IBA::make_texture()` now correctly propagates error messages, which
+      can be retrieved via the global OIIO::geterror() call. #2747 (2.3.0.1)
+* ImageCache/TextureSystem:
+    - Fix ImageCache bug: add_tile/get_tile not properly honoring when
+     `chend < chbegin` it should get all channels. #2742 (2.3.0.1/2.2.8)
 * oiiotool:
     - `--resize` of images with multi-subimages could crash. #2711 (2.3.0.0)
     - `--chappend` and `--siappend` both allow an optional modifier `:n=`
       to specify the number of images from the stack to be combined
       (default n=2). #2709 (2.3.0.0)
+    - Improve oiiotool's guessing about the desired output format based on
+      inputs (in the absence of `-d` to specify the format). #2717
+      (2.3.0.1/2.2.8)
 * FFMpeg/movies:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
+* IFF
+    - Fix broken reads of 16 bit iff files. #2736 (2.3.0.1/2.2.8)
 * TIFF:
     - Fix broken reads of multi-subimage non-spectral files (such as
       photometric YCbCr mode). #2692 (2.3.0.0)
+    - Fix spec() and spec_dimensions() for MIPmapped TIFF files, they did
+      not recognize being asked to return the specs for invalid subimage
+      indices. #2723 (2.3.0.1/2.2.7)
+    - Add ability to output 1bpp TIFF files. #2722 (2.3.0.1/2.2.7)
+    - Fix reading TIFF files with "separate" planarconfig and rowsperstrip
+      more than 1. #2757 (2.3.0.1/2.2.9)
+* WebP:
+    - Add support for requesting compression "lossless". #2726 (2.3.0.1/2.2.8)
+    - Input improvements including: RGB images are kept as RGB instead of
+      always adding alpha; more efficient by skipping alpha premultiplication
+      when it's unnecessary; now can read animated WebP images as
+      multi-subimage files. #2730 (2.3.0.1/2.2.8)
 
 Developer goodies / internals:
+* simd.h:
+    - Fix incorrect ARM NEON code in simd.h. #2739 (2.3.0.1/2.2.8)
 * strutil.h:
     - Strutil `splits()` and `splitsv()` should return no pieces when passed
       an empty string. (It previously erroneously returned one piece
       consisting of an empty string.) #2712 (2.3.0.0)
+    - Fix build break when strutil.h was included in Cuda 10.1 code. #2743
+      (2.3.0.1/2.2.8)
 * typedesc.h:
     - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
       precision and range to hold the basetypes of either `a` or `b`.
       #2715 (2.3.0.0)
+* Internals now use C++11 `final` keywords wherever applicable. #2734
+  (2.3.0.1)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
     - Instead of defaulting to looking for Python 2.7, the OIIO build now
       defaults to whatever Python is found (though a specific one can still
-      be requested via the PYTHON_VERSION variable). #2705 (2.3.0.0)
+      be requested via the PYTHON_VERSION variable). #2705 (2.3.0.0/2.2.8)
+      #2764 (2.3.0.1/2.2.8)
 * Dependency version support:
+    - Fix deprecation warnings when building with very new PugiXML versions.
+      #2733 (2.3.0.1/2.2.8)
+    - Fixes to build against recent changes in OpenColorIO v2 master. #2765
+      (2.3.0.1/2.2.8)
 * Testing and Continuous integration (CI) systems:
 * Platform support:
     - Fixes for mingw. #2698 (2.3.0.0)
     - Windows fix: correct OIIO_API declaration on aligned_malloc,
       aligned_free of platform.h. #2701 (2.3.0.0)
+    - Fix boost linkage problem on Windows. #2727 (2.3.0.1/2.2.8)
 
 Notable documentation changes:
+* Make Readthedocs generate downloadable HTML as well as PDF. #2746
+* Explain how to read image data into separate per-channel buffers. #2756
+  (2.3.0.1/2.2.8)
 
+
+Release 2.2.8 (1 Nov 2020) -- compared to 2.2.7
+-------------------------------------------------
+* Fix that ImageBuf images backed by ImageCache, could hold an outdated copy
+  of the image if it was in the imagecache once, then changed on disk. #2696
+* Fix stack overflow crash in IBA::colorconvert of unusually wide images.
+  #2716
+* Fix boost linkage problem on Windows. #2727
+* Fix broken reads of 16 bit iff files. #2736
+* Fix make_texture incorrectly setting tile sizes. #2737
+* Fix incorrect ARM NEON code in simd.h. #2739
+* Improve oiiotool --chappend and --siappend, allowing an optional modifier
+  ":n=" to specify the number of images from the stack to be combined by
+  having their channels or subimages appended. #2709
+* WebP: add support for requesting compression "lossless". #2726
+* Improve build system for finding Python, now if a specific version is not
+  requested, default to whichever is found rather than always defaulting to
+  Python 2.7. #2705 #2764
+* Fix deprecation warnings when building with very new PugiXML versions.
+  #2733
+* Fix ImageCache bug: add_tile/get_tile not properly honoring when
+  `chend < chbegin` it should get all channels. #2742
+* Fix build break when strutil.h was included in Cuda 10.1 code. #2743
+* Docs: Make readthedocs generate downloadable htm as well as pdf. #2746
+* Improve oiiotool's guessing about the desired output format based on
+  inputs (in the absence of `-d` to specify the format). #2717
+* JPEG output: add support for writing progressive JPEGS (set the
+  attribute "jpeg:progressive" to 1). #2749
+* WebP input improvements including: RGB images are kept as RGB instead of
+  always adding alpha; more efficient by skipping alpha premultiplication
+  when it's unnecessary; now can read animated WebP images as multi-subimage
+  files. #2730
+* Docs: ImageInput chapter now has an example of reading image data into
+  separate per-channel buffers. #2756
+* Fixes to build against recent changes in OpenColorIO v2 master. #2765
+
+Release 2.2.7 (1 Oct 2020) -- compared to 2.2.6
+-------------------------------------------------
+* oiiotool new command: `--pastemeta` takes two images as arguments, and
+  appends all the metadata (only) from the first image onto the second
+  image's pixels and metadata, producing a combined image. #2708
+* TIFF: Fix broken reads of multi-subimage non-spectral files (such as
+  photometric YCbCr mode). #2692
+* Python: When transferring blocks of pixels (e.g., `ImageInput.read_image()`
+  or `ImageOutput.write_scanline()`), "half" pixels ended up mangled into
+  uint16, but now they use the correct numpy.float16 type. #2694
+* Python: The value passed to `attribute(name, typedesc, value)` can now be
+  a tuple, list, numpy array, or scalar value. #2695
+* `IBA::contrast_remap()` fixes bug that could crash for very large images
+  #2704
+* Warn about recommended minimum versions of some dependencies.
+* Windows fix: correct OIIO_API declaration on aligned_malloc, aligned_free
+  of platform.h. #2701
+* Fix oiiotool crash when --resize was used with multi-subimage files. #2711
+* Bug fix in Strutil::splits and splitsv: when input is the empty string,
+  the split should return no pieces. #2712
+* Support for libheif 1.9. #2724
+* TIFF: Fix spec() and spec_dimensions() for MIPmapped TIFF files, they
+  did not recognize being asked to return the specs for invalid subimage
+  indices. #2723
+* TIFF: add ability to output 1bpp TIFF files. #2722
 
 
 Release 2.2 (1 Sept 2020) -- compared to 2.1
