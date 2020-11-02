@@ -20,10 +20,12 @@ macro (find_python)
 
     # Attempt to find the desired version, but fall back to other
     # additional versions.
+    unset (_req)
     if (USE_PYTHON)
         set (_req REQUIRED)
-    else ()
-        unset (_req)
+        if (PYTHON_VERSION)
+            list (APPEND _req EXACT)
+        endif ()
     endif ()
     checked_find_package (Python ${PYTHON_VERSION}
                           ${_req}
