@@ -732,6 +732,26 @@ anywhere near the acceptance of the original JPEG/JFIF format.
        Appendix :ref:`chap-stdmetadata` is properly translated when using
        JPEG files.
 
+**Configuration settings for JPEG output**
+
+When opening a JPEG ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file, will add a small
+       amount of random dither to combat the appearance of banding.
+   * - ``jpeg:progressive``
+     - int
+     - If nonzero, will write a progressive JPEG file.
+
 
 **Limitations**
 
