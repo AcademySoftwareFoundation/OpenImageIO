@@ -18,6 +18,7 @@ OPENCOLORIO_CXX_FLAGS=${OPENCOLORIO_CXX_FLAGS:="-Wno-unused-function -Wno-deprec
 # Just need libs:
 OPENCOLORIO_BUILDOPTS="-DOCIO_BUILD_APPS=OFF -DOCIO_BUILD_NUKE=OFF \
                        -DOCIO_BUILD_DOCS=OFF -DOCIO_BUILD_TESTS=OFF \
+                       -DOCIO_BUILD_GPU_TESTS=OFF \
                        -DOCIO_BUILD_PYTHON=OFF -DOCIO_BUILD_PYGLUE=OFF \
                        -DOCIO_BUILD_JAVA=OFF \
                        -DOCIO_BUILD_STATIC=${OCIO_BUILD_STATIC:=OFF}"
