@@ -36,8 +36,13 @@ find_library (OPENCOLORIO_LIBRARY
     DOC "The OCIO library")
 
 if (EXISTS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h")
+    # Search twice, because this symbol changed between OCIO 1.x and 2.x
     file(STRINGS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h" TMP
-         REGEX "^#define OCIO_VERSION[ \t].*$")
+         REGEX "^#define OCIO_VERSION_STR[ \t].*$")
+    if (NOT TMP)
+        file(STRINGS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h" TMP
+             REGEX "^#define OCIO_VERSION[ \t].*$")
+    endif ()
     string (REGEX MATCHALL "[0-9]+[.0-9]+" OPENCOLORIO_VERSION ${TMP})
 endif ()
 
