@@ -1,3 +1,7 @@
+Release 2.2.9 (? 1 Dec 2020) -- compared to 2.2.8
+-------------------------------------------------
+
+
 Release 2.2.8 (1 Nov 2020) -- compared to 2.2.7
 -------------------------------------------------
 * Fix that ImageBuf images backed by ImageCache, could hold an outdated copy
