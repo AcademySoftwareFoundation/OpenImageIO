@@ -191,12 +191,8 @@ jobs:
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
     # supported releases of everything else.
-    # We don't need to run this on every push or PR -- only run on nightly
-    # test, or if the branch name contains certain substring: gh, release,
-    # bleeding.
     name: "Linux bleeding edge: gcc10 C++17 avx2 OCIO/libtiff/exr master"
     runs-on: ubuntu-18.04
-    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'bleeding') || contains(github.ref, 'RB') || contains(github.ref, 'master')
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -224,11 +220,7 @@ jobs:
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
     # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
-    # We don't need to run this on every push or PR -- only run on nightly
-    # test, or if the branch name contains certain substrings: gh, release,
-    # old.
     name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
-    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'RB') || contains(github.ref, 'master') || contains(github.ref, 'old')
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
@@ -335,12 +327,9 @@ jobs:
           path: build/*/testsuite/*/*.*
 
   sanitizer:
-    # Run sanitizers. These don't need to run on every push. Just PRs, nightly
-    # builds, or if the branch name contains one of several tokens: san,
-    # gh, RB, release, or master.
+    # Run sanitizers.
     name: "Sanitizers"
     runs-on: ubuntu-18.04
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'san') || contains(github.ref, 'RB') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
     container:
       image: aswf/ci-osl:2020
     steps:
@@ -390,11 +379,8 @@ jobs:
           path: build/*/testsuite/*/*.*
 
   linux-static:
-    # Test building static libs.  We don't need to run this on every push --
-    # only run on PRs, nightly test, or if the branch name contains
-    # "gh", "master", "release", or "static".
+    # Test building static libs.
     name: "Linux static libs: gcc7 C++14 exr2.4"
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'static') || contains(github.ref, 'release') || contains(github.ref, 'RB') || contains(github.ref, 'master') || contains(github.ref, 'gh')
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
