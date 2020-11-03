@@ -452,7 +452,7 @@ public:
         return write(filename, TypeUnknown, fileformat, progress_callback,
                      progress_callback_data);
     }
-#endif // DOXYGEN_SHOULD_SKIP_THIS
+#endif  // DOXYGEN_SHOULD_SKIP_THIS
 
     /// Set the pixel data format that will be used for subsequent `write()`
     /// calls that do not themselves request a specific data type request.
