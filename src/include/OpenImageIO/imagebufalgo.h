@@ -1093,8 +1093,10 @@ PixelStats OIIO_API computePixelStats (const ImageBuf &src,
 
 // DEPRECATED(1.9): with C++11 move semantics, there's no reason why
 // stats needs to be passed as a parameter instead of returned.
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 bool OIIO_API computePixelStats (PixelStats &stats, const ImageBuf &src,
                                  ROI roi={}, int nthreads=0);
+#endif
 
 
 // Struct holding all the results computed by ImageBufAlgo::compare().
@@ -1141,12 +1143,13 @@ int OIIO_API compare_Yee (const ImageBuf &A, const ImageBuf &B,
                           float luminance = 100, float fov = 45,
                           ROI roi={}, int nthreads=0);
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 // DEPRECATED(1.9): with C++11 move semantics, there's no reason why
 // result needs to be passed as a parameter instead of returned.
 bool OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
                        float failthresh, float warnthresh,
                        CompareResults &result, ROI roi={}, int nthreads=0);
-
+#endif
 
 
 /// Do all pixels within the ROI have the same values for channels
@@ -1158,10 +1161,12 @@ bool OIIO_API compare (const ImageBuf &A, const ImageBuf &B,
 OIIO_API bool isConstantColor (const ImageBuf &src, float threshold=0.0f,
                                span<float> color = {},
                                ROI roi={}, int nthreads=0);
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 inline bool isConstantColor (const ImageBuf &src, span<float> color,
                              ROI roi={}, int nthreads=0) {
     return isConstantColor (src, 0.0f, color, roi, nthreads);
 }
+#endif
 
 
 /// Does the requested channel have a given value (within a tolerance of +/-
@@ -1172,10 +1177,12 @@ inline bool isConstantColor (const ImageBuf &src, span<float> color,
 OIIO_API bool isConstantChannel (const ImageBuf &src, int channel,
                                  float val, float threshold=0.0f,
                                  ROI roi={}, int nthreads=0);
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 inline bool isConstantChannel (const ImageBuf &src, int channel, float val,
                                ROI roi, int nthreads=0) {
     return isConstantChannel (src, channel, val, 0.0f, roi, nthreads);
 }
+#endif
 
 
 /// Is the image monochrome within the ROI, i.e., for every pixel within the
@@ -1185,9 +1192,11 @@ inline bool isConstantChannel (const ImageBuf &src, int channel, float val,
 /// channels of source.
 OIIO_API bool isMonochrome (const ImageBuf &src, float threshold=0.0f,
                             ROI roi={}, int nthreads=0);
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 inline bool isMonochrome (const ImageBuf &src, ROI roi, int nthreads=0) {
     return isMonochrome (src, 0.0f, roi, nthreads);
 }
+#endif
 
 
 /// Count how many pixels in the ROI match a list of colors. The colors to
@@ -1276,6 +1285,7 @@ std::vector<imagesize_t> histogram (const ImageBuf &src, int channel=0,
                                     ROI roi={}, int nthreads=0);
 
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 /// DEPRECATED(1.9)
 bool OIIO_API histogram (const ImageBuf &src, int channel,
                          std::vector<imagesize_t> &histogram, int bins=256,
@@ -1285,6 +1295,7 @@ bool OIIO_API histogram (const ImageBuf &src, int channel,
 // DEPRECATED(1.9): never liked this.
 bool OIIO_API histogram_draw (ImageBuf &dst,
                               const std::vector<imagesize_t> &histogram);
+#endif
 
 
 
@@ -1306,6 +1317,7 @@ bool OIIO_API histogram_draw (ImageBuf &dst,
 ///
 ImageBuf OIIO_API make_kernel (string_view name, float width, float height,
                                float depth = 1.0f, bool normalize = true);
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 // DEPRECATED(1.9):
 inline bool make_kernel (ImageBuf &dst, string_view name,
                          float width, float height, float depth = 1.0f,
@@ -1313,6 +1325,7 @@ inline bool make_kernel (ImageBuf &dst, string_view name,
     dst = make_kernel (name, width, height, depth, normalize);
     return ! dst.has_error();
 }
+#endif
 
 
 /// Return the convolution of `src` and a `kernel`. If `roi` is not defined,
@@ -2050,19 +2063,21 @@ ImageBuf OIIO_API capture_image (int cameranum = 0,
                                  TypeDesc convert=TypeUnknown);
 
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 // DEPRECATED(1.9):
 inline bool capture_image (ImageBuf &dst, int cameranum = 0,
                            TypeDesc convert=TypeUnknown) {
     dst = capture_image (cameranum, convert);
     return !dst.has_error();
 }
-
+#endif  // DOXYGEN_SHOULD_SKIP_THIS
 
 
 #if defined(__OPENCV_CORE_TYPES_H__) || defined(OPENCV_CORE_TYPES_H)
 // These declarations are only visible if the OpenCV headers have already
 // been encountered.
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 // DEPRECATED(2.0). The OpenCV 1.x era IplImage-based functions should be
 // avoided, giving preference to from_OpenCV.
 ImageBuf OIIO_API from_IplImage (const IplImage *ipl,
@@ -2077,6 +2092,7 @@ inline bool from_IplImage (ImageBuf &dst, const IplImage *ipl,
 // DEPRECATED(2.0). The OpenCV 1.x era IplImage-based functions should be
 // avoided, giving preference to from_OpenCV.
 OIIO_API IplImage* to_IplImage (const ImageBuf &src);
+#endif  // DOXYGEN_SHOULD_SKIP_THIS
 
 #endif
 
@@ -2152,6 +2168,8 @@ bool OIIO_API deep_holdout (ImageBuf &dst, const ImageBuf &src,
 // DEPRECATED(1.9): These are all functions that take raw pointers,
 // which we are deprecating as of 1.9, replaced by new versions that
 // take span<> for length safety.
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 inline bool fill (ImageBuf &dst, const float *values,
                   ROI roi={}, int nthreads=0) {
@@ -2277,6 +2295,8 @@ inline bool render_text (ImageBuf &dst, int x, int y, string_view text,
     return render_text (dst, x, y, text, fontsize, fontname,
                         {textcolor, textcolor?dst.nchannels():0});
 }
+
+#endif  // DOXYGEN_SHOULD_SKIP_THIS
 
 ///////////////////////////////////////////////////////////////////////
 
