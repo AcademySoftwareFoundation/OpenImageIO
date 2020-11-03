@@ -50,7 +50,7 @@ OIIO_STATIC_ASSERT(offsetof(OIIO_ROI, chend) == offsetof(OIIO::ROI, chend));
 
 
 
-OIIO_ROI
+OIIO_API OIIO_ROI
 OIIO_ROI_All()
 {
     return OIIO_ROI { std::numeric_limits<int>::min(), 0, 0, 0, 0, 0, 0, 0 };
@@ -58,7 +58,7 @@ OIIO_ROI_All()
 
 
 
-bool
+OIIO_API bool
 OIIO_ROI_defined(const OIIO_ROI* roi)
 {
     return roi->xbegin != std::numeric_limits<int>::min();
@@ -66,7 +66,7 @@ OIIO_ROI_defined(const OIIO_ROI* roi)
 
 
 
-int
+OIIO_API int
 OIIO_ROI_width(const OIIO_ROI* roi)
 {
     return roi->xend - roi->xbegin;
@@ -74,7 +74,7 @@ OIIO_ROI_width(const OIIO_ROI* roi)
 
 
 
-int
+OIIO_API int
 OIIO_ROI_height(const OIIO_ROI* roi)
 {
     return roi->yend - roi->ybegin;
@@ -82,7 +82,7 @@ OIIO_ROI_height(const OIIO_ROI* roi)
 
 
 
-int
+OIIO_API int
 OIIO_ROI_depth(const OIIO_ROI* roi)
 {
     return roi->zend - roi->zbegin;
@@ -90,7 +90,7 @@ OIIO_ROI_depth(const OIIO_ROI* roi)
 
 
 
-int
+OIIO_API int
 OIIO_ROI_nchannels(const OIIO_ROI* roi)
 {
     return roi->chend - roi->chbegin;
@@ -98,7 +98,7 @@ OIIO_ROI_nchannels(const OIIO_ROI* roi)
 
 
 
-imagesize_t
+OIIO_API imagesize_t
 OIIO_ROI_npixels(const OIIO_ROI* roi)
 {
     if (roi->xbegin != std::numeric_limits<int>::min()) {
@@ -110,7 +110,7 @@ OIIO_ROI_npixels(const OIIO_ROI* roi)
 
 
 
-bool
+OIIO_API bool
 OIIO_ROI_contains(const OIIO_ROI* roi, int x, int y, int z, int ch)
 {
     return x >= roi->xbegin && x < roi->xend && y >= roi->ybegin
@@ -120,7 +120,7 @@ OIIO_ROI_contains(const OIIO_ROI* roi, int x, int y, int z, int ch)
 
 
 
-bool
+OIIO_API bool
 OIIO_ROI_contains_roi(const OIIO_ROI* a, OIIO_ROI* b)
 {
     return b->xbegin >= a->xbegin && b->xend <= a->xend
@@ -131,7 +131,7 @@ OIIO_ROI_contains_roi(const OIIO_ROI* a, OIIO_ROI* b)
 
 
 
-OIIO_ImageSpec*
+OIIO_API OIIO_ImageSpec*
 OIIO_ImageSpec_new()
 {
     return to_c(new OIIO::ImageSpec);
@@ -139,7 +139,7 @@ OIIO_ImageSpec_new()
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_delete(const OIIO_ImageSpec* is)
 {
     delete to_cpp(is);
@@ -147,7 +147,7 @@ OIIO_ImageSpec_delete(const OIIO_ImageSpec* is)
 
 
 
-OIIO_ImageSpec*
+OIIO_API OIIO_ImageSpec*
 OIIO_ImageSpec_new_with_dimensions(int xres, int yres, int nchans,
                                    OIIO_TypeDesc fmt)
 {
@@ -158,7 +158,7 @@ OIIO_ImageSpec_new_with_dimensions(int xres, int yres, int nchans,
 
 
 
-OIIO_ImageSpec*
+OIIO_API OIIO_ImageSpec*
 OIIO_ImageSpec_copy(const OIIO_ImageSpec* ii)
 {
     const OIIO::ImageSpec* oii = to_cpp(ii);
@@ -167,7 +167,7 @@ OIIO_ImageSpec_copy(const OIIO_ImageSpec* ii)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_attribute(OIIO_ImageSpec* is, const char* name,
                          OIIO_TypeDesc fmt, const void* value)
 {
@@ -177,7 +177,7 @@ OIIO_ImageSpec_attribute(OIIO_ImageSpec* is, const char* name,
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_x(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->x;
@@ -185,7 +185,7 @@ OIIO_ImageSpec_x(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_x(OIIO_ImageSpec* is, int x)
 {
     to_cpp(is)->x = x;
@@ -193,7 +193,7 @@ OIIO_ImageSpec_set_x(OIIO_ImageSpec* is, int x)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_y(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->y;
@@ -201,7 +201,7 @@ OIIO_ImageSpec_y(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_y(OIIO_ImageSpec* is, int y)
 {
     to_cpp(is)->y = y;
@@ -209,7 +209,7 @@ OIIO_ImageSpec_set_y(OIIO_ImageSpec* is, int y)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_z(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->z;
@@ -217,7 +217,7 @@ OIIO_ImageSpec_z(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_z(OIIO_ImageSpec* is, int z)
 {
     to_cpp(is)->z = z;
@@ -225,7 +225,7 @@ OIIO_ImageSpec_set_z(OIIO_ImageSpec* is, int z)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_width(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->width;
@@ -233,7 +233,7 @@ OIIO_ImageSpec_width(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_width(OIIO_ImageSpec* is, int width)
 {
     to_cpp(is)->width = width;
@@ -241,7 +241,7 @@ OIIO_ImageSpec_set_width(OIIO_ImageSpec* is, int width)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_height(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->height;
@@ -249,7 +249,7 @@ OIIO_ImageSpec_height(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_height(OIIO_ImageSpec* is, int height)
 {
     to_cpp(is)->height = height;
@@ -257,7 +257,7 @@ OIIO_ImageSpec_set_height(OIIO_ImageSpec* is, int height)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_depth(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->depth;
@@ -265,7 +265,7 @@ OIIO_ImageSpec_depth(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_depth(OIIO_ImageSpec* is, int depth)
 {
     to_cpp(is)->depth = depth;
@@ -273,7 +273,7 @@ OIIO_ImageSpec_set_depth(OIIO_ImageSpec* is, int depth)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_full_x(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->full_x;
@@ -281,7 +281,7 @@ OIIO_ImageSpec_full_x(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_full_x(OIIO_ImageSpec* is, int full_x)
 {
     to_cpp(is)->full_x = full_x;
@@ -289,7 +289,7 @@ OIIO_ImageSpec_set_full_x(OIIO_ImageSpec* is, int full_x)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_full_y(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->full_y;
@@ -297,7 +297,7 @@ OIIO_ImageSpec_full_y(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_full_y(OIIO_ImageSpec* is, int full_y)
 {
     to_cpp(is)->full_y = full_y;
@@ -305,7 +305,7 @@ OIIO_ImageSpec_set_full_y(OIIO_ImageSpec* is, int full_y)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_full_z(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->full_z;
@@ -313,7 +313,7 @@ OIIO_ImageSpec_full_z(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_full_z(OIIO_ImageSpec* is, int full_z)
 {
     to_cpp(is)->full_z = full_z;
@@ -321,7 +321,7 @@ OIIO_ImageSpec_set_full_z(OIIO_ImageSpec* is, int full_z)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_full_width(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->full_width;
@@ -329,7 +329,7 @@ OIIO_ImageSpec_full_width(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_full_width(OIIO_ImageSpec* is, int full_width)
 {
     to_cpp(is)->full_width = full_width;
@@ -337,7 +337,7 @@ OIIO_ImageSpec_set_full_width(OIIO_ImageSpec* is, int full_width)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_full_height(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->full_height;
@@ -345,7 +345,7 @@ OIIO_ImageSpec_full_height(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_full_height(OIIO_ImageSpec* is, int full_height)
 {
     to_cpp(is)->full_height = full_height;
@@ -353,7 +353,7 @@ OIIO_ImageSpec_set_full_height(OIIO_ImageSpec* is, int full_height)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_full_depth(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->full_depth;
@@ -361,7 +361,7 @@ OIIO_ImageSpec_full_depth(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_full_depth(OIIO_ImageSpec* is, int full_depth)
 {
     to_cpp(is)->full_depth = full_depth;
@@ -369,7 +369,7 @@ OIIO_ImageSpec_set_full_depth(OIIO_ImageSpec* is, int full_depth)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_tile_width(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->tile_width;
@@ -377,7 +377,7 @@ OIIO_ImageSpec_tile_width(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_tile_width(OIIO_ImageSpec* is, int tile_width)
 {
     to_cpp(is)->tile_width = tile_width;
@@ -385,7 +385,7 @@ OIIO_ImageSpec_set_tile_width(OIIO_ImageSpec* is, int tile_width)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_tile_height(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->tile_height;
@@ -393,7 +393,7 @@ OIIO_ImageSpec_tile_height(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_tile_height(OIIO_ImageSpec* is, int tile_height)
 {
     to_cpp(is)->tile_height = tile_height;
@@ -401,7 +401,7 @@ OIIO_ImageSpec_set_tile_height(OIIO_ImageSpec* is, int tile_height)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_tile_depth(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->tile_depth;
@@ -409,7 +409,7 @@ OIIO_ImageSpec_tile_depth(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_tile_depth(OIIO_ImageSpec* is, int tile_depth)
 {
     to_cpp(is)->tile_depth = tile_depth;
@@ -417,7 +417,7 @@ OIIO_ImageSpec_set_tile_depth(OIIO_ImageSpec* is, int tile_depth)
 
 
 
-OIIO_TypeDesc
+OIIO_API OIIO_TypeDesc
 OIIO_ImageSpec_format(const OIIO_ImageSpec* is)
 {
     return bit_cast<OIIO::TypeDesc, OIIO_TypeDesc>(to_cpp(is)->format);
@@ -425,14 +425,14 @@ OIIO_ImageSpec_format(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_format(OIIO_ImageSpec* is, OIIO_TypeDesc fmt)
 {
     to_cpp(is)->set_format(bit_cast<OIIO_TypeDesc, OIIO::TypeDesc>(fmt));
 }
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_alpha_channel(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->alpha_channel;
@@ -440,7 +440,7 @@ OIIO_ImageSpec_alpha_channel(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_alpha_channel(OIIO_ImageSpec* is, int alpha_channel)
 {
     to_cpp(is)->alpha_channel = alpha_channel;
@@ -448,7 +448,7 @@ OIIO_ImageSpec_set_alpha_channel(OIIO_ImageSpec* is, int alpha_channel)
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_z_channel(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->z_channel;
@@ -456,7 +456,7 @@ OIIO_ImageSpec_z_channel(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_z_channel(OIIO_ImageSpec* is, int z_channel)
 {
     to_cpp(is)->z_channel = z_channel;
@@ -464,7 +464,7 @@ OIIO_ImageSpec_set_z_channel(OIIO_ImageSpec* is, int z_channel)
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageSpec_deep(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->deep;
@@ -472,7 +472,7 @@ OIIO_ImageSpec_deep(const OIIO_ImageSpec* is)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_set_deep(OIIO_ImageSpec* is, bool deep)
 {
     to_cpp(is)->deep = deep;
@@ -480,7 +480,7 @@ OIIO_ImageSpec_set_deep(OIIO_ImageSpec* is, bool deep)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_default_channel_names(OIIO_ImageSpec* is)
 {
     to_cpp(is)->default_channel_names();
@@ -488,7 +488,7 @@ OIIO_ImageSpec_default_channel_names(OIIO_ImageSpec* is)
 
 
 
-size_t
+OIIO_API size_t
 OIIO_ImageSpec_channel_bytes(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->channel_bytes();
@@ -496,7 +496,7 @@ OIIO_ImageSpec_channel_bytes(const OIIO_ImageSpec* is)
 
 
 
-size_t
+OIIO_API size_t
 OIIO_ImageSpec_channel_bytes_at(const OIIO_ImageSpec* is, int chan, bool native)
 {
     return to_cpp(is)->channel_bytes(chan, native);
@@ -504,7 +504,7 @@ OIIO_ImageSpec_channel_bytes_at(const OIIO_ImageSpec* is, int chan, bool native)
 
 
 
-size_t
+OIIO_API size_t
 OIIO_ImageSpec_pixel_bytes(const OIIO_ImageSpec* is, bool native)
 {
     return to_cpp(is)->pixel_bytes(native);
@@ -512,7 +512,7 @@ OIIO_ImageSpec_pixel_bytes(const OIIO_ImageSpec* is, bool native)
 
 
 
-size_t
+OIIO_API size_t
 OIIO_ImageSpec_pixel_bytes_for_channels(const OIIO_ImageSpec* is, int chbegin,
                                         int chend, bool native)
 {
@@ -521,7 +521,7 @@ OIIO_ImageSpec_pixel_bytes_for_channels(const OIIO_ImageSpec* is, int chbegin,
 
 
 
-imagesize_t
+OIIO_API imagesize_t
 OIIO_ImageSpec_scanline_bytes(const OIIO_ImageSpec* is, bool native)
 {
     return to_cpp(is)->scanline_bytes(native);
@@ -529,7 +529,7 @@ OIIO_ImageSpec_scanline_bytes(const OIIO_ImageSpec* is, bool native)
 
 
 
-imagesize_t
+OIIO_API imagesize_t
 OIIO_ImageSpec_tile_pixels(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->tile_pixels();
@@ -537,7 +537,7 @@ OIIO_ImageSpec_tile_pixels(const OIIO_ImageSpec* is)
 
 
 
-imagesize_t
+OIIO_API imagesize_t
 OIIO_ImageSpec_tile_bytes(const OIIO_ImageSpec* is, bool native)
 {
     return to_cpp(is)->tile_bytes(native);
@@ -545,7 +545,7 @@ OIIO_ImageSpec_tile_bytes(const OIIO_ImageSpec* is, bool native)
 
 
 
-imagesize_t
+OIIO_API imagesize_t
 OIIO_ImageSpec_image_pixels(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->image_pixels();
@@ -553,7 +553,7 @@ OIIO_ImageSpec_image_pixels(const OIIO_ImageSpec* is)
 
 
 
-imagesize_t
+OIIO_API imagesize_t
 OIIO_ImageSpec_image_bytes(const OIIO_ImageSpec* is, bool native)
 {
     return to_cpp(is)->image_bytes(native);
@@ -561,7 +561,7 @@ OIIO_ImageSpec_image_bytes(const OIIO_ImageSpec* is, bool native)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_auto_stride_xyz(stride_t* xstride, stride_t* ystride,
                                stride_t* zstride, OIIO_TypeDesc format,
                                int nchannels, int width, int height)
@@ -583,7 +583,7 @@ OIIO_ImageSpec_auto_stride(stride_t* xstride, OIIO_TypeDesc format,
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_erase_attribute(OIIO_ImageSpec* is, const char* name,
                                OIIO_TypeDesc searchtype, bool casesensitive)
 {
@@ -595,7 +595,7 @@ OIIO_ImageSpec_erase_attribute(OIIO_ImageSpec* is, const char* name,
 
 
 
-OIIO_ParamValue*
+OIIO_API OIIO_ParamValue*
 OIIO_ImageSpec_find_attribute(OIIO_ImageSpec* is, const char* name,
                               OIIO_TypeDesc searchtype, bool casesensitive)
 {
@@ -607,7 +607,7 @@ OIIO_ImageSpec_find_attribute(OIIO_ImageSpec* is, const char* name,
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_metadata_val(const OIIO_ImageSpec* is, const OIIO_ParamValue* p,
                             bool human, char* string_buffer, int buffer_length)
 {
@@ -639,7 +639,7 @@ OIIO_ImageSpec_to_xml(const OIIO_ImageSpec* is, char* string_buffer,
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_from_xml(OIIO_ImageSpec* is, const char* xml)
 {
     to_cpp(is)->from_xml(xml);
@@ -647,7 +647,7 @@ OIIO_ImageSpec_from_xml(OIIO_ImageSpec* is, const char* xml)
 
 
 
-void
+OIIO_API void
 OIIO_ImageSpec_decode_compression_metadata(OIIO_ImageSpec* is,
                                            const char* default_comp, char* comp,
                                            int comp_length, int* qual)
@@ -657,7 +657,7 @@ OIIO_ImageSpec_decode_compression_metadata(OIIO_ImageSpec* is,
     *qual = p.second;
 }
 
-bool
+OIIO_API bool
 OIIO_ImageSpec_valid_tile_range(OIIO_ImageSpec* is, int xbegin, int xend,
                                 int ybegin, int yend, int zbegin, int zend)
 {
@@ -667,7 +667,7 @@ OIIO_ImageSpec_valid_tile_range(OIIO_ImageSpec* is, int xbegin, int xend,
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_nchannels(const OIIO_ImageSpec* is)
 {
     return to_cpp(is)->nchannels;
@@ -675,7 +675,7 @@ OIIO_ImageSpec_nchannels(const OIIO_ImageSpec* is)
 
 
 
-OIIO_TypeDesc
+OIIO_API OIIO_TypeDesc
 OIIO_ImageSpec_channelformat(const OIIO_ImageSpec* is, int chan)
 {
     return bit_cast<OIIO::TypeDesc, OIIO_TypeDesc>(
@@ -698,7 +698,7 @@ OIIO_ImageSpec_get_channelformats(const OIIO_ImageSpec* is,
 
 
 
-int
+OIIO_API int
 OIIO_ImageSpec_channelindex(const OIIO_ImageSpec* is, const char* name)
 {
     return to_cpp(is)->channelindex(name);
@@ -706,7 +706,7 @@ OIIO_ImageSpec_channelindex(const OIIO_ImageSpec* is, const char* name)
 
 
 
-OIIO_ROI
+OIIO_API OIIO_ROI
 OIIO_ImageSpec_roi(const OIIO_ImageSpec* is)
 {
     return bit_cast<OIIO::ROI, OIIO_ROI>(to_cpp(is)->roi());
@@ -714,7 +714,7 @@ OIIO_ImageSpec_roi(const OIIO_ImageSpec* is)
 
 
 
-OIIO_ROI
+OIIO_API OIIO_ROI
 OIIO_ImageSpec_roi_full(const OIIO_ImageSpec* is)
 {
     return bit_cast<OIIO::ROI, OIIO_ROI>(to_cpp(is)->roi_full());
@@ -722,7 +722,7 @@ OIIO_ImageSpec_roi_full(const OIIO_ImageSpec* is)
 
 
 
-const char*
+OIIO_API const char*
 OIIO_ImageSpec_channel_name(const OIIO_ImageSpec* is, int chan)
 {
     return to_cpp(is)->channel_name(chan).c_str();
@@ -730,7 +730,7 @@ OIIO_ImageSpec_channel_name(const OIIO_ImageSpec* is, int chan)
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageSpec_getattribute(const OIIO_ImageSpec* is, const char* name,
                             OIIO_TypeDesc type, void* value, bool casesensitive)
 {
@@ -743,7 +743,7 @@ OIIO_ImageSpec_getattribute(const OIIO_ImageSpec* is, const char* name,
 
 
 // FIXME: add Filesystem::IOProxy
-OIIO_ImageInput*
+OIIO_API OIIO_ImageInput*
 OIIO_ImageInput_open(const char* filename, const OIIO_ImageSpec* config,
                      OIIO_Filesystem_IOProxy* ioproxy)
 {
@@ -755,7 +755,7 @@ OIIO_ImageInput_open(const char* filename, const OIIO_ImageSpec* config,
 
 
 
-void
+OIIO_API void
 OIIO_ImageInput_delete(OIIO_ImageInput* ii)
 {
     delete to_cpp(ii);
@@ -763,7 +763,7 @@ OIIO_ImageInput_delete(OIIO_ImageInput* ii)
 
 
 
-const OIIO_ImageSpec*
+OIIO_API const OIIO_ImageSpec*
 OIIO_ImageInput_spec(OIIO_ImageInput* ii)
 {
     const OIIO::ImageSpec& spec = to_cpp(ii)->spec();
@@ -772,7 +772,7 @@ OIIO_ImageInput_spec(OIIO_ImageInput* ii)
 
 
 
-OIIO_ImageSpec*
+OIIO_API OIIO_ImageSpec*
 OIIO_ImageInput_spec_copy(OIIO_ImageInput* ii, int subimage, int miplevel)
 {
     return to_c(new OIIO::ImageSpec(to_cpp(ii)->spec(subimage, miplevel)));
@@ -780,7 +780,7 @@ OIIO_ImageInput_spec_copy(OIIO_ImageInput* ii, int subimage, int miplevel)
 
 
 
-OIIO_ImageSpec*
+OIIO_API OIIO_ImageSpec*
 OIIO_ImageInput_spec_dimensions(OIIO_ImageInput* ii, int subimage, int miplevel)
 {
     return to_c(
@@ -789,7 +789,7 @@ OIIO_ImageInput_spec_dimensions(OIIO_ImageInput* ii, int subimage, int miplevel)
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageInput_close(OIIO_ImageInput* ii)
 {
     return to_cpp(ii)->close();
@@ -797,7 +797,7 @@ OIIO_ImageInput_close(OIIO_ImageInput* ii)
 
 
 
-int
+OIIO_API int
 OIIO_ImageInput_current_subimage(OIIO_ImageInput* ii)
 {
     return to_cpp(ii)->current_subimage();
@@ -805,7 +805,7 @@ OIIO_ImageInput_current_subimage(OIIO_ImageInput* ii)
 
 
 
-int
+OIIO_API int
 OIIO_ImageInput_current_miplevel(OIIO_ImageInput* ii)
 {
     return to_cpp(ii)->current_miplevel();
@@ -875,7 +875,7 @@ OIIO_ImageInput_read_tiles(OIIO_ImageInput* ii, int subimage, int miplevel,
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageInput_read_image(OIIO_ImageInput* ii, int subimage, int miplevel,
                            int chbegin, int chend, OIIO_TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride,
@@ -892,7 +892,7 @@ OIIO_ImageInput_read_image(OIIO_ImageInput* ii, int subimage, int miplevel,
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageInput_read_native_deep_scanlines(OIIO_ImageInput* ii, int subimage,
                                            int miplevel, int ybegin, int yend,
                                            int z, int chbegin, int chend,
@@ -905,7 +905,7 @@ OIIO_ImageInput_read_native_deep_scanlines(OIIO_ImageInput* ii, int subimage,
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageInput_read_native_deep_tiles(OIIO_ImageInput* ii, int subimage,
                                        int miplevel, int xbegin, int xend,
                                        int ybegin, int yend, int zbegin,
@@ -920,7 +920,7 @@ OIIO_ImageInput_read_native_deep_tiles(OIIO_ImageInput* ii, int subimage,
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageInput_read_native_deep_image(OIIO_ImageInput* ii, int subimage,
                                        int miplevel, OIIO_DeepData* deepdata)
 {
@@ -930,7 +930,7 @@ OIIO_ImageInput_read_native_deep_image(OIIO_ImageInput* ii, int subimage,
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageInput_has_error(const OIIO_ImageInput* ii)
 {
     return to_cpp(ii)->has_error();
@@ -938,7 +938,7 @@ OIIO_ImageInput_has_error(const OIIO_ImageInput* ii)
 
 
 
-void
+OIIO_API void
 OIIO_ImageInput_geterror(const OIIO_ImageInput* ii, char* msg,
                          int buffer_length, bool clear)
 {
@@ -948,7 +948,7 @@ OIIO_ImageInput_geterror(const OIIO_ImageInput* ii, char* msg,
 
 
 
-OIIO_ImageOutput*
+OIIO_API OIIO_ImageOutput*
 OIIO_ImageOutput_create(const char* filename, OIIO_Filesystem_IOProxy* ioproxy,
                         const char* plugin_search_path)
 {
@@ -961,7 +961,7 @@ OIIO_ImageOutput_create(const char* filename, OIIO_Filesystem_IOProxy* ioproxy,
 
 
 
-void
+OIIO_API void
 OIIO_ImageOutput_delete(OIIO_ImageOutput* io)
 {
     delete to_cpp(io);
@@ -969,7 +969,7 @@ OIIO_ImageOutput_delete(OIIO_ImageOutput* io)
 
 
 
-const char*
+OIIO_API const char*
 OIIO_ImageOutput_format_name(OIIO_ImageOutput* io)
 {
     return to_cpp(io)->format_name();
@@ -977,7 +977,7 @@ OIIO_ImageOutput_format_name(OIIO_ImageOutput* io)
 
 
 
-int
+OIIO_API int
 OIIO_ImageOutput_supports(OIIO_ImageOutput* io, const char* feature)
 {
     return to_cpp(io)->supports(feature);
@@ -985,7 +985,7 @@ OIIO_ImageOutput_supports(OIIO_ImageOutput* io, const char* feature)
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageOutput_open(OIIO_ImageOutput* io, const char* name,
                       const OIIO_ImageSpec* newspec, int mode)
 {
@@ -995,7 +995,7 @@ OIIO_ImageOutput_open(OIIO_ImageOutput* io, const char* name,
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageOutput_open_multiimage(OIIO_ImageOutput* io, const char* name,
                                  int subimages, const OIIO_ImageSpec* specs)
 {
@@ -1005,7 +1005,7 @@ OIIO_ImageOutput_open_multiimage(OIIO_ImageOutput* io, const char* name,
 
 
 
-const OIIO_ImageSpec*
+OIIO_API const OIIO_ImageSpec*
 OIIO_ImageOutput_spec(const OIIO_ImageOutput* io)
 {
     return to_c(&to_cpp(io)->spec());
@@ -1150,7 +1150,7 @@ OIIO_ImageOutput_threads(const OIIO_ImageOutput* io)
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageOutput_has_error(const OIIO_ImageOutput* io)
 {
     return to_cpp(io)->has_error();
@@ -1158,7 +1158,7 @@ OIIO_ImageOutput_has_error(const OIIO_ImageOutput* io)
 
 
 
-void
+OIIO_API void
 OIIO_ImageOutput_geterror(const OIIO_ImageOutput* io, char* msg,
                           int buffer_length, bool clear)
 {
@@ -1168,7 +1168,7 @@ OIIO_ImageOutput_geterror(const OIIO_ImageOutput* io, char* msg,
 
 
 
-bool
+OIIO_API bool
 OIIO_ImageOutput_write_image(OIIO_ImageOutput* io, OIIO_TypeDesc format,
                              const void* data, stride_t xstride,
                              stride_t ystride, stride_t zstride,
@@ -1183,7 +1183,7 @@ OIIO_ImageOutput_write_image(OIIO_ImageOutput* io, OIIO_TypeDesc format,
 
 
 
-int
+OIIO_API int
 OIIO_openimageio_version()
 {
     return OIIO::openimageio_version();
@@ -1191,7 +1191,7 @@ OIIO_openimageio_version()
 
 
 
-bool
+OIIO_API bool
 OIIO_haserror()
 {
     return OIIO::has_error();
@@ -1199,7 +1199,7 @@ OIIO_haserror()
 
 
 
-void
+OIIO_API void
 OIIO_geterror(char* msg, int buffer_length, bool clear)
 {
     std::string errorstring = OIIO::geterror(clear);

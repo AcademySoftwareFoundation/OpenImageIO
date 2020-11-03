@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define OpenImageIO_EXPORTS
 #include <OpenImageIO/export.h>
 
 #include "c-paramlist.h"
