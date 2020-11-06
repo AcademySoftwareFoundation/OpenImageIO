@@ -96,7 +96,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Custom file input stream, copying code from the class StdIFStream in OpenEXR,
 // which would have been used if we just provided a filename. The difference is
 // that this can handle UTF-8 file paths on all platforms.
-class OpenEXRInputStream : public Imf::IStream {
+class OpenEXRInputStream final : public Imf::IStream {
 public:
     OpenEXRInputStream(const char* filename, Filesystem::IOProxy* io)
         : Imf::IStream(filename)
@@ -538,7 +538,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     if (initialized)
         return ok;
 
-    ImageInput::lock_guard lock(in->m_mutex);
+    ImageInput::lock_guard lock(*in);
     OIIO_DASSERT(header);
     spec = ImageSpec();
 
@@ -1044,9 +1044,7 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in,
     for (int c = 0; c < spec.nchannels; ++c) {
         spec.channelnames.push_back(cnh[c].fullname);
         spec.channelformats.push_back(cnh[c].datatype);
-        spec.format = TypeDesc(ImageBufAlgo::type_merge(
-            TypeDesc::BASETYPE(spec.format.basetype),
-            TypeDesc::BASETYPE(cnh[c].datatype.basetype)));
+        spec.format = TypeDesc::basetype_merge(spec.format, cnh[c].datatype);
         pixeltype.push_back(cnh[c].exr_data_type);
         chanbytes.push_back(cnh[c].datatype.size());
         all_one_format &= (cnh[c].datatype == cnh[0].datatype);
@@ -1226,7 +1224,7 @@ OpenEXRInput::spec(int subimage, int miplevel)
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         if (!part.initialized) {
             if (!seek_subimage(subimage, miplevel))
                 return ret;
@@ -1251,7 +1249,7 @@ OpenEXRInput::spec_dimensions(int subimage, int miplevel)
     if (!part.initialized) {
         // Only if this subimage hasn't yet been inventoried do we need
         // to lock and seek.
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         if (!seek_subimage(subimage, miplevel))
             return ret;
     }
@@ -1306,7 +1304,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                     int yend, int /*z*/, int chbegin, int chend,
                                     void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
@@ -1364,7 +1362,7 @@ bool
 OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     return read_native_tiles(subimage, miplevel, x, x + m_spec.tile_width, y,
@@ -1379,7 +1377,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                 int xend, int ybegin, int yend, int zbegin,
                                 int zend, void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
@@ -1393,7 +1391,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                 int xend, int ybegin, int yend, int zbegin,
                                 int zend, int chbegin, int chend, void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
@@ -1571,7 +1569,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
                                          int yend, int /*z*/, int chbegin,
                                          int chend, DeepData& deepdata)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (m_deep_scanline_input_part == NULL) {
@@ -1643,7 +1641,7 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                                      int /*zbegin*/, int /*zend*/, int chbegin,
                                      int chend, DeepData& deepdata)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (m_deep_tiled_input_part == NULL) {

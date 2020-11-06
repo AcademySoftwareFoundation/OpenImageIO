@@ -252,14 +252,19 @@ just exist in the OIIO namespace as general utilities. (See
 .. doxygenfunction:: openimageio_version
 
 
-.. cpp:function:: std::string OIIO::geterror ()
+.. cpp:function:: bool OIIO::has_error ()
+
+    Is there a pending global error message waiting to be retrieved?
+
+.. cpp:function:: std::string OIIO::geterror (bool clear = true)
 
     Returns any error string describing what went wrong if
     `ImageInput::create()` or `ImageOutput::create()` failed (since in such
-    cases, the `ImageInput` or `ImageOutput` itself does not exist to have
-    its own `geterror()` function called). This function returns the last
-    error for this particular thread; separate threads will not clobber each
-    other's global error messages.
+    cases, the ImageInput or ImageOutput itself does not exist to have its
+    own `geterror()` function called). This function returns the last error
+    for this particular thread, and clear the pending error message unless
+    `clear` is false; separate threads will not clobber each other's global
+    error messages.
 
 
 

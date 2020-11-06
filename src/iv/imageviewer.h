@@ -54,7 +54,7 @@ class IvGL;
 class ImageViewer;
 
 
-class IvImage : public ImageBuf {
+class IvImage final : public ImageBuf {
 public:
     IvImage(const std::string& filename,
             const ImageSpec* input_config = nullptr);
@@ -134,7 +134,7 @@ private:
 
 
 
-class ImageViewer : public QMainWindow {
+class ImageViewer final : public QMainWindow {
     Q_OBJECT
 
 public:
@@ -404,7 +404,7 @@ private:
 
 
 
-class IvInfoWindow : public QDialog {
+class IvInfoWindow final : public QDialog {
     Q_OBJECT
 public:
     IvInfoWindow(ImageViewer& viewer, bool visible = true);
@@ -424,7 +424,7 @@ private:
 
 
 
-class IvPreferenceWindow : public QDialog {
+class IvPreferenceWindow final : public QDialog {
     Q_OBJECT
 public:
     IvPreferenceWindow(ImageViewer& viewer);

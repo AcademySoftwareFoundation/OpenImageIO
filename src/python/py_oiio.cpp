@@ -244,6 +244,8 @@ oiio_getattribute_typed(const std::string& name, TypeDesc type = TypeUnknown)
 
 OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
 {
+    using namespace pybind11::literals;
+
     // Basic helper classes
     declare_typedesc(m);
     declare_paramvalue(m);
@@ -261,7 +263,7 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
     declare_imagebufalgo(m);
 
     // Global (OpenImageIO scope) functions and symbols
-    m.def("geterror", &OIIO::geterror);
+    m.def("geterror", &OIIO::geterror, "clear"_a = true);
     m.def("attribute", [](const std::string& name, float val) {
         OIIO::attribute(name, val);
     });

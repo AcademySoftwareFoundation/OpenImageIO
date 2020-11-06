@@ -86,13 +86,13 @@ public:
     virtual int current_subimage(void) const override
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_emulate_mipmap ? 0 : m_subimage;
     }
     virtual int current_miplevel(void) const override
     {
         // If m_emulate_mipmap is true, pretend subimages are mipmap levels
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_emulate_mipmap ? m_subimage : 0;
     }
     virtual bool seek_subimage(int subimage, int miplevel) override;
@@ -469,7 +469,7 @@ OIIO_PLUGIN_EXPORTS_END
 
 // Someplace to store an error message from the TIFF error handler
 // To avoid thread oddities, we have the storage area buffering error
-// messages for seterror()/geterror() be thread-specific.
+// messages be thread-specific.
 static thread_local std::string thread_error_msg;
 static atomic_int handler_set;
 static spin_mutex handler_mutex;
@@ -728,8 +728,21 @@ ImageSpec
 TIFFInput::spec(int subimage, int miplevel)
 {
     ImageSpec ret;
-    int s = m_emulate_mipmap ? miplevel : subimage;
-    lock_guard lock(m_mutex);
+
+    // s == index of the spec list to retrieve. Start by presuming it's
+    // the sublevel number.
+    int s = subimage;
+    if (m_emulate_mipmap) {
+        // This is the kind of TIFF file where we are emulating MIPmap
+        // levels with TIFF subimages.
+        if (subimage != 0)
+            return ret;  // Invalid subimage request, return the empty spec
+        // Index into the spec list by miplevel instead, because that's
+        // what it really contains.
+        s = miplevel;
+    }
+
+    lock_guard lock(*this);
     if (s >= 0 && s < int(m_subimage_specs.size())
         && !m_subimage_specs[s].undefined()) {
         // If we've cached this spec, we don't need to seek and read
@@ -747,8 +760,21 @@ ImageSpec
 TIFFInput::spec_dimensions(int subimage, int miplevel)
 {
     ImageSpec ret;
-    int s = m_emulate_mipmap ? miplevel : subimage;
-    lock_guard lock(m_mutex);
+
+    // s == index of the spec list to retrieve. Start by presuming it's
+    // the sublevel number.
+    int s = subimage;
+    if (m_emulate_mipmap) {
+        // This is the kind of TIFF file where we are emulating MIPmap
+        // levels with TIFF subimages.
+        if (subimage != 0)
+            return ret;  // Invalid subimage request, return the empty spec
+        // Index into the spec list by miplevel instead, because that's
+        // what it really contains.
+        s = miplevel;
+    }
+
+    lock_guard lock(*this);
     if (s >= 0 && s < int(m_subimage_specs.size())
         && !m_subimage_specs[s].undefined()) {
         // If we've cached this spec, we don't need to seek and read
@@ -1422,7 +1448,7 @@ bool
 TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                 void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     y -= m_spec.y;
@@ -1452,10 +1478,13 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     int nvals = m_spec.width * m_inputchannels;
     m_scratch.resize(nvals * m_spec.format.size());
 
+    // How many color planes to read
+    int planes = m_separate ? m_inputchannels : 1;
+
     // For compression modes that don't support random access to scanlines
     // (which I *think* is only LZW), we need to emulate random access by
     // re-seeking.
-    if (m_no_random_access) {
+    if (m_no_random_access && m_next_scanline != y) {
         if (m_next_scanline > y) {
             // User is trying to read an earlier scanline than the one we're
             // up to.  Easy fix: start over.
@@ -1483,9 +1512,12 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
         while (m_next_scanline < y) {
             // Keep reading until we're read the scanline we really need
-            if (TIFFReadScanline(m_tif, &m_scratch[0], m_next_scanline) < 0) {
-                errorf("%s", oiio_tiff_last_error());
-                return false;
+            for (int c = 0; c < planes; ++c) { /* planes==1 for contig */
+                if (TIFFReadScanline(m_tif, &m_scratch[0], m_next_scanline, c)
+                    < 0) {
+                    errorf("%s", oiio_tiff_last_error());
+                    return false;
+                }
             }
             ++m_next_scanline;
         }
@@ -1506,7 +1538,6 @@ TIFFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     // Not palette...
 
     int plane_bytes = m_spec.width * m_spec.format.size();
-    int planes      = m_separate ? m_inputchannels : 1;
     int input_bytes = plane_bytes * m_inputchannels;
     // Where to read?  Directly into user data if no channel shuffling, bit
     // shifting, or CMYK conversion is needed, otherwise into scratch space.
@@ -1611,7 +1642,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // parallelize by reading raw (compressed) strips then making calls to
     // zlib ourselves to decompress. Don't bother trying to handle any of
     // the uncommon cases with strips. This covers most real-world cases.
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     yend        = std::min(yend, spec().y + spec().height);
@@ -1732,15 +1763,18 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         // "separate" planarconfig.
         int strips_in_file = (m_spec.height + m_rowsperstrip - 1)
                              / m_rowsperstrip;
-        for (size_t stripidx = 0; y + m_rowsperstrip <= yend;
-             y += m_rowsperstrip, ++stripidx) {
+        for (size_t stripidx = 0; y < yend; y += m_rowsperstrip, ++stripidx) {
+            int myrps       = std::min(yend - y, m_rowsperstrip);
+            int strip_endy  = std::min(y + m_rowsperstrip, yend);
+            int mystripvals = m_spec.width * stripchans * (strip_endy - y);
+            imagesize_t mystrip_bytes = mystripvals * m_spec.format.size();
             for (int c = 0; c < planes; ++c) {
                 tstrip_t stripnum = ((y - m_spec.y) / m_rowsperstrip)
                                     + c * strips_in_file;
                 tsize_t csize = TIFFReadEncodedStrip(m_tif, stripnum,
                                                      (char*)data
-                                                         + c * strip_bytes,
-                                                     tmsize_t(strip_bytes));
+                                                         + c * mystrip_bytes,
+                                                     tmsize_t(mystrip_bytes));
                 if (csize < 0) {
                     std::string err = oiio_tiff_last_error();
                     errorf(
@@ -1750,18 +1784,18 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                 }
             }
             if (m_photometric == PHOTOMETRIC_MINISWHITE)
-                invert_photometric(stripvals * planes, data);
+                invert_photometric(mystripvals * planes, data);
             if (m_separate) {
                 // handle "separate" planarconfig: copy to temp area, then
                 // separate_to_contig it back.
                 char* sepbuf = separate_tmp.get()
-                               + stripidx * strip_bytes * planes;
-                memcpy(sepbuf, data, strip_bytes * planes);
-                separate_to_contig(planes, m_spec.width * m_rowsperstrip,
+                               + stripidx * mystrip_bytes * planes;
+                memcpy(sepbuf, data, mystrip_bytes * planes);
+                separate_to_contig(planes, m_spec.width * myrps,
                                    (unsigned char*)sepbuf,
                                    (unsigned char*)data);
             }
-            data = (char*)data + strip_bytes * planes;
+            data = (char*)data + mystrip_bytes * planes;
         }
     }
 
@@ -1783,7 +1817,7 @@ bool
 TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                             void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     x -= m_spec.x;
@@ -1882,7 +1916,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
@@ -2007,7 +2041,7 @@ TIFFInput::read_scanline(int y, int z, TypeDesc format, void* data,
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             if (format
                 == TypeUnknown)  // unknown means retrieve the native type
                 format = m_spec.format;
@@ -2039,7 +2073,7 @@ TIFFInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         // read_native_blah.
         int nchannels, alpha_channel, z_channel, width;
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             seek_subimage(subimage, miplevel);
             nchannels     = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;
@@ -2077,7 +2111,7 @@ TIFFInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             if (format
                 == TypeUnknown)  // unknown means retrieve the native type
                 format = m_spec.format;
@@ -2110,7 +2144,7 @@ TIFFInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
         // read_native_blah.
         int nchannels, alpha_channel, z_channel;
         {
-            lock_guard lock(m_mutex);
+            lock_guard lock(*this);
             seek_subimage(subimage, miplevel);
             nchannels     = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;

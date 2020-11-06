@@ -98,9 +98,9 @@ source src/build-scripts/build_pybind11.bash
 #export pybind11_ROOT=$PWD/ext/dist
 
 
-curl --location https://ffmpeg.zeranoe.com/builds/win64/dev/ffmpeg-4.2.1-win64-dev.zip -o ffmpeg-dev.zip
-unzip ffmpeg-dev.zip
-FFmpeg_ROOT=$PWD/ffmpeg-4.2.1-win64-dev
+# curl --location https://ffmpeg.zeranoe.com/builds/win64/dev/ffmpeg-4.2.1-win64-dev.zip -o ffmpeg-dev.zip
+# unzip ffmpeg-dev.zip
+# FFmpeg_ROOT=$PWD/ffmpeg-4.2.1-win64-dev
 
 echo "CMAKE_PREFIX_PATH = $CMAKE_PREFIX_PATH"
 

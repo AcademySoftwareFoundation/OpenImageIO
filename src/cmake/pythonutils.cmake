@@ -4,7 +4,7 @@
 
 # Python-related options.
 option (USE_PYTHON "Build the Python bindings" ON)
-set (PYTHON_VERSION "2.7" CACHE STRING "Target version of python to find")
+set (PYTHON_VERSION "" CACHE STRING "Target version of python to find")
 option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
 option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
 set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namespace")
@@ -12,10 +12,6 @@ set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namesp
 
 # Find Python. This macro should only be called if python is required. If
 # Python cannot be found, it will be a fatal error.
-# Variables set by this macro:
-#    PYTHON_INCLUDES_PATH - directory where python headers are found
-#    PYTHON_LIBRARIES     - python libraries to link
-#    PYTHON_SITE_DIR      - our own install dir where our python modules go
 macro (find_python)
     if (NOT VERBOSE)
         set (PythonInterp_FIND_QUIETLY true)
@@ -24,30 +20,37 @@ macro (find_python)
 
     # Attempt to find the desired version, but fall back to other
     # additional versions.
-    checked_find_package (PythonInterp ${PYTHON_VERSION} REQUIRED)
+    unset (_req)
+    if (USE_PYTHON)
+        set (_req REQUIRED)
+        if (PYTHON_VERSION)
+            list (APPEND _req EXACT)
+        endif ()
+    endif ()
+    checked_find_package (Python ${PYTHON_VERSION}
+                          ${_req}
+                          COMPONENTS Interpreter Development
+                          PRINT Python_VERSION Python_EXECUTABLE
+                                Python_LIBRARIES
+                                Python_Development_FOUND
+                                Python_Interpreter_FOUND )
 
     # The version that was found may not be the default or user
     # defined one.
-    set (PYTHON_VERSION_FOUND ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
+    set (PYTHON_VERSION_FOUND ${Python_VERSION_MAJOR}.${Python_VERSION_MINOR})
 
-    if (NOT ${PYTHON_VERSION} VERSION_EQUAL ${PYTHON_VERSION_FOUND} )
-        message (WARNING "The requested version ${PYTHON_VERSION} was not found.") 
-        message (WARNING "Using ${PYTHON_VERSION_FOUND} instead.")
-    endif ()
-
-    checked_find_package (PythonLibs ${PYTHON_VERSION_FOUND} REQUIRED)
-    if (VERBOSE)
-        message (STATUS "    Python include dirs ${PYTHON_INCLUDE_PATH}")
-        message (STATUS "    Python libraries    ${PYTHON_LIBRARIES}")
-        message (STATUS "    Python site packages dir ${PYTHON_SITE_DIR}")
-        message (STATUS "    Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
-        message (STATUS "    Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
-        message (STATUS "    Python version ${PYTHON_VERSION_STRING}")
-        message (STATUS "    Python version major: ${PYTHON_VERSION_MAJOR} minor: ${PYTHON_VERSION_MINOR}")
-    endif ()
+    # Give hints to subsequent pybind11 searching to ensure that it finds
+    # exactly the same version that we found.
+    set (PythonInterp_FIND_VERSION PYTHON_VERSION_FOUND)
+    set (PythonInterp_FIND_VERSION_MAJOR ${Python_VERSION_MAJOR})
 
     if (NOT DEFINED PYTHON_SITE_DIR)
         set (PYTHON_SITE_DIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_FOUND}/site-packages")
+    endif ()
+    if (VERBOSE)
+        message (STATUS "    Python site packages dir ${PYTHON_SITE_DIR}")
+        message (STATUS "    Python to include 'lib' prefix: ${PYLIB_LIB_PREFIX}")
+        message (STATUS "    Python to include SO version: ${PYLIB_INCLUDE_SONAME}")
     endif ()
 endmacro()
 
@@ -69,16 +72,12 @@ macro (setup_python_module)
     # Add the library itself
     add_library (${target_name} MODULE ${lib_SOURCES})
 
-    # Set up include dirs for python & pybind11
-    target_include_directories (${target_name} SYSTEM PRIVATE ${PYTHON_INCLUDE_PATH})
-
     # Declare the libraries it should link against
     target_link_libraries (${target_name} PRIVATE
-                           pybind11::pybind11 ${lib_LIBS} ${SANITIZE_LIBRARIES})
+                           Python::Python pybind11::pybind11
+                           ${lib_LIBS} ${SANITIZE_LIBRARIES})
     if (APPLE)
         set_target_properties (${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-    else ()
-        target_link_libraries (${target_name} PRIVATE ${PYTHON_LIBRARIES})
     endif ()
 
     # Exclude the 'lib' prefix from the name

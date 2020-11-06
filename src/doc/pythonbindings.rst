@@ -1147,7 +1147,7 @@ the Python versions allocate and return an array holding the pixel values
     explicit subimage/miplevel.
 
 
-.. py:method:: ImageInput.geterror ()
+.. py:method:: ImageInput.geterror (clear = True)
 
     Retrieves the error message from the latest failed operation on an
     ImageInput.
@@ -1454,7 +1454,7 @@ ImageOutput class APIs. The Python APIs are very similar.
         input.close ()
 
 
-.. py:method:: ImageOuput.geterror ()
+.. py:method:: ImageOuput.geterror (clear = True)
 
     Retrieves the error message from the latest failed operation on an open
     file.
@@ -2053,7 +2053,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
     This field will be `True` if an error has occurred in the ImageBuf.
 
-.. py:method::  ImageBuf.geterror ()
+.. py:method::  ImageBuf.geterror (clear = True)
 
     Retrieve the error message (and clear the `has_error` flag).
 
@@ -3429,6 +3429,10 @@ Import / export
     of supported configuration options is given in
     Section :ref:`sec-iba-importexport`.
 
+    The return value is True for success, False if errors occurred, in which
+    case the error message will be retrievable from the global
+    `oiio.geterror()`.
+
     Example:
 
     .. code-block:: python
@@ -3436,15 +3440,19 @@ Import / export
         # This command line:
         #    maketx in.exr --hicomp --filter lanczos3 --opaque-detect \
         #             -o texture.exr
-        # is equivalent to:
-    
-        Input = ImageBuf ("in.exr")
-        config = ImageSpec()
+        # performs the same operations as:
+
+        import OpenImageIO as oiio
+
+        Input = oiio.ImageBuf ("in.exr")
+        config = oiio.ImageSpec()
         config.attribute ("maketx:highlightcomp", 1)
         config.attribute ("maketx:filtername", "lanczos3")
         config.attribute ("maketx:opaque_detect", 1)
-        ImageBufAlgo.make_texture (oiio.MakeTxTexture, Input,
-                                   "texture.exr", config)
+        ok = oiio.ImageBufAlgo.make_texture (oiio.MakeTxTexture, Input,
+                                        "texture.exr", config)
+        if not ok :
+            print("error:", oiio.geterror())
 
 
 
@@ -3568,7 +3576,7 @@ details.
     OpenImageIO 1.2.3 would return a value of 10203.
 
 
-.. py:method:: geterror()
+.. py:method:: geterror(clear = True)
 
     Retrieves the latest global error, as a string.
 

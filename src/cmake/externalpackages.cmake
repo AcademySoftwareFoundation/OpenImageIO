@@ -32,11 +32,12 @@ option (BUILD_MISSING_DEPS "Try to download and build any missing dependencies" 
 
 ###########################################################################
 # Boost setup
+if (MSVC)
+    # Disable automatic linking using pragma comment(lib,...) of boost libraries upon including of a header
+    add_definitions (-DBOOST_ALL_NO_LIB=1)
+endif ()
 if (LINKSTATIC)
-    set (Boost_USE_STATIC_LIBS ON)
-    if (MSVC)
-        add_definitions (-DBOOST_ALL_NO_LIB=1)
-    endif ()
+    set (Boost_USE_STATIC_LIBS ON)    
 else ()
     if (MSVC)
         add_definitions (-DBOOST_ALL_DYN_LINK=1)
@@ -113,10 +114,14 @@ endif ()
 # allow this to be overridden to use the distro-provided package if desired.
 option (USE_EXTERNAL_PUGIXML "Use an externally built shared library version of the pugixml library" OFF)
 if (USE_EXTERNAL_PUGIXML)
-    checked_find_package (pugixml REQUIRED
+    checked_find_package (pugixml 1.8 REQUIRED
                           DEFINITIONS -DUSE_EXTERNAL_PUGIXML=1)
+else ()
+    message (STATUS "Using internal PugiXML")
 endif()
 
+# From pythonutils.cmake
+find_python()
 
 
 ###########################################################################
@@ -158,13 +163,13 @@ checked_find_package (Libheif 1.3)  # For HEIF/HEIC format
 checked_find_package (LibRaw
                       PRINT LibRaw_r_LIBRARIES
                       RECOMMEND_MIN 0.18
-                      RECOMMEND_MIN_REASON "for ACES support")
+                      RECOMMEND_MIN_REASON "for ACES support and better camera metadata")
 checked_find_package (OpenJpeg 2.0)
 checked_find_package (OpenVDB 5.0
                    DEPS         TBB
                    DEFINITIONS  -DUSE_OPENVDB=1)
 checked_find_package (PTex)
-checked_find_package (Webp)
+checked_find_package (WebP)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
 checked_find_package (R3DSDK)  # RED camera

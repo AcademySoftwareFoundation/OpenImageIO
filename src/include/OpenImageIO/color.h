@@ -89,10 +89,10 @@ public:
     /// (This will not affect the error state.)
     bool error() const;
 
-    /// This routine will return the error string (and clear any error
-    /// flags).  If no error has occurred since the last time geterror()
-    /// was called, it will return an empty string.
-    std::string geterror();
+    /// This routine will return the error string (and by default, clear any
+    /// error flags).  If no error has occurred since the last time
+    /// geterror() was called, it will return an empty string.
+    std::string geterror(bool clear = true);
 
     /// Get the number of ColorSpace(s) defined in this configuration
     int getNumColorSpaces() const;

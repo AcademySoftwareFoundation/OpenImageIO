@@ -15,7 +15,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Required dependencies -- OIIO will not build at all without these
 
  * C++11 (also builds with C++14 and C++17)
- * Compilers: gcc 4.8.2 - 10.2, clang 3.3 - 10.0, MSVS 2015 - 2019,
+ * Compilers: gcc 4.8.2 - 10.2, clang 3.3 - 11, MSVS 2015 - 2019,
    icc version 13 or higher
  * CMake >= 3.12 (tested through 3.18)
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.5)
@@ -49,7 +49,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
        stability and thread safety)
  * If you want support for HEIF/HEIC images:
-     * libheif >= 1.3 (tested through 1.8; older versions may also work, we
+     * libheif >= 1.3 (tested through 1.9; older versions may also work, we
        haven't tested)
  * If you want support for DDS files:
      * libsquish >= 1.13 (tested through 1.15)
@@ -59,6 +59,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for OpenColorIO color transformations:
      * OpenColorIO >= 1.1 (also tested against the current master that will
        become OCIO 2.0).
+ * We use PugiXML for XML parsing. There is a version embedded in the OIIO
+   tree, but if you want to use an external, system-installed version (as
+   may be required by some software distrbutions with policies against
+   embedding other projects), then just build with `-DUSE_EXTERNAL_PUGIXML=1`.
+   Any PugiXML >= 1.8 should be fine.
 
 
 

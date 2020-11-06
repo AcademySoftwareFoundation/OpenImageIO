@@ -24,9 +24,9 @@ sudo yum install -y ffmpeg ffmpeg-devel && true
 
 
 
-if [[ "$CXX" == "clang++" ]] ; then
-    source src/build-scripts/build_llvm.bash
-fi
+# if [[ "$CXX" == "clang++" ]] ; then
+#     source src/build-scripts/build_llvm.bash
+# fi
 
 
 src/build-scripts/install_test_images.bash
@@ -39,6 +39,11 @@ fi
 
 if [[ "$LIBTIFF_VERSION" != "" ]] ; then
     source src/build-scripts/build_libtiff.bash
+fi
+
+if [[ "$PUGIXML_VERSION" != "" ]] ; then
+    source src/build-scripts/build_pugixml.bash
+    export MY_CMAKE_FLAGS+=" -DUSE_EXTERNAL_PUGIXML=1 "
 fi
 
 if [[ "$OPENCOLORIO_VERSION" != "" ]] ; then

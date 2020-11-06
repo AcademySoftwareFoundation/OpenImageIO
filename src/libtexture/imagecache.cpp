@@ -567,9 +567,17 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
             if (tempspec.tile_width == 0 || tempspec.tile_height == 0) {
                 si.untiled   = true;
                 int autotile = imagecache().autotile();
+                // Special consideration: for TIFF files, there is extra
+                // efficiency from making our fake tiles correspond to the
+                // strips. (N.B.: for non-TIFF files, this attribute will
+                // be absent and thus default to 0.)
+                int rps = tempspec["tiff:RowsPerStrip"].get<int>();
+                if (rps > 1)
+                    autotile = round_to_multiple(std::max(autotile, 64), rps);
+                si.autotiled = (autotile != 0);
                 if (autotile) {
                     // Automatically make it appear as if it's tiled
-                    if (imagecache().autoscanline()) {
+                    if (imagecache().autoscanline() || rps > 1) {
                         tempspec.tile_width = tempspec.width;
                     } else {
                         tempspec.tile_width = std::min(tempspec.width,
@@ -581,8 +589,6 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                 } else {
                     // Don't auto-tile -- which really means, make it look like
                     // a single tile that's as big as the whole image.
-                    // We round to a power of 2 because the texture system
-                    // currently requires power of 2 tile sizes.
                     tempspec.tile_width  = tempspec.width;
                     tempspec.tile_height = tempspec.height;
                     tempspec.tile_depth  = tempspec.depth;
@@ -959,7 +965,7 @@ ImageCacheFile::read_untiled(ImageCachePerThreadInfo* thread_info,
     spec.auto_stride(xstride, ystride, zstride, format, nchans, tw, th);
 
     bool ok = true;
-    if (imagecache().autotile()) {
+    if (subimageinfo(subimage).autotiled) {
         // Auto-tile is on, with a tile size that isn't the whole image.
         // We're only being asked for one tile, but since it's a
         // scanline image, we are forced to read (at the very least) a
@@ -3115,8 +3121,10 @@ ImageCacheImpl::get_tile(ImageHandle* file, Perthread* thread_info,
     x         = spec.x + xtile * spec.tile_width;
     y         = spec.y + ytile * spec.tile_height;
     z         = spec.z + ztile * spec.tile_depth;
-    if (chend < chbegin)
-        chend = spec.nchannels;
+    if (chend < chbegin) {  // chend < chbegin means "all channels."
+        chbegin = 0;
+        chend   = spec.nchannels;
+    }
     TileID id(*file, subimage, miplevel, x, y, z, chbegin, chend);
     if (find_tile(id, thread_info, true)) {
         ImageCacheTileRef tile(thread_info->tile);
@@ -3210,8 +3218,10 @@ ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
         error("Cannot add_tile to a UDIM-like virtual file");
         return false;
     }
-    if (chend < chbegin)
-        chend = file->spec(subimage, miplevel).nchannels;
+    if (chend < chbegin) {  // chend < chbegin means "all channels."
+        chbegin = 0;
+        chend   = file->spec(subimage, miplevel).nchannels;
+    }
     TileID tileid(*file, subimage, miplevel, x, y, z, chbegin, chend);
     ImageCacheTileRef tile = new ImageCacheTile(tileid, buffer, format, xstride,
                                                 ystride, zstride, copy);
@@ -3557,14 +3567,24 @@ ImageCacheImpl::purge_perthread_microcaches()
 
 
 
+bool
+ImageCacheImpl::has_error() const
+{
+    std::string* errptr = m_errormessage.get();
+    return (errptr && errptr->size());
+}
+
+
+
 std::string
-ImageCacheImpl::geterror() const
+ImageCacheImpl::geterror(bool clear) const
 {
     std::string e;
     std::string* errptr = m_errormessage.get();
     if (errptr) {
         e = *errptr;
-        errptr->clear();
+        if (clear)
+            errptr->clear();
     }
     return e;
 }
@@ -3572,8 +3592,10 @@ ImageCacheImpl::geterror() const
 
 
 void
-ImageCacheImpl::append_error(const std::string& message) const
+ImageCacheImpl::append_error(string_view message) const
 {
+    if (message.size() && message.back() == '\n')
+        message.remove_suffix(1);
     std::string* errptr = m_errormessage.get();
     if (!errptr) {
         errptr = new std::string;
@@ -3583,7 +3605,7 @@ ImageCacheImpl::append_error(const std::string& message) const
     OIIO_DASSERT(
         errptr->size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
-    if (errptr->size())
+    if (errptr->size() && errptr->back() != '\n')
         *errptr += '\n';
     *errptr += message;
 }

@@ -43,7 +43,7 @@ public:
 
     virtual int current_subimage(void) const override
     {
-        lock_guard lock(m_mutex);
+        lock_guard lock(*this);
         return m_subimage;
     }
     virtual int current_miplevel(void) const override
@@ -164,7 +164,7 @@ bool
 GIFInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
 
@@ -210,6 +210,7 @@ GIFInput::read_gif_extension(int ext_code, GifByteType* ext, ImageSpec& newspec)
         // http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#application_extension_block
         if (ext[0] == 3) {
             newspec.attribute("gif:LoopCount", (ext[3] << 8) | ext[2]);
+            newspec.attribute("oiio:LoopCount", (ext[3] << 8) | ext[2]);
         }
     }
 }

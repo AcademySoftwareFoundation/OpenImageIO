@@ -3,7 +3,7 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 cmake_minimum_required (VERSION 3.12)
-project (OpenImageIO VERSION 2.3.0.0
+project (OpenImageIO VERSION 2.3.1.0
          HOMEPAGE_URL "https://openimageio.org"
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
@@ -113,11 +113,12 @@ include (compiler)
 
 include (oiio_macros)
 
+# Utilities related to finding python and making python bindings
+include (pythonutils)
+
 # All the dependency finding and options are here
 include (externalpackages)
 
-# Utilities related to finding python and making python bindings
-include (pythonutils)
 
 # We want CTest for testing, so this must be added before all the calls to
 # add_subdirectory, or their add_test commands will not register.
@@ -185,7 +186,7 @@ if (NOT EMBEDPLUGINS AND NOT BUILD_OIIOUTIL_ONLY)
     endforeach ()
 endif ()
 
-if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY)
+if (USE_PYTHON AND Python_Development_FOUND AND NOT BUILD_OIIOUTIL_ONLY)
     add_subdirectory (src/python)
 endif ()
 
@@ -438,7 +439,7 @@ oiio_add_tests (tiff-suite tiff-depths tiff-misc
                 IMAGEDIR libtiffpic
                 URL http://www.simplesystems.org/libtiff/images.html)
 oiio_add_tests (webp
-                FOUNDVAR Webp_FOUND ENABLEVAR ENABLE_Webp
+                FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
                 IMAGEDIR oiio-images/webp URL "Recent checkout of oiio-images")
 oiio_add_tests (zfile ENABLEVAR ENABLE_ZFILE
                 IMAGEDIR oiio-images URL "Recent checkout of oiio-images")

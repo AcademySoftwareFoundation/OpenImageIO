@@ -66,13 +66,9 @@ getsym(Handle plugin_handle, const std::string& symbol_name,
 }
 
 /// Return any error messages associated with the last call to any of
-/// open, close, or getsym.  Note that in a multithreaded environment,
-/// it's up to the caller to properly mutex to ensure that no other
-/// thread has called open, close, or getsym (all of which clear or
-/// overwrite the error message) between the error-generating call and
-/// geterror.
+/// open, close, or getsym from the same thread.
 OIIO_API std::string
-geterror(void);
+geterror(bool clear = true);
 
 
 

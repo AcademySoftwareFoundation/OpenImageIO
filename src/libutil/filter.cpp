@@ -39,7 +39,7 @@ OIIO_NAMESPACE_BEGIN
 //    float operator(float,float)      Evaluate the filter
 //
 
-class FilterBox1D : public Filter1D {
+class FilterBox1D final : public Filter1D {
 public:
     FilterBox1D(float width)
         : Filter1D(width)
@@ -55,7 +55,7 @@ public:
 
 
 
-class FilterBox2D : public Filter2D {
+class FilterBox2D final : public Filter2D {
 public:
     FilterBox2D(float width, float height)
         : Filter2D(width, height)
@@ -74,7 +74,7 @@ public:
 
 
 
-class FilterTriangle1D : public Filter1D {
+class FilterTriangle1D final : public Filter1D {
 public:
     FilterTriangle1D(float width)
         : Filter1D(width)
@@ -97,7 +97,7 @@ private:
 
 
 
-class FilterTriangle2D : public Filter2D {
+class FilterTriangle2D final : public Filter2D {
 public:
     FilterTriangle2D(float width, float height)
         : Filter2D(width, height)
@@ -128,7 +128,7 @@ private:
 
 
 
-class FilterGaussian1D : public Filter1D {
+class FilterGaussian1D final : public Filter1D {
 public:
     FilterGaussian1D(float width)
         : Filter1D(width)
@@ -150,7 +150,7 @@ private:
 
 
 
-class FilterGaussian2D : public Filter2D {
+class FilterGaussian2D final : public Filter2D {
 public:
     FilterGaussian2D(float width, float height)
         : Filter2D(width, height)
@@ -181,7 +181,7 @@ private:
 
 
 
-class FilterSharpGaussian1D : public Filter1D {
+class FilterSharpGaussian1D final : public Filter1D {
 public:
     FilterSharpGaussian1D(float width)
         : Filter1D(width)
@@ -203,7 +203,7 @@ private:
 
 
 
-class FilterSharpGaussian2D : public Filter2D {
+class FilterSharpGaussian2D final : public Filter2D {
 public:
     FilterSharpGaussian2D(float width, float height)
         : Filter2D(width, height)
@@ -234,7 +234,7 @@ private:
 
 
 
-class FilterCatmullRom1D : public Filter1D {
+class FilterCatmullRom1D final : public Filter1D {
 public:
     FilterCatmullRom1D(float width)
         : Filter1D(4.0f)
@@ -261,7 +261,7 @@ private:
 
 
 
-class FilterCatmullRom2D : public Filter2D {
+class FilterCatmullRom2D final : public Filter2D {
 public:
     FilterCatmullRom2D(float width, float height)
         : Filter2D(width, height)
@@ -292,7 +292,7 @@ private:
 
 
 
-class FilterBlackmanHarris1D : public Filter1D {
+class FilterBlackmanHarris1D final : public Filter1D {
 public:
     FilterBlackmanHarris1D(float width)
         : Filter1D(width)
@@ -336,7 +336,7 @@ private:
 
 
 
-class FilterBlackmanHarris2D : public Filter2D {
+class FilterBlackmanHarris2D final : public Filter2D {
 public:
     FilterBlackmanHarris2D(float width, float height)
         : Filter2D(width, height)
@@ -367,7 +367,7 @@ private:
 
 
 
-class FilterSinc1D : public Filter1D {
+class FilterSinc1D final : public Filter1D {
 public:
     FilterSinc1D(float width)
         : Filter1D(width)
@@ -393,7 +393,7 @@ private:
 
 
 
-class FilterSinc2D : public Filter2D {
+class FilterSinc2D final : public Filter2D {
 public:
     FilterSinc2D(float width, float height)
         : Filter2D(width, height)
@@ -418,7 +418,7 @@ private:
 
 
 
-class FilterLanczos3_1D : public Filter1D {
+class FilterLanczos3_1D final : public Filter1D {
 public:
     FilterLanczos3_1D(float width)
         : Filter1D(width)
@@ -467,7 +467,7 @@ private:
 
 
 
-class FilterLanczos3_2D : public Filter2D {
+class FilterLanczos3_2D final : public Filter2D {
 public:
     FilterLanczos3_2D(float width, float height)
         : Filter2D(width, height)
@@ -498,10 +498,12 @@ protected:
 
 
 
-class FilterRadialLanczos3_2D : public FilterLanczos3_2D {
+class FilterRadialLanczos3_2D final : public Filter2D {
 public:
     FilterRadialLanczos3_2D(float width, float height)
-        : FilterLanczos3_2D(width, height)
+        : Filter2D(width, height)
+        , m_wscale(6.0f / width)
+        , m_hscale(6.0f / height)
     {
     }
     float operator()(float x, float y) const
@@ -511,12 +513,23 @@ public:
         return FilterLanczos3_1D::lanczos3(sqrtf(x * x + y * y));
     }
     bool separable(void) const { return false; }
+    float xfilt(float x) const
+    {
+        return FilterLanczos3_1D::lanczos3(x * m_wscale);
+    }
+    float yfilt(float y) const
+    {
+        return FilterLanczos3_1D::lanczos3(y * m_hscale);
+    }
     string_view name(void) const { return "radial-lanczos3"; }
+
+protected:
+    float m_wscale, m_hscale;
 };
 
 
 
-class FilterMitchell1D : public Filter1D {
+class FilterMitchell1D final : public Filter1D {
 public:
     FilterMitchell1D(float width)
         : Filter1D(width)
@@ -555,7 +568,7 @@ private:
 
 
 
-class FilterMitchell2D : public Filter2D {
+class FilterMitchell2D final : public Filter2D {
 public:
     FilterMitchell2D(float width, float height)
         : Filter2D(width, height)
@@ -587,7 +600,7 @@ private:
 
 
 // B-spline filter from Stark et al, JGT 10(1)
-class FilterBSpline1D : public Filter1D {
+class FilterBSpline1D final : public Filter1D {
 public:
     FilterBSpline1D(float width)
         : Filter1D(width)
@@ -620,7 +633,7 @@ private:
 
 
 
-class FilterBSpline2D : public Filter2D {
+class FilterBSpline2D final : public Filter2D {
 public:
     FilterBSpline2D(float width, float height)
         : Filter2D(width, height)
@@ -651,7 +664,7 @@ private:
 
 
 
-class FilterDisk2D : public Filter2D {
+class FilterDisk2D final : public Filter2D {
 public:
     FilterDisk2D(float width, float height)
         : Filter2D(width, height)
@@ -737,7 +750,7 @@ protected:
 
 
 
-class FilterKeys1D : public FilterCubic1D {
+class FilterKeys1D final : public FilterCubic1D {
 public:
     FilterKeys1D(float width)
         : FilterCubic1D(width)
@@ -749,7 +762,7 @@ public:
 };
 
 
-class FilterKeys2D : public FilterCubic2D {
+class FilterKeys2D final : public FilterCubic2D {
 public:
     FilterKeys2D(float width, float height)
         : FilterCubic2D(width, height)
@@ -762,7 +775,7 @@ public:
 
 
 
-class FilterSimon1D : public FilterCubic1D {
+class FilterSimon1D final : public FilterCubic1D {
 public:
     FilterSimon1D(float width)
         : FilterCubic1D(width)
@@ -774,7 +787,7 @@ public:
 };
 
 
-class FilterSimon2D : public FilterCubic2D {
+class FilterSimon2D final : public FilterCubic2D {
 public:
     FilterSimon2D(float width, float height)
         : FilterCubic2D(width, height)
@@ -787,7 +800,7 @@ public:
 
 
 
-class FilterRifman1D : public FilterCubic1D {
+class FilterRifman1D final : public FilterCubic1D {
 public:
     FilterRifman1D(float width)
         : FilterCubic1D(width)
@@ -799,7 +812,7 @@ public:
 };
 
 
-class FilterRifman2D : public FilterCubic2D {
+class FilterRifman2D final : public FilterCubic2D {
 public:
     FilterRifman2D(float width, float height)
         : FilterCubic2D(width, height)

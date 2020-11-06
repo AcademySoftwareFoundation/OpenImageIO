@@ -80,7 +80,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
 // Custom file output stream that uses IOProxy for output.
-class OpenEXROutputStream : public Imf::OStream {
+class OpenEXROutputStream final : public Imf::OStream {
 public:
     OpenEXROutputStream(const char* filename, Filesystem::IOProxy* io)
         : Imf::OStream(filename)

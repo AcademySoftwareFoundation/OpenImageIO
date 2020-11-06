@@ -130,16 +130,50 @@ structure:
   will return `false`. Note: When not NULL, the data must point to
   `nchannels` contiguous floats.
 
-- `float bias` :
+..
+  - `float bias` :
   For shadow map lookups only, this gives the "shadow bias" amount.
 
-- `int samples` :
+..
+  - `int samples` :
   For shadow map lookups only, the number of samples to use for the lookup.
 
 - `Wrap rwrap, float rblur, rwidth` :
   Specifies wrap, blur, and width for the third component of 3D volume
   texture lookups.  These are not used for 2D texture or environment
   lookups.
+
+- `MipMode mipmode` :
+  Determines if/how MIP-maps are used:
+
+    - `MipModeDefault`   : The default high-quality lookup (same as Aniso).
+
+    - `MipModeNoMIP`     : Just use highest-res image, no MIP mapping
+
+    - `MipModeOneLevel`  : Use just one mipmap level
+
+    - `MipModeTrilinear` : Use two MIPmap levels (trilinear)
+
+    - `MipModeAniso`     : Use two MIPmap levels w/ anisotropic
+
+- `InterpMode interpmode` :
+  Determines how we sample within a mipmap level:
+
+    - `InterpClosest`      : Force closest texel.
+
+    - `InterpBilinear`     : Force bilinear lookup within a mip level.
+
+    - `InterpBicubic`      : Force cubic lookup within a mip level.
+
+    - `InterpSmartBicubic` : Bicubic when maxifying, else bilinear (default).
+
+- `int anisotropic` :
+  Maximum anisotropic ratio (default: 32).
+
+- `bool conservative_filter` :
+  When true (the default), filters conservatively in a way that chooses to
+  sometimes over-blur rather than alias.
+
 
 
 
@@ -195,19 +229,18 @@ batch of lookups from the same texture at once. The members of
 TextureOptBatch correspond to the similarly named members of the
 single-point TextureOpt, so we refer you to Section :ref:`sec-textureopt`
 for detailed explanations, and this section will only explain the
-differences between batched and single-point options.
+differences between batched and single-point options. Members include:
 
 
-.. cpp:member:: int firstchannel
-                int subimage
-                ustring subimagename
-                Tex::Wrap swrap, twrap, rwrap
-                Tex::MipMode mipmode
-                Tex::InterpMode interpmode
-                int anisotropic
-                bool conservative_filter
-                float fill
-                const float *missingcolor
+- `int firstchannel` :
+- `int subimage, ustring subimagename` :
+- `Wrap swrap, twrap, rwrap` :
+- `float fill` :
+- `const float* missingcolor` :
+- `MipMode mipmode` :
+- `InterpMode interpmode` :
+- `int anisotropic` :
+- `bool conservative_filter` :
 
     These fields are all scalars --- a single value for each TextureOptBatch
     --- which means that the value of these options must be the same for
@@ -216,17 +249,17 @@ differences between batched and single-point options.
     example) differing wrap modes or subimages from point to point, then you
     must split them into separate batch calls.
 
-.. cpp:member:: float sblur[Tex::BatchWidth]
-                float tblur[Tex::BatchWidth]
-                float rblur[Tex::BatchWidth]
+- `float sblur[Tex::BatchWidth]` :
+- `float tblur[Tex::BatchWidth]` :
+- `float rblur[Tex::BatchWidth]` :
 
     These arrays hold the `s`, and `t` blur amounts, for each sample in the
     batch, respectively. (And the `r` blur amount, used only for volumetric
     `texture3d()` lookups.)
 
-.. cpp:member:: float swidth[Tex::BatchWidth]
-                float twidth[Tex::BatchWidth]
-                float rwidth[Tex::BatchWidth]
+- `float swidth[Tex::BatchWidth]` :
+- `float twidth[Tex::BatchWidth]` :
+- `float rwidth[Tex::BatchWidth]` :
 
     These arrays hold the `s`, and `t` filtering width multiplier for
     derivatives, for each sample in the batch, respectively. (And the `r`

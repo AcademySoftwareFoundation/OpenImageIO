@@ -627,6 +627,17 @@ it "Z" so it will be recognized as a depth channel::
 
 
 
+Copy metadata from one image to another
+---------------------------------------
+
+Suppose you have a (non-OIIO) application that consumes input Exr files and
+produces output Exr files, but along the way loses crucial metadata from
+the input files that you want carried along. This command will add all the
+metadata from the first image to the pixels of the second image:
+
+    oiiotool metaonly.exr pixelsonly.exr --pastemeta -o combined.exr
+
+
 Fade between two images
 -----------------------
 
@@ -1250,19 +1261,25 @@ Writing images
 
 .. option:: -d <datatype>
             -d <channelname>=<datatype>
+            -d <subimagename>.*=<datatype>
+            -d <subimagename>.<channelname>=<datatype>
 
     Attempts to set the pixel data type of all subsequent outputs.  If no
-    channel is named, sets *all* channels to be the specified data type.  If
-    a specific channel is named, then the data type will be overridden for
-    just that channel (multiple `-d` commands may be used).
+    channel or subimage name is given, sets *all* channels to be the
+    specified data type.  If a specific channel is named, then the data type
+    will be overridden for just that channel (multiple `-d` commands may be
+    used). If both a subimage name and channel name are specified, the hint
+    is only for the named channel when encountered in a named subimage. And
+    if the specification is of the form `subimagename.*=type`, then all
+    channels of that subimage will be output with the given type.
     
-    Valid types are: `UINT8`, `sint8`, `uint16`, `sint16`, `half`, `float`,
+    Valid types are: `uint8`, `sint8`, `uint16`, `sint16`, `half`, `float`,
     `double`. The types `uint10` and `uint12` may be used to request 10- or
     12-bit unsigned integers.  If the output file format does not support
     them, `uint16` will be substituted.
     
-    If the `-d` option is not supplied, the output data type will be the
-    same as the data format of the input files, if possible.
+    If the `-d` option is not supplied, the output data type will be
+    deduced from the data format of the input files, if possible.
     
     In any case, if the output file type does not support the requested data
     type, it will instead use whichever supported data type results in the
@@ -1586,8 +1603,16 @@ current top image.
 
 .. option:: --siappend
 
-    Replaces the top two images on the stack with a single new image
-    comprised of the subimages of both images appended together.
+    Replaces the top two (or more) images on the stack with a single new
+    multi-subimage comprised of the original images appended together as
+    subimages within the same single image.
+
+    Optional appended modifiers include:
+
+      `:n=` *number-of-subimages*
+        Specify the number (if more than 2) of images to combine into a
+        single multi-subimage image. This will be clamped between 2 and the
+        total number of images on the stack.
 
 .. option:: --siappendall
 
@@ -1617,10 +1642,15 @@ current top image.
 
 .. option:: --chappend
 
-    Replaces the top two images on the stack with a new image comprised of
-    the channels of both images appended together.
+    Replaces the top two (or more) images on the stack with a single new
+    image comprised of the channels of the input images appended together.
 
     Optional appended modifiers include:
+
+      `:n=` *number-of-subimages*
+        Specify the number (if more than 2) of images whose channels should
+        be combined into a single image. This will be clamped between 2 and
+        the total number of images on the stack.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
@@ -2221,6 +2251,23 @@ current top image.
 
         # Merge many non-overlapping "tiles" into one combined image
         oiiotool img*.exr -paste:mergeroi=1:all=1 +0+0 -o combined.exr
+
+
+.. option:: --pastemeta <location>
+
+    Takes two images -- the first will be a source of metadata only, and the
+    second the source of pixels -- and produces a new copy of the second
+    image with the metadata from the first image added.
+
+    The output image's pixels will come only from the second input. Metadata
+    from the second input will be preserved if no identically-named metadata
+    was present in the first input image.
+
+    Examples::
+
+        # Add all the metadata from meta.exr to pixels.exr and write the
+        # combined image to out.exr.
+        oiiotool meta.exr pixels.exr --pastemeta -o out.exr
 
 
 .. option:: --mosaic <size>

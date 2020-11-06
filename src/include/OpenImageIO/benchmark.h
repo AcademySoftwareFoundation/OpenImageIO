@@ -26,7 +26,7 @@ OIIO_NAMESPACE_BEGIN
 /// * Google Benchmark https://github.com/google/benchmark/blob/master/include/benchmark/benchmark_api.h
 
 template <class T>
-OIIO_FORCEINLINE T const& DoNotOptimize (T const &val);
+T const& DoNotOptimize (T const &val);
 
 
 /// clobber_all_memory() is a helper function for timing benchmarks that

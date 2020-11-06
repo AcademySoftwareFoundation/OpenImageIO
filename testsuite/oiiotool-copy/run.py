@@ -34,6 +34,13 @@ command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --cut 100x400+50+200 -
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif "
             + "--pattern checker 256x256 3 --paste +150+75 -o pasted.tif")
 
+# test --pastemeta
+command += oiiotool ("--pattern:type=half constant:color=0,1,0 64x64 3 -o green.exr")
+command += oiiotool ("--pattern:type=half constant:color=1,0,0 64x64 3 -attrib hair brown -attrib eyes 2 -attrib weight 20.5 -o redmeta.exr")
+command += oiiotool ("redmeta.exr green.exr --pastemeta -o greenmeta.exr")
+command += info_command ("green.exr", safematch=True)
+command += info_command ("greenmeta.exr", safematch=True)
+
 # test mosaic
 # Purposely test with fewer images than the mosaic array size
 command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
@@ -50,12 +57,19 @@ command += oiiotool ("--metamerge aimg.exr bimg.exr --chappend -o metamerge.exr"
 command += info_command ("nometamerge.exr", safematch=True)
 command += info_command ("metamerge.exr", safematch=True)
 
+# test --chappend of multiple images
+command += oiiotool ("--pattern constant:color=0.5 64x64 1 --text R --chnames R " +
+                     "--pattern constant:color=0.25,0.75 64x64 2 --text G,B --chnames G,B " +
+                     "--pattern constant:color=1.0 64x64 1 --text A --chnames A " +
+                     "--chappend:n=3 -d half -o chappend-3images.exr")
 
 
 
 # Outputs to check against references
 outputs = [
             "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
+            "greenmeta.exr",
+            "chappend-3images.exr",
             "out.txt"
           ]
 

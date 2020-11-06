@@ -299,6 +299,37 @@ Please consult Section :ref:`ImageInput Class Reference` for detailed
 descriptions of the stride parameters to each ``read`` function.
 
 
+Reading channels to separate buffers
+------------------------------------
+
+While specifying data strides allows writing entire pixels to buffers with
+arbitrary layouts, it is not possible to separate those pixels into multiple
+buffers (i.e. to write image data to a separate or planar memory layout:
+RRRRGGGGBBBB instead of the interleaved RGBRGBRGBRGB).
+
+A workaround for this is to call ``read_scanlines``, ``read_tiles`` or
+``read_image`` repeatedly with arguments ``chbegin`` and ``chend`` of
+``0 <= chbegin < spec.nchannels`` and ``chend == chbegin + 1``::
+
+    // one buffer for all three channels
+    unsigned char pixels[spec.width * spec.height * spec.nchannels];
+
+    for (int channel = 0; channel < spec.nchannels; ++channel) {
+        file->read_image(
+            // reading one channel at a time
+            channel, channel + 1,
+            TypeDesc::UINT8,
+            // writing the data to offsets spaced `spec.width * spec.height`
+            // apart
+            &pixels[spec.width * spec.height * channel]);
+    }
+
+For many formats, this is nearly as fast as reading the image with
+interleaved pixel data if the format stores the pixels in an interleaved
+layout and even slightly faster if the pixels are stored in separate planes
+in the file.
+
+
 Reading metadata
 --------------------------------
 

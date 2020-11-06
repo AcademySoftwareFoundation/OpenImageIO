@@ -503,10 +503,13 @@ despite its technical limitations.
      - Frames per second
    * - ``oiio:Movie``
      - int
-     - If nonzero, indicates that it's an animated GIF.
-   * - ``gif:LoopCount``
+     - If nonzero, indicates that it's a multi-subimage file indended to represent an animation.
+   * - ``oiio:LoopCount``
      - int
      - Number of times the animation should be played (0-65535, 0 stands for infinity).
+   * - ``gif:LoopCount``
+     - int
+     - Deprecated synonym for ``oiio:LoopCount``.
    * - ``ImageDescription``
      - string
      - The GIF comment field.
@@ -728,6 +731,26 @@ anywhere near the acceptance of the original JPEG/JFIF format.
        reader/writer, and you should assume that nearly everything described
        Appendix :ref:`chap-stdmetadata` is properly translated when using
        JPEG files.
+
+**Configuration settings for JPEG output**
+
+When opening a JPEG ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file, will add a small
+       amount of random dither to combat the appearance of banding.
+   * - ``jpeg:progressive``
+     - int
+     - If nonzero, will write a progressive JPEG file.
 
 
 **Limitations**
@@ -2008,8 +2031,31 @@ aware of:
 Webp
 ===============================================
 
-FIXME
+WebP is an image file format developed by Google that is intended to be an
+open standard for lossy-compressed images for use on the web.
 
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - ImageSpec Attribute
+     - Type
+     - WebP header data or explanation
+   * - ``oiio:Movie``
+     - int
+     - If nonzero, indicates that it's a multi-subimage file indended to
+       represent an animation.
+   * - ``oiio:LoopCount``
+     - int
+     - Number of times the animation should be played (0-65535, 0 stands for infinity).
+   * - ``gif:LoopCount``
+     - int
+     - Deprecated synonym for ``oiio:LoopCount``.
+
+**Limitations**
+
+* WebP only supports 3-channel (RGB) or 4-channel (RGBA) images and must
+  be 8-bit unsigned integer pixel values (uint8).
 
 
 |

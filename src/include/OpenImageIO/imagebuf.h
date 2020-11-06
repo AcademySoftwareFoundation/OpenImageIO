@@ -117,7 +117,10 @@ public:
     ///             first subimage of the file, highest-res MIP level).
     /// @param imagecache
     ///             Optionally, a particular ImageCache to use. If nullptr,
-    ///             the default global/shared image cache will be used.
+    ///             the default global/shared image cache will be used. If
+    ///             a custom ImageCache (not the global/shared one), it is
+    ///             important that the IC should not be destroyed while the
+    ///             ImageBuf is still alive.
     /// @param config
     ///             Optionally, a pointer to an ImageSpec whose metadata
     ///             contains configuration hints that set options related
@@ -205,12 +208,12 @@ public:
     void reset() { clear(); }
 
     // Deprecated/useless synonym for `reset(name, 0, 0, imagecache, nullptr)`
-    void reset(string_view name, ImageCache* imagecache = nullptr);
+    void reset(string_view name, ImageCache* imagecache);
 
     /// Destroy any previous contents of the ImageBuf and re-initialize it
     /// as if newly constructed with the same arguments, as a read-only
     /// representation of an existing image file.
-    void reset(string_view name, int subimage, int miplevel,
+    void reset(string_view name, int subimage = 0, int miplevel = 0,
                ImageCache* imagecache       = nullptr,
                const ImageSpec* config      = nullptr,
                Filesystem::IOProxy* ioproxy = nullptr);
@@ -440,6 +443,7 @@ public:
                ProgressCallback progress_callback = nullptr,
                void* progress_callback_data       = nullptr) const;
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
     // DEPRECATED(1.9): old version did not have the data type
     bool write(string_view filename, string_view fileformat,
                ProgressCallback progress_callback = nullptr,
@@ -448,6 +452,7 @@ public:
         return write(filename, TypeUnknown, fileformat, progress_callback,
                      progress_callback_data);
     }
+#endif  // DOXYGEN_SHOULD_SKIP_THIS
 
     /// Set the pixel data format that will be used for subsequent `write()`
     /// calls that do not themselves request a specific data type request.
@@ -783,21 +788,32 @@ public:
     /// read from disk).
     string_view name(void) const;
 
-    /// Return the name of the image file format of the disk file we read
-    /// into this image, for example `"openexr"`.  Returns an empty string
-    /// if this image was not the result of a read().
+    /// Return the name of the image file format of the file this ImageBuf
+    /// refers to (for example `"openexr"`).  Returns an empty string for an
+    /// ImageBuf that was not constructed as a direct reference to a file.
     string_view file_format_name(void) const;
 
-    /// Return the index of the subimage the ImageBuf is currently holding.
+    /// Return the index of the subimage within the file that the ImageBuf
+    /// refers to. This will always be 0 for an ImageBuf that was not
+    /// constructed as a direct reference to a file, or if the file
+    /// contained only one image.
     int subimage() const;
 
-    /// Return the number of subimages in the file.
+    /// Return the number of subimages in the file this ImageBuf refers to.
+    /// This will always be 1 for an ImageBuf that was not constructed as a
+    /// direct reference to a file.
     int nsubimages() const;
 
-    /// Return the index of the miplevel the ImageBuf is currently holding.
+    /// Return the index of the miplevel with a file's subimage that the
+    /// ImageBuf is currently holding. This will always be 0 for an ImageBuf
+    /// that was not constructed as a direct reference to a file, or if the
+    /// subimage within that file was not MIP-mapped.
     int miplevel() const;
 
-    /// Return the number of miplevels of the current subimage.
+    /// Return the number of MIP levels of the current subimage within the
+    /// file this ImageBuf refers to. This will always be 1 for an ImageBuf
+    /// that was not constructed as a direct reference to a file, or if this
+    /// subimage within the file was not MIP-mapped.
     int nmiplevels() const;
 
     /// Return the number of color channels in the image. This is equivalent
@@ -934,11 +950,13 @@ public:
     /// @{
     /// @name Error handling
 
-    /// Add simple string to the error message list for this IB.
-    void error(const std::string& message) const;
+    /// Add simple string to the error message list for this IB. It is not
+    /// necessary to have the error message contain a trailing newline.
+    void error(string_view message) const;
 
-    /// Error reporting for ImageBuf: call this with Python / {fmt} /
-    /// std::format style formatting specification.
+    /// Error reporting for ImageBuf: call this with std::format style
+    /// formatting specification. It is not necessary to have the error
+    /// message contain a trailing newline.
     template<typename... Args>
     void errorfmt(const char* fmt, const Args&... args) const
     {
@@ -946,7 +964,8 @@ public:
     }
 
     /// Error reporting for ImageBuf: call this with printf-like arguments
-    /// to report an error.
+    /// to report an error. It is not necessary to have the error message
+    /// contain a trailing newline.
     template<typename... Args>
     void errorf(const char* fmt, const Args&... args) const
     {
@@ -954,8 +973,9 @@ public:
     }
 
     /// Error reporting for ImageBuf: call this with Strutil::format
-    /// formatting conventions. Beware, this is in transition, is currently
-    /// printf-like but will someday change to python-like!
+    /// formatting conventions.  It is not necessary to have the error
+    /// message contain a trailing newline.Beware, this is in transition, is
+    /// currently printf-like but will someday change to python-like!
     template<typename... Args>
     void error(const char* fmt, const Args&... args) const
     {
@@ -975,10 +995,11 @@ public:
     /// message ready to retrieve via `geterror()`.
     bool has_error(void) const;
 
-    /// Return the text of all error messages issued since `geterror()` was
-    /// called (or an empty string if no errors are pending).  This also
-    /// clears the error message for next time.
-    std::string geterror(void) const;
+    /// Return the text of all pending error messages issued against this
+    /// ImageBuf, and clear the pending error message unless `clear` is
+    /// false. If no error message is pending, it will return an empty
+    /// string.
+    std::string geterror(bool clear = true) const;
 
     /// @}
 

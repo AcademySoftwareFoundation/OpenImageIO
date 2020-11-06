@@ -124,6 +124,10 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
         m_webp_config.quality = 100;
     }
 
+    // Lossless encoding (0=lossy(default), 1=lossless).
+    m_webp_config.lossless
+        = (m_spec.get_string_attribute("compression", "lossy") == "lossless");
+
     // forcing UINT8 format
     m_spec.set_format(TypeDesc::UINT8);
     m_dither = m_spec.get_int_attribute("oiio:dither", 0);

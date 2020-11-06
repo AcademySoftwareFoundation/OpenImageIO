@@ -144,32 +144,32 @@ Oiiotool::clear_options()
     clear_input_config();
     output_dataformat = TypeDesc::UNKNOWN;
     output_channelformats.clear();
-    output_bitspersample        = 0;
-    output_scanline             = false;
-    output_tilewidth            = 0;
-    output_tileheight           = 0;
-    output_compression          = "";
-    output_quality              = -1;
-    output_planarconfig         = "default";
-    output_adjust_time          = false;
-    output_autocrop             = true;
-    output_autotrim             = false;
-    output_dither               = false;
-    output_force_tiles          = false;
-    metadata_nosoftwareattrib   = false;
-    diff_warnthresh             = 1.0e-6f;
-    diff_warnpercent            = 0;
-    diff_hardwarn               = std::numeric_limits<float>::max();
-    diff_failthresh             = 1.0e-6f;
-    diff_failpercent            = 0;
-    diff_hardfail               = std::numeric_limits<float>::max();
-    m_pending_callback          = NULL;
-    m_pending_argc              = 0;
-    frame_number                = 0;
-    frame_padding               = 0;
-    first_input_dataformat      = TypeUnknown;
-    first_input_dataformat_bits = 0;
-    first_input_channelformats.clear();
+    output_bitspersample      = 0;
+    output_scanline           = false;
+    output_tilewidth          = 0;
+    output_tileheight         = 0;
+    output_compression        = "";
+    output_quality            = -1;
+    output_planarconfig       = "default";
+    output_adjust_time        = false;
+    output_autocrop           = true;
+    output_autotrim           = false;
+    output_dither             = false;
+    output_force_tiles        = false;
+    metadata_nosoftwareattrib = false;
+    diff_warnthresh           = 1.0e-6f;
+    diff_warnpercent          = 0;
+    diff_hardwarn             = std::numeric_limits<float>::max();
+    diff_failthresh           = 1.0e-6f;
+    diff_failpercent          = 0;
+    diff_hardfail             = std::numeric_limits<float>::max();
+    m_pending_callback        = NULL;
+    m_pending_argc            = 0;
+    frame_number              = 0;
+    frame_padding             = 0;
+    input_dataformat          = TypeUnknown;
+    input_bitspersample       = 0;
+    input_channelformats.clear();
 }
 
 
@@ -202,13 +202,33 @@ format_resolution(int w, int h, int d, int x, int y, int z)
 }
 
 
+
+// Helper: Remove an optional modifier ":NAME=value" from command string str
+static std::string
+remove_modifier(string_view str, string_view name)
+{
+    std::string sentinel = Strutil::fmt::format(":{}=", name);
+    std::string result;
+    size_t start = str.find(sentinel);
+    if (start != string_view::npos) {
+        size_t end = start + sentinel.size();
+        end        = std::min(str.find(":", end), str.size());
+        result     = Strutil::concat(str.substr(0, start), str.substr(end));
+    } else {
+        result = str;
+    }
+    return result;
+}
+
+
+
 // FIXME -- lots of things we skimped on so far:
 // FIXME: reject volume images?
 // FIXME: do all ops respect -a (or lack thereof?)
 
 
 bool
-Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy)
+Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy, string_view channel_set)
 {
     // If the image is already elaborated, take an early out, both to
     // save time, but also because we only want to do the format and
@@ -223,7 +243,7 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy)
     total_readtime.start();
     if (ot.nativeread)
         readpolicy = ReadPolicy(readpolicy | ReadNative);
-    bool ok = img->read(readpolicy);
+    bool ok = img->read(readpolicy, channel_set);
     total_readtime.stop();
     imagecache->getattribute("stat:fileio_time", post_ic_time);
     total_imagecache_readtime += post_ic_time - pre_ic_time;
@@ -237,18 +257,7 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy)
         output_tileheight = nspec.tile_height;
     }
     // Remember the first input format we encountered.
-    if (first_input_dataformat == TypeUnknown) {
-        first_input_dataformat      = nspec.format;
-        first_input_dataformat_bits = nspec.get_int_attribute(
-            "oiio:BitsPerSample");
-        if (nspec.channelformats.size()) {
-            for (int c = 0; c < nspec.nchannels; ++c) {
-                std::string chname                 = nspec.channelnames[c];
-                first_input_channelformats[chname] = std::string(
-                    nspec.channelformat(c).c_str());
-            }
-        }
-    }
+    remember_input_channelformats(img);
 
     if (!ok)
         error("read", format_read_error(img->name(), img->geterror()));
@@ -279,6 +288,52 @@ Oiiotool::read_nativespec(ImageRecRef img)
     if (!ok)
         error("read", format_read_error(img->name(), img->geterror()));
     return ok;
+}
+
+
+
+void
+Oiiotool::remember_input_channelformats(ImageRecRef img)
+{
+    for (int s = 0, subimages = img->subimages(); s < subimages; ++s) {
+        const ImageSpec& nspec((*img)(s, 0).nativespec());
+        // Overall default format is the merged type of all subimages
+        // of the first input image.
+        input_dataformat         = TypeDesc::basetype_merge(input_dataformat,
+                                                    nspec.format);
+        std::string subimagename = nspec.get_string_attribute(
+            "oiio:subimagename");
+        if (subimagename.size()) {
+            // Record a best guess for this subimage, if not already set.
+            auto key = Strutil::fmt::format("{}.*", subimagename);
+            if (input_channelformats[key] == "")
+                input_channelformats[key] = nspec.format.c_str();
+        }
+        if (!input_bitspersample)
+            input_bitspersample = nspec.get_int_attribute("oiio:BitsPerSample");
+        for (int c = 0; c < nspec.nchannels; ++c) {
+            // For each channel, if we don't already have a type recorded
+            // for its name, record it. Both the bare channel name, and also
+            // "subimagename.channelname", so that we can remember the same
+            // name differently for different subimages.
+            std::string chname     = nspec.channel_name(c);
+            std::string chtypename = nspec.channelformat(c).c_str();
+            if (subimagename.size()) {
+                std::string subchname
+                    = Strutil::fmt::format("{}.{}", subimagename, chname);
+                if (input_channelformats[subchname] == "")
+                    input_channelformats[subchname] = chtypename;
+            } else {
+                if (input_channelformats[chname] != "")
+                    input_channelformats[chname] = chtypename;
+            }
+        }
+    }
+#if 0
+    std::cout << "Input channel type map:\n";
+    for (auto& x : input_channelformats)
+        std::cout << "   " << x.first << " -> " << x.second << "\n";
+#endif
 }
 
 
@@ -572,23 +627,39 @@ get_value_override(string_view localoption, string_view defaultval)
 // and bit depth, modify the existing spec.
 static void
 set_output_dataformat(ImageSpec& spec, TypeDesc format,
-                      const std::map<std::string, std::string>& channelformats,
+                      std::map<std::string, std::string>& channelformats,
                       int bitdepth)
 {
+    // Account for default requested format
     if (format != TypeUnknown)
         spec.format = format;
     if (bitdepth)
         spec.attribute("oiio:BitsPerSample", bitdepth);
     else
         spec.erase_attribute("oiio:BitsPerSample");
+
+    // See if there's a recommended format for this subimage
+    std::string subimagename = spec["oiio:subimagename"];
+    if (format == TypeUnknown && subimagename.size()) {
+        auto key = Strutil::fmt::format("{}.*", subimagename);
+        if (channelformats[key] != "")
+            spec.format = TypeDesc(channelformats[key]);
+    }
+
+    // Honor any per-channel requests
     if (channelformats.size()) {
         spec.channelformats.clear();
         spec.channelformats.resize(spec.nchannels, spec.format);
-        for (auto& cr : channelformats) {
-            int c = spec.channelindex(cr.first);
-            TypeDesc t(cr.second);
-            if (c >= 0 && c < spec.nchannels && t != TypeUnknown)
-                spec.channelformats[c] = t;
+        for (int c = 0; c < spec.nchannels; ++c) {
+            std::string chname = spec.channel_name(c);
+            auto subchname     = Strutil::fmt::format("{}.{}", subimagename,
+                                                  chname);
+            if (channelformats[subchname] != "" && subimagename.size())
+                spec.channelformats[c] = TypeDesc(channelformats[subchname]);
+            else if (channelformats[chname] != "")
+                spec.channelformats[c] = TypeDesc(channelformats[chname]);
+            else
+                spec.channelformats[c] = spec.format;
         }
     } else {
         spec.channelformats.clear();
@@ -653,14 +724,13 @@ adjust_output_options(string_view filename, ImageSpec& spec,
         spec.channelformats = nativespec->channelformats;
         set_output_dataformat(spec, nativespec->format,
                               requested_output_channelformats,
-                              nativespec->get_int_attribute(
-                                  "oiio:BitsPerSample"));
-    } else if (ot.first_input_dataformat != TypeUnknown) {
-        auto mergedlist = ot.first_input_channelformats;
+                              (*nativespec)["oiio:BitsPerSample"].get<int>());
+    } else if (ot.input_dataformat != TypeUnknown) {
+        auto mergedlist = ot.input_channelformats;
         for (auto& c : requested_output_channelformats)
             mergedlist[c.first] = c.second;
-        set_output_dataformat(spec, ot.first_input_dataformat, mergedlist,
-                              ot.first_input_dataformat_bits);
+        set_output_dataformat(spec, ot.input_dataformat, mergedlist,
+                              ot.input_bitspersample);
     }
 
     // Tiling strategy:
@@ -1951,7 +2021,7 @@ set_colorspace(int argc, const char* argv[])
 
 
 // --colorconvert
-class OpColorConvert : public OiiotoolOp {
+class OpColorConvert final : public OiiotoolOp {
 public:
     OpColorConvert(Oiiotool& ot, string_view opname, int argc,
                    const char* argv[])
@@ -2142,7 +2212,7 @@ action_unmip(int argc, const char* argv[])
 
 
 // --chnames
-class OpChnames : public OiiotoolOp {
+class OpChnames final : public OiiotoolOp {
 public:
     OpChnames(Oiiotool& ot, string_view opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
@@ -2376,20 +2446,33 @@ action_chappend(int argc, const char* argv[])
 {
     if (ot.postpone_callback(2, action_chappend, argc, argv))
         return 0;
-    OiiotoolOp op(ot, "chappend", argc, argv, 2);
-    op.preserve_miplevels(true);
-    op.set_impl([](OiiotoolOp& op, span<ImageBuf*> img) {
-        // Shuffle the indexed/named channels
-        bool ok = ImageBufAlgo::channel_append(*img[0], *img[1], *img[2]);
-        if (!ok)
-            ot.error(op.opname(), img[0]->geterror());
-        if (ot.metamerge) {
-            img[0]->specmod().extra_attribs.merge(img[1]->spec().extra_attribs);
-            img[0]->specmod().extra_attribs.merge(img[2]->spec().extra_attribs);
-        }
-        return ok;
-    });
-    return op();
+    std::string command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+    int n               = OIIO::clamp(options["n"].get<int>(2), 2,
+                        int(ot.image_stack.size() + 1));
+    command             = remove_modifier(command, "n");
+    bool ok             = true;
+
+    // two at a time
+    for (; n >= 2; --n) {
+        OiiotoolOp op(ot, "chappend", argc, argv, 2);
+        op.preserve_miplevels(true);
+        op.set_impl([](OiiotoolOp& op, span<ImageBuf*> img) {
+            // Shuffle the indexed/named channels
+            bool ok = ImageBufAlgo::channel_append(*img[0], *img[1], *img[2]);
+            if (!ok)
+                ot.error(op.opname(), img[0]->geterror());
+            if (ot.metamerge) {
+                img[0]->specmod().extra_attribs.merge(
+                    img[1]->spec().extra_attribs);
+                img[0]->specmod().extra_attribs.merge(
+                    img[2]->spec().extra_attribs);
+            }
+            return ok;
+        });
+        ok &= op();
+    }
+    return ok;
 }
 
 
@@ -2555,8 +2638,11 @@ action_subimage_append(int argc, const char* argv[])
         return 0;
     Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+    int n               = OIIO::clamp(options["n"].get<int>(2), 2,
+                        int(ot.image_stack.size() + 1));
 
-    action_subimage_append_n(2, command);
+    action_subimage_append_n(n, command);
 
     ot.function_times[command] += timer();
     return 0;
@@ -3359,7 +3445,7 @@ action_cut(int argc, const char* argv[])
 
 
 // --resample
-class OpResample : public OiiotoolOp {
+class OpResample final : public OiiotoolOp {
 public:
     OpResample(Oiiotool& ot, string_view opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
@@ -3416,7 +3502,7 @@ OP_CUSTOMCLASS(resample, OpResample, 1);
 
 
 // --resize
-class OpResize : public OiiotoolOp {
+class OpResize final : public OiiotoolOp {
 public:
     OpResize(Oiiotool& ot, string_view opname, int argc, const char* argv[])
         : OiiotoolOp(ot, opname, argc, argv, 1)
@@ -3889,6 +3975,15 @@ action_paste(int argc, const char* argv[])
     ot.function_times[command] += timer();
     return 0;
 }
+
+
+
+// --pastemeta
+OIIOTOOL_OP(pastemeta, 2, [](OiiotoolOp& op, span<ImageBuf*> img) {
+    *img[0] = *img[2];
+    img[0]->copy_metadata(*img[1]);
+    return true;
+});
 
 
 
@@ -4383,22 +4478,9 @@ input_file(int argc, const char* argv[])
         ot.curimg->input_dataformat(input_dataformat);
         if (readnow) {
             ot.curimg->read(ReadNoCache, channel_set);
-            // If we do not yet have an expected output format, set it based on
-            // this image (presumably the first one read.
-            if (ot.output_dataformat == TypeDesc::UNKNOWN) {
-                const ImageSpec& nspec((*ot.curimg)(0, 0).nativespec());
-                ot.output_dataformat = nspec.format;
-                if (!ot.output_bitspersample)
-                    ot.output_bitspersample = nspec.get_int_attribute(
-                        "oiio:BitsPerSample");
-                if (nspec.channelformats.size()) {
-                    for (int c = 0; c < nspec.nchannels; ++c) {
-                        std::string chname = nspec.channelnames[c];
-                        ot.output_channelformats[chname] = std::string(
-                            nspec.channelformat(c).c_str());
-                    }
-                }
-            }
+            // If we do not yet have an expected output format, set it based
+            // on this image (presumably the first one read.
+            ot.remember_input_channelformats(ot.curimg);
         }
         if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
             OiioTool::print_info_options pio;
@@ -4536,7 +4618,6 @@ prep_texture_config(ImageSpec& configspec, ParamValueList& fileoptions)
 static void
 remove_all_cmd(std::string& str)
 {
-    std::string result;
     size_t start = str.find(":all=");
     if (start != std::string::npos) {
         size_t end = start + 5;  // : a l l =
@@ -4793,7 +4874,8 @@ output_file(int /*argc*/, const char* argv[])
         ok = ImageBufAlgo::make_texture(mode, (*ir)(0, 0), filename, configspec,
                                         &std::cout);
         if (!ok)
-            ot.errorf(command, "Could not make texture");
+            ot.errorfmt(command, "Could not make texture: {}",
+                        OIIO::geterror());
         // N.B. make_texture already internally writes to a temp file and
         // then atomically moves it to the final destination, so we don't
         // need to explicitly do that here.
@@ -5528,6 +5610,9 @@ getargs(int argc, char* argv[])
     ap.arg("--paste %s:+X+Y")
       .help("Paste fg over bg at the given position (e.g., +100+50; '-' or 'auto' indicates using the data window position as-is; options: all=%d, mergeroi=%d)")
       .action(action_paste);
+    ap.arg("--pastemeta")
+      .help("Copy the metadata from the first image to the second image and write the combined result.")
+      .action(action_pastemeta);
     ap.arg("--mosaic %s:WxH")
       .help("Assemble images into a mosaic (arg: WxH; options: pad=0)")
       .action(action_mosaic);

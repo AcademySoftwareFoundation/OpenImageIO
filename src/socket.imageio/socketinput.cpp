@@ -91,7 +91,7 @@ bool
 SocketInput::read_native_scanline(int subimage, int miplevel, int /*y*/,
                                   int /*z*/, void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     try {
@@ -114,7 +114,7 @@ bool
 SocketInput::read_native_tile(int subimage, int miplevel, int /*x*/, int /*y*/,
                               int /*z*/, void* data)
 {
-    lock_guard lock(m_mutex);
+    lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     try {

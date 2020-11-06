@@ -123,8 +123,10 @@ namespace @PROJ_NAME@ = @PROJ_NAMESPACE_V@;
 ///     to return unique_ptr. (OIIO 2.0)
 /// Version 23 added set_ioproxy() methods to ImageInput & ImageOutput
 ///     (OIIO 2.2).
+/// Version 24 Added a PIMPL pointers to ImageInput and ImageOutput and
+///     removed some unnecessary fields that were exposed.
 
-#define OIIO_PLUGIN_VERSION 23
+#define OIIO_PLUGIN_VERSION 24
 
 #define OIIO_PLUGIN_NAMESPACE_BEGIN OIIO_NAMESPACE_BEGIN
 #define OIIO_PLUGIN_NAMESPACE_END OIIO_NAMESPACE_END

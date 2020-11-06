@@ -403,8 +403,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         sampformat      = SAMPLEFORMAT_INT;
         break;
     case TypeDesc::UINT8:
-        if (m_bitspersample != 2 && m_bitspersample != 4
-            && m_bitspersample != 6)
+        if (m_bitspersample != 2 && m_bitspersample != 4 && m_bitspersample != 6
+            && m_bitspersample != 1)
             m_bitspersample = 8;
         sampformat = SAMPLEFORMAT_UINT;
         break;
@@ -1018,15 +1018,8 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
         int plane_bytes = m_spec.width * m_spec.format.size();
 
-        std::unique_ptr<char[]> separate_heap;
-        char* separate            = nullptr;
-        imagesize_t separate_size = plane_bytes * m_outputchans;
-        if (separate_size <= (1 << 16))
-            separate = OIIO_ALLOCA(char, separate_size);   // <=64k ? stack
-        else {                                             // >64k ? heap
-            separate_heap.reset(new char[separate_size]);  // will auto-free
-            separate = separate_heap.get();
-        }
+        char* separate;
+        OIIO_ALLOCATE_STACK_OR_HEAP(separate, char, plane_bytes* m_outputchans);
 
         contig_to_separate(m_spec.width, m_outputchans, (const char*)data,
                            separate);
@@ -1164,9 +1157,10 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     imagesize_t strip_bytes = m_spec.scanline_bytes(true) * m_rowsperstrip;
     size_t cbound           = compressBound((uLong)strip_bytes);
     std::unique_ptr<char[]> compressed_scratch(new char[cbound * nstrips]);
-    unsigned long* compressed_len = OIIO_ALLOCA(unsigned long, nstrips);
-    int y                         = ybegin;
-    int y_at_stripstart           = y;
+    unsigned long* compressed_len;
+    OIIO_ALLOCATE_STACK_OR_HEAP(compressed_len, unsigned long, nstrips);
+    int y               = ybegin;
+    int y_at_stripstart = y;
 
     // Compress all the strips in parallel using the thread pool.
     task_set tasks(pool);
@@ -1270,15 +1264,8 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
         imagesize_t plane_bytes = tile_pixels * m_spec.format.size();
         OIIO_DASSERT(plane_bytes * m_spec.nchannels == m_spec.tile_bytes());
 
-        std::unique_ptr<char[]> separate_heap;
-        char* separate            = NULL;
-        imagesize_t separate_size = plane_bytes * m_outputchans;
-        if (separate_size <= (1 << 16))
-            separate = OIIO_ALLOCA(char, separate_size);   // <=64k ? stack
-        else {                                             // >64k ? heap
-            separate_heap.reset(new char[separate_size]);  // will auto-free
-            separate = separate_heap.get();
-        }
+        char* separate;
+        OIIO_ALLOCATE_STACK_OR_HEAP(separate, char, plane_bytes* m_outputchans);
         contig_to_separate(tile_pixels, m_outputchans, (const char*)data,
                            separate);
         for (int c = 0; c < m_outputchans; ++c) {
@@ -1561,6 +1548,11 @@ TIFFOutput::fix_bitdepth(void* data, int nvals)
         for (int i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<8, 6>(v[i]);
         bit_pack(cspan<unsigned char>(v, v + nvals), v, 6);
+    } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 1) {
+        unsigned char* v = (unsigned char*)data;
+        for (int i = 0; i < nvals; ++i)
+            v[i] = bit_range_convert<8, 1>(v[i]);
+        bit_pack(cspan<unsigned char>(v, v + nvals), v, 1);
     } else if (spec().format == TypeDesc::UINT32 && m_bitspersample == 24) {
         unsigned int* v = (unsigned int*)data;
         for (int i = 0; i < nvals; ++i)

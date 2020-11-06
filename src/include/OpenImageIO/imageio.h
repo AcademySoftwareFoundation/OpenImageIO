@@ -924,9 +924,6 @@ protected:
 public:
     virtual ~ImageInput ();
 
-    typedef std::recursive_mutex mutex;
-    typedef std::lock_guard<mutex> lock_guard;
-
     /// Return the name of the format implemented by this class.
     virtual const char *format_name (void) const = 0;
 
@@ -1565,19 +1562,27 @@ public:
         return (ioproxy == nullptr);
     }
 
-    /// If any of the API routines returned false indicating an error, this
-    /// method will return the error string (and clear any error flags).  If
-    /// no error has occurred since the last time `geterror()` was called,
-    /// it will return an empty string.
-    std::string geterror () const {
-        lock_guard lock (m_mutex);
-        std::string e = m_errmessage;
-        m_errmessage.clear ();
-        return e;
-    }
+    /// Is there a pending error message waiting to be retrieved, that
+    /// resulted from an ImageInput API call made by the this thread?
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    bool has_error() const;
+
+    /// Return the text of all pending error messages issued against this
+    /// ImageInput by the calling thread, and clear the pending error
+    /// message unless `clear` is false. If no error message is pending, it
+    /// will return an empty string.
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
-    /// Strutil::format-like arguments.
+    /// Strutil::format-like arguments. It is not necessary to have the
+    /// error message contain a trailing newline.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
@@ -1586,21 +1591,24 @@ public:
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.
+    /// printf-like arguments. It is not necessary to have the error message
+    /// contain a trailing newline.
     template<typename... Args>
     void errorf(const char* fmt, const Args&... args) const {
         append_error(Strutil::sprintf (fmt, args...));
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// fmt::format-like arguments.
+    /// std::format-like arguments. It is not necessary to have the error
+    /// message contain a trailing newline.
     template<typename... Args>
     void errorfmt(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
 
     // Error reporting for the plugin implementation: call this with
-    // fmt::format-like arguments.
+    // std::format-like arguments. It is not necessary to have the
+    // error message contain a trailing newline.
     template<typename... Args>
     OIIO_DEPRECATED("use `errorfmt` instead")
     void fmterror(const char* fmt, const Args&... args) const {
@@ -1618,19 +1626,23 @@ public:
     /// new threads. That is probably the desired behavior in situations
     /// where the calling application has already spawned multiple worker
     /// threads.
-    void threads (int n) { m_threads = n; }
+    void threads(int n);
 
     /// Retrieve the current thread-spawning policy.
     /// @see  `threads(int)`
-    int threads () const { return m_threads; }
+    int threads() const;
 
-    /// Lock the internal mutex, block until the lock is acquired.
-    void lock () { m_mutex.lock(); }
-    /// Try to lock the internal mutex, returning true if successful, or
-    /// false if the lock could not be immediately acquired.
-    bool try_lock () { return m_mutex.try_lock(); }
-    /// Ulock the internal mutex.
-    void unlock () { m_mutex.unlock(); }
+    /// There is a (hidden) internal recursive mutex to each ImageInput
+    /// that can be used by the II to enforce thread safety. This is exposed
+    /// via the obvious lock()/unlock()/try_lock() semantics.
+    void lock() const;
+    void unlock() const;
+    bool try_lock() const;
+
+    /// The presence of lock() and unlock() establish an ImageInput itself
+    /// as having the BasicLockable concept and therefore can be used by
+    /// std::lock_guard.
+    typedef std::lock_guard<const ImageInput&> lock_guard;
 
     // Custom new and delete to ensure that allocations & frees happen in
     // the OpenImageIO library, not in the app or plugins (because Windows).
@@ -1642,14 +1654,18 @@ public:
     typedef ImageInput* (*Creator)();
 
 protected:
-    mutable mutex m_mutex;   // lock of the thread-safe methods
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
                        // BEWARE using m_spec directly -- not thread-safe
 
 private:
-    mutable std::string m_errmessage;  // private storage of error message
-    int m_threads;    // Thread policy
-    void append_error (const std::string& message) const; // add to m_errmessage
+    // PIMPL idiom -- this lets us hide details of the internals of the
+    // ImageInput parent class so that changing them does not break the
+    // ABI.
+    class Impl;
+    static void impl_deleter(Impl*);
+    std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
+
+    void append_error(string_view message) const; // add to error message
     // Deprecated:
     static unique_ptr create (const std::string& filename, bool do_open,
                               const std::string& plugin_searchpath);
@@ -2187,18 +2203,27 @@ public:
         return (ioproxy == nullptr);
     }
 
-    /// If any of the API routines returned false indicating an error, this
-    /// method will return the error string (and clear any error flags).  If
-    /// no error has occurred since the last time `geterror()` was called,
-    /// it will return an empty string.
-    std::string geterror () const {
-        std::string e = m_errmessage;
-        m_errmessage.clear ();
-        return e;
-    }
+    /// Is there a pending error message waiting to be retrieved, that
+    /// resulted from an ImageOutput API call made by the this thread?
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    bool has_error() const;
+
+    /// Return the text of all pending error messages issued against this
+    /// ImageOutput by the calling thread, and clear the pending error
+    /// message unless `clear` is false. If no error message is pending, it
+    /// will return an empty string.
+    ///
+    /// Note that any `error()` calls issued are thread-specific, and the
+    /// `geterror()/has_error()` are expected to be called by the same
+    /// thread that called whichever API function encountered an error.
+    std::string geterror(bool clear = true) const;
 
     /// Error reporting for the plugin implementation: call this with
-    /// `Strutil::format`-like arguments.
+    /// `Strutil::format`-like arguments. It is not necessary to have the
+    /// error message contain a trailing newline.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
@@ -2207,21 +2232,24 @@ public:
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// printf-like arguments.
+    /// printf-like arguments. It is not necessary to have the error message
+    /// contain a trailing newline.
     template<typename... Args>
     void errorf(const char* fmt, const Args&... args) const {
         append_error(Strutil::sprintf (fmt, args...));
     }
 
     /// Error reporting for the plugin implementation: call this with
-    /// fmt::format-like arguments.
+    /// std::format-like arguments. It is not necessary to have the error
+    /// message contain a trailing newline.
     template<typename... Args>
     void errorfmt(const char* fmt, const Args&... args) const {
         append_error(Strutil::fmt::format (fmt, args...));
     }
 
     // Error reporting for the plugin implementation: call this with
-    // fmt::format-like arguments.
+    // std::format-like arguments. It is not necessary to have the error
+    // message contain a trailing newline.
     template<typename... Args>
     OIIO_DEPRECATED("use `errorfmt` instead")
     void fmterror(const char* fmt, const Args&... args) const {
@@ -2240,11 +2268,11 @@ public:
     /// new threads. That is probably the desired behavior in situations
     /// where the calling application has already spawned multiple worker
     /// threads.
-    void threads (int n) { m_threads = n; }
+    void threads(int n);
 
     /// Retrieve the current thread-spawning policy.
     /// @see  `threads(int)`
-    int threads () const { return m_threads; }
+    int threads() const;
 
     // Custom new and delete to ensure that allocations & frees happen in
     // the OpenImageIO library, not in the app or plugins (because Windows).
@@ -2315,9 +2343,14 @@ protected:
     ImageSpec m_spec;           ///< format spec of the currently open image
 
 private:
-    void append_error (const std::string& message) const; // add to m_errmessage
-    mutable std::string m_errmessage;   ///< private storage of error message
-    int m_threads;    // Thread policy
+    // PIMPL idiom -- this lets us hide details of the internals of the
+    // ImageInput parent class so that changing them does not break the
+    // ABI.
+    class Impl;
+    static void impl_deleter(Impl*);
+    std::unique_ptr<Impl, decltype(&impl_deleter)> m_impl;
+
+    void append_error(string_view message) const; // add to m_errmessage
 };
 
 
@@ -2331,13 +2364,17 @@ private:
 /// are linked against an adequate version of the library.
 OIIO_API int openimageio_version ();
 
+/// Is there a pending global error message waiting to be retrieved?
+OIIO_API bool has_error();
+
 /// Returns any error string describing what went wrong if
 /// `ImageInput::create()` or `ImageOutput::create()` failed (since in such
 /// cases, the ImageInput or ImageOutput itself does not exist to have its
 /// own `geterror()` function called). This function returns the last error
-/// for this particular thread; separate threads will not clobber each
-/// other's global error messages.
-OIIO_API std::string geterror ();
+/// for this particular thread, and clear the pending error message unless
+/// `clear` is false; separate threads will not clobber each other's global
+/// error messages.
+OIIO_API std::string geterror(bool clear = true);
 
 /// `OIIO::attribute()` sets an global attribute (i.e., a property or
 /// option) of OpenImageIO. The `name` designates the name of the attribute,

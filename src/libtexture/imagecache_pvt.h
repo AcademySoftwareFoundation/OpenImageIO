@@ -126,7 +126,7 @@ struct ImageCacheStatistics {
 /// However, a few of them require passing in a pointer to the
 /// thread-specific IC data including microcache and statistics.
 ///
-class OIIO_API ImageCacheFile : public RefCnt {
+class OIIO_API ImageCacheFile final : public RefCnt {
 public:
     ImageCacheFile(ImageCacheImpl& imagecache,
                    ImageCachePerThreadInfo* thread_info, ustring filename,
@@ -254,6 +254,7 @@ public:
         bool untiled             = false;  ///< Not tiled
         bool unmipped            = false;  ///< Not really MIP-mapped
         bool volume              = false;  ///< It's a volume image
+        bool autotiled           = false;  ///< We are autotiling this image
         bool full_pixel_range
             = false;  ///< pixel data window matches image window
         bool is_constant_image = false;    ///< Is the image a constant color?
@@ -557,7 +558,7 @@ private:
 
 /// Record for a single image tile.
 ///
-class ImageCacheTile : public RefCnt {
+class ImageCacheTile final : public RefCnt {
 public:
     /// Construct a new tile, pixels will be read when calling read()
     ImageCacheTile(const TileID& id);
@@ -729,7 +730,7 @@ public:
 /// Some of the methods require a pointer to the thread-specific IC data
 /// including microcache and statistics.
 ///
-class ImageCacheImpl : public ImageCache {
+class ImageCacheImpl final : public ImageCache {
 public:
     ImageCacheImpl();
     virtual ~ImageCacheImpl();
@@ -968,7 +969,8 @@ public:
     /// subimage matches its name.
     int subimage_from_name(ImageCacheFile* file, ustring subimagename);
 
-    virtual std::string geterror() const;
+    virtual bool has_error() const;
+    virtual std::string geterror(bool clear = true) const;
     virtual std::string getstats(int level = 1) const;
     virtual void reset_stats();
     virtual void invalidate(ustring filename, bool force);
@@ -1031,7 +1033,7 @@ public:
     void error(const char* msg) const { append_error(msg); }
 
     /// Append a string to the current error message
-    void append_error(const std::string& message) const;
+    void append_error(string_view message) const;
 
     virtual Perthread* get_perthread_info(Perthread* thread_info = NULL);
     virtual Perthread* create_thread_info();

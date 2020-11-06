@@ -56,6 +56,7 @@ jobs:
           CC: gcc
           CMAKE_CXX_STANDARD: 14
           USE_SIMD: sse4.2
+          PUGIXML_VERSION: v1.9
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-installdeps-centos.bash
@@ -174,7 +175,8 @@ jobs:
           USE_SIMD: avx2,f16c
           OPENEXR_VERSION: v2.5.3
           PYBIND11_VERSION: v2.5.0
-          LIBRAW_BRANCH: 0.20.0
+          LIBRAW_VERSION: 0.20.2
+          PUGIXML_VERSION: v1.10
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
         run: |
             source src/build-scripts/ci-startup.bash
@@ -189,12 +191,8 @@ jobs:
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
     # supported releases of everything else.
-    # We don't need to run this on every push or PR -- only run on nightly
-    # test, or if the branch name contains certain substring: gh, release,
-    # bleeding.
     name: "Linux bleeding edge: gcc10 C++17 avx2 OCIO/libtiff/exr master"
     runs-on: ubuntu-18.04
-    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'bleeding') || contains(github.ref, 'RB') || contains(github.ref, 'master')
     steps:
       - uses: actions/checkout@v2
       - name: all
@@ -206,7 +204,8 @@ jobs:
           OPENCOLORIO_VERSION: master
           LIBTIFF_VERSION: master
           PYBIND11_VERSION: master
-          LIBRAW_BRANCH: master
+          LIBRAW_VERSION: master
+          PUGIXML_VERSION: master
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
         run: |
             source src/build-scripts/ci-startup.bash
@@ -221,11 +220,7 @@ jobs:
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
     # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
-    # We don't need to run this on every push or PR -- only run on nightly
-    # test, or if the branch name contains certain substrings: gh, release,
-    # old.
     name: "Linux oldest/hobbled: gcc4.8/C++11 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
-    if: github.event_name == 'schedule' || contains(github.ref, 'release') || contains(github.ref, 'gh') || contains(github.ref, 'RB') || contains(github.ref, 'master') || contains(github.ref, 'old')
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
@@ -332,12 +327,9 @@ jobs:
           path: build/*/testsuite/*/*.*
 
   sanitizer:
-    # Run sanitizers. These don't need to run on every push. Just PRs, nightly
-    # builds, or if the branch name contains one of several tokens: san,
-    # gh, RB, release, or master.
+    # Run sanitizers.
     name: "Sanitizers"
     runs-on: ubuntu-18.04
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'san') || contains(github.ref, 'RB') || contains(github.ref, 'release') || contains(github.ref, 'master') || contains(github.ref, 'gh')
     container:
       image: aswf/ci-osl:2020
     steps:
@@ -360,24 +352,25 @@ jobs:
           name: ${{ github.job }}
           path: build/*/testsuite/*/*.*
 
-  linux-clang9:
-    # Test compiling with clang9 on Linux.
-    name: "Linux clang: clang9 C++14 avx2 exr2.4"
+  linux-clang:
+    # Test compiling with clang on Linux.
+    name: "Linux clang10: clang10 C++14 avx2 exr2.4"
     runs-on: ubuntu-18.04
+    container:
+      image: aswf/ci-osl:2021
     steps:
       - uses: actions/checkout@v2
       - name: all
         env:
           CXX: clang++
-          LLVM_VERSION: 9.0.0
           CMAKE_CXX_STANDARD: 14
+          PYTHON_VERSION: 3.7
           USE_SIMD: avx2,f16c
-          OPENEXR_VERSION: v2.4.1
           OPENCOLORIO_VERSION: 1c624651b7
           # Pick an OCIO commit that includes a warning fix we need for clang
         run: |
             source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
+            source src/build-scripts/gh-installdeps-centos.bash
             source src/build-scripts/ci-build-and-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
@@ -386,11 +379,8 @@ jobs:
           path: build/*/testsuite/*/*.*
 
   linux-static:
-    # Test building static libs.  We don't need to run this on every push --
-    # only run on PRs, nightly test, or if the branch name contains
-    # "gh", "master", "release", or "static".
+    # Test building static libs.
     name: "Linux static libs: gcc7 C++14 exr2.4"
-    if: github.event_name == 'pull_request' || github.event_name == 'schedule' || contains(github.ref, 'static') || contains(github.ref, 'release') || contains(github.ref, 'RB') || contains(github.ref, 'master') || contains(github.ref, 'gh')
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
@@ -417,7 +407,7 @@ jobs:
     name: "clang-format verification"
     runs-on: ubuntu-18.04
     container:
-      image: aswf/ci-osl:2021
+      image: aswf/ci-osl:2021-clang10
     steps:
       - uses: actions/checkout@v2
       - name: all

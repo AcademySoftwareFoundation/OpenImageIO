@@ -601,6 +601,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
              std::ostream& outstream, double& stat_writetime,
              double& stat_miptime, size_t& peak_mem)
 {
+    using OIIO::pvt::errorfmt;
     bool envlatlmode       = (mode == ImageBufAlgo::MakeTxEnvLatl);
     bool orig_was_overscan = (img->spec().x || img->spec().y || img->spec().z
                               || img->spec().full_x || img->spec().full_y
@@ -610,8 +611,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     outspec.set_format(outputdatatype);
 
     if (mipmap && !out->supports("multiimage") && !out->supports("mipmap")) {
-        outstream << "maketx ERROR: \"" << outputfilename
-                  << "\" format does not support multires images\n";
+        errorfmt("\"{} \" format does not support multires images",
+                 outputfilename);
         return false;
     }
 
@@ -664,8 +665,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
 
     Timer writetimer;
     if (!out->open(outputfilename.c_str(), outspec)) {
-        outstream << "maketx ERROR: Could not open \"" << outputfilename
-                  << "\" : " << out->geterror() << "\n";
+        errorfmt("Could not open \"{}\" : {}", outputfilename, out->geterror());
         return false;
     }
 
@@ -679,8 +679,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     if (!img->write(out)) {
         // ImageBuf::write transfers any errors from the ImageOutput to
         // the ImageBuf.
-        outstream << "maketx ERROR: Write failed \" : " << img->geterror()
-                  << "\n";
+        errorfmt("Write failed: {}", img->geterror());
         out->close();
         return false;
     }
@@ -765,8 +764,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                     Filter2D* filter = setup_filter(small->spec(), img->spec(),
                                                     filtername);
                     if (!filter) {
-                        outstream << "maketx ERROR: could not make filter \""
-                                  << filtername << "\"\n";
+                        errorfmt("Could not make filter \"{}\"", filtername);
                         return false;
                     }
                     if (verbose) {
@@ -789,8 +787,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                                                               sharpenfilt, 3.0,
                                                               sharpen, 0.0f);
                         if (!uok)
-                            outstream << "maketx ERROR: " << sharp->geterror()
-                                      << "\n";
+                            errorfmt("{}", sharp->geterror());
                         std::swap(img, sharp);
                     }
                     ImageBufAlgo::resize(*small, *img, filter);
@@ -800,8 +797,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                                                               sharpenfilt, 3.0,
                                                               sharpen, 0.0f);
                         if (!uok)
-                            outstream << "maketx ERROR: " << sharp->geterror()
-                                      << "\n";
+                            errorfmt("{}", sharp->geterror());
                         std::swap(small, sharp);
                     }
                     if (do_highlight_compensation) {
@@ -827,16 +823,15 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                                              ? ImageOutput::AppendMIPLevel
                                              : ImageOutput::AppendSubimage;
             if (!out->open(outputfilename.c_str(), outspec, mode)) {
-                outstream << "maketx ERROR: Could not append \""
-                          << outputfilename << "\" : " << out->geterror()
-                          << "\n";
+                errorfmt("Could not append \"{}\" : {}", outputfilename,
+                         out->geterror());
                 return false;
             }
             if (!small->write(out)) {
                 // ImageBuf::write transfers any errors from the
                 // ImageOutput to the ImageBuf.
-                outstream << "maketx ERROR writing \"" << outputfilename
-                          << "\" : " << small->geterror() << "\n";
+                errorfmt("Error writing \"{}\" : {}", outputfilename,
+                         small->geterror());
                 out->close();
                 return false;
             }
@@ -859,8 +854,7 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     writetimer.reset();
     writetimer.start();
     if (!out->close()) {
-        outstream << "maketx ERROR writing \"" << outputfilename
-                  << "\" : " << out->geterror() << "\n";
+        errorfmt("Error writing \"{}\" : {}", outputfilename, out->geterror());
         return false;
     }
     stat_writetime += writetimer();
@@ -942,6 +936,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                   std::string filename, std::string outputfilename,
                   const ImageSpec& _configspec, std::ostream* outstream_ptr)
 {
+    using OIIO::pvt::errorfmt;
     OIIO_ASSERT(mode >= 0 && mode < ImageBufAlgo::_MakeTxLast);
     double stat_readtime         = 0;
     double stat_writetime        = 0;
@@ -963,13 +958,22 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     }
 
     ImageSpec configspec = _configspec;
+
+    // Set default tile size if no specific one was requested via config
+    if (!configspec.tile_width)
+        configspec.tile_width = 64;
+    if (!configspec.tile_height)
+        configspec.tile_height = 64;
+    if (!configspec.tile_depth)
+        configspec.tile_depth = 1;
+
     std::stringstream localstream;  // catch output when user doesn't want it
     std::ostream& outstream(outstream_ptr ? *outstream_ptr : localstream);
 
     bool from_filename = (input == NULL);
 
     if (from_filename && !Filesystem::exists(filename)) {
-        outstream << "maketx ERROR: \"" << filename << "\" does not exist\n";
+        errorfmt("\"{}\" does not exist", filename);
         return false;
     }
 
@@ -997,7 +1001,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             else
                 outputfilename = outputfilename + ".tx";
         } else {
-            outstream << "maketx: no output filename supplied\n";
+            errorfmt("no output filename supplied");
             return false;
         }
     }
@@ -1054,13 +1058,12 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                                           outputfilename);
     auto out = ImageOutput::create(outformat.c_str());
     if (!out) {
-        outstream << "maketx ERROR: Could not find an ImageIO plugin to write "
-                  << outformat << " files:" << geterror() << "\n";
+        errorfmt("Could not find an ImageIO plugin to write {} files: {}",
+                 outformat, geterror());
         return false;
     }
     if (!out->supports("tiles")) {
-        outstream << "maketx ERROR: \"" << outputfilename
-                  << "\" format does not support tiled images\n";
+        errorfmt("\"{}\" format does not support tiled images", outputfilename);
         return false;
     }
 
@@ -1093,8 +1096,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         if (verbose)
             outstream << "Reading file: " << src->name() << std::endl;
         if (!src->read(0, 0, read_local)) {
-            outstream << "maketx ERROR: Could not read \"" << src->name()
-                      << "\" : " << src->geterror() << "\n";
+            errorfmt("Could not read \"{}\" : {}", src->name(),
+                     src->geterror());
             return false;
         }
     }
@@ -1260,9 +1263,9 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     if (shadowmode) {
         // Some special checks for shadow maps
         if (src->spec().nchannels != 1) {
-            outstream << "maketx ERROR: shadow maps require 1-channel images,\n"
-                      << "\t\"" << src->name() << "\" is "
-                      << src->spec().nchannels << " channels\n";
+            errorfmt(
+                "shadow maps require 1-channel images, \"{}\" is {} channels",
+                src->name(), src->spec().nchannels);
             return false;
         }
         // Shadow maps only make sense for floating-point data.
@@ -1404,8 +1407,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     } else if (fixnan == "box3") {
         fixmode = ImageBufAlgo::NONFINITE_BOX3;
     } else {
-        outstream << "maketx ERROR: Unknown --fixnan mode "
-                  << " fixnan\n";
+        errorfmt("Unknown fixnan mode \"{}\"", fixnan);
         return false;
     }
     int pixelsFixed = 0;
@@ -1414,7 +1416,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             || srcspec.format.basetype == TypeDesc::HALF
             || srcspec.format.basetype == TypeDesc::DOUBLE)
         && !ImageBufAlgo::fixNonFinite(*src, *src, fixmode, &pixelsFixed)) {
-        outstream << "maketx ERROR: Error fixing nans/infs.\n";
+        errorfmt("Error fixing nans/infs.");
         return false;
     }
     if (verbose && pixelsFixed)
@@ -1431,9 +1433,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                                      std::bind(check_nan_block, std::ref(*src),
                                                _1, std::ref(found_nonfinite)));
         if (found_nonfinite) {
-            if (found_nonfinite > 3)
-                outstream << "maketx ERROR: ...and Nan/Inf at "
-                          << (found_nonfinite - 3) << " other pixels\n";
+            errorfmt("maketx ERROR: Nan/Inf at {} pixels", found_nonfinite);
             return false;
         }
     }
@@ -1471,16 +1471,15 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
 
         ColorConfig colorconfig(colorconfigname);
         if (colorconfig.error()) {
-            outstream << "Error Creating ColorConfig\n";
-            outstream << colorconfig.geterror() << std::endl;
+            errorfmt("Error Creating ColorConfig: {}", colorconfig.geterror());
             return false;
         }
 
         ColorProcessorHandle processor
             = colorconfig.createColorProcessor(incolorspace, outcolorspace);
         if (!processor || colorconfig.error()) {
-            outstream << "Error Creating Color Processor." << std::endl;
-            outstream << colorconfig.geterror() << std::endl;
+            errorfmt("Error Creating Color Processor: {}",
+                     colorconfig.geterror());
             return false;
         }
 
@@ -1490,7 +1489,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
 
         if (!ImageBufAlgo::colorconvert(*ccSrc, *src, processor.get(),
                                         unpremult)) {
-            outstream << "Error applying color conversion to image.\n";
+            errorfmt("Error applying color conversion to image.");
             return false;
         }
 
@@ -1500,8 +1499,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             if (!ImageBufAlgo::colorconvert(
                     &constantColor[0], static_cast<int>(constantColor.size()),
                     processor.get(), unpremult)) {
-                outstream
-                    << "Error applying color conversion to constant color.\n";
+                errorfmt("Error applying color conversion to constant color.");
                 return false;
             }
         }
@@ -1513,8 +1511,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                                             static_cast<int>(
                                                 pixel_stats.avg.size()),
                                             processor.get(), unpremult)) {
-                outstream
-                    << "Error applying color conversion to average color.\n";
+                errorfmt("Error applying color conversion to average color.");
                 return false;
             }
         }
@@ -1558,10 +1555,10 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         do_resize = true;
 
     if (orig_was_overscan && out && !out->supports("displaywindow")) {
-        outstream << Strutil::sprintf(
-            "maketx ERROR: format \"%s\" does not support separate display "
+        errorfmt(
+            "Format \"{}\" does not support separate display "
             "windows, which is necessary for textures with overscan. OpenEXR "
-            " is a format that allows overscan textures.\n",
+            "is a format that allows overscan textures.",
             out->format_name());
         return false;
     }
@@ -1599,8 +1596,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             Filter2D* filter = setup_filter(toplevel->spec(), src->spec(),
                                             resize_filter);
             if (!filter) {
-                outstream << "maketx ERROR: could not make filter \""
-                          << resize_filter << "\"\n";
+                errorfmt("Could not make filter \"{}\"", resize_filter);
                 return false;
             }
             ImageBufAlgo::resize(*toplevel, *src, filter);
@@ -1733,7 +1729,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         std::string err;
         ok = Filesystem::rename(tmpfilename, outputfilename, err);
         if (!ok)
-            outstream << "maketx ERROR: could not rename file: " << err << "\n";
+            errorfmt("Could not rename file: {}", err);
     }
     if (!ok)
         Filesystem::remove(tmpfilename);
@@ -1777,8 +1773,13 @@ ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
                            const ImageSpec& configspec, std::ostream* outstream)
 {
     pvt::LoggedTimer logtime("IBA::make_texture");
-    return make_texture_impl(mode, NULL, filename, outputfilename, configspec,
-                             outstream);
+    bool ok = make_texture_impl(mode, NULL, filename, outputfilename,
+                                configspec, outstream);
+    if (!ok && outstream && OIIO::has_error()) {
+        // also send errors to the stream
+        *outstream << "make_texture ERROR: " << OIIO::geterror(false) << "\n";
+    }
+    return ok;
 }
 
 
@@ -1787,12 +1788,16 @@ bool
 ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
                            const std::vector<std::string>& filenames,
                            string_view outputfilename,
-                           const ImageSpec& configspec,
-                           std::ostream* outstream_ptr)
+                           const ImageSpec& configspec, std::ostream* outstream)
 {
     pvt::LoggedTimer logtime("IBA::make_texture");
-    return make_texture_impl(mode, NULL, filenames[0], outputfilename,
-                             configspec, outstream_ptr);
+    bool ok = make_texture_impl(mode, NULL, filenames[0], outputfilename,
+                                configspec, outstream);
+    if (!ok && outstream && OIIO::has_error()) {
+        // also send errors to the stream
+        *outstream << "make_texture ERROR: " << OIIO::geterror(false) << "\n";
+    }
+    return ok;
 }
 
 
@@ -1803,6 +1808,11 @@ ImageBufAlgo::make_texture(ImageBufAlgo::MakeTextureMode mode,
                            const ImageSpec& configspec, std::ostream* outstream)
 {
     pvt::LoggedTimer logtime("IBA::make_texture");
-    return make_texture_impl(mode, &input, "", outputfilename, configspec,
-                             outstream);
+    bool ok = make_texture_impl(mode, &input, "", outputfilename, configspec,
+                                outstream);
+    if (!ok && outstream && OIIO::has_error()) {
+        // also send errors to the stream
+        *outstream << "make_texture ERROR: " << OIIO::geterror(false) << "\n";
+    }
+    return ok;
 }

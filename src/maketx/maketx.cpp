@@ -507,6 +507,8 @@ main(int argc, char* argv[])
 
     bool ok = ImageBufAlgo::make_texture(mode, filenames[0], outputfilename,
                                          configspec, &std::cout);
+    if (!ok)
+        std::cout << OIIO::geterror() << "\n";
     if (runstats)
         std::cout << "\n" << ic->getstats();
 
