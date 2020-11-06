@@ -26,6 +26,6 @@ set_target_properties(OpenImageIO-C
         SOVERSION ${SOVERSION}
         POSITION_INDEPENDENT_CODE ON
 )
-target_compile_definitions(OpenImageIO-C PRIVATE OpenImageIO_EXPORTS)
+target_compile_definitions(OpenImageIO-C PRIVATE OpenImageIO_C_EXPORTS)
 
 install_targets(OpenImageIO-C)

@@ -18,38 +18,38 @@ typedef struct OIIO_ImageSpec OIIO_ImageSpec;
 /// Construct an empty DeepData.
 ///
 /// Equivalent C++: `new OIIO::DeepData`
-OIIO_API OIIO_DeepData*
+OIIOC_API OIIO_DeepData*
 OIIO_DeepData_new();
 
 /// Construct and init from an ImageSpec.
 ///
 /// Equivalent C++: `new OIIO::DeepData(is)`
-OIIO_API OIIO_DeepData*
+OIIOC_API OIIO_DeepData*
 OIIO_DeepData_new_with_imagespec(const OIIO_ImageSpec* is);
 
 /// Copy constructor
 ///
 /// Equivalent C++: `new OIIO::DeepData(dd)`
-OIIO_API OIIO_DeepData*
+OIIOC_API OIIO_DeepData*
 OIIO_DeepData_copy(const OIIO_DeepData* dd);
 
 /// Delete
 ///
 /// Equivalent C++: `delete dd`
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_delete(const OIIO_DeepData* dd);
 
 /// Reset the `DeepData` to be equivalent to its empty initial state.
 ///
 /// Equivalent C++: `dd->clear()`
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_clear(OIIO_DeepData* dd);
 
 /// Reset the `DeepData` to be equivalent to its empty initial state and also
 /// ensure that all allocated memory has been truly freed
 ///
 /// Equivalent C++: `dd->free()`
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_free(OIIO_DeepData* dd);
 
 /// Initialize the `DeepData` with the specified number of pixels,
@@ -58,7 +58,7 @@ OIIO_DeepData_free(OIIO_DeepData* dd);
 ///
 /// Equivalent C++: `dd->init(npix, nchan, {nchanneltypes, channeltypes}, {nchannelnames, channelnames})`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_init(OIIO_DeepData* dd, int64_t npix, int nchan,
                    const OIIO_TypeDesc* channeltypes, int nchanneltypes,
                    const char** channelnames, int nchannelnames);
@@ -69,42 +69,42 @@ OIIO_DeepData_init(OIIO_DeepData* dd, int64_t npix, int nchan,
 ///
 /// Equivalent C++: `dd->init(*is)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_init_with_imagespec(OIIO_DeepData* dd, const OIIO_ImageSpec* is);
 
 /// Is the DeepData initialized?
 ///
 /// Equivalent C++: `dd->initialized()`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_DeepData_initialized(const OIIO_DeepData* dd);
 
 /// Is the DeepData allocated
 ///
 /// Equivalent C++: `dd->allocated()`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_DeepData_allocated(const OIIO_DeepData* dd);
 
 /// Retrieve the total number of pixels.
 ///
 /// Equivalent C++: `dd->pixels()`
 ///
-OIIO_API int64_t
+OIIOC_API int64_t
 OIIO_DeepData_pixels(const OIIO_DeepData* dd);
 
 /// Retrieve the total number of channels
 ///
 /// Equivalent C++: `dd->channels()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_DeepData_channels(const OIIO_DeepData* dd);
 
 /// Retrieve the index of the Z channel
 ///
 /// Equivalent C++: `dd->Z_channel()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_DeepData_Z_channel(const OIIO_DeepData* dd);
 
 // Retrieve the index of the Zback channel, which will return the
@@ -112,14 +112,14 @@ OIIO_DeepData_Z_channel(const OIIO_DeepData* dd);
 ///
 /// Equivalent C++: `dd->Zback_channel()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_DeepData_Zback_channel(const OIIO_DeepData* dd);
 
 /// Retrieve the index of the alpha (A) channel
 ///
 /// Equivalent C++: `dd->A_channel()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_DeepData_A_channel(const OIIO_DeepData* dd);
 
 // Retrieve the index of the AR channel. If it does not exist, the A
@@ -127,7 +127,7 @@ OIIO_DeepData_A_channel(const OIIO_DeepData* dd);
 ///
 /// Equivalent C++: `dd->AR_channel()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_DeepData_AR_channel(const OIIO_DeepData* dd);
 
 // Retrieve the index of the AG channel. If it does not exist, the A
@@ -135,7 +135,7 @@ OIIO_DeepData_AR_channel(const OIIO_DeepData* dd);
 ///
 /// Equivalent C++: `dd->AG_channel()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_DeepData_AG_channel(const OIIO_DeepData* dd);
 
 // Retrieve the index of the AB channel. If it does not exist, the A
@@ -143,42 +143,42 @@ OIIO_DeepData_AG_channel(const OIIO_DeepData* dd);
 ///
 /// Equivalent C++: `dd->AB_channel()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_DeepData_AB_channel(const OIIO_DeepData* dd);
 
 /// Return the name of channel c.
 ///
 /// Equivalent C++: `dd->channelname(c)`
 ///
-OIIO_API const char*
+OIIOC_API const char*
 OIIO_DeepData_channelname(const OIIO_DeepData* dd, int c);
 
 /// Return the type of channel c.
 ///
 /// Equivalent C++: `dd->channeltype(c)`
 ///
-OIIO_API OIIO_TypeDesc
+OIIOC_API OIIO_TypeDesc
 OIIO_DeepData_channeltype(const OIIO_DeepData* dd, int c);
 
 /// Return the size (in bytes) of one sample datum of channel `c`.
 ///
 /// Equivalent C++: `dd->channelsize(c)`
 ///
-OIIO_API size_t
+OIIOC_API size_t
 OIIO_DeepData_channelsize(const OIIO_DeepData* dd, int c);
 
 /// Return the size (in bytes) for all channels of one sample.
 ///
 /// Equivalent C++: `dd->samplesize()`
 ///
-OIIO_API size_t
+OIIOC_API size_t
 OIIO_DeepData_samplesize(const OIIO_DeepData* dd);
 
 /// Retrieve the number of samples for the given pixel index.
 ///
 /// Equivalent C++: `dd->samples(pixel)`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_DeepData_samples(const OIIO_DeepData* dd, int64_t pixel);
 
 /// Set the number of samples for the given pixel. This must be called
@@ -186,7 +186,7 @@ OIIO_DeepData_samples(const OIIO_DeepData* dd, int64_t pixel);
 ///
 /// Equivalent C++: `dd->set_samples(pixel, samps)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_set_samples(OIIO_DeepData* dd, int64_t pixel, int samps);
 
 /// Set the number of samples for all pixels. nsamples is
@@ -194,7 +194,7 @@ OIIO_DeepData_set_samples(OIIO_DeepData* dd, int64_t pixel, int samps);
 ///
 /// Equivalent C++: `dd->set_all_samples(pixel, samples, nsamples)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_set_all_samples(OIIO_DeepData* dd, const uint32_t* samples,
                               int nsamples);
 
@@ -203,7 +203,7 @@ OIIO_DeepData_set_all_samples(OIIO_DeepData* dd, const uint32_t* samples,
 ///
 /// Equivalent C++: `dd->set_capacity(pixel, samps)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_set_capacity(OIIO_DeepData* dd, int64_t pixel, int samps);
 
 /// Insert `n` samples of the specified pixel, betinning at the sample
@@ -212,7 +212,7 @@ OIIO_DeepData_set_capacity(OIIO_DeepData* dd, int64_t pixel, int samps);
 ///
 /// Equivalent C++: `dd->insert_samples(pixel, samplepos, n)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_insert_samples(OIIO_DeepData* dd, int64_t pixel, int samplepos,
                              int n);
 
@@ -221,7 +221,7 @@ OIIO_DeepData_insert_samples(OIIO_DeepData* dd, int64_t pixel, int samplepos,
 ///
 /// Equivalent C++: `dd->insert_samples(pixel, samplepos, n)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_erase_samples(OIIO_DeepData* dd, int64_t pixel, int samplepos,
                             int n);
 
@@ -230,7 +230,7 @@ OIIO_DeepData_erase_samples(OIIO_DeepData* dd, int64_t pixel, int samplepos,
 ///
 /// Equivalent C++: `dd->deep_value(pixel, channel, sample)`
 ///
-OIIO_API float
+OIIOC_API float
 OIIO_DeepData_deep_value(const OIIO_DeepData* dd, int64_t pixel, int channel,
                          int sample);
 
@@ -239,7 +239,7 @@ OIIO_DeepData_deep_value(const OIIO_DeepData* dd, int64_t pixel, int channel,
 ///
 /// Equivalent C++: `dd->deep_value_uint(pixel, channel, sample)`
 ///
-OIIO_API uint32_t
+OIIOC_API uint32_t
 OIIO_DeepData_deep_value_uint(const OIIO_DeepData* dd, int64_t pixel,
                               int channel, int sample);
 
@@ -248,7 +248,7 @@ OIIO_DeepData_deep_value_uint(const OIIO_DeepData* dd, int64_t pixel,
 ///
 /// Equivalent C++: `dd->set_deep_value(pixel, channel, sample, value)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_set_deep_value(OIIO_DeepData* dd, int64_t pixel, int channel,
                              int sample, float value);
 
@@ -257,7 +257,7 @@ OIIO_DeepData_set_deep_value(OIIO_DeepData* dd, int64_t pixel, int channel,
 ///
 /// Equivalent C++: `dd->set_deep_value(pixel, channel, sample, value)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_set_deep_value_uint(OIIO_DeepData* dd, int64_t pixel, int channel,
                                   int sample, uint32_t value);
 
@@ -268,14 +268,14 @@ OIIO_DeepData_set_deep_value_uint(OIIO_DeepData* dd, int64_t pixel, int channel,
 ///
 /// Equivalent C++: `dd->data_ptr(pixel, channel, sample)`
 ///
-OIIO_API void*
+OIIOC_API void*
 OIIO_DeepData_data_ptr(OIIO_DeepData* dd, int64_t pixel, int channel,
                        int sample);
 
 ///
 /// Equivalent C++: `dd->all_channeltypes()`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_all_channeltypes(const OIIO_DeepData* dd,
                                const OIIO_TypeDesc** channeltypes,
                                int* nchanneltypes);
@@ -283,14 +283,14 @@ OIIO_DeepData_all_channeltypes(const OIIO_DeepData* dd,
 ///
 /// Equivalent C++: `dd->all_samples()`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_all_samples(const OIIO_DeepData* dd, const uint32_t** samples,
                           int* nsamples);
 
 ///
 /// Equivalent C++: `dd->all_data()`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_all_data(const OIIO_DeepData* dd, const char** bytes,
                        int* nbytes);
 
@@ -302,7 +302,7 @@ OIIO_DeepData_all_data(const OIIO_DeepData* dd, const char** bytes,
 ///
 /// Equivalent C++: `dd->copy_deep_sample(pixel, sample, *src, srcpixel, srcsample)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_DeepData_copy_deep_sample(OIIO_DeepData* dd, int64_t pixel, int sample,
                                const OIIO_DeepData* src, int64_t srcpixel,
                                int srcsample);
@@ -314,7 +314,7 @@ OIIO_DeepData_copy_deep_sample(OIIO_DeepData* dd, int64_t pixel, int sample,
 ///
 /// Equivalent C++: `dd->copy_deep_pixel(pixel, *src, srcpixel)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_DeepData_copy_deep_pixel(OIIO_DeepData* dd, int64_t pixel,
                               const OIIO_DeepData* src, int64_t srcpixel);
 
@@ -322,14 +322,14 @@ OIIO_DeepData_copy_deep_pixel(OIIO_DeepData* dd, int64_t pixel,
 ///
 /// Equivalent C++: `dd->split(pixel, depth)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_DeepData_split(OIIO_DeepData* dd, int64_t pixel, float depth);
 
 /// Sort the samples of the pixel by their `Z` depth.
 ///
 /// Equivalent C++: `dd->sort(pixel)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_sort(OIIO_DeepData* dd, int64_t pixel);
 
 /// Merge any adjacent samples in the pixel that exactly overlap in z
@@ -337,14 +337,14 @@ OIIO_DeepData_sort(OIIO_DeepData* dd, int64_t pixel);
 ///
 /// Equivalent C++: `dd->merge_overlaps(pixel)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_merge_overlaps(OIIO_DeepData* dd, int64_t pixel);
 
 /// Merge the samples of `src`'s pixel into this `DeepData`'s pixel.
 ///
 /// Equivalent C++: `dd->merge_deep_pixels(pixel, *src, srcpixel)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_merge_deep_pixels(OIIO_DeepData* dd, int64_t pixel,
                                 const OIIO_DeepData* src, int64_t srcpixel);
 
@@ -352,14 +352,14 @@ OIIO_DeepData_merge_deep_pixels(OIIO_DeepData* dd, int64_t pixel,
 ///
 /// Equivalent C++: `dd->opaque_z(pixel)`
 ///
-OIIO_API float
+OIIOC_API float
 OIIO_DeepData_opaque_z(const OIIO_DeepData* dd, int64_t pixel);
 
 /// Remove any samples hidden behind opaque samples.
 ///
 /// Equivalent C++: `dd->occlusion_cull(pixel)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_DeepData_occlusion_cull(OIIO_DeepData* dd, int64_t pixel);
 
 #ifdef __cplusplus

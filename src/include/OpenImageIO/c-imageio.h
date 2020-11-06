@@ -63,42 +63,42 @@ typedef struct {
 ///
 /// Equivalent C++: `ROI::All() or ROI()`
 ///
-OIIO_API OIIO_ROI
+OIIOC_API OIIO_ROI
 OIIO_ROI_All();
 
 /// Is a region defined?
-OIIO_API bool
+OIIOC_API bool
 OIIO_ROI_defined(const OIIO_ROI* roi);
 
 ///@{
 /// @name Spatial size functions.
 /// The width, height, and depth of the region.
-OIIO_API int
+OIIOC_API int
 OIIO_ROI_width(const OIIO_ROI* roi);
 
-OIIO_API int
+OIIOC_API int
 OIIO_ROI_height(const OIIO_ROI* roi);
 
-OIIO_API int
+OIIOC_API int
 OIIO_ROI_depth(const OIIO_ROI* roi);
 ///@}
 
 /// Number of channels in the region.  Beware -- this defaults to a
 /// huge number, and to be meaningful you must consider
 /// MIN(OIIO_ImageBuf_nchannels(), OIIO_ROI_nchannels())
-OIIO_API int
+OIIOC_API int
 OIIO_ROI_nchannels(const OIIO_ROI* roi);
 
 /// Total number of pixels in the region.
-OIIO_API imagesize_t
+OIIOC_API imagesize_t
 OIIO_ROI_npixels(const OIIO_ROI* roi);
 
 /// Test if the given coordinate is within the ROI
-OIIO_API bool
+OIIOC_API bool
 OIIO_ROI_contains(const OIIO_ROI* roi, int x, int y, int z, int ch);
 
 /// Test if one ROI is entirely within another
-OIIO_API bool
+OIIOC_API bool
 OIIO_ROI_contains_roi(const OIIO_ROI* container, OIIO_ROI* containee);
 
 /// ImageSpec describes the data format of an image -- dimensions, layout,
@@ -114,21 +114,21 @@ typedef struct OIIO_ImageSpec OIIO_ImageSpec;
 ///
 /// Equivalent C++: `new ImageSpec`
 ///
-OIIO_API OIIO_ImageSpec*
+OIIOC_API OIIO_ImageSpec*
 OIIO_ImageSpec_new();
 
 /// Delete an ImageSpec
 ///
 /// Equivalent C++: `delete is;`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_delete(const OIIO_ImageSpec* is);
 
 /// Create a new ImageSpec with explicit dimensions
 ///
 /// Equivalent C++: `new ImageSpec(xres, yres, nchans, fmt)`
 ///
-OIIO_API OIIO_ImageSpec*
+OIIOC_API OIIO_ImageSpec*
 OIIO_ImageSpec_new_with_dimensions(int xres, int yres, int nchans,
                                    OIIO_TypeDesc fmt);
 
@@ -137,273 +137,273 @@ OIIO_ImageSpec_new_with_dimensions(int xres, int yres, int nchans,
 ///
 /// Equivalent C++: `new ImageSpec(roi, fmt)`
 ///
-OIIO_API OIIO_ImageSpec*
+OIIOC_API OIIO_ImageSpec*
 OIIO_ImageSpec_new_with_roi(const OIIO_ROI* roi, OIIO_TypeDesc fmt);
 
 /// Create a copy of this ImageSpec with the default copy constructor
 ///
 /// Equivalent C++: `new ImageSpec(*is)`
 ///
-OIIO_API OIIO_ImageSpec*
+OIIOC_API OIIO_ImageSpec*
 OIIO_ImageSpec_copy(const OIIO_ImageSpec* is);
 
 /// Origin (upper-left corner) of the pixel data
 ///
 /// Equivalent C++: `is->x`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_x(const OIIO_ImageSpec* is);
 
 /// Origin (upper-left corner) of the pixel data
 ///
 /// Equivalent C++: `is->x = x`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_x(OIIO_ImageSpec* is, int x);
 
 /// Origin (upper-left corner of the pixel data)
 ///
 /// Equivalent C++: `is->y`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_y(const OIIO_ImageSpec* is);
 
 /// Origin (upper-left corner) of the piyel data
 ///
 /// Equivalent C++: `is->y = y`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_y(OIIO_ImageSpec* is, int y);
 
 /// Origin (upper-left corner of the pixel data)
 ///
 /// Equivalent C++: `is->z`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_z(const OIIO_ImageSpec* is);
 
 /// Origin (upper-left corner) of the pizel data
 ///
 /// Equivalent C++: `is->z = z`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_z(OIIO_ImageSpec* is, int z);
 
 /// Width of the pixel data window
 ///
 /// Equivalent C++: `is->width`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_width(const OIIO_ImageSpec* is);
 
 /// Width of the pixel data window
 ///
 /// Equivalent C++: `is->width = width`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_width(OIIO_ImageSpec* is, int width);
 
 /// Height of the pixel data window
 ///
 /// Equivalent C++: `is->height`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_height(const OIIO_ImageSpec* is);
 
 /// Height of the pixel data window
 ///
 /// Equivalent C++: `is->height = height`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_height(OIIO_ImageSpec* is, int height);
 
 /// Depth of the pixel data window
 ///
 /// Equivalent C++: `is->depth`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_depth(const OIIO_ImageSpec* is);
 
 /// Depth of the pixel data window
 ///
 /// Equivalent C++: `is->depth = depth`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_depth(OIIO_ImageSpec* is, int depth);
 
 /// Origin of the full (display) window
 ///
 /// Equivalent C++: `is->full_x`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_full_x(const OIIO_ImageSpec* is);
 
 /// Origin of the full (display) window
 ///
 /// Equivalent C++: `is->full_x = full_x`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_full_x(OIIO_ImageSpec* is, int full_x);
 
 /// Origin of the full (display) window
 ///
 /// Equivalent C++: `is->full_y`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_full_y(const OIIO_ImageSpec* is);
 
 /// Origin of the full (display) window
 ///
 /// Equivalent C++: `is->full_y = full_y
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_full_y(OIIO_ImageSpec* is, int full_y);
 
 /// Origin of the full (display) window
 ///
 /// Equivalent C++: `is->full_z`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_full_z(const OIIO_ImageSpec* is);
 
 /// Origin of the full (display) window
 ///
 /// Equivalent C++: `is->full_z = full_z`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_full_z(OIIO_ImageSpec* is, int full_z);
 
 /// Width of the full (display) window
 ///
 /// Equivalent C++: `is->full_width`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_full_width(const OIIO_ImageSpec* is);
 
 /// Width of the full (display) window
 ///
 /// Equivalent C++: `is->full_width = full_width`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_full_width(OIIO_ImageSpec* is, int full_width);
 
 /// Height of the full (display) window
 ///
 /// Equivalent C++: `is->full_height`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_full_height(const OIIO_ImageSpec* is);
 
 /// Height of the full (display) window
 ///
 /// Equivalent C++: `is->full_height = full_height`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_full_height(OIIO_ImageSpec* is, int full_height);
 
 /// Depth of the full (display) window
 ///
 /// Equivalent C++: `is->full_depth`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_full_depth(const OIIO_ImageSpec* is);
 
 /// Depth of the full (display) window
 ///
 /// Equivalent C++: `is->full_depth = full_depth`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_full_depth(OIIO_ImageSpec* is, int full_depth);
 
 /// Tile width (0 for a non-tiled image)
 ///
 /// Equivalent C++: `is->tile_width`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_tile_width(const OIIO_ImageSpec* is);
 
 /// Tile width (0 for a non-tiled image)
 ///
 /// Equivalent C++: `is->tile_width = tile_width`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_tile_width(OIIO_ImageSpec* is, int tile_width);
 
 /// Tile height (0 for a non-tiled image)
 ///
 /// Equivalent C++: `is->tile_height`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_tile_height(const OIIO_ImageSpec* is);
 
 /// Tile height (0 for a non-tiled image)
 ///
 /// Equivalent C++: `is->tile_height`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_tile_height(OIIO_ImageSpec* is, int tile_height);
 
 /// Tile depth (0 for a non-tiled image)
 ///
 /// Equivalent C++: `is->tile_depth`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_tile_depth(const OIIO_ImageSpec* is);
 
 /// Tile depth (0 for a non-tiled image)
 ///
 /// Equivalent C++: `is->tile_depth`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_tile_depth(OIIO_ImageSpec* is, int tile_depth);
 
 /// Number of image channels, e.g. 4 for RGBA
 ///
 /// Equivalent C++: `is->nchannels`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_nchannels(const OIIO_ImageSpec* is);
 
 /// Data format of the channels
 ///
 /// Equivalent C++: `is->format`
 ///
-OIIO_API OIIO_TypeDesc
+OIIOC_API OIIO_TypeDesc
 OIIO_ImageSpec_format(const OIIO_ImageSpec* is);
 
 /// Set the data format and clear any per-channel format information.
 ///
 /// Equivalent C++: `is->set_format(format)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_format(OIIO_ImageSpec* is, OIIO_TypeDesc format);
 
 /// Index of the channel that represents *alpha* (pixel coverage and/or transparency)
 ///
 /// Equivalent C++: `is->alpha_channel`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_alpha_channel(const OIIO_ImageSpec* is);
 
 /// Index of the channel that represents *alpha* (pixel coverage and/or transparency)
 ///
 /// Equivalent C++: `is->alpha_channel = alpha_channel`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_alpha_channel(OIIO_ImageSpec* is, int alpha_channel);
 
 /// Index of the channel that represents *z* or *depth* (from the camera).
 ///
 /// Equivalent C++: `is->z_channel`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_z_channel(const OIIO_ImageSpec* is);
 
 /// Index of the channel that represents *z* or *depth* (from the camera).
 ///
 /// Equivalent C++: `is->z_channel = z_channel`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_z_channel(OIIO_ImageSpec* is, int z_channel);
 
 /// If true, this indicates that the image contains "deep" data consisting of
@@ -411,7 +411,7 @@ OIIO_ImageSpec_set_z_channel(OIIO_ImageSpec* is, int z_channel);
 ///
 /// Equivalent C++: `is->deep`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageSpec_deep(const OIIO_ImageSpec* is);
 
 /// If true, this indicates that the image contains "deep" data consisting of
@@ -419,28 +419,28 @@ OIIO_ImageSpec_deep(const OIIO_ImageSpec* is);
 ///
 /// Equivalent C++: `is->deep = deep`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_set_deep(OIIO_ImageSpec* is, bool deep);
 
 /// Sets the `channelnames` to reasonable defaults for the number of channels.
 ///
 /// Equivalent C++: `is->default_channel_names()`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_default_channel_names(OIIO_ImageSpec* is);
 
 /// Returns the number of bytes comprising each channel of each pixel.
 ///
 /// Equivalent C++: `is->channel_bytes()`
 ///
-OIIO_API size_t
+OIIOC_API size_t
 OIIO_ImageSpec_channel_bytes(const OIIO_ImageSpec* is);
 
 /// Returns the number of bytes comprising the single specified channel.
 ///
 /// Equivalent C++: `is->channel_bytes(chan, native)`
 ///
-OIIO_API size_t
+OIIOC_API size_t
 OIIO_ImageSpec_channel_bytes_at(const OIIO_ImageSpec* is, int chan,
                                 bool native);
 
@@ -448,7 +448,7 @@ OIIO_ImageSpec_channel_bytes_at(const OIIO_ImageSpec* is, int chan,
 ///
 /// Equivalent C++: `is->pixel_bytes(native)`
 ///
-OIIO_API size_t
+OIIOC_API size_t
 OIIO_ImageSpec_pixel_bytes(const OIIO_ImageSpec* is, bool native);
 
 /// Returns the number of bytes for each pixel counting just the channels in
@@ -456,7 +456,7 @@ OIIO_ImageSpec_pixel_bytes(const OIIO_ImageSpec* is, bool native);
 ///
 /// Equivalent C++: `is->pixel_bytes(chbegin, chend, native)`
 ///
-OIIO_API size_t
+OIIOC_API size_t
 OIIO_ImageSpec_pixel_bytes_for_channels(const OIIO_ImageSpec* is, int chbegin,
                                         int chend, bool native);
 
@@ -464,35 +464,35 @@ OIIO_ImageSpec_pixel_bytes_for_channels(const OIIO_ImageSpec* is, int chbegin,
 ///
 /// Equivalent C++: `is->scanline_bytes(native)`
 ///
-OIIO_API imagesize_t
+OIIOC_API imagesize_t
 OIIO_ImageSpec_scanline_bytes(const OIIO_ImageSpec* is, bool native);
 
 /// Returns the number of pixels comprising an image tile.
 ///
 /// Equivalent C++: `is->tile_pixels()`
 ///
-OIIO_API imagesize_t
+OIIOC_API imagesize_t
 OIIO_ImageSpec_tile_pixels(const OIIO_ImageSpec* is);
 
 /// Returns the number of bytes comprising an image tile.
 ///
 /// Equivalent C++: `is->tile_bytes(native)`
 ///
-OIIO_API imagesize_t
+OIIOC_API imagesize_t
 OIIO_ImageSpec_tile_bytes(const OIIO_ImageSpec* is, bool native);
 
 /// Returns the number of pixels comprising the entire image
 ///
 /// Equivalent C++: `is->image_pixels()`
 ///
-OIIO_API imagesize_t
+OIIOC_API imagesize_t
 OIIO_ImageSpec_image_pixels(const OIIO_ImageSpec* is);
 
 /// Returns the number of bytes comprising the entire image
 ///
 /// Equivalent C++: `is->image_bytes(native)`
 ///
-OIIO_API imagesize_t
+OIIOC_API imagesize_t
 OIIO_ImageSpec_image_bytes(const OIIO_ImageSpec* is, bool native);
 
 /// Verify that on this platform, a `size_t` is big enough to hold the
@@ -501,7 +501,7 @@ OIIO_ImageSpec_image_bytes(const OIIO_ImageSpec* is, bool native);
 ///
 /// Equivalent C++: `is->size_t_safe()`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageSpec_size_t_safe(const OIIO_ImageSpec* is);
 
 /// Adjust the stride values, if set to AutoStride, to be the right
@@ -511,7 +511,7 @@ OIIO_ImageSpec_size_t_safe(const OIIO_ImageSpec* is);
 /// Equivalent C++: `ImageSpec::auto_stride(*xstride, *ystride, *zstride,
 ///                                         format, nchannels, width, height)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_auto_stride_xyz(stride_t* xstride, stride_t* ystride,
                                stride_t* zstride, OIIO_TypeDesc format,
                                int nchannels, int width, int height);
@@ -521,7 +521,7 @@ OIIO_ImageSpec_auto_stride_xyz(stride_t* xstride, stride_t* ystride,
 ///
 /// Equivalent C++: `ImageSpec::auto_stride(*xstride, format, nchannels)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_auto_stride(stride_t* xstride, OIIO_TypeDesc format,
                            int nchannels);
 
@@ -531,7 +531,7 @@ OIIO_ImageSpec_auto_stride(stride_t* xstride, OIIO_TypeDesc format,
 ///
 /// Equivalent C++: `is->attribute(name, fmt, value)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_attribute(OIIO_ImageSpec* is, const char* name,
                          OIIO_TypeDesc fmt, const void* value);
 
@@ -549,7 +549,7 @@ OIIO_ImageSpec_attribute(OIIO_ImageSpec* is, const char* name,
 ///
 /// Equivalent C++: `is->getattribute(name, type, value, casesensitive)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageSpec_getattribute(const OIIO_ImageSpec* is, const char* name,
                             OIIO_TypeDesc type, void* value,
                             bool casesensitive);
@@ -559,7 +559,7 @@ OIIO_ImageSpec_getattribute(const OIIO_ImageSpec* is, const char* name,
 ///
 /// Equivalent C++: `is->erase_attribute(name, searchtype, casesensitive)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_erase_attribute(OIIO_ImageSpec* is, const char* name,
                                OIIO_TypeDesc searchtype, bool casesensitive);
 
@@ -571,7 +571,7 @@ OIIO_ImageSpec_erase_attribute(OIIO_ImageSpec* is, const char* name,
 ///
 /// TODO: (AL) - other overload that takes temp storage to get data members
 /// of ImageSpec
-OIIO_API OIIO_ParamValue*
+OIIOC_API OIIO_ParamValue*
 OIIO_ImageSpec_find_attribute(OIIO_ImageSpec* is, const char* name,
                               OIIO_TypeDesc searchtype, bool casesensitive);
 
@@ -585,7 +585,7 @@ OIIO_ImageSpec_find_attribute(OIIO_ImageSpec* is, const char* name,
 ///                      provided storage is not large enough to hold the entire
 ///                      generated string, the string will be truncated to fit.
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_metadata_val(const OIIO_ImageSpec* is, const OIIO_ParamValue* p,
                             bool human, char* string_buffer, int buffer_length);
 
@@ -610,7 +610,7 @@ enum OIIO_ImageSpec_SerialVerbose {
 ///                      provided storage is not large enough to hold the entire
 ///                      generated string, the string will be truncated to fit.
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_serialize(const OIIO_ImageSpec* is, int format, int verbose,
                          char* string_buffer, int buffer_length);
 
@@ -622,7 +622,7 @@ OIIO_ImageSpec_serialize(const OIIO_ImageSpec* is, int format, int verbose,
 ///                      provided storage is not large enough to hold the entire
 ///                      generated string, the string will be truncated to fit.
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_to_xml(const OIIO_ImageSpec* is, char* string_buffer,
                       int buffer_length);
 
@@ -630,7 +630,7 @@ OIIO_ImageSpec_to_xml(const OIIO_ImageSpec* is, char* string_buffer,
 /// Populates the fields of the `ImageSpec` based on the XML passed in.
 ///
 /// Equivalent C++: `is->from_xml(xml)`
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_from_xml(OIIO_ImageSpec* is, const char* xml);
 
 
@@ -647,7 +647,7 @@ OIIO_ImageSpec_from_xml(OIIO_ImageSpec* is, const char* xml);
 /// @param qual Pointer to an int to receive the found quality value. If not
 ///             found, this will be unchanged.
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_decode_compression_metadata(OIIO_ImageSpec* is,
                                            const char* default_comp, char* comp,
                                            int comp_length, int* qual);
@@ -658,7 +658,7 @@ OIIO_ImageSpec_decode_compression_metadata(OIIO_ImageSpec* is,
 ///
 /// Equivalent C++: `is->valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageSpec_valid_tile_range(OIIO_ImageSpec* is, int xbegin, int xend,
                                 int ybegin, int yend, int zbegin, int zend);
 
@@ -667,7 +667,7 @@ OIIO_ImageSpec_valid_tile_range(OIIO_ImageSpec* is, int xbegin, int xend,
 ///
 /// Equivalent C++: `is->channelformat(chan)`
 ///
-OIIO_API OIIO_TypeDesc
+OIIOC_API OIIO_TypeDesc
 OIIO_ImageSpec_channelformat(const OIIO_ImageSpec* is, int chan);
 
 /// Return the channel name of the given channel. This is safe even if
@@ -675,13 +675,13 @@ OIIO_ImageSpec_channelformat(const OIIO_ImageSpec* is, int chan);
 ///
 /// Equivalent C++: `is->channel_name(chan)`
 ///
-OIIO_API const char*
+OIIOC_API const char*
 OIIO_ImageSpec_channel_name(const OIIO_ImageSpec* is, int chan);
 
 /// Fill the provided array with OIIO_TypeDesc describing all channels in the
 /// image. The array must have been allocated by the caller to hold nchannels
 /// OIIO_TypeDesc structures
-OIIO_API void
+OIIOC_API void
 OIIO_ImageSpec_get_channelformats(const OIIO_ImageSpec* is,
                                   OIIO_TypeDesc* formats);
 
@@ -690,21 +690,21 @@ OIIO_ImageSpec_get_channelformats(const OIIO_ImageSpec* is,
 ///
 /// Equivalent C++: `is->channelindex(name)`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageSpec_channelindex(const OIIO_ImageSpec* is, const char* name);
 
 /// Return pixel data window for this ImageSpec expressed as an ROI
 ///
 /// Equivalent C++: `is->roi()`
 ///
-OIIO_API OIIO_ROI
+OIIOC_API OIIO_ROI
 OIIO_ImageSpec_roi(const OIIO_ImageSpec* is);
 
 /// Return pixel display window for this ImageSpec expressed as an ROI
 ///
 /// Equivalent C++: `is->roi_full()`
 ///
-OIIO_API OIIO_ROI
+OIIOC_API OIIO_ROI
 OIIO_ImageSpec_roi_full(const OIIO_ImageSpec* is);
 
 /// ImageInput abstracts the reading of an image file in a file
@@ -724,7 +724,7 @@ typedef struct OIIO_ImageInput OIIO_ImageInput;
 ///
 /// FIXME: add Filesystem::IOProxy
 ///
-OIIO_API OIIO_ImageInput*
+OIIOC_API OIIO_ImageInput*
 OIIO_ImageInput_open(const char* filename, const OIIO_ImageSpec* config,
                      OIIO_Filesystem_IOProxy* ioproxy);
 
@@ -732,7 +732,7 @@ OIIO_ImageInput_open(const char* filename, const OIIO_ImageSpec* config,
 ///
 /// Equivalent C++: `delete ii`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageInput_delete(OIIO_ImageInput* ii);
 
 /// Return a pointer to the image specification of the current
@@ -747,7 +747,7 @@ OIIO_ImageInput_delete(OIIO_ImageInput* ii);
 ///
 /// Equivalent C++: `ii->spec()`
 ///
-OIIO_API const OIIO_ImageSpec*
+OIIOC_API const OIIO_ImageSpec*
 OIIO_ImageInput_spec(OIIO_ImageInput* ii);
 
 
@@ -762,7 +762,7 @@ OIIO_ImageInput_spec(OIIO_ImageInput* ii);
 ///
 /// Equivalent C++: `ii->spec(subimage, miplevel)`
 ///
-OIIO_API OIIO_ImageSpec*
+OIIOC_API OIIO_ImageSpec*
 OIIO_ImageInput_spec_copy(OIIO_ImageInput* ii, int subimage, int miplevel);
 
 /// Return a copy of the ImageSpec of the designated subimage and
@@ -772,7 +772,7 @@ OIIO_ImageInput_spec_copy(OIIO_ImageInput* ii, int subimage, int miplevel);
 ///
 /// Equivalent C++: `ii->spec_dimensions(subimage, miplevel)`
 ///
-OIIO_API OIIO_ImageSpec*
+OIIOC_API OIIO_ImageSpec*
 OIIO_ImageInput_spec_dimensions(OIIO_ImageInput* ii, int subimage,
                                 int miplevel);
 
@@ -783,7 +783,7 @@ OIIO_ImageInput_spec_dimensions(OIIO_ImageInput* ii, int subimage,
 ///
 /// Equivalent C++: `ii->close()`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_close(OIIO_ImageInput* ii);
 
 /// Returns the index of the subimage that is currently being read.
@@ -792,7 +792,7 @@ OIIO_ImageInput_close(OIIO_ImageInput* ii);
 ///
 /// Equivalent C++: `ii->current_subimage()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageInput_current_subimage(OIIO_ImageInput* ii);
 
 /// Returns the index of the MIPmap image that is currently being read.
@@ -801,7 +801,7 @@ OIIO_ImageInput_current_subimage(OIIO_ImageInput* ii);
 ///
 /// Equivalent C++: `ii->current_miplevel()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageInput_current_miplevel(OIIO_ImageInput* ii);
 
 /// Seek to the given subimage and MIP-map level within the open image
@@ -809,7 +809,7 @@ OIIO_ImageInput_current_miplevel(OIIO_ImageInput* ii);
 ///
 /// Equivalent C++: `ii->seek_subimage(subimage, miplevel)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_seek_subimage(OIIO_ImageInput* ii, int subimage, int miplevel);
 
 /// Read the scanline that includes pixels (*,y,z) from the "current"
@@ -819,7 +819,7 @@ OIIO_ImageInput_seek_subimage(OIIO_ImageInput* ii, int subimage, int miplevel);
 ///
 /// Equivalent C++: `ii->read_scanline(y, z, format, data, xstride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_read_scanline(OIIO_ImageInput* ii, int y, int z,
                               OIIO_TypeDesc format, void* data,
                               stride_t xstride);
@@ -834,7 +834,7 @@ OIIO_ImageInput_read_scanline(OIIO_ImageInput* ii, int y, int z,
 ///
 /// Equivalent C++: `ii->read_scanlines(subimage, miplevel, ybegin, yend, z, chbegin, chend, format, data, xstride, ystride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_read_scanlines(OIIO_ImageInput* ii, int subimage, int miplevel,
                                int ybegin, int yend, int z, int chbegin,
                                int chend, OIIO_TypeDesc format, void* data,
@@ -849,7 +849,7 @@ OIIO_ImageInput_read_scanlines(OIIO_ImageInput* ii, int subimage, int miplevel,
 ///
 /// Equivalent C++: `ii->read_tile(x, y, z format, data, xstride, ystride, zstride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_read_tile(OIIO_ImageInput* ii, int x, int y, int z,
                           OIIO_TypeDesc format, void* data, stride_t xstride,
                           stride_t ystride, stride_t zstride);
@@ -866,7 +866,7 @@ OIIO_ImageInput_read_tile(OIIO_ImageInput* ii, int x, int y, int z,
 ///                                 yend, zbegin, zend, chbegin, chend, format,
 ///                                 data, xstride, ystride, zstride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_read_tiles(OIIO_ImageInput* ii, int subimage, int miplevel,
                            int xbegin, int xend, int ybegin, int yend,
                            int zbegin, int zend, int chbegin, int chend,
@@ -880,7 +880,7 @@ OIIO_ImageInput_read_tiles(OIIO_ImageInput* ii, int subimage, int miplevel,
 /// Equivalent C++: `ii->read_native_deep_scanlines(subimage, miplevel,
 ///                         ybegin, yend, z, chbegin, chend, *deepdata)
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_read_native_deep_scanlines(OIIO_ImageInput* ii, int subimage,
                                            int miplevel, int ybegin, int yend,
                                            int z, int chbegin, int chend,
@@ -894,7 +894,7 @@ OIIO_ImageInput_read_native_deep_scanlines(OIIO_ImageInput* ii, int subimage,
 ///                         xbegin, xend, ybegin, yend, zbegin, zend,
 ///                         chbegin, chend, *deepdata)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_read_native_deep_tiles(OIIO_ImageInput* ii, int subimage,
                                        int miplevel, int xbegin, int xend,
                                        int ybegin, int yend, int zbegin,
@@ -907,7 +907,7 @@ OIIO_ImageInput_read_native_deep_tiles(OIIO_ImageInput* ii, int subimage,
 ///
 /// Equivalent C++: `ii->read_native_deep_image(subimage, miplevel, *deepdata)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_read_native_deep_image(OIIO_ImageInput* ii, int subimage,
                                        int miplevel, OIIO_DeepData* deepdata);
 
@@ -919,7 +919,7 @@ OIIO_ImageInput_read_native_deep_image(OIIO_ImageInput* ii, int subimage,
 ///                                 data, xstride, ystride, zstride,
 ///                                 progress_callback, progress_callbackd_data)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_read_image(OIIO_ImageInput* ii, int subimage, int miplevel,
                            int chbegin, int chend, OIIO_TypeDesc format,
                            void* data, stride_t xstride, stride_t ystride,
@@ -931,7 +931,7 @@ OIIO_ImageInput_read_image(OIIO_ImageInput* ii, int subimage, int miplevel,
 ///
 /// Equivalent C++: `ii->has_error()`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageInput_has_error(const OIIO_ImageInput* ii);
 
 /// Return the text of all pending error messages issued against this ImageInput
@@ -946,7 +946,7 @@ OIIO_ImageInput_has_error(const OIIO_ImageInput* ii);
 ///                         string is longer than this, it will be truncated.
 /// @param clear            If true, clear the internal error message before returning.
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageInput_geterror(const OIIO_ImageInput* ii, char* msg,
                          int buffer_length, bool clear);
 
@@ -973,7 +973,7 @@ enum OIIO_ImageOutput_OpenMode {
 ///
 /// Equivalent C++: `ImageOutput::create(filename, ioproxy, plugin_search_path)`
 ///
-OIIO_API OIIO_ImageOutput*
+OIIOC_API OIIO_ImageOutput*
 OIIO_ImageOutput_create(const char* filename, OIIO_Filesystem_IOProxy* ioproxy,
                         const char* plugin_search_path);
 
@@ -981,14 +981,14 @@ OIIO_ImageOutput_create(const char* filename, OIIO_Filesystem_IOProxy* ioproxy,
 ///
 /// Equivalent C++: `delete io`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageOutput_delete(OIIO_ImageOutput* io);
 
 /// Return the name of the format implemented by this class.
 ///
 /// Equivalent C++: `io->format_name()`
 ///
-OIIO_API const char*
+OIIOC_API const char*
 OIIO_ImageOutput_format_name(OIIO_ImageOutput* io);
 
 /// Given the name of a "feature", return whether this ImageOutput
@@ -996,7 +996,7 @@ OIIO_ImageOutput_format_name(OIIO_ImageOutput* io);
 ///
 /// Equivalent C++: `io->support(feature)`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageOutput_supports(OIIO_ImageOutput* io, const char* feature);
 
 /// Open the file with given name, with resolution and other format
@@ -1004,7 +1004,7 @@ OIIO_ImageOutput_supports(OIIO_ImageOutput* io, const char* feature);
 ///
 /// Equivalent C++: `io->open(name, newspec, mode)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_open(OIIO_ImageOutput* io, const char* name,
                       const OIIO_ImageSpec* newspec, int mode);
 
@@ -1017,7 +1017,7 @@ OIIO_ImageOutput_open(OIIO_ImageOutput* io, const char* name,
 ///
 /// Equivalent C++: `io->open(name, subimages, specs)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_open_multiimage(OIIO_ImageOutput* io, const char* name,
                                  int subimages, const OIIO_ImageSpec* specs);
 
@@ -1027,7 +1027,7 @@ OIIO_ImageOutput_open_multiimage(OIIO_ImageOutput* io, const char* name,
 ///
 /// Equivalent C++: `io->spec()`
 ///
-OIIO_API
+OIIOC_API
 const OIIO_ImageSpec*
 OIIO_ImageOutput_spec(const OIIO_ImageOutput* io);
 
@@ -1036,7 +1036,7 @@ OIIO_ImageOutput_spec(const OIIO_ImageOutput* io);
 ///
 /// Equivalent C++: `io->close()`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_close(OIIO_ImageOutput* io);
 
 /// Write the full scanline that includes pixels (*,y,z).  For 2D
@@ -1046,7 +1046,7 @@ OIIO_ImageOutput_close(OIIO_ImageOutput* io);
 ///
 /// Equivalent C++: `io->write_scanline(y, z, format, data, xstride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_write_scanline(OIIO_ImageOutput* io, int y, int z,
                                 OIIO_TypeDesc format, const void* data,
                                 stride_t xstride);
@@ -1060,7 +1060,7 @@ OIIO_ImageOutput_write_scanline(OIIO_ImageOutput* io, int y, int z,
 ///
 /// Equivalent C++: `io->write_scanlines(ybegin, yend, z, format, data, xstride, ystride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_write_scanlines(OIIO_ImageOutput* io, int ybegin, int yend,
                                  int z, OIIO_TypeDesc format, const void* data,
                                  stride_t xstride, stride_t ystride);
@@ -1072,7 +1072,7 @@ OIIO_ImageOutput_write_scanlines(OIIO_ImageOutput* io, int ybegin, int yend,
 ///
 /// Equivalent C++: `io->write_tile(x, y, z, format, data, xstride, ystride, zstride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOuptut_write_tile(OIIO_ImageOutput* io, int x, int y, int z,
                             OIIO_TypeDesc format, const void* data,
                             stride_t xstride, stride_t ystride,
@@ -1088,7 +1088,7 @@ OIIO_ImageOuptut_write_tile(OIIO_ImageOutput* io, int x, int y, int z,
 ///
 /// Equivalent C++: `io->write_tiles(xbegin, xend, ybegin, yend, zbegin, zend, format, data, xstride, ystride, zstride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_write_tiles(OIIO_ImageOutput* io, int xbegin, int xend,
                              int ybegin, int yend, int zbegin, int zend,
                              OIIO_TypeDesc format, const void* data,
@@ -1106,7 +1106,7 @@ OIIO_ImageOutput_write_tiles(OIIO_ImageOutput* io, int xbegin, int xend,
 ///
 /// Equivalent C++: `io->write_rectangle(xbegin, xend, ybegin, yend, zbegin, zend, format, data, xstride, ystride, zstride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_write_rectangle(OIIO_ImageOutput* io, int xbegin, int xend,
                                  int ybegin, int yend, int zbegin, int zend,
                                  OIIO_TypeDesc format, const void* data,
@@ -1123,7 +1123,7 @@ OIIO_ImageOutput_write_rectangle(OIIO_ImageOutput* io, int xbegin, int xend,
 /// Equivalent C++: `io->write_image(format, data, xstride, ystride, zstride,
 ///                                     progress_callback, progress_callback_data)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_write_image(OIIO_ImageOutput* io, OIIO_TypeDesc format,
                              const void* data, stride_t xstride,
                              stride_t ystride, stride_t zstride,
@@ -1136,7 +1136,7 @@ OIIO_ImageOutput_write_image(OIIO_ImageOutput* io, OIIO_TypeDesc format,
 ///
 /// Equivalent C++: `io->write_deep_scanlines(ybegin, yend, z, *deepdata)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_write_deep_scanlines(OIIO_ImageOutput* io, int ybegin,
                                       int yend, int z,
                                       const OIIO_DeepData* deepdata);
@@ -1152,7 +1152,7 @@ OIIO_ImageOutput_write_deep_scanlines(OIIO_ImageOutput* io, int ybegin,
 ///
 /// Equivalent C++: `io->write_deep_tiles(xbegin, xend, ybegin, yend, zbegin, zend, *deepdata)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_write_deep_tiles(OIIO_ImageOutput* io, int xbegin, int xend,
                                   int ybegin, int yend, int zbegin, int zend,
                                   const OIIO_DeepData* deepdata);
@@ -1162,7 +1162,7 @@ OIIO_ImageOutput_write_deep_tiles(OIIO_ImageOutput* io, int xbegin, int xend,
 ///
 /// Equivalent C++: `io->write_deep_image(*deepdata)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_write_deep_image(OIIO_ImageOutput* io,
                                   const OIIO_DeepData* deepdata);
 
@@ -1175,7 +1175,7 @@ OIIO_ImageOutput_write_deep_image(OIIO_ImageOutput* io,
 ///
 /// Equivalent C++: `io->copy_image(in)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_copy_image(OIIO_ImageOutput* io, OIIO_ImageInput* in);
 
 /// Set an IOProxy for this writer. This must be called prior to
@@ -1185,7 +1185,7 @@ OIIO_ImageOutput_copy_image(OIIO_ImageOutput* io, OIIO_ImageInput* in);
 ///
 /// Equivalent C++: `io->set_ioproxy(ioproxy)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_set_ioproxy(OIIO_ImageOutput* io,
                              OIIO_Filesystem_IOProxy* ioproxy);
 
@@ -1194,7 +1194,7 @@ OIIO_ImageOutput_set_ioproxy(OIIO_ImageOutput* io,
 ///
 /// Equivalent C++: `io->has_error()`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_ImageOutput_has_error(const OIIO_ImageOutput* io);
 
 /// Return the text of all pending error messages issued against this ImageOutput,
@@ -1208,7 +1208,7 @@ OIIO_ImageOutput_has_error(const OIIO_ImageOutput* io);
 ///                         string is longer than this, it will be truncated.
 /// @param clear            If true, clear the internal error message before returning.
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageOutput_geterror(const OIIO_ImageOutput* io, char* msg,
                           int buffer_length, bool clear);
 
@@ -1221,14 +1221,14 @@ OIIO_ImageOutput_geterror(const OIIO_ImageOutput* io, char* msg,
 ///
 /// Equivalent C++: `io->threads(n)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_ImageOutput_set_threads(OIIO_ImageOutput* io, int n);
 
 /// Retrieve the current thread-spawning policy.
 ///
 /// Equivalent C++: `io->threads()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_ImageOutput_threads(const OIIO_ImageOutput* io);
 
 // Global utility functions
@@ -1241,14 +1241,14 @@ OIIO_ImageOutput_threads(const OIIO_ImageOutput* io);
 ///
 /// Equivalent C++: `OIIO::openimageio_version()`
 ///
-OIIO_API int
+OIIOC_API int
 OIIO_openimageio_version();
 
 /// Is there a pending global error message waiting to be retrieved?
 ///
 /// Equivalent C++: `OIIO::haserror()`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_haserror();
 
 /// Returns any error string describing what went wrong if
@@ -1265,7 +1265,7 @@ OIIO_haserror();
 ///                         string is longer than this, it will be truncated.
 /// @param clear            If true, clear the internal error message before returning.
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_geterror(char* msg, int buffer_length, bool clear);
 
 /// `OIIO::attribute()` sets an global attribute (i.e., a property or
@@ -1275,7 +1275,7 @@ OIIO_geterror(char* msg, int buffer_length, bool clear);
 ///
 /// Equivalent C++: `OIIO::attribute(name, type, val)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_attribute(const char* name, OIIO_TypeDesc type, const void* val);
 
 /// Get the named global attribute of OpenImageIO, store it in `*val`.
@@ -1286,7 +1286,7 @@ OIIO_attribute(const char* name, OIIO_TypeDesc type, const void* val);
 ///
 /// Equivalent C++: `OIIO::getattribute(name, type, val)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_getattribute(const char* name, OIIO_TypeDesc type, void* val);
 
 /// Helper function: convert contiguous data between two arbitrary pixel
@@ -1296,7 +1296,7 @@ OIIO_getattribute(const char* name, OIIO_TypeDesc type, void* val);
 ///
 /// Equivalent C++: `OIIO::convert_pixel_values(src_type, src, dst_type, dst, n)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_convert_pixel_values(OIIO_TypeDesc src_type, const void* src,
                           OIIO_TypeDesc dst_type, void* dst, int n);
 
@@ -1309,7 +1309,7 @@ OIIO_convert_pixel_values(OIIO_TypeDesc src_type, const void* src,
 ///                     src, src_type, src_xstride, src_ystride, src_zstride,
 ///                     dst, dst_type, dsst_xstride, dst_ystride, dst_zstride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_convert_image(int nchannels, int width, int height, int depth,
                    const void* src, OIIO_TypeDesc src_type,
                    stride_t src_xstride, stride_t src_ystride,
@@ -1326,7 +1326,7 @@ OIIO_convert_image(int nchannels, int width, int height, int depth,
 ///                             dst, dst_type, dsst_xstride, dst_ystride, dst_zstride,
 ///                             nthreads)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_parallel_convert_image(int nchannels, int width, int height, int depth,
                             const void* src, OIIO_TypeDesc src_type,
                             stride_t src_xstride, stride_t src_ystride,
@@ -1345,7 +1345,7 @@ OIIO_parallel_convert_image(int nchannels, int width, int height, int depth,
 ///                         alpha_channel, z_channel, ditherseed, chorigin,
 ///                         xorigin, yorigin, zorigin)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_add_dither(int nchannels, int width, int height, int depth, float* data,
                 stride_t xstride, stride_t ystride, stride_t zstride,
                 float ditheramplitude, int alpha_channel, int z_channel,
@@ -1359,7 +1359,7 @@ OIIO_add_dither(int nchannels, int width, int height, int depth, float* data,
 ///                         chbegin, chend, datatype, data, xstride, ystride,
 ///                         zstride, alpha_channel, z_channel)`
 ///
-OIIO_API void
+OIIOC_API void
 OIIO_premult(int nchannels, int width, int height, int depth, int chbegin,
              int chend, OIIO_TypeDesc datatype, void* data, stride_t xstride,
              stride_t ystride, stride_t zstride, int alpha_channel,
@@ -1373,7 +1373,7 @@ OIIO_premult(int nchannels, int width, int height, int depth, int chbegin,
 ///                         pixelsize, src_xstride, src_ystride, src_zstride,
 ///                         dst, dst_xstride, dst_ystride, dst_zstride)`
 ///
-OIIO_API bool
+OIIOC_API bool
 OIIO_copy_image(int nchannels, int width, int height, int depth,
                 const void* src, stride_t pixelsize, stride_t src_xstride,
                 stride_t src_ystride, stride_t src_zstride, void* dst,
@@ -1381,19 +1381,19 @@ OIIO_copy_image(int nchannels, int width, int height, int depth,
                 stride_t dst_zstride);
 
 
-OIIO_API bool
+OIIOC_API bool
 OIIO_wrap_black(int* coord, int origin, int width);
 
-OIIO_API bool
+OIIOC_API bool
 OIIO_wrap_clamp(int* coord, int origin, int width);
 
-OIIO_API bool
+OIIOC_API bool
 OIIO_wrap_periodic(int* coord, int origin, int width);
 
-OIIO_API bool
+OIIOC_API bool
 OIIO_wrap_periodic_pow2(int* coord, int origin, int width);
 
-OIIO_API bool
+OIIOC_API bool
 OIIO_wrap_mirror(int* coord, int origin, int width);
 
 
