@@ -64,3 +64,9 @@
 #else
 #    define OIIO_API OIIO_IMPORT
 #endif
+
+#if defined(OpenImageIO_C_EXPORTS)
+#    define OIIOC_API OIIO_EXPORT
+#else
+#    define OIIOC_API OIIO_IMPORT
+#endif

@@ -190,6 +190,14 @@ def text_diff (fromfile, tofile, diff_file=None):
     return 1
 
 
+def run_app(app, silent=False, concat=True):
+    command = app
+    if not silent:
+        command += redirect
+    if concat:
+        command += " ;\n"
+    return command
+
 def oiio_app (app):
     if (platform.system () != 'Windows' or options.devenv_config == ""):
         return os.path.join (path, "bin", app) + " "
