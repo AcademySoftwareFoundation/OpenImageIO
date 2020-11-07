@@ -90,4 +90,7 @@ OpenImageIO |version|
         https://breathe.readthedocs.io/en/latest/directives.html
     RST:
 
+    sphinx-tabs plugin for Sphinx:
+        https://pypi.org/project/sphinx-tabs/
+        https://sphinx-tabs.readthedocs.io/en/latest/#
 
