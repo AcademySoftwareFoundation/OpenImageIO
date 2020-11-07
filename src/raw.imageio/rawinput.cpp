@@ -364,6 +364,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
                                         &exifspec);
 #endif
 
+    // Force flip value if needed. If user_flip is -1, libraw ignores it
+    m_processor->imgdata.params.user_flip = config.get_int_attribute("raw:user_flip", -1);
+
     int ret;
     if ((ret = m_processor->open_file(name.c_str())) != LIBRAW_SUCCESS) {
         errorf("Could not open file \"%s\", %s", m_filename,
@@ -379,6 +382,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
             return false;
         }
     }
+
     m_processor->adjust_sizes_info_only();
 
     // Process image at half size if "raw:half_size" is not 0
