@@ -5,8 +5,13 @@
 
 #pragma once
 
-#include <OpenEXR/ImathBox.h>
-#include <OpenEXR/ImathVec.h>
+#include <OpenImageIO/Imath.h>
+
+#if OIIO_USING_IMATH >= 3
+#    include <Imath/ImathBox.h>
+#else
+#    include <OpenEXR/ImathBox.h>
+#endif
 
 #include <Field3D/DenseField.h>
 #include <Field3D/Field3DFile.h>

@@ -11,8 +11,6 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/thread.h>
 
-#include <OpenEXR/ImathVec.h>
-
 #include "field3d_pvt.h"
 using namespace OIIO_NAMESPACE::f3dpvt;
 

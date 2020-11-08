@@ -15,8 +15,6 @@
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/varyingref.h>
 
-#include <OpenEXR/ImathVec.h> /* because we need V3f */
-
 
 // Define symbols that let client applications determine if newly added
 // features are supported.

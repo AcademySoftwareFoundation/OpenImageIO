@@ -11,10 +11,6 @@
 #include <iostream>
 #include <iterator>
 
-#include <OpenEXR/ImathMatrix.h>
-#include <OpenEXR/ImathVec.h>
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/filesystem.h>

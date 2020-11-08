@@ -4,8 +4,7 @@
 
 #include <vector>
 
-#include <OpenEXR/ImathColor.h>
-
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/unittest.h>

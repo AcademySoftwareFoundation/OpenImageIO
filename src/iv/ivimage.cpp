@@ -5,8 +5,6 @@
 
 #include <iostream>
 
-#include <OpenEXR/half.h>
-
 #include "imageviewer.h"
 #include <OpenImageIO/strutil.h>
 
