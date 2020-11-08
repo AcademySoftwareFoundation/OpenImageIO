@@ -1439,6 +1439,10 @@ options are supported:
      - int
      - Set libraw highlight mode processing: 0 = clip, 1 = unclip, 2 =
        blend, 3+ = rebuild. (Default: 0.)
+   * - ``raw:user_flip``
+     - int
+     - Set libraw user flip value : -1 ignored, other values are between [0; 8] with the same 
+       definition than the Exif orientation code.
 
 
 
