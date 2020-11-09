@@ -17,6 +17,7 @@ lg@openimageio.org
 * Alexy Pawlow
 * Aman Shah
 * Ananth Garre
+* Anders Langlands
 * Arkady Shapkin
 * Basileios Anastasatos
 * Bastien Montagne

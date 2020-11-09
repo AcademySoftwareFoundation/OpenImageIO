@@ -3,6 +3,14 @@ Release 2.3 (??) -- compared to 2.2
 New minimum dependencies:
 
 New major features and public API changes:
+* C API:  #2748 (2.3.1.0)
+    - A set of C99 wrappers can be found in c-imageio.h, etc., and in
+      libOpenImageIO-C, allowing C programs to use OIIO. This is also an
+      important stepping stone towards having Rust bindings.
+    - So far: ImageInput, ImageOutput, TypeDesc, ROI, ImageSpec,
+      ParamValueList, DeepData.
+    - Other classes will be exposed soon, we hope to have all of OIIO
+      usable from C by the time 2.3 is released.
 * Changes and clarifications to `geterror()` in all classes that have one:
     - `geterror()` now take an optional `clear` parameter controls if the
       pending error is cleared as well as retrieved (default `true`).
@@ -71,6 +79,9 @@ Fixes and feature enhancements:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
 * IFF
     - Fix broken reads of 16 bit iff files. #2736 (2.3.0.1/2.2.8)
+* RAW:
+    - Add "raw:user_flip" input configuration hint to control this option
+      in the underlying libraw. #2769 (2.3.1.0)
 * TIFF:
     - Fix broken reads of multi-subimage non-spectral files (such as
       photometric YCbCr mode). #2692 (2.3.0.0)
@@ -88,6 +99,9 @@ Fixes and feature enhancements:
       multi-subimage files. #2730 (2.3.0.1/2.2.8)
 
 Developer goodies / internals:
+* fmath.h:
+    - Use CPU intrinsics to speed up swap_ending (by 8-15x when swapping
+      bytes of large arrays). #2763 (2.3.1.0)
 * simd.h:
     - Fix incorrect ARM NEON code in simd.h. #2739 (2.3.0.1/2.2.8)
 * strutil.h:
@@ -125,6 +139,9 @@ Notable documentation changes:
 * Make Readthedocs generate downloadable HTML as well as PDF. #2746
 * Explain how to read image data into separate per-channel buffers. #2756
   (2.3.0.1/2.2.8)
+* Improve use of breathe and formatting. #2762 (2.3.1.0)
+* Remove documentation of deprecated ImageBufAlgo functions. #2762 (2.3.1.0)
+* Document missing texture option fields. #2762 (2.3.1.0)
 
 
 Release 2.2.8 (1 Nov 2020) -- compared to 2.2.7
