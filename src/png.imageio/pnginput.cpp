@@ -18,7 +18,7 @@ public:
     virtual const char* format_name(void) const override { return "png"; }
     virtual int supports(string_view feature) const override
     {
-        return (feature == "ioproxy");
+        return (feature == "ioproxy" || feature == "exif");
     }
     virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& newspec) override;

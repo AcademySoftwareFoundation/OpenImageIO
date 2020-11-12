@@ -124,6 +124,55 @@ get_background(png_structp& sp, png_infop& ip, ImageSpec& spec, int& bit_depth,
 
 
 
+inline int
+hex2int(char a)
+{
+    return a <= '9' ? a - '0' : tolower(a) - 'a' + 10;
+}
+
+
+
+// Recent libpng (>= 1.6.32) supports direct Exif chunks. But the old way
+// is more common, which is to embed it in a Text field (like a comment).
+// This decodes that raw text data, which is a string,that looks like:
+//
+//     <whitespace> exif
+//     <whitespace> <integer size>
+//     <72 hex digits>
+//     ...more lines of 72 hex digits...
+//
+static bool
+decode_png_text_exif(string_view raw, ImageSpec& spec)
+{
+    // Strutil::print("Found exif raw len={} '{}{}'\n", raw.size(),
+    //                raw.substr(0,200), raw.size() > 200 ? "..." : "");
+
+    Strutil::skip_whitespace(raw);
+    if (!Strutil::parse_prefix(raw, "exif"))
+        return false;
+    int rawlen = 0;
+    if (!Strutil::parse_int(raw, rawlen) || !rawlen)
+        return false;
+    Strutil::skip_whitespace(raw);
+    std::string decoded;  // Converted from hex to bytes goes here
+    decoded.reserve(raw.size() / 2 + 1);
+    while (raw.size() >= 2) {
+        if (!isxdigit(raw.front())) {  // not hex digit? skip
+            raw.remove_prefix(1);
+            continue;
+        }
+        int c = (hex2int(raw[0]) << 4) | hex2int(raw[1]);
+        decoded.append(1, char(c));
+        raw.remove_prefix(2);
+    }
+    if (Strutil::istarts_with(decoded, "Exif")) {
+        decode_exif(decoded, spec);
+    }
+    return false;
+}
+
+
+
 /// Read information from a PNG file and fill the ImageSpec accordingly.
 ///
 inline bool
@@ -223,8 +272,16 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
                 spec.attribute("DocumentName", text_ptr[i].text);
             else if (Strutil::iequals(text_ptr[i].key, "XML:com.adobe.xmp"))
                 decode_xmp(text_ptr[i].text, spec);
-            else
+            else if (Strutil::iequals(text_ptr[i].key,
+                                      "Raw profile type exif")) {
+                // Most PNG files seem to encode Exif by cramming it into a
+                // text field, with the key "Raw profile type exif" and then
+                // a special text encoding that we handle with the following
+                // function:
+                decode_png_text_exif(text_ptr[i].text, spec);
+            } else {
                 spec.attribute(text_ptr[i].key, text_ptr[i].text);
+            }
         }
     }
     spec.x = png_get_x_offset_pixels(sp, ip);
@@ -255,6 +312,18 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     }
 
     interlace_type = png_get_interlace_type(sp, ip);
+
+#ifdef PNG_eXIf_SUPPORTED
+    // Recent version of PNG and libpng (>= 1.6.32, I think) have direct
+    // support for Exif chunks. Older versions don't support it, and I'm not
+    // sure how common it is. Most files use the old way, which is the
+    // text embedding of Exif we handle with decode_png_text_exif.
+    png_uint_32 num_exif = 0;
+    png_bytep exif_data  = nullptr;
+    if (png_get_eXIf_1(sp, ip, &num_exif, &exif_data)) {
+        decode_exif(cspan<uint8_t>(exif_data, num_exif), spec);
+    }
+#endif
 
     // PNG files are always "unassociated alpha" but we convert to associated
     // unless requested otherwise

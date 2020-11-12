@@ -1087,14 +1087,24 @@ decode_exif(string_view exif, ImageSpec& spec)
 bool
 decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
 {
+    // Sometimes an exif blob starts with "Exif". Skip it.
+    if (exif.size() >= 6 && exif[0] == 'E' && exif[1] == 'x' && exif[2] == 'i'
+        && exif[3] == 'f' && exif[4] == 0 && exif[5] == 0) {
+        exif = exif.subspan(6);
+    }
+
 #if DEBUG_EXIF_READ
     std::cerr << "Exif dump:\n";
-    for (size_t i = 0; i < exif.size(); ++i) {
+    for (size_t i = 0; i < std::min(200L, exif.size()); ++i) {
+        if ((i % 16) == 0)
+            std::cerr << "[" << i << "] ";
         if (exif[i] >= ' ')
             std::cerr << (char)exif[i] << ' ';
         std::cerr << "(" << (int)exif[i] << ") ";
+        if ((i % 16) == 15)
+            std::cerr << "\n";
     }
-    std::cerr << "\n";
+    std::cerr << std::endl;
 #endif
 
     // The first item should be a standard TIFF header.  Note that HERE,
