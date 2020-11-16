@@ -14,6 +14,12 @@ set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 set (${PROJECT_NAME}_SUPPORTED_RELEASE 1)  # Change to 1 after release branch
 
+# Identify whether this is included as a subproject of something else
+if (NOT "${CMAKE_PROJECT_NAME}" STREQUAL "${PROJECT_NAME}")
+    set (${PROJECT_NAME}_IS_SUBPROJECT ON)
+    message (STATUS "${PROJECT_NAME} is configuring as a CMake subproject")
+endif ()
+
 # If the user wants to use Conan to build dependencies, they will have done
 # this prior to the cmake config:
 #   cd <build area>
@@ -24,9 +30,6 @@ if (EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     message (STATUS "Using Conan for dependencies")
     conan_basic_setup()
 endif()
-
-message (STATUS "Building ${PROJECT_NAME} ${PROJECT_VERSION}")
-message (STATUS "CMake version is ${CMAKE_VERSION}")
 
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
@@ -73,9 +76,6 @@ set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
 file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
 set (CMAKE_DEBUG_POSTFIX "" CACHE STRING "Library naming postfix for Debug builds (e.g., '_debug')")
 
-set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_SOURCE_DIR}/.." CACHE PATH
-    "Location of oiio-images, openexr-images, libtiffpic, etc.." )
-
 option (OIIO_THREAD_ALLOW_DCLP "OIIO threads may use DCLP for speed" ON)
 if (NOT OIIO_THREAD_ALLOW_DCLP)
     add_definitions ("-DOIIO_THREAD_ALLOW_DCLP=0")
@@ -104,25 +104,31 @@ list (APPEND CMAKE_MODULE_PATH
 
 include (GNUInstallDirs)
 
+# Utilities
 include (colors)
 include (check_is_enabled)
 include (checked_find_package)
+include (fancy_add_executable)
+include (add_oiio_plugin)
 
-# All the C++ and compiler related options and adjustments live here
+# All the C++ and compiler related options and adjustments
 include (compiler)
 
-include (oiio_macros)
-
-# Utilities related to finding python and making python bindings
+# Utilities and options related to finding python and making python bindings
 include (pythonutils)
 
-# All the dependency finding and options are here
+# Dependency finding utilities and all dependency-related options
 include (externalpackages)
 
-
-# We want CTest for testing, so this must be added before all the calls to
-# add_subdirectory, or their add_test commands will not register.
-include (CTest)
+# Include all our testing apparatus and utils, but not if it's a subproject
+if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+    include (testing)
+else ()
+    macro (oiio_add_tests)
+    endmacro ()
+    macro (oiio_add_all_tests)
+    endmacro ()
+endif ()
 
 
 include_directories (
@@ -207,12 +213,12 @@ if (OIIO_SITE AND EXISTS "${PROJECT_SOURCE_DIR}/site/${OIIO_SITE}/cmake/sitecust
 endif ()
 
 # install pkgconfig file
-IF ( NOT MSVC )
+if (NOT MSVC)
    configure_file(src/build-scripts/OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/OpenImageIO.pc" @ONLY)
    install (FILES "${CMAKE_BINARY_DIR}/OpenImageIO.pc"
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
             COMPONENT developer)
-ENDIF()
+endif()
 
 # Oddball: install the FindOpenImageIO.cmake file
 install (FILES src/cmake/modules/FindOpenImageIO.cmake
@@ -259,247 +265,9 @@ install (EXPORT OIIO_EXPORTED_TARGETS
         NAMESPACE ${PROJECT_NAME}::)
 
 
-#########################################################################
-# Testing
-#
-# Just call oiio_add_tests(testname...) for each test.  Additional
-# optional arguments include:
-#     FOUNDVAR   specifies the name of a CMAKE variable; if not defined,
-#                    the test will not be added for 'make test' (helpful
-#                    for excluding tests for libraries not found).
-#     IMAGEDIR   specifies a directory for test images, one level higher
-#                    than where the oiio top level source lives -- a
-#                    message will be printed if not found.
-#     URL        URL where the test images can be found, will be
-#                    incorporated into the error message if the test
-#                    image directory is not found.
-#     LABEL      If set to "broken", will designate the test as one
-#                    that is known to be broken, so will only be run
-#                    for "make testall", but not "make test".
-#
+oiio_add_all_tests()
 
-# Make a build/platform/testsuite directory, and copy the master runtest.py
-# there. The rest is up to the tests themselves.
-file (MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-file (COPY "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/common"
-      DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-add_custom_command (OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py"
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/runtest.py"
-                        "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py"
-                    MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/runtest.py")
-add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py" )
 
-#   Tests that require oiio-images:
-oiio_add_tests (gpsread
-                oiiotool oiiotool-attribs  oiiotool-copy
-                oiiotool-readerror oiiotool-xform
-                oiiotool-fixnan ## maketx & oiiotool-maketx depend on this
-                maketx oiiotool-maketx
-                misnamed-file
-                missingcolor
-                texture-interp-bicubic
-                texture-blurtube
-                texture-crop texture-cropover
-                texture-derivs texture-fill texture-filtersize
-                texture-flipt texture-gettexels texture-gray
-                texture-mip-nomip texture-mip-trilinear
-                texture-overscan texture-pointsample
-                texture-uint8
-                texture-width0blur
-                texture-fat texture-skinny texture-wrapfill
-                texture-missing texture-res texture-maxres
-                texture-udim texture-udim2
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images"
-               )
-
-#   Remaining freestanding tests:
-oiio_add_tests (nonwhole-tiles
-                oiiotool-composite
-                oiiotool-pattern
-                oiiotool-subimage oiiotool-text
-                diff
-                dither dup-channels
-                jpeg-corrupt
-                null
-                rational
-               )
-
-# Travis + old libjpeg seems to not catch an error in this test, skip it
-# for that case.
-if (JPEG_TURBO_FOUND OR NOT DEFINED ENV{TRAVIS})
-    oiio_add_tests (jpeg-corrupt-header)
-endif()
-
-# Add tests that require the Python bindings if we built the Python
-# bindings. This is mostly the test that are specifically about testing
-# the Python bindings themselves, but also a handful of tests that are
-# mainly about other things but happen to use Python in order to perform
-# thee test.
-# We also exclude these tests if this is a sanitizer build on Linux,
-# because the Python interpreter itself won't be linked with the right asan
-# libraries to run correctly.
-if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE_ON_LINUX)
-    oiio_add_tests (
-            python-typedesc python-paramlist
-            python-imagespec python-roi python-deep python-colorconfig
-            python-imageinput python-imageoutput
-            python-imagebuf python-imagebufalgo
-            IMAGEDIR oiio-images
-            )
+if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+    include (packaging)
 endif ()
-
-oiio_add_tests (oiiotool-color
-                FOUNDVAR OPENCOLORIO_FOUND)
-
-# Advanced tests that are done by hand and for releases:
-# FIXME -- at some point, try to fix these or provide new ref images
-if (NOT DEFINED ENV{TRAVIS})
-    oiio_add_tests (
-                    texture-half texture-uint16
-                    texture-interp-bilinear
-                    texture-interp-closest
-                    texture-mip-onelevel
-                   )
-endif ()
-if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
-    oiio_add_tests (texture-icwrite)
-endif ()
-
-# List testsuites for specific formats or features which might be not found
-# or be intentionally disabled, or which need special external reference
-# images from the web that if not found, should skip the tests:
-
-oiio_add_tests (bmp
-                ENABLEVAR ENABLE_BMP
-                IMAGEDIR bmpsuite
-                URL http://entropymine.com/jason/bmpsuite/bmpsuite.zip)
-oiio_add_tests (dpx
-                ENABLEVAR ENABLE_DPX
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (field3d texture-field3d
-                FOUNDVAR Field3D_FOUND ENABLEVAR ENABLE_FIELD3D)
-oiio_add_tests (fits
-                ENABLEVAR ENABLE_FITS
-                IMAGEDIR fits-images
-                URL http://www.cv.nrao.edu/fits/data/tests/)
-oiio_add_tests (gif
-                FOUNDVAR GIF_FOUND ENABLEVAR ENABLE_GIF
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (heif
-                FOUNDVAR Libheif_FOUND ENABLEVAR ENABLE_Libheif
-                URL https://github.com/nokiatech/heif/tree/gh-pages/content)
-oiio_add_tests (ico
-                ENABLEVAR ENABLE_ICO
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (iff
-                ENABLEVAR ENABLE_IFF
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (jpeg2000
-                FOUNDVAR OPENJPEG_FOUND
-                IMAGEDIR j2kp4files_v1_5
-                URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
-oiio_add_tests (openexr-suite openexr-multires openexr-chroma
-                openexr-v2 openexr-window perchannel
-                oiiotool-deep
-                IMAGEDIR openexr-images
-                URL http://www.openexr.com/downloads.html)
-if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
-    oiio_add_tests (openexr-damaged
-                    IMAGEDIR openexr-images
-                    URL http://www.openexr.com/downloads.html)
-endif ()
-oiio_add_tests (openvdb
-                FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
-oiio_add_tests (png
-                ENABLEVAR ENABLE_PNG
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (pnm
-                ENABLEVAR ENABLE_PNM
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (psd psd-colormodes
-                ENABLEVAR ENABLE_PSD
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (ptex
-                FOUNDVAR PTEX_FOUND ENABLEVAR ENABLE_PTEX)
-oiio_add_tests (raw
-                FOUNDVAR LIBRAW_FOUND ENABLEVAR ENABLE_LIBRAW
-                IMAGEDIR oiio-images/raw
-                URL "Recent checkout of oiio-images")
-oiio_add_tests (rla
-                ENABLEVAR ENABLE_RLA
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (sgi
-                ENABLEVAR ENABLE_SGI
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (targa-tgautils
-                ENABLEVAR ENABLE_TARGA
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-oiio_add_tests (tiff-suite tiff-depths tiff-misc
-                IMAGEDIR libtiffpic
-                URL http://www.simplesystems.org/libtiff/images.html)
-oiio_add_tests (webp
-                FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
-                IMAGEDIR oiio-images/webp URL "Recent checkout of oiio-images")
-oiio_add_tests (zfile ENABLEVAR ENABLE_ZFILE
-                IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-
-if (SPI_TESTS)
-  oiio_add_tests (oiiotool-spi
-    FOUNDVAR SPI_TESTS
-    IMAGEDIR spi-oiio-tests
-    URL "noplace -- it's SPI specific tests")
-endif ()
-
-
-
-#########################################################################
-# Packaging
-set (CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
-set (CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
-set (CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
-# "Vendor" is only used in copyright notices, so we use the same thing that
-# the rest of the copyright notices say.
-set (CPACK_PACKAGE_VENDOR ${PROJECT_AUTHORS})
-set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "OpenImageIO is an open source library for reading and writing image file formats, a nice format-agnostic image viewer, and other image-related classes and utilities.")
-set (CPACK_PACKAGE_DESCRIPTION_FILE "${PROJECT_SOURCE_DIR}/src/doc/Description.txt")
-set (CPACK_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR})
-#SET (CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_SOURCE_DIR}")
-file (MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/cpack")
-file (COPY "${PROJECT_SOURCE_DIR}/LICENSE.md" DESTINATION "${CMAKE_BINARY_DIR}/cpack")
-file (RENAME "${CMAKE_BINARY_DIR}/cpack/LICENSE.md" "${CMAKE_BINARY_DIR}/cpack/License.txt")
-set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_BINARY_DIR}/cpack/License.txt")
-file (COPY "${PROJECT_SOURCE_DIR}/README.md" DESTINATION "${CMAKE_BINARY_DIR}/cpack")
-set (CPACK_RESOURCE_FILE_README "${CMAKE_BINARY_DIR}/cpack/README.md")
-set (CPACK_RESOURCE_FILE_WELCOME "${PROJECT_SOURCE_DIR}/src/doc/Welcome.txt")
-#SET (CPACK_STRIP_FILES Do we need this?)
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set (CPACK_GENERATOR "TGZ;STGZ;RPM;DEB")
-    set (CPACK_SOURCE_GENERATOR "TGZ")
-endif ()
-if (APPLE)
-    set (CPACK_GENERATOR "TGZ;STGZ;PackageMaker")
-    set (CPACK_SOURCE_GENERATOR "TGZ")
-endif ()
-if (WIN32)
-    set (CPACK_GENERATOR "NSIS")
-    set(CPACK_PACKAGE_EXECUTABLES "iv" "iv - Image Viewer")
-#    set(CPACK_CREATE_DESCTOP_LINKS "iv" "iv - Image Viewer")
-    set(CPACK_NSIS_MODIFY_PATH ON)
-    include (InstallRequiredSystemLibraries)
-endif ()
-set (CPACK_SOURCE_PACKAGE_FILE_NAME ${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}-source)
-#set (CPACK_SOURCE_STRIP_FILES Do we need this?)
-set (CPACK_SOURCE_IGNORE_FILES ".*~")
-set (CPACK_COMPONENT_UNSPECIFIED_HIDDEN TRUE)
-set (CPACK_COMPONENT_UNSPECIFIED_REQUIRED TRUE)
-set (CPACK_COMPONENTS_ALL user developer documentation Unspecified)
-set (CPACK_COMPONENT_USER_DISPLAY_NAME "Applications")
-set (CPACK_COMPONENT_DEVELOPER_DISPLAY_NAME "Developer files")
-set (CPACK_COMPONENT_DOCUMENTATION_DISPLAY_NAME "Documentation")
-set (CPACK_COMPONENT_USER_DESCRIPTION
-     "Applications: oiiotool, iv, iinfo, iconvert, idiff, igrep, maketx and libraries")
-set (CPACK_COMPONENT_DEVELOPER_DESCRIPTION "Include files")
-set (CPACK_COMPONENT_DOCUMENTATION_DESCRIPTION "OpenImageIO documentation")
-set (CPACK_COMPONENT_DEVELOPER_DEPENDS user)
-include (CPack)
