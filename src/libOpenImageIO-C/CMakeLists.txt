@@ -19,7 +19,10 @@ add_library(OpenImageIO-C SHARED
     ${COIIO_HEADERS}
 )
 
-target_link_libraries(OpenImageIO-C PUBLIC OpenImageIO)
+target_link_libraries(OpenImageIO-C
+                      PRIVATE OpenImageIO)
+target_include_directories (OpenImageIO-C
+                            PUBLIC ${CMAKE_INSTALL_FULL_INCLUDEDIR})
 set_target_properties(OpenImageIO-C
     PROPERTIES
         VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}

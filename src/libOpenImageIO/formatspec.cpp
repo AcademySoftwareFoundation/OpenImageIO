@@ -6,8 +6,6 @@
 #include <cstdlib>
 #include <sstream>
 
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>

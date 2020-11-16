@@ -9,15 +9,13 @@
 #include <cmath>
 #include <iostream>
 
-#include <OpenEXR/ImathColor.h>
-#include <OpenEXR/ImathFun.h>
-using Imath::Color3f;
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
+using Imath::Color3f;
+
 
 
 template<class T>
@@ -297,7 +295,7 @@ ImageBufAlgo::compare_Yee(const ImageBuf& img0, const ImageBuf& img1,
             float factor = 0;
             for (int i = 0; i < PYRAMID_MAX_LEVELS - 2; i++)
                 factor += contrast[i] * F_freq[i] * F_mask[i] / sum_contrast;
-            factor      = Imath::clamp(factor, 1.0f, 10.0f);
+            factor      = OIIO::clamp(factor, 1.0f, 10.0f);
             float delta = fabsf(la.value(x, y, 0) - lb.value(x, y, 0));
             bool pass   = true;
             // pure luminance test

@@ -2,13 +2,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
-/// \file
-/// Implementation of ImageBufAlgo algorithms that merely move pixels
-/// or channels between images without altering their values.
-
-
-#include <OpenEXR/half.h>
-
 #include <cmath>
 #include <iostream>
 

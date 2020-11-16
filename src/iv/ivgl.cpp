@@ -7,9 +7,6 @@
 
 #include <iostream>
 
-#include <OpenEXR/ImathFun.h>
-#include <OpenEXR/half.h>
-
 #include <QComboBox>
 #include <QLabel>
 #include <QMouseEvent>
@@ -1075,15 +1072,15 @@ IvGL::clamp_view_to_window()
 
     // Don't let us scroll off the edges
     if (zoomedwidth >= w) {
-        m_centerx = Imath::clamp(m_centerx, xmin + 0.5f * w / m_zoom,
-                                 xmax - 0.5f * w / m_zoom);
+        m_centerx = OIIO::clamp(m_centerx, xmin + 0.5f * w / m_zoom,
+                                xmax - 0.5f * w / m_zoom);
     } else {
         m_centerx = img->oriented_full_x() + img->oriented_full_width() / 2;
     }
 
     if (zoomedheight >= h) {
-        m_centery = Imath::clamp(m_centery, ymin + 0.5f * h / m_zoom,
-                                 ymax - 0.5f * h / m_zoom);
+        m_centery = OIIO::clamp(m_centery, ymin + 0.5f * h / m_zoom,
+                                ymax - 0.5f * h / m_zoom);
     } else {
         m_centery = img->oriented_full_y() + img->oriented_full_height() / 2;
     }
@@ -1180,7 +1177,7 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
         float dx = (pos.x() - m_mousex);
         float dy = (pos.y() - m_mousey);
         float z  = m_viewer.zoom() * (1.0 + 0.005 * (dx + dy));
-        z        = Imath::clamp(z, 0.01f, 256.0f);
+        z        = OIIO::clamp(z, 0.01f, 256.0f);
         m_viewer.zoom(z);
         m_viewer.fitImageToWindowAct->setChecked(false);
     } else if (do_wipe) {
@@ -1248,8 +1245,8 @@ IvGL::get_focus_image_pixel(int& x, int& y)
     float normx = (float)(m_mousex + 0.5f) / w;
     float normy = (float)(m_mousey + 0.5f) / h;
     // imgx,imgy are the position of the mouse, in pixel coordinates
-    float imgx = Imath::lerp(left, right, normx);
-    float imgy = Imath::lerp(top, bottom, normy);
+    float imgx = OIIO::lerp(left, right, normx);
+    float imgy = OIIO::lerp(top, bottom, normy);
     // So finally x,y are the coordinates of the image pixel (on [0,res-1])
     // underneath the mouse cursor.
     //FIXME: Shouldn't this take image rotation into account?

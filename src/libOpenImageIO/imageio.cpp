@@ -5,9 +5,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <OpenEXR/ImathFun.h>
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/hash.h>
@@ -295,7 +292,7 @@ attribute(string_view name, TypeDesc type, const void* val)
         return optparser(gos, *(const char**)val);
     }
     if (name == "threads" && type == TypeInt) {
-        int ot = Imath::clamp(*(const int*)val, 0, maxthreads);
+        int ot = OIIO::clamp(*(const int*)val, 0, maxthreads);
         if (ot == 0)
             ot = threads_default();
         oiio_threads = ot;
@@ -312,7 +309,7 @@ attribute(string_view name, TypeDesc type, const void* val)
         return true;
     }
     if (name == "exr_threads" && type == TypeInt) {
-        oiio_exr_threads = Imath::clamp(*(const int*)val, -1, maxthreads);
+        oiio_exr_threads = OIIO::clamp(*(const int*)val, -1, maxthreads);
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {
@@ -458,7 +455,7 @@ inline long long
 quantize(float value, long long quant_min, long long quant_max)
 {
     value = value * quant_max;
-    return Imath::clamp((long long)(value + 0.5f), quant_min, quant_max);
+    return OIIO::clamp((long long)(value + 0.5f), quant_min, quant_max);
 }
 
 namespace {

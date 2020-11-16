@@ -5,10 +5,7 @@
 
 #include <limits>
 
-#include <OpenEXR/ImathColor.h>
-#include <OpenEXR/ImathMatrix.h>
-#include <OpenEXR/ImathVec.h>
-
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/paramlist.h>
 #include <OpenImageIO/unittest.h>
 

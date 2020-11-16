@@ -15,8 +15,6 @@
 #include <boost/container/flat_map.hpp>
 #include <boost/thread/tss.hpp>
 
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/hash.h>
 #include <OpenImageIO/imagebuf.h>

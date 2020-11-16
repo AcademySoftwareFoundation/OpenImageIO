@@ -10,8 +10,6 @@
 #include <limits>
 #include <sstream>
 
-#include <OpenEXR/ImathMatrix.h>
-
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>

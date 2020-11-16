@@ -14,9 +14,6 @@
 #    include <io.h>
 #endif
 
-#include <OpenEXR/ImathVec.h>
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/hash.h>

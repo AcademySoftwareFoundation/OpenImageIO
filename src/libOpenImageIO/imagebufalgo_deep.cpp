@@ -3,8 +3,6 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 
-#include <OpenEXR/half.h>
-
 #include <cmath>
 #include <iostream>
 #include <stdexcept>

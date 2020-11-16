@@ -7,10 +7,6 @@
 #include <sstream>
 #include <type_traits>
 
-#include <OpenEXR/ImathMatrix.h>
-#include <OpenEXR/ImathVec.h>
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/fmath.h>

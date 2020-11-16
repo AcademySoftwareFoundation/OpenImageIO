@@ -5,6 +5,7 @@
 
 #include <cstdio>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/unittest.h>

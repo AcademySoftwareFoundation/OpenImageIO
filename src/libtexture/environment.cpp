@@ -8,8 +8,6 @@
 #include <sstream>
 #include <string>
 
-#include <OpenEXR/ImathMatrix.h>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/fmath.h>

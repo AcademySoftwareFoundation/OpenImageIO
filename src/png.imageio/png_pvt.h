@@ -7,8 +7,6 @@
 #include <png.h>
 #include <zlib.h>
 
-#include <OpenEXR/ImathColor.h>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
