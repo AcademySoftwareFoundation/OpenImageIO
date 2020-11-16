@@ -3,13 +3,16 @@
 include(CMakeFindDependencyMacro)
 
 # add here all the find_dependency() whenever switching to config based dependencies
-# e.g. if switching to Boost::Boost instead of using ${Boost_LIBRARY_DIRS} the add:
-# find_dependency(Boost @Boost_VERSION@)
+if (@OpenEXR_VERSION@ VERSION_GREATER_EQUAL 2.5)
+    find_dependency(OpenEXR @OpenEXR_VERSION@)
+    # N.B. Only do this for OpenEXR >= 2.5, difficult to rely on their
+    # exported configs before that.
+endif ()
 
 set_and_check (@PROJECT_NAME@_INCLUDE_DIR "@CMAKE_INSTALL_FULL_INCLUDEDIR@")
 set_and_check (@PROJECT_NAME@_INCLUDES    "@CMAKE_INSTALL_FULL_INCLUDEDIR@")
 set_and_check (@PROJECT_NAME@_LIB_DIR     "@CMAKE_INSTALL_FULL_LIBDIR@")
-set (@PROJECT_NAME@_PLUGIN_SEARCH_PATH         "@PLUGIN_SEARCH_PATH_NATIVE@")
+set (@PROJECT_NAME@_PLUGIN_SEARCH_PATH    "@PLUGIN_SEARCH_PATH_NATIVE@")
 
 #...logic to determine installedPrefix from the own location...
 #set (@PROJECT_NAME@_CONFIG_DIR  "${installedPrefix}/@CONFIG_INSTALL_DIR@")

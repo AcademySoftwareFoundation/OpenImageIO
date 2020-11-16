@@ -135,8 +135,18 @@ endif ()
 
 target_link_libraries (OpenImageIO
         PUBLIC
-            ${ILMBASE_LIBRARIES}
-            ${OPENEXR_LIBRARIES}
+            # For OpenEXR/Imath 3.x:
+            $<$<TARGET_EXISTS:OpenEXR::OpenEXR>:OpenEXR::OpenEXR>
+            $<$<TARGET_EXISTS:Imath::Imath>:Imath::Imath>
+            $<$<TARGET_EXISTS:Imath::Half>:Imath::Half>
+            # For OpenEXR >= 2.4/2.5 with reliable exported targets
+            $<$<TARGET_EXISTS:OpenEXR::IlmImf>:OpenEXR::IlmImf>
+            $<$<TARGET_EXISTS:IlmBase::Imath>:IlmBase::Imath>
+            $<$<TARGET_EXISTS:IlmBase::Half>:IlmBase::Half>
+            $<$<TARGET_EXISTS:IlmBase::IlmThread>:IlmBase::IlmThread>
+            $<$<TARGET_EXISTS:IlmBase::Iex>:IlmBase::Iex>
+            # These two are for OpenEXR <= 2.3:
+            ${OPENEXR_LIBRARIES} ${ILMBASE_LIBRARIES}
             ${OpenCV_LIBRARIES}
             ${GCC_ATOMIC_LIBRARIES}
         PRIVATE

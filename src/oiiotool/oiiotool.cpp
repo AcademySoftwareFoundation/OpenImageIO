@@ -17,7 +17,6 @@
 #include <vector>
 
 #include <OpenEXR/ImfTimeCode.h>
-#include <OpenEXR/half.h>
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/color.h>

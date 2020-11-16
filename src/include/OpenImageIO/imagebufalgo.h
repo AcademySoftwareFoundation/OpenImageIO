@@ -20,8 +20,6 @@
 #include <OpenImageIO/parallel.h>
 #include <OpenImageIO/span.h>
 
-#include <OpenEXR/ImathMatrix.h>       /* because we need M33f */
-
 #include <limits>
 
 #if !defined(__OPENCV_CORE_TYPES_H__) && !defined(OPENCV_CORE_TYPES_H)

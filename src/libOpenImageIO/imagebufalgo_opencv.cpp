@@ -30,8 +30,6 @@
 #include <map>
 #include <vector>
 
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>

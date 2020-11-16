@@ -28,8 +28,6 @@
 #include <QStatusBar>
 #include <QTimer>
 
-#include <OpenEXR/ImathFun.h>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/strutil.h>
@@ -1821,10 +1819,10 @@ ImageViewer::zoomIn()
     float xoffset      = xc - xm;
     float yoffset      = yc - ym;
     float maxzoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
-    int nsteps = (int)Imath::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
+    int nsteps         = (int)OIIO::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
     for (int i = 1; i <= nsteps; ++i) {
         float a         = (float)i / (float)nsteps;  // Interpolation amount
-        float z         = Imath::lerp(oldzoom, newzoom, a);
+        float z         = OIIO::lerp(oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
         view(xm + xoffset / zoomratio, ym + yoffset / zoomratio, z, false);
         if (i != nsteps) {
@@ -1856,10 +1854,10 @@ ImageViewer::zoomOut()
     float xoffset      = xcpel - xmpel;
     float yoffset      = ycpel - ympel;
     float maxzoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
-    int nsteps = (int)Imath::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
+    int nsteps         = (int)OIIO::clamp(20 * (maxzoomratio - 1), 2.0f, 10.0f);
     for (int i = 1; i <= nsteps; ++i) {
         float a         = (float)i / (float)nsteps;  // Interpolation amount
-        float z         = Imath::lerp(oldzoom, newzoom, a);
+        float z         = OIIO::lerp(oldzoom, newzoom, a);
         float zoomratio = z / oldzoom;
         view(xmpel + xoffset / zoomratio, ympel + yoffset / zoomratio, z,
              false);
@@ -2051,7 +2049,7 @@ static inline void
 calc_subimage_from_zoom(const IvImage* img, int& subimage, float& zoom,
                         float& xcenter, float& ycenter)
 {
-    int rel_subimage = Imath::trunc(std::log2(1.0f / zoom));
+    int rel_subimage = std::trunc(std::log2(1.0f / zoom));
     subimage         = clamp<int>(img->subimage() + rel_subimage, 0,
                           img->nsubimages() - 1);
     if (!(img->subimage() == 0 && zoom > 1)
@@ -2077,14 +2075,14 @@ ImageViewer::view(float xcenter, float ycenter, float newzoom, bool smooth,
     float oldxcenter, oldycenter;
     glwin->get_center(oldxcenter, oldycenter);
     float zoomratio = std::max(oldzoom / newzoom, newzoom / oldzoom);
-    int nsteps      = (int)Imath::clamp(20 * (zoomratio - 1), 2.0f, 10.0f);
+    int nsteps      = (int)OIIO::clamp(20 * (zoomratio - 1), 2.0f, 10.0f);
     if (!smooth || !redraw)
         nsteps = 1;
     for (int i = 1; i <= nsteps; ++i) {
         float a  = (float)i / (float)nsteps;  // Interpolation amount
-        float xc = Imath::lerp(oldxcenter, xcenter, a);
-        float yc = Imath::lerp(oldycenter, ycenter, a);
-        m_zoom   = Imath::lerp(oldzoom, newzoom, a);
+        float xc = OIIO::lerp(oldxcenter, xcenter, a);
+        float yc = OIIO::lerp(oldycenter, ycenter, a);
+        m_zoom   = OIIO::lerp(oldzoom, newzoom, a);
 
         glwin->view(xc, yc, m_zoom, redraw);  // Triggers redraw automatically
         if (i != nsteps) {

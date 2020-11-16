@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>

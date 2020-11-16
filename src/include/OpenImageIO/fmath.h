@@ -37,6 +37,7 @@
 #include <typeinfo>
 #include <type_traits>
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/oiioversion.h>

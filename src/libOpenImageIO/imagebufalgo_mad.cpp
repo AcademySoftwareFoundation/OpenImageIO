@@ -2,12 +2,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
-/// \file
-/// Implementation of ImageBufAlgo algorithms that do math on
-/// single pixels at a time.
-
-#include <OpenEXR/half.h>
-
 #include <cmath>
 #include <iostream>
 #include <limits>

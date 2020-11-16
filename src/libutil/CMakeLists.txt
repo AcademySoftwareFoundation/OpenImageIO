@@ -13,6 +13,15 @@ target_include_directories (OpenImageIO_Util
         )
 target_link_libraries (OpenImageIO_Util
         PUBLIC
+            # For OpenEXR/Imath 3.x:
+            $<$<TARGET_EXISTS:Imath::Imath>:Imath::Imath>
+            $<$<TARGET_EXISTS:Imath::Half>:Imath::Half>
+            # For OpenEXR >= 2.4/2.5 with reliable exported targets
+            $<$<TARGET_EXISTS:IlmBase::Imath>:IlmBase::Imath>
+            $<$<TARGET_EXISTS:IlmBase::Half>:IlmBase::Half>
+            $<$<TARGET_EXISTS:IlmBase::IlmThread>:IlmBase::IlmThread>
+            $<$<TARGET_EXISTS:IlmBase::Iex>:IlmBase::Iex>
+            # For OpenEXR <= 2.3:
             ${ILMBASE_LIBRARIES}
             ${GCC_ATOMIC_LIBRARIES}
         PRIVATE

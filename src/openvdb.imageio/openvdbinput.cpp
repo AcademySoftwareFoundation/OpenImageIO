@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
+#include <OpenImageIO/Imath.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
-
-#include <OpenEXR/ImathMatrix.h>
 
 #if OIIO_GNUC_VERSION >= 60000
 #    pragma GCC diagnostic ignored "-Wstrict-overflow"

@@ -6,8 +6,6 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <OpenEXR/ImathColor.h>
-
 #include "png_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN

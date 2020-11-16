@@ -6,8 +6,6 @@
 /// Implementation of ImageBufAlgo algorithms that analyze or compare
 /// images.
 
-#include <OpenEXR/half.h>
-
 #include <cmath>
 #include <iostream>
 #include <limits>

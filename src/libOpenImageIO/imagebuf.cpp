@@ -6,9 +6,6 @@
 #include <iostream>
 #include <memory>
 
-#include <OpenEXR/ImathFun.h>
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/fmath.h>

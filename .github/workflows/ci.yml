@@ -16,7 +16,7 @@ on:
       - '**.rst'
   schedule:
     # Full nightly build
-    - cron: "0 4 * * *"
+    - cron: "0 8 * * *"
 
 
 jobs:
@@ -93,7 +93,8 @@ jobs:
 
   vfxplatform-2021:
     # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
-    # gcc9 and C++17.
+    # gcc9 and C++17. This test currently uses the latest OpenEXR release
+    # 2.5, though eventually 2021 will feature OpenEXR 3.0 when complete.
     name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.70 exr-2.5"
     runs-on: ubuntu-18.04
     container:
@@ -118,6 +119,35 @@ jobs:
           name: ${{ github.job }}
           path: build/*/testsuite/*/*.*
 
+  vfxplatform-2021-exrmaster:
+    # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
+    # gcc9 and C++17, and also the in-progress openexr/imath 3.0.
+    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.70 exr-3.0"
+    runs-on: ubuntu-18.04
+    container:
+      image: aswf/ci-osl:2021
+    steps:
+      - uses: actions/checkout@v2
+      - name: all
+        env:
+          CXX: g++
+          CC: gcc
+          CMAKE_CXX_STANDARD: 17
+          PYTHON_VERSION: 3.7
+          USE_SIMD: avx2,f16c
+          OPENEXR_VERSION: master
+        run: |
+            sudo rm -rf /usr/local/include/OpenEXR
+            sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
+            source src/build-scripts/ci-startup.bash
+            source src/build-scripts/gh-installdeps-centos.bash
+            source src/build-scripts/ci-build-and-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: build/*/testsuite/*/*.*
+
   linux-gcc7-cpp14-debug:
     # Test against gcc7, and also at the same time, do a Debug build.
     name: "Linux debug gcc7/C++14, sse4.2, exr2.4"
@@ -129,6 +159,7 @@ jobs:
           CXX: g++-7
           CMAKE_CXX_STANDARD: 14
           USE_SIMD: sse4.2
+          OPENEXR_VERSION: v2.4.0
           DEBUG: 1
         run: |
             source src/build-scripts/ci-startup.bash

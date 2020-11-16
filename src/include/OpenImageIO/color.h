@@ -12,8 +12,6 @@
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/ustring.h>
 
-#include <OpenEXR/ImathMatrix.h> /* because we need M44f */
-
 
 OIIO_NAMESPACE_BEGIN
 

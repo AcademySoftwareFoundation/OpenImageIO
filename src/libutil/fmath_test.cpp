@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <iostream>
 #include <vector>
-
-#include <OpenEXR/ImathFun.h>
-#include <OpenEXR/half.h>
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
@@ -16,6 +16,12 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/typedesc.h>
 #include <OpenImageIO/unittest.h>
+
+#if OIIO_USING_IMATH >= 3
+#    include <Imath/ImathFun.h>
+#else
+#    include <OpenEXR/ImathFun.h>
+#endif
 
 using namespace OIIO;
 

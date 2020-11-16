@@ -6,10 +6,6 @@
 /// ImageBufAlgo functions for filtered transformations
 
 
-#include <OpenEXR/ImathBox.h>
-#include <OpenEXR/ImathMatrix.h>
-#include <OpenEXR/half.h>
-
 #include <cmath>
 #include <memory>
 
@@ -20,6 +16,12 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/thread.h>
+
+#if OIIO_USING_IMATH >= 3
+#    include <Imath/ImathBox.h>
+#else
+#    include <OpenEXR/ImathBox.h>
+#endif
 
 OIIO_NAMESPACE_BEGIN
 

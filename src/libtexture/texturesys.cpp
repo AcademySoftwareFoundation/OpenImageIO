@@ -11,9 +11,6 @@
 
 #include <boost/random.hpp>
 
-#include <OpenEXR/ImathMatrix.h>
-#include <OpenEXR/half.h>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
 #include <OpenImageIO/fmath.h>
