@@ -432,42 +432,45 @@ endif ()
 # correct any deviations. If clang-format is found on the system, a
 # "clang-format" build target will trigger a reformatting.
 #
-set (CLANG_FORMAT_EXE_HINT "" CACHE PATH "clang-format executable's directory (will search if not specified")
-set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
-    CACHE STRING "Glob patterns to include for clang-format")
-set (CLANG_FORMAT_EXCLUDES "*pugixml*" "*SHA1*" "*/farmhash.cpp"
-                           "src/dpx.imageio/libdpx/*"
-                           "src/cineon.imageio/libcineon/*"
-                           "src/dds.imageio/squish/*"
-                           "src/gif.imageio/gif.h"
-                           "src/hdr.imageio/rgbe.cpp"
-                           "src/libutil/stb_sprintf.h"
-     CACHE STRING "Glob patterns to exclude for clang-format")
-find_program (CLANG_FORMAT_EXE
-              NAMES clang-format bin/clang-format
-              HINTS ${CLANG_FORMAT_EXE_HINT} ENV CLANG_FORMAT_EXE_HINT
-                    ENV LLVM_DIRECTORY
-              NO_DEFAULT_PATH
-              DOC "Path to clang-format executable")
-find_program (CLANG_FORMAT_EXE NAMES clang-format bin/clang-format)
-if (CLANG_FORMAT_EXE)
-    message (STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
-    # Start with the list of files to include when formatting...
-    file (GLOB_RECURSE FILES_TO_FORMAT ${CLANG_FORMAT_INCLUDES})
-    # ... then process any list of excludes we are given
-    foreach (_pat ${CLANG_FORMAT_EXCLUDES})
-        file (GLOB_RECURSE _excl ${_pat})
-        list (REMOVE_ITEM FILES_TO_FORMAT ${_excl})
-    endforeach ()
-    #message (STATUS "clang-format file list: ${FILES_TO_FORMAT}")
-    file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
-          DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-    add_custom_target (clang-format
-        COMMAND "${CLANG_FORMAT_EXE}" -i -style=file ${FILES_TO_FORMAT} )
-else ()
-    message (STATUS "clang-format not found.")
+# Note: skip all of this checking, setup, and cmake-format target if this
+# is being built as a subproject.
+if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+    set (CLANG_FORMAT_EXE_HINT "" CACHE PATH "clang-format executable's directory (will search if not specified")
+    set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp"
+        CACHE STRING "Glob patterns to include for clang-format")
+    set (CLANG_FORMAT_EXCLUDES "*pugixml*" "*SHA1*" "*/farmhash.cpp"
+                               "src/dpx.imageio/libdpx/*"
+                               "src/cineon.imageio/libcineon/*"
+                               "src/dds.imageio/squish/*"
+                               "src/gif.imageio/gif.h"
+                               "src/hdr.imageio/rgbe.cpp"
+                               "src/libutil/stb_sprintf.h"
+         CACHE STRING "Glob patterns to exclude for clang-format")
+    find_program (CLANG_FORMAT_EXE
+                  NAMES clang-format bin/clang-format
+                  HINTS ${CLANG_FORMAT_EXE_HINT} ENV CLANG_FORMAT_EXE_HINT
+                        ENV LLVM_DIRECTORY
+                  NO_DEFAULT_PATH
+                  DOC "Path to clang-format executable")
+    find_program (CLANG_FORMAT_EXE NAMES clang-format bin/clang-format)
+    if (CLANG_FORMAT_EXE)
+        message (STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
+        # Start with the list of files to include when formatting...
+        file (GLOB_RECURSE FILES_TO_FORMAT ${CLANG_FORMAT_INCLUDES})
+        # ... then process any list of excludes we are given
+        foreach (_pat ${CLANG_FORMAT_EXCLUDES})
+            file (GLOB_RECURSE _excl ${_pat})
+            list (REMOVE_ITEM FILES_TO_FORMAT ${_excl})
+        endforeach ()
+        #message (STATUS "clang-format file list: ${FILES_TO_FORMAT}")
+        file (COPY ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
+              DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+        add_custom_target (clang-format
+            COMMAND "${CLANG_FORMAT_EXE}" -i -style=file ${FILES_TO_FORMAT} )
+    else ()
+        message (STATUS "clang-format not found.")
+    endif ()
 endif ()
-
 
 ###########################################################################
 # Another way to sneak in custom compiler and DSO linking flags.
