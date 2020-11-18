@@ -33,15 +33,25 @@ Most ImageBufAlgo functions that produce image data come in two forms:
    error, the result image returned can have any error conditions checked with
    `has_error()` and `geterror()`.
    
-   .. code-block:: cpp
+   .. tabs::
    
-       // Method 1: Return an image result
-       ImageBuf fg ("fg.exr"), bg ("bg.exr");
-       ImageBuf dst = ImageBufAlgo::over (fg, bg);
-       if (dst.has_error())
-           std::cout << "error: " << dst.geterror() << "\n";
+      .. code-tab:: c++
    
+          // Method 1: Return an image result
+          ImageBuf dst = ImageBufAlgo::over (fg, bg);
+          if (dst.has_error())
+              std::cout << "error: " << dst.geterror() << "\n";
+
+      .. code-tab:: py
    
+          # Method 1: Return an image result
+          fg = ImageBuf("fg.exr")
+          bg = ImageBuf("bg.exr")
+          dst = ImageBufAlgo.over (fg, bg)
+          if dst.has_error() :
+              print("error:", dst.geterror())
+
+
 2. Pass a destination ImageBuf reference as the first parameter.
    
    The function is passed a *destination* ImageBuf where the results will
@@ -50,15 +60,26 @@ Most ImageBufAlgo functions that produce image data come in two forms:
    destination ImageBuf (the one that is being altered) will have an error
    message set.
    
-   .. code-block:: cpp
+   .. tabs::
    
-       // Method 2: Write into an existing image
-       ImageBuf fg ("fg.exr"), bg ("bg.exr");
-       ImageBuf dst;   // will be the output image
-       bool ok = ImageBufAlgo::over (dst, fg, bg);
-       if (! ok)
-           std::cout << "error: " << dst.geterror() << "\n";
-   
+      .. code-tab:: c++
+      
+          // Method 2: Write into an existing image
+          ImageBuf fg ("fg.exr"), bg ("bg.exr");
+          ImageBuf dst;   // will be the output image
+          bool ok = ImageBufAlgo::over (dst, fg, bg);
+          if (! ok)
+              std::cout << "error: " << dst.geterror() << "\n";
+
+      .. code-tab:: py
+          
+          # Method 2: Write into an existing image
+          fg = ImageBuf("fg.exr")
+          bg = ImageBuf("bg.exr")
+          dst = ImageBuf()  # will be the output image
+          ok = ImageBufAlgo.over (dst, fg, bg)
+          if not ok :
+              print("error:", dst.geterror())
 
 
 The first option (return an ImageBuf directly) is a more compact and
