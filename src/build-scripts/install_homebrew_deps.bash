@@ -23,27 +23,28 @@ echo "Before my brew installs:"
 brew list --versions
 
 # All cases except for clang-format target, we need the dependencies.
-brew install --display-times gcc ccache cmake ninja boost && true
+brew install --display-times gcc ccache cmake ninja boost || true
 brew link --overwrite gcc
-brew install --display-times python && true
-brew upgrade --display-times python && true
-brew link --overwrite python
-brew upgrade --display-times cmake && true
+brew unlink python@2.7 || true
+brew unlink python@3.9 || true
+brew unlink python@3.8 || true
+brew link --force python@3.8 || true
+brew upgrade --display-times cmake || true
 brew install --display-times libtiff ilmbase openexr opencolorio
 brew install --display-times libpng giflib webp jpeg-turbo openjpeg
-brew install --display-times freetype libraw dcmtk pybind11 numpy && true
-brew install --display-times ffmpeg libheif libsquish ptex && true
-brew install --display-times openvdb tbb && true
-brew install --display-times opencv && true
+brew install --display-times freetype libraw dcmtk pybind11 numpy || true
+brew install --display-times ffmpeg libheif libsquish ptex || true
+brew install --display-times openvdb tbb || true
+brew install --display-times opencv || true
 brew install --display-times qt
-brew install --display-times field3d && true
+brew install --display-times field3d || true
 
 echo ""
 echo "After brew installs:"
 brew list --versions
 
 # Needed on some systems
-pip install numpy
+# pip install numpy || true
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
