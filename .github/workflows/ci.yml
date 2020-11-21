@@ -313,7 +313,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Nuget.exe
-        uses: warrenbuckley/Setup-Nuget@v1
+        uses: nuget/setup-nuget@v1
       - name: all
         shell: bash
         env:
@@ -337,7 +337,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Nuget.exe
-        uses: warrenbuckley/Setup-Nuget@v1
+        uses: nuget/setup-nuget@v1
       - name: all
         shell: bash
         env:
