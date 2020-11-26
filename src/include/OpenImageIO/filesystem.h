@@ -211,6 +211,12 @@ OIIO_API void open (OIIO::ifstream &stream, string_view path,
 OIIO_API void open (OIIO::ofstream &stream, string_view path,
                     std::ios_base::openmode mode = std::ios_base::out);
 
+/// Version of C open() that can handle UTF-8 paths, returning an integer
+/// file descriptor. Note that the flags are passed to underlying calls to
+/// open()/_open() and therefore may be OS specific -- use with caution! If
+/// you want more OS-agnostic file opening, prefer the FILE or stream
+/// methods of IO.
+OIIO_API int open (string_view path, int flags);
 
 /// Read the entire contents of the named text file and place it in str,
 /// returning true on success, false on failure.

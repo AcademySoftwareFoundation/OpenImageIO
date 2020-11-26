@@ -56,7 +56,6 @@ public:
 private:
     std::string m_filename;          ///< Stash the filename
     GifFileType* m_gif_file;         ///< GIFLIB handle
-    FILE* m_file = nullptr;          ///< open FILE handle
     int m_transparent_color;         ///< Transparent color index
     int m_subimage;                  ///< Current subimage index
     int m_disposal_method;           ///< Disposal method of current subimage.
@@ -128,7 +127,6 @@ void
 GIFInput::init(void)
 {
     m_gif_file = nullptr;
-    m_file     = nullptr;
 }
 
 
@@ -361,19 +359,23 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (!m_gif_file) {
-#if GIFLIB_MAJOR >= 5
+#if GIFLIB_MAJOR >= 5 && defined(_WIN32)
         // On Windows, UTF-8 filenames won't work properly with Giflib. Jump
-        // through some hoops: Use UTF8-safe Filesystem::fopen to produce a
-        // FILE*, then fileno() to get its integer handle, then we can open
-        // with that.
-        m_file = Filesystem::fopen(m_filename, "rb");
-        if (!m_file) {
+        // through some hoops: get an integer file descriptor for Giflib.
+        int fd = Filesystem::open(m_filename, _O_READ | _O_BINARY);
+        if (!fd) {
             errorf("Error trying to open the file.");
             return false;
         }
-        int filehandle = fileno(m_file);
         int giflib_error;
-        if (!(m_gif_file = DGifOpenFileHandle(filehandle, &giflib_error))) {
+        if (!(m_gif_file = DGifOpenFileHandle(fd, &giflib_error))) {
+            errorf("%s", GifErrorString(giflib_error));
+            return false;
+        }
+#elif GIFLIB_MAJOR >= 5
+        int giflib_error;
+        if (!(m_gif_file = DGifOpenFileName(m_filename.c_str(),
+                                            &giflib_error))) {
             errorf("%s", GifErrorString(giflib_error));
             return false;
         }
@@ -459,10 +461,6 @@ GIFInput::close(void)
             return false;
         }
         m_gif_file = NULL;
-    }
-    if (m_file) {
-        fclose(m_file);
-        m_file = nullptr;
     }
     m_canvas.clear();
 
