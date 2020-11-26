@@ -16,6 +16,8 @@
 
 #pragma once
 
+#define OIIO_FILESYSTEM_H
+
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
