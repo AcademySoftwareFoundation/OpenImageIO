@@ -134,7 +134,7 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return false;
 
     // if the height is positive scanlines are stored bottom-up
-    if (m_dib_header.width >= 0)
+    if (m_dib_header.height >= 0)
         y = m_spec.height - y - 1;
     const int64_t scanline_off = y * m_padded_scanline_size;
 
