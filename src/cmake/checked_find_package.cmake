@@ -9,17 +9,17 @@ set (OPTIONAL_DEPS "" CACHE STRING
      "Additional dependencies to consider optional (semicolon-separated list, or ALL)")
 
 
-# checked_find_package(pkgname ..) is a wrapper for find_package, with the
+# checked_find_package(Pkgname ...) is a wrapper for find_package, with the
 # following extra features:
-#   * If either `USE_pkgname` or the all-uppercase `USE_PKGNAME` (or
-#     `ENABLE_pkgname` or `ENABLE_PKGNAME`) exists as either a CMake or
+#   * If either `USE_Pkgname` or the all-uppercase `USE_PKGNAME` (or
+#     `ENABLE_Pkgname` or `ENABLE_PKGNAME`) exists as either a CMake or
 #     environment variable, is nonempty by contains a non-true/nonzero
 #     value, do not search for or use the package. The optional ENABLE <var>
 #     arguments allow you to override the name of the enabling variable. In
 #     other words, support for the dependency is presumed to be ON, unless
 #     turned off explicitly from one of these sources.
 #   * Print a message if the package is enabled but not found. This is based
-#     on ${pkgname}_FOUND or $PKGNNAME_FOUND.
+#     on ${Pkgname}_FOUND or $PKGNAME_FOUND.
 #   * Optional DEFINITIONS <string> are passed to add_definitions if the
 #     package is found.
 #   * Optional PRINT <list> is a list of variables that will be printed
@@ -30,6 +30,14 @@ set (OPTIONAL_DEPS "" CACHE STRING
 #     present package is only needed because it's a dependency, and
 #     therefore if <downstream> is disabled, we don't bother with this
 #     package either.
+#   * Optional VERSION_MIN and VERSION_MAX, if supplied, give minimum and
+#     maximum versions that will be accepted. The min is inclusive, the max
+#     is exclusive (i.e., check for min <= version < max). Note that this is
+#     not the same as providing a version number to find_package, which
+#     checks compatibility, not minimum. Sometimes we really do just want to
+#     say a minimum or a range. (N.B. When our minimum CMake >= 3.19, the
+#     built-in way to do this is with version ranges passed to
+#     find_package.)
 #   * Optional RECOMMEND_MIN, if supplied, gives a minimum recommended
 #     version, accepting but warning if it is below this number (even
 #     if above the true minimum version accepted). The warning message
@@ -43,7 +51,7 @@ macro (checked_find_package pkgname)
         # noValueKeywords:
         "REQUIRED"
         # singleValueKeywords:
-        "ENABLE;ISDEPOF;RECOMMEND_MIN;RECOMMEND_MIN_REASON"
+        "ENABLE;ISDEPOF;VERSION_MIN;VERSION_MAX;RECOMMEND_MIN;RECOMMEND_MIN_REASON"
         # multiValueKeywords:
         "DEFINITIONS;PRINT;DEPS"
         # argsToParse:
@@ -79,6 +87,18 @@ macro (checked_find_package pkgname)
     endif ()
     if (_enable OR _pkg_REQUIRED)
         find_package (${pkgname} ${_pkg_UNPARSED_ARGUMENTS})
+        if ((${pkgname}_FOUND OR ${pkgname_upper}_FOUND)
+              AND ${pkgname}_VERSION
+              AND (_pkg_VERSION_MIN OR _pkg_VERSION_MAX))
+            if ((_pkg_VERSION_MIN AND ${pkgname}_VERSION VERSION_LESS _pkg_VERSION_MIN)
+                  OR (_pkg_VERSION_MAX AND ${pkgname}_VERSION VERSION_GREATER _pkg_VERSION_MAX))
+                message (STATUS "${ColorRed}${pkgname} ${${pkgname}_VERSION} is outside the required range ${_pkg_VERSION_MIN}...${_pkg_VERSION_MAX} ${ColorReset}")
+                unset (${pkgname}_FOUND)
+                unset (${pkgname}_VERSION)
+                unset (${pkgname_upper}_FOUND)
+                unset (${pkgname_upper}_VERSION)
+            endif ()
+        endif ()
         if (${pkgname}_FOUND OR ${pkgname_upper}_FOUND)
             foreach (_vervar ${pkgname_upper}_VERSION ${pkgname}_VERSION_STRING
                              ${pkgname_upper}_VERSION_STRING)
