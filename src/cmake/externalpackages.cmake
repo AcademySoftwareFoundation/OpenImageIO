@@ -57,10 +57,12 @@ else ()
     # to set the expected variables printed below. So until that's fixed
     # force FindBoost.cmake to use the original brute force path.
     set (Boost_NO_BOOST_CMAKE ON)
-    checked_find_package (Boost 1.53 REQUIRED
-                       COMPONENTS ${Boost_COMPONENTS}
-                       PRINT Boost_INCLUDE_DIRS Boost_LIBRARIES
-                      )
+    checked_find_package (Boost REQUIRED
+                          VERSION_MIN 1.53
+                          COMPONENTS ${Boost_COMPONENTS}
+                          RECOMMEND_MIN 1.66
+                          RECOMMEND_MIN_REASON "Boost 1.66 is the oldest version our CI tests against"
+                          PRINT Boost_INCLUDE_DIRS Boost_LIBRARIES )
 endif ()
 
 # On Linux, Boost 1.55 and higher seems to need to link against -lrt
@@ -81,12 +83,14 @@ link_directories ("${Boost_LIBRARY_DIRS}")
 # that we will not complete the build if they are not found.
 
 checked_find_package (ZLIB REQUIRED)  # Needed by several packages
-checked_find_package (TIFF 3.9 REQUIRED
+checked_find_package (TIFF REQUIRED
+                      VERSION_MIN 3.9
                       RECOMMEND_MIN 4.0
                       RECOMMEND_MIN_REASON "to support >4GB files")
 
 # IlmBase & OpenEXR
-checked_find_package (OpenEXR 2.0 REQUIRED
+checked_find_package (OpenEXR REQUIRED
+                      VERSION_MIN 2.0
                       RECOMMEND_MIN 2.2
                       RECOMMEND_MIN_REASON "for DWA compression"
                       PRINT IMATH_INCLUDES)
@@ -112,7 +116,8 @@ endif ()
 # allow this to be overridden to use the distro-provided package if desired.
 option (USE_EXTERNAL_PUGIXML "Use an externally built shared library version of the pugixml library" OFF)
 if (USE_EXTERNAL_PUGIXML)
-    checked_find_package (pugixml 1.8 REQUIRED
+    checked_find_package (pugixml REQUIRED
+                          VERSION_MIN 1.8
                           DEFINITIONS -DUSE_EXTERNAL_PUGIXML=1)
 else ()
     message (STATUS "Using internal PugiXML")
@@ -149,23 +154,25 @@ checked_find_package (TBB 2017
                    DEFINITIONS  -DUSE_TBB=1
                    ISDEPOF      OpenVDB)
 
-checked_find_package (DCMTK 3.6.1)  # For DICOM images
-checked_find_package (FFmpeg 2.6)
+checked_find_package (DCMTK VERSION_MIN 3.6.1)  # For DICOM images
+checked_find_package (FFmpeg VERSION_MIN 2.6)
 checked_find_package (Field3D
                    DEPS         HDF5
                    DEFINITIONS  -DUSE_FIELD3D=1)
-checked_find_package (GIF 4
+checked_find_package (GIF
+                      VERSION_MIN 4
                       RECOMMEND_MIN 5.0
                       RECOMMEND_MIN_REASON "for stability and thread safety")
-checked_find_package (Libheif 1.3)  # For HEIF/HEIC format
+checked_find_package (Libheif VERSION_MIN 1.3)  # For HEIF/HEIC format
 checked_find_package (LibRaw
-                      PRINT LibRaw_r_LIBRARIES
                       RECOMMEND_MIN 0.18
-                      RECOMMEND_MIN_REASON "for ACES support and better camera metadata")
-checked_find_package (OpenJpeg 2.0)
-checked_find_package (OpenVDB 5.0
-                   DEPS         TBB
-                   DEFINITIONS  -DUSE_OPENVDB=1)
+                      RECOMMEND_MIN_REASON "for ACES support and better camera metadata"
+                      PRINT LibRaw_r_LIBRARIES )
+checked_find_package (OpenJpeg VERSION_MIN 2.0)
+checked_find_package (OpenVDB
+                      VERSION_MIN 5.0
+                      DEPS         TBB
+                      DEFINITIONS  -DUSE_OPENVDB=1)
 checked_find_package (PTex)
 checked_find_package (WebP)
 
