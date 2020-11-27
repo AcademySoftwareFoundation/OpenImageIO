@@ -362,7 +362,7 @@ GIFInput::seek_subimage(int subimage, int miplevel)
 #if GIFLIB_MAJOR >= 5 && defined(_WIN32)
         // On Windows, UTF-8 filenames won't work properly with Giflib. Jump
         // through some hoops: get an integer file descriptor for Giflib.
-        int fd = Filesystem::open(m_filename, _O_READ | _O_BINARY);
+        int fd = Filesystem::open(m_filename, _O_RDONLY | _O_BINARY);
         if (!fd) {
             errorf("Error trying to open the file.");
             return false;

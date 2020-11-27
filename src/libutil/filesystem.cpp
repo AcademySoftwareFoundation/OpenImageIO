@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <fcntl.h>
 #include <iostream>
 #include <string>
 
@@ -23,9 +24,6 @@
 #    include <io.h>
 #    include <shellapi.h>
 #else
-#    include <fcntl.h>
-#    include <sys/stat.h>
-#    include <sys/types.h>
 #    include <unistd.h>
 #endif
 
