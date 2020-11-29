@@ -13,23 +13,15 @@ extern "C" {  // ffmpeg is a C api
 #include <libavutil/imgutils.h>
 }
 
-// It's hard to figure out FFMPEG versions from what they give us, so
-// record some of the milestones once and for all for easy reference.
-#define USE_FFMPEG_2_6 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(56, 26, 100))
-#define USE_FFMPEG_2_7 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(56, 41, 100))
-#define USE_FFMPEG_2_8 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(56, 60, 100))
-#define USE_FFMPEG_3_0 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 24, 100))
-#define USE_FFMPEG_3_1 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 48, 100))
-#define USE_FFMPEG_3_2 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 64, 100))
-#define USE_FFMPEG_3_3 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 89, 100))
-#define USE_FFMPEG_3_4 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 107, 100))
-#define USE_FFMPEG_4_0 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 18, 100))
-#define USE_FFMPEG_4_1 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 35, 100))
-#define USE_FFMPEG_4_2 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 54, 100))
-#define USE_FFMPEG_4_3 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 91, 100))
-#define USE_FFMPEG_4_4 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 134, 100))
-
-
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 28, 1)
+#    define av_frame_alloc avcodec_alloc_frame
+//Ancient versions used av_freep
+#    if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 59, 100)
+#        define av_frame_free av_freep
+#    else
+#        define av_frame_free avcodec_free_frame
+#    endif
+#endif
 
 inline int
 avpicture_fill(AVPicture* picture, uint8_t* ptr, enum AVPixelFormat pix_fmt,
@@ -162,9 +154,7 @@ private:
     }
 };
 
-
-
-// Obligatory material to make this a recognizeable imageio plugin
+// Obligatory material to make this a recognizable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int ffmpeg_imageio_version = OIIO_PLUGIN_VERSION;
@@ -192,15 +182,9 @@ OIIO_EXPORT const char* ffmpeg_input_extensions[] = {
 
 OIIO_PLUGIN_EXPORTS_END
 
-
-
 FFmpegInput::FFmpegInput() { init(); }
 
-
-
 FFmpegInput::~FFmpegInput() { close(); }
-
-
 
 bool
 FFmpegInput::valid_file(const std::string& name) const
@@ -212,8 +196,6 @@ FFmpegInput::valid_file(const std::string& name) const
             return true;
     return false;
 }
-
-
 
 bool
 FFmpegInput::open(const std::string& name, ImageSpec& spec)
@@ -528,8 +510,6 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     return true;
 }
 
-
-
 bool
 FFmpegInput::seek_subimage(int subimage, int miplevel)
 {
@@ -543,8 +523,6 @@ FFmpegInput::seek_subimage(int subimage, int miplevel)
     m_read_frame = false;
     return true;
 }
-
-
 
 bool
 FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
@@ -566,8 +544,6 @@ FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
 }
 
-
-
 bool
 FFmpegInput::close(void)
 {
@@ -582,8 +558,6 @@ FFmpegInput::close(void)
     init();
     return true;
 }
-
-
 
 void
 FFmpegInput::read_frame(int frame)
@@ -637,28 +611,6 @@ FFmpegInput::read_frame(int frame)
     m_read_frame = true;
 }
 
-
-
-#if 0
-const char *
-FFmpegInput::metadata (const char * key)
-{
-    AVDictionaryEntry * entry = av_dict_get (m_format_context->metadata, key, NULL, 0);
-    return entry ? av_strdup(entry->value) : NULL;
-    // FIXME -- that looks suspiciously like a memory leak
-}
-
-
-
-bool
-FFmpegInput::has_metadata (const char * key)
-{
-    return av_dict_get (m_format_context->metadata, key, NULL, 0); // is there a better to check exists?
-}
-#endif
-
-
-
 bool
 FFmpegInput::seek(int frame)
 {
@@ -668,8 +620,6 @@ FFmpegInput::seek(int frame)
     av_seek_frame(m_format_context, -1, offset, flags);
     return true;
 }
-
-
 
 int64_t
 FFmpegInput::time_stamp(int frame) const
@@ -686,8 +636,6 @@ FFmpegInput::time_stamp(int frame) const
     }
     return timestamp;
 }
-
-
 
 double
 FFmpegInput::fps() const
