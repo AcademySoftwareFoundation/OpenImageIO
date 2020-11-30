@@ -215,7 +215,8 @@ OIIO_API void open (OIIO::ofstream &stream, string_view path,
 /// file descriptor. Note that the flags are passed to underlying calls to
 /// open()/_open() and therefore may be OS specific -- use with caution! If
 /// you want more OS-agnostic file opening, prefer the FILE or stream
-/// methods of IO.
+/// methods of IO. (N.B.: use of this function requires the caller to
+/// `#include <fcntl.h>` in order to get the definitions of the flags.)
 OIIO_API int open (string_view path, int flags);
 
 /// Read the entire contents of the named text file and place it in str,
