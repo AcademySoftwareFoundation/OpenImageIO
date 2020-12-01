@@ -75,10 +75,15 @@ Fixes and feature enhancements:
     - Improve oiiotool's guessing about the desired output format based on
       inputs (in the absence of `-d` to specify the format). #2717
       (2.3.0.1/2.2.8)
+* BMP
+    - Fix reading BMP images with bottom-to-top row order. #2776
+      (2.3.1.1/2.2.9)
 * FFMpeg/movies:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
 * IFF
     - Fix broken reads of 16 bit iff files. #2736 (2.3.0.1/2.2.8)
+* PNG
+    - Read Exif data from PNG files. #2767 (2.3.1.1/2.2.9)
 * RAW:
     - Add "raw:user_flip" input configuration hint to control this option
       in the underlying libraw. #2769 (2.3.1.0)
@@ -123,11 +128,17 @@ Build/test system improvements and platform ports:
       defaults to whatever Python is found (though a specific one can still
       be requested via the PYTHON_VERSION variable). #2705 (2.3.0.0/2.2.8)
       #2764 (2.3.0.1/2.2.8)
+    - Make the OIIO CMake files work properly if OIIO is a subproject. Also
+      various other CMake script refactoring. #2770 (2.3.1.1/2.2.9)
+    - Extend checked_find_package with VERSION_MIN and VERSION_MAX. #2773
+      (2.3.1.1/2.2.9)
 * Dependency version support:
     - Fix deprecation warnings when building with very new PugiXML versions.
       #2733 (2.3.0.1/2.2.8)
     - Fixes to build against recent changes in OpenColorIO v2 master. #2765
       (2.3.0.1/2.2.8)
+    - Work to ensure that OIIO will build correctly against the upcoming
+      Imath 3.0 and OpenEXR 3.0. #2771 (2.3.1.1/2.2.9)
 * Testing and Continuous integration (CI) systems:
 * Platform support:
     - Fixes for mingw. #2698 (2.3.0.0)
@@ -142,7 +153,22 @@ Notable documentation changes:
 * Improve use of breathe and formatting. #2762 (2.3.1.0)
 * Remove documentation of deprecated ImageBufAlgo functions. #2762 (2.3.1.0)
 * Document missing texture option fields. #2762 (2.3.1.0)
+* Starting to use "sphinx_tabs" as a clear way to present how things should
+  be done for different language bindings. #2768 (2.3.1.0)
 
+
+Release 2.2.9 (1 Dec 2020) -- compared to 2.2.8
+-------------------------------------------------
+* TIFF: Fix reading files with "separate" planarconfig and rowsperstrip more
+  than 1. #2757 (2.3.0.1/2.2.9)
+* RAW: add "raw:user_flip" input configuration hint to control this option
+  in the underlying libraw. #2769 (2.3.1.0)
+* PNG: Read Exif data from PNG files. #2767
+* BMP: Fix reading BMP images with bottom-to-top row order. #2776
+* Work to ensure that OIIO will build correctly against the upcoming
+  Imath 3.0 and OpenEXR 3.0. #2771
+* Make the OIIO CMake files work properly if OIIO is a subproject. Also
+  various other CMake script refactoring. #2770
 
 Release 2.2.8 (1 Nov 2020) -- compared to 2.2.7
 -------------------------------------------------
