@@ -1,3 +1,7 @@
+Release 2.2.10 (1 Jan 2021?) -- compared to 2.2.9
+-------------------------------------------------
+
+
 Release 2.2.9 (1 Dec 2020) -- compared to 2.2.8
 -------------------------------------------------
 * TIFF: Fix reading files with "separate" planarconfig and rowsperstrip more
