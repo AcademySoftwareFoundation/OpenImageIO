@@ -1,6 +1,15 @@
-Release 2.2.9 (? 1 Dec 2020) -- compared to 2.2.8
+Release 2.2.9 (1 Dec 2020) -- compared to 2.2.8
 -------------------------------------------------
-
+* TIFF: Fix reading files with "separate" planarconfig and rowsperstrip more
+  than 1. #2757 (2.3.0.1/2.2.9)
+* RAW: add "raw:user_flip" input configuration hint to control this option
+  in the underlying libraw. #2769 (2.3.1.0)
+* PNG: Read Exif data from PNG files. #2767
+* BMP: Fix reading BMP images with bottom-to-top row order. #2776
+* Work to ensure that OIIO will build correctly against the upcoming
+  Imath 3.0 and OpenEXR 3.0.
+* Make the OIIO CMake files work properly if OIIO is a subproject. Also
+  various other CMake script refactoring. #2770
 
 Release 2.2.8 (1 Nov 2020) -- compared to 2.2.7
 -------------------------------------------------
