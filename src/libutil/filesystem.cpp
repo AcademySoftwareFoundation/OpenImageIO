@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <fcntl.h>
 #include <iostream>
 #include <string>
 
@@ -485,6 +486,23 @@ Filesystem::open(OIIO::ofstream& stream, string_view path,
     stream.open(path.c_str(), mode);
 #endif
 }
+
+
+
+int
+Filesystem::open(string_view path, int flags)
+{
+#ifdef _WIN32
+    // on Windows _open does not accept UTF-8 paths, so we convert to wide
+    // char and use _wopen.
+    std::wstring wpath = Strutil::utf8_to_utf16(path);
+    return ::_wopen(wpath.c_str(), flags);
+#else
+    // on Unix platforms passing in UTF-8 works
+    return ::open(path.c_str(), flags);
+#endif
+}
+
 
 
 /// Read the entire contents of the named file and place it in str,

@@ -9,6 +9,7 @@
 #include <cstring>
 #include <vector>
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
 
