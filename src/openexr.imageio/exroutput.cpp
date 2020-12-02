@@ -354,6 +354,15 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
                 m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
                 m_local_io.reset(m_io);
             }
+            OIIO_ASSERT(m_io);
+            if (m_io->mode() != Filesystem::IOProxy::Write) {
+                // If the proxy couldn't be opened in write mode, try to
+                // return an error.
+                std::string e = m_io->error();
+                errorf("Could not open \"%s\" (%s)", name,
+                       e.size() ? e : std::string("unknown error"));
+                return false;
+            }
             m_output_stream.reset(new OpenEXROutputStream(name.c_str(), m_io));
             if (m_spec.tile_width) {
                 m_output_tiled.reset(
