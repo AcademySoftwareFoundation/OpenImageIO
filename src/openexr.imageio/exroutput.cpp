@@ -238,17 +238,9 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-static std::string format_string("openexr");
-
-
 namespace pvt {
 void
 set_exr_threads();
-
-// format-specific metadata prefixes
-static std::vector<std::string> format_prefixes;
-static atomic_int format_prefixes_initialized;
-static spin_mutex format_prefixes_mutex;  // guard
 
 }  // namespace pvt
 
@@ -931,23 +923,13 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
         }
     }
 
-    // Before handling general named metadata, suppress non-openexr
-    // format-specific metadata.
+    // Before handling general named metadata, suppress format-specific
+    // metadata meant for other formats.
     if (const char* colon = strchr(xname.c_str(), ':')) {
         std::string prefix(xname.c_str(), colon);
-        if (!Strutil::iequals(prefix, "openexr")) {
-            if (!pvt::format_prefixes_initialized) {
-                // Retrieve and split the list, only the first time
-                spin_lock lock(pvt::format_prefixes_mutex);
-                std::string format_list;
-                OIIO::getattribute("format_list", format_list);
-                Strutil::split(format_list, pvt::format_prefixes, ",");
-                pvt::format_prefixes_initialized = true;
-            }
-            for (const auto& f : pvt::format_prefixes)
-                if (Strutil::iequals(prefix, f))
-                    return false;
-        }
+        Strutil::to_lower(prefix);
+        if (prefix != format_name() && is_imageio_format_name(prefix))
+            return false;
     }
 
     if (!xname.length())
