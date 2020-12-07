@@ -296,6 +296,12 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
         },
         py::arg("name"), py::arg("defaultval") = "");
     m.def("getattribute", &oiio_getattribute_typed);
+    m.def(
+        "is_imageio_format_name",
+        [](const std::string& name) {
+            return OIIO::is_imageio_format_name(name);
+        },
+        py::arg("name"));
     m.attr("AutoStride")          = AutoStride;
     m.attr("openimageio_version") = OIIO_VERSION;
     m.attr("VERSION")             = OIIO_VERSION;

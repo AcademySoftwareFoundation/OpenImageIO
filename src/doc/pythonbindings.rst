@@ -3617,6 +3617,19 @@ details.
         formats = oiio.get_string_attribute ("format_list")
 
 
+.. py:method:: is_imageio_format_name (name)
+
+    Returns True if `name` is the name of a known and supported file format,
+    `False` if it is not.
+
+    Example:
+
+    .. code-block:: python
+
+        >>> print (oiio.is_imageio_format_name('tiff'))
+        True
+        >>> print (oiio.is_imageio_format_name('Bob'))
+        False
 
 
 .. _sec-pythonrecipes:
