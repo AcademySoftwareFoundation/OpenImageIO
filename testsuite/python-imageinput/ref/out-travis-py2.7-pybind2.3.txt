@@ -205,4 +205,6 @@ Testing write and read of TIFF CMYK with auto RGB translation:
  [ 0.24705884  0.49803925  0.49803925]]
 
 
+is_imageio_format_name('tiff') = True
+is_imageio_format_name('txff') = False
 Done.

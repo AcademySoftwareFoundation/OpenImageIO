@@ -265,6 +265,10 @@ just exist in the OIIO namespace as general utilities. (See
 
 .. doxygenfunction:: declare_imageio_format
 
+
+.. doxygenfunction:: is_imageio_format_name
+
+
 |
 
 

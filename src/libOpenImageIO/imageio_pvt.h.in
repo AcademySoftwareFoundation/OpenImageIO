@@ -45,8 +45,7 @@ inline void errorf (const char* fmt, const Args&... args) {
     seterror(Strutil::sprintf (fmt, args...));
 }
 
-// Make sure all plugins are inventoried.  Should only be called while
-// imageio_mutex is held.  For internal use only.
+// Make sure all plugins are inventoried. For internal use only.
 void catalog_all_plugins (std::string searchpath);
 
 /// Given the format, set the default quantization range.

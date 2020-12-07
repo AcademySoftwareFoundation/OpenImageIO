@@ -2602,6 +2602,9 @@ OIIO_API void declare_imageio_format (const std::string &format_name,
                                       const char **output_extensions,
                                       const char *lib_version);
 
+/// Is `name` one of the known format names?
+OIIO_API bool is_imageio_format_name(string_view name);
+
 /// Helper function: convert contiguous data between two arbitrary pixel
 /// data types (specified by TypeDesc's). Return true if ok, false if it
 /// didn't know how to do the conversion.  If dst_type is UNKNOWN, it will

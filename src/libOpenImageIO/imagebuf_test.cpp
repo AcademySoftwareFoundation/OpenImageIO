@@ -45,6 +45,19 @@ test_wrapmodes()
 
 
 
+void
+test_is_imageio_format_name()
+{
+    OIIO_CHECK_EQUAL(is_imageio_format_name(""), false);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("openexr"), true);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("OpEnExR"), true);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("tiff"), true);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("tiffx"), false);
+    OIIO_CHECK_EQUAL(is_imageio_format_name("blort"), false);
+}
+
+
+
 // Test iterators
 template<class ITERATOR>
 void
@@ -422,7 +435,10 @@ test_write_over()
 int
 main(int /*argc*/, char* /*argv*/[])
 {
+    // Some miscellaneous things that aren't strictly ImageBuf, but this is
+    // as good a place to verify them as any.
     test_wrapmodes();
+    test_is_imageio_format_name();
     test_roi();
 
     // Lots of tests related to ImageBuf::Iterator

@@ -313,6 +313,10 @@ try:
     test_tiff_remembering_config()
     test_tiff_cmyk()
 
+    # Test is_imageio_format_name
+    print ("is_imageio_format_name('tiff') =", oiio.is_imageio_format_name('tiff'))
+    print ("is_imageio_format_name('txff') =", oiio.is_imageio_format_name('txff'))
+
     print ("Done.")
 except Exception as detail:
     print ("Unknown exception:", detail)

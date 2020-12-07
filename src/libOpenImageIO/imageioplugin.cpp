@@ -41,6 +41,8 @@ static std::map<std::string, std::string> plugin_filepaths;
 // Map format name to underlying implementation library
 static std::map<std::string, std::string> format_library_versions;
 
+static std::vector<ustring> format_list_vector;  // Vector separated format_list
+static recursive_mutex format_list_vector_mutex;
 
 
 static std::string pattern = Strutil::sprintf(".imageio.%s",
@@ -98,6 +100,10 @@ declare_imageio_format(const std::string& format_name,
 
     // Add the name to the master list of format_names, and extensions to
     // their master list.
+    {
+        recursive_lock_guard lock(format_list_vector_mutex);
+        format_list_vector.emplace_back(Strutil::lower(format_name));
+    }
     recursive_lock_guard lock(pvt::imageio_mutex);
     if (format_list.length())
         format_list += std::string(",");
@@ -124,6 +130,23 @@ declare_imageio_format(const std::string& format_name,
         // std::cout << format_name << ": " << lib_version << "\n";
     }
 }
+
+
+
+bool
+is_imageio_format_name(string_view name)
+{
+    ustring namelower(Strutil::lower(name));
+    recursive_lock_guard lock(format_list_vector_mutex);
+    // If we were called before any plugins were loaded at all, catalog now
+    if (!format_list_vector.size())
+        pvt::catalog_all_plugins(pvt::plugin_searchpath.string());
+    for (const auto& n : format_list_vector)
+        if (namelower == n)
+            return true;
+    return false;
+}
+
 
 
 static void
@@ -424,14 +447,14 @@ append_if_env_exists(std::string& searchpath, const char* env,
 
 
 /// Look at ALL imageio plugins in the searchpath and add them to the
-/// catalog.  This routine is not reentrant and should only be called
-/// by a routine that is holding a lock on imageio_mutex.
+/// catalog.
 void
 pvt::catalog_all_plugins(std::string searchpath)
 {
     static std::once_flag builtin_flag;
     std::call_once(builtin_flag, catalog_builtin_plugins);
 
+    recursive_lock_guard lock(imageio_mutex);
     append_if_env_exists(searchpath, "OIIO_LIBRARY_PATH", true);
 #ifdef __APPLE__
     append_if_env_exists(searchpath, "DYLD_LIBRARY_PATH");

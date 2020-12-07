@@ -100,17 +100,6 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-namespace {  // anon namespace
-
-// format-specific metadata prefixes
-static std::vector<std::string> format_prefixes;
-static atomic_int format_prefixes_initialized;
-static spin_mutex format_prefixes_mutex;  // guard
-
-}  // namespace
-
-
-
 Field3DOutput::Field3DOutput() { init(); }
 
 
@@ -234,23 +223,13 @@ Field3DOutput::put_parameter(const std::string& name, TypeDesc type,
         || Strutil::istarts_with(name, "oiio:"))
         return false;  // skip these; handled separately or not at all
 
-    // Before handling general named metadata, suppress non-openexr
-    // format-specific metadata.
+    // Before handling general named metadata, suppress format-specific
+    // metadata meant for other formats.
     if (const char* colon = strchr(name.c_str(), ':')) {
         std::string prefix(name.c_str(), colon);
-        if (!Strutil::iequals(prefix, "openexr")) {
-            if (!format_prefixes_initialized) {
-                // Retrieve and split the list, only the first time
-                spin_lock lock(format_prefixes_mutex);
-                std::string format_list;
-                OIIO::getattribute("format_list", format_list);
-                Strutil::split(format_list, format_prefixes, ",");
-                format_prefixes_initialized = true;
-            }
-            for (const auto& f : format_prefixes)
-                if (Strutil::iequals(prefix, f))
-                    return false;
-        }
+        Strutil::to_lower(prefix);
+        if (prefix != format_name() && is_imageio_format_name(prefix))
+            return false;
     }
 
     if (type == TypeString)
