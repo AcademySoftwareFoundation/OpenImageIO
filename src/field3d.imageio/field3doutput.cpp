@@ -225,8 +225,8 @@ Field3DOutput::put_parameter(const std::string& name, TypeDesc type,
 
     // Before handling general named metadata, suppress format-specific
     // metadata meant for other formats.
-    if (const char* colon = strchr(xname.c_str(), ':')) {
-        std::string prefix(xname.c_str(), colon);
+    if (const char* colon = strchr(name.c_str(), ':')) {
+        std::string prefix(name.c_str(), colon);
         Strutil::to_lower(prefix);
         if (prefix != format_name() && is_imageio_format_name(prefix))
             return false;
