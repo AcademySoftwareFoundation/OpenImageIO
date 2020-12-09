@@ -2607,6 +2607,8 @@ current top image.
 
             *xmin,ymin,xmax,ymax*
 
+            *scale%*
+
             *wscale% x hscale%*
 
     if `width` or `height` is 0, that dimension will be
@@ -2644,6 +2646,8 @@ current top image.
 
     - `filter=` *name* : Filter name. The default is `blackman-harris` when
       increasing resolution, `lanczos3` when decreasing resolution.
+    - `fillmode=` *mode* : Fill mode, one of `letterbox` (default), `width`,
+      or `height`.
     - `pad=` *p* : If the argument is nonzero, will pad with black pixels to
       make the resulting image exactly the size specified, if the source and
       desired size are not the same aspect ratio.

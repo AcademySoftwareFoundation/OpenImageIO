@@ -3596,9 +3596,9 @@ action_fit(int argc, const char* argv[])
     bool allsubimages      = options.get_int("allsubimages", ot.allsubimages);
     bool pad               = options.get_int("pad");
     std::string filtername = options["filter"];
+    std::string fillmode   = options["fillmode"];
     bool exact             = options.get_int("exact");
 
-    // New version: use IBA::fit() for the heavy lifting
     int subimages = allsubimages ? A->subimages() : 1;
     ImageRecRef R(new ImageRec(A->name(), subimages));
     for (int s = 0; s < subimages; ++s) {
@@ -3608,7 +3608,8 @@ action_fit(int argc, const char* argv[])
         newspec.x = newspec.full_x = fit_full_x;
         newspec.y = newspec.full_y = fit_full_y;
         (*R)(s, 0).reset(newspec);
-        ImageBufAlgo::fit((*R)(s, 0), (*A)(s, 0), filtername, 0.0f, exact);
+        ImageBufAlgo::fit((*R)(s, 0), (*A)(s, 0), filtername, 0.0f, fillmode,
+                          exact);
         R->update_spec_from_imagebuf(s, 0);
     }
     ot.pop();

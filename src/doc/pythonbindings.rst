@@ -2588,8 +2588,8 @@ Image transformations and data movement
 
 
 
-.. py:method:: ImageBuf ImageBufAlgo.fit (src, filtername="", filtersize=0.0, exact=false, roi=ROI.All, nthreads=0)
-               bool ImageBufAlgo.fit (dst, src, filtername="", filtersize=0.0, exact=false, roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.fit (src, filtername="", filtersize=0.0, fillmode="letterbox", exact=false, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.fit (dst, src, filtername="", filtersize=0.0, fillmode="letterbox", exact=false, roi=ROI.All, nthreads=0)
 
     Fit `src` into the `roi` while preserving the original aspect ratio,
     without stretching.  If the filter and size are not specified, an
