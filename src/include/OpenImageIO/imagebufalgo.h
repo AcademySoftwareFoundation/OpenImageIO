@@ -660,24 +660,22 @@ bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
 ///
 /// Fit src into `dst` (to a size specified by `roi`, if `dst` is not
 /// initialized), resizing but preserving its original aspect ratio. Thus,
-/// it will resize so be the largest size with the same aspect ratio that
+/// it will resize to be the largest size with the same aspect ratio that
 /// can fix inside the region, but will not stretch to completely fill it in
 /// both dimensions.
 ///
 /// The `fillmode` determines which of several methods will be used to
 /// determine how the image will fill the new frame, if its aspect ratio
 /// does not precisely match the original source aspect ratio:
-///     - "letterbox" makes the image maximally fill the new frame while
-///       preserving the original aspect ratio, with no image data lost, but
-///       possibly with black padding in the dimension that doesn't quite
-///       fill the requested size. (This is the default behavior, and matches
-///       the old behavior prior to adding the mode parameter.)
 ///     - "width" exactly fills the width of the new frame, either cropping
 ///       or letterboxing the height if it isn't precisely the right size to
 ///       preserve the original aspect ratio.
 ///     - "height" exactly fills the height of the new frame, either cropping
 ///       or letterboxing the width if it isn't precisely the right size to
 ///       preserve the original aspect ratio.
+///     - "letterbox" (the default) chooses whichever of "width" or "height"
+///       will maximally fill the new frame with no image data lost (it will
+///       only letterbox, never crop).
 ///
 /// If `exact` is true, will result in an exact match on aspect ratio and
 /// centering (partial pixel shift if necessary), whereas exact=false
