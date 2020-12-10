@@ -3,6 +3,7 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 #include <algorithm>
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <fcntl.h>
@@ -953,6 +954,30 @@ Filesystem::IOProxy::pwrite(const void* /*buf*/, size_t /*size*/,
 
 
 
+// Shared mutex to guard IOProxy error get/set. Shared should be ok. If
+// enough file I/O errors are happening that multiple threads are
+// simultaneously locking on error retrieval, the user has bigger problems
+// than worrying about thread performance.
+static std::mutex ioproxy_error_mutex;
+
+
+std::string
+Filesystem::IOProxy::error() const
+{
+    std::lock_guard<std::mutex> lock(ioproxy_error_mutex);
+    return m_error;
+}
+
+
+void
+Filesystem::IOProxy::error(string_view e)
+{
+    std::lock_guard<std::mutex> lock(ioproxy_error_mutex);
+    m_error = e;
+}
+
+
+
 Filesystem::IOFile::IOFile(string_view filename, Mode mode)
     : IOProxy(filename, mode)
 {
@@ -960,8 +985,12 @@ Filesystem::IOFile::IOFile(string_view filename, Mode mode)
     // which std fopen does not.
     m_file = Filesystem::fopen(m_filename.c_str(),
                                m_mode == Write ? "wb" : "rb");
-    if (!m_file)
-        m_mode = Closed;
+    if (!m_file) {
+        m_mode          = Closed;
+        int e           = errno;
+        const char* msg = e ? std::strerror(e) : nullptr;
+        error(msg ? msg : "unknown error");
+    }
     m_auto_close = true;
     if (m_mode == Read)
         m_size = Filesystem::file_size(filename);

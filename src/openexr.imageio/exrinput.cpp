@@ -470,6 +470,15 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
             m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Read);
             m_local_io.reset(m_io);
         }
+        OIIO_ASSERT(m_io);
+        if (m_io->mode() != Filesystem::IOProxy::Read) {
+            // If the proxy couldn't be opened in write mode, try to
+            // return an error.
+            std::string e = m_io->error();
+            errorf("Could not open \"%s\" (%s)", name,
+                   e.size() ? e : std::string("unknown error"));
+            return false;
+        }
         m_io->seek(0);
         m_input_stream = new OpenEXRInputStream(name.c_str(), m_io);
     } catch (const std::exception& e) {
