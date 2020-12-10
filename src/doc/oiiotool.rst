@@ -2607,6 +2607,8 @@ current top image.
 
             *xmin,ymin,xmax,ymax*
 
+            *scale%*
+
             *wscale% x hscale%*
 
     if `width` or `height` is 0, that dimension will be
@@ -2635,7 +2637,7 @@ current top image.
     into the given pixel data resolution, keeping the original aspect ratio
     and padding with black pixels if the requested image size does not
     have the same aspect ratio.  The *size* is in the form
-    
+
             *width* x *height*
 
             *width* x *height* [+-] *xoffset* [+-] *yoffset*
@@ -2644,6 +2646,20 @@ current top image.
 
     - `filter=` *name* : Filter name. The default is `blackman-harris` when
       increasing resolution, `lanczos3` when decreasing resolution.
+    - `fillmode=` *mode* : determines which of several methods will be used
+      to determine how the image will fill the new frame, if its aspect
+      ratio does not precisely match the original source aspect ratio:
+
+      - "width" exactly fills the width of the new frame, either cropping
+        or letterboxing the height if it isn't precisely the right size to
+        preserve the original aspect ratio.
+      - "height" exactly fills the height of the new frame, either cropping
+        or letterboxing the width if it isn't precisely the right size to
+        preserve the original aspect ratio.
+      - "letterbox" (the default) chooses whichever of "width" or "height"
+        will maximally fill the new frame with no image data lost (it will
+        only letterbox, never crop).
+
     - `pad=` *p* : If the argument is nonzero, will pad with black pixels to
       make the resulting image exactly the size specified, if the source and
       desired size are not the same aspect ratio.
@@ -2660,6 +2676,32 @@ current top image.
         oiiotool in.exr --fit:pad=1:exact=1 640x480 -o out.exr
 
         oiiotool in.exr --fit 1024x1024 -o out.exr
+
+    .. image:: figures/tahoe-small.jpg
+       :width: 1.5 in
+    .. image:: figures/fit-width.jpg
+       :width: 1.5 in
+    .. image:: figures/fit-height.jpg
+       :width: 1.5 in
+    .. image:: figures/fit-letterbox.jpg
+       :width: 1.5 in
+
+    Examples of an image being fit into a frame that is wider than the
+    original aspect ratio with fill mode: (a) original, (b) "width", (c)
+    "height", (d) "letterbox".
+
+    .. image:: figures/tahoe-small.jpg
+       :width: 1.5 in
+    .. image:: figures/fitv-width.jpg
+       :width: 1.5 in
+    .. image:: figures/fitv-height.jpg
+       :width: 1.5 in
+    .. image:: figures/fitv-letterbox.jpg
+       :width: 1.5 in
+
+    Examples of an image being fit into a frame that is narrower than the
+    original aspect ratio with fill mode: (a) original, (b) "width", (c)
+    "height", (d) "letterbox".
 
 
 .. option:: --pixelaspect <aspect>

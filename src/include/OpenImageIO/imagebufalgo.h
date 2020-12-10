@@ -660,9 +660,22 @@ bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
 ///
 /// Fit src into `dst` (to a size specified by `roi`, if `dst` is not
 /// initialized), resizing but preserving its original aspect ratio. Thus,
-/// it will resize so be the largest size with the same aspect ratio that
+/// it will resize to be the largest size with the same aspect ratio that
 /// can fix inside the region, but will not stretch to completely fill it in
 /// both dimensions.
+///
+/// The `fillmode` determines which of several methods will be used to
+/// determine how the image will fill the new frame, if its aspect ratio
+/// does not precisely match the original source aspect ratio:
+///     - "width" exactly fills the width of the new frame, either cropping
+///       or letterboxing the height if it isn't precisely the right size to
+///       preserve the original aspect ratio.
+///     - "height" exactly fills the height of the new frame, either cropping
+///       or letterboxing the width if it isn't precisely the right size to
+///       preserve the original aspect ratio.
+///     - "letterbox" (the default) chooses whichever of "width" or "height"
+///       will maximally fill the new frame with no image data lost (it will
+///       only letterbox, never crop).
 ///
 /// If `exact` is true, will result in an exact match on aspect ratio and
 /// centering (partial pixel shift if necessary), whereas exact=false
@@ -680,14 +693,32 @@ bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
 ///
 ImageBuf OIIO_API fit (const ImageBuf &src,
                        string_view filtername = "", float filterwidth=0.0f,
-                       bool exact=false, ROI roi={}, int nthreads=0);
+                       string_view fillmode="letterbox", bool exact=false,
+                       ROI roi={}, int nthreads=0);
 ImageBuf OIIO_API fit (const ImageBuf &src, Filter2D *filter,
-                       bool exact=false, ROI roi={}, int nthreads=0);
+                       string_view fillmode="letterbox", bool exact=false,
+                       ROI roi={}, int nthreads=0);
 bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
                    string_view filtername = "", float filterwidth=0.0f,
-                   bool exact=false, ROI roi={}, int nthreads=0);
+                   string_view fillmode="letterbox", bool exact=false,
+                   ROI roi={}, int nthreads=0);
 bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
-                   bool exact=false, ROI roi={}, int nthreads=0);
+                   string_view fillmode="letterbox", bool exact=false,
+                   ROI roi={}, int nthreads=0);
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+// DEPRECATED(2.3): old versions lacking the "fillmode" parameter
+ImageBuf OIIO_API fit (const ImageBuf &src,
+                       string_view filtername, float filterwidth,
+                       bool exact, ROI roi={}, int nthreads=0);
+ImageBuf OIIO_API fit (const ImageBuf &src, Filter2D *filter,
+                       bool exact, ROI roi={}, int nthreads=0);
+bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src,
+                   string_view filtername, float filterwidth,
+                   bool exact, ROI roi={}, int nthreads=0);
+bool OIIO_API fit (ImageBuf &dst, const ImageBuf &src, Filter2D *filter,
+                   bool exact, ROI roi={}, int nthreads=0);
+#endif
 /// @}
 
 

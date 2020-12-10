@@ -59,6 +59,19 @@ command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --fit 240x360 -d uint8
 command += oiiotool ("tahoe-tiny.tif --fit 128x128 -d uint8 -o fit3.tif")
 # test --fit:exact=1 when we can't get a precise whole-pixel fit of aspect
 command += oiiotool ("src/target1.exr --fit:exact=1:filter=blackman-harris 216x162 -o fit4.exr")
+# test the different fill modes. We do this with a test pattern image
+command += oiiotool ("--pattern constant:color=0.25,0.25,0.25 256x128 3 "
+                     "--box:color=1,1,1 0,0,255,127 --box:color=1,0,0 4,4,251,123 "
+                     "-d half -o fittestw.exr")
+command += oiiotool ("--pattern constant:color=0.25,0.25,0.25 128x256 3 "
+                     "--box:color=1,1,1 0,0,127,255 --box:color=1,0,0 4,4,123,251 "
+                     "-d half -o fittesth.exr")
+pattern = "fittest{0}.exr --fit:exact=1:pad=1:fillmode={1} {2} -o fit{0}-{1}-{2}.exr"
+for wh in [ 'w', 'h' ] :
+    for mode in [ 'letterbox', 'width', 'height' ] :
+        for res in [ '200x200', '300x300' ] :
+            command += oiiotool (pattern.format(wh, mode, res))
+
 
 # test --pixelaspect
 command += oiiotool ("tahoe-small.tif -resize 256x192 --pixelaspect 2.0 -d uint8 -o pixelaspect.tif")
@@ -117,6 +130,18 @@ outputs = [
             "resize64.tif", "resize512.tif",
             "resized-offset.exr",
             "fit.tif", "fit2.tif", "fit3.tif", "fit4.exr",
+            "fitw-letterbox-200x200.exr",
+            "fitw-width-200x200.exr",
+            "fitw-height-200x200.exr",
+            "fith-letterbox-200x200.exr",
+            "fith-width-200x200.exr",
+            "fith-height-200x200.exr",
+            "fitw-letterbox-300x300.exr",
+            "fitw-width-300x300.exr",
+            "fitw-height-300x300.exr",
+            "fith-letterbox-300x300.exr",
+            "fith-width-300x300.exr",
+            "fith-height-300x300.exr",
             "pixelaspect.tif",
             "warped.tif",
             "rotated.tif", "rotated-offcenter.tif", "rotated360.tif",

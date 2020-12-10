@@ -543,7 +543,7 @@ ImageBufAlgo::resize(const ImageBuf& src, string_view filtername,
 
 bool
 ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
-                  bool exact, ROI roi, int nthreads)
+                  string_view fillmode, bool exact, ROI roi, int nthreads)
 {
     // No time logging, it will be accounted in the underlying warp/resize
     if (!IBAprep(roi, &dst, &src,
@@ -565,12 +565,25 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
     float xoff = 0.0f, yoff = 0.0f;
     float scale = 1.0f;
 
-    if (newaspect >= oldaspect) {  // same or wider than original
+    if (fillmode != "height" && fillmode != "width") {
+        // Unknown fill mode: default to "letterbox"
+        fillmode = "letterbox";
+    }
+    if (fillmode == "letterbox") {
+        if (newaspect >= oldaspect) {
+            // same or wider than original, fill to height
+            fillmode = "height";
+        } else {
+            // narrower than original, so fill to width
+            fillmode = "width";
+        }
+    }
+    if (fillmode == "height") {
         resize_full_width = int(resize_full_height * oldaspect + 0.5f);
         xoffset           = (fit_full_width - resize_full_width) / 2;
         scale             = float(fit_full_height) / float(srcspec.full_height);
         xoff = float(fit_full_width - scale * srcspec.full_width) / 2.0f;
-    } else {  // narrower than original
+    } else if (fillmode == "width") {
         resize_full_height = int(resize_full_width / oldaspect + 0.5f);
         yoffset            = (fit_full_height - resize_full_height) / 2;
         scale              = float(fit_full_width) / float(srcspec.full_width);
@@ -643,7 +656,8 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
 
 bool
 ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
-                  float fwidth, bool exact, ROI roi, int nthreads)
+                  float fwidth, string_view fillmode, bool exact, ROI roi,
+                  int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::fit");
     if (!IBAprep(roi, &dst, &src,
@@ -662,17 +676,17 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
         return false;  // error issued in get_resize_filter
 
     logtime.stop();  // it will be picked up again by the next call...
-    return fit(dst, src, filter.get(), exact, roi, nthreads);
+    return fit(dst, src, filter.get(), fillmode, exact, roi, nthreads);
 }
 
 
 
 ImageBuf
-ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, bool exact, ROI roi,
-                  int nthreads)
+ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, string_view fillmode,
+                  bool exact, ROI roi, int nthreads)
 {
     ImageBuf result;
-    bool ok = fit(result, src, filter, exact, roi, nthreads);
+    bool ok = fit(result, src, filter, fillmode, exact, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorf("ImageBufAlgo::fit() error");
     return result;
@@ -681,13 +695,47 @@ ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, bool exact, ROI roi,
 
 ImageBuf
 ImageBufAlgo::fit(const ImageBuf& src, string_view filtername,
-                  float filterwidth, bool exact, ROI roi, int nthreads)
+                  float filterwidth, string_view fillmode, bool exact, ROI roi,
+                  int nthreads)
 {
     ImageBuf result;
-    bool ok = fit(result, src, filtername, filterwidth, exact, roi, nthreads);
+    bool ok = fit(result, src, filtername, filterwidth, fillmode, exact, roi,
+                  nthreads);
     if (!ok && !result.has_error())
         result.errorf("ImageBufAlgo::fit() error");
     return result;
+}
+
+
+
+// DEPRECATED(2.3) versions without the "mode" parameter
+ImageBuf
+ImageBufAlgo::fit(const ImageBuf& src, string_view filtername,
+                  float filterwidth, bool exact, ROI roi, int nthreads)
+{
+    return fit(src, filtername, filterwidth, "letterbox", exact, roi, nthreads);
+}
+
+ImageBuf
+ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, bool exact, ROI roi,
+                  int nthreads)
+{
+    return fit(src, filter, "letterbox", exact, roi, nthreads);
+}
+
+bool
+ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, string_view filtername,
+                  float filterwidth, bool exact, ROI roi, int nthreads)
+{
+    return fit(dst, src, filtername, filterwidth, "letterbox", exact, roi,
+               nthreads);
+}
+
+bool
+ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
+                  bool exact, ROI roi, int nthreads)
+{
+    return fit(dst, src, filter, "letterbox", exact, roi, nthreads);
 }
 
 

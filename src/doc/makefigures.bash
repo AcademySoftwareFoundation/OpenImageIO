@@ -83,5 +83,12 @@ ${OIIOTOOL} -autocc tahoe-small.jpg --colormap ".25,.25,.25,0,.5,0,1,0,0" -o col
 
 ${OIIOTOOL} -autocc tahoe-small.jpg --ccmatrix "0.805,0.506,-0.311,0,-0.311,0.805,0.506,0,0.506,-0.311,0.805,0,0,0,0,1" -o tahoe-ccmatrix.jpg
 
+${OIIOTOOL} -autocc tahoe-small.jpg --fit:exact=1:pad=1:fillmode=letterbox 200x120 -o fit-letterbox.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --fit:exact=1:pad=1:fillmode=width 200x120 -o fit-width.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --fit:exact=1:pad=1:fillmode=height 200x120 -o fit-height.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --fit:exact=1:pad=1:fillmode=letterbox 200x180 -o fitv-letterbox.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --fit:exact=1:pad=1:fillmode=width 200x180 -o fitv-width.jpg
+${OIIOTOOL} -autocc tahoe-small.jpg --fit:exact=1:pad=1:fillmode=height 200x180 -o fitv-height.jpg
+
 #${OIIOTOOL} ../../../testsuite/oiiotool/tahoe-small.tif
 

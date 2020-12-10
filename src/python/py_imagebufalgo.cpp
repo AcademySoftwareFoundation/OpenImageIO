@@ -1571,22 +1571,46 @@ IBA_resample_ret(const ImageBuf& src, bool interpolate, ROI roi, int nthreads)
 
 bool
 IBA_fit(ImageBuf& dst, const ImageBuf& src, const std::string& filtername = "",
-        float filterwidth = 0.0f, bool exact = false, ROI roi = ROI::All(),
-        int nthreads = 0)
+        float filterwidth = 0.0f, const std::string& fillmode = "letterbox",
+        bool exact = false, ROI roi = ROI::All(), int nthreads = 0)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::fit(dst, src, filtername, filterwidth, exact, roi,
-                             nthreads);
+    return ImageBufAlgo::fit(dst, src, filtername, filterwidth, fillmode, exact,
+                             roi, nthreads);
 }
 
 ImageBuf
 IBA_fit_ret(const ImageBuf& src, const std::string& filtername = "",
-            float filterwidth = 0.0f, bool exact = false, ROI roi = ROI::All(),
-            int nthreads = 0)
+            float filterwidth = 0.0f, const std::string& fillmode = "letterbox",
+            bool exact = false, ROI roi = ROI::All(), int nthreads = 0)
 {
     py::gil_scoped_release gil;
-    return ImageBufAlgo::fit(src, filtername, filterwidth, exact, roi,
+    return ImageBufAlgo::fit(src, filtername, filterwidth, fillmode, exact, roi,
                              nthreads);
+}
+
+
+
+// DEPRECATED(2.3)
+bool
+IBA_fit_old(ImageBuf& dst, const ImageBuf& src,
+            const std::string& filtername = "", float filterwidth = 0.0f,
+            bool exact = false, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::fit(dst, src, filtername, filterwidth, "letterbox",
+                             exact, roi, nthreads);
+}
+
+// DEPRECATED(2.3)
+ImageBuf
+IBA_fit_ret_old(const ImageBuf& src, const std::string& filtername = "",
+                float filterwidth = 0.0f, bool exact = false,
+                ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::fit(src, filtername, filterwidth, "letterbox", exact,
+                             roi, nthreads);
 }
 
 
@@ -2830,9 +2854,16 @@ declare_imagebufalgo(py::module& m)
                     "nthreads"_a = 0)
 
         .def_static("fit", &IBA_fit, "dst"_a, "src"_a, "filtername"_a = "",
+                    "filterwidth"_a = 0.0f, "fillmode"_a = "letterbox",
+                    "exact"_a = false, "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("fit", &IBA_fit_ret, "src"_a, "filtername"_a = "",
+                    "filterwidth"_a = 0.0f, "fillmode"_a = "letterbox",
+                    "exact"_a = false, "roi"_a = ROI::All(), "nthreads"_a = 0)
+        // DEPRECATED(2.3) versions
+        .def_static("fit", &IBA_fit_old, "dst"_a, "src"_a, "filtername"_a = "",
                     "filterwidth"_a = 0.0f, "exact"_a = false,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
-        .def_static("fit", &IBA_fit_ret, "src"_a, "filtername"_a = "",
+        .def_static("fit", &IBA_fit_ret_old, "src"_a, "filtername"_a = "",
                     "filterwidth"_a = 0.0f, "exact"_a = false,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 

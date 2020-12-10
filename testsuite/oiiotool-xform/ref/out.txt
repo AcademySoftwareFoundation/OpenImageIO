@@ -18,6 +18,30 @@ Comparing "fit3.tif" and "ref/fit3.tif"
 PASS
 Comparing "fit4.exr" and "ref/fit4.exr"
 PASS
+Comparing "fitw-letterbox-200x200.exr" and "ref/fitw-letterbox-200x200.exr"
+PASS
+Comparing "fitw-width-200x200.exr" and "ref/fitw-width-200x200.exr"
+PASS
+Comparing "fitw-height-200x200.exr" and "ref/fitw-height-200x200.exr"
+PASS
+Comparing "fith-letterbox-200x200.exr" and "ref/fith-letterbox-200x200.exr"
+PASS
+Comparing "fith-width-200x200.exr" and "ref/fith-width-200x200.exr"
+PASS
+Comparing "fith-height-200x200.exr" and "ref/fith-height-200x200.exr"
+PASS
+Comparing "fitw-letterbox-300x300.exr" and "ref/fitw-letterbox-300x300.exr"
+PASS
+Comparing "fitw-width-300x300.exr" and "ref/fitw-width-300x300.exr"
+PASS
+Comparing "fitw-height-300x300.exr" and "ref/fitw-height-300x300.exr"
+PASS
+Comparing "fith-letterbox-300x300.exr" and "ref/fith-letterbox-300x300.exr"
+PASS
+Comparing "fith-width-300x300.exr" and "ref/fith-width-300x300.exr"
+PASS
+Comparing "fith-height-300x300.exr" and "ref/fith-height-300x300.exr"
+PASS
 Comparing "pixelaspect.tif" and "ref/pixelaspect.tif"
 PASS
 Comparing "warped.tif" and "ref/warped.tif"
