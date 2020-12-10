@@ -150,7 +150,7 @@ template<typename SRCTYPE>
 inline void
 filtered_sample(const ImageBuf& src, float s, float t, float dsdx, float dtdx,
                 float dsdy, float dtdy, const Filter2D* filter,
-                ImageBuf::WrapMode wrap, float* result)
+                ImageBuf::WrapMode wrap, bool edgeclamp, float* result)
 {
     OIIO_DASSERT(filter);
     // Just use isotropic filtering
@@ -160,10 +160,25 @@ filtered_sample(const ImageBuf& src, float s, float t, float dsdx, float dtdx,
     float dt_inv      = 1.0f / dt;
     float filterrad_s = 0.5f * ds * filter->width();
     float filterrad_t = 0.5f * dt * filter->width();
-    ImageBuf::ConstIterator<SRCTYPE> samp(src, (int)floorf(s - filterrad_s),
-                                          (int)ceilf(s + filterrad_s),
-                                          (int)floorf(t - filterrad_t),
-                                          (int)ceilf(t + filterrad_t), 0, 1,
+    int smin          = (int)floorf(s - filterrad_s);
+    int smax          = (int)ceilf(s + filterrad_s);
+    int tmin          = (int)floorf(t - filterrad_t);
+    int tmax          = (int)ceilf(t + filterrad_t);
+    if (edgeclamp) {
+        // Special case for black wrap mode -- clamp the filter shape so we
+        // don't even look outside the image region. This prevents strange
+        // image edge artifacts when using filters with negative lobes,
+        // where the image boundary itself is a contrast edge that can
+        // produce ringing. In theory, we probably only need to do this for
+        // filters with negative lobes, but there isn't an easy way to know
+        // at this point whether that's true of this passed-in filter.
+        smin = clamp(smin, src.xbegin(), src.xend());
+        smax = clamp(smax, src.xbegin(), src.xend());
+        tmin = clamp(tmin, src.ybegin(), src.yend());
+        tmax = clamp(tmax, src.ybegin(), src.yend());
+        // wrap = ImageBuf::WrapClamp;
+    }
+    ImageBuf::ConstIterator<SRCTYPE> samp(src, smin, smax, tmin, tmax, 0, 1,
                                           wrap);
     int nc     = src.nchannels();
     float* sum = OIIO_ALLOCA(float, nc);
@@ -176,7 +191,7 @@ filtered_sample(const ImageBuf& src, float s, float t, float dsdx, float dtdx,
             sum[c] += w * samp[c];
         total_w += w;
     }
-    if (total_w != 0.0f)
+    if (total_w > 0.0f)
         for (int c = 0; c < nc; ++c)
             result[c] = sum[c] / total_w;
     else
@@ -185,6 +200,162 @@ filtered_sample(const ImageBuf& src, float s, float t, float dsdx, float dtdx,
 }
 
 }  // namespace
+
+
+
+template<typename DSTTYPE, typename SRCTYPE>
+static bool
+warp_(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
+      const Filter2D* filter, ImageBuf::WrapMode wrap, bool edgeclamp, ROI roi,
+      int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        int nc     = dst.nchannels();
+        float* pel = OIIO_ALLOCA(float, nc);
+        memset(pel, 0, nc * sizeof(float));
+        Imath::M33f Minv = M.inverse();
+        ImageBuf::Iterator<DSTTYPE> out(dst, roi);
+        for (; !out.done(); ++out) {
+            Dual2 x(out.x() + 0.5f, 1.0f, 0.0f);
+            Dual2 y(out.y() + 0.5f, 0.0f, 1.0f);
+            robust_multVecMatrix(Minv, x, y, x, y);
+            filtered_sample<SRCTYPE>(src, x.val(), y.val(), x.dx(), y.dx(),
+                                     x.dy(), y.dy(), filter, wrap, edgeclamp,
+                                     pel);
+            for (int c = roi.chbegin; c < roi.chend; ++c)
+                out[c] = pel[c];
+        }
+    });
+    return true;
+}
+
+
+
+static bool
+warp_impl(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
+          const Filter2D* filter, bool recompute_roi, ImageBuf::WrapMode wrap,
+          bool edgeclamp, ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::warp");
+    ROI src_roi_full = src.roi_full();
+    ROI dst_roi, dst_roi_full;
+    if (dst.initialized()) {
+        dst_roi      = roi.defined() ? roi : dst.roi();
+        dst_roi_full = dst.roi_full();
+    } else {
+        dst_roi = roi.defined()
+                      ? roi
+                      : (recompute_roi ? transform(M, src.roi()) : src.roi());
+        dst_roi_full = src_roi_full;
+    }
+    dst_roi.chend      = std::min(dst_roi.chend, src.nchannels());
+    dst_roi_full.chend = std::min(dst_roi_full.chend, src.nchannels());
+
+    if (!IBAprep(dst_roi, &dst, &src, ImageBufAlgo::IBAprep_NO_SUPPORT_VOLUME))
+        return false;
+
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    std::shared_ptr<Filter2D> filterptr((Filter2D*)NULL, Filter2D::destroy);
+    if (filter == NULL) {
+        // If no filter was provided, punt and just linearly interpolate.
+        filterptr.reset(Filter2D::create("lanczos3", 6.0f, 6.0f));
+        filter = filterptr.get();
+    }
+
+    bool ok;
+    OIIO_DISPATCH_COMMON_TYPES2(ok, "warp", warp_, dst.spec().format,
+                                src.spec().format, dst, src, M, filter, wrap,
+                                edgeclamp, dst_roi, nthreads);
+    return ok;
+}
+
+
+
+bool
+ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
+                   const Filter2D* filter, bool recompute_roi,
+                   ImageBuf::WrapMode wrap, ROI roi, int nthreads)
+{
+    return warp_impl(dst, src, M, filter, recompute_roi, wrap,
+                     false /*edgeclamp*/, roi, nthreads);
+}
+
+
+
+bool
+ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
+                   string_view filtername_, float filterwidth,
+                   bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
+                   int nthreads)
+{
+    // Set up a shared pointer with custom deleter to make sure any
+    // filter we allocate here is properly destroyed.
+    std::shared_ptr<Filter2D> filter((Filter2D*)NULL, Filter2D::destroy);
+    std::string filtername = filtername_.size() ? filtername_ : "lanczos3";
+    for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
+        FilterDesc fd;
+        Filter2D::get_filterdesc(i, &fd);
+        if (fd.name == filtername) {
+            float w = filterwidth > 0.0f ? filterwidth : fd.width;
+            float h = filterwidth > 0.0f ? filterwidth : fd.width;
+            filter.reset(Filter2D::create(filtername, w, h));
+            break;
+        }
+    }
+    if (!filter) {
+        dst.errorf("Filter \"%s\" not recognized", filtername);
+        return false;
+    }
+
+    return warp(dst, src, M, filter.get(), recompute_roi, wrap, roi, nthreads);
+}
+
+
+
+ImageBuf
+ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
+                   const Filter2D* filter, bool recompute_roi,
+                   ImageBuf::WrapMode wrap, ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = warp(result, src, M, filter, recompute_roi, wrap, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorf("ImageBufAlgo::warp() error");
+    return result;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
+                   string_view filtername, float filterwidth,
+                   bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
+                   int nthreads)
+{
+    ImageBuf result;
+    bool ok = warp(result, src, M, filtername, filterwidth, recompute_roi, wrap,
+                   roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorf("ImageBufAlgo::warp() error");
+    return result;
+}
+
+
+
+bool
+ImageBufAlgo::rotate(ImageBuf& dst, const ImageBuf& src, float angle,
+                     float center_x, float center_y, Filter2D* filter,
+                     bool recompute_roi, ROI roi, int nthreads)
+{
+    // Calculate the rotation matrix
+    Imath::M33f M;
+    M.translate(Imath::V2f(-center_x, -center_y));
+    M.rotate(angle);
+    M *= Imath::M33f().translate(Imath::V2f(center_x, center_y));
+    return ImageBufAlgo::warp(dst, src, M, filter, recompute_roi,
+                              ImageBuf::WrapBlack, roi, nthreads);
+}
 
 
 
@@ -622,8 +793,7 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, Filter2D* filter,
         newspec.set_roi_full(newroi);
         dst.reset(newspec);
         ImageBuf::WrapMode wrap = ImageBuf::WrapMode_from_string("black");
-        ok &= ImageBufAlgo::warp(dst, src, M, filter, false, wrap, {},
-                                 nthreads);
+        ok &= warp_impl(dst, src, M, filter, false, wrap, true, {}, nthreads);
     } else {
         // Full pixel resize -- gives the sharpest result, but for odd-sized
         // destination resolution, may not be exactly centered and will only
@@ -866,172 +1036,6 @@ ImageBufAlgo::resample(const ImageBuf& src, bool interpolate, ROI roi,
     if (!ok && !result.has_error())
         result.errorf("ImageBufAlgo::resample() error");
     return result;
-}
-
-
-
-#if 0
-template<typename DSTTYPE, typename SRCTYPE>
-static bool
-affine_resample_ (ImageBuf &dst, const ImageBuf &src, const Imath::M33f &Minv,
-                  ROI roi, int nthreads)
-{
-    ImageBufAlgo::parallel_image (roi, nthreads, [&](ROI roi){
-        ImageBuf::Iterator<DSTTYPE,DSTTYPE> d (dst, roi);
-        ImageBuf::ConstIterator<SRCTYPE,DSTTYPE> s (src);
-        for (  ;  ! d.done();  ++d) {
-            Imath::V2f P (d.x()+0.5f, d.y()+0.5f);
-            Minv.multVecMatrix (P, P);
-            s.pos (int(floorf(P.x)), int(floorf(P.y)), d.z());
-            for (int c = roi.chbegin;  c < roi.chend;  ++c)
-                d[c] = s[c];
-        }
-    });
-    return true;
-}
-#endif
-
-
-
-template<typename DSTTYPE, typename SRCTYPE>
-static bool
-warp_(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
-      const Filter2D* filter, ImageBuf::WrapMode wrap, ROI roi, int nthreads)
-{
-    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
-        int nc     = dst.nchannels();
-        float* pel = OIIO_ALLOCA(float, nc);
-        memset(pel, 0, nc * sizeof(float));
-        Imath::M33f Minv = M.inverse();
-        ImageBuf::Iterator<DSTTYPE> out(dst, roi);
-        for (; !out.done(); ++out) {
-            Dual2 x(out.x() + 0.5f, 1.0f, 0.0f);
-            Dual2 y(out.y() + 0.5f, 0.0f, 1.0f);
-            robust_multVecMatrix(Minv, x, y, x, y);
-            filtered_sample<SRCTYPE>(src, x.val(), y.val(), x.dx(), y.dx(),
-                                     x.dy(), y.dy(), filter, wrap, pel);
-            for (int c = roi.chbegin; c < roi.chend; ++c)
-                out[c] = pel[c];
-        }
-    });
-    return true;
-}
-
-
-
-bool
-ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
-                   const Filter2D* filter, bool recompute_roi,
-                   ImageBuf::WrapMode wrap, ROI roi, int nthreads)
-{
-    pvt::LoggedTimer logtime("IBA::warp");
-    ROI src_roi_full = src.roi_full();
-    ROI dst_roi, dst_roi_full;
-    if (dst.initialized()) {
-        dst_roi      = roi.defined() ? roi : dst.roi();
-        dst_roi_full = dst.roi_full();
-    } else {
-        dst_roi = roi.defined()
-                      ? roi
-                      : (recompute_roi ? transform(M, src.roi()) : src.roi());
-        dst_roi_full = src_roi_full;
-    }
-    dst_roi.chend      = std::min(dst_roi.chend, src.nchannels());
-    dst_roi_full.chend = std::min(dst_roi_full.chend, src.nchannels());
-
-    if (!IBAprep(dst_roi, &dst, &src, IBAprep_NO_SUPPORT_VOLUME))
-        return false;
-
-    // Set up a shared pointer with custom deleter to make sure any
-    // filter we allocate here is properly destroyed.
-    std::shared_ptr<Filter2D> filterptr((Filter2D*)NULL, Filter2D::destroy);
-    if (filter == NULL) {
-        // If no filter was provided, punt and just linearly interpolate.
-        filterptr.reset(Filter2D::create("lanczos3", 6.0f, 6.0f));
-        filter = filterptr.get();
-    }
-
-    bool ok;
-    OIIO_DISPATCH_COMMON_TYPES2(ok, "warp", warp_, dst.spec().format,
-                                src.spec().format, dst, src, M, filter, wrap,
-                                dst_roi, nthreads);
-    return ok;
-}
-
-
-
-bool
-ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
-                   string_view filtername_, float filterwidth,
-                   bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
-                   int nthreads)
-{
-    // Set up a shared pointer with custom deleter to make sure any
-    // filter we allocate here is properly destroyed.
-    std::shared_ptr<Filter2D> filter((Filter2D*)NULL, Filter2D::destroy);
-    std::string filtername = filtername_.size() ? filtername_ : "lanczos3";
-    for (int i = 0, e = Filter2D::num_filters(); i < e; ++i) {
-        FilterDesc fd;
-        Filter2D::get_filterdesc(i, &fd);
-        if (fd.name == filtername) {
-            float w = filterwidth > 0.0f ? filterwidth : fd.width;
-            float h = filterwidth > 0.0f ? filterwidth : fd.width;
-            filter.reset(Filter2D::create(filtername, w, h));
-            break;
-        }
-    }
-    if (!filter) {
-        dst.errorf("Filter \"%s\" not recognized", filtername);
-        return false;
-    }
-
-    return warp(dst, src, M, filter.get(), recompute_roi, wrap, roi, nthreads);
-}
-
-
-
-ImageBuf
-ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
-                   const Filter2D* filter, bool recompute_roi,
-                   ImageBuf::WrapMode wrap, ROI roi, int nthreads)
-{
-    ImageBuf result;
-    bool ok = warp(result, src, M, filter, recompute_roi, wrap, roi, nthreads);
-    if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::warp() error");
-    return result;
-}
-
-
-
-ImageBuf
-ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
-                   string_view filtername, float filterwidth,
-                   bool recompute_roi, ImageBuf::WrapMode wrap, ROI roi,
-                   int nthreads)
-{
-    ImageBuf result;
-    bool ok = warp(result, src, M, filtername, filterwidth, recompute_roi, wrap,
-                   roi, nthreads);
-    if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::warp() error");
-    return result;
-}
-
-
-
-bool
-ImageBufAlgo::rotate(ImageBuf& dst, const ImageBuf& src, float angle,
-                     float center_x, float center_y, Filter2D* filter,
-                     bool recompute_roi, ROI roi, int nthreads)
-{
-    // Calculate the rotation matrix
-    Imath::M33f M;
-    M.translate(Imath::V2f(-center_x, -center_y));
-    M.rotate(angle);
-    M *= Imath::M33f().translate(Imath::V2f(center_x, center_y));
-    return ImageBufAlgo::warp(dst, src, M, filter, recompute_roi,
-                              ImageBuf::WrapBlack, roi, nthreads);
 }
 
 
