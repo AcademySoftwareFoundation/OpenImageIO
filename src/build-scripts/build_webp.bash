@@ -14,11 +14,10 @@ WEBP_REPO=${WEBP_REPO:=https://github.com/webmproject/libwebp.git}
 WEBP_VERSION=${WEBP_VERSION:=v1.1.0}
 
 # Where to put webp repo source (default to the ext area)
-WEBP_SRC_DIR=${WEBP_SRC_DIR:=${PWD}/ext/webp}
-# Temp build area (default to a build/ subdir under source)
+LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
+WEBP_SRC_DIR=${WEBP_SRC_DIR:=${LOCAL_DEPS_DIR}/webp}
 WEBP_BUILD_DIR=${WEBP_BUILD_DIR:=${WEBP_SRC_DIR}/build}
-# Install area for webp (default to ext/dist)
-WEBP_INSTALL_DIR=${WEBP_INSTALL_DIR:=${PWD}/ext/dist}
+WEBP_INSTALL_DIR=${WEBP_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist}
 #WEBP_CONFIG_OPTS=${WEBP_CONFIG_OPTS:=}
 
 pwd
@@ -48,6 +47,7 @@ time cmake --config Release \
            -DWEBP_BUILD_GIF2WEBPx=OFF \
            -DWEBP_BUILD_IMG2WEBP=OFF \
            -DWEBP_BUILD_EXTRAS=OFF \
+           -DBUILD_SHARED_LIBS=ON \
            ${WEBP_CONFIG_OPTS} ..
 time cmake --build . --config Release --target install
 
@@ -59,5 +59,5 @@ popd
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
-export Webp_ROOT=$WEBP_INSTALL_DIR
+export WebP_ROOT=$WEBP_INSTALL_DIR
 

@@ -83,6 +83,10 @@ if [[ "$OPENEXR_VERSION" != "" ]] ; then
     CXX="ccache $CXX" source src/build-scripts/build_openexr.bash
 fi
 
+if [[ "$WEBP_VERSION" != "" ]] ; then
+    source src/build-scripts/build_webp.bash
+fi
+
 if [[ "$LIBTIFF_VERSION" != "" ]] ; then
     CXX="ccache $CXX" source src/build-scripts/build_libtiff.bash
 fi
