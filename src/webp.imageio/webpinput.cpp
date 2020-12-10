@@ -94,6 +94,9 @@ WebpInput::open(const std::string& name, ImageSpec& spec)
                m_filename);
         return false;
     }
+    if (m_image_size > std::numeric_limits<size_t>::max()) {
+        errorf("Image size (%d) is too big to read", m_image_size);
+    }
 
     FILE* file = Filesystem::fopen(m_filename, "rb");
     if (!file) {
@@ -136,7 +139,7 @@ WebpInput::open(const std::string& name, ImageSpec& spec)
     }
 
     // WebPMuxError err;
-    WebPData bitstream { m_encoded_image.get(), m_image_size };
+    WebPData bitstream { m_encoded_image.get(), size_t(m_image_size) };
     m_demux = WebPDemux(&bitstream);
     if (!m_demux) {
         errorf("Couldn't decode");

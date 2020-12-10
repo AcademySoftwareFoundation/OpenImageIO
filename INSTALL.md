@@ -57,6 +57,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * But... if not found on the system, an embedded version will be used.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.5)
+ * If you want support for WebP images:
+     * WebP >= 0.6.1 (tested through 1.1.0)
  * If you want support for OpenColorIO color transformations:
      * OpenColorIO >= 1.1 (also tested against the current master that will
        become OCIO 2.0).
