@@ -272,8 +272,8 @@ ifeq (${SP_OS}, rhel7)
         -DHDF5_LIBRARIES=/usr/lib64/libhdf5.so \
         -DNuke_ROOT=/net/apps/rhel7/foundry/nuke${NUKE_VERSION} \
         -DLibheif_ROOT=${Libheif_ROOT} \
-        -DFFMPEG_INCLUDES=/usr/include/ffmpegroot/ffmpeg34 \
-        -DFFMPEG_LIBRARIES="/usr/lib64/ffmpegroot/ffmpeg345/libavcodec.so;/usr/lib64/ffmpegroot/ffmpeg345/libavformat.so;/usr/lib64/ffmpegroot/ffmpeg345/libavutil.so;/usr/lib64/ffmpegroot/ffmpeg345/libswscale.so;" \
+        -DFFMPEG_INCLUDES=/usr/include/ffmpegroot/ffmpeg42 \
+        -DFFMPEG_LIBRARIES="/usr/lib64/ffmpegroot/ffmpeg424/libavcodec.so;/usr/lib64/ffmpegroot/ffmpeg424/libavformat.so;/usr/lib64/ffmpegroot/ffmpeg424/libavutil.so;/usr/lib64/ffmpegroot/ffmpeg424/libswscale.so;" \
         -DUSE_OPENCV=0 \
         -DVISIBILITY_MAP_FILE:STRING="${working_dir}/site/spi/hidesymbols.map"
 
