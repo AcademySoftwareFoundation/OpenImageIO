@@ -64,6 +64,12 @@ Fixes and feature enhancements:
       (2.3.0.1/2.2.8)
     - `IBA::make_texture()` now correctly propagates error messages, which
       can be retrieved via the global OIIO::geterror() call. #2747 (2.3.0.1)
+    - `IBA::fit()` now takes a `fillmode` parameter that controls exactly
+      how the resize will occur in cases where the aspect ratio of the new
+      frame doesn't exactly match that of the source image. The old way (and
+      the default value now) is "letterbox", but now also "width" and
+      "height" modes are allowed. See `fit()` documentation for details.
+      #2784 (2.3.2.0)
 * ImageCache/TextureSystem:
     - Fix ImageCache bug: add_tile/get_tile not properly honoring when
      `chend < chbegin` it should get all channels. #2742 (2.3.0.1/2.2.8)
@@ -75,13 +81,22 @@ Fixes and feature enhancements:
     - Improve oiiotool's guessing about the desired output format based on
       inputs (in the absence of `-d` to specify the format). #2717
       (2.3.0.1/2.2.8)
+    - `--fit` now takes an additional optional modifier: `fillmode=` with
+      choices of `letterbox` (default), `width`, and `height`. #2784 (2.3.2.0)
 * BMP
     - Fix reading BMP images with bottom-to-top row order. #2776
       (2.3.1.1/2.2.9)
 * FFMpeg/movies:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
+* GIF
+    - Support UTF-8 filenames on Windows for GIF files. #2777 (2.3.2.0)
 * IFF
     - Fix broken reads of 16 bit iff files. #2736 (2.3.0.1/2.2.8)
+* OpenEXR:
+    - Fix rare crash that was possible when multithreaded writing openexr
+      files. #2781 (2.3.2.0)
+    - Improved error reporting when errors are encountered writing OpenEXR
+      files. #2783 (2.3.2.0)
 * PNG
     - Read Exif data from PNG files. #2767 (2.3.1.1/2.2.9)
 * RAW:
@@ -140,11 +155,14 @@ Build/test system improvements and platform ports:
     - Work to ensure that OIIO will build correctly against the upcoming
       Imath 3.0 and OpenEXR 3.0. #2771 (2.3.1.1/2.2.9)
 * Testing and Continuous integration (CI) systems:
+    - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
 * Platform support:
     - Fixes for mingw. #2698 (2.3.0.0)
     - Windows fix: correct OIIO_API declaration on aligned_malloc,
       aligned_free of platform.h. #2701 (2.3.0.0)
     - Fix boost linkage problem on Windows. #2727 (2.3.0.1/2.2.8)
+    - Fix warnings when compiling webpinput.cpp on 32 bit systems. #2783
+      (2.3.2.0)
 
 Notable documentation changes:
 * Make Readthedocs generate downloadable HTML as well as PDF. #2746
