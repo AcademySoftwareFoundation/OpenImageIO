@@ -22,6 +22,7 @@
 
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/hash.h>
+#include <OpenImageIO/farmhash.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
@@ -276,11 +277,25 @@ std::string OIIO_API wordwrap (string_view src, int columns = 80,
                                int prefix = 0, string_view sep = " ",
                                string_view presep = "");
 
+#if defined(HASH_CAN_USE_CONSTEXPR) && HASH_CAN_USE_CONSTEXPR == 1
+static inline constexpr
+size_t strhash (size_t len, const char *s)
+{
+    return OIIO::inlined_hashes::farmhash::Hash(s, len);
+}
+#else
+static inline
+size_t strhash (size_t len, const char *s)
+{
+    return OIIO::inlined_hashes::farmhash::Hash(s, len);
+}
+#endif
+
 /// Hash a string_view.
 inline size_t
 strhash (string_view s)
 {
-    return s.length() ? farmhash::Hash (s) : 0;
+    return s.length() ? strhash (s.length(), s.data()) : 0;
 }
 
 
