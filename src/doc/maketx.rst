@@ -32,10 +32,7 @@ ordinary images into texture files: :program:`maketx` and
        straightforward and foolproof, in that you can't accidentally forget
        to turn it into a texture, as you might do with and much later
        :program:`oiiotool` was extended to be capable of directly writing
-       texture files. If you are simply converting an image into a texture,
-       :program:`maketx` is more straightforward and foolproof, in that you
-       can't accidentally forget to turn it into a texture, as you might do
-       with
+       texture files.
 
 
 
@@ -309,21 +306,9 @@ Command-line arguments are:
     identical, and outputs the texture as a single-channel image instead.
     That is, it changes RGB images that are gray into single-channel gray
     scale images.
-    
-    Detects multi-channel images in which all color components are
-    identical, and outputs the texture as a single-channel image instead.
-    That is, it changes RGB images that are gray into single-channel gray
-    scale images.
 
 .. option:: --opaque-detect
 
-    Detects images that have a designated alpha channel for which the alpha
-    value for all pixels is 1.0 (fully opaque), and omits the alpha channel
-    from the output texture.  So, for example, an RGBA input texture where
-    A=1 for all pixels will be output just as RGB.  The purpose is to save
-    disk space, texture I/O bandwidth, and texturing time for those textures
-    where alpha was present in the input, but clearly not necessary.
-    
     Detects images that have a designated alpha channel for which the alpha
     value for all pixels is 1.0 (fully opaque), and omits the alpha channel
     from the output texture.  So, for example, an RGBA input texture where
