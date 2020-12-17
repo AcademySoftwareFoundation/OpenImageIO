@@ -1173,7 +1173,8 @@ PSDInput::load_resource_1039(uint32_t length)
     if (!m_file.read(icc_buf.get(), length))
         return false;
 
-    common_attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, length), icc_buf.get());
+    TypeDesc type(TypeDesc::UINT8, length);
+    common_attribute("ICCProfile", type, icc_buf.get());
     return true;
 }
 
