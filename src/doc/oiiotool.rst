@@ -1216,12 +1216,17 @@ Writing images
       `:updatemode=` *int*
         If nonzero, do not create and overwrite the existing texture if it
         appears to already match the source pixels. (default: 0)
+      `:constant_color_detect=` *int*
+        Detect images that are entirely one color, and change them to be low
+        resolution. (default: 0)
       `:monochrome_detect=` *int*
         Detect monochrome (R=G=B) images and turn them into 1-channel
         textures. (default: 0)
       `:opaque_detect=` *int*
         Detect opaque (A=1) images and drop the alpha channel from the
         texture. (default: 0)
+      `:compute_average=` *int*
+        Compute and store the average color of the texture. (default: 1)
       `:unpremult=` *int*
         Unpremultiply colors before any per-MIP-level color conversions, and
         re-premultiply after. (default: 0)
