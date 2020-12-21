@@ -16,7 +16,6 @@ if [[ `which brew` == "" ]] ; then
 fi
 
 
-brew uninstall openssl
 #brew update >/dev/null
 echo ""
 echo "Before my brew installs:"
@@ -28,7 +27,7 @@ brew link --overwrite gcc
 brew unlink python@2.7 || true
 brew unlink python@3.9 || true
 brew unlink python@3.8 || true
-brew link --force python@3.8 || true
+brew link --overwrite --force python@${PYTHON_VERSION} || true
 brew upgrade --display-times cmake || true
 brew install --display-times libtiff ilmbase openexr opencolorio
 brew install --display-times libpng giflib webp jpeg-turbo openjpeg
@@ -44,7 +43,11 @@ echo "After brew installs:"
 brew list --versions
 
 # Needed on some systems
-# pip install numpy || true
+if [[ $PYTHON_VERSION != "2.7" ]] ; then
+    pip3 install numpy
+else
+    pip install numpy
+fi
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
