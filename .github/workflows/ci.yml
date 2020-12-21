@@ -302,9 +302,8 @@ jobs:
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/install_homebrew_deps.bash
-            pip3.8 install numpy
             src/build-scripts/install_test_images.bash
-            export PYTHONPATH=/usr/local/lib/python3.8/site-packages:$PYTHONPATH
+            export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
             source src/build-scripts/ci-build-and-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
