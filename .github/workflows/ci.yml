@@ -325,7 +325,7 @@ jobs:
           PYTHON_VERSION: 3.6
           CMAKE_GENERATOR: "Visual Studio 16 2019"
           OPENEXR_VERSION: v2.4.1
-          SKIP_TESTS: 1
+          SKIP_TESTS: 0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash

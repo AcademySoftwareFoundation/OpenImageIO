@@ -202,11 +202,7 @@ def oiio_app (app):
     if (platform.system () != 'Windows' or options.devenv_config == ""):
         return os.path.join (path, "bin", app) + " "
     else:
-        return os.path.join (path, "bin", app) + " "
-        # Old... not true any more?
-        # When we use Visual Studio, built applications are stored
-        # in the app/$(OutDir)/ directory, e.g., Release or Debug.
-        # return os.path.join (path, "src", app, options.devenv_config, app) + " "
+        return os.path.join (path, "bin", options.devenv_config, app) + " "
 
 
 # Construct a command that will print info for an image, appending output to
