@@ -9,6 +9,7 @@
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
+#include <OpenImageIO/parallel.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/thread.h>
@@ -28,6 +29,7 @@ static int numthreads = 16;
 static int ntrials    = 1;
 static bool verbose   = false;
 static bool wedge     = false;
+static int collide    = 1;  // Millions
 static std::vector<std::array<char, 16>> strings;
 
 
@@ -66,6 +68,8 @@ getargs(int argc, char* argv[])
       .help("Number of trials");
     ap.arg("--wedge", &wedge)
       .help("Do a wedge test");
+    ap.arg("--collide %d", &collide)
+      .help("Strings (x 1M) to create to make hash collisions");
     // clang-format on
 
     ap.parse(argc, (const char**)argv);
@@ -114,6 +118,18 @@ main(int argc, char* argv[])
                            numthreads /* just this one thread count */);
     }
     OIIO_CHECK_ASSERT(true);  // If we make it here without crashing, pass
+
+    // Try to force a hash collision
+    parallel_for(0LL, 1000000LL * int64_t(collide),
+                 [](int64_t i) { ustring u = ustring::fmtformat("{:x}", i); });
+    std::vector<ustring> collisions;
+    size_t ncollisions = ustring::hash_collisions(&collisions);
+    OIIO_CHECK_ASSERT(ncollisions == 0);
+    if (ncollisions) {
+        std::cout << "  Hash collisions: " << ncollisions << "\n";
+        for (auto c : collisions)
+            std::cout << Strutil::fmt::format("    {} \"{}\"\n", c.hash(), c);
+    }
 
     if (verbose)
         std::cout << "\n" << ustring::getstats() << "\n";

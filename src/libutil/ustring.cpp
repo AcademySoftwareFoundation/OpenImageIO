@@ -3,6 +3,7 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 #include <string>
+#include <unordered_map>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/export.h>
@@ -12,29 +13,13 @@
 
 OIIO_NAMESPACE_BEGIN
 
-#if 0
-// Use regular mutex
-typedef mutex ustring_mutex_t;
-typedef lock_guard ustring_read_lock_t;
-typedef lock_guard ustring_write_lock_t;
-#elif 0
-// Use spin locks
-typedef spin_mutex ustring_mutex_t;
-typedef spin_lock ustring_read_lock_t;
-typedef spin_lock ustring_write_lock_t;
-#elif 1
 // Use rw spin locks
 typedef spin_rw_mutex ustring_mutex_t;
 typedef spin_rw_read_lock ustring_read_lock_t;
 typedef spin_rw_write_lock ustring_write_lock_t;
-#else
-// Use null locks
-typedef null_mutex ustring_mutex_t;
-typedef null_lock<null_mutex> ustring_read_lock_t;
-typedef null_lock<null_mutex> ustring_write_lock_t;
-#endif
 
 // #define USTRING_TRACK_NUM_LOOKUPS
+
 
 template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
     static_assert((BASE_CAPACITY & (BASE_CAPACITY - 1)) == 0,
@@ -106,10 +91,11 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
                 break;  // found insert pos
             if (entries[pos]->hashed == hash
                 && entries[pos]->length == str.length()
-                && strncmp(entries[pos]->c_str(), str.data(), str.length())
-                       == 0)
-                return entries[pos]
-                    ->c_str();  // same string is already inserted, return the one that is already in the table
+                && !strncmp(entries[pos]->c_str(), str.data(), str.length())) {
+                // same string is already inserted, return the one that is
+                // already in the table
+                return entries[pos]->c_str();
+            }
             ++dist;
             pos = (pos + dist) & mask;  // quadratic probing
         }
@@ -120,6 +106,34 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
         if (2 * num_entries > mask)
             grow();           // maintain 0.5 load factor
         return rep->c_str();  // rep is now in the table
+    }
+
+    // Collect hash collisions for just this bin
+    size_t find_hash_collisions(std::vector<ustring>* collisions) const
+    {
+        ustring_read_lock_t lock(mutex);
+        std::multimap<size_t, const char*> hashes;
+        for (size_t i = 0; i < mask + 1; ++i) {
+            if (entries[i]) {
+                const char* chars = (const char*)(entries[i] + 1);
+                hashes.emplace(entries[i]->hashed, chars);
+            }
+        }
+        std::unordered_map<size_t, int> hash_counts;
+        for (const auto& h : hashes)
+            hash_counts[h.first] += 1;
+        size_t ncollisions = 0;
+        for (const auto& hc : hash_counts) {
+            if (hc.second > 1) {
+                auto r = hashes.equal_range(hc.first);
+                for (auto i = r.first; i != r.second; ++i) {
+                    if (collisions)
+                        collisions->push_back(ustring::from_unique(i->second));
+                    ++ncollisions;
+                }
+            }
+        }
+        return ncollisions;
     }
 
 private:
@@ -179,7 +193,7 @@ private:
         return result;
     }
 
-    OIIO_CACHE_ALIGN ustring_mutex_t mutex;
+    OIIO_CACHE_ALIGN mutable ustring_mutex_t mutex;
     size_t mask = BASE_CAPACITY - 1;
     ustring::TableRep** entries;
     size_t num_entries = 0;
@@ -233,6 +247,14 @@ struct UstringTable {
         return num;
     }
 #    endif
+
+    size_t find_hash_collisions(std::vector<ustring>* collisions)
+    {
+        size_t num = 0;
+        for (auto& bin : bins)
+            num += bin.find_hash_collisions(collisions);
+        return num;
+    }
 
 private:
     enum {
@@ -456,6 +478,15 @@ ustring::getstats(bool verbose)
 #endif
         out << "  unique strings: " << n_e << "\n";
         out << "  ustring memory: " << Strutil::memformat(mem) << "\n";
+#ifndef NDEBUG
+        std::vector<ustring> collisions;
+        hash_collisions(&collisions);
+        if (collisions.size()) {
+            out << "  Hash collisions: " << collisions.size() << "\n";
+            for (auto c : collisions)
+                out << Strutil::fmt::format("    {} \"{}\"\n", c.hash(), c);
+        }
+#endif
     } else {
 #ifdef USTRING_TRACK_NUM_LOOKUPS
         out << "requests: " << table.get_num_lookups() << ", ";
@@ -464,6 +495,26 @@ ustring::getstats(bool verbose)
     }
     return out.str();
 }
+
+
+
+size_t
+ustring::hash_collisions(std::vector<ustring>* collisions)
+{
+    UstringTable& table(ustring_table());
+    return table.find_hash_collisions(collisions);
+}
+
+
+
+size_t
+ustring::total_ustrings()
+{
+    UstringTable& table(ustring_table());
+    return table.get_num_entries();
+}
+
+
 
 size_t
 ustring::memory()
