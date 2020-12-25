@@ -208,10 +208,11 @@ jobs:
           CXX: g++-10
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
-          OPENEXR_VERSION: v2.5.3
-          PYBIND11_VERSION: v2.6.1
           LIBRAW_VERSION: 0.20.2
+          LIBTIFF_VERSION: v4.2.0
+          OPENEXR_VERSION: v2.5.3
           PUGIXML_VERSION: v1.11.1
+          PYBIND11_VERSION: v2.6.1
           WEBP_VERSION: v1.1.0
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.1.3
         run: |
@@ -236,12 +237,12 @@ jobs:
           CXX: g++-10
           CMAKE_CXX_STANDARD: 17
           USE_SIMD: avx2,f16c
-          OPENEXR_VERSION: master
-          OPENCOLORIO_VERSION: master
-          LIBTIFF_VERSION: master
-          PYBIND11_VERSION: master
           LIBRAW_VERSION: master
+          LIBTIFF_VERSION: master
+          OPENCOLORIO_VERSION: master
+          OPENEXR_VERSION: master
           PUGIXML_VERSION: master
+          PYBIND11_VERSION: master
           WEBP_VERSION: master
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
         run: |
