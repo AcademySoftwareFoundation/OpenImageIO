@@ -20,7 +20,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * CMake >= 3.12 (tested through 3.18)
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.5, also
    tested against the current master that will be OpenEXR 3.0 / Imath 3.0)
- * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.1.0)
+ * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.2.0)
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
