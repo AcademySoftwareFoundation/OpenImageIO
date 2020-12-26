@@ -126,9 +126,12 @@ ls -R -l "$DEP_DIR"
 
 src/build-scripts/install_test_images.bash
 
-ls /c/hostedtoolcache/windows/Python
-echo "/c/hostedtoolcache/windows/Python/3.6.8/x64"
-ls /c/hostedtoolcache/windows/Python/3.6.8/x64
+if [[ -e /c/hostedtoolcache/windows/Python ]] ; then
+	ls /c/hostedtoolcache/windows/Python
+	echo "/c/hostedtoolcache/windows/Python/3.6.8/x64"
+	ls /c/hostedtoolcache/windows/Python/3.6.8/x64
+fi
+
 
 
 # source src/build-scripts/build_openexr.bash
