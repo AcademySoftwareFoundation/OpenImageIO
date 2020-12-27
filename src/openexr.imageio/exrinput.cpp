@@ -825,18 +825,20 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 r[0] = n;
                 r[1] = static_cast<int>(d);
                 spec.attribute(oname, TypeRational, r);
-            } else if (int f = static_cast<int>(
-                                   gcd<long int>(rational[0], rational[1]))
-                               > 1) {
-                int r[2];
-                r[0] = n / f;
-                r[1] = static_cast<int>(d / f);
-                spec.attribute(oname, TypeRational, r);
-            } else {
-                // TODO: find a way to allow the client to accept "close" rational values
-                OIIO::debugf(
-                    "Don't know what to do with OpenEXR Rational attribute %s with value %d / %u that we cannot represent exactly",
-                    oname, n, d);
+            }
+            else {
+                int f = static_cast<int>(gcd<long long>(n, d));
+                if (f > 1) {
+                    int r[2];
+                    r[0] = n / f;
+                    r[1] = static_cast<int>(d / f);
+                    spec.attribute(oname, TypeRational, r);
+                } else {
+                    // TODO: find a way to allow the client to accept "close" rational values
+                    OIIO::debugf(
+                        "Don't know what to do with OpenEXR Rational attribute %s with value %d / %u that we cannot represent exactly",
+                        oname, n, d);
+                }
             }
         } else {
 #if 0
