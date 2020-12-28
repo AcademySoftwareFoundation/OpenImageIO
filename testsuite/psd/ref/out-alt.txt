@@ -5,6 +5,7 @@ Reading ../../../../../oiio-images/psd_123.psd
     SHA-1: F7A1BCAC9115D886FC6D6C23639529955D74DD58
     channel list: R, G, B, A
     DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -38,6 +39,7 @@ Reading ../../../../../oiio-images/psd_123.psd
     channel list: R, G, B, A
     pixel data origin: x=15, y=15
     DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -68,6 +70,7 @@ Reading ../../../../../oiio-images/psd_123.psd
     channel list: R, G, B, A
     pixel data origin: x=84, y=13
     DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -98,6 +101,7 @@ Reading ../../../../../oiio-images/psd_123.psd
     channel list: R, G, B, A
     pixel data origin: x=175, y=14
     DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -130,6 +134,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     SHA-1: 5A7BDC7A11A9E4BDCBEC968375EE466DE74D0481
     channel list: R, G, B
     DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -164,6 +169,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     channel list: R, G, B, A
     pixel data origin: x=15, y=15
     DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -195,6 +201,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     channel list: R, G, B, A
     pixel data origin: x=84, y=13
     DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -226,6 +233,7 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     channel list: R, G, B, A
     pixel data origin: x=175, y=14
     DateTime: "2011-08-22T22:14:43-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -329,6 +337,7 @@ Reading ../../../../../oiio-images/psd_indexed_trans.psd
     DateTime: "2007-01-18T15:49:21"
     ExposureTime: 0.0166667
     FNumber: 3.5
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Make: "Canon"
     Model: "Canon PowerShot A640"
     Orientation: 1 (normal)
@@ -400,6 +409,7 @@ Reading ../../../../../oiio-images/psd_rgb_8.psd
     DateTime: "2007-01-18T15:49:21"
     ExposureTime: 0.0166667
     FNumber: 3.5
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Make: "Canon"
     Model: "Canon PowerShot A640"
     Orientation: 1 (normal)
@@ -471,6 +481,7 @@ Reading ../../../../../oiio-images/psd_rgb_16.psd
     DateTime: "2007-01-18T15:49:21"
     ExposureTime: 0.0166667
     FNumber: 3.5
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Make: "Canon"
     Model: "Canon PowerShot A640"
     Orientation: 1 (normal)
@@ -542,6 +553,7 @@ Reading ../../../../../oiio-images/psd_rgb_32.psd
     DateTime: "2007-01-18T15:49:21"
     ExposureTime: 0.0166667
     FNumber: 3.5
+    ICCProfile: 0, 0, 2, 8, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [520 x uint8]
     Make: "Canon"
     Model: "Canon PowerShot A640"
     Orientation: 1 (normal)
@@ -611,6 +623,7 @@ Reading ../../../../../oiio-images/psd_rgba_8.psd
     SHA-1: 9519DFB5CDF4D8BAC10A20EAE6433A9216885F9D
     channel list: R, G, B, A
     DateTime: "2011-08-22T22:07:44-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -643,6 +656,7 @@ Reading ../../../../../oiio-images/psd_rgba_8.psd
     SHA-1: 131A372FD9B67B580B0380A4F754281D5F33E12E
     channel list: R, G, B, A
     DateTime: "2011-08-22T22:07:44-04:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -675,6 +689,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     SHA-1: 42E73C11525323760BF0BEB74370AECC18FC2D92
     channel list: R, G, B
     DateTime: "2014-02-16T17:20:13+09:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -703,6 +718,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     SHA-1: B2E0D74684B53DF0382EAB0BB1A277438715BB2F
     channel list: R, G, B, A
     DateTime: "2014-02-16T17:20:13+09:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -733,6 +749,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     channel list: R, G, B, A
     pixel data origin: x=18, y=-2
     DateTime: "2014-02-16T17:20:13+09:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)
@@ -763,6 +780,7 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     channel list: R, G, B, A
     pixel data origin: x=8, y=-2
     DateTime: "2014-02-16T17:20:13+09:00"
+    ICCProfile: 0, 0, 12, 72, 76, 105, 110, 111, 2, 16, 0, 0, 109, 110, 116, 114, ... [3144 x uint8]
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     ResolutionUnit: 2 (inches)

@@ -685,6 +685,14 @@ public:
     /// Return the amount of memory consumed by the ustring table.
     static size_t memory();
 
+    /// Return the total number of ustrings in the internal table.
+    static size_t total_ustrings();
+
+    /// Return the total number ustrings that have the exact hash as another
+    /// ustring. If `collisions` is passed, store all the colliding ustrings
+    /// in the vector.
+    static size_t hash_collisions(std::vector<ustring>* collisions = nullptr);
+
     /// Given a string_view, return a pointer to the unique
     /// version kept in the internal table (creating a new table entry
     /// if we haven't seen this sequence of characters before).

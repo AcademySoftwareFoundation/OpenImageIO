@@ -243,6 +243,8 @@ private:
     bool load_resource_1033(uint32_t length);
     //JPEG thumbnail (Photoshop 5.0)
     bool load_resource_1036(uint32_t length);
+    // ICC Profile (Photoshop 5.0)
+    bool load_resource_1039(uint32_t length);
     //Transparency index (Indexed color mode)
     bool load_resource_1047(uint32_t length);
     //Exif data 1
@@ -469,8 +471,8 @@ private:
     }
 const PSDInput::ResourceLoader PSDInput::resource_loaders[]
     = { ADD_LOADER(1005), ADD_LOADER(1006), ADD_LOADER(1010), ADD_LOADER(1033),
-        ADD_LOADER(1036), ADD_LOADER(1047), ADD_LOADER(1058), ADD_LOADER(1059),
-        ADD_LOADER(1060), ADD_LOADER(1064) };
+        ADD_LOADER(1036), ADD_LOADER(1039), ADD_LOADER(1047), ADD_LOADER(1058),
+        ADD_LOADER(1059), ADD_LOADER(1060), ADD_LOADER(1064) };
 #undef ADD_LOADER
 
 
@@ -1164,7 +1166,17 @@ PSDInput::load_resource_1036(uint32_t length)
     return load_resource_thumbnail(length, false);
 }
 
+bool
+PSDInput::load_resource_1039(uint32_t length)
+{
+    std::unique_ptr<char[]> icc_buf(new char[length]);
+    if (!m_file.read(icc_buf.get(), length))
+        return false;
 
+    TypeDesc type(TypeDesc::UINT8, length);
+    common_attribute("ICCProfile", type, icc_buf.get());
+    return true;
+}
 
 bool PSDInput::load_resource_1047(uint32_t /*length*/)
 {
