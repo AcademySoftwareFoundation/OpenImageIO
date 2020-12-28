@@ -55,7 +55,7 @@ if [[ "${SKIP_TESTS:=0}" == "0" ]] ; then
     echo "Parallel test " ${CTEST_PARALLEL_LEVEL}
     # make $BUILD_FLAGS test
     pushd build/$PLATFORM
-    ctest -C ${CMAKE_BUILD_TYPE} -E broken --force-new-ctest-process --output-on-failure
+    ctest -C ${CMAKE_BUILD_TYPE} -E broken --force-new-ctest-process --output-on-failure --timeout 180
     popd
 fi
 
