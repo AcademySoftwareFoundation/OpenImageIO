@@ -825,8 +825,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
                 r[0] = n;
                 r[1] = static_cast<int>(d);
                 spec.attribute(oname, TypeRational, r);
-            }
-            else {
+            } else {
                 int f = static_cast<int>(gcd<long long>(n, d));
                 if (f > 1) {
                     int r[2];
