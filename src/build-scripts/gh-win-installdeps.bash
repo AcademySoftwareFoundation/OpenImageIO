@@ -43,14 +43,16 @@ ls -l "C:/Program Files (x86)/Microsoft Visual Studio" && true
 #
 # Currently we are not using this, but here it is for reference:
 #
-# vcpkg list
+echo "All pre-installed VCPkg installs:"
+vcpkg list
+echo "---------------"
 # vcpkg update
 # 
 # # vcpkg install zlib:x64-windows
 # vcpkg install tiff:x64-windows
 # vcpkg install libpng:x64-windows
 # vcpkg install giflib:x64-windows
-# vcpkg install freetype:x64-windows
+vcpkg install freetype:x64-windows
 # # vcpkg install openexr:x64-windows
 # # vcpkg install libjpeg-turbo:x64-windows
 # 
@@ -71,10 +73,11 @@ ls -l "C:/Program Files (x86)/Microsoft Visual Studio" && true
 # 
 # # export PATH="$PATH:$DEP_DIR/bin:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
 # export PATH="$DEP_DIR/lib:$DEP_DIR/bin:$PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
+export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib"
 # export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-windows/lib:$DEP_DIR/lib:$DEP_DIR/bin"
 # 
-# echo "All VCPkg installs:"
-# vcpkg list
+echo "All VCPkg installs:"
+vcpkg list
 #
 ########################################################################
 
