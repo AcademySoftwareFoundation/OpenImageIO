@@ -24,6 +24,11 @@
 // Avoid a compiler warning from a duplication in tiffconf.h/pyconfig.h
 #undef SIZEOF_LONG
 
+// Avoid a problem with copysign defined in pyconfig.h on Windows.
+#ifdef copysign
+#    undef copysign
+#endif
+
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagecache.h>
