@@ -32,6 +32,7 @@ lg@openimageio.org
 * Cassian Andrei
 * Chad Dombrova
 * Changlin Hsieh
+* Chris Crosetto
 * Chris Foster
 * Chris Kulla
 * Christoph Willing
@@ -126,6 +127,7 @@ lg@openimageio.org
 * Ott Tinn
 * Pascal Lecocq
 * Patrick Hodoul
+* Patrick Piché
 * Paul Molodowitch
 * Pavel Karneliuk
 * Pete Larabell

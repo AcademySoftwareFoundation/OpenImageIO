@@ -1,6 +1,15 @@
-Release 2.2.10 (1 Jan 2021?) -- compared to 2.2.9
+Release 2.2.10 (1 Jan 2021) -- compared to 2.2.9
 -------------------------------------------------
-
+* GIF: support for UTF-8 filenames on Windows. #2777
+* OpenEXR: Fix rare crash during multithreaded output. #2781
+* OpenEXR: Fix potential crash parsing OpenEXR header that contains Rational
+  attributes with certain values. #2791
+* Improved error reporting for IOFile failures to open the file. #2780
+* Build: Fix webp compile break on 32 bit systems. #2783
+* Build/Windows: Fix symbol definition conflict with pyconfig.h. #2800
+* CI: Test the latest fmt, PugiXML, and pybind11 releases. #2778
+* Docs: Add explanation of oiiotool -otex modifiers that were missing from
+  the docs. #2790  Fix some duplicated text. #2785
 
 Release 2.2.9 (1 Dec 2020) -- compared to 2.2.8
 -------------------------------------------------
