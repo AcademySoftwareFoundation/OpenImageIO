@@ -97,7 +97,7 @@ public:
     virtual bool seek_subimage(int subimage, int miplevel) override;
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
-    void read_frame(int pos);
+    bool read_frame(int pos);
 #if 0
     const char *metadata (const char * key);
     bool has_metadata (const char * key);
@@ -206,7 +206,6 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
 {
     static std::once_flag init_flag;
     std::call_once(init_flag, av_register_all);
-fprintf(stderr, "WE WANT %s\n", name.c_str());
     // Temporary workaround: refuse to open a file whose name does not
     // indicate that it's a movie file. This avoids the problem that ffmpeg
     // is willing to open tiff and other files better handled by other
@@ -220,7 +219,6 @@ fprintf(stderr, "WE WANT %s\n", name.c_str());
         return false;
     }
 
-fprintf(stderr, "HERE COMES %s\n", name.c_str());
     const char* file_name = name.c_str();
     av_log_set_level(AV_LOG_FATAL);
     if (avformat_open_input(&m_format_context, file_name, NULL, NULL) != 0) {
@@ -419,8 +417,6 @@ fprintf(stderr, "HERE COMES %s\n", name.c_str());
     m_spec   = ImageSpec(m_codec_context->width, m_codec_context->height,
                        nchannels, datatype);
 
-fprintf(stderr, "PIX_FMT: %d w: %d h: %d\n", m_codec_context->pix_fmt, m_codec_context->width, m_codec_context->height);
-
     m_stride = (size_t)(m_spec.scanline_bytes());
 
     m_rgb_buffer.resize(av_image_get_buffer_size(m_dst_pix_format,
@@ -449,21 +445,15 @@ fprintf(stderr, "PIX_FMT: %d w: %d h: %d\n", m_codec_context->pix_fmt, m_codec_c
     m_nsubimages = m_frames;
     spec         = m_spec;
     m_filename   = name;
-    read_frame(0);
-    return true;
+    return read_frame(0);
 }
 
 bool
 FFmpegInput::seek_subimage(int subimage, int miplevel)
 {
-    if (subimage < 0 || subimage >= m_nsubimages || miplevel > 0) {
+    if (!read_frame(subimage)) {
         return false;
     }
-    if (subimage == m_subimage) {
-        return true;
-    }
-    m_subimage   = subimage;
-    m_read_frame = false;
     return true;
 }
 
@@ -504,7 +494,7 @@ FFmpegInput::close(void)
     return true;
 }
 
-void
+bool
 FFmpegInput::read_frame(int frame)
 {
     bool have_frame = false;
@@ -524,7 +514,7 @@ FFmpegInput::read_frame(int frame)
             int averr = av_read_frame(m_format_context, m_packet);
             if (averr < 0) {
                 errorf("Error reading frame (%s)", m_filename);
-                return;
+                return false;
             }
             unref = true;
         }while(m_packet->stream_index != m_stream_id);
@@ -532,7 +522,7 @@ FFmpegInput::read_frame(int frame)
         int averr = avcodec_send_packet(m_codec_context, m_packet);
         if (averr < 0) {
             errorf("Error processing frame (%s)", m_filename);
-            return;
+            return false;
         }
         --m_packet_outstanding;
         av_packet_unref(m_packet);
@@ -543,12 +533,12 @@ FFmpegInput::read_frame(int frame)
             have_frame = false;
         }else if (averr < 0) {
             errorf("Error decoding frame (%s)", m_filename);
-            return;
+            return false;
         }
     }while(!have_frame);
     // FIXME
     m_stride = m_frame->linesize[0];
-fprintf(stderr, "FRAME W: %d H: %d\n", m_frame->width, m_frame->height);
+    return true;
 }
 
 bool
