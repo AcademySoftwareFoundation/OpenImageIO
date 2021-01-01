@@ -1,3 +1,7 @@
+Release 2.2.11 (1 Feb? 2021) -- compared to 2.2.10
+--------------------------------------------------
+
+
 Release 2.2.10 (1 Jan 2021) -- compared to 2.2.9
 -------------------------------------------------
 * GIF: support for UTF-8 filenames on Windows. #2777
