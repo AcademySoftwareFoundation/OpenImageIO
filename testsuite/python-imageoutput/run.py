@@ -13,7 +13,7 @@ files = [ "grid-image.tif", "grid-scanline.tif", "grid-scanlines.tif",
           "grid-timage.tif", "grid-tile.tif", "grid-tiles.tif", "grid-half.exr" ]
 for f in files :
     command += (oiio_app("idiff") + " -fail 0.001 -warn 0.001 "
-                + f + " " + imagedir + "/grid.tif >> out.txt;")
+                + f + " " + imagedir + "/grid.tif >> out.txt ;")
 
 outputs = [ "multipart.exr", "out.txt" ]
 
