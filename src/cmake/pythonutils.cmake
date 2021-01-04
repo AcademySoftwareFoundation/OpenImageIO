@@ -69,16 +69,19 @@ macro (setup_python_module)
         set_property (SOURCE ${lib_SOURCES} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-macro-redefined ")
     endif ()
 
-    # Add the library itself
-    add_library (${target_name} MODULE ${lib_SOURCES})
+    pybind11_add_module(${target_name} ${lib_SOURCES})
 
+#    # Add the library itself
+#    add_library (${target_name} MODULE ${lib_SOURCES})
+#
     # Declare the libraries it should link against
-    target_link_libraries (${target_name} PRIVATE
-                           Python::Python pybind11::pybind11
-                           ${lib_LIBS} ${SANITIZE_LIBRARIES})
-    if (APPLE)
-        set_target_properties (${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-    endif ()
+    target_link_libraries (${target_name}
+                           PRIVATE ${lib_LIBS} ${SANITIZE_LIBRARIES})
+
+#    if (APPLE)
+#        set_target_properties (${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+#    endif ()
+
 
     # Exclude the 'lib' prefix from the name
     if (NOT PYLIB_LIB_PREFIX)
@@ -86,7 +89,8 @@ macro (setup_python_module)
                                    PRIVATE "PYMODULE_NAME=${lib_MODULE}")
         set_target_properties (${target_name} PROPERTIES
                                OUTPUT_NAME ${lib_MODULE}
-                               PREFIX "")
+                               # PREFIX ""
+                               )
     else ()
         target_compile_definitions(${target_name}
                                    PRIVATE "PYMODULE_NAME=Py${lib_MODULE}")
@@ -95,6 +99,7 @@ macro (setup_python_module)
                                PREFIX lib)
     endif ()
 
+    # This is only needed for SpComp2
     if (PYLIB_INCLUDE_SONAME)
         if (VERBOSE)
             message(STATUS "Setting Py${lib_MODULE} SOVERSION to: ${SOVERSION}")
@@ -104,11 +109,11 @@ macro (setup_python_module)
             SOVERSION ${SOVERSION} )
     endif()
 
-    if (WIN32)
-        set_target_properties (${target_name} PROPERTIES
-                               DEBUG_POSTFIX "_d"
-                               SUFFIX ".pyd")
-    endif()
+#    if (WIN32)
+#        set_target_properties (${target_name} PROPERTIES
+#                               DEBUG_POSTFIX "_d"
+#                               SUFFIX ".pyd")
+#    endif()
 
     # In the build area, put it in lib/python so it doesn't clash with the
     # non-python libraries of the same name (which aren't prefixed by "lib"
