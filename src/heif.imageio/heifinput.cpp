@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
@@ -28,7 +29,7 @@ public:
     {
         return feature == "exif";
     }
-    // virtual bool valid_file(const std::string& filename) const override;
+    virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
                       const ImageSpec& config) override;
@@ -74,22 +75,17 @@ OIIO_EXPORT const char* heif_input_extensions[] = { "heic", "heif", "heics",
 OIIO_PLUGIN_EXPORTS_END
 
 
-#if 0
 bool
 HeifInput::valid_file(const std::string& filename) const
 {
-    const size_t magic_size = 12;
-    uint8_t magic[magic_size];
-    FILE *file = Filesystem::fopen(filename, "rb");
-    fread (magic, magic_size, 1, file);
-    fclose (file);
-    heif_filetype_result filetype_check = heif_check_filetype(magic,12);
+    uint8_t magic[12];
+    if (Filesystem::read_bytes(filename, magic, sizeof(magic)) != sizeof(magic))
+        return false;
+    heif_filetype_result filetype_check = heif_check_filetype(magic,
+                                                              sizeof(magic));
     return filetype_check != heif_filetype_no
-            && filetype_check != heif_filetype_yes_unsupported
-    // This is what the libheif example said to do, but I can't find
-    // the filetype constants declared anywhere. Are they obsolete?
+           && filetype_check != heif_filetype_yes_unsupported;
 }
-#endif
 
 
 
