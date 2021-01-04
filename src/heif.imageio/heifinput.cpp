@@ -200,7 +200,17 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     auto meta_ids = m_ihandle.get_list_of_metadata_block_IDs();
     // std::cout << "nmeta? " << meta_ids.size() << "\n";
     for (auto m : meta_ids) {
-        auto metacontents = m_ihandle.get_metadata(m);
+        std::vector<uint8_t> metacontents;
+        try {
+            metacontents = m_ihandle.get_metadata(m);
+        } catch (const heif::Error& err) {
+            if (err.get_code() == heif_error_Usage_error
+                && err.get_subcode() == heif_suberror_Null_pointer_argument) {
+                // a bug in heif_cxx.h means a 0 byte metadata causes a null
+                // ptr error code, which we ignore
+                continue;
+            }
+        }
         if (Strutil::iequals(m_ihandle.get_metadata_type(m), "Exif")
             && metacontents.size() >= 10) {
             cspan<uint8_t> s(&metacontents[10], metacontents.size() - 10);
