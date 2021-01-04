@@ -12,7 +12,7 @@
 // This plugin utilises libheif:
 //   https://github.com/strukturag/libheif
 //
-// General information about HEIF/HEIC:
+// General information about HEIF/HEIC/AVIF:
 //
 // Sources of sample images:
 //     https://github.com/nokiatech/heif/tree/gh-pages/content
@@ -70,7 +70,7 @@ heif_input_imageio_create()
 }
 
 OIIO_EXPORT const char* heif_input_extensions[] = { "heic", "heif", "heics",
-                                                    nullptr };
+                                                    "avif", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 

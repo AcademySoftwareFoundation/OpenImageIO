@@ -37,7 +37,7 @@ if (MSVC)
     add_definitions (-DBOOST_ALL_NO_LIB=1)
 endif ()
 if (LINKSTATIC)
-    set (Boost_USE_STATIC_LIBS ON)    
+    set (Boost_USE_STATIC_LIBS ON)
 else ()
     if (MSVC)
         add_definitions (-DBOOST_ALL_DYN_LINK=1)
@@ -163,7 +163,10 @@ checked_find_package (GIF
                       VERSION_MIN 4
                       RECOMMEND_MIN 5.0
                       RECOMMEND_MIN_REASON "for stability and thread safety")
-checked_find_package (Libheif VERSION_MIN 1.3)  # For HEIF/HEIC format
+# For HEIF/HEIC/AVIF formats
+checked_find_package (Libheif VERSION_MIN 1.3
+                      RECOMMEND_MIN 1.7
+                      RECOMMEND_MIN_REASON "for AVIF support")
 checked_find_package (LibRaw
                       RECOMMEND_MIN 0.18
                       RECOMMEND_MIN_REASON "for ACES support and better camera metadata"

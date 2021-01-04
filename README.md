@@ -19,7 +19,7 @@ OpenImageIO consists of:
 * Simple but powerful ImageInput and ImageOutput APIs that provide
   an abstraction for reading and writing image files of nearly any
   format, without the calling application needing to know any of the
-  details of these file formats, and indeed without the calling 
+  details of these file formats, and indeed without the calling
   application needing to be aware of which formats are available.
 
 * A library that manages subclasses of ImageInput and ImageOutput that
@@ -32,8 +32,8 @@ OpenImageIO consists of:
   including TIFF, JPEG/JFIF, OpenEXR, PNG, HDR/RGBE, ICO, BMP, Targa,
   JPEG-2000, RMan Zfile, FITS, DDS, Softimage PIC, PNM, DPX, Cineon,
   IFF, Field3D, OpenVDB, Ptex, Photoshop PSD, Wavefront RLA, SGI, WebP,
-  GIF, DICOM, HEIC/HEIF, many "RAW" digital camera formats, and a variety of
-  movie formats (readable as individual frames).  More are being developed
+  GIF, DICOM, HEIF/HEIC/AVIF, many "RAW" digital camera formats, and a variety
+  of movie formats (readable as individual frames).  More are being developed
   all the time.
 
 * Several command line image tools based on these classes, including
@@ -146,4 +146,3 @@ Mail list subscriptions and archives:
 * Developer mail list: http://lists.openimageio.org/listinfo.cgi/oiio-dev-openimageio.org
 
 * Just release announcements: http://lists.openimageio.org/listinfo.cgi/oiio-announce-openimageio.org
-
