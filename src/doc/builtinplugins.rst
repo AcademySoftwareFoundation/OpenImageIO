@@ -568,17 +568,18 @@ preferred except when legacy file access is required.
 
 .. _sec-bundledplugins-heif:
 
-HEIF/HEIC
+HEIF/HEIC/AVIF
 ===============================================
 
-HEIF is a container format for images compressed with the HEIC compression
-standard (same compression as HEVC/H.265). It is used commonly for iPhone
-camera pictures, but it is not Apple-specific and will probably become more
-popualar on other platforms in coming years. HEIF files usually use the file
-extension :file:`.HEIC`.
+HEIF is a container format for images compressed with various compression
+standards (HEIC is based on HEVC/H.265, AVIF is based on AV1). HEIC is used
+commonly for iPhone camera pictures, but it is not Apple-specific and will
+probably become more popular on other platforms in coming years. HEIF files
+usually use the file extension :file:`.HEIC` or :file:`.AVIF` depending on their
+main compression type.
 
-HEIC compression is lossy, but is higher visual quality than JPEG while
-taking only half the file size. Currently, OIIO's HEIF reader supports
+HEIC and AVIF compression formats are lossy, but are higher visual quality than
+JPEG while taking <= half the file size. Currently, OIIO's HEIF reader supports
 reading files as RGB or RGBA, uint8 pixel values. Multi-image files are
 currently supported for reading, but not yet writing. All pixel data is
 uint8, though we hope to add support for HDR (more than 8 bits) in the

@@ -49,9 +49,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for GIF images:
      * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
        stability and thread safety)
- * If you want support for HEIF/HEIC images:
-     * libheif >= 1.3 (tested through 1.9; older versions may also work, we
-       haven't tested)
+ * If you want support for HEIF/HEIC or AVIF images:
+     * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.10)
  * If you want support for DDS files:
      * libsquish >= 1.13 (tested through 1.15)
      * But... if not found on the system, an embedded version will be used.
