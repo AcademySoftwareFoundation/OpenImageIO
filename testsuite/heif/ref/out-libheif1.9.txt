@@ -38,3 +38,8 @@ ref/IMG_7702_small.heic :  512 x  300, 3 channel, uint8 heif
     Exif:SubsecTimeOriginal: "006"
     Exif:WhiteBalance: 0 (auto)
     oiio:ColorSpace: "sRGB"
+Reading ref/Chimera-AV1-8bit-162.avif
+ref/Chimera-AV1-8bit-162.avif :  480 x  270, 3 channel, uint8 heif
+    SHA-1: F8FDAF1BD56A21E3AF99CF8EE7FA45434D2826C7
+    channel list: R, G, B
+    oiio:ColorSpace: "sRGB"
