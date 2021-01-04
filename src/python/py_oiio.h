@@ -7,7 +7,7 @@
 
 // Python.h uses the 'register' keyword, don't warn about it being
 // deprecated in C++17.
-#if (__cplusplus >= 201703L && defined(__GNUC__))
+#if (__cplusplus >= 201703L && defined(__GNUC__)) || defined(__clang__)
 #    pragma GCC diagnostic ignored "-Wregister"
 #endif
 

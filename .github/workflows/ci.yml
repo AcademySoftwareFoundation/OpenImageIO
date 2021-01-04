@@ -402,6 +402,7 @@ jobs:
           CMAKE_CXX_STANDARD: 14
           PYTHON_VERSION: 3.7
           USE_SIMD: avx2,f16c
+          PYBIND11_VERSION: v2.6.1
           OPENCOLORIO_VERSION: 1c624651b7
           # Pick an OCIO commit that includes a warning fix we need for clang
         run: |
