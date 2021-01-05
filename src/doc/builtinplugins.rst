@@ -600,9 +600,9 @@ control aspects of the writing itself:
      - HEIF header data or explanation
    * - ``Compression``
      - string
-     - If supplied, must be ``"heic"``, but may optionally have a quality
-       value appended, like ``"heic:90"``. Quality can be 1-100, with 100
-       meaning lossless. The default is 75.
+     - If supplied, can be ``"heic"`` or ``"avif"``, but may optionally have a
+       quality value appended, like ``"heic:90"``. Quality can be 1-100, with
+       100 meaning lossless. The default is 75.
 
 
 
