@@ -29,7 +29,9 @@ public:
     {
         return feature == "exif";
     }
+#if LIBHEIF_HAVE_VERSION(1, 4, 0)
     virtual bool valid_file(const std::string& filename) const override;
+#endif
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
                       const ImageSpec& config) override;
@@ -70,11 +72,15 @@ heif_input_imageio_create()
 }
 
 OIIO_EXPORT const char* heif_input_extensions[] = { "heic", "heif", "heics",
-                                                    "avif", nullptr };
+#if LIBHEIF_HAVE_VERSION(1, 7, 0)
+                                                    "avif",
+#endif
+                                                    nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
 
+#if LIBHEIF_HAVE_VERSION(1, 4, 0)
 bool
 HeifInput::valid_file(const std::string& filename) const
 {
@@ -86,6 +92,7 @@ HeifInput::valid_file(const std::string& filename) const
     return filetype_check != heif_filetype_no
            && filetype_check != heif_filetype_yes_unsupported;
 }
+#endif
 
 
 
