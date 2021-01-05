@@ -36,6 +36,10 @@
 #include <OpenImageIO/span.h>
 #include <OpenImageIO/typedesc.h>
 
+#if PY_MAJOR_VERSION < 3
+OIIO_CLANG_PRAGMA(GCC diagnostic ignored "-Wunused-value")
+#endif
+
 #include <pybind11/numpy.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
