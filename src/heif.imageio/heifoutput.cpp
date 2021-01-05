@@ -79,7 +79,7 @@ heif_output_imageio_create()
 }
 
 OIIO_EXPORT const char* heif_output_extensions[] = { "heif", "heic", "heics",
-                                                     nullptr };
+                                                     "avif", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -130,7 +130,15 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
                         chromas[m_spec.nchannels]);
         m_himage.add_plane(heif_channel_interleaved, newspec.width,
                            newspec.height, 8 * m_spec.nchannels /*bit depth*/);
-        m_encoder = heif::Encoder(heif_compression_HEVC);
+
+        auto compqual  = m_spec.decode_compression_metadata("", 75);
+        auto extension = Filesystem::extension(m_filename);
+        if (compqual.first == "avif"
+            || (extension == ".avif" && compqual.first == "")) {
+            m_encoder = heif::Encoder(heif_compression_AV1);
+        } else {
+            m_encoder = heif::Encoder(heif_compression_HEVC);
+        }
 
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
@@ -196,7 +204,7 @@ HeifOutput::close()
     std::vector<char> exifblob;
     try {
         auto compqual = m_spec.decode_compression_metadata("", 75);
-        if (compqual.first == "heic") {
+        if (compqual.first == "heic" || compqual.first == "avif") {
             if (compqual.second >= 100)
                 m_encoder.set_lossless(true);
             else {
