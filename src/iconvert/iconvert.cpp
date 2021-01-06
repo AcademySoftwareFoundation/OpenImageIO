@@ -45,7 +45,9 @@ static int orientation = 0;
 static bool rotcw = false, rotccw = false, rot180 = false;
 static bool sRGB     = false;
 static bool separate = false, contig = false;
-static bool noclobber = false;
+static bool noclobber  = false;
+static int return_code = EXIT_SUCCESS;
+static ArgParse ap;
 
 
 
@@ -63,7 +65,6 @@ static void
 getargs(int argc, char* argv[])
 {
     bool help = false;
-    ArgParse ap;
     // clang-format off
     ap.options ("iconvert -- copy images with format conversions and other alterations\n"
                 OIIO_INTRO_STRING "\n"
@@ -103,29 +104,39 @@ getargs(int argc, char* argv[])
     if (ap.parse(argc, (const char**)argv) < 0) {
         std::cerr << ap.geterror() << std::endl;
         ap.usage();
-        exit(EXIT_FAILURE);
+        ap.abort();
+        return_code = EXIT_FAILURE;
+        return;
     }
     if (help) {
         ap.usage();
-        exit(EXIT_SUCCESS);
+        ap.abort();
+        return_code = EXIT_SUCCESS;
+        return;
     }
 
     if (filenames.size() != 2 && !inplace) {
         std::cerr
             << "iconvert: Must have both an input and output filename specified.\n";
         ap.usage();
-        exit(EXIT_FAILURE);
+        ap.abort();
+        return_code = EXIT_FAILURE;
+        return;
     }
     if (filenames.size() == 0 && inplace) {
         std::cerr << "iconvert: Must have at least one filename\n";
         ap.usage();
-        exit(EXIT_FAILURE);
+        ap.abort();
+        return_code = EXIT_FAILURE;
+        return;
     }
     if (((int)rotcw + (int)rotccw + (int)rot180 + (orientation > 0)) > 1) {
         std::cerr
             << "iconvert: more than one of --rotcw, --rotccw, --rot180, --orientation\n";
         ap.usage();
-        exit(EXIT_FAILURE);
+        ap.abort();
+        return_code = EXIT_FAILURE;
+        return;
     }
 }
 
@@ -485,6 +496,8 @@ main(int argc, char* argv[])
 
     Filesystem::convert_native_arguments(argc, (const char**)argv);
     getargs(argc, argv);
+    if (ap.aborted())
+        return return_code;
 
     OIIO::attribute("threads", nthreads);
 
