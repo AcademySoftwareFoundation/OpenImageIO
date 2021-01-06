@@ -24,9 +24,19 @@
 #    include <OpenColorIO/OpenColorIO.h>
 #    if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 0, 0)
 #        define OCIO_v2 1
-#        include <OpenColorIO/apphelpers/ColorSpaceHelpers.h>
-#        include <OpenColorIO/apphelpers/DisplayViewHelpers.h>
-#        include <OpenColorIO/apphelpers/ViewingPipeline.h>
+// NOTE: these 3 header files were part of the pre-release OCIO 2.0 but
+// eventually were removed. After OCIO v2 is released and we are fairly
+// confident nobody will encounter them, we can remove these includes
+// entirely.
+#        if __has_include(<OpenColorIO/apphelpers/ColorSpaceHelpers.h>)
+#            include <OpenColorIO/apphelpers/ColorSpaceHelpers.h>
+#        endif
+#        if __has_include(<OpenColorIO/apphelpers/DisplayViewHelpers.h>)
+#            include <OpenColorIO/apphelpers/DisplayViewHelpers.h>
+#        endif
+#        if __has_include(<OpenColorIO/apphelpers/ViewingPipeline.h>)
+#            include <OpenColorIO/apphelpers/ViewingPipeline.h>
+#        endif
 #    endif
 namespace OCIO = OCIO_NAMESPACE;
 #endif
