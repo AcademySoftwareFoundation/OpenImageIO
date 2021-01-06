@@ -44,7 +44,7 @@ time cmake --config Release \
            ${LIBJPEGTURBO_CONFIG_OPTS} ..
 time cmake --build . --config Release --target install
 
-ls -R ${LIBJPEGTURBO_INSTALL_DIR}
+# ls -R ${LIBJPEGTURBO_INSTALL_DIR}
 popd
 
 

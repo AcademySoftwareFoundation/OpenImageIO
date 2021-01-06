@@ -40,7 +40,7 @@ time cmake --config Release \
 time cmake --build . --config Release --target install
 popd
 
-ls -R ${LIBTIFF_INSTALL_DIR}
+# ls -R ${LIBTIFF_INSTALL_DIR}
 
 #echo "listing .."
 #ls ..

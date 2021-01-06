@@ -34,8 +34,18 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/i
 # export MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 # export OPENEXR_CMAKE_FLAGS="$OPENEXR_CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 
-ls -l "C:/Program Files (x86)/Microsoft Visual Studio/*/Enterprise/VC/Tools/MSVC" && true
-ls -l "C:/Program Files (x86)/Microsoft Visual Studio" && true
+#ls -l "C:/Program Files (x86)/Microsoft Visual Studio/*/Enterprise/VC/Tools/MSVC" && true
+#ls -l "C:/Program Files (x86)/Microsoft Visual Studio" && true
+
+
+if [[ "$PYTHON_VERSION" == "3.6" ]] ; then
+    export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.6.8/x64"
+else
+    export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.7.9/x64"
+    export Python_EXECUTABLE="/c/hostedtoolcache/windows/Python/3.7.9/x64/python.exe"
+    export PYTHONPATH=$OpenImageIO_ROOT/lib/python${PYTHON_VERSION}/site-packages
+fi
+pip install numpy
 
 
 ########################################################################
@@ -129,19 +139,8 @@ ls -R -l "$DEP_DIR"
 
 src/build-scripts/install_test_images.bash
 
-if [[ -e /c/hostedtoolcache/windows/Python ]] ; then
-	ls /c/hostedtoolcache/windows/Python
-	echo "/c/hostedtoolcache/windows/Python/3.6.8/x64"
-	ls /c/hostedtoolcache/windows/Python/3.6.8/x64
-fi
-
-
 
 # source src/build-scripts/build_openexr.bash
 # export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$ILMBASE_ROOT;$OPENEXR_ROOT"
 # source src/build-scripts/build_opencolorio.bash
 
-
-if [[ "$PYTHON_VERSION" == "3.6" ]] ; then
-    export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;/c/hostedtoolcache/windows/Python/3.6.8/x64"
-fi
