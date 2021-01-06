@@ -51,11 +51,11 @@ fi
 
 if [[ "${SKIP_TESTS:=0}" == "0" ]] ; then
     $OpenImageIO_ROOT/bin/oiiotool --help || true
-    TESTSUITE_CLEANUP_ON_SUCCESS=1
+    TESTSUITE_CLEANUP_ON_SUCCESS=${TESTSUITE_CLEANUP_ON_SUCCESS:=1}
     echo "Parallel test " ${CTEST_PARALLEL_LEVEL}
     # make $BUILD_FLAGS test
     pushd build/$PLATFORM
-    ctest -C ${CMAKE_BUILD_TYPE} -E broken --force-new-ctest-process --output-on-failure --timeout 180
+    ctest -C ${CMAKE_BUILD_TYPE} -E broken --force-new-ctest-process --output-on-failure --timeout 180 ${OIIO_CTEST_FLAGS}
     popd
 fi
 

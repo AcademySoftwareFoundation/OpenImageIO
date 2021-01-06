@@ -322,10 +322,9 @@ jobs:
       - name: all
         shell: bash
         env:
-          PYTHON_VERSION: 3.6
+          PYTHON_VERSION: 3.7
           CMAKE_GENERATOR: "Visual Studio 16 2019"
           OPENEXR_VERSION: v2.4.1
-          #SKIP_TESTS: 1
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash
@@ -346,12 +345,9 @@ jobs:
       - name: all
         shell: bash
         env:
-          PYTHON_VERSION: 3.6
+          PYTHON_VERSION: 3.7
           CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
           OPENEXR_VERSION: v2.4.1
-          #SKIP_TESTS: 1
-          #MY_CMAKE_FLAGS: -DUSE_PYTHON=0
-          USE_NINJA: 0
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash

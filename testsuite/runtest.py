@@ -47,7 +47,7 @@ redirect = " >> out.txt "
 def oiio_relpath (path, start=os.curdir):
     "Wrapper around os.path.relpath which always uses '/' as the separator."
     p = os.path.relpath (path, start)
-    return p if sys.platform != "win32" else p.replace ('\\', '/')
+    return p if platform.system() != 'Windows' else p.replace ('\\', '/')
 
 # Try to figure out where some key things are. Go by env variables set by
 # the cmake tests, but if those aren't set, assume somebody is running
@@ -101,7 +101,7 @@ failpercent = 0.02
 anymatch = False
 cleanup_on_success = False
 if int(os.getenv('TESTSUITE_CLEANUP_ON_SUCCESS', '0')) :
-    cleanup_on_success = True;
+    cleanup_on_success = True
 
 image_extensions = [ ".tif", ".tx", ".exr", ".jpg", ".png", ".rla",
                      ".dpx", ".iff", ".psd", ".bmp", ".fits", ".ico",
@@ -144,9 +144,12 @@ if (os.getenv("TRAVIS") and (os.getenv("SANITIZE") in ["leak","address"])
     and os.path.exists(os.path.join (test_source_dir,"TRAVIS_SKIP_LSAN"))) :
     sys.exit (0)
 
-pythonbin = 'python'
-if os.getenv("PYTHON_VERSION") :
-    pythonbin += os.getenv("PYTHON_VERSION")
+if os.getenv("Python_EXECUTABLE") :
+    pythonbin = os.getenv("Python_EXECUTABLE")
+else :
+    pythonbin = 'python'
+    if os.getenv("PYTHON_VERSION") :
+        pythonbin += os.getenv("PYTHON_VERSION")
 #print ("pythonbin = ", pythonbin)
 
 
@@ -387,10 +390,13 @@ def runtest (command, outputs, failureok=0) :
         if ok :
             if extension in image_extensions :
                 # If we got a match for an image, save the idiff results
-                os.system (diff_command (out, testfile, silent=False))
+                os.system (diff_command (out, testfile, silent=False, concat=False))
             print ("PASS: " + out + " matches " + testfile)
         else :
             err = 1
+            if platform.system() == 'Windows' :
+                os.rename (out, "crlf.txt")
+                os.system ("tr -d '\\r' < crlf.txt > " + out)
             print ("NO MATCH for " + out)
             print ("FAIL " + out)
             if extension == ".txt" :
@@ -406,7 +412,7 @@ def runtest (command, outputs, failureok=0) :
             if extension in image_extensions :
                 # If we failed to get a match for an image, send the idiff
                 # results to the console
-                os.system (diff_command (out, testfile, silent=False))
+                os.system (diff_command (out, testfile, silent=False, concat=False))
             if os.path.isfile("debug.log") and os.path.getsize("debug.log") :
                 print ("---   DEBUG LOG   ---\n")
                 #flog = open("debug.log", "r")
