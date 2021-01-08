@@ -1,3 +1,8 @@
+Release 2.2.10.1 (7 Jan 2021) -- compared to 2.2.10.0
+-----------------------------------------------------
+* Fix build break against OpenColorIO v2.0 RC1. #2817
+
+
 Release 2.2.10 (1 Jan 2021) -- compared to 2.2.9
 -------------------------------------------------
 * GIF: support for UTF-8 filenames on Windows. #2777
