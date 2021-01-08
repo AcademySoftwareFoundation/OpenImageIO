@@ -99,7 +99,11 @@ Filesystem::filename(const std::string& filepath) noexcept
 {
     // To simplify dealing with platform-specific separators and whatnot,
     // just use the Boost routines:
-    return pathstr(u8path(filepath).filename());
+    try {
+        return pathstr(u8path(filepath).filename());
+    } catch (...) {
+        return filepath;
+    }
 }
 
 
@@ -107,7 +111,11 @@ Filesystem::filename(const std::string& filepath) noexcept
 std::string
 Filesystem::extension(const std::string& filepath, bool include_dot) noexcept
 {
-    std::string s = pathstr(u8path(filepath).extension());
+    std::string s;
+    try {
+        s = pathstr(u8path(filepath).extension());
+    } catch (...) {
+    }
     if (!include_dot && !s.empty() && s[0] == '.')
         s.erase(0, 1);  // erase the first character
     return s;
@@ -118,7 +126,11 @@ Filesystem::extension(const std::string& filepath, bool include_dot) noexcept
 std::string
 Filesystem::parent_path(const std::string& filepath) noexcept
 {
-    return pathstr(u8path(filepath).parent_path());
+    try {
+        return pathstr(u8path(filepath).parent_path());
+    } catch (...) {
+        return filepath;
+    }
 }
 
 
@@ -127,7 +139,23 @@ std::string
 Filesystem::replace_extension(const std::string& filepath,
                               const std::string& new_extension) noexcept
 {
-    return pathstr(u8path(filepath).replace_extension(new_extension));
+    try {
+        return pathstr(u8path(filepath).replace_extension(new_extension));
+    } catch (...) {
+        return filepath;
+    }
+}
+
+
+
+std::string
+Filesystem::generic_filepath(string_view filepath) noexcept
+{
+    try {
+        return pathstr(u8path(filepath).generic_string());
+    } catch (...) {
+        return filepath;
+    }
 }
 
 

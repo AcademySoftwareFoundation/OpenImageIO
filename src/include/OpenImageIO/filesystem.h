@@ -84,6 +84,9 @@ OIIO_API std::string parent_path (const std::string &filepath) noexcept;
 OIIO_API std::string replace_extension (const std::string &filepath, 
                                         const std::string &new_extension) noexcept;
 
+/// Return the filepath in generic format, not any OS-specific conventions.
+OIIO_API std::string generic_filepath (string_view filepath) noexcept;
+
 /// Turn a searchpath (multiple directory paths separated by ':' or ';')
 /// into a vector<string> containing each individual directory.  If
 /// validonly is true, only existing and readable directories will end
