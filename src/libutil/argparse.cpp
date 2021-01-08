@@ -134,6 +134,7 @@ public:
     bool m_print_defaults = false;
     bool m_add_help       = true;
     bool m_exit_on_error  = true;
+    bool m_aborted        = false;
     std::vector<std::unique_ptr<ArgOption>> m_option;
     callback_t m_preoption_help  = [](const ArgParse&, std::ostream&) {};
     callback_t m_postoption_help = [](const ArgParse&, std::ostream&) {};
@@ -294,7 +295,7 @@ ArgOption::initialize()
                         std::cerr << "Programmer error:  Unknown option ";
                         std::cerr << "type string \"" << *s << "\""
                                   << "\n";
-                        abort();
+                        return 0;
                     }
                 }
 
@@ -385,7 +386,7 @@ ArgOption::set_parameter(int i, const char* argv)
     case '!': *(bool*)m_param[i] = false; break;
 
     case '*':
-    default: abort();
+    default: break;
     }
 }
 
@@ -445,13 +446,19 @@ ArgParse::Impl::parse_args(int xargc, const char** xargv)
         m_option[0]->m_help   = "Print help message";
         m_option[0]->m_action = [&](Arg& arg, cspan<const char*> myarg) {
             this->m_argparse.print_help();
-            exit(EXIT_SUCCESS);
+            if (m_exit_on_error)
+                exit(EXIT_SUCCESS);
+            else {
+                m_argparse.abort();
+            }
         };
         m_option[0]->initialize();
     }
 
     bool any_option_encountered = false;
     for (int i = 1; i < m_argc; i++) {
+        if (m_aborted)
+            break;
         if (m_argv[i][0] == '-'
             && (isalpha(m_argv[i][1]) || m_argv[i][1] == '-')) {  // flag
             any_option_encountered = true;
@@ -1056,5 +1063,19 @@ ArgParse::set_postoption_help(callback_t callback)
 }
 
 
+
+void
+ArgParse::abort(bool aborted)
+{
+    m_impl->m_aborted = aborted;
+}
+
+
+
+bool
+ArgParse::aborted() const
+{
+    return m_impl->m_aborted;
+}
 
 OIIO_NAMESPACE_END
