@@ -325,6 +325,7 @@ jobs:
           PYTHON_VERSION: 3.7
           CMAKE_GENERATOR: "Visual Studio 16 2019"
           OPENEXR_VERSION: v2.4.1
+          OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:4"
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash
@@ -348,6 +349,7 @@ jobs:
           PYTHON_VERSION: 3.7
           CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
           OPENEXR_VERSION: v2.4.1
+          OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:4"
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash

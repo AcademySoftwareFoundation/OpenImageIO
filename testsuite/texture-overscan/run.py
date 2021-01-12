@@ -10,22 +10,23 @@
 #    surrounded by the red check border, surrounded by black. The grid
 #    itself should be the "middle half" of the image.
 
-command += (oiio_app("oiiotool") + OIIO_TESTSUITE_IMAGEDIR + "/grid.tif"
+command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/grid.tif"
             + " -resize 512x512 "
             + " -pattern checker:color1=1,0,0:color2=.25,0,0 640x640 3 "
-            + "-origin -64-64 -paste +0+0 -fullsize 512x512+0+0 -o overscan-src.exr ;\n")
-command += (oiio_app("maketx") + " --filter lanczos3 overscan-src.exr "
-            + " -o grid-overscan.exr ;\n")
-command += testtex_command ("grid-overscan.exr --res 256 256 " +
-                            "--wrap black --nowarp -o out-exact.exr ;\n")
-command += testtex_command ("grid-overscan.exr --res 256 256 " +
-                            "--wrap black --nowarp " +
+            + "-origin -64-64 -paste +0+0 -fullsize 512x512+0+0 -o overscan-src.exr")
+command += maketx_command("overscan-src.exr", "grid-overscan.exr",
+                          "--filter lanczos3", silent=True)
+command += testtex_command ("grid-overscan.exr",
+                            "--res 256 256 --wrap black --nowarp -o out-exact.exr",
+                            silent=True)
+command += testtex_command ("grid-overscan.exr",
+                            "--res 256 256 --wrap black --nowarp " +
                             "--offset -0.5 -0.5 0 --scalest 2 2 " +
-                            "-o out-over.exr ;\n")
-command += testtex_command ("grid-overscan.exr --res 256 256 " +
-                            "--wrap clamp --nowarp " +
+                            "-o out-over.exr", silent=True)
+command += testtex_command ("grid-overscan.exr",
+                            "--res 256 256 --wrap clamp --nowarp " +
                             "--offset -0.5 -0.5 0 --scalest 2 2 " +
-                            "-o out-overclamp.exr ;\n")
+                            "-o out-overclamp.exr", silent=True)
 
 outputs = [ "out-exact.exr", "out-over.exr", "out-overclamp.exr" ]
 

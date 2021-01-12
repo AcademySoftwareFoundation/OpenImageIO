@@ -172,7 +172,7 @@ main(int argc, char* argv[])
         std::cerr << "idiff: Must have two input filenames.\n";
         std::cout << "> " << Strutil::join(filenames, ", ") << "\n";
         ap.usage();
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
     bool verbose          = ap["v"].get<int>();
     bool quiet            = ap["q"].get<int>();

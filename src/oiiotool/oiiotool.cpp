@@ -52,6 +52,8 @@ using namespace ImageBufAlgo;
 
 
 static Oiiotool ot;
+static ArgParse ap;
+
 
 
 // Macro to fully set up the "action" function that straightforwardly calls
@@ -407,7 +409,8 @@ Oiiotool::error(string_view command, string_view explanation) const
     // Repeat the command line, so if oiiotool is being called from a
     // script, it's easy to debug how the command was mangled.
     std::cerr << "Full command line was:\n> " << full_command_line << "\n";
-    exit(-1);
+    ap.abort();  // Cease further processing of the command line
+    ot.return_value = EXIT_FAILURE;
 }
 
 
@@ -2425,8 +2428,10 @@ action_channels(int argc, const char* argv[])
                                              (int)channels.size(), &channels[0],
                                              &values[0], &newchannelnames[0],
                                              false);
-            if (!ok)
+            if (!ok) {
                 ot.error(command, (*R)(s, m).geterror());
+                break;
+            }
             // Tricky subtlety: IBA::channels changed the underlying IB,
             // we may need to update the IR's copy of the spec.
             R->update_spec_from_imagebuf(s, m);
@@ -2459,8 +2464,10 @@ action_chappend(int argc, const char* argv[])
         op.set_impl([](OiiotoolOp& op, span<ImageBuf*> img) {
             // Shuffle the indexed/named channels
             bool ok = ImageBufAlgo::channel_append(*img[0], *img[1], *img[2]);
-            if (!ok)
+            if (!ok) {
                 ot.error(op.opname(), img[0]->geterror());
+                return false;
+            }
             if (ot.metamerge) {
                 img[0]->specmod().extra_attribs.merge(
                     img[1]->spec().extra_attribs);
@@ -2613,8 +2620,10 @@ action_subimage_append_n(int n, string_view command)
         for (int s = 0; s < A->subimages(); ++s, ++sub) {
             for (int m = 0; m < A->miplevels(s); ++m) {
                 bool ok = (*R)(sub, m).copy((*A)(s, m));
-                if (!ok)
+                if (!ok) {
                     ot.error(command, (*R)(sub, m).geterror());
+                    return;
+                }
                 // Update the IR's copy of the spec.
                 R->update_spec_from_imagebuf(sub, m);
             }
@@ -3219,8 +3228,10 @@ action_capture(int argc, const char* argv[])
 
     ImageBuf ib;
     bool ok = ImageBufAlgo::capture_image(ib, camera /*, TypeDesc::FLOAT*/);
-    if (!ok)
+    if (!ok) {
         ot.error(command, ib.geterror());
+        return 0;
+    }
     ImageRecRef img(new ImageRec("capture", ib.spec(), ot.imagecache));
     (*img)().copy(ib);
     ot.push(img);
@@ -3273,8 +3284,10 @@ action_crop(int argc, const char* argv[])
                 roi = ROI(x, x + w, y, y + h, z, z + d);
             }
             bool ok = ImageBufAlgo::crop(Rib, Aib, roi);
-            if (!ok)
+            if (!ok) {
                 ot.error(command, Rib.geterror());
+                break;
+            }
             R->update_spec_from_imagebuf(s, 0);
         }
     }
@@ -3315,8 +3328,10 @@ action_croptofull(int argc, const char* argv[])
             ROI roi = (Aib.roi() != Aib.roi_full()) ? Aib.roi_full()
                                                     : Aib.roi();
             bool ok = ImageBufAlgo::crop(Rib, Aib, roi);
-            if (!ok)
+            if (!ok) {
                 ot.error(command, Rib.geterror());
+                break;
+            }
             R->update_spec_from_imagebuf(s, 0);
         }
     }
@@ -3383,8 +3398,10 @@ action_trim(int argc, const char* argv[])
             const ImageBuf& Aib((*A)(s, 0));
             ImageBuf& Rib((*R)(s, 0));
             bool ok = ImageBufAlgo::crop(Rib, Aib, nonzero_region);
-            if (!ok)
+            if (!ok) {
                 ot.error(command, Rib.geterror());
+                break;
+            }
             R->update_spec_from_imagebuf(s, 0);
         }
     }
@@ -3738,8 +3755,10 @@ OIIOTOOL_OP(blur, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     if (sscanf(op.args(1).c_str(), "%fx%f", &w, &h) != 2)
         ot.errorf(op.opname(), "Unknown size %s", op.args(1));
     ImageBuf Kernel;
-    if (!ImageBufAlgo::make_kernel(Kernel, kernopt, w, h))
+    if (!ImageBufAlgo::make_kernel(Kernel, kernopt, w, h)) {
         ot.error(op.opname(), Kernel.geterror());
+        return false;
+    }
     return ImageBufAlgo::convolve(*img[0], *img[1], Kernel);
 });
 
@@ -3837,8 +3856,10 @@ action_fixnan(int argc, const char* argv[])
             const ImageBuf& Aib((*A)(s, m));
             ImageBuf& Rib((*ot.curimg)(s, m));
             bool ok = ImageBufAlgo::fixNonFinite(Rib, Aib, mode);
-            if (!ok)
+            if (!ok) {
                 ot.error(command, Rib.geterror());
+                return 0;
+            }
         }
     }
 
@@ -3954,8 +3975,10 @@ action_paste(int argc, const char* argv[])
 
     // Start by just copying the most background image
     bool ok = ImageBufAlgo::copy(*Rbuf, (*inputs[0])());
-    if (!ok)
+    if (!ok) {
         ot.error(command, Rbuf->geterror());
+        return 0;
+    }
 
     // Now paste the other images, back to front
     for (int i = 1; i < ninputs && ok; ++i) {
@@ -4043,8 +4066,10 @@ action_mosaic(int /*argc*/, const char* argv[])
             int x   = i * (widest + pad);
             bool ok = ImageBufAlgo::paste((*R)(), x, y, 0, 0,
                                           (*images[j * ximages + i])(0));
-            if (!ok)
+            if (!ok) {
                 ot.error(command, (*R)().geterror());
+                return 0;
+            }
         }
     }
 
@@ -4146,8 +4171,10 @@ action_fill(int argc, const char* argv[])
                        "No recognized fill parameters: filling with white.");
             ok = ImageBufAlgo::fill(Rib, &topleft[0], ROI(x, x + w, y, y + h));
         }
-        if (!ok)
+        if (!ok) {
             ot.error(command, Rib.geterror());
+            break;
+        }
     }
 
     ot.function_times[command] += timer();
@@ -4195,8 +4222,10 @@ action_clamp(int argc, const char* argv[])
             ImageBuf& Aib((*A)(s, m));
             bool ok = ImageBufAlgo::clamp(Rib, Aib, &min[0], &max[0],
                                           clampalpha01);
-            if (!ok)
+            if (!ok) {
                 ot.error(command, Rib.geterror());
+                return 0;
+            }
         }
     }
 
@@ -4445,7 +4474,7 @@ input_file(int argc, const char* argv[])
                 ot.error("read",
                          ot.format_read_error(filename,
                                               ot.imagecache->geterror()));
-                exit(1);
+                break;
             }
         }
         if (!ot.imagecache->get_image_info(ustring(filename), 0, 0,
@@ -4462,7 +4491,7 @@ input_file(int argc, const char* argv[])
                 std::string err = in ? in->geterror() : OIIO::geterror();
                 ot.error("read", ot.format_read_error(filename, err));
             }
-            exit(1);
+            break;
         }
 
         if (channel_set.size()) {
@@ -4495,8 +4524,10 @@ input_file(int argc, const char* argv[])
             pio.infoformat         = infoformat;
             std::string error;
             bool ok = OiioTool::print_info(ot, filename, pio, error);
-            if (!ok)
+            if (!ok) {
                 ot.error("read", ot.format_read_error(filename, error));
+                break;
+            }
             ot.printed_info = true;
         }
         ot.function_times["input"] += timer();
@@ -4873,9 +4904,11 @@ output_file(int /*argc*/, const char* argv[])
         //     mode = ImageBufAlgo::MakeTxEnvLatlFromLightProbe;
         ok = ImageBufAlgo::make_texture(mode, (*ir)(0, 0), filename, configspec,
                                         &std::cout);
-        if (!ok)
+        if (!ok) {
             ot.errorfmt(command, "Could not make texture: {}",
                         OIIO::geterror());
+            return 0;
+        }
         // N.B. make_texture already internally writes to a temp file and
         // then atomically moves it to the final destination, so we don't
         // need to explicitly do that here.
@@ -5053,7 +5086,9 @@ crash_me()
 
 // Concatenate the command line into one string, optionally filtering out
 // verbose attribute commands. Escape control chars in the arguments, and
-// double-quote any that contain spaces.
+// double-quote any that contain spaces.  Arguments that can be positively
+// identified as existing filenames are "genericized" (on Windows,
+// backslashes converted to forward slashes).
 static std::string
 command_line_string(int argc, char* argv[], bool sansattrib)
 {
@@ -5072,7 +5107,18 @@ command_line_string(int argc, char* argv[], bool sansattrib)
                 continue;
             }
         }
-        std::string a = Strutil::escape_chars(argv[i]);
+        std::string a(argv[i]);
+        // For the first argument, which is the program name, strip off the
+        // directory path.
+        if (i == 0)
+            a = Filesystem::filename(a);
+#ifdef _WIN32
+        // Genericize directory separators in filenames. This is especially
+        // helpful for testsuite.
+        if (Filesystem::exists(a))
+            a = Filesystem::generic_filepath(a);
+#endif
+        a = Strutil::escape_chars(a);
         // If the string contains spaces
         if (a.find(' ') != std::string::npos) {
             // double quote args with spaces
@@ -5292,7 +5338,6 @@ getargs(int argc, char* argv[])
     ot.full_command_line = command_line_string(argc, argv, sansattrib);
 
     // clang-format off
-    ArgParse ap;
     ap.intro("oiiotool -- simple image processing operations\n"
               OIIO_INTRO_STRING)
       .usage("oiiotool [filename|command]...")
@@ -5835,16 +5880,20 @@ getargs(int argc, char* argv[])
         // script, it's easy to debug how the command was mangled.
         std::cerr << "\nFull command line was:\n> " << ot.full_command_line
                   << "\n";
-        exit(EXIT_FAILURE);
+        ap.abort();
+        ot.return_value = EXIT_FAILURE;
+        // exit(EXIT_FAILURE);
     }
     if (help || ap["help"].get<int>()) {
         print_help(ap);
-        exit(EXIT_SUCCESS);
+        ap.abort();
+        // exit(EXIT_SUCCESS);
     }
     if (argc <= 1) {
         ap.briefusage();
         std::cout << "\nFor detailed help: oiiotool --help\n";
-        exit(EXIT_SUCCESS);
+        ap.abort();
+        // exit(EXIT_SUCCESS);
     }
 }
 
@@ -6017,6 +6066,8 @@ handle_sequence(int argc, const char** argv)
         ot.clear_options();  // Careful to reset all command line options!
         ot.frame_number = frame_numbers[0][i];
         getargs(argc, (char**)&seq_argv[0]);
+        if (ap.aborted())
+            break;
 
         ot.process_pending();
         if (ot.pending_callback())
@@ -6095,14 +6146,16 @@ main(int argc, char* argv[])
     } else {
         // Not a sequence
         getargs(argc, argv);
-        ot.process_pending();
-        if (ot.pending_callback())
-            ot.warning(ot.pending_callback_name(),
-                       "pending command never executed");
+        if (!ap.aborted()) {
+            ot.process_pending();
+            if (ot.pending_callback())
+                ot.warning(ot.pending_callback_name(),
+                           "pending command never executed");
+        }
     }
 
     if (!ot.printinfo && !ot.printstats && !ot.dumpdata && !ot.dryrun
-        && !ot.printed_info) {
+        && !ot.printed_info && !ap.aborted()) {
         if (ot.curimg && !ot.curimg->was_output()
             && (ot.curimg->metadata_modified() || ot.curimg->pixels_modified()))
             ot.warning(

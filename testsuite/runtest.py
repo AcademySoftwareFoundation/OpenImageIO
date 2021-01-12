@@ -105,7 +105,7 @@ if int(os.getenv('TESTSUITE_CLEANUP_ON_SUCCESS', '0')) :
 
 image_extensions = [ ".tif", ".tx", ".exr", ".jpg", ".png", ".rla",
                      ".dpx", ".iff", ".psd", ".bmp", ".fits", ".ico",
-                     ".jp2", ".sgi", ".tga", ".TGA" ]
+                     ".jp2", ".sgi", ".tga", ".TGA", ".zfile" ]
 
 # print ("srcdir = " + srcdir)
 # print ("tmpdir = " + tmpdir)
@@ -296,9 +296,12 @@ def rw_command (dir, filename, testwrite=True, use_oiiotool=False, extraargs="",
 
 
 # Construct a command that will testtex
-def testtex_command (file, extraargs="") :
-    cmd = (oiio_app("testtex") + " " + file + " " + extraargs + " " +
-           redirect + ";\n")
+def testtex_command (file, extraargs="", silent=False, concat=True) :
+    cmd = oiio_app("testtex") + " " + file + " " + extraargs + " "
+    if not silent :
+        cmd += redirect
+    if concat:
+        cmd += " ;\n"
     return cmd
 
 
@@ -393,6 +396,15 @@ def runtest (command, outputs, failureok=0) :
 
     for out in outputs :
         (prefix, extension) = os.path.splitext(out)
+        # On Windows, change line endings of text files to unix style before
+        # comparison to reference output.
+        if (platform.system() == 'Windows' and os.path.exists(out)
+                and extension == '.txt') :
+            os.rename (out, "crlf.txt")
+            os.system ("tr -d '\\r' < crlf.txt > " + out)
+            if os.path.exists('crlf.txt') :
+                os.remove('crlf.txt')
+
         (ok, testfile) = checkref (out, refdirlist)
 
         if ok :
@@ -402,9 +414,6 @@ def runtest (command, outputs, failureok=0) :
             print ("PASS: " + out + " matches " + testfile)
         else :
             err = 1
-            if platform.system() == 'Windows' :
-                os.rename (out, "crlf.txt")
-                os.system ("tr -d '\\r' < crlf.txt > " + out)
             print ("NO MATCH for " + out)
             print ("FAIL " + out)
             if extension == ".txt" :
