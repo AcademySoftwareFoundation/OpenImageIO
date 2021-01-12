@@ -247,6 +247,14 @@ public:
     /// `parse_args()` and responding appropriately.
     ArgParse& exit_on_error(bool exit_on_error);
 
+    /// If called by an argument's action, halts the rest of the command
+    /// line from continuing to be processed. Call with `aborted = false` to
+    /// unabort and restore operations.
+    void abort(bool aborted = true);
+
+    /// Reveal whether the current state is aborted.
+    bool aborted() const;
+
     /// @}
 
     // ------------------------------------------------------------------
