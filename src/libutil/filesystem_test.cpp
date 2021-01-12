@@ -46,6 +46,12 @@ test_filename_decomposition()
     std::cout << "Testing replace_extension\n";
     OIIO_CHECK_EQUAL(Filesystem::replace_extension(test, "foo"),
                      "/directoryA/directory/filename.foo");
+
+    std::cout << "Testing generic_string\n";
+#if _WIN32
+    OIIO_CHECK_EQUAL(Filesystem::generic_filepath("\\x\\y"), "/x/y");
+    OIIO_CHECK_EQUAL(Filesystem::generic_filepath("c:\\x\\y"), "/c/x/y");
+#endif
 }
 
 
@@ -287,6 +293,8 @@ test_scan_file_seq_with_views(const char* pattern, const char** views_,
     Filesystem::scan_for_matching_filenames(normalized_pattern, views,
                                             frame_numbers, frame_views,
                                             frame_names);
+    for (auto& f : frame_names)
+        f = Filesystem::generic_filepath(f);
     std::string joined = Strutil::join(frame_names, " ");
     std::cout << "  " << pattern;
     std::cout << " -> " << joined << "\n";
