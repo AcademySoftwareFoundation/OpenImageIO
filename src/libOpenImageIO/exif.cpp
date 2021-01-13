@@ -841,6 +841,16 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
         unsigned int offset = dirp->tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian(&offset);
+        if (offset >= size_t(buf.size())) {
+#if DEBUG_EXIF_READ
+            unsigned int off2 = offset;
+            swap_endian(&off2);
+            std::cerr << "Bad Exif block? ExifIFD has offset " << offset
+                      << " inexplicably greater than exif buffer length "
+                      << buf.size() << " (byte swapped = " << off2 << ")\n";
+#endif
+            return;
+        }
         // Don't recurse if we've already visited this IFD
         if (ifd_offsets_seen.find(offset) != ifd_offsets_seen.end())
             return;
