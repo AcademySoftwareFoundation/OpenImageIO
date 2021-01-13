@@ -210,8 +210,9 @@ jobs:
           USE_SIMD: avx2,f16c
           LIBRAW_VERSION: 0.20.2
           LIBTIFF_VERSION: v4.2.0
+          OPENCOLOR_VERSION: v2.0.0-rc1
           OPENEXR_VERSION: v2.5.3
-          PUGIXML_VERSION: v1.11.1
+          PUGIXML_VERSION: v1.11.4
           PYBIND11_VERSION: v2.6.1
           WEBP_VERSION: v1.1.0
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.1.3
