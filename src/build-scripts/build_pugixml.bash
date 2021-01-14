@@ -11,7 +11,7 @@ set -ex
 
 # Repo and branch/tag/commit of pugixml to download if we don't have it yet
 PUGIXML_REPO=${PUGIXML_REPO:=https://github.com/zeux/pugixml.git}
-PUGIXML_VERSION=${PUGIXML_VERSION:=v1.10}
+PUGIXML_VERSION=${PUGIXML_VERSION:=v1.11.4}
 
 # Where to put pugixml repo source (default to the ext area)
 PUGIXML_SRC_DIR=${PUGIXML_SRC_DIR:=${PWD}/ext/pugixml}

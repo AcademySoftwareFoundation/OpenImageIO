@@ -257,7 +257,7 @@ endif ()
 
 option (BUILD_FMT_FORCE "Force local download/build of fmt even if installed" OFF)
 option (BUILD_MISSING_FMT "Local download/build of fmt if not installed" ON)
-set (BUILD_FMT_VERSION "7.0.1" CACHE STRING "Preferred fmtlib/fmt version, when downloading/building our own")
+set (BUILD_FMT_VERSION "7.1.3" CACHE STRING "Preferred fmtlib/fmt version, when downloading/building our own")
 
 macro (find_or_download_fmt)
     # If we weren't told to force our own download/build of fmt, look
