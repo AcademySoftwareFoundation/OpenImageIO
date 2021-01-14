@@ -2430,7 +2430,7 @@ Image transformations and data movement
 
 
 
-.. py:method:: bool ImageBufAlgo.paste (dst, xbegin, ybegin, zbegin, chbegin, src, ROI srcroi=ROI.All, nthreads=0)
+.. py:method:: bool ImageBufAlgo.paste (dst, xbegin, ybegin, zbegin, chbegin, src, srcroi=ROI.All, nthreads=0)
 
     Copy the specified region of `src` into `dst` with the given offset
     (`xbegin`, `ybegin`, `zbegin`).
