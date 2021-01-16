@@ -69,7 +69,7 @@ macro (setup_python_module)
         set_property (SOURCE ${lib_SOURCES} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-macro-redefined ")
     endif ()
 
-    pybind11_add_module(${target_name} ${lib_SOURCES})
+    pybind11_add_module(${target_name} SHARED ${lib_SOURCES})
 
 #    # Add the library itself
 #    add_library (${target_name} MODULE ${lib_SOURCES})
