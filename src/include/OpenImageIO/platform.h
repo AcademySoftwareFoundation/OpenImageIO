@@ -62,10 +62,13 @@
 // See https://en.cppreference.com/w/cpp/compiler_support
 //
 // OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (11, 14, ...)
-// OIIO_CONSTEXPR14 : constexpr for C++ >= 14, otherwise nothing (this is
-//                      useful for things that can only be constexpr for 14)
-// OIIO_CONSTEXPR17 : constexpr for C++ >= 17, otherwise nothing (this is
-//                      useful for things that can only be constexpr for 17)
+// OIIO_CONSTEXPR14 :
+// OIIO_CONSTEXPR17 :
+// OIIO_CONSTEXPR20 : constexpr for C++ >= the designated version, otherwise
+//                    nothing (this is useful for things that can only be
+//                    constexpr for particular versions or greater).
+// OIIO_INLINE_CONSTEXPR : inline constexpr variables, added in C++17. For
+//                         older C++, just constexpr.
 //
 // Note: oiioversion.h defines OIIO_BUILD_CPP11, OIIO_BUILD_CPP14,
 // OIIO_BUILD_CPP17, or OIIO_BUILD_CPP20 to be 1 if OIIO itself was *built*
@@ -81,21 +84,25 @@
 #    define OIIO_CONSTEXPR14 constexpr
 #    define OIIO_CONSTEXPR17 constexpr
 #    define OIIO_CONSTEXPR20 constexpr
+#    define OIIO_INLINE_CONSTEXPR inline constexpr
 #elif (__cplusplus >= 201703L)
 #    define OIIO_CPLUSPLUS_VERSION 17
 #    define OIIO_CONSTEXPR14 constexpr
 #    define OIIO_CONSTEXPR17 constexpr
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
+#    define OIIO_INLINE_CONSTEXPR inline constexpr
 #elif (__cplusplus >= 201402L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
 #    define OIIO_CPLUSPLUS_VERSION 14
 #    define OIIO_CONSTEXPR14 constexpr
 #    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
+#    define OIIO_INLINE_CONSTEXPR constexpr
 #elif (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900)
 #    define OIIO_CPLUSPLUS_VERSION 11
 #    define OIIO_CONSTEXPR14 /* not constexpr before C++14 */
 #    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
+#    define OIIO_INLINE_CONSTEXPR constexpr
 #else
 #    error "This version of OIIO is meant to work only with C++11 and above"
 #endif
