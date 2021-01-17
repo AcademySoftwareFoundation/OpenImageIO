@@ -415,6 +415,7 @@ test_write_over()
     ImageBuf A("tmp-green.tif");
     A.getpixel(4, 4, pixel);
     OIIO_CHECK_ASSERT(pixel[0] == 0 && pixel[1] == 1 && pixel[2] == 0);
+    A.reset();  // make sure A isn't held open, we're about to remove it
 
     // Replace the green image with red, under the nose of the ImageBuf.
     Filesystem::remove("tmp-green.tif");
@@ -426,6 +427,7 @@ test_write_over()
     ImageBuf B("tmp-green.tif");
     B.getpixel(4, 4, pixel);
     OIIO_CHECK_ASSERT(pixel[0] == 1 && pixel[1] == 0 && pixel[2] == 0);
+    B.reset();  // make sure B isn't held open, we're about to remove it
 
     Filesystem::remove("tmp-green.tif");
 }
