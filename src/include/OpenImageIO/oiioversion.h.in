@@ -62,6 +62,14 @@
 #define OIIO_VERSION OIIO_MAKE_VERSION(OIIO_VERSION_MAJOR, \
                         OIIO_VERSION_MINOR, OIIO_VERSION_PATCH)
 
+// Test if OIIO is >= a particular version.
+#define OIIO_VERSION_GREATER_EQUAL(major,minor,patch) \
+                        OIIO_VERSION >= OIIO_MAKE_VERSION(major,minor,patch)
+
+// Test if OIIO is < a particular version.
+#define OIIO_VERSION_LESS(major,minor,patch) \
+                        OIIO_VERSION < OIIO_MAKE_VERSION(major,minor,patch)
+
 // We also define the old name for backwards compatibility purposes.
 #define OPENIMAGEIO_VERSION OIIO_VERSION
 
