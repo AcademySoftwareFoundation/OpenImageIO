@@ -8,6 +8,11 @@ set (PYTHON_VERSION "" CACHE STRING "Target version of python to find")
 option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
 option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
 set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namespace")
+if (WIN32)
+    set (PYLIB_LIB_TYPE SHARED CACHE STRING "Type of library to build for python module (MODULE or SHARED)")
+else ()
+    set (PYLIB_LIB_TYPE MODULE CACHE STRING "Type of library to build for python module (MODULE or SHARED)")
+endif ()
 
 
 # Find Python. This macro should only be called if python is required. If
@@ -69,7 +74,7 @@ macro (setup_python_module)
         set_property (SOURCE ${lib_SOURCES} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-macro-redefined ")
     endif ()
 
-    pybind11_add_module(${target_name} ${lib_SOURCES})
+    pybind11_add_module(${target_name} ${PYLIB_LIB_TYPE} ${lib_SOURCES})
 
 #    # Add the library itself
 #    add_library (${target_name} MODULE ${lib_SOURCES})
