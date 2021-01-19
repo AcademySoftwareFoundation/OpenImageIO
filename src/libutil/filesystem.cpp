@@ -888,11 +888,7 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
     std::string directory = Filesystem::parent_path(pattern);
     if (directory.size() == 0) {
         directory = ".";
-#ifdef _WIN32
-        pattern = ".\\\\" + pattern;
-#else
-        pattern = "./" + pattern;
-#endif
+        pattern   = "./" + pattern;
     }
 
     if (!exists(directory))
@@ -922,8 +918,10 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
         error_code ec;
         for (filesystem::directory_iterator it(u8path(directory), ec), end_it;
              !ec && it != end_it; ++it) {
-            if (filesystem::is_regular(it->path(), ec)) {
-                const std::string f = pathstr(it->path());
+            std::string itpath = Filesystem::generic_filepath(
+                it->path().string());
+            if (filesystem::is_regular(itpath, ec)) {
+                const std::string f = pathstr(itpath);
                 match_results<std::string::const_iterator> frame_match;
                 if (regex_match(f, frame_match, pattern_re)) {
                     std::string thenumber(frame_match[1].first,
