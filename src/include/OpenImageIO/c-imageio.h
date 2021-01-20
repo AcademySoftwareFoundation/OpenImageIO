@@ -21,7 +21,7 @@ typedef uint64_t imagesize_t;
 extern "C" {
 #endif
 
-extern stride_t OIIO_AutoStride;
+extern OIIOC_API stride_t OIIO_AutoStride;
 
 /// Pointer to a function called periodically by read_image and
 /// write_image.  This can be used to implement progress feedback, etc.

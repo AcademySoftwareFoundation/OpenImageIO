@@ -112,37 +112,37 @@ typedef struct {
 ///      TypeDesc_from_string("float[4]") == FIXME: unimplemented!
 /// ```
 ///
-OIIO_TypeDesc
+OIIOC_API OIIO_TypeDesc
 OIIO_TypeDesc_from_string(const char* typestring);
 
-extern OIIO_TypeDesc OIIO_TypeUnknown;
-extern OIIO_TypeDesc OIIO_TypeFloat;
-extern OIIO_TypeDesc OIIO_TypeColor;
-extern OIIO_TypeDesc OIIO_TypePoint;
-extern OIIO_TypeDesc OIIO_TypeVector;
-extern OIIO_TypeDesc OIIO_TypeNormal;
-extern OIIO_TypeDesc OIIO_TypeMatrix33;
-extern OIIO_TypeDesc OIIO_TypeMatrix44;
-extern OIIO_TypeDesc OIIO_TypeMatrix;
-extern OIIO_TypeDesc OIIO_TypeFloat2;
-extern OIIO_TypeDesc OIIO_TypeVector2;
-extern OIIO_TypeDesc OIIO_TypeFloat4;
-extern OIIO_TypeDesc OIIO_TypeVector4;
-extern OIIO_TypeDesc OIIO_TypeString;
-extern OIIO_TypeDesc OIIO_TypeInt;
-extern OIIO_TypeDesc OIIO_TypeUInt;
-extern OIIO_TypeDesc OIIO_TypeInt32;
-extern OIIO_TypeDesc OIIO_TypeUInt32;
-extern OIIO_TypeDesc OIIO_TypeInt16;
-extern OIIO_TypeDesc OIIO_TypeUInt16;
-extern OIIO_TypeDesc OIIO_TypeInt8;
-extern OIIO_TypeDesc OIIO_TypeUInt8;
-extern OIIO_TypeDesc OIIO_TypeVector2i;
-extern OIIO_TypeDesc OIIO_TypeHalf;
-extern OIIO_TypeDesc OIIO_TypeTimecode;
-extern OIIO_TypeDesc OIIO_TypeKeycode;
-extern OIIO_TypeDesc OIIO_TypeRational;
-extern OIIO_TypeDesc OIIO_TypePointer;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeUnknown;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeFloat;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeColor;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypePoint;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeVector;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeNormal;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeMatrix33;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeMatrix44;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeMatrix;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeFloat2;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeVector2;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeFloat4;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeVector4;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeString;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeInt;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeUInt;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeInt32;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeUInt32;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeInt16;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeUInt16;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeInt8;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeUInt8;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeVector2i;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeHalf;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeTimecode;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeKeycode;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypeRational;
+extern OIIOC_API OIIO_TypeDesc OIIO_TypePointer;
 
 #ifdef __cplusplus
 }
