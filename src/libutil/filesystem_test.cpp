@@ -50,7 +50,7 @@ test_filename_decomposition()
     std::cout << "Testing generic_string\n";
 #if _WIN32
     OIIO_CHECK_EQUAL(Filesystem::generic_filepath("\\x\\y"), "/x/y");
-    OIIO_CHECK_EQUAL(Filesystem::generic_filepath("c:\\x\\y"), "/c/x/y");
+    OIIO_CHECK_EQUAL(Filesystem::generic_filepath("c:\\x\\y"), "c:/x/y");
 #endif
 }
 
@@ -113,7 +113,7 @@ static void
 test_file_status()
 {
     // Make test file, test Filesystem::fopen in the process.
-    FILE* file = Filesystem::fopen("testfile", "w");
+    FILE* file = Filesystem::fopen("testfile", "wb");
     OIIO_CHECK_ASSERT(file != NULL);
     const char testtext[] = "test\nfoo\nbar\n";
     fputs(testtext, file);
@@ -204,7 +204,7 @@ test_file_seq(const char* pattern, const char* override,
     Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
     if (override && strlen(override) > 0)
         frame_range = override;
-    Filesystem::enumerate_sequence(frame_range.c_str(), numbers);
+    Filesystem::enumerate_sequence(frame_range, numbers);
     Filesystem::enumerate_file_sequence(normalized_pattern, numbers, names);
     std::string joined = Strutil::join(names, " ");
     std::cout << "  " << pattern;
@@ -287,7 +287,8 @@ test_scan_file_seq_with_views(const char* pattern, const char** views_,
     std::vector<string_view> views;
 
     for (size_t i = 0; views_[i]; ++i)
-        views.emplace_back(views_[i]);
+        if (views_[i])
+            views.emplace_back(views_[i]);
 
     Filesystem::parse_pattern(pattern, 0, normalized_pattern, frame_range);
     Filesystem::scan_for_matching_filenames(normalized_pattern, views,
@@ -436,15 +437,9 @@ test_scan_sequences()
         create_test_file(fn);
     }
 
-#ifdef _WIN32
-    test_scan_file_seq(
-        "foo.#.exr",
-        ".\\foo.0001.exr .\\foo.0002.exr .\\foo.0003.exr .\\foo.0004.exr .\\foo.0005.exr");
-#else
     test_scan_file_seq(
         "foo.#.exr",
         "./foo.0001.exr ./foo.0002.exr ./foo.0003.exr ./foo.0004.exr ./foo.0005.exr");
-#endif
 
     filenames.clear();
 
@@ -459,15 +454,9 @@ test_scan_sequences()
 
     const char* views[] = { "left", NULL };
 
-#ifdef _WIN32
-    test_scan_file_seq_with_views(
-        "%V/%v/foo_%V_%v.#.exr", views,
-        "left\\l\\foo_left_l.0001.exr left\\l\\foo_left_l.0002.exr left\\l\\foo_left_l.0003.exr left\\l\\foo_left_l.0004.exr left\\l\\foo_left_l.0005.exr");
-#else
     test_scan_file_seq_with_views(
         "%V/%v/foo_%V_%v.#.exr", views,
         "left/l/foo_left_l.0001.exr left/l/foo_left_l.0002.exr left/l/foo_left_l.0003.exr left/l/foo_left_l.0004.exr left/l/foo_left_l.0005.exr");
-#endif
 
     filenames.clear();
 
@@ -486,13 +475,8 @@ test_scan_sequences()
 
     const char* views2[] = { "left", "right", NULL };
 
-#ifdef _WIN32
-    test_scan_file_seq_with_views("%V/%v/foo_%V_%v", views2,
-                                  "left\\l\\foo_left_l right\\r\\foo_right_r");
-#else
     test_scan_file_seq_with_views("%V/%v/foo_%V_%v", views2,
                                   "left/l/foo_left_l right/r/foo_right_r");
-#endif
 }
 
 
