@@ -34,7 +34,7 @@ DEFINE_POINTER_CASTS(DeepData)
 
 extern "C" {
 
-stride_t OIIO_AutoStride = std::numeric_limits<stride_t>::min();
+OIIOC_API stride_t OIIO_AutoStride = std::numeric_limits<stride_t>::min();
 
 // Check ROI is bit-equivalent
 OIIO_STATIC_ASSERT(sizeof(OIIO_ROI) == sizeof(OIIO::ROI));

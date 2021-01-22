@@ -10,16 +10,15 @@ int
 main(void)
 {
     // storage we'll use for error messages
-    const int errmsglen = 256;
-    char errmsg[errmsglen];
+    char errmsg[256];
 
     // open the test image
-    const char* infile  = "data/checker.tif";
+    const char* infile  = "src/checker.tif";
     OIIO_ImageInput* ii = OIIO_ImageInput_open(infile, NULL, NULL);
     if (!ii) {
         fprintf(stderr, "Could not open file \"%s\"\n", infile);
         if (OIIO_haserror()) {
-            OIIO_geterror(errmsg, errmsglen, true);
+            OIIO_geterror(errmsg, sizeof(errmsg), true);
             fprintf(stderr, "    %s\n", errmsg);
         }
         return -1;
@@ -56,7 +55,7 @@ main(void)
     if (!result) {
         fprintf(stderr, "Error loading \"%s\" because:\n", infile);
         if (OIIO_ImageInput_has_error(ii)) {
-            OIIO_ImageInput_geterror(ii, errmsg, errmsglen, true);
+            OIIO_ImageInput_geterror(ii, errmsg, sizeof(errmsg), true);
             fprintf(stderr, "    %s\n", errmsg);
         } else {
             fprintf(stderr, "    unknown: no errors on ImageInput\n");
@@ -80,7 +79,7 @@ main(void)
     if (!io) {
         fprintf(stderr, "could not open out.exr\n");
         if (OIIO_haserror()) {
-            OIIO_geterror(errmsg, errmsglen, true);
+            OIIO_geterror(errmsg, sizeof(errmsg), true);
             fprintf(stderr, "    %s\n", errmsg);
         }
         return -2;
@@ -91,7 +90,7 @@ main(void)
     if (!result) {
         fprintf(stderr, "Error opening \"out.exr\" because:\n");
         if (OIIO_ImageOutput_has_error(io)) {
-            OIIO_ImageOutput_geterror(io, errmsg, errmsglen, true);
+            OIIO_ImageOutput_geterror(io, errmsg, sizeof(errmsg), true);
             fprintf(stderr, "    %s\n", errmsg);
         } else {
             fprintf(stderr, "    unknown: no errors on ImageOutput\n");
@@ -112,7 +111,7 @@ main(void)
     if (!result) {
         fprintf(stderr, "Error writing \"out.exr\" because:\n");
         if (OIIO_ImageOutput_has_error(io)) {
-            OIIO_ImageOutput_geterror(io, errmsg, errmsglen, true);
+            OIIO_ImageOutput_geterror(io, errmsg, sizeof(errmsg), true);
             fprintf(stderr, "    %s\n", errmsg);
         } else {
             fprintf(stderr, "    unknown: no errors on ImageOutput\n");
@@ -130,7 +129,7 @@ main(void)
     if (!ii) {
         fprintf(stderr, "Could not open file \"out.exr\"\n");
         if (OIIO_haserror()) {
-            OIIO_geterror(errmsg, errmsglen, true);
+            OIIO_geterror(errmsg, sizeof(errmsg), true);
             fprintf(stderr, "    %s\n", errmsg);
         }
         return -1;
