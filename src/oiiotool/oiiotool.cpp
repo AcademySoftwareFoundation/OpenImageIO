@@ -1120,7 +1120,6 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
     // std::cout << " Entering express_parse_atom, s='" << s << "'\n";
 
     string_view orig = s;
-    string_view stringval;
     float floatval;
 
     Strutil::skip_whitespace(s);
