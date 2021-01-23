@@ -1238,7 +1238,6 @@ OIIO_convert_pixel_values(OIIO_TypeDesc src_type, const void* src,
 
 
 
-OIIO_API
 bool
 OIIO_convert_image(int nchannels, int width, int height, int depth,
                    const void* src, OIIO_TypeDesc src_type,
