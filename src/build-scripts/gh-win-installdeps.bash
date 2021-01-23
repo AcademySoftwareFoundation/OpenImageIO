@@ -59,7 +59,7 @@ echo "---------------"
 # vcpkg update
 # 
 # # vcpkg install zlib:x64-windows
-# vcpkg install tiff:x64-windows
+vcpkg install tiff:x64-windows
 # vcpkg install libpng:x64-windows
 # vcpkg install giflib:x64-windows
 vcpkg install freetype:x64-windows
@@ -103,13 +103,15 @@ export ZLIB_ROOT=$PWD/ext/dist
 src/build-scripts/build_libpng.bash
 export PNG_ROOT=$PWD/ext/dist
 
-src/build-scripts/build_libtiff.bash
-export TIFF_ROOT=$PWD/ext/dist
+# We're currently getting libtiff from vcpkg
+#src/build-scripts/build_libtiff.bash
+#export TIFF_ROOT=$PWD/ext/dist
 
-LIBJPEGTURBO_CONFIG_OPTS=-DWITH_SIMD=OFF
-# ^^ because we're too lazy to build nasm
-src/build-scripts/build_libjpeg-turbo.bash
-export JPEGTurbo_ROOT=$PWD/ext/dist
+# We're currently getting jpeg from vcpkg
+# LIBJPEGTURBO_CONFIG_OPTS=-DWITH_SIMD=OFF
+# # ^^ because we're too lazy to build nasm
+# src/build-scripts/build_libjpeg-turbo.bash
+# export JPEGTurbo_ROOT=$PWD/ext/dist
 
 source src/build-scripts/build_pybind11.bash
 #export pybind11_ROOT=$PWD/ext/dist
