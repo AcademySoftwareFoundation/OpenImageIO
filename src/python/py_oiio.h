@@ -34,6 +34,7 @@
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/span.h>
+#include <OpenImageIO/texture.h>
 #include <OpenImageIO/typedesc.h>
 
 #if PY_MAJOR_VERSION < 3
@@ -106,6 +107,11 @@ void declare_imagebuf (py::module& m);
 void declare_imagebufalgo (py::module& m);
 void declare_paramvalue (py::module& m);
 void declare_global (py::module& m);
+void declare_wrap (py::module& m);
+void declare_mipmpode (py::module& m);
+void declare_interpmode (py::module& m);
+void declare_textureopt (py::module& m);
+void declare_texturesystem (py::module& m);
 
 // bool PyProgressCallback(void*, float);
 // object C_array_to_Python_array (const char *data, TypeDesc type, size_t size);

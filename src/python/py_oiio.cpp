@@ -260,6 +260,13 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
     declare_imagebuf(m);
     declare_imagecache(m);
 
+    // TextureSys classes
+    declare_wrap(m);
+    declare_mipmpode(m);
+    declare_interpmode(m);
+    declare_textureopt(m);
+    declare_texturesystem(m);
+
     declare_imagebufalgo(m);
 
     // Global (OpenImageIO scope) functions and symbols
