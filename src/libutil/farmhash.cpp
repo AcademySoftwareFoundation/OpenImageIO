@@ -38,7 +38,7 @@
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 uint32_t Hash32(const char* s, size_t len) {
-  return inlined_hashes::farmhash::Hash32(s, len);
+  return farmhash::inlined::Hash32(s, len);
 }
 
 // Hash function for a byte array.  For convenience, a 32-bit seed is also
@@ -46,7 +46,7 @@ uint32_t Hash32(const char* s, size_t len) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 uint32_t Hash32WithSeed(const char* s, size_t len, uint32_t seed) {
-  return inlined_hashes::farmhash::Hash32WithSeed(s, len, seed);
+  return farmhash::inlined::Hash32WithSeed(s, len, seed);
 }
 
 // Hash function for a byte array.  For convenience, a 64-bit seed is also
@@ -54,14 +54,14 @@ uint32_t Hash32WithSeed(const char* s, size_t len, uint32_t seed) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 uint64_t Hash64(const char* s, size_t len) {
-  return inlined_hashes::farmhash::Hash64(s, len);
+  return farmhash::inlined::Hash64(s, len);
 }
 
 // Hash function for a byte array.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 size_t Hash(const char* s, size_t len) {
-  return inlined_hashes::farmhash::Hash(s, len);
+  return farmhash::inlined::Hash(s, len);
 }
 
 // Hash function for a byte array.  For convenience, a 64-bit seed is also
@@ -69,7 +69,7 @@ size_t Hash(const char* s, size_t len) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 uint64_t Hash64WithSeed(const char* s, size_t len, uint64_t seed) {
-  return inlined_hashes::farmhash::Hash64WithSeed(s, len, seed);
+  return farmhash::inlined::Hash64WithSeed(s, len, seed);
 }
 
 // Hash function for a byte array.  For convenience, two seeds are also
@@ -77,14 +77,14 @@ uint64_t Hash64WithSeed(const char* s, size_t len, uint64_t seed) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 uint64_t Hash64WithSeeds(const char* s, size_t len, uint64_t seed0, uint64_t seed1) {
-  return inlined_hashes::farmhash::Hash64WithSeeds(s, len, seed0, seed1);
+  return farmhash::inlined::Hash64WithSeeds(s, len, seed0, seed1);
 }
 
 // Hash function for a byte array.
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 uint128_t Hash128(const char* s, size_t len) {
-  return inlined_hashes::farmhash::Hash128(s, len);
+  return farmhash::inlined::Hash128(s, len);
 }
 
 // Hash function for a byte array.  For convenience, a 128-bit seed is also
@@ -92,7 +92,7 @@ uint128_t Hash128(const char* s, size_t len) {
 // May change from time to time, may differ on different platforms, may differ
 // depending on NDEBUG.
 uint128_t Hash128WithSeed(const char* s, size_t len, uint128_t seed) {
-  return inlined_hashes::farmhash::Hash128WithSeed(s, len, seed);
+  return farmhash::inlined::Hash128WithSeed(s, len, seed);
 }
 
 // BASIC NON-STRING HASHING
@@ -101,17 +101,17 @@ uint128_t Hash128WithSeed(const char* s, size_t len, uint128_t seed) {
 
 // Fingerprint function for a byte array.  Most useful in 32-bit binaries.
 uint32_t Fingerprint32(const char* s, size_t len) {
-  return inlined_hashes::farmhash::Fingerprint32(s, len);
+  return farmhash::inlined::Fingerprint32(s, len);
 }
 
 // Fingerprint function for a byte array.
 uint64_t Fingerprint64(const char* s, size_t len) {
-  return inlined_hashes::farmhash::Fingerprint64(s, len);
+  return farmhash::inlined::Fingerprint64(s, len);
 }
 
 // Fingerprint function for a byte array.
 uint128_t Fingerprint128(const char* s, size_t len) {
-  return inlined_hashes::farmhash::Fingerprint128(s, len);
+  return farmhash::inlined::Fingerprint128(s, len);
 }
 
 // Older and still available but perhaps not as fast as the above:

@@ -35,7 +35,7 @@
 #undef STATIC_INLINE
 #if  __cplusplus >= 201402L
 #  ifdef __CUDA_ARCH__
-#      define STATIC_INLINE __device__ __forceinline__ constexpr
+#      define STATIC_INLINE __device__ inline constexpr
 #  else
 #      define STATIC_INLINE static inline constexpr
 #  endif

@@ -281,13 +281,13 @@ std::string OIIO_API wordwrap (string_view src, int columns = 80,
 static inline constexpr
 size_t strhash (size_t len, const char *s)
 {
-    return OIIO::inlined_hashes::farmhash::Hash(s, len);
+    return OIIO::farmhash::inlined::Hash(s, len);
 }
 #else
 static inline
 size_t strhash (size_t len, const char *s)
 {
-    return OIIO::inlined_hashes::farmhash::Hash(s, len);
+    return OIIO::farmhash::inlined::Hash(s, len);
 }
 #endif
 

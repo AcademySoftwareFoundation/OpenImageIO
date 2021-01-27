@@ -81,7 +81,7 @@
 #if  __cplusplus >= 201402L
 #  define HASH_CAN_USE_CONSTEXPR 1
 #  ifdef __CUDA_ARCH__
-#      define STATIC_INLINE __device__ __forceinline__ constexpr
+#      define STATIC_INLINE __device__ inline constexpr
 #  else
 #      define STATIC_INLINE static inline constexpr
 #  endif
@@ -225,8 +225,8 @@ STATIC_INLINE void simpleSwap(T &a, T &b) {
 // namespace NAMESPACE_FOR_HASH_FUNCTIONS {
 OIIO_NAMESPACE_BEGIN
 
-namespace inlined_hashes {
 namespace farmhash {
+namespace inlined {
 
 
 #if !defined(HASH_CAN_USE_CONSTEXPR) || HASH_CAN_USE_CONSTEXPR == 0
@@ -329,8 +329,8 @@ STATIC_INLINE uint64_t Rotate64(uint64_t val, int shift) {
 #endif
 
 // }  // namespace NAMESPACE_FOR_HASH_FUNCTIONS
-} /*end namespace farmhash*/ 
-} /*end namespace inlined_hashes*/ OIIO_NAMESPACE_END
+} /*end namespace inlined */
+} /*end namespace farmhash*/ OIIO_NAMESPACE_END 
 
 // FARMHASH PORTABILITY LAYER: debug mode or max speed?
 // One may use -DFARMHASH_DEBUG=1 or -DFARMHASH_DEBUG=0 to force the issue.
@@ -459,8 +459,8 @@ STATIC_INLINE uint64_t Rotate64(uint64_t val, int shift) {
 // namespace NAMESPACE_FOR_HASH_FUNCTIONS {
 OIIO_NAMESPACE_BEGIN
 //using namespace OIIO::farmhash;
-    namespace inlined_hashes {
     namespace farmhash {
+    namespace inlined {
 
 #ifndef __CUDA_ARCH__
 #if can_use_ssse3 || can_use_sse41 || can_use_sse42 || can_use_aesni || can_use_avx
@@ -492,9 +492,9 @@ STATIC_INLINE uint32_t fmix(uint32_t h)
 
 STATIC_INLINE uint32_t Mur(uint32_t a, uint32_t h) {
   // Helper from Murmur3 for combining two 32-bit values.
-  a *= farmhash::c1;
+  a *= inlined::c1;
   a = Rotate32(a, 17);
-  a *= farmhash::c2;
+  a *= inlined::c2;
   h ^= a;
   h = Rotate32(h, 19);
   return h * 5 + 0xe6546b64;
@@ -503,9 +503,9 @@ STATIC_INLINE uint32_t Mur(uint32_t a, uint32_t h) {
 template <typename T> STATIC_INLINE T DebugTweak(T x) {
   if (debug_mode) {
     if (sizeof(x) == 4) {
-      x = ~Bswap32(x * farmhash::c1);
+      x = ~Bswap32(x * inlined::c1);
     } else {
-      x = ~Bswap64(x * farmhash::k1);
+      x = ~Bswap64(x * inlined::k1);
     }
   }
   return x;
@@ -526,26 +526,25 @@ template <> CONST_EXPR uint128_t DebugTweak(uint128_t x) {
     uint64_t z = DebugTweak(Uint128High64(x));
     y += z;
     z += y;
-    CopyUint128(x, Uint128(y, z * farmhash::k1));
+    CopyUint128(x, Uint128(y, z * inlined::k1));
   }
   return x;
 }
 
 // }  // namespace NAMESPACE_FOR_HASH_FUNCTIONS
-} /*end namespace farmhash*/
+} /*end namespace inlined*/
 
 using namespace std;
 // using namespace NAMESPACE_FOR_HASH_FUNCTIONS;
-//using namespace OIIO::inlined_hashes::farmhash;
 namespace farmhashna {
 #undef Fetch
-#define Fetch inlined_hashes::farmhash::Fetch64
+#define Fetch farmhash::inlined::Fetch64
 
 #undef Rotate
-#define Rotate inlined_hashes::farmhash::Rotate64
+#define Rotate farmhash::inlined::Rotate64
 
 #undef Bswap
-#define Bswap inlined_hashes::farmhash::Bswap64
+#define Bswap farmhash::inlined::Bswap64
 
 STATIC_INLINE uint64_t ShiftMix(uint64_t val) {
   return val ^ (val >> 47);
@@ -567,17 +566,17 @@ STATIC_INLINE uint64_t HashLen16(uint64_t u, uint64_t v, uint64_t mul) {
 
 STATIC_INLINE uint64_t HashLen0to16(const char *s, size_t len) {
   if (len >= 8) {
-    uint64_t mul = farmhash::k2 + len * 2;
-    uint64_t a = Fetch(s) + farmhash::k2;
+    uint64_t mul = inlined::k2 + len * 2;
+    uint64_t a = Fetch(s) + inlined::k2;
     uint64_t b = Fetch(s + len - 8);
     uint64_t c = Rotate(b, 37) * mul + a;
     uint64_t d = (Rotate(a, 25) + b) * mul;
     return HashLen16(c, d, mul);
   }
   if (len >= 4) {
-    uint64_t mul = farmhash::k2 + len * 2;
-    uint64_t a = farmhash::Fetch32(s);
-    return HashLen16(len + (a << 3), farmhash::Fetch32(s + len - 4), mul);
+    uint64_t mul = inlined::k2 + len * 2;
+    uint64_t a = inlined::Fetch32(s);
+    return HashLen16(len + (a << 3), inlined::Fetch32(s + len - 4), mul);
   }
   if (len > 0) {
     uint8_t a = s[0];
@@ -585,21 +584,21 @@ STATIC_INLINE uint64_t HashLen0to16(const char *s, size_t len) {
     uint8_t c = s[len - 1];
     uint32_t y = static_cast<uint32_t>(a) + (static_cast<uint32_t>(b) << 8);
     uint32_t z = len + (static_cast<uint32_t>(c) << 2);
-    return ShiftMix(y * farmhash::k2 ^ z * farmhash::k0) * farmhash::k2;
+    return ShiftMix(y * inlined::k2 ^ z * inlined::k0) * inlined::k2;
   }
-  return farmhash::k2;
+  return inlined::k2;
 }
 
 // This probably works well for 16-byte strings as well, but it may be overkill
 // in that case.
 STATIC_INLINE uint64_t HashLen17to32(const char *s, size_t len) {
-  uint64_t mul = farmhash::k2 + len * 2;
-  uint64_t a = Fetch(s) * farmhash::k1;
+  uint64_t mul = inlined::k2 + len * 2;
+  uint64_t a = Fetch(s) * inlined::k1;
   uint64_t b = Fetch(s + 8);
   uint64_t c = Fetch(s + len - 8) * mul;
-  uint64_t d = Fetch(s + len - 16) * farmhash::k2;
+  uint64_t d = Fetch(s + len - 16) * inlined::k2;
   return HashLen16(Rotate(a + b, 43) + Rotate(c, 30) + d,
-                   a + Rotate(b + farmhash::k2, 18) + c, mul);
+                   a + Rotate(b + inlined::k2, 18) + c, mul);
 }
 
 // Return a 16-byte hash for 48 bytes.  Quick and dirty.
@@ -628,13 +627,13 @@ STATIC_INLINE pair<uint64_t, uint64_t> WeakHashLen32WithSeeds(
 
 // Return an 8-byte hash for 33 to 64 bytes.
 STATIC_INLINE uint64_t HashLen33to64(const char *s, size_t len) {
-  uint64_t mul = farmhash::k2 + len * 2;
-  uint64_t a = Fetch(s) * farmhash::k2;
+  uint64_t mul = inlined::k2 + len * 2;
+  uint64_t a = Fetch(s) * inlined::k2;
   uint64_t b = Fetch(s + 8);
   uint64_t c = Fetch(s + len - 8) * mul;
-  uint64_t d = Fetch(s + len - 16) * farmhash::k2;
+  uint64_t d = Fetch(s + len - 16) * inlined::k2;
   uint64_t y = Rotate(a + b, 43) + Rotate(c, 30) + d;
-  uint64_t z = HashLen16(y, a + Rotate(b + farmhash::k2, 18) + c, mul);
+  uint64_t z = HashLen16(y, a + Rotate(b + inlined::k2, 18) + c, mul);
   uint64_t e = Fetch(s + 16) * mul;
   uint64_t f = Fetch(s + 24);
   uint64_t g = (y + Fetch(s + len - 32)) * mul;
@@ -658,28 +657,28 @@ STATIC_INLINE uint64_t Hash64(const char *s, size_t len) {
   // For strings over 64 bytes we loop.  Internal state consists of
   // 56 bytes: v, w, x, y, and z.
   uint64_t x = seed;
-  uint64_t y = seed * farmhash::k1 + 113;
-  uint64_t z = ShiftMix(y * farmhash::k2 + 113) * farmhash::k2;
+  uint64_t y = seed * inlined::k1 + 113;
+  uint64_t z = ShiftMix(y * inlined::k2 + 113) * inlined::k2;
   pair<uint64_t, uint64_t> v = make_pair(0, 0);
   pair<uint64_t, uint64_t> w = make_pair(0, 0);
-  x = x * farmhash::k2 + Fetch(s);
+  x = x * inlined::k2 + Fetch(s);
 
   // Set end so that after the loop we have 1 to 64 bytes left to process.
   const char* end = s + ((len - 1) / 64) * 64;
   const char* last64 = end + ((len - 1) & 63) - 63;
   assert(s + len - 64 == last64);
   do {
-    x = Rotate(x + y + v.first + Fetch(s + 8), 37) * farmhash::k1;
-    y = Rotate(y + v.second + Fetch(s + 48), 42) * farmhash::k1;
+    x = Rotate(x + y + v.first + Fetch(s + 8), 37) * inlined::k1;
+    y = Rotate(y + v.second + Fetch(s + 48), 42) * inlined::k1;
     x ^= w.second;
     y += v.first + Fetch(s + 40);
-    z = Rotate(z + w.first, 33) * farmhash::k1;
-    CopyUint128(v, WeakHashLen32WithSeeds(s, v.second * farmhash::k1, x + w.first));
+    z = Rotate(z + w.first, 33) * inlined::k1;
+    CopyUint128(v, WeakHashLen32WithSeeds(s, v.second * inlined::k1, x + w.first));
     CopyUint128(w, WeakHashLen32WithSeeds(s + 32, z + w.second, y + Fetch(s + 16)));
     simpleSwap(z, x);
     s += 64;
   } while (s != end);
-  uint64_t mul = farmhash::k1 + ((z & 0xff) << 1);
+  uint64_t mul = inlined::k1 + ((z & 0xff) << 1);
   // Make s point to the last 64 bytes of input.
   s = last64;
   w.first += ((len - 1) & 63);
@@ -693,7 +692,7 @@ STATIC_INLINE uint64_t Hash64(const char *s, size_t len) {
   CopyUint128(v, WeakHashLen32WithSeeds(s, v.second * mul, x + w.first));
   CopyUint128(w, WeakHashLen32WithSeeds(s + 32, z + w.second, y + Fetch(s + 16)));
   simpleSwap(z, x);
-  return HashLen16(HashLen16(v.first, w.first, mul) + ShiftMix(y) * farmhash::k0 + z,
+  return HashLen16(HashLen16(v.first, w.first, mul) + ShiftMix(y) * inlined::k0 + z,
                    HashLen16(v.second, w.second, mul) + x,
                    mul);
 }
@@ -703,16 +702,16 @@ STATIC_INLINE uint64_t Hash64WithSeeds(const char *s, size_t len, uint64_t seed0
 }
 
 STATIC_INLINE uint64_t Hash64WithSeed(const char *s, size_t len, uint64_t seed) {
-  return Hash64WithSeeds(s, len, farmhash::k2, seed);
+  return Hash64WithSeeds(s, len, inlined::k2, seed);
 }
 
 }  // namespace farmhashna
 namespace farmhashuo {
 #undef Fetch
-#define Fetch farmhash::Fetch64
+#define Fetch inlined::Fetch64
 
 #undef Rotate
-#define Rotate farmhash::Rotate64
+#define Rotate inlined::Rotate64
 
 STATIC_INLINE uint64_t H(uint64_t x, uint64_t y, uint64_t mul, int r) {
   uint64_t a = (x ^ y) * mul;
@@ -730,13 +729,13 @@ STATIC_INLINE uint64_t Hash64WithSeeds(const char *s, size_t len,
   // For strings over 64 bytes we loop.  Internal state consists of
   // 64 bytes: u, v, w, x, y, and z.
   uint64_t x = seed0;
-  uint64_t y = seed1 * farmhash::k2 + 113;
-  uint64_t z = farmhashna::ShiftMix(y * farmhash::k2) * farmhash::k2;
+  uint64_t y = seed1 * inlined::k2 + 113;
+  uint64_t z = farmhashna::ShiftMix(y * inlined::k2) * inlined::k2;
   pair<uint64_t, uint64_t> v = make_pair(seed0, seed1);
   pair<uint64_t, uint64_t> w = make_pair(0, 0);
   uint64_t u = x - z;
-  x *= farmhash::k2;
-  uint64_t mul = farmhash::k2 + (u & 0x82);
+  x *= inlined::k2;
+  uint64_t mul = inlined::k2 + (u & 0x82);
 
   // Set end so that after the loop we have 1 to 64 bytes left to process.
   const char* end = s + ((len - 1) / 64) * 64;
@@ -807,8 +806,8 @@ STATIC_INLINE uint64_t Hash64WithSeeds(const char *s, size_t len,
   CopyUint128(v, farmhashna::WeakHashLen32WithSeeds(s, v.second * mul, x + w.first));
   CopyUint128(w, farmhashna::WeakHashLen32WithSeeds(s + 32, z + w.second, y + Fetch(s + 16)));
   return H(farmhashna::HashLen16(v.first + x, w.first ^ y, mul) + z - u,
-           H(v.second + y, w.second + z, farmhash::k2, 30) ^ x,
-           farmhash::k2,
+           H(v.second + y, w.second + z, inlined::k2, 30) ^ x,
+           inlined::k2,
            31);
 }
 
@@ -824,19 +823,19 @@ STATIC_INLINE uint64_t Hash64(const char *s, size_t len) {
 }  // namespace farmhashuo
 namespace farmhashxo {
 #undef Fetch
-#define Fetch farmhash::Fetch64
+#define Fetch inlined::Fetch64
 
 #undef Rotate
-#define Rotate farmhash::Rotate64
+#define Rotate inlined::Rotate64
 
 STATIC_INLINE uint64_t H32(const char *s, size_t len, uint64_t mul,
                            uint64_t seed0 = 0, uint64_t seed1 = 0) {
-  uint64_t a = Fetch(s) * farmhash::k1;
+  uint64_t a = Fetch(s) * inlined::k1;
   uint64_t b = Fetch(s + 8);
   uint64_t c = Fetch(s + len - 8) * mul;
-  uint64_t d = Fetch(s + len - 16) * farmhash::k2;
+  uint64_t d = Fetch(s + len - 16) * inlined::k2;
   uint64_t u = Rotate(a + b, 43) + Rotate(c, 30) + d + seed0;
-  uint64_t v = a + Rotate(b + farmhash::k2, 18) + c + seed1;
+  uint64_t v = a + Rotate(b + inlined::k2, 18) + c + seed1;
   a = farmhashna::ShiftMix((u ^ v) * mul);
   b = farmhashna::ShiftMix((v ^ a) * mul);
   return b;
@@ -844,8 +843,8 @@ STATIC_INLINE uint64_t H32(const char *s, size_t len, uint64_t mul,
 
 // Return an 8-byte hash for 33 to 64 bytes.
 STATIC_INLINE uint64_t HashLen33to64(const char *s, size_t len) {
-  uint64_t mul0 = farmhash::k2 - 30;
-  uint64_t mul1 = farmhash::k2 - 30 + 2 * len;
+  uint64_t mul0 = inlined::k2 - 30;
+  uint64_t mul1 = inlined::k2 - 30 + 2 * len;
   uint64_t h0 = H32(s, 32, mul0);
   uint64_t h1 = H32(s + len - 32, 32, mul1);
   return ((h1 * mul1) + h0) * mul1;
@@ -853,8 +852,8 @@ STATIC_INLINE uint64_t HashLen33to64(const char *s, size_t len) {
 
 // Return an 8-byte hash for 65 to 96 bytes.
 STATIC_INLINE uint64_t HashLen65to96(const char *s, size_t len) {
-  uint64_t mul0 = farmhash::k2 - 114;
-  uint64_t mul1 = farmhash::k2 - 114 + 2 * len;
+  uint64_t mul0 = inlined::k2 - 114;
+  uint64_t mul1 = inlined::k2 - 114 + 2 * len;
   uint64_t h0 = H32(s, 32, mul0);
   uint64_t h1 = H32(s + 32, 32, mul1);
   uint64_t h2 = H32(s + len - 32, 32, mul1, h0, h1);
@@ -909,13 +908,13 @@ STATIC_INLINE uint64_t Hash64WithSeeds(const char *s, size_t len,
 #else
 
 #undef Fetch
-#define Fetch farmhash::Fetch64
+#define Fetch inlined::Fetch64
 
 #undef Rotate
-#define Rotate farmhash::Rotate64
+#define Rotate inlined::Rotate64
 
 #undef Bswap
-#define Bswap farmhash::Bswap64
+#define Bswap inlined::Bswap64
 
 // Helpers for data-parallel operations (1x 128 bits or 2x 64 or 4x 32).
 STATIC_INLINE __m128i Add(__m128i x, __m128i y) { return _mm_add_epi64(x, y); }
@@ -949,14 +948,14 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
   const char* end = s + (n & ~static_cast<size_t>(255));
   do {
     __m128i z;
-    z = farmhash::Fetch128(s);
+    z = inlined::Fetch128(s);
     d0 = Add(d0, z);
     d1 = Shuf(kShuf, d1);
     d2 = Xor(d2, d0);
     d4 = Xor(d4, z);
     d4 = Xor(d4, d1);
     simpleSwap(d0, d6);
-    z = farmhash::Fetch128(s + 16);
+    z = inlined::Fetch128(s + 16);
     d5 = Add(d5, z);
     d6 = Shuf(kShuf, d6);
     d8 = Shuf(kShuf, d8);
@@ -964,28 +963,28 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
     d0 = Xor(d0, z);
     d0 = Xor(d0, d6);
     simpleSwap(d5, d11);
-    z = farmhash::Fetch128(s + 32);
+    z = inlined::Fetch128(s + 32);
     d1 = Add(d1, z);
     d2 = Shuf(kShuf, d2);
     d4 = Shuf(kShuf, d4);
     d5 = Xor(d5, z);
     d5 = Xor(d5, d2);
     simpleSwap(d10, d4);
-    z = farmhash::Fetch128(s + 48);
+    z = inlined::Fetch128(s + 48);
     d6 = Add(d6, z);
     d7 = Shuf(kShuf, d7);
     d0 = Shuf(kShuf, d0);
     d8 = Xor(d8, d6);
     d1 = Xor(d1, z);
     d1 = Add(d1, d7);
-    z = farmhash::Fetch128(s + 64);
+    z = inlined::Fetch128(s + 64);
     d2 = Add(d2, z);
     d5 = Shuf(kShuf, d5);
     d4 = Add(d4, d2);
     d6 = Xor(d6, z);
     d6 = Xor(d6, d11);
     simpleSwap(d8, d2);
-    z = farmhash::Fetch128(s + 80);
+    z = inlined::Fetch128(s + 80);
     d7 = Xor(d7, z);
     d8 = Shuf(kShuf, d8);
     d1 = Shuf(kShuf, d1);
@@ -993,7 +992,7 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
     d2 = Add(d2, z);
     d2 = Add(d2, d8);
     simpleSwap(d1, d7);
-    z = farmhash::Fetch128(s + 96);
+    z = inlined::Fetch128(s + 96);
     d4 = Shuf(kShuf, d4);
     d6 = Shuf(kShuf, d6);
     d8 = Mul(kMult, d8);
@@ -1001,7 +1000,7 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
     d7 = Xor(d7, z);
     d7 = Add(d7, d4);
     simpleSwap(d6, d0);
-    z = farmhash::Fetch128(s + 112);
+    z = inlined::Fetch128(s + 112);
     d8 = Add(d8, z);
     d0 = Shuf(kShuf, d0);
     d2 = Shuf(kShuf, d2);
@@ -1009,7 +1008,7 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
     d10 = Xor(d10, z);
     d10 = Xor(d10, d0);
     simpleSwap(d11, d5);
-    z = farmhash::Fetch128(s + 128);
+    z = inlined::Fetch128(s + 128);
     d4 = Add(d4, z);
     d5 = Shuf(kShuf, d5);
     d7 = Shuf(kShuf, d7);
@@ -1017,13 +1016,13 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
     d8 = Xor(d8, z);
     d8 = Xor(d8, d5);
     simpleSwap(d4, d10);
-    z = farmhash::Fetch128(s + 144);
+    z = inlined::Fetch128(s + 144);
     d0 = Add(d0, z);
     d1 = Shuf(kShuf, d1);
     d2 = Add(d2, d0);
     d4 = Xor(d4, z);
     d4 = Xor(d4, d1);
-    z = farmhash::Fetch128(s + 160);
+    z = inlined::Fetch128(s + 160);
     d5 = Add(d5, z);
     d6 = Shuf(kShuf, d6);
     d8 = Shuf(kShuf, d8);
@@ -1031,7 +1030,7 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
     d0 = Xor(d0, z);
     d0 = Xor(d0, d6);
     simpleSwap(d2, d8);
-    z = farmhash::Fetch128(s + 176);
+    z = inlined::Fetch128(s + 176);
     d1 = Add(d1, z);
     d2 = Shuf(kShuf, d2);
     d4 = Shuf(kShuf, d4);
@@ -1039,7 +1038,7 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
     d5 = Xor(d5, z);
     d5 = Xor(d5, d2);
     simpleSwap(d7, d1);
-    z = farmhash::Fetch128(s + 192);
+    z = inlined::Fetch128(s + 192);
     d6 = Add(d6, z);
     d7 = Shuf(kShuf, d7);
     d0 = Shuf(kShuf, d0);
@@ -1047,14 +1046,14 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
     d1 = Xor(d1, z);
     d1 = Xor(d1, d7);
     simpleSwap(d0, d6);
-    z = farmhash::Fetch128(s + 208);
+    z = inlined::Fetch128(s + 208);
     d2 = Add(d2, z);
     d5 = Shuf(kShuf, d5);
     d4 = Xor(d4, d2);
     d6 = Xor(d6, z);
     d6 = Xor(d6, d9);
     simpleSwap(d5, d11);
-    z = farmhash::Fetch128(s + 224);
+    z = inlined::Fetch128(s + 224);
     d7 = Add(d7, z);
     d8 = Shuf(kShuf, d8);
     d1 = Shuf(kShuf, d1);
@@ -1062,7 +1061,7 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
     d2 = Xor(d2, z);
     d2 = Xor(d2, d8);
     simpleSwap(d10, d4);
-    z = farmhash::Fetch128(s + 240);
+    z = inlined::Fetch128(s + 240);
     d3 = Add(d3, z);
     d4 = Shuf(kShuf, d4);
     d6 = Shuf(kShuf, d6);
@@ -1104,11 +1103,11 @@ STATIC_INLINE uint64_t Hash64Long(const char* s, size_t n,
 
 STATIC_INLINE uint64_t Hash64(const char *s, size_t len) {
   // Empirically, farmhashxo seems faster until length 512.
-  return len >= 512 ? Hash64Long(s, len, farmhash::k2, farmhash::k1) : farmhashxo::Hash64(s, len);
+  return len >= 512 ? Hash64Long(s, len, inlined::k2, inlined::k1) : farmhashxo::Hash64(s, len);
 }
 
 STATIC_INLINE uint64_t Hash64WithSeed(const char *s, size_t len, uint64_t seed) {
-  return len >= 512 ? Hash64Long(s, len, farmhash::k1, seed) :
+  return len >= 512 ? Hash64Long(s, len, inlined::k1, seed) :
       farmhashxo::Hash64WithSeed(s, len, seed);
 }
 
@@ -1146,16 +1145,16 @@ STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) 
 }  // namespace farmhashnt
 namespace farmhashmk {
 #undef Fetch
-#define Fetch farmhash::Fetch32
+#define Fetch inlined::Fetch32
 
 #undef Rotate
-#define Rotate farmhash::Rotate32
+#define Rotate inlined::Rotate32
 
 #undef Bswap
-#define Bswap farmhash::Bswap32
+#define Bswap inlined::Bswap32
 
 #undef fmix
-#define fmix inlined_hashes::farmhash::fmix
+#define fmix farmhash::inlined::fmix
 
 
 STATIC_INLINE uint32_t Hash32Len13to24(const char *s, size_t len, uint32_t seed = 0) {
@@ -1165,13 +1164,13 @@ STATIC_INLINE uint32_t Hash32Len13to24(const char *s, size_t len, uint32_t seed 
   uint32_t d = Fetch(s + (len >> 1));
   uint32_t e = Fetch(s);
   uint32_t f = Fetch(s + len - 4);
-  uint32_t h = d * farmhash::c1 + len + seed;
+  uint32_t h = d * inlined::c1 + len + seed;
   a = Rotate(a, 12) + f;
-  h = farmhash::Mur(c, h) + a;
+  h = inlined::Mur(c, h) + a;
   a = Rotate(a, 3) + c;
-  h = farmhash::Mur(e, h) + a;
+  h = inlined::Mur(e, h) + a;
   a = Rotate(a + f, 12) + d;
-  h = farmhash::Mur(b ^ seed, h) + a;
+  h = inlined::Mur(b ^ seed, h) + a;
   return fmix(h);
 }
 
@@ -1180,10 +1179,10 @@ STATIC_INLINE uint32_t Hash32Len0to4(const char *s, size_t len, uint32_t seed = 
   uint32_t c = 9;
   for (size_t i = 0; i < len; i++) {
     signed char v = s[i];
-    b = b * farmhash::c1 + v;
+    b = b * inlined::c1 + v;
     c ^= b;
   }
-  return fmix(farmhash::Mur(b, farmhash::Mur(len, c)));
+  return fmix(inlined::Mur(b, inlined::Mur(len, c)));
 }
 
 STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len, uint32_t seed = 0) {
@@ -1191,7 +1190,7 @@ STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len, uint32_t seed =
   a += Fetch(s);
   b += Fetch(s + len - 4);
   c += Fetch(s + ((len >> 1) & 4));
-  return fmix(seed ^ farmhash::Mur(c, farmhash::Mur(b, farmhash::Mur(a, d))));
+  return fmix(seed ^ inlined::Mur(c, inlined::Mur(b, inlined::Mur(a, d))));
 }
 
 STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
@@ -1202,12 +1201,12 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   }
 
   // len > 24
-  uint32_t h = len, g = farmhash::c1 * len, f = g;
-  uint32_t a0 = Rotate(Fetch(s + len - 4) * farmhash::c1, 17) * farmhash::c2;
-  uint32_t a1 = Rotate(Fetch(s + len - 8) * farmhash::c1, 17) * farmhash::c2;
-  uint32_t a2 = Rotate(Fetch(s + len - 16) * farmhash::c1, 17) * farmhash::c2;
-  uint32_t a3 = Rotate(Fetch(s + len - 12) * farmhash::c1, 17) * farmhash::c2;
-  uint32_t a4 = Rotate(Fetch(s + len - 20) * farmhash::c1, 17) * farmhash::c2;
+  uint32_t h = len, g = inlined::c1 * len, f = g;
+  uint32_t a0 = Rotate(Fetch(s + len - 4) * inlined::c1, 17) * inlined::c2;
+  uint32_t a1 = Rotate(Fetch(s + len - 8) * inlined::c1, 17) * inlined::c2;
+  uint32_t a2 = Rotate(Fetch(s + len - 16) * inlined::c1, 17) * inlined::c2;
+  uint32_t a3 = Rotate(Fetch(s + len - 12) * inlined::c1, 17) * inlined::c2;
+  uint32_t a4 = Rotate(Fetch(s + len - 20) * inlined::c1, 17) * inlined::c2;
   h ^= a0;
   h = Rotate(h, 19);
   h = h * 5 + 0xe6546b64;
@@ -1232,34 +1231,34 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
     h += a;
     g += b;
     f += c;
-    h = farmhash::Mur(d, h) + e;
-    g = farmhash::Mur(c, g) + a;
-    f = farmhash::Mur(b + e * farmhash::c1, f) + d;
+    h = inlined::Mur(d, h) + e;
+    g = inlined::Mur(c, g) + a;
+    f = inlined::Mur(b + e * inlined::c1, f) + d;
     f += g;
     g += f;
     s += 20;
   } while (--iters != 0);
-  g = Rotate(g, 11) * farmhash::c1;
-  g = Rotate(g, 17) * farmhash::c1;
-  f = Rotate(f, 11) * farmhash::c1;
-  f = Rotate(f, 17) * farmhash::c1;
+  g = Rotate(g, 11) * inlined::c1;
+  g = Rotate(g, 17) * inlined::c1;
+  f = Rotate(f, 11) * inlined::c1;
+  f = Rotate(f, 17) * inlined::c1;
   h = Rotate(h + g, 19);
   h = h * 5 + 0xe6546b64;
-  h = Rotate(h, 17) * farmhash::c1;
+  h = Rotate(h, 17) * inlined::c1;
   h = Rotate(h + f, 19);
   h = h * 5 + 0xe6546b64;
-  h = Rotate(h, 17) * farmhash::c1;
+  h = Rotate(h, 17) * inlined::c1;
   return h;
 }
 
 STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
   if (len <= 24) {
-    if (len >= 13) return Hash32Len13to24(s, len, seed * farmhash::c1);
+    if (len >= 13) return Hash32Len13to24(s, len, seed * inlined::c1);
     else if (len >= 5) return Hash32Len5to12(s, len, seed);
     else return Hash32Len0to4(s, len, seed);
   }
   uint32_t h = Hash32Len13to24(s, 24, seed ^ len);
-  return farmhash::Mur(Hash32(s + 24, len - 24) + seed, h);
+  return inlined::Mur(Hash32(s + 24, len - 24) + seed, h);
 }
 }  // namespace farmhashmk
 namespace farmhashsu {
@@ -1278,13 +1277,13 @@ STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) 
 #else
 
 #undef Fetch
-#define Fetch farmhash::Fetch32
+#define Fetch inlined::Fetch32
 
 #undef Rotate
-#define Rotate farmhash::Rotate32
+#define Rotate inlined::Rotate32
 
 #undef Bswap
-#define Bswap farmhash::Bswap32
+#define Bswap inlined::Bswap32
 
 // Helpers for data-parallel operations (4x 32-bits).
 STATIC_INLINE __m128i Add(__m128i x, __m128i y) { return _mm_add_epi32(x, y); }
@@ -1313,18 +1312,18 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   }
 
   if (len < 40) {
-    uint32_t a = len, b = seed * farmhash::c2, c = a + b;
+    uint32_t a = len, b = seed * inlined::c2, c = a + b;
     a += Fetch(s + len - 4);
     b += Fetch(s + len - 20);
     c += Fetch(s + len - 16);
     uint32_t d = a;
     a = NAMESPACE_FOR_HASH_FUNCTIONS::Rotate32(a, 21);
-    a = farmhash::Mur(a, farmhash::Mur(b, _mm_crc32_u32(c, d)));
+    a = inlined::Mur(a, inlined::Mur(b, _mm_crc32_u32(c, d)));
     a += Fetch(s + len - 12);
     b += Fetch(s + len - 8);
     d += a;
     a += d;
-    b = farmhash::Mur(b, d) * farmhash::c2;
+    b = inlined::Mur(b, d) * inlined::c2;
     a = _mm_crc32_u32(a, b + c);
     return farmhashmk::Hash32Len13to24(s, (len + 1) / 2, a) + b;
   }
@@ -1346,19 +1345,19 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
                           Mulc1(a))),           \
                   (h)))))
 
-  const __m128i cc1 = _mm_set1_epi32(farmhash::c1);
-  const __m128i cc2 = _mm_set1_epi32(farmhash::c2);
+  const __m128i cc1 = _mm_set1_epi32(inlined::c1);
+  const __m128i cc2 = _mm_set1_epi32(inlined::c2);
   __m128i h = _mm_set1_epi32(seed);
-  __m128i g = _mm_set1_epi32(farmhash::c1 * seed);
+  __m128i g = _mm_set1_epi32(inlined::c1 * seed);
   __m128i f = g;
   __m128i k = _mm_set1_epi32(0xe6546b64);
   __m128i q;
   if (len < 80) {
-    __m128i a = farmhash::Fetch128(s);
-    __m128i b = farmhash::Fetch128(s + 16);
-    __m128i c = farmhash::Fetch128(s + (len - 15) / 2);
-    __m128i d = farmhash::Fetch128(s + len - 32);
-    __m128i e = farmhash::Fetch128(s + len - 16);
+    __m128i a = inlined::Fetch128(s);
+    __m128i b = inlined::Fetch128(s + 16);
+    __m128i c = inlined::Fetch128(s + (len - 15) / 2);
+    __m128i d = inlined::Fetch128(s + len - 32);
+    __m128i e = inlined::Fetch128(s + len - 16);
     h = Add(h, a);
     g = Add(g, b);
     q = g;
@@ -1384,11 +1383,11 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
 
 #undef Chunk
 #define Chunk() do {                            \
-  __m128i a = farmhash::Fetch128(s);                      \
-  __m128i b = farmhash::Fetch128(s + 16);                 \
-  __m128i c = farmhash::Fetch128(s + 32);                 \
-  __m128i d = farmhash::Fetch128(s + 48);                 \
-  __m128i e = farmhash::Fetch128(s + 64);                 \
+  __m128i a = inlined::Fetch128(s);                      \
+  __m128i b = inlined::Fetch128(s + 16);                 \
+  __m128i c = inlined::Fetch128(s + 32);                 \
+  __m128i d = inlined::Fetch128(s + 48);                 \
+  __m128i e = inlined::Fetch128(s + 64);                 \
   h = Add(h, a);                                \
   g = Add(g, b);                                \
   g = Shuffle0321(g);                           \
@@ -1450,19 +1449,19 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   uint32_t z = Fetch(s+8);
   x = _mm_crc32_u32(x, Fetch(s+12));
   y = _mm_crc32_u32(y, Fetch(s+16));
-  z = _mm_crc32_u32(z * farmhash::c1, Fetch(s+20));
+  z = _mm_crc32_u32(z * inlined::c1, Fetch(s+20));
   x = _mm_crc32_u32(x, Fetch(s+24));
-  y = _mm_crc32_u32(y * farmhash::c1, Fetch(s+28));
+  y = _mm_crc32_u32(y * inlined::c1, Fetch(s+28));
   uint32_t o = y;
   z = _mm_crc32_u32(z, Fetch(s+32));
-  x = _mm_crc32_u32(x * farmhash::c1, Fetch(s+36));
+  x = _mm_crc32_u32(x * inlined::c1, Fetch(s+36));
   y = _mm_crc32_u32(y, Fetch(s+40));
-  z = _mm_crc32_u32(z * farmhash::c1, Fetch(s+44));
+  z = _mm_crc32_u32(z * inlined::c1, Fetch(s+44));
   x = _mm_crc32_u32(x, Fetch(s+48));
-  y = _mm_crc32_u32(y * farmhash::c1, Fetch(s+52));
+  y = _mm_crc32_u32(y * inlined::c1, Fetch(s+52));
   z = _mm_crc32_u32(z, Fetch(s+56));
   x = _mm_crc32_u32(x, Fetch(s+60));
-  return (o - x + y - z) * farmhash::c1;
+  return (o - x + y - z) * inlined::c1;
 }
 
 #undef Chunk
@@ -1472,7 +1471,7 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
 
 STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
   if (len <= 24) {
-    if (len >= 13) return farmhashmk::Hash32Len13to24(s, len, seed * farmhash::c1);
+    if (len >= 13) return farmhashmk::Hash32Len13to24(s, len, seed * inlined::c1);
     else if (len >= 5) return farmhashmk::Hash32Len5to12(s, len, seed);
     else return farmhashmk::Hash32Len0to4(s, len, seed);
   }
@@ -1498,13 +1497,13 @@ STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) 
 #else
 
 #undef Fetch
-#define Fetch farmhash::Fetch32
+#define Fetch inlined::Fetch32
 
 #undef Rotate
-#define Rotate farmhash::Rotate32
+#define Rotate inlined::Rotate32
 
 #undef Bswap
-#define Bswap farmhash::Bswap32
+#define Bswap inlined::Bswap32
 
 // Helpers for data-parallel operations (4x 32-bits).
 STATIC_INLINE __m128i Add(__m128i x, __m128i y) { return _mm_add_epi32(x, y); }
@@ -1533,18 +1532,18 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   }
 
   if (len < 40) {
-    uint32_t a = len, b = seed * farmhash::c2, c = a + b;
+    uint32_t a = len, b = seed * inlined::c2, c = a + b;
     a += Fetch(s + len - 4);
     b += Fetch(s + len - 20);
     c += Fetch(s + len - 16);
     uint32_t d = a;
     a = NAMESPACE_FOR_HASH_FUNCTIONS::Rotate32(a, 21);
-    a = farmhash::Mur(a, farmhash::Mur(b, farmhash::Mur(c, d)));
+    a = inlined::Mur(a, inlined::Mur(b, inlined::Mur(c, d)));
     a += Fetch(s + len - 12);
     b += Fetch(s + len - 8);
     d += a;
     a += d;
-    b = farmhash::Mur(b, d) * farmhash::c2;
+    b = inlined::Mur(b, d) * inlined::c2;
     a = _mm_crc32_u32(a, b + c);
     return farmhashmk::Hash32Len13to24(s, (len + 1) / 2, a) + b;
   }
@@ -1566,18 +1565,18 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
                           Mulc1(a))),           \
                   (h)))))
 
-  const __m128i cc1 = _mm_set1_epi32(farmhash::c1);
-  const __m128i cc2 = _mm_set1_epi32(farmhash::c2);
+  const __m128i cc1 = _mm_set1_epi32(inlined::c1);
+  const __m128i cc2 = _mm_set1_epi32(inlined::c2);
   __m128i h = _mm_set1_epi32(seed);
-  __m128i g = _mm_set1_epi32(farmhash::c1 * seed);
+  __m128i g = _mm_set1_epi32(inlined::c1 * seed);
   __m128i f = g;
   __m128i k = _mm_set1_epi32(0xe6546b64);
   if (len < 80) {
-    __m128i a = farmhash::Fetch128(s);
-    __m128i b = farmhash::Fetch128(s + 16);
-    __m128i c = farmhash::Fetch128(s + (len - 15) / 2);
-    __m128i d = farmhash::Fetch128(s + len - 32);
-    __m128i e = farmhash::Fetch128(s + len - 16);
+    __m128i a = inlined::Fetch128(s);
+    __m128i b = inlined::Fetch128(s + 16);
+    __m128i c = inlined::Fetch128(s + (len - 15) / 2);
+    __m128i d = inlined::Fetch128(s + len - 32);
+    __m128i e = inlined::Fetch128(s + len - 16);
     h = Add(h, a);
     g = Add(g, b);
     g = Shuffle0321(g);
@@ -1602,11 +1601,11 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
 
 #undef Chunk
 #define Chunk() do {                            \
-  __m128i a = farmhash::Fetch128(s);                       \
-  __m128i b = farmhash::Fetch128(s + 16);                  \
-  __m128i c = farmhash::Fetch128(s + 32);                  \
-  __m128i d = farmhash::Fetch128(s + 48);                  \
-  __m128i e = farmhash::Fetch128(s + 64);                  \
+  __m128i a = inlined::Fetch128(s);                       \
+  __m128i b = inlined::Fetch128(s + 16);                  \
+  __m128i c = inlined::Fetch128(s + 32);                  \
+  __m128i d = inlined::Fetch128(s + 48);                  \
+  __m128i e = inlined::Fetch128(s + 64);                  \
   h = Add(h, a);                                \
   g = Add(g, b);                                \
   g = Shuffle0321(g);                           \
@@ -1660,19 +1659,19 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   uint32_t z = Fetch(s+8);
   x = _mm_crc32_u32(x, Fetch(s+12));
   y = _mm_crc32_u32(y, Fetch(s+16));
-  z = _mm_crc32_u32(z * farmhash::c1, Fetch(s+20));
+  z = _mm_crc32_u32(z * inlined::c1, Fetch(s+20));
   x = _mm_crc32_u32(x, Fetch(s+24));
-  y = _mm_crc32_u32(y * farmhash::c1, Fetch(s+28));
+  y = _mm_crc32_u32(y * inlined::c1, Fetch(s+28));
   uint32_t o = y;
   z = _mm_crc32_u32(z, Fetch(s+32));
-  x = _mm_crc32_u32(x * farmhash::c1, Fetch(s+36));
+  x = _mm_crc32_u32(x * inlined::c1, Fetch(s+36));
   y = _mm_crc32_u32(y, Fetch(s+40));
-  z = _mm_crc32_u32(z * farmhash::c1, Fetch(s+44));
+  z = _mm_crc32_u32(z * inlined::c1, Fetch(s+44));
   x = _mm_crc32_u32(x, Fetch(s+48));
-  y = _mm_crc32_u32(y * farmhash::c1, Fetch(s+52));
+  y = _mm_crc32_u32(y * inlined::c1, Fetch(s+52));
   z = _mm_crc32_u32(z, Fetch(s+56));
   x = _mm_crc32_u32(x, Fetch(s+60));
-  return (o - x + y - z) * farmhash::c1;
+  return (o - x + y - z) * inlined::c1;
 }
 
 #undef Chunk
@@ -1682,7 +1681,7 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
 
 STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
   if (len <= 24) {
-    if (len >= 13) return farmhashmk::Hash32Len13to24(s, len, seed * farmhash::c1);
+    if (len >= 13) return farmhashmk::Hash32Len13to24(s, len, seed * inlined::c1);
     else if (len >= 5) return farmhashmk::Hash32Len5to12(s, len, seed);
     else return farmhashmk::Hash32Len0to4(s, len, seed);
   }
@@ -1698,16 +1697,16 @@ namespace farmhashcc {
 // a seeded 32-bit hash function similar to CityHash32.
 
 #undef Fetch
-#define Fetch farmhash::Fetch32
+#define Fetch inlined::Fetch32
 
 #undef Rotate
-#define Rotate farmhash::Rotate32
+#define Rotate inlined::Rotate32
 
 #undef Bswap
-#define Bswap farmhash::Bswap32
+#define Bswap inlined::Bswap32
 
 #undef fmix
-#define fmix inlined_hashes::farmhash::fmix
+#define fmix farmhash::inlined::fmix
 
 STATIC_INLINE uint32_t Hash32Len13to24(const char *s, size_t len) {
   uint32_t a = Fetch(s - 4 + (len >> 1));
@@ -1718,7 +1717,7 @@ STATIC_INLINE uint32_t Hash32Len13to24(const char *s, size_t len) {
   uint32_t f = Fetch(s + len - 4);
   uint32_t h = len;
 
-  return fmix(farmhash::Mur(f, farmhash::Mur(e, farmhash::Mur(d, farmhash::Mur(c, farmhash::Mur(b, farmhash::Mur(a, h)))))));
+  return fmix(inlined::Mur(f, inlined::Mur(e, inlined::Mur(d, inlined::Mur(c, inlined::Mur(b, inlined::Mur(a, h)))))));
 }
 
 STATIC_INLINE uint32_t Hash32Len0to4(const char *s, size_t len) {
@@ -1726,10 +1725,10 @@ STATIC_INLINE uint32_t Hash32Len0to4(const char *s, size_t len) {
   uint32_t c = 9;
   for (size_t i = 0; i < len; i++) {
     signed char v = s[i];
-    b = b * farmhash::c1 + v;
+    b = b * inlined::c1 + v;
     c ^= b;
   }
-  return fmix(farmhash::Mur(b, farmhash::Mur(len, c)));
+  return fmix(inlined::Mur(b, inlined::Mur(len, c)));
 }
 
 STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len) {
@@ -1737,7 +1736,7 @@ STATIC_INLINE uint32_t Hash32Len5to12(const char *s, size_t len) {
   a += Fetch(s);
   b += Fetch(s + len - 4);
   c += Fetch(s + ((len >> 1) & 4));
-  return fmix(farmhash::Mur(c, farmhash::Mur(b, farmhash::Mur(a, d))));
+  return fmix(inlined::Mur(c, inlined::Mur(b, inlined::Mur(a, d))));
 }
 
 STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
@@ -1748,12 +1747,12 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   }
 
   // len > 24
-  uint32_t h = len, g = farmhash::c1 * len, f = g;
-  uint32_t a0 = Rotate(Fetch(s + len - 4) * farmhash::c1, 17) * farmhash::c2;
-  uint32_t a1 = Rotate(Fetch(s + len - 8) * farmhash::c1, 17) * farmhash::c2;
-  uint32_t a2 = Rotate(Fetch(s + len - 16) * farmhash::c1, 17) * farmhash::c2;
-  uint32_t a3 = Rotate(Fetch(s + len - 12) * farmhash::c1, 17) * farmhash::c2;
-  uint32_t a4 = Rotate(Fetch(s + len - 20) * farmhash::c1, 17) * farmhash::c2;
+  uint32_t h = len, g = inlined::c1 * len, f = g;
+  uint32_t a0 = Rotate(Fetch(s + len - 4) * inlined::c1, 17) * inlined::c2;
+  uint32_t a1 = Rotate(Fetch(s + len - 8) * inlined::c1, 17) * inlined::c2;
+  uint32_t a2 = Rotate(Fetch(s + len - 16) * inlined::c1, 17) * inlined::c2;
+  uint32_t a3 = Rotate(Fetch(s + len - 12) * inlined::c1, 17) * inlined::c2;
+  uint32_t a4 = Rotate(Fetch(s + len - 20) * inlined::c1, 17) * inlined::c2;
   h ^= a0;
   h = Rotate(h, 19);
   h = h * 5 + 0xe6546b64;
@@ -1771,17 +1770,17 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
   f = f * 5 + 0xe6546b64;
   size_t iters = (len - 1) / 20;
   do {
-    uint32_t a0 = Rotate(Fetch(s) * farmhash::c1, 17) * farmhash::c2;
+    uint32_t a0 = Rotate(Fetch(s) * inlined::c1, 17) * inlined::c2;
     uint32_t a1 = Fetch(s + 4);
-    uint32_t a2 = Rotate(Fetch(s + 8) * farmhash::c1, 17) * farmhash::c2;
-    uint32_t a3 = Rotate(Fetch(s + 12) * farmhash::c1, 17) * farmhash::c2;
+    uint32_t a2 = Rotate(Fetch(s + 8) * inlined::c1, 17) * inlined::c2;
+    uint32_t a3 = Rotate(Fetch(s + 12) * inlined::c1, 17) * inlined::c2;
     uint32_t a4 = Fetch(s + 16);
     h ^= a0;
     h = Rotate(h, 18);
     h = h * 5 + 0xe6546b64;
     f += a1;
     f = Rotate(f, 19);
-    f = f * farmhash::c1;
+    f = f * inlined::c1;
     g += a2;
     g = Rotate(g, 18);
     g = g * 5 + 0xe6546b64;
@@ -1796,40 +1795,40 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
     PERMUTE3(f, h, g);
     s += 20;
   } while (--iters != 0);
-  g = Rotate(g, 11) * farmhash::c1;
-  g = Rotate(g, 17) * farmhash::c1;
-  f = Rotate(f, 11) * farmhash::c1;
-  f = Rotate(f, 17) * farmhash::c1;
+  g = Rotate(g, 11) * inlined::c1;
+  g = Rotate(g, 17) * inlined::c1;
+  f = Rotate(f, 11) * inlined::c1;
+  f = Rotate(f, 17) * inlined::c1;
   h = Rotate(h + g, 19);
   h = h * 5 + 0xe6546b64;
-  h = Rotate(h, 17) * farmhash::c1;
+  h = Rotate(h, 17) * inlined::c1;
   h = Rotate(h + f, 19);
   h = h * 5 + 0xe6546b64;
-  h = Rotate(h, 17) * farmhash::c1;
+  h = Rotate(h, 17) * inlined::c1;
   return h;
 }
 
 STATIC_INLINE uint32_t Hash32WithSeed(const char *s, size_t len, uint32_t seed) {
   if (len <= 24) {
-    if (len >= 13) return farmhashmk::Hash32Len13to24(s, len, seed * farmhash::c1);
+    if (len >= 13) return farmhashmk::Hash32Len13to24(s, len, seed * inlined::c1);
     else if (len >= 5) return farmhashmk::Hash32Len5to12(s, len, seed);
     else return farmhashmk::Hash32Len0to4(s, len, seed);
   }
   uint32_t h = farmhashmk::Hash32Len13to24(s, 24, seed ^ len);
-  return farmhash::Mur(Hash32(s + 24, len - 24) + seed, h);
+  return inlined::Mur(Hash32(s + 24, len - 24) + seed, h);
 }
 
 #undef Fetch
-#define Fetch inlined_hashes::farmhash::Fetch64
+#define Fetch farmhash::inlined::Fetch64
 
 #undef Rotate
-#define Rotate farmhash::Rotate64
+#define Rotate inlined::Rotate64
 
 #undef Bswap
-#define Bswap farmhash::Bswap64
+#define Bswap inlined::Bswap64
 
 #undef DebugTweak
-#define DebugTweak inlined_hashes::farmhash::DebugTweak
+#define DebugTweak farmhash::inlined::DebugTweak
 
 STATIC_INLINE uint64_t ShiftMix(uint64_t val) {
   return val ^ (val >> 47);
@@ -1851,17 +1850,17 @@ STATIC_INLINE uint64_t HashLen16(uint64_t u, uint64_t v, uint64_t mul) {
 
 STATIC_INLINE uint64_t HashLen0to16(const char *s, size_t len) {
   if (len >= 8) {
-    uint64_t mul = farmhash::k2 + len * 2;
-    uint64_t a = Fetch(s) + farmhash::k2;
+    uint64_t mul = inlined::k2 + len * 2;
+    uint64_t a = Fetch(s) + inlined::k2;
     uint64_t b = Fetch(s + len - 8);
     uint64_t c = Rotate(b, 37) * mul + a;
     uint64_t d = (Rotate(a, 25) + b) * mul;
     return HashLen16(c, d, mul);
   }
   if (len >= 4) {
-    uint64_t mul = farmhash::k2 + len * 2;
-    uint64_t a = farmhash::Fetch32(s);
-    return HashLen16(len + (a << 3), farmhash::Fetch32(s + len - 4), mul);
+    uint64_t mul = inlined::k2 + len * 2;
+    uint64_t a = inlined::Fetch32(s);
+    return HashLen16(len + (a << 3), inlined::Fetch32(s + len - 4), mul);
   }
   if (len > 0) {
     uint8_t a = s[0];
@@ -1869,9 +1868,9 @@ STATIC_INLINE uint64_t HashLen0to16(const char *s, size_t len) {
     uint8_t c = s[len - 1];
     uint32_t y = static_cast<uint32_t>(a) + (static_cast<uint32_t>(b) << 8);
     uint32_t z = len + (static_cast<uint32_t>(c) << 2);
-    return ShiftMix(y * farmhash::k2 ^ z * farmhash::k0) * farmhash::k2;
+    return ShiftMix(y * inlined::k2 ^ z * inlined::k0) * inlined::k2;
   }
-  return farmhash::k2;
+  return inlined::k2;
 }
 
 // Return a 16-byte hash for 48 bytes.  Quick and dirty.
@@ -1909,19 +1908,19 @@ STATIC_INLINE uint128_t CityMurmur(const char *s, size_t len, uint128_t seed) {
   uint64_t d = 0;
   signed long l = len - 16;
   if (l <= 0) {  // len <= 16
-    a = ShiftMix(a * farmhash::k1) * farmhash::k1;
-    c = b * farmhash::k1 + HashLen0to16(s, len);
+    a = ShiftMix(a * inlined::k1) * inlined::k1;
+    c = b * inlined::k1 + HashLen0to16(s, len);
     d = ShiftMix(a + (len >= 8 ? Fetch(s) : c));
   } else {  // len > 16
-    c = HashLen16(Fetch(s + len - 8) + farmhash::k1, a);
+    c = HashLen16(Fetch(s + len - 8) + inlined::k1, a);
     d = HashLen16(b + len, c + Fetch(s + len - 16));
     a += d;
     do {
-      a ^= ShiftMix(Fetch(s) * farmhash::k1) * farmhash::k1;
-      a *= farmhash::k1;
+      a ^= ShiftMix(Fetch(s) * inlined::k1) * inlined::k1;
+      a *= inlined::k1;
       b ^= a;
-      c ^= ShiftMix(Fetch(s + 8) * farmhash::k1) * farmhash::k1;
-      c *= farmhash::k1;
+      c ^= ShiftMix(Fetch(s + 8) * inlined::k1) * inlined::k1;
+      c *= inlined::k1;
       d ^= c;
       s += 16;
       l -= 16;
@@ -1942,49 +1941,49 @@ STATIC_INLINE uint128_t CityHash128WithSeed(const char *s, size_t len, uint128_t
   pair<uint64_t, uint64_t> v, w;
   uint64_t x = Uint128Low64(seed);
   uint64_t y = Uint128High64(seed);
-  uint64_t z = len * farmhash::k1;
-  v.first = Rotate(y ^ farmhash::k1, 49) * farmhash::k1 + Fetch(s);
-  v.second = Rotate(v.first, 42) * farmhash::k1 + Fetch(s + 8);
-  w.first = Rotate(y + z, 35) * farmhash::k1 + x;
-  w.second = Rotate(x + Fetch(s + 88), 53) * farmhash::k1;
+  uint64_t z = len * inlined::k1;
+  v.first = Rotate(y ^ inlined::k1, 49) * inlined::k1 + Fetch(s);
+  v.second = Rotate(v.first, 42) * inlined::k1 + Fetch(s + 8);
+  w.first = Rotate(y + z, 35) * inlined::k1 + x;
+  w.second = Rotate(x + Fetch(s + 88), 53) * inlined::k1;
 
   // This is the same inner loop as CityHash64(), manually unrolled.
   do {
-    x = Rotate(x + y + v.first + Fetch(s + 8), 37) * farmhash::k1;
-    y = Rotate(y + v.second + Fetch(s + 48), 42) * farmhash::k1;
+    x = Rotate(x + y + v.first + Fetch(s + 8), 37) * inlined::k1;
+    y = Rotate(y + v.second + Fetch(s + 48), 42) * inlined::k1;
     x ^= w.second;
     y += v.first + Fetch(s + 40);
-    z = Rotate(z + w.first, 33) * farmhash::k1;
-    CopyUint128(v, WeakHashLen32WithSeeds(s, v.second * farmhash::k1, x + w.first));
+    z = Rotate(z + w.first, 33) * inlined::k1;
+    CopyUint128(v, WeakHashLen32WithSeeds(s, v.second * inlined::k1, x + w.first));
     CopyUint128(w, WeakHashLen32WithSeeds(s + 32, z + w.second, y + Fetch(s + 16)));
     simpleSwap(z, x);
     s += 64;
-    x = Rotate(x + y + v.first + Fetch(s + 8), 37) * farmhash::k1;
-    y = Rotate(y + v.second + Fetch(s + 48), 42) * farmhash::k1;
+    x = Rotate(x + y + v.first + Fetch(s + 8), 37) * inlined::k1;
+    y = Rotate(y + v.second + Fetch(s + 48), 42) * inlined::k1;
     x ^= w.second;
     y += v.first + Fetch(s + 40);
-    z = Rotate(z + w.first, 33) * farmhash::k1;
-    CopyUint128(v, WeakHashLen32WithSeeds(s, v.second * farmhash::k1, x + w.first));
+    z = Rotate(z + w.first, 33) * inlined::k1;
+    CopyUint128(v, WeakHashLen32WithSeeds(s, v.second * inlined::k1, x + w.first));
     CopyUint128(w, WeakHashLen32WithSeeds(s + 32, z + w.second, y + Fetch(s + 16)));
     simpleSwap(z, x);
     s += 64;
     len -= 128;
   } while (OIIO_LIKELY(len >= 128));
-  x += Rotate(v.first + z, 49) * farmhash::k0;
-  y = y * farmhash::k0 + Rotate(w.second, 37);
-  z = z * farmhash::k0 + Rotate(w.first, 27);
+  x += Rotate(v.first + z, 49) * inlined::k0;
+  y = y * inlined::k0 + Rotate(w.second, 37);
+  z = z * inlined::k0 + Rotate(w.first, 27);
   w.first *= 9;
-  v.first *= farmhash::k0;
+  v.first *= inlined::k0;
   // If 0 < len < 128, hash up to 4 chunks of 32 bytes each from the end of s.
   for (size_t tail_done = 0; tail_done < len; ) {
     tail_done += 32;
-    y = Rotate(x + y, 42) * farmhash::k0 + v.second;
+    y = Rotate(x + y, 42) * inlined::k0 + v.second;
     w.first += Fetch(s + len - tail_done + 16);
-    x = x * farmhash::k0 + w.first;
+    x = x * inlined::k0 + w.first;
     z += w.second + Fetch(s + len - tail_done);
     w.second += v.first;
     CopyUint128(v, WeakHashLen32WithSeeds(s + len - tail_done, v.first + z, v.second));
-    v.first *= farmhash::k0;
+    v.first *= inlined::k0;
   }
   // At this point our 56 bytes of state should contain more than
   // enough information for a strong 128-bit hash.  We use two
@@ -1998,8 +1997,8 @@ STATIC_INLINE uint128_t CityHash128WithSeed(const char *s, size_t len, uint128_t
 STATIC_INLINE uint128_t CityHash128(const char *s, size_t len) {
   return len >= 16 ?
       CityHash128WithSeed(s + 16, len - 16,
-                          uint128_t(Fetch(s), Fetch(s + 8) + farmhash::k0)) :
-      CityHash128WithSeed(s, len, uint128_t(farmhash::k0, farmhash::k1));
+                          uint128_t(Fetch(s), Fetch(s + 8) + inlined::k0)) :
+      CityHash128WithSeed(s, len, uint128_t(inlined::k0, inlined::k1));
 }
 
 uint128_t STATIC_INLINE Fingerprint128(const char* s, size_t len) {
@@ -2009,7 +2008,7 @@ uint128_t STATIC_INLINE Fingerprint128(const char* s, size_t len) {
 
 
 // namespace NAMESPACE_FOR_HASH_FUNCTIONS {
-namespace farmhash {
+namespace inlined {
 
 
 // BASIC STRING HASHING
@@ -2108,9 +2107,9 @@ STATIC_INLINE uint128_t Fingerprint128(const char* s, size_t len) {
 // Older and still available but perhaps not as fast as the above:
 //   farmhashns::Hash32{,WithSeed}()
 
+} /*end namespace inlined*/
 // }  // namespace NAMESPACE_FOR_HASH_FUNCTIONS
 } /*end namespace farmhash*/ 
-} /*end namespace inlined_hashes*/
 
 #undef Fetch
 #undef Rotate
