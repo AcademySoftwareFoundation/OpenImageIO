@@ -9,6 +9,7 @@
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
+#include <OpenImageIO/unordered_map_concurrent.h>
 #include <OpenImageIO/ustring.h>
 
 OIIO_NAMESPACE_BEGIN
@@ -17,6 +18,16 @@ OIIO_NAMESPACE_BEGIN
 typedef spin_rw_mutex ustring_mutex_t;
 typedef spin_rw_read_lock ustring_read_lock_t;
 typedef spin_rw_write_lock ustring_write_lock_t;
+
+
+#define PREVENT_HASH_COLLISIONS 1
+
+
+template<class T> struct identity {
+    constexpr T operator()(T val) const noexcept { return val; }
+};
+
+
 
 // #define USTRING_TRACK_NUM_LOOKUPS
 
@@ -106,34 +117,6 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
         if (2 * num_entries > mask)
             grow();           // maintain 0.5 load factor
         return rep->c_str();  // rep is now in the table
-    }
-
-    // Collect hash collisions for just this bin
-    size_t find_hash_collisions(std::vector<ustring>* collisions) const
-    {
-        ustring_read_lock_t lock(mutex);
-        std::multimap<size_t, const char*> hashes;
-        for (size_t i = 0; i < mask + 1; ++i) {
-            if (entries[i]) {
-                const char* chars = (const char*)(entries[i] + 1);
-                hashes.emplace(entries[i]->hashed, chars);
-            }
-        }
-        std::unordered_map<size_t, int> hash_counts;
-        for (const auto& h : hashes)
-            hash_counts[h.first] += 1;
-        size_t ncollisions = 0;
-        for (const auto& hc : hash_counts) {
-            if (hc.second > 1) {
-                auto r = hashes.equal_range(hc.first);
-                for (auto i = r.first; i != r.second; ++i) {
-                    if (collisions)
-                        collisions->push_back(ustring::from_unique(i->second));
-                    ++ncollisions;
-                }
-            }
-        }
-        return ncollisions;
     }
 
 private:
@@ -248,14 +231,6 @@ struct UstringTable {
     }
 #    endif
 
-    size_t find_hash_collisions(std::vector<ustring>* collisions)
-    {
-        size_t num = 0;
-        for (auto& bin : bins)
-            num += bin.find_hash_collisions(collisions);
-        return num;
-    }
-
 private:
     enum {
         // NOTE: this guarentees NUM_BINS is a power of 2
@@ -280,6 +255,11 @@ private:
 // This string is here so that we can return sensible values of str when the ustring's pointer is NULL
 std::string ustring::empty_std_string;
 
+// The reverse map that lets you look up a string by its initial hash.
+using ReverseMap
+    = unordered_map_concurrent<size_t, const char*, identity<size_t>,
+                               std::equal_to<size_t>, 256 /*bins*/>;
+
 
 namespace {  // anonymous
 
@@ -289,6 +269,19 @@ ustring_table()
     static OIIO_CACHE_ALIGN UstringTable table;
     return table;
 }
+
+
+static ReverseMap&
+reverse_map()
+{
+    static OIIO_CACHE_ALIGN ReverseMap rm;
+    return rm;
+}
+
+
+// Keep track of any collisions
+static std::vector<std::pair<const char*, size_t>> all_hash_collisions;
+OIIO_CACHE_ALIGN static std::mutex collision_mutex;
 
 }  // end anonymous namespace
 
@@ -424,6 +417,8 @@ ustring::TableRep::~TableRep()
     }
 }
 
+
+
 const char*
 ustring::make_unique(string_view strref)
 {
@@ -433,12 +428,85 @@ ustring::make_unique(string_view strref)
         strref = string_view("", 0);
 
     size_t hash = Strutil::strhash(strref);
+    // This line, if uncommented, lets you force lots of hash collisions:
+    // hash &= ~size_t(0xffffff);
 
+#if !PREVENT_HASH_COLLISIONS
     // Check the ustring table to see if this string already exists.  If so,
     // construct from its canonical representation.
     // NOTE: all locking is performed internally to the table implementation
     const char* result = table.lookup(strref, hash);
-    return result ? result : table.insert(strref, hash);
+    if (result)
+        return result;
+    // Strutil::print("ADDED ustring \"{}\" {:08x}\n", strref, hash);
+    return table.insert(strref, hash);
+
+#else
+    // Check the ustring table to see if this string already exists with the
+    // default hash. If so, we're done. This is by far the common case --
+    // most lookups already exist in the table, and hash collisions are
+    // extremely rare.
+    const char* result = table.lookup(strref, hash);
+    if (result)
+        return result;
+
+    // We did not find it. There are two possibilities: (1) the string is in
+    // the table but has a different hash because it collided; or (2) the
+    // string is not yet in the table.
+
+    // Thread safety by locking reverse_map's bin corresponding to our
+    // original hash. This will prevent any potentially colliding ustring
+    // from being added to either table. But ustrings whose hashes go to
+    // different bins of the reverse map (which by definition cannot clash)
+    // are allowed to be added concurrently.
+    auto& rm(reverse_map());
+    size_t bin = rm.lock_bin(hash);
+
+    size_t orighash     = hash;
+    size_t binmask      = orighash & (~rm.nobin_mask());
+    size_t num_rehashes = 0;
+
+    while (1) {
+        auto rev = rm.find(hash, false);
+        // rev now either holds an iterator into the reverse map for a
+        // record that has this hash, or else it's end().
+        if (rev == rm.end()) {
+            // That hash is unused, insert the string with that hash into
+            // the ustring table, and insert the hash with the unique char
+            // pointer into the reverse_map.
+            result  = table.insert(strref, hash);
+            bool ok = rm.insert(hash, result, false);
+            // Strutil::print("ADDED \"{}\" {:08x}\n", strref, hash);
+            OIIO_ASSERT(ok && "thread safety failure");
+            break;
+        }
+        // Something uses this hash. Is it our string?
+        if (!strncmp(rev->second, strref.data(), strref.size())) {
+            // It is our string, already in this hash slot!
+            result = rev->second;
+            break;
+        }
+        // Rehash, but keep the bin bits identical so we alwasy rehash into
+        // the same (locked) bin.
+        hash = (hash & binmask)
+               | (farmhash::Fingerprint(hash) & rm.nobin_mask());
+        ++num_rehashes;
+        // Strutil::print("COLLISION \"{}\" {:08x} vs \"{}\"\n",
+        //                strref, orighash, rev->second);
+        {
+            std::lock_guard<std::mutex> lock(collision_mutex);
+            all_hash_collisions.emplace_back(rev->second, rev->first);
+        }
+    }
+    rm.unlock_bin(bin);
+
+    if (num_rehashes) {
+        std::lock_guard<std::mutex> lock(collision_mutex);
+        all_hash_collisions.emplace_back(result, orighash);
+    }
+
+    return result;
+#endif
 }
 
 
@@ -501,8 +569,11 @@ ustring::getstats(bool verbose)
 size_t
 ustring::hash_collisions(std::vector<ustring>* collisions)
 {
-    UstringTable& table(ustring_table());
-    return table.find_hash_collisions(collisions);
+    std::lock_guard<std::mutex> lock(collision_mutex);
+    if (collisions)
+        for (const auto& c : all_hash_collisions)
+            collisions->emplace_back(ustring::from_unique(c.first));
+    return all_hash_collisions.size();
 }
 
 
