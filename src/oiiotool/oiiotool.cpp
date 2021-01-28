@@ -2164,8 +2164,8 @@ OIIOTOOL_OP(ociofiletransform, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view name = op.args(1);
     bool inverse     = op.options().get_int("inverse");
     bool unpremult   = op.options().get_int("unpremult");
-    return ImageBufAlgo::ociofiletransform(*img[0], *img[1], name, inverse,
-                                           unpremult, &ot.colorconfig);
+    return ImageBufAlgo::ociofiletransform(*img[0], *img[1], name, unpremult,
+                                           inverse, &ot.colorconfig);
 });
 
 
