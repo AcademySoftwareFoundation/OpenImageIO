@@ -24,7 +24,7 @@
 
 // https://github.com/google/farmhash
 
-#include <OpenImageIO/farmhash.h>
+#include <OpenImageIO/detail/farmhash.h>
 
 // namespace NAMESPACE_FOR_HASH_FUNCTIONS {
 
