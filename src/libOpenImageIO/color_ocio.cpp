@@ -1657,8 +1657,8 @@ ImageBufAlgo::colorconvert(const ImageBuf& src, const ColorProcessor* processor,
 
 bool
 ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
-                       string_view from, string_view to, bool inverse,
-                       bool unpremult, string_view key, string_view value,
+                       string_view from, string_view to, bool unpremult,
+                       bool inverse, string_view key, string_view value,
                        ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::ociolook");
@@ -1701,12 +1701,12 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
 
 ImageBuf
 ImageBufAlgo::ociolook(const ImageBuf& src, string_view looks, string_view from,
-                       string_view to, bool inverse, bool unpremult,
+                       string_view to, bool unpremult, bool inverse,
                        string_view key, string_view value,
                        ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     ImageBuf result;
-    bool ok = ociolook(result, src, looks, from, to, inverse, unpremult, key,
+    bool ok = ociolook(result, src, looks, from, to, unpremult, inverse, key,
                        value, colorconfig, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorf("ImageBufAlgo::ociolook() error");
@@ -1775,7 +1775,7 @@ ImageBufAlgo::ociodisplay(const ImageBuf& src, string_view display,
 
 bool
 ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
-                                string_view name, bool inverse, bool unpremult,
+                                string_view name, bool unpremult, bool inverse,
                                 ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     pvt::LoggedTimer logtime("IBA::ociofiletransform");
@@ -1811,11 +1811,11 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
 
 ImageBuf
 ImageBufAlgo::ociofiletransform(const ImageBuf& src, string_view name,
-                                bool inverse, bool unpremult,
+                                bool unpremult, bool inverse,
                                 ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     ImageBuf result;
-    bool ok = ociofiletransform(result, src, name, inverse, unpremult,
+    bool ok = ociofiletransform(result, src, name, unpremult, inverse,
                                 colorconfig, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorf("ImageBufAlgo::ociofiletransform() error");
