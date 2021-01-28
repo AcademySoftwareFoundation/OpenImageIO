@@ -22,10 +22,11 @@
 
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/hash.h>
-#include <OpenImageIO/farmhash.h>
 #include <OpenImageIO/oiioversion.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
+
+#include <OpenImageIO/detail/farmhash.h>
 
 #if OIIO_GNUC_VERSION >= 70000
 #    pragma GCC diagnostic push
