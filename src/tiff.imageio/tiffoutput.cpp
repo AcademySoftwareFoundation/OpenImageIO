@@ -634,7 +634,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     if (icc_profile_parameter != NULL) {
         unsigned char* icc_profile
             = (unsigned char*)icc_profile_parameter->data();
-        uint32 length = icc_profile_parameter->type().size();
+        uint32_t length = icc_profile_parameter->type().size();
         if (icc_profile && length)
             TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, length, icc_profile);
     }
@@ -906,7 +906,11 @@ TIFFOutput::write_exif_data()
     }
 
     // Now write the directory of Exif data
-    uint64 dir_offset = 0;
+#    ifndef TIFF_GCC_DEPRECATED
+    uint64 dir_offset = 0;  // old type
+#    else
+    uint64_t dir_offset = 0;
+#    endif
     if (!TIFFWriteCustomDirectory(m_tif, &dir_offset)) {
         errorf("failed TIFFWriteCustomDirectory() of the Exif data");
         return false;
