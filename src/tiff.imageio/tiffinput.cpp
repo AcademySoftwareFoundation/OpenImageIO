@@ -794,7 +794,7 @@ TIFFInput::spec_dimensions(int subimage, int miplevel)
 void
 TIFFInput::readspec(bool read_meta)
 {
-    uint32 width = 0, height = 0, depth = 0;
+    uint32_t width = 0, height = 0, depth = 0;
     TIFFGetField(m_tif, TIFFTAG_IMAGEWIDTH, &width);
     TIFFGetField(m_tif, TIFFTAG_IMAGELENGTH, &height);
     TIFFGetFieldDefaulted(m_tif, TIFFTAG_IMAGEDEPTH, &depth);
@@ -1121,10 +1121,10 @@ TIFFInput::readspec(bool read_meta)
     int iptcsize         = 0;
     const void* iptcdata = NULL;
     if (TIFFGetField(m_tif, TIFFTAG_RICHTIFFIPTC, &iptcsize, &iptcdata)) {
-        std::vector<uint32> iptc((uint32*)iptcdata,
-                                 (uint32*)iptcdata + iptcsize);
+        std::vector<uint32_t> iptc((uint32_t*)iptcdata,
+                                   (uint32_t*)iptcdata + iptcsize);
         if (TIFFIsByteSwapped(m_tif))
-            TIFFSwabArrayOfLong((uint32*)&iptc[0], iptcsize);
+            TIFFSwabArrayOfLong((uint32_t*)&iptc[0], iptcsize);
         decode_iptc_iim(&iptc[0], iptcsize * 4, m_spec);
     }
 #endif
