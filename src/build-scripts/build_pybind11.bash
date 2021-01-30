@@ -45,7 +45,7 @@ time cmake --config Release \
            ${PYBIND11_BUILD_OPTS} ..
 time cmake --build . --config Release --target install
 
-ls -R ${PYBIND11_INSTALL_DIR}
+# ls -R ${PYBIND11_INSTALL_DIR}
 popd
 
 #echo "listing .."

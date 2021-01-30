@@ -46,7 +46,7 @@ time cmake --config Release \
            ${LIBPNG_CONFIG_OPTS} ..
 time cmake --build . --config Release --target install
 
-ls -R ${LIBPNG_INSTALL_DIR}
+# ls -R ${LIBPNG_INSTALL_DIR}
 popd
 
 

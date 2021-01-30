@@ -47,7 +47,7 @@ time cmake --config Release \
            ${PUGIXML_BUILD_OPTS} ..
 time cmake --build . --config Release --target install
 
-ls -R ${PUGIXML_INSTALL_DIR}
+# ls -R ${PUGIXML_INSTALL_DIR}
 popd
 
 #echo "listing .."

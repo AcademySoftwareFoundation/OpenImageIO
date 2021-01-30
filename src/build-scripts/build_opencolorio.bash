@@ -44,7 +44,7 @@ time cmake --config Release -DCMAKE_INSTALL_PREFIX=${OPENCOLORIO_INSTALL_DIR} -D
 time cmake --build . --config Release --target install
 popd
 
-ls -R ${OPENCOLORIO_INSTALL_DIR}
+# ls -R ${OPENCOLORIO_INSTALL_DIR}
 
 #echo "listing .."
 #ls ..
