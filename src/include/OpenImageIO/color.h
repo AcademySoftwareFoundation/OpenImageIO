@@ -281,6 +281,10 @@ public:
     /// Return if OpenImageIO was built with OCIO support
     static bool supportsOpenColorIO();
 
+    /// Return the hex OCIO version (maj<<24 + min<<16 + patch), or 0 if no
+    /// OCIO support is available.
+    static int OpenColorIO_version_hex();
+
 private:
     ColorConfig(const ColorConfig&) = delete;
     ColorConfig& operator=(const ColorConfig&) = delete;

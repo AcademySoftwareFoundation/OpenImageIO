@@ -5208,7 +5208,13 @@ print_help_end(std::ostream& out)
     out << formatted_format_list("Output", "output_format_list") << "\n";
 
     // debugging color space names
-    out << "Color configuration: " << ot.colorconfig.configname() << "\n";
+    int ociover = ot.colorconfig.OpenColorIO_version_hex();
+    if (ociover)
+        out << "OpenColorIO " << (ociover >> 24) << '.'
+            << ((ociover >> 16) & 0xff) << '.' << ((ociover >> 8) & 0xff);
+    else
+        out << "No OpenColorIO";
+    out << ", color config: " << ot.colorconfig.configname() << "\n";
     std::stringstream s;
     s << "Known color spaces: ";
     const char* linear = ot.colorconfig.getColorSpaceNameByRole("linear");

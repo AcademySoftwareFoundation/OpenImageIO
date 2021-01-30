@@ -17,7 +17,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++11 (also builds with C++14 and C++17)
  * Compilers: gcc 4.8.2 - 10.2, clang 3.3 - 11, MSVS 2015 - 2019,
    icc version 13 or higher
- * CMake >= 3.12 (tested through 3.18)
+ * CMake >= 3.12 (tested through 3.19)
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.5, also
    tested against the current master that will be OpenEXR 3.0 / Imath 3.0)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.2.0)
@@ -37,12 +37,12 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 2.6 (tested through 4.3)
  * If you want support for jpeg 2000 images:
-     * **OpenJpeg >= 2.0** (tested through 2.3)
+     * **OpenJpeg >= 2.0** (tested through 2.4)
  * If you want support for Field3D files:
      * Field3D (tested through 1.7.3)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 (tested through 7.0) and Intel TBB >= 2018 (tested
-       through 2020_U1)
+     * OpenVDB >= 5.0 (tested through 8.0) and Intel TBB >= 2018 (tested
+       through 2020_U3)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
      * OpenCV 2.x, 3.x, or 4.x (tested through 4.5)
@@ -60,8 +60,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for WebP images:
      * WebP >= 0.6.1 (tested through 1.1.0)
  * If you want support for OpenColorIO color transformations:
-     * OpenColorIO >= 1.1 (also tested against the current master that will
-       become OCIO 2.0).
+     * OpenColorIO 1.1 or 2.0
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distrbutions with policies against

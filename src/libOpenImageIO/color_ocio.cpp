@@ -149,6 +149,18 @@ ColorConfig::supportsOpenColorIO()
 
 
 
+int
+ColorConfig::OpenColorIO_version_hex()
+{
+#ifdef USE_OCIO
+    return OCIO_VERSION_HEX;
+#else
+    return 0;
+#endif
+}
+
+
+
 // Hidden implementation of ColorConfig
 class ColorConfig::Impl {
 public:
