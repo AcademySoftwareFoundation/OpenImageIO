@@ -50,6 +50,7 @@ if [[ "${DEBUG_CI:=0}" != "0" ]] ; then
 fi
 
 if [[ "${SKIP_TESTS:=0}" == "0" ]] ; then
+    export OCIO="$PWD/testsuite/common/OpenColorIO/nuke-default/config.ocio"
     $OpenImageIO_ROOT/bin/oiiotool --help || true
     TESTSUITE_CLEANUP_ON_SUCCESS=${TESTSUITE_CLEANUP_ON_SUCCESS:=1}
     echo "Parallel test " ${CTEST_PARALLEL_LEVEL}

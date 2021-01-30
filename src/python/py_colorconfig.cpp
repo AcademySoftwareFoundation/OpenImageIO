@@ -88,7 +88,8 @@ declare_colorconfig(py::module& m)
              })
         .def("configname", &ColorConfig::configname);
 
-    m.attr("supportsOpenColorIO") = ColorConfig::supportsOpenColorIO();
+    m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
+    m.attr("OpenColorIO_version_hex") = ColorConfig::OpenColorIO_version_hex();
 }
 
 }  // namespace PyOpenImageIO
