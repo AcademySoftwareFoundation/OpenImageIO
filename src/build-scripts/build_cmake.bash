@@ -22,7 +22,7 @@ fi
 if [[ `uname` == "Linux" && `uname -m` == "aarch64" ]] ; then
     mkdir -p ${CMAKE_INSTALL_DIR} || true
     curl --location https://anaconda.org/conda-forge/cmake/3.17.0/download/linux-aarch64/cmake-3.17.0-h28c56e5_0.tar.bz2 -o cmake-3.17.0-h28c56e5_0.tar.bz2
-    tar -xjvf cmake-3.17.0-h28c56e5_0.tar.bz2 -C ${CMAKE_INSTALL_DIR}
+    tar -xjf cmake-3.17.0-h28c56e5_0.tar.bz2 -C ${CMAKE_INSTALL_DIR}
     export PATH=${CMAKE_INSTALL_DIR}/bin:$PATH
 
     # In case we ever need to build from scratch:

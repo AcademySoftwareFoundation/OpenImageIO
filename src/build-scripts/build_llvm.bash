@@ -30,7 +30,7 @@ if [[ `uname` == "Linux" ]] ; then
     fi
     echo LLVMTAR = $LLVMTAR
     curl --location http://releases.llvm.org/${LLVM_VERSION}/${LLVMTAR} -o $LLVMTAR
-    ls -l $LLVMTAR
+    # ls -l $LLVMTAR
     tar xf $LLVMTAR
     rm -f $LLVMTAR
     echo "Installed ${LLVM_VERSION} in ${LLVM_INSTALL_DIR}"
@@ -38,5 +38,5 @@ if [[ `uname` == "Linux" ]] ; then
     mv clang+llvm*/* $LLVM_INSTALL_DIR
     export LLVM_DIRECTORY=$LLVM_INSTALL_DIR
     export PATH=${LLVM_INSTALL_DIR}/bin:$PATH
-    ls -a $LLVM_DIRECTORY
+    # ls -a $LLVM_DIRECTORY
 fi

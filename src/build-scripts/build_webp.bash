@@ -53,7 +53,7 @@ time cmake --build . --config Release --target install
 
 
 
-ls -R ${WEBP_INSTALL_DIR}
+# ls -R ${WEBP_INSTALL_DIR}
 popd
 
 

@@ -44,7 +44,7 @@ time cmake --config Release \
            ${ZLIB_CONFIG_OPTS} ..
 time cmake --build . --config Release --target install
 
-ls -R ${ZLIB_INSTALL_DIR}
+# ls -R ${ZLIB_INSTALL_DIR}
 popd
 
 
