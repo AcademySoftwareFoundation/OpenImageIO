@@ -80,14 +80,8 @@
 #undef STATIC_INLINE
 #if  __cplusplus >= 201402L
 #  define HASH_CAN_USE_CONSTEXPR 1
-#  ifdef __CUDA_ARCH__
-#      define STATIC_INLINE __device__ inline constexpr
-#  else
-#      define STATIC_INLINE static inline constexpr
-#  endif
-#else
-#  define STATIC_INLINE static inline
 #endif
+#define STATIC_INLINE OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14
 
 // FARMHASH PORTABILITY LAYER: Runtime error if misconfigured
 
@@ -232,7 +226,7 @@ namespace inlined {
 #if !defined(HASH_CAN_USE_CONSTEXPR) || HASH_CAN_USE_CONSTEXPR == 0
 
 STATIC_INLINE uint64_t Fetch64(const char *p) {
-  uint64_t result;
+  uint64_t result = 0;
   memcpy(&result, p, sizeof(result));
   return uint64_in_expected_order(result);
 }
@@ -511,16 +505,7 @@ template <typename T> STATIC_INLINE T DebugTweak(T x) {
   return x;
 }
 
-#ifdef HASH_CAN_USE_CONSTEXPR
-#  ifdef __CUDA_ARCH__
-#    define CONST_EXPR __device__ constexpr
-#  else
-#    define CONST_EXPR constexpr
-#  endif
-#else
-#define CONST_EXPR
-#endif
-template <> CONST_EXPR uint128_t DebugTweak(uint128_t x) {
+template <> STATIC_INLINE uint128_t DebugTweak(uint128_t x) {
   if (debug_mode) {
     uint64_t y = DebugTweak(Uint128Low64(x));
     uint64_t z = DebugTweak(Uint128High64(x));

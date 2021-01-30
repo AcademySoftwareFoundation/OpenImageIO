@@ -16,9 +16,12 @@
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/unittest.h>
 
+#include <OpenImageIO/detail/farmhash.h>
+
 
 
 using namespace OIIO;
+using OIIO::Strutil::print;
 
 static int iterations = 100 << 20;
 static int ntrials    = 1;
@@ -26,41 +29,51 @@ static bool verbose   = false;
 
 static std::vector<uint32_t> data;
 
-size_t
+uint64_t
 test_bjhash(int len)
 {
-    char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a  = 0;
+    char* ptr  = reinterpret_cast<char*>(data.data());
+    uint64_t a = 0;
     for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
         a += bjhash::hashlittle(ptr, len);
     return a;
 }
 
-size_t
+uint64_t
 test_xxhash(int len)
 {
-    char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a  = 0;
+    char* ptr  = reinterpret_cast<char*>(data.data());
+    uint64_t a = 0;
     for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
         a += xxhash::xxhash(ptr, len, 0);
     return a;
 }
 
-size_t
+uint64_t
 test_farmhash(int len)
 {
-    char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a  = 0;
+    char* ptr  = reinterpret_cast<char*>(data.data());
+    uint64_t a = 0;
     for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
         a += farmhash::Hash(ptr, len);
     return a;
 }
 
-size_t
+uint64_t
+test_farmhash_inlined(int len)
+{
+    char* ptr  = reinterpret_cast<char*>(data.data());
+    uint64_t a = 0;
+    for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
+        a += farmhash::inlined::Hash(ptr, len);
+    return a;
+}
+
+uint64_t
 test_fasthash64(int len)
 {
-    char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a  = 0;
+    char* ptr  = reinterpret_cast<char*>(data.data());
+    uint64_t a = 0;
     for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
         a += fasthash::fasthash64(ptr, len, 0);
     return a;
@@ -73,7 +86,7 @@ test_fasthash64(int len)
 // Licensed with the unlicense ( http://choosealicense.com/licenses/unlicense/ )
 
 inline uint64_t
-falkhash(void* pbuf, uint64_t len, uint64_t pseed = 0)
+falkhash(const void* pbuf, uint64_t len, uint64_t pseed = 0)
 {
     uint8_t* buf = (uint8_t*)pbuf;
 
@@ -148,11 +161,11 @@ falkhash(void* pbuf, uint64_t len, uint64_t pseed = 0)
     return _mm_cvtsi128_si64(hash);
 }
 
-size_t
+uint64_t
 test_falkhash(int len)
 {
-    char* ptr = reinterpret_cast<char*>(data.data());
-    size_t a  = 0;
+    char* ptr  = reinterpret_cast<char*>(data.data());
+    uint64_t a = 0;
     for (int i = 0, e = iterations / len; i < e; i++, ptr += len)
         a += falkhash(ptr, len, 0);
     return a;
@@ -201,8 +214,7 @@ main(int argc, char* argv[])
     for (uint32_t& d : data)
         d = rng();
 
-    printf("All times are seconds per %s\n",
-           Strutil::memformat(iterations).c_str());
+    print("All times are seconds per {}\n", Strutil::memformat(iterations));
 
     // a sampling of sizes, both tiny and large-ish
     int hashlen[] = {
@@ -219,35 +231,131 @@ main(int argc, char* argv[])
     std::sort(std::begin(hashlen), std::end(hashlen));
 
     auto candidates = {
-        std::make_pair(test_bjhash, "BJ hash      "),
-        std::make_pair(test_xxhash, "XX hash      "),
-        std::make_pair(test_farmhash, "farmhash     "),
-        std::make_pair(test_fasthash64, "fasthash64   "),
+        std::make_pair("BJ hash           ", test_bjhash),
+        std::make_pair("XX hash           ", test_xxhash),
+        std::make_pair("farmhash          ", test_farmhash),
+        std::make_pair("farmhash::inlined ", test_farmhash_inlined),
+        std::make_pair("fasthash64        ", test_fasthash64),
 #ifdef __AES__
-        std::make_pair(test_falkhash, "falkhash     "),
+        std::make_pair("falkhash          ", test_falkhash),
 #endif
     };
 
     for (int len : hashlen) {
         auto mem = Strutil::memformat(len, 2);
-        printf("\nHash benchmark for %s hashes\n", mem.c_str());
+        print("\nHash benchmark for {} hashes\n", mem);
 
         double best_time = std::numeric_limits<double>::max();
         const char* best = "";
         for (auto&& c : candidates) {
             double range;
-            double t = time_trial(std::bind(c.first, len), ntrials, 1, &range);
-            printf("  %s took %s (range %s)\n", c.second,
-                   Strutil::timeintervalformat(t, 3).c_str(),
-                   Strutil::timeintervalformat(range, 3).c_str());
+            double t = time_trial(std::bind(c.second, len), ntrials, 1, &range);
+            print("  {} took {} (range {})\n", c.first,
+                  Strutil::timeintervalformat(t, 3),
+                  Strutil::timeintervalformat(range, 3));
             if (t < best_time) {
                 best_time = t;
-                best      = c.second;
+                best      = c.first;
             }
         }
 
-        printf("%s winner: %s\n", mem.c_str(), best);
-        fflush(stdout);
+        print("{} winner: {}\n", mem, best);
+    }
+
+    print("\nTesting correctness\n");
+    using hashfn_t = uint64_t(string_view);
+    auto hashes    = {
+        std::make_pair<const char*, hashfn_t*>("BJ hash           ",
+                                               [](string_view s) -> uint64_t {
+                                                   return bjhash::strhash(s);
+                                               }),
+        std::make_pair<const char*, hashfn_t*>("XX hash           ",
+                                               [](string_view s) -> uint64_t {
+                                                   return xxhash::xxhash(s);
+                                               }),
+        std::make_pair<const char*, hashfn_t*>("farmhash          ",
+                                               [](string_view s) -> uint64_t {
+                                                   return farmhash::Hash(s);
+                                               }),
+        std::make_pair<const char*, hashfn_t*>(
+            "farmhash::inlined ",
+            [](string_view s) -> uint64_t {
+                return farmhash::inlined::Hash(s.data(), s.size());
+            }),
+        std::make_pair<const char*, hashfn_t*>("fasthash64        ",
+                                               [](string_view s) -> uint64_t {
+                                                   return fasthash::fasthash64(
+                                                       s.data(), s.size());
+                                               }),
+#ifdef __AES__
+        std::make_pair<const char*, hashfn_t*>("falkhash          ",
+                                               [](string_view s) -> uint64_t {
+                                                   return falkhash(s.data(),
+                                                                   s.size());
+                                               }),
+#endif
+    };
+    const char* teststrings[]
+        = { "",                  // empty string
+            "P",                 // one-char string
+            "openimageio_2008",  // identifier-length string
+            "/shots/abc/seq42/tex/my_texture/my_texture_acscg.0042.tx" };
+    uint64_t expected[][4] = {
+        {
+            // bjhash
+            0x0000000000000000,
+            0x00000000b7656eb4,
+            0x0000000055af8ab5,
+            0x00000000c000c946,
+        },
+        {
+            // xxhash
+            0x03b139605dc5b187,
+            0xa4820414c8aff387,
+            0x4465cf017b51e76b,
+            0x1c9ebf5ebae6e8ad,
+        },
+        {
+            // farmhash
+            0x9ae16a3b2f90404f,
+            0x5b5dffc690bdcd30,
+            0x0dd8ef814e8a4317,
+            0x43ad136c828d5214,
+        },
+        {
+            // farmhash::inlined
+            0x9ae16a3b2f90404f,
+            0x5b5dffc690bdcd30,
+            0x0dd8ef814e8a4317,
+            0x43ad136c828d5214,
+        },
+        {
+            // fasthash64
+            0x5b38e9e25863460c,
+            0x38951d1ac28aad44,
+            0x91271089669c4608,
+            0xc66714c1deabacf0,
+        },
+        {
+            // falkhash
+            0xaa7f7a3188504dd7,
+            0x8bae7d7501558eeb,
+            0x0af667ed264008a1,
+            0x25f0142ed7151208,
+        },
+    };
+
+    int stringno = 0;
+    for (string_view s : teststrings) {
+        print(" Hash testing '{}'\n", s);
+        int hashno = 0;
+        for (auto&& h : hashes) {
+            auto val = (*h.second)(s);
+            print("  {}  {:016x}\n", h.first, val);
+            OIIO_CHECK_EQUAL(val, expected[hashno][stringno]);
+            ++hashno;
+        }
+        ++stringno;
     }
 
     return unit_test_failures;
