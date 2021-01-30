@@ -790,8 +790,9 @@ RawInput::get_makernotes_canon()
     MAKERF(FlashExposureLock);
     MAKERF(ExposureMode);
     MAKERF(AESetting);
-    MAKERF(HighlightTonePriority);
     MAKERF(ImageStabilization);
+#    if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
+    MAKERF(HighlightTonePriority);
     MAKERF(FocusMode);
     MAKER(AFPoint, 0);
     MAKERF(FocusContinuous);
@@ -812,6 +813,7 @@ RawInput::get_makernotes_canon()
         //  short        AFPointsSelected[4];
         //  ushort       PrimaryAFPoint;
     }
+#    endif
     MAKERF(FlashMode);
     MAKERF(FlashActivity);
     MAKER(FlashBits, 0);
@@ -851,6 +853,7 @@ RawInput::get_makernotes_nikon()
     MAKERF(ImageStabilization);
     MAKER(VibrationReduction, 0);
     MAKERF(VRMode);
+#    if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
     MAKER(FocusMode, 0);
     MAKERF(AFPoint);
     MAKER(AFPointsInFocus, 0);
@@ -870,6 +873,7 @@ RawInput::get_makernotes_nikon()
         MAKER(AFAreaHeight, 0);
         MAKER(ContrastDetectAFInFocus, 0);
     }
+#    endif
     MAKER(FlashSetting, 0);
     MAKER(FlashType, 0);
     MAKERF(FlashExposureCompensation);
@@ -1016,9 +1020,11 @@ RawInput::get_makernotes_fuji()
     MAKERF(ExrMode);
     MAKERF(Macro);
     MAKERF(Rating);
+#    if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
     MAKERF(FrameRate);
     MAKERF(FrameWidth);
     MAKERF(FrameHeight);
+#    endif
 #endif
 }
 
