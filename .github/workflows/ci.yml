@@ -243,7 +243,8 @@ jobs:
           OPENCOLORIO_VERSION: master
           OPENEXR_VERSION: master
           PUGIXML_VERSION: master
-          PYBIND11_VERSION: master
+          PYBIND11_VERSION: v2.6.2
+          # PYBIND11_VERSION: master
           WEBP_VERSION: master
           MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
         run: |
