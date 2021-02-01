@@ -176,6 +176,46 @@ Notable documentation changes:
 
 
 
+Release 2.2.11 (1 Feb 2021) -- compared to 2.2.10
+--------------------------------------------------
+* Enabled AVIF decoding of heic files (requires libheif >= 1.7 and for it
+  to have been built with an AV1 encoder/decoder). #2811 #2812 #2814 #2818
+* `oiiotool --help` now prints the OCIO version (where it prints the config
+  file and known color space). #2849
+* Bug fix: ImageBufAlgo::ociolook() and ociofiletransform() internally
+  reversed the order of their `inverse` and `unpremult` arguments, making it
+  hard to select the inverse transformation. #2844
+* Fix memory leak during decoding of some invalid Exif blocks. #2824
+* Build: Fixed warnings when building against python 2.x. #2815
+* Build: No longer directly link against python libraries when unnecessary.
+  #2807
+* Build: Better finding of OpenJpeg 2.4. #2829
+* Build: On Windows, fix some linkage problems by changing the pybind11
+  bindings to make a CMake "shared" library rather than "module". Sounds
+  wrong, but seems to work. We will reverse if this causes problems. #2830
+* Build: On Mac, libheif 1.10 is very broken. Don't use that version. #2847
+* Build: Fix build break against changes coming in future libtiff, where it
+  is changing from some libtiff-defined integer types to the equivalent
+  stdint.h types. #2848
+* Build: Some final touches to prepare for release of OpenColor 2.0. #2849
+* Build: Fixes to support the libraw 202101 snapshot (their in-progress
+  0.21.0). #2850
+* CI: Got Windows CI fully working, bit by bit. #2796 #2805 #2821 #2826
+  #2834 #2835 #2836 #2840
+* Dev: Some internal rearrangement of span.h and string_view.h (that should
+  not break source or ABI compatibility). `std::size()` and `std::ssize()`
+  should work with OIIO::span and OIIO::string_view now. #2827
+* Dev: ustring internals now have a way to ask for the list of ustrings
+  whose hashses collided.  #2786
+* Dev: New Filesystem::generic_filepath() returnss a filepath in generic
+  format (not OS specific). #2819
+* Dev: ArgParse::abort() lets the response to a command line argument signal
+  that no further arguments should be parsed. #2820
+* Dev: In oiioversion.h, added macros `OIIO_VERSION_GREATER_EQUAL` and
+  `OIIO_VERSION_LESS`. #2831
+* Dev: In platform.h, added macro OIIO_INLINE_CONSTEXPR, which is equivalent
+  to `inline constexpr` for C++17, but just constexpr for C++ <= 14. #2832
+
 Release 2.2.10.1 (7 Jan 2021) -- compared to 2.2.10.0
 -----------------------------------------------------
 * Fix build break against OpenColorIO v2.0 RC1. #2817
