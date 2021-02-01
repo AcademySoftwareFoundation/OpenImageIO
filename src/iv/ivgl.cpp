@@ -1109,7 +1109,11 @@ IvGL::mousePressEvent(QMouseEvent* event)
             else
                 m_dragging = true;
             return;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        case Qt::MiddleButton:
+#else
         case Qt::MidButton:
+#endif
             m_dragging = true;
             // FIXME: should this be return rather than break?
             break;
@@ -1145,7 +1149,11 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     bool do_select = false, do_annotate = false;
     switch (mousemode) {
     case ImageViewer::MouseModeZoom:
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        if ((m_drag_button == Qt::MiddleButton)
+#else
         if ((m_drag_button == Qt::MidButton)
+#endif
             || (m_drag_button == Qt::LeftButton && Alt)) {
             do_pan = true;
         } else if (m_drag_button == Qt::RightButton && Alt) {
