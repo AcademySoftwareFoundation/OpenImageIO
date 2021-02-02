@@ -1,3 +1,7 @@
+Release 2.2.11.1 (1 Feb 2021) -- compared to 2.2.11.0
+-----------------------------------------------------
+* Fix build break against Qt 5.15.2 (deprecated enum). #2852
+
 Release 2.2.11 (1 Feb 2021) -- compared to 2.2.10
 --------------------------------------------------
 * Enabled AVIF decoding of heic files (requires libheif >= 1.7 and for it
