@@ -36,6 +36,7 @@ lg@openimageio.org
 * Chris Crosetto
 * Chris Foster
 * Chris Kulla
+* Chris Whalen
 * Christoph Willing
 * Cliff Stein
 * Clément Champetier

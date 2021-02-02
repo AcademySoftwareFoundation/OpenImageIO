@@ -70,6 +70,12 @@ Fixes and feature enhancements:
       the default value now) is "letterbox", but now also "width" and
       "height" modes are allowed. See `fit()` documentation for details.
       #2784 (2.3.2.0)
+    - `IBA::fit()` fixes some slight ringing at image edges when using a
+      combination of black wrap mode and a filter with negative lobes.
+      #2787 (2.3.2.0)
+    - Fix: `ociolook()` and `ociofiletransform()` internally reversed the
+      order of their `inverse` and `unpremult` arguments, making it hard to
+      select the inverse transformation. #2844 (2.3.2/2.2.11)
 * ImageCache/TextureSystem:
     - Fix ImageCache bug: add_tile/get_tile not properly honoring when
      `chend < chbegin` it should get all channels. #2742 (2.3.0.1/2.2.8)
@@ -90,6 +96,12 @@ Fixes and feature enhancements:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
 * GIF
     - Support UTF-8 filenames on Windows for GIF files. #2777 (2.3.2.0)
+* HEIC
+    - Fix error decoding Apple HEIF files. #2794/#2809 (2.3.2.0)
+    - Better valid_file() check for HEIF. #2810 (2.3.2.0)
+    - Enabled AVIF decoding of heic files (requires libheif >= 1.7 and for
+      it to have been built with an AV1 encoder/decoder). #2811 #2812 #2814
+      #2818 (2.3.2.0)
 * IFF
     - Fix broken reads of 16 bit iff files. #2736 (2.3.0.1/2.2.8)
 * OpenEXR:
@@ -97,8 +109,12 @@ Fixes and feature enhancements:
       files. #2781 (2.3.2.0)
     - Improved error reporting when errors are encountered writing OpenEXR
       files. #2783 (2.3.2.0)
+    - Fix potential crash parsing OpenEXR header that contains Rational
+      attributes with certain values. #2791 (2.2.10/2.3.2)
 * PNG
     - Read Exif data from PNG files. #2767 (2.3.1.1/2.2.9)
+* PSD
+    - Add support for reading ISD profiles for PSD input. #2788 (2.3.2.0)
 * RAW:
     - Add "raw:user_flip" input configuration hint to control this option
       in the underlying libraw. #2769 (2.3.1.0)
@@ -117,25 +133,56 @@ Fixes and feature enhancements:
       always adding alpha; more efficient by skipping alpha premultiplication
       when it's unnecessary; now can read animated WebP images as
       multi-subimage files. #2730 (2.3.0.1/2.2.8)
+* Fix memory leak during decoding of some invalid Exif blocks. #2824
 
 Developer goodies / internals:
+* Internals now use C++11 `final` keywords wherever applicable. #2734
+  (2.3.0.1)
+* argparse.h:
+    - ArgParse::abort() lets the response to a command line argument signal
+      that no further arguments should be parsed. #2820 (2.3.2/2.2.11)
+* color.h:
+    - New `ColorConfig::OpenColorIO_version_hex()` returns the hex code for
+      the version of OCIO we are using (0 for no OCIO support). #2849 (2.3.2)
+* filesystem.h:
+    - New Filesystem::generic_filepath() returnss a filepath in generic
+      format (not OS specific). #2819 (2.3.2/2.2.11)
 * fmath.h:
     - Use CPU intrinsics to speed up swap_ending (by 8-15x when swapping
       bytes of large arrays). #2763 (2.3.1.0)
+* hash.h:
+    - `farmhash::inlined::Hash` now is constexpr and works for Cuda.
+      #2843 (2.3.2)
+* oiioversion.h:
+    - New macros `OIIO_VERSION_GREATER_EQUAL` and `OIIO_VERSION_LESS`.
+      #2831 (2.3.2/2.2.11)
+* platform.h:
+    - New macro OIIO_INLINE_CONSTEXPR, equivalent to `inline constexpr` for
+      C++17, but just constexpr for C++ <= 14. #2832 (2.3.2/2.2.11)
 * simd.h:
     - Fix incorrect ARM NEON code in simd.h. #2739 (2.3.0.1/2.2.8)
+* span.h:
+    - `std::size()` and `std::ssize()` should work with OIIO::span now.
+      #2827 (2.3.2/2.2.11)
+* string_view.h:
+    - `std::size()` and `std::ssize()` should work with OIIO::string_view
+      now. #2827 (2.3.2/2.2.11)
+* strongparam.h:
+    - New StrongParam helper for disambiguating parameters. #2735 (2.3.2)
 * strutil.h:
     - Strutil `splits()` and `splitsv()` should return no pieces when passed
       an empty string. (It previously erroneously returned one piece
       consisting of an empty string.) #2712 (2.3.0.0)
     - Fix build break when strutil.h was included in Cuda 10.1 code. #2743
       (2.3.0.1/2.2.8)
+    - `strhash()` is now constexpr for C++14 and higher. #2843 (2.3.2)
 * typedesc.h:
     - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
       precision and range to hold the basetypes of either `a` or `b`.
       #2715 (2.3.0.0)
-* Internals now use C++11 `final` keywords wherever applicable. #2734
-  (2.3.0.1)
+* ustring.h:
+    - ustring internals now have a way to ask for the list of ustrings whose
+      hashses collided.  #2786 (2.2.11/2.3.2.0)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
@@ -147,15 +194,33 @@ Build/test system improvements and platform ports:
       various other CMake script refactoring. #2770 (2.3.1.1/2.2.9)
     - Extend checked_find_package with VERSION_MIN and VERSION_MAX. #2773
       (2.3.1.1/2.2.9)
+    - No longer directly link against python libraries when unnecessary.
+      #2807 (2.2.11/2.3.2)
+    - On Windows, fix some linkage problems by changing the pybind11
+      bindings to make a CMake "shared" library rather than "module". Sounds
+      wrong, but seems to work. We will reverse if this causes problems.
+      #2830 (2.3.2/2.2.11)
 * Dependency version support:
     - Fix deprecation warnings when building with very new PugiXML versions.
       #2733 (2.3.0.1/2.2.8)
-    - Fixes to build against recent changes in OpenColorIO v2 master. #2765
-      (2.3.0.1/2.2.8)
+    - Fixes to build against OpenColorIO 2.0. #2765 (2.3.0.1/2.2.8) #2817
+      #2849 (2.3.2/2.2.11)
     - Work to ensure that OIIO will build correctly against the upcoming
       Imath 3.0 and OpenEXR 3.0. #2771 (2.3.1.1/2.2.9)
+    - Better finding of OpenJpeg 2.4. #2829 (2.3.2/2.2.11)
+    - On Mac, libheif 1.10 is very broken. Don't use that version. #2847
+      (2.3.2/2.2.11)
+    - Fix build break against changes coming in future libtiff, where it
+      is changing from some libtiff-defined integer types to the equivalent
+      stdint.h types. #2848 (2.3.2/2.2.11)
+    - Fixes to support the libraw 202101 snapshot (their in-progress 0.21.0).
+      #2850 (2.3.2/2.2.11)
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
+    - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
+    - Got Windows CI fully working, bit by bit. #2796 #2798 #2805 #2821 #2826
+      #2834 #2835 #2836 #2838 #2839 #2840 (2.3.2)
+    - Reduce redundant verbosty in CI output logs during dependency building.
 * Platform support:
     - Fixes for mingw. #2698 (2.3.0.0)
     - Windows fix: correct OIIO_API declaration on aligned_malloc,
@@ -163,6 +228,8 @@ Build/test system improvements and platform ports:
     - Fix boost linkage problem on Windows. #2727 (2.3.0.1/2.2.8)
     - Fix warnings when compiling webpinput.cpp on 32 bit systems. #2783
       (2.3.2.0)
+    - Fix problems with `copysign` sometimes defined as a preprocessor symbol
+      on Windows. #2800 (2.3.2)
 
 Notable documentation changes:
 * Make Readthedocs generate downloadable HTML as well as PDF. #2746
