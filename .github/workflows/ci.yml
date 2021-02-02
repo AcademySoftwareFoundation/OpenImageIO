@@ -97,7 +97,7 @@ jobs:
     # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
     # gcc9 and C++17. This test currently uses the latest OpenEXR release
     # 2.5, though eventually 2021 will feature OpenEXR 3.0 when complete.
-    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.70 exr-2.5"
+    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.73 exr-2.5 qt-5.15"
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2021
@@ -110,7 +110,6 @@ jobs:
           CMAKE_CXX_STANDARD: 17
           PYTHON_VERSION: 3.7
           USE_SIMD: avx2,f16c
-          OPENEXR_VERSION: v2.5.3
           WEBP_VERSION: v1.1.0
         run: |
             source src/build-scripts/ci-startup.bash
@@ -125,7 +124,7 @@ jobs:
   vfxplatform-2021-exrmaster:
     # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
     # gcc9 and C++17, and also the in-progress openexr/imath 3.0.
-    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.70 exr-3.0"
+    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.73 exr-3.0 qt-5.15"
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2021
@@ -327,7 +326,7 @@ jobs:
           PYTHON_VERSION: 3.7
           CMAKE_GENERATOR: "Visual Studio 16 2019"
           OPENEXR_VERSION: v2.4.1
-          OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:4"
+          OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:5"
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash
@@ -351,7 +350,7 @@ jobs:
           PYTHON_VERSION: 3.7
           CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
           OPENEXR_VERSION: v2.4.1
-          OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:4"
+          OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:5"
         run: |
             source src/build-scripts/ci-startup.bash
             source src/build-scripts/gh-win-installdeps.bash
