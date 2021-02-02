@@ -50,8 +50,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 4.1 (tested through 5.2; 5.0+ is strongly recommended for
        stability and thread safety)
  * If you want support for HEIF/HEIC or AVIF images:
-     * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.10)
-     * libheif must be built with an AV1 encoder/decoder for AVIF
+     * libheif >= 1.3 (1.7 required for AVIF support, tested through 1.11)
+     * libheif must be built with an AV1 encoder/decoder for AVIF support.
+     * Avoid libheif 1.10 on Mac, it is very broken. Libheif 1.11 is fine.
  * If you want support for DDS files:
      * libsquish >= 1.13 (tested through 1.15)
      * But... if not found on the system, an embedded version will be used.
