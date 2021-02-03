@@ -78,7 +78,7 @@
 // Make static inline 'const expr, if possible.  Also, try to make CUDA friendly
 // for device code.
 #undef STATIC_INLINE
-#if  __cplusplus >= 201402L
+#if OIIO_CPLUSPLUS_VERSION >= 14
 #  define HASH_CAN_USE_CONSTEXPR 1
 #endif
 #define STATIC_INLINE OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14
