@@ -265,30 +265,30 @@ main(int argc, char* argv[])
     print("\nTesting correctness\n");
     using hashfn_t = uint64_t(string_view);
     auto hashes    = {
-        std::make_pair<const char*, hashfn_t*>("BJ hash           ",
+        std::make_pair<string_view, hashfn_t*>("BJ hash           ",
                                                [](string_view s) -> uint64_t {
                                                    return bjhash::strhash(s);
                                                }),
-        std::make_pair<const char*, hashfn_t*>("XX hash           ",
+        std::make_pair<string_view, hashfn_t*>("XX hash           ",
                                                [](string_view s) -> uint64_t {
                                                    return xxhash::xxhash(s);
                                                }),
-        std::make_pair<const char*, hashfn_t*>("farmhash          ",
+        std::make_pair<string_view, hashfn_t*>("farmhash          ",
                                                [](string_view s) -> uint64_t {
                                                    return farmhash::Hash(s);
                                                }),
-        std::make_pair<const char*, hashfn_t*>(
+        std::make_pair<string_view, hashfn_t*>(
             "farmhash::inlined ",
             [](string_view s) -> uint64_t {
                 return farmhash::inlined::Hash(s.data(), s.size());
             }),
-        std::make_pair<const char*, hashfn_t*>("fasthash64        ",
+        std::make_pair<string_view, hashfn_t*>("fasthash64        ",
                                                [](string_view s) -> uint64_t {
                                                    return fasthash::fasthash64(
                                                        s.data(), s.size());
                                                }),
 #ifdef __AES__
-        std::make_pair<const char*, hashfn_t*>("falkhash          ",
+        std::make_pair<string_view, hashfn_t*>("falkhash          ",
                                                [](string_view s) -> uint64_t {
                                                    return falkhash(s.data(),
                                                                    s.size());
