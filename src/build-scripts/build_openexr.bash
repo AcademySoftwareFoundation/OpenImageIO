@@ -87,6 +87,7 @@ else
             -DBUILD_TESTING=0 \
             -DPYILMBASE_ENABLE=0 \
             -DOPENEXR_VIEWERS_ENABLE=0 \
+            -DINSTALL_OPENEXR_EXAMPLES=0 \
             -DCMAKE_INSTALL_LIBDIR=lib \
             -DCMAKE_CXX_FLAGS="${OPENEXR_CXX_FLAGS}" \
             ${OPENEXR_CMAKE_FLAGS} ${OPENEXR_SOURCE_DIR}
