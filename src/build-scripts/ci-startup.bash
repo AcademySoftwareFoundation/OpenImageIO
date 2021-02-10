@@ -26,8 +26,15 @@ echo "Architecture is $ARCH"
 echo "Build platform name is $PLATFORM"
 
 # Environment variables we always need
+export PATH=/usr/local/bin/_ccache:/usr/lib/ccache:$PATH
 export USE_CCACHE=${USE_CCACHE:=1}
-export CCACHE_CPP2=1
+export CCACHE_CPP2=
+export CCACHE_DIR=/tmp/ccache
+if [[ "${RUNNER_OS}" == "macOS" ]] ; then
+    export CCACHE_DIR=$HOME/.ccache
+fi
+mkdir -p $CCACHE_DIR
+
 export OpenImageIO_ROOT=$PWD/dist/$PLATFORM
 export DYLD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$DYLD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$LD_LIBRARY_PATH
