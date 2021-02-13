@@ -178,10 +178,24 @@ checked_find_package (LibRaw
                       RECOMMEND_MIN_REASON "for ACES support and better camera metadata"
                       PRINT LibRaw_r_LIBRARIES )
 checked_find_package (OpenJpeg VERSION_MIN 2.0)
+
 checked_find_package (OpenVDB
                       VERSION_MIN 5.0
                       DEPS         TBB
                       DEFINITIONS  -DUSE_OPENVDB=1)
+if (OpenVDB_FOUND AND OpenVDB_VERSION VERSION_GREATER_EQUAL 8.0
+        AND CMAKE_CXX_STANDARD VERSION_LESS 14)
+    set (OpenVDB_FOUND OFF)
+    add_definitions (-UUSE_OPENVDB)
+    message (WARNING
+             "${ColorYellow}OpenVDB 8.0+ requires C++14 or higher (was ${CMAKE_CXX_STANDARD}). "
+             "To build against this OpenVDB ${OpenVDB_VERSION}, you need to set "
+             "build option CMAKE_CXX_STANDARD=14 (or higher). The minimum requirements "
+             "for that are gcc >= 5.1, clang >= 3.5, Apple clang >= 7, icc >= 7, MSVS >= 2017. "
+             "If you must use C++11, you need to build against OpenVDB 7 or earlier. ${ColorReset}")
+    message (STATUS "${ColorRed}Not using OpenVDB -- OpenVDB ${OpenVDB_VERSION} requires C++14 or later. ${ColorReset}")
+endif ()
+
 checked_find_package (PTex)
 checked_find_package (WebP)
 
