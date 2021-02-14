@@ -528,7 +528,7 @@ jobs:
     env:
       PYTHON_VERSION: 3.7
       CMAKE_GENERATOR: "Visual Studio 16 2019"
-      OPENEXR_VERSION: v2.4.1
+      OPENEXR_VERSION: v2.5.5
       OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:5"
     steps:
       - uses: actions/checkout@v2
@@ -562,7 +562,7 @@ jobs:
     env:
       PYTHON_VERSION: 3.7
       CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
-      OPENEXR_VERSION: v2.4.1
+      OPENEXR_VERSION: v2.5.5
       OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:5"
     steps:
       - uses: actions/checkout@v2
