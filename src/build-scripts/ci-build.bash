@@ -4,26 +4,8 @@
 # any command in it fails. This is crucial for CI tests.
 set -ex
 
-# This script is run when CI system first starts up.
-# It expects that ci-setenv.bash was run first, so $PLATFORM and $ARCH
-# have been set.
-
-if [[ -e src/build-scripts/ci-setenv.bash ]] ; then
-    source src/build-scripts/ci-setenv.bash
-fi
-
-if [[ ! -e build/$PLATFORM ]] ; then
-    mkdir -p build/$PLATFORM
-fi
-if [[ ! -e dist/$PLATFORM ]] ; then
-    mkdir -p dist/$PLATFORM
-fi
-
 if [[ "$USE_SIMD" != "" ]] ; then
     MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DUSE_SIMD=$USE_SIMD"
-fi
-if [[ "$DEBUG" == "1" ]] ; then
-    export CMAKE_BUILD_TYPE=Debug
 fi
 
 pushd build/$PLATFORM
@@ -49,17 +31,6 @@ if [[ "${DEBUG_CI:=0}" != "0" ]] ; then
     ldd $OpenImageIO_ROOT/bin/oiiotool
 fi
 
-if [[ "${SKIP_TESTS:=0}" == "0" ]] ; then
-    export OCIO="$PWD/testsuite/common/OpenColorIO/nuke-default/config.ocio"
-    $OpenImageIO_ROOT/bin/oiiotool --help || true
-    TESTSUITE_CLEANUP_ON_SUCCESS=${TESTSUITE_CLEANUP_ON_SUCCESS:=1}
-    echo "Parallel test " ${CTEST_PARALLEL_LEVEL}
-    # make $BUILD_FLAGS test
-    pushd build/$PLATFORM
-    ctest -C ${CMAKE_BUILD_TYPE} -E broken --force-new-ctest-process --output-on-failure --timeout 180 ${OIIO_CTEST_FLAGS}
-    popd
-fi
-
 if [[ "$BUILDTARGET" == clang-format ]] ; then
     git diff --color
     THEDIFF=`git diff`
@@ -68,7 +39,3 @@ if [[ "$BUILDTARGET" == clang-format ]] ; then
         exit 1
     fi
 fi
-
-# if [[ "$CODECOV" == 1 ]] ; then
-#     bash <(curl -s https://codecov.io/bash)
-# fi

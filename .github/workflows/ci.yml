@@ -25,11 +25,15 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
+    env:
+      CXX: /usr/bin/g++
+      CC: /usr/bin/gcc
+      CMAKE_CXX_STANDARD: 11
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.2.1
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -40,16 +44,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: /usr/bin/g++
-          CC: /usr/bin/gcc
-          CMAKE_CXX_STANDARD: 11
-          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.2.1
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -61,11 +67,16 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 14
+      USE_SIMD: sse4.2
+      PUGIXML_VERSION: v1.9
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -76,17 +87,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++
-          CC: gcc
-          CMAKE_CXX_STANDARD: 14
-          USE_SIMD: sse4.2
-          PUGIXML_VERSION: v1.9
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -98,11 +110,18 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2020
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 14
+      PYTHON_VERSION: 3.7
+      USE_SIMD: avx
+      WEBP_VERSION: v1.1.0
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -113,19 +132,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++
-          CC: gcc
-          CMAKE_CXX_STANDARD: 14
-          PYTHON_VERSION: 3.7
-          USE_SIMD: avx
-          WEBP_VERSION: v1.1.0
-          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
+      - name: setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -140,11 +158,17 @@ jobs:
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2021
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 17
+      PYTHON_VERSION: 3.7
+      USE_SIMD: avx2,f16c
+      WEBP_VERSION: v1.1.0
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -155,18 +179,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++
-          CC: gcc
-          CMAKE_CXX_STANDARD: 17
-          PYTHON_VERSION: 3.7
-          USE_SIMD: avx2,f16c
-          WEBP_VERSION: v1.1.0
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -180,11 +204,17 @@ jobs:
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2021
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 17
+      PYTHON_VERSION: 3.7
+      USE_SIMD: avx2,f16c
+      OPENEXR_VERSION: master
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -195,20 +225,20 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++
-          CC: gcc
-          CMAKE_CXX_STANDARD: 17
-          PYTHON_VERSION: 3.7
-          USE_SIMD: avx2,f16c
-          OPENEXR_VERSION: master
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
         run: |
             sudo rm -rf /usr/local/include/OpenEXR
             sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -219,11 +249,16 @@ jobs:
     # Test against gcc7, and also at the same time, do a Debug build.
     name: "Linux debug gcc7/C++14, sse4.2, exr2.4"
     runs-on: ubuntu-18.04
+    env:
+      CXX: g++-7
+      CMAKE_CXX_STANDARD: 14
+      USE_SIMD: sse4.2
+      OPENEXR_VERSION: v2.4.0
+      CMAKE_BUILD_TYPE: Debug
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -234,17 +269,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++-7
-          CMAKE_CXX_STANDARD: 14
-          USE_SIMD: sse4.2
-          OPENEXR_VERSION: v2.4.0
-          DEBUG: 1
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -255,11 +291,16 @@ jobs:
     # Test against gcc8.
     name: "Linux gcc8: gcc8 C++17 avx exr2.5"
     runs-on: ubuntu-18.04
+    env:
+      CXX: g++-8
+      CMAKE_CXX_STANDARD: 17
+      USE_SIMD: avx
+      OPENEXR_VERSION: v2.5.3
+      PYBIND11_VERSION: v2.5.0
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -270,17 +311,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++-8
-          CMAKE_CXX_STANDARD: 17
-          USE_SIMD: avx
-          OPENEXR_VERSION: v2.5.3
-          PYBIND11_VERSION: v2.5.0
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -291,11 +333,22 @@ jobs:
     # Test against latest supported releases of toolchain and dependencies.
     name: "Linux latest releases: gcc10 C++17 avx2 exr2.5 ocio2.0"
     runs-on: ubuntu-18.04
+    env:
+      CXX: g++-10
+      CMAKE_CXX_STANDARD: 17
+      USE_SIMD: avx2,f16c
+      LIBRAW_VERSION: 0.20.2
+      LIBTIFF_VERSION: v4.2.0
+      OPENCOLORIO_VERSION: v2.0.0
+      OPENEXR_VERSION: v2.5.3
+      PUGIXML_VERSION: v1.11.4
+      PYBIND11_VERSION: v2.6.2
+      WEBP_VERSION: v1.1.0
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.1.3
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -306,23 +359,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++-10
-          CMAKE_CXX_STANDARD: 17
-          USE_SIMD: avx2,f16c
-          LIBRAW_VERSION: 0.20.2
-          LIBTIFF_VERSION: v4.2.0
-          OPENCOLORIO_VERSION: v2.0.0
-          OPENEXR_VERSION: v2.5.3
-          PUGIXML_VERSION: v1.11.4
-          PYBIND11_VERSION: v2.6.2
-          WEBP_VERSION: v1.1.0
-          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.1.3
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -334,11 +382,23 @@ jobs:
     # supported releases of everything else.
     name: "Linux bleeding edge: gcc10 C++17 avx2 OCIO/libtiff/exr master"
     runs-on: ubuntu-18.04
+    env:
+      CXX: g++-10
+      CMAKE_CXX_STANDARD: 17
+      USE_SIMD: avx2,f16c
+      LIBRAW_VERSION: master
+      LIBTIFF_VERSION: master
+      OPENCOLORIO_VERSION: master
+      OPENEXR_VERSION: master
+      PUGIXML_VERSION: master
+      PYBIND11_VERSION: v2.6.2
+      # PYBIND11_VERSION: master
+      WEBP_VERSION: master
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: CCache
@@ -349,24 +409,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++-10
-          CMAKE_CXX_STANDARD: 17
-          USE_SIMD: avx2,f16c
-          LIBRAW_VERSION: master
-          LIBTIFF_VERSION: master
-          OPENCOLORIO_VERSION: master
-          OPENEXR_VERSION: master
-          PUGIXML_VERSION: master
-          PYBIND11_VERSION: v2.6.2
-          # PYBIND11_VERSION: master
-          WEBP_VERSION: master
-          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -380,11 +434,23 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
+    env:
+      CXX: /usr/bin/g++
+      CC: /usr/bin/gcc
+      CMAKE_CXX_STANDARD: 11
+      USE_SIMD: 0
+      USE_JPEGTURBO: 0
+      USE_OPENCOLORIO: 0
+      USE_OPENCV: 0
+      EMBEDPLUGINS: 0
+      OPENEXR_VERSION: v2.2.1
+      PYBIND11_VERSION: v2.4.2
+      WEBP_VERSION: v1.0.0
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.1.2
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -395,25 +461,19 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: /usr/bin/g++
-          CC: /usr/bin/gcc
-          CMAKE_CXX_STANDARD: 11
-          USE_SIMD: 0
-          USE_JPEGTURBO: 0
-          USE_OPENCOLORIO: 0
-          USE_OPENCV: 0
-          EMBEDPLUGINS: 0
-          OPENEXR_VERSION: v2.2.1
-          PYBIND11_VERSION: v2.4.2
-          WEBP_VERSION: v1.0.0
-          MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=6.1.2
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
         run: |
             sudo rm -rf /usr/local/include/OpenEXR
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -423,11 +483,15 @@ jobs:
   macos-py38:
     name: "Mac py38"
     runs-on: macOS-latest
+    env:
+      CXX: clang++
+      PYTHON_VERSION: 3.8
+      CMAKE_CXX_STANDARD: 14
+      ENABLE_FIELD3D: OFF
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -438,18 +502,20 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: clang++
-          PYTHON_VERSION: 3.8
-          CMAKE_CXX_STANDARD: 14
-          ENABLE_FIELD3D: OFF
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/install_homebrew_deps.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/install_homebrew_deps.bash
             src/build-scripts/install_test_images.bash
+      - name: Build
+        run: |
             export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -459,21 +525,31 @@ jobs:
   windows-vs2019:
     name: "Windows VS2019"
     runs-on: windows-2019
+    env:
+      PYTHON_VERSION: 3.7
+      CMAKE_GENERATOR: "Visual Studio 16 2019"
+      OPENEXR_VERSION: v2.4.1
+      OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:5"
     steps:
       - uses: actions/checkout@v2
       - name: Setup Nuget.exe
         uses: nuget/setup-nuget@v1
-      - name: all
+      - name: Build setup
         shell: bash
-        env:
-          PYTHON_VERSION: 3.7
-          CMAKE_GENERATOR: "Visual Studio 16 2019"
-          OPENEXR_VERSION: v2.4.1
-          OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:5"
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-win-installdeps.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        shell: bash
+        run: |
+            src/build-scripts/gh-win-installdeps.bash
+      - name: Build
+        shell: bash
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        shell: bash
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -483,21 +559,31 @@ jobs:
   windows-vs2017:
     name: "Windows VS2017"
     runs-on: windows-2016
+    env:
+      PYTHON_VERSION: 3.7
+      CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
+      OPENEXR_VERSION: v2.4.1
+      OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:5"
     steps:
       - uses: actions/checkout@v2
       - name: Setup Nuget.exe
         uses: nuget/setup-nuget@v1
-      - name: all
+      - name: Build setup
         shell: bash
-        env:
-          PYTHON_VERSION: 3.7
-          CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
-          OPENEXR_VERSION: v2.4.1
-          OIIO_CTEST_FLAGS: "--timeout 120 --repeat after-timeout:5"
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-win-installdeps.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        shell: bash
+        run: |
+            src/build-scripts/gh-win-installdeps.bash
+      - name: Build
+        shell: bash
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        shell: bash
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -510,11 +596,17 @@ jobs:
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2020
+    env:
+      CXX: g++
+      CC: gcc
+      CMAKE_CXX_STANDARD: 14
+      PYTHON_VERSION: 3.7
+      USE_PYTHON: 0
+      SANITIZE: address
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -525,18 +617,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++
-          CC: gcc
-          CMAKE_CXX_STANDARD: 14
-          PYTHON_VERSION: 3.7
-          USE_PYTHON: 0
-          SANITIZE: address
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -549,11 +641,18 @@ jobs:
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2021
+    env:
+      CXX: clang++
+      CMAKE_CXX_STANDARD: 14
+      PYTHON_VERSION: 3.7
+      USE_SIMD: avx2,f16c
+      PYBIND11_VERSION: v2.6.1
+      OPENCOLORIO_VERSION: 1c624651b7
+      # Pick an OCIO commit that includes a warning fix we need for clang
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -564,19 +663,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: clang++
-          CMAKE_CXX_STANDARD: 14
-          PYTHON_VERSION: 3.7
-          USE_SIMD: avx2,f16c
-          PYBIND11_VERSION: v2.6.1
-          OPENCOLORIO_VERSION: 1c624651b7
-          # Pick an OCIO commit that includes a warning fix we need for clang
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -587,11 +685,14 @@ jobs:
     # Test building static libs.
     name: "Linux static libs: gcc7 C++14 exr2.4"
     runs-on: ubuntu-18.04
+    env:
+      CXX: g++-7
+      CMAKE_CXX_STANDARD: 14
+      BUILD_SHARED_LIBS: OFF
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
         id: ccache_cache_keys
-        shell: bash
         run: |
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: ccache
@@ -602,15 +703,18 @@ jobs:
           key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
           restore-keys: |
             ${{ github.job }}-
-      - name: all
-        env:
-          CXX: g++-7
-          CMAKE_CXX_STANDARD: 14
-          BUILD_SHARED_LIBS: OFF
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
@@ -626,17 +730,20 @@ jobs:
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2021-clang10
+    env:
+      BUILDTARGET: clang-format
+      PYTHON_VERSION: 3.7
     steps:
       - uses: actions/checkout@v2
-      - name: all
-        env:
-          BUILDTARGET: clang-format
-          PYTHON_VERSION: 3.7
-          SKIP_TESTS: 1
+      - name: Build setup
         run: |
-            source src/build-scripts/ci-startup.bash
-            source src/build-scripts/gh-installdeps-centos.bash
-            source src/build-scripts/ci-build-and-test.bash
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
       - uses: actions/upload-artifact@v2
         if: failure()
         with:
