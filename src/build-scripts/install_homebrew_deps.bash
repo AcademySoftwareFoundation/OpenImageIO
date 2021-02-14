@@ -60,3 +60,7 @@ export PATH=/usr/local/opt/llvm/bin:$PATH ;
 # This is unnecessary, so we disable the step to make CI more likely to
 # pass in cases where they don't exactly match on the Travis/GH instances.
 export HDF5_DISABLE_VERSION_CHECK=1
+
+
+# Save the env for use by other stages
+src/build-scripts/save-env.bash

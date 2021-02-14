@@ -6,19 +6,19 @@
 
 # Figure out the platform
 if [[ $TRAVIS_OS_NAME == osx || $RUNNER_OS == macOS ]] ; then
-      export ARCH=macosx
+    export ARCH=macosx
 elif [[ `uname -m` == aarch64 ]] ; then
     export ARCH=aarch64
-elif [[ $TRAVIS_OS_NAME == linux || $RUNNER_OS == Linux || $CIRCLECI == true ]] ; then
-      export ARCH=linux64
+elif [[ $TRAVIS_OS_NAME == linux || $RUNNER_OS == Linux ]] ; then
+    export ARCH=linux64
 elif [[ $RUNNER_OS == Windows ]] ; then
-      export ARCH=windows64
+    export ARCH=windows64
 else
     export ARCH=unknown
 fi
 export PLATFORM=$ARCH
 
-if [[ "$DEBUG" == 1 ]] ; then
+if [[ "${DEBUG:=0}" != "0" ]] ; then
     export PLATFORM=${PLATFORM}.debug
 fi
 
@@ -58,8 +58,6 @@ if [[ $TRAVIS == true && "$ARCH" == aarch64 ]] ; then
     export PARALLEL=4
 elif [[ $TRAVIS == true ]] ; then
     export PARALLEL=2
-elif [[ $CIRCLECI == true ]] ; then
-    export PARALLEL=4
 elif [[ $GITHUB_ACTIONS == true ]] ; then
     export PARALLEL=4
 fi
@@ -73,6 +71,11 @@ export PATH=${LOCAL_DEPS_DIR}/dist/bin:$PATH
 export LD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/dist/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/dist/lib64:$LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/dist/lib:$DYLD_LIBRARY_PATH
+
+export OCIO="$PWD/testsuite/common/OpenColorIO/nuke-default/config.ocio"
+export TESTSUITE_CLEANUP_ON_SUCCESS=${TESTSUITE_CLEANUP_ON_SUCCESS:=1}
+
+mkdir -p build/$PLATFORM dist/$PLATFORM
 
 echo "HOME = $HOME"
 echo "PWD = $PWD"
@@ -90,3 +93,6 @@ if [[ `uname -s` == "Linux" ]] ; then
 elif [[ $ARCH == macosx ]] ; then
     sysctl machdep.cpu.features
 fi
+
+# Save the env for use by other stages
+src/build-scripts/save-env.bash

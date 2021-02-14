@@ -4,13 +4,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
-if [[ ! -e build/$PLATFORM ]] ; then
-    mkdir -p build/$PLATFORM
-fi
-if [[ ! -e dist/$PLATFORM ]] ; then
-    mkdir -p dist/$PLATFORM
-fi
-
 # DEP_DIR="$PWD/ext/dist"
 DEP_DIR="$PWD/dist/$PLATFORM"
 mkdir -p "$DEP_DIR"
@@ -146,3 +139,6 @@ src/build-scripts/install_test_images.bash
 # export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$ILMBASE_ROOT;$OPENEXR_ROOT"
 # source src/build-scripts/build_opencolorio.bash
 
+
+# Save the env for use by other stages
+src/build-scripts/save-env.bash
