@@ -4,6 +4,8 @@
 
 #include "py_oiio.h"
 
+#include <OpenImageIO/sysutil.h>
+
 namespace PyOpenImageIO {
 
 
@@ -245,6 +247,9 @@ oiio_getattribute_typed(const std::string& name, TypeDesc type = TypeUnknown)
 OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
 {
     using namespace pybind11::literals;
+
+    if (Sysutil::getenv("OPENIMAGEIO_DEBUG_PYTHON") != "")
+        Sysutil::setup_crash_stacktrace("stdout");
 
     // Basic helper classes
     declare_typedesc(m);

@@ -215,17 +215,17 @@ declare_texturesystem(py::module& m)
         .def(
             "texture",
             [](const TextureSystemWrap& ts, const std::string& filename,
-               TextureOptWrap* options, float s, float t, float dsdx,
+               TextureOptWrap& options, float s, float t, float dsdx,
                float dtdx, float dsdy, float dtdy, int nchannels) {
                 if (!ts.m_texsys || nchannels < 1) {
                     return py::tuple();
                 }
-
-                py::gil_scoped_release gil;
                 float* result = OIIO_ALLOCA(float, nchannels);
-                ts.m_texsys->texture(ustring(filename), *((TextureOpt*)options),
-                                     s, t, dsdx, dtdx, dsdy, dtdy, nchannels,
-                                     result);
+                {
+                    py::gil_scoped_release gil;
+                    ts.m_texsys->texture(ustring(filename), options, s, t, dsdx,
+                                         dtdx, dsdy, dtdy, nchannels, result);
+                }
                 return C_to_tuple(result, nchannels);
             },
             "filename"_a, "options"_a, "s"_a, "t"_a, "dsdx"_a, "dtdx"_a,
@@ -235,22 +235,23 @@ declare_texturesystem(py::module& m)
         .def(
             "texture3d",
             [](const TextureSystemWrap& ts, const std::string& filename,
-               TextureOptWrap* options, const std::array<float, 3> P,
+               TextureOptWrap& options, const std::array<float, 3> P,
                const std::array<float, 3> dPdx, const std::array<float, 3> dPdy,
                const std::array<float, 3> dPdz, int nchannels) {
                 if (!ts.m_texsys || nchannels < 1) {
                     return py::tuple();
                 }
-
-                py::gil_scoped_release gil;
                 float* result = OIIO_ALLOCA(float, nchannels);
-                ts.m_texsys->texture3d(ustring(filename),
-                                       *((TextureOpt*)options),
-                                       Imath::V3f(P[0], P[1], P[2]),
-                                       Imath::V3f(dPdx[0], dPdx[1], dPdx[2]),
-                                       Imath::V3f(dPdy[0], dPdy[1], dPdy[2]),
-                                       Imath::V3f(dPdz[0], dPdz[1], dPdz[2]),
-                                       nchannels, result);
+                {
+                    py::gil_scoped_release gil;
+                    ts.m_texsys->texture3d(
+                        ustring(filename), options,
+                        Imath::V3f(P[0], P[1], P[2]),
+                        Imath::V3f(dPdx[0], dPdx[1], dPdx[2]),
+                        Imath::V3f(dPdy[0], dPdy[1], dPdy[2]),
+                        Imath::V3f(dPdz[0], dPdz[1], dPdz[2]), nchannels,
+                        result);
+                }
                 return C_to_tuple(result, nchannels);
             },
             "filename"_a, "options"_a, "P"_a, "dPdx"_a, "dPdy"_a, "dPdz"_a,
@@ -259,21 +260,24 @@ declare_texturesystem(py::module& m)
         .def(
             "environment",
             [](const TextureSystemWrap& ts, const std::string& filename,
-               TextureOptWrap* options, const std::array<float, 3> R,
+               TextureOptWrap& options, const std::array<float, 3> R,
                const std::array<float, 3> dRdx, const std::array<float, 3> dRdy,
                int nchannels) {
                 if (!ts.m_texsys || nchannels < 1) {
                     return py::tuple();
                 }
 
-                py::gil_scoped_release gil;
                 float* result = OIIO_ALLOCA(float, nchannels);
-                ts.m_texsys->environment(ustring(filename),
-                                         *((TextureOpt*)options),
-                                         Imath::V3f(R[0], R[1], R[2]),
-                                         Imath::V3f(dRdx[0], dRdx[1], dRdx[2]),
-                                         Imath::V3f(dRdy[0], dRdy[1], dRdy[2]),
-                                         nchannels, result);
+                {
+                    py::gil_scoped_release gil;
+                    ts.m_texsys->environment(ustring(filename), options,
+                                             Imath::V3f(R[0], R[1], R[2]),
+                                             Imath::V3f(dRdx[0], dRdx[1],
+                                                        dRdx[2]),
+                                             Imath::V3f(dRdy[0], dRdy[1],
+                                                        dRdy[2]),
+                                             nchannels, result);
+                }
                 return C_to_tuple(result, nchannels);
             },
             "filename"_a, "options"_a, "R"_a, "dRdx"_a, "dRdy"_a, "nchannels"_a)
