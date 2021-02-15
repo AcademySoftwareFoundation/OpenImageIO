@@ -4,6 +4,8 @@
 
 #include "py_oiio.h"
 
+#include <OpenImageIO/sysutil.h>
+
 namespace PyOpenImageIO {
 
 
@@ -246,6 +248,9 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
 {
     using namespace pybind11::literals;
 
+    if (Sysutil::getenv("OPENIMAGEIO_DEBUG_PYTHON") != "")
+        Sysutil::setup_crash_stacktrace("stdout");
+
     // Basic helper classes
     declare_typedesc(m);
     declare_paramvalue(m);
@@ -259,6 +264,13 @@ OIIO_DECLARE_PYMODULE(PYMODULE_NAME)
     declare_imageoutput(m);
     declare_imagebuf(m);
     declare_imagecache(m);
+
+    // TextureSys classes
+    declare_wrap(m);
+    declare_mipmpode(m);
+    declare_interpmode(m);
+    declare_textureopt(m);
+    declare_texturesystem(m);
 
     declare_imagebufalgo(m);
 

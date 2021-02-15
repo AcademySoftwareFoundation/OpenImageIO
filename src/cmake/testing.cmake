@@ -203,6 +203,7 @@ macro (oiio_add_all_tests)
                 python-imagespec python-roi python-deep python-colorconfig
                 python-imageinput python-imageoutput
                 python-imagebuf python-imagebufalgo
+                python-texturesys
                 IMAGEDIR oiio-images
                 )
     endif ()

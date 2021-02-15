@@ -1,0 +1,16 @@
+checker middle, top mip, channels: 1 = (0.5,)
+checker middle, top mip, channels: 2 = (0.5, 0.5)
+checker middle, top mip, channels: 3 = (0.5, 0.5, 0.5)
+
+checker middle, mip tail, channels: 1 = (0.5,)
+
+missingcolor channels: 1 = (1.0,)
+missingcolor channels: 2 = (1.0, 2.0)
+missingcolor channels: 3 = (1.0, 2.0, 3.0)
+missingcolor channels: 4 = (1.0, 2.0, 3.0, 4.0)
+
+default-missingcolor = (0.0, 0.0, 0.0, 0.0)
+
+top mip pixel differences when streaming = 0
+
+Done.
