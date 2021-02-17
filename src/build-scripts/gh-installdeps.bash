@@ -42,13 +42,11 @@ else
         qt5-default \
         libhdf5-dev
 
-    # Disable libheif on CI for now... seems to make crashes in CI tests.
-    # Works fine for me in real life. Investigate.
-    #if [[ "$USE_LIBHEIF" != "0" ]] ; then
-    #    sudo add-apt-repository ppa:strukturag/libde265
-    #    sudo add-apt-repository ppa:strukturag/libheif
-    #    time sudo apt-get -q install -y libheif-dev
-    #fi
+    if [[ "$USE_LIBHEIF" != "0" ]] ; then
+       sudo add-apt-repository ppa:strukturag/libde265
+       sudo add-apt-repository ppa:strukturag/libheif
+       time sudo apt-get -q install -y libheif-dev
+    fi
 
     export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
 
