@@ -142,7 +142,7 @@ static XMPtag xmptag[] = {
     { "Iptc4xmpCore:Scene", "IPTC:SceneCode", TypeDesc::STRING, IsList },
     { "Iptc4xmpExt:PersonInImage", "IPTC:PersonInImage", TypeDesc::STRING, IsList },
 
-    { "aux::Firmware", "aux:Firmware", TypeDesc::STRING, 0},
+    { "aux:Firmware", "aux:Firmware", TypeDesc::STRING, 0},
 
     { "crs:AutoBrightness", "crs:AutoBrightness"  , TypeDesc::INT, IsBool },
     { "crs:AutoContrast", "crs:AutoContrast"    , TypeDesc::INT, IsBool },
@@ -254,12 +254,33 @@ xmp_tagmap_ref()
 
 
 
+// Does it look like the string representation of a rational value?
+inline bool
+string_is_rational(string_view s)
+{
+    int n;
+    return Strutil::parse_int(s, n) && Strutil::parse_char(s, '/')
+           && Strutil::string_is_int(s);
+}
+
+
+
+inline bool
+parse_rational(string_view s, int& n, int& d)
+{
+    return Strutil::parse_int(s, n) && Strutil::parse_char(s, '/')
+           && Strutil::parse_int(s, d);
+}
+
+
+
 // Utility: add an attribute to the spec with the given xml name and
 // value.  Search for it in xmptag, and if found that will tell us what
 // the type is supposed to be, as well as any special handling.  If not
 // found in the table, add it as a string and hope for the best.
 static void
-add_attrib(ImageSpec& spec, const char* xmlname, const char* xmlvalue)
+add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
+           bool attribIsSeq = false)
 {
 #if DEBUG_XMP_READ
     std::cerr << "add_attrib " << xmlname << ": '" << xmlvalue << "'\n";
@@ -283,7 +304,7 @@ add_attrib(ImageSpec& spec, const char* xmlname, const char* xmlvalue)
     int tag = -1, tifftype = -1, count = 0;
     if (Strutil::istarts_with(xmlname, "Exif:")
         && (exif_tag_lookup(xmlname, tag, tifftype, count)
-            || exif_tag_lookup(xmlname + 5, tag, tifftype, count))) {
+            || exif_tag_lookup(xmlname.substr(5), tag, tifftype, count))) {
         // It's a known Exif name
         if (tifftype == TIFF_SHORT && count == 1)
             oiiotype = TypeDesc::UINT;
@@ -299,6 +320,18 @@ add_attrib(ImageSpec& spec, const char* xmlname, const char* xmlvalue)
             oiiotype = TypeDesc::INT;
         else if (tifftype == TIFF_NOTYPE)
             return;  // skip
+    }
+
+    // Guess the type if unknown
+    if (oiiotype == TypeUnknown) {
+        if (Strutil::string_is_int(xmlvalue))
+            oiiotype = TypeInt;
+        else if (Strutil::string_is_float(xmlvalue))
+            oiiotype = TypeFloat;
+        else
+            oiiotype = TypeString;
+        if (attribIsSeq)
+            special |= IsSeq;
     }
 
     if (oiiotype == TypeDesc::STRING) {
@@ -324,21 +357,38 @@ add_attrib(ImageSpec& spec, const char* xmlname, const char* xmlvalue)
         }
         spec.attribute(oiioname, val);
         return;
+    } else if (oiiotype == TypeRational || string_is_rational(xmlname)) {
+        int val[2];
+        if (parse_rational(xmlvalue, val[0], val[1]))
+            spec.attribute(xmlname, TypeRational, &val[0]);
+        return;
     } else if (oiiotype == TypeDesc::INT) {
+        std::vector<int> vals;
+        if ((special & (IsList | IsSeq))
+            && spec.extra_attribs.contains(xmlname))
+            vals = spec.extra_attribs[xmlname].as_vec<int>();
         if (special & IsBool)
-            spec.attribute(oiioname, (int)Strutil::iequals(xmlvalue, "true"));
+            vals.push_back((int)Strutil::iequals(xmlvalue, "true"));
         else  // ordinary int
-            spec.attribute(oiioname, (int)Strutil::stoi(xmlvalue));
+            vals.push_back(Strutil::stoi(xmlvalue));
+        TypeDesc t = oiiotype;
+        if (vals.size() > 1)
+            t.arraylen = vals.size();
+        spec.attribute(oiioname, t, vals.data());
         return;
     } else if (oiiotype == TypeDesc::UINT) {
         spec.attribute(oiioname, Strutil::from_string<unsigned int>(xmlvalue));
         return;
     } else if (oiiotype == TypeDesc::FLOAT) {
-        float f           = Strutil::stoi(xmlvalue);
-        const char* slash = strchr(xmlvalue, '/');
-        if (slash)  // It's rational!
-            f /= (float)Strutil::stoi(slash + 1);
-        spec.attribute(oiioname, f);
+        std::vector<float> vals;
+        if ((special & (IsList | IsSeq))
+            && spec.extra_attribs.contains(xmlname))
+            vals = spec.extra_attribs[xmlname].as_vec<float>();
+        vals.push_back(Strutil::stof(xmlvalue));
+        TypeDesc t = oiiotype;
+        if (vals.size() > 1)
+            t.arraylen = vals.size();
+        spec.attribute(oiioname, t, vals.data());
         return;
     }
 #if (!defined(NDEBUG) || DEBUG_XMP_READ)
@@ -398,7 +448,7 @@ extract_middle(string_view str, size_t pos, string_view startmarker,
 
 static void
 decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
-                const char* parentname = NULL, bool /*isList*/ = false)
+                const char* parentname = NULL, bool isList = false)
 {
     std::string mylist;  // will accumulate for list items
     for (; node; node = node.next_sibling()) {
@@ -418,7 +468,7 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
                 || Strutil::istarts_with(attr.name(), "xmlns:"))
                 continue;  // xml attributes aren't image metadata
             if (attr.name()[0] && attr.value()[0])
-                add_attrib(spec, attr.name(), attr.value());
+                add_attrib(spec, attr.name(), attr.value(), isList);
         }
         if (Strutil::iequals(node.name(), "xmpMM::History")) {
             // FIXME -- image history is complicated. Come back to it.
@@ -434,7 +484,8 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
                             true);
         } else {
             // Not a list, but it's got children.  Recurse.
-            decode_xmp_node(node.first_child(), spec, level + 1, node.name());
+            decode_xmp_node(node.first_child(), spec, level + 1, node.name(),
+                            isList);
         }
 
         // If this node has a value but no name, it's definitely part
@@ -448,7 +499,7 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
 
     // If we have accumulated a list, turn it into an attribute
     if (parentname && mylist.size()) {
-        add_attrib(spec, parentname, mylist.c_str());
+        add_attrib(spec, parentname, mylist, true);
     }
 }
 
