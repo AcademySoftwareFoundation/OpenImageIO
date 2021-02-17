@@ -24,10 +24,10 @@ Reading ../../../../../oiio-images/psd_123.psd
     IPTC:ModifyDate: "2011-08-22T22:14:43-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: "3"
-    photoshop:LayerText: "3"
+    photoshop:LayerName: 1, 2, 3, 1, 2, 3
+    photoshop:LayerText: 1, 2, 3, 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -54,10 +54,10 @@ Reading ../../../../../oiio-images/psd_123.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "1"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: "3"
-    photoshop:LayerText: "3"
+    photoshop:LayerName: 1, 2, 3, 1, 2, 3
+    photoshop:LayerText: 1, 2, 3, 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -84,10 +84,10 @@ Reading ../../../../../oiio-images/psd_123.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "2"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: "3"
-    photoshop:LayerText: "3"
+    photoshop:LayerName: 1, 2, 3, 1, 2, 3
+    photoshop:LayerText: 1, 2, 3, 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -114,10 +114,10 @@ Reading ../../../../../oiio-images/psd_123.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "3"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: "3"
-    photoshop:LayerText: "3"
+    photoshop:LayerName: 1, 2, 3, 1, 2, 3
+    photoshop:LayerText: 1, 2, 3, 1, 2, 3
     rdf:parseType: "Resource"
     stEvt:action: "created"
     stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92"
@@ -149,16 +149,16 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     IPTC:ModifyDate: "2011-08-29T12:10:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: "3"
-    photoshop:LayerText: "3"
+    photoshop:LayerName: 1, 2, 3, 1, 2, 3
+    photoshop:LayerText: 1, 2, 3, 1, 2, 3
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9; xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-29T12:10:28-04:00"
+    stEvt:when: "2011-08-22T22:14:43-04:00; 2011-08-29T12:10:28-04:00"
  subimage  1:   33 x   98, 4 channel, uint8 psd
     SHA-1: CDA136B1B34A86AEBDCB88283F0D2323F921C00C
     channel list: R, G, B, A
@@ -180,16 +180,16 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "1"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: "3"
-    photoshop:LayerText: "3"
+    photoshop:LayerName: 1, 2, 3, 1, 2, 3
+    photoshop:LayerText: 1, 2, 3, 1, 2, 3
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9; xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-29T12:10:28-04:00"
+    stEvt:when: "2011-08-22T22:14:43-04:00; 2011-08-29T12:10:28-04:00"
  subimage  2:   63 x  100, 4 channel, uint8 psd
     SHA-1: E0B9D4A8BE16B52126EC5BC1E829D099EF4C5DC4
     channel list: R, G, B, A
@@ -211,16 +211,16 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "2"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: "3"
-    photoshop:LayerText: "3"
+    photoshop:LayerName: 1, 2, 3, 1, 2, 3
+    photoshop:LayerText: 1, 2, 3, 1, 2, 3
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9; xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-29T12:10:28-04:00"
+    stEvt:when: "2011-08-22T22:14:43-04:00; 2011-08-29T12:10:28-04:00"
  subimage  3:   61 x  102, 4 channel, uint8 psd
     SHA-1: 11FDE5499A2150FD5C779C9012649E839750C1D8
     channel list: R, G, B, A
@@ -242,16 +242,16 @@ Reading ../../../../../oiio-images/psd_123_nomaxcompat.psd
     IPTC:OriginalDocumentID: "xmp.did:047A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "3"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
-    photoshop:LayerName: "3"
-    photoshop:LayerText: "3"
+    photoshop:LayerName: 1, 2, 3, 1, 2, 3
+    photoshop:LayerText: 1, 2, 3, 1, 2, 3
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:instanceID: "xmp.iid:047A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:F4BDDC0457D2E011BF419187EAB8EBB9; xmp.iid:F5BDDC0457D2E011BF419187EAB8EBB9"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-29T12:10:28-04:00"
+    stEvt:when: "2011-08-22T22:14:43-04:00; 2011-08-29T12:10:28-04:00"
 Reading ../../../../../oiio-images/psd_bitmap.psd
 ../../../../../oiio-images/psd_bitmap.psd :  320 x  240, 3 channel, uint8 psd
     SHA-1: F23185BC048E31BAC6BB4B319E5E5AC570CC7B89
@@ -310,14 +310,14 @@ Reading ../../../../../oiio-images/psd_bitmap.psd
     IPTC:MetadataDate: "2011-08-25T17:40:47-04:00"
     IPTC:ModifyDate: "2011-08-25T17:40:47-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-    photoshop:ColorMode: "0"
+    photoshop:ColorMode: 0, 0
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "saved; converted; derived"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:F410E7E462CFE011B8B8C52D9599FB9E"
-    stEvt:parameters: "converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2A93235262CFE011B8B8C52D9599FB9E; xmp.iid:F310E7E462CFE011B8B8C52D9599FB9E; xmp.iid:F410E7E462CFE011B8B8C52D9599FB9E"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-25T17:40:47-04:00"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-22T21:56:49-04:00; 2011-08-25T17:40-04:00; 2011-08-25T17:40:47-04:00"
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
@@ -380,15 +380,15 @@ Reading ../../../../../oiio-images/psd_indexed_trans.psd
     IPTC:ModifyDate: "2011-08-29T11:54:09-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: "2"
+    photoshop:ColorMode: 2, 2
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "saved; converted; derived"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:F3BDDC0457D2E011BF419187EAB8EBB9"
-    stEvt:parameters: "converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2A93235262CFE011B8B8C52D9599FB9E; xmp.iid:F3BDDC0457D2E011BF419187EAB8EBB9"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-29T11:54:09-04:00"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-22T21:56:49-04:00; 2011-08-25T17:40-04:00; 2011-08-29T11:54:09-04:00"
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
@@ -451,15 +451,15 @@ Reading ../../../../../oiio-images/psd_rgb_8.psd
     IPTC:ModifyDate: "2011-08-25T17:40-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "saved; converted; derived"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:2A93235262CFE011B8B8C52D9599FB9E"
-    stEvt:parameters: "converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2A93235262CFE011B8B8C52D9599FB9E"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-25T17:40-04:00"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-22T21:56:49-04:00; 2011-08-25T17:40-04:00"
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
@@ -522,15 +522,15 @@ Reading ../../../../../oiio-images/psd_rgb_16.psd
     IPTC:ModifyDate: "2011-08-25T17:39:49-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "saved; converted; derived"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:2993235262CFE011B8B8C52D9599FB9E"
-    stEvt:parameters: "converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2993235262CFE011B8B8C52D9599FB9E"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-25T17:39:49-04:00"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-25T17:39:49-04:00"
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
@@ -592,15 +592,15 @@ Reading ../../../../../oiio-images/psd_rgb_32.psd
     IPTC:MetadataDate: "2011-08-25T17:39:38-04:00"
     IPTC:ModifyDate: "2011-08-25T17:39:38-04:00"
     IPTC:OriginalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:ICCProfile: "sRGB IEC61966-2.1 (Linear RGB Profile)"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "saved; converted; derived"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:2893235262CFE011B8B8C52D9599FB9E"
-    stEvt:parameters: "converted from image/jpeg to application/vnd.adobe.photoshop"
+    stEvt:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:52DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:53DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:54DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:55DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:56DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:57DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:58DA7E112BCDE011A998CBE7B5CCEB92; xmp.iid:2893235262CFE011B8B8C52D9599FB9E"
+    stEvt:parameters: "from image/jpeg to application/vnd.adobe.photoshop; converted from image/jpeg to application/vnd.adobe.photoshop"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-25T17:39:38-04:00"
+    stEvt:when: "2011-08-22T21:56:08-04:00; 2011-08-22T21:56:36-04:00; 2011-08-22T21:56:49-04:00; 2011-08-22T21:57:01-04:00; 2011-08-25T17:39:38-04:00"
     stRef:documentID: "E146B3E37A92795EE3EA6577040DE6D5"
     stRef:instanceID: "xmp.iid:51DA7E112BCDE011A998CBE7B5CCEB92"
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
@@ -630,15 +630,15 @@ Reading ../../../../../oiio-images/psd_rgba_8.psd
     IPTC:ModifyDate: "2011-08-25T17:39:28-04:00"
     IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:DocumentAncestors: "E146B3E37A92795EE3EA6577040DE6D5"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
+    stEvt:instanceID: "xmp.iid:037A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-25T17:39:28-04:00"
+    stEvt:when: "2011-08-22T22:07:44-04:00; 2011-08-25T17:39:28-04:00"
  subimage  1:  320 x  240, 4 channel, uint8 psd
     SHA-1: 131A372FD9B67B580B0380A4F754281D5F33E12E
     channel list: R, G, B, A
@@ -659,15 +659,15 @@ Reading ../../../../../oiio-images/psd_rgba_8.psd
     IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "Layer 1"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     photoshop:DocumentAncestors: "E146B3E37A92795EE3EA6577040DE6D5"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
+    stEvt:instanceID: "xmp.iid:037A91A22BCDE011A998CBE7B5CCEB92; xmp.iid:2793235262CFE011B8B8C52D9599FB9E"
     stEvt:softwareAgent: "Adobe Photoshop CS5.1 Windows"
-    stEvt:when: "2011-08-25T17:39:28-04:00"
+    stEvt:when: "2011-08-22T22:07:44-04:00; 2011-08-25T17:39:28-04:00"
 Reading src/different-mask-size.psd
 src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     4 subimages: 30x90 [u8,u8,u8], 30x90 [u8,u8,u8,u8], 4x93 [u8,u8,u8,u8], 4x93 [u8,u8,u8,u8]
@@ -690,15 +690,15 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:ModifyDate: "2017-01-10T17:55:32+09:00"
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
-    photoshop:ColorMode: "3"
-    photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    photoshop:ColorMode: 3, 3
+    photoshop:DocumentAncestors: "5B7818AD2E5E32040EA56034BBF08A7B; 76E35AB96B86FEC6F025DB20EBC85B75; xmp.did:1aba88a3-5e9a-4126-9fdb-c0bf9e220220; xmp.did:67CCD764092068118083F3748F43AB53; xmp.did:EF61098A6F16E011A133C53B46066329; xmp.did:ddc52283-5cc3-4453-8815-0f97e7e749e6; xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
-    stEvt:softwareAgent: "Adobe Photoshop CC 2015.5 (Windows)"
-    stEvt:when: "2017-01-10T17:55:32+09:00"
+    stEvt:instanceID: "xmp.iid:e5390921-47bd-41b6-9237-d4903a41e966; xmp.iid:1710094a-3678-4874-8382-1f328830d993; xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:softwareAgent: "Adobe Photoshop CC (Macintosh); Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:when: "2014-02-16T17:20:13+09:00; 2014-02-20T20:49:31+09:00; 2017-01-10T17:55:32+09:00"
  subimage  1:   30 x   90, 4 channel, uint8 psd
     SHA-1: B2E0D74684B53DF0382EAB0BB1A277438715BB2F
     channel list: R, G, B, A
@@ -719,15 +719,15 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "Layer 0"
-    photoshop:ColorMode: "3"
-    photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    photoshop:ColorMode: 3, 3
+    photoshop:DocumentAncestors: "5B7818AD2E5E32040EA56034BBF08A7B; 76E35AB96B86FEC6F025DB20EBC85B75; xmp.did:1aba88a3-5e9a-4126-9fdb-c0bf9e220220; xmp.did:67CCD764092068118083F3748F43AB53; xmp.did:EF61098A6F16E011A133C53B46066329; xmp.did:ddc52283-5cc3-4453-8815-0f97e7e749e6; xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
-    stEvt:softwareAgent: "Adobe Photoshop CC 2015.5 (Windows)"
-    stEvt:when: "2017-01-10T17:55:32+09:00"
+    stEvt:instanceID: "xmp.iid:e5390921-47bd-41b6-9237-d4903a41e966; xmp.iid:1710094a-3678-4874-8382-1f328830d993; xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:softwareAgent: "Adobe Photoshop CC (Macintosh); Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:when: "2014-02-16T17:20:13+09:00; 2014-02-20T20:49:31+09:00; 2017-01-10T17:55:32+09:00"
  subimage  2:    4 x   93, 4 channel, uint8 psd
     SHA-1: 8CE9A2A394ED148194055A22E59E55CE7BDFB3B7
     channel list: R, G, B, A
@@ -749,15 +749,15 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "line1"
-    photoshop:ColorMode: "3"
-    photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    photoshop:ColorMode: 3, 3
+    photoshop:DocumentAncestors: "5B7818AD2E5E32040EA56034BBF08A7B; 76E35AB96B86FEC6F025DB20EBC85B75; xmp.did:1aba88a3-5e9a-4126-9fdb-c0bf9e220220; xmp.did:67CCD764092068118083F3748F43AB53; xmp.did:EF61098A6F16E011A133C53B46066329; xmp.did:ddc52283-5cc3-4453-8815-0f97e7e749e6; xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
-    stEvt:softwareAgent: "Adobe Photoshop CC 2015.5 (Windows)"
-    stEvt:when: "2017-01-10T17:55:32+09:00"
+    stEvt:instanceID: "xmp.iid:e5390921-47bd-41b6-9237-d4903a41e966; xmp.iid:1710094a-3678-4874-8382-1f328830d993; xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:softwareAgent: "Adobe Photoshop CC (Macintosh); Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:when: "2014-02-16T17:20:13+09:00; 2014-02-20T20:49:31+09:00; 2017-01-10T17:55:32+09:00"
  subimage  3:    4 x   93, 4 channel, uint8 psd
     SHA-1: 8CE9A2A394ED148194055A22E59E55CE7BDFB3B7
     channel list: R, G, B, A
@@ -779,15 +779,15 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "line2"
-    photoshop:ColorMode: "3"
-    photoshop:DocumentAncestors: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
+    photoshop:ColorMode: 3, 3
+    photoshop:DocumentAncestors: "5B7818AD2E5E32040EA56034BBF08A7B; 76E35AB96B86FEC6F025DB20EBC85B75; xmp.did:1aba88a3-5e9a-4126-9fdb-c0bf9e220220; xmp.did:67CCD764092068118083F3748F43AB53; xmp.did:EF61098A6F16E011A133C53B46066329; xmp.did:ddc52283-5cc3-4453-8815-0f97e7e749e6; xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
-    stEvt:softwareAgent: "Adobe Photoshop CC 2015.5 (Windows)"
-    stEvt:when: "2017-01-10T17:55:32+09:00"
+    stEvt:instanceID: "xmp.iid:e5390921-47bd-41b6-9237-d4903a41e966; xmp.iid:1710094a-3678-4874-8382-1f328830d993; xmp.iid:278c5b86-91a4-c144-b1bb-3f925cc9425d"
+    stEvt:softwareAgent: "Adobe Photoshop CC (Macintosh); Adobe Photoshop CC 2015.5 (Windows)"
+    stEvt:when: "2014-02-16T17:20:13+09:00; 2014-02-20T20:49:31+09:00; 2017-01-10T17:55:32+09:00"
 Reading src/layer-mask.psd
 src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     3 subimages: 10x10 [u8,u8,u8,u8], 8x8 [u8,u8,u8,u8], 9x9 [u8,u8,u8,u8]
@@ -809,13 +809,13 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     IPTC:MetadataDate: "2017-07-13T11:42:54+09:00"
     IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
     IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    stEvt:instanceID: "xmp.iid:a64763c8-be7b-ff48-b857-0f1ee8e5da2b; xmp.iid:9847e4c5-ca7e-fa42-9c7f-5fe6373d31de; xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
     stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
-    stEvt:when: "2017-07-13T11:42:54+09:00"
+    stEvt:when: "2017-07-13T10:26:10+09:00; 2017-07-13T10:32:41+09:00; 2017-07-13T11:42:54+09:00"
  subimage  1:    8 x    8, 4 channel, uint8 psd
     SHA-1: D1803D25687AA8C80C50AC74CCD47B1C59865B2F
     channel list: R, G, B, A
@@ -836,13 +836,13 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
     IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
     oiio:subimagename: "Vector mask feather"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    stEvt:instanceID: "xmp.iid:a64763c8-be7b-ff48-b857-0f1ee8e5da2b; xmp.iid:9847e4c5-ca7e-fa42-9c7f-5fe6373d31de; xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
     stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
-    stEvt:when: "2017-07-13T11:42:54+09:00"
+    stEvt:when: "2017-07-13T10:26:10+09:00; 2017-07-13T10:32:41+09:00; 2017-07-13T11:42:54+09:00"
  subimage  2:    9 x    9, 4 channel, uint8 psd
     SHA-1: 6BEB9ABA4756704D8A330EA3B8F79640F3D88088
     channel list: R, G, B, A
@@ -863,10 +863,10 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     IPTC:ModifyDate: "2017-07-13T11:42:54+09:00"
     IPTC:OriginalDocumentID: "xmp.did:a64763c8-be7b-ff48-b857-0f1ee8e5da2b"
     oiio:subimagename: "Layer mask"
-    photoshop:ColorMode: "3"
+    photoshop:ColorMode: 3, 3
     rdf:parseType: "Resource"
-    stEvt:action: "saved"
+    stEvt:action: "created; saved"
     stEvt:changed: "/"
-    stEvt:instanceID: "xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
+    stEvt:instanceID: "xmp.iid:a64763c8-be7b-ff48-b857-0f1ee8e5da2b; xmp.iid:9847e4c5-ca7e-fa42-9c7f-5fe6373d31de; xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
     stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
-    stEvt:when: "2017-07-13T11:42:54+09:00"
+    stEvt:when: "2017-07-13T10:26:10+09:00; 2017-07-13T10:32:41+09:00; 2017-07-13T11:42:54+09:00"
