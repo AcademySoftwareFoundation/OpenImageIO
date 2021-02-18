@@ -13,15 +13,9 @@ files = [ "RAW_CANON_EOS_7D.CR2",
           "RAW_SONY_A300.ARW" ]
 outputs = []
 
-# The version of libraw installed on CircleCI is slightly different, so
-# accept just a bit more pixel difference, and eliminate the Panasonic
-# one, which is nothing but trouble on Circle.
-# Also has problems on Travis. I think there is something weird about
-# this file, there seems to be unicode in the Software metadata, which
-# sure doesn't help.
+# Things vary a lot with libraw versions.
 # FIXME -- return to this later
-if (os.getenv('CIRCLECI') == 'true' or os.getenv('GITHUB_ACTIONS') == 'true' or
-    (os.getenv('TRAVIS') == 'true' and os.getenv('TRAVIS_OS_NAME') == 'linux')):
+if (os.getenv('GITHUB_ACTIONS') == 'true'):
     failthresh = 0.024
     files.remove ("RAW_PANASONIC_G1.RW2")
 

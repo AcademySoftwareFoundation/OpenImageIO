@@ -58,7 +58,7 @@ export PATH=/usr/local/opt/llvm/bin:$PATH ;
 
 # If field3d and hdf5 get even slightly out of sync, hdf5 will throw fits.
 # This is unnecessary, so we disable the step to make CI more likely to
-# pass in cases where they don't exactly match on the Travis/GH instances.
+# pass in cases where they don't exactly match on the CI instances.
 export HDF5_DISABLE_VERSION_CHECK=1
 
 

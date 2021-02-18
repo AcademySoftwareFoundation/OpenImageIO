@@ -111,13 +111,11 @@ component that deserves extended discussion or debate among the wider OIIO
 community, then it may be prudent to email oiio-dev pointing everybody to
 the pull request URL and discussing any issues you think are important.
 
-6. All pull requests automatically launch jobs on [TravisCI](https://travis-ci.org)
-for Linux and MacOS and on [Appveyor](http://appveyor.com) for Windows.
-This ensures that the build completes and that the tests suite runs
-correctly, for a varity of platform, compiler, library, and flag combinations.
-The status of the CI tests for your PR will be displayed on the GitHub PR
-page. We will not accept PRs that don't build cleanly or pass the existing
-testsuite.
+6. All pull requests automatically launch CI jobs on GitHub Actions to
+ensure that the build completes and that the tests suite runs correctly, for
+a varity of platform, compiler, library, and flag combinations. The status
+of the CI tests for your PR will be displayed on the GitHub PR page. We will
+not accept PRs that don't build cleanly or pass the existing testsuite.
 
 7. The reviewer will look over the code and critique on the "comments" area.
 Reviewers may ask for changes, explain problems they found, congratulate the
@@ -145,7 +143,7 @@ and it will automatically reformat your code according to the configuration
 file found in the `.clang-format` file at the root directory of the OIIO
 source code checkout.
 
-One of the TravisCI test matrix entries runs clang-format and fails if any
+One of the CI test matrix entries runs clang-format and fails if any
 diffs were generated (that is, if any of your code did not 100% conform to
 the `.clang-format` formatting configuration). If it fails, clicking on that
 test log will show you the diffs generated, so that you can easily correct
@@ -153,9 +151,9 @@ it on your end and update the PR with the formatting fixes.
 
 If you don't have clang-format set up on your machine, and your patch is not
 very long, you may find that it's more convenient to just submit it and hope
-for the best, and if it doesn't pass the Travis test, look at the diffs in
+for the best, and if it doesn't pass the CI test, look at the diffs in
 the log and make the corrections by hand and then submit an update to the
-patch (i.e. relying on Travis to run clang-format for you).
+patch (i.e. relying on CI to run clang-format for you).
 
 Because the basic formatting is automated by clang-format, we won't
 enumerate the rules here.

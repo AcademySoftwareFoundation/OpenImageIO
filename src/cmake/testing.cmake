@@ -151,43 +151,46 @@ macro (oiio_add_all_tests)
     #   Tests that require oiio-images:
     oiio_add_tests (gpsread
                     oiiotool oiiotool-attribs  oiiotool-copy
-                    oiiotool-readerror oiiotool-xform
-                    oiiotool-fixnan ## maketx & oiiotool-maketx depend on this
+                    oiiotool-xform
                     maketx oiiotool-maketx
                     misnamed-file
-                    missingcolor
-                    texture-interp-bicubic
-                    texture-blurtube
                     texture-crop texture-cropover
-                    texture-derivs texture-fill texture-filtersize
-                    texture-flipt texture-gettexels texture-gray
-                    texture-mip-nomip texture-mip-trilinear
-                    texture-overscan texture-pointsample
-                    texture-uint8
-                    texture-width0blur
-                    texture-fat texture-skinny texture-wrapfill
-                    texture-missing texture-res texture-maxres
-                    texture-udim texture-udim2
+                    texture-filtersize
+                    texture-overscan
+                    texture-wrapfill
+                    texture-res texture-maxres
                     IMAGEDIR oiio-images URL "Recent checkout of oiio-images"
                    )
 
     #   Remaining freestanding tests:
     oiio_add_tests (nonwhole-tiles
                     oiiotool-composite
+                    oiiotool-fixnan
                     oiiotool-pattern
+                    oiiotool-readerror
                     oiiotool-subimage oiiotool-text
                     diff
                     dither dup-channels
-                    jpeg-corrupt
+                    jpeg-corrupt jpeg-corrupt-header
+                    missingcolor
                     null
                     rational
+                    texture-derivs texture-fill
+                    texture-flipt texture-gettexels texture-gray
+                    texture-interp-bicubic
+                    texture-blurtube
+                    texture-half texture-uint16
+                    texture-interp-bilinear
+                    texture-interp-closest
+                    texture-mip-nomip texture-mip-onelevel
+                    texture-mip-trilinear
+                    texture-missing
+                    texture-pointsample
+                    texture-udim texture-udim2
+                    texture-uint8
+                    texture-width0blur
+                    texture-fat texture-skinny
                    )
-
-    # Travis + old libjpeg seems to not catch an error in this test, skip it
-    # for that case.
-    if (JPEG_TURBO_FOUND OR NOT DEFINED ENV{TRAVIS})
-        oiio_add_tests (jpeg-corrupt-header)
-    endif()
 
     # Add tests that require the Python bindings if we built the Python
     # bindings. This is mostly the test that are specifically about testing
@@ -211,17 +214,7 @@ macro (oiio_add_all_tests)
     oiio_add_tests (oiiotool-color
                     FOUNDVAR OPENCOLORIO_FOUND)
 
-    # Advanced tests that are done by hand and for releases:
-    # FIXME -- at some point, try to fix these or provide new ref images
-    if (NOT DEFINED ENV{TRAVIS})
-        oiio_add_tests (
-                        texture-half texture-uint16
-                        texture-interp-bilinear
-                        texture-interp-closest
-                        texture-mip-onelevel
-                       )
-    endif ()
-    if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
+    if (NOT DEFINED ENV{CI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
         oiio_add_tests (texture-icwrite)
     endif ()
 
@@ -262,7 +255,7 @@ macro (oiio_add_all_tests)
                     oiiotool-deep
                     IMAGEDIR openexr-images
                     URL http://www.openexr.com/downloads.html)
-    if (NOT DEFINED ENV{TRAVIS} AND NOT DEFINED ENV{CIRCLECI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
+    if (NOT DEFINED ENV{CI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
         oiio_add_tests (openexr-damaged
                         IMAGEDIR openexr-images
                         URL http://www.openexr.com/downloads.html)
