@@ -333,6 +333,41 @@ public:
         return i;
     }
 
+    /// Search for key.  If found, return an iterator referring to the
+    /// existing element, otherwise, insert the value and return an iterator
+    /// to the newly added element.  If do_lock is true, lock the bin that
+    /// we're searching and return the iterator in a locked state; however,
+    /// if do_lock is false, assume that the caller already has the bin
+    /// locked, so do no locking and return an iterator that is unaware that
+    /// it holds a lock.
+    std::pair<iterator, bool> find_or_insert(const KEY& key, const VALUE& value,
+                                             bool do_lock = true)
+    {
+        size_t hash   = m_hash(key);
+        size_t b      = whichbin(hash);
+        bool inserted = false;
+        Bin& bin(m_bins[b]);
+        // We're returning an iterator no matter what, so prepare it
+        // partially now, before we are holding any lock.
+        iterator iret(this);
+        iret.m_bin    = (unsigned)b;
+        iret.m_locked = do_lock;
+        if (do_lock)
+            bin.lock();
+        iret.m_biniterator = find_with_hash(bin.map, key, hash);
+        if (iret.m_biniterator == bin.map.end()) {
+            // Not found in the map, insert it
+            auto result = bin.map.emplace(key, value);
+            if (result.second) {
+                // the insert was successful!
+                ++m_size;
+            }
+            iret.m_biniterator = result.first;
+            inserted           = true;
+        }
+        return { iret, inserted };
+    }
+
     /// Search for key. If found, return true and store the value. If not
     /// found, return false and do not alter value. If do_lock is true,
     /// read-lock the bin while we're searching, and release it before
@@ -387,6 +422,11 @@ public:
     /// If do_lock is true, lock the bin containing key while doing this
     /// operation; if do_lock is false, assume that the caller already
     /// has the bin locked, so do no locking or unlocking.
+    ///
+    /// N.B.: This method returns a bool, whereas std::unordered_map::insert
+    /// returns a pair<iterator,bool>. If you want the more standard
+    /// functionalty, we call that find_or_insert(). Sorry for the mixup,
+    /// it's too late to rename it now to conform to the standard.
     bool insert(const KEY& key, const VALUE& value, bool do_lock = true)
     {
         size_t hash = m_hash(key);
@@ -441,6 +481,10 @@ public:
     /// Explicitly unlock the specified bin (this assumes that the caller
     /// holds the lock).
     void unlock_bin(size_t bin) { m_bins[bin].unlock(); }
+
+    // Return a mask that is 1 for bits of the hash that are not used to
+    // determine the bin number.
+    static constexpr size_t nobin_mask() { return ~size_t(0) >> log2(BINS); }
 
 private:
     struct Bin {
