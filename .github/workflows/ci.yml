@@ -60,7 +60,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   vfxplatform-2019:
     name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost-1.66 exr-2.3"
@@ -103,7 +105,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   vfxplatform-2020:
     name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost-1.70 exr-2.4"
@@ -148,7 +152,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   vfxplatform-2021:
     # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
@@ -195,7 +201,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   vfxplatform-2021-exrmaster:
     # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
@@ -243,7 +251,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   linux-gcc7-cpp14-debug:
     # Test against gcc7, and also at the same time, do a Debug build.
@@ -285,7 +295,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   linux-gcc8:
     # Test against gcc8.
@@ -327,7 +339,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
@@ -375,7 +389,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
@@ -425,7 +441,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
@@ -478,7 +496,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   macos-py38:
     name: "Mac py38"
@@ -520,7 +540,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   windows-vs2019:
     name: "Windows VS2019"
@@ -554,7 +576,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   windows-vs2017:
     name: "Windows VS2017"
@@ -588,7 +612,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   sanitizer:
     # Run sanitizers.
@@ -633,7 +659,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   linux-clang:
     # Test compiling with clang on Linux.
@@ -679,7 +707,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   linux-static:
     # Test building static libs.
@@ -719,7 +749,9 @@ jobs:
         if: failure()
         with:
           name: ${{ github.job }}
-          path: build/*/testsuite/*/*.*
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
 
   clang-format:
     # Test formatting. This test entry doesn't do a full build, it just runs
