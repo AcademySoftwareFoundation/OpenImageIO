@@ -5,14 +5,14 @@
 # with 'source', not in a separate shell.
 
 # Figure out the platform
-if [[ $TRAVIS_OS_NAME == osx || $RUNNER_OS == macOS ]] ; then
+if [[ $$RUNNER_OS == macOS ]] ; then
     export ARCH=macosx
-elif [[ `uname -m` == aarch64 ]] ; then
-    export ARCH=aarch64
-elif [[ $TRAVIS_OS_NAME == linux || $RUNNER_OS == Linux ]] ; then
+elif [[ $RUNNER_OS == Linux ]] ; then
     export ARCH=linux64
 elif [[ $RUNNER_OS == Windows ]] ; then
     export ARCH=windows64
+elif [[ `uname -m` == aarch64 ]] ; then
+    export ARCH=aarch64
 else
     export ARCH=unknown
 fi
@@ -54,13 +54,6 @@ export CMAKE_GENERATOR=${CMAKE_GENERATOR:=Ninja}
 export CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:=Release}
 export CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD:=11}
 
-if [[ $TRAVIS == true && "$ARCH" == aarch64 ]] ; then
-    export PARALLEL=4
-elif [[ $TRAVIS == true ]] ; then
-    export PARALLEL=2
-elif [[ $GITHUB_ACTIONS == true ]] ; then
-    export PARALLEL=4
-fi
 export PARALLEL=${PARALLEL:=4}
 export PAR_MAKEFLAGS=-j${PARALLEL}
 export CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:=${PARALLEL}}

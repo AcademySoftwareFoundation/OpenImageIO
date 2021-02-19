@@ -8,7 +8,8 @@ $OpenImageIO_ROOT/bin/oiiotool --help || true
 
 echo "Parallel test " ${CTEST_PARALLEL_LEVEL}
 pushd build/$PLATFORM
-ctest -C ${CMAKE_BUILD_TYPE} -E broken --force-new-ctest-process --output-on-failure --timeout 180 ${OIIO_CTEST_FLAGS}
+time ctest -C ${CMAKE_BUILD_TYPE} -E broken --force-new-ctest-process \
+    --output-on-failure --timeout ${CTEST_TEST_TIMEOUT:=180} ${CTEST_ARGS}
 popd
 
 
