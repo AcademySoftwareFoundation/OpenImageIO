@@ -10,7 +10,7 @@ set(COIIO_HEADERS
     ${PUBLIC_HEADER_DIR}/c-deepdata.h
 )
 
-add_library(OpenImageIO-C SHARED
+add_library(OpenImageIO-C
     c-imageio.cpp
     c-typedesc.cpp
     c-paramlist.cpp
