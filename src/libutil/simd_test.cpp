@@ -1874,7 +1874,6 @@ test_matrix()
         Imath::M44f(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15));
 
     Imath::V3f vx(2.51f, 1.0f, 1.0f);
-    Imath::V4f v4x(2.51f, 1.0f, 1.0f, 1.0f);
     Imath::M44f mx(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 10, 11, 12, 1);
     benchmark2("transformp Imath", transformp_imath, vx, mx, 1);
     benchmark2("transformp Imath with simd", transformp_imath_simd, vx, mx, 1);

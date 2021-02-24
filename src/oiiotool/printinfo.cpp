@@ -404,7 +404,7 @@ print_stats(Oiiotool& ot, const std::string& filename,
         size_t maxsamples_npixels = 0;
         float mindepth            = std::numeric_limits<float>::max();
         float maxdepth            = -std::numeric_limits<float>::max();
-        Imath::V3i maxsamples_pixel(-1, -1, -1), minsamples_pixel(-1, -1, -1);
+        Imath::V3i maxsamples_pixel(-1, -1, -1);
         Imath::V3i mindepth_pixel(-1, -1, -1), maxdepth_pixel(-1, -1, -1);
         Imath::V3i nonfinite_pixel(-1, -1, -1);
         int nonfinite_pixel_samp(-1), nonfinite_pixel_chan(-1);
