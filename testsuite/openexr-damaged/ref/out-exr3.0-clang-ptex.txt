@@ -4,7 +4,7 @@ Failed OpenEXR read: Error reading sample count data from image file "tmpsrc/asa
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_4cb169_255_cc7ac9cde4b8634b31cb41c8fe89b92d_exr.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/asan_heap-oob_504235_131_78b0e15388401193e1ee2ce20fb7f3b0_exr.exr": No channels found
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/asan_heap-oob_504235_131_78b0e15388401193e1ee2ce20fb7f3b0_exr.exr". Missing or empty channel list in header
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_504235_131_78b0e15388401193e1ee2ce20fb7f3b0_exr.exr -o out.exr
 
@@ -221,7 +221,7 @@ Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7fe4c4caa975_277_153f78ec07237d01e8902143da28c7ec_exr.exr -o out.exr
 
 tmpsrc/asan_heap-oob_7fe667eb33a2_999_31f64961e47968656f00573f7db5c67d_exr.exr :  400 x  300, 3 channel, float/half/half openexr
-oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "tmpsrc/asan_heap-oob_7fe667eb33a2_999_31f64961e47968656f00573f7db5c67d_exr.exr". Error decoding Huffman table (Run beyond end of table).
+oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image file "tmpsrc/asan_heap-oob_7fe667eb33a2_999_31f64961e47968656f00573f7db5c67d_exr.exr". Error in Huffman-encoded data (decoded data are shorter than expected).
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/asan_heap-oob_7fe667eb33a2_999_31f64961e47968656f00573f7db5c67d_exr.exr -o out.exr
 
@@ -261,7 +261,7 @@ oiiotool ERROR: read : "tmpsrc/openexr_2.2.0_memory_allocation_error_3_exr.exr":
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/openexr_2.2.0_memory_allocation_error_3_exr.exr -o out.exr
 
-oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-099125d15685ef30feae813ddae15406b3f539d7cc4aa399176a50dcfe9be95c.exr". Unexpected end of file.
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-099125d15685ef30feae813ddae15406b3f539d7cc4aa399176a50dcfe9be95c.exr". Missing or empty channel list in header
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-099125d15685ef30feae813ddae15406b3f539d7cc4aa399176a50dcfe9be95c.exr -o out.exr
 
@@ -269,7 +269,7 @@ oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-2b6
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-2b68475a090117f033df54c2de31546f7a1927ecadd9d0aa9b6bb8daad8ea971_min.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/poc-3e54bd90fc0e2a0b348ecd80d96738ed8324de388b3e88fd6c5fc666c2f01d83_min.exr": No channels found
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-3e54bd90fc0e2a0b348ecd80d96738ed8324de388b3e88fd6c5fc666c2f01d83_min.exr". Missing or empty channel list in header
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-3e54bd90fc0e2a0b348ecd80d96738ed8324de388b3e88fd6c5fc666c2f01d83_min.exr -o out.exr
 
@@ -288,7 +288,7 @@ oiiotool ERROR: read : Failed OpenEXR read: Error reading pixel data from image 
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-89f7735a7cc9dcee59bfce4da70ad12e35a8809945b01b975d1a52ec15dbeccc.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/poc-9651abd6ee953b9f669db5927f8832f1b1eab028fa6ae7b4176a701aeea0ec90.exr": No channels found
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-9651abd6ee953b9f669db5927f8832f1b1eab028fa6ae7b4176a701aeea0ec90.exr". Missing or empty channel list in header
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-9651abd6ee953b9f669db5927f8832f1b1eab028fa6ae7b4176a701aeea0ec90.exr -o out.exr
 
@@ -297,7 +297,7 @@ oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-a90
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-a905d63836959293bed720ab7d242bd07b7b7ec81ee3ee1e14e89853344dafbf_min.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/poc-af451a11e18ad9ca6ddc098bfd8b42f803bec2be8fafa6e648b8a7adcfdd0c06_min.exr": No channels found
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-af451a11e18ad9ca6ddc098bfd8b42f803bec2be8fafa6e648b8a7adcfdd0c06_min.exr". Missing or empty channel list in header
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-af451a11e18ad9ca6ddc098bfd8b42f803bec2be8fafa6e648b8a7adcfdd0c06_min.exr -o out.exr
 
@@ -310,11 +310,11 @@ oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-c94
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-c9457552c1c04ea0f98154bc433a5f5d0421a7e705e6f396aba4339568473435_min.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/poc-cbc6ff03d6bc31f0c61476525641852b0220278e6576a651029c50e86f7f0c77.exr": No channels found
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-cbc6ff03d6bc31f0c61476525641852b0220278e6576a651029c50e86f7f0c77.exr". Missing or empty channel list in header
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-cbc6ff03d6bc31f0c61476525641852b0220278e6576a651029c50e86f7f0c77.exr -o out.exr
 
-oiiotool ERROR: read : "tmpsrc/poc-d545cd0db4595a1c05504ab53d83cc8c6fce02387545aa49e979ee087c1ddf8f_min.exr": No channels found
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "tmpsrc/poc-d545cd0db4595a1c05504ab53d83cc8c6fce02387545aa49e979ee087c1ddf8f_min.exr". Missing or empty channel list in header
 Full command line was:
 > oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio -n -info tmpsrc/poc-d545cd0db4595a1c05504ab53d83cc8c6fce02387545aa49e979ee087c1ddf8f_min.exr -o out.exr
 
