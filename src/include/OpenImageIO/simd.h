@@ -484,6 +484,7 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+    simd_t& simd () { return m_simd; }
 
     /// Extract the bitmask
     int bitmask () const;
@@ -624,6 +625,7 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+    simd_t& simd () { return m_simd; }
 
     /// Extract the bitmask
     int bitmask () const;
@@ -778,6 +780,7 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+    simd_t& simd () { return m_simd; }
 
     int bitmask () const;
 
@@ -929,6 +932,7 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+    simd_t& simd () { return m_simd; }
 
     /// Return a pointer to the underlying scalar type
     const value_t* data () const { return (const value_t*)this; }
@@ -1218,6 +1222,7 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+    simd_t& simd () { return m_simd; }
 
     /// Return a pointer to the underlying scalar type
     const value_t* data () const { return (const value_t*)this; }
@@ -1514,6 +1519,7 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+    simd_t& simd () { return m_simd; }
 
     /// Return a pointer to the underlying scalar type
     const value_t* data () const { return (const value_t*)this; }
@@ -1803,19 +1809,20 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+    simd_t& simd () { return m_simd; }
 
     /// Return a pointer to the underlying scalar type
     const value_t* data () const { return (const value_t*)this; }
     value_t* data () { return (value_t*)this; }
 
     /// Construct from a Imath::V3f
-    vfloat4 (const Imath::V3f &v) { load (v[0], v[1], v[2]); }
+    explicit vfloat4 (const Imath::V3f &v) { load (v[0], v[1], v[2]); }
 
     /// Cast to a Imath::V3f
     const Imath::V3f& V3f () const { return *(const Imath::V3f*)this; }
 
     /// Construct from a Imath::V4f
-    vfloat4 (const Imath::V4f &v) { load ((const float *)&v); }
+    explicit vfloat4 (const Imath::V4f &v) { load ((const float *)&v); }
 
     /// Cast to a Imath::V4f
     const Imath::V4f& V4f () const { return *(const Imath::V4f*)this; }
@@ -2279,7 +2286,7 @@ public:
     { }
 
     /// Construct from a reference to an Imath::M44f
-    OIIO_FORCEINLINE matrix44 (const Imath::M44f &M) {
+    OIIO_FORCEINLINE explicit matrix44 (const Imath::M44f &M) {
 #if OIIO_SIMD_SSE
         m_row[0].load (M[0]);
         m_row[1].load (M[1]);
@@ -2450,6 +2457,7 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+    simd_t& simd () { return m_simd; }
 
     /// Return a pointer to the underlying scalar type
     const value_t* data () const { return (const value_t*)this; }
@@ -2772,6 +2780,7 @@ public:
     /// Return the raw SIMD type
     operator simd_t () const { return m_simd; }
     simd_t simd () const { return m_simd; }
+    simd_t& simd () { return m_simd; }
 
     /// Return a pointer to the underlying scalar type
     const value_t* data () const { return (const value_t*)this; }
@@ -7723,7 +7732,7 @@ OIIO_FORCEINLINE T log (const T& v)
 OIIO_FORCEINLINE void transpose (vfloat4 &a, vfloat4 &b, vfloat4 &c, vfloat4 &d)
 {
 #if OIIO_SIMD_SSE
-    _MM_TRANSPOSE4_PS (a, b, c, d);
+    _MM_TRANSPOSE4_PS (a.simd(), b.simd(), c.simd(), d.simd());
 #else
     vfloat4 A (a[0], b[0], c[0], d[0]);
     vfloat4 B (a[1], b[1], c[1], d[1]);
@@ -7739,14 +7748,14 @@ OIIO_FORCEINLINE void transpose (const vfloat4& a, const vfloat4& b, const vfloa
 {
 #if OIIO_SIMD_SSE
     //_MM_TRANSPOSE4_PS (a, b, c, d);
-    vfloat4 l02 = _mm_unpacklo_ps (a, c);
-    vfloat4 h02 = _mm_unpackhi_ps (a, c);
-    vfloat4 l13 = _mm_unpacklo_ps (b, d);
-    vfloat4 h13 = _mm_unpackhi_ps (b, d);
-    r0 = _mm_unpacklo_ps (l02, l13);
-    r1 = _mm_unpackhi_ps (l02, l13);
-    r2 = _mm_unpacklo_ps (h02, h13);
-    r3 = _mm_unpackhi_ps (h02, h13);
+    auto l02 = _mm_unpacklo_ps (a, c);
+    auto h02 = _mm_unpackhi_ps (a, c);
+    auto l13 = _mm_unpacklo_ps (b, d);
+    auto h13 = _mm_unpackhi_ps (b, d);
+    r0 = vfloat4(_mm_unpacklo_ps (l02, l13));
+    r1 = vfloat4(_mm_unpackhi_ps (l02, l13));
+    r2 = vfloat4(_mm_unpacklo_ps (h02, h13));
+    r3 = vfloat4(_mm_unpackhi_ps (h02, h13));
 #else
     r0.load (a[0], b[0], c[0], d[0]);
     r1.load (a[1], b[1], c[1], d[1]);
@@ -8113,7 +8122,7 @@ OIIO_FORCEINLINE matrix44 matrix44::transposed () const {
     simd::transpose (m_row[0], m_row[1], m_row[2], m_row[3],
                      T.m_row[0], T.m_row[1], T.m_row[2], T.m_row[3]);
 #else
-    T = m_mat.transposed();
+    T.m_mat = m_mat.transposed();
 #endif
     return T;
 }
@@ -8238,14 +8247,14 @@ OIIO_FORCEINLINE matrix44 matrix44::inverse() const {
     vfloat4 det, tmp1;
     const float *src = (const float *)this;
     vfloat4 zero = vfloat4::Zero();
-    tmp1 = _mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src)), (__m64*)(src+ 4));
-    row1 = _mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src+8)), (__m64*)(src+12));
-    row0 = _mm_shuffle_ps(tmp1, row1, 0x88);
-    row1 = _mm_shuffle_ps(row1, tmp1, 0xDD);
-    tmp1 = _mm_loadh_pi(_mm_loadl_pi(tmp1, (__m64*)(src+ 2)), (__m64*)(src+ 6));
-    row3 = _mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src+10)), (__m64*)(src+14));
-    row2 = _mm_shuffle_ps(tmp1, row3, 0x88);
-    row3 = _mm_shuffle_ps(row3, tmp1, 0xDD);
+    tmp1 = vfloat4(_mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src)), (__m64*)(src+ 4)));
+    row1 = vfloat4(_mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src+8)), (__m64*)(src+12)));
+    row0 = vfloat4(_mm_shuffle_ps(tmp1, row1, 0x88));
+    row1 = vfloat4(_mm_shuffle_ps(row1, tmp1, 0xDD));
+    tmp1 = vfloat4(_mm_loadh_pi(_mm_loadl_pi(tmp1, (__m64*)(src+ 2)), (__m64*)(src+ 6)));
+    row3 = vfloat4(_mm_loadh_pi(_mm_loadl_pi(zero, (__m64*)(src+10)), (__m64*)(src+14)));
+    row2 = vfloat4(_mm_shuffle_ps(tmp1, row3, 0x88));
+    row3 = vfloat4(_mm_shuffle_ps(row3, tmp1, 0xDD));
     // -----------------------------------------------
     tmp1 = row2 * row3;
     tmp1 = shuffle<1,0,3,2>(tmp1);
@@ -8301,13 +8310,13 @@ OIIO_FORCEINLINE matrix44 matrix44::inverse() const {
     // -----------------------------------------------
     det = row0 * minor0;
     det = shuffle<2,3,0,1>(det) + det;
-    det = _mm_add_ss(shuffle<1,0,3,2>(det), det);
-    tmp1 = _mm_rcp_ss(det);
-    det = _mm_sub_ss(_mm_add_ss(tmp1, tmp1), _mm_mul_ss(det, _mm_mul_ss(tmp1, tmp1)));
+    det = vfloat4(_mm_add_ss(shuffle<1,0,3,2>(det), det));
+    tmp1 = vfloat4(_mm_rcp_ss(det));
+    det = vfloat4(_mm_sub_ss(_mm_add_ss(tmp1, tmp1), _mm_mul_ss(det, _mm_mul_ss(tmp1, tmp1))));
     det = shuffle<0>(det);
     return matrix44 (det*minor0, det*minor1, det*minor2, det*minor3);
 #else
-    return m_mat.inverse();
+    return matrix44 (m_mat.inverse());
 #endif
 }
 
@@ -8332,7 +8341,7 @@ OIIO_FORCEINLINE vfloat3 transformp (const Imath::M44f &M, const vfloat3 &V)
     return matrix44(M).transformp (V);
 #else
     Imath::V3f R;
-    M.multVecMatrix (*(Imath::V3f *)&V, R);
+    M.multVecMatrix (*(const Imath::V3f *)&V, R);
     return vfloat3(R);
 #endif
 }
@@ -8348,7 +8357,7 @@ OIIO_FORCEINLINE vfloat3 transformv (const Imath::M44f &M, const vfloat3 &V)
     return matrix44(M).transformv (V);
 #else
     Imath::V3f R;
-    M.multDirMatrix (*(Imath::V3f *)&V, R);
+    M.multDirMatrix (*(const Imath::V3f *)&V, R);
     return vfloat3(R);
 #endif
 }
