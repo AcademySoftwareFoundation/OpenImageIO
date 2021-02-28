@@ -1,6 +1,35 @@
-Release 2.2.12 (1? Mar 2021) -- compared to 2.2.11
+Release 2.2.12 (1 Mar 2021) -- compared to 2.2.11
 --------------------------------------------------
-
+* Bug fix: Improve parsing of XMP records in metadata: more correct handling
+  of lists/sequences, better inference of types that look like int or float
+  (rather than forcing unknown fields into strings), fixed bugs in parsing
+  rational values. #2865
+* Bug fix: Fix loading PSB files with cinf tags. #2877
+* Build: Improvements to building or linking static libraries. #2854
+* Build: Change default STOP_ON_WARNING to OFF for release branches
+  (including this one) so that small change in compiler warnings after our
+  release don't break anybody's builds. (Though we still stop on warnings
+  for CI builds). #2861
+* Build: More clear warnings about using OpenVDB 8+ when building for C++11,
+  because OpenVDB 8 requires C++14 or higher. #2860
+* Build: The pkgconfig OpenImageIO.pc was specifying the include path
+  incorrectly. #2869
+* Build: More gracefully handle building against a custom Imath/OpenEXR even
+  when another exists in the system area. #2876
+* Build: Minor fixes to build cleanly against the upcoming Imath 3.0. #2878
+* Dev: hash.h: Make many of the hash functions constexpr. #2843
+* Dev: Better unit tests to verify correctness and stability over time of
+  the hash functions. #2853
+* Dev: unordered_map_concurrent.h: New methods find_or_insert, nobin_mask().
+  #2867
+* CI: Speed up CI builds by not building OpenEXR example programes. #2857
+* CI: Speed up CI by using GitHub 'cache' actions + ccache. #2859
+* CI: Separate stages (setup, deps, build, test) into separate GHA "steps"
+  for better logging and understanding of the timing and performance. #2862
+* CI: Now actively testing libheif in Linux CI. #2866
+* CI: Remove the last vestiges of Travis-CI, which we no longer use. #2871
+* CI: For failed tests, add CMake cache and log part of the saved artifacts.
+* PSA: Avoid libheif 1.10 on Mac, it is broken. Libheif 1.11 is fine.
 
 Release 2.2.11.1 (1 Feb 2021) -- compared to 2.2.11.0
 -----------------------------------------------------
