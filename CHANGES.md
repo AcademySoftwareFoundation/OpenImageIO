@@ -1,3 +1,7 @@
+Release 2.2.13 (1 Apr? 2021) -- compared to 2.2.12
+--------------------------------------------------
+
+
 Release 2.2.12 (1 Mar 2021) -- compared to 2.2.11
 --------------------------------------------------
 * Bug fix: Improve parsing of XMP records in metadata: more correct handling
