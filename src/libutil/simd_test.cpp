@@ -1845,10 +1845,10 @@ test_matrix()
         matrix44 m(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16);
         Imath::V4f V(1,2,3,4);
         vfloat4 v(1,2,3,4);
-        vfloat4 mv = m*v;
         vfloat4 vm = v*m;
-        OIIO_CHECK_SIMD_EQUAL(mv, M*V);
-        OIIO_CHECK_SIMD_EQUAL(vm, V*M);
+        OIIO_CHECK_SIMD_EQUAL(vm, vfloat4(V*M));
+        // vfloat4 mv = m*v;
+        // OIIO_CHECK_SIMD_EQUAL(mv, M*V);
         benchmark2("V4 * M44 Imath", mul_vm_imath, V, M, 1);
         // benchmark2("M44 * V4 Imath", mul_mv_imath, mx, v4x, 1);
         benchmark2("M44 * V4 simd", mul_mv_simd, m, v, 1);
@@ -1866,9 +1866,11 @@ test_matrix()
         OIIO_CHECK_NE(Mtrans, mr);
     }
     OIIO_CHECK_ASSERT(
-        mx_equal_thresh(Mtrans.inverse(), matrix44(Mtrans).inverse(), 1.0e-6f));
+        mx_equal_thresh(matrix44(Mtrans.inverse()), matrix44(Mtrans).inverse(),
+                        1.0e-6f));
     OIIO_CHECK_ASSERT(
-        mx_equal_thresh(Mrot.inverse(), matrix44(Mrot).inverse(), 1.0e-6f));
+        mx_equal_thresh(matrix44(Mrot.inverse()), matrix44(Mrot).inverse(),
+                        1.0e-6f));
     OIIO_CHECK_EQUAL(
         matrix44(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
         Imath::M44f(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15));
@@ -1886,7 +1888,7 @@ test_matrix()
     iterations /= 2;
     benchmark("m44 inverse Imath", inverse_imath, mx, 1);
     // std::cout << "inv " << matrix44(inverse_imath(mx)) << "\n";
-    benchmark("m44 inverse_simd", inverse_simd, mx, 1);
+    benchmark("m44 inverse_simd", inverse_simd, matrix44(mx), 1);
     // std::cout << "inv " << inverse_simd(mx) << "\n";
     benchmark("m44 inverse_simd native simd", inverse_simd, matrix44(mx), 1);
     // std::cout << "inv " << inverse_simd(mx) << "\n";
