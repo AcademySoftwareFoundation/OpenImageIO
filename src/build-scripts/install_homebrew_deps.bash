@@ -35,7 +35,7 @@ brew install --display-times -q freetype libraw dcmtk pybind11 numpy || true
 brew install --display-times -q ffmpeg libheif libsquish ptex || true
 brew install --display-times -q openvdb tbb || true
 brew install --display-times -q opencv || true
-brew install --display-times -q qt
+brew install --display-times -q qt@5
 brew install --display-times -q field3d || true
 
 echo ""
