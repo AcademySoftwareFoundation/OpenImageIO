@@ -1309,15 +1309,25 @@ ImageBuf::write(string_view _filename, TypeDesc dtype, string_view _fileformat,
         newspec.channelformats.clear();
     } else if (m_impl->m_write_format.size() != 0) {
         // If set_write_format was called for the ImageBuf, it overrides
-        if (m_impl->m_write_format.size())
-            newspec.set_format(m_impl->write_format());
-        else
-            newspec.set_format(nativespec().format);
+        TypeDesc biggest;  // starts as Unknown
+        // Figure out the "biggest" of the channel formats, make that the
+        // presumed default format.
+        for (auto& f : m_impl->m_write_format)
+            biggest = TypeDesc::basetype_merge(biggest, f);
+        newspec.set_format(biggest);
+        // Copy the channel formats, change any 'unknown' to the default
         newspec.channelformats = m_impl->m_write_format;
         newspec.channelformats.resize(newspec.nchannels, newspec.format);
-        for (auto& f : newspec.channelformats)
+        bool alldefault = true;
+        for (auto& f : newspec.channelformats) {
             if (f == TypeUnknown)
                 f = newspec.format;
+            alldefault &= (f == newspec.format);
+        }
+        // If all channel formats are the same, get rid of them, the default
+        // captures all the info we need.
+        if (alldefault)
+            newspec.channelformats.clear();
     } else {
         // No override on the ImageBuf, nor on this call to write(), so
         // we just use what is known from the imagespec.
