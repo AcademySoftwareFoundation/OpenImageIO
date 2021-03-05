@@ -94,12 +94,21 @@ public:
         if (m_io->write(c, n) != size_t(n))
             throw Iex::IoExc("File output failed.");
     }
+#if OIIO_USING_IMATH >= 3
+    virtual uint64_t tellp() { return m_io->tell(); }
+    virtual void seekp(uint64_t pos)
+    {
+        if (!m_io->seek(pos))
+            throw Iex::IoExc("File output failed.");
+    }
+#else
     virtual Imath::Int64 tellp() { return m_io->tell(); }
     virtual void seekp(Imath::Int64 pos)
     {
         if (!m_io->seek(pos))
             throw Iex::IoExc("File output failed.");
     }
+#endif
 
 private:
     Filesystem::IOProxy* m_io = nullptr;
