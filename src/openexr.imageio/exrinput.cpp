@@ -112,12 +112,21 @@ public:
             throw Iex::IoExc("Unexpected end of file.");
         return n;
     }
+#if OIIO_USING_IMATH >= 3
+    virtual uint64_t tellg() { return m_io->tell(); }
+    virtual void seekg(uint64_t pos)
+    {
+        if (!m_io->seek(pos))
+            throw Iex::IoExc("File input failed.");
+    }
+#else
     virtual Imath::Int64 tellg() { return m_io->tell(); }
     virtual void seekg(Imath::Int64 pos)
     {
         if (!m_io->seek(pos))
             throw Iex::IoExc("File input failed.");
     }
+#endif
     virtual void clear() {}
 
 private:
