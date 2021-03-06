@@ -198,7 +198,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
     case TypeDesc::DOUBLE:                                              \
         ret = func<double> (R, __VA_ARGS__); break;                     \
     default:                                                            \
-        (R).errorf("%s: Unsupported pixel data format '%s'", name, type); \
+        (R).errorfmt("{}: Unsupported pixel data format '{}'", name, type); \
         ret = false;                                                    \
     }
 
@@ -224,7 +224,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
     case TypeDesc::DOUBLE :                                             \
         ret = func<Rtype,double> (R, __VA_ARGS__); break;               \
     default:                                                            \
-        (R).errorf("%s: Unsupported pixel data format '%s'", name, Atype); \
+        (R).errorfmt("{}: Unsupported pixel data format '{}'", name, Atype); \
         ret = false;                                                    \
     }
 
@@ -259,7 +259,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         OIIO_DISPATCH_TYPES2_HELP(ret,name,func,double,Atype,R,__VA_ARGS__);\
         break;                                                          \
     default:                                                            \
-        (R).errorf("%s: Unsupported pixel data format '%s'", name, Rtype); \
+        (R).errorfmt("{}: Unsupported pixel data format '{}'", name, Rtype); \
         ret = false;                                                    \
     }
 
@@ -285,7 +285,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         if (ret)                                                        \
             (R).copy (Rtmp);                                            \
         else                                                            \
-            (R).errorf("%s", Rtmp.geterror());                          \
+            (R).errorfmt("{}", Rtmp.geterror());                        \
         }                                                               \
     }
 
@@ -334,7 +334,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         case TypeDesc::DOUBLE :                                         \
             ret = func<double,double> (R, A, __VA_ARGS__); break;       \
         default:                                                        \
-            (R).errorf("%s: Unsupported pixel data format '%s'", name, Atype); \
+            (R).errorfmt("{}: Unsupported pixel data format '{}'", name, Atype); \
             ret = false;                                                \
         }                                                               \
     } else {                                                            \
@@ -361,7 +361,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
             if (ret)                                                    \
                 (R).copy (Rtmp);                                        \
             else                                                        \
-                (R).errorf("%s", Rtmp.geterror());                      \
+                (R).errorfmt("{}", Rtmp.geterror());                    \
             }                                                           \
         }                                                               \
     }
@@ -413,7 +413,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         if (ret)                                                        \
             (R).copy (Rtmp);                                            \
         else                                                            \
-            (R).errorf("%s", Rtmp.geterror());                          \
+            (R).errorfmt("{}", Rtmp.geterror());                        \
         }                                                               \
     }
 
@@ -466,7 +466,7 @@ inline TypeDesc type_merge (TypeDesc a, TypeDesc b, TypeDesc c)
         case TypeDesc::DOUBLE :                                         \
             ret = func<double,double,double> (R, A, B, __VA_ARGS__); break; \
         default:                                                        \
-            (R).errorf("%s: Unsupported pixel data format '%s'", name, Atype); \
+            (R).errorfmt("{}: Unsupported pixel data format '{}'", name, Atype); \
             ret = false;                                                \
         }                                                               \
     } else {                                                            \

@@ -1016,12 +1016,6 @@ public:
         OIIO_DASSERT(m_mem_used >= 0);
     }
 
-    /// Internal error reporting routine, with printf-like arguments.
-    template<typename... Args>
-    void errorf(const char* fmt, const Args&... args) const
-    {
-        append_error(Strutil::sprintf(fmt, args...));
-    }
     /// Internal error reporting routine, with std::format-like arguments.
     template<typename... Args>
     void error(const char* fmt, const Args&... args) const

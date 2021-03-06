@@ -58,13 +58,13 @@ bool
 TermOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
     if (mode != Create) {
-        error("%s does not support subimages or MIP levels", format_name());
+        errorfmt("{} does not support subimages or MIP levels", format_name());
         return false;
     }
 
     if (spec.nchannels != 3 && spec.nchannels != 4) {
-        error("%s does not support %d-channel images\n", format_name(),
-              m_spec.nchannels);
+        errorfmt("{} does not support {}-channel images\n", format_name(),
+                 m_spec.nchannels);
         return false;
     }
 
@@ -90,7 +90,7 @@ TermOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                            stride_t xstride)
 {
     if (y > m_spec.height) {
-        error("Attempt to write too many scanlines to terminal");
+        errorfmt("Attempt to write too many scanlines to terminal");
         close();
         return false;
     }

@@ -149,9 +149,9 @@ using old::format;
 
 
 
-/// Strutil::print (fmt, ...)
-/// Strutil::fprint (FILE*, fmt, ...)
-/// Strutil::fprint (ostream& fmt, ...)
+/// Strutil::printf (fmt, ...)
+/// Strutil::fprintf (FILE*, fmt, ...)
+/// Strutil::fprintf (ostream& fmt, ...)
 ///
 /// Output formatted strings to stdout, a FILE*, or a stream, respectively.
 /// All use printf-like formatting rules, are type-safe, are thread-safe

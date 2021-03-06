@@ -193,7 +193,7 @@ ImageBufAlgo::computePixelStats(const ImageBuf& src, ROI roi, int nthreads)
         roi.chend = std::min(roi.chend, src.nchannels());
     int nchannels = src.spec().nchannels;
     if (nchannels == 0) {
-        src.errorf("%d-channel images not supported", nchannels);
+        src.errorfmt("{}-channel images not supported", nchannels);
         return stats;
     }
 
@@ -348,7 +348,7 @@ ImageBufAlgo::compare(const ImageBuf& A, const ImageBuf& B, float failthresh,
 
     // Deep and non-deep images cannot be compared
     if (B.deep() != A.deep()) {
-        A.errorf("deep and non-deep images cannot be compared");
+        A.errorfmt("deep and non-deep images cannot be compared");
         return result;
     }
 
@@ -613,7 +613,7 @@ ImageBufAlgo::color_count(const ImageBuf& src, imagesize_t* count, int ncolors,
     roi.chend = std::min(roi.chend, src.nchannels());
 
     if (color.size() < ncolors * src.nchannels()) {
-        src.errorf(
+        src.errorfmt(
             "ImageBufAlgo::color_count: not enough room in 'color' array");
         return false;
     }
@@ -875,7 +875,7 @@ histogram_impl(const ImageBuf& src, int channel, std::vector<imagesize_t>& hist,
 {
     // Double check A's type.
     if (src.spec().format != BaseTypeFromC<Atype>::value) {
-        src.errorf("Unsupported pixel data format '%s'", src.spec().format);
+        src.errorfmt("Unsupported pixel data format '{}'", src.spec().format);
         return false;
     }
 
@@ -920,20 +920,20 @@ ImageBufAlgo::histogram(const ImageBuf& src, int channel, int bins, float min,
 
     // Sanity checks
     if (src.nchannels() == 0) {
-        src.errorf("Input image must have at least 1 channel");
+        src.errorfmt("Input image must have at least 1 channel");
         return h;
     }
     if (channel < 0 || channel >= src.nchannels()) {
-        src.errorf("Invalid channel %d for input image with channels 0 to %d",
-                   channel, src.nchannels() - 1);
+        src.errorfmt("Invalid channel {} for input image with channels 0 to {}",
+                     channel, src.nchannels() - 1);
         return h;
     }
     if (bins < 1) {
-        src.errorf("The number of bins must be at least 1");
+        src.errorfmt("The number of bins must be at least 1");
         return h;
     }
     if (max <= min) {
-        src.errorf("Invalid range, min must be strictly smaller than max");
+        src.errorfmt("Invalid range, min must be strictly smaller than max");
         return h;
     }
 
@@ -972,7 +972,7 @@ histogram_impl_old(const ImageBuf& A, int channel,
 {
     // Double check A's type.
     if (A.spec().format != BaseTypeFromC<Atype>::value) {
-        A.errorf("Unsupported pixel data format '%s'", A.spec().format);
+        A.errorfmt("Unsupported pixel data format '{}'", A.spec().format);
         return false;
     }
 
@@ -1016,28 +1016,28 @@ ImageBufAlgo::histogram(const ImageBuf& A, int channel,
 {
     pvt::LoggedTimer logtimer("IBA::histogram");
     if (A.spec().format != TypeFloat) {
-        A.errorf("Unsupported pixel data format '%s'", A.spec().format);
+        A.errorfmt("Unsupported pixel data format '{}'", A.spec().format);
         return false;
     }
 
     if (A.nchannels() == 0) {
-        A.errorf("Input image must have at least 1 channel");
+        A.errorfmt("Input image must have at least 1 channel");
         return false;
     }
 
     if (channel < 0 || channel >= A.nchannels()) {
-        A.errorf("Invalid channel %d for input image with channels 0 to %d",
-                 channel, A.nchannels() - 1);
+        A.errorfmt("Invalid channel {} for input image with channels 0 to {}",
+                   channel, A.nchannels() - 1);
         return false;
     }
 
     if (bins < 1) {
-        A.errorf("The number of bins must be at least 1");
+        A.errorfmt("The number of bins must be at least 1");
         return false;
     }
 
     if (max <= min) {
-        A.errorf("Invalid range, min must be strictly smaller than max");
+        A.errorfmt("Invalid range, min must be strictly smaller than max");
         return false;
     }
 
@@ -1061,7 +1061,7 @@ ImageBufAlgo::histogram_draw(ImageBuf& R,
     // Fail if there are no bins to draw.
     int bins = histogram.size();
     if (bins == 0) {
-        R.errorf("There are no bins to draw, the histogram is empty");
+        R.errorfmt("There are no bins to draw, the histogram is empty");
         return false;
     }
 

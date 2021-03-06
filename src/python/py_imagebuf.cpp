@@ -155,13 +155,13 @@ ImageBuf_set_pixels_buffer(ImageBuf& self, ROI roi, py::buffer& buffer)
     oiio_bufinfo buf(buffer.request(), roi.nchannels(), roi.width(),
                      roi.height(), roi.depth(), self.spec().depth > 1 ? 3 : 2);
     if (!buf.data || buf.error.size()) {
-        self.errorf("set_pixels error: %s",
-                    buf.error.size() ? buf.error.c_str() : "unspecified");
+        self.errorfmt("set_pixels error: {}",
+                      buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
     if (!buf.data || buf.size != size) {
-        self.error(
-            "ImageBuf.set_pixels: array size (%d) did not match ROI size w=%d h=%d d=%d ch=%d (total %d)",
+        self.errorfmt(
+            "ImageBuf.set_pixels: array size ({}) did not match ROI size w={} h={} d={} ch={} (total {})",
             buf.size, roi.width(), roi.height(), roi.depth(), roi.nchannels(),
             size);
         return false;

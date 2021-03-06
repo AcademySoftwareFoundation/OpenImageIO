@@ -1375,7 +1375,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
         from = src.spec().get_string_attribute("oiio:Colorspace", "Linear");
     }
     if (from.empty() || to.empty()) {
-        dst.errorf("Unknown color space name");
+        dst.errorfmt("Unknown color space name");
         return false;
     }
     ColorProcessorHandle processor;
@@ -1389,10 +1389,10 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
                                                       context_value);
         if (!processor) {
             if (colorconfig->error())
-                dst.errorf("%s", colorconfig->geterror());
+                dst.errorfmt("{}", colorconfig->geterror());
             else
-                dst.errorf("Could not construct the color transform %s -> %s",
-                           from, to);
+                dst.errorfmt("Could not construct the color transform {} -> {}",
+                             from, to);
             return false;
         }
     }
@@ -1416,7 +1416,7 @@ ImageBufAlgo::colorconvert(const ImageBuf& src, string_view from,
     bool ok = colorconvert(result, src, from, to, unpremult, context_key,
                            context_value, colorconfig, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::colorconvert() error");
+        result.errorfmt("ImageBufAlgo::colorconvert() error");
     return result;
 }
 
@@ -1451,7 +1451,7 @@ ImageBufAlgo::colormatrixtransform(const ImageBuf& src, const Imath::M44f& M,
     ImageBuf result;
     bool ok = colormatrixtransform(result, src, M, unpremult, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::colormatrixtransform() error");
+        result.errorfmt("ImageBufAlgo::colormatrixtransform() error");
     return result;
 }
 
@@ -1610,7 +1610,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src,
     pvt::LoggedTimer logtime("IBA::colorconvert");
     // If the processor is NULL, return false (error)
     if (!processor) {
-        dst.error(
+        dst.errorfmt(
             "Passed NULL ColorProcessor to colorconvert() [probable application bug]");
         return false;
     }
@@ -1661,7 +1661,7 @@ ImageBufAlgo::colorconvert(const ImageBuf& src, const ColorProcessor* processor,
     ImageBuf result;
     bool ok = colorconvert(result, src, processor, unpremult, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::colorconvert() error");
+        result.errorfmt("ImageBufAlgo::colorconvert() error");
     return result;
 }
 
@@ -1681,7 +1681,7 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
         to = src.spec().get_string_attribute("oiio:Colorspace", "Linear");
     }
     if (from.empty() || to.empty()) {
-        dst.errorf("Unknown color space name");
+        dst.errorfmt("Unknown color space name");
         return false;
     }
     ColorProcessorHandle processor;
@@ -1695,9 +1695,9 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
                                                      key, value);
         if (!processor) {
             if (colorconfig->error())
-                dst.errorf("%s", colorconfig->geterror());
+                dst.errorfmt("{}", colorconfig->geterror());
             else
-                dst.errorf("Could not construct the color transform");
+                dst.errorfmt("Could not construct the color transform");
             return false;
         }
     }
@@ -1721,7 +1721,7 @@ ImageBufAlgo::ociolook(const ImageBuf& src, string_view looks, string_view from,
     bool ok = ociolook(result, src, looks, from, to, unpremult, inverse, key,
                        value, colorconfig, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::ociolook() error");
+        result.errorfmt("ImageBufAlgo::ociolook() error");
     return result;
 }
 
@@ -1748,16 +1748,16 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
                                                    linearspace);
         }
         if (from.empty()) {
-            dst.errorf("Unknown color space name");
+            dst.errorfmt("Unknown color space name");
             return false;
         }
         processor = colorconfig->createDisplayTransform(display, view, from,
                                                         looks, key, value);
         if (!processor) {
             if (colorconfig->error())
-                dst.errorf("%s", colorconfig->geterror());
+                dst.errorfmt("{}", colorconfig->geterror());
             else
-                dst.errorf("Could not construct the color transform");
+                dst.errorfmt("Could not construct the color transform");
             return false;
         }
     }
@@ -1779,7 +1779,7 @@ ImageBufAlgo::ociodisplay(const ImageBuf& src, string_view display,
     bool ok = ociodisplay(result, src, display, view, from, looks, unpremult,
                           key, value, colorconfig, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::ociodisplay() error");
+        result.errorfmt("ImageBufAlgo::ociodisplay() error");
     return result;
 }
 
@@ -1792,7 +1792,7 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
 {
     pvt::LoggedTimer logtime("IBA::ociofiletransform");
     if (name.empty()) {
-        dst.errorf("Unknown filetransform name");
+        dst.errorfmt("Unknown filetransform name");
         return false;
     }
     ColorProcessorHandle processor;
@@ -1805,9 +1805,9 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
         processor = colorconfig->createFileTransform(name, inverse);
         if (!processor) {
             if (colorconfig->error())
-                dst.errorf("%s", colorconfig->geterror());
+                dst.errorfmt("{}", colorconfig->geterror());
             else
-                dst.errorf("Could not construct the color transform");
+                dst.errorfmt("Could not construct the color transform");
             return false;
         }
     }
@@ -1830,7 +1830,7 @@ ImageBufAlgo::ociofiletransform(const ImageBuf& src, string_view name,
     bool ok = ociofiletransform(result, src, name, unpremult, inverse,
                                 colorconfig, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::ociofiletransform() error");
+        result.errorfmt("ImageBufAlgo::ociofiletransform() error");
     return result;
 }
 

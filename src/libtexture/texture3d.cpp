@@ -184,7 +184,7 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
         auto input                   = texturefile->open(thread_info);
         Field3DInput_Interface* f3di = (Field3DInput_Interface*)input.get();
         if (!f3di) {
-            errorf("Unable to open texture \"%s\"", texturefile->filename());
+            error("Unable to open texture \"{}\"", texturefile->filename());
             return false;
         }
         f3di->worldToLocal(P, Plocal, options.time);

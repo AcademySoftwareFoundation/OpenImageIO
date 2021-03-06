@@ -223,12 +223,12 @@ Strutil::memformat(long long bytes, int digits)
         d     = (double)bytes / MB;
     } else if (bytes >= KB) {
         // Just KB, don't bother with decimalization
-        return format("%lld KB", (long long)bytes / KB);
+        return fmt::format("{} KB", bytes / KB);
     } else {
         // Just bytes, don't bother with decimalization
-        return format("%lld B", (long long)bytes);
+        return fmt::format("{} B", bytes);
     }
-    return format("%1.*f %s", digits, d, units);
+    return Strutil::sprintf("%1.*f %s", digits, d, units);
 }
 
 
@@ -248,13 +248,13 @@ Strutil::timeintervalformat(double secs, int digits)
     int m = (int)floor(secs / mins);
     secs  = fmod(secs, mins);
     if (d)
-        out += format("%dd %dh ", d, h);
+        out += fmt::format("{}d {}h ", d, h);
     else if (h)
-        out += format("%dh ", h);
+        out += fmt::format("{}h ", h);
     if (m || h || d)
-        out += format("%dm %1.*fs", m, digits, secs);
+        out += Strutil::sprintf("%dm %1.*fs", m, digits, secs);
     else
-        out += format("%1.*fs", digits, secs);
+        out += Strutil::sprintf("%1.*fs", digits, secs);
     return out;
 }
 
