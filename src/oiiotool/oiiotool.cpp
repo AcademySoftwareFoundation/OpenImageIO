@@ -127,6 +127,7 @@ Oiiotool::clear_options()
     updatemode         = false;
     autoorient         = false;
     autocc             = false;
+    autoccunpremult    = false;
     autopremult        = true;
     nativeread         = false;
     metamerge          = false;
@@ -520,6 +521,19 @@ set_printinfo(cspan<const char*> argv)
     auto options         = ot.extract_options(command);
     ot.printinfo_format  = options["format"];
     ot.printinfo_verbose = options.get_int("verbose");
+}
+
+
+
+// --autocc
+static void
+set_autocc(cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+    ot.autocc           = true;
+    ot.autoccunpremult  = options.get_int("unpremult");
 }
 
 
@@ -4442,10 +4456,11 @@ input_file(int argc, const char* argv[])
     } else {
         command = "-i";
     }
-    auto fileoptions       = ot.extract_options(command);
-    int printinfo          = fileoptions.get_int("info", ot.printinfo);
-    bool readnow           = fileoptions.get_int("now", 0);
-    bool autocc            = fileoptions.get_int("autocc", ot.autocc);
+    auto fileoptions     = ot.extract_options(command);
+    int printinfo        = fileoptions.get_int("info", ot.printinfo);
+    bool readnow         = fileoptions.get_int("now", 0);
+    bool autocc          = fileoptions.get_int("autocc", ot.autocc);
+    bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
     std::string infoformat = fileoptions.get_string("infoformat",
                                                     ot.printinfo_format);
     TypeDesc input_dataformat(fileoptions.get_string("type"));
@@ -4559,8 +4574,10 @@ input_file(int argc, const char* argv[])
                 linearspace = string_view("Linear");
             if (colorspace.size()
                 && !Strutil::iequals(colorspace, linearspace)) {
-                const char* argv[] = { "colorconvert:strict=0",
-                                       colorspace.c_str(),
+                std::string cmd = "colorconvert:strict=0";
+                if (autoccunpremult)
+                    cmd += ":unpremult=1";
+                const char* argv[] = { cmd.c_str(), colorspace.c_str(),
                                        linearspace.c_str() };
                 if (ot.debug)
                     std::cout << "  Converting " << filename << " from "
@@ -4801,7 +4818,8 @@ output_file(int /*argc*/, const char* argv[])
     // Automatically color convert if --autocc is used and the current
     // color space doesn't match that implied by the filename, and
     // automatically set -d based on the name if --autocc is used.
-    int autocc                = fileoptions.get_int("autocc", ot.autocc);
+    bool autocc          = fileoptions.get_int("autocc", ot.autocc);
+    bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
     string_view outcolorspace = ot.colorconfig.parseColorSpaceFromString(
         filename);
     if (autocc && outcolorspace.size()) {
@@ -4844,8 +4862,10 @@ output_file(int /*argc*/, const char* argv[])
                 std::cout << "  Converting from " << currentspace << " to "
                           << outcolorspace << " for output to " << filename
                           << "\n";
-            const char* argv[] = { "colorconvert:strict=0:allsubimages=1",
-                                   currentspace.c_str(),
+            std::string cmd = "colorconvert:strict=0:allsubimages=1";
+            if (autoccunpremult)
+                cmd += ":unpremult=1";
+            const char* argv[] = { cmd.c_str(), currentspace.c_str(),
                                    outcolorspace.c_str() };
             action_colorconvert(3, argv);
             ir = ot.curimg;
@@ -5426,8 +5446,9 @@ getargs(int argc, char* argv[])
       .help("Automatically --reorient all images upon input");
     ap.arg("--auto-orient", &ot.autoorient)
       .hidden(); // synonym for --autoorient
-    ap.arg("--autocc", &ot.autocc)
-      .help("Automatically color convert based on filename");
+    ap.arg("--autocc")
+      .help("Automatically color convert based on filename (options: unpremult=)")
+      .action(set_autocc);
     ap.arg("--noautocc %!", &ot.autocc)
       .help("Turn off automatic color conversion");
     ap.arg("--native")
@@ -5446,14 +5467,16 @@ getargs(int argc, char* argv[])
       .action(crash_me);
     ap.separator("Commands that read images:");
     ap.arg("-i %s:FILENAME")
-      .help("Input file (options: now=, printinfo=, autocc=, type=, ch=)")
+      .help("Input file (options: autocc=, ch=, info=, infoformat=, now=, type=, unpremult=)")
       .action(input_file);
     ap.arg("--iconfig %s:NAME %s:VALUE")
       .help("Sets input config attribute (options: type=...)")
       .action(set_input_attribute);
     ap.separator("Commands that write images:");
     ap.arg("-o %s:FILENAME")
-      .help("Output the current image to the named file")
+      .help("Output the current image to the named file (options: "
+            "all=, autocc=, autocrop=, autotrim=, bits=, contig=, datatype=, "
+            "dither=, fileformatname=, scanline=, separate=, tile=, unpremult=)")
       .action(output_file);
     ap.arg("-otex %s:FILENAME")
       .help("Output the current image as a texture")

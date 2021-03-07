@@ -983,34 +983,38 @@ Reading images
 .. option:: <filename>
             -i <filename>
 
-If a command-line option is the name of an image file, that file will be
-read and will become the new *current image*, with the previous current
-image pushed onto the image stack.
+    If a command-line option is the name of an image file, that file will be
+    read and will become the new *current image*, with the previous current
+    image pushed onto the image stack.
 
-The `-i` command may be used, which allows additional options that control
-the reading of just that one file.
+    The `-i` command may be used, which allows additional options that control
+    the reading of just that one file.
 
-Optional appended modifiers include:
+    Optional appended modifiers include:
 
-  `:now=` *int*
-    If 1, read the image now, before proceding to the next command.
-  `:autocc=` *int*
-    Enable or disable `--autocc` for this input image.
-  `:info=` *int*
-    Print info about this file (even if the global `--info` was not used) if
-    nonzero. If the value is 2, print full verbose info (like `--info -v`).
-  `:infoformat=` *name*
-    When printing info, the format may be one of: `text` (default) for
-    readable text, or `xml` for an XML description of the image metadata.
-  `:type=` *name*
-    Upon reading, convert the pixel data to the named type. This can
-    override the default behavior of internally storing whatever type is the
-    most precise one found in the file.
-  `:ch=` *name...*
-    Causes the input to read only the specified channels. This is equivalent
-    to following the input with a `--ch` command, except that by integrating
-    into the `-i`, it potentially can avoid the I/O of the unneeded
-    channels.
+      `:now=` *int*
+        If 1, read the image now, before proceeding to the next command.
+      `:autocc=` *int*
+        Enable or disable `--autocc` for this input image (the default is to use
+        the global setting).
+      `:unpremult=` *int*
+        If autocc is used for this image, should any color transformation be
+        done on unassociated colors (unpremultiplied by alpha). The default is 0.
+      `:info=` *int*
+        Print info about this file (even if the global `--info` was not used) if
+        nonzero. If the value is 2, print full verbose info (like `--info -v`).
+      `:infoformat=` *name*
+        When printing info, the format may be one of: `text` (default) for
+        readable text, or `xml` for an XML description of the image metadata.
+      `:type=` *name*
+        Upon reading, convert the pixel data to the named type. This can
+        override the default behavior of internally storing whatever type is the
+        most precise one found in the file.
+      `:ch=` *name...*
+        Causes the input to read only the specified channels. This is equivalent
+        to following the input with a `--ch` command, except that by integrating
+        into the `-i`, it potentially can avoid the I/O of the unneeded
+        channels.
 
 
 
@@ -1058,6 +1062,16 @@ Optional appended modifiers include:
     color space that is not recognized), a warning will be printed, but it
     the rest of `oiiotool` processing will proceed (but without having
     transformed the colors of the image).
+
+    Optional appended modifiers include:
+
+      `:unpremult=` *int*
+        If nonzero, when autocc is performed on an image containing an alpha
+        channel, the image will first be unpremultiplied by alpha, then
+        color transformed, then re-premultipled by alpha, so that the
+        color transformation is done with unassociated color values. The
+        default is 0, meanining that the color transformation will be done
+        directly on the associated color values.
 
     Example:
 
@@ -1156,7 +1170,12 @@ Writing images
       `:dither=` *int*
         Turn dither on or off for this output. (default: 0)
       `:autocc=` *int*
-        Enable or disable `--autocc` for this output image.
+        Enable or disable `--autocc` for this output image (the default is
+        to use the global setting).
+      `:unpremult=` *int*
+        If autocc is used for this image, should any color transformation be
+        done on unassociated colors (unpremultiplied by alpha). The default
+        is 0.
       `:autocrop=` *int*
         Enable or disable autocrop for this output image.
       `:autotrim=` *int*
