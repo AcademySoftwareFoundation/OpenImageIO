@@ -14,7 +14,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 
 ### Required dependencies -- OIIO will not build at all without these
 
- * C++11 (also builds with C++14 and C++17)
+ * C++11 (also builds with C++14, C++17, and C++20)
  * Compilers: gcc 4.8.2 - 10.2, clang 3.3 - 11, MSVS 2015 - 2019,
    icc version 13 or higher
  * CMake >= 3.12 (tested through 3.19)

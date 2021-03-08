@@ -31,7 +31,7 @@ static int ntrials          = 1;
 static bool verbose         = false;
 static bool wedge           = false;
 
-volatile long long accum = 0;
+long long accum = 0;
 spin_rw_mutex mymutex;
 
 
