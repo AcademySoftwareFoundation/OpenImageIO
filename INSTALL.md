@@ -15,8 +15,14 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Required dependencies -- OIIO will not build at all without these
 
  * C++11 (also builds with C++14, C++17, and C++20)
- * Compilers: gcc 4.8.2 - 10.2, clang 3.3 - 11, MSVS 2015 - 2019,
-   icc version 13 or higher
+     * The default build mode is C++14. This can be controlled by via the
+       CMake configuration flag: `-DCMAKE_CXX_STANDARD=11`.
+     * The retirement of C++11 support is coming soon!
+ * Compilers: gcc 4.8.2 - 10.2, clang 3.3 - 11, MSVS 2015 - 2019, icc 13+.
+     * Note that for C++14 conformance, you need gcc >= 6.1, clang >= 3.4,
+       or MSVS >= 2017. If you require older versions of these compilers,
+       you must use C++11 compilation mode. Support for this will likely be
+       removed before the final release of OIIO 2.3.
  * CMake >= 3.12 (tested through 3.20)
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.5, also
    tested against the current master that will be OpenEXR 3.0 / Imath 3.0)
@@ -43,6 +49,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for OpenVDB files:
      * OpenVDB >= 5.0 (tested through 8.0) and Intel TBB >= 2018 (tested
        through 2020_U3)
+     * Note that OpenVDB 8.0+ requires C++14 or higher.
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
      * OpenCV 2.x, 3.x, or 4.x (tested through 4.5)
