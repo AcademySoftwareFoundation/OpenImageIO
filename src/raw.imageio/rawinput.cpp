@@ -368,8 +368,13 @@ RawInput::open_raw(bool unpack, const std::string& name,
     m_processor->imgdata.params.user_flip
         = config.get_int_attribute("raw:user_flip", -1);
 
-    int ret;
-    if ((ret = m_processor->open_file(name.c_str())) != LIBRAW_SUCCESS) {
+#ifdef _WIN32
+    // Convert to wide chars, just on Windows.
+    int ret = m_processor->open_file(Strutil::utf8_to_utf16(name).c_str());
+#else
+    int ret = m_processor->open_file(name.c_str());
+#endif
+    if (ret != LIBRAW_SUCCESS) {
         errorf("Could not open file \"%s\", %s", m_filename,
                libraw_strerror(ret));
         return false;
