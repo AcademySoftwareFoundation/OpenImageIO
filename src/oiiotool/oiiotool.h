@@ -56,9 +56,10 @@ public:
     bool hash;
     bool updatemode;
     bool autoorient;
-    bool autocc;       // automatically color correct
-    bool autopremult;  // auto premult unassociated alpha input
-    bool nativeread;   // force native data type reads
+    bool autocc;                   // automatically color correct
+    bool autoccunpremult = false;  // does autocc unpremult/premult?
+    bool autopremult;              // auto premult unassociated alpha input
+    bool nativeread;               // force native data type reads
     bool printinfo_verbose;
     bool metamerge;  // Merge source input metadata into output
     int cachesize;
