@@ -365,7 +365,7 @@ private:
         if (!texturefile || texturefile->broken()) {
             std::string err = m_imagecache->geterror();
             if (err.size())
-                errorf("%s", err);
+                error("{}", err);
 #if 0
             // If the file is "broken", at least one verbose error message
             // has already been issued about it, so don't belabor the point.
@@ -537,12 +537,6 @@ private:
     /// Perform short unit tests.
     void unit_test_texture();
 
-    /// Internal error reporting routine, with printf-like arguments.
-    template<typename... Args>
-    void errorf(const char* fmt, const Args&... args) const
-    {
-        append_error(Strutil::sprintf(fmt, args...));
-    }
     /// Internal error reporting routine, with std::format-like arguments.
     template<typename... Args>
     void error(const char* fmt, const Args&... args) const

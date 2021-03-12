@@ -490,7 +490,7 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
 {
     std::unique_ptr<ImageOutput> out;
     if (filename.empty()) {  // Can't even guess if no filename given
-        OIIO::pvt::errorf("ImageOutput::create() called with no filename");
+        OIIO::pvt::errorfmt("ImageOutput::create() called with no filename");
         return out;
     }
 
@@ -523,11 +523,11 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
                 // case the app is too dumb to do so.
                 const char* msg
                     = "ImageOutput::create() could not find any ImageOutput plugins!  Perhaps you need to set OIIO_LIBRARY_PATH.\n";
-                fprintf(stderr, "%s", msg);
-                OIIO::pvt::errorf("%s", msg);
+                Strutil::print(stderr, "{}", msg);
+                OIIO::pvt::errorfmt("{}", msg);
             } else
-                OIIO::pvt::errorf(
-                    "OpenImageIO could not find a format writer for \"%s\". "
+                OIIO::pvt::errorfmt(
+                    "OpenImageIO could not find a format writer for \"{}\". "
                     "Is it a file format that OpenImageIO doesn't know about?\n",
                     filename);
             return out;
@@ -544,8 +544,8 @@ ImageOutput::create(string_view filename, Filesystem::IOProxy* ioproxy,
     if (out && ioproxy) {
         if (!out->supports("ioproxy")) {
             out.reset();
-            OIIO::pvt::errorf(
-                "ImageOutput::create called with IOProxy, but format %s does not support IOProxy",
+            OIIO::pvt::errorfmt(
+                "ImageOutput::create called with IOProxy, but format {} does not support IOProxy",
                 out->format_name());
         } else {
             out->set_ioproxy(ioproxy);
@@ -615,7 +615,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
     std::map<std::string, std::string> args;
     std::string filename_stripped;
     if (!Strutil::get_rest_arguments(filename, filename_stripped, args)) {
-        OIIO::pvt::errorf(
+        OIIO::pvt::errorfmt(
             "ImageInput::create() called with malformed filename");
         return in;
     }
@@ -624,7 +624,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         filename_stripped = filename;
 
     if (filename_stripped.empty()) {  // Can't even guess if no filename given
-        OIIO::pvt::errorf("ImageInput::create() called with no filename");
+        OIIO::pvt::errorfmt("ImageInput::create() called with no filename");
         return in;
     }
 
@@ -751,20 +751,20 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
             const char* msg
                 = "ImageInput::create() could not find any ImageInput plugins!\n"
                   "    Perhaps you need to set OIIO_LIBRARY_PATH.\n";
-            fprintf(stderr, "%s", msg);
-            OIIO::pvt::errorf("%s", msg);
+            Strutil::print(stderr, "{}", msg);
+            OIIO::pvt::errorfmt("{}", msg);
         } else if (!specific_error.empty()) {
             // Pass along any specific error message we got from our
             // best guess of the format.
-            OIIO::pvt::errorf("%s", specific_error);
+            OIIO::pvt::errorfmt("{}", specific_error);
         } else if (Filesystem::exists(filename))
-            pvt::errorf(
-                "OpenImageIO could not find a format reader for \"%s\". "
+            pvt::errorfmt(
+                "OpenImageIO could not find a format reader for \"{}\". "
                 "Is it a file format that OpenImageIO doesn't know about?\n",
                 filename);
         else
-            OIIO::pvt::errorf(
-                "Image \"%s\" does not exist. Also, it is not the name of an image format that OpenImageIO recognizes.\n",
+            OIIO::pvt::errorfmt(
+                "Image \"{}\" does not exist. Also, it is not the name of an image format that OpenImageIO recognizes.\n",
                 filename);
         OIIO_DASSERT(!in);
         return in;

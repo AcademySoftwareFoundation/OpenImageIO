@@ -198,7 +198,7 @@ IBA_channels(ImageBuf& dst, const ImageBuf& src, py::tuple channelorder_,
 {
     size_t nchannels = (size_t)len(channelorder_);
     if (nchannels < 1) {
-        dst.error("No channels selected");
+        dst.errorfmt("No channels selected");
         return false;
     }
     std::vector<int> channelorder(nchannels, -1);
@@ -220,7 +220,7 @@ IBA_channels(ImageBuf& dst, const ImageBuf& src, py::tuple channelorder_,
     std::vector<std::string> newchannelnames;
     py_to_stdvector(newchannelnames, newchannelnames_);
     if (newchannelnames.size() != 0 && newchannelnames.size() != nchannels) {
-        dst.error("Inconsistent number of channel arguments");
+        dst.errorfmt("Inconsistent number of channel arguments");
         return false;
     }
     py::gil_scoped_release gil;
@@ -1146,7 +1146,7 @@ IBA_channel_sum_weight(ImageBuf& dst, const ImageBuf& src,
     std::vector<float> weight;
     py_to_stdvector(weight, weight_tuple);
     if (!src.initialized()) {
-        dst.error("Uninitialized source image for channel_sum");
+        dst.errorfmt("Uninitialized source image for channel_sum");
         return false;
     }
     if (weight.size() == 0)
@@ -1175,7 +1175,7 @@ IBA_channel_sum_weight_ret(const ImageBuf& src, py::object weight_tuple,
     std::vector<float> weight;
     py_to_stdvector(weight, weight_tuple);
     if (!src.initialized()) {
-        result.error("Uninitialized source image for channel_sum");
+        result.errorfmt("Uninitialized source image for channel_sum");
         return result;
     }
     if (weight.size() == 0)
@@ -1204,11 +1204,11 @@ IBA_color_map_values(ImageBuf& dst, const ImageBuf& src, int srcchannel,
     std::vector<float> knots;
     py_to_stdvector(knots, knots_tuple);
     if (!src.initialized()) {
-        dst.error("Uninitialized source image for color_map");
+        dst.errorfmt("Uninitialized source image for color_map");
         return false;
     }
     if (!knots.size()) {
-        dst.error("No knot values supplied");
+        dst.errorfmt("No knot values supplied");
         return false;
     }
     py::gil_scoped_release gil;
@@ -1223,7 +1223,7 @@ IBA_color_map_name(ImageBuf& dst, const ImageBuf& src, int srcchannel,
                    int nthreads = 0)
 {
     if (!src.initialized()) {
-        dst.error("Uninitialized source image for color_map");
+        dst.errorfmt("Uninitialized source image for color_map");
         return false;
     }
     py::gil_scoped_release gil;
@@ -1924,7 +1924,7 @@ IBA_colormatrixtransform(ImageBuf& dst, const ImageBuf& src,
     std::vector<float> Mvals;
     bool ok = py_to_stdvector(Mvals, Mobj);
     if (!ok || Mvals.size() != 16) {
-        dst.errorf(
+        dst.errorfmt(
             "colormatrixtransform did not receive 16 elements to make a 4x4 matrix");
         return false;
     }

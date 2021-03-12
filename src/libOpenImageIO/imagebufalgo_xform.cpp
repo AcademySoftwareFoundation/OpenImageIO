@@ -304,7 +304,7 @@ ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
         }
     }
     if (!filter) {
-        dst.errorf("Filter \"%s\" not recognized", filtername);
+        dst.errorfmt("Filter \"{}\" not recognized", filtername);
         return false;
     }
 
@@ -321,7 +321,7 @@ ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
     ImageBuf result;
     bool ok = warp(result, src, M, filter, recompute_roi, wrap, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::warp() error");
+        result.errorfmt("ImageBufAlgo::warp() error");
     return result;
 }
 
@@ -337,7 +337,7 @@ ImageBufAlgo::warp(const ImageBuf& src, const Imath::M33f& M,
     bool ok = warp(result, src, M, filtername, filterwidth, recompute_roi, wrap,
                    roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::warp() error");
+        result.errorfmt("ImageBufAlgo::warp() error");
     return result;
 }
 
@@ -620,7 +620,7 @@ get_resize_filter(string_view filtername, float fwidth, ImageBuf& dst,
         }
     }
     if (!filter) {
-        dst.errorf("Filter \"%s\" not recognized", filtername);
+        dst.errorfmt("Filter \"{}\" not recognized", filtername);
     }
     return filter;
 }
@@ -694,7 +694,7 @@ ImageBufAlgo::resize(const ImageBuf& src, Filter2D* filter, ROI roi,
     ImageBuf result;
     bool ok = resize(result, src, filter, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::resize() error");
+        result.errorfmt("ImageBufAlgo::resize() error");
     return result;
 }
 
@@ -706,7 +706,7 @@ ImageBufAlgo::resize(const ImageBuf& src, string_view filtername,
     ImageBuf result;
     bool ok = resize(result, src, filtername, filterwidth, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::resize() error");
+        result.errorfmt("ImageBufAlgo::resize() error");
     return result;
 }
 
@@ -858,7 +858,7 @@ ImageBufAlgo::fit(const ImageBuf& src, Filter2D* filter, string_view fillmode,
     ImageBuf result;
     bool ok = fit(result, src, filter, fillmode, exact, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::fit() error");
+        result.errorfmt("ImageBufAlgo::fit() error");
     return result;
 }
 
@@ -872,7 +872,7 @@ ImageBufAlgo::fit(const ImageBuf& src, string_view filtername,
     bool ok = fit(result, src, filtername, filterwidth, fillmode, exact, roi,
                   nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::fit() error");
+        result.errorfmt("ImageBufAlgo::fit() error");
     return result;
 }
 
@@ -1034,7 +1034,7 @@ ImageBufAlgo::resample(const ImageBuf& src, bool interpolate, ROI roi,
     ImageBuf result;
     bool ok = resample(result, src, interpolate, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::resample() error");
+        result.errorfmt("ImageBufAlgo::resample() error");
     return result;
 }
 
@@ -1095,7 +1095,7 @@ ImageBufAlgo::rotate(const ImageBuf& src, float angle, float center_x,
     bool ok = rotate(result, src, angle, center_x, center_y, filter,
                      recompute_roi, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::rotate() error");
+        result.errorfmt("ImageBufAlgo::rotate() error");
     return result;
 }
 
@@ -1110,7 +1110,7 @@ ImageBufAlgo::rotate(const ImageBuf& src, float angle, float center_x,
     bool ok = rotate(result, src, angle, center_x, center_y, filtername,
                      filterwidth, recompute_roi, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::rotate() error");
+        result.errorfmt("ImageBufAlgo::rotate() error");
     return result;
 }
 
@@ -1123,7 +1123,7 @@ ImageBufAlgo::rotate(const ImageBuf& src, float angle, Filter2D* filter,
     ImageBuf result;
     bool ok = rotate(result, src, angle, filter, recompute_roi, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::rotate() error");
+        result.errorfmt("ImageBufAlgo::rotate() error");
     return result;
 }
 
@@ -1138,7 +1138,7 @@ ImageBufAlgo::rotate(const ImageBuf& src, float angle, string_view filtername,
     bool ok = rotate(result, src, angle, filtername, filterwidth, recompute_roi,
                      roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::rotate() error");
+        result.errorfmt("ImageBufAlgo::rotate() error");
     return result;
 }
 

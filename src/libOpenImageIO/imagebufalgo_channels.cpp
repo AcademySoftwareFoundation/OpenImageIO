@@ -62,13 +62,13 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
     pvt::LoggedTimer logtime("IBA::channels");
     // Not intended to create 0-channel images.
     if (nchannels <= 0) {
-        dst.errorf("%d-channel images not supported", nchannels);
+        dst.errorfmt("{}-channel images not supported", nchannels);
         return false;
     }
     // If we dont have a single source channel,
     // hard to know how big to make the additional channels
     if (src.spec().nchannels == 0) {
-        dst.errorf("%d-channel images not supported", src.spec().nchannels);
+        dst.errorfmt("{}-channel images not supported", src.spec().nchannels);
         return false;
     }
 
@@ -190,7 +190,7 @@ ImageBufAlgo::channels(const ImageBuf& src, int nchannels,
     bool ok = channels(result, src, nchannels, channelorder, channelvalues,
                        newchannelnames, shuffle_channel_names, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("ImageBufAlgo::channels() error");
+        result.errorfmt("ImageBufAlgo::channels() error");
     return result;
 }
 
@@ -257,7 +257,8 @@ ImageBufAlgo::channel_append(ImageBuf& dst, const ImageBuf& A,
                 != dstspec.channelnames.end()) {
                 // If it's still a duplicate, fall back on a totally
                 // artificial name that contains the channel number.
-                name = Strutil::sprintf("channel%d", A.spec().nchannels + c);
+                name = Strutil::fmt::format("channel{}",
+                                            A.spec().nchannels + c);
             }
             dstspec.channelnames.push_back(name);
         }
@@ -284,7 +285,7 @@ ImageBufAlgo::channel_append(const ImageBuf& A, const ImageBuf& B, ROI roi,
     ImageBuf result;
     bool ok = channel_append(result, A, B, roi, nthreads);
     if (!ok && !result.has_error())
-        result.errorf("channel_append error");
+        result.errorfmt("channel_append error");
     return result;
 }
 
