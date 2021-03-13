@@ -193,7 +193,7 @@ These helper functions are not part of any other OpenImageIO class, they
 just exist in the OpenImageIO namespace as general utilities. (See
 :ref:`sec-pythonmiscapi` for the corresponding Python bindings.)
 
-.. doxygenfunction:: OIIO::attribute(string_view, TypeDesc, const void*)
+.. doxygenfunction:: OIIO::attribute(string_view, TypeDesc, const void *)
 
 .. cpp:function:: bool OIIO::attribute(string_view name, int val)
                   bool OIIO::attribute(string_view name, float val)
@@ -202,7 +202,7 @@ just exist in the OpenImageIO namespace as general utilities. (See
     Shortcuts for setting an attribute to a single int, float, or string.
 
 
-.. doxygenfunction:: OIIO::getattribute(string_view, TypeDesc, void*)
+.. doxygenfunction:: OIIO::getattribute(string_view, TypeDesc, void *)
 
 
 .. cpp:function:: bool getattribute (string_view name, int &val)
