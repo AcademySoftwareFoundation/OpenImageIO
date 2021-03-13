@@ -2495,7 +2495,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///
 ///
 ///
-OIIO_API bool attribute (string_view name, TypeDesc type, const void *val);
+OIIO_API bool attribute(string_view name, TypeDesc type, const void* val);
 
 /// Shortcut attribute() for setting a single integer.
 inline bool attribute (string_view name, int val) {
@@ -2579,7 +2579,7 @@ inline bool attribute (string_view name, string_view val) {
 ///        IBA::resize                  20   0.24s   (avg  12.18ms)
 ///        IBA::zero                     8   0.66ms  (avg   0.08ms)
 ///
-OIIO_API bool getattribute (string_view name, TypeDesc type, void *val);
+OIIO_API bool getattribute(string_view name, TypeDesc type, void* val);
 
 /// Shortcut getattribute() for retrieving a single integer.
 /// The value is placed in `val`, and the function returns `true` if the
