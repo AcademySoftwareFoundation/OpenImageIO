@@ -6,7 +6,7 @@
 set -ex
 
 # Which OpenEXR to retrieve, how to build it
-OPENEXR_REPO=${OPENEXR_REPO:=https://github.com/openexr/openexr.git}
+OPENEXR_REPO=${OPENEXR_REPO:=https://github.com/AcademySoftwareFoundation/openexr.git}
 OPENEXR_VERSION=${OPENEXR_VERSION:=v2.4.1}
 
 # Where to install the final results
@@ -88,6 +88,7 @@ else
             -DPYILMBASE_ENABLE=0 \
             -DOPENEXR_VIEWERS_ENABLE=0 \
             -DINSTALL_OPENEXR_EXAMPLES=0 \
+            -DOPENEXR_INSTALL_EXAMPLES=0 \
             -DCMAKE_INSTALL_LIBDIR=lib \
             -DCMAKE_CXX_FLAGS="${OPENEXR_CXX_FLAGS}" \
             ${OPENEXR_CMAKE_FLAGS} ${OPENEXR_SOURCE_DIR}
