@@ -451,12 +451,6 @@ getattribute(string_view name, TypeDesc type, void* val)
 }
 
 
-inline long long
-quantize(float value, long long quant_min, long long quant_max)
-{
-    value = value * quant_max;
-    return OIIO::clamp((long long)(value + 0.5f), quant_min, quant_max);
-}
 
 namespace {
 
@@ -577,57 +571,35 @@ pvt::convert_to_float(const void* src, float* dst, int nvals, TypeDesc format)
 
 
 
-template<typename T>
-static const void*
-_from_float(const float* src, T* dst, size_t nvals)
-{
-    if (!src) {
-        // If no source pixels, assume zeroes
-        T z = T(0);
-        for (size_t p = 0; p < nvals; ++p)
-            dst[p] = z;
-    } else if (std::numeric_limits<T>::is_integer) {
-        long long quant_min = (long long)std::numeric_limits<T>::min();
-        long long quant_max = (long long)std::numeric_limits<T>::max();
-        // Convert float to non-float native format, with quantization
-        for (size_t p = 0; p < nvals; ++p)
-            dst[p] = (T)quantize(src[p], quant_min, quant_max);
-    } else {
-        // It's a floating-point type of some kind -- we don't apply
-        // quantization
-        if (sizeof(T) == sizeof(float)) {
-            // It's already float -- return the source itself
-            return src;
-        }
-        // Otherwise, it's converting between two fp types
-        for (size_t p = 0; p < nvals; ++p)
-            dst[p] = (T)src[p];
-    }
-
-    return dst;
-}
-
-
-
 const void*
 pvt::convert_from_float(const float* src, void* dst, size_t nvals,
                         TypeDesc format)
 {
-    switch (format.basetype) {
-    case TypeDesc::FLOAT: return src;
-    case TypeDesc::HALF: return _from_float<half>(src, (half*)dst, nvals);
-    case TypeDesc::DOUBLE: return _from_float(src, (double*)dst, nvals);
-    case TypeDesc::INT8: return _from_float(src, (char*)dst, nvals);
-    case TypeDesc::UINT8: return _from_float(src, (unsigned char*)dst, nvals);
-    case TypeDesc::INT16: return _from_float(src, (short*)dst, nvals);
-    case TypeDesc::UINT16: return _from_float(src, (unsigned short*)dst, nvals);
-    case TypeDesc::INT: return _from_float(src, (int*)dst, nvals);
-    case TypeDesc::UINT: return _from_float(src, (unsigned int*)dst, nvals);
-    case TypeDesc::INT64: return _from_float(src, (long long*)dst, nvals);
-    case TypeDesc::UINT64:
-        return _from_float(src, (unsigned long long*)dst, nvals);
-    default: OIIO_ASSERT(0 && "ERROR from_float: bad format"); return NULL;
+    // If no source pixels, assume zeroes
+    if (!src) {
+        memset(dst, 0, nvals * format.size());
+        return dst;
     }
+
+    // clang-format off
+    switch (format.basetype) {
+    case TypeDesc::FLOAT:
+        // If it's already float, return the source itself
+        return src;
+    case TypeDesc::HALF:   convert_type(src, (half*)    dst, nvals); break;
+    case TypeDesc::UINT8:  convert_type(src, (uint8_t*) dst, nvals); break;
+    case TypeDesc::UINT16: convert_type(src, (uint16_t*)dst, nvals); break;
+    case TypeDesc::UINT:   convert_type(src, (uint32_t*)dst, nvals); break;
+    case TypeDesc::INT8:   convert_type(src, (int8_t*)  dst, nvals); break;
+    case TypeDesc::INT16:  convert_type(src, (int16_t*) dst, nvals); break;
+    case TypeDesc::INT:    convert_type(src, (int32_t*) dst, nvals); break;
+    case TypeDesc::DOUBLE: convert_type(src, (double*)  dst, nvals); break;
+    case TypeDesc::INT64:  convert_type(src, (int64_t*) dst, nvals); break;
+    case TypeDesc::UINT64: convert_type(src, (uint64_t*)dst, nvals); break;
+    default: OIIO_ASSERT(0 && "ERROR from_float: bad format"); dst = nullptr;
+    }
+    // clang-format on
+    return dst;
 }
 
 
