@@ -607,6 +607,13 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
     ImageSpec outspec      = outspec_template;
     outspec.set_format(outputdatatype);
 
+    // Going from float to half is prone to generating Inf values if we had
+    // any floats that were out of the range that half can represent. Nobody
+    // wants Inf in textures; better to clamp.
+    bool clamp_half = (outspec.format == TypeHalf
+                       && (img->spec().format == TypeFloat
+                           || img->spec().format == TypeHalf));
+
     if (mipmap && !out->supports("multiimage") && !out->supports("mipmap")) {
         errorfmt("\"{} \" format does not support multires images",
                  outputfilename);
@@ -673,6 +680,11 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
         outstream << "  Top level is " << formatres(outspec) << std::endl;
     }
 
+    if (clamp_half) {
+        std::shared_ptr<ImageBuf> tmp(new ImageBuf);
+        ImageBufAlgo::clamp(*tmp, *img, -HALF_MAX, HALF_MAX, true);
+        std::swap(tmp, img);
+    }
     if (!img->write(out)) {
         // ImageBuf::write transfers any errors from the ImageOutput to
         // the ImageBuf.
@@ -806,6 +818,8 @@ write_mipmap(ImageBufAlgo::MakeTextureMode mode, std::shared_ptr<ImageBuf>& img,
                     Filter2D::destroy(filter);
                 }
             }
+            if (clamp_half)
+                ImageBufAlgo::clamp(*small, *small, -HALF_MAX, HALF_MAX, true);
 
             stat_miptime += miptimer();
             outspec = smallspec;

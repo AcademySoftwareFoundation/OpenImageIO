@@ -289,6 +289,48 @@ nan.exr              :   64 x   64, 3 channel, half openexr
     Stats FiniteCount: 4096 4096 4096 
     Constant: No
     Monochrome: Yes
+Reading bigval.exr
+bigval.exr           :    2 x    2, 3 channel, half openexr
+    MIP-map levels: 2x2 1x1
+    SHA-1: 9DBE885D25443B9CDDC4BAC5997162861B5B3F15
+    channel list: R, G, B
+    tile size: 64 x 64
+    compression: "zip"
+    fovcot: 1
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    textureformat: "Plain Texture"
+    wrapmodes: "black,black"
+    oiio:AverageColor: "1e+06,1e+06,1e+06"
+    oiio:ColorSpace: "Linear"
+    oiio:ConstantColor: "1e+06,1e+06,1e+06"
+    oiio:SHA-1: "E3D97EED7EE68F1885685F312DDD7D8773C29862"
+    oiio:subimages: 1
+    openexr:roundingmode: 0
+    MIP 0 of 2 (2 x 2):
+      Stats Min: 65504.000000 65504.000000 65504.000000 (float)
+      Stats Max: 65504.000000 65504.000000 65504.000000 (float)
+      Stats Avg: 65504.000000 65504.000000 65504.000000 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 4 4 4 
+      Constant: Yes
+      Constant Color: 65504.000000 65504.000000 65504.000000 (float)
+      Monochrome: Yes
+    MIP 1 of 2 (1 x 1):
+      Stats Min: 65504.000000 65504.000000 65504.000000 (float)
+      Stats Max: 65504.000000 65504.000000 65504.000000 (float)
+      Stats Avg: 65504.000000 65504.000000 65504.000000 (float)
+      Stats StdDev: 0.000000 0.000000 0.000000 (float)
+      Stats NanCount: 0 0 0 
+      Stats InfCount: 0 0 0 
+      Stats FiniteCount: 1 1 1 
+      Constant: Yes
+      Constant Color: 65504.000000 65504.000000 65504.000000 (float)
+      Monochrome: Yes
 Reading checker-exr.pdq
 checker-exr.pdq      :  128 x  128, 4 channel, half openexr
     MIP-map levels: 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
