@@ -1172,12 +1172,13 @@ TIFFOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     for (size_t stripidx = 0; y + m_rowsperstrip <= yend;
          y += m_rowsperstrip, ++stripidx) {
         char* cbuf = compressed_scratch.get() + stripidx * cbound;
+        auto out   = this;
         tasks.push(pool->push([=, &ok](int /*id*/) {
             memcpy((void*)data, origdata, strip_bytes);
-            this->compress_one_strip((void*)data, strip_bytes, cbuf, cbound,
-                                     this->m_spec.nchannels, this->m_spec.width,
-                                     m_rowsperstrip, compressed_len + stripidx,
-                                     &ok);
+            out->compress_one_strip((void*)data, strip_bytes, cbuf, cbound,
+                                    out->m_spec.nchannels, out->m_spec.width,
+                                    out->m_rowsperstrip,
+                                    compressed_len + stripidx, &ok);
         }));
         data     = (char*)data + strip_bytes;
         origdata = (char*)origdata + strip_bytes;
