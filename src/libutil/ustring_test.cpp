@@ -126,9 +126,10 @@ main(int argc, char* argv[])
     size_t ncollisions = ustring::hash_collisions(&collisions);
     OIIO_CHECK_ASSERT(ncollisions == 0);
     if (ncollisions) {
-        std::cout << "  Hash collisions: " << ncollisions << "\n";
+        Strutil::print("  Hash collisions: {}\n", ncollisions);
         for (auto c : collisions)
-            std::cout << Strutil::fmt::format("    {} \"{}\"\n", c.hash(), c);
+            Strutil::print("    \"{}\" (orig {:08x} rehashed {:08x})\n", c,
+                           Strutil::strhash(c), c.hash());
     }
 
     if (verbose)
