@@ -161,7 +161,7 @@ jobs:
     # gcc9 and C++17. This test currently uses the latest OpenEXR release
     # 2.5, though eventually 2021 will feature OpenEXR 3.0 when complete.
     name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.73 exr-2.5 qt-5.15"
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2021
     env:
@@ -209,7 +209,7 @@ jobs:
     # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
     # gcc9 and C++17, and also the in-progress openexr/imath 3.0.
     name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.73 exr-3.0 qt-5.15"
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2021
     env:
@@ -346,7 +346,7 @@ jobs:
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
     name: "Linux latest releases: gcc10 C++17 avx2 exr2.5 ocio2.0"
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       CXX: g++-10
       CMAKE_CXX_STANDARD: 17
@@ -357,8 +357,11 @@ jobs:
       OPENEXR_VERSION: v2.5.3
       PUGIXML_VERSION: v1.11.4
       PYBIND11_VERSION: v2.6.2
+      PYTHON_VERSION: 3.8
       WEBP_VERSION: v1.1.0
       MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.1.3
+      USE_OPENVDB: 0
+      # The old installed OpenVDB has a TLS conflict with Python 3.8
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -396,11 +399,11 @@ jobs:
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
     # supported releases of everything else.
-    name: "Linux bleeding edge: gcc10 C++17 avx2 OCIO/libtiff/exr master"
-    runs-on: ubuntu-18.04
+    name: "Linux bleeding edge: gcc10 C++20 py38 avx2 OCIO/libtiff/exr master"
+    runs-on: ubuntu-20.04
     env:
       CXX: g++-10
-      CMAKE_CXX_STANDARD: 17
+      CMAKE_CXX_STANDARD: 20
       USE_SIMD: avx2,f16c
       LIBRAW_VERSION: master
       LIBTIFF_VERSION: master
@@ -409,8 +412,11 @@ jobs:
       PUGIXML_VERSION: master
       PYBIND11_VERSION: v2.6.2
       # PYBIND11_VERSION: master
+      PYTHON_VERSION: 3.8
       WEBP_VERSION: master
       MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
+      USE_OPENVDB: 0
+      # The old installed OpenVDB has a TLS conflict with Python 3.8
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -419,6 +425,7 @@ jobs:
           echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
       - name: CCache
         id: ccache
+        if: always()
         uses: actions/cache@v2
         with:
           path: /tmp/ccache

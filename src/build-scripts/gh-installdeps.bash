@@ -30,7 +30,6 @@ else
         libboost-dev libboost-thread-dev \
         libboost-filesystem-dev libboost-regex-dev \
         libilmbase-dev libopenexr-dev \
-        python-dev python-numpy \
         libtbb-dev \
         libtiff-dev libgif-dev libpng-dev libraw-dev libwebp-dev \
         libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
@@ -41,6 +40,12 @@ else
         libopencv-dev \
         qt5-default \
         libhdf5-dev
+
+    if [[ "$PYTHON_VERSION" == "2.7" ]] ; then
+        time sudo apt-get -q install -y python-dev python-numpy
+    else
+        pip3 install numpy
+    fi
 
     if [[ "$USE_LIBHEIF" != "0" ]] ; then
        sudo add-apt-repository ppa:strukturag/libde265

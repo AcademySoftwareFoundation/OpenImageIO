@@ -5301,12 +5301,14 @@ print_help_end(std::ostream& out)
     std::string buildsimd = OIIO::get_string_attribute("oiio:simd");
     if (!buildsimd.size())
         buildsimd = "no SIMD";
-    auto hwinfo
-        = Strutil::sprintf("OIIO %s built %s, running on %d cores %.1fGB %s",
-                           OIIO_VERSION_STRING, buildsimd,
-                           Sysutil::hardware_concurrency(),
-                           Sysutil::physical_memory() / float(1 << 30),
-                           OIIO::get_string_attribute("hw:simd"));
+    auto buildinfo
+        = Strutil::sprintf("OIIO %s built for C++%d/%d %s", OIIO_VERSION_STRING,
+                           OIIO_CPLUSPLUS_VERSION, __cplusplus, buildsimd);
+    out << Strutil::wordwrap(buildinfo, columns, 4) << std::endl;
+    auto hwinfo = Strutil::sprintf("Running on %d cores %.1fGB %s",
+                                   Sysutil::hardware_concurrency(),
+                                   Sysutil::physical_memory() / float(1 << 30),
+                                   OIIO::get_string_attribute("hw:simd"));
     out << Strutil::wordwrap(hwinfo, columns, 4) << std::endl;
 
     // Print the path to the docs. If found, use the one installed in the

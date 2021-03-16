@@ -30,8 +30,8 @@ static bool verbose   = false;
 static bool wedge     = false;
 
 static spin_mutex print_mutex;  // make the prints not clobber each other
-volatile long long accum = 0;
-float faccum             = 0;
+long long accum = 0;
+float faccum    = 0;
 spin_mutex mymutex;
 
 

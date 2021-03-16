@@ -399,12 +399,11 @@ private:
 
     void uncompress_one_strip(void* compressed_buf, unsigned long csize,
                               void* uncompressed_buf, size_t strip_bytes,
-                              int channels, int width, int height,
-                              int compression, bool* ok)
+                              int channels, int width, int height, bool* ok)
     {
-        OIIO_DASSERT (compression == COMPRESSION_ADOBE_DEFLATE /*||
-                      compression == COMPRESSION_NONE*/);
-        if (compression == COMPRESSION_NONE) {
+        OIIO_DASSERT (m_compression == COMPRESSION_ADOBE_DEFLATE /*||
+                      m_compression == COMPRESSION_NONE*/);
+        if (m_compression == COMPRESSION_NONE) {
             // just copy if there's no compression
             memcpy(uncompressed_buf, compressed_buf, csize);
             if (m_is_byte_swapped && m_spec.format == TypeUInt16)
@@ -1739,13 +1738,14 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                        err.size() ? err.c_str() : "unknown error");
                 ok = false;
             }
+            auto out            = this;
             auto uncompress_etc = [=, &ok](int /*id*/) {
-                uncompress_one_strip(cbuf, (unsigned long)csize, data,
-                                     strip_bytes, this->m_spec.nchannels,
-                                     this->m_spec.width, m_rowsperstrip,
-                                     m_compression, &ok);
-                if (m_photometric == PHOTOMETRIC_MINISWHITE)
-                    invert_photometric(stripvals * stripchans, data);
+                out->uncompress_one_strip(cbuf, (unsigned long)csize, data,
+                                          strip_bytes, out->m_spec.nchannels,
+                                          out->m_spec.width,
+                                          out->m_rowsperstrip, &ok);
+                if (out->m_photometric == PHOTOMETRIC_MINISWHITE)
+                    out->invert_photometric(stripvals * stripchans, data);
             };
             if (parallelize) {
                 // Push the rest of the work onto the thread pool queue
@@ -2001,20 +2001,20 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                     return false;
                 }
                 // Push the rest of the work onto the thread pool queue
+                auto out = this;
                 tasks.push(pool->push([=, &ok](int /*id*/) {
-                    uncompress_one_strip(cbuf, (unsigned long)csize, ubuf,
-                                         tile_bytes, this->m_spec.nchannels,
-                                         this->m_spec.tile_width,
-                                         this->m_spec.tile_height
-                                             * this->m_spec.tile_depth,
-                                         m_compression, &ok);
-                    if (m_photometric == PHOTOMETRIC_MINISWHITE)
-                        invert_photometric(tilevals, ubuf);
-                    copy_image(this->m_spec.nchannels, this->m_spec.tile_width,
-                               this->m_spec.tile_height,
-                               this->m_spec.tile_depth, ubuf,
-                               size_t(pixel_bytes), pixel_bytes, tileystride,
-                               tilezstride,
+                    out->uncompress_one_strip(cbuf, (unsigned long)csize, ubuf,
+                                              tile_bytes, out->m_spec.nchannels,
+                                              out->m_spec.tile_width,
+                                              out->m_spec.tile_height
+                                                  * out->m_spec.tile_depth,
+                                              &ok);
+                    if (out->m_photometric == PHOTOMETRIC_MINISWHITE)
+                        out->invert_photometric(tilevals, ubuf);
+                    copy_image(out->m_spec.nchannels, out->m_spec.tile_width,
+                               out->m_spec.tile_height, out->m_spec.tile_depth,
+                               ubuf, size_t(pixel_bytes), pixel_bytes,
+                               tileystride, tilezstride,
                                (char*)data + (z - zbegin) * zstride
                                    + (y - ybegin) * ystride
                                    + (x - xbegin) * pixel_bytes,
