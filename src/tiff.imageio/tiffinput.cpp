@@ -1843,10 +1843,10 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         int vert_offset = m_spec.tile_height - th;
 
         copy_image(m_spec.nchannels, tw, th, 1,
-                   &m_rgbadata[vert_offset * m_spec.tile_width + (th - 1) * m_spec.tile_width], m_spec.nchannels,
-                   4, -m_spec.tile_width * 4, AutoStride, data,
-                   m_spec.nchannels, m_spec.nchannels * m_spec.tile_width,
-                   AutoStride);
+                   &m_rgbadata[vert_offset * m_spec.tile_width
+                               + (th - 1) * m_spec.tile_width],
+                   m_spec.nchannels, 4, -m_spec.tile_width * 4, AutoStride,
+                   data, m_spec.nchannels, m_spec.nchannels * m_spec.tile_width,
         return true;
     }
 
