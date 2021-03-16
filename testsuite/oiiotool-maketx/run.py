@@ -97,6 +97,13 @@ command += omaketx_command (OIIO_TESTSUITE_ROOT+"/oiiotool-fixnan/src/bad.exr", 
                             "--fixnan box3", options=":nomipmap=1",
                             showinfo=True, showinfo_extra="--stats")
 
+# Test that when outputting half textures, we clamp large float values
+# rather than inadvertetly turning into Inf in the process of output to
+# half.
+command += oiiotool (" --pattern constant:color=1.0e6,1.0e6,1.0e6 2x2 3 -d float -o million.tif")
+command += omaketx_command ("million.tif", "bigval.exr",
+                            "-d half", showinfo_extra="--stats")
+
 # Test --format to force exr even though it can't be deduced from the name.
 command += omaketx_command ("checker.tif", "checker-exr.pdq",
                             options=":fileformatname=exr")
