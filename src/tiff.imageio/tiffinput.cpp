@@ -1847,6 +1847,7 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                + (th - 1) * m_spec.tile_width],
                    m_spec.nchannels, 4, -m_spec.tile_width * 4, AutoStride,
                    data, m_spec.nchannels, m_spec.nchannels * m_spec.tile_width,
+                   AutoStride);
         return true;
     }
 
