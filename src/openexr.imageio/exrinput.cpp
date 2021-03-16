@@ -59,6 +59,7 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfDoubleAttribute.h>
 #include <OpenEXR/ImfEnvmapAttribute.h>
 #include <OpenEXR/ImfFloatAttribute.h>
+#include <OpenEXR/ImfHeader.h>
 #if OPENEXR_HAS_FLOATVECTOR
 #    include <OpenEXR/ImfFloatVectorAttribute.h>
 #endif
