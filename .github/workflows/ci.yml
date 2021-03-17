@@ -205,7 +205,7 @@ jobs:
             build/*/testsuite/*/*.*
             build/*/CMake*.{txt,log}
 
-  vfxplatform-2021-exrmaster:
+  vfxplatform-2021-exr3:
     # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
     # gcc9 and C++17, and also the in-progress openexr/imath 3.0.
     name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.73 exr-3.0 qt-5.15"
@@ -218,7 +218,7 @@ jobs:
       CMAKE_CXX_STANDARD: 17
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
-      OPENEXR_VERSION: master
+      OPENEXR_VERSION: RB-3.0
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -345,7 +345,7 @@ jobs:
 
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
-    name: "Linux latest releases: gcc10 C++17 avx2 exr2.5 ocio2.0"
+    name: "Linux latest releases: gcc10 C++17 avx2 exr3.0 ocio2.0"
     runs-on: ubuntu-20.04
     env:
       CXX: g++-10
@@ -354,7 +354,7 @@ jobs:
       LIBRAW_VERSION: 0.20.2
       LIBTIFF_VERSION: v4.2.0
       OPENCOLORIO_VERSION: v2.0.0
-      OPENEXR_VERSION: v2.5.3
+      OPENEXR_VERSION: v3.0.0-beta
       PUGIXML_VERSION: v1.11.4
       PYBIND11_VERSION: v2.6.2
       PYTHON_VERSION: 3.8
