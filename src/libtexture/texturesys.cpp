@@ -6,10 +6,9 @@
 #include <cmath>
 #include <cstring>
 #include <list>
+#include <random>
 #include <sstream>
 #include <string>
-
-#include <boost/random.hpp>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filter.h>
@@ -2911,13 +2910,13 @@ TextureSystemImpl::unit_test_texture()
     dtdy = 0.2;
     visualize_ellipse("6.tif", dsdx, dtdx, dsdy, dtdy, 0.0, 0.5);
 
-    boost::mt19937 rndgen;
-    boost::uniform_01<boost::mt19937, float> rnd(rndgen);
+    std::mt19937 gen;
+    std::uniform_real_distribution<float> rnd(0.0f, 1.0f);
     for (int i = 0; i < 100; ++i) {
-        dsdx = 1.5f * (rnd() - 0.5f);
-        dtdx = 1.5f * (rnd() - 0.5f);
-        dsdy = 1.5f * (rnd() - 0.5f);
-        dtdy = 1.5f * (rnd() - 0.5f);
+        dsdx = 1.5f * (rnd(gen) - 0.5f);
+        dtdx = 1.5f * (rnd(gen) - 0.5f);
+        dsdy = 1.5f * (rnd(gen) - 0.5f);
+        dtdy = 1.5f * (rnd(gen) - 0.5f);
         visualize_ellipse(Strutil::sprintf("%04d.tif", 100 + i), dsdx, dtdx,
                           dsdy, dtdy, sblur, tblur);
     }
