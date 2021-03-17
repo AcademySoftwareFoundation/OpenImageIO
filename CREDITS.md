@@ -13,8 +13,8 @@ lg@openimageio.org
 * Alexander Murashko
 * Alexandre Gauthier
 * Alexis Oblet
-* Alister Chowdhury
 * Alexy Pawlow
+* Alister Chowdhury
 * Aman Shah
 * Ananth Garre
 * Anders Langlands
@@ -59,26 +59,26 @@ lg@openimageio.org
 * Elvic Liang
 * Fabien Castan
 * Fabien Servant
-* Frédéric Devernay
 * Fredrik Averpil
+* Frédéric Devernay
 * Gaurav Bansal
 * Ghislain Antony Vaillant
 * Gonzalo Garramuño
-* Grégoire De Lillo
 * Gregor Mueckl
+* Grégoire De Lillo
 * Guillaume Chatelet
 * Hanspeter Niederstrasser
+* Harry Mallon
 * Heiko Becker
 * Henri Fousse
-* Harry Mallon
 * Hugh Macdonald
 * Imarz
 * Irena Damsky
 * Ismael Cortes
 * Jan Hettenkofer
+* Jens Lindgren
 * Jep Hill
 * Jeph Alapat
-* Jens Lindgren
 * Jeremy Rose
 * Jeremy Selan
 * Jim Hourihan
@@ -140,8 +140,8 @@ lg@openimageio.org
 * Ramon Montoya
 * Ray Molenkamp
 * Richard Shaw
-* Roeland Schoukens
 * Robert Matusewicz
+* Roeland Schoukens
 * Roman Zulak
 * Rui Li
 * Ryen

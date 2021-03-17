@@ -1,6 +1,7 @@
 Release 2.3 (??) -- compared to 2.2
 ----------------------------------------------
-New minimum dependencies:
+New minimum dependencies and compatibility changes:
+* C++ standard: C++20 is now supported. #2891 (2.3.2)
 
 New major features and public API changes:
 * C API:  #2748 (2.3.1.0)
@@ -35,10 +36,20 @@ New major features and public API changes:
   read from files. "Computed" or copied ImageBuf's are solo images in memory
   that no longer correspond to a file even if the input to the computation
   was from a file. #2759 (2.3.0.1/2.2.9)
-* oiiotool new commands:
+* oiiotool new commands and options:
     - `--pastemeta` takes two images as arguments, and appends all the
       metadata (only) from the first image onto the second image's pixels
       and metadata, producing a combined image. #2708 (2.3.0.0)
+    - `--chappend` and `--siappend` both allow an optional modifier `:n=`
+      to specify the number of images from the stack to be combined
+      (default n=2). #2709 (2.3.0.0)
+    - `--fit` now takes an additional optional modifier: `fillmode=` with
+      choices of `letterbox` (default), `width`, and `height`. #2784 (2.3.2.0)
+    - `--autocc` now has an optional modifier `:unpremult=1` that causes
+      any color transformations related to autocc to unpremultiply by alpha
+      before the transformation and then re-premultiply afterwards, exactly
+      the same control that exists for individual `--colorconvert` but never
+      existed for autocc. #2890 (2.3.2)
 * Python bindings:
     - When transferring blocks of pixels (e.g., `ImageInput.read_image()`
       or `ImageOutput.write_scanline()`), "half" pixels ended up mangled
@@ -46,6 +57,7 @@ New major features and public API changes:
       (2.3.0.0)
     - The value passed to `attribute(name, typedesc, value)` can now be a
       tuple, list, numpy array, or scalar value. #2695 (2.3.0.0)
+    - Added Python bindings for the TextureSystem. #2842
 
 Performance improvements:
 
@@ -55,6 +67,10 @@ Fixes and feature enhancements:
   tries to read it, it could end up with the old version. This involved some
   strategic cache invalidation when ImageBuf's write images to disk. #2696
   (2.3.0.0)
+* Improve parsing of XMP records in metadata: more correct handling of
+  lists/sequences, better inference of types that look like int or float
+  (rather than forcing unknown fields into strings), fixed bugs in parsing
+  rational values. #2865 (2.2.12/2.3.2)
 * ImageBuf/ImageBufAlgo:
     - `IBA::contrast_remap()` fixes bug that could crash for very large
       images #2704 (2.3.0.0)
@@ -76,19 +92,19 @@ Fixes and feature enhancements:
     - Fix: `ociolook()` and `ociofiletransform()` internally reversed the
       order of their `inverse` and `unpremult` arguments, making it hard to
       select the inverse transformation. #2844 (2.3.2/2.2.11)
-* ImageCache/TextureSystem:
+    - Fix crash for certain calls to ImageBuf::set_write_format when writing
+      files that support per-channel data types. #2885 (2.3.2)
+* ImageCache/TextureSystem/maketx:
     - Fix ImageCache bug: add_tile/get_tile not properly honoring when
      `chend < chbegin` it should get all channels. #2742 (2.3.0.1/2.2.8)
+    - `ImageBufAlgo::make_texture()` (as well as `maketx` and `oiiotool -otex`)
+      clamp `half` values to their maximum finite range to prevent very large
+      float inputs turning into `Inf` when saved as half values. #2891 (2.3.2)
 * oiiotool:
     - `--resize` of images with multi-subimages could crash. #2711 (2.3.0.0)
-    - `--chappend` and `--siappend` both allow an optional modifier `:n=`
-      to specify the number of images from the stack to be combined
-      (default n=2). #2709 (2.3.0.0)
     - Improve oiiotool's guessing about the desired output format based on
       inputs (in the absence of `-d` to specify the format). #2717
       (2.3.0.1/2.2.8)
-    - `--fit` now takes an additional optional modifier: `fillmode=` with
-      choices of `letterbox` (default), `width`, and `height`. #2784 (2.3.2.0)
 * BMP
     - Fix reading BMP images with bottom-to-top row order. #2776
       (2.3.1.1/2.2.9)
@@ -96,6 +112,7 @@ Fixes and feature enhancements:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
 * GIF
     - Support UTF-8 filenames on Windows for GIF files. #2777 (2.3.2.0)
+    - Fix error checking for non-existant GIF files. #2886 (2.3.2)
 * HEIC
     - Fix error decoding Apple HEIF files. #2794/#2809 (2.3.2.0)
     - Better valid_file() check for HEIF. #2810 (2.3.2.0)
@@ -115,9 +132,12 @@ Fixes and feature enhancements:
     - Read Exif data from PNG files. #2767 (2.3.1.1/2.2.9)
 * PSD
     - Add support for reading ISD profiles for PSD input. #2788 (2.3.2.0)
+    - Fix loading PSB files with cinf tags. #2877 (2.2.12/2.3.2)
 * RAW:
     - Add "raw:user_flip" input configuration hint to control this option
       in the underlying libraw. #2769 (2.3.1.0)
+    - Correctly handle RAW files with Unicode filenames on Windows. #2888
+      (2.3.2)
 * TIFF:
     - Fix broken reads of multi-subimage non-spectral files (such as
       photometric YCbCr mode). #2692 (2.3.0.0)
@@ -138,6 +158,8 @@ Fixes and feature enhancements:
 Developer goodies / internals:
 * Internals now use C++11 `final` keywords wherever applicable. #2734
   (2.3.0.1)
+* More internals conversion of old Strutil::sprintf to Strutil::fmt::format
+  and related changes. #2889 (2.3.2)
 * argparse.h:
     - ArgParse::abort() lets the response to a command line argument signal
       that no further arguments should be parsed. #2820 (2.3.2/2.2.11)
@@ -167,6 +189,7 @@ Developer goodies / internals:
 * string_view.h:
     - `std::size()` and `std::ssize()` should work with OIIO::string_view
       now. #2827 (2.3.2/2.2.11)
+    - More thorough constexr of string_view methods. #2841 (2.3.2)
 * strongparam.h:
     - New StrongParam helper for disambiguating parameters. #2735 (2.3.2)
 * strutil.h:
@@ -180,9 +203,13 @@ Developer goodies / internals:
     - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
       precision and range to hold the basetypes of either `a` or `b`.
       #2715 (2.3.0.0)
+* unordered_map_concurrent.h:
+    - New methods find_or_insert, nobin_mask(). #2867 (2.2.12/2.3.2)
 * ustring.h:
     - ustring internals now have a way to ask for the list of ustrings whose
       hashses collided.  #2786 (2.2.11/2.3.2.0)
+    - ustring now guarantees that no two ustrings will return the exact same
+      value for `hash()`. #2870 (2.3.2)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
@@ -200,13 +227,21 @@ Build/test system improvements and platform ports:
       bindings to make a CMake "shared" library rather than "module". Sounds
       wrong, but seems to work. We will reverse if this causes problems.
       #2830 (2.3.2/2.2.11)
+    - Improvements to building or linking static libraries. #2854 (2.2.12/2.3.2)
+    - Change default STOP_ON_WARNING to OFF for release branches (including
+      this one) so that small change in compiler warnings after our release
+      don't break anybody's builds. (Though we still stop on warnings for CI
+      builds). #2861 (2.2.12/2.3.2)
+    - The pkgconfig OpenImageIO.pc was specifying the include path
+      incorrectly. #2869 (2.2.12/2.3.2)
 * Dependency version support:
     - Fix deprecation warnings when building with very new PugiXML versions.
       #2733 (2.3.0.1/2.2.8)
     - Fixes to build against OpenColorIO 2.0. #2765 (2.3.0.1/2.2.8) #2817
       #2849 (2.3.2/2.2.11)
     - Work to ensure that OIIO will build correctly against the upcoming
-      Imath 3.0 and OpenEXR 3.0. #2771 (2.3.1.1/2.2.9)
+      Imath 3.0 and OpenEXR 3.0. #2771 (2.3.1.1/2.2.9) #2876 #2678 #2883
+      #2894 (2.3.2/2.2.12)
     - Better finding of OpenJpeg 2.4. #2829 (2.3.2/2.2.11)
     - On Mac, libheif 1.10 is very broken. Don't use that version. #2847
       (2.3.2/2.2.11)
@@ -215,12 +250,34 @@ Build/test system improvements and platform ports:
       stdint.h types. #2848 (2.3.2/2.2.11)
     - Fixes to support the libraw 202101 snapshot (their in-progress 0.21.0).
       #2850 (2.3.2/2.2.11)
+    - More clear warnings about using OpenVDB 8+ when building for C++11,
+      because OpenVDB 8 requires C++14 or higher. #2860  (2.2.12/2.3.2)
+    - More gracefully handle building against a custom Imath/OpenEXR even
+      when another exists in the system area. #2876 (2.2.12/2.3.2)
+    - Minor fixes to build cleanly against the upcoming Imath 3.0. #2878
+      (2.2.12/2.3.2)
+    - Remove obsolete dependency on Boost random (now use std::random).
+      #2896 (2.3.2)
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
     - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
     - Got Windows CI fully working, bit by bit. #2796 #2798 #2805 #2821 #2826
       #2834 #2835 #2836 #2838 #2839 #2840 (2.3.2)
     - Reduce redundant verbosty in CI output logs during dependency building.
+    - Modify hash_test to verify correctness and stability of the hashes.
+      #2853 (2.3.2)
+    - When building custom OpenEXR with build_openexr.bash, don't have it
+      build the examples. #2857 (2.2.12/2.3.2)
+    - Speed up CI by using GitHub 'cache' actions + ccache. #2859 (2.2.12/2.3.2)
+    - Separate stages (setup, deps, build, test) into separate GHA "steps"
+      for better logging and understanding of the timing and performance.
+      #2862 (2.2.12/2.3.2)
+    - Now actively testing libheif in Linux CI. #2866 (2.2.12/2.3.2)
+    - Remove the last vestiges of Travis-CI, which we no longer use. #2871
+      (2.2.12/2.3.2)
+    - For failed tests, add CMake cache and log part of the saved artifacts.
+      (2.2.12/2.3.2)
+    - CI now tests build in C++20 mode. #2891 (2.3.2)
 * Platform support:
     - Fixes for mingw. #2698 (2.3.0.0)
     - Windows fix: correct OIIO_API declaration on aligned_malloc,
@@ -242,6 +299,43 @@ Notable documentation changes:
   be done for different language bindings. #2768 (2.3.1.0)
 
 
+
+Release 2.2.12 (1 Mar 2021) -- compared to 2.2.11
+--------------------------------------------------
+* Bug fix: Improve parsing of XMP records in metadata: more correct handling
+  of lists/sequences, better inference of types that look like int or float
+  (rather than forcing unknown fields into strings), fixed bugs in parsing
+  rational values. #2865
+* Bug fix: Fix loading PSB files with cinf tags. #2877
+* Build: Improvements to building or linking static libraries. #2854
+* Build: Change default STOP_ON_WARNING to OFF for release branches
+  (including this one) so that small change in compiler warnings after our
+  release don't break anybody's builds. (Though we still stop on warnings
+  for CI builds). #2861
+* Build: More clear warnings about using OpenVDB 8+ when building for C++11,
+  because OpenVDB 8 requires C++14 or higher. #2860
+* Build: The pkgconfig OpenImageIO.pc was specifying the include path
+  incorrectly. #2869
+* Build: More gracefully handle building against a custom Imath/OpenEXR even
+  when another exists in the system area. #2876
+* Build: Minor fixes to build cleanly against the upcoming Imath 3.0. #2878
+* Dev: hash.h: Make many of the hash functions constexpr. #2843
+* Dev: Better unit tests to verify correctness and stability over time of
+  the hash functions. #2853
+* Dev: unordered_map_concurrent.h: New methods find_or_insert, nobin_mask().
+  #2867
+* CI: Speed up CI builds by not building OpenEXR example programes. #2857
+* CI: Speed up CI by using GitHub 'cache' actions + ccache. #2859
+* CI: Separate stages (setup, deps, build, test) into separate GHA "steps"
+  for better logging and understanding of the timing and performance. #2862
+* CI: Now actively testing libheif in Linux CI. #2866
+* CI: Remove the last vestiges of Travis-CI, which we no longer use. #2871
+* CI: For failed tests, add CMake cache and log part of the saved artifacts.
+* PSA: Avoid libheif 1.10 on Mac, it is broken. Libheif 1.11 is fine.
+
+Release 2.2.11.1 (1 Feb 2021) -- compared to 2.2.11.0
+-----------------------------------------------------
+* Fix build break against Qt 5.15.2 (deprecated enum). #2852
 
 Release 2.2.11 (1 Feb 2021) -- compared to 2.2.10
 --------------------------------------------------
