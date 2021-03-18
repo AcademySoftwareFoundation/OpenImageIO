@@ -62,19 +62,21 @@ public:
     // writes informations about bitmap
     bool write_header(FILE* fd);
 
-    int32_t size;         // size of the header
-    int32_t width;        // bitmap width in pixels
-    int32_t height;       // bitmap height in pixels
-    int16_t cplanes;      // number of color planes - always 1
-    int16_t bpp;          // number of bits per pixel, image color depth
-    int32_t compression;  // compression used in file
-    int32_t isize;        // size of the raw image data
-    int32_t hres;         // horizontal resolution in pixels per meter
-    int32_t vres;         // vertical resolutions in pixels per meter
-    int32_t cpalete;      // number of entries in the color palette
-    int32_t important;    // number of important color used,
-                          // 0 - all colors are important,
-                          // in most cases ignored
+    int32_t size;     // size of the header
+    int32_t width;    // bitmap width in pixels
+    int32_t height;   // bitmap height in pixels
+    int16_t cplanes;  // number of color planes - always 1
+    int16_t bpp;      // number of bits per pixel, image color depth
+
+    // Added after Version 1 of the format
+    int32_t compression = 0;  // compression used in file
+    int32_t isize       = 0;  // size of the raw image data
+    int32_t hres        = 0;  // horizontal resolution in pixels per meter
+    int32_t vres        = 0;  // vertical resolutions in pixels per meter
+    int32_t cpalete     = 0;  // number of entries in the color palette
+    int32_t important   = 0;  // number of important color used,
+                              // 0 - all colors are important,
+                              // in most cases ignored
 
     // added in Version 4 of the format
     int32_t red_mask;
