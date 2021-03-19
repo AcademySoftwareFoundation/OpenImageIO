@@ -41,7 +41,14 @@ tiles.
    * - ``ResolutionUnit``
      - string
      - always ``"m"`` (pixels per meter)
-
+   * - ``bmp:bitsperpixel``
+     - int
+     - When not a whole number of bytes per channel, this describes the
+       bits per pixel in the file (16 for R4G4B4, 8 for a 256-color palette
+       image, 4 for a 16-color palette image, 1 for a 2-color palette image).
+   * - ``bmp:version``
+     - int
+     - Version of the BMP file format
 
 |
 

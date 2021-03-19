@@ -12,3 +12,9 @@ fi
 if [[ ! -e ../openexr-images ]] ; then
     git clone https://github.com/openexr/openexr-images.git ../openexr-images
 fi
+
+if [[ ! -e ../bmpsuite ]] ; then
+    mkdir ../bmpsuite
+    curl -o bmpsuite.zip http://entropymine.com/jason/bmpsuite/bmpsuite.zip
+    unzip bmpsuite.zip -d ../bmpsuite
+fi
