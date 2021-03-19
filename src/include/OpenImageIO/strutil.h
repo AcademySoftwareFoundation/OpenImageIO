@@ -371,8 +371,9 @@ string_view OIIO_API rstrip (string_view str, string_view chars=string_view());
 
 
 /// Fills the "result" list with the words in the string, using sep as
-/// the delimiter string.  If maxsplit is > -1, at most maxsplit splits
-/// are done. If sep is "", any whitespace string is a separator.  If the
+/// the delimiter string.  If `maxsplit` is > -1, the string will be split
+/// into at most `maxsplit` pieces (a negative value will impose no
+/// maximum). If sep is "", any whitespace string is a separator.  If the
 /// source `str` is empty, there will be zero pieces.
 void OIIO_API split (string_view str, std::vector<string_view> &result,
                      string_view sep = string_view(), int maxsplit = -1);
