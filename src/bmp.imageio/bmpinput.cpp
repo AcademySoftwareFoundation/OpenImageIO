@@ -24,7 +24,7 @@ bmp_input_imageio_create()
     return new BmpInput;
 }
 
-OIIO_EXPORT const char* bmp_input_extensions[] = { "bmp", nullptr };
+OIIO_EXPORT const char* bmp_input_extensions[] = { "bmp", "dib", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -77,9 +77,11 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
     const int height    = (m_dib_header.height >= 0) ? m_dib_header.height
                                                   : -m_dib_header.height;
     m_spec = ImageSpec(m_dib_header.width, height, nchannels, TypeDesc::UINT8);
-    m_spec.attribute("XResolution", (int)m_dib_header.hres);
-    m_spec.attribute("YResolution", (int)m_dib_header.vres);
-    m_spec.attribute("ResolutionUnit", "m");
+    if (m_dib_header.hres > 0 && m_dib_header.vres > 0) {
+        m_spec.attribute("XResolution", (int)m_dib_header.hres);
+        m_spec.attribute("YResolution", (int)m_dib_header.vres);
+        m_spec.attribute("ResolutionUnit", "m");
+    }
 
     // computing size of one scanline - this is the size of one scanline that
     // is stored in the file, not in the memory
@@ -110,6 +112,14 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
         if (!read_color_table())
             return false;
         break;
+    }
+    if (m_dib_header.bpp <= 16)
+        m_spec.attribute("bmp:bitsperpixel", m_dib_header.bpp);
+    switch (m_dib_header.size) {
+    case OS2_V1: m_spec.attribute("bmp:version", 1); break;
+    case WINDOWS_V3: m_spec.attribute("bmp:version", 3); break;
+    case WINDOWS_V4: m_spec.attribute("bmp:version", 4); break;
+    case WINDOWS_V5: m_spec.attribute("bmp:version", 5); break;
     }
 
     // file pointer is set to the beginning of image data
@@ -183,11 +193,13 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
     }
     if (m_dib_header.bpp == 4) {
-        for (unsigned int i = 0, j = 0; j + 6 < scanline_bytes; ++i, j += 6) {
+        for (unsigned int i = 0, j = 0; j < scanline_bytes; ++i, j += 6) {
             uint8_t mask     = 0xF0;
             mscanline[j]     = m_colortable[(fscanline[i] & mask) >> 4].r;
             mscanline[j + 1] = m_colortable[(fscanline[i] & mask) >> 4].g;
             mscanline[j + 2] = m_colortable[(fscanline[i] & mask) >> 4].b;
+            if (j + 3 >= scanline_bytes)
+                break;
             mask             = 0x0F;
             mscanline[j + 3] = m_colortable[fscanline[i] & mask].r;
             mscanline[j + 4] = m_colortable[fscanline[i] & mask].g;
@@ -233,10 +245,15 @@ BmpInput::read_color_table(void)
     // if this field is 0 - color table has max colors:
     // pow(2, m_dib_header.cpalete) otherwise color table have
     // m_dib_header.cpalete entries
+    if (m_dib_header.cpalete < 0
+        || m_dib_header.cpalete > (1 << m_dib_header.bpp)) {
+        errorf("Possible corrupted header, invalid palette size");
+        return false;
+    }
     const int32_t colors = (m_dib_header.cpalete) ? m_dib_header.cpalete
                                                   : 1 << m_dib_header.bpp;
     size_t entry_size = 4;
-    // if the file is OS V2 bitmap color table entr has only 3 bytes, not four
+    // if the file is OS V2 bitmap color table entry has only 3 bytes, not four
     if (m_dib_header.size == OS2_V1)
         entry_size = 3;
     m_colortable.resize(colors);
@@ -244,8 +261,9 @@ BmpInput::read_color_table(void)
         size_t n = fread(&m_colortable[i], 1, entry_size, m_fd);
         if (n != entry_size) {
             if (feof(m_fd))
-                errorf(
-                    "Hit end of file unexpectedly while reading color table");
+                errorfmt(
+                    "Hit end of file unexpectedly while reading color table on color {}/{} (read {}, expected {})",
+                    i, colors, n, entry_size);
             else
                 errorf("read error while reading color table");
             return false;  // Read failed

@@ -2,36 +2,32 @@ Reading ../../../../../bmpsuite/g01bg.bmp
 ../../../../../bmpsuite/g01bg.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 3A3A9A7D3A25907693A33D4403B3FB5BFCC9E5B1
     channel list: R, G, B
-    ResolutionUnit: "m"
-    XResolution: 0
-    YResolution: 0
+    bmp:bitsperpixel: 1
+    bmp:version: 3
 Comparing "../../../../../bmpsuite/g01bg.bmp" and "g01bg.bmp"
 PASS
 Reading ../../../../../bmpsuite/g04.bmp
 ../../../../../bmpsuite/g04.bmp :  127 x   64, 3 channel, uint8 bmp
-    SHA-1: 83CE69952523E32894E14052E6B497E9D2C8867C
+    SHA-1: E92BEC9CBC28315DBEBDB943608FF72F88F0C8F6
     channel list: R, G, B
-    ResolutionUnit: "m"
-    XResolution: 0
-    YResolution: 0
+    bmp:bitsperpixel: 4
+    bmp:version: 3
 Comparing "../../../../../bmpsuite/g04.bmp" and "g04.bmp"
 PASS
 Reading ../../../../../bmpsuite/g08.bmp
 ../../../../../bmpsuite/g08.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
-    ResolutionUnit: "m"
-    XResolution: 0
-    YResolution: 0
+    bmp:bitsperpixel: 8
+    bmp:version: 3
 Comparing "../../../../../bmpsuite/g08.bmp" and "g08.bmp"
 PASS
 Reading ../../../../../bmpsuite/g16bf555.bmp
 ../../../../../bmpsuite/g16bf555.bmp :  127 x   64, 3 channel, uint4 bmp
     SHA-1: 630022A1DFE41AA6AE07F272E3D441205F612240
     channel list: R, G, B
-    ResolutionUnit: "m"
-    XResolution: 0
-    YResolution: 0
+    bmp:bitsperpixel: 16
+    bmp:version: 3
     oiio:BitsPerSample: 4
 Comparing "../../../../../bmpsuite/g16bf555.bmp" and "g16bf555.bmp"
 PASS
@@ -39,18 +35,14 @@ Reading ../../../../../bmpsuite/g24.bmp
 ../../../../../bmpsuite/g24.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: B1FB63649469F31D02D7AD065D3128EE04CC662E
     channel list: R, G, B
-    ResolutionUnit: "m"
-    XResolution: 0
-    YResolution: 0
+    bmp:version: 3
 Comparing "../../../../../bmpsuite/g24.bmp" and "g24.bmp"
 PASS
 Reading ../../../../../bmpsuite/g32bf.bmp
 ../../../../../bmpsuite/g32bf.bmp :  127 x   64, 4 channel, uint8 bmp
     SHA-1: AB315E7E66DBE94299A2E0F2749C5947D924B48B
     channel list: R, G, B, A
-    ResolutionUnit: "m"
-    XResolution: 0
-    YResolution: 0
+    bmp:version: 3
 Comparing "../../../../../bmpsuite/g32bf.bmp" and "g32bf.bmp"
 PASS
 Reading src/g01bg2-v5.bmp
@@ -60,5 +52,17 @@ src/g01bg2-v5.bmp    :  127 x   64, 3 channel, uint8 bmp
     ResolutionUnit: "m"
     XResolution: 2835
     YResolution: 2835
+    bmp:version: 5
 Comparing "src/g01bg2-v5.bmp" and "g01bg2-v5.bmp"
 PASS
+Reading src/PRINTER.BMP
+src/PRINTER.BMP      :  160 x  120, 3 channel, uint8 bmp
+    SHA-1: 7CF33F097E59CADAC7C5E1EE268B08150274ECE7
+    channel list: R, G, B
+    bmp:bitsperpixel: 8
+    bmp:version: 1
+Comparing "src/PRINTER.BMP" and "PRINTER.BMP"
+PASS
+oiiotool ERROR: read : "src/decodecolormap-corrupt.bmp": Possible corrupted header, invalid palette size
+Full command line was:
+> oiiotool --info -v -a --hash src/decodecolormap-corrupt.bmp
