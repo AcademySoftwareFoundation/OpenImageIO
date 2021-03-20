@@ -1164,6 +1164,32 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
             return false;
         }
 
+    } else if (Strutil::parse_identifier_if(s, "getattribute")
+               && Strutil::parse_char(s, '(')) {
+        // "{getattribute(name)}" retrieves global attribute `name`
+        bool ok = true;
+        Strutil::skip_whitespace(s);
+        string_view name;
+        if (s.size() && (s.front() == '\"' || s.front() == '\''))
+            ok = Strutil::parse_string(s, name);
+        else {
+            name = Strutil::parse_until(s, ")");
+        }
+        if (name.size()) {
+            std::string rs;
+            int ri;
+            float rf;
+            if (OIIO::getattribute(name, rs))
+                result = rs;
+            else if (OIIO::getattribute(name, ri))
+                result = Strutil::to_string(ri);
+            else if (OIIO::getattribute(name, rf))
+                result = Strutil::to_string(rf);
+            else
+                ok = false;
+        }
+        return Strutil::parse_char(s, ')') && ok;
+
     } else if (Strutil::starts_with(s, "TOP")
                || Strutil::starts_with(s, "IMG[")) {
         // metadata substitution
