@@ -273,6 +273,7 @@ just exist in the OIIO namespace as general utilities. (See
 
 .. doxygenfunction:: is_imageio_format_name
 
+.. doxygenfunction:: get_extension_map
 
 |
 

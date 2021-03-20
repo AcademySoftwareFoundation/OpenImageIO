@@ -2642,6 +2642,26 @@ OIIO_API void declare_imageio_format (const std::string &format_name,
 /// Is `name` one of the known format names?
 OIIO_API bool is_imageio_format_name(string_view name);
 
+/// Utility: Parse the "extension_list" attribute into a std::map string
+/// keys are the names of all the file formats OIIO knows how to read, and
+/// whose values are vectors of strings of the file extensions associated
+/// with the file format. (Added in OIIO 2.2.13.)
+inline std::map<std::string, std::vector<std::string>>
+get_extension_map()
+{
+    std::map<std::string, std::vector<std::string>> map;
+    auto all_extensions = OIIO::get_string_attribute("extension_list");
+    for (auto oneformat : OIIO::Strutil::splitsv(all_extensions, ";")) {
+        auto format_exts = OIIO::Strutil::splitsv(oneformat, ":", 2);
+        if (format_exts.size() != 2)
+            continue;   // something went wrong
+        map[format_exts[0]] = OIIO::Strutil::splits(format_exts[1], ",");
+    }
+    return map;
+}
+
+
+
 /// Helper function: convert contiguous data between two arbitrary pixel
 /// data types (specified by TypeDesc's). Return true if ok, false if it
 /// didn't know how to do the conversion.  If dst_type is UNKNOWN, it will

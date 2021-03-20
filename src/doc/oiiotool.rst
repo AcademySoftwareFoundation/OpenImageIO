@@ -781,6 +781,12 @@ output each one to a different file, with names `sub0001.tif`,
     - `verbose=1` : If nonzero, the information will contain all metadata,
       not just the minimal amount.
 
+.. option:: --list-formats
+
+    Prints the complete list of file formats supported by this build of
+    OpenImageIO, and for each one, the list of file extensions that it
+    presumes are associated with the file format. (Added in OIIO 2.2.13.)
+
 .. option:: --echo <message>
 
     Prints the message to the console, at that point in the left-to-right
