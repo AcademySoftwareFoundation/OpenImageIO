@@ -137,8 +137,9 @@ Oiiotool::clear_options()
     // it was possible to deadlock when doing certain parallel IBA functions
     // in combination with autotile. When the deadlock possibility is fixed,
     // maybe we'll turn it back to on by default.
-    frame_padding = 0;
-    eval_enable   = true;
+    frame_padding   = 0;
+    eval_enable     = true;
+    skip_bad_frames = false;
     full_command_line.clear();
     printinfo_metamatch.clear();
     printinfo_nometamatch.clear();
@@ -5428,6 +5429,8 @@ getargs(int argc, char* argv[])
       .help("Frame number padding digits (ignored when using printf-style wildcards)");
     ap.arg("--views %s:VIEWNAMES")
       .help("Views for %V/%v wildcards (comma-separated, defaults to \"left,right\")");
+    ap.arg("--skip-bad-frames", &ot.skip_bad_frames)
+      .help("Skip to next frame in range if there's an error, rather than exiting");
     ap.arg("--wildcardoff")
       .help("Disable numeric wildcard expansion for subsequent command line arguments");
     ap.arg("--wildcardon")
@@ -6096,13 +6099,19 @@ handle_sequence(int argc, const char** argv)
         ot.clear_options();  // Careful to reset all command line options!
         ot.frame_number = frame_numbers[0][i];
         getargs(argc, (char**)&seq_argv[0]);
-        if (ap.aborted())
-            break;
 
-        ot.process_pending();
-        if (ot.pending_callback())
-            ot.warning(ot.pending_callback_name(),
-                       "pending command never executed");
+        if (ap.aborted()) {
+            if (!ot.skip_bad_frames)
+                break;
+            else
+                ap.abort(false);
+        } else {
+            ot.process_pending();
+            if (ot.pending_callback())
+                ot.warning(ot.pending_callback_name(),
+                           "pending command never executed");
+        }
+
         // Clear the stack at the end of each iteration
         ot.curimg.reset();
         ot.image_stack.clear();
