@@ -341,7 +341,7 @@ Reading ../../../../../libtiffpic/smallliz.tif
     tiff:subfiletype: 0
 Reading ../../../../../libtiffpic/zackthecat.tif
 ../../../../../libtiffpic/zackthecat.tif :  234 x  213, 3 channel, uint8 tiff
-    SHA-1: 061497BA196953824E24E5E6EF765D00BE85702C
+    SHA-1: 7FAA5E402AB1A5307154B3EEF4A62F251472BF3F
     channel list: R, G, B
     tile size: 240 x 224
     compression: "ojpeg"
