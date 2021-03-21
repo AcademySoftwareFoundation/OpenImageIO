@@ -398,14 +398,15 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             // now load the thumbnail
             if (ofs_thumb) {
                 Filesystem::fseek(m_file, ofs_thumb, SEEK_SET);
-
+                // Read the thumbnail dimensions -- sometimes it's 0x0 to
+                // indicate no thumbnail.
+                if (!fread(&buf.c, 2, 1))
+                    return false;
+            }
+            if (ofs_thumb && buf.c[0] > 0 && buf.c[1] > 0) {
                 // most of this code is a dupe of readimg(); according to the
                 // spec, the thumbnail is in the same format as the main image
                 // but uncompressed
-
-                // thumbnail dimensions
-                if (!fread(&buf.c, 2, 1))
-                    return false;
                 m_spec.attribute("thumbnail_width", (int)buf.c[0]);
                 m_spec.attribute("thumbnail_height", (int)buf.c[1]);
                 m_spec.attribute("thumbnail_nchannels", m_spec.nchannels);
@@ -447,7 +448,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 // finally, add the thumbnail to attributes
                 m_spec.attribute("thumbnail_image",
                                  TypeDesc(TypeDesc::UINT8, m_buf.size()),
-                                 &m_buf[0]);
+                                 m_buf.data());
                 m_buf.clear();
             }
         }
@@ -747,7 +748,7 @@ TGAInput::readimg()
             int64_t size = m_spec.image_pixels();
             float gamma  = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
 
-            associateAlpha((unsigned char*)&m_buf[0], size, m_spec.nchannels,
+            associateAlpha((unsigned char*)m_buf.data(), size, m_spec.nchannels,
                            m_spec.alpha_channel, gamma);
         }
     }
@@ -785,7 +786,7 @@ TGAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (m_tga.attr & FLAG_Y_FLIP)
         y = m_spec.height - y - 1;
     size_t size = spec().scanline_bytes();
-    memcpy(data, &m_buf[0] + y * size, size);
+    memcpy(data, m_buf.data() + y * size, size);
     return true;
 }
 
