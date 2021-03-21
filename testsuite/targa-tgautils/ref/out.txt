@@ -173,3 +173,11 @@ Reading ../../../../../oiio-images/targa/UTC32.TGA
     targa:ImageID: "Truevision(R) Sample Image"
 Comparing "../../../../../oiio-images/targa/UTC32.TGA" and "UTC32.TGA"
 PASS
+Reading ../../../../../oiio-images/targa/round_grill.tga
+../../../../../oiio-images/targa/round_grill.tga :  256 x  256, 4 channel, uint8 targa
+    SHA-1: D8D11F158BE59F6E56F69F399050417557132685
+    channel list: R, G, B, A
+    Software: "COREL 0.0"
+    oiio:BitsPerSample: 8
+Comparing "../../../../../oiio-images/targa/round_grill.tga" and "round_grill.tga"
+PASS
