@@ -1833,13 +1833,22 @@ TIFFInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
             errorf("Unknown error trying to read TIFF as RGBA");
             return false;
         }
-        // Copy, and use stride magic to reverse top-to-bottom
+        // Copy, and use stride magic to reverse top-to-bottom, because
+        // TIFFReadRGBATile always returns data in bottom-to-top order.
         int tw = std::min(m_spec.tile_width, m_spec.width - x);
         int th = std::min(m_spec.tile_height, m_spec.height - y);
+
+        // When the vertical read size is smaller that the tile size
+        // the actual data is in the bottom end of the tile
+        // so copy_image should start from tile_height - read_height.
+        // (Again, because TIFFReadRGBATile reverses the scanline order.)
+        int vert_offset = m_spec.tile_height - th;
+
         copy_image(m_spec.nchannels, tw, th, 1,
-                   &m_rgbadata[(th - 1) * m_spec.tile_width], m_spec.nchannels,
-                   4, -m_spec.tile_width * 4, AutoStride, data,
-                   m_spec.nchannels, m_spec.nchannels * m_spec.tile_width,
+                   &m_rgbadata[vert_offset * m_spec.tile_width
+                               + (th - 1) * m_spec.tile_width],
+                   m_spec.nchannels, 4, -m_spec.tile_width * 4, AutoStride,
+                   data, m_spec.nchannels, m_spec.nchannels * m_spec.tile_width,
                    AutoStride);
         return true;
     }
