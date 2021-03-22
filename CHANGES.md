@@ -1,7 +1,7 @@
 Release 2.3 (??) -- compared to 2.2
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
-* C++ standard: C++20 is now supported. #2891 (2.3.2)
+* C++ standard: C++20 is now supported. #2891 (2.3.3)
 
 New major features and public API changes:
 * C API:  #2748 (2.3.1.0)
@@ -49,7 +49,7 @@ New major features and public API changes:
       any color transformations related to autocc to unpremultiply by alpha
       before the transformation and then re-premultiply afterwards, exactly
       the same control that exists for individual `--colorconvert` but never
-      existed for autocc. #2890 (2.3.2)
+      existed for autocc. #2890 (2.3.3)
 * Python bindings:
     - When transferring blocks of pixels (e.g., `ImageInput.read_image()`
       or `ImageOutput.write_scanline()`), "half" pixels ended up mangled
@@ -70,7 +70,7 @@ Fixes and feature enhancements:
 * Improve parsing of XMP records in metadata: more correct handling of
   lists/sequences, better inference of types that look like int or float
   (rather than forcing unknown fields into strings), fixed bugs in parsing
-  rational values. #2865 (2.2.12/2.3.2)
+  rational values. #2865 (2.2.12/2.3.3)
 * ImageBuf/ImageBufAlgo:
     - `IBA::contrast_remap()` fixes bug that could crash for very large
       images #2704 (2.3.0.0)
@@ -91,15 +91,15 @@ Fixes and feature enhancements:
       #2787 (2.3.2.0)
     - Fix: `ociolook()` and `ociofiletransform()` internally reversed the
       order of their `inverse` and `unpremult` arguments, making it hard to
-      select the inverse transformation. #2844 (2.3.2/2.2.11)
+      select the inverse transformation. #2844 (2.3.3/2.2.11)
     - Fix crash for certain calls to ImageBuf::set_write_format when writing
-      files that support per-channel data types. #2885 (2.3.2)
+      files that support per-channel data types. #2885 (2.3.3)
 * ImageCache/TextureSystem/maketx:
     - Fix ImageCache bug: add_tile/get_tile not properly honoring when
      `chend < chbegin` it should get all channels. #2742 (2.3.0.1/2.2.8)
     - `ImageBufAlgo::make_texture()` (as well as `maketx` and `oiiotool -otex`)
       clamp `half` values to their maximum finite range to prevent very large
-      float inputs turning into `Inf` when saved as half values. #2891 (2.3.2)
+      float inputs turning into `Inf` when saved as half values. #2891 (2.3.3)
 * oiiotool:
     - `--resize` of images with multi-subimages could crash. #2711 (2.3.0.0)
     - Improve oiiotool's guessing about the desired output format based on
@@ -109,24 +109,24 @@ Fixes and feature enhancements:
     - Fix reading BMP images with bottom-to-top row order. #2776
       (2.3.1.1/2.2.9)
     - Correctly read BMP images of the older V1 variety without crashing.
-      #2899 (2.3.2/2.2.13)
+      #2899 (2.3.3/2.2.13)
     - Fix error in the rightmost pixel column when reading 4 bpp images with
-      odd horizontal resolution. #2899 (2.3.2/2.2.13)
+      odd horizontal resolution. #2899 (2.3.3/2.2.13)
     - BMP reads now return metadata "bmp:bitsperpixel" (only when not 24
       or 32) to indicate non-whole-byte channels sizes in the file, and
       "bmp:version" to indicate the version of the BMP format. #2899
-      (2.3.2/2.2.13)
+      (2.3.3/2.2.13)
 * FFMpeg/movies:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
 * GIF
     - Support UTF-8 filenames on Windows for GIF files. #2777 (2.3.2.0)
-    - Fix error checking for non-existant GIF files. #2886 (2.3.2)
+    - Fix error checking for non-existant GIF files. #2886 (2.3.3)
 * HEIC
     - Fix error decoding Apple HEIF files. #2794/#2809 (2.3.2.0)
     - Better valid_file() check for HEIF. #2810 (2.3.2.0)
     - Enabled AVIF decoding of heic files (requires libheif >= 1.7 and for
       it to have been built with an AV1 encoder/decoder). #2811 #2812 #2814
-      #2818 (2.3.2.0)
+      #2818 (2.3.3.0)
 * IFF
     - Fix broken reads of 16 bit iff files. #2736 (2.3.0.1/2.2.8)
 * OpenEXR:
@@ -145,10 +145,10 @@ Fixes and feature enhancements:
     - Add "raw:user_flip" input configuration hint to control this option
       in the underlying libraw. #2769 (2.3.1.0)
     - Correctly handle RAW files with Unicode filenames on Windows. #2888
-      (2.3.2)
+      (2.3.3)
 * Targa
     - Fix potential crash when reading files with no thumbnail. #2903
-      (2.3.2/2.2.13)
+      (2.3.3/2.2.13)
 * TIFF:
     - Fix broken reads of multi-subimage non-spectral files (such as
       photometric YCbCr mode). #2692 (2.3.0.0)
@@ -160,7 +160,7 @@ Fixes and feature enhancements:
       more than 1. #2757 (2.3.0.1/2.2.9)
     - Fix incorrect reading of tiled TIFF files using certain rare TIFF
       features that also have a vertical resolution that is not a whole
-      multiple of the tile size. #2895 (2.3.2/2.2.13)
+      multiple of the tile size. #2895 (2.3.3/2.2.13)
 * WebP:
     - Add support for requesting compression "lossless". #2726 (2.3.0.1/2.2.8)
     - Input improvements including: RGB images are kept as RGB instead of
@@ -173,37 +173,37 @@ Developer goodies / internals:
 * Internals now use C++11 `final` keywords wherever applicable. #2734
   (2.3.0.1)
 * More internals conversion of old Strutil::sprintf to Strutil::fmt::format
-  and related changes. #2889 (2.3.2)
+  and related changes. #2889 (2.3.3)
 * argparse.h:
     - ArgParse::abort() lets the response to a command line argument signal
-      that no further arguments should be parsed. #2820 (2.3.2/2.2.11)
+      that no further arguments should be parsed. #2820 (2.3.3/2.2.11)
 * color.h:
     - New `ColorConfig::OpenColorIO_version_hex()` returns the hex code for
-      the version of OCIO we are using (0 for no OCIO support). #2849 (2.3.2)
+      the version of OCIO we are using (0 for no OCIO support). #2849 (2.3.3)
 * filesystem.h:
     - New Filesystem::generic_filepath() returnss a filepath in generic
-      format (not OS specific). #2819 (2.3.2/2.2.11)
+      format (not OS specific). #2819 (2.3.3/2.2.11)
 * fmath.h:
     - Use CPU intrinsics to speed up swap_ending (by 8-15x when swapping
       bytes of large arrays). #2763 (2.3.1.0)
 * hash.h:
     - `farmhash::inlined::Hash` now is constexpr and works for Cuda.
-      #2843 (2.3.2)
+      #2843 (2.3.3)
 * oiioversion.h:
     - New macros `OIIO_VERSION_GREATER_EQUAL` and `OIIO_VERSION_LESS`.
-      #2831 (2.3.2/2.2.11)
+      #2831 (2.3.3/2.2.11)
 * platform.h:
     - New macro OIIO_INLINE_CONSTEXPR, equivalent to `inline constexpr` for
-      C++17, but just constexpr for C++ <= 14. #2832 (2.3.2/2.2.11)
+      C++17, but just constexpr for C++ <= 14. #2832 (2.3.3/2.2.11)
 * simd.h:
     - Fix incorrect ARM NEON code in simd.h. #2739 (2.3.0.1/2.2.8)
 * span.h:
     - `std::size()` and `std::ssize()` should work with OIIO::span now.
-      #2827 (2.3.2/2.2.11)
+      #2827 (2.3.3/2.2.11)
 * string_view.h:
     - `std::size()` and `std::ssize()` should work with OIIO::string_view
-      now. #2827 (2.3.2/2.2.11)
-    - More thorough constexr of string_view methods. #2841 (2.3.2)
+      now. #2827 (2.3.3/2.2.11)
+    - More thorough constexr of string_view methods. #2841 (2.3.3)
 * strongparam.h:
     - New StrongParam helper for disambiguating parameters. #2735 (2.3.2)
 * strutil.h:
@@ -212,18 +212,18 @@ Developer goodies / internals:
       consisting of an empty string.) #2712 (2.3.0.0)
     - Fix build break when strutil.h was included in Cuda 10.1 code. #2743
       (2.3.0.1/2.2.8)
-    - `strhash()` is now constexpr for C++14 and higher. #2843 (2.3.2)
+    - `strhash()` is now constexpr for C++14 and higher. #2843 (2.3.3)
 * typedesc.h:
     - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
       precision and range to hold the basetypes of either `a` or `b`.
       #2715 (2.3.0.0)
 * unordered_map_concurrent.h:
-    - New methods find_or_insert, nobin_mask(). #2867 (2.2.12/2.3.2)
+    - New methods find_or_insert, nobin_mask(). #2867 (2.2.12/2.3.3)
 * ustring.h:
     - ustring internals now have a way to ask for the list of ustrings whose
       hashses collided.  #2786 (2.2.11/2.3.2.0)
     - ustring now guarantees that no two ustrings will return the exact same
-      value for `hash()`. #2870 (2.3.2)
+      value for `hash()`. #2870 (2.3.3)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
@@ -236,62 +236,62 @@ Build/test system improvements and platform ports:
     - Extend checked_find_package with VERSION_MIN and VERSION_MAX. #2773
       (2.3.1.1/2.2.9)
     - No longer directly link against python libraries when unnecessary.
-      #2807 (2.2.11/2.3.2)
+      #2807 (2.2.11/2.3.3)
     - On Windows, fix some linkage problems by changing the pybind11
       bindings to make a CMake "shared" library rather than "module". Sounds
       wrong, but seems to work. We will reverse if this causes problems.
-      #2830 (2.3.2/2.2.11)
-    - Improvements to building or linking static libraries. #2854 (2.2.12/2.3.2)
+      #2830 (2.3.3/2.2.11)
+    - Improvements to building or linking static libraries. #2854 (2.2.12/2.3.3)
     - Change default STOP_ON_WARNING to OFF for release branches (including
       this one) so that small change in compiler warnings after our release
       don't break anybody's builds. (Though we still stop on warnings for CI
-      builds). #2861 (2.2.12/2.3.2)
+      builds). #2861 (2.2.12/2.3.3)
     - The pkgconfig OpenImageIO.pc was specifying the include path
-      incorrectly. #2869 (2.2.12/2.3.2)
+      incorrectly. #2869 (2.2.12/2.3.3)
 * Dependency version support:
     - Fix deprecation warnings when building with very new PugiXML versions.
       #2733 (2.3.0.1/2.2.8)
     - Fixes to build against OpenColorIO 2.0. #2765 (2.3.0.1/2.2.8) #2817
-      #2849 (2.3.2/2.2.11)
+      #2849 (2.3.3/2.2.11)
     - Work to ensure that OIIO will build correctly against the upcoming
       Imath 3.0 and OpenEXR 3.0. #2771 (2.3.1.1/2.2.9) #2876 #2678 #2883
-      #2894 (2.3.2/2.2.12)
-    - Better finding of OpenJpeg 2.4. #2829 (2.3.2/2.2.11)
+      #2894 (2.3.3/2.2.12)
+    - Better finding of OpenJpeg 2.4. #2829 (2.3.3/2.2.11)
     - On Mac, libheif 1.10 is very broken. Don't use that version. #2847
-      (2.3.2/2.2.11)
+      (2.3.3/2.2.11)
     - Fix build break against changes coming in future libtiff, where it
       is changing from some libtiff-defined integer types to the equivalent
-      stdint.h types. #2848 (2.3.2/2.2.11)
+      stdint.h types. #2848 (2.3.3/2.2.11)
     - Fixes to support the libraw 202101 snapshot (their in-progress 0.21.0).
-      #2850 (2.3.2/2.2.11)
+      #2850 (2.3.3/2.2.11)
     - More clear warnings about using OpenVDB 8+ when building for C++11,
-      because OpenVDB 8 requires C++14 or higher. #2860  (2.2.12/2.3.2)
+      because OpenVDB 8 requires C++14 or higher. #2860  (2.2.12/2.3.3)
     - More gracefully handle building against a custom Imath/OpenEXR even
-      when another exists in the system area. #2876 (2.2.12/2.3.2)
+      when another exists in the system area. #2876 (2.2.12/2.3.3)
     - Minor fixes to build cleanly against the upcoming Imath 3.0. #2878
-      (2.2.12/2.3.2)
+      (2.2.12/2.3.3)
     - Remove obsolete dependency on Boost random (now use std::random).
-      #2896 (2.3.2)
+      #2896 (2.3.3)
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
     - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
     - Got Windows CI fully working, bit by bit. #2796 #2798 #2805 #2821 #2826
-      #2834 #2835 #2836 #2838 #2839 #2840 (2.3.2)
+      #2834 #2835 #2836 #2838 #2839 #2840 (2.3.3)
     - Reduce redundant verbosty in CI output logs during dependency building.
     - Modify hash_test to verify correctness and stability of the hashes.
-      #2853 (2.3.2)
+      #2853 (2.3.3)
     - When building custom OpenEXR with build_openexr.bash, don't have it
-      build the examples. #2857 (2.2.12/2.3.2)
-    - Speed up CI by using GitHub 'cache' actions + ccache. #2859 (2.2.12/2.3.2)
+      build the examples. #2857 (2.2.12/2.3.3)
+    - Speed up CI by using GitHub 'cache' actions + ccache. #2859 (2.2.12/2.3.3)
     - Separate stages (setup, deps, build, test) into separate GHA "steps"
       for better logging and understanding of the timing and performance.
-      #2862 (2.2.12/2.3.2)
-    - Now actively testing libheif in Linux CI. #2866 (2.2.12/2.3.2)
+      #2862 (2.2.12/2.3.3)
+    - Now actively testing libheif in Linux CI. #2866 (2.2.12/2.3.3)
     - Remove the last vestiges of Travis-CI, which we no longer use. #2871
-      (2.2.12/2.3.2)
+      (2.2.12/2.3.3)
     - For failed tests, add CMake cache and log part of the saved artifacts.
-      (2.2.12/2.3.2)
-    - CI now tests build in C++20 mode. #2891 (2.3.2)
+      (2.2.12/2.3.3)
+    - CI now tests build in C++20 mode. #2891 (2.3.3)
 * Platform support:
     - Fixes for mingw. #2698 (2.3.0.0)
     - Windows fix: correct OIIO_API declaration on aligned_malloc,
