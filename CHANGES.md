@@ -108,6 +108,14 @@ Fixes and feature enhancements:
 * BMP
     - Fix reading BMP images with bottom-to-top row order. #2776
       (2.3.1.1/2.2.9)
+    - Correctly read BMP images of the older V1 variety without crashing.
+      #2899 (2.3.2/2.2.13)
+    - Fix error in the rightmost pixel column when reading 4 bpp images with
+      odd horizontal resolution. #2899 (2.3.2/2.2.13)
+    - BMP reads now return metadata "bmp:bitsperpixel" (only when not 24
+      or 32) to indicate non-whole-byte channels sizes in the file, and
+      "bmp:version" to indicate the version of the BMP format. #2899
+      (2.3.2/2.2.13)
 * FFMpeg/movies:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
 * GIF
@@ -138,6 +146,9 @@ Fixes and feature enhancements:
       in the underlying libraw. #2769 (2.3.1.0)
     - Correctly handle RAW files with Unicode filenames on Windows. #2888
       (2.3.2)
+* Targa
+    - Fix potential crash when reading files with no thumbnail. #2903
+      (2.3.2/2.2.13)
 * TIFF:
     - Fix broken reads of multi-subimage non-spectral files (such as
       photometric YCbCr mode). #2692 (2.3.0.0)
@@ -147,6 +158,9 @@ Fixes and feature enhancements:
     - Add ability to output 1bpp TIFF files. #2722 (2.3.0.1/2.2.7)
     - Fix reading TIFF files with "separate" planarconfig and rowsperstrip
       more than 1. #2757 (2.3.0.1/2.2.9)
+    - Fix incorrect reading of tiled TIFF files using certain rare TIFF
+      features that also have a vertical resolution that is not a whole
+      multiple of the tile size. #2895 (2.3.2/2.2.13)
 * WebP:
     - Add support for requesting compression "lossless". #2726 (2.3.0.1/2.2.8)
     - Input improvements including: RGB images are kept as RGB instead of
