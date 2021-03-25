@@ -1496,12 +1496,12 @@ STATIC_INLINE __m128i Xor(__m128i x, __m128i y) { return _mm_xor_si128(x, y); }
 STATIC_INLINE __m128i Or(__m128i x, __m128i y) { return _mm_or_si128(x, y); }
 STATIC_INLINE __m128i Mul(__m128i x, __m128i y) { return _mm_mullo_epi32(x, y); }
 STATIC_INLINE __m128i Mul5(__m128i x) { return Add(x, _mm_slli_epi32(x, 2)); }
-STATIC_INLINE __m128i Rotate(__m128i x, int c) {
+STATIC_INLINE __m128i Rotatesse(__m128i x, int c) {
   return Or(_mm_slli_epi32(x, c),
             _mm_srli_epi32(x, 32 - c));
 }
-STATIC_INLINE __m128i Rot17(__m128i x) { return Rotate(x, 17); }
-STATIC_INLINE __m128i Rot19(__m128i x) { return Rotate(x, 19); }
+STATIC_INLINE __m128i Rot17(__m128i x) { return Rotatesse(x, 17); }
+STATIC_INLINE __m128i Rot19(__m128i x) { return Rotatesse(x, 19); }
 STATIC_INLINE __m128i Shuffle0321(__m128i x) {
   return _mm_shuffle_epi32(x, (0 << 6) + (3 << 4) + (2 << 2) + (1 << 0));
 }
@@ -1522,7 +1522,7 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
     b += Fetch(s + len - 20);
     c += Fetch(s + len - 16);
     uint32_t d = a;
-    a = NAMESPACE_FOR_HASH_FUNCTIONS::Rotate32(a, 21);
+    a = inlined::Rotate32(a, 21);
     a = inlined::Mur(a, inlined::Mur(b, inlined::Mur(c, d)));
     a += Fetch(s + len - 12);
     b += Fetch(s + len - 8);
