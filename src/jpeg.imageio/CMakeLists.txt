@@ -3,5 +3,5 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 add_oiio_plugin (jpeginput.cpp jpegoutput.cpp
-                 INCLUDE_DIRS ${JPEG_INCLUDE_DIR}
+                 INCLUDE_DIRS ${JPEG_INCLUDE_DIRS}
                  LINK_LIBRARIES ${JPEG_LIBRARIES})
