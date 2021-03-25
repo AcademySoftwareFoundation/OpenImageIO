@@ -5161,13 +5161,9 @@ formatted_format_list(string_view format_typename, string_view attr)
     int columns = Sysutil::terminal_columns() - 2;
     std::stringstream s;
     s << format_typename << " formats supported: ";
-    std::string format_list;
-    OIIO::getattribute(attr, format_list);
-    std::vector<string_view> formats;
-    Strutil::split(format_list, formats, ",");
+    auto formats = Strutil::splitsv(OIIO::get_string_attribute(attr), ",");
     std::sort(formats.begin(), formats.end());
-    format_list = Strutil::join(formats, ", ");
-    s << format_list;
+    s << Strutil::join(formats, ", ");
     return Strutil::wordwrap(s.str(), columns, 4);
 }
 
@@ -5353,6 +5349,21 @@ print_help(ArgParse& ap)
 
 
 
+static void list_formats(cspan<const char*>)
+{
+    int columns = Sysutil::terminal_columns() - 2;
+    std::cout << "All OIIO supported formats and their extensions:\n";
+    auto map = OIIO::get_extension_map();
+    for (const auto& f : map) {
+        auto s = Strutil::fmt::format("    {} : {}", f.first,
+                                      Strutil::join(f.second, ", "));
+        std::cout << Strutil::wordwrap(s, columns, 8) << "\n";
+    }
+    ot.printed_info = true;
+}
+
+
+
 static void
 getargs(int argc, char* argv[])
 {
@@ -5393,6 +5404,9 @@ getargs(int argc, char* argv[])
     ap.arg("--info")
       .help("Print resolution and basic info on all inputs, detailed metadata if -v is also used (options: format=xml:verbose=1)")
       .action(set_printinfo);
+    ap.arg("--list-formats")
+      .help("List all supported file formats and their filename extensions")
+      .action(list_formats);
     ap.arg("--echo %s:TEXT")
       .help("Echo message to console (options: newline=0)")
       .action(do_echo);
