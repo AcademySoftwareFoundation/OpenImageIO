@@ -62,7 +62,7 @@ vcpkg install tiff:x64-windows
 # vcpkg install giflib:x64-windows
 vcpkg install freetype:x64-windows
 # # vcpkg install openexr:x64-windows
-# # vcpkg install libjpeg-turbo:x64-windows
+vcpkg install libjpeg-turbo:x64-windows
 # 
 # vcpkg install libraw:x64-windows
 # vcpkg install openjpeg:x64-windows
@@ -95,11 +95,11 @@ vcpkg list
 #
 #
 
-src/build-scripts/build_zlib.bash
-export ZLIB_ROOT=$PWD/ext/dist
+# src/build-scripts/build_zlib.bash
+# export ZLIB_ROOT=$PWD/ext/dist
 
-src/build-scripts/build_libpng.bash
-export PNG_ROOT=$PWD/ext/dist
+# src/build-scripts/build_libpng.bash
+# export PNG_ROOT=$PWD/ext/dist
 
 # We're currently getting libtiff from vcpkg
 #src/build-scripts/build_libtiff.bash
