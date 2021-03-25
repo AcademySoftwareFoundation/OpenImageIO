@@ -17,7 +17,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++11 (also builds with C++14, C++17, and C++20)
  * Compilers: gcc 4.8.2 - 10.2, clang 3.3 - 11, MSVS 2015 - 2019,
    icc version 13 or higher
- * CMake >= 3.12 (tested through 3.19)
+ * CMake >= 3.12 (tested through 3.20)
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.5, also
    tested against the current master that will be OpenEXR 3.0 / Imath 3.0)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.2.0)
