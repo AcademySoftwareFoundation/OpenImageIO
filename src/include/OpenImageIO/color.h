@@ -34,7 +34,8 @@ public:
     // Convert a single 3-color
     void apply(float* data)
     {
-        apply((float*)data, 1, 1, 3, sizeof(float), 0, 0);
+        apply((float*)data, 1, 1, 3, sizeof(float), 3 * sizeof(float),
+              3 * sizeof(float));
     }
 };
 
