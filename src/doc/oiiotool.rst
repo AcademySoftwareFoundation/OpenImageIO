@@ -135,6 +135,12 @@ Alternately, you can use the `printf` notation, such as::
 
     oiiotool --frames 3,4,10-20x2 blah.%03d.tif
 
+When using frame ranges, keep in mind that by default, any error (such as an
+input file not being found) on any frame will exit oiiotool right away.
+However, the `--skip-bad-frames` command line option causes an error to skip
+the rest of the processing for that frame, but try to continue iteration
+with the next frame.
+
 Two special command line arguments can be used to disable numeric wildcard
 expansion: `--wildcardoff` disables numeric wildcard expansion for
 subsequent command line arguments, until `--wildcardon` re-enables it for
@@ -958,6 +964,13 @@ output each one to a different file, with names `sub0001.tif`,
     Supplies a comma-separated list of view names (substituted for `%V`
     and `%v`). If not supplied, the view list will be `left,right`.
 
+
+.. option:: --skip-bad-frames
+
+    When iterating over a frame range, if this option is used, any errors
+    will cease processing that frame, but continue iterating with the next
+    frame (rather than the default behavior of exiting immediately and not
+    even attempting the other frames in the range).
 
 .. option:: --wildcardoff, --wildcardon
 
