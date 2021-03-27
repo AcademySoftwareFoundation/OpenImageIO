@@ -1302,7 +1302,7 @@ STATIC_INLINE uint32_t Hash32(const char *s, size_t len) {
     b += Fetch(s + len - 20);
     c += Fetch(s + len - 16);
     uint32_t d = a;
-    a = NAMESPACE_FOR_HASH_FUNCTIONS::Rotate32(a, 21);
+    a = inlined::Rotate32(a, 21);
     a = inlined::Mur(a, inlined::Mur(b, _mm_crc32_u32(c, d)));
     a += Fetch(s + len - 12);
     b += Fetch(s + len - 8);
