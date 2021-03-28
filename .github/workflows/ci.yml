@@ -343,6 +343,51 @@ jobs:
             build/*/testsuite/*/*.*
             build/*/CMake*.{txt,log}
 
+  linux-gcc10-cpp11:
+    # Test gcc10 but in C++11 mode
+    name: "Linux gcc10 / C++11 avx2"
+    runs-on: ubuntu-20.04
+    env:
+      CXX: g++-10
+      CMAKE_CXX_STANDARD: 11
+      USE_SIMD: avx2,f16c
+      PYTHON_VERSION: 3.8
+      USE_OPENVDB: 0
+      # The old installed OpenVDB has a TLS conflict with Python 3.8
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/gh-installdeps.bash
+      - name: Build
+        run: |
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/*/testsuite/*/*.*
+            build/*/CMake*.{txt,log}
+
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
     name: "Linux latest releases: gcc10 C++17 avx2 exr3.0 ocio2.0"
