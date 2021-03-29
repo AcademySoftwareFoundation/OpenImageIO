@@ -728,7 +728,7 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
     }
 #endif
 
-#if !defined(NDEBUG) || DEBUG_EXIF_UNHANDLED
+#if DEBUG_EXIF_UNHANDLED
     std::cerr << "add_exif_item_to_spec: didn't know how to process " << name
               << ", type " << dirp->tdir_type << " x " << dirp->tdir_count
               << "\n";

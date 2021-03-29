@@ -391,7 +391,7 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
         spec.attribute(oiioname, t, vals.data());
         return;
     }
-#if (!defined(NDEBUG) || DEBUG_XMP_READ)
+#if DEBUG_XMP_READ
     else {
         std::cerr << "iptc xml add_attrib unknown type " << xmlname << ' '
                   << oiiotype.c_str() << "\n";
