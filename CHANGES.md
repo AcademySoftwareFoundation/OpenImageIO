@@ -1,3 +1,6 @@
+Release 2.2.14 (1 May? 2021) -- compared to 2.2.13
+--------------------------------------------------
+
 Release 2.2.13 (1 Apr 2021) -- compared to 2.2.12
 --------------------------------------------------
 * Get ready for upcoming Imath/OpenEXR 3.0 release. #2883 #2894 #2897
