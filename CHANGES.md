@@ -1,6 +1,26 @@
-Release 2.2.13 (1 Apr? 2021) -- compared to 2.2.12
+Release 2.2.13 (1 Apr 2021) -- compared to 2.2.12
 --------------------------------------------------
-
+* Get ready for upcoming Imath/OpenEXR 3.0 release. #2883 #2894 #2897
+* GIF: Fix error checking for non-existant GIF files. #2886
+* Fix crash related to ImageBuf:set_write_format() when used in conjunction
+  with a file format that doesn't support per-channel data types. #2885
+* Make RAW files handle Unicode filenames on Windows. #2888
+* Make sure OIIO builds cleanly with C++20. #2891
+* BMP: Several bug fixes when reading an older (V1) variety of BMP files. 
+  #2899
+* Targa: fix reading tga files with 0-sized thumbnails. #2903
+* TIFF: fix reading of certain tiled TIFF files with the vertical image size
+  is not a whole multiple of the tile size. #2895
+* Avoid OpenColorIO v2 exception when color-conversion of single points (we
+  didn't pass a correct stride, thinking that stride isn't used for a single
+  point). #2911
+* make_texture: When outputting to a 'half' data format file, clamp filtered
+  values to the half range so large values don't inadvertently get converted
+  to half 'infinite' values. #2892
+* Improvements to ustring internals to ensure that no two ustrings ever end
+  up with the same hash() value. #2870
+* Fixes for compiler errors when compiling farmhash.h using C++11 mode with
+  newer gcc (6+). #2914
 
 Release 2.2.12 (1 Mar 2021) -- compared to 2.2.11
 --------------------------------------------------
