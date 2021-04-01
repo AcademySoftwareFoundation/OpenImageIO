@@ -1,3 +1,4 @@
+#include <sstream>
 #include <vector>
 
 #include "DDImage/Row.h"
@@ -331,10 +332,11 @@ public:
         OIIO::attribute("threads", (int)Thread::numCPUs);
 
         iop->progressMessage("Writing %s", filename());
+        std::stringstream errmsg;
         if (!ImageBufAlgo::make_texture(oiiotxMode[txMode_], srcBuffer,
-                                        filename(), destSpec, &std::cout))
-            iop->error("ImageBufAlgo::make_texture failed to write file %s",
-                       filename());
+                                        filename(), destSpec, &errmsg))
+            iop->error("ImageBufAlgo::make_texture failed to write file %s (%s)",
+                       filename(), errmsg.str());
     }
 
     const char* help() { return "Tiled, mipmapped texture format"; }

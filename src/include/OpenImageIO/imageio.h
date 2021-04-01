@@ -2480,20 +2480,18 @@ OIIO_API std::string geterror(bool clear = true);
 ///    When the `"log_times"` attribute is nonzero, `ImageBufAlgo` functions
 ///    are instrumented to record the number of times they were called and
 ///    the total amount of time spent executing them. It can be overridden
-///    by environment variable `OPENIMAGEIO_LOG_TIMES`. If the value of
-///    `log_times` is 2 or more when the application terminates, the timing
-///    report will be printed to `stdout` upon exit.
+///    by environment variable `OPENIMAGEIO_LOG_TIMES`. The totals will be
+///    recorded and can be retrieved as a string by using
+///    `OIIO::getattribute("timing_report", ...)`. Additionally, if the
+///    value is 2 or more, the timing report will be printed to `stdout`
+///    upon application exit (not advised in contexts where it isn't ok to
+///    print to the terminal via stdout, such as GUI apps or libraries).
 ///
 ///    When enabled, there is a slight runtime performance cost due to
 ///    checking the time at the start and end of each of those function
 ///    calls, and the locking and recording of the data structure that holds
 ///    the log information. When the `log_times` attribute is disabled,
 ///    there is no additional performance cost.
-///
-///    The report of totals can be retrieved as the value of the
-///    `"timing_report"` attribute, using `OIIO:get_attribute()` call.
-///
-///
 ///
 OIIO_API bool attribute(string_view name, TypeDesc type, const void* val);
 
