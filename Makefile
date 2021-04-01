@@ -370,7 +370,7 @@ help:
 	@echo "      STOP_ON_WARNING=0        Do not stop building if compiler warns"
 	@echo "      OPENIMAGEIO_SITE=xx      Use custom site build mods"
 	@echo "      MYCC=xx MYCXX=yy         Use custom compilers"
-	@echo "      CMAKE_CXX_STANDARD=14    Compile in C++14 mode (default is C++11)"
+	@echo "      CMAKE_CXX_STANDARD=14    Set the C++ standard (default is C++14)"
 	@echo "      USE_LIBCPLUSPLUS=1       For clang, use libc++"
 	@echo "      GLIBCXX_USE_CXX11_ABI=1  For gcc, use the new string ABI"
 	@echo "      EXTRA_CPP_ARGS=          Additional args to the C++ command"
