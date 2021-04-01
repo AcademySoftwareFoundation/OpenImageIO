@@ -83,10 +83,11 @@ my_output_message(j_common_ptr cinfo)
     // Create the message
     char buffer[JMSG_LENGTH_MAX];
     (*cinfo->err->format_message)(cinfo, buffer);
-    myerr->jpginput->jpegerror(myerr, true);
+    myerr->jpginput->jpegerror(myerr, false);
 
-    /* Return control to the setjmp point */
-    longjmp(myerr->setjmp_buffer, 1);
+    // This function is called only for non-fatal problems, so we don't
+    // need to do the longjmp.
+    // longjmp(myerr->setjmp_buffer, 1);
 }
 
 
