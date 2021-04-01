@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#define AVOID_WIN32_FILEIO
 #include <tiffio.h>
 #include <zlib.h>
 
@@ -76,7 +77,7 @@ public:
     virtual bool valid_file(const std::string& filename) const override;
     virtual int supports(string_view feature) const override
     {
-        return (feature == "exif" || feature == "iptc");
+        return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
         // N.B. No support for arbitrary metadata.
     }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
@@ -122,6 +123,11 @@ public:
                             int chbegin, int chend, TypeDesc format, void* data,
                             stride_t xstride, stride_t ystride,
                             stride_t zstride) override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
     TIFF* m_tif;                            ///< libtiff handle
@@ -151,6 +157,7 @@ private:
     std::vector<unsigned short> m_colormap;   ///< Color map for palette images
     std::vector<uint32_t> m_rgbadata;         ///< Sometimes we punt
     std::vector<ImageSpec> m_subimage_specs;  ///< Cached subimage specs
+    Filesystem::IOProxy* m_io = nullptr;
 
     // Reset everything to initial state
     void init()
@@ -167,6 +174,7 @@ private:
         m_colormap.clear();
         m_use_rgba_interface = false;
         m_subimage_specs.clear();
+        m_io = nullptr;
     }
 
     // Just close the TIFF file handle, but don't forget anything we
@@ -444,6 +452,8 @@ private:
                       / m_spec.tile_height;
         return xtile + ytile * nxtiles + ztile * nxtiles * nytiles;
     }
+
+    bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
 };
 
 
@@ -503,6 +513,66 @@ oiio_tiff_set_error_handler()
         }
     }
 }
+
+
+
+static tsize_t
+readproc(thandle_t handle, tdata_t data, tsize_t size)
+{
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // Strutil::print("iop read {} {} @ {}\n",
+    //                io->filename(), size, io->tell());
+    auto r = io->read(data, size);
+    // for (size_t i = 0; i < r; ++i)
+    //     Strutil::print(" {:02x}",
+    //                    int(((unsigned char *)data)[i]));
+    // Strutil::print("\n");
+    return tsize_t(r);
+}
+
+static tsize_t
+writeproc(thandle_t, tdata_t, tsize_t size)
+{
+    return tsize_t(0);
+}
+
+static toff_t
+seekproc(thandle_t handle, toff_t offset, int origin)
+{
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // Strutil::print("iop seek {} {} ({})\n",
+    //                io->filename(), offset, origin);
+    return (io->seek(offset, origin)) ? toff_t(io->tell()) : toff_t(-1);
+}
+
+static int
+closeproc(thandle_t handle)
+{
+    // auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // if (io && io->opened()) {
+    //     // Strutil::print("iop close {}\n\n",
+    //     //                io->filename());
+    //     // io->seek(0);
+    //     io->close();
+    // }
+    return 0;
+}
+
+static toff_t
+sizeproc(thandle_t handle)
+{
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // Strutil::print("iop size\n");
+    return toff_t(io->size());
+}
+
+static int
+mapproc(thandle_t, tdata_t*, toff_t*)
+{
+    return 0;
+}
+
+static void unmapproc(thandle_t, tdata_t, toff_t) {}
 
 
 
@@ -579,21 +649,35 @@ TIFFInput::~TIFFInput()
 
 
 bool
-TIFFInput::valid_file(const std::string& filename) const
+TIFFInput::valid_file(const std::string& filename,
+                      Filesystem::IOProxy* io) const
 {
-    FILE* file = Filesystem::fopen(filename, "r");
-    if (!file)
+    std::unique_ptr<Filesystem::IOProxy> local_io;
+    if (!io) {
+        io = new Filesystem::IOFile(filename, Filesystem::IOProxy::Read);
+        local_io.reset(io);
+    }
+    if (!io || !io->opened())
         return false;  // needs to be able to open
-    unsigned short magic[2] = { 0, 0 };
-    size_t numRead          = fread(magic, sizeof(unsigned short), 2, file);
-    fclose(file);
-    if (numRead != 2)  // fread failed
+    uint16_t magic[2] = { 0, 0 };
+    size_t numRead    = io->pread(magic, 2 * sizeof(uint16_t), 0);
+    if (numRead != 2 * sizeof(uint16_t))  // read failed
         return false;
     if (magic[0] != TIFF_LITTLEENDIAN && magic[0] != TIFF_BIGENDIAN)
         return false;  // not the right byte order
     if ((magic[0] == TIFF_LITTLEENDIAN) != littleendian())
         swap_endian(&magic[1], 1);
     return (magic[1] == 42 /* Classic TIFF */ || magic[1] == 43 /* Big TIFF */);
+    // local_io, if used, will automatically close and free. A passed in
+    // proxy will remain in its prior state.
+}
+
+
+
+bool
+TIFFInput::valid_file(const std::string& filename) const
+{
+    return valid_file(filename, nullptr);
 }
 
 
@@ -616,6 +700,11 @@ bool
 TIFFInput::open(const std::string& name, ImageSpec& newspec,
                 const ImageSpec& config)
 {
+    const ParamValue* param = config.find_attribute("oiio:ioproxy",
+                                                    TypeDesc::PTR);
+    if (param)
+        m_io = param->get<Filesystem::IOProxy*>();
+
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
@@ -658,12 +747,22 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
     bool read_meta = !(m_emulate_mipmap && m_tif && m_subimage >= 0);
 
     if (!m_tif) {
+        if (m_io) {
+            static_assert(sizeof(thandle_t) == sizeof(void*),
+                          "thandle_t must be same size as void*");
+            // Strutil::print("\n\nOpening client \"{}\"\n", m_filename);
+            m_io->seek(0);
+            m_tif = TIFFClientOpen(m_filename.c_str(), "rm", m_io, readproc,
+                                   writeproc, seekproc, closeproc, sizeproc,
+                                   mapproc, unmapproc);
+        } else {
 #ifdef _WIN32
-        std::wstring wfilename = Strutil::utf8_to_utf16(m_filename);
-        m_tif                  = TIFFOpenW(wfilename.c_str(), "rm");
+            std::wstring wfilename = Strutil::utf8_to_utf16(m_filename);
+            m_tif                  = TIFFOpenW(wfilename.c_str(), "rm");
 #else
-        m_tif = TIFFOpen(m_filename.c_str(), "rm");
+            m_tif = TIFFOpen(m_filename.c_str(), "rm");
 #endif
+        }
         if (m_tif == NULL) {
             std::string e = oiio_tiff_last_error();
             errorf("Could not open file: %s", e.length() ? e : m_filename);

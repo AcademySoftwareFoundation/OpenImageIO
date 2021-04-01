@@ -194,8 +194,11 @@ test_read_proxy(string_view formatname, string_view extension,
     Filesystem::IOMemReader inproxybuf(readbuf);
     ImageBuf inbuf(memname, 0, 0, nullptr, nullptr, &inproxybuf);
     bool ok2 = inbuf.read(0, 0, /*force*/ true, TypeFloat);
-    if (!ok2)
+    if (!ok2) {
         std::cout << "Read failed: " << inbuf.geterror() << "\n";
+        OIIO_CHECK_ASSERT(ok2);
+        return false;
+    }
     OIIO_ASSERT(inbuf.localpixels());
     OIIO_ASSERT(buf.localpixels());
     OIIO_CHECK_EQUAL(buf.spec().format, inbuf.spec().format);
