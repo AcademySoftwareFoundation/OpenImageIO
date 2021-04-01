@@ -171,7 +171,7 @@ macro (oiio_add_all_tests)
                     oiiotool-subimage oiiotool-text
                     diff
                     dither dup-channels
-                    jpeg-corrupt jpeg-corrupt-header
+                    jpeg-corrupt
                     missingcolor
                     null
                     rational

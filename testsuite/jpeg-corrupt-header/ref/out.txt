@@ -1,3 +1,0 @@
-oiiotool ERROR: read : JPEG error: Corrupt JPEG data: 2 extraneous bytes before marker 0xdb ("src/corrupt-header.jpg")
-Full command line was:
-> oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/corrupt-header.jpg
