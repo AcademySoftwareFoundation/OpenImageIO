@@ -336,7 +336,7 @@ public:
         if (!ImageBufAlgo::make_texture(oiiotxMode[txMode_], srcBuffer,
                                         filename(), destSpec, &errmsg))
             iop->error("ImageBufAlgo::make_texture failed to write file %s (%s)",
-                       filename(), errmsg.str());
+                       filename(), errmsg.str().c_str());
     }
 
     const char* help() { return "Tiled, mipmapped texture format"; }
