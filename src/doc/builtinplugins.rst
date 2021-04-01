@@ -170,6 +170,10 @@ options are supported:
      - If nonzero, reading images with non-RGB color models (such as YCbCr)
        will return unaltered pixel values (versus the default OIIO behavior
        of automatically converting to RGB).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
 
 **Configuration settings for DPX output**
@@ -190,6 +194,12 @@ control aspects of the writing itself:
        will keep unaltered pixel values (versus the default OIIO behavior
        of automatically converting from RGB to the designated color space
        as the pixels are written).
+
+**Custom I/O Overrides**
+
+DPX input (but, currently, not output) supports the "custom I/O" feature
+via the `ImageInput::set_ioproxy()` method and the special
+``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
 
 **DPX Attributes**
 
@@ -756,10 +766,20 @@ control aspects of the writing itself:
      - int
      - If nonzero and outputting UINT8 values in the file, will add a small
        amount of random dither to combat the appearance of banding.
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
    * - ``jpeg:progressive``
      - int
      - If nonzero, will write a progressive JPEG file.
 
+
+**Custom I/O Overrides**
+
+JPEG input (but, currently, not output) supports the "custom I/O" feature
+via the `ImageInput::set_ioproxy()` method and the special
+``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
 
 **Limitations**
 
@@ -1063,8 +1083,9 @@ control aspects of the writing itself:
 **Custom I/O Overrides**
 
 OpenEXR input and output both support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see
-Sections :ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`).
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 **A note on channel names**
 
@@ -1237,8 +1258,11 @@ control aspects of the writing itself:
 
 **Custom I/O Overrides**
 
-PNG output supports the "custom I/O" feature via the special
-``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageoutput-ioproxy`).
+PNG input and output both support the "custom I/O" feature via the special
+``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy`
+and :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
+
+
 
 **Limitations**
 
@@ -1819,6 +1843,10 @@ options are supported:
      - If nonzero, reading images with non-RGB color models (such as YCbCr)
        will return unaltered pixel values (versus the default OIIO behavior
        of automatically converting to RGB).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
 **Configuration settings for TIFF output**
 
@@ -1902,6 +1930,12 @@ part of the format name):
     ``T43``
     ``T85``
     ``thunderscan``
+
+**Custom I/O Overrides**
+
+TIFF input (but, currently, not output) supports the "custom I/O" feature
+via the `ImageInput::set_ioproxy()` method and the special
+``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
 
 **Limitations**
 
