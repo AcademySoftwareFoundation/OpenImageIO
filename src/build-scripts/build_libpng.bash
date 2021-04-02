@@ -38,8 +38,7 @@ git checkout ${LIBPNG_VERSION} --force
 
 mkdir -p ${LIBPNG_BUILD_DIR}
 cd ${LIBPNG_BUILD_DIR}
-time cmake --config Release \
-           -DCMAKE_BUILD_TYPE=Release \
+time cmake -DCMAKE_BUILD_TYPE=Release \
            -DCMAKE_INSTALL_PREFIX=${LIBPNG_INSTALL_DIR} \
            -DPNG_EXECUTABLES=OFF \
            -DPNG_TESTS=OFF \

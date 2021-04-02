@@ -38,8 +38,7 @@ git checkout ${ZLIB_VERSION} --force
 
 mkdir -p ${ZLIB_BUILD_DIR} && true
 cd ${ZLIB_BUILD_DIR}
-time cmake --config Release \
-           -DCMAKE_BUILD_TYPE=Release \
+time cmake -DCMAKE_BUILD_TYPE=Release \
            -DCMAKE_INSTALL_PREFIX=${ZLIB_INSTALL_DIR} \
            ${ZLIB_CONFIG_OPTS} ..
 time cmake --build . --config Release --target install

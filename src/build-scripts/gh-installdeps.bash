@@ -71,6 +71,7 @@ else
 
 fi
 
+cmake --version
 
 
 #
