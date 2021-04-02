@@ -38,8 +38,7 @@ git checkout ${LIBJPEGTURBO_VERSION} --force
 
 mkdir -p ${LIBJPEGTURBO_BUILD_DIR}
 cd ${LIBJPEGTURBO_BUILD_DIR}
-time cmake --config Release \
-           -DCMAKE_BUILD_TYPE=Release \
+time cmake -DCMAKE_BUILD_TYPE=Release \
            -DCMAKE_INSTALL_PREFIX=${LIBJPEGTURBO_INSTALL_DIR} \
            ${LIBJPEGTURBO_CONFIG_OPTS} ..
 time cmake --build . --config Release --target install

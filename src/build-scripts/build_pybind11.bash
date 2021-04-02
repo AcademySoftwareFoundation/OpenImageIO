@@ -39,7 +39,7 @@ git checkout ${PYBIND11_VERSION} --force
 
 mkdir -p ${PYBIND11_BUILD_DIR}
 cd ${PYBIND11_BUILD_DIR}
-time cmake --config Release \
+time cmake -DCMAKE_BUILD_TYPE=Release \
            -DCMAKE_INSTALL_PREFIX=${PYBIND11_INSTALL_DIR} \
            -DPYBIND11_TEST=OFF \
            ${PYBIND11_BUILD_OPTS} ..
