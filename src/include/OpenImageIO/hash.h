@@ -331,7 +331,7 @@ OIIO_HOSTDEVICE inline constexpr uint64_t Uint128High64(const uint128_t x) {
     return x.second;
 }
 
-OIIO_HOSTDEVICE inline constexpr uint128_t Uint128(uint64_t lo, uint64_t hi) {
+OIIO_HOSTDEVICE inline OIIO_CONSTEXPR14 uint128_t Uint128(uint64_t lo, uint64_t hi) {
     return uint128_t(lo, hi);
 }
 
