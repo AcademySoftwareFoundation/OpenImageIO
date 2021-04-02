@@ -32,8 +32,7 @@ echo "git checkout ${LIBTIFF_VERSION} --force"
 git checkout ${LIBTIFF_VERSION} --force
 mkdir -p build
 cd build
-time cmake --config Release \
-           -DCMAKE_BUILD_TYPE=Release \
+time cmake -DCMAKE_BUILD_TYPE=Release \
            -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} \
            -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" \
            ${LIBTIFF_BUILDOPTS} ..
