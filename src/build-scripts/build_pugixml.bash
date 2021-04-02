@@ -39,8 +39,7 @@ git checkout ${PUGIXML_VERSION} --force
 
 mkdir -p ${PUGIXML_BUILD_DIR}
 cd ${PUGIXML_BUILD_DIR}
-time cmake --config Release \
-           -DCMAKE_BUILD_TYPE=Release \
+time cmake -DCMAKE_BUILD_TYPE=Release \
            -DCMAKE_INSTALL_PREFIX=${PUGIXML_INSTALL_DIR} \
            -DBUILD_SHARED_LIBS=ON \
            -DBUILD_TESTS=OFF \

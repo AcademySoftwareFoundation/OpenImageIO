@@ -40,7 +40,10 @@ echo "git checkout ${OPENCOLORIO_VERSION} --force"
 git checkout ${OPENCOLORIO_VERSION} --force
 mkdir -p build
 cd build
-time cmake --config Release -DCMAKE_INSTALL_PREFIX=${OPENCOLORIO_INSTALL_DIR} -DCMAKE_CXX_FLAGS="${OPENCOLORIO_CXX_FLAGS}" ${OPENCOLORIO_BUILDOPTS} ..
+time cmake -DCMAKE_BUILD_TYPE=Release \
+           -DCMAKE_INSTALL_PREFIX=${OPENCOLORIO_INSTALL_DIR} \
+           -DCMAKE_CXX_FLAGS="${OPENCOLORIO_CXX_FLAGS}" \
+           ${OPENCOLORIO_BUILDOPTS} ..
 time cmake --build . --config Release --target install
 popd
 
