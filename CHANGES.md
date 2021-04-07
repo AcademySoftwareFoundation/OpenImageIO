@@ -1,3 +1,13 @@
+Release 2.2.13.1 (7 Apr 2021) -- compared to 2.2.13.0
+-----------------------------------------------------
+(Build related fixes only)
+* Fix build break when using gcc 10 (and some other modern gcc versions)
+  but using C++11 compilation mode. #2930
+* CMake: don't use --config inappropriately (CMake 3.20 was broken for
+  several of our helper build scripts for building dependencies). #2931
+* Be robust to OpenEXR 2.x installations where IlmBase and OpenEXR had
+  separate sets of config files in different subdirectories. #2935
+
 Release 2.2.13 (1 Apr 2021) -- compared to 2.2.12
 --------------------------------------------------
 * Get ready for upcoming Imath/OpenEXR 3.0 release. #2883 #2894 #2897
