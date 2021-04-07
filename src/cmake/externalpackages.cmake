@@ -93,13 +93,13 @@ checked_find_package (OpenEXR REQUIRED
                       VERSION_MIN 2.0
                       RECOMMEND_MIN 2.2
                       RECOMMEND_MIN_REASON "for DWA compression"
-                      PRINT IMATH_INCLUDES)
+                      PRINT IMATH_INCLUDES OPENEXR_INCLUDES)
 # Force Imath includes to be before everything else to ensure that we have
 # the right Imath/OpenEXR version, not some older version in the system
 # library. This shoudn't be necessary, except for the common case of people
 # building against Imath/OpenEXR 3.x when there is still a system-level
 # install version of 2.x.
-include_directories(BEFORE ${IMATH_INCLUDES})
+include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
 if (CMAKE_COMPILER_IS_CLANG AND OPENEXR_VERSION VERSION_LESS 2.3)
     # clang C++ >= 11 doesn't like 'register' keyword in old exr headers
     add_compile_options (-Wno-deprecated-register)
