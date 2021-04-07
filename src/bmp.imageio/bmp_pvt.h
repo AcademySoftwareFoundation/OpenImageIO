@@ -137,6 +137,7 @@ private:
     bmp_pvt::DibInformationHeader m_dib_header;
     std::string m_filename;
     std::vector<bmp_pvt::color_table> m_colortable;
+    std::vector<unsigned char> fscanline;  // temp space: read from file
     int64_t m_image_start;
     void init(void)
     {
@@ -176,6 +177,8 @@ private:
     int64_t m_image_start;
     unsigned int m_dither;
     std::vector<unsigned char> m_tilebuffer;
+    std::vector<unsigned char> m_scratch;
+    std::vector<unsigned char> m_buf;  // more tmp space for write_scanline
 
     void init(void)
     {
