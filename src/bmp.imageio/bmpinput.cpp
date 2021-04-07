@@ -148,10 +148,9 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         y = m_spec.height - y - 1;
     const int64_t scanline_off = y * m_padded_scanline_size;
 
-    std::unique_ptr<unsigned char[]> fscanline(
-        new unsigned char[m_padded_scanline_size]);
+    fscanline.resize(m_padded_scanline_size);
     Filesystem::fseek(m_fd, m_image_start + scanline_off, SEEK_SET);
-    size_t n = fread(fscanline.get(), 1, m_padded_scanline_size, m_fd);
+    size_t n = fread(fscanline.data(), 1, m_padded_scanline_size, m_fd);
     if (n != (size_t)m_padded_scanline_size) {
         if (feof(m_fd))
             errorf("Hit end of file unexpectedly");
@@ -167,13 +166,12 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         for (unsigned int i = 0; i < m_spec.scanline_bytes();
              i += m_spec.nchannels)
             std::swap(fscanline[i], fscanline[i + 2]);
-        memcpy(data, fscanline.get(), m_spec.scanline_bytes());
+        memcpy(data, fscanline.data(), m_spec.scanline_bytes());
         return true;
     }
 
     size_t scanline_bytes = m_spec.scanline_bytes();
-    std::unique_ptr<unsigned char[]> mscanline(
-        new unsigned char[scanline_bytes]);
+    uint8_t* mscanline    = (uint8_t*)data;
     if (m_dib_header.bpp == 16) {
         const uint16_t RED   = 0x7C00;
         const uint16_t GREEN = 0x03E0;
@@ -220,7 +218,6 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             }
         }
     }
-    memcpy(data, &mscanline[0], scanline_bytes);
     return true;
 }
 
