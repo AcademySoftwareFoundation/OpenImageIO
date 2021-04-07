@@ -207,7 +207,7 @@ jobs:
 
   vfxplatform-2021-exr3:
     # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
-    # gcc9 and C++17, and also the in-progress openexr/imath 3.0.
+    # gcc9 and C++17, and also OpenEXR/Imath 3.0.
     name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.73 exr-3.0 qt-5.15"
     runs-on: ubuntu-latest
     container:
@@ -218,7 +218,7 @@ jobs:
       CMAKE_CXX_STANDARD: 17
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
-      OPENEXR_VERSION: RB-3.0
+      OPENEXR_VERSION: v3.0.1
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -263,7 +263,7 @@ jobs:
       CXX: g++-7
       CMAKE_CXX_STANDARD: 14
       USE_SIMD: sse4.2
-      OPENEXR_VERSION: v2.4.0
+      OPENEXR_VERSION: v2.4.2
       CMAKE_BUILD_TYPE: Debug
     steps:
       - uses: actions/checkout@v2
@@ -307,7 +307,7 @@ jobs:
       CXX: g++-8
       CMAKE_CXX_STANDARD: 17
       USE_SIMD: avx
-      OPENEXR_VERSION: v2.5.3
+      OPENEXR_VERSION: v2.5.5
       PYBIND11_VERSION: v2.5.0
     steps:
       - uses: actions/checkout@v2
@@ -354,7 +354,7 @@ jobs:
       LIBRAW_VERSION: 0.20.2
       LIBTIFF_VERSION: v4.2.0
       OPENCOLORIO_VERSION: v2.0.0
-      OPENEXR_VERSION: v3.0.0-beta
+      OPENEXR_VERSION: v3.0.1
       PUGIXML_VERSION: v1.11.4
       PYBIND11_VERSION: v2.6.2
       PYTHON_VERSION: 3.8
@@ -672,7 +672,7 @@ jobs:
 
   linux-clang:
     # Test compiling with clang on Linux.
-    name: "Linux clang10: clang10 C++14 avx2 exr2.4"
+    name: "Linux clang10: clang10 C++14 avx2 exr2.5"
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2021
@@ -720,7 +720,7 @@ jobs:
 
   linux-static:
     # Test building static libs.
-    name: "Linux static libs: gcc7 C++14 exr2.4"
+    name: "Linux static libs: gcc7 C++14 exr2.2"
     runs-on: ubuntu-18.04
     env:
       CXX: g++-7
