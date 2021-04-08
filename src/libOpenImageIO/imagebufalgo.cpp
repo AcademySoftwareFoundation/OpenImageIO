@@ -1183,7 +1183,8 @@ ImageBufAlgo::fillholes_pushpull(ImageBuf& dst, const ImageBuf& src, ROI roi,
         w = std::max(1, w / 2);
         h = std::max(1, h / 2);
         ImageSpec smallspec(w, h, src.nchannels(), TypeDesc::FLOAT);
-        ImageBuf* small = new ImageBuf(smallspec);
+        smallspec.alpha_channel = topspec.alpha_channel;
+        ImageBuf* small         = new ImageBuf(smallspec);
         ImageBufAlgo::resize(*small, *pyramid.back(), "triangle");
         divide_by_alpha(*small, get_roi(smallspec), nthreads);
         pyramid.emplace_back(small);
