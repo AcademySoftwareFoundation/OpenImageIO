@@ -122,7 +122,7 @@ source_group ("libtexture" REGULAR_EXPRESSION ".+/libtexture/.+")
 target_include_directories (OpenImageIO
                             PUBLIC
                                 ${CMAKE_INSTALL_FULL_INCLUDEDIR}
-                                ${IMATH_INCLUDES}
+                                ${IMATH_INCLUDES} ${OPENEXR_INCLUDES}
                                 ${OpenCV_INCLUDES}
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
@@ -140,7 +140,9 @@ target_link_libraries (OpenImageIO
             $<$<TARGET_EXISTS:Imath::Imath>:Imath::Imath>
             $<$<TARGET_EXISTS:Imath::Half>:Imath::Half>
             # For OpenEXR >= 2.4/2.5 with reliable exported targets
+            $<$<TARGET_EXISTS:OpenEXR::IlmImfConfig>:OpenEXR::IlmImfConfig>
             $<$<TARGET_EXISTS:OpenEXR::IlmImf>:OpenEXR::IlmImf>
+            $<$<TARGET_EXISTS:IlmBase::IlmBaseConfig>:IlmBase::IlmBaseConfig>
             $<$<TARGET_EXISTS:IlmBase::Imath>:IlmBase::Imath>
             $<$<TARGET_EXISTS:IlmBase::Half>:IlmBase::Half>
             $<$<TARGET_EXISTS:IlmBase::IlmThread>:IlmBase::IlmThread>

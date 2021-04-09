@@ -9,7 +9,7 @@ add_library (OpenImageIO_Util ${libOpenImageIO_Util_srcs})
 target_include_directories (OpenImageIO_Util
         PUBLIC
             ${CMAKE_INSTALL_FULL_INCLUDEDIR}
-            ${IMATH_INCLUDES}
+            ${IMATH_INCLUDES} ${OPENEXR_INCLUDES}
         )
 target_link_libraries (OpenImageIO_Util
         PUBLIC
@@ -17,6 +17,8 @@ target_link_libraries (OpenImageIO_Util
             $<$<TARGET_EXISTS:Imath::Imath>:Imath::Imath>
             $<$<TARGET_EXISTS:Imath::Half>:Imath::Half>
             # For OpenEXR >= 2.4/2.5 with reliable exported targets
+            $<$<TARGET_EXISTS:OpenEXR::IlmImfConfig>:OpenEXR::IlmImfConfig>
+            $<$<TARGET_EXISTS:IlmBase::IlmBaseConfig>:IlmBase::IlmBaseConfig>
             $<$<TARGET_EXISTS:IlmBase::Imath>:IlmBase::Imath>
             $<$<TARGET_EXISTS:IlmBase::Half>:IlmBase::Half>
             $<$<TARGET_EXISTS:IlmBase::IlmThread>:IlmBase::IlmThread>
