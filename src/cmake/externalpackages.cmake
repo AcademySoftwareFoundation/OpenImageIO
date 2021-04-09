@@ -108,6 +108,12 @@ if (MSVC AND NOT LINKSTATIC)
     add_definitions (-DOPENEXR_DLL) # Is this needed for new versions?
 endif ()
 
+if (OPENEXR_VERSION VERSION_GREATER_EQUAL 2.5.99)
+    set (OIIO_USING_IMATH 3)
+else ()
+    set (OIIO_USING_IMATH 2)
+endif ()
+
 
 # JPEG -- prefer Turbo-JPEG to regular libjpeg
 checked_find_package (JPEGTurbo
