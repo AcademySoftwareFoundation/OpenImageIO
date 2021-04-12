@@ -285,8 +285,7 @@ bool
 BmpInput::color_table_is_all_gray(void)
 {
     size_t ncolors = m_colortable.size();
-    for (size_t i = 0; i < ncolors; i++)
-    {
+    for (size_t i = 0; i < ncolors; i++) {
         color_table& color = m_colortable[i];
         if ((color.b == color.g) && (color.g == color.r))
             continue;
