@@ -99,7 +99,6 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
         m_padded_scanline_size = (m_spec.width + 3) & ~3;
         if (!read_color_table())
             return false;
-        // m_allgray is a new BMPInput data member, initialized to false
         m_allgray = color_table_is_all_gray();
         if (m_allgray)
             m_spec.nchannels = 1;  // make it look like a 1-channel image
@@ -287,9 +286,7 @@ BmpInput::color_table_is_all_gray(void)
     size_t ncolors = m_colortable.size();
     for (size_t i = 0; i < ncolors; i++) {
         color_table& color = m_colortable[i];
-        if ((color.b == color.g) && (color.g == color.r))
-            continue;
-        else
+        if (color.b != color.g || color.g != color.r)
             return false;
     }
     return true;
