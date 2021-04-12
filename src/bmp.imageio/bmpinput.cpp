@@ -99,6 +99,10 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
         m_padded_scanline_size = (m_spec.width + 3) & ~3;
         if (!read_color_table())
             return false;
+        // m_allgray is a new BMPInput data member, initialized to false
+        m_allgray = color_table_is_all_gray();
+        if (m_allgray)
+            m_spec.nchannels = 1;   // make it look like a 1-channel image
         break;
     case 4:
         swidth                 = (m_spec.width + 1) / 2;
@@ -184,10 +188,18 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
     }
     if (m_dib_header.bpp == 8) {
-        for (unsigned int i = 0, j = 0; j < scanline_bytes; ++i, j += 3) {
-            mscanline[j]     = m_colortable[fscanline[i]].r;
-            mscanline[j + 1] = m_colortable[fscanline[i]].g;
-            mscanline[j + 2] = m_colortable[fscanline[i]].b;
+        if (m_allgray) {
+            // Keep it as 1-channel image because all colors are gray
+            for (unsigned int i = 0; i < scanline_bytes; ++i) {
+                mscanline[i] = m_colortable[fscanline[i]].r;
+            }
+        } else {
+            // Expand palette image into 3-channel RGB (existing code)
+            for (unsigned int i = 0, j = 0; j < scanline_bytes; ++i, j += 3) {
+                mscanline[j]     = m_colortable[fscanline[i]].r;
+                mscanline[j + 1] = m_colortable[fscanline[i]].g;
+                mscanline[j + 2] = m_colortable[fscanline[i]].b;
+            }
         }
     }
     if (m_dib_header.bpp == 4) {
@@ -267,6 +279,21 @@ BmpInput::read_color_table(void)
         }
     }
     return true;  // ok
+}
+
+bool
+BmpInput::color_table_is_all_gray(void)
+{
+    size_t ncolors = m_colortable.size();
+    for (size_t i = 0; i < ncolors; i++)
+    {
+        color_table& color = m_colortable[i];
+        if ((color.b == color.g) && (color.g == color.r))
+            continue;
+        else
+            return false;
+    }
+    return true;
 }
 
 OIIO_PLUGIN_NAMESPACE_END

@@ -139,6 +139,7 @@ private:
     std::vector<bmp_pvt::color_table> m_colortable;
     std::vector<unsigned char> fscanline;  // temp space: read from file
     int64_t m_image_start;
+    bool m_allgray;
     void init(void)
     {
         m_padded_scanline_size = 0;
@@ -146,9 +147,11 @@ private:
         m_fd                   = NULL;
         m_filename.clear();
         m_colortable.clear();
+        m_allgray = false;
     }
 
     bool read_color_table(void);
+    bool color_table_is_all_gray(void);
 };
 
 
