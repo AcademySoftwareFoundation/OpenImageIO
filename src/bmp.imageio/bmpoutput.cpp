@@ -100,21 +100,20 @@ BmpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     int64_t scanline_off = y * m_padded_scanline_size;
     Filesystem::fseek(m_fd, m_image_start + scanline_off, SEEK_SET);
 
-    std::vector<unsigned char> scratch;
-    data = to_native_scanline(format, data, xstride, scratch, m_dither, y, z);
-    std::vector<unsigned char> buf;
-    buf.reserve(m_padded_scanline_size);  // reserve enough for padded scanline
-    buf.assign((const unsigned char*)data,
-               (const unsigned char*)data + m_spec.scanline_bytes());
-    buf.resize(m_padded_scanline_size, 0);  // pad with zeroes if needed
+    m_scratch.clear();
+    data = to_native_scanline(format, data, xstride, m_scratch, m_dither, y, z);
+    m_buf.assign((const unsigned char*)data,
+                 (const unsigned char*)data + m_spec.scanline_bytes());
+    m_buf.resize(m_padded_scanline_size, 0);  // pad with zeroes if needed
 
     // Swap RGB pixels into BGR format
     if (m_spec.nchannels >= 3)
-        for (int i = 0, iend = buf.size() - 2; i < iend; i += m_spec.nchannels)
-            std::swap(buf[i], buf[i + 2]);
+        for (int i = 0, iend = m_buf.size() - 2; i < iend;
+             i += m_spec.nchannels)
+            std::swap(m_buf[i], m_buf[i + 2]);
 
-    size_t byte_count = fwrite(&buf[0], 1, buf.size(), m_fd);
-    return byte_count == buf.size();  // true if wrote all bytes (no error)
+    size_t byte_count = fwrite(&m_buf[0], 1, m_buf.size(), m_fd);
+    return byte_count == m_buf.size();  // true if wrote all bytes (no error)
 }
 
 
