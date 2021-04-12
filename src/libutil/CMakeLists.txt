@@ -9,7 +9,7 @@ add_library (OpenImageIO_Util ${libOpenImageIO_Util_srcs})
 target_include_directories (OpenImageIO_Util
         PUBLIC
             ${CMAKE_INSTALL_FULL_INCLUDEDIR}
-            ${IMATH_INCLUDES}
+            ${IMATH_INCLUDES} ${OPENEXR_INCLUDES}
         )
 target_link_libraries (OpenImageIO_Util
         PUBLIC

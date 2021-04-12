@@ -70,7 +70,8 @@ if (TARGET OpenEXR::OpenEXR AND TARGET Imath::Imath)
         list (APPEND ILMBASE_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
     endif ()
 
-elseif (TARGET OpenEXR::IlmImf AND TARGET IlmBase::Imath AND OPENEXR_VERSION VERSION_GREATER_EQUAL 2.4)
+elseif (TARGET OpenEXR::IlmImf AND TARGET IlmBase::Imath AND
+        (OPENEXR_VERSION VERSION_GREATER_EQUAL 2.4 OR OpenEXR_VERSION VERSION_GREATER_EQUAL 2.4))
     # OpenEXR 2.4 or 2.5 with exported config
     if (NOT OpenEXR_FIND_QUIETLY)
         message (STATUS "Found CONFIG for OpenEXR 2 (OPENEXR_VERSION=${OpenEXR_VERSION})")
@@ -97,6 +98,12 @@ elseif (TARGET OpenEXR::IlmImf AND TARGET IlmBase::Imath AND OPENEXR_VERSION VER
     if (CMAKE_USE_PTHREADS_INIT)
         list (APPEND ILMBASE_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
     endif ()
+
+    # Correct for how old OpenEXR config exports set the directory one
+    # level lower than we prefer it.
+    string(REGEX REPLACE "include/OpenEXR$" "include" ILMBASE_INCLUDES "${ILMBASE_INCLUDES}")
+    string(REGEX REPLACE "include/OpenEXR$" "include" IMATH_INCLUDES "${IMATH_INCLUDES}")
+    string(REGEX REPLACE "include/OpenEXR$" "include" OPENEXR_INCLUDES "${OPENEXR_INCLUDES}")
 
 else ()
     # OpenEXR 2.x older versions without a config or whose configs we don't

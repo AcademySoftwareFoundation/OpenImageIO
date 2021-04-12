@@ -39,6 +39,13 @@ endif ()
 configure_file (${PROJECT_NAME}/${versionfile}.in "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${versionfile}" @ONLY)
 list (APPEND public_headers "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/${versionfile}")
 
+# Generate Imath.h
+if (VERBOSE)
+    message(STATUS "Create Imath.h from Imath.h.in")
+endif ()
+configure_file (${PROJECT_NAME}/Imath.h.in "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/Imath.h" @ONLY)
+list (APPEND public_headers "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}/Imath.h")
+
 
 install (FILES ${public_headers}
          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
