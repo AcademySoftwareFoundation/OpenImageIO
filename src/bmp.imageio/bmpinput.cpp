@@ -102,7 +102,7 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
         // m_allgray is a new BMPInput data member, initialized to false
         m_allgray = color_table_is_all_gray();
         if (m_allgray)
-            m_spec.nchannels = 1;   // make it look like a 1-channel image
+            m_spec.nchannels = 1;  // make it look like a 1-channel image
         break;
     case 4:
         swidth                 = (m_spec.width + 1) / 2;
