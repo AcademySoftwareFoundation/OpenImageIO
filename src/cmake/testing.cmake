@@ -163,7 +163,9 @@ macro (oiio_add_all_tests)
                    )
 
     #   Remaining freestanding tests:
-    oiio_add_tests (nonwhole-tiles
+    oiio_add_tests (
+                    cmake-consumer
+                    nonwhole-tiles
                     oiiotool-composite
                     oiiotool-fixnan
                     oiiotool-pattern
