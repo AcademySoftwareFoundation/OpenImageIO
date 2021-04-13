@@ -3,16 +3,23 @@
 include(CMakeFindDependencyMacro)
 
 # add here all the find_dependency() whenever switching to config based dependencies
-if (@OpenEXR_VERSION@ VERSION_GREATER_EQUAL 2.5)
+if (@OpenEXR_VERSION@ VERSION_GREATER_EQUAL 3.0)
+    find_dependency(Imath @OpenEXR_VERSION@)
+elseif (@OpenEXR_VERSION@ VERSION_GREATER_EQUAL 2.4 AND @FOUND_OPENEXR_WITH_CONFIG@)
+    find_dependency(IlmBase @OpenEXR_VERSION@)
     find_dependency(OpenEXR @OpenEXR_VERSION@)
-    # N.B. Only do this for OpenEXR >= 2.5, difficult to rely on their
-    # exported configs before that.
+    find_dependency(ZLIB @ZLIB_VERSION@)  # Because OpenEXR doesn't do it
+    find_dependency(Threads)  # Because OpenEXR doesn't do it
 endif ()
 
 set_and_check (@PROJECT_NAME@_INCLUDE_DIR "@CMAKE_INSTALL_FULL_INCLUDEDIR@")
 set_and_check (@PROJECT_NAME@_INCLUDES    "@CMAKE_INSTALL_FULL_INCLUDEDIR@")
 set_and_check (@PROJECT_NAME@_LIB_DIR     "@CMAKE_INSTALL_FULL_LIBDIR@")
 set (@PROJECT_NAME@_PLUGIN_SEARCH_PATH    "@PLUGIN_SEARCH_PATH_NATIVE@")
+
+if (NOT @FOUND_OPENEXR_WITH_CONFIG@)
+    list (APPEND @PROJECT_NAME@_INCLUDES ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
+endif ()
 
 #...logic to determine installedPrefix from the own location...
 #set (@PROJECT_NAME@_CONFIG_DIR  "${installedPrefix}/@CONFIG_INSTALL_DIR@")
