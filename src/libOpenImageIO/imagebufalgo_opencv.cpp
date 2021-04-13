@@ -310,8 +310,8 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
         OIIO_DASSERT(0 && "Unknown data format in ImageBuf.");
         return false;
     }
-    cv::Mat mat(roi.height(), roi.width(), dstFormat);
-    if (mat.empty()) {
+    dst.create(roi.height(), roi.width(), dstFormat);
+    if (dst.empty()) {
         OIIO_DASSERT(0 && "Unable to create cv::Mat.");
         return false;
     }
@@ -321,7 +321,7 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
     bool converted   = parallel_convert_image(
         chans, roi.width(), roi.height(), 1,
         src.pixeladdr(roi.xbegin, roi.ybegin, roi.zbegin, roi.chbegin),
-        spec.format, spec.pixel_bytes(), spec.scanline_bytes(), 0, mat.ptr(),
+        spec.format, spec.pixel_bytes(), spec.scanline_bytes(), 0, dst.ptr(),
         dstSpecFormat, pixelsize, linestep, 0, -1, -1, nthreads);
 
     if (!converted) {
@@ -331,12 +331,11 @@ ImageBufAlgo::to_OpenCV(cv::Mat& dst, const ImageBuf& src, ROI roi,
 
     // OpenCV uses BGR ordering
     if (chans == 3) {
-        cv::cvtColor(mat, mat, cv::COLOR_RGB2BGR);
+        cv::cvtColor(dst, dst, cv::COLOR_RGB2BGR);
     } else if (chans == 4) {
-        cv::cvtColor(mat, mat, cv::COLOR_RGBA2BGRA);
+        cv::cvtColor(dst, dst, cv::COLOR_RGBA2BGRA);
     }
 
-    dst = std::move(mat);
     return true;
 #else
     return false;
