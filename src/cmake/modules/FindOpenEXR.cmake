@@ -44,6 +44,7 @@ find_package(OpenEXR CONFIG)
 
 if (TARGET OpenEXR::OpenEXR AND TARGET Imath::Imath)
     # OpenEXR 3.x if both of these targets are found
+    set (FOUND_OPENEXR_WITH_CONFIG 1)
     if (NOT OpenEXR_FIND_QUIETLY)
         message (STATUS "Found CONFIG for OpenEXR 3 (OPENEXR_VERSION=${OpenEXR_VERSION})")
     endif ()
@@ -73,6 +74,7 @@ if (TARGET OpenEXR::OpenEXR AND TARGET Imath::Imath)
 elseif (TARGET OpenEXR::IlmImf AND TARGET IlmBase::Imath AND
         (OPENEXR_VERSION VERSION_GREATER_EQUAL 2.4 OR OpenEXR_VERSION VERSION_GREATER_EQUAL 2.4))
     # OpenEXR 2.4 or 2.5 with exported config
+    set (FOUND_OPENEXR_WITH_CONFIG 1)
     if (NOT OpenEXR_FIND_QUIETLY)
         message (STATUS "Found CONFIG for OpenEXR 2 (OPENEXR_VERSION=${OpenEXR_VERSION})")
     endif ()
@@ -108,6 +110,8 @@ elseif (TARGET OpenEXR::IlmImf AND TARGET IlmBase::Imath AND
 else ()
     # OpenEXR 2.x older versions without a config or whose configs we don't
     # trust.
+
+    set (FOUND_OPENEXR_WITH_CONFIG 0)
 
 # Other standard issue macros
 include (FindPackageHandleStandardArgs)
