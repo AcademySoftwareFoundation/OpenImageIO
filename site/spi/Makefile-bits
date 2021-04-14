@@ -167,8 +167,8 @@ ifeq (${SP_OS}, rhel7)
 
     # Set our preferred OpenEXR path, but allow env variable to override
     # with custom/test version.
-    OPENEXR_VERSION ?= 2.4.0
-    OpenEXR_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenEXR/${OPENEXR_VERSION}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}
+    OPENEXR_VERSION ?= 2.4.1-2
+    OpenEXR_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenEXR/${OPENEXR_VERSION}/${SPI_COMPILER_PLATFORM}
     MY_CMAKE_FLAGS += -DOpenEXR_ROOT=${OpenEXR_ROOT}
 
     #
