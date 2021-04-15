@@ -12,7 +12,8 @@ string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
 set (PROJECT_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
-set (${PROJECT_NAME}_SUPPORTED_RELEASE 0)  # Change to 1 after release branch
+set (${PROJECT_NAME}_SUPPORTED_RELEASE 0)  # Change to 1 for release branch
+set (${PROJECT_NAME}_DEV_RELEASE 1)  # Change to 0 for release branch
 
 # Identify whether this is included as a subproject of something else
 if (NOT "${CMAKE_PROJECT_NAME}" STREQUAL "${PROJECT_NAME}")
@@ -90,10 +91,11 @@ endif ()
 # Set the default namespace
 set (${PROJ_NAME}_NAMESPACE ${PROJECT_NAME} CACHE STRING
      "Customized outer namespace base name (version will be added)")
-option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH "Should the inner namespace include the patch number" OFF)
+option (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH
+        "Should the inner namespace include the patch number" ${${PROJECT_NAME}_DEV_RELEASE})
 set (PROJ_NAMESPACE "${${PROJ_NAME}_NAMESPACE}")
 set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE}_v${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}")
-if (OIIO_NAMESPACE_INCLUDE_PATCH)
+if (${PROJ_NAME}_NAMESPACE_INCLUDE_PATCH)
     set (PROJ_NAMESPACE_V "${PROJ_NAMESPACE_V}_${PROJECT_VERSION_PATCH}")
 endif ()
 message(STATUS "Setting Namespace to: ${PROJ_NAMESPACE_V}")
