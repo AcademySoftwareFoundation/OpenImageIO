@@ -254,6 +254,13 @@ contents of an expression may be any of:
   * `FRAME_NUMBER_PAD` : like `FRAME_NUMBER`, but 0-padded based
     on the value set on the command line by `--framepadding`.
 
+* Functions
+
+  * `getattribute(name)` : returns the global attribute that would be
+    retrieved by `OIIO::getattribute(name, ...)`. The `name` may be enclosed
+    in single or double quotes or be a single unquoted sequence of characters.
+    (Added in OIIO 2.3.)
+
 
 To illustrate how this works, consider the following command, which trims
 a four-pixel border from all sides and outputs a new image prefixed with
