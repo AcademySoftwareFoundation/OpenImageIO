@@ -145,7 +145,8 @@ Oiiotool::clear_options()
     printinfo_nometamatch.clear();
     printinfo_verbose = false;
     clear_input_config();
-    output_dataformat = TypeDesc::UNKNOWN;
+    first_input_dimensions = ImageSpec();
+    output_dataformat      = TypeDesc::UNKNOWN;
     output_channelformats.clear();
     output_bitspersample      = 0;
     output_scanline           = false;
@@ -259,7 +260,8 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy, string_view channel_set)
         output_tilewidth  = nspec.tile_width;
         output_tileheight = nspec.tile_height;
     }
-    // Remember the first input format we encountered.
+    // Remember the channel format details of the first example of each
+    // channel name that we encounter.
     remember_input_channelformats(img);
 
     if (!ok)
@@ -4519,40 +4521,77 @@ input_file(int argc, const char* argv[])
             }
         }
         if (!ot.imagecache->get_image_info(ustring(filename), 0, 0,
-                                           ustring("exists"), TypeInt, &exists)
-            || !exists) {
+                                           ustring("exists"), TypeInt, &exists))
+            exists = 0;
+        // If the image doesn't appear t exist, but it's a procedural image
+        // generator, then that's ok.
+        if (!exists) {
+            auto input = ImageInput::create(filename);
+            if (input && input->supports("procedural"))
+                exists = 1;
+        }
+        ImageBufRef substitute;  // possible substitute for missing image
+        if (!exists) {
             // Try to get a more precise error message to report
-            auto input      = ImageInput::create(filename);
-            bool procedural = input ? input->supports("procedural") : false;
-            input.reset();
-            if (!Filesystem::exists(filename) && !procedural)
+            if (!Filesystem::exists(filename))
                 ot.errorf("read", "File does not exist: \"%s\"", filename);
             else {
                 auto in         = ImageInput::open(filename);
                 std::string err = in ? in->geterror() : OIIO::geterror();
                 ot.error("read", ot.format_read_error(filename, err));
             }
-            break;
+            // Second chances: do we have a substitute image policy?
+            if (ot.missingfile_policy == "black") {
+                ImageSpec substitute_spec = ot.first_input_dimensions;
+                if (substitute_spec.format == TypeUnknown
+                    || !substitute_spec.width || !substitute_spec.height
+                    || !substitute_spec.nchannels)
+                    substitute_spec = ImageSpec(1920, 1080, 4);
+                substitute.reset(
+                    new ImageBuf(substitute_spec, InitializePixels::Yes));
+            } else if (ot.missingfile_policy == "checker") {
+                ImageSpec substitute_spec = ot.first_input_dimensions;
+                if (substitute_spec.format == TypeUnknown
+                    || !substitute_spec.width || !substitute_spec.height
+                    || !substitute_spec.nchannels)
+                    substitute_spec = ImageSpec(1920, 1080, 4);
+                substitute.reset(new ImageBuf(substitute_spec));
+                ImageBufAlgo::checker(*substitute, 64, 64, 1,
+                                      { 0.0f, 0.0f, 0.0f, 1.0f },
+                                      { 1.0f, 1.0f, 1.0f, 1.0f });
+            }
+            if (!substitute)
+                break;
         }
-
         if (channel_set.size()) {
             ot.input_channel_set = channel_set;
             readnow              = true;
         }
 
-        if (ot.debug || ot.verbose)
-            std::cout << "Reading " << filename << "\n";
-        ot.push(ImageRecRef(new ImageRec(filename, ot.imagecache)));
-        if (ot.input_config_set)
-            ot.curimg->configspec(ot.input_config);
-        ot.curimg->input_dataformat(input_dataformat);
-        if (readnow) {
-            ot.curimg->read(ReadNoCache, channel_set);
-            // If we do not yet have an expected output format, set it based
-            // on this image (presumably the first one read.
-            ot.remember_input_channelformats(ot.curimg);
+        if (substitute) {
+            ot.push(ImageRecRef(new ImageRec(substitute)));
+            readnow = false;
+            ap.abort(false);
+        } else {
+            if (ot.debug || ot.verbose)
+                std::cout << "Reading " << filename << "\n";
+            ot.push(ImageRecRef(new ImageRec(filename, ot.imagecache)));
+            if (ot.input_config_set)
+                ot.curimg->configspec(ot.input_config);
+            ot.curimg->input_dataformat(input_dataformat);
+            if (readnow)
+                ot.curimg->read(ReadNoCache, channel_set);
+            else
+                ot.curimg->read_nativespec();
+            if (ot.first_input_dimensions.format == TypeUnknown) {
+                ot.first_input_dimensions.copy_dimensions(
+                    *ot.curimg->nativespec());
+                ot.first_input_dimensions.channelnames
+                    = ot.curimg->nativespec()->channelnames;
+            }
         }
-        if (printinfo || ot.printstats || ot.dumpdata || ot.hash) {
+        if ((printinfo || ot.printstats || ot.dumpdata || ot.hash)
+            && !substitute) {
             OiioTool::print_info_options pio;
             pio.verbose   = ot.verbose || printinfo > 1 || ot.printinfo_verbose;
             pio.subimages = ot.allsubimages || printinfo > 1;
@@ -5517,6 +5556,8 @@ getargs(int argc, char* argv[])
     ap.arg("--iconfig %s:NAME %s:VALUE")
       .help("Sets input config attribute (options: type=...)")
       .action(set_input_attribute);
+    ap.arg("--missingfile %s:OPTION", &ot.missingfile_policy)
+      .help("Set policy for missing input files: 'error' (default), 'black', 'checker'");
     ap.separator("Commands that write images:");
     ap.arg("-o %s:FILENAME")
       .help("Output the current image to the named file (options: "

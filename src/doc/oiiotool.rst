@@ -1174,6 +1174,28 @@ Reading images
 
         oiiotool --iconfig "oiio:UnassociatedAlpha" 1 in.png -o out.tif
 
+.. option:: --missingfile <value>
+
+    Determines the behavior when an input file is not found, and no file of
+    that name exists at all. An error is always printed and the `oiiotool`
+    program always has an error-indicating exit code. But how it proceeds
+    with the rest of the commands may vary depending on the option value:
+
+    - `error` : (default) Consider it a full error for that frame iteration.
+
+    - `black` : After the error is printed, try to continue with the rest of
+      the command, substituting an opaque black image for the missing file.
+
+    - `checker` : After the error is printed, try to continue with the rest
+       of the command, substituting a checkerboard image for the missing
+       file.
+
+    Note that the resolution, channels, and format (but not arbitrary
+    metadata) of the missing file substution image will be the same as the
+    first image that was successfully read. If the first image requested is
+    missing (thus, nothing had been successfully read when the missing image
+    is needed), it will be HD resolution, 1920x1080, RGBA.
+
 
 .. _sec-oiiotool-o:
 

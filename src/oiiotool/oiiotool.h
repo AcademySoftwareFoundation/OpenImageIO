@@ -71,7 +71,9 @@ public:
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
     std::string printinfo_format;
-    ImageSpec input_config;         // configuration options for reading
+    std::string missingfile_policy;
+    ImageSpec input_config;  // configuration options for reading
+    ImageSpec first_input_dimensions;
     std::string input_channel_set;  // Optional input channel set
 
     // Output options
@@ -374,7 +376,7 @@ public:
              bool writable, bool copy_pixels = true);
 
     // Create an ImageRef that consists of the ImageBuf img.  Copy img
-    // if copy_pixels==true, otherwise just take ownership of img (it's
+    // if copy_pixels==true, otherwise just take co-ownership of img (it's
     // a shared pointer).
     ImageRec(ImageBufRef img, bool copy_pixels = true);
 
