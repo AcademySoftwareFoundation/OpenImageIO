@@ -61,7 +61,7 @@
 // Detect which C++ standard we're using, and handy macros.
 // See https://en.cppreference.com/w/cpp/compiler_support
 //
-// OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (11, 14, ...)
+// OIIO_CPLUSPLUS_VERSION : which C++ standard is compiling (14, 17, ...)
 // OIIO_CONSTEXPR14 :
 // OIIO_CONSTEXPR17 :
 // OIIO_CONSTEXPR20 : constexpr for C++ >= the designated version, otherwise
@@ -70,42 +70,35 @@
 // OIIO_INLINE_CONSTEXPR : inline constexpr variables, added in C++17. For
 //                         older C++, just constexpr.
 //
-// Note: oiioversion.h defines OIIO_BUILD_CPP11, OIIO_BUILD_CPP14,
-// OIIO_BUILD_CPP17, or OIIO_BUILD_CPP20 to be 1 if OIIO itself was *built*
-// using C++11, C++14, C++17, or C++20, respectively. In contrast,
+// Note: oiioversion.h defines OIIO_BUILD_CPP (set to 14, 17, etc.)
+// reflecting what OIIO itself was *built* with.  In contrast,
 // OIIO_CPLUSPLUS_VERSION defined below will be set to the right number for
 // the C++ standard being compiled RIGHT NOW. These two things may be the
 // same when compiling OIIO, but they may not be the same if another
 // package is compiling against OIIO and using these headers (OIIO may be
-// C++11 but the client package may be newer, or vice versa -- use these two
+// C++14 but the client package may be newer, or vice versa -- use these two
 // symbols to differentiate these cases, when important).
 #if (__cplusplus >= 202001L)
 #    define OIIO_CPLUSPLUS_VERSION 20
-#    define OIIO_CONSTEXPR14 constexpr
 #    define OIIO_CONSTEXPR17 constexpr
 #    define OIIO_CONSTEXPR20 constexpr
 #    define OIIO_INLINE_CONSTEXPR inline constexpr
 #elif (__cplusplus >= 201703L)
 #    define OIIO_CPLUSPLUS_VERSION 17
-#    define OIIO_CONSTEXPR14 constexpr
 #    define OIIO_CONSTEXPR17 constexpr
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
 #    define OIIO_INLINE_CONSTEXPR inline constexpr
 #elif (__cplusplus >= 201402L) || (defined(_MSC_VER) && _MSC_VER >= 1914)
 #    define OIIO_CPLUSPLUS_VERSION 14
-#    define OIIO_CONSTEXPR14 constexpr
-#    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
-#    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
-#    define OIIO_INLINE_CONSTEXPR constexpr
-#elif (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1900)
-#    define OIIO_CPLUSPLUS_VERSION 11
-#    define OIIO_CONSTEXPR14 /* not constexpr before C++14 */
 #    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
 #    define OIIO_INLINE_CONSTEXPR constexpr
 #else
-#    error "This version of OIIO is meant to work only with C++11 and above"
+#    error "This version of OIIO is meant to work only with C++14 and above"
 #endif
+
+// DEPRECATED(2.3): use C++14 constexpr
+#define OIIO_CONSTEXPR14 constexpr
 
 // DEPRECATED(1.8): use C++11 constexpr
 #define OIIO_CONSTEXPR constexpr
@@ -190,15 +183,15 @@
 
 // Tests for MSVS versions, always 0 if not MSVS at all.
 #if defined(_MSC_VER)
-#  if _MSC_VER < 1900
-#    error "This version of OIIO is meant to work only with Visual Studio 2015 or later"
-#  endif
 #  define OIIO_MSVS_AT_LEAST_2013 (_MSC_VER >= 1800)
 #  define OIIO_MSVS_BEFORE_2013   (_MSC_VER <  1800)
 #  define OIIO_MSVS_AT_LEAST_2015 (_MSC_VER >= 1900)
 #  define OIIO_MSVS_BEFORE_2015   (_MSC_VER <  1900)
 #  define OIIO_MSVS_AT_LEAST_2017 (_MSC_VER >= 1910)
 #  define OIIO_MSVS_BEFORE_2017   (_MSC_VER <  1910)
+#  if OIIO_MSVS_BEFORE_2017
+#    error "This version of OIIO is meant to work only with Visual Studio 2017 or later"
+#  endif
 #else
 #  define OIIO_MSVS_AT_LEAST_2013 0
 #  define OIIO_MSVS_BEFORE_2013   0

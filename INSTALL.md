@@ -14,17 +14,12 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 
 ### Required dependencies -- OIIO will not build at all without these
 
- * C++11 (also builds with C++14, C++17, and C++20)
+ * **C++14** (also builds with C++17, and C++20)
      * The default build mode is C++14. This can be controlled by via the
-       CMake configuration flag: `-DCMAKE_CXX_STANDARD=11`.
-     * The retirement of C++11 support is coming soon!
- * Compilers: gcc 4.8.2 - 10.2, clang 3.3 - 11, MSVS 2015 - 2019, icc 13+.
-     * Note that for C++14 conformance, you need gcc >= 6.1, clang >= 3.4,
-       or MSVS >= 2017. If you require older versions of these compilers,
-       you must use C++11 compilation mode. Support for this will likely be
-       removed before the final release of OIIO 2.3.
+       CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
+ * Compilers: **gcc 6.1 - 10.2**, **clang 3.4 - 12**, **MSVS 2017 - 2019**, **icc 17+**.
  * CMake >= 3.12 (tested through 3.20)
- * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 3.0)
+ * OpenEXR/Imath >= 2.0 (recommended: 2.2 or higher; tested through 3.0)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
 
 ### Optional dependencies -- features may be disabled if not found

@@ -28,7 +28,7 @@ message (STATUS "CMAKE_CXX_COMPILER_ID  = ${CMAKE_CXX_COMPILER_ID}")
 # C++ language standard
 #
 set (CMAKE_CXX_STANDARD 14 CACHE STRING
-     "C++ standard to prefer (11, 14, 17, 20, etc.)")
+     "C++ standard to prefer (14, 17, 20, etc.)")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 message (STATUS "Building for C++${CMAKE_CXX_STANDARD}")
