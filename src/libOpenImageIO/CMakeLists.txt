@@ -61,27 +61,10 @@ set (libOpenImageIO_srcs
                           imageoutput.cpp iptc.cpp xmp.cpp
                           color_ocio.cpp
                           maketexture.cpp
-                          ../libutil/argparse.cpp
-                          ../libutil/benchmark.cpp
-                          ../libutil/errorhandler.cpp 
-                          ../libutil/filesystem.cpp 
-                          ../libutil/farmhash.cpp 
-                          ../libutil/filter.cpp 
-                          ../libutil/hashes.cpp 
-                          ../libutil/paramlist.cpp 
-                          ../libutil/plugin.cpp 
-                          ../libutil/SHA1.cpp 
-                          ../libutil/strutil.cpp 
-                          ../libutil/sysutil.cpp 
-                          ../libutil/thread.cpp 
-                          ../libutil/timer.cpp 
-                          ../libutil/typedesc.cpp 
-                          ../libutil/ustring.cpp 
-                          ../libutil/xxhash.cpp 
-                          ../libtexture/texturesys.cpp 
-                          ../libtexture/texture3d.cpp 
-                          ../libtexture/environment.cpp 
-                          ../libtexture/texoptions.cpp 
+                          ../libtexture/texturesys.cpp
+                          ../libtexture/texture3d.cpp
+                          ../libtexture/environment.cpp
+                          ../libtexture/texoptions.cpp
                           ../libtexture/imagecache.cpp
                           ${libOpenImageIO_srcs}
                           ${libOpenImageIO_hdrs}
@@ -135,6 +118,7 @@ endif ()
 
 target_link_libraries (OpenImageIO
         PUBLIC
+            OpenImageIO_Util
             # For OpenEXR/Imath 3.x:
             $<$<TARGET_EXISTS:Imath::Imath>:Imath::Imath>
             $<$<TARGET_EXISTS:Imath::Half>:Imath::Half>

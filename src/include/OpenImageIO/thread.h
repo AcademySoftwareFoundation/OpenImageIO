@@ -647,7 +647,7 @@ private:
 ///
 /// Thread pool. Have fun, be safe.
 ///
-class OIIO_API thread_pool {
+class OIIO_UTIL_API thread_pool {
 public:
     /// Initialize the pool.  This implicitly calls resize() to set the
     /// number of worker threads, defaulting to a number of workers that is
@@ -770,7 +770,7 @@ private:
 /// ordinary circumstances, you should use this exclusively to get a
 /// single shared thread pool, since creating multiple thread pools
 /// could result in hilariously over-threading your application.
-OIIO_API thread_pool* default_thread_pool ();
+OIIO_UTIL_API thread_pool* default_thread_pool ();
 
 
 
@@ -793,7 +793,7 @@ OIIO_API thread_pool* default_thread_pool ();
 ///        // wait for all those queue tasks to finish.
 ///    }
 ///
-class OIIO_API task_set {
+class OIIO_UTIL_API task_set {
 public:
     task_set(thread_pool* pool = nullptr)
         : m_pool(pool ? pool : default_thread_pool())

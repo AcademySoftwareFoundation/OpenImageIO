@@ -105,7 +105,7 @@ OIIO_NAMESPACE_BEGIN
 ///   - if you don't need to do a lot of string assignment or equality
 ///     testing, but lots of more complex string manipulation.
 ///
-class OIIO_API ustring {
+class OIIO_UTIL_API ustring {
 public:
     typedef char value_type;
     typedef value_type* pointer;

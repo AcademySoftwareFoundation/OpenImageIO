@@ -50,7 +50,7 @@ OIIO_NAMESPACE_BEGIN
 ///
 /////////////////////////////////////////////////////////////////////////////
 
-struct OIIO_API TypeDesc {
+struct OIIO_UTIL_API TypeDesc {
     /// BASETYPE is a simple enum describing the base data types that
     /// correspond (mostly) to the C/C++ built-in types.
     enum BASETYPE {
@@ -387,7 +387,7 @@ static constexpr TypeDesc TypePointer(TypeDesc::PTR);
 
 
 // DEPRECATED(2.1)
-OIIO_API
+OIIO_UTIL_API
 std::string tostring (TypeDesc type, const void *data,
                       const char *float_fmt,                // E.g. "%g"
                       const char *string_fmt = "%s",        // E.g. "\"%s\""
@@ -525,7 +525,7 @@ struct tostring_formatting {
 /// Return a string containing the data values formatted according
 /// to the type and the optional formatting control arguments. Will be
 /// deprecated someday as printf formatting falls out of favor.
-OIIO_API std::string
+OIIO_UTIL_API std::string
 tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 
 
@@ -544,7 +544,7 @@ tostring(TypeDesc type, const void* data, const tostring_formatting& fmt = {});
 /// * If dsttype is float: inteegers and other float types will do
 ///   their best conversion; strings will convert if and only if their
 ///   characters form a valid float number.
-OIIO_API bool
+OIIO_UTIL_API bool
 convert_type(TypeDesc srctype, const void* src,
              TypeDesc dsttype, void* dst, int n = 1);
 

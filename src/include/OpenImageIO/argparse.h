@@ -171,7 +171,7 @@ OIIO_NAMESPACE_BEGIN
 /////////////////////////////////////////////////////////////////////////////
 
 
-class OIIO_API ArgParse {
+class OIIO_UTIL_API ArgParse {
 public:
     class Arg;  // Forward declarion of Arg
 
@@ -401,7 +401,7 @@ public:
     ///       .help("Verbose mode")
     ///       .action(Arg::store_true());
     ///
-    class OIIO_API Arg {
+    class OIIO_UTIL_API Arg {
     public:
         // Arg constructor. This should only be called by
         // ArgParse::add_argument().

@@ -58,7 +58,7 @@ OIIO_NAMESPACE_BEGIN
 /// (b) calling it millions of times could make your program appreciably
 /// more expensive due to the timers themselves.
 ///
-class OIIO_API Timer {
+class OIIO_UTIL_API Timer {
 public:
     typedef long long ticks_t;
     enum StartNowVal { DontStartNow, StartNow };
