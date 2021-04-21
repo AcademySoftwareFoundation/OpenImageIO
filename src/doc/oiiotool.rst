@@ -3412,7 +3412,9 @@ bottom you will see the list of all color spaces, looks, and displays that
 
       Assume the image is in the named color space. If no `from=` is
       supplied, it will try to deduce it from the image's metadata or
-      previous `--iscolorspace` directives.
+      previous `--iscolorspace` directives. If no such hints are available,
+      it will assume the pixel data are in the default linear scene-referred
+      color space.
 
     - `to=` *val*
 
@@ -3465,7 +3467,9 @@ bottom you will see the list of all color spaces, looks, and displays that
       `from=` *val*
         Assume the image is in the named color space. If no `from=` is
         supplied, it will try to deduce it from the image's metadata or
-        previous `--iscolorspace` directives.
+        previous `--iscolorspace` directives. If no such hints are
+        available, it will assume the pixel data are in the default linear
+        scene-referred color space.
     
       `key=` *name*, `value=` *str*
         Adds a key/value pair to the "context" that OpenColorIO will used
