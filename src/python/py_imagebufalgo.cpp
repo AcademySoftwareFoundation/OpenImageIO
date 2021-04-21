@@ -2351,6 +2351,7 @@ declare_imagebufalgo(py::module& m)
         .value("MakeTxEnvLatl", ImageBufAlgo::MakeTxEnvLatl)
         .value("MakeTxEnvLatlFromLightProbe",
                ImageBufAlgo::MakeTxEnvLatlFromLightProbe)
+        .value("MakeTxBumpWithSlopes", ImageBufAlgo::MakeTxBumpWithSlopes)
         .export_values();
 
     py::class_<ImageBufAlgo::PixelStats>(m, "PixelStats")
