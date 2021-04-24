@@ -245,6 +245,13 @@ command += oiiotool ("-i:ch=R,G,B const5.tif -o const5-rgb.tif")
 command += oiiotool ("-pattern constant:color=1,0,0 64x64 3 -pattern constant:color=0,1,0,1 64x64 4 -add -o add_rgb_rgba.exr")
 command += info_command ("add_rgb_rgba.exr", safematch=True)
 
+# Test --missingfile
+command += oiiotool ("--create 320x240 4 --box:color=1,0,0,1:fill=1  10,10,200,100 -d uint8 -o box.tif")
+# Test again using --missingfile black
+command += oiiotool ("--missingfile black box.tif missing.tif --over -o box_over_missing2.tif || true")
+# Test again using --missingfile checker
+command += oiiotool ("--missingfile checker box.tif missing.tif --over -o box_over_missing3.tif || true")
+
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
@@ -291,6 +298,8 @@ outputs = [
             "exprgradient.tif", "exprcropped.tif", "exprstrcatlzw.tif",
             "tahoe-contraststretch.tif",
             "const5-rgb.tif",
+            "box_over_missing2.tif",
+            "box_over_missing3.tif",
             "out.txt" ]
 
 #print "Running this command:\n" + command + "\n"
