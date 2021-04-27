@@ -1,3 +1,6 @@
+Release 2.2.15 (1 Jun? 2021) -- compared to 2.2.14
+--------------------------------------------------
+
 Release 2.2.14 (1 May 2021) -- compared to 2.2.13
 --------------------------------------------------
 * JPEG: Improve readin of files with mildly corrupted headers. #2927
