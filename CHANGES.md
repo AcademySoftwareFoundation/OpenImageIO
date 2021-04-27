@@ -1,5 +1,19 @@
-Release 2.2.14 (1 May? 2021) -- compared to 2.2.13
+Release 2.2.14 (1 May 2021) -- compared to 2.2.13
 --------------------------------------------------
+* JPEG: Improve readin of files with mildly corrupted headers. #2927
+* TIFF: Support IOProxy for input. #2921
+* BMP: Improve performance by eliminating wasteful per-scanline allocation
+  and needless data copying. #2934
+* Build/CI: Fix all the build_*.bash scripts to not use cmake --config flag,
+  which was harmlessly ignored but is flagged as an error for CMake 3.20.
+  #2931
+* Build: More fixes related to supporting a wide range of OpenEXR versions,
+  and making our exported cmake configs correctly transmit dependencies on
+  OpenEXR include paths. #2935 #2941 #2942 #2947
+* ImageBufAlgo::fillholes_pushpull: added logic to correctly set the spec's
+  alpha_channel field when generating sub-images. #2939
+* Python: MakeTxBumpWithSlopes enum value had been inadvertently omitted
+  from the Python bindings. #2951
 
 Release 2.2.13 (1 Apr 2021) -- compared to 2.2.12
 --------------------------------------------------
