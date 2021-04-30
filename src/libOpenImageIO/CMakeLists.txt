@@ -159,7 +159,7 @@ target_link_libraries (OpenImageIO
             $<$<BOOL:${OpenColorIO_FOUND}>:OpenColorIO::OpenColorIO>
             $<$<BOOL:${pugixml_FOUND}>:pugixml::pugixml>
             ${BZIP2_LIBRARIES}
-            ${ZLIB_LIBRARIES}
+            ZLIB::ZLIB
             ${Boost_LIBRARIES}
             ${CMAKE_DL_LIBS}
         )

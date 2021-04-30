@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
-if (PNG_FOUND)
+if (TARGET PNG::PNG)
     add_oiio_plugin (icoinput.cpp icooutput.cpp
-                     INCLUDE_DIRS ${PNG_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS}
-                     LINK_LIBRARIES ${PNG_LIBRARIES} ${ZLIB_LIBRARIES})
+                     LINK_LIBRARIES PNG::PNG ZLIB::ZLIB)
 else ()
     message (WARNING "libpng not found, so ICO support will not work")
     set (format_plugin_definitions ${format_plugin_definitions} DISABLE_ICO=1 PARENT_SCOPE)
