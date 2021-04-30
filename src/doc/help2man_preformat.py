@@ -10,7 +10,7 @@ import sys
 
 lines = [l.rstrip().replace('\t', ' '*8) for l in sys.stdin.readlines()]
 
-print('TITLE')
+print('NAME')
 print(lines[0])
 print()
 
