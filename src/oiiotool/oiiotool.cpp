@@ -4620,7 +4620,7 @@ input_file(int argc, const char* argv[])
         if (autocc) {
             // Try to deduce the color space it's in
             string_view colorspace(
-                ot.colorconfig.parseColorSpaceFromString(filename));
+                ot.colorconfig.getColorSpaceFromFilepath(filename));
             if (colorspace.size() && ot.debug)
                 std::cout << "  From " << filename
                           << ", we deduce color space \"" << colorspace
@@ -4886,7 +4886,7 @@ output_file(int /*argc*/, const char* argv[])
     // automatically set -d based on the name if --autocc is used.
     bool autocc          = fileoptions.get_int("autocc", ot.autocc);
     bool autoccunpremult = fileoptions.get_int("unpremult", ot.autoccunpremult);
-    string_view outcolorspace = ot.colorconfig.parseColorSpaceFromString(
+    string_view outcolorspace = ot.colorconfig.getColorSpaceFromFilepath(
         filename);
     if (autocc && outcolorspace.size()) {
         TypeDesc type;
@@ -4901,8 +4901,8 @@ output_file(int /*argc*/, const char* argv[])
                     && ot.output_bitspersample != bits)) {
                 ot.warningf(
                     command,
-                    "Output filename colorspace \"%s\" implies %s (%d bits), overriding prior request for %s.",
-                    outcolorspace, type, bits, ot.output_dataformat);
+                    "Output filename (%s) colorspace \"%s\" implies %s (%d bits), overriding prior request for %s.",
+                    filename, outcolorspace, type, bits, ot.output_dataformat);
             }
             ot.output_dataformat    = type;
             ot.output_bitspersample = bits;
