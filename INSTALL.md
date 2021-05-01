@@ -24,8 +24,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        you must use C++11 compilation mode. Support for this will likely be
        removed before the final release of OIIO 2.3.
  * CMake >= 3.12 (tested through 3.20)
- * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 2.5, also
-   tested against the current master that will be OpenEXR 3.0 / Imath 3.0)
+ * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 3.0)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
 
 ### Optional dependencies -- features may be disabled if not found

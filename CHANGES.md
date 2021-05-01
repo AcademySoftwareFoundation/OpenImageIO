@@ -1,7 +1,9 @@
 Release 2.3 (??) -- compared to 2.2
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
-* C++ standard: C++20 is now supported. #2891 (2.3.3)
+* C++ standard: C++20 is now supported. #2891 (2.3.3) The default C++
+  standard mode, if none is explicitly specified, is now C++14. #2918 (2.3.4)
+
 
 New major features and public API changes:
 * C API:  #2748 (2.3.1.0)
@@ -36,6 +38,8 @@ New major features and public API changes:
   read from files. "Computed" or copied ImageBuf's are solo images in memory
   that no longer correspond to a file even if the input to the computation
   was from a file. #2759 (2.3.0.1/2.2.9)
+* New `get_extension_map()` returns a map that list all image file formats
+  and their presumed file extensions. #2904 (2.3.4)
 * oiiotool new commands and options:
     - `--pastemeta` takes two images as arguments, and appends all the
       metadata (only) from the first image onto the second image's pixels
@@ -50,6 +54,22 @@ New major features and public API changes:
       before the transformation and then re-premultiply afterwards, exactly
       the same control that exists for individual `--colorconvert` but never
       existed for autocc. #2890 (2.3.3)
+    - `--list-formats` lists all the image file formats that OIIO knows
+      about, and for each, the associated file extensions. #2904 (2.3.4)
+    - `--skip-bad-frames` causes an error (such as an input file not being
+      found) to simply skip to the next frame in the frame range loop, rather
+      that immediately exiting. #2905 (2.3.4)
+    - When doing expression substituion, `{getattribute(name)}` will be
+      replaced by the value that `OIIO::getattribute(name, ...)` would
+      retrieve.  #2932 (2.3.4)
+    - `--missingfile` (which takes a subsequent argument of `error`, `black`,
+      or `checker`) determines the behavior when an input image file is
+      missing (the file does not exist at all, does not include cases where
+      the file exists but there are read errors). The default value of
+      `error` matches the old behavior: report an error and terminate all
+      command processing. Other choices of `black` or `checker` will continue
+      processing but substitute either a black or checkerboard image for the
+      missing file. #2949 (2.3.4)
 * Python bindings:
     - When transferring blocks of pixels (e.g., `ImageInput.read_image()`
       or `ImageOutput.write_scanline()`), "half" pixels ended up mangled
@@ -58,8 +78,18 @@ New major features and public API changes:
     - The value passed to `attribute(name, typedesc, value)` can now be a
       tuple, list, numpy array, or scalar value. #2695 (2.3.0.0)
     - Added Python bindings for the TextureSystem. #2842
-
+    - Add the previously (inadvertently) omitted enum value for
+      `ImageBufAlgo.MakeTxBumpWithSlopes`. #2951 (2.3.4)
+* Library organization:
+    - All the utility classes are now in libOpenImageIO_Util *only* and
+      libOpenImageIO depends on and links to libOpenImageIO_Util, rather
+      than the utility classes being defined separately in both libraries.
+      #2906 (2.3.4)
 Performance improvements:
+* Speed up BMP reading by eliminating wasteful allocation and copying
+  done on each scanline read. #2934 (2.3.4)
+* For `IBA::to_OpenCV()`, improve efficiency for certain image copies. #2944
+  (2.3.4) 
 
 Fixes and feature enhancements:
 * Fix a situation where if an ImageBuf backed by an ImageCache reads an
@@ -94,6 +124,8 @@ Fixes and feature enhancements:
       select the inverse transformation. #2844 (2.3.3/2.2.11)
     - Fix crash for certain calls to ImageBuf::set_write_format when writing
       files that support per-channel data types. #2885 (2.3.3)
+    - Fix: `IBA::fillholes_pushpull` did not correctly understand which
+      channel was alpha when generating subimages. #2939 (2.3.4)
 * ImageCache/TextureSystem/maketx:
     - Fix ImageCache bug: add_tile/get_tile not properly honoring when
      `chend < chbegin` it should get all channels. #2742 (2.3.0.1/2.2.8)
@@ -116,6 +148,11 @@ Fixes and feature enhancements:
       or 32) to indicate non-whole-byte channels sizes in the file, and
       "bmp:version" to indicate the version of the BMP format. #2899
       (2.3.3/2.2.13)
+    - Speed up BMP reading by eliminating wasteful allocation and copying
+      done on each scanline read. #2934 (2.3.4)
+    - For BMP files that are 8 bits per pixel and all palette entries have
+      R == G == B values, read the file as an 8-bit grayscale image instead
+      of needlessly promoting to a full RGB 3-channel image. #2943 (2.3.4)
 * FFMpeg/movies:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
 * GIF
@@ -129,6 +166,8 @@ Fixes and feature enhancements:
       #2818 (2.3.3.0)
 * IFF
     - Fix broken reads of 16 bit iff files. #2736 (2.3.0.1/2.2.8)
+* JPEG
+    - Allow reading of JPEG files with mildly corrupted headers. #2927 (2.3.4)
 * OpenEXR:
     - Fix rare crash that was possible when multithreaded writing openexr
       files. #2781 (2.3.2.0)
@@ -161,6 +200,7 @@ Fixes and feature enhancements:
     - Fix incorrect reading of tiled TIFF files using certain rare TIFF
       features that also have a vertical resolution that is not a whole
       multiple of the tile size. #2895 (2.3.3/2.2.13)
+    - Support IOProxy for reading TIFF files. #2921 (2.3.4)
 * WebP:
     - Add support for requesting compression "lossless". #2726 (2.3.0.1/2.2.8)
     - Input improvements including: RGB images are kept as RGB instead of
@@ -174,6 +214,9 @@ Developer goodies / internals:
   (2.3.0.1)
 * More internals conversion of old Strutil::sprintf to Strutil::fmt::format
   and related changes. #2889 (2.3.3)
+* Redundant format conversion code removed from imageio.cpp #2907 (2.3.4)
+* Eliminate direct output to std::cerr and std::cout by library calls.
+  #2923 (2.3.4)
 * argparse.h:
     - ArgParse::abort() lets the response to a command line argument signal
       that no further arguments should be parsed. #2820 (2.3.3/2.2.11)
@@ -188,7 +231,7 @@ Developer goodies / internals:
       bytes of large arrays). #2763 (2.3.1.0)
 * hash.h:
     - `farmhash::inlined::Hash` now is constexpr and works for Cuda.
-      #2843 (2.3.3)
+      #2843 (2.3.3) #2914 #2930 (2.3.4)
 * oiioversion.h:
     - New macros `OIIO_VERSION_GREATER_EQUAL` and `OIIO_VERSION_LESS`.
       #2831 (2.3.3/2.2.11)
@@ -248,14 +291,19 @@ Build/test system improvements and platform ports:
       builds). #2861 (2.2.12/2.3.3)
     - The pkgconfig OpenImageIO.pc was specifying the include path
       incorrectly. #2869 (2.2.12/2.3.3)
+    - Support for CMake 3.20. #2913 #2931 (2.3.4)
+    - Be sure to have the namespace include the patch number for pre-release
+      builds from the master branch. #2948 (2.3.4)
+    - Use modern style cmake targets for PNG and ZLIB dependencies. #2957
+      (2.3.4)
 * Dependency version support:
     - Fix deprecation warnings when building with very new PugiXML versions.
       #2733 (2.3.0.1/2.2.8)
     - Fixes to build against OpenColorIO 2.0. #2765 (2.3.0.1/2.2.8) #2817
-      #2849 (2.3.3/2.2.11)
+      #2849 (2.3.3/2.2.11) #2911 (2.3.4)
     - Work to ensure that OIIO will build correctly against the upcoming
       Imath 3.0 and OpenEXR 3.0. #2771 (2.3.1.1/2.2.9) #2876 #2678 #2883
-      #2894 (2.3.3/2.2.12)
+      #2894 (2.3.3/2.2.12) #2935 #2941 #2942 #2947 (2.3.4)
     - Better finding of OpenJpeg 2.4. #2829 (2.3.3/2.2.11)
     - On Mac, libheif 1.10 is very broken. Don't use that version. #2847
       (2.3.3/2.2.11)
@@ -272,6 +320,7 @@ Build/test system improvements and platform ports:
       (2.2.12/2.3.3)
     - Remove obsolete dependency on Boost random (now use std::random).
       #2896 (2.3.3)
+    - libtiff 4.3 is supported. #2953 (2.3.4)
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
     - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
@@ -313,6 +362,46 @@ Notable documentation changes:
   be done for different language bindings. #2768 (2.3.1.0)
 
 
+Release 2.2.14 (1 May 2021) -- compared to 2.2.13
+--------------------------------------------------
+* JPEG: Improve readin of files with mildly corrupted headers. #2927
+* TIFF: Support IOProxy for input. #2921
+* BMP: Improve performance by eliminating wasteful per-scanline allocation
+  and needless data copying. #2934
+* Build/CI: Fix all the build_*.bash scripts to not use cmake --config flag,
+  which was harmlessly ignored but is flagged as an error for CMake 3.20.
+  #2931
+* Build: More fixes related to supporting a wide range of OpenEXR versions,
+  and making our exported cmake configs correctly transmit dependencies on
+  OpenEXR include paths. #2935 #2941 #2942 #2947
+* ImageBufAlgo::fillholes_pushpull: added logic to correctly set the spec's
+  alpha_channel field when generating sub-images. #2939
+* Python: MakeTxBumpWithSlopes enum value had been inadvertently omitted
+  from the Python bindings. #2951
+
+Release 2.2.13 (1 Apr 2021) -- compared to 2.2.12
+--------------------------------------------------
+* Get ready for upcoming Imath/OpenEXR 3.0 release. #2883 #2894 #2897
+* GIF: Fix error checking for non-existant GIF files. #2886
+* Fix crash related to ImageBuf:set_write_format() when used in conjunction
+  with a file format that doesn't support per-channel data types. #2885
+* Make RAW files handle Unicode filenames on Windows. #2888
+* Make sure OIIO builds cleanly with C++20. #2891
+* BMP: Several bug fixes when reading an older (V1) variety of BMP files. 
+  #2899
+* Targa: fix reading tga files with 0-sized thumbnails. #2903
+* TIFF: fix reading of certain tiled TIFF files with the vertical image size
+  is not a whole multiple of the tile size. #2895
+* Avoid OpenColorIO v2 exception when color-conversion of single points (we
+  didn't pass a correct stride, thinking that stride isn't used for a single
+  point). #2911
+* make_texture: When outputting to a 'half' data format file, clamp filtered
+  values to the half range so large values don't inadvertently get converted
+  to half 'infinite' values. #2892
+* Improvements to ustring internals to ensure that no two ustrings ever end
+  up with the same hash() value. #2870
+* Fixes for compiler errors when compiling farmhash.h using C++11 mode with
+  newer gcc (6+). #2914
 
 Release 2.2.12 (1 Mar 2021) -- compared to 2.2.11
 --------------------------------------------------
