@@ -19,6 +19,7 @@
 #endif
 
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/find.hpp>
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/platform.h>
@@ -462,6 +463,44 @@ bool
 Strutil::icontains(string_view a, string_view b)
 {
     return boost::algorithm::icontains(a, b, std::locale::classic());
+}
+
+
+size_t
+Strutil::find(string_view a, string_view b)
+{
+    return a.find(b);
+}
+
+
+size_t
+Strutil::rfind(string_view a, string_view b)
+{
+    return a.rfind(b);
+}
+
+
+size_t
+Strutil::ifind(string_view a, string_view b)
+{
+    if (a.empty())
+        return string_view::npos;
+    if (b.empty())
+        return 0;
+    auto f = boost::algorithm::ifind_first(a, b, std::locale::classic());
+    return f.empty() ? string_view::npos : f.begin() - a.data();
+}
+
+
+size_t
+Strutil::irfind(string_view a, string_view b)
+{
+    if (a.empty())
+        return string_view::npos;
+    if (b.empty())
+        return a.size();
+    auto f = boost::algorithm::ifind_last(a, b, std::locale::classic());
+    return f.empty() ? string_view::npos : f.begin() - a.data();
 }
 
 

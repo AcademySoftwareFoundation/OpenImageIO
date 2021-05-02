@@ -326,6 +326,22 @@ bool OIIO_API iends_with (string_view a, string_view b);
 /// Does 'a' contain the string 'b' within it?
 bool OIIO_API contains (string_view a, string_view b);
 
+/// Return the position of the first occurrence of `b` within `a`, or
+/// std::npos if not found.
+size_t OIIO_API find(string_view a, string_view b);
+
+/// Return the position of the first occurrence of `b` within `a`, with a
+/// case-insensitive comparison, or std::npos if not found.
+size_t OIIO_API ifind(string_view a, string_view b);
+
+/// Return the position of the last occurrence of `b` within `a`, or npos if
+/// not found.
+size_t OIIO_API rfind(string_view a, string_view b);
+
+/// Return the position of the last occurrence of `b` within `a`, with a
+/// case-insensitive comparison, or npos if not found.
+size_t OIIO_API irfind(string_view a, string_view b);
+
 /// Does 'a' contain the string 'b' within it, using a case-insensitive
 /// comparison?
 bool OIIO_API icontains (string_view a, string_view b);
