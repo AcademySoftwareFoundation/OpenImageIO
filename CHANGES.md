@@ -1,9 +1,13 @@
 Release 2.3 (??) -- compared to 2.2
 ----------------------------------------------
+Note: Tag "Release-2.3.4.0-dev" is the last tagged developer preview that is
+guaranteed to be compatible with C++11 and gcc-4.8. The master branch
+subsequent to 2.3.4.0-dev will assume a minimum of C++14 (and whichever
+compiler versions are required for that minimum).
+
 New minimum dependencies and compatibility changes:
 * C++ standard: C++20 is now supported. #2891 (2.3.3) The default C++
   standard mode, if none is explicitly specified, is now C++14. #2918 (2.3.4)
-
 
 New major features and public API changes:
 * C API:  #2748 (2.3.1.0)
@@ -256,6 +260,7 @@ Developer goodies / internals:
     - Fix build break when strutil.h was included in Cuda 10.1 code. #2743
       (2.3.0.1/2.2.8)
     - `strhash()` is now constexpr for C++14 and higher. #2843 (2.3.3)
+    - Strutil new functions: find, rfind, ifind, irfind (#2960) (2.3.4)
 * typedesc.h:
     - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
       precision and range to hold the basetypes of either `a` or `b`.
