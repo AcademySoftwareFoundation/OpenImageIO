@@ -1,10 +1,5 @@
 Release 2.3 (??) -- compared to 2.2
 ----------------------------------------------
-Note: Tag "Release-2.3.4.0-dev" is the last tagged developer preview that is
-guaranteed to be compatible with C++11 and gcc-4.8. The master branch
-subsequent to 2.3.4.0-dev will assume a minimum of C++14 (and whichever
-compiler versions are required for that minimum).
-
 New minimum dependencies and compatibility changes:
 * C++ standard: C++20 is now supported. #2891 (2.3.3) The default C++
   standard mode, if none is explicitly specified, is now C++14. #2918 (2.3.4)
