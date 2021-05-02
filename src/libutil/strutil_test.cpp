@@ -294,6 +294,32 @@ test_comparisons()
     OIIO_CHECK_EQUAL(Strutil::icontains("", ""), true);
     OIIO_CHECK_EQUAL(Strutil::icontains("", "x"), false);
 
+    OIIO_CHECK_EQUAL(Strutil::find("abcdeabcde", "bc"), 1);
+    OIIO_CHECK_EQUAL(Strutil::find("abcdeabcde", "BC"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::find("abcdeabcde", "ac"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::find("abcdeabcde", ""), 0);
+    OIIO_CHECK_EQUAL(Strutil::find("", "abc"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::find("", ""), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::rfind("abcdeabcde", "bc"), 6);
+    OIIO_CHECK_EQUAL(Strutil::rfind("abcdeabcde", "BC"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::rfind("abcdeabcde", "ac"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::rfind("abcdeabcde", ""), 10);
+    OIIO_CHECK_EQUAL(Strutil::rfind("", "abc"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::rfind("", ""), std::string::npos);
+
+    OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", "bc"), 1);
+    OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", "BC"), 1);
+    OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", "ac"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::ifind("abcdeabcde", ""), 0);
+    OIIO_CHECK_EQUAL(Strutil::ifind("", "abc"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::ifind("", ""), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", "bc"), 6);
+    OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", "BC"), 6);
+    OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", "ac"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::irfind("abcdeabcde", ""), 10);
+    OIIO_CHECK_EQUAL(Strutil::irfind("", "abc"), std::string::npos);
+    OIIO_CHECK_EQUAL(Strutil::irfind("", ""), std::string::npos);
+
     Strutil::StringEqual eq;
     Strutil::StringIEqual ieq;
     Strutil::StringLess less;
@@ -833,6 +859,9 @@ test_string_view()
     OIIO_CHECK_EQUAL(sr.find("123", 4), s.find("123", 4));
     OIIO_CHECK_EQUAL(sr.find("123", 4), 6);
     OIIO_CHECK_EQUAL(sr.find("143", 4), string_view::npos);
+    OIIO_CHECK_EQUAL(sr.find(""), s.find(""));
+    OIIO_CHECK_EQUAL(sr.find(""), 0);
+    OIIO_CHECK_EQUAL(string_view("").find(""), string_view::npos);
 
     OIIO_CHECK_EQUAL(sr.find('1'), s.find('1'));
     OIIO_CHECK_EQUAL(sr.find('1'), 1);
@@ -850,6 +879,9 @@ test_string_view()
     OIIO_CHECK_EQUAL(sr.rfind("123", 4), 1);
     OIIO_CHECK_EQUAL(sr.rfind("143", 5), string_view::npos);
     OIIO_CHECK_EQUAL(sr.rfind("012", 4), 0);
+    OIIO_CHECK_EQUAL(sr.rfind(""), s.rfind(""));
+    OIIO_CHECK_EQUAL(sr.rfind(""), 10);
+    OIIO_CHECK_EQUAL(string_view("").rfind(""), string_view::npos);
 
     OIIO_CHECK_EQUAL(sr.rfind('1'), s.rfind('1'));
     OIIO_CHECK_EQUAL(sr.rfind('1'), 6);
