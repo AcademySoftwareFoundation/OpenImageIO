@@ -122,7 +122,7 @@
 /// with appropriate fallbacks for older C++ standards.
 #if (__cplusplus >= 201700L) /* FIXME - guess the token, fix when C++17 */
 #    define OIIO_STATIC_ASSERT(cond) static_assert(cond)
-#else /* (__cplusplus >= 201103L) */
+#else
 #    define OIIO_STATIC_ASSERT(cond) static_assert(cond, "")
 #endif
 

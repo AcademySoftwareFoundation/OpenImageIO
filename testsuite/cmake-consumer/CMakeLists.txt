@@ -13,7 +13,7 @@ endif ()
 message (STATUS "Building ${PROJECT_NAME} ${PROJECT_VERSION} - ${CMAKE_BUILD_TYPE}")
 
 # Use C++11
-set (CMAKE_CXX_STANDARD 11 CACHE STRING "C++ standard to prefer (11, 14, 17, etc.)")
+set (CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to prefer (14, 17, etc.)")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 

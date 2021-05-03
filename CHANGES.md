@@ -1,8 +1,9 @@
 Release 2.3 (??) -- compared to 2.2
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
-* C++ standard: C++20 is now supported. #2891 (2.3.3) The default C++
-  standard mode, if none is explicitly specified, is now C++14. #2918 (2.3.4)
+* C++ standard: **C++14 is now the minimum (gcc 6.1 - 10.2, clang 3.4 - 12,
+  MSVS 2017 - 2019, icc 17+).** #2955 (2.3.5) The default C++ standard mode,
+  if none is explicitly specified, is now C++14. #2918 (2.3.4)
 
 New major features and public API changes:
 * C API:  #2748 (2.3.1.0)
@@ -297,6 +298,7 @@ Build/test system improvements and platform ports:
     - Use modern style cmake targets for PNG and ZLIB dependencies. #2957
       (2.3.4)
 * Dependency version support:
+    - C++20 is now supported. #2891 (2.3.3)
     - Fix deprecation warnings when building with very new PugiXML versions.
       #2733 (2.3.0.1/2.2.8)
     - Fixes to build against OpenColorIO 2.0. #2765 (2.3.0.1/2.2.8) #2817
