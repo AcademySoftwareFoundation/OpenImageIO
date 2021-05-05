@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -1347,14 +1348,67 @@ ColorConfig::createMatrixTransform(const Imath::M44f& M, bool inverse) const
 
 
 string_view
-ColorConfig::parseColorSpaceFromString(string_view str) const
+ColorConfig::getColorSpaceFromFilepath(string_view str) const
 {
-#ifdef USE_OCIO
+#if defined(USE_OCIO) && (OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 1, 0))
     if (getImpl() && getImpl()->config_) {
-        return getImpl()->config_->parseColorSpaceFromString(str.c_str());
+        string_view r = getImpl()->config_->getColorSpaceFromFilepath(
+            str.c_str());
+        if (!getImpl()->config_->filepathOnlyMatchesDefaultRule(str.c_str()))
+            return r;
     }
 #endif
-    return "";
+    // Fall back on parseColorSpaceFromString
+    return parseColorSpaceFromString(str);
+}
+
+
+
+string_view
+ColorConfig::parseColorSpaceFromString(string_view str) const
+{
+#if defined(USE_OCIO) && (OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 1, 0))
+    if (getImpl() && getImpl()->config_)
+        return getImpl()->config_->parseColorSpaceFromString(str.c_str());
+#endif
+
+    // Reproduce the logic in OCIO v1 parseColorSpaceFromSring
+
+    if (str.empty())
+        return "";
+
+    // Get the colorspace names, sorted shortest-to-longest
+    auto names = getColorSpaceNames();
+    std::sort(names.begin(), names.end(),
+              [](const std::string& a, const std::string& b) {
+                  return a.length() < b.length();
+              });
+
+    // See if it matches a LUT name.
+    // This is the position of the RIGHT end of the colorspace substring,
+    // not the left
+    size_t rightMostColorPos = std::string::npos;
+    std::string rightMostColorspace;
+
+    // Find the right-most occcurance within the string for each colorspace.
+    for (auto&& csname : names) {
+        // find right-most extension matched in filename
+        size_t pos = Strutil::irfind(str, csname);
+        if (pos == std::string::npos)
+            continue;
+
+        // If we have found a match, move the pointer over to the right end
+        // of the substring.  This will allow us to find the longest name
+        // that matches the rightmost colorspace
+        pos += csname.size();
+
+        if (rightMostColorPos == std::string::npos
+            || pos >= rightMostColorPos) {
+            rightMostColorPos   = pos;
+            rightMostColorspace = csname;
+        }
+    }
+    return string_view(ustring(rightMostColorspace));
 }
 
 

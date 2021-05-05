@@ -265,10 +265,15 @@ public:
     ColorProcessorHandle createMatrixTransform(const Imath::M44f& M,
                                                bool inverse = false) const;
 
+    /// Given a filepath, ask OCIO what color space it thinks the file
+    /// should be, based on how the name matches file naming rules in the
+    /// OCIO config.  (This is mostly a wrapper around OCIO's
+    /// ColorConfig::getColorSpaceFromSFilepath.)
+    string_view getColorSpaceFromFilepath(string_view str) const;
+
     /// Given a string (like a filename), look for the longest, right-most
     /// colorspace substring that appears. Returns "" if no such color space
-    /// is found. (This is just a wrapper around OCIO's
-    /// ColorConfig::parseColorSpaceFromString.)
+    /// is found.
     string_view parseColorSpaceFromString(string_view str) const;
 
     /// Return a filename or other identifier for the config we're using.
