@@ -74,6 +74,7 @@ jobs:
       CC: gcc
       CMAKE_CXX_STANDARD: 14
       USE_SIMD: sse4.2
+      OPENCOLORIO_VERSION: v1.1.1
       PUGIXML_VERSION: v1.9
     steps:
       - uses: actions/checkout@v2
@@ -120,6 +121,7 @@ jobs:
       CMAKE_CXX_STANDARD: 14
       PYTHON_VERSION: 3.7
       USE_SIMD: avx
+      OPENCOLORIO_VERSION: v1.1.1
       WEBP_VERSION: v1.1.0
       MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
     steps:
@@ -170,6 +172,7 @@ jobs:
       CMAKE_CXX_STANDARD: 17
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
+      OPENCOLORIO_VERSION: v2.0.0
       WEBP_VERSION: v1.1.0
     steps:
       - uses: actions/checkout@v2
@@ -218,6 +221,7 @@ jobs:
       CMAKE_CXX_STANDARD: 17
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
+      OPENCOLORIO_VERSION: v2.0.0
       OPENEXR_VERSION: v3.0.1
     steps:
       - uses: actions/checkout@v2
