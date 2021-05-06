@@ -116,6 +116,9 @@ if (NOT BUILD_SHARED_LIBS)
     target_compile_definitions (OpenImageIO PUBLIC OIIO_STATIC_DEFINE=1)
 endif ()
 
+# Propagate C++ minimum to downstream
+target_compile_features (OpenImageIO PUBLIC cxx_std_14)
+
 target_link_libraries (OpenImageIO
         PUBLIC
             OpenImageIO_Util
