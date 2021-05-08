@@ -418,7 +418,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 int palbytespp = (m_tga.cmap_size == 15)
                                      ? 2
                                      : (m_tga.cmap_size / 8);
-                int alphabits = m_tga.attr & 0x0F;
+                int alphabits  = m_tga.attr & 0x0F;
                 if (alphabits == 0 && m_tga.bpp == 32)
                     alphabits = 8;
                 // read palette, if there is any

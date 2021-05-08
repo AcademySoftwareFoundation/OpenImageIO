@@ -102,9 +102,9 @@ ImageRec::ImageRec(ImageRec& A, ImageRec& B, int subimage_to_copy,
 {
     A.read();
     B.read();
-    int subimages = (subimage_to_copy < 0)
-                        ? std::min(A.subimages(), B.subimages())
-                        : 1;
+    int subimages      = (subimage_to_copy < 0)
+                             ? std::min(A.subimages(), B.subimages())
+                             : 1;
     int first_subimage = clamp(subimage_to_copy, 0, subimages - 1);
     m_subimages.resize(subimages);
     for (int s = 0; s < subimages; ++s) {

@@ -774,7 +774,7 @@ adjust_output_options(string_view filename, ImageSpec& spec,
         spec.tile_width  = requested_tilewidth;
         spec.tile_height = requested_tileheight ? requested_tileheight
                                                 : requested_tilewidth;
-        spec.tile_depth = 1;  // FIXME if we ever want volume support
+        spec.tile_depth  = 1;  // FIXME if we ever want volume support
     } else if (was_direct_read && nativespec && nativespec->tile_width > 0
                && nativespec->tile_height > 0 && !requested_scanline
                && format_supports_tiles) {
@@ -1295,7 +1295,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                               ? std::string("%d")
                               : Strutil::sprintf("\"%%0%dd\"",
                                                  ot.frame_padding);
-        result = Strutil::sprintf(fmt.c_str(), ot.frame_number);
+        result          = Strutil::sprintf(fmt.c_str(), ot.frame_number);
     } else {
         express_error(expr, s, "syntax error");
         result = orig;
@@ -4942,14 +4942,14 @@ output_file(int /*argc*/, const char* argv[])
     // that doesn't support negative origins.
     if (!supports_negativeorigin && autocrop
         && (ir->spec()->x < 0 || ir->spec()->y < 0 || ir->spec()->z < 0)) {
-        ROI roi          = get_roi(*ir->spec(0, 0));
-        roi.xbegin       = std::max(0, roi.xbegin);
-        roi.ybegin       = std::max(0, roi.ybegin);
-        roi.zbegin       = std::max(0, roi.zbegin);
-        std::string crop = (ir->spec(0, 0)->depth == 1)
-                               ? format_resolution(roi.width(), roi.height(),
+        ROI roi            = get_roi(*ir->spec(0, 0));
+        roi.xbegin         = std::max(0, roi.xbegin);
+        roi.ybegin         = std::max(0, roi.ybegin);
+        roi.zbegin         = std::max(0, roi.zbegin);
+        std::string crop   = (ir->spec(0, 0)->depth == 1)
+                                 ? format_resolution(roi.width(), roi.height(),
                                                    roi.xbegin, roi.ybegin)
-                               : format_resolution(roi.width(), roi.height(),
+                                 : format_resolution(roi.width(), roi.height(),
                                                    roi.depth(), roi.xbegin,
                                                    roi.ybegin, roi.zbegin);
         const char* argv[] = { "crop:allsubimages=1", crop.c_str() };

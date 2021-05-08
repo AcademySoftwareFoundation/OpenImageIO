@@ -75,7 +75,7 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
 
     const int nchannels = (m_dib_header.bpp == 32) ? 4 : 3;
     const int height    = (m_dib_header.height >= 0) ? m_dib_header.height
-                                                  : -m_dib_header.height;
+                                                     : -m_dib_header.height;
     m_spec = ImageSpec(m_dib_header.width, height, nchannels, TypeDesc::UINT8);
     if (m_dib_header.hres > 0 && m_dib_header.vres > 0) {
         m_spec.attribute("XResolution", (int)m_dib_header.hres);
@@ -260,7 +260,7 @@ BmpInput::read_color_table(void)
     }
     const int32_t colors = (m_dib_header.cpalete) ? m_dib_header.cpalete
                                                   : 1 << m_dib_header.bpp;
-    size_t entry_size = 4;
+    size_t entry_size    = 4;
     // if the file is OS V2 bitmap color table entry has only 3 bytes, not four
     if (m_dib_header.size == OS2_V1)
         entry_size = 3;

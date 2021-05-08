@@ -213,8 +213,8 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
     // prepare and write Targa header
     tga_header tga;
     memset(&tga, 0, sizeof(tga));
-    tga.type = m_spec.nchannels <= 2 ? TYPE_GRAY
-                                     : (m_want_rle ? TYPE_RGB_RLE : TYPE_RGB);
+    tga.type   = m_spec.nchannels <= 2 ? TYPE_GRAY
+                                       : (m_want_rle ? TYPE_RGB_RLE : TYPE_RGB);
     tga.bpp    = m_spec.nchannels * 8;
     tga.width  = m_spec.width;
     tga.height = m_spec.height;
