@@ -39,6 +39,9 @@ if (NOT BUILD_SHARED_LIBS)
     target_compile_definitions (OpenImageIO_Util PUBLIC OIIO_STATIC_DEFINE=1)
 endif ()
 
+# Propagate C++ minimum to downstream consumers
+target_compile_features (OpenImageIO_Util PUBLIC cxx_std_14)
+
 set_target_properties(OpenImageIO_Util
                       PROPERTIES
                          VERSION     ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
