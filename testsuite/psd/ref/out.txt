@@ -644,7 +644,6 @@ Reading ../../../../../oiio-images/psd_rgba_8.psd
     IPTC:OriginalDocumentID: "xmp.did:037A91A22BCDE011A998CBE7B5CCEB92"
     oiio:ColorSpace: "sRGB"
     photoshop:ColorMode: 3, 3
-    photoshop:DocumentAncestors: "E146B3E37A92795EE3EA6577040DE6D5"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -674,7 +673,6 @@ Reading ../../../../../oiio-images/psd_rgba_8.psd
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "Layer 1"
     photoshop:ColorMode: 3, 3
-    photoshop:DocumentAncestors: "E146B3E37A92795EE3EA6577040DE6D5"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -706,7 +704,6 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     IPTC:OriginalDocumentID: "xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     oiio:ColorSpace: "sRGB"
     photoshop:ColorMode: 3, 3
-    photoshop:DocumentAncestors: "5B7818AD2E5E32040EA56034BBF08A7B; 76E35AB96B86FEC6F025DB20EBC85B75; xmp.did:1aba88a3-5e9a-4126-9fdb-c0bf9e220220; xmp.did:67CCD764092068118083F3748F43AB53; xmp.did:EF61098A6F16E011A133C53B46066329; xmp.did:ddc52283-5cc3-4453-8815-0f97e7e749e6; xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -736,7 +733,6 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "Layer 0"
     photoshop:ColorMode: 3, 3
-    photoshop:DocumentAncestors: "5B7818AD2E5E32040EA56034BBF08A7B; 76E35AB96B86FEC6F025DB20EBC85B75; xmp.did:1aba88a3-5e9a-4126-9fdb-c0bf9e220220; xmp.did:67CCD764092068118083F3748F43AB53; xmp.did:EF61098A6F16E011A133C53B46066329; xmp.did:ddc52283-5cc3-4453-8815-0f97e7e749e6; xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -767,7 +763,6 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "line1"
     photoshop:ColorMode: 3, 3
-    photoshop:DocumentAncestors: "5B7818AD2E5E32040EA56034BBF08A7B; 76E35AB96B86FEC6F025DB20EBC85B75; xmp.did:1aba88a3-5e9a-4126-9fdb-c0bf9e220220; xmp.did:67CCD764092068118083F3748F43AB53; xmp.did:EF61098A6F16E011A133C53B46066329; xmp.did:ddc52283-5cc3-4453-8815-0f97e7e749e6; xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
@@ -798,7 +793,6 @@ src/different-mask-size.psd :   30 x   90, 3 channel, uint8 psd
     oiio:ColorSpace: "sRGB"
     oiio:subimagename: "line2"
     photoshop:ColorMode: 3, 3
-    photoshop:DocumentAncestors: "5B7818AD2E5E32040EA56034BBF08A7B; 76E35AB96B86FEC6F025DB20EBC85B75; xmp.did:1aba88a3-5e9a-4126-9fdb-c0bf9e220220; xmp.did:67CCD764092068118083F3748F43AB53; xmp.did:EF61098A6F16E011A133C53B46066329; xmp.did:ddc52283-5cc3-4453-8815-0f97e7e749e6; xmp.did:e5390921-47bd-41b6-9237-d4903a41e966"
     photoshop:ICCProfile: "sRGB IEC61966-2.1"
     rdf:parseType: "Resource"
     stEvt:action: "created; saved"
