@@ -5,7 +5,7 @@
 # with 'source', not in a separate shell.
 
 # Figure out the platform
-if [[ $$RUNNER_OS == macOS ]] ; then
+if [[ $RUNNER_OS == macOS ]] ; then
     export ARCH=macosx
 elif [[ $RUNNER_OS == Linux ]] ; then
     export ARCH=linux64
@@ -15,6 +15,7 @@ elif [[ `uname -m` == aarch64 ]] ; then
     export ARCH=aarch64
 else
     export ARCH=unknown
+    exit -1
 fi
 export PLATFORM=$ARCH
 
