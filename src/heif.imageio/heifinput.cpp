@@ -182,7 +182,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         m_has_alpha = m_ihandle.has_alpha_channel();
         auto chroma = m_has_alpha ? heif_chroma_interleaved_RGBA
                                   : heif_chroma_interleaved_RGB;
-        m_himage = m_ihandle.decode_image(heif_colorspace_RGB, chroma);
+        m_himage    = m_ihandle.decode_image(heif_colorspace_RGB, chroma);
 
     } catch (const heif::Error& err) {
         std::string e = err.get_message();

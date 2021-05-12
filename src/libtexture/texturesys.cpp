@@ -1456,7 +1456,7 @@ TextureSystemImpl::texture_lookup_trilinear_mipmap(
     float sfilt          = std::max(fabsf(dsdx), fabsf(dsdy));
     float tfilt          = std::max(fabsf(dtdx), fabsf(dtdy));
     float filtwidth      = options.conservative_filter ? std::max(sfilt, tfilt)
-                                                  : std::min(sfilt, tfilt);
+                                                       : std::min(sfilt, tfilt);
     // account for blur
     filtwidth += std::max(options.sblur, options.tblur);
     float aspect = 1.0f;
@@ -2052,8 +2052,8 @@ TextureSystemImpl::sample_bilinear(
     wrap_impl swrap_func         = wrap_functions[(int)options.swrap];
     wrap_impl twrap_func         = wrap_functions[(int)options.twrap];
     wrap_impl_simd wrap_func     = (swrap_func == twrap_func)
-                                   ? wrap_functions_simd[(int)options.swrap]
-                                   : NULL;
+                                       ? wrap_functions_simd[(int)options.swrap]
+                                       : NULL;
     simd::vint4 xy(spec.x, spec.y);
     simd::vint4 widthheight(spec.width, spec.height);
     simd::vint4 tilewh(spec.tile_width, spec.tile_height);

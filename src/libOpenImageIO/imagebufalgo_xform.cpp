@@ -883,9 +883,9 @@ ImageBufAlgo::warp(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
         dst_roi      = roi.defined() ? roi : dst.roi();
         dst_roi_full = dst.roi_full();
     } else {
-        dst_roi = roi.defined()
-                      ? roi
-                      : (recompute_roi ? transform(M, src.roi()) : src.roi());
+        dst_roi      = roi.defined()
+                           ? roi
+                           : (recompute_roi ? transform(M, src.roi()) : src.roi());
         dst_roi_full = src_roi_full;
     }
     dst_roi.chend      = std::min(dst_roi.chend, src.nchannels());

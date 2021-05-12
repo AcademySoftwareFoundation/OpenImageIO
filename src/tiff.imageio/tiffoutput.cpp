@@ -966,6 +966,7 @@ rgb_to_cmyk(int n, const T* rgb, size_t rgb_stride, T* cmyk, size_t cmyk_stride)
         float one_minus_K     = std::max(R, std::max(G, B));
         float one_minus_K_inv = (one_minus_K <= 1e-6) ? 0.0f
                                                       : 1.0f / one_minus_K;
+
         float C = (one_minus_K - R) * one_minus_K_inv;
         float M = (one_minus_K - G) * one_minus_K_inv;
         float Y = (one_minus_K - B) * one_minus_K_inv;

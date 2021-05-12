@@ -1316,8 +1316,8 @@ ColorConfig::createFileTransform(ustring name, bool inverse) const
         OCIO::FileTransformRcPtr transform = OCIO::FileTransform::Create();
         transform->setSrc(name.c_str());
         transform->setInterpolation(OCIO::INTERP_BEST);
-        OCIO::TransformDirection dir = inverse ? OCIO::TRANSFORM_DIR_INVERSE
-                                               : OCIO::TRANSFORM_DIR_FORWARD;
+        OCIO::TransformDirection dir    = inverse ? OCIO::TRANSFORM_DIR_INVERSE
+                                                  : OCIO::TRANSFORM_DIR_FORWARD;
         OCIO::ConstContextRcPtr context = config->getCurrentContext();
         OCIO::ConstProcessorRcPtr p;
         try {

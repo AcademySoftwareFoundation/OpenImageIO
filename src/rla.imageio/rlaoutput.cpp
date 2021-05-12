@@ -562,11 +562,10 @@ RLAOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         TypeDesc chantype = m_spec.channelformats.size()
                                 ? m_spec.channelformats[c]
                                 : m_spec.format;
-        int bits = (c < m_rla.NumOfColorChannels)
-                       ? m_rla.NumOfChannelBits
-                       : (c < (m_rla.NumOfColorChannels + m_rla.NumOfMatteBits))
-                             ? m_rla.NumOfMatteBits
-                             : m_rla.NumOfAuxBits;
+        int bits = (c < m_rla.NumOfColorChannels) ? m_rla.NumOfChannelBits
+                   : (c < (m_rla.NumOfColorChannels + m_rla.NumOfMatteBits))
+                       ? m_rla.NumOfMatteBits
+                       : m_rla.NumOfAuxBits;
         if (!encode_channel((unsigned char*)data + offset, pixelsize, chantype,
                             bits))
             return false;

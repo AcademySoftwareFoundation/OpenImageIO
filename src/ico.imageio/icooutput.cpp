@@ -180,10 +180,10 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
 
-        m_bpp = (m_color_type == PNG_COLOR_TYPE_GRAY_ALPHA
+        m_bpp     = (m_color_type == PNG_COLOR_TYPE_GRAY_ALPHA
                  || m_color_type == PNG_COLOR_TYPE_RGB_ALPHA)
-                    ? 32
-                    : 24;
+                        ? 32
+                        : 24;
         m_xor_slb = (m_spec.width * m_bpp + 7) / 8  // real data bytes
                     + (4 - ((m_spec.width * m_bpp + 7) / 8) % 4)
                           % 4;              // padding

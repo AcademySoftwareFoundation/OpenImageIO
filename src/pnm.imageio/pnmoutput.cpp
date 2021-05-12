@@ -140,8 +140,8 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
     m_spec.set_format(TypeDesc::UINT8);  // Force 8 bit output
     int bits_per_sample = m_spec.get_int_attribute("oiio:BitsPerSample", 8);
     m_dither            = (m_spec.format == TypeDesc::UINT8)
-                   ? m_spec.get_int_attribute("oiio:dither", 0)
-                   : 0;
+                              ? m_spec.get_int_attribute("oiio:dither", 0)
+                              : 0;
 
     if (m_spec.nchannels != 1 && m_spec.nchannels != 3) {
         errorf("%s does not support %d-channel images\n", format_name(),
