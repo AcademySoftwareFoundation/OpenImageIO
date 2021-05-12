@@ -157,9 +157,9 @@ Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
     if (m_spec.format != TypeDesc::UINT8 && m_spec.format != TypeDesc::UINT16)
         m_spec.set_format(TypeDesc::UINT8);
 
-    m_dither = (m_spec.format == TypeDesc::UINT8)
-                   ? m_spec.get_int_attribute("oiio:dither", 0)
-                   : 0;
+    m_dither        = (m_spec.format == TypeDesc::UINT8)
+                          ? m_spec.get_int_attribute("oiio:dither", 0)
+                          : 0;
     m_convert_alpha = m_spec.alpha_channel != -1
                       && !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
 

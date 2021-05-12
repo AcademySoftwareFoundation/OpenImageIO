@@ -5,7 +5,10 @@ SpaceBeforeParens: ControlStatements
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: true
+#AlignConsecutiveAssignments: Consecutive
+#AlignConsecutiveBitFields: Consecutive
 AlignConsecutiveDeclarations: false
+#AlignConsecutiveDeclarations: None
 AlignEscapedNewlines: Left
 AlignOperands:   true
 AlignTrailingComments: true
@@ -75,6 +78,7 @@ IncludeCategories:
     Priority:        1
 IncludeIsMainRegex: '(Test)?$'
 IndentCaseLabels: false
+IndentExternBlock: NoIndent
 IndentPPDirectives: AfterHash
 IndentWidth:     4
 IndentWrappedFunctionNames: false
@@ -118,7 +122,7 @@ SpacesInContainerLiterals: true
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-Standard:        Cpp11
+Standard:        c++14
 StatementMacros: 
   - Q_UNUSED
   - QT_REQUIRE_VERSION

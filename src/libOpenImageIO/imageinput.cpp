@@ -292,11 +292,11 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
     stride_t zstride = AutoStride;
     spec.auto_stride(xstride, ystride, zstride, format, nchans, spec.width,
                      spec.height);
-    stride_t buffer_pixel_bytes = native ? native_pixel_bytes
-                                         : format.size() * nchans;
+    stride_t buffer_pixel_bytes    = native ? native_pixel_bytes
+                                            : format.size() * nchans;
     stride_t buffer_scanline_bytes = native ? native_scanline_bytes
                                             : buffer_pixel_bytes * spec.width;
-    bool contiguous = (xstride == (stride_t)buffer_pixel_bytes
+    bool contiguous                = (xstride == (stride_t)buffer_pixel_bytes
                        && ystride == (stride_t)buffer_scanline_bytes);
 
     if (native && contiguous) {
@@ -614,19 +614,19 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
     }
 
     // No such luck.  Just punt and read tiles individually.
-    bool ok            = true;
-    stride_t pixelsize = native_data ? native_pixel_bytes
-                                     : (format.size() * nchans);
-    stride_t native_pixelsize = spec.pixel_bytes(true);
-    stride_t full_pixelsize   = native_data ? native_pixelsize
-                                          : (format.size() * spec.nchannels);
+    bool ok                        = true;
+    stride_t pixelsize             = native_data ? native_pixel_bytes
+                                                 : (format.size() * nchans);
+    stride_t native_pixelsize      = spec.pixel_bytes(true);
+    stride_t full_pixelsize        = native_data ? native_pixelsize
+                                                 : (format.size() * spec.nchannels);
     stride_t full_tilewidthbytes   = full_pixelsize * spec.tile_width;
     stride_t full_tilewhbytes      = full_tilewidthbytes * spec.tile_height;
     stride_t full_tilebytes        = full_tilewhbytes * spec.tile_depth;
     stride_t full_native_tilebytes = spec.tile_bytes(true);
     size_t prefix_bytes = native_data ? spec.pixel_bytes(0, chbegin, true)
                                       : format.size() * chbegin;
-    bool allchans = (chbegin == 0 && chend == spec.nchannels);
+    bool allchans       = (chbegin == 0 && chend == spec.nchannels);
     std::vector<char> buf;
     for (int z = zbegin; z < zend; z += std::max(1, spec.tile_depth)) {
         int zd      = std::min(zend - z, spec.tile_depth);

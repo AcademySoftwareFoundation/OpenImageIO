@@ -396,7 +396,7 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
     imagesize_t contiguoussize = contiguous
                                      ? 0
                                      : rectangle_values * input_pixel_bytes;
-    contiguoussize = (contiguoussize + 3)
+    contiguoussize             = (contiguoussize + 3)
                      & (~3);  // Round up to 4-byte boundary
     OIIO_DASSERT((contiguoussize & 3) == 0);
     imagesize_t floatsize = rectangle_values * sizeof(float);

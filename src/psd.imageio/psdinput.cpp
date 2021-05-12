@@ -1799,8 +1799,8 @@ PSDInput::setup()
     for (Layer& layer : m_layers) {
         spec_channel_count = m_WantRaw ? mode_channel_count[m_header.color_mode]
                                        : 3;
-        raw_channel_count = mode_channel_count[m_header.color_mode];
-        bool transparency = (bool)layer.channel_id_map.count(
+        raw_channel_count  = mode_channel_count[m_header.color_mode];
+        bool transparency  = (bool)layer.channel_id_map.count(
             ChannelID_Transparency);
         if (transparency) {
             spec_channel_count++;

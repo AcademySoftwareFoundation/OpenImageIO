@@ -463,7 +463,8 @@ TextureSystemImpl::accum3d_sample_bilinear(
     OIIO_DASSERT(sizeof(valid_storage) == 8);
     const unsigned long long none_valid = 0;
     const unsigned long long all_valid  = littleendian() ? 0x010101010101LL
-                                                        : 0x01010101010100LL;
+                                                         : 0x01010101010100LL;
+
     bool* svalid = valid_storage.bvalid;
     bool* tvalid = valid_storage.bvalid + 2;
     bool* rvalid = valid_storage.bvalid + 4;

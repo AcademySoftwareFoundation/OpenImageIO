@@ -192,7 +192,7 @@ Strutil::vsprintf(const char* fmt, va_list ap)
 #ifdef va_copy
         va_copy(ap, apsave);
 #else
-        ap     = apsave;
+        ap = apsave;
 #endif
     }
 }
@@ -1147,8 +1147,8 @@ decode(uint32_t* state, uint32_t* codep, uint32_t byte)
 {
     uint32_t type = utf8d[byte];
     *codep        = (*state != UTF8_ACCEPT) ? (byte & 0x3fu) | (*codep << 6)
-                                     : (0xff >> type) & (byte);
-    *state = utf8d[256 + *state + type];
+                                            : (0xff >> type) & (byte);
+    *state        = utf8d[256 + *state + type];
     return *state;
 }
 

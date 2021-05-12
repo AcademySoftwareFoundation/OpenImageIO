@@ -155,8 +155,8 @@ TermOutput::output()
     int w = m_buf.spec().width;
     int h = m_buf.spec().height;
     // iTerm2 is special, see bellow
-    int maxw = (method == "iterm2") ? Sysutil::terminal_columns() * 16
-                                    : Sysutil::terminal_columns();
+    int maxw     = (method == "iterm2") ? Sysutil::terminal_columns() * 16
+                                        : Sysutil::terminal_columns();
     float yscale = (method == "iterm2" || method == "24bit") ? 1.0f : 0.5f;
     // Resize the image as needed
     if (w > maxw && m_fit) {
