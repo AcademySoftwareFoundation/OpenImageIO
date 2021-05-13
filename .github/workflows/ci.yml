@@ -564,6 +564,8 @@ jobs:
       PYTHON_VERSION: 3.8
       CMAKE_CXX_STANDARD: 14
       ENABLE_FIELD3D: OFF
+      ENABLE_OPENVDB: OFF
+      # No OpenVDB because on Homebrew, OpenVDB still uses OpenEXR 2.5
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp

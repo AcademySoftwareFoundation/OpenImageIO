@@ -29,11 +29,13 @@ brew unlink python@3.9 || true
 brew unlink python@3.8 || true
 brew link --overwrite --force python@${PYTHON_VERSION} || true
 brew upgrade --display-times -q cmake || true
-brew install --display-times -q libtiff ilmbase openexr opencolorio
+brew install --display-times -q libtiff imath openexr opencolorio
 brew install --display-times -q libpng giflib webp jpeg-turbo openjpeg
 brew install --display-times -q freetype libraw dcmtk pybind11 numpy || true
 brew install --display-times -q ffmpeg libheif libsquish ptex || true
-brew install --display-times -q openvdb tbb || true
+brew install --display-times -q tbb || true
+# No OpenVDB until it's upgraded to use Imath 3
+# brew install --display-times -q openvdb || true
 brew install --display-times -q opencv || true
 brew install --display-times -q qt@5
 brew install --display-times -q field3d || true
