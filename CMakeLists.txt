@@ -76,7 +76,7 @@ option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 option (BUILD_COIIO "Build C interface library" ON)
 set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
 file (TO_NATIVE_PATH "${PLUGIN_SEARCH_PATH}" PLUGIN_SEARCH_PATH_NATIVE)
-set (CMAKE_DEBUG_POSTFIX "" CACHE STRING "Library naming postfix for Debug builds (e.g., '_debug')")
+set (CMAKE_DEBUG_POSTFIX "_d" CACHE STRING "Library naming postfix for Debug builds")
 
 option (OIIO_THREAD_ALLOW_DCLP "OIIO threads may use DCLP for speed" ON)
 if (NOT OIIO_THREAD_ALLOW_DCLP)
