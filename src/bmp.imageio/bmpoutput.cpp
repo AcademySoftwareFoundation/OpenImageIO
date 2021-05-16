@@ -176,7 +176,7 @@ BmpOutput::create_and_write_bitmap_header(void)
     m_dib_header.width       = m_spec.width;
     m_dib_header.height      = m_spec.height;
     m_dib_header.cplanes     = 1;
-    m_dib_header.compression = 0;
+    m_dib_header.compression = NO_COMPRESSION;
 
     m_dib_header.bpp = m_spec.nchannels << 3;
 
