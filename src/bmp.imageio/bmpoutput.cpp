@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
+#include <cstdio>
+
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 
 #include "bmp_pvt.h"
@@ -9,6 +13,47 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace bmp_pvt;
+
+
+class BmpOutput final : public ImageOutput {
+public:
+    BmpOutput() { init(); }
+    virtual ~BmpOutput() { close(); }
+    virtual const char* format_name(void) const override { return "bmp"; }
+    virtual int supports(string_view feature) const override;
+    virtual bool open(const std::string& name, const ImageSpec& spec,
+                      OpenMode mode) override;
+    virtual bool close(void) override;
+    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
+                                stride_t xstride) override;
+    virtual bool write_tile(int x, int y, int z, TypeDesc format,
+                            const void* data, stride_t xstride,
+                            stride_t ystride, stride_t zstride) override;
+
+private:
+    int64_t m_padded_scanline_size;
+    FILE* m_fd;
+    std::string m_filename;
+    bmp_pvt::BmpFileHeader m_bmp_header;
+    bmp_pvt::DibInformationHeader m_dib_header;
+    int64_t m_image_start;
+    unsigned int m_dither;
+    std::vector<unsigned char> m_tilebuffer;
+    std::vector<unsigned char> m_scratch;
+    std::vector<unsigned char> m_buf;  // more tmp space for write_scanline
+
+    void init(void)
+    {
+        m_padded_scanline_size = 0;
+        m_fd                   = NULL;
+        m_filename.clear();
+    }
+
+    void create_and_write_file_header(void);
+
+    void create_and_write_bitmap_header(void);
+};
+
 
 
 // Obligatory material to make this a recognizeable imageio plugin
