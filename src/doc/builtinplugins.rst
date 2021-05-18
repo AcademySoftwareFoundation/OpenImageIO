@@ -50,6 +50,12 @@ tiles.
      - int
      - Version of the BMP file format
 
+**Limitations**
+
+* OIIO's current implementation of BMP only supports uncompressed BMP files.
+  RLE compression is not currently supported.
+
+
 |
 
 .. _sec-bundledplugins-cineon:

@@ -125,6 +125,14 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
     case WINDOWS_V5: m_spec.attribute("bmp:version", 5); break;
     }
 
+    if (m_dib_header.compression == RLE4_COMPRESSION
+        || m_dib_header.compression == RLE8_COMPRESSION) {
+        errorfmt("BMP compression {} is not currently supported",
+                 m_dib_header.compression);
+        close();
+        return false;
+    }
+
     // file pointer is set to the beginning of image data
     // we save this position - it will be helpfull in read_native_scanline
     m_image_start = Filesystem::ftell(m_fd);
