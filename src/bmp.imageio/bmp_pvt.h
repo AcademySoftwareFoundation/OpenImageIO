@@ -30,7 +30,11 @@ const int16_t MAGIC_CI = 0x4943;
 const int16_t MAGIC_CP = 0x5043;
 const int16_t MAGIC_PT = 0x5450;
 
-//const int32_t RLE4_COMPRESSION = 2;
+const int32_t NO_COMPRESSION   = 0;  // BI_RGB
+const int32_t RLE8_COMPRESSION = 1;  // BI_RLE8
+const int32_t RLE4_COMPRESSION = 2;  // BI_RLE4
+
+
 
 // store informations about BMP file
 class BmpFileHeader {
