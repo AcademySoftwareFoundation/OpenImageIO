@@ -24,6 +24,28 @@ It only supports unsigned integer 1-, 2-, 4-, and 8- bits per channel; only
 grayscale, RGB, and RGBA; does not support MIPmaps, multiimage, or
 tiles.
 
+**Configuration settings for BMP input**
+
+When opening a BMP ImageInput with a *configuration* (see
+Section :ref:`sec-inputwithconfig`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``bmp:monochrome_detect``
+     - int
+     - If nonzero, try to detect when all palette entries are gray and pretend
+       that it's a 1-channel image to allow the calling app to save memory
+       and time (even though the BMP format does not actually support
+       grayscale images per se. It is 1 by default, but by setting the hint
+       to 0, you can disable this behavior.
+
+**BMP Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -50,11 +72,15 @@ tiles.
      - int
      - Version of the BMP file format
 
-**Limitations**
+**BMP Limitations**
 
-* OIIO's current implementation of BMP only supports uncompressed BMP files.
-  RLE compression is not currently supported.
-
+* OIIO's current implementation will only write uncompessed 8bpp (from a
+  1-channel source), 24bpp (if 3 channel), or 32bpp (if 4 channel). Reads,
+  however, can handle RLE compression as well as 1, 4, or 16 bpp input.
+* Only 1, 3, and 4-channel images are supported with BMP due to limitations
+  of the file format itself.
+* BMP only supports uint8 pixel data types. Requests for other pixel data
+  types will automatically be converted to uint8.
 
 |
 
