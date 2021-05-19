@@ -1,11 +1,56 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+
+#include <cstdio>
+
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imageio.h>
+
 #include "bmp_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace bmp_pvt;
+
+
+class BmpInput final : public ImageInput {
+public:
+    BmpInput() { init(); }
+    virtual ~BmpInput() { close(); }
+    virtual const char* format_name(void) const override { return "bmp"; }
+    virtual bool valid_file(const std::string& filename) const override;
+    virtual bool open(const std::string& name, ImageSpec& spec) override;
+    virtual bool close(void) override;
+    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
+                                      void* data) override;
+
+private:
+    int64_t m_padded_scanline_size;
+    int m_pad_size;
+    FILE* m_fd;
+    bmp_pvt::BmpFileHeader m_bmp_header;
+    bmp_pvt::DibInformationHeader m_dib_header;
+    std::string m_filename;
+    std::vector<bmp_pvt::color_table> m_colortable;
+    std::vector<unsigned char> fscanline;  // temp space: read from file
+    int64_t m_image_start;
+    bool m_allgray;
+    void init(void)
+    {
+        m_padded_scanline_size = 0;
+        m_pad_size             = 0;
+        m_fd                   = NULL;
+        m_filename.clear();
+        m_colortable.clear();
+        m_allgray = false;
+    }
+
+    bool read_color_table(void);
+    bool color_table_is_all_gray(void);
+};
+
+
 
 // Obligatory material to make this a recognizeable imageio plugin
 OIIO_PLUGIN_EXPORTS_BEGIN

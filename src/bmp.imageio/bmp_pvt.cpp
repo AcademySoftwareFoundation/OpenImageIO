@@ -3,9 +3,13 @@
 // https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 
-#include "bmp_pvt.h"
+#include <cstdio>
 
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imageio.h>
+
+#include "bmp_pvt.h"
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
