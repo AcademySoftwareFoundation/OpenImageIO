@@ -222,7 +222,7 @@ jobs:
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
       OPENCOLORIO_VERSION: v2.0.0
-      OPENEXR_VERSION: v3.0.1
+      OPENEXR_VERSION: v3.0.3
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -267,7 +267,7 @@ jobs:
       CXX: g++-7
       CMAKE_CXX_STANDARD: 14
       USE_SIMD: sse4.2
-      OPENEXR_VERSION: v2.4.2
+      OPENEXR_VERSION: v2.4.3
       CMAKE_BUILD_TYPE: Debug
     steps:
       - uses: actions/checkout@v2
@@ -311,7 +311,7 @@ jobs:
       CXX: g++-8
       CMAKE_CXX_STANDARD: 17
       USE_SIMD: avx
-      OPENEXR_VERSION: v2.5.5
+      OPENEXR_VERSION: v2.5.6
       PYBIND11_VERSION: v2.5.0
     steps:
       - uses: actions/checkout@v2
@@ -403,7 +403,7 @@ jobs:
       LIBRAW_VERSION: 0.20.2
       LIBTIFF_VERSION: v4.3.0
       OPENCOLORIO_VERSION: v2.0.0
-      OPENEXR_VERSION: v3.0.1
+      OPENEXR_VERSION: v3.0.3
       PUGIXML_VERSION: v1.11.4
       PYBIND11_VERSION: v2.6.2
       PYTHON_VERSION: 3.8
@@ -608,7 +608,7 @@ jobs:
     env:
       PYTHON_VERSION: 3.7
       CMAKE_GENERATOR: "Visual Studio 16 2019"
-      OPENEXR_VERSION: v2.5.5
+      OPENEXR_VERSION: v2.5.6
       CTEST_ARGS: "--timeout 120 --repeat after-timeout:5"
     steps:
       - uses: actions/checkout@v2
@@ -644,7 +644,7 @@ jobs:
     env:
       PYTHON_VERSION: 3.7
       CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
-      OPENEXR_VERSION: v2.5.5
+      OPENEXR_VERSION: v2.5.6
       CTEST_ARGS: "--timeout 120 --repeat after-timeout:5"
     steps:
       - uses: actions/checkout@v2
