@@ -4,11 +4,6 @@
 
 #pragma once
 
-#include <cstdio>
-
-#include <OpenImageIO/filesystem.h>
-#include <OpenImageIO/imageio.h>
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
@@ -120,84 +115,6 @@ struct color_table {
 
 }  //namespace bmp_pvt
 
-
-
-class BmpInput final : public ImageInput {
-public:
-    BmpInput() { init(); }
-    virtual ~BmpInput() { close(); }
-    virtual const char* format_name(void) const override { return "bmp"; }
-    virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
-    virtual bool close(void) override;
-    virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
-                                      void* data) override;
-
-private:
-    int64_t m_padded_scanline_size;
-    int m_pad_size;
-    FILE* m_fd;
-    bmp_pvt::BmpFileHeader m_bmp_header;
-    bmp_pvt::DibInformationHeader m_dib_header;
-    std::string m_filename;
-    std::vector<bmp_pvt::color_table> m_colortable;
-    std::vector<unsigned char> fscanline;  // temp space: read from file
-    int64_t m_image_start;
-    bool m_allgray;
-    void init(void)
-    {
-        m_padded_scanline_size = 0;
-        m_pad_size             = 0;
-        m_fd                   = NULL;
-        m_filename.clear();
-        m_colortable.clear();
-        m_allgray = false;
-    }
-
-    bool read_color_table(void);
-    bool color_table_is_all_gray(void);
-};
-
-
-
-class BmpOutput final : public ImageOutput {
-public:
-    BmpOutput() { init(); }
-    virtual ~BmpOutput() { close(); }
-    virtual const char* format_name(void) const override { return "bmp"; }
-    virtual int supports(string_view feature) const override;
-    virtual bool open(const std::string& name, const ImageSpec& spec,
-                      OpenMode mode) override;
-    virtual bool close(void) override;
-    virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
-                                stride_t xstride) override;
-    virtual bool write_tile(int x, int y, int z, TypeDesc format,
-                            const void* data, stride_t xstride,
-                            stride_t ystride, stride_t zstride) override;
-
-private:
-    int64_t m_padded_scanline_size;
-    FILE* m_fd;
-    std::string m_filename;
-    bmp_pvt::BmpFileHeader m_bmp_header;
-    bmp_pvt::DibInformationHeader m_dib_header;
-    int64_t m_image_start;
-    unsigned int m_dither;
-    std::vector<unsigned char> m_tilebuffer;
-    std::vector<unsigned char> m_scratch;
-    std::vector<unsigned char> m_buf;  // more tmp space for write_scanline
-
-    void init(void)
-    {
-        m_padded_scanline_size = 0;
-        m_fd                   = NULL;
-        m_filename.clear();
-    }
-
-    void create_and_write_file_header(void);
-
-    void create_and_write_bitmap_header(void);
-};
 
 
 OIIO_PLUGIN_NAMESPACE_END
