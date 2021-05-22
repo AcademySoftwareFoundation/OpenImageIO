@@ -11,6 +11,7 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -32,19 +33,6 @@
 #include <OpenImageIO/timer.h>
 
 #include "oiiotool.h"
-
-#ifdef USE_BOOST_REGEX
-#    include <boost/regex.hpp>
-using boost::match_results;
-using boost::regex;
-using boost::regex_search;
-#else
-#    include <regex>
-using std::match_results;
-using std::regex;
-using std::regex_search;
-#endif
-
 
 using namespace OIIO;
 using namespace OiioTool;
@@ -6031,7 +6019,7 @@ handle_sequence(int argc, const char** argv)
     "((#|@)+|(%[0-9]*d)))"   \
     "|"                      \
     "(" VIEW_SPEC ")"
-    static regex sequence_re(SEQUENCE_SPEC);
+    static std::regex sequence_re(SEQUENCE_SPEC);
     std::string framespec = "";
 
     static const char* default_views = "left,right";
@@ -6056,7 +6044,7 @@ handle_sequence(int argc, const char** argv)
             a++;
         }
         std::string strarg(argv[a]);
-        match_results<std::string::const_iterator> range_match;
+        std::match_results<std::string::const_iterator> range_match;
         if (strarg == "--debug" || strarg == "-debug")
             ot.debug = true;
         else if ((strarg == "--frames" || strarg == "-frames")
@@ -6077,7 +6065,7 @@ handle_sequence(int argc, const char** argv)
         } else if (strarg == "--wildcardon" || strarg == "-wildcardon") {
             wildcard_on = true;
         } else if (wildcard_on && !is_output_all
-                   && regex_search(strarg, range_match, sequence_re)) {
+                   && std::regex_search(strarg, range_match, sequence_re)) {
             is_sequence = true;
             sequence_args.push_back(a);
             sequence_is_output.push_back(is_output);

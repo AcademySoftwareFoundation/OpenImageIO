@@ -49,9 +49,6 @@ if (BOOST_CUSTOM)
     # Boost_VERSION, Boost_INCLUDE_DIRS, Boost_LIBRARY_DIRS, Boost_LIBRARIES.
 else ()
     set (Boost_COMPONENTS filesystem system thread)
-    if (NOT USE_STD_REGEX)
-        list (APPEND Boost_COMPONENTS regex)
-    endif ()
     # The FindBoost.cmake interface is broken if it uses boost's installed
     # cmake output (e.g. boost 1.70.0, cmake <= 3.14). Specifically it fails
     # to set the expected variables printed below. So until that's fixed
