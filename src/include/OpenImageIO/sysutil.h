@@ -53,7 +53,8 @@ OIIO_API size_t
 physical_memory();
 
 /// Convert calendar time pointed by 'time' into local time and save it in
-/// 'converted_time' variable
+/// 'converted_time' variable. This is a fully reentrant/thread-safe
+/// alternative to the non-reentrant C localtime() call.
 OIIO_API void
 get_local_time(const time_t* time, struct tm* converted_time);
 

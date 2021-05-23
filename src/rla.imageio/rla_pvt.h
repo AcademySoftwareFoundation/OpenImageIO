@@ -49,6 +49,9 @@
   * RLA files are "big endian" for all 16 and 32 bit data: header fields,
     offsets, and pixel data.
 
+  * References:
+      - https://www.fileformat.info/format/wavefrontrla/egff.htm
+
  */
 
 

@@ -337,16 +337,10 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
 
     // the month number will be replaced with the 3-letter abbreviation
     time_t t = time(NULL);
-    strftime(m_rla.DateCreated, sizeof(m_rla.DateCreated), "%m  %d %H:%M %Y",
-             localtime(&t));
-    // nice little trick - stoi() will convert the month number to integer,
-    // which we then use to index this array of constants, and copy the
-    // abbreviation back into the date string
-    int m = clamp(Strutil::stoi(m_rla.DateCreated), 1, 12);
-    static const char months[12][4] = { "JAN", "FEB", "MAR", "APR",
-                                        "MAY", "JUN", "JUL", "AUG",
-                                        "SEP", "OCT", "NOV", "DEC" };
-    memcpy(m_rla.DateCreated, months[m - 1], 3);
+    struct tm localtm;
+    Sysutil::get_local_time(&t, &localtm);
+    strftime(m_rla.DateCreated, sizeof(m_rla.DateCreated), "%b %d %H:%M %Y",
+             &localtm);
 
     // FIXME: it appears that Wavefront have defined a set of aspect names;
     // I think it's safe not to care until someone complains
