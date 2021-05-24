@@ -218,6 +218,8 @@ adjust_spec(ImageInput* in, ImageOutput* out, const ImageSpec& inspec,
     }
     if (outspec.format != inspec.format || inspec.channelformats.size())
         nocopy = true;
+    if (outspec.nchannels != inspec.nchannels)
+        nocopy = true;
 
     outspec.attribute("oiio:Gamma", gammaval);
     if (sRGB) {
@@ -433,6 +435,8 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
                 break;
             }
 
+            if (in->spec().nchannels != out->spec().nchannels)
+                nocopy = true;
             if (!nocopy) {
                 ok = out->copy_image(in.get());
                 if (!ok)
