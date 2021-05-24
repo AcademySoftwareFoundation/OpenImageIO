@@ -265,7 +265,7 @@ evaluation with the `--evaloff` end `--evalon` flags. For example::
     > oiiotool ERROR: expression : syntax error at char 1 of `weird'
 
     $ oiiotool --info --evaloff "{weird}.exr"
-    > weird.exr            : 2048 x 1536, 3 channel, half openexr
+    > {weird.exr}          : 2048 x 1536, 3 channel, half openexr
 
 
 .. _sec-oiiotool-subimage-modifier:
@@ -290,7 +290,8 @@ subimage of their input, discarding the others. For example::
     oiiotool multipart.exr --colorconvert lnf aces -o out.exr
 
 In this example, only the first subimage in `multipart.exr` will be color
-transformed and output to `out.exr`.
+transformed and output to `out.exr`. Any other subimages in the input will
+not be used or copied.
 
 Using the `-a` command tells :program:`oiiotool` to try to preserve all
 subimges from the inputs and apply all computations to all subimages::
@@ -306,7 +307,7 @@ to certain subimages. The argument is a comma-separated list of any of the
 following: (a) an integer index of a subimage to include, or a minus sign
 (`-`) followed by an integer index of a subimage to exclude; (b) the name
 (as returned by the metadata "oiio:subimagename") of a subimage to include,
-or to excludeif preceded by a `-`; (c) the special string "all", meaning all
+or to exclude if preceded by a `-`; (c) the special string "all", meaning all
 subimages. Examples::
 
     # Color convert only subimages 0, 3, and 4, leave the rest as-is
