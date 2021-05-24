@@ -104,6 +104,11 @@ macro (setup_python_module)
                                PREFIX lib)
     endif ()
 
+    # Even if using a debug postfix, don't use it for the python module, or
+    # python won't find it properly.
+    set_target_properties(PyOpenImageIO PROPERTIES
+                          DEBUG_POSTFIX "")
+
     # This is only needed for SpComp2
     if (PYLIB_INCLUDE_SONAME)
         if (VERBOSE)
