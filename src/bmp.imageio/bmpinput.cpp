@@ -20,7 +20,9 @@ public:
     virtual ~BmpInput() { close(); }
     virtual const char* format_name(void) const override { return "bmp"; }
     virtual bool valid_file(const std::string& filename) const override;
-    virtual bool open(const std::string& name, ImageSpec& spec) override;
+    virtual bool open(const std::string& name, ImageSpec& newspec) override;
+    virtual bool open(const std::string& name, ImageSpec& newspec,
+                      const ImageSpec& config) override;
     virtual bool close(void) override;
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
@@ -33,9 +35,10 @@ private:
     bmp_pvt::DibInformationHeader m_dib_header;
     std::string m_filename;
     std::vector<bmp_pvt::color_table> m_colortable;
-    std::vector<unsigned char> fscanline;  // temp space: read from file
-    int64_t m_image_start;
+    std::vector<unsigned char> fscanline;       // temp space: read from file
+    std::vector<unsigned char> m_uncompressed;  // uncompressed palette image
     bool m_allgray;
+
     void init(void)
     {
         m_padded_scanline_size = 0;
@@ -44,10 +47,13 @@ private:
         m_filename.clear();
         m_colortable.clear();
         m_allgray = false;
+        fscanline.shrink_to_fit();
+        m_uncompressed.shrink_to_fit();
     }
 
-    bool read_color_table(void);
-    bool color_table_is_all_gray(void);
+    bool read_color_table();
+    bool color_table_is_all_gray();
+    bool read_rle_image();
 };
 
 
@@ -89,10 +95,27 @@ BmpInput::valid_file(const std::string& filename) const
 
 
 bool
-BmpInput::open(const std::string& name, ImageSpec& spec)
+BmpInput::open(const std::string& name, ImageSpec& newspec)
+{
+    ImageSpec emptyconfig;
+    return open(name, newspec, emptyconfig);
+}
+
+
+
+bool
+BmpInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
 {
     // saving 'name' for later use
     m_filename = name;
+
+    // BMP cannot be 1-channel, but config hint "bmp:monochrome_detect" is a
+    // hint to try to detect when all palette entries are gray and pretend
+    // that it's a 1-channel image to allow the calling app to save memory
+    // and time. It does this by default, but setting the hint to 0 turns
+    // this behavior off.
+    bool monodetect = config["bmp:monochrome_detect"].get<int>(1);
 
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (!m_fd) {
@@ -144,6 +167,11 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
         m_padded_scanline_size = (m_spec.width + 3) & ~3;
         if (!read_color_table())
             return false;
+        m_allgray = monodetect && color_table_is_all_gray();
+        if (m_allgray) {
+            m_spec.nchannels = 1;  // make it look like a 1-channel image
+            m_spec.default_channel_names();
+        }
         break;
     case 4:
         swidth                 = (m_spec.width + 1) / 2;
@@ -167,20 +195,87 @@ BmpInput::open(const std::string& name, ImageSpec& spec)
     case WINDOWS_V5: m_spec.attribute("bmp:version", 5); break;
     }
 
+    // Bite the bullet and uncompress now, for simplicity
     if (m_dib_header.compression == RLE4_COMPRESSION
         || m_dib_header.compression == RLE8_COMPRESSION) {
-        errorfmt("BMP compression {} is not currently supported",
-                 m_dib_header.compression);
-        close();
-        return false;
+        if (!read_rle_image()) {
+            errorfmt("BMP error reading rle-compressed image");
+            close();
+            return false;
+        }
     }
 
-    // file pointer is set to the beginning of image data
-    // we save this position - it will be helpfull in read_native_scanline
-    m_image_start = Filesystem::ftell(m_fd);
-
-    spec = m_spec;
+    newspec = m_spec;
     return true;
+}
+
+
+
+bool
+BmpInput::read_rle_image()
+{
+    int rletype = m_dib_header.compression == RLE4_COMPRESSION ? 4 : 8;
+    m_spec.attribute("bmp:compression", rletype == 4 ? "rle4" : "rle8");
+    m_uncompressed.clear();
+    m_uncompressed.resize(m_spec.height * m_spec.width);
+    // Note: the clear+resize zeroes out the buffer
+    bool err = false;
+    int y = 0, x = 0;
+    while (!err && !feof(m_fd)) {
+        unsigned char rle_pair[2];
+        if (fread(rle_pair, 1, 2, m_fd) != 2) {
+            err = true;
+            break;
+        }
+        int npixels = rle_pair[0];
+        int value   = rle_pair[1];
+        if (npixels == 0 && value == 0) {
+            // [0,0] is end of line marker
+            x = 0;
+            ++y;
+        } else if (npixels == 0 && value == 1) {
+            // [0,1] is end of bitmap marker
+            break;
+        } else if (npixels == 0 && value == 2) {
+            // [0,2] is a "delta" -- two more bytes reposition the
+            // current pixel position that we're reading.
+            unsigned char offset[2];
+            err |= (fread(offset, 1, 2, m_fd) != 2);
+            x += offset[0];
+            y += offset[1];
+        } else if (npixels == 0) {
+            // [0,n>2] is an "absolute" run of pixel data.
+            // n is the number of pixel indices that follow, but note
+            // that it pads to word size.
+            int npixels = value;
+            int nbytes  = (rletype == 4)
+                              ? round_to_multiple((npixels + 1) / 2, 2)
+                              : round_to_multiple(npixels, 2);
+            unsigned char absolute[256];
+            err |= (fread(absolute, 1, nbytes, m_fd) != size_t(nbytes));
+            for (int i = 0; i < npixels; ++i, ++x) {
+                if (rletype == 4)
+                    value = (i & 1) ? (absolute[i / 2] & 0x0f)
+                                    : (absolute[i / 2] >> 4);
+                else
+                    value = absolute[i];
+                if (x < m_spec.width)
+                    m_uncompressed[y * m_spec.width + x] = value;
+            }
+        } else {
+            // [n>0,p] is a run of n pixels.
+            for (int i = 0; i < npixels; ++i, ++x) {
+                int v;
+                if (rletype == 4)
+                    v = (i & 1) ? (value & 0x0f) : (value >> 4);
+                else
+                    v = value;
+                if (x < m_spec.width)
+                    m_uncompressed[y * m_spec.width + x] = v;
+            }
+        }
+    }
+    return !err;
 }
 
 
@@ -196,13 +291,26 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (y < 0 || y > m_spec.height)
         return false;
 
+    size_t scanline_bytes = m_spec.scanline_bytes();
+    uint8_t* mscanline    = (uint8_t*)data;
+    if (m_dib_header.compression == RLE4_COMPRESSION
+        || m_dib_header.compression == RLE8_COMPRESSION) {
+        for (int x = 0; x < m_spec.width; ++x) {
+            int p = m_uncompressed[(m_spec.height - 1 - y) * m_spec.width + x];
+            mscanline[3 * x]     = m_colortable[p].r;
+            mscanline[3 * x + 1] = m_colortable[p].g;
+            mscanline[3 * x + 2] = m_colortable[p].b;
+        }
+        return true;
+    }
+
     // if the height is positive scanlines are stored bottom-up
     if (m_dib_header.height >= 0)
         y = m_spec.height - y - 1;
     const int64_t scanline_off = y * m_padded_scanline_size;
 
     fscanline.resize(m_padded_scanline_size);
-    Filesystem::fseek(m_fd, m_image_start + scanline_off, SEEK_SET);
+    Filesystem::fseek(m_fd, m_bmp_header.offset + scanline_off, SEEK_SET);
     size_t n = fread(fscanline.data(), 1, m_padded_scanline_size, m_fd);
     if (n != (size_t)m_padded_scanline_size) {
         if (feof(m_fd))
@@ -223,8 +331,6 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return true;
     }
 
-    size_t scanline_bytes = m_spec.scanline_bytes();
-    uint8_t* mscanline    = (uint8_t*)data;
     if (m_dib_header.bpp == 16) {
         const uint16_t RED   = 0x7C00;
         const uint16_t GREEN = 0x03E0;
@@ -237,10 +343,18 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
     }
     if (m_dib_header.bpp == 8) {
-        for (unsigned int i = 0, j = 0; j < scanline_bytes; ++i, j += 3) {
-            mscanline[j]     = m_colortable[fscanline[i]].r;
-            mscanline[j + 1] = m_colortable[fscanline[i]].g;
-            mscanline[j + 2] = m_colortable[fscanline[i]].b;
+        if (m_allgray) {
+            // Keep it as 1-channel image because all colors are gray
+            for (unsigned int i = 0; i < scanline_bytes; ++i) {
+                mscanline[i] = m_colortable[fscanline[i]].r;
+            }
+        } else {
+            // Expand palette image into 3-channel RGB (existing code)
+            for (unsigned int i = 0, j = 0; j < scanline_bytes; ++i, j += 3) {
+                mscanline[j]     = m_colortable[fscanline[i]].r;
+                mscanline[j + 1] = m_colortable[fscanline[i]].g;
+                mscanline[j + 2] = m_colortable[fscanline[i]].b;
+            }
         }
     }
     if (m_dib_header.bpp == 4) {
@@ -320,6 +434,18 @@ BmpInput::read_color_table(void)
         }
     }
     return true;  // ok
+}
+
+bool
+BmpInput::color_table_is_all_gray(void)
+{
+    size_t ncolors = m_colortable.size();
+    for (size_t i = 0; i < ncolors; i++) {
+        color_table& color = m_colortable[i];
+        if (color.b != color.g || color.g != color.r)
+            return false;
+    }
+    return true;
 }
 
 OIIO_PLUGIN_NAMESPACE_END

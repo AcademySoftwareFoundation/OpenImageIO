@@ -47,7 +47,7 @@ public:
     int32_t fsize;   // size of the BMP file
     int16_t res1;    // reserved
     int16_t res2;    // reserved
-    int32_t offset;  //offset of image data
+    int32_t offset;  // offset of image data (pixels)
 private:
     void swap_endian(void);
 };
