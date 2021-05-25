@@ -40,6 +40,7 @@
 #include <ctime>
 #include <limits>
 
+#include <OpenImageIO/sysutil.h>
 
 #include "DPXHeader.h"
 #include "EndianSwap.h"
@@ -764,32 +765,32 @@ static void EmptyString(char *str, const int len)
 
 void dpx::GenericHeader::SetCreationTimeDate(const long sec)
 {
-	struct tm *tm_time;
-	char str[32];
-	
+    char str[32];
+
 #ifdef _WIN32
 	_tzset();
 #endif
 
-	const time_t t = time_t(sec);
-	tm_time = ::localtime(&t);
-	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
+    const time_t t = time_t(sec);
+    struct tm localtm;
+    OIIO::Sysutil::get_local_time(&t, &localtm);
+    ::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", &localtm);
 	OIIO::Strutil::safe_strcpy(this->creationTimeDate, str, 24);
 }
 
 
 void dpx::GenericHeader::SetSourceTimeDate(const long sec)
 {
-	struct tm *tm_time;
-	char str[32];
-	
+    char str[32];
+
 #ifdef _WIN32
 	_tzset();
 #endif
 
-	const time_t t = time_t(sec);
-	tm_time = ::localtime(&t);
-	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
+    const time_t t = time_t(sec);
+    struct tm localtm;
+    OIIO::Sysutil::get_local_time(&t, &localtm);
+    ::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", &localtm);
 	OIIO::Strutil::safe_strcpy(this->sourceTimeDate, str, 24);
 }
 
