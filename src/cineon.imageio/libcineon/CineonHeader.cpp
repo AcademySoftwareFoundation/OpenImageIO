@@ -41,6 +41,7 @@
 #include <limits>
 
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 
 #include "CineonHeader.h"
 #include "EndianSwap.h"
@@ -540,7 +541,6 @@ void cineon::IndustryHeader::SetFilmEdgeCode(const char *edge)
 
 void cineon::GenericHeader::SetCreationTimeDate(const long sec)
 {
-	struct tm *tm_time;
 	char str[32];
 
 #ifdef _WIN32
@@ -548,8 +548,9 @@ void cineon::GenericHeader::SetCreationTimeDate(const long sec)
 #endif
 
 	const time_t t = time_t(sec);
-	tm_time = ::localtime(&t);
-	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
+    struct tm localtm;
+    OIIO::Sysutil::get_local_time(&t, &localtm);
+    ::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", &localtm);
 	OIIO::Strutil::safe_strcpy(this->creationDate, str, 11);
 	OIIO::Strutil::safe_strcpy(this->creationTime, str + 11, 12);
 }
@@ -557,7 +558,6 @@ void cineon::GenericHeader::SetCreationTimeDate(const long sec)
 
 void cineon::GenericHeader::SetSourceTimeDate(const long sec)
 {
-	struct tm *tm_time;
 	char str[32];
 
 #ifdef _WIN32
@@ -565,8 +565,9 @@ void cineon::GenericHeader::SetSourceTimeDate(const long sec)
 #endif
 
 	const time_t t = time_t(sec);
-	tm_time = ::localtime(&t);
-	::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", tm_time);
+    struct tm localtm;
+    OIIO::Sysutil::get_local_time(&t, &localtm);
+    ::strftime(str, 32, "%Y:%m:%d:%H:%M:%S%Z", &localtm);
 	OIIO::Strutil::safe_strcpy(this->sourceDate, str, 11);
 	OIIO::Strutil::safe_strcpy(this->sourceTime, str + 11, 12);
 }
