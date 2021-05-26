@@ -1,7 +1,7 @@
 # Module to find OpenJpeg.
 #
 # This module will first look into the directories defined by the variables:
-#   - OpenJpeg_ROOT
+#   - OpenJPEG_ROOT
 #
 # This module defines the following variables:
 #
@@ -83,21 +83,21 @@ set (OpenJpeg_library_paths
   /sw/lib
   /opt/local/lib)
 
-if (OpenJpeg_ROOT)
+if (OpenJPEG_ROOT)
   set (OpenJpeg_library_paths
-       ${OpenJpeg_ROOT}/lib
-       ${OpenJpeg_ROOT}/lib64
-       ${OpenJpeg_ROOT}/bin
+       ${OpenJPEG_ROOT}/lib
+       ${OpenJPEG_ROOT}/lib64
+       ${OpenJPEG_ROOT}/bin
        ${OpenJpeg_library_paths}
       )
   set (OpenJpeg_include_paths
-       ${OpenJpeg_ROOT}/include/openjpeg-2.4
-       ${OpenJpeg_ROOT}/include/openjpeg-2.3
-       ${OpenJpeg_ROOT}/include/openjpeg-2.2
-       ${OpenJpeg_ROOT}/include/openjpeg-2.1
-       ${OpenJpeg_ROOT}/include/openjpeg-2.0
-       ${OpenJpeg_ROOT}/include/openjpeg
-       ${OpenJpeg_ROOT}/include
+       ${OpenJPEG_ROOT}/include/openjpeg-2.4
+       ${OpenJPEG_ROOT}/include/openjpeg-2.3
+       ${OpenJPEG_ROOT}/include/openjpeg-2.2
+       ${OpenJPEG_ROOT}/include/openjpeg-2.1
+       ${OpenJPEG_ROOT}/include/openjpeg-2.0
+       ${OpenJPEG_ROOT}/include/openjpeg
+       ${OpenJPEG_ROOT}/include
        ${OpenJpeg_include_paths}
       )
 endif()

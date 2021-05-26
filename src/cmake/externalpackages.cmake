@@ -190,7 +190,7 @@ checked_find_package (LibRaw
                       RECOMMEND_MIN 0.18
                       RECOMMEND_MIN_REASON "for ACES support and better camera metadata"
                       PRINT LibRaw_r_LIBRARIES )
-checked_find_package (OpenJpeg VERSION_MIN 2.0)
+checked_find_package (OpenJPEG VERSION_MIN 2.0)
 
 checked_find_package (OpenVDB
                       VERSION_MIN 5.0
