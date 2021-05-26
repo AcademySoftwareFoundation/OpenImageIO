@@ -1,5 +1,21 @@
-Release 2.2.15 (1 Jun? 2021) -- compared to 2.2.14
+Release 2.2.15 (1 Jun 2021) -- compared to 2.2.14
 --------------------------------------------------
+* BMP improvements: now support reading rle-compressed BMP files; writing
+  single channel grayscale images now save as 8bpp palette images intead of
+  24bpp; and reading 8bpp where all palette entries have R==G==B looks like
+  a 1-channel grayscale instead of 3-channel RGB. #2976
+* Bug: IBA::render_text did not properly account for alpha of the draw
+  color. #2981
+* Bug: Fix runaway parsing time for pathological XMP metadata. #2968
+* Bug: Fixed a crash is ImageCacheFile::read_unmipped when sampling
+* Fix exported cmake config files, which could fail if Imath and OpenEXR
+  weren't the at the same version number. #2975
+* Build: Modernize cmake to use targets for PNG and ZLIB. #2957
+* Build: Fix to accommodate upcoming OpenColorIO 2.1 deprecation of
+  parseColorSpaceFromString. #2961
+* Build: Changes to make it build against TBB 2021. #2985
+* Dev: Add Strutil functions: find, rfind, ifind, irfind. #2960
+  non-zero-base channels. (#2962)
 
 Release 2.2.14 (1 May 2021) -- compared to 2.2.13
 --------------------------------------------------
