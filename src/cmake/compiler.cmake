@@ -284,25 +284,6 @@ include (CMakePushCheckState)
 include (CheckCXXSourceRuns)
 include (CheckLibraryExists)
 
-###########################################################################
-# Find out if it's safe for us to use std::regex or if we need boost.regex.
-# This is primarily about gcc 4.8 having a broken regex implementation.
-# This will be obsolete once our minimum supported gcc is >= 4.9.
-#
-cmake_push_check_state ()
-check_cxx_source_runs("
-      #include <regex>
-      int main() {
-          std::string r = std::regex_replace(std::string(\"abc\"), std::regex(\"b\"), \" \");
-          return r == \"a c\" ? 0 : -1;
-      }"
-      USE_STD_REGEX)
-cmake_pop_check_state ()
-if (USE_STD_REGEX)
-    add_definitions (-DUSE_STD_REGEX)
-else ()
-    add_definitions (-DUSE_BOOST_REGEX)
-endif ()
 
 ###########################################################################
 # Check if we need libatomic on this platform.  We shouldn't on mainstream

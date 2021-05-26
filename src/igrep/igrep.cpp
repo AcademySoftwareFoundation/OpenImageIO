@@ -10,24 +10,13 @@
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <regex>
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
-
-#ifdef USE_BOOST_REGEX
-#    include <boost/regex.hpp>
-using boost::regex;
-using boost::regex_search;
-using namespace boost::regex_constants;
-#else
-#    include <regex>
-using std::regex;
-using std::regex_search;
-using namespace std::regex_constants;
-#endif
 
 using namespace OIIO;
 
@@ -44,7 +33,7 @@ static std::vector<std::string> filenames;
 
 
 static bool
-grep_file(const std::string& filename, regex& re,
+grep_file(const std::string& filename, std::regex& re,
           bool ignore_nonimage_files = false)
 {
     if (!Filesystem::exists(filename)) {
@@ -76,7 +65,7 @@ grep_file(const std::string& filename, regex& re,
     ImageSpec spec = in->spec();
 
     if (file_match) {
-        bool match = regex_search(filename, re);
+        bool match = std::regex_search(filename, re);
         if (match && !invert_match) {
             std::cout << filename << "\n";
             return true;
@@ -93,7 +82,8 @@ grep_file(const std::string& filename, regex& re,
             if (t.elementtype() == TypeDesc::STRING) {
                 int n = t.numelements();
                 for (int i = 0; i < n; ++i) {
-                    bool match = regex_search(((const char**)p.data())[i], re);
+                    bool match = std::regex_search(((const char**)p.data())[i],
+                                                   re);
                     found |= match;
                     if (match && !invert_match) {
                         if (list_files) {
@@ -173,21 +163,12 @@ main(int argc, const char* argv[])
         return help ? EXIT_SUCCESS : EXIT_FAILURE;
     }
 
-#if USE_BOOST_REGEX
-    boost::regex_constants::syntax_option_type flag
-        = boost::regex_constants::grep;
-    if (ap["E"].get<int>())
-        flag = boost::regex::extended;
-    if (ap["i"].get<int>())
-        flag |= boost::regex_constants::icase;
-#else
     auto flag = std::regex_constants::grep;
     if (ap["E"].get<int>())
         flag = std::regex_constants::extended;
     if (ap["i"].get<int>())
         flag |= std::regex_constants::icase;
-#endif
-    regex re(pattern, flag);
+    std::regex re(pattern, flag);
     for (auto&& s : filenames)
         grep_file(s, re);
 

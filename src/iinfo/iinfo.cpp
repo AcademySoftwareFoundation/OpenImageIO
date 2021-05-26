@@ -10,6 +10,7 @@
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <regex>
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/deepdata.h>
@@ -21,18 +22,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
-#ifdef USE_BOOST_REGEX
-#    include <boost/regex.hpp>
-using boost::regex;
-using boost::regex_search;
-#else
-#    include <regex>
-using std::regex;
-using std::regex_search;
-#endif
-
 using namespace OIIO;
-
 using namespace ImageBufAlgo;
 
 
@@ -42,7 +32,7 @@ static bool help    = false;
 static std::vector<std::string> filenames;
 static std::string metamatch;
 static bool filenameprefix = false;
-static regex field_re;
+static std::regex field_re;
 static bool subimages     = false;
 static bool compute_sha1  = false;
 static bool compute_stats = false;
@@ -304,8 +294,8 @@ static void
 print_metadata(const ImageSpec& spec, const std::string& filename)
 {
     bool printed = false;
-    if (metamatch.empty() || regex_search("channels", field_re)
-        || regex_search("channel list", field_re)) {
+    if (metamatch.empty() || std::regex_search("channels", field_re)
+        || std::regex_search("channel list", field_re)) {
         if (filenameprefix)
             printf("%s : ", filename.c_str());
         printf("    channel list: ");
@@ -323,7 +313,8 @@ print_metadata(const ImageSpec& spec, const std::string& filename)
         printed = true;
     }
     if (spec.x || spec.y || spec.z) {
-        if (metamatch.empty() || regex_search("pixel data origin", field_re)) {
+        if (metamatch.empty()
+            || std::regex_search("pixel data origin", field_re)) {
             if (filenameprefix)
                 printf("%s : ", filename.c_str());
             printf("    pixel data origin: x=%d, y=%d", spec.x, spec.y);
@@ -337,7 +328,8 @@ print_metadata(const ImageSpec& spec, const std::string& filename)
         || (spec.full_width != spec.width && spec.full_width != 0)
         || (spec.full_height != spec.height && spec.full_height != 0)
         || (spec.full_depth != spec.depth && spec.full_depth != 0)) {
-        if (metamatch.empty() || regex_search("full/display size", field_re)) {
+        if (metamatch.empty()
+            || std::regex_search("full/display size", field_re)) {
             if (filenameprefix)
                 printf("%s : ", filename.c_str());
             printf("    full/display size: %d x %d", spec.full_width,
@@ -348,7 +340,7 @@ print_metadata(const ImageSpec& spec, const std::string& filename)
             printed = true;
         }
         if (metamatch.empty()
-            || regex_search("full/display origin", field_re)) {
+            || std::regex_search("full/display origin", field_re)) {
             if (filenameprefix)
                 printf("%s : ", filename.c_str());
             printf("    full/display origin: %d, %d", spec.full_x, spec.full_y);
@@ -359,7 +351,7 @@ print_metadata(const ImageSpec& spec, const std::string& filename)
         }
     }
     if (spec.tile_width) {
-        if (metamatch.empty() || regex_search("tile", field_re)) {
+        if (metamatch.empty() || std::regex_search("tile", field_re)) {
             if (filenameprefix)
                 printf("%s : ", filename.c_str());
             printf("    tile size: %d x %d", spec.tile_width, spec.tile_height);
@@ -376,7 +368,8 @@ print_metadata(const ImageSpec& spec, const std::string& filename)
     ParamValueList attribs = spec.extra_attribs;
     attribs.sort(false /* sort case-insensitively */);
     for (auto&& p : attribs) {
-        if (!metamatch.empty() && !regex_search(p.name().c_str(), field_re))
+        if (!metamatch.empty()
+            && !std::regex_search(p.name().c_str(), field_re))
             continue;
         std::string s = spec.metadata_val(p, true);
         if (filenameprefix)
@@ -448,7 +441,7 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
         return;
 
     if (!metamatch.empty()
-        && !regex_search(
+        && !std::regex_search(
             "resolution, width, height, depth, channels, sha-1, stats",
             field_re)) {
         // nothing to do here
@@ -460,8 +453,8 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
     bool printres
         = verbose
           && (metamatch.empty()
-              || regex_search("resolution, width, height, depth, channels",
-                              field_re));
+              || std::regex_search("resolution, width, height, depth, channels",
+                                   field_re));
     if (printres && max_subimages > 1 && subimages) {
         printf(" subimage %2d: ", current_subimage);
         printf("%4d x %4d", spec.width, spec.height);
@@ -488,7 +481,7 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
         printf("\n");
 
     if (compute_sha1
-        && (metamatch.empty() || regex_search("sha-1", field_re))) {
+        && (metamatch.empty() || std::regex_search("sha-1", field_re))) {
         if (filenameprefix)
             printf("%s : ", filename.c_str());
         // Before sha-1, be sure to point back to the highest-res MIP level
@@ -501,7 +494,7 @@ print_info_subimage(int current_subimage, int max_subimages, ImageSpec& spec,
         print_metadata(spec, filename);
 
     if (compute_stats
-        && (metamatch.empty() || regex_search("stats", field_re))) {
+        && (metamatch.empty() || std::regex_search("stats", field_re))) {
         for (int m = 0; m < nmip; ++m) {
             ImageSpec mipspec;
             input->seek_subimage(current_subimage, m, mipspec);
@@ -554,8 +547,8 @@ print_info(const std::string& filename, size_t namefieldlength,
     input->seek_subimage(0, 0, spec);  // re-seek to the first
 
     if (metamatch.empty()
-        || regex_search("resolution, width, height, depth, channels",
-                        field_re)) {
+        || std::regex_search("resolution, width, height, depth, channels",
+                             field_re)) {
         printf("%s%s : %4d x %4d", filename.c_str(), padding.c_str(),
                spec.width, spec.height);
         if (spec.depth > 1)
@@ -661,13 +654,8 @@ main(int argc, const char* argv[])
     }
 
     if (!metamatch.empty()) {
-#if USE_BOOST_REGEX
-        field_re.assign(metamatch,
-                        boost::regex::extended | boost::regex_constants::icase);
-#else
         field_re.assign(metamatch, std::regex_constants::extended
                                        | std::regex_constants::icase);
-#endif
     }
 
     // Find the longest filename

@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <iostream>
+#include <regex>
 #include <string>
 
 #include <boost/tokenizer.hpp>
@@ -26,18 +27,6 @@
 #    include <shellapi.h>
 #else
 #    include <unistd.h>
-#endif
-
-#ifdef USE_BOOST_REGEX
-#    include <boost/regex.hpp>
-using boost::match_results;
-using boost::regex;
-using boost::regex_search;
-#else
-#    include <regex>
-using std::match_results;
-using std::regex;
-using std::regex_search;
 #endif
 
 #include <boost/filesystem.hpp>
@@ -261,9 +250,9 @@ Filesystem::get_directory_entries(const std::string& dirname,
         return false;
     filesystem::path dirpath(dirname.size() ? u8path(dirname)
                                             : filesystem::path("."));
-    regex re;
+    std::regex re;
     try {
-        re = regex(filter_regex);
+        re = std::regex(filter_regex);
     } catch (...) {
         return false;
     }
@@ -273,7 +262,7 @@ Filesystem::get_directory_entries(const std::string& dirname,
         for (filesystem::recursive_directory_iterator s(dirpath, ec);
              !ec && s != filesystem::recursive_directory_iterator(); ++s) {
             std::string file = pathstr(s->path());
-            if (!filter_regex.size() || regex_search(file, re))
+            if (!filter_regex.size() || std::regex_search(file, re))
                 filenames.push_back(file);
         }
     } else {
@@ -281,7 +270,7 @@ Filesystem::get_directory_entries(const std::string& dirname,
         for (filesystem::directory_iterator s(dirpath, ec);
              !ec && s != filesystem::directory_iterator(); ++s) {
             std::string file = pathstr(s->path());
-            if (!filter_regex.size() || regex_search(file, re))
+            if (!filter_regex.size() || std::regex_search(file, re))
                 filenames.push_back(file);
         }
     }
@@ -708,13 +697,13 @@ Filesystem::parse_pattern(const char* pattern_, int framepadding_override,
 #define SEQUENCE_SPEC       \
     "(" MANYRANGE_SPEC ")?" \
     "((#|@)+|(%[0-9]*d))"
-    static regex sequence_re(SEQUENCE_SPEC);
+    static std::regex sequence_re(SEQUENCE_SPEC);
     // std::cout << "pattern >" << (SEQUENCE_SPEC) << "<\n";
-    match_results<std::string::const_iterator> range_match;
-    if (!regex_search(pattern, range_match, sequence_re)) {
+    std::match_results<std::string::const_iterator> range_match;
+    if (!std::regex_search(pattern, range_match, sequence_re)) {
         // Not a range
-        static regex all_views_re("%[Vv]");
-        if (regex_search(pattern, all_views_re)) {
+        static std::regex all_views_re("%[Vv]");
+        if (std::regex_search(pattern, all_views_re)) {
             normalized_pattern = pattern;
             return true;
         }
@@ -804,14 +793,14 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern,
                                         std::vector<string_view>& frame_views,
                                         std::vector<std::string>& filenames)
 {
-    static regex format_re("%0([0-9]+)d");
-    static regex all_views_re("%[Vv]"), view_re("%V"), short_view_re("%v");
+    static std::regex format_re("%0([0-9]+)d");
+    static std::regex all_views_re("%[Vv]"), view_re("%V"), short_view_re("%v");
 
     frame_numbers.clear();
     frame_views.clear();
     filenames.clear();
-    if (regex_search(pattern, all_views_re)) {
-        if (regex_search(pattern, format_re)) {
+    if (std::regex_search(pattern, all_views_re)) {
+        if (std::regex_search(pattern, format_re)) {
             // case 1: pattern has format and view
             std::vector<std::pair<std::pair<int, string_view>, std::string>>
                 matches;
@@ -895,9 +884,9 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
         return false;
 
     // build a regex that matches the pattern
-    static regex format_re("%0([0-9]+)d");
-    match_results<std::string::const_iterator> format_match;
-    if (!regex_search(pattern, format_match, format_re))
+    static std::regex format_re("%0([0-9]+)d");
+    std::match_results<std::string::const_iterator> format_match;
+    if (!std::regex_search(pattern, format_match, format_re))
         return false;
 
     std::string thepadding(format_match[1].first, format_match[1].second);
@@ -913,8 +902,7 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
     // There are some corner cases regex that could be constructed here that
     // are badly structured and might throw an exception.
     try {
-        regex pattern_re(pattern_re_str);
-
+        std::regex pattern_re(pattern_re_str);
         error_code ec;
         for (filesystem::directory_iterator it(u8path(directory), ec), end_it;
              !ec && it != end_it; ++it) {
@@ -922,7 +910,7 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
                 it->path().string());
             if (filesystem::is_regular(itpath, ec)) {
                 const std::string f = pathstr(itpath);
-                match_results<std::string::const_iterator> frame_match;
+                std::match_results<std::string::const_iterator> frame_match;
                 if (regex_match(f, frame_match, pattern_re)) {
                     std::string thenumber(frame_match[1].first,
                                           frame_match[1].second);
