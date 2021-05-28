@@ -30,7 +30,13 @@ command += oiiotool (oiiotoolsrcdir + "/tahoe-tiny.tif "
             "--text:x=64:y=60:xalign=center:size=20:shadow=2 \"shadow = 2\" "
             "-o textshadowed.tif >> out.txt")
 
+# test whether alpha works properly
+command += oiiotool ("--pattern checker:color1=.2,0,0:color2=0,.2,0 320x240 3 "
+            "--text:x=20:y=120:color=.5,.5,.5,.5:size=50 \"Hello, world\" "
+            "-d uint8 -o textalpha.tif >> out.txt")
+
+
 # Outputs to check against references
-outputs = [ "text.tif", "aligned.tif", "textshadowed.tif" ]
+outputs = [ "text.tif", "aligned.tif", "textshadowed.tif", "textalpha.tif" ]
 
 #print "Running this command:\n" + command + "\n"
