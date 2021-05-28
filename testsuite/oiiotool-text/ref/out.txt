@@ -1,2 +1,8 @@
-Comparing "text.tif" and "ref/text.tif"
+Comparing "text.tif" and "ref/text-freetype2.7.tif"
+PASS
+Comparing "aligned.tif" and "ref/aligned.tif"
+PASS
+Comparing "textshadowed.tif" and "ref/textshadowed.tif"
+PASS
+Comparing "textalpha.tif" and "ref/textalpha.tif"
 PASS

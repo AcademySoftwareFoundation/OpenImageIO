@@ -919,6 +919,19 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     int nchannels(R.nchannels());
     IBA_FIX_PERCHAN_LEN_DEF(textcolor, nchannels);
 
+    // Take into account the alpha of the requested text color. Slightly
+    // complicated logic to try to make our best guess.
+    int alpha_channel = R.spec().alpha_channel;
+    float textalpha   = 1.0f;
+    if (alpha_channel >= 0 && alpha_channel < int(textcolor.size())) {
+        // If the image we're writing into has a designated alpha, use it.
+        textalpha = textcolor[alpha_channel];
+    } else if (alpha_channel < 0 && nchannels <= 4 && textcolor.size() == 4) {
+        // If the buffer doesn't have an alpha, but the text color passed
+        // has 4 values, assume the last value is supposed to be alpha.
+        textalpha = textcolor[3];
+    }
+
     // Convert the UTF to 32 bit unicode
     std::vector<uint32_t> utext;
     utext.reserve(
@@ -994,7 +1007,7 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     ImageBuf::Iterator<float> r(R, roi);
     for (; !r.done(); ++r, ++t, ++a) {
         float val   = t[0];
-        float alpha = a[0];
+        float alpha = a[0] * textalpha;
         R.getpixel(r.x(), r.y(), pixelcolor);
         for (int c = 0; c < nchannels; ++c)
             pixelcolor[c] = val * textcolor[c] + (1.0f - alpha) * pixelcolor[c];
