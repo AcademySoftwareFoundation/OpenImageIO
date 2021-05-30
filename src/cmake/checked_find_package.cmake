@@ -7,7 +7,7 @@ set (REQUIED_DEPS "" CACHE STRING
      "Additional dependencies to consider required (semicolon-separated list, or ALL)")
 set (OPTIONAL_DEPS "" CACHE STRING
      "Additional dependencies to consider optional (semicolon-separated list, or ALL)")
-
+option (ALWAYS_PREFER_CONFIG "Prefer a dependency's exported config file if it's available" OFF)
 
 # checked_find_package(Pkgname ...) is a wrapper for find_package, with the
 # following extra features:
@@ -42,6 +42,8 @@ set (OPTIONAL_DEPS "" CACHE STRING
 #     version, accepting but warning if it is below this number (even
 #     if above the true minimum version accepted). The warning message
 #     can give an optional explanation, passed as RECOMMEND_MIN_REASON.
+#   * Optional PREFER_CONFIG, if supplied, tries to use an exported config
+#     file from the package before using a FindPackage.cmake module.
 #
 # N.B. This needs to be a macro, not a function, because the find modules
 # will set(blah val PARENT_SCOPE) and we need that to be the global scope,
@@ -49,7 +51,7 @@ set (OPTIONAL_DEPS "" CACHE STRING
 macro (checked_find_package pkgname)
     cmake_parse_arguments(_pkg   # prefix
         # noValueKeywords:
-        "REQUIRED"
+        "REQUIRED;PREFER_CONFIG"
         # singleValueKeywords:
         "ENABLE;ISDEPOF;VERSION_MIN;VERSION_MAX;RECOMMEND_MIN;RECOMMEND_MIN_REASON"
         # multiValueKeywords:
@@ -85,8 +87,19 @@ macro (checked_find_package pkgname)
             set (_quietskip true)
         endif ()
     endif ()
+    set (_config_status "")
     if (_enable OR _pkg_REQUIRED)
-        find_package (${pkgname} ${_pkg_UNPARSED_ARGUMENTS})
+        if (${pkgname}_FOUND OR ${pkgname_upper}_FOUND)
+            # was already found
+        elseif (_pkg_PREFER_CONFIG OR ALWAYS_PREFER_CONFIG)
+            find_package (${pkgname} CONFIG ${_pkg_UNPARSED_ARGUMENTS})
+            if (${pkgname}_FOUND OR ${pkgname_upper}_FOUND)
+                set (_config_status "from CONFIG")
+            endif ()
+        endif ()
+        if (NOT (${pkgname}_FOUND OR ${pkgname_upper}_FOUND))
+            find_package (${pkgname} ${_pkg_UNPARSED_ARGUMENTS})
+        endif()
         if ((${pkgname}_FOUND OR ${pkgname_upper}_FOUND)
               AND ${pkgname}_VERSION
               AND (_pkg_VERSION_MIN OR _pkg_VERSION_MAX))
@@ -106,7 +119,7 @@ macro (checked_find_package pkgname)
                     set (${pkgname}_VERSION ${${_vervar}})
                 endif ()
             endforeach ()
-            message (STATUS "${ColorGreen}Found ${pkgname} ${${pkgname}_VERSION} ${ColorReset}")
+            message (STATUS "${ColorGreen}Found ${pkgname} ${${pkgname}_VERSION} ${_config_status}${ColorReset}")
             if (VERBOSE)
                 set (_vars_to_print ${pkgname}_INCLUDES ${pkgname_upper}_INCLUDES
                                     ${pkgname}_INCLUDE_DIR ${pkgname_upper}_INCLUDE_DIR
