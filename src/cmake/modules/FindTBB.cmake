@@ -134,7 +134,7 @@ if(NOT TBB_FOUND)
   # Find the TBB include dir
   ##################################
   
-  find_path(TBB_INCLUDE_DIRS tbb/tbb.h
+  find_path(TBB_INCLUDE_DIRS tbb/tbb_stddef.h
       HINTS ${TBB_INCLUDE_DIR} ${TBB_SEARCH_DIR}
       PATHS ${TBB_DEFAULT_SEARCH_DIR})
   
