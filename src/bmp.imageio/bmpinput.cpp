@@ -205,6 +205,13 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
         }
     }
 
+    if (m_spec.width < 1 || m_spec.height < 1 || m_spec.nchannels < 1
+        || m_spec.image_bytes() < 1) {
+        errorfmt("Invalid image size {} x {} ({} chans, {})", m_spec.width,
+                 m_spec.height, m_spec.nchannels, m_spec.format);
+        return false;
+    }
+
     newspec = m_spec;
     return true;
 }
