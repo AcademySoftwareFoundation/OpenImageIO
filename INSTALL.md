@@ -41,7 +41,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Field3D (tested through 1.7.3)
  * If you want support for OpenVDB files:
      * OpenVDB >= 5.0 (tested through 8.0) and Intel TBB >= 2018 (tested
-       through 2020_U3)
+       through 2021)
+     * Note that OpenVDB 8.0+ requires C++14 or higher.
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
      * OpenCV 2.x, 3.x, or 4.x (tested through 4.5)
