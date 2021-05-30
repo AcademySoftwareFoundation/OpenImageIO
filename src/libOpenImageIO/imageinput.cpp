@@ -254,6 +254,11 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         if (!spec.tile_width)
             rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
     }
+    if (spec.image_bytes() < 1) {
+        errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
+                 m_spec.height, m_spec.nchannels);
+        return false;
+    }
 
     chend                     = clamp(chend, chbegin + 1, spec.nchannels);
     int nchans                = chend - chbegin;
@@ -872,6 +877,11 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
             rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+    }
+    if (spec.image_bytes() < 1) {
+        errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
+                 m_spec.height, m_spec.nchannels);
+        return false;
     }
 
     if (chend < 0)
