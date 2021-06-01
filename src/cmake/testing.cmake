@@ -75,13 +75,17 @@ macro (oiio_add_tests)
             set (_ats_LABEL "broken")
         endif ()
     endforeach ()
+    set (_test_disabled 0)
     foreach (_var ${_ats_ENABLEVAR})
         if ((NOT "${${_var}}" STREQUAL "" AND NOT "${${_var}}") OR
             (NOT "$ENV{${_var}}" STREQUAL "" AND NOT "$ENV{${_var}}"))
             set (_ats_LABEL "broken")
+            set (_test_disabled 1)
         endif ()
     endforeach ()
-    if (_ats_IMAGEDIR AND NOT EXISTS ${_ats_testdir})
+    if (_test_disabled)
+        message (STATUS "Skipping test(s) ${_ats_UNPARSED_ARGUMENTS} because of disabled ${_ats_ENABLEVAR}")
+    elseif (_ats_IMAGEDIR AND NOT EXISTS ${_ats_testdir})
         # If the directory containing reference data (images) for the test
         # isn't found, point the user at the URL.
         message (STATUS "\n\nDid not find ${_ats_testdir}")
