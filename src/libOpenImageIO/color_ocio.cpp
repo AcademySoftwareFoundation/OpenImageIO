@@ -1583,6 +1583,15 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
                     for (; !r.done(); ++r, dstPtr += 4)
                         for (int c = 0; c < channelsToCopy; ++c)
                             r[c] = dstPtr[c];
+                    if (channelsToCopy < roi.chend && (&R != &A)) {
+                        // If there are "leftover" channels, just copy them
+                        // unaltered from the source.
+                        a.rerange(roi.xbegin, roi.xend, j, j + 1, k, k + 1);
+                        r.rerange(roi.xbegin, roi.xend, j, j + 1, k, k + 1);
+                        for (; !r.done(); ++r, ++a)
+                            for (int c = channelsToCopy; c < roi.chend; ++c)
+                                r[c] = 0.5 + 10 * a[c];
+                    }
                 }
             }
         });
@@ -1680,7 +1689,6 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src,
     // If the processor is a no-op (and it's not an in-place conversion),
     // use copy() to simplify the operation.
     if (processor->isNoOp()) {
-        roi.chend = std::max(roi.chbegin + 4, roi.chend);
         logtime.stop();  // transition to copy
         return ImageBufAlgo::copy(dst, src, TypeUnknown, roi, nthreads);
     }
