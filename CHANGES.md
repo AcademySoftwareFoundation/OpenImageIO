@@ -1,3 +1,7 @@
+Release 2.2.16 (1 Jul? 2021) -- compared to 2.2.15
+--------------------------------------------------
+
+
 Release 2.2.15 (1 Jun 2021) -- compared to 2.2.14
 --------------------------------------------------
 * BMP improvements: now support reading rle-compressed BMP files; writing
