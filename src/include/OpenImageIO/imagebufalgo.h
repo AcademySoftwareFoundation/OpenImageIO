@@ -1565,6 +1565,10 @@ bool OIIO_API erode (ImageBuf &dst, const ImageBuf &src,
 /// a color space transformation. In-place operations (`dst` == `src`) are
 /// supported.
 ///
+/// The first three channels are presumed to be the color to be
+/// transformed, and the fourth channel (if it exists) is presumed to be
+/// alpha. Any additional channels will be simply copied unaltered.
+///
 /// If OIIO was built with OpenColorIO support enabled, then the
 /// transformation may be between any two spaces supported by the active
 /// OCIO configuration, or may be a "look" transformation created by
@@ -1641,6 +1645,10 @@ inline bool colorconvert (float *color, int nchannels,
 /// transform specified by a 4x4 matrix.  In-place operations
 /// (`dst` == `src`) are supported.
 ///
+/// The first three channels are presumed to be the color to be
+/// transformed, and the fourth channel (if it exists) is presumed to be
+/// alpha. Any additional channels will be simply copied unaltered.
+///
 /// @param  M
 ///             A 4x4 matrix. Following Imath conventions, the color is a
 ///             row vector and the matrix has the "translation" part in
@@ -1667,6 +1675,10 @@ bool OIIO_API colormatrixtransform (ImageBuf &dst, const ImageBuf &src,
 /// Return a copy of the pixels of `src` within the ROI, applying an
 /// OpenColorIO "look" transform to the pixel values. In-place operations
 /// (`dst` == `src`) are supported.
+///
+/// The first three channels are presumed to be the color to be
+/// transformed, and the fourth channel (if it exists) is presumed to be
+/// alpha. Any additional channels will be simply copied unaltered.
 ///
 /// @param  looks
 ///             The looks to apply (comma-separated).
@@ -1709,6 +1721,10 @@ bool OIIO_API ociolook (ImageBuf &dst, const ImageBuf &src, string_view looks,
 /// Return the pixels of `src` within the ROI, applying an OpenColorIO
 /// "display" transform to the pixel values. In-place operations
 /// (`dst` == `src`) are supported.
+///
+/// The first three channels are presumed to be the color to be
+/// transformed, and the fourth channel (if it exists) is presumed to be
+/// alpha. Any additional channels will be simply copied unaltered.
 ///
 /// @param  display
 ///             The OCIO "display" to apply. If this is the empty string,
@@ -1762,6 +1778,10 @@ bool OIIO_API ociodisplay (ImageBuf &dst, const ImageBuf &src,
 
 /// Return the pixels of `src` within the ROI, applying an OpenColorIO
 /// "file" transform. In-place operations (`dst` == `src`) are supported.
+///
+/// The first three channels are presumed to be the color to be
+/// transformed, and the fourth channel (if it exists) is presumed to be
+/// alpha. Any additional channels will be simply copied unaltered.
 ///
 /// @param  name
 ///             The name of the file containing the transform information.
