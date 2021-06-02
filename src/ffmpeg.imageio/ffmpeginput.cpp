@@ -12,6 +12,21 @@ extern "C" {  // ffmpeg is a C api
 #endif
 }
 
+// It's hard to figure out FFMPEG versions from what they give us, so
+// record some of the milestones once and for all for easy reference.
+#define USE_FFMPEG_2_6 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(56, 26, 100))
+#define USE_FFMPEG_2_7 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(56, 41, 100))
+#define USE_FFMPEG_2_8 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(56, 60, 100))
+#define USE_FFMPEG_3_0 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 24, 100))
+#define USE_FFMPEG_3_1 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 48, 100))
+#define USE_FFMPEG_3_2 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 64, 100))
+#define USE_FFMPEG_3_3 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 89, 100))
+#define USE_FFMPEG_3_4 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 107, 100))
+#define USE_FFMPEG_4_0 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 18, 100))
+#define USE_FFMPEG_4_1 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 35, 100))
+#define USE_FFMPEG_4_2 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 54, 100))
+#define USE_FFMPEG_4_3 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 91, 100))
+#define USE_FFMPEG_4_4 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 134, 100))
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 28, 1)
 #    define av_frame_alloc avcodec_alloc_frame
@@ -44,9 +59,6 @@ extern "C" {  // ffmpeg is a C api
 #    define r_frame_rate avg_frame_rate
 #endif
 
-// Changes for ffmpeg 3.0
-#define USE_FFMPEG_3_0 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 24, 0))
-
 #if USE_FFMPEG_3_0
 #    define av_free_packet av_packet_unref
 #    define avpicture_get_size(fmt, w, h) av_image_get_buffer_size(fmt, w, h, 1)
@@ -60,9 +72,6 @@ avpicture_fill(AVPicture* picture, uint8_t* ptr, enum AVPixelFormat pix_fmt,
                                 width, height, 1);
 }
 #endif
-
-// Changes for ffmpeg 3.1
-#define USE_FFMPEG_3_1 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 48, 101))
 
 #if USE_FFMPEG_3_1
 // AVStream::codec was changed to AVStream::codecpar
@@ -100,8 +109,6 @@ receive_frame(AVCodecContext* avctx, AVFrame* picture, AVPacket* avpkt)
 #endif
 
 
-// Changes for ffmpeg 4.0
-#define USE_FFMPEG_4_0 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 18, 100))
 
 #if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(56, 56, 100))
 #    define CODEC_CAP_DELAY AV_CODEC_CAP_DELAY
@@ -481,6 +488,12 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     case AV_PIX_FMT_YUVA422P10LE:
     case AV_PIX_FMT_YUVA444P10BE:
     case AV_PIX_FMT_YUVA444P10LE:
+#if USE_FFMPEG_4_2
+    case AV_PIX_FMT_YUVA422P12BE:
+    case AV_PIX_FMT_YUVA422P12LE:
+    case AV_PIX_FMT_YUVA444P12BE:
+    case AV_PIX_FMT_YUVA444P12LE:
+#endif
     case AV_PIX_FMT_YUVA420P16BE:
     case AV_PIX_FMT_YUVA420P16LE:
     case AV_PIX_FMT_YUVA422P16BE:
