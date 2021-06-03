@@ -376,7 +376,11 @@ ustring::TableRep::TableRep(string_view strref, size_t hash)
     OIIO_DASSERT(str.c_str() == c_str() && str.size() == length);
     return;
 
-#elif defined(_LIBCPP_VERSION)
+#elif defined(_LIBCPP_VERSION) && !defined(__aarch64__)
+    // FIXME -- we seem to do the wrong thing with libcpp on Mac M1. Disable
+    // when on aarch64 for now. Come back and fix then when I have easier
+    // access to an M1 Mac.
+    //
     // libc++ uses a different std::string representation than gcc.  For
     // long char sequences, it's two size_t's (capacity & length) followed
     // by the pointer to allocated characters. (Gory detail: see the
