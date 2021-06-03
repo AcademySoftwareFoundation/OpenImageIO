@@ -2,8 +2,8 @@ Release 2.3 (??) -- compared to 2.2
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
 * C++ standard: **C++14 is now the minimum (gcc 6.1 - 10.2, clang 3.4 - 12,
-  MSVS 2017 - 2019, icc 17+).** #2955 (2.3.5) The default C++ standard mode,
-  if none is explicitly specified, is now C++14. #2918 (2.3.4)
+  MSVS 2017 - 2019, icc 17+).** The default C++ standard mode, if none is
+  explicitly specified, is now C++14. #2918 (2.3.4) #2955 #2977 (2.3.5) 
 
 New major features and public API changes:
 * C API:  #2748 (2.3.1.0)
@@ -90,6 +90,7 @@ Performance improvements:
   done on each scanline read. #2934 (2.3.4)
 * For `IBA::to_OpenCV()`, improve efficiency for certain image copies. #2944
   (2.3.4) 
+* Fix runaway parsing time for pathological XMP metadata. #2968 (2.3.5/2.2.15)
 
 Fixes and feature enhancements:
 * Fix a situation where if an ImageBuf backed by an ImageCache reads an
@@ -126,12 +127,24 @@ Fixes and feature enhancements:
       files that support per-channel data types. #2885 (2.3.3)
     - Fix: `IBA::fillholes_pushpull` did not correctly understand which
       channel was alpha when generating subimages. #2939 (2.3.4)
+    - Fix: `IBA::render_text` did not properly account for non-1 alpha of
+      the text color. #2981 (2.3.5/2.2.15)
+    - `IBA::colorconvert`, `colormatrixtransform`, `ociolook`, `ociodisplay`,
+      and `ociofiletransform` have been fixed so that if input is more than
+      4 channels, the additional channels will be copied unchanged, rather
+      than inadvertently set to 0. #2987 (2.3.5/2.2.16)
 * ImageCache/TextureSystem/maketx:
     - Fix ImageCache bug: add_tile/get_tile not properly honoring when
      `chend < chbegin` it should get all channels. #2742 (2.3.0.1/2.2.8)
     - `ImageBufAlgo::make_texture()` (as well as `maketx` and `oiiotool -otex`)
       clamp `half` values to their maximum finite range to prevent very large
       float inputs turning into `Inf` when saved as half values. #2891 (2.3.3)
+    - Fix crash when sampling non-zero-base channels. #2962 (2.3.5/2.2.15)
+    - `IBA::make_texture()` rejects "deep" input images, since they cannot
+      be made into textures. Doing this could previously crash. #2991
+      (2.3.5/2.2.16)
+    - maketx and `oiiotool -otex` have fixed double printing of error
+      messages #2992 (2.3.5).
 * oiiotool:
     - `--resize` of images with multi-subimages could crash. #2711 (2.3.0.0)
     - Improve oiiotool's guessing about the desired output format based on
@@ -153,8 +166,13 @@ Fixes and feature enhancements:
     - For BMP files that are 8 bits per pixel and all palette entries have
       R == G == B values, read the file as an 8-bit grayscale image instead
       of needlessly promoting to a full RGB 3-channel image. #2943 (2.3.4)
+    - Full support for reading RLE-compressed BMP images. #2976 (2.3.5/2.2.15)
+    - Write single channel BMP as 8 bit palette images. #2976 (2.3.5/2.2.15)
 * FFMpeg/movies:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
+    - Several varieties of encoded videos with 12 bits per channel and
+      having alpha were incorrectly reported as 8 bits and without alpha.ƒ
+      #2989 (2.3.5/2.2.16)
 * GIF
     - Support UTF-8 filenames on Windows for GIF files. #2777 (2.3.2.0)
     - Fix error checking for non-existant GIF files. #2886 (2.3.3)
@@ -208,6 +226,8 @@ Fixes and feature enhancements:
       when it's unnecessary; now can read animated WebP images as
       multi-subimage files. #2730 (2.3.0.1/2.2.8)
 * Fix memory leak during decoding of some invalid Exif blocks. #2824
+* Fix possible divide-by-zero error in read_image/read_scanlines for invalid
+  image sizes (usually from corrupt files). #2983 (2.3.5/2.2.16)
 
 Developer goodies / internals:
 * Internals now use C++11 `final` keywords wherever applicable. #2734
@@ -256,7 +276,7 @@ Developer goodies / internals:
     - Fix build break when strutil.h was included in Cuda 10.1 code. #2743
       (2.3.0.1/2.2.8)
     - `strhash()` is now constexpr for C++14 and higher. #2843 (2.3.3)
-    - Strutil new functions: find, rfind, ifind, irfind (#2960) (2.3.4)
+    - Strutil new functions: find, rfind, ifind, irfind (#2960) (2.3.4/2.2.14)
 * typedesc.h:
     - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
       precision and range to hold the basetypes of either `a` or `b`.
@@ -297,12 +317,24 @@ Build/test system improvements and platform ports:
       builds from the master branch. #2948 (2.3.4)
     - Use modern style cmake targets for PNG and ZLIB dependencies. #2957
       (2.3.4)
+    - Propagate C++14 minimum requirement to downstream projects via our
+      cmake config exports. #2965 (2.3.5)
+    - Fix exported cmake config files, which could fail if Imath and OpenEXR
+      weren't the at the same version number. #2975 (2.3.5/2.2.15)
+    - Change default postfix for debug libraries to `_d`. (2.3.5)
+    - Our CMake `checked_find_package` is now able to be requested to favor
+      an exported config file, if present, on a package-by-package basis.
+      #2984 (2.3.5/2.2.15)
+    - If a package is requested to be disabled, skip its related tests rather
+      than reporting them as broken. #2988 (2.3.5/2.2.16)
 * Dependency version support:
     - C++20 is now supported. #2891 (2.3.3)
     - Fix deprecation warnings when building with very new PugiXML versions.
       #2733 (2.3.0.1/2.2.8)
     - Fixes to build against OpenColorIO 2.0. #2765 (2.3.0.1/2.2.8) #2817
       #2849 (2.3.3/2.2.11) #2911 (2.3.4)
+    - Fix to accommodate upcoming OpenColorIO 2.1 deprecation of
+      parseColorSpaceFromString. #2961 (2.3.5/2.2.15)
     - Work to ensure that OIIO will build correctly against the upcoming
       Imath 3.0 and OpenEXR 3.0. #2771 (2.3.1.1/2.2.9) #2876 #2678 #2883
       #2894 (2.3.3/2.2.12) #2935 #2941 #2942 #2947 (2.3.4)
@@ -323,6 +355,9 @@ Build/test system improvements and platform ports:
     - Remove obsolete dependency on Boost random (now use std::random).
       #2896 (2.3.3)
     - libtiff 4.3 is supported. #2953 (2.3.4)
+    - We now include a `build_OpenJPEG.bash` script that can conveniently
+      build a missing OpenJPEG dependency. (2.3.5/2.2.16)
+    - Changes to make it build against TBB 2021. #2985 (2.3.5/2.2.15)
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
     - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
@@ -343,6 +378,7 @@ Build/test system improvements and platform ports:
     - For failed tests, add CMake cache and log part of the saved artifacts.
       (2.2.12/2.3.3)
     - CI now tests build in C++20 mode. #2891 (2.3.3)
+    - Our CI clang-format test now uses LLVM/clang-format 11. #2966
 * Platform support:
     - Fixes for mingw. #2698 (2.3.0.0)
     - Windows fix: correct OIIO_API declaration on aligned_malloc,
@@ -352,6 +388,8 @@ Build/test system improvements and platform ports:
       (2.3.2.0)
     - Fix problems with `copysign` sometimes defined as a preprocessor symbol
       on Windows. #2800 (2.3.2)
+    - Fixes related to Mac M1-based systems: Fix crash in ustring internals
+      #2990 (2.3.5/2.2.15.1)
 
 Notable documentation changes:
 * Make Readthedocs generate downloadable HTML as well as PDF. #2746
@@ -363,6 +401,28 @@ Notable documentation changes:
 * Starting to use "sphinx_tabs" as a clear way to present how things should
   be done for different language bindings. #2768 (2.3.1.0)
 
+
+Release 2.2.15.1 (3 Jun 2021) -- compared to 2.2.15.0
+-----------------------------------------------------
+* Fix crash / misbehavior in ustring internals on Apple M1 ARM. #2990
+
+Release 2.2.15 (1 Jun 2021) -- compared to 2.2.14
+--------------------------------------------------
+* BMP improvements: now support reading rle-compressed BMP files; writing
+  single channel grayscale images now save as 8bpp palette images intead of
+  24bpp; and reading 8bpp where all palette entries have R==G==B looks like
+  a 1-channel grayscale instead of 3-channel RGB. #2976
+* Bug: IBA::render_text did not properly account for alpha of the draw
+  color. #2981
+* Bug: Fix runaway parsing time for pathological XMP metadata. #2968
+* Bug: Fixed a crash is ImageCacheFile::read_unmipped when sampling
+* Fix exported cmake config files, which could fail if Imath and OpenEXR
+  weren't the at the same version number. #2975
+* Build: Modernize cmake to use targets for PNG and ZLIB. #2957
+* Build: Fix to accommodate upcoming OpenColorIO 2.1 deprecation of
+  parseColorSpaceFromString. #2961
+* Build: Changes to make it build against TBB 2021. #2985
+* Dev: Add Strutil functions: find, rfind, ifind, irfind. #2960
 
 Release 2.2.14 (1 May 2021) -- compared to 2.2.13
 --------------------------------------------------
