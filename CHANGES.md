@@ -1,3 +1,7 @@
+Release 2.2.15.1 (3 Jun 2021) -- compared to 2.2.15.0
+-----------------------------------------------------
+* Fix crash / misbehavior in ustring internals on Apple M1 ARM. #2990
+
 Release 2.2.15 (1 Jun 2021) -- compared to 2.2.14
 --------------------------------------------------
 * BMP improvements: now support reading rle-compressed BMP files; writing
