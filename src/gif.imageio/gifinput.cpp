@@ -19,7 +19,7 @@
 
 // for older giflib versions
 #ifndef GIFLIB_MAJOR
-#    define GIFLIB_MAJOR 4
+#    error "OIIO requies giflib >= 5.0"
 #endif
 
 #ifndef DISPOSAL_UNSPECIFIED
@@ -105,19 +105,15 @@ gif_input_imageio_create()
 {
     return new GIFInput;
 }
-OIIO_EXPORT const char* gif_input_extensions[] = { "gif", NULL };
+OIIO_EXPORT const char* gif_input_extensions[] = { "gif", nullptr };
 
 OIIO_EXPORT const char*
 gif_imageio_library_version()
 {
 #define STRINGIZE2(a) #a
 #define STRINGIZE(a) STRINGIZE2(a)
-#if defined(GIFLIB_MAJOR) && defined(GIFLIB_MINOR) && defined(GIFLIB_RELEASE)
     return "gif_lib " STRINGIZE(GIFLIB_MAJOR) "." STRINGIZE(
         GIFLIB_MINOR) "." STRINGIZE(GIFLIB_RELEASE);
-#else
-    return "gif_lib unknown version";
-#endif
 }
 
 OIIO_PLUGIN_EXPORTS_END
@@ -256,17 +252,17 @@ GIFInput::read_subimage_metadata(ImageSpec& newspec)
                 report_last_error();
                 return false;
             }
-            if (ext != NULL) {
+            if (ext != nullptr) {
                 read_gif_extension(ext_code, ext, newspec);
             }
 
-            while (ext != NULL) {
+            while (ext != nullptr) {
                 if (DGifGetExtensionNext(m_gif_file, &ext) == GIF_ERROR) {
                     report_last_error();
                     return false;
                 }
 
-                if (ext != NULL) {
+                if (ext != nullptr) {
                     read_gif_extension(ext_code, ext, newspec);
                 }
             }
@@ -289,13 +285,13 @@ GIFInput::read_subimage_metadata(ImageSpec& newspec)
 bool
 GIFInput::read_subimage_data()
 {
-    GifColorType* colormap = NULL;
+    GifColorType* colormap = nullptr;
     if (m_gif_file->Image.ColorMap) {  // local colormap
         colormap = m_gif_file->Image.ColorMap->Colors;
     } else if (m_gif_file->SColorMap) {  // global colormap
         colormap = m_gif_file->SColorMap->Colors;
     } else {
-        errorf("Neither local nor global colormap present.");
+        errorfmt("Neither local nor global colormap present.");
         return false;
     }
 
@@ -360,29 +356,24 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (!m_gif_file) {
-#if GIFLIB_MAJOR >= 5 && defined(_WIN32)
+#if defined(_WIN32)
         // On Windows, UTF-8 filenames won't work properly with Giflib. Jump
         // through some hoops: get an integer file descriptor for Giflib.
         int fd = Filesystem::open(m_filename, _O_RDONLY | _O_BINARY);
         if (fd == -1) {
-            errorf("Error trying to open the file.");
+            errorfmt("Error trying to open the file.");
             return false;
         }
         int giflib_error;
         if (!(m_gif_file = DGifOpenFileHandle(fd, &giflib_error))) {
-            errorf("%s", GifErrorString(giflib_error));
-            return false;
-        }
-#elif GIFLIB_MAJOR >= 5
-        int giflib_error;
-        if (!(m_gif_file = DGifOpenFileName(m_filename.c_str(),
-                                            &giflib_error))) {
-            errorf("%s", GifErrorString(giflib_error));
+            errorfmt("{}", GifErrorString(giflib_error));
             return false;
         }
 #else
-        if (!(m_gif_file = DGifOpenFileName(m_filename.c_str()))) {
-            errorf("Error trying to open the file.");
+        int giflib_error;
+        if (!(m_gif_file = DGifOpenFileName(m_filename.c_str(),
+                                            &giflib_error))) {
+            errorfmt("{}", GifErrorString(giflib_error));
             return false;
         }
 #endif
@@ -430,21 +421,7 @@ static spin_mutex gif_error_mutex;
 void
 GIFInput::report_last_error(void)
 {
-    // N.B. Only GIFLIB_MAJOR >= 5 looks properly thread-safe, in that the
-    // error is guaranteed to be specific to this open file.  We use a  spin
-    // mutex to prevent a thread clash for older versions, but it still
-    // appears to be a global call, so we can't be absolutely sure that the
-    // error was for *this* file.  So if you're using giflib prior to
-    // version 5, beware.
-#if GIFLIB_MAJOR >= 5
-    errorf("%s", GifErrorString(m_gif_file->Error));
-#elif GIFLIB_MAJOR == 4 && GIFLIB_MINOR >= 2
-    spin_lock lock(gif_error_mutex);
-    errorf("%s", GifErrorString());
-#else
-    spin_lock lock(gif_error_mutex);
-    errorf("GIF error %d", GifLastError());
-#endif
+    errorfmt("{}", GifErrorString(m_gif_file->Error));
 }
 
 
@@ -454,14 +431,14 @@ GIFInput::close(void)
 {
     if (m_gif_file) {
 #if GIFLIB_MAJOR > 5 || (GIFLIB_MAJOR == 5 && GIFLIB_MINOR >= 1)
-        if (DGifCloseFile(m_gif_file, NULL) == GIF_ERROR) {
+        if (DGifCloseFile(m_gif_file, nullptr) == GIF_ERROR) {
 #else
         if (DGifCloseFile(m_gif_file) == GIF_ERROR) {
 #endif
-            errorf("Error trying to close the file.");
+            errorfmt("Error trying to close the file.");
             return false;
         }
-        m_gif_file = NULL;
+        m_gif_file = nullptr;
     }
     m_canvas.clear();
 

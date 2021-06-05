@@ -170,9 +170,7 @@ checked_find_package (Field3D
                    DEPS         HDF5
                    DEFINITIONS  -DUSE_FIELD3D=1)
 checked_find_package (GIF
-                      VERSION_MIN 4
-                      RECOMMEND_MIN 5.0
-                      RECOMMEND_MIN_REASON "for stability and thread safety")
+                      VERSION_MIN 5)
 
 # For HEIF/HEIC/AVIF formats
 checked_find_package (Libheif VERSION_MIN 1.3
