@@ -4975,8 +4975,8 @@ output_file(int /*argc*/, const char* argv[])
             mode = ImageBufAlgo::MakeTxBumpWithSlopes;
         // if (lightprobemode)
         //     mode = ImageBufAlgo::MakeTxEnvLatlFromLightProbe;
-        ok = ImageBufAlgo::make_texture(mode, (*ir)(0, 0), filename, configspec,
-                                        &std::cout);
+        ok = ImageBufAlgo::make_texture(mode, (*ir)(0, 0), filename,
+                                        configspec);
         if (!ok) {
             ot.errorfmt(command, "Could not make texture: {}",
                         OIIO::geterror());

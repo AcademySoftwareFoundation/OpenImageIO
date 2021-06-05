@@ -504,9 +504,9 @@ main(int argc, char* argv[])
         mode = ImageBufAlgo::MakeTxBumpWithSlopes;
 
     bool ok = ImageBufAlgo::make_texture(mode, filenames[0], outputfilename,
-                                         configspec, &std::cout);
+                                         configspec);
     if (!ok)
-        std::cout << OIIO::geterror() << "\n";
+        std::cout << "make_texture ERROR: " << OIIO::geterror() << "\n";
     if (runstats)
         std::cout << "\n" << ic->getstats();
 
