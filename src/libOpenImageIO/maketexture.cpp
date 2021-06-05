@@ -1009,6 +1009,11 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     }
     OIIO_DASSERT(src.get());
 
+    if (src->deep()) {
+        outstream << "Deep images cannot be turned into textures.\n";
+        return false;
+    }
+
     if (!outputfilename.length()) {
         std::string fn = src->name();
         if (fn.length()) {
