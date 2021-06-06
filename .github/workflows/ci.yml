@@ -359,10 +359,10 @@ jobs:
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
     # supported releases of everything else.
-    name: "Linux bleeding edge: gcc10 C++20 py38 avx2 OCIO/libtiff/exr master"
+    name: "Linux bleeding edge: gcc11 C++20 py38 avx2 OCIO/libtiff/exr master"
     runs-on: ubuntu-20.04
     env:
-      CXX: g++-10
+      CXX: g++-11
       CMAKE_CXX_STANDARD: 20
       USE_SIMD: avx2,f16c
       LIBRAW_VERSION: master

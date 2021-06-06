@@ -7,6 +7,8 @@
 /// Implementation of ImageBufAlgo algorithms related to OpenCV.
 /// These are nonfunctional if OpenCV is not found at build time.
 
+#include <OpenImageIO/platform.h>
+
 #ifdef USE_OPENCV
 #    include <opencv2/core/version.hpp>
 #    ifdef CV_VERSION_EPOCH
@@ -17,6 +19,10 @@
 #        define OIIO_OPENCV_VERSION                            \
             (10000 * CV_VERSION_MAJOR + 100 * CV_VERSION_MINOR \
              + CV_VERSION_REVISION)
+#    endif
+#    if OIIO_GNUC_VERSION >= 110000 && OIIO_CPLUSPLUS_VERSION >= 20
+// Suppress gcc 11 / C++20 errors about opencv 4 headers
+#        pragma GCC diagnostic ignored "-Wdeprecated-enum-enum-conversion"
 #    endif
 #    include <opencv2/opencv.hpp>
 #    if OIIO_OPENCV_VERSION >= 40000
