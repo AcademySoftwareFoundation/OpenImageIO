@@ -205,11 +205,13 @@ private:
 OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT int ffmpeg_imageio_version = OIIO_PLUGIN_VERSION;
+
 OIIO_EXPORT const char*
 ffmpeg_imageio_library_version()
 {
-    return "FFMpeg " LIBAVFORMAT_IDENT;
+    return "FFMpeg " OIIO_FFMPEG_VERSION " (" LIBAVFORMAT_IDENT ")";
 }
+
 OIIO_EXPORT ImageInput*
 ffmpeg_input_imageio_create()
 {
