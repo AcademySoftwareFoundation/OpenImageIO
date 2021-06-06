@@ -21,6 +21,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * CMake >= 3.12 (tested through 3.20)
  * OpenEXR/Imath >= 2.0 (recommended: 2.2 or higher; tested through 3.0)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
+ * Boost >= 1.53 (recommended: at least 1.66; tested through 1.76)
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
