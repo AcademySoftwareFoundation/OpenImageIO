@@ -17,7 +17,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **C++14** (also builds with C++17, and C++20)
      * The default build mode is C++14. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
- * Compilers: **gcc 6.1 - 10.2**, **clang 3.4 - 12**, **MSVS 2017 - 2019**, **icc 17+**.
+ * Compilers: **gcc 6.1 - 11.1**, **clang 3.4 - 12**, **MSVS 2017 - 2019**, **icc 17+**.
  * CMake >= 3.12 (tested through 3.20)
  * OpenEXR/Imath >= 2.0 (recommended: 2.2 or higher; tested through 3.0)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
@@ -28,7 +28,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt >= 5.6 (tested through 5.15)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8)
+     * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8, 3.9)
      * pybind11 >= 2.4.2 (Tested through 2.6.)
      * NumPy
  * If you want support for camera "RAW" formats:

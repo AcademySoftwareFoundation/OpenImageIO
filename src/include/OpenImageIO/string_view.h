@@ -99,12 +99,12 @@ public:
     /// Construct from std::string. Remember that a string_view doesn't have
     /// its own copy of the characters, so don't use the `string_view` after
     /// the original string has been destroyed or altered.
-    OIIO_CONSTEXPR20 string_view(const std::string& str) noexcept
+    string_view(const std::string& str) noexcept
         : m_chars(str.data()), m_len(str.size()) { }
     // N.B. std::string::size() is constexpr starting with C++20.
 
     /// Convert a string_view to a `std::string`.
-    OIIO_CONSTEXPR20 std::string str() const
+    std::string str() const
     {
         return (m_chars ? std::string(m_chars, m_len) : std::string());
         // N.B. std::string ctr from chars+len is constexpr in C++20.
@@ -134,7 +134,7 @@ public:
     OIIO_CONSTEXPR14 string_view& operator=(const string_view& copy) noexcept = default;
 
     /// Convert a string_view to a `std::string`.
-    OIIO_CONSTEXPR20 operator std::string() const { return str(); }
+    operator std::string() const { return str(); }
 
     // iterators
     constexpr iterator begin() const noexcept { return m_chars; }
