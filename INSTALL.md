@@ -15,7 +15,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Required dependencies -- OIIO will not build at all without these
 
  * C++11 (also builds with C++14, C++17, and C++20)
- * Compilers: gcc 4.8.2 - 10.2, clang 3.3 - 11, MSVS 2015 - 2019,
+ * Compilers: gcc 4.8.2 - 11.1, clang 3.3 - 12, MSVS 2015 - 2019,
    icc version 13 or higher
  * CMake >= 3.12 (tested through 3.20)
  * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 3.0)
@@ -27,7 +27,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt >= 5.6 (tested through 5.15)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8)
+     * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8, 3.9)
      * pybind11 >= 2.4.2 (Tested through 2.6.)
      * NumPy
  * If you want support for camera "RAW" formats:

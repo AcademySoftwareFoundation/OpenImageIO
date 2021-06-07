@@ -5074,7 +5074,12 @@ crash_me()
 {
     size_t a   = 37;
     char* addr = (char*)a;
-    *addr      = 0;  // This should crash
+    OIIO_PRAGMA_WARNING_PUSH
+#if OIIO_GNUC_VERSION >= 110000 && OIIO_CPLUSPLUS_VERSION >= 20
+    OIIO_GCC_ONLY_PRAGMA(GCC diagnostic ignored "-Wstringop-overflow")
+#endif
+    *addr = 0;  // This should crash
+    OIIO_PRAGMA_WARNING_POP
 }
 
 
