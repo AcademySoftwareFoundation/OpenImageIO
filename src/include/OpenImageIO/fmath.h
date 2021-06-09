@@ -1025,7 +1025,7 @@ inline void convert_type<uint16_t,float> (const uint16_t *src,
 }
 
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<>
 inline void convert_type<half,float> (const half *src,
                                       float *dst, size_t n,
@@ -1093,7 +1093,7 @@ convert_type<float,uint8_t> (const float *src, uint8_t *dst, size_t n,
 }
 
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<>
 inline void
 convert_type<float,half> (const float *src, half *dst, size_t n,

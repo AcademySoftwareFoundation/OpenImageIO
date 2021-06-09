@@ -1839,7 +1839,7 @@ public:
     /// Construct from a pointer to 4 char values
     explicit vfloat4 (const char *vals) { load(vals); }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     /// Construct from a pointer to 4 half (16 bit float) values
     explicit vfloat4 (const half *vals) { load(vals); }
 #endif
@@ -1914,17 +1914,17 @@ public:
     /// Load from an array of 4 char values, convert to float
     void load (const char *values);
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     /// Load from an array of 4 half values, convert to float
     void load (const half *values);
-#endif /* _HALF_H_ */
+#endif /* _HALF_H_ or _IMATH_H_ */
 
     void store (float *values) const;
 
     /// Store the first n values into memory
     void store (float *values, int n) const;
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     void store (half *values) const;
 #endif
 
@@ -2177,7 +2177,7 @@ public:
     /// Construct from a pointer to 4 char values
     explicit vfloat3 (const char *vals) { load(vals); }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     /// Construct from a pointer to 4 half (16 bit float) values
     explicit vfloat3 (const half *vals) { load(vals); }
 #endif
@@ -2216,16 +2216,16 @@ public:
     /// Load from an array of 4 char values, convert to float
     void load (const char *values);
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     /// Load from an array of 4 half values, convert to float
     void load (const half *values);
-#endif /* _HALF_H_ */
+#endif /* _HALF_H_ or _IMATH_H_ */
 
     void store (float *values) const;
 
     void store (float *values, int n) const;
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     void store (half *values) const;
 #endif
 
@@ -2475,7 +2475,7 @@ public:
     /// Construct from a pointer to char values
     explicit vfloat8 (const char *vals) { load(vals); }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     /// Construct from a pointer to half (16 bit float) values
     explicit vfloat8 (const half *vals) { load(vals); }
 #endif
@@ -2551,17 +2551,17 @@ public:
     /// Load from an array of 8 char values, convert to float
     void load (const char *values);
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     /// Load from an array of 8 half values, convert to float
     void load (const half *values);
-#endif /* _HALF_H_ */
+#endif /* _HALF_H_ or _IMATH_H_ */
 
     void store (float *values) const;
 
     /// Store the first n values into memory
     void store (float *values, int n) const;
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     void store (half *values) const;
 #endif
 
@@ -2798,7 +2798,7 @@ public:
     /// Construct from a pointer to char values
     explicit vfloat16 (const char *vals) { load(vals); }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     /// Construct from a pointer to half (16 bit float) values
     explicit vfloat16 (const half *vals) { load(vals); }
 #endif
@@ -2876,17 +2876,17 @@ public:
     /// Load from an array of 16 char values, convert to float
     void load (const char *values);
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     /// Load from an array of 16 half values, convert to float
     void load (const half *values);
-#endif /* _HALF_H_ */
+#endif /* _HALF_H_ or _IMATH_H_ */
 
     void store (float *values) const;
 
     /// Store the first n values into memory
     void store (float *values, int n) const;
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
     void store (half *values) const;
 #endif
 
@@ -6677,7 +6677,7 @@ OIIO_FORCEINLINE void vfloat4::load (const char *values) {
 #endif
 }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat4::load (const half *values) {
 #if OIIO_F16C_ENABLED && OIIO_SIMD_SSE
     /* Enabled 16 bit float instructions! */
@@ -6712,7 +6712,7 @@ OIIO_FORCEINLINE void vfloat4::load (const half *values) {
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
-#endif /* _HALF_H_ */
+#endif /* _HALF_H_ or _IMATH_H_ */
 
 OIIO_FORCEINLINE void vfloat4::store (float *values) const {
 #if OIIO_SIMD_SSE
@@ -6784,7 +6784,7 @@ OIIO_FORCEINLINE void vfloat4::store (float *values, int n) const {
 #endif
 }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat4::store (half *values) const {
 #if OIIO_F16C_ENABLED && OIIO_SIMD_SSE
     __m128i h = _mm_cvtps_ph (m_simd, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
@@ -7889,11 +7889,11 @@ OIIO_FORCEINLINE void vfloat3::load (const char *values) {
     vfloat4::load (float(values[0]), float(values[1]), float(values[2]));
 }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat3::load (const half *values) {
     vfloat4::load (float(values[0]), float(values[1]), float(values[2]));
 }
-#endif /* _HALF_H_ */
+#endif /* _HALF_H_ or _IMATH_H_ */
 
 OIIO_FORCEINLINE void vfloat3::store (float *values) const {
     vfloat4::store (values, 3);
@@ -7903,7 +7903,7 @@ OIIO_FORCEINLINE void vfloat3::store (float *values, int n) const {
     vfloat4::store (values, n);
 }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat3::store (half *values) const {
     SIMD_DO (values[i] = m_val[i]);
 }
@@ -8589,7 +8589,7 @@ OIIO_FORCEINLINE void vfloat8::load (const char *values) {
 #endif
 }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat8::load (const half *values) {
 #if OIIO_SIMD_AVX && OIIO_F16C_ENABLED
     /* Enabled 16 bit float instructions! */
@@ -8602,7 +8602,7 @@ OIIO_FORCEINLINE void vfloat8::load (const half *values) {
     SIMD_CONSTRUCT (values[i]);
 #endif
 }
-#endif /* _HALF_H_ */
+#endif /* _HALF_H_ or _IMATH_H_ */
 
 
 OIIO_FORCEINLINE void vfloat8::store (float *values) const {
@@ -8640,7 +8640,7 @@ OIIO_FORCEINLINE void vfloat8::store (float *values, int n) const {
 #endif
 }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat8::store (half *values) const {
 #if OIIO_SIMD_AVX && OIIO_F16C_ENABLED
     __m128i h = _mm256_cvtps_ph (m_simd, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
@@ -9471,7 +9471,7 @@ OIIO_FORCEINLINE void vfloat16::load (const char *values) {
 }
 
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat16::load (const half *values) {
 #if OIIO_SIMD_AVX >= 512
     /* Enabled 16 bit float instructions! */
@@ -9482,7 +9482,7 @@ OIIO_FORCEINLINE void vfloat16::load (const half *values) {
     m_8[1].load (values+8);
 #endif
 }
-#endif /* _HALF_H_ */
+#endif /* _HALF_H_ or _IMATH_H_ */
 
 
 
@@ -9519,7 +9519,7 @@ OIIO_FORCEINLINE void vfloat16::store (float *values, int n) const {
 #endif
 }
 
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 OIIO_FORCEINLINE void vfloat16::store (half *values) const {
 #if OIIO_SIMD_AVX >= 512
     __m256i h = _mm512_cvtps_ph (m_simd, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
