@@ -597,9 +597,7 @@ case TypeDesc::TYPE:                                                       \
         ParamValue_convert_dispatch(INT);
         // ParamValue_convert_dispatch(ULONGLONG);
         // ParamValue_convert_dispatch(LONGLONG);
-#ifdef _HALF_H_
         ParamValue_convert_dispatch(HALF);
-#endif
         ParamValue_convert_dispatch(FLOAT);
         ParamValue_convert_dispatch(DOUBLE);
     case TypeDesc::STRING:

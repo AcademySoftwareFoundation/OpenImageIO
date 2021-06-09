@@ -408,7 +408,8 @@ jobs:
       PYBIND11_VERSION: v2.6.2
       PYTHON_VERSION: 3.8
       WEBP_VERSION: v1.1.0
-      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.1.3
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
+      # MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.1.3
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
     steps:
@@ -463,7 +464,7 @@ jobs:
       # PYBIND11_VERSION: master
       PYTHON_VERSION: 3.8
       WEBP_VERSION: master
-      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.1.3
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
     steps:

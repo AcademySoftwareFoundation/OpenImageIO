@@ -409,7 +409,7 @@ template<> struct BaseTypeFromC<unsigned int> { static const TypeDesc::BASETYPE 
 template<> struct BaseTypeFromC<int> { static const TypeDesc::BASETYPE value = TypeDesc::INT; };
 template<> struct BaseTypeFromC<unsigned long long> { static const TypeDesc::BASETYPE value = TypeDesc::UINT64; };
 template<> struct BaseTypeFromC<long long> { static const TypeDesc::BASETYPE value = TypeDesc::INT64; };
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<> struct BaseTypeFromC<half> { static const TypeDesc::BASETYPE value = TypeDesc::HALF; };
 #endif
 template<> struct BaseTypeFromC<float> { static const TypeDesc::BASETYPE value = TypeDesc::FLOAT; };
@@ -460,7 +460,7 @@ template<> struct CType<(int)TypeDesc::UINT> { typedef unsigned int type; };
 template<> struct CType<(int)TypeDesc::INT> { typedef int type; };
 template<> struct CType<(int)TypeDesc::UINT64> { typedef unsigned long long type; };
 template<> struct CType<(int)TypeDesc::INT64> { typedef long long type; };
-#ifdef _HALF_H_
+#if defined(_HALF_H_) || defined(IMATH_HALF_H_)
 template<> struct CType<(int)TypeDesc::HALF> { typedef half type; };
 #endif
 template<> struct CType<(int)TypeDesc::FLOAT> { typedef float type; };
