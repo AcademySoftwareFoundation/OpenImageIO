@@ -233,11 +233,14 @@ Filesystem::searchpath_find(const std::string& filename_utf8,
 
         if (recursive && filesystem::is_directory(d, ec)) {
             std::vector<std::string> subdirs;
-            for (filesystem::directory_iterator s(d, ec), end_iter;
-                 !ec && s != end_iter; ++s) {
-                if (filesystem::is_directory(s->path(), ec)) {
-                    subdirs.push_back(pathstr(s->path()));
+            try {
+                for (filesystem::directory_iterator s(d, ec), end_iter;
+                     !ec && s != end_iter; s.increment(ec)) {
+                    if (filesystem::is_directory(s->path(), ec)) {
+                        subdirs.push_back(pathstr(s->path()));
+                    }
                 }
+            } catch (...) {
             }
             std::string found = searchpath_find(filename_utf8, subdirs, false,
                                                 true);
@@ -264,26 +267,25 @@ Filesystem::get_directory_entries(const std::string& dirname,
     regex re;
     try {
         re = regex(filter_regex);
+        if (recursive) {
+            error_code ec;
+            for (filesystem::recursive_directory_iterator s(dirpath, ec), end;
+                 !ec && s != end; s.increment(ec)) {
+                std::string file = pathstr(s->path());
+                if (!filter_regex.size() || regex_search(file, re))
+                    filenames.push_back(file);
+            }
+        } else {
+            error_code ec;
+            for (filesystem::directory_iterator s(dirpath, ec), end;
+                 !ec && s != end; s.increment(ec)) {
+                std::string file = pathstr(s->path());
+                if (!filter_regex.size() || regex_search(file, re))
+                    filenames.push_back(file);
+            }
+        }
     } catch (...) {
         return false;
-    }
-
-    if (recursive) {
-        error_code ec;
-        for (filesystem::recursive_directory_iterator s(dirpath, ec);
-             !ec && s != filesystem::recursive_directory_iterator(); ++s) {
-            std::string file = pathstr(s->path());
-            if (!filter_regex.size() || regex_search(file, re))
-                filenames.push_back(file);
-        }
-    } else {
-        error_code ec;
-        for (filesystem::directory_iterator s(dirpath, ec);
-             !ec && s != filesystem::directory_iterator(); ++s) {
-            std::string file = pathstr(s->path());
-            if (!filter_regex.size() || regex_search(file, re))
-                filenames.push_back(file);
-        }
     }
     return true;
 }
