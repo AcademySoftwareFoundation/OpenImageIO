@@ -194,7 +194,14 @@ checked_find_package (OpenVDB
                       DEPS         TBB
                       DEFINITIONS  -DUSE_OPENVDB=1)
 
-checked_find_package (PTex)
+checked_find_package (Ptex PREFER_CONFIG)
+if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
+    # Fallback for inadequate Ptex exported configs. This will eventually
+    # disappear when we can 100% trust Ptex's exports.
+    unset (Ptex_FOUND)
+    checked_find_package (Ptex)
+endif ()
+
 checked_find_package (WebP)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
