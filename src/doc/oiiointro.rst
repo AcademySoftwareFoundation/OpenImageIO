@@ -254,7 +254,6 @@ against dynamic libraries:
 * libpng © 1998-2008 Glenn Randers-Pehrson, et al. http://www.libpng.org
 * Boost © various authors. http://www.boost.org
 * GLEW © 2002-2007 Milan Ikits, et al. http://glew.sourceforge.net
-* Jasper © 2001-2006 Michael David Adams, et al. http://www.ece.uvic.ca/~mdadams/jasper/
 * Ptex © 2009 Disney Enterprises, Inc. http://ptex.us
 * Field3D © 2009 Sony Pictures Imageworks. http://sites.google.com/site/field3d/
 * GIFLIB © 1997 Eric S. Raymond (MIT Licensed). http://giflib.sourceforge.net/
@@ -263,6 +262,7 @@ against dynamic libraries:
 * FreeType © 1996-2002, 2006 by David Turner, Robert Wilhelm, and Werner Lemberg. Distributed under the FreeType license (BSD compatible).
 * JPEG-Turbo © 2009--2015 D. R. Commander. Distributed under the BSD license.
 * pybind11 © 2016 Wenzel Jakob. Distributed under the BSD license. https://github.com/pybind/pybind11
+* OpenJPEG © Universite catholique de Louvain (UCL), et al. Distributed under the BSD 2-clause license. https://github.com/uclouvain/openjpeg
 * OpenVDB © 2012-2018 DreamWorks Animation LLC, Mozilla Public License 2.0. https://www.openvdb.org/
 * Thread Building Blocks © Intel. Apache 2.0 license. https://www.threadingbuildingblocks.org/
 * libheif \copyright 2017-2018 Struktur AG (LGPL). https://github.com/strukturag/libheif
