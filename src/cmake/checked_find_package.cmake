@@ -9,6 +9,23 @@ set (OPTIONAL_DEPS "" CACHE STRING
      "Additional dependencies to consider optional (semicolon-separated list, or ALL)")
 option (ALWAYS_PREFER_CONFIG "Prefer a dependency's exported config file if it's available" OFF)
 
+
+# Utility function to list the names and values of all variables matching
+# the pattern (case-insensitive)
+function (dump_matching_variables pattern)
+    string (TOLOWER ${pattern} _pattern_lower)
+    get_cmake_property(_allvars VARIABLES)
+    list (SORT _allvars)
+    foreach (_var IN LISTS _allvars)
+        string (TOLOWER ${_var} _var_lower)
+        if (_var_lower MATCHES ${_pattern_lower})
+            message (STATUS "    ${_var} = ${${_var}}")
+        endif ()
+    endforeach ()
+endfunction ()
+
+
+
 # checked_find_package(Pkgname ...) is a wrapper for find_package, with the
 # following extra features:
 #   * If either `USE_Pkgname` or the all-uppercase `USE_PKGNAME` (or
@@ -44,6 +61,8 @@ option (ALWAYS_PREFER_CONFIG "Prefer a dependency's exported config file if it's
 #     can give an optional explanation, passed as RECOMMEND_MIN_REASON.
 #   * Optional PREFER_CONFIG, if supplied, tries to use an exported config
 #     file from the package before using a FindPackage.cmake module.
+#   * Optional DEBUG turns on extra debugging information related to how
+#     this package is found.
 #
 # N.B. This needs to be a macro, not a function, because the find modules
 # will set(blah val PARENT_SCOPE) and we need that to be the global scope,
@@ -51,7 +70,7 @@ option (ALWAYS_PREFER_CONFIG "Prefer a dependency's exported config file if it's
 macro (checked_find_package pkgname)
     cmake_parse_arguments(_pkg   # prefix
         # noValueKeywords:
-        "REQUIRED;PREFER_CONFIG"
+        "REQUIRED;PREFER_CONFIG;DEBUG"
         # singleValueKeywords:
         "ENABLE;ISDEPOF;VERSION_MIN;VERSION_MAX;RECOMMEND_MIN;RECOMMEND_MIN_REASON"
         # multiValueKeywords:
@@ -60,7 +79,11 @@ macro (checked_find_package pkgname)
         ${ARGN})
     string (TOLOWER ${pkgname} pkgname_lower)
     string (TOUPPER ${pkgname} pkgname_upper)
-    if (NOT VERBOSE)
+    set (_pkg_VERBOSE ${VERBOSE})
+    if (_pkg_DEBUG)
+        set (_pkg_VERBOSE ON)
+    endif ()
+    if (NOT _pkg_VERBOSE)
         set (${pkgname}_FIND_QUIETLY true)
         set (${pkgname_upper}_FIND_QUIETLY true)
     endif ()
@@ -120,7 +143,10 @@ macro (checked_find_package pkgname)
                 endif ()
             endforeach ()
             message (STATUS "${ColorGreen}Found ${pkgname} ${${pkgname}_VERSION} ${_config_status}${ColorReset}")
-            if (VERBOSE)
+            if (_pkg_VERBOSE)
+                if (_pkg_DEBUG)
+                    dump_matching_variables (${pkgname})
+                endif ()
                 set (_vars_to_print ${pkgname}_INCLUDES ${pkgname_upper}_INCLUDES
                                     ${pkgname}_INCLUDE_DIR ${pkgname_upper}_INCLUDE_DIR
                                     ${pkgname}_INCLUDE_DIRS ${pkgname_upper}_INCLUDE_DIRS
