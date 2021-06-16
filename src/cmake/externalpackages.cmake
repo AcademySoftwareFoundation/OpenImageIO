@@ -165,7 +165,7 @@ checked_find_package (TBB 2017
                       PREFER_CONFIG)
 
 checked_find_package (DCMTK VERSION_MIN 3.6.1)  # For DICOM images
-checked_find_package (FFmpeg VERSION_MIN 2.6)
+checked_find_package (FFmpeg VERSION_MIN 3.0)
 checked_find_package (Field3D
                    DEPS         HDF5
                    DEFINITIONS  -DUSE_FIELD3D=1)

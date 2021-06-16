@@ -7,9 +7,10 @@ extern "C" {  // ffmpeg is a C api
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 24, 0)
-#    include <libavutil/imgutils.h>
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(57, 24, 100)
+#    error "OIIO FFmpeg support requires FFmpeg >= 3.0"
 #endif
+#include <libavutil/imgutils.h>
 }
 
 // It's hard to figure out FFMPEG versions from what they give us, so
@@ -28,40 +29,7 @@ extern "C" {  // ffmpeg is a C api
 #define USE_FFMPEG_4_3 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 91, 100))
 #define USE_FFMPEG_4_4 (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58, 134, 100))
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 28, 1)
-#    define av_frame_alloc avcodec_alloc_frame
-//Ancient versions used av_freep
-#    if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(54, 59, 100)
-#        define av_frame_free av_freep
-#    else
-#        define av_frame_free avcodec_free_frame
-#    endif
-#endif
 
-// PIX_FMT was renamed to AV_PIX_FMT on this version
-#if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(51, 74, 100)
-#    define AVPixelFormat PixelFormat
-#    define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
-#    define AV_PIX_FMT_RGB48 PIX_FMT_RGB48
-#    define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
-#    define AV_PIX_FMT_YUVJ422P PIX_FMT_YUVJ422P
-#    define AV_PIX_FMT_YUVJ440P PIX_FMT_YUVJ440P
-#    define AV_PIX_FMT_YUVJ444P PIX_FMT_YUVJ444P
-#    define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
-#    define AV_PIX_FMT_YUV422P PIX_FMT_YUV422P
-#    define AV_PIX_FMT_YUV440P PIX_FMT_YUV440P
-#    define AV_PIX_FMT_YUV444P PIX_FMT_YUV444P
-#endif
-
-// r_frame_rate deprecated in ffmpeg
-// see ffmpeg commit #aba232c for details
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 42, 0)
-#    define r_frame_rate avg_frame_rate
-#endif
-
-#if USE_FFMPEG_3_0
-#    define av_free_packet av_packet_unref
-#    define avpicture_get_size(fmt, w, h) av_image_get_buffer_size(fmt, w, h, 1)
 
 inline int
 avpicture_fill(AVPicture* picture, uint8_t* ptr, enum AVPixelFormat pix_fmt,
@@ -71,7 +39,7 @@ avpicture_fill(AVPicture* picture, uint8_t* ptr, enum AVPixelFormat pix_fmt,
     return av_image_fill_arrays(frame->data, frame->linesize, ptr, pix_fmt,
                                 width, height, 1);
 }
-#endif
+
 
 #if USE_FFMPEG_3_1
 // AVStream::codec was changed to AVStream::codecpar
@@ -108,11 +76,6 @@ receive_frame(AVCodecContext* avctx, AVFrame* picture, AVPacket* avpkt)
 }
 #endif
 
-
-
-#if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(56, 56, 100))
-#    define CODEC_CAP_DELAY AV_CODEC_CAP_DELAY
-#endif
 
 
 #include <OpenImageIO/imageio.h>
@@ -270,7 +233,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
             break;
         }
     if (!valid_extension) {
-        errorf("\"%s\" could not open input", name);
+        errorfmt("\"{}\" could not open input", name);
         return false;
     }
 
@@ -280,11 +243,11 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     av_log_set_level(AV_LOG_FATAL);
     if (avformat_open_input(&m_format_context, file_name, NULL, NULL) != 0) {
         // avformat_open_input allocs format_context
-        errorf("\"%s\" could not open input", file_name);
+        errorfmt("\"{}\" could not open input", file_name);
         return false;
     }
     if (avformat_find_stream_info(m_format_context, NULL) < 0) {
-        errorf("\"%s\" could not find stream info", file_name);
+        errorfmt("\"{}\" could not find stream info", file_name);
         return false;
     }
     m_video_stream = -1;
@@ -298,7 +261,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         }
     }
     if (m_video_stream == -1) {
-        errorf("\"%s\" could not find a valid videostream", file_name);
+        errorfmt("\"{}\" could not find a valid videostream", file_name);
         return false;
     }
 
@@ -308,13 +271,13 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
 
     m_codec = avcodec_find_decoder(par->codec_id);
     if (!m_codec) {
-        errorf("\"%s\" can't find decoder", file_name);
+        errorfmt("\"{}\" can't find decoder", file_name);
         return false;
     }
 
     m_codec_context = avcodec_alloc_context3(m_codec);
     if (!m_codec_context) {
-        errorf("\"%s\" can't allocate decoder context", file_name);
+        errorfmt("\"{}\" can't allocate decoder context", file_name);
         return false;
     }
 
@@ -322,7 +285,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
 
     ret = avcodec_parameters_to_context(m_codec_context, par);
     if (ret < 0) {
-        errorf("\"%s\" unsupported codec", file_name);
+        errorfmt("\"{}\" unsupported codec", file_name);
         return false;
     }
 #else
@@ -330,13 +293,13 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
 
     m_codec = avcodec_find_decoder(m_codec_context->codec_id);
     if (!m_codec) {
-        errorf("\"%s\" unsupported codec", file_name);
+        errorfmt("\"{}\" unsupported codec", file_name);
         return false;
     }
 #endif
 
     if (avcodec_open2(m_codec_context, m_codec, NULL) < 0) {
-        errorf("\"%s\" could not open codec", file_name);
+        errorfmt("\"{}\" could not open codec", file_name);
         return false;
     }
     if (!strcmp(m_codec_context->codec->name, "mjpeg")
@@ -344,11 +307,11 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         m_offset_time = false;
     }
     m_codec_cap_delay = (bool)(m_codec_context->codec->capabilities
-                               & CODEC_CAP_DELAY);
+                               & AV_CODEC_CAP_DELAY);
 
     AVStream* stream = m_format_context->streams[m_video_stream];
-    if (stream->r_frame_rate.num != 0 && stream->r_frame_rate.den != 0) {
-        m_frame_rate = stream->r_frame_rate;
+    if (stream->avg_frame_rate.num != 0 && stream->avg_frame_rate.den != 0) {
+        m_frame_rate = stream->avg_frame_rate;
     }
 
     m_frames     = stream->nb_frames;
@@ -360,7 +323,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         av_read_frame(m_format_context, &pkt);
         int64_t first_pts = pkt.pts;
         int64_t max_pts   = 0;
-        av_free_packet(&pkt);  //because seek(int) uses m_format_context
+        av_packet_unref(&pkt);  //because seek(int) uses m_format_context
         seek(1 << 29);
         av_init_packet(&pkt);  //Is this needed?
         while (stream && av_read_frame(m_format_context, &pkt) >= 0) {
@@ -369,7 +332,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
             if (current_pts > max_pts) {
                 max_pts = current_pts + 1;
             }
-            av_free_packet(&pkt);  //Always free before format_context usage
+            av_packet_unref(&pkt);  //Always free before format_context usage
         }
         m_frames = max_pts;
     }
@@ -536,9 +499,9 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
                        nchannels, datatype);
     m_stride = (size_t)(m_spec.scanline_bytes());
 
-    m_rgb_buffer.resize(avpicture_get_size(m_dst_pix_format,
-                                           m_codec_context->width,
-                                           m_codec_context->height),
+    m_rgb_buffer.resize(av_image_get_buffer_size(m_dst_pix_format,
+                                                 m_codec_context->width,
+                                                 m_codec_context->height, 1),
                         0);
 
     m_sws_rgb_context
@@ -598,7 +561,7 @@ FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                m_stride);
         return true;
     } else {
-        errorf("Error reading frame");
+        errorfmt("Error reading frame");
         return false;
     }
 }
@@ -665,11 +628,11 @@ FFmpegInput::read_frame(int frame)
                           m_frame->linesize, 0, m_codec_context->height,
                           m_rgb_frame->data, m_rgb_frame->linesize);
                 m_last_decoded_pos = current_frame;
-                av_free_packet(&pkt);
+                av_packet_unref(&pkt);
                 break;
             }
         }
-        av_free_packet(&pkt);
+        av_packet_unref(&pkt);
     }
     m_read_frame = true;
 }
