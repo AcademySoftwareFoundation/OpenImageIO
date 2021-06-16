@@ -2096,18 +2096,38 @@ STATIC_INLINE uint128_t Fingerprint128(const char* s, size_t len) {
 // }  // namespace NAMESPACE_FOR_HASH_FUNCTIONS
 } /*end namespace farmhash*/ 
 
+// Undefine any of the poorly namespaced things
 #undef Fetch
 #undef Rotate
 #undef Bswap
+#undef fmix
 #undef DebugTweak
 #undef uint128_t
 #undef Uint128
+#undef CopyUint128
 #undef Uint128Low64
 #undef Uint128High64
 #undef Hash128to64
 #undef Hash64WithSeeds
 #undef x86
 #undef x86_64
+#undef is_64bit
+#undef can_use_ssse3
+#undef can_use_sse41
+#undef can_use_sse42
+#undef can_use_aesni
+#undef can_use_avx
+#undef bswap_32
+#undef bswap_64
+#undef STATIC_INLINE
+#undef uint32_in_expected_order
+#undef uint64_in_expected_order
+#undef debug_mode
+#undef PERMUTE3
+#undef Mulc1
+#undef Mulc2
+#undef Murk
+#undef Chunk
 
 OIIO_NAMESPACE_END
 
