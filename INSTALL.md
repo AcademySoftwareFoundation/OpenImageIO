@@ -32,7 +32,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * NumPy
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.15 (tested 0.15 - 0.20; LibRaw >= 0.18 is necessary for
-       ACES support and much better recognition of camera metadata)
+       ACES support and much better recognition of camera metadata; if
+       building with C++17 or higher, LibRaw >= 0.20 is necessary)
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 2.6 (tested through 4.4)
  * If you want support for jpeg 2000 images:
