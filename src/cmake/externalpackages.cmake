@@ -186,7 +186,16 @@ endif ()
 checked_find_package (LibRaw
                       RECOMMEND_MIN 0.18
                       RECOMMEND_MIN_REASON "for ACES support and better camera metadata"
-                      PRINT LibRaw_r_LIBRARIES )
+                      PRINT LibRaw_r_LIBRARIES)
+if (LibRaw_FOUND AND LibRaw_VERSION VERSION_LESS 0.20 AND CMAKE_CXX_STANDARD VERSION_GREATER_EQUAL 17)
+    message (STATUS "${ColorYellow}WARNING When building for C++17, LibRaw should be 0.20 or higher (found ${LibRaw_VERSION}). You may get errors, depending on the compiler.${ColorReset}")
+    # Currently, we issue the above warning and let them take their chances.
+    # If we wish to disable the LibRaw<0.20/C++17 combination that may fail,
+    # just uncomment the following two lines.
+    # set (LibRaw_FOUND 0)
+    # set (LIBRAW_FOUND 0)
+endif ()
+
 checked_find_package (OpenJPEG VERSION_MIN 2.0)
 
 checked_find_package (OpenVDB
