@@ -33,7 +33,7 @@ else
         libtbb-dev \
         libtiff-dev libgif-dev libpng-dev libraw-dev libwebp-dev \
         libavcodec-dev libavformat-dev libswscale-dev libavutil-dev \
-        dcmtk ptex-base libsquish-dev libopenvdb-dev \
+        dcmtk libsquish-dev libopenvdb-dev \
         libfreetype6-dev \
         locales wget \
         libopencolorio-dev \
@@ -117,6 +117,10 @@ if [[ "$OPENCOLORIO_VERSION" != "" ]] ; then
     # Temporary (?) fix: GH ninja having problems, fall back to make
     CMAKE_GENERATOR="Unix Makefiles" \
     source src/build-scripts/build_opencolorio.bash
+fi
+
+if [[ "$PTEX_VERSION" != "" ]] ; then
+    source src/build-scripts/build_Ptex.bash
 fi
 
 src/build-scripts/install_test_images.bash
