@@ -218,7 +218,14 @@ if (OpenVDB_FOUND AND OpenVDB_VERSION VERSION_GREATER_EQUAL 8.0
     message (STATUS "${ColorRed}Not using OpenVDB -- OpenVDB ${OpenVDB_VERSION} requires C++14 or later. ${ColorReset}")
 endif ()
 
-checked_find_package (PTex)
+checked_find_package (Ptex PREFER_CONFIG)
+if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
+    # Fallback for inadequate Ptex exported configs. This will eventually
+    # disappear when we can 100% trust Ptex's exports.
+    unset (Ptex_FOUND)
+    checked_find_package (Ptex)
+endif ()
+
 checked_find_package (WebP)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)

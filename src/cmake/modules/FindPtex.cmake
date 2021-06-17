@@ -92,13 +92,13 @@ if (PTEX_INCLUDE_DIR AND EXISTS "${PTEX_INCLUDE_DIR}/PtexVersion.h" )
     file(STRINGS "${PTEX_INCLUDE_DIR}/PtexVersion.h" TMP REGEX "^#define PtexAPIVersion.*$")
     string(REGEX MATCHALL "[0-9]+" API ${TMP})
     
-    file(STRINGS "${PTEX_INCLUDE_DIR}/PtexVersion.h" TMP REGEX "^#define PtexFileMajorVersion.*$")
+    file(STRINGS "${PTEX_INCLUDE_DIR}/PtexVersion.h" TMP REGEX "^#define PtexLibraryMajorVersion.*$")
     string(REGEX MATCHALL "[0-9]+" MAJOR ${TMP})
 
-    file(STRINGS "${PTEX_INCLUDE_DIR}/PtexVersion.h" TMP REGEX "^#define PtexFileMinorVersion.*$")
+    file(STRINGS "${PTEX_INCLUDE_DIR}/PtexVersion.h" TMP REGEX "^#define PtexLibraryMinorVersion.*$")
     string(REGEX MATCHALL "[0-9]+" MINOR ${TMP})
 
-    set(PTEX_VERSION ${API}.${MAJOR}.${MINOR})
+    set(PTEX_VERSION ${MAJOR}.${MINOR})
 
 elseif (PTEX_INCLUDE_DIR AND EXISTS "${PTEX_INCLUDE_DIR}/Ptexture.h" )
 
@@ -111,13 +111,13 @@ elseif (PTEX_INCLUDE_DIR AND EXISTS "${PTEX_INCLUDE_DIR}/Ptexture.h" )
     file(STRINGS "${PTEX_INCLUDE_DIR}/Ptexture.h" TMP REGEX "^#define PtexFileMinorVersion.*$")
     string(REGEX MATCHALL "[0-9]+" MINOR ${TMP})
 
-    set(PTEX_VERSION ${API}.${MAJOR}.${MINOR})
+    set(PTEX_VERSION ${MAJOR}.${MINOR})
 
 endif()
 
 include(FindPackageHandleStandardArgs)
 
-find_package_handle_standard_args(PTex
+find_package_handle_standard_args(Ptex
     REQUIRED_VARS
         PTEX_INCLUDE_DIR
         PTEX_LIBRARY
@@ -126,7 +126,19 @@ find_package_handle_standard_args(PTex
 )
 
 if (PTEX_FOUND)
+    set(Ptex_FOUND TRUE)
     set(PTEX_LIBRARIES ${PTEX_LIBRARY})
+    set(PTEX_INCLUDES ${PTEX_INCLUDE_DIR})
+    set(Ptex_VERSION ${PTEX_VERSION})
+    if (NOT TARGET Ptex::Ptex_dynamic)
+        add_library(Ptex::Ptex_dynamic UNKNOWN IMPORTED)
+        set_target_properties(Ptex::Ptex_dynamic PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${PTEX_INCLUDES}")
+        if (PTEX_LIBRARIES)
+            set_property(TARGET Ptex::Ptex_dynamic APPEND PROPERTY
+                IMPORTED_LOCATION "${PTEX_LIBRARIES}")
+        endif ()
+    endif ()
 else ()
     set (PTEX_INCLUDE_DIR "")
 endif()
