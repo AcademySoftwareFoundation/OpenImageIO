@@ -300,7 +300,8 @@ ImageCacheFile::ImageCacheFile(ImageCacheImpl& imagecache,
                  || m_filename.find("<U>") != m_filename.npos
                  || m_filename.find("<V>") != m_filename.npos
                  || m_filename.find("<u>") != m_filename.npos
-                 || m_filename.find("<v>") != m_filename.npos)
+                 || m_filename.find("<v>") != m_filename.npos
+                 || m_filename.find("_u##v##") != m_filename.npos)
                 && !Filesystem::exists(m_filename);
 
     // If the config has an IOProxy, remember that we should never actually
