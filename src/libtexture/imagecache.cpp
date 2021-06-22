@@ -300,7 +300,9 @@ ImageCacheFile::ImageCacheFile(ImageCacheImpl& imagecache,
                  || m_filename.find("<U>") != m_filename.npos
                  || m_filename.find("<V>") != m_filename.npos
                  || m_filename.find("<u>") != m_filename.npos
-                 || m_filename.find("<v>") != m_filename.npos)
+                 || m_filename.find("<v>") != m_filename.npos
+                 || m_filename.find("_u##v##") != m_filename.npos
+                 || m_filename.find("%(UDIM)d") != m_filename.npos)
                 && !Filesystem::exists(m_filename);
 
     // If the config has an IOProxy, remember that we should never actually
@@ -3442,7 +3444,13 @@ ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, Perthread* thread_info,
                                     Strutil::sprintf("u%d", utile + 1), true);
         realname         = Strutil::replace(realname, "<V>",
                                     Strutil::sprintf("v%d", vtile + 1), true);
-        realfile         = find_file(realname, thread_info);
+        realname
+            = Strutil::replace(realname, "_u##v##",
+                               Strutil::sprintf("_u%02dv%02d", utile, vtile),
+                               true);
+        realname = Strutil::replace(realname, "%(UDIM)d",
+                                    Strutil::sprintf("%04d", udim_tile), true);
+        realfile = find_file(realname, thread_info);
         // Now grab the actual write lock, and double check that it hasn't
         // been added by another thread during the brief time when we
         // weren't holding any lock.

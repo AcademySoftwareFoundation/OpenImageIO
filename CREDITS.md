@@ -99,6 +99,7 @@ lg@openimageio.org
 * Lucille Caillaud
 * Lukas Schrangl
 * Lukasz Maliszewski
+* Luke Emrose
 * M Joonas Pihlaja
 * Malcolm Humphreys
 * Manuel Gamito

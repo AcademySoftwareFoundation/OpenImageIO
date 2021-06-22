@@ -353,13 +353,15 @@ occur if the texture filename initially passed to `texture()` does not
 exist as a concrete file and contains one or more of the following
 substrings:
 
-======== ========================
-`<UDIM>` 1001 + utile + vtile*10
-`<u>`    utile
-`<v>`    vtile
-`<U>`    utile + 1
-`<V>`    vtile + 1
-======== ========================
+========== ========================
+`<UDIM>`   1001 + utile + vtile*10
+`<u>`      utile
+`<v>`      vtile
+`<U>`      utile + 1
+`<V>`      vtile + 1
+`_u##v##`  utile, vtile
+`%(UDIM)d` 1001 + utile + vtile*10
+========== ========================
 
 where the tile numbers are derived from the input u,v texture
 coordinates as follows::
