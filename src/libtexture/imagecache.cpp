@@ -3444,11 +3444,13 @@ ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, Perthread* thread_info,
                                     Strutil::sprintf("u%d", utile + 1), true);
         realname         = Strutil::replace(realname, "<V>",
                                     Strutil::sprintf("v%d", vtile + 1), true);
-        realname         = Strutil::replace(realname, "_u##v##",
-                                    Strutil::sprintf("_u%02dv%02d", utile, vtile), true);
-        realname         = Strutil::replace(realname, "%(UDIM)d",
+        realname
+            = Strutil::replace(realname, "_u##v##",
+                               Strutil::sprintf("_u%02dv%02d", utile, vtile),
+                               true);
+        realname = Strutil::replace(realname, "%(UDIM)d",
                                     Strutil::sprintf("%04d", udim_tile), true);
-        realfile         = find_file(realname, thread_info);
+        realfile = find_file(realname, thread_info);
         // Now grab the actual write lock, and double check that it hasn't
         // been added by another thread during the brief time when we
         // weren't holding any lock.
