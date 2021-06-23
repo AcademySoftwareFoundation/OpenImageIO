@@ -81,13 +81,11 @@ public:
     void debug(const std::string&) {}
 #endif
 
-    //
     // Formatted output with the same notation as Strutil::format.
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
-    //
     template<typename... Args>
-    void info(const char* format, const Args&... args)
+    OIIO_FORMAT_DEPRECATED void info(const char* format, const Args&... args)
     {
         if (verbosity() >= VERBOSE)
             info(Strutil::format(format, args...));
@@ -97,7 +95,7 @@ public:
     /// Will not print unless verbosity >= NORMAL (i.e. will suppress
     /// for QUIET).
     template<typename... Args>
-    void warning(const char* format, const Args&... args)
+    OIIO_FORMAT_DEPRECATED void warning(const char* format, const Args&... args)
     {
         if (verbosity() >= NORMAL)
             warning(Strutil::format(format, args...));
@@ -106,7 +104,7 @@ public:
     /// Error message with printf-like formatted error message.
     /// Will print regardless of verbosity.
     template<typename... Args>
-    void error(const char* format, const Args&... args)
+    OIIO_FORMAT_DEPRECATED void error(const char* format, const Args&... args)
     {
         error(Strutil::format(format, args...));
     }
@@ -114,7 +112,7 @@ public:
     /// Severe error message with printf-like formatted error message.
     /// Will print regardless of verbosity.
     template<typename... Args>
-    void severe(const char* format, const Args&... args)
+    OIIO_FORMAT_DEPRECATED void severe(const char* format, const Args&... args)
     {
         severe(Strutil::format(format, args...));
     }
@@ -123,7 +121,7 @@ public:
     /// Will not print if verbosity is QUIET.  Also note that unlike
     /// the other routines, message() will NOT append a newline.
     template<typename... Args>
-    void message(const char* format, const Args&... args)
+    OIIO_FORMAT_DEPRECATED void message(const char* format, const Args&... args)
     {
         if (verbosity() > QUIET)
             message(Strutil::format(format, args...));
@@ -133,8 +131,8 @@ public:
     /// This will not produce any output if not in DEBUG mode, or
     /// if verbosity is QUIET.
     template<typename... Args>
-    void debug(const char* format OIIO_MAYBE_UNUSED,
-               const Args&... args OIIO_MAYBE_UNUSED)
+    OIIO_FORMAT_DEPRECATED void debug(const char* format OIIO_MAYBE_UNUSED,
+                                      const Args&... args OIIO_MAYBE_UNUSED)
     {
 #ifndef NDEBUG
         debug(Strutil::format(format, args...));
