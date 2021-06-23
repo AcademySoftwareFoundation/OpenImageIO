@@ -69,7 +69,7 @@ type 'FLOAT, VEC3, POINT, array of 2'
     basesize = 4
 type 'INT, VEC2, BOX, array of 2'
     c_str "box2i"
-    basetype BASETYPE.INT
+    basetype BASETYPE.INT32
     aggregate AGGREGATE.VEC2
     vecsemantics VECSEMANTICS.BOX
     arraylen 2

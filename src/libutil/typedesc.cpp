@@ -160,12 +160,16 @@ TypeDesc::c_str() const
     // we don't have to re-assemble strings all the time?
 
     // Timecode and Keycode are hard coded
-    static constexpr TypeDesc TypeTimeCodeAlt(UINT, VEC2, TIMECODE);
-    if (*this == TypeTimeCode || *this == TypeTimeCodeAlt)
+    if (vecsemantics == TIMECODE && (basetype == INT || basetype == UINT)
+        && basevalues() == 2) {
         return ustring("timecode").c_str();
-    else if (*this == TypeKeyCode)
+    }
+    if (vecsemantics == KEYCODE && (basetype == INT || basetype == UINT)
+        && basevalues() == 7) {
         return ustring("keycode").c_str();
+    }
 
+    int alen = arraylen;
     std::string result;
     if (aggregate == SCALAR)
         result = basetype_name[basetype];
@@ -196,6 +200,7 @@ TypeDesc::c_str() const
         case VECTOR: vec = "vector"; break;
         case NORMAL: vec = "normal"; break;
         case RATIONAL: vec = "rational"; break;
+        case BOX: vec = ""; break;
         default: OIIO_DASSERT(0 && "Invalid vector semantics");
         }
         const char* agg = "";
@@ -209,9 +214,17 @@ TypeDesc::c_str() const
         if (basetype != FLOAT)
             result += basetype_code[basetype];
     }
-    if (arraylen > 0)
-        result += Strutil::sprintf("[%d]", arraylen);
-    else if (arraylen < 0)
+    // More unusual cases
+    if (vecsemantics == BOX) {
+        result = Strutil::fmt::format("box{}{}", int(aggregate),
+                                      basetype == FLOAT
+                                          ? ""
+                                          : basetype_code[basetype]);
+        alen   = arraylen > 2 ? (arraylen / 2) : (arraylen < 0 ? -1 : 0);
+    }
+    if (alen > 0)
+        result += Strutil::sprintf("[%d]", alen);
+    else if (alen < 0)
         result += "[]";
     return ustring(result).c_str();
 }
@@ -281,10 +294,28 @@ TypeDesc::fromstring(string_view typestring)
         t = TypeVector2;
     else if (type == "vector4")
         t = TypeVector4;
+    else if (type == "float2")
+        t = TypeFloat2;
+    else if (type == "float4")
+        t = TypeFloat4;
     else if (type == "timecode")
         t = TypeTimeCode;
     else if (type == "rational")
         t = TypeRational;
+    else if (type == "box2i")
+        t = TypeBox2i;
+    else if (type == "box3i")
+        t = TypeBox3i;
+    else if (type == "box2")
+        t = TypeBox2;
+    else if (type == "box3")
+        t = TypeBox3;
+    else if (type == "timecode")
+        t = TypeTimeCode;
+    else if (type == "keycode")
+        t = TypeKeyCode;
+    else if (type == "pointer")
+        t = TypePointer;
     else {
         return 0;  // unknown
     }
@@ -854,6 +885,8 @@ TypeDesc::basetype_merge(TypeDesc at, TypeDesc bt)
 
 
 
+// Static members of pre-constructed types
+// DEPRECATED(1.8)
 const TypeDesc TypeDesc::TypeFloat(TypeDesc::FLOAT);
 const TypeDesc TypeDesc::TypeColor(TypeDesc::FLOAT, TypeDesc::VEC3,
                                    TypeDesc::COLOR);

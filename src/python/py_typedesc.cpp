@@ -58,6 +58,7 @@ declare_typedesc(py::module& m)
         .value("TIMECODE", TypeDesc::TIMECODE)
         .value("KEYCODE", TypeDesc::KEYCODE)
         .value("RATIONAL", TypeDesc::RATIONAL)
+        .value("BOX", TypeDesc::BOX)
         .export_values();
 
     py::class_<TypeDesc>(m, "TypeDesc")
@@ -116,6 +117,8 @@ declare_typedesc(py::module& m)
         .def("is_vec2", &TypeDesc::is_vec2)
         .def("is_vec3", &TypeDesc::is_vec3)
         .def("is_vec4", &TypeDesc::is_vec4)
+        .def("is_box2", &TypeDesc::is_box2)
+        .def("is_box3", &TypeDesc::is_box3)
 
         // overloaded operators
         .def(py::self == py::self)  // operator==
@@ -170,6 +173,8 @@ declare_typedesc(py::module& m)
     m.attr("TypeString")   = TypeString;
     m.attr("TypeInt")      = TypeInt;
     m.attr("TypeUInt")     = TypeUInt;
+    m.attr("TypeInt64")    = TypeInt64;
+    m.attr("TypeUInt64")   = TypeUInt64;
     m.attr("TypeInt32")    = TypeInt32;
     m.attr("TypeUInt32")   = TypeUInt32;
     m.attr("TypeInt16")    = TypeInt16;
@@ -187,6 +192,10 @@ declare_typedesc(py::module& m)
     m.attr("TypeFloat4")   = TypeFloat4;
     m.attr("TypeVector4")  = TypeVector4;
     m.attr("TypeVector2i") = TypeVector2i;
+    m.attr("TypeBox2")     = TypeBox2;
+    m.attr("TypeBox3")     = TypeBox3;
+    m.attr("TypeBox2i")    = TypeBox2i;
+    m.attr("TypeBox3i")    = TypeBox3i;
     m.attr("TypeRational") = TypeRational;
     m.attr("TypePointer")  = TypePointer;
 }
