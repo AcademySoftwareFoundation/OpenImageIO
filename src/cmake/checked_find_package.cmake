@@ -3,7 +3,7 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 
-set (REQUIED_DEPS "" CACHE STRING
+set (REQUIRED_DEPS "" CACHE STRING
      "Additional dependencies to consider required (semicolon-separated list, or ALL)")
 set (OPTIONAL_DEPS "" CACHE STRING
      "Additional dependencies to consider optional (semicolon-separated list, or ALL)")
