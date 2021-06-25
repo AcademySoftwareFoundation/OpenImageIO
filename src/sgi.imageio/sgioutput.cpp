@@ -32,7 +32,7 @@ bool
 SgiOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
     if (mode != Create) {
-        errorf("%s does not support subimages or MIP levels", format_name());
+        errorfmt("{} does not support subimages or MIP levels", format_name());
         return false;
     }
 
@@ -42,13 +42,13 @@ SgiOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_spec     = spec;
 
     if (m_spec.width >= 65535 || m_spec.height >= 65535) {
-        errorf("Exceeds the maximum resolution (65535)");
+        error("Exceeds the maximum resolution (65535)");
         return false;
     }
 
     m_fd = Filesystem::fopen(m_filename, "wb");
     if (!m_fd) {
-        errorf("Could not open \"%s\"", name);
+        errorfmt("Could not open \"{}\"", name);
         return false;
     }
 
@@ -201,7 +201,7 @@ SgiOutput::create_and_write_header()
         || !fwrite(&sgi_header.pixmax) || !fwrite(&sgi_header.dummy)
         || !fwrite(sgi_header.imagename, 1, 80) || !fwrite(&sgi_header.colormap)
         || !fwrite(dummy, 404, 1)) {
-        errorf("Error writing to \"%s\"", m_filename);
+        errorfmt("Error writing to \"{}\"", m_filename);
         return false;
     }
     return true;

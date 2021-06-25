@@ -54,7 +54,7 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
 
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (!m_fd) {
-        errorf("Could not open file \"%s\"", name);
+        errorfmt("Could not open file \"{}\"", name);
         return false;
     }
 
@@ -62,8 +62,8 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
         return false;
 
     if (m_sgi_header.magic != sgi_pvt::SGI_MAGIC) {
-        errorf("\"%s\" is not a SGI file, magic number doesn't match",
-               m_filename);
+        errorfmt("\"{}\" is not a SGI file, magic number doesn't match",
+                 m_filename);
         close();
         return false;
     }
@@ -84,14 +84,14 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
         nchannels = m_sgi_header.zsize;
         break;
     default:
-        errorf("Bad dimension: %d", m_sgi_header.dimension);
+        errorfmt("Bad dimension: {}", m_sgi_header.dimension);
         close();
         return false;
     }
 
     if (m_sgi_header.colormap == sgi_pvt::COLORMAP
         || m_sgi_header.colormap == sgi_pvt::SCREEN) {
-        errorf("COLORMAP and SCREEN color map types aren't supported");
+        error("COLORMAP and SCREEN color map types aren't supported");
         close();
         return false;
     }
@@ -247,11 +247,11 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             }
         }
     } else {
-        errorf("Unknown bytes per channel %d", bpc);
+        errorfmt("Unknown bytes per channel {}", bpc);
         return false;
     }
     if (i != scanline_len || limit != 0) {
-        errorf("Corrupt RLE data");
+        error("Corrupt RLE data");
         return false;
     }
 

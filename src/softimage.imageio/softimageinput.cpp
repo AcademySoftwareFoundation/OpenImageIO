@@ -85,21 +85,21 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
 
     m_fd = Filesystem::fopen(m_filename, "rb");
     if (!m_fd) {
-        errorf("Could not open file \"%s\"", name);
+        errorfmt("Could not open file \"{}\"", name);
         return false;
     }
 
     // Try read the header
     if (!m_pic_header.read_header(m_fd)) {
-        errorf("\"%s\": failed to read header", m_filename);
+        errorfmt("\"{}\": failed to read header", m_filename);
         close();
         return false;
     }
 
     // Check whether it has the pic magic number
     if (m_pic_header.magic != 0x5380f634) {
-        errorf(
-            "\"%s\" is not a Softimage Pic file, magic number of 0x%X is not Pic",
+        errorfmt(
+            "\"{}\" is not a Softimage Pic file, magic number of 0x{:x} is not Pic",
             m_filename, m_pic_header.magic);
         close();
         return false;
@@ -112,7 +112,7 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
         // Read the next packet into curPacket and store it off
         if (fread(&curPacket, 1, sizeof(ChannelPacket), m_fd)
             != sizeof(ChannelPacket)) {
-            errorf("Unexpected end of file \"%s\".", m_filename);
+            errorfmt("Unexpected end of file \"{}\".", m_filename);
             close();
             return false;
         }
