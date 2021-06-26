@@ -661,7 +661,7 @@ bool OIIO_API resample (ImageBuf &dst, const ImageBuf &src,
 /// Fit src into `dst` (to a size specified by `roi`, if `dst` is not
 /// initialized), resizing but preserving its original aspect ratio. Thus,
 /// it will resize to be the largest size with the same aspect ratio that
-/// can fix inside the region, but will not stretch to completely fill it in
+/// can fit inside the region, but will not stretch to completely fill it in
 /// both dimensions.
 ///
 /// The `fillmode` determines which of several methods will be used to
