@@ -149,4 +149,15 @@ if (OIIO_BUILD_TESTS)
     set_target_properties (paramlist_test PROPERTIES FOLDER "Unit Tests")
     add_test (unit_paramlist ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/paramlist_test)
 
+    add_executable (typedesc_test typedesc_test.cpp)
+    target_link_libraries (typedesc_test PRIVATE OpenImageIO_Util
+                           # For OpenEXR/Imath 3.x:
+                           $<$<TARGET_EXISTS:OpenEXR::OpenEXR>:OpenEXR::OpenEXR>
+                           # For OpenEXR >= 2.4/2.5 with reliable exported targets
+                           $<$<TARGET_EXISTS:OpenEXR::IlmImf>:OpenEXR::IlmImf>
+                           # For OpenEXR <= 2.3:
+                           ${OPENEXR_LIBRARIES})
+    set_target_properties (typedesc_test PROPERTIES FOLDER "Unit Tests")
+    add_test (unit_typedesc ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/typedesc_test)
+
 endif ()
