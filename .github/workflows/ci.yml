@@ -376,7 +376,7 @@ jobs:
       # PYBIND11_VERSION: master
       PYTHON_VERSION: 3.8
       WEBP_VERSION: master
-      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master
+      MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=master -DOIIO_USE_EXR_C_API=ON
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
     steps:

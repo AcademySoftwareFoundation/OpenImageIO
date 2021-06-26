@@ -49,6 +49,7 @@ using boost::math::gcd;
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/thread.h>
 
+#define ENABLE_READ_DEBUG_PRINTS 0
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -67,8 +68,10 @@ oiio_exr_error_handler(exr_const_context_t ctxt, exr_result_t code,
             oiioexr_filebuf_struct* fb = static_cast<oiioexr_filebuf_struct*>(
                 userdata);
             if (fb->m_img) {
-                fb->m_img->errorfmt("EXR Error (%s): %s",
-                                    exr_get_error_code_as_string(code), msg);
+                fb->m_img->errorf("EXR Error (%s): %s %s",
+                                  (fb->m_io ? fb->m_io->filename().c_str()
+                                            : "<unknown>"),
+                                  exr_get_error_code_as_string(code), msg);
                 return;
             }
         }
@@ -84,11 +87,8 @@ static int64_t
 oiio_exr_query_size_func(exr_const_context_t ctxt, void* userdata)
 {
     oiioexr_filebuf_struct* fb = static_cast<oiioexr_filebuf_struct*>(userdata);
-    try {
-        if (fb)
-            return static_cast<int64_t>(fb->m_io->tell());
-    } catch (std::exception& e) {
-    }
+    if (fb)
+        return static_cast<int64_t>(fb->m_io->tell());
     return -1;
 }
 
@@ -98,22 +98,23 @@ oiio_exr_read_func(exr_const_context_t ctxt, void* userdata, void* buffer,
                    exr_stream_error_func_ptr_t error_cb)
 {
     oiioexr_filebuf_struct* fb = static_cast<oiioexr_filebuf_struct*>(userdata);
+    int64_t nread              = -1;
     if (fb) {
         Filesystem::IOProxy* io = fb->m_io;
-        try {
-            return static_cast<int64_t>(io->pread(buffer, sz, offset));
-        } catch (std::exception& e) {
-            if (io) {
+        if (io) {
+            size_t retval = io->pread(buffer, sz, offset);
+            if (retval != size_t(-1)) {
+                nread = static_cast<int64_t>(retval);
+            } else {
                 std::string err = io->error();
                 error_cb(ctxt, EXR_ERR_READ_IO,
                          "Could not read from file: \"%s\" (%s)",
                          io->filename().c_str(),
                          err.empty() ? "<unknown error>" : err.c_str());
-            } else
-                error_cb(ctxt, EXR_ERR_READ_IO, e.what());
+            }
         }
     }
-    return -1;
+    return nread;
 }
 
 class OpenEXRInput final : public ImageInput {
@@ -422,48 +423,30 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
 
     // Establish an input stream. If we weren't given an IOProxy, create one
     // now that just reads from the file.
-    try {
-        if (!m_userdata.m_io) {
-            m_userdata.m_io = new Filesystem::IOFile(name,
-                                                     Filesystem::IOProxy::Read);
-            m_local_io.reset(m_userdata.m_io);
-        }
-        OIIO_ASSERT(m_userdata.m_io);
-        if (m_userdata.m_io->mode() != Filesystem::IOProxy::Read) {
-            // If the proxy couldn't be opened in write mode, try to
-            // return an error.
-            std::string e = m_userdata.m_io->error();
-            errorf("Could not open \"%s\" (%s)", name,
-                   e.size() ? e : std::string("unknown error"));
-            return false;
-        }
-        m_userdata.m_io->seek(0);
-    } catch (const std::exception& e) {
-        m_local_io.reset();
-        m_userdata.m_io = nullptr;
-        errorf("OpenEXR exception: %s", e.what());
-        return false;
-    } catch (...) {  // catch-all for edge cases or compiler bugs
-        m_local_io.reset();
-        m_userdata.m_io = nullptr;
-        errorf("OpenEXR exception: unknown");
+    if (!m_userdata.m_io) {
+        m_userdata.m_io = new Filesystem::IOFile(name,
+                                                 Filesystem::IOProxy::Read);
+        m_local_io.reset(m_userdata.m_io);
+    }
+    if (m_userdata.m_io->mode() != Filesystem::IOProxy::Read) {
+        // If the proxy couldn't be opened in read mode, try to
+        // return an error.
+        std::string e = m_userdata.m_io->error();
+        errorf("Could not open \"%s\" (%s)", name,
+               e.size() ? e : std::string("unknown error"));
         return false;
     }
+    m_userdata.m_io->seek(0);
 
     m_userdata.m_img                = this;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
 
     cinit.error_handler_fn = &oiio_exr_error_handler;
     cinit.user_data        = &m_userdata;
-    // KDT TODO: We could change the above to not always create an
-    // ioproxy? Although if we do that, we'll have to change the logic
-    // in the error handler where right now we assume that only
-    // happens in the valid file check
     if (m_userdata.m_io) {
         cinit.read_fn = &oiio_exr_read_func;
         cinit.size_fn = &oiio_exr_query_size_func;
     }
-    // KDT TODO: Does OIIO offer malloc overrides?
 
     exr_result_t rv = exr_start_read(&m_exr_context, name.c_str(), &cinit);
     if (rv != EXR_ERR_SUCCESS) {
@@ -777,7 +760,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in, exr_context_t ctxt,
         case EXR_ATTR_TILEDESC:
         default:
 #if 0
-            std::cerr << "  unknown attribute " << attr->type_name << ' ' << attr->name << "\n";
+            std::cerr << "  unknown attribute type '" << attr->type_name << "' in name: '" << attr->name << "'" << std::endl;
 #endif
             break;
         }
@@ -1233,20 +1216,41 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     size_t scanlinebytes = (size_t)spec.width * pixelbytes;
 
     exr_chunk_block_info_t cinfo;
-    exr_decode_pipeline_t decoder;
+    exr_decode_pipeline_t decoder = {0};
     int32_t scansperchunk;
     exr_result_t rv;
     rv = exr_get_scanlines_per_chunk(m_exr_context, subimage, &scansperchunk);
     if (rv != EXR_ERR_SUCCESS)
         return false;
 
+#if ENABLE_READ_DEBUG_PRINTS
+    std::cerr << "openexr read scans " << m_userdata.m_io->filename() << " si "
+              << subimage << " mip " << miplevel << " pos " << ybegin << ' '
+              << yend << " chans " << chbegin
+              << "-" << (chend - 1)
+              << "\n pixbytes " << pixelbytes << " scan " << scanlinebytes
+              << " scans per chunk: " << scansperchunk
+              << std::endl;
+#endif
+
+    std::vector<uint8_t> fullchunk;
     bool first = true;
-    for (int y = ybegin; y < yend; y += scansperchunk) {
-        if (y + scansperchunk > yend) {
-            error("KDT TODO: Handle read request for subset of chunk");
-            rv = EXR_ERR_OUT_OF_MEMORY;
-            break;
+    int nlines = scansperchunk;
+    for (int y = ybegin; y < yend; y += nlines) {
+        uint8_t* cdata    = linedata;
+        // handle scenario where caller asked us to read a scanline
+        // that isn't aligned to a chunk boundary
+        int invalid = (y - spec.y) % scansperchunk;
+        if (invalid != 0)
+        {
+            fullchunk.resize( scanlinebytes * scansperchunk );
+            nlines = scansperchunk - invalid;
+            cdata = &fullchunk[0];
+            y = y - invalid;
         }
+        else
+            nlines = scansperchunk;
+
         rv = exr_read_scanline_block_info(m_exr_context, subimage, y, &cinfo);
         if (rv != EXR_ERR_SUCCESS)
             break;
@@ -1259,35 +1263,46 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         if (rv != EXR_ERR_SUCCESS)
             break;
 
-        uint8_t* cdata    = linedata;
         size_t chanoffset = 0;
         for (int c = chbegin; c < chend; ++c) {
             size_t chanbytes  = spec.channelformat(c).size();
             string_view cname = spec.channel_name(c);
             for (int dc = 0; dc < decoder.channel_count; ++dc) {
                 exr_coding_channel_info_t& curchan = decoder.channels[dc];
+#if ENABLE_READ_DEBUG_PRINTS
+                std::cerr << " looking for " << cname.c_str() << ": dc " << dc << " curchan " << curchan.channel_name << std::endl;
+#endif
                 if (cname == curchan.channel_name) {
                     curchan.decode_to_ptr     = cdata + chanoffset;
                     curchan.user_pixel_stride = pixelbytes;
                     curchan.user_line_stride  = scanlinebytes;
                     chanoffset += chanbytes;
+#if ENABLE_READ_DEBUG_PRINTS
+                    std::cerr << "   chan " << c << " offset " << chanoffset << " stride " << pixelbytes << " linestride " << scanlinebytes << std::endl;
+#endif
                     break;
                 }
             }
         }
 
         if (first) {
-            rv = exr_decoding_choose_default_routines(m_exr_context, 0,
+            rv = exr_decoding_choose_default_routines(m_exr_context, subimage,
                                                       &decoder);
             if (rv != EXR_ERR_SUCCESS)
                 break;
         }
-        rv = exr_decoding_run(m_exr_context, 0, &decoder);
+        rv = exr_decoding_run(m_exr_context, subimage, &decoder);
         if (rv != EXR_ERR_SUCCESS)
             break;
 
+        if (cdata != linedata)
+        {
+            y += invalid;
+            nlines = std::min(nlines, yend - y);
+            memcpy(linedata, cdata + invalid * scanlinebytes, nlines * scanlinebytes);
+        }
         first = false;
-        linedata += scanlinebytes * scansperchunk;
+        linedata += scanlinebytes * nlines;
     }
     exr_decoding_destroy(m_exr_context, &decoder);
     return (rv == EXR_ERR_SUCCESS);
@@ -1307,19 +1322,40 @@ OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     const ImageSpec& spec = init_part(subimage, miplevel);
 
     exr_chunk_block_info_t cinfo;
-    exr_decode_pipeline_t decoder;
+    exr_decode_pipeline_t decoder = {0};
     exr_result_t rv;
 
     size_t pixelbytes    = spec.pixel_bytes(0, spec.nchannels, true);
     size_t scanlinebytes = (size_t)spec.tile_width * pixelbytes;
 
+    int32_t tilew, tileh;
+    rv = exr_get_tile_sizes(m_exr_context, subimage, miplevel, miplevel, &tilew,
+                            &tileh);
+    if (rv != EXR_ERR_SUCCESS || spec.tile_width != tilew || spec.tile_height != tileh) {
+        errorf(
+            "mismatch in, mip level %d tile width / height (spec %d, %d vs file %d, %d)",
+            miplevel, spec.tile_width, spec.tile_height, tilew, tileh);
+        return check_fill_missing(x, x + tilew, y, y + tileh, z, z,
+                                  0, spec.nchannels, data, pixelbytes,
+                                  scanlinebytes);
+    }
+
+    int32_t tx = (x - spec.x) / spec.tile_width;
+    int32_t ty = (y - spec.y) / spec.tile_height;
     rv = exr_read_tile_block_info(m_exr_context, subimage,
-                                  (x - spec.x) / spec.tile_width,
-                                  (y - spec.y) / spec.tile_height, miplevel,
+                                  tx, ty, miplevel,
                                   miplevel, &cinfo);
     if (rv != EXR_ERR_SUCCESS)
         return false;
     rv = exr_decoding_initialize(m_exr_context, subimage, &cinfo, &decoder);
+
+#if ENABLE_READ_DEBUG_PRINTS
+    std::cerr << "openexr rnt single " << m_userdata.m_io->filename() << " si "
+              << subimage << " mip " << miplevel << " pos " << x << ' '
+              << y << "\n -> tile " << tx << ", "
+              << ty << ", pixbytes " << pixelbytes << " scan " << scanlinebytes
+              << " tilesz " << tilew << "x" << tileh << std::endl;
+#endif
 
     uint8_t* cdata    = static_cast<uint8_t*>(data);
     size_t chanoffset = 0;
@@ -1331,18 +1367,22 @@ OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
             if (cname == curchan.channel_name) {
                 curchan.decode_to_ptr     = cdata + chanoffset;
                 curchan.user_pixel_stride = pixelbytes;
-                curchan.user_line_stride  = scanlinebytes;
+                curchan.user_line_stride  = scanlinebytes; //curchan.width * pixelbytes;
                 chanoffset += chanbytes;
+#if ENABLE_READ_DEBUG_PRINTS
+                std::cerr << " chan " << c << " tile " << tx << ", " << ty << ": linestride " << curchan.user_line_stride << " tilesize " << curchan.width << " x " << curchan.height << std::endl;
+#endif
                 break;
             }
         }
     }
-    rv = exr_decoding_choose_default_routines(m_exr_context, 0, &decoder);
+    rv = exr_decoding_choose_default_routines(m_exr_context, subimage,
+                                              &decoder);
     if (rv != EXR_ERR_SUCCESS) {
         exr_decoding_destroy(m_exr_context, &decoder);
         return false;
     }
-    rv = exr_decoding_run(m_exr_context, 0, &decoder);
+    rv = exr_decoding_run(m_exr_context, subimage, &decoder);
     exr_decoding_destroy(m_exr_context, &decoder);
     return (rv == EXR_ERR_SUCCESS);
 }
@@ -1379,23 +1419,23 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
 
     const ImageSpec& spec = init_part(subimage, miplevel);
 
-    chend = clamp(chend, chbegin + 1, spec.nchannels);
-#if 0
-    std::cerr << "openexr rnt " << xbegin << ' ' << xend << ' ' << ybegin 
-              << ' ' << yend << ", chans " << chbegin
-              << "-" << (chend-1) << "\n";
-#endif
-
+    chend           = clamp(chend, chbegin + 1, spec.nchannels);
     int firstxtile  = (xbegin - spec.x) / spec.tile_width;
     int firstytile  = (ybegin - spec.y) / spec.tile_height;
+
+    size_t pixelbytes    = spec.pixel_bytes(chbegin, chend, true);
+    size_t scanlinebytes = (size_t)(xend - xbegin) * pixelbytes;
+
+    xend = std::min(xend, spec.x + spec.width);
+    yend = std::min(yend, spec.y + spec.height);
+    zend = std::min(zend, spec.z + spec.depth);
     int nxtiles     = (xend - xbegin + spec.tile_width - 1) / spec.tile_width;
     int nytiles     = (yend - ybegin + spec.tile_height - 1) / spec.tile_height;
     exr_result_t rv = EXR_ERR_SUCCESS;
 
-    size_t pixelbytes    = spec.pixel_bytes(chbegin, chend, true);
-    size_t scanlinebytes = (size_t)spec.width * pixelbytes;
-
-    // KDT: mostly as validation, not actually needed if we already have the info in the spec
+    // KDT: entirely as validation, not actually needed if we already have the info in the spec
+#define ENABLE_TILE_VALIDATION 1
+#if ENABLE_TILE_VALIDATION
     int32_t tmaxlevx, tmaxlevy;
     rv = exr_get_tile_levels(m_exr_context, subimage, &tmaxlevx, &tmaxlevy);
     if (rv != EXR_ERR_SUCCESS)
@@ -1424,9 +1464,23 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                   chbegin, chend, data, pixelbytes,
                                   scanlinebytes);
     }
+#else
+    int32_t tilew = spec.tile_width;
+    int32_t tileh = spec.tile_height;
+#endif
+
+#if ENABLE_READ_DEBUG_PRINTS
+    std::cerr << "openexr rnt " << m_userdata.m_io->filename() << " si "
+              << subimage << " mip " << miplevel << " pos " << xbegin << ' '
+              << xend << ' ' << ybegin << ' ' << yend << " chans " << chbegin
+              << "-" << (chend - 1) << "\n -> first " << firstxtile << ", "
+              << firstytile << " num " << nxtiles << ", " << nytiles
+              << "\n pixbytes " << pixelbytes << " scan " << scanlinebytes
+              << " tilesz " << tilew << "x" << tileh << std::endl;
+#endif
 
     exr_chunk_block_info_t cinfo;
-    exr_decode_pipeline_t decoder;
+    exr_decode_pipeline_t decoder = {0};
     bool first = true;
 
     int curytile         = firstytile;
@@ -1463,7 +1517,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                              pixelbytes, scanlinebytes);
                 continue;
             }
-            size_t tilebytes  = 0;
+            uint8_t *curtilestart = tilesetdata + ty * tileh * scanlinebytes + tx * tilew * pixelbytes;
             size_t chanoffset = 0;
             for (int c = chbegin; c < chend; ++c) {
                 size_t chanbytes  = spec.channelformat(c).size();
@@ -1471,18 +1525,20 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                 for (int dc = 0; dc < decoder.channel_count; ++dc) {
                     exr_coding_channel_info_t& curchan = decoder.channels[dc];
                     if (cname == curchan.channel_name) {
-                        curchan.decode_to_ptr     = tilesetdata + chanoffset;
+                        curchan.decode_to_ptr     = curtilestart + chanoffset;
                         curchan.user_pixel_stride = pixelbytes;
                         curchan.user_line_stride  = scanlinebytes;
                         chanoffset += chanbytes;
-                        tilebytes += chanbytes * curchan.width * curchan.height;
+#if ENABLE_READ_DEBUG_PRINTS
+                        std::cerr << " chan " << c << " tile " << tx << ", " << ty << ": linestride " << curchan.user_line_stride << " tilesize " << curchan.width << " x " << curchan.height << std::endl;
+#endif
                         break;
                     }
                 }
             }
             if (first) {
-                rv = exr_decoding_choose_default_routines(m_exr_context, 0,
-                                                          &decoder);
+                rv = exr_decoding_choose_default_routines(m_exr_context,
+                                                          subimage, &decoder);
                 if (rv != EXR_ERR_SUCCESS) {
                     retval &= check_fill_missing(xbegin + tx * tilew,
                                                  xbegin + (tx + 1) * tilew,
@@ -1491,11 +1547,11 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                                  zbegin, zend, chbegin, chend,
                                                  tilesetdata, pixelbytes,
                                                  scanlinebytes);
-                    tilesetdata += tilebytes;
                     continue;
                 }
             }
-            rv = exr_decoding_run(m_exr_context, 0, &decoder);
+            first = false;
+            rv = exr_decoding_run(m_exr_context, subimage, &decoder);
             if (rv != EXR_ERR_SUCCESS) {
                 retval &= check_fill_missing(xbegin + tx * tilew,
                                              xbegin + (tx + 1) * tilew,
@@ -1503,10 +1559,8 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                              ybegin + (ty + 1) * tileh, zbegin,
                                              zend, chbegin, chend, tilesetdata,
                                              pixelbytes, scanlinebytes);
-                tilesetdata += tilebytes;
                 continue;
             }
-            tilesetdata += tilebytes;
         }
     }
     exr_decoding_destroy(m_exr_context, &decoder);
