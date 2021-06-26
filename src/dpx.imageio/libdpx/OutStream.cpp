@@ -30,7 +30,7 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
  * POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
 
 #include <cstdio>
 
@@ -39,60 +39,49 @@
 #include "DPXStream.h"
 
 
-OutStream::~OutStream()
+OutStream::~OutStream() {}
+
+
+void
+OutStream::Close()
 {
+    if (this->m_io) {
+        this->m_io = nullptr;
+    }
 }
 
 
-void OutStream::Close()
+size_t
+OutStream::Write(void* buf, const size_t size)
 {
-	if (this->m_io)
-	{
-		this->m_io = 0;
-	}
-}
-
-
-size_t OutStream::Write(void *buf, const size_t size)
-{
-	if (this->m_io == 0)
-		return 0;
+    if (this->m_io == 0)
+        return 0;
     return this->m_io->write(buf, size);
 }
 
 
-bool OutStream::Seek(long offset, Origin origin)
+bool
+OutStream::Seek(long offset, Origin origin)
 {
-	int64_t npos = 0;
-	if (! this->m_io)
-		return false;
+    int64_t npos = 0;
+    if (!this->m_io)
+        return false;
 
-	switch (origin)
-	{
-	case kCurrent:
-		npos = static_cast<int64_t>(this->m_io->tell()) + offset;
-		break;
-	case kEnd:
-		npos = static_cast<int64_t>(this->m_io->size()) + offset;
-		break;
-	case kStart:
-		npos = offset;
-		break;
-	}
-	
-	return this->m_io->seek(npos);
+    switch (origin) {
+    case kCurrent:
+        npos = static_cast<int64_t>(this->m_io->tell()) + offset;
+        break;
+    case kEnd: npos = static_cast<int64_t>(this->m_io->size()) + offset; break;
+    case kStart: npos = offset; break;
+    }
+
+    return this->m_io->seek(npos);
 }
 
 
-void OutStream::Flush()
+void
+OutStream::Flush()
 {
-	if (this->m_io)
-		this->m_io->flush();
+    if (this->m_io)
+        this->m_io->flush();
 }
-
-
-
-
-
-
-

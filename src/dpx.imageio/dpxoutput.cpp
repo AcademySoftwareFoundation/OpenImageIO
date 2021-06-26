@@ -91,7 +91,7 @@ private:
         m_subimage_specs.clear();
         m_write_pending = false;
         m_io_local.reset();
-        m_io       = nullptr;
+        m_io = nullptr;
     }
 
     // Is the output file currently opened?
@@ -134,10 +134,7 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-DPXOutput::DPXOutput()
-{
-    init();
-}
+DPXOutput::DPXOutput() { init(); }
 
 
 
