@@ -583,8 +583,8 @@ FMT_BEGIN_NAMESPACE
 template <>
 struct formatter<OIIO::TypeDesc> {
     // Parses format specification
-    // C++14: constexpr auto parse(format_parse_context& ctx) {
-    auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) // c++11
+    // C++14: constexpr auto parse(format_parse_context& ctx) const {
+    auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) const // c++11
     {
         // Get the presentation type, if any. Required to be 's'.
         auto it = ctx.begin(), end = ctx.end();
@@ -597,8 +597,8 @@ struct formatter<OIIO::TypeDesc> {
     }
 
     template <typename FormatContext>
-    auto format(const OIIO::TypeDesc& t, FormatContext& ctx) -> decltype(ctx.out()){
-        // C++14:   auto format(const point& p, FormatContext& ctx) {
+    auto format(const OIIO::TypeDesc& t, FormatContext& ctx) -> decltype(ctx.out()) const {
+        // C++14:   auto format(const OIIO::TypeDesc& p, FormatContext& ctx) const {
         // ctx.out() is an output iterator to write to.
         return format_to(ctx.out(), "{}", t.c_str());
     }

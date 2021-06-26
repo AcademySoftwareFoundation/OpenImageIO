@@ -2155,6 +2155,7 @@ INCLUDE_FILE_PATTERNS  = *.h
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
 PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
+                         OIIO_DOXYGEN_ONLY:=1 \
                          OIIO_NO_SANITIZE_ADDRESS:= \
                          OIIO_API:= \
                          OIIO_HOSTDEVICE= \
