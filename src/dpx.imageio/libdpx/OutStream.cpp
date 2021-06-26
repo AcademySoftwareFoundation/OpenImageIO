@@ -39,71 +39,55 @@
 #include "DPXStream.h"
 
 
-OutStream::OutStream() : fp(0)
-{
-}
-
-
 OutStream::~OutStream()
 {
 }
 
 
-bool OutStream::Open(const char *f)
-{
-	if (this->fp)
-		this->Close();
-	if ((this->fp = OIIO::Filesystem::fopen(f, "wb")) == 0)
-		return false;
-		
-	return true;
-}
-
-
 void OutStream::Close()
 {
-	if (this->fp)
+	if (this->m_io)
 	{
-		::fclose(this->fp);
-		this->fp = 0;
+		this->m_io = 0;
 	}
 }
 
 
 size_t OutStream::Write(void *buf, const size_t size)
 {
-	if (this->fp == 0)
-		return false;
-    return ::fwrite(buf, 1, size, this->fp);
+	if (this->m_io == 0)
+		return 0;
+    return this->m_io->write(buf, size);
 }
 
 
 bool OutStream::Seek(long offset, Origin origin)
 {
-	int o = 0;
+	int64_t npos = 0;
+	if (! this->m_io)
+		return false;
+
 	switch (origin)
 	{
 	case kCurrent:
-		o = SEEK_CUR;
+		npos = static_cast<int64_t>(this->m_io->tell()) + offset;
 		break;
 	case kEnd:
-		o = SEEK_END;
+		npos = static_cast<int64_t>(this->m_io->size()) + offset;
 		break;
 	case kStart:
-		o = SEEK_SET;
+		npos = offset;
 		break;
 	}
 	
-	if (this->fp == 0)
-		return false;
-	return (::fseek(this->fp, offset, o) == 0);
+	return this->m_io->seek(npos);
 }
 
 
 void OutStream::Flush()
 {
-	if (this->fp)
-		::fflush(this->fp);
+	if (this->m_io)
+		this->m_io->flush();
 }
 
 

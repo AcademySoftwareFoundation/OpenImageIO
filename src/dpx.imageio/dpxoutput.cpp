@@ -34,7 +34,7 @@ public:
         if (feature == "multiimage" || feature == "alpha"
             || feature == "nchannels" || feature == "random_access"
             || feature == "rewrite" || feature == "displaywindow"
-            || feature == "origin")
+            || feature == "origin" || feature == "ioproxy")
             return true;
         return false;
     }
@@ -48,9 +48,14 @@ public:
     virtual bool write_tile(int x, int y, int z, TypeDesc format,
                             const void* data, stride_t xstride,
                             stride_t ystride, stride_t zstride) override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
-    OutStream* m_stream;
+    OutStream* m_stream = nullptr;
     dpx::Writer m_dpx;
     std::vector<unsigned char> m_buf;
     std::vector<unsigned char> m_scratch;
@@ -69,6 +74,8 @@ private:
     bool m_write_pending;  // subimage buffer needs to be written
     unsigned int m_dither;
     std::vector<unsigned char> m_tilebuffer;
+    std::unique_ptr<Filesystem::IOProxy> m_io_local;
+    Filesystem::IOProxy* m_io = nullptr;
 
     // Initialize private members to pre-opened state
     void init(void)
@@ -83,6 +90,8 @@ private:
         m_subimages_to_write = 0;
         m_subimage_specs.clear();
         m_write_pending = false;
+        m_io_local.reset();
+        m_io       = nullptr;
     }
 
     // Is the output file currently opened?
@@ -126,7 +135,6 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 DPXOutput::DPXOutput()
-    : m_stream(NULL)
 {
     init();
 }
@@ -190,13 +198,24 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
 
     if (is_opened())
         close();  // Close any already-opened file
-    m_stream = new OutStream();
-    if (!m_stream->Open(name.c_str())) {
-        errorf("Could not open \"%s\"", name);
-        delete m_stream;
-        m_stream = nullptr;
+
+    const ParamValue* param = userspec.find_attribute("oiio:ioproxy",
+                                                      TypeDesc::PTR);
+    if (param)
+        m_io = param->get<Filesystem::IOProxy*>();
+
+    if (!m_io) {
+        // If no proxy was supplied, create a file reader
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Write);
+        m_io_local.reset(m_io);
+    }
+
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Write) {
+        errorf("Could not open file \"%s\"", name);
         return false;
     }
+
+    m_stream = new OutStream(m_io);
     m_dpx.SetOutStream(m_stream);
     m_dpx.Start();
     m_subimage = 0;
