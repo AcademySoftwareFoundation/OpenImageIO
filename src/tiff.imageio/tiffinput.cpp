@@ -2063,6 +2063,8 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
         // only if we're threading and don't enter the thread pool recursively!
         && pool->size() > 1
         && !pool->is_worker()
+        // only if this ImageInput wasn't asked to be single-threaded
+        && this->threads() != 1
         // and not if the feature is turned off
         && m_spec.get_int_attribute("tiff:multithread",
                                     OIIO::get_int_attribute("tiff:multithread"));
