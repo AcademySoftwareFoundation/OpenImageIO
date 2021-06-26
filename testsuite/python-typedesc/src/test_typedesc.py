@@ -63,6 +63,7 @@ def vecsemantics_enum_test():
         oiio.TIMECODE
         oiio.KEYCODE
         oiio.RATIONAL
+        oiio.BOX
         print ("Passed VECSEMANTICS")
     except:
         print ("Failed VECSEMANTICS")
@@ -106,12 +107,17 @@ try:
                     "FLOAT, SCALAR, NOXFORM, array of 6")
     breakdown_test (oiio.TypeDesc(oiio.FLOAT, oiio.VEC3, oiio.POINT, 2),
                     "FLOAT, VEC3, POINT, array of 2")
+    breakdown_test (oiio.TypeDesc(oiio.INT, oiio.VEC2, oiio.BOX, 2),
+                    "INT, VEC2, BOX, array of 2")
+    breakdown_test (oiio.TypeDesc(oiio.FLOAT, oiio.VEC3, oiio.BOX, 2),
+                    "FLOAT, VEC3, BOX, array of 2")
     print ("")
 
     # Test construction from a string descriptor
     breakdown_test (oiio.TypeDesc("float[2]"), "float[2]")
     breakdown_test (oiio.TypeDesc("normal"), "normal")
     breakdown_test (oiio.TypeDesc("uint16"), "uint16")
+    breakdown_test (oiio.TypeDesc("box3"), "box3")
     print ("")
 
     # Test equality, inequality, and equivalent
@@ -159,6 +165,8 @@ try:
     breakdown_test (oiio.TypeString,   "TypeString",   verbose=False)
     breakdown_test (oiio.TypeInt,      "TypeInt",      verbose=False)
     breakdown_test (oiio.TypeUInt,     "TypeUInt",     verbose=False)
+    breakdown_test (oiio.TypeInt64,    "TypeInt64",    verbose=False)
+    breakdown_test (oiio.TypeUInt64,   "TypeUInt64",   verbose=False)
     breakdown_test (oiio.TypeInt32,    "TypeInt32",    verbose=False)
     breakdown_test (oiio.TypeUInt32,   "TypeUInt32",   verbose=False)
     breakdown_test (oiio.TypeInt16,    "TypeInt16",    verbose=False)

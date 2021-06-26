@@ -117,7 +117,8 @@ struct OIIO_UTIL_API TypeDesc {
                           ///<   4-byte encoding of an SMPTE timecode.
         KEYCODE,          ///< indicates an `int[7]` representing the standard
                           ///<   28-byte encoding of an SMPTE keycode.
-        RATIONAL          ///< A VEC2 representing a rational number `val[0] / val[1]`
+        RATIONAL,         ///< A VEC2 representing a rational number `val[0] / val[1]`
+        BOX,              ///< A VEC2[2] or VEC3[2] that represents a 2D or 3D bounds (min/max)
     };
 
     unsigned char basetype;      ///< C data type at the heart of our type
@@ -313,6 +314,18 @@ struct OIIO_UTIL_API TypeDesc {
         return this->aggregate == VEC4 && this->basetype == b && !is_array();
     }
 
+    /// Is this an array of aggregates that represents a 2D bounding box?
+    constexpr bool is_box2 (BASETYPE b=FLOAT) const noexcept {
+        return this->aggregate == VEC2 && this->basetype == b && arraylen == 2
+                && this->vecsemantics == BOX;
+    }
+
+    /// Is this an array of aggregates that represents a 3D bounding box?
+    constexpr bool is_box3 (BASETYPE b=FLOAT) const noexcept {
+        return this->aggregate == VEC3 && this->basetype == b && arraylen == 2
+                && this->vecsemantics == BOX;
+    }
+
     /// Demote the type to a non-array
     ///
     void unarray (void) noexcept { arraylen = 0; }
@@ -377,7 +390,13 @@ static constexpr TypeDesc TypeInt16 (TypeDesc::INT16);
 static constexpr TypeDesc TypeUInt16 (TypeDesc::UINT16);
 static constexpr TypeDesc TypeInt8 (TypeDesc::INT8);
 static constexpr TypeDesc TypeUInt8 (TypeDesc::UINT8);
+static constexpr TypeDesc TypeInt64 (TypeDesc::INT64);
+static constexpr TypeDesc TypeUInt64 (TypeDesc::UINT64);
 static constexpr TypeDesc TypeVector2i(TypeDesc::INT, TypeDesc::VEC2);
+static constexpr TypeDesc TypeBox2(TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::BOX, 2);
+static constexpr TypeDesc TypeBox3(TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::BOX, 2);
+static constexpr TypeDesc TypeBox2i(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::BOX, 2);
+static constexpr TypeDesc TypeBox3i(TypeDesc::INT, TypeDesc::VEC3, TypeDesc::BOX, 2);
 static constexpr TypeDesc TypeHalf (TypeDesc::HALF);
 static constexpr TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
 static constexpr TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
@@ -446,6 +465,12 @@ template<> struct TypeDescFromC<Imath::M33f> { static const constexpr TypeDesc v
 template<> struct TypeDescFromC<Imath::M44f> { static const constexpr TypeDesc value() { return TypeMatrix44; } };
 template<> struct TypeDescFromC<Imath::M33d> { static const constexpr TypeDesc value() { return TypeDesc(TypeDesc::DOUBLE, TypeDesc::MATRIX33); } };
 template<> struct TypeDescFromC<Imath::M44d> { static const constexpr TypeDesc value() { return TypeDesc(TypeDesc::DOUBLE, TypeDesc::MATRIX44); } };
+#endif
+#ifdef INCLUDED_IMATHBOX_H
+template<> struct TypeDescFromC<Imath::Box2f> { static const constexpr TypeDesc value() { return TypeBox2; } };
+template<> struct TypeDescFromC<Imath::Box2i> { static const constexpr TypeDesc value() { return TypeBox2i; } };
+template<> struct TypeDescFromC<Imath::Box3f> { static const constexpr TypeDesc value() { return TypeBox3; } };
+template<> struct TypeDescFromC<Imath::Box3i> { static const constexpr TypeDesc value() { return TypeBox3i; } };
 #endif
 
 
