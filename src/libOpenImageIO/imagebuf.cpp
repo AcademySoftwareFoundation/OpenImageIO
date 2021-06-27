@@ -15,6 +15,7 @@
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/simd.h>
+#include <OpenImageIO/strongparam.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
 
@@ -22,6 +23,8 @@
 
 OIIO_NAMESPACE_BEGIN
 
+
+OIIO_STRONG_PARAM_TYPE(DoLock, bool);
 
 static atomic_ll IB_local_mem_current;
 
@@ -95,11 +98,13 @@ public:
                const ImageSpec* nativespec = nullptr, void* buffer = nullptr);
     void alloc(const ImageSpec& spec, const ImageSpec* nativespec = nullptr);
     void realloc();
-    bool init_spec(string_view filename, int subimage, int miplevel);
+    bool init_spec(string_view filename, int subimage, int miplevel,
+                   DoLock do_lock);
     bool read(int subimage, int miplevel, int chbegin = 0, int chend = -1,
               bool force = false, TypeDesc convert = TypeDesc::UNKNOWN,
               ProgressCallback progress_callback = nullptr,
-              void* progress_callback_data       = nullptr);
+              void* progress_callback_data       = nullptr,
+              DoLock do_lock                     = DoLock(true));
     void copy_metadata(const ImageBufImpl& src);
 
     // Note: Uses std::format syntax
@@ -151,13 +156,15 @@ public:
         return &m_blackpixel[0];
     }
 
-    bool validate_spec() const
+    bool validate_spec(DoLock do_lock = DoLock(true)) const
     {
         if (m_spec_valid)
             return true;
         if (!m_name.size())
             return false;
-        spin_lock lock(m_valid_mutex);  // prevent multiple init_spec
+        lock_t lock(m_mutex, std::defer_lock_t());
+        if (do_lock)
+            lock.lock();
         if (m_spec_valid)
             return true;
         ImageBufImpl* imp = const_cast<ImageBufImpl*>(this);
@@ -165,16 +172,19 @@ public:
             imp->m_current_subimage = 0;
         if (imp->m_current_miplevel < 0)
             imp->m_current_miplevel = 0;
-        return imp->init_spec(m_name, m_current_subimage, m_current_miplevel);
+        return imp->init_spec(m_name, m_current_subimage, m_current_miplevel,
+                              DoLock(false) /* we already hold the lock */);
     }
 
-    bool validate_pixels() const
+    bool validate_pixels(DoLock do_lock = DoLock(true)) const
     {
         if (m_pixels_valid)
             return true;
         if (!m_name.size())
             return true;
-        spin_lock lock(m_valid_mutex);  // prevent multiple read()
+        lock_t lock(m_mutex, std::defer_lock_t());
+        if (do_lock)
+            lock.lock();
         if (m_pixels_valid)
             return true;
         ImageBufImpl* imp = const_cast<ImageBufImpl*>(this);
@@ -182,7 +192,8 @@ public:
             imp->m_current_subimage = 0;
         if (imp->m_current_miplevel < 0)
             imp->m_current_miplevel = 0;
-        return imp->read(m_current_subimage, m_current_miplevel);
+        return imp->read(m_current_subimage, m_current_miplevel,
+                         DoLock(false) /* we already hold the lock */);
     }
 
     const ImageSpec& spec() const
@@ -249,7 +260,9 @@ private:
     ImageSpec m_nativespec;         ///< Describes the true native image
     std::unique_ptr<char[]> m_pixels;  ///< Pixel data, if local and we own it
     char* m_localpixels;               ///< Pointer to local pixels
-    mutable spin_mutex m_valid_mutex;
+    typedef std::recursive_mutex mutex_t;
+    typedef std::unique_lock<mutex_t> lock_t;
+    mutable mutex_t m_mutex;      ///< Thread safety for this ImageBuf
     mutable bool m_spec_valid;    ///< Is the spec valid
     mutable bool m_pixels_valid;  ///< Image is valid
     bool m_badfile;               ///< File not found
@@ -852,8 +865,13 @@ ImageBufImpl::alloc(const ImageSpec& spec, const ImageSpec* nativespec)
 
 
 bool
-ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel)
+ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
+                        DoLock do_lock)
 {
+    lock_t lock(m_mutex, std::defer_lock_t());
+    if (do_lock)
+        lock.lock();
+
     if (!m_badfile && m_spec_valid && m_current_subimage >= 0
         && m_current_miplevel >= 0 && m_name == filename
         && m_current_subimage == subimage && m_current_miplevel == miplevel)
@@ -935,7 +953,8 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel)
 bool
 ImageBuf::init_spec(string_view filename, int subimage, int miplevel)
 {
-    return m_impl->init_spec(filename, subimage, miplevel);
+    return m_impl->init_spec(filename, subimage, miplevel,
+                             DoLock(true) /* acquire the lock */);
 }
 
 
@@ -944,8 +963,12 @@ bool
 ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                    bool force, TypeDesc convert,
                    ProgressCallback progress_callback,
-                   void* progress_callback_data)
+                   void* progress_callback_data, DoLock do_lock)
 {
+    lock_t lock(m_mutex, std::defer_lock_t());
+    if (do_lock)
+        lock.lock();
+
     if (!m_name.length())
         return true;
 
@@ -953,7 +976,8 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
         && miplevel == m_current_miplevel)
         return true;
 
-    if (!init_spec(m_name.string(), subimage, miplevel)) {
+    if (!init_spec(m_name.string(), subimage, miplevel,
+                   DoLock(false) /* we already hold the lock */)) {
         m_badfile    = true;
         m_spec_valid = false;
         return false;
@@ -1114,7 +1138,8 @@ ImageBuf::read(int subimage, int miplevel, bool force, TypeDesc convert,
                ProgressCallback progress_callback, void* progress_callback_data)
 {
     return m_impl->read(subimage, miplevel, 0, -1, force, convert,
-                        progress_callback, progress_callback_data);
+                        progress_callback, progress_callback_data,
+                        DoLock(true) /* acquire the lock */);
 }
 
 
@@ -1125,7 +1150,8 @@ ImageBuf::read(int subimage, int miplevel, int chbegin, int chend, bool force,
                void* progress_callback_data)
 {
     return m_impl->read(subimage, miplevel, chbegin, chend, force, convert,
-                        progress_callback, progress_callback_data);
+                        progress_callback, progress_callback_data,
+                        DoLock(true) /* acquire the lock */);
 }
 
 
