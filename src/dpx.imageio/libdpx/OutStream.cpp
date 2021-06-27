@@ -63,7 +63,7 @@ size_t OutStream::Write(void *buf, const size_t size)
 
 bool OutStream::Seek(long offset, Origin origin)
 {
-	int o;
+	int o = SEEK_SET;
 	if (! this->m_io)
 		return false;
 
