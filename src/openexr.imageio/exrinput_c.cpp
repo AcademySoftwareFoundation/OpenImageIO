@@ -210,7 +210,8 @@ private:
         {
         }
         ~PartInfo() {}
-        bool parse_header(OpenEXRInput* in, exr_context_t ctxt, int subimage);
+        bool parse_header(OpenEXRInput* in, exr_context_t ctxt, int subimage,
+                          int miplevel);
         bool query_channels(OpenEXRInput* in, exr_context_t ctxt, int subimage);
         void compute_mipres(int miplevel, ImageSpec& spec) const;
     };
@@ -455,7 +456,9 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
         m_userdata.m_io = nullptr;
         return false;
     }
-
+#if ENABLE_READ_DEBUG_PRINTS
+    exr_print_context_info(m_exr_context, 1);
+#endif
     rv = exr_get_count(m_exr_context, &m_nsubimages);
     if (rv != EXR_ERR_SUCCESS) {
         m_local_io.reset();
@@ -502,7 +505,7 @@ OpenEXRInput::init_part(int subimage, int miplevel)
 
 bool
 OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in, exr_context_t ctxt,
-                                     int subimage)
+                                     int subimage, int miplevel)
 {
     bool ok = true;
     if (initialized)
@@ -1076,7 +1079,7 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
 
     PartInfo& part(m_parts[subimage]);
     if (!part.initialized) {
-        if (!part.parse_header(this, m_exr_context, subimage))
+        if (!part.parse_header(this, m_exr_context, subimage, miplevel))
             return false;
         part.initialized = true;
     }
@@ -1207,6 +1210,9 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
+    // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
+    // information is not valid!!!! instead, we will use the library
+    // which has an internal thread-safe cache of the sizes if needed
     const ImageSpec& spec = init_part(subimage, miplevel);
 
     chend = clamp(chend, chbegin + 1, spec.nchannels);
@@ -1224,11 +1230,15 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
 
 #if ENABLE_READ_DEBUG_PRINTS
-    std::cerr << "openexr read scans " << m_userdata.m_io->filename() << " si "
-              << subimage << " mip " << miplevel << " pos " << ybegin << ' '
-              << yend << " chans " << chbegin << "-" << (chend - 1)
-              << "\n pixbytes " << pixelbytes << " scan " << scanlinebytes
-              << " scans per chunk: " << scansperchunk << std::endl;
+    {
+        lock_guard lock(*this);
+
+        std::cerr << "exr rns " << m_userdata.m_io->filename() << ":"
+                  << subimage << ":" << miplevel << " scans (" << ybegin << '-'
+                  << yend << "|" << (yend - ybegin) << ")[" << chbegin << "-"
+                  << (chend - 1) << "] -> pb " << pixelbytes << " sb "
+                  << scanlinebytes << " spc " << scansperchunk << std::endl;
+    }
 #endif
 
     std::vector<uint8_t> fullchunk;
@@ -1271,8 +1281,8 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             for (int dc = 0; dc < decoder.channel_count; ++dc) {
                 exr_coding_channel_info_t& curchan = decoder.channels[dc];
 #if ENABLE_READ_DEBUG_PRINTS
-                std::cerr << " looking for " << cname.c_str() << ": dc " << dc
-                          << " curchan " << curchan.channel_name << std::endl;
+                //std::cerr << " looking for " << cname.c_str() << ": dc " << dc
+                //          << " curchan " << curchan.channel_name << std::endl;
 #endif
                 if (cname == curchan.channel_name) {
                     curchan.decode_to_ptr     = cdata + chanoffset;
@@ -1280,9 +1290,9 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                     curchan.user_line_stride  = scanlinebytes;
                     chanoffset += chanbytes;
 #if ENABLE_READ_DEBUG_PRINTS
-                    std::cerr << "   chan " << c << " offset " << chanoffset
-                              << " stride " << pixelbytes << " linestride "
-                              << scanlinebytes << std::endl;
+                    //std::cerr << "   chan " << c << " offset " << chanoffset
+                    //          << " stride " << pixelbytes << " linestride "
+                    //          << scanlinebytes << std::endl;
 #endif
                     break;
                 }
@@ -1323,48 +1333,47 @@ OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         return false;
     }
 
+    // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
+    // information not valid!!!! instead, we will use the library
+    // which has an internal thread-safe cache of the sizes
     const ImageSpec& spec = init_part(subimage, miplevel);
+    exr_result_t rv;
+
+    int32_t tilew = spec.tile_width;
+    int32_t tileh = spec.tile_height;
+
+    size_t pixelbytes    = spec.pixel_bytes(0, spec.nchannels, true);
+    size_t scanlinebytes = size_t(tilew) * pixelbytes;
+
+    int32_t tx = (x - spec.x) / tilew;
+    int32_t ty = (y - spec.y) / tileh;
+
+    int32_t levw, levh;
+    rv = exr_get_level_sizes(m_exr_context, subimage, miplevel, miplevel, &levw,
+                             &levh);
+    if (rv != EXR_ERR_SUCCESS)
+        return check_fill_missing(x, x + tilew, y, y + tileh, z, z + spec.depth,
+                                  0, spec.nchannels, data, pixelbytes,
+                                  scanlinebytes);
 
     exr_chunk_block_info_t cinfo;
     exr_decode_pipeline_t decoder = { 0 };
-    exr_result_t rv;
-
-    size_t pixelbytes    = spec.pixel_bytes(0, spec.nchannels, true);
-    size_t scanlinebytes = (size_t)spec.tile_width * pixelbytes;
-
-    int32_t tilew, tileh;
-    rv = exr_get_tile_sizes(m_exr_context, subimage, miplevel, miplevel, &tilew,
-                            &tileh);
-    if (rv != EXR_ERR_SUCCESS
-        || (spec.width > spec.tile_width && spec.tile_width != tilew)
-        || (spec.height > spec.tile_height && spec.tile_height != tileh)) {
-        errorf(
-            "mismatch in, mip level %d tile width / height (spec %d, %d vs file %d, %d)",
-            miplevel, spec.tile_width, spec.tile_height, tilew, tileh);
-        return check_fill_missing(x, x + spec.tile_width, y,
-                                  y + spec.tile_height, z, z, 0, spec.nchannels,
-                                  data, pixelbytes, scanlinebytes);
-    }
-
-    int32_t tx = (x - spec.x) / spec.tile_width;
-    int32_t ty = (y - spec.y) / spec.tile_height;
-
-    if ((tx * spec.tile_width + spec.x) != x
-        || (ty * spec.tile_height + spec.y) != y) {
-        errorf(
-            "Unable to retrieve non-aligned tile chunk currently. x (%d), y (%d) must be aligned to tile boundary (%d, %d) until c++ api is returned",
-            x, y, (tx * spec.tile_width + spec.x),
-            (ty * spec.tile_height + spec.y));
-        return check_fill_missing(x, x + tilew, y, y + tileh, z, z, 0,
-                                  spec.nchannels, data, pixelbytes,
-                                  scanlinebytes);
-    }
 
     rv = exr_read_tile_block_info(m_exr_context, subimage, tx, ty, miplevel,
                                   miplevel, &cinfo);
     if (rv != EXR_ERR_SUCCESS)
-        return false;
+        return check_fill_missing(x, std::min(levw, x + tilew), y,
+                                  std::min(levh, y + tileh), z, z + spec.depth,
+                                  0, spec.nchannels, data, pixelbytes,
+                                  scanlinebytes);
     rv = exr_decoding_initialize(m_exr_context, subimage, &cinfo, &decoder);
+    if (rv != EXR_ERR_SUCCESS) {
+        exr_decoding_destroy(m_exr_context, &decoder);
+        return check_fill_missing(x, std::min(levw, x + tilew), y,
+                                  std::min(levh, y + tileh), z, z + spec.depth,
+                                  0, spec.nchannels, data, pixelbytes,
+                                  scanlinebytes);
+    }
 
 #if ENABLE_READ_DEBUG_PRINTS
     std::cerr << "openexr rnt single " << m_userdata.m_io->filename() << " si "
@@ -1401,11 +1410,20 @@ OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                               &decoder);
     if (rv != EXR_ERR_SUCCESS) {
         exr_decoding_destroy(m_exr_context, &decoder);
-        return false;
+        return check_fill_missing(x, std::min(levw, x + tilew), y,
+                                  std::min(levh, y + tileh), z, z + spec.depth,
+                                  0, spec.nchannels, data, pixelbytes,
+                                  scanlinebytes);
     }
     rv = exr_decoding_run(m_exr_context, subimage, &decoder);
     exr_decoding_destroy(m_exr_context, &decoder);
-    return (rv == EXR_ERR_SUCCESS);
+    if (rv != EXR_ERR_SUCCESS) {
+        return check_fill_missing(x, std::min(levw, x + tilew), y,
+                                  std::min(levh, y + tileh), z, z + spec.depth,
+                                  0, spec.nchannels, data, pixelbytes,
+                                  scanlinebytes);
+    }
+    return true;
 }
 
 
@@ -1438,103 +1456,67 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
         return false;
     }
 
+    // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
+    // information not valid!!!! instead, we will use the library
+    // which has an internal thread-safe cache of the sizes
     const ImageSpec& spec = init_part(subimage, miplevel);
+    exr_result_t rv       = EXR_ERR_SUCCESS;
 
-    chend          = clamp(chend, chbegin + 1, spec.nchannels);
-    int firstxtile = (xbegin - spec.x) / spec.tile_width;
-    int firstytile = (ybegin - spec.y) / spec.tile_height;
-
-    size_t pixelbytes    = spec.pixel_bytes(chbegin, chend, true);
-    size_t scanlinebytes = (size_t)(xend - xbegin) * pixelbytes;
-
-    xend            = std::min(xend, spec.x + spec.width);
-    yend            = std::min(yend, spec.y + spec.height);
-    zend            = std::min(zend, spec.z + spec.depth);
-    int nxtiles     = (xend - xbegin + spec.tile_width - 1) / spec.tile_width;
-    int nytiles     = (yend - ybegin + spec.tile_height - 1) / spec.tile_height;
-    exr_result_t rv = EXR_ERR_SUCCESS;
-
-    if ((firstxtile * spec.tile_width + spec.x) != xbegin
-        || (firstytile * spec.tile_height + spec.y) != ybegin) {
-        errorf(
-            "Unable to retrieve non-aligned tile chunk currently. x (%d), y (%d) must be aligned to tile boundary (%d, %d) (c api constraint)",
-            xbegin, ybegin, (firstxtile * spec.tile_width + spec.x),
-            (firstytile * spec.tile_height + spec.y));
-        return check_fill_missing(xbegin, xend, ybegin, yend, zbegin, zend,
-                                  chbegin, chend, data, pixelbytes,
-                                  scanlinebytes);
-    }
-
-    if ((xend < (spec.x + spec.width)
-         && ((xend - spec.x) % spec.tile_width) != 0)
-        || (yend < (spec.y + spec.height)
-            && ((yend - spec.y) % spec.tile_width) != 0)) {
-        errorf(
-            "Unable to retrieve non-aligned tile chunk currently. xend (%d), yend (%d) do not fall on a tile boundary (c api constraint)",
-            xend, yend);
-        return check_fill_missing(xbegin, xend, ybegin, yend, zbegin, zend,
-                                  chbegin, chend, data, pixelbytes,
-                                  scanlinebytes);
-    }
-
-    // KDT: entirely as validation, not actually needed if we already have the info in the spec
-#define ENABLE_TILE_VALIDATION 1
-#if ENABLE_TILE_VALIDATION
-    int32_t tmaxlevx, tmaxlevy;
-    rv = exr_get_tile_levels(m_exr_context, subimage, &tmaxlevx, &tmaxlevy);
-    if (rv != EXR_ERR_SUCCESS)
-        return check_fill_missing(xbegin, xend, ybegin, yend, zbegin, zend,
-                                  chbegin, chend, data, pixelbytes,
-                                  scanlinebytes);
-    if (miplevel < 0 || miplevel >= tmaxlevx) {
-        errorf("mismatch in tile mip level count");
-        return check_fill_missing(xbegin, xend, ybegin, yend, zbegin, zend,
-                                  chbegin, chend, data, pixelbytes,
-                                  scanlinebytes);
-    }
-
-    int32_t tilew, tileh;
-    rv = exr_get_tile_sizes(m_exr_context, subimage, miplevel, miplevel, &tilew,
-                            &tileh);
-    if (rv != EXR_ERR_SUCCESS)
-        return check_fill_missing(xbegin, xend, ybegin, yend, zbegin, zend,
-                                  chbegin, chend, data, pixelbytes,
-                                  scanlinebytes);
-    if ((spec.width > spec.tile_width && spec.tile_width != tilew)
-        || (spec.height > spec.tile_height && spec.tile_height != tileh)) {
-        errorf(
-            "mismatch in, mip level %d tile width / height (spec %d, %d vs file %d, %d)",
-            miplevel, spec.tile_width, spec.tile_height, tilew, tileh);
-        return check_fill_missing(xbegin, xend, ybegin, yend, zbegin, zend,
-                                  chbegin, chend, data, pixelbytes,
-                                  scanlinebytes);
-    }
-
-#else
     int32_t tilew = spec.tile_width;
     int32_t tileh = spec.tile_height;
-#endif
+
+    chend          = clamp(chend, chbegin + 1, spec.nchannels);
+    int firstxtile = (xbegin - spec.x) / tilew;
+    int firstytile = (ybegin - spec.y) / tileh;
+
+    size_t pixelbytes = spec.pixel_bytes(chbegin, chend, true);
+
+    int32_t levw, levh;
+    rv = exr_get_level_sizes(m_exr_context, subimage, miplevel, miplevel, &levw,
+                             &levh);
+    if (rv != EXR_ERR_SUCCESS)
+        return check_fill_missing(xbegin, xend, ybegin, yend, zbegin, zend,
+                                  chbegin, chend, data, pixelbytes,
+                                  size_t(tilew) * pixelbytes
+                                      * size_t((xend - xbegin + tilew - 1)
+                                               / tilew));
+
+    xend        = std::min(xend, spec.x + levw);
+    yend        = std::min(yend, spec.y + levh);
+    zend        = std::min(zend, spec.z + spec.depth);
+    int nxtiles = (xend - xbegin + tilew - 1) / tilew;
+    int nytiles = (yend - ybegin + tileh - 1) / tileh;
+
+    size_t scanlinebytes = size_t(nxtiles) * size_t(tilew) * pixelbytes;
 
 #if ENABLE_READ_DEBUG_PRINTS
-    std::cerr << "openexr rnt " << m_userdata.m_io->filename() << " si "
-              << subimage << " mip " << miplevel << " pos " << xbegin << ' '
-              << xend << ' ' << ybegin << ' ' << yend << " chans " << chbegin
-              << "-" << (chend - 1) << "\n -> first " << firstxtile << ", "
-              << firstytile << " num " << nxtiles << ", " << nytiles
-              << "\n pixbytes " << pixelbytes << " scan " << scanlinebytes
-              << " tilesz " << tilew << "x" << tileh << std::endl;
+    {
+        lock_guard lock(*this);
+
+        std::cerr << "exr rnt " << m_userdata.m_io->filename() << ":"
+                  << subimage << ":" << miplevel << " (" << xbegin << ' '
+                  << xend << ' ' << ybegin << ' ' << yend << "|"
+                  << (xend - xbegin) << "x" << (yend - ybegin) << ")["
+                  << chbegin << "-" << (chend - 1) << "] -> t " << firstxtile
+                  << ", " << firstytile << " n " << nxtiles << ", " << nytiles
+                  << " pb " << pixelbytes << " sb " << scanlinebytes << " tsz "
+                  << tilew << "x" << tileh << std::endl;
+    }
+
 #endif
 
     exr_chunk_block_info_t cinfo;
     exr_decode_pipeline_t decoder = { 0 };
     bool first                    = true;
 
-    int curytile         = firstytile;
-    uint8_t* tilesetdata = static_cast<uint8_t*>(data);
-    bool retval          = true;
+    int curytile = firstytile;
+    bool retval  = true;
     for (int ty = 0; ty < nytiles; ++ty, ++curytile) {
-        int curxtile = firstxtile;
+        int curxtile         = firstxtile;
+        uint8_t* tilesetdata = static_cast<uint8_t*>(data);
+        tilesetdata += ty * tileh * scanlinebytes;
         for (int tx = 0; tx < nxtiles; ++tx, ++curxtile) {
+            uint8_t* curtilestart = tilesetdata + tx * tilew * pixelbytes;
             rv = exr_read_tile_block_info(m_exr_context, subimage, curxtile,
                                           curytile, miplevel, miplevel, &cinfo);
             if (rv != EXR_ERR_SUCCESS) {
@@ -1542,7 +1524,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                              xbegin + (tx + 1) * tilew,
                                              ybegin + ty * tileh,
                                              ybegin + (ty + 1) * tileh, zbegin,
-                                             zend, chbegin, chend, tilesetdata,
+                                             zend, chbegin, chend, curtilestart,
                                              pixelbytes, scanlinebytes);
                 continue;
             }
@@ -1559,12 +1541,10 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                              xbegin + (tx + 1) * tilew,
                                              ybegin + ty * tileh,
                                              ybegin + (ty + 1) * tileh, zbegin,
-                                             zend, chbegin, chend, tilesetdata,
+                                             zend, chbegin, chend, curtilestart,
                                              pixelbytes, scanlinebytes);
                 continue;
             }
-            uint8_t* curtilestart = tilesetdata + ty * tileh * scanlinebytes
-                                    + tx * tilew * pixelbytes;
             size_t chanoffset = 0;
             for (int c = chbegin; c < chend; ++c) {
                 size_t chanbytes  = spec.channelformat(c).size();
@@ -1577,16 +1557,23 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                         curchan.user_line_stride  = scanlinebytes;
                         chanoffset += chanbytes;
 #if ENABLE_READ_DEBUG_PRINTS
-                        std::cerr << " chan " << c << " tile " << tx << ", "
-                                  << ty << ": linestride "
-                                  << curchan.user_line_stride << " tilesize "
-                                  << curchan.width << " x " << curchan.height
-                                  << std::endl;
+                        //std::cerr << " chan " << c << " tile " << tx << ", "
+                        //          << ty << ": linestride "
+                        //          << curchan.user_line_stride << " tilesize "
+                        //          << curchan.width << " x " << curchan.height
+                        //          << std::endl;
 #endif
                         break;
                     }
                 }
             }
+#if ENABLE_READ_DEBUG_PRINTS
+            std::cerr << " -> read " << curxtile << ", " << curytile
+                      << ": toff " << tx * tilew * pixelbytes << " tilesize "
+                      << cinfo.width << " x " << cinfo.height << " pos "
+                      << cinfo.start_x << ", " << cinfo.start_y << std::endl;
+#endif
+
             if (first) {
                 rv = exr_decoding_choose_default_routines(m_exr_context,
                                                           subimage, &decoder);
@@ -1596,7 +1583,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                                  ybegin + ty * tileh,
                                                  ybegin + (ty + 1) * tileh,
                                                  zbegin, zend, chbegin, chend,
-                                                 tilesetdata, pixelbytes,
+                                                 curtilestart, pixelbytes,
                                                  scanlinebytes);
                     continue;
                 }
@@ -1608,7 +1595,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                              xbegin + (tx + 1) * tilew,
                                              ybegin + ty * tileh,
                                              ybegin + (ty + 1) * tileh, zbegin,
-                                             zend, chbegin, chend, tilesetdata,
+                                             zend, chbegin, chend, curtilestart,
                                              pixelbytes, scanlinebytes);
                 continue;
             }
