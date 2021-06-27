@@ -226,12 +226,17 @@ control aspects of the writing itself:
        will keep unaltered pixel values (versus the default OIIO behavior
        of automatically converting from RGB to the designated color space
        as the pixels are written).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
 
 **Custom I/O Overrides**
 
-DPX input (but, currently, not output) supports the "custom I/O" feature
-via the `ImageInput::set_ioproxy()` method and the special
-``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
+DPX input and output both support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
 
 **DPX Attributes**
 

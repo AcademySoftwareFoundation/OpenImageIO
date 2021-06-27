@@ -124,14 +124,16 @@ test_write_proxy(string_view formatname, string_view extension,
 
     // Use ImageOutput interface with a proxy
     Filesystem::IOVecOutput outproxy;
-    std::string memname = Strutil::sprintf("mem.%s", extension);
-    ok = checked_write(nullptr, memname, buf.spec(), buf.spec().format,
+    // some formats store the filename in the header (i.e. dpx)
+    //std::string memname = Strutil::sprintf("mem.%s", extension);
+    ok = checked_write(nullptr, disk_filename, buf.spec(), buf.spec().format,
                        buf.localpixels(), true, nullptr, &outproxy);
 
     // Use ImageBuf write interface with a proxy
     Filesystem::IOVecOutput outproxybuf;
     buf.set_write_ioproxy(&outproxybuf);
-    buf.write(memname);
+    //buf.write(memname);
+    buf.write(disk_filename);
 
     // The in-memory vectors we wrote should match, byte-for-byte,
     // the version we wrote to disk earlier.

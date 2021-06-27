@@ -155,19 +155,12 @@ class OutStream
 	/*!
 	 * \brief Constructor
 	 */
-	OutStream();
-		
+	OutStream(OIIO::Filesystem::IOProxy* io) : m_io(io) { }
+
 	/*!
 	 * \brief Destructor 
 	 */
 	virtual ~OutStream();
-		
-	/*!
-	 * \brief Open file
-	 * \param fn File name
-	 * \return success true/false
-	 */
-	virtual bool Open(const char *fn);
 		
 	/*!
 	 * \brief Close file
@@ -208,7 +201,11 @@ class OutStream
 		
 		
   protected:
-	FILE *fp;
+	/*!
+	* This is a weak pointer, so opening and closing is done by the caller. Therefore, be
+	* carefull to delete this object after `m_io` is deleted externally
+	*/
+	OIIO::Filesystem::IOProxy* m_io;
 };
 
 
