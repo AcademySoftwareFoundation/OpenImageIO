@@ -39,48 +39,34 @@
 #include "DPXStream.h"
 
 
-OutStream::OutStream() : fp(0)
-{
-}
-
-
 OutStream::~OutStream()
 {
 }
 
 
-bool OutStream::Open(const char *f)
-{
-	if (this->fp)
-		this->Close();
-	if ((this->fp = OIIO::Filesystem::fopen(f, "wb")) == 0)
-		return false;
-		
-	return true;
-}
-
-
 void OutStream::Close()
 {
-	if (this->fp)
+	if (this->m_io)
 	{
-		::fclose(this->fp);
-		this->fp = 0;
+		this->m_io = 0;
 	}
 }
 
 
 size_t OutStream::Write(void *buf, const size_t size)
 {
-	if (this->fp == 0)
-		return false;
-    return ::fwrite(buf, 1, size, this->fp);
+	if (this->m_io == 0)
+		return 0;
+    return this->m_io->write(buf, size);
 }
 
 
 bool OutStream::Seek(long offset, Origin origin)
 {
-	int o = 0;
+	int o = SEEK_SET;
+	if (! this->m_io)
+		return false;
+
 	switch (origin)
 	{
 	case kCurrent:
@@ -93,17 +79,15 @@ bool OutStream::Seek(long offset, Origin origin)
 		o = SEEK_SET;
 		break;
 	}
-	
-	if (this->fp == 0)
-		return false;
-	return (::fseek(this->fp, offset, o) == 0);
+
+	return this->m_io->seek(offset, o);
 }
 
 
 void OutStream::Flush()
 {
-	if (this->fp)
-		::fflush(this->fp);
+	if (this->m_io)
+		this->m_io->flush();
 }
 
 
