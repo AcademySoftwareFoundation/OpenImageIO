@@ -63,24 +63,24 @@ size_t OutStream::Write(void *buf, const size_t size)
 
 bool OutStream::Seek(long offset, Origin origin)
 {
-	int64_t npos = 0;
+	int o;
 	if (! this->m_io)
 		return false;
 
 	switch (origin)
 	{
 	case kCurrent:
-		npos = static_cast<int64_t>(this->m_io->tell()) + offset;
+		o = SEEK_CUR;
 		break;
 	case kEnd:
-		npos = static_cast<int64_t>(this->m_io->size()) + offset;
+		o = SEEK_END;
 		break;
 	case kStart:
-		npos = offset;
+		o = SEEK_SET;
 		break;
 	}
-	
-	return this->m_io->seek(npos);
+
+	return this->m_io->seek(offset, o);
 }
 
 
