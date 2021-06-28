@@ -469,7 +469,7 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
     float res_x = 1.0f;
     float res_y = 1.0f;
 
-    const std::string& bumpformat = configspec.get_string_attribute(
+    string_view bumpformat = configspec.get_string_attribute(
         "maketx:bumpformat");
 
     if (Strutil::iequals(bumpformat, "height"))
