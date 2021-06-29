@@ -1,6 +1,36 @@
-Release 2.2.16 (1 Jul? 2021) -- compared to 2.2.15
+Release 2.2.16 (1 Jul 2021) -- compared to 2.2.15
 --------------------------------------------------
-
+* New UDIM texture name patterns recognized: `%(UDIM)d` is the Houdini
+  convention, and `_u##v##` is for Animal Logic's internal renderer. #3006
+  (2.2.16)
+* When doing color space transforms on images with > 4 channels -- the
+  additional channels are now copied unaltered, rather than leaving them
+  black. #2987 (2.2.16)
+* FFMpeg: fix some encodings that didn't correctly recognize that they were
+  more than 8 bits, or had alpha. #2989 (2.2.16)
+* farmhash.h: Clean up all non-namespaced preprocessor symbols that are set
+  by this header and may pollute the caller's symbols. #3002 (2.2.16)
+* Fix crashes on M1 (ARM) based Mac. #2990 (2.2.16)
+* Bug fix: avid divide-by-0 error computing chunk size for invalid image
+  sizes. #2983 (2.2.16)
+* `make_texture` (and `maketx` and `oiiotool -otex`) no longer crash if you
+  try to make a texture out of a "deep" image; instead it will return an
+  error message. #2991 (2.2.16)
+* filesystem.h: Improve exception safety in Filesystem directory iteration.
+  #2998 (2.2.16)
+* Build: Improve finding of OpenJPEG. #2979 (2.2.16)
+* Build: Support for building OIIO with gcc 11. #2995 (2.2.16)
+* Build: Fixes to accommodate Imath 3.1 upcoming changes. #2996 (2.2.16)
+* Build: Finding FFMpeg now correctly detects the version. #2994 (2.2.16)
+* Build: clang + C++17 + LibRaw < 0.20 are mutually incompatible. Detect
+  this combination and warn / disable libraw under those conditions. #3003
+  (2.2.16)
+* Build: Fix CMake behavior for `REQUIRED_DEPS` due to a typo. #3011 (2.2.16)
+* Build: Fixes for detecting and using Ptex, among other things got the
+  version wrong. #3001 (2.2.16)
+* Testing: If a feature is disabled, skip its tests rather than reporting
+  them as broken. #2988 (2.2.16)
+* CI: Test the combination of clang and C++17. #3003 (2.2.16)
 
 Release 2.2.15 (1 Jun 2021) -- compared to 2.2.14
 --------------------------------------------------
