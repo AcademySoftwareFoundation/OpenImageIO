@@ -453,7 +453,7 @@ normal_gradient(const ImageBuf& src, const ImageBuf::Iterator<float>& dstpix,
 template<class SRCTYPE>
 static bool
 bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
-                   const std::string& bumpformat, std::ostream& outstream,
+                   const ImageSpec& configspec, std::ostream& outstream,
                    ROI roi = ROI::All(), int nthreads = 0)
 {
     if (!dst.initialized() || dst.nchannels() != 6
@@ -465,6 +465,12 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
                         float*, float*, float*);
 
     bump_filter = &sobel_gradient<SRCTYPE>;
+
+    float res_x = 1.0f;
+    float res_y = 1.0f;
+
+    string_view bumpformat = configspec.get_string_attribute(
+        "maketx:bumpformat");
 
     if (Strutil::iequals(bumpformat, "height"))
         bump_filter = &sobel_gradient<
@@ -488,6 +494,21 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
         return false;
     }
 
+    int uv_scale = configspec.get_int_attribute("uvslopes_scale");
+
+    // If the input is an height map, does the derivatives needs to be UV normalized and scaled?
+    if (bump_filter == &sobel_gradient<SRCTYPE> && uv_scale != 0) {
+        if (uv_scale < 0) {
+            outstream
+                << "maketx ERROR: Invalid uvslopes_scale value. The value must be >=0.\n";
+            return false;
+        }
+        // Note: the scale factor is used to prevent overflow if the half float format is used as destination.
+        //       A scale factor of 256 is recommended to prevent overflowing for texture sizes up to 32k.
+        res_x = (float)src.spec().width / uv_scale;
+        res_y = (float)src.spec().height / uv_scale;
+    }
+
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         // iterate on destination image
         for (ImageBuf::Iterator<float> d(dst, roi); !d.done(); ++d) {
@@ -498,12 +519,12 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
             // h = height or h = -1.0f if a normal map
             d[0] = h;
             // first moments
-            d[1] = dhds;
-            d[2] = dhdt;
+            d[1] = dhds * res_x;
+            d[2] = dhdt * res_y;
             // second moments
-            d[3] = dhds * dhds;
-            d[4] = dhdt * dhdt;
-            d[5] = dhds * dhdt;
+            d[3] = dhds * dhds * res_x * res_x;
+            d[4] = dhdt * dhdt * res_y * res_y;
+            d[5] = dhds * dhdt * res_x * res_y;
         }
     });
     return true;
@@ -1151,9 +1172,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         bool ok;
         OIIO_DISPATCH_COMMON_TYPES(ok, "bump_to_bumpslopes", bump_to_bumpslopes,
                                    src->spec().format, *bumpslopes, *src,
-                                   configspec.get_string_attribute(
-                                       "maketx:bumpformat"),
-                                   outstream);
+                                   configspec, outstream);
         // bump_to_bumpslopes(*bumpslopes, *src);
         mode = ImageBufAlgo::MakeTxTexture;
         src  = bumpslopes;

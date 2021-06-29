@@ -4705,6 +4705,8 @@ prep_texture_config(ImageSpec& configspec, ParamValueList& fileoptions)
                              "prman_options", fileoptions.get_string("prman")));
     configspec.attribute("maketx:bumpformat",
                          fileoptions.get_string("bumpformat", "auto"));
+    configspec.attribute("uvslopes_scale",
+                         fileoptions.get_int("uvslopes_scale", 0));
     // if (mipimages.size())
     //     configspec.attribute ("maketx:mipimages", Strutil::join(mipimages,";"));
 
@@ -5564,7 +5566,7 @@ getargs(int argc, char* argv[])
       .help("Output the current image as a latlong env map")
       .action(output_file);
     ap.arg("-obump %s:FILENAME")
-      .help("Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto)")
+      .help("Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto, uvslopes_scale=val>=0)")
       .action(output_file);
     ap.separator("Options that affect subsequent image output:");
     ap.arg("-d %s:TYPE")
