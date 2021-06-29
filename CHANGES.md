@@ -3,7 +3,9 @@ Release 2.3 (??) -- compared to 2.2
 New minimum dependencies and compatibility changes:
 * C++ standard: **C++14 is now the minimum (gcc 6.1 - 10.2, clang 3.4 - 12,
   MSVS 2017 - 2019, icc 17+).** The default C++ standard mode, if none is
-  explicitly specified, is now C++14. #2918 (2.3.4) #2955 #2977 (2.3.5) 
+  explicitly specified, is now C++14. #2918 (2.3.4) #2955 #2977 (2.3.5)
+* FFMmpeg (optional) dependency minimum is now 3.0 (raised from 2.6). #2994
+* OpenCV (optional) dependency minimum is now 3.0 (raised from 2.0). #3015
 
 New major features and public API changes:
 * C API:  #2748 (2.3.1.0)
@@ -40,6 +42,10 @@ New major features and public API changes:
   was from a file. #2759 (2.3.0.1/2.2.9)
 * New `get_extension_map()` returns a map that list all image file formats
   and their presumed file extensions. #2904 (2.3.4)
+* ImageBuf, when "wrapping" an app-owned buffer, now allows explicit
+  specification of stride lengths. This allows you to wrap a buffer that
+  has internal padding or other non-contiguous spacing of pixels, scanlines,
+  or image planes. #3022 (2.3.6)
 * oiiotool new commands and options:
     - `--pastemeta` takes two images as arguments, and appends all the
       metadata (only) from the first image onto the second image's pixels
@@ -70,6 +76,22 @@ New major features and public API changes:
       command processing. Other choices of `black` or `checker` will continue
       processing but substitute either a black or checkerboard image for the
       missing file. #2949 (2.3.4)
+    - Expanded expression now support the following new metadata notations:
+      `META`, `METABRIEF`, and `STATS`. By combining this with `--echo`, one
+      use of this feature is to be able to print statistics and metadata
+      for computed images (whereas `--info` only prints as files are first
+      loaded), for example:
+      ```
+      oiiotool img.exr -blur 3x3 -echo "blurred stats: {TOP.STATS}"
+      ```
+      #3025 (2.3.6)
+    - `--mosaic` now takes optional `fit=WxH` modifier that lets you set the
+      "cell" size, with all constituent images resized as needed (similarly
+      to if you used `--fit` on each individually). This is helpful for
+      creating contact sheets without having to resize separately or to know
+      the resolution of the original images. #3026 (2.3.6)
+    - REMOVED `--histogram` which had been deprecated and undocumented since
+      before OIIO 2.0. #3029 (2.3.6)
 * Python bindings:
     - When transferring blocks of pixels (e.g., `ImageInput.read_image()`
       or `ImageOutput.write_scanline()`), "half" pixels ended up mangled
@@ -85,6 +107,7 @@ New major features and public API changes:
       libOpenImageIO depends on and links to libOpenImageIO_Util, rather
       than the utility classes being defined separately in both libraries.
       #2906 (2.3.4)
+
 Performance improvements:
 * Speed up BMP reading by eliminating wasteful allocation and copying
   done on each scanline read. #2934 (2.3.4)
@@ -133,7 +156,14 @@ Fixes and feature enhancements:
       and `ociofiletransform` have been fixed so that if input is more than
       4 channels, the additional channels will be copied unchanged, rather
       than inadvertently set to 0. #2987 (2.3.5/2.2.16)
+    - Thread safety has been improved for `ImageBuf::init_spec()` and `read()`
+      (though no problem was ever reported in the wild). #3018 (2.3.6)
+    - `render_text()` now accepts text strings with embedded linefeeds and
+      will turn them into multiple lines of rendered text. #3024 (2.3.6)
 * ImageCache/TextureSystem/maketx:
+    * New UDIM texture name patterns recognized: `%(UDIM)d` is the Houdini
+      convention, and `_u##v##` is for Animal Logic's internal renderer.
+      #3006 (2.2.16/2.3.6)
     - Fix ImageCache bug: add_tile/get_tile not properly honoring when
      `chend < chbegin` it should get all channels. #2742 (2.3.0.1/2.2.8)
     - `ImageBufAlgo::make_texture()` (as well as `maketx` and `oiiotool -otex`)
@@ -145,11 +175,16 @@ Fixes and feature enhancements:
       (2.3.5/2.2.16)
     - maketx and `oiiotool -otex` have fixed double printing of error
       messages #2992 (2.3.5).
+    - Making bumpslopes textures now allows scaled slopes UV normalization.
+      This is exposed as new maketx argument `--uvsopes_scale`, or passing
+      the attribute `uvslopes_scale` (int) to make_texture(). #3012 (2.3.6)
 * oiiotool:
     - `--resize` of images with multi-subimages could crash. #2711 (2.3.0.0)
     - Improve oiiotool's guessing about the desired output format based on
       inputs (in the absence of `-d` to specify the format). #2717
       (2.3.0.1/2.2.8)
+    - `--text` now accepts text strings with embedded linefeeds and
+      will turn them into multiple lines of rendered text. #3024 (2.3.6)
 * BMP
     - Fix reading BMP images with bottom-to-top row order. #2776
       (2.3.1.1/2.2.9)
@@ -168,10 +203,13 @@ Fixes and feature enhancements:
       of needlessly promoting to a full RGB 3-channel image. #2943 (2.3.4)
     - Full support for reading RLE-compressed BMP images. #2976 (2.3.5/2.2.15)
     - Write single channel BMP as 8 bit palette images. #2976 (2.3.5/2.2.15)
+* DPX
+    - Output to DPX files now supports IOProxy. (Input already did.) #3013
+      (2.2.17/2.3.6)
 * FFMpeg/movies:
     - Avoid potential crash when a frame can't be read. #2693 (2.3.0.0)
     - Several varieties of encoded videos with 12 bits per channel and
-      having alpha were incorrectly reported as 8 bits and without alpha.ƒ
+      having alpha were incorrectly reported as 8 bits and without alpha.
       #2989 (2.3.5/2.2.16)
 * GIF
     - Support UTF-8 filenames on Windows for GIF files. #2777 (2.3.2.0)
@@ -193,6 +231,11 @@ Fixes and feature enhancements:
       files. #2783 (2.3.2.0)
     - Fix potential crash parsing OpenEXR header that contains Rational
       attributes with certain values. #2791 (2.2.10/2.3.2)
+    - EXPERIMENTAL: When building against OpenEXR 3.1, the OIIO CMake option
+      `-DOIIO_USE_EXR_C_API=ON` will use a new OpenEXR API that we think
+      will allow higher performance texture reads in a multithreaded app.
+      This has not yet been benchmarked or tested thoroughly. #3009 #3027
+      (2.3.6)
 * PNG
     - Read Exif data from PNG files. #2767 (2.3.1.1/2.2.9)
 * PSD
@@ -206,6 +249,7 @@ Fixes and feature enhancements:
 * Targa
     - Fix potential crash when reading files with no thumbnail. #2903
       (2.3.3/2.2.13)
+    - Fix alpha handling for some files. #3019 (2.3.6)
 * TIFF:
     - Fix broken reads of multi-subimage non-spectral files (such as
       photometric YCbCr mode). #2692 (2.3.0.0)
@@ -219,6 +263,8 @@ Fixes and feature enhancements:
       features that also have a vertical resolution that is not a whole
       multiple of the tile size. #2895 (2.3.3/2.2.13)
     - Support IOProxy for reading TIFF files. #2921 (2.3.4)
+    - TIFF plugin now properly honors caller request for single-threaded
+      operation. #3016 (2.3.6)
 * WebP:
     - Add support for requesting compression "lossless". #2726 (2.3.0.1/2.2.8)
     - Input improvements including: RGB images are kept as RGB instead of
@@ -243,9 +289,14 @@ Developer goodies / internals:
 * color.h:
     - New `ColorConfig::OpenColorIO_version_hex()` returns the hex code for
       the version of OCIO we are using (0 for no OCIO support). #2849 (2.3.3)
+* farmhash.h:
+    - Clean up all non-namespaced preprocessor symbols that are set
+      by this header and may pollute the caller's symbols. #3002 (2.2.16/2.3.6)
 * filesystem.h:
     - New Filesystem::generic_filepath() returnss a filepath in generic
       format (not OS specific). #2819 (2.3.3/2.2.11)
+    - Improve exception safety in Filesystem directory iteration. #2998
+      (2.2.16/2.3.6)
 * fmath.h:
     - Use CPU intrinsics to speed up swap_ending (by 8-15x when swapping
       bytes of large arrays). #2763 (2.3.1.0)
@@ -281,6 +332,11 @@ Developer goodies / internals:
     - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
       precision and range to hold the basetypes of either `a` or `b`.
       #2715 (2.3.0.0)
+    - TypeDesc can now describe 2D and 3D bounding boxes, as arrays of 2
+      VEC2 aggregates (for 2D) or VEC3 aggregates (for 3D) with "BOX"
+      semantic. The shorthand for these are `TypeBox2`, `TypeBox3` (for
+      float), and `TypeBox2i` and `TypeBox3i` for integer or pixel coordinte
+      boxes. #3008 (2.2.17/2.3.6)
 * unordered_map_concurrent.h:
     - New methods find_or_insert, nobin_mask(). #2867 (2.2.12/2.3.3)
 * ustring.h:
@@ -358,6 +414,14 @@ Build/test system improvements and platform ports:
     - We now include a `build_OpenJPEG.bash` script that can conveniently
       build a missing OpenJPEG dependency. (2.3.5/2.2.16)
     - Changes to make it build against TBB 2021. #2985 (2.3.5/2.2.15)
+    - Support for building OIIO with gcc 11. #2995 (2.2.16/2.3.6)
+    - Fixes to accommodate Imath 3.1 upcoming changes. #2996 (2.2.16/2.3.6)
+    - Finding FFMpeg now correctly detects the version. #2994 (2.2.16/2.3.6)
+    - FFMpeg minimum version is now >= 3.0. #2999 (2.3.6)
+    - Fixes for detecting and using Ptex, among other things got the version
+      wrong. #3001 (2.2.16/2.3.6)
+    - Fixes for building against fmt 8.0. #3007 (2.3.6)
+    - The OpenCV minimum version is now >= 3.0. #3015 (2.3.6)
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
     - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
@@ -379,6 +443,7 @@ Build/test system improvements and platform ports:
       (2.2.12/2.3.3)
     - CI now tests build in C++20 mode. #2891 (2.3.3)
     - Our CI clang-format test now uses LLVM/clang-format 11. #2966
+    - Test the clang11 + C++17 combo. #3004 (2.3.6)
 * Platform support:
     - Fixes for mingw. #2698 (2.3.0.0)
     - Windows fix: correct OIIO_API declaration on aligned_malloc,
@@ -401,6 +466,40 @@ Notable documentation changes:
 * Starting to use "sphinx_tabs" as a clear way to present how things should
   be done for different language bindings. #2768 (2.3.1.0)
 
+
+Release 2.2.16 (1 Jul 2021) -- compared to 2.2.15
+--------------------------------------------------
+* New UDIM texture name patterns recognized: `%(UDIM)d` is the Houdini
+  convention, and `_u##v##` is for Animal Logic's internal renderer. #3006
+  (2.2.16)
+* When doing color space transforms on images with > 4 channels -- the
+  additional channels are now copied unaltered, rather than leaving them
+  black. #2987 (2.2.16)
+* FFMpeg: fix some encodings that didn't correctly recognize that they were
+  more than 8 bits, or had alpha. #2989 (2.2.16)
+* farmhash.h: Clean up all non-namespaced preprocessor symbols that are set
+  by this header and may pollute the caller's symbols. #3002 (2.2.16)
+* Fix crashes on M1 (ARM) based Mac. #2990 (2.2.16)
+* Bug fix: avid divide-by-0 error computing chunk size for invalid image
+  sizes. #2983 (2.2.16)
+* `make_texture` (and `maketx` and `oiiotool -otex`) no longer crash if you
+  try to make a texture out of a "deep" image; instead it will return an
+  error message. #2991 (2.2.16)
+* filesystem.h: Improve exception safety in Filesystem directory iteration.
+  #2998 (2.2.16)
+* Build: Improve finding of OpenJPEG. #2979 (2.2.16)
+* Build: Support for building OIIO with gcc 11. #2995 (2.2.16)
+* Build: Fixes to accommodate Imath 3.1 upcoming changes. #2996 (2.2.16)
+* Build: Finding FFMpeg now correctly detects the version. #2994 (2.2.16)
+* Build: clang + C++17 + LibRaw < 0.20 are mutually incompatible. Detect
+  this combination and warn / disable libraw under those conditions. #3003
+  (2.2.16)
+* Build: Fix CMake behavior for `REQUIRED_DEPS` due to a typo. #3011 (2.2.16)
+* Build: Fixes for detecting and using Ptex, among other things got the
+  version wrong. #3001 (2.2.16)
+* Testing: If a feature is disabled, skip its tests rather than reporting
+  them as broken. #2988 (2.2.16)
+* CI: Test the combination of clang and C++17. #3003 (2.2.16)
 
 Release 2.2.15.1 (3 Jun 2021) -- compared to 2.2.15.0
 -----------------------------------------------------
