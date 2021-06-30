@@ -38,7 +38,7 @@ private:
     tga_header m_tga;                  ///< Targa header
     tga_footer m_foot;                 ///< Targa 2.0 footer
     unsigned int m_ofs_colcorr_tbl;    ///< Offset to colour correction table
-    tga_alpha_type m_alpha;            ///< Alpha type
+    tga_alpha_type m_alpha_type;       ///< Alpha type
     bool m_keep_unassociated_alpha;    ///< Do not convert unassociated alpha
     std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
 
@@ -49,7 +49,7 @@ private:
         m_file = NULL;
         m_buf.clear();
         m_ofs_colcorr_tbl         = 0;
-        m_alpha                   = TGA_ALPHA_NONE;
+        m_alpha_type              = TGA_ALPHA_NONE;
         m_keep_unassociated_alpha = false;
     }
 
@@ -177,12 +177,13 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    m_alpha = TGA_ALPHA_NONE;
+    m_alpha_type = TGA_ALPHA_NONE;
     if (((m_tga.type == TYPE_RGB || m_tga.type == TYPE_RGB_RLE)
          && m_tga.bpp == 32)
         || ((m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE)
             && m_tga.bpp > 8)) {
-        m_alpha = (m_tga.attr & 0x08) > 0 ? TGA_ALPHA_USEFUL : TGA_ALPHA_NONE;
+        m_alpha_type = (m_tga.attr & 0x08) > 0 ? TGA_ALPHA_USEFUL
+                                               : TGA_ALPHA_NONE;
     }
 
 
@@ -191,7 +192,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         // colour channels
         ((m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE) ? 1 : 3)
             // have we got alpha?
-            + (m_tga.bpp == 32 || m_alpha >= TGA_ALPHA_UNDEFINED_RETAIN),
+            + (m_tga.bpp == 32 || m_alpha_type >= TGA_ALPHA_UNDEFINED_RETAIN),
         TypeDesc::UINT8);
     m_spec.attribute("oiio:BitsPerSample", m_tga.bpp / m_spec.nchannels);
     m_spec.default_channel_names();
@@ -393,7 +394,9 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             // alpha type
             if (!fread(buf.c, 1, 1))
                 return false;
-            m_alpha = (tga_alpha_type)buf.c[0];
+            m_alpha_type = (tga_alpha_type)buf.c[0];
+            if (m_alpha_type)
+                m_spec.attribute("tga:alpha_type", m_alpha_type);
 
             // now load the thumbnail
             if (ofs_thumb) {
@@ -458,7 +461,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         // that it's missing :)
     }
 
-    if (m_spec.alpha_channel != -1 && m_alpha != TGA_ALPHA_PREMULTIPLIED)
+    if (m_spec.alpha_channel != -1 && m_alpha_type == TGA_ALPHA_USEFUL)
         if (m_keep_unassociated_alpha)
             m_spec.attribute("oiio:UnassociatedAlpha", 1);
 
@@ -742,7 +745,7 @@ TGAInput::readimg()
         }
     }
 
-    if (m_alpha != TGA_ALPHA_PREMULTIPLIED) {
+    if (m_alpha_type != TGA_ALPHA_PREMULTIPLIED) {
         // Convert to associated unless we were requested not to do so
         if (m_spec.alpha_channel != -1 && !m_keep_unassociated_alpha) {
             int64_t size = m_spec.image_pixels();
