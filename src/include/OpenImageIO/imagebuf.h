@@ -974,10 +974,11 @@ public:
 
     /// Error reporting for ImageBuf: call this with Strutil::format
     /// formatting conventions.  It is not necessary to have the error
-    /// message contain a trailing newline.Beware, this is in transition, is
-    /// currently printf-like but will someday change to python-like!
+    /// message contain a trailing newline. Beware, this is in transition,
+    /// is currently printf-like but will someday change to python-like!
     template<typename... Args>
-    void error(const char* fmt, const Args&... args) const
+    OIIO_FORMAT_DEPRECATED void error(const char* fmt,
+                                      const Args&... args) const
     {
         error(Strutil::format(fmt, args...));
     }

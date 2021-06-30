@@ -660,7 +660,8 @@ public:
     /// fmt::format (or future std::format) but for now, it is back
     /// compatible and equivalent to sprintf.
     template<typename... Args>
-    static ustring format(const char* fmt, const Args&... args)
+    OIIO_FORMAT_DEPRECATED static ustring format(const char* fmt,
+                                                 const Args&... args)
     {
         return ustring(Strutil::format(fmt, args...));
     }

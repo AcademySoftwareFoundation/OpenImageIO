@@ -51,10 +51,22 @@
 // Allow client software to know if this version of OIIO as Strutil::sprintf
 #define OIIO_HAS_SPRINTF 1
 
-// Allow client software to know if this version of OIIO has Strutil::format
+// Allow client software to know (and to determine, by setting this value
+// before including this header) if this version of OIIO has Strutil::format
 // behave like sprintf (OIIO_FORMAT_IS_FMT==0) or like python / {fmt} /
 // C++20ish std::format (OIIO_FORMAT_IS_FMT==1).
-#define OIIO_FORMAT_IS_FMT 0
+#ifndef OIIO_FORMAT_IS_FMT
+#    define OIIO_FORMAT_IS_FMT 0
+#endif
+
+// If OIIO_HIDE_FORMAT is defined, mark the old-style format functions as
+// deprecated. (This is a debugging aid for downstream projects who want to
+// root out any places where they might be using the old one).
+#ifdef OIIO_HIDE_FORMAT
+#    define OIIO_FORMAT_DEPRECATED OIIO_DEPRECATED("old style (printf-like) formatting version of this function is deprecated")
+#else
+#    define OIIO_FORMAT_DEPRECATED
+#endif
 
 // Allow client software to know that at this moment, the fmt-based string
 // formatting is locale-independent. This was 0 in older versions when fmt
@@ -137,6 +149,7 @@ inline std::string format(const Str& fmt, Args&&... args)
 
 namespace old {
 template<typename... Args>
+OIIO_FORMAT_DEPRECATED
 inline std::string format (const char* fmt, const Args&... args)
 {
     return Strutil::sprintf (fmt, args...);
@@ -145,6 +158,7 @@ inline std::string format (const char* fmt, const Args&... args)
 // DEPRECATED(2.0) string_view version. Phasing this out because
 // std::string_view won't have a c_str() method.
 template<typename... Args>
+OIIO_FORMAT_DEPRECATED
 inline std::string format (string_view fmt, const Args&... args)
 {
     return format (fmt.c_str(), args...);
@@ -152,8 +166,13 @@ inline std::string format (string_view fmt, const Args&... args)
 } // namespace old
 
 
-
+// Choose whether Strutil::format is the old or new kind based on
+// OIIO_FORMAT_IS_FMT.
+#if OIIO_FORMAT_IS_FMT
+using fmt::format;
+#else
 using old::format;
+#endif
 
 
 

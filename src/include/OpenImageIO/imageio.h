@@ -1586,6 +1586,7 @@ public:
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
+    OIIO_FORMAT_DEPRECATED
     void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
     }
@@ -2227,6 +2228,7 @@ public:
     /// Use with caution! Some day this will change to be fmt-like rather
     /// than printf-like.
     template<typename... Args>
+    OIIO_FORMAT_DEPRECATED
     void error(const char* fmt, const Args&... args) const {
         append_error(Strutil::format (fmt, args...));
     }
@@ -2821,6 +2823,7 @@ void debugf (const char* fmt, const T1& v1, const Args&... args)
 /// debug output with the same conventions as Strutil::format. Beware, this
 /// will change one day!
 template<typename T1, typename... Args>
+OIIO_FORMAT_DEPRECATED
 void debug (const char* fmt, const T1& v1, const Args&... args)
 {
     debug (Strutil::format(fmt, v1, args...));
