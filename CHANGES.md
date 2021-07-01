@@ -1,3 +1,7 @@
+Release 2.2.17 (1 Aug? 2021) -- compared to 2.2.16
+--------------------------------------------------
+
+
 Release 2.2.16 (1 Jul 2021) -- compared to 2.2.15
 --------------------------------------------------
 * New UDIM texture name patterns recognized: `%(UDIM)d` is the Houdini
