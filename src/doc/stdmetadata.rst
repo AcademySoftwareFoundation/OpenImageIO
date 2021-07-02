@@ -233,8 +233,7 @@ Format readers and writers that respond positively to `supports("ioproxy")`
 have the ability to read or write using an *I/O proxy* object. Among other
 things, this lets an ImageOutput write the file to a memory buffer rather
 than saving to disk, and for an ImageInput to read the file from a memory
-buffer. (Currently, only PNG and OpenEXR have the ability to do this.) This
-behavior is controlled by a special attributes
+buffer. This behavior is controlled by a special attributes
 
 .. option:: "oiio:ioproxy" : pointer
 
@@ -243,6 +242,13 @@ behavior is controlled by a special attributes
 An explanation of how this feature is used may be found in Sections
 :ref:`sec-imageinput-readfilefrommemory` and
 :ref:`sec-imageoutput-writefiletomemory`.
+
+In addition to communicating IOProxy information via this attribute, it
+is also allowed (and probably preferred) to directly supply the IOProxy
+information via calls to `ImageInput::open()`, `create()`, and
+`set_ioproxy()`, `ImageOutput::create()` and `set_ioproxy()`, and
+`ImageBuf::ImageBuf()`, `reset()`, and `set_write_ioproxy()`.
+
 
 
 Photographs or scanned images
