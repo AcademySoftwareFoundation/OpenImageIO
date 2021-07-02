@@ -108,7 +108,7 @@ private:
     {
         size_t n = ::fread(buf, itemsize, nitems, m_fd);
         if (n != nitems)
-            errorf("Read error");
+            error("Read error");
         return n == nitems;
     }
 };
@@ -147,8 +147,8 @@ private:
     {
         size_t n = std::fwrite(buf, itemsize, nitems, m_fd);
         if (n != nitems)
-            errorf("Error writing \"%s\" (wrote %d/%d records)", m_filename,
-                   (int)n, (int)nitems);
+            errorfmt("Error writing \"{}\" (wrote {}/{} records)", m_filename,
+                     n, nitems);
         return n == nitems;
     }
 };
