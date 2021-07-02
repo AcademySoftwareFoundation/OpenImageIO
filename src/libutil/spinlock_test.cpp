@@ -44,6 +44,7 @@ time_lock_cycle()
     std::cout << "Cost of lock/unlock cycle under no contention:\n";
     spin_mutex sm;
     std::mutex m;
+    std::recursive_mutex rm;
     bench("spin_mutex", [&]() {
         sm.lock();
         sm.unlock();
@@ -51,6 +52,10 @@ time_lock_cycle()
     bench("std::mutex", [&]() {
         m.lock();
         m.unlock();
+    });
+    bench("std::recursive_mutex", [&]() {
+        rm.lock();
+        rm.unlock();
     });
 }
 

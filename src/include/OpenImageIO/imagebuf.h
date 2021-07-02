@@ -56,6 +56,64 @@ enum class InitializePixels { No = 0, Yes = 1 };
 /// routines for setting and getting individual pixels, that hides most of
 /// the details of memory layout and data representation (translating
 /// to/from float automatically).
+///
+/// ImageBuf makes an important simplification: all channels are just one
+/// data type. For example, if an image file on disk has a mix of `half` and
+/// `float` channels, the in-memory ImageBuf representation will be entirely
+/// `float` (for mixed data types, it will try to pick one that can best
+/// represent all channels without a loss of precision or range). However,
+/// by using the `set_write_format()` method, it is still possible to write
+/// an ImageBuf to a file with mixed channel types.
+///
+/// Most of the time, ImageBuf data is read lazily (I/O only happens when
+/// you first call methods that actually need metadata or pixel data).
+/// Explicit calls to `read()` are therefore optional and are only needed
+/// if you want to specify non-default arguments (such as choosing something
+/// other than the first subimage of the file, or forcing the read to
+/// translate into a different data format than appears in the file).
+///
+/// ImageBuf data coming from disk files is backed by ImageCache. That is,
+/// especially for tiled files, specific regions of the image will only
+/// be read if and when they are needed, and if there are many large
+/// ImageBuf's, memory holding pixels not recently accesssed will be
+/// automatically freed. Thus, performance of ImageBuf on very large images
+/// (or if there are many ImageBuf's simultaneously in use) can be sensitive
+/// to choices of the ImageCache parameters such as "autotile". It may be
+/// wise for maximum performance to explicitly `read()` (with `force=true`)
+/// small images into memory rather than using the ImageCache, in cases
+/// where your application has no need for the ImageCache features that
+/// limit memory footprint (such as if you know for sure that your app will
+/// only read a small number of images, of reasonable size, and will need
+/// to access all the pixels of all the images it reads).
+///
+/// Writeable ImageBufs are always stored entirely in memory, and do not use
+/// the ImageCache or any other clever schemes to limit memory. If you have
+/// enough simultaneous writeable large ImageBuf's, you can run out of RAM.
+/// Note that if an ImageBuf starts as readable (backed by ImageCache), any
+/// alterations to its pixels (for example, via `setpixel()` or traversing
+/// it with a non-const `Iterator`) will cause it to be read entirely into
+/// memory and remain in memory thereafter for the rest of the life of that
+/// ImageBuf.
+///
+/// Notes about ImageBuf thread safety:
+///
+/// * The various read-only methods for accessing the spec or the pixels,
+///   including `init_spec()`, `read()`, `spec()`, all the getpixel flavors
+///   and `ConstIterator` over the pixels, and other informational methods
+///   such as `roi()`, all are thread-safe and may be called concurrently
+///   with any of the other thread-safe methods.
+/// * Methods that alter pixel values, such as all the setpixel flavors,
+///   and (non-const) `Iterator` over the pixels, and the `write()` method
+///   are "thread safe" in the sense that you won't crash your app by doing
+///   these concurrently with each other or with the reading functionality,
+///   but on the other hand, if two threads are changing the same pixels
+///   simultaneously or one is writing while others are reading, you may end
+///   up with an inconsistent resulting image.
+/// * Construction and destruction, `reset()`, and anything that alters
+///   image metadata (such as writes through `specmod()`) are NOT THREAD
+///   SAFE and you should ensure that you are not doing any of these calls
+///   simultaneously with any other operations on the same ImageBuf.
+///
 class OIIO_API ImageBuf {
 public:
     /// An ImageBuf can store its pixels in one of several ways (each
