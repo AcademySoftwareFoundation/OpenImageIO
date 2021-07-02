@@ -50,6 +50,7 @@ Reading ../../../../../oiio-images/targa/CTC16.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 5
     targa:ImageID: "Truevision(R) Sample Image"
+    tga:alpha_type: 2
 Comparing "../../../../../oiio-images/targa/CTC16.TGA" and "CTC16.TGA"
 PASS
 Reading ../../../../../oiio-images/targa/CTC24.TGA
@@ -86,6 +87,7 @@ Reading ../../../../../oiio-images/targa/CTC32.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
+    tga:alpha_type: 2
 Comparing "../../../../../oiio-images/targa/CTC32.TGA" and "CTC32.TGA"
 PASS
 Reading ../../../../../oiio-images/targa/UBW8.TGA
@@ -137,6 +139,7 @@ Reading ../../../../../oiio-images/targa/UTC16.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 5
     targa:ImageID: "Truevision(R) Sample Image"
+    tga:alpha_type: 2
 Comparing "../../../../../oiio-images/targa/UTC16.TGA" and "UTC16.TGA"
 PASS
 Reading ../../../../../oiio-images/targa/UTC24.TGA
@@ -171,6 +174,7 @@ Reading ../../../../../oiio-images/targa/UTC32.TGA
     thumbnail_width: 64
     oiio:BitsPerSample: 8
     targa:ImageID: "Truevision(R) Sample Image"
+    tga:alpha_type: 2
 Comparing "../../../../../oiio-images/targa/UTC32.TGA" and "UTC32.TGA"
 PASS
 Reading ../../../../../oiio-images/targa/round_grill.tga
