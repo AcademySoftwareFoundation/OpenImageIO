@@ -225,6 +225,72 @@ ImageBuf_test_appbuffer()
 
 
 void
+ImageBuf_test_appbuffer_strided()
+{
+    Strutil::print("Testing strided app buffers\n");
+
+    // Make a 16x16 x 3chan float buffer, fill with zero
+    const int res = 16, nchans = 3;
+    float mem[res][res][nchans];
+    memset(mem, 0, res * res * nchans * sizeof(float));
+
+    // Wrap the whole buffer, fill with green
+    ImageBuf wrapped(ImageSpec(res, res, nchans, TypeFloat), mem);
+    const float green[nchans] = { 0.0f, 1.0f, 0.0f };
+    ImageBufAlgo::fill(wrapped, green);
+    float color[nchans] = { -1, -1, -1 };
+    OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(wrapped, 0.0f, color)
+                      && color[0] == 0.0f && color[1] == 1.0f
+                      && color[2] == 0.0f);
+
+    // Do a strided wrap in the interior: a 3x3 image with extra spacing
+    // between pixels and rows, and fill it with red.
+    ImageBuf strided(ImageSpec(3, 3, nchans, TypeFloat), &mem[4][4][0],
+                     2 * nchans * sizeof(float) /* every other pixel */,
+                     2 * res * nchans * sizeof(float) /* ever other line */);
+    const float red[nchans] = { 1.0f, 0.0f, 0.0f };
+    ImageBufAlgo::fill(strided, red);
+
+    // The strided IB ought to look all-red
+    OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(strided, 0.0f, color)
+                      && color[0] == 1.0f && color[1] == 0.0f
+                      && color[2] == 0.0f);
+
+    // The wrapped IB ought NOT to look like one color
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::isConstantColor(wrapped, 0.0f, color));
+
+    // Write both to disk and make sure they are what we think they are
+    {
+        strided.write("stridedfill.tif", TypeUInt8);
+        ImageBuf test("stridedfill.tif");  // read it back
+        float color[nchans] = { -1, -1, -1 };
+        OIIO_CHECK_ASSERT(ImageBufAlgo::isConstantColor(test, 0.0f, color)
+                          && color[0] == 1.0f && color[1] == 0.0f
+                          && color[2] == 0.0f);
+    }
+    {
+        wrapped.write("wrappedfill.tif", TypeUInt8);
+        ImageBuf test("wrappedfill.tif");  // read it back
+        // Slightly tricky test because of the strides
+        for (int y = 0; y < res; ++y) {
+            for (int x = 0; x < res; ++x) {
+                float pixel[nchans];
+                test.getpixel(x, y, pixel);
+                if ((x == 4 || x == 6 || x == 8)
+                    && (y == 4 || y == 6 || y == 8)) {
+                    OIIO_CHECK_ASSERT(cspan<float>(pixel) == cspan<float>(red));
+                } else {
+                    OIIO_CHECK_ASSERT(cspan<float>(pixel)
+                                      == cspan<float>(green));
+                }
+            }
+        }
+    }
+}
+
+
+
+void
 test_open_with_config()
 {
     // N.B. This function must run after ImageBuf_test_appbuffer, which
@@ -458,6 +524,7 @@ main(int /*argc*/, char* /*argv*/[])
                                                        "mirror");
 
     ImageBuf_test_appbuffer();
+    ImageBuf_test_appbuffer_strided();
     test_open_with_config();
     test_read_channel_subset();
 

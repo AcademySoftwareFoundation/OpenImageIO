@@ -83,7 +83,9 @@ public:
                  ImageCache* imagecache = nullptr,
                  const ImageSpec* spec = nullptr, void* buffer = nullptr,
                  const ImageSpec* config      = nullptr,
-                 Filesystem::IOProxy* ioproxy = nullptr);
+                 Filesystem::IOProxy* ioproxy = nullptr,
+                 stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+                 stride_t zstride = AutoStride);
     ImageBufImpl(const ImageBufImpl& src);
     ~ImageBufImpl();
 
@@ -95,7 +97,9 @@ public:
     // supplied, use it for the "native" spec, otherwise make the nativespec
     // just copy the regular spec.
     void reset(string_view name, const ImageSpec& spec,
-               const ImageSpec* nativespec = nullptr, void* buffer = nullptr);
+               const ImageSpec* nativespec = nullptr, void* buffer = nullptr,
+               stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+               stride_t zstride = AutoStride);
     void alloc(const ImageSpec& spec, const ImageSpec* nativespec = nullptr);
     void realloc();
     bool init_spec(string_view filename, int subimage, int miplevel,
@@ -247,6 +251,14 @@ public:
             shared_imagecache->invalidate(filename, force);  // the shared IC
     }
 
+    void eval_contiguous()
+    {
+        m_contiguous = m_localpixels && m_storage == ImageBuf::LOCALBUFFER
+                       && m_xstride == m_spec.nchannels * m_channel_stride
+                       && m_ystride == m_xstride * m_spec.width
+                       && m_zstride == m_ystride * m_spec.height;
+    }
+
 private:
     ImageBuf::IBStorage m_storage;  ///< Pixel storage class
     ustring m_name;                 ///< Filename of the image
@@ -267,10 +279,11 @@ private:
     mutable bool m_pixels_valid;  ///< Image is valid
     bool m_badfile;               ///< File not found
     float m_pixelaspect;          ///< Pixel aspect ratio of the image
-    size_t m_pixel_bytes;
-    size_t m_scanline_bytes;
-    size_t m_plane_bytes;
-    size_t m_channel_bytes;
+    stride_t m_xstride;
+    stride_t m_ystride;
+    stride_t m_zstride;
+    stride_t m_channel_stride;
+    bool m_contiguous;
     ImageCache* m_imagecache;              ///< ImageCache to use
     TypeDesc m_cachedpixeltype;            ///< Data type stored in the cache
     DeepData m_deepdata;                   ///< Deep data
@@ -318,7 +331,8 @@ ImageBuf::impl_deleter(ImageBufImpl* todel)
 ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
                            ImageCache* imagecache, const ImageSpec* spec,
                            void* buffer, const ImageSpec* config,
-                           Filesystem::IOProxy* ioproxy)
+                           Filesystem::IOProxy* ioproxy, stride_t xstride,
+                           stride_t ystride, stride_t zstride)
     : m_storage(ImageBuf::UNINITIALIZED)
     , m_name(filename)
     , m_nsubimages(0)
@@ -331,10 +345,11 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
     , m_pixels_valid(false)
     , m_badfile(false)
     , m_pixelaspect(1)
-    , m_pixel_bytes(0)
-    , m_scanline_bytes(0)
-    , m_plane_bytes(0)
-    , m_channel_bytes(0)
+    , m_xstride(0)
+    , m_ystride(0)
+    , m_zstride(0)
+    , m_channel_stride(0)
+    , m_contiguous(false)
     , m_imagecache(imagecache)
     , m_allocated_size(0)
     , m_write_tile_width(0)
@@ -346,12 +361,13 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
         // wraps a buffer or owns its own memory.
         m_spec           = *spec;
         m_nativespec     = *spec;
-        m_channel_bytes  = spec->format.size();
-        m_pixel_bytes    = spec->pixel_bytes();
-        m_scanline_bytes = spec->scanline_bytes();
-        m_plane_bytes    = clamped_mult64(m_scanline_bytes,
-                                       (imagesize_t)m_spec.height);
-        m_blackpixel.resize(round_to_multiple(m_pixel_bytes,
+        m_channel_stride = stride_t(spec->format.size());
+        m_xstride        = xstride;
+        m_ystride        = ystride;
+        m_zstride        = zstride;
+        ImageSpec::auto_stride(m_xstride, m_ystride, m_zstride, m_spec.format,
+                               m_spec.nchannels, m_spec.width, m_spec.height);
+        m_blackpixel.resize(round_to_multiple(spec->pixel_bytes(),
                                               OIIO_SIMD_MAX_SIZE_BYTES),
                             0);
         // NB make it big enough for SSE
@@ -384,6 +400,7 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
     } else {
         OIIO_DASSERT(buffer == nullptr);
     }
+    eval_contiguous();
 }
 
 
@@ -401,10 +418,11 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
     , m_nativespec(src.m_nativespec)
     , m_badfile(src.m_badfile)
     , m_pixelaspect(src.m_pixelaspect)
-    , m_pixel_bytes(src.m_pixel_bytes)
-    , m_scanline_bytes(src.m_scanline_bytes)
-    , m_plane_bytes(src.m_plane_bytes)
-    , m_channel_bytes(src.m_channel_bytes)
+    , m_xstride(src.m_xstride)
+    , m_ystride(src.m_ystride)
+    , m_zstride(src.m_zstride)
+    , m_channel_stride(src.m_channel_stride)
+    , m_contiguous(src.m_contiguous)
     , m_imagecache(src.m_imagecache)
     , m_cachedpixeltype(src.m_cachedpixeltype)
     , m_deepdata(src.m_deepdata)
@@ -446,6 +464,7 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
     }
     if (src.m_configspec)
         m_configspec.reset(new ImageSpec(*src.m_configspec));
+    eval_contiguous();
 }
 
 
@@ -508,16 +527,19 @@ ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec,
 
 
 
-ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec, void* buffer)
-    : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec, buffer),
+ImageBuf::ImageBuf(const ImageSpec& spec, void* buffer, stride_t xstride,
+                   stride_t ystride, stride_t zstride)
+    : m_impl(new ImageBufImpl("", 0, 0, NULL, &spec, buffer, nullptr, nullptr,
+                              xstride, ystride, zstride),
              &impl_deleter)
 {
 }
 
 
 
-ImageBuf::ImageBuf(const ImageSpec& spec, void* buffer)
-    : m_impl(new ImageBufImpl("", 0, 0, NULL, &spec, buffer), &impl_deleter)
+ImageBuf::ImageBuf(string_view filename, const ImageSpec& spec, void* buffer)
+    : m_impl(new ImageBufImpl(filename, 0, 0, NULL, &spec, buffer),
+             &impl_deleter)
 {
 }
 
@@ -585,6 +607,7 @@ ImageBufImpl::new_pixels(size_t size, const void* data)
     if (pvt::oiio_print_debug > 1)
         OIIO::debugfmt("IB allocated {} MB, global IB memory now {} MB\n",
                        size >> 20, IB_local_mem_current >> 20);
+    eval_contiguous();
     return m_localpixels;
 }
 
@@ -687,10 +710,11 @@ ImageBufImpl::clear()
     m_pixels_valid   = false;
     m_badfile        = false;
     m_pixelaspect    = 1;
-    m_pixel_bytes    = 0;
-    m_scanline_bytes = 0;
-    m_plane_bytes    = 0;
-    m_channel_bytes  = 0;
+    m_xstride        = 0;
+    m_ystride        = 0;
+    m_zstride        = 0;
+    m_channel_stride = 0;
+    m_contiguous     = false;
     m_imagecache     = nullptr;
     m_deepdata.free();
     m_blackpixel.clear();
@@ -763,7 +787,8 @@ ImageBuf::reset(string_view filename, ImageCache* imagecache)
 
 void
 ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
-                    const ImageSpec* nativespec, void* buffer)
+                    const ImageSpec* nativespec, void* buffer, stride_t xstride,
+                    stride_t ystride, stride_t zstride)
 {
     clear();
     if (!spec.image_bytes()) {
@@ -776,6 +801,12 @@ ImageBufImpl::reset(string_view filename, const ImageSpec& spec,
     m_current_subimage = 0;
     m_current_miplevel = 0;
     if (buffer) {
+        m_spec    = spec;
+        m_xstride = xstride;
+        m_ystride = ystride;
+        m_zstride = zstride;
+        ImageSpec::auto_stride(m_xstride, m_ystride, m_zstride, m_spec.format,
+                               m_spec.nchannels, m_spec.width, m_spec.height);
         m_localpixels  = (char*)buffer;
         m_storage      = ImageBuf::APPBUFFER;
         m_pixels_valid = true;
@@ -811,9 +842,10 @@ ImageBuf::reset(const ImageSpec& spec, InitializePixels zero)
 
 
 void
-ImageBuf::reset(const ImageSpec& spec, void* buffer)
+ImageBuf::reset(const ImageSpec& spec, void* buffer, stride_t xstride,
+                stride_t ystride, stride_t zstride)
 {
-    m_impl->reset("", spec, nullptr, buffer);
+    m_impl->reset("", spec, nullptr, buffer, xstride, ystride, zstride);
 }
 
 
@@ -822,13 +854,13 @@ void
 ImageBufImpl::realloc()
 {
     new_pixels(m_spec.deep ? size_t(0) : m_spec.image_bytes());
-    m_pixel_bytes    = m_spec.pixel_bytes();
-    m_scanline_bytes = m_spec.scanline_bytes();
-    m_plane_bytes    = clamped_mult64(m_scanline_bytes,
-                                   (imagesize_t)m_spec.height);
-    m_channel_bytes  = m_spec.format.size();
-    m_blackpixel.resize(round_to_multiple(m_pixel_bytes,
-                                          OIIO_SIMD_MAX_SIZE_BYTES),
+    m_channel_stride = m_spec.format.size();
+    m_xstride        = AutoStride;
+    m_ystride        = AutoStride;
+    m_zstride        = AutoStride;
+    ImageSpec::auto_stride(m_xstride, m_ystride, m_zstride, m_spec.format,
+                           m_spec.nchannels, m_spec.width, m_spec.height);
+    m_blackpixel.resize(round_to_multiple(m_xstride, OIIO_SIMD_MAX_SIZE_BYTES),
                         0);
     // NB make it big enough for SSE
     if (m_allocated_size) {
@@ -839,6 +871,7 @@ ImageBufImpl::realloc()
         m_deepdata.init(m_spec);
         m_storage = ImageBuf::LOCALBUFFER;
     }
+    eval_contiguous();
 #if 0
     std::cerr << "ImageBuf " << m_name << " local allocation: " << m_allocated_size << "\n";
 #endif
@@ -907,13 +940,11 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
     m_fileformat = ustring(fmt);
     m_imagecache->get_imagespec(m_name, m_spec, subimage, miplevel);
     m_imagecache->get_imagespec(m_name, m_nativespec, subimage, miplevel, true);
-    m_pixel_bytes    = m_spec.pixel_bytes();
-    m_scanline_bytes = m_spec.scanline_bytes();
-    m_plane_bytes    = clamped_mult64(m_scanline_bytes,
-                                   (imagesize_t)m_spec.height);
-    m_channel_bytes  = m_spec.format.size();
-    m_blackpixel.resize(round_to_multiple(m_pixel_bytes,
-                                          OIIO_SIMD_MAX_SIZE_BYTES),
+    m_xstride        = m_spec.pixel_bytes();
+    m_ystride        = m_spec.scanline_bytes();
+    m_zstride        = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
+    m_channel_stride = m_spec.format.size();
+    m_blackpixel.resize(round_to_multiple(m_xstride, OIIO_SIMD_MAX_SIZE_BYTES),
                         0);
     // ^^^ NB make it big enough for SIMD
     // Subtlety: m_nativespec will have the true formats of the file, but
@@ -1018,12 +1049,11 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
     m_cachedpixeltype = TypeDesc((TypeDesc::BASETYPE)peltype);
     if (!m_localpixels && !force && !use_channel_subset
         && (convert == m_cachedpixeltype || convert == TypeDesc::UNKNOWN)) {
-        m_spec.format    = m_cachedpixeltype;
-        m_pixel_bytes    = m_spec.pixel_bytes();
-        m_scanline_bytes = m_spec.scanline_bytes();
-        m_plane_bytes    = clamped_mult64(m_scanline_bytes,
-                                       (imagesize_t)m_spec.height);
-        m_blackpixel.resize(round_to_multiple(m_pixel_bytes,
+        m_spec.format = m_cachedpixeltype;
+        m_xstride     = m_spec.pixel_bytes();
+        m_ystride     = m_spec.scanline_bytes();
+        m_zstride     = clamped_mult64(m_ystride, (imagesize_t)m_spec.height);
+        m_blackpixel.resize(round_to_multiple(m_xstride,
                                               OIIO_SIMD_MAX_SIZE_BYTES),
                             0);
         // NB make it big enough for SSE
@@ -1200,16 +1230,16 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
         errorfmt("Empty ImageOutput passed to ImageBuf::write()");
         return false;
     }
-    stride_t as = AutoStride;
-    bool ok     = true;
+    bool ok = true;
     ok &= m_impl->validate_pixels();
     const ImageSpec& bufspec(m_impl->m_spec);
     const ImageSpec& outspec(out->spec());
     TypeDesc bufformat = spec().format;
     if (m_impl->m_localpixels) {
         // In-core pixel buffer for the whole image
-        ok = out->write_image(bufformat, m_impl->m_localpixels, as, as, as,
-                              progress_callback, progress_callback_data);
+        ok = out->write_image(bufformat, m_impl->m_localpixels, pixel_stride(),
+                              scanline_stride(), z_stride(), progress_callback,
+                              progress_callback_data);
     } else if (deep()) {
         // Deep image record
         ok = out->write_deep_image(m_impl->m_deepdata);
@@ -1224,8 +1254,9 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
             // whole image can fit within our budget
             std::unique_ptr<char[]> tmp(new char[imagesize]);
             ok &= get_pixels(roi(), bufformat, &tmp[0]);
-            ok &= out->write_image(bufformat, &tmp[0], as, as, as,
-                                   progress_callback, progress_callback_data);
+            ok &= out->write_image(bufformat, &tmp[0], AutoStride, AutoStride,
+                                   AutoStride, progress_callback,
+                                   progress_callback_data);
         } else if (outspec.tile_width) {
             // Big tiled image: break up into tile strips
             size_t pixelsize = bufspec.pixel_bytes();
@@ -1587,7 +1618,7 @@ ImageBuf::localpixels() const
 stride_t
 ImageBuf::pixel_stride() const
 {
-    return (stride_t)m_impl->m_pixel_bytes;
+    return m_impl->m_xstride;
 }
 
 
@@ -1595,7 +1626,7 @@ ImageBuf::pixel_stride() const
 stride_t
 ImageBuf::scanline_stride() const
 {
-    return (stride_t)m_impl->m_scanline_bytes;
+    return m_impl->m_ystride;
 }
 
 
@@ -1603,7 +1634,15 @@ ImageBuf::scanline_stride() const
 stride_t
 ImageBuf::z_stride() const
 {
-    return (stride_t)m_impl->m_plane_bytes;
+    return m_impl->m_zstride;
+}
+
+
+
+bool
+ImageBuf::contiguous() const
+{
+    return m_impl->m_contiguous;
 }
 
 
@@ -2513,8 +2552,8 @@ ImageBufImpl::pixeladdr(int x, int y, int z, int ch) const
     x -= m_spec.x;
     y -= m_spec.y;
     z -= m_spec.z;
-    size_t p = y * m_scanline_bytes + x * m_pixel_bytes + z * m_plane_bytes
-               + ch * m_channel_bytes;
+    stride_t p = y * m_ystride + x * m_xstride + z * m_zstride
+                 + ch * m_channel_stride;
     return &(m_localpixels[p]);
 }
 
@@ -2529,8 +2568,8 @@ ImageBufImpl::pixeladdr(int x, int y, int z, int ch)
     x -= m_spec.x;
     y -= m_spec.y;
     z -= m_spec.z;
-    size_t p = y * m_scanline_bytes + x * m_pixel_bytes + z * m_plane_bytes
-               + ch * m_channel_bytes;
+    size_t p = y * m_ystride + x * m_xstride + z * m_zstride
+               + ch * m_channel_stride;
     return &(m_localpixels[p]);
 }
 
@@ -2684,8 +2723,8 @@ ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
                         * (size_t)tw
                     + (x - tilexbegin);
     offset *= m_spec.pixel_bytes();
-    OIIO_DASSERT_MSG(m_spec.pixel_bytes() == m_pixel_bytes, "%d vs %d",
-                     (int)m_spec.pixel_bytes(), (int)m_pixel_bytes);
+    OIIO_DASSERT_MSG(m_spec.pixel_bytes() == size_t(m_xstride), "%d vs %d",
+                     (int)m_spec.pixel_bytes(), (int)m_xstride);
 
     TypeDesc format;
     const void* pixeldata = m_imagecache->tile_pixels(tile, format);

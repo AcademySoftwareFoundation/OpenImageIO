@@ -57,8 +57,8 @@ Constructing a writable ImageBuf
 Constructing an ImageBuf that "wraps" an application buffer
 -------------------------------------------------------------
 
-.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec &spec, void *buffer)
-.. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec &spec, void *buffer)
+.. doxygenfunction:: OIIO::ImageBuf::ImageBuf(const ImageSpec &spec, void *buffer, stride_t xstride = AutoStride, stride_t ystride = AutoStride, stride_t zstride = AutoStride)
+.. doxygenfunction:: OIIO::ImageBuf::reset(const ImageSpec &spec, void *buffer, stride_t xstride = AutoStride, stride_t ystride = AutoStride, stride_t zstride = AutoStride)
 
 
 
