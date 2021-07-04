@@ -1222,7 +1222,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     size_t scanlinebytes = (size_t)spec.width * pixelbytes;
 
     exr_chunk_block_info_t cinfo;
-    exr_decode_pipeline_t decoder = { 0 };
+    exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
     int32_t scansperchunk;
     exr_result_t rv;
     rv = exr_get_scanlines_per_chunk(m_exr_context, subimage, &scansperchunk);
@@ -1357,7 +1357,7 @@ OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                   scanlinebytes);
 
     exr_chunk_block_info_t cinfo;
-    exr_decode_pipeline_t decoder = { 0 };
+    exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
     rv = exr_read_tile_block_info(m_exr_context, subimage, tx, ty, miplevel,
                                   miplevel, &cinfo);
@@ -1506,7 +1506,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
 #endif
 
     exr_chunk_block_info_t cinfo;
-    exr_decode_pipeline_t decoder = { 0 };
+    exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
     bool first                    = true;
 
     int curytile = firstytile;
@@ -1641,6 +1641,83 @@ OpenEXRInput::check_fill_missing(int xbegin, int xend, int ybegin, int yend,
     return true;
 }
 
+struct deepdecode_userdata {
+    int cury;
+    int nchans;
+    int chbegin;
+    int chend;
+    size_t fullwidth;
+    size_t xoff;
+    const ImageSpec* spec;
+    DeepData* deepdata;
+    std::vector<void*> linepointers;
+    bool firstisfullread;
+    bool samplesset;
+};
+
+static exr_result_t
+realloc_deepdata(exr_decode_pipeline_t* decode)
+{
+    deepdecode_userdata* ud = static_cast<deepdecode_userdata*>(
+        decode->decoding_user_data);
+
+    // TODO: In order to read an entire image in, this is not as
+    // efficient as it will cause a number of re-allocations. But
+    // hopefully people are asking for an individual scanline at a
+    // time.
+    int w            = decode->chunk_block.width;
+    int h            = decode->chunk_block.height;
+    int chans        = ud->nchans;
+    size_t fullwidth = ud->fullwidth;
+    size_t xoff      = ud->xoff;
+    ud->linepointers.resize(w * h * chans);
+    if (ud->firstisfullread) {
+        ud->deepdata->set_all_samples(
+            cspan<unsigned int>((const uint32_t*)decode->sample_count_table,
+                                (const uint32_t*)decode->sample_count_table
+                                    + w * h));
+        ud->deepdata->get_pointers(ud->linepointers);
+    } else {
+        // this is super slow, read the sample counts up front and set the counts once
+        // unless that is hard...
+        if (!ud->samplesset) {
+            for (int y = 0; y < h; ++y)
+                for (int x = 0; x < w; ++x)
+                    ud->deepdata->set_samples(
+                        (y + ud->cury) * fullwidth + xoff + x,
+                        decode->sample_count_table[y * w + x]);
+        }
+        for (int y = 0; y < h; ++y)
+            for (int x = 0; x < w; ++x)
+                for (int c = 0; c < chans; ++c)
+                    ud->linepointers[(y * w + x) * chans + c]
+                        = ud->deepdata->data_ptr((y + ud->cury) * fullwidth
+                                                     + xoff + x,
+                                                 c, 0);
+    }
+
+    const ImageSpec& spec = *(ud->spec);
+    size_t chanoffset     = 0;
+    void** cdata          = &(ud->linepointers[0]);
+    for (int c = ud->chbegin; c < ud->chend; ++c) {
+        string_view cname = spec.channel_name(c);
+        for (int dc = 0; dc < decode->channel_count; ++dc) {
+            exr_coding_channel_info_t& curchan = decode->channels[dc];
+
+            if (cname == curchan.channel_name) {
+                curchan.decode_to_ptr = reinterpret_cast<uint8_t*>(
+                    cdata + chanoffset);
+                curchan.user_bytes_per_element = ud->deepdata->samplesize();
+                curchan.user_pixel_stride      = size_t(chans) * sizeof(void*);
+                curchan.user_line_stride       = (size_t(w) * size_t(chans)
+                                            * sizeof(void*));
+                chanoffset += 1;
+                break;
+            }
+        }
+    }
+    return EXR_ERR_SUCCESS;
+}
 
 
 bool
@@ -1648,8 +1725,140 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
                                          int yend, int /*z*/, int chbegin,
                                          int chend, DeepData& deepdata)
 {
-    errorf("Not yet implemented: TODO");
-    return false;
+    if (!m_exr_context) {
+        errorf(
+            "called OpenEXRInput::read_native_scanlines without an open file");
+        return false;
+    }
+
+    // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
+    // information is not valid!!!! instead, we will use the library
+    // which has an internal thread-safe cache of the sizes if needed
+    const ImageSpec& spec = init_part(subimage, miplevel);
+
+    chend = clamp(chend, chbegin + 1, spec.nchannels);
+
+    size_t npixels = size_t(yend - ybegin) * size_t(spec.width);
+    int nchans     = chend - chbegin;
+
+    std::vector<TypeDesc> channeltypes;
+    spec.get_channelformats(channeltypes);
+    deepdata.init(npixels, nchans,
+                  cspan<TypeDesc>(&channeltypes[chbegin], nchans),
+                  spec.channelnames);
+
+    deepdecode_userdata ud;
+    ud.cury       = 0;
+    ud.nchans     = nchans;
+    ud.chbegin    = chbegin;
+    ud.chend      = chend;
+    ud.spec       = &spec;
+    ud.fullwidth  = spec.width;
+    ud.xoff       = 0;
+    ud.deepdata   = &deepdata;
+    ud.samplesset = false;
+
+    exr_chunk_block_info_t cinfo;
+    exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
+    int32_t scansperchunk;
+    exr_result_t rv;
+    rv = exr_get_scanlines_per_chunk(m_exr_context, subimage, &scansperchunk);
+    if (rv != EXR_ERR_SUCCESS)
+        return false;
+
+    if (scansperchunk != 1) {
+        errorf("Expect 1 scanline per chunk for deep scanlines");
+        return false;
+    }
+
+    ud.firstisfullread = (yend - ybegin) == scansperchunk;
+    // it is very slow to update the number of samples one at a time, so when not
+    // only reading one line, make a pass and load all the sample counts
+    if (!ud.firstisfullread) {
+        bool first = true;
+        std::vector<unsigned int> all_samples;
+        all_samples.resize(npixels);
+        for (int y = ybegin; y < yend; y += scansperchunk) {
+            rv = exr_read_scanline_block_info(m_exr_context, subimage, y,
+                                              &cinfo);
+            if (rv != EXR_ERR_SUCCESS)
+                break;
+
+            if (first) {
+                rv = exr_decoding_initialize(m_exr_context, subimage, &cinfo,
+                                             &decoder);
+
+                decoder.decode_flags |= (EXR_DECODE_SAMPLE_COUNTS_AS_INDIVIDUAL
+                                         | EXR_DECODE_SAMPLE_DATA_ONLY);
+
+            } else {
+                rv = exr_decoding_update(m_exr_context, subimage, &cinfo,
+                                         &decoder);
+            }
+
+            if (rv != EXR_ERR_SUCCESS)
+                break;
+
+            if (first) {
+                rv = exr_decoding_choose_default_routines(m_exr_context,
+                                                          subimage, &decoder);
+                if (rv != EXR_ERR_SUCCESS)
+                    break;
+            }
+
+            first = false;
+            rv    = exr_decoding_run(m_exr_context, subimage, &decoder);
+            if (rv != EXR_ERR_SUCCESS)
+                break;
+            memcpy(all_samples.data() + (y - ybegin) * ud.fullwidth,
+                   decoder.sample_count_table,
+                   scansperchunk * ud.fullwidth * sizeof(uint32_t));
+        }
+        exr_decoding_destroy(m_exr_context, &decoder);
+        if (rv != EXR_ERR_SUCCESS)
+            return false;
+        deepdata.set_all_samples(all_samples);
+        ud.samplesset = true;
+    }
+
+    bool first = true;
+    for (int y = ybegin; y < yend; y += scansperchunk) {
+        rv = exr_read_scanline_block_info(m_exr_context, subimage, y, &cinfo);
+        if (rv != EXR_ERR_SUCCESS)
+            break;
+
+        if (first) {
+            rv = exr_decoding_initialize(m_exr_context, subimage, &cinfo,
+                                         &decoder);
+
+            decoder.decode_flags |= (EXR_DECODE_SAMPLE_COUNTS_AS_INDIVIDUAL
+                                     | EXR_DECODE_NON_IMAGE_DATA_AS_POINTERS);
+
+            decoder.decoding_user_data       = &ud;
+            decoder.realloc_nonimage_data_fn = &realloc_deepdata;
+        } else {
+            rv = exr_decoding_update(m_exr_context, subimage, &cinfo, &decoder);
+        }
+
+        if (rv != EXR_ERR_SUCCESS)
+            break;
+
+        if (first) {
+            rv = exr_decoding_choose_default_routines(m_exr_context, subimage,
+                                                      &decoder);
+            if (rv != EXR_ERR_SUCCESS)
+                break;
+        }
+
+        rv = exr_decoding_run(m_exr_context, subimage, &decoder);
+        if (rv != EXR_ERR_SUCCESS)
+            break;
+
+        first = false;
+        ud.cury++;
+    }
+    exr_decoding_destroy(m_exr_context, &decoder);
+    return (rv == EXR_ERR_SUCCESS);
 }
 
 
@@ -1660,8 +1869,177 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                                      int /*zbegin*/, int /*zend*/, int chbegin,
                                      int chend, DeepData& deepdata)
 {
-    errorf("Not yet implemented: TODO");
-    return false;
+    if (!m_exr_context) {
+        errorf("called OpenEXRInput::read_native_tile without an open file");
+        return false;
+    }
+
+    // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
+    // information not valid!!!! instead, we will use the library
+    // which has an internal thread-safe cache of the sizes
+    const ImageSpec& spec = init_part(subimage, miplevel);
+    exr_result_t rv       = EXR_ERR_SUCCESS;
+
+    int32_t tilew = spec.tile_width;
+    int32_t tileh = spec.tile_height;
+
+    chend      = clamp(chend, chbegin + 1, spec.nchannels);
+    int nchans = chend - chbegin;
+
+    int firstxtile = (xbegin - spec.x) / tilew;
+    int firstytile = (ybegin - spec.y) / tileh;
+
+    int32_t levw, levh;
+    rv = exr_get_level_sizes(m_exr_context, subimage, miplevel, miplevel, &levw,
+                             &levh);
+    if (rv != EXR_ERR_SUCCESS)
+        return false;
+
+    xend = std::min(xend, spec.x + levw);
+    yend = std::min(yend, spec.y + levh);
+
+    int nxtiles = (xend - xbegin + tilew - 1) / tilew;
+    int nytiles = (yend - ybegin + tileh - 1) / tileh;
+
+    size_t width   = xend - xbegin;
+    size_t height  = yend - ybegin;
+    size_t npixels = width * height;
+
+    std::vector<TypeDesc> channeltypes;
+    spec.get_channelformats(channeltypes);
+    deepdata.init(npixels, nchans,
+                  cspan<TypeDesc>(&channeltypes[chbegin], nchans),
+                  spec.channelnames);
+
+    deepdecode_userdata ud;
+    ud.cury            = 0;
+    ud.nchans          = nchans;
+    ud.chbegin         = chbegin;
+    ud.chend           = chend;
+    ud.spec            = &spec;
+    ud.fullwidth       = width;
+    ud.xoff            = 0;
+    ud.deepdata        = &deepdata;
+    ud.firstisfullread = nxtiles == 1 && nytiles == 1;
+    ud.samplesset      = false;
+
+    exr_chunk_block_info_t cinfo;
+    exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
+    bool first                    = true;
+    int curytile                  = firstytile;
+
+    // it is very slow to update the number of samples one at a time, so when not
+    // only reading one line, make a pass and load all the sample counts
+    if (!ud.firstisfullread) {
+        std::vector<uint32_t> all_samples;
+        all_samples.resize(npixels);
+
+        uint32_t* allsampdata = all_samples.data();
+        for (int ty = 0; ty < nytiles; ++ty, ++curytile) {
+            int curxtile = firstxtile;
+
+            int nlines = tileh;
+            if (ty * tileh + tileh > height)
+                nlines = height - (ty * tileh);
+
+            for (int tx = 0; tx < nxtiles; ++tx, ++curxtile) {
+                rv = exr_read_tile_block_info(m_exr_context, subimage, curxtile,
+                                              curytile, miplevel, miplevel,
+                                              &cinfo);
+                if (rv != EXR_ERR_SUCCESS)
+                    break;
+
+                if (first) {
+                    rv = exr_decoding_initialize(m_exr_context, subimage,
+                                                 &cinfo, &decoder);
+                    decoder.decode_flags
+                        |= (EXR_DECODE_SAMPLE_COUNTS_AS_INDIVIDUAL
+                            | EXR_DECODE_SAMPLE_DATA_ONLY);
+                } else {
+                    rv = exr_decoding_update(m_exr_context, subimage, &cinfo,
+                                             &decoder);
+                }
+                if (rv != EXR_ERR_SUCCESS)
+                    break;
+
+                if (first) {
+                    rv = exr_decoding_choose_default_routines(m_exr_context,
+                                                              subimage,
+                                                              &decoder);
+                    if (rv != EXR_ERR_SUCCESS)
+                        break;
+                }
+
+                first = false;
+                rv    = exr_decoding_run(m_exr_context, subimage, &decoder);
+                if (rv != EXR_ERR_SUCCESS)
+                    break;
+
+                int sw = tilew;
+                if ((tx * tilew + tilew) > width)
+                    sw = width - (tx * tilew);
+                for (int y = 0; y < nlines; ++y) {
+                    memcpy(allsampdata + y * ud.fullwidth + tx * tilew,
+                           decoder.sample_count_table + y * sw,
+                           sw * sizeof(uint32_t));
+                }
+            }
+            allsampdata += ud.fullwidth * nlines;
+        }
+        exr_decoding_destroy(m_exr_context, &decoder);
+        if (rv != EXR_ERR_SUCCESS)
+            return false;
+        deepdata.set_all_samples(all_samples);
+        ud.samplesset = true;
+    }
+
+    first       = true;
+    curytile    = firstytile;
+    bool retval = true;
+    for (int ty = 0; ty < nytiles; ++ty, ++curytile) {
+        int curxtile = firstxtile;
+        ud.xoff      = 0;
+        for (int tx = 0; tx < nxtiles; ++tx, ++curxtile) {
+            rv = exr_read_tile_block_info(m_exr_context, subimage, curxtile,
+                                          curytile, miplevel, miplevel, &cinfo);
+            if (rv != EXR_ERR_SUCCESS)
+                break;
+
+            if (first) {
+                rv = exr_decoding_initialize(m_exr_context, subimage, &cinfo,
+                                             &decoder);
+
+                decoder.decode_flags
+                    |= (EXR_DECODE_SAMPLE_COUNTS_AS_INDIVIDUAL
+                        | EXR_DECODE_NON_IMAGE_DATA_AS_POINTERS);
+                decoder.decoding_user_data       = &ud;
+                decoder.realloc_nonimage_data_fn = &realloc_deepdata;
+            } else {
+                rv = exr_decoding_update(m_exr_context, subimage, &cinfo,
+                                         &decoder);
+            }
+            if (rv != EXR_ERR_SUCCESS)
+                break;
+
+            if (first) {
+                rv = exr_decoding_choose_default_routines(m_exr_context,
+                                                          subimage, &decoder);
+                if (rv != EXR_ERR_SUCCESS)
+                    break;
+            }
+            first = false;
+            rv    = exr_decoding_run(m_exr_context, subimage, &decoder);
+            if (rv != EXR_ERR_SUCCESS)
+                break;
+            ud.xoff += tilew;
+        }
+        if (rv != EXR_ERR_SUCCESS)
+            break;
+        ud.cury += tileh;
+    }
+    exr_decoding_destroy(m_exr_context, &decoder);
+
+    return retval;
 }
 
 
