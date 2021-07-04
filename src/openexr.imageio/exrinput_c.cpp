@@ -1939,7 +1939,7 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
             int curxtile = firstxtile;
 
             int nlines = tileh;
-            if (ty * tileh + tileh > height)
+            if ((size_t(ty) * size_t(tileh) + size_t(tileh)) > height)
                 nlines = height - (ty * tileh);
 
             for (int tx = 0; tx < nxtiles; ++tx, ++curxtile) {
@@ -1976,7 +1976,7 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                     break;
 
                 int sw = tilew;
-                if ((tx * tilew + tilew) > width)
+                if ((size_t(tx) * size_t(tilew) + size_t(tilew)) > width)
                     sw = width - (tx * tilew);
                 for (int y = 0; y < nlines; ++y) {
                     memcpy(allsampdata + y * ud.fullwidth + tx * tilew,
