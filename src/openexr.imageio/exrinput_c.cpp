@@ -1240,7 +1240,8 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                   << scanlinebytes << " spc " << scansperchunk << std::endl;
     }
 #endif
-
+    int endy = spec.y + spec.height;
+    yend = std::min(endy, yend);
     std::vector<uint8_t> fullchunk;
     bool first = true;
     int nlines = scansperchunk;
@@ -1254,8 +1255,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             nlines = scansperchunk - invalid;
             cdata  = &fullchunk[0];
             y      = y - invalid;
-        } else if (((y + scansperchunk) > yend)
-                   && ((y + scansperchunk) < (spec.y + spec.height))) {
+        } else if ((y + scansperchunk) > yend && yend < endy) {
             fullchunk.resize(scanlinebytes * scansperchunk);
             nlines = yend - y;
             cdata  = &fullchunk[0];
