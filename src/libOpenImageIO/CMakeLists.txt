@@ -225,6 +225,11 @@ install_targets (OpenImageIO)
 
 if (OIIO_BUILD_TESTS)
 
+    add_executable (color_test color_test.cpp)
+    target_link_libraries (color_test PRIVATE OpenImageIO)
+    set_target_properties (color_test PROPERTIES FOLDER "Unit Tests")
+    add_test (unit_imagebuf ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_test)
+
     add_executable (imagebuf_test imagebuf_test.cpp)
     target_link_libraries (imagebuf_test PRIVATE OpenImageIO)
     set_target_properties (imagebuf_test PROPERTIES FOLDER "Unit Tests")
