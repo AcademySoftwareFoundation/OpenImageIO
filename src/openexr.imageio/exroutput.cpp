@@ -250,8 +250,29 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 namespace pvt {
+
 void
-set_exr_threads();
+set_exr_threads()
+{
+    static int exr_threads = 0;  // lives in exrinput.cpp
+    static spin_mutex exr_threads_mutex;
+
+    int oiio_threads = 1;
+    OIIO::getattribute("exr_threads", oiio_threads);
+
+    // 0 means all threads in OIIO, but single-threaded in OpenEXR
+    // -1 means single-threaded in OIIO
+    if (oiio_threads == 0) {
+        oiio_threads = Sysutil::hardware_concurrency();
+    } else if (oiio_threads == -1) {
+        oiio_threads = 0;
+    }
+    spin_lock lock(exr_threads_mutex);
+    if (exr_threads != oiio_threads) {
+        exr_threads = oiio_threads;
+        Imf::setGlobalThreadCount(exr_threads);
+    }
+}
 
 }  // namespace pvt
 

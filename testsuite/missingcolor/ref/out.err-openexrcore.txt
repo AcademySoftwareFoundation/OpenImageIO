@@ -1,0 +1,4 @@
+oiiotool ERROR: read : EXR Error (src/partial.exr): EXR_ERR_BAD_CHUNK_DATA Request for tile found tile x coord mismatch: found 20000630, expect 0
+EXR Error (src/partial.exr): EXR_ERR_BAD_CHUNK_DATA Request for tile found tile x coord mismatch: found 20000630, expect 1
+Full command line was:
+> oiiotool -colorconfig ../../../../testsuite/common/OpenColorIO/nuke-default/config.ocio src/partial.exr -d uint8 -o error.tif
