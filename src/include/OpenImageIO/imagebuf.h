@@ -243,8 +243,14 @@ public:
     ///             storage for the pixels. It must be already allocated
     ///             with enough space to hold a full image as described by
     ///             `spec`.
+    /// @param  xstride/ystride/zstride
+    ///             The distance in bytes between successive pixels,
+    ///             scanlines, and image planes in the buffer (or
+    ///             `AutoStride` to indicate "contiguous" data in any of
+    ///             those dimensions).
     ///
-    ImageBuf(const ImageSpec& spec, void* buffer);
+    ImageBuf(const ImageSpec& spec, void* buffer, stride_t xstride = AutoStride,
+             stride_t ystride = AutoStride, stride_t zstride = AutoStride);
 
     // Deprecated/useless synonym for `ImageBuf(spec,buffer)` but also gives
     // it an internal name.
@@ -298,7 +304,9 @@ public:
     /// Destroy any previous contents of the ImageBuf and re-initialize it
     /// as if newly constructed with the same arguments, to "wrap" existing
     /// pixel memory owned by the calling application.
-    void reset(const ImageSpec& spec, void* buffer);
+    void reset(const ImageSpec& spec, void* buffer,
+               stride_t xstride = AutoStride, stride_t ystride = AutoStride,
+               stride_t zstride = AutoStride);
 
     /// Make the ImageBuf be writable. That means that if it was previously
     /// backed by an ImageCache (storage was `IMAGECACHE`), it will force a
@@ -960,6 +968,11 @@ public:
     /// Return a raw pointer to "local" pixel memory, if they are fully in
     /// RAM and not backed by an ImageCache, or `nullptr` otherwise.  You
     /// can also test it like a bool to find out if pixels are local.
+    ///
+    /// Note that the data are not necessarily contiguous; use the
+    /// `pixel_stride()`, `scanline_stride()`, and `z_stride()` methods
+    /// to find out the spacing between pixels, scanlines, and volumetric
+    /// planes, respectively.
     void* localpixels();
     const void* localpixels() const;
 
@@ -969,6 +982,14 @@ public:
     stride_t scanline_stride() const;
     /// Z plane stride within the localpixels memory.
     stride_t z_stride() const;
+
+    /// Is the data layout "contiguous", i.e.,
+    /// ```
+    ///     pixel_stride == nchannels * pixeltype().size()
+    ///     scanline_stride == pixel_stride * spec().width
+    ///     z_stride == scanline_stride * spec().height
+    /// ```
+    bool contiguous() const;
 
     /// Are the pixels backed by an ImageCache, rather than the whole
     /// image being in RAM somewhere?
@@ -1388,7 +1409,7 @@ public:
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_tilexend;
         int m_nchannels;
-        size_t m_pixel_bytes;
+        stride_t m_pixel_stride;
         char* m_proxydata = nullptr;
         WrapMode m_wrap   = WrapBlack;
 
@@ -1407,11 +1428,11 @@ public:
             m_img_zend    = spec.z + spec.depth;
             m_nchannels   = spec.nchannels;
             //            m_tilewidth = spec.tile_width;
-            m_pixel_bytes = spec.pixel_bytes();
-            m_x           = 1 << 31;
-            m_y           = 1 << 31;
-            m_z           = 1 << 31;
-            m_wrap        = (wrap == WrapDefault ? WrapBlack : wrap);
+            m_pixel_stride = m_ib->pixel_stride();
+            m_x            = 1 << 31;
+            m_y            = 1 << 31;
+            m_z            = 1 << 31;
+            m_wrap         = (wrap == WrapDefault ? WrapBlack : wrap);
         }
 
         // Helper called by ctrs -- make the iteration range the full
@@ -1433,7 +1454,7 @@ public:
         {
             OIIO_DASSERT(m_exists && m_valid);   // precondition
             OIIO_DASSERT(valid(m_x, m_y, m_z));  // should be true by definition
-            m_proxydata += m_pixel_bytes;
+            m_proxydata += m_pixel_stride;
             if (m_localpixels) {
                 if (OIIO_UNLIKELY(m_x >= m_img_xend)) {
                     // Ran off the end of the row

@@ -98,7 +98,7 @@ void OIIO_UTIL_API sync_output (std::ostream &file, string_view str);
 /// works with any types that understand stream output via '<<'.
 /// The formatting of the string will always use the classic "C" locale
 /// conventions (in particular, '.' as decimal separator for float values).
-#ifdef OIIO_DOXYGEN_ONLY
+#ifdef OIIO_DOXYGEN
 template<typename Str, typename... Args>
 inline std::string sprintf(const Str& fmt, Args&&... args)
 {
