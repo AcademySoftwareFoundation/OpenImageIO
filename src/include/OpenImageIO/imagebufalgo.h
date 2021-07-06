@@ -322,7 +322,8 @@ enum class TextAlignY { Baseline, Top, Bottom, Center };
 /// @param x/y
 ///             The position to place the text.
 /// @param text
-///             The text to draw.
+///             The text to draw. Linefeed (`\n`) characters are respected
+///             as indications that the text spans multiple rows.
 /// @param fontsize/fontname
 ///             Size and name of the font. If the name is not a full
 ///             pathname to a font file, it will search for a matching font,
@@ -360,6 +361,8 @@ bool OIIO_API render_text (ImageBuf &dst, int x, int y, string_view text,
 /// be used. The x dimension runs from left to right, and y runs from top to
 /// bottom (image coordinates). For a failure (such as an invalid font
 /// name), the ROI will return `false` if you call its `defined()` method.
+/// The `text` may contain linefeed characters to designate multiple lines
+/// of text.
 ROI OIIO_API text_size (string_view text, int fontsize=16,
                         string_view fontname="");
 

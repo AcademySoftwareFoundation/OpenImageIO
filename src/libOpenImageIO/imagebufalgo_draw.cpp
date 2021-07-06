@@ -664,19 +664,25 @@ static const char* default_font_name[] = { "DroidSans", "cour", "Courier New",
 
 // Helper: given unicode and a font face, compute its size
 static ROI
-text_size_from_unicode(std::vector<uint32_t>& utext, FT_Face face)
+text_size_from_unicode(cspan<uint32_t> utext, FT_Face face, int fontsize)
 {
+    int y = 0;
+    int x = 0;
     ROI size;
     size.xbegin = size.ybegin = std::numeric_limits<int>::max();
     size.xend = size.yend = std::numeric_limits<int>::min();
     FT_GlyphSlot slot     = face->glyph;
-    int x                 = 0;
     for (auto ch : utext) {
+        if (ch == '\n') {
+            x = 0;
+            y += fontsize;
+            continue;
+        }
         int error = FT_Load_Char(face, ch, FT_LOAD_RENDER);
         if (error)
             continue;  // ignore errors
-        size.ybegin = std::min(size.ybegin, -slot->bitmap_top);
-        size.yend   = std::max(size.yend, int(slot->bitmap.rows)
+        size.ybegin = std::min(size.ybegin, y - slot->bitmap_top);
+        size.yend   = std::max(size.yend, y + int(slot->bitmap.rows)
                                             - int(slot->bitmap_top) + 1);
         size.xbegin = std::min(size.xbegin, x + int(slot->bitmap_left));
         size.xend   = std::max(size.xend, x + int(slot->bitmap.width)
@@ -842,29 +848,10 @@ ImageBufAlgo::text_size(string_view text, int fontsize, string_view font_)
         return size;  // couldn't set the character size
     }
 
-    FT_GlyphSlot slot = face->glyph;  // a small shortcut
-
     std::vector<uint32_t> utext;
-    utext.reserve(
-        text.size());  //Possible overcommit, but most text will be ascii
+    utext.reserve(text.size());
     Strutil::utf8_to_unicode(text, utext);
-
-    size.xbegin = size.ybegin = std::numeric_limits<int>::max();
-    size.xend = size.yend = std::numeric_limits<int>::min();
-    int x                 = 0;
-    for (auto ch : utext) {
-        error = FT_Load_Char(face, ch, FT_LOAD_RENDER);
-        if (error)
-            continue;  // ignore errors
-        size.ybegin = std::min(size.ybegin, -slot->bitmap_top);
-        size.yend   = std::max(size.yend, int(slot->bitmap.rows)
-                                            - int(slot->bitmap_top) + 1);
-        size.xbegin = std::min(size.xbegin, x + int(slot->bitmap_left));
-        size.xend   = std::max(size.xend, x + int(slot->bitmap.width)
-                                            + int(slot->bitmap_left) + 1);
-        // increment pen position
-        x += slot->advance.x >> 6;
-    }
+    size = text_size_from_unicode(utext, face, fontsize);
 
     FT_Done_Face(face);
 #endif
@@ -934,12 +921,11 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
 
     // Convert the UTF to 32 bit unicode
     std::vector<uint32_t> utext;
-    utext.reserve(
-        text.size());  //Possible overcommit, but most text will be ascii
+    utext.reserve(text.size());
     Strutil::utf8_to_unicode(text, utext);
 
     // Compute the size that the text will render as, into an ROI
-    ROI textroi     = text_size_from_unicode(utext, face);
+    ROI textroi     = text_size_from_unicode(utext, face, fontsize);
     textroi.zbegin  = 0;
     textroi.zend    = 1;
     textroi.chbegin = 0;
@@ -967,8 +953,14 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
     ImageBuf textimg(ImageSpec(textroi, TypeDesc::FLOAT));
     ImageBufAlgo::zero(textimg);
 
-    // Glyph by glyph, fill in our txtimg buffer
+    // Glyph by glyph, fill in our textimg buffer
+    int origx = x;
     for (auto ch : utext) {
+        if (ch == '\n') {
+            x = origx;
+            y += fontsize;
+            continue;
+        }
         int error = FT_Load_Char(face, ch, FT_LOAD_RENDER);
         if (error)
             continue;  // ignore errors
