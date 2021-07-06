@@ -233,6 +233,11 @@ command += oiiotool ("-create 16x16 3 -attrib smpte:TimeCode \"01:02:03:04\" -ec
 # Ensure that --evaloff/--evalon work
 command += oiiotool ("-echo \"{1+1}\" --evaloff -echo \"{3+4}\" --evalon -echo \"{2*2}\"")
 
+# Test stats and metadata expression substitution
+command += oiiotool ('src/tahoe-tiny.tif --echo "\nBrief: {TOP.METABRIEF}"')
+command += oiiotool ('src/tahoe-tiny.tif --echo "\nMeta: {TOP.META}"')
+command += oiiotool ('src/tahoe-tiny.tif --echo "\nStats:\n{TOP.STATS}\n"')
+
 # test --iconfig
 command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig! 1 black.tif")
 
