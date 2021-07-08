@@ -225,6 +225,12 @@ contents of an expression may be any of:
     comma-separated)
   * `AVGCOLOR` : the average pixel value of the image (channels are
     comma-separated)
+  * `METABRIEF` : a string containing the brief one-line description that
+    would be printed with `oiiotool -info`.
+  * `META` : a multi-line string containing the full metadata that would
+    be printed with `oiiotool -info -v`.
+  * `STATS` : a multi-line string containing the image statistics that would
+    be printed with `oiiotool -stats`.
 
 * *imagename.'metadata'*
 

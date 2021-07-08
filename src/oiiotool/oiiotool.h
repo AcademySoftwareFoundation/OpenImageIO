@@ -568,14 +568,27 @@ struct print_info_options {
 };
 
 
-// Print info about the named file to stdout, using print_info_options
-// opt for guidance on what to print and how to do it.  The total size
-// of the uncompressed pixels in the file is returned in totalsize.  The
-// return value will be true if everything is ok, or false if there is
-// an error (in which case the error message will be stored in 'error').
+// For either an ImageRec `img`, or a file on disk named by `filename`,
+// print info about the named file to stream `out`, using
+// print_info_options opt for guidance on what to print and how to do it.
+// The total size of the uncompressed pixels in the file is returned in
+// totalsize.  The return value will be true if everything is ok, or false
+// if there is an error(in which case the error message will be stored in
+// `error`).
 bool
-print_info(Oiiotool& ot, const std::string& filename,
+print_info(std::ostream& out, Oiiotool& ot, const std::string& filename,
            const print_info_options& opt, std::string& error);
+bool
+print_info(std::ostream& out, Oiiotool& ot, ImageRec* img,
+           const print_info_options& opt, std::string& error);
+
+// For an ImageBuf or a filename, print the stats into output stream `out`.
+void
+print_stats(std::ostream& out, Oiiotool& ot, const ImageBuf& input,
+            string_view indent = "");
+void
+print_stats(std::ostream& out, Oiiotool& ot, const std::string& filename,
+            int subimage = 0, int miplevel = 0, string_view indent = "");
 
 
 // Set an attribute of the given image.  The type should be one of
