@@ -90,5 +90,11 @@ ${OIIOTOOL} -autocc tahoe-small.jpg --fit:exact=1:pad=1:fillmode=letterbox 200x1
 ${OIIOTOOL} -autocc tahoe-small.jpg --fit:exact=1:pad=1:fillmode=width 200x180 -o fitv-width.jpg
 ${OIIOTOOL} -autocc tahoe-small.jpg --fit:exact=1:pad=1:fillmode=height 200x180 -o fitv-height.jpg
 
+# mosaic
+for f in 0 1 2 3 ; do
+    ${OIIOTOOL} tahoe-small.jpg -text:size=80:xalign=center:yalign=center:shadow=2 $f -o $f.tif
+done
+${OIIOTOOL} [0-3].tif --mosaic:pad=8:fit=160x120 2x2 -o mosaic.jpg
+
 #${OIIOTOOL} ../../../testsuite/oiiotool/tahoe-small.tif
 

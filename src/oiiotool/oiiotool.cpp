@@ -3642,9 +3642,9 @@ OP_CUSTOMCLASS(resize, OpResize, 1);
 
 // --fit
 static int
-action_fit(int argc, const char* argv[])
+action_fit(cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_fit, argc, argv))
+    if (ot.postpone_callback(1, action_fit, argv))
         return 0;
     Timer timer(ot.enable_function_timing);
     bool old_enable_function_timing = ot.enable_function_timing;
@@ -4108,6 +4108,24 @@ action_mosaic(int /*argc*/, const char* argv[])
 
     auto options = ot.extract_options(command);
     int pad      = options.get_int("pad");
+
+    std::string fit = options["fit"];
+    if (fit.size()) {
+        int fitw = 0, fith = 0;
+        if (sscanf(fit.c_str(), "%dx%d", &fitw, &fith) == 2 && fitw >= 1
+            && fith >= 1) {
+            widest  = fitw;
+            highest = fith;
+            // Do the equivalent of a --fit on each image
+            const char* fitargs[] = { "--fit:allsubimages=0:pad=1",
+                                      fit.c_str() };
+            for (int i = 0; i < nimages; ++i) {
+                ot.push(images[i]);
+                action_fit(fitargs);
+                images[i] = ot.pop();
+            }
+        }
+    }
 
     ImageSpec Rspec(ximages * widest + (ximages - 1) * pad,
                     yimages * highest + (yimages - 1) * pad, nchannels,
@@ -5795,7 +5813,7 @@ getargs(int argc, char* argv[])
       .help("Copy the metadata from the first image to the second image and write the combined result.")
       .action(action_pastemeta);
     ap.arg("--mosaic %s:WxH")
-      .help("Assemble images into a mosaic (arg: WxH; options: pad=0)")
+      .help("Assemble images into a mosaic (arg: WxH; options: pad=0, fit=WxH)")
       .action(action_mosaic);
     ap.arg("--over")
       .help("'Over' composite of two images")
