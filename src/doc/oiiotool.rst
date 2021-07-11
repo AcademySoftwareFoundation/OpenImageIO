@@ -2351,8 +2351,23 @@ current top image.
 
 .. option:: --mosaic <size>
 
-    Removes :math:`w \times h` images, dictated by the *size*, and turns
-    them into a single image mosaic. Optional appended modifiers include:
+    Removes :math:`w \times h` images from the stack, dictated by the *size*,
+    and turns them into a single image mosaic -- an image that comprises
+    :math:`w \times h` "cells" each containing one of the constituent
+    images.
+
+    If there are fewer images on the stack than the number of cells requested,
+    the last cells will be black.
+
+    By default, the size of the "cell" is simply the largest of the
+    constituent images, but the optional `fit` parameter can instead dictate
+    the cell size and constituent images will be resized to fit this cell
+    size.
+
+    Optional appended modifiers include:
+
+    - `fit=` *WxH* : Sets the dimensions to which the constituent images
+      will be resized as they are assembled into the mosaic.
 
     - `pad=` *num* : Select the number of pixels of black padding to add
       between images (default: 0).
@@ -2361,8 +2376,10 @@ current top image.
 
         oiiotool left.tif right.tif --mosaic:pad=16 2x1 -o out.tif
 
-        oiiotool 0.tif 1.tif 2.tif 3.tif 4.tif --mosaic:pad=16 2x2 -o out.tif
+        oiiotool 0.tif 1.tif 2.tif 3.tif 4.tif --mosaic:pad=16:fit=320x240 2x2 -o out.tif
 
+    .. image:: figures/mosaic.jpg
+            :width: 2.0in
 
 .. option:: --over
 

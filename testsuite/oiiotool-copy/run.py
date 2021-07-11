@@ -48,6 +48,12 @@ command += oiiotool ("--pattern constant:color=1,0,0 50x50 3 "
             + "--pattern constant:color=0,0,1 50x50 3 "
             + "--mosaic:pad=10 2x2 -d uint8 -o mosaic.tif")
 
+# Test --mosaic with --fit
+command += oiiotool ("--pattern constant:color=1,.1,.1 50x50 3 "
+            + "--pattern constant:color=0.1,1,0.1 500x300 3 "
+            + "--pattern constant:color=0.1,0.1,1 10x16 3 "
+            + "--mosaic:pad=10:fit=64x64 2x2 -d uint8 -o mosaicfit.tif")
+
 
 # test --metamerge, using chappend as an example
 command += oiiotool ("--create 64x64 3 -chnames R,G,B -attrib a 3.0 -o aimg.exr")
@@ -67,7 +73,8 @@ command += oiiotool ("--pattern constant:color=0.5 64x64 1 --text R --chnames R 
 
 # Outputs to check against references
 outputs = [
-            "crop.tif", "cut.tif", "pasted.tif", "mosaic.tif",
+            "crop.tif", "cut.tif", "pasted.tif",
+            "mosaic.tif", "mosaicfit.tif",
             "greenmeta.exr",
             "chappend-3images.exr",
             "out.txt"

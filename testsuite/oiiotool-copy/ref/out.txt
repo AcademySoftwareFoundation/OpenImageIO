@@ -74,6 +74,8 @@ Comparing "pasted.tif" and "ref/pasted.tif"
 PASS
 Comparing "mosaic.tif" and "ref/mosaic.tif"
 PASS
+Comparing "mosaicfit.tif" and "ref/mosaicfit.tif"
+PASS
 Comparing "greenmeta.exr" and "ref/greenmeta.exr"
 PASS
 Comparing "chappend-3images.exr" and "ref/chappend-3images.exr"
