@@ -1221,7 +1221,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     size_t pixelbytes    = spec.pixel_bytes(chbegin, chend, true);
     size_t scanlinebytes = (size_t)spec.width * pixelbytes;
 
-    exr_chunk_block_info_t cinfo;
+    exr_chunk_info_t cinfo;
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
     int32_t scansperchunk;
     exr_result_t rv;
@@ -1262,7 +1262,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         } else
             nlines = scansperchunk;
 
-        rv = exr_read_scanline_block_info(m_exr_context, subimage, y, &cinfo);
+        rv = exr_read_scanline_chunk_info(m_exr_context, subimage, y, &cinfo);
         if (rv != EXR_ERR_SUCCESS)
             break;
         if (first) {
@@ -1356,10 +1356,10 @@ OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
                                   0, spec.nchannels, data, pixelbytes,
                                   scanlinebytes);
 
-    exr_chunk_block_info_t cinfo;
+    exr_chunk_info_t cinfo;
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
 
-    rv = exr_read_tile_block_info(m_exr_context, subimage, tx, ty, miplevel,
+    rv = exr_read_tile_chunk_info(m_exr_context, subimage, tx, ty, miplevel,
                                   miplevel, &cinfo);
     if (rv != EXR_ERR_SUCCESS)
         return check_fill_missing(x, std::min(levw, x + tilew), y,
@@ -1505,7 +1505,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
 
 #endif
 
-    exr_chunk_block_info_t cinfo;
+    exr_chunk_info_t cinfo;
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
     bool first                    = true;
 
@@ -1517,7 +1517,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
         tilesetdata += ty * tileh * scanlinebytes;
         for (int tx = 0; tx < nxtiles; ++tx, ++curxtile) {
             uint8_t* curtilestart = tilesetdata + tx * tilew * pixelbytes;
-            rv = exr_read_tile_block_info(m_exr_context, subimage, curxtile,
+            rv = exr_read_tile_chunk_info(m_exr_context, subimage, curxtile,
                                           curytile, miplevel, miplevel, &cinfo);
             if (rv != EXR_ERR_SUCCESS) {
                 retval &= check_fill_missing(xbegin + tx * tilew,
@@ -1665,8 +1665,8 @@ realloc_deepdata(exr_decode_pipeline_t* decode)
     // efficient as it will cause a number of re-allocations. But
     // hopefully people are asking for an individual scanline at a
     // time.
-    int w            = decode->chunk_block.width;
-    int h            = decode->chunk_block.height;
+    int w            = decode->chunk.width;
+    int h            = decode->chunk.height;
     int chans        = ud->nchans;
     size_t fullwidth = ud->fullwidth;
     size_t xoff      = ud->xoff;
@@ -1758,7 +1758,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
     ud.deepdata   = &deepdata;
     ud.samplesset = false;
 
-    exr_chunk_block_info_t cinfo;
+    exr_chunk_info_t cinfo;
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
     int32_t scansperchunk;
     exr_result_t rv;
@@ -1779,7 +1779,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
         std::vector<unsigned int> all_samples;
         all_samples.resize(npixels);
         for (int y = ybegin; y < yend; y += scansperchunk) {
-            rv = exr_read_scanline_block_info(m_exr_context, subimage, y,
+            rv = exr_read_scanline_chunk_info(m_exr_context, subimage, y,
                                               &cinfo);
             if (rv != EXR_ERR_SUCCESS)
                 break;
@@ -1823,7 +1823,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
 
     bool first = true;
     for (int y = ybegin; y < yend; y += scansperchunk) {
-        rv = exr_read_scanline_block_info(m_exr_context, subimage, y, &cinfo);
+        rv = exr_read_scanline_chunk_info(m_exr_context, subimage, y, &cinfo);
         if (rv != EXR_ERR_SUCCESS)
             break;
 
@@ -1923,7 +1923,7 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
     ud.firstisfullread = nxtiles == 1 && nytiles == 1;
     ud.samplesset      = false;
 
-    exr_chunk_block_info_t cinfo;
+    exr_chunk_info_t cinfo;
     exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
     bool first                    = true;
     int curytile                  = firstytile;
@@ -1943,7 +1943,7 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                 nlines = height - (ty * tileh);
 
             for (int tx = 0; tx < nxtiles; ++tx, ++curxtile) {
-                rv = exr_read_tile_block_info(m_exr_context, subimage, curxtile,
+                rv = exr_read_tile_chunk_info(m_exr_context, subimage, curxtile,
                                               curytile, miplevel, miplevel,
                                               &cinfo);
                 if (rv != EXR_ERR_SUCCESS)
@@ -2000,7 +2000,7 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
         int curxtile = firstxtile;
         ud.xoff      = 0;
         for (int tx = 0; tx < nxtiles; ++tx, ++curxtile) {
-            rv = exr_read_tile_block_info(m_exr_context, subimage, curxtile,
+            rv = exr_read_tile_chunk_info(m_exr_context, subimage, curxtile,
                                           curytile, miplevel, miplevel, &cinfo);
             if (rv != EXR_ERR_SUCCESS)
                 break;
