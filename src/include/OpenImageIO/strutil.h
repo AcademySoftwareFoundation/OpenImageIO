@@ -86,15 +86,11 @@ void OIIO_API sync_output (std::ostream &file, string_view str);
 /// works with any types that understand stream output via '<<'.
 /// The formatting of the string will always use the classic "C" locale
 /// conventions (in particular, '.' as decimal separator for float values).
-#ifdef OIIO_DOXYGEN_ONLY
-template<typename Str, typename... Args>
-inline std::string sprintf(const Str& fmt, Args&&... args)
+template<typename... Args>
+inline std::string sprintf (const char* fmt, const Args&... args)
 {
-    return ::fmt::sprintf(fmt, args...);
+    return ::fmt::sprintf (fmt, args...);
 }
-#else
-using ::fmt::sprintf;
-#endif
 
 
 
@@ -124,8 +120,8 @@ using ::fmt::sprintf;
 ///
 
 namespace fmt {
-template<typename Str, typename... Args>
-inline std::string format(const Str& fmt, Args&&... args)
+template<typename... Args>
+inline std::string format (const char* fmt, const Args&... args)
 {
 #if FMT_VERSION >= 70000
     return ::fmt::vformat(fmt, ::fmt::make_format_args(args...));
