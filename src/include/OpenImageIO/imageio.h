@@ -2186,6 +2186,9 @@ public:
     /// followed by `out->write_image()`, and avoids any unintended pixel
     /// alterations, especially for formats that use lossy compression.
     ///
+    /// Note: this method is NOT thread-safe, since it depends on persistent
+    /// state in the ImageInput.
+    ///
     /// @param  in          A pointer to the open `ImageInput` to read from.
     /// @returns            `true` upon success, or `false` upon failure.
     virtual bool copy_image (ImageInput *in);
