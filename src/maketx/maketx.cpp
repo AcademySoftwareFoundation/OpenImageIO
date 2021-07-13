@@ -175,7 +175,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     bool unpremult             = false;
     bool sansattrib            = false;
     float sharpen              = 0.0f;
-    int uvslopes_scale         = 0;
+    float uvslopes_scale       = 0.0f;
     std::string incolorspace;
     std::string outcolorspace;
     std::string colorconfigname;
@@ -294,7 +294,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
       .help("Create lat/long environment map from a light probe");
     ap.arg("--bumpslopes", &bumpslopesmode)
       .help("Create a 6 channels bump-map with height, derivatives and square derivatives from an height or a normal map");
-    ap.arg("--uvslopes_scale %d:VALUE", &uvslopes_scale)
+    ap.arg("--uvslopes_scale %f:VALUE", &uvslopes_scale)
       .help("If specified, compute derivatives for --bumpslopes in UV space rather than in texel space and divide them by a scale factor. 0=disable by default, only valid for height maps.");
     ap.arg("--bumpformat %s:NAME", &bumpformat)
       .help("Specify the interpretation of a 3-channel input image for --bumpslopes: \"height\", \"normal\" or \"auto\" (default).");
@@ -470,9 +470,7 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     }
 
     if (bumpslopesmode)
-        configspec.attribute(
-            "uvslopes_scale",
-            uvslopes_scale);  // we want to write this attribute in the output file
+        configspec.attribute("maketx:uvslopes_scale", uvslopes_scale);
 }
 
 

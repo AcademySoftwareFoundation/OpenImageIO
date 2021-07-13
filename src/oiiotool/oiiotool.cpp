@@ -4749,8 +4749,8 @@ prep_texture_config(ImageSpec& configspec, ParamValueList& fileoptions)
                              "prman_options", fileoptions.get_string("prman")));
     configspec.attribute("maketx:bumpformat",
                          fileoptions.get_string("bumpformat", "auto"));
-    configspec.attribute("uvslopes_scale",
-                         fileoptions.get_int("uvslopes_scale", 0));
+    configspec.attribute("maketx:uvslopes_scale",
+                         fileoptions.get_float("uvslopes_scale", 0.0f));
     // if (mipimages.size())
     //     configspec.attribute ("maketx:mipimages", Strutil::join(mipimages,";"));
 
