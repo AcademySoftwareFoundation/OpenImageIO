@@ -1310,6 +1310,9 @@ std::string OIIO_API computePixelHashSHA1 (const ImageBuf &src,
 /// values `[min,max]`. Values < `min` count for bin 0, values > `max` count
 /// for bin `nbins-1`. If `ignore_empty` is `true`, no counts will be
 /// incremented for any pixels whose value is 0 in all channels.
+///
+/// If there was an error, the returned vector will be empty, and an error
+/// message will be retrievable from src.geterror().
 OIIO_API
 std::vector<imagesize_t> histogram (const ImageBuf &src, int channel=0,
                                     int bins=256, float min=0.0f, float max=1.0f,
@@ -1347,6 +1350,9 @@ bool OIIO_API histogram_draw (ImageBuf &dst,
 /// don't scale with the width, and are therefore probably less useful
 /// in most cases.
 ///
+/// The ImageBuf that is returned indicates if there was an error, in which
+/// case return.has_error() will be true and return.geterror() can be used
+/// to retrieve an error message.
 ImageBuf OIIO_API make_kernel (string_view name, float width, float height,
                                float depth = 1.0f, bool normalize = true);
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
