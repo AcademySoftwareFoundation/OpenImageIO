@@ -452,6 +452,15 @@ Command-line arguments are:
     if and only if the R, G, B channel values are identical in all pixels,
     otherwise it will be interpreted as a 3-channel normal map.
 
+.. option:: --uvslopes_scale <scalefactor>
+
+   Used in conjunction with `--bumpslopes`, this computes derivatives for
+   the bumpslopes data in UV space rather than in texel space, and divides
+   them by a scale factor. If the value is 0 (default), this is disabled.
+   For a nonzero value, it will be the scale factor. If you use this feature,
+   a suggested value is 256.
+
+   (This option was added for OpenImageIO 2.3.)
 
 
 

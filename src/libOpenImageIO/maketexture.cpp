@@ -494,7 +494,9 @@ bump_to_bumpslopes(ImageBuf& dst, const ImageBuf& src,
         return false;
     }
 
-    int uv_scale = configspec.get_int_attribute("uvslopes_scale");
+    float uv_scale = configspec.get_float_attribute(
+        "maketx:uvslopes_scale",
+        configspec.get_float_attribute("uvslopes_scale"));
 
     // If the input is an height map, does the derivatives needs to be UV normalized and scaled?
     if (bump_filter == &sobel_gradient<SRCTYPE> && uv_scale != 0) {
@@ -607,6 +609,11 @@ maketx_merge_spec(ImageSpec& dstspec, const ImageSpec& srcspec)
             dstspec.attribute(name.string(), p.type(), p.data());
         }
     }
+    // Special case: we want "maketx:uvslopes_scale" to turn
+    // into "uvslopes_scale"
+    if (srcspec.extra_attribs.contains("maketx:uvslopes_scale"))
+        dstspec.attribute("uvslopes_scale",
+                          srcspec.get_float_attribute("maketx:uvslopes_scale"));
 }
 
 

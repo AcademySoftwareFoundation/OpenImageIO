@@ -2034,6 +2034,14 @@ enum MakeTextureMode {
 ///                           ("height"), a normal map ("normal"), or
 ///                           automatically determine it from the number
 ///                           of channels ("auto", the default).
+///    - `maketx:uvslopes_scale` (float) :
+///                           If nonzero, when used in MakeTxBumpWithSlopes
+///                           mode, this computes derivatives for the
+///                           bumpslopes data in UV space rather than in
+///                           texel space, and divides them by this scale
+///                           factor. The default is 0, disabling the
+///                           feature. If you use this feature, a suggested
+///                           value is 256.
 ///
 /// @param  mode
 ///    Describes what type of texture file we are creating and may
