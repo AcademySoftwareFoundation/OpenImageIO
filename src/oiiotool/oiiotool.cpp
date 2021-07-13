@@ -4425,86 +4425,6 @@ OIIOTOOL_OP(text, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
 
 
 
-/// action_histogram ---------------------------------------------------------
-/// Usage:
-///                   ./oiiotool in --histogram:cumulative=int 'bins'x'height'
-///                   channel -o out
-///
-/// in              - Input image that contains the channel to be histogramed.
-/// cumulative      - Optional argument that can take values 0 or 1. If 0,
-///                   then each bin will contain the count of pixels having
-///                   values in the range for that bin. If 1, then each bin
-///                   will contain not only its count, but also the counts of
-///                   all preceding bins.
-/// 'bins'x'height' - Width and height of the histogram, where width equals
-///                   the number of bins.
-/// channel         - The channel in the input image to be histogramed.
-/// out             - Output image.
-///
-/// Examples:
-///                 - ./oiiotool in --histogram 256x256 0 -o out
-///
-///                   Save the non-cumulative histogram of channel 0 in image
-///                   'in', as an image with size 256x256.
-///
-///                 - ./oiiotool in --histogram:cumulative=1 256x256 0 -o out
-///
-///                   Same as the previous example, but now a cumulative
-///                   histogram is created, instead of a regular one.
-/// --------------------------------------------------------------------------
-static int
-action_histogram(int argc, const char* argv[])
-{
-    OIIO_DASSERT(argc == 3);
-    if (ot.postpone_callback(1, action_histogram, argc, argv))
-        return 0;
-    Timer timer(ot.enable_function_timing);
-    string_view command = ot.express(argv[0]);
-    string_view size    = ot.express(argv[1]);
-    int channel         = Strutil::from_string<int>(ot.express(argv[2]));
-    auto options        = ot.extract_options(command);
-    int cumulative      = options.get_int("cumulative");
-
-    // Input image.
-    ot.read();
-    ImageRecRef A(ot.pop());
-    const ImageBuf& Aib((*A)());
-
-    // Extract bins and height from size.
-    int bins = 0, height = 0;
-    if (sscanf(size.c_str(), "%dx%d", &bins, &height) != 2) {
-        ot.errorf(command, "Invalid size: %s", size);
-        return -1;
-    }
-
-    // Compute regular histogram.
-    std::vector<imagesize_t> hist;
-    bool ok = ImageBufAlgo::histogram(Aib, channel, hist, bins);
-    if (!ok) {
-        ot.error(command, Aib.geterror());
-        return 0;
-    }
-
-    // Compute cumulative histogram if specified.
-    if (cumulative == 1)
-        for (int i = 1; i < bins; i++)
-            hist[i] += hist[i - 1];
-
-    // Output image.
-    ImageSpec specR(bins, height, 1, TypeDesc::FLOAT);
-    ot.push(new ImageRec("irec", specR, ot.imagecache));
-    ImageBuf& Rib((*ot.curimg)());
-
-    ok = ImageBufAlgo::histogram_draw(Rib, hist);
-    if (!ok)
-        ot.error(command, Rib.geterror());
-
-    ot.function_times[command] += timer();
-    return 0;
-}
-
-
-
 // -i
 static int
 input_file(int argc, const char* argv[])
@@ -5827,9 +5747,6 @@ getargs(int argc, char* argv[])
     ap.arg("--deepholdout")
       .help("Hold out one deep image by another")
       .action(action_deepholdout);
-    ap.arg("--histogram %s:BINSxHEIGHT %d:CHAN")
-      .help("Histogram one channel (options: cumulative=0)")
-      .action(action_histogram);
     ap.arg("--rotate90")
       .help("Rotate the image 90 degrees clockwise")
       .action(action_rotate90);

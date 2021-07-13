@@ -79,12 +79,6 @@ command += oiiotool ("negpos.exr -absdiffc 0.2,0.2,0.2 -d half -o absdiffc.exr")
 command += oiiotool ("src/tahoe-small.tif --chsum:weight=.2126,.7152,.0722 "
             + "-d uint8 -o chsum.tif")
 
-# test histogram generation
-command += oiiotool ("ref/histogram_input.png --histogram 256x256 0 "
-            + "-o histogram_regular.tif")
-command += oiiotool ("ref/histogram_input.png --histogram:cumulative=1 256x256 0 "
-            + "-o histogram_cumulative.tif")
-
 # test --trim
 command += oiiotool ("--create 320x240 3 -fill:color=.1,.5,.1 120x80+50+70 "
                      + " -rotate 30 -trim -origin +0+0 -fullpixels -d uint8 -o trim.tif")
@@ -267,7 +261,6 @@ command += oiiotool ("--missingfile checker box.tif missing.tif --over -o box_ov
 outputs = [
             "filled.tif",
             "autotrim.tif",
-            "histogram_regular.tif", "histogram_cumulative.tif",
             "trim.tif", "trimsubimages.tif",
             "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
             "chappend-rgbaz.exr", "chname.exr",
