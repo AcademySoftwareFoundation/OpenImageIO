@@ -216,7 +216,7 @@ public:
         return m_spec;
     }
 
-    void threads(int n) const { m_threads = n; }
+    void threads(int n) { m_threads = n; }
     int threads() const { return m_threads; }
 
     // Allocate m_configspec if not already done

@@ -1019,7 +1019,7 @@ public:
     /// new threads. That is probably the desired behavior in situations
     /// where the calling application has already spawned multiple worker
     /// threads.
-    void threads(int n) const;
+    void threads(int n);
 
     /// Retrieve the current thread-spawning policy of this ImageBuf.
     int threads() const;
