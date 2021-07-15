@@ -134,10 +134,6 @@ Comparing "filled.tif" and "ref/filled.tif"
 PASS
 Comparing "autotrim.tif" and "ref/autotrim.tif"
 PASS
-Comparing "histogram_regular.tif" and "ref/histogram_regular.tif"
-PASS
-Comparing "histogram_cumulative.tif" and "ref/histogram_cumulative.tif"
-PASS
 Comparing "trim.tif" and "ref/trim.tif"
 PASS
 Comparing "trimsubimages.tif" and "ref/trimsubimages.tif"
