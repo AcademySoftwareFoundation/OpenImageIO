@@ -51,12 +51,6 @@ texture_format_name(TexFormat f);
 const char*
 texture_type_name(TexFormat f);
 
-#ifdef BOOST_CONTAINER_FLAT_MAP_HPP
-typedef boost::container::flat_map<uint64_t, ImageCacheFile*> UdimLookupMap;
-#else
-typedef unordered_map<uint64_t, ImageCacheFile*> UdimLookupMap;
-#endif
-
 
 
 /// Structure to hold IC and TS statistics.  We combine into a single
@@ -111,6 +105,33 @@ struct ImageCacheStatistics {
     void init();
     void merge(const ImageCacheStatistics& s);
 };
+
+
+
+struct UdimInfo {
+    ustring filename;
+    ImageCacheFile* icfile = nullptr;
+    int u, v;
+
+    UdimInfo(ustring filename, ImageCacheFile* icfile, int u, int v)
+        : filename(filename)
+        , icfile(icfile)
+        , u(u)
+        , v(v)
+    {
+    }
+};
+
+using UdimLookupMap = boost::container::flat_map<uint64_t, UdimInfo>;
+
+
+
+// Synthesize a single combined ID that we'll use as an index.
+inline constexpr uint64_t
+udim_id(int utile, int vtile)
+{
+    return (uint64_t(vtile) << 32) + uint64_t(utile);
+}
 
 
 
@@ -330,6 +351,13 @@ public:
     /// Return the error message that explains why the file is broken.
     string_view broken_error_message() const { return m_broken_message; }
 
+    // For udim only, turn the udim spec filename into a concrete filename
+    // for the given u and v tile indices.
+    std::string udim_to_concrete(int utile, int vtile);
+
+    // Return the regex wildcard matching pattern for a udim spec.
+    static std::string udim_to_wildcard(string_view udimpattern);
+
 private:
     ustring m_filename_original;   ///< original filename before search path
     ustring m_filename;            ///< Filename
@@ -418,6 +446,10 @@ private:
     // make sense if they are per subimage, not one value for the whole
     // file. But it will require a bigger refactor to fix that.
     void init_from_spec();
+
+    // Helper for ctr: evaluate udim information, including setting
+    // m_is_udim.
+    void udim_setup();
 
     friend class ImageCacheImpl;
     friend class TextureSystemImpl;
@@ -866,18 +898,21 @@ public:
                stride_t ystride = AutoStride, stride_t zstride = AutoStride,
                int cache_chbegin = 0, int cache_chend = -1);
 
-    /// Find the ImageCacheFile record for the named image, or NULL if
-    /// no such file can be found.  This returns a plain old pointer,
-    /// which is ok because the file hash table has ref-counted pointers
-    /// and those won't be freed until the texture system is destroyed.
-    /// If header_only is true, we are finding the file only for the sake
-    /// of header information (e.g., called by get_image_info).
-    /// A call to verify_file() is still needed after find_file().
+    // Find the ImageCacheFile record for the named image, adding an entry
+    // if it is not already in the cache. This returns a plain old pointer,
+    // which is ok because the file hash table has ref-counted pointers and
+    // those won't be freed until the ImageCache is destroyed. A call to
+    // verify_file() is still needed after find_file().
     ImageCacheFile* find_file(ustring filename,
                               ImageCachePerThreadInfo* thread_info,
                               ImageInput::Creator creator = nullptr,
                               const ImageSpec* config     = nullptr,
                               bool replace                = false);
+
+    // Return the ImageCacheFile* of the file if it's already in the cache,
+    // otherwise return nullptr and don't open or add the file.
+    ImageCacheFile* find_file_no_add(ustring filename,
+                                     ImageCachePerThreadInfo* thread_info);
 
     /// Verify & prep the ImageCacheFile record for the named image,
     /// return the pointer (which may have changed for deduplication),
@@ -1057,8 +1092,15 @@ public:
     /// Enforce the max number of open files.
     void check_max_files(ImageCachePerThreadInfo* thread_info);
 
-    // For virtual UDIM-like files, adjust s and t and return the concrete
-    // ImageCacheFile pointer for the tile it's on.
+    // For virtual UDIM file pattern and integer u,v tile indices, return
+    // the concrete ImageCacheFile pointer for the tile it refers to.
+    ImageCacheFile* resolve_udim(ImageCacheFile* file, Perthread* thread_info,
+                                 int utile, int vtile);
+
+    // For virtual UDIM file pattern and float (s, t) coordinates, return
+    // the concrete ImageCacheFile pointer for the tile it's on and also
+    // adjust the s, t coordinates so they only contain the fractional
+    // part (referring to the spot *within* the tile).
     ImageCacheFile* resolve_udim(ImageCacheFile* file, Perthread* thread_info,
                                  float& s, float& t);
 

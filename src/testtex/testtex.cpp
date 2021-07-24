@@ -80,8 +80,10 @@ static bool test_derivs            = false;
 static bool test_statquery         = false;
 static bool invalidate_before_iter = true;
 static bool close_before_iter      = false;
+static bool runstats               = false;
 static Imath::M33f xform;
 static std::string texoptions;
+static std::string gtiname;
 void* dummyptr;
 
 typedef void (*Mapping2D)(const int&, const int&, float&, float&, float&,
@@ -172,6 +174,8 @@ getargs(int argc, const char* argv[])
       .help("Test TextureSystem::get_texels");
     ap.arg("--getimagespec", &test_getimagespec)
       .help("Test TextureSystem::get_imagespec");
+    ap.arg("--gettextureinfo %s:NAME", &gtiname)
+      .help("Test gettextureinfo, retrieving attrib 'NAME'");
     ap.arg("--offset %f:SOFF %f:TOFF %f:ROFF", &texoffset[0], &texoffset[1], &texoffset[2])
       .help("Offset texture coordinates");
     ap.arg("--scalest %f:SSCALE %f:TSCALE", &sscale, &tscale)
@@ -212,6 +216,8 @@ getargs(int argc, const char* argv[])
       .help("Test ImageCache write ability (1=seeded, 2=generated)");
     ap.arg("--teststatquery", &test_statquery)
       .help("Test queries of statistics");
+    ap.arg("--runstats", &runstats)
+      .help("Print runtime statistics");
 
     // clang-format on
     ap.parse(argc, argv);
@@ -1487,6 +1493,19 @@ main(int argc, const char* argv[])
         iters = 0;
     }
 
+    if (gtiname.size()) {
+        const char* attrib = nullptr;
+        bool result        = texsys->get_texture_info(filenames[0], 0,
+                                               ustring(gtiname), TypeString,
+                                               &attrib);
+        if (result)
+            Strutil::print("Image \"{}\" attrib \"{}\" = \"{}\"\n",
+                           filenames[0], gtiname, attrib);
+        else
+            Strutil::print("Image \"{}\" attrib \"{}\" -> not found\n",
+                           filenames[0], gtiname, attrib);
+    }
+
     if (test_gettexels) {
         test_getimagespec_gettexels(filenames[0]);
         iters = 0;
@@ -1592,7 +1611,9 @@ main(int argc, const char* argv[])
             test_environment(filename);
         }
         test_getimagespec_gettexels(filename);
-        std::cout << "Time: " << Strutil::timeintervalformat(timer()) << "\n";
+        if (runstats || verbose)
+            std::cout << "Time: " << Strutil::timeintervalformat(timer())
+                      << "\n";
     }
 
     if (test_statquery) {
@@ -1633,9 +1654,11 @@ main(int argc, const char* argv[])
         }
     }
 
-    std::cout << "Memory use: "
-              << Strutil::memformat(Sysutil::memory_used(true)) << "\n";
-    std::cout << texsys->getstats(verbose ? 2 : 0) << "\n";
+    if (runstats || verbose) {
+        std::cout << "Memory use: "
+                  << Strutil::memformat(Sysutil::memory_used(true)) << "\n";
+        std::cout << texsys->getstats(verbose ? 2 : 0) << "\n";
+    }
     TextureSystem::destroy(texsys);
 
     // Force all files to close, ugh, it's the only way I can find to solve
