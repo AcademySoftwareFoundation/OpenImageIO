@@ -17,8 +17,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * C++11 (also builds with C++14, C++17, and C++20)
  * Compilers: gcc 4.8.2 - 11.1, clang 3.3 - 12, MSVS 2015 - 2019,
    icc version 13 or higher
- * CMake >= 3.12 (tested through 3.20)
- * OpenEXR >= 2.0 (recommended: 2.2 or higher; tested through 3.0)
+ * CMake >= 3.12 (tested through 3.21)
+ * OpenEXR/Imath >= 2.0 (recommended: 2.2 or higher; tested through 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
 
 ### Optional dependencies -- features may be disabled if not found
@@ -28,7 +28,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8, 3.9)
-     * pybind11 >= 2.4.2 (Tested through 2.6.)
+     * pybind11 >= 2.4.2 (Tested through 2.7.)
      * NumPy
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.15 (tested 0.15 - 0.20; LibRaw >= 0.18 is necessary for
