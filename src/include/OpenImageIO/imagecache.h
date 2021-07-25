@@ -821,6 +821,10 @@ public:
     /// since it was first opened by the ImageCache.
     virtual void invalidate(ustring filename, bool force = true) = 0;
 
+    /// A more efficient variety of `invalidate()` for cases where you
+    /// already have an `ImageHandle*` for the file you want to invalidate.
+    virtual void invalidate(ImageHandle* file, bool force = true) = 0;
+
     /// Invalidate all loaded tiles and close open file handles.  This is
     /// safe to do even if other procedures are currently holding
     /// reference-counted tile pointers from the named image, but those
