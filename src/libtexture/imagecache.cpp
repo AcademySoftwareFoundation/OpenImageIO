@@ -3246,11 +3246,21 @@ ImageCacheImpl::invalidate(ustring filename, bool force)
             return;  // no such file
     }
 
+    invalidate(file.get(), force);
+}
+
+
+
+void
+ImageCacheImpl::invalidate(ImageHandle* handle, bool force)
+{
+    ImageCacheFileRef file(handle);
+
     if (!force) {
         // If not in force mode, we don't do anything if the modification
         // time of the file has not changed since we opened it.
         recursive_lock_guard guard(file->m_input_mutex);
-        if (file->mod_time() == Filesystem::last_write_time(filename)
+        if (file->mod_time() == Filesystem::last_write_time(file->filename())
             && !file->broken())
             return;
     }
