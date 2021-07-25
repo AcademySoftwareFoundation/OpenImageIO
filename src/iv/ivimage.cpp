@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "imageviewer.h"
+#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/strutil.h>
 
 

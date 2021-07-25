@@ -29,6 +29,7 @@ namespace pvt {
 // Forward declaration
 class ImageCacheImpl;
 class ImageCacheFile;
+class ImageCacheTile;
 class ImageCachePerThreadInfo;
 };  // namespace pvt
 
@@ -845,7 +846,7 @@ public:
 
     /// An opaque data type that allows us to have a pointer to a tile but
     /// without exposing any internals.
-    class Tile;
+    typedef pvt::ImageCacheTile Tile;
 
     /// Find the tile specified by an image filename, subimage & miplevel,
     /// the coordinates of a pixel, and optionally a channel range.   An
