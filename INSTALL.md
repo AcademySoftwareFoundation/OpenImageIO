@@ -19,7 +19,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
  * Compilers: **gcc 6.1 - 11.1**, **clang 3.4 - 12**, **MSVS 2017 - 2019**,
    **icc 17+**.
- * CMake >= 3.12 (tested through 3.20)
+ * CMake >= 3.12 (tested through 3.21)
  * OpenEXR/Imath >= 2.0 (recommended: 2.2 or higher; tested through 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
  * Boost >= 1.53 (recommended: at least 1.66; tested through 1.76)
@@ -31,7 +31,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8, 3.9)
-     * pybind11 >= 2.4.2 (Tested through 2.6.)
+     * pybind11 >= 2.4.2 (Tested through 2.7.)
      * NumPy
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.15 (tested 0.15 - 0.20; LibRaw >= 0.18 is necessary for
