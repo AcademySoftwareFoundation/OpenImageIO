@@ -88,7 +88,8 @@ OIIO_NAMESPACE_BEGIN
 static int
 threads_default()
 {
-    int n = Strutil::from_string<int>(Sysutil::getenv("OPENIMAGEIO_THREADS"));
+    int n = Strutil::from_string<int>(
+        Sysutil::getenv("OPENIMAGEIO_THREADS", Sysutil::getenv("CUE_THREADS")));
     if (n < 1)
         n = Sysutil::hardware_concurrency();
     return n;
