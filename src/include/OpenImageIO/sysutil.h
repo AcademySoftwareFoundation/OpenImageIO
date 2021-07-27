@@ -63,10 +63,11 @@ get_local_time(const time_t* time, struct tm* converted_time);
 OIIO_API std::string
 this_program_path();
 
-/// Return the value of an environment variable (or the empty string_view
-/// if it is not found in the environment.)
+/// Return the value of an environment variable, or if it is not found in
+/// the environment, return `defaultval`, which in turn defaults to the
+/// empty string.
 OIIO_API string_view
-getenv(string_view name);
+getenv(string_view name, string_view defaultval = "");
 
 /// Sleep for the given number of microseconds.
 ///
