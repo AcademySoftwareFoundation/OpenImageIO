@@ -61,6 +61,7 @@
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
+#include <OpenImageIO/ustring.h>
 
 #include <boost/version.hpp>
 #if BOOST_VERSION >= 106500
@@ -271,9 +272,12 @@ Sysutil::this_program_path()
 
 
 string_view
-Sysutil::getenv(string_view name)
+Sysutil::getenv(string_view name, string_view defaultval)
 {
-    return string_view(::getenv(name.c_str()));
+    const char* env = ::getenv(std::string(name).c_str());
+    if (!env && defaultval.size())
+        env = ustring(defaultval).c_str();
+    return string_view(env ? env : "");
 }
 
 
