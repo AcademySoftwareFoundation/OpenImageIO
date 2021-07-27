@@ -460,6 +460,22 @@ Strutil::icontains(string_view a, string_view b)
 }
 
 
+
+bool
+Strutil::contains_any_char(string_view a, string_view set)
+{
+    if (a.size() == 0)
+        return false;
+    // Leverage Strutil::parse_until, which trims a string until it hits
+    // any characters in a set.
+    string_view r = parse_until(a, set, false /* don't alter a */);
+    // If r encompasses less than all of a, it must have found one of the
+    // characters in set.
+    return (r.size() < a.size());
+}
+
+
+
 size_t
 Strutil::find(string_view a, string_view b)
 {
