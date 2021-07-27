@@ -47,11 +47,21 @@ test_filename_decomposition()
     OIIO_CHECK_EQUAL(Filesystem::replace_extension(test, "foo"),
                      "/directoryA/directory/filename.foo");
 
-    std::cout << "Testing generic_string\n";
+    std::cout << "Testing generic_filepath\n";
 #if _WIN32
     OIIO_CHECK_EQUAL(Filesystem::generic_filepath("\\x\\y"), "/x/y");
     OIIO_CHECK_EQUAL(Filesystem::generic_filepath("c:\\x\\y"), "c:/x/y");
 #endif
+
+    std::cout << "Testing filename_to_regex\n";
+    OIIO_CHECK_EQUAL(Filesystem::filename_to_regex("/foo/bar/baz.exr"),
+                     "/foo/bar/baz\\.exr");
+    OIIO_CHECK_EQUAL(Filesystem::filename_to_regex("/f(o)o/b[a]r/b{a}z.exr"),
+                     "/f\\(o\\)o/b\\[a\\]r/b\\{a\\}z\\.exr");
+    OIIO_CHECK_EQUAL(Filesystem::filename_to_regex("/foo/bar/baz.*"),
+                     "/foo/bar/baz\\..*");
+    OIIO_CHECK_EQUAL(Filesystem::filename_to_regex("/fo?/b*r/b?z.*"),
+                     "/fo.?/b.*r/b.?z\\..*");
 }
 
 
@@ -436,6 +446,10 @@ test_scan_sequences()
         filenames.push_back(fn);
         create_test_file(fn);
     }
+    // Deliberate file that's not a match! Make sure dots in the filename
+    // aren't regex dots that match any character.
+    filenames.push_back("fooX0000Xexr");
+    create_test_file("fooX0000Xexr");
 
     test_scan_file_seq(
         "foo.#.exr",
