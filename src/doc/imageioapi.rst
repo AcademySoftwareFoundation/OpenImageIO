@@ -316,7 +316,7 @@ inside the source code.
         imagecache->attribute ("options", value);
 
 
-``OPENIMAGEIO_TEXTURESYSTEM_OPTIONS``
+``OPENIMAGEIO_TEXTURE_OPTIONS``
 
     Allows you to seed the options for any TextureSystem created.
 
@@ -328,3 +328,10 @@ inside the source code.
     will be passed to a call to::
 
         texturesys->attribute ("options", value);
+
+``OPENIMAGEIO_THREADS``, ``CUE_THREADS``
+
+    Either of these sets the default number of threads that OpenImageIO will
+    use for its thread pool. If both are set, ``OPENIMAGEIO_THREADS`` will
+    take precedence. If neither is set, the default will be 0, which means
+    to use as many threads as there are physical cores on the machine.
