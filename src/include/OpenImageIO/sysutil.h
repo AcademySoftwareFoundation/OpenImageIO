@@ -67,7 +67,11 @@ this_program_path();
 /// the environment, return `defaultval`, which in turn defaults to the
 /// empty string.
 OIIO_API string_view
-getenv(string_view name, string_view defaultval = "");
+getenv(string_view name, string_view defaultval);
+
+// Legacy for link compatibility. DEPRECATED(2.3)
+OIIO_API string_view
+getenv(string_view name);
 
 /// Sleep for the given number of microseconds.
 ///
