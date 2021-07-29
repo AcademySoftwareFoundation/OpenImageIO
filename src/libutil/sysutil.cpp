@@ -282,6 +282,15 @@ Sysutil::getenv(string_view name, string_view defaultval)
 
 
 
+string_view
+Sysutil::getenv(string_view name)
+{
+    const char* env = ::getenv(std::string(name).c_str());
+    return string_view(env ? env : "");
+}
+
+
+
 void
 Sysutil::usleep(unsigned long useconds)
 {
