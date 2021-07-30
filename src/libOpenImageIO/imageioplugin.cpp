@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -44,6 +45,8 @@ static std::map<std::string, std::string> format_library_versions;
 static std::vector<ustring> format_list_vector;  // Vector separated format_list
 static recursive_mutex format_list_vector_mutex;
 
+// Which plugin names are procedural (not reading from files)
+static std::set<std::string> procedural_plugins;
 
 static std::string pattern = Strutil::sprintf(".imageio.%s",
                                               Plugin::plugin_extension());
@@ -480,6 +483,25 @@ pvt::catalog_all_plugins(std::string searchpath)
             }
         }
     }
+
+    // Inventory the procedural plugins
+    for (auto&& f : input_formats) {
+        auto inp = ImageInput::create(f.first);
+        if (inp->supports("procedural"))
+            procedural_plugins.insert(f.first);
+    }
+}
+
+
+
+bool
+pvt::is_procedural_plugin(const std::string& name)
+{
+    recursive_lock_guard lock(imageio_mutex);  // Ensure thread safety
+
+    if (!format_list_vector.size())
+        pvt::catalog_all_plugins(pvt::plugin_searchpath.string());
+    return procedural_plugins.find(name) != procedural_plugins.end();
 }
 
 

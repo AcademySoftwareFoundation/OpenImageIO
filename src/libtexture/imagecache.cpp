@@ -2492,14 +2492,14 @@ ImageCacheImpl::resolve_filename(const std::string& filename) const
 {
     // Ask if the format can generate imagery procedurally. If so, don't
     // go looking for a file.
-    auto input      = ImageInput::create(filename);
-    bool procedural = input ? input->supports("procedural") : false;
-    if (procedural)
+    if (pvt::is_procedural_plugin(filename)
+        || pvt::is_procedural_plugin(Filesystem::extension(filename, false)))
         return filename;
-    // don't bother with the searchpath_find call since it will do an existence
-    // check that we don't need
-    if (m_searchdirs.empty())
+    if (m_searchdirs.empty() || Filesystem::path_is_absolute(filename, true)) {
+        // Don't bother with the searchpath_find call since it will do an
+        // existence check that we don't need.
         return filename;
+    }
     std::string s = Filesystem::searchpath_find(filename, m_searchdirs, true);
     return s.empty() ? filename : s;
 }

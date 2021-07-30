@@ -53,6 +53,10 @@ inline void errorfmt (const char* fmt, const Args&... args) {
 // Make sure all plugins are inventoried. For internal use only.
 void catalog_all_plugins (std::string searchpath);
 
+// Inexpensive check if a file extension or format name corresponds to a
+// procedural input plugin.
+bool is_procedural_plugin(const std::string& name);
+
 /// Given the format, set the default quantization range.
 void get_default_quantize (TypeDesc format, long long &quant_min,
                            long long &quant_max) noexcept;
