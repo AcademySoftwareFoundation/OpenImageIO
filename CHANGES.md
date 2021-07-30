@@ -107,6 +107,12 @@ New major features and public API changes:
       libOpenImageIO depends on and links to libOpenImageIO_Util, rather
       than the utility classes being defined separately in both libraries.
       #2906 (2.3.4)
+* Environment variables:
+    - For users of OpenCue, the `CUE_THREADS` environment variable, if set,
+      is honored to limit the size of the thread pool that OIIO uses. Note
+      that `OPENIMAGEIO_THREADS` can override this, as can any direct setting
+      through the API or command line arguments of the utility programs.
+      #3038 (2.3.6.1)
 
 Performance improvements:
 * Speed up BMP reading by eliminating wasteful allocation and copying
@@ -328,6 +334,9 @@ Developer goodies / internals:
       (2.3.0.1/2.2.8)
     - `strhash()` is now constexpr for C++14 and higher. #2843 (2.3.3)
     - Strutil new functions: find, rfind, ifind, irfind (#2960) (2.3.4/2.2.14)
+* sysutil.h:
+    - getenv() extended to take a default value to return if the environment
+      variable is not found. #3037 #3040 (2.3.6.1)
 * typedesc.h:
     - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
       precision and range to hold the basetypes of either `a` or `b`.
