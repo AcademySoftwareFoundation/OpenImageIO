@@ -97,12 +97,12 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    version: 1
     view: "left"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.left"
     oiio:subimages: 2
     openexr:chunkCount: 761
-    openexr:version: 1
  subimage  1: 1452 x  761, 5 channel, deep half/half/half/half/float openexr
     SHA-1: 23D591E3BE032257729B30F078D62F6A16D40377
     channel list: R (half), G (half), B (half), A (half), Z (float)
@@ -115,12 +115,12 @@ Reading ../../../../../openexr-images/v2/Stereo/Balls.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    version: 1
     view: "right"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.right"
     oiio:subimages: 2
     openexr:chunkCount: 761
-    openexr:version: 1
 ../../../../../openexr-images/v2/Stereo/Balls.exr : 1431 x  761, 5 channel, deep half/half/half/half/float openexr (2 subimages)
     Stats Min: 0.000169 0.000083 0.000092 0.015625 127.872681 (float)
     Stats Max: 0.622070 0.265625 0.267822 1.000000 738.560669 (float)
@@ -156,12 +156,12 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    version: 1
     view: "left"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.left"
     oiio:subimages: 2
     openexr:chunkCount: 1080
-    openexr:version: 1
  subimage  1: 1920 x 1080, 5 channel, deep half/half/half/half/float openexr
     SHA-1: B0B52A15E0E25796832E4C25BD835C3F3B970BC0
     channel list: R (half), G (half), B (half), A (half), Z (float)
@@ -171,12 +171,12 @@ Reading ../../../../../openexr-images/v2/Stereo/Leaves.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    version: 1
     view: "right"
     oiio:ColorSpace: "Linear"
     oiio:subimagename: "rgba.right"
     oiio:subimages: 2
     openexr:chunkCount: 1080
-    openexr:version: 1
 ../../../../../openexr-images/v2/Stereo/Leaves.exr : 1920 x 1080, 5 channel, deep half/half/half/half/float openexr (2 subimages)
     Stats Min: 0.000099 0.000341 0.000152 0.015625 72.493698 (float)
     Stats Max: 0.403564 0.593262 0.345215 1.000000 954.392700 (float)

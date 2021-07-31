@@ -870,8 +870,8 @@ static ExrMeta exr_meta_translation[] = {
     // don't want to mess it up by inadvertently copying it wrong from the
     // user or from a file we read.
     ExrMeta("YResolution"), ExrMeta("planarconfig"), ExrMeta("type"),
-    ExrMeta("tiles"), ExrMeta("version"), ExrMeta("chunkCount"),
-    ExrMeta("maxSamplesPerPixel"), ExrMeta("openexr:roundingmode")
+    ExrMeta("tiles"), ExrMeta("chunkCount"), ExrMeta("maxSamplesPerPixel"),
+    ExrMeta("openexr:roundingmode")
 };
 
 

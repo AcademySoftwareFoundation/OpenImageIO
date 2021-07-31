@@ -298,7 +298,6 @@ private:
         m_map["wrapmodes"] = "wrapmodes";
         m_map["aperture"]  = "FNumber";
         // Ones to prefix with openexr:
-        m_map["version"]             = "openexr:version";
         m_map["chunkCount"]          = "openexr:chunkCount";
         m_map["maxSamplesPerPixel"]  = "openexr:maxSamplesPerPixel";
         m_map["dwaCompressionLevel"] = "openexr:dwaCompressionLevel";
