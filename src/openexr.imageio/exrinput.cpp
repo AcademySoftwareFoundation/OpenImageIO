@@ -240,8 +240,6 @@ private:
     Imf::TiledInputPart* m_tiled_input_part;
     Imf::DeepScanLineInputPart* m_deep_scanline_input_part;
     Imf::DeepTiledInputPart* m_deep_tiled_input_part;
-    Imf::InputFile* m_input_scanline;    ///< Input for scanline files
-    Imf::TiledInputFile* m_input_tiled;  ///< Input for tiled files
     Filesystem::IOProxy* m_io = nullptr;
     std::unique_ptr<Filesystem::IOProxy> m_local_io;
     int m_subimage;                     ///< What subimage are we looking at?
@@ -257,8 +255,6 @@ private:
         m_tiled_input_part         = NULL;
         m_deep_scanline_input_part = NULL;
         m_deep_tiled_input_part    = NULL;
-        m_input_scanline           = NULL;
-        m_input_tiled              = NULL;
         m_subimage                 = -1;
         m_miplevel                 = -1;
         m_io                       = nullptr;
@@ -1270,8 +1266,6 @@ OpenEXRInput::close()
     delete m_tiled_input_part;
     delete m_deep_scanline_input_part;
     delete m_deep_tiled_input_part;
-    delete m_input_scanline;
-    delete m_input_tiled;
     delete m_input_stream;
     init();  // Reset to initial state
     return true;
@@ -1310,7 +1304,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     chend = clamp(chend, chbegin + 1, m_spec.nchannels);
     //    std::cerr << "openexr rns " << ybegin << ' ' << yend << ", channels "
     //              << chbegin << "-" << (chend-1) << "\n";
-    if (m_input_scanline == NULL && m_scanline_input_part == NULL) {
+    if (!m_scanline_input_part) {
         errorf(
             "called OpenEXRInput::read_native_scanlines without an open file");
         return false;
@@ -1336,10 +1330,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                           pixelbytes, scanlinebytes));
             chanoffset += chanbytes;
         }
-        if (m_input_scanline) {
-            m_input_scanline->setFrameBuffer(frameBuffer);
-            m_input_scanline->readPixels(ybegin, yend - 1);
-        } else if (m_scanline_input_part) {
+        if (m_scanline_input_part) {
             m_scanline_input_part->setFrameBuffer(frameBuffer);
             m_scanline_input_part->readPixels(ybegin, yend - 1);
         } else {
@@ -1400,7 +1391,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
               << ' ' << yend << ", chans " << chbegin
               << "-" << (chend-1) << "\n";
 #endif
-    if (!(m_input_tiled || m_tiled_input_part)
+    if (!m_tiled_input_part
         || !m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend)) {
         errorf("called OpenEXRInput::read_native_tiles without an open file");
         return false;
@@ -1448,12 +1439,7 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                               * nxtiles));
             chanoffset += chanbytes;
         }
-        if (m_input_tiled) {
-            m_input_tiled->setFrameBuffer(frameBuffer);
-            m_input_tiled->readTiles(firstxtile, firstxtile + nxtiles - 1,
-                                     firstytile, firstytile + nytiles - 1,
-                                     m_miplevel, m_miplevel);
-        } else if (m_tiled_input_part) {
+        if (m_tiled_input_part) {
             m_tiled_input_part->setFrameBuffer(frameBuffer);
             m_tiled_input_part->readTiles(firstxtile, firstxtile + nxtiles - 1,
                                           firstytile, firstytile + nytiles - 1,
