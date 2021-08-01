@@ -66,6 +66,8 @@ private:
     bool m_unpacked = false;
     std::unique_ptr<LibRaw> m_processor;
     libraw_processed_image_t* m_image = nullptr;
+    bool m_do_balance_clamped = false;
+    float m_balanced_max = 1.0;
     std::string m_filename;
     ImageSpec m_config;  // save config requests
     std::string m_make;
@@ -434,9 +436,6 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // Disable exposure correction (unless config "raw:auto_bright" == 1)
     m_processor->imgdata.params.no_auto_bright
         = !config.get_int_attribute("raw:auto_bright", 0);
-    // Use camera white balance if "raw:use_camera_wb" is not 0
-    m_processor->imgdata.params.use_camera_wb
-        = config.get_int_attribute("raw:use_camera_wb", 1);
     // Turn off maximum threshold value (unless set to non-zero)
     m_processor->imgdata.params.adjust_maximum_thr
         = config.get_float_attribute("raw:adjust_maximum_thr", 0.0f);
@@ -454,10 +453,38 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_processor->imgdata.params.aber[2] = p->get<double>(1);
         }
     }
-    // Set user white balance coefficients.
-    // Only has effect if "raw:use_camera_wb" is equal to 0,
-    // i.e. we are not using the camera white balance
-    {
+
+    // Always disable the camera white-balance setting as it stops
+    // other modes from working. Instead, we can put the camera white
+    // balance values into the user mults if desired
+    m_processor->imgdata.params.use_camera_wb = 0;
+    if (config.get_int_attribute("raw:use_camera_wb", 1) == 1){
+        auto& color = m_processor->imgdata.color;
+        auto& params = m_processor->imgdata.params;
+        auto& idata = m_processor->imgdata.idata;
+
+        auto is_rgbg_or_bgrg = [&](unsigned int filters){
+            std::string filter(libraw_filter_to_str(filters));
+            return filter == "RGBG" || filter == "BGRG";
+        };
+        float norm[4] = {color.cam_mul[0], color.cam_mul[1],
+                         color.cam_mul[2], color.cam_mul[3]};
+
+        if (is_rgbg_or_bgrg(idata.filters)){
+            // normalize white balance around green
+            norm[0] /= norm[1];
+            norm[1] /= norm[1];
+            norm[2] /= norm[3] > 0 ? norm[3] : norm[1];
+            norm[3] /= norm[3] > 0 ? norm[3] : norm[1];
+        }
+        params.user_mul[0] = norm[0];
+        params.user_mul[1] = norm[1];
+        params.user_mul[2] = norm[2];
+        params.user_mul[3] = norm[3];
+    } else {
+        // Set user white balance coefficients.
+        // Only has effect if "raw:use_camera_wb" is equal to 0,
+        // i.e. we are not using the camera white balance
         auto p = config.find_attribute("raw:user_mul");
         if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
             m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
@@ -558,17 +585,6 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_spec.attribute("raw:Exposure", exposure);
     }
 
-    // Highlight adjustment
-    int highlight_mode = config.get_int_attribute("raw:HighlightMode", 0);
-    if (highlight_mode != 0) {
-        if (highlight_mode < 0 || highlight_mode > 9) {
-            errorf("raw:HighlightMode invalid value. range 0-9");
-            return false;
-        }
-        m_processor->imgdata.params.highlight = highlight_mode;
-        m_spec.attribute("raw:HighlightMode", highlight_mode);
-    }
-
     // Interpolation quality
     // note: LibRaw must be compiled with demosaic pack GPL2 to use demosaic
     // algorithms 5-9. It must be compiled with demosaic pack GPL3 for
@@ -641,6 +657,82 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_processor->imgdata.params.user_qual = 3;
         m_spec.attribute("raw:Demosaic", "AHD");
     }
+
+    // Highlight adjustment
+    // 0  = Clip
+    // 1  = Unclip
+    // 2  = Blend
+    // 3+ = Recovery
+    int highlight_mode = config.get_int_attribute("raw:HighlightMode", 0);
+    if (highlight_mode < 0 || highlight_mode > 9) {
+        errorf("raw:HighlightMode invalid value. range 0-9");
+        return false;
+    }
+    m_processor->imgdata.params.highlight = highlight_mode;
+    m_spec.attribute("raw:HighlightMode", highlight_mode);
+
+    // When the highlights are clipped, it can cause images to take on an apparent hue
+    // shift if all 3 channels aren't clipping uniformly. This often confuses HDRI merging
+    // applications, causing strange values in areas of high brightness (suns, speculars, etc).
+    // The balance_clamped option checks to see what the highest accepted value should be
+    // and then hard clamps all channels to this value.
+    // Enabling "balance_clamped" will change the return buffer type to HALF
+    int balance_clamped = config.get_int_attribute("raw:balance_clamped", 0); // default OFF
+    if (highlight_mode != 0/*Clip*/){
+        // FIXME: promote this debug message to a runtme warning
+        OIIO::debugf("%s", "raw:balance_clamped will have no effect as raw:HighlightMode is not 0\n");
+    }
+    if (m_process && balance_clamped != 0 && highlight_mode == 0 /*Clip*/){
+        m_spec.set_format(TypeDesc::HALF);
+        m_spec.attribute("raw:balance_clamped", balance_clamped);
+
+        // The following code can only run once the libraw processor is unpacked.
+        // As these values only have effect on the debayered images, it is ok
+        // to leave them unset the first time.
+        if (m_unpacked){
+            float old_max_thr = m_processor->imgdata.params.adjust_maximum_thr;
+
+            // Disable max threshold for highlight adjustment
+            m_processor->imgdata.params.adjust_maximum_thr = 0.0f;
+
+            // Get unadjusted max value (need to force a read first)
+            ret = m_processor->raw2image_ex(/*subtract_black=*/true);
+            if (ret != LIBRAW_SUCCESS){
+                errorf("HighlightMode adjustment detection read failed");
+                errorf(libraw_strerror(ret));
+                return false;
+            }
+            if (m_processor->adjust_maximum() != LIBRAW_SUCCESS){
+                errorf("HighlightMode minimum adjustment failed");
+                errorf(libraw_strerror(ret));
+                return false;
+            }
+            float unadjusted = m_processor->imgdata.color.maximum;
+
+            // Set the max threshold to either the default 1.0, or user requested max
+            m_processor->imgdata.params.adjust_maximum_thr =
+                (old_max_thr == 0.0f) ? 1.0 : old_max_thr;
+
+            // Get new max value
+            if (m_processor->adjust_maximum() != LIBRAW_SUCCESS){
+                errorf("HighlightMode maximum adjustment failed");
+                errorf(libraw_strerror(ret));
+                return false;
+            }
+            float adjusted = m_processor->imgdata.color.maximum;
+
+            // Restore old max threshold
+            m_processor->imgdata.params.adjust_maximum_thr = old_max_thr;
+
+            if (unadjusted <= 0.0f){
+                // invalid data
+            } else {
+                m_do_balance_clamped = true;
+                m_balanced_max = adjusted / unadjusted;
+            }
+        }
+    }
+
 
     // Metadata
 
@@ -1345,7 +1437,18 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
     // Because we are reading UINT16's, we need to cast m_image->data
     unsigned short* scanline = &(((unsigned short*)m_image->data)[length * y]);
-    memcpy(data, scanline, m_spec.scanline_bytes(true));
+
+    // Copy or convert pixels from libraw to oiio
+    convert_pixel_values(TypeDesc::UINT16, scanline, m_spec.format, data, length);
+
+    // Check if we need to balance any clamped values (implies HALF output)
+    if (m_do_balance_clamped){
+        half* dst = static_cast<half*>(data);
+        auto balance_func = [&](half& f) -> half {
+            return std::min((float)f, m_balanced_max);
+        };
+        std::transform(dst, dst + length, dst, balance_func);
+    }
 
     return true;
 }
