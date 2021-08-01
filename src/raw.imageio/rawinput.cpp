@@ -231,7 +231,29 @@ OIIO_EXPORT const char* raw_input_extensions[]
 
 OIIO_PLUGIN_EXPORTS_END
 
+namespace {
+    const char* libraw_filter_to_str(unsigned int filters){
+        // Convert the libraw filter pattern description
+        // into a slightly more human readable string
+        // LibRaw/internal/defines.h:166
+        switch(filters){
+            // CYGM
+            case 0xe1e4e1e4: return "GMYC";
+            case 0x1b4e4b1e: return "CYGM";
+            case 0x1e4b4e1b: return "YCGM";
+            case 0xb4b4b4b4: return "GMCY";
+            case 0x1e4e1e4e: return "CYMG";
 
+            // RGB
+            case 0x16161616: return "BGRG";
+            case 0x61616161: return "GRGB";
+            case 0x49494949: return "GBGR";
+            case 0x94949494: return "RGBG";
+            default: break;
+        }
+        return "";
+    }
+}
 
 bool
 RawInput::open(const std::string& name, ImageSpec& newspec)
@@ -596,6 +618,13 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.nchannels = 1;
             m_spec.channelnames.clear();
             m_spec.channelnames.emplace_back("Y");
+
+            // Put the details about the filter pattern into the metadata
+            std::string filter(libraw_filter_to_str(m_processor->imgdata.idata.filters));
+            if (filter.empty()){
+                filter = "unknown";
+            }
+            m_spec.attribute("raw:FilterPattern", filter);
 
             // Also, any previously set demosaicing options are void, so remove them
             m_spec.erase_attribute("oiio:Colorspace");
