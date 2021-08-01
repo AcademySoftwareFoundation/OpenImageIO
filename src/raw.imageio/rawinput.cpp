@@ -410,6 +410,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
                    libraw_strerror(ret));
             return false;
         }
+        m_unpacked = true;
     }
 
     m_processor->adjust_sizes_info_only();
