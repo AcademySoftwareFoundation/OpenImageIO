@@ -301,6 +301,14 @@ test_comparisons()
     OIIO_CHECK_EQUAL(Strutil::icontains("", ""), true);
     OIIO_CHECK_EQUAL(Strutil::icontains("", "x"), false);
 
+    OIIO_CHECK_EQUAL(Strutil::contains_any_char("abcde", "xa"), true);
+    OIIO_CHECK_EQUAL(Strutil::contains_any_char("abcde", "xe"), true);
+    OIIO_CHECK_EQUAL(Strutil::contains_any_char("abcde", "xc"), true);
+    OIIO_CHECK_EQUAL(Strutil::contains_any_char("abcde", "xyz"), false);
+    OIIO_CHECK_EQUAL(Strutil::contains_any_char("abcde", "abcde"), true);
+    OIIO_CHECK_EQUAL(Strutil::contains_any_char("", "abc"), false);
+    OIIO_CHECK_EQUAL(Strutil::contains_any_char("abcde", ""), false);
+
     OIIO_CHECK_EQUAL(Strutil::find("abcdeabcde", "bc"), 1);
     OIIO_CHECK_EQUAL(Strutil::find("abcdeabcde", "BC"), std::string::npos);
     OIIO_CHECK_EQUAL(Strutil::find("abcdeabcde", "ac"), std::string::npos);

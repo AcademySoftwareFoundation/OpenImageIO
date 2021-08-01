@@ -373,6 +373,9 @@ size_t OIIO_UTIL_API irfind(string_view a, string_view b);
 /// comparison?
 bool OIIO_UTIL_API icontains (string_view a, string_view b);
 
+/// Does 'a' contain any of the characters within `set`?
+bool OIIO_UTIL_API contains_any_char (string_view a, string_view set);
+
 /// Convert to upper case in place, faster than std::toupper because we use
 /// a static locale that doesn't require a mutex lock.
 void OIIO_UTIL_API to_lower (std::string &a);
@@ -872,17 +875,16 @@ string_view OIIO_UTIL_API parse_identifier (string_view &str,
 bool OIIO_UTIL_API parse_identifier_if (string_view &str, string_view id,
                                    bool eat=true) noexcept;
 
-/// Return the characters until any character in sep is found, storing it in
-/// str, and additionally modify str to skip over the parsed section if eat
-/// is also true. Otherwise, if no word is found at the beginning of str,
-/// return an empty string_view and don't modify str.
+/// Return the longest prefix of `str` that does not contain any characters
+/// found in `set` (which defaults to the set of common whitespace
+/// characters). If `eat` is true, then `str` will be modified to trim off
+/// this returned prefix (but not the separator character).
 string_view OIIO_UTIL_API parse_until (string_view &str,
-                                  string_view sep=" \t\r\n", bool eat=true) noexcept;
+                                  string_view set=" \t\r\n", bool eat=true) noexcept;
 
-/// Return the characters at the head of the string that match any in set,
-/// and additionally modify str to skip over the parsed section if eat is
-/// also true. Otherwise, if no `set` characters are found at the beginning
-/// of str, return an empty string_view and don't modify str.
+/// Return the longest prefix of `str` that contain only characters found in
+/// `set`. If `eat` is true, then `str` will be modified to trim off this
+/// returned prefix.
 string_view OIIO_UTIL_API parse_while (string_view &str,
                                   string_view set, bool eat=true) noexcept;
 
