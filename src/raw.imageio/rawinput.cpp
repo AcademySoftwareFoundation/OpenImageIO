@@ -66,6 +66,8 @@ private:
     bool m_unpacked = false;
     std::unique_ptr<LibRaw> m_processor;
     libraw_processed_image_t* m_image = nullptr;
+    bool m_do_scene_linear_scale = false;
+    float m_camera_to_scene_linear_scale = (1.0f / 0.45f); // see open_raw for details
     bool m_do_balance_clamped = false;
     float m_balanced_max = 1.0;
     std::string m_filename;
@@ -656,6 +658,38 @@ RawInput::open_raw(bool unpack, const std::string& name,
     } else {
         m_processor->imgdata.params.user_qual = 3;
         m_spec.attribute("raw:Demosaic", "AHD");
+    }
+
+    // Values returned by libraw are in linear, but are normalized based on the
+    // whitepoint / sensor / ISO and shooting conditions.
+    // Technically the transformation for each camera body / lens / setup
+    // must be solved bespoke, but we can get reasonable results by applying a 2.22222x scaler.
+    // This value can be obtained by:
+    // * Placing a neutral 18% reflective grey-card (Kodak R-27) at 45deg in midday sun (no clouds)
+    // * Spot measure the center of the card with a 1deg spot at f/8 in native ISO
+    // * Set camera to manual mode and set shutter, aperture and ISO as spot meter indicates
+    // * Take photo
+    // * Convert RAW file to linear exr via this library ensuring the following flags are set:
+    //     * Overriding scale factor to 1.0x (raw:camera_to_scene_linear_scale 1.0)
+    //     * Set output gamut to XYZ (raw:Colorspace XYZ)
+    // * Load image into scene linear editor (Nuke, Natron, etc)
+    // * Convert gamut from XYZ to Rec709 using ColorMatrix with Bradford scaling:
+    //               [[ 3.1466669502 -1.6664582265 -0.4801943177 ]
+    //                [-0.9955212125  1.9557543133  0.0397657062 ]
+    //                [ 0.0635932301 -0.2145607754  1.1509330170 ]]
+    // * Desaturate image with Rec709 luma coefficients
+    // * Multiply image until grey chart measures 0.18
+    // * Re-run RAW conversion with this new multiplier (eg raw:camera_to_scene_linear_scale 2.2222)
+    // The default value of (1.0f / 0.45f) was solved in this way from a Canon 7D
+    if (config.find_attribute("raw:camera_to_scene_linear_scale") ||
+        // Add a simple on/off to apply the default scaling
+        config.find_attribute("raw:apply_scene_linear_scale")     ){
+        m_camera_to_scene_linear_scale =
+            config.get_float_attribute("raw:camera_to_scene_linear_scale", (1.0f / 0.45f));
+        m_do_scene_linear_scale = true;
+        // Store scene linear values in HALF datatype rather than UINT16
+        m_spec.set_format(TypeDesc::HALF);
+        m_spec.attribute("raw:camera_to_scene_linear_scale", m_camera_to_scene_linear_scale);
     }
 
     // Highlight adjustment
@@ -1450,6 +1484,25 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         std::transform(dst, dst + length, dst, balance_func);
     }
 
+    // Perform any scene linear scaling (implies HALF output)
+    if (m_do_scene_linear_scale){
+        float scale_value = m_camera_to_scene_linear_scale;
+
+        // In any mode other than Clip highlights, LibRAW refuses
+        // to multiply the image values to the correct level.
+        // Perform that conversion here as the user requested
+        // scene linear values directly.
+        if (m_processor->imgdata.params.highlight != 0/*Clip*/){
+            //TODO: Find this number
+            scale_value *= 2.5f;
+        }
+
+        half* dst = static_cast<half*>(data);
+        auto scale_func = [&](half& f) -> half {
+            return (float)f * scale_value;
+        };
+        std::transform(dst, dst + length, dst, scale_func);
+    }
     return true;
 }
 
