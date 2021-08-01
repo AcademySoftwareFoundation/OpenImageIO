@@ -1268,10 +1268,38 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
     if (!m_process) {
         // The user has selected not to apply any debayering.
-        // We take the raw data directly
-        unsigned short* scanline = &(
-            (m_processor->imgdata.rawdata.raw_image)[m_spec.width * y]);
-        memcpy(data, scanline, m_spec.scanline_bytes(true));
+
+        // The raw_image buffer might contain junk pixels that are usually trimmed off
+        // we must index into the raw buffer, taking these into account
+        auto& sizes = m_processor->imgdata.sizes;
+        int offset = sizes.raw_width * sizes.top_margin;
+        int scanline_start = sizes.raw_width * y + sizes.left_margin;
+
+        // The raw_image will not have been rotated, so we must factor that into our
+        // array access
+        // For none or 180 degree rotation, the scanlines are still contiguous in memory
+        if (sizes.flip == 0 /*no rotation*/ || sizes.flip == 3 /*180 degrees*/){
+            if (sizes.flip == 3){
+                scanline_start = sizes.raw_width * (m_spec.height - y) + sizes.left_margin;
+            }
+            unsigned short* scanline = &(
+                (m_processor->imgdata.rawdata.raw_image + offset)[scanline_start]);
+            convert_pixel_values(TypeDesc::UINT16, scanline, m_spec.format, data, m_spec.width);
+        }
+        // For 90 degrees ClockWise or CounterClockWise, our desired scanlines now run perpendicular
+        // to the array direction so we must copy the pixels into a temporary contiguous buffer
+        else if (sizes.flip == 5 /*90 degrees CCW*/ || sizes.flip == 6 /*90 degrees CW*/) {
+            scanline_start = m_spec.height - y + sizes.left_margin;
+            if (sizes.flip == 6){
+                scanline_start = y + sizes.left_margin;
+            }
+            auto buffer = std::make_unique<uint16_t[]>(m_spec.width);
+            for (size_t i=0; i<static_cast<size_t>(m_spec.width); ++i){
+                size_t index = (sizes.flip == 5) ? i : m_spec.width - i; //flip the index if rotating 90 degrees CW
+                buffer[index] = (m_processor->imgdata.rawdata.raw_image + offset)[sizes.raw_width * i + scanline_start];
+            }
+            convert_pixel_values(TypeDesc::UINT16, buffer.get(), m_spec.format, data, m_spec.width);
+        }
         return true;
     }
 
