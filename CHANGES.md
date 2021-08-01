@@ -1,6 +1,13 @@
-Release 2.2.17 (1 Aug? 2021) -- compared to 2.2.16
+Release 2.2.17 (1 Aug 2021) -- compared to 2.2.16
 --------------------------------------------------
-
+* Output to DPX files now supports IOProxy. (Input already did.) #3013
+* typedesc.h: TypeDesc can now describe 2D and 3D bounding boxes, as arrays
+  of 2 VEC2 aggregates (for 2D) or VEC3 aggregates (for 3D) with "BOX"
+  semantic. The shorthand for these are `TypeBox2`, `TypeBox3` (for float),
+  and `TypeBox2i` and `TypeBox3i` for integer or pixel coordinte
+  boxes. #3008
+* Build: Fixes for building against fmt 8.0.0. #3007
+* Build: Finding boost is more flexible when desiring static libraries. #3031
 
 Release 2.2.16 (1 Jul 2021) -- compared to 2.2.15
 --------------------------------------------------
