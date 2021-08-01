@@ -1,3 +1,7 @@
+Release 2.2.18 (1 Sep? 2021) -- compared to 2.2.17
+--------------------------------------------------
+
+
 Release 2.2.17 (1 Aug 2021) -- compared to 2.2.16
 --------------------------------------------------
 * Output to DPX files now supports IOProxy. (Input already did.) #3013
