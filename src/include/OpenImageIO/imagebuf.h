@@ -14,7 +14,6 @@
 
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/fmath.h>
-#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 
 #include <limits>
@@ -25,6 +24,11 @@ OIIO_NAMESPACE_BEGIN
 
 class ImageBuf;
 class ImageBufImpl;  // Opaque type for the unique_ptr.
+class ImageCache;
+
+namespace pvt {
+class ImageCacheTile;
+};  // namespace pvt
 
 
 
@@ -1236,7 +1240,7 @@ public:
         ~IteratorBase()
         {
             if (m_tile)
-                m_ib->imagecache()->release_tile(m_tile);
+                release_tile();
         }
 
         /// Assign one IteratorBase to another
@@ -1244,7 +1248,7 @@ public:
         const IteratorBase& assign_base(const IteratorBase& i)
         {
             if (m_tile)
-                m_ib->imagecache()->release_tile(m_tile);
+                release_tile();
             m_tile      = nullptr;
             m_proxydata = i.m_proxydata;
             m_ib        = i.m_ib;
@@ -1426,7 +1430,7 @@ public:
         int m_rng_xbegin, m_rng_xend, m_rng_ybegin, m_rng_yend, m_rng_zbegin,
             m_rng_zend;
         int m_x, m_y, m_z;
-        ImageCache::Tile* m_tile = nullptr;
+        pvt::ImageCacheTile* m_tile = nullptr;
         int m_tilexbegin, m_tileybegin, m_tilezbegin;
         int m_tilexend;
         int m_nchannels;
@@ -1527,6 +1531,11 @@ public:
                 init_ib(m_wrap);
             }
         }
+
+        // Helper to release the IC tile held by m_tile. This is implemented
+        // elsewhere to prevent imagebuf.h needing to know anything more
+        // about ImageCache.
+        void OIIO_API release_tile();
     };
 
     /// Templated class for referring to an individual pixel in an
@@ -1771,10 +1780,10 @@ protected:
     static void impl_deleter(ImageBufImpl*);
     std::unique_ptr<ImageBufImpl, decltype(&impl_deleter)> m_impl;
 
-    // Reset the ImageCache::Tile * to reserve and point to the correct
+    // Reset the ImageCacheTile* to reserve and point to the correct
     // tile for the given pixel, and return the ptr to the actual pixel
     // within the tile.
-    const void* retile(int x, int y, int z, ImageCache::Tile*& tile,
+    const void* retile(int x, int y, int z, pvt::ImageCacheTile*& tile,
                        int& tilexbegin, int& tileybegin, int& tilezbegin,
                        int& tilexend, bool exists,
                        WrapMode wrap = WrapDefault) const;

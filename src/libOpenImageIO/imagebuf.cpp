@@ -2776,6 +2776,14 @@ ImageBuf::WrapMode_from_string(string_view name)
 
 
 
+void
+ImageBuf::IteratorBase::release_tile()
+{
+    m_ib->imagecache()->release_tile(m_tile);
+}
+
+
+
 const void*
 ImageBufImpl::retile(int x, int y, int z, ImageCache::Tile*& tile,
                      int& tilexbegin, int& tileybegin, int& tilezbegin,
