@@ -84,7 +84,7 @@ const std::string dummy_extension
 #endif
 
 std::string
-Filesystem::filename(const std::string& filepath) noexcept
+Filesystem::filename(string_view filepath) noexcept
 {
     // To simplify dealing with platform-specific separators and whatnot,
     // just use the Boost routines:
@@ -98,7 +98,7 @@ Filesystem::filename(const std::string& filepath) noexcept
 
 
 std::string
-Filesystem::extension(const std::string& filepath, bool include_dot) noexcept
+Filesystem::extension(string_view filepath, bool include_dot) noexcept
 {
     std::string s;
     try {
@@ -113,7 +113,7 @@ Filesystem::extension(const std::string& filepath, bool include_dot) noexcept
 
 
 std::string
-Filesystem::parent_path(const std::string& filepath) noexcept
+Filesystem::parent_path(string_view filepath) noexcept
 {
     try {
         return pathstr(u8path(filepath).parent_path());

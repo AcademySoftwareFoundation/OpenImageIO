@@ -26,9 +26,9 @@
 #include <string>
 #include <vector>
 
-#include <OpenImageIO/span.h>
 #include <OpenImageIO/export.h>
 #include <OpenImageIO/oiioversion.h>
+#include <OpenImageIO/span.h>
 #include <OpenImageIO/string_view.h>
 
 #if defined(_WIN32) && defined(__GLIBCXX__)
@@ -66,17 +66,17 @@ namespace Filesystem {
 
 /// Return the filename (excluding any directories, but including the
 /// file extension, if any) of a filepath.
-OIIO_UTIL_API std::string filename (const std::string &filepath) noexcept;
+OIIO_UTIL_API std::string filename (string_view filepath) noexcept;
 
 /// Return the file extension (including the last '.' if
 /// include_dot=true) of a filename or filepath.
-OIIO_UTIL_API std::string extension (const std::string &filepath,
+OIIO_UTIL_API std::string extension (string_view filepath,
                                 bool include_dot=true) noexcept;
 
 /// Return all but the last part of the path, for example,
 /// parent_path("foo/bar") returns "foo", and parent_path("foo")
 /// returns "".
-OIIO_UTIL_API std::string parent_path (const std::string &filepath) noexcept;
+OIIO_UTIL_API std::string parent_path (string_view filepath) noexcept;
 
 /// Replace the file extension of a filename or filepath. Does not alter
 /// filepath, just returns a new string.  Note that the new_extension
@@ -111,12 +111,11 @@ OIIO_UTIL_API std::string searchpath_find (const std::string &filename,
                                       bool recursive = false);
 
 /// Fill a vector-of-strings with the names of all files contained by
-/// directory dirname.  If recursive is true, it will return all files
-/// below the directory (even in subdirectories), but if recursive is
-/// false (the default)If filter_regex is supplied and non-empty, only
-/// filenames matching the regular expression will be returned.  Return
-/// true if ok, false if there was an error (such as dirname not being
-/// found or not actually being a directory).
+/// directory dirname.  If recursive is true, it will return all files below
+/// the directory (even in subdirectories). If filter_regex is supplied and
+/// non-empty, only filenames matching the regular expression will be
+/// returned.  Return true if ok, false if there was an error (such as
+/// dirname not being found or not actually being a directory).
 OIIO_UTIL_API bool get_directory_entries (const std::string &dirname,
                                std::vector<std::string> &filenames,
                                bool recursive = false,
