@@ -329,6 +329,16 @@ OIIO_UTIL_API bool scan_for_matching_filenames (const std::string &pattern,
                                            std::vector<int> &numbers,
                                            std::vector<std::string> &filenames);
 
+/// Convert a filename into a regex-safe pattern -- any special regex
+/// characters `.`, `(`, `)`, `[`, `]`, `{`, `}` are backslashed. If
+/// `simple_glob` is also true, then replace `?` with `.?` and `*` with
+/// `.*`. This doesn't support full Unix command line glob syntax (no char
+/// sets `[abc]` or string sets `{ab,cd,ef}`), but it does handle simple
+/// globbing of `?` to mean any single character and `*` to mean any
+/// sequence of 0 or more characters.
+OIIO_UTIL_API std::string filename_to_regex(string_view pattern,
+                                            bool simple_glob = true);
+
 
 
 /// Proxy class for I/O. This provides a simplified interface for file I/O
