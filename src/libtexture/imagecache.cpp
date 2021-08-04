@@ -1170,7 +1170,7 @@ ImageCacheImpl::find_file_no_add(ustring filename,
     // expensive lock on the shared file cache.
     ImageCacheFile* tf = thread_info->find_file(filename);
 
-    // Check the man file cache. For this part, we need to lock the file cache.
+    // Check the main file cache. For this part, we need to lock the file cache.
     if (!tf) {  // was not found in microcache
 #if IMAGECACHE_TIME_STATS
         Timer timer;
