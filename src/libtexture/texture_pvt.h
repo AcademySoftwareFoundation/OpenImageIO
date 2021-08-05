@@ -124,6 +124,12 @@ public:
         return texture_handle && !((TextureFile*)texture_handle)->broken();
     }
 
+    virtual ustring filename_from_handle(TextureHandle* handle)
+    {
+        return handle ? ((ImageCache::ImageHandle*)handle)->filename()
+                      : ustring();
+    }
+
     virtual bool texture(ustring filename, TextureOpt& options, float s,
                          float t, float dsdx, float dtdx, float dsdy,
                          float dtdy, int nchannels, float* result,
@@ -327,6 +333,19 @@ public:
                             int miplevel, int xbegin, int xend, int ybegin,
                             int yend, int zbegin, int zend, int chbegin,
                             int chend, TypeDesc format, void* result);
+
+    virtual bool is_udim(ustring filename);
+    virtual bool is_udim(TextureHandle* udimfile);
+    virtual TextureHandle* resolve_udim(ustring filename, float s, float t);
+    virtual TextureHandle* resolve_udim(TextureHandle* udimfile,
+                                        Perthread* thread_info, float s,
+                                        float t);
+    virtual void inventory_udim(ustring udimpattern,
+                                std::vector<ustring>& filenames, int& nutiles,
+                                int& nvtiles);
+    virtual void inventory_udim(TextureHandle* udimfile, Perthread* thread_info,
+                                std::vector<ustring>& filenames, int& nutiles,
+                                int& nvtiles);
 
     virtual bool has_error() const;
     virtual std::string geterror(bool clear = true) const;

@@ -467,6 +467,11 @@ public:
     /// `get_image_handle()`) is a valid image that can be subsequently read.
     virtual bool good(ImageHandle* file) = 0;
 
+    /// Given a handle, return the filename for that image.
+    ///
+    /// This method was added in OpenImageIO 2.3.
+    virtual ustring filename_from_handle(ImageHandle* handle) = 0;
+
     /// @}
 
 

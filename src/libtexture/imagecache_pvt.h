@@ -113,6 +113,10 @@ struct UdimInfo {
     ImageCacheFile* icfile = nullptr;
     int u, v;
 
+    UdimInfo()
+        : icfile(nullptr)
+    {
+    }
     UdimInfo(ustring filename, ImageCacheFile* icfile, int u, int v)
         : filename(filename)
         , icfile(icfile)
@@ -121,17 +125,6 @@ struct UdimInfo {
     {
     }
 };
-
-using UdimLookupMap = boost::container::flat_map<uint64_t, UdimInfo>;
-
-
-
-// Synthesize a single combined ID that we'll use as an index.
-inline constexpr uint64_t
-udim_id(int utile, int vtile)
-{
-    return (uint64_t(vtile) << 32) + uint64_t(utile);
-}
 
 
 
@@ -214,7 +207,7 @@ public:
     }
     bool mipused(void) const { return m_mipused; }
     bool sample_border(void) const { return m_sample_border; }
-    bool is_udim(void) const { return m_is_udim; }
+    bool is_udim(void) const { return m_udim_nutiles != 0; }
     const std::vector<size_t>& mipreadcount(void) const
     {
         return m_mipreadcount;
@@ -378,7 +371,8 @@ private:
     EnvLayout m_envlayout;                  ///< env map: which layout?
     bool m_y_up;                  ///< latlong: is y "up"? (else z is up)
     bool m_sample_border;         ///< are edge samples exactly on the border?
-    bool m_is_udim;               ///< Is tiled/UDIM?
+    short m_udim_nutiles;         ///< Number of u tiles (0 if not a udim)
+    short m_udim_nvtiles;         ///< Number of v tiles (0 if not a udim)
     ustring m_fileformat;         ///< File format name
     size_t m_tilesread;           ///< Tiles read from this file
     imagesize_t m_bytesread;      ///< Bytes read from this file
@@ -400,8 +394,8 @@ private:
     imagesize_t m_total_imagesize_ondisk;  ///< Total size, compressed on disk
     ImageInput::Creator m_inputcreator;    ///< Custom ImageInput-creator
     std::unique_ptr<ImageSpec> m_configspec;  // Optional configuration hints
-    UdimLookupMap m_udim_lookup;              ///< Used for decoding udim tiles
-                                              // protected by mutex elsewhere!
+    std::vector<UdimInfo> m_udim_lookup;      ///< Used for decoding udim tiles
+                                              /// protected by mutex elsewhere!
 
     // Thread-safe retrieve a shared pointer to the ImageInput (which may
     // not currently be open). The one returned is safe to use as long as
@@ -448,7 +442,7 @@ private:
     void init_from_spec();
 
     // Helper for ctr: evaluate udim information, including setting
-    // m_is_udim.
+    // m_udim_tiles.
     void udim_setup();
 
     friend class ImageCacheImpl;
@@ -867,6 +861,14 @@ public:
     imagespec(ImageCacheFile* file, ImageCachePerThreadInfo* thread_info = NULL,
               int subimage = 0, int miplevel = 0, bool native = false);
 
+    virtual ImageCacheFile* resolve_udim(ImageCacheFile* udimfile,
+                                         Perthread* thread_info, int utile,
+                                         int vtile);
+    virtual void inventory_udim(ImageCacheFile* udimfile,
+                                Perthread* thread_info,
+                                std::vector<ustring>& filenames, int& nutiles,
+                                int& nvtiles);
+
     virtual bool get_thumbnail(ustring filename, ImageBuf& thumbnail,
                                int subimage = 0);
     virtual bool get_thumbnail(ImageHandle* file, Perthread* thread_info,
@@ -939,6 +941,11 @@ public:
     virtual bool good(ImageCacheFile* handle)
     {
         return handle && !handle->broken();
+    }
+
+    virtual ustring filename_from_handle(ImageCacheFile* handle)
+    {
+        return handle ? handle->filename() : ustring();
     }
 
     /// Is the tile specified by the TileID already in the cache?
@@ -1091,18 +1098,6 @@ public:
 
     /// Enforce the max number of open files.
     void check_max_files(ImageCachePerThreadInfo* thread_info);
-
-    // For virtual UDIM file pattern and integer u,v tile indices, return
-    // the concrete ImageCacheFile pointer for the tile it refers to.
-    ImageCacheFile* resolve_udim(ImageCacheFile* file, Perthread* thread_info,
-                                 int utile, int vtile);
-
-    // For virtual UDIM file pattern and float (s, t) coordinates, return
-    // the concrete ImageCacheFile pointer for the tile it's on and also
-    // adjust the s, t coordinates so they only contain the fractional
-    // part (referring to the spot *within* the tile).
-    ImageCacheFile* resolve_udim(ImageCacheFile* file, Perthread* thread_info,
-                                 float& s, float& t);
 
     int max_mip_res() const noexcept { return m_max_mip_res; }
 

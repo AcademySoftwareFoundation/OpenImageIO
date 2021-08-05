@@ -51,4 +51,10 @@ print("top mip pixel differences when streaming =", diff.nfail)
 
 print ("")
 
+# Test udim
+udname = 'file.<UDIM>.tx'
+(utiles, vtiles, tilenames) = texture_sys.inventory_udim(udname)
+print("udim {} -> {}x{} {}".format(udname, utiles, vtiles, tilenames))
+
+
 print("Done.")
