@@ -65,7 +65,7 @@ jobs:
             build/*/CMake*.{txt,log}
 
   vfxplatform-2019:
-    name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost-1.66 exr-2.3"
+    name: "Linux VFX Platform 2019: gcc6/C++14 py2.7 boost1.66 exr2.3 ocio1.1"
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
@@ -74,7 +74,6 @@ jobs:
       CC: gcc
       CMAKE_CXX_STANDARD: 14
       USE_SIMD: sse4.2
-      OPENCOLORIO_VERSION: v1.1.1
       PUGIXML_VERSION: v1.9
     steps:
       - uses: actions/checkout@v2
@@ -111,7 +110,7 @@ jobs:
             build/*/CMake*.{txt,log}
 
   vfxplatform-2020:
-    name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost-1.70 exr-2.4"
+    name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost1.70 exr2.4 ocio1.1"
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2020
@@ -121,7 +120,6 @@ jobs:
       CMAKE_CXX_STANDARD: 14
       PYTHON_VERSION: 3.7
       USE_SIMD: avx
-      OPENCOLORIO_VERSION: v1.1.1
       WEBP_VERSION: v1.1.0
       MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=7.0.1
     steps:
@@ -159,9 +157,8 @@ jobs:
             build/*/CMake*.{txt,log}
 
   vfxplatform-2021:
-    # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
-    # gcc9 and C++17.
-    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.73 exr-2.5 qt-5.15"
+    # Test VFX Platform 2021 -- mainly, that means gcc9 and C++17.
+    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost1.73 exr2.5 ocio2.0 qt5.15"
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2021
@@ -171,7 +168,6 @@ jobs:
       CMAKE_CXX_STANDARD: 17
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
-      OPENCOLORIO_VERSION: v2.0.0
       WEBP_VERSION: v1.1.0
     steps:
       - uses: actions/checkout@v2
@@ -208,9 +204,8 @@ jobs:
             build/*/CMake*.{txt,log}
 
   vfxplatform-2021-exr3:
-    # Test what's anticipated to be VFX Platform 2021 -- mainly, that means
-    # gcc9 and C++17, and also OpenEXR/Imath 3.0.
-    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.73 exr-3.0 qt-5.15"
+    # Test VFX Platform 2021, but with OpenEXR/Imath 3.x
+    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost1.73 exr3.1 ocio2.0 qt5.15"
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2021
@@ -220,8 +215,7 @@ jobs:
       CMAKE_CXX_STANDARD: 17
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
-      OPENCOLORIO_VERSION: v2.0.0
-      OPENEXR_VERSION: v3.0.3
+      OPENEXR_VERSION: v3.1.1
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -393,7 +387,7 @@ jobs:
 
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
-    name: "Linux latest releases: gcc10 C++17 avx2 exr3.0 ocio2.0"
+    name: "Linux latest releases: gcc10 C++17 avx2 exr3.1 ocio2.0"
     runs-on: ubuntu-20.04
     env:
       CXX: g++-10
@@ -402,7 +396,7 @@ jobs:
       LIBRAW_VERSION: 0.20.2
       LIBTIFF_VERSION: v4.3.0
       OPENCOLORIO_VERSION: v2.0.1
-      OPENEXR_VERSION: v3.1.0
+      OPENEXR_VERSION: v3.1.1
       PUGIXML_VERSION: v1.11.4
       PTEX_VERSION: v2.4.0
       PYBIND11_VERSION: v2.7.0
@@ -724,7 +718,7 @@ jobs:
 
   linux-clang10-cpp14:
     # Test compiling with clang on Linux.
-    name: "Linux clang10: clang10 C++14 avx2 exr2.5"
+    name: "Linux clang10: clang10 C++14 avx2 exr2.5 ocio2.0"
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2021-clang10
@@ -734,8 +728,6 @@ jobs:
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
       PYBIND11_VERSION: v2.6.1
-      OPENCOLORIO_VERSION: 1c624651b7
-      # Pick an OCIO commit that includes a warning fix we need for clang
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -772,7 +764,7 @@ jobs:
 
   linux-clang11-cpp17:
     # Test compiling with clang  and C++17 on Linux.
-    name: "Linux clang11: clang11 C++17 avx2 exr3.0"
+    name: "Linux clang11: clang11 C++17 avx2 exr3.1 ocio2.0"
     runs-on: ubuntu-18.04
     container:
       image: aswf/ci-osl:2021-clang11
@@ -782,8 +774,7 @@ jobs:
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
       PYBIND11_VERSION: v2.6.1
-      OPENCOLORIO_VERSION: v2.0.1
-      OPENEXR_VERSION: v3.0.4
+      OPENEXR_VERSION: v3.1.1
       # Pick an OCIO commit that includes a warning fix we need for clang
     steps:
       - uses: actions/checkout@v2
