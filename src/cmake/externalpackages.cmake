@@ -161,7 +161,9 @@ checked_find_package (Freetype
 checked_find_package (HDF5
                    ISDEPOF      Field3D)
 checked_find_package (OpenColorIO
-                   DEFINITIONS  -DUSE_OCIO=1 -DUSE_OPENCOLORIO=1)
+                      DEFINITIONS  -DUSE_OCIO=1 -DUSE_OPENCOLORIO=1
+                      # PREFER_CONFIG
+                      )
 checked_find_package (OpenCV 3.0
                    DEFINITIONS  -DUSE_OPENCV=1)
 

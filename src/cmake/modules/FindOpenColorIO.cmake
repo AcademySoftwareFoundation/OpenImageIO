@@ -1,7 +1,7 @@
 # Module to find OpenColorIO
 #
 # This module will first look into the directories hinted by the variables:
-#   - OpenColorIO_ROOT, OPENCOLORIO_INCLUDE_PATH, OPENCOLORIO_LIBRARY_PATH
+#   - OpenColorIO_ROOT
 #
 # This module defines the following variables:
 #
@@ -23,8 +23,23 @@ find_path (OPENCOLORIO_INCLUDE_DIR
         /opt/local/include
     DOC "The directory where OpenColorIO/OpenColorIO.h resides")
 
+if (EXISTS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h")
+    # Search twice, because this symbol changed between OCIO 1.x and 2.x
+    file(STRINGS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h" TMP
+         REGEX "^#define OCIO_VERSION_STR[ \t].*$")
+    if (NOT TMP)
+        file(STRINGS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h" TMP
+             REGEX "^#define OCIO_VERSION[ \t].*$")
+    endif ()
+    string (REGEX MATCHALL "([0-9]+)\\.([0-9]+)\\.[0-9]+" OPENCOLORIO_VERSION ${TMP})
+    set (OPENCOLORIO_VERSION_MAJOR ${CMAKE_MATCH_1})
+    set (OPENCOLORIO_VERSION_MINOR ${CMAKE_MATCH_2})
+endif ()
+
 find_library (OPENCOLORIO_LIBRARY
-    NAMES OCIO OpenColorIO
+    NAMES
+        OpenColorIO
+        OpenColorIO_${OPENCOLORIO_VERSION_MAJOR}_${OPENCOLORIO_VERSION_MINOR}
     HINTS
         ${OPENCOLORIO_LIBRARY_PATH}
         ENV OPENCOLORIO_LIBRARY_PATH
@@ -35,24 +50,13 @@ find_library (OPENCOLORIO_LIBRARY
         /opt/local/lib
     DOC "The OCIO library")
 
-if (EXISTS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h")
-    # Search twice, because this symbol changed between OCIO 1.x and 2.x
-    file(STRINGS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h" TMP
-         REGEX "^#define OCIO_VERSION_STR[ \t].*$")
-    if (NOT TMP)
-        file(STRINGS "${OPENCOLORIO_INCLUDE_DIR}/OpenColorIO/OpenColorABI.h" TMP
-             REGEX "^#define OCIO_VERSION[ \t].*$")
-    endif ()
-    string (REGEX MATCHALL "[0-9]+[.0-9]+" OPENCOLORIO_VERSION ${TMP})
-endif ()
-
 find_package_handle_standard_args (OpenColorIO
     REQUIRED_VARS   OPENCOLORIO_INCLUDE_DIR OPENCOLORIO_LIBRARY
     FOUND_VAR       OPENCOLORIO_FOUND
     VERSION_VAR     OPENCOLORIO_VERSION
     )
 
-if (OPENCOLORIO_FOUND)
+if (OpenColorIO_FOUND)
     set (OPENCOLORIO_INCLUDES ${OPENCOLORIO_INCLUDE_DIR})
     set (OPENCOLORIO_LIBRARIES ${OPENCOLORIO_LIBRARY})
     set (OPENCOLORIO_DEFINITIONS "")
@@ -67,6 +71,11 @@ if (OPENCOLORIO_FOUND)
             target_compile_definitions(OpenColorIO::OpenColorIO
                 INTERFACE "-DOpenColorIO_STATIC")
         endif()
+    endif ()
+    if (NOT TARGET OpenColorIO::OpenColorIOHeaders)
+        add_library(OpenColorIO::OpenColorIOHeaders INTERFACE IMPORTED)
+        set_target_properties(OpenColorIO::OpenColorIOHeaders PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${OPENCOLORIO_INCLUDES}")
     endif ()
 endif ()
 
