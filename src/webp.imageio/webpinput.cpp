@@ -36,7 +36,7 @@ public:
 private:
     std::string m_filename;
     std::unique_ptr<uint8_t[]> m_encoded_image;
-    std::unique_ptr<uint8_t> m_decoded_image;
+    std::unique_ptr<uint8_t[]> m_decoded_image;
     uint64_t m_image_size    = 0;
     long int m_scanline_size = 0;
     uint32_t m_demux_flags   = 0;
