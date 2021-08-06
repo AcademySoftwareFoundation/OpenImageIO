@@ -328,8 +328,10 @@ strhash (string_view s)
 
 
 
-/// Case-insensitive comparison of strings.  For speed, this always uses
-/// a static locale that doesn't require a mutex.
+/// Case-insensitive comparison of strings.  For speed, this always uses a
+/// static locale that doesn't require a mutex. Caveat: the case-sensivive
+/// `==` of string_view's is about 20x faster than this case-insensitive
+/// function.
 bool OIIO_UTIL_API iequals (string_view a, string_view b);
 
 /// Case-insensitive ordered comparison of strings.  For speed, this always
@@ -340,25 +342,28 @@ bool OIIO_UTIL_API iless (string_view a, string_view b);
 bool OIIO_UTIL_API starts_with (string_view a, string_view b);
 
 /// Does 'a' start with the string 'b', with a case-insensitive comparison?
-/// For speed, this always uses a static locale that doesn't require a mutex.
+/// For speed, this always uses a static locale that doesn't require a
+/// mutex. Caveat: the case-sensivive starts_with() is about 20x faster than
+/// this case-insensitive function.
 bool OIIO_UTIL_API istarts_with (string_view a, string_view b);
 
 /// Does 'a' end with the string 'b', with a case-sensitive comparison?
 bool OIIO_UTIL_API ends_with (string_view a, string_view b);
 
 /// Does 'a' end with the string 'b', with a case-insensitive comparison?
-/// For speed, this always uses a static locale that doesn't require a mutex.
+/// For speed, this always uses a static locale that doesn't require a
+/// mutex. Caveat: the case-sensivive ends_with() is about 20x faster than
+/// this case-insensitive function.
 bool OIIO_UTIL_API iends_with (string_view a, string_view b);
-
-/// Does 'a' contain the string 'b' within it?
-bool OIIO_UTIL_API contains (string_view a, string_view b);
 
 /// Return the position of the first occurrence of `b` within `a`, or
 /// std::npos if not found.
 size_t OIIO_UTIL_API find(string_view a, string_view b);
 
 /// Return the position of the first occurrence of `b` within `a`, with a
-/// case-insensitive comparison, or std::npos if not found.
+/// case-insensitive comparison, or std::npos if not found. Caveat: the
+/// case-sensivive find() is about 20x faster than this case-insensitive
+/// function.
 size_t OIIO_UTIL_API ifind(string_view a, string_view b);
 
 /// Return the position of the last occurrence of `b` within `a`, or npos if
@@ -366,12 +371,33 @@ size_t OIIO_UTIL_API ifind(string_view a, string_view b);
 size_t OIIO_UTIL_API rfind(string_view a, string_view b);
 
 /// Return the position of the last occurrence of `b` within `a`, with a
-/// case-insensitive comparison, or npos if not found.
+/// case-insensitive comparison, or npos if not found. Caveat: the
+/// case-sensivive rfind() is about 20x faster than this case-insensitive
+/// function.
 size_t OIIO_UTIL_API irfind(string_view a, string_view b);
 
+/// Does 'a' contain the string 'b' within it?
+bool OIIO_UTIL_API contains (string_view a, string_view b);
+
 /// Does 'a' contain the string 'b' within it, using a case-insensitive
-/// comparison?
+/// comparison? Caveat: the case-sensivive contains() is about 20x faster
+/// than this case-insensitive function.
 bool OIIO_UTIL_API icontains (string_view a, string_view b);
+
+/// Does 'a' contain the string 'b' within it? But start looking at the end!
+/// This can be a bit faster than contains() if you think that the substring
+/// `b` will tend to be close to the end of `a`.
+inline bool rcontains (string_view a, string_view b) {
+    return rfind(a, b) != string_view::npos;
+}
+
+/// Does 'a' contain the string 'b' within it? But start looking at the end!
+/// This can be a bit faster than contains() if you think that the substring
+/// `b` will tend to be close to the end of `a`. Caveat: the case-sensivive
+/// rcontains() is about 20x faster than this case-insensitive function.
+inline bool ircontains (string_view a, string_view b) {
+    return irfind(a, b) != string_view::npos;
+}
 
 /// Does 'a' contain any of the characters within `set`?
 bool OIIO_UTIL_API contains_any_char (string_view a, string_view set);

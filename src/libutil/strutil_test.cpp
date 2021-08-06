@@ -288,7 +288,7 @@ test_comparisons()
     OIIO_CHECK_EQUAL(Strutil::contains("abcde", "de"), true);
     OIIO_CHECK_EQUAL(Strutil::contains("abcde", "cdx"), false);
     OIIO_CHECK_EQUAL(Strutil::contains("abcde", ""), true);
-    OIIO_CHECK_EQUAL(Strutil::contains("", ""), true);
+    OIIO_CHECK_EQUAL(Strutil::contains("", ""), false);
     OIIO_CHECK_EQUAL(Strutil::contains("", "x"), false);
 
     OIIO_CHECK_EQUAL(Strutil::icontains("abcde", "ab"), true);
@@ -298,8 +298,26 @@ test_comparisons()
     OIIO_CHECK_EQUAL(Strutil::icontains("abcDe", "dE"), true);
     OIIO_CHECK_EQUAL(Strutil::icontains("abcde", "cdx"), false);
     OIIO_CHECK_EQUAL(Strutil::icontains("abcde", ""), true);
-    OIIO_CHECK_EQUAL(Strutil::icontains("", ""), true);
+    OIIO_CHECK_EQUAL(Strutil::icontains("", ""), false);
     OIIO_CHECK_EQUAL(Strutil::icontains("", "x"), false);
+
+    OIIO_CHECK_EQUAL(Strutil::rcontains("abcde", "ab"), true);
+    OIIO_CHECK_EQUAL(Strutil::rcontains("abcde", "bcd"), true);
+    OIIO_CHECK_EQUAL(Strutil::rcontains("abcde", "de"), true);
+    OIIO_CHECK_EQUAL(Strutil::rcontains("abcde", "cdx"), false);
+    OIIO_CHECK_EQUAL(Strutil::rcontains("abcde", ""), true);
+    OIIO_CHECK_EQUAL(Strutil::rcontains("", ""), false);
+    OIIO_CHECK_EQUAL(Strutil::rcontains("", "x"), false);
+
+    OIIO_CHECK_EQUAL(Strutil::ircontains("abcde", "ab"), true);
+    OIIO_CHECK_EQUAL(Strutil::ircontains("Abcde", "aB"), true);
+    OIIO_CHECK_EQUAL(Strutil::ircontains("abcde", "bcd"), true);
+    OIIO_CHECK_EQUAL(Strutil::ircontains("Abcde", "bCd"), true);
+    OIIO_CHECK_EQUAL(Strutil::ircontains("abcDe", "dE"), true);
+    OIIO_CHECK_EQUAL(Strutil::ircontains("abcde", "cdx"), false);
+    OIIO_CHECK_EQUAL(Strutil::ircontains("abcde", ""), true);
+    OIIO_CHECK_EQUAL(Strutil::ircontains("", ""), false);
+    OIIO_CHECK_EQUAL(Strutil::ircontains("", "x"), false);
 
     OIIO_CHECK_EQUAL(Strutil::contains_any_char("abcde", "xa"), true);
     OIIO_CHECK_EQUAL(Strutil::contains_any_char("abcde", "xe"), true);
@@ -351,6 +369,62 @@ test_comparisons()
     OIIO_CHECK_ASSERT(iless("abc", "abd"));
     OIIO_CHECK_ASSERT(!iless("xbc", "abd"));
     OIIO_CHECK_ASSERT(iless("abc", "ABD"));
+
+    Benchmarker bench;
+    bench.indent (2);
+    bench.units (Benchmarker::Unit::ns);
+    std::string abc = "abcdefghijklmnopqrstuvwxyz";
+    std::string haystack = std::string("begin") + abc + "oiio"
+                         + Strutil::repeat(abc, 10) + "123" + abc + "end";
+    bench ("contains early small", [&](){ DoNotOptimize(Strutil::contains(abc, "def")); });
+    bench ("contains early big", [&](){ DoNotOptimize(Strutil::contains(haystack, "oiio")); });
+    bench ("contains late small", [&](){ DoNotOptimize(Strutil::contains(abc, "uvw")); });
+    bench ("contains late big", [&](){ DoNotOptimize(Strutil::contains(haystack, "123")); });
+    bench ("contains fail/small", [&](){ DoNotOptimize(Strutil::contains(abc, "dog")); });
+    bench ("contains fail/big", [&](){ DoNotOptimize(Strutil::contains(haystack, "dog")); });
+    bench ("rcontains early small", [&](){ DoNotOptimize(Strutil::rcontains(abc, "def")); });
+    bench ("rcontains early big", [&](){ DoNotOptimize(Strutil::rcontains(haystack, "oiio")); });
+    bench ("rcontains late small", [&](){ DoNotOptimize(Strutil::rcontains(abc, "uvw")); });
+    bench ("rcontains late big", [&](){ DoNotOptimize(Strutil::rcontains(haystack, "123")); });
+    bench ("rcontains fail/small", [&](){ DoNotOptimize(Strutil::rcontains(abc, "dog")); });
+    bench ("rcontains fail/big", [&](){ DoNotOptimize(Strutil::rcontains(haystack, "dog")); });
+    bench ("icontains early small", [&](){ DoNotOptimize(Strutil::icontains(abc, "def")); });
+    bench ("icontains early big", [&](){ DoNotOptimize(Strutil::icontains(haystack, "oiio")); });
+    bench ("icontains late small", [&](){ DoNotOptimize(Strutil::icontains(abc, "uvw")); });
+    bench ("icontains late big", [&](){ DoNotOptimize(Strutil::icontains(haystack, "123")); });
+    bench ("icontains fail/small", [&](){ DoNotOptimize(Strutil::icontains(abc, "dog")); });
+    bench ("icontains fail/big", [&](){ DoNotOptimize(Strutil::icontains(haystack, "dog")); });
+
+    bench ("find early small", [&](){ DoNotOptimize(Strutil::find(abc, "def")); });
+    bench ("find early big", [&](){ DoNotOptimize(Strutil::find(haystack, "oiio")); });
+    bench ("find late small", [&](){ DoNotOptimize(Strutil::find(abc, "uvw")); });
+    bench ("find late big", [&](){ DoNotOptimize(Strutil::find(haystack, "123")); });
+    bench ("find fail/small", [&](){ DoNotOptimize(Strutil::find(abc, "dog")); });
+    bench ("find fail/big", [&](){ DoNotOptimize(Strutil::find(haystack, "dog")); });
+    bench ("rfind early small", [&](){ DoNotOptimize(Strutil::rfind(abc, "def")); });
+    bench ("rfind early big", [&](){ DoNotOptimize(Strutil::rfind(haystack, "oiio")); });
+    bench ("rfind late small", [&](){ DoNotOptimize(Strutil::rfind(abc, "uvw")); });
+    bench ("rfind late big", [&](){ DoNotOptimize(Strutil::rfind(haystack, "123")); });
+    bench ("rfind fail/small", [&](){ DoNotOptimize(Strutil::rfind(abc, "dog")); });
+    bench ("rfind fail/big", [&](){ DoNotOptimize(Strutil::rfind(haystack, "dog")); });
+
+    bench ("ifind early small", [&](){ DoNotOptimize(Strutil::ifind(abc, "def")); });
+    bench ("ifind early big", [&](){ DoNotOptimize(Strutil::ifind(haystack, "oiio")); });
+    bench ("ifind late small", [&](){ DoNotOptimize(Strutil::ifind(abc, "uvw")); });
+    bench ("ifind late big", [&](){ DoNotOptimize(Strutil::ifind(haystack, "123")); });
+    bench ("ifind fail/small", [&](){ DoNotOptimize(Strutil::ifind(abc, "dog")); });
+    bench ("ifind fail/big", [&](){ DoNotOptimize(Strutil::ifind(haystack, "dog")); });
+    bench ("irfind early small", [&](){ DoNotOptimize(Strutil::irfind(abc, "def")); });
+    bench ("irfind early big", [&](){ DoNotOptimize(Strutil::irfind(haystack, "oiio")); });
+    bench ("irfind late small", [&](){ DoNotOptimize(Strutil::irfind(abc, "uvw")); });
+    bench ("irfind late big", [&](){ DoNotOptimize(Strutil::irfind(haystack, "123")); });
+    bench ("irfind fail/small", [&](){ DoNotOptimize(Strutil::irfind(abc, "dog")); });
+    bench ("irfind fail/big", [&](){ DoNotOptimize(Strutil::irfind(haystack, "dog")); });
+
+    bench ("starts_with success", [&](){ DoNotOptimize(Strutil::starts_with(abc, "abc")); });
+    bench ("starts_with fail", [&](){ DoNotOptimize(Strutil::starts_with(abc, "def")); });
+    bench ("ends_with success", [&](){ DoNotOptimize(Strutil::ends_with(abc, "xyz")); });
+    bench ("ends_with fail", [&](){ DoNotOptimize(Strutil::ends_with(abc, "def")); });
 }
 
 

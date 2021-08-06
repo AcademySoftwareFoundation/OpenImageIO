@@ -449,14 +449,20 @@ Strutil::iends_with(string_view a, string_view b)
 bool
 Strutil::contains(string_view a, string_view b)
 {
-    return boost::algorithm::contains(a, b);
+    return find(a, b) != string_view::npos;
+    // We used to use the boost contains, but it seems to be about 2x more
+    // expensive than (find() != npos).
+    // return boost::algorithm::contains(a, b);
 }
 
 
 bool
 Strutil::icontains(string_view a, string_view b)
 {
-    return boost::algorithm::icontains(a, b, std::locale::classic());
+    return ifind(a, b) != string_view::npos;
+    // We used to use the boost icontains, but it seems to be about 2x more
+    // expensive than (ifind() != npos).
+    // return boost::algorithm::icontains(a, b, std::locale::classic());
 }
 
 
