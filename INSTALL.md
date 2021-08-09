@@ -3,8 +3,8 @@ Installation instructions for OpenImageIO
 
 # Table of Contents
 1. [OpenImageIO's Dependencies](#dependencies)
-2. [Installing binaries from package managers](#installingfrompackagemanagers)
-3. [Building OIIO from source](#buildingfromsource)
+2. [Installing binaries from package managers](#installing-from-package-managers)
+3. [Building OIIO from source](#building-from-source)
 
 
 Dependencies
