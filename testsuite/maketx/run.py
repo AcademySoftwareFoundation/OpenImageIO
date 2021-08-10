@@ -111,7 +111,7 @@ command += oiiotool (" --pattern constant:color=1,1,1 4x2 3 "
             + " -d half -o " + oiio_relpath("white.exr"))
 command += maketx_command ("white.exr", "whiteenv.exr",
                            "--envlatl")
-command += oiiotool ("--stats whiteenv.exr")
+command += oiiotool ("--stats -a whiteenv.exr")
 
 #Test --bumpslopes to export a 6 channels height map with gradients
 command += oiiotool (" --pattern noise 64x64 1"
