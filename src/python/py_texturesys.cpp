@@ -303,6 +303,36 @@ declare_texturesystem(py::module& m)
             },
             "filename"_a, "subimage"_a = 0)
         .def(
+            "is_udim",
+            [](TextureSystemWrap& ts, const std::string& filename) {
+                return ts.m_texsys->is_udim(ustring(filename));
+            },
+            "filename"_a)
+        .def(
+            "resolve_udim",
+            [](TextureSystemWrap& ts, const std::string& filename, float s,
+               float t) -> std::string {
+                auto th = ts.m_texsys->resolve_udim(ustring(filename), s, t);
+                return th ? ts.m_texsys->filename_from_handle(th).string()
+                          : std::string();
+            },
+            "filename"_a, "s"_a, "t"_a)
+        .def(
+            "inventory_udim",
+            [](TextureSystemWrap& ts, const std::string& filename) {
+                // Return a tuple containing (nutiles, nvtiles, filenames)
+                int nutiles = 0, nvtiles = 0;
+                std::vector<ustring> filenames;
+                ts.m_texsys->inventory_udim(ustring(filename), filenames,
+                                            nutiles, nvtiles);
+                std::vector<PY_STR> strs;
+                for (auto f : filenames)
+                    strs.emplace_back(f.string());
+                py::tuple ret = py::make_tuple(nutiles, nvtiles, strs);
+                return ret;
+            },
+            "filename"_a)
+        .def(
             "invalidate",
             [](TextureSystemWrap& ts, const std::string& filename, bool force) {
                 py::gil_scoped_release gil;

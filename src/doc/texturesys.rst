@@ -25,15 +25,20 @@ Imath
 -------------------------------------------------
 
 The texture functinality of OpenImageIO uses the excellent open source
-``Ilmbase`` package's ``Imath`` types when it requires 3D vectors and
+``Imath`` types when it requires 3D vectors and
 transformation matrixes.  Specifically, we use ``Imath::V3f`` for 3D
 positions and directions, and ``Imath::M44f`` for 4x4 transformation
 matrices.  To use these yourself, we recommend that you::
 
+    // If using Imath 3.x:
+    #include <Imath/ImathVec.h>
+    #include <Imath/ImathMatrix.h>
+
+    // OR, if using OpenEXR 2.x, before Imath split off:
     #include <OpenEXR/ImathVec.h>
     #include <OpenEXR/ImathMatrix.h>
 
-Please refer to the ``Ilmbase`` and ``OpenEXR`` documentation and header
+Please refer to the ``Imath`` documentation and header
 files for more complete information about use of these types in your own
 application.  However, note that you are not strictly required to use these
 classes in your application --- ``Imath::V3f`` has a memory layout identical
@@ -191,6 +196,106 @@ TextureSystem API
 
 
 
+.. _sec-texturesys-udim:
+
+UDIM texture atlases
+====================
+
+Texture lookups
+---------------
+
+The `texture()` call supports virtual filenames that expand per lookup for
+UDIM tiled texture atlases. The substitutions will occur if the texture
+filename initially passed to `texture()` does not exist as a concrete file
+and contains one or more of the following substrings:
+
+========== ========================
+`<UDIM>`   1001 + utile + vtile*10
+`<u>`      utile
+`<v>`      vtile
+`<U>`      utile + 1
+`<V>`      vtile + 1
+`_u##v##`  utile, vtile
+`%(UDIM)d` 1001 + utile + vtile*10
+========== ========================
+
+where the tile numbers are derived from the input u,v texture
+coordinates as follows::
+
+    // Each unit square of texture is a different tile
+    utile = max (0, int(u));
+    vtile = max (0, int(v));
+    // Re-adjust the texture coordinates to the offsets within the tile
+    u = u - utile;
+    v = v - vtile;
+
+Example::
+
+    ustring filename ("paint.<UDIM>.tif");
+    float s = 1.4, t = 3.8;
+    texsys->texture (filename, s, t, ...);
+
+will retrieve from file :file:`paint.1032.tif` at coordinates (0.4,0.8).
+
+
+Handles of udim files
+---------------------
+
+Calls to `get_texture_handle()`, when passing a UDIM pattern filename, will
+always succeed. But withing knowing a specific u and v, it has no way to
+know that the concrete file you will eventually ask for would not succeed,
+so this handle is for the overall
+"virtual" texture atlas.
+
+You can retrieve the handle of a specific "tile" of the UDIM set by using
+
+.. cpp:function:: TextureHandle* resolve_udim(ustring udimpattern, float s, float t)
+    TextureHandle* resolve_udim(TextureHandle* udimfile, Perthread* thread_info, float s, float t)
+
+    Note: these will return `nullptr` if the UDIM tile for those
+    coordinates is unpopulated.
+
+
+Note also that the `is_udim()` method can be used to ask whether a filename
+or handle corresponds to a UDIM pattern (the whole set of atlas tiles):
+
+.. cpp:function:: bool is_udim(ustring filename)
+    bool is_udim(TextureHandle* udimfile)
+
+
+Retrieving metadata from UDIM sets and tiles
+--------------------------------------------
+
+Calls to `get_texture_info()` on UDIM file pattern will succeed if the
+metadata is found and has the same value in all of the populated "tiles" of
+a UDIM. If not all populated tile files have the same value for that
+attribute, the call will fail.
+
+If you want to know the metadata at a specific texture coordinate, you can
+use a combination of `resolve_udim()` to find the handle for the corresponding
+concrete texture file for that "tile," and then `get_texture_info()` to
+retrieve the metadata for the concrete file.
+
+
+Full inventory of a UDIM set
+----------------------------
+
+You can get the range in u and v of the UDIM texture atlas, and the list of
+all of the concrete filenames of the corresponding tiles with this method:
+
+.. cpp:function:: void inventory_udim(ustring udimpattern, std::vector<ustring>& filenames, int& nutiles, int& nvtiles)
+   void inventory_udim(TextureHandle* udimfile, Perthread* thread_info, std::vector<ustring>& filenames, int& nutiles, int& nvtiles)
+
+The indexing scheme is that `filenames[u + v * nvtiles]` is the name of the
+tile with integer indices `(u,v)`, where 0 is the first index of each row or
+column.
+
+The combination of `inventory_udim()` and `get_texture_handle()` of the listed
+filenames can be used to generate the corresponding handles for each UDIM
+tile.
+
+
+
 .. _sec-texturesys-api-batched:
 
 Batched Texture Lookups
@@ -335,65 +440,4 @@ Batched Texture Lookup Calls
     
     This function returns `true` upon success, or `false` if the file was
     not found or could not be opened by any available ImageIO plugin.
-
-
-
-
-
-.. _sec-texturesys-udim:
-
-UDIM and texture atlases
-========================
-
-**Texture lookups**
-
-The `texture()` call supports virtual filenames that expand per lookup
-for UDIM and other tiled texture atlas techniques. The substitutions will
-occur if the texture filename initially passed to `texture()` does not
-exist as a concrete file and contains one or more of the following
-substrings:
-
-========== ========================
-`<UDIM>`   1001 + utile + vtile*10
-`<u>`      utile
-`<v>`      vtile
-`<U>`      utile + 1
-`<V>`      vtile + 1
-`_u##v##`  utile, vtile
-`%(UDIM)d` 1001 + utile + vtile*10
-========== ========================
-
-where the tile numbers are derived from the input u,v texture
-coordinates as follows::
-
-    // Each unit square of texture is a different tile
-    utile = max (0, int(u));
-    vtile = max (0, int(v));
-    // Re-adjust the texture coordinates to the offsets within the tile
-    u = u - utile;
-    v = v - vtile;
-
-Example::
-
-    ustring filename ("paint.<UDIM>.tif");
-    float s = 1.4, t = 3.8;
-    texsys->texture (filename, s, t, ...);
-
-will retrieve from file :file:`paint.1032.tif` at coordinates (0.4,0.8).
-
-
-**Retrieving metadata**
-
-Calls to `get_texture_info()` on UDIM files will retrieve the metadata of
-the first file it finds matching the name template. The call will fail
-(return `nullptr` and not retrieve data) if no concrete texture file can
-be found that matches the udim naming template.
-
-
-**Handles of udim files**
-
-Calls to `get_texture_handle()` will always succeed. Withing knowing a
-specific u and v, it has no way to know that the concrete file you will
-eventually ask for would not succeed.
-
 

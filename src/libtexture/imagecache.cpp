@@ -273,7 +273,8 @@ ImageCacheFile::ImageCacheFile(ImageCacheImpl& imagecache,
     , m_envlayout(LayoutTexture)
     , m_y_up(false)
     , m_sample_border(false)
-    , m_is_udim(false)
+    , m_udim_nutiles(0)
+    , m_udim_nvtiles(0)
     , m_tilesread(0)
     , m_bytesread(0)
     , m_redundant_tiles(0)
@@ -2628,8 +2629,10 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
         // If file->is_udim() is true, the map's length won't be changed
         // again, so it's safe to freely iterate over it without locking.
         for (auto& f : file->m_udim_lookup) {
-            ImageCacheFile* concretefile = resolve_udim(file, thread_info,
-                                                        f.second.u, f.second.v);
+            if (f.filename.empty())
+                continue;  // empty filename means tile is unpopulated
+            ImageCacheFile* concretefile = resolve_udim(file, thread_info, f.u,
+                                                        f.v);
             concretefile = verify_file(concretefile, thread_info, true);
             if (concretefile && !concretefile->broken()) {
                 // Recurse to try again with the concrete file. Store the
@@ -3481,10 +3484,12 @@ namespace {
 void
 ImageCacheFile::udim_setup()
 {
+    m_udim_nutiles = 0;  // assume it's not a udim at all
+    m_udim_nvtiles = 0;
+
     // If it's a literal, existing file, always treat it as a regular
     // texture, even if it has what looks like udim pattern markers.
     if (Filesystem::exists(m_filename)) {
-        m_is_udim = false;
         return;
     }
 
@@ -3493,16 +3498,19 @@ ImageCacheFile::udim_setup()
     // single index, or separate u and v indices (and for separate, whether
     // we use the convention of adding 1 to the tile index) -- we're going
     // to need to know that later.
-    bool udim1   = (Strutil::contains(m_filename, "<UDIM>")
-                  || Strutil::contains(m_filename, "%(UDIM)d"));
-    bool udim2_0 = (Strutil::contains(m_filename, "<u>")
-                    || Strutil::contains(m_filename, "<v>")
-                    || Strutil::contains(m_filename, "_u##v##"));
-    bool udim2_1 = (Strutil::contains(m_filename, "<U>")
-                    || Strutil::contains(m_filename, "<V>"));
+    // Note that we use `rcontains()` here for a little extra speed, knowing
+    // that these markers will almost always be close to the end of the
+    // full pathname.
+    bool udim1   = (Strutil::rcontains(m_filename, "<UDIM>")
+                  || Strutil::rcontains(m_filename, "%(UDIM)d"));
+    bool udim2_0 = (Strutil::rcontains(m_filename, "<u>")
+                    || Strutil::rcontains(m_filename, "<v>")
+                    || Strutil::rcontains(m_filename, "_u##v##"));
+    bool udim2_1 = (Strutil::rcontains(m_filename, "<U>")
+                    || Strutil::rcontains(m_filename, "<V>"));
     bool udim2   = udim2_0 | udim2_1;
-    m_is_udim    = udim1 | udim2;
-    if (!m_is_udim)
+    bool is_udim = udim1 | udim2;
+    if (!is_udim)
         return;
 
     // Enumerate all the matching textures by looking at all files in the
@@ -3520,7 +3528,8 @@ ImageCacheFile::udim_setup()
     // these with uv tile numbering, for which we again use the regex
     // pattern, and our prior knowledge of whether it's a 1-number or
     // 2-number kind of pattern, to populate the lookup map.
-    m_udim_lookup.clear();
+    std::vector<UdimInfo> udim_list;  // temporary -- we don't know extent
+    udim_list.reserve(100);
     std::regex decoder(pat);
     for (auto udim_tile_name : filenames) {
         std::string fnpart = Filesystem::filename(udim_tile_name);
@@ -3542,10 +3551,18 @@ ImageCacheFile::udim_setup()
                     v -= 1;
                 }
             }
-            uint64_t id = udim_id(u, v);
-            m_udim_lookup.emplace(id, UdimInfo(ustring(udim_tile_name), nullptr,
-                                               u, v));
+            udim_list.emplace_back(ustring(udim_tile_name), nullptr, u, v);
+            m_udim_nutiles = std::max(m_udim_nutiles, short(u + 1));
+            m_udim_nvtiles = std::max(m_udim_nvtiles, short(v + 1));
         }
+    }
+
+    // Now that we have the inventory, we can reassemble the udim info into
+    // a simply indexed vector.
+    m_udim_lookup.clear();
+    m_udim_lookup.resize(int(m_udim_nutiles) * int(m_udim_nvtiles));
+    for (auto& ud : udim_list) {
+        m_udim_lookup[ud.v * m_udim_nutiles + ud.u] = ud;
     }
 }
 
@@ -3596,25 +3613,9 @@ ImageCacheFile::udim_to_wildcard(string_view udimpattern)
     result = Strutil::replace(result, "<U>", "u([0-9]+)", true);
     result = Strutil::replace(result, "<V>", "v([0-9]+)", true);
     result = Strutil::replace(result, "_u##v##", "_u([0-9]+)v([0-9]+)", true);
-    result = Strutil::replace(result, "%(UDIM)d", "([0-9]+)", true);
+    // Ugh, "%(UDIM)d" is tricky because we already backslashed it!
+    result = Strutil::replace(result, "%\\(UDIM\\)d", "([0-9]{4})", true);
     return result;
-}
-
-
-
-ImageCacheFile*
-ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, Perthread* thread_info,
-                             float& s, float& t)
-{
-    // Find the u and v tile indices
-    int utile = std::max(0, int(s));
-    int vtile = std::max(0, int(t));
-
-    // adjust s,t to subtract their floors, leaving only the fractional part
-    s = s - utile;
-    t = t - vtile;
-
-    return resolve_udim(udimfile, thread_info, utile, vtile);
 }
 
 
@@ -3623,38 +3624,65 @@ ImageCacheFile*
 ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, Perthread* thread_info,
                              int utile, int vtile)
 {
-    // Synthesize a single combined ID that we'll use as an index into
-    // m_udim_lookup.
-    uint64_t id = udim_id(utile, vtile);
+    if (!udimfile || !udimfile->is_udim())
+        return udimfile;  // nothing to resolve;
+
+    if (utile < 0 || utile >= udimfile->m_udim_nutiles || vtile < 0
+        || vtile >= udimfile->m_udim_nvtiles)
+        return nullptr;  // out of range
+
+    // If udimfile exists, then we've already inventoried the matching
+    // files and filled in udimfile->udim_lookup. That vector, and the
+    // filename fields, are set and can be accessed without locks. The
+    // `ImageCacheFile*` within it, however, should use rw lock access.
+    int index = utile + vtile * udimfile->m_udim_nutiles;
+    UdimInfo& udiminfo(udimfile->m_udim_lookup[index]);
+
+    // An empty filename in the record means that tile is not populated.
+    if (udiminfo.filename.empty())
+        return nullptr;
 
     // Which is our mutex from the pool? Use a hash baseed on the filename.
     spin_rw_mutex& udim_lookup_mutex(
         udim_lookup_mutex_pool[udimfile->filename()]);
 
     // First, try a read lock and see if we already have an entry
-    ImageCacheFile* realfile = NULL;
+    ImageCacheFile* realfile = nullptr;
     {
         spin_rw_mutex::read_lock_guard rlock(udim_lookup_mutex);
-        UdimLookupMap::iterator f = udimfile->m_udim_lookup.find(id);
-        if (f != udimfile->m_udim_lookup.end())
-            realfile = f->second.icfile;
+        realfile = udiminfo.icfile;
     }
     // If that didn't work, get a write lock and we'll make the entry for
     // the first time.
     if (!realfile) {
-        // Here's the one spot where we do string manipulation -- only the
-        // first time a particular tiled region is needed. Just go ahead and
-        // do all possible substitutions we support!
-        ustring realname(udimfile->udim_to_concrete(utile, vtile));
-        realfile = find_file(realname, thread_info);
-        // Now grab the actual write lock, and double check that it hasn't
-        // been added by another thread during the brief time when we
-        // weren't holding any lock.
+        realfile = find_file(udiminfo.filename, thread_info);
+        // Grab the actual write lock to change the `ImageCacheFile*`.
         spin_rw_mutex::write_lock_guard rlock(udim_lookup_mutex);
-        udimfile->m_udim_lookup.emplace(id, UdimInfo(realname, realfile, utile,
-                                                     vtile));
+        udiminfo.icfile = realfile;
     }
     return realfile;
+}
+
+
+
+void
+ImageCacheImpl::inventory_udim(ImageCacheFile* udimfile, Perthread* thread_info,
+                               std::vector<ustring>& filenames, int& nutiles,
+                               int& nvtiles)
+{
+    filenames.clear();
+    if (!udimfile || !udimfile->is_udim()) {
+        nutiles = 0;
+        nvtiles = 0;
+    }
+    nutiles = udimfile->m_udim_nutiles;
+    nvtiles = udimfile->m_udim_nvtiles;
+    int n   = nutiles * nvtiles;
+    filenames.resize(n);
+    for (int i = 0; i < n; ++i) {
+        const UdimInfo& udiminfo(udimfile->m_udim_lookup[i]);
+        filenames[i] = udiminfo.filename;
+    }
 }
 
 

@@ -10,11 +10,16 @@ command += oiiotool ("-pattern constant:color=.1,.5,.5 256x256 3 -text:size=50:x
 
 command += testtex_command ("\"file.<UDIM>.tx\"",
                             "-nowarp -scalest 2 2 -res 128 128 -d uint8 -o out.tif")
-#command += diff_command ("out.tif", "ref/out.tif", "--fail 0.0005 --warn 0.0005")
 
 # Test get_texture_info on one thing that should be identical across all
 # the tiles, and one thing that should not be.
 command += testtex_command ("\"file.<UDIM>.tx\" --gettextureinfo Make --iters 0")
 command += testtex_command ("\"file.<UDIM>.tx\" --gettextureinfo Model --iters 0")
 
-outputs = [ "out.tif", "out.txt" ]
+# Test the other form of single-index udim pattern
+command += testtex_command ("\"file.%(UDIM)d.tx\"",
+                            "-nowarp -scalest 2 2 -res 128 128 -d uint8 -o out2.tif")
+command += testtex_command ("\"file.%(UDIM)d.tx\" --gettextureinfo Make --iters 0")
+command += testtex_command ("\"file.%(UDIM)d.tx\" --gettextureinfo Model --iters 0")
+
+outputs = [ "out.tif", "out2.tif", "out.txt" ]

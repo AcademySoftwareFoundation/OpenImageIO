@@ -632,6 +632,74 @@ TextureSystemImpl::imagespec(TextureHandle* texture_handle,
 
 
 bool
+TextureSystemImpl::is_udim(ustring filename)
+{
+    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
+    TextureFile* udimfile      = find_texturefile(filename, thread_info);
+    return udimfile && ((ImageCache::ImageHandle*)udimfile)->is_udim();
+}
+
+
+bool
+TextureSystemImpl::is_udim(TextureHandle* udimfile)
+{
+    return udimfile && ((ImageCache::ImageHandle*)udimfile)->is_udim();
+}
+
+
+
+TextureSystem::TextureHandle*
+TextureSystemImpl::resolve_udim(ustring filename, float s, float t)
+{
+    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
+    TextureFile* udimfile      = find_texturefile(filename, thread_info);
+    return resolve_udim((TextureHandle*)udimfile, (Perthread*)thread_info, s,
+                        t);
+}
+
+
+
+TextureSystem::TextureHandle*
+TextureSystemImpl::resolve_udim(TextureHandle* udimfile, Perthread* thread_info,
+                                float s, float t)
+{
+    // Find the u and v tile indices
+    int utile = std::max(0, int(s));
+    int vtile = std::max(0, int(t));
+    return (TextureHandle*)m_imagecache->resolve_udim(
+        (ImageCache::ImageHandle*)udimfile, (ImageCache::Perthread*)thread_info,
+        utile, vtile);
+}
+
+
+
+void
+TextureSystemImpl::inventory_udim(ustring udimpattern,
+                                  std::vector<ustring>& filenames, int& nutiles,
+                                  int& nvtiles)
+{
+    PerThreadInfo* thread_info = m_imagecache->get_perthread_info();
+    TextureFile* udimfile      = find_texturefile(udimpattern, thread_info);
+    inventory_udim((TextureHandle*)udimfile, (Perthread*)thread_info, filenames,
+                   nutiles, nvtiles);
+}
+
+
+
+void
+TextureSystemImpl::inventory_udim(TextureHandle* udimfile,
+                                  Perthread* thread_info,
+                                  std::vector<ustring>& filenames, int& nutiles,
+                                  int& nvtiles)
+{
+    return m_imagecache->inventory_udim((ImageCache::ImageHandle*)udimfile,
+                                        (ImageCache::Perthread*)thread_info,
+                                        filenames, nutiles, nvtiles);
+}
+
+
+
+bool
 TextureSystemImpl::get_texels(ustring filename, TextureOpt& options,
                               int miplevel, int xbegin, int xend, int ybegin,
                               int yend, int zbegin, int zend, int chbegin,
@@ -1013,9 +1081,13 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
     PerThreadInfo* thread_info = m_imagecache->get_perthread_info(
         (PerThreadInfo*)thread_info_);
     TextureFile* texturefile = (TextureFile*)texture_handle_;
-    if (texturefile->is_udim())
-        texturefile = m_imagecache->resolve_udim(texturefile, thread_info, s,
-                                                 t);
+    if (texturefile->is_udim()) {
+        texturefile = (TextureFile*)resolve_udim((TextureHandle*)texture_handle_,
+                                                 (Perthread*)thread_info, s, t);
+        // Adjust s,t to be within the udim tile
+        s -= floorf(s);
+        t -= floorf(t);
+    }
 
     texturefile = verify_texturefile(texturefile, thread_info);
 

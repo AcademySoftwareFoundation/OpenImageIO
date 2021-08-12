@@ -13,5 +13,5 @@ default-missingcolor = (0.0, 0.0, 0.0, 0.0)
 
 top mip pixel differences when streaming = 0
 
-udim file.<UDIM>.tx -> 2x4 ['./file.1001.tx', './file.1002.tx', './file.1011.tx', './file.1012.tx', '', '', '', './file.1032.tx']
+udim file.<UDIM>.tx -> 2x4 ['.\\file.1001.tx', '.\\file.1002.tx', '.\\file.1011.tx', '.\\file.1012.tx', '', '', '', '.\\file.1032.tx']
 Done.
