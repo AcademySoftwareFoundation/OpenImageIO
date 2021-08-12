@@ -24,7 +24,7 @@ path = "../.."
 
 # Options for the command line
 parser = OptionParser()
-parser.add_option("-p", "--path", help="add to executable path",
+parser.add_option("-p", "--path", help="add to build area path",
                   action="store", type="string", dest="path", default="")
 parser.add_option("--devenv-config", help="use a MS Visual Studio configuration",
                   action="store", type="string", dest="devenv_config", default="")
@@ -39,6 +39,7 @@ if args and len(args) > 0 :
 if args and len(args) > 1 :
     path = args[1]
 path = os.path.normpath (path)
+OIIO_BUILD_ROOT = path
 
 tmpdir = "."
 tmpdir = os.path.abspath (tmpdir)
@@ -51,12 +52,20 @@ def oiio_relpath (path, start=os.curdir):
 
 # Try to figure out where some key things are. Go by env variables set by
 # the cmake tests, but if those aren't set, assume somebody is running
-# this script by hand from inside build/PLATFORM/testsuite/TEST and that
+# this script by hand from inside build/testsuite/TEST and that
 # the rest of the tree has the standard layout.
+if os.path.exists('../../../testsuite') :
+    OIIO_TESTSUITE_ROOT = '../../../testsuite'
+elif os.path.exists('../../../../testsuite') :
+    OIIO_TESTSUITE_ROOT = '../../../../testsuite'
 OIIO_TESTSUITE_ROOT = oiio_relpath(os.getenv('OIIO_TESTSUITE_ROOT',
-                                             '../../../../testsuite'))
+                                             OIIO_TESTSUITE_ROOT))
+OIIO_PROJECT_ROOT = oiio_relpath(OIIO_TESTSUITE_ROOT + "/..")
+
+if os.path.exists('../oiio-images'):
+    OIIO_TESTSUITE_IMAGEDIR = '../oiio-images'
 OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR',
-                                    '../../../../../oiio-images')
+                                    OIIO_TESTSUITE_IMAGEDIR)
 if OIIO_TESTSUITE_IMAGEDIR:
     OIIO_TESTSUITE_IMAGEDIR = oiio_relpath(OIIO_TESTSUITE_IMAGEDIR)
     # Set it back so test's can use it (python-imagebufalgo)
@@ -71,25 +80,6 @@ test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
 colorconfig_file = os.path.join(OIIO_TESTSUITE_ROOT,
                                 "common", "OpenColorIO", "nuke-default", "config.ocio")
 
-# Swap the relative diff lines if the test suite is not being run via Makefile
-if OIIO_TESTSUITE_ROOT != "../../../../testsuite":
-    def replace_relative(lines):
-        imgdir = None
-        if OIIO_TESTSUITE_IMAGEDIR:
-            imgdir = os.path.basename(OIIO_TESTSUITE_IMAGEDIR)
-            if imgdir != "oiio-images":
-                oiioimgs = os.path.basename(os.path.dirname(OIIO_TESTSUITE_IMAGEDIR))
-                if oiioimgs == "oiio-images":
-                    imgdir = "oiio-images/" + imgdir
-                imgdir = "../../../../../" + imgdir
-
-        for i in range(len(lines)):
-            lines[i] = lines[i].replace("../../../../testsuite", OIIO_TESTSUITE_ROOT)
-            if imgdir:
-                lines[i] = lines[i].replace(imgdir, OIIO_TESTSUITE_IMAGEDIR)
-        return lines
-else:
-    replace_relative = None
 
 
 command = ""
@@ -109,7 +99,8 @@ image_extensions = [ ".tif", ".tx", ".exr", ".jpg", ".png", ".rla",
 
 # print ("srcdir = " + srcdir)
 # print ("tmpdir = " + tmpdir)
-# print ("path = " + path)
+# print ("OIIO_BUILD_ROOT = " + OIIO_BUILD_ROOT)
+# print ("OIIO_TESTSUITE_IMAGEDIR = {} ({})".format(OIIO_TESTSUITE_IMAGEDIR, os.path.abspath(OIIO_TESTSUITE_IMAGEDIR)))
 # print ("refdir = " + refdir)
 # print ("test source dir = " + test_source_dir)
 
@@ -119,9 +110,9 @@ if platform.system() == 'Windows' :
     if os.path.exists (os.path.join (test_source_dir, "src")) and not os.path.exists("./src") :
         shutil.copytree (os.path.join (test_source_dir, "src"), "./src")
     # if not os.path.exists("../data") :
-    #     shutil.copytree ("../../../testsuite/data", "..")
+    #     shutil.copytree ("../../testsuite/data", "..")
     # if not os.path.exists("../common") :
-    #     shutil.copytree ("../../../testsuite/common", "..")
+    #     shutil.copytree ("../../testsuite/common", "..")
 else :
     def newsymlink(src, dst):
         print("newsymlink", src, dst)
@@ -161,8 +152,8 @@ def text_diff (fromfile, tofile, diff_file=None):
         todate = time.ctime (os.stat (tofile).st_mtime)
         fromlines = open (fromfile, 'r').readlines()
         tolines   = open (tofile, 'r').readlines()
-        if replace_relative:
-            tolines = replace_relative(tolines)
+        # if replace_relative:
+        #     tolines = replace_relative(tolines)
     except:
         print ("Unexpected error:", sys.exc_info()[0])
         return -1
@@ -196,9 +187,9 @@ def run_app(app, silent=False, concat=True):
 
 def oiio_app (app):
     if (platform.system () != 'Windows' or options.devenv_config == ""):
-        return os.path.join (path, "bin", app) + " "
+        return os.path.join(OIIO_BUILD_ROOT, "bin", app) + " "
     else:
-        return os.path.join (path, "bin", options.devenv_config, app) + " "
+        return os.path.join(OIIO_BUILD_ROOT, "bin", options.devenv_config, app) + " "
 
 
 # Construct a command that will print info for an image, appending output to

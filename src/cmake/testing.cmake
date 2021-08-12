@@ -16,7 +16,8 @@ add_custom_command (OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py"
                     MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/runtest.py")
 add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/testsuite/runtest.py" )
 
-set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_SOURCE_DIR}/.." CACHE PATH
+# set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_SOURCE_DIR}/.." CACHE PATH
+set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
 
@@ -229,8 +230,7 @@ macro (oiio_add_all_tests)
     # images from the web that if not found, should skip the tests:
     oiio_add_tests (bmp
                     ENABLEVAR ENABLE_BMP
-                    IMAGEDIR bmpsuite
-                    URL http://entropymine.com/jason/bmpsuite/bmpsuite.zip)
+                    IMAGEDIR oiio-images/bmpsuite)
     oiio_add_tests (dpx
                     ENABLEVAR ENABLE_DPX
                     IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
@@ -260,46 +260,44 @@ macro (oiio_add_all_tests)
                     openexr-v2 openexr-window perchannel
                     oiiotool-deep
                     IMAGEDIR openexr-images
-                    URL http://www.openexr.com/downloads.html)
+                    URL http://github.com/AcademySoftwareFoundation/openexr-images)
     if (NOT DEFINED ENV{CI} AND NOT DEFINED ENV{GITHUB_ACTIONS})
         oiio_add_tests (openexr-damaged
                         IMAGEDIR openexr-images
-                        URL http://www.openexr.com/downloads.html)
+                        URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
     oiio_add_tests (openvdb
                     FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
     oiio_add_tests (png
                     ENABLEVAR ENABLE_PNG
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images)
     oiio_add_tests (pnm
                     ENABLEVAR ENABLE_PNM
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images)
     oiio_add_tests (psd psd-colormodes
                     ENABLEVAR ENABLE_PSD
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images)
     oiio_add_tests (ptex
                     FOUNDVAR PTEX_FOUND ENABLEVAR ENABLE_PTEX)
     oiio_add_tests (raw
                     FOUNDVAR LIBRAW_FOUND ENABLEVAR ENABLE_LIBRAW
-                    IMAGEDIR oiio-images/raw
-                    URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images/raw)
     oiio_add_tests (rla
                     ENABLEVAR ENABLE_RLA
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images)
     oiio_add_tests (sgi
                     ENABLEVAR ENABLE_SGI
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images)
     oiio_add_tests (targa-tgautils
                     ENABLEVAR ENABLE_TARGA
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images)
     oiio_add_tests (tiff-suite tiff-depths tiff-misc
-                    IMAGEDIR libtiffpic
-                    URL http://www.simplesystems.org/libtiff/images.html)
+                    IMAGEDIR oiio-images/libtiffpic)
     oiio_add_tests (webp
                     FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
-                    IMAGEDIR oiio-images/webp URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images/webp)
     oiio_add_tests (zfile ENABLEVAR ENABLE_ZFILE
-                    IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+                    IMAGEDIR oiio-images)
 
     if (SPI_TESTS)
         oiio_add_tests (oiiotool-spi
@@ -309,3 +307,53 @@ macro (oiio_add_all_tests)
     endif ()
 
 endmacro()
+
+
+set (OIIO_LOCAL_TESTDATA_ROOT "${CMAKE_SOURCE_DIR}/.." CACHE PATH
+     "Directory to check for local copies of testsuite data")
+option (OIIO_DOWNLOAD_MISSING_TESTDATA "Try to download any missing test data" ON)
+
+function (oiio_get_test_data name)
+    cmake_parse_arguments (_ogtd "" "REPO;BRANCH" "" ${ARGN})
+       # Arguments: <prefix> <options> <one_value_keywords> <multi_value_keywords> args...
+    if (IS_DIRECTORY "${OIIO_LOCAL_TESTDATA_ROOT}/${name}"
+        AND NOT EXISTS "${CMAKE_BINARY_DIR}/testsuite/${name}")
+        if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.14)
+            # Just make a link if we can
+            message (STATUS "Linking ${name} from ${OIIO_LOCAL_TESTDATA_ROOT}/../${name}")
+            file (CREATE_LINK "${OIIO_LOCAL_TESTDATA_ROOT}/${name}"
+                              "${CMAKE_BINARY_DIR}/testsuite/${name}"
+                              SYMBOLIC COPY_ON_ERROR)
+        else ()
+        # Older cmake -- copy
+            message (STATUS "Copying ${name} from ${OIIO_LOCAL_TESTDATA_ROOT}/../${name}")
+            file (COPY "${OIIO_LOCAL_TESTDATA_ROOT}/${name}"
+                  DESTINATION "${CMAKE_BINARY_DIR}/testsuite")
+        endif ()
+    elseif (IS_DIRECTORY "${CMAKE_BINARY_DIR}/testsuite/${name}")
+        message (STATUS "Test data for ${name} already present in testsuite")
+    elseif (OIIO_DOWNLOAD_MISSING_TESTDATA)
+        # Test data directory didn't exist -- fetch it
+        if (_ogtd_REPO)
+            message (STATUS "Cloning ${name} from ${_ogtd_REPO}")
+            if (NOT _ogtd_BRANCH)
+                set (_ogtd_BRANCH master)
+            endif ()
+            find_package (Git REQUIRED)
+            execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth 1
+                                    ${_ogtd_REPO} -b ${_ogtd_BRANCH}
+                                    ${CMAKE_BINARY_DIR}/testsuite/${name})
+        endif ()
+    else ()
+        message (STATUS "Missing test data ${name}")
+    endif ()
+endfunction()
+
+function (oiio_setup_test_data)
+    oiio_get_test_data (oiio-images
+                        REPO https://github.com/OpenImageIO/oiio-images.git)
+    oiio_get_test_data (openexr-images
+                        REPO https://github.com/AcademySoftwareFoudation/openexr-images.git)
+    oiio_get_test_data (fits-images)
+    oiio_get_test_data (j2kp4files_v1_5)
+endfunction ()

@@ -8,8 +8,8 @@ if [[ "$USE_SIMD" != "" ]] ; then
     MY_CMAKE_FLAGS="$MY_CMAKE_FLAGS -DUSE_SIMD=$USE_SIMD"
 fi
 
-pushd build/$PLATFORM
-cmake ../.. -G "$CMAKE_GENERATOR" \
+pushd build
+cmake .. -G "$CMAKE_GENERATOR" \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
         -DCMAKE_INSTALL_PREFIX="$OpenImageIO_ROOT" \
