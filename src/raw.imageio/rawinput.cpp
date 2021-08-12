@@ -66,10 +66,11 @@ private:
     bool m_unpacked = false;
     std::unique_ptr<LibRaw> m_processor;
     libraw_processed_image_t* m_image = nullptr;
-    bool m_do_scene_linear_scale = false;
-    float m_camera_to_scene_linear_scale = (1.0f / 0.45f); // see open_raw for details
+    bool m_do_scene_linear_scale      = false;
+    float m_camera_to_scene_linear_scale
+        = (1.0f / 0.45f);  // see open_raw for details
     bool m_do_balance_clamped = false;
-    float m_balanced_max = 1.0;
+    float m_balanced_max      = 1.0;
     std::string m_filename;
     ImageSpec m_config;  // save config requests
     std::string m_make;
@@ -236,28 +237,30 @@ OIIO_EXPORT const char* raw_input_extensions[]
 OIIO_PLUGIN_EXPORTS_END
 
 namespace {
-    const char* libraw_filter_to_str(unsigned int filters){
-        // Convert the libraw filter pattern description
-        // into a slightly more human readable string
-        // LibRaw/internal/defines.h:166
-        switch(filters){
-            // CYGM
-            case 0xe1e4e1e4: return "GMYC";
-            case 0x1b4e4b1e: return "CYGM";
-            case 0x1e4b4e1b: return "YCGM";
-            case 0xb4b4b4b4: return "GMCY";
-            case 0x1e4e1e4e: return "CYMG";
+const char*
+libraw_filter_to_str(unsigned int filters)
+{
+    // Convert the libraw filter pattern description
+    // into a slightly more human readable string
+    // LibRaw/internal/defines.h:166
+    switch (filters) {
+    // CYGM
+    case 0xe1e4e1e4: return "GMYC";
+    case 0x1b4e4b1e: return "CYGM";
+    case 0x1e4b4e1b: return "YCGM";
+    case 0xb4b4b4b4: return "GMCY";
+    case 0x1e4e1e4e: return "CYMG";
 
-            // RGB
-            case 0x16161616: return "BGRG";
-            case 0x61616161: return "GRGB";
-            case 0x49494949: return "GBGR";
-            case 0x94949494: return "RGBG";
-            default: break;
-        }
-        return "";
+    // RGB
+    case 0x16161616: return "BGRG";
+    case 0x61616161: return "GRGB";
+    case 0x49494949: return "GBGR";
+    case 0x94949494: return "RGBG";
+    default: break;
     }
+    return "";
 }
+}  // namespace
 
 bool
 RawInput::open(const std::string& name, ImageSpec& newspec)
@@ -460,19 +463,19 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // other modes from working. Instead, we can put the camera white
     // balance values into the user mults if desired
     m_processor->imgdata.params.use_camera_wb = 0;
-    if (config.get_int_attribute("raw:use_camera_wb", 1) == 1){
-        auto& color = m_processor->imgdata.color;
+    if (config.get_int_attribute("raw:use_camera_wb", 1) == 1) {
+        auto& color  = m_processor->imgdata.color;
         auto& params = m_processor->imgdata.params;
-        auto& idata = m_processor->imgdata.idata;
+        auto& idata  = m_processor->imgdata.idata;
 
-        auto is_rgbg_or_bgrg = [&](unsigned int filters){
+        auto is_rgbg_or_bgrg = [&](unsigned int filters) {
             std::string filter(libraw_filter_to_str(filters));
             return filter == "RGBG" || filter == "BGRG";
         };
-        float norm[4] = {color.cam_mul[0], color.cam_mul[1],
-                         color.cam_mul[2], color.cam_mul[3]};
+        float norm[4] = { color.cam_mul[0], color.cam_mul[1], color.cam_mul[2],
+                          color.cam_mul[3] };
 
-        if (is_rgbg_or_bgrg(idata.filters)){
+        if (is_rgbg_or_bgrg(idata.filters)) {
             // normalize white balance around green
             norm[0] /= norm[1];
             norm[1] /= norm[1];
@@ -639,8 +642,9 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.channelnames.emplace_back("Y");
 
             // Put the details about the filter pattern into the metadata
-            std::string filter(libraw_filter_to_str(m_processor->imgdata.idata.filters));
-            if (filter.empty()){
+            std::string filter(
+                libraw_filter_to_str(m_processor->imgdata.idata.filters));
+            if (filter.empty()) {
                 filter = "unknown";
             }
             m_spec.attribute("raw:FilterPattern", filter);
@@ -683,13 +687,15 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // The default value of (1.0f / 0.45f) was solved in this way from a Canon 7D
     if (config.find_attribute("raw:camera_to_scene_linear_scale") ||
         // Add a simple on/off to apply the default scaling
-        config.find_attribute("raw:apply_scene_linear_scale")     ){
-        m_camera_to_scene_linear_scale =
-            config.get_float_attribute("raw:camera_to_scene_linear_scale", (1.0f / 0.45f));
+        config.find_attribute("raw:apply_scene_linear_scale")) {
+        m_camera_to_scene_linear_scale
+            = config.get_float_attribute("raw:camera_to_scene_linear_scale",
+                                         (1.0f / 0.45f));
         m_do_scene_linear_scale = true;
         // Store scene linear values in HALF datatype rather than UINT16
         m_spec.set_format(TypeDesc::HALF);
-        m_spec.attribute("raw:camera_to_scene_linear_scale", m_camera_to_scene_linear_scale);
+        m_spec.attribute("raw:camera_to_scene_linear_scale",
+                         m_camera_to_scene_linear_scale);
     }
 
     // Highlight adjustment
@@ -711,19 +717,22 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // The balance_clamped option checks to see what the highest accepted value should be
     // and then hard clamps all channels to this value.
     // Enabling "balance_clamped" will change the return buffer type to HALF
-    int balance_clamped = config.get_int_attribute("raw:balance_clamped", 0); // default OFF
-    if (highlight_mode != 0/*Clip*/){
+    int balance_clamped = config.get_int_attribute("raw:balance_clamped",
+                                                   0);  // default OFF
+    if (highlight_mode != 0 /*Clip*/) {
         // FIXME: promote this debug message to a runtme warning
-        OIIO::debugf("%s", "raw:balance_clamped will have no effect as raw:HighlightMode is not 0\n");
+        OIIO::debugf(
+            "%s",
+            "raw:balance_clamped will have no effect as raw:HighlightMode is not 0\n");
     }
-    if (m_process && balance_clamped != 0 && highlight_mode == 0 /*Clip*/){
+    if (m_process && balance_clamped != 0 && highlight_mode == 0 /*Clip*/) {
         m_spec.set_format(TypeDesc::HALF);
         m_spec.attribute("raw:balance_clamped", balance_clamped);
 
         // The following code can only run once the libraw processor is unpacked.
         // As these values only have effect on the debayered images, it is ok
         // to leave them unset the first time.
-        if (m_unpacked){
+        if (m_unpacked) {
             float old_max_thr = m_processor->imgdata.params.adjust_maximum_thr;
 
             // Disable max threshold for highlight adjustment
@@ -731,12 +740,12 @@ RawInput::open_raw(bool unpack, const std::string& name,
 
             // Get unadjusted max value (need to force a read first)
             ret = m_processor->raw2image_ex(/*subtract_black=*/true);
-            if (ret != LIBRAW_SUCCESS){
+            if (ret != LIBRAW_SUCCESS) {
                 errorf("HighlightMode adjustment detection read failed");
                 errorf(libraw_strerror(ret));
                 return false;
             }
-            if (m_processor->adjust_maximum() != LIBRAW_SUCCESS){
+            if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
                 errorf("HighlightMode minimum adjustment failed");
                 errorf(libraw_strerror(ret));
                 return false;
@@ -744,11 +753,11 @@ RawInput::open_raw(bool unpack, const std::string& name,
             float unadjusted = m_processor->imgdata.color.maximum;
 
             // Set the max threshold to either the default 1.0, or user requested max
-            m_processor->imgdata.params.adjust_maximum_thr =
-                (old_max_thr == 0.0f) ? 1.0 : old_max_thr;
+            m_processor->imgdata.params.adjust_maximum_thr
+                = (old_max_thr == 0.0f) ? 1.0 : old_max_thr;
 
             // Get new max value
-            if (m_processor->adjust_maximum() != LIBRAW_SUCCESS){
+            if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
                 errorf("HighlightMode maximum adjustment failed");
                 errorf(libraw_strerror(ret));
                 return false;
@@ -758,11 +767,11 @@ RawInput::open_raw(bool unpack, const std::string& name,
             // Restore old max threshold
             m_processor->imgdata.params.adjust_maximum_thr = old_max_thr;
 
-            if (unadjusted <= 0.0f){
+            if (unadjusted <= 0.0f) {
                 // invalid data
             } else {
                 m_do_balance_clamped = true;
-                m_balanced_max = adjusted / unadjusted;
+                m_balanced_max       = adjusted / unadjusted;
             }
         }
     }
@@ -1427,34 +1436,43 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
         // The raw_image buffer might contain junk pixels that are usually trimmed off
         // we must index into the raw buffer, taking these into account
-        auto& sizes = m_processor->imgdata.sizes;
-        int offset = sizes.raw_width * sizes.top_margin;
+        auto& sizes        = m_processor->imgdata.sizes;
+        int offset         = sizes.raw_width * sizes.top_margin;
         int scanline_start = sizes.raw_width * y + sizes.left_margin;
 
         // The raw_image will not have been rotated, so we must factor that into our
         // array access
         // For none or 180 degree rotation, the scanlines are still contiguous in memory
-        if (sizes.flip == 0 /*no rotation*/ || sizes.flip == 3 /*180 degrees*/){
-            if (sizes.flip == 3){
-                scanline_start = sizes.raw_width * (m_spec.height - y) + sizes.left_margin;
+        if (sizes.flip == 0 /*no rotation*/ || sizes.flip == 3 /*180 degrees*/) {
+            if (sizes.flip == 3) {
+                scanline_start = sizes.raw_width * (m_spec.height - y)
+                                 + sizes.left_margin;
             }
-            unsigned short* scanline = &(
-                (m_processor->imgdata.rawdata.raw_image + offset)[scanline_start]);
-            convert_pixel_values(TypeDesc::UINT16, scanline, m_spec.format, data, m_spec.width);
+            unsigned short* scanline = &((m_processor->imgdata.rawdata.raw_image
+                                          + offset)[scanline_start]);
+            convert_pixel_values(TypeDesc::UINT16, scanline, m_spec.format,
+                                 data, m_spec.width);
         }
         // For 90 degrees ClockWise or CounterClockWise, our desired scanlines now run perpendicular
         // to the array direction so we must copy the pixels into a temporary contiguous buffer
-        else if (sizes.flip == 5 /*90 degrees CCW*/ || sizes.flip == 6 /*90 degrees CW*/) {
+        else if (sizes.flip == 5 /*90 degrees CCW*/
+                 || sizes.flip == 6 /*90 degrees CW*/) {
             scanline_start = m_spec.height - y + sizes.left_margin;
-            if (sizes.flip == 6){
+            if (sizes.flip == 6) {
                 scanline_start = y + sizes.left_margin;
             }
             auto buffer = std::make_unique<uint16_t[]>(m_spec.width);
-            for (size_t i=0; i<static_cast<size_t>(m_spec.width); ++i){
-                size_t index = (sizes.flip == 5) ? i : m_spec.width - i; //flip the index if rotating 90 degrees CW
-                buffer[index] = (m_processor->imgdata.rawdata.raw_image + offset)[sizes.raw_width * i + scanline_start];
+            for (size_t i = 0; i < static_cast<size_t>(m_spec.width); ++i) {
+                size_t index
+                    = (sizes.flip == 5)
+                          ? i
+                          : m_spec.width
+                                - i;  //flip the index if rotating 90 degrees CW
+                buffer[index] = (m_processor->imgdata.rawdata.raw_image
+                                 + offset)[sizes.raw_width * i + scanline_start];
             }
-            convert_pixel_values(TypeDesc::UINT16, buffer.get(), m_spec.format, data, m_spec.width);
+            convert_pixel_values(TypeDesc::UINT16, buffer.get(), m_spec.format,
+                                 data, m_spec.width);
         }
         return true;
     }
@@ -1473,11 +1491,12 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     unsigned short* scanline = &(((unsigned short*)m_image->data)[length * y]);
 
     // Copy or convert pixels from libraw to oiio
-    convert_pixel_values(TypeDesc::UINT16, scanline, m_spec.format, data, length);
+    convert_pixel_values(TypeDesc::UINT16, scanline, m_spec.format, data,
+                         length);
 
     // Check if we need to balance any clamped values (implies HALF output)
-    if (m_do_balance_clamped){
-        half* dst = static_cast<half*>(data);
+    if (m_do_balance_clamped) {
+        half* dst         = static_cast<half*>(data);
         auto balance_func = [&](half& f) -> half {
             return std::min((float)f, m_balanced_max);
         };
@@ -1485,19 +1504,19 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
 
     // Perform any scene linear scaling (implies HALF output)
-    if (m_do_scene_linear_scale){
+    if (m_do_scene_linear_scale) {
         float scale_value = m_camera_to_scene_linear_scale;
 
         // In any mode other than Clip highlights, LibRAW refuses
         // to multiply the image values to the correct level.
         // Perform that conversion here as the user requested
         // scene linear values directly.
-        if (m_processor->imgdata.params.highlight != 0/*Clip*/){
+        if (m_processor->imgdata.params.highlight != 0 /*Clip*/) {
             //TODO: Find this number
             scale_value *= 2.5f;
         }
 
-        half* dst = static_cast<half*>(data);
+        half* dst       = static_cast<half*>(data);
         auto scale_func = [&](half& f) -> half {
             return (float)f * scale_value;
         };
