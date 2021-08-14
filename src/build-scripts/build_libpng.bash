@@ -33,17 +33,22 @@ if [[ ! -e ${LIBPNG_SRC_DIR} ]] ; then
     git clone ${LIBPNG_REPO} ${LIBPNG_SRC_DIR}
 fi
 cd ${LIBPNG_SRC_DIR}
+
+
 echo "git checkout ${LIBPNG_VERSION} --force"
 git checkout ${LIBPNG_VERSION} --force
 
 mkdir -p ${LIBPNG_BUILD_DIR}
 cd ${LIBPNG_BUILD_DIR}
-time cmake -DCMAKE_BUILD_TYPE=Release \
-           -DCMAKE_INSTALL_PREFIX=${LIBPNG_INSTALL_DIR} \
-           -DPNG_EXECUTABLES=OFF \
-           -DPNG_TESTS=OFF \
-           ${LIBPNG_CONFIG_OPTS} ..
-time cmake --build . --config Release --target install
+
+if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+    time cmake -DCMAKE_BUILD_TYPE=Release \
+               -DCMAKE_INSTALL_PREFIX=${LIBPNG_INSTALL_DIR} \
+               -DPNG_EXECUTABLES=OFF \
+               -DPNG_TESTS=OFF \
+               ${LIBPNG_CONFIG_OPTS} ..
+    time cmake --build . --config Release --target install
+fi
 
 # ls -R ${LIBPNG_INSTALL_DIR}
 popd

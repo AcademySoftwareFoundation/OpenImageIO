@@ -33,15 +33,20 @@ if [[ ! -e ${ZLIB_SRC_DIR} ]] ; then
     git clone ${ZLIB_REPO} ${ZLIB_SRC_DIR}
 fi
 cd ${ZLIB_SRC_DIR}
+
 echo "git checkout ${ZLIB_VERSION} --force"
 git checkout ${ZLIB_VERSION} --force
 
 mkdir -p ${ZLIB_BUILD_DIR} && true
 cd ${ZLIB_BUILD_DIR}
-time cmake -DCMAKE_BUILD_TYPE=Release \
-           -DCMAKE_INSTALL_PREFIX=${ZLIB_INSTALL_DIR} \
-           ${ZLIB_CONFIG_OPTS} ..
-time cmake --build . --config Release --target install
+
+
+if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+    time cmake -DCMAKE_BUILD_TYPE=Release \
+               -DCMAKE_INSTALL_PREFIX=${ZLIB_INSTALL_DIR} \
+               ${ZLIB_CONFIG_OPTS} ..
+    time cmake --build . --config Release --target install
+fi
 
 # ls -R ${ZLIB_INSTALL_DIR}
 popd
