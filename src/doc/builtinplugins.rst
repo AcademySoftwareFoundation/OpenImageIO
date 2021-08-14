@@ -1508,6 +1508,27 @@ options are supported:
      - int
      - Set libraw highlight mode processing: 0 = clip, 1 = unclip, 2 =
        blend, 3+ = rebuild. (Default: 0.)
+   * - ``raw:balance_clamped``
+     - int
+     - If nonzero, balance any clamped highlight values in the image. Resolves issues
+       where highlights take on an undesired hue shift due to incongruous channel
+       sensor saturation.
+       Enabling this option will change the output datatype to HALF.
+       (Default: 0)
+   * - ``raw:apply_scene_linear_scale``
+     - int
+     - If nonzero, applies an additional multiplication to the pixel values returned
+       by libraw. See ``raw:camera_to_scene_linear_scale`` for more details.
+       Enabling this option will change the output datatype to HALF.
+       (Default: 0)
+   * - ``raw:camera_to_scene_linear_scale``
+     - float
+     - Whilst the libraw pixel values are linear, they are normalized based on
+       the whitepoint / sensor / ISO and shooting conditions. An additional multiplication
+       is needed to bring exposure levels up so that a correctly photographed 18% grey card
+       has pixel values at 0.18. Setting this metadata key implies ``raw:apply_scene_linear_scale``.
+       Enabling this option will change the output datatype to HALF.
+       (Default: 2.2222222222222223 (1.0/0.45))
    * - ``raw:user_flip``
      - int
      - Set libraw user flip value : -1 ignored, other values are between [0; 8] with the same 
