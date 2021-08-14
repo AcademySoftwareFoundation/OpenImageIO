@@ -33,10 +33,8 @@ if [[ ! -e ${OPENJPEG_SRC_DIR} ]] ; then
 fi
 cd ${OPENJPEG_SRC_DIR}
 
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
-    echo "git checkout ${OPENJPEG_VERSION} --force"
-    git checkout ${OPENJPEG_VERSION} --force
-fi
+echo "git checkout ${OPENJPEG_VERSION} --force"
+git checkout ${OPENJPEG_VERSION} --force
 
 mkdir -p ${OPENJPEG_BUILD_DIR} && true
 cd ${OPENJPEG_BUILD_DIR}

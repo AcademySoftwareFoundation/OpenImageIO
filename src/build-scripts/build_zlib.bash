@@ -34,10 +34,8 @@ if [[ ! -e ${ZLIB_SRC_DIR} ]] ; then
 fi
 cd ${ZLIB_SRC_DIR}
 
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
-    echo "git checkout ${ZLIB_VERSION} --force"
-    git checkout ${ZLIB_VERSION} --force
-fi
+echo "git checkout ${ZLIB_VERSION} --force"
+git checkout ${ZLIB_VERSION} --force
 
 mkdir -p ${ZLIB_BUILD_DIR} && true
 cd ${ZLIB_BUILD_DIR}

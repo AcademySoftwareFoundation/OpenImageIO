@@ -28,10 +28,8 @@ if [[ ! -e libtiff ]] ; then
 fi
 cd libtiff
 
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
-    echo "git checkout ${LIBTIFF_VERSION} --force"
-    git checkout ${LIBTIFF_VERSION} --force
-fi
+echo "git checkout ${LIBTIFF_VERSION} --force"
+git checkout ${LIBTIFF_VERSION} --force
 
 mkdir -p build
 cd build

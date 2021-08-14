@@ -33,10 +33,8 @@ if [[ ! -e ${WEBP_SRC_DIR} ]] ; then
 fi
 cd ${WEBP_SRC_DIR}
 
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
-    echo "git checkout ${WEBP_VERSION} --force"
-    git checkout ${WEBP_VERSION} --force
-fi
+echo "git checkout ${WEBP_VERSION} --force"
+git checkout ${WEBP_VERSION} --force
 
 mkdir -p ${WEBP_BUILD_DIR}
 cd ${WEBP_BUILD_DIR}

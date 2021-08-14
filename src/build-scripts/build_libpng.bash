@@ -35,10 +35,8 @@ fi
 cd ${LIBPNG_SRC_DIR}
 
 
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
-    echo "git checkout ${LIBPNG_VERSION} --force"
-    git checkout ${LIBPNG_VERSION} --force
-fi
+echo "git checkout ${LIBPNG_VERSION} --force"
+git checkout ${LIBPNG_VERSION} --force
 
 mkdir -p ${LIBPNG_BUILD_DIR}
 cd ${LIBPNG_BUILD_DIR}

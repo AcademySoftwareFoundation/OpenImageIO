@@ -33,10 +33,8 @@ if [[ ! -e ${LIBJPEGTURBO_SRC_DIR} ]] ; then
     git clone ${LIBJPEGTURBO_REPO} ${LIBJPEGTURBO_SRC_DIR}
 fi
 cd ${LIBJPEGTURBO_SRC_DIR}
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
-    echo "git checkout ${LIBJPEGTURBO_VERSION} --force"
-    git checkout ${LIBJPEGTURBO_VERSION} --force
-fi
+echo "git checkout ${LIBJPEGTURBO_VERSION} --force"
+git checkout ${LIBJPEGTURBO_VERSION} --force
 
 mkdir -p ${LIBJPEGTURBO_BUILD_DIR}
 cd ${LIBJPEGTURBO_BUILD_DIR}

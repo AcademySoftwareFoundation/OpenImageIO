@@ -35,10 +35,8 @@ if [[ ! -e ${PYBIND11_SRC_DIR} ]] ; then
 fi
 cd ${PYBIND11_SRC_DIR}
 
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
-    echo "git checkout ${PYBIND11_VERSION} --force"
-    git checkout ${PYBIND11_VERSION} --force
-fi
+echo "git checkout ${PYBIND11_VERSION} --force"
+git checkout ${PYBIND11_VERSION} --force
 
 mkdir -p ${PYBIND11_BUILD_DIR}
 cd ${PYBIND11_BUILD_DIR}

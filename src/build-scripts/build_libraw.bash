@@ -34,9 +34,7 @@ mkdir -p ${LIBRAW_BUILD_DIR} && true
 
 pushd ${LIBRAW_SOURCE_DIR}
 
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
-    git checkout ${LIBRAW_VERSION} --force
-fi
+git checkout ${LIBRAW_VERSION} --force
 
 if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
     aclocal

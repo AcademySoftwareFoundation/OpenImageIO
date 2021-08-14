@@ -35,10 +35,8 @@ if [[ ! -e ${PUGIXML_SRC_DIR} ]] ; then
 fi
 cd ${PUGIXML_SRC_DIR}
 
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
-    echo "git checkout ${PUGIXML_VERSION} --force"
-    git checkout ${PUGIXML_VERSION} --force
-fi
+echo "git checkout ${PUGIXML_VERSION} --force"
+git checkout ${PUGIXML_VERSION} --force
 
 mkdir -p ${PUGIXML_BUILD_DIR}
 cd ${PUGIXML_BUILD_DIR}
