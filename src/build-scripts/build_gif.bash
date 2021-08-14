@@ -22,8 +22,9 @@ echo "giflib install dir will be: ${GIFLIB_INSTALL_DIR}"
 mkdir -p ${LOCAL_DEPS_DIR}
 pushd ${LOCAL_DEPS_DIR}
 
+
 # Clone giflib project and build
-if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
+if [[ ! -e giflib-${GIFLIB_VERSION} ]] ; then
     curl --location https://downloads.sourceforge.net/project/giflib/giflib-${GIFLIB_VERSION}.tar.gz -o giflib.tar.gz
     tar xzf giflib.tar.gz
     pushd giflib-${GIFLIB_VERSION}
