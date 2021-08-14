@@ -742,12 +742,12 @@ RawInput::open_raw(bool unpack, const std::string& name,
             ret = m_processor->raw2image_ex(/*subtract_black=*/true);
             if (ret != LIBRAW_SUCCESS) {
                 errorf("HighlightMode adjustment detection read failed");
-                errorf(libraw_strerror(ret));
+                errorf("%s", libraw_strerror(ret));
                 return false;
             }
             if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
                 errorf("HighlightMode minimum adjustment failed");
-                errorf(libraw_strerror(ret));
+                errorf("%s", libraw_strerror(ret));
                 return false;
             }
             float unadjusted = m_processor->imgdata.color.maximum;
@@ -759,7 +759,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
             // Get new max value
             if (m_processor->adjust_maximum() != LIBRAW_SUCCESS) {
                 errorf("HighlightMode maximum adjustment failed");
-                errorf(libraw_strerror(ret));
+                errorf("%s", libraw_strerror(ret));
                 return false;
             }
             float adjusted = m_processor->imgdata.color.maximum;
