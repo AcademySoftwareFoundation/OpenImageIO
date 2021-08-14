@@ -316,25 +316,25 @@ stats_footer(unsigned int maxval)
 void
 OiioTool::print_stats(std::ostream& out, Oiiotool& ot,
                       const std::string& filename, int subimage, int miplevel,
-                      string_view indent)
+                      string_view indent, ROI roi)
 {
     ImageBuf input;
     if (!read_input(ot, filename, input, subimage, miplevel)) {
         ot.error("stats", input.geterror());
         return;
     }
-    print_stats(out, ot, input, /*input.nativespec(),*/ indent);
+    print_stats(out, ot, input, /*input.nativespec(),*/ indent, roi);
 }
 
 
 
 void
 OiioTool::print_stats(std::ostream& out, Oiiotool& ot, const ImageBuf& input,
-                      /*const ImageSpec& originalspec,*/ string_view indent)
+                      string_view indent, ROI roi)
 {
     using Strutil::print;
 
-    PixelStats stats = computePixelStats(input);
+    PixelStats stats = computePixelStats(input, roi);
     if (!stats.min.size()) {
         std::string err = input.geterror();
         ot.errorfmt("stats", "unable to compute: {}",
@@ -711,19 +711,28 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
         dump_data(out, input, opt);
     }
 
-    if (input && opt.compute_stats
+    if (opt.compute_stats
         && (opt.metamatch.empty() || std::regex_search("stats", field_re))) {
         for (int m = 0; m < nmip; ++m) {
             ImageSpec mipspec;
-            input->seek_subimage(current_subimage, m, mipspec);
+            if (input)
+                input->seek_subimage(current_subimage, m, mipspec);
+            else if (img)
+                mipspec = *img->spec(current_subimage, m);
             if (opt.filenameprefix)
                 Strutil::print(out, "{} : ", filename);
-            if (nmip > 1) {
+            if (nmip > 1 && opt.subimages) {
                 Strutil::print(out, "    MIP {} of {} ({} x {}):\n", m, nmip,
                                mipspec.width, mipspec.height);
             }
-            print_stats(out, ot, filename, /*spec,*/ current_subimage, m,
-                        nmip > 1 ? "      " : "    ");
+            if (input)
+                print_stats(out, ot, filename, /*spec,*/ current_subimage, m,
+                            nmip > 1 ? "      " : "    ", opt.roi);
+            else if (img)
+                print_stats(out, ot, (*img)(current_subimage, m),
+                            nmip > 1 ? "      " : "    ", opt.roi);
+            if (!opt.subimages)
+                break;
         }
     }
 }

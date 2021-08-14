@@ -4542,16 +4542,10 @@ input_file(int argc, const char* argv[])
         }
         if ((printinfo || ot.printstats || ot.dumpdata || ot.hash)
             && !substitute) {
-            OiioTool::print_info_options pio;
-            pio.verbose   = ot.verbose || printinfo > 1 || ot.printinfo_verbose;
-            pio.subimages = ot.allsubimages || printinfo > 1;
-            pio.compute_stats      = ot.printstats;
-            pio.dumpdata           = ot.dumpdata;
-            pio.dumpdata_showempty = ot.dumpdata_showempty;
-            pio.compute_sha1       = ot.hash;
-            pio.metamatch          = ot.printinfo_metamatch;
-            pio.nometamatch        = ot.printinfo_nometamatch;
-            pio.infoformat         = infoformat;
+            print_info_options pio(ot);
+            pio.verbose |= printinfo > 1;
+            pio.subimages |= printinfo > 1;
+            pio.infoformat = infoformat;
             std::string error;
             bool ok = OiioTool::print_info(std::cout, ot, filename, pio, error);
             if (!ok) {
@@ -5112,6 +5106,69 @@ do_echo(cspan<const char*> argv)
 
 
 
+// --printstats
+static void
+action_printstats(cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    if (ot.postpone_callback(1, action_printstats, argv))
+        return;
+    Timer timer(ot.enable_function_timing);
+    string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
+
+    ot.read();
+    ImageRecRef top = ot.top();
+
+    print_info_options opt(ot);
+    opt.subimages     = allsubimages;
+    opt.compute_stats = true;
+    opt.roi           = top->spec(0, 0)->roi();
+    std::string geom  = options["window"];
+    if (!geom.empty()) {
+        int x = opt.roi.xbegin, y = opt.roi.ybegin;
+        int w = opt.roi.width(), h = opt.roi.height();
+        ot.adjust_geometry(command, w, h, x, y, geom.c_str(), true, true);
+        opt.roi = ROI(x, x + w, y, y + h, 0, opt.roi.zend, opt.roi.chbegin,
+                      opt.roi.chend);
+    }
+    std::string errstring;
+    print_info(std::cout, ot, top.get(), opt, errstring);
+
+    ot.printed_info = true;
+    ot.function_times[command] += timer();
+}
+
+
+
+// --printinfo
+static void
+action_printinfo(cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    if (ot.postpone_callback(1, action_printinfo, argv))
+        return;
+    Timer timer(ot.enable_function_timing);
+    string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
+
+    ot.read();
+    ImageRecRef top = ot.top();
+
+    print_info_options opt(ot);
+    opt.verbose   = true;
+    opt.subimages = allsubimages;
+    std::string errstring;
+    print_info(std::cout, ot, top.get(), opt, errstring);
+
+    ot.printed_info = true;
+    ot.function_times[command] += timer();
+}
+
+
+
 static void
 crash_me()
 {
@@ -5410,7 +5467,8 @@ getargs(int argc, char* argv[])
     ap.arg("filename")
       .hidden()
       .action(input_file);
-    ap.separator("Options (general):");
+
+    ap.separator("Options (general flags, usually not positional):");
     ap.arg("--help", &help)
       .help("Print help message");
     ap.arg("-v", &ot.verbose)
@@ -5431,26 +5489,17 @@ getargs(int argc, char* argv[])
     ap.arg("--list-formats")
       .help("List all supported file formats and their filename extensions")
       .action(list_formats);
-    ap.arg("--echo %s:TEXT")
-      .help("Echo message to console (options: newline=0)")
-      .action(do_echo);
     ap.arg("--metamatch %s:REGEX", &ot.printinfo_metamatch)
       .help("Which metadata is printed with -info -v");
     ap.arg("--no-metamatch %s:REGEX", &ot.printinfo_nometamatch)
       .help("Which metadata is excluded with -info -v");
     ap.arg("--stats", &ot.printstats)
-      .help("Print pixel statistics on all inputs");
+      .help("Print pixel statistics of all inputs files");
     ap.arg("--dumpdata")
-      .help("Print all pixel data values (options: empty=0)")
+      .help("Print all pixel data values of input files (options: empty=0)")
       .action(set_dumpdata);
     ap.arg("--hash", &ot.hash)
       .help("Print SHA-1 hash of each input image");
-    ap.arg("--colorcount %s:COLORLIST")
-       .help("Count of how many pixels have the given color (argument: color;color;...) (options: eps=color)")
-       .action(action_colorcount);
-    ap.arg("--rangecheck %s:MIN %s:MAX")
-       .help("Count of how many pixels are outside the min/max color range (each is a comma-separated color value list)")
-       .action(action_rangecheck);
     ap.arg("-u", &ot.updatemode)
       .help("Update mode: skip outputs when the file exists and is newer than all inputs");
     ap.arg("--no-clobber", &ot.noclobber)
@@ -5507,6 +5556,7 @@ getargs(int argc, char* argv[])
     ap.arg("--crash")
       .hidden()
       .action(crash_me);
+
     ap.separator("Commands that read images:");
     ap.arg("-i %s:FILENAME")
       .help("Input file (options: autocc=, ch=, info=, infoformat=, now=, type=, unpremult=)")
@@ -5516,6 +5566,7 @@ getargs(int argc, char* argv[])
       .action(set_input_attribute);
     ap.arg("--missingfile %s:OPTION", &ot.missingfile_policy)
       .help("Set policy for missing input files: 'error' (default), 'black', 'checker'");
+
     ap.separator("Commands that write images:");
     ap.arg("-o %s:FILENAME")
       .help("Output the current image to the named file (options: "
@@ -5531,6 +5582,7 @@ getargs(int argc, char* argv[])
     ap.arg("-obump %s:FILENAME")
       .help("Output the current bump texture map as a 6 channels texture including the first and second moment of the bump slopes (options: bumpformat=height|normal|auto, uvslopes_scale=val>=0)")
       .action(output_file);
+
     ap.separator("Options that affect subsequent image output:");
     ap.arg("-d %s:TYPE")
       .help("'-d TYPE' sets the output data format of all channels, "
@@ -5558,6 +5610,24 @@ getargs(int argc, char* argv[])
       .help("Do not automatically crop images whose formats don't support separate pixel data and full/display windows");
     ap.arg("--autotrim", &ot.output_autotrim)
       .help("Automatically trim black borders upon output to file formats that support separate pixel data and full/display windows");
+
+    ap.separator("Options that print data (usually about the current image):");
+    ap.arg("--echo %s:TEXT")
+      .help("Echo message to console (options: newline=0)")
+      .action(do_echo);
+    ap.arg("--printinfo")
+      .help("Print info and metadata of the current top image")
+      .action(action_printinfo);
+    ap.arg("--printstats")
+      .help("Print pixel statistics of the current top image (options: roi=<geom>)")
+      .action(action_printstats);
+    ap.arg("--colorcount %s:COLORLIST")
+       .help("Count of how many pixels have the given color (argument: color;color;...) (options: eps=color)")
+       .action(action_colorcount);
+    ap.arg("--rangecheck %s:MIN %s:MAX")
+       .help("Count of how many pixels are outside the min/max color range (each is a comma-separated color value list)")
+       .action(action_rangecheck);
+
     ap.separator("Options that change current image metadata (but not pixel values):");
     ap.arg("--attrib %s:NAME %s:VALUE")
       .help("Sets metadata attribute (options: type=...)")
@@ -5617,6 +5687,7 @@ getargs(int argc, char* argv[])
     ap.arg("--chnames %s:NAMELIST")
       .help("Set the channel names (comma-separated)")
       .action(action_set_channelnames);
+
     ap.separator("Options that affect subsequent actions:");
     ap.arg("--fail %g:THRESH", &ot.diff_failthresh)
       .help("Failure threshold difference (0.000001)");
@@ -5630,6 +5701,7 @@ getargs(int argc, char* argv[])
       .help("Allow this percentage of warnings in diff (0)");
     ap.arg("--hardwarn %g:THRESH", &ot.diff_hardwarn)
       .help("Warn if any one pixel difference exceeds this error (infinity)");
+
     ap.separator("Actions:");
     ap.arg("--create %s:GEOM %d:NCHANS")
       .help("Create a blank image")
@@ -5865,6 +5937,7 @@ getargs(int argc, char* argv[])
     ap.arg("--text %s:TEXT")
       .help("Render text into the current image (options: x=, y=, size=, color=)")
       .action(action_text);
+
     ap.separator("Manipulating channels or subimages:");
     ap.arg("--ch %s:CHANLIST")
       .help("Select or shuffle channels (e.g., \"R,G,B\", \"B,G,R\", \"2,3,4\")")
@@ -5896,6 +5969,7 @@ getargs(int argc, char* argv[])
     ap.arg("--flatten")
       .help("Flatten deep image to non-deep")
       .action(action_flatten);
+
     ap.separator("Image stack manipulation:");
     ap.arg("--dup")
       .help("Duplicate the current image (push a copy onto the stack)")
@@ -5909,6 +5983,7 @@ getargs(int argc, char* argv[])
     ap.arg("--label %s")
       .help("Label the top image")
       .action(action_label);
+
     ap.separator("Color management:");
     ap.arg("--colorconfig %s:FILENAME")
       .help("Explicitly specify an OCIO configuration file")
