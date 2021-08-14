@@ -34,17 +34,23 @@ if [[ ! -e ${PUGIXML_SRC_DIR} ]] ; then
     git clone ${PUGIXML_REPO} ${PUGIXML_SRC_DIR}
 fi
 cd ${PUGIXML_SRC_DIR}
-echo "git checkout ${PUGIXML_VERSION} --force"
-git checkout ${PUGIXML_VERSION} --force
+
+if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
+    echo "git checkout ${PUGIXML_VERSION} --force"
+    git checkout ${PUGIXML_VERSION} --force
+fi
 
 mkdir -p ${PUGIXML_BUILD_DIR}
 cd ${PUGIXML_BUILD_DIR}
-time cmake -DCMAKE_BUILD_TYPE=Release \
-           -DCMAKE_INSTALL_PREFIX=${PUGIXML_INSTALL_DIR} \
-           -DBUILD_SHARED_LIBS=ON \
-           -DBUILD_TESTS=OFF \
-           ${PUGIXML_BUILD_OPTS} ..
-time cmake --build . --config Release --target install
+
+if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+    time cmake -DCMAKE_BUILD_TYPE=Release \
+               -DCMAKE_INSTALL_PREFIX=${PUGIXML_INSTALL_DIR} \
+               -DBUILD_SHARED_LIBS=ON \
+               -DBUILD_TESTS=OFF \
+               ${PUGIXML_BUILD_OPTS} ..
+    time cmake --build . --config Release --target install
+fi
 
 # ls -R ${PUGIXML_INSTALL_DIR}
 popd

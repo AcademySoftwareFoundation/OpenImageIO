@@ -28,15 +28,22 @@ if [[ ! -e libtiff ]] ; then
 fi
 cd libtiff
 
-echo "git checkout ${LIBTIFF_VERSION} --force"
-git checkout ${LIBTIFF_VERSION} --force
+if [[ -z $OIIO_DEP_BUILD_ONLY ]]; then
+    echo "git checkout ${LIBTIFF_VERSION} --force"
+    git checkout ${LIBTIFF_VERSION} --force
+fi
+
 mkdir -p build
 cd build
-time cmake -DCMAKE_BUILD_TYPE=Release \
-           -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} \
-           -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" \
-           ${LIBTIFF_BUILDOPTS} ..
-time cmake --build . --config Release --target install
+
+if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+    time cmake -DCMAKE_BUILD_TYPE=Release \
+               -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} \
+               -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" \
+               ${LIBTIFF_BUILDOPTS} ..
+    time cmake --build . --config Release --target install
+fi
+
 popd
 
 # ls -R ${LIBTIFF_INSTALL_DIR}
