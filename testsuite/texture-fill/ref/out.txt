@@ -1,4 +1,4 @@
-Comparing "out.exr" and "../../../../testsuite/texture-fill/ref/out.exr"
+Comparing "out.exr" and "../../../testsuite/texture-fill/ref/out.exr"
 Subimage 0: 128 x 128, 4 channel
   Mean error = 0
   RMS error = 0

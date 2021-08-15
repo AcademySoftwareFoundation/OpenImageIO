@@ -4,28 +4,6 @@
 # Since it sets many env variables needed by the caller, it should be run
 # with 'source', not in a separate shell.
 
-# Figure out the platform
-if [[ $RUNNER_OS == macOS ]] ; then
-    export ARCH=macosx
-elif [[ $RUNNER_OS == Linux ]] ; then
-    export ARCH=linux64
-elif [[ $RUNNER_OS == Windows ]] ; then
-    export ARCH=windows64
-elif [[ `uname -m` == aarch64 ]] ; then
-    export ARCH=aarch64
-else
-    export ARCH=unknown
-    exit -1
-fi
-export PLATFORM=$ARCH
-
-if [[ "${DEBUG:=0}" != "0" ]] ; then
-    export PLATFORM=${PLATFORM}.debug
-fi
-
-echo "Architecture is $ARCH"
-echo "Build platform name is $PLATFORM"
-
 # Environment variables we always need
 export PATH=/usr/local/bin/_ccache:/usr/lib/ccache:$PATH
 export USE_CCACHE=${USE_CCACHE:=1}
@@ -36,7 +14,7 @@ if [[ "${RUNNER_OS}" == "macOS" ]] ; then
 fi
 mkdir -p $CCACHE_DIR
 
-export OpenImageIO_ROOT=$PWD/dist/$PLATFORM
+export OpenImageIO_ROOT=$PWD/dist
 export DYLD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$DYLD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$OpenImageIO_ROOT/lib:$LD_LIBRARY_PATH
 export LD_LIBRARY_PATH=$OpenImageIO_ROOT/lib64:$LD_LIBRARY_PATH
@@ -69,7 +47,7 @@ export DYLD_LIBRARY_PATH=${LOCAL_DEPS_DIR}/dist/lib:$DYLD_LIBRARY_PATH
 export OCIO="$PWD/testsuite/common/OpenColorIO/nuke-default/config.ocio"
 export TESTSUITE_CLEANUP_ON_SUCCESS=${TESTSUITE_CLEANUP_ON_SUCCESS:=1}
 
-mkdir -p build/$PLATFORM dist/$PLATFORM
+mkdir -p build dist
 
 echo "HOME = $HOME"
 echo "PWD = $PWD"
@@ -84,7 +62,7 @@ env | sort
 
 if [[ `uname -s` == "Linux" ]] ; then
     head -40 /proc/cpuinfo
-elif [[ $ARCH == macosx ]] ; then
+elif [[ "${RUNNER_OS}" == "macOS" ]] ; then
     sysctl machdep.cpu.features
 fi
 

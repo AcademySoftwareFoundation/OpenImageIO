@@ -1,4 +1,4 @@
-../../../../../oiio-images/raw/RAW_CANON_EOS_7D.CR2 : 5202 x 3465, 3 channel, uint16 raw
+../oiio-images/raw/RAW_CANON_EOS_7D.CR2 : 5202 x 3465, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2009-10-09 14:18:45"
     ExposureTime: 0.00301213
@@ -15,7 +15,7 @@
     Exif:ShutterSpeedValue: 8.375 (1/331 s)
     oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
-../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
+../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
     DateTime: "2008-12-01 14:52:13"
@@ -32,7 +32,7 @@
     Exif:ShutterSpeedValue: 5.64386 (1/49 s)
     oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
-../../../../../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
+../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2007-01-06 14:20:22"
     ExposureTime: 0.00120229
@@ -48,7 +48,7 @@
     Exif:ShutterSpeedValue: 9.7 (1/831 s)
     oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
-../../../../../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
+../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
     DateTime: "2008-12-01 14:52:13"
@@ -65,7 +65,7 @@
     Exif:ShutterSpeedValue: 5.64386 (1/49 s)
     oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
-../../../../../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
+../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-12-19 12:29:40"
     ExposureTime: 0.003125
@@ -82,7 +82,7 @@
     Exif:ShutterSpeedValue: 8.32193 (1/319 s)
     oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
-../../../../../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
+../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-08-02 16:46:42"
     ExposureTime: 0.004
@@ -98,7 +98,7 @@
     Exif:ShutterSpeedValue: 7.96578 (1/249 s)
     oiio:ColorSpace: "linear"
     raw:Demosaic: "AHD"
-../../../../../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
+../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-08-10 23:16:11"
     ExposureTime: 0.0166667

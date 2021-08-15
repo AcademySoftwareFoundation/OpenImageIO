@@ -1,110 +1,110 @@
-Reading ../../../../../bmpsuite/g01bg.bmp
-../../../../../bmpsuite/g01bg.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g01bg.bmp
+../oiio-images/bmpsuite/g01bg.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 3A3A9A7D3A25907693A33D4403B3FB5BFCC9E5B1
     channel list: R, G, B
     bmp:bitsperpixel: 1
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g01bg.bmp" and "g01bg.bmp"
+Comparing "../oiio-images/bmpsuite/g01bg.bmp" and "g01bg.bmp"
 PASS
-Reading ../../../../../bmpsuite/g01bw.bmp
-../../../../../bmpsuite/g01bw.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g01bw.bmp
+../oiio-images/bmpsuite/g01bw.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: A988B301642C3233BCE238EE6752C185E563CD45
     channel list: R, G, B
     bmp:bitsperpixel: 1
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g01bw.bmp" and "g01bw.bmp"
+Comparing "../oiio-images/bmpsuite/g01bw.bmp" and "g01bw.bmp"
 PASS
-Reading ../../../../../bmpsuite/g01p1.bmp
-../../../../../bmpsuite/g01p1.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g01p1.bmp
+../oiio-images/bmpsuite/g01p1.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 5B4DD48C2AECF83A293C9044E4A9CC2391C9A297
     channel list: R, G, B
     bmp:bitsperpixel: 1
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g01p1.bmp" and "g01p1.bmp"
+Comparing "../oiio-images/bmpsuite/g01p1.bmp" and "g01p1.bmp"
 PASS
-Reading ../../../../../bmpsuite/g01wb.bmp
-../../../../../bmpsuite/g01wb.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g01wb.bmp
+../oiio-images/bmpsuite/g01wb.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: A988B301642C3233BCE238EE6752C185E563CD45
     channel list: R, G, B
     bmp:bitsperpixel: 1
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g01wb.bmp" and "g01wb.bmp"
+Comparing "../oiio-images/bmpsuite/g01wb.bmp" and "g01wb.bmp"
 PASS
-Reading ../../../../../bmpsuite/g04.bmp
-../../../../../bmpsuite/g04.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g04.bmp
+../oiio-images/bmpsuite/g04.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: E92BEC9CBC28315DBEBDB943608FF72F88F0C8F6
     channel list: R, G, B
     bmp:bitsperpixel: 4
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g04.bmp" and "g04.bmp"
+Comparing "../oiio-images/bmpsuite/g04.bmp" and "g04.bmp"
 PASS
-Reading ../../../../../bmpsuite/g04p4.bmp
-../../../../../bmpsuite/g04p4.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g04p4.bmp
+../oiio-images/bmpsuite/g04p4.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 61FED47FD83EDF78D515C3D1EDF50B86F884A13C
     channel list: R, G, B
     bmp:bitsperpixel: 4
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g04p4.bmp" and "g04p4.bmp"
+Comparing "../oiio-images/bmpsuite/g04p4.bmp" and "g04p4.bmp"
 PASS
-Reading ../../../../../bmpsuite/g04rle.bmp
-../../../../../bmpsuite/g04rle.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g04rle.bmp
+../oiio-images/bmpsuite/g04rle.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: E92BEC9CBC28315DBEBDB943608FF72F88F0C8F6
     channel list: R, G, B
     bmp:bitsperpixel: 4
     bmp:compression: "rle4"
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g04rle.bmp" and "g04rle.bmp"
+Comparing "../oiio-images/bmpsuite/g04rle.bmp" and "g04rle.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08.bmp
-../../../../../bmpsuite/g08.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08.bmp
+../oiio-images/bmpsuite/g08.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08.bmp" and "g08.bmp"
+Comparing "../oiio-images/bmpsuite/g08.bmp" and "g08.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08os2.bmp
-../../../../../bmpsuite/g08os2.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08os2.bmp
+../oiio-images/bmpsuite/g08os2.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 1
-Comparing "../../../../../bmpsuite/g08os2.bmp" and "g08os2.bmp"
+Comparing "../oiio-images/bmpsuite/g08os2.bmp" and "g08os2.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08p64.bmp
-../../../../../bmpsuite/g08p64.bmp :  127 x   64, 1 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08p64.bmp
+../oiio-images/bmpsuite/g08p64.bmp :  127 x   64, 1 channel, uint8 bmp
     SHA-1: D634C6C0C005436D62D03F4976B22C9BF1E0062D
     channel list: Y
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08p64.bmp" and "g08p64.bmp"
+Comparing "../oiio-images/bmpsuite/g08p64.bmp" and "g08p64.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08p256.bmp
-../../../../../bmpsuite/g08p256.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08p256.bmp
+../oiio-images/bmpsuite/g08p256.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08p256.bmp" and "g08p256.bmp"
+Comparing "../oiio-images/bmpsuite/g08p256.bmp" and "g08p256.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08pi64.bmp
-../../../../../bmpsuite/g08pi64.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08pi64.bmp
+../oiio-images/bmpsuite/g08pi64.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08pi64.bmp" and "g08pi64.bmp"
+Comparing "../oiio-images/bmpsuite/g08pi64.bmp" and "g08pi64.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08pi256.bmp
-../../../../../bmpsuite/g08pi256.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08pi256.bmp
+../oiio-images/bmpsuite/g08pi256.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08pi256.bmp" and "g08pi256.bmp"
+Comparing "../oiio-images/bmpsuite/g08pi256.bmp" and "g08pi256.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08res11.bmp
-../../../../../bmpsuite/g08res11.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08res11.bmp
+../oiio-images/bmpsuite/g08res11.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     ResolutionUnit: "m"
@@ -112,10 +112,10 @@ Reading ../../../../../bmpsuite/g08res11.bmp
     YResolution: 3937
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08res11.bmp" and "g08res11.bmp"
+Comparing "../oiio-images/bmpsuite/g08res11.bmp" and "g08res11.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08res21.bmp
-../../../../../bmpsuite/g08res21.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08res21.bmp
+../oiio-images/bmpsuite/g08res21.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     ResolutionUnit: "m"
@@ -123,10 +123,10 @@ Reading ../../../../../bmpsuite/g08res21.bmp
     YResolution: 3937
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08res21.bmp" and "g08res21.bmp"
+Comparing "../oiio-images/bmpsuite/g08res21.bmp" and "g08res21.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08res22.bmp
-../../../../../bmpsuite/g08res22.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08res22.bmp
+../oiio-images/bmpsuite/g08res22.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     ResolutionUnit: "m"
@@ -134,84 +134,84 @@ Reading ../../../../../bmpsuite/g08res22.bmp
     YResolution: 7874
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08res22.bmp" and "g08res22.bmp"
+Comparing "../oiio-images/bmpsuite/g08res22.bmp" and "g08res22.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08s0.bmp
-../../../../../bmpsuite/g08s0.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08s0.bmp
+../oiio-images/bmpsuite/g08s0.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08s0.bmp" and "g08s0.bmp"
+Comparing "../oiio-images/bmpsuite/g08s0.bmp" and "g08s0.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08w124.bmp
-../../../../../bmpsuite/g08w124.bmp :  124 x   61, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08w124.bmp
+../oiio-images/bmpsuite/g08w124.bmp :  124 x   61, 3 channel, uint8 bmp
     SHA-1: 3102F2DD2E0643ED4C186AF8FA2F64BB8A803BE8
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08w124.bmp" and "g08w124.bmp"
+Comparing "../oiio-images/bmpsuite/g08w124.bmp" and "g08w124.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08w125.bmp
-../../../../../bmpsuite/g08w125.bmp :  125 x   62, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08w125.bmp
+../oiio-images/bmpsuite/g08w125.bmp :  125 x   62, 3 channel, uint8 bmp
     SHA-1: 93118449D8F3D738386568E6E35EF7699199CF6B
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08w125.bmp" and "g08w125.bmp"
+Comparing "../oiio-images/bmpsuite/g08w125.bmp" and "g08w125.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08w126.bmp
-../../../../../bmpsuite/g08w126.bmp :  126 x   63, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08w126.bmp
+../oiio-images/bmpsuite/g08w126.bmp :  126 x   63, 3 channel, uint8 bmp
     SHA-1: 441A492FF712BC5C7A98785926F607615917246F
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08w126.bmp" and "g08w126.bmp"
+Comparing "../oiio-images/bmpsuite/g08w126.bmp" and "g08w126.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08rle.bmp
-../../../../../bmpsuite/g08rle.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08rle.bmp
+../oiio-images/bmpsuite/g08rle.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:compression: "rle8"
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08rle.bmp" and "g08rle.bmp"
+Comparing "../oiio-images/bmpsuite/g08rle.bmp" and "g08rle.bmp"
 PASS
-Reading ../../../../../bmpsuite/g08offs.bmp
-../../../../../bmpsuite/g08offs.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g08offs.bmp
+../oiio-images/bmpsuite/g08offs.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: 18C1DA0C611E94F164B5C0758132EF9CE202DD47
     channel list: R, G, B
     bmp:bitsperpixel: 8
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g08offs.bmp" and "g08offs.bmp"
+Comparing "../oiio-images/bmpsuite/g08offs.bmp" and "g08offs.bmp"
 PASS
-Reading ../../../../../bmpsuite/g24.bmp
-../../../../../bmpsuite/g24.bmp :  127 x   64, 3 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g24.bmp
+../oiio-images/bmpsuite/g24.bmp :  127 x   64, 3 channel, uint8 bmp
     SHA-1: B1FB63649469F31D02D7AD065D3128EE04CC662E
     channel list: R, G, B
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g24.bmp" and "g24.bmp"
+Comparing "../oiio-images/bmpsuite/g24.bmp" and "g24.bmp"
 PASS
-Reading ../../../../../bmpsuite/g32bf.bmp
-../../../../../bmpsuite/g32bf.bmp :  127 x   64, 4 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g32bf.bmp
+../oiio-images/bmpsuite/g32bf.bmp :  127 x   64, 4 channel, uint8 bmp
     SHA-1: D8807C680B17C70CB33B43AC072E0A9121C551B4
     channel list: R, G, B, A
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g32bf.bmp" and "g32bf.bmp"
+Comparing "../oiio-images/bmpsuite/g32bf.bmp" and "g32bf.bmp"
 PASS
-Reading ../../../../../bmpsuite/g32def.bmp
-../../../../../bmpsuite/g32def.bmp :  127 x   64, 4 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g32def.bmp
+../oiio-images/bmpsuite/g32def.bmp :  127 x   64, 4 channel, uint8 bmp
     SHA-1: D8807C680B17C70CB33B43AC072E0A9121C551B4
     channel list: R, G, B, A
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g32def.bmp" and "g32def.bmp"
+Comparing "../oiio-images/bmpsuite/g32def.bmp" and "g32def.bmp"
 PASS
-Reading ../../../../../bmpsuite/g32bf.bmp
-../../../../../bmpsuite/g32bf.bmp :  127 x   64, 4 channel, uint8 bmp
+Reading ../oiio-images/bmpsuite/g32bf.bmp
+../oiio-images/bmpsuite/g32bf.bmp :  127 x   64, 4 channel, uint8 bmp
     SHA-1: D8807C680B17C70CB33B43AC072E0A9121C551B4
     channel list: R, G, B, A
     bmp:version: 3
-Comparing "../../../../../bmpsuite/g32bf.bmp" and "g32bf.bmp"
+Comparing "../oiio-images/bmpsuite/g32bf.bmp" and "g32bf.bmp"
 PASS
 Reading src/g01bg2-v5.bmp
 src/g01bg2-v5.bmp    :  127 x   64, 3 channel, uint8 bmp

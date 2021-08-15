@@ -3,32 +3,16 @@ ifneq (${VERBOSE},)
 $(info Including spi/Makefile-bits)
 endif
 
-# For SpComp2 builds, do:
-#
-#     make OIIO_SPCOMP2=1 spcomp2_install
-# or
-#     make OIIO_SPCOMP2=1 SPCOMP2_LOCAL_PATH=/test/path spcomp2_install_local
-#
 # For Arnold builds, do:
 #
 #     make OIIO_ARNOLD=1
 #
 # Otherwise a default 'make' will make a fully generic OIIO build.
 
-OIIO_SPCOMP2 ?= 0
 OIIO_ARNOLD ?= 0
 OIIO_VERS = $(shell grep "OpenImageIO VERSION" CMakeLists.txt | egrep -o "[0-9.]+")
-ONEVERS = $(shell site/spi/format_version.py ${OIIO_VERS})
-OPENIMAGEIO_SPCOMP2_VERSION ?= ${ONEVERS}
 
-ifeq (${OIIO_SPCOMP2},1)
-    $(info Building for SpComp2)
-    OIIO_ARNOLD := 0
-    NAMESPACE ?= 'OpenImageIO_SpComp2'
-    SOVERSION ?= ${OPENIMAGEIO_SPCOMP2_VERSION}
-    PYLIB_LIB_PREFIX ?= 1
-    PYLIB_INCLUDE_SONAME ?= 1
-else ifeq (${OIIO_ARNOLD},1)
+ifeq (${OIIO_ARNOLD},1)
     $(info Building for Arnold)
     NAMESPACE ?= 'OpenImageIO_Arnold'
     $(info Building generic OpenImageIO)
@@ -49,7 +33,6 @@ ifeq (${SP_OS}, rhel7)
         LLVM_VERSION ?= 11.0.1
     endif
     SP_PLATFORM ?= linux
-    SP_PROC ?= x86_64
 else ifeq (${platform}, macosx)
     # Generic OSX machines (including LG's laptop)
     COMPILER ?= clang
@@ -57,13 +40,11 @@ else ifeq (${platform}, macosx)
     CMAKE_CXX_STANDARD ?= 14
     SP_OS ?= macosx
     SP_PLATFORM ?= macosx
-    SP_PROC ?= x86_64
 else
     $(error Unknown SP_OS=${SP_OS} platform=${platform})
 endif  # endif ${SP_OS}
 
 MY_CMAKE_FLAGS += -DSP_OS=${SP_OS} -DSP_PLATFORM=${SP_PLATFORM}
-MY_CMAKE_FLAGS += -DSP_PROC=${SP_PROC}
 MY_CMAKE_FLAGS += -DSPI_COMPILER_PLATFORM=${SPI_COMPILER_PLATFORM}
 MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=spi
 MY_CMAKE_FLAGS += -DSPI_TESTS=1
@@ -226,7 +207,7 @@ else ifeq (${platform}, macosx)
     USE_SIMD ?= sse4.2
     MY_CMAKE_FLAGS += \
         -DCMAKE_BUILD_WITH_INSTALL_RPATH=1 \
-        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/${platform}${variant}/lib"
+        -DCMAKE_INSTALL_NAME_DIR="${working_dir}/dist/lib"
 
     # A variety of tags can be used to try specific versions of gcc or
     # clang from the site-specific places we have installed them.
@@ -275,114 +256,3 @@ ifneq (${VERBOSE},)
     $(info MY_CMAKE_FLAGS: $(MY_CMAKE_FLAGS))
 endif
 
-
-
-############################################################################
-# SpComp2 magic incantations follow. Here be dragons.
-############################################################################
-
-
-CPPSTDSUFFIX=
-SPCOMP2_INSTALL_ROOT ?= $(SPCOMP2_ROOT)
-SPARCH=${SP_OS}-$(SPCOMP2_COMPILER)$(CPPSTDSUFFIX)-boost$(subst .,,$(BOOSTVERS))
-OIIO_SPCOMP2_PATH := ${SPCOMP2_INSTALL_ROOT}/OpenImageIO/${SPARCH}/v${OPENIMAGEIO_SPCOMP2_VERSION}
-# $(info New rhel7 OIIO_SPCOMP2_PATH is ${OIIO_SPCOMP2_PATH})
-
-PYVERNOSPACE=${shell echo ${PYTHON_VERSION} | sed "s/\\.//"}
-SPPYARCH=$(SPARCH)-py$(PYVERNOSPACE)
-
-
-
-all: dist
-
-local: dist
-
-.PHONY: spcomp2_install spcomp2_install_local spi clean all
-
-spi: MY_CMAKE_FLAGS += -DCMAKE_DEBUG_POSTFIX=_d
-spi: debug dist
-
-
-
-comma:= ,
-empty:=
-space:= $(empty) $(empty)
-
-INSTALL_SPCOMP2_CURRENT = $(SPCOMP2_INSTALL_ROOT)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)
-INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
-SPCOMP2_LOCAL_PATH ?= /net/soft_scratch/users/$(USER)/SpComp2_test
-
-spcomp2_install_local: SPCOMP2_INSTALL_ROOT = $(SPCOMP2_LOCAL_PATH)
-spcomp2_install_local: INSTALL_BIN_LOCATION = $(INSTALL_SPCOMP2_CURRENT)/bin
-spcomp2_install_local: spcomp2_install
-
-SPCOMP2_RPATH_OPT ?= ${OpenEXR_ROOT}/lib:${OpenColorIO_ROOT}/lib:${Field3D_ROOT}/lib:${LIBRAW_LIBDIR}:${OpenVDB_ROOT}/lib:${Libheif_ROOT}/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${TBB_ROOT}/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
-SPCOMP2_RPATH_DEBUG ?= ${OpenEXR_ROOT}/lib:${OpenColorIO_ROOT}/lib:${Field3D_ROOT}/lib/debug:${LIBRAW_LIBDIR}:${OpenVDB_ROOT}/lib/debug:${Libheif_ROOT}/lib:shots/spi/home/lib/arnold/rhel7/libde265-1.0.3/lib:${TBB_ROOT}/lib/intel64/gcc4.7:${SPBOOST_LIB_DIR}
-PYSPCOMP2_RPATH_OPT ?= ${SPCOMP2_RPATH_OPT}:${OIIO_SPCOMP2_PATH}/lib:${PYTHON_LIBRARY_DIR}
-PYSPCOMP2_RPATH_DEBUG ?= ${SPCOMP2_RPATH_DEBUG}:${OIIO_SPCOMP2_PATH}/lib/debug:${PYTHON_LIBRARY_DIR}
-
-
-spcomp2: MY_CMAKE_FLAGS += \
-		-DCMAKE_SKIP_BUILD_RPATH:BOOL=OFF \
-		-DCMAKE_INSTALL_RPATH=$(SPCOMP2_INSTALL_ROOT)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
-		-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
-		-DPYLIB_INCLUDE_SONAME:BOOL=ON \
-		-DPYLIB_LIB_PREFIX:BOOL=ON \
-		-DPYMODULE_SUFFIX="V${OPENIMAGEIO_SPCOMP2_VERSION}"
-
-spcomp2: dist
-
-spcomp2_debug: MY_CMAKE_FLAGS += \
-		-DCMAKE_SKIP_BUILD_RPATH:BOOL=OFF \
-		-DCMAKE_INSTALL_RPATH=$(SPCOMP2_INSTALL_ROOT)/OpenImageIO/$(SPARCH)/v$(OPENIMAGEIO_SPCOMP2_VERSION)/lib \
-		-DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
-		-DPYLIB_INCLUDE_SONAME:BOOL=ON \
-		-DPYLIB_LIB_PREFIX:BOOL=ON \
-		-DPYMODULE_SUFFIX="V${OPENIMAGEIO_SPCOMP2_VERSION}"
-
-spcomp2_debug: debug
-
-spcomp2_install_fixup_rhel7: spcomp2 spcomp2_debug
-	echo $(SPCOMP2_INSTALL_ROOT)
-	patchelf --set-rpath ${SPCOMP2_RPATH_OPT} ${dist_dir}/lib/libOpenImageIO$(OIIO_LIBNAME_SUFFIX).so
-	patchelf --set-rpath ${SPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/lib/libOpenImageIO$(OIIO_LIBNAME_SUFFIX).so
-	patchelf --set-rpath ${SPCOMP2_RPATH_OPT} ${dist_dir}/lib/libOpenImageIO_Util$(OIIO_LIBNAME_SUFFIX).so
-	patchelf --set-rpath ${SPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/lib/libOpenImageIO_Util$(OIIO_LIBNAME_SUFFIX).so
-	patchelf --set-rpath ${PYSPCOMP2_RPATH_OPT} ${dist_dir}/python/libPyOpenImageIO.so
-	patchelf --set-rpath ${PYSPCOMP2_RPATH_DEBUG} ${dist_dir}.debug/python/libPyOpenImageIO.so
-
-# This goal can't start with 'install' because something elsewhere picks
-# it up and starts doing bad things
-spcomp2_install: spcomp2_install_fixup_${SP_OS}
-	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
-	  --project=OpenImageIO \
-	  --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
-	  --root=$(SPCOMP2_INSTALL_ROOT) \
-	  --arch=$(SPARCH) \
-	  --headers=$(subst $(space),$(comma),$(wildcard ${dist_dir}/include/OpenImageIO/*)) \
-	  --cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread" \
-	  --namespace=${NAMESPACE} \
-	  --srcdir=${dist_dir}/lib \
-	  --builddir_o=${dist_dir}/lib \
-	  --builddir_d=${dist_dir}.debug/lib
-	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
-	  --project=OpenImageIO_Util \
-	  --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
-	  --root=$(SPCOMP2_INSTALL_ROOT) \
-	  --arch=$(SPARCH) \
-	  --headers=$(subst $(space),$(comma),$(wildcard ${dist_dir}/include/OpenImageIO/*)) \
-	  --cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread" \
-	  --namespace=${NAMESPACE} \
-	  --srcdir=${dist_dir}/lib \
-	  --builddir_o=${dist_dir}/lib \
-	  --builddir_d=${dist_dir}.debug/lib
-	perl -I/usr/local/spi/lib/make /usr/local/spi/bin/spcomp_install.pl -m installhost \
-	  --project=PyOpenImageIO \
-	  --version=$(OPENIMAGEIO_SPCOMP2_VERSION) \
-	  --root=$(SPCOMP2_INSTALL_ROOT) \
-	  --arch=$(SPPYARCH) \
-	  --cflags= --static_lflags="$(LINK_BOOST) $(LINK_OPENEXR) -lpthread"\
-	  --namespace=${NAMESPACE} \
-	  --srcdir=${dist_dir}/python \
-	  --builddir_o=${dist_dir}/python \
-	  --builddir_d=${dist_dir}.debug/python

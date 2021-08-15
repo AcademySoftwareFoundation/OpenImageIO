@@ -273,8 +273,10 @@ install (EXPORT OIIO_EXPORTED_TARGETS
         NAMESPACE ${PROJECT_NAME}::)
 
 
-oiio_add_all_tests()
-
+if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+    oiio_setup_test_data()
+    oiio_add_all_tests()
+endif ()
 
 if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
     include (packaging)

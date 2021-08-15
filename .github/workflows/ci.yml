@@ -62,8 +62,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   vfxplatform-2020:
     name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost1.70 exr2.4 ocio1.1"
@@ -109,8 +109,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   vfxplatform-2021:
     # Test VFX Platform 2021 -- mainly, that means gcc9 and C++17.
@@ -156,8 +156,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   vfxplatform-2021-exr3:
     # Test VFX Platform 2021, but with OpenEXR/Imath 3.x
@@ -205,8 +205,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   linux-gcc7-cpp14-debug:
     # Test against gcc7, and also at the same time, do a Debug build.
@@ -249,8 +249,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   linux-gcc8:
     # Test against gcc8.
@@ -293,8 +293,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
@@ -347,8 +347,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
@@ -403,8 +403,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
@@ -457,8 +457,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   macos-py38:
     name: "Mac py38"
@@ -503,8 +503,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   windows-vs2019:
     name: "Windows VS2019"
@@ -539,8 +539,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   windows-vs2017:
     name: "Windows VS2017"
@@ -575,8 +575,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   sanitizer:
     # Run sanitizers.
@@ -622,8 +622,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   linux-clang10-cpp14:
     # Test compiling with clang on Linux.
@@ -668,8 +668,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   linux-clang11-cpp17:
     # Test compiling with clang  and C++17 on Linux.
@@ -718,8 +718,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   linux-static:
     # Test building static libs.
@@ -760,8 +760,8 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/*/testsuite/*/*.*
-            build/*/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            build/CMake*.{txt,log}
 
   clang-format:
     # Test formatting. This test entry doesn't do a full build, it just runs
