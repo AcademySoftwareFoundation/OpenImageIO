@@ -208,7 +208,25 @@ if(NOT TBB_FOUND)
       REQUIRED_VARS TBB_INCLUDE_DIRS TBB_LIBRARIES
       HANDLE_COMPONENTS
       VERSION_VAR TBB_VERSION)
-  
-  mark_as_advanced(TBB_INCLUDE_DIRS TBB_LIBRARIES)
 
+  mark_as_advanced(TBB_INCLUDE_DIRS TBB_LIBRARIES)
+  set(_tbb_version_file)
+
+  # Add targets
+  if (TBB_FOUND)
+    if (NOT TARGET TBB::tbb)
+        add_library(TBB::tbb UNKNOWN IMPORTED)
+        set_target_properties(TBB::tbb PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES ${TBB_INCLUDE_DIRS})
+        set_property(TARGET TBB::tbb APPEND PROPERTY
+            IMPORTED_LOCATION ${TBB_tbb_LIBRARY})
+    endif ()
+    if (NOT TARGET TBB::tbbmalloc)
+        add_library(TBB::tbbmalloc UNKNOWN IMPORTED)
+        set_target_properties(TBB::tbbmalloc PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES ${TBB_INCLUDE_DIRS})
+        set_property(TARGET TBB::tbbmalloc APPEND PROPERTY
+            IMPORTED_LOCATION ${TBB_tbbmalloc_LIBRARY})
+    endif ()
+  endif()
 endif()
