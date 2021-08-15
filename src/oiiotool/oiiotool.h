@@ -21,6 +21,7 @@ namespace OiioTool {
 
 typedef int (*CallbackFunction)(int argc, const char* argv[]);
 
+class Oiiotool;
 class ImageRec;
 typedef std::shared_ptr<ImageRec> ImageRecRef;
 
@@ -36,6 +37,27 @@ enum ReadPolicy {
                             //<   but still subject to format conversion.
     ReadNativeNoCache = 3,  //< No cache, no conversion. Do it all now.
                             //<   You better know what you're doing.
+};
+
+
+
+struct print_info_options {
+    bool verbose            = false;
+    bool filenameprefix     = false;
+    bool sum                = false;
+    bool subimages          = false;
+    bool compute_sha1       = false;
+    bool compute_stats      = false;
+    bool dumpdata           = false;
+    bool dumpdata_showempty = true;
+    std::string metamatch;
+    std::string nometamatch;
+    std::string infoformat;
+    size_t namefieldlength = 20;
+    ROI roi;
+
+    print_info_options() {}
+    print_info_options(const Oiiotool& ot);
 };
 
 
@@ -420,7 +442,7 @@ public:
     // Remove a subimage from the list
     void erase_subimage(int i) { m_subimages.erase(m_subimages.begin() + i); }
 
-    std::string name() const { return m_name; }
+    string_view name() const { return m_name; }
 
     // Has the ImageRec been actually read or evaluated?  (Until needed,
     // it's lazily kept as name only, without reading the file.)
@@ -539,33 +561,18 @@ private:
 
 
 
-struct print_info_options {
-    bool verbose;
-    bool filenameprefix;
-    bool sum;
-    bool subimages;
-    bool compute_sha1;
-    bool compute_stats;
-    bool dumpdata;
-    bool dumpdata_showempty;
-    std::string metamatch;
-    std::string nometamatch;
-    std::string infoformat;
-    size_t namefieldlength;
+inline print_info_options::print_info_options(const Oiiotool& ot)
+    : verbose(ot.verbose || ot.printinfo_verbose)
+    , subimages(ot.allsubimages)
+    , compute_sha1(ot.hash)
+    , compute_stats(ot.printstats)
+    , dumpdata(ot.dumpdata)
+    , dumpdata_showempty(ot.dumpdata_showempty)
+    , metamatch(ot.printinfo_metamatch)
+    , nometamatch(ot.printinfo_nometamatch)
+{
+}
 
-    print_info_options()
-        : verbose(false)
-        , filenameprefix(false)
-        , sum(false)
-        , subimages(false)
-        , compute_sha1(false)
-        , compute_stats(false)
-        , dumpdata(false)
-        , dumpdata_showempty(true)
-        , namefieldlength(20)
-    {
-    }
-};
 
 
 // For either an ImageRec `img`, or a file on disk named by `filename`,
@@ -585,10 +592,11 @@ print_info(std::ostream& out, Oiiotool& ot, ImageRec* img,
 // For an ImageBuf or a filename, print the stats into output stream `out`.
 void
 print_stats(std::ostream& out, Oiiotool& ot, const ImageBuf& input,
-            string_view indent = "");
+            string_view indent = "", ROI roi = {});
 void
 print_stats(std::ostream& out, Oiiotool& ot, const std::string& filename,
-            int subimage = 0, int miplevel = 0, string_view indent = "");
+            int subimage = 0, int miplevel = 0, string_view indent = "",
+            ROI roi = {});
 
 
 // Set an attribute of the given image.  The type should be one of

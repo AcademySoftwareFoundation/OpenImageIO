@@ -75,6 +75,7 @@
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
+    raw:HighlightMode: 0
 ../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
@@ -158,6 +159,7 @@
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
     raw:flip: 5
+    raw:HighlightMode: 0
 ../oiio-images/raw/RAW_FUJI_F700.RAF : 2035 x 1533, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2007-01-06 14:20:22"
@@ -224,6 +226,7 @@
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
+    raw:HighlightMode: 0
 ../oiio-images/raw/RAW_NIKON_D3X.NEF : 4044 x 6080, 3 channel, uint16 raw
     channel list: R, G, B
     Artist: "                                    "
@@ -307,6 +310,7 @@
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
     raw:flip: 5
+    raw:HighlightMode: 0
 ../oiio-images/raw/RAW_OLYMPUS_E3.ORF : 3720 x 2800, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-12-19 12:29:40"
@@ -375,6 +379,7 @@
     Olympus:MinFocal: 50
     Olympus:SensorCalibration: 0, 0
     raw:Demosaic: "AHD"
+    raw:HighlightMode: 0
 ../oiio-images/raw/RAW_PENTAX_K200D.PEF : 2616 x 3896, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-08-02 16:46:42"
@@ -435,6 +440,7 @@
     Pentax:MinFocusDistance: 16
     raw:Demosaic: "AHD"
     raw:flip: 5
+    raw:HighlightMode: 0
 ../oiio-images/raw/RAW_SONY_A300.ARW : 3880 x 2608, 3 channel, uint16 raw
     channel list: R, G, B
     DateTime: "2008-08-10 23:16:11"
@@ -477,6 +483,7 @@
     oiio:ColorSpace: "linear"
     oiio:MakerNoteOffset: 0
     raw:Demosaic: "AHD"
+    raw:HighlightMode: 0
     Sony:AFMicroAdjOn: -1
     Sony:AFMicroAdjRegisteredLenses: 255
     Sony:AFMicroAdjValue: 127

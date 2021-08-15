@@ -28,20 +28,24 @@ The :program:`oiiotool` utility is invoked as follows:
 stack also called the *current image*.  The stack begins containing no
 images.
 
-:program:`oiiotool` arguments consist of image names, or commands.  When an
-image name is encountered, that image is pushed on the stack and becomes the
-new *current image*.
+:program:`oiiotool` arguments consist of image names, actions, and flags.
 
-Most other commands either alter the current image (replacing it with the
-alteration), or in some cases will pull more than one image off the stack
-(such as the current image and the next item on the stack) and then push a
-new result image onto the stack.
+* Image names: When an image name is encountered, that image is pushed on the
+  stack and becomes the new *current image*.
+
+* Actions: Alter the current image (replacing it with the alteration), or in
+  some cases will pull more than one image off the stack (such as the current
+  image and the next item on the stack) and then push a new result image onto
+  the stack.
+
+* Flags: A small number of arguments are non-positional -- the order doesn't
+  matter and their effect applies to the entire :program:`oiiotool` execution.
 
 Argument order matters!
 -----------------------
 
-:program:`oiiotool` processes operations *in order*. Thus, the order of
-operations on the command line is extremely important. For example,
+:program:`oiiotool` processes actions and inputs *in order*. Thus, the order
+of operations on the command line is extremely important. For example,
 
 .. code-block::
 
@@ -61,16 +65,20 @@ will be an exact copy of :file:`in.tif`), resizing the current image, and
 then... exiting. Thus, the resized image is never saved, and :file:`out.tif`
 will be an unaltered copy of :file:`in.tif`.
 
+The exceptions to this are non-positional flags, which affect the entire
+:program:`oiiotool` command regardless of where they appear on the command
+line.
+
 Optional arguments
 -----------------------
 
-Some commands stand completely on their own (like `--flip`), others take one
-or more subsequuent command line arguments (like `--resize` or `-o`)::
+Some arguments stand completely on their own (like `--flip`), others take one
+or more subsequent command line arguments (like `--resize` or `-o`)::
 
     oiiotool foo.jpg --flip --resize 640x480 -o out.tif
 
 
-A few commands take optional modifiers for options that are so rarely-used
+A few arguments take optional modifiers for options that are so rarely-used
 or confusing that they should not be required arguments. In these cases,
 they are appended to the command name, after a colon (`:`), and with a
 *name=value* format.  Multiple optional modifiers can be chained together,
@@ -313,7 +321,7 @@ transformed and output to `out.exr`. Any other subimages in the input will
 not be used or copied.
 
 Using the `-a` command tells :program:`oiiotool` to try to preserve all
-subimges from the inputs and apply all computations to all subimages::
+subimages from the inputs and apply all computations to all subimages::
 
     oiiotool -a multipart.exr --colorconvert lnf aces -o out.exr
 
@@ -744,7 +752,7 @@ output each one to a different file, with names `sub0001.tif`,
 
 |
 
-:program:`oiiotool` commands: general and image information
+:program:`oiiotool` commands: general non-positional flags
 ===========================================================
 
 .. option:: --help
@@ -787,160 +795,6 @@ output each one to a different file, with names `sub0001.tif`,
     input image.  Without `-a`, generally each input image will really
     only read the top-level MIPmap of the first subimage of the file.
 
-.. option:: --info
-
-    Prints information about each input image as it is read.  If verbose
-    mode is turned on (`-v`), all the metadata for the image is printed. If
-    verbose mode is not turned on, only the resolution and data format are
-    printed.
-
-    Optional appended modifiers include:
-
-    - `format=name` : The format name may be one of: `text` (default) for
-      readable text, or `xml` for an XML description of the image metadata.
-    - `verbose=1` : If nonzero, the information will contain all metadata,
-      not just the minimal amount.
-
-.. option:: --list-formats
-
-    Prints the complete list of file formats supported by this build of
-    OpenImageIO, and for each one, the list of file extensions that it
-    presumes are associated with the file format. (Added in OIIO 2.2.13.)
-
-.. option:: --echo <message>
-
-    Prints the message to the console, at that point in the left-to-right
-    execution of command line arguments. The message may contain expressions
-    for substitution.
-
-    Optional appended modifiers include:
-
-    - `newline=n` : The number of newlines to print after the message
-      (default is 1, but 0 will suppress the newline, and a larger number
-      will make more vertical space.
-
-    Examples::
-
-        oiiotool test.tif --resize 256x0 --echo "result is {TOP.width}x{TOP.height}"
-    
-    This will resize the input to be 256 pixels wide and automatically size
-    it vertically to preserve the original aspect ratio, and then print a
-    message to the console revealing the resolution of the resulting image.
-
-.. option:: --metamatch <regex>, --no-metamatch <regex>
-
-    Regular expressions to restrict which metadata are output when using
-    `oiiotool --info -v`.  The `--metamatch` expression causes only metadata
-    whose name matches to print; non-matches are not output.  The
-    `--no-metamatch` expression causes metadata whose name matches to be
-    suppressed; others (non-matches) are printed.  It is not advised to use
-    both of these options at the same time (probably nothing bad will
-    happen, but it's hard to reason about the behavior in that case).
-
-.. option:: --stats
-
-    Prints detailed statistical information about each input image as it is
-    read.
-
-.. option:: --hash
-
-    Print the SHA-1 hash of the pixels of each input image.
-
-.. option:: --dumpdata
-
-    Print to the console detailed information about the values in every pixel.
-
-    Optional appended modifiers include:
-
-    - `empty=` *verbose* : If 0, will cause deep images to skip printing of
-      information about pixels with no samples.
-
-.. option:: --diff
-            --fail <A> --failpercent <B> --hardfail <C>
-            --warn <A> --warnpercent <B> --hardwarn <C>
-
-    This command computes the difference of the current image and the next
-    image on the stack, and prints a report of those differences (how
-    many pixels differed, the maximum amount, etc.).  This command does not
-    alter the image stack.
-    
-    The `--fail`, `--failpercent`, and `--hardfail` options set thresholds
-    for `FAILURE`: if more than *B* % of pixels (on a 0-100 floating point
-    scale) are greater than *A* different, or if *any* pixels are more than
-    *C* different.  The defaults are to fail if more than 0% (any) pixels
-    differ by more than 0.00001 (1e-6), and *C* is infinite.
-    
-    The `--warn`, `--warnpercent`, and `hardwarn` options set thresholds for
-    `WARNING`: if more than *B* % of pixels (on a 0-100 floating point scale)
-    are greater than *A* different, or if *any* pixels are more than *C*
-    different.  The defaults are to warn if more than 0% (any) pixels differ
-    by more than 0.00001 (1e-6), and *C* is infinite.
-
-.. option:: --pdiff
-
-    This command computes the difference of the current image and the next
-    image on the stack using a perceptual metric, and prints whether or not
-    they match according to that metric.  This command does not alter the
-    image stack.
-
-.. option:: --colorcount r1,g1,b1,...:r2,g2,b2,...:...
-
-    Given a list of colors separated by colons or semicolons, where each
-    color is a list of comma-separated values (for each channel), examine
-    all pixels of the current image and print a short report of how many
-    pixels matched each of the colors.
-
-    Optional appended modifiers include:
-
-    - `eps=r,g,b,...` : Tolerance for matching colors (default:
-      0.001 for all channels).
-
-    Examples::
-
-        oiiotool test.tif --colorcount "0.792,0,0,1;0.722,0,0,1"
-
-    might produce the following output::
-
-        10290  0.792,0,0,1
-        11281  0.722,0,0,1
-
-    Notice that use of double quotes `" "` around the list of color
-    arguments, in order to make sure that the command shell does not
-    interpret the semicolon (`;`) as a statement separator.  An alternate
-    way to specify multiple colors is to separate them with a colon (`:`),
-    for example::
-
-        oiiotool test.tif --colorcount 0.792,0,0,1:0.722,0,0,1
-
-    Another example::
-
-        oiiotool test.tif --colorcount:eps=.01,.01,.01,1000 "0.792,0,0,1"
-
-    This example sets a larger epsilon for the R, G, and B channels (so
-    that, for example, a pixel with value [0.795,0,0] would also match), and
-    by setting the epsilon to 1000 for the alpha channel, it effectively
-    ensures that alpha will not be considered in the matching of pixels to
-    the color value.
-
-
-.. option:: --rangecheck Rlow,Glow,Blow,...  Rhi,Bhi,Ghi,...
-
-    Given a two colors (each a comma-separated list of values for each
-    channel), print a count of the number of pixels in the image that has
-    channel values outside the [low,hi] range.  Any channels not
-    specified will assume a low of 0.0 and high of 1.0.
-
-    Example::
-
-        oiiotool test.exr --rangecheck 0,0,0 1,1,1
-
-    might produce the following output::
-
-            0  < 0,0,0
-          221  > 1,1,1
-        65315  within range
-
-
 .. option:: --no-clobber
 
     Sets "no clobber" mode, in which existing images on disk will never be
@@ -952,6 +806,10 @@ output each one to a different file, with names `sub0001.tif`,
     default (also if n=0) is to use as many threads as there are cores
     present in the hardware.
 
+.. option:: --cache <size>
+
+    Set the underlying ImageCache size (in MB). See Section
+    :ref:`sec-imagecache-api`.
 
 .. option:: --frames <seq>
             --framepadding <n>
@@ -978,7 +836,6 @@ output each one to a different file, with names `sub0001.tif`,
     Supplies a comma-separated list of view names (substituted for `%V`
     and `%v`). If not supplied, the view list will be `left,right`.
 
-
 .. option:: --skip-bad-frames
 
     When iterating over a frame range, if this option is used, any errors
@@ -988,16 +845,16 @@ output each one to a different file, with names `sub0001.tif`,
 
 .. option:: --wildcardoff, --wildcardon
 
-    Turns off (or on) numeric wildcard expansion for subsequent command line
-    arguments. This can be useful in selectively disabling numeric wildcard
-    expansion for a subset of the command line.
+    These *positional* options turn off (or on) numeric wildcard expansion
+    for subsequent command line arguments. This can be useful in selectively
+    disabling numeric wildcard expansion for a subset of the command line.
 
 .. option:: --evaloff, --evalon
 
-    Turns off (or on) expression evaluation (things with `{ }`)  for
-    subsequent command line arguments. This can be useful in selectively
-    disabling expression evaluation expansion for a subset of the command
-    line, for example if you actually have filenames containing curly
+    These *positional* options turn off (or on) expression evaluation (things
+    with `{ }`)  for subsequent command line arguments. This can be useful in
+    selectively disabling expression evaluation expansion for a subset of the
+    command line, for example if you actually have filenames containing curly
     braces.
 
 
@@ -1049,22 +906,34 @@ Reading images
         into the `-i`, it potentially can avoid the I/O of the unneeded
         channels.
 
+.. option:: --iconfig <name> <value>
+
+    Sets configuration hint metadata that will apply to the next input file
+    read. Input configuration hint settings are cleared after an image is
+    read, and must be specified separately for every `-i` or image filename to
+    read.
+
+    Optional appended modifiers include:
+
+    - `type=` *typename* : Specify the metadata type.
+
+    If the optional `type=` specifier is used, that provides an explicit
+    type for the metadata. If not provided, it will try to infer the type of
+    the metadata from the value: if the value contains only numerals (with
+    optional leading minus sign), it will be saved as `int` metadata; if it
+    also contains a decimal point, it will be saved as `float` metadata;
+    otherwise, it will be saved as a `string` metadata.
+
+    Examples::
+
+        oiiotool --iconfig "oiio:UnassociatedAlpha" 1 in.png -o out.tif
 
 
-.. option:: -no-autopremult, --autopremult
+Options that control the reading of all images
+----------------------------------------------
 
-    By default, OpenImageIO's format readers convert any "unassociated
-    alpha" (color values that are not "premultiplied" by alpha) to the usual
-    associated/premultiplied convention.  If the `--no-autopremult` flag is
-    found, subsequent inputs will not do this premultiplication. It can be
-    turned on again via `--autopremult`.
-
-.. option:: --autoorient
-
-    Automatically do the equivalent of `--reorient` on every image as it is
-    read in, if it has a nonstandard orientation. This is generally a good idea
-    to use if you are using oiiotool to combine images that may have different
-    orientations.
+These are all non-positional flags that affect how all images are read in the
+:program:`oiiotool` command.
 
 .. option:: --autocc
 
@@ -1123,6 +992,20 @@ Reading images
 
             oiiotool --autocc in_lg10.dpx --mulc 1.1 -o out_vd16.tif
 
+.. option:: --autopremult (default), -no-autopremult
+
+    By default, OpenImageIO's format readers convert any "unassociated
+    alpha" (color values that are not "premultiplied" by alpha) to the usual
+    associated/premultiplied convention.  If the `--no-autopremult` flag is
+    found, subsequent inputs will not do this premultiplication. It can be
+    turned on again via `--autopremult`.
+
+.. option:: --autoorient
+
+    Automatically do the equivalent of `--reorient` on every image as it is
+    read in, if it has a nonstandard orientation. This is generally a good idea
+    to use if you are using oiiotool to combine images that may have different
+    orientations.
 
 .. option:: --native
 
@@ -1150,36 +1033,12 @@ Reading images
     processing math performed on the pixel values -- in that case, you might
     save time and memory by bypassing the conversion to `float`.
 
-.. option:: --cache <size>
-
-    Set the underlying ImageCache size (in MB). See Section
-    :ref:`sec-imagecache-api`.
-
 .. option:: --autotile <tilesize>
 
     For the underlying ImageCache, turn on auto-tiling with the given tile
     size. Setting *tilesize* to 0 turns off auto-tiling (the default is
     off). If auto-tile is turned on, The ImageCache "autoscanline" feature
     will also be enabled. See Section :ref:`sec-imagecache-api` for details.
-
-.. option:: --iconfig <name> <value>
-
-    Sets configuration metadata that will apply to the next input file read.
-
-    Optional appended modifiers include:
-
-    - `type=` *typename* : Specify the metadata type.
-
-    If the optional `type=` specifier is used, that provides an explicit
-    type for the metadata. If not provided, it will try to infer the type of
-    the metadata from the value: if the value contains only numerals (with
-    optional leading minus sign), it will be saved as `int` metadata; if it
-    also contains a decimal point, it will be saved as `float` metadata;
-    otherwise, it will be saved as a `string` metadata.
-
-    Examples::
-
-        oiiotool --iconfig "oiio:UnassociatedAlpha" 1 in.png -o out.tif
 
 .. option:: --missingfile <value>
 
@@ -1202,6 +1061,59 @@ Reading images
     first image that was successfully read. If the first image requested is
     missing (thus, nothing had been successfully read when the missing image
     is needed), it will be HD resolution, 1920x1080, RGBA.
+
+.. option:: --info
+
+    Print metadata information about each input image as it is read.  If
+    verbose mode is turned on (`-v`), all the metadata for the image is
+    printed. If verbose mode is not turned on, only the resolution and data
+    format are printed.
+
+    Optional appended modifiers include:
+
+    - `format=name` : The format name may be one of: `text` (default) for
+      readable text, or `xml` for an XML description of the image metadata.
+    - `verbose=1` : If nonzero, the information will contain all metadata,
+      not just the minimal amount.
+
+    Note that this is a non-positional flag that will cause metadata to be
+    printed for every input file. There is a separate `--printinfo` action
+    that immediately prints metadata about the current image at the top of
+    the stack (see :ref:`sec-oiiotool-printinfo`).
+
+.. option:: --metamatch <regex>, --no-metamatch <regex>
+
+    Regular expressions to restrict which metadata are output when using
+    `oiiotool --info -v`.  The `--metamatch` expression causes only metadata
+    whose name matches to print; non-matches are not output.  The
+    `--no-metamatch` expression causes metadata whose name matches to be
+    suppressed; others (non-matches) are printed.  It is not advised to use
+    both of these options at the same time (probably nothing bad will
+    happen, but it's hard to reason about the behavior in that case).
+
+.. option:: --stats
+
+    Print detailed statistical information about each input image as it is
+    read.
+
+    Note that this is a non-positional flag that will cause statistics to be
+    printed for every input file. There is a separate `--printstats` action
+    that immediately prints statistics about the current image at the top of
+    the stack (see :ref:`sec-oiiotool-printinfo`).
+
+.. option:: --hash
+
+    Print the SHA-1 hash of the pixels of each input image as it is read.
+
+.. option:: --dumpdata
+
+    Print the numerical values of every pixel, for each input image as it is
+    read.
+
+    Optional appended modifiers include:
+
+    - `empty=` *verbose* : If 0, will cause deep images to skip printing of
+      information about pixels with no samples.
 
 
 .. _sec-oiiotool-o:
@@ -1450,6 +1362,148 @@ Writing images
     input images will just take metadata from the first source image.
 
     (This was added for OpenImageIO 2.1.)
+
+
+
+.. _sec-oiiotool-printinfo:
+
+:program:`oiiotool` commands that print information about the current image
+===========================================================================
+
+.. option:: --echo <message>
+
+    Prints the message to the console, at that point in the left-to-right
+    execution of command line arguments. The message may contain expressions
+    for substitution.
+
+    Optional appended modifiers include:
+
+    - `newline=n` : The number of newlines to print after the message
+      (default is 1, but 0 will suppress the newline, and a larger number
+      will make more vertical space.
+
+    Examples::
+
+        oiiotool test.tif --resize 256x0 --echo "result is {TOP.width}x{TOP.height}"
+    
+    This will resize the input to be 256 pixels wide and automatically size
+    it vertically to preserve the original aspect ratio, and then print a
+    message to the console revealing the resolution of the resulting image.
+
+.. option:: --list-formats
+
+    Prints the complete list of file formats supported by this build of
+    OpenImageIO, and for each one, the list of file extensions that it
+    presumes are associated with the file format. (Added in OIIO 2.2.13.)
+
+.. option:: --printinfo
+
+    Prints information and all metadata about the current image.
+
+.. option:: --printstats
+
+    Prints detailed statistical information about the current image.
+
+    Optional appended modifiers include:
+
+    - `:window=` *geom*
+        If present, restricts the statistics to a rectangular subset of the
+        image. The default, if not present is to print the statistics of the
+        full data window of the image. The rectangle can be specified using
+        either of these image geometry notations:
+
+            *width* x *height* [+-] *xoffset* [+-] *yoffset*
+
+            *xmin,ymin,xmax,ymax*
+
+    - `:allsubimages=` *int*
+        If nonzero, stats will be printed about all subimages of the current
+        image. (The default is zero, meaning that stats will only be printed for
+        the first subimage of the current image.)
+
+.. option:: --colorcount r1,g1,b1,...:r2,g2,b2,...:...
+
+    Given a list of colors separated by colons or semicolons, where each
+    color is a list of comma-separated values (for each channel), examine
+    all pixels of the current image and print a short report of how many
+    pixels matched each of the colors.
+
+    Optional appended modifiers include:
+
+    - `eps=r,g,b,...` : Tolerance for matching colors (default:
+      0.001 for all channels).
+
+    Examples::
+
+        oiiotool test.tif --colorcount "0.792,0,0,1;0.722,0,0,1"
+
+    might produce the following output::
+
+        10290  0.792,0,0,1
+        11281  0.722,0,0,1
+
+    Notice that use of double quotes `" "` around the list of color
+    arguments, in order to make sure that the command shell does not
+    interpret the semicolon (`;`) as a statement separator.  An alternate
+    way to specify multiple colors is to separate them with a colon (`:`),
+    for example::
+
+        oiiotool test.tif --colorcount 0.792,0,0,1:0.722,0,0,1
+
+    Another example::
+
+        oiiotool test.tif --colorcount:eps=.01,.01,.01,1000 "0.792,0,0,1"
+
+    This example sets a larger epsilon for the R, G, and B channels (so
+    that, for example, a pixel with value [0.795,0,0] would also match), and
+    by setting the epsilon to 1000 for the alpha channel, it effectively
+    ensures that alpha will not be considered in the matching of pixels to
+    the color value.
+
+.. option:: --rangecheck Rlow,Glow,Blow,...  Rhi,Bhi,Ghi,...
+
+    Given a two colors (each a comma-separated list of values for each
+    channel), print a count of the number of pixels in the image that has
+    channel values outside the [low,hi] range.  Any channels not
+    specified will assume a low of 0.0 and high of 1.0.
+
+    Example::
+
+        oiiotool test.exr --rangecheck 0,0,0 1,1,1
+
+    might produce the following output::
+
+            0  < 0,0,0
+          221  > 1,1,1
+        65315  within range
+
+.. option:: --diff
+            --fail <A> --failpercent <B> --hardfail <C>
+            --warn <A> --warnpercent <B> --hardwarn <C>
+
+    This command computes the difference of the current image and the next
+    image on the stack, and prints a report of those differences (how
+    many pixels differed, the maximum amount, etc.).  This command does not
+    alter the image stack.
+    
+    The `--fail`, `--failpercent`, and `--hardfail` options set thresholds
+    for `FAILURE`: if more than *B* % of pixels (on a 0-100 floating point
+    scale) are greater than *A* different, or if *any* pixels are more than
+    *C* different.  The defaults are to fail if more than 0% (any) pixels
+    differ by more than 0.00001 (1e-6), and *C* is infinite.
+    
+    The `--warn`, `--warnpercent`, and `hardwarn` options set thresholds for
+    `WARNING`: if more than *B* % of pixels (on a 0-100 floating point scale)
+    are greater than *A* different, or if *any* pixels are more than *C*
+    different.  The defaults are to warn if more than 0% (any) pixels differ
+    by more than 0.00001 (1e-6), and *C* is infinite.
+
+.. option:: --pdiff
+
+    This command computes the difference of the current image and the next
+    image on the stack using a perceptual metric, and prints whether or not
+    they match according to that metric.  This command does not alter the
+    image stack.
 
 
 

@@ -33,12 +33,15 @@ mkdir -p ${LIBRAW_INSTALL_DIR} && true
 mkdir -p ${LIBRAW_BUILD_DIR} && true
 
 pushd ${LIBRAW_SOURCE_DIR}
+
 git checkout ${LIBRAW_VERSION} --force
 
-aclocal
-autoreconf --install
-./configure --prefix=${LIBRAW_INSTALL_DIR}
-time make -j ${PARALLEL:=4} && make install
+if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+    aclocal
+    autoreconf --install
+    ./configure --prefix=${LIBRAW_INSTALL_DIR}
+    time make -j ${PARALLEL:=4} && make install
+fi
 
 popd
 

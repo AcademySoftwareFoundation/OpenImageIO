@@ -232,6 +232,10 @@ command += oiiotool ("src/tahoe-tiny.tif --echo \"\\nBrief: {TOP.METABRIEF}\"")
 command += oiiotool ("src/tahoe-tiny.tif --echo \"\\nMeta: {TOP.META}\"")
 command += oiiotool ("src/tahoe-tiny.tif --echo \"\\nStats:\\n{TOP.STATS}\\n\"")
 
+# Test --statsnow
+command += oiiotool ("src/tahoe-tiny.tif --echo \"--printstats:\" --printstats")
+command += oiiotool ("src/tahoe-tiny.tif --printstats:window=10x10+50+50 --echo \" \"")
+
 # test --iconfig
 command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig! 1 black.tif")
 

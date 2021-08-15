@@ -34,16 +34,20 @@ if [[ ! -e ${PYBIND11_SRC_DIR} ]] ; then
     git clone ${PYBIND11_REPO} ${PYBIND11_SRC_DIR}
 fi
 cd ${PYBIND11_SRC_DIR}
+
 echo "git checkout ${PYBIND11_VERSION} --force"
 git checkout ${PYBIND11_VERSION} --force
 
 mkdir -p ${PYBIND11_BUILD_DIR}
 cd ${PYBIND11_BUILD_DIR}
-time cmake -DCMAKE_BUILD_TYPE=Release \
-           -DCMAKE_INSTALL_PREFIX=${PYBIND11_INSTALL_DIR} \
-           -DPYBIND11_TEST=OFF \
-           ${PYBIND11_BUILD_OPTS} ..
-time cmake --build . --config Release --target install
+
+if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+    time cmake -DCMAKE_BUILD_TYPE=Release \
+               -DCMAKE_INSTALL_PREFIX=${PYBIND11_INSTALL_DIR} \
+               -DPYBIND11_TEST=OFF \
+               ${PYBIND11_BUILD_OPTS} ..
+    time cmake --build . --config Release --target install
+fi
 
 # ls -R ${PYBIND11_INSTALL_DIR}
 popd

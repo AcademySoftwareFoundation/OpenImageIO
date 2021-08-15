@@ -22,17 +22,24 @@ echo "giflib install dir will be: ${GIFLIB_INSTALL_DIR}"
 mkdir -p ${LOCAL_DEPS_DIR}
 pushd ${LOCAL_DEPS_DIR}
 
+
 # Clone giflib project and build
-curl --location https://downloads.sourceforge.net/project/giflib/giflib-${GIFLIB_VERSION}.tar.gz -o giflib.tar.gz
-tar xzf giflib.tar.gz
-pushd giflib-${GIFLIB_VERSION}
-cp Makefile Makefile.old
-curl --location https://sourceforge.net/p/giflib/bugs/_discuss/thread/4e811ad29b/c323/attachment/Makefile.patch -o Makefile.patch
-patch -p0 < Makefile.patch
-popd
+if [[ ! -e giflib-${GIFLIB_VERSION} ]] ; then
+    curl --location https://downloads.sourceforge.net/project/giflib/giflib-${GIFLIB_VERSION}.tar.gz -o giflib.tar.gz
+    tar xzf giflib.tar.gz
+    pushd giflib-${GIFLIB_VERSION}
+    cp Makefile Makefile.old
+    curl --location https://sourceforge.net/p/giflib/bugs/_discuss/thread/4e811ad29b/c323/attachment/Makefile.patch -o Makefile.patch
+    patch -p0 < Makefile.patch
+    popd
+fi 
+
 
 cd giflib-${GIFLIB_VERSION}
-time make PREFIX=${GIFLIB_INSTALL_DIR} CC=${GIFLIB_CC} install
+
+if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+    time make PREFIX=${GIFLIB_INSTALL_DIR} CC=${GIFLIB_CC} install
+fi
 
 popd
 
