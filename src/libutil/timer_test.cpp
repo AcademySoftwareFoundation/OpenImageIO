@@ -66,11 +66,13 @@ main(int argc, char** argv)
     // But you want better power use, so instead we just increase the timing
     // tolereance on Apple to make this test pass.
 #    if defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
-    // It seems especially bad on Travis, give extra time slop.
-    // Got even worse in Nov 2017 on Travis. Make the slop enormous.
-    // Got worse again Nov 2018. (What does Travis do every November?)
+    // It seems especially bad on CI runs, so give extra time slop.
     eps = 1.0;
 #    endif
+#elif defined(OIIO_CI)
+    // Also on GitHub Actions CI, timing seems a little imprecise. Give it
+    // some extra room to avoid spurious CI failures on this test.
+    eps = 0.02;
 #endif
 
     // Verify that Timer(false) doesn't start
