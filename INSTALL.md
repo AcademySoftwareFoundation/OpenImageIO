@@ -17,10 +17,10 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **C++14** (also builds with C++17, and C++20)
      * The default build mode is C++14. This can be controlled by via the
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
- * Compilers: **gcc 6.1 - 11.1**, **clang 3.4 - 12**, **MSVS 2017 - 2019**,
+ * Compilers: **gcc 6.1 - 11.2**, **clang 3.4 - 12**, **MSVS 2017 - 2019**,
    **icc 17+**.
  * CMake >= 3.12 (tested through 3.21)
- * OpenEXR/Imath >= 2.0 (recommended: 2.2 or higher; tested through 3.1)
+ * OpenEXR/Imath >= 2.0 (recommended: 2.4 or higher; tested through 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
  * Boost >= 1.53 (recommended: at least 1.66; tested through 1.76)
 
@@ -44,7 +44,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for Field3D files:
      * Field3D (tested through 1.7.3)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 (tested through 8.0) and Intel TBB >= 2018 (tested
+     * OpenVDB >= 5.0 (tested through 8.1) and Intel TBB >= 2018 (tested
        through 2021)
      * Note that OpenVDB 8.0+ requires C++14 or higher.
  * If you want support for converting to and from OpenCV data structures,
@@ -65,12 +65,12 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for WebP images:
      * WebP >= 0.6.1 (tested through 1.1.0)
  * If you want support for OpenColorIO color transformations:
-     * OpenColorIO 1.1 or 2.0
+     * OpenColorIO >= 1.1 (tested through 2.1; 2.0+ is recommended)
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.4.0)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
-   may be required by some software distrbutions with policies against
+   may be required by some software distributions with policies against
    embedding other projects), then just build with `-DUSE_EXTERNAL_PUGIXML=1`.
    Any PugiXML >= 1.8 should be fine (we have tested through 1.11).
 
@@ -97,8 +97,8 @@ build options), maybe one of these packages managers will do it for you:
 
 * vcpkg (https://github.com/Microsoft/vcpkg)
     * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
-    * `.\vcpkg install openimageio [tools]`
-    * For a full list of supported build features: `.\vcpkg search openimageio`
+    * `vcpkg install openimageio [tools]`
+    * For a full list of supported build features: `vcpkg search openimageio`
 * homebrew (https://github.com/Homebrew/brew)
     * https://formulae.brew.sh/formula/openimageio
     * `brew install openimageio`
@@ -268,7 +268,7 @@ from source on Windows.
 
 2. Follow vcpkg installation instructions and complete the install. Please note vcpkg has its own list of prerequisites listed on their page.
 
-3. Execute the PowerShell command from where vcpkg is located in directory. ``.\vcpkg install openimageio``
+3. Execute the PowerShell command from where vcpkg is located in directory. ``vcpkg install openimageio``
 
 Test Images
 -----------

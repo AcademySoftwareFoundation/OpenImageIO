@@ -1,23 +1,15 @@
-Release 2.3 (??) -- compared to 2.2
+Release 2.3 (1 Sept 2021?) -- compared to 2.2
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
-* C++ standard: **C++14 is now the minimum (gcc 6.1 - 10.2, clang 3.4 - 12,
+* C++ standard: **C++14 is now the minimum (gcc 6.1 - 11.2, clang 3.4 - 12,
   MSVS 2017 - 2019, icc 17+).** The default C++ standard mode, if none is
   explicitly specified, is now C++14. #2918 (2.3.4) #2955 #2977 (2.3.5)
 * FFMmpeg (optional) dependency minimum is now 3.0 (raised from 2.6). #2994
 * OpenCV (optional) dependency minimum is now 3.0 (raised from 2.0). #3015
 
 New major features and public API changes:
-* C API:  #2748 (2.3.1.0)
-    - A set of C99 wrappers can be found in c-imageio.h, etc., and in
-      libOpenImageIO-C, allowing C programs to use OIIO. This is also an
-      important stepping stone towards having Rust bindings.
-    - So far: ImageInput, ImageOutput, TypeDesc, ROI, ImageSpec,
-      ParamValueList, DeepData.
-    - Other classes will be exposed soon, we hope to have all of OIIO
-      usable from C by the time 2.3 is released.
 * Changes and clarifications to `geterror()` in all classes that have one:
-    - `geterror()` now take an optional `clear` parameter controls if the
+    - `geterror()` now takes an optional `clear` parameter controls if the
       pending error is cleared as well as retrieved (default `true`).
     - All classes with `geterror()` are ensured to have `has_error()`.
     - `geterror()` appends to the pending error message, if one is already
@@ -42,6 +34,31 @@ New major features and public API changes:
   was from a file. #2759 (2.3.0.1/2.2.9)
 * New `get_extension_map()` returns a map that list all image file formats
   and their presumed file extensions. #2904 (2.3.4)
+* Overhaul of how we handle "thumbnails" (small preview images embedded in
+  the headers of some image file formats) #3021 (2.3.7):
+    - Thumbnails no longer embedded in the ImageSpec as "thumbnail_image"
+      metadata of a big character array blob.
+    - ImageInput, ImageBuf, and ImageCache have varieties of `get_thumbnail()`
+      method that returns the thumbnail as an ImageBuf. If this is not
+      called, ideally the reader will not undergo the expense of reading and
+      storing thumbnail data.
+    - ImageOutput and ImageBuf have `set_thumbnail()` to communicate a
+      thumbnail image as an ImageBuf.
+    - The net effect is that reading files and retrieving ImageSpec's should
+      be more efficient for apps that don't have a use for thumbnails.
+* Significant improvements to UDIM handling in ImageCache/TextureSystem:
+    - New UDIM texture name patterns recognized: `%(UDIM)d` is the Houdini
+      convention, and `_u##v##` is for Animal Logic's internal renderer.
+      #3006 (2.2.16/2.3.6)
+    - It is now permissible for `get_texture_info()/get_image_info()` to
+      retrieve metadata for UDIM patterns -- previously it failed, but now
+      it will succeed in retrieving any metadata as long as it is present
+      and has the same value in all the matching "UDIM tile" panels. #3049
+      (2.3.7)
+    - TextureSystem now exposes methods `is_udim()`, `resolve_udim()`,
+      `inventory_udim()` that should be helpful for apps dealing with UDIM
+      textures. See the documentation for details. #3054 (2.3.7)
+    - Performance improvements when using UDIM textures. #3049 (2.3.7)
 * ImageBuf, when "wrapping" an app-owned buffer, now allows explicit
   specification of stride lengths. This allows you to wrap a buffer that
   has internal padding or other non-contiguous spacing of pixels, scanlines,
@@ -65,7 +82,7 @@ New major features and public API changes:
     - `--skip-bad-frames` causes an error (such as an input file not being
       found) to simply skip to the next frame in the frame range loop, rather
       that immediately exiting. #2905 (2.3.4)
-    - When doing expression substituion, `{getattribute(name)}` will be
+    - When doing expression substitution, `{getattribute(name)}` will be
       replaced by the value that `OIIO::getattribute(name, ...)` would
       retrieve.  #2932 (2.3.4)
     - `--missingfile` (which takes a subsequent argument of `error`, `black`,
@@ -76,15 +93,13 @@ New major features and public API changes:
       command processing. Other choices of `black` or `checker` will continue
       processing but substitute either a black or checkerboard image for the
       missing file. #2949 (2.3.4)
+    - `--printinfo` prints verbose metadata info about the current top
+      image on the stack. #3056 (2.3.7)
+    - `--printstats` prints statistics about the current top image on the
+      stack, and optionally can limit the statistics to a rectangular
+      subregion of the image. #3056 (2.3.7)
     - Expanded expression now support the following new metadata notations:
-      `META`, `METABRIEF`, and `STATS`. By combining this with `--echo`, one
-      use of this feature is to be able to print statistics and metadata
-      for computed images (whereas `--info` only prints as files are first
-      loaded), for example:
-      ```
-      oiiotool img.exr -blur 3x3 -echo "blurred stats: {TOP.STATS}"
-      ```
-      #3025 (2.3.6)
+      `META`, `METABRIEF`, and `STATS`. #3025 (2.3.6)
     - `--mosaic` now takes optional `fit=WxH` modifier that lets you set the
       "cell" size, with all constituent images resized as needed (similarly
       to if you used `--fit` on each individually). This is helpful for
@@ -95,18 +110,36 @@ New major features and public API changes:
 * Python bindings:
     - When transferring blocks of pixels (e.g., `ImageInput.read_image()`
       or `ImageOutput.write_scanline()`), "half" pixels ended up mangled
-      into uint16, but now they use the correct numpy.float16 type. #2694
+      into uint16, but now they use the correct `numpy.float16` type. #2694
       (2.3.0.0)
     - The value passed to `attribute(name, typedesc, value)` can now be a
       tuple, list, numpy array, or scalar value. #2695 (2.3.0.0)
     - Added Python bindings for the TextureSystem. #2842
     - Add the previously (inadvertently) omitted enum value for
       `ImageBufAlgo.MakeTxBumpWithSlopes`. #2951 (2.3.4)
+* Environment variables:
+    - `CUE_THREADS` env variable, if set, is now honored to set the default
+      size of the OIIO thread pool. This helps to make OIIO-based apps be
+      good citizens when run as OpenCue jobs. #3038 (2.3.7)
 * Library organization:
     - All the utility classes are now in libOpenImageIO_Util *only* and
       libOpenImageIO depends on and links to libOpenImageIO_Util, rather
       than the utility classes being defined separately in both libraries.
       #2906 (2.3.4)
+    - Include file change: `imagebuf.h` no longer includes `imagecache.h`.
+      It should never have needed to, since it didn't need any of its
+      declarations. Other code that should always have included both headers,
+      but inadvertently only included `imagebuf.h`, may now need to add an
+      explicit `#include <OpenImageIO/imagecache.h>`. #3036 (2.3.7)
+* Important change to `Makefile` wrapper: We have a 'Makefile' that just wraps
+  cmake for ease of use. This has changed its practice of putting builds in
+  `build/ARCH` to just `build` (and local installs from `dist/ARCH` to `dist`)
+  to better match common cmake practice. So where your local builds end up may
+  shift a bit. #3057 (2.3.7)
+* Deprecations: A number of long-deprecated functions and methods have been
+  given deprecation attributes that will cause warnings if you use them. They
+  will eventually be removed entirely at the next "breaking" release (3.0,
+  whenever that is). #3032 (2.3.7)
 
 Performance improvements:
 * Speed up BMP reading by eliminating wasteful allocation and copying
@@ -114,6 +147,7 @@ Performance improvements:
 * For `IBA::to_OpenCV()`, improve efficiency for certain image copies. #2944
   (2.3.4) 
 * Fix runaway parsing time for pathological XMP metadata. #2968 (2.3.5/2.2.15)
+* TextureSystem reduction in overhead when using UDIM textures. #3049 (2.3.7)
 
 Fixes and feature enhancements:
 * Fix a situation where if an ImageBuf backed by an ImageCache reads an
@@ -146,8 +180,8 @@ Fixes and feature enhancements:
     - Fix: `ociolook()` and `ociofiletransform()` internally reversed the
       order of their `inverse` and `unpremult` arguments, making it hard to
       select the inverse transformation. #2844 (2.3.3/2.2.11)
-    - Fix crash for certain calls to ImageBuf::set_write_format when writing
-      files that support per-channel data types. #2885 (2.3.3)
+    - Fix crash for certain calls to `ImageBuf::set_write_format()` when
+      writing files that support per-channel data types. #2885 (2.3.3)
     - Fix: `IBA::fillholes_pushpull` did not correctly understand which
       channel was alpha when generating subimages. #2939 (2.3.4)
     - Fix: `IBA::render_text` did not properly account for non-1 alpha of
@@ -161,9 +195,6 @@ Fixes and feature enhancements:
     - `render_text()` now accepts text strings with embedded linefeeds and
       will turn them into multiple lines of rendered text. #3024 (2.3.6)
 * ImageCache/TextureSystem/maketx:
-    * New UDIM texture name patterns recognized: `%(UDIM)d` is the Houdini
-      convention, and `_u##v##` is for Animal Logic's internal renderer.
-      #3006 (2.2.16/2.3.6)
     - Fix ImageCache bug: add_tile/get_tile not properly honoring when
      `chend < chbegin` it should get all channels. #2742 (2.3.0.1/2.2.8)
     - `ImageBufAlgo::make_texture()` (as well as `maketx` and `oiiotool -otex`)
@@ -178,6 +209,8 @@ Fixes and feature enhancements:
     - Making bumpslopes textures now allows scaled slopes UV normalization.
       This is exposed as new maketx argument `--uvsopes_scale`, or passing
       the attribute `uvslopes_scale` (int) to make_texture(). #3012 (2.3.6)
+    - There is a new variety of ImageCache::invalidate() that takes an
+      `ImageHandle*` argument instead of a filename. #3035 (2.3.7)
 * oiiotool:
     - `--resize` of images with multi-subimages could crash. #2711 (2.3.0.0)
     - Improve oiiotool's guessing about the desired output format based on
@@ -236,16 +269,23 @@ Fixes and feature enhancements:
       will allow higher performance texture reads in a multithreaded app.
       This has not yet been benchmarked or tested thoroughly. #3009 #3027
       (2.3.6)
+    - The reader no longer renames file metadata "version" into the special
+      "openexr:version" that would indicate the OpenEXR file format version
+      of the file. That's never what it meant! It really was just arbitrary
+      metadata. #3044 (2.3.7)
 * PNG
     - Read Exif data from PNG files. #2767 (2.3.1.1/2.2.9)
 * PSD
     - Add support for reading ISD profiles for PSD input. #2788 (2.3.2.0)
     - Fix loading PSB files with cinf tags. #2877 (2.2.12/2.3.2)
 * RAW:
-    - Add "raw:user_flip" input configuration hint to control this option
-      in the underlying libraw. #2769 (2.3.1.0)
+    - Additional input configuration hints to control options in the
+      underlying LibRaw: `"raw:user_flip"` #2769 (2.3.1.0)
+      `"raw:balance_clamped"`, `"raw:apply_scene_linear_scale"`,
+      `"raw:camera_to_scene_linear_scale"` #3045 (2.3.7)
     - Correctly handle RAW files with Unicode filenames on Windows. #2888
       (2.3.3)
+    - Fix garbled output when `raw:Demosaic` hint is `"none"`. #3045 (2.3.7)
 * Targa
     - Fix potential crash when reading files with no thumbnail. #2903
       (2.3.3/2.2.13)
@@ -297,6 +337,11 @@ Developer goodies / internals:
       format (not OS specific). #2819 (2.3.3/2.2.11)
     - Improve exception safety in Filesystem directory iteration. #2998
       (2.2.16/2.3.6)
+    - New `filename_to_regex()` makes a filename "safe" to use as a
+      regex pattern (for example, properly backslashing any `.` characters).
+      #3046 (2.3.7)
+    - Some methods that used to take a `const std::string&` now take a
+      `string_view`. #3047 (2.3.7)
 * fmath.h:
     - Use CPU intrinsics to speed up swap_ending (by 8-15x when swapping
       bytes of large arrays). #2763 (2.3.1.0)
@@ -327,7 +372,11 @@ Developer goodies / internals:
     - Fix build break when strutil.h was included in Cuda 10.1 code. #2743
       (2.3.0.1/2.2.8)
     - `strhash()` is now constexpr for C++14 and higher. #2843 (2.3.3)
-    - Strutil new functions: find, rfind, ifind, irfind (#2960) (2.3.4/2.2.14)
+    - New Strutil functions: find, rfind, ifind, irfind #2960 (2.3.4/2.2.14)
+      contains_any_char #3034 (2.3.7) rcontains, ircontains #3053 (2.3.7)
+* sysutil.h:
+    - Extend `getenv()` to take a default if the environment variable is not
+      found. #3037 #3040 (2.3.7)
 * typedesc.h:
     - `TypeDesc::basetype_merge(a,b)` returns a BASETYPE having the
       precision and range to hold the basetypes of either `a` or `b`.
@@ -353,8 +402,8 @@ Build/test system improvements and platform ports:
       #2764 (2.3.0.1/2.2.8)
     - Make the OIIO CMake files work properly if OIIO is a subproject. Also
       various other CMake script refactoring. #2770 (2.3.1.1/2.2.9)
-    - Extend checked_find_package with VERSION_MIN and VERSION_MAX. #2773
-      (2.3.1.1/2.2.9)
+    - Extend checked_find_package with VERSION_MIN and VERSION_MAX #2773
+      (2.3.1.1/2.2.9), DEFINITIONS and SETVARIABLES #3061 (2.3.7)
     - No longer directly link against python libraries when unnecessary.
       #2807 (2.2.11/2.3.3)
     - On Windows, fix some linkage problems by changing the pybind11
@@ -383,6 +432,9 @@ Build/test system improvements and platform ports:
       #2984 (2.3.5/2.2.15)
     - If a package is requested to be disabled, skip its related tests rather
       than reporting them as broken. #2988 (2.3.5/2.2.16)
+    - Finding boost is more flexible when desiring static libraries. #3031
+      (2.3.7/2.2.17)
+    - FindTBB.cmake module updated to create proper targets. #3060 (2.3.7)
 * Dependency version support:
     - C++20 is now supported. #2891 (2.3.3)
     - Fix deprecation warnings when building with very new PugiXML versions.
@@ -391,9 +443,9 @@ Build/test system improvements and platform ports:
       #2849 (2.3.3/2.2.11) #2911 (2.3.4)
     - Fix to accommodate upcoming OpenColorIO 2.1 deprecation of
       parseColorSpaceFromString. #2961 (2.3.5/2.2.15)
-    - Work to ensure that OIIO will build correctly against the upcoming
-      Imath 3.0 and OpenEXR 3.0. #2771 (2.3.1.1/2.2.9) #2876 #2678 #2883
-      #2894 (2.3.3/2.2.12) #2935 #2941 #2942 #2947 (2.3.4)
+    - Work to ensure that OIIO will build correctly against Imath 3.0 and
+      OpenEXR 3.0, as well as Imath 3.1 / OpenEXR 3.1. #2771 (2.3.1.1/2.2.9)
+      #2876 #2678 #2883 #2894 (2.3.3/2.2.12) #2935 #2941 #2942 #2947 (2.3.4)
     - Better finding of OpenJpeg 2.4. #2829 (2.3.3/2.2.11)
     - On Mac, libheif 1.10 is very broken. Don't use that version. #2847
       (2.3.3/2.2.11)
@@ -422,6 +474,11 @@ Build/test system improvements and platform ports:
       wrong. #3001 (2.2.16/2.3.6)
     - Fixes for building against fmt 8.0. #3007 (2.3.6)
     - The OpenCV minimum version is now >= 3.0. #3015 (2.3.6)
+    - Fixes to build properly against the upcoming OpenColorIO 2.1. #3050
+      (2.3.7)
+    - All the `src/build_scripts/build_*.bash` scripts now honor an env
+      variable called `DOWNLOAD_ONLY`, which if set will only do the downloads
+      but not the builds. #3058 (2.3.7)
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
     - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
@@ -466,6 +523,17 @@ Notable documentation changes:
 * Starting to use "sphinx_tabs" as a clear way to present how things should
   be done for different language bindings. #2768 (2.3.1.0)
 
+
+Release 2.2.17 (1 Aug 2021) -- compared to 2.2.16
+--------------------------------------------------
+* Output to DPX files now supports IOProxy. (Input already did.) #3013
+* typedesc.h: TypeDesc can now describe 2D and 3D bounding boxes, as arrays
+  of 2 VEC2 aggregates (for 2D) or VEC3 aggregates (for 3D) with "BOX"
+  semantic. The shorthand for these are `TypeBox2`, `TypeBox3` (for float),
+  and `TypeBox2i` and `TypeBox3i` for integer or pixel coordinte
+  boxes. #3008
+* Build: Fixes for building against fmt 8.0.0. #3007
+* Build: Finding boost is more flexible when desiring static libraries. #3031
 
 Release 2.2.16 (1 Jul 2021) -- compared to 2.2.15
 --------------------------------------------------
