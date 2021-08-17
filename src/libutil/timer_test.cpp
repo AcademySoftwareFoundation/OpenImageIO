@@ -72,7 +72,7 @@ main(int argc, char** argv)
 #elif defined(OIIO_CI)
     // Also on GitHub Actions CI, timing seems a little imprecise. Give it
     // some extra room to avoid spurious CI failures on this test.
-    eps = 0.02;
+    eps = 0.1;
 #endif
 
     // Verify that Timer(false) doesn't start
