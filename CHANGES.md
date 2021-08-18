@@ -1,3 +1,26 @@
+Release 2.4 (?? 2022?) -- compared to 2.3
+----------------------------------------------
+New minimum dependencies and compatibility changes:
+
+New major features and public API changes:
+
+Performance improvements:
+
+Fixes and feature enhancements:
+
+Developer goodies / internals:
+
+Build/test system improvements and platform ports:
+* CMake build system and scripts:
+* Dependency version support:
+* Testing and Continuous integration (CI) systems:
+* Platform support:
+
+Notable documentation changes:
+
+
+
+
 Release 2.3 (1 Sept 2021?) -- compared to 2.2
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
