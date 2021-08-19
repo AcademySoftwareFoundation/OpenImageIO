@@ -353,7 +353,7 @@ function (oiio_setup_test_data)
     oiio_get_test_data (oiio-images
                         REPO https://github.com/OpenImageIO/oiio-images.git)
     oiio_get_test_data (openexr-images
-                        REPO https://github.com/AcademySoftwareFoudation/openexr-images.git)
+                        REPO https://github.com/AcademySoftwareFoundation/openexr-images.git)
     oiio_get_test_data (fits-images)
     oiio_get_test_data (j2kp4files_v1_5)
 endfunction ()

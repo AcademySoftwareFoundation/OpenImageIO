@@ -74,7 +74,7 @@
 #                           tbbmalloc, tbbmalloc_debug, tbb_preview, or 
 #                           tbb_preview_debug.
 #
-# The following varibles should be used to build and link with TBB:
+# The following variables should be used to build and link with TBB:
 #
 # * TBB_INCLUDE_DIRS - The include directory for TBB.
 # * TBB_LIBRARIES    - The libraries to link against to use TBB.
