@@ -1121,7 +1121,17 @@ ImageSpec::from_xml(const char* xml)
     z_channel     = Strutil::stoi(n.child_value("z_channel"));
     deep          = Strutil::stoi(n.child_value("deep"));
 
-    // FIXME: What about extra attributes?
+    for (auto& attrib : n.children("attrib")) {
+        auto name      = attrib.attribute("name").value();
+        auto type      = attrib.attribute("type").value();
+        auto value_str = attrib.text().get();
+
+        if (name && name[0] != '\0' && type && type[0] != '\0') {
+            ParamValue v { string_view(name), TypeDesc(type),
+                           string_view(value_str) };
+            extra_attribs.add_or_replace(v);
+        }
+    }
 
     // If version == 11 {fill new fields}
 }
