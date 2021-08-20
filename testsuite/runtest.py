@@ -54,22 +54,23 @@ def oiio_relpath (path, start=os.curdir):
 # the cmake tests, but if those aren't set, assume somebody is running
 # this script by hand from inside build/testsuite/TEST and that
 # the rest of the tree has the standard layout.
-if os.path.exists('../../../testsuite') :
-    OIIO_TESTSUITE_ROOT = '../../../testsuite'
-elif os.path.exists('../../../../testsuite') :
-    OIIO_TESTSUITE_ROOT = '../../../../testsuite'
-OIIO_TESTSUITE_ROOT = oiio_relpath(os.getenv('OIIO_TESTSUITE_ROOT',
-                                             OIIO_TESTSUITE_ROOT))
+OIIO_TESTSUITE_ROOT = os.getenv('OIIO_TESTSUITE_ROOT', '')
+if OIIO_TESTSUITE_ROOT == '' :
+    if os.path.exists('../../../testsuite') :
+        OIIO_TESTSUITE_ROOT = '../../../testsuite'
+    elif os.path.exists('../../../../testsuite') :
+        OIIO_TESTSUITE_ROOT = '../../../../testsuite'
+OIIO_TESTSUITE_ROOT = oiio_relpath(OIIO_TESTSUITE_ROOT)
 OIIO_PROJECT_ROOT = oiio_relpath(OIIO_TESTSUITE_ROOT + "/..")
 
-if os.path.exists('../oiio-images'):
-    OIIO_TESTSUITE_IMAGEDIR = '../oiio-images'
-OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR',
-                                    OIIO_TESTSUITE_IMAGEDIR)
-if OIIO_TESTSUITE_IMAGEDIR:
-    OIIO_TESTSUITE_IMAGEDIR = oiio_relpath(OIIO_TESTSUITE_IMAGEDIR)
-    # Set it back so test's can use it (python-imagebufalgo)
-    os.putenv('OIIO_TESTSUITE_IMAGEDIR', OIIO_TESTSUITE_IMAGEDIR)
+OIIO_TESTSUITE_IMAGEDIR = os.getenv('OIIO_TESTSUITE_IMAGEDIR', '')
+if OIIO_TESTSUITE_IMAGEDIR == '' :
+    if os.path.exists('../oiio-images'):
+        OIIO_TESTSUITE_IMAGEDIR = '../oiio-images'
+OIIO_TESTSUITE_IMAGEDIR = oiio_relpath(OIIO_TESTSUITE_IMAGEDIR)
+# Set it back so tests can use it (python-imagebufalgo)
+os.putenv('OIIO_TESTSUITE_IMAGEDIR', OIIO_TESTSUITE_IMAGEDIR)
+
 refdir = "ref/"
 refdirlist = [ refdir ]
 mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]
