@@ -78,9 +78,9 @@ if str(mytest).endswith('.batch') :
     mytest = mytest.split('.')[0]
 test_source_dir = os.getenv('OIIO_TESTSUITE_SRC',
                             os.path.join(OIIO_TESTSUITE_ROOT, mytest))
-colorconfig_file = os.path.join(OIIO_TESTSUITE_ROOT,
-                                "common", "OpenColorIO", "nuke-default", "config.ocio")
-
+colorconfig_file = os.getenv('OIIO_TESTSUITE_OCIOCONFIG',
+                             '../common/OpenColorIO/nuke-default/config.ocio')
+colorconfig_file = oiio_relpath(colorconfig_file)
 
 
 command = ""
