@@ -1,10 +1,21 @@
 *~
+*.bak
 branches/
 build/
 dist/
 ext/
-testsuite/runtest.pyc
+.idea
+.vscode
 .cproject
 .project
 .DS_Store
+*.pyc
 
+# Exclude test files I tend to leave around at the top level. The leading
+# slash ensures that files with these extensions within subdirectories are not
+# ignored.
+/*.exr
+/*.tif
+/*.jpg
+/*.tx
+/*.log
