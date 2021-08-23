@@ -41,7 +41,7 @@ git checkout ${LIBPNG_VERSION} --force
 mkdir -p ${LIBPNG_BUILD_DIR}
 cd ${LIBPNG_BUILD_DIR}
 
-if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     time cmake -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${LIBPNG_INSTALL_DIR} \
                -DPNG_EXECUTABLES=OFF \

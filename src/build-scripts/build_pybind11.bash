@@ -41,7 +41,7 @@ git checkout ${PYBIND11_VERSION} --force
 mkdir -p ${PYBIND11_BUILD_DIR}
 cd ${PYBIND11_BUILD_DIR}
 
-if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     time cmake -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${PYBIND11_INSTALL_DIR} \
                -DPYBIND11_TEST=OFF \

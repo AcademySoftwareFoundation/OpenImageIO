@@ -37,7 +37,7 @@ fi
 
 cd giflib-${GIFLIB_VERSION}
 
-if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     time make PREFIX=${GIFLIB_INSTALL_DIR} CC=${GIFLIB_CC} install
 fi
 
