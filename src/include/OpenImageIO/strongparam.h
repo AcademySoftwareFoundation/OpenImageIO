@@ -68,7 +68,7 @@ OIIO_NAMESPACE_BEGIN
 /// implementation of units:
 ///
 /// Error prone: speed(float,float)  // which is first, meters or seconds?
-/// Unambigious: speed(Meters,Seconds)
+/// Unambiguous: speed(Meters,Seconds)
 ///
 ///     OIIO_STRONG_PARAM_TYPE(Meters, float);
 ///     OIIO_STRONG_PARAM_TYPE(Seconds, float);
@@ -82,6 +82,14 @@ OIIO_NAMESPACE_BEGIN
 /// Note that the fancy strong type is for declaration purposes. Any time
 /// you use it in the function, it implicitly converts to the underlying
 /// base type.
+///
+/// As an alternative to `OIIO_STRONG_TYPE(Meters, float)`, you may also use
+/// this notation (if you find it more pleasing):
+///
+///     using Meters = StrongParam<struct MetersTag, float>;
+///
+/// The MetersTag struct need not be defined anywhere, it just needs to
+/// be a unique name.
 ///
 
 template<typename Tag, typename Basetype> struct StrongParam {
