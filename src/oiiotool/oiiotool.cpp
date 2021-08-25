@@ -2414,7 +2414,7 @@ OiioTool::decode_channel_set(const ImageSpec& spec, string_view chanlist,
 
 
 
-// --channels
+// --ch
 int
 action_channels(int argc, const char* argv[])
 {
@@ -2427,7 +2427,7 @@ action_channels(int argc, const char* argv[])
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
-    ImageRecRef A(ot.pop());
+    ImageRecRef A(ot.top());
     ot.read(A);
 
     if (chanlist == "RGB")  // Fix common synonyms/mistakes
@@ -2439,6 +2439,7 @@ action_channels(int argc, const char* argv[])
     // need to describe the new ImageRec with the altered channels.
     std::vector<int> allmiplevels;
     std::vector<ImageSpec> allspecs;
+    bool any_changes = false;
     for (int s = 0, subimages = allsubimages ? A->subimages() : 1;
          s < subimages; ++s) {
         std::vector<std::string> newchannelnames;
@@ -2455,17 +2456,42 @@ action_channels(int argc, const char* argv[])
         int miplevels = ot.allsubimages ? A->miplevels(s) : 1;
         allmiplevels.push_back(miplevels);
         for (int m = 0; m < miplevels; ++m) {
-            ImageSpec spec = *A->spec(s, m);
-            spec.nchannels = (int)newchannelnames.size();
+            const ImageSpec* mipspec = A->spec(s, m);
+            ImageSpec spec           = *mipspec;
+            spec.nchannels           = (int)newchannelnames.size();
             spec.channelformats.clear();
             spec.default_channel_names();
             allspecs.push_back(spec);
+            // Are we really asking to change anything?
+            if (spec.nchannels != mipspec->nchannels) {
+                // Adding or dropping channels is definitely a change.
+                any_changes = true;
+            } else {
+                for (int c = 0; c < spec.nchannels; ++c) {
+                    // Change in order? For setting channel to a value,
+                    // channels[c] == -1, so that will also be caught here.
+                    any_changes |= (channels[c] != c);
+                    // Change of channel name?
+                    any_changes |= (newchannelnames[c]
+                                    != mipspec->channel_name(c));
+                }
+            }
         }
+    }
+
+    // If for every subimage and miplevel, the requested channels are
+    // identical to the old channels -- no change of channel order, no change
+    // of name, no setting to a constant value -- then just leave the top
+    // image as it is and slowly back away without doing anything expensive.
+    if (!any_changes) {
+        ot.function_times[command] += timer();
+        return 0;
     }
 
     // Create the replacement ImageRec
     ImageRecRef R(new ImageRec(A->name(), (int)allmiplevels.size(),
                                allmiplevels, allspecs));
+    ot.pop();
     ot.push(R);
 
     // Subimage by subimage, MIP level by MIP level, copy/shuffle the
