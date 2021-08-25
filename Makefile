@@ -234,7 +234,7 @@ endif
 #########################################################################
 # Top-level documented targets
 
-all: dist
+all: install
 
 # 'make debug' is implemented via recursive make setting DEBUG
 debug:
@@ -292,7 +292,7 @@ clang-format: config
 	  )
 
 
-# 'make dist' is just a synonym for 'make install'
+# DEPRECATED: 'make dist' is just a synonym for 'make install'
 dist : install
 
 TEST_FLAGS += --force-new-ctest-process --output-on-failure
