@@ -1765,13 +1765,19 @@ current top image.
       it,
     * `=` *float*, which will set the channel to a constant value, or
     * *newname* `=` *float*, which sets the channel to a constant value as
-      well as names the new channel. Examples include:  `R,G,B`,
-      `R=0.0,G,B,A=1.0`, `R=B,G,B=R`, `4,5,6,A`.
+      well as names the new channel.
+
+    Example channel lists include: `R,G,B`, `R=0.0,G,B,A=1.0`, `R=B,G,B=R`,
+    `4,5,6,A`.
 
     Channel numbers outside the valid range of input channels, or unknown
     names, will be replaced by black channels. If the *channellist* is
     shorter than the number of channels in the source image, unspecified
     channels will be omitted.
+
+    If the channel list does not specify any changes (neither order, nor
+    name, nor value), then this will just leave the images as-is, without
+    any unnecessary expense or pointless copying of images in memory.
 
 .. option:: --chappend
 

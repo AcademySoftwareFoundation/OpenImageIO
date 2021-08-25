@@ -26,7 +26,7 @@ class ImageRec;
 typedef std::shared_ptr<ImageRec> ImageRecRef;
 
 
-/// Polycy hints for reading images
+/// Policy hints for reading images
 enum ReadPolicy {
     ReadDefault = 0,        //< Default: use cache, maybe convert to float.
                             //<   For "small" files, may bypass cache.
