@@ -173,6 +173,20 @@ public:
     /// Is the timer currently ticking?
     bool ticking() const { return m_ticking; }
 
+    /// Force an offset to the total, in ticks. This value may be negative to
+    /// subtract from the total. To avoid disrupting the timer in progress,
+    /// this is added to the total elapsed time but not to the current lap, so
+    /// it will be reflected in ticks() or seconds(), but will NOT be
+    /// reflected in ticks_since_start() or time_since_start().
+    void add_ticks(ticks_t delta) { m_elapsed_ticks += delta; }
+
+    /// Force an offset to the total, in seconds. This value may be negative
+    /// to subtract from the total. To avoid disrupting the timer in progress,
+    /// this is added to the total elapsed time but not to the current lap, so
+    /// it will be reflected in ticks() or seconds(), but will NOT be
+    /// reflected in ticks_since_start() or time_since_start().
+    void add_seconds(double t) { add_ticks(ticks_t(t * ticks_per_second)); }
+
 private:
     bool m_ticking;           ///< Are we currently ticking?
     bool m_printdtr;          ///< Print upon destruction?
@@ -211,6 +225,7 @@ private:
     }
 
     static double seconds_per_tick;
+    static ticks_t ticks_per_second;
     friend class TimerSetupOnce;
 };
 
