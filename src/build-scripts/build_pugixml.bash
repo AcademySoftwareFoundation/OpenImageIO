@@ -41,7 +41,7 @@ git checkout ${PUGIXML_VERSION} --force
 mkdir -p ${PUGIXML_BUILD_DIR}
 cd ${PUGIXML_BUILD_DIR}
 
-if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     time cmake -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${PUGIXML_INSTALL_DIR} \
                -DBUILD_SHARED_LIBS=ON \

@@ -36,7 +36,7 @@ pushd ${LIBRAW_SOURCE_DIR}
 
 git checkout ${LIBRAW_VERSION} --force
 
-if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     aclocal
     autoreconf --install
     ./configure --prefix=${LIBRAW_INSTALL_DIR}
