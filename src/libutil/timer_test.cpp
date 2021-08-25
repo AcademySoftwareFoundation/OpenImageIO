@@ -117,6 +117,18 @@ main(int argc, char** argv)
     std::cout << "Checkpoint2: All " << all() << " selective " << selective()
               << "\n";
 
+    // Test add_ticks/add_seconds
+    {
+        Timer t(false);
+        Sysutil::usleep(100000);
+        OIIO_CHECK_EQUAL(t.ticking(), false);
+        t.add_ticks(100);
+        OIIO_CHECK_EQUAL(t.ticks(), 100);
+        t.add_ticks(100);
+        t.reset();
+        t.add_seconds(1.0);
+        OIIO_CHECK_EQUAL_THRESH(t(), 1.0, 1.0e-6);
+    }
 
     // Test Benchmarker
     Benchmarker bench;

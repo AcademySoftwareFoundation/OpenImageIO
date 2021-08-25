@@ -12,7 +12,9 @@
 
 OIIO_NAMESPACE_BEGIN
 
-double Timer::seconds_per_tick = 1.0e-6;
+// Defaults based on a microsecond resolution timer: gettimeofday()
+double Timer::seconds_per_tick         = 1.0e-6;
+Timer::ticks_t Timer::ticks_per_second = 1000000;
 
 
 class TimerSetupOnce {
@@ -23,6 +25,7 @@ public:
         // From MSDN web site
         LARGE_INTEGER freq;
         QueryPerformanceFrequency(&freq);
+        Timer::ticks_per_second = Timer::ticks_t(freq.QuadPart);
         Timer::seconds_per_tick = 1.0 / (double)freq.QuadPart;
 #elif defined(__APPLE__)
         // NOTE(boulos): Both this value and that of the windows
@@ -35,7 +38,11 @@ public:
         mach_timebase_info(&time_info);
         Timer::seconds_per_tick = (1e-9 * static_cast<double>(time_info.numer))
                                   / static_cast<double>(time_info.denom);
+        Timer::ticks_per_second = Timer::ticks_t(1.0f
+                                                 / Timer::seconds_per_tick);
 #endif
+        // Note: For anything but Windows and Mac, we rely on gettimeofday,
+        // which is microsecond timing, so there's nothing to set up.
     }
 };
 
