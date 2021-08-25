@@ -36,6 +36,15 @@ if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE "Release")
 endif ()
 
+# If the user hasn't configured cmake with an explicit
+# -DCMAKE_INSTALL_PREFIX=..., then set it to safely install into ./dist, to
+# help prevent the user from accidentally writing over /usr/local or whatever.
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT
+      AND NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+    set (CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/dist" CACHE PATH
+         "Installation location" FORCE)
+endif()
+
 message (STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
 message (STATUS "CMake ${CMAKE_VERSION}")
 message (STATUS "CMake system           = ${CMAKE_SYSTEM}")
