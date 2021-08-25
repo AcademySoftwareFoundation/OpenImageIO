@@ -39,7 +39,7 @@ git checkout ${OPENJPEG_VERSION} --force
 mkdir -p ${OPENJPEG_BUILD_DIR} && true
 cd ${OPENJPEG_BUILD_DIR}
 
-if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     time cmake -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${OPENJPEG_INSTALL_DIR} \
                -DBUILD_CODEC=OFF \

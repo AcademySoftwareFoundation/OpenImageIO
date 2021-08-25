@@ -34,7 +34,7 @@ git checkout ${LIBTIFF_VERSION} --force
 mkdir -p build
 cd build
 
-if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     time cmake -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} \
                -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" \

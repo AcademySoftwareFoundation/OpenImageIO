@@ -39,7 +39,7 @@ git checkout ${WEBP_VERSION} --force
 mkdir -p ${WEBP_BUILD_DIR}
 cd ${WEBP_BUILD_DIR}
 
-if [[ -z $OIIO_DEP_DOWNLOAD_ONLY ]]; then
+if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
     time cmake -DCMAKE_BUILD_TYPE=Release \
                -DCMAKE_INSTALL_PREFIX=${WEBP_INSTALL_DIR} \
                -DWEBP_BUILD_ANIM_UTILS=OFF \
