@@ -9,7 +9,7 @@ project (OpenImageIO VERSION 2.3.7.1
 set (PROJ_NAME OIIO)    # short name, caps
 string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
 string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
-set (PROJECT_VERSION_RELEASE_TYPE "beta2")   # "dev", "betaX", "RCY", ""
+set (PROJECT_VERSION_RELEASE_TYPE "RC1")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 set (${PROJECT_NAME}_SUPPORTED_RELEASE 1)  # Change to 1 for release branch

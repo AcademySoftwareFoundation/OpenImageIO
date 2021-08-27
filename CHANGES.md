@@ -1,5 +1,15 @@
-Release 2.3 (1 Sept 2021?) -- compared to 2.2
+Release 2.3 (1 Sept 2021) -- compared to 2.2
 ----------------------------------------------
+
+Updates for RC1:
+* Build: Better finding of OpenCV on Windows. #3062
+* Build: Support for build dir in odd places. #3065 #3067
+* Build scripts: Renamed OIIO_DEP_DOWNLOAD_ONLY env variable used by
+  some dependency build scripts to more generic DEP_DOWNLOAD_ONLY. #3072
+* Build: To prevent accidental overwrite of sensitive areas (such as
+  /usr/local), you now need to explicitly set CMAKE_INSTALL_PREFIX if you
+  want the "install" to not be local to the build area. #3069
+
 New minimum dependencies and compatibility changes:
 * C++ standard: **C++14 is now the minimum (gcc 6.1 - 11.2, clang 3.4 - 12,
   MSVS 2017 - 2019, icc 17+).** The default C++ standard mode, if none is
@@ -432,9 +442,11 @@ Build/test system improvements and platform ports:
       #2984 (2.3.5/2.2.15)
     - If a package is requested to be disabled, skip its related tests rather
       than reporting them as broken. #2988 (2.3.5/2.2.16)
-    - Finding boost is more flexible when desiring static libraries. #3031
-      (2.3.7/2.2.17)
-    - FindTBB.cmake module updated to create proper targets. #3060 (2.3.7)
+    - Better support for running testsuite when the build dir in odd places.
+      #3065 #3067 (2.3.7.1)
+    - To prevent accidental overwrite of sensitive areas (such as
+      /usr/local), you now need to explicitly set CMAKE_INSTALL_PREFIX if you
+      want the "install" to not be local to the build area. #3069 (2.3.7.1)
 * Dependency version support:
     - C++20 is now supported. #2891 (2.3.3)
     - Fix deprecation warnings when building with very new PugiXML versions.
@@ -476,9 +488,14 @@ Build/test system improvements and platform ports:
     - The OpenCV minimum version is now >= 3.0. #3015 (2.3.6)
     - Fixes to build properly against the upcoming OpenColorIO 2.1. #3050
       (2.3.7)
+    - Finding boost is more flexible when desiring static libraries. #3031
+      (2.3.7/2.2.17)
+    - FindTBB.cmake module updated to create proper targets. #3060 (2.3.7)
     - All the `src/build_scripts/build_*.bash` scripts now honor an env
-      variable called `DOWNLOAD_ONLY`, which if set will only do the downloads
-      but not the builds. #3058 (2.3.7)
+      variable called `DEP_DOWNLOAD_ONLY`, which if set will only do the
+      downloads but not the builds. #3058 #3072 (2.3.7)
+    - Better finding of OpenCV on Windows. #3062 (2.3.7.1)
+
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
     - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
