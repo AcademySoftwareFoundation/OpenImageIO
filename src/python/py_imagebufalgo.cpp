@@ -2181,23 +2181,27 @@ py::object
 IBA_color_range_check(ImageBuf& src, const py::object& low,
                       const py::object& high, ROI roi, int nthreads)
 {
-    py::gil_scoped_release gil;
-    std::vector<int64_t> counts { 0, 0, 0 };
     imagesize_t lowcount = 0, highcount = 0, inrangecount = 0;
     std::vector<float> lowvec, highvec;
     py_to_stdvector(lowvec, low);
     py_to_stdvector(highvec, high);
-    bool ok   = ImageBufAlgo::color_range_check(src, &lowcount, &highcount,
-                                              &inrangecount, lowvec, highvec,
-                                              roi, nthreads);
-    counts[0] = lowcount;
-    counts[1] = highcount;
-    counts[2] = inrangecount;
+    bool ok;
+    {
+        py::gil_scoped_release gil;
+        ok = ImageBufAlgo::color_range_check(src, &lowcount, &highcount,
+                                             &inrangecount, lowvec, highvec,
+                                             roi, nthreads);
+    }
     py::object result;
-    if (ok)
-        result = C_to_tuple(counts.data(), 3);
-    else
+    if (ok) {
+        std::vector<int64_t> counts(3);
+        counts[0] = lowcount;
+        counts[1] = highcount;
+        counts[2] = inrangecount;
+        result    = C_to_tuple<int64_t>(counts);
+    } else {
         result = py::none();
+    }
     return result;
 }
 
@@ -2308,12 +2312,15 @@ IBA_histogram(const ImageBuf& src, int channel = 0, int bins = 256,
               float min = 0.0f, float max = 1.0f, bool ignore_empty = false,
               ROI roi = {}, int nthreads = 0)
 {
-    py::gil_scoped_release gil;
-    auto hist = ImageBufAlgo::histogram(src, channel, bins, min, max,
-                                        ignore_empty, roi, nthreads);
-    std::vector<int> h(bins);
-    for (int i = 0; i < bins; ++i)
-        h[i] = int(hist[i]);
+    std::vector<int> h;
+    {
+        py::gil_scoped_release gil;
+        auto hist = ImageBufAlgo::histogram(src, channel, bins, min, max,
+                                            ignore_empty, roi, nthreads);
+        h.resize(bins);
+        for (int i = 0; i < bins; ++i)
+            h[i] = int(hist[i]);
+    }
     return C_to_tuple<int>(h);
 }
 
