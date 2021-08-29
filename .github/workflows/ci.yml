@@ -320,7 +320,7 @@ jobs:
       PTEX_VERSION: v2.4.0
       PYBIND11_VERSION: v2.7.1
       PYTHON_VERSION: 3.8
-      WEBP_VERSION: v1.1.0
+      WEBP_VERSION: v1.2.1
       MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=8.0.0
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
@@ -363,7 +363,7 @@ jobs:
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
     # supported releases of everything else.
-    name: "Linux bleeding edge: gcc11 C++20 py38 avx2 OCIO/libtiff/exr master"
+    name: "Linux bleeding edge: gcc11 C++20 py38 OCIO/libtiff/exr-master boost1.71 avx2"
     runs-on: ubuntu-20.04
     env:
       CXX: g++-11

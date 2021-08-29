@@ -18,7 +18,9 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
     sudo yum install -y opencv opencv-devel && true
     sudo yum install -y Field3D Field3D-devel && true
     sudo yum install -y ffmpeg ffmpeg-devel && true
-
+    if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
+        time sudo yum install -y ${EXTRA_DEP_PACKAGES}
+    fi
 else
     # Using native Ubuntu runner
 
@@ -27,8 +29,7 @@ else
 
     time sudo apt-get -q install -y \
         git cmake ninja-build ccache g++ \
-        libboost-dev libboost-thread-dev \
-        libboost-filesystem-dev libboost-regex-dev \
+        libboost-dev libboost-thread-dev libboost-filesystem-dev \
         libilmbase-dev libopenexr-dev \
         libtbb-dev \
         libtiff-dev libgif-dev libpng-dev libraw-dev libwebp-dev \
@@ -40,8 +41,16 @@ else
         libopencv-dev \
         qt5-default \
         libhdf5-dev
+    if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
+        time sudo apt-get -q install -y ${EXTRA_DEP_PACKAGES}
+    fi
 
-    if [[ "$PYTHON_VERSION" == "2.7" ]] ; then
+    # Nonstandard python versions
+    if [[ "${PYTHON_VERSION}" == "3.9" ]] ; then
+        time sudo apt-get -q install -y python3.9-dev python3-numpy
+        pip3 --version
+        pip3 install numpy
+    elif [[ "$PYTHON_VERSION" == "2.7" ]] ; then
         time sudo apt-get -q install -y python-dev python-numpy
     else
         pip3 install numpy
@@ -55,9 +64,7 @@ else
 
     export CMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu:$CMAKE_PREFIX_PATH
 
-    if [[ "$CXX" == "g++-4.8" ]] ; then
-        time sudo apt-get install -y g++-4.8
-    elif [[ "$CXX" == "g++-6" ]] ; then
+    if [[ "$CXX" == "g++-6" ]] ; then
         time sudo apt-get install -y g++-6
     elif [[ "$CXX" == "g++-7" ]] ; then
         time sudo apt-get install -y g++-7
@@ -114,8 +121,6 @@ if [[ "$PUGIXML_VERSION" != "" ]] ; then
 fi
 
 if [[ "$OPENCOLORIO_VERSION" != "" ]] ; then
-    # Temporary (?) fix: GH ninja having problems, fall back to make
-    CMAKE_GENERATOR="Unix Makefiles" \
     source src/build-scripts/build_opencolorio.bash
 fi
 
