@@ -58,9 +58,15 @@ public:
                              const void* data, stride_t xstride = AutoStride,
                              stride_t ystride = AutoStride,
                              stride_t zstride = AutoStride) override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
-    TIFF* m_tif;
+    TIFF* m_tif               = nullptr;
+    Filesystem::IOProxy* m_io = nullptr;
     std::vector<unsigned char> m_scratch;
     Timer m_checkpointTimer;
     int m_checkpointItems;
@@ -79,7 +85,8 @@ private:
     // Initialize private members to pre-opened state
     void init(void)
     {
-        m_tif                 = NULL;
+        m_tif                 = nullptr;
+        m_io                  = nullptr;
         m_checkpointItems     = 0;
         m_compression         = COMPRESSION_ADOBE_DEFLATE;
         m_predictor           = PREDICTOR_NONE;
@@ -295,6 +302,8 @@ TIFFOutput::supports(string_view feature) const
         return true;
     if (feature == "iptc")
         return true;
+    if (feature == "ioproxy")
+        return true;
     // N.B. TIFF doesn't support arbitrary metadata.
 
     // FIXME: we could support "volumes" and "empty"
@@ -316,6 +325,54 @@ allval(const std::vector<T>& d, T v = T(0))
 }
 
 
+static tsize_t readproc(thandle_t, tdata_t, tsize_t) { return 0; }
+
+static tsize_t
+writeproc(thandle_t handle, tdata_t data, tsize_t size)
+{
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    return io->write(data, size);
+}
+
+static toff_t
+seekproc(thandle_t handle, toff_t offset, int origin)
+{
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // Strutil::print("iop seek {} {} ({})\n",
+    //                io->filename(), offset, origin);
+    return (io->seek(offset, origin)) ? toff_t(io->tell()) : toff_t(-1);
+}
+
+static int
+closeproc(thandle_t handle)
+{
+    // auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // if (io && io->opened()) {
+    //     // Strutil::print("iop close {}\n\n",
+    //     //                io->filename());
+    //     // io->seek(0);
+    //     io->close();
+    // }
+    return 0;
+}
+
+static toff_t
+sizeproc(thandle_t handle)
+{
+    auto io = static_cast<Filesystem::IOProxy*>(handle);
+    // Strutil::print("iop size\n");
+    return toff_t(io->size());
+}
+
+static int
+mapproc(thandle_t, tdata_t*, toff_t*)
+{
+    return 0;
+}
+
+static void unmapproc(thandle_t, tdata_t, toff_t) {}
+
+
 
 bool
 TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
@@ -326,7 +383,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         return false;
     }
 
-    close();            // Close any already-opened file
+    if (m_tif)
+        close();
     m_spec = userspec;  // Stash the spec
 
     // Check for things this format doesn't support
@@ -354,14 +412,26 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
     }
-
+    {
+        const ParamValue* param = m_spec.find_attribute("oiio:ioproxy",
+                                                        TypeDesc::PTR);
+        if (param)
+            m_io = param->get<Filesystem::IOProxy*>();
+    }
     // Open the file
+    if (m_io) {
+        m_io->seek(0);
+        m_tif = TIFFClientOpen(name.c_str(), mode == AppendSubimage ? "a" : "w",
+                               m_io, readproc, writeproc, seekproc, closeproc,
+                               sizeproc, mapproc, unmapproc);
+    } else {
 #ifdef _WIN32
-    std::wstring wname = Strutil::utf8_to_utf16(name);
-    m_tif = TIFFOpenW(wname.c_str(), mode == AppendSubimage ? "a" : "w");
+        std::wstring wname = Strutil::utf8_to_utf16(name);
+        m_tif = TIFFOpenW(wname.c_str(), mode == AppendSubimage ? "a" : "w");
 #else
-    m_tif = TIFFOpen(name.c_str(), mode == AppendSubimage ? "a" : "w");
+        m_tif = TIFFOpen(name.c_str(), mode == AppendSubimage ? "a" : "w");
 #endif
+    }
     if (!m_tif) {
         errorf("Could not open \"%s\"", name);
         return false;

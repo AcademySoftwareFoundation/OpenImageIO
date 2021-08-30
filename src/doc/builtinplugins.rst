@@ -1952,6 +1952,10 @@ aspects of the writing itself:
      - int
      - Overrides TIFF scanline rows per strip with a specific request (if
        not supplied, OIIO will choose a reasonable default).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
 
 
 **TIFF compression modes**
