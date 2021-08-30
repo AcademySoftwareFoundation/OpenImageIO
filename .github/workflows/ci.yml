@@ -62,8 +62,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   vfxplatform-2020:
     name: "Linux VFX Platform 2020: gcc6/C++14 py3.7 boost1.70 exr2.4 ocio1.1"
@@ -109,12 +111,13 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   vfxplatform-2021:
-    # Test VFX Platform 2021 -- mainly, that means gcc9 and C++17.
-    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost1.73 exr2.5 ocio2.0 qt5.15"
+    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost-1.73 exr-2.5 qt-5.15"
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2021
@@ -156,20 +159,21 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
-  vfxplatform-2021-exr3:
-    # Test VFX Platform 2021, but with OpenEXR/Imath 3.x
-    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost1.73 exr3.1 ocio2.0 qt5.15"
+  vfxplatform-2022:
+    name: "Linux VFX Platform 2022: gcc9/C++17 py3.9 boost-1.73 exr-3.1 qt-5.15"
     runs-on: ubuntu-latest
     container:
-      image: aswf/ci-osl:2021
+      image: aswf/ci-osl:2022-clang11.7
     env:
       CXX: g++
       CC: gcc
       CMAKE_CXX_STANDARD: 17
-      PYTHON_VERSION: 3.7
+      PYTHON_VERSION: 3.9
       USE_SIMD: avx2,f16c
       OPENEXR_VERSION: v3.1.1
     steps:
@@ -191,8 +195,6 @@ jobs:
             src/build-scripts/ci-startup.bash
       - name: Dependencies
         run: |
-            sudo rm -rf /usr/local/include/OpenEXR
-            sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
             src/build-scripts/gh-installdeps.bash
       - name: Build
         run: |
@@ -205,8 +207,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   linux-gcc7-cpp14-debug:
     # Test against gcc7, and also at the same time, do a Debug build.
@@ -249,8 +253,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   linux-gcc8:
     # Test against gcc8.
@@ -293,8 +299,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
@@ -310,9 +318,9 @@ jobs:
       OPENEXR_VERSION: v3.1.1
       PUGIXML_VERSION: v1.11.4
       PTEX_VERSION: v2.4.0
-      PYBIND11_VERSION: v2.7.0
+      PYBIND11_VERSION: v2.7.1
       PYTHON_VERSION: 3.8
-      WEBP_VERSION: v1.1.0
+      WEBP_VERSION: v1.2.1
       MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=8.0.0
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
@@ -347,13 +355,15 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
     # supported releases of everything else.
-    name: "Linux bleeding edge: gcc11 C++20 py38 avx2 OCIO/libtiff/exr master"
+    name: "Linux bleeding edge: gcc11 C++20 py38 OCIO/libtiff/exr-master boost1.71 avx2"
     runs-on: ubuntu-20.04
     env:
       CXX: g++-11
@@ -403,8 +413,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
@@ -457,8 +469,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   macos-py38:
     name: "Mac py38"
@@ -503,8 +517,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   windows-vs2019:
     name: "Windows VS2019"
@@ -539,8 +555,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   windows-vs2017:
     name: "Windows VS2017"
@@ -575,8 +593,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   sanitizer:
     # Run sanitizers.
@@ -622,8 +642,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   linux-clang10-cpp14:
     # Test compiling with clang on Linux.
@@ -668,8 +690,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   linux-clang11-cpp17:
     # Test compiling with clang  and C++17 on Linux.
@@ -718,8 +742,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   linux-static:
     # Test building static libs.
@@ -760,8 +786,10 @@ jobs:
         with:
           name: ${{ github.job }}
           path: |
-            build/testsuite/*/*.*
             build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/j2kp4files_v1_5
 
   clang-format:
     # Test formatting. This test entry doesn't do a full build, it just runs

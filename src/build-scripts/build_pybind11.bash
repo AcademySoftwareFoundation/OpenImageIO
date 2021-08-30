@@ -7,7 +7,7 @@ set -ex
 
 # Repo and branch/tag/commit of pybind11 to download if we don't have it yet
 PYBIND11_REPO=${PYBIND11_REPO:=https://github.com/pybind/pybind11.git}
-PYBIND11_VERSION=${PYBIND11_VERSION:=v2.5.0}
+PYBIND11_VERSION=${PYBIND11_VERSION:=v2.6.2}
 
 # Where to put pybind11 repo source (default to the ext area)
 PYBIND11_SRC_DIR=${PYBIND11_SRC_DIR:=${PWD}/ext/pybind11}
