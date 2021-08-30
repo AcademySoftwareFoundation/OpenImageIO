@@ -11,16 +11,19 @@
 #include <memory>
 #include <numeric>
 
+#include <OpenImageIO/platform.h>
+
 #include <boost/version.hpp>
-#if BOOST_VERSION >= 106900
+
+#if OIIO_CPLUSPLUS_VERSION >= 17
+using std::gcd;
+#elif BOOST_VERSION >= 106900
 #    include <boost/integer/common_factor_rt.hpp>
 using boost::integer::gcd;
 #else
 #    include <boost/math/common_factor_rt.hpp>
 using boost::math::gcd;
 #endif
-
-#include <OpenImageIO/platform.h>
 
 #include <OpenEXR/openexr.h>
 
@@ -692,7 +695,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in, exr_context_t ctxt,
                 r[1] = static_cast<int>(d);
                 spec.attribute(oname, TypeRational, r);
             } else {
-                int f = static_cast<int>(gcd<long long>(n, d));
+                int f = static_cast<int>(gcd(int64_t(n), int64_t(d)));
                 if (f > 1) {
                     int r[2];
                     r[0] = n / f;
