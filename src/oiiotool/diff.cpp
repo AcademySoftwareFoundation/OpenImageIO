@@ -63,34 +63,34 @@ print_subimage(ImageRec& img0, int subimage, int miplevel)
 
 
 int
-OiioTool::do_action_diff(ImageRec& ir0, ImageRec& ir1, Oiiotool& ot,
+Oiiotool::do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& ot,
                          int perceptual)
 {
     std::cout << "Computing " << (perceptual ? "perceptual " : "")
-              << "diff of \"" << ir0.name() << "\" vs \"" << ir1.name()
+              << "diff of \"" << ir0->name() << "\" vs \"" << ir1->name()
               << "\"\n";
-    ir0.read();
-    ir1.read();
+    read(ir0);
+    read(ir1);
 
     int ret = DiffErrOK;
-    for (int subimage = 0; subimage < ir0.subimages(); ++subimage) {
+    for (int subimage = 0; subimage < ir0->subimages(); ++subimage) {
         if (subimage > 0 && !ot.allsubimages)
             break;
-        if (subimage >= ir1.subimages())
+        if (subimage >= ir1->subimages())
             break;
 
-        for (int m = 0; m < ir0.miplevels(subimage); ++m) {
+        for (int m = 0; m < ir0->miplevels(subimage); ++m) {
             if (m > 0 && !ot.allsubimages)
                 break;
-            if (m > 0 && ir0.miplevels(subimage) != ir1.miplevels(subimage)) {
+            if (m > 0 && ir0->miplevels(subimage) != ir1->miplevels(subimage)) {
                 std::cout
                     << "Files do not match in their number of MIPmap levels\n";
                 ret = DiffErrDifferentSize;
                 break;
             }
 
-            ImageBuf& img0(ir0(subimage, m));
-            ImageBuf& img1(ir1(subimage, m));
+            ImageBuf& img0((*ir0)(subimage, m));
+            ImageBuf& img1((*ir1)(subimage, m));
             int npels = img0.spec().width * img0.spec().height
                         * img0.spec().depth;
             if (npels == 0)
@@ -125,7 +125,7 @@ OiioTool::do_action_diff(ImageRec& ir0, ImageRec& ir1, Oiiotool& ot,
             //
             if (ot.verbose || ot.debug || ret != DiffErrOK) {
                 if (ot.allsubimages)
-                    print_subimage(ir0, subimage, m);
+                    print_subimage(*ir0, subimage, m);
                 std::cout << "  Mean error = ";
                 safe_double_print(cr.meanerror);
                 std::cout << "  RMS error = ";
@@ -179,14 +179,14 @@ OiioTool::do_action_diff(ImageRec& ir0, ImageRec& ir1, Oiiotool& ot,
         }
     }
 
-    if (ot.allsubimages && ir0.subimages() != ir1.subimages()) {
+    if (ot.allsubimages && ir0->subimages() != ir1->subimages()) {
         std::cout << "Images had differing numbers of subimages ("
-                  << ir0.subimages() << " vs " << ir1.subimages() << ")\n";
+                  << ir0->subimages() << " vs " << ir1->subimages() << ")\n";
         ret = DiffErrFail;
     }
-    if (!ot.allsubimages && (ir0.subimages() > 1 || ir1.subimages() > 1)) {
-        std::cout << "Only compared the first subimage (of " << ir0.subimages()
-                  << " and " << ir1.subimages() << ", respectively)\n";
+    if (!ot.allsubimages && (ir0->subimages() > 1 || ir1->subimages() > 1)) {
+        std::cout << "Only compared the first subimage (of " << ir0->subimages()
+                  << " and " << ir1->subimages() << ", respectively)\n";
     }
 
     if (ret == DiffErrOK)

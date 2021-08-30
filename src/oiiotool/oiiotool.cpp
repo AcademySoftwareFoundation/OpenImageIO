@@ -49,13 +49,13 @@ static ArgParse ap;
 // a lambda for each subimage. Beware, the macro expansion rules may require
 // you may need to enclose the lambda itself in parenthesis () if there it
 // contains commas that are not inside other parentheses.
-#define OIIOTOOL_OP(name, ninputs, ...)                               \
-    static int action_##name(int argc, const char* argv[])            \
-    {                                                                 \
-        if (ot.postpone_callback(ninputs, action_##name, argc, argv)) \
-            return 0;                                                 \
-        OiiotoolOp op(ot, #name, argc, argv, ninputs, __VA_ARGS__);   \
-        return op();                                                  \
+#define OIIOTOOL_OP(name, ninputs, ...)                                 \
+    static int action_##name(int argc, const char* argv[])              \
+    {                                                                   \
+        if (ot.postpone_callback(ninputs, action_##name, argc, argv))   \
+            return 0;                                                   \
+        OiiotoolOp op(ot, "-" #name, argc, argv, ninputs, __VA_ARGS__); \
+        return op();                                                    \
     }
 
 // Canned setup for an op that uses one image on the stack.
@@ -240,6 +240,7 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy, string_view channel_set)
     total_readtime.stop();
     imagecache->getattribute("stat:fileio_time", post_ic_time);
     total_imagecache_readtime += post_ic_time - pre_ic_time;
+    total_readtime.add_seconds(pre_ic_time - post_ic_time);
 
     // If this is the first tiled image we have come across, use it to
     // set our tile size (unless the user explicitly set a tile size, or
@@ -997,7 +998,7 @@ erase_attribute(int argc, const char* argv[])
     auto options        = ot.extract_options(command);
     bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
     string_view pattern = ot.express(argv[1]);
-    return apply_spec_mod(*ot.curimg, do_erase_attribute, pattern,
+    return apply_spec_mod(ot, ot.curimg, do_erase_attribute, pattern,
                           allsubimages);
 }
 
@@ -1610,7 +1611,7 @@ OiioTool::set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
     img->metadata_modified(true);
     if (!value.size()) {
         // If the value is the empty string, clear the attribute
-        return apply_spec_mod(*img, do_erase_attribute, attribname,
+        return apply_spec_mod(ot, img, do_erase_attribute, attribname,
                               allsubimages);
     }
 
@@ -1721,7 +1722,7 @@ OiioTool::set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
         // Does it seem to be an int, or did the caller explicitly request
         // that it be set as an int?
         int v = Strutil::stoi(value);
-        return apply_spec_mod(*img, do_set_any_attribute<int>,
+        return apply_spec_mod(ot, img, do_set_any_attribute<int>,
                               std::pair<std::string, int>(attribname, v),
                               allsubimages);
     } else if (type == TypeFloat
@@ -1729,12 +1730,12 @@ OiioTool::set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
         // Does it seem to be a float, or did the caller explicitly request
         // that it be set as a float?
         float v = Strutil::stof(value);
-        return apply_spec_mod(*img, do_set_any_attribute<float>,
+        return apply_spec_mod(ot, img, do_set_any_attribute<float>,
                               std::pair<std::string, float>(attribname, v),
                               allsubimages);
     } else {
         // Otherwise, set it as a string attribute
-        return apply_spec_mod(*img, do_set_any_attribute<std::string>,
+        return apply_spec_mod(ot, img, do_set_any_attribute<std::string>,
                               std::pair<std::string, std::string>(attribname,
                                                                   value),
                               allsubimages);
@@ -1788,7 +1789,7 @@ set_keyword(int argc, const char* argv[])
 
     std::string keyword(ot.express(argv[1]));
     if (keyword.size())
-        apply_spec_mod(*ot.curimg, do_set_keyword, keyword, ot.allsubimages);
+        apply_spec_mod(ot, ot.curimg, do_set_keyword, keyword, ot.allsubimages);
 
     return 0;
 }
@@ -1869,7 +1870,7 @@ rotate_orientation(int argc, const char* argv[])
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
-    apply_spec_mod(*ot.curimg, do_rotate_orientation, command, allsubimages);
+    apply_spec_mod(ot, ot.curimg, do_rotate_orientation, command, allsubimages);
     return 0;
 }
 
@@ -1881,9 +1882,9 @@ set_origin(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, set_origin, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    string_view origin  = ot.express(argv[1]);
+    OTScopedTimer timer(ot, command);
+    string_view origin = ot.express(argv[1]);
 
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -1917,7 +1918,6 @@ set_origin(int argc, const char* argv[])
             A->metadata_modified(true);
         }
     }
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -1929,9 +1929,9 @@ offset_origin(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, offset_origin, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    string_view origin  = ot.express(argv[1]);
+    OTScopedTimer timer(ot, command);
+    string_view origin = ot.express(argv[1]);
 
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -1962,7 +1962,6 @@ offset_origin(int argc, const char* argv[])
             A->metadata_modified(true);
         }
     }
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -1974,9 +1973,9 @@ set_fullsize(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, set_fullsize, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    string_view size    = ot.express(argv[1]);
+    OTScopedTimer timer(ot, command);
+    string_view size = ot.express(argv[1]);
 
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -2005,7 +2004,6 @@ set_fullsize(int argc, const char* argv[])
             A->metadata_modified(true);
         }
     }
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -2017,8 +2015,8 @@ set_full_to_pixels(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, set_full_to_pixels, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -2047,7 +2045,6 @@ set_full_to_pixels(int argc, const char* argv[])
         }
     }
     A->metadata_modified(true);
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -2247,20 +2244,20 @@ action_unmip(int argc, const char* argv[])
 
     // Special case -- detect if there are no MIP-mapped subimages at all,
     // in which case this is a no-op (avoid any copies or allocations).
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
     ot.read();
     bool mipmapped = false;
     for (int s = 0, send = ot.curimg->subimages(); s < send; ++s)
         mipmapped |= (ot.curimg->miplevels(s) > 1);
     if (!mipmapped) {
-        ot.function_times[command] += timer();
         return 0;  // --unmip on an unmipped image is a no-op
     }
 
     // If there is work to be done, fall back on the OiiotoolOp.
     // No subclass needed, default OiiotoolOp removes MIP levels and
     // copies the first input image by default.
+    timer.stop();
     OiiotoolOp op(ot, "unmip", argc, argv, 1);
     return op();
 }
@@ -2420,12 +2417,11 @@ action_channels(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_channels, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
-    string_view command  = ot.express(argv[0]);
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
     string_view chanlist = ot.express(argv[1]);
-
-    auto options      = ot.extract_options(command);
-    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
+    auto options         = ot.extract_options(command);
+    bool allsubimages    = options.get_int("allsubimages", ot.allsubimages);
 
     ImageRecRef A(ot.top());
     ot.read(A);
@@ -2484,7 +2480,6 @@ action_channels(int argc, const char* argv[])
     // of name, no setting to a constant value -- then just leave the top
     // image as it is and slowly back away without doing anything expensive.
     if (!any_changes) {
-        ot.function_times[command] += timer();
         return 0;
     }
 
@@ -2518,7 +2513,6 @@ action_channels(int argc, const char* argv[])
         }
     }
 
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -2569,9 +2563,9 @@ action_selectmip(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_selectmip, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    int miplevel        = Strutil::from_string<int>(ot.express(argv[1]));
+    OTScopedTimer timer(ot, command);
+    int miplevel = Strutil::from_string<int>(ot.express(argv[1]));
 
     ot.read();
     bool mipmapped = false;
@@ -2583,7 +2577,6 @@ action_selectmip(int argc, const char* argv[])
 
     ImageRecRef newimg(new ImageRec(*ot.curimg, -1, miplevel, true, true));
     ot.curimg = newimg;
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -2595,14 +2588,15 @@ action_select_subimage(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_select_subimage, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
-    ot.read();
 
-    string_view command       = ot.express(argv[0]);
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
     auto options              = ot.extract_options(command);
     int subimage              = 0;
     std::string whichsubimage = ot.express(argv[1]);
     string_view w(whichsubimage);
+
+    ot.read();
     if (Strutil::parse_int(w, subimage) && w.empty()) {
         // Subimage specification was an integer: treat as an index
         if (subimage < 0 || subimage >= ot.curimg->subimages()) {
@@ -2641,7 +2635,6 @@ action_select_subimage(int argc, const char* argv[])
         ImageRecRef A = ot.pop();
         ot.push(new ImageRec(*A, subimage, -1, true));
     }
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -2653,8 +2646,8 @@ action_subimage_split(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_subimage_split, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
     ImageRecRef A = ot.pop();
     ot.read(A);
@@ -2663,7 +2656,6 @@ action_subimage_split(int argc, const char* argv[])
     for (int subimage = 0; subimage < A->subimages(); ++subimage)
         ot.push(new ImageRec(*A, subimage, -1, true));
 
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -2724,15 +2716,13 @@ action_subimage_append(int argc, const char* argv[])
 {
     if (ot.postpone_callback(2, action_subimage_append, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    auto options        = ot.extract_options(command);
-    int n               = OIIO::clamp(options["n"].get<int>(2), 2,
+    OTScopedTimer timer(ot, command);
+    auto options = ot.extract_options(command);
+    int n        = OIIO::clamp(options["n"].get<int>(2), 2,
                         int(ot.image_stack.size() + 1));
 
     action_subimage_append_n(n, command);
-
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -2744,12 +2734,11 @@ action_subimage_append_all(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_subimage_append_all, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
     action_subimage_append_n(int(ot.image_stack.size() + 1), command);
 
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -2761,8 +2750,8 @@ action_colorcount(cspan<const char*> argv)
 {
     if (ot.postpone_callback(1, action_colorcount, argv))
         return;
-    Timer timer(ot.enable_function_timing);
-    string_view command  = ot.express(argv[0]);
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
     string_view colorarg = ot.express(argv[1]);
 
     ot.read();
@@ -2799,7 +2788,6 @@ action_colorcount(cspan<const char*> argv)
         ot.error(command, (*ot.curimg)(0, 0).geterror());
     }
 
-    ot.function_times[command] += timer();
     return;
 }
 
@@ -2811,8 +2799,8 @@ action_rangecheck(cspan<const char*> argv)
 {
     if (ot.postpone_callback(1, action_rangecheck, argv))
         return;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
     string_view lowarg  = ot.express(argv[1]);
     string_view higharg = ot.express(argv[2]);
 
@@ -2835,8 +2823,6 @@ action_rangecheck(cspan<const char*> argv)
     } else {
         ot.error(command, (*ot.curimg)(0, 0).geterror());
     }
-
-    ot.function_times[command] += timer();
 }
 
 
@@ -2847,10 +2833,10 @@ action_diff(int argc, const char* argv[])
 {
     if (ot.postpone_callback(2, action_diff, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
-    int ret = do_action_diff(*ot.image_stack.back(), *ot.curimg, ot);
+    int ret = ot.do_action_diff(ot.image_stack.back(), ot.curimg, ot);
     if (ret != DiffErrOK && ret != DiffErrWarn)
         ot.return_value = EXIT_FAILURE;
 
@@ -2858,7 +2844,6 @@ action_diff(int argc, const char* argv[])
         ot.errorf(command, "Diff failed");
 
     ot.printed_info = true;  // because taking the diff has output
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -2870,17 +2855,16 @@ action_pdiff(int argc, const char* argv[])
 {
     if (ot.postpone_callback(2, action_pdiff, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
-    int ret = do_action_diff(*ot.image_stack.back(), *ot.curimg, ot, 1);
+    int ret = ot.do_action_diff(ot.image_stack.back(), ot.curimg, ot, 1);
     if (ret != DiffErrOK && ret != DiffErrWarn)
         ot.return_value = EXIT_FAILURE;
 
     if (ret != DiffErrOK && ret != DiffErrWarn && ret != DiffErrFail)
         ot.errorf(command, "Diff failed");
 
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3002,8 +2986,8 @@ action_reorient(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_reorient, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
     // Make sure time in the rotate functions is charged to reorient
     bool old_enable_function_timing = ot.enable_function_timing;
@@ -3033,7 +3017,6 @@ action_reorient(int argc, const char* argv[])
         ot.push(A);
     }
 
-    ot.function_times[command] += timer();
     ot.enable_function_timing = old_enable_function_timing;
     return 0;
 }
@@ -3139,11 +3122,11 @@ static int
 action_create(int argc, const char* argv[])
 {
     OIIO_DASSERT(argc == 3);
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    auto options        = ot.extract_options(command);
-    string_view size    = ot.express(argv[1]);
-    int nchans          = Strutil::from_string<int>(ot.express(argv[2]));
+    OTScopedTimer timer(ot, command);
+    auto options     = ot.extract_options(command);
+    string_view size = ot.express(argv[1]);
+    int nchans       = Strutil::from_string<int>(ot.express(argv[2]));
     if (nchans < 1 || nchans > 1024) {
         ot.warningf(argv[0], "Invalid number of channels: %d", nchans);
         nchans = 3;
@@ -3165,7 +3148,6 @@ action_create(int argc, const char* argv[])
     if (ot.curimg)
         ot.image_stack.push_back(ot.curimg);
     ot.curimg = img;
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3176,8 +3158,8 @@ static int
 action_pattern(int argc, const char* argv[])
 {
     OIIO_DASSERT(argc == 4);
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
     auto options        = ot.extract_options(command);
     std::string pattern = ot.express(argv[1]);
     std::string size    = ot.express(argv[2]);
@@ -3277,7 +3259,6 @@ action_pattern(int argc, const char* argv[])
     }
     if (!ok)
         ot.error(command, ib.geterror());
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3302,10 +3283,10 @@ static int
 action_capture(int argc, const char* argv[])
 {
     OIIO_DASSERT(argc == 1);
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    auto options        = ot.extract_options(command);
-    int camera          = options.get_int("camera");
+    OTScopedTimer timer(ot, command);
+    auto options = ot.extract_options(command);
+    int camera   = options.get_int("camera");
 
     ImageBuf ib = ImageBufAlgo::capture_image(camera /*, TypeDesc::FLOAT*/);
     if (ib.has_error()) {
@@ -3315,7 +3296,6 @@ action_capture(int argc, const char* argv[])
     ImageRecRef img(new ImageRec("capture", ib.spec(), ot.imagecache));
     (*img)().copy(ib);
     ot.push(img);
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3327,9 +3307,9 @@ action_crop(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_crop, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    string_view size    = ot.express(argv[1]);
+    OTScopedTimer timer(ot, command);
+    string_view size = ot.express(argv[1]);
 
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -3371,8 +3351,6 @@ action_crop(int argc, const char* argv[])
             R->update_spec_from_imagebuf(s, 0);
         }
     }
-
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3384,8 +3362,8 @@ action_croptofull(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_croptofull, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -3415,7 +3393,6 @@ action_croptofull(int argc, const char* argv[])
             R->update_spec_from_imagebuf(s, 0);
         }
     }
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3452,8 +3429,8 @@ action_trim(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_trim, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
     // auto options      = ot.extract_options(command);
     // bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -3485,7 +3462,6 @@ action_trim(int argc, const char* argv[])
             R->update_spec_from_imagebuf(s, 0);
         }
     }
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3497,9 +3473,9 @@ action_cut(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_cut, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    string_view size    = ot.express(argv[1]);
+    OTScopedTimer timer(ot, command);
+    string_view size = ot.express(argv[1]);
 
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -3534,7 +3510,6 @@ action_cut(int argc, const char* argv[])
     R->metadata_modified(true);
     ot.push(R);
 
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3670,11 +3645,11 @@ action_fit(cspan<const char*> argv)
 {
     if (ot.postpone_callback(1, action_fit, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
+    string_view command = ot.express(argv[0]);
+    string_view size    = ot.express(argv[1]);
+    OTScopedTimer timer(ot, command);
     bool old_enable_function_timing = ot.enable_function_timing;
     ot.enable_function_timing       = false;
-    string_view command             = ot.express(argv[0]);
-    string_view size                = ot.express(argv[1]);
 
     // Examine the top of stack
     ImageRecRef A = ot.top();
@@ -3724,7 +3699,6 @@ action_fit(cspan<const char*> argv)
         action_croptofull(1, argv);
     }
 
-    ot.function_times[command] += timer();
     ot.enable_function_timing = old_enable_function_timing;
     return 0;
 }
@@ -3737,10 +3711,10 @@ action_pixelaspect(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_pixelaspect, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
     bool old_enable_function_timing = ot.enable_function_timing;
     ot.enable_function_timing       = false;
-    string_view command             = ot.express(argv[0]);
 
     float new_paspect = Strutil::from_string<float>(ot.express(argv[1]));
     if (new_paspect <= 0.0f) {
@@ -3815,7 +3789,6 @@ action_pixelaspect(int argc, const char* argv[])
         // Now A,Aspec are for the NEW resized top of stack
     }
 
-    ot.function_times[command] += timer();
     ot.enable_function_timing = old_enable_function_timing;
     return 0;
 }
@@ -3906,9 +3879,9 @@ action_fixnan(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_fixnan, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command  = ot.express(argv[0]);
     string_view modename = ot.express(argv[1]);
+    OTScopedTimer timer(ot, command);
 
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -3942,8 +3915,6 @@ action_fixnan(int argc, const char* argv[])
             }
         }
     }
-
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3955,8 +3926,8 @@ action_fillholes(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_fillholes, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
     // Read and copy the top-of-stack image
     ImageRecRef A(ot.pop());
@@ -3969,8 +3940,6 @@ action_fillholes(int argc, const char* argv[])
     bool ok = ImageBufAlgo::fillholes_pushpull(Rib, (*A)(0, 0));
     if (!ok)
         ot.error(command, Rib.geterror());
-
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -3982,8 +3951,8 @@ action_paste(int argc, const char* argv[])
 {
     if (ot.postpone_callback(2, action_paste, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
-    string_view command  = ot.express(argv[0]);
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
     string_view position = ot.express(argv[1]);
     auto options         = ot.extract_options(command);
     bool do_merge        = options.get_int("mergeroi");
@@ -4074,8 +4043,6 @@ action_paste(int argc, const char* argv[])
 
     ImageRecRef R(new ImageRec(Rbuf, /*copy_pixels=*/false));
     ot.push(R);
-
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -4094,12 +4061,11 @@ OIIOTOOL_OP(pastemeta, 2, [](OiiotoolOp& op, span<ImageBuf*> img) {
 static int
 action_mosaic(int /*argc*/, const char* argv[])
 {
-    Timer timer(ot.enable_function_timing);
-
     // Mosaic is tricky. We have to parse the argument before we know
     // how many images it wants to pull off the stack.
     string_view command = ot.express(argv[0]);
-    string_view size    = ot.express(argv[1]);
+    OTScopedTimer timer(ot, command);
+    string_view size = ot.express(argv[1]);
     int ximages = 0, yimages = 0;
     if (sscanf(size.c_str(), "%dx%d", &ximages, &yimages) != 2 || ximages < 1
         || yimages < 1) {
@@ -4171,7 +4137,6 @@ action_mosaic(int /*argc*/, const char* argv[])
         }
     }
 
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -4212,10 +4177,9 @@ action_fill(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_fill, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    string_view size    = ot.express(argv[1]);
-
+    OTScopedTimer timer(ot, command);
+    string_view size  = ot.express(argv[1]);
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
@@ -4275,7 +4239,6 @@ action_fill(int argc, const char* argv[])
         }
     }
 
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -4294,8 +4257,8 @@ action_clamp(int argc, const char* argv[])
 {
     if (ot.postpone_callback(1, action_clamp, argc, argv))
         return 0;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
 
     auto options      = ot.extract_options(command);
     bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
@@ -4327,7 +4290,6 @@ action_clamp(int argc, const char* argv[])
         }
     }
 
-    ot.function_times[command] += timer();
     return 0;
 }
 
@@ -4453,9 +4415,11 @@ OIIOTOOL_OP(text, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
 static int
 input_file(int argc, const char* argv[])
 {
-    ot.total_readtime.start();
+    // ot.total_readtime.start();
     string_view command = ot.express(argv[0]);
-    if (argc > 1 && Strutil::starts_with(command, "-i")) {
+    if (argc > 1
+        && (Strutil::starts_with(command, "-i")
+            || Strutil::starts_with(command, "--i"))) {
         --argc;
         ++argv;
     } else {
@@ -4472,6 +4436,7 @@ input_file(int argc, const char* argv[])
     std::string channel_set = fileoptions["ch"];
 
     for (int i = 0; i < argc; i++) {  // FIXME: this loop is pointless
+        OTScopedTimer timer(ot, command);
         string_view filename = ot.express(argv[i]);
         auto found           = ot.image_labels.find(filename);
         if (found != ot.image_labels.end()) {
@@ -4481,7 +4446,6 @@ input_file(int argc, const char* argv[])
             ot.process_pending();
             break;
         }
-        Timer timer(ot.enable_function_timing);
         int exists = 1;
         if (ot.input_config_set) {
             // User has set some input configuration, so seed the cache with
@@ -4556,9 +4520,9 @@ input_file(int argc, const char* argv[])
                 ot.curimg->configspec(ot.input_config);
             ot.curimg->input_dataformat(input_dataformat);
             if (readnow)
-                ot.curimg->read(ReadNoCache, channel_set);
+                ot.read(ReadNoCache, channel_set);
             else
-                ot.curimg->read_nativespec();
+                ot.read_nativespec();
             if (ot.first_input_dimensions.format == TypeUnknown) {
                 ot.first_input_dimensions.copy_dimensions(
                     *ot.curimg->nativespec());
@@ -4580,7 +4544,11 @@ input_file(int argc, const char* argv[])
             }
             ot.printed_info = true;
         }
-        ot.function_times["input"] += timer();
+
+        // Everything past this point should be credited to other ops, so stop
+        // the input timer.
+        timer.stop();
+
         if (ot.autoorient) {
             int action_reorient(int argc, const char* argv[]);
             const char* argv[] = { "--reorient" };
@@ -4628,7 +4596,7 @@ input_file(int argc, const char* argv[])
     ot.clear_input_config();
     ot.input_channel_set.clear();
     ot.check_peak_memory();
-    ot.total_readtime.stop();
+    // ot.total_readtime.stop();
     return 0;
 }
 
@@ -4717,10 +4685,10 @@ remove_all_cmd(std::string& str)
 static int
 output_file(int /*argc*/, const char* argv[])
 {
-    Timer timer(ot.enable_function_timing);
     ot.total_writetime.start();
     string_view command  = ot.express(argv[0]);
     string_view filename = ot.express(argv[1]);
+    OTScopedTimer timer(ot, command);
 
     auto fileoptions = ot.extract_options(command);
 
@@ -4762,7 +4730,7 @@ output_file(int /*argc*/, const char* argv[])
                 ot.curimg
                     = saved_curimg;  // note: last iteration also restores it!
             // Skip 0x0 images. Yes, this can happen.
-            ot.curimg->read();
+            ot.read();
             const ImageSpec* spec(ot.curimg->spec());
             if (spec->width < 1 || spec->height < 1 || spec->depth < 1)
                 continue;
@@ -5098,7 +5066,6 @@ output_file(int /*argc*/, const char* argv[])
     ot.curimg->was_output(true);
     ot.total_writetime.stop();
     double optime = timer();
-    ot.function_times[command] += optime;
     ot.num_outputs += 1;
 
     if (ot.debug)
@@ -5139,10 +5106,10 @@ action_printstats(cspan<const char*> argv)
     OIIO_DASSERT(argv.size() == 1);
     if (ot.postpone_callback(1, action_printstats, argv))
         return;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    auto options        = ot.extract_options(command);
-    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
+    OTScopedTimer timer(ot, command);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ot.read();
     ImageRecRef top = ot.top();
@@ -5163,7 +5130,6 @@ action_printstats(cspan<const char*> argv)
     print_info(std::cout, ot, top.get(), opt, errstring);
 
     ot.printed_info = true;
-    ot.function_times[command] += timer();
 }
 
 
@@ -5175,10 +5141,10 @@ action_printinfo(cspan<const char*> argv)
     OIIO_DASSERT(argv.size() == 1);
     if (ot.postpone_callback(1, action_printinfo, argv))
         return;
-    Timer timer(ot.enable_function_timing);
     string_view command = ot.express(argv[0]);
-    auto options        = ot.extract_options(command);
-    bool allsubimages   = options.get_int("allsubimages", ot.allsubimages);
+    OTScopedTimer timer(ot, command);
+    auto options      = ot.extract_options(command);
+    bool allsubimages = options.get_int("allsubimages", ot.allsubimages);
 
     ot.read();
     ImageRecRef top = ot.top();
@@ -5190,7 +5156,6 @@ action_printinfo(cspan<const char*> argv)
     print_info(std::cout, ot, top.get(), opt, errstring);
 
     ot.printed_info = true;
-    ot.function_times[command] += timer();
 }
 
 
@@ -6352,14 +6317,16 @@ main(int argc, char* argv[])
         std::cout << "  Total time: "
                   << Strutil::timeintervalformat(total_time, 2) << "\n";
         static const char* timeformat = "      %-12s : %5.2f\n";
-        for (Oiiotool::TimingMap::const_iterator func
-             = ot.function_times.begin();
-             func != ot.function_times.end(); ++func) {
-            double t = func->second;
-            Strutil::printf(timeformat, func->first, t);
-            unaccounted -= t;
+        for (auto& func : ot.function_times) {
+            double t = func.second;
+            if (t > 0.0) {
+                Strutil::printf(timeformat, func.first, t);
+                unaccounted -= t;
+            }
         }
-        Strutil::printf(timeformat, "unaccounted", std::max(unaccounted, 0.0));
+        if (unaccounted > 0.0) {
+            Strutil::printf(timeformat, "unaccounted", unaccounted);
+        }
         ot.check_peak_memory();
         std::cout << "  Peak memory:    " << Strutil::memformat(ot.peak_memory)
                   << "\n";
