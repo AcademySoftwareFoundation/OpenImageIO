@@ -63,8 +63,9 @@ public:
         m_io = ioproxy;
         return true;
     }
+
 private:
-    TIFF* m_tif;
+    TIFF* m_tif               = nullptr;
     Filesystem::IOProxy* m_io = nullptr;
     std::vector<unsigned char> m_scratch;
     Timer m_checkpointTimer;
@@ -323,11 +324,8 @@ allval(const std::vector<T>& d, T v = T(0))
     return std::all_of(d.begin(), d.end(), [&](const T& a) { return a == v; });
 }
 
-static tsize_t
-readproc(thandle_t, tdata_t, tsize_t)
-{
-    return 0;
-}
+
+static tsize_t readproc(thandle_t, tdata_t, tsize_t) { return 0; }
 
 static tsize_t
 writeproc(thandle_t handle, tdata_t data, tsize_t size)
@@ -375,6 +373,7 @@ mapproc(thandle_t, tdata_t*, toff_t*)
 static void unmapproc(thandle_t, tdata_t, toff_t) {}
 
 
+
 bool
 TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
                  OpenMode mode)
@@ -384,7 +383,8 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         return false;
     }
 
-    close();            // Close any already-opened file
+    if (m_tif)
+        close();
     m_spec = userspec;  // Stash the spec
 
     // Check for things this format doesn't support
@@ -421,9 +421,9 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     // Open the file
     if (m_io) {
         m_io->seek(0);
-        m_tif = TIFFClientOpen(name.c_str(), mode == AppendSubimage ? "a" : "w", m_io, readproc,
-                               writeproc, seekproc, closeproc, sizeproc,
-                               mapproc, unmapproc);
+        m_tif = TIFFClientOpen(name.c_str(), mode == AppendSubimage ? "a" : "w",
+                               m_io, readproc, writeproc, seekproc, closeproc,
+                               sizeproc, mapproc, unmapproc);
     } else {
 #ifdef _WIN32
         std::wstring wname = Strutil::utf8_to_utf16(name);
