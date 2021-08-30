@@ -12,6 +12,7 @@
 
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
 
@@ -129,6 +130,8 @@ public:
     ImageCache* imagecache = nullptr;                 // back ptr to ImageCache
     ColorConfig colorconfig;                          // OCIO color config
     Timer total_runtime;
+    // total_readtime is the amount of time for direct reads, and does not
+    // count time spent inside ImageCache.
     Timer total_readtime { Timer::DontStartNow };
     Timer total_writetime { Timer::DontStartNow };
     double total_imagecache_readtime = 0.0;
@@ -167,6 +170,13 @@ public:
     /// Force partial read of image (if it hasn't been yet), just enough
     /// that the nativespec can be examined.
     bool read_nativespec(ImageRecRef img);
+    // Read the spec of the current image.
+    bool read_nativespec()
+    {
+        if (curimg)
+            return read_nativespec(curimg);
+        return false;
+    }
 
     // If this is the first input image, remember the various formats used
     // so we can use them as the default for later outputs.
@@ -300,6 +310,9 @@ public:
             err = Strutil::sprintf("\"%s\": %s", filename, err);
         return err;
     }
+
+    int do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& options,
+                       int perceptual = 0);
 
 private:
     CallbackFunction m_pending_callback;
@@ -627,10 +640,6 @@ enum DiffErrors {
     DiffErrLast
 };
 
-int
-do_action_diff(ImageRec& ir0, ImageRec& ir1, Oiiotool& options,
-               int perceptual = 0);
-
 bool
 decode_channel_set(const ImageSpec& spec, string_view chanlist,
                    std::vector<std::string>& newchannelnames,
@@ -643,16 +652,17 @@ decode_channel_set(const ImageSpec& spec, string_view chanlist,
 //     bool action(ImageSpec &spec, const T& t))
 template<class Action, class Type>
 bool
-apply_spec_mod(ImageRec& img, Action act, const Type& t, bool allsubimages)
+apply_spec_mod(Oiiotool& ot, ImageRecRef img, Action act, const Type& t,
+               bool allsubimages)
 {
     bool ok = true;
-    img.read();
-    img.metadata_modified(true);
-    for (int s = 0, send = img.subimages(); s < send; ++s) {
-        for (int m = 0, mend = img.miplevels(s); m < mend; ++m) {
-            ok &= act(img(s, m).specmod(), t);
+    ot.read(img);
+    img->metadata_modified(true);
+    for (int s = 0, send = img->subimages(); s < send; ++s) {
+        for (int m = 0, mend = img->miplevels(s); m < mend; ++m) {
+            ok &= act((*img)(s, m).specmod(), t);
             if (ok)
-                img.update_spec_from_imagebuf(s, m);
+                img->update_spec_from_imagebuf(s, m);
             if (!allsubimages)
                 break;
         }
@@ -661,6 +671,66 @@ apply_spec_mod(ImageRec& img, Action act, const Type& t, bool allsubimages)
     }
     return ok;
 }
+
+
+
+// Helper class that starts and stops a timer when the ScopedTimer goes in and
+// out of scope. This has special magic to make sure that any I/O time during
+// this period is credited to "-i" and not to the named op.
+class OTScopedTimer {
+public:
+    // Enter scope: start the timer if ot.enable_function_timing is
+    // true. Remember the Ot and the name of the function we're timing.
+    OTScopedTimer(Oiiotool& ot, string_view name)
+        : m_timer(false)
+        , m_ot(ot)
+        , m_name(name)
+    {
+        if (m_ot.enable_function_timing)
+            start();
+    }
+
+    // Exit scope: record the results.
+    ~OTScopedTimer()
+    {
+        stop();
+        m_ot.function_times[m_name] += m_timer() - m_io_time;
+        m_ot.function_times["-i"] += m_io_time;
+    }
+
+    // Explicit start of the timer.
+    void start()
+    {
+        if (m_timer.ticking())
+            return;
+        m_timer.start();
+        // Record how much time we've spent so far on reads and IC.
+        // We will use that to correctly credit each account.
+        m_pre_input_time = m_ot.total_readtime();
+        m_ot.imagecache->getattribute("stat:fileio_time", m_pre_ic_time);
+    }
+
+    // Explicit stop of the timer.
+    void stop()
+    {
+        double ic_time = 0.0;
+        m_ot.imagecache->getattribute("stat:fileio_time", ic_time);
+        m_io_time += (ic_time - m_pre_ic_time + m_ot.total_readtime()
+                      - m_pre_input_time);
+        m_timer.stop();
+    }
+
+    // Return elapsed time.
+    double operator()() { return m_timer(); }
+
+private:
+    Timer m_timer;
+    Oiiotool& m_ot;
+    std::string m_name;
+    double m_pre_input_time = 0.0f;
+    double m_pre_ic_time    = 0.0f;
+    double m_io_time        = 0.0f;
+};
 
 
 
@@ -711,7 +781,7 @@ public:
     {
         // Set up a timer to automatically record how much time is spent in
         // every class of operation.
-        Timer timer(ot.enable_function_timing);
+        OTScopedTimer timer(ot, opname());
         if (ot.debug) {
             std::cout << "Performing '" << opname() << "'";
             if (nargs() > 1)
@@ -728,8 +798,10 @@ public:
 
         // Read all input images, and reserve (and push) the output image.
         int subimages = compute_subimages();
+        timer.stop();  // suspend timer to avoid double counting reads
         for (int i = 1; i < nimages(); ++i)
             ot.read(m_ir[i]);
+        timer.start();
         if (nimages()) {
             // Read the inputs
             subimages = compute_subimages();
@@ -759,12 +831,9 @@ public:
         // Optional cleanup after processing all the subimages
         cleanup();
 
-        // Add the time we spent to the stats total for this op type.
-        double optime = timer();
-        ot.function_times[opname()] += optime;
         if (ot.debug) {
             Strutil::printf("    %s took %s  (total time %s, mem %s)\n",
-                            opname(), Strutil::timeintervalformat(optime, 2),
+                            opname(), Strutil::timeintervalformat(timer(), 2),
                             Strutil::timeintervalformat(ot.total_runtime(), 2),
                             Strutil::memformat(Sysutil::memory_used()));
         }
