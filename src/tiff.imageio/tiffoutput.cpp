@@ -96,6 +96,17 @@ private:
         m_convert_rgb_to_cmyk = false;
     }
 
+    // Close m_tif if it's open, but keep all other internal state, don't do a
+    // full init().
+    void closetif()
+    {
+        if (m_tif) {
+            write_exif_data();
+            TIFFClose(m_tif);  // N.B. TIFFClose doesn't return a status code
+            m_tif = nullptr;
+        }
+    }
+
     // Convert planar contiguous to planar separate data format
     void contig_to_separate(int n, int nchans, const char* contig,
                             char* separate);
@@ -383,8 +394,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         return false;
     }
 
-    if (m_tif)
-        close();
+    closetif();
     m_spec = userspec;  // Stash the spec
 
     // Check for things this format doesn't support
@@ -999,10 +1009,7 @@ TIFFOutput::write_exif_data()
 bool
 TIFFOutput::close()
 {
-    if (m_tif) {
-        write_exif_data();
-        TIFFClose(m_tif);  // N.B. TIFFClose doesn't return a status code
-    }
+    closetif();
     init();       // re-initialize
     return true;  // How can we fail?
 }
