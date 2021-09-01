@@ -1,15 +1,6 @@
 Release 2.3 (1 Sept 2021) -- compared to 2.2
 ----------------------------------------------
 
-Updates for RC1:
-* Build: Better finding of OpenCV on Windows. #3062
-* Build: Support for build dir in odd places. #3065 #3067
-* Build scripts: Renamed OIIO_DEP_DOWNLOAD_ONLY env variable used by
-  some dependency build scripts to more generic DEP_DOWNLOAD_ONLY. #3072
-* Build: To prevent accidental overwrite of sensitive areas (such as
-  /usr/local), you now need to explicitly set CMAKE_INSTALL_PREFIX if you
-  want the "install" to not be local to the build area. #3069
-
 New minimum dependencies and compatibility changes:
 * C++ standard: **C++14 is now the minimum (gcc 6.1 - 11.2, clang 3.4 - 12,
   MSVS 2017 - 2019, icc 17+).** The default C++ standard mode, if none is
@@ -495,7 +486,6 @@ Build/test system improvements and platform ports:
       variable called `DEP_DOWNLOAD_ONLY`, which if set will only do the
       downloads but not the builds. #3058 #3072 (2.3.7)
     - Better finding of OpenCV on Windows. #3062 (2.3.7.1)
-
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
     - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
