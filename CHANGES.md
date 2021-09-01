@@ -7,13 +7,35 @@ New major features and public API changes:
 Performance improvements:
 
 Fixes and feature enhancements:
-
+* ImageSpec: implemented deserialization of extra_attribs from XML. #3066
+  (2.4.0.0/2.3.8)
+* oiiotool:
+    - `--ch` now has virtually no expense if the arguments require no change
+      to the channel order or naming (previously, it would always incur an
+      image allocation and copy even if no real work needed to be done).
+      #3068 (2.4.0.0/2.3.8)
+    - `--runstats` timing report has been improved and now more accurately
+      attributes time to each operation. In particular, input I/O is now
+      credited to "-i" rather than being incorrectly attributed to the other
+      ops that happen to trigger I/O of previously mentioned files. #3073
+      (2.4.0.0)
+* Python bindings:
+    - Subtle/asymptomatic bugs fixed in `ImageBufAlgo.color_range_check()`
+      and `histogram()` due to incorrect release of the GIL. #3074 (2.4.0.0)
+* TIFF:
+    - IOProxy is now supported for TIFF output. #3075 (2.4.0.0)
+  
 Developer goodies / internals:
+* timer.h:
+    - `Timer::add_seconds()` and `Timer::add_ticks()` allows add/subtract
+      directly to a timer's elapsed value. #3070 (2.4.0.0/2.3.8)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
 * Dependency version support:
 * Testing and Continuous integration (CI) systems:
+    - Properly test against all the versions of VFX Platform 2022. #3074
+      (2.4.0.0)
 * Platform support:
 
 Notable documentation changes:
@@ -21,7 +43,7 @@ Notable documentation changes:
 
 
 
-Release 2.3 (1 Sept 2021?) -- compared to 2.2
+Release 2.3 (1 Sept 2021) -- compared to 2.2
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
 * C++ standard: **C++14 is now the minimum (gcc 6.1 - 11.2, clang 3.4 - 12,
@@ -455,9 +477,11 @@ Build/test system improvements and platform ports:
       #2984 (2.3.5/2.2.15)
     - If a package is requested to be disabled, skip its related tests rather
       than reporting them as broken. #2988 (2.3.5/2.2.16)
-    - Finding boost is more flexible when desiring static libraries. #3031
-      (2.3.7/2.2.17)
-    - FindTBB.cmake module updated to create proper targets. #3060 (2.3.7)
+    - Better support for running testsuite when the build dir in odd places.
+      #3065 #3067 (2.3.7.1)
+    - To prevent accidental overwrite of sensitive areas (such as
+      /usr/local), you now need to explicitly set CMAKE_INSTALL_PREFIX if you
+      want the "install" to not be local to the build area. #3069 (2.3.7.1)
 * Dependency version support:
     - C++20 is now supported. #2891 (2.3.3)
     - Fix deprecation warnings when building with very new PugiXML versions.
@@ -499,9 +523,13 @@ Build/test system improvements and platform ports:
     - The OpenCV minimum version is now >= 3.0. #3015 (2.3.6)
     - Fixes to build properly against the upcoming OpenColorIO 2.1. #3050
       (2.3.7)
+    - Finding boost is more flexible when desiring static libraries. #3031
+      (2.3.7/2.2.17)
+    - FindTBB.cmake module updated to create proper targets. #3060 (2.3.7)
     - All the `src/build_scripts/build_*.bash` scripts now honor an env
-      variable called `DOWNLOAD_ONLY`, which if set will only do the downloads
-      but not the builds. #3058 (2.3.7)
+      variable called `DEP_DOWNLOAD_ONLY`, which if set will only do the
+      downloads but not the builds. #3058 #3072 (2.3.7)
+    - Better finding of OpenCV on Windows. #3062 (2.3.7.1)
 * Testing and Continuous integration (CI) systems:
     - Completely get rid of the old appveyor CI. #2782 (2.3.2.0)
     - Test against libtiff 4.2 in the "latest releases" test. #2792 (2.3.2.0)
