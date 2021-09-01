@@ -113,8 +113,7 @@ jobs:
             build/CMake*.{txt,log}
 
   vfxplatform-2021:
-    # Test VFX Platform 2021 -- mainly, that means gcc9 and C++17.
-    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost1.73 exr2.5 ocio2.0 qt5.15"
+    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost1.73 exr2.5 ocio2.0 qt-5.15"
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2021
@@ -159,9 +158,8 @@ jobs:
             build/testsuite/*/*.*
             build/CMake*.{txt,log}
 
-  vfxplatform-2021-exr3:
-    # Test VFX Platform 2021, but with OpenEXR/Imath 3.x
-    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost1.73 exr3.1 ocio2.0 qt5.15"
+  vfxplatform-2022:
+    name: "Linux VFX Platform 2022: gcc9/C++17 py3.9 boost1.73 exr-3.1 ocio2.1 qt-5.15"
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2021
@@ -171,6 +169,7 @@ jobs:
       CMAKE_CXX_STANDARD: 17
       PYTHON_VERSION: 3.7
       USE_SIMD: avx2,f16c
+      OPENCOLORIO_VERSION: v2.1.0
       OPENEXR_VERSION: v3.1.1
     steps:
       - uses: actions/checkout@v2
@@ -191,8 +190,8 @@ jobs:
             src/build-scripts/ci-startup.bash
       - name: Dependencies
         run: |
-            sudo rm -rf /usr/local/include/OpenEXR
-            sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
+            sudo rm -rf /usr/local/include/{OpenEXR,OpenColorIO}
+            sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR,OpenColorIO}
             src/build-scripts/gh-installdeps.bash
       - name: Build
         run: |
@@ -306,7 +305,7 @@ jobs:
       USE_SIMD: avx2,f16c
       LIBRAW_VERSION: 0.20.2
       LIBTIFF_VERSION: v4.3.0
-      OPENCOLORIO_VERSION: v2.0.1
+      OPENCOLORIO_VERSION: v2.1.0
       OPENEXR_VERSION: v3.1.1
       PUGIXML_VERSION: v1.11.4
       PTEX_VERSION: v2.4.0
