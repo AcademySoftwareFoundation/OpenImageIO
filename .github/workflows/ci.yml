@@ -387,7 +387,7 @@ jobs:
 
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
-    name: "Linux latest releases: gcc10 C++17 avx2 exr3.1 ocio2.0"
+    name: "Linux latest releases: gcc10 C++17 avx2 exr3.1 ocio2.1"
     runs-on: ubuntu-20.04
     env:
       CXX: g++-10

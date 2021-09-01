@@ -1,3 +1,7 @@
+Release 2.2.19 (1 Oct? 2021) -- compared to 2.2.17
+--------------------------------------------------
+
+
 Release 2.2.18 (1 Sep 2021) -- compared to 2.2.17
 --------------------------------------------------
 * Honor env variable `CUE_THREADS` (used by OpenCue) to set the default size
