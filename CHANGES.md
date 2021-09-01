@@ -1,6 +1,10 @@
-Release 2.2.18 (1 Sep? 2021) -- compared to 2.2.17
+Release 2.2.18 (1 Sep 2021) -- compared to 2.2.17
 --------------------------------------------------
-
+* Honor env variable `CUE_THREADS` (used by OpenCue) to set the default size
+  of OIIO's thread pool. #3038
+* Compatibility with OpenColorIO 2.1. #3050
+* Dev: Extend Sysutil::getenv() to take a default if the environment variable
+  is not found. #3047 #3048
 
 Release 2.2.17 (1 Aug 2021) -- compared to 2.2.16
 --------------------------------------------------
