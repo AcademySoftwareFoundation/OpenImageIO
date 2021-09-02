@@ -1142,9 +1142,10 @@ ImageBufImpl::read(int subimage, int miplevel, int chbegin, int chend,
                 ok &= in->seek_subimage(subimage, miplevel, newspec);
             }
             if (ok) {
-                ok &= in->read_image(chbegin, chend, convert, m_localpixels,
-                                     AutoStride, AutoStride, AutoStride,
-                                     progress_callback, progress_callback_data);
+                ok &= in->read_image(chbegin, chend, m_spec.format,
+                                     m_localpixels, AutoStride, AutoStride,
+                                     AutoStride, progress_callback,
+                                     progress_callback_data);
             }
 
             in->close();
