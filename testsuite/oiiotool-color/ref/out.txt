@@ -1,3 +1,4 @@
+OCIOv2 config Ok
 Comparing "colormap-inferno.tif" and "ref/colormap-inferno.tif"
 PASS
 Comparing "colormap-custom.tif" and "ref/colormap-custom.tif"

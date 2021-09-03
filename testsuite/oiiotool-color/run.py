@@ -62,6 +62,11 @@ command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif"+
                      + "--ccmatrix 0.805,0.506,-0.311,0,-0.311,0.805,0.506,0,0.506,-0.311,0.805,0,0,0,0,1 "
                      + "-d uint8 -o tahoe-ccmatrix.tif")
 
+# test what happens when we read an OCIOv2 config. In particular, when
+# building against OCIOv1, we should at worst have an error message, not crash
+# with an uncaught exception.
+command += oiiotool ("--colorconfig ../common/OpenColorIO/ocio-v2_demo.ocio -echo 'OCIOv2 config Ok'")
+
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,
