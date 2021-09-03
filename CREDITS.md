@@ -40,6 +40,7 @@ lg@openimageio.org
 * Christoph Willing
 * Cliff Stein
 * Clément Champetier
+* Dalai Felinto
 * Dan Wexler
 * Daniel Dresser
 * Daniel Flehner Heen
@@ -47,7 +48,6 @@ lg@openimageio.org
 * David Aguilar
 * David Gordon
 * Deepak Gopinath
-* Delai Felinto
 * Dennis Schridde
 * Dieter De Baets
 * Dinko Galetik
