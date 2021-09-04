@@ -322,9 +322,9 @@ ColorConfig::reset(string_view filename)
     m_impl.reset(new ColorConfig::Impl);
 #ifdef USE_OCIO
     OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
-    if (!ocio_current_config)
-        ocio_current_config = OCIO::GetCurrentConfig();
     try {
+        if (!ocio_current_config)
+            ocio_current_config = OCIO::GetCurrentConfig();
         if (filename.empty()) {
             getImpl()->config_  = ocio_current_config;
             string_view ocioenv = Sysutil::getenv("OCIO");
