@@ -64,7 +64,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   vfxplatform-2020:
@@ -113,7 +115,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   vfxplatform-2021:
@@ -161,7 +165,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   vfxplatform-2022:
@@ -212,7 +218,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   linux-gcc7-cpp14-debug:
@@ -258,7 +266,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   linux-gcc8:
@@ -304,7 +314,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   linux-latest-releases:
@@ -360,7 +372,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   linux-bleeding-edge:
@@ -418,7 +432,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   linux-oldest:
@@ -474,7 +490,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   macos-py38:
@@ -522,7 +540,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   windows-vs2019:
@@ -560,7 +580,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   windows-vs2017:
@@ -598,7 +620,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   sanitizer:
@@ -647,7 +671,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   linux-clang10-cpp14:
@@ -695,7 +721,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   linux-clang11-cpp17:
@@ -747,7 +775,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   linux-static:
@@ -791,7 +821,9 @@ jobs:
           path: |
             build/CMake*.{txt,log}
             build/testsuite/*/*.*
-            !build/testsuite/{oiio,openexr,fits}-images
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
   clang-format:
