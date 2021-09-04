@@ -2058,6 +2058,9 @@ set_colorconfig(int argc, const char* argv[])
 {
     OIIO_DASSERT(argc == 2);
     ot.colorconfig.reset(argv[1]);
+    if (ot.colorconfig.has_error()) {
+        ot.errorfmt("--colorconfig", "{}", ot.colorconfig.geterror());
+    }
     return 0;
 }
 

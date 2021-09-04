@@ -291,12 +291,14 @@ def testtex_command (file, extraargs="", silent=False, concat=True) :
 
 
 # Construct a command that will run oiiotool and append its output to out.txt
-def oiiotool (args, silent=False, concat=True) :
+def oiiotool (args, silent=False, concat=True, failureok=False) :
     cmd = (oiio_app("oiiotool") + " "
            + "-colorconfig " + colorconfig_file + " "
            + args)
     if not silent :
         cmd += redirect
+    if failureok :
+        cmd += " || true "
     if concat:
         cmd += " ;\n"
     return cmd
