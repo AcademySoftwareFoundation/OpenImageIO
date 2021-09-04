@@ -27,6 +27,11 @@ SPDX-License-Identifier: BSD-3-Clause
   files, contain code that was originally developed for Open Shading
   Language but subsequently moved to OIIO.
 
+* OpenColorIO
+
+  The sample OpenColorIO configurations in our testsuite are borrowed from
+  this ASWF project, also BSD-3-Clause licensed.
+
 * DPX reader/writer (c) Copyright 2009 Patrick A. Palmer.
   https://github.com/patrickpalmer/dpx
 
