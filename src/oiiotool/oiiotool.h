@@ -90,6 +90,7 @@ public:
     int frame_padding;
     bool eval_enable;              // Enable evaluation of expressions
     bool skip_bad_frames = false;  // Just skip a bad frame, don't exit
+    bool nostderr        = false;  // If true, use stdout for errors
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
