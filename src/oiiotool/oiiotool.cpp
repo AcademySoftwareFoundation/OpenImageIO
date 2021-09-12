@@ -392,17 +392,18 @@ Oiiotool::process_pending()
 void
 Oiiotool::error(string_view command, string_view explanation) const
 {
-    std::cerr << "oiiotool ERROR";
+    auto& errstream(ot.nostderr ? std::cout : std::cerr);
+    errstream << "oiiotool ERROR";
     if (command.size())
-        std::cerr << ": " << command;
+        errstream << ": " << command;
     if (explanation.size())
-        std::cerr << " : " << explanation;
+        errstream << " : " << explanation;
     else
-        std::cerr << " (unknown error)";
-    std::cerr << "\n";
+        errstream << " (unknown error)";
+    errstream << "\n";
     // Repeat the command line, so if oiiotool is being called from a
     // script, it's easy to debug how the command was mangled.
-    std::cerr << "Full command line was:\n> " << full_command_line << "\n";
+    errstream << "Full command line was:\n> " << full_command_line << "\n";
     ap.abort();  // Cease further processing of the command line
     ot.return_value = EXIT_FAILURE;
 }
@@ -412,14 +413,15 @@ Oiiotool::error(string_view command, string_view explanation) const
 void
 Oiiotool::warning(string_view command, string_view explanation) const
 {
-    std::cerr << "oiiotool WARNING";
+    auto& errstream(ot.nostderr ? std::cout : std::cerr);
+    errstream << "oiiotool WARNING";
     if (command.size())
-        std::cerr << ": " << command;
+        errstream << ": " << command;
     if (explanation.size())
-        std::cerr << " : " << explanation;
+        errstream << " : " << explanation;
     else
-        std::cerr << " (unknown warning)";
-    std::cerr << "\n";
+        errstream << " (unknown warning)";
+    errstream << "\n";
 }
 
 
@@ -2056,6 +2058,9 @@ set_colorconfig(int argc, const char* argv[])
 {
     OIIO_DASSERT(argc == 2);
     ot.colorconfig.reset(argv[1]);
+    if (ot.colorconfig.has_error()) {
+        ot.errorfmt("--colorconfig", "{}", ot.colorconfig.geterror());
+    }
     return 0;
 }
 
@@ -5544,6 +5549,9 @@ getargs(int argc, char* argv[])
       .action(set_autotile);
     ap.arg("--metamerge", &ot.metamerge)
       .help("Always merge metadata of all inputs into output");
+    ap.arg("--nostderr", &ot.nostderr)
+      .help("Do not use stderr, output error messages to stdout")
+      .hidden();
     ap.arg("--crash")
       .hidden()
       .action(crash_me);
@@ -6009,11 +6017,12 @@ getargs(int argc, char* argv[])
     // clang-format on
 
     if (ap.parse_args(argc, (const char**)argv) < 0) {
-        std::cerr << ap.geterror() << std::endl;
+        auto& errstream(ot.nostderr ? std::cout : std::cerr);
+        errstream << ap.geterror() << std::endl;
         print_help(ap);
         // Repeat the command line, so if oiiotool is being called from a
         // script, it's easy to debug how the command was mangled.
-        std::cerr << "\nFull command line was:\n> " << ot.full_command_line
+        errstream << "\nFull command line was:\n> " << ot.full_command_line
                   << "\n";
         ap.abort();
         ot.return_value = EXIT_FAILURE;

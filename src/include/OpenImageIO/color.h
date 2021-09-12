@@ -86,6 +86,9 @@ public:
 
     /// Has an error string occurred?
     /// (This will not affect the error state.)
+    bool has_error() const;
+
+    /// DEPRECATED(2.4), old name for has_error().
     bool error() const;
 
     /// This routine will return the error string (and by default, clear any
