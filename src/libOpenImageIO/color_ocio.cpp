@@ -11,6 +11,7 @@
 #include <boost/container/flat_map.hpp>
 
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/strutil.h>
@@ -231,18 +232,19 @@ public:
         return handle;
     }
 
-    void error(const std::string& err)
+    // Note: Uses std::format syntax
+    template<typename... Args>
+    void error(const char* fmt, const Args&... args) const
     {
         spin_rw_write_lock lock(m_mutex);
-        m_error = err;
+        m_error = Strutil::fmt::format(fmt, args...);
     }
     std::string geterror(bool clear = true)
     {
         std::string err;
         if (clear) {
             spin_rw_write_lock lock(m_mutex);
-            err = m_error;
-            m_error.clear();
+            std::swap(err, m_error);
         } else {
             spin_rw_read_lock lock(m_mutex);
             err = m_error;
@@ -317,40 +319,62 @@ ColorConfig::~ColorConfig() {}
 bool
 ColorConfig::reset(string_view filename)
 {
-    bool ok = true;
+    if (m_impl && filename == getImpl()->configname()) {
+        // Request to reset to the config we're already using. Just return,
+        // don't do anything expensive.
+        return true;
+    }
 
     m_impl.reset(new ColorConfig::Impl);
+    bool ok = true;
+
 #ifdef USE_OCIO
-    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
-    try {
-        if (!ocio_current_config)
-            ocio_current_config = OCIO::GetCurrentConfig();
-        if (filename.empty()) {
-            getImpl()->config_  = ocio_current_config;
-            string_view ocioenv = Sysutil::getenv("OCIO");
-            if (ocioenv.size())
-                getImpl()->configname(ocioenv);
-        } else {
+    // If no filename was specified, use env $OCIO
+    if (filename.empty())
+        filename = Sysutil::getenv("OCIO");
+
+    if (filename.size() && !Filesystem::exists(filename)) {
+        getImpl()->error("Requested non-existant OCIO config \"{}\"", filename);
+    } else {
+        // Either filename passed, or taken from $OCIO, and it seems to exist
+        try {
             getImpl()->config_ = OCIO::Config::CreateFromFile(filename.c_str());
             getImpl()->configname(filename);
+        } catch (OCIO::Exception& e) {
+            getImpl()->error("Error reading OCIO config \"{}\": {}", filename,
+                             e.what());
+        } catch (...) {
+            getImpl()->error("Error reading OCIO config \"{}\"", filename);
         }
-    } catch (OCIO::Exception& e) {
-        getImpl()->error(e.what());
-        ok = false;
-    } catch (...) {
-        getImpl()->error(
-            "An unknown error occurred in OpenColorIO creating the config");
-        ok = false;
     }
+
+    if (!getImpl()->config_) {
+        if (!ocio_current_config) {
+            try {
+                ocio_current_config = OCIO::GetCurrentConfig();
+            } catch (OCIO::Exception& e) {
+                getImpl()->error("Error getting OCIO default config: {}",
+                                 e.what());
+            } catch (...) {
+                getImpl()->error("Error getting OCIO default config");
+            }
+        }
+        getImpl()->config_ = ocio_current_config;
+    }
+
+    ok = getImpl()->config_.get() != nullptr;
 #endif
 
     getImpl()->inventory();
-
-    // If we populated our own, remove any errors.
-    if (getNumColorSpaces() && !getImpl()->haserror())
-        getImpl()->clear_error();
-
     return ok;
+}
+
+
+
+bool
+ColorConfig::has_error() const
+{
+    return (getImpl()->haserror());
 }
 
 
@@ -358,7 +382,7 @@ ColorConfig::reset(string_view filename)
 bool
 ColorConfig::error() const
 {
-    return (getImpl()->haserror());
+    return has_error();
 }
 
 
@@ -1106,7 +1130,7 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
 #endif
 
     if (pending_error.size())
-        getImpl()->error(pending_error);
+        getImpl()->error("{}", pending_error);
 
     return getImpl()->addproc(prockey, handle);
 }

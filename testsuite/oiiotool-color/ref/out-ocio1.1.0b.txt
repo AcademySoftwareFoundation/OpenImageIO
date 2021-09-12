@@ -1,7 +1,9 @@
 oiiotool ERROR: --colorconfig : Requested non-existant OCIO config "missing.ocio"
 Full command line was:
 > oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio --nostderr --colorconfig missing.ocio -echo "Nonexistant config"
-OCIOv2 config Ok
+oiiotool ERROR: --colorconfig : Error reading OCIO config "../common/OpenColorIO/ocio-v2_demo.ocio": Error: Loading the OCIO profile '../common/OpenColorIO/ocio-v2_demo.ocio' failed. Unsupported transform type !<BuiltinTransform> in OCIO profile. 
+Full command line was:
+> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio --nostderr --colorconfig ../common/OpenColorIO/ocio-v2_demo.ocio -echo "OCIOv2 config Ok"
 Comparing "colormap-inferno.tif" and "ref/colormap-inferno.tif"
 PASS
 Comparing "colormap-custom.tif" and "ref/colormap-custom.tif"
