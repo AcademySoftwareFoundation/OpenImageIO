@@ -39,6 +39,7 @@ atomic_int oiio_exr_threads(threads_default());
 atomic_int oiio_read_chunk(256);
 int tiff_half(0);
 int tiff_multithread(1);
+ustring font_searchpath;
 ustring plugin_searchpath(OIIO_DEFAULT_PLUGIN_SEARCHPATH);
 std::string format_list;         // comma-separated list of all formats
 std::string input_format_list;   // comma-separated list of readable formats
@@ -305,6 +306,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         oiio_read_chunk = *(const int*)val;
         return true;
     }
+    if (name == "font_searchpath" && type == TypeString) {
+        font_searchpath = ustring(*(const char**)val);
+        return true;
+    }
     if (name == "plugin_searchpath" && type == TypeString) {
         plugin_searchpath = ustring(*(const char**)val);
         return true;
@@ -360,6 +365,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     spin_lock lock(attrib_mutex);
     if (name == "read_chunk" && type == TypeInt) {
         *(int*)val = oiio_read_chunk;
+        return true;
+    }
+    if (name == "font_searchpath" && type == TypeString) {
+        *(ustring*)val = font_searchpath;
         return true;
     }
     if (name == "plugin_searchpath" && type == TypeString) {
