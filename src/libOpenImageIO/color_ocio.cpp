@@ -348,20 +348,6 @@ ColorConfig::reset(string_view filename)
         }
     }
 
-    if (!getImpl()->config_) {
-        if (!ocio_current_config) {
-            try {
-                ocio_current_config = OCIO::GetCurrentConfig();
-            } catch (OCIO::Exception& e) {
-                getImpl()->error("Error getting OCIO default config: {}",
-                                 e.what());
-            } catch (...) {
-                getImpl()->error("Error getting OCIO default config");
-            }
-        }
-        getImpl()->config_ = ocio_current_config;
-    }
-
     ok = getImpl()->config_.get() != nullptr;
 #endif
 
