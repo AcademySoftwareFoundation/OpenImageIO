@@ -289,6 +289,12 @@ There are a few special environment variables that can be used to control
 OpenImageIO at times that it is not convenient to set options individually from
 inside the source code.
 
+``OPENIMAGEIO_FONTS``
+
+    A searchpath for finding fonts (for example, when using by
+    `ImageBufAlgo::render_text` or `oiiotool --text`). This may contain a
+    list of directories separated by ":" or ";".
+
 ``OPENIMAGEIO_OPTIONS``
 
     Allows you to seed the global OpenImageIO-wide options.

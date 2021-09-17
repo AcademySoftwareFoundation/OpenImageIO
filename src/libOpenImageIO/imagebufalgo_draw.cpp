@@ -694,6 +694,42 @@ text_size_from_unicode(cspan<uint32_t> utext, FT_Face face, int fontsize)
 }
 
 
+// Add one dir to font_search_dirs, if the dir exists.
+static void
+fontpath_add_one_dir(string_view dir)
+{
+    if (dir.size() && Filesystem::is_directory(dir))
+        font_search_dirs.emplace_back(dir);
+}
+
+
+// Add all the dirs in a searchpath to font_search_dirs.
+static void
+fontpath_add_from_searchpath(string_view searchpath)
+{
+    if (searchpath.size()) {
+        std::vector<std::string> user_font_dirs;
+        Filesystem::searchpath_split(searchpath, user_font_dirs, true);
+        for (auto& dir : user_font_dirs)
+            fontpath_add_one_dir(dir);
+    }
+}
+
+
+// Add dir/{common_font_subdirs} to font_search_dirs.
+static void
+fontpath_add_from_dir(const std::string& dir)
+{
+    if (dir.size() && Filesystem::is_directory(dir)) {
+        fontpath_add_one_dir(dir + "/fonts");
+        fontpath_add_one_dir(dir + "/Fonts");
+        fontpath_add_one_dir(dir + "/Library/Fonts");
+        fontpath_add_one_dir(dir + "/share/fonts");
+        fontpath_add_one_dir(dir + "/share/Fonts");
+    }
+}
+
+
 
 // Given font name, resolve it to an existing font filename.
 // If found, return true and put the resolved filename in result.
@@ -720,54 +756,25 @@ resolve_font(string_view font_, std::string& result)
     // A set of likely directories for fonts to live, across several systems.
     // Fill out the list of search dirs if not yet done.
     if (font_search_dirs.size() == 0) {
-        string_view home = Sysutil::getenv("HOME");
-        if (home.size()) {
-            std::string h(home);
-            font_search_dirs.push_back(h + "/fonts");
-            font_search_dirs.push_back(h + "/Fonts");
-            font_search_dirs.push_back(h + "/Library/Fonts");
-        }
-        string_view systemRoot = Sysutil::getenv("SystemRoot");
-        if (systemRoot.size())
-            font_search_dirs.push_back(std::string(systemRoot) + "/Fonts");
-        font_search_dirs.emplace_back("/usr/share/fonts");
-        font_search_dirs.emplace_back("/usr/share/fonts/OpenImageIO");
-        font_search_dirs.emplace_back("/Library/Fonts");
-        font_search_dirs.emplace_back("/Library/Fonts/OpenImageIO");
-        font_search_dirs.emplace_back("C:/Windows/Fonts");
-        font_search_dirs.emplace_back("C:/Windows/Fonts/OpenImageIO");
-        font_search_dirs.emplace_back("/usr/local/share/fonts");
-        font_search_dirs.emplace_back("/usr/local/share/fonts/OpenImageIO");
-        font_search_dirs.emplace_back("/opt/local/share/fonts");
-        font_search_dirs.emplace_back("/opt/local/share/fonts/OpenImageIO");
-        // Try $OPENIMAGEIO_ROOT_DIR/fonts
-        string_view OpenImageIOrootdir = Sysutil::getenv("OpenImageIO_ROOT");
-        if (OpenImageIOrootdir.size()) {
-            font_search_dirs.push_back(std::string(OpenImageIOrootdir)
-                                       + "/fonts");
-            font_search_dirs.push_back(std::string(OpenImageIOrootdir)
-                                       + "/share/fonts/OpenImageIO");
-        }
-        string_view oiiorootdir = Sysutil::getenv("OPENIMAGEIO_ROOT_DIR");
-        if (oiiorootdir.size()) {
-            font_search_dirs.push_back(std::string(oiiorootdir) + "/fonts");
-            font_search_dirs.push_back(std::string(oiiorootdir)
-                                       + "/share/fonts/OpenImageIO");
-        }
-        // Try $OPENIMAGEIOHOME/fonts -- deprecated (1.9)
-        string_view oiiohomedir = Sysutil::getenv("OPENIMAGEIOHOME");
-        if (oiiohomedir.size()) {
-            font_search_dirs.push_back(std::string(oiiohomedir) + "/fonts");
-            font_search_dirs.push_back(std::string(oiiohomedir)
-                                       + "/share/fonts/OpenImageIO");
-        }
-        // Try ../fonts relative to where this executing binary came from
+        fontpath_add_from_searchpath(pvt::font_searchpath);
+        fontpath_add_from_searchpath(Sysutil::getenv("OPENIMAGEIO_FONTS"));
+        fontpath_add_from_dir(Sysutil::getenv("HOME"));
+        fontpath_add_from_dir(Sysutil::getenv("SystemRoot"));
+        fontpath_add_from_dir(Sysutil::getenv("OpenImageIO_ROOT"));
+        fontpath_add_from_dir(
+            Sysutil::getenv("OPENIMAGEIO_ROOT_DIR"));  // DEPRECATED(1.9)
+        fontpath_add_from_dir(
+            Sysutil::getenv("OPENIMAGEIOHOME"));  // DEPRECATED(1.9)
+        fontpath_add_from_dir("/Library");
+        fontpath_add_from_dir("C:/Windows");
+        fontpath_add_from_dir("/usr");
+        fontpath_add_from_dir("/usr/local");
+        fontpath_add_from_dir("/opt/local");
         std::string this_program = OIIO::Sysutil::this_program_path();
         if (this_program.size()) {
             std::string path = Filesystem::parent_path(this_program);
             path             = Filesystem::parent_path(path);
-            font_search_dirs.push_back(path + "/fonts");
-            font_search_dirs.push_back(path + "/share/fonts/OpenImageIO");
+            fontpath_add_from_dir(path);
         }
     }
 

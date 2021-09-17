@@ -348,6 +348,15 @@ enum class TextAlignY { Baseline, Top, Bottom, Center };
 ///             make the text look more clear by dilating the alpha channel
 ///             of the composite (makes a black halo around the characters).
 ///
+/// Note that any named fonts (if not a full pathname) will search for the
+/// fonts in the following places: (a) any directories named in the global
+/// "font_searchpath" attribute or the `$OPENIMAGEIO_FONTS` environment
+/// variable; (b) any font-related subdirectories (`fonts`, `Fonts`,
+/// `share/fonts`, or `Library/Fonts`) underneath the directories in
+/// environment variables `$HOME`, `$SystemRoot`, `$OpenImageIO_ROOT`; (c) a
+/// number of common system font areas, including `/usr/share/fonts`,
+/// `/Library/fonts`, and `C:/Windows/fonts`; (d) in fonts directories one
+/// level up from the place where the currently running binary lives.
 bool OIIO_API render_text (ImageBuf &dst, int x, int y, string_view text,
                            int fontsize=16, string_view fontname="",
                            cspan<float> textcolor = 1.0f,
