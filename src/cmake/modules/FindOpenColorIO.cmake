@@ -3,12 +3,21 @@
 # This module will first look into the directories hinted by the variables:
 #   - OpenColorIO_ROOT
 #
-# This module defines the following variables:
+# This module defines the following targets:
+#
+#   - OpenColorIO::OpenColorIO
+#
+# Old style CMake, this module also defines the following variables:
 #
 # OPENCOLORIO_FOUND       - True if OpenColorIO was found.
 # OPENCOLORIO_INCLUDES    - where to find OpenColorIO.h
 # OPENCOLORIO_LIBRARIES   - list of libraries to link against when using OpenColorIO
 # OPENCOLORIO_DEFINITIONS - Definitions needed when using OpenColorIO
+#
+# OpenColorIO 2.1 exports proper cmake config files on its own.
+# Once OCIO 2.1 is our new minimum, this FindOpenColorIO.cmake will
+# eventually be deprecated and disappear.
+#
 
 include (FindPackageHandleStandardArgs)
 include (FindPackageMessage)
