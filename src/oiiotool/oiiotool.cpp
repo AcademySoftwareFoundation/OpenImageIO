@@ -429,15 +429,30 @@ Oiiotool::warning(string_view command, string_view explanation) const
 ParamValueList
 Oiiotool::extract_options(string_view command)
 {
+    using namespace Strutil;
     ParamValueList optlist;
-    // Separate option list by splitting on ":", the first is the command
-    // itself.
-    auto opts = Strutil::splitsv(command, ":");
-    for (size_t i = 1; i < opts.size(); ++i) {
-        // Split each op on the first "=".
-        auto optpieces = Strutil::splitsv(opts[i], "=", 2);
-        if (optpieces.size() == 2)
-            optlist[optpieces[0]] = optpieces[1];
+
+    // Note: the first execution of the loop test will skip over the initial
+    // section through the first colon (--foo:), and the test will fail and
+    // end the loop when we've exhausted `command`.
+    while (parse_until_char(command, ':') && parse_char(command, ':')) {
+        string_view name = parse_identifier(command);
+        string_view value;
+        bool ok = parse_char(command, '=');
+        if (name.size() && ok) {
+            if (command.size() && (command[0] == '\'' || command[0] == '\"')) {
+                // If single or double quoted, the value is the contents
+                // between the quotes.
+                ok = parse_string(command, value, true, DeleteQuotes);
+            } else {
+                // If not quoted, the value is everything until the next ':'
+                value = parse_until(command, ":");
+            }
+        }
+        if (ok && name.size() && value.size()) {
+            // We seem to have a name and value. Add to the optlist.
+            optlist[name] = value;
+        }
     }
     return optlist;
 }
