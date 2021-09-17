@@ -2488,10 +2488,15 @@ OIIO_API std::string geterror(bool clear = true);
 ///    many threads as the amount of hardware concurrency detected. Note
 ///    that this is separate from the OIIO `"threads"` attribute.
 ///
+/// - `string font_searchpath`
+///
+///    Colon-separated (or semicolon-separated) list of directories to search
+///    if fonts are needed. (Such as for `ImageBufAlgo::render_text()`.)
+///
 /// - `string plugin_searchpath`
 ///
-///    Colon-separated list of directories to search for dynamically-loaded
-///    format plugins.
+///    Colon-separated (or semicolon-separated) list of directories to search
+///    for dynamically-loaded format plugins.
 ///
 /// - `int read_chunk`
 ///
