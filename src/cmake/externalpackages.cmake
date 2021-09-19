@@ -94,9 +94,8 @@ checked_find_package (TIFF REQUIRED
 
 # IlmBase & OpenEXR
 checked_find_package (OpenEXR REQUIRED
-                      VERSION_MIN 2.0
-                      RECOMMEND_MIN 2.2
-                      RECOMMEND_MIN_REASON "for DWA compression"
+                      VERSION_MIN 2.3
+                      RECOMMEND_MIN 2.4
                       PRINT IMATH_INCLUDES OPENEXR_INCLUDES)
 # Force Imath includes to be before everything else to ensure that we have
 # the right Imath/OpenEXR version, not some older version in the system
@@ -104,15 +103,11 @@ checked_find_package (OpenEXR REQUIRED
 # building against Imath/OpenEXR 3.x when there is still a system-level
 # install version of 2.x.
 include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
-if (CMAKE_COMPILER_IS_CLANG AND OPENEXR_VERSION VERSION_LESS 2.3)
-    # clang C++ >= 11 doesn't like 'register' keyword in old exr headers
-    add_compile_options (-Wno-deprecated-register)
-endif ()
 if (MSVC AND NOT LINKSTATIC)
     add_definitions (-DOPENEXR_DLL) # Is this needed for new versions?
 endif ()
 
-if (OPENEXR_VERSION VERSION_GREATER_EQUAL 2.5.99)
+if (OPENEXR_VERSION VERSION_GREATER_EQUAL 3.0)
     set (OIIO_USING_IMATH 3)
 else ()
     set (OIIO_USING_IMATH 2)
