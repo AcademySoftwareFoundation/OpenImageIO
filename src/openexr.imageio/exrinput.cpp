@@ -83,6 +83,10 @@ OIIO_PRAGMA_VISIBILITY_POP
 
 #include <OpenEXR/ImfCRgbaFile.h>
 
+#if OPENEXR_CODED_VERSION >= 30100 && defined(OIIO_USE_EXR_C_API)
+#    define USE_OPENEXR_CORE
+#endif
+
 #include "imageio_pvt.h"
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>
@@ -287,6 +291,13 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 OIIO_EXPORT ImageInput*
 openexr_input_imageio_create()
 {
+#ifdef USE_OPENEXR_CORE
+    if (pvt::openexr_core) {
+        // Strutil::print("selecting core\n");
+        extern ImageInput* openexrcore_input_imageio_create();
+        return openexrcore_input_imageio_create();
+    }
+#endif
     return new OpenEXRInput;
 }
 

@@ -34,6 +34,7 @@ extern std::string extension_list;
 extern std::string library_list;
 extern int oiio_print_debug;
 extern int oiio_log_times;
+extern int openexr_core;
 
 
 // For internal use - use error() below for a nicer interface.
