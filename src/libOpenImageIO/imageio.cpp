@@ -37,6 +37,7 @@ recursive_mutex imageio_mutex;
 atomic_int oiio_threads(threads_default());
 atomic_int oiio_exr_threads(threads_default());
 atomic_int oiio_read_chunk(256);
+int openexr_core(0);  // Should we use "Exr core C library"?
 int tiff_half(0);
 int tiff_multithread(1);
 ustring font_searchpath;
@@ -318,6 +319,10 @@ attribute(string_view name, TypeDesc type, const void* val)
         oiio_exr_threads = OIIO::clamp(*(const int*)val, -1, maxthreads);
         return true;
     }
+    if (name == "openexr:core" && type == TypeInt) {
+        openexr_core = *(const int*)val;
+        return true;
+    }
     if (name == "tiff:half" && type == TypeInt) {
         tiff_half = *(const int*)val;
         return true;
@@ -407,6 +412,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "exr_threads" && type == TypeInt) {
         *(int*)val = oiio_exr_threads;
+        return true;
+    }
+    if (name == "openexr:core" && type == TypeInt) {
+        *(int*)val = openexr_core;
         return true;
     }
     if (name == "tiff:half" && type == TypeInt) {

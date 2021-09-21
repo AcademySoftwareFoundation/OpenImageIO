@@ -2,17 +2,17 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
-option (OIIO_USE_EXR_C_API "Use the new 3.1 C API for exr I/O" OFF)
-if (OIIO_USE_EXR_C_API)
-  if (NOT TARGET OpenEXR::OpenEXRCore)
-    message(FATAL_ERROR "OpenEXR find did not find the new C library")
-  endif()
-  add_oiio_plugin (exrinput_c.cpp exroutput.cpp
-    INCLUDE_DIRS ${OPENEXR_INCLUDES} ${IMATH_INCLUDE_DIR}/OpenEXR
-    LINK_LIBRARIES OpenEXR::OpenEXRCore)
-else()
-  add_oiio_plugin (exrinput.cpp exroutput.cpp
-    INCLUDE_DIRS ${OPENEXR_INCLUDES} ${IMATH_INCLUDE_DIR}/OpenEXR
-    LINK_LIBRARIES ${OPENEXR_LIBRARIES})
+set (openexr_src exrinput.cpp exroutput.cpp)
+
+option (OIIO_USE_EXR_C_API "Allow use of the new exr 3.1 C API if available" ON)
+if (OIIO_USE_EXR_C_API AND TARGET OpenEXR::OpenEXRCore)
+    set (openexr_defs OIIO_USE_EXR_C_API=1)
+    list (APPEND openexr_src exrinput_c.cpp)
 endif()
 
+add_oiio_plugin (${openexr_src}
+    INCLUDE_DIRS ${OPENEXR_INCLUDES} ${IMATH_INCLUDE_DIR}/OpenEXR
+    LINK_LIBRARIES ${OPENEXR_LIBRARIES}
+                   $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXRCore>
+    DEFINITIONS ${openexr_defs}
+    )
