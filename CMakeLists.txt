@@ -80,7 +80,6 @@ option (BUILD_OIIOUTIL_ONLY "If ON, will build *only* libOpenImageIO_Util" OFF)
 option (BUILD_DOCS "If ON, build documentation and man pages." ON)
 option (INSTALL_DOCS "If ON, install documentation and man pages." ON)
 option (INSTALL_FONTS "If ON, install default fonts" ON)
-option (INSTALL_CMAKE_HELPER "If On, install FindOpenImageIO.cmake" ON)
 option (EMBEDPLUGINS "Embed format plugins in libOpenImageIO" ON)
 #option (BUILD_COIIO "Build C interface library" OFF)
 set (PLUGIN_SEARCH_PATH "" CACHE STRING "Default plugin search path")
@@ -236,11 +235,6 @@ if (NOT MSVC)
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
             COMPONENT developer)
 endif()
-
-# Oddball: install the FindOpenImageIO.cmake file
-install (FILES src/cmake/modules/FindOpenImageIO.cmake
-         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/cmake/Modules
-         COMPONENT cmake)
 
 # Export the configuration files. There are also library-specific config
 # exports in the CMakeLists.txt of libOpenImageIO.
