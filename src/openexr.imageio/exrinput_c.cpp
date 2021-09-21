@@ -120,10 +120,10 @@ oiio_exr_read_func(exr_const_context_t ctxt, void* userdata, void* buffer,
     return nread;
 }
 
-class OpenEXRInput final : public ImageInput {
+class OpenEXRCoreInput final : public ImageInput {
 public:
-    OpenEXRInput();
-    virtual ~OpenEXRInput() { close(); }
+    OpenEXRCoreInput();
+    virtual ~OpenEXRCoreInput() { close(); }
     virtual const char* format_name(void) const override { return "openexr"; }
     virtual int supports(string_view feature) const override
     {
@@ -213,9 +213,10 @@ private:
         {
         }
         ~PartInfo() {}
-        bool parse_header(OpenEXRInput* in, exr_context_t ctxt, int subimage,
-                          int miplevel);
-        bool query_channels(OpenEXRInput* in, exr_context_t ctxt, int subimage);
+        bool parse_header(OpenEXRCoreInput* in, exr_context_t ctxt,
+                          int subimage, int miplevel);
+        bool query_channels(OpenEXRCoreInput* in, exr_context_t ctxt,
+                            int subimage);
         void compute_mipres(int miplevel, ImageSpec& spec) const;
     };
     friend struct PartInfo;
@@ -253,21 +254,11 @@ private:
 
 
 
-// Obligatory material to make this a recognizeable imageio plugin:
-OIIO_PLUGIN_EXPORTS_BEGIN
-
 OIIO_EXPORT ImageInput*
-openexr_input_imageio_create()
+openexrcore_input_imageio_create()
 {
-    return new OpenEXRInput;
+    return new OpenEXRCoreInput;
 }
-
-// OIIO_EXPORT int openexr_imageio_version = OIIO_PLUGIN_VERSION; // it's in exroutput.cpp
-
-OIIO_EXPORT const char* openexr_input_extensions[] = { "exr", "sxr", "mxr",
-                                                       nullptr };
-
-OIIO_PLUGIN_EXPORTS_END
 
 
 
@@ -331,12 +322,12 @@ private:
 static StringMap exr_tag_to_oiio_std;
 
 
-OpenEXRInput::OpenEXRInput() { init(); }
+OpenEXRCoreInput::OpenEXRCoreInput() { init(); }
 
 
 
 bool
-OpenEXRInput::valid_file(const std::string& filename) const
+OpenEXRCoreInput::valid_file(const std::string& filename) const
 {
     return valid_file(filename, nullptr);
 }
@@ -344,8 +335,8 @@ OpenEXRInput::valid_file(const std::string& filename) const
 
 
 bool
-OpenEXRInput::valid_file(const std::string& filename,
-                         Filesystem::IOProxy* io) const
+OpenEXRCoreInput::valid_file(const std::string& filename,
+                             Filesystem::IOProxy* io) const
 {
     oiioexr_filebuf_struct udata;
     exr_context_initializer_t cinit = EXR_DEFAULT_CONTEXT_INITIALIZER;
@@ -376,8 +367,8 @@ OpenEXRInput::valid_file(const std::string& filename,
 
 
 bool
-OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
-                   const ImageSpec& config)
+OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
+                       const ImageSpec& config)
 {
     // First thing's first. See if we're been given an IOProxy. We have to
     // do this before the check for non-exr files, that's why it's here and
@@ -485,7 +476,7 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
 
 
 const ImageSpec&
-OpenEXRInput::init_part(int subimage, int miplevel)
+OpenEXRCoreInput::init_part(int subimage, int miplevel)
 {
     const PartInfo& part(m_parts[subimage]);
     if (!part.initialized) {
@@ -506,8 +497,9 @@ OpenEXRInput::init_part(int subimage, int miplevel)
 
 
 bool
-OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in, exr_context_t ctxt,
-                                     int subimage, int miplevel)
+OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
+                                         exr_context_t ctxt, int subimage,
+                                         int miplevel)
 {
     bool ok = true;
     if (initialized)
@@ -924,8 +916,8 @@ suffixfound(string_view name, cspan<ChanNameHolder> chans)
 
 
 bool
-OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in, exr_context_t ctxt,
-                                       int subimage)
+OpenEXRCoreInput::PartInfo::query_channels(OpenEXRCoreInput* in,
+                                           exr_context_t ctxt, int subimage)
 {
     OIIO_DASSERT(!initialized);
     bool ok        = true;
@@ -1018,7 +1010,7 @@ OpenEXRInput::PartInfo::query_channels(OpenEXRInput* in, exr_context_t ctxt,
 
 
 void
-OpenEXRInput::PartInfo::compute_mipres(int miplevel, ImageSpec& spec) const
+OpenEXRCoreInput::PartInfo::compute_mipres(int miplevel, ImageSpec& spec) const
 {
     // Compute the resolution of the requested mip level, and also adjust
     // the "full" size appropriately (based on the exr display window).
@@ -1074,7 +1066,7 @@ OpenEXRInput::PartInfo::compute_mipres(int miplevel, ImageSpec& spec) const
 
 
 bool
-OpenEXRInput::seek_subimage(int subimage, int miplevel)
+OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
 {
     if (subimage < 0 || subimage >= m_nsubimages)  // out of range
         return false;
@@ -1108,7 +1100,7 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
 
 
 ImageSpec
-OpenEXRInput::spec(int subimage, int miplevel)
+OpenEXRCoreInput::spec(int subimage, int miplevel)
 {
     ImageSpec ret;
     if (subimage < 0 || subimage >= m_nsubimages)
@@ -1133,7 +1125,7 @@ OpenEXRInput::spec(int subimage, int miplevel)
 
 
 ImageSpec
-OpenEXRInput::spec_dimensions(int subimage, int miplevel)
+OpenEXRCoreInput::spec_dimensions(int subimage, int miplevel)
 {
     ImageSpec ret;
     if (subimage < 0 || subimage >= m_nsubimages)
@@ -1156,7 +1148,7 @@ OpenEXRInput::spec_dimensions(int subimage, int miplevel)
 
 
 bool
-OpenEXRInput::close()
+OpenEXRCoreInput::close()
 {
     exr_finish(&m_exr_context);
     init();  // Reset to initial state
@@ -1166,8 +1158,8 @@ OpenEXRInput::close()
 
 
 bool
-OpenEXRInput::read_native_scanline(int subimage, int miplevel, int y, int z,
-                                   void* data)
+OpenEXRCoreInput::read_native_scanline(int subimage, int miplevel, int y, int z,
+                                       void* data)
 {
     if (!m_exr_context) {
         errorf(
@@ -1184,8 +1176,8 @@ OpenEXRInput::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 
 bool
-OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                    int yend, int z, void* data)
+OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                        int yend, int z, void* data)
 {
     if (!m_exr_context) {
         errorf(
@@ -1202,9 +1194,9 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
 
 bool
-OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
-                                    int yend, int /*z*/, int chbegin, int chend,
-                                    void* data)
+OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                        int yend, int /*z*/, int chbegin,
+                                        int chend, void* data)
 {
     if (!m_exr_context) {
         errorf(
@@ -1327,8 +1319,8 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
 
 bool
-OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
-                               void* data)
+OpenEXRCoreInput::read_native_tile(int subimage, int miplevel, int x, int y,
+                                   int z, void* data)
 {
     if (!m_exr_context) {
         errorf("called OpenEXRInput::read_native_tile without an open file");
@@ -1431,9 +1423,9 @@ OpenEXRInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
 
 
 bool
-OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
-                                int xend, int ybegin, int yend, int zbegin,
-                                int zend, void* data)
+OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
+                                    int xend, int ybegin, int yend, int zbegin,
+                                    int zend, void* data)
 {
     if (!m_exr_context) {
         errorf("called OpenEXRInput::read_native_tile without an open file");
@@ -1449,9 +1441,10 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
 
 
 bool
-OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
-                                int xend, int ybegin, int yend, int zbegin,
-                                int zend, int chbegin, int chend, void* data)
+OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
+                                    int xend, int ybegin, int yend, int zbegin,
+                                    int zend, int chbegin, int chend,
+                                    void* data)
 {
     if (!m_exr_context) {
         errorf("called OpenEXRInput::read_native_tile without an open file");
@@ -1611,10 +1604,10 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
 
 
 bool
-OpenEXRInput::check_fill_missing(int xbegin, int xend, int ybegin, int yend,
-                                 int /*zbegin*/, int /*zend*/, int chbegin,
-                                 int chend, void* data, stride_t xstride,
-                                 stride_t ystride)
+OpenEXRCoreInput::check_fill_missing(int xbegin, int xend, int ybegin, int yend,
+                                     int /*zbegin*/, int /*zend*/, int chbegin,
+                                     int chend, void* data, stride_t xstride,
+                                     stride_t ystride)
 {
     if (m_missingcolor.empty())
         return false;
@@ -1723,9 +1716,10 @@ realloc_deepdata(exr_decode_pipeline_t* decode)
 
 
 bool
-OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
-                                         int yend, int /*z*/, int chbegin,
-                                         int chend, DeepData& deepdata)
+OpenEXRCoreInput::read_native_deep_scanlines(int subimage, int miplevel,
+                                             int ybegin, int yend, int /*z*/,
+                                             int chbegin, int chend,
+                                             DeepData& deepdata)
 {
     if (!m_exr_context) {
         errorf(
@@ -1866,10 +1860,11 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
 
 
 bool
-OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
-                                     int xend, int ybegin, int yend,
-                                     int /*zbegin*/, int /*zend*/, int chbegin,
-                                     int chend, DeepData& deepdata)
+OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
+                                         int xend, int ybegin, int yend,
+                                         int /*zbegin*/, int /*zend*/,
+                                         int chbegin, int chend,
+                                         DeepData& deepdata)
 {
     if (!m_exr_context) {
         errorf("called OpenEXRInput::read_native_tile without an open file");
