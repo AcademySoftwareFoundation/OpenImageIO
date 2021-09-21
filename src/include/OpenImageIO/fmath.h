@@ -193,12 +193,15 @@ inline OIIO_HOSTDEVICE int pow2rounddown(int x) { return floor2(x); }
 
 
 
-/// Round value up to the next whole multiple.
-/// For example, round_to_multiple(7,10) returns 10.
+/// Round value up to the next whole multiple. For example,
+/// `round_to_multiple(10,10) == 10`, `round_to_multiple(17,10) == 20`, and
+/// `round_to_multiple(-17,10) == -10`.
 template <typename V, typename M>
 inline OIIO_HOSTDEVICE V round_to_multiple (V value, M multiple)
 {
-    return V (((value + V(multiple) - 1) / V(multiple)) * V(multiple));
+    if (value >= 0)
+        value += V(multiple) - 1;
+    return value - (value % V(multiple));
 }
 
 
@@ -213,6 +216,20 @@ round_to_multiple_of_pow2(T x, T m)
 {
     OIIO_DASSERT(ispow2(m));
     return (x + m - 1) & (~(m - 1));
+}
+
+
+
+/// Round `value` down to a whole multiple of `multiple`. For example,
+/// `round_down_to_multiple(10,10) == 10`,
+/// `round_down_to_multiple(17,10) == 10`, and
+/// `round_down_to_multiple(-17,10) == -20`.
+template <typename V, typename M>
+inline OIIO_HOSTDEVICE V round_down_to_multiple (V value, M multiple)
+{
+    if (value < 0)
+        value -= V(multiple - 1);
+    return value - (value % V(multiple));
 }
 
 
