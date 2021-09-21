@@ -1,4 +1,3 @@
-oiiotool ERROR: read : EXR Error (src/partial.exr): EXR_ERR_BAD_CHUNK_LEADER Preparing to read tile (0, 0), level (0, 0) (chunk 0), found corrupt leader: found tile x 20000630, expect 0
-EXR Error (src/partial.exr): EXR_ERR_BAD_CHUNK_LEADER Preparing to read tile (1, 0), level (0, 0) (chunk 1), found corrupt leader: found tile x 20000630, expect 1
+oiiotool ERROR: read : "src/partial.exr": Some tiles were missing or corrupted
 Full command line was:
 > oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio src/partial.exr -d uint8 -o error.tif
