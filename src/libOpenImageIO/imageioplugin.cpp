@@ -14,6 +14,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/plugin.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 
 #include "imageio_pvt.h"
 
@@ -434,16 +435,15 @@ static void
 append_if_env_exists(std::string& searchpath, const char* env,
                      bool prepend = false)
 {
-    const char* path = getenv(env);
-    if (path && *path) {
-        std::string newpath = path;
+    std::string path = Sysutil::getenv(env);
+    if (path.size()) {
         if (searchpath.length()) {
             if (prepend)
-                newpath = newpath + ':' + searchpath;
+                path = path + ':' + searchpath;
             else
-                newpath = searchpath + ':' + newpath;
+                path = searchpath + ':' + path;
         }
-        searchpath = newpath;
+        searchpath = path;
     }
 }
 
@@ -455,7 +455,21 @@ void
 pvt::catalog_all_plugins(std::string searchpath)
 {
     static std::once_flag builtin_flag;
-    std::call_once(builtin_flag, catalog_builtin_plugins);
+
+    // Normally, we catalog the builtin format readers/writers first,
+    // and then external ones only are used if they extend the set.
+    // But if attribute "plugins_override" is true, we look at external
+    // plugins first.  (The other case is handled at the end of this
+    // function.)  N.B. pvt::plugins_override is safe to access because
+    // catalog_all_plugins will only be called when the imageio_mutex
+    // is held.  We also allow the "OIIO_PLUGINS_OVERRIDE" environment
+    // variable to override.
+    bool plugins_override = pvt::plugins_override;
+    string_view opo       = Sysutil::getenv("OIIO_PLUGINS_OVERRIDE");
+    if (opo.size())
+        plugins_override = Strutil::stoi(opo);
+    if (!plugins_override)
+        std::call_once(builtin_flag, catalog_builtin_plugins);
 
     recursive_lock_guard lock(imageio_mutex);
     append_if_env_exists(searchpath, "OIIO_LIBRARY_PATH", true);
@@ -483,6 +497,9 @@ pvt::catalog_all_plugins(std::string searchpath)
             }
         }
     }
+
+    if (plugins_override)
+        std::call_once(builtin_flag, catalog_builtin_plugins);
 
     // Inventory the procedural plugins
     for (auto&& f : input_formats) {
