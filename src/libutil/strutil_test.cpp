@@ -493,6 +493,11 @@ test_splits()
         OIIO_CHECK_EQUAL(pieces[1], "he ");
         OIIO_CHECK_EQUAL(pieces[2], "ime!");
     }
+    {   // test split of unfound separator
+        auto pieces = Strutil::splits(s, "xyz");
+        OIIO_CHECK_EQUAL(pieces.size(), 1);
+        OIIO_CHECK_EQUAL(pieces[0], s);
+    }
     {   // test maxsplit
         auto pieces = Strutil::splits(s, "", 2);
         OIIO_CHECK_EQUAL(pieces.size(), 2);
@@ -546,6 +551,11 @@ test_splitsv()
         OIIO_CHECK_EQUAL(pieces[0], "Now\nis");
         OIIO_CHECK_EQUAL(pieces[1], "he ");
         OIIO_CHECK_EQUAL(pieces[2], "ime!");
+    }
+    {   // test split of unfound separator
+        auto pieces = Strutil::splitsv(s, "xyz");
+        OIIO_CHECK_EQUAL(pieces.size(), 1);
+        OIIO_CHECK_EQUAL(pieces[0], s);
     }
     {   // test maxsplit
         auto pieces = Strutil::splitsv(s, "", 2);
