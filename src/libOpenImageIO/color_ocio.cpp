@@ -329,6 +329,9 @@ ColorConfig::reset(string_view filename)
     bool ok = true;
 
 #ifdef USE_OCIO
+    auto oldlog = OCIO::GetLoggingLevel();
+    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
+
     // If no filename was specified, use env $OCIO
     if (filename.empty())
         filename = Sysutil::getenv("OCIO");
@@ -347,6 +350,7 @@ ColorConfig::reset(string_view filename)
             getImpl()->error("Error reading OCIO config \"{}\"", filename);
         }
     }
+    OCIO::SetLoggingLevel(oldlog);
 
     ok = getImpl()->config_.get() != nullptr;
 #endif
