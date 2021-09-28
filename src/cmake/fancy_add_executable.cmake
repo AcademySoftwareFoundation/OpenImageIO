@@ -12,6 +12,9 @@
 # The executable may be disabled individually using any of the usual
 # check_is_enabled() conventions (e.g. -DENABLE_<executable>=OFF).
 #
+# If -DENABLE_INSTALL_<executable>=OFF was specified, the target will be built
+# (in the build area) but will not be installed.
+#
 # Usage:
 #
 #   fancy_add_executable ([ NAME targetname ... ]
@@ -48,7 +51,10 @@ macro (fancy_add_executable)
             target_link_libraries (${_target_NAME} PRIVATE ${_target_LINK_LIBRARIES})
         endif ()
         set_target_properties (${_target_NAME} PROPERTIES FOLDER "Tools")
-        install_targets (${_target_NAME})
+        check_is_enabled (INSTALL_${_target_NAME} _target_NAME_INSTALL_enabled)
+        if (_target_NAME_INSTALL_enabled)
+            install_targets (${_target_NAME})
+        endif ()
     else ()
         message (STATUS "${ColorRed}Disabling ${_target_NAME} ${ColorReset}")
     endif ()
