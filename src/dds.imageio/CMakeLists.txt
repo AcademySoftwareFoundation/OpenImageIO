@@ -5,7 +5,8 @@
 if (Libsquish_FOUND)
     # External libsquish was found -- use it
     add_oiio_plugin (ddsinput.cpp
-                     LINK_LIBRARIES Libsquish::Libsquish
+                     INCLUDE_DIRS ${LIBSQUISH_INCLUDES}
+                     LINK_LIBRARIES ${LIBSQUISH_LIBRARIES}
                      )
 else ()
     # No external libsquish was found -- use the embedded version.
