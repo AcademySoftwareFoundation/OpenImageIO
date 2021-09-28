@@ -158,8 +158,6 @@ endif ()
 checked_find_package (Freetype
                    DEFINITIONS  -DUSE_FREETYPE=1 )
 
-checked_find_package (HDF5
-                   ISDEPOF      Field3D)
 checked_find_package (OpenColorIO
                       DEFINITIONS  -DUSE_OCIO=1 -DUSE_OPENCOLORIO=1
                       # PREFER_CONFIG
@@ -179,8 +177,7 @@ checked_find_package (TBB 2017
 checked_find_package (DCMTK VERSION_MIN 3.6.1)  # For DICOM images
 checked_find_package (FFmpeg VERSION_MIN 3.0)
 checked_find_package (Field3D
-                   DEPS         HDF5
-                   DEFINITIONS  -DUSE_FIELD3D=1)
+                      DEFINITIONS  -DUSE_FIELD3D=1)
 checked_find_package (GIF
                       VERSION_MIN 4
                       RECOMMEND_MIN 5.0

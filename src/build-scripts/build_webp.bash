@@ -18,6 +18,7 @@ LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
 WEBP_SRC_DIR=${WEBP_SRC_DIR:=${LOCAL_DEPS_DIR}/webp}
 WEBP_BUILD_DIR=${WEBP_BUILD_DIR:=${WEBP_SRC_DIR}/build}
 WEBP_INSTALL_DIR=${WEBP_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist}
+WEBP_BUILD_TYPE=${WEBP_BUILD_TYPE:=${CMAKE_BUILD_TYPE:-Release}}
 #WEBP_CONFIG_OPTS=${WEBP_CONFIG_OPTS:=}
 
 pwd
@@ -40,7 +41,7 @@ mkdir -p ${WEBP_BUILD_DIR}
 cd ${WEBP_BUILD_DIR}
 
 if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
-    time cmake -DCMAKE_BUILD_TYPE=Release \
+    time cmake -DCMAKE_BUILD_TYPE=${WEBP_BUILD_TYPE} \
                -DCMAKE_INSTALL_PREFIX=${WEBP_INSTALL_DIR} \
                -DWEBP_BUILD_ANIM_UTILS=OFF \
                -DWEBP_BUILD_CWEBP=OFF \
@@ -51,7 +52,7 @@ if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
                -DWEBP_BUILD_EXTRAS=OFF \
                -DBUILD_SHARED_LIBS=ON \
                ${WEBP_CONFIG_OPTS} ..
-    time cmake --build . --config Release --target install
+    time cmake --build . --target install
 fi
 
 
