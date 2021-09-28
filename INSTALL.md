@@ -20,7 +20,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * Compilers: **gcc 6.1 - 11.2**, **clang 3.4 - 12**, **MSVS 2017 - 2019**,
    **icc 17+**.
  * CMake >= 3.12 (tested through 3.21)
- * OpenEXR/Imath >= 2.0 (recommended: 2.4 or higher; tested through 3.1)
+ * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
  * Boost >= 1.53 (recommended: at least 1.66; tested through 1.76)
 

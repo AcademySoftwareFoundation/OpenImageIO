@@ -437,7 +437,7 @@ jobs:
   linux-oldest:
     # Oldest versions of the dependencies that we can muster, and various
     # things disabled (no SSE, OCIO, or OpenCV, don't embed plugins).
-    name: "Linux oldest/hobbled: gcc6.3/C++14 py2.7 boost-1.66 exr-2.2 no-sse no-ocio"
+    name: "Linux oldest/hobbled: gcc6.3/C++14 py2.7 boost-1.66 exr-2.3 no-sse no-ocio"
     runs-on: ubuntu-latest
     container:
       image: aswf/ci-osl:2019
@@ -448,7 +448,7 @@ jobs:
       USE_OPENCOLORIO: 0
       USE_OPENCV: 0
       EMBEDPLUGINS: 0
-      OPENEXR_VERSION: v2.2.1
+      OPENEXR_VERSION: v2.3.0
       PTEX_VERSION: v2.3.1
       PYBIND11_VERSION: v2.4.2
       WEBP_VERSION: v1.0.0
@@ -779,12 +779,13 @@ jobs:
 
   linux-static:
     # Test building static libs.
-    name: "Linux static libs: gcc7 C++14 exr2.2"
+    name: "Linux static libs: gcc7 C++14 exr2.4"
     runs-on: ubuntu-18.04
     env:
       CXX: g++-7
       CMAKE_CXX_STANDARD: 14
       BUILD_SHARED_LIBS: OFF
+      OPENEXR_VERSION: v2.4.3
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -804,6 +805,8 @@ jobs:
             src/build-scripts/ci-startup.bash
       - name: Dependencies
         run: |
+            sudo rm -rf /usr/local/include/OpenEXR
+            sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
             src/build-scripts/gh-installdeps.bash
       - name: Build
         run: |
