@@ -3551,6 +3551,8 @@ ImageCacheFile::udim_setup()
                     v -= 1;
                 }
             }
+            if (u < 0 || v < 0)
+                continue;  // invalid tile
             udim_list.emplace_back(ustring(udim_tile_name), nullptr, u, v);
             m_udim_nutiles = std::max(m_udim_nutiles, short(u + 1));
             m_udim_nvtiles = std::max(m_udim_nvtiles, short(v + 1));
@@ -3636,6 +3638,7 @@ ImageCacheImpl::resolve_udim(ImageCacheFile* udimfile, Perthread* thread_info,
     // filename fields, are set and can be accessed without locks. The
     // `ImageCacheFile*` within it, however, should use rw lock access.
     int index = utile + vtile * udimfile->m_udim_nutiles;
+    OIIO_DASSERT(index >= 0 && size_t(index) < udimfile->m_udim_lookup.size());
     UdimInfo& udiminfo(udimfile->m_udim_lookup[index]);
 
     // An empty filename in the record means that tile is not populated.
