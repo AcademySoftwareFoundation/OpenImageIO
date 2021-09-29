@@ -49,6 +49,7 @@ MY_CMAKE_FLAGS += -DSPI_COMPILER_PLATFORM=${SPI_COMPILER_PLATFORM}
 MY_CMAKE_FLAGS += -DEXTRA_CPP_ARGS:STRING="-DOIIO_SPI=1" -DOIIO_SITE:STRING=spi
 MY_CMAKE_FLAGS += -DSPI_TESTS=1
 MY_CMAKE_FLAGS += -DOIIO_NAMESPACE_INCLUDE_PATCH=1
+MY_CMAKE_FLAGS += -DCMAKE_DEBUG_POSTFIX=${CMAKE_DEBUG_POSTFIX:-_d}
 REZ_PACKAGE_ROOT ?= /shots/spi/home/software/packages
 SPCOMP2_ROOT ?= /shots/spi/home/lib/SpComp2
 
@@ -162,11 +163,9 @@ ifeq (${SP_OS}, rhel7)
         OCIO_SPCOMP_VERSION ?= 2
         OpenColorIO_ROOT ?= ${SPCOMP2_ROOT}/OpenColorIO/${SP_OS}-${SPCOMP2_COMPILER}/v${OCIO_SPCOMP_VERSION}
     else
-        OPENCOLORIO_VERSION ?= 1.1.1-1
-        OpenColorIO_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenColorIO/${OPENCOLORIO_VERSION}/${SPI_COMPILER_PLATFORM}
+        OPENCOLORIO_VERSION ?= 2.0.1-1
+        OpenColorIO_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenColorIO/${OPENCOLORIO_VERSION}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}
         MY_CMAKE_FLAGS += -DOPENCOLORIO_LIBRARY=${OpenColorIO_ROOT}/lib/libOpenColorIO_SPI.so
-        # Anybody remember why we needed Field3d disabled for SpComp2?
-        Field3D_ROOT ?= ${SPCOMP2_ROOT}/Field3D/${SPCOMP2_FULLBOOST_SUFFIX}/v412
 	endif
     OPENVDB_VERSION ?= 6.2.2-3
     OpenVDB_ROOT ?= ${REZ_PACKAGE_ROOT}/OpenVDB/${OPENVDB_VERSION}/${SPI_COMPILER_PLATFORM}/python-${PYTHON_VERSION}/boost-${BOOSTVERS}
@@ -175,7 +174,6 @@ ifeq (${SP_OS}, rhel7)
     Libheif_ROOT=/shots/spi/home/lib/arnold/rhel7/libheif-1.3.2
     MY_CMAKE_FLAGS += \
         -DOpenColorIO_ROOT=${OpenColorIO_ROOT} \
-        -DField3D_ROOT=${Field3D_ROOT} \
         -DOpenVDB_ROOT=${OpenVDB_ROOT} \
         -DTBB_ROOT=${TBB_ROOT} \
         -DTBB_LIBRARY=${TBB_LIBRARY} \
