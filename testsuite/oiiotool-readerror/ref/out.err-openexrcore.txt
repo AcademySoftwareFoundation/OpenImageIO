@@ -1,3 +1,3 @@
-oiiotool ERROR: read : EXR Error (src/incomplete.exr): EXR_ERR_BAD_CHUNK_LEADER Preparing to read scanline 0 (chunk 0), found corrupt leader: scanline says 20000630, expected 0
+oiiotool ERROR: read : "src/incomplete.exr": Some scanline chunks were missing or corrupted
 Full command line was:
 > oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio src/incomplete.exr -o out.exr
