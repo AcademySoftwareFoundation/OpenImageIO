@@ -333,6 +333,7 @@ jobs:
       PYTHON_VERSION: 3.8
       WEBP_VERSION: v1.2.1
       MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=8.0.0
+      OPENIMAGEIO_OPTIONS: "openexr:core=1"
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
     steps:
