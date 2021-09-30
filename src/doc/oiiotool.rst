@@ -69,7 +69,7 @@ The exceptions to this are non-positional flags, which affect the entire
 :program:`oiiotool` command regardless of where they appear on the command
 line.
 
-Optional arguments
+Optional modifiers
 -----------------------
 
 Some arguments stand completely on their own (like `--flip`), others take one
@@ -94,6 +94,9 @@ with colon separators. As an example:
     optional modifiers ---------+-----+--------+
     (separated by ':')
 
+The *value* itself may be a single- or double-quoted string, and this is how
+you would make a value that itself contains a `:` character (which would
+otherwise denote the beginning of the next modifier).
 
 Frame sequences
 -----------------------
@@ -3426,7 +3429,7 @@ current top image.
         font size (height, in pixels)
       `font=` *name*
         font name, full path to the font file on disk (use double quotes
-        `"name"` if the path name includes spaces)
+        `"name"` if the path name includes spaces or a colon)
       `color=` *r,g,b,...*
         specify the color of the text
       `xalign=` *val*
