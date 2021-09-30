@@ -78,6 +78,7 @@ private:
     int m_predictor;
     int m_photometric;
     int m_rowsperstrip;
+    int m_zipquality;
     unsigned int m_bitspersample;  ///< Of the *file*, not the client's view
     int m_outputchans;             // Number of channels for the output
     bool m_convert_rgb_to_cmyk;
@@ -92,6 +93,7 @@ private:
         m_predictor           = PREDICTOR_NONE;
         m_photometric         = PHOTOMETRIC_RGB;
         m_rowsperstrip        = 32;
+        m_zipquality          = 6;
         m_outputchans         = 0;
         m_convert_rgb_to_cmyk = false;
     }
@@ -580,9 +582,13 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
             TIFFSetField(m_tif, TIFFTAG_PREDICTOR, m_predictor);
         if (m_compression == COMPRESSION_ADOBE_DEFLATE) {
             qual = m_spec.get_int_attribute("tiff:zipquality", qual);
-            if (qual > 0)
+            if (qual == -1)
+                qual = m_zipquality;
+            if (qual > 0) {
                 TIFFSetField(m_tif, TIFFTAG_ZIPQUALITY,
                              OIIO::clamp(qual, 1, 9));
+                m_zipquality = qual;
+            }
         }
     } else if (m_compression == COMPRESSION_JPEG) {
         if (qual <= 0)
@@ -1160,9 +1166,9 @@ TIFFOutput::compress_one_strip(void* uncompressed_buf, size_t strip_bytes,
                              (unsigned short*)uncompressed_buf, channels, width,
                              height);
     *compressed_size = cbound;
-    auto zok         = compress((Bytef*)compressed_buf, compressed_size,
-                        (const Bytef*)uncompressed_buf,
-                        (unsigned long)strip_bytes);
+    auto zok         = compress2((Bytef*)compressed_buf, compressed_size,
+                         (const Bytef*)uncompressed_buf,
+                         (unsigned long)strip_bytes, m_zipquality);
     if (zok != Z_OK)
         *ok = false;
 }

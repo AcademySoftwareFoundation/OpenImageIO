@@ -1944,10 +1944,10 @@ aspects of the writing itself:
        ``ITULAB``.
    * - ``tiff:zipquality``
      - int
-     - A time-vs-quality knob for ``zip`` compression, ranging from 1-9
+     - A time-vs-space knob for ``zip`` compression, ranging from 1-9
        (default is 6). Higher means compress to less space, but taking
-       longer to do so. It is strictly a time vs space tradeoff, the quality
-       is identical (lossless) no matter what the setting.
+       longer to do so. It is strictly a time vs space tradeoff, the visual
+       image quality is identical (lossless) no matter what the setting.
    * - ``tiff:RowsPerStrip``
      - int
      - Overrides TIFF scanline rows per strip with a specific request (if
