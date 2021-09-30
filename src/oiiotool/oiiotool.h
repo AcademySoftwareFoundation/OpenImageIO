@@ -257,10 +257,11 @@ public:
     //     spec, such as "width", "ImageDescription", etc.
     string_view express(string_view str);
 
-    // Given a command with perhaps optional modifiers (for example,
-    // "--cmd:a=1:pi=3.14"), extract the options and insert them into a
-    // ParamValueList. For example, having attribute "a" with value "1"
-    // and attribute "pi" with value "3.14".
+    // Given a command with perhaps optional modifiers (a colon separated list
+    // of name=value options, for example, "--cmd:a=1:pi=3.14:foo='a b c'"),
+    // extract the options and insert them into a ParamValueList. For example,
+    // having attribute "a" with value "1" and attribute "pi" with value
+    // "3.14".
     static ParamValueList extract_options(string_view command);
 
     // Error base case -- single unformatted string.
