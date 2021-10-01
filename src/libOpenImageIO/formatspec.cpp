@@ -447,8 +447,8 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
         tmpparam.init("full_geom", TypeString, 1, &s);
         return &tmpparam;
     }
-    static constexpr TypeDesc TypeInt_4(TypeDesc::INT, 4);
-    static constexpr TypeDesc TypeInt_6(TypeDesc::INT, 6);
+    constexpr TypeDesc TypeInt_4(TypeDesc::INT, 4);
+    constexpr TypeDesc TypeInt_6(TypeDesc::INT, 6);
     if (MATCH("datawindow", TypeInt_4)) {
         int val[] = { x, y, x + width - 1, y + height - 1 };
         tmpparam.init(name, TypeInt_4, 1, &val);

@@ -68,7 +68,7 @@
 //                    nothing (this is useful for things that can only be
 //                    constexpr for particular versions or greater).
 // OIIO_INLINE_CONSTEXPR : inline constexpr variables, added in C++17. For
-//                         older C++, just constexpr.
+//                         older C++, static constexpr.
 //
 // Note: oiioversion.h defines OIIO_BUILD_CPP (set to 14, 17, etc.)
 // reflecting what OIIO itself was *built* with.  In contrast,
@@ -92,7 +92,7 @@
 #    define OIIO_CPLUSPLUS_VERSION 14
 #    define OIIO_CONSTEXPR17 /* not constexpr before C++17 */
 #    define OIIO_CONSTEXPR20 /* not constexpr before C++20 */
-#    define OIIO_INLINE_CONSTEXPR constexpr
+#    define OIIO_INLINE_CONSTEXPR static constexpr
 #else
 #    error "This version of OIIO is meant to work only with C++14 and above"
 #endif
