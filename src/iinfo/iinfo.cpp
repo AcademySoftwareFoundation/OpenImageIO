@@ -172,7 +172,7 @@ print_stats(const std::string& filename, const ImageSpec& originalspec,
 
     ImageBuf input;
     if (!read_input(filename, input, subimage, miplevel)) {
-        std::cerr << "Stats: read error: " << input.geterror() << "\n";
+        // Note: read_input prints an error message if one occurs
         return;
     }
 

@@ -4750,7 +4750,8 @@ output_file(int /*argc*/, const char* argv[])
                 ot.curimg
                     = saved_curimg;  // note: last iteration also restores it!
             // Skip 0x0 images. Yes, this can happen.
-            ot.read();
+            if (!ot.read())
+                return 0;
             const ImageSpec* spec(ot.curimg->spec());
             if (spec->width < 1 || spec->height < 1 || spec->depth < 1)
                 continue;
@@ -4779,7 +4780,9 @@ output_file(int /*argc*/, const char* argv[])
     bool supports_negativeorigin = out->supports("negativeorigin");
     bool supports_tiles = out->supports("tiles") || ot.output_force_tiles;
     bool procedural     = out->supports("procedural");
-    ot.read();
+    if (!ot.read()) {
+        return 0;
+    }
     ImageRecRef saveimg = ot.curimg;
     ImageRecRef ir(ot.curimg);
     TypeDesc saved_output_dataformat = ot.output_dataformat;

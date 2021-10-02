@@ -833,8 +833,10 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info, int subimage,
     }
     if (!ok) {
         std::string err = inp->geterror();
-        if (!err.empty() && errors_should_issue())
-            imagecache().error("{}", err);
+        if (errors_should_issue()) {
+            imagecache().error("{}",
+                               err.size() ? err : std::string("unknown error"));
+        }
     }
 
     if (ok) {
