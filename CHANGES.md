@@ -1,3 +1,7 @@
+Release 2.3.9 (1 Nov? 2021) -- compared to 2.3.8
+--------------------------------------------------
+
+
 Release 2.3.8 (1 Oct 2021) -- compared to 2.3.7
 --------------------------------------------------
 * Fix ImageBuf::read() bug for images of mixed per-channel data types. #3088
@@ -7,7 +11,7 @@ Release 2.3.8 (1 Oct 2021) -- compared to 2.3.7
 * Ensure that OpenColorIO doesn't send info messages to the console if no
   config is found. #3113
 * Fix: make sure ImageSpec deserialization works for arbitrary attribs. #3066
-* `oiiotool `-ch` now has greatly reduced cost (no useless allocations or
+* `oiiotool -ch` now has greatly reduced cost (no useless allocations or
   copies) when the channel order and names don't change. #3068
 * `oiiotool --runstats` is now much better about correctly attributing I/O
   time to `-i` instead of to the subsequent operations that triggers the
