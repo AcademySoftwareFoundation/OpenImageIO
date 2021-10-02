@@ -1,7 +1,32 @@
-Release 2.3.8 (?? 1 Oct 2021) -- compared to 2.3.7
+Release 2.3.8 (1 Oct 2021) -- compared to 2.3.7
 --------------------------------------------------
-
-
+* Fix ImageBuf::read() bug for images of mixed per-channel data types. #3088
+* Fix crash that could happen with invalidly numbered UDIM files. #3116
+* Better catching of exceptions and other error handling when OpenColorIO 1.x
+  is used but encounters an OpenColorIO 2.x config file. #3089 #3092 #3095
+* Ensure that OpenColorIO doesn't send info messages to the console if no
+  config is found. #3113
+* Fix: make sure ImageSpec deserialization works for arbitrary attribs. #3066
+* `oiiotool `-ch` now has greatly reduced cost (no useless allocations or
+  copies) when the channel order and names don't change. #3068
+* `oiiotool --runstats` is now much better about correctly attributing I/O
+  time to `-i` instead of to the subsequent operations that triggers the
+  read. #3073
+* TIFF output now supports IO proxies. #3075 #3077
+* Improved finding of fonts (by IBA::render_text and oiiotool --text). It now
+  honors environment variable `$OPENIMAGEIO_FONTS` and global OIIO attribute
+  "font_searchpath" to list directories to be searched when fonts are needed.
+  #3096
+* We no longer install a FindOpenImageIO.cmake module. It was incomplete, out
+  of date, and wholly unnecessary now that we correctly export a config file
+  OpenImageIOConfig.cmake and friends. #3098
+* When building against OpenEXR 3.1+, use of the OpenEXRCore library no longer
+  requires a build-time option, but instead is always available (though off by
+  default) and can be enabled by an application setting the OIIO global
+  attribute "openexr:core" to 1. #3100
+* dev: Timer::add_seconds and add_ticks methods. #3070
+* dev: Add `round_down_to_multiple()` and improve `round_to_multiple()` to
+  correctly handle cases where the value is less than 0. #3104
 
 Release 2.3 (1 Sept 2021) -- compared to 2.2
 ----------------------------------------------
