@@ -370,40 +370,40 @@ struct OIIO_UTIL_API TypeDesc {
 // Static values for commonly used types. Because these are constexpr,
 // they should incur no runtime construction cost and should optimize nicely
 // in various ways.
-static constexpr TypeDesc TypeUnknown (TypeDesc::UNKNOWN);
-static constexpr TypeDesc TypeFloat (TypeDesc::FLOAT);
-static constexpr TypeDesc TypeColor (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::COLOR);
-static constexpr TypeDesc TypePoint (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::POINT);
-static constexpr TypeDesc TypeVector (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::VECTOR);
-static constexpr TypeDesc TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::NORMAL);
-static constexpr TypeDesc TypeMatrix33 (TypeDesc::FLOAT, TypeDesc::MATRIX33);
-static constexpr TypeDesc TypeMatrix44 (TypeDesc::FLOAT, TypeDesc::MATRIX44);
-static constexpr TypeDesc TypeMatrix = TypeMatrix44;
-static constexpr TypeDesc TypeFloat2 (TypeDesc::FLOAT, TypeDesc::VEC2);
-static constexpr TypeDesc TypeVector2 (TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::VECTOR);
-static constexpr TypeDesc TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
-static constexpr TypeDesc TypeVector4 = TypeFloat4;
-static constexpr TypeDesc TypeString (TypeDesc::STRING);
-static constexpr TypeDesc TypeInt (TypeDesc::INT);
-static constexpr TypeDesc TypeUInt (TypeDesc::UINT);
-static constexpr TypeDesc TypeInt32 (TypeDesc::INT);
-static constexpr TypeDesc TypeUInt32 (TypeDesc::UINT);
-static constexpr TypeDesc TypeInt16 (TypeDesc::INT16);
-static constexpr TypeDesc TypeUInt16 (TypeDesc::UINT16);
-static constexpr TypeDesc TypeInt8 (TypeDesc::INT8);
-static constexpr TypeDesc TypeUInt8 (TypeDesc::UINT8);
-static constexpr TypeDesc TypeInt64 (TypeDesc::INT64);
-static constexpr TypeDesc TypeUInt64 (TypeDesc::UINT64);
-static constexpr TypeDesc TypeVector2i(TypeDesc::INT, TypeDesc::VEC2);
-static constexpr TypeDesc TypeBox2(TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::BOX, 2);
-static constexpr TypeDesc TypeBox3(TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::BOX, 2);
-static constexpr TypeDesc TypeBox2i(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::BOX, 2);
-static constexpr TypeDesc TypeBox3i(TypeDesc::INT, TypeDesc::VEC3, TypeDesc::BOX, 2);
-static constexpr TypeDesc TypeHalf (TypeDesc::HALF);
-static constexpr TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
-static constexpr TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
-static constexpr TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
-static constexpr TypeDesc TypePointer(TypeDesc::PTR);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUnknown (TypeDesc::UNKNOWN);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeFloat (TypeDesc::FLOAT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeColor (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::COLOR);
+OIIO_INLINE_CONSTEXPR TypeDesc TypePoint (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::POINT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::VECTOR);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeNormal (TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::NORMAL);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeMatrix33 (TypeDesc::FLOAT, TypeDesc::MATRIX33);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeMatrix44 (TypeDesc::FLOAT, TypeDesc::MATRIX44);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeMatrix = TypeMatrix44;
+OIIO_INLINE_CONSTEXPR TypeDesc TypeFloat2 (TypeDesc::FLOAT, TypeDesc::VEC2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector2 (TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::VECTOR);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeFloat4 (TypeDesc::FLOAT, TypeDesc::VEC4);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector4 = TypeFloat4;
+OIIO_INLINE_CONSTEXPR TypeDesc TypeString (TypeDesc::STRING);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt (TypeDesc::INT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt (TypeDesc::UINT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt32 (TypeDesc::INT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt32 (TypeDesc::UINT);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt16 (TypeDesc::INT16);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt16 (TypeDesc::UINT16);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt8 (TypeDesc::INT8);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt8 (TypeDesc::UINT8);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeInt64 (TypeDesc::INT64);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeUInt64 (TypeDesc::UINT64);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeVector2i(TypeDesc::INT, TypeDesc::VEC2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2(TypeDesc::FLOAT, TypeDesc::VEC2, TypeDesc::BOX, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeBox3(TypeDesc::FLOAT, TypeDesc::VEC3, TypeDesc::BOX, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeBox2i(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::BOX, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeBox3i(TypeDesc::INT, TypeDesc::VEC3, TypeDesc::BOX, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeHalf (TypeDesc::HALF);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeTimeCode (TypeDesc::UINT, TypeDesc::SCALAR, TypeDesc::TIMECODE, 2);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeKeyCode (TypeDesc::INT, TypeDesc::SCALAR, TypeDesc::KEYCODE, 7);
+OIIO_INLINE_CONSTEXPR TypeDesc TypeRational(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::RATIONAL);
+OIIO_INLINE_CONSTEXPR TypeDesc TypePointer(TypeDesc::PTR);
 
 
 

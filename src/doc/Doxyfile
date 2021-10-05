@@ -2166,6 +2166,7 @@ PREDEFINED             = DOXYGEN_SHOULD_SKIP_THIS \
                          OIIO_CONSTEXPR14=constexpr \
                          OIIO_CONSTEXPR17=constexpr \
                          OIIO_CONSTEXPR20=constexpr \
+                         OIIO_INLINE_CONSTEXPR="inline constexpr" \
                          OIIO_PURE_FUNC= \
                          OIIO_CONST_FUNC= \
                          OIIO_MAYBE_UNUSED= \
