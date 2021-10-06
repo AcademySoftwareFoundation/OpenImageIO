@@ -50,7 +50,6 @@ time vcpkg install boost-asio:x64-windows
 time vcpkg install boost-container:x64-windows
 time vcpkg install boost-filesystem:x64-windows
 time vcpkg install boost-math:x64-windows
-time vcpkg install boost-regex:x64-windows
 time vcpkg install boost-stacktrace:x64-windows
 time vcpkg install boost-system:x64-windows
 time vcpkg install boost-thread:x64-windows
