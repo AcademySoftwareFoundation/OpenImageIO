@@ -31,10 +31,10 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8, 3.9)
-     * pybind11 >= 2.4.2 (Tested through 2.7.)
+     * pybind11 >= 2.4.2 (Tested through 2.8.)
      * NumPy
  * If you want support for camera "RAW" formats:
-     * LibRaw >= 0.15 (tested 0.15 - 0.20; LibRaw >= 0.18 is necessary for
+     * LibRaw >= 0.15 (tested 0.15 - 0.20.2; LibRaw >= 0.18 is necessary for
        ACES support and much better recognition of camera metadata; if
        building with C++17 or higher, LibRaw >= 0.20 is necessary)
  * If you want support for a wide variety of video formats:
