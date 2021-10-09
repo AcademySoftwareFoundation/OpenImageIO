@@ -83,12 +83,13 @@ namespace cineon
 	void RleCompress(IB *src, IB *dst, const int bufsize, const int len, BufferAccess &access)
 	{
 		IB ch;
-		int count;
+		// int count;
 		int i;
 		int index = bufsize - 1;
 		bool start = true;
 		//bool match = true;
 
+#if 0  /* This seems to not be used */
 		// for each data type, have maximum length of rle datum
 		// subtract one so it the LSBit can be used to state
 		int maxCount;
@@ -102,13 +103,13 @@ namespace cineon
 			maxCount = 0xffff - 1;
 		else
 			maxCount = 1000000;		// high number for floats, doubles
-
+#endif
 
 		for (i = len - 1; i >= 0; i--)
 		{
 			if (start)
 			{
-				count = 1;
+				// count = 1;
 				start = false;
 				ch = src[i];
 				dst[index--] = ch;

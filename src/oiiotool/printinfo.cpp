@@ -401,7 +401,6 @@ OiioTool::print_stats(std::ostream& out, Oiiotool& ot, const ImageBuf& input,
         Imath::V3i mindepth_pixel(-1, -1, -1), maxdepth_pixel(-1, -1, -1);
         Imath::V3i nonfinite_pixel(-1, -1, -1);
         int nonfinite_pixel_samp(-1), nonfinite_pixel_chan(-1);
-        size_t sampoffset    = 0;
         int nchannels        = dd->channels();
         int depthchannel     = -1;
         long long nonfinites = 0;
@@ -454,7 +453,6 @@ OiioTool::print_stats(std::ostream& out, Oiiotool& ot, const ImageBuf& input,
                             }
                         }
                     }
-                    sampoffset += samples;
                 }
             }
         }

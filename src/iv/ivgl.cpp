@@ -563,10 +563,6 @@ IvGL::paintGL()
     //std::cerr << "(" << xbegin << ',' << ybegin << ") - (" << xend << ',' << yend << ")\n";
 
     // Provide some feedback
-    int total_tiles    = (int)(ceilf(float(xend - xbegin) / m_texture_width)
-                            * ceilf(float(yend - ybegin) / m_texture_height));
-    float tile_advance = 1.0f / total_tiles;
-    float percent      = tile_advance;
     m_viewer.statusViewInfo->hide();
     m_viewer.statusProgress->show();
 
@@ -588,7 +584,6 @@ IvGL::paintGL()
             load_texture(xstart, ystart, tile_width, tile_height);
             gl_rect(xstart, ystart, xstart + tile_width, ystart + tile_height,
                     0, smin, tmin, smax, tmax);
-            percent += tile_advance;
         }
     }
 
