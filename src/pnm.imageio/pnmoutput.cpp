@@ -202,7 +202,7 @@ PNMOutput::close()
     }
 
     m_file.close();
-    return true;
+    return ok;
 }
 
 
