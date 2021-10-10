@@ -208,7 +208,7 @@ WebpOutput::close()
     WebPPictureFree(&m_webp_picture);
     fclose(m_file);
     m_file = NULL;
-    return true;
+    return ok;
 }
 
 
