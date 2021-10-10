@@ -15,9 +15,9 @@ on:
       - '**.md'
       - '**.rst'
   schedule:
-    # Full nightly build
-    - cron: "0 8 * * *"
-
+    # This is an obsolete branch with only occasional patches -- run weekly
+    # is plenty.
+    - cron: "0 10 * * 0"
 
 jobs:
   linux-gcc48:
