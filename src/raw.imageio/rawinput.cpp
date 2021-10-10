@@ -641,6 +641,13 @@ RawInput::open_raw(bool unpack, const std::string& name,
             m_spec.channelnames.clear();
             m_spec.channelnames.emplace_back("Y");
 
+            // Go back and use the "real" resolution in sizes.width/height,
+            // not the "output" resolution in sizes.iwidth/iheight.
+            m_spec.width       = m_processor->imgdata.sizes.width;
+            m_spec.height      = m_processor->imgdata.sizes.height;
+            m_spec.full_width  = m_spec.width;
+            m_spec.full_height = m_spec.height;
+
             // Put the details about the filter pattern into the metadata
             std::string filter(
                 libraw_filter_to_str(m_processor->imgdata.idata.filters));
