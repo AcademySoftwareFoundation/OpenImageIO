@@ -213,6 +213,7 @@ jobs:
       CC: gcc
       CMAKE_CXX_STANDARD: 17
       PYTHON_VERSION: 3.9
+      PYBIND11_VERSION: v2.6.2
       USE_SIMD: avx2,f16c
     steps:
       - uses: actions/checkout@v2
