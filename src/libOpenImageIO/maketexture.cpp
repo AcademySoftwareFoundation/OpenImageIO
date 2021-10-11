@@ -179,8 +179,8 @@ interppixel_NDC_clamped(const ImageBuf& buf, float x, float y, float* pixel,
         // wrong will tend to over-represent the high latitudes in
         // low-res MIP levels.  We fold the area weighting into our
         // linear interpolation by adjusting yfrac.
-        int ynext = Imath::clamp(ytexel + 1, buf.ymin(), buf.ymax());
-        ytexel    = Imath::clamp(ytexel, buf.ymin(), buf.ymax());
+        int ynext = OIIO::clamp(ytexel + 1, buf.ymin(), buf.ymax());
+        ytexel    = OIIO::clamp(ytexel, buf.ymin(), buf.ymax());
         float w0  = (1.0f - yfrac)
                    * sinf((float)M_PI * (ytexel + 0.5f) / (float)fh);
         float w1 = yfrac * sinf((float)M_PI * (ynext + 0.5f) / (float)fh);

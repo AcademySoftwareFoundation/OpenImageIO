@@ -372,8 +372,8 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
     options.twrap = TextureOpt::WrapClamp;
 
     options.envlayout  = LayoutLatLong;
-    int actualchannels = Imath::clamp(spec.nchannels - options.firstchannel, 0,
-                                      nchannels);
+    int actualchannels = OIIO::clamp(spec.nchannels - options.firstchannel, 0,
+                                     nchannels);
 
     // Initialize results to 0.  We'll add from here on as we sample.
     for (int c = 0; c < nchannels; ++c)
@@ -498,8 +498,8 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
             if (filtwidth_ras <= 1) {
                 miplevel[0] = m - 1;
                 miplevel[1] = m;
-                levelblend  = Imath::clamp(2.0f * filtwidth_ras - 1.0f, 0.0f,
-                                          1.0f);
+                levelblend  = OIIO::clamp(2.0f * filtwidth_ras - 1.0f, 0.0f,
+                                         1.0f);
                 break;
             }
         }
