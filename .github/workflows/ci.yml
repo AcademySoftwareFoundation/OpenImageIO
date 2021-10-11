@@ -203,19 +203,17 @@ jobs:
             build/*/testsuite/*/*.*
             build/*/CMake*.{txt,log}
 
-  vfxplatform-2021-exr3:
-    # Test VFX Platform 2021, but with OpenEXR/Imath 3.x
-    name: "Linux VFX Platform 2021: gcc9/C++17 py3.7 boost1.73 exr3.1 ocio2.0 qt5.15"
+  vfxplatform-2022:
+    name: "Linux VFX Platform 2022: gcc9/C++17 py3.9 boost1.76 exr3.1 ocio2.1 qt5.15"
     runs-on: ubuntu-latest
     container:
-      image: aswf/ci-osl:2021
+      image: aswf/ci-osl:2022-clang11
     env:
       CXX: g++
       CC: gcc
       CMAKE_CXX_STANDARD: 17
-      PYTHON_VERSION: 3.7
+      PYTHON_VERSION: 3.9
       USE_SIMD: avx2,f16c
-      OPENEXR_VERSION: v3.1.1
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -235,8 +233,6 @@ jobs:
             src/build-scripts/ci-startup.bash
       - name: Dependencies
         run: |
-            sudo rm -rf /usr/local/include/OpenEXR
-            sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
             src/build-scripts/gh-installdeps.bash
       - name: Build
         run: |
@@ -387,7 +383,7 @@ jobs:
 
   linux-latest-releases:
     # Test against latest supported releases of toolchain and dependencies.
-    name: "Linux latest releases: gcc10 C++17 avx2 exr3.1 ocio2.1"
+    name: "Linux latest releases: gcc10 C++17 avx2 exr3.1 ocio2.0"
     runs-on: ubuntu-20.04
     env:
       CXX: g++-10
@@ -396,12 +392,12 @@ jobs:
       LIBRAW_VERSION: 0.20.2
       LIBTIFF_VERSION: v4.3.0
       OPENCOLORIO_VERSION: v2.1.0
-      OPENEXR_VERSION: v3.1.1
+      OPENEXR_VERSION: v3.1.2
       PUGIXML_VERSION: v1.11.4
       PTEX_VERSION: v2.4.0
-      PYBIND11_VERSION: v2.7.0
+      PYBIND11_VERSION: v2.8.0
       PYTHON_VERSION: 3.8
-      WEBP_VERSION: v1.1.0
+      WEBP_VERSION: v1.2.1
       MY_CMAKE_FLAGS: -DBUILD_FMT_VERSION=8.0.0
       USE_OPENVDB: 0
       # The old installed OpenVDB has a TLS conflict with Python 3.8
@@ -442,7 +438,7 @@ jobs:
   linux-bleeding-edge:
     # Test against development master for relevant dependencies, latest
     # supported releases of everything else.
-    name: "Linux bleeding edge: gcc11 C++20 py38 avx2 OCIO/libtiff/exr master"
+    name: "Linux bleeding edge: gcc11 C++20 py38 OCIO/libtiff/exr-master boost1.71 avx2"
     runs-on: ubuntu-20.04
     env:
       CXX: g++-11

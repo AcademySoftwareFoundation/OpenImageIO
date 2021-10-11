@@ -28,7 +28,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 2.7 (tested against 2.7, 3.6, 3.7, 3.8, 3.9)
-     * pybind11 >= 2.4.2 (Tested through 2.7.)
+     * pybind11 >= 2.4.2 (Tested through 2.8.)
      * NumPy
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.15 (tested 0.15 - 0.20; LibRaw >= 0.18 is necessary for
@@ -41,7 +41,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for Field3D files:
      * Field3D (tested through 1.7.3)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 (tested through 8.0) and Intel TBB >= 2018 (tested
+     * OpenVDB >= 5.0 (tested through 8.1) and Intel TBB >= 2018 (tested
        through 2021)
      * Note that OpenVDB 8.0+ requires C++14 or higher.
  * If you want support for converting to and from OpenCV data structures,
