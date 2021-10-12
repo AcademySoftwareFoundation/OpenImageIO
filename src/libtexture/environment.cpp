@@ -447,7 +447,8 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
 
     TextureOpt::MipMode mipmode = options.mipmode;
     bool aniso                  = (mipmode == TextureOpt::MipModeDefault
-                  || mipmode == TextureOpt::MipModeAniso);
+                  || mipmode == TextureOpt::MipModeAniso
+                  || mipmode == TextureOpt::MipModeStochasticAniso);
 
     float aspect, trueaspect, filtwidth;
     int nsamples;
@@ -612,6 +613,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle,
             opt.tblur  = options.tblur[i];
             opt.swidth = options.swidth[i];
             opt.twidth = options.twidth[i];
+            opt.rnd    = options.rnd[i];
             Imath::V3f R_(R[i], R[i + Tex::BatchWidth],
                           R[i + 2 * Tex::BatchWidth]);
             Imath::V3f dRdx_(dRdx[i], dRdx[i + Tex::BatchWidth],
