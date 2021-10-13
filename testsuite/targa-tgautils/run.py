@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 import OpenImageIO as oiio
+import os
+
+redirect = " >> out.txt 2>> out.err.txt"
 
 imagedir = OIIO_TESTSUITE_IMAGEDIR + "/targa"
 
@@ -20,4 +23,8 @@ for f in files:
         thumbname = f + ".tif"
         command += run_app(pythonbin + " src/extractthumb.py " + fin + " " + thumbname)
         outputs += [ thumbname ]
-outputs += [ 'out.txt' ]
+
+# Test corrupted file
+command += oiio_app("iconvert") + " -v src/crasher.tga crasher.exr " + redirect + " || true ;\n"
+
+outputs += [ 'out.txt', 'out.err.txt' ]
