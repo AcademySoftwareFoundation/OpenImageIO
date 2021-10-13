@@ -1,0 +1,2 @@
+iconvert ERROR copying "src/crasher.tga" to "crasher.exr" :
+	Read error on "src/crasher.tga": hit end of file

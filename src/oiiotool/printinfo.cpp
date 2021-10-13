@@ -113,7 +113,8 @@ dump_flat_data(std::ostream& out, ImageInput* input,
     const ImageSpec& spec(input->spec());
     std::vector<T> buf(spec.image_pixels() * spec.nchannels);
     if (!input->read_image(BaseTypeFromC<T>::value, &buf[0])) {
-        Strutil::print(out, "    dump data: could not read image\n");
+        Strutil::print(out, "    dump data Error: could not read image: {}\n",
+                       input->geterror());
         return false;
     }
     const T* ptr = &buf[0];

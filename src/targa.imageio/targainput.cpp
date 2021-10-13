@@ -12,6 +12,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/typedesc.h>
 
 #include "targa_pvt.h"
@@ -19,6 +20,16 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 using namespace TGA_pvt;
+
+#if 0 /* allow tga debugging */
+static bool tgadebug = Strutil::stoi(Sysutil::getenv("OIIO_TARGA_DEBUG"));
+#    define DBG(...)  \
+        if (tgadebug) \
+        Strutil::print(__VA_ARGS__)
+#else
+#    define DBG(...)
+#endif
+
 
 
 class TGAInput final : public ImageInput {
@@ -50,6 +61,9 @@ private:
     bool m_keep_unassociated_alpha;    ///< Do not convert unassociated alpha
     std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
 
+    // Is this a palette image, i.e. it has a color map?
+    bool is_palette() const { return m_tga.cmap_type != 0; }
+
     /// Reset everything to initial state
     ///
     void init()
@@ -72,14 +86,53 @@ private:
                              unsigned char* palette, int bytespp,
                              int palbytespp);
 
-    /// Helper: read, with error detection
-    ///
+    // Helper: read items, with error detection. This does not do any
+    // byte swapping! Upon error, issue error messag and return false.
     bool fread(void* buf, size_t itemsize, size_t nitems)
     {
         size_t n = ::fread(buf, itemsize, nitems, m_file);
-        if (n != nitems)
-            errorf("Read error");
+        if (n != nitems) {
+            if (feof(m_file))
+                errorfmt("Read error on \"{}\": hit end of file", m_filename);
+            else
+                errorfmt("Read error on \"{}\": could not read", m_filename);
+        }
         return n == nitems;
+    }
+
+    // Read one byte
+    bool read(uint8_t& buf) { return fread(&buf, sizeof(buf), 1); }
+
+    // Read one byte
+    bool read(char& buf) { return fread(&buf, sizeof(buf), 1); }
+
+    // Read a short, byte swap as necessary.
+    bool read(uint16_t& buf)
+    {
+        bool ok = fread(&buf, sizeof(buf), 1);
+        if (bigendian())  // TGAs are always little-endian
+            swap_endian(&buf);
+        return ok;
+    }
+
+    // Read an int, byte swap as necessary.
+    bool read(uint32_t& buf)
+    {
+        bool ok = fread(&buf, sizeof(buf), 1);
+        if (bigendian())  // TGAs are always little-endian
+            swap_endian(&buf);
+        return ok;
+    }
+
+    bool fseek(int64_t addr)
+    {
+        // Strutil::print("Seeking to {}\n", addr);
+        int r = Filesystem::fseek(m_file, addr, SEEK_SET);
+        if (r) {
+            errorfmt("Could not seek file \"{}\" to offset {}", m_filename,
+                     addr);
+        }
+        return (r == 0);
     }
 };
 
@@ -113,54 +166,29 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
 {
     m_filename = name;
 
+    DBG("TGA opening {}\n", name);
     m_file = Filesystem::fopen(name, "rb");
     if (!m_file) {
         errorf("Could not open file \"%s\"", name);
         return false;
     }
 
-    // due to struct packing, we may get a corrupt header if we just load the
-    // struct from file; to address that, read every member individually
-    // save some typing
-#define RH(memb)                                    \
-    if (!fread(&m_tga.memb, sizeof(m_tga.memb), 1)) \
-    return false
-
-    RH(idlen);
-    RH(cmap_type);
-    RH(type);
-    RH(cmap_first);
-    RH(cmap_length);
-    RH(cmap_size);
-    RH(x_origin);
-    RH(y_origin);
-    RH(width);
-    RH(height);
-    RH(bpp);
-    RH(attr);
-#undef RH
-    if (bigendian()) {
-        // TGAs are little-endian
-        swap_endian(&m_tga.idlen);
-        swap_endian(&m_tga.cmap_type);
-        swap_endian(&m_tga.type);
-        swap_endian(&m_tga.cmap_first);
-        swap_endian(&m_tga.cmap_length);
-        swap_endian(&m_tga.cmap_size);
-        swap_endian(&m_tga.x_origin);
-        swap_endian(&m_tga.y_origin);
-        swap_endian(&m_tga.width);
-        swap_endian(&m_tga.height);
-        swap_endian(&m_tga.bpp);
-        swap_endian(&m_tga.attr);
-    }
-
-    if (m_tga.bpp != 8 && m_tga.bpp != 15 && m_tga.bpp != 16 && m_tga.bpp != 24
-        && m_tga.bpp != 32) {
-        errorf("Illegal pixel size: %d bits per pixel", m_tga.bpp);
+    // Due to struct packing, we may get a corrupt header if we just load the
+    // struct from file; to address that, read every member individually save
+    // some typing. Byte swapping is done automatically. If any fail, the file
+    // handle is closed and we return false from open().
+    if (!(read(m_tga.idlen) && read(m_tga.cmap_type) && read(m_tga.type)
+          && read(m_tga.cmap_first) && read(m_tga.cmap_length)
+          && read(m_tga.cmap_size) && read(m_tga.x_origin)
+          && read(m_tga.y_origin) && read(m_tga.width) && read(m_tga.height)
+          && read(m_tga.bpp) && read(m_tga.attr))) {
         return false;
     }
 
+    if (m_tga.cmap_type != 0 && m_tga.cmap_type != 1) {
+        errorfmt("Illegal cmap_type value {} in header", m_tga.cmap_type);
+        return false;
+    }
     if (m_tga.type == TYPE_NODATA) {
         errorf("Image with no data");
         return false;
@@ -171,8 +199,13 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         errorf("Illegal image type: %d", m_tga.type);
         return false;
     }
+    if (m_tga.bpp != 8 && m_tga.bpp != 15 && m_tga.bpp != 16 && m_tga.bpp != 24
+        && m_tga.bpp != 32) {
+        errorf("Illegal pixel size: %d bits per pixel", m_tga.bpp);
+        return false;
+    }
 
-    if (m_tga.cmap_type
+    if (is_palette()
         && (m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE)) {
         // it should be an error for TYPE_RGB* as well, but apparently some
         // *very* old TGAs can be this way, so we'll hack around it
@@ -180,7 +213,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    if (m_tga.cmap_type
+    if (is_palette()
         && (m_tga.cmap_size != 15 && m_tga.cmap_size != 16
             && m_tga.cmap_size != 24 && m_tga.cmap_size != 32)) {
         errorf("Illegal palette entry size: %d bits", m_tga.cmap_size);
@@ -195,7 +228,6 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         m_alpha_type = (m_tga.attr & 0x08) > 0 ? TGA_ALPHA_USEFUL
                                                : TGA_ALPHA_NONE;
     }
-
 
     m_spec = ImageSpec(
         (int)m_tga.width, (int)m_tga.height,
@@ -239,29 +271,27 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
 
     // now try and see if it's a TGA 2.0 image
     // TGA 2.0 files are identified by a nifty "TRUEVISION-XFILE.\0" signature
-    Filesystem::fseek(m_file, -26, SEEK_END);
-    if (fread(&m_foot.ofs_ext, sizeof(m_foot.ofs_ext), 1)
-        && fread(&m_foot.ofs_dev, sizeof(m_foot.ofs_dev), 1)
+    if (Filesystem::fseek(m_file, -26, SEEK_END) != 0) {
+        errorfmt("Could not seek to find the TGA 2.0 signature.");
+        return false;
+    }
+    if (read(m_foot.ofs_ext) && read(m_foot.ofs_dev)
         && fread(&m_foot.signature, sizeof(m_foot.signature), 1)
         && !strncmp(m_foot.signature, "TRUEVISION-XFILE.", 17)) {
         //std::cerr << "[tga] this is a TGA 2.0 file\n";
-        if (bigendian()) {
-            swap_endian(&m_foot.ofs_ext);
-            swap_endian(&m_foot.ofs_dev);
-        }
 
         // read the extension area
-        Filesystem::fseek(m_file, m_foot.ofs_ext, SEEK_SET);
+        if (!fseek(m_foot.ofs_ext)) {
+            return false;
+        }
         // check if this is a TGA 2.0 extension area
         // according to the 2.0 spec, the size for valid 2.0 files is exactly
         // 495 bytes, and the reader should only read as much as it understands
         // for < 495, we ignore this section of the file altogether
         // for > 495, we only read what we know
         uint16_t s;
-        if (!fread(&s, 2, 1))
+        if (!read(s))
             return false;
-        if (bigendian())
-            swap_endian(&s);
         //std::cerr << "[tga] extension area size: " << s << "\n";
         if (s >= 495) {
             union {
@@ -334,7 +364,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 // tack on the version number and letter
                 uint16_t n;
                 char l;
-                if (!fread(&n, 2, 1) || !fread(&l, 1, 1))
+                if (!read(n) || !read(l))
                     return false;
                 sprintf((char*)&buf.c[strlen((char*)buf.c)], " %u.%u%c",
                         n / 100, n % 100, l != ' ' ? l : 0);
@@ -381,23 +411,19 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             }
 
             // offset to colour correction table
-            if (!fread(&buf.l, 4, 1))
+            if (!read(buf.l))
                 return false;
-            if (bigendian())
-                swap_endian(&buf.l);
             m_ofs_colcorr_tbl = buf.l;
             /*std::cerr << "[tga] colour correction table offset: "
                       << (int)m_ofs_colcorr_tbl << "\n";*/
 
             // offset to thumbnail
-            if (!fread(&buf.l, 4, 1))
+            if (!read(buf.l))
                 return false;
-            if (bigendian())
-                swap_endian(&buf.l);
             m_ofs_thumb = buf.l;
 
             // offset to scan-line table
-            if (!fread(&buf.l, 4, 1))
+            if (!read(buf.l))
                 return false;
             // TODO: can we find any use for this? we can't advertise random
             // access anyway, because not all RLE-compressed files will have
@@ -414,7 +440,9 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             // says its dimensions, but don't read and decode it unless
             // thumbnail() is called.
             if (m_ofs_thumb > 0) {
-                Filesystem::fseek(m_file, m_ofs_thumb, SEEK_SET);
+                if (!fseek(m_ofs_thumb)) {
+                    return false;
+                }
                 // Read the thumbnail dimensions -- sometimes it's 0x0 to
                 // indicate no thumbnail.
                 unsigned char res[2];
@@ -435,9 +463,12 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             m_spec.attribute("oiio:UnassociatedAlpha", 1);
 
     // Reposition back to where the palette starts
-    Filesystem::fseek(m_file, ofs, SEEK_SET);
+    if (!fseek(ofs)) {
+        return false;
+    }
 
     newspec = spec();
+    DBG("TGA completed opening {}\n", name);
     return true;
 }
 
@@ -465,7 +496,9 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
     bool result         = false;
     int64_t save_offset = Filesystem::ftell(m_file);
 
-    Filesystem::fseek(m_file, m_ofs_thumb, SEEK_SET);
+    if (!fseek(m_ofs_thumb)) {
+        return false;
+    }
 
     // Read the thumbnail dimensions -- sometimes it's 0x0 to indicate no
     // thumbnail.
@@ -484,12 +517,16 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
             alphabits = 8;
         // read palette, if there is any
         std::unique_ptr<unsigned char[]> palette;
-        if (m_tga.cmap_type) {
-            Filesystem::fseek(m_file, m_ofs_palette, SEEK_SET);
+        if (is_palette()) {
+            if (!fseek(m_ofs_palette)) {
+                return false;
+            }
             palette.reset(new unsigned char[palbytespp * m_tga.cmap_length]);
             if (!fread(palette.get(), palbytespp, m_tga.cmap_length))
                 return false;
-            Filesystem::fseek(m_file, m_ofs_thumb + 2, SEEK_SET);
+            if (!fseek(m_ofs_thumb + 2)) {
+                return false;
+            }
         }
         // load pixel data
         unsigned char pixel[4];
@@ -507,7 +544,9 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
         result = true;
     }
 
-    Filesystem::fseek(m_file, save_offset, SEEK_SET);
+    if (!fseek(save_offset)) {
+        return false;
+    }
     return result;
 }
 
@@ -642,6 +681,7 @@ associateAlpha(T* data, int64_t size, int channels, int alpha_channel,
 bool
 TGAInput::readimg()
 {
+    DBG("TGA readimg {}\n", m_filename);
     // how many bytes we actually read
     // for 15-bit read 2 bytes and ignore the 16th bit
     int bytespp    = (m_tga.bpp == 15) ? 2 : (m_tga.bpp / 8);
@@ -655,13 +695,22 @@ TGAInput::readimg()
               << " alphabits = " << alphabits
               << "\n";*/
 
-    m_buf.resize(m_spec.image_bytes());
+    try {
+        DBG("TGA {} allocating for {}x{} {}-chan image = {}\n", m_filename,
+            m_spec.width, m_spec.height, m_spec.nchannels,
+            m_spec.image_bytes());
+        m_buf.resize(m_spec.image_bytes());
+    } catch (const std::exception& e) {
+        errorfmt("Cannot allocate enough memory for {}x{} {}-chan image {}",
+                 m_spec.width, m_spec.height, m_spec.nchannels, m_filename);
+        return false;
+    }
 
     // read palette, if there is any
-    unsigned char* palette = NULL;
-    if (m_tga.cmap_type) {
-        palette = new unsigned char[palbytespp * m_tga.cmap_length];
-        if (!fread(palette, palbytespp, m_tga.cmap_length))
+    std::unique_ptr<unsigned char> palette;
+    if (is_palette()) {
+        palette.reset(new unsigned char[palbytespp * m_tga.cmap_length]);
+        if (!fread(palette.get(), palbytespp, m_tga.cmap_length))
             return false;
     }
 
@@ -673,7 +722,7 @@ TGAInput::readimg()
             for (int64_t x = 0; x < m_spec.width; x++) {
                 if (!fread(in, bytespp, 1))
                     return false;
-                decode_pixel(in, pixel, palette, bytespp, palbytespp);
+                decode_pixel(in, pixel, palette.get(), bytespp, palbytespp);
                 memcpy(&m_buf[y * m_spec.width * m_spec.nchannels
                               + x * m_spec.nchannels],
                        pixel, m_spec.nchannels);
@@ -685,13 +734,15 @@ TGAInput::readimg()
         int packet_size;
         for (int64_t y = m_spec.height - 1; y >= 0; y--) {
             for (int64_t x = 0; x < m_spec.width; x++) {
-                if (!fread(in, 1 + bytespp, 1))
+                if (!fread(in, 1 + bytespp, 1)) {
+                    DBG("Failed on scanline {}\n", y);
                     return false;
+                }
                 packet_size = 1 + (in[0] & 0x7f);
-                decode_pixel(&in[1], pixel, palette, bytespp, palbytespp);
+                decode_pixel(&in[1], pixel, palette.get(), bytespp, palbytespp);
                 if (in[0] & 0x80) {  // run length packet
-                    /*std::cerr << "[tga] run length packet "
-                              << packet_size << "\n";*/
+                    // std::cerr << "[tga] run length packet "
+                    //           << packet_size << "\n";
                     for (int i = 0; i < packet_size; i++) {
                         memcpy(&m_buf[y * m_spec.width * m_spec.nchannels
                                       + x * m_spec.nchannels],
@@ -709,8 +760,8 @@ TGAInput::readimg()
                         }
                     }
                 } else {  // non-rle packet
-                    /*std::cerr << "[tga] non-run length packet "
-                              << packet_size << "\n";*/
+                    // std::cerr << "[tga] non-run length packet "
+                    //           << packet_size << "\n";
                     for (int i = 0; i < packet_size; i++) {
                         memcpy(&m_buf[y * m_spec.width * m_spec.nchannels
                                       + x * m_spec.nchannels],
@@ -726,9 +777,11 @@ TGAInput::readimg()
                                     goto loop_break;
                             }
                             // skip the packet header byte
-                            if (!fread(&in[1], bytespp, 1))
+                            if (!fread(&in[1], bytespp, 1)) {
+                                DBG("Failed on scanline {}\n", y);
                                 return false;
-                            decode_pixel(&in[1], pixel, palette, bytespp,
+                            }
+                            decode_pixel(&in[1], pixel, palette.get(), bytespp,
                                          palbytespp);
                         }
                     }
@@ -738,10 +791,8 @@ TGAInput::readimg()
         }
     }
 
-    delete[] palette;
-
     // flip the image, if necessary
-    if (m_tga.cmap_type)
+    if (is_palette())
         bytespp = palbytespp;
     // Y-flipping is now done in read_native_scanline instead
     /*if (m_tga.attr & FLAG_Y_FLIP) {
@@ -784,6 +835,7 @@ TGAInput::readimg()
         }
     }
 
+    DBG("TGA completed readimg {}\n", m_filename);
     return true;
 }
 
@@ -811,8 +863,11 @@ TGAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (!seek_subimage(subimage, miplevel))
         return false;
 
-    if (m_buf.empty())
-        readimg();
+    if (m_buf.empty()) {
+        if (!readimg()) {
+            return false;
+        }
+    }
 
     if (m_tga.attr & FLAG_Y_FLIP)
         y = m_spec.height - y - 1;
