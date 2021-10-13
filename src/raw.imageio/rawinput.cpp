@@ -520,7 +520,7 @@ RawInput::open_raw(bool unpack, const std::string& name,
     // naively reads a raw image and slaps it into a framebuffer for
     // display, it will work just like a jpeg. More sophisticated users
     // might request a particular color space, like "ACES". Note that a
-    // request for "linear" will give you sRGB primaries with a linear
+    // request for "sRGB-linear" will give you sRGB primaries with a linear
     // response.
     std::string cs = config.get_string_attribute("raw:ColorSpace", "sRGB");
     if (Strutil::iequals(cs, "raw")) {
@@ -559,12 +559,34 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
 #else
-        errorf(
-            "raw:ColorSpace value of \"ACES\" is not supported by libRaw %d.%d.%d",
-            LIBRAW_MAJOR_VERSION, LIBRAW_MINOR_VERSION, LIBRAW_PATCH_VERSION);
+        errorfmt("raw:ColorSpace value of \"{}\" is not supported by libRaw {}",
+                 cs, LIBRAW_VERSION_STR);
         return false;
 #endif
-    } else if (Strutil::iequals(cs, "linear")) {
+    } else if (Strutil::iequals(cs, "DCI-P3")) {
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
+        // ACES linear
+        m_processor->imgdata.params.output_color = 7;
+        m_processor->imgdata.params.gamm[0]      = 1.0;
+        m_processor->imgdata.params.gamm[1]      = 1.0;
+#else
+        errorfmt("raw:ColorSpace value of \"{}\" is not supported by libRaw {}",
+                 cs, LIBRAW_VERSION_STR);
+        return false;
+#endif
+    } else if (Strutil::iequals(cs, "Rec2020")) {
+#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
+        // ACES linear
+        m_processor->imgdata.params.output_color = 8;
+        m_processor->imgdata.params.gamm[0]      = 1.0;
+        m_processor->imgdata.params.gamm[1]      = 1.0;
+#else
+        errorfmt("raw:ColorSpace value of \"{}\" is not supported by libRaw {}",
+                 cs, LIBRAW_VERSION_STR);
+        return false;
+#endif
+    } else if (Strutil::iequals(cs, "sRGB-linear")
+               || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
         // Request "sRGB" primaries, linear reponse
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0;
