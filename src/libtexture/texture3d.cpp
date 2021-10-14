@@ -168,8 +168,8 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
     if (options.rwrap == TextureOpt::WrapPeriodic && ispow2(spec.depth))
         options.rwrap = TextureOpt::WrapPeriodicPow2;
 
-    int actualchannels = Imath::clamp(spec.nchannels - options.firstchannel, 0,
-                                      nchannels);
+    int actualchannels = OIIO::clamp(spec.nchannels - options.firstchannel, 0,
+                                     nchannels);
 
     // Do the volume lookup in local space.
     Imath::V3f Plocal;

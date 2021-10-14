@@ -594,7 +594,7 @@ inline float
 TextureSystemImpl::anisotropic_aspect(float& majorlength, float& minorlength,
                                       TextureOpt& options, float& trueaspect)
 {
-    float aspect = Imath::clamp(majorlength / minorlength, 1.0f, 1.0e6f);
+    float aspect = OIIO::clamp(majorlength / minorlength, 1.0f, 1.0e6f);
     trueaspect   = aspect;
     if (aspect > options.anisotropic) {
         aspect = options.anisotropic;
