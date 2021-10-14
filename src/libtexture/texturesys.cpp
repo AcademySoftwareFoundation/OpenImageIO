@@ -759,7 +759,7 @@ TextureSystemImpl::get_texels(TextureHandle* texture_handle_,
     // doing anything more complicated (not to mention bug-prone) until
     // somebody reports this routine as being a bottleneck.
     int nchannels      = chend - chbegin;
-    int actualchannels = Imath::clamp(spec.nchannels - chbegin, 0, nchannels);
+    int actualchannels = OIIO::clamp(spec.nchannels - chbegin, 0, nchannels);
     int tile_chbegin = 0, tile_chend = spec.nchannels;
     if (spec.nchannels > m_max_tile_channels) {
         // For files with many channels, narrow the range we cache
@@ -1117,8 +1117,8 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         texturefile->subimageinfo(options.subimage));
     const ImageSpec& spec(texturefile->spec(options.subimage, 0));
 
-    int actualchannels = Imath::clamp(spec.nchannels - options.firstchannel, 0,
-                                      nchannels);
+    int actualchannels = OIIO::clamp(spec.nchannels - options.firstchannel, 0,
+                                     nchannels);
 
     // Figure out the wrap functions
     if (options.swrap == TextureOpt::WrapDefault)
@@ -1478,7 +1478,7 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
         if (filtwidth_ras <= 1.0f) {
             miplevel[0] = m - 1;
             miplevel[1] = m;
-            levelblend  = Imath::clamp(2.0f * filtwidth_ras - 1.0f, 0.0f, 1.0f);
+            levelblend  = OIIO::clamp(2.0f * filtwidth_ras - 1.0f, 0.0f, 1.0f);
             break;
         }
     }
@@ -1502,8 +1502,8 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
         int r = std::max(subinfo.spec(0).full_width,
                          subinfo.spec(0).full_height);
         if (minorlength * r < 0.5f) {
-            aspect = Imath::clamp(majorlength * r * 2.0f, 1.0f,
-                                  float(options.anisotropic));
+            aspect = OIIO::clamp(majorlength * r * 2.0f, 1.0f,
+                                 float(options.anisotropic));
         }
     }
     if (options.mipmode == TextureOpt::MipModeOneLevel) {
@@ -1976,7 +1976,7 @@ TextureSystemImpl::fade_to_pole(float t, float* accum, float& weight,
                                thread_info->tile, options.subimage, miplevel,
                                1);
     }
-    pole = Imath::clamp(pole, 0.0f, 1.0f);
+    pole = OIIO::clamp(pole, 0.0f, 1.0f);
     pole *= pole;  // squaring makes more pleasing appearance
     polecolor += options.firstchannel;
     for (int c = 0; c < nchannels; ++c)
