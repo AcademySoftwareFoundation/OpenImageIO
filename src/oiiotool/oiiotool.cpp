@@ -112,6 +112,7 @@ Oiiotool::clear_options()
     printstats         = false;
     dumpdata           = false;
     dumpdata_showempty = true;
+    dumpdata_C         = false;
     hash               = false;
     updatemode         = false;
     autoorient         = false;
@@ -517,6 +518,8 @@ set_dumpdata(cspan<const char*> argv)
     auto options          = ot.extract_options(command);
     ot.dumpdata           = true;
     ot.dumpdata_showempty = options.get_int("empty", 1);
+    ot.dumpdata_C_name    = options.get_string("C");
+    ot.dumpdata_C         = ot.dumpdata_C_name.size();
 }
 
 
@@ -5510,7 +5513,7 @@ getargs(int argc, char* argv[])
     ap.arg("--stats", &ot.printstats)
       .help("Print pixel statistics of all inputs files");
     ap.arg("--dumpdata")
-      .help("Print all pixel data values of input files (options: empty=0)")
+      .help("Print all pixel data values of input files (options: empty=1, C=arrayname)")
       .action(set_dumpdata);
     ap.arg("--hash", &ot.hash)
       .help("Print SHA-1 hash of each input image");

@@ -255,6 +255,10 @@ command += oiiotool ("--missingfile black box.tif missing.tif --over -o box_over
 # Test again using --missingfile checker
 command += oiiotool ("--missingfile checker box.tif missing.tif --over -o box_over_missing3.tif || true")
 
+# Test --dumpdata
+command += oiiotool ("--pattern fill:left=0,0,0:right=1,1,0 2x2 3 -d half -o dump.exr")
+command += oiiotool ("-echo dumpdata: --dumpdata dump.exr")
+command += oiiotool ("-echo dumpdata:C --dumpdata:C=data dump.exr")
 
 # To add more tests, just append more lines like the above and also add
 # the new 'feature.tif' (or whatever you call it) to the outputs list,

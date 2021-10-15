@@ -76,7 +76,8 @@ compute_sha1(Oiiotool& ot, ImageInput* input, int subimage)
 
 template<typename T>
 static void
-print_nums(std::ostream& out, int n, const T* val, string_view sep = " ")
+print_nums(std::ostream& out, int n, const T* val, string_view sep = " ",
+           bool C_formatting = false)
 {
     if (std::is_floating_point<T>::value || std::is_same<T, half>::value) {
         // Ensure uniform printing of NaN and Inf on all platforms
@@ -95,11 +96,11 @@ print_nums(std::ostream& out, int n, const T* val, string_view sep = " ")
         // not floating point -- print the int values, then float equivalents
         for (int i = 0; i < n; ++i)
             Strutil::print(out, "{}{}", i ? sep : "", val[i]);
-        Strutil::print(out, " (");
+        Strutil::print(out, " {}(", C_formatting ? "/* " : "");
         for (int i = 0; i < n; ++i)
             Strutil::print(out, "{}{}", i ? sep : "",
                            convert_type<T, float>(val[i]));
-        Strutil::print(out, ")");
+        Strutil::print(out, "){}", C_formatting ? " */" : "");
     }
 }
 
@@ -117,8 +118,22 @@ dump_flat_data(std::ostream& out, ImageInput* input,
                        input->geterror());
         return false;
     }
+    if (opt.dumpdata_C) {
+        if (spec.depth == 1 && spec.z == 0)
+            Strutil::print(out, "{}{} {}[{}][{}][{}] =\n{{\n", spec.format,
+                           spec.format.is_floating_point() ? "" : "_t",
+                           opt.dumpdata_C_name, spec.height, spec.width,
+                           spec.nchannels);
+        else
+            Strutil::print(out, "{}{} {}[{}][{}][{}][{}] =\n{{\n", spec.format,
+                           spec.format.is_floating_point() ? "" : "_t",
+                           opt.dumpdata_C_name, spec.depth, spec.height,
+                           spec.width, spec.nchannels);
+    }
     const T* ptr = &buf[0];
     for (int z = 0; z < spec.depth; ++z) {
+        if (opt.dumpdata_C && (spec.depth > 1 || spec.z != 0) && z == 0)
+            Strutil::print(out, " }} /* slice {} */\n", z);
         for (int y = 0; y < spec.height; ++y) {
             for (int x = 0; x < spec.width; ++x, ptr += spec.nchannels) {
                 if (!opt.dumpdata_showempty) {
@@ -129,15 +144,30 @@ dump_flat_data(std::ostream& out, ImageInput* input,
                         continue;
                 }
                 if (spec.depth > 1 || spec.z != 0)
-                    Strutil::print(out, "    Pixel ({}, {}, {}): ", x + spec.x,
-                                   y + spec.y, z + spec.z);
+                    Strutil::print(out, "  {}{} ({}, {}, {}): {}",
+                                   opt.dumpdata_C && x == 0 ? "{ " : "  ",
+                                   opt.dumpdata_C ? "/*" : "Pixel", x + spec.x,
+                                   y + spec.y, z + spec.z,
+                                   opt.dumpdata_C ? "*/ " : "");
                 else
-                    Strutil::print(out, "    Pixel ({}, {}): ", x + spec.x,
-                                   y + spec.y);
-                print_nums(out, spec.nchannels, ptr);
-                Strutil::print(out, "\n");
+                    Strutil::print(out, "  {}{} ({}, {}): {}",
+                                   opt.dumpdata_C && x == 0 ? "{ " : "  ",
+                                   opt.dumpdata_C ? "/*" : "Pixel", x + spec.x,
+                                   y + spec.y, opt.dumpdata_C ? "*/ { " : "");
+                print_nums(out, spec.nchannels, ptr,
+                           opt.dumpdata_C ? ", " : " ", opt.dumpdata_C);
+                Strutil::print(out, "{}{}\n",
+                               opt.dumpdata_C && x == (spec.width - 1) ? " }"
+                                                                       : "",
+                               opt.dumpdata_C ? " }," : "");
             }
         }
+        if (opt.dumpdata_C && (spec.depth > 1 || spec.z != 0)
+            && z == spec.depth - 1)
+            Strutil::print(out, " }}{}\n", z < spec.depth - 1 ? "," : "");
+    }
+    if (opt.dumpdata_C) {
+        Strutil::print(out, "}};\n");
     }
     return true;
 }
@@ -608,7 +638,9 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
             std::string orig_line0 = lines[0];
             if (current_subimage == 0) {
                 if (filename.size())
-                    lines[0] = format("{}{} : {}", filename, padding, lines[0]);
+                    lines[0] = format("{}{}{} : {}",
+                                      opt.dumpdata_C ? "// " : "", filename,
+                                      padding, lines[0]);
             } else
                 lines[0] = format(" subimage {:2}: {}", current_subimage,
                                   lines[0]);
@@ -719,9 +751,11 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
             else if (img)
                 mipspec = *img->spec(current_subimage, m);
             if (opt.filenameprefix)
-                Strutil::print(out, "{} : ", filename);
+                Strutil::print(out, "{}{} : ", opt.dumpdata_C ? "// " : "",
+                               filename);
             if (nmip > 1 && opt.subimages) {
-                Strutil::print(out, "    MIP {} of {} ({} x {}):\n", m, nmip,
+                Strutil::print(out, "{}    MIP {} of {} ({} x {}):\n",
+                               opt.dumpdata_C ? "// " : "", m, nmip,
                                mipspec.width, mipspec.height);
             }
             if (input)
