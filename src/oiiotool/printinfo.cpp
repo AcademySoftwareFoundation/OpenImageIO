@@ -89,7 +89,7 @@ print_nums(std::ostream& out, int n, const T* val, string_view sep = " ")
             else if (isinf(v))
                 Strutil::print(out, "inf");
             else
-                Strutil::print(out, "{.9f}", v);
+                Strutil::print(out, "{:.9f}", v);
         }
     } else {
         // not floating point -- print the int values, then float equivalents
