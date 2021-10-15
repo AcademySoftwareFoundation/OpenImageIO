@@ -2679,7 +2679,7 @@ inline bool parallel_convert_image(
            dst, dst_type, dst_xstride, dst_ystride, dst_zstride, nthreads);
 }
 
-/// Add random [-theramplitude,ditheramplitude] dither to the color channels
+/// Add random [-ditheramplitude,ditheramplitude] dither to the color channels
 /// of the image.  Dither will not be added to the alpha or z channel.  The
 /// image origin and dither seed values allow a reproducible (or variable)
 /// dither pattern.  If the strides are set to AutoStride, they will be
