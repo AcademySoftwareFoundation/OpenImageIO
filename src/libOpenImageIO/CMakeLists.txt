@@ -106,11 +106,11 @@ target_include_directories (OpenImageIO
                             PUBLIC
                                 ${CMAKE_INSTALL_FULL_INCLUDEDIR}
                                 ${IMATH_INCLUDES} ${OPENEXR_INCLUDES}
-                                ${OpenCV_INCLUDES}
                             PRIVATE
                                 ${ROBINMAP_INCLUDES}
                                 ${FREETYPE_INCLUDE_DIRS}
                             )
+target_include_directories (OpenImageIO SYSTEM PUBLIC ${OpenCV_INCLUDES})
 
 if (NOT BUILD_SHARED_LIBS)
     target_compile_definitions (OpenImageIO PUBLIC OIIO_STATIC_DEFINE=1)
