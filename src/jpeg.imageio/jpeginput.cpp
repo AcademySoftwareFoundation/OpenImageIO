@@ -299,9 +299,6 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         } else if (m->marker == (JPEG_APP0 + 1)
                    && !strcmp((const char*)m->data,
                               "http://ns.adobe.com/xap/1.0/")) {
-#ifndef NDEBUG
-            std::cerr << "Found APP1 XMP! length " << m->data_length << "\n";
-#endif
             std::string xml((const char*)m->data, m->data_length);
             decode_xmp(xml, m_spec);
         } else if (m->marker == (JPEG_APP0 + 13)
