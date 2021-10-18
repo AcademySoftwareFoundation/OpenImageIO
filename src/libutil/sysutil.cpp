@@ -131,7 +131,9 @@ Sysutil::memory_used(bool resident)
     else
         return 0;
 
-#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
+#elif defined(__FreeBSD__) || defined(__FreeBSD_kernel__) \
+    || defined(__NetBSD__) || defined(__OpenBSD__)
+
     // FIXME -- does somebody know a good method for figuring this out for
     // FreeBSD?
     return 0;  // Punt
