@@ -230,6 +230,11 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to memory rather than the file system.
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
 
 **Custom I/O Overrides**
 
@@ -670,6 +675,7 @@ ICO
 ICO is an image file format used for small images (usually icons) on
 Windows.  ICO files use the file extension :file:`.ico`.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -684,6 +690,24 @@ Windows.  ICO files use the file extension :file:`.ico`.
    * - ``ico:PNG``
      - int
      - if nonzero, will cause the ICO to be written out using PNG format.
+
+**Configuration settings for ICO output**
+
+When opening an ICO ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
 
 **Limitations**
 
@@ -723,6 +747,24 @@ IFF files are used by Autodesk Maya and use the file extension :file:`.iff`.
      - int
      - the true bits per sample of the IFF file.
 
+**Configuration settings for IFF output**
+
+When opening an IFF ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+
 
 
 |
@@ -750,7 +792,7 @@ also blessed by the Joint Photographic Experts Group that attempt to
 address some of these issues, such as JPEG-2000, but these do not have
 anywhere near the acceptance of the original JPEG/JFIF format.
 
-
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -801,8 +843,9 @@ control aspects of the writing itself:
      - Meaning
    * - ``oiio:dither``
      - int
-     - If nonzero and outputting UINT8 values in the file, will add a small
-       amount of random dither to combat the appearance of banding.
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
@@ -849,6 +892,7 @@ JPEG-2000 is not yet widely used, so OpenImageIO's support of it is
 preliminary.  In particular, we are not yet very good at handling the
 metadata robustly.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -862,6 +906,23 @@ metadata robustly.
      - specifies the JPEG-2000 stream format (``"none"`` or ``"jpc"``)
 
 
+**Configuration settings for JPEG-2000 output**
+
+When opening a JPEG-2000 ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
 
 
 |
@@ -1290,8 +1351,9 @@ control aspects of the writing itself:
        example by writing to a memory buffer.
    * - ``oiio:dither``
      - int
-     - If nonzero and outputting UINT8 values in the file, will add a small
-       amount of random dither to combat the appearance of banding
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
 
 **Custom I/O Overrides**
 
@@ -1342,6 +1404,8 @@ other than 1 or 3 channels, no tiles, no multi-image, no MIPmapping.
 It's not a smart choice unless you are sending your images back to the
 1980's via a time machine.
 
+**Attributes**
+
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1359,6 +1423,23 @@ It's not a smart choice unless you are sending your images back to the
        ASCII.  The PNM writer honors this attribute in the ImageSpec to
        determine whether to write an ASCII or binary file.
 
+**Configuration settings for PNM output**
+
+When opening a PNM ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
 
 
 |
@@ -1552,6 +1633,8 @@ originating from Wavefront Advanced Visualizer and used primarily by
 software developed at Wavefront.  RLA files commonly use the file extension
 :file:`.rla`.
 
+**Attributes**
+
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1630,6 +1713,23 @@ software developed at Wavefront.  RLA files commonly use the file extension
      - float
      - the gamma correction value (if specified).
 
+**Configuration settings for RLA output**
+
+When opening a RLA ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
 
 **Limitations**
 
@@ -1654,6 +1754,7 @@ The SGI format is sometimes used for legacy apps, but has little merit
 otherwise: no support for tiles, no MIPmaps, no multi-subimage, only 8- and
 16-bit integer pixels (no floating point), only 1-4 channels.
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -1669,6 +1770,23 @@ otherwise: no support for tiles, no MIPmaps, no multi-subimage, only 8- and
      - string
      - Image name.
 
+**Configuration settings for SGI output**
+
+When opening an SGI ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
 
 
 |
@@ -1718,6 +1836,7 @@ files use the file extension :file:`.tga`, or, much more rarely,
 :file:`.tpic`. The official Targa format specification may be found at:
 http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
 
+**Attributes**
 
 .. list-table::
    :widths: 30 10 65
@@ -1764,12 +1883,30 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
      - float
      - the gamma correction value (if specified).
 
-
 If the TGA file contains a thumbnail, its dimensions will be stored in the
 attributes ``"thumbnail_width"``, ``"thumbnail_height"``, and
 ``"thumbnail_nchannels"``, and the thumbnail pixels themselves will be
 retrievable via `ImageInput::get_thumbnail()` or `ImageBuf::thumbnail()` or
 `ImageCache::get_thumbnail()`.
+
+**Configuration settings for Targa output**
+
+When opening a Targa ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
+
 
 **Limitations**
 
@@ -1930,6 +2067,11 @@ aspects of the writing itself:
      - int
      - Requests a rescaling to a specific bits per sample (such as writing
        12-bit TIFFs).
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
    * - ``tiff:write_exif``
      - int
      - If zero, will not write any Exif data to the TIFF file. (The default
@@ -2145,6 +2287,8 @@ Webp
 WebP is an image file format developed by Google that is intended to be an
 open standard for lossy-compressed images for use on the web.
 
+**Attributes**
+
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2162,6 +2306,24 @@ open standard for lossy-compressed images for use on the web.
    * - ``gif:LoopCount``
      - int
      - Deprecated synonym for ``oiio:LoopCount``.
+
+**Configuration settings for WebP output**
+
+When opening a WebP ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:dither``
+     - int
+     - If nonzero and outputting UINT8 values in the file from a source of
+       higher bit depth, will add a small amount of random dither to combat
+       the appearance of banding.
 
 **Limitations**
 

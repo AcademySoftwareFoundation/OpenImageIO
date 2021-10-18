@@ -817,12 +817,47 @@ copy_image(int nchannels, int width, int height, int depth, const void* src,
 
 
 void
+add_bluenoise(int nchannels, int width, int height, int depth, float* data,
+              stride_t xstride, stride_t ystride, stride_t zstride,
+              float ditheramplitude, int alpha_channel, int z_channel,
+              unsigned int ditherseed, int chorigin, int xorigin, int yorigin,
+              int zorigin)
+{
+    ImageSpec::auto_stride(xstride, ystride, zstride, sizeof(float), nchannels,
+                           width, height);
+    char* plane = (char*)data;
+    for (int z = 0; z < depth; ++z, plane += zstride) {
+        char* scanline = plane;
+        for (int y = 0; y < height; ++y, scanline += ystride) {
+            char* pixel = scanline;
+            for (int x = 0; x < width; ++x, pixel += xstride) {
+                float* val = (float*)pixel;
+                for (int c = 0; c < nchannels; ++c, ++val) {
+                    int channel = c + chorigin;
+                    if (channel == alpha_channel || channel == z_channel)
+                        continue;
+                    float dither
+                        = pvt::bluenoise_4chan_ptr(x + xorigin, y + yorigin,
+                                                   z + zorigin, channel & (~3),
+                                                   ditherseed)[channel & 3];
+                    *val += ditheramplitude * (dither - 0.5f);
+                }
+            }
+        }
+    }
+}
+
+
+
+void
 add_dither(int nchannels, int width, int height, int depth, float* data,
            stride_t xstride, stride_t ystride, stride_t zstride,
            float ditheramplitude, int alpha_channel, int z_channel,
            unsigned int ditherseed, int chorigin, int xorigin, int yorigin,
            int zorigin)
 {
+#if OIIO_VERSION < OIIO_MAKE_VERSION(2, 4, 0)
+    // Old: uniform random noise
     ImageSpec::auto_stride(xstride, ystride, zstride, sizeof(float), nchannels,
                            width, height);
     char* plane = (char*)data;
@@ -847,6 +882,12 @@ add_dither(int nchannels, int width, int height, int depth, float* data,
             }
         }
     }
+#else
+    // New: Use blue noise for our dither
+    add_bluenoise(nchannels, width, height, depth, data, xstride, ystride,
+                  zstride, ditheramplitude, alpha_channel, z_channel,
+                  ditherseed, chorigin, xorigin, yorigin, zorigin);
+#endif
 }
 
 

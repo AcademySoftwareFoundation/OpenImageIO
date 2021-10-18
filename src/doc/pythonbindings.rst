@@ -2253,15 +2253,19 @@ Pattern generation
     Return an image of pseudorandom noise, or add pseudorandom noise
     to the specified region of existing region `dst`.
     
-    For noise type "uniform", the noise is uniformly distributed on the
-    range `[A,B)`. For noise "gaussian", the noise will have a normal
-    distribution with mean A and standard deviation B. For noise "salt", the
-    value A will be stored in a random set of pixels whose proportion (of
-    the overall image) is B. For all noise types, choosing different `seed`
-    values will result in a different pattern. If the `mono` flag is `True`,
-    a single noise value will be applied to all channels specified by `roi`,
-    but if `mono` is `False`, a separate noise value will be computed for
-    each channel in the region.
+    For noise type "white" (and its synonym "uniform"), the values are
+    uniformly distributed on the range `[A,B)` and independently chosen for
+    each pixel. For noise type "blue", the range will still be uniformly
+    distributed on `[A,B)` as with "white," except that the values have better
+    spectral properties for sampling and dithering purposes. For noise
+    "gaussian", the noise will have a normal distribution with mean A and
+    standard deviation B. For noise "salt", the value A will be stored in a
+    random set of pixels whose proportion (of the overall image) is B. 
+    
+    For all noise types, choosing different `seed` values will result in a
+    different pattern. If the `mono` flag is `True`, a single noise value will
+    be applied to all channels specified by `roi`, but if `mono` is `False`, a
+    separate noise value will be computed for each channel in the region.
 
     Example:
 
@@ -2269,7 +2273,7 @@ Pattern generation
 
         buf = ImageBuf(ImageSpec(640, 480, 3, oiio.UINT8))
         ImageBufAlgo.zero (buf)
-        ImageBufAlgo.noise (buf, 'uniform', 0.25, 0.75)
+        ImageBufAlgo.noise (buf, 'white', 0.25, 0.75)
 
 
 
