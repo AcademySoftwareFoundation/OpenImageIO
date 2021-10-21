@@ -3,7 +3,7 @@
 # https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
 
 cmake_minimum_required (VERSION 3.12)
-project (OpenImageIO VERSION 2.3.9.0
+project (OpenImageIO VERSION 2.3.9.1
          HOMEPAGE_URL "https://openimageio.org"
          LANGUAGES CXX C)
 set (PROJ_NAME OIIO)    # short name, caps
@@ -12,8 +12,13 @@ string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
 set (PROJECT_VERSION_RELEASE_TYPE "")   # "dev", "betaX", "RCY", ""
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
-set (${PROJECT_NAME}_SUPPORTED_RELEASE 1)  # Change to 1 for release branch
-set (${PROJECT_NAME}_DEV_RELEASE 0)  # Change to 0 for release branch
+option (${PROJECT_NAME}_SUPPORTED_RELEASE
+       "Set ON for supported release branch, OFF for master" ON)
+if (${PROJECT_NAME}_SUPPORTED_RELEASE)
+    set (${PROJECT_NAME}_DEV_RELEASE OFF)
+else ()
+    set (${PROJECT_NAME}_DEV_RELEASE ON)
+endif ()
 
 # Identify whether this is included as a subproject of something else
 if (NOT "${CMAKE_PROJECT_NAME}" STREQUAL "${PROJECT_NAME}")
