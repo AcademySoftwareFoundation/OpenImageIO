@@ -51,6 +51,8 @@ struct print_info_options {
     bool compute_stats      = false;
     bool dumpdata           = false;
     bool dumpdata_showempty = true;
+    bool dumpdata_C         = false;
+    std::string dumpdata_C_name;
     std::string metamatch;
     std::string nometamatch;
     std::string infoformat;
@@ -76,6 +78,7 @@ public:
     bool printstats;
     bool dumpdata;
     bool dumpdata_showempty;
+    bool dumpdata_C;
     bool hash;
     bool updatemode;
     bool autoorient;
@@ -91,6 +94,7 @@ public:
     bool eval_enable;              // Enable evaluation of expressions
     bool skip_bad_frames = false;  // Just skip a bad frame, don't exit
     bool nostderr        = false;  // If true, use stdout for errors
+    std::string dumpdata_C_name;
     std::string full_command_line;
     std::string printinfo_metamatch;
     std::string printinfo_nometamatch;
@@ -583,6 +587,8 @@ inline print_info_options::print_info_options(const Oiiotool& ot)
     , compute_stats(ot.printstats)
     , dumpdata(ot.dumpdata)
     , dumpdata_showempty(ot.dumpdata_showempty)
+    , dumpdata_C(ot.dumpdata_C)
+    , dumpdata_C_name(ot.dumpdata_C_name)
     , metamatch(ot.printinfo_metamatch)
     , nometamatch(ot.printinfo_nometamatch)
 {

@@ -1110,14 +1110,34 @@ These are all non-positional flags that affect how all images are read in the
 
 .. option:: --dumpdata
 
-    Print the numerical values of every pixel, for each input image as it is
-    read.
+    Print to the console the numerical values of every pixel, for each input
+    image as it is read.
 
     Optional appended modifiers include:
+
+    - `C=` *name* : If present, will cause the output of the data to be
+      in the correct syntax of declaring a C array with the given name.
+      (This was added in OpenImageIO v2.3.9.)
 
     - `empty=` *verbose* : If 0, will cause deep images to skip printing of
       information about pixels with no samples.
 
+    Examples::
+
+        $ oiiotool --dumpdata image.exr
+        image.exr       :  256 x  256, 4 channel, float openexr
+            Pixel (0, 0): 0.517036676 0.261921108 0.017822538 0.912108004
+            Pixel (1, 0): 0.653315008 0.527794302 0.359594107 0.277836263
+            ...
+
+        $ oiiotool --dumpdata:C=foo image.exr
+        // image.exr       :  256 x  256, 4 channel, float openexr
+        float foo[256][256][4] =
+        {
+            /* (0, 0): */ { 0.517036676, 0.261921108, 0.017822538, 0.912108004 },
+            /* (1, 0): */ { 0.653315008, 0.527794302, 0.359594107, 0.277836263 },
+            ...
+        };
 
 .. _sec-oiiotool-o:
 
