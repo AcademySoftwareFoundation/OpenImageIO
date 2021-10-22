@@ -512,8 +512,8 @@ Add other arbitrary metadata::
 
 
 
-Changing image boundaries
--------------------------
+Changing image boundaries and borders
+-------------------------------------
 
 Change the origin of the pixel data window::
 
@@ -540,6 +540,15 @@ and setting the display window to the new pixel data window::
 
     oiiotool in.exr --cut 128x128+900+300 -o out.exr
 
+Put a constant-color border around all sides of an image, without needing to
+know the resolution of the input image::
+
+    # BW: Border width
+    BW=40
+    COLOR=.2,.2,.2,1.0
+    oiiotool in.tif \
+        --pattern constant:color=$COLOR "{TOP.width+2*$BW}x{TOP.height+2*$BW}" "{TOP.nchannels}" --paste "+$BW+$BW" \
+        -o out.tif
 
 
 Scale the values in an image
