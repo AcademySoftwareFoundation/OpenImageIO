@@ -940,30 +940,41 @@ TextureSystemImpl::fill_gray_channels(const ImageSpec& spec, int nchannels,
     if (specchans == 1 && nchannels >= 3) {
         // Asked for RGB or RGBA, texture was just R...
         // copy the one channel to G and B
-        *(simd::vfloat4*)result = simd::shuffle<0, 0, 0, 3>(
-            *(simd::vfloat4*)result);
+        result[1] = result[0];
+        result[2] = result[0];
         if (dresultds) {
-            *(simd::vfloat4*)dresultds = simd::shuffle<0, 0, 0, 3>(
-                *(simd::vfloat4*)dresultds);
-            *(simd::vfloat4*)dresultdt = simd::shuffle<0, 0, 0, 3>(
-                *(simd::vfloat4*)dresultdt);
-            if (dresultdr)
-                *(simd::vfloat4*)dresultdr = simd::shuffle<0, 0, 0, 3>(
-                    *(simd::vfloat4*)dresultdr);
+            dresultds[1] = dresultds[0];
+            dresultds[2] = dresultds[0];
+            dresultdt[1] = dresultdt[0];
+            dresultdt[2] = dresultdt[0];
+            if (dresultdr) {
+                dresultdr[1] = dresultdr[0];
+                dresultdr[2] = dresultdr[0];
+            }
         }
     } else if (specchans == 2 && nchannels == 4 && spec.alpha_channel == 1) {
         // Asked for RGBA, texture was RA
         // Shuffle into RRRA
-        *(simd::vfloat4*)result = simd::shuffle<0, 0, 0, 1>(
-            *(simd::vfloat4*)result);
+        float a;
+        a         = result[1];
+        result[1] = result[0];
+        result[2] = result[0];
+        result[3] = a;
         if (dresultds) {
-            *(simd::vfloat4*)dresultds = simd::shuffle<0, 0, 0, 1>(
-                *(simd::vfloat4*)dresultds);
-            *(simd::vfloat4*)dresultdt = simd::shuffle<0, 0, 0, 1>(
-                *(simd::vfloat4*)dresultdt);
-            if (dresultdr)
-                *(simd::vfloat4*)dresultdr = simd::shuffle<0, 0, 0, 1>(
-                    *(simd::vfloat4*)dresultdr);
+            a            = dresultds[1];
+            dresultds[1] = dresultds[0];
+            dresultds[2] = dresultds[0];
+            dresultds[3] = a;
+            a            = dresultdt[1];
+            dresultdt[1] = dresultdt[0];
+            dresultdt[2] = dresultdt[0];
+            dresultdt[3] = a;
+            if (dresultdr) {
+                a            = dresultdr[1];
+                dresultdr[1] = dresultdr[0];
+                dresultdr[2] = dresultdr[0];
+                dresultdr[3] = a;
+            }
         }
     }
 }
