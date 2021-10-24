@@ -252,8 +252,8 @@ checker() -- make a checker pattern
 |
 
 
-noise() -- make a noise pattern
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Noise patterns
+^^^^^^^^^^^^^^
 
 .. doxygenfunction:: noise(string_view noisetype, float A = 0.0f, float B = 0.1f, bool mono = false, int seed = 0, ROI roi = {}, int nthreads = 0)
 ..
@@ -277,25 +277,36 @@ noise() -- make a noise pattern
   ..
 
   .. |noiseimg1| image:: figures/unifnoise1.jpg
+     :height: 1.25 in
+  .. |noiseimg2| image:: figures/bluenoise.jpg
+     :height: 1.25 in
+  .. |noiseimg3| image:: figures/tahoe-gauss.jpg
      :height: 1.5 in
-  .. |noiseimg2| image:: figures/tahoe-gauss.jpg
-     :height: 1.5 in
-  .. |noiseimg3| image:: figures/tahoe-pepper.jpg
+  .. |noiseimg4| image:: figures/tahoe-pepper.jpg
      :height: 1.5 in
 
   ..
 
-    +------------------------+------------------------+------------------------+
-    | |noiseimg1|            | |noiseimg2|            | |noiseimg3|            |
-    +------------------------+------------------------+------------------------+
-    | uniform noise          | gaussian noise added   | salt & pepper dropouts |
-    +------------------------+------------------------+------------------------+
+    +------------------------+------------------------+------------------------+------------------------+
+    | |noiseimg1|            | |noiseimg2|            | |noiseimg3|            | |noiseimg4|            |
+    +------------------------+------------------------+------------------------+------------------------+
+    | white noise            | blue noise             | gaussian noise added   | salt & pepper dropouts |
+    +------------------------+------------------------+------------------------+------------------------+
 
   Result-as-parameter version:
 
     .. doxygenfunction:: noise(ImageBuf &dst, string_view noisetype, float A = 0.0f, float B = 0.1f, bool mono = false, int seed = 0, ROI roi = {}, int nthreads = 0)
 
 |
+
+
+.. doxygenfunction:: bluenoise_image()
+..
+
+  Example::
+
+    const ImageBuf& A = ImageBufAlgo::bluenoise_image();
+
 
 
 Drawing shapes: points, lines, boxes

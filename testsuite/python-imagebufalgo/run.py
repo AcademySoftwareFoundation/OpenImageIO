@@ -19,6 +19,7 @@ command += pythonbin + " src/test_imagebufalgo.py > out.txt ;"
 # Checkout outputs -- some of the refs are in the oiiotool test dir
 outputs = ["black.tif", "filled.tif", "checker.tif",
            "noise-uniform3.tif", "noise-gauss.tif", "noise-salt.tif",
+           "noise-blue3.tif", "bluenoise_image3.tif",
            "chanshuffle.tif", "ch-rgba.exr", "ch-z.exr",
            "chappend-rgbaz.exr",
            "flat.exr", "deepen.exr",

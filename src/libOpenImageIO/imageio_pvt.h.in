@@ -126,6 +126,46 @@ private:
     std::string m_name;
 };
 
+
+// Access to an internal periodic blue noise table.
+OIIO_INLINE_CONSTEXPR int bntable_res = 256;
+extern float bluenoise_table[bntable_res][bntable_res][4];
+
+// 1-channel value lookup of periodic blue noise of a 2D coordinate.
+inline float
+bluenoise_1chan(int x, int y)
+{
+    x &= bntable_res - 1;
+    y &= bntable_res - 1;
+    return bluenoise_table[y][x][0];
+}
+
+// 4-channel pointer lookup of periodic blue noise of a 2D coordinate.
+inline const float*
+bluenoise_4chan_ptr(int x, int y)
+{
+    x &= bntable_res - 1;
+    y &= bntable_res - 1;
+    return bluenoise_table[y][x];
+}
+
+// 4-channel pointer lookup of periodic blue noise of 3D coordinate + seed +
+// channel channel number. The pointer is to the 4 floats of the mod 4 group
+// of channels, i.e. if ch=5, the pointer will be to the 4 floats representing
+// channels 4..7.
+inline const float*
+bluenoise_4chan_ptr(int x, int y, int z, int ch = 0, int seed = 0)
+{
+    if (z | (ch & ~3) | seed) {
+        x += bjhash::bjfinal(z, ch, seed);
+        y += bjhash::bjfinal(z, ch, seed + 83533);
+    }
+    x &= bntable_res - 1;
+    y &= bntable_res - 1;
+    return bluenoise_table[y][x];
+}
+
+
 }  // namespace pvt
 
 OIIO_NAMESPACE_END

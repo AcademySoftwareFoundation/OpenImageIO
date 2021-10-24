@@ -46,6 +46,10 @@ Comparing "noise-gauss.tif" and "../../../testsuite/oiiotool-pattern/ref/noise-g
 PASS
 Comparing "noise-salt.tif" and "../../../testsuite/oiiotool-pattern/ref/noise-salt.tif"
 PASS
+Comparing "noise-blue3.tif" and "ref/noise-blue3.tif"
+PASS
+Comparing "bluenoise_image3.tif" and "ref/bluenoise_image3.tif"
+PASS
 Comparing "chanshuffle.tif" and "../../../testsuite/oiiotool/ref/chanshuffle.tif"
 PASS
 Comparing "ch-rgba.exr" and "../../../testsuite/oiiotool/ref/ch-rgba.exr"

@@ -610,6 +610,31 @@ noise_salt_(ImageBuf& dst, float saltval, float saltportion, bool mono,
 
 
 
+template<typename T>
+static bool
+noise_blue_(ImageBuf& dst, float min, float max, bool mono, int seed, ROI roi,
+            int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        for (ImageBuf::Iterator<T> p(dst, roi); !p.done(); ++p) {
+            float n         = 0.0;
+            const float* bn = nullptr;
+            for (int c = roi.chbegin; c < roi.chend; ++c) {
+                if (c == roi.chbegin || !mono) {
+                    if (!bn || !(c & 3))
+                        bn = pvt::bluenoise_4chan_ptr(p.x(), p.y(), p.z(),
+                                                      roi.chbegin & ~3, seed);
+                    n = lerp(min, max, bn[c & 3]);
+                }
+                p[c] = p[c] + n;
+            }
+        }
+    });
+    return true;
+}
+
+
+
 bool
 ImageBufAlgo::noise(ImageBuf& dst, string_view noisetype, float A, float B,
                     bool mono, int seed, ROI roi, int nthreads)
@@ -622,8 +647,12 @@ ImageBufAlgo::noise(ImageBuf& dst, string_view noisetype, float A, float B,
         OIIO_DISPATCH_COMMON_TYPES(ok, "noise_gaussian", noise_gaussian_,
                                    dst.spec().format, dst, A, B, mono, seed,
                                    roi, nthreads);
-    } else if (noisetype == "uniform") {
+    } else if (noisetype == "white" || noisetype == "uniform") {
         OIIO_DISPATCH_COMMON_TYPES(ok, "noise_uniform", noise_uniform_,
+                                   dst.spec().format, dst, A, B, mono, seed,
+                                   roi, nthreads);
+    } else if (noisetype == "blue") {
+        OIIO_DISPATCH_COMMON_TYPES(ok, "noise_blue", noise_blue_,
                                    dst.spec().format, dst, A, B, mono, seed,
                                    roi, nthreads);
     } else if (noisetype == "salt") {
@@ -649,6 +678,29 @@ ImageBufAlgo::noise(string_view noisetype, float A, float B, bool mono,
     if (!ok && !result.has_error())
         result.errorfmt("noise error");
     return result;
+}
+
+
+
+namespace {
+// Helper: make an ImageSpec in the shape of the bluenosie_table, but don't
+// let it look like it's RGB, because it's just data.
+inline ImageSpec
+bnspec()
+{
+    ImageSpec spec(pvt::bntable_res, pvt::bntable_res, 4, TypeFloat);
+    spec.channelnames  = { "X", "Y", "Z", "W" };
+    spec.alpha_channel = -1;
+    return spec;
+}
+}  // namespace
+
+const ImageBuf&
+ImageBufAlgo::bluenoise_image()
+{
+    // This ImageBuf "wraps" the table.
+    static const ImageBuf img(bnspec(), pvt::bluenoise_table);
+    return img;
 }
 
 
