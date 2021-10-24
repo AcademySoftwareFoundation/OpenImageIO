@@ -16,7 +16,6 @@ if [[ "$ASWF_ORG" != ""  ]] ; then
 
     sudo yum install -y giflib giflib-devel && true
     sudo yum install -y opencv opencv-devel && true
-    sudo yum install -y Field3D Field3D-devel && true
     sudo yum install -y ffmpeg ffmpeg-devel && true
     if [[ "${EXTRA_DEP_PACKAGES}" != "" ]] ; then
         time sudo yum install -y ${EXTRA_DEP_PACKAGES}

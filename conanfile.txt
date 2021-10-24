@@ -18,7 +18,6 @@ tbb/2020.0
 # pybind11/2.4.3 - conan doesn't have this minimum version
 # dcmtk
 # ffmpeg
-# field3d
 # libheif
 # libraw
 # openvdb

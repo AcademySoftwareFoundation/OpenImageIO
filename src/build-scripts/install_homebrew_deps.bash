@@ -38,7 +38,6 @@ brew install --display-times -q tbb || true
 # brew install --display-times -q openvdb || true
 brew install --display-times -q opencv || true
 brew install --display-times -q qt@5
-brew install --display-times -q field3d || true
 
 echo ""
 echo "After brew installs:"
@@ -57,12 +56,6 @@ export PATH=/usr/local/opt/qt5/bin:$PATH ;
 export PATH=/usr/local/opt/python/libexec/bin:$PATH ;
 export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
 export PATH=/usr/local/opt/llvm/bin:$PATH ;
-
-# If field3d and hdf5 get even slightly out of sync, hdf5 will throw fits.
-# This is unnecessary, so we disable the step to make CI more likely to
-# pass in cases where they don't exactly match on the CI instances.
-export HDF5_DISABLE_VERSION_CHECK=1
-
 
 # Save the env for use by other stages
 src/build-scripts/save-env.bash

@@ -255,7 +255,6 @@ against dynamic libraries:
 * Boost © various authors. http://www.boost.org
 * GLEW © 2002-2007 Milan Ikits, et al. http://glew.sourceforge.net
 * Ptex © 2009 Disney Enterprises, Inc. http://ptex.us
-* Field3D © 2009 Sony Pictures Imageworks. https://github.com/imageworks/Field3D/
 * GIFLIB © 1997 Eric S. Raymond (MIT Licensed). http://giflib.sourceforge.net/
 * LibRaw © 2008-2013 LibRaw LLC (LGPL, CDDL, and LibRaw licenses).  http://www.libraw.org/
 * FFmpeg © various authors and distributed under LGPL. https://www.ffmpeg.org

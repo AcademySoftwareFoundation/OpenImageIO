@@ -262,9 +262,7 @@ test_all_formats()
         if (formatname == "null" || formatname == "socket"
             || formatname == "term")
             continue;
-        // Field3d very finicky. Skip for now. FIXME?
-        if (formatname == "field3d")
-            continue;
+
         auto extensions = Strutil::splitsv(fmtexts[1], ",");
         bool ok         = true;
 
