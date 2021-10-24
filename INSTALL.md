@@ -41,8 +41,6 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * **ffmpeg >= 3.0** (tested through 4.4)
  * If you want support for jpeg 2000 images:
      * **OpenJpeg >= 2.0** (tested through 2.4)
- * If you want support for Field3D files:
-     * Field3D (tested through 1.7.3)
  * If you want support for OpenVDB files:
      * OpenVDB >= 5.0 (tested through 8.1) and Intel TBB >= 2018 (tested
        through 2021)
@@ -73,6 +71,11 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
    may be required by some software distributions with policies against
    embedding other projects), then just build with `-DUSE_EXTERNAL_PUGIXML=1`.
    Any PugiXML >= 1.8 should be fine (we have tested through 1.11).
+ * If you want support for Field3D files:
+     * Field3D (tested through 1.7.3), *and* it must be explicitly enabled
+       by setting the CMake variable `-DENABLE_FIELD3D=1`.
+     * Note that Field3D support is deprecated and will be removed entirely
+       from OpenImageIO 2.4 and later.
 
 
 
