@@ -171,12 +171,14 @@ public:
     ///           consider `float` data. The default is zero, meaning that
     ///           image pixels are not forced to be `float` when in cache.
     /// - `int failure_retries` :
-    ///           When nonzero (the default), ImageCache accepts
-    ///           un-MIPmapped images as usual.  When set to zero,
-    ///           ImageCache will reject un-MIPmapped images with an error
-    ///           condition, as if the file could not be properly read. This
-    ///           is sometimes helpful for applications that want to enforce
-    ///           use of MIP-mapped images only. (Default: 1)
+    ///           When an image file is opened or a tile/scanline is read but
+    ///           a file error occurs, if this attribute is nonzero, it will
+    ///           try the operation again up to this many times before giving
+    ///           up and reporting a failure. Setting this to a small nonzero
+    ///           number (like 3) may help make an application more robust to
+    ///           occasional spurious networking or other glitches that would
+    ///           otherwise cause the entire long-running application to fail
+    ///           upon a single transient error. (Default: 0)
     /// - `int deduplicate` :
     ///           When nonzero, the ImageCache will notice duplicate images
     ///           under different names if their headers contain a SHA-1
