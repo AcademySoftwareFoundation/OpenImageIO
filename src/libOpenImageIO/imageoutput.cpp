@@ -400,7 +400,7 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
                      & (~3);  // Round up to 4-byte boundary
     OIIO_DASSERT((contiguoussize & 3) == 0);
     imagesize_t floatsize = rectangle_values * sizeof(float);
-    bool do_dither        = (dither && format.is_floating_point()
+    bool do_dither        = (dither && format.size() > 1
                       && m_spec.format.basetype == TypeDesc::UINT8);
     scratch.resize(contiguoussize + floatsize + native_rectangle_bytes);
 
@@ -439,12 +439,17 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
     }
 
     if (do_dither) {
+        // Note: We only dither if the intent is to convert from a floating
+        // point data type to uint8 or less.
         stride_t pixelsize = m_spec.nchannels * sizeof(float);
+        int bps            = m_spec["oiio:BitsPerSample"].get<int>(8);
+        int ditheramp      = 1 << (8 - bps);
         OIIO::add_dither(m_spec.nchannels, width, height, depth, (float*)buf,
                          pixelsize, pixelsize * stride_t(width),
                          pixelsize * stride_t(width) * stride_t(height),
-                         1.0f / 255.0f, m_spec.alpha_channel, m_spec.z_channel,
-                         dither, 0, xorigin, yorigin, zorigin);
+                         float(ditheramp) / 255.0f, m_spec.alpha_channel,
+                         m_spec.z_channel, dither, 0, xorigin, yorigin,
+                         zorigin);
     }
 
     // Convert from float to native format.

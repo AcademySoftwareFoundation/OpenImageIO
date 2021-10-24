@@ -2450,6 +2450,8 @@ declare_imagebufalgo(py::module& m)
                     "A"_a = 0.0f, "B"_a = 0.1f, "mono"_a = false, "seed"_a = 0,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
 
+        .def_static("bluenoise_image", &ImageBufAlgo::bluenoise_image)
+
         .def_static("channels", &IBA_channels, "dst"_a, "src"_a,
                     "channelorder"_a, "newchannelnames"_a = py::tuple(),
                     "shuffle_channel_names"_a = false, "nthreads"_a = 0)

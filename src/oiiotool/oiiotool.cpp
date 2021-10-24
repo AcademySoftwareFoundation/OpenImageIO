@@ -623,6 +623,18 @@ string_to_dataformat(const std::string& s, TypeDesc& dataformat, int& bits)
     } else if (s == "double") {
         dataformat = TypeDesc::DOUBLE;
         bits       = 0;
+    } else if (s == "uint6") {
+        dataformat = TypeDesc::UINT8;
+        bits       = 6;
+    } else if (s == "uint4") {
+        dataformat = TypeDesc::UINT8;
+        bits       = 4;
+    } else if (s == "uint2") {
+        dataformat = TypeDesc::UINT8;
+        bits       = 2;
+    } else if (s == "uint1") {
+        dataformat = TypeDesc::UINT8;
+        bits       = 1;
     }
 }
 
@@ -2947,7 +2959,7 @@ OIIOTOOL_OP(noise, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     if (type == "gaussian") {
         A = op.options().get_float("mean", 0.0f);
         B = op.options().get_float("stddev", 0.1f);
-    } else if (type == "uniform") {
+    } else if (type == "white" || type == "uniform") {
         A = op.options().get_float("min", 0.0f);
         B = op.options().get_float("max", 0.1f);
     } else if (type == "salt") {
@@ -3261,7 +3273,7 @@ action_pattern(int argc, const char* argv[])
         if (type == "gaussian") {
             A = options.get_float("mean", 0.5f);
             B = options.get_float("stddev", 0.1f);
-        } else if (type == "uniform") {
+        } else if (type == "white" || type == "uniform" || type == "blue") {
             A = options.get_float("min", 0.5f);
             B = options.get_float("max", 1.0f);
         } else if (type == "salt") {
@@ -5621,7 +5633,7 @@ getargs(int argc, char* argv[])
     ap.arg("--quality %d:QUALITY", &ot.output_quality)
       .hidden(); // DEPRECATED(2.1)
     ap.arg("--dither", &ot.output_dither)
-      .help("Add dither to 8-bit output");
+      .help("Add dither when writing <= 8-bit output from > 8 bit input");
     ap.arg("--planarconfig %s:CONFIG", &ot.output_planarconfig)
       .help("Force planarconfig (contig, separate, default)");
     ap.arg("--adjust-time", &ot.output_adjust_time)

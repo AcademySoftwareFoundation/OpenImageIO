@@ -70,16 +70,25 @@ try:
     write (b, "checker.tif", oiio.UINT8)
 
     # noise-uniform
-    b = ImageBufAlgo.noise ("uniform", 0.25, 0.75, roi=ROI(0,64,0,64,0,1,0,3))
+    b = ImageBufAlgo.noise ("white", 0.25, 0.75, roi=ROI(0,64,0,64,0,1,0,3))
     write (b, "noise-uniform3.tif", oiio.UINT8)
+
+    # noise-blue
+    b = ImageBufAlgo.noise ("blue", 0.25, 0.75, roi=ROI(0,64,0,64,0,1,0,3))
+    write (b, "noise-blue3.tif", oiio.UINT8)
 
     # noise-gaussian
     b = ImageBufAlgo.noise ("gaussian", 0.5, 0.1, roi=ROI(0,64,0,64,0,1,0,3));
     write (b, "noise-gauss.tif", oiio.UINT8)
 
-    # noise-gaussian
+    # noise-salt
     b = ImageBufAlgo.noise ("salt", 1, 0.01, roi=ROI(0,64,0,64,0,1,0,3));
     write (b, "noise-salt.tif", oiio.UINT8)
+
+    # bluenoise_image
+    b = ImageBufAlgo.bluenoise_image()
+    b = ImageBufAlgo.crop(b, ROI(0,64,0,64,0,1,0,3))
+    write (b, "bluenoise_image3.tif", oiio.UINT8)
 
     # channels, channel_append
     b = ImageBufAlgo.channels (grid, (0.25,2,"G"))

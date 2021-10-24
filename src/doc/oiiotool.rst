@@ -458,6 +458,21 @@ following command::
 
     oiiotool rgbaz.tif -d half -d Z=float -o rgbaz2.exr
 
+When converting from a high bit depth data type (like float or half) to a very
+low bit depth data type (such as uint8), you may notice "banding" artifacts in
+smooth gradients. To combat this, you can use the `--dither` option to add
+random dither before the low bit depth quantization, which has the effect of
+masking the banding::
+
+    oiiotool half.exr -d uint8 --dither -o out8.tif
+
+Note that `--dither` turns dither on for all 8 bit (or fewer) output
+files. Alternately, you can enable dither for individual outputs using
+a modifier to `-o` (the value of the dither modifier is the random seed
+that will be used)::
+
+    oiiotool half.exr -d uint8 -o:dither=1 out8.tif
+
 
 Changing the compression
 ------------------------
@@ -1167,7 +1182,9 @@ Writing images
         Set the bits per pixel (if nonstandard for the datatype) for this
         output image.
       `:dither=` *int*
-        Turn dither on or off for this output. (default: 0)
+        Turn dither on or off for this output. When writing floating point
+        data to an 8 bit or less data type in the file, dither can reduce
+        banding artifacts. (default: 0)
       `:autocc=` *int*
         Enable or disable `--autocc` for this output image (the default is
         to use the global setting).
@@ -1346,9 +1363,13 @@ Writing images
 
 .. option:: --dither
 
-    Turns on *dither* when outputting to 8-bit image files (does not affect
-    other data types). This adds just a bit of noise that reduces visible
-    banding artifacts.
+    Turns on *dither* when outputting to 8-bit or less image files (does not
+    affect other data types). This adds just a bit of noise that reduces
+    visible banding artifacts. The dither seed will be selected based on a
+    hash of the output filename, and therefore will be a different random
+    pattern for different files. It only has an effect when outputting to
+    a file of 8 or fewer bits per sample, and only when the data being
+    saved starts off with higher than 8 bit precision.
 
 .. option:: --planarconfig <config>
 
@@ -1913,14 +1934,16 @@ current top image.
       results in a 4-corner bilinear gradient.
     * `noise` : Create a noise image, with the option `:type=` specifying
       the kind of noise: (1) `gaussian` (default) for normal distribution
-      noise with mean and standard deviation given by `:mean=` and
-      `:stddev=`, respectively (defaulting to 0 and 0.1); (2) `uniform` for
-      uniformly-distributed noise over the range of values given by options
-      `:min=` and `:max=` (defaults: 0 and 0.1); (3) `salt` for ``salt and
-      pepper'' noise where a portion of pixels given by option `portion=`
-      (default: 0.1) is replaced with value given by option `value=`
-      (default: 0). For any of these noise types, the option `seed=` can be
-      used to change the random number seed and `mono=1` can be used to make
+      noise with mean and standard deviation given by `:mean=` and `:stddev=`,
+      respectively (defaulting to 0 and 0.1); (2) `white` (or `uniform`) for
+      uniformly-distributed white noise over the range of values given by
+      options `:min=` and `:max=` (defaults: 0 and 0.1); (3) `blue` for
+      uniformly-distributed blue noise over the range of values given by
+      options `:min=` and `:max=` (defaults: 0 and 0.1); (4) `salt` for "salt
+      and pepper" noise where a portion of pixels given by option `portion=`
+      (default: 0.1) is replaced with value given by option `value=` (default:
+      0). For any of these noise types, the option `seed=` can be used to
+      change the random number seed and `mono=1` can be used to make
       monochromatic noise (same value in all channels).
     
     Examples:
@@ -2201,13 +2224,15 @@ current top image.
 
     Alter the top image to introduce noise, with the option `:type=`
     specifying the kind of noise: (1) `gaussian` (default) for normal
-    distribution noise with mean and standard deviation given by `:mean=`
-    and `:stddev=`, respectively (defaulting to 0 and 0.1); (2) `uniform`
-    for uniformly-distributed noise over the range of values given by
-    options `:min=` and `:max=` (defaults: 0 and 0.1); (3) `salt` for "salt
-    and pepper" noise where a portion of pixels given by  option `portion=`
-    (default: 0.1) is replaced with value given by option `value=` (default:
-    0).
+    distribution noise with mean and standard deviation given by `:mean=` and
+    `:stddev=`, respectively (defaulting to 0 and 0.1); (2) `white` (or
+    `uniform`) for uniformly-distributed independent noise over the range of
+    values given by options `:min=` and `:max=` (defaults: 0 and 0.1); (3)
+    `blue` is also uniformly distributed between `:min=` and `:max=`
+    (defaults: 0 and 0.1), but rather than independent values, low frequencies
+    are supressed; (4) `salt` for "salt and pepper" noise where a portion of
+    pixels given by  option `portion=` (default: 0.1) is replaced with value
+    given by option `value=` (default: 0).
     
     Optional appended modifiers include:
 
@@ -2236,18 +2261,20 @@ current top image.
     ..
 
         .. |noiseimg1| image:: figures/unifnoise1.jpg
-           :height: 1.5 in
-        .. |noiseimg2| image:: figures/tahoe-gauss.jpg
-           :width: 2.0 in
-        .. |noiseimg3| image:: figures/tahoe-pepper.jpg
-           :width: 2.0 in
+           :height: 1.25 in
+        .. |noiseimg2| image:: figures/bluenoise.jpg
+           :height: 1.25 in
+        .. |noiseimg3| image:: figures/tahoe-gauss.jpg
+           :width: 1.75 in
+        .. |noiseimg4| image:: figures/tahoe-pepper.jpg
+           :width: 1.75 in
 
 
-    +------------------------+------------------------+------------------------+
-    | |noiseimg1|            | |noiseimg2|            | |noiseimg3|            |
-    +------------------------+------------------------+------------------------+
-    | uniform noise          | gaussian noise added   | salt & pepper dropouts |
-    +------------------------+------------------------+------------------------+
+    +------------------------+------------------------+------------------------+------------------------+
+    | |noiseimg1|            | |noiseimg2|            | |noiseimg3|            | |noiseimg4|            |
+    +------------------------+------------------------+------------------------+------------------------+
+    | white noise            | blue noise             | gaussian noise added   | salt & pepper dropouts |
+    +------------------------+------------------------+------------------------+------------------------+
 
 |
 
