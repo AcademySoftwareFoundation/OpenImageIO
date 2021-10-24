@@ -39,12 +39,17 @@ public:
     virtual bool seek_subimage(int subimage, int miplevel) override;
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
+    virtual bool read_scanline(int y, int z, TypeDesc format, void* data,
+                               stride_t xstride) override;
 
 private:
     std::string m_filename;
-    int m_subimage      = -1;
-    int m_num_subimages = 0;
-    int m_has_alpha     = false;
+    int m_subimage                 = -1;
+    int m_num_subimages            = 0;
+    int m_has_alpha                = false;
+    bool m_associated_alpha        = true;
+    bool m_keep_unassociated_alpha = false;
+    bool m_do_associate            = false;
     std::unique_ptr<heif::Context> m_ctx;
     heif_item_id m_primary_id;             // id of primary image
     std::vector<heif_item_id> m_item_ids;  // ids of all other images
@@ -108,7 +113,7 @@ HeifInput::open(const std::string& name, ImageSpec& newspec)
 
 bool
 HeifInput::open(const std::string& name, ImageSpec& newspec,
-                const ImageSpec& /*config*/)
+                const ImageSpec& config)
 {
     m_filename = name;
     m_subimage = -1;
@@ -116,6 +121,9 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
     m_ctx.reset(new heif::Context);
     m_himage  = heif::Image();
     m_ihandle = heif::ImageHandle();
+
+    m_keep_unassociated_alpha
+        = (config.get_int_attribute("oiio:UnassociatedAlpha") != 0);
 
     try {
         m_ctx->read_from_file(name);
@@ -155,8 +163,11 @@ HeifInput::close()
     m_himage  = heif::Image();
     m_ihandle = heif::ImageHandle();
     m_ctx.reset();
-    m_subimage      = -1;
-    m_num_subimages = 0;
+    m_subimage                = -1;
+    m_num_subimages           = 0;
+    m_associated_alpha        = true;
+    m_keep_unassociated_alpha = false;
+    m_do_associate            = false;
     return true;
 }
 
@@ -199,6 +210,27 @@ HeifInput::seek_subimage(int subimage, int miplevel)
                        TypeUInt8);
 
     m_spec.attribute("oiio:ColorSpace", "sRGB");
+
+#if LIBHEIF_HAVE_VERSION(1, 12, 0)
+    // Libheif >= 1.12 added API call to find out if the image is associated
+    // alpha (i.e. colors are premultiplied).
+    m_associated_alpha = m_himage.is_premultiplied_alpha();
+    m_do_associate     = (!m_associated_alpha && m_spec.alpha_channel >= 0
+                      && !m_keep_unassociated_alpha);
+    if (!m_associated_alpha && m_spec.nchannels >= 4) {
+        // Indicate that file stored unassociated alpha data
+        m_spec.attribute("heif:UnassociatedAlpha", 1);
+        // If we don't have 4 chans, we need not consider
+        m_keep_unassociated_alpha &= (m_spec.nchannels >= 4);
+        if (m_keep_unassociated_alpha) {
+            // Indicate that we are returning unassociated data if the file
+            // had associated and we were asked to keep it that way.
+            m_spec.attribute("oiio:UnassociatedAlpha", 1);
+        }
+    }
+#else
+    m_associated_alpha = true;  // assume/hope
+#endif
 
     auto meta_ids = m_ihandle.get_list_of_metadata_block_IDs();
     // std::cout << "nmeta? " << meta_ids.size() << "\n";
@@ -269,5 +301,30 @@ HeifInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     return true;
 }
 
+
+
+bool
+HeifInput::read_scanline(int y, int z, TypeDesc format, void* data,
+                         stride_t xstride)
+{
+    bool ok = ImageInput::read_scanline(y, z, format, data, xstride);
+    if (ok && m_do_associate) {
+        // If alpha is unassociated and we aren't requested to keep it that
+        // way, multiply the colors by alpha per the usual OIIO conventions
+        // to deliver associated color & alpha.  Any auto-premultiplication
+        // by alpha should happen after we've already done data format
+        // conversions. That's why we do it here, rather than in
+        // read_native_blah.
+        {
+            lock_guard lock(*this);
+            if (format == TypeUnknown)  // unknown -> retrieve native type
+                format = m_spec.format;
+        }
+        OIIO::premult(m_spec.nchannels, m_spec.width, 1, 1, 0 /*chbegin*/,
+                      m_spec.nchannels /*chend*/, format, data, xstride,
+                      AutoStride, AutoStride, m_spec.alpha_channel);
+    }
+    return ok;
+}
 
 OIIO_PLUGIN_NAMESPACE_END
