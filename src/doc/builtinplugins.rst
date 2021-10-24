@@ -639,11 +639,30 @@ currently supported for reading, but not yet writing. All pixel data is
 uint8, though we hope to add support for HDR (more than 8 bits) in the
 future.
 
+**Configuration settings for HEIF input**
+
+When opening an HEIF ImageInput with a *configuration* (see
+Section :ref:`sec-inputwithconfig`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:UnassociatedAlpha``
+     - int
+     - If nonzero, and the file contains unassociated alpha, this will
+       cause the reader to leave alpha unassociated (versus the default of
+       premultiplying color channels by alpha if the alpha channel is
+       unassociated).
+
 **Configuration settings for HEIF output**
 
 When opening an HEIF ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
-
 
 .. list-table::
    :widths: 30 10 65
@@ -1896,7 +1915,8 @@ options are supported:
      - Meaning
    * - ``oiio:UnassociatedAlpha``
      - int
-     - If nonzero, will leave alpha unassociated (versus the default of
+     - If nonzero, and the file contains unassociated alpha, this will
+       cause the reader to leave alpha unassociated (versus the default of
        premultiplying color channels by alpha if the alpha channel is
        unassociated).
    * - ``oiio:RawColor``
@@ -2128,10 +2148,12 @@ aware of:
      - The actual bits per sample in the file (may differ from `ImageSpec::format`).
    * - ``oiio:UnassociatedAlpha``
      - int
-     - Nonzero if the alpha channel contained "unassociated" alpha.
-
-
-
+     - Nonzero if the data returned by OIIO will have "unassociated" alpha.
+   * - ``tiff:UnassociatedAlpha``
+     - int
+     - Nonzero if the data in the file had "unassociated" alpha (even if using
+       the usual convention of returning associated alpha from the read
+       methods).
 
 
 
