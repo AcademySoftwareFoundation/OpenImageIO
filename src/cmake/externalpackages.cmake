@@ -176,12 +176,28 @@ checked_find_package (TBB 2017
 
 checked_find_package (DCMTK VERSION_MIN 3.6.1)  # For DICOM images
 checked_find_package (FFmpeg VERSION_MIN 3.0)
-checked_find_package (Field3D
-                      DEFINITIONS  -DUSE_FIELD3D=1)
 checked_find_package (GIF
                       VERSION_MIN 4
                       RECOMMEND_MIN 5.0
                       RECOMMEND_MIN_REASON "for stability and thread safety")
+
+# Field3D is obsolete and we're considering it deprecated. Allow it but only
+# if specifically requested. And disable if using a new OpenEXR/Imath that
+# is too new to be supported by Field3D.
+option (ENABLE_FIELD3D "Enable support for obsolete Field3D files" OFF)
+if (ENABLE_FIELD3D)
+    checked_find_package (Field3D
+                          DEFINITIONS  -DUSE_FIELD3D=1)
+    if (FIELD3D_FOUND)
+        if (OPENEXR_VERSION VERSION_LESS 3.0)
+            message (STATUS "${ColorYellow}WARNING Disabling Field3D because it is not compatible with OpenEXR ${OPENEXR_VERSION}.${ColorReset}")
+            unset (FIELD3D_FOUND)
+            add_definitions (-UUSE_FIELD3D)
+        else ()
+            message (STATUS "${ColorYellow}WARNING Field3D support is deprecated, and will be removed entirely from OpenImageIO >= 2.4.${ColorReset}")
+        endif ()
+    endif ()
+endif ()
 
 # For HEIF/HEIC/AVIF formats
 checked_find_package (Libheif VERSION_MIN 1.3

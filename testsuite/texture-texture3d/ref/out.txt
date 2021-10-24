@@ -1,0 +1,13 @@
+Created texture system
+Result of get_texture_info resolution = 1 33x33
+Result of get_texture_info channels = 1 1
+Result of get_texture_info channels = 1 1
+Result of get_texture_info data format = 1 float
+Result of get_texture_info datetime = 0 
+Result of get_texture_info averagecolor = no
+Result of get_texture_info averagealpha = no
+Result of get_texture_info constantcolor = no
+Texture type is 1 Volume Texture
+
+Testing 3d texture ../openvdb/src/sphere.vdb, output = out.exr
+Comparing "out.exr" and "ref/out.exr"

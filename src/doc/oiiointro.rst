@@ -255,7 +255,7 @@ against dynamic libraries:
 * Boost © various authors. http://www.boost.org
 * GLEW © 2002-2007 Milan Ikits, et al. http://glew.sourceforge.net
 * Ptex © 2009 Disney Enterprises, Inc. http://ptex.us
-* Field3D © 2009 Sony Pictures Imageworks. http://sites.google.com/site/field3d/
+* Field3D © 2009 Sony Pictures Imageworks. https://github.com/imageworks/Field3D/
 * GIFLIB © 1997 Eric S. Raymond (MIT Licensed). http://giflib.sourceforge.net/
 * LibRaw © 2008-2013 LibRaw LLC (LGPL, CDDL, and LibRaw licenses).  http://www.libraw.org/
 * FFmpeg © various authors and distributed under LGPL. https://www.ffmpeg.org
@@ -265,5 +265,5 @@ against dynamic libraries:
 * OpenJPEG © Universite catholique de Louvain (UCL), et al. Distributed under the BSD 2-clause license. https://github.com/uclouvain/openjpeg
 * OpenVDB © 2012-2018 DreamWorks Animation LLC, Mozilla Public License 2.0. https://www.openvdb.org/
 * Thread Building Blocks © Intel. Apache 2.0 license. https://www.threadingbuildingblocks.org/
-* libheif \copyright 2017-2018 Struktur AG (LGPL). https://github.com/strukturag/libheif
+* libheif © 2017-2018 Struktur AG (LGPL). https://github.com/strukturag/libheif
 

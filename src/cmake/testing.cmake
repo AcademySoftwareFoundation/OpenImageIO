@@ -266,7 +266,7 @@ macro (oiio_add_all_tests)
                         IMAGEDIR openexr-images
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
-    oiio_add_tests (openvdb
+    oiio_add_tests (openvdb texture-texture3d
                     FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
     oiio_add_tests (png
                     ENABLEVAR ENABLE_PNG
