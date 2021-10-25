@@ -11,8 +11,6 @@
 #include <regex>
 #include <string>
 
-#include <boost/tokenizer.hpp>
-
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/platform.h>
@@ -149,20 +147,27 @@ Filesystem::generic_filepath(string_view filepath) noexcept
 
 
 
+#if OIIO_VERSION_LESS(2, 4, 0)
+// For older versions, preserve this link-compatible entry point
 void
 Filesystem::searchpath_split(const std::string& searchpath,
                              std::vector<std::string>& dirs, bool validonly)
 {
-    dirs.clear();
+    dirs = searchpath_split(searchpath, validonly);
+}
+#endif
 
-    std::string path_copy = searchpath;
-    std::string last_token;
-    typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
-    boost::char_separator<char> sep(":;");
-    tokenizer tokens(searchpath, sep);
-    for (tokenizer::iterator tok_iter         = tokens.begin();
-         tok_iter != tokens.end(); last_token = *tok_iter, ++tok_iter) {
-        std::string path = *tok_iter;
+
+
+std::vector<std::string>
+Filesystem::searchpath_split(string_view searchpath, bool validonly)
+{
+    std::vector<std::string> dirs;
+
+    while (searchpath.size()) {
+        // Pluck the next path from the searchpath list
+        std::string path = Strutil::parse_until(searchpath, ":;");
+
 #ifdef _WIN32
         // On Windows, we might see something like "a:foo" and any human
         // would know that it means drive/directory 'a:foo', NOT
@@ -170,27 +175,27 @@ Filesystem::searchpath_split(const std::string& searchpath,
         // heuristic here.  Note that this means that we simply don't
         // correctly support searching in *relative* directories that
         // consist of a single letter.
-        if (last_token.length() == 1 && last_token[0] != '.') {
-            // If the last token was a single letter, try prepending it
-            path = last_token + ":" + (*tok_iter);
-        } else
+        if (path.size() == 1 && searchpath.size()
+            && searchpath.front() == ':') {
+            std::string drive = path;
+            searchpath.remove_prefix(1);  // eat the separator
+            path = drive + ":"
+                   + std::string(Strutil::parse_until(searchpath, ":;"));
+        }
 #endif
-            path = *tok_iter;
+        if (searchpath.size())
+            searchpath.remove_prefix(1);  // eat the separator
+
         // Kill trailing slashes (but not simple "/")
-        size_t len = path.length();
-        while (len > 1 && (path[len - 1] == '/' || path[len - 1] == '\\'))
+        size_t len = path.size();
+        while (len > 1 && (path.back() == '/' || path.back() == '\\'))
             path.erase(--len);
         // If it's a valid directory, or if validonly is false, add it
         // to the list
         if (!validonly || Filesystem::is_directory(path))
             dirs.push_back(path);
     }
-#if 0
-    std::cerr << "Searchpath = '" << searchpath << "'\n";
-    for (auto& d : dirs)
-        std::cerr << "\tPath = '" << d << "'\n";
-    std::cerr << "\n";
-#endif
+    return dirs;
 }
 
 
