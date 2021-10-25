@@ -1960,7 +1960,7 @@ awaiting a call to `reset()` or `copy()` before it is useful.
 
 
 
-.. py:method:: mageBuf.getchannel (x, y, z, channel, wrap="black")
+.. py:method:: ImageBuf.getchannel (x, y, z, channel, wrap="black")
 
     Retrieves just a single channel value from pixel (x,y,z) from the buffer
     and returns it as a `float` value.  The optional `wrap` parameter
@@ -2400,7 +2400,8 @@ Image transformations and data movement
                                       ("R", "G", "B", "A"))
 
 
-.. py:method:: ImageBuf ImageBufAlgo.channel_append (A, B, roi=ROI.All, nthreads=0) bool ImageBufAlgo.channel_append (dst, A, B, roi=ROI.All, nthreads=0)
+.. py:method:: ImageBuf ImageBufAlgo.channel_append (A, B, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.channel_append (dst, A, B, roi=ROI.All, nthreads=0)
 
     Append the channels of images `A` and `B` together into one image.
 
