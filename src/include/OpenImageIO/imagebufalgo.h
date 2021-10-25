@@ -416,12 +416,11 @@ ROI OIIO_API text_size (string_view text, int fontsize=16,
 ///             `src`.
 /// @param  shuffle_channel_names
 ///             If true, the channel names will be taken from the
-///             corresponding channels of the source image -- be careful
-///             with this, shuffling both channel ordering and their names
-///             could result in no semantic change at all, if you catch the
-///             drift. If false (the default), If false, the resulting `dst`
-///             image will have default channel names in the usual order
-///             ("R", "G", etc.), but i
+///             corresponding channels of the source image -- be careful with
+///             this, shuffling both channel ordering and their names could
+///             result in no semantic change at all, if you catch the drift.
+///             If false (the default), the resulting `dst` image will have
+///             default channel names in the usual order ("R", "G", etc.).
 ///
 ImageBuf OIIO_API channels (const ImageBuf &src,
                         int nchannels, cspan<int> channelorder,
