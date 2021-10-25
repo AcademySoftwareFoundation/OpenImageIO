@@ -1595,9 +1595,9 @@ options are supported:
      - string
      - Which color primaries to use for the returned pixel values: ``raw``,
        ``sRGB``, ``sRGB-linear`` (sRGB primaries, but a linear transfer
-       function), ``Adobe``, ``Wide``, ``ProPhoto``, ``XYZ``, ``ACES`` (only
-       supported by LibRaw >= 0.18), ``DCI-P3`` (LibRaw >= 0.21), ``Rec2020``
-       (LibRaw >= 0.2). (Default: ``sRGB``)
+       function), ``Adobe``, ``Wide``, ``ProPhoto``, ``ProPhoto-linear``,
+       ``XYZ``, ``ACES`` (only supported by LibRaw >= 0.18), ``DCI-P3``
+       (LibRaw >= 0.21), ``Rec2020`` (LibRaw >= 0.2). (Default: ``sRGB``)
    * - ``raw:Exposure``
      - float
      - Amount of exposure before de-mosaicing, from 0.25 (2 stop darken) to
