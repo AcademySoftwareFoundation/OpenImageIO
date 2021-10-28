@@ -542,6 +542,12 @@ RawInput::open_raw(bool unpack, const std::string& name,
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
         m_processor->imgdata.params.gamm[1]      = 12.92;
+    } else if (Strutil::iequals(cs, "sRGB-linear")
+               || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
+        // Request "sRGB" primaries, linear reponse
+        m_processor->imgdata.params.output_color = 1;
+        m_processor->imgdata.params.gamm[0]      = 1.0;
+        m_processor->imgdata.params.gamm[1]      = 1.0;
     } else if (Strutil::iequals(cs, "Adobe")) {
         // Request Adobe color space with 2.2 gamma (no linear toe)
         m_processor->imgdata.params.output_color = 2;
@@ -554,8 +560,13 @@ RawInput::open_raw(bool unpack, const std::string& name,
     } else if (Strutil::iequals(cs, "ProPhoto")) {
         // ProPhoto by convention has gamma 1.8
         m_processor->imgdata.params.output_color = 4;
-        m_processor->imgdata.params.gamm[0]      = 1.8;
+        m_processor->imgdata.params.gamm[0]      = 1.0 / 1.8;
         m_processor->imgdata.params.gamm[1]      = 0.0;
+    } else if (Strutil::iequals(cs, "ProPhoto-linear")) {
+        // Linear version of PhotoPro
+        m_processor->imgdata.params.output_color = 4;
+        m_processor->imgdata.params.gamm[0]      = 1.0;
+        m_processor->imgdata.params.gamm[1]      = 1.0;
     } else if (Strutil::iequals(cs, "XYZ")) {
         // XYZ linear
         m_processor->imgdata.params.output_color = 5;
@@ -594,12 +605,6 @@ RawInput::open_raw(bool unpack, const std::string& name,
                  cs, LIBRAW_VERSION_STR);
         return false;
 #endif
-    } else if (Strutil::iequals(cs, "sRGB-linear")
-               || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
-        // Request "sRGB" primaries, linear reponse
-        m_processor->imgdata.params.output_color = 1;
-        m_processor->imgdata.params.gamm[0]      = 1.0;
-        m_processor->imgdata.params.gamm[1]      = 1.0;
     } else {
         errorf("raw:ColorSpace set to unknown value \"%s\"", cs);
         return false;
