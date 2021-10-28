@@ -42,6 +42,7 @@ static std::string dataformatname = "half";
 static float sscale = 1, tscale = 1;
 static float sblur = 0, tblur = -1;
 static float width       = 1;
+static float widthramp   = 0;
 static float anisoaspect = 1.0;  // anisotropic aspect ratio
 static std::string wrapmodes("periodic");
 static int anisomax           = TextureOpt().anisotropic;
@@ -138,6 +139,8 @@ getargs(int argc, const char* argv[])
       .help("Add blur (s, t) to texture lookup");
     ap.arg("--width %f:WIDTH", &width)
       .help("Multiply filter width of texture lookup");
+    ap.arg("--widthramp %f:WIDTH", &widthramp)
+      .help("If set, ramp to this width on the right side");
     ap.arg("--fill %f:FILLVAL", &fill)
       .help("Set fill value for missing channels");
     ap.arg("--wrap %s:MODE", &wrapmodes)
@@ -578,6 +581,20 @@ plain_tex_region(ImageBuf& image, ustring filename, Mapping2D mapping,
         float s, t, dsdx, dtdx, dsdy, dtdy;
         mapping(p.x(), p.y(), s, t, dsdx, dtdx, dsdy, dtdy);
 
+        if (widthramp != 0.0f) {
+            // If widthramp is set, we want to blend between the set width
+            // and the ramp width from left to right.
+            opt.swidth = OIIO::lerp(width, widthramp, s);
+            opt.twidth = opt.swidth;
+        }
+        if (mipmode == TextureOpt::MipModeStochasticTrilinear
+            || mipmode == TextureOpt::MipModeStochasticAniso) {
+            // Hash the pixel coords to get a pseudo-random variant
+            constexpr float inv = 1.0f
+                                  / float(std::numeric_limits<uint32_t>::max());
+            opt.rnd = bjhash::bjfinal(p.x(), p.y()) * inv;
+        }
+
         // Call the texture system to do the filtering.
         bool ok;
         if (use_handle)
@@ -694,6 +711,26 @@ plain_tex_region_batch(ImageBuf& image, ustring filename, Mapping2DWide mapping,
         for (int x = roi.xbegin; x < roi.xend; x += BatchWidth) {
             FloatWide s, t, dsdx, dtdx, dsdy, dtdy;
             mapping(IntWide::Iota(x), y, s, t, dsdx, dtdx, dsdy, dtdy);
+
+            if (widthramp != 0.0f) {
+                // If widthramp is set, we want to blend between the set width
+                // and the ramp width from left to right.
+                for (int i = 0; i < BatchWidth; ++i) {
+                    opt.swidth[i] = OIIO::lerp(width, widthramp, s[i]);
+                    opt.twidth[i] = opt.swidth[i];
+                }
+            }
+            if (mipmode == TextureOpt::MipModeStochasticTrilinear
+                || mipmode == TextureOpt::MipModeStochasticAniso) {
+                // Hash the pixel coords to get a pseudo-random variant
+#if OIIO_VERSION_GREATER_EQUAL(2, 4, 0)
+                constexpr float inv
+                    = 1.0f / float(std::numeric_limits<uint32_t>::max());
+                for (int i = 0; i < BatchWidth; ++i)
+                    opt.rnd[i] = bjhash::bjfinal(x + i, y) * inv;
+#endif
+            }
+
             int npoints  = std::min(BatchWidth, roi.xend - x);
             RunMask mask = RunMaskOn >> (BatchWidth - npoints);
             // Call the texture system to do the filtering.

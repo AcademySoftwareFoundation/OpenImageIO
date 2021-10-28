@@ -161,6 +161,7 @@ macro (oiio_add_all_tests)
                     misnamed-file
                     texture-crop texture-cropover
                     texture-filtersize
+                    texture-filtersize-stochastic
                     texture-overscan
                     texture-wrapfill
                     texture-res texture-maxres
@@ -191,6 +192,8 @@ macro (oiio_add_all_tests)
                     texture-interp-closest
                     texture-mip-nomip texture-mip-onelevel
                     texture-mip-trilinear
+                    texture-mip-stochastictrilinear
+                    texture-mip-stochasticaniso
                     texture-missing
                     texture-pointsample
                     texture-udim texture-udim2
