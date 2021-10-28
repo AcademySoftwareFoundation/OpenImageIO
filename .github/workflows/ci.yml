@@ -550,6 +550,7 @@ jobs:
       PYTHON_VERSION: 3.7
       CMAKE_GENERATOR: "Visual Studio 16 2019"
       OPENEXR_VERSION: v2.5.6
+      USE_SIMD: sse4.2
       CTEST_ARGS: "--timeout 120 --repeat after-timeout:6"
     steps:
       - uses: actions/checkout@v2
