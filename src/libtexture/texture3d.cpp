@@ -112,6 +112,8 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
         &TextureSystemImpl::texture3d_lookup_nomip,
         &TextureSystemImpl::texture3d_lookup_trilinear_mipmap,
         &TextureSystemImpl::texture3d_lookup_trilinear_mipmap,
+        &TextureSystemImpl::texture3d_lookup,
+        &TextureSystemImpl::texture3d_lookup_trilinear_mipmap,
         &TextureSystemImpl::texture3d_lookup
     };
     texture3d_lookup_prototype lookup = lookup_functions[(int)options.mipmode];

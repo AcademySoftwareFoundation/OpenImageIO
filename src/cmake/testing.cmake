@@ -121,7 +121,7 @@ macro (oiio_add_tests)
                              "${_testsrcdir}" "${_testdir}" "${_ats_testdir}")
 
             # For texture tests, add a second test using batch mode as well.
-            if (_testname MATCHES "texture")
+            if (_testname MATCHES "texture" AND NOT EXISTS "${_testsrcdir}/NOBATCHED")
                 set (_testname ${_testname}.batch)
                 set (_testdir ${_testdir}.batch)
                 set (_runtest ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/testsuite/runtest.py" ${_testdir})
@@ -161,6 +161,7 @@ macro (oiio_add_all_tests)
                     misnamed-file
                     texture-crop texture-cropover
                     texture-filtersize
+                    texture-filtersize-stochastic
                     texture-overscan
                     texture-wrapfill
                     texture-res texture-maxres
@@ -191,6 +192,8 @@ macro (oiio_add_all_tests)
                     texture-interp-closest
                     texture-mip-nomip texture-mip-onelevel
                     texture-mip-trilinear
+                    texture-mip-stochastictrilinear
+                    texture-mip-stochasticaniso
                     texture-missing
                     texture-pointsample
                     texture-udim texture-udim2
@@ -234,8 +237,6 @@ macro (oiio_add_all_tests)
     oiio_add_tests (dpx
                     ENABLEVAR ENABLE_DPX
                     IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-    oiio_add_tests (field3d texture-field3d
-                    FOUNDVAR Field3D_FOUND ENABLEVAR ENABLE_FIELD3D)
     oiio_add_tests (fits
                     ENABLEVAR ENABLE_FITS
                     IMAGEDIR fits-images

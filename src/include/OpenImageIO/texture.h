@@ -20,6 +20,7 @@
 // features are supported.
 #define OIIO_TEXTURESYSTEM_SUPPORTS_CLOSE 1
 
+#define OIIO_TEXTURESYSTEM_SUPPORTS_STOCHASTIC 1
 
 
 OIIO_NAMESPACE_BEGIN
@@ -93,7 +94,9 @@ enum class MipMode {
     NoMIP,      ///< Just use highest-res image, no MIP mapping
     OneLevel,   ///< Use just one mipmap level
     Trilinear,  ///< Use two MIPmap levels (trilinear)
-    Aniso       ///< Use two MIPmap levels w/ anisotropic
+    Aniso,      ///< Use two MIPmap levels w/ anisotropic
+    StochasticTrilinear, ///< Stochastic trilinear
+    StochasticAniso, ///< Stochastic anisotropic
 };
 
 /// Interp mode determines how we sample within a mipmap level
@@ -102,7 +105,7 @@ enum class InterpMode {
     Closest,      ///< Force closest texel
     Bilinear,     ///< Force bilinear lookup within a mip level
     Bicubic,      ///< Force cubic lookup within a mip level
-    SmartBicubic  ///< Bicubic when maxifying, else bilinear
+    SmartBicubic  ///< Bicubic when magnifying, else bilinear
 };
 
 
@@ -190,7 +193,9 @@ public:
         MipModeNoMIP,      ///< Just use highest-res image, no MIP mapping
         MipModeOneLevel,   ///< Use just one mipmap level
         MipModeTrilinear,  ///< Use two MIPmap levels (trilinear)
-        MipModeAniso       ///< Use two MIPmap levels w/ anisotropic
+        MipModeAniso,      ///< Use two MIPmap levels w/ anisotropic
+        MipModeStochasticTrilinear, ///< Stochastic trilinear
+        MipModeStochasticAniso, ///< Stochastic anisotropic
     };
 
     /// Interp mode determines how we sample within a mipmap level
@@ -199,7 +204,7 @@ public:
         InterpClosest,      ///< Force closest texel
         InterpBilinear,     ///< Force bilinear lookup within a mip level
         InterpBicubic,      ///< Force cubic lookup within a mip level
-        InterpSmartBicubic  ///< Bicubic when maxifying, else bilinear
+        InterpSmartBicubic  ///< Bicubic when magnifying, else bilinear
     };
 
 
@@ -212,10 +217,8 @@ public:
         anisotropic(32), conservative_filter(true),
         sblur(0.0f), tblur(0.0f), swidth(1.0f), twidth(1.0f),
         fill(0.0f), missingcolor(nullptr),
-        // dresultds(nullptr), dresultdt(nullptr),
-        time(0.0f), bias(0.0f), samples(1),
-        rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f), // dresultdr(nullptr),
-        // actualchannels(0),
+        time(0.0f), rnd(0.0f), samples(1),
+        rwrap(WrapDefault), rblur(0.0f), rwidth(1.0f),
         envlayout(0)
     { }
 
@@ -237,7 +240,10 @@ public:
     float fill;                 ///< Fill value for missing channels
     const float* missingcolor;  ///< Color for missing texture
     float time;                 ///< Time (for time-dependent texture lookups)
-    float bias;                 ///< Bias for shadows
+    union {
+        float bias;                 ///< Bias for shadows (DEPRECATED?)
+        float rnd;                  ///< Stratified sample value
+    };
     int samples;                ///< Number of samples for shadows
 
     // For 3D volume texture lookups only:
@@ -291,6 +297,9 @@ public:
     alignas(Tex::BatchAlign) float twidth[Tex::BatchWidth];
     alignas(Tex::BatchAlign) float rwidth[Tex::BatchWidth];
     // Note: rblur,rwidth only used for volumetric lookups
+#if OIIO_VERSION_GREATER_EQUAL(2,4,0)
+    alignas(Tex::BatchAlign) float rnd[Tex::BatchWidth];
+#endif
 
     // Options that must be the same for all points we're texturing at once
     int firstchannel = 0;                 ///< First channel of the lookup
@@ -354,15 +363,17 @@ public:
         InterpClosest,      ///< Force closest texel
         InterpBilinear,     ///< Force bilinear lookup within a mip level
         InterpBicubic,      ///< Force cubic lookup within a mip level
-        InterpSmartBicubic  ///< Bicubic when maxifying, else bilinear
+        InterpSmartBicubic  ///< Bicubic when magnifying, else bilinear
     };
 
     /// Create a TextureOptions with all fields initialized to reasonable
     /// defaults.
+    OIIO_DEPRECATED("no longer used since OIIO 1.8")
     TextureOptions();
 
     /// Convert a TextureOpt for one point into a TextureOptions with
     /// uniform values.
+    OIIO_DEPRECATED("no longer used since OIIO 1.8")
     TextureOptions(const TextureOpt& opt);
 
     // Options that must be the same for all points we're texturing at once

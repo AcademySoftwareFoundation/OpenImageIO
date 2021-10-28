@@ -1085,6 +1085,8 @@ TextureSystemImpl::texture(TextureHandle* texture_handle_,
         &TextureSystemImpl::texture_lookup_nomip,
         &TextureSystemImpl::texture_lookup_trilinear_mipmap,
         &TextureSystemImpl::texture_lookup_trilinear_mipmap,
+        &TextureSystemImpl::texture_lookup,
+        &TextureSystemImpl::texture_lookup_trilinear_mipmap,
         &TextureSystemImpl::texture_lookup
     };
     texture_lookup_prototype lookup = lookup_functions[(int)options.mipmode];
@@ -1273,6 +1275,9 @@ TextureSystemImpl::texture(TextureHandle* texture_handle,
             opt.tblur  = options.tblur[i];
             opt.swidth = options.swidth[i];
             opt.twidth = options.twidth[i];
+#if OIIO_VERSION_GREATER_EQUAL(2, 4, 0)
+            opt.rnd = options.rnd[i];
+#endif
             // rblur, rwidth not needed for 2D texture
             if (dresultds) {
                 ok &= texture(texture_handle, thread_info, opt, s[i], t[i],
@@ -1482,6 +1487,10 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
         float filtwidth_ras = minorlength
                               * std::min(subinfo.spec(m).width,
                                          subinfo.spec(m).height);
+        // FIXME: We should store the min(width,height) of each level directly
+        // in an array in subinfo, so we're not rifling through the specs
+        // and taking mins in this loop every single time.
+
         // Once the filter width is smaller than one texel at this level,
         // we've gone too far, so we know that we want to interpolate the
         // previous level and the current level.  Note that filtwidth_ras
@@ -1520,6 +1529,18 @@ compute_miplevels(TextureSystemImpl::TextureFile& texturefile,
     if (options.mipmode == TextureOpt::MipModeOneLevel) {
         miplevel[0] = miplevel[1];
         levelblend  = 0;
+    }
+    if (options.mipmode == TextureOpt::MipModeStochasticTrilinear
+        || options.mipmode == TextureOpt::MipModeStochasticAniso) {
+        // If using stochastic sampling, the random deviate is a threshold
+        // versus the levelblend to determine which ONE of the two MIP
+        // levels to use.
+        if (options.rnd > levelblend) {
+            miplevel[1] = miplevel[0];
+        } else {
+            miplevel[0] = miplevel[1];
+        }
+        levelblend = 0;
     }
     levelweight[0] = 1.0f - levelblend;
     levelweight[1] = levelblend;
