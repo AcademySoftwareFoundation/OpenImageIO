@@ -53,7 +53,6 @@ time vcpkg install boost-math:x64-windows
 time vcpkg install boost-stacktrace:x64-windows
 time vcpkg install boost-system:x64-windows
 time vcpkg install boost-thread:x64-windows
-time vcpkg install boost-tokenizer:x64-windows
 
 # # vcpkg install zlib:x64-windows
 vcpkg install tiff:x64-windows
