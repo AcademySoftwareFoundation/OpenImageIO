@@ -1,6 +1,32 @@
-Release 2.3.9 (1 Nov? 2021) -- compared to 2.3.8
+Release 2.3.9.1 (1 Nov 2021) -- compared to 2.3.8
 --------------------------------------------------
-
+* OpenEXR: When building against OpenEXR 3.1+ and when the global OIIO
+  attribute "openexr:core" is set to nonzero, do more efficient multithreaded
+  reading of OpenEXR files. #3107
+* `oiiotool --dumpdata:C=name` causes the dumped image data to be formatted
+  with the syntax of a C array. #3136
+* oiiotool: Allow quotes in command modifiers. #3112
+* jpeg input: remove stray debugging output to console. #3134
+* HEIF: Handle images with unassociated alpha. #3146
+* Targa: improved error detection for read errors and corrupted files. #3120
+* raw: When using libraw 0.21+, now support new color space names "DCE-P3",
+  "Rec2020", and "sRGB-linear", and "ProPhoto-linear". Fix incorrect gamma
+  values for "ProPhoto". #3123 #3153 Fixes to work with the libraw 202110
+  snapshot. #3143
+* TIFF: honor zip compression quality request when writing TIFF. #3110
+* Fix broken oiiotool --dumpdata output. #3131
+* Fix possible bad data alignment and SIMD assumptions inside TextureSystems
+  internals. #3145
+* Field3D, which is no longer actively supported, now has support disabled in
+  the default build. To enable Field3D support, you must build with
+  `-DENABLE_FIELD3D=1`. Note that we expect it to be no longer supported at
+  all, beginning with OIIO 2.4. #3140
+* Build: Address new warnings revealed by clang 13. #3122
+* Build: Fix when building with Clang on big-endian architectures. #3133
+* Build: Fix occasional build breaks related to OpenCV headers. #3135
+* Build: Improvements to NetBSD and OpenBSD support. #3137.
+* docs: Add an oiiotool example of putting a border around an image. #3138
+* docs: Fix explanation of ImageCache "falure_retries" attribute. #3147
 
 Release 2.3.8 (1 Oct 2021) -- compared to 2.3.7
 --------------------------------------------------
@@ -564,6 +590,25 @@ Notable documentation changes:
 * Starting to use "sphinx_tabs" as a clear way to present how things should
   be done for different language bindings. #2768 (2.3.1.0)
 
+
+Release 2.2.19 (1 Nov 2021) -- compared to 2.2.18
+--------------------------------------------------
+* Better catching of exceptions thrown by OCIO 1.x if it encounters 2.0 config
+  files. #3089
+* Address new warnings revealed by clang 13. #3122
+* Fixed some minor python binding bugs. #3074 #3094
+* Fix when building with Clang on big-endian architectures. #3133
+* Fix occasional build breaks related to OpenCV headers. #3135
+* Improvements to NetBSD and OpenBSD support. #3137.
+* Fixes to work with the libraw 202110 snapshot. #3143
+
+Release 2.2.18 (1 Sep 2021) -- compared to 2.2.17
+--------------------------------------------------
+* Honor env variable `CUE_THREADS` (used by OpenCue) to set the default size
+  of OIIO's thread pool. #3038
+* Compatibility with OpenColorIO 2.1. #3050
+* Dev: Extend Sysutil::getenv() to take a default if the environment variable
+  is not found. #3047 #3048
 
 Release 2.2.17 (1 Aug 2021) -- compared to 2.2.16
 --------------------------------------------------
