@@ -1,3 +1,6 @@
+Release 2.2.20 (?? 2021) -- compared to 2.2.19
+--------------------------------------------------
+
 Release 2.2.19 (1 Nov 2021) -- compared to 2.2.18
 --------------------------------------------------
 * Better catching of exceptions thrown by OCIO 1.x if it encounters 2.0 config
