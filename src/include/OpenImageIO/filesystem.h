@@ -87,14 +87,25 @@ OIIO_UTIL_API std::string replace_extension (const std::string &filepath,
 /// Return the filepath in generic format, not any OS-specific conventions.
 OIIO_UTIL_API std::string generic_filepath (string_view filepath) noexcept;
 
-/// Turn a searchpath (multiple directory paths separated by ':' or ';')
-/// into a vector<string> containing each individual directory.  If
-/// validonly is true, only existing and readable directories will end
-/// up in the list.  N.B., the directory names will not have trailing
-/// slashes.
+/// Turn a searchpath (multiple directory paths separated by ':' or ';') into
+/// a vector<string> containing the name of each individual directory.  If
+/// validonly is true, only existing and readable directories will end up in
+/// the list.  N.B., the directory names will not have trailing slashes.
+OIIO_UTIL_API std::vector<std::string>
+searchpath_split(string_view searchpath, bool validonly = false);
+
+#if OIIO_VERSION_GREATER_EQUAL(2, 4, 0)
+inline void searchpath_split (string_view searchpath,
+                              std::vector<std::string> &dirs,
+                              bool validonly = false)
+{
+    dirs = searchpath_split(searchpath, validonly);
+}
+#else
 OIIO_UTIL_API void searchpath_split (const std::string &searchpath,
                                 std::vector<std::string> &dirs,
                                 bool validonly = false);
+#endif
 
 /// Find the first instance of a filename existing in a vector of
 /// directories, returning the full path as a string.  If the file is
