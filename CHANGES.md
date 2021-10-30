@@ -1,6 +1,13 @@
-Release 2.2.19 (1 Oct? 2021) -- compared to 2.2.17
+Release 2.2.19 (1 Nov 2021) -- compared to 2.2.18
 --------------------------------------------------
-
+* Better catching of exceptions thrown by OCIO 1.x if it encounters 2.0 config
+  files. #3089
+* Address new warnings revealed by clang 13. #3122
+* Fixed some minor python binding bugs. #3074 #3094
+* Fix when building with Clang on big-endian architectures. #3133
+* Fix occasional build breaks related to OpenCV headers. #3135
+* Improvements to NetBSD and OpenBSD support. #3137.
+* Fixes to work with the libraw 202110 snapshot. #3143
 
 Release 2.2.18 (1 Sep 2021) -- compared to 2.2.17
 --------------------------------------------------
