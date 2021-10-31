@@ -1,51 +1,198 @@
 Release 2.4 (?? 2022?) -- compared to 2.3
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
-* Support for Field3D files have been removed entirely. The Field3D library
-  appears to be no longer maintained, and is incompatible with modern versions
-  of OpenEXR/Imath. We believe that all prior uses of Field3D use via OIIOhave
-  been migrated to OpenVDB.
+* OpenEXR minimum is now 2.3 (raised from 2.0). #3109 (2.4.0)
+* Field3D support has been removed entirely. The Field3D library appears to be
+  no longer maintained, and is incompatible with modern versions of
+  OpenEXR/Imath. We believe that all prior uses of Field3D use via OIIO have
+  been migrated to OpenVDB. #3151 (2.4.0)
 
 New major features and public API changes:
+* The dithering that happens when saving high bit depth image data to low bit
+  depth formats has been improved in several ways. It now applies when writing
+  >8 bit data to <= 8 bit files, not just when the source is float or half.
+  The dither pattern is now based on blue noise, and this dramatically
+  improves the visual appearance. #3141 (2.4.0/2.3.10)
+* TextureSystem now supports stochastic MIPmap interpolation -- new mip modes
+  StochasticTrilinear and StochasticAniso work like Trilinear and Aniso,
+  respectively, but instead of blending between two surrounding MIP levels,
+  they choose one of them, based on the stochastic sample value in the new
+  TextureOpt field `rnd`. We measure this speeding up texture lookups by
+  24-40%, though with more visual noise (which should be resolved cleanly by a
+  renderer that uses many samples per pixel). #3127 (2.4.0/2.3.10)
 
 Performance improvements:
 
 Fixes and feature enhancements:
 * ImageSpec: implemented deserialization of extra_attribs from XML. #3066
-  (2.4.0.0/2.3.8)
+  (2.4.0/2.3.8)
+* ImageBuf / ImageBufAlgo:
+    - Fix ImageBuf::read bug for images of mixed per-channel data types. #3088
+      (2.4.0/2.3.8)
+    - `IBA::bluenoise_image()` returns a reference to a periodic blue noise
+      image. #3141 (2.4.0/2.3.10)
+    - `IBA::noise()` now takes "blue" as a noise name. Also, "white" is now
+      the preferred name for what used to be "uniform" (which still works as a
+      synonym). #3141 (2.4.0/2.3.10)
 * oiiotool:
     - `--ch` now has virtually no expense if the arguments require no change
       to the channel order or naming (previously, it would always incur an
-      image allocation and copy even if no real work needed to be done).
-      #3068 (2.4.0.0/2.3.8)
+      image allocation and copy even if no real work needed to be done). #3068
+      (2.4.0/2.3.8)
     - `--runstats` timing report has been improved and now more accurately
       attributes time to each operation. In particular, input I/O is now
       credited to "-i" rather than being incorrectly attributed to the other
       ops that happen to trigger I/O of previously mentioned files. #3073
-      (2.4.0.0)
+      (2.4.0/2.3.8)
+    - Allow quotes in command modifiers. #3112 (2.4.0/2.3.9)
+    - Fix `--dumpdata` getting the formatting of floating point values wrong.
+      #3131 (2.4.0/2.3.9)
+    - `--dumpdata:C=name` causes the dumped image data to be formatted with
+      the syntax of a C array. #3136 (2.4.0/2.3.9)
+    - `--noise` now takes "blue" as an additional noise type. #3141
+      (2.4.0/2.3.10)
+    - `-d` now accepts "uint1", "uint2", "uint4", and "uint6" for formats that
+      support such low bit depths (TIFF). #3141 (2.4.0/2.3.10)
 * Python bindings:
-    - Subtle/asymptomatic bugs fixed in `ImageBufAlgo.color_range_check()`
-      and `histogram()` due to incorrect release of the GIL. #3074 (2.4.0.0)
+    - Subtle/asymptomatic bugs fixed in `ImageBufAlgo.color_range_check()` and
+      `histogram()` due to incorrect release of the GIL. #3074 (2.4.0)
+* OpenEXR:
+    - When building against OpenEXR 3.1+ and when the global OIIO attribute
+      "openexr:core" is set to nonzero, do more efficient multithreaded
+      reading of OpenEXR files. #3107 (2.4.0/2.3.9.1)
+* HEIF:
+    - Handle images with unassociated alpha. #3146 (2.4.0/2.3.9)
+* RAW:
+    - When using libraw 0.21+, now support new color space names "DCE-P3",
+      "Rec2020", and "sRGB-linear", and "ProPhoto-linear". Fix incorrect gamma
+      values for "ProPhoto". #3123 #3153 (2.4.0/2.3.9.1)
+* Targa:
+    - Improved error detection for read errors and corrupted files. #3120
+      (2.4.0/2.3.9.1)
 * TIFF:
-    - IOProxy is now supported for TIFF output. #3075 (2.4.0.0)
-  
+    - IOProxy is now supported for TIFF output. #3075 (2.4.0/2.3.8)
+    - Honor zip compression quality request when writing TIFF. #3110
+      (2.4.0/2.3.9.1)
+* Better catching of exceptions thrown by OCIO 1.x if it encounters 2.0 config
+  files. #3089 (2.4.0/2.3.9)
+* Improved internal logic and error reporting of missing OCIO configs. #3092
+  #3095
+* Improved finding of fonts (by IBA::render_text and oiiotool --text). It now
+  honors environment variable `$OPENIMAGEIO_FONTS` and global OIIO attribute
+  "font_searchpath" to list directories to be searched when fonts are needed.
+  #3096 (2.4.0/2.3.8)
+* Fix crash that could happen with invalidly numbered UDIM files. #3116
+  (2.4.0/2.3.9)
+* Fix possible bad data alignment and SIMD assumptions inside TextureSystems
+  internals. #3145 (2.4.0/2.3.9)
+
 Developer goodies / internals:
+* filesystem.h:
+    - A new version of `searchpath_split` returns the vector of strings rather
+      than needing to be passed a reference. #3154 (2.4.0/2.3.10)
+* fmath.h:
+    - Added `round_down_to_multiple()`. Also, more correctly handle
+      `round_to_multiple()` results when the value is < 0. #3104
+    - Add `round_down_to_multiple()` and improve `round_to_multiple()` to
+      correctly handle cases where the value is less than 0. #3104
+      (2.4.0/2.3.8)
 * timer.h:
     - `Timer::add_seconds()` and `Timer::add_ticks()` allows add/subtract
-      directly to a timer's elapsed value. #3070 (2.4.0.0/2.3.8)
+      directly to a timer's elapsed value. #3070 (2.4.0/2.3.8)
 
 Build/test system improvements and platform ports:
 * CMake build system and scripts:
+    - Remove the old FindOpenImageIO.cmake module; downstream clients should
+      instead use our exported configs. #3098 (2.4.0/2.3.8)
+    - Fix over-use of targets when we should have been using variables. #3108
+      (2.4.0/2.3.9)
+    - CMake variable `-DENABLE_INSTALL_testtex=1` causes `testtex` to be
+      installed as an application. #3111 (2.4.0)
+    - Make `OpenImageIO_SUPPORTED_RELEASE` into a CMake cache variable so it
+      can be overridden at build time. #3142 (2.4.0)
 * Dependency version support:
+    - When using C++17, use std::gcd instead of boost. #3076 (2.4.0)
+    - When using C++17, use `inline constexpr` instead of certain statics.
+      #3119 (2.4.0)
+    - Fixes to work with the libraw 202110 snapshot. #3143 (2.4.0/2.3.9.1)
+    - Fix occasional build breaks related to OpenCV headers. #3135
+      (2.4.0/2.3.9)
+    - The internals of `Filesystem::searchpath_split` have been reimplemented
+      in such a way as to no longer need boost.tokenzer. #3154 (2.4.0/2.3.10)
 * Testing and Continuous integration (CI) systems:
     - Properly test against all the versions of VFX Platform 2022. #3074
-      (2.4.0.0)
+      (2.4.0)
 * Platform support:
+    - Fix when building with Clang on big-endian architectures. #3133
+      (2.4.0/2.3.9)
+    - Improvements to NetBSD and OpenBSD support. #3137. (2.4.0/2.3.9)
 
 Notable documentation changes:
+* Add an oiiotool example of putting a border around an image. #3138
+  (2.4.0/2.3.9)
+* Fix explanation of ImageCache "failure_retries" attribute. #3147
+  (2.4.0/2.3.9)
 
 
+Release 2.3.9.1 (1 Nov 2021) -- compared to 2.3.8
+--------------------------------------------------
+* OpenEXR: When building against OpenEXR 3.1+ and when the global OIIO
+  attribute "openexr:core" is set to nonzero, do more efficient multithreaded
+  reading of OpenEXR files. #3107
+* `oiiotool --dumpdata:C=name` causes the dumped image data to be formatted
+  with the syntax of a C array. #3136
+* oiiotool: Allow quotes in command modifiers. #3112
+* jpeg input: remove stray debugging output to console. #3134
+* HEIF: Handle images with unassociated alpha. #3146
+* Targa: improved error detection for read errors and corrupted files. #3120
+* raw: When using libraw 0.21+, now support new color space names "DCE-P3",
+  "Rec2020", and "sRGB-linear", and "ProPhoto-linear". Fix incorrect gamma
+  values for "ProPhoto". #3123 #3153 Fixes to work with the libraw 202110
+  snapshot. #3143
+* TIFF: honor zip compression quality request when writing TIFF. #3110
+* Fix broken oiiotool --dumpdata output. #3131
+* Fix possible bad data alignment and SIMD assumptions inside TextureSystems
+  internals. #3145
+* Field3D, which is no longer actively supported, now has support disabled in
+  the default build. To enable Field3D support, you must build with
+  `-DENABLE_FIELD3D=1`. Note that we expect it to be no longer supported at
+  all, beginning with OIIO 2.4. #3140
+* Build: Address new warnings revealed by clang 13. #3122
+* Build: Fix when building with Clang on big-endian architectures. #3133
+* Build: Fix occasional build breaks related to OpenCV headers. #3135
+* Build: Improvements to NetBSD and OpenBSD support. #3137.
+* docs: Add an oiiotool example of putting a border around an image. #3138
+* docs: Fix explanation of ImageCache "falure_retries" attribute. #3147
 
+Release 2.3.8 (1 Oct 2021) -- compared to 2.3.7
+--------------------------------------------------
+* Fix ImageBuf::read() bug for images of mixed per-channel data types. #3088
+* Fix crash that could happen with invalidly numbered UDIM files. #3116
+* Better catching of exceptions and other error handling when OpenColorIO 1.x
+  is used but encounters an OpenColorIO 2.x config file. #3089 #3092 #3095
+* Ensure that OpenColorIO doesn't send info messages to the console if no
+  config is found. #3113
+* Fix: make sure ImageSpec deserialization works for arbitrary attribs. #3066
+* `oiiotool -ch` now has greatly reduced cost (no useless allocations or
+  copies) when the channel order and names don't change. #3068
+* `oiiotool --runstats` is now much better about correctly attributing I/O
+  time to `-i` instead of to the subsequent operations that triggers the
+  read. #3073
+* TIFF output now supports IO proxies. #3075 #3077
+* Improved finding of fonts (by IBA::render_text and oiiotool --text). It now
+  honors environment variable `$OPENIMAGEIO_FONTS` and global OIIO attribute
+  "font_searchpath" to list directories to be searched when fonts are needed.
+  #3096
+* We no longer install a FindOpenImageIO.cmake module. It was incomplete, out
+  of date, and wholly unnecessary now that we correctly export a config file
+  OpenImageIOConfig.cmake and friends. #3098
+* When building against OpenEXR 3.1+, use of the OpenEXRCore library no longer
+  requires a build-time option, but instead is always available (though off by
+  default) and can be enabled by an application setting the OIIO global
+  attribute "openexr:core" to 1. #3100
+* dev: Timer::add_seconds and add_ticks methods. #3070
+* dev: Add `round_down_to_multiple()` and improve `round_to_multiple()` to
+  correctly handle cases where the value is less than 0. #3104
 
 Release 2.3 (1 Sept 2021) -- compared to 2.2
 ----------------------------------------------
@@ -578,6 +725,25 @@ Notable documentation changes:
 * Starting to use "sphinx_tabs" as a clear way to present how things should
   be done for different language bindings. #2768 (2.3.1.0)
 
+
+Release 2.2.19 (1 Nov 2021) -- compared to 2.2.18
+--------------------------------------------------
+* Better catching of exceptions thrown by OCIO 1.x if it encounters 2.0 config
+  files. #3089
+* Address new warnings revealed by clang 13. #3122
+* Fixed some minor python binding bugs. #3074 #3094
+* Fix when building with Clang on big-endian architectures. #3133
+* Fix occasional build breaks related to OpenCV headers. #3135
+* Improvements to NetBSD and OpenBSD support. #3137.
+* Fixes to work with the libraw 202110 snapshot. #3143
+
+Release 2.2.18 (1 Sep 2021) -- compared to 2.2.17
+--------------------------------------------------
+* Honor env variable `CUE_THREADS` (used by OpenCue) to set the default size
+  of OIIO's thread pool. #3038
+* Compatibility with OpenColorIO 2.1. #3050
+* Dev: Extend Sysutil::getenv() to take a default if the environment variable
+  is not found. #3047 #3048
 
 Release 2.2.17 (1 Aug 2021) -- compared to 2.2.16
 --------------------------------------------------

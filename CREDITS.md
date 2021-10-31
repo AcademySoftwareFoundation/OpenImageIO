@@ -25,6 +25,7 @@ lg@openimageio.org
 * Biswapriyo Nath
 * Blair Tennessy
 * Blazej Floch
+* Brad Smith
 * Brecht Van Lommel
 * Brent Davis
 * Brian Hall
@@ -175,3 +176,4 @@ lg@openimageio.org
 * Xo Wang
 * Yang Yang
 * Yann Lanthony
+* zomgrolf
