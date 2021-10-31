@@ -18,18 +18,15 @@
 #include <OpenImageIO/ustring.h>
 #include <OpenImageIO/varyingref.h>
 
-#include "../field3d.imageio/field3d_backdoor.h"
 #include "imagecache_pvt.h"
 #include "texture_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
 using namespace pvt;
-using namespace f3dpvt;
 
 namespace {  // anonymous
 
 static EightBitConverter<float> uchar2float;
-static ustring s_field3d("field3d");
 
 // OIIO_FORCEINLINE float uchar2float (unsigned char val) {
 //     return float(val) * (1.0f/255.0f);
@@ -103,9 +100,7 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
     }
 
 #if 0
-    // FIXME: currently, no support of actual MIPmapping.  No rush,
-    // since the only volume format we currently support, Field3D,
-    // doesn't support MIPmapping.
+    // FIXME: currently, no support of actual MIPmapping.
     static const texture3d_lookup_prototype lookup_functions[] = {
         // Must be in the same order as Mipmode enum
         &TextureSystemImpl::texture3d_lookup,
@@ -180,16 +175,6 @@ TextureSystemImpl::texture3d(TextureHandle* texture_handle_,
         // See if there is a world-to-local transform stored in the cache
         // entry. If so, use it to transform the input point.
         si.Mlocal->multVecMatrix(P, Plocal);
-    } else if (texturefile->fileformat() == s_field3d) {
-        // Field3d is special -- it allows nonlinear or time-varying
-        // transforms procedurally, but we have to use a back door.
-        auto input                   = texturefile->open(thread_info);
-        Field3DInput_Interface* f3di = (Field3DInput_Interface*)input.get();
-        if (!f3di) {
-            error("Unable to open texture \"{}\"", texturefile->filename());
-            return false;
-        }
-        f3di->worldToLocal(P, Plocal, options.time);
     } else {
         // If no world-to-local matrix could be discerned, just use the
         // input point directly.

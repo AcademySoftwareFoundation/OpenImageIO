@@ -1,6 +1,10 @@
 Release 2.4 (?? 2022?) -- compared to 2.3
 ----------------------------------------------
 New minimum dependencies and compatibility changes:
+* Support for Field3D files have been removed entirely. The Field3D library
+  appears to be no longer maintained, and is incompatible with modern versions
+  of OpenEXR/Imath. We believe that all prior uses of Field3D use via OIIOhave
+  been migrated to OpenVDB.
 
 New major features and public API changes:
 

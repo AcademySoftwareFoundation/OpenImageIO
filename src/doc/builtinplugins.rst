@@ -421,69 +421,6 @@ the `set_ioproxy()` methods.
 
 |
 
-.. _sec-bundledplugins-field3d:
-
-Field3D
-===============================================
-
-Field3d is an open-source volume data file format.  Field3d files commonly
-use the extension :file:`.f3d`. The official Field3D site is:
-https://github.com/imageworks/Field3D Currently, OpenImageIO only reads
-Field3d files, and does not write them.
-
-Fields are comprised of multiple *layers* (which appear to OpenImageIO
-as subimages).  Each layer/subimage may have a different name, resolution,
-and coordinate mapping.  Layers may be scalar (1 channel) or vector (3
-channel) fields, and the data may be ``half``, `float`, or ``double``.
-
-OpenImageIO always reports Field3D files as tiled.  If the Field3d file has
-a "block size", the block size will be reported as the tile size. Otherwise,
-the tile size will be the size of the entire volume.
-
-.. list-table::
-   :widths: 30 10 65
-   :header-rows: 1
-
-   * - ImageSpec Attribute
-     - Type
-     - Field3d header data or explanation
-   * - ``ImageDescription``
-     - string
-     - unique layer name
-   * - ``oiio:subimagename``
-     - string
-     - unique layer name
-   * - ``field3d:partition``
-     - string
-     - the partition name
-   * - ``field3d:layer``
-     - string
-     - the layer (a.k.a. attribute) name
-   * - ``field3d:fieldtype``
-     - string
-     - field type, one of: ``"dense"``, ``"sparse"``, or ``"MAC"``
-   * - ``field3d:mapping``
-     - string
-     - the coordinate mapping type
-   * - ``field3d:localtoworld``
-     - matrix of doubles
-     - if a matrixMapping, the local-to-world transformation matrix
-   * - ``worldtolocal``
-     - matrix
-     - if a matrixMapping, the world-to-local coordinate mapping
-
-
-The "unique layer name" is generally the partition name + ``:`` + attribute
-name (example: ``"defaultfield:density"``), with the following exceptions:
-(1) if the partition and attribute names are identical, just one is used
-rather than it being pointlessly concatenated (e.g., ``"density"``, not
-``"density:density"``); (2) if there are mutiple partitions + attribute
-combinations with identical names in the same file, "*number*" will be added
-after the partition name for subsequent layers (e.g., ``"default:density"``,
-``"default.2:density"``, ``"default.3:density"``).
-
-|
-
 .. _sec-bundledplugins-fits:
 
 FITS

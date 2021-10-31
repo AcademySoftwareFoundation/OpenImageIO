@@ -237,8 +237,6 @@ macro (oiio_add_all_tests)
     oiio_add_tests (dpx
                     ENABLEVAR ENABLE_DPX
                     IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
-    oiio_add_tests (field3d texture-field3d
-                    FOUNDVAR Field3D_FOUND ENABLEVAR ENABLE_FIELD3D)
     oiio_add_tests (fits
                     ENABLEVAR ENABLE_FITS
                     IMAGEDIR fits-images
