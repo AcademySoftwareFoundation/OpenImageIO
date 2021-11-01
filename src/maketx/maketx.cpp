@@ -177,6 +177,9 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
     bool sansattrib            = false;
     float sharpen              = 0.0f;
     float uvslopes_scale       = 0.0f;
+    bool cdf                   = false;
+    float cdfsigma             = 1.0f / 6;
+    int cdfbits                = 8;
     std::string incolorspace;
     std::string outcolorspace;
     std::string colorconfigname;
@@ -285,6 +288,13 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
       .hidden(); // DEPRECATED 1.6
     ap.arg("--mipimage %L:FILENAME", &mipimages)
       .help("Specify an individual MIP level");
+    ap.arg("--cdf %d:N", &cdf)
+      .help("Store the forward and inverse Gaussian CDF as a lookup-table. The variance is set by cdfsigma (1/6 by default), and the number of buckets \
+              in the lookup table is determined by cdfbits (8 bit - 256 buckets by default)");
+    ap.arg("--cdfsigma %f:N", &cdfsigma)
+      .help("Specify the Gaussian sigma parameter when writing the forward and inverse Gaussian CDF data. The default vale is 1/6 (0.1667)");
+    ap.arg("--cdfbits %d:N", &cdfbits)
+      .help("Specify the number of bits used to store the forward and inverse Guassian CDF. The default value is 8 bits");
 
     ap.separator("Basic modes (default is plain texture):");
     ap.arg("--shadow", &shadowmode)
@@ -426,6 +436,9 @@ getargs(int argc, char* argv[], ImageSpec& configspec)
         configspec.attribute("maketx:mipimages", Strutil::join(mipimages, ";"));
     if (bumpslopesmode)
         configspec.attribute("maketx:bumpformat", bumpformat);
+    configspec.attribute("maketx:cdf", cdf);
+    configspec.attribute("maketx:cdfsigma", cdfsigma);
+    configspec.attribute("maketx:cdfbits", cdfbits);
 
     std::string cmdline
         = Strutil::sprintf("OpenImageIO %s : %s", OIIO_VERSION_STRING,
