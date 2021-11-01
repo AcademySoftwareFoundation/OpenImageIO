@@ -205,6 +205,12 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    if ((m_tga.type == TYPE_PALETTED || m_tga.type == TYPE_PALETTED_RLE)
+        && !is_palette()) {
+        errorf("Palette image with no palette");
+        return false;
+    }
+
     if (is_palette()
         && (m_tga.type == TYPE_GRAY || m_tga.type == TYPE_GRAY_RLE)) {
         // it should be an error for TYPE_RGB* as well, but apparently some
@@ -811,16 +817,19 @@ TGAInput::readimg()
     }*/
     if (m_tga.attr & FLAG_X_FLIP) {
         //std::cerr << "[tga] x flipping\n";
-
-        std::vector<unsigned char> flip(bytespp * m_spec.width / 2);
-        unsigned char *src, *dst, *tmp = &flip[0];
+        unsigned char flip[4];
+        int nc             = m_spec.nchannels;
+        int scanline_bytes = m_spec.width * m_spec.nchannels;
         for (int64_t y = 0; y < m_spec.height; y++) {
-            src = &m_buf[y * m_spec.width * bytespp];
-            dst = &m_buf[(y * m_spec.width + m_spec.width / 2) * bytespp];
-
-            memcpy(tmp, src, bytespp * m_spec.width / 2);
-            memcpy(src, dst, bytespp * m_spec.width / 2);
-            memcpy(dst, tmp, bytespp * m_spec.width / 2);
+            unsigned char* line = &m_buf[y * scanline_bytes];
+            for (int64_t x = 0; x < m_spec.width / 2; x++) {
+                unsigned char* src = line + x * m_spec.nchannels;
+                unsigned char* dst
+                    = line + (m_spec.width - 1 - x) * m_spec.nchannels;
+                memcpy(flip, src, nc);
+                memcpy(src, dst, nc);
+                memcpy(dst, flip, nc);
+            }
         }
     }
 
