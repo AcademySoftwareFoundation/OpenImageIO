@@ -9,7 +9,8 @@ LIBTIFF_REPO=${LIBTIFF_REPO:=https://gitlab.com/libtiff/libtiff.git}
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
 LIBTIFF_BUILD_DIR=${LIBTIFF_BUILD_DIR:=${LOCAL_DEPS_DIR}/libtiff}
 LIBTIFF_INSTALL_DIR=${LIBTIFF_INSTALL_DIR:=${PWD}/ext/dist}
-LIBTIFF_VERSION=${LIBTIFF_VERSION:=v4.1.0}
+LIBTIFF_VERSION=${LIBTIFF_VERSION:=v4.3.0}
+LIBTIFF_BUILD_TYPE=${LIBTIFF_BUILD_TYPE:=Release}
 if [[ `uname` == `Linux` ]] ; then
     LIBTIFF_CXX_FLAGS=${LIBTIFF_CXX_FLAGS:="-O3 -Wno-unused-function -Wno-deprecated-declarations -Wno-cast-qual -Wno-write-strings"}
 fi
@@ -35,11 +36,11 @@ mkdir -p build
 cd build
 
 if [[ -z $DEP_DOWNLOAD_ONLY ]]; then
-    time cmake -DCMAKE_BUILD_TYPE=Release \
+    time cmake -DCMAKE_BUILD_TYPE=${LIBTIFF_BUILD_TYPE} \
                -DCMAKE_INSTALL_PREFIX=${LIBTIFF_INSTALL_DIR} \
                -DCMAKE_CXX_FLAGS="${LIBTIFF_CXX_FLAGS}" \
                ${LIBTIFF_BUILDOPTS} ..
-    time cmake --build . --config Release --target install
+    time cmake --build . --target install
 fi
 
 popd
