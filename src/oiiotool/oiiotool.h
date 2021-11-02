@@ -807,8 +807,11 @@ public:
         // Read all input images, and reserve (and push) the output image.
         int subimages = compute_subimages();
         timer.stop();  // suspend timer to avoid double counting reads
-        for (int i = 1; i < nimages(); ++i)
-            ot.read(m_ir[i]);
+        for (int i = 1; i < nimages(); ++i) {
+            bool ok = ot.read(m_ir[i]);
+            if (!ok)
+                return 0;
+        }
         timer.start();
         if (nimages()) {
             // Read the inputs
