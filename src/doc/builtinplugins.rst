@@ -1046,7 +1046,10 @@ The official OpenEXR site is http://www.openexr.com/.
        system, it will use ``"zip"`` by default. For ``"dwaa"`` and
        ``"dwab"``, the dwaCompressionLevel may be optionally appended to the
        compression name after a colon, like this: ``"dwaa:200"``. (The
-       default DWA compression value is 45.)
+       default DWA compression value is 45.) For ``"zip"`` and ``"zips"``
+       compression, a level from 1 to 9 may be appended (the default is
+       ``"zip:4"``), but note that this is only honored when building
+       against OpenEXR 3.1.3 or later.
    * - ``textureformat``
      - string
      - ``"Plain Texture"`` for MIP-mapped OpenEXR files, ``"CubeFace
