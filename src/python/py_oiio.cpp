@@ -72,7 +72,7 @@ oiio_bufinfo::oiio_bufinfo(const py::buffer_info& pybuf)
         xstride = format.size();
         size    = 1;
         for (int i = pybuf.ndim - 1; i >= 0; --i) {
-            if (pybuf.strides[i] != ssize_t(size * xstride)) {
+            if (pybuf.strides[i] != py::ssize_t(size * xstride)) {
                 // Just can't handle non-contiguous strides
                 format = TypeUnknown;
                 size   = 0;
