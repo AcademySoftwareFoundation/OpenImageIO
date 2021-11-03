@@ -175,7 +175,7 @@ Reading ../oiio-images/targa/round_grill.tga
     oiio:BitsPerSample: 8
 Comparing "../oiio-images/targa/round_grill.tga" and "round_grill.tga"
 PASS
-Converting src/crasher.tga to crasher.exr
+Converting src/crash1.tga to crash1.exr
 Comparing "CBW8.TGA.tif" and "ref/CBW8.TGA.tif"
 PASS
 Comparing "CCM8.TGA.tif" and "ref/CCM8.TGA.tif"
