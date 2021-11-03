@@ -385,7 +385,7 @@ jobs:
       USE_SIMD: avx2,f16c
       LIBRAW_VERSION: master
       LIBTIFF_VERSION: master
-      OPENCOLORIO_VERSION: master
+      OPENCOLORIO_VERSION: main
       OPENEXR_VERSION: master
       PUGIXML_VERSION: master
       PTEX_VERSION: main
