@@ -711,7 +711,7 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
         in.reset();
     }
 
-    if (!create_function) {
+    if (!create_function && pvt::oiio_try_all_readers) {
         // If a plugin can't be found that was explicitly designated for
         // this extension, then just try every one we find and see if
         // any will open the file.  Add a configuration request that
