@@ -1,6 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
 // SPDX-License-Identifier: BSD-3-Clause
-// https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+// https://github.com/OpenImageIO/oiio
 
 #if (defined __MINGW32__) || (defined __MINGW64__) && !(defined _POSIX_C_SOURCE)
 #    define _POSIX_C_SOURCE 1  // for localtime_r

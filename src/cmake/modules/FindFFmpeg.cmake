@@ -18,7 +18,7 @@
 # Modifications:
 # Copyright 2008-present Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: BSD-3-Clause
-# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+# https://github.com/OpenImageIO/oiio
 
 if (FFMPEG_INCLUDES AND FFMPEG_LIBRARIES)
     set (FFmpeg_FOUND TRUE)

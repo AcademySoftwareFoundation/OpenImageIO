@@ -1,6 +1,6 @@
 # Copyright 2008-present Contributors to the OpenImageIO project.
 # SPDX-License-Identifier: BSD-3-Clause
-# https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md
+# https://github.com/OpenImageIO/oiio
 
 # from pythonutils.cmake
 checked_find_package (pybind11 REQUIRED

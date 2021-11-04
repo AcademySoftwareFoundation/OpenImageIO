@@ -1,7 +1,6 @@
 // Copyright 2008-present Contributors to the OpenImageIO project.
-//  https://github.com/OpenImageIO/oiio
-// BSD 3-clause license:
-//  https://github.com/OpenImageIO/oiio/blob/master/LICENSE
+// SPDX-License-Identifier: BSD-3-Clause
+// https://github.com/OpenImageIO/oiio
 
 // clang-format off
 

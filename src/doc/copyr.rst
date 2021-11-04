@@ -8,7 +8,7 @@
 
 The code that implements OpenImageIO is licensed under the BSD 3-clause
 (also sometimes known as "new BSD" or "modified BSD") license
-(https://github.com/OpenImageIO/oiio/blob/master/LICENSE.md):
+(https://github.com/OpenImageIO/oiio):
 
 |
 
