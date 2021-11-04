@@ -884,6 +884,26 @@ output each one to a different file, with names `sub0001.tif`,
     command line, for example if you actually have filenames containing curly
     braces.
 
+.. option:: --oiioattrib <name> <value>
+
+    Adds or replaces a global OpenImageIO attribute with the given *name* to
+    have the specified *value*.
+
+    Optional appended modifiers include:
+
+    - `type=` *typename* : Specify the metadata type.
+
+    If the optional `type=` specifier is used, that provides an explicit
+    type for the metadata. If not provided, it will try to infer the type of
+    the metadata from the value: if the value contains only numerals (with
+    optional leading minus sign), it will be saved as `int` metadata; if it
+    also contains a decimal point, it will be saved as `float` metadata;
+    otherwise, it will be saved as a `string` metadata.
+
+    Examples::
+
+        oiiotool --oiioattrib debug 1 in.jpg -o out.jpg
+
 
 
 :program:`oiiotool` commands: reading and writing images
