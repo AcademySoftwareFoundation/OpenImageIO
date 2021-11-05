@@ -968,6 +968,75 @@ set_dataformat(int argc, const char* argv[])
 
 
 
+// --oiioattrib
+static int
+set_oiio_attribute(int argc, const char* argv[])
+{
+    OIIO_DASSERT(argc == 3);
+
+    string_view command    = ot.express(argv[0]);
+    string_view attribname = ot.express(argv[1]);
+    string_view value      = ot.express(argv[2]);
+    auto options           = ot.extract_options(command);
+    TypeDesc type(options["type"].as_string());
+
+    // First, handle the cases where we're told what to expect
+    if (type.basetype == TypeDesc::FLOAT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<float> vals(n, 0.0f);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_float(value, vals[i]);
+            Strutil::parse_char(value, ',');
+        }
+        OIIO::attribute(attribname, type, vals.data());
+        return 1;
+    }
+    if (type.basetype == TypeDesc::INT) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<int> vals(n, 0);
+        for (size_t i = 0; i < n && value.size(); ++i) {
+            Strutil::parse_int(value, vals[i]);
+            Strutil::parse_char(value, ',');
+        }
+        OIIO::attribute(attribname, type, vals.data());
+        return 1;
+    }
+    if (type.basetype == TypeDesc::STRING) {
+        size_t n = type.numelements() * type.aggregate;
+        std::vector<ustring> vals(n, ustring());
+        if (n == 1)
+            vals[0] = ustring(value);
+        else {
+            for (size_t i = 0; i < n && value.size(); ++i) {
+                string_view s;
+                Strutil::parse_string(value, s);
+                vals[i] = ustring(s);
+                Strutil::parse_char(value, ',');
+            }
+        }
+        OIIO::attribute(attribname, type, vals.data());
+        return 1;
+    }
+
+    if (type == TypeInt
+        || (type == TypeUnknown && Strutil::string_is_int(value))) {
+        // Does it seem to be an int, or did the caller explicitly request
+        // that it be set as an int?
+        return OIIO::attribute(attribname, Strutil::stoi(value));
+    } else if (type == TypeFloat
+               || (type == TypeUnknown && Strutil::string_is_float(value))) {
+        // Does it seem to be a float, or did the caller explicitly request
+        // that it be set as a float?
+        return OIIO::attribute(attribname, Strutil::stof(value));
+    } else {
+        // Otherwise, set it as a string attribute
+        return OIIO::attribute(attribname, value);
+    }
+    return 0;
+}
+
+
+
 static int
 set_string_attribute(int argc, const char* argv[])
 {
@@ -5226,8 +5295,9 @@ command_line_string(int argc, char* argv[], bool sansattrib)
         if (sansattrib) {
             // skip any filtered attributes
             if (!strcmp(argv[i], "--attrib") || !strcmp(argv[i], "-attrib")
-                || !strcmp(argv[i], "--sattrib")
-                || !strcmp(argv[i], "-sattrib")) {
+                || !strcmp(argv[i], "--sattrib") || !strcmp(argv[i], "-sattrib")
+                || !strcmp(argv[i], "--oiioattrib")
+                || !strcmp(argv[i], "-oiioattrib")) {
                 i += 2;  // also skip the following arguments
                 continue;
             }
@@ -5582,6 +5652,9 @@ getargs(int argc, char* argv[])
       .action(set_autotile);
     ap.arg("--metamerge", &ot.metamerge)
       .help("Always merge metadata of all inputs into output");
+    ap.arg("--oiioattrib %s:NAME %s:VALUE")
+      .help("Sets global OpenImageIO attribute (options: type=...)")
+      .action(set_oiio_attribute);
     ap.arg("--nostderr", &ot.nostderr)
       .help("Do not use stderr, output error messages to stdout")
       .hidden();
