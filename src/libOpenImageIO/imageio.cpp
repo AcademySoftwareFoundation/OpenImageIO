@@ -37,6 +37,7 @@ recursive_mutex imageio_mutex;
 atomic_int oiio_threads(threads_default());
 atomic_int oiio_exr_threads(threads_default());
 atomic_int oiio_read_chunk(256);
+atomic_int oiio_try_all_readers(1);
 int openexr_core(0);  // Should we use "Exr core C library"?
 int tiff_half(0);
 int tiff_multithread(1);
@@ -354,6 +355,10 @@ attribute(string_view name, TypeDesc type, const void* val)
             *(const char**)val);
         return true;
     }
+    if (name == "try_all_readers" && type == TypeInt) {
+        oiio_try_all_readers = *(const int*)val;
+        return true;
+    }
 
     return false;
 }
@@ -464,6 +469,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     if (name == "missingcolor" && type == TypeString) {
         // missingcolor as string
         *(ustring*)val = ustring(Strutil::join(oiio_missingcolor, ","));
+        return true;
+    }
+    if (name == "try_all_readers" && type == TypeInt) {
+        *(int*)val = oiio_try_all_readers;
         return true;
     }
     return false;
