@@ -78,7 +78,7 @@ private:
 
     /// Helper function: translate 3-letter month abbreviation to number.
     ///
-    inline int get_month_number(const char* s);
+    inline int get_month_number(string_view);
 
     /// Helper: read the RLA header and scanline offset table.
     ///
@@ -347,11 +347,12 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     m_spec.attribute("compression", "rle");
 
     if (m_rla.DateCreated[0]) {
-        char month[4] = { 0, 0, 0, 0 };
+        string_view date(m_rla.DateCreated);
+        string_view month = Strutil::parse_word(date);
         int d, h, M, m, y;
-        if (sscanf(m_rla.DateCreated, "%c%c%c %d %d:%d %d", month + 0,
-                   month + 1, month + 2, &d, &h, &m, &y)
-            == 7) {
+        if (month.size() == 3 && Strutil::parse_int(date, d)
+            && Strutil::parse_int(date, h) && Strutil::parse_char(date, ':')
+            && Strutil::parse_int(date, m) && Strutil::parse_int(date, y)) {
             M = get_month_number(month);
             if (M > 0) {
                 // construct a date/time marker in OIIO convention
@@ -410,38 +411,46 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     float f[3];  // variable will be reused for chroma, thus the array
     // read chromaticity points
     if (m_rla.RedChroma[0]) {
-        int num = sscanf(m_rla.RedChroma, "%f %f %f", f + 0, f + 1, f + 2);
-        if (num >= 2)
+        bool three = Strutil::scan_values(m_rla.RedChroma, "",
+                                          span<float>(f, 3));
+        if (three
+            || Strutil::scan_values(m_rla.RedChroma, "", span<float>(f, 2)))
             m_spec.attribute("rla:RedChroma",
                              TypeDesc(TypeDesc::FLOAT,
-                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      three ? TypeDesc::VEC3 : TypeDesc::VEC2,
                                       TypeDesc::POINT),
                              f);
     }
     if (m_rla.GreenChroma[0]) {
-        int num = sscanf(m_rla.GreenChroma, "%f %f %f", f + 0, f + 1, f + 2);
-        if (num >= 2)
+        bool three = Strutil::scan_values(m_rla.GreenChroma, "",
+                                          span<float>(f, 3));
+        if (three
+            || Strutil::scan_values(m_rla.GreenChroma, "", span<float>(f, 2)))
             m_spec.attribute("rla:GreenChroma",
                              TypeDesc(TypeDesc::FLOAT,
-                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      three ? TypeDesc::VEC3 : TypeDesc::VEC2,
                                       TypeDesc::POINT),
                              f);
     }
     if (m_rla.BlueChroma[0]) {
-        int num = sscanf(m_rla.BlueChroma, "%f %f %f", f + 0, f + 1, f + 2);
-        if (num >= 2)
+        bool three = Strutil::scan_values(m_rla.BlueChroma, "",
+                                          span<float>(f, 3));
+        if (three
+            || Strutil::scan_values(m_rla.BlueChroma, "", span<float>(f, 2)))
             m_spec.attribute("rla:BlueChroma",
                              TypeDesc(TypeDesc::FLOAT,
-                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      three ? TypeDesc::VEC3 : TypeDesc::VEC2,
                                       TypeDesc::POINT),
                              f);
     }
     if (m_rla.WhitePoint[0]) {
-        int num = sscanf(m_rla.WhitePoint, "%f %f %f", f + 0, f + 1, f + 2);
-        if (num >= 2)
+        bool three = Strutil::scan_values(m_rla.WhitePoint, "",
+                                          span<float>(f, 3));
+        if (three
+            || Strutil::scan_values(m_rla.WhitePoint, "", span<float>(f, 2)))
             m_spec.attribute("rla:WhitePoint",
                              TypeDesc(TypeDesc::FLOAT,
-                                      num == 2 ? TypeDesc::VEC2 : TypeDesc::VEC3,
+                                      three ? TypeDesc::VEC3 : TypeDesc::VEC2,
                                       TypeDesc::POINT),
                              f);
     }
@@ -678,7 +687,7 @@ RLAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
 
 inline int
-RLAInput::get_month_number(const char* s)
+RLAInput::get_month_number(string_view s)
 {
     static const char* months[] = { "",    "jan", "feb", "mar", "apr",
                                     "may", "jun", "jul", "aug", "sep",
