@@ -547,9 +547,7 @@ OIIO_UTIL_API int stoi (string_view s, size_t* pos=0, int base=10);
 // stoui() returns the unsigned int conversion of text from a string.
 // No exceptions or errors -- parsing errors just return 0. Negative
 // values are cast, overflow is clamped. No locale considerations.
-inline unsigned int stoui (string_view s, size_t* pos=0, int base=10) {
-    return static_cast<unsigned int>(stoi (s, pos, base));
-}
+OIIO_UTIL_API unsigned int stoui (string_view s, size_t* pos=0, int base=10);
 
 /// stof() returns the float conversion of text from several string types.
 /// No exceptions or errors -- parsing errors just return 0.0. These always
@@ -588,6 +586,8 @@ template<typename T>
 inline T from_string (string_view s) {
     return T(s); // Generic: assume there is an explicit converter
 }
+
+#ifndef OIIO_DOXYGEN
 // Special case for int
 template<> inline int from_string<int> (string_view s) {
     return Strutil::stoi(s);
@@ -601,6 +601,24 @@ template<> inline unsigned int from_string<unsigned int> (string_view s) {
 template<> inline float from_string<float> (string_view s) {
     return Strutil::stof(s);
 }
+// Special case for double -- note that by using Strutil::strtof, this
+// always treats '.' as the decimal mark.
+template<> inline double from_string<double> (string_view s) {
+    return Strutil::stod(s);
+}
+
+template<> inline int64_t from_string<int64_t>(string_view s) {
+    // For conversion of string_view to unsigned int, fall back on strtoll.
+    auto r = strtoll(std::string(s).c_str(), nullptr, 10);
+    return static_cast<int64_t>(r);
+}
+
+template<> inline uint64_t from_string<uint64_t>(string_view s) {
+    // For conversion of string_view to unsigned int, fall back on strtoull.
+    auto r = strtoull(std::string(s).c_str(), nullptr, 10);
+    return static_cast<uint64_t>(r);
+}
+#endif
 
 
 
@@ -710,6 +728,20 @@ extract_from_list_string (string_view list, size_t nvals=0, T val=T(),
     return vals;
 }
 
+
+
+/// Scan a string for date and time information. Return true upon success,
+/// false if the string did not appear to contain a valid date/time. If, after
+/// parsing a valid date/time (including out of range values), `str` contains
+/// more characters after that, it is not considered a failure.
+///
+/// Valid date/time formats include:
+///   * YYYY-MM-DD HH:MM:SS
+///   * YYYY:MM:DD HH:MM:SS
+///   * YYYY/MM/DD HH:MM:SS
+OIIO_UTIL_API bool
+scan_datetime(string_view str, int& year, int& month, int& day,
+              int& hour, int& min, int& sec);
 
 
 
@@ -857,6 +889,53 @@ bool OIIO_UTIL_API parse_int (string_view &str, int &val, bool eat=true) noexcep
 /// is found at the beginning of str, return false and don't modify val or
 /// str.
 bool OIIO_UTIL_API parse_float (string_view &str, float &val, bool eat=true) noexcept;
+
+/// Synonym for parse_int
+inline bool parse_value(string_view &str, float &val, bool eat=true) noexcept
+{
+    return parse_float(str, val, eat);
+}
+
+/// Synonym for parse_float
+inline bool parse_value(string_view &str, int &val, bool eat=true) noexcept
+{
+    return parse_int(str, val, eat);
+}
+
+/// Parse from `str`: a `prefix`, a series of int values separated by the
+/// `sep` string, and a `postfix`, placing the values in the elements of
+/// mutable span `values`, where the span length indicates the number of
+/// values to read. Any of the prefix, separator, or postfix may be empty
+/// strings. If `eat` is true and the parse was successful, `str` will be
+/// updated in place to trim everything that was parsed, but if any part of
+/// the parse failed, `str` will not be altered from its original state.
+bool OIIO_UTIL_API
+parse_values(string_view& str, string_view prefix, span<int> values,
+             string_view sep = "", string_view postfix = "",
+             bool eat = true) noexcept;
+/// parse_values for int.
+bool OIIO_UTIL_API
+parse_values(string_view& str, string_view prefix, span<float> values,
+             string_view sep = "", string_view postfix = "",
+             bool eat = true) noexcept;
+
+/// Similar to parse_values, but with no option to "eat" from
+/// or modify the source string.
+inline bool
+scan_values(string_view str, string_view prefix, span<int> values,
+            string_view sep = "", string_view postfix = "") noexcept
+{
+    string_view sv(str);
+    return parse_values(sv, prefix, values, sep, postfix);
+}
+
+inline bool
+scan_values(string_view str, string_view prefix, span<float> values,
+            string_view sep = "", string_view postfix = "") noexcept
+{
+    string_view sv(str);
+    return parse_values(sv, prefix, values, sep, postfix);
+}
 
 enum QuoteBehavior { DeleteQuotes, KeepQuotes };
 /// If str's first non-whitespace characters form a valid string (either a
