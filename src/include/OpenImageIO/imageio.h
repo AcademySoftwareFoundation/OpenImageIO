@@ -2439,7 +2439,7 @@ OIIO_API bool has_error();
 /// error messages.
 OIIO_API std::string geterror(bool clear = true);
 
-/// `OIIO::attribute()` sets an global attribute (i.e., a property or
+/// `OIIO::attribute()` sets a global attribute (i.e., a property or
 /// option) of OpenImageIO. The `name` designates the name of the attribute,
 /// `type` describes the type of data, and `val` is a pointer to memory
 /// containing the new value for the attribute.
@@ -2480,7 +2480,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///    application level, each of which is expected to be making separate
 ///    OIIO calls simultaneously, should set this to 1, thus having each
 ///    calling thread do its own work inside of OIIO rather than spawning
-///    new threads with a high overall "fan out.""
+///    new threads with a high overall "fan out."
 ///
 /// - `int exr_threads`
 ///
@@ -2497,6 +2497,15 @@ OIIO_API std::string geterror(bool clear = true);
 ///
 ///    Colon-separated (or semicolon-separated) list of directories to search
 ///    for dynamically-loaded format plugins.
+///
+/// - `int try_all_readers`
+///
+///    When nonzero (the default), a call to `ImageInput::create()` or
+///    `ImageInput::open()` that does not succeed in opening the file with the
+///    format reader implied by the file extension will try all available
+///    format readers to see if one of them can open the file. If this is
+///    zero, the only reader that will be tried is the one implied by the file
+///    extension.
 ///
 /// - `int read_chunk`
 ///
