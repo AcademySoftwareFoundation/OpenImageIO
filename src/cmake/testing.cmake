@@ -289,7 +289,7 @@ macro (oiio_add_all_tests)
     oiio_add_tests (sgi
                     ENABLEVAR ENABLE_SGI
                     IMAGEDIR oiio-images)
-    oiio_add_tests (targa-tgautils
+    oiio_add_tests (targa
                     ENABLEVAR ENABLE_TARGA
                     IMAGEDIR oiio-images)
     oiio_add_tests (tiff-suite tiff-depths tiff-misc

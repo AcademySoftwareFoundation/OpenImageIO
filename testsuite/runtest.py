@@ -290,6 +290,18 @@ def testtex_command (file, extraargs="", silent=False, concat=True) :
     return cmd
 
 
+# Construct a command that will run iconvert and append its output to out.txt
+def iconvert (args, silent=False, concat=True, failureok=False) :
+    cmd = (oiio_app("iconvert") + " " + args)
+    if not silent :
+        cmd += redirect
+    if failureok :
+        cmd += " || true "
+    if concat:
+        cmd += " ;\n"
+    return cmd
+
+
 # Construct a command that will run oiiotool and append its output to out.txt
 def oiiotool (args, silent=False, concat=True, failureok=False) :
     cmd = (oiio_app("oiiotool") + " "

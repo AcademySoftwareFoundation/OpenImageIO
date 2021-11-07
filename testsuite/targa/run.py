@@ -24,7 +24,11 @@ for f in files:
         command += run_app(pythonbin + " src/extractthumb.py " + fin + " " + thumbname)
         outputs += [ thumbname ]
 
-# Test corrupted file
-command += oiio_app("iconvert") + " -v src/crasher.tga crasher.exr " + redirect + " || true ;\n"
+# Test corrupted files
+command += iconvert("-v src/crash1.tga crash1.exr", failureok = True)
+command += oiiotool("--oiioattrib try_all_readers 0 src/crash2.tga -o crash2.exr", failureok = True)
+command += oiiotool("--oiioattrib try_all_readers 0 src/crash3.tga -o crash3.exr", failureok = True)
+command += oiiotool("--oiioattrib try_all_readers 0 src/crash4.tga -o crash4.exr", failureok = True)
+command += oiiotool("--oiioattrib try_all_readers 0 src/crash5.tga -o crash5.exr", failureok = True)
 
 outputs += [ 'out.txt', 'out.err.txt' ]

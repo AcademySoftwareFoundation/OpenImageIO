@@ -1,0 +1,8 @@
+iconvert ERROR copying "src/crash1.tga" to "crash1.exr" :
+	Read error on "src/crash1.tga": hit end of file
+oiiotool ERROR: read : "src/crash2.tga": Palette image with no palette
+Full command line was:
+> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio --oiioattrib try_all_readers 0 src/crash2.tga -o crash2.exr
+oiiotool ERROR: read : "src/crash3.tga": Palette image with no palette
+Full command line was:
+> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio --oiioattrib try_all_readers 0 src/crash3.tga -o crash3.exr
