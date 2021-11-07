@@ -2057,6 +2057,10 @@ aspects of the writing itself:
      - int
      - Overrides TIFF scanline rows per strip with a specific request (if
        not supplied, OIIO will choose a reasonable default).
+   * - ``tiff:bigtiff``
+     - int
+     - If nonzero, forces use of "bigtiff," a nonstandard extension that
+       allows files to be more than 4 GB (default: 0).
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for

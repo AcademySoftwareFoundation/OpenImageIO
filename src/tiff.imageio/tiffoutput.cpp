@@ -82,6 +82,7 @@ private:
     unsigned int m_bitspersample;  ///< Of the *file*, not the client's view
     int m_outputchans;             // Number of channels for the output
     bool m_convert_rgb_to_cmyk;
+    bool m_bigtiff;  // force bigtiff
 
     // Initialize private members to pre-opened state
     void init(void)
@@ -96,6 +97,7 @@ private:
         m_zipquality          = 6;
         m_outputchans         = 0;
         m_convert_rgb_to_cmyk = false;
+        m_bigtiff             = false;
     }
 
     // Close m_tif if it's open, but keep all other internal state, don't do a
@@ -430,18 +432,40 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         if (param)
             m_io = param->get<Filesystem::IOProxy*>();
     }
+
+    // Classic/standard TIFF files use 32 bit offsets, and so are limited to
+    // a total file size of 4GB. If the image size is getting close to this
+    // (or if requested with the "tiff:bigtiff" hint), switch to "bigtiff",
+    // a nonstandard extension that uses 64 bit offsets. Caveats:
+    //
+    // 1. OIIO and anything else using a modern version of libtiff can read
+    //    the resulting bigtiff files, but independent TIFF reading
+    //    implementations of TIFF readers probably can't.
+    // 2. The limit is on file size, not expanded image size, so this is being
+    //    conservative and switching to bigtiff based on the size of an
+    //    uncompressed image, since we have no way to tell whether the
+    //    compressed file will exceed the size (we have to choose classic or
+    //    bigtiff upon open, without knowing what pixels data will be
+    //    written).
+    // 3. It probably won't do the right thing for a multi-subimage file,
+    //    since (like with compression) it can't possibly know the total
+    //    file size upon first opening it.
+    m_bigtiff |= m_spec.get_int_attribute("tiff:bigtiff");
+    m_bigtiff |= m_spec.image_bytes() > (4000LL * 1024LL * 1024LL);
+    const char* openmode = m_bigtiff ? (mode == AppendSubimage ? "a8" : "w8")
+                                     : (mode == AppendSubimage ? "a" : "w");
+
     // Open the file
     if (m_io) {
         m_io->seek(0);
-        m_tif = TIFFClientOpen(name.c_str(), mode == AppendSubimage ? "a" : "w",
-                               m_io, readproc, writeproc, seekproc, closeproc,
-                               sizeproc, mapproc, unmapproc);
+        m_tif = TIFFClientOpen(name.c_str(), openmode, m_io, readproc,
+                               writeproc, seekproc, closeproc, sizeproc,
+                               mapproc, unmapproc);
     } else {
 #ifdef _WIN32
-        std::wstring wname = Strutil::utf8_to_utf16(name);
-        m_tif = TIFFOpenW(wname.c_str(), mode == AppendSubimage ? "a" : "w");
+        m_tif = TIFFOpenW(Strutil::utf8_to_utf16(name).c_str(), openmode);
 #else
-        m_tif = TIFFOpen(name.c_str(), mode == AppendSubimage ? "a" : "w");
+        m_tif = TIFFOpen(name.c_str(), openmode);
 #endif
     }
     if (!m_tif) {
