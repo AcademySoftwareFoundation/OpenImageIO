@@ -4993,6 +4993,9 @@ output_file(int /*argc*/, const char* argv[])
         roi.xbegin         = std::max(0, roi.xbegin);
         roi.ybegin         = std::max(0, roi.ybegin);
         roi.zbegin         = std::max(0, roi.zbegin);
+        roi.xend           = std::max(roi.xbegin + 1, roi.xend);
+        roi.yend           = std::max(roi.ybegin + 1, roi.yend);
+        roi.zend           = std::max(roi.zbegin + 1, roi.zend);
         std::string crop   = (ir->spec(0, 0)->depth == 1)
                                  ? format_resolution(roi.width(), roi.height(),
                                                    roi.xbegin, roi.ybegin)
