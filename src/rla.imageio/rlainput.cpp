@@ -499,7 +499,7 @@ RLAInput::decode_rle_span(unsigned char* buf, int n, int stride,
 
 bool
 RLAInput::decode_channel_group(int first_channel, short num_channels,
-                               short num_bits, int /*y*/)
+                               short num_bits, int y)
 {
     // Some preliminaries -- figure out various sizes and offsets
     int chsize;         // size of the channels in this group, in bytes
@@ -530,11 +530,12 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
     std::vector<char> encoded;
     for (int c = 0; c < num_channels; ++c) {
         // Read the length
-        uint16_t length;  // number of encoded bytes
-        if (!read(&length)) {
+        uint16_t lenu16;  // number of encoded bytes
+        if (!read(&lenu16)) {
             errorf("Read error: couldn't read RLE record length");
             return false;
         }
+        size_t length = lenu16;
         // Read the encoded RLE record
         encoded.resize(length);
         if (!read(&encoded[0], length)) {
@@ -544,6 +545,12 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
 
         if (chantype == TypeDesc::FLOAT) {
             // Special case -- float data is just dumped raw, no RLE
+            if (length != size_t(m_spec.width * chsize)) {
+                errorfmt(
+                    "Read error: not enough data in scanline {}, channel {}", y,
+                    c);
+                return false;
+            }
             for (int x = 0; x < m_spec.width; ++x)
                 *((float*)&m_buf[offset + c * chsize + x * pixelsize])
                     = ((float*)&encoded[0])[x];
@@ -554,13 +561,14 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         // which we re-interleave properly by passing the right offsets
         // and strides to decode_rle_span.
         size_t eoffset = 0;
-        for (int bytes = 0; bytes < chsize; ++bytes) {
+        for (int bytes = 0; bytes < chsize && length > 0; ++bytes) {
             size_t e = decode_rle_span(&m_buf[offset + c * chsize + bytes],
                                        m_spec.width, pixelsize,
                                        &encoded[eoffset], length);
             if (!e)
                 return false;
             eoffset += e;
+            length -= e;
         }
     }
 

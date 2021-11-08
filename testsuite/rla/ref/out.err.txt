@@ -1,0 +1,6 @@
+oiiotool ERROR: read : "../oiio-images/rla/crash1.rla": Read error: malformed RLE record
+Full command line was:
+> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio ../oiio-images/rla/crash1.rla -o crash1.exr
+oiiotool ERROR: read : "../oiio-images/rla/crash2.rla": Read error: not enough data in scanline 73, channel 0
+Full command line was:
+> oiiotool -colorconfig ../common/OpenColorIO/nuke-default/config.ocio ../oiio-images/rla/crash2.rla -o crash2.exr
