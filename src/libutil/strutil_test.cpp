@@ -736,6 +736,15 @@ test_numeric_conversion()
     OIIO_CHECK_EQUAL(Strutil::stoi("-12345678901234567890"),
                      std::numeric_limits<int>::min());
 
+    OIIO_CHECK_EQUAL(Strutil::stoui("hi"), 0);
+    OIIO_CHECK_EQUAL(Strutil::stoui("  "), 0);
+    OIIO_CHECK_EQUAL(Strutil::stoui("123"), 123);
+    OIIO_CHECK_EQUAL(Strutil::stoui("+123"), 123);
+    OIIO_CHECK_EQUAL(Strutil::stoui(" 123 "), 123);
+    OIIO_CHECK_EQUAL(Strutil::stoui("123.45"), 123);
+    // bigger than fits in an int, to be sure we're really using uint:
+    OIIO_CHECK_EQUAL(Strutil::stoui("3221225472"), 3221225472UL);
+
     OIIO_CHECK_EQUAL(Strutil::stoi("hi", &pos), 0);
     OIIO_CHECK_EQUAL(pos, 0);
     OIIO_CHECK_EQUAL(Strutil::stoi("  ", &pos), 0);
@@ -808,6 +817,7 @@ test_numeric_conversion()
     bench ("std atoi", [&](){ DoNotOptimize(atoi(numcstr));}); // NOLINT(cert-err34-c)
     bench ("Strutil::stoi(string) ", [&](){ return DoNotOptimize(Strutil::stoi(numstring)); });
     bench ("Strutil::stoi(char*) ", [&](){ return DoNotOptimize(Strutil::stoi(numcstr)); });
+    bench ("Strutil::stoui(char*) ", [&](){ return DoNotOptimize(Strutil::stoui(numcstr)); });
     bench ("std atof", [&](){ DoNotOptimize(atof(numcstr));}); // NOLINT(cert-err34-c)
     bench ("std strtod", [&](){ DoNotOptimize(::strtod(numcstr, nullptr));});
     bench ("Strutil::from_string<float>", [&](){ DoNotOptimize(Strutil::from_string<float>(numstring));});
@@ -1058,6 +1068,23 @@ void test_parse ()
     s = " 42.1 abc"; OIIO_CHECK_ASSERT (parse_float (s, f) && f == 42.1f && s == " abc");
     s = " 42.1 abc"; OIIO_CHECK_ASSERT (parse_float (s, f, false) && f == 42.1f && s == " 42.1 abc");
 
+    {
+        string_view sv;
+        float xyz[3] = { 0, 0, 0 };
+        sv = "xxx 1 2 3 4 5 6";
+        OIIO_CHECK_ASSERT(parse_values(sv, "xxx", xyz, "", "4")
+                          && xyz[0] == 1 && xyz[1] == 2 && xyz[2] == 3
+                          && sv == " 5 6");
+        sv = "xxx 1 2 3 4 5 6";
+        OIIO_CHECK_ASSERT(!parse_values(sv, "", xyz));
+        sv = "xxx 1 2 3 4 5 6";
+        OIIO_CHECK_ASSERT(!parse_values(sv, "xxx", xyz, ","));
+        sv = "xxx 1, 2.5,3, 4, 5,6";
+        OIIO_CHECK_ASSERT(parse_values(sv, "xxx", xyz, ",")
+                          && xyz[0] == 1 && xyz[1] == 2.5 && xyz[2] == 3
+                          && sv == ", 4, 5,6");
+    }
+
     string_view ss;
     s = "foo bar";
     OIIO_CHECK_ASSERT (parse_string (s, ss) && ss == "foo" && s == " bar");
@@ -1254,6 +1281,43 @@ test_string_compare_function()
 
 
 
+void
+test_datetime()
+{
+    using namespace Strutil;
+    int y = -1, m = -1, d = -1, h = -1, min = -1, s = -1;
+
+    y = -1, m = -1, d = -1, h = -1, min = -1, s = -1;
+    OIIO_CHECK_ASSERT(scan_datetime("2020-05-01 12:34:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(y == 2020 && m == 5 && d == 1 && h == 12 && min == 34 && s == 21);
+
+    y = -1, m = -1, d = -1, h = -1, min = -1, s = -1;
+    OIIO_CHECK_ASSERT(scan_datetime("2020/05/01 12:34:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(y == 2020 && m == 5 && d == 1 && h == 12 && min == 34 && s == 21);
+
+    y = -1, m = -1, d = -1, h = -1, min = -1, s = -1;
+    OIIO_CHECK_ASSERT(scan_datetime("2020:05:01 12:34:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(y == 2020 && m == 5 && d == 1 && h == 12 && min == 34 && s == 21);
+
+    y = -1, m = -1, d = -1, h = -1, min = -1, s = -1;
+    OIIO_CHECK_ASSERT(scan_datetime("2020:05:01 12:34:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(y == 2020 && m == 5 && d == 1 && h == 12 && min == 34 && s == 21);
+
+    // No time
+    OIIO_CHECK_ASSERT(!scan_datetime("2020:05:01", y, m, d, h, min, s));
+    // Out of range values
+    OIIO_CHECK_ASSERT(!scan_datetime("2020:00:01 12:34:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(!scan_datetime("2020:13:01 12:34:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(!scan_datetime("2020:05:00 12:34:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(!scan_datetime("2020:05:32 12:34:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(!scan_datetime("2020:05:01 24:34:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(!scan_datetime("2020:05:01 24:60:21", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(!scan_datetime("2020:05:01 12:34:60", y, m, d, h, min, s));
+    OIIO_CHECK_ASSERT(!scan_datetime("2020:05:01 12:34:-1", y, m, d, h, min, s));
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -1283,6 +1347,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_locale();
     // test_float_formatting ();
     test_string_compare_function();
+    test_datetime();
 
     return unit_test_failures;
 }

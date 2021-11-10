@@ -7,6 +7,7 @@
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
 #include <limits>
 #include <locale.h>
@@ -934,6 +935,48 @@ Strutil::parse_string(string_view& str, string_view& val, bool eat,
 
 
 
+bool
+Strutil::parse_values(string_view& str, string_view prefix, span<int> values,
+                      string_view sep, string_view postfix, bool eat) noexcept
+{
+    string_view p = str;
+    bool ok       = true;
+    if (prefix.size())
+        ok &= Strutil::parse_prefix(p, prefix);
+    for (size_t i = 0, sz = values.size(); i < sz && ok; ++i) {
+        ok &= Strutil::parse_value(p, values[i]);
+        if (ok && sep.size() && i < sz - 1)
+            ok &= Strutil::parse_prefix(p, sep);
+    }
+    if (ok && postfix.size())
+        ok &= Strutil::parse_prefix(p, postfix);
+    if (ok && eat)
+        str = p;
+    return ok;
+}
+
+bool
+Strutil::parse_values(string_view& str, string_view prefix, span<float> values,
+                      string_view sep, string_view postfix, bool eat) noexcept
+{
+    string_view p = str;
+    bool ok       = true;
+    if (prefix.size())
+        ok &= Strutil::parse_prefix(p, prefix);
+    for (size_t i = 0, sz = values.size(); i < sz && ok; ++i) {
+        ok &= Strutil::parse_value(p, values[i]);
+        if (ok && sep.size() && i < sz - 1)
+            ok &= Strutil::parse_prefix(p, sep);
+    }
+    if (ok && postfix.size())
+        ok &= Strutil::parse_prefix(p, postfix);
+    if (ok && eat)
+        str = p;
+    return ok;
+}
+
+
+
 string_view
 Strutil::parse_word(string_view& str, bool eat) noexcept
 {
@@ -1504,6 +1547,20 @@ Strutil::stod(string_view s, size_t* pos)
 
 
 
+unsigned int
+Strutil::stoui(string_view s, size_t* pos, int base)
+{
+    // For conversion of string_view to unsigned int, fall back on strtoul.
+    char* endptr = nullptr;
+    std::string ss(s);
+    auto r = strtoul(ss.c_str(), &endptr, base);
+    if (pos)
+        *pos = size_t(endptr - ss.c_str());
+    return static_cast<unsigned int>(r);
+}
+
+
+
 bool
 Strutil::string_is_int(string_view s)
 {
@@ -1529,5 +1586,23 @@ Strutil::string_is_float(string_view s)
     return pos && s.empty();  // consumed the whole string
 }
 
+
+
+bool
+Strutil::scan_datetime(string_view str, int& year, int& month, int& day,
+                       int& hour, int& min, int& sec)
+{
+    bool ok = parse_int(str, year)
+              && (parse_char(str, ':', false) || parse_char(str, '-', false)
+                  || parse_char(str, '/', false))
+              && parse_int(str, month)
+              && (parse_char(str, ':', false) || parse_char(str, '-', false)
+                  || parse_char(str, '/', false))
+              && parse_int(str, day) && parse_int(str, hour)
+              && parse_char(str, ':', false) && parse_int(str, min)
+              && parse_char(str, ':', false) && parse_int(str, sec);
+    return ok && month >= 1 && month <= 12 && day >= 1 && day <= 31 && hour >= 0
+           && hour <= 23 && min >= 0 && min <= 59 && sec >= 0 && sec <= 59;
+}
 
 OIIO_NAMESPACE_END
