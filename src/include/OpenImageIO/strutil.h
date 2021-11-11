@@ -993,6 +993,13 @@ string_view OIIO_UTIL_API parse_until (string_view &str,
 string_view OIIO_UTIL_API parse_while (string_view &str,
                                   string_view set, bool eat=true) noexcept;
 
+/// Return the prefix of str up to and including the first newline ('\n')
+/// character, or all of str if no newline is found within it. If `eat` is
+/// true, then `str` will be modified to trim off this returned prefix
+/// (including the newline character).
+string_view OIIO_UTIL_API parse_line(string_view& str, bool eat = true) noexcept;
+
+
 /// Assuming the string str starts with either '(', '[', or '{', return the
 /// head, up to and including the corresponding closing character (')', ']',
 /// or '}', respectively), recognizing nesting structures. For example,
