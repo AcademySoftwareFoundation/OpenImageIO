@@ -1092,6 +1092,26 @@ Strutil::parse_while(string_view& str, string_view set, bool eat) noexcept
 
 
 string_view
+Strutil::parse_line(string_view& str, bool eat) noexcept
+{
+    string_view result;
+    auto newlinepos = str.find('\n');
+    if (newlinepos >= str.size() - 1) {
+        // No newline, or newline is the last char -> return the whole thing
+        result = str;
+        if (eat)
+            str = string_view();
+    } else {
+        result = str.substr(0, newlinepos + 1);
+        if (eat)
+            str = str.substr(newlinepos + 1);
+    }
+    return result;
+}
+
+
+
+string_view
 Strutil::parse_nested(string_view& str, bool eat) noexcept
 {
     // Make sure we have a valid string and ascertain the characters that
