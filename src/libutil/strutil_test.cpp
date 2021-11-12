@@ -1164,6 +1164,14 @@ void test_parse ()
     s = "foo;bar blow"; ss = parse_while (s, "abc");
     OIIO_CHECK_ASSERT (ss == "" && s == "foo;bar blow");
 
+    s = "first line\nsecond line";
+    ss = parse_line(s, false);
+    OIIO_CHECK_ASSERT (ss == "first line\n" && s == "first line\nsecond line");
+    ss = parse_line(s);
+    OIIO_CHECK_ASSERT (ss == "first line\n" && s == "second line");
+    ss = parse_line(s);
+    OIIO_CHECK_ASSERT (ss == "second line" && s == "");
+
     s = "[a([b]c)]x]"; ss = parse_nested (s);
     OIIO_CHECK_EQUAL (ss, "[a([b]c)]"); OIIO_CHECK_EQUAL (s, "x]");
     s = "[a([b]c)]x]"; ss = parse_nested (s, false);
