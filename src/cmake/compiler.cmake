@@ -428,7 +428,6 @@ if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
                                "src/cineon.imageio/libcineon/*"
                                "src/dds.imageio/squish/*"
                                "src/gif.imageio/gif.h"
-                               "src/hdr.imageio/rgbe.cpp"
                                "src/libutil/stb_sprintf.h"
          CACHE STRING "Glob patterns to exclude for clang-format")
     find_program (CLANG_FORMAT_EXE
