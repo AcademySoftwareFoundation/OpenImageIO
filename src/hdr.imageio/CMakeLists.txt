@@ -2,4 +2,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # https://github.com/OpenImageIO/oiio
 
-add_oiio_plugin (rgbe.cpp hdrinput.cpp hdroutput.cpp)
+add_oiio_plugin (hdrinput.cpp hdroutput.cpp)

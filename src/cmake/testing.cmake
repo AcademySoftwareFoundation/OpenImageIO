@@ -247,6 +247,10 @@ macro (oiio_add_all_tests)
     oiio_add_tests (gif
                     FOUNDVAR GIF_FOUND ENABLEVAR ENABLE_GIF
                     IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+    oiio_add_tests (hdr
+                    ENABLEVAR ENABLE_HDR
+                    IMAGEDIR openexr-images
+                    URL http://github.com/AcademySoftwareFoundation/openexr-images)
     oiio_add_tests (heif
                     FOUNDVAR Libheif_FOUND ENABLEVAR ENABLE_Libheif
                     URL https://github.com/nokiatech/heif/tree/gh-pages/content)
