@@ -30,6 +30,8 @@
 #    define DISPOSE_BACKGROUND 2
 #endif
 
+
+
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class GIFInput final : public ImageInput {
@@ -37,7 +39,13 @@ public:
     GIFInput() { init(); }
     virtual ~GIFInput() { close(); }
     virtual const char* format_name(void) const override { return "gif"; }
+    virtual int supports(string_view feature) const override
+    {
+        return (feature == "ioproxy");
+    }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
+    virtual bool open(const std::string& name, ImageSpec& newspec,
+                      const ImageSpec& config) override;
     virtual bool close(void) override;
     virtual bool seek_subimage(int subimage, int miplevel) override;
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
@@ -52,6 +60,12 @@ public:
     {
         // No mipmap support
         return 0;
+    }
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        m_io_local.reset();
+        return true;
     }
 
 private:
@@ -68,6 +82,8 @@ private:
     std::vector<unsigned char> m_canvas;  ///< Image canvas in output format, on
                                           ///  which subimages are sequentially
                                           ///  drawn.
+    std::unique_ptr<Filesystem::IOProxy> m_io_local;
+    Filesystem::IOProxy* m_io = nullptr;
 
     /// Reset everything to initial state
     ///
@@ -92,6 +108,20 @@ private:
     /// Print error message.
     ///
     void report_last_error(void);
+
+    // Wrapper for GIF library to call that inputs from our IOProxy
+    static int readFunc(GifFileType* gif, GifByteType* data, int bytes)
+    {
+        size_t size(bytes);
+        auto inp    = reinterpret_cast<GIFInput*>(gif->UserData);
+        auto io     = inp->m_io;
+        auto result = io->read(data, size);
+        if (result < size)
+            inp->errorfmt(
+                "GIF read error at position {}, asked for {} bytes, got {} (total size {})",
+                io->tell() - result, size, result, io->size());
+        return static_cast<int>(result);
+    }
 };
 
 
@@ -128,6 +158,8 @@ void
 GIFInput::init(void)
 {
     m_gif_file = nullptr;
+    m_io       = nullptr;
+    m_io_local.reset();
 }
 
 
@@ -139,9 +171,29 @@ GIFInput::open(const std::string& name, ImageSpec& newspec)
     m_subimage = -1;
     m_canvas.clear();
 
-    bool ok = seek_subimage(0, 0);
-    newspec = spec();
-    return ok;
+    if (seek_subimage(0, 0)) {
+        newspec = spec();
+        return true;
+    } else {
+        close();
+        return false;
+    }
+}
+
+
+
+bool
+GIFInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
+{
+    // Check 'config' for any special requests
+    auto ioparam = config.find_attribute("oiio:ioproxy", TypeDesc::PTR);
+    if (ioparam) {
+        m_io = ioparam->get<Filesystem::IOProxy*>();
+        if (m_io)
+            m_io->seek(0);
+    }
+    return open(name, newspec);
 }
 
 
@@ -360,33 +412,30 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     }
 
     if (!m_gif_file) {
-#if GIFLIB_MAJOR >= 5 && defined(_WIN32)
-        // On Windows, UTF-8 filenames won't work properly with Giflib. Jump
-        // through some hoops: get an integer file descriptor for Giflib.
-        int fd = Filesystem::open(m_filename, _O_RDONLY | _O_BINARY);
-        if (fd == -1) {
-            errorf("Error trying to open the file.");
+        if (!m_io) {
+            // If no proxy was supplied, create a file reader
+            m_io = new Filesystem::IOFile(m_filename,
+                                          Filesystem::IOProxy::Mode::Read);
+            m_io_local.reset(m_io);
+        }
+        if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
+            errorfmt("Could not open file \"{}\"", m_filename);
             return false;
         }
+#if GIFLIB_MAJOR >= 5
         int giflib_error;
-        if (!(m_gif_file = DGifOpenFileHandle(fd, &giflib_error))) {
-            errorf("%s", GifErrorString(giflib_error));
-            return false;
-        }
-#elif GIFLIB_MAJOR >= 5
-        int giflib_error;
-        if (!(m_gif_file = DGifOpenFileName(m_filename.c_str(),
-                                            &giflib_error))) {
-            errorf("%s", GifErrorString(giflib_error));
+        m_gif_file = DGifOpen(this, readFunc, &giflib_error);
+        if (!m_gif_file) {
+            errorfmt("{}", GifErrorString(giflib_error));
             return false;
         }
 #else
-        if (!(m_gif_file = DGifOpenFileName(m_filename.c_str()))) {
-            errorf("Error trying to open the file.");
+        m_gif_file = DGifOpen(this, readFunc);
+        if (!m_gif_file) {
+            errorfmt("Error opening GIF");
             return false;
         }
 #endif
-
         m_subimage = -1;
         m_canvas.resize(m_gif_file->SWidth * m_gif_file->SHeight * 4);
     }
@@ -452,20 +501,27 @@ GIFInput::report_last_error(void)
 inline bool
 GIFInput::close(void)
 {
+    bool ok = true;
     if (m_gif_file) {
 #if GIFLIB_MAJOR > 5 || (GIFLIB_MAJOR == 5 && GIFLIB_MINOR >= 1)
         if (DGifCloseFile(m_gif_file, NULL) == GIF_ERROR) {
 #else
         if (DGifCloseFile(m_gif_file) == GIF_ERROR) {
 #endif
-            errorf("Error trying to close the file.");
-            return false;
+            errorfmt("Error trying to close the file.");
+            ok = false;
         }
-        m_gif_file = NULL;
+        m_io       = nullptr;
+        m_gif_file = nullptr;
     }
     m_canvas.clear();
 
-    return true;
+    if (m_io_local) {
+        // If we allocated our own ioproxy, close it.
+        m_io_local.reset();
+    }
+
+    return ok;
 }
 
 OIIO_PLUGIN_NAMESPACE_END

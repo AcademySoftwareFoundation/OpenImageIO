@@ -510,6 +510,48 @@ despite its technical limitations.
      - string
      - The GIF comment field.
 
+**Configuration settings for GIF input**
+
+When opening a GIF ImageInput with a *configuration* (see
+Section :ref:`sec-inputwithconfig`), the following special configuration
+options are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
+**Configuration settings for GIF output**
+
+When opening a GIF ImageOutput, the following special metadata tokens
+control aspects of the writing itself:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by writing to memory rather than the file system.
+
+**Custom I/O Overrides**
+
+GIF supports the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Sections
+:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+the `set_ioproxy()` methods.
+
 **Limitations**
 
 * GIF only supports 3-channel (RGB) images and at most 8 bits per channel.
