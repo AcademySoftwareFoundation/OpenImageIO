@@ -27,8 +27,19 @@ public:
     DDSInput() { init(); }
     virtual ~DDSInput() { close(); }
     virtual const char* format_name(void) const override { return "dds"; }
+    virtual int supports(string_view feature) const override
+    {
+        return (feature == "ioproxy");
+    }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
+    virtual bool open(const std::string& name, ImageSpec& spec,
+                      const ImageSpec& config) override;
     virtual bool close() override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
     virtual int current_subimage(void) const override
     {
         lock_guard lock(*this);
@@ -47,7 +58,6 @@ public:
 
 private:
     std::string m_filename;            ///< Stash the filename
-    FILE* m_file;                      ///< Open image handle
     std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
     int m_subimage;
     int m_miplevel;
@@ -58,17 +68,19 @@ private:
     int m_greenL, m_greenR;  ///< Bit shifts to extract green channel
     int m_blueL, m_blueR;    ///< Bit shifts to extract blue channel
     int m_alphaL, m_alphaR;  ///< Bit shifts to extract alpha channel
-
-    dds_header m_dds;  ///< DDS header
+    dds_header m_dds;        ///< DDS header
+    Filesystem::IOProxy* m_io = nullptr;
+    std::unique_ptr<Filesystem::IOProxy> m_local_io;
 
     /// Reset everything to initial state
     ///
     void init()
     {
-        m_file     = NULL;
         m_subimage = -1;
         m_miplevel = -1;
         m_buf.clear();
+        m_io = nullptr;
+        m_local_io.reset();
     }
 
     /// Helper function: read the image as scanlines (all but cubemaps).
@@ -91,15 +103,28 @@ private:
     /// Helper function: performs the actual pixel decoding.
     bool internal_readimg(unsigned char* dst, int w, int h, int d);
 
-    /// Helper: read, with error detection
-    ///
+    // Helper: read, with error detection
     bool fread(void* buf, size_t itemsize, size_t nitems)
     {
-        size_t n = ::fread(buf, itemsize, nitems, m_file);
-        if (n != nitems)
-            errorf("Read error");
-        return n == nitems;
+        size_t size = itemsize * nitems;
+        size_t n    = m_io->read(buf, size);
+        if (n != size)
+            errorfmt(
+                "Read error: asked for {} bytes at position {}, only got {}",
+                size, m_io->tell() - n, n);
+        return n == size;
     }
+
+    bool fseek(int64_t pos, int origin)
+    {
+        if (m_io->seek(pos, origin)) {
+            errorfmt("Seek error");
+            return false;
+        }
+        return true;
+    }
+
+    int64_t ftell() { return m_io->tell(); }
 };
 
 
@@ -128,13 +153,30 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
+DDSInput::open(const std::string& name, ImageSpec& newspec,
+               const ImageSpec& config)
+{
+    if (auto p = config.find_attribute("oiio:ioproxy", TypeDesc::PTR))
+        m_io = p->get<Filesystem::IOProxy*>();
+    return open(name, newspec);
+}
+
+
+
+bool
 DDSInput::open(const std::string& name, ImageSpec& newspec)
 {
     m_filename = name;
 
-    m_file = Filesystem::fopen(name, "rb");
-    if (!m_file) {
-        errorf("Could not open file \"%s\"", name);
+    if (!m_io) {
+        // If no proxy was supplied, create a file reader
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Mode::Read);
+        m_local_io.reset(m_io);
+    }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Mode::Read) {
+        errorfmt("Could not open file \"{}\"", name);
+        m_local_io.reset();
+        m_io = nullptr;
         return false;
     }
 
@@ -155,7 +197,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     RH(mipmaps);
 
     // advance the file pointer by 44 bytes (reserved fields)
-    fseek(m_file, 44, SEEK_CUR);
+    fseek(44, SEEK_CUR);
 
     // pixel format struct
     RH(fmt.size);
@@ -172,7 +214,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     RH(caps.flags2);
 
     // advance the file pointer by 8 bytes (reserved fields)
-    fseek(m_file, 8, SEEK_CUR);
+    fseek(8, SEEK_CUR);
 #undef RH
     if (bigendian()) {
         // DDS files are little-endian
@@ -384,7 +426,7 @@ DDSInput::internal_seek_subimage(int cubeface, int miplevel, unsigned int& w,
         }
     }
     // seek to the offset we've found
-    fseek(m_file, ofs, SEEK_SET);
+    fseek(ofs, SEEK_SET);
 }
 
 
@@ -582,7 +624,7 @@ DDSInput::internal_readimg(unsigned char* dst, int w, int h, int d)
 bool
 DDSInput::readimg_scanlines()
 {
-    //std::cerr << "[dds] readimg: " << ftell (m_file) << "\n";
+    //std::cerr << "[dds] readimg: " << ftell() << "\n";
     // resize destination buffer
     m_buf.resize(m_spec.scanline_bytes() * m_spec.height * m_spec.depth
                  /*/ (1 << m_miplevel)*/);
@@ -608,11 +650,6 @@ DDSInput::readimg_tiles()
 bool
 DDSInput::close()
 {
-    if (m_file) {
-        fclose(m_file);
-        m_file = NULL;
-    }
-
     init();  // Reset to initial state
     return true;
 }
