@@ -1689,6 +1689,53 @@ public:
 protected:
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
                        // BEWARE using m_spec directly -- not thread-safe
+    Filesystem::IOProxy* m_io = nullptr;  // pointer to the IOProxy object
+
+    /// @{
+    /// @name IOProxy aids for ImageInput implementations.
+    ///
+    /// This set of utility functions are not meant to be called by user code.
+    /// They are protected methods of ImageInput, and are used internally by
+    /// the ImageInput implementation to help it properly implement support of
+    /// IOProxy.
+    ///
+
+    /// Get the IOProxy being used underneath.
+    Filesystem::IOProxy* ioproxy();
+
+    /// Is this file currenty opened (active proxy)?
+    bool ioproxy_opened();
+
+    /// Clear the proxy ptr, and close/destroy any "local" proxy.
+    void ioproxy_clear();
+
+    /// Retrieve any ioproxy request from the configuration hint spec, and
+    /// make `m_io` point to it. But if no IOProxy is found in the config,
+    /// don't overwrite one we already have.
+    void ioproxy_retrieve_from_config(const ImageSpec& config);
+
+    /// Presuming that `ioproxy_retrieve_from_config` has already been called,
+    /// if `m_io` is still not set (i.e., wasn't found in the config), open a
+    /// IOFile local proxy with the given read/write `mode`. Return true if a
+    /// proxy is set up. If it can't be done (i.e., no proxy passed, file
+    /// couldn't be opened), issue an error and return false.
+    bool ioproxy_use_or_open(string_view name);
+
+    /// Helper: read from the proxy akin to fread(). Return true on success,
+    /// false upon failure and issue a helpful error message. NOTE: this is
+    /// not the same return value as std::fread, which returns the number of
+    /// items read.
+    bool ioread(void* buf, size_t itemsize, size_t nitems = 1);
+
+    /// Helper: seek the proxy, akin to fseek. Return true on success, false
+    /// upon failure and issue an error message. (NOTE: this is not the same
+    /// return value as std::fseek, which returns 0 on success.)
+    bool ioseek(int64_t pos, int origin = SEEK_SET);
+
+    /// Helper: retrieve the current position of the proxy, akin to ftell.
+    int64_t iotell();
+
+    /// @}
 
 private:
     // PIMPL idiom -- this lets us hide details of the internals of the
@@ -2402,8 +2449,64 @@ protected:
                                     void *image_buffer,
                                     TypeDesc buf_format = TypeDesc::UNKNOWN);
 
+    /// @{
+    /// @name IOProxy aids for ImageInput implementations.
+    ///
+    /// This set of utility functions are not meant to be called by user code.
+    /// They are protected methods of ImageInput, and are used internally by
+    /// the ImageInput implementation to help it properly implement support of
+    /// IOProxy.
+    ///
+
+    /// Get the IOProxy being used underneath.
+    Filesystem::IOProxy* ioproxy();
+
+    /// Is this file currenty opened (active proxy)?
+    bool ioproxy_opened();
+
+    /// Clear the proxy ptr, and close/destroy any "local" proxy.
+    void ioproxy_clear();
+
+    /// Retrieve any ioproxy request from the configuration hint spec, and
+    /// make `m_io` point to it. But if no IOProxy is found in the config,
+    /// don't overwrite one we already have.
+    void ioproxy_retrieve_from_config(const ImageSpec& config);
+
+    /// Presuming that `ioproxy_retrieve_from_config` has already been called,
+    /// if `m_io` is still not set (i.e., wasn't found in the config), open a
+    /// IOFile local proxy with the given read/write `mode`. Return true if a
+    /// proxy is set up. If it can't be done (i.e., no proxy passed, file
+    /// couldn't be opened), issue an error and return false.
+    bool ioproxy_use_or_open(string_view name);
+
+    /// Helper: write to the proxy akin to fwrite(). Return true on success,
+    /// false upon failure and issue a helpful error message. NOTE: this is
+    /// not the same return value as std::fwrite, which returns the number of
+    /// items written.
+    bool iowrite(const void* buf, size_t itemsize, size_t nitems = 1);
+
+    /// Helper: seek the proxy, akin to fseek. Return true on success, false
+    /// upon failure and issue an error message. (NOTE: this isionot the same
+    /// return value as std::fseek, which returns 0 on success.)
+    bool ioseek(int64_t pos, int origin = SEEK_SET);
+
+    /// Helper: retrieve the current position of the proxy, akin to ftell.
+    int64_t iotell();
+
+    // Write a formatted string to the output proxy. Return true on success,
+    // false upon failure and issue an error message.
+    template<typename Str, typename... Args>
+    inline bool iowritefmt(const Str& fmt, Args&&... args)
+    {
+        std::string s = Strutil::fmt::format(fmt, args...);
+        return iowrite(s.data(), s.size());
+    }
+
+    /// @}
+
 protected:
-    ImageSpec m_spec;           ///< format spec of the currently open image
+    ImageSpec m_spec;           // format spec of the currently open image
+    Filesystem::IOProxy* m_io = nullptr;  // pointer to the IOProxy object
 
 private:
     // PIMPL idiom -- this lets us hide details of the internals of the

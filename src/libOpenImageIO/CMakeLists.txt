@@ -59,7 +59,8 @@ set (libOpenImageIO_srcs
                           deepdata.cpp exif.cpp exif-canon.cpp
                           formatspec.cpp imagebuf.cpp
                           imageinput.cpp imageio.cpp imageioplugin.cpp
-                          imageoutput.cpp iptc.cpp xmp.cpp
+                          imageoutput.cpp
+                          iptc.cpp xmp.cpp
                           color_ocio.cpp
                           maketexture.cpp
                           bluenoise.cpp

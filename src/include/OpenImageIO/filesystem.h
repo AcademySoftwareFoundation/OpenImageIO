@@ -205,6 +205,7 @@ OIIO_UTIL_API std::string unique_path (string_view model="%%%%-%%%%-%%%%-%%%%");
 OIIO_UTIL_API FILE *fopen (string_view path, string_view mode);
 
 /// Version of fseek that works with 64 bit offsets on all systems.
+/// Like std::fseek, returns zero on success, nonzero on failure.
 OIIO_UTIL_API int fseek (FILE *file, int64_t offset, int whence);
 
 /// Version of ftell that works with 64 bit offsets on all systems.
@@ -382,13 +383,21 @@ public:
     virtual void close () { }
     virtual bool opened () const { return mode() != Closed; }
     virtual int64_t tell () { return m_pos; }
+    // Seek to the position, returning true on success, false on failure.
+    // Note the difference between this and std::fseek() which returns 0 on
+    // success, and -1 on failure.
     virtual bool seek (int64_t offset) { m_pos = offset; return true; }
+    // Read `size` bytes at the current position into `buf[]`, returning the
+    // number of bytes successfully read.
     virtual size_t read (void *buf, size_t size);
+    // Write `size` bytes from `buf[]` at the current position, returning the
+    // number of bytes successfully written.
     virtual size_t write (const void *buf, size_t size);
     // pread(), pwrite() are stateless, do not alter the current file
     // position, and are thread-safe (against each other).
     virtual size_t pread (void *buf, size_t size, int64_t offset);
     virtual size_t pwrite (const void *buf, size_t size, int64_t offset);
+    // Return the total size of the proxy data, in bytes.
     virtual size_t size () const { return 0; }
     virtual void flush () const { }
 
