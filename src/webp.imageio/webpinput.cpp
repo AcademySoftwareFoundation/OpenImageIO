@@ -165,8 +165,10 @@ WebpInput::open(const std::string& name, ImageSpec& spec)
         m_spec.attribute("oiio:Movie", 1);
         m_frame_count       = (int)WebPDemuxGetI(m_demux, WEBP_FF_FRAME_COUNT);
         uint32_t loop_count = WebPDemuxGetI(m_demux, WEBP_FF_LOOP_COUNT);
-        if (loop_count)
-            m_spec.attribute("webp:LoopCount", (int)loop_count);
+        if (loop_count) {
+            m_spec.attribute("oiio:LoopCount", (int)loop_count);
+            m_spec.attribute("webp:LoopCount", (int)loop_count);  // DEPRECATED
+        }
         // uint32_t bgcolor = WebPDemuxGetI(m_demux, WEBP_FF_BACKGROUND_COLOR    );
         // Strutil::print("  animated {} frames, loop {}, bgcolor={}\n",
         //                frame_count, loop_count, bgcolor);
