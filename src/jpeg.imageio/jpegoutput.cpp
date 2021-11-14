@@ -33,7 +33,7 @@ public:
     virtual const char* format_name(void) const override { return "jpeg"; }
     virtual int supports(string_view feature) const override
     {
-        return (feature == "exif" || feature == "iptc");
+        return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
     }
     virtual bool open(const std::string& name, const ImageSpec& spec,
                       OpenMode mode = Create) override;
@@ -44,9 +44,13 @@ public:
                             stride_t ystride, stride_t zstride) override;
     virtual bool close() override;
     virtual bool copy_image(ImageInput* in) override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
-    FILE* m_fd;
     std::string m_filename;
     unsigned int m_dither;
     int m_next_scanline;  // Which scanline is the next to write?
@@ -56,12 +60,36 @@ private:
     jvirt_barray_ptr* m_copy_coeffs;
     struct jpeg_decompress_struct* m_copy_decompressor;
     std::vector<unsigned char> m_tilebuffer;
+    std::unique_ptr<Filesystem::IOProxy> m_io_local;
+    Filesystem::IOProxy* m_io = nullptr;
+    // m_outbuffer/m_outsize are used for jpeg-to-memory
+    unsigned char* m_outbuffer = nullptr;
+#if OIIO_JPEG_LIB_VERSION >= 94
+    // libjpeg switched jpeg_mem_dest() from accepting a `unsigned long*`
+    // to a `size_t*` in version 9d.
+    size_t m_outsize = 0;
+#else
+    // libjpeg < 9d, and so far all libjpeg-turbo releases, have a
+    // jpeg_mem_dest() declaration that needs this to be unsigned long.
+    unsigned long m_outsize = 0;
+#endif
 
     void init(void)
     {
-        m_fd                = NULL;
         m_copy_coeffs       = NULL;
         m_copy_decompressor = NULL;
+        m_io_local.reset();
+        m_io = nullptr;
+        clear_outbuffer();
+    }
+
+    void clear_outbuffer()
+    {
+        if (m_outbuffer) {
+            free(m_outbuffer);
+            m_outbuffer = nullptr;
+        }
+        m_outsize = 0;
     }
 
     void set_subsampling(const int components[])
@@ -123,15 +151,29 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         return false;
     }
 
-    m_fd = Filesystem::fopen(name, "wb");
-    if (m_fd == NULL) {
-        errorf("Could not open \"%s\"", name);
+    if (auto ioparam = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR))
+        m_io = ioparam->get<Filesystem::IOProxy*>();
+    if (!m_io) {
+        // If no proxy was supplied, create a file reader
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
+        m_io_local.reset(m_io);
+    }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Write) {
+        errorfmt("Could not open \"{}\"", name);
+        m_io = nullptr;
+        m_io_local.reset();
         return false;
     }
 
     m_cinfo.err = jpeg_std_error(&c_jerr);  // set error handler
     jpeg_create_compress(&m_cinfo);         // create compressor
-    jpeg_stdio_dest(&m_cinfo, m_fd);        // set output stream
+    if (!strcmp(m_io->proxytype(), "file")) {
+        auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
+        jpeg_stdio_dest(&m_cinfo, fd);  // set output stream
+    } else {
+        clear_outbuffer();
+        jpeg_mem_dest(&m_cinfo, &m_outbuffer, &m_outsize);
+    }
 
     // Set image and compression parameters
     m_cinfo.image_width  = m_spec.width;
@@ -400,9 +442,9 @@ JpgOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
 bool
 JpgOutput::close()
 {
-    if (!m_fd) {  // Already closed
-        return true;
+    if (!m_io) {  // Already closed
         init();
+        return true;
     }
 
     bool ok = true;
@@ -422,7 +464,6 @@ JpgOutput::close()
         char* data = &buf[0];
         while (m_next_scanline < spec().height) {
             jpeg_write_scanlines(&m_cinfo, (JSAMPLE**)&data, 1);
-            // DBG std::cout << "out close: write_scanlines\n";
             ++m_next_scanline;
         }
     }
@@ -438,8 +479,16 @@ JpgOutput::close()
     }
     DBG std::cout << "out close: about to destroy_compress\n";
     jpeg_destroy_compress(&m_cinfo);
-    fclose(m_fd);
-    m_fd = NULL;
+
+    if (m_outsize) {
+        // We had an IOProxy of some type that was not IOFile. JPEG doesn't
+        // have fully general IO overloads, but it can write to memory
+        // buffers, we did that, so now we have to copy that in one big chunk
+        // to IOProxy.
+        m_io->write(m_outbuffer, m_outsize);
+    }
+
+    m_io_local.reset();  // closes the file if we opened it locally
     init();
 
     return ok;

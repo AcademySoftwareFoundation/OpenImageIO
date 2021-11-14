@@ -118,7 +118,7 @@ endif ()
 checked_find_package (JPEGTurbo
                       DEFINITIONS -DUSE_JPEG_TURBO=1
                       PRINT       JPEG_INCLUDES JPEG_INCLUDE_DIRS
-                                  JPEG_LIBRARIES)
+                                  JPEG_LIBRARIES JPEG_VERSION)
 if (NOT JPEG_FOUND) # Try to find the non-turbo version
     checked_find_package (JPEG REQUIRED)
 endif ()

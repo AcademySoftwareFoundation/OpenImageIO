@@ -29,6 +29,12 @@ endif ()
 if (JPEG_INCLUDE_DIR AND JPEG_LIBRARY)
   set (JPEG_INCLUDE_DIRS ${JPEG_INCLUDE_DIR} CACHE PATH "JPEG include dirs")
   set (JPEG_LIBRARIES ${JPEG_LIBRARY} CACHE STRING "JPEG libraries")
+  file(STRINGS "${JPEG_INCLUDE_DIR}/jconfig.h"
+                jpeg_lib_version REGEX "^#define[\t ]+JPEG_LIB_VERSION[\t ]+.*")
+  if (jpeg_lib_version)
+      string(REGEX REPLACE "^#define[\t ]+JPEG_LIB_VERSION[\t ]+([0-9]+).*"
+              "\\1" JPEG_VERSION "${jpeg_lib_version}")
+  endif ()
 endif ()
 
 # handle the QUIETLY and REQUIRED arguments and set JPEG_FOUND to TRUE if
