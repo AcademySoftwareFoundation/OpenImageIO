@@ -11,6 +11,7 @@
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/ioproxymixin.h>
 #include <OpenImageIO/platform.h>
 
 // IOProxy equivalent of fputc
@@ -59,7 +60,7 @@ namespace {
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-class GIFOutput final : public ImageOutput {
+class GIFOutput final : public IOProxyMixin<ImageOutput> {
 public:
     GIFOutput() { init(); }
     virtual ~GIFOutput() { close(); }
@@ -77,11 +78,7 @@ public:
     virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
                                 stride_t xstride) override;
     virtual bool close() override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        return true;
-    }
+    // set_ioproxy is inherited from IOProxyMixin
 
 private:
     std::string m_filename;
@@ -92,8 +89,6 @@ private:
     GifWriter<Filesystem::IOProxy> m_gifwriter;
     std::vector<uint8_t> m_canvas;  // Image canvas, accumulating output
     int m_delay;
-    std::unique_ptr<Filesystem::IOProxy> m_io_local;
-    Filesystem::IOProxy* m_io = nullptr;
 
     void init(void)
     {
@@ -101,8 +96,7 @@ private:
         m_subimage = 0;
         m_canvas.clear();
         m_pending_write = false;
-        m_io_local.reset();
-        m_io = nullptr;
+        ioproxy_clear();
     }
 
     bool start_subimage();
@@ -168,17 +162,9 @@ GIFOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
     float fps = m_spec.get_float_attribute("FramesPerSecond", 1.0f);
     m_delay   = (fps == 0.0f ? 0 : (int)(100.0f / fps));
 
-    if (auto ioparam = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR))
-        m_io = ioparam->get<Filesystem::IOProxy*>();
-    if (!m_io) {
-        // If no proxy was supplied, create a file reader
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
-        m_io_local.reset(m_io);
-    }
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Write) {
-        errorfmt("Could not open \"{}\"", name);
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open_for_writing(name))
         return false;
-    }
 
     return start_subimage();
 }
@@ -193,7 +179,6 @@ GIFOutput::close()
         ok &= finish_subimage();
         GifEnd(&m_gifwriter);
     }
-    m_io_local.reset();  // closes the file if we opened it locally
     init();
     return ok;
 }
