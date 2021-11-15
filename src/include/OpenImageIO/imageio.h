@@ -1590,9 +1590,7 @@ public:
     /// (`supports("ioproxy")`). The caller retains ownership of the proxy.
     ///
     /// @returns `true` for success, `false` for failure.
-    virtual bool set_ioproxy (Filesystem::IOProxy* ioproxy) {
-        return (ioproxy == nullptr);
-    }
+    virtual bool set_ioproxy (Filesystem::IOProxy* ioproxy);
 
     /// Is there a pending error message waiting to be retrieved, that
     /// resulted from an ImageInput API call made by the this thread?
@@ -1689,7 +1687,6 @@ public:
 protected:
     ImageSpec m_spec;  // format spec of the current open subimage/MIPlevel
                        // BEWARE using m_spec directly -- not thread-safe
-    Filesystem::IOProxy* m_io = nullptr;  // pointer to the IOProxy object
 
     /// @{
     /// @name IOProxy aids for ImageInput implementations.
@@ -2308,9 +2305,7 @@ public:
     /// (`supports("ioproxy")`). The caller retains ownership of the proxy.
     ///
     /// @returns `true` for success, `false` for failure.
-    virtual bool set_ioproxy (Filesystem::IOProxy* ioproxy) {
-        return (ioproxy == nullptr);
-    }
+    virtual bool set_ioproxy (Filesystem::IOProxy* ioproxy);
 
     /// Is there a pending error message waiting to be retrieved, that
     /// resulted from an ImageOutput API call made by the this thread?
@@ -2506,7 +2501,6 @@ protected:
 
 protected:
     ImageSpec m_spec;           // format spec of the currently open image
-    Filesystem::IOProxy* m_io = nullptr;  // pointer to the IOProxy object
 
 private:
     // PIMPL idiom -- this lets us hide details of the internals of the
