@@ -9,6 +9,7 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/ioproxymixin.h>
 #include <OpenImageIO/tiffutils.h>
 
 #include "jpeg_pvt.h"
@@ -26,7 +27,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
 
-class JpgOutput final : public ImageOutput {
+class JpgOutput final : public IOProxyMixin<ImageOutput> {
 public:
     JpgOutput() { init(); }
     virtual ~JpgOutput() { close(); }
@@ -44,11 +45,7 @@ public:
                             stride_t ystride, stride_t zstride) override;
     virtual bool close() override;
     virtual bool copy_image(ImageInput* in) override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        return true;
-    }
+    // set_ioproxy() is inherited from IOProxyMixin
 
 private:
     std::string m_filename;
@@ -60,8 +57,6 @@ private:
     jvirt_barray_ptr* m_copy_coeffs;
     struct jpeg_decompress_struct* m_copy_decompressor;
     std::vector<unsigned char> m_tilebuffer;
-    std::unique_ptr<Filesystem::IOProxy> m_io_local;
-    Filesystem::IOProxy* m_io = nullptr;
     // m_outbuffer/m_outsize are used for jpeg-to-memory
     unsigned char* m_outbuffer = nullptr;
 #if OIIO_JPEG_LIB_VERSION >= 94
@@ -78,8 +73,7 @@ private:
     {
         m_copy_coeffs       = NULL;
         m_copy_decompressor = NULL;
-        m_io_local.reset();
-        m_io = nullptr;
+        ioproxy_clear();
         clear_outbuffer();
     }
 
@@ -151,19 +145,9 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         return false;
     }
 
-    if (auto ioparam = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR))
-        m_io = ioparam->get<Filesystem::IOProxy*>();
-    if (!m_io) {
-        // If no proxy was supplied, create a file reader
-        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
-        m_io_local.reset(m_io);
-    }
-    if (!m_io || m_io->mode() != Filesystem::IOProxy::Write) {
-        errorfmt("Could not open \"{}\"", name);
-        m_io = nullptr;
-        m_io_local.reset();
+    ioproxy_retrieve_from_config(m_spec);
+    if (!ioproxy_use_or_open_for_writing(name))
         return false;
-    }
 
     m_cinfo.err = jpeg_std_error(&c_jerr);  // set error handler
     jpeg_create_compress(&m_cinfo);         // create compressor
@@ -488,9 +472,7 @@ JpgOutput::close()
         m_io->write(m_outbuffer, m_outsize);
     }
 
-    m_io_local.reset();  // closes the file if we opened it locally
     init();
-
     return ok;
 }
 
