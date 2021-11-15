@@ -72,11 +72,7 @@ public:
     virtual bool read_native_scanline(int subimage, int miplevel, int y, int z,
                                       void* data) override;
     virtual bool close() override;
-    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
-    {
-        m_io = ioproxy;
-        return true;
-    }
+
     const std::string& filename() const { return m_filename; }
     void* coeffs() const { return m_coeffs; }
     struct my_error_mgr {
@@ -101,9 +97,7 @@ private:
     my_error_mgr m_jerr;
     jvirt_barray_ptr* m_coeffs;
     std::vector<unsigned char> m_cmyk_buf;  // For CMYK translation
-    Filesystem::IOProxy* m_io = nullptr;
-    std::unique_ptr<Filesystem::IOProxy> m_local_io;
-    std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
+    std::unique_ptr<ImageSpec> m_config;    // Saved copy of configuration spec
 
     void init()
     {
@@ -114,8 +108,7 @@ private:
         m_decomp_create = false;
         m_coeffs        = NULL;
         m_jerr.jpginput = this;
-        m_io            = nullptr;
-        m_local_io.reset();
+        ioproxy_clear();
         m_config.reset();
     }
 
@@ -130,11 +123,7 @@ private:
 
     bool valid_file(const std::string& filename, Filesystem::IOProxy* io) const;
 
-    void close_file()
-    {
-        m_local_io.reset();
-        init();
-    }
+    void close_file() { init(); }
 
     friend class JpgOutput;
 };
