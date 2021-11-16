@@ -2104,7 +2104,7 @@ part of the format name):
 
 **Custom I/O Overrides**
 
-TIFF input (but, currently, not output) supports the "custom I/O" feature
+TIFF input and output support the "custom I/O" feature
 via the `ImageInput::set_ioproxy()` method and the special
 ``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
 
@@ -2269,7 +2269,7 @@ open standard for lossy-compressed images for use on the web.
    * - ``oiio:LoopCount``
      - int
      - Number of times the animation should be played (0-65535, 0 stands for infinity).
-   * - ``gif:LoopCount``
+   * - ``webp:LoopCount``
      - int
      - Deprecated synonym for ``oiio:LoopCount``.
 
