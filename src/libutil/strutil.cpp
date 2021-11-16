@@ -193,7 +193,7 @@ Strutil::vsprintf(const char* fmt, va_list ap)
 #ifdef va_copy
         va_copy(ap, apsave);
 #else
-        ap = apsave;
+        ap     = apsave;
 #endif
     }
 }
