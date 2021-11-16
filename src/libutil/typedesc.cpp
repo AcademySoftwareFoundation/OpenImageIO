@@ -306,9 +306,9 @@ TypeDesc::fromstring(string_view typestring)
         t = TypeBox2i;
     else if (type == "box3i")
         t = TypeBox3i;
-    else if (type == "box2")
+    else if (type == "box2" || type == "box2f")
         t = TypeBox2;
-    else if (type == "box3")
+    else if (type == "box3" || type == "box3f")
         t = TypeBox3;
     else if (type == "timecode")
         t = TypeTimeCode;
