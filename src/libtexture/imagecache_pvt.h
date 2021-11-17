@@ -842,6 +842,14 @@ public:
                                 int subimage, int miplevel, ustring dataname,
                                 TypeDesc datatype, void* data);
 
+    virtual bool get_image_info_type(ustring filename, int subimage,
+                                     int miplevel, ustring dataname,
+                                     TypeDesc& datatype);
+    virtual bool get_image_info_type(ImageCacheFile* file,
+                                     ImageCachePerThreadInfo* thread_info,
+                                     int subimage, int miplevel,
+                                     ustring dataname, TypeDesc& datatype);
+
     /// Get the ImageSpec associated with the named image.  If the file
     /// is found and is an image format that can be read, store a copy
     /// of its specification in spec and return true.  Return false if

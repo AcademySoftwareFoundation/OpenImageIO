@@ -314,6 +314,12 @@ public:
                                   ustring dataname, TypeDesc datatype,
                                   void* data);
 
+    virtual bool get_texture_info_type(ustring filename, int subimage,
+                                       ustring dataname, TypeDesc& datatype);
+    virtual bool get_texture_info_type(TextureHandle* texture_handle,
+                                       Perthread* thread_info, int subimage,
+                                       ustring dataname, TypeDesc& datatype);
+
     virtual bool get_imagespec(ustring filename, int subimage, ImageSpec& spec);
     virtual bool get_imagespec(TextureHandle* texture_handle,
                                Perthread* thread_info, int subimage,
