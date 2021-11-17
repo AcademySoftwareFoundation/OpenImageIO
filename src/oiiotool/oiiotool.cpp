@@ -70,6 +70,14 @@ static ArgParse ap;
         return impl(*img[0], *img[1], *img[2]);                    \
     })
 
+// Canned setup for an op that uses one image on the stack and one float
+// on the command line.
+#define BINARY_IMAGE_FLOAT_OP(name, impl)                          \
+    OIIOTOOL_OP(name, 1, [](OiiotoolOp& op, span<ImageBuf*> img) { \
+        float val = Strutil::stof(op.args(1));                     \
+        return impl(*img[0], *img[1], val);                        \
+    })
+
 // Canned setup for an op that uses one image on the stack and one color
 // on the command line.
 #define BINARY_IMAGE_COLOR_OP(name, impl, defaultval)                   \
@@ -3044,6 +3052,7 @@ BINARY_IMAGE_COLOR_OP(mulc, ImageBufAlgo::mul, 1);          // --mulc
 BINARY_IMAGE_COLOR_OP(divc, ImageBufAlgo::div, 1);          // --divc
 BINARY_IMAGE_COLOR_OP(absdiffc, ImageBufAlgo::absdiff, 0);  // --absdiffc
 BINARY_IMAGE_COLOR_OP(powc, ImageBufAlgo::pow, 1.0f);       // --powc
+BINARY_IMAGE_FLOAT_OP(saturate, ImageBufAlgo::saturate);    // --saturate
 
 UNARY_IMAGE_OP(abs, ImageBufAlgo::abs);  // --abs
 
@@ -6084,6 +6093,9 @@ getargs(int argc, char* argv[])
     ap.arg("--contrast")
       .help("Remap values (options: black=0..., white=1..., sthresh=0.5..., scontrast=1.0..., gamma=1, clamp=0|1)")
       .action(action_contrast);
+    ap.arg("--saturate %f:SCALE")
+      .help("Scale saturation of the color channels")
+      .action(action_saturate);
     ap.arg("--rangecompress")
       .help("Compress the range of pixel values with a log scale (options: luma=0|1)")
       .action(action_rangecompress);
