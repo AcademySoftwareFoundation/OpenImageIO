@@ -30,7 +30,7 @@ ifeq (${SP_OS}, rhel7)
     ifeq (${SPI_COMPILER_PLATFORM},gcc-6.3)
         SPCOMP2_COMPILER ?= gcc63
         CMAKE_CXX_STANDARD ?= 14
-        LLVM_VERSION ?= 11.0.1
+        LLVM_VERSION ?= 12.0.1
     endif
     SP_PLATFORM ?= linux
 else ifeq (${platform}, macosx)
