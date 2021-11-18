@@ -142,6 +142,14 @@ main(int /*argc*/, char* /*argv*/[])
                             TypeDesc(TypeDesc::FLOAT, TypeDesc::VEC3,
                                      TypeDesc::BOX, 2),
                             TypeBox3);
+    test_type<Imath::Box2f>("box2f",  // synonym for box2
+                            TypeDesc(TypeDesc::FLOAT, TypeDesc::VEC2,
+                                     TypeDesc::BOX, 2),
+                            TypeBox2);
+    test_type<Imath::Box3f>("box3f",  // synonym for box3
+                            TypeDesc(TypeDesc::FLOAT, TypeDesc::VEC3,
+                                     TypeDesc::BOX, 2),
+                            TypeBox3);
     test_type<Imath::Box2i>("box2i",
                             TypeDesc(TypeDesc::INT, TypeDesc::VEC2,
                                      TypeDesc::BOX, 2),
