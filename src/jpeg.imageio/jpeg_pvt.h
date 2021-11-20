@@ -21,6 +21,17 @@ extern "C" {
 #include "jpeglib.h"
 }
 
+#if JPEG_LIB_VERSION < 80
+//#    error "Only libjpeg 8+ is supported (JPEG_LIB_VERSION >= 80)"
+#endif
+
+#ifdef JPEG_LIB_VERSION_MINOR
+#    define OIIO_JPEG_LIB_VERSION \
+        (JPEG_LIB_VERSION_MAJOR * 10 + JPEG_LIB_VERSION_MINOR)
+#else
+#    define OIIO_JPEG_LIB_VERSION JPEG_LIB_VERSION
+#endif
+
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

@@ -234,10 +234,10 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     m_decomp_create = true;
     // specify the data source
     if (!strcmp(m_io->proxytype(), "file")) {
-        auto fd = ((Filesystem::IOFile*)m_io)->handle();
+        auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
         jpeg_stdio_src(&m_cinfo, fd);
     } else {
-        auto buffer = ((Filesystem::IOMemReader*)m_io)->buffer();
+        auto buffer = reinterpret_cast<Filesystem::IOMemReader*>(m_io)->buffer();
         jpeg_mem_src(&m_cinfo, const_cast<unsigned char*>(buffer.data()),
                      buffer.size());
     }
