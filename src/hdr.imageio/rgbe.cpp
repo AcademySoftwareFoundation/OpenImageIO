@@ -10,6 +10,8 @@
 #include <cstring>
 #include <cctype>
 
+#include <OpenImageIO/strutil.h>
+
 /* This file contains code to read and write four byte rgbe file format
  developed by Greg Ward.  It handles the conversions between rgbe and
  pixels consisting of floats.  The data is assumed to be an array of floats.
@@ -235,11 +237,11 @@ int RGBE_ReadHeader(FILE *fp, int *width, int *height, rgbe_header_info *info,
         found_FORMAT_line = true;
         /* LG says no:    break;       // format found so break out of loop */
     }
-    else if (info && (sscanf(buf,"GAMMA=%g",&tempf) == 1)) {
+    else if (info && Strutil::scan_values(buf, "GAMMA=", span<float>(tempf))) {
       info->gamma = tempf;
       info->valid |= RGBE_VALID_GAMMA;
     }
-    else if (info && (sscanf(buf,"EXPOSURE=%g",&tempf) == 1)) {
+    else if (info && Strutil::scan_values(buf, "EXPOSURE=", span<float>(tempf))) {
       info->exposure = tempf;
       info->valid |= RGBE_VALID_EXPOSURE;
     }

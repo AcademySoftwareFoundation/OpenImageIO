@@ -189,7 +189,7 @@ Oiiotool::clear_input_config()
 
 
 
-std::string
+static std::string
 format_resolution(int w, int h, int x, int y)
 {
     return Strutil::sprintf("%dx%d%+d%+d", w, h, x, y);
@@ -197,10 +197,71 @@ format_resolution(int w, int h, int x, int y)
 
 
 
-std::string
+static std::string
 format_resolution(int w, int h, int d, int x, int y, int z)
 {
     return Strutil::sprintf("%dx%dx%d%+d%+d%+d", w, h, d, x, y, z);
+}
+
+
+
+template<typename T>
+static bool
+scan_resolution(string_view str, T& w, T& h)
+{
+    return Strutil::parse_value(str, w) && Strutil::parse_char(str, 'x')
+           && Strutil::parse_value(str, h);
+}
+
+
+static bool
+scan_offset(string_view str, int& x, int& y)
+{
+    return Strutil::parse_value(str, x)
+           && (str.size() && (str[0] == '+' || str[0] == '-'))
+           && Strutil::parse_value(str, y);
+}
+
+
+static bool
+scan_res_offset(string_view str, int& w, int& h, int& x, int& y)
+{
+    return Strutil::parse_value(str, w) && Strutil::parse_char(str, 'x')
+           && Strutil::parse_value(str, h)
+           && (str.size() && (str[0] == '+' || str[0] == '-'))
+           && Strutil::parse_value(str, x)
+           && (str.size() && (str[0] == '+' || str[0] == '-'))
+           && Strutil::parse_value(str, y);
+}
+
+
+static bool
+scan_scale_percent(string_view str, float& x, float& y)
+{
+    return Strutil::parse_value(str, x) && Strutil::parse_char(str, '%')
+           && Strutil::parse_char(str, 'x') && Strutil::parse_value(str, y)
+           && Strutil::parse_char(str, '%');
+}
+
+static bool
+scan_scale_percent(string_view str, float& x)
+{
+    return Strutil::parse_value(str, x) && Strutil::parse_char(str, '%');
+}
+
+
+static bool
+scan_box(string_view str, int& xmin, int& ymin, int& xmax, int& ymax)
+{
+    float f[4];
+    if (Strutil::scan_values(str, "", f, ",")) {
+        xmin = f[0];
+        ymin = f[1];
+        xmax = f[2];
+        ymax = f[3];
+        return true;
+    }
+    return false;
 }
 
 
@@ -870,14 +931,12 @@ adjust_output_options(string_view filename, ImageSpec& spec,
 
 
 static bool
-DateTime_to_time_t(const char* datetime, time_t& timet)
+DateTime_to_time_t(string_view datetime, time_t& timet)
 {
     int year, month, day, hour, min, sec;
-    int r = sscanf(datetime, "%d:%d:%d %d:%d:%d", &year, &month, &day, &hour,
-                   &min, &sec);
-    // printf ("%d  %d:%d:%d %d:%d:%d\n", r, year, month, day, hour, min, sec);
-    if (r != 6)
+    if (!Strutil::scan_datetime(datetime, year, month, day, hour, min, sec))
         return false;
+    // print("{}:{}:{} {}:{}:{}\n", year, month, day, hour, min, sec);
     struct tm tmtime;
     time_t now;
     Sysutil::get_local_time(&now, &tmtime);  // fill in defaults
@@ -1138,7 +1197,7 @@ Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
 
 bool
 Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
-                          const char* geom, bool allow_scaling,
+                          string_view geom, bool allow_scaling,
                           bool allow_size) const
 {
     float scaleX = 1.0f;
@@ -1146,13 +1205,12 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
     int ww = w, hh = h;
     int xx = x, yy = y;
     int xmax, ymax;
-    if (sscanf(geom, "%d,%d,%d,%d", &xx, &yy, &xmax, &ymax) == 4) {
+    if (scan_box(geom, xx, yy, xmax, ymax)) {
         x = xx;
         y = yy;
         w = std::max(0, xmax - xx + 1);
         h = std::max(0, ymax - yy + 1);
-    } else if (sscanf(geom, "%dx%d%d%d", &ww, &hh, &xx, &yy) == 4
-               || sscanf(geom, "%dx%d+%d+%d", &ww, &hh, &xx, &yy) == 4) {
+    } else if (scan_res_offset(geom, ww, hh, xx, yy)) {
         if (!allow_size) {
             warning(command,
                     "can't be used to change the size, only the origin");
@@ -1166,7 +1224,7 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
         h = hh;
         x = xx;
         y = yy;
-    } else if (sscanf(geom, "%dx%d", &ww, &hh) == 2) {
+    } else if (scan_resolution(geom, ww, hh)) {
         if (!allow_size) {
             warning(command,
                     "can't be used to change the size, only the origin");
@@ -1178,7 +1236,7 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
             hh = int(ww * float(h) / float(w) + 0.5f);
         w = ww;
         h = hh;
-    } else if (sscanf(geom, "%f%%x%f%%", &scaleX, &scaleY) == 2) {
+    } else if (scan_scale_percent(geom, scaleX, scaleY)) {
         if (!allow_scaling) {
             warning(command, "can't be used to rescale the size");
             return false;
@@ -1191,10 +1249,10 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
             scaleY = scaleX;
         w = (int)(w * scaleX + 0.5f);
         h = (int)(h * scaleY + 0.5f);
-    } else if (sscanf(geom, "%d%d", &xx, &yy) == 2) {
+    } else if (scan_offset(geom, xx, yy)) {
         x = xx;
         y = yy;
-    } else if (sscanf(geom, "%f%%", &scaleX) == 1) {
+    } else if (scan_scale_percent(geom, scaleX)) {
         if (!allow_scaling) {
             warning(command, "can't be used to rescale the size");
             return false;
@@ -1202,7 +1260,7 @@ Oiiotool::adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
         scaleX *= 0.01f;
         w = (int)(w * scaleX + 0.5f);
         h = (int)(h * scaleX + 0.5f);
-    } else if (sscanf(geom, "%f", &scaleX) == 1) {
+    } else if (Strutil::parse_float(geom, scaleX, false)) {
         if (!allow_scaling) {
             warning(command, "can't be used to rescale the size");
             return false;
@@ -1747,9 +1805,9 @@ OiioTool::set_attribute(ImageRecRef img, string_view attribname, TypeDesc type,
     if (type == TypeTimeCode && value.find(':') != value.npos) {
         // Special case: They are specifying a TimeCode as a "HH:MM:SS:FF"
         // string, we need to re-encode as a uint32[2].
-        int hour = 0, min = 0, sec = 0, frame = 0;
-        sscanf(value.c_str(), "%d:%d:%d:%d", &hour, &min, &sec, &frame);
-        Imf::TimeCode tc(hour, min, sec, frame);
+        int hmsf[4] = { 0, 0, 0, 0 };  // hour, min, sec, frame
+        Strutil::scan_values(value, "", hmsf, ":");
+        Imf::TimeCode tc(hmsf[0], hmsf[1], hmsf[2], hmsf[3]);
         for (int s = 0, send = img->subimages(); s < send; ++s) {
             for (int m = 0, mend = img->miplevels(s); m < mend; ++m) {
                 ((*img)(s, m).specmod()).attribute(attribname, type, &tc);
@@ -3189,14 +3247,14 @@ OIIOTOOL_OP(warp, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --cshift
 OIIOTOOL_OP(cshift, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
-    int x = 0;
-    int y = 0;
-    int z = 0;
-    if (sscanf(op.args(1).c_str(), "%d%d%d", &x, &y, &z) < 2) {
+    int xyz[3] = { 0, 0, 0 };
+    if (!(Strutil::scan_values(op.args(1), "", span<int>(xyz, 3))
+          || Strutil::scan_values(op.args(1), "", span<int>(xyz, 2)))) {
         ot.errorf(op.opname(), "Invalid shift offset '%s'", op.args(1));
         return false;
     }
-    return ImageBufAlgo::circular_shift(*img[0], *img[1], x, y, z);
+    return ImageBufAlgo::circular_shift(*img[0], *img[1], xyz[0], xyz[1],
+                                        xyz[2]);
 });
 
 
@@ -3393,7 +3451,7 @@ OIIOTOOL_OP(kernel, 0, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view kernelsize(op.args(2));
     float w = 1.0f;
     float h = 1.0f;
-    if (sscanf(kernelsize.c_str(), "%fx%f", &w, &h) != 2)
+    if (!scan_resolution(kernelsize, w, h))
         ot.errorf(op.opname(), "Unknown size %s", kernelsize);
     *img[0] = ImageBufAlgo::make_kernel(kernelname, w, h);
     return !img[0]->has_error();
@@ -3928,7 +3986,7 @@ OIIOTOOL_OP(blur, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view kernopt = op.options().get_string("kernel", "gaussian");
     float w             = 1.0f;
     float h             = 1.0f;
-    if (sscanf(op.args(1).c_str(), "%fx%f", &w, &h) != 2)
+    if (!scan_resolution(op.args(1), w, h))
         ot.errorf(op.opname(), "Unknown size %s", op.args(1));
     ImageBuf Kernel = ImageBufAlgo::make_kernel(kernopt, w, h);
     if (Kernel.has_error()) {
@@ -3945,7 +4003,7 @@ OIIOTOOL_OP(median, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view size(op.args(1));
     int w = 3;
     int h = 3;
-    if (sscanf(size.c_str(), "%dx%d", &w, &h) != 2)
+    if (!scan_resolution(size, w, h))
         ot.errorf(op.opname(), "Unknown size %s", size);
     return ImageBufAlgo::median_filter(*img[0], *img[1], w, h);
 });
@@ -3957,7 +4015,7 @@ OIIOTOOL_OP(dilate, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view size(op.args(1));
     int w = 3;
     int h = 3;
-    if (sscanf(size.c_str(), "%dx%d", &w, &h) != 2)
+    if (!scan_resolution(size, w, h))
         ot.errorf(op.opname(), "Unknown size %s", size);
     return ImageBufAlgo::dilate(*img[0], *img[1], w, h);
 });
@@ -3969,7 +4027,7 @@ OIIOTOOL_OP(erode, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
     string_view size(op.args(1));
     int w = 3;
     int h = 3;
-    if (sscanf(size.c_str(), "%dx%d", &w, &h) != 2)
+    if (!scan_resolution(size, w, h))
         ot.errorf(op.opname(), "Unknown size %s", size);
     return ImageBufAlgo::erode(*img[0], *img[1], w, h);
 });
@@ -4114,7 +4172,7 @@ action_paste(int argc, const char* argv[])
     int x = 0, y = 0, z = 0;
     if (position == "-" || position == "auto") {
         // Come back to this
-    } else if (sscanf(position.c_str(), "%d%d", &x, &y) != 2) {
+    } else if (!scan_offset(position, x, y)) {
         ot.errorf(command, "Invalid offset '%s'", position);
         return 0;
     }
@@ -4190,7 +4248,7 @@ action_mosaic(int /*argc*/, const char* argv[])
     OTScopedTimer timer(ot, command);
     string_view size = ot.express(argv[1]);
     int ximages = 0, yimages = 0;
-    if (sscanf(size.c_str(), "%dx%d", &ximages, &yimages) != 2 || ximages < 1
+    if (!scan_resolution(size, ximages, yimages) || ximages < 1
         || yimages < 1) {
         ot.errorf(command, "Invalid size '%s'", size);
         return 0;
@@ -4225,8 +4283,7 @@ action_mosaic(int /*argc*/, const char* argv[])
     std::string fit = options["fit"];
     if (fit.size()) {
         int fitw = 0, fith = 0;
-        if (sscanf(fit.c_str(), "%dx%d", &fitw, &fith) == 2 && fitw >= 1
-            && fith >= 1) {
+        if (scan_resolution(fit, fitw, fith) && fitw >= 1 && fith >= 1) {
             widest  = fitw;
             highest = fith;
             // Do the equivalent of a --fit on each image

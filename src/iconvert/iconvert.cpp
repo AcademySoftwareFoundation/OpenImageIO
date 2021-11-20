@@ -144,14 +144,12 @@ getargs(int argc, char* argv[])
 
 
 static bool
-DateTime_to_time_t(const char* datetime, time_t& timet)
+DateTime_to_time_t(string_view datetime, time_t& timet)
 {
     int year, month, day, hour, min, sec;
-    int r = sscanf(datetime, "%d:%d:%d %d:%d:%d", &year, &month, &day, &hour,
-                   &min, &sec);
-    // printf ("%d  %d:%d:%d %d:%d:%d\n", r, year, month, day, hour, min, sec);
-    if (r != 6)
+    if (!Strutil::scan_datetime(datetime, year, month, day, hour, min, sec))
         return false;
+    // print("{}:{}:{} {}:{}:{}\n", year, month, day, hour, min, sec);
     struct tm tmtime;
     time_t now;
     Sysutil::get_local_time(&now, &tmtime);  // fill in defaults

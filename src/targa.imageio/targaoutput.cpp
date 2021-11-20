@@ -351,13 +351,18 @@ TGAOutput::write_tga20_data_fields()
 
         // timestamp - 6 shorts (month, day, year, hour, minute, second)
         {
-            std::string dt = m_spec.get_string_attribute("DateTime", "");
-            uint16_t y, m, d, h, i, s;
-            if (dt.length() > 0)
-                sscanf(dt.c_str(), "%04hu:%02hu:%02hu %02hu:%02hu:%02hu", &y,
-                       &m, &d, &h, &i, &s);
-            else
-                y = m = d = h = i = s = 0;
+            string_view dt = m_spec.get_string_attribute("DateTime", "");
+            uint16_t y = 0, m = 0, d = 0, h = 0, i = 0, s = 0;
+            int ymd[3], hms[3];
+            if (dt.length() > 0 && Strutil::parse_values(dt, "", ymd, ":")
+                && Strutil::parse_values(dt, "", hms, ":")) {
+                y = ymd[0];
+                m = ymd[1];
+                d = ymd[2];
+                h = hms[0];
+                i = hms[1];
+                s = hms[2];
+            }
             if (!fwrite(m) || !fwrite(d) || !fwrite(y) || !fwrite(h)
                 || !fwrite(i) || !fwrite(s)) {
                 return false;
@@ -369,12 +374,12 @@ TGAOutput::write_tga20_data_fields()
 
         // job time - 3 shorts (hours, minutes, seconds)
         {
-            std::string jt = m_spec.get_string_attribute("targa:JobTime", "");
-            uint16_t h, m, s;
-            if (jt.length() > 0)
-                sscanf(jt.c_str(), "%hu:%02hu:%02hu", &h, &m, &s);
-            else
-                h = m = s = 0;
+            string_view jt = m_spec.get_string_attribute("targa:JobTime", "");
+            uint16_t h = 0, m = 0, s = 0;
+            int hms[3];
+            if (jt.length() > 0 && Strutil::parse_values(jt, "", hms, ":")) {
+                h = hms[0], m = hms[1], s = hms[2];
+            }
             if (!fwrite(h) || !fwrite(m) || !fwrite(s))
                 return false;
         }
