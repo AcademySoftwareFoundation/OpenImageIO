@@ -73,7 +73,7 @@
 #endif
 
 // clang 7.0 (rc2) has errors when including boost thread!
-// The only thin we're using there is boost::physical_concurrency.
+// The only thing we're using there is boost::physical_concurrency.
 #if !(OIIO_CLANG_VERSION >= 7)
 #    include <boost/thread.hpp>
 #endif
@@ -427,12 +427,32 @@ Term::Term(const std::ostream& stream)
         enableVTMode();
 #else
     // Non-windows: also check the TERM env variable for a terminal known to
-    // be capable of the color codes. List copied from the Apache-licensed
-    // Google Benchmark: https://github.com/google/benchmark/blob/master/src/colorprint.cc
-    const char* const supported_terminals[] = {
-        "cygwin", "linux",           "rxvt-unicode", "rxvt-unicode-256color",
-        "screen", "screen-256color", "tmux",         "tmux-256color",
-        "xterm",  "xterm-256color",  "xterm-color"
+    // be capable of the color codes. This list is assembled from a
+    // combination of terminals listed in Google Benchmark:
+    // https://github.com/google/benchmark/blob/master/src/colorprint.cc
+    // (Apache 2.0) also from https://github.com/agauniyal/rang (Unlicense).
+    static const char* const supported_terminals[] = {
+        "ansi",
+        "color",
+        "console",
+        "cygwin",
+        "gnome",
+        "konsole",
+        "kterm",
+        "linux",
+        "msys",
+        "putty",
+        "rxvt",
+        "rxvt-unicode-256color",
+        "rxvt-unicode",
+        "screen-256color",
+        "screen",
+        "tmux-256color",
+        "tmux",
+        "vt100",
+        "xterm-256color",
+        "xterm-color"
+        "xterm",
     };
     string_view TERM         = Sysutil::getenv("TERM");
     bool term_supports_color = false;
