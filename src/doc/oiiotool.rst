@@ -2180,10 +2180,22 @@ current top image.
 
 .. option:: --invert
 
-    Replace the top images with its color inverse. It only inverts the first
-    three channels, in order to preserve alpha.
-    
+    Replace the top image with its color inverse. By default, it only
+    inverts the first three channels in order to preserve alpha, but you
+    can override the channel range of the inversion with optional modifiers
+    `chbegin` and `chend`. Channels outside this range will simply be
+    copied, without inversion.
+
     Optional appended modifiers include:
+
+      `:chbegin=` *int*
+        Override the beginning of the range of channels to be inverted
+        (defaults to 0.)
+
+      `:chend=` *int*
+        Override the end of the range of channels to be inverted (defaults
+        to 3). Remember that this is one more than the index of the last
+        channel to be inverted.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
