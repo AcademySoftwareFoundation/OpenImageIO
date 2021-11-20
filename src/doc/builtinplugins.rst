@@ -785,6 +785,24 @@ anywhere near the acceptance of the original JPEG/JFIF format.
        Appendix :ref:`chap-stdmetadata` is properly translated when using
        JPEG files.
 
+**Configuration settings for JPEG input**
+
+When opening a JPEG ImageInput with a *configuration* (see
+Section :ref:`sec-inputwithconfig`), the following special configuration
+attributes are supported:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Input Configuration Attribute
+     - Type
+     - Meaning
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
+
 **Configuration settings for JPEG output**
 
 When opening a JPEG ImageOutput, the following special metadata tokens
@@ -805,7 +823,7 @@ control aspects of the writing itself:
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
-       example by reading from memory rather than the file system.
+       example by writing to a memory buffer.
    * - ``jpeg:progressive``
      - int
      - If nonzero, will write a progressive JPEG file.
@@ -813,7 +831,7 @@ control aspects of the writing itself:
 
 **Custom I/O Overrides**
 
-JPEG input (but, currently, not output) supports the "custom I/O" feature
+JPEG supports the "custom I/O" feature
 via the `ImageInput::set_ioproxy()` method and the special
 ``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
 
