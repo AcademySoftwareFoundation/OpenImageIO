@@ -246,7 +246,7 @@ public:
     // existing width and height (rounding to the nearest whole number of
     // pixels.
     bool adjust_geometry(string_view command, int& w, int& h, int& x, int& y,
-                         const char* geom, bool allow_scaling = false,
+                         string_view geom, bool allow_scaling = false,
                          bool allow_size = true) const;
 
     // Expand substitution expressions in string str. Expressions are
