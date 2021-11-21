@@ -28,6 +28,9 @@
 
 // GitHub source: https://github.com/ginsweater/gif-h
 
+// Modified by Larry Gritz (OpenImageIO) to template on the FILE type so
+// that these functions could be used with IOProxy.
+
 /*
 This is free and unencumbered software released into the public domain.
 
@@ -585,6 +588,7 @@ void GifWriteBit( GifBitStatus& stat, uint32_t bit )
 }
 
 // write all bytes so far to the file
+template<typename FILE>
 void GifWriteChunk( FILE* f, GifBitStatus& stat )
 {
     fputc((int)stat.chunkIndex, f);
@@ -595,6 +599,7 @@ void GifWriteChunk( FILE* f, GifBitStatus& stat )
     stat.chunkIndex = 0;
 }
 
+template<typename FILE>
 void GifWriteCode( FILE* f, GifBitStatus& stat, uint32_t code, uint32_t length )
 {
     for( uint32_t ii=0; ii<length; ++ii )
@@ -617,6 +622,7 @@ struct GifLzwNode
 };
 
 // write a 256-color (8-bit) image palette to the file
+template<typename FILE>
 void GifWritePalette( const GifPalette* pPal, FILE* f )
 {
     fputc(0, f);  // first color: transparency
@@ -636,6 +642,7 @@ void GifWritePalette( const GifPalette* pPal, FILE* f )
 }
 
 // write the image header, LZW-compress and write out the image
+template<typename FILE>
 void GifWriteLzwImage(FILE* f, uint8_t* image, uint32_t left, uint32_t top,  uint32_t width, uint32_t height, uint32_t delay, GifPalette* pPal)
 {
     // graphics control extension
@@ -754,6 +761,7 @@ void GifWriteLzwImage(FILE* f, uint8_t* image, uint32_t left, uint32_t top,  uin
     GIF_TEMP_FREE(codetree);
 }
 
+template<typename FILE>
 struct GifWriter
 {
     FILE* f;
@@ -761,22 +769,21 @@ struct GifWriter
     bool firstFrame;
 };
 
+
 // Creates a gif file.
 // The input GIFWriter is assumed to be uninitialized.
 // The delay value is the time between frames in hundredths of a second - note that not all viewers pay much attention to this value.
-bool GifBegin( GifWriter* writer, const char* filename, uint32_t width, uint32_t height, uint32_t delay, int32_t bitDepth = 8, bool dither = false )
+// 
+// **** LG addition: the caller should already have opened writer->f ****
+//
+template<typename FILE>
+bool GifBegin( GifWriter<FILE>* writer, const char* filename, uint32_t width, uint32_t height, uint32_t delay, int32_t bitDepth = 8, bool dither = false )
 {
     (void)bitDepth; (void)dither; // Mute "Unused argument" warnings
 
-#ifdef OIIO_FILESYSTEM_H
     // If available, use OIIO's UTF8-safe fopen
-    writer->f = OIIO::Filesystem::fopen(filename, "wb");
-#elif defined(_MSC_VER) && (_MSC_VER >= 1400)
-	writer->f = 0;
-    fopen_s(&writer->f, filename, "wb");
-#else
-    writer->f = fopen(filename, "wb");
-#endif
+    // writer->f = OIIO::Filesystem::fopen(filename, "wb");
+    // **** LG addition: the caller should already have opened writer->f ****
     if(!writer->f) return false;
 
     writer->firstFrame = true;
@@ -829,7 +836,8 @@ bool GifBegin( GifWriter* writer, const char* filename, uint32_t width, uint32_t
 // The GIFWriter should have been created by GIFBegin.
 // AFAIK, it is legal to use different bit depths for different frames of an image -
 // this may be handy to save bits in animations that don't change much.
-bool GifWriteFrame( GifWriter* writer, const uint8_t* image, uint32_t width, uint32_t height, uint32_t delay, int bitDepth = 8, bool dither = false )
+template<typename FILE>
+bool GifWriteFrame( GifWriter<FILE>* writer, const uint8_t* image, uint32_t width, uint32_t height, uint32_t delay, int bitDepth = 8, bool dither = false )
 {
     if(!writer->f) return false;
 
@@ -852,7 +860,8 @@ bool GifWriteFrame( GifWriter* writer, const uint8_t* image, uint32_t width, uin
 // Writes the EOF code, closes the file handle, and frees temp memory used by a GIF.
 // Many if not most viewers will still display a GIF properly if the EOF code is missing,
 // but it's still a good idea to write it out.
-bool GifEnd( GifWriter* writer )
+template<typename FILE>
+bool GifEnd( GifWriter<FILE>* writer )
 {
     if(!writer->f) return false;
 

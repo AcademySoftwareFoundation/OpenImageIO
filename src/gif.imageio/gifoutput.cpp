@@ -13,6 +13,41 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
 
+// IOProxy equivalent of fputc
+inline int
+fputc(int i, OIIO::Filesystem::IOProxy* f)
+{
+    char c(i);
+    if (f->write(&c, 1) == 1) {
+        return c;
+    } else {
+        return EOF;
+    }
+}
+
+// IOProxy equivalent of fwrite
+inline size_t
+fwrite(const void* ptr, size_t size, size_t nitems,
+       OIIO::Filesystem::IOProxy* f)
+{
+    return f->write(ptr, size * nitems);
+}
+
+// IOProxy equivalent of fputs
+inline int
+fputs(OIIO::string_view s, OIIO::Filesystem::IOProxy* f)
+{
+    return f->write(s) == s.size() ? 0 : EOF;
+}
+
+// IOProxy equivalent of fclose (do nothing)
+inline int
+fclose(OIIO::Filesystem::IOProxy* f)
+{
+    // f->close();   // not necessary
+    return 0;
+}
+
 namespace {
 #define GIF_TEMP_MALLOC malloc
 #define GIF_TEMP_FREE free
@@ -32,7 +67,8 @@ public:
     virtual int supports(string_view feature) const override
     {
         return (feature == "alpha" || feature == "random_access"
-                || feature == "multiimage" || feature == "appendsubimage");
+                || feature == "multiimage" || feature == "appendsubimage"
+                || feature == "ioproxy");
     }
     virtual bool open(const std::string& name, const ImageSpec& spec,
                       OpenMode mode = Create) override;
@@ -41,6 +77,11 @@ public:
     virtual bool write_scanline(int y, int z, TypeDesc format, const void* data,
                                 stride_t xstride) override;
     virtual bool close() override;
+    virtual bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
+    {
+        m_io = ioproxy;
+        return true;
+    }
 
 private:
     std::string m_filename;
@@ -48,9 +89,11 @@ private:
     int m_nsubimages;
     bool m_pending_write;                    // Do we have an image buffered?
     std::vector<ImageSpec> m_subimagespecs;  // Saved subimage specs
-    GifWriter m_gifwriter;
+    GifWriter<Filesystem::IOProxy> m_gifwriter;
     std::vector<uint8_t> m_canvas;  // Image canvas, accumulating output
     int m_delay;
+    std::unique_ptr<Filesystem::IOProxy> m_io_local;
+    Filesystem::IOProxy* m_io = nullptr;
 
     void init(void)
     {
@@ -58,6 +101,8 @@ private:
         m_subimage = 0;
         m_canvas.clear();
         m_pending_write = false;
+        m_io_local.reset();
+        m_io = nullptr;
     }
 
     bool start_subimage();
@@ -122,6 +167,19 @@ GIFOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
     m_spec    = specs[0];
     float fps = m_spec.get_float_attribute("FramesPerSecond", 1.0f);
     m_delay   = (fps == 0.0f ? 0 : (int)(100.0f / fps));
+
+    if (auto ioparam = m_spec.find_attribute("oiio:ioproxy", TypeDesc::PTR))
+        m_io = ioparam->get<Filesystem::IOProxy*>();
+    if (!m_io) {
+        // If no proxy was supplied, create a file reader
+        m_io = new Filesystem::IOFile(name, Filesystem::IOProxy::Write);
+        m_io_local.reset(m_io);
+    }
+    if (!m_io || m_io->mode() != Filesystem::IOProxy::Write) {
+        errorfmt("Could not open \"{}\"", name);
+        return false;
+    }
+
     return start_subimage();
 }
 
@@ -130,12 +188,14 @@ GIFOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
 bool
 GIFOutput::close()
 {
+    bool ok = true;
     if (m_pending_write) {
-        finish_subimage();
+        ok &= finish_subimage();
         GifEnd(&m_gifwriter);
     }
+    m_io_local.reset();  // closes the file if we opened it locally
     init();
-    return true;
+    return ok;
 }
 
 
@@ -164,6 +224,8 @@ GIFOutput::start_subimage()
     m_spec.set_format(TypeDesc::UINT8);  // GIF is only 8 bit
 
     if (m_subimage == 0) {
+        m_gifwriter.f = m_io;
+        // m_gifwriter.f = OIIO::Filesystem::fopen(m_filename, "wb");
         bool ok = GifBegin(&m_gifwriter, m_filename.c_str(), m_spec.width,
                            m_spec.height, m_delay, 8 /*bit depth*/,
                            true /*dither*/);
