@@ -189,6 +189,10 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD"
 endif ()
 
 
+# We will use this for ccache and timing
+set (MY_RULE_LAUNCH "")
+
+
 ###########################################################################
 # Use ccache if found
 #
@@ -202,9 +206,27 @@ if (CCACHE_FOUND AND USE_CCACHE)
     if (CMAKE_COMPILER_IS_CLANG AND USE_QT AND (NOT DEFINED ENV{CCACHE_CPP2}))
         message (STATUS "Ignoring ccache because clang + Qt + env CCACHE_CPP2 is not set")
     else ()
-        set_property (GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-        set_property (GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+        set (MY_RULE_LAUNCH ccache)
     endif ()
+endif ()
+
+
+###########################################################################
+# Build time debugging aid: time all compile & link commands
+#
+# Note, though, that this is not especially helpful when doing a parallel
+# build. If you wish to time individual compile commands, it's best to also
+# set `-j 1` or CMAKE_BUILD_PARALLEL_LEVEL to 1.
+option (TIME_COMMANDS "Time each compile and link command" OFF)
+if (TIME_COMMANDS)
+    set (MY_RULE_LAUNCH "${CMAKE_COMMAND} -E time ${MY_RULE_LAUNCH}")
+endif ()
+
+
+# Note: This must be after any option that alters MY_RULE_LAUNCH
+if (MY_RULE_LAUNCH)
+    set_property (GLOBAL PROPERTY RULE_LAUNCH_COMPILE ${MY_RULE_LAUNCH})
+    set_property (GLOBAL PROPERTY RULE_LAUNCH_LINK ${MY_RULE_LAUNCH})
 endif ()
 
 
