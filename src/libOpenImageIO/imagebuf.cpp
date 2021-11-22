@@ -2859,4 +2859,245 @@ ImageBuf::retile(int x, int y, int z, ImageCache::Tile*& tile, int& tilexbegin,
 
 
 
+ImageBuf::IteratorBase::IteratorBase(const ImageBuf& ib, WrapMode wrap,
+                                     bool write)
+    : m_ib(&ib)
+{
+    init_ib(wrap, write);
+    range_is_image();
+    pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+    if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
+        || m_rng_zbegin == m_rng_zend)
+        pos_done();  // make empty range look "done"
+}
+
+
+
+ImageBuf::IteratorBase::IteratorBase(const ImageBuf& ib, int x, int y, int z,
+                                     WrapMode wrap, bool write)
+    : m_ib(&ib)
+{
+    init_ib(wrap, write);
+    range_is_image();
+    pos(x, y, z);
+}
+
+
+
+ImageBuf::IteratorBase::IteratorBase(const ImageBuf& ib, const ROI& roi,
+                                     WrapMode wrap, bool write)
+    : m_ib(&ib)
+{
+    init_ib(wrap, write);
+    if (roi.defined()) {
+        m_rng_xbegin = roi.xbegin;
+        m_rng_xend   = roi.xend;
+        m_rng_ybegin = roi.ybegin;
+        m_rng_yend   = roi.yend;
+        m_rng_zbegin = roi.zbegin;
+        m_rng_zend   = roi.zend;
+    } else {
+        range_is_image();
+    }
+    pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+    if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
+        || m_rng_zbegin == m_rng_zend)
+        pos_done();  // make empty range look "done"
+}
+
+
+ImageBuf::IteratorBase::IteratorBase(const ImageBuf& ib, int xbegin, int xend,
+                                     int ybegin, int yend, int zbegin, int zend,
+                                     WrapMode wrap, bool write)
+    : m_ib(&ib)
+{
+    init_ib(wrap, write);
+    m_rng_xbegin = xbegin;
+    m_rng_xend   = xend;
+    m_rng_ybegin = ybegin;
+    m_rng_yend   = yend;
+    m_rng_zbegin = zbegin;
+    m_rng_zend   = zend;
+    pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
+    if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
+        || m_rng_zbegin == m_rng_zend)
+        pos_done();  // make empty range look "done"
+}
+
+
+
+ImageBuf::IteratorBase::IteratorBase(const IteratorBase& i)
+    : m_ib(i.m_ib)
+    , m_rng_xbegin(i.m_rng_xbegin)
+    , m_rng_xend(i.m_rng_xend)
+    , m_rng_ybegin(i.m_rng_ybegin)
+    , m_rng_yend(i.m_rng_yend)
+    , m_rng_zbegin(i.m_rng_zbegin)
+    , m_rng_zend(i.m_rng_zend)
+    , m_proxydata(i.m_proxydata)
+{
+    init_ib(i.m_wrap, false);
+    pos(i.m_x, i.m_y, i.m_z);
+}
+
+
+
+inline void
+ImageBuf::IteratorBase::pos_done()
+{
+    m_valid = false;
+    m_x     = m_rng_xbegin;
+    m_y     = m_rng_ybegin;
+    m_z     = m_rng_zend;
+}
+
+
+
+inline void
+ImageBuf::IteratorBase::range_is_image()
+{
+    m_rng_xbegin = m_img_xbegin;
+    m_rng_xend   = m_img_xend;
+    m_rng_ybegin = m_img_ybegin;
+    m_rng_yend   = m_img_yend;
+    m_rng_zbegin = m_img_zbegin;
+    m_rng_zend   = m_img_zend;
+}
+
+
+
+void
+ImageBuf::IteratorBase::init_ib(WrapMode wrap, bool write)
+{
+    const ImageSpec& spec(m_ib->spec());
+    m_deep        = spec.deep;
+    m_localpixels = (m_ib->localpixels() != nullptr);
+    if (!m_localpixels && write) {
+        const_cast<ImageBuf*>(m_ib)->make_writable(true);
+        OIIO_DASSERT(m_ib->storage() != IMAGECACHE);
+        m_tile      = nullptr;
+        m_proxydata = nullptr;
+    }
+    m_img_xbegin = spec.x;
+    m_img_xend   = spec.x + spec.width;
+    m_img_ybegin = spec.y;
+    m_img_yend   = spec.y + spec.height;
+    m_img_zbegin = spec.z;
+    m_img_zend   = spec.z + spec.depth;
+    m_nchannels  = spec.nchannels;
+    //            m_tilewidth = spec.tile_width;
+    m_pixel_stride = m_ib->pixel_stride();
+    m_x            = 1 << 31;
+    m_y            = 1 << 31;
+    m_z            = 1 << 31;
+    m_wrap         = (wrap == WrapDefault ? WrapBlack : wrap);
+}
+
+
+
+const ImageBuf::IteratorBase&
+ImageBuf::IteratorBase::operator=(const IteratorBase& i)
+{
+    if (m_tile)
+        release_tile();
+    m_tile      = nullptr;
+    m_proxydata = i.m_proxydata;
+    m_ib        = i.m_ib;
+    init_ib(i.m_wrap, false);
+    m_rng_xbegin = i.m_rng_xbegin;
+    m_rng_xend   = i.m_rng_xend;
+    m_rng_ybegin = i.m_rng_ybegin;
+    m_rng_yend   = i.m_rng_yend;
+    m_rng_zbegin = i.m_rng_zbegin;
+    m_rng_zend   = i.m_rng_zend;
+    m_x          = i.m_x;
+    m_y          = i.m_y;
+    m_y          = i.m_y;
+    return *this;
+}
+
+
+
+void
+ImageBuf::IteratorBase::pos(int x_, int y_, int z_)
+{
+    if (x_ == m_x + 1 && x_ < m_rng_xend && y_ == m_y && z_ == m_z && m_valid
+        && m_exists) {
+        // Special case for what is in effect just incrementing x
+        // within the iteration region.
+        m_x = x_;
+        pos_xincr();
+        // Not necessary? m_exists = (x_ < m_img_xend);
+        OIIO_DASSERT((x_ < m_img_xend) == m_exists);
+        return;
+    }
+    bool v = valid(x_, y_, z_);
+    bool e = exists(x_, y_, z_);
+    if (m_localpixels) {
+        if (e)
+            m_proxydata = (char*)m_ib->pixeladdr(x_, y_, z_);
+        else {  // pixel not in data window
+            m_x = x_;
+            m_y = y_;
+            m_z = z_;
+            if (m_wrap == WrapBlack) {
+                m_proxydata = (char*)m_ib->blackpixel();
+            } else {
+                if (m_ib->do_wrap(x_, y_, z_, m_wrap))
+                    m_proxydata = (char*)m_ib->pixeladdr(x_, y_, z_);
+                else
+                    m_proxydata = (char*)m_ib->blackpixel();
+            }
+            m_valid  = v;
+            m_exists = e;
+            return;
+        }
+    } else if (!m_deep)
+        m_proxydata = (char*)m_ib->retile(x_, y_, z_, m_tile, m_tilexbegin,
+                                          m_tileybegin, m_tilezbegin,
+                                          m_tilexend, e, m_wrap);
+    m_x      = x_;
+    m_y      = y_;
+    m_z      = z_;
+    m_valid  = v;
+    m_exists = e;
+}
+
+
+
+void
+ImageBuf::IteratorBase::pos_xincr_local_past_end()
+{
+    m_exists = false;
+    if (m_wrap == WrapBlack) {
+        m_proxydata = (char*)m_ib->blackpixel();
+    } else {
+        int x = m_x, y = m_y, z = m_z;
+        if (m_ib->do_wrap(x, y, z, m_wrap))
+            m_proxydata = (char*)m_ib->pixeladdr(x, y, z);
+        else
+            m_proxydata = (char*)m_ib->blackpixel();
+    }
+}
+
+
+
+void
+ImageBuf::IteratorBase::rerange(int xbegin, int xend, int ybegin, int yend,
+                                int zbegin, int zend, WrapMode wrap)
+{
+    m_x          = 1 << 31;
+    m_y          = 1 << 31;
+    m_z          = 1 << 31;
+    m_wrap       = (wrap == WrapDefault ? WrapBlack : wrap);
+    m_rng_xbegin = xbegin;
+    m_rng_xend   = xend;
+    m_rng_ybegin = ybegin;
+    m_rng_yend   = yend;
+    m_rng_zbegin = zbegin;
+    m_rng_zend   = zend;
+    pos(xbegin, ybegin, zbegin);
+}
+
+
 OIIO_NAMESPACE_END
