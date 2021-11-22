@@ -431,7 +431,7 @@ DDSInput::seek_subimage(int subimage, int miplevel)
         // create imagespec for the 3x2 cube map layout
 #ifdef DDS_3X2_CUBE_MAP_LAYOUT
         m_spec = ImageSpec(w * 3, h * 2, m_nchans, TypeDesc::UINT8);
-#else  // 1x6 layout
+#else   // 1x6 layout
         m_spec = ImageSpec(w, h * 6, m_nchans, TypeDesc::UINT8);
 #endif  // DDS_3X2_CUBE_MAP_LAYOUT
         m_spec.depth      = d;
@@ -667,7 +667,7 @@ DDSInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         internal_seek_subimage(((x / m_spec.tile_width) << 1)
                                    + y / m_spec.tile_height,
                                m_miplevel, w, h, d);
-#else  // 1x6 layout
+#else   // 1x6 layout
         internal_seek_subimage(y / m_spec.tile_height, m_miplevel, w, h, d);
 #endif  // DDS_3X2_CUBE_MAP_LAYOUT
         if (!w && !h && !d)

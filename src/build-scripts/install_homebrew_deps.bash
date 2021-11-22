@@ -28,9 +28,11 @@ brew unlink python@2.7 || true
 brew unlink python@3.9 || true
 brew unlink python@3.8 || true
 brew link --overwrite --force python@${PYTHON_VERSION} || true
-brew upgrade --display-times -q cmake || true
-brew install --display-times -q libtiff imath openexr opencolorio
-brew install --display-times -q libpng giflib webp jpeg-turbo openjpeg
+#brew upgrade --display-times -q cmake || true
+#brew install --display-times -q libtiff
+brew install --display-times -q imath openexr opencolorio
+#brew install --display-times -q libpng giflib webp
+brew install --display-times -q jpeg-turbo openjpeg
 brew install --display-times -q freetype libraw dcmtk pybind11 numpy || true
 brew install --display-times -q ffmpeg libheif libsquish ptex || true
 brew install --display-times -q tbb || true
@@ -53,10 +55,10 @@ fi
 
 # Set up paths. These will only affect the caller if this script is
 # run with 'source' rather than in a separate shell.
-export PATH=/usr/local/opt/qt5/bin:$PATH ;
-export PATH=/usr/local/opt/python/libexec/bin:$PATH ;
-export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH ;
-export PATH=/usr/local/opt/llvm/bin:$PATH ;
+export PATH=/usr/local/opt/qt5/bin:$PATH
+export PATH=/usr/local/opt/python/libexec/bin:$PATH
+export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
+#export PATH=/usr/local/opt/llvm/bin:$PATH
 
 # If field3d and hdf5 get even slightly out of sync, hdf5 will throw fits.
 # This is unnecessary, so we disable the step to make CI more likely to
