@@ -19,7 +19,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=17`, etc.
  * Compilers: **gcc 6.1 - 11.2**, **clang 3.4 - 13**, **MSVS 2017 - 2019**,
    **icc 17+**.
- * CMake >= 3.12 (tested through 3.21)
+ * CMake >= 3.12 (tested through 3.22)
  * OpenEXR/Imath >= 2.3 (recommended: 2.4 or higher; tested through 3.1)
  * libTIFF >= 3.9 (recommended: 4.0+; tested through 4.3)
  * libjpeg >= 8, or libjpeg-turbo >= 1.1 (tested through jpeg9d and jpeg-turbo
@@ -44,7 +44,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for jpeg 2000 images:
      * **OpenJpeg >= 2.0** (tested through 2.4)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 5.0 (tested through 8.1) and Intel TBB >= 2018 (tested
+     * OpenVDB >= 5.0 (tested through 9) and Intel TBB >= 2018 (tested
        through 2021)
      * Note that OpenVDB 8.0+ requires C++14 or higher.
  * If you want support for converting to and from OpenCV data structures,
@@ -63,7 +63,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.6.5)
  * If you want support for WebP images:
-     * WebP >= 0.6.1 (tested through 1.1.0)
+     * WebP >= 0.6.1 (tested through 1.2.1)
  * If you want support for OpenColorIO color transformations:
      * OpenColorIO >= 1.1 (tested through 2.1; 2.0+ is recommended)
  * If you want support for Ptex:

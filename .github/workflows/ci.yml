@@ -493,14 +493,62 @@ jobs:
             !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
-  macos-py38:
-    name: "Mac py38"
-    runs-on: macOS-latest
+  macos10-py38:
+    name: "MacOS-10.15 appleclang12/C++14 py38 boost1.76 exr3.1 ocio2.1"
+    runs-on: macos-10.15
     env:
       CXX: clang++
       PYTHON_VERSION: 3.8
       CMAKE_CXX_STANDARD: 14
-      ENABLE_FIELD3D: OFF
+      ENABLE_OPENVDB: OFF
+      # No OpenVDB because on Homebrew, OpenVDB still uses OpenEXR 2.5
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare ccache timestamp
+        id: ccache_cache_keys
+        run: |
+          echo "::set-output name=date::`date -u +'%Y-%m-%dT%H:%M:%SZ'`"
+      - name: ccache
+        id: ccache
+        uses: actions/cache@v2
+        with:
+          path: /Users/runner/.ccache
+          key: ${{ github.job }}-${{ steps.ccache_cache_keys.outputs.date }}
+          restore-keys: |
+            ${{ github.job }}-
+      - name: Build setup
+        run: |
+            src/build-scripts/ci-startup.bash
+      - name: Dependencies
+        run: |
+            src/build-scripts/install_homebrew_deps.bash
+            src/build-scripts/install_test_images.bash
+      - name: Build
+        run: |
+            export PYTHONPATH=/usr/local/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
+            src/build-scripts/ci-build.bash
+      - name: Testsuite
+        run: |
+            src/build-scripts/ci-test.bash
+      - uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: ${{ github.job }}
+          path: |
+            build/CMake*.{txt,log}
+            build/testsuite/*/*.*
+            !build/testsuite/oiio-images
+            !build/testsuite/openexr-images
+            !build/testsuite/fits-images
+            !build/testsuite/j2kp4files_v1_5
+
+  macos11-py38:
+    name: "MacOS-11 appleclang13/C++17 py39 boost1.76 exr3.1 ocio2.1"
+    runs-on: macos-11
+    env:
+      CXX: clang++
+      PYTHON_VERSION: 3.9
+      CMAKE_CXX_STANDARD: 17
       ENABLE_OPENVDB: OFF
       # No OpenVDB because on Homebrew, OpenVDB still uses OpenEXR 2.5
     steps:
@@ -725,20 +773,17 @@ jobs:
             !build/testsuite/fits-images
             !build/testsuite/j2kp4files_v1_5
 
-  linux-clang11-cpp17:
-    # Test compiling with clang  and C++17 on Linux.
-    name: "Linux clang11: clang11 C++17 avx2 exr3.1 ocio2.0"
+  linux-clang13-cpp17:
+    # Test compiling with clang and C++17 on Linux.
+    name: "Linux clang13: clang13 C++17 py39 avx2 exr3.1 ocio2.0"
     runs-on: ubuntu-18.04
     container:
-      image: aswf/ci-osl:2021-clang11
+      image: aswf/ci-osl:2022-clang13
     env:
       CXX: clang++
       CMAKE_CXX_STANDARD: 17
-      PYTHON_VERSION: 3.7
+      PYTHON_VERSION: 3.9
       USE_SIMD: avx2,f16c
-      PYBIND11_VERSION: v2.6.1
-      OPENEXR_VERSION: v3.1.1
-      # Pick an OCIO commit that includes a warning fix we need for clang
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -758,8 +803,6 @@ jobs:
             src/build-scripts/ci-startup.bash
       - name: Dependencies
         run: |
-            sudo rm -rf /usr/local/include/OpenEXR
-            sudo rm -rf /usr/local/lib64/cmake/{IlmBase,OpenEXR}
             src/build-scripts/gh-installdeps.bash
       - name: Build
         run: |
@@ -836,10 +879,10 @@ jobs:
     name: "clang-format verification"
     runs-on: ubuntu-18.04
     container:
-      image: aswf/ci-osl:2021-clang11
+      image: aswf/ci-osl:2022-clang12
     env:
       BUILDTARGET: clang-format
-      PYTHON_VERSION: 3.7
+      PYTHON_VERSION: 3.9
     steps:
       - uses: actions/checkout@v2
       - name: Build setup
