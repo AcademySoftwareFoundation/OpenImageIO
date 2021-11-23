@@ -1055,6 +1055,49 @@ Image arithmetic
 
 |
 
+
+.. doxygengroup:: saturate
+..
+
+  Examples:
+
+  .. tabs::
+
+    .. code-tab:: c++
+
+        ImageBuf img("tahoe.exr");
+        ImageBuf grey = ImageBufAlgo::saturate (img, 0.0f);
+        ImageBuf colorful = ImageBufAlgo::saturate (img, 2.0f);
+
+    .. code-tab:: py
+
+        img = ImageBuf("tahoe.exr")
+        grey = ImageBufAlgo.saturate (img, 0.0)
+        colorful = ImageBufAlgo.saturate (img, 2.0)
+
+    .. code-tab:: shell oiiotool
+
+        oiiotool tahoe.exr -saturate 0.0 -o grey.exr
+        oiiotool tahoe.exr -saturate 2.0 -o colorful.exr
+
+
+.. |sat1| image:: figures/tahoe-small.jpg
+   :width: 1.5 in
+.. |sat0| image:: figures/tahoe-sat0.jpg
+   :width: 1.5 in
+.. |sat2| image:: figures/tahoe-sat2.jpg
+   :width: 1.5 in
+..
+
+  +-----------------+-----------------+-----------------+
+  | |sat1|          | |sat0|          | |sat2|          |
+  +-----------------+-----------------+-----------------+
+  | original        | sat scale = 0   | sat scale = 2   |
+  +-----------------+-----------------+-----------------+
+
+|
+
+
 .. doxygengroup:: color_map
 ..
 

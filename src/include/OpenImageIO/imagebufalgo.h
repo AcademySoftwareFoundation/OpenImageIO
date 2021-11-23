@@ -1036,6 +1036,36 @@ OIIO_API bool contrast_remap (ImageBuf &dst, const ImageBuf &src,
                     ROI={}, int nthreads=0);
 
 
+/// @defgroup saturate (Adjust saturation of color channels)
+/// @{
+///
+/// Increase or decrease color saturation of the image.
+///
+/// The `saturate` operation returns (or copies into `dst`) the pixels of
+/// `src` within the ROI, and in the process adjusts the color saturation of
+/// the three consecutive channels starting with `firstchannel` based on the
+/// `scale` parameter: 0.0 fully desaturates to a greyscale image of
+/// percaptually equivalent luminance, 1.0 leaves the colors unchanged,
+/// `scale` values inside this range interpolate between them, and `scale` > 1
+/// would increase apparent color saturation.
+///
+/// Channels that are within the range of `roi.chbegin` to `roi.chend-1`, but
+/// outside the range of `firstchannel` to `firstchannel+2` are simply copied
+/// unaltered. Only three channels at a time can be desaturated, by default
+/// the first three channels, though `firstchannel` may be used to specify a
+/// different subset of channels. It is allowed for `src` and `dst` to be the
+/// same image.
+///
+/// @version 2.4+
+
+ImageBuf OIIO_API saturate (const ImageBuf &src, float scale = 0.0f,
+                            int firstchannel = 0, ROI roi={}, int nthreads=0);
+bool OIIO_API saturate (ImageBuf &dst, const ImageBuf &src, float scale = 0.0f,
+                        int firstchannel = 0, ROI roi={}, int nthreads=0);
+/// @}
+
+
+
 /// @defgroup color_map (Remap value range by spline or name)
 /// @{
 ///

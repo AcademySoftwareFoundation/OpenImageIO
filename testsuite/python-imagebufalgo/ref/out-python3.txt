@@ -144,6 +144,10 @@ Comparing "contrast-shrink.tif" and "../../../testsuite/oiiotool-color/ref/contr
 PASS
 Comparing "contrast-sigmoid5.tif" and "../../../testsuite/oiiotool-color/ref/contrast-sigmoid5.tif"
 PASS
+Comparing "saturate-0.tif" and "ref/saturate-0.tif"
+PASS
+Comparing "saturate-2.tif" and "ref/saturate-2.tif"
+PASS
 Comparing "resize.tif" and "../../../testsuite/oiiotool-xform/ref/resize.tif"
 PASS
 Comparing "resample.tif" and "../../../testsuite/oiiotool-xform/ref/resample.tif"

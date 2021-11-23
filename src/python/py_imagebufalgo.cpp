@@ -1349,6 +1349,25 @@ IBA_repremult_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
 
 
 bool
+IBA_saturate(ImageBuf& dst, const ImageBuf& src, float scale = 0.0f,
+             int firstchannel = 0, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::saturate(dst, src, scale, firstchannel, roi, nthreads);
+}
+
+
+ImageBuf
+IBA_saturate_ret(const ImageBuf& src, float scale = 0.0f, int firstchannel = 0,
+                 ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::saturate(src, scale, firstchannel, roi, nthreads);
+}
+
+
+
+bool
 IBA_contrast_remap(ImageBuf& dst, const ImageBuf& src, py::object black_,
                    py::object white_, py::object min_, py::object max_,
                    py::object scontrast_, py::object sthresh_,
@@ -2704,6 +2723,13 @@ declare_imagebufalgo(py::module& m)
                     "black"_a = 0.0f, "white"_a = 1.0f, "min"_a = 0.0f,
                     "max"_a = 1.0f, "scontrast"_a = 1.0f, "sthresh"_a = 0.5f,
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
+
+        .def_static("saturate", &IBA_saturate, "dst"_a, "src"_a,
+                    "scale"_a = 0.0f, "firstchannel"_a = 0,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("saturate", &IBA_saturate_ret, "src"_a, "scale"_a = 0.0f,
+                    "firstchannel"_a = 0, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
 
         .def_static("colorconvert", &IBA_colorconvert, "dst"_a, "src"_a,
                     "fromspace"_a, "tospace"_a, "unpremult"_a = true,

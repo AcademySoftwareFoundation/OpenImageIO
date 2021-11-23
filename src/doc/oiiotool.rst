@@ -2379,6 +2379,41 @@ current top image.
       +-------------+-------------+-------------+-------------+
 
 
+.. option:: --saturate <scale>
+
+    Scale the saturation of the first three color channels of the image by
+    the scale: 0.0 fully desaturates the image into its greyscale luminance
+    equivalent image, 1.0 leaves the image unchanged, `scale` values inside
+    this range interpolate between them, and `scale` > 1 would increase
+    apparent color saturation.
+
+    Optional appended modifiers include:
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
+    Examples::
+
+        oiiotool tahoe.exr --saturate 0 -o grey.exr
+        oiiotool tahoe.exr --saturate 2 -o colorful.exr
+
+    .. |sat1| image:: figures/tahoe-small.jpg
+       :width: 1.5 in
+    .. |sat0| image:: figures/tahoe-sat0.jpg
+       :width: 1.5 in
+    .. |sat2| image:: figures/tahoe-sat2.jpg
+       :width: 1.5 in
+    ..
+
+      +-----------------+-----------------+-----------------+
+      | |sat1|          | |sat2|          | |sat2|          |
+      +-----------------+-----------------+-----------------+
+      | original        | sat scale = 0   | sat scale = 2   |
+      +-----------------+-----------------+-----------------+
+
+    This command was added in OIIO 2.4.
+
+
 
 .. option:: --colormap <mapname>
 

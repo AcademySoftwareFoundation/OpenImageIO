@@ -259,6 +259,11 @@ try:
     b = ImageBufAlgo.contrast_remap (tahoetiny, scontrast=5.0)
     write (b, "contrast-sigmoid5.tif")
 
+    b = ImageBufAlgo.saturate (tahoetiny, scale = 0.0)
+    write (b, "saturate-0.tif")
+    b = ImageBufAlgo.saturate (tahoetiny, scale = 2.0)
+    write (b, "saturate-2.tif")
+
     b = ImageBuf (OIIO_TESTSUITE_ROOT+"/oiiotool/src/tahoe-small.tif")
     b = ImageBufAlgo.rangecompress (b)
     write (b, "rangecompress.tif", oiio.UINT8)

@@ -2840,6 +2840,24 @@ Image arithmetic
 
 
 
+.. py:method:: ImageBuf ImageBufAlgo.saturate (src, scale=0.0, firstchannel=0, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.saturate (dst, src, scale=0.0, firstchannel=0, roi=ROI.All, nthreads=0)
+
+    Copy pixels from `src` to `dst`, and scale the saturation of channels
+    `firstchannel` to `firstchannel+2` by the `scale` factor.
+
+    This function was added in OpenImageIO 2.4.
+
+    Example:
+
+    .. code-block:: python
+
+        # In-place reduce saturation by 50%
+        A = ImageBuf ("a.exr")
+        ImageBufAlgo.saturate (A, A, 0.5)
+
+
+
 .. py:method:: ImageBuf ImageBufAlgo.color_map (src, srcchannel, nknots, channels, knots, roi=ROI.All, nthreads=0)
                ImageBuf ImageBufAlgo.color_map (src, srcchannel, mapname, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.color_map (dst, src, srcchannel, nknots, channels, knots, roi=ROI.All, nthreads=0)
