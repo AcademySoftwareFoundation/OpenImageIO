@@ -42,6 +42,12 @@ command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
 command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
                      " -contrast:scontrast=5 -d uint8 -o contrast-sigmoid5.tif")
 
+# test --saturate
+command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
+                     " --saturate 0 -d uint8 -o tahoe-sat0.tif")
+command += oiiotool ("--autocc " + oiiotoolsrcdir+"/tahoe-tiny.tif" +
+                     " --saturate 2 -d uint8 -o tahoe-sat2.tif")
+
 
 
 #
@@ -91,4 +97,6 @@ outputs = [
             "greyalpha_sRGB_un.tif",
             "greyalpha_Cineon_un.tif",
             "tahoe-ccmatrix.tif",
+            "tahoe-sat0.tif",
+            "tahoe-sat2.tif",
             "out.txt" ]

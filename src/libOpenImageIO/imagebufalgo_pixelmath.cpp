@@ -1046,6 +1046,92 @@ ImageBufAlgo::contrast_remap(const ImageBuf& src, cspan<float> black,
 
 
 
+template<class Rtype, class Atype>
+static bool
+saturate_(ImageBuf& R, const ImageBuf& A, float scale, int firstchannel,
+          ROI roi, int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        // Gross simplification: assume linear sRGB primaries. Ick -- but
+        // what else to do if we don't really know the color space or its
+        // characteristics?
+        // FIXME: come back to this.
+        const simd::vfloat3 weights(0.2126f, 0.7152f, 0.0722f);
+        ImageBuf::ConstIterator<Atype> a(A, roi);
+        for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r, ++a) {
+            for (int c = roi.chbegin; c < firstchannel; ++c)
+                r[c] = a[c];
+            simd::vfloat3 rgb(a[firstchannel], a[firstchannel + 1],
+                              a[firstchannel + 2]);
+            simd::vfloat3 luma  = simd::vdot(rgb, weights);
+            rgb                 = lerp(luma, rgb, scale);
+            r[firstchannel]     = rgb[0];
+            r[firstchannel + 1] = rgb[1];
+            r[firstchannel + 2] = rgb[2];
+            for (int c = firstchannel + 3; c < roi.chend; ++c)
+                r[c] = a[c];
+        }
+    });
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::saturate(ImageBuf& dst, const ImageBuf& src, float scale,
+                       int firstchannel, ROI roi, int nthreads)
+{
+    pvt::LoggedTimer logtime("IBA::saturate");
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+        return false;
+
+    // Some basic error checking on whether the channel set makes sense
+    int alpha_channel = src.spec().alpha_channel;
+    int z_channel     = src.spec().z_channel;
+    if (roi.chend - firstchannel < 3) {
+        dst.errorfmt(
+            "ImageBufAlgo::saturate can only work on 3 channels at a time. "
+            "You specified starting at channel {} of a {}-channel ROI, that's not enough.",
+            firstchannel, roi.nchannels());
+        return false;
+    }
+    if (alpha_channel >= firstchannel && alpha_channel < firstchannel + 3) {
+        dst.errorfmt(
+            "ImageBufAlgo::saturate cannot operate alpha channels "
+            "and you asked saturate to operate on channels {}-{}. Alpha is channel {}.",
+            firstchannel, firstchannel + 2, alpha_channel);
+        return false;
+    }
+    if (z_channel >= firstchannel && z_channel < firstchannel + 3) {
+        dst.errorfmt(
+            "ImageBufAlgo::saturate cannot operate z channels "
+            "and you asked saturate to operate on channels {}-{}. Z is channel {}.",
+            firstchannel, firstchannel + 2, z_channel);
+        return false;
+    }
+
+    bool ok = true;
+    OIIO_DISPATCH_COMMON_TYPES2(ok, "saturate", saturate_, dst.spec().format,
+                                src.spec().format, dst, src, scale,
+                                firstchannel, roi, nthreads);
+    return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::saturate(const ImageBuf& src, float scale, int firstchannel,
+                       ROI roi, int nthreads)
+{
+    ImageBuf result;
+    bool ok = saturate(result, src, scale, firstchannel, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::saturate() error");
+    return result;
+}
+
+
+
 template<class D, class S>
 static bool
 color_map_(ImageBuf& dst, const ImageBuf& src, int srcchannel, int nknots,

@@ -34,3 +34,7 @@ Comparing "greyalpha_Cineon_un.tif" and "ref/greyalpha_Cineon_un.tif"
 PASS
 Comparing "tahoe-ccmatrix.tif" and "ref/tahoe-ccmatrix.tif"
 PASS
+Comparing "tahoe-sat0.tif" and "ref/tahoe-sat0.tif"
+PASS
+Comparing "tahoe-sat2.tif" and "ref/tahoe-sat2.tif"
+PASS
