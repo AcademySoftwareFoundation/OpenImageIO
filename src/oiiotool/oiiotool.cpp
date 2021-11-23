@@ -2986,7 +2986,8 @@ BINARY_IMAGE_FLOAT_OP(saturate, ImageBufAlgo::saturate);    // --saturate
 
 UNARY_IMAGE_OP(abs, ImageBufAlgo::abs);  // --abs
 
-UNARY_IMAGE_OP(premult, ImageBufAlgo::premult);  // --premult
+UNARY_IMAGE_OP(premult, ImageBufAlgo::premult);      // --premult
+UNARY_IMAGE_OP(repremult, ImageBufAlgo::repremult);  // --repremult
 
 // --unpremult
 OIIOTOOL_OP(unpremult, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
@@ -6129,6 +6130,9 @@ getargs(int argc, char* argv[])
     ap.arg("--premult")
       .help("Multiply all color channels of the current image by the alpha")
       .action(action_premult);
+    ap.arg("--repremult")
+      .help("Multiply all color channels of the current image by the alpha, but don't crush alpha=0 pixels to black.")
+      .action(action_repremult);
     // clang-format on
 
     if (ap.parse_args(argc, (const char**)argv) < 0) {
