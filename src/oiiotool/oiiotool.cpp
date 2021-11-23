@@ -3078,9 +3078,18 @@ OIIOTOOL_OP(mad, 3, [](OiiotoolOp& op, span<ImageBuf*> img) {
 
 // --invert
 OIIOTOOL_OP(invert, 1, [](OiiotoolOp& op, span<ImageBuf*> img) {
-    // invert the first three channels only, spare alpha
-    ROI roi   = img[1]->roi();
-    roi.chend = std::min(3, roi.chend);
+    ROI roi = img[1]->roi();
+    // By default, we only invert channels [0,3), but this can be overridden
+    // by optional modifiers chbegin and chend.
+    int chbegin = op.options().get_int("chbegin", 0);
+    int chend   = op.options().get_int("chend", std::min(3, roi.chend));
+    if (roi.chbegin < chbegin || roi.chend > chend) {
+        // If the image has channels beyond what we're inverting, start by
+        // copying src to dst first, so we dont lose channels along the way.
+        ImageBufAlgo::copy(*img[0], *img[1]);
+    }
+    roi.chbegin = chbegin;
+    roi.chend   = chend;
     return ImageBufAlgo::invert(*img[0], *img[1], roi, 0);
 });
 
@@ -5932,7 +5941,7 @@ getargs(int argc, char* argv[])
       .help("Multiply two images, add a third")
       .action(action_mad);
     ap.arg("--invert")
-      .help("Take the color inverse (subtract from 1)")
+      .help("Take the color inverse (subtract from 1) (options: chbegin=0, chend=3")
       .action(action_invert);
     ap.arg("--abs")
       .help("Take the absolute value of the image pixels")
