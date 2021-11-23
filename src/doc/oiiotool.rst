@@ -3390,6 +3390,27 @@ current top image.
       clamp & other channels.
 
 
+.. option:: --maxchan
+            --minchan
+
+    Replace the top image with a single channel image that, for each pixel,
+    contains the maximum value (for `--maxchan`) or minimum value (for
+    `--minchan`) of all the channels in the corresponding pixel of the
+    original image.
+
+    This command was first added to OpenImageIO 2.4.0.
+
+    Optional appended modifiers include:
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
+    Examples:
+
+        oiiotool RGB.tif --maxchan -o max_of_RGB.tif
+
+
+
 .. option:: --rangecompress
             --rangeexpand
 

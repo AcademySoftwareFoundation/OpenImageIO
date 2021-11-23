@@ -238,6 +238,26 @@ try:
                                   (.2126,.7152,.0722))
     write (b, "chsum.tif", oiio.UINT8)
 
+    # min, max (per element)
+    lrramp64 = ImageBufAlgo.fill((0,0,0), (1,1,1), (0,0,0), (1,1,1),
+                                 oiio.ROI(0, 64, 0, 64, 0, 1, 0, 3))
+    b = ImageBufAlgo.max (lrramp64, gray64)
+    write (b, "maximg.tif", oiio.UINT8)
+    b = ImageBufAlgo.max (lrramp64, (0.25, 0.25, 0.25))
+    write (b, "maxval.tif", oiio.UINT8)
+    b = ImageBufAlgo.min (lrramp64, gray64)
+    write (b, "minimg.tif", oiio.UINT8)
+    b = ImageBufAlgo.min (lrramp64, (0.25, 0.25, 0.25))
+    write (b, "minval.tif", oiio.UINT8)
+
+    # minchan, maxchan
+    b = ImageBufAlgo.maxchan (ImageBufAlgo.fill((0,0,0.2), (1,0,0.2), (0,1,0.2), (1,1,0.2),
+                                                ROI(0,100,0,100,0,1,0,3)))
+    write (b, "maxchan.tif", oiio.UINT8)
+    b = ImageBufAlgo.minchan (ImageBufAlgo.fill((0,0,0.8), (1,0,0.8), (0,1,0.8), (1,1,0.8),
+                                                ROI(0,100,0,100,0,1,0,3)))
+    write (b, "minchan.tif", oiio.UINT8)
+
     # color_map
     b = ImageBufAlgo.color_map (tahoetiny, -1, "inferno")
     write (b, "colormap-inferno.tif", oiio.UINT8)

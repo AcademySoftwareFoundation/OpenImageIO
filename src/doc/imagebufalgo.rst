@@ -1012,6 +1012,19 @@ Image arithmetic
 
 |
 
+
+.. doxygengroup:: maxminchan
+..
+
+  Examples::
+
+    // Computes the maximum of R, G, B.
+    ImageBuf A ("rgb.exr");
+    ImageBuf B = ImageBufAlgo::maxchan (A);
+
+|
+
+
 .. doxygenfunction:: contrast_remap(const ImageBuf &src, cspan<float> black = 0.0f, cspan<float> white = 1.0f, cspan<float> min = 0.0f, cspan<float> max = 1.0f, cspan<float> scontrast = 1.0f, cspan<float> sthresh = 0.5f, ROI = {}, int nthreads = 0)
 ..
 
@@ -1104,7 +1117,7 @@ Image arithmetic
   Examples::
 
     // Use luminance of a.exr (assuming Rec709 primaries and a linear
-    // scale) and map to a spectrum-like palette.:
+    // scale) and map to a spectrum-like palette:
     ImageBuf A ("a.exr");
     ImageBuf B = ImageBufAlgo::color_map (A, -1, "turbo");
 

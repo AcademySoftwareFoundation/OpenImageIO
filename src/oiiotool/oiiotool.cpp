@@ -4426,8 +4426,10 @@ action_fill(int argc, const char* argv[])
 
 BINARY_IMAGE_OP(max, ImageBufAlgo::max);            // --max
 BINARY_IMAGE_COLOR_OP(maxc, ImageBufAlgo::max, 0);  // --maxc
+UNARY_IMAGE_OP(maxchan, ImageBufAlgo::maxchan);     // --maxchan
 BINARY_IMAGE_OP(min, ImageBufAlgo::min);            // --min
 BINARY_IMAGE_COLOR_OP(minc, ImageBufAlgo::min, 0);  // --minc
+UNARY_IMAGE_OP(minchan, ImageBufAlgo::minchan);     // --minchan
 
 
 
@@ -6091,12 +6093,18 @@ getargs(int argc, char* argv[])
     ap.arg("--maxc %s:VAL")
       .help("Max all values with a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)")
       .action(action_maxc);
+    ap.arg("--maxchan")
+      .help("Maximum of all channels of the image")
+      .action(action_maxchan);
     ap.arg("--min")
       .help("Pixel-by-pixel min of two images")
       .action(action_min);
     ap.arg("--minc %s:VAL")
       .help("Min all values with a scalar or per-channel constants (e.g.: 0.5 or 1,1.25,0.5)")
       .action(action_minc);
+    ap.arg("--minchan")
+      .help("Minimum of all channels of the image")
+      .action(action_minchan);
     ap.arg("--clamp")
       .help("Clamp values (options: min=..., max=..., clampalpha=0)")
       .action(action_clamp);

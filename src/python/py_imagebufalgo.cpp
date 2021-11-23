@@ -1139,6 +1139,39 @@ IBA_clamp_ret(const ImageBuf& src, py::object min_, py::object max_,
 
 
 bool
+IBA_maxchan(ImageBuf& dst, const ImageBuf& src, ROI roi = ROI::All(),
+            int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::maxchan(dst, src, roi, nthreads);
+}
+
+ImageBuf
+IBA_maxchan_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::maxchan(src, roi, nthreads);
+}
+
+
+bool
+IBA_minchan(ImageBuf& dst, const ImageBuf& src, ROI roi = ROI::All(),
+            int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::minchan(dst, src, roi, nthreads);
+}
+
+ImageBuf
+IBA_minchan_ret(const ImageBuf& src, ROI roi = ROI::All(), int nthreads = 0)
+{
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::minchan(src, roi, nthreads);
+}
+
+
+
+bool
 IBA_channel_sum_weight(ImageBuf& dst, const ImageBuf& src,
                        py::object weight_tuple, ROI roi = ROI::All(),
                        int nthreads = 0)
@@ -2713,6 +2746,16 @@ declare_imagebufalgo(py::module& m)
                     "nthreads"_a = 0)
         .def_static("clamp", &IBA_clamp_ret, "src"_a, "min"_a, "max"_a,
                     "clampalpha01"_a = false, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+
+        .def_static("maxchan", &IBA_maxchan, "dst"_a, "src"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("maxchan", &IBA_maxchan_ret, "src"_a, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+
+        .def_static("minchan", &IBA_minchan, "dst"_a, "src"_a,
+                    "roi"_a = ROI::All(), "nthreads"_a = 0)
+        .def_static("minchan", &IBA_minchan_ret, "src"_a, "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
 
         .def_static("contrast_remap", &IBA_contrast_remap, "dst"_a, "src"_a,

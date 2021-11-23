@@ -135,6 +135,12 @@ command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 64x64 3 "
 command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 64x64 3 "
                    + "--maxc 0.75,0.5,0.25 -o cmax2.exr")
 
+# test --maxchan, --minchan
+command += oiiotool ("--pattern fill:topleft=0,0,0.2:topright=1,0,0.2:bottomleft=0,1,0.2:bottomright=1,1,0.2 100x100 3 " +
+                        " --maxchan -d uint8 -o maxchan.tif")
+command += oiiotool ("--pattern fill:topleft=0,0,0.8:topright=1,0,0.8:bottomleft=0,1,0.8:bottomright=1,1,0.8 100x100 3 " +
+                        " --minchan -d uint8 -o minchan.tif")
+
 # test clamping
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR + "/grid.tif --resize 50%"
             + " --clamp:min=0.2:max=,,0.5,1 -o grid-clamped.tif")
@@ -286,6 +292,7 @@ outputs = [
             "rangecompress-luma.tif", "rangeexpand-luma.tif",
             "min.exr", "cmin1.exr", "cmin2.exr",
             "max.exr", "cmax1.exr", "cmax2.exr",
+            "maxchan.tif", "minchan.tif",
             "grid-clamped.tif",
             "bsplinekernel.exr", "bspline-blur.tif",
             "gauss5x5-blur.tif", "tahoe-median.tif",
