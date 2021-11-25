@@ -9,7 +9,8 @@ project (OpenImageIO VERSION 2.4.0.0
 set (PROJ_NAME OIIO)    # short name, caps
 string (TOLOWER ${PROJ_NAME} PROJ_NAME_LOWER)  # short name lower case
 string (TOUPPER ${PROJ_NAME} PROJ_NAME_UPPER)  # short name upper case
-set (PROJECT_VERSION_RELEASE_TYPE "dev")   # "dev", "betaX", "RCY", ""
+set (PROJECT_VERSION_RELEASE_TYPE "dev" CACHE STRING
+    "Build type, for example: dev, beta2, RC1 (empty string for normal release)")
 set (${PROJECT_NAME}_VERSION_RELEASE_TYPE ${PROJECT_VERSION_RELEASE_TYPE})
 set (PROJECT_AUTHORS "Contributors to the OpenImageIO project")
 option (${PROJECT_NAME}_SUPPORTED_RELEASE
@@ -20,10 +21,13 @@ else ()
     set (${PROJECT_NAME}_DEV_RELEASE ON)
 endif ()
 
-# Identify whether this is included as a subproject of something else
-if (NOT "${CMAKE_PROJECT_NAME}" STREQUAL "${PROJECT_NAME}")
-    set (${PROJECT_NAME}_IS_SUBPROJECT ON)
-    message (STATUS "${PROJECT_NAME} is configuring as a CMake subproject")
+# Set PROJECT_IS_TOP_LEVEL to ON if if this is the top level project (not
+# if this is included as a subproject of something else). Note that this is
+# handled automatically for CMake >= 3.21.
+if (CMAKE_VERSION VERSION_LESS 3.21)
+    if ("${CMAKE_PROJECT_NAME}" STREQUAL "${PROJECT_NAME}")
+        set (PROJECT_IS_TOP_LEVEL ON)
+    endif ()
 endif ()
 
 # If the user wants to use Conan to build dependencies, they will have done
@@ -45,7 +49,7 @@ endif ()
 # -DCMAKE_INSTALL_PREFIX=..., then set it to safely install into ./dist, to
 # help prevent the user from accidentally writing over /usr/local or whatever.
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT
-      AND NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+      AND PROJECT_IS_TOP_LEVEL)
     set (CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/dist" CACHE PATH
          "Installation location" FORCE)
 endif()
@@ -136,7 +140,7 @@ include (pythonutils)
 include (externalpackages)
 
 # Include all our testing apparatus and utils, but not if it's a subproject
-if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+if (PROJECT_IS_TOP_LEVEL)
     include (testing)
 else ()
     macro (oiio_add_tests)
@@ -275,11 +279,11 @@ install (EXPORT OIIO_EXPORTED_TARGETS
         NAMESPACE ${PROJECT_NAME}::)
 
 
-if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+if (PROJECT_IS_TOP_LEVEL)
     oiio_setup_test_data()
     oiio_add_all_tests()
 endif ()
 
-if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+if (PROJECT_IS_TOP_LEVEL)
     include (packaging)
 endif ()
