@@ -1186,19 +1186,21 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     }
 
     if (configspec.get_int_attribute("maketx:cdf")) {
-        // Writes Gaussian CDF and Inverse Gaussian CDF as per-channel metadata. We provide both
-        // the inverse transfrom and forward transfrom, so in theory we're free to change
-        // the distribution.
+        // Writes Gaussian CDF and Inverse Gaussian CDF as per-channel
+        // metadata. We provide both the inverse transfrom and forward
+        // transfrom, so in theory we're free to change the distribution.
         //
         // References:
         //
-        // Brent Burley, On Histogram-Preserving Blending for Randomized Texture Tiling,
-        // Journal of Computer Graphics Techniques (JCGT), vol. 8, no. 4, 31-53, 2019
+        // Brent Burley, On Histogram-Preserving Blending for Randomized
+        // Texture Tiling, Journal of Computer Graphics Techniques (JCGT),
+        // vol. 8, no. 4, 31-53, 2019
         //
-        // Eric Heitz and Fabrice Neyret, High-Performance By-Example Noise using a Histogram-Preserving Blending Operator,
-        // https://hal.inria.fr/hal-01824773},
-        // Proceedings of the ACM on Computer Graphics and Interactive Techniques,
-        // ACM SIGGRAPH / Eurographics Symposium on High-Performance Graphics 2018,
+        // Eric Heitz and Fabrice Neyret, High-Performance By-Example Noise
+        // using a Histogram-Preserving Blending Operator,
+        // https://hal.inria.fr/hal-01824773}, Proceedings of the ACM on
+        // Computer Graphics and Interactive Techniques, ACM SIGGRAPH /
+        // Eurographics Symposium on High-Performance Graphics 2018,
         //
         // Benedikt Bitterli
         // https://benedikt-bitterli.me/histogram-tiling/
@@ -1211,9 +1213,8 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         // Normalization coefficient for the truncated normal distribution
         const float c_sigma_inv = fast_erf(1.0f / (2.0f * M_SQRT2 * cdf_sigma));
 
-        // If there are channels other than R,G,B,A, we probably shouldn't do anything
-        // to them.
-
+        // If there are channels other than R,G,B,A, we probably shouldn't do
+        // anything to them.
         const int channels = std::min(4, src->spec().nchannels);
 
         std::vector<float> invCDF(bins);
@@ -1224,41 +1225,37 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
             hist = ImageBufAlgo::histogram(*src, i, bins, 0.0f, 1.0f);
 
             // Turn the histogram into a non-normalized CDF
-            for (int j = 1; j < bins; j++) {
+            for (uint64_t j = 1; j < bins; j++) {
                 hist[j] += hist[j - 1];
             }
 
-            // Store the inverse CDF as a lookup-table which we'll use to transform
-            // the image data to a Guassian distribution. As mentioned in Burley [2019]
-            // we're combining two steps here when using the invCDF lookup
-            // table: we first "look up" the image value through its CDF (the normalized histogram)
-            // which gives us a uniformly distributed value, which we're then feeding in to the
-            // Gaussian inverse CDF to transfrom the unifrom distribution to Gaussian.
-
-            for (int j = 0; j < bins; j++) {
+            // Store the inverse CDF as a lookup-table which we'll use to
+            // transform the image data to a Guassian distribution. As
+            // mentioned in Burley [2019] we're combining two steps here when
+            // using the invCDF lookup table: we first "look up" the image
+            // value through its CDF (the normalized histogram) which gives us
+            // a uniformly distributed value, which we're then feeding in to
+            // the Gaussian inverse CDF to transfrom the unifrom distribution
+            // to Gaussian.
+            for (uint64_t j = 0; j < bins; j++) {
                 float u = float(hist[j]) / hist[bins - 1];
-                float g = 0.5
+                float g = 0.5f
                           + cdf_sigma * M_SQRT2
-                                * fast_ierf(c_sigma_inv * (2 * u - 1));
+                                * fast_ierf(c_sigma_inv * (2.0f * u - 1.0f));
                 invCDF[j] = std::min(1.0f, std::max(0.0f, g));
             }
             configspec.attribute("invCDF_" + std::to_string(i),
                                  TypeDesc(TypeDesc::FLOAT, bins),
                                  invCDF.data());
 
-
-            // Store the forward CDF as a lookup table to transform back
-            // to the original image distribution from a Gaussian distribution.
-
-            std::vector<float>::iterator upper;
-            for (int j = 0; j < bins; j++) {
-                upper  = std::upper_bound(invCDF.begin(), invCDF.end(),
-                                         float(j) / (float(bins - 1)));
-                CDF[j] = std::min(1.0f,
-                                  std::max(0.0f, float(upper - invCDF.begin())
-                                                     / float(bins - 1)));
+            // Store the forward CDF as a lookup table to transform back to
+            // the original image distribution from a Gaussian distribution.
+            for (uint64_t j = 0; j < bins; j++) {
+                auto upper = std::upper_bound(invCDF.begin(), invCDF.end(),
+                                              float(j) / (float(bins - 1)));
+                CDF[j] = clamp(float(upper - invCDF.begin()) / float(bins - 1),
+                               0.0f, 1.0f);
             }
-
 
             configspec.attribute("CDF_" + std::to_string(i),
                                  TypeDesc(TypeDesc::FLOAT, bins), CDF.data());
