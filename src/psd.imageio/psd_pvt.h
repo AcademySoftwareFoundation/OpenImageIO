@@ -35,7 +35,7 @@ struct ImageResourceBlock {
     uint16_t id;
     std::string name;
     uint32_t length;
-    std::streampos pos;
+    int64_t pos;
 };
 
 }  // namespace psd_pvt

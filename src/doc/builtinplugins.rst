@@ -1596,12 +1596,20 @@ options are supported:
      - If nonzero, reading images with non-RGB color models (such as YCbCr
        or CMYK) will return unaltered pixel values (versus the default OIIO
        behavior of automatically converting to RGB).
+   * - ``oiio:ioproxy``
+     - ptr
+     - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
+       example by reading from memory rather than the file system.
 
 Currently, the PSD format reader supports color modes RGB, CMYK,
 multichannel, grayscale, indexed, and bitmap. It does NOT currenty support
 Lab or duotone modes.
 
+**Custom I/O Overrides**
 
+PSD supports the "custom I/O" feature via the special ``"oiio:ioproxy"``
+attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
+:ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
 |
 

@@ -10,7 +10,6 @@
 
 
 #include <csetjmp>
-#include <fstream>
 #include <functional>
 #include <map>
 #include <memory>
@@ -36,8 +35,8 @@ public:
     virtual const char* format_name(void) const override { return "psd"; }
     virtual int supports(string_view feature) const override
     {
-        return (feature == "exif" || feature == "iptc"
-                || feature == "thumbnail");
+        return (feature == "exif" || feature == "iptc" || feature == "thumbnail"
+                || feature == "ioproxy");
     }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
@@ -89,12 +88,12 @@ private:
     typedef std::map<uint16_t, ImageResourceBlock> ImageResourceMap;
 
     struct ResolutionInfo {
-        float hRes;
-        int16_t hResUnit;
-        int16_t widthUnit;
-        float vRes;
-        int16_t vResUnit;
-        int16_t heightUnit;
+        float hRes         = 0.0f;
+        int16_t hResUnit   = 0;
+        int16_t widthUnit  = 0;
+        float vRes         = 0.0f;
+        int16_t vResUnit   = 0;
+        int16_t heightUnit = 0;
 
         enum ResolutionUnit { PixelsPerInch = 1, PixelsPerCentimeter = 2 };
 
@@ -109,14 +108,14 @@ private:
 
     struct LayerMaskInfo {
         uint64_t length;
-        std::streampos begin;
-        std::streampos end;
+        int64_t begin;
+        int64_t end;
 
         struct LayerInfo {
             uint64_t length;
             int16_t layer_count;
-            std::streampos begin;
-            std::streampos end;
+            int64_t begin;
+            int64_t end;
         };
 
         LayerInfo layer_info;
@@ -126,10 +125,10 @@ private:
         uint32_t row_length;
         int16_t channel_id;
         uint64_t data_length;
-        std::streampos data_pos;
+        int64_t data_pos;
         uint16_t compression;
         std::vector<uint32_t> rle_lengths;
-        std::vector<std::streampos> row_pos;
+        std::vector<int64_t> row_pos;
     };
 
     struct Layer {
@@ -161,7 +160,7 @@ private:
         struct AdditionalInfo {
             char key[4];
             uint64_t length;
-            std::streampos pos;
+            int64_t pos;
         };
 
         std::vector<AdditionalInfo> additional_info;
@@ -183,7 +182,6 @@ private:
     };
 
     std::string m_filename;
-    OIIO::ifstream m_file;
     //Current subimage
     int m_subimage;
     //Subimage count (1 + layer count)
@@ -399,20 +397,18 @@ private:
         }
     }
 
-    //Check if m_file is good. If not, set error message and return false.
-    bool check_io();
-
     //This may be a bit inefficient but I think it's worth the convenience.
     //This takes care of things like reading a 32-bit BE into a 64-bit LE.
     template<typename TStorage, typename TVariable>
     bool read_bige(TVariable& value)
     {
         TStorage buffer;
-        m_file.read((char*)&buffer, sizeof(buffer));
+        if (!ioread((char*)&buffer, sizeof(buffer)))
+            return false;
         if (!bigendian())
             swap_endian(&buffer);
         value = buffer;
-        return m_file.good();
+        return true;
     }
 
     int read_pascal_string(std::string& s, uint16_t mod_padding);
@@ -535,53 +531,48 @@ bool
 PSDInput::open(const std::string& name, ImageSpec& newspec)
 {
     m_filename = name;
-
-    Filesystem::open(m_file, name, std::ios::binary);
-
-    if (!m_file) {
-        errorf("\"%s\": failed to open file", name);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
 
     // File Header
     if (!load_header()) {
-        errorf("failed to open \"%s\": failed load_header", name);
+        errorfmt("failed to open \"{}\": failed load_header", name);
         return false;
     }
 
     // Color Mode Data
     if (!load_color_data()) {
-        errorf("failed to open \"%s\": failed load_color_data", name);
+        errorfmt("failed to open \"{}\": failed load_color_data", name);
         return false;
     }
 
     // Image Resources
     if (!load_resources()) {
-        errorf("failed to open \"%s\": failed load_resources", name);
+        errorfmt("failed to open \"{}\": failed load_resources", name);
         return false;
     }
 
     // Layers
     if (!load_layers()) {
-        errorf("failed to open \"%s\": failed load_layers", name);
+        errorfmt("failed to open \"{}\": failed load_layers", name);
         return false;
     }
 
     // Global Mask Info
     if (!load_global_mask_info()) {
-        errorf("failed to open \"%s\": failed load_global_mask_info", name);
+        errorfmt("failed to open \"{}\": failed load_global_mask_info", name);
         return false;
     }
 
     // Global Additional Layer Info
     if (!load_global_additional()) {
-        errorf("failed to open \"%s\": failed load_global_additional", name);
+        errorfmt("failed to open \"{}\": failed load_global_additional", name);
         return false;
     }
 
     // Image Data
     if (!load_image_data()) {
-        errorf("failed to open \"%s\": failed load_image_data", name);
+        errorfmt("failed to open \"{}\": failed load_image_data", name);
         return false;
     }
 
@@ -611,6 +602,8 @@ PSDInput::open(const std::string& name, ImageSpec& newspec,
 
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+
+    ioproxy_retrieve_from_config(config);
 
     return open(name, newspec);
 }
@@ -841,7 +834,6 @@ void
 PSDInput::init()
 {
     m_filename.clear();
-    m_file.close();
     m_subimage       = -1;
     m_subimage_count = 0;
     m_specs.clear();
@@ -860,6 +852,7 @@ PSDInput::init()
     m_background_color[2]     = 1.0;
     m_background_color[3]     = 1.0;
     m_thumbnail.clear();
+    ioproxy_clear();
 }
 
 
@@ -878,15 +871,13 @@ PSDInput::load_header()
 bool
 PSDInput::read_header()
 {
-    m_file.read(m_header.signature, 4);
-    read_bige<uint16_t>(m_header.version);
-    m_file.seekg(6, std::ios::cur);
-    read_bige<uint16_t>(m_header.channel_count);
-    read_bige<uint32_t>(m_header.height);
-    read_bige<uint32_t>(m_header.width);
-    read_bige<uint16_t>(m_header.depth);
-    read_bige<uint16_t>(m_header.color_mode);
-    return check_io();
+    return ioread(m_header.signature, 4)
+           && read_bige<uint16_t>(m_header.version) && ioseek(6, SEEK_CUR)
+           && read_bige<uint16_t>(m_header.channel_count)
+           && read_bige<uint32_t>(m_header.height)
+           && read_bige<uint32_t>(m_header.width)
+           && read_bige<uint16_t>(m_header.depth)
+           && read_bige<uint16_t>(m_header.color_mode);
 }
 
 
@@ -895,15 +886,15 @@ bool
 PSDInput::validate_header()
 {
     if (std::memcmp(m_header.signature, "8BPS", 4) != 0) {
-        errorf("[Header] invalid signature");
+        errorfmt("[Header] invalid signature");
         return false;
     }
     if (m_header.version != 1 && m_header.version != 2) {
-        errorf("[Header] invalid version");
+        errorfmt("[Header] invalid version");
         return false;
     }
     if (m_header.channel_count < 1 || m_header.channel_count > 56) {
-        errorf("[Header] invalid channel count");
+        errorfmt("[Header] invalid channel count");
         return false;
     }
     switch (m_header.version) {
@@ -911,11 +902,11 @@ PSDInput::validate_header()
         // PSD
         // width/height range: [1,30000]
         if (m_header.height < 1 || m_header.height > 30000) {
-            errorf("[Header] invalid image height");
+            errorfmt("[Header] invalid image height");
             return false;
         }
         if (m_header.width < 1 || m_header.width > 30000) {
-            errorf("[Header] invalid image width");
+            errorfmt("[Header] invalid image width");
             return false;
         }
         break;
@@ -923,11 +914,11 @@ PSDInput::validate_header()
         // PSB (Large Document Format)
         // width/height range: [1,300000]
         if (m_header.height < 1 || m_header.height > 300000) {
-            errorf("[Header] invalid image height");
+            errorfmt("[Header] invalid image height");
             return false;
         }
         if (m_header.width < 1 || m_header.width > 300000) {
-            errorf("[Header] invalid image width");
+            errorfmt("[Header] invalid image width");
             return false;
         }
         break;
@@ -935,7 +926,7 @@ PSDInput::validate_header()
     // Valid depths are 1,8,16,32
     if (m_header.depth != 1 && m_header.depth != 8 && m_header.depth != 16
         && m_header.depth != 32) {
-        errorf("[Header] invalid depth");
+        errorfmt("[Header] invalid depth");
         return false;
     }
     if (m_WantRaw)
@@ -950,8 +941,10 @@ PSDInput::validate_header()
     case ColorMode_CMYK:
     case ColorMode_Multichannel: break;
     case ColorMode_Duotone:
-    case ColorMode_Lab: errorf("[Header] unsupported color mode"); return false;
-    default: errorf("[Header] unrecognized color mode"); return false;
+    case ColorMode_Lab:
+        errorfmt("[Header] unsupported color mode");
+        return false;
+    default: errorfmt("[Header] unrecognized color mode"); return false;
     }
     return true;
 }
@@ -961,8 +954,7 @@ PSDInput::validate_header()
 bool
 PSDInput::load_color_data()
 {
-    read_bige<uint32_t>(m_color_data.length);
-    if (!check_io())
+    if (!read_bige<uint32_t>(m_color_data.length))
         return false;
 
     if (!validate_color_data())
@@ -970,9 +962,10 @@ PSDInput::load_color_data()
 
     if (m_color_data.length) {
         m_color_data.data.resize(m_color_data.length);
-        m_file.read(&m_color_data.data[0], m_color_data.length);
+        if (!ioread(&m_color_data.data[0], m_color_data.length))
+            return false;
     }
-    return check_io();
+    return true;
 }
 
 
@@ -981,13 +974,14 @@ bool
 PSDInput::validate_color_data()
 {
     if (m_header.color_mode == ColorMode_Duotone && m_color_data.length == 0) {
-        errorf(
+        errorfmt(
             "[Color Mode Data] color mode data should be present for duotone image");
         return false;
     }
     if (m_header.color_mode == ColorMode_Indexed
         && m_color_data.length != 768) {
-        errorf("[Color Mode Data] length should be 768 for indexed color mode");
+        errorfmt(
+            "[Color Mode Data] length should be 768 for indexed color mode");
         return false;
     }
     return true;
@@ -999,29 +993,24 @@ bool
 PSDInput::load_resources()
 {
     uint32_t length;
-    read_bige<uint32_t>(length);
-
-    if (!check_io())
+    if (!read_bige<uint32_t>(length))
         return false;
 
     ImageResourceBlock block;
     ImageResourceMap resources;
-    std::streampos begin = m_file.tellg();
-    std::streampos end   = begin + (std::streampos)length;
-    while (m_file && m_file.tellg() < end) {
+    int64_t begin = iotell();
+    int64_t end   = begin + int64_t(length);
+    while (iotell() < end) {
         if (!read_resource(block) || !validate_resource(block))
             return false;
 
         resources.insert(std::make_pair(block.id, block));
     }
-    if (!check_io())
-        return false;
 
     if (!handle_resources(resources))
         return false;
 
-    m_file.seekg(end);
-    return check_io();
+    return ioseek(end);
 }
 
 
@@ -1029,20 +1018,18 @@ PSDInput::load_resources()
 bool
 PSDInput::read_resource(ImageResourceBlock& block)
 {
-    m_file.read(block.signature, 4);
-    read_bige<uint16_t>(block.id);
-    read_pascal_string(block.name, 2);
-    read_bige<uint32_t>(block.length);
+    bool ok = ioread(block.signature, 4) && read_bige<uint16_t>(block.id)
+              && read_pascal_string(block.name, 2)
+              && read_bige<uint32_t>(block.length);
     // Save the file position of the image resource data
-    block.pos = m_file.tellg();
+    block.pos = iotell();
     // Skip the image resource data
-    m_file.seekg(block.length, std::ios::cur);
+    ok &= ioseek(block.length, SEEK_CUR);
     // Image resource blocks are supposed to be padded to an even size.
     // I'm not sure if the padding is included in the length field
     if (block.length % 2 != 0)
-        m_file.seekg(1, std::ios::cur);
-
-    return check_io();
+        ok &= ioseek(1, SEEK_CUR);
+    return ok;
 }
 
 
@@ -1051,7 +1038,7 @@ bool
 PSDInput::validate_resource(ImageResourceBlock& block)
 {
     if (std::memcmp(block.signature, "8BIM", 4) != 0) {
-        errorf("[Image Resource] invalid signature");
+        errorfmt("[Image Resource] invalid signature");
         return false;
     }
     return true;
@@ -1068,12 +1055,8 @@ PSDInput::handle_resources(ImageResourceMap& resources)
         ImageResourceMap::const_iterator it(resources.find(loader.resource_id));
         // If a resource with that ID exists in the file, call the loader
         if (it != end) {
-            m_file.seekg(it->second.pos);
-            if (!check_io())
-                return false;
-
-            loader.load(this, it->second.length);
-            if (!check_io())
+            if (!ioseek(it->second.pos)
+                || !loader.load(this, it->second.length))
                 return false;
         }
     }
@@ -1084,16 +1067,16 @@ bool PSDInput::load_resource_1005(uint32_t /*length*/)
 {
     ResolutionInfo resinfo;
     // Fixed 16.16
-    read_bige<uint32_t>(resinfo.hRes);
+    bool ok = read_bige<uint32_t>(resinfo.hRes);
     resinfo.hRes /= 65536.0f;
-    read_bige<int16_t>(resinfo.hResUnit);
-    read_bige<int16_t>(resinfo.widthUnit);
+    ok &= read_bige<int16_t>(resinfo.hResUnit);
+    ok &= read_bige<int16_t>(resinfo.widthUnit);
     // Fixed 16.16
-    read_bige<uint32_t>(resinfo.vRes);
+    ok &= read_bige<uint32_t>(resinfo.vRes);
     resinfo.vRes /= 65536.0f;
-    read_bige<int16_t>(resinfo.vResUnit);
-    read_bige<int16_t>(resinfo.heightUnit);
-    if (!m_file)
+    ok &= read_bige<int16_t>(resinfo.vResUnit);
+    ok &= read_bige<int16_t>(resinfo.heightUnit);
+    if (!ok)
         return false;
 
     // Make sure the same unit is used both horizontally and vertically
@@ -1101,7 +1084,7 @@ bool PSDInput::load_resource_1005(uint32_t /*length*/)
     // if it can, perhaps we should be using ResolutionUnitH/ResolutionUnitV or
     // something similar.
     if (resinfo.hResUnit != resinfo.vResUnit) {
-        errorf(
+        errorfmt(
             "[Image Resource] [ResolutionInfo] Resolutions must have the same unit");
         return false;
     }
@@ -1109,7 +1092,7 @@ bool PSDInput::load_resource_1005(uint32_t /*length*/)
     // Note: This relies on the above check that the units are the same.
     if (resinfo.hResUnit != ResolutionInfo::PixelsPerInch
         && resinfo.hResUnit != ResolutionInfo::PixelsPerCentimeter) {
-        errorf(
+        errorfmt(
             "[Image Resource] [ResolutionInfo] Unrecognized resolution unit");
         return false;
     }
@@ -1134,11 +1117,11 @@ PSDInput::load_resource_1006(uint32_t length)
 {
     int32_t bytes_remaining = length;
     std::string name;
-    while (m_file && bytes_remaining >= 2) {
+    while (bytes_remaining >= 2) {
         bytes_remaining -= read_pascal_string(name, 1);
         m_alpha_names.push_back(name);
     }
-    return check_io();
+    return true;
 }
 
 
@@ -1146,18 +1129,17 @@ PSDInput::load_resource_1006(uint32_t length)
 bool PSDInput::load_resource_1010(uint32_t /*length*/)
 {
     const double int8_to_dbl = 1.0 / 0xFF;
-    int8_t color_id;
-    int32_t color;
+    int8_t color_id          = 0;
+    int32_t color            = 0;
 
-    read_bige<int8_t>(color_id);
-    read_bige<int32_t>(color);
+    bool ok = read_bige<int8_t>(color_id) && read_bige<int32_t>(color);
 
     m_background_color[0] = ((color)&0xFF) * int8_to_dbl;
     m_background_color[1] = ((color >> 8) & 0xFF) * int8_to_dbl;
     m_background_color[2] = ((color >> 16) & 0xFF) * int8_to_dbl;
     m_background_color[3] = ((color >> 24) & 0xFF) * int8_to_dbl;
 
-    return true;
+    return ok;
 }
 
 
@@ -1180,7 +1162,7 @@ bool
 PSDInput::load_resource_1039(uint32_t length)
 {
     std::unique_ptr<char[]> icc_buf(new char[length]);
-    if (!m_file.read(icc_buf.get(), length))
+    if (!ioread(icc_buf.get(), length))
         return false;
 
     TypeDesc type(TypeDesc::UINT8, length);
@@ -1190,9 +1172,10 @@ PSDInput::load_resource_1039(uint32_t length)
 
 bool PSDInput::load_resource_1047(uint32_t /*length*/)
 {
-    read_bige<int16_t>(m_transparency_index);
+    if (!read_bige<int16_t>(m_transparency_index))
+        return false;
     if (m_transparency_index < 0 || m_transparency_index >= 768) {
-        errorf("[Image Resource] [Transparency Index] index is out of range");
+        errorfmt("[Image Resource] [Transparency Index] index is out of range");
         return false;
     }
     return true;
@@ -1204,12 +1187,12 @@ bool
 PSDInput::load_resource_1058(uint32_t length)
 {
     std::string data(length, 0);
-    if (!m_file.read(&data[0], length))
+    if (!ioread(&data[0], length))
         return false;
 
     if (!decode_exif(data, m_composite_attribs)
         || !decode_exif(data, m_common_attribs)) {
-        errorf("Failed to decode Exif data");
+        errorfmt("Failed to decode Exif data");
         return false;
     }
     return true;
@@ -1230,13 +1213,13 @@ bool
 PSDInput::load_resource_1060(uint32_t length)
 {
     std::string data(length, 0);
-    if (!m_file.read(&data[0], length))
+    if (!ioread(&data[0], length))
         return false;
 
     // Store the XMP data for the composite and all other subimages
     if (!decode_xmp(data, m_composite_attribs)
         || !decode_xmp(data, m_common_attribs)) {
-        errorf("Failed to decode XMP data");
+        errorfmt("Failed to decode XMP data");
         return false;
     }
     return true;
@@ -1251,7 +1234,7 @@ bool PSDInput::load_resource_1064(uint32_t /*length*/)
         return false;
 
     if (version != 1 && version != 2) {
-        errorf("[Image Resource] [Pixel Aspect Ratio] Unrecognized version");
+        errorfmt("[Image Resource] [Pixel Aspect Ratio] Unrecognized version");
         return false;
     }
     double aspect_ratio;
@@ -1282,21 +1265,18 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
     thumbnail_error_mgr jerr;
     uint32_t jpeg_length = length - 28;
 
-    read_bige<uint32_t>(format);
-    read_bige<uint32_t>(width);
-    read_bige<uint32_t>(height);
-    read_bige<uint32_t>(widthbytes);
-    read_bige<uint32_t>(total_size);
-    read_bige<uint32_t>(compressed_size);
-    read_bige<uint16_t>(bpp);
-    read_bige<uint16_t>(planes);
-    if (!m_file)
+    bool ok = read_bige<uint32_t>(format) && read_bige<uint32_t>(width)
+              && read_bige<uint32_t>(height) && read_bige<uint32_t>(widthbytes)
+              && read_bige<uint32_t>(total_size)
+              && read_bige<uint32_t>(compressed_size)
+              && read_bige<uint16_t>(bpp) && read_bige<uint16_t>(planes);
+    if (!ok)
         return false;
 
     // We only support kJpegRGB since I don't have any test images with
     // kRawRGB
     if (format != kJpegRGB || bpp != 24 || planes != 1) {
-        errorf(
+        errorfmt(
             "[Image Resource] [JPEG Thumbnail] invalid or unsupported format");
         return false;
     }
@@ -1305,11 +1285,11 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
     jerr.pub.error_exit = thumbnail_error_exit;
     if (setjmp(jerr.setjmp_buffer)) {
         jpeg_destroy_decompress(&cinfo);
-        errorf("[Image Resource] [JPEG Thumbnail] libjpeg error");
+        errorfmt("[Image Resource] [JPEG Thumbnail] libjpeg error");
         return false;
     }
     std::string jpeg_data(jpeg_length, '\0');
-    if (!m_file.read(&jpeg_data[0], jpeg_length))
+    if (!ioread(&jpeg_data[0], jpeg_length))
         return false;
 
     jpeg_create_decompress(&cinfo);
@@ -1326,7 +1306,7 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
         if (jpeg_read_scanlines(&cinfo, buffer, 1) != 1) {
             jpeg_finish_decompress(&cinfo);
             jpeg_destroy_decompress(&cinfo);
-            errorf("[Image Resource] [JPEG Thumbnail] libjpeg error");
+            errorfmt("[Image Resource] [JPEG Thumbnail] libjpeg error");
             return false;
         }
         m_thumbnail.get_pixels(ROI(0, width, cinfo.output_scanline,
@@ -1359,15 +1339,15 @@ PSDInput::thumbnail_error_exit(j_common_ptr cinfo)
 bool
 PSDInput::load_layers()
 {
+    bool ok = true;
     if (m_header.version == 1)
-        read_bige<uint32_t>(m_layer_mask_info.length);
+        ok &= read_bige<uint32_t>(m_layer_mask_info.length);
     else
-        read_bige<uint64_t>(m_layer_mask_info.length);
+        ok &= read_bige<uint64_t>(m_layer_mask_info.length);
 
-    m_layer_mask_info.begin = m_file.tellg();
-    m_layer_mask_info.end   = m_layer_mask_info.begin
-                            + (std::streampos)m_layer_mask_info.length;
-    if (!check_io())
+    m_layer_mask_info.begin = iotell();
+    m_layer_mask_info.end = m_layer_mask_info.begin + m_layer_mask_info.length;
+    if (!ok)
         return false;
 
     if (!m_layer_mask_info.length)
@@ -1375,19 +1355,19 @@ PSDInput::load_layers()
 
     LayerMaskInfo::LayerInfo& layer_info = m_layer_mask_info.layer_info;
     if (m_header.version == 1)
-        read_bige<uint32_t>(layer_info.length);
+        ok &= read_bige<uint32_t>(layer_info.length);
     else
-        read_bige<uint64_t>(layer_info.length);
+        ok &= read_bige<uint64_t>(layer_info.length);
 
-    layer_info.begin = m_file.tellg();
-    layer_info.end   = layer_info.begin + (std::streampos)layer_info.length;
-    if (!check_io())
+    layer_info.begin = iotell();
+    layer_info.end   = layer_info.begin + layer_info.length;
+    if (!ok)
         return false;
 
     if (!layer_info.length)
         return true;
 
-    read_bige<int16_t>(layer_info.layer_count);
+    ok &= read_bige<int16_t>(layer_info.layer_count);
     if (layer_info.layer_count < 0) {
         m_image_data.transparency = true;
         layer_info.layer_count    = -layer_info.layer_count;
@@ -1405,7 +1385,7 @@ PSDInput::load_layers()
         if (!load_layer_channels(layer))
             return false;
     }
-    return true;
+    return ok;
 }
 
 
@@ -1413,12 +1393,13 @@ PSDInput::load_layers()
 bool
 PSDInput::load_layer(Layer& layer)
 {
-    read_bige<uint32_t>(layer.top);
-    read_bige<uint32_t>(layer.left);
-    read_bige<uint32_t>(layer.bottom);
-    read_bige<uint32_t>(layer.right);
-    read_bige<uint16_t>(layer.channel_count);
-    if (!check_io())
+    bool ok = true;
+    ok &= read_bige<uint32_t>(layer.top);
+    ok &= read_bige<uint32_t>(layer.left);
+    ok &= read_bige<uint32_t>(layer.bottom);
+    ok &= read_bige<uint32_t>(layer.right);
+    ok &= read_bige<uint16_t>(layer.channel_count);
+    if (!ok)
         return false;
 
     layer.width  = std::abs((int)layer.right - (int)layer.left);
@@ -1426,93 +1407,93 @@ PSDInput::load_layer(Layer& layer)
     layer.channel_info.resize(layer.channel_count);
     for (uint16_t channel = 0; channel < layer.channel_count; channel++) {
         ChannelInfo& channel_info = layer.channel_info[channel];
-        read_bige<int16_t>(channel_info.channel_id);
+        ok &= read_bige<int16_t>(channel_info.channel_id);
         if (m_header.version == 1)
-            read_bige<uint32_t>(channel_info.data_length);
+            ok &= read_bige<uint32_t>(channel_info.data_length);
         else
-            read_bige<uint64_t>(channel_info.data_length);
+            ok &= read_bige<uint64_t>(channel_info.data_length);
 
         layer.channel_id_map[channel_info.channel_id] = &channel_info;
     }
     char bm_signature[4];
-    m_file.read(bm_signature, 4);
-    if (!check_io())
+    ok &= ioread(bm_signature, 4);
+    if (!ok)
         return false;
 
     if (std::memcmp(bm_signature, "8BIM", 4) != 0) {
-        errorf("[Layer Record] Invalid blend mode signature");
+        errorfmt("[Layer Record] Invalid blend mode signature");
         return false;
     }
-    m_file.read(layer.bm_key, 4);
-    read_bige<uint8_t>(layer.opacity);
-    read_bige<uint8_t>(layer.clipping);
-    read_bige<uint8_t>(layer.flags);
+    ok &= ioread(layer.bm_key, 4);
+    ok &= read_bige<uint8_t>(layer.opacity);
+    ok &= read_bige<uint8_t>(layer.clipping);
+    ok &= read_bige<uint8_t>(layer.flags);
     // skip filler
-    m_file.seekg(1, std::ios::cur);
-    read_bige<uint32_t>(layer.extra_length);
+    ok &= ioseek(1, SEEK_CUR);
+    ok &= read_bige<uint32_t>(layer.extra_length);
     uint32_t extra_remaining = layer.extra_length;
     // layer mask data length
     uint32_t lmd_length;
-    read_bige<uint32_t>(lmd_length);
-    if (!check_io())
+    ok &= read_bige<uint32_t>(lmd_length);
+    if (!ok)
         return false;
 
     if (lmd_length > 0) {
-        std::streampos lmd_start = m_file.tellg();
-        std::streampos lmd_end   = lmd_start + (std::streampos)lmd_length;
+        auto lmd_start = iotell();
+        auto lmd_end   = lmd_start + lmd_length;
 
         if (lmd_length >= 4 * 4 + 1 * 2) {
-            read_bige<uint32_t>(layer.mask_data.top);
-            read_bige<uint32_t>(layer.mask_data.left);
-            read_bige<uint32_t>(layer.mask_data.bottom);
-            read_bige<uint32_t>(layer.mask_data.right);
-            read_bige<uint8_t>(layer.mask_data.default_color);
-            read_bige<uint8_t>(layer.mask_data.flags);
+            ok &= read_bige<uint32_t>(layer.mask_data.top);
+            ok &= read_bige<uint32_t>(layer.mask_data.left);
+            ok &= read_bige<uint32_t>(layer.mask_data.bottom);
+            ok &= read_bige<uint32_t>(layer.mask_data.right);
+            ok &= read_bige<uint8_t>(layer.mask_data.default_color);
+            ok &= read_bige<uint8_t>(layer.mask_data.flags);
         }
 
         // skip mask parameters
         // skip "real" fields
 
-        m_file.seekg(lmd_end);
-        if (!check_io())
+        ok &= ioseek(lmd_end);
+        if (!ok)
             return false;
     }
     extra_remaining -= (lmd_length + 4);
 
     // layer blending ranges length
-    uint32_t lbr_length;
-    read_bige<uint32_t>(lbr_length);
+    uint32_t lbr_length = 0;
+    ok &= read_bige<uint32_t>(lbr_length);
     // skip block
-    m_file.seekg(lbr_length, std::ios::cur);
+    ok &= ioseek(lbr_length, SEEK_CUR);
     extra_remaining -= (lbr_length + 4);
-    if (!check_io())
+    if (!ok)
         return false;
 
     extra_remaining -= read_pascal_string(layer.name, 4);
-    while (m_file && extra_remaining >= 12) {
+    while (ok && extra_remaining >= 12) {
         layer.additional_info.emplace_back();
         Layer::AdditionalInfo& info = layer.additional_info.back();
 
         char signature[4];
-        m_file.read(signature, 4);
-        m_file.read(info.key, 4);
+        ok &= ioread(signature, 4);
+        ok &= ioread(info.key, 4);
         if (std::memcmp(signature, "8BIM", 4) != 0
             && std::memcmp(signature, "8B64", 4) != 0) {
-            errorf("[Additional Layer Info] invalid signature");
+            errorfmt("[Additional Layer Info] invalid signature");
             return false;
         }
         extra_remaining -= 8;
         if (m_header.version == 2 && is_additional_info_psb(info.key)) {
-            read_bige<uint64_t>(info.length);
+            ok &= read_bige<uint64_t>(info.length);
             extra_remaining -= 8;
         } else {
-            read_bige<uint32_t>(info.length);
+            ok &= read_bige<uint32_t>(info.length);
             extra_remaining -= 4;
         }
-        m_file.seekg(info.length, std::ios::cur);
+        ok &= ioseek(info.length, SEEK_CUR);
         extra_remaining -= info.length;
     }
-    return check_io();
+    return ok;
 }
 
 
@@ -1533,10 +1514,9 @@ PSDInput::load_layer_channels(Layer& layer)
 bool
 PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
 {
-    std::streampos start_pos = m_file.tellg();
+    int64_t start_pos = iotell();
     if (channel_info.data_length >= 2) {
-        read_bige<uint16_t>(channel_info.compression);
-        if (!check_io())
+        if (!read_bige<uint16_t>(channel_info.compression))
             return false;
     }
     // No data at all or just compression
@@ -1555,7 +1535,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         height = layer.height;
     }
 
-    channel_info.data_pos = m_file.tellg();
+    channel_info.data_pos = iotell();
     channel_info.row_pos.resize(height);
     channel_info.row_length = (width * m_header.depth + 7) / 8;
     switch (channel_info.compression) {
@@ -1563,9 +1543,8 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         if (height) {
             channel_info.row_pos[0] = channel_info.data_pos;
             for (uint32_t i = 1; i < height; ++i)
-                channel_info.row_pos[i]
-                    = channel_info.row_pos[i - 1]
-                      + (std::streampos)channel_info.row_length;
+                channel_info.row_pos[i] = channel_info.row_pos[i - 1]
+                                          + channel_info.row_length;
         }
         channel_info.data_length = channel_info.row_length * height;
         break;
@@ -1575,16 +1554,15 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
             return false;
 
         // channel data is located after the RLE lengths
-        channel_info.data_pos = m_file.tellg();
+        channel_info.data_pos = iotell();
         // subtract the RLE lengths read above
         channel_info.data_length = channel_info.data_length
                                    - (channel_info.data_pos - start_pos);
         if (height) {
             channel_info.row_pos[0] = channel_info.data_pos;
             for (uint32_t i = 1; i < height; ++i)
-                channel_info.row_pos[i]
-                    = channel_info.row_pos[i - 1]
-                      + (std::streampos)channel_info.rle_lengths[i - 1];
+                channel_info.row_pos[i] = channel_info.row_pos[i - 1]
+                                          + channel_info.rle_lengths[i - 1];
         }
         break;
     // These two aren't currently supported. They would likely
@@ -1594,12 +1572,11 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     case Compression_ZIP:
     case Compression_ZIP_Predict:
     default:
-        errorf("[Layer Channel] unsupported compression");
+        errorfmt("[Layer Channel] unsupported compression");
         return false;
         ;
     }
-    m_file.seekg(channel_info.data_length, std::ios::cur);
-    return check_io();
+    return ioseek(channel_info.data_length, SEEK_CUR);
 }
 
 
@@ -1608,13 +1585,14 @@ bool
 PSDInput::read_rle_lengths(uint32_t height, std::vector<uint32_t>& rle_lengths)
 {
     rle_lengths.resize(height);
-    for (uint32_t row = 0; row < height && m_file; ++row) {
+    bool ok = true;
+    for (uint32_t row = 0; row < height && ok; ++row) {
         if (m_header.version == 1)
-            read_bige<uint16_t>(rle_lengths[row]);
+            ok &= read_bige<uint16_t>(rle_lengths[row]);
         else
-            read_bige<uint32_t>(rle_lengths[row]);
+            ok &= read_bige<uint32_t>(rle_lengths[row]);
     }
-    return check_io();
+    return ok;
 }
 
 
@@ -1625,35 +1603,34 @@ PSDInput::load_global_mask_info()
     if (!m_layer_mask_info.length)
         return true;
 
-    m_file.seekg(m_layer_mask_info.layer_info.end);
-    uint64_t remaining = m_layer_mask_info.end - m_file.tellg();
+    bool ok            = ioseek(m_layer_mask_info.layer_info.end);
+    uint64_t remaining = m_layer_mask_info.end - iotell();
     uint32_t length;
 
     // This section should be at least 17 bytes, but some files lack
     // global mask info and additional layer info, not covered in the spec
     if (remaining < 17) {
-        m_file.seekg(m_layer_mask_info.end);
-        return true;
+        return ioseek(m_layer_mask_info.end);
     }
 
-    read_bige<uint32_t>(length);
-    std::streampos start = m_file.tellg();
-    std::streampos end   = start + (std::streampos)length;
-    if (!check_io())
+    ok &= read_bige<uint32_t>(length);
+    int64_t start = iotell();
+    int64_t end   = start + length;
+    if (!ok)
         return false;
 
     // this can be empty
     if (!length)
         return true;
 
-    read_bige<uint16_t>(m_global_mask_info.overlay_color_space);
+    ok &= read_bige<uint16_t>(m_global_mask_info.overlay_color_space);
     for (int i = 0; i < 4; ++i)
-        read_bige<uint16_t>(m_global_mask_info.color_components[i]);
+        ok &= read_bige<uint16_t>(m_global_mask_info.color_components[i]);
 
-    read_bige<uint16_t>(m_global_mask_info.opacity);
-    read_bige<int16_t>(m_global_mask_info.kind);
-    m_file.seekg(end);
-    return check_io();
+    ok &= read_bige<uint16_t>(m_global_mask_info.opacity);
+    ok &= read_bige<int16_t>(m_global_mask_info.kind);
+    ok &= ioseek(end);
+    return ok;
 }
 
 
@@ -1666,30 +1643,29 @@ PSDInput::load_global_additional()
 
     char signature[4];
     char key[4];
-    uint64_t length;
+    uint64_t length    = 0;
     uint64_t remaining = m_layer_mask_info.length
-                         - (m_file.tellg() - m_layer_mask_info.begin);
-    while (m_file && remaining >= 12) {
-        m_file.read(signature, 4);
-        if (!check_io())
+                         - (iotell() - m_layer_mask_info.begin);
+    bool ok = true;
+    while (ok && remaining >= 12) {
+        if (!ioread(signature, 4))
             return false;
 
         // the spec supports 8BIM, and 8B64 (presumably for psb support)
         if (std::memcmp(signature, "8BIM", 4) != 0
             && std::memcmp(signature, "8B64", 4) != 0) {
-            errorf("[Global Additional Layer Info] invalid signature");
+            errorfmt("[Global Additional Layer Info] invalid signature");
             return false;
         }
-        m_file.read(key, 4);
-        if (!check_io())
+        if (!ioread(key, 4))
             return false;
 
         remaining -= 8;
         if (m_header.version == 2 && is_additional_info_psb(key)) {
-            read_bige<uint64_t>(length);
+            ok &= read_bige<uint64_t>(length);
             remaining -= 8;
         } else {
-            read_bige<uint32_t>(length);
+            ok &= read_bige<uint32_t>(length);
             remaining -= 4;
         }
         // Long story short these are aligned to 4 bytes but that is not
@@ -1699,11 +1675,11 @@ PSDInput::load_global_additional()
         length = (length + 3) & ~3;
         remaining -= length;
         // skip it for now
-        m_file.seekg(length, std::ios::cur);
+        ok &= ioseek(length, SEEK_CUR);
     }
     // finished with the layer and mask information section, seek to the end
-    m_file.seekg(m_layer_mask_info.end);
-    return check_io();
+    ok &= ioseek(m_layer_mask_info.end);
+    return ok;
 }
 
 
@@ -1714,12 +1690,11 @@ PSDInput::load_image_data()
     uint16_t compression;
     uint32_t row_length = (m_header.width * m_header.depth + 7) / 8;
     int16_t id          = 0;
-    read_bige<uint16_t>(compression);
-    if (!check_io())
+    if (!read_bige<uint16_t>(compression))
         return false;
 
     if (compression != Compression_Raw && compression != Compression_RLE) {
-        errorf("[Image Data Section] unsupported compression");
+        errorfmt("[Image Data Section] unsupported compression");
         return false;
     }
     m_image_data.channel_info.resize(m_header.channel_count);
@@ -1734,33 +1709,32 @@ PSDInput::load_image_data()
                 return false;
         }
     }
+    bool ok = true;
     for (ChannelInfo& channel_info : m_image_data.channel_info) {
         channel_info.row_pos.resize(m_header.height);
-        channel_info.data_pos   = m_file.tellg();
+        channel_info.data_pos   = iotell();
         channel_info.row_length = (m_header.width * m_header.depth + 7) / 8;
         switch (compression) {
         case Compression_Raw:
             channel_info.row_pos[0] = channel_info.data_pos;
             for (uint32_t i = 1; i < m_header.height; ++i)
                 channel_info.row_pos[i] = channel_info.row_pos[i - 1]
-                                          + (std::streampos)row_length;
+                                          + row_length;
 
-            m_file.seekg(channel_info.row_pos.back()
-                         + (std::streampos)row_length);
+            ok &= ioseek(channel_info.row_pos.back() + row_length);
             break;
         case Compression_RLE:
             channel_info.row_pos[0] = channel_info.data_pos;
             for (uint32_t i = 1; i < m_header.height; ++i)
-                channel_info.row_pos[i]
-                    = channel_info.row_pos[i - 1]
-                      + (std::streampos)channel_info.rle_lengths[i - 1];
+                channel_info.row_pos[i] = channel_info.row_pos[i - 1]
+                                          + channel_info.rle_lengths[i - 1];
 
-            m_file.seekg(channel_info.row_pos.back()
-                         + (std::streampos)channel_info.rle_lengths.back());
+            ok &= ioseek(channel_info.row_pos.back()
+                         + channel_info.rle_lengths.back());
             break;
         }
     }
-    return check_io();
+    return ok;
 }
 
 
@@ -1865,18 +1839,19 @@ PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
     if (row >= channel_info.row_pos.size())
         return false;
 
+    bool ok = true;
     uint32_t rle_length;
     channel_info.row_pos[row];
-    m_file.seekg(channel_info.row_pos[row]);
+    ok &= ioseek(channel_info.row_pos[row]);
     switch (channel_info.compression) {
-    case Compression_Raw: m_file.read(data, channel_info.row_length); break;
+    case Compression_Raw: ok &= ioread(data, channel_info.row_length); break;
     case Compression_RLE:
         rle_length = channel_info.rle_lengths[row];
         if (m_rle_buffer.size() < rle_length)
             m_rle_buffer.resize(rle_length);
 
-        m_file.read(&m_rle_buffer[0], rle_length);
-        if (!check_io())
+        ok &= ioread(&m_rle_buffer[0], rle_length);
+        if (!ok)
             return false;
 
         if (!decompress_packbits(&m_rle_buffer[0], data, rle_length,
@@ -1885,7 +1860,7 @@ PSDInput::read_channel_row(const ChannelInfo& channel_info, uint32_t row,
 
         break;
     }
-    if (!check_io())
+    if (!ok)
         return false;
 
     if (!bigendian()) {
@@ -1987,39 +1962,26 @@ PSDInput::set_type_desc()
 
 
 
-bool
-PSDInput::check_io()
-{
-    if (!m_file) {
-        errorf("\"%s\": I/O error", m_filename);
-        return false;
-    }
-    return true;
-}
-
-
-
 int
 PSDInput::read_pascal_string(std::string& s, uint16_t mod_padding)
 {
     s.clear();
     uint8_t length;
     int bytes = 0;
-    if (m_file.read((char*)&length, 1)) {
+    if (ioread((char*)&length, 1)) {
         bytes = 1;
         if (length == 0) {
-            if (m_file.seekg(mod_padding - 1, std::ios::cur))
+            if (ioseek(mod_padding - 1, SEEK_CUR))
                 bytes += mod_padding - 1;
         } else {
             s.resize(length);
-            if (m_file.read(&s[0], length)) {
+            if (ioread(&s[0], length)) {
                 bytes += length;
                 if (mod_padding > 0) {
                     for (int padded_length = length + 1;
                          padded_length % mod_padding != 0; padded_length++) {
-                        if (!m_file.seekg(1, std::ios::cur))
+                        if (!ioseek(1, SEEK_CUR))
                             break;
-
                         bytes++;
                     }
                 }
