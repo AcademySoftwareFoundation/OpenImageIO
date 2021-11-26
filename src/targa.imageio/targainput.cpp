@@ -39,7 +39,7 @@ public:
     virtual const char* format_name(void) const override { return "targa"; }
     virtual int supports(string_view feature) const override
     {
-        return (feature == "thumbnail");
+        return (feature == "thumbnail" || feature == "ioproxy");
     }
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
@@ -50,16 +50,15 @@ public:
     virtual bool get_thumbnail(ImageBuf& thumb, int subimage) override;
 
 private:
-    std::string m_filename;            ///< Stash the filename
-    FILE* m_file;                      ///< Open image handle
-    tga_header m_tga;                  ///< Targa header
-    tga_footer m_foot;                 ///< Targa 2.0 footer
-    tga_alpha_type m_alpha_type;       ///< Alpha type
-    int64_t m_ofs_thumb       = 0;     ///< Offset of thumbnail info
-    int64_t m_ofs_palette     = 0;     ///< Offset of palette
-    int64_t m_ofs_colcorr_tbl = 0;     ///< Offset to colour correction table
-    bool m_keep_unassociated_alpha;    ///< Do not convert unassociated alpha
-    std::vector<unsigned char> m_buf;  ///< Buffer the image pixels
+    std::string m_filename;          ///< Stash the filename
+    tga_header m_tga;                ///< Targa header
+    tga_footer m_foot;               ///< Targa 2.0 footer
+    tga_alpha_type m_alpha_type;     ///< Alpha type
+    int64_t m_ofs_thumb       = 0;   ///< Offset of thumbnail info
+    int64_t m_ofs_palette     = 0;   ///< Offset of palette
+    int64_t m_ofs_colcorr_tbl = 0;   ///< Offset to colour correction table
+    bool m_keep_unassociated_alpha;  ///< Do not convert unassociated alpha
+    std::unique_ptr<uint8_t> m_buf;  ///< Buffer the image pixels
 
     // Is this a palette image, i.e. it has a color map?
     bool is_palette() const { return m_tga.cmap_type != 0; }
@@ -68,13 +67,13 @@ private:
     ///
     void init()
     {
-        m_file = NULL;
-        m_buf.clear();
+        m_buf.reset();
         m_ofs_thumb               = 0;
         m_ofs_palette             = 0;
         m_ofs_colcorr_tbl         = 0;
         m_alpha_type              = TGA_ALPHA_NONE;
         m_keep_unassociated_alpha = false;
+        ioproxy_clear();
     }
 
     /// Helper function: read the image.
@@ -86,30 +85,16 @@ private:
                              unsigned char* palette, int bytespp,
                              int palbytespp);
 
-    // Helper: read items, with error detection. This does not do any
-    // byte swapping! Upon error, issue error messag and return false.
-    bool fread(void* buf, size_t itemsize, size_t nitems)
-    {
-        size_t n = ::fread(buf, itemsize, nitems, m_file);
-        if (n != nitems) {
-            if (feof(m_file))
-                errorfmt("Read error on \"{}\": hit end of file", m_filename);
-            else
-                errorfmt("Read error on \"{}\": could not read", m_filename);
-        }
-        return n == nitems;
-    }
+    // Read one byte
+    bool read(uint8_t& buf) { return ioread(&buf, sizeof(buf), 1); }
 
     // Read one byte
-    bool read(uint8_t& buf) { return fread(&buf, sizeof(buf), 1); }
-
-    // Read one byte
-    bool read(char& buf) { return fread(&buf, sizeof(buf), 1); }
+    bool read(char& buf) { return ioread(&buf, sizeof(buf), 1); }
 
     // Read a short, byte swap as necessary.
     bool read(uint16_t& buf)
     {
-        bool ok = fread(&buf, sizeof(buf), 1);
+        bool ok = ioread(&buf, sizeof(buf), 1);
         if (bigendian())  // TGAs are always little-endian
             swap_endian(&buf);
         return ok;
@@ -118,21 +103,10 @@ private:
     // Read an int, byte swap as necessary.
     bool read(uint32_t& buf)
     {
-        bool ok = fread(&buf, sizeof(buf), 1);
+        bool ok = ioread(&buf, sizeof(buf), 1);
         if (bigendian())  // TGAs are always little-endian
             swap_endian(&buf);
         return ok;
-    }
-
-    bool fseek(int64_t addr)
-    {
-        // Strutil::print("Seeking to {}\n", addr);
-        int r = Filesystem::fseek(m_file, addr, SEEK_SET);
-        if (r) {
-            errorfmt("Could not seek file \"{}\" to offset {}", m_filename,
-                     addr);
-        }
-        return (r == 0);
     }
 };
 
@@ -167,11 +141,9 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
     m_filename = name;
 
     DBG("TGA opening {}\n", name);
-    m_file = Filesystem::fopen(name, "rb");
-    if (!m_file) {
-        errorf("Could not open file \"%s\"", name);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
+    ioseek(0);
 
     // Due to struct packing, we may get a corrupt header if we just load the
     // struct from file; to address that, read every member individually save
@@ -267,27 +239,27 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         // in case the comment lacks null termination
         char id[256];
         memset(id, 0, sizeof(id));
-        if (!fread(id, m_tga.idlen, 1))
+        if (!ioread(id, m_tga.idlen, 1))
             return false;
         m_spec.attribute("targa:ImageID", id);
     }
 
-    int64_t ofs   = Filesystem::ftell(m_file);
+    int64_t ofs   = iotell();
     m_ofs_palette = ofs;
 
     // now try and see if it's a TGA 2.0 image
     // TGA 2.0 files are identified by a nifty "TRUEVISION-XFILE.\0" signature
-    if (Filesystem::fseek(m_file, -26, SEEK_END) != 0) {
+    if (!ioseek(-26, SEEK_END)) {
         errorfmt("Could not seek to find the TGA 2.0 signature.");
         return false;
     }
     if (read(m_foot.ofs_ext) && read(m_foot.ofs_dev)
-        && fread(&m_foot.signature, sizeof(m_foot.signature), 1)
+        && ioread(&m_foot.signature, sizeof(m_foot.signature), 1)
         && !strncmp(m_foot.signature, "TRUEVISION-XFILE.", 17)) {
         //std::cerr << "[tga] this is a TGA 2.0 file\n";
 
         // read the extension area
-        if (!fseek(m_foot.ofs_ext)) {
+        if (!ioseek(m_foot.ofs_ext)) {
             return false;
         }
         // check if this is a TGA 2.0 extension area
@@ -307,13 +279,13 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             } buf;
 
             // load image author
-            if (!fread(buf.c, 41, 1))
+            if (!ioread(buf.c, 41, 1))
                 return false;
             if (buf.c[0])
                 m_spec.attribute("Artist", (char*)buf.c);
 
             // load image comments
-            if (!fread(buf.c, 324, 1))
+            if (!ioread(buf.c, 324, 1))
                 return false;
 
             // concatenate the lines into a single string
@@ -334,7 +306,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
                 m_spec.attribute("ImageDescription", tmpstr);
 
             // timestamp
-            if (!fread(buf.s, 2, 6))
+            if (!ioread(buf.s, 2, 6))
                 return false;
             if (buf.s[0] || buf.s[1] || buf.s[2] || buf.s[3] || buf.s[4]
                 || buf.s[5]) {
@@ -347,13 +319,13 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             }
 
             // job name/ID
-            if (!fread(buf.c, 41, 1))
+            if (!ioread(buf.c, 41, 1))
                 return false;
             if (buf.c[0])
                 m_spec.attribute("DocumentName", (char*)buf.c);
 
             // job time
-            if (!fread(buf.s, 2, 3))
+            if (!ioread(buf.s, 2, 3))
                 return false;
             if (buf.s[0] || buf.s[1] || buf.s[2]) {
                 if (bigendian())
@@ -364,7 +336,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             }
 
             // software
-            if (!fread(buf.c, 41, 1))
+            if (!ioread(buf.c, 41, 1))
                 return false;
             if (buf.c[0]) {
                 // tack on the version number and letter
@@ -378,12 +350,12 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             }
 
             // background (key) colour
-            if (!fread(buf.c, 4, 1))
+            if (!ioread(buf.c, 4, 1))
                 return false;
             // FIXME: what do we do with it?
 
             // aspect ratio
-            if (!fread(buf.s, 2, 2))
+            if (!ioread(buf.s, 2, 2))
                 return false;
             // if the denominator is zero, it's unused
             if (buf.s[1]) {
@@ -394,7 +366,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             }
 
             // gamma
-            if (!fread(buf.s, 2, 2))
+            if (!ioread(buf.s, 2, 2))
                 return false;
             // if the denominator is zero, it's unused
             if (buf.s[1]) {
@@ -435,7 +407,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             // this table
 
             // alpha type
-            if (!fread(buf.c, 1, 1))
+            if (!ioread(buf.c, 1, 1))
                 return false;
             m_alpha_type = (tga_alpha_type)buf.c[0];
             if (m_alpha_type)
@@ -445,13 +417,15 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             // says its dimensions, but don't read and decode it unless
             // thumbnail() is called.
             if (m_ofs_thumb > 0) {
-                if (!fseek(m_ofs_thumb)) {
+                if (!ioseek(m_ofs_thumb)) {
                     return false;
                 }
                 // Read the thumbnail dimensions -- sometimes it's 0x0 to
                 // indicate no thumbnail.
                 unsigned char res[2];
-                if (fread(&res, 2, 1) && res[0] > 0 && res[1] > 0) {
+                if (!ioread(&res, 2, 1))
+                    return false;
+                if (res[0] > 0 && res[1] > 0) {
                     m_spec.attribute("thumbnail_width", (int)res[0]);
                     m_spec.attribute("thumbnail_height", (int)res[1]);
                     m_spec.attribute("thumbnail_nchannels", m_spec.nchannels);
@@ -468,7 +442,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             m_spec.attribute("oiio:UnassociatedAlpha", 1);
 
     // Reposition back to where the palette starts
-    if (!fseek(ofs)) {
+    if (!ioseek(ofs)) {
         return false;
     }
 
@@ -486,6 +460,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec,
     // Check 'config' for any special requests
     if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
         m_keep_unassociated_alpha = true;
+    ioproxy_retrieve_from_config(config);
     return open(name, newspec);
 }
 
@@ -499,16 +474,17 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
 
     lock_guard lock(*this);
     bool result         = false;
-    int64_t save_offset = Filesystem::ftell(m_file);
+    int64_t save_offset = iotell();
 
-    if (!fseek(m_ofs_thumb)) {
+    if (!ioseek(m_ofs_thumb))
         return false;
-    }
 
     // Read the thumbnail dimensions -- sometimes it's 0x0 to indicate no
     // thumbnail.
     unsigned char res[2];
-    if (fread(&res, 2, 1) && res[0] > 0 && res[1] > 0) {
+    if (!ioread(&res, 2, 1))
+        return false;
+    if (res[0] > 0 && res[1] > 0) {
         // Most of this code is a dupe of readimg(); according to the spec,
         // the thumbnail is in the same format as the main image but
         // uncompressed.
@@ -523,13 +499,13 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
         // read palette, if there is any
         std::unique_ptr<unsigned char[]> palette;
         if (is_palette()) {
-            if (!fseek(m_ofs_palette)) {
+            if (!ioseek(m_ofs_palette)) {
                 return false;
             }
             palette.reset(new unsigned char[palbytespp * m_tga.cmap_length]);
-            if (!fread(palette.get(), palbytespp, m_tga.cmap_length))
+            if (!ioread(palette.get(), palbytespp, m_tga.cmap_length))
                 return false;
-            if (!fseek(m_ofs_thumb + 2)) {
+            if (!ioseek(m_ofs_thumb + 2)) {
                 return false;
             }
         }
@@ -540,7 +516,7 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
             char* img = (char*)thumb.pixeladdr(0, y);
             for (int64_t x = 0; x < thumbspec.width;
                  x++, img += m_spec.nchannels) {
-                if (!fread(in, bytespp, 1))
+                if (!ioread(in, bytespp, 1))
                     return false;
                 decode_pixel(in, pixel, palette.get(), bytespp, palbytespp);
                 memcpy(img, pixel, m_spec.nchannels);
@@ -549,7 +525,7 @@ TGAInput::get_thumbnail(ImageBuf& thumb, int subimage)
         result = true;
     }
 
-    if (!fseek(save_offset)) {
+    if (!ioseek(save_offset)) {
         return false;
     }
     return result;
@@ -704,7 +680,7 @@ TGAInput::readimg()
         DBG("TGA {} allocating for {}x{} {}-chan image = {}\n", m_filename,
             m_spec.width, m_spec.height, m_spec.nchannels,
             m_spec.image_bytes());
-        m_buf.resize(m_spec.image_bytes());
+        m_buf.reset(new uint8_t[m_spec.image_bytes()]);
     } catch (const std::exception& e) {
         errorfmt("Cannot allocate enough memory for {}x{} {}-chan image {}",
                  m_spec.width, m_spec.height, m_spec.nchannels, m_filename);
@@ -715,7 +691,7 @@ TGAInput::readimg()
     std::unique_ptr<unsigned char> palette;
     if (is_palette()) {
         palette.reset(new unsigned char[palbytespp * m_tga.cmap_length]);
-        if (!fread(palette.get(), palbytespp, m_tga.cmap_length))
+        if (!ioread(palette.get(), palbytespp, m_tga.cmap_length))
             return false;
     }
 
@@ -725,11 +701,11 @@ TGAInput::readimg()
         unsigned char in[4];
         for (int64_t y = m_spec.height - 1; y >= 0; y--) {
             for (int64_t x = 0; x < m_spec.width; x++) {
-                if (!fread(in, bytespp, 1))
+                if (!ioread(in, bytespp, 1))
                     return false;
                 decode_pixel(in, pixel, palette.get(), bytespp, palbytespp);
-                memcpy(&m_buf[y * m_spec.width * m_spec.nchannels
-                              + x * m_spec.nchannels],
+                memcpy(m_buf.get() + y * m_spec.width * m_spec.nchannels
+                           + x * m_spec.nchannels,
                        pixel, m_spec.nchannels);
             }
         }
@@ -739,7 +715,7 @@ TGAInput::readimg()
         int packet_size;
         for (int64_t y = m_spec.height - 1; y >= 0; y--) {
             for (int64_t x = 0; x < m_spec.width; x++) {
-                if (!fread(in, 1 + bytespp, 1)) {
+                if (!ioread(in, 1 + bytespp, 1)) {
                     DBG("Failed on scanline {}\n", y);
                     return false;
                 }
@@ -749,8 +725,8 @@ TGAInput::readimg()
                     // std::cerr << "[tga] run length packet "
                     //           << packet_size << "\n";
                     for (int i = 0; i < packet_size; i++) {
-                        memcpy(&m_buf[y * m_spec.width * m_spec.nchannels
-                                      + x * m_spec.nchannels],
+                        memcpy(m_buf.get() + y * m_spec.width * m_spec.nchannels
+                                   + x * m_spec.nchannels,
                                pixel, m_spec.nchannels);
                         if (i < packet_size - 1) {
                             x++;
@@ -768,8 +744,8 @@ TGAInput::readimg()
                     // std::cerr << "[tga] non-run length packet "
                     //           << packet_size << "\n";
                     for (int i = 0; i < packet_size; i++) {
-                        memcpy(&m_buf[y * m_spec.width * m_spec.nchannels
-                                      + x * m_spec.nchannels],
+                        memcpy(m_buf.get() + y * m_spec.width * m_spec.nchannels
+                                   + x * m_spec.nchannels,
                                pixel, m_spec.nchannels);
                         if (i < packet_size - 1) {
                             x++;
@@ -782,7 +758,7 @@ TGAInput::readimg()
                                     goto loop_break;
                             }
                             // skip the packet header byte
-                            if (!fread(&in[1], bytespp, 1)) {
+                            if (!ioread(&in[1], bytespp, 1)) {
                                 DBG("Failed on scanline {}\n", y);
                                 return false;
                             }
@@ -806,8 +782,8 @@ TGAInput::readimg()
         std::vector<unsigned char> flip (m_spec.width * bytespp);
         unsigned char *src, *dst, *tmp = &flip[0];
         for (int y = 0; y < m_spec.height / 2; y++) {
-            src = &m_buf[(m_spec.height - y - 1) * m_spec.width * bytespp];
-            dst = &m_buf[y * m_spec.width * bytespp];
+            src = m_buf.get() + (m_spec.height - y - 1) * m_spec.width * bytespp;
+            dst = m_buf.get() + y * m_spec.width * bytespp;
 
             memcpy(tmp, src, m_spec.width * bytespp);
             memcpy(src, dst, m_spec.width * bytespp);
@@ -820,7 +796,7 @@ TGAInput::readimg()
         int nc             = m_spec.nchannels;
         int scanline_bytes = m_spec.width * m_spec.nchannels;
         for (int64_t y = 0; y < m_spec.height; y++) {
-            unsigned char* line = &m_buf[y * scanline_bytes];
+            unsigned char* line = m_buf.get() + y * scanline_bytes;
             for (int64_t x = 0; x < m_spec.width / 2; x++) {
                 unsigned char* src = line + x * m_spec.nchannels;
                 unsigned char* dst
@@ -838,7 +814,7 @@ TGAInput::readimg()
             int64_t size = m_spec.image_pixels();
             float gamma  = m_spec.get_float_attribute("oiio:Gamma", 1.0f);
 
-            associateAlpha((unsigned char*)m_buf.data(), size, m_spec.nchannels,
+            associateAlpha((unsigned char*)m_buf.get(), size, m_spec.nchannels,
                            m_spec.alpha_channel, gamma);
         }
     }
@@ -852,11 +828,6 @@ TGAInput::readimg()
 bool
 TGAInput::close()
 {
-    if (m_file) {
-        fclose(m_file);
-        m_file = NULL;
-    }
-
     init();  // Reset to initial state
     return true;
 }
@@ -871,7 +842,7 @@ TGAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (!seek_subimage(subimage, miplevel))
         return false;
 
-    if (m_buf.empty()) {
+    if (!m_buf) {
         if (!readimg()) {
             return false;
         }
@@ -880,7 +851,7 @@ TGAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (m_tga.attr & FLAG_Y_FLIP)
         y = m_spec.height - y - 1;
     size_t size = spec().scanline_bytes();
-    memcpy(data, m_buf.data() + y * size, size);
+    memcpy(data, m_buf.get() + y * size, size);
     return true;
 }
 
