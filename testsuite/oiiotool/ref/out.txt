@@ -249,6 +249,10 @@ Comparing "cmax1.exr" and "ref/cmax1.exr"
 PASS
 Comparing "cmax2.exr" and "ref/cmax2.exr"
 PASS
+Comparing "maxchan.tif" and "ref/maxchan.tif"
+PASS
+Comparing "minchan.tif" and "ref/minchan.tif"
+PASS
 Comparing "grid-clamped.tif" and "ref/grid-clamped.tif"
 PASS
 Comparing "bsplinekernel.exr" and "ref/bsplinekernel.exr"

@@ -2891,6 +2891,54 @@ Image arithmetic
     
 
 
+.. py:method:: ImageBuf ImageBufAlgo.max (A, B, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.max (dst, A, B, roi=ROI.All, nthreads=0)
+
+    Compute per-pixel, per-channel `max(A, B)`, returning the result image. At
+    least one of `A` and `B` must be an ImageBuf, the other may also be an
+    ImageBuf, or a `float` value (for all channels), or a tuple giving a
+    `float` for each color channel.
+
+    Example:
+
+    .. code-block:: python
+
+        # Make an image that for each pixel and channel, is the maximum
+        # value of that pixel and channel of A and B.
+        A = ImageBuf("a.exr")
+        B = ImageBuf("b.exr")
+        maximg = ImageBufAlgo.max (A, B)
+
+        # Do an in-place clamp image A so that all values are at least 0
+        # (thus ensuring that there are no negative values).
+        ImageBufAlgo.max (A, A, 0.0)
+
+
+
+.. py:method:: ImageBuf ImageBufAlgo.min (A, B, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.min (dst, A, B, roi=ROI.All, nthreads=0)
+
+    Compute per-pixel, per-channel `min(A, B)`, returning the result image. At
+    least one of `A` and `B` must be an ImageBuf, the other may also be an
+    ImageBuf, or a `float` value (for all channels), or a tuple giving a
+    `float` for each color channel.
+
+    Example:
+
+    .. code-block:: python
+
+        # Make an image that for each pixel and channel, is the minimum
+        # value of that pixel and channel of A and B.
+        A = ImageBuf("a.exr")
+        B = ImageBuf("b.exr")
+        minimg = ImageBufAlgo.min (A, B)
+
+        # Do an in-place clamp image A so that the maximum value of each pixel
+        # is 0.5 (except for alpha, which may be up to 1.0):
+        ImageBufAlgo.min (A, A, (0.5, 0.5, 0.5, 1.0))
+
+
+
 .. py:method:: ImageBuf ImageBufAlgo.clamp (src, min, max, bool clampalpha01=False,  roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.clamp (dst, src, min, max, bool clampalpha01=False,  roi=ROI.All, nthreads=0)
 
@@ -2907,6 +2955,37 @@ Image arithmetic
         # Clamp image buffer A in-place to the [0,1] range for all channels.
         ImageBufAlgo.clamp (A, A, 0.0, 1.0)
 
+
+.. py:method:: ImageBuf ImageBufAlgo.maxchan (src, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.maxchan (dst, src, roi=ROI.All, nthreads=0)
+
+    Return a one-channel image where each pixel has the maximum value found
+    in any of the channels of `src` in that corresponding pixel.
+
+    This function was added in OpenImageIO 2.3.10.
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf("rgb.exr")
+        max_of_rgb = ImageBufAlgo.maxchan (A)
+
+
+.. py:method:: ImageBuf ImageBufAlgo.minchan (src, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.minchan (dst, src, roi=ROI.All, nthreads=0)
+
+    Return a one-channel image where each pixel has the minimum value found
+    in any of the channels of `src` in that corresponding pixel.
+
+    This function was added in OpenImageIO 2.3.10.
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf("rgb.exr")
+        min_of_rgb = ImageBufAlgo.minchan (A)
 
 
 .. py:method:: ImageBuf ImageBufAlgo.rangecompress (src, useluma=False, roi=ROI.All, nthreads=0)
