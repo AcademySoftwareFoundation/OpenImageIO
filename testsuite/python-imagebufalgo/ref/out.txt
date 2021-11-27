@@ -126,6 +126,18 @@ Comparing "divc2.exr" and "../../../testsuite/oiiotool/ref/divc2.exr"
 PASS
 Comparing "invert.tif" and "../../../testsuite/oiiotool/ref/invert.tif"
 PASS
+Comparing "maximg.tif" and "ref/maximg.tif"
+PASS
+Comparing "maxval.tif" and "ref/maxval.tif"
+PASS
+Comparing "minimg.tif" and "ref/minimg.tif"
+PASS
+Comparing "minval.tif" and "ref/minval.tif"
+PASS
+Comparing "minchan.tif" and "../../../testsuite/oiiotool/ref/minchan.tif"
+PASS
+Comparing "maxchan.tif" and "../../../testsuite/oiiotool/ref/maxchan.tif"
+PASS
 Comparing "chsum.tif" and "../../../testsuite/oiiotool/ref/chsum.tif"
 PASS
 Comparing "colormap-inferno.tif" and "../../../testsuite/oiiotool-color/ref/colormap-inferno.tif"

@@ -52,6 +52,7 @@ set (libOpenImageIO_srcs
                           imagebufalgo_addsub.cpp
                           imagebufalgo_muldiv.cpp
                           imagebufalgo_mad.cpp
+                          imagebufalgo_minmaxchan.cpp
                           imagebufalgo_orient.cpp
                           imagebufalgo_xform.cpp
                           imagebufalgo_yee.cpp imagebufalgo_opencv.cpp

@@ -993,6 +993,25 @@ bool OIIO_API clamp (ImageBuf &dst, const ImageBuf &src,
                      bool clampalpha01 = false, ROI roi={}, int nthreads=0);
 
 
+/// @defgroup maxminchan (Maximum / minimum of channels)
+/// @{
+///
+/// `maxchan()` computes a one-channel image that for each pixel, contains the
+/// maximum value of all channels of corresponding pixel of the source image.
+/// `minchan()` similarly computes the minimum value of all channels.
+///
+/// @version 2.3.10
+
+ImageBuf OIIO_API maxchan (const ImageBuf& A, ROI roi={}, int nthreads=0);
+bool OIIO_API maxchan (ImageBuf &dst, const ImageBuf& A,
+                       ROI roi={}, int nthreads=0);
+
+ImageBuf OIIO_API minchan (const ImageBuf& src, ROI roi={}, int nthreads=0);
+bool OIIO_API minchan (ImageBuf &dst, const ImageBuf& src,
+                       ROI roi={}, int nthreads=0);
+/// @}
+
+
 /// Return pixel values that are a contrast-remap of the corresponding
 /// values of the `src` image, transforming pixel value domain [black,
 /// white] to range [min, max], either linearly or with optional application
