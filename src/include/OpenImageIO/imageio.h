@@ -1134,7 +1134,7 @@ public:
     ///   data type it is stored in the file into the `format` of the `data`
     ///   buffer.  If `format` is `TypeUnknown` it will just copy pixels of
     ///   file's native data layout (including, possibly, per-channel data
-    ///   formats as specified by the ImageSpec's `channelfomats` field).
+    ///   formats as specified by the ImageSpec's `channelformats` field).
     ///
     /// * The `stride` values describe the layout of the `data` buffer:
     ///   `xstride` is the distance in bytes between successive pixels
