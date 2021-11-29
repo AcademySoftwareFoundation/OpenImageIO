@@ -1,0 +1,6 @@
+Reading ../oiio-images/dds/sample-DXT1.dds
+../oiio-images/dds/sample-DXT1.dds :  123 x  456, 4 channel, uint8 dds
+    SHA-1: D6525DC91F2020FB05EF4997BA1A3738955F5B76
+    channel list: R, G, B, A
+    compression: "DXT1"
+    textureformat: "Plain Texture"
