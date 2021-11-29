@@ -1094,18 +1094,18 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
                     || iequals(inputrole, "linear")
                     || iequals(inputColorSpace, "lnf")
                     || iequals(inputColorSpace, "lnh"))
-                   && istarts_with(outputColorSpace, "GammaCorrected")) {
+                   && istarts_with(outputColorSpace, "Gamma")) {
             string_view gamstr = outputColorSpace;
-            Strutil::parse_prefix(gamstr, "GammaCorrected");
+            Strutil::parse_word(gamstr);
             float g = from_string<float>(gamstr);
             handle  = ColorProcessorHandle(new ColorProcessor_gamma(1.0f / g));
-        } else if (istarts_with(inputColorSpace, "GammaCorrected")
+        } else if (istarts_with(inputColorSpace, "Gamma")
                    && (iequals(outputColorSpace, "linear")
                        || iequals(outputrole, "linear")
                        || iequals(outputColorSpace, "lnf")
                        || iequals(outputColorSpace, "lnh"))) {
             string_view gamstr = inputColorSpace;
-            Strutil::parse_prefix(gamstr, "GammaCorrected");
+            Strutil::parse_word(gamstr);
             float g = from_string<float>(gamstr);
             handle  = ColorProcessorHandle(new ColorProcessor_gamma(g));
         }

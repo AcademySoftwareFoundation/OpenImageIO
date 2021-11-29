@@ -467,7 +467,7 @@ DPXOutput::prep_subimage(int s, bool allocate)
     std::string colorspace = m_spec.get_string_attribute("oiio:ColorSpace", "");
     if (Strutil::iequals(colorspace, "Linear"))
         m_transfer = dpx::kLinear;
-    else if (Strutil::iequals(colorspace, "GammaCorrected"))
+    else if (Strutil::istarts_with(colorspace, "Gamma"))
         m_transfer = dpx::kUserDefined;
     else if (Strutil::iequals(colorspace, "Rec709"))
         m_transfer = dpx::kITUR709;

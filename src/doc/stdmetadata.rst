@@ -144,7 +144,7 @@ Color information
     - `"ACES"` :  ACES color space encoding.
     - `"AdobeRGB"` :  Adobe RGB color space.
     - `"KodakLog"` :  Kodak logarithmic color space.
-    - `"GammaCorrectedX.Y"` :  Color values have been gamma corrected
+    - `"GammaX.Y"` :  Color values have been gamma corrected
       (raised to the power :math:`1/\gamma`). The `X.Y` is the numeric value
       of the gamma exponent.
     - *arbitrary* :  The name of any color space known to OpenColorIO (if
@@ -152,9 +152,9 @@ Color information
 
 .. option:: "oiio:Gamma" : float
 
-    If the color space is "GammaCorrectedX.Y", this value is the gamma
-    exponent. (Optional/deprecated; if present, it should match the suffix
-    of the color space.)
+    If the color space is "GammaX.Y", this value is the gamma exponent.
+    (Optional/deprecated; if present, it should match the suffix of the color
+    space.)
 
 .. option:: "oiio:BorderColor" : float[nchannels]
 

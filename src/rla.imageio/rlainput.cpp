@@ -399,7 +399,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
             m_spec.attribute("oiio:ColorSpace", "Linear");
         else {
             m_spec.attribute("oiio:ColorSpace",
-                             Strutil::sprintf("GammaCorrected%.2g", gamma));
+                             Strutil::sprintf("Gamma%.2g", gamma));
             m_spec.attribute("oiio:Gamma", gamma);
         }
     }
