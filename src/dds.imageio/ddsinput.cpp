@@ -454,15 +454,14 @@ DDSInput::seek_subimage(int subimage, int miplevel)
         tempstr += ((char*)&m_dds.fmt.fourCC)[3];
         m_spec.attribute("compression", tempstr);
     }
-    m_spec.attribute("oiio:BitsPerSample", m_dds.fmt.bpp);
+    if (m_dds.fmt.bpp)
+        m_spec.attribute("oiio:BitsPerSample", m_dds.fmt.bpp);
     m_spec.default_channel_names();
 
     // detect texture type
     if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {
-        m_spec.attribute("texturetype", "Volume Texture");
         m_spec.attribute("textureformat", "Volume Texture");
     } else if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP) {
-        m_spec.attribute("texturetype", "Environment");
         m_spec.attribute("textureformat", "CubeFace Environment");
         // check available cube map sides
         std::string sides = "";
@@ -495,7 +494,6 @@ DDSInput::seek_subimage(int subimage, int miplevel)
         }
         m_spec.attribute("dds:CubeMapSides", sides);
     } else {
-        m_spec.attribute("texturetype", "Plain Texture");
         m_spec.attribute("textureformat", "Plain Texture");
     }
 

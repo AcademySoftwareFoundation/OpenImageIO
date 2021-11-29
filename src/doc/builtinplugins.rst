@@ -129,10 +129,6 @@ OpenImageIO currently only supports reading DDS files, not writing them.
      - string
      - Set correctly to one of ``"Plain Texture"``, ``"Volume Texture"``, or
        ``"CubeFace Environment"``.
-   * - ``texturetype``
-     - string
-     - Set correctly to one of ``"Plain Texture"``, ``"Volume Texture"``,
-       or ``"Environment"``.
    * - ``dds:CubeMapSides``
      - string
      - For environment maps, which cube faces are present (e.g., ``"+x -x

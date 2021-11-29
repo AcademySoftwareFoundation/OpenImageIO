@@ -237,6 +237,9 @@ macro (oiio_add_all_tests)
     oiio_add_tests (dpx
                     ENABLEVAR ENABLE_DPX
                     IMAGEDIR oiio-images URL "Recent checkout of oiio-images")
+    oiio_add_tests (dds
+                    ENABLEVAR ENABLE_DDS
+                    IMAGEDIR oiio-images/dds URL "Recent checkout of oiio-images")
     oiio_add_tests (fits
                     ENABLEVAR ENABLE_FITS
                     IMAGEDIR fits-images
