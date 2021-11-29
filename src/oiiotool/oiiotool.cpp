@@ -4768,6 +4768,14 @@ prep_texture_config(ImageSpec& configspec, ParamValueList& fileoptions)
                          fileoptions.get_string("bumpformat", "auto"));
     configspec.attribute("maketx:uvslopes_scale",
                          fileoptions.get_float("uvslopes_scale", 0.0f));
+
+    // The default values here should match the initialized values
+    // in src/maketx/maketx.cpp
+    configspec.attribute("maketx:cdf", fileoptions.get_int("cdf"));
+    configspec.attribute("maketx:cdfbits", fileoptions.get_int("cdfbits", 8));
+    configspec.attribute("maketx:cdfsigma",
+                         fileoptions.get_float("cdfsigma", 1.0f / 6));
+
     // if (mipimages.size())
     //     configspec.attribute ("maketx:mipimages", Strutil::join(mipimages,";"));
 
