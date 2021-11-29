@@ -8,6 +8,7 @@
 
 #include <iostream>
 
+#include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
@@ -16,6 +17,30 @@
 #include <OpenImageIO/unittest.h>
 
 using namespace OIIO;
+
+
+static std::string onlyformat = Sysutil::getenv("IMAGEINOUTTEST_ONLY_FORMAT");
+static bool nodelete          = false;  // Don't delete the test files
+
+
+
+static void
+getargs(int argc, char* argv[])
+{
+    // clang-format off
+    ArgParse ap;
+    ap.intro("imageinout_test -- unit test and benchmarks for image formats\n"
+             OIIO_INTRO_STRING)
+      .usage("imageinout_test [options]");
+
+    ap.arg("--no-delete", &nodelete)
+      .help("Don't delete temporary test files");
+    ap.arg("--onlyformat %s:FORMAT", &onlyformat)
+      .help("Test only one format");
+
+    ap.parse_args(argc, (const char**)argv);
+    // clang-format on
+}
 
 
 
@@ -123,32 +148,49 @@ test_write_proxy(string_view formatname, string_view extension,
     bool ok = true;
     Sysutil::Term term(stdout);
 
-    // Use ImageOutput interface with a proxy
+    // Use ImageOutput.write_image interface to write to outproxy
     Filesystem::IOVecOutput outproxy;
-    // some formats store the filename in the header (i.e. dpx)
-    //std::string memname = Strutil::sprintf("mem.%s", extension);
     ok = checked_write(nullptr, disk_filename, buf.spec(), buf.spec().format,
                        buf.localpixels(), true, nullptr, &outproxy);
 
-    // Use ImageBuf write interface with a proxy
+    // Use ImageBuf.write interface to write to outproxybuf
     Filesystem::IOVecOutput outproxybuf;
     buf.set_write_ioproxy(&outproxybuf);
-    //buf.write(memname);
     buf.write(disk_filename);
 
-    // The in-memory vectors we wrote should match, byte-for-byte,
-    // the version we wrote to disk earlier.
+    if (nodelete) {
+        // Debugging -- dump the proxies to disk
+        Filesystem::write_binary_file(Strutil::fmt::format("outproxy.{}",
+                                                           extension),
+                                      outproxy.buffer());
+        Filesystem::write_binary_file(Strutil::fmt::format("outproxybuf.{}",
+                                                           extension),
+                                      outproxybuf.buffer());
+    }
+    // Now read back in the actual disk file we wrote earlier.
     uint64_t bytes_written = Filesystem::file_size(disk_filename);
     std::vector<unsigned char> readbuf(bytes_written);
     size_t bread = Filesystem::read_bytes(disk_filename, readbuf.data(),
                                           bytes_written);
 
+    // OK, now we have three vectors:
+    //   - readbuf contains the bytes we actually wrote to disk
+    //   - outproxy.buffer() contains the bytes we wrote to the proxy using
+    //     ImageOutput.write_image().
+    //   - outproxybuf.buffer() contains the bytes we wrote to the proxy using
+    //     ImageBuf.write().
+    // These should all match, byte-for-byte.
     ok = (bread == bytes_written && outproxy.buffer() == readbuf
           && outproxybuf.buffer() == readbuf);
     OIIO_CHECK_ASSERT(bread == bytes_written
                       && "Bytes read didn't match bytes written");
     OIIO_CHECK_ASSERT(outproxy.buffer() == readbuf
                       && "Write proxy via ImageOutput didn't match write file");
+    if (outproxy.buffer() != readbuf) {
+        Strutil::print("Write proxy via ImageBuf didn't match write file\n");
+        Strutil::print("Sizes outproxy {} vs readbuf {}\n",
+                       outproxy.buffer().size(), readbuf.size());
+    }
     OIIO_CHECK_ASSERT(outproxybuf.buffer() == readbuf
                       && "Write proxy via ImageBuf didn't match write file");
     if (ok)
@@ -265,6 +307,10 @@ test_all_formats()
         // Field3d very finicky. Skip for now. FIXME?
         if (formatname == "field3d")
             continue;
+
+        if (onlyformat.size() && formatname != onlyformat)
+            continue;
+
         auto extensions = Strutil::splitsv(fmtexts[1], ",");
         bool ok         = true;
 
@@ -329,7 +375,8 @@ test_all_formats()
         //
         test_write_unwritable(extensions[0], buf);
 
-        Filesystem::remove(filename);
+        if (!nodelete)
+            Filesystem::remove(filename);
     }
     std::cout << "\n";
 }
@@ -424,8 +471,10 @@ test_read_tricky_sizes()
 
 
 int
-main(int /*argc*/, char* /*argv*/[])
+main(int argc, char* argv[])
 {
+    getargs(argc, argv);
+
     test_all_formats();
     test_read_tricky_sizes();
 
