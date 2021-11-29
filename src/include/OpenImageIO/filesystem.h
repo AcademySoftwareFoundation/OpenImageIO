@@ -241,6 +241,24 @@ OIIO_UTIL_API bool read_text_file (string_view filename, std::string &str);
 /// success, false on failure.
 OIIO_UTIL_API bool write_text_file (string_view filename, string_view str);
 
+/// Write the entire contents of the span `data` to the file as a binary blob,
+/// overwriting any prior contents of the file (if it existed), returning true
+/// on success, false on failure.
+template<typename T>
+bool write_binary_file (string_view filename, cspan<T> data)
+{
+    OIIO::ofstream out;
+    Filesystem::open(out, filename, std::ios::out | std::ios::binary);
+    out.write((const char*)data.data(), data.size() * sizeof(T));
+    return out.good();
+}
+
+template<typename T>
+bool write_binary_file (string_view filename, const std::vector<T>& data)
+{
+    return write_binary_file(filename, cspan<T>(data));
+}
+
 /// Read a maximum of n bytes from the named file, starting at position pos
 /// (which defaults to the start of the file), storing results in
 /// buffer[0..n-1]. Return the number of bytes read, which will be n for
