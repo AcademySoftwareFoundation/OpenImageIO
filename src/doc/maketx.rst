@@ -462,6 +462,33 @@ Command-line arguments are:
 
    (This option was added for OpenImageIO 2.3.)
 
+.. option:: --cdf
+            --cdfsigma <SIGMA>
+            --cdfbits <BITS>
+
+   When `--cdf` is used, the output texture will write a Gaussian CDF and
+   Inverse Gaussian CDF as per-channel metadata in the texture, which can be
+   used by shaders to implement Histogram-Preserving Blending. This is only
+   useful when the texture being created is written to an image format that
+   supports arbitrary metadata (e.g. OpenEXR).
+
+   When `--cdf` has been enabled, the additional options `--cdfsigma` may be
+   used to specify the CDF sigma value (defaulting to 1.0/6.0), and
+   `--cdfbits` specifies the number of bits to use for the size of the CDF
+   table (defaulting to 8, which means 256 bins).
+   
+   References:
+
+   * Histogram-Preserving Blending for Randomized Texture Tiling," JCGT 8(4),
+     2019.
+   
+   * Heitz/Neyret, "High-Performance By-Example Noise using a
+     Histogram-Preserving Blending Operator," ACM SIGGRAPH / Eurographics
+     Symposium on High-Performance Graphics 2018.)
+
+   * Benedikt Bitterli https://benedikt-bitterli.me/histogram-tiling/
+
+   These options were first added in OpenImageIO 2.3.10.
 
 
 .. sec-oiiotooltex:

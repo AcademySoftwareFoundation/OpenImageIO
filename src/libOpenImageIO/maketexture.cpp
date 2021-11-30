@@ -1198,16 +1198,16 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         //
         // Eric Heitz and Fabrice Neyret, High-Performance By-Example Noise
         // using a Histogram-Preserving Blending Operator,
-        // https://hal.inria.fr/hal-01824773}, Proceedings of the ACM on
+        // https://hal.inria.fr/hal-01824773, Proceedings of the ACM on
         // Computer Graphics and Interactive Techniques, ACM SIGGRAPH /
-        // Eurographics Symposium on High-Performance Graphics 2018,
+        // Eurographics Symposium on High-Performance Graphics 2018.
         //
         // Benedikt Bitterli
         // https://benedikt-bitterli.me/histogram-tiling/
 
-        const float cdf_sigma = configspec.get_float_attribute(
-            "maketx:cdfsigma");
-        const int cdf_bits  = configspec.get_int_attribute("maketx:cdfbits");
+        const float cdf_sigma
+            = configspec.get_float_attribute("maketx:cdfsigma", 1.0f / 6.0f);
+        const int cdf_bits  = configspec.get_int_attribute("maketx:cdfbits", 8);
         const uint64_t bins = 1 << cdf_bits;
 
         // Normalization coefficient for the truncated normal distribution
