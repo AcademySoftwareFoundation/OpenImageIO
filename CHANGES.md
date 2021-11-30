@@ -1,3 +1,92 @@
+Release 2.3.10 (1 Dec 2021) -- compared to 2.3.9
+--------------------------------------------------
+New (non-compatibility-breaking) features:
+* TextureSystem: add feature for stochastic mipmap interpolation. This adds
+  new interpolation modes "StochasticTrilinear" and "StochasticAniso", which
+  in conjunction with the "rnd" field in TextureOpt, will stochastically
+  choose between bracketing MIPmap levels rather than interpolating them. This
+  reduces texture lookup cost by up to 40%, but it's only useful in the
+  context of a renderer that uses many samples per pixel. #3127
+* maketx/make_texture() now supports options to store Gaussian forward and
+  inverse transform lookup tables in image metadata (must be OpenEXR textures
+  for this to work) to aid writing shaders that use histogram-preserving
+  blending of texture tiling. This is controlled by new maketx arguments
+  `--cdf`, `--cdfsigma`, `--sdfbits`, or for `IBA::make_texture()` by using
+  hints `maketx:cdf`, `maketx:cdfsigma`, and `maketx:cdfbits`. #3159
+* `oiitool --oiioattrib` can set "global" OIIO control attributes for
+  an oiiotool run (equivalent of calling `OIIO::attribute()`). #3171
+* `oiiotool --repremult` exposes the previously existing `IBA::repremult()`.
+  The guidance here is that `--premult` should be used for one-time conversion
+  of "unassociated alpha/unpremultiplied color" to associated/premultiplied,
+  but when you are starting with a premultiplied image and have a sequence of
+  unpremultiply, doing some adjustment in unpremultiplied space, then
+  re-premultiplying, it's `--repremult` you want as the last step, because it
+  preserves alpha = 0, color > 0 data without crushing it to black. #3192
+* `oiiotool --saturate` and `IBA::saturate()` can adjust saturation level of a
+  color image. #3190
+* When building against OpenEXR >= 3.1.3, our OpenEXR output now supports
+  specifying the zip compression level (for example, by passing the
+  "compression" metadata as "zip:4"). Also note than when using OpenEXR >=
+  3.1.3, the default zip compression has been changed from 6 to 4, which
+  writes compressed files significantly (tens of percent) faster, but only
+  increases compressed file size by 1-2%. #3157
+* Improved image dithering facilities: When dithering is chosen, it now
+  happens any time you reduce >8 bits to <= 8 bits (not just when converting
+  from float or half); change the dither pattern from hashed to blue noise,
+  which looks MUCH better (beware slightly changed appearance); `IBA::noise()`
+  and `oiiotool --noise` now take "blue" as a noise name, giving a blue noise
+  pattern; `IBA::bluenoise_image()` returns a reference to a stored periodic
+  blue noise iamge; `oiiotool -d` now lets you ask for "uint6", "uint4",
+  "uint2", and "uint1" bit depths, for formats that support them. #3141
+* New global OIIO attribute `"try_all_readers"` can be set to 0 if you want to
+  override the default behavior and specifically NOT try any format readers
+  that don't match the file extension of an input image (usually, it will try
+  that one first, but it if fails to open the file, all known file readers
+  will be tried in case the file is just misnamed, but sometimes you don't
+  want it to do that). #3172
+* Raise the default ImageCache default tile cache from 256MB to 1GB. This
+  should improve performance for some operations involving large images or
+  images with many channels. #3180
+* IOProxy support has been added to JPEG output (already was supported for
+  JPEG input) and for GIF input and output. #3181 #3182
+* `oiiotool --maxchan` and `--minchan`, and `IBA::maxchan()` and `minchan()`
+  turn an N-channel image into a 1-channel images that for each pixel,
+  contains the maximum value in any channel of the original for that pixel.
+  #3198
+Bug fixes:
+* Fix `oiiotool --invert` to avoid losing the alpha channel values. #3191
+* Fix excessive memory usage when saving EXR files with many channels. #3176
+* WebP: Fix previous failure to properly set the "oiio:LoopCount" metadata
+  for animated webp images. #3183
+* Targa: Better detection/safety when reading corrupted files, and fixed
+  bug when reading x-flipped images. #3162
+* RLA: better guards against malformed input. #3163
+* Fix oiiotool bug when autocropping output images when the entire pixel data
+  window is in the negative coordinate region. #3164
+* oiiotool improved detection of file reading failures. #3165
+* DDS: Don't set "texturetype" metadata, it should always have been only
+  "textureformat". Also, add unit testing of DDS to the testsuite. #3200
+* When textures are created with the "monochrome-detect" feature enabled,
+  which turns RGB textures where all channels are always equal into true
+  single channel greyscale, the single channel that results is now correctly
+  named "Y" instead of leaving it as "R" (it's not red, it's luminance).
+  #3205
+Build fixes and developer goodies:
+* Update internal stb_printf implementation (avoids some sanitizer alerts).
+  #3160
+* Fixes for MSVS compile. #3168
+* Add Cuda host/device decorations to TypeDesc methods to make them GPU
+  friendly. #3188
+* TypeDesc: The constructor from a string now accepts "box2f" and "box3f"
+  as synonyms for "box2" and "box3", respectively. #3183
+* New Strutil::parse_values, scan_values, scan_datetime, parse_line. #3173
+  #3177
+* New `Filesystem::write_binary_file()` utility function. #3199
+* New build option `-DTIME_COMMANDS=ON` will print time to compile each module
+  (for investigating build performance; only useful when building with
+  `CMAKE_BUILD_PARALLEL_LEVEL=1`). #3194
+
+
 Release 2.3.9.1 (1 Nov 2021) -- compared to 2.3.8
 --------------------------------------------------
 * OpenEXR: When building against OpenEXR 3.1+ and when the global OIIO
