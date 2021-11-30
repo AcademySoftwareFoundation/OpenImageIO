@@ -1345,6 +1345,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                 << "  Monochrome image detected. Converting to single channel texture.\n";
         std::shared_ptr<ImageBuf> newsrc(new ImageBuf(src->spec()));
         ImageBufAlgo::channels(*newsrc, *src, 1, NULL, NULL, NULL, true);
+        newsrc->specmod().default_channel_names();
         std::swap(src, newsrc);
     }
 
