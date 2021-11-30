@@ -405,9 +405,11 @@ ROI OIIO_API text_size (string_view text, int fontsize=16,
 ///             `channelvalues[i]` rather than copy any channel from `src`.
 ///             If `channelorder` itself is empty, the implied channel order
 ///             will be `{0, 1, ..., nchannels-1}`, meaning that it's only
-///             renaming channels, not reordering them.
+///             renaming, truncating, or extending channels, not reordering
+///             the channels that are already present.
 /// @param  channelvalues Fill values for color channels in which
-///             `channelorder[i]` < 0.
+///             `channelorder[i]` < 0. This can be empty if no channels are
+///             to be filled with constant values.
 /// @param  newchannelnames
 ///             An array of new channel names. Channels for which this
 ///             specifies an empty string will have their name taken from
