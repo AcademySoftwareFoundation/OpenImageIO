@@ -1289,7 +1289,19 @@ Writing images
       `:bumpformat=` *string*
         For `-obump` only, specifies the interpretation of 3-channel source
         images as one of: `height`, `normal`, `auto` (default).
-
+      `:uvslopes_scale=` *float*
+        For `-obump` only, specifies the amount to scale the bump-map slopes
+        by. (default: 0.0, meaning not to use this feature)
+      `:cdf=` *int*
+        If nonzero, will add to the texture metadata the forward and inverse
+        Gaussian CDF, which can be used by shaders to implement
+        Histogram-Preserving blending. (default: 0)
+      `:cdfsigma=` *float*
+        In conjunction with `cdf=1`, specifies the sigma value to use for the
+        CDF (default: 1.0/6.0).
+      `:cdfbits=` *int*
+        In conjunction with `cdf=1`, specifies the number of bits to use for
+        the size of the CDF table (default: 8, meaning 256 bins).
 
     Examples::
 
