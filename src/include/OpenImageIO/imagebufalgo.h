@@ -2123,6 +2123,27 @@ enum MakeTextureMode {
 ///                           factor. The default is 0, disabling the
 ///                           feature. If you use this feature, a suggested
 ///                           value is 256.
+///    - `maketx:cdf` (int) :
+///                           If nonzero, will write a Gaussian CDF and
+///                           Inverse Gaussian CDF as per-channel metadata
+///                           in the texture, which can be used by shaders
+///                           to implement Histogram-Preserving Blending.
+///                           This is only useful when the texture being
+///                           created is written to an image format that
+///                           supports arbitrary metadata (e.g. OpenEXR).
+///                           (See Burley, "On Histogram-Preserving Blending
+///                           for Randomized Texture Tiling," JCGT 8(4), 2019,
+///                           and Heitz/Neyret, "High-Performance By-Example
+///                           Noise using a Histogram-Preserving Blending
+///                           Operator," ACM SIGGRAPH / Eurographics Symposium
+///                           on High-Performance Graphics 2018.) (default: 0)
+///    - `maketx:cdfsigma` (float) :
+///                           When `maketx:cdf` is active, determines the
+///                           CDF sigma (default: 1.0/6).
+///    - `maketx:cdfbits` (int) :
+///                           When `maketx:cdf` is active, determines the
+///                           number of bits to use for the size of the CDF
+///                           table. (default: 8, meaning 256 bins)
 ///
 /// @param  mode
 ///    Describes what type of texture file we are creating and may
