@@ -1,3 +1,7 @@
+Release 2.3.11 (1 Jan? 2022) -- compared to 2.3.10
+--------------------------------------------------
+
+
 Release 2.3.10.1 (7 Dec 2021) -- compared to 2.3.10.0
 -----------------------------------------------------
 * Build: restore code that finds Jasper when using statically-linked libraw.
@@ -34,6 +38,10 @@ New (non-compatibility-breaking) features:
   preserves alpha = 0, color > 0 data without crushing it to black. #3192
 * `oiiotool --saturate` and `IBA::saturate()` can adjust saturation level of a
   color image. #3190
+* `oiiotool --maxchan` and `--minchan`, and `IBA::maxchan()` and `minchan()`
+  turn an N-channel image into a 1-channel images that for each pixel,
+  contains the maximum value in any channel of the original for that pixel.
+  #3198
 * When building against OpenEXR >= 3.1.3, our OpenEXR output now supports
   specifying the zip compression level (for example, by passing the
   "compression" metadata as "zip:4"). Also note than when using OpenEXR >=
@@ -59,10 +67,6 @@ New (non-compatibility-breaking) features:
   images with many channels. #3180
 * IOProxy support has been added to JPEG output (already was supported for
   JPEG input) and for GIF input and output. #3181 #3182
-* `oiiotool --maxchan` and `--minchan`, and `IBA::maxchan()` and `minchan()`
-  turn an N-channel image into a 1-channel images that for each pixel,
-  contains the maximum value in any channel of the original for that pixel.
-  #3198
 Bug fixes:
 * Fix `oiiotool --invert` to avoid losing the alpha channel values. #3191
 * Fix excessive memory usage when saving EXR files with many channels. #3176
@@ -95,7 +99,6 @@ Build fixes and developer goodies:
 * New build option `-DTIME_COMMANDS=ON` will print time to compile each module
   (for investigating build performance; only useful when building with
   `CMAKE_BUILD_PARALLEL_LEVEL=1`). #3194
-
 
 Release 2.3.9.1 (1 Nov 2021) -- compared to 2.3.8
 --------------------------------------------------
