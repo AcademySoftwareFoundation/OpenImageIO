@@ -2085,7 +2085,7 @@ inline vint4 floori (const vfloat4& a) { return ifloor(a); }  // DEPRECATED(1.8)
 
 /// Per-element round to nearest integer.
 /// CAVEAT: the rounding when mid-way between integers may differ depending
-/// on hardware. Intel SSE/AVX does "banker's founding" (to nearest even
+/// on hardware. Intel SSE/AVX does "banker's rounding" (to nearest even
 /// integer) but std::round() says to round away from 0 regardless of
 /// current rounding mode (but that is multiple instructions on x64).
 /// USE WITH CAUTION, and maybe avoid this if it is critical to exactly
