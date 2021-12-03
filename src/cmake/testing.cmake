@@ -343,10 +343,14 @@ function (oiio_get_test_data name)
             if (NOT _ogtd_BRANCH)
                 set (_ogtd_BRANCH master)
             endif ()
-            find_package (Git REQUIRED)
-            execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth 1
-                                    ${_ogtd_REPO} -b ${_ogtd_BRANCH}
-                                    ${CMAKE_BINARY_DIR}/testsuite/${name})
+            find_package (Git)
+            if (Git_FOUND AND GIT_EXECUTABLE)
+                execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth 1
+                                        ${_ogtd_REPO} -b ${_ogtd_BRANCH}
+                                        ${CMAKE_BINARY_DIR}/testsuite/${name})
+            else ()
+                message (WARNING "Could not find Git executable, could not download test data from ${_ogtd_REPO}")
+            endif ()
         endif ()
     else ()
         message (STATUS "Missing test data ${name}")
