@@ -500,8 +500,6 @@ jobs:
       CXX: clang++
       PYTHON_VERSION: 3.8
       CMAKE_CXX_STANDARD: 14
-      ENABLE_OPENVDB: OFF
-      # No OpenVDB because on Homebrew, OpenVDB still uses OpenEXR 2.5
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp
@@ -549,8 +547,6 @@ jobs:
       CXX: clang++
       PYTHON_VERSION: 3.9
       CMAKE_CXX_STANDARD: 17
-      ENABLE_OPENVDB: OFF
-      # No OpenVDB because on Homebrew, OpenVDB still uses OpenEXR 2.5
     steps:
       - uses: actions/checkout@v2
       - name: Prepare ccache timestamp

@@ -79,11 +79,11 @@ if (OpenVDB_FOUND)
     set(OPENVDB_LIBRARIES ${OPENVDB_LIBRARY})
     set(OPENVDB_INCLUDES ${OPENVDB_INCLUDE_DIR})
 
-    if (NOT TARGET OpenVDB::OpenVDB)
-        add_library(OpenVDB::OpenVDB UNKNOWN IMPORTED)
-        set_target_properties(OpenVDB::OpenVDB PROPERTIES
+    if (NOT TARGET OpenVDB::openvdb)
+        add_library(OpenVDB::openvdb UNKNOWN IMPORTED)
+        set_target_properties(OpenVDB::openvdb PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${OPENVDB_INCLUDES}")
-        set_property(TARGET OpenVDB::OpenVDB APPEND PROPERTY
+        set_property(TARGET OpenVDB::openvdb APPEND PROPERTY
             IMPORTED_LOCATION "${OPENVDB_LIBRARIES}")
     endif ()
 endif ()
