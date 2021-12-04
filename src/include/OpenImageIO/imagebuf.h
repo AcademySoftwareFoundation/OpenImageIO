@@ -1183,59 +1183,31 @@ public:
 
     friend class IteratorBase;
 
+    /// Base class for Iterator and ConstIterator -- this contains all the
+    /// common functionality.
     class IteratorBase {
-    public:
-        IteratorBase(const ImageBuf& ib, WrapMode wrap)
-            : m_ib(&ib)
-        {
-            init_ib(wrap);
-            range_is_image();
-        }
+    protected:
+        OIIO_API IteratorBase(const ImageBuf& ib, WrapMode wrap,
+                              bool write = false);
+
+        OIIO_API IteratorBase(const ImageBuf& ib, int x, int y, int z,
+                              WrapMode wrap, bool write = false);
 
         /// Construct valid iteration region from ImageBuf and ROI.
-        IteratorBase(const ImageBuf& ib, const ROI& roi, WrapMode wrap)
-            : m_ib(&ib)
-        {
-            init_ib(wrap);
-            if (roi.defined()) {
-                m_rng_xbegin = roi.xbegin;
-                m_rng_xend   = roi.xend;
-                m_rng_ybegin = roi.ybegin;
-                m_rng_yend   = roi.yend;
-                m_rng_zbegin = roi.zbegin;
-                m_rng_zend   = roi.zend;
-            } else {
-                range_is_image();
-            }
-        }
+        OIIO_API IteratorBase(const ImageBuf& ib, const ROI& roi, WrapMode wrap,
+                              bool write = false);
 
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
-        IteratorBase(const ImageBuf& ib, int xbegin, int xend, int ybegin,
-                     int yend, int zbegin, int zend, WrapMode wrap)
-            : m_ib(&ib)
-        {
-            init_ib(wrap);
-            m_rng_xbegin = xbegin;
-            m_rng_xend   = xend;
-            m_rng_ybegin = ybegin;
-            m_rng_yend   = yend;
-            m_rng_zbegin = zbegin;
-            m_rng_zend   = zend;
-        }
+        OIIO_API IteratorBase(const ImageBuf& ib, int xbegin, int xend,
+                              int ybegin, int yend, int zbegin, int zend,
+                              WrapMode wrap, bool write = false);
 
-        IteratorBase(const IteratorBase& i)
-            : m_ib(i.m_ib)
-            , m_rng_xbegin(i.m_rng_xbegin)
-            , m_rng_xend(i.m_rng_xend)
-            , m_rng_ybegin(i.m_rng_ybegin)
-            , m_rng_yend(i.m_rng_yend)
-            , m_rng_zbegin(i.m_rng_zbegin)
-            , m_rng_zend(i.m_rng_zend)
-            , m_proxydata(i.m_proxydata)
-        {
-            init_ib(i.m_wrap);
-        }
+        /// Copy constructor
+        OIIO_API IteratorBase(const IteratorBase& i);
+
+        /// Assign one IteratorBase to another
+        OIIO_API const IteratorBase& operator=(const IteratorBase& i);
 
         ~IteratorBase()
         {
@@ -1243,33 +1215,12 @@ public:
                 release_tile();
         }
 
-        /// Assign one IteratorBase to another
-        ///
-        const IteratorBase& assign_base(const IteratorBase& i)
-        {
-            if (m_tile)
-                release_tile();
-            m_tile      = nullptr;
-            m_proxydata = i.m_proxydata;
-            m_ib        = i.m_ib;
-            init_ib(i.m_wrap);
-            m_rng_xbegin = i.m_rng_xbegin;
-            m_rng_xend   = i.m_rng_xend;
-            m_rng_ybegin = i.m_rng_ybegin;
-            m_rng_yend   = i.m_rng_yend;
-            m_rng_zbegin = i.m_rng_zbegin;
-            m_rng_zend   = i.m_rng_zend;
-            return *this;
-        }
-
+    public:
         /// Retrieve the current x location of the iterator.
-        ///
         int x() const { return m_x; }
         /// Retrieve the current y location of the iterator.
-        ///
         int y() const { return m_y; }
         /// Retrieve the current z location of the iterator.
-        ///
         int z() const { return m_z; }
 
         /// Is the current location within the designated iteration range?
@@ -1297,7 +1248,6 @@ public:
         bool exists() const { return m_exists; }
 
         /// Are we finished iterating over the region?
-        //
         bool done() const
         {
             // We're "done" if we are both invalid and in exactly the
@@ -1316,54 +1266,11 @@ public:
 
         /// Explicitly point the iterator.  This results in an invalid
         /// iterator if outside the previously-designated region.
-        void pos(int x_, int y_, int z_ = 0)
-        {
-            if (x_ == m_x + 1 && x_ < m_rng_xend && y_ == m_y && z_ == m_z
-                && m_valid && m_exists) {
-                // Special case for what is in effect just incrementing x
-                // within the iteration region.
-                m_x = x_;
-                pos_xincr();
-                // Not necessary? m_exists = (x_ < m_img_xend);
-                OIIO_DASSERT((x_ < m_img_xend) == m_exists);
-                return;
-            }
-            bool v = valid(x_, y_, z_);
-            bool e = exists(x_, y_, z_);
-            if (m_localpixels) {
-                if (e)
-                    m_proxydata = (char*)m_ib->pixeladdr(x_, y_, z_);
-                else {  // pixel not in data window
-                    m_x = x_;
-                    m_y = y_;
-                    m_z = z_;
-                    if (m_wrap == WrapBlack) {
-                        m_proxydata = (char*)m_ib->blackpixel();
-                    } else {
-                        if (m_ib->do_wrap(x_, y_, z_, m_wrap))
-                            m_proxydata = (char*)m_ib->pixeladdr(x_, y_, z_);
-                        else
-                            m_proxydata = (char*)m_ib->blackpixel();
-                    }
-                    m_valid  = v;
-                    m_exists = e;
-                    return;
-                }
-            } else if (!m_deep)
-                m_proxydata = (char*)m_ib->retile(x_, y_, z_, m_tile,
-                                                  m_tilexbegin, m_tileybegin,
-                                                  m_tilezbegin, m_tilexend, e,
-                                                  m_wrap);
-            m_x      = x_;
-            m_y      = y_;
-            m_z      = z_;
-            m_valid  = v;
-            m_exists = e;
-        }
+        void OIIO_API pos(int x_, int y_, int z_ = 0);
 
         /// Increment to the next pixel in the region.
         ///
-        OIIO_FORCEINLINE void operator++()
+        inline void operator++()
         {
             if (++m_x < m_rng_xend) {
                 // Special case: we only incremented x, didn't change y
@@ -1387,8 +1294,7 @@ public:
             pos(m_x, m_y, m_z);
         }
         /// Increment to the next pixel in the region.
-        ///
-        void operator++(int) { ++(*this); }
+        void OIIO_API operator++(int) { ++(*this); }
 
         /// Return the iteration range
         ROI range() const
@@ -1400,20 +1306,21 @@ public:
         /// Reset the iteration range for this iterator and reposition to
         /// the beginning of the range, but keep referring to the same
         /// image.
-        void rerange(int xbegin, int xend, int ybegin, int yend, int zbegin,
-                     int zend, WrapMode wrap = WrapDefault)
+        void OIIO_API rerange(int xbegin, int xend, int ybegin, int yend,
+                              int zbegin, int zend,
+                              WrapMode wrap = WrapDefault);
+
+        const void* rawptr() const { return m_proxydata; }
+
+        /// Retrieve the deep data value of sample s of channel c.
+        float deep_value(int c, int s) const
         {
-            m_x          = 1 << 31;
-            m_y          = 1 << 31;
-            m_z          = 1 << 31;
-            m_wrap       = (wrap == WrapDefault ? WrapBlack : wrap);
-            m_rng_xbegin = xbegin;
-            m_rng_xend   = xend;
-            m_rng_ybegin = ybegin;
-            m_rng_yend   = yend;
-            m_rng_zbegin = zbegin;
-            m_rng_zend   = zend;
-            pos(xbegin, ybegin, zbegin);
+            return m_ib->deep_value(m_x, m_y, m_z, c, s);
+        }
+
+        uint32_t deep_value_uint(int c, int s) const
+        {
+            return m_ib->deep_value_uint(m_x, m_y, m_z, c, s);
         }
 
     protected:
@@ -1440,64 +1347,26 @@ public:
 
         // Helper called by ctrs -- set up some locally cached values
         // that are copied or derived from the ImageBuf.
-        void init_ib(WrapMode wrap)
-        {
-            const ImageSpec& spec(m_ib->spec());
-            m_deep        = spec.deep;
-            m_localpixels = (m_ib->localpixels() != nullptr);
-            m_img_xbegin  = spec.x;
-            m_img_xend    = spec.x + spec.width;
-            m_img_ybegin  = spec.y;
-            m_img_yend    = spec.y + spec.height;
-            m_img_zbegin  = spec.z;
-            m_img_zend    = spec.z + spec.depth;
-            m_nchannels   = spec.nchannels;
-            //            m_tilewidth = spec.tile_width;
-            m_pixel_stride = m_ib->pixel_stride();
-            m_x            = 1 << 31;
-            m_y            = 1 << 31;
-            m_z            = 1 << 31;
-            m_wrap         = (wrap == WrapDefault ? WrapBlack : wrap);
-        }
+        void OIIO_API init_ib(WrapMode wrap, bool write);
 
         // Helper called by ctrs -- make the iteration range the full
         // image data window.
-        void range_is_image()
-        {
-            m_rng_xbegin = m_img_xbegin;
-            m_rng_xend   = m_img_xend;
-            m_rng_ybegin = m_img_ybegin;
-            m_rng_yend   = m_img_yend;
-            m_rng_zbegin = m_img_zbegin;
-            m_rng_zend   = m_img_zend;
-        }
+        void OIIO_API range_is_image();
 
         // Helper called by pos(), but ONLY for the case where we are
         // moving from an existing pixel to the next spot in +x.
         // Note: called *after* m_x was incremented!
-        OIIO_FORCEINLINE void pos_xincr()
+        inline void pos_xincr()
         {
             OIIO_DASSERT(m_exists && m_valid);   // precondition
             OIIO_DASSERT(valid(m_x, m_y, m_z));  // should be true by definition
-            m_proxydata += m_pixel_stride;
             if (m_localpixels) {
-                if (OIIO_UNLIKELY(m_x >= m_img_xend)) {
-                    // Ran off the end of the row
-                    m_exists = false;
-                    if (m_wrap == WrapBlack) {
-                        m_proxydata = (char*)m_ib->blackpixel();
-                    } else {
-                        int x = m_x, y = m_y, z = m_z;
-                        if (m_ib->do_wrap(x, y, z, m_wrap))
-                            m_proxydata = (char*)m_ib->pixeladdr(x, y, z);
-                        else
-                            m_proxydata = (char*)m_ib->blackpixel();
-                    }
-                }
-            } else if (m_deep) {
-                m_proxydata = nullptr;
-            } else {
+                m_proxydata += m_pixel_stride;
+                if (OIIO_UNLIKELY(m_x >= m_img_xend))
+                    pos_xincr_local_past_end();
+            } else if (!m_deep) {
                 // Cached image
+                m_proxydata += m_pixel_stride;
                 bool e = m_x < m_img_xend;
                 if (OIIO_UNLIKELY(!(e && m_x < m_tilexend && m_tile))) {
                     // Crossed a tile boundary
@@ -1511,26 +1380,11 @@ public:
             }
         }
 
-        // Set to the "done" position
-        void pos_done()
-        {
-            m_valid = false;
-            m_x     = m_rng_xbegin;
-            m_y     = m_rng_ybegin;
-            m_z     = m_rng_zend;
-        }
+        // Helper for pos_xincr for when we go off the end of the row
+        void OIIO_API pos_xincr_local_past_end();
 
-        // Make sure it's writable. Use with caution!
-        void make_writable()
-        {
-            if (!m_localpixels) {
-                const_cast<ImageBuf*>(m_ib)->make_writable(true);
-                OIIO_DASSERT(m_ib->storage() != IMAGECACHE);
-                m_tile      = nullptr;
-                m_proxydata = nullptr;
-                init_ib(m_wrap);
-            }
-        }
+        // Set to the "done" position
+        void OIIO_API pos_done();
 
         // Helper to release the IC tile held by m_tile. This is implemented
         // elsewhere to prevent imagebuf.h needing to know anything more
@@ -1562,64 +1416,37 @@ public:
         /// Construct from just an ImageBuf -- iterate over the whole
         /// region, starting with the upper left pixel of the region.
         Iterator(ImageBuf& ib, WrapMode wrap = WrapDefault)
-            : IteratorBase(ib, wrap)
+            : IteratorBase(ib, wrap, true)
         {
-            make_writable();
-            pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
-                || m_rng_zbegin == m_rng_zend)
-                pos_done();  // make empty range look "done"
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
         Iterator(ImageBuf& ib, int x, int y, int z = 0,
                  WrapMode wrap = WrapDefault)
-            : IteratorBase(ib, wrap)
+            : IteratorBase(ib, x, y, z, wrap, true)
         {
-            make_writable();
-            pos(x, y, z);
         }
         /// Construct read-write iteration region from ImageBuf and ROI.
         Iterator(ImageBuf& ib, const ROI& roi, WrapMode wrap = WrapDefault)
-            : IteratorBase(ib, roi, wrap)
+            : IteratorBase(ib, roi, wrap, true)
         {
-            make_writable();
-            pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
-                || m_rng_zbegin == m_rng_zend)
-                pos_done();  // make empty range look "done"
         }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
         Iterator(ImageBuf& ib, int xbegin, int xend, int ybegin, int yend,
                  int zbegin = 0, int zend = 1, WrapMode wrap = WrapDefault)
-            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap)
+            : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap,
+                           true)
         {
-            make_writable();
-            pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
-                || m_rng_zbegin == m_rng_zend)
-                pos_done();  // make empty range look "done"
         }
         /// Copy constructor.
         ///
         Iterator(Iterator& i)
-            : IteratorBase(i.m_ib, i.m_wrap)
+            : IteratorBase(i.m_ib, i.m_wrap, true)
         {
-            make_writable();
-            pos(i.m_x, i.m_y, i.m_z);
         }
 
         ~Iterator() {}
-
-        /// Assign one Iterator to another
-        ///
-        const Iterator& operator=(const Iterator& i)
-        {
-            assign_base(i);
-            pos(i.m_x, i.m_y, i.m_z);
-            return *this;
-        }
 
         /// Dereferencing the iterator gives us a proxy for the pixel,
         /// which we can index for reading or assignment.
@@ -1655,17 +1482,6 @@ public:
                                                                  n);
         }
 
-        /// Retrieve the deep data value of sample s of channel c.
-        USERT deep_value(int c, int s) const
-        {
-            return convert_type<float, USERT>(
-                m_ib->deep_value(m_x, m_y, m_z, c, s));
-        }
-        uint32_t deep_value_uint(int c, int s) const
-        {
-            return m_ib->deep_value_uint(m_x, m_y, m_z, c, s);
-        }
-
         /// Set the deep data value of sample s of channel c. (Only use this
         /// if deep_alloc() has been called.)
         void set_deep_value(int c, int s, float value)
@@ -1691,28 +1507,19 @@ public:
         ConstIterator(const ImageBuf& ib, WrapMode wrap = WrapDefault)
             : IteratorBase(ib, wrap)
         {
-            pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
-                || m_rng_zbegin == m_rng_zend)
-                pos_done();  // make empty range look "done"
         }
         /// Construct from an ImageBuf and a specific pixel index.
         /// The iteration range is the full image.
         ConstIterator(const ImageBuf& ib, int x_, int y_, int z_ = 0,
                       WrapMode wrap = WrapDefault)
-            : IteratorBase(ib, wrap)
+            : IteratorBase(ib, x_, y_, z_, wrap)
         {
-            pos(x_, y_, z_);
         }
         /// Construct read-only iteration region from ImageBuf and ROI.
         ConstIterator(const ImageBuf& ib, const ROI& roi,
                       WrapMode wrap = WrapDefault)
             : IteratorBase(ib, roi, wrap)
         {
-            pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
-                || m_rng_zbegin == m_rng_zend)
-                pos_done();  // make empty range look "done"
         }
         /// Construct from an ImageBuf and designated region -- iterate
         /// over region, starting with the upper left pixel.
@@ -1721,29 +1528,9 @@ public:
                       WrapMode wrap = WrapDefault)
             : IteratorBase(ib, xbegin, xend, ybegin, yend, zbegin, zend, wrap)
         {
-            pos(m_rng_xbegin, m_rng_ybegin, m_rng_zbegin);
-            if (m_rng_xbegin == m_rng_xend || m_rng_ybegin == m_rng_yend
-                || m_rng_zbegin == m_rng_zend)
-                pos_done();  // make empty range look "done"
-        }
-        /// Copy constructor.
-        ///
-        ConstIterator(const ConstIterator& i)
-            : IteratorBase(i)
-        {
-            pos(i.m_x, i.m_y, i.m_z);
         }
 
         ~ConstIterator() {}
-
-        /// Assign one ConstIterator to another
-        ///
-        const ConstIterator& operator=(const ConstIterator& i)
-        {
-            assign_base(i);
-            pos(i.m_x, i.m_y, i.m_z);
-            return *this;
-        }
 
         /// Dereferencing the iterator gives us a proxy for the pixel,
         /// which we can index for reading or assignment.
@@ -1758,19 +1545,6 @@ public:
         {
             ConstDataArrayProxy<BUFT, USERT> proxy((BUFT*)m_proxydata);
             return proxy[i];
-        }
-
-        const void* rawptr() const { return m_proxydata; }
-
-        /// Retrieve the deep data value of sample s of channel c.
-        USERT deep_value(int c, int s) const
-        {
-            return convert_type<float, USERT>(
-                m_ib->deep_value(m_x, m_y, m_z, c, s));
-        }
-        uint32_t deep_value_uint(int c, int s) const
-        {
-            return m_ib->deep_value_uint(m_x, m_y, m_z, c, s);
         }
     };
 
