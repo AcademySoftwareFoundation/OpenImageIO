@@ -768,28 +768,28 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE OUT_TYPE bit_cast (const IN_TYPE& in) {
     // about the memcpy in the general case.
     // FIXME: The intrinsics are not in clang <= 9 nor gcc <= 9.1. Check
     // future releases.
-    template<> OIIO_FORCEINLINE uint32_t bit_cast<float, uint32_t> (const float val) {
+    template<> OIIO_FORCEINLINE uint32_t bit_cast<float, uint32_t>(const float& val) {
           return static_cast<uint32_t>(_castf32_u32(val));
     }
-    template<> OIIO_FORCEINLINE int32_t bit_cast<float, int32_t> (const float val) {
+    template<> OIIO_FORCEINLINE int32_t bit_cast<float, int32_t>(const float& val) {
           return static_cast<int32_t>(_castf32_u32(val));
     }
-    template<> OIIO_FORCEINLINE float bit_cast<uint32_t, float> (const uint32_t val) {
+    template<> OIIO_FORCEINLINE float bit_cast<uint32_t, float>(const uint32_t& val) {
           return _castu32_f32(val);
     }
-    template<> OIIO_FORCEINLINE float bit_cast<int32_t, float> (const int32_t val) {
+    template<> OIIO_FORCEINLINE float bit_cast<int32_t, float>(const int32_t& val) {
           return _castu32_f32(val);
     }
-    template<> OIIO_FORCEINLINE uint64_t bit_cast<double, uint64_t> (const double val) {
+    template<> OIIO_FORCEINLINE uint64_t bit_cast<double, uint64_t>(const double& val) {
           return static_cast<uint64_t>(_castf64_u64(val));
     }
-    template<> OIIO_FORCEINLINE int64_t bit_cast<double, int64_t> (const double val) {
+    template<> OIIO_FORCEINLINE int64_t bit_cast<double, int64_t>(const double& val) {
           return static_cast<int64_t>(_castf64_u64(val));
     }
-    template<> OIIO_FORCEINLINE double bit_cast<uint64_t, double> (const uint64_t val) {
+    template<> OIIO_FORCEINLINE double bit_cast<uint64_t, double>(const uint64_t& val) {
           return _castu64_f64(val);
     }
-    template<> OIIO_FORCEINLINE double bit_cast<int64_t, double> (const int64_t val) {
+    template<> OIIO_FORCEINLINE double bit_cast<int64_t, double>(const int64_t& val) {
           return _castu64_f64(val);
     }
 #endif
