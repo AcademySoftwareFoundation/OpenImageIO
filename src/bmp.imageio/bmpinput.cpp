@@ -19,6 +19,10 @@ public:
     BmpInput() { init(); }
     virtual ~BmpInput() { close(); }
     virtual const char* format_name(void) const override { return "bmp"; }
+    int supports(string_view feature) const override
+    {
+        return feature == "ioproxy";
+    }
     virtual bool valid_file(const std::string& filename) const override;
     virtual bool open(const std::string& name, ImageSpec& newspec) override;
     virtual bool open(const std::string& name, ImageSpec& newspec,
@@ -30,7 +34,6 @@ public:
 private:
     int64_t m_padded_scanline_size;
     int m_pad_size;
-    FILE* m_fd;
     bmp_pvt::BmpFileHeader m_bmp_header;
     bmp_pvt::DibInformationHeader m_dib_header;
     std::string m_filename;
@@ -43,17 +46,19 @@ private:
     {
         m_padded_scanline_size = 0;
         m_pad_size             = 0;
-        m_fd                   = NULL;
         m_filename.clear();
         m_colortable.clear();
         m_allgray = false;
         fscanline.shrink_to_fit();
         m_uncompressed.shrink_to_fit();
+        ioproxy_clear();
     }
 
     bool read_color_table();
     bool color_table_is_all_gray();
     bool read_rle_image();
+
+    bool ioeof() { return size_t(ioproxy()->tell()) == ioproxy()->size(); }
 };
 
 
@@ -83,13 +88,9 @@ OIIO_PLUGIN_EXPORTS_END
 bool
 BmpInput::valid_file(const std::string& filename) const
 {
-    FILE* fd = Filesystem::fopen(filename, "rb");
-    if (!fd)
-        return false;
-    bmp_pvt::BmpFileHeader bmp_header;
-    bool ok = bmp_header.read_header(fd) && bmp_header.isBmp();
-    fclose(fd);
-    return ok;
+    bmp_pvt::BmpFileHeader header;
+    Filesystem::IOFile file(filename, Filesystem::IOProxy::Read);
+    return file.opened() && header.read_header(&file) && header.isBmp();
 }
 
 
@@ -117,26 +118,24 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     // this behavior off.
     bool monodetect = config["bmp:monochrome_detect"].get<int>(1);
 
-    m_fd = Filesystem::fopen(m_filename, "rb");
-    if (!m_fd) {
-        errorf("Could not open file \"%s\"", name);
+    ioproxy_retrieve_from_config(config);
+    if (!ioproxy_use_or_open(name))
         return false;
-    }
+    ioseek(0);
 
     // we read header of the file that we think is BMP file
-    if (!m_bmp_header.read_header(m_fd)) {
-        errorf("\"%s\": wrong bmp header size", m_filename);
+    if (!m_bmp_header.read_header(ioproxy())) {
+        errorfmt("\"{}\": wrong bmp header size", name);
         close();
         return false;
     }
     if (!m_bmp_header.isBmp()) {
-        errorf("\"%s\" is not a BMP file, magic number doesn't match",
-               m_filename);
+        errorfmt("\"{}\" is not a BMP file, magic number doesn't match", name);
         close();
         return false;
     }
-    if (!m_dib_header.read_header(m_fd)) {
-        errorf("\"%s\": wrong bitmap header size", m_filename);
+    if (!m_dib_header.read_header(ioproxy())) {
+        errorfmt("\"{}\": wrong bitmap header size", name);
         close();
         return false;
     }
@@ -222,16 +221,16 @@ bool
 BmpInput::read_rle_image()
 {
     int rletype = m_dib_header.compression == RLE4_COMPRESSION ? 4 : 8;
-    m_spec.attribute("bmp:compression", rletype == 4 ? "rle4" : "rle8");
+    m_spec.attribute("compression", rletype == 4 ? "rle4" : "rle8");
     m_uncompressed.clear();
     m_uncompressed.resize(m_spec.height * m_spec.width);
     // Note: the clear+resize zeroes out the buffer
-    bool err = false;
+    bool ok = true;
     int y = 0, x = 0;
-    while (!err && !feof(m_fd)) {
+    while (ok) {
         unsigned char rle_pair[2];
-        if (fread(rle_pair, 1, 2, m_fd) != 2) {
-            err = true;
+        if (!ioread(rle_pair, 2)) {
+            ok = false;
             break;
         }
         int npixels = rle_pair[0];
@@ -247,7 +246,7 @@ BmpInput::read_rle_image()
             // [0,2] is a "delta" -- two more bytes reposition the
             // current pixel position that we're reading.
             unsigned char offset[2];
-            err |= (fread(offset, 1, 2, m_fd) != 2);
+            ok &= ioread(offset, 2);
             x += offset[0];
             y += offset[1];
         } else if (npixels == 0) {
@@ -259,7 +258,7 @@ BmpInput::read_rle_image()
                               ? round_to_multiple((npixels + 1) / 2, 2)
                               : round_to_multiple(npixels, 2);
             unsigned char absolute[256];
-            err |= (fread(absolute, 1, nbytes, m_fd) != size_t(nbytes));
+            ok &= ioread(absolute, nbytes);
             for (int i = 0; i < npixels; ++i, ++x) {
                 if (rletype == 4)
                     value = (i & 1) ? (absolute[i / 2] & 0x0f)
@@ -282,7 +281,7 @@ BmpInput::read_rle_image()
             }
         }
     }
-    return !err;
+    return ok;
 }
 
 
@@ -317,13 +316,8 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     const int64_t scanline_off = y * m_padded_scanline_size;
 
     fscanline.resize(m_padded_scanline_size);
-    Filesystem::fseek(m_fd, m_bmp_header.offset + scanline_off, SEEK_SET);
-    size_t n = fread(fscanline.data(), 1, m_padded_scanline_size, m_fd);
-    if (n != (size_t)m_padded_scanline_size) {
-        if (feof(m_fd))
-            errorf("Hit end of file unexpectedly");
-        else
-            errorf("read error");
+    ioseek(m_bmp_header.offset + scanline_off);
+    if (!ioread(fscanline.data(), m_padded_scanline_size)) {
         return false;  // Read failed
     }
 
@@ -397,12 +391,9 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
 
 
-bool inline BmpInput::close(void)
+bool
+BmpInput::close(void)
 {
-    if (m_fd) {
-        fclose(m_fd);
-        m_fd = NULL;
-    }
     init();
     return true;
 }
@@ -418,7 +409,7 @@ BmpInput::read_color_table(void)
     // m_dib_header.cpalete entries
     if (m_dib_header.cpalete < 0
         || m_dib_header.cpalete > (1 << m_dib_header.bpp)) {
-        errorf("Possible corrupted header, invalid palette size");
+        errorfmt("Possible corrupted header, invalid palette size");
         return false;
     }
     const int32_t colors = (m_dib_header.cpalete) ? m_dib_header.cpalete
@@ -429,19 +420,20 @@ BmpInput::read_color_table(void)
         entry_size = 3;
     m_colortable.resize(colors);
     for (int i = 0; i < colors; i++) {
-        size_t n = fread(&m_colortable[i], 1, entry_size, m_fd);
-        if (n != entry_size) {
-            if (feof(m_fd))
+        if (!ioread(&m_colortable[i], entry_size)) {
+            if (ioeof())
                 errorfmt(
-                    "Hit end of file unexpectedly while reading color table on color {}/{} (read {}, expected {})",
-                    i, colors, n, entry_size);
+                    "Hit end of file unexpectedly while reading color table on color {}/{})",
+                    i, colors);
             else
-                errorf("read error while reading color table");
+                errorfmt("read error while reading color table");
             return false;  // Read failed
         }
     }
     return true;  // ok
 }
+
+
 
 bool
 BmpInput::color_table_is_all_gray(void)
